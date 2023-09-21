@@ -138,34 +138,30 @@ export class LogsCommand extends Command<Args, Opts> {
           return tagGroup.split(",").map((t: string) => {
             const parsed = Object.entries(dotenv.parse(t))[0]
             if (!parsed) {
-              throw new ParameterError({ message: parameterErrorMsg, detail: { tags: tag } })
+              throw new ParameterError({ message: `${parameterErrorMsg}. Got: '${tag}'` })
             }
             return parsed
           })
         })
       } catch {
-        throw new ParameterError({ message: parameterErrorMsg, detail: { tags: tag } })
+        throw new ParameterError({ message: `${parameterErrorMsg}. Got: '${tag}'` })
       }
     }
 
     const graph = await garden.getConfigGraph({ log, emit: false })
     const allDeploys = graph.getDeploys()
     const actions = args.names ? allDeploys.filter((s) => args.names?.includes(s.name)) : allDeploys
-    const allDeployNames = allDeploys
-      .map((s) => s.name)
-      .filter(Boolean)
-      .sort()
 
     if (actions.length === 0) {
       let msg: string
       if (args.names) {
         msg = `Deploy(s) ${naturalList(args.names.map((s) => `"${s}"`))} not found. Available Deploys: ${naturalList(
-          allDeploys.map((s) => `"${s.name}"`)
+          allDeploys.map((s) => `"${s.name}"`).sort()
         )}.`
       } else {
         msg = "No Deploys found in project."
       }
-      throw new CommandError({ message: msg, detail: { args, opts, availableDeploys: allDeployNames } })
+      throw new CommandError({ message: msg })
     }
 
     let details: string = ""

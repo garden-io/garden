@@ -96,7 +96,7 @@ build:
     # The duration of the action's execution in msec, if applicable.
     durationMsec:
 
-    # Whether the action was succeessfully executed.
+    # Whether the action was successfully executed.
     success:
 
     # An error message, if the action's execution failed.
@@ -133,7 +133,7 @@ build:
     # The duration of the action's execution in msec, if applicable.
     durationMsec:
 
-    # Whether the action was succeessfully executed.
+    # Whether the action was successfully executed.
     success:
 
     # An error message, if the action's execution failed.
@@ -222,7 +222,7 @@ deploy:
     # The duration of the action's execution in msec, if applicable.
     durationMsec:
 
-    # Whether the action was succeessfully executed.
+    # Whether the action was successfully executed.
     success:
 
     # An error message, if the action's execution failed.
@@ -309,7 +309,7 @@ deploy:
     # The duration of the action's execution in msec, if applicable.
     durationMsec:
 
-    # Whether the action was succeessfully executed.
+    # Whether the action was successfully executed.
     success:
 
     # An error message, if the action's execution failed.
@@ -633,7 +633,7 @@ Examples:
 **Create a new Garden project.**
 
 Creates a new Garden project configuration. The generated config includes some default values, as well as the
-schema of the config in the form of commentented-out fields. Also creates a default (blank) .gardenignore file
+schema of the config in the form of commented-out fields. Also creates a default (blank) .gardenignore file
 in the same path.
 
 Examples:
@@ -655,35 +655,6 @@ Examples:
   | `--filename` |  | string | Filename to place the project config in (defaults to project.garden.yml).
   | `--interactive` |  | boolean | Set to false to disable interactive prompts.
   | `--name` |  | string | Name of the project (defaults to current directory name).
-
-
-### garden create module
-
-**Create a new Garden module.**
-
-Creates a new Garden module configuration. The generated config includes some default values, as well as the
-schema of the config in the form of commentented-out fields.
-
-Examples:
-
-    garden create module                      # create a Garden module config in the current directory
-    garden create module --dir some-dir       # create a Garden module config in the ./some-dir directory
-    garden create module --name my-module     # set the module name to my-module
-    garden create module --interactive=false  # don't prompt for user inputs when creating the module
-
-#### Usage
-
-    garden create module [options]
-
-#### Options
-
-| Argument | Alias | Type | Description |
-| -------- | ----- | ---- | ----------- |
-  | `--dir` |  | path | Directory to place the module in (defaults to current directory).
-  | `--filename` |  | string | Filename to place the module config in (defaults to garden.yml).
-  | `--interactive` |  | boolean | Set to false to disable interactive prompts.
-  | `--name` |  | string | Name of the module (defaults to current directory name).
-  | `--type` |  | string | The module type to create. Required if --interactive&#x3D;false.
 
 
 ### garden cleanup namespace
@@ -1032,7 +1003,7 @@ build:
     # The duration of the action's execution in msec, if applicable.
     durationMsec:
 
-    # Whether the action was succeessfully executed.
+    # Whether the action was successfully executed.
     success:
 
     # An error message, if the action's execution failed.
@@ -1069,7 +1040,7 @@ build:
     # The duration of the action's execution in msec, if applicable.
     durationMsec:
 
-    # Whether the action was succeessfully executed.
+    # Whether the action was successfully executed.
     success:
 
     # An error message, if the action's execution failed.
@@ -1158,7 +1129,7 @@ deploy:
     # The duration of the action's execution in msec, if applicable.
     durationMsec:
 
-    # Whether the action was succeessfully executed.
+    # Whether the action was successfully executed.
     success:
 
     # An error message, if the action's execution failed.
@@ -1245,7 +1216,7 @@ deploy:
     # The duration of the action's execution in msec, if applicable.
     durationMsec:
 
-    # Whether the action was succeessfully executed.
+    # Whether the action was successfully executed.
     success:
 
     # An error message, if the action's execution failed.
@@ -3921,7 +3892,7 @@ sources:
 
 After linking a remote module, Garden will read the source from the module's local directory instead of from
 the remote URL. Garden can only link modules that have a remote source,
-i.e. modules that specifiy a `repositoryUrl` in their `garden.yml` config file.
+i.e. modules that specify a `repositoryUrl` in their `garden.yml` config file.
 
 Examples:
 
@@ -4140,7 +4111,7 @@ build:
     # The duration of the action's execution in msec, if applicable.
     durationMsec:
 
-    # Whether the action was succeessfully executed.
+    # Whether the action was successfully executed.
     success:
 
     # An error message, if the action's execution failed.
@@ -4177,7 +4148,7 @@ build:
     # The duration of the action's execution in msec, if applicable.
     durationMsec:
 
-    # Whether the action was succeessfully executed.
+    # Whether the action was successfully executed.
     success:
 
     # An error message, if the action's execution failed.
@@ -4266,7 +4237,7 @@ deploy:
     # The duration of the action's execution in msec, if applicable.
     durationMsec:
 
-    # Whether the action was succeessfully executed.
+    # Whether the action was successfully executed.
     success:
 
     # An error message, if the action's execution failed.
@@ -4353,7 +4324,7 @@ deploy:
     # The duration of the action's execution in msec, if applicable.
     durationMsec:
 
-    # Whether the action was succeessfully executed.
+    # Whether the action was successfully executed.
     success:
 
     # An error message, if the action's execution failed.
@@ -4465,7 +4436,7 @@ published:
     # The duration of the action's execution in msec, if applicable.
     durationMsec:
 
-    # Whether the action was succeessfully executed.
+    # Whether the action was successfully executed.
     success:
 
     # An error message, if the action's execution failed.
@@ -4550,7 +4521,7 @@ build:
     # The duration of the action's execution in msec, if applicable.
     durationMsec:
 
-    # Whether the action was succeessfully executed.
+    # Whether the action was successfully executed.
     success:
 
     # An error message, if the action's execution failed.
@@ -4587,7 +4558,7 @@ build:
     # The duration of the action's execution in msec, if applicable.
     durationMsec:
 
-    # Whether the action was succeessfully executed.
+    # Whether the action was successfully executed.
     success:
 
     # An error message, if the action's execution failed.
@@ -4676,7 +4647,7 @@ deploy:
     # The duration of the action's execution in msec, if applicable.
     durationMsec:
 
-    # Whether the action was succeessfully executed.
+    # Whether the action was successfully executed.
     success:
 
     # An error message, if the action's execution failed.
@@ -4763,7 +4734,7 @@ deploy:
     # The duration of the action's execution in msec, if applicable.
     durationMsec:
 
-    # Whether the action was succeessfully executed.
+    # Whether the action was successfully executed.
     success:
 
     # An error message, if the action's execution failed.
@@ -5141,7 +5112,7 @@ build:
     # The duration of the action's execution in msec, if applicable.
     durationMsec:
 
-    # Whether the action was succeessfully executed.
+    # Whether the action was successfully executed.
     success:
 
     # An error message, if the action's execution failed.
@@ -5178,7 +5149,7 @@ build:
     # The duration of the action's execution in msec, if applicable.
     durationMsec:
 
-    # Whether the action was succeessfully executed.
+    # Whether the action was successfully executed.
     success:
 
     # An error message, if the action's execution failed.
@@ -5267,7 +5238,7 @@ deploy:
     # The duration of the action's execution in msec, if applicable.
     durationMsec:
 
-    # Whether the action was succeessfully executed.
+    # Whether the action was successfully executed.
     success:
 
     # An error message, if the action's execution failed.
@@ -5354,7 +5325,7 @@ deploy:
     # The duration of the action's execution in msec, if applicable.
     durationMsec:
 
-    # Whether the action was succeessfully executed.
+    # Whether the action was successfully executed.
     success:
 
     # An error message, if the action's execution failed.

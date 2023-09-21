@@ -18,7 +18,7 @@ import { join } from "path"
 import respawn from "respawn"
 import split2 from "split2"
 import { GARDEN_GLOBAL_PATH, MUTAGEN_DIR_NAME } from "./constants"
-import { GardenBaseError } from "./exceptions"
+import { ChildProcessError, GardenError } from "./exceptions"
 import pMemoize from "./lib/p-memoize"
 import { Log } from "./logger/log-entry"
 import { PluginContext } from "./plugin-context"
@@ -128,7 +128,7 @@ interface ActiveSync {
   mutagenParameters: string[]
 }
 
-export class MutagenError extends GardenBaseError {
+export class MutagenError extends GardenError {
   type = "mutagen"
 }
 
@@ -476,7 +476,7 @@ export class Mutagen {
         params.push("--default-directory-mode", modeToString(defaultDirectoryMode))
       }
 
-      const active = await this.getActiveSyncSessions(log)
+      const active = await this.getActiveSyncSessions()
       let existing = active.find((s) => s.name === key)
 
       if (existing) {
@@ -528,6 +528,9 @@ export class Mutagen {
       delete this.activeSyncs[key]
       log.debug(`Mutagen sync ${key} terminated.`)
     } catch (err) {
+      if (!(err instanceof ChildProcessError)) {
+        throw err
+      }
       // Ignore other errors, which should mean the sync wasn't found
       if (err.message.includes("unable to connect to daemon")) {
         throw err
@@ -563,13 +566,13 @@ export class Mutagen {
    * Ensure all active syncs are completed.
    */
   async flushAllSyncs(log: Log) {
-    const active = await this.getActiveSyncSessions(log)
+    const active = await this.getActiveSyncSessions()
     await Promise.all(
       active.map(async (session) => {
         try {
           await this.flushSync(session.name)
         } catch (err) {
-          log.warn(chalk.yellow(`Failed to flush sync '${session.name}: ${err.message}`))
+          log.warn(chalk.yellow(`Failed to flush sync '${session.name}: ${err}`))
         }
       })
     )
@@ -578,7 +581,7 @@ export class Mutagen {
   /**
    * List all Mutagen sync sessions.
    */
-  async getActiveSyncSessions(log: Log): Promise<SyncSession[]> {
+  async getActiveSyncSessions(): Promise<SyncSession[]> {
     const res = await this.execCommand(["sync", "list", "--template={{ json . }}"])
     return parseSyncListResult(res)
   }
@@ -634,6 +637,9 @@ export class Mutagen {
           env: getMutagenEnv(this.dataDir),
         })
       } catch (err) {
+        if (!(err instanceof ChildProcessError)) {
+          throw err
+        }
         const unableToConnect = err.message.match(/unable to connect to daemon/)
         if (unableToConnect && loops < 10) {
           loops += 1
@@ -818,15 +824,23 @@ export function parseSyncListResult(res: ExecaReturnValue): SyncSession[] {
     parsed = JSON.parse(res.stdout)
   } catch (err) {
     throw new MutagenError({
-      message: `Could not parse response from mutagen sync list: ${res.stdout}`,
-      detail: { res },
+      message: dedent`
+        Could not parse response from mutagen sync list: ${res.stdout}
+
+        Full output:
+        ${res.all}
+        `,
     })
   }
 
   if (!Array.isArray(parsed)) {
     throw new MutagenError({
-      message: `Unexpected response from mutagen sync list: ${parsed}`,
-      detail: { res, parsed },
+      message: dedent`
+        Unexpected response from mutagen sync list: ${parsed}. Got: ${typeof parsed}
+
+        Full output:
+        ${res.all}
+        `,
     })
   }
 

@@ -8,10 +8,7 @@
 
 import { ModuleActionHandlers } from "../../../plugin/plugin"
 import { HelmModule, configureHelmModule, HelmService } from "./module-config"
-import { join } from "path"
-import { pathExists } from "fs-extra"
-import chalk = require("chalk")
-import { getBaseModule, helmChartYamlFilename } from "./common"
+import { getBaseModule } from "./common"
 import { ExecBuildConfig } from "../../exec/build"
 import { HelmActionConfig, HelmDeployConfig, HelmPodTestConfig } from "./config"
 import { getServiceResourceSpec } from "../util"
@@ -21,7 +18,6 @@ import { omit } from "lodash"
 import { DeepPrimitiveMap } from "../../../config/common"
 import { convertServiceResource } from "../kubernetes-type/common"
 import { ConvertModuleParams } from "../../../plugin/handlers/Module/convert"
-import { SuggestModulesParams, SuggestModulesResult } from "../../../plugin/handlers/Module/suggest"
 import { makeDummyBuild } from "../../../resolve-module"
 import { convertKubernetesModuleDevModeSpec } from "../sync"
 
@@ -58,7 +54,6 @@ export const helmModuleHandlers: Partial<ModuleActionHandlers<HelmModule>> = {
     //       sets a `build.dependencies[].copy` directive.
 
     let deployAction: HelmDeployConfig | null = null
-    let deployDep: string | null = null
 
     // If this Helm module has `skipDeploy = true`, there won't be a service config for us to convert here.
     if (service) {
@@ -70,7 +65,6 @@ export const helmModuleHandlers: Partial<ModuleActionHandlers<HelmModule>> = {
         convertBuildDependency,
         prepareRuntimeDependencies,
       })
-      deployDep = `deploy.${deployAction.name}`
       actions.push(deployAction)
     }
 
@@ -158,26 +152,6 @@ export const helmModuleHandlers: Partial<ModuleActionHandlers<HelmModule>> = {
       outputs: {
         "release-name": moduleConfig.spec.releaseName || moduleConfig.name,
       },
-    }
-  },
-
-  suggestModules: async ({ name, path }: SuggestModulesParams): Promise<SuggestModulesResult> => {
-    const chartPath = join(path, helmChartYamlFilename)
-    if (await pathExists(chartPath)) {
-      return {
-        suggestions: [
-          {
-            description: `based on found ${chalk.white(helmChartYamlFilename)}`,
-            module: {
-              type: "helm",
-              name,
-              chartPath: ".",
-            },
-          },
-        ],
-      }
-    } else {
-      return { suggestions: [] }
     }
   },
 }

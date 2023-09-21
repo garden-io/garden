@@ -313,10 +313,6 @@ export interface ActionDescription {
   version: ActionVersion
 }
 
-export interface ActionDescriptionMap {
-  [key: string]: ActionDescription
-}
-
 export abstract class BaseAction<
   C extends BaseActionConfig = BaseActionConfig,
   StaticOutputs extends {} = any,
@@ -733,7 +729,6 @@ export abstract class ResolvedRuntimeAction<
       if (!buildAction) {
         throw new InternalError({
           message: `Could not find build dependency '${buildName}' specified on the build field on ${this.longDescription()}.`,
-          detail: { action: this.key(), buildName },
         })
       }
 

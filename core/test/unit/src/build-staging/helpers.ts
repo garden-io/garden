@@ -71,7 +71,7 @@ describe("build staging helpers", () => {
       await mkdir(b)
 
       await expectError(() => cloneFileAsync({ from: a, to: b, statsHelper, allowDelete: false }), {
-        contains: `Build staging: Failed copying file ${a} to ${b} because a directory exists at the target path`,
+        contains: `Build staging: Failed copying file from '${a}' to '${b}' because a directory exists at the target path`,
       })
     })
 
@@ -145,7 +145,7 @@ describe("build staging helpers", () => {
       await ensureDir(a)
 
       await expectError(() => cloneFileAsync({ from: a, to: b, statsHelper, allowDelete: false }), {
-        contains: `Attempted to copy non-file ${a}`,
+        contains: `Error while copying from '${a}' to '${b}': Source is neither a symbolic link, nor a file`,
       })
     })
   })

@@ -18,27 +18,6 @@ export function envSupportsEmoji() {
   )
 }
 
-export interface LogLike {
-  entries: any[]
-}
-
-export type ProcessLog<T extends LogLike = LogLike> = (node: T) => boolean
-
-/**
- * Returns the entry's section or first parent section it finds.
- */
-export function findSection(entry: any): string | null {
-  const section = entry.getLatestEntry().section
-  if (section) {
-    return section
-  }
-  if (entry.parent) {
-    return findSection(entry.parent)
-  }
-
-  return null
-}
-
 export let overrideTerminalWidth: number | undefined
 
 export function getTerminalWidth(stream: NodeJS.WriteStream = process.stdout) {

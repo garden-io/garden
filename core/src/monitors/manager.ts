@@ -56,7 +56,7 @@ export class MonitorManager extends TypedEventEmitter<MonitorEvents> {
 
     // NOTE: We get the monitor from the monitors list instead of using the
     // instance provided via the function param in case there's already a corresponding
-    // monitor in which case the fuction parameter isn't used.
+    // monitor in which case the function parameter isn't used.
     const m = this.getById(monitor.id())!
     m.subscribe(command)
 
@@ -124,8 +124,8 @@ export class MonitorManager extends TypedEventEmitter<MonitorEvents> {
     monitor
       .start()
       .then(() => {
-        // A monitor may have been stopped while waiting on this repsonse. If that's the case we don't overwrite the status here.
-        // NOTE: Condsider calling this.stop() in that case to guarantee the actual monitors stops (would assume stopping is idempotent).
+        // A monitor may have been stopped while waiting on this response. If that's the case we don't overwrite the status here.
+        // NOTE: Consider calling this.stop() in that case to guarantee the actual monitors stops (would assume stopping is idempotent).
         const currentStatus = this.getStatus(monitor)
         if (currentStatus === "starting") {
           this.log.silly(`${monitor.description} started successfully`)
@@ -154,8 +154,8 @@ export class MonitorManager extends TypedEventEmitter<MonitorEvents> {
     monitor
       .stop()
       .then(() => {
-        // A monitor may have been started while waiting on this repsonse. If that's the case we don't overwrite the status here.
-        // NOTE: Condsider calling this.start() in that case to guarantee the actual monitors starts (would assume starting is idempotent).
+        // A monitor may have been started while waiting on this response. If that's the case we don't overwrite the status here.
+        // NOTE: Consider calling this.start() in that case to guarantee the actual monitors starts (would assume starting is idempotent).
         const currentStatus = this.getStatus(monitor)
         if (currentStatus === "stopping") {
           this.setStatus(monitor, "stopped")

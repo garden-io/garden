@@ -13,7 +13,7 @@ import { GardenCli, validateRuntimeRequirementsCached } from "../../../../src/cl
 import { getDataDir, projectRootA, initTestLogger } from "../../../helpers"
 import { gardenEnv, GARDEN_CORE_ROOT } from "../../../../src/constants"
 import { join, resolve } from "path"
-import { Command, CommandGroup, CommandParams, PrepareParams } from "../../../../src/commands/base"
+import { Command, CommandGroup, CommandParams, CommandResult, PrepareParams } from "../../../../src/commands/base"
 import { UtilCommand } from "../../../../src/commands/util/util"
 import { StringParameter } from "../../../../src/cli/params"
 import stripAnsi from "strip-ansi"
@@ -22,7 +22,7 @@ import { getRootLogger, RootLogger } from "../../../../src/logger/logger"
 import { load } from "js-yaml"
 import { startServer } from "../../../../src/server/server"
 import { envSupportsEmoji } from "../../../../src/logger/util"
-import { expectError } from "../../../../src/util/testing"
+import { captureStream, expectError, expectFuzzyMatch } from "../../../../src/util/testing"
 import { GlobalConfigStore } from "../../../../src/config-store/global"
 import tmp from "tmp-promise"
 import { CloudCommand } from "../../../../src/commands/cloud/cloud"
@@ -33,6 +33,8 @@ import { mkdirp } from "fs-extra"
 import { uuidv4 } from "../../../../src/util/random"
 import { makeDummyGarden } from "../../../../src/garden"
 import { TestGardenCli } from "../../../helpers/cli"
+import { NotImplementedError } from "../../../../src/exceptions"
+import dedent from "dedent"
 
 describe("cli", () => {
   let cli: GardenCli
@@ -162,15 +164,14 @@ describe("cli", () => {
       })
 
       it("errors if a Command resource is invalid", async () => {
-        return expectError(
-          () =>
-            cli.run({
-              args: ["echo", "foo"],
-              exitOnError: false,
-              cwd: getDataDir("test-projects", "custom-commands-invalid"),
-            }),
-          { contains: "Error validating custom Command 'invalid'" }
-        )
+        // cli.run should never throw – if it throws, it's a bug
+        const res = await cli.run({
+          args: ["echo", "foo"],
+          exitOnError: false,
+          cwd: getDataDir("test-projects", "custom-commands-invalid"),
+        })
+        expect(res.code).to.not.equal(0)
+        expectFuzzyMatch(res.consoleOutput!, "Error validating custom Command 'invalid'")
       })
 
       it("exits with code from exec command if it fails", async () => {
@@ -723,9 +724,9 @@ describe("cli", () => {
       const stripped = stripAnsi(consoleOutput!).trim()
 
       expect(code).to.equal(1)
-      expect(
-        stripped.startsWith('Invalid value for option --logger-type: "bla" is not a valid argument (should be any of ')
-      ).to.be.true
+      expect(stripped).to.contain(
+        'Invalid value for option --logger-type: "bla" is not a valid argument (should be any of '
+      )
       expect(consoleOutput).to.include(cmd.renderHelp())
     })
 
@@ -758,7 +759,7 @@ describe("cli", () => {
       const stripped = stripAnsi(consoleOutput!).trim()
 
       expect(code).to.equal(1)
-      expect(stripped.startsWith("Missing required argument foo")).to.be.true
+      expect(stripped).to.include("Missing required argument foo")
       expect(consoleOutput).to.include(cmd.renderHelp())
     })
 
@@ -847,7 +848,7 @@ describe("cli", () => {
       expect(JSON.parse(consoleOutput!)).to.eql({ result: { some: "output" }, success: true })
     })
 
-    it("should output YAML if --output=json", async () => {
+    it("should output YAML if --output=yaml", async () => {
       class TestCommand extends Command {
         name = "test-command"
         help = "halp!"
@@ -910,6 +911,116 @@ describe("cli", () => {
       expect(stripAnsi(errors[0].message)).to.equal(
         "Invalid value for option --env: Invalid environment specified ($.%): must be a valid environment name or <namespace>.<environment>"
       )
+    })
+
+    describe("Command error handling", async () => {
+      let hook: ReturnType<typeof captureStream>
+
+      beforeEach(() => {
+        hook = captureStream(process.stdout)
+      })
+      afterEach(() => {
+        hook.unhook()
+      })
+      it("handles GardenError on the command level correctly", async () => {
+        class TestCommand extends Command {
+          name = "test-command"
+          help = "halp!"
+          override noProject = true
+
+          override printHeader() {}
+
+          async action({}): Promise<CommandResult> {
+            throw new NotImplementedError({ message: "Error message" })
+          }
+        }
+
+        const cmd = new TestCommand()
+        cli.addCommand(cmd)
+
+        const { code } = await cli.run({ args: ["test-command"], exitOnError: false })
+
+        expect(code).to.equal(1)
+        const output = stripAnsi(hook.captured())
+        expect(output).to.eql(dedent`
+          Error message
+
+          See .garden/error.log for detailed error message\n`)
+      })
+
+      it("handles crash on the command level correctly", async () => {
+        class TestCommand extends Command {
+          name = "test-command"
+          help = "halp!"
+          override noProject = true
+
+          override printHeader() {}
+
+          async action({}): Promise<CommandResult> {
+            throw new TypeError("Cannot read property foo of undefined.")
+          }
+        }
+
+        const cmd = new TestCommand()
+        cli.addCommand(cmd)
+
+        const { code } = await cli.run({ args: ["test-command"], exitOnError: false })
+
+        expect(code).to.equal(1)
+        const outputLines = stripAnsi(hook.captured()).split("\n")
+
+        const firstSevenLines = outputLines.slice(0, 7).join("\n")
+        expect(firstSevenLines).to.eql(dedent`
+          Encountered an unexpected Garden error. This is likely a bug 🍂
+
+          You can help by reporting this on GitHub: https://github.com/garden-io/garden/issues/new?labels=bug,crash&template=CRASH.md&title=Crash%3A%20Cannot%20read%20property%20foo%20of%20undefined.
+
+          Please attach the following information to the bug report after making sure that the error message does not contain sensitive information:
+
+          TypeError: Cannot read property foo of undefined.
+        `)
+
+        const firstStackTraceLine = outputLines[7]
+        expect(firstStackTraceLine).to.contain("at TestCommand.action (")
+
+        const lastLine = outputLines[outputLines.length - 2] // the last line is empty due to trailing newline
+        expect(lastLine).to.eql("See .garden/error.log for detailed error message")
+      })
+
+      it("Handles crash on the command level with --output=yaml correctly", async () => {
+        class TestCommand extends Command {
+          name = "test-command"
+          help = "halp!"
+          override noProject = true
+
+          override printHeader() {}
+
+          async action({}): Promise<CommandResult> {
+            const err = new Error("Some unexpected error that leads to a crash")
+            // the stack makes this hard to compare below
+            err.stack = "stack"
+            throw err
+          }
+        }
+
+        const cmd = new TestCommand()
+        cli.addCommand(cmd)
+
+        const { code, consoleOutput } = await cli.run({ args: ["test-command", "-o", "yaml"], exitOnError: false })
+
+        expect(code).to.equal(1)
+        const resultData = load(consoleOutput!) as any
+        expect(resultData).to.eql({
+          success: false,
+          errors: [
+            {
+              type: "crash",
+              message: "Some unexpected error that leads to a crash",
+              stack: "stack",
+            },
+          ],
+        })
+      })
     })
   })
 

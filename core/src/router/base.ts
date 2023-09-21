@@ -31,7 +31,7 @@ import {
   ActionTypeClasses,
   GetActionTypeParams,
 } from "../plugin/action-types"
-import { InternalError, ParameterError, PluginError } from "../exceptions"
+import { ParameterError, PluginError, InternalError } from "../exceptions"
 import { validateSchema } from "../config/validation"
 import { getActionTypeBases, getPluginBases, getPluginDependencies } from "../plugins"
 import { getNames, MaybeUndefined } from "../util/util"
@@ -42,7 +42,6 @@ import type { NamespaceStatus } from "../types/namespace"
 import { TemplatableConfigContext } from "../config/template-contexts/project"
 
 export type CommonParams = keyof PluginActionContextParams
-export type RequirePluginName<T> = T & { pluginName: string }
 
 export interface BaseRouterParams {
   garden: Garden
@@ -233,7 +232,6 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
     if (config.kind !== this.kind) {
       throw new InternalError({
         message: `Attempted to call ${this.kind} handler for ${config.kind} action`,
-        detail: {},
       })
     }
 
@@ -281,7 +279,6 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
     if (action.kind !== this.kind) {
       throw new InternalError({
         message: `Attempted to call ${this.kind} handler for ${action.kind} action`,
-        detail: {},
       })
     }
 
@@ -369,12 +366,9 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
         const result = await handler["apply"](plugin, args)
         if (result === undefined) {
           throw new PluginError({
-            message: `Got empty response from ${actionType}.${String(handlerType)} handler on ${pluginName} provider`,
-            detail: {
-              args,
-              handlerType,
-              pluginName,
-            },
+            message: `Got empty response from ${actionType}.${String(
+              handlerType
+            )} handler on ${pluginName} provider. Called with ${args.length} arguments.`,
           })
         }
         const kind = this.kind
@@ -467,10 +461,9 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
 
         // This should never happen
         throw new InternalError({
-          message:
-            `Unable to find any matching configuration when selecting ${actionType}/${String(handlerType)} handler ` +
-            `(please report this as a bug).`,
-          detail: { handlers, configs },
+          message: `Unable to find any matching configuration when selecting ${actionType}/${String(
+            handlerType
+          )} handler.`,
         })
       } else {
         return filtered[0]
@@ -486,27 +479,19 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
         pluginName: defaultProvider.name,
       })
     } else {
-      // Nothing matched, throw error.
-      const errorDetails = {
-        requestedHandlerType: handlerType,
-        requestedActionType: actionType,
-        environment: this.garden.environmentName,
-        pluginName,
-      }
-
       if (pluginName) {
         throw new PluginError({
           message: `Plugin '${pluginName}' does not have a '${String(
             handlerType
           )}' handler for action type '${actionType}'.`,
-          detail: errorDetails,
         })
       } else {
         throw new ParameterError({
-          message:
-            `No '${String(handlerType)}' handler configured for ${this.kind} type '${actionType}' in environment ` +
-            `'${this.garden.environmentName}'. Are you missing a provider configuration?`,
-          detail: errorDetails,
+          message: `No '${String(handlerType)}' handler configured for ${
+            this.kind
+          } type '${actionType}' in environment '${
+            this.garden.environmentName
+          }'. Are you missing a provider configuration?`,
         })
       }
     }

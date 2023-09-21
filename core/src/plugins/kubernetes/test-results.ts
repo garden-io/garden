@@ -7,7 +7,7 @@
  */
 
 import { deserializeValues } from "../../util/serialization"
-import { KubeApi } from "./api"
+import { KubeApi, KubernetesError } from "./api"
 import { ContainerTestAction } from "../container/moduleConfig"
 import { PluginContext } from "../../plugin-context"
 import { KubernetesPluginContext } from "./config"
@@ -45,7 +45,10 @@ export const k8sGetTestResult: TestActionHandler<"getResult", any> = async (para
 
     return { state: runResultToActionState(result), detail: <TestResult>result, outputs: { log: result.log || "" } }
   } catch (err) {
-    if (err.statusCode === 404) {
+    if (!(err instanceof KubernetesError)) {
+      throw err
+    }
+    if (err.responseStatusCode === 404) {
       return { state: "not-ready", detail: null, outputs: {} }
     } else {
       throw err

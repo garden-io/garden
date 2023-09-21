@@ -19,6 +19,7 @@ import { BuildStagingRsync, minRsyncVersion } from "../../../../src/build-stagin
 import { BuildTask } from "../../../../src/tasks/build"
 import { ConfigGraph } from "../../../../src/graph/config-graph"
 import { BuildAction } from "../../../../src/actions/build"
+import { DOCS_BASE_URL } from "../../../../src/constants"
 
 // TODO-G2: rename test cases to match the new graph model semantics
 
@@ -275,8 +276,10 @@ describe("BuildStagingRsync", () => {
       try {
         process.env.PATH = ""
         await expectError(() => buildStaging.syncFromSrc({ action, log: garden.log }), {
-          contains:
-            "Could not find rsync binary. Please make sure rsync (version 3.1.0 or later) is installed and on your PATH.",
+          contains: [
+            "Could not find rsync binary",
+            "Please make sure rsync (version 3.1.0 or later) is installed and on your PATH.",
+          ],
         })
       } finally {
         process.env.PATH = orgPath
@@ -299,7 +302,7 @@ describe("BuildStagingRsync", () => {
         contains: [
           "found rsync binary but the version is too old",
           "please make sure rsync",
-          "more about garden installation and requirements can be found in our documentation",
+          `more about garden installation and requirements can be found in our documentation at ${DOCS_BASE_URL}/getting-started/installation`,
         ],
       })
     })
@@ -310,7 +313,7 @@ describe("BuildStagingRsync", () => {
         contains: [
           "could not detect rsync binary version in the version command",
           "please make sure rsync",
-          "more about garden installation and requirements can be found in our documentation",
+          `more about garden installation and requirements can be found in our documentation at ${DOCS_BASE_URL}/getting-started/installation`,
         ],
       })
     })

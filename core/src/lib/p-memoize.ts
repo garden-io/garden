@@ -74,7 +74,7 @@ export default function pMemoize<FunctionToMemoize extends AnyAsyncFunction, Cac
       cache.set(key, result)
 
       return result
-    } catch (error: unknown) {
+    } catch (error) {
       if (!cachePromiseRejection) {
         promiseCache.delete(key)
       }

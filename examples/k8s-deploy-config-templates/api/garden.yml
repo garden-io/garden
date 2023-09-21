@@ -1,0 +1,30 @@
+kind: RenderTemplate
+template: k8s-deploy
+name: api
+inputs:
+  relativeSourcePath: .
+  relativeProjectRoot: ../
+  containerPath: /app
+  healthCheckPath: /health
+  enableSync: true
+
+  containerArgs:
+    - python
+    - app.py
+
+  syncCommand:
+    - /bin/sh
+    - -c
+    - ls /app/app.py | entr -r -n python /app/app.py
+
+  dependencies:
+    - run.db-init
+
+  env:
+    - name: PGDATABASE
+      value: ${var.postgresDatabase}
+    - name: PGUSER
+      value: ${var.postgresUsername}
+    - name: PGPASSWORD
+      value: ${var.postgresPassword}
+

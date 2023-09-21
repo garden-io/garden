@@ -2,6 +2,7 @@
 title: Code Synchronization
 order: 3
 ---
+
 # Code Synchronization
 
 Garden includes a *sync* mode that allows you to rapidly synchronize your code (and other files) to and from running containers.

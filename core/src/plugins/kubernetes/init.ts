@@ -35,6 +35,7 @@ import { mapValues, omit } from "lodash"
 import { getIngressApiVersion, supportedIngressApiVersions } from "./container/ingress"
 import { Log } from "../../logger/log-entry"
 import { DeployStatusMap } from "../../plugin/handlers/Deploy/get-status"
+import { isProviderEphemeralKubernetes } from "./ephemeral/ephemeral"
 
 const dockerAuthSecretType = "kubernetes.io/dockerconfigjson"
 const dockerAuthDocsLink = `
@@ -230,9 +231,9 @@ export async function prepareSystem({
     return {}
   }
 
-  // We require manual init if we're installing any system services to remote clusters, to avoid conflicts
-  // between users or unnecessary work.
-  if (!clusterInit && remoteCluster) {
+  // We require manual init if we're installing any system services to remote clusters unless the remote cluster
+  // is an ephemeral cluster, to avoid conflicts between users or unnecessary work.
+  if (!clusterInit && remoteCluster && !isProviderEphemeralKubernetes(provider)) {
     const initCommand = chalk.white.bold(`garden --env=${ctx.environmentName} plugins kubernetes cluster-init`)
 
     if (combinedState === "ready") {
@@ -246,12 +247,9 @@ export async function prepareSystem({
       // If any of the services are not ready or missing, we throw, since builds and deployments are likely to fail.
       throw new KubernetesError({
         message: deline`
-        One or more cluster-wide system services are missing or not ready. You need to run ${initCommand}
-        to initialize them, or contact a cluster admin to do so, before deploying services to this cluster.
-      `,
-        detail: {
-          status,
-        },
+          One or more cluster-wide system services are missing or not ready. You need to run ${initCommand}
+          to initialize them, or contact a cluster admin to do so, before deploying services to this cluster.
+        `,
       })
     } else {
       // If system services are outdated but none are *missing*, we warn instead of flagging as not ready here.
@@ -314,7 +312,10 @@ export async function cleanupEnvironment({
             const annotations = (await api.core.readNamespace(ns)).metadata.annotations || {}
             return annotations[gardenAnnotationKey("generated")] === "true" ? ns : null
           } catch (err) {
-            if (err.statusCode === 404) {
+            if (!(err instanceof KubernetesError)) {
+              throw err
+            }
+            if (err.responseStatusCode === 404) {
               return null
             } else {
               throw err
@@ -399,7 +400,6 @@ export async function buildDockerAuthConfig(
         it does not have \`type: ${dockerAuthSecretType}\`.
         ${dockerAuthDocsLink}
         `,
-          detail: { secretRef },
         })
       }
 
@@ -413,7 +413,6 @@ export async function buildDockerAuthConfig(
         it does not contain a ${dockerAuthSecretKey} key.
         ${dockerAuthDocsLink}
         `,
-          detail: { secretRef },
         })
       }
 
@@ -425,10 +424,9 @@ export async function buildDockerAuthConfig(
         throw new ConfigurationError({
           message: dedent`
         Could not parse configured imagePullSecret '${secret.metadata.name}' as a JSON docker authentication file:
-        ${err.message}.
+        ${err}.
         ${dockerAuthDocsLink}
         `,
-          detail: { secretRef },
         })
       }
       if (!decoded.auths && !decoded.credHelpers) {
@@ -438,7 +436,6 @@ export async function buildDockerAuthConfig(
         because it is missing an "auths" or "credHelpers" key.
         ${dockerAuthDocsLink}
         `,
-          detail: { secretRef },
         })
       }
 

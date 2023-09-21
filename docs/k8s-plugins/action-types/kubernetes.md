@@ -9,13 +9,13 @@ Garden can apply Kubernetes manifests via the `kubernetes` deploy action type.
 In many cases you'll want to use a `kubernetes` deploy action with a `container` build.
 You can do this by referencing the image ID of the `container` build in your Kubernetes manifests.
 
-The `kubernetes` deploy action type works very similar to the [`helm`](./helm.md) deploy and
+The `kubernetes` deploy action type works very similar to the [`helm`](./helm.md) deploy, and
 you'll find a lot common between the two guides.
 
 See the full spec for the `kubernetes` deploy action in our [reference docs](../../reference/action-types/Deploy/kubernetes.md).
 
 [`kubernetes-pod` run](../../reference/action-types/Run/kubernetes-pod.md), [`kubernetes-pod` test](../../reference/action-types/Test/kubernetes-pod.md) and `kubernetes-exec`
-actions can be used for testing and task porposes.
+actions can be used for testing and task purposes.
 
 ## Referencing manifests
 
@@ -103,8 +103,7 @@ spec:
 
 ### Inline
 
-You can also include the manifests inline with your Garden configuration. For
-example:
+You can also include the manifests inline with your Garden configuration. For example:
 
 ```yaml
 kind: Deploy
@@ -188,7 +187,7 @@ spec:
 ## Linking container builds and kubernetes deploy actions
 
 When your project also contains one or more `container` build actions that build the images used by a `kubernetes` deploy,
-you want to make sure the containers are built ahead of deploying the Helm chart, and that the correct image tag is used when deploying.
+you want to make sure the containers are built ahead of deploying the Kubernetes manifest, and that the correct image tag is used when deploying.
 
 ```yaml
 kind: Build
@@ -200,7 +199,7 @@ name: worker-image
 ```yaml
 kind: Deploy
 description: Kubernetes deploy for the worker container
-type: helm
+type: kubernetes
 name: worker-deploy
 dependencies: [build.worker-image]
 spec:

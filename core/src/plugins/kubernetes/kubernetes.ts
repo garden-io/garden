@@ -49,6 +49,7 @@ import { helmPodRunDefinition, helmPodTestDefinition } from "./helm/helm-pod"
 import { kubernetesPodRunDefinition, kubernetesPodTestDefinition } from "./kubernetes-type/kubernetes-pod"
 import { kubernetesExecRunDefinition, kubernetesExecTestDefinition } from "./kubernetes-type/kubernetes-exec"
 import { makeDocsLink } from "../../docs/common"
+import { DOCS_BASE_URL } from "../../constants"
 
 export async function configureProvider({
   namespace,
@@ -76,11 +77,12 @@ export async function configureProvider({
   }
 
   if (config.name !== "local-kubernetes" && !config.deploymentRegistry) {
+    const remoteK8sDocs = `${DOCS_BASE_URL}/kubernetes-plugins/remote-k8s`
     throw new ConfigurationError({
-      message: `kubernetes: must specify deploymentRegistry in config`,
-      detail: {
-        config,
-      },
+      message: dedent`
+        Configuring a 'deploymentRegistry' in the kubernetes provider section of the project configuration is required when working with remote Kubernetes clusters.
+
+        See also ${remoteK8sDocs}`,
     })
   }
 
@@ -147,7 +149,7 @@ export const gardenPlugin = () => {
 
     For usage information, please refer to the [guides section](../../guides). A good place to start is
     the [Remote Kubernetes guide](${makeDocsLink`k8s-plugins/remote-k8s/README`}) guide if you're connecting to remote clusters.
-    The [Quickstart guide](${makeDocsLink`basics/quickstart`}) guide is also helpful as an introduction.
+    The [Quickstart guide](${makeDocsLink`getting-started/quickstart`}) guide is also helpful as an introduction.
 
     Note that if you're using a local Kubernetes cluster (e.g. minikube or Docker Desktop), the [local-kubernetes provider](./local-kubernetes.md) simplifies (and automates) the configuration and setup quite a bit.
   `,

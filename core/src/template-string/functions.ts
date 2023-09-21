@@ -110,7 +110,6 @@ const helperFunctionSpecs: TemplateHelperFunction[] = [
       } else {
         throw new TemplateStringError({
           message: `Both terms need to be either arrays or strings (got ${typeof arg1} and ${typeof arg2}).`,
-          detail: { arg1, arg2 },
         })
       }
     },
@@ -280,10 +279,6 @@ const helperFunctionSpecs: TemplateHelperFunction[] = [
         if (Number.isNaN(result)) {
           throw new TemplateStringError({
             message: `${name} index must be a number or a numeric string (got "${value}")`,
-            detail: {
-              name,
-              value,
-            },
           })
         }
         return result
@@ -403,10 +398,6 @@ const helperFunctionSpecs: TemplateHelperFunction[] = [
         if (!isArrayLike(value)) {
           throw new TemplateStringError({
             message: `yamlEncode: Set multiDocument=true but value is not an array (got ${typeof value})`,
-            detail: {
-              value,
-              multiDocument,
-            },
           })
         }
         return "---" + value.map(safeDumpYaml).join("---")
@@ -476,7 +467,6 @@ export function callHelperFunction({
     const availableFns = Object.keys(helperFunctions).join(", ")
     const _error = new TemplateStringError({
       message: `Could not find helper function '${functionName}'. Available helper functions: ${availableFns}`,
-      detail: { functionName, text },
     })
     return { _error }
   }
@@ -507,12 +497,7 @@ export function callHelperFunction({
     if (value === undefined && schemaDescription.flags?.presence === "required") {
       return {
         _error: new TemplateStringError({
-          message: `Missing argument '${argName}' for ${functionName} helper function.`,
-          detail: {
-            text,
-            missingArgumentName: argName,
-            missingArgumentIndex: i,
-          },
+          message: `Missing argument '${argName}' (at index ${i}) for ${functionName} helper function.`,
         }),
       }
     }
@@ -530,10 +515,6 @@ export function callHelperFunction({
         } else {
           const _error = new TemplateStringError({
             message: `Function '${functionName}' cannot be applied on unresolved string`,
-            detail: {
-              functionName,
-              text,
-            },
           })
           return { _error }
         }
@@ -554,11 +535,7 @@ export function callHelperFunction({
     return { resolved }
   } catch (error) {
     const _error = new TemplateStringError({
-      message: `Error from helper function ${functionName}: ${error.message}`,
-      detail: {
-        error,
-        text,
-      },
+      message: `Error from helper function ${functionName}: ${error}`,
     })
     return { _error }
   }

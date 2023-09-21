@@ -53,9 +53,6 @@ export class LogOutCommand extends Command<{}, Opts> {
       if (!projectConfig) {
         throw new ConfigurationError({
           message: `Not a project directory (or any of the parent directories): ${garden.projectRoot}`,
-          detail: {
-            root: garden.projectRoot,
-          },
         })
       }
     }
@@ -90,12 +87,12 @@ export class LogOutCommand extends Command<{}, Opts> {
       cloudApi.close()
     } catch (err) {
       const msg = dedent`
-      The following issue occurred while logging out from ${distroName} (your session will be cleared regardless): ${err.message}\n
+      The following issue occurred while logging out from ${distroName} (your session will be cleared regardless): ${err}\n
       `
       log.warn(msg)
     } finally {
       await CloudApi.clearAuthToken(log, garden.globalConfigStore, cloudDomain)
-      log.info({ msg: `Succesfully logged out from ${cloudDomain}.` })
+      log.info({ msg: `Successfully logged out from ${cloudDomain}.` })
     }
     return {}
   }

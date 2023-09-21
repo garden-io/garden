@@ -1,0 +1,86 @@
+kind: Build
+name: web
+type: container
+
+---
+kind: Deploy
+type: kubernetes
+name: web
+description: The voting UI
+# Set the source path to the root so that we can reference manifest
+# files that are in the parent directory
+source:
+  path: ../
+
+dependencies:
+  - build.web
+  - deploy.api
+
+spec:
+  files:
+    - manifests/deployment.yaml
+    - manifests/service.yaml
+    - manifests/ingress.yaml
+
+  # Default target for syncs and exec commands
+  defaultTarget:
+    kind: Deployment
+    name: web
+
+  sync:
+    paths:
+      - sourcePath: ./web/src
+        containerPath: /app/src
+        mode: one-way-replica
+        exclude: [node_modules]
+
+# Variables that are used in the K8s manifests
+variables:
+  appName: web
+  healthCheckPath: /
+  replicas: 1
+
+  env:
+    - name: HOSTNAME
+      value: ${variables.baseHostname}
+
+  containerPorts:
+    - name: http
+      containerPort: 8080
+      protocol: TCP
+
+  servicePorts:
+    - name: http
+      port: 80
+      targetPort: 8080
+      protocol: TCP
+
+  containerArgs:
+    - npm
+    - run
+    - serve
+
+  resources:
+    limits:
+      cpu: "1"
+      memory: 1Gi
+    requests:
+      cpu: 10m
+      memory: 90Mi
+
+---
+kind: Test
+name: web-unit
+type: container
+build: web
+spec:
+  args: [npm, run, test:unit]
+
+---
+kind: Test
+name: e2e-runner
+type: container
+build: web
+dependencies: [deploy.api]
+spec:
+  args: [npm, run, test:integ]

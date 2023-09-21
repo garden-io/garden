@@ -1,0 +1,47 @@
+kind: ConfigTemplate
+name: k8s-deploy
+inputsSchemaPath: template-schemas/k8s-schema.json
+
+configs:
+  - kind: Build
+    type: container
+    name: ${parent.name}
+    description: ${parent.name} image
+    source:
+      path: ${inputs.relativeSourcePath}
+
+  - kind: Deploy
+    type: kubernetes
+    name: ${parent.name}
+    description: ${parent.name} manifests
+    source:
+      path: ${inputs.relativeProjectRoot}
+
+    dependencies:
+      - build.${parent.name}
+      - $concat: "${input.dependencies ? input.dependencies : []}"
+
+    spec:
+      files:
+        - manifests/deployment.yaml
+        - manifests/service.yaml
+        - "${inputs.enableIngress ? 'manifests/ingress.yaml' : null }"
+
+      # Default target for syncs and exec commands
+      defaultTarget:
+        kind: Deployment
+        name: ${parent.name}
+
+      # Conditionally enable sync
+      sync:
+        $if: ${inputs.enableSync}
+        $then:
+          paths:
+            - sourcePath: ${inputs.relativeSourcePath}
+              containerPath: ${inputs.containerPath}
+              mode: "one-way-replica"
+              # Hard code common excludes
+              exclude:
+                - ${inputs.relativeSourcePath}/node-modules
+          overrides:
+            - command: ${inputs.syncCommand}

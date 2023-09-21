@@ -18,6 +18,7 @@ import { addLinkedSources, moduleHasRemoteSource } from "../../util/ext-source-u
 import { joiArray, joi } from "../../config/common"
 import { linkedModuleSchema } from "../../config/project"
 import { StringParameter, PathParameter } from "../../cli/params"
+import { naturalList } from "../../util/string"
 
 const linkModuleArguments = {
   module: new StringParameter({
@@ -52,7 +53,7 @@ export class LinkModuleCommand extends Command<Args> {
   override description = dedent`
     After linking a remote module, Garden will read the source from the module's local directory instead of from
     the remote URL. Garden can only link modules that have a remote source,
-    i.e. modules that specifiy a \`repositoryUrl\` in their \`garden.yml\` config file.
+    i.e. modules that specify a \`repositoryUrl\` in their \`garden.yml\` config file.
 
     Examples:
 
@@ -75,13 +76,14 @@ export class LinkModuleCommand extends Command<Args> {
       const modulesWithRemoteSource = graph.getModules().filter(moduleHasRemoteSource).sort()
 
       throw new ParameterError({
-        message:
-          `Expected module(s) ${chalk.underline(moduleName)} to have a remote source.` +
-          ` Did you mean to use the "link source" command?`,
-        detail: {
-          modulesWithRemoteSource,
-          input: module,
-        },
+        message: dedent`
+          Expected module(s) ${chalk.underline(
+            moduleName
+          )} to have a remote source. Did you mean to use the "link source" command? ${
+            modulesWithRemoteSource.length > 0
+              ? `\n\nModules with remote sources: ${naturalList(modulesWithRemoteSource.map((m) => m.name))}`
+              : ""
+          }`,
       })
     }
 

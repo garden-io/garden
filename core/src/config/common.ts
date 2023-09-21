@@ -458,6 +458,9 @@ joi = joi.extend({
         try {
           return schema.parse(value)
         } catch (error) {
+          if (!(error instanceof z.ZodError)) {
+            throw error
+          }
           // TODO: customize the error output here to make it a bit nicer
           const outputError = helpers.error("validation")
           outputError.message = error.message
@@ -524,8 +527,11 @@ const actionRefParseError = (reference: any) => {
   const refStr = JSON.stringify(reference)
 
   return new ConfigurationError({
-    message: `Could not parse ${refStr} as a valid action reference. An action reference should be a "<kind>.<name>" string, where <kind> is one of ${validActionKinds} and <name> is a valid name of an action. You may also specify an object with separate kind and name fields.`,
-    detail: { reference },
+    message: deline`
+      Could not parse ${refStr} as a valid action reference.
+      An action reference should be a "<kind>.<name>" string, where <kind> is one of
+      ${validActionKinds} and <name> is a valid name of an action. You may also specify
+      an object with separate kind and name fields.`,
   })
 }
 
@@ -568,7 +574,7 @@ export function createSchema(spec: CreateSchemaParams): CreateSchemaOutput {
   let { name } = spec
 
   if (schemaRegistry[name]) {
-    throw new InternalError({ message: `Object schema ${name} defined multiple times`, detail: { name } })
+    throw new InternalError({ message: `Object schema ${name} defined multiple times` })
   }
 
   schemaRegistry[name] = { spec }
@@ -729,6 +735,9 @@ joi = joi.extend({
 
       return { value }
     } catch (err) {
+      if (!(err instanceof Error)) {
+        throw err
+      }
       const error = opts.error("validation")
       error.message = err.message
       return { errors: error }

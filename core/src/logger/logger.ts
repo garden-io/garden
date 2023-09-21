@@ -8,7 +8,7 @@
 
 import { LogMetadata, LogEntry, CoreLog, CoreLogContext } from "./log-entry"
 import { Writer } from "./writers/base"
-import { CommandError, InternalError, ParameterError } from "../exceptions"
+import { CommandError, ParameterError, InternalError } from "../exceptions"
 import { TerminalWriter } from "./writers/terminal-writer"
 import { JsonTerminalWriter } from "./writers/json-terminal-writer"
 import { EventBus } from "../events/events"
@@ -20,6 +20,7 @@ import { InkTerminalWriter } from "./writers/ink-terminal-writer"
 import { QuietWriter } from "./writers/quiet-writer"
 import { PluginEventBroker } from "../plugin-context"
 import { EventLogWriter } from "./writers/event-writer"
+import { naturalList } from "../util/string"
 
 export type LoggerType = "quiet" | "default" | "basic" | "json" | "ink"
 export const LOGGER_TYPES = new Set<LoggerType>(["quiet", "default", "basic", "json", "ink"])
@@ -51,9 +52,9 @@ export function parseLogLevel(level: string): LogLevel {
     lvl = LogLevel[level]
   }
   if (!getNumericLogLevels().includes(lvl)) {
-    throw new InternalError({
+    // This should be validated on a different level
+    throw new ParameterError({
       message: `Unexpected log level, expected one of ${getLogLevelChoices().join(", ")}, got ${level}`,
-      detail: {},
     })
   }
   return lvl
@@ -76,7 +77,7 @@ export const eventLogLevel = LogLevel.debug
 
 /**
  * Return the logger type, depending on what command line args have been set
- * and whether the commnad specifies a logger type.
+ * and whether the command specifies a logger type.
  */
 export function getTerminalWriterType({
   silent,
@@ -293,7 +294,7 @@ export abstract class LoggerBase implements Logger {
    */
   getLogEntries(): LogEntry[] {
     if (!this.storeEntries) {
-      throw new InternalError({ message: `Cannot get entries when storeEntries=false`, detail: {} })
+      throw new InternalError({ message: `Cannot get entries when storeEntries=false` })
     }
     return this.entries
   }
@@ -305,7 +306,7 @@ export abstract class LoggerBase implements Logger {
    */
   getLatestEntry() {
     if (!this.storeEntries) {
-      throw new InternalError({ message: `Cannot get entries when storeEntries=false`, detail: {} })
+      throw new InternalError({ message: `Cannot get entries when storeEntries=false` })
     }
     return this.entries.slice(-1)[0]
   }
@@ -341,7 +342,7 @@ export class RootLogger extends LoggerBase {
    */
   static getInstance() {
     if (!RootLogger.instance) {
-      throw new InternalError({ message: "Logger not initialized", detail: {} })
+      throw new InternalError({ message: "Logger not initialized" })
     }
     return RootLogger.instance
   }
@@ -362,7 +363,10 @@ export class RootLogger extends LoggerBase {
       try {
         config.level = parseLogLevel(gardenEnv.GARDEN_LOG_LEVEL)
       } catch (err) {
-        throw new CommandError({ message: `Invalid log level set for GARDEN_LOG_LEVEL: ${err.message}`, detail: {} })
+        if (!(err instanceof ParameterError)) {
+          throw err
+        }
+        throw new CommandError({ message: `Invalid log level set for GARDEN_LOG_LEVEL: ${err.message}` })
       }
     }
 
@@ -372,11 +376,9 @@ export class RootLogger extends LoggerBase {
 
       if (!LOGGER_TYPES.has(loggerTypeFromEnv)) {
         throw new ParameterError({
-          message: `Invalid logger type specified: ${loggerTypeFromEnv}`,
-          detail: {
-            loggerType: gardenEnv.GARDEN_LOGGER_TYPE,
-            availableTypes: LOGGER_TYPES,
-          },
+          message: `Invalid logger type specified: ${loggerTypeFromEnv}. Available types: ${naturalList(
+            Array.from(LOGGER_TYPES)
+          )}`,
         })
       }
 
@@ -447,6 +449,7 @@ interface EventLoggerParams extends LoggerConfigBase {
 interface ServerLoggerParams extends LoggerConfigBase {
   defaultOrigin?: string
   rootLogger: Logger
+  terminalLevel?: LogLevel
 }
 
 export interface CreateEventLogParams extends CreateLogParams {
@@ -462,14 +465,19 @@ export interface CreateEventLogParams extends CreateLogParams {
  */
 export class ServerLogger extends LoggerBase {
   private rootLogger: Logger
+  /**
+   * The log level to use for terminal output. Defaults to silly.
+   */
+  private terminalLevel: LogLevel
 
   constructor(config: ServerLoggerParams) {
     super(config)
     this.rootLogger = config.rootLogger
+    this.terminalLevel = config.terminalLevel || LogLevel.silly
   }
 
   override log(entry: LogEntry) {
-    this.rootLogger.log({ ...entry, level: LogLevel.silly })
+    this.rootLogger.log({ ...entry, level: this.terminalLevel })
 
     if (entry.level <= eventLogLevel && !entry.skipEmit) {
       this.rootLogger.events.emit("logEntry", formatLogEntryForEventStream(entry))

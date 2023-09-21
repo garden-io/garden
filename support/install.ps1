@@ -59,7 +59,7 @@ $ErrorActionPreference = "Stop"
 # Start here.
 Write-Host("
 Hi! This script will install the Garden CLI, after checking and installing missing dependencies.
-Please refer to the Installation section of our documentation at https://docs.garden.io/installation for details.
+Please refer to the Installation section of our documentation at https://docs.garden.io/getting-started/installation for details.
 
 Please note that you may need to answer prompts during the installation.
 

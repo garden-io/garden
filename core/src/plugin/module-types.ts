@@ -13,9 +13,8 @@ import { GardenModule } from "../types/module"
 import { ActionHandlerParamsBase, outputSchemaDocs, WrappedActionHandler } from "./base"
 import { mapValues, memoize } from "lodash"
 import { dedent } from "../util/string"
-import { suggestModules, SuggestModulesParams, SuggestModulesResult } from "./handlers/Module/suggest"
 import { templateStringLiteral } from "../docs/common"
-import { getModuleOutputs, GetModuleOutputsParams, GetModuleOutputsResult } from "./handlers/Module/get-outputs"
+import { GetModuleOutputsParams, GetModuleOutputsResult, getModuleOutputs } from "./handlers/Module/get-outputs"
 import { convert, ConvertModuleParams, ConvertModuleResult } from "./handlers/Module/convert"
 import { baseHandlerSchema } from "./handlers/base/base"
 import { ResolvedActionHandlerDescriptions } from "./plugin"
@@ -47,7 +46,6 @@ export type ModuleActionName = keyof ModuleActionParams
 interface _ModuleActionParams<T extends GardenModule = GardenModule> {
   configure: ConfigureModuleParams<T>
   convert: ConvertModuleParams<T>
-  suggestModules: SuggestModulesParams
   getModuleOutputs: GetModuleOutputsParams<T>
 }
 
@@ -61,7 +59,6 @@ export type ModuleActionParams<T extends GardenModule = GardenModule> = {
 export interface ModuleActionOutputs {
   configure: ConfigureModuleResult
   convert: ConvertModuleResult
-  suggestModules: SuggestModulesResult
   getModuleOutputs: GetModuleOutputsResult
 }
 
@@ -77,7 +74,6 @@ export function getModuleHandlerDescriptions(): ResolvedActionHandlerDescription
     configure,
     convert,
     getModuleOutputs,
-    suggestModules,
   }
 
   _moduleActionDescriptions = <ResolvedActionHandlerDescriptions>mapValues(descriptions, (f, name) => {

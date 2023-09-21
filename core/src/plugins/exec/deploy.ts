@@ -195,7 +195,7 @@ execDeploy.addHandler("deploy", async (params) => {
     })
 
     if (result.outputLog) {
-      const prefix = `Finished deploying service ${chalk.white(action.name)}. Here is the output:`
+      const prefix = `Finished deploying ${chalk.white(action.name)}. Here is the output:`
       log.verbose(
         renderMessageWithDivider({
           prefix,
@@ -236,7 +236,7 @@ export async function deployPersistentExecService({
   try {
     await resetLogFile(logFilePath)
   } catch (err) {
-    log.debug(`Failed resetting log file for service ${deployName} at path ${logFilePath}: ${err.message}`)
+    log.debug(`Failed resetting log file for service ${deployName} at path ${logFilePath}: ${err}`)
   }
 
   await killProcess(log, pidFilePath, deployName)
@@ -285,7 +285,7 @@ export async function deployPersistentExecService({
         throw new TimeoutError({
           message: dedent`Timed out waiting for local service ${deployName} to be ready.
 
-          Garden timed out waiting for the command ${chalk.gray(spec.statusCommand)}
+          Garden timed out waiting for the command ${chalk.gray(spec.statusCommand)} (pid: ${proc.pid})
           to return status code 0 (success) after waiting for ${spec.statusTimeout} seconds.
           ${lastResultDescription}
           Possible next steps:
@@ -295,12 +295,6 @@ export async function deployPersistentExecService({
           In case the service just needs more time to become ready, you can adjust the ${chalk.gray("timeout")} value
           in your service definition to a value that is greater than the time needed for your service to become ready.
           `,
-          detail: {
-            deployName,
-            statusCommand: spec.statusCommand,
-            pid: proc.pid,
-            statusTimeout: spec.statusTimeout,
-          },
         })
       }
 
@@ -376,7 +370,7 @@ async function killProcess(log: Log, pidFilePath: string, deployName: string) {
           log.debug(`Sent SIGTERM to existing ${deployName} process (PID ${oldPid})`)
         } catch (err) {
           // This most likely means that the process had already been terminated, which is fine for our purposes here.
-          log.debug(`An error occurred while deleting existing ${deployName} process (PID ${oldPid}): ${err.message}`)
+          log.debug(`An error occurred while deleting existing ${deployName} process (PID ${oldPid}): ${err}`)
         }
       }
     }

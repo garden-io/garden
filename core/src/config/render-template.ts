@@ -22,7 +22,7 @@ import {
 import { maybeTemplateString, resolveTemplateString, resolveTemplateStrings } from "../template-string/template-string"
 import { validateWithPath } from "./validation"
 import { Garden } from "../garden"
-import { ConfigurationError } from "../exceptions"
+import { ConfigurationError, GardenError } from "../exceptions"
 import { resolve, posix } from "path"
 import { ensureDir } from "fs-extra"
 import type { TemplatedModuleConfig } from "../plugins/templated"
@@ -116,7 +116,7 @@ export async function renderConfigTemplate({
   templates: { [name: string]: ConfigTemplateConfig }
 }): Promise<RenderConfigTemplateResult> {
   // Resolve template strings for fields. Note that inputs are partially resolved, and will be fully resolved later
-  // when resolving the resolving the resulting modules. Inputs that are used in module names must however be resolvable
+  // when resolving the resulting modules. Inputs that are used in module names must however be resolvable
   // immediately.
   const loggedIn = garden.isLoggedIn()
   const enterpriseDomain = garden.cloudApi?.domain
@@ -165,10 +165,9 @@ export async function renderConfigTemplate({
     const availableTemplates = Object.keys(templates)
     throw new ConfigurationError({
       message: deline`
-      Render ${resolved.name} references template ${resolved.template},
-      which cannot be found. Available templates: ${availableTemplates.join(", ")}
+        Render ${resolved.name} references template ${resolved.template} which cannot be found.
+        Available templates: ${naturalList(availableTemplates)}
       `,
-      detail: { availableTemplates },
     })
   }
 
@@ -183,7 +182,7 @@ export async function renderConfigTemplate({
   })
 
   // TODO: remove in 0.14
-  const modules = await renderModules({ garden, log, template, context, renderConfig: resolved })
+  const modules = await renderModules({ garden, template, context, renderConfig: resolved })
 
   const configs = await renderConfigs({ garden, log, template, context, renderConfig: resolved })
 
@@ -197,7 +196,6 @@ async function renderModules({
   renderConfig,
 }: {
   garden: Garden
-  log: Log
   template: ConfigTemplateConfig
   context: RenderTemplateConfigContext
   renderConfig: RenderTemplateConfig
@@ -220,6 +218,9 @@ async function renderModules({
       try {
         moduleConfig = prepareModuleResource(spec, renderConfigPath, garden.projectRoot)
       } catch (error) {
+        if (!(error instanceof GardenError)) {
+          throw error
+        }
         let msg = error.message
 
         if (spec.name && spec.name.includes && spec.name.includes("${")) {
@@ -229,11 +230,6 @@ async function renderModules({
 
         throw new ConfigurationError({
           message: `${configTemplateKind} ${template.name} returned an invalid module (named ${spec.name}) for templated module ${renderConfig.name}: ${msg}`,
-          detail: {
-            moduleSpec: spec,
-            parent: renderConfig,
-            error,
-          },
         })
       }
 
@@ -283,12 +279,7 @@ async function renderConfigs({
         resolvedName = resolveTemplateString({ string: m.name, context, contextOpts: { allowPartial: false } })
       } catch (error) {
         throw new ConfigurationError({
-          message: `Could not resolve the \`name\` field (${m.name}) for a config in ${templateDescription}: ${error.message}\n\nNote that template strings in config names in must be fully resolvable at the time of scanning. This means that e.g. references to other actions, modules or runtime outputs cannot be used.`,
-          detail: {
-            spec: m,
-            renderConfig,
-            error,
-          },
+          message: `Could not resolve the \`name\` field (${m.name}) for a config in ${templateDescription}: ${error}\n\nNote that template strings in config names in must be fully resolvable at the time of scanning. This means that e.g. references to other actions, modules or runtime outputs cannot be used.`,
         })
       }
 
@@ -297,10 +288,6 @@ async function renderConfigs({
         if (maybeTemplateString(m[field])) {
           throw new ConfigurationError({
             message: `${templateDescription} contains an invalid resource: Found a template string in '${field}' field (${m[field]}).`,
-            detail: {
-              spec: m,
-              renderConfig,
-            },
           })
         }
       }
@@ -310,10 +297,6 @@ async function renderConfigs({
           message: `Unexpected kind '${m.kind}' found in ${templateDescription}. Supported kinds are: ${naturalList(
             templatableKinds
           )}`,
-          detail: {
-            spec: m,
-            renderConfig,
-          },
         })
       }
 
@@ -332,13 +315,13 @@ async function renderConfigs({
           allowInvalid: false,
         })!
       } catch (error) {
+        if (!(error instanceof ConfigurationError)) {
+          throw error
+        }
         throw new ConfigurationError({
-          message: `${templateDescription} returned an invalid config (named ${spec.name}) for Render ${renderConfig.name}: ${error.message}`,
-          detail: {
-            spec,
-            renderConfig,
-            configFilePath: renderConfigPath,
-          },
+          message: `${templateDescription} returned an invalid config (named ${spec.name}) for Render ${
+            renderConfig.name
+          }: ${error.message || error}}`,
           wrappedErrors: [error],
         })
       }

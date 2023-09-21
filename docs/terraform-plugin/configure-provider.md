@@ -1,9 +1,9 @@
 ---
 order: 2
-title: Provider Configuration
+title: Plugin Configuration
 ---
 
-# Provider Configuration
+# Plugin Configuration
 
 First off, you need to enable the provider in your project configuration. This is as simple as placing it in your list of providers:
 
@@ -17,7 +17,7 @@ providers:
   ...
 ```
 
-If you'd like to apply the stack when starting Garden, and then reference the stack outputs in other providers (or actions), you need to add a couple of more flags. Here's the project config from the aforementioned [terraform-gke example](https://github.com/garden-io/garden/tree/0.13.12/examples/terraform-gke):
+If you'd like to apply the stack when starting Garden, and then reference the stack outputs in other providers (or actions), you need to add a couple of more flags. Here's the project config from the aforementioned [terraform-gke example](https://github.com/garden-io/garden/tree/0.13.14/examples/terraform-gke):
 
 ```yaml
 apiVersion: garden.io/v1

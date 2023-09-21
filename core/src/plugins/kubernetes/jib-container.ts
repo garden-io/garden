@@ -24,6 +24,7 @@ import { getRunningDeploymentPod } from "./util"
 import { BuildActionExtension, BuildActionParams } from "../../plugin/action-types"
 import { ContainerBuildAction } from "../container/config"
 import { buildkitDeploymentName } from "./constants"
+import { naturalList } from "../../util/string"
 
 export const jibContainerHandlers: Partial<ModuleActionHandlers> = {
   ...containerHandlers,
@@ -75,8 +76,9 @@ async function buildAndPushViaRemote(params: BuildActionParams<"build", Containe
 
   if (!tarPath) {
     throw new PluginError({
-      message: `Expected details.tarPath from the jib-container build handler.`,
-      detail: { baseResult },
+      message: `Expected details.tarPath from the jib-container build handler. Got: ${naturalList(
+        Object.keys(baseResult.details || {})
+      )}`,
     })
   }
 
@@ -122,7 +124,7 @@ async function buildAndPushViaRemote(params: BuildActionParams<"build", Containe
       })
       deploymentName = buildkitDeploymentName
     } else {
-      throw new ConfigurationError({ message: `Unexpected buildMode ${buildMode}`, detail: { buildMode } })
+      throw new ConfigurationError({ message: `Unexpected buildMode ${buildMode}` })
     }
 
     // Sync the archive to the remote

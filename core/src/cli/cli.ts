@@ -13,7 +13,7 @@ import { pathExists } from "fs-extra"
 import { getBuiltinCommands } from "../commands/commands"
 import { shutdown, getPackageVersion, getCloudDistributionName } from "../util/util"
 import { Command, CommandResult, CommandGroup, BuiltinArgs } from "../commands/base"
-import { PluginError, toGardenError, GardenBaseError } from "../exceptions"
+import { PluginError, toGardenError, GardenError } from "../exceptions"
 import { Garden, GardenOpts, makeDummyGarden } from "../garden"
 import { getRootLogger, getTerminalWriterType, LogLevel, parseLogLevel, RootLogger } from "../logger/logger"
 import { FileWriter, FileWriterConfig } from "../logger/writers/file-writer"
@@ -55,7 +55,7 @@ import { JsonFileWriter } from "../logger/writers/json-file-writer"
 export interface RunOutput {
   argv: any
   code: number
-  errors: (GardenBaseError | Error)[]
+  errors: (GardenError | Error)[]
   result: any
   // Mainly used for testing
   consoleOutput?: string
@@ -163,7 +163,7 @@ ${renderCommands(commands)}
 
     if (this.commands[fullName]) {
       // For now we don't allow multiple definitions of the same command. We may want to revisit this later.
-      throw new PluginError({ message: `Multiple definitions of command "${fullName}"`, detail: {} })
+      throw new PluginError({ message: `Multiple definitions of command "${fullName}"` })
     }
 
     this.commands[fullName] = command
@@ -175,7 +175,7 @@ ${renderCommands(commands)}
     const dupKeys: string[] = intersection(optKeys, globalKeys)
 
     if (dupKeys.length > 0) {
-      throw new PluginError({ message: `Global option(s) ${dupKeys.join(" ")} cannot be redefined`, detail: {} })
+      throw new PluginError({ message: `Global option(s) ${dupKeys.join(" ")} cannot be redefined` })
     }
   }
 
@@ -404,8 +404,7 @@ ${renderCommands(commands)}
   }): Promise<RunOutput> {
     let argv = parseCliArgs({ stringArgs: args, cli: true })
 
-    const errors: (GardenBaseError | Error)[] = []
-    const _this = this
+    const errors: (GardenError | Error)[] = []
 
     async function done(abortCode: number, consoleOutput: string, result: any = {}) {
       if (exitOnError) {
@@ -443,27 +442,36 @@ ${renderCommands(commands)}
       "logger-type": loggerTypeOpt,
       "log-level": logLevelStr,
     } = argv
-    const logger = RootLogger.initialize({
-      level: parseLogLevel(logLevelStr),
-      storeEntries: false,
-      displayWriterType: getTerminalWriterType({ silent, output, loggerTypeOpt, commandLoggerType: null }),
-      useEmoji: emoji,
-      showTimestamps,
-      force: this.initLogger,
-    })
+    let logger: RootLogger
+    try {
+      logger = RootLogger.initialize({
+        level: parseLogLevel(logLevelStr),
+        storeEntries: false,
+        displayWriterType: getTerminalWriterType({ silent, output, loggerTypeOpt, commandLoggerType: null }),
+        useEmoji: emoji,
+        showTimestamps,
+        force: this.initLogger,
+      })
+    } catch (error) {
+      return done(1, toGardenError(error).explain("Failed to initialize logger"))
+    }
 
     const log = logger.createLog()
     log.verbose(`garden version: ${getPackageVersion()}`)
 
     // Load custom commands from current project (if applicable) and see if any match the arguments
     if (!command) {
-      projectConfig = await this.getProjectConfig(log, workingDir)
+      try {
+        projectConfig = await this.getProjectConfig(log, workingDir)
 
-      if (projectConfig) {
-        const customCommands = await this.getCustomCommands(log, workingDir)
-        const picked = pickCommand(customCommands, argv._)
-        command = picked.command
-        matchedPath = picked.matchedPath
+        if (projectConfig) {
+          const customCommands = await this.getCustomCommands(log, workingDir)
+          const picked = pickCommand(customCommands, argv._)
+          command = picked.command
+          matchedPath = picked.matchedPath
+        }
+      } catch (error) {
+        return done(1, toGardenError(error).explain("Failed to get custom commands"))
       }
     }
 
@@ -507,8 +515,8 @@ ${renderCommands(commands)}
         parsedArgs = parseResults.args
         parsedOpts = parseResults.opts
       } catch (err) {
-        errors.push(...(err.detail?.errors || []).map(toGardenError))
-        return done(1, err.message + "\n" + command.renderHelp())
+        errors.push(toGardenError(err))
+        return done(1, `${err}\n` + command.renderHelp())
       }
     }
 
@@ -545,12 +553,12 @@ ${renderCommands(commands)}
       commandResult = runResults.result
       analytics = runResults.analytics
     } catch (err) {
-      commandResult = { errors: [err] }
+      commandResult = { errors: [toGardenError(err)] }
     }
 
     errors.push(...(commandResult.errors || []))
 
-    const gardenErrors: GardenBaseError[] = errors.map(toGardenError)
+    const gardenErrors: GardenError[] = errors.map(toGardenError)
 
     // Flushes the Analytics events queue in case there are some remaining events.
     await analytics?.flush()
@@ -562,7 +570,10 @@ ${renderCommands(commands)}
       if (gardenErrors.length > 0 || (commandResult.exitCode && commandResult.exitCode !== 0)) {
         return done(
           commandResult.exitCode || 1,
-          renderer({ success: false, errors: gardenErrors }),
+          renderer({
+            success: false,
+            errors: gardenErrors,
+          }),
           commandResult?.result
         )
       } else {

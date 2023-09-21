@@ -15,7 +15,7 @@ import type { TestAction, TestActionConfig } from "../actions/test"
 import { joi, zodObjectToJoi } from "../config/common"
 import { BaseProviderConfig, baseProviderConfigSchemaZod } from "../config/provider"
 import { s } from "../config/zod"
-import { GardenBaseError, ValidationError } from "../exceptions"
+import { GardenError, ValidationError } from "../exceptions"
 import type {
   ActionKind,
   ActionTypeDefinition,
@@ -52,7 +52,7 @@ type GardenSdkPluginSpec = Pick<
   "name" | "docs" | "dependencies" | "createModuleTypes" | "extendModuleTypes"
 >
 
-class SdkError extends GardenBaseError {
+class SdkError extends GardenError {
   type = "sdk"
 }
 
@@ -311,7 +311,6 @@ function createProvider<
     if (baseKeys.includes(key)) {
       throw new ValidationError({
         message: `Attempted to re-define built-in provider config field '${key}'. Built-in fields may not be overridden.`,
-        detail: { key },
       })
     }
   }

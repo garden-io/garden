@@ -181,7 +181,7 @@ export class ExecLogsFollower {
    * 3. Stream initial batch, counting the bytes as they are streamed.
    * 4. If file was modified while streaming, repeat steps 3 and 4, starting at the proper cursor
    * position (i.e. byte offset).
-   * 5. Watch file and stream entries on changes from cursor posistion.
+   * 5. Watch file and stream entries on changes from cursor position.
    * 6. On rename events (i.e. log file rotation) we reset and start from step 1.
    * 7. On errors we reset the watcher but otherwise continue the control loop.
    */
@@ -280,7 +280,7 @@ export class ExecLogsFollower {
         }
       })
     } catch (err) {
-      this.events.emit("error", { message: `Starting file watcher failed with error ${err.message}` })
+      this.events.emit("error", { message: `Starting file watcher failed with error ${err}` })
       return
     }
 
@@ -399,7 +399,7 @@ export class ExecLogsFollower {
       this.events.emit("fileReadError", {
         bytesRead,
         lastStreamedEntry,
-        message: `Tailing file failed with error: ${err.message} }`,
+        message: `Tailing file failed with error: ${err} }`,
       })
       return
     }
@@ -432,7 +432,7 @@ export class ExecLogsFollower {
         splitStream.on("end", () => res(count))
       })
     } catch (err) {
-      this.events.emit("error", { message: `Counting lines failed with error: ${err.message}` })
+      this.events.emit("error", { message: `Counting lines failed with error: ${err}` })
       return 0
     }
   }

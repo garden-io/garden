@@ -18,7 +18,7 @@ import { RuntimeError } from "../exceptions"
 import { makeTempDir } from "../util/fs"
 import { createReadStream, createWriteStream } from "fs"
 import { copy, mkdirp, move, readdir, remove } from "fs-extra"
-import { got } from "../util/http"
+import { GotHttpError, got } from "../util/http"
 import { promisify } from "node:util"
 import semver from "semver"
 import stream from "stream"
@@ -34,6 +34,7 @@ const selfUpdateArgs = {
 const selfUpdateOpts = {
   "force": new BooleanParameter({
     help: `Install the Garden CLI even if the specified or detected latest version is the same as the current version.`,
+    aliases: ["f"],
   }),
   "install-dir": new StringParameter({
     help: `Specify an installation directory, instead of using the directory of the Garden CLI being used. Implies --force.`,
@@ -164,9 +165,6 @@ export namespace GitHubReleaseApi {
     if (!latestVersion) {
       throw new RuntimeError({
         message: `Unable to detect the latest Garden version: ${latestVersionRes}`,
-        detail: {
-          response: latestVersionRes,
-        },
       })
     }
 
@@ -360,7 +358,11 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
         const pipeline = promisify(stream.pipeline)
         await pipeline(got.stream(url), createWriteStream(tempPath))
       } catch (err) {
-        if (err.code === "ERR_NON_2XX_3XX_RESPONSE" && err.response?.statusCode === 404) {
+        if (
+          err instanceof GotHttpError &&
+          err.code === "ERR_NON_2XX_3XX_RESPONSE" &&
+          err.response?.statusCode === 404
+        ) {
           log.info("")
           log.error(chalk.redBright(`Could not find version ${desiredVersion} for ${build}.`))
 
@@ -494,7 +496,6 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
     if (!currentSemVer) {
       throw new RuntimeError({
         message: `Unexpected current version: ${currentVersion}. Please make sure it is either a valid (semver) release version.`,
-        detail: {},
       })
     }
 
@@ -510,7 +511,6 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
     if (!targetRelease) {
       throw new RuntimeError({
         message: `Unable to find the latest Garden version greater or equal than ${currentVersion} for the scope: ${versionScope}`,
-        detail: {},
       })
     }
 
@@ -531,7 +531,7 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
       }
 
       switch (versionScope) {
-        // TODO Core 1.0: review these semantics and make tjhe necessary corrections
+        // TODO Core 1.0: review these semantics and make the necessary corrections
         case "major": {
           if (tagSemVer.major === currentSemVer.major) {
             return tagSemVer.minor > currentSemVer.minor

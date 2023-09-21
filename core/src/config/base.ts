@@ -26,8 +26,8 @@ import { emitNonRepeatableWarning } from "../warnings"
 import { ActionKind, actionKinds } from "../actions/types"
 import { mayContainTemplateString } from "../template-string/template-string"
 import { Log } from "../logger/log-entry"
-import { deline } from "../util/string"
 import { Document, parseAllDocuments } from "yaml"
+import { dedent, deline } from "../util/string"
 
 export const configTemplateKind = "ConfigTemplate"
 export const renderTemplateKind = "RenderTemplate"
@@ -104,20 +104,22 @@ export async function loadAndValidateYaml(content: string, path: string): Promis
       doc.source = content
       return doc
     })
-  } catch (err) {
+  } catch (loadErr) {
     // We try to find the error using a YAML linter
     try {
       await lint(content)
     } catch (linterErr) {
       throw new ConfigurationError({
-        message: `Could not parse ${path} as valid YAML: ${err.message}`,
-        detail: linterErr,
+        message: `Could not parse ${basename(path)} in directory ${path} as valid YAML: ${linterErr}`,
       })
     }
     // ... but default to throwing a generic error, in case the error wasn't caught by yaml-lint.
     throw new ConfigurationError({
-      message: `Could not parse ${path} as valid YAML.`,
-      detail: err,
+      message: dedent`
+        Failed to load YAML from ${basename(path)} in directory ${path}.
+
+        Linting the file did not yield any errors. This is all we know: ${loadErr}
+      `,
     })
   }
 }
@@ -174,15 +176,11 @@ export async function readConfigFile(configPath: string, projectRoot: string) {
     return await readFile(configPath)
   } catch (err) {
     throw new FilesystemError({
-      message: `Could not find configuration file at ${configPath}`,
-      detail: { projectRoot, configPath },
+      message: `Could not find configuration file at ${configPath}. Project root directory: ${projectRoot}`,
     })
   }
 }
 
-/**
- * Each YAML document in a garden.yml file defines a project, a module or a workflow.
- */
 export function prepareResource({
   log,
   doc,
@@ -209,10 +207,6 @@ export function prepareResource({
   if (!isPlainObject(spec)) {
     throw new ConfigurationError({
       message: `Invalid configuration found in ${description}. Expected mapping object but got ${typeof spec}.`,
-      detail: {
-        spec,
-        configPath: configFilePath,
-      },
     })
   }
 
@@ -225,17 +219,12 @@ export function prepareResource({
       if (spec[field] && mayContainTemplateString(spec[field])) {
         throw new ConfigurationError({
           message: `Resource in ${relPath} has a template string in field '${field}', which does not allow templating.`,
-          detail: { spec, configPath: configFilePath },
         })
       }
     }
     if (spec.internal !== undefined) {
       throw new ConfigurationError({
         message: `Found invalid key "internal" in config at ${relPath}`,
-        detail: {
-          spec,
-          path: relPath,
-        },
       })
     }
   }
@@ -276,18 +265,10 @@ export function prepareResource({
   } else if (!kind) {
     throw new ConfigurationError({
       message: `Missing \`kind\` field in ${description}`,
-      detail: {
-        kind,
-        path: relPath,
-      },
     })
   } else {
     throw new ConfigurationError({
       message: `Unknown kind ${kind} in ${description}`,
-      detail: {
-        kind,
-        path: relPath,
-      },
     })
   }
 }
@@ -325,9 +306,6 @@ function handleDotIgnoreFiles(log: Log, projectSpec: ProjectConfig) {
     message: `Cannot auto-convert array-field \`dotIgnoreFiles\` to scalar \`dotIgnoreFile\`: multiple values found in the array [${dotIgnoreFiles.join(
       ", "
     )}]`,
-    detail: {
-      projectSpec,
-    },
   })
 }
 
@@ -349,7 +327,7 @@ function handleMissingApiVersion(log: Log, projectSpec: ProjectConfig): ProjectC
   if (projectSpec["apiVersion"] === undefined) {
     emitNonRepeatableWarning(
       log,
-      `"apiVersion" is missing in the Project config. Assuming "${GardenApiVersion.v0}" for backwards compatibility with 0.12. The "apiVersion"-field is mandatory when using the new action Kind-configs. A detailed migration guide is available at ${DOCS_BASE_URL}/tutorials/migrating-to-bonsai`
+      `"apiVersion" is missing in the Project config. Assuming "${GardenApiVersion.v0}" for backwards compatibility with 0.12. The "apiVersion"-field is mandatory when using the new action Kind-configs. A detailed migration guide is available at ${DOCS_BASE_URL}/guides/migrating-to-bonsai`
     )
 
     return { ...projectSpec, apiVersion: GardenApiVersion.v0 }
@@ -362,9 +340,6 @@ function handleMissingApiVersion(log: Log, projectSpec: ProjectConfig): ProjectC
     } else if (projectSpec["apiVersion"] !== GardenApiVersion.v1) {
       throw new ConfigurationError({
         message: `Project configuration with \`apiVersion: ${projectSpec["apiVersion"]}\` is not supported. Valid values are ${GardenApiVersion.v1} or ${GardenApiVersion.v0}.`,
-        detail: {
-          projectSpec,
-        },
       })
     }
   }
@@ -495,9 +470,6 @@ export async function findProjectConfig({
       if (projectSpecs.length > 1 && !allowInvalid) {
         throw new ConfigurationError({
           message: `Multiple project declarations found in ${path}/${configFile}`,
-          detail: {
-            projectSpecs,
-          },
         })
       } else if (projectSpecs.length > 0) {
         allProjectSpecs = allProjectSpecs.concat(projectSpecs)
@@ -508,9 +480,6 @@ export async function findProjectConfig({
       const configPaths = allProjectSpecs.map((c) => `- ${(c as ProjectConfig).configPath}`)
       throw new ConfigurationError({
         message: `Multiple project declarations found at paths:\n${configPaths.join("\n")}`,
-        detail: {
-          allProjectSpecs,
-        },
       })
     } else if (allProjectSpecs.length === 1) {
       return <ProjectConfig>allProjectSpecs[0]
@@ -538,8 +507,7 @@ export async function loadVarfile({
 }): Promise<PrimitiveMap> {
   if (!path && !defaultPath) {
     throw new ParameterError({
-      message: `Neither a path nor a defaultPath was provided.`,
-      detail: { configRoot, path, defaultPath },
+      message: `Neither a path nor a defaultPath was provided. Config root: ${configRoot}`,
     })
   }
   const resolvedPath = resolve(configRoot, <string>(path || defaultPath))
@@ -547,11 +515,7 @@ export async function loadVarfile({
 
   if (!exists && path && path !== defaultPath) {
     throw new ConfigurationError({
-      message: `Could not find varfile at path '${path}'`,
-      detail: {
-        path,
-        resolvedPath,
-      },
+      message: `Could not find varfile at path '${path}'. Absolute path: ${resolvedPath}`,
     })
   }
 
@@ -568,10 +532,7 @@ export async function loadVarfile({
       const parsed = JSON.parse(data.toString())
       if (!isPlainObject(parsed)) {
         throw new ConfigurationError({
-          message: `Configured variable file ${relPath} must be a valid plain JSON object`,
-          detail: {
-            parsed,
-          },
+          message: `Configured variable file ${relPath} must be a valid plain JSON object. Got: ${typeof parsed}`,
         })
       }
       return parsed
@@ -579,10 +540,7 @@ export async function loadVarfile({
       const parsed = load(data.toString())
       if (!isPlainObject(parsed)) {
         throw new ConfigurationError({
-          message: `Configured variable file ${relPath} must be a single plain YAML mapping`,
-          detail: {
-            parsed,
-          },
+          message: `Configured variable file ${relPath} must be a single plain YAML mapping. Got: ${typeof parsed}`,
         })
       }
       return parsed as PrimitiveMap
@@ -594,10 +552,6 @@ export async function loadVarfile({
   } catch (error) {
     throw new ConfigurationError({
       message: `Unable to load varfile at '${path}': ${error}`,
-      detail: {
-        error,
-        path,
-      },
     })
   }
 }

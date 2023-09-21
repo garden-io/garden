@@ -173,7 +173,7 @@ garden update-remote all
 
 Garden git clones the remote repositories to the `.garden/sources/` directory.
 
-Repositories in `.garden/sources/projects` are handled like any other directory in the main project. They're scanned for `garden.yml` files and the defenitions found are synced to the `.garden/build` directory.
+Repositories in `.garden/sources/projects` are handled like any other directory in the main project. They're scanned for `garden.yml` files and the definitions found are synced to the `.garden/build` directory.
 
 In the case of remote actions, Garden first finds the action `garden.yml` file in the main project and then knows to looks for the source code for that action under `./garden/sources/actions`. For builds the code is also synced to the `./garden/build` directory.
 

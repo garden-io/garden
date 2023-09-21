@@ -24,7 +24,7 @@ import { Garden } from "../garden"
 import { WorkflowConfigContext } from "./template-contexts/workflow"
 import { resolveTemplateStrings } from "../template-string/template-string"
 import { validateConfig } from "./validation"
-import { ConfigurationError } from "../exceptions"
+import { ConfigurationError, GardenError } from "../exceptions"
 import { EnvironmentConfig, getNamespace } from "./project"
 import { omitUndefined } from "../util/objects"
 import { BaseGardenResource, GardenResource } from "./base"
@@ -446,7 +446,7 @@ function validateTriggers(config: WorkflowConfig, environmentConfigs: Environmen
       ${environmentNames.join(", ")}
     `
 
-    throw new ConfigurationError({ message: msg, detail: { invalidTriggers } })
+    throw new ConfigurationError({ message: msg })
   }
 }
 
@@ -457,9 +457,13 @@ export function populateNamespaceForTriggers(config: WorkflowConfig, environment
       trigger.namespace = getNamespace(environmentConfigForTrigger!, trigger.namespace)
     }
   } catch (err) {
+    if (!(err instanceof GardenError)) {
+      throw err
+    }
+
     throw new ConfigurationError({
       message: `Invalid namespace in trigger for workflow ${config.name}: ${err.message}`,
-      detail: { err },
+      wrappedErrors: [err],
     })
   }
 }

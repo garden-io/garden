@@ -14,14 +14,15 @@ import Router = require("koa-router")
 import type PTY from "node-pty-prebuilt-multiarch"
 import websockify from "koa-websocket"
 import bodyParser = require("koa-bodyparser")
-import getPort = require("get-port")
+// TODO: switch from get-port-please to get-port once get-port is upgraded to v6.0+ which is ESM only
+const { getPort } = require("get-port-please")
 import { isArray, omit } from "lodash"
 
 import { BaseServerRequest, resolveRequest, serverRequestSchema, shellCommandParamsSchema } from "./commands"
 import { DEFAULT_GARDEN_DIR_NAME, gardenEnv } from "../constants"
 import { Log } from "../logger/log-entry"
 import { Command, CommandResult } from "../commands/base"
-import { toGardenError, GardenError, GardenBaseError } from "../exceptions"
+import { toGardenError, GardenError } from "../exceptions"
 import { EventName, Events, EventBus, shouldStreamWsEvent } from "../events/events"
 import type { ValueOf } from "../util/util"
 import { joi } from "../config/common"
@@ -42,9 +43,9 @@ import { ConfigGraph } from "../graph/config-graph"
 import { getGardenCloudDomain } from "../cloud/api"
 import type { ServeCommand } from "../commands/serve"
 import type { AutocompleteSuggestion } from "../cli/autocomplete"
-import execa = require("execa")
 import { z } from "zod"
 import { omitUndefined } from "../util/objects"
+import { createServer } from "http"
 
 const pty = require("node-pty-prebuilt-multiarch")
 
@@ -176,7 +177,8 @@ export class GardenServer extends EventEmitter {
     const _start = async () => {
       // TODO: pipe every event
       return new Promise<void>((resolve, reject) => {
-        this.server = this.app.listen(this.port, hostname)
+        this.server = createServer(this.app.callback())
+
         this.server.on("error", (error) => {
           this.emit("error", error)
           reject(error)
@@ -187,6 +189,10 @@ export class GardenServer extends EventEmitter {
         this.server.once("listening", () => {
           resolve()
         })
+
+        this.server.listen(this.port, hostname, () => {
+          this.app.ws.listen({ server: this.server })
+        })
       })
     }
 
@@ -195,7 +201,11 @@ export class GardenServer extends EventEmitter {
     } else {
       do {
         try {
-          this.port = await getPort({ port: defaultWatchServerPort })
+          this.port = await getPort({
+            port: defaultWatchServerPort,
+            portRange: [defaultWatchServerPort + 1, defaultWatchServerPort + 50],
+            alternativePortRange: [defaultWatchServerPort - 1, defaultWatchServerPort - 50],
+          })
           await _start()
         } catch {}
       } while (!this.server)
@@ -249,7 +259,7 @@ export class GardenServer extends EventEmitter {
     try {
       request = validateSchema(request, serverRequestSchema(), { context: "API request" })
     } catch (err) {
-      return ctx.throw(400, "Invalid request format: " + err.message)
+      return ctx.throw(400, `Invalid request format: ${err}`)
     }
 
     try {
@@ -271,11 +281,12 @@ export class GardenServer extends EventEmitter {
 
       return result
     } catch (error) {
-      if (error.status) {
+      if (error instanceof Koa.HttpError) {
         throw error
       }
-      this.log.error({ error })
-      return ctx.throw(500, `Unable to process request: ${error.message}`)
+      const message = String(error)
+      this.log.error({ msg: message, error: toGardenError(error) })
+      return ctx.throw(500, `Unable to process request: ${message}`)
     }
   }
 
@@ -303,6 +314,8 @@ export class GardenServer extends EventEmitter {
      * means we can keep a consistent format across mechanisms.
      */
     http.post("/api", async (ctx) => {
+      this.debugLog.debug(`Received request: ${JSON.stringify(ctx.request.body)}`)
+
       const { garden, command, log, args, opts } = await this.resolveRequest(ctx, ctx.request.body as BaseServerRequest)
 
       if (!command) {
@@ -322,6 +335,8 @@ export class GardenServer extends EventEmitter {
         return ctx.throw(400, "Attempted to run persistent command (e.g. a dev/follow command). Aborting.")
       }
 
+      this.debugLog.debug(`Running command '${command.name}'`)
+
       await command.prepare(prepareParams)
 
       ctx.status = 200
@@ -333,6 +348,7 @@ export class GardenServer extends EventEmitter {
           sessionId: uuidv4(),
           parentSessionId: this.sessionId,
         })
+        this.debugLog.debug(`Command '${command.name}' completed successfully`)
 
         ctx.response.body = sanitizeValue(result)
       } catch (error) {
@@ -574,7 +590,7 @@ export class GardenServer extends EventEmitter {
           proc.write(stdin.toString())
         })
       } catch (err) {
-        const msg = `Could not run command '${command}': ${err.message}`
+        const msg = `Could not run command '${command}': ${err}`
         this.log.error(msg)
         const event = websocketCloseEvents.ok
         if (websocket.OPEN) {
@@ -742,7 +758,7 @@ export class GardenServer extends EventEmitter {
               return commandResult
             }
           })
-          // Here we handle the actual commnad result.
+          // Here we handle the actual command result.
           .then((commandResult) => {
             const { result, errors } = commandResult
             send(
@@ -770,8 +786,11 @@ export class GardenServer extends EventEmitter {
             delete this.activePersistentRequests[requestId]
           })
       } catch (error) {
-        this.log.error({ msg: `Unexpected error handling request ID ${requestId}: ${error.message}`, error })
-        return send("error", { message: error.message, requestId })
+        this.log.error({
+          msg: `Unexpected error handling request ID ${requestId}: ${error}`,
+          error: toGardenError(error),
+        })
+        return send("error", { message: String(error), requestId })
       }
     } else if (requestType === "commandStatus") {
       // Retrieve the status for an active persistent command
@@ -822,7 +841,7 @@ export class GardenServer extends EventEmitter {
       })
 
       let graph: ConfigGraph | undefined
-      let errors: GardenBaseError[] = []
+      let errors: GardenError[] = []
 
       try {
         graph = await garden.getConfigGraph({ log, emit: true })
@@ -916,10 +935,6 @@ interface ServerWebsocketMessages {
 }
 
 type ServerWebsocketMessageType = keyof ServerWebsocketMessages
-
-export type ServerWebsocketMessage = ServerWebsocketMessages[ServerWebsocketMessageType] & {
-  type: ServerWebsocketMessageType
-}
 
 type SendWrapper<T extends ServerWebsocketMessageType = ServerWebsocketMessageType> = (
   type: T,

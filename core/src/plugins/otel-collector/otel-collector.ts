@@ -24,6 +24,7 @@ import { honeycombValidator } from "./config/honeycomb"
 import { loggingValidator } from "./config/logging"
 import { newRelicValidator } from "./config/newrelic"
 import { otlpHttpValidator } from "./config/otlphttp"
+import { toGardenError } from "../../exceptions"
 
 const OTEL_CONFIG_NAME = "otel-config.yaml"
 
@@ -205,7 +206,7 @@ provider.addHandler("prepareEnvironment", async ({ ctx, log }) => {
   } catch (error) {
     // TODO: We might not want to fail if the collector didn't initialize correctly
     scopedLog.error("otel-collector failed to initialize")
-    scopedLog.error({ error })
+    scopedLog.error({ error: toGardenError(error) })
     return { status: { ready: false, disableCache: true, outputs: {} } }
   }
 })

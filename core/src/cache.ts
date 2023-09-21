@@ -8,7 +8,7 @@
 
 import { isEqual } from "lodash"
 import { normalize, parse, sep } from "path"
-import { InternalError, NotFoundError, ParameterError } from "./exceptions"
+import { ParameterError, NotFoundError } from "./exceptions"
 import { Log } from "./logger/log-entry"
 
 export type CacheKey = string[]
@@ -32,7 +32,7 @@ interface ContextNode {
 }
 
 /**
- *  A simple in-memory cache that additionally indexes keys in a tree by a seperate context key, so that keys
+ *  A simple in-memory cache that additionally indexes keys in a tree by a separate context key, so that keys
  *  can be invalidated based on surrounding context.
  *
  *  For example, we can cache the version of a directory path, and then invalidate every cached key under a
@@ -79,21 +79,13 @@ export class TreeCache {
   set(log: Log, key: CacheKey, value: CacheValue, ...contexts: CacheContext[]) {
     if (key.length === 0) {
       throw new ParameterError({
-        message: `Cache key must have at least one part`,
-        detail: {
-          key,
-          contexts,
-        },
+        message: `Cache key must have at least one part. Actually got empty list. Contexts: ${contexts.join(", ")}`,
       })
     }
 
     if (contexts.length === 0) {
       throw new ParameterError({
-        message: `Must specify at least one context`,
-        detail: {
-          key,
-          contexts,
-        },
+        message: `Could not set key '${key.join(".")}': Must specify at least one context. Got empty list.`,
       })
     }
 
@@ -118,11 +110,9 @@ export class TreeCache {
 
       if (context.length === 0) {
         throw new ParameterError({
-          message: `Context key must have at least one part`,
-          detail: {
-            key,
-            context,
-          },
+          message: `Could not set key '${key.join(
+            "."
+          )}': All context keys must have at least one part. At least one of them is an empty list.`,
         })
       }
 
@@ -158,7 +148,7 @@ export class TreeCache {
   getOrThrow(log: Log, key: CacheKey): CacheValue {
     const value = this.get(log, key)
     if (value === undefined) {
-      throw new NotFoundError({ message: `Could not find key ${key} in cache`, detail: { key } })
+      throw new NotFoundError({ message: `Could not find key ${key} in cache` })
     }
     return value
   }
@@ -172,7 +162,9 @@ export class TreeCache {
       pairs = Array.from(node.entries).map((stringKey) => {
         const entry = this.cache.get(stringKey)
         if (!entry) {
-          throw new InternalError({ message: `Invalid reference found in cache: ${stringKey}`, detail: { stringKey } })
+          throw new ParameterError({
+            message: `Invalid reference found in cache: ${stringKey}`,
+          })
         }
         return <[CacheKey, CacheValue]>[entry.key, entry.value]
       })

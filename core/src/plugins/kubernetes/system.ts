@@ -129,7 +129,7 @@ export async function prepareSystemServices({
   if (serviceNames.length > 0) {
     const actions = await sysGarden.getActionRouter()
     const graph = await sysGarden.getConfigGraph({ log, emit: false })
-    const { error, results } = await actions.deployMany({
+    const { error } = await actions.deployMany({
       graph,
       log,
       deployNames: serviceNames,
@@ -140,10 +140,6 @@ export async function prepareSystemServices({
     if (error) {
       throw new PluginError({
         message: `${provider.name} — an error occurred when configuring environment:\n${error}`,
-        detail: {
-          error,
-          results,
-        },
       })
     }
   }

@@ -16,9 +16,9 @@ import { WorkflowConfig } from "../config/workflow"
 import { Log, LogEntry } from "../logger/log-entry"
 import { GardenModule } from "../types/module"
 import { findByName, getNames } from "./util"
-import { GardenBaseError, GardenError, InternalError } from "../exceptions"
+import { GardenError, InternalError } from "../exceptions"
 import { EventBus, EventName, Events } from "../events/events"
-import { dedent } from "./string"
+import { dedent, naturalList } from "./string"
 import pathIsInside from "path-is-inside"
 import { join, resolve } from "path"
 import { DEFAULT_BUILD_TIMEOUT_SEC, GARDEN_CORE_ROOT, GardenApiVersion } from "../constants"
@@ -38,7 +38,7 @@ import { GlobalConfigStore } from "../config-store/global"
 import { isPromise } from "./objects"
 import chalk from "chalk"
 
-export class TestError extends GardenBaseError {
+export class TestError extends GardenError {
   type = "_test"
 }
 
@@ -138,12 +138,11 @@ export class TestEventBus extends EventBus {
       Logged events:
       ${this.eventLog.map((e) => JSON.stringify(e)).join("\n")}
     `,
-      detail: { name, payload },
     })
   }
 }
 
-const defaultCommandinfo = { name: "test", args: {}, opts: {} }
+const defaultCommandInfo = { name: "test", args: {}, opts: {} }
 export const repoRoot = resolve(GARDEN_CORE_ROOT, "..")
 
 const paramCache: { [key: string]: GardenParams } = {}
@@ -188,7 +187,7 @@ export class TestGarden extends Garden {
       params.log = opts?.log || getRootLogger().createLog()
       params.plugins = opts?.plugins || []
     } else {
-      params = await resolveGardenParams(currentDirectory, { commandInfo: defaultCommandinfo, ...opts })
+      params = await resolveGardenParams(currentDirectory, { commandInfo: defaultCommandInfo, ...opts })
       if (cacheKey) {
         paramCache[cacheKey] = cloneDeep({ ...params, log: <any>{}, plugins: [] })
       }
@@ -347,8 +346,7 @@ export class TestGarden extends Garden {
 
     if (!config) {
       throw new TestError({
-        message: `Could not find module config ${name}`,
-        detail: { name, available: getNames(modules) },
+        message: `Could not find module config ${name}. Available modules: ${naturalList(getNames(modules))}`,
       })
     }
 
@@ -413,8 +411,9 @@ export class TestGarden extends Garden {
 export function expectFuzzyMatch(str: string, sample: string | string[]) {
   const errorMessageNonAnsi = stripAnsi(str)
   const samples = typeof sample === "string" ? [sample] : sample
+  const samplesNonAnsi = samples.map(stripAnsi)
   try {
-    samples.forEach((s) => expect(errorMessageNonAnsi.toLowerCase()).to.contain(s.toLowerCase()))
+    samplesNonAnsi.forEach((s) => expect(errorMessageNonAnsi.toLowerCase()).to.contain(s.toLowerCase()))
   } catch (err) {
     // eslint-disable-next-line no-console
     console.log("Error message:\n", chalk.red(errorMessageNonAnsi), "\n")
@@ -434,7 +433,7 @@ type ExpectErrorAssertion =
 const defaultErrorMessageGetter = (err: any) => err.message
 
 export function expectError(fn: Function, assertion: ExpectErrorAssertion = {}) {
-  const handleError = (err: GardenError) => {
+  const handleError = (err: unknown) => {
     if (assertion === undefined) {
       return true
     }
@@ -450,15 +449,15 @@ export function expectError(fn: Function, assertion: ExpectErrorAssertion = {}) 
     const message = errorMessageGetter && errorMessageGetter(err)
 
     if (type) {
+      if (!(err instanceof GardenError)) {
+        expect.fail(`Expected GardenError, got: ${err}`)
+      }
+
       if (!err.type) {
-        const newError = Error(`Expected GardenError with type ${type}, got: ${err}`)
-        newError.stack = err.stack
-        throw newError
+        expect.fail(`Expected GardenError with type ${type}, got: ${err}`)
       }
       if (err.type !== type) {
-        const newError = Error(`Expected ${type} error, got: ${err.type} error`)
-        newError.stack = err.stack
-        throw newError
+        expect.fail(`Expected ${type} error, got: ${err.type} error`)
       }
     }
 
@@ -468,6 +467,10 @@ export function expectError(fn: Function, assertion: ExpectErrorAssertion = {}) 
     }
 
     if (message) {
+      if (!(err instanceof GardenError)) {
+        expect.fail(`Expected GardenError, got: ${err}`)
+      }
+
       return err.message === message
     }
 
@@ -478,9 +481,9 @@ export function expectError(fn: Function, assertion: ExpectErrorAssertion = {}) 
     if (caught) {
       return
     } else if (typeof assertion === "string") {
-      throw new Error(`Expected ${assertion} error (got no error)`)
+      expect.fail(`Expected ${assertion} error (got no error)`)
     } else {
-      throw new Error(`Expected error (got no error)`)
+      expect.fail(`Expected error (got no error)`)
     }
   }
 
@@ -498,4 +501,28 @@ export function expectError(fn: Function, assertion: ExpectErrorAssertion = {}) 
   }
 
   return handleNonError(false)
+}
+
+// adapted from https://stackoverflow.com/a/18543419/1518423
+export function captureStream(stream: NodeJS.WritableStream) {
+  const oldWrite = stream.write
+  let buf: string = ""
+
+  class FakeWrite {
+    write(chunk, _callback)
+    write(chunk, _encoding?, _callback?) {
+      buf += chunk.toString()
+    }
+  }
+
+  stream["write"] = FakeWrite.prototype.write
+
+  return {
+    unhook: function unhook() {
+      stream.write = oldWrite
+    },
+    captured: () => {
+      return buf
+    },
+  }
 }

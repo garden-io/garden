@@ -12,7 +12,7 @@ import React, { FC, useState } from "react"
 import { Box, render, Text, useInput, useStdout } from "ink"
 import { serveArgs, ServeCommand, serveOpts } from "./serve"
 import { LoggerType } from "../logger/logger"
-import { ParameterError } from "../exceptions"
+import { ParameterError, toGardenError } from "../exceptions"
 import { InkTerminalWriter } from "../logger/writers/ink-terminal-writer"
 import { CommandLine } from "../cli/command-line"
 import chalk from "chalk"
@@ -93,12 +93,7 @@ Use ${chalk.bold("up/down")} arrow keys to scroll through your command history.
     if (terminalWriter.type === "ink") {
       inkWriter = terminalWriter as InkTerminalWriter
     } else {
-      throw new ParameterError({ message: `This command can only be used with the ink logger type`, detail: {
-        writerTypes: {
-          terminalWriter: terminalWriter.type,
-          fileWriters: logger.getWriters().file.map((w) => w.type),
-        },
-      }})
+      throw new ParameterError({ message: `This command can only be used with the ink logger type. Got type ${terminalWriter.type}.` })
     }
 
     const commandLine = await this.initCommandHandler(params)
@@ -179,7 +174,7 @@ Use ${chalk.bold("up/down")} arrow keys to scroll through your command history.
       this.commandLine?.flashSuccess(`Project successfully loaded!`)
     } catch (error) {
       log.error(`Failed loading the project: ${error}`)
-      log.error({ error })
+      log.error({ error: toGardenError(error) })
       this.commandLine?.flashError(
         `Failed loading the project. See above logs for details. Type ${chalk.white("reload")} to try again.`
       )

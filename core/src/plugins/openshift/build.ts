@@ -15,6 +15,7 @@ import { k8sPublishContainerBuild } from "../kubernetes/container/publish"
 import { BuildHandler, BuildStatusHandler } from "../kubernetes/container/build/common"
 import { getLocalBuildStatus, localBuild } from "../kubernetes/container/build/local"
 import { getKanikoBuildStatus, kanikoBuild } from "../kubernetes/container/build/kaniko"
+import { NotImplementedError } from "../../exceptions"
 
 export const openshiftContainerBuildExtension = (): BuildActionExtension<ContainerBuildAction> => ({
   name: "container",
@@ -50,7 +51,7 @@ export const openshiftContainerBuildExtension = (): BuildActionExtension<Contain
 })
 
 const unimplemented = () => {
-  throw new Error("Unimplemented handler called in OpenShift Build")
+  throw new NotImplementedError({ message: "Unimplemented handler called in OpenShift Build" })
 }
 
 const buildStatusHandlers: { [mode in ContainerBuildMode]: BuildStatusHandler } = {

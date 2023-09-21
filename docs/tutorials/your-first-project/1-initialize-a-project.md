@@ -5,7 +5,7 @@ order: 1
 
 # 1. Initialize a Project
 
-With the Garden CLI [installed](../../basics/quickstart.md#step-1-install-garden), we'll kick off by configuring a
+With the Garden CLI [installed](../../getting-started/quickstart.md#step-1-install-garden), we'll kick off by configuring a
 simple example project for use with Garden.
 
 Start by cloning our repo and finding the [example project](../../../examples/demo-project-start):
@@ -30,14 +30,41 @@ This will create a basic boilerplate project configuration in the current direct
 ```yaml
 apiVersion: garden.io/v1
 kind: Project
-name: demo-project
+name: demo-project-start
+
+defaultEnvironment: ephemeral
+
 environments:
-  - name: default
+  - name: ephemeral
+
+  - name: local
+    defaultNamespace: garden-local
+
+  - name: remote
+    defaultNamespace: garden-remote-${local.username}
+
+  - name: staging
+    production: true
+    defaultNamespace: staging
+
 providers:
+  - name: ephemeral-kubernetes
+    environments:
+      - ephemeral
   - name: local-kubernetes
+    environments:
+      - local
+  - name: kubernetes
+    environments:
+      - remote
+  - name: kubernetes
+    environments:
+      - staging
 ```
 
-We have one environment (`default`) and a single provider. We'll get back to this later.
+We have three environments (`local`, `remote` and `staging`) and also three provider configurations, one for each environment.
+
+For this step, we'll focus on the `local` environment. You can ignore the others for now.
 
 Next, let's create action configs for each of our two applications, starting with `backend`.
 
@@ -111,8 +138,5 @@ spec:
     - path: /call-backend
       port: http
 ```
-
-Before deploying, you need to set up a local kubernetes cluster or connect to a remote cluster.
-First you can try to deploy the project with the local kubernetes cluster.
 
 Now, let's move on to our next section, and [connect to a Kubernetes cluster](./2-connect-to-a-cluster.md).

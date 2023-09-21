@@ -217,7 +217,7 @@ for `Run` actions of `container` type.
 Since Garden version `0.13` any action (of any `kind` and `type`) can depend on any other action.
 
 Actions can reference outputs from each other
-using [template strings](../using-garden/variables-and-templating.md#template-string-basics).
+using [template strings](../using-garden/variables-and-templating.md#template-string-overview).
 For example, `Build` actions of `container` type are often referenced by `Deploy` actions of `helm` type:
 
 ```yaml

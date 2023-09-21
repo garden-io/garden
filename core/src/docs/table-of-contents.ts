@@ -32,6 +32,7 @@ import { repeat } from "lodash"
 import titleize = require("titleize")
 import humanizeString = require("humanize-string")
 import { dedent } from "../util/string"
+import { isErrnoException } from "../exceptions"
 
 interface Metadata {
   order: number
@@ -69,7 +70,7 @@ function attachMetadata(tree: FileTree) {
     // by dtree. The only reason ENOENT might happen is if it's a non-empty
     // directory that has no README. If the error is *not* ENOENT though,
     // something really went wrong.
-    if (e.code !== "ENOENT") {
+    if (!isErrnoException(e) || e.code !== "ENOENT") {
       throw e
     } else {
       // It's not an empty directory but there's no README: link to first
@@ -127,14 +128,30 @@ function sortTree(tree: FileTree) {
 
 const emojiList = ["🌸", "🌳", "🌻", "💐", "🌿", "🌺", "☘️", "🌹", "🌼", "🌷", "🪷", "🎋"]
 
-function generateMarkdown(tree: FileTree, docsRoot: string, depth: number, emojis: Set<string>) {
+function generateMarkdown({
+  tree,
+  docsRoot,
+  depth = 0,
+  topLevelPageIdx = 0,
+}: {
+  tree: FileTree
+  docsRoot: string
+  /**
+   * How deeply nested the page is. Is 0 for top-level pages.
+   */
+  depth?: number
+  /**
+   * The index of the corresponding top-level page. Used for picking emojis for
+   * top-level pages.
+   */
+  topLevelPageIdx?: number
+}) {
   const path = tree.path.replace(docsRoot, ".")
   let output: string
 
   if (depth === 0) {
-    const emoji = emojis.values().next().value
+    const emoji = emojiList[topLevelPageIdx % emojiList.length]
     output = `\n## ${emoji} ${tree.title}\n\n`
-    emojis.delete(emoji)
   } else {
     output = repeat(indent, depth - 1) + `* [${tree.title}](${path})\n`
   }
@@ -148,8 +165,13 @@ function generateMarkdown(tree: FileTree, docsRoot: string, depth: number, emoji
   if (tree.name === "README.md" || tree.emptyDir === true || tree.name === "welcome.md") {
     output = ""
   }
+
   for (let item in tree.children) {
-    output += generateMarkdown(tree.children[item], docsRoot, depth + 1, emojis)
+    output += generateMarkdown({ tree: tree.children[item], docsRoot, depth: depth + 1, topLevelPageIdx })
+    // Bump the page idx for the top level pages
+    if (tree.topLevel) {
+      topLevelPageIdx += 1
+    }
   }
   return output
 }
@@ -171,7 +193,7 @@ export function generateTableOfContents(docsRoot: string): string {
     * [Welcome!](welcome.md)
     ` +
     "\n" +
-    generateMarkdown(preparedTree, docsRoot, 0, new Set(emojiList))
+    generateMarkdown({ tree: preparedTree, docsRoot })
   )
 }
 
@@ -181,5 +203,5 @@ export async function writeTableOfContents(docsRoot: string, outputFileName: str
   const tocPath = resolve(docsRoot, outputFileName)
   await createFile(tocPath)
   await writeFile(tocPath, toWrite)
-  console.log("Table of contents generated successfuly.")
+  console.log("Table of contents generated successfully.")
 }

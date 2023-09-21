@@ -111,7 +111,7 @@ describe("config templates", () => {
       }
       const path = resolve(config.internal.basePath, config.inputsSchemaPath!)
       await expectError(() => resolveConfigTemplate(garden, config), {
-        contains: `Unable to read inputs schema for ConfigTemplate test: Error: ENOENT: no such file or directory, open '${path}'`,
+        contains: `Unable to read inputs schema at '${config.inputsSchemaPath}' for ConfigTemplate test: Error: ENOENT: no such file or directory, open '${path}'`,
       })
     })
 
@@ -121,7 +121,7 @@ describe("config templates", () => {
         inputsSchemaPath: "invalid.json",
       }
       await expectError(() => resolveConfigTemplate(garden, config), {
-        contains: `Inputs schema for ConfigTemplate test has type string, but should be "object".`,
+        contains: `Inputs schema at 'invalid.json' for ConfigTemplate test has type string, but should be "object".`,
       })
     })
   })
@@ -220,7 +220,7 @@ describe("config templates", () => {
         template: "foo",
       }
       await expectError(() => renderConfigTemplate({ garden, log, config, templates }), {
-        contains: "Render test references template foo, which cannot be found. Available templates: test",
+        contains: "Render test references template foo which cannot be found. Available templates: test",
       })
     })
 

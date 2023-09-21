@@ -59,78 +59,78 @@ describe("ModuleResolver", () => {
     const module = await garden.resolveModule("module-b")
     expect(module.build.dependencies[0].name).to.equal("module-a")
   })
-})
 
-describe("functional tests", () => {
-  describe("render templates", () => {
-    let dataDir: string
-    let garden: TestGarden
-    let graph: ConfigGraph
+  describe("functional tests", () => {
+    describe("render templates", () => {
+      let dataDir: string
+      let garden: TestGarden
+      let graph: ConfigGraph
 
-    before(async () => {
-      dataDir = getDataDir("test-projects", "template-configs")
-      garden = await makeTestGarden(dataDir)
-      graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+      before(async () => {
+        dataDir = getDataDir("test-projects", "template-configs")
+        garden = await makeTestGarden(dataDir)
+        graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+      })
+
+      const expectedExtraFlags = "-Dbuilder=docker"
+
+      context("should resolve vars and inputs with defaults", () => {
+        it("with RenderTemplate and ConfigTemplate.configs", async () => {
+          const buildAction = graph.getBuild("render-template-based-build")
+          const spec = buildAction.getConfig().spec
+          expect(spec).to.exist
+          expect(spec.extraFlags).to.eql([expectedExtraFlags])
+        })
+
+        it("with RenderTemplate and ConfigTemplate.modules", async () => {
+          const buildAction = graph.getBuild("render-template-based-module")
+          const spec = buildAction.getConfig().spec
+          expect(spec).to.exist
+          expect(spec.extraFlags).to.eql([expectedExtraFlags])
+        })
+
+        it("with ModuleTemplate and ConfigTemplate.modules", async () => {
+          const buildAction = graph.getBuild("templated-module-based-module")
+          const spec = buildAction.getConfig().spec
+          expect(spec).to.exist
+          expect(spec.extraFlags).to.eql([expectedExtraFlags])
+        })
+
+        it("with RenderTemplate and ConfigTemplate.configs", async () => {
+          const buildAction = graph.getBuild("templated-module-based-build")
+          const spec = buildAction.getConfig().spec
+          expect(spec).to.exist
+          expect(spec.extraFlags).to.eql([expectedExtraFlags])
+        })
+      })
     })
 
-    const expectedExtraFlags = "-Dbuilder=docker"
+    describe("render templates using $each", () => {
+      let dataDir: string
+      let garden: TestGarden
 
-    context("should resolve vars and inputs with defaults", () => {
-      it("with RenderTemplate and ConfigTemplate.configs", async () => {
-        const buildAction = graph.getBuild("render-template-based-build")
-        const spec = buildAction.getConfig().spec
-        expect(spec).to.exist
-        expect(spec.extraFlags).to.eql([expectedExtraFlags])
+      before(async () => {
+        dataDir = getDataDir("test-projects", "merge-in-module-template")
+        garden = await makeTestGarden(dataDir)
       })
 
-      it("with RenderTemplate and ConfigTemplate.modules", async () => {
-        const buildAction = graph.getBuild("render-template-based-module")
-        const spec = buildAction.getConfig().spec
-        expect(spec).to.exist
-        expect(spec.extraFlags).to.eql([expectedExtraFlags])
-      })
+      context("should resolve vars and inputs with defaults", () => {
+        it("with RenderTemplate and ConfigTemplate.configs", async () => {
+          const resolvedModule = await garden.resolveModule("bug-service")
+          const [generateFile] = resolvedModule.generateFiles!
+          const generatedFileDir = dirname(generateFile.sourcePath!)
+          const fileName = join(generatedFileDir, generateFile.targetPath)
 
-      it("with ModuleTemplate and ConfigTemplate.modules", async () => {
-        const buildAction = graph.getBuild("templated-module-based-module")
-        const spec = buildAction.getConfig().spec
-        expect(spec).to.exist
-        expect(spec.extraFlags).to.eql([expectedExtraFlags])
-      })
+          const parsed = await loadYamlFile(fileName)
 
-      it("with RenderTemplate and ConfigTemplate.configs", async () => {
-        const buildAction = graph.getBuild("templated-module-based-build")
-        const spec = buildAction.getConfig().spec
-        expect(spec).to.exist
-        expect(spec.extraFlags).to.eql([expectedExtraFlags])
-      })
-    })
-  })
+          const templatedEnv = parsed.spec.template.spec.containers[0].env
 
-  describe("render templates using $each", () => {
-    let dataDir: string
-    let garden: TestGarden
-
-    before(async () => {
-      dataDir = getDataDir("test-projects", "merge-in-module-template")
-      garden = await makeTestGarden(dataDir)
-    })
-
-    context("should resolve vars and inputs with defaults", () => {
-      it("with RenderTemplate and ConfigTemplate.configs", async () => {
-        const resolvedModule = await garden.resolveModule("bug-service")
-        const [generateFile] = resolvedModule.generateFiles!
-        const generatedFileDir = dirname(generateFile.sourcePath!)
-        const fileName = join(generatedFileDir, generateFile.targetPath)
-
-        const parsed = await loadYamlFile(fileName)
-
-        const templatedEnv = parsed.spec.template.spec.containers[0].env
-
-        expect(templatedEnv).to.eql([
-          { name: "FIELD1", value: "hi" },
-          { name: "FIELD2", value: "bye" },
-          { name: "HELLO", value: "GOODBYE" },
-        ])
+          expect(templatedEnv).to.eql([
+            { name: "FIELD1", value: "hi" },
+            { name: "FIELD2", value: "bye" },
+            { name: "HELLO", value: "GOODBYE" },
+          ])
+        })
       })
     })
   })

@@ -1,6 +1,6 @@
 {
   "name": "@garden-io/garden-conftest-kubernetes",
-  "version": "0.13.12",
+  "version": "0.13.14",
   "description": "Auto-generator for the conftest plugin and Garden kubernetes/helm modules",
   "main": "index.js",
   "private": true,
@@ -20,6 +20,7 @@
     "strip-ansi": "^6.0.0"
   },
   "scripts": {
+    "check-types": "tsc -p . --noEmit",
     "fix-format": "prettier --write \"**/*.ts\"",
     "lint": "eslint -c ../../.eslintrc  --ext .ts .",
     "test": "mocha"

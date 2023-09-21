@@ -19,7 +19,7 @@ import { matchGlobs, listDirectory } from "@garden-io/sdk/util/fs"
 import { providerConfigBaseSchema, GenericProviderConfig, Provider } from "@garden-io/core/build/src/config/provider"
 import { joi, joiIdentifier, joiSparseArray } from "@garden-io/core/build/src/config/common"
 import { baseBuildSpecSchema } from "@garden-io/core/build/src/config/module"
-import { PluginError, ConfigurationError } from "@garden-io/core/build/src/exceptions"
+import { PluginError, ConfigurationError, GardenError } from "@garden-io/core/build/src/exceptions"
 import { getGitHubUrl } from "@garden-io/core/build/src/docs/common"
 import { renderTemplates } from "@garden-io/core/build/src/plugins/kubernetes/helm/common"
 import { getK8sProvider } from "@garden-io/core/build/src/plugins/kubernetes/util"
@@ -120,7 +120,7 @@ export const gardenPlugin = () =>
   createGardenPlugin({
     name: "conftest",
     docs: dedent`
-    This provider allows you to validate your configuration files against policies that you specify, using the [conftest tool](https://github.com/instrumenta/conftest) and Open Policy Agent rego query files. The provider creates Test action types of the same name, which allow you to specify files to validate.
+    This provider allows you to validate your configuration files against policies that you specify, using the [conftest tool](https://github.com/open-policy-agent/conftest) and Open Policy Agent rego query files. The provider creates Test action types of the same name, which allow you to specify files to validate.
 
     Note that, in many cases, you'll actually want to use more specific providers that can automatically configure your \`conftest\` actions, e.g. the [\`conftest-container\`](./conftest-container.md) and/or [\`conftest-kubernetes\`](./conftest-kubernetes.md) providers. See the [conftest example project](${gitHubUrl}) for a simple usage example of the latter.
 
@@ -138,7 +138,7 @@ export const gardenPlugin = () =>
 
           > Note: In many cases, you'll let specific conftest providers (e.g. [\`conftest-container\`](../../providers/conftest-container.md) and [\`conftest-kubernetes\`](../../providers/conftest-kubernetes.md) create this automatically, but you may in some cases want or need to manually specify files to test.
 
-          See the [conftest docs](https://github.com/instrumenta/conftest) for details on how to configure policies.
+          See the [conftest docs](https://github.com/open-policy-agent/conftest) for details on how to configure policies.
           `,
           schema: testActionSchema(),
           handlers: <TestActionHandlers<TestAction<ConftestTestConfig>>>{
@@ -206,7 +206,7 @@ export const gardenPlugin = () =>
 
           > Note: In most cases, you'll let the [\`conftest-kubernetes\`](../../providers/conftest-kubernetes.md) provider create this Test automatically, but you may in some cases want or need to manually specify files to test.
 
-          See the [conftest docs](https://github.com/instrumenta/conftest) for details on how to configure policies.
+          See the [conftest docs](https://github.com/open-policy-agent/conftest) for details on how to configure policies.
           `,
           schema: testActionSchema().keys({
             helmDeploy: joi
@@ -228,9 +228,12 @@ export const gardenPlugin = () =>
                 try {
                   files = ctx.resolveTemplateStrings(files)
                 } catch (error) {
+                  if (!(error instanceof GardenError)) {
+                    throw error
+                  }
                   throw new ConfigurationError({
                     message: `The spec.files field contains a template string which could not be resolved. Note that some template variables are not available for the field. Error: ${error}`,
-                    detail: { config, error },
+                    wrappedErrors: [error],
                   })
                 }
                 config.include = uniq([...config.include, ...files])
@@ -258,25 +261,17 @@ export const gardenPlugin = () =>
               if (!sourceAction) {
                 throw new ConfigurationError({
                   message: `Must specify a helm Deploy action in the \`helmDeploy\` field. Could not find Deploy action '${spec.helmDeploy}'.`,
-                  detail: {
-                    helmDeployRef: spec.helmDeploy,
-                  },
                 })
               }
               if (sourceAction.type !== "helm") {
                 throw new ConfigurationError({
                   message: `Must specify a helm Deploy action in the \`helmDeploy\` field. Deploy action '${spec.helmDeploy}' has type '${sourceAction.type}'.`,
-                  detail: {
-                    helmDeployRef: spec.helmDeploy,
-                    foundDeployType: sourceAction.type,
-                  },
                 })
               }
 
               const templates = await renderTemplates({
                 ctx: k8sCtx,
                 action: sourceAction,
-
                 log,
               })
 
@@ -324,7 +319,7 @@ export const gardenPlugin = () =>
 
         > Note: In many cases, you'll let specific conftest providers (e.g. [\`conftest-container\`](../providers/conftest-container.md) and [\`conftest-kubernetes\`](../providers/conftest-kubernetes.md) create this action type automatically, but you may in some cases want or need to manually specify files to test.
 
-        See the [conftest docs](https://github.com/instrumenta/conftest) for details on how to configure policies.
+        See the [conftest docs](https://github.com/open-policy-agent/conftest) for details on how to configure policies.
       `,
         schema: commonModuleSchema(),
         needsBuild: false,
@@ -374,7 +369,7 @@ export const gardenPlugin = () =>
 
         > Note: In most cases, you'll let the [\`conftest-kubernetes\`](../providers/conftest-kubernetes.md) provider create this action type automatically, but you may in some cases want or need to manually specify files to test.
 
-        See the [conftest docs](https://github.com/instrumenta/conftest) for details on how to configure policies.
+        See the [conftest docs](https://github.com/open-policy-agent/conftest) for details on how to configure policies.
       `,
         schema: commonModuleSchema().keys({
           sourceModule: joiIdentifier().required().description("Specify a helm module whose chart we want to test."),
@@ -405,40 +400,59 @@ export const gardenPlugin = () =>
     tools: [
       {
         name: "conftest",
-        version: "0.17.1",
+        version: "0.45.0",
         description: "A rego-based configuration validator.",
         type: "binary",
         _includeInGardenImage: true,
         builds: [
-          // this version has no arm support yet. If you add a later release, please add the "arm64" architecture.
           {
             platform: "darwin",
             architecture: "amd64",
-            url: "https://github.com/open-policy-agent/conftest/releases/download/v0.17.1/conftest_0.17.1_Darwin_x86_64.tar.gz",
-            sha256: "1c97f0e43fab99c94593696d362fc1e00e8e80bd0321729412de51d83ecbfb73",
+            url: "https://github.com/open-policy-agent/conftest/releases/download/v0.45.0/conftest_0.45.0_Darwin_x86_64.tar.gz",
+            sha256: "cd199c00fb634242e9062fb6b68692040198b1a2fee88537add7a719485a9839",
             extract: {
               format: "tar",
               targetPath: "conftest",
             },
           },
-          // this version has no arm support yet. If you add a later release, please add the "arm64" architecture.
+          {
+            platform: "darwin",
+            architecture: "arm64",
+            url: "https://github.com/open-policy-agent/conftest/releases/download/v0.45.0/conftest_0.45.0_Darwin_arm64.tar.gz",
+            sha256: "3c4e2d7fd01e7a2a17558e4e5f8086bc92312a8e8773747e2d4a067ca20127b4",
+            extract: {
+              format: "tar",
+              targetPath: "conftest",
+            },
+          },
           {
             platform: "linux",
             architecture: "amd64",
-            url: "https://github.com/open-policy-agent/conftest/releases/download/v0.17.1/conftest_0.17.1_Linux_x86_64.tar.gz",
-            sha256: "d18c95a4b04e87bfd59e06cc980801d2df5dabb371b495506ef03f70a0a40624",
+            url: "https://github.com/open-policy-agent/conftest/releases/download/v0.45.0/conftest_0.45.0_Linux_x86_64.tar.gz",
+            sha256: "65edcf630f5cd2142138555542f10f8cbc99588e5dfcefbfa1e8074c7cc82c23",
             extract: {
               format: "tar",
               targetPath: "conftest",
             },
           },
+          {
+            platform: "linux",
+            architecture: "arm64",
+            url: "https://github.com/open-policy-agent/conftest/releases/download/v0.45.0/conftest_0.45.0_Linux_arm64.tar.gz",
+            sha256: "9851d4c2a6488fbaab6af34223ed77425bc6fb5a4b349a53e6e1410cdf4798f0",
+            extract: {
+              format: "tar",
+              targetPath: "conftest",
+            },
+          },
+
           {
             platform: "windows",
             architecture: "amd64",
             url:
-              "https://github.com/open-policy-agent/conftest/releases/download/v0.17.1/" +
-              "conftest_0.17.1_Windows_x86_64.zip",
-            sha256: "4c2df80420f2f148ec085bb75a8c5b92e1c665c6a041768a79924c81082527c3",
+              "https://github.com/open-policy-agent/conftest/releases/download/v0.45.0/" +
+              "conftest_0.45.0_Windows_x86_64.zip",
+            sha256: "376135229a8ee5e4a1e77d10dad00dc907b04c4efb7d3857e542371902e309ce",
             extract: {
               format: "zip",
               targetPath: "conftest.exe",
@@ -472,57 +486,63 @@ function parseConftestResult(provider: ConftestProvider, log: Log, result: Execa
   try {
     parsed = JSON.parse(result.stdout)
   } catch (err) {
-    throw new PluginError({ message: `Error running conftest: ${result.all}`, detail: { result } })
+    throw new PluginError({ message: `Error running conftest: ${result.all}` })
   }
-
-  const allFailures = parsed.filter((p: any) => p.failures?.length > 0)
-  const allWarnings = parsed.filter((p: any) => p.warnings?.length > 0)
 
   const resultCategories: string[] = []
   let formattedResult = "OK"
 
-  if (allFailures.length > 0) {
-    resultCategories.push(`${allFailures.length} failure(s)`)
+  let countFailures = 0
+  let countWarnings = 0
+
+  const lines: string[] = []
+
+  // We let the format match the conftest output
+  for (const { filename, warnings, failures } of parsed) {
+    const failuresForFilename = failures || []
+    for (const failure of failuresForFilename) {
+      lines.push(
+        chalk.redBright.bold("FAIL") + chalk.gray(" - ") + chalk.redBright(filename) + chalk.gray(" - ") + failure.msg
+      )
+      countFailures += 1
+    }
+
+    const warningsForFilename = warnings || []
+    for (const warning of warningsForFilename) {
+      lines.push(
+        chalk.yellowBright.bold("WARN") +
+          chalk.gray(" - ") +
+          chalk.yellowBright(filename) +
+          chalk.gray(" - ") +
+          warning.msg
+      )
+
+      countWarnings += 1
+    }
   }
 
-  if (allWarnings.length > 0) {
-    resultCategories.push(`${allWarnings.length} warning(s)`)
+  if (countFailures > 0) {
+    resultCategories.push(`${countFailures} failure(s)`)
+  }
+
+  if (countWarnings > 0) {
+    resultCategories.push(`${countWarnings} warning(s)`)
   }
 
   let formattedHeader = `conftest reported ${naturalList(resultCategories)}`
 
-  if (allFailures.length > 0 || allWarnings.length > 0) {
-    const lines = [`${formattedHeader}:\n`]
-
-    // We let the format match the conftest output
-    for (const { filename, warnings, failures } of parsed) {
-      for (const failure of failures) {
-        lines.push(
-          chalk.redBright.bold("FAIL") + chalk.gray(" - ") + chalk.redBright(filename) + chalk.gray(" - ") + failure.msg
-        )
-      }
-      for (const warning of warnings) {
-        lines.push(
-          chalk.yellowBright.bold("WARN") +
-            chalk.gray(" - ") +
-            chalk.yellowBright(filename) +
-            chalk.gray(" - ") +
-            warning.msg
-        )
-      }
-    }
-
-    formattedResult = lines.join("\n")
-  }
-
   const threshold = provider.config.testFailureThreshold
 
-  if (allWarnings.length > 0 && threshold === "warn") {
+  if (countWarnings > 0 && threshold === "warn") {
     success = false
-  } else if (allFailures.length > 0 && threshold !== "none") {
+  } else if (countFailures > 0 && threshold !== "none") {
     success = false
-  } else if (allWarnings.length > 0) {
+  } else if (countWarnings > 0) {
     log.warn(chalk.yellow(formattedHeader))
+  }
+
+  if (!success) {
+    formattedResult = formattedHeader + ":\n\n" + lines.join("\n")
   }
 
   return { success, formattedResult }

@@ -33,7 +33,7 @@ export const PROVIDER_INFO_FILENAME_NO_EXT = "info"
 
 /**
  * Collects project and modules configuration files and error logs (in case they exist).
- * The files are copied over a temporary folder and mantain the folder structure from where
+ * The files are copied over a temporary folder and maintain the folder structure from where
  * they are copied from.
  *
  * @export
@@ -46,8 +46,11 @@ export async function collectBasicDebugInfo(root: string, gardenDirPath: string,
   const projectConfig = await findProjectConfig({ log, path: root, allowInvalid: true })
   if (!projectConfig) {
     throw new ValidationError({
-      message: "Couldn't find a Project definition. Please run this command from the root of your Garden project.",
-      detail: {},
+      message: dedent`
+        Couldn't find a Project definition.
+        Please run this command from the root of your Garden project.
+        Current path: ${root}
+      `,
     })
   }
 
@@ -153,10 +156,10 @@ export async function collectProviderDebugInfo(garden: Garden, log: Log, format:
 
   // Create a provider folder and report for each provider.
   for (const [providerName, info] of Object.entries(providersDebugInfo)) {
-    const prividerPath = join(tempPath, providerName)
-    await ensureDir(prividerPath)
+    const providerPath = join(tempPath, providerName)
+    await ensureDir(providerPath)
     const outputFileName = `${PROVIDER_INFO_FILENAME_NO_EXT}.${format}`
-    await writeFile(join(prividerPath, outputFileName), renderInfo(info, format), "utf8")
+    await writeFile(join(providerPath, outputFileName), renderInfo(info, format), "utf8")
   }
 }
 

@@ -1,6 +1,6 @@
 {
   "name": "@garden-io/garden-terraform",
-  "version": "0.13.12",
+  "version": "0.13.14",
   "description": "Terraform plugin for Garden",
   "main": "index.js",
   "dependencies": {
@@ -21,6 +21,7 @@
     "strip-ansi": "^6.0.0"
   },
   "scripts": {
+    "check-types": "tsc -p . --noEmit",
     "fix-format": "prettier --write \"**/*.ts\"",
     "lint": "eslint -c ../../.eslintrc --ext .ts .",
     "test": "mocha"

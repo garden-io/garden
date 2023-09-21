@@ -1,6 +1,6 @@
 {
   "name": "@garden-io/core",
-  "version": "0.13.12",
+  "version": "0.13.14",
   "description": "A full-featured development framework for containers and serverless",
   "repository": {
     "type": "git",
@@ -68,6 +68,7 @@
     "fast-copy": "^3.0.1",
     "fs-extra": "^11.1.0",
     "get-port": "^5.1.1",
+    "get-port-please": "^3.0.1",
     "glob": "^10.2.6",
     "global-agent": "^3.0.0",
     "got": "^11.8.6",
@@ -164,7 +165,7 @@
   "devDependencies": {
     "@commitlint/cli": "^17.6.5",
     "@commitlint/config-conventional": "^17.6.5",
-    "@garden-io/platform-api-types": "1.455.0",
+    "@garden-io/platform-api-types": "1.914.0",
     "@google-cloud/kms": "^3.7.0",
     "@types/analytics-node": "^3.1.10",
     "@types/async": "^3.2.18",
@@ -259,6 +260,7 @@
   "scripts": {
     "build": "mkdir -p build/src/template-string && peggy src/template-string/parser.pegjs --output build/src/template-string/parser.js",
     "check-package-lock": "git diff-index --quiet HEAD -- yarn.lock || (echo 'yarn.lock is dirty!' && exit 1)",
+    "check-types": "tsc -p . --noEmit",
     "clean": "shx rm -rf build",
     "dev": "nodemon --watch src/template-string/*.pegjs --exec yarn build",
     "fix-format": "prettier --write \"{src,test}/**/*.ts\"",

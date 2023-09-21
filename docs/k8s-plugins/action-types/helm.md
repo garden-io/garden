@@ -9,9 +9,9 @@ The [Helm](https://helm.sh/) package manager is one of the most commonly used to
 
 In this guide we'll be using the [vote-helm](../../../examples/vote-helm/README.md) project. If you prefer to just check out a complete example, the project itself is also a good resource.
 
-You may also want have a look at the reference documentation for the helm [`deploy`](../../reference/action-types/Deploy/helm.md) action type.
+You may also want to have a look at the reference documentation for the helm [`deploy`](../../reference/action-types/Deploy/helm.md) action type.
 [`helm-pod` run](../../reference/action-types/Run/helm-pod.md), [`helm-pod` test](../../reference/action-types/Test/helm-pod.md) and
-[`kubernetes-exec`](./kubernetes-exec.md) actions can be used for testing and task porposes.
+[`kubernetes-exec`](./kubernetes-exec.md) actions can be used for testing and task purposes.
 
 _Note: If you only need a way to deploy some Kubernetes manifests and don't need all the features of Helm, you can_
 _use the simpler `kubernetes` action type instead. Check out the_

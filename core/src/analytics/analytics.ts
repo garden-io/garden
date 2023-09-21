@@ -23,7 +23,7 @@ import { Profile } from "../util/profiling"
 import { ModuleConfig } from "../config/module"
 import { UserResult } from "@garden-io/platform-api-types"
 import { uuidv4 } from "../util/random"
-import { GardenBaseError, GardenErrorContext, StackTraceMetadata } from "../exceptions"
+import { GardenError, NodeJSErrnoErrorCodes, StackTraceMetadata } from "../exceptions"
 import { ActionConfigMap } from "../actions/types"
 import { actionKinds } from "../actions/types"
 import { getResultErrorProperties } from "./helpers"
@@ -146,8 +146,24 @@ interface ApiEvent extends EventBase {
 }
 
 export type AnalyticsGardenErrorDetail = {
+  /**
+   * The error type will be used for rendering the error to json, and also for analytics.
+   *
+   * Corresponds to GardenError.type
+   */
   errorType: string
-  context?: GardenErrorContext
+  /**
+   * The type of task, if the error was thrown as part of resolving or executing a node in the stack graph.
+   *
+   * Corresponds to GardenError.taskType
+   */
+  taskType?: string
+
+  /**
+   * If this error was caused by an underlying NodeJSErrnoException, this will be the code.
+   */
+  code?: NodeJSErrnoErrorCodes
+
   stackTrace?: StackTraceMetadata
 }
 
@@ -163,7 +179,7 @@ export interface CommandResultEvent extends EventBase {
     name: string
     durationMsec: number
     result: AnalyticsCommandResult
-    errors: string[] // list of GardenBaseError types
+    errors: string[] // list of GardenError types
     lastError?: AnalyticsGardenError
     exitCode?: number
   }
@@ -231,11 +247,11 @@ export interface SegmentEvent {
  * prompt for opt-in/opt-out and wrappers for single events.
  *
  * Initalization:
- * const analyticsClient = await AnalyticsHanlder.init(garden: Garden, log: LogEntry)
+ * const analyticsClient = await AnalyticsHandler.init(garden: Garden, log: LogEntry)
  * analyticsClient.trackCommand(commandName)
  *
  * Subsequent usage:
- * const analyticsClient = AnalyticsHanlder.getInstance()
+ * const analyticsClient = AnalyticsHandler.getInstance()
  * analyticsClient.trackCommand(commandName)
  */
 @Profile()
@@ -386,7 +402,7 @@ export class AnalyticsHandler {
   static async init(garden: Garden, log: Log) {
     // Ensure that we re-initialize the analytics metadata when switching projects
     if (!AnalyticsHandler.instance || AnalyticsHandler.instance.garden?.projectName !== garden.projectName) {
-      // We're passing this explictliy to that it's easier to overwrite and test
+      // We're passing this explicitly to that it's easier to overwrite and test
       // in actual CI.
       const ciInfo = {
         isCi: ci.isCI,
@@ -419,7 +435,7 @@ export class AnalyticsHandler {
   /**
    * A factory function that returns an instance of the Analytics class.
    *
-   * Handles async work and calculates values that are set by the contructor itself.
+   * Handles async work and calculates values that are set by the constructor itself.
    *
    * It also initializes the analytics config and updates the analytics data we store in local config.
    */
@@ -434,7 +450,7 @@ export class AnalyticsHandler {
       try {
         cloudUser = await garden.cloudApi?.getProfile()
       } catch (err) {
-        log.debug(`Getting profile from API failed with error: ${err.message}`)
+        log.debug(`Getting profile from API failed with error: ${err}`)
       }
     }
 
@@ -613,7 +629,7 @@ export class AnalyticsHandler {
    */
   trackCommandResult(
     commandName: string,
-    errors: GardenBaseError[],
+    errors: GardenError[],
     startTime: Date,
     exitCode?: number,
     parentSessionId?: string
@@ -627,7 +643,7 @@ export class AnalyticsHandler {
     try {
       errorProperties = getResultErrorProperties(errors)
     } catch (err) {
-      this.log.debug(`Failed to extract command result error properties, ${err.toString()}`)
+      this.log.debug(`Failed to extract command result error properties, ${err}`)
     }
 
     return this.track({

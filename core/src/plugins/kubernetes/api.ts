@@ -33,8 +33,8 @@ import { readFile } from "fs-extra"
 import WebSocket from "isomorphic-ws"
 import pRetry from "p-retry"
 import { Omit, StringCollector } from "../../util/util"
-import { flatten, isObject, isPlainObject, keyBy, omitBy } from "lodash"
-import { ConfigurationError, GardenBaseError, RuntimeError } from "../../exceptions"
+import { flatten, isPlainObject, keyBy } from "lodash"
+import { ConfigurationError, GardenError, GardenErrorParams, RuntimeError } from "../../exceptions"
 import {
   BaseResource,
   KubernetesList,
@@ -54,9 +54,8 @@ import { getExecExitCode } from "./status/pod"
 import { labelSelectorToString } from "./util"
 import { safeDumpYaml } from "../../util/serialization"
 import AsyncLock from "async-lock"
-import { requestWithRetry, RetryOpts } from "./retry"
+import { requestWithRetry, RetryOpts, toKubernetesError } from "./retry"
 import request = require("request-promise")
-import requestErrors = require("request-promise/errors")
 
 interface ApiGroupMap {
   [groupVersion: string]: V1APIGroup
@@ -133,11 +132,25 @@ const crudMap = {
 type CrudMap = typeof crudMap
 type CrudMapTypes = { [T in keyof CrudMap]: CrudMap[T]["cls"] }
 
-export class KubernetesError extends GardenBaseError {
+export class KubernetesError extends GardenError {
   type = "kubernetes"
 
-  statusCode?: number
-  response?: any
+  /**
+   * HTTP response status code
+   */
+  responseStatusCode: number | undefined
+
+  /**
+   * If the Kubernetes API response body contained a message, it will be stored here.
+   */
+  apiMessage: string | undefined
+
+  constructor(params: GardenErrorParams & { responseStatusCode?: number; apiMessage?: string }) {
+    super(params)
+
+    this.responseStatusCode = params.responseStatusCode
+    this.apiMessage = params.apiMessage
+  }
 }
 
 interface List {
@@ -194,7 +207,10 @@ async function nullIfNotFound<T>(fn: () => Promise<T>) {
     const resource = await fn()
     return resource
   } catch (err) {
-    if (err.statusCode === 404) {
+    if (!(err instanceof KubernetesError)) {
+      throw err
+    }
+    if (err.responseStatusCode === 404) {
       return null
     } else {
       throw err
@@ -222,10 +238,6 @@ export class KubeApi {
     if (!cluster) {
       throw new ConfigurationError({
         message: `Could not read cluster from kubeconfig for context ${context}`,
-        detail: {
-          context,
-          config,
-        },
       })
     }
 
@@ -287,24 +299,6 @@ export class KubeApi {
     })
   }
 
-  async getApiGroup(resource: KubernetesResource) {
-    const apiInfo = await this.getApiInfo()
-    const apiVersion = resource.apiVersion
-    const group = apiInfo.groupMap[apiVersion]
-
-    if (!group) {
-      throw new KubernetesError({
-        message: `Unrecognized apiVersion: ${apiVersion}`,
-        detail: {
-          apiVersion,
-          resource,
-        },
-      })
-    }
-
-    return group
-  }
-
   async getApiResourceInfo(log: Log, apiVersion: string, kind: string): Promise<V1APIResource> {
     if (!cachedApiResourceInfo[this.context]) {
       cachedApiResourceInfo[this.context] = {}
@@ -331,7 +325,10 @@ export class KubeApi {
           apiResources[apiVersion] = keyBy(resources, "kind")
           return apiResources[apiVersion]
         } catch (err) {
-          if (err.statusCode === 404) {
+          if (!(err instanceof KubernetesError)) {
+            throw err
+          }
+          if (err.responseStatusCode === 404) {
             // Could not find the resource type
             return {}
           } else {
@@ -369,15 +366,16 @@ export class KubeApi {
     // apply auth
     await this.config.applyToRequest(requestOpts)
 
+    const context = `Kubernetes API: ${path}`
     return await requestWithRetry(
       log,
-      `Kubernetes API: ${path}`,
+      context,
       async () => {
         try {
           log.silly(`${requestOpts.method.toUpperCase()} ${url}`)
           return await request(requestOpts)
         } catch (err) {
-          throw handleRequestPromiseError(path, err)
+          throw toKubernetesError(err, context)
         }
       },
       retryOpts
@@ -484,14 +482,17 @@ export class KubeApi {
           })
           return resourceListForKind.items
         } catch (err) {
-          if (err.statusCode === 404) {
+          if (!(err instanceof KubernetesError)) {
+            throw err
+          }
+          if (err.responseStatusCode === 404) {
             // Then this resource version + kind is not available in the cluster.
             return []
           }
           // FIXME: OpenShift: developers have more restrictions on what they can list
           // Ugly workaround right now, basically just shoving the problem under the rug.
           const openShiftForbiddenList = ["Namespace", "PersistentVolume"]
-          if (err.statusCode === 403 && openShiftForbiddenList.includes(kind)) {
+          if (err.responseStatusCode === 403 && openShiftForbiddenList.includes(kind)) {
             log.warn(
               `No permissions to list resources of kind ${kind}. If you are using OpenShift, ignore this warning.`
             )
@@ -540,7 +541,10 @@ export class KubeApi {
     try {
       await this.request({ log, path: apiPath, opts: { method: "delete" } })
     } catch (err) {
-      if (err.statusCode !== 404) {
+      if (!(err instanceof KubernetesError)) {
+        throw err
+      }
+      if (err.responseStatusCode !== 404) {
         throw err
       }
     }
@@ -562,12 +566,8 @@ export class KubeApi {
     if (!resourceInfo) {
       const err = new KubernetesError({
         message: `Unrecognized resource type ${apiVersion}/${kind}`,
-        detail: {
-          apiVersion,
-          kind,
-        },
       })
-      err.statusCode = 404
+      err.responseStatusCode = 404
       throw err
     }
 
@@ -591,10 +591,7 @@ export class KubeApi {
 
     if (!apiVersion) {
       throw new KubernetesError({
-        message: `Missing apiVersion on resource`,
-        detail: {
-          manifest,
-        },
+        message: `Missing apiVersion on ${manifest.kind} resource named ${manifest.metadata.name}`,
       })
     }
 
@@ -604,10 +601,7 @@ export class KubeApi {
 
     if (!namespace) {
       throw new KubernetesError({
-        message: `Missing namespace on resource and no namespace specified`,
-        detail: {
-          manifest,
-        },
+        message: `Missing namespace on ${manifest.kind} resource named ${manifest.metadata.name} and no namespace specified`,
       })
     }
 
@@ -650,20 +644,26 @@ export class KubeApi {
 
     try {
       await replace()
-    } catch (error) {
-      if (error.statusCode === 404) {
+    } catch (replaceError) {
+      if (!(replaceError instanceof KubernetesError)) {
+        throw replaceError
+      }
+      if (replaceError.responseStatusCode === 404) {
         try {
           await api[crudMap[kind].create](namespace, <any>obj)
           log.debug(`Created ${kind} ${namespace}/${name}`)
-        } catch (err) {
-          if (err.statusCode === 409 || err.statusCode === 422) {
+        } catch (createError) {
+          if (!(createError instanceof KubernetesError)) {
+            throw createError
+          }
+          if (createError.responseStatusCode === 409 || createError.responseStatusCode === 422) {
             await replace()
           } else {
-            throw err
+            throw createError
           }
         }
       } else {
-        throw error
+        throw replaceError
       }
     }
   }
@@ -714,7 +714,7 @@ export class KubeApi {
                   })
                   // the API errors are not properly formed Error objects
                   .catch((err: Error) => {
-                    throw wrapError(name, err)
+                    throw toKubernetesError(err, name)
                   })
               )
             }
@@ -840,7 +840,7 @@ export class KubeApi {
             )
           )
         } catch (err) {
-          throw wrapError(description, err)
+          throw toKubernetesError(err, description)
         }
       }
 
@@ -892,7 +892,6 @@ export class KubeApi {
 
           throw new KubernetesError({
             message: `Failed to create Pod ${pod.metadata.name}: ${error.message}`,
-            detail: { error },
           })
         },
       }
@@ -917,7 +916,11 @@ function attachWebsocketKeepalive(ws: WebSocket): WebSocket {
     pingTimeout = setTimeout(() => {
       ws.emit(
         "error",
-        new Error(`Lost connection to the Kubernetes WebSocket API (Timed out after ${WEBSOCKET_PING_TIMEOUT / 1000}s)`)
+        new KubernetesError({
+          message: `Lost connection to the Kubernetes WebSocket API (Timed out after ${
+            WEBSOCKET_PING_TIMEOUT / 1000
+          }s)`,
+        })
       )
       ws.terminate()
     }, WEBSOCKET_PING_TIMEOUT)
@@ -952,6 +955,13 @@ function getGroupBasePath(apiVersion: string) {
   return apiVersion.includes("/") ? `/apis/${apiVersion}` : `/api/${apiVersion}`
 }
 
+export const KUBECTL_RETRY_OPTS: RetryOpts = {
+  maxRetries: 3,
+  minTimeoutMs: 300,
+  // forceRetry is important, because shouldRetry cannot handle ChildProcessError.
+  forceRetry: true,
+}
+
 export async function getKubeConfig(log: Log, ctx: PluginContext, provider: KubernetesProvider) {
   let kubeConfigStr: string
 
@@ -969,16 +979,13 @@ export async function getKubeConfig(log: Log, ctx: PluginContext, provider: Kube
             log,
             args,
           }),
-        { forceRetry: true }
+        KUBECTL_RETRY_OPTS
       )
     }
     return load(kubeConfigStr)!
   } catch (error) {
     throw new RuntimeError({
       message: `Unable to load kubeconfig: ${error}`,
-      detail: {
-        error,
-      },
     })
   }
 }
@@ -1000,44 +1007,12 @@ async function getContextConfig(log: Log, ctx: PluginContext, provider: Kubernet
     kc.loadFromString(safeDumpYaml(rawConfig))
     kc.setCurrentContext(context)
   } catch (err) {
-    throw new Error("Could not parse kubeconfig, " + err)
+    throw new KubernetesError({
+      message: `Could not parse kubeconfig: ${err}`,
+    })
   }
 
   cachedConfigs[cacheKey] = kc
 
   return kc
-}
-
-function wrapError(name: string, err: any) {
-  if (!err.message || err.name === "HttpError") {
-    const response = err.response || {}
-    const body = response.body || err.body
-    const wrapped = new KubernetesError({
-      message: `Got error from Kubernetes API (${name}) - ${body.message}`,
-      detail: {
-        body,
-        request: omitBy(response.request, (v, k) => isObject(v) || k[0] === "_"),
-      },
-    })
-    wrapped.statusCode = err.statusCode
-    return wrapped
-  } else {
-    return err
-  }
-}
-
-function handleRequestPromiseError(name: string, err: Error) {
-  if (err instanceof requestErrors.StatusCodeError) {
-    const wrapped = new KubernetesError({
-      message: `StatusCodeError from Kubernetes API (${name}) - ${err.message}`,
-      detail: {
-        body: err.error,
-      },
-    })
-    wrapped.statusCode = err.statusCode
-
-    return wrapped
-  } else {
-    return wrapError(name, err)
-  }
 }

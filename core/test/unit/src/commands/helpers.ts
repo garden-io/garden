@@ -23,11 +23,11 @@ describe("command helpers", () => {
           validateActionSearchResults({
             actionKind: "Build",
             actions: [{ name: "action-1" }],
+            allActions: [{ name: "action-1" }, { name: "action-2" }],
             log: logger.createLog(),
             names: ["foo"],
-            errData: {},
           }),
-        { contains: 'action "foo" was not found' }
+        { contains: 'action "foo" was not found. Available actions: action-1 and action-2' }
       )
     })
 
@@ -37,11 +37,11 @@ describe("command helpers", () => {
           validateActionSearchResults({
             actionKind: "Build",
             actions: [{ name: "action-1" }],
+            allActions: [{ name: "action-1" }],
             log: logger.createLog(),
             names: ["foo", "foo*"],
-            errData: {},
           }),
-        { contains: 'action "foo" was not found' }
+        { contains: 'action "foo" was not found. Available actions: action-1' }
       )
     })
 
@@ -51,9 +51,9 @@ describe("command helpers", () => {
           validateActionSearchResults({
             actionKind: "Build",
             actions: [{ name: "action-1" }],
+            allActions: [{ name: "action-1" }],
             log: logger.createLog(),
             names: ["foo"],
-            errData: {},
           }),
         { contains: "Build action" }
       )
@@ -65,11 +65,11 @@ describe("command helpers", () => {
           validateActionSearchResults({
             actionKind: "Build",
             actions: [],
+            allActions: [{ name: "action-1" }],
             log: logger.createLog(),
             names: ["foo*"],
-            errData: {},
           }),
-        { contains: "No Build actions were found" }
+        { contains: ["No Build actions were found", "Available actions: action-1"] }
       )
     })
 
@@ -79,9 +79,9 @@ describe("command helpers", () => {
           validateActionSearchResults({
             actionKind: "Build",
             actions: [],
+            allActions: [{ name: "action-1" }],
             log: logger.createLog(),
             names: ["foo*"],
-            errData: {},
           }),
         { contains: "(matching argument(s) 'foo*')" }
       )
@@ -92,9 +92,9 @@ describe("command helpers", () => {
       validateActionSearchResults({
         actionKind: "Build",
         actions: [],
+        allActions: [{ name: "action-1" }],
         log,
         names: undefined,
-        errData: {},
       })
 
       expect(log.entries[0].msg?.includes("No Build actions were found. Aborting.")).to.eql(true)
@@ -103,9 +103,9 @@ describe("command helpers", () => {
       validateActionSearchResults({
         actionKind: "Build",
         actions: [],
+        allActions: [{ name: "action-1" }],
         log,
         names: [],
-        errData: {},
       })
 
       expect(log.entries[0].msg?.includes("No Build actions were found. Aborting.")).to.eql(true)

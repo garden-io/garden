@@ -14,7 +14,7 @@ import { capitalize } from "lodash"
 import minimatch from "minimatch"
 import pluralize from "pluralize"
 import chalk from "chalk"
-import { CommandError } from "../../exceptions"
+import { CommandError, toGardenError } from "../../exceptions"
 import { CommandResult } from "../base"
 import { userPrompt } from "../../util/util"
 
@@ -95,9 +95,9 @@ export function makeSecretFromResponse(res: SecretResultApi): SecretResult {
 }
 
 /**
- * Helper function for consistenly logging outputs for Garden Cloud bulk operation commands.
+ * Helper function for consistently logging outputs for Garden Cloud bulk operation commands.
  *
- * Throws if any errors exist after logging the relavant output.
+ * Throws if any errors exist after logging the relevant output.
  */
 export function handleBulkOperationResult<T>({
   log,
@@ -153,7 +153,11 @@ export function handleBulkOperationResult<T>({
 
   // Ensure command exits with code 1.
   if (errors.length > 0) {
-    throw new CommandError({ message: "Command failed.", detail: { errors } })
+    const errorMessages = errors.map((e) => e.message).join("\n\n")
+    throw new CommandError({
+      message: `Command failed. Errors: \n${errorMessages}`,
+      wrappedErrors: errors.map(toGardenError),
+    })
   }
 
   return { result: results }

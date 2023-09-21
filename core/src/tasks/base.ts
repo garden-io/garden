@@ -12,9 +12,9 @@ import { Garden } from "../garden"
 import { ActionLog, createActionLog, Log } from "../logger/log-entry"
 import { Profile } from "../util/profiling"
 import { type Action, type ActionState, type Executed, type Resolved } from "../actions/types"
-import { ConfigGraph, GraphError } from "../graph/config-graph"
+import { ConfigGraph } from "../graph/config-graph"
 import type { ActionReference } from "../config/common"
-import { InternalError, RuntimeError } from "../exceptions"
+import { GraphError, InternalError, RuntimeError } from "../exceptions"
 import type { DeleteDeployTask } from "./delete-deploy"
 import type { BuildTask } from "./build"
 import type { DeployTask } from "./deploy"
@@ -119,7 +119,6 @@ export abstract class BaseTask<O extends ValidResultType = ValidResultType> exte
   interactive = false
 
   _resultType: O & BaseTaskOutputs
-  _resolvedDependencies?: BaseTask[]
 
   constructor(initArgs: CommonTaskParams) {
     super()
@@ -204,6 +203,10 @@ export abstract class BaseTask<O extends ValidResultType = ValidResultType> exte
   isExecuteTask(): this is ExecuteTask {
     return this.executeTask
   }
+
+  toSanitizedValue() {
+    return `<Task: ${this.getDescription()}>`
+  }
 }
 
 export interface ActionTaskStatusParams<_ extends Action> extends TaskProcessParams {}
@@ -274,7 +277,6 @@ export abstract class BaseActionTask<T extends Action, O extends ValidResultType
           throw new GraphError({
             message: `${this.action.longDescription()} depends on one or more runtime outputs from action
              ${action.key}, which is disabled. Please either remove the reference or enable the action.`,
-            detail: { dependant: this.action.key(), dependency: action.key() },
           })
         }
         return [this.getExecuteTask(action)]
@@ -323,8 +325,8 @@ export abstract class BaseActionTask<T extends Action, O extends ValidResultType
 
     if (!result) {
       throw new InternalError({
+        taskType: this.type,
         message: `Could not find resolved action '${action.key()}' when processing task '${this.getBaseKey()}'.`,
-        detail: { taskType: this.type, action: action.key() },
       })
     }
 
@@ -341,8 +343,8 @@ export abstract class BaseActionTask<T extends Action, O extends ValidResultType
 
     if (!result) {
       throw new InternalError({
+        taskType: this.type,
         message: `Could not find executed action '${action.key()}' when processing task '${this.getBaseKey()}'.`,
-        detail: { taskType: this.type, action: action.key() },
       })
     }
 
@@ -403,7 +405,7 @@ export function emitGetStatusEvents<
   const method = descriptor.value
 
   if (!method) {
-    throw new RuntimeError({ message: "No method to decorate", detail: {} })
+    throw new RuntimeError({ message: "No method to decorate" })
   }
 
   descriptor.value = async function (this: ExecuteActionTask<A>, ...args: [ActionTaskStatusParams<A>]) {
@@ -490,7 +492,7 @@ export function emitProcessingEvents<
   const method = descriptor.value
 
   if (!method) {
-    throw new RuntimeError({ message: "No method to decorate", detail: {} })
+    throw new RuntimeError({ message: "No method to decorate" })
   }
 
   descriptor.value = async function (this: ExecuteActionTask<A>, ...args: [ActionTaskStatusParams<A>]) {

@@ -22,12 +22,24 @@ import { exec } from "../../../util/util"
 import { remove } from "lodash"
 import chalk from "chalk"
 import { isKindCluster } from "./kind"
+import { isK3sFamilyCluster } from "./k3s"
 import { getK8sClientServerVersions, K8sClientServerVersions } from "../util"
+import { ChildProcessError } from "../../../exceptions"
 
 // TODO: split this into separate plugins to handle Docker for Mac and Minikube
 // note: this is in order of preference, in case neither is set as the current kubectl context
 // and none is explicitly configured in the garden.yml
-const supportedContexts = ["docker-for-desktop", "docker-desktop", "microk8s", "minikube", "kind-kind", "colima"]
+const supportedContexts = [
+  "docker-for-desktop",
+  "docker-desktop",
+  "microk8s",
+  "minikube",
+  "kind-kind",
+  "colima",
+  "rancher-desktop",
+  "k3d-k3s-default",
+  "orbstack",
+]
 const nginxServices = ["ingress-controller", "default-backend"]
 
 function isSupportedContext(context: string) {
@@ -99,6 +111,15 @@ export async function configureProvider(params: ConfigureProviderParams<LocalKub
     providerLog.debug(`No kubectl context configured, using default: ${config.context}`)
   }
 
+  if (await isK3sFamilyCluster(ctx, provider, providerLog)) {
+    config.clusterType = "k3s"
+    if (config.setupIngressController === "nginx") {
+      providerLog.debug("Using k3s conformant nginx ingress controller")
+      remove(_systemServices, (s) => nginxServices.includes(s))
+      _systemServices.push("nginx-k3s")
+    }
+  }
+
   if (await isKindCluster(ctx, provider, providerLog)) {
     config.clusterType = "kind"
 
@@ -134,7 +155,10 @@ export async function configureProvider(params: ConfigureProviderParams<LocalKub
       try {
         await exec("minikube", ["addons", "enable", "ingress"])
       } catch (err) {
-        providerLog.warn(chalk.yellow(`Unable to enable minikube ingress addon: ${err.all}`))
+        if (!(err instanceof ChildProcessError)) {
+          throw err
+        }
+        providerLog.warn(chalk.yellow(`Unable to enable minikube ingress addon: ${err.details.output}`))
       }
       remove(_systemServices, (s) => nginxServices.includes(s))
     }

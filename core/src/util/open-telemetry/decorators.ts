@@ -10,6 +10,7 @@ import * as opentelemetry from "@opentelemetry/sdk-node"
 import { tracer } from "./tracing"
 import { getSessionContext } from "./context"
 import { prefixWithGardenNamespace } from "./util"
+import { InternalError } from "../../exceptions"
 
 type GetAttributesCallback<T extends any[], C> = (this: C, ...args: T) => opentelemetry.api.Attributes
 type GetNameCallback<T extends any[], C> = (this: C, ...args: T) => string
@@ -43,7 +44,7 @@ export function OtelTraced<T extends any[], C>({
     const method = descriptor.value
 
     if (!method) {
-      throw new Error("No method to decorate")
+      throw new InternalError({ message: "No method to decorate" })
     }
 
     descriptor.value = async function (this: C, ...args: T) {
@@ -63,7 +64,7 @@ export function OtelTraced<T extends any[], C>({
         let result
         try {
           result = await method.apply(this, args)
-        } catch (err) {
+        } catch (err: any) {
           span.recordException(err)
           throw err
         } finally {

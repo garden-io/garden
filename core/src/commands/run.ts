@@ -45,6 +45,7 @@ const runArgs = {
 const runOpts = {
   "force": new BooleanParameter({
     help: "Run even if the action is disabled for the environment, and/or a successful result is found in cache.",
+    aliases: ["f"],
   }),
   "force-build": new BooleanParameter({
     help: "Force re-build of Build dependencies before running.",
@@ -144,7 +145,6 @@ export class RunCommand extends Command<Args, Opts> {
     if (!names && !opts.module) {
       throw new ParameterError({
         message: `A name argument or --module must be specified. If you really want to perform every Run in the project, please specify '*' as an argument.`,
-        detail: { args, opts },
       })
     }
 
@@ -152,6 +152,11 @@ export class RunCommand extends Command<Args, Opts> {
     if (opts.module) {
       graph.getModules({ names: opts.module })
     }
+
+    let allActions = graph.getActionsByKind("Run", {
+      excludeNames: opts.skip,
+      includeDisabled: true,
+    })
 
     let actions = graph.getActionsByKind("Run", {
       includeNames: names,
@@ -164,8 +169,8 @@ export class RunCommand extends Command<Args, Opts> {
       log,
       actionKind: "Run",
       actions,
+      allActions,
       names,
-      errData: { params, args },
     })
     if (shouldAbort) {
       return {}
@@ -218,7 +223,6 @@ function maybeOldRunCommand(names: string[], args: any, opts: any, log: Log, par
       throw new ParameterError({
         message: `Error: The ${chalk.white("garden run " + firstArg)} command has been removed.
       Please define a Run action instead, or use the underlying tools (e.g. Docker or Kubernetes) directly.`,
-        detail: { args, opts },
       })
     }
     if (firstArg === "task") {

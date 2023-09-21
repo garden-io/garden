@@ -11,7 +11,7 @@ import { readFile, pathExists, lstat } from "fs-extra"
 import semver from "semver"
 import { parse, CommandEntry } from "docker-file-parser"
 import isGlob from "is-glob"
-import { ConfigurationError, RuntimeError } from "../../exceptions"
+import { ConfigurationError, GardenError, RuntimeError } from "../../exceptions"
 import { spawn, SpawnOutput } from "../../util/util"
 import {
   ContainerRegistryConfig,
@@ -170,10 +170,7 @@ const helpers = {
       return moduleConfig.spec.image
     } else {
       throw new ConfigurationError({
-        message: `Module ${moduleConfig.name} neither specifies image nor provides Dockerfile`,
-        detail: {
-          spec: moduleConfig.spec,
-        },
+        message: `Module ${moduleConfig.name} neither specifies image nor can a Dockerfile be found in the module directory.`,
       })
     }
   },
@@ -220,9 +217,6 @@ const helpers = {
     } else {
       throw new ConfigurationError({
         message: `Invalid container image tag: ${imageId}`,
-        detail: {
-          imageId,
-        },
       })
     }
   },
@@ -269,9 +263,6 @@ const helpers = {
         if (!output) {
           throw new RuntimeError({
             message: `Unexpected docker version output: ${res.all.trim()}`,
-            detail: {
-              output,
-            },
           })
         }
 
@@ -287,13 +278,12 @@ const helpers = {
    */
   checkDockerServerVersion(version: DockerVersion) {
     if (!version.server) {
-      throw new RuntimeError({ message: `Docker server is not running or cannot be reached.`, detail: version })
+      throw new RuntimeError({
+        message: `Failed to check Docker server version: Docker server is not running or cannot be reached.`,
+      })
     } else if (!checkMinDockerVersion(version.server, minDockerVersion.server!)) {
       throw new RuntimeError({
         message: `Docker server needs to be version ${minDockerVersion.server} or newer (got ${version.server})`,
-        detail: {
-          ...version,
-        },
       })
     }
   },
@@ -332,13 +322,12 @@ const helpers = {
       })
       return res
     } catch (err) {
+      if (!(err instanceof GardenError)) {
+        throw err
+      }
       throw new RuntimeError({
-        message: `Unable to run docker command: ${err.message}`,
-        detail: {
-          err,
-          args,
-          cwd,
-        },
+        message: `Unable to run docker command "${args.join(" ")}" in ${cwd}: ${err.message}`,
+        wrappedErrors: [err],
       })
     }
   },
@@ -383,7 +372,7 @@ const helpers = {
         (cmd) => (cmd.name === "ADD" || cmd.name === "COPY") && cmd.args && Number(cmd.args.length) > 0
       )
     } catch (err) {
-      log.warn(chalk.yellow(`Unable to parse Dockerfile ${dockerfilePath}: ${err.message}`))
+      log.warn(chalk.yellow(`Unable to parse Dockerfile ${dockerfilePath}: ${err}`))
       return undefined
     }
 

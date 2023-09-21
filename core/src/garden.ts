@@ -40,7 +40,15 @@ import {
   getCloudDistributionName,
   getCloudLogSectionName,
 } from "./util/util"
-import { ConfigurationError, isGardenError, GardenError, InternalError, PluginError, RuntimeError } from "./exceptions"
+import {
+  ConfigurationError,
+  GardenError,
+  PluginError,
+  RuntimeError,
+  InternalError,
+  toGardenError,
+  CircularDependenciesError,
+} from "./exceptions"
 import { VcsHandler, ModuleVersion, getModuleVersionString, VcsInfo } from "./vcs/vcs"
 import { GitHandler } from "./vcs/git"
 import { BuildStaging } from "./build-staging/build-staging"
@@ -99,7 +107,7 @@ import {
   getActionTypeBases,
   ActionTypeMap,
 } from "./plugins"
-import { deline, naturalList, wordWrap } from "./util/string"
+import { dedent, deline, naturalList, wordWrap } from "./util/string"
 import { DependencyGraph } from "./graph/common"
 import { Profile, profileAsync } from "./util/profiling"
 import username from "username"
@@ -150,7 +158,7 @@ import { OtelTraced } from "./util/open-telemetry/decorators"
 import { wrapActiveSpan } from "./util/open-telemetry/spans"
 import { GitRepoHandler } from "./vcs/git-repo"
 import { configureNoOpExporter } from "./util/open-telemetry/tracing"
-import { detectModuleOverlap, makeOverlapErrors, ModuleOverlapDescription } from "./util/module-overlap"
+import { detectModuleOverlap, makeOverlapErrors } from "./util/module-overlap"
 
 const defaultLocalAddress = "localhost"
 
@@ -360,14 +368,12 @@ export class Garden {
     if (!SUPPORTED_PLATFORMS.includes(currentPlatform)) {
       throw new RuntimeError({
         message: `Unsupported platform: ${currentPlatform}`,
-        detail: { platform: currentPlatform },
       })
     }
 
     if (!SUPPORTED_ARCHITECTURES.includes(currentArch)) {
       throw new RuntimeError({
         message: `Unsupported CPU architecture: ${currentArch}`,
-        detail: { arch: currentArch },
       })
     }
 
@@ -591,13 +597,10 @@ export class Garden {
     if (!plugin) {
       const availablePlugins = getNames(plugins)
       throw new PluginError({
-        message:
-          `Could not find plugin '${pluginName}'. Are you missing a provider configuration? ` +
-          `Currently configured plugins: ${availablePlugins.join(", ")}`,
-        detail: {
-          pluginName,
-          availablePlugins,
-        },
+        message: dedent`
+          Could not find plugin '${pluginName}'. Are you missing a provider configuration?
+
+          Currently configured plugins: ${availablePlugins.join(", ")}`,
       })
     }
 
@@ -704,13 +707,10 @@ export class Garden {
     if (!provider) {
       const providerNames = Object.keys(providers)
       throw new PluginError({
-        message:
-          `Could not find provider '${name}' in environment '${this.environmentName}' ` +
-          `(configured providers: ${providerNames.join(", ") || "<none>"})`,
-        detail: {
-          name,
-          providers,
-        },
+        message: dedent`
+          Could not find provider '${name}' in environment '${this.environmentName}'
+          (configured providers: ${providerNames.join(", ") || "<none>"})
+        `,
       })
     }
 
@@ -756,11 +756,11 @@ export class Garden {
 
           if (!plugin) {
             throw new ConfigurationError({
-              message: `Configured provider '${config.name}' has not been registered.`,
-              detail: {
-                name: config.name,
-                availablePlugins: Object.keys(plugins),
-              },
+              message: dedent`
+                Configured provider '${config.name}' has not been registered.
+
+                Available plugins: ${Object.keys(plugins).join(", ")}
+              `,
             })
           }
 
@@ -776,10 +776,11 @@ export class Garden {
       const cycles = validationGraph.detectCircularDependencies()
 
       if (cycles.length > 0) {
-        const description = validationGraph.cyclesToString(cycles)
-        throw new PluginError({
-          message: `One or more circular dependencies found between providers or their configurations:\n\n${description}`,
-          detail: { "circular-dependencies": description },
+        const cyclesSummary = validationGraph.cyclesToString(cycles)
+        throw new CircularDependenciesError({
+          messagePrefix: "One or more circular dependencies found between providers or their configurations",
+          cycles,
+          cyclesSummary,
         })
       }
 
@@ -806,20 +807,15 @@ export class Garden {
       const failed = providerResults.filter((r) => r && r.error)
 
       if (failed.length) {
-        const messages = failed.map((r) => `- ${r!.name}: ${r!.error!.message}`)
         const failedNames = failed.map((r) => r!.name)
 
         const wrappedErrors: GardenError[] = failed.flatMap((f) => {
-          return f && f.error && isGardenError(f.error) ? [f.error as GardenError] : []
+          return f && f.error ? [toGardenError(f.error)] : []
         })
 
+        // we do not include the error messages in the message, because we already log those errors in the solver.
         throw new PluginError({
           message: `Failed resolving one or more providers:\n- ${failedNames.join("\n- ")}`,
-          detail: {
-            rawConfigs,
-            taskResults,
-            messages,
-          },
           wrappedErrors,
         })
       }
@@ -995,16 +991,8 @@ export class Garden {
     })
     if (overlaps.length > 0) {
       const overlapErrors = makeOverlapErrors(this.projectRoot, overlaps)
-      const messages: string[] = []
-      const overlappingModules: ModuleOverlapDescription[] = []
-      for (const overlapError of overlapErrors) {
-        const { message, detail } = overlapError
-        messages.push(message)
-        overlappingModules.push(...detail.overlappingModules)
-      }
       throw new ConfigurationError({
-        message: messages.join("\n\n"),
-        detail: { overlappingModules },
+        message: overlapErrors.join("\n\n"),
       })
     }
 
@@ -1035,7 +1023,6 @@ export class Garden {
         const actionPath = existing.internal.configFilePath || existing.internal.basePath
         throw new ConfigurationError({
           message: `${existing.kind} action '${existing.name}' (in ${actionPath}) conflicts with ${config.kind} action with same name generated from Module ${config.internal?.moduleName} (in ${moduleActionPath}). Please rename either one.`,
-          detail: { configFromModule: config, actionConfig: existing },
         })
       }
 
@@ -1132,7 +1119,6 @@ export class Garden {
                 )}' on '${actionReferenceToString(dependency.on)}'
                 but action '${actionReferenceToString(dependency[key])}' could not be found.
               `,
-              detail: { provider, dependency },
             })
           }
         }
@@ -1349,9 +1335,6 @@ export class Garden {
           .join("\n")
         throw new ConfigurationError({
           message: `Found duplicate names of ${configTemplateKind}s:\n${messages}`,
-          detail: {
-            duplicateTemplates,
-          },
         })
       }
 
@@ -1399,8 +1382,7 @@ export class Garden {
         // This is only available with apiVersion `garden.io/v1` or newer.
         if (actionConfigs.length && this.projectApiVersion !== GardenApiVersion.v1) {
           throw new ConfigurationError({
-            message: `Action kinds are only supported in project configurations with "apiVersion: ${GardenApiVersion.v1}". A detailed migration guide is available at ${DOCS_BASE_URL}/tutorials/migrating-to-bonsai`,
-            detail: {},
+            message: `Action kinds are only supported in project configurations with "apiVersion: ${GardenApiVersion.v1}". A detailed migration guide is available at ${DOCS_BASE_URL}/guides/migrating-to-bonsai`,
           })
         }
 
@@ -1446,10 +1428,6 @@ export class Garden {
 
         throw new ConfigurationError({
           message: `${config.kind} action ${config.name} is declared multiple times (in '${pathA}' and '${pathB}') and neither is disabled.`,
-          detail: {
-            pathA,
-            pathB,
-          },
         })
       }
     }
@@ -1471,10 +1449,6 @@ export class Garden {
 
       throw new ConfigurationError({
         message: `Module ${key} is declared multiple times (in '${pathA}' and '${pathB}')`,
-        detail: {
-          pathA,
-          pathB,
-        },
       })
     }
 
@@ -1498,10 +1472,6 @@ export class Garden {
 
       throw new ConfigurationError({
         message: `Workflow ${key} is declared multiple times (in '${pathA}' and '${pathB}')`,
-        detail: {
-          pathA,
-          pathB,
-        },
       })
     }
 
@@ -1583,11 +1553,9 @@ export class Garden {
     }
 
     throw new InternalError({
-      message: `Could not find environment config ${this.environmentName}`,
-      detail: {
-        environmentName: this.environmentName,
-        projectConfig: this.projectConfig,
-      },
+      message: `Could not find environment config ${this.environmentName}. Available environments: ${naturalList(
+        this.projectConfig.environments.map((e) => e.name)
+      )}`,
     })
   }
 
@@ -1729,9 +1697,6 @@ export async function resolveGardenParamsPartial(currentDirectory: string, opts:
     if (!config) {
       throw new ConfigurationError({
         message: `Not a project directory (or any of the parent directories): ${currentDirectory}`,
-        detail: {
-          currentDirectory,
-        },
       })
     }
   }
@@ -1757,7 +1722,7 @@ export async function resolveGardenParamsPartial(currentDirectory: string, opts:
 
   // Since we iterate/traverse them before fully validating them (which we do after resolving template strings), we
   // validate that `config.environments` and `config.providers` are both arrays.
-  // This prevents cryptic type errors when the user mistakely writes down e.g. a map instead of an array.
+  // This prevents cryptic type errors when the user mistakenly writes down e.g. a map instead of an array.
   validateWithPath({
     config: config.environments,
     schema: joi.array().items(joi.object()).min(1).required(),
@@ -1864,7 +1829,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
         try {
           cloudProject = await cloudApi.getProjectById(cloudProjectId)
         } catch (err) {
-          cloudLog.debug(`Getting project from API failed with error: ${err.message}`)
+          cloudLog.debug(`Getting project from API failed with error: ${err}`)
         }
       }
 
@@ -1880,7 +1845,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
           if (err instanceof CloudApiDuplicateProjectsError) {
             cloudLog.warn(chalk.yellow(wordWrap(err.message, 120)))
           } else {
-            cloudLog.debug(`Creating a new cloud project failed with error: ${err.message}`)
+            cloudLog.debug(`Creating a new cloud project failed with error: ${err}`)
           }
         }
       }
@@ -1903,7 +1868,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
           cloudLog.verbose(chalk.green("Ready"))
           cloudLog.debug(`Fetched ${Object.keys(secrets).length} secrets from ${cloudDomain}`)
         } catch (err) {
-          cloudLog.debug(`Fetching secrets failed with error: ${err.message}`)
+          cloudLog.debug(`Fetching secrets failed with error: ${err}`)
         }
       } else {
         cloudLog.info(

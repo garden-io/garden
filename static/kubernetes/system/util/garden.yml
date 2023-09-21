@@ -1,5 +1,6 @@
-kind: Module
+kind: Deploy
 name: util
 description: Long lived utility containers.
 type: helm
-releaseName: garden-util-daemon
+spec:
+  releaseName: garden-util-daemon

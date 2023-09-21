@@ -8,13 +8,14 @@
 
 import chalk from "chalk"
 import httpStatusCodes from "http-status-codes"
-import { HttpError } from "@kubernetes/client-node"
+import { HttpError as KubernetesClientHttpError } from "@kubernetes/client-node"
 import { sleep } from "../../util/util"
 import { Log } from "../../logger/log-entry"
-import { deline } from "../../util/string"
+import { dedent, deline } from "../../util/string"
 import { LogLevel } from "../../logger/logger"
 import { KubernetesError } from "./api"
 import requestErrors = require("request-promise/errors")
+import { InternalError, NodeJSErrnoErrorCodes, isErrnoException } from "../../exceptions"
 
 /**
  * The flag {@code forceRetry} can be used to avoid {@link shouldRetry} helper call in case if the error code
@@ -35,7 +36,7 @@ export type RetryOpts = { maxRetries?: number; minTimeoutMs?: number; forceRetry
  */
 export async function requestWithRetry<R>(
   log: Log,
-  description: string,
+  context: string,
   req: () => Promise<R>,
   opts?: RetryOpts
 ): Promise<R> {
@@ -47,12 +48,12 @@ export async function requestWithRetry<R>(
     try {
       return await req()
     } catch (err) {
-      if (forceRetry || shouldRetry(err)) {
+      if (forceRetry || shouldRetry(err, context)) {
         retryLog = retryLog || log.createLog({ fixLevel: LogLevel.debug })
         if (usedRetries <= maxRetries) {
           const sleepMsec = minTimeoutMs + usedRetries * minTimeoutMs
           retryLog.info(deline`
-            ${description} failed with error '${err.message}', retrying in ${sleepMsec}ms
+            ${context} failed with error '${err}', retrying in ${sleepMsec}ms
             (${usedRetries}/${maxRetries})
           `)
           await sleep(sleepMsec)
@@ -72,6 +73,59 @@ export async function requestWithRetry<R>(
   return result
 }
 
+export function toKubernetesError(err: unknown, context: string): KubernetesError {
+  if (err instanceof KubernetesError) {
+    return err
+  }
+
+  let errorType: string
+  let response: KubernetesClientHttpError["response"] | undefined
+  let body: any | undefined
+  let responseStatusCode: number | undefined
+  let code: NodeJSErrnoErrorCodes | undefined
+
+  if (err instanceof KubernetesClientHttpError) {
+    errorType = "HttpError"
+    response = err.response || {}
+    body = err.body
+    responseStatusCode = err.statusCode
+  } else if (err instanceof requestErrors.StatusCodeError) {
+    errorType = "StatusCodeError"
+    response = err.response
+    responseStatusCode = err.statusCode
+  } else if (err instanceof requestErrors.RequestError) {
+    errorType = "RequestError"
+    if (isErrnoException(err.cause)) {
+      code = err.cause.code
+    }
+  } else if (isErrnoException(err)) {
+    errorType = "Error"
+    code = err.code
+  } else {
+    // In all other cases, we don't know what this is, so let's just throw an InternalError
+    throw InternalError.wrapError(err, `toKubernetesError encountered an unknown error unexpectedly during ${context}`)
+  }
+
+  let apiMessage: string | undefined
+  if (body && typeof body.message === "string") {
+    apiMessage = body.message
+  }
+
+  return new KubernetesError({
+    message: dedent`
+      Error while performing Kubernetes API operation ${context}:
+
+      ${errorType}${err.message ? `: ${err.message}` : ""}
+
+      ${response?.url ? `Request URL: ${response?.url}` : ""}
+      ${responseStatusCode ? `Response status code: ${responseStatusCode}` : ""}
+      ${apiMessage ? `Kubernetes Message: ${apiMessage}` : ""}`,
+    responseStatusCode,
+    code,
+    apiMessage,
+  })
+}
+
 /**
  * This helper determines whether an error thrown by a k8s API request should result in the request being retried.
  *
@@ -81,19 +135,18 @@ export async function requestWithRetry<R>(
  *
  * Add more error codes / regexes / filters etc. here as needed.
  */
-export function shouldRetry(err: any): boolean {
-  const msg = err.message || ""
-  let code: number | undefined = undefined
+export function shouldRetry(error: unknown, context: string): boolean {
+  const err = toKubernetesError(error, context)
 
-  if (err instanceof requestErrors.StatusCodeError || err instanceof KubernetesError || err instanceof HttpError) {
-    code = err.statusCode
+  if (err.code === "ECONNRESET") {
+    return true
   }
 
-  return (
-    (code && statusCodesForRetry.includes(code)) ||
-    err.code === "ECONNRESET" || // <- socket hang up
-    !!errorMessageRegexesForRetry.find((regex) => msg.match(regex))
-  )
+  if (err.responseStatusCode && statusCodesForRetry.includes(err.responseStatusCode)) {
+    return true
+  }
+
+  return !!errorMessageRegexesForRetry.find((regex) => err.message.match(regex))
 }
 
 export const statusCodesForRetry: number[] = [

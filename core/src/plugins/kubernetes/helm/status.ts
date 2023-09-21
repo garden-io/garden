@@ -23,6 +23,7 @@ import { HelmDeployAction } from "./config"
 import { ActionMode, Resolved } from "../../../actions/types"
 import { deployStateToActionState } from "../../../plugin/handlers/Deploy/get-status"
 import { isTruthy } from "../../../util/util"
+import { ChildProcessError } from "../../../exceptions"
 
 export const gardenCloudAECPauseAnnotation = "garden.io/aec-status"
 
@@ -38,8 +39,6 @@ const helmStatusMap: { [status: string]: DeployState } = {
 interface HelmStatusDetail {
   remoteResources?: KubernetesServerResource[]
 }
-
-export type HelmServiceStatus = ServiceStatus<HelmStatusDetail>
 
 export const getHelmDeployStatus: DeployActionHandler<"getStatus", HelmDeployAction> = async (params) => {
   const { ctx, action, log } = params
@@ -71,8 +70,8 @@ export const getHelmDeployStatus: DeployActionHandler<"getStatus", HelmDeployAct
   if (state !== "missing") {
     const deployedResources = await getDeployedChartResources({ ctx: k8sCtx, action, releaseName, log })
 
-    forwardablePorts = deployedMode === "local" ? [] : getForwardablePorts(deployedResources, action)
-    ingresses = getK8sIngresses(deployedResources)
+    forwardablePorts = getForwardablePorts({ resources: deployedResources, parentAction: action, mode: deployedMode })
+    ingresses = getK8sIngresses(deployedResources, provider)
 
     if (state === "ready") {
       // Local mode always takes precedence over sync mode
@@ -236,6 +235,9 @@ export async function getReleaseStatus({
       detail: { ...res, values, mode: deployedMode },
     }
   } catch (err) {
+    if (!(err instanceof ChildProcessError)) {
+      throw err
+    }
     if (err.message.includes("release: not found")) {
       return { state: "missing", detail: {} }
     } else {

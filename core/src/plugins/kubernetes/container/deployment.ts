@@ -42,8 +42,6 @@ import { k8sGetContainerDeployStatus, ContainerServiceStatus } from "./status"
 import { emitNonRepeatableWarning } from "../../../warnings"
 import { K8_POD_DEFAULT_CONTAINER_ANNOTATION_KEY } from "../run"
 
-export const DEFAULT_CPU_REQUEST = "10m"
-export const DEFAULT_MEMORY_REQUEST = "90Mi" // This is the minimum in some clusters - or so they tell me
 export const REVISION_HISTORY_LIMIT_PROD = 10
 export const REVISION_HISTORY_LIMIT_DEFAULT = 3
 export const DEFAULT_MINIMUM_REPLICAS = 1
@@ -533,8 +531,6 @@ function workloadConfig({
   }
 }
 
-type HealthCheckMode = "dev" | "local" | "normal"
-
 function configureHealthCheck(container: V1Container, spec: ContainerDeploySpec, mode: ActionMode): void {
   if (mode === "local") {
     // no need to configure liveness and readiness probes for a service running in local mode
@@ -583,7 +579,9 @@ function configureHealthCheck(container: V1Container, spec: ContainerDeploySpec,
     }
     container.livenessProbe.tcpSocket = container.readinessProbe.tcpSocket
   } else {
-    throw new Error("Must specify type of health check when configuring health check.")
+    throw new ConfigurationError({
+      message: "Must specify type of health check when configuring health check.",
+    })
   }
 }
 
@@ -599,7 +597,7 @@ export function configureVolumes(
     const volumeName = volume.name
 
     if (!volumeName) {
-      throw new Error("Must specify volume name")
+      throw new ConfigurationError({ message: "Must specify volume name" })
     }
 
     volumeMounts.push({
@@ -623,7 +621,6 @@ export function configureVolumes(
           message: `${action.longDescription()} specifies action '${
             volume.action.name
           }' on volume '${volumeName}' but the Deploy action could not be found. Please make sure it is specified as a dependency on the action.`,
-          detail: { volume },
         })
       }
 
@@ -647,7 +644,6 @@ export function configureVolumes(
           ${chalk.white(volumeAction.name)} for volume mount ${chalk.white(volumeName)}. Only \`persistentvolumeclaim\`
           and \`configmap\` action are supported at this time.
           `),
-          detail: { volumeSpec: volume },
         })
       }
     } else {
@@ -715,9 +711,6 @@ export async function handleChangedSelector({
       )} flag when deploying e.g. with the ${chalk.white(
         "garden deploy"
       )} command. You can also delete the resource from your cluster manually and try again.`,
-      detail: {
-        deployName: action.name,
-      },
     })
   } else {
     if (production && force) {

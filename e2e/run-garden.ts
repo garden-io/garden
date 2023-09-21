@@ -135,7 +135,7 @@ export async function runGarden(cwd: string, command: string[]): Promise<JsonLog
     await proc
     return parsedLog
   } catch (err) {
-    let msg = err.message.split("\n")[0]
+    let msg = String(err).split("\n")[0]
     if (parsedLog.length > 0) {
       msg += "\n" + parsedLog.map((l) => stringifyJsonLog(l, { error: true })).join("\n")
     }
@@ -261,7 +261,7 @@ export class GardenWatch {
 
     this.checkIntervalMs = checkIntervalMs
 
-    let error: Error | undefined = undefined
+    let error: unknown = undefined
     const startTime = new Date().getTime()
 
     while (this.running) {
@@ -286,10 +286,6 @@ export class GardenWatch {
         const log = this.renderLog()
         error = new TimeoutError({
           message: `Timed out waiting for test steps. Logs:\n${log}`,
-          detail: {
-            logEntries: this.logEntries,
-            log,
-          },
         })
         break
       }
@@ -369,10 +365,6 @@ export class GardenWatch {
         const log = this.renderLog()
         throw new TimeoutError({
           message: `Timed out waiting for garden command to terminate. Log:\n${log}`,
-          detail: {
-            logEntries: this.logEntries,
-            log,
-          },
         })
       }
     }
@@ -387,7 +379,6 @@ export class GardenWatch {
           message: deline`
           GardenWatch: step ${description} in testSteps defines neither a condition nor an action.
           Steps must define either a condition or an action.`,
-          detail: { testSteps },
         })
       }
       if (hasCondition && hasAction) {
@@ -395,7 +386,6 @@ export class GardenWatch {
           message: deline`
           GardenWatch: step ${description} in testSteps defines both a condition and an action.
           Steps must define either a condition or an action, but not both.`,
-          detail: { testSteps },
         })
       }
     }
@@ -404,7 +394,6 @@ export class GardenWatch {
       throw new ParameterError({
         message: deline`
         GardenWatch: run method called with an empty testSteps array. At least one test step must be provided.`,
-        detail: {},
       })
     }
 
@@ -412,7 +401,6 @@ export class GardenWatch {
       throw new ParameterError({
         message: deline`
         GardenWatch: The last element of testSteps must be a condition, not an action.`,
-        detail: { testSteps },
       })
     }
   }

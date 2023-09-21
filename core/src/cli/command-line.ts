@@ -17,7 +17,7 @@ import { BuiltinArgs, Command, CommandGroup, CommandResult, PrepareParams } from
 import { ServeCommand } from "../commands/serve"
 import { GlobalConfigStore } from "../config-store/global"
 import { findProjectConfig } from "../config/base"
-import { toGardenError } from "../exceptions"
+import { GardenError, toGardenError } from "../exceptions"
 import { Garden } from "../garden"
 import type { Log } from "../logger/log-entry"
 import { getTermWidth, renderDivider } from "../logger/util"
@@ -629,6 +629,9 @@ ${chalk.white.underline("Keys:")}
       args = processed.args
       opts = processed.opts
     } catch (error) {
+      if (!(error instanceof GardenError)) {
+        throw error
+      }
       this.flashError(error.message)
       return
     }
@@ -722,7 +725,7 @@ ${chalk.white.underline("Keys:")}
             if (!projectConfig) {
               const msg = opts.root
                 ? `Could not find project at specified --root '${opts.root}'`
-                : `Could not find project in current directory or any parent directoty`
+                : `Could not find project in current directory or any parent directory`
               this.flashError(getCmdFailMsg(name))
               this.log.error(msg)
               return
@@ -743,7 +746,7 @@ ${chalk.white.underline("Keys:")}
             this.flashError(getCmdFailMsg(name))
             delete this.runningCommands[id]
             this.renderStatus()
-            this.log.error({ error })
+            this.log.error({ error: toGardenError(error) })
             return
           }
 

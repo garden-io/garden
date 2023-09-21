@@ -9,9 +9,8 @@
 import { ensureFile, readFile } from "fs-extra"
 import { z, ZodType } from "zod"
 import { lock } from "proper-lockfile"
-import { InternalError } from "../exceptions"
-import { dump } from "js-yaml"
 import writeFileAtomic from "write-file-atomic"
+import { InternalError } from "../exceptions"
 
 // Just a shorthand to make the code below a little more compact
 type I<T extends ZodType<any>> = z.infer<T>
@@ -99,7 +98,6 @@ export abstract class ConfigStore<T extends z.ZodObject<any>> {
           message: `The config store does not contain a record for key '${String(section)}.${String(
             key
           )}. Cannot update.'`,
-          detail: { section, key, value },
         })
       }
 
@@ -145,12 +143,7 @@ export abstract class ConfigStore<T extends z.ZodObject<any>> {
     } catch (error) {
       const configPath = this.getConfigPath()
       throw new InternalError({
-        message: `Validation error(s) when ${context} configuration file at ${configPath}:\n${dump(error.message)}`,
-        detail: {
-          error,
-          configPath,
-          data,
-        },
+        message: `Validation error(s) when ${context} configuration file at ${configPath}:\n${error}`,
       })
     }
   }

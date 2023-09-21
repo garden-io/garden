@@ -7,7 +7,7 @@
  */
 
 import { pathExists, createWriteStream, ensureDir, chmod, remove, move, createReadStream } from "fs-extra"
-import { ConfigurationError, ParameterError, GardenBaseError } from "../exceptions"
+import { ConfigurationError, InternalError } from "../exceptions"
 import { join, dirname, basename, posix } from "path"
 import { hashString, exec, getPlatform, getArchitecture, isDarwinARM } from "./util"
 import tar from "tar"
@@ -28,10 +28,6 @@ import { streamLogs, waitForProcess } from "./process"
 
 const toolsPath = join(GARDEN_GLOBAL_PATH, "tools")
 const lock = new AsyncLock()
-
-export class DownloadError extends GardenBaseError {
-  type = "download"
-}
 
 export interface ExecParams {
   args?: string[]
@@ -63,6 +59,10 @@ export class CliWrapper {
     return this.toolPath
   }
 
+  /**
+   * @throws RuntimeError on EMFILE (Too many open files)
+   * @throws ChildProcessError on any other error condition
+   */
   async exec({ args, cwd, env, log, timeoutSec, input, ignoreError, stdout, stderr }: ExecParams) {
     const path = await this.getPath(log)
 
@@ -86,19 +86,19 @@ export class CliWrapper {
     })
   }
 
+  /**
+   * @throws RuntimeError on EMFILE (Too many open files)
+   * @throws ChildProcessError on any other error condition
+   */
   async stdout(params: ExecParams) {
-    try {
-      const res = await this.exec(params)
-      return res.stdout
-    } catch (err) {
-      // Add log output to error
-      if (err.all) {
-        err.message += "\n\n" + err.all
-      }
-      throw err
-    }
+    const res = await this.exec(params)
+    return res.stdout
   }
 
+  /**
+   * @throws RuntimeError on EMFILE (Too many open files)
+   * @throws ChildProcessError on any other error condition
+   */
   async json(params: ExecParams) {
     const out = await this.stdout(params)
     return JSON.parse(out)
@@ -122,6 +122,8 @@ export class CliWrapper {
    * Helper for using spawn with live log streaming. Waits for the command to finish before returning.
    *
    * If an error occurs and no output has been written to stderr, we use stdout for the error message instead.
+   *
+   * @throws RuntimeError
    */
   async spawnAndStreamLogs({
     args,
@@ -145,6 +147,10 @@ export class CliWrapper {
     })
   }
 
+  /**
+   * @throws RuntimeError on ENOENT (command not found)
+   * @throws ChildProcessError on any other error condition
+   */
   async spawnAndWait({ args, cwd, env, log, ignoreError, rawMode, stdout, stderr, timeoutSec, tty }: SpawnParams) {
     const path = await this.getPath(log)
 
@@ -213,13 +219,9 @@ export class PluginTool extends CliWrapper {
 
     if (!buildSpec) {
       throw new ConfigurationError({
-        message: `Command ${spec.name} doesn't have a spec for this platform/architecture (${platform}-${architecture})`,
-        detail: {
-          spec,
-          platform,
-          architecture,
-          darwinARM,
-        },
+        message: `Command ${spec.name} doesn't have a spec for this platform/architecture (${platform}-${architecture}${
+          darwinARM ? "; without emulation: darwin-arm" : ""
+        })`,
       })
     }
 
@@ -277,9 +279,9 @@ export class PluginTool extends CliWrapper {
         await this.fetch(tmpPath, log)
 
         if (this.buildSpec.extract && !(await pathExists(targetAbsPath))) {
-          throw new ConfigurationError({
-            message: `Archive ${this.buildSpec.url} does not contain a file or directory at ${this.targetSubpath}`,
-            detail: { name: this.name, spec: this.spec },
+          // if this happens, it's a bug!
+          throw new InternalError({
+            message: `Error while downloading ${this.name}: Archive ${this.buildSpec.url} does not contain a file or directory at ${this.targetSubpath}`,
           })
         }
 
@@ -330,13 +332,9 @@ export class PluginTool extends CliWrapper {
 
         if (this.buildSpec.sha256 && sha256 !== this.buildSpec.sha256) {
           reject(
-            new DownloadError({
-              message: `Invalid checksum from ${this.buildSpec.url} (got ${sha256})`,
-              detail: {
-                name: this.name,
-                spec: this.spec,
-                sha256,
-              },
+            // if this happens, it's a bug!
+            new InternalError({
+              message: `Failed to download ${this.name}: Invalid checksum from ${this.buildSpec.url} (expected ${this.buildSpec.sha256}, actually got ${sha256})`,
             })
           )
         }
@@ -363,12 +361,9 @@ export class PluginTool extends CliWrapper {
           extractor.on("close", () => resolve())
         } else {
           reject(
-            new ParameterError({
-              message: `Invalid archive format: ${format}`,
-              detail: {
-                name: this.name,
-                spec: this.spec,
-              },
+            // If this happens, it's a bug!
+            new InternalError({
+              message: `Failed to extract ${this.name}: Invalid archive format: ${format}`,
             })
           )
           return

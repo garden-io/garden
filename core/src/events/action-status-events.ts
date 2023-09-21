@@ -67,7 +67,7 @@ const actionStateTypesForEvent = [...actionStateTypes, "getting-status", "cached
  *   - This state can be reached by successfully processing the action after getting a `"not-ready"` state from the
  *     status check.
  *   - Think of this as "succeeded".
- *   - Note that in the case of Test actions, the action itself will retur a "ready" state even if the test itself
+ *   - Note that in the case of Test actions, the action itself will return a "ready" state even if the test itself
  *     failed, because the action execution was successful.
  *
  * - `"not-ready"`: No result (or no healthy result) for the action exists with the requested version.
@@ -77,9 +77,9 @@ const actionStateTypesForEvent = [...actionStateTypes, "getting-status", "cached
  *
  * - `"processing"`: The action is being executed.
  *
- * - `"failed"`: Getting the status or processing the action failed with an unexpectd error so no up-to-date
+ * - `"failed"`: Getting the status or processing the action failed with an unexpected error so no up-to-date
  *   result was created for the action.
- *   - Note that in the case of Test actions, this does not suggest that the a underlying test failed, but rather
+ *   - Note that in the case of Test actions, this does not suggest that the underlying test failed, but rather
  *     that the action itself failed and the test status is simply unknown.
  */
 export type ActionStateForEvent = (typeof actionStateTypesForEvent)[number]

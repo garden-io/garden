@@ -1,0 +1,25 @@
+class GardenCli < Formula
+  desc "Development engine for Kubernetes"
+  homepage "https://garden.io"
+
+  version "{{version}}"
+
+  # Determine architecture
+  if Hardware::CPU.arm?
+    url "{{armTarballUrl}}"
+    sha256 "{{armSha256}}"
+  else
+    url "{{amdTarballUrl}}"
+    sha256 "{{amdSha256}}"
+  end
+
+  def install
+    libexec.install "garden", "fsevents.node", "static"
+    bin.install_symlink libexec/"garden"
+  end
+
+  test do
+    # just make sure the command works
+    system bin/"garden", "--help"
+  end
+end

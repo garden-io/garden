@@ -427,7 +427,7 @@ describe("Garden", () => {
       })
       await expectError(() => TestGarden.factory(pathFoo, { config, environmentString: "default" }), {
         contains:
-          "Environment default has defaultNamespace set to null, and no explicit namespace was specified. Please either set a defaultNamespace or explicitly set a namespace at runtime (e.g. --env=some-namespace.default).",
+          "Environment default has defaultNamespace set to null in the project configuration, and no explicit namespace was specified. Please either set a defaultNamespace or explicitly set a namespace at runtime (e.g. --env=some-namespace.default).",
       })
     })
 
@@ -681,7 +681,6 @@ describe("Garden", () => {
               needsBuild: true,
               handlers: {
                 configure: async ({ moduleConfig }) => ({ moduleConfig }),
-                suggestModules: async () => ({ suggestions: [] }),
               },
             },
           ],
@@ -758,9 +757,6 @@ describe("Garden", () => {
         const getModuleOutputsHandler = spec.handlers.getModuleOutputs!
         expect(getModuleOutputsHandler).to.exist
         expect(getModuleOutputsHandler.base).to.not.exist
-
-        const suggestModulesHandler = spec.handlers.suggestModules!
-        expect(suggestModulesHandler).to.not.exist
       })
 
       it("should throw when a module type has a base that is not defined", async () => {
@@ -1122,7 +1118,7 @@ describe("Garden", () => {
         })
 
         await expectError(() => garden.getAllPlugins(), {
-          contains: "Plugin 'foo' redeclares the 'foo' module type, already declared by its base.",
+          contains: "Plugin 'foo' redeclares the 'foo' module type, already declared by its base",
         })
       })
 
@@ -1481,7 +1477,7 @@ describe("Garden", () => {
           })
 
           await expectError(() => garden.getAllPlugins(), {
-            contains: "Plugin 'foo' redeclares the 'foo' module type, already declared by its base.",
+            contains: "Plugin 'foo' redeclares the 'foo' module type, already declared by its base",
           })
         })
 
@@ -1726,10 +1722,6 @@ describe("Garden", () => {
         () => garden.resolveProviders(garden.log),
         (err) => {
           expectFuzzyMatch(err.message, ["Failed resolving one or more providers:", "- test"])
-          expectFuzzyMatch(
-            err.detail.messages[0],
-            "Invalid template string (${bla.ble}): Could not find key bla. Available keys: command, datetime, environment, git, local, project, providers, secrets, var and variables."
-          )
         }
       )
     })
@@ -1955,8 +1947,12 @@ describe("Garden", () => {
       await expectError(
         () => garden.resolveProviders(garden.log),
         (err) => {
-          expectFuzzyMatch(err.message, ["Failed resolving one or more providers:", "- test"])
-          expectFuzzyMatch(err.detail.messages[0], ["Error validating provider configuration", "foo must be a string"])
+          expectFuzzyMatch(err.message, [
+            "Failed resolving one or more providers:",
+            "- test",
+            "Error validating provider configuration",
+            "foo must be a string",
+          ])
         }
       )
     })
@@ -1985,8 +1981,12 @@ describe("Garden", () => {
       await expectError(
         () => garden.resolveProviders(garden.log),
         (err) => {
-          expectFuzzyMatch(err.message, ["Failed resolving one or more providers:", "- test"])
-          expectFuzzyMatch(err.detail.messages[0], ["Error validating provider configuration", "foo must be a string"])
+          expectFuzzyMatch(err.message, [
+            "Failed resolving one or more providers:",
+            "- test",
+            "Error validating provider configuration",
+            "foo must be a string",
+          ])
         }
       )
     })
@@ -2189,8 +2189,9 @@ describe("Garden", () => {
         await expectError(
           () => garden.resolveProviders(garden.log),
           (err) => {
-            expectFuzzyMatch(err.message, ["Failed resolving one or more providers:", "- test"])
-            expectFuzzyMatch(err.detail.messages[0], [
+            expectFuzzyMatch(err.message, [
+              "Failed resolving one or more providers:",
+              "- test",
               "Error validating provider configuration",
               "foo must be a string",
             ])
@@ -2228,11 +2229,13 @@ describe("Garden", () => {
         await expectError(
           () => garden.resolveProviders(garden.log),
           (err) => {
-            expectFuzzyMatch(err.message, ["Failed resolving one or more providers:", "- test"])
-            expectFuzzyMatch(
-              err.detail.messages[0],
-              "Error validating provider configuration (base schema from 'base' plugin):\nfoo must be a string"
-            )
+            expectFuzzyMatch(err.message, [
+              "Failed resolving one or more providers:",
+              "- test",
+              "Error validating provider configuration",
+              "base schema from 'base' plugin",
+              "foo must be a string",
+            ])
           }
         )
       })
@@ -2684,10 +2687,11 @@ describe("Garden", () => {
 
     it("should not throw when apiVersion v0 is set in a project without action configs", async () => {
       const garden = await makeTestGarden(getDataDir("test-projects", "config-valid-v0"))
-
-      await expect(async () => {
+      try {
         await garden.scanAndAddConfigs()
-      }).to.not.throw()
+      } catch (er) {
+        expect.fail("Expected scanAndAddConfigs not to throw")
+      }
     })
   })
 

@@ -12,6 +12,7 @@ import { LogLevel, RootLogger } from "@garden-io/core/build/src/logger/logger"
 import { GARDEN_CLI_ROOT } from "@garden-io/core/build/src/constants"
 import { getBundledPlugins } from "./cli"
 import { getSupportedPlugins } from "@garden-io/core/build/src/plugins/plugins"
+import { gracefulExit } from "@scg82/exit-hook"
 
 require("source-map-support").install()
 
@@ -33,11 +34,11 @@ if (require.main === module) {
     .then(() => {
       // eslint-disable-next-line no-console
       console.log("Done!")
-      process.exit(0)
+      gracefulExit(0)
     })
     .catch((err) => {
       // eslint-disable-next-line no-console
       console.error(err)
-      process.exit(1)
+      gracefulExit(1)
     })
 }

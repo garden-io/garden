@@ -54,13 +54,13 @@ describe("parseLogLevel", () => {
     expect(parsed).to.eql([0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5])
   })
   it("should throw if level is not valid", async () => {
-    await expectError(() => parseLogLevel("banana"), "internal")
+    await expectError(() => parseLogLevel("banana"), "parameter")
   })
   it("should throw if level is not valid", async () => {
-    await expectError(() => parseLogLevel("-1"), "internal")
+    await expectError(() => parseLogLevel("-1"), "parameter")
   })
   it("should throw if level is not valid", async () => {
-    await expectError(() => parseLogLevel(""), "internal")
+    await expectError(() => parseLogLevel(""), "parameter")
   })
 })
 

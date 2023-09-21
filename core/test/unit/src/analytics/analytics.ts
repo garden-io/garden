@@ -788,7 +788,8 @@ describe("AnalyticsHandler", () => {
       expect(event.properties.lastError).to.deep.equal({
         error: {
           errorType: "runtime",
-          context: undefined,
+          taskType: undefined,
+          code: undefined,
           stackTrace: {
             functionName: "Testing.runtime",
             relativeFileName: "utils/exec.ts",
@@ -797,7 +798,8 @@ describe("AnalyticsHandler", () => {
         },
         wrapped: {
           errorType: "configuration",
-          context: undefined,
+          taskType: undefined,
+          code: undefined,
           stackTrace: {
             functionName: "Testing.configuration",
             relativeFileName: "garden.ts",
@@ -806,7 +808,8 @@ describe("AnalyticsHandler", () => {
         },
         leaf: {
           errorType: "deployment",
-          context: undefined,
+          taskType: undefined,
+          code: undefined,
           stackTrace: {
             functionName: "Testing.deployment",
             relativeFileName: "plugins/kubernetes.ts",
@@ -854,7 +857,8 @@ describe("AnalyticsHandler", () => {
       expect(event.properties.lastError).to.deep.equal({
         error: {
           errorType: "configuration",
-          context: undefined,
+          taskType: undefined,
+          code: undefined,
           stackTrace: {
             functionName: "Testing.configuration",
             relativeFileName: "garden.ts",

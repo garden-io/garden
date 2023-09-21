@@ -29,9 +29,6 @@ export const execInKubernetesDeploy: DeployActionHandler<"exec", KubernetesDeplo
       message: `${action.longDescription()} does not specify a defaultTarget. Please configure this in order to be able to use this command with. This is currently necessary for the ${chalk.white(
         "exec"
       )} command to work with kubernetes Deploy actions.`,
-      detail: {
-        name: action.name,
-      },
     })
   }
 
@@ -56,11 +53,7 @@ export const execInKubernetesDeploy: DeployActionHandler<"exec", KubernetesDeplo
   // TODO: this check should probably live outside of the plugin
   if (!target || !includes(["ready", "outdated"], status.detail?.state)) {
     throw new DeploymentError({
-      message: `${action.longDescription()} is not running`,
-      detail: {
-        name: action.name,
-        state: status.state,
-      },
+      message: `${action.longDescription()} is not running (Status: ${status.state})`,
     })
   }
 

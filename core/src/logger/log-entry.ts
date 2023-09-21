@@ -111,7 +111,7 @@ interface LogConfig<C extends BaseContext> {
   /**
    * Append the duration from when the log context was created and until the
    * success or error methods are called to the success/error message.
-   * E.g.: If calling `log.sucess(Done!)`, then the log message becomes "Done! (in 4 sec)" if showDuration=true.
+   * E.g.: If calling `log.success(Done!)`, then the log message becomes "Done! (in 4 sec)" if showDuration=true.
    */
   showDuration?: boolean
 }
@@ -167,7 +167,7 @@ interface CreateLogEntryParams extends LogParams {
  * by most actions.
  *
  * It differs from the "normal" CoreLog class in that it's context type is "ActionLogContext"
- * which includes the action name and aciton kind.
+ * which includes the action name and action kind.
  */
 export function createActionLog({
   log,
@@ -324,7 +324,7 @@ export abstract class Log<C extends BaseContext = LogContext> implements LogConf
 
   /**
    * Render a log entry at the verbose level. Intended for logs generated when
-   * actios are executed. E.g. logs from Kubernetes.
+   * actions are executed. E.g. logs from Kubernetes.
    */
   verbose(params: string | LogParams) {
     return this.log(this.resolveCreateParams(LogLevel.verbose, params))

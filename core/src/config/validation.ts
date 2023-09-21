@@ -7,11 +7,10 @@
  */
 
 import Joi from "@hapi/joi"
-import { ConfigurationError, LocalConfigError } from "../exceptions"
+import { ConfigurationError } from "../exceptions"
 import chalk from "chalk"
 import { relative } from "path"
 import { uuidv4 } from "../util/random"
-import { metadataFromDescription } from "./common"
 import { profile } from "../util/profiling"
 import { BaseGardenResource, YamlDocumentWithSource } from "./base"
 import { ParsedNode, Range } from "yaml"
@@ -47,7 +46,7 @@ export interface ConfigSource {
 
 export interface ValidateOptions {
   context?: string // Descriptive text to include in validation error messages, e.g. "module at some/local/path"
-  ErrorClass?: typeof ConfigurationError | typeof LocalConfigError
+  ErrorClass?: typeof ConfigurationError
   source?: ConfigSource
 }
 
@@ -59,7 +58,7 @@ export interface ValidateWithPathParams<T> {
   name?: string // Name of the top-level entity that the config belongs to, e.g. "some-module" or "some-project"
   configType: string // The type of top-level entity that the config belongs to, e.g. "module" or "project"
   source: ConfigSource | undefined
-  ErrorClass?: typeof ConfigurationError | typeof LocalConfigError
+  ErrorClass?: typeof ConfigurationError
 }
 
 /**
@@ -99,7 +98,7 @@ export interface ValidateConfigParams<T extends BaseGardenResource> {
   schema: Joi.Schema
   projectRoot: string
   yamlDocBasePath: (string | number)[]
-  ErrorClass?: typeof ConfigurationError | typeof LocalConfigError
+  ErrorClass?: typeof ConfigurationError
 }
 
 export function validateConfig<T extends BaseGardenResource>(params: ValidateConfigParams<T>): T {
@@ -186,7 +185,6 @@ export const validateSchema = profile(function $validateSchema<T>(
   let errorDescription = errorDetails.map((e) => e.message).join("\n")
 
   const schemaDescription = schema.describe()
-  const schemaMetadata = metadataFromDescription(schemaDescription)
 
   if (schemaDescription.keys && errorDescription.includes("is not allowed at path")) {
     // Not the case e.g. for array schemas
@@ -194,14 +192,7 @@ export const validateSchema = profile(function $validateSchema<T>(
   }
 
   throw new ErrorClass({
-    message: `${msgPrefix}:\n${errorDescription}`,
-    detail: {
-      value,
-      context,
-      schemaMetadata,
-      errorDescription,
-      errorDetails,
-    },
+    message: `${msgPrefix}: ${errorDescription}`,
   })
 })
 

@@ -17,7 +17,7 @@ To use the (remote) `kubernetes` plugin, you'll need the following:
 
 The following pages walk you through setting these up step-by-step, but feel free to skip over the steps you don't need.
 
-Also note that there are a lot of ways to create these resources so feel free to use whatever approach you find most useful. 
+Also note that there are a lot of ways to create these resources so feel free to use whatever approach you find most useful.
 
 At the end of these steps, you should have the following values at hand:
 

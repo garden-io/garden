@@ -18,7 +18,7 @@ import {
   PROXY_CONTAINER_SSH_TUNNEL_PORT_NAME,
   PROXY_CONTAINER_USER_NAME,
 } from "./constants"
-import { ConfigurationError, RuntimeError } from "../../exceptions"
+import { ConfigurationError, InternalError, RuntimeError } from "../../exceptions"
 import { getResourceContainer, getResourceKey, getTargetResource, prepareEnvVars } from "./util"
 import { V1Container, V1ContainerPort } from "@kubernetes/client-node"
 import { KubernetesPluginContext, KubernetesTargetResourceSpec, targetResourceSpecSchema } from "./config"
@@ -123,7 +123,6 @@ export class KeyPair {
     } catch (err) {
       throw new ConfigurationError({
         message: `Could not read public key file from path ${filePath}; cause: ${err}`,
-        detail: err,
       })
     }
   }
@@ -149,7 +148,7 @@ export class ProxySshKeystore {
 
   private constructor() {
     if (!!ProxySshKeystore.instance) {
-      throw new RuntimeError({ message: "Cannot init singleton twice, use ProxySshKeystore.getInstance()", detail: {} })
+      throw new RuntimeError({ message: "Cannot init singleton twice, use ProxySshKeystore.getInstance()" })
     }
     this.serviceKeyPairs = new Map<string, KeyPair>()
     this.localSshPorts = new Set<number>()
@@ -175,7 +174,7 @@ export class ProxySshKeystore {
     try {
       rmSync(filePath, { force: true })
     } catch (err) {
-      log.warn(`Could not remove file: ${filePath}; cause: ${err.message}`)
+      log.warn(`Could not remove file: ${filePath}; cause: ${err}`)
     }
   }
 
@@ -269,9 +268,8 @@ export class LocalModeProcessRegistry {
 
   private constructor() {
     if (!!LocalModeProcessRegistry.instance) {
-      throw new RuntimeError({
+      throw new InternalError({
         message: "Cannot init singleton twice, use LocalModeProcessRegistry.getInstance()",
-        detail: {},
       })
     }
     this.recoverableProcesses = []
@@ -317,7 +315,6 @@ function validateContainerPorts(container: V1Container, spec: ContainerLocalMode
   if (!container.ports || container.ports.length === 0) {
     throw new ConfigurationError({
       message: `Cannot configure the local mode for container ${container.name}: it does not expose any ports.`,
-      detail: { container },
     })
   }
 
@@ -326,7 +323,6 @@ function validateContainerPorts(container: V1Container, spec: ContainerLocalMode
   if (!matchingPorts || matchingPorts.length === 0) {
     throw new ConfigurationError({
       message: `Cannot configure the local mode for container ${container.name}: it does not expose any ports that match local mode port-forward configuration.`,
-      detail: { container, remotePorts },
     })
   }
   return matchingPorts
@@ -552,7 +548,7 @@ const localAppFailureCounter = new FailureCounter(10)
 
 function getLocalAppProcess(configParams: StartLocalModeParams): RecoverableProcess | undefined {
   const localAppCmd = getLocalAppCommand(configParams)
-  const { ctx, action, log } = configParams
+  const { ctx, log } = configParams
 
   // This covers Win \r\n, Linux \n, and MacOS \r line separators.
   const eolRegex = /\r?\n?$/
@@ -637,7 +633,7 @@ async function getKubectlPortForwardProcess(
     targetNamespace,
     targetResource
   )
-  const { ctx, action, log } = configParams
+  const { ctx, log } = configParams
   const processLog = log.createLog({ origin: "kubectl" })
 
   let lastSeenSuccessMessage = ""
@@ -722,7 +718,7 @@ async function getReversePortForwardProcesses(
   localSshPort: number
 ): Promise<RecoverableProcess[]> {
   const reversePortForwardingCmds = await getReversePortForwardCommands(configParams, localSshPort)
-  const { ctx, action } = configParams
+  const { ctx } = configParams
 
   return reversePortForwardingCmds.map((cmd) => {
     // Include origin with logs for clarity
@@ -830,7 +826,6 @@ export async function startServiceInLocalMode(configParams: StartLocalModeParams
   if (!isConfiguredForLocalMode(targetResource)) {
     throw new ConfigurationError({
       message: `Resource ${targetResourceId} is not deployed in local mode`,
-      detail: { targetResource },
     })
   }
 

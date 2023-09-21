@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { CommandError, ConfigurationError } from "../../../exceptions"
+import { CommandError, ConfigurationError, GardenError } from "../../../exceptions"
 import {
   CreateUserBulkRequest,
   CreateUserBulkResponse,
@@ -89,11 +89,7 @@ export class UsersCreateCommand extends Command<Args, Opts> {
         users = dotenv.parse(await readFile(fromFile))
       } catch (err) {
         throw new CommandError({
-          message: `Unable to read users from file at path ${fromFile}: ${err.message}`,
-          detail: {
-            args,
-            opts,
-          },
+          message: `Unable to read users from file at path ${fromFile}: ${err}`,
         })
       }
     } else if (args.users) {
@@ -104,11 +100,7 @@ export class UsersCreateCommand extends Command<Args, Opts> {
           return acc
         } catch (err) {
           throw new CommandError({
-            message: `Unable to read user from argument ${keyValPair}: ${err.message}`,
-            detail: {
-              args,
-              opts,
-            },
+            message: `Unable to read user from argument ${keyValPair}: ${err}`,
           })
         }
       }, {})
@@ -117,13 +109,12 @@ export class UsersCreateCommand extends Command<Args, Opts> {
         message: dedent`
         No users provided. Either provide users directly to the command or via the --from-file flag.
       `,
-        detail: { args, opts },
       })
     }
 
     const api = garden.cloudApi
     if (!api) {
-      throw new ConfigurationError({ message: noApiMsg("create", "users"), detail: {} })
+      throw new ConfigurationError({ message: noApiMsg("create", "users") })
     }
 
     const cmdLog = log.createLog({ name: "users-command" })
@@ -171,9 +162,12 @@ export class UsersCreateCommand extends Command<Args, Opts> {
             }))
           errors.push(...failures)
         } catch (err) {
+          if (!(err instanceof GardenError)) {
+            throw err
+          }
           errors.push({
             identifier: "",
-            message: err?.response?.body?.message || err.messsage,
+            message: err.message,
           })
         }
       },

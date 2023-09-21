@@ -18,6 +18,7 @@ import { ConfigContext } from "../../../src/config/template-contexts/base"
 import { expectError, getDataDir, makeTestGarden, TestGarden } from "../../helpers"
 import { dedent } from "../../../src/util/string"
 import stripAnsi from "strip-ansi"
+import { TemplateStringError } from "../../../src/exceptions"
 
 class TestContext extends ConfigContext {
   constructor(context) {
@@ -184,13 +185,16 @@ describe("resolveTemplateString", () => {
     try {
       resolveTemplateString({ string: "${some", context: new TestContext({ some: {} }) })
     } catch (err) {
+      if (!(err instanceof TemplateStringError)) {
+        expect.fail("Expected TemplateStringError")
+      }
       expect(stripAnsi(err.message)).to.equal(
         "Invalid template string (${some): Unable to parse as valid template string."
       )
       return
     }
 
-    throw new Error("Expected error")
+    expect.fail("Expected error")
   })
 
   it("should throw on nested format strings", () => {
@@ -1163,7 +1167,7 @@ describe("resolveTemplateString", () => {
     it("throws if an argument is missing", () => {
       void expectError(() => resolveTemplateString({ string: "${base64Decode()}", context: new TestContext({}) }), {
         contains:
-          "Invalid template string (${base64Decode()}): Missing argument 'string' for base64Decode helper function.",
+          "Invalid template string (${base64Decode()}): Missing argument 'string' (at index 0) for base64Decode helper function.",
       })
     })
 
@@ -1187,7 +1191,7 @@ describe("resolveTemplateString", () => {
     it("throws if the function fails", () => {
       void expectError(() => resolveTemplateString({ string: "${jsonDecode('{]}')}", context: new TestContext({}) }), {
         contains:
-          "Invalid template string (${jsonDecode('{]}')}): Error from helper function jsonDecode: Unexpected token ] in JSON at position 1",
+          "Invalid template string (${jsonDecode('{]}')}): Error from helper function jsonDecode: SyntaxError: Unexpected token ] in JSON at position 1",
       })
     })
 
@@ -1234,7 +1238,7 @@ describe("resolveTemplateString", () => {
               b: ["a"],
             },
             errorMessage:
-              "Error from helper function concat: Both terms need to be either arrays or strings (got string and object).",
+              "Error from helper function concat: Error: Both terms need to be either arrays or strings (got string and object).",
           })
         })
 
@@ -1299,7 +1303,7 @@ describe("resolveTemplateString", () => {
         void expectError(
           () => resolveTemplateString({ string: "${slice(foo, 'a', 3)}", context: new TestContext({ foo: "abcdef" }) }),
           {
-            contains: `Invalid template string (\${slice(foo, 'a', 3)}): Error from helper function slice: start index must be a number or a numeric string (got "a")`,
+            contains: `Invalid template string (\${slice(foo, 'a', 3)}): Error from helper function slice: Error: start index must be a number or a numeric string (got "a")`,
           }
         )
       })
@@ -1308,7 +1312,7 @@ describe("resolveTemplateString", () => {
         void expectError(
           () => resolveTemplateString({ string: "${slice(foo, 0, 'b')}", context: new TestContext({ foo: "abcdef" }) }),
           {
-            contains: `Invalid template string (\${slice(foo, 0, 'b')}): Error from helper function slice: end index must be a number or a numeric string (got "b")`,
+            contains: `Invalid template string (\${slice(foo, 0, 'b')}): Error from helper function slice: Error: end index must be a number or a numeric string (got "b")`,
           }
         )
       })

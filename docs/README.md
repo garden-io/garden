@@ -2,29 +2,29 @@
 
 * [Welcome!](welcome.md)
 
-## 🌳 Basics
+## 🌸 Overview
 
-* [How Garden Works](./basics/how-garden-works.md)
-* [Quickstart Guide](./basics/quickstart.md)
-* [The Stack Graph (Terminology)](./basics/stack-graph.md)
-* [Garden vs Other Tools](./basics/garden-vs-other-tools.md)
+* [How Garden Works](./overview/how-garden-works.md)
+* [Core Concepts](./overview/core-concepts.md)
+* [Use Cases](./overview/use-cases.md)
+* [Adopting Garden](./overview/adopting-garden.md)
+* [Garden vs Other Tools](./overview/garden-vs-other-tools.md)
 
-## 🌻 Garden Seeds
+## 🌳 Getting Started
 
-* [About](./garden-seeds/about.md)
-* [Languages](./garden-seeds/languages/README.md)
-  * [Go 🌸](./garden-seeds/languages/go.md)
+* [Quickstart Guide](./getting-started/quickstart.md)
+* [Interactive Playgrounds](./getting-started/interactive-playgrounds.md)
+* [Installing Garden](./getting-started/installation.md)
 
-## 💐 Tutorials
+## 🌻 Tutorials
 
 * [Your First Project](./tutorials/your-first-project/README.md)
   * [1. Initialize a Project](./tutorials/your-first-project/1-initialize-a-project.md)
   * [2. Connect to a Cluster](./tutorials/your-first-project/2-connect-to-a-cluster.md)
   * [3. Deploy and Test](./tutorials/your-first-project/3-deploy-and-test.md)
   * [4. Configure Your Project](./tutorials/your-first-project/4-configure-your-project.md)
-* [Migrating your configuration for Bonsai](./tutorials/migrating-to-bonsai.md)
 
-## 🌿 Using Garden
+## 💐 Using Garden
 
 * [Configuration Overview](./using-garden/configuration-overview.md)
 * [Projects](./using-garden/projects.md)
@@ -37,7 +37,7 @@
 * [Using the CLI](./using-garden/using-the-cli.md)
 * [Modules](./using-garden/modules.md)
 
-## 🌺 Kubernetes Plugins
+## 🌿 Kubernetes Plugins
 
 * [About](./k8s-plugins/about.md)
 * [Remote K8s Plugin Configuration](./k8s-plugins/remote-k8s/README.md)
@@ -54,6 +54,10 @@
 * [Local K8s Plugin Configuration](./k8s-plugins/local-k8s/README.md)
   * [1. Install Local Kubernetes](./k8s-plugins/local-k8s/install.md)
   * [2. Configure the Provider](./k8s-plugins/local-k8s/configure-provider.md)
+* [Ephemeral K8s Plugin Configuration](./k8s-plugins/ephemeral-k8s/README.md)
+  * [1. Configure the Provider](./k8s-plugins/ephemeral-k8s/configure-provider.md)
+  * [2. Configure Ingress](./k8s-plugins/ephemeral-k8s/ingress.md)
+  * [3. Manage ephemeral clusters](./k8s-plugins/ephemeral-k8s/manage-clusters.md)
 * [Action Configuration](./k8s-plugins/action-types/README.md)
   * [Container](./k8s-plugins/action-types/container.md)
   * [Kubernetes](./k8s-plugins/action-types/kubernetes.md)
@@ -66,45 +70,46 @@
   * [Minimal RBAC Configuration for Development Clusters](./k8s-plugins/advanced/rbac-config.md)
   * [Deploying to Production](./k8s-plugins/advanced/deploying-to-production.md)
 
-## ☘️ Terraform Plugin
+## 🌺 Terraform Plugin
 
 * [About](./terraform-plugin/about.md)
-* [Provider Configuration](./terraform-plugin/configure-provider.md)
-* [Deploy action Configuration](./terraform-plugin/configure-deploy-actions.md)
+* [Plugin Configuration](./terraform-plugin/configure-provider.md)
+* [Action Configuration](./terraform-plugin/action-configuration.md)
 
-## 🌹 Pulumi Plugin
+## ☘️ Pulumi Plugin
 
 * [About](./pulumi-plugin/about.md)
-* [Provider Configuration](./pulumi-plugin/configure-provider.md)
-* [Deploy action Configuration](./pulumi-plugin/configure-deploy-actions.md)
+* [Plugin Configuration](./pulumi-plugin/configure-provider.md)
+* [Action Configuration](./pulumi-plugin/action-configuration.md)
 
-## 🌼 Other Plugins
+## 🌹 Other Plugins
 
 * [Container](./other-plugins/container.md)
 * [Exec (local scripts)](./other-plugins/exec.md)
 
-## 🌷 Guides
+## 🌼 Guides
 
-* [Installing Garden](./guides/installation.md)
-* [Adopting Garden](./guides/adopting-garden.md)
+* [Migrating to Bonsai](./guides/migrating-to-bonsai.md)
+* [Environments and namespaces](./guides/namespaces.md)
 * [Code Synchronization](./guides/code-synchronization.md)
 * [Connecting a local application to a Kubernetes cluster (Local Mode)](./guides/running-service-in-local-mode.md)
-* [Environments and namespaces](./guides/namespaces.md)
 * [Migrating from Docker Compose to Garden](./guides/migrating-from-docker-compose.md)
 * [Using Garden in CI](./guides/using-garden-in-ci.md)
+* [Ephemeral Kubernetes Clusters](./guides/ephemeral-clusters.md)
 
-## 🪷 Advanced
+## 🌷 Advanced
 
 * [Using Remote Sources](./advanced/using-remote-sources.md)
 * [Custom Commands](./advanced/custom-commands.md)
 
-## 🎋 Reference
+## 🪷 Reference
 
 * [Providers](./reference/providers/README.md)
   * [`conftest-container`](./reference/providers/conftest-container.md)
   * [`conftest-kubernetes`](./reference/providers/conftest-kubernetes.md)
   * [`conftest`](./reference/providers/conftest.md)
   * [`container`](./reference/providers/container.md)
+  * [`ephemeral-kubernetes`](./reference/providers/ephemeral-kubernetes.md)
   * [`exec`](./reference/providers/exec.md)
   * [`hadolint`](./reference/providers/hadolint.md)
   * [`jib`](./reference/providers/jib.md)
@@ -155,7 +160,6 @@
   * [Custom Command template context](./reference/template-strings/custom-commands.md)
   * [Workflow template context](./reference/template-strings/workflows.md)
   * [Template Helper Functions](./reference/template-strings/functions.md)
-* [Glossary](./reference/glossary.md)
 * [Commands](./reference/commands.md)
 * [Project Configuration](./reference/project-config.md)
 * [ConfigTemplate Reference](./reference/config-template-config.md)
@@ -177,7 +181,13 @@
   * [`templated`](./reference/module-types/templated.md)
   * [`terraform`](./reference/module-types/terraform.md)
 
-## undefined Misc
+## 🎋 Garden Seeds
+
+* [About](./garden-seeds/about.md)
+* [Languages](./garden-seeds/languages/README.md)
+  * [Go 🌸](./garden-seeds/languages/go.md)
+
+## 🌸 Misc
 
 * [FAQ](./misc/faq.md)
 * [Troubleshooting](./misc/troubleshooting.md)

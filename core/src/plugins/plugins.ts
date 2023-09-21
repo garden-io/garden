@@ -13,6 +13,7 @@ export const getSupportedPlugins = () => [
   { name: "hadolint", callback: () => require("./hadolint/hadolint").gardenPlugin.getSpec() },
   { name: "kubernetes", callback: () => require("./kubernetes/kubernetes").gardenPlugin() },
   { name: "local-kubernetes", callback: () => require("./kubernetes/local/local").gardenPlugin() },
+  { name: "ephemeral-kubernetes", callback: () => require("./kubernetes/ephemeral/ephemeral").gardenPlugin() },
   { name: "openshift", callback: () => require("./openshift/openshift").gardenPlugin() },
   { name: "octant", callback: () => require("./octant/octant").gardenPlugin() },
   { name: "otel-collector", callback: () => require("./otel-collector/otel-collector").gardenPlugin.getSpec() },

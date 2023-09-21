@@ -7,7 +7,7 @@
  */
 
 import chalk from "chalk"
-import { ConfigurationError, GardenBaseError, TemplateStringError } from "../exceptions"
+import { ConfigurationError, GardenError, GardenErrorParams, TemplateStringError } from "../exceptions"
 import {
   ConfigContext,
   ContextKeySegment,
@@ -42,17 +42,15 @@ import { ActionKind, actionKindsLower } from "../actions/types"
 import { deepMap } from "../util/objects"
 import { ConfigSource } from "../config/validation"
 
-export type StringOrStringPromise = Promise<string> | string
-
 const missingKeyExceptionType = "template-string-missing-key"
 const passthroughExceptionType = "template-string-passthrough"
 const escapePrefix = "$${"
 
-export class TemplateStringMissingKeyException extends GardenBaseError {
+export class TemplateStringMissingKeyException extends GardenError {
   type = missingKeyExceptionType
 }
 
-export class TemplateStringPassthroughException extends GardenBaseError {
+export class TemplateStringPassthroughException extends GardenError {
   type = passthroughExceptionType
 }
 
@@ -84,13 +82,19 @@ function getValue(v: Primitive | undefined | ResolvedClause) {
 
 type ObjectPath = (string | number)[]
 
-interface TemplateErrorDetail {
-  path: ObjectPath | undefined // Ensure we provide this value
-  [key: string]: any
-}
-
-export class TemplateError extends GardenBaseError<TemplateErrorDetail> {
+export class TemplateError extends GardenError {
   type = "template"
+
+  path: ObjectPath | undefined
+  value: any
+  resolved: any
+
+  constructor(params: GardenErrorParams & { path: ObjectPath | undefined; value: any; resolved: any }) {
+    super(params)
+    this.path = params.path
+    this.value = params.value
+    this.resolved = params.resolved
+  }
 }
 
 /**
@@ -177,7 +181,6 @@ export function resolveTemplateString({
           if (currentNode.type !== "if") {
             throw new TemplateStringError({
               message: "Found ${else} block without a preceding ${if...} block.",
-              detail: {},
             })
           }
           const node: ConditionalTree = {
@@ -194,7 +197,6 @@ export function resolveTemplateString({
           } else {
             throw new TemplateStringError({
               message: "Found ${endif} block without a preceding ${if...} block.",
-              detail: {},
             })
           }
         } else {
@@ -209,7 +211,7 @@ export function resolveTemplateString({
       }
 
       if (currentNode.type === "if" || currentNode.type === "else") {
-        throw new TemplateStringError({ message: "Missing ${endif} after ${if ...} block.", detail: {} })
+        throw new TemplateStringError({ message: "Missing ${endif} after ${if ...} block." })
       }
 
       // Walk down tree and resolve the output string
@@ -230,10 +232,13 @@ export function resolveTemplateString({
 
     return resolved
   } catch (err) {
+    if (!(err instanceof GardenError)) {
+      throw err
+    }
     const prefix = `Invalid template string (${chalk.white(truncate(string, 35).replace(/\n/g, "\\n"))}): `
     const message = err.message.startsWith(prefix) ? err.message : prefix + err.message
 
-    throw new TemplateStringError({ message, detail: { path } })
+    throw new TemplateStringError({ message, path })
   }
 }
 
@@ -282,10 +287,9 @@ export function resolveTemplateStrings<T extends any>({
           )
           throw new TemplateError({
             message: `A list item with a ${arrayConcatKey} key cannot have any other keys (found ${extraKeys})`,
-            detail: {
-              path,
-              value: v,
-            },
+            path,
+            value,
+            resolved: undefined,
           })
         }
 
@@ -307,11 +311,9 @@ export function resolveTemplateStrings<T extends any>({
         } else {
           throw new TemplateError({
             message: `Value of ${arrayConcatKey} key must be (or resolve to) an array (got ${typeof resolved})`,
-            detail: {
-              path: path && [...path, arrayConcatKey],
-              value,
-              resolved,
-            },
+            path,
+            value,
+            resolved,
           })
         }
       } else {
@@ -342,11 +344,9 @@ export function resolveTemplateStrings<T extends any>({
           } else {
             throw new TemplateError({
               message: `Value of ${objectSpreadKey} key must be (or resolve to) a mapping object (got ${typeof resolved})`,
-              detail: {
-                path: [...path, k],
-                value,
-                resolved,
-              },
+              path: [...path, k],
+              value,
+              resolved,
             })
           }
         } else {
@@ -379,11 +379,12 @@ function handleForEachObject({
   // Validate input object
   if (value[arrayForEachReturnKey] === undefined) {
     throw new TemplateError({
-      message: `Missing ${arrayForEachReturnKey} field next to ${arrayForEachKey} field.`,
-      detail: {
-        path: path && [...path, arrayForEachKey],
-        value,
-      },
+      message: `Missing ${arrayForEachReturnKey} field next to ${arrayForEachKey} field. Got ${naturalList(
+        Object.keys(value)
+      )}`,
+      path: path && [...path, arrayForEachKey],
+      value,
+      resolved: undefined,
     })
   }
 
@@ -393,13 +394,12 @@ function handleForEachObject({
     const extraKeys = naturalList(unexpectedKeys.map((k) => JSON.stringify(k)))
 
     throw new TemplateError({
-      message: `Found one or more unexpected keys on ${arrayForEachKey} object: ${extraKeys}`,
-      detail: {
-        path,
-        value,
-        expectedKeys: expectedForEachKeys,
-        unexpectedKeys,
-      },
+      message: `Found one or more unexpected keys on ${arrayForEachKey} object: ${extraKeys}. Expected keys: ${naturalList(
+        expectedForEachKeys
+      )}`,
+      path,
+      value,
+      resolved: undefined,
     })
   }
 
@@ -419,11 +419,9 @@ function handleForEachObject({
     } else {
       throw new TemplateError({
         message: `Value of ${arrayForEachKey} key must be (or resolve to) an array or mapping object (got ${typeof resolvedInput})`,
-        detail: {
-          path: path && [...path, arrayForEachKey],
-          value,
-          resolved: resolvedInput,
-        },
+        path: path && [...path, arrayForEachKey],
+        value,
+        resolved: resolvedInput,
       })
     }
   }
@@ -485,12 +483,9 @@ function handleForEachObject({
       } else if (filterResult !== true) {
         throw new TemplateError({
           message: `${arrayForEachFilterKey} clause in ${arrayForEachKey} loop must resolve to a boolean value (got ${typeof resolvedInput})`,
-          detail: {
-            path: path && [...path, arrayForEachFilterKey],
-            itemValue,
-            filterExpression,
-            filterResult,
-          },
+          path: path && [...path, arrayForEachFilterKey],
+          value,
+          resolved: undefined,
         })
       }
     }
@@ -531,11 +526,12 @@ function handleConditional({
 
   if (thenExpression === undefined) {
     throw new TemplateError({
-      message: `Missing ${conditionalThenKey} field next to ${conditionalKey} field.`,
-      detail: {
-        path,
-        value,
-      },
+      message: `Missing ${conditionalThenKey} field next to ${conditionalKey} field. Got: ${naturalList(
+        Object.keys(value)
+      )}`,
+      path,
+      value,
+      resolved: undefined,
     })
   }
 
@@ -545,13 +541,12 @@ function handleConditional({
     const extraKeys = naturalList(unexpectedKeys.map((k) => JSON.stringify(k)))
 
     throw new TemplateError({
-      message: `Found one or more unexpected keys on ${conditionalKey} object: ${extraKeys}`,
-      detail: {
-        path,
-        value,
-        expectedKeys: expectedConditionalKeys,
-        unexpectedKeys,
-      },
+      message: `Found one or more unexpected keys on ${conditionalKey} object: ${extraKeys}. Expected: ${naturalList(
+        expectedConditionalKeys
+      )}`,
+      path,
+      value,
+      resolved: undefined,
     })
   }
 
@@ -570,11 +565,9 @@ function handleConditional({
     } else {
       throw new TemplateError({
         message: `Value of ${conditionalKey} key must be (or resolve to) a boolean (got ${typeof resolvedConditional})`,
-        detail: {
-          path: path && [...path, conditionalKey],
-          value,
-          resolved: resolvedConditional,
-        },
+        path: path && [...path, conditionalKey],
+        value,
+        resolved: resolvedConditional,
       })
     }
   }
@@ -662,33 +655,28 @@ export function getActionTemplateReferences<T extends object>(config: T): Action
     .map((ref) => {
       if (!ref[1]) {
         throw new ConfigurationError({
-          message: "Found invalid action reference (missing kind)",
-          detail: { config, ref },
+          message: `Found invalid action reference (missing kind).`,
         })
       }
       if (!isString(ref[1])) {
         throw new ConfigurationError({
-          message: "Found invalid action reference (kind is not a string)",
-          detail: { config, ref },
+          message: `Found invalid action reference (kind is not a string).`,
         })
       }
       if (!actionKindsLower.includes(<any>ref[1])) {
         throw new ConfigurationError({
           message: `Found invalid action reference (invalid kind '${ref[1]}')`,
-          detail: { config, ref },
         })
       }
 
       if (!ref[2]) {
         throw new ConfigurationError({
           message: "Found invalid action reference (missing name)",
-          detail: { config, ref },
         })
       }
       if (!isString(ref[2])) {
         throw new ConfigurationError({
           message: "Found invalid action reference (name is not a string)",
-          detail: { config, ref },
         })
       }
 
@@ -710,13 +698,11 @@ export function getActionTemplateReferences<T extends object>(config: T): Action
     if (!ref[1]) {
       throw new ConfigurationError({
         message: "Found invalid runtime reference (missing kind)",
-        detail: { config, ref },
       })
     }
     if (!isString(ref[1])) {
       throw new ConfigurationError({
         message: "Found invalid runtime reference (kind is not a string)",
-        detail: { config, ref },
       })
     }
 
@@ -727,20 +713,17 @@ export function getActionTemplateReferences<T extends object>(config: T): Action
     } else {
       throw new ConfigurationError({
         message: `Found invalid runtime reference (invalid kind '${ref[1]}')`,
-        detail: { config, ref },
       })
     }
 
     if (!ref[2]) {
       throw new ConfigurationError({
         message: `Found invalid runtime reference (missing name)`,
-        detail: { config, ref },
       })
     }
     if (!isString(ref[2])) {
       throw new ConfigurationError({
         message: "Found invalid runtime reference (name is not a string)",
-        detail: { config, ref },
       })
     }
 
@@ -768,7 +751,7 @@ export function getModuleTemplateReferences<T extends object>(obj: T, context: M
  *
  * Prefix should be e.g. "Module" or "Provider" (used when generating error messages).
  *
- * TODO: We've disabled this for now. Re-introudce once we've removed get config command call from GE!
+ * TODO: We've disabled this for now. Re-introduce once we've removed get config command call from GE!
  */
 export function throwOnMissingSecretKeys(configs: ObjectWithName[], secrets: StringMap, prefix: string, log?: Log) {
   const allMissing: [string, ContextKeySegment[]][] = [] // [[key, missing keys]]
@@ -860,11 +843,6 @@ function buildBinaryExpression(head: any, tail: any) {
         .join(" ")
       const err = new TemplateStringError({
         message: message || "Could not resolve one or more keys.",
-        detail: {
-          left,
-          right,
-          operator,
-        },
       })
       return { _error: err }
     }
@@ -886,7 +864,6 @@ function buildBinaryExpression(head: any, tail: any) {
       } else {
         const err = new TemplateStringError({
           message: `Both terms need to be either arrays or strings or numbers for + operator (got ${typeof left} and ${typeof right}).`,
-          detail: { left, right, operator },
         })
         return { _error: err }
       }
@@ -896,7 +873,6 @@ function buildBinaryExpression(head: any, tail: any) {
     if (!isNumber(left) || !isNumber(right)) {
       const err = new TemplateStringError({
         message: `Both terms need to be numbers for ${operator} operator (got ${typeof left} and ${typeof right}).`,
-        detail: { left, right, operator },
       })
       return { _error: err }
     }
@@ -919,7 +895,7 @@ function buildBinaryExpression(head: any, tail: any) {
       case ">":
         return left > right
       default:
-        const err = new TemplateStringError({ message: "Unrecognized operator: " + operator, detail: { operator } })
+        const err = new TemplateStringError({ message: "Unrecognized operator: " + operator })
         return { _error: err }
     }
   }, head)
@@ -968,7 +944,7 @@ function buildLogicalExpression(head: any, tail: any, opts: ContextResolveOpts) 
         }
         return getValue(leftRes) ? leftRes : rightRes
       default:
-        const err = new TemplateStringError({ message: "Unrecognized operator: " + operator, detail: { operator } })
+        const err = new TemplateStringError({ message: "Unrecognized operator: " + operator })
         return { _error: err }
     }
   }, head)

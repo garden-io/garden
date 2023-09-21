@@ -20,6 +20,7 @@ import { Garden } from "../../garden"
 import { Log } from "../../logger/log-entry"
 import { joiArray, joi } from "../../config/common"
 import { StringsParameter, ParameterValues } from "../../cli/params"
+import { naturalList } from "../../util/string"
 
 const updateRemoteModulesArguments = {
   modules: new StringsParameter({
@@ -101,11 +102,10 @@ export async function updateRemoteModules({
     const modulesWithRemoteSource = graph.getModules().filter(moduleHasRemoteSource).sort()
 
     throw new ParameterError({
-      message: `Expected module(s) ${chalk.underline(diff.join(","))} to have a remote source.`,
-      detail: {
-        modulesWithRemoteSource,
-        input: moduleNames ? moduleNames.sort() : undefined,
-      },
+      message: dedent`
+        Expected module(s) ${chalk.underline(diff.join(","))} to have a remote source.
+        Modules with remote source: ${naturalList(modulesWithRemoteSource.map((m) => m.name))}
+      `,
     })
   }
 

@@ -44,7 +44,7 @@ execTest.addHandler("run", async ({ log, action, artifactsPath, ctx }) => {
 
   if (result.outputLog) {
     const prefix = `Finished executing ${chalk.white(action.key())}. Here is the full output:`
-    log.verbose(
+    log.info(
       renderMessageWithDivider({
         prefix,
         msg: result.outputLog,

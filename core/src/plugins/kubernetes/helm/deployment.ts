@@ -21,6 +21,7 @@ import { DeployActionHandler } from "../../../plugin/action-types"
 import { HelmDeployAction } from "./config"
 import { isEmpty } from "lodash"
 import { getK8sIngresses } from "../status/ingress"
+import { toGardenError } from "../../../exceptions"
 
 export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async (params) => {
   const { ctx, action, log, force } = params
@@ -93,7 +94,7 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
       } catch (error) {
         const errorMsg = `Failed to remove Garden Cloud AEC annotations for service: ${action.name}.`
         log.warn(errorMsg)
-        log.debug(error)
+        log.debug({ error: toGardenError(error) })
       }
     }
   }
@@ -148,7 +149,7 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
   })
 
   // Local mode has its own port-forwarding configuration
-  const forwardablePorts = mode === "local" && spec.localMode ? [] : getForwardablePorts(manifests, action)
+  const forwardablePorts = getForwardablePorts({ resources: manifests, parentAction: action, mode })
 
   // Make sure port forwards work after redeployment
   killPortForwards(action, forwardablePorts || [], log)
@@ -167,7 +168,7 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
     attached = true
   }
   // Get ingresses of deployed resources
-  const ingresses = getK8sIngresses(manifests)
+  const ingresses = getK8sIngresses(manifests, provider)
 
   return {
     state: "ready",

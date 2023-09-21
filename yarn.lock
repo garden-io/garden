@@ -482,10 +482,10 @@
   dependencies:
     heap ">= 0.2.0"
 
-"@garden-io/platform-api-types@1.455.0":
-  version "1.455.0"
-  resolved "https://registry.yarnpkg.com/@garden-io/platform-api-types/-/platform-api-types-1.455.0.tgz#68530a03fdc62122158fc7a73195c12147792d1c"
-  integrity sha512-VJ1qgLMswcGEVOWkjXxPJV25HL0JXAfwvhiMrKjFoipbopgo1yzoKqcy3N31WFsbrmY9gDRUQexdIy8WrLNqjg==
+"@garden-io/platform-api-types@1.914.0":
+  version "1.914.0"
+  resolved "https://registry.yarnpkg.com/@garden-io/platform-api-types/-/platform-api-types-1.914.0.tgz#4ad7641151d500492464d7c7dcfe0da8aa79b1dc"
+  integrity sha512-/ThhZ5raa5cWjDoNP2v7QRZk7k5Qz4IbgLsf7JEmoE1cVk6l8uvLPgTZMJY+QqA+ZAkPPmF1W8N719UzHqEKxQ==
 
 "@google-cloud/kms@^3.7.0":
   version "3.7.0"
@@ -5313,6 +5313,11 @@ get-package-type@^0.1.0:
   version "0.1.0"
   resolved "https://registry.yarnpkg.com/get-package-type/-/get-package-type-0.1.0.tgz#8de2d803cff44df3bc6c456e6668b36c3926e11a"
   integrity sha512-pjzuKtY64GYfWizNAJ0fr9VqttZkNiK2iS430LtIHzjBEr6bX8Am2zm4sW4Ro5wjWW5cAlRL1qAMTcXbjNAO2Q==
+
+get-port-please@^3.0.1:
+  version "3.0.1"
+  resolved "https://registry.yarnpkg.com/get-port-please/-/get-port-please-3.0.1.tgz#a24953a41dc249f76869ac25e81d6623e61ab010"
+  integrity sha512-R5pcVO8Z1+pVDu8Ml3xaJCEkBiiy1VQN9za0YqH8GIi1nIqD4IzQhzY6dDzMRtdS1lyiGlucRzm8IN8wtLIXng==
 
 get-port@^5.1.1:
   version "5.1.1"

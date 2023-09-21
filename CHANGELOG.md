@@ -1,4 +1,55 @@
 
+<a name="0.13.14"></a>
+## [0.13.14](https://github.com/garden-io/garden/compare/0.13.13...0.13.14) (2023-09-19)
+
+### Bug Fixes
+
+* remove rsync dependency from homebrew formula ([#5086](https://github.com/garden-io/garden/issues/5086)) ([640b51a14](https://github.com/garden-io/garden/commit/640b51a14))
+* print the output of Run and Test actions on the info log level ([#5059](https://github.com/garden-io/garden/issues/5059)) ([30e6fa008](https://github.com/garden-io/garden/commit/30e6fa008))
+* avoid crash during kubectl retry ([#5098](https://github.com/garden-io/garden/issues/5098)) ([c5a7679cb](https://github.com/garden-io/garden/commit/c5a7679cb))
+* use shell matching platform when running scripts ([#5034](https://github.com/garden-io/garden/issues/5034)) ([22013ae77](https://github.com/garden-io/garden/commit/22013ae77))
+* do not error if actionSources are empty ([#5036](https://github.com/garden-io/garden/issues/5036)) ([bc38c9747](https://github.com/garden-io/garden/commit/bc38c9747))
+* **framework:** several error handling improvements ([#5001](https://github.com/garden-io/garden/issues/5001)) ([1bfe7b5ad](https://github.com/garden-io/garden/commit/1bfe7b5ad))
+
+### Features
+
+* add ephemeral kubernetes provider ([#4927](https://github.com/garden-io/garden/issues/4927)) ([ed0ab0198](https://github.com/garden-io/garden/commit/ed0ab0198))
+
+### Improvements
+
+* **plugins:** debug log manifest dump ([#4997](https://github.com/garden-io/garden/issues/4997)) ([3a568369b](https://github.com/garden-io/garden/commit/3a568369b))
+
+<a name="0.13.13"></a>
+## [0.13.13](https://github.com/garden-io/garden/compare/0.13.12...0.13.13) (2023-08-31)
+
+### Features
+* Add support for k3s family clusters like k3s, rancher-desktop and k3ds ([#4977](https://github.com/garden-io/garden/commit/9551684e13de6e5884e605e3e9c9fc2a17e2d0e3))
+
+### Improvements
+
+* more useful "create project" yaml ([#4985](https://github.com/garden-io/garden/issues/4985)) ([012d4ea77](https://github.com/garden-io/garden/commit/012d4ea77))
+* always offer -f as alias with --force ([#4986](https://github.com/garden-io/garden/issues/4986)) ([7e2c9d1bf](https://github.com/garden-io/garden/commit/7e2c9d1bf))
+* **server:** output more debug info ([#4613](https://github.com/garden-io/garden/issues/4613)) ([0222bcbe9](https://github.com/garden-io/garden/commit/0222bcbe9))
+
+### Performance Improvements
+
+* various performance improvements ([#4959](https://github.com/garden-io/garden/issues/4959)) ([a2c5f6e2f](https://github.com/garden-io/garden/commit/a2c5f6e2f))
+
+### Bug Fixes
+
+* ensure using next free port for dev console ([#4984](https://github.com/garden-io/garden/issues/4984)) ([738828e66](https://github.com/garden-io/garden/commit/738828e66))
+* avoid action execution for the static outputs references of implicit dependencies. ([#4975](https://github.com/garden-io/garden/issues/4975)) ([da589ebcf](https://github.com/garden-io/garden/commit/da589ebcf))
+* properly escape the newline for the tag argument ([#4974](https://github.com/garden-io/garden/issues/4974)) ([4c69801fb](https://github.com/garden-io/garden/commit/4c69801fb))
+* checkout repo before prerelease ([45d023653](https://github.com/garden-io/garden/commit/45d023653))
+* correct otel collector binary definition for arm64 linux ([7f6707174](https://github.com/garden-io/garden/commit/7f6707174))
+* ensure that the `edge-bonsai` tag is updated on a prerelease ([a1378b166](https://github.com/garden-io/garden/commit/a1378b166))
+* detect overlapping `targetPath` in `generateFiles` ([#4961](https://github.com/garden-io/garden/issues/4961)) ([430b8aeda](https://github.com/garden-io/garden/commit/430b8aeda))
+* **circleci:** use latest gh cli utility ([#4971](https://github.com/garden-io/garden/issues/4971)) ([e9dfe3341](https://github.com/garden-io/garden/commit/e9dfe3341))
+* **core:** input validation for module templates ([#4995](https://github.com/garden-io/garden/issues/4995)) ([bb77681ed](https://github.com/garden-io/garden/commit/bb77681ed))
+* **docs:** fix 'undefined' string in ToC ([#4987](https://github.com/garden-io/garden/issues/4987)) ([3af6af60e](https://github.com/garden-io/garden/commit/3af6af60e))
+* **jib:** make native arm maven usable on ARM macs ([#4968](https://github.com/garden-io/garden/issues/4968)) ([491fe88e8](https://github.com/garden-io/garden/commit/491fe88e8))
+* **k8s:** detect duplicate manifest declarations ([#4993](https://github.com/garden-io/garden/issues/4993)) ([eca466b88](https://github.com/garden-io/garden/commit/eca466b88))
+
 <a name="0.13.12"></a>
 ## [0.13.12](https://github.com/garden-io/garden/compare/0.13.11...0.13.12) (2023-08-16)
 

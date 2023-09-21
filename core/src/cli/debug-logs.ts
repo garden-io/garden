@@ -37,12 +37,12 @@ export async function prepareDebugLogfiles(log: Log, logsDirPath: string, comman
           }
         })
       ).catch((err) => {
-        log.warn(`An error occurred while cleaning up debug logfiles: ${err.message}`)
+        log.warn(`An error occurred while cleaning up debug logfiles: ${err}`)
       })
     }
   } catch (err) {
     // We don't want control flow to stop if there's an error during logfile cleanup.
-    log.warn(`An error occurred while cleaning up debug logfiles: ${err.message}`)
+    log.warn(`An error occurred while cleaning up debug logfiles: ${err}`)
   }
 
   return {

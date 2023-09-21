@@ -12,7 +12,7 @@ import { splitLast } from "../util/string"
 import { Minimatch } from "minimatch"
 import { isAbsolute, parse, basename, resolve } from "path"
 import { ensureDir, Stats, lstat, remove } from "fs-extra"
-import { FilesystemError, InternalError } from "../exceptions"
+import { FilesystemError, InternalError, isErrnoException } from "../exceptions"
 import async, { AsyncResultCallback } from "async"
 import { round } from "lodash"
 import { promisify } from "util"
@@ -67,7 +67,9 @@ export function cloneFile({ from, to, allowDelete, statsHelper }: CloneFileParam
 
       if (!sourceStats.isFile()) {
         return done(
-          new FilesystemError({ message: `Attempted to copy non-file ${from}`, detail: { from, to, sourceStats } })
+          new FilesystemError({
+            message: `Error while copying from '${from}' to '${to}': Source is neither a symbolic link, nor a file.`,
+          })
         )
       }
 
@@ -85,13 +87,7 @@ export function cloneFile({ from, to, allowDelete, statsHelper }: CloneFileParam
           } else {
             return done(
               new FilesystemError({
-                message: `Build staging: Failed copying file ${from} to ${to} because a directory exists at the target path`,
-                detail: {
-                  sourcePath: from,
-                  targetPath: to,
-                  sourceStats,
-                  targetStats,
-                },
+                message: `Build staging: Failed copying file from '${from}' to '${to}' because a directory exists at the target path`,
               })
             )
           }
@@ -137,7 +133,7 @@ function doClone(params: CopyParams) {
       }
       // Set the mtime on the cloned file to the same as the source file
       utimes(to, new Date(), sourceStats.mtimeMs / 1000, (utimesErr) => {
-        if (utimesErr && utimesErr.code !== "ENOENT") {
+        if (utimesErr && (!isErrnoException(utimesErr) || utimesErr.code !== "ENOENT")) {
           return done(utimesErr)
         }
         done(null, { skipped: false })
@@ -370,13 +366,7 @@ export class FileStatsHelper {
         // Symlink target not found, so we ignore it
         return cb(null, null)
       } else if (readlinkErr) {
-        return cb(
-          new InternalError({
-            message: `Error reading symlink: ${readlinkErr.message}`,
-            detail: { path, readlinkErr },
-          }),
-          null
-        )
+        return cb(InternalError.wrapError(readlinkErr, "Error reading symlink"), null)
       }
 
       // Ignore absolute symlinks unless specifically allowed
@@ -417,7 +407,7 @@ export class FileStatsHelper {
 
   private assertAbsolute(path: string) {
     if (!isAbsolute(path)) {
-      throw new InternalError({ message: `Must specify absolute path (got ${path})`, detail: { path } })
+      throw new InternalError({ message: `Must specify absolute path (got ${path})` })
     }
   }
 }

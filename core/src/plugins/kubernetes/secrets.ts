@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { KubeApi } from "./api"
+import { KubeApi, KubernetesError } from "./api"
 import { ProviderSecretRef } from "./config"
 import { ConfigurationError } from "../../exceptions"
 import { pick } from "lodash"
@@ -19,14 +19,14 @@ export async function readSecret(api: KubeApi, secretRef: ProviderSecretRef) {
   try {
     return await api.core.readNamespacedSecret(secretRef.name, secretRef.namespace)
   } catch (err) {
-    if (err.statusCode === 404) {
+    if (!(err instanceof KubernetesError)) {
+      throw err
+    }
+    if (err.responseStatusCode === 404) {
       throw new ConfigurationError({
         message:
           `Could not find secret '${secretRef.name}' in namespace '${secretRef.namespace}'. ` +
           `Have you correctly configured your secrets?`,
-        detail: {
-          secretRef,
-        },
       })
     } else {
       throw err

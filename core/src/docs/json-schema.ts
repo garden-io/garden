@@ -48,7 +48,7 @@ export class JsonKeyDescription<T = any> extends BaseKeyDescription<T> {
     this.type = getType(schema)
 
     if (!this.type) {
-      throw new ValidationError({ message: `Missing type property on JSON Schema`, detail: { schema } })
+      throw new ValidationError({ message: `Missing type property on JSON Schema` })
     }
 
     this.allowedValuesOnly = false

@@ -14,37 +14,107 @@ on:
         type: string
         description: "Commit message for homebrew repository."
         default: |
-          Bump {{formulaName}} to {{version}}.
-
           For more info: https://github.com/garden-io/garden
 
 permissions:
   contents: read
 
 jobs:
-  homebrew-create-pr:
-    runs-on: macos-latest
+  fetch-release-checksums:
+    runs-on: ubuntu-latest
+    env:
+      ARM_TARBALL_URL: https://download.garden.io/core/${{ inputs.release-version }}/garden-${{ inputs.release-version }}-macos-arm64.tar.gz
+      AMD_TARBALL_URL: https://download.garden.io/core/${{ inputs.release-version }}/garden-${{ inputs.release-version }}-macos-amd64.tar.gz
+    outputs:
+      arm-sha256: ${{ steps.fetch-arm-sha256.outputs.sha256 }}
+      amd-sha256: ${{ steps.fetch-amd-sha256.outputs.sha256 }}
+      arm-tarball-url: ${{ env.ARM_TARBALL_URL }}
+      amd-tarball-url: ${{ env.AMD_TARBALL_URL }}
+    steps:
+      - name: Fetch arm sha256
+        id: fetch-arm-sha256
+        if: inputs.release-condition != 'false'
+        run: |
+          set -o pipefail
 
+          if ! checksum=$(curl -sSL --fail ${{ env.ARM_TARBALL_URL }} | shasum -a 256 | cut -d ' ' -f 1);
+          then
+            echo "Failed to fetch binary from ${{ env.ARM_TARBALL_URL }}"
+            exit 1
+          fi
+
+          echo "sha256=$checksum" >> "$GITHUB_OUTPUT"
+      - name: Fetch amd sha256
+        id: fetch-amd-sha256
+        if: inputs.release-condition != 'false'
+        run: |
+          set -o pipefail
+
+          if ! checksum=$(curl -sSL --fail ${{ env.AMD_TARBALL_URL }} | shasum -a 256 | cut -d ' ' -f 1);
+          then
+            echo "Failed to fetch binary from ${{ env.AMD_TARBALL_URL }}"
+            exit 1
+          fi
+
+          echo "sha256=$checksum" >> "$GITHUB_OUTPUT"
+  homebrew-create-pr:
+    runs-on: ubuntu-latest
+    needs: fetch-release-checksums
     steps:
       - name: Checks release pre-condition
         if: inputs.release-condition == 'false'
         run: |
           echo The release-condition evaluated to false.
           echo Skipping all the next steps.
-      - name: Create PR on Homebrew Formula repository
+
+      - name: Checkout garden repo
         if: inputs.release-condition != 'false'
-        uses: stefreak/bump-homebrew-formula-action@82352c3cbbc2acdec5a064502447b555f18496fc
+        uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac # 4.0.0
         with:
-          tag-name: ${{ inputs.release-version }}
-          formula-name: garden-cli
-          formula-path: Formula/garden-cli.rb
-          homebrew-tap: garden-io/homebrew-garden
-          base-branch: main
-          create-pullrequest: true
-          download-url: https://download.garden.io/core/${{ inputs.release-version }}/garden-${{ inputs.release-version }}-macos-amd64.tar.gz
-          commit-message: ${{ inputs.commit-message }}
-        env:
-          COMMITTER_TOKEN: ${{ secrets.COMMITTER_TOKEN }}
+          repository: garden-io/garden
+          path: garden
+
+      - name: Checkout homebrew repo
+        if: inputs.release-condition != 'false'
+        uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac # 4.0.0
+        with:
+          repository: garden-io/homebrew-garden
+          ref: main
+          path: homebrew-garden
+          token: ${{ secrets.COMMITTER_TOKEN }}
+
+      - name: Template Homebrew Formula
+        if: inputs.release-condition != 'false'
+        uses: cuchi/jinja2-action@3fa06acb38601d3caea4c5ce0416e268a8799d71 # 1.2.1
+        with:
+          template: garden/support/homebrew-formula.rb.j2
+          output_file: homebrew-garden/Formula/garden-cli.rb
+          strict: true
+          variables: |
+            version=${{ inputs.release-version }}
+            armTarballUrl=${{ needs.fetch-release-checksums.outputs.arm-tarball-url }}
+            amdTarballUrl=${{ needs.fetch-release-checksums.outputs.amd-tarball-url }}
+            armSha256=${{ needs.fetch-release-checksums.outputs.arm-sha256 }}
+            amdSha256=${{ needs.fetch-release-checksums.outputs.amd-sha256 }}
+      
+      - name: Create PR on Homebrew Repository
+        if: inputs.release-condition != 'false'
+        uses: peter-evans/create-pull-request@153407881ec5c347639a548ade7d8ad1d6740e38 # 5.0.2
+        with:
+          path: ${{ github.workspace }}/homebrew-garden
+          token: ${{ secrets.COMMITTER_TOKEN }}
+          commit-message: |
+            Bump garden-cli.rb to ${{ inputs.release-version }}
+
+            ${{ inputs.commit-message }}
+          title: Bump garden-cli to ${{ inputs.release-version }}
+          body:  |
+            Bump garden-cli.rb to ${{ inputs.release-version }}
+
+            ${{ inputs.commit-message}}
+          branch: garden-cli-${{ inputs.release-version }}
+          reviewers: ${{ github.triggering_actor }}
+
       - name: Adding markdown summary
         if: inputs.release-condition != 'false'
         run: |

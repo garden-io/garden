@@ -160,6 +160,22 @@ describe("sanitizeValue", () => {
     })
   })
 
+  it("prevents calling sanitizeValue from toSanitizeValue to prevent infinite recursion", async () => {
+    class Foo {
+      toSanitizedValue() {
+        return sanitizeValue({
+          foo: "bar",
+        })
+      }
+    }
+    const obj = {
+      a: new Foo(),
+    }
+    expect(() => {
+      sanitizeValue(obj)
+    }).to.throw("`toSanitizedValue` is not allowed to call `sanitizeValue` because that can cause infinite recursion.")
+  })
+
   it("replaces LogEntry instance on a class instance", async () => {
     class Foo {
       log: Log

@@ -23,15 +23,11 @@ import { CommandParams } from "./base"
 import { ServeCommandOpts } from "./serve"
 import { DevCommand } from "./dev"
 
-export function makeGetTestOrTaskLog(actions: (TestAction | RunAction)[]) {
-  return actions.map((t) => prettyPrintTestOrTask(t)).join("\n")
-}
-
 /**
  * Runs a `dev` command and runs `commandName` with the args & opts provided in `params` as the first
  * interactive command.
  *
- * Also updates the `commandInfo` accordinly so that the session registration parameters sent to Cloud are correct.
+ * Also updates the `commandInfo` accordingly so that the session registration parameters sent to Cloud are correct.
  */
 export async function runAsDevCommand(
   commandName: string, // The calling command's opts need to extend `ServeCommandOpts`.
@@ -116,13 +112,13 @@ export const validateActionSearchResults = ({
   log,
   names,
   actions,
-  errData,
+  allActions,
   actionKind,
 }: {
   log: Log
   names: string[] | undefined
   actions: { name: string }[]
-  errData: any
+  allActions: { name: string }[]
   actionKind: ActionKind
 }): { shouldAbort: boolean } => {
   if (actions.length === 0 && (!names || names.length === 0)) {
@@ -132,7 +128,11 @@ export const validateActionSearchResults = ({
 
   names?.forEach((n) => {
     if (!isGlob(n) && !actions.find((a) => a.name === n)) {
-      throw new ParameterError({ message: `${actionKind} action "${n}" was not found.`, detail: { ...errData } })
+      throw new ParameterError({
+        message: `${actionKind} action "${n}" was not found. Available actions: ${naturalList(
+          allActions.map((a) => a.name)
+        )}`,
+      })
     }
   })
 
@@ -141,7 +141,11 @@ export const validateActionSearchResults = ({
     if (names) {
       argumentsMsg = ` (matching argument(s) ${naturalList(names.map((n) => `'${n}'`))})`
     }
-    throw new ParameterError({ message: `No ${actionKind} actions were found${argumentsMsg}.`, detail: { errData } })
+    throw new ParameterError({
+      message: `No ${actionKind} actions were found${argumentsMsg}. Available actions: ${naturalList(
+        allActions.map((a) => a.name)
+      )}`,
+    })
   }
   return { shouldAbort: false }
 }

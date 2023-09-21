@@ -36,6 +36,12 @@ The project code is composed of several components, most of which are written in
 | `static` | Static files that are bundled with the CLI. |
 | `support` | Supporting files for development, builds, releases etc. |
 
+## Contributor docs
+
+In addition to the [public-facing documentation](http://docs.garden.io), we've written a few docs for contributors. These are intended to give an overview of some of the more complex parts of Garden.
+
+For more, check out the [README in the contributor-docs directory](./contributor-docs/README.md).
+
 ## Setting up your development environment
 
 ### Step 1: Install Docker and Kubernetes

@@ -14,8 +14,7 @@ import { printHeader } from "../../logger/util"
 import { isDirectory } from "../../util/fs"
 import { loadConfigResources } from "../../config/base"
 import { resolve, basename, relative, join } from "path"
-import { GardenBaseError, ParameterError } from "../../exceptions"
-import { renderProjectConfigReference } from "../../docs/config"
+import { GardenError, ParameterError } from "../../exceptions"
 import { addConfig } from "./helpers"
 import { wordWrap } from "../../util/string"
 import { PathParameter, StringParameter, BooleanParameter, StringOption } from "../../cli/params"
@@ -61,7 +60,7 @@ interface CreateProjectResult {
   name: string
 }
 
-class CreateError extends GardenBaseError {
+class CreateError extends GardenError {
   type: "create"
 }
 
@@ -73,7 +72,7 @@ export class CreateProjectCommand extends Command<CreateProjectArgs, CreateProje
 
   override description = dedent`
     Creates a new Garden project configuration. The generated config includes some default values, as well as the
-    schema of the config in the form of commentented-out fields. Also creates a default (blank) .gardenignore file
+    schema of the config in the form of commented-out fields. Also creates a default (blank) .gardenignore file
     in the same path.
 
     Examples:
@@ -107,7 +106,7 @@ export class CreateProjectCommand extends Command<CreateProjectArgs, CreateProje
     const configDir = resolve(process.cwd(), opts.dir)
 
     if (!(await isDirectory(configDir))) {
-      throw new ParameterError({ message: `${configDir} is not a directory`, detail: { configDir } })
+      throw new ParameterError({ message: `${configDir} is not a directory` })
     }
 
     const configPath = join(configDir, opts.filename)
@@ -119,7 +118,6 @@ export class CreateProjectCommand extends Command<CreateProjectArgs, CreateProje
       if (configs.filter((c) => c.kind === "Project").length > 0) {
         throw new CreateError({
           message: `A Garden project already exists in ${configPath}`,
-          detail: { configDir, configPath },
         })
       }
     }
@@ -138,30 +136,61 @@ export class CreateProjectCommand extends Command<CreateProjectArgs, CreateProje
 
       log.info("")
     }
-
-    let { yaml } = renderProjectConfigReference({
-      yamlOpts: {
-        onEmptyValue: "remove",
-        filterMarkdown: true,
-        renderBasicDescription: !opts["skip-comments"],
-        renderFullDescription: false,
-        renderValue: "preferExample",
-        presetValues: {
-          kind: "Project",
-          name,
-          apiVersion: GardenApiVersion.v1,
-          environments: [{ name: "default" }],
-          providers: [{ name: "local-kubernetes" }],
-        },
-      },
-    })
-
     const projectDocURL = `${DOCS_BASE_URL}/using-garden/projects`
     const projectReferenceURL = `${DOCS_BASE_URL}/reference/project-config`
-    yaml =
-      dedent`
+    const providersReferenceURL = `${DOCS_BASE_URL}/reference/providers`
+    const remoteK8sReferenceURL = `${DOCS_BASE_URL}/kubernetes-plugins/remote-k8s`
+    const actionsGettingStartedURL = `${DOCS_BASE_URL}/using-garden/actions`
+    const localKubernetesInstallationURL = `${DOCS_BASE_URL}/kubernetes-plugins/local-k8s/install`
+    const yaml = dedent`
     # Documentation about Garden projects can be found at ${projectDocURL}
-    # Reference for Garden projects can be found at ${projectReferenceURL}` + `\n\n${yaml}`
+    # Reference for Garden projects can be found at ${projectReferenceURL}
+
+    apiVersion: ${GardenApiVersion.v1}
+    kind: Project
+    name: ${name}
+
+    defaultEnvironment: local
+
+    # Environments typically represent different stages of your development and deployment process.
+    environments:
+      # Use this environment to develop in your local Kubernetes solution of choice.
+      # Installation instructions and list of supported local Kubernetes environments: ${localKubernetesInstallationURL}
+      - name: local
+        defaultNamespace: garden-local
+
+      # Use this environment to develop in remote, production-like environments that scale with your stack.
+      # This means you don't need any dependencies on your local machine, even the builds can be performed remotely.
+      # It enables sharing build and test caches with your entire team, which can significantly speed up pipelines and development.
+      - name: remote
+        defaultNamespace: garden-remote-${"${local.username}"}
+
+      - name: staging
+        # Ask before performing potentially destructive commands like "deploy".
+        production: true
+        defaultNamespace: staging
+
+    # Providers make action types available in your Garden configuration and tell Garden how to connect with your infrastructure.
+    # For example the kubernetes and local-kubernetes providers allow you to use the container, helm and kubernetes action types.
+    # All available providers and their configuration options are listed in the reference docs: ${providersReferenceURL}
+    providers:
+      - name: local-kubernetes
+        environments:
+          - local
+
+      # To configure the remote kubernetes providers, follow the steps at ${remoteK8sReferenceURL}
+      - name: kubernetes
+        environments:
+          - remote
+        context: # ... your remote development kubecontext here
+      - name: kubernetes
+        environments:
+          - staging
+        context: # ... your staging kubecontext here
+
+    # Next step: Define actions to tell Garden how to build, test and deploy your code.
+    # You can find out more here: ${actionsGettingStartedURL}
+    `
 
     await addConfig(configPath, yaml)
 
