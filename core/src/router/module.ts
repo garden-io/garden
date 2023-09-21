@@ -173,6 +173,9 @@ export class ModuleRouter extends BaseRouter {
     // Wrap the handler with identifying attributes
     const wrapped = Object.assign(
       <WrappedModuleActionHandlers[T]>(async (...args: any[]) => {
+        // TODO:
+        // lots of casting and `any` here since we're using the same wrapper for all handlers.
+        // We should probably have a separate wrapper for each handler type or make it more explicit in another way.
         const result = await handler.apply(plugin, args as any)
         if (result === undefined) {
           throw new PluginError({
