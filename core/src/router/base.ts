@@ -40,6 +40,7 @@ import type { ConfigGraph } from "../graph/config-graph"
 import { ActionConfigContext, ActionSpecContext } from "../config/template-contexts/actions"
 import type { NamespaceStatus } from "../types/namespace"
 import { TemplatableConfigContext } from "../config/template-contexts/project"
+import { ParamsBase } from "../plugin/handlers/base/base"
 
 export type CommonParams = keyof PluginActionContextParams
 
@@ -363,7 +364,7 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
     // Wrap the handler with identifying attributes
     const wrapped = Object.assign(
       <WrappedActionTypeHandler<ActionTypeClasses<K>[T], any>>(<unknown>(async (...args: any[]) => {
-        const result = await handler["apply"](plugin, args)
+        const result = await handler["apply"](plugin, args as [ParamsBase<any>])
         if (result === undefined) {
           throw new PluginError({
             message: `Got empty response from ${actionType}.${String(

@@ -43,7 +43,7 @@ export class TestTask extends BaseTask<TestTaskResult> {
   name: string
   state: ActionState
   callback: TestTaskCallback | null
-  statusCallback: TestTaskCallback | null
+  statusCallback?: TestTaskCallback | null
   dependencies: BaseTask[]
   statusDependencies: BaseTask[]
 

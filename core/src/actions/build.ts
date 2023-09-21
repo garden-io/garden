@@ -151,7 +151,12 @@ export class BuildAction<
   StaticOutputs extends {} = any,
   RuntimeOutputs extends {} = any,
 > extends BaseAction<C, StaticOutputs, RuntimeOutputs> {
-  override kind: "Build"
+  override kind: "Build" = "Build"
+  // TODO:
+  // `_staticOutputs` is abstract since the base class uses it but doesn't define it in the constructor.
+  // In this case this would also be the case, but the class isn't actually abstract so it needs it to be defined.
+  // We initialize it to `{}` here which is a hack, but otherwise we'd need to also turn this class into an abstract class.
+  override _staticOutputs: StaticOutputs = {} as StaticOutputs
 
   /**
    * Builds from module conversions inherit their version from their parent module. This is done for compatibility
@@ -199,9 +204,11 @@ export class ResolvedBuildAction<
   private readonly dependencyResults: GraphResults
   private readonly executedDependencies: ExecutedAction[]
   private readonly resolvedDependencies: ResolvedAction[]
+  override _staticOutputs: StaticOutputs
 
   constructor(params: ResolvedActionWrapperParams<C>) {
     super(params)
+    this.params = params
     this.graph = params.resolvedGraph
     this.dependencyResults = params.dependencyResults
     this.executedDependencies = params.executedDependencies
