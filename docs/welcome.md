@@ -2,13 +2,12 @@
 order: 0
 title: Welcome to Garden!
 description: >-
-  Garden is a DevOps automation tool for developing and testing apps that run on
-  Kubernetes faster.
+  Garden is a DevOps automation tool for developing and testing Kubernetes apps faster
 ---
 
 # Welcome to Garden!
 
-Garden lets you spin up **production-like environments** for development, testing, and CI **on demand**. It enables teams to use the **same configuration** and workflows for **every stage of software delivery**—and dramatically **speeds up builds and test runs** via smart caching.&#x20;
+Garden lets you spin up **production-like environments** for development, testing, and CI **on demand**. It enables teams to use the **same configuration** and workflows for **every stage of software delivery**—and dramatically **speeds up builds and test runs** via smart caching.
 
 If there's something you can't find in our docs, we happily encourage you to [join our Discord community](https://discord.gg/FrmhuUjFs6) and/or file an issue on [our GitHub repo](https://github.com/garden-io/garden). We're more than happy to help!
 
@@ -67,7 +66,7 @@ If there's something you can't find in our docs, we happily encourage you to [jo
     <tr>
       <td>"<strong>First Project" Tutorial</strong></td>
       <td>This tutorial walks through the step-by-step process of configuring your first Garden project</td>
-      <td><a href="./tutorials/your-first-project.md">Your First Project</a></td>
+      <td><a href="./tutorials/your-first-project/README.md">Your First Project</a></td>
     </tr>
   </tbody>
 </table>

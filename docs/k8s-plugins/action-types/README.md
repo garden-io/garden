@@ -5,7 +5,7 @@ order: 5
 
 # Action Configuration
 
-Each Garden plugins defines different "action types" that you can use with it. For example, the Kubernetes plugin supports `kubernetes` and `helm` action types (among others) that you can pick, depending on your use case.
+Each Garden plugins defines different "action types" that you can use with it. For example, the Kubernetes plugins support `kubernetes` and `helm` action types (among others) that you can pick, depending on your use case.
 
 Garden projects can utilize multiple action types and you can mix and match as needed.
 
@@ -29,7 +29,7 @@ Choose this action type if you're using Helm and have the corresponding Helm cha
 Note that the container action type can be used with other plugins as well.
 {% endhint %}
 
-Use this action type if you want to deploy to Kubernetes but don't have the required Kubernetes manifests or Helm charts. 
+Use this action type if you want to deploy to Kubernetes but don't have the required Kubernetes manifests or Helm charts.
 
 In this case, Garden will generate the Kubernetes manifests for you based on the action config.
 
