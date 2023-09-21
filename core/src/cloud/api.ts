@@ -174,7 +174,7 @@ export type CloudApiFactory = (params: CloudApiFactoryParams) => Promise<CloudAp
  * for cases where the user is not logged in (e.g. the login method itself).
  */
 export class CloudApi {
-  private intervalId: NodeJS.Timer | null
+  private intervalId: NodeJS.Timer | null = null
   private intervalMsec = 4500 // Refresh interval in ms, it needs to be less than refreshThreshold/2
   private apiPrefix = "api"
   private _profile?: GetProfileResponse["data"]

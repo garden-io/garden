@@ -72,7 +72,7 @@ describe("GardenServer", () => {
       serveCommand,
     })
     await gardenServer.start()
-    server = gardenServer["server"]
+    server = gardenServer["server"]!
   })
 
   after(async () => {
@@ -84,7 +84,7 @@ describe("GardenServer", () => {
   })
 
   it("should show no URL on startup", async () => {
-    const line = gardenServer["statusLog"]
+    const line = gardenServer["statusLog"]!
     expect(line.getLatestEntry()).to.be.undefined
   })
 

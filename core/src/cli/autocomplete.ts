@@ -11,7 +11,7 @@ import { Command, CommandGroup } from "../commands/base"
 import { ConfigDump } from "../garden"
 import { Log } from "../logger/log-entry"
 import { parseCliArgs, pickCommand } from "./helpers"
-import { globalDisplayOptions, globalGardenInstanceOptions, globalOptions, Parameter, Parameters } from "./params"
+import { globalDisplayOptions, globalGardenInstanceOptions, globalOptions, Parameter, ParameterObject } from "./params"
 import stringify from "json-stringify-safe"
 
 export interface AutocompleteSuggestion {
@@ -265,7 +265,7 @@ export class Autocompleter {
       return []
     }
 
-    const opts: Parameters = {
+    const opts: ParameterObject = {
       ...(ignoreGlobalFlags ? {} : globalDisplayOptions),
       ...globalGardenInstanceOptions,
       ...command.options,

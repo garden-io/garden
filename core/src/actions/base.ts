@@ -328,9 +328,15 @@ export abstract class BaseAction<
   protected executed: boolean
 
   // Note: These need to be public because we need to reference the types (a current TS limitation)
+  // We do however also use `_staticOutputs` so that one isn't just for types
   _config: C
-  _staticOutputs: StaticOutputs
-  _runtimeOutputs: RuntimeOutputs
+  abstract _staticOutputs: StaticOutputs
+  // This property is only used for types.
+  // In theory it would be easy to replace it with a type that uses `infer` on BaseAction to grab the correct type
+  // However, TS will sometimes erase unused types and since `RuntimeOutputs` is only used here to store the type
+  // we cannot remove the property without breaking things.
+  // Thus we simply initialize it to `{}` and use it as a type.
+  _runtimeOutputs: RuntimeOutputs = {} as RuntimeOutputs
 
   protected readonly baseBuildDirectory: string
   protected readonly compatibleTypes: string[]
@@ -705,9 +711,12 @@ export abstract class ResolvedRuntimeAction<
   private readonly executedDependencies: ExecutedAction[]
   private readonly resolvedDependencies: ResolvedAction[]
 
+  override _staticOutputs: StaticOutputs
+
   constructor(params: ResolvedActionWrapperParams<Config>) {
     super(params)
 
+    this.params = params
     this.resolved = true
     this.graph = params.resolvedGraph
     this.dependencyResults = params.dependencyResults

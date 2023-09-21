@@ -21,7 +21,7 @@ import { isArray, omit } from "lodash"
 import { BaseServerRequest, resolveRequest, serverRequestSchema, shellCommandParamsSchema } from "./commands"
 import { DEFAULT_GARDEN_DIR_NAME, gardenEnv } from "../constants"
 import { Log } from "../logger/log-entry"
-import { Command, CommandResult } from "../commands/base"
+import { Command, CommandResult, PrepareParams } from "../commands/base"
 import { toGardenError, GardenError } from "../exceptions"
 import { EventName, Events, EventBus, shouldStreamWsEvent } from "../events/events"
 import type { ValueOf } from "../util/util"
@@ -130,10 +130,10 @@ export async function startServer(params: GardenServerParams) {
 export class GardenServer extends EventEmitter {
   private log: Log
   private debugLog: Log
-  private statusLog: Log
+  private statusLog?: Log
 
-  private server: Server
-  private app: websockify.App
+  private server?: Server
+  private app?: websockify.App
 
   private manager: GardenInstanceManager
   private incomingEvents: EventBus
@@ -170,14 +170,15 @@ export class GardenServer extends EventEmitter {
     if (this.server) {
       return
     }
-    this.app = await this.createApp()
+    const app = await this.createApp()
+    this.app = app
 
     const hostname = gardenEnv.GARDEN_SERVER_HOSTNAME || "localhost"
 
     const _start = async () => {
       // TODO: pipe every event
       return new Promise<void>((resolve, reject) => {
-        this.server = createServer(this.app.callback())
+        this.server = createServer(app.callback())
 
         this.server.on("error", (error) => {
           this.emit("error", error)
@@ -191,7 +192,7 @@ export class GardenServer extends EventEmitter {
         })
 
         this.server.listen(this.port, hostname, () => {
-          this.app.ws.listen({ server: this.server })
+          app.ws.listen({ server: this.server })
         })
       })
     }
@@ -233,7 +234,9 @@ export class GardenServer extends EventEmitter {
   }
 
   showUrl(url?: string) {
-    this.statusLog.info("🌻 " + chalk.cyan("Garden server running at ") + chalk.blueBright(url || this.getUrl()))
+    if (this.statusLog) {
+      this.statusLog.info("🌻 " + chalk.cyan("Garden server running at ") + chalk.blueBright(url || this.getUrl()))
+    }
   }
 
   async close() {
@@ -242,7 +245,12 @@ export class GardenServer extends EventEmitter {
     for (const conn of this.openConnections.values()) {
       conn.websocket.close(1000, "Server closing")
     }
-    return this.server.close()
+
+    if (this.server) {
+      return this.server.close()
+    }
+
+    return undefined
   }
 
   async getDefaultEnv(projectRoot: string) {
@@ -322,10 +330,10 @@ export class GardenServer extends EventEmitter {
         return ctx.throw(400, "Must specify command parameter.")
       }
 
-      const prepareParams = {
+      const prepareParams: PrepareParams = {
         log,
         args,
-        opts,
+        opts: opts as PrepareParams["opts"],
         parentCommand: this.serveCommand,
       }
 
@@ -673,10 +681,10 @@ export class GardenServer extends EventEmitter {
 
         connection.subscribedGardenKeys.add(garden.getInstanceKey())
 
-        const prepareParams = {
+        const prepareParams: PrepareParams = {
           log: commandLog,
           args,
-          opts,
+          opts: opts as PrepareParams["opts"],
           parentCommand: this.serveCommand,
         }
 

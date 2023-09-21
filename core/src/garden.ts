@@ -226,7 +226,7 @@ interface GardenInstanceState {
 @Profile()
 export class Garden {
   public log: Log
-  private loadedPlugins: GardenPluginSpec[]
+  private loadedPlugins?: GardenPluginSpec[]
   protected actionConfigs: ActionConfigMap
   protected moduleConfigs: ModuleConfigMap
   protected workflowConfigs: WorkflowConfigMap
@@ -244,7 +244,7 @@ export class Garden {
   public readonly vcs: VcsHandler
   public readonly treeCache: TreeCache
   public events: EventBus
-  private tools: { [key: string]: PluginTool }
+  private tools?: { [key: string]: PluginTool }
   public configTemplates: { [name: string]: ConfigTemplateConfig }
   private actionTypeBases: ActionTypeMap<ActionTypeDefinition<any>[]>
   private emittedWarnings: Set<string>
@@ -1980,6 +1980,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
 })
 
 // Override variables, also allows to override nested variables using dot notation
+// eslint-disable-next-line @typescript-eslint/no-shadow
 export function overrideVariables(variables: DeepPrimitiveMap, overrideVariables: DeepPrimitiveMap): DeepPrimitiveMap {
   let objNew = cloneDeep(variables)
   Object.keys(overrideVariables).forEach((key) => {

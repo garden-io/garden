@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Task, ValidResultType } from "../tasks/base"
+import { Task, TaskResultType, ValidResultType } from "../tasks/base"
 import { GraphError, InternalError, toGardenError } from "../exceptions"
 import { GraphResult, GraphResultFromTask, GraphResults } from "./results"
 import type { GraphSolver } from "./solver"
@@ -55,7 +55,7 @@ export abstract class TaskNode<T extends Task = Task> {
 
   abstract describe(): string
   abstract getDependencies(): TaskNode[]
-  abstract execute(): Promise<T["_resultType"] | null>
+  abstract execute(): Promise<TaskResultType<T> | null>
 
   getKey() {
     return getNodeKey(this.task, this.executionType)
@@ -78,7 +78,7 @@ export abstract class TaskNode<T extends Task = Task> {
   /**
    * Get the result for the given dependency node. Returns undefined if result is not yet set.
    */
-  getDependencyResult<A extends Task>(node: TaskNode<A>): GraphResult<A["_resultType"]> | undefined {
+  getDependencyResult<A extends Task>(node: TaskNode<A>): GraphResult<TaskResultType<T>> | undefined {
     return node.getResult()
   }
 
@@ -109,7 +109,7 @@ export abstract class TaskNode<T extends Task = Task> {
    * If the node was already completed, this is a no-op (may e.g. happen if the node has been completed
    * but a dependency fails and is aborting dependants).
    */
-  complete({ startedAt, error, result, aborted }: CompleteTaskParams): GraphResult {
+  complete({ startedAt, error, result, aborted }: CompleteTaskParams): GraphResult<TaskResultType<T>> {
     if (this.result) {
       return this.result
     }
@@ -179,20 +179,20 @@ export abstract class TaskNode<T extends Task = Task> {
 export interface TaskRequestParams<T extends Task = Task> extends TaskNodeParams<T> {
   batchId: string
   statusOnly: boolean
-  completeHandler: CompleteHandler<T["_resultType"]>
+  completeHandler: CompleteHandler<TaskResultType<T>>
 }
 
 @Profile()
-export class RequestTaskNode<T extends Task = Task> extends TaskNode<T> {
+export class RequestTaskNode<TaskType extends Task = Task> extends TaskNode<TaskType> {
   // FIXME: this is a bit of a TS oddity, but it does work...
   executionType = <NodeType>"request"
 
   public readonly requestedAt: Date
   public readonly batchId: string
 
-  private completeHandler: CompleteHandler<T["_resultType"]>
+  private completeHandler: CompleteHandler<TaskResultType<TaskType>>
 
-  constructor(params: TaskRequestParams<T>) {
+  constructor(params: TaskRequestParams<TaskType>) {
     super(params)
     this.requestedAt = new Date()
     this.batchId = params.batchId
@@ -215,7 +215,7 @@ export class RequestTaskNode<T extends Task = Task> extends TaskNode<T> {
     }
   }
 
-  override complete(params: CompleteTaskParams) {
+  override complete(params: CompleteTaskParams): GraphResult<TaskResultType<TaskType>> {
     const result = super.complete(params)
     this.completeHandler(result)
     return result
@@ -271,7 +271,7 @@ export class ProcessTaskNode<T extends Task = Task> extends TaskNode<T> {
     const dependencyResults = this.getDependencyResults()
 
     try {
-      const processResult: T["_resultType"] = await this.task.process({ status, dependencyResults, statusOnly: false })
+      const processResult: TaskResultType<T> = await this.task.process({ status, dependencyResults, statusOnly: false })
       this.task.emit("processed", { result: processResult })
       if (processResult.state === "ready") {
         const msg = `${this.task.getDescription()} is ready.`
@@ -304,7 +304,7 @@ export class StatusTaskNode<T extends Task = Task> extends TaskNode<T> {
     const dependencyResults = this.getDependencyResults()
 
     try {
-      const result: T["_resultType"] = await this.task.getStatus({ statusOnly: this.statusOnly, dependencyResults })
+      const result: TaskResultType<T> = await this.task.getStatus({ statusOnly: this.statusOnly, dependencyResults })
       this.task.emit("statusResolved", { result })
       if (!this.task.force && result?.state === "ready") {
         const msg = `${this.task.getDescription()} status is ready.`

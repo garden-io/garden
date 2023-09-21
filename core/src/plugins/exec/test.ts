@@ -8,7 +8,7 @@
 
 import { runResultToActionState } from "../../actions/base"
 import { renderMessageWithDivider } from "../../logger/util"
-import { sdk } from "../../plugin/sdk"
+import { GardenSdkActionDefinitionActionType, GardenSdkActionDefinitionConfigType, sdk } from "../../plugin/sdk"
 import { copyArtifacts, execRunCommand } from "./common"
 import { execRunSpecSchema, execRuntimeOutputsSchema, execStaticOutputsSchema } from "./config"
 import { execProvider } from "./exec"
@@ -28,8 +28,8 @@ export const execTest = execProvider.createActionType({
   runtimeOutputsSchema: execRuntimeOutputsSchema,
 })
 
-export type ExecTestConfig = typeof execTest.T.Config
-export type ExecTest = typeof execTest.T.Action
+export type ExecTestConfig = GardenSdkActionDefinitionConfigType<typeof execTest>
+export type ExecTest = GardenSdkActionDefinitionActionType<typeof execTest>
 
 execTest.addHandler("run", async ({ log, action, artifactsPath, ctx }) => {
   const startedAt = new Date()
