@@ -32,6 +32,7 @@ const gardenAnnotationPrefix = "garden.io/"
 export type GardenAnnotationKey =
   | "actionType"
   | "action"
+  | "aec-status"
   | "mode"
   | "generated"
   | "helm-migrated"
