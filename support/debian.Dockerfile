@@ -1,18 +1,13 @@
 # Variant can be root or rootless.
 # Defaults to root.
 ARG VARIANT=root
-# This dockerfile works for buster, bullseye and bookworm debian releases. Defaults to latest stable relase bookworm.
-ARG DEBIAN_RELEASE=bookworm
 ARG NODE_IMAGE_SHA
 ARG PYTHON_IMAGE_SHA
 
 # Node base image
-# Use different base-images for debian releases
-FROM node:18.15.0-buster-slim@sha256:b89966598ea8c38c37543823e54f3ff36c067d90f935085796cbd077a98c4ff8 as garden-buster-base-root
-FROM node:18.15.0-bullseye-slim@sha256:095c1ce1491a2109e1c41b6ec3ba3726564f7ba93bcae64187fcc92a614d86f6 as garden-bullseye-base-root
 FROM node:18.15.0-bookworm-slim@sha256:abe13b25e07ccaedcc8797120c37781f0462a0f0682105cf2d8b8d6f99070d55 as garden-bookworm-base-root
 
-FROM garden-${DEBIAN_RELEASE}-base-root as garden-base-root
+FROM garden-bookworm-base-root as garden-base-root
 # system dependencies
 RUN apt-get update && \
   apt-get install -y --no-install-recommends \
@@ -75,9 +70,10 @@ WORKDIR /project
 #
 FROM garden-base-root as garden-aws-base
 ENV AWSCLI_VERSION=2.13.15
-ENV AWSCLI_SHA256="ac63e8f42c7f8775edccdc004921420159420de9185cf011952dba8fda5895ff"
+ENV AWSCLI_SHA256="45d2e0f304eb0f57e6b58ffc0664879c0bc1cf8365fd2f64bcb5f3bbf2e9434f"
 
 RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64-${AWSCLI_VERSION}.zip" -o "awscliv2.zip"
+RUN echo "${AWSCLI_SHA256}  awscliv2.zip" | sha256sum -c
 RUN unzip awscliv2.zip
 RUN ./aws/install
 
@@ -86,8 +82,10 @@ RUN ./aws/install
 #
 FROM garden-base as garden-gcloud-base
 ENV GCLOUD_VERSION=444.0.0
+ENV GCLOUD_SHA256="cc76b9b40508253f812af5e52d4630e90230312969eece04ccfb5328c557acac"
 
 RUN curl -O https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-${GCLOUD_VERSION}-linux-x86_64.tar.gz
+RUN echo "${GCLOUD_SHA256}  google-cloud-cli-${GCLOUD_VERSION}-linux-x86_64.tar.gz" | sha256sum -c 
 RUN tar -xf google-cloud-cli-${GCLOUD_VERSION}-linux-x86_64.tar.gz
 RUN ./google-cloud-sdk/install.sh --quiet
 RUN ./google-cloud-sdk/bin/gcloud components install kubectl gke-gcloud-auth-plugin --quiet
@@ -97,7 +95,6 @@ RUN ./google-cloud-sdk/bin/gcloud components install kubectl gke-gcloud-auth-plu
 #
 FROM garden-base-root as garden-azure-base
 ENV AZURE_CLI_VERSION=2.50.0
-ARG DEBIAN_RELEASE
 
 RUN apt-get update
 RUN apt-get install ca-certificates curl apt-transport-https lsb-release gnupg
@@ -108,7 +105,7 @@ RUN chmod go+r /etc/apt/keyrings/microsoft.gpg
 RUN echo "deb [arch=`dpkg --print-architecture` signed-by=/etc/apt/keyrings/microsoft.gpg] https://packages.microsoft.com/repos/azure-cli/ $(lsb_release -cs) main" | \
     tee /etc/apt/sources.list.d/azure-cli.list
 RUN apt-get update
-RUN apt-get install azure-cli=${AZURE_CLI_VERSION}-1~${DEBIAN_RELEASE}
+RUN apt-get install azure-cli=${AZURE_CLI_VERSION}-1~bookworm
 RUN az aks install-cli
 
 #
@@ -126,13 +123,11 @@ COPY --chown=$USER:root --from=garden-azure-base /usr/local/bin/kubelogin /usr/l
 # garden-aws
 #
 FROM garden-base as garden-aws
-
+ENV AWSCLI_VERSION=2.13.15
 # Copy aws cli
-COPY --chown=$USER:root --from=garden-aws-base /usr/local/aws-cli /usr/local/aws-cli
-RUN mkdir -p ${HOME}/bin
-RUN ln -s /usr/local/aws-cli/v2/current/bin/aws ${HOME}/bin/aws
-RUN ln -s /usr/local/aws-cli/v2/current/bin/aws_completer ${HOME}/bin/aws_completer
-ENV PATH ${HOME}/bin:$PATH
+RUN mkdir -p ${HOME}/aws-cli
+COPY --chown=$USER:root --from=garden-aws-base /usr/local/aws-cli ${HOME}/aws-cli
+ENV PATH ${HOME}/aws-cli/v2/${AWSCLI_VERSION}/bin:$PATH
 
 #
 # garden-gloud
@@ -149,13 +144,12 @@ ENV PATH /google-cloud-sdk/bin:$PATH
 # garden-aws-gloud
 #
 FROM garden-base as garden-aws-gcloud
+ENV AWSCLI_VERSION=2.13.15
 
 # Copy aws cli
-COPY --chown=$USER:root --from=garden-aws-base /usr/local/aws-cli /usr/local/aws-cli
-RUN mkdir -p ${HOME}/bin
-RUN ln -s /usr/local/aws-cli/v2/current/bin/aws ${HOME}/bin/aws
-RUN ln -s /usr/local/aws-cli/v2/current/bin/aws_completer ${HOME}/bin/aws_completer
-ENV PATH ${HOME}/bin:$PATH
+RUN mkdir -p ${HOME}/aws-cli
+COPY --chown=$USER:root --from=garden-aws-base /usr/local/aws-cli ${HOME}/aws-cli
+ENV PATH ${HOME}/aws-cli/v2/${AWSCLI_VERSION}/bin:$PATH
 
 # Copy gcloud cli
 ENV CLOUDSDK_PYTHON=python3
@@ -167,13 +161,12 @@ ENV PATH /google-cloud-sdk/bin:$PATH
 # garden-aws-gloud-azure
 #
 FROM garden-base as garden-aws-gcloud-azure
+ENV AWSCLI_VERSION=2.13.15
 
 # Copy aws cli
-COPY --chown=$USER:root --from=garden-aws-base /usr/local/aws-cli /usr/local/aws-cli
-RUN mkdir -p ${HOME}/bin
-RUN ln -s /usr/local/aws-cli/v2/current/bin/aws ${HOME}/bin/aws
-RUN ln -s /usr/local/aws-cli/v2/current/bin/aws_completer ${HOME}/bin/aws_completer
-ENV PATH ${HOME}/bin:$PATH
+RUN mkdir -p ${HOME}/aws-cli
+COPY --chown=$USER:root --from=garden-aws-base /usr/local/aws-cli ${HOME}/aws-cli
+ENV PATH ${HOME}/aws-cli/v2/${AWSCLI_VERSION}/bin:$PATH
 
 # Copy gcloud cli
 ENV CLOUDSDK_PYTHON=python3

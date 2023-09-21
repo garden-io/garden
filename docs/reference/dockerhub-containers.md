@@ -32,7 +32,7 @@ For your convenience, we build and publish Docker containers that contain the Ga
 | `x.y.z-*`, e.g. `0.13.0`          | Garden CLI stable release (Semver version without prerelease)    |
 | `*-edge-*`                        | Edge tags contain the latest, potentially still unreleased changes to the Garden CLI in our development branches. |
 | `*-alpine` or `*-alpine-*`        | The container is based on Alpine Linux. |
-| `*-buster` or `*-buster-*`        | The container is based on Debian Linux (Buster version). |
+| `*-bookworm` or `*-bookworm-*`        | The container is based on Debian Linux (Bookworm version). |
 | `*-rootless`                      | The default user of the container is `gardenuser`. The default user for all other containers is `root`. |
 
 Examples:
