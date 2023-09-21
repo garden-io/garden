@@ -190,7 +190,7 @@ export function generateTableOfContents(docsRoot: string): string {
     dedent`
     # Table of Contents
 
-    * [Welcome!](welcome.md)
+    * [Welcome to Garden!](welcome.md)
     ` +
     "\n" +
     generateMarkdown({ tree: preparedTree, docsRoot })
