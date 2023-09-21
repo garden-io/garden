@@ -1,23 +1,102 @@
 ---
 order: 0
-title:  Welcome!
+title: Welcome to Garden!
+description: >-
+  Garden is a DevOps automation tool for developing and testing apps that run on
+  Kubernetes faster.
 ---
-#  Welcome!
 
-Welcome to the official Garden documentation site 👋
+# Welcome to Garden!
 
-Here you'll find (hopefully) everything you need to know on how to set up and use Garden for your development and testing workflows.
-
-**If you're new to Garden and are working on setting up your project**, we recommend the following:
-
-* Start by going through our [Quickstart Guide](./getting-started/quickstart.md). This will give you a basic overview of Garden's main features.
-* Next, go through the [Your First Project tutorial](./tutorials/your-first-project/README.md). This tutorial helps you create configuration for an example project that you can then apply to your own. And if you get stuck, don't hesitate to reach out to our [our Discord community](https://discord.gg/FrmhuUjFs6).
-* Finally, check-out our [Adopting Garden guide](./overview/adopting-garden.md) which gives you a high-level overview of how to adopt Garden and roll it out to your team.
-
-**If your team has already set up a project for Garden**, and you just need to learn how to use the Garden CLI, you may find it helpful to skip straight to the [Installation](./getting-started/quickstart.md#step-1-install-garden) and [Using the CLI](./using-garden/using-the-cli.md) guides, but we do still recommend learning [How Garden Works](./overview/how-garden-works.md) and about [the core Garden concepts](./overview/core-concepts.md).
-
-**If you need help as an open source user**, please get in touch via [our Discord community](https://discord.gg/FrmhuUjFs6). Our team monitors it closely, and we encourage you to reach out with questions about Garden.
-
-**If you'd like to learn more about Garden Cloud**, please see [our website](https://garden.io/plans).
+Garden lets you spin up **production-like environments** for development, testing, and CI **on demand**. It enables teams to use the **same configuration** and workflows for **every stage of software delivery**—and dramatically **speeds up builds and test runs** via smart caching.&#x20;
 
 If there's something you can't find in our docs, we happily encourage you to [join our Discord community](https://discord.gg/FrmhuUjFs6) and/or file an issue on [our GitHub repo](https://github.com/garden-io/garden). We're more than happy to help!
+
+### Overview
+
+<table data-view="cards">
+  <thead>
+    <tr>
+      <th></th>
+      <th></th>
+      <th data-hidden data-card-target data-type="content-ref"></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>
+        <strong>How Garden Works</strong>
+      </td>
+      <td>A quick introduction to the how and why of Garden</td>
+      <td><a href="./overview/how-garden-works.md">How Garden Works</a></td>
+    </tr>
+    <tr>
+      <td><strong>Use Cases</strong></td>
+      <td>Learn how teams use Garden in the real world to deliver cloud native apps faster</td>
+      <td><a href="./overview/use-cases.md">Use Cases</a></td>
+    </tr>
+    <tr>
+      <td><strong>Garden vs Other Tools</strong></td>
+      <td>The cloud native tooling space is complex—learn where Garden fits in</td>
+      <td><a href="./overview/garden-vs-other-tools.md">Garden vs Other Tools</a></td>
+    </tr>
+  </tbody>
+</table>
+
+### Getting Started
+
+<table data-view="cards">
+  <thead>
+    <tr>
+      <th></th>
+      <th></th>
+      <th data-hidden data-card-target data-type="content-ref"></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Quickstart</strong></td>
+      <td>Get started with Garden in less than 5 minutes using our example project</td>
+      <td><a href="./getting-started/quickstart.md">Quickstart Guide</a></td>
+    </tr>
+    <tr>
+      <td><strong>Adopting Garden</strong></td>
+      <td>Once you've kicked the tires with our quickstart example, come here to learn how to adopt Garden for your own project</td>
+      <td><a href="./overview/adopting-garden.md">Adopting Garden</a></td>
+    </tr>
+    <tr>
+      <td>"<strong>First Project" Tutorial</strong></td>
+      <td>This tutorial walks through the step-by-step process of configuring your first Garden project</td>
+      <td><a href="./tutorials/your-first-project.md">Your First Project</a></td>
+    </tr>
+  </tbody>
+</table>
+
+### Using Garden
+
+<table data-view="cards">
+  <thead>
+    <tr>
+      <th></th>
+      <th></th>
+      <th data-hidden data-card-target data-type="content-ref"></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Configuration Overview</strong></td>
+      <td>An introduction to how Garden projects are configured</td>
+      <td><a href="./using-garden/configuration-overview.md">Configuration Overview</a></td>
+    </tr>
+    <tr>
+      <td><strong>Kubernetes Plugins</strong></td>
+      <td>Most users come to Garden for our K8s plugins, here you learn how to set them up</td>
+      <td><a href="./k8s-plugins/about.md">Kubernetes</a></td>
+    </tr>
+    <tr>
+      <td><strong>Reference docs</strong></td>
+      <td>The pages in this section container reference docs for different plugins and actions types</td>
+      <td><a href="./reference/providers/README.md">🪷 Reference</a></td>
+    </tr>
+  </tbody>
+</table>
