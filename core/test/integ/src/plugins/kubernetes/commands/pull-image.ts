@@ -105,12 +105,13 @@ describe("pull-image plugin command", () => {
 
   grouped("cluster-buildkit", "remote-only").context("using an external cluster registry with buildkit", () => {
     let action: BuildAction
+    let resolvedAction: ResolvedBuildAction
 
     before(async () => {
       await init("cluster-buildkit")
 
       action = graph.getBuild("remote-registry-test")
-      const resolvedAction = await garden.resolveAction({ action, graph, log: garden.log })
+      resolvedAction = await garden.resolveAction({ action, graph, log: garden.log })
 
       // build the image
       await garden.buildStaging.syncFromSrc({ action, log: garden.log })
@@ -124,15 +125,15 @@ describe("pull-image plugin command", () => {
     })
 
     it("should pull the image", async () => {
-      await removeImage(action)
+      await removeImage(resolvedAction)
       await pullBuild({
-        localId: action._staticOutputs["local-image-id"],
-        remoteId: action._staticOutputs["deployment-image-id"],
+        localId: resolvedAction._staticOutputs["local-image-id"],
+        remoteId: resolvedAction._staticOutputs["deployment-image-id"],
         ctx: ctx as KubernetesPluginContext,
         action,
         log: garden.log,
       })
-      await ensureImagePulled(action)
+      await ensureImagePulled(resolvedAction)
     })
   })
 })
