@@ -76,10 +76,11 @@ export async function apply({
     if (!manifest.metadata.annotations) {
       manifest.metadata.annotations = {}
     }
-    if (manifest.metadata.annotations[gardenAnnotationKey("manifest-hash")]) {
-      delete manifest.metadata.annotations[gardenAnnotationKey("manifest-hash")]
+    const manifestHashAnnotationKey = gardenAnnotationKey("manifest-hash")
+    if (manifest.metadata.annotations[manifestHashAnnotationKey]) {
+      delete manifest.metadata.annotations[manifestHashAnnotationKey]
     }
-    manifest.metadata.annotations[gardenAnnotationKey("manifest-hash")] = await hashManifest(manifest)
+    manifest.metadata.annotations[manifestHashAnnotationKey] = await hashManifest(manifest)
   }
 
   // The `--prune` option for `kubectl apply` currently isn't backwards-compatible, so here, we essentially
