@@ -385,6 +385,11 @@ export function getBuildkitDeployment(
           app: buildkitDeploymentName,
         },
       },
+      strategy: {
+        // Note: When updating the deployment, we make sure to kill off old buildkit pods before new pods are started.
+        // This is important because with multiple running Pods we might end up syncing or building to the wrong Pod.
+        type: "Recreate",
+      },
       template: {
         metadata: {
           labels: {
