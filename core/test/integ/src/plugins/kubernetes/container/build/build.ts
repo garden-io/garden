@@ -52,7 +52,9 @@ describe("kubernetes build flow", () => {
 
   async function executeBuild(buildActionName: string) {
     const action = await garden.resolveAction({ action: graph.getBuild(buildActionName), graph, log })
-    const result = await garden.processTask(new BuildTask({ action, force: true, garden, graph, log }), log, {})
+    const result = await garden.processTask(new BuildTask({ action, force: true, garden, graph, log }), log, {
+      throwOnError: true,
+    })
     return result?.result?.executedAction!
   }
 
@@ -153,7 +155,7 @@ describe("kubernetes build flow", () => {
 
   grouped("kaniko", "remote-only").context("kaniko-project-namespace mode", () => {
     before(async () => {
-      await init("kaniko-project-namespace")
+      await init("kaniko-project-namespace", true)
     })
 
     after(async () => {
