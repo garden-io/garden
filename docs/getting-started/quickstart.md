@@ -9,13 +9,13 @@ order: 1
 A visual quickstart is also available by logging in to the Garden Dashboard. The Dashboard can show you the status of your builds, deployments and stream logs from your services in real-time. To get started, click [Dashboard Quickstart](https://app.garden.io).
 {% endhint %}
 
-Garden is an all-in-one DevOps platform that enables you to build, test, deploy your applications and infrastructure in a single, unified workflow.
+Garden is an all-in-one DevOps platform that enables you to build, test, and deploy your applications and infrastructure in a single, unified workflow.
 
 ## Quickstart
 
 In this quickstart, we'll introduce you to the one interactive command you'll spend most of your time in as a developer: `garden dev`.
 
-In just 2 steps, we'll:
+In just two steps, we'll:
 
 * Install Garden
 * Deploy an example application to a remote ephemeral Kubernetes cluster.
@@ -65,11 +65,11 @@ This will significantly speed up the first Garden build of large projects on Win
 
 {% endtabs %}
 
-For more detailed installation instructions, please see our [Installation guide](../guides/installation.md).
+For more detailed installation instructions, please take a look at our [Installation guide](../installation.md).
 
 ### Step 2 — Deploy the example application
 
-Now that we have Garden installed we will deploy our example application to an [ephemeral Kubernetes cluster](../guides/ephemeral-clusters.md) provided by Garden.
+Now that we have Garden installed, we will deploy our example application to an [ephemeral Kubernetes cluster](../guides/ephemeral-clusters.md) provided by Garden.
 
 Clone the example project from GitHub:
 
@@ -83,7 +83,7 @@ Garden ships with an interactive command center we call the **dev console**. To 
 garden dev
 ```
 
-The first time you run `garden dev`, Garden will initialize then await further instructions inside a [REPL](https://en.wikipedia.org/wiki/Read%E2%80%93eval%E2%80%93print_loop). From inside the REPL you can command Garden to build, test, and deploy your project.
+The first time you run `garden dev`, Garden will initialize and then await further instructions inside a [REPL](https://en.wikipedia.org/wiki/Read%E2%80%93eval%E2%80%93print_loop). From inside the REPL, you can command Garden to build, test, and deploy your project.
 
 After running `garden dev`, login to the Garden web dashboard. Run:
 
@@ -106,7 +106,7 @@ The project itself doubles as an interactive guide that walks you through some c
 
 ## Next Steps
 
-Now that you have Garden installed and seen its basic capabilities it's time to take the next steps.
+Now that you have Garden installed and seen its basic capabilities, it's time to take the next steps.
 
 If you'd like to better understand how a Garden project is configured, we recommend going
 through our [first project tutorial](../tutorials/your-first-project/README.md) which walks you through configuring a Garden project step-by-step.
