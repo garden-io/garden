@@ -50,3 +50,6 @@ redirects:
   guides/in-cluster-building: k8s-plugins/advanced/in-cluster-building.md
   guides/using-helm-charts: k8s-plugins/module-types/helm.md
   guides/using-remote-sources: k8s-plugins/advanced/using-remote-sources.md
+  # Redirects set after 2023–09–22
+  tutorials/migrating-to-bonsai: guides/migrating-to-bonsai.md
+
