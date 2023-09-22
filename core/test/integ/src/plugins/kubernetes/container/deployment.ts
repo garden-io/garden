@@ -56,7 +56,7 @@ import { K8_POD_DEFAULT_CONTAINER_ANNOTATION_KEY } from "../../../../../../src/p
 
 describe("kubernetes container deployment handlers", () => {
   let garden: TestGarden
-  let cleanup: () => void
+  let cleanup: (() => void) | undefined
   let router: ActionRouter
   let graph: ConfigGraph
   let ctx: KubernetesPluginContext
@@ -96,7 +96,9 @@ describe("kubernetes container deployment handlers", () => {
     })
 
     after(async () => {
-      cleanup()
+      if (cleanup) {
+        cleanup()
+      }
     })
 
     afterEach(async () => {
@@ -265,7 +267,9 @@ describe("kubernetes container deployment handlers", () => {
     })
 
     after(async () => {
-      cleanup()
+      if (cleanup) {
+        cleanup()
+      }
     })
 
     it("should create a basic Deployment resource", async () => {
@@ -648,8 +652,10 @@ describe("kubernetes container deployment handlers", () => {
       })
 
       after(async () => {
-        cleanup()
-      })
+        if (cleanup) {
+          cleanup()
+        }
+        })
 
       it("should deploy a simple Deploy", async () => {
         const action = await resolveDeployAction("simple-service")
@@ -805,7 +811,9 @@ describe("kubernetes container deployment handlers", () => {
       })
 
       after(async () => {
-        cleanup()
+        if (cleanup) {
+          cleanup()
+        }
       })
 
       it("should deploy a simple service", async () => {
@@ -841,7 +849,9 @@ describe("kubernetes container deployment handlers", () => {
     })
 
     after(async () => {
-      cleanup()
+      if (cleanup) {
+        cleanup()
+      }
     })
 
     const deploySpecChangedSimpleService = async (

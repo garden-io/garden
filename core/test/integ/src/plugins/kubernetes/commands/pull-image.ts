@@ -21,7 +21,7 @@ import { createActionLog } from "../../../../../../src/logger/log-entry"
 
 describe("pull-image plugin command", () => {
   let garden: Garden
-  let cleanup: () => void
+  let cleanup: (() => void) | undefined
   let graph: ConfigGraph
   let provider: KubernetesProvider
   let ctx: PluginContext
@@ -92,7 +92,9 @@ describe("pull-image plugin command", () => {
     })
 
     after(async () => {
-      cleanup()
+      if (cleanup) {
+        cleanup()
+      }
     })
 
     it("should pull the image", async () => {
@@ -130,7 +132,9 @@ describe("pull-image plugin command", () => {
     })
 
     after(async () => {
-      cleanup()
+      if (cleanup) {
+        cleanup()
+      }
     })
 
     it("should pull the image", async () => {

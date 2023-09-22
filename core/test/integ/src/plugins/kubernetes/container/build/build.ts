@@ -26,7 +26,7 @@ import { BuildTask } from "../../../../../../../src/tasks/build"
 
 describe("kubernetes build flow", () => {
   let garden: Garden
-  let cleanup: () => void
+  let cleanup: (() => void) | undefined
   let log: ActionLog
   let graph: ConfigGraph
   let provider: KubernetesProvider
@@ -62,7 +62,9 @@ describe("kubernetes build flow", () => {
     })
 
     after(async () => {
-      cleanup()
+      if (cleanup) {
+        cleanup()
+      }
     })
 
     it("should build a simple container", async () => {
@@ -76,7 +78,9 @@ describe("kubernetes build flow", () => {
     })
 
     after(async () => {
-      cleanup()
+      if (cleanup) {
+        cleanup()
+      }
     })
 
     it("should push to configured deploymentRegistry if specified", async () => {
@@ -153,7 +157,9 @@ describe("kubernetes build flow", () => {
     })
 
     after(async () => {
-      cleanup()
+      if (cleanup) {
+        cleanup()
+      }
     })
 
     it("should build a simple container", async () => {
@@ -179,7 +185,9 @@ describe("kubernetes build flow", () => {
     })
 
     after(async () => {
-      cleanup()
+      if (cleanup) {
+        cleanup()
+      }
     })
 
     it("should build and push to configured deploymentRegistry", async () => {
@@ -268,7 +276,9 @@ describe("kubernetes build flow", () => {
     })
 
     after(async () => {
-      cleanup()
+      if (cleanup) {
+        cleanup()
+      }
     })
 
     it("should push to configured deploymentRegistry if specified", async () => {
@@ -283,7 +293,9 @@ describe("kubernetes build flow", () => {
     })
 
     after(async () => {
-      cleanup()
+      if (cleanup) {
+        cleanup()
+      }
     })
 
     it("should build and push a simple container", async () => {
@@ -373,7 +385,9 @@ describe("kubernetes build flow", () => {
     })
 
     after(async () => {
-      cleanup()
+      if (cleanup) {
+        cleanup()
+      }
     })
 
     it("should build a simple container", async () => {

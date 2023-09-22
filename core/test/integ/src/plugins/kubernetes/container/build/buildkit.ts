@@ -31,7 +31,7 @@ import { NamespaceStatus } from "../../../../../../../src/types/namespace"
 
 grouped("cluster-buildkit", "remote-only").describe("ensureBuildkit", () => {
   let garden: Garden
-  let cleanup: () => void
+  let cleanup: (() => void) | undefined
   let provider: KubernetesProvider
   let ctx: PluginContext
   let api: KubeApi
@@ -51,11 +51,10 @@ grouped("cluster-buildkit", "remote-only").describe("ensureBuildkit", () => {
   })
 
   after(async () => {
-    if (garden) {
-      garden.close()
+    if (cleanup) {
+      cleanup()
     }
-    cleanup()
-  })
+})
 
   beforeEach(async () => {
     provider = <KubernetesProvider>await garden.resolveProvider(garden.log, "local-kubernetes")

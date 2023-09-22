@@ -33,7 +33,7 @@ import { MUTAGEN_DIR_NAME } from "../../../../../src/constants"
 
 describe("sync mode deployments and sync behavior", () => {
   let garden: TestGarden
-  let cleanup: () => void
+  let cleanup: (() => void) | undefined
   let graph: ConfigGraph
   let ctx: KubernetesPluginContext
   let provider: KubernetesProvider
@@ -56,7 +56,9 @@ describe("sync mode deployments and sync behavior", () => {
   })
 
   after(async () => {
-    cleanup()
+    if (cleanup) {
+      cleanup()
+    }
   })
 
   beforeEach(async () => {

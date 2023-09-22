@@ -10,7 +10,7 @@ import { getDataDir, makeTestGarden, expectError, TestGarden } from "../../../..
 import { TestTask } from "../../../../../../src/tasks/test"
 import { emptyDir, pathExists } from "fs-extra"
 import { expect } from "chai"
-import { join } from "path"
+import { dirname, join } from "path"
 import { Garden } from "../../../../../../src/garden"
 import { ConfigGraph } from "../../../../../../src/graph/config-graph"
 import { deline } from "../../../../../../src/util/string"
@@ -24,7 +24,8 @@ import { TestGardenOpts } from "../../../../../../src/util/testing"
 import { waitForOutputFlush } from "../../../../../../src/process"
 import { getGoogleADCImagePullSecret } from "../../../../helpers"
 import { KubernetesResource } from "../../../../../../src/plugins/kubernetes/types"
-import { writeFile } from "fs/promises"
+import { mkdir, writeFile } from "fs/promises"
+import { isErrnoException } from "../../../../../../src/exceptions"
 
 const root = getDataDir("test-projects", "container")
 const defaultEnvironment = process.env.GARDEN_INTEG_TEST_MODE === "remote" ? "kaniko" : "local"
@@ -40,8 +41,11 @@ export async function getContainerTestGarden(
   environmentName: string = defaultEnvironment,
   opts?: TestGardenOpts
 ): Promise<ContainerTestGardenResult> {
+  const cleanups: (() => void)[] = []
+
   const garden = await makeTestGarden(root, { environmentString: environmentName, noTempDir: opts?.noTempDir })
-  let cleanup = () => {}
+  cleanups.push(() => garden.close())
+
   let dockerConfig: string | undefined
 
   if (!localInstance) {
@@ -51,13 +55,20 @@ export async function getContainerTestGarden(
   if (opts?.remoteContainerAuth) {
     dockerConfig = JSON.stringify(await getGoogleADCImagePullSecret())
 
-    const dockerConfigPath = join(garden.projectRoot, "config.json")
+    const dockerConfigPath = join(garden.projectRoot, ".docker-remote-test-config", "config.json")
+    try {
+      await mkdir(dirname(dockerConfigPath))
+    } catch (e) {
+      if (!isErrnoException(e) || e.code !== "EEXIST") {
+        throw e
+      }
+    }
     await writeFile(dockerConfigPath, dockerConfig)
     process.env["DOCKER_CONFIG"] = garden.projectRoot
 
-    cleanup = () => {
+    cleanups.push(() => {
       delete process.env["DOCKER_CONFIG"]
-    }
+    })
   }
 
   const needsInit = !environmentName.startsWith("local") && !initializedEnvs.includes(environmentName)
@@ -132,7 +143,7 @@ export async function getContainerTestGarden(
     initializedEnvs.push(environmentName)
   }
 
-  return { garden, cleanup }
+  return { garden, cleanup: () => cleanups.forEach((c) => c()) }
 }
 
 describe("kubernetes container module handlers", () => {

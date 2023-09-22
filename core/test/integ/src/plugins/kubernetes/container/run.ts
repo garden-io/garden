@@ -22,7 +22,7 @@ import { waitForOutputFlush } from "../../../../../../src/process"
 
 describe("runContainerTask", () => {
   let garden: TestGarden
-  let cleanup: () => void
+  let cleanup: (() => void) | undefined
   let graph: ConfigGraph
   let provider: KubernetesProvider
 
@@ -32,8 +32,9 @@ describe("runContainerTask", () => {
   })
 
   after(async () => {
-    garden.close()
-    cleanup()
+    if (cleanup) {
+      cleanup()
+    }
   })
 
   beforeEach(async () => {

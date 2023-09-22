@@ -20,7 +20,7 @@ import { getContainerTestGarden } from "../container/container"
 
 describe("sync plugin commands", () => {
   let garden: Garden
-  let cleanup: () => void
+  let cleanup: (() => void) | undefined
   let graph: ConfigGraph
   let provider: KubernetesProvider
   let ctx: PluginContext
@@ -31,13 +31,12 @@ describe("sync plugin commands", () => {
   })
 
   after(async () => {
-    if (garden) {
-      garden.close()
+    if (cleanup) {
+      cleanup()
       const dataDir = getMutagenDataDir(garden.gardenDirPath, garden.log)
       await getMutagenMonitor({ log, dataDir }).stop()
       await cleanProject(garden.gardenDirPath)
     }
-    cleanup()
   })
 
   const init = async (environmentName: string) => {

@@ -298,7 +298,7 @@ const wildcardDomainCertSecret = {
 
 describe("createIngressResources", () => {
   let garden: Garden
-  let cleanup: () => void
+  let cleanup: (() => void) | undefined
   let context: string
   let basicProvider: KubernetesProvider
   let singleTlsProvider: KubernetesProvider
@@ -355,7 +355,9 @@ describe("createIngressResources", () => {
   })
 
   afterEach(async () => {
-    cleanup()
+    if (cleanup) {
+      cleanup()
+    }
   })
 
   async function resolveContainerDeployAction(

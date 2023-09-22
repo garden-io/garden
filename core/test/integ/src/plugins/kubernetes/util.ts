@@ -113,14 +113,16 @@ describe("util", () => {
   // TODO: Add more test cases
   describe("getWorkloadPods", () => {
     let garden: TestGarden
-    let cleanup: () => void
+    let cleanup: (() => void) | undefined
 
     beforeEach(async () => {
       ;({ garden, cleanup } = await getContainerTestGarden("local"))
     })
 
     afterEach(async () => {
-      cleanup()
+      if (cleanup) {
+        cleanup()
+      }
     })
 
     it("should return workload pods", async () => {

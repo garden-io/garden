@@ -53,7 +53,7 @@ import { DEFAULT_RUN_TIMEOUT_SEC } from "../../../../../src/constants"
 
 describe("kubernetes Pod runner functions", () => {
   let garden: Garden
-  let cleanup: () => void
+  let cleanup: (() => void) | undefined
   let ctx: PluginContext
   let graph: ConfigGraph
   let provider: KubernetesProvider
@@ -75,8 +75,9 @@ describe("kubernetes Pod runner functions", () => {
   })
 
   after(async () => {
-    cleanup()
-    garden.close()
+    if (cleanup) {
+      cleanup()
+    }
   })
 
   function makePod(command: string[], image = "busybox"): KubernetesPod {
