@@ -34,12 +34,13 @@ import {
   builderToleration,
 } from "./common"
 import { getNamespaceStatus } from "../../namespace"
+import { sleep } from "../../../../util/util"
 import { ContainerBuildAction, ContainerModuleOutputs } from "../../../container/moduleConfig"
 import { getDockerBuildArgs } from "../../../container/build"
 import { Resolved } from "../../../../actions/types"
 import { PodRunner } from "../../run"
 import { prepareSecrets } from "../../secrets"
-import { getRunningDeploymentPod, hashManifest } from "../../util"
+import { getRunningDeploymentPod } from "../../util"
 import { defaultDockerfileName } from "../../../container/config"
 import { k8sGetContainerBuildActionOutputs } from "../handlers"
 import { stringifyResources } from "../util"
@@ -83,7 +84,7 @@ export const buildkitBuildHandler: BuildHandler = async (params) => {
   const api = await KubeApi.factory(log, ctx, provider)
   const namespace = (await getNamespaceStatus({ log, ctx: k8sCtx, provider })).namespaceName
 
-  const result = await ensureBuildkit({
+  await ensureBuildkit({
     ctx,
     provider,
     log,
@@ -101,7 +102,7 @@ export const buildkitBuildHandler: BuildHandler = async (params) => {
     ctx: k8sCtx,
     api,
     namespace,
-    podLabelSelector: result.utilPodLabelSelector,
+    deploymentName: buildkitDeploymentName,
   })
 
   log.info(`Buildkit Building image ${localId}...`)
@@ -202,15 +203,6 @@ export async function ensureBuildkit({
 
     // Check status of the buildkit deployment
     const manifest = getBuildkitDeployment(provider, authSecret.metadata.name, imagePullSecrets)
-
-    // TODO: think about this, it's ugly
-    const versionHash = (await hashManifest(manifest)).substring(0, 8)
-    manifest.spec!.template!.metadata!.labels!["garden-util-version"] = versionHash
-    const utilPodLabelSelector = {
-      ...manifest.spec.selector.matchLabels!,
-      "garden-util-version": versionHash,
-    }
-
     const status = await compareDeployedResources({
       ctx: ctx as KubernetesPluginContext,
       api,
@@ -220,7 +212,11 @@ export async function ensureBuildkit({
     })
 
     if (status.state === "ready") {
-      return { authSecret, updated: secretUpdated, utilPodLabelSelector }
+      // Need to wait a little to ensure the secret is updated in the deployment
+      if (secretUpdated) {
+        await sleep(1000)
+      }
+      return { authSecret, updated: false }
     }
 
     // Deploy the buildkit daemon
@@ -242,7 +238,7 @@ export async function ensureBuildkit({
 
     deployLog.info("Done!")
 
-    return { authSecret, updated: true, utilPodLabelSelector }
+    return { authSecret, updated: true }
   })
 }
 
