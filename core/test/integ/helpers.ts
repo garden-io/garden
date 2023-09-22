@@ -57,10 +57,12 @@ export async function getGoogleADCImagePullSecret() {
         `
       )
     }
-    if (err.message.includes("unable to impersonate") && err.message.includes("invalid_scope")) {
+    if (err.message.includes("unable to impersonate")) {
       expect.fail(
         dedent`
-          Could not get downscoped token: Your user is not allowed to impersonate the service account '${targetPrincipal}'. You need the role iam.serviceAccountTokenCreator in the project ${targetProject}.
+          Could not get downscoped token: ${err.message}
+
+          Your user might not be allowed to impersonate the service account '${targetPrincipal}'. You need the role iam.serviceAccountTokenCreator in the project ${targetProject}.
 
           The serviceAccountTokenCreator can be assigned like this:
           ${chalk.bold(`$ gcloud iam service-accounts add-iam-policy-binding ${targetPrincipal} --member=<yourIdentity> --role=roles/iam.serviceAccountTokenCreator`)}
