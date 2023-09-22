@@ -64,7 +64,7 @@ export async function getContainerTestGarden(
       }
     }
     await writeFile(dockerConfigPath, dockerConfig)
-    process.env["DOCKER_CONFIG"] = garden.projectRoot
+    process.env["DOCKER_CONFIG"] = dirname(dockerConfigPath)
 
     cleanups.push(() => {
       delete process.env["DOCKER_CONFIG"]
