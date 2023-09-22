@@ -183,7 +183,7 @@ describe("kubernetes build flow", () => {
 
   grouped("kaniko", "remote-only").context("kaniko", () => {
     before(async () => {
-      await init("kaniko-remote-registry")
+      await init("kaniko-remote-registry", true)
     })
 
     after(async () => {
@@ -254,7 +254,10 @@ describe("kubernetes build flow", () => {
           log,
         })
 
-        expect(result.detail?.message).to.eql("Published gardendev/remote-registry-test:" + action.versionString())
+        expect(result.detail?.message).to.eql(
+          "Published europe-west3-docker.pkg.dev/garden-ci/garden-integ-tests/remote-registry-test:" +
+            action.versionString()
+        )
       })
 
       it("should set custom tag if specified", async () => {
@@ -267,7 +270,9 @@ describe("kubernetes build flow", () => {
           tag: "foo",
         })
 
-        expect(result.detail?.message).to.eql("Published gardendev/remote-registry-test:foo")
+        expect(result.detail?.message).to.eql(
+          "Published europe-west3-docker.pkg.dev/garden-ci/garden-integ-tests/remote-registry-test:foo"
+        )
       })
     })
   })
@@ -362,7 +367,10 @@ describe("kubernetes build flow", () => {
           log,
         })
 
-        expect(result.detail?.message).to.eql("Published gardendev/remote-registry-test:" + action.versionString())
+        expect(result.detail?.message).to.eql(
+          "Published europe-west3-docker.pkg.dev/garden-ci/garden-integ-tests/remote-registry-test:" +
+            action.versionString()
+        )
       })
 
       it("should set custom tag if specified", async () => {
@@ -375,7 +383,9 @@ describe("kubernetes build flow", () => {
           tag: "foo",
         })
 
-        expect(result.detail?.message).to.eql("Published gardendev/remote-registry-test:foo")
+        expect(result.detail?.message).to.eql(
+          "Published europe-west3-docker.pkg.dev/garden-ci/garden-integ-tests/remote-registry-test:foo"
+        )
       })
     })
   })
@@ -383,7 +393,7 @@ describe("kubernetes build flow", () => {
   // TODO: Reenable these tests e.g. for Minikube?
   grouped("cluster-buildkit", "remote-only").context("cluster-buildkit-rootless mode", () => {
     before(async () => {
-      await init("cluster-buildkit-rootless")
+      await init("cluster-buildkit-rootless", true)
     })
 
     after(async () => {

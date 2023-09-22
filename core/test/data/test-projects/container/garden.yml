@@ -7,6 +7,7 @@ environments:
   - name: kaniko
   - name: kaniko-project-namespace
   - name: kaniko-image-override
+  - name: kaniko-remote-registry
   - name: cluster-buildkit
   - name: cluster-buildkit-rootless
 providers:
@@ -41,6 +42,10 @@ providers:
     buildMode: kaniko
     kaniko:
       image: gcr.io/kaniko-project/executor:debug-perf
+    deploymentRegistry: *deploymentRegistry
+  - <<: *base
+    environments: [kaniko-remote-registry]
+    buildMode: kaniko
     deploymentRegistry: *deploymentRegistry
   - <<: *base
     environments: [cluster-buildkit]
