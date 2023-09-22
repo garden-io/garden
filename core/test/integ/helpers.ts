@@ -20,7 +20,7 @@ export async function getGoogleADCImagePullSecret() {
 
   try {
     // This will use ADC to get the credentials used for the downscoped client.
-    const googleAuth = new GoogleAuth()
+    const googleAuth = new GoogleAuth({ scopes: ["https://www.googleapis.com/auth/cloud-platform"] })
 
     const client = await googleAuth.getClient()
 
@@ -77,17 +77,12 @@ export async function getGoogleADCImagePullSecret() {
     expect.fail("Failed to downscope token for image pull secret via ADC: token was not set")
   }
 
+  const auth = base64(`oauth2accesstoken:${token}`)
   return {
     auths: {
-      "europe-west3-docker.pkg.dev": {
-        auth: base64(`oauth2accesstoken:${token}`),
-      },
-      "pkg.dev": {
-        auth: base64(`oauth2accesstoken:${token}`),
-      },
-      "europe-docker.pkg.dev": {
-        auth: base64(`oauth2accesstoken:${token}`),
-      },
+      "europe-west3-docker.pkg.dev": { auth },
+      "pkg.dev": { auth },
+      "europe-docker.pkg.dev": { auth },
     },
   }
 }
