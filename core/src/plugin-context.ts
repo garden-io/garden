@@ -19,7 +19,7 @@ import { logEntrySchema } from "./plugin/base"
 import { EventEmitter } from "eventemitter3"
 import { CreateEventLogParams, EventLogger, LogLevel, StringLogLevel } from "./logger/logger"
 import { Memoize } from "typescript-memoize"
-import type { ParameterValues } from "./cli/params"
+import type { ParameterObject, ParameterValues } from "./cli/params"
 import { NamespaceStatus } from "./types/namespace"
 
 type WrappedFromGarden = Pick<
@@ -38,8 +38,8 @@ type WrappedFromGarden = Pick<
 
 export interface CommandInfo {
   name: string
-  args: ParameterValues<any>
-  opts: ParameterValues<any>
+  args: ParameterValues<ParameterObject>
+  opts: ParameterValues<ParameterObject>
 }
 
 type ResolveTemplateStringsOpts = Omit<ContextResolveOpts, "stack">

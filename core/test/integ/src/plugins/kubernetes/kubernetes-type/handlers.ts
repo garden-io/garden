@@ -15,7 +15,12 @@ import tmp from "tmp-promise"
 import { TestGarden } from "../../../../../helpers"
 import { getKubernetesTestGarden } from "./common"
 import { DeployTask } from "../../../../../../src/tasks/deploy"
-import { getManifests } from "../../../../../../src/plugins/kubernetes/kubernetes-type/common"
+import {
+  getManifests,
+  getMetadataManifest,
+  parseMetadataResource,
+  readManifests,
+} from "../../../../../../src/plugins/kubernetes/kubernetes-type/common"
 import { KubeApi } from "../../../../../../src/plugins/kubernetes/api"
 import { ActionLog, createActionLog, Log } from "../../../../../../src/logger/log-entry"
 import { KubernetesPluginContext, KubernetesProvider } from "../../../../../../src/plugins/kubernetes/config"
@@ -25,8 +30,9 @@ import { ModuleConfig } from "../../../../../../src/config/module"
 import { BaseResource, KubernetesResource } from "../../../../../../src/plugins/kubernetes/types"
 import { DeleteDeployTask } from "../../../../../../src/tasks/delete-deploy"
 import {
-  kubernetesDeploy,
+  deleteKubernetesDeploy,
   getKubernetesDeployStatus,
+  kubernetesDeploy,
 } from "../../../../../../src/plugins/kubernetes/kubernetes-type/handlers"
 import { buildHelmModules } from "../helm/common"
 import { gardenAnnotationKey } from "../../../../../../src/util/string"
@@ -52,23 +58,77 @@ describe("kubernetes-type handlers", () => {
    */
   let moduleConfigBackup: ModuleConfig[]
   let nsModuleConfig: ModuleConfig
-  let ns1Manifest: KubernetesResource<BaseResource> | undefined
-  let ns1Resource: KubernetesResource<BaseResource> | null
-  let ns2Manifest: KubernetesResource<BaseResource> | undefined
-  let ns2Resource: KubernetesResource<BaseResource> | null
 
-  const withNamespace = (moduleConfig: ModuleConfig, nsName: string): ModuleConfig => {
+  function withNamespace(moduleConfig: ModuleConfig, nsName: string): ModuleConfig {
     const cloned = cloneDeep(moduleConfig)
     cloned.spec.manifests[0].metadata.name = nsName
     cloned.spec.manifests[0].metadata.labels.name = nsName
     return cloned
   }
 
-  const findDeployedResources = async (manifests: KubernetesResource<BaseResource>[], logCtx: Log) => {
+  async function findDeployedResources(manifests: KubernetesResource<BaseResource>[], logCtx: Log) {
     const maybeDeployedObjects = await Promise.all(
       manifests.map((resource) => getDeployedResource(ctx, ctx.provider, resource, logCtx))
     )
     return <KubernetesResource[]>maybeDeployedObjects.filter((o) => o !== null)
+  }
+
+  async function prepareActionDeployParams(actionName: string, mode: ActionModeMap) {
+    const graph = await garden.getConfigGraph({
+      log: garden.log,
+      emit: false,
+      actionModes: mode,
+    })
+    const action = graph.getDeploy(actionName)
+    const resolvedAction = await garden.resolveAction<KubernetesDeployAction>({ action, log: garden.log, graph })
+    const deployParams = {
+      ctx,
+      log: actionLog,
+      action: resolvedAction,
+      force: false,
+    }
+    return { action, resolvedAction, deployParams }
+  }
+
+  async function prepareActionDeployParamsWithManifests(actionName: string, mode: ActionModeMap) {
+    const { action, resolvedAction, deployParams } = await prepareActionDeployParams(actionName, mode)
+    const namespace = await getActionNamespace({
+      ctx,
+      log,
+      action: resolvedAction,
+      provider: ctx.provider,
+      skipCreate: true,
+    })
+    const manifests = await getManifests({
+      ctx,
+      api,
+      log,
+      action: resolvedAction,
+      defaultNamespace: namespace,
+    })
+    return { action, resolvedAction, deployParams, manifests }
+  }
+
+  async function deployInNamespace({ nsName, deployName }: { nsName: string; deployName: string }) {
+    garden.setModuleConfigs([withNamespace(nsModuleConfig, nsName)])
+    const graph = await garden.getConfigGraph({ log, emit: false })
+    const action = graph.getDeploy(deployName)
+    const resolvedAction = await garden.resolveAction<KubernetesDeployAction>({ action, log: garden.log, graph })
+    const defaultNamespace = await getActionNamespace({ ctx, log, action: resolvedAction, provider: ctx.provider })
+    const manifests = await getManifests({ ctx, api, log, action: resolvedAction, defaultNamespace })
+    const manifest = manifests.find((resource) => resource.kind === "Namespace")
+
+    const deployTask = new DeployTask({
+      garden,
+      graph,
+      log,
+      action,
+      force: true,
+      forceBuild: false,
+    })
+    await garden.processTasks({ tasks: [deployTask], throwOnError: true })
+    const resource = await getDeployedResource(ctx, ctx.provider, manifest!, log)
+    return { manifest, resource, graph, action, resolvedAction }
   }
 
   before(async () => {
@@ -120,28 +180,114 @@ describe("kubernetes-type handlers", () => {
   })
 
   after(async () => {
-    garden.setModuleConfigs(moduleConfigBackup)
     await tmpDir.cleanup()
     if (garden) {
       garden.close()
     }
   })
 
-  describe("getServiceStatus", () => {
-    it("should return not-ready status for a manifest with a missing resource type", async () => {
-      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      const action = await garden.resolveAction<KubernetesDeployAction>({
-        action: graph.getDeploy("module-simple"),
-        log: garden.log,
-        graph,
-      })
-      const deployParams = {
+  afterEach(() => {
+    garden.setModuleConfigs(moduleConfigBackup)
+  })
+
+  describe("getKubernetesDeployStatus", () => {
+    it("returns ready status and correct detail for a ready deployment", async () => {
+      const { deployParams } = await prepareActionDeployParams("module-simple", {})
+
+      await kubernetesDeploy(deployParams)
+
+      const status = await getKubernetesDeployStatus(deployParams)
+      expect(status.state).to.equal("ready")
+
+      expect(status.detail?.mode).to.equal("default")
+      expect(status.detail?.forwardablePorts).to.eql([
+        {
+          name: undefined,
+          protocol: "TCP",
+          targetName: "Deployment/busybox-deployment",
+          targetPort: 80,
+        },
+      ])
+
+      const remoteResources = status.detail?.detail?.remoteResources
+      expect(remoteResources).to.exist
+      expect(remoteResources.length).to.equal(1)
+      expect(remoteResources[0].kind).to.equal("Deployment")
+    })
+
+    it("should return missing status when metadata ConfigMap is missing", async () => {
+      const { resolvedAction, deployParams } = await prepareActionDeployParams("module-simple", {})
+
+      await kubernetesDeploy(deployParams)
+
+      const namespace = await getActionNamespace({
         ctx,
-        log: actionLog,
-        action,
-        force: false,
-      }
-      action["_config"].spec.manifests = [
+        log,
+        action: resolvedAction,
+        provider: ctx.provider,
+        skipCreate: true,
+      })
+
+      const metadataManifest = getMetadataManifest(resolvedAction, namespace, [])
+
+      await api.deleteBySpec({ log, namespace, manifest: metadataManifest })
+
+      const status = await getKubernetesDeployStatus(deployParams)
+      expect(status.state).to.equal("not-ready")
+      expect(status.detail?.state).to.equal("missing")
+    })
+
+    it("should return outdated status when metadata ConfigMap has different version", async () => {
+      const { resolvedAction, deployParams } = await prepareActionDeployParams("module-simple", {})
+
+      await kubernetesDeploy(deployParams)
+
+      const namespace = await getActionNamespace({
+        ctx,
+        log,
+        action: resolvedAction,
+        provider: ctx.provider,
+        skipCreate: true,
+      })
+
+      const declaredManifests = await readManifests(ctx, resolvedAction, log)
+      // It's critical to pass in the existing manifests here, otherwise the code will not check their statuses
+      const metadataManifest = getMetadataManifest(resolvedAction, namespace, declaredManifests)
+      metadataManifest.data!.resolvedVersion = "v-foo"
+
+      await api.replace({ log, namespace, resource: metadataManifest })
+
+      const status = await getKubernetesDeployStatus(deployParams)
+      expect(status.state).to.equal("not-ready")
+      expect(status.detail?.state).to.equal("outdated")
+    })
+
+    it("should return outdated status when metadata ConfigMap has different mode", async () => {
+      const { resolvedAction, deployParams } = await prepareActionDeployParams("module-simple", {})
+
+      await kubernetesDeploy(deployParams)
+
+      const namespace = await getActionNamespace({
+        ctx,
+        log,
+        action: resolvedAction,
+        provider: ctx.provider,
+        skipCreate: true,
+      })
+
+      const metadataManifest = getMetadataManifest(resolvedAction, namespace, [])
+      metadataManifest.data!.mode = "sync"
+
+      await api.replace({ log, namespace, resource: metadataManifest })
+
+      const status = await getKubernetesDeployStatus(deployParams)
+      expect(status.state).to.equal("not-ready")
+      expect(status.detail?.state).to.equal("outdated")
+    })
+
+    it("should return not-ready status for a manifest with a missing resource type", async () => {
+      const { resolvedAction, deployParams } = await prepareActionDeployParams("module-simple", {})
+      resolvedAction["_config"].spec.manifests = [
         {
           apiVersion: "foo.bar/baz",
           kind: "Whatever",
@@ -156,47 +302,21 @@ describe("kubernetes-type handlers", () => {
   })
 
   describe("kubernetesDeploy", () => {
-    async function getTestData(actionName: string, mode: ActionModeMap) {
-      const graph = await garden.getConfigGraph({
-        log: garden.log,
-        emit: false,
-        actionModes: mode,
-      })
-      const action = graph.getDeploy(actionName)
-      const resolvedAction = await garden.resolveAction<KubernetesDeployAction>({ action, log: garden.log, graph })
-      const deployParams = {
-        ctx,
-        log: actionLog,
-        action: resolvedAction,
-        force: false,
-      }
-      const namespace = await getActionNamespace({
-        ctx,
-        log,
-        action: resolvedAction,
-        provider: ctx.provider,
-        skipCreate: true,
-      })
-      const manifests = await getManifests({
-        ctx,
-        api,
-        log,
-        action: resolvedAction,
-        defaultNamespace: namespace,
-        readFromSrcDir: true,
-      })
-      return { deployParams, manifests }
-    }
+    it("gets the correct manifests when `build` is set", async () => {
+      const { resolvedAction, deployParams } = await prepareActionDeployParams("with-build-action", {})
+
+      const status = await kubernetesDeploy(deployParams)
+      expect(status.state).to.eql("ready")
+
+      const remoteResources = status.detail?.detail?.remoteResources
+      expect(remoteResources).to.exist
+      expect(remoteResources.length).to.equal(1)
+      expect(remoteResources[0].kind).to.equal("Deployment")
+      expect(remoteResources[0].metadata?.name).to.equal("busybox-deployment")
+    })
 
     it("should successfully deploy when serviceResource doesn't have a containerModule", async () => {
-      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      const action = graph.getDeploy("module-simple")
-      const deployParams = {
-        ctx,
-        log: actionLog,
-        action: await garden.resolveAction<KubernetesDeployAction>({ action, log: garden.log, graph }),
-        force: false,
-      }
+      const { deployParams } = await prepareActionDeployParams("module-simple", {})
 
       // Here, we're not going through a router, so we listen for the `namespaceStatus` event directly.
       let namespaceStatus: NamespaceStatus | null = null
@@ -207,11 +327,46 @@ describe("kubernetes-type handlers", () => {
       expect(namespaceStatus!.namespaceName).to.eql("kubernetes-type-test-default")
     })
 
+    it("creates a metadata ConfigMap describing what was last deployed", async () => {
+      const { resolvedAction, deployParams } = await prepareActionDeployParams("module-simple", {})
+
+      const status = await kubernetesDeploy(deployParams)
+      expect(status.state).to.eql("ready")
+
+      const namespace = await getActionNamespace({
+        ctx,
+        log,
+        action: resolvedAction,
+        provider: ctx.provider,
+        skipCreate: true,
+      })
+
+      const emptyManifest = getMetadataManifest(resolvedAction, namespace, [])
+
+      const metadataResource = await api.readBySpec({ log, namespace, manifest: emptyManifest })
+
+      expect(metadataResource).to.exist
+
+      const parsedMetadata = parseMetadataResource(log, metadataResource)
+
+      expect(parsedMetadata.resolvedVersion).to.equal(resolvedAction.versionString())
+      expect(parsedMetadata.mode).to.equal("default")
+      expect(parsedMetadata.manifestMetadata).to.eql({
+        "Deployment/busybox-deployment": {
+          apiVersion: "apps/v1",
+          key: "Deployment/busybox-deployment",
+          kind: "Deployment",
+          name: "busybox-deployment",
+          namespace: "kubernetes-type-test-default",
+        },
+      })
+    })
+
     it("should toggle sync mode", async () => {
-      const syncData = await getTestData("with-source-module", {
+      const syncData = await prepareActionDeployParamsWithManifests("with-source-module", {
         sync: ["deploy.with-source-module"],
       })
-      const defaultData = await getTestData("with-source-module", {
+      const defaultData = await prepareActionDeployParamsWithManifests("with-source-module", {
         default: ["deploy.with-source-module"],
       })
 
@@ -233,10 +388,10 @@ describe("kubernetes-type handlers", () => {
     })
 
     it("should handle local mode", async () => {
-      const localData = await getTestData("with-source-module", {
+      const localData = await prepareActionDeployParamsWithManifests("with-source-module", {
         local: ["deploy.with-source-module"],
       })
-      const defaultData = await getTestData("with-source-module", {
+      const defaultData = await prepareActionDeployParamsWithManifests("with-source-module", {
         default: ["deploy.with-source-module"],
       })
 
@@ -261,24 +416,10 @@ describe("kubernetes-type handlers", () => {
     })
 
     it("should not delete previously deployed namespace resources", async () => {
-      garden.setModuleConfigs([withNamespace(nsModuleConfig, "kubernetes-type-ns-1")])
-      let graph = await garden.getConfigGraph({ log, emit: false })
-      let action = graph.getDeploy("namespace-resource")
-      const resolvedAction = await garden.resolveAction<KubernetesDeployAction>({ action, log: garden.log, graph })
-      const defaultNamespace = await getActionNamespace({ ctx, log, action: resolvedAction, provider: ctx.provider })
-      let manifests = await getManifests({ ctx, api, log, action: resolvedAction, defaultNamespace })
-      ns1Manifest = manifests.find((resource) => resource.kind === "Namespace")
-
-      const deployTask = new DeployTask({
-        garden,
-        graph,
-        log,
-        action,
-        force: true,
-        forceBuild: false,
+      const { manifest: ns1Manifest, resource: ns1Resource } = await deployInNamespace({
+        nsName: "kubernetes-type-ns-1",
+        deployName: "namespace-resource",
       })
-      const results = await garden.processTasks({ tasks: [deployTask], throwOnError: true })
-      ns1Resource = await getDeployedResource(ctx, ctx.provider, ns1Manifest!, log)
 
       expect(ns1Manifest, "ns1Manifest").to.exist
       expect(ns1Manifest!.metadata.name).to.match(/ns-1/)
@@ -287,27 +428,10 @@ describe("kubernetes-type handlers", () => {
       // this module.
 
       // This should result in a new namespace with a new name being deployed.
-      garden.setModuleConfigs([withNamespace(nsModuleConfig, "kubernetes-type-ns-2")])
-      graph = await garden.getConfigGraph({ log, emit: false })
-      action = graph.getDeploy("namespace-resource")
-      manifests = await getManifests({
-        ctx,
-        api,
-        log,
-        action: await garden.resolveAction({ action, log: garden.log, graph }),
-        defaultNamespace,
+      const { manifest: ns2Manifest, resource: ns2Resource } = await deployInNamespace({
+        nsName: "kubernetes-type-ns-2",
+        deployName: "namespace-resource",
       })
-      ns2Manifest = manifests.find((resource) => resource.kind === "Namespace")
-      const deployTask2 = new DeployTask({
-        garden,
-        graph,
-        log,
-        action,
-        force: true,
-        forceBuild: true,
-      })
-      await garden.processTasks({ tasks: [deployTask2], throwOnError: true })
-      ns2Resource = await getDeployedResource(ctx, ctx.provider, ns2Manifest!, log)
 
       expect(ns2Manifest, "ns2Manifest").to.exist
       expect(ns2Manifest!.metadata.name).to.match(/ns-2/)
@@ -320,36 +444,76 @@ describe("kubernetes-type handlers", () => {
     })
 
     it("should successfully deploy List manifest kinds", async () => {
-      const configMapList = await getTestData("config-map-list", {})
+      const configMapList = await prepareActionDeployParamsWithManifests("config-map-list", {})
 
-      // this should be 3, and not 1, as we transform *List objects to separate manifests
-      expect(configMapList.manifests.length).to.be.equal(3)
+      // this should be 4, and not 2 (including the metadata manifest),
+      // as we transform *List objects to separate manifests
+      expect(configMapList.manifests.length).to.be.equal(4)
 
       // test successful deploy
       await kubernetesDeploy(configMapList.deployParams)
     })
   })
 
-  describe("deleteService", () => {
+  describe("deleteKubernetesDeploy", () => {
     it("should only delete namespace resources having the current name in the manifests", async () => {
-      // First, we verify that the namespaces created in the preceding test case are still there.
+      const { manifest: ns1Manifest, resource: ns1Resource } = await deployInNamespace({
+        nsName: "kubernetes-type-ns-1",
+        deployName: "namespace-resource",
+      })
+      // Verify the presence of the namespace
       expect(await getDeployedResource(ctx, ctx.provider, ns1Manifest!, log), "ns1resource").to.exist
+
+      const {
+        graph: ns2Graph,
+        manifest: ns2Manifest,
+        resource: ns2Resource,
+      } = await deployInNamespace({
+        nsName: "kubernetes-type-ns-2",
+        deployName: "namespace-resource",
+      })
+      // Verify the presence of the namespace
       expect(await getDeployedResource(ctx, ctx.provider, ns2Manifest!, log), "ns2resource").to.exist
 
-      const graph = await garden.getConfigGraph({ log, emit: false })
-      const deleteServiceTask = new DeleteDeployTask({
+      const deleteDeployTask = new DeleteDeployTask({
         garden,
-        graph,
+        graph: ns2Graph,
         log,
-        action: graph.getDeploy("namespace-resource"),
+        action: ns2Graph.getDeploy("namespace-resource"),
         force: false,
       })
 
       // This should only delete kubernetes-type-ns-2.
-      await garden.processTasks({ tasks: [deleteServiceTask], throwOnError: true })
+      await garden.processTasks({ tasks: [deleteDeployTask], throwOnError: true })
 
       expect(await getDeployedResource(ctx, ctx.provider, ns1Manifest!, log), "ns1resource").to.exist
       expect(await getDeployedResource(ctx, ctx.provider, ns2Manifest!, log), "ns2resource").to.not.exist
+    })
+
+    it("deletes all resources including a metadata ConfigMap describing what was last deployed", async () => {
+      const { resolvedAction, deployParams, manifests } = await prepareActionDeployParamsWithManifests(
+        "module-simple",
+        {}
+      )
+
+      const status = await kubernetesDeploy(deployParams)
+      expect(status.state).to.eql("ready")
+
+      const namespace = await getActionNamespace({
+        ctx,
+        log,
+        action: resolvedAction,
+        provider: ctx.provider,
+        skipCreate: true,
+      })
+
+      const deleteDeployParams = { ctx, action: resolvedAction, log: actionLog }
+      await deleteKubernetesDeploy(deleteDeployParams)
+
+      for (const manifest of manifests) {
+        const metadataResource = await api.readBySpecOrNull({ log, namespace, manifest })
+        expect(metadataResource).to.be.null
+      }
     })
   })
 })

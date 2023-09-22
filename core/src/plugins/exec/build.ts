@@ -7,7 +7,7 @@
  */
 
 import { renderMessageWithDivider } from "../../logger/util"
-import { sdk } from "../../plugin/sdk"
+import { GardenSdkActionDefinitionActionType, GardenSdkActionDefinitionConfigType, sdk } from "../../plugin/sdk"
 import { execRunCommand } from "./common"
 import { execCommonSchema, execEnvVarDoc, execRuntimeOutputsSchema, execStaticOutputsSchema } from "./config"
 import { execProvider } from "./exec"
@@ -42,8 +42,8 @@ export const execBuild = execProvider.createActionType({
   runtimeOutputsSchema: execRuntimeOutputsSchema,
 })
 
-export type ExecBuildConfig = typeof execBuild.T.Config
-export type ExecBuild = typeof execBuild.T.Action
+export type ExecBuildConfig = GardenSdkActionDefinitionConfigType<typeof execBuild>
+export type ExecBuild = GardenSdkActionDefinitionActionType<typeof execBuild>
 
 export const execBuildHandler = execBuild.addHandler("build", async ({ action, log, ctx }) => {
   const output: sdk.types.BuildStatus = { state: "ready", outputs: {}, detail: {} }

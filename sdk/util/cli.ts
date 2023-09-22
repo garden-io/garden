@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Parameters } from "@garden-io/core/build/src/cli/params"
+import { ParameterObject } from "@garden-io/core/build/src/cli/params"
 import { prepareMinimistOpts } from "@garden-io/core/build/src/cli/helpers"
 import minimist from "minimist"
 
@@ -33,7 +33,7 @@ export {
  */
 export function parsePluginCommandArgs(params: {
   stringArgs: string[]
-  optionSpec: Parameters
+  optionSpec: ParameterObject
   cli: boolean
   skipDefault?: boolean
 }) {

@@ -8,13 +8,13 @@
 
 import { join, resolve } from "path"
 import { pathExists, readFile } from "fs-extra"
-import { flatten, set } from "lodash"
+import { flatten, keyBy, set } from "lodash"
 import { loadAll } from "js-yaml"
 
 import { KubernetesModule } from "./module-config"
 import { KubernetesResource } from "../types"
 import { KubeApi } from "../api"
-import { dedent, gardenAnnotationKey, naturalList } from "../../../util/string"
+import { dedent, gardenAnnotationKey, naturalList, stableStringify } from "../../../util/string"
 import { Log } from "../../../logger/log-entry"
 import { PluginContext } from "../../../plugin-context"
 import { ConfigurationError, GardenError, PluginError } from "../../../exceptions"
@@ -23,9 +23,10 @@ import { HelmModule } from "../helm/module-config"
 import { KubernetesDeployAction } from "./config"
 import { CommonRunParams } from "../../../plugin/handlers/Run/run"
 import { runAndCopy } from "../run"
-import { getResourceContainer, getResourcePodSpec, getTargetResource, makePodName } from "../util"
-import { Resolved } from "../../../actions/types"
+import { getResourceContainer, getResourceKey, getResourcePodSpec, getTargetResource, makePodName } from "../util"
+import { ActionMode, Resolved } from "../../../actions/types"
 import { KubernetesPodRunAction, KubernetesPodTestAction } from "./kubernetes-pod"
+import { V1ConfigMap } from "@kubernetes/client-node"
 import { glob } from "glob"
 import isGlob from "is-glob"
 import pFilter from "p-filter"
@@ -55,54 +56,65 @@ export async function getManifests({
   log,
   action,
   defaultNamespace,
-  readFromSrcDir = false,
 }: {
   ctx: PluginContext
   api: KubeApi
   log: Log
   action: Resolved<KubernetesDeployAction | KubernetesPodRunAction | KubernetesPodTestAction>
   defaultNamespace: string
-  readFromSrcDir?: boolean
 }): Promise<KubernetesResource[]> {
-  const declaredManifests: DeclaredManifest[] = await Promise.all(
-    (await readManifests(ctx, action, log, readFromSrcDir)).map(async ({ manifest, declaration }) => {
-      // Ensure a namespace is set, if not already set, and if required by the resource type
-      if (!manifest.metadata?.namespace) {
-        if (!manifest.metadata) {
-          // TODO: Type system complains that name is missing
-          ;(manifest as any).metadata = {}
-        }
-
-        const info = await api.getApiResourceInfo(log, manifest.apiVersion, manifest.kind)
-
-        if (info?.namespaced) {
-          manifest.metadata.namespace = defaultNamespace
-        }
+  // Local function to set some default values and Garden-specific annotations.
+  async function postProcessManifest({ manifest, declaration }: DeclaredManifest): Promise<DeclaredManifest> {
+    // Ensure a namespace is set, if not already set, and if required by the resource type
+    if (!manifest.metadata?.namespace) {
+      if (!manifest.metadata) {
+        // TODO: Type system complains that name is missing
+        ;(manifest as any).metadata = {}
       }
 
-      /**
-       * Set Garden annotations.
-       *
-       * For namespace resources, we use the namespace's name as the annotation value, to ensure that namespace resources
-       * with different names aren't considered by Garden to be the same resource.
-       *
-       * This is relevant e.g. in the context of a shared dev cluster, where several users might create their own
-       * copies of a namespace resource (each named e.g. "${username}-some-namespace") through deploying a `kubernetes`
-       * module that includes a namespace resource in its manifests.
-       */
-      const annotationValue =
-        manifest.kind === "Namespace" ? gardenNamespaceAnnotationValue(manifest.metadata.name) : action.name
-      set(manifest, ["metadata", "annotations", gardenAnnotationKey("service")], annotationValue)
-      set(manifest, ["metadata", "annotations", gardenAnnotationKey("mode")], action.mode())
-      set(manifest, ["metadata", "labels", gardenAnnotationKey("service")], annotationValue)
+      const info = await api.getApiResourceInfo(log, manifest.apiVersion, manifest.kind)
 
-      return { manifest, declaration }
-    })
-  )
+      if (info?.namespaced) {
+        manifest.metadata.namespace = defaultNamespace
+      }
+    }
 
-  validateDeclaredManifests(declaredManifests)
+    /**
+     * Set Garden annotations.
+     *
+     * For namespace resources, we use the namespace's name as the annotation value, to ensure that namespace resources
+     * with different names aren't considered by Garden to be the same resource.
+     *
+     * This is relevant e.g. in the context of a shared dev cluster, where several users might create their own
+     * copies of a namespace resource (each named e.g. "${username}-some-namespace") through deploying a `kubernetes`
+     * module that includes a namespace resource in its manifests.
+     */
+    const annotationValue =
+      manifest.kind === "Namespace" ? gardenNamespaceAnnotationValue(manifest.metadata.name) : action.name
+    set(manifest, ["metadata", "annotations", gardenAnnotationKey("service")], annotationValue)
+    set(manifest, ["metadata", "annotations", gardenAnnotationKey("mode")], action.mode())
+    set(manifest, ["metadata", "labels", gardenAnnotationKey("service")], annotationValue)
 
-  return declaredManifests.map((m) => m.manifest)
+    return { manifest, declaration }
+  }
+
+  const declaredManifests = await readManifests(ctx, action, log)
+
+  if (action.kind === "Deploy") {
+    // Add metadata ConfigMap to aid quick status check
+    const metadataManifest = getMetadataManifest(action, defaultNamespace, declaredManifests)
+    const declaredMetadataManifest: DeclaredManifest = {
+      declaration: { type: "inline", index: declaredManifests.length },
+      manifest: metadataManifest,
+    }
+    declaredManifests.push(declaredMetadataManifest)
+  }
+
+  const postProcessedManifests: DeclaredManifest[] = await Promise.all(declaredManifests.map(postProcessManifest))
+
+  validateDeclaredManifests(postProcessedManifests)
+
+  return postProcessedManifests.map((m) => m.manifest)
 }
 
 /**
@@ -156,24 +168,81 @@ export function validateDeclaredManifests(declaredManifests: DeclaredManifest[])
   }
 }
 
+export interface ManifestMetadata {
+  key: string
+  apiVersion: string
+  kind: string
+  name: string
+  namespace: string
+}
+
+export interface ParsedMetadataManifestData {
+  resolvedVersion: string
+  mode: ActionMode
+  manifestMetadata: { [key: string]: ManifestMetadata }
+}
+
+export function getMetadataManifest(
+  action: Resolved<KubernetesDeployAction>,
+  defaultNamespace: string,
+  declaredManifests: DeclaredManifest[]
+): KubernetesResource<V1ConfigMap> {
+  const manifestMetadata: ManifestMetadata[] = declaredManifests.map((declaredManifest) => {
+    const m = declaredManifest.manifest
+    return {
+      key: getResourceKey(m),
+      apiVersion: m.apiVersion,
+      kind: m.kind,
+      name: m.metadata.name,
+      namespace: m.metadata.namespace || defaultNamespace,
+    }
+  })
+
+  return {
+    apiVersion: "v1",
+    kind: "ConfigMap",
+    metadata: {
+      name: `garden-meta-${action.kind.toLowerCase()}-${action.name}`,
+    },
+    data: {
+      resolvedVersion: action.versionString(),
+      mode: action.mode(),
+      manifestMetadata: stableStringify(keyBy(manifestMetadata, "key")),
+    },
+  }
+}
+
+export function parseMetadataResource(log: Log, resource: KubernetesResource<V1ConfigMap>): ParsedMetadataManifestData {
+  // TODO: validate schema here
+  const output: ParsedMetadataManifestData = {
+    resolvedVersion: resource.data?.resolvedVersion || "",
+    mode: (resource.data?.mode || "default") as ActionMode,
+    manifestMetadata: {},
+  }
+
+  const manifestMetadata = resource.data?.manifestMetadata
+
+  if (manifestMetadata) {
+    try {
+      // TODO: validate by schema
+      output.manifestMetadata = JSON.parse(manifestMetadata)
+    } catch (error) {
+      log.debug({ msg: `Failed querying for remote resources: ${error}` })
+    }
+  }
+
+  return output
+}
+
 /**
  * Read the manifests from the module config, as well as any referenced files in the config.
- *
- * @param module The kubernetes module to read manifests for.
- * @param readFromSrcDir Whether or not to read the manifests from the module build dir or from the module source dir.
- * In general we want to read from the build dir to ensure that manifests added via the `build.dependencies[].copy`
- * field will be included. However, in some cases, e.g. when getting the service status, we can't be certain that
- * the build has been staged and we therefore read the manifests from the source.
- *
- * TODO: Remove this once we're checking for kubernetes module service statuses with version hashes.
  */
-async function readManifests(
+export async function readManifests(
   ctx: PluginContext,
   action: Resolved<KubernetesDeployAction | KubernetesPodRunAction | KubernetesPodTestAction>,
-  log: Log,
-  readFromSrcDir = false
+  log: Log
 ): Promise<DeclaredManifest[]> {
-  const manifestPath = readFromSrcDir ? action.basePath() : action.getBuildPath()
+  const manifestPath = action.getBuildPath()
 
   const inlineManifests = readInlineManifests(action)
   const fileManifests = await readFileManifests(ctx, action, log, manifestPath)

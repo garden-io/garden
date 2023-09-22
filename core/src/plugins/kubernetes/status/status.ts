@@ -11,31 +11,36 @@ import { DeploymentError, GardenErrorParams } from "../../../exceptions"
 import { PluginContext } from "../../../plugin-context"
 import { KubeApi, KubernetesError } from "../api"
 import { getAppNamespace } from "../namespace"
-import { KubernetesResource, KubernetesServerResource, BaseResource, KubernetesWorkload } from "../types"
-import { zip, isArray, isPlainObject, pickBy, mapValues, flatten, cloneDeep, omit, isEqual, keyBy } from "lodash"
-import { KubernetesProvider, KubernetesPluginContext } from "../config"
+import {
+  BaseResource,
+  KubernetesResource,
+  KubernetesServerResource,
+  KubernetesWorkload,
+  SyncableResource,
+} from "../types"
+import { cloneDeep, flatten, isArray, isEqual, isPlainObject, keyBy, mapValues, omit, pickBy } from "lodash"
+import { KubernetesPluginContext, KubernetesProvider } from "../config"
 import { isSubset } from "../../../util/is-subset"
 import { Log } from "../../../logger/log-entry"
 import {
-  V1ReplicationController,
-  V1ReplicaSet,
-  V1Pod,
-  V1PersistentVolumeClaim,
-  V1Service,
-  V1Container,
   KubernetesObject,
+  V1Container,
   V1Job,
+  V1PersistentVolumeClaim,
+  V1Pod,
+  V1ReplicaSet,
+  V1ReplicationController,
+  V1Service,
 } from "@kubernetes/client-node"
-import dedent = require("dedent")
 import { getPods, getResourceKey, hashManifest } from "../util"
 import { checkWorkloadStatus } from "./workload"
 import { checkWorkloadPodStatus } from "./pod"
 import { deline, gardenAnnotationKey, stableStringify } from "../../../util/string"
-import { SyncableResource } from "../types"
 import { ActionMode } from "../../../actions/types"
 import { deepMap } from "../../../util/objects"
-import { DeployState, combineStates } from "../../../types/service"
+import { combineStates, DeployState } from "../../../types/service"
 import { isTruthy, sleep } from "../../../util/util"
+import dedent = require("dedent")
 
 export interface ResourceStatus<T extends BaseResource | KubernetesObject = BaseResource> {
   state: DeployState
@@ -184,18 +189,14 @@ export async function checkResourceStatus({
   log: Log
   waitForJobs?: boolean
 }) {
-  const handler = objHandlers[manifest.kind]
-
   if (manifest.metadata?.namespace) {
     namespace = manifest.metadata.namespace
   }
 
   let resource: KubernetesServerResource
-  let resourceVersion: number | undefined
 
   try {
     resource = await api.readBySpec({ namespace, manifest, log })
-    resourceVersion = parseInt(resource.metadata.resourceVersion!, 10)
   } catch (err) {
     if (!(err instanceof KubernetesError)) {
       throw err
@@ -207,15 +208,41 @@ export async function checkResourceStatus({
     }
   }
 
-  let status: ResourceStatus
+  return resolveResourceStatus({ api, namespace, resource, log, waitForJobs })
+}
+
+export async function resolveResourceStatus(
+  params: Omit<StatusHandlerParams, "resourceVersion">
+): Promise<ResourceStatus> {
+  const handler = objHandlers[params.resource.kind]
+
   if (handler) {
-    status = await handler({ api, namespace, resource, log, resourceVersion, waitForJobs })
+    const resourceVersion = parseInt(params.resource.metadata.resourceVersion!, 10)
+    return handler({ ...params, resourceVersion })
   } else {
     // if there is no explicit handler to check the status, we assume there's no rollout phase to wait for
-    status = { state: "ready", resource: manifest }
+    return { state: "ready", resource: params.resource }
   }
+}
 
-  return status
+export function resolveResourceStatuses(log: Log, statuses: ResourceStatus[]) {
+  const deployedStates = statuses.map((s) => s.state)
+  const state = combineStates(deployedStates)
+
+  if (state !== "ready") {
+    const descriptions = statuses
+      .filter((s) => s.state !== "ready")
+      .map((s) => `${getResourceKey(s.resource)}: "${s.state}"`)
+      .join("\n")
+
+    log.silly(
+      dedent`
+      Resource(s) with non-ready status found in the cluster:
+
+      ${descriptions}` + "\n"
+    )
+  }
+  return state
 }
 
 interface WaitParams {
@@ -380,10 +407,7 @@ export async function compareDeployedResources({
   manifests = flatten(manifests.map((r: any) => (r.apiVersion === "v1" && r.kind === "List" ? r.items : [r])))
 
   // Check if any resources are missing from the cluster.
-  const maybeDeployedObjects = await Promise.all(
-    manifests.map((resource) => getDeployedResource(ctx, ctx.provider, resource, log))
-  )
-  const deployedResources = <KubernetesResource[]>maybeDeployedObjects.filter((o) => o !== null)
+  const deployedResources = await getDeployedResources({ ctx, log, manifests })
   const manifestsMap = keyBy(manifests, (m) => getResourceKey(m))
   const manifestKeys = Object.keys(manifestsMap)
   const deployedMap = keyBy(deployedResources, (m) => getResourceKey(m))
@@ -415,24 +439,13 @@ export async function compareDeployedResources({
   log.debug(`Getting currently deployed resource statuses...`)
 
   const deployedObjectStatuses: ResourceStatus[] = await Promise.all(
-    deployedResources.map(async (resource) => checkResourceStatus({ api, namespace, manifest: resource, log }))
+    deployedResources.map(async (resource) => resolveResourceStatus({ api, namespace, resource, log }))
   )
 
-  const deployedStates = deployedObjectStatuses.map((s) => s.state)
-  if (deployedStates.find((s) => s !== "ready")) {
-    const descriptions = zip(deployedResources, deployedStates)
-      .filter(([_, s]) => s !== "ready")
-      .map(([o, s]) => `${logDescription(o!)}: "${s}"`)
-      .join("\n")
+  const resolvedState = resolveResourceStatuses(log, deployedObjectStatuses)
 
-    log.silly(
-      dedent`
-      Resource(s) with non-ready status found in the cluster:
-
-      ${descriptions}` + "\n"
-    )
-
-    result.state = combineStates(deployedStates)
+  if (resolvedState !== "ready") {
+    result.state = resolvedState
     return result
   }
 
@@ -467,7 +480,7 @@ export async function compareDeployedResources({
     // Start by checking for "last applied configuration" annotations and comparing against those.
     // This can be more accurate than comparing against resolved resources.
     if (deployedResource.metadata && deployedResource.metadata.annotations) {
-      const lastAppliedHashed = deployedResource.metadata.annotations[gardenAnnotationKey("manifest-hash")]
+      const lastAppliedHashed = deployedResource.metadata.annotations[hashKey]
 
       // The new manifest matches the last applied manifest
       if (lastAppliedHashed && (await hashManifest(manifest)) === lastAppliedHashed) {
@@ -608,9 +621,6 @@ export async function getDeployedResource<ResourceKind extends KubernetesObject>
   }
 }
 
-/**
- * Fetches matching deployed resources from the cluster for the provided array of manifests.
- */
 export async function getDeployedResources<ResourceKind extends KubernetesObject>({
   ctx,
   manifests,

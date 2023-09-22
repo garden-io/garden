@@ -219,11 +219,15 @@ export class ExtendedStats extends Stats {
   path: string
   target?: ExtendedStats | null
 
+  constructor(path: string, target?: ExtendedStats | null) {
+    super()
+    this.path = path
+    this.target = target
+  }
+
   static fromStats(stats: Stats, path: string, target?: ExtendedStats | null) {
-    const o = new ExtendedStats()
+    const o = new ExtendedStats(path, target)
     Object.assign(o, stats)
-    o.path = path
-    o.target = target
     return o
   }
 }

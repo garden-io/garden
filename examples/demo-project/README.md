@@ -2,6 +2,6 @@
 
 A very basic demo project for Garden.
 
-Take a look at the [getting started](https://docs.garden.io/overview/quickstart) guide to see how this project is set up.
+Take a look at the [getting started](https://docs.garden.io/getting-started/quickstart) guide to see how this project is set up.
 
 For a more advanced project check out the [vote](../vote) example project.

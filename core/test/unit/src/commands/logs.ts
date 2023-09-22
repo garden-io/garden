@@ -32,6 +32,7 @@ import { LogMonitor, logMonitorColors } from "../../../../src/monitors/logs"
 import stripAnsi from "strip-ansi"
 import { execDeploySpecSchema } from "../../../../src/plugins/exec/deploy"
 import { joi } from "../../../../src/config/common"
+import { ActionTypeHandlerParamsType } from "../../../../src/plugin/handlers/base/base"
 
 // TODO-G2: rename test cases to match the new graph model semantics
 
@@ -98,7 +99,7 @@ describe("LogsCommand", () => {
   const logMsgWithColor = msgColor(logMsg)
   const color = chalk[logMonitorColors[0]]
 
-  type GetDeployLogsParams = GetDeployLogs["_paramsType"]
+  type GetDeployLogsParams = ActionTypeHandlerParamsType<GetDeployLogs>
 
   const defaultLogsHandler = async ({ stream }: GetDeployLogsParams) => {
     void stream.write({

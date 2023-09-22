@@ -1,6 +1,6 @@
 # Table of Contents
 
-* [Welcome!](welcome.md)
+* [Welcome to Garden!](welcome.md)
 
 ## 🌸 Overview
 

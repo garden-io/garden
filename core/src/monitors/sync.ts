@@ -31,8 +31,8 @@ export class SyncMonitor extends Monitor {
   private graph: ConfigGraph
   private log: Log
   private events: PluginEventBroker
-  private actionLog: ActionLog
-  private router: ActionRouter
+  private actionLog?: ActionLog
+  private router?: ActionRouter
   private stopOnExit: boolean
 
   constructor(params: SyncMonitorParams) {

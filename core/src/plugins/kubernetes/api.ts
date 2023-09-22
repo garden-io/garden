@@ -77,8 +77,8 @@ const cachedApiResourceInfo: { [context: string]: ApiResourceMap } = {}
 const apiInfoLock = new AsyncLock()
 
 // NOTE: be warned, the API of the client library is very likely to change
-
 type K8sApi =
+  | ApisApi
   | ApiextensionsV1Api
   | AppsV1Api
   | CoreApi
@@ -86,18 +86,6 @@ type K8sApi =
   | NetworkingV1Api
   | PolicyV1Api
   | RbacAuthorizationV1Api
-type K8sApiConstructor<T extends K8sApi> = new (basePath?: string) => T
-
-const apiTypes: { [key: string]: K8sApiConstructor<any> } = {
-  apis: ApisApi,
-  apps: AppsV1Api,
-  core: CoreV1Api,
-  coreApi: CoreApi,
-  extensions: ApiextensionsV1Api,
-  networking: NetworkingV1Api,
-  policy: PolicyV1Api,
-  rbac: RbacAuthorizationV1Api,
-}
 
 const crudMap = {
   Deployment: {
@@ -241,10 +229,14 @@ export class KubeApi {
       })
     }
 
-    for (const [name, cls] of Object.entries(apiTypes)) {
-      const api = new cls(cluster.server)
-      this[name] = this.wrapApi(log, api, this.config)
-    }
+    this.apis = this.wrapApi(log, new ApisApi(cluster.server), this.config)
+    this.apps = this.wrapApi(log, new AppsV1Api(cluster.server), this.config)
+    this.core = this.wrapApi(log, new CoreV1Api(cluster.server), this.config)
+    this.coreApi = this.wrapApi(log, new CoreApi(cluster.server), this.config)
+    this.extensions = this.wrapApi(log, new ApiextensionsV1Api(cluster.server), this.config)
+    this.networking = this.wrapApi(log, new NetworkingV1Api(cluster.server), this.config)
+    this.policy = this.wrapApi(log, new PolicyV1Api(cluster.server), this.config)
+    this.rbac = this.wrapApi(log, new RbacAuthorizationV1Api(cluster.server), this.config)
   }
 
   static async factory(log: Log, ctx: PluginContext, provider: KubernetesProvider) {
@@ -671,7 +663,7 @@ export class KubeApi {
   /**
    * Wrapping the API objects to deal with bugs.
    */
-  private wrapApi<T extends K8sApi>(log: Log, api: T, config: KubeConfig): T {
+  private wrapApi<T extends K8sApi>(log: Log, api: T, config: KubeConfig): WrappedApi<T> {
     api.setDefaultAuthentication(config)
 
     return new Proxy(api, {
@@ -723,7 +715,7 @@ export class KubeApi {
           })
         }
       },
-    })
+    }) as WrappedApi<T>
   }
 
   /**

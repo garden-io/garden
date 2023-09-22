@@ -31,7 +31,7 @@ import {
   renderCommandErrors,
   cliStyles,
 } from "./helpers"
-import { Parameters, globalOptions, OUTPUT_RENDERERS, GlobalOptions, ParameterValues } from "./params"
+import { ParameterObject, globalOptions, OUTPUT_RENDERERS, GlobalOptions, ParameterValues } from "./params"
 import { ProjectResource } from "../config/project"
 import { ERROR_LOG_FILENAME, DEFAULT_GARDEN_DIR_NAME, LOGS_DIR_NAME, gardenEnv } from "../constants"
 import { generateBasicDebugInfoReport } from "../commands/get/get-debug-info"
@@ -74,7 +74,7 @@ export class GardenCli {
   private fileWritersInitialized: boolean = false
   public plugins: GardenPluginReference[]
   private initLogger: boolean
-  public processRecord: GardenProcess
+  public processRecord?: GardenProcess
   protected cloudApiFactory: CloudApiFactory
 
   constructor({ plugins, initLogger = false, cloudApiFactory = CloudApi.factory }: GardenCliParams = {}) {
@@ -91,13 +91,16 @@ export class GardenCli {
       .sort()
       .filter((cmd) => cmd.getPath().length === 1)
 
+    // `dedent` has a bug where it doesn't indent correctly
+    // when there's ANSI codes in the beginning of a line.
+    // Thus we have to dedent like this.
     let msg = `
 ${cliStyles.heading("USAGE")}
   garden ${cliStyles.commandPlaceholder()} ${cliStyles.optionsPlaceholder()}
 
 ${cliStyles.heading("COMMANDS")}
 ${renderCommands(commands)}
-    `
+`
 
     const customCommands = await this.getCustomCommands(log, workingDir)
 
@@ -183,7 +186,7 @@ ${renderCommands(commands)}
     return Garden.factory(workingDir, opts)
   }
 
-  async runCommand<A extends Parameters, O extends Parameters>({
+  async runCommand<A extends ParameterObject, O extends ParameterObject>({
     command,
     parsedArgs,
     parsedOpts,
@@ -503,12 +506,12 @@ ${renderCommands(commands)}
       return done(0, command.renderHelp())
     }
 
-    let parsedArgs: BuiltinArgs & ParameterValues<any>
-    let parsedOpts: ParameterValues<any>
+    let parsedArgs: BuiltinArgs & ParameterValues<ParameterObject>
+    let parsedOpts: ParameterValues<GlobalOptions & ParameterObject>
 
     if (command.ignoreOptions) {
       parsedArgs = { $all: args }
-      parsedOpts = mapValues(globalOptions, (spec) => spec.getDefaultValue(true))
+      parsedOpts = mapValues(globalOptions, (spec) => spec.getDefaultValue(true)) as ParameterValues<GlobalOptions>
     } else {
       try {
         const parseResults = processCliArgs({ rawArgs: args, parsedArgs: argv, command, matchedPath, cli: true })

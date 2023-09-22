@@ -8,27 +8,42 @@
 
 import { isEmpty, omit, partition, uniq } from "lodash"
 import type { ModuleActionHandlers } from "../../../plugin/plugin"
-import { ServiceStatus } from "../../../types/service"
+import { DeployState, ForwardablePort, ServiceStatus } from "../../../types/service"
 import { gardenAnnotationKey } from "../../../util/string"
 import { KubeApi } from "../api"
-import type { KubernetesPluginContext } from "../config"
+import type { KubernetesPluginContext, KubernetesProvider } from "../config"
 import { configureSyncMode, convertKubernetesModuleDevModeSpec } from "../sync"
 import { apply, deleteObjectsBySelector } from "../kubectl"
 import { streamK8sLogs } from "../logs"
 import { getActionNamespace, getActionNamespaceStatus } from "../namespace"
 import { getForwardablePorts, killPortForwards } from "../port-forward"
 import { getK8sIngresses } from "../status/ingress"
-import { compareDeployedResources, waitForResources } from "../status/status"
+import {
+  getDeployedResource,
+  resolveResourceStatus,
+  resolveResourceStatuses,
+  ResourceStatus,
+  waitForResources,
+} from "../status/status"
 import type { BaseResource, KubernetesResource, KubernetesServerResource, SyncableResource } from "../types"
-import { convertServiceResource, gardenNamespaceAnnotationValue, getManifests } from "./common"
+import {
+  convertServiceResource,
+  gardenNamespaceAnnotationValue,
+  getManifests,
+  getMetadataManifest,
+  ManifestMetadata,
+  ParsedMetadataManifestData,
+  parseMetadataResource,
+} from "./common"
 import { configureKubernetesModule, KubernetesModule } from "./module-config"
 import { configureLocalMode, startServiceInLocalMode } from "../local-mode"
 import type { ExecBuildConfig } from "../../exec/build"
 import type { KubernetesActionConfig, KubernetesDeployAction, KubernetesDeployActionConfig } from "./config"
 import type { DeployActionHandler } from "../../../plugin/action-types"
 import type { ActionLog } from "../../../logger/log-entry"
-import type { Resolved } from "../../../actions/types"
+import type { ActionMode, Resolved } from "../../../actions/types"
 import { deployStateToActionState } from "../../../plugin/handlers/Deploy/get-status"
+import { ResolvedDeployAction } from "../../../actions/deploy"
 
 export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>> = {
   configure: configureKubernetesModule,
@@ -154,58 +169,21 @@ interface KubernetesStatusDetail {
 
 export type KubernetesServiceStatus = ServiceStatus<KubernetesStatusDetail>
 
-export const getKubernetesDeployStatus: DeployActionHandler<"getStatus", KubernetesDeployAction> = async (params) => {
-  const { ctx, action, log } = params
-  const spec = action.getSpec()
-  const mode = action.mode()
-
-  const k8sCtx = <KubernetesPluginContext>ctx
-  const provider = k8sCtx.provider
-  const namespaceStatus = await getActionNamespaceStatus({
-    ctx: k8sCtx,
-    log,
-    action,
-    provider,
-    skipCreate: true,
-  })
-  const namespace = namespaceStatus.namespaceName
-  const api = await KubeApi.factory(log, ctx, k8sCtx.provider)
-
-  // FIXME: We're currently reading the manifests from the module source dir (instead of build dir)
-  // because the build may not have been staged.
-  // This means that manifests added via the `build.dependencies[].copy` field will not be included.
-  const manifests = await getManifests({ ctx, api, log, action, defaultNamespace: namespace, readFromSrcDir: true })
-  const prepareResult = await configureSpecialModesForManifests({
-    ctx: k8sCtx,
-    log,
-    action,
-    manifests,
-  })
-  const preparedManifests = prepareResult.manifests
-
-  let {
-    state,
-    remoteResources,
-    mode: deployedMode,
-  } = await compareDeployedResources({
-    ctx: k8sCtx,
-    api,
-    namespace,
-    manifests: preparedManifests,
-    log,
-  })
-
-  const forwardablePorts = getForwardablePorts({ resources: remoteResources, parentAction: action, mode: deployedMode })
-
-  if (state === "ready") {
-    // Local mode always takes precedence over sync mode
-    if (mode === "local" && spec.localMode && deployedMode !== "local") {
-      state = "outdated"
-    } else if (mode === "sync" && spec.sync?.paths && deployedMode !== "sync") {
-      state = "outdated"
-    }
-  }
-
+function composeKubernetesDeployStatus({
+  action,
+  deployedMode,
+  state,
+  remoteResources,
+  forwardablePorts,
+  provider,
+}: {
+  action: KubernetesDeployAction
+  deployedMode: ActionMode
+  state: DeployState
+  remoteResources: KubernetesResource[]
+  forwardablePorts: ForwardablePort[]
+  provider: KubernetesProvider
+}) {
   return {
     state: deployStateToActionState(state),
     detail: {
@@ -218,6 +196,146 @@ export const getKubernetesDeployStatus: DeployActionHandler<"getStatus", Kuberne
     },
     // TODO-0.13.1
     outputs: {},
+  }
+}
+
+function isOutdated({
+  action,
+  deployedMetadata,
+}: {
+  action: ResolvedDeployAction
+  deployedMetadata: ParsedMetadataManifestData
+}): boolean {
+  const spec = action.getSpec()
+  const actionMode = action.mode()
+  const deployedMode = deployedMetadata.mode
+
+  if (deployedMetadata.resolvedVersion !== action.versionString()) {
+    return true
+  } else if (actionMode === "local" && spec.localMode && deployedMode !== "local") {
+    return true
+  } else if (actionMode === "sync" && spec.sync?.paths && deployedMode !== "sync") {
+    return true
+  } else if (actionMode === "default" && deployedMode !== actionMode) {
+    return true
+  }
+  return false
+}
+
+async function getResourceStatuses({
+  deployedMetadata,
+  namespace,
+  api,
+  log,
+}: {
+  deployedMetadata: ParsedMetadataManifestData
+  namespace: string
+  api: KubeApi
+  log: ActionLog
+}): Promise<ResourceStatus[]> {
+  const manifestMetadata = Object.values(deployedMetadata.manifestMetadata)
+  if (manifestMetadata.length === 0) {
+    return []
+  }
+
+  const maybeDeployedResources: [ManifestMetadata, any][] = await Promise.all(
+    manifestMetadata.map(async (m) => {
+      return [m, await api.readOrNull({ log, ...m })]
+    })
+  )
+
+  return Promise.all(
+    maybeDeployedResources.map(async ([m, resource]) => {
+      if (!resource) {
+        const missingResource: KubernetesResource = {
+          apiVersion: m.apiVersion,
+          kind: m.kind,
+          metadata: { name: m.name, namespace: m.namespace },
+        }
+        return { resource: missingResource, state: "missing" } as ResourceStatus
+      } else {
+        return await resolveResourceStatus({ api, namespace, resource, log })
+      }
+    })
+  )
+}
+
+export const getKubernetesDeployStatus: DeployActionHandler<"getStatus", KubernetesDeployAction> = async (params) => {
+  const { ctx, action, log } = params
+  const k8sCtx = <KubernetesPluginContext>ctx
+  const provider = k8sCtx.provider
+  const namespaceStatus = await getActionNamespaceStatus({
+    ctx: k8sCtx,
+    log,
+    action,
+    provider,
+    skipCreate: true,
+  })
+  const defaultNamespace = namespaceStatus.namespaceName
+  const api = await KubeApi.factory(log, ctx, k8sCtx.provider)
+
+  // Note: This is analogous to how we version check Helm charts, i.e. we don't check every resource individually.
+  // Users can always force deploy, much like with Helm Deploys.
+  const metadataManifest = getMetadataManifest(action, defaultNamespace, [])
+  const remoteMetadataResource = await getDeployedResource(ctx, provider, metadataManifest, log)
+
+  if (!remoteMetadataResource) {
+    return composeKubernetesDeployStatus({
+      action,
+      deployedMode: "default",
+      state: "missing",
+      remoteResources: [],
+      forwardablePorts: [],
+      provider,
+    })
+  }
+
+  const deployedMetadata = parseMetadataResource(log, remoteMetadataResource)
+  const deployedMode = deployedMetadata.mode
+
+  try {
+    const resourceStatuses = await getResourceStatuses({
+      deployedMetadata,
+      namespace: defaultNamespace,
+      api,
+      log,
+    })
+
+    const remoteResources: KubernetesResource[] = resourceStatuses
+      .filter((rs) => rs.state !== "missing")
+      .map((rs) => rs.resource)
+
+    const forwardablePorts = getForwardablePorts({
+      resources: remoteResources,
+      parentAction: action,
+      mode: deployedMode,
+    })
+
+    const state: DeployState = isOutdated({
+      action,
+      deployedMetadata,
+    })
+      ? "outdated"
+      : resolveResourceStatuses(log, resourceStatuses)
+
+    return composeKubernetesDeployStatus({
+      action,
+      deployedMode,
+      state,
+      remoteResources,
+      forwardablePorts,
+      provider,
+    })
+  } catch (error) {
+    log.debug({ msg: `Failed querying for remote resources: ${error}` })
+    return composeKubernetesDeployStatus({
+      action,
+      deployedMode,
+      state: "unknown",
+      remoteResources: [],
+      forwardablePorts: [],
+      provider,
+    })
   }
 }
 
@@ -397,7 +515,7 @@ export const deleteKubernetesDeploy: DeployActionHandler<"delete", KubernetesDep
   }
 
   return {
-    state: "ready",
+    state: "not-ready",
     detail: status,
     outputs: {},
   }

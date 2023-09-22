@@ -18,7 +18,7 @@ This demo scaffolds a Helm chart we'll deploy to our Kubernetes cluster.
 
 ## Prerequisites
 
-1. Install Garden CLI and get a Kubernetes cluster running locally by following our [quickstart guide](https://docs.garden.io/overview/quickstart) 🔎.
+1. Install Garden CLI and get a Kubernetes cluster running locally by following our [quickstart guide](../../getting-started/quickstart.md) 🔎.
 2. Ensure Python is available on your system and version 3.7 or higher by running `python --version`. MacOS and most Linux distributions will have Python already installed. Follow the official Python installation [guide](https://docs.python-guide.org/starting/installation/#installation-guides) if not. Python is required to scaffold the language seed.
 3. If  any of the terminology is unfamiliar, don't hesitate to contact our Community Engineering team over on [Discord](https://go.garden.io/discord) 💭.
 
@@ -80,9 +80,9 @@ Continue your Garden Journey. If you wish to learn more about Garden, here are a
 
 - Join our beautiful community on [Discord](https://go.garden.io/discord) 👋🏻.
 - Give us a star in our [main repository](https://github.com/garden-io/garden) to show your support 💚.
-- Read the [How Garden Works](https://docs.garden.io/overview/how-garden-works) page to understand the core concepts behind Garden.
-- Read the [Helm Action configuration](https://docs.garden.io/reference/action-types/deploy/helm) document to extend your Helm configuration within your new project.
-- Extend your configuration by using a [Remote K8s environment](https://docs.garden.io/kubernetes-plugins/remote-k8s).
+- Read the [How Garden Works](../../overview/how-garden-works.md) page to understand the core concepts behind Garden.
+- Read the [Helm Action configuration](../../reference/action-types/Deploy/helm.md) document to extend your Helm configuration within your new project.
+- Extend your configuration by using a [Remote K8s environment](../../k8s-plugins/remote-k8s/README.md).
 
 ## Contribute ➕
 

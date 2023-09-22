@@ -376,6 +376,7 @@ export class EnvironmentConfigContext extends ProjectConfigContext {
   constructor(params: EnvironmentConfigContextParams) {
     super(params)
     this.variables = this.var = params.variables
+    this.secrets = params.secrets
   }
 }
 
@@ -411,6 +412,7 @@ export class RemoteSourceConfigContext extends EnvironmentConfigContext {
 
     const fullEnvName = garden.namespace ? `${garden.namespace}.${garden.environmentName}` : garden.environmentName
     this.environment = new EnvironmentContext(this, garden.environmentName, fullEnvName, garden.namespace)
+    this.variables = this.var = variables
   }
 }
 
