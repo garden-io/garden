@@ -94,14 +94,19 @@ commands:
     steps:
       - restore_cache:
           keys:
-            - npm-<<parameters.context>>-{{ checksum "package-lock.json" }}
+            - npm-v2-<<parameters.context>>-{{ checksum "package-lock.json" }}
 
       - run: npm ci
 
       - save_cache:
-          key: npm-<<parameters.context>>-{{ checksum "package-lock.json" }}
+          key: npm-v2-<<parameters.context>>-{{ checksum "package-lock.json" }}
           paths:
             - node_modules
+            - cli/node_modules
+            - core/node_modules
+            - e2e/node_modules
+            - plugins/node_modules
+            - sdk/node_modules
 
   configure_git:
     description: Configure git (needed for some tests)
