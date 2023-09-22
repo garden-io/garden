@@ -71,6 +71,12 @@ export function getTarballFilename(version: string, targetName: string): string 
   return composePackageFilename(version, targetName, "tar.gz")
 }
 
+export type NPMWorkspaceQueryResult = {
+  name: string
+  location: string
+  dependencies: Record<string, string>
+}
+
 async function buildBinaries(args: string[]) {
   const argv = minimist(args)
   const version = argv.version || getPackageVersion()
@@ -91,7 +97,7 @@ async function buildBinaries(args: string[]) {
   // Copy each package to the temp dir
   console.log(chalk.cyan("Getting package info"))
   const res = (await exec("npm", ["query", ".workspace"])).stdout
-  const workspaces = JSON.parse(res)
+  const workspaces: NPMWorkspaceQueryResult[] = JSON.parse(res)
 
   console.log(chalk.cyan("Copying packages"))
   await Promise.all(
@@ -117,13 +123,19 @@ async function buildBinaries(args: string[]) {
   // Edit all the packages to have them directly link any internal dependencies
   console.log(chalk.cyan("Modifying package.json files for direct installation"))
   await Promise.all(
-    Object.entries(workspaces).map(async ([name, info]: [string, any]) => {
-      const packageRoot = resolve(tmpDirPath, info.location)
+    workspaces.map(async ({ name, location, dependencies }) => {
+      const packageRoot = resolve(tmpDirPath, location)
       const packageJsonPath = resolve(packageRoot, "package.json")
       const packageJson = require(packageJsonPath)
 
-      for (const depName of info.workspaceDependencies) {
-        const depInfo = workspaces[depName]
+      const workspaceDependencies = Object.keys(dependencies).filter((dependencyName) => {
+        return workspaces.some((p) => p.name === dependencyName)
+      })
+      for (const depName of workspaceDependencies) {
+        const depInfo = workspaces.find((p) => p.name === depName)
+        if (!depInfo) {
+          throw new Error("Could not find workspace info for " + depName)
+        }
         const targetRoot = resolve(tmpDirPath, depInfo.location)
         const relPath = relative(packageRoot, targetRoot)
         packageJson.dependencies[depName] = "file:" + relPath
@@ -143,8 +155,8 @@ async function buildBinaries(args: string[]) {
 
   // Run npm install in the cli package
   console.log(chalk.cyan("Installing packages in @garden-io/cli package"))
-  const cliPath = resolve(tmpDirPath, workspaces["@garden-io/cli"].location)
-  await exec("npm", ["install", "--production"], { cwd: cliPath })
+  const cliPath = resolve(tmpDirPath, workspaces.find((p) => p.name === "@garden-io/cli")!.location)
+  await exec("npm", ["install", "--production", `--workspace=@garden-io/cli`], { cwd: tmpDirPath })
 
   // Run pkg and pack up each platform binary
   console.log(chalk.cyan("Packaging garden binaries"))
