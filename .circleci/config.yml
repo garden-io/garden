@@ -20,7 +20,7 @@ orbs:
 
   remote-docker: &remote-docker
     setup_remote_docker:
-      version: 20.10.11
+      version: 20.10.24
       docker_layer_caching: true
 
   runner-image: &runner-image
