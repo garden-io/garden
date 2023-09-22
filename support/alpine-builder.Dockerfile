@@ -30,7 +30,7 @@ ADD sdk /garden-tmp/sdk
 # Install the CLI deps
 WORKDIR /garden-tmp/cli
 
-RUN npm install --production && \
+RUN npm install--omit=dev && \
   # Fix for error in this particular package
   rm -rf node_modules/es-get-iterator/test
 

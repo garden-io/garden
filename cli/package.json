@@ -66,10 +66,5 @@
       "node_modules/@garden-io/**/*.js",
       "node_modules/es-get-iterator/**/*.js"
     ]
-  },
-  "workspaces": {
-    "nohoist": [
-      "pkg"
-    ]
   }
 }
