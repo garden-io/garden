@@ -39,18 +39,15 @@ export async function getSecretsToUpdateByName<T>({
   log: Log
   args: T
 }): Promise<Array<UpdateSecretBody>> {
-  let tmp = sortBy(allSecrets, "name")
-  if (envName) {
-    tmp = tmp.filter((secret) => secret.environment?.name === envName)
-  }
-  if (userId) {
-    tmp = tmp.filter((secret) => secret.user?.id === userId)
-  }
-  tmp = tmp.filter((secret) => Object.keys(secretsToUpdateArgs).includes(secret.name))
+  const filteredSecrets = sortBy(allSecrets, "name")
+    .filter((s) => (envName ? s.environment?.name === envName : true))
+    .filter((s) => (userId ? s.user?.id === userId : true))
+    .filter((s) => Object.keys(secretsToUpdateArgs).includes(s.name))
+
   // check if there are any secret results with duplicate names
-  const hasDuplicateSecretsByName = uniqBy(tmp, "name").length !== tmp.length
+  const hasDuplicateSecretsByName = uniqBy(filteredSecrets, "name").length !== filteredSecrets.length
   if (hasDuplicateSecretsByName) {
-    const duplicateSecrets = tmp
+    const duplicateSecrets = filteredSecrets
       .reduce((accum: Array<{ count: number; name: string; secrets: SecretResult[] }>, val) => {
         const dupeIndex = accum.findIndex((arrayItem) => arrayItem.name === val.name)
         if (dupeIndex === -1) {
@@ -74,7 +71,7 @@ export async function getSecretsToUpdateByName<T>({
       message: `Multiple secrets with the name(s) ${duplicateSecretNames} found. Either update the secret(s) by ID or use the --scope-to-env and --scope-to-user-id flags to update the scoped secret(s).`,
     })
   }
-  return tmp.map((secret) => ({ ...secret, newValue: secretsToUpdateArgs[secret.name] }))
+  return filteredSecrets.map((secret) => ({ ...secret, newValue: secretsToUpdateArgs[secret.name] }))
 }
 
 export function getSecretsToCreate(secretsToUpdateArgs: StringMap, secretsToUpdate: Array<UpdateSecretBody>) {
