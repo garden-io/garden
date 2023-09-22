@@ -13,7 +13,7 @@ import { BuildActionHandler } from "../../../plugin/action-types"
 import { containerHelpers } from "../../container/helpers"
 
 export const k8sPublishContainerBuild: BuildActionHandler<"publish", ContainerBuildAction> = async (params) => {
-  const { ctx, action, log } = params
+  const { ctx, action, log, tag } = params
   const k8sCtx = ctx as KubernetesPluginContext
   const provider = k8sCtx.provider
 
@@ -33,13 +33,22 @@ export const k8sPublishContainerBuild: BuildActionHandler<"publish", ContainerBu
     await pullBuild({ ctx: k8sCtx, action, log, localId, remoteId })
   }
 
-  log.info({ msg: `Publishing image ${remoteId}...` })
+  // optionally use the tag instead of the garden version, this requires that we tag the image locally
+  // before publishing to the remote registry
+  let remotePublishId = remoteId
+
+  if (tag) {
+    remotePublishId = `${action.getOutput("deploymentImageName")}:${tag}`
+    await containerHelpers.dockerCli({ cwd: action.getBuildPath(), args: ["tag", remoteId, remotePublishId], log, ctx })
+  }
+
+  log.info({ msg: `Publishing image ${remotePublishId}...` })
   // TODO: stream output to log if at debug log level
-  await containerHelpers.dockerCli({ cwd: action.getBuildPath(), args: ["push", remoteId], log, ctx })
+  await containerHelpers.dockerCli({ cwd: action.getBuildPath(), args: ["push", remotePublishId], log, ctx })
 
   return {
     state: "ready",
-    detail: { published: true, message: `Published ${remoteId}` },
+    detail: { published: true, message: `Published ${remotePublishId}` },
     // TODO-0.13.1
     outputs: {},
   }

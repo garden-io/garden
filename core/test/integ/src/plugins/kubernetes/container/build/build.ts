@@ -124,7 +124,10 @@ describe("kubernetes build flow", () => {
           log,
         })
 
-        expect(result.detail?.message).to.eql("Published gardendev/remote-registry-test:" + action.versionString())
+        expect(result.detail?.message).to.eql(
+          "Published europe-west3-docker.pkg.dev/garden-ci/garden-integ-tests/remote-registry-test:" +
+            action.versionString()
+        )
       })
 
       it("should set custom tag if specified", async () => {
@@ -137,7 +140,9 @@ describe("kubernetes build flow", () => {
           tag: "foo",
         })
 
-        expect(result.detail?.message).to.eql("Published gardendev/remote-registry-test:foo")
+        expect(result.detail?.message).to.eql(
+          "Published europe-west3-docker.pkg.dev/garden-ci/garden-integ-tests/remote-registry-test:foo"
+        )
       })
     })
   })
