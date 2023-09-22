@@ -95,11 +95,11 @@ export const secretsUpdateArgs = {
 
 export const secretsUpdateOpts = {
   "upsert": new BooleanParameter({
-    help: "Set this flag to upsert secrets instead of update i.e. existing secrets are updated while missing secrets are created.",
+    help: "Set this flag to upsert secrets instead of updating them. I.e., existing secrets will be updated while missing secrets will be created.",
     defaultValue: false,
   }),
   "update-by-id": new BooleanParameter({
-    help: deline`Update the secret(s) by providing the ID(s) of secrets.
+    help: deline`Update secret(s) by secret ID(s).
       By default, the command args are considered to be secret name(s).
     `,
     defaultValue: false,
