@@ -24,5 +24,5 @@ asdf install
 # install/update global packages
 npm install -g gulp-cli ts-node typescript
 
-# install yarn
-npm install --global yarn
+# install npm
+npm install -g npm@9

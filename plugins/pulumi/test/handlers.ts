@@ -31,7 +31,7 @@ const ensureNodeModules = async () => {
       if (await pathExists(join(moduleRoot, "node_modules"))) {
         return
       }
-      await execa.command("yarn", { cwd: moduleRoot })
+      await execa.command("npm install", { cwd: moduleRoot })
     })
   )
 }

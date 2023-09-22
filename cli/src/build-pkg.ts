@@ -90,14 +90,14 @@ async function buildBinaries(args: string[]) {
 
   // Copy each package to the temp dir
   console.log(chalk.cyan("Getting package info"))
-  const res = (await exec("yarn", ["--json", "workspaces", "info"])).stdout
-  const workspaces = JSON.parse(JSON.parse(res).data)
+  const res = (await exec("npm", ["query", ".workspace"])).stdout
+  const workspaces = JSON.parse(res)
 
   console.log(chalk.cyan("Copying packages"))
   await Promise.all(
-    Object.entries(workspaces).map(async ([name, info]: [string, any]) => {
-      const sourcePath = resolve(repoRoot, info.location)
-      const targetPath = resolve(tmpDirPath, info.location)
+    workspaces.map(async ({ name, location }: { name: string; location: string }) => {
+      const sourcePath = resolve(repoRoot, location)
+      const targetPath = resolve(tmpDirPath, location)
       await remove(targetPath)
       await mkdirp(targetPath)
       await exec("rsync", [
@@ -141,10 +141,10 @@ async function buildBinaries(args: string[]) {
     })
   )
 
-  // Run yarn install in the cli package
+  // Run npm install in the cli package
   console.log(chalk.cyan("Installing packages in @garden-io/cli package"))
   const cliPath = resolve(tmpDirPath, workspaces["@garden-io/cli"].location)
-  await exec("yarn", ["--production"], { cwd: cliPath })
+  await exec("npm", ["install", "--production"], { cwd: cliPath })
 
   // Run pkg and pack up each platform binary
   console.log(chalk.cyan("Packaging garden binaries"))

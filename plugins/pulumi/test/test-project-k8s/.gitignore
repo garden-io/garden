@@ -1,4 +1,4 @@
 /bin/
 **/*/node_modules/
 stack.json
-**/*/yarn.lock
+**/*/package-lock.json

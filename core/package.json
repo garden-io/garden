@@ -260,7 +260,7 @@
   },
   "scripts": {
     "build": "gulp pegjs",
-    "check-package-lock": "git diff-index --quiet HEAD -- yarn.lock || (echo 'yarn.lock is dirty!' && exit 1)",
+    "check-package-lock": "git diff-index --quiet HEAD -- package-lock.json || (echo 'package-lock.json is dirty!' && exit 1)",
     "check-types": "tsc -p . --noEmit",
     "clean": "shx rm -rf build",
     "dev": "gulp pegjs-watch",
@@ -268,10 +268,10 @@
     "lint": "eslint -c ../.eslintrc --ignore-pattern 'src/lib/**' --ext .ts src/ test/",
     "migration:generate": "typeorm migration:generate --config ormconfig.js -n",
     "_integ": "mocha --config .mocharc.integ.yml",
-    "integ-kind": "GARDEN_INTEG_TEST_MODE=local GARDEN_SKIP_TESTS=\"cluster-buildkit cluster-buildkit-rootless kaniko remote-only\" yarn _integ",
-    "integ-local": "GARDEN_INTEG_TEST_MODE=local GARDEN_SKIP_TESTS=\"remote-only\" yarn _integ",
-    "integ-minikube": "GARDEN_INTEG_TEST_MODE=local GARDEN_SKIP_TESTS=\"remote-only\" yarn _integ",
-    "integ-remote": "GARDEN_INTEG_TEST_MODE=remote GARDEN_SKIP_TESTS=local-only yarn _integ",
+    "integ-kind": "GARDEN_INTEG_TEST_MODE=local GARDEN_SKIP_TESTS=\"cluster-buildkit cluster-buildkit-rootless kaniko remote-only\" npm run _integ",
+    "integ-local": "GARDEN_INTEG_TEST_MODE=local GARDEN_SKIP_TESTS=\"remote-only\" npm run _integ",
+    "integ-minikube": "GARDEN_INTEG_TEST_MODE=local GARDEN_SKIP_TESTS=\"remote-only\" npm run _integ",
+    "integ-remote": "GARDEN_INTEG_TEST_MODE=remote GARDEN_SKIP_TESTS=local-only npm run _integ",
     "test": "mocha",
     "test:silly": "GARDEN_LOGGER_TYPE=basic GARDEN_LOG_LEVEL=silly mocha"
   },
