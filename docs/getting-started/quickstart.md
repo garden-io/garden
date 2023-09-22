@@ -65,7 +65,7 @@ This will significantly speed up the first Garden build of large projects on Win
 
 {% endtabs %}
 
-For more detailed installation instructions, please take a look at our [Installation guide](../installation.md).
+For more detailed installation instructions, please take a look at our [Installation guide](installation.md).
 
 ### Step 2 — Deploy the example application
 
