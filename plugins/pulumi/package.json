@@ -6,6 +6,7 @@
   "dependencies": {
     "@garden-io/core": "*",
     "@garden-io/sdk": "*",
+    "js-yaml": "^4.1.0",
     "chalk": "^4.1.0",
     "execa": "^4.0.3",
     "fs-extra": "^11.1.0",
