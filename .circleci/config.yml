@@ -101,7 +101,7 @@ commands:
       - save_cache:
           key: npm-<<parameters.context>>-{{ checksum "package-lock.json" }}
           paths:
-            - ~/.cache/npm
+            - node_modules
 
   configure_git:
     description: Configure git (needed for some tests)
