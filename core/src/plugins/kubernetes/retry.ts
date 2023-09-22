@@ -200,4 +200,5 @@ const errorMessageRegexesForRetry = [
   // (rpc error: code = ResourceExhausted desc = etcdserver: throttle: too many requests)
   /too many requests/,
   /Unable to connect to the server/,
+  /WebsocketError: Unexpected server response/,
 ]
