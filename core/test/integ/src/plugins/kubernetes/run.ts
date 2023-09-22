@@ -53,6 +53,7 @@ import { DEFAULT_RUN_TIMEOUT_SEC } from "../../../../../src/constants"
 
 describe("kubernetes Pod runner functions", () => {
   let garden: Garden
+  let cleanup: () => void
   let ctx: PluginContext
   let graph: ConfigGraph
   let provider: KubernetesProvider
@@ -61,7 +62,7 @@ describe("kubernetes Pod runner functions", () => {
   let log: Log
 
   before(async () => {
-    garden = await getContainerTestGarden()
+    ;({ garden, cleanup } = await getContainerTestGarden())
     provider = <KubernetesProvider>await garden.resolveProvider(garden.log, "local-kubernetes")
     ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
     namespace = provider.config.namespace!.name!
@@ -74,6 +75,7 @@ describe("kubernetes Pod runner functions", () => {
   })
 
   after(async () => {
+    cleanup()
     garden.close()
   })
 

@@ -26,6 +26,7 @@ import { BuildTask } from "../../../../../../../src/tasks/build"
 
 describe("kubernetes build flow", () => {
   let garden: Garden
+  let cleanup: () => void
   let log: ActionLog
   let graph: ConfigGraph
   let provider: KubernetesProvider
@@ -40,9 +41,9 @@ describe("kubernetes build flow", () => {
     }
   })
 
-  const init = async (environmentName: string) => {
+  const init = async (environmentName: string, remoteContainerAuth: boolean = false) => {
     currentEnv = environmentName
-    garden = await getContainerTestGarden(environmentName)
+    ;({ garden, cleanup } = await getContainerTestGarden(environmentName, { remoteContainerAuth }))
     log = createActionLog({ log: garden.log, actionName: "", actionKind: "" })
     graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     provider = <KubernetesProvider>await garden.resolveProvider(garden.log, "local-kubernetes")
@@ -60,6 +61,10 @@ describe("kubernetes build flow", () => {
       await init("local")
     })
 
+    after(async () => {
+      cleanup()
+    })
+
     it("should build a simple container", async () => {
       await executeBuild("simple-service")
     })
@@ -67,7 +72,11 @@ describe("kubernetes build flow", () => {
 
   grouped("remote-only").context("local-remote-registry mode", () => {
     before(async () => {
-      await init("local-remote-registry")
+      await init("local-remote-registry", true)
+    })
+
+    after(async () => {
+      cleanup()
     })
 
     it("should push to configured deploymentRegistry if specified", async () => {
@@ -138,6 +147,10 @@ describe("kubernetes build flow", () => {
       await init("kaniko-project-namespace")
     })
 
+    after(async () => {
+      cleanup()
+    })
+
     it("should build a simple container", async () => {
       await executeBuild("simple-service")
     })
@@ -158,6 +171,10 @@ describe("kubernetes build flow", () => {
   grouped("kaniko", "remote-only").context("kaniko", () => {
     before(async () => {
       await init("kaniko-remote-registry")
+    })
+
+    after(async () => {
+      cleanup()
     })
 
     it("should build and push to configured deploymentRegistry", async () => {
@@ -245,6 +262,10 @@ describe("kubernetes build flow", () => {
       await init("kaniko-image-override")
     })
 
+    after(async () => {
+      cleanup()
+    })
+
     it("should push to configured deploymentRegistry if specified", async () => {
       await executeBuild("remote-registry-test")
     })
@@ -254,6 +275,10 @@ describe("kubernetes build flow", () => {
   grouped("cluster-buildkit", "remote-only").context("cluster-buildkit mode", () => {
     before(async () => {
       await init("cluster-buildkit")
+    })
+
+    after(async () => {
+      cleanup()
     })
 
     it("should build and push a simple container", async () => {
@@ -340,6 +365,10 @@ describe("kubernetes build flow", () => {
   grouped("cluster-buildkit", "remote-only").context("cluster-buildkit-rootless mode", () => {
     before(async () => {
       await init("cluster-buildkit-rootless")
+    })
+
+    after(async () => {
+      cleanup()
     })
 
     it("should build a simple container", async () => {

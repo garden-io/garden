@@ -112,9 +112,18 @@ describe("util", () => {
 
   // TODO: Add more test cases
   describe("getWorkloadPods", () => {
-    it("should return workload pods", async () => {
-      const garden = await getContainerTestGarden("local")
+    let garden: TestGarden
+    let cleanup: () => void
 
+    beforeEach(async () => {
+      ;({ garden, cleanup } = await getContainerTestGarden("local"))
+    })
+
+    afterEach(async () => {
+      cleanup()
+    })
+
+    it("should return workload pods", async () => {
       try {
         const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
         const provider = (await garden.resolveProvider(garden.log, "local-kubernetes")) as Provider<KubernetesConfig>
@@ -156,8 +165,6 @@ describe("util", () => {
     })
 
     it("should read a Pod from a namespace directly when given a Pod manifest", async () => {
-      const garden = await getContainerTestGarden("local")
-
       try {
         const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
         const rawAction = graph.getDeploy("simple-service")

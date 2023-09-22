@@ -25,12 +25,17 @@ import { createActionLog } from "../../../../../src/logger/log-entry"
 
 describe("local mode deployments and ssh tunneling behavior", () => {
   let garden: TestGarden
+  let cleanup: () => void
   let graph: ConfigGraph
   let ctx: KubernetesPluginContext
   let provider: KubernetesProvider
 
   before(async () => {
     await init("local")
+  })
+
+  after(async () => {
+    cleanup()
   })
 
   beforeEach(async () => {
@@ -46,7 +51,7 @@ describe("local mode deployments and ssh tunneling behavior", () => {
   })
 
   const init = async (environmentName: string) => {
-    garden = await getContainerTestGarden(environmentName)
+    ;({ garden, cleanup } = await getContainerTestGarden(environmentName))
     graph = await garden.getConfigGraph({
       log: garden.log,
       emit: false,

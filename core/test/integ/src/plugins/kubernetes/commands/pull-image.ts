@@ -21,6 +21,7 @@ import { createActionLog } from "../../../../../../src/logger/log-entry"
 
 describe("pull-image plugin command", () => {
   let garden: Garden
+  let cleanup: () => void
   let graph: ConfigGraph
   let provider: KubernetesProvider
   let ctx: PluginContext
@@ -32,7 +33,7 @@ describe("pull-image plugin command", () => {
   })
 
   const init = async (environmentName: string) => {
-    garden = await getContainerTestGarden(environmentName, { remoteContainerAuth: true })
+    ;({ garden, cleanup } = await getContainerTestGarden(environmentName, { remoteContainerAuth: true }))
     graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     provider = <KubernetesProvider>await garden.resolveProvider(garden.log, "local-kubernetes")
     ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
@@ -90,6 +91,10 @@ describe("pull-image plugin command", () => {
       })
     })
 
+    after(async () => {
+      cleanup()
+    })
+
     it("should pull the image", async () => {
       await removeImage(resolvedAction)
       await pullBuild({
@@ -122,6 +127,10 @@ describe("pull-image plugin command", () => {
         log: actionLog,
         action: resolvedAction,
       })
+    })
+
+    after(async () => {
+      cleanup()
     })
 
     it("should pull the image", async () => {

@@ -56,6 +56,7 @@ import { K8_POD_DEFAULT_CONTAINER_ANNOTATION_KEY } from "../../../../../../src/p
 
 describe("kubernetes container deployment handlers", () => {
   let garden: TestGarden
+  let cleanup: () => void
   let router: ActionRouter
   let graph: ConfigGraph
   let ctx: KubernetesPluginContext
@@ -80,7 +81,7 @@ describe("kubernetes container deployment handlers", () => {
   })
 
   const init = async (environmentName: string, remoteContainerAuth: boolean = false) => {
-    garden = await getContainerTestGarden(environmentName, { remoteContainerAuth })
+    ;({ garden, cleanup } = await getContainerTestGarden(environmentName, { remoteContainerAuth }))
     router = await garden.getActionRouter()
     provider = <KubernetesProvider>await garden.resolveProvider(garden.log, "local-kubernetes")
     ctx = <KubernetesPluginContext>(
@@ -92,6 +93,10 @@ describe("kubernetes container deployment handlers", () => {
   describe("createContainerManifests", () => {
     before(async () => {
       await init("local")
+    })
+
+    after(async () => {
+      cleanup()
     })
 
     afterEach(async () => {
@@ -257,6 +262,10 @@ describe("kubernetes container deployment handlers", () => {
   describe("createWorkloadManifest", () => {
     before(async () => {
       await init("local")
+    })
+
+    after(async () => {
+      cleanup()
     })
 
     it("should create a basic Deployment resource", async () => {
@@ -638,6 +647,10 @@ describe("kubernetes container deployment handlers", () => {
         await init("local")
       })
 
+      after(async () => {
+        cleanup()
+      })
+
       it("should deploy a simple Deploy", async () => {
         const action = await resolveDeployAction("simple-service")
 
@@ -791,6 +804,10 @@ describe("kubernetes container deployment handlers", () => {
         await init("kaniko", true)
       })
 
+      after(async () => {
+        cleanup()
+      })
+
       it("should deploy a simple service", async () => {
         const action = await resolveDeployAction("remote-registry-test")
 
@@ -821,6 +838,10 @@ describe("kubernetes container deployment handlers", () => {
   describe("handleChangedSelector", () => {
     before(async () => {
       await init("local")
+    })
+
+    after(async () => {
+      cleanup()
     })
 
     const deploySpecChangedSimpleService = async (

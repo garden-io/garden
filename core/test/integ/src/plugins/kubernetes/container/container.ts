@@ -24,17 +24,40 @@ import { TestGardenOpts } from "../../../../../../src/util/testing"
 import { waitForOutputFlush } from "../../../../../../src/process"
 import { getGoogleADCImagePullSecret } from "../../../../helpers"
 import { KubernetesResource } from "../../../../../../src/plugins/kubernetes/types"
+import { writeFile } from "fs/promises"
 
 const root = getDataDir("test-projects", "container")
 const defaultEnvironment = process.env.GARDEN_INTEG_TEST_MODE === "remote" ? "kaniko" : "local"
 const initializedEnvs: string[] = []
 let localInstance: Garden
 
-export async function getContainerTestGarden(environmentName: string = defaultEnvironment, opts?: TestGardenOpts) {
+export interface ContainerTestGardenResult {
+  garden: TestGarden
+  cleanup: () => void
+}
+
+export async function getContainerTestGarden(
+  environmentName: string = defaultEnvironment,
+  opts?: TestGardenOpts
+): Promise<ContainerTestGardenResult> {
   const garden = await makeTestGarden(root, { environmentString: environmentName, noTempDir: opts?.noTempDir })
+  let cleanup = () => {}
+  let dockerConfig: string | undefined
 
   if (!localInstance) {
     localInstance = await makeTestGarden(root, { environmentString: "local", noTempDir: opts?.noTempDir })
+  }
+
+  if (opts?.remoteContainerAuth) {
+    dockerConfig = JSON.stringify(await getGoogleADCImagePullSecret())
+
+    const dockerConfigPath = join(garden.projectRoot, "config.json")
+    await writeFile(dockerConfigPath, dockerConfig)
+    process.env["DOCKER_CONFIG"] = garden.projectRoot
+
+    cleanup = () => {
+      delete process.env["DOCKER_CONFIG"]
+    }
   }
 
   const needsInit = !environmentName.startsWith("local") && !initializedEnvs.includes(environmentName)
@@ -48,7 +71,8 @@ export async function getContainerTestGarden(environmentName: string = defaultEn
       localProvider
     )
 
-    if (opts?.remoteContainerAuth) {
+    // Only set when remote container auth is true
+    if (dockerConfig) {
       const authSecret: KubernetesResource<V1Secret> = {
         apiVersion: "v1",
         kind: "Secret",
@@ -58,7 +82,7 @@ export async function getContainerTestGarden(environmentName: string = defaultEn
           namespace: "default",
         },
         stringData: {
-          ".dockerconfigjson": JSON.stringify(await getGoogleADCImagePullSecret()),
+          ".dockerconfigjson": dockerConfig,
         },
       }
       await api.upsert({ kind: "Secret", namespace: "default", obj: authSecret, log: garden.log })
@@ -108,7 +132,7 @@ export async function getContainerTestGarden(environmentName: string = defaultEn
     initializedEnvs.push(environmentName)
   }
 
-  return garden
+  return { garden, cleanup }
 }
 
 describe("kubernetes container module handlers", () => {

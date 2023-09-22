@@ -31,6 +31,7 @@ import { NamespaceStatus } from "../../../../../../../src/types/namespace"
 
 grouped("cluster-buildkit", "remote-only").describe("ensureBuildkit", () => {
   let garden: Garden
+  let cleanup: () => void
   let provider: KubernetesProvider
   let ctx: PluginContext
   let api: KubeApi
@@ -46,7 +47,14 @@ grouped("cluster-buildkit", "remote-only").describe("ensureBuildkit", () => {
   ]
 
   before(async () => {
-    garden = await getContainerTestGarden("cluster-buildkit")
+    ;({ garden, cleanup } = await getContainerTestGarden("cluster-buildkit"))
+  })
+
+  after(async () => {
+    if (garden) {
+      garden.close()
+    }
+    cleanup()
   })
 
   beforeEach(async () => {
@@ -60,12 +68,6 @@ grouped("cluster-buildkit", "remote-only").describe("ensureBuildkit", () => {
         provider,
       })
     ).namespaceName
-  })
-
-  after(async () => {
-    if (garden) {
-      garden.close()
-    }
   })
 
   grouped("cluster-buildkit").context("cluster-buildkit mode", () => {
