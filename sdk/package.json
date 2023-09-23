@@ -18,7 +18,7 @@
   "files": [
     "build"
   ],
-  "main": "index.js",
+  "main": "build/index.js",
   "dependencies": {
     "@garden-io/core": "*",
     "minimist": "^1.2.8"

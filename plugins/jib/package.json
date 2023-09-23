@@ -2,7 +2,7 @@
   "name": "@garden-io/garden-jib",
   "version": "0.13.14",
   "description": "Jib container plugin for Garden",
-  "main": "index.js",
+  "main": "build/index.js",
   "dependencies": {
     "@garden-io/core": "*",
     "@garden-io/sdk": "*",
@@ -27,7 +27,7 @@
   },
   "scripts": {
     "check-types": "tsc -p . --noEmit",
-    "clean": "rm -f *.js *.d.ts *.map tsconfig.buildinfo tsconfig.tsbuildinfo",
+    "clean": "shx rm -rf build dist",
     "fix-format": "prettier --write \"**/*.ts\"",
     "lint": "eslint -c ../../.eslintrc  --ext .ts .",
     "test": "mocha"
