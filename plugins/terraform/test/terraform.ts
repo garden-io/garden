@@ -290,7 +290,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
   })
 
   describe("Terraform action type", () => {
-    const testRoot = join(__dirname, "test-project-action")
+    const testRoot = resolve(__dirname, "../../test/", "test-project-action")
     const tfRoot = join(testRoot, "tf")
     const stateDirPath = join(tfRoot, "terraform.tfstate")
     const testFilePath = join(tfRoot, "test.log")
@@ -728,7 +728,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
   })
 
   describe("Terraform module type", () => {
-    const testRoot = join(__dirname, "test-project-module")
+    const testRoot = resolve(__dirname, "../../test/", "test-project-module")
     const tfRoot = join(testRoot, "tf")
     const stateDirPath = join(tfRoot, "terraform.tfstate")
     const testFilePath = join(tfRoot, "test.log")
