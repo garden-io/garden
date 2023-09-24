@@ -26,7 +26,7 @@ export async function getPackages({ scope, ignore }: { scope?: string; ignore?: 
   }
 
   if (ignore) {
-    packages = packages.filter(({ name }) => minimatch(name, ignore))
+    packages = packages.filter(({ name }) => !minimatch(name, ignore))
   }
 
   return packages.map(({ name, location, dependencies }) => {
