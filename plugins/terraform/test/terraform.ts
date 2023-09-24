@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { join } from "path"
+import { join, resolve } from "path"
 
 import { expect } from "chai"
 import { pathExists, readFile, remove } from "fs-extra"
@@ -25,7 +25,7 @@ import { defaultTerraformVersion } from "../src/cli"
 
 for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
   describe(`Terraform provider with terraform ${terraformVersion}`, () => {
-    const testRoot = join(__dirname, "test-project")
+    const testRoot = resolve(__dirname, "../../test/", "test-project")
     let garden: TestGarden
     let tfRoot: string
     let stateDirPath: string

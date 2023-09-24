@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { join } from "path"
+import { join, resolve } from "path"
 
 import { GardenModule } from "@garden-io/sdk/build/src/types"
 import { expect } from "chai"
@@ -21,7 +21,7 @@ describe("jib-container", function () {
   // eslint-disable-next-line no-invalid-this
   this.timeout(180 * 1000) // initial jib build can take a long time
 
-  const projectRoot = join(__dirname, "test-project")
+  const projectRoot = resolve(__dirname, "../../test/", "test-project")
 
   let garden: TestGarden
   let graph: ResolvedConfigGraph

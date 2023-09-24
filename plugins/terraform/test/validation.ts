@@ -7,7 +7,7 @@
  */
 
 import { makeTestGarden } from "@garden-io/sdk/build/src/testing"
-import { join } from "path"
+import { resolve } from "path"
 import { gardenPlugin } from "../src/index"
 import { defaultTerraformVersion } from "../src/cli"
 import { ValidateCommand } from "@garden-io/core/build/src/commands/validate"
@@ -16,7 +16,7 @@ import { withDefaultGlobalOpts } from "@garden-io/core/build/test/helpers"
 describe("terraform validation", () => {
   for (const project of ["test-project", "test-project-action", "test-project-module"]) {
     it(`should pass validation for ${project}`, async () => {
-      const testRoot = join(__dirname, project)
+      const testRoot = resolve(__dirname, "../../test/", project)
       const garden = await makeTestGarden(testRoot, {
         plugins: [gardenPlugin()],
         variableOverrides: { "tf-version": defaultTerraformVersion },
