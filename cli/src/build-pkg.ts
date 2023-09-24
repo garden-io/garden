@@ -154,10 +154,15 @@ async function buildBinaries(args: string[]) {
   )
 
   // Run npm install in the cli package
-  console.log(chalk.cyan("Installing packages in @garden-io/cli package"))
-  const cliPath = resolve(tmpDirPath, workspaces.find((p) => p.name === "@garden-io/cli")!.location)
-  await exec("npm", ["install", "--omit=dev", `--workspace=@garden-io/cli`], { cwd: tmpDirPath })
+  await copy(resolve(repoRoot, "package.json"), resolve(tmpDirPath, "package.json"))
+  await copy(resolve(repoRoot, "package-lock.json"), resolve(tmpDirPath, "package-lock.json"))
+  // The `.npmrc` config ensures that we're not hoisting any dependencies
+  await copy(resolve(repoRoot, ".npmrc"), resolve(tmpDirPath, ".npmrc"))
 
+  console.log("Installing all packages in workspaces")
+  await exec("npm", ["install", "--omit=dev"], { cwd: tmpDirPath, stdio: "inherit" })
+
+  const cliPath = resolve(tmpDirPath, workspaces.find((p) => p.name === "@garden-io/cli")!.location)
   // Run pkg and pack up each platform binary
   console.log(chalk.cyan("Packaging garden binaries"))
 
@@ -304,7 +309,7 @@ async function pkgCommon({
   } else {
     const filename = nodeBinaryPlatform === "linuxmusl" ? `node.abi${abi}.musl.node` : `node.abi${abi}.node`
     const abiPath = resolve(
-      repoRoot,
+      GARDEN_CORE_ROOT,
       "node_modules",
       "node-pty-prebuilt-multiarch",
       "prebuilds",
@@ -334,7 +339,7 @@ async function pkgCommon({
       "--output",
       resolve(targetPath, binFilename),
     ],
-    { env: { PKG_CACHE_PATH: pkgFetchTmpDir } }
+    { env: { PKG_CACHE_PATH: pkgFetchTmpDir }, stdio: "inherit" }
   )
 
   console.log(` - ${targetName} -> static`)
