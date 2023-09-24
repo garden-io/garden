@@ -7,7 +7,7 @@
  */
 
 import { createGardenPlugin } from "@garden-io/sdk"
-import { ConftestProvider } from "@garden-io/garden-conftest"
+import { ConftestProvider } from "@garden-io/garden-conftest/build/src"
 import { dedent } from "@garden-io/sdk/build/src/util/string"
 
 /**

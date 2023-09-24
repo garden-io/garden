@@ -11,19 +11,19 @@ import { makeTestGarden, TestGarden } from "@garden-io/sdk/build/src/testing"
 import execa from "execa"
 import { pathExists } from "fs-extra"
 import { join, resolve } from "path"
-import { deployPulumi, getPulumiDeployStatus } from "../handlers"
-import { PulumiProvider } from "../provider"
-import { gardenPlugin as pulumiPlugin } from "../../build"
+import { deployPulumi, getPulumiDeployStatus } from "../src/handlers"
+import { PulumiProvider } from "../src/provider"
+import { gardenPlugin as pulumiPlugin } from "../src/index"
 import { expect } from "chai"
-import { getStackVersionTag } from "../helpers"
-import { getPulumiCommands } from "../commands"
+import { getStackVersionTag } from "../src/helpers"
+import { getPulumiCommands } from "../src/commands"
 import { ResolvedConfigGraph } from "@garden-io/core/build/src/graph/config-graph"
 
 // Careful here!
 // We have some packages in the test directory but when this here runs we're a subfolder of '/build'
 // so to actually find the files we need to traverse back to the source folder.
 // TODO: Find a better way to do this.
-const projectRoot = resolve(__dirname, "../../../test", "test-project-k8s")
+const projectRoot = resolve(__dirname, "../../test", "test-project-k8s")
 
 const nsModuleRoot = join(projectRoot, "k8s-namespace")
 const deploymentModuleRoot = join(projectRoot, "k8s-deployment")

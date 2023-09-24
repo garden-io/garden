@@ -11,8 +11,8 @@ import { join } from "path"
 
 import { createGardenPlugin } from "@garden-io/sdk"
 import { makeTestGarden } from "@garden-io/sdk/build/src/testing"
-import { gardenPlugin } from ".."
-import { gardenPlugin as conftestPlugin } from "@garden-io/garden-conftest"
+import { gardenPlugin } from "../src"
+import { gardenPlugin as conftestPlugin } from "@garden-io/garden-conftest/build/src"
 
 import { ProjectConfig, defaultNamespace } from "@garden-io/core/build/src/config/project"
 import { defaultDotIgnoreFile } from "@garden-io/core/build/src/util/fs"

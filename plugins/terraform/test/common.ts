@@ -8,13 +8,13 @@
 
 import { join } from "path"
 import { pathExists, remove } from "fs-extra"
-import { gardenPlugin } from ".."
-import { TerraformProvider } from "../provider"
+import { gardenPlugin } from "../src/index"
+import { TerraformProvider } from "../src/provider"
 import { makeTestGarden, TestGarden } from "@garden-io/sdk/build/src/testing"
 import { Log, PluginContext } from "@garden-io/sdk/build/src/types"
-import { getWorkspaces, setWorkspace } from "../helpers"
+import { getWorkspaces, setWorkspace } from "../src/helpers"
 import { expect } from "chai"
-import { defaultTerraformVersion, terraform } from "../cli"
+import { defaultTerraformVersion, terraform } from "../src/cli"
 
 for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
   describe(`Terraform common with version ${terraformVersion}`, () => {

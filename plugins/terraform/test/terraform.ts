@@ -13,15 +13,15 @@ import { pathExists, readFile, remove } from "fs-extra"
 
 import { getRootLogMessages, makeTestGarden, TestGarden } from "@garden-io/sdk/build/src/testing"
 import { findByName } from "@garden-io/core/build/src/util/util"
-import { getTerraformCommands } from "../commands"
+import { getTerraformCommands } from "../src/commands"
 import { ConfigGraph, LogLevel } from "@garden-io/sdk/build/src/types"
-import { gardenPlugin } from ".."
-import { TerraformProvider } from "../provider"
+import { gardenPlugin } from "../src/index"
+import { TerraformProvider } from "../src/provider"
 import { DeployTask } from "@garden-io/core/build/src/tasks/deploy"
-import { getWorkspaces, setWorkspace } from "../helpers"
+import { getWorkspaces, setWorkspace } from "../src/helpers"
 import { resolveAction } from "@garden-io/core/build/src/graph/actions"
 import { RunTask } from "@garden-io/core/build/src/tasks/run"
-import { defaultTerraformVersion } from "../cli"
+import { defaultTerraformVersion } from "../src/cli"
 
 for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
   describe(`Terraform provider with terraform ${terraformVersion}`, () => {

@@ -8,8 +8,8 @@
 
 import { makeTestGarden } from "@garden-io/sdk/build/src/testing"
 import { join } from "path"
-import { gardenPlugin } from ".."
-import { defaultTerraformVersion } from "../cli"
+import { gardenPlugin } from "../src/index"
+import { defaultTerraformVersion } from "../src/cli"
 import { ValidateCommand } from "@garden-io/core/build/src/commands/validate"
 import { withDefaultGlobalOpts } from "@garden-io/core/build/test/helpers"
 

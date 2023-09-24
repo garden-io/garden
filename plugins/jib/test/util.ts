@@ -8,11 +8,11 @@
 
 import { expectError, makeTestGarden, TestGarden } from "@garden-io/sdk/build/src/testing"
 import { expect } from "chai"
-import { detectProjectType, getBuildFlags, JibBuildAction } from "../util"
+import { detectProjectType, getBuildFlags, JibBuildAction } from "../src/util"
 import { join } from "path"
 import { ResolvedConfigGraph } from "@garden-io/core/build/src/graph/config-graph"
 import { Resolved } from "@garden-io/core/build/src/actions/types"
-import { gardenPlugin } from "../index"
+import { gardenPlugin } from "../src/index"
 
 describe("util", function () {
   // eslint-disable-next-line no-invalid-this

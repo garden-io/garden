@@ -9,7 +9,7 @@
 import slash from "slash"
 import { relative, resolve } from "path"
 import { createGardenPlugin } from "@garden-io/sdk"
-import { ConftestProvider } from "@garden-io/garden-conftest"
+import { ConftestProvider } from "@garden-io/garden-conftest/build/src"
 
 // TODO: remove direct references to @garden-io/core
 import { dedent } from "@garden-io/core/build/src/util/string"
