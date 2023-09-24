@@ -36,20 +36,18 @@ async function runInPackages(args: string[]) {
     reportStream = createWriteStream(path)
   }
 
-
   const packageList = await getPackages({ scope, ignore })
   const packagesWithColor = packageList.map((pack, i) => {
     return {
       ...pack,
-      color: colors[i % colors.length]
+      color: colors[i % colors.length],
     }
   })
   const packageNames = packagesWithColor.map(({ name }) => name)
 
   write(
     chalk.cyanBright(
-      `\nRunning script ${chalk.whiteBright(script)} in package(s) ` +
-        chalk.whiteBright(packageNames.join(", "))
+      `\nRunning script ${chalk.whiteBright(script)} in package(s) ` + chalk.whiteBright(packageNames.join(", "))
     )
   )
 
@@ -78,7 +76,7 @@ async function runInPackages(args: string[]) {
 
     const proc = execa("npm", ["run", script, ...rest, `--workspace=${pack.name}`], { cwd: repoRoot, reject: false })
 
-    proc.on("error", (error) => {
+    void proc.on("error", (error) => {
       write(chalk.redBright(`\nCould not run ${script} script in package ${packageName}: ${error}`))
       process.exit(1)
     })
