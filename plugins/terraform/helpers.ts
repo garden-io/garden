@@ -9,9 +9,9 @@
 import { resolve } from "path"
 import { mapValues, startCase } from "lodash"
 
-import { ConfigurationError, PluginError, RuntimeError } from "@garden-io/sdk/exceptions"
-import { Log, PluginContext } from "@garden-io/sdk/types"
-import { dedent } from "@garden-io/sdk/util/string"
+import { ConfigurationError, PluginError, RuntimeError } from "@garden-io/sdk/build/src/exceptions"
+import { Log, PluginContext } from "@garden-io/sdk/build/src/types"
+import { dedent } from "@garden-io/sdk/build/src/util/string"
 import { terraform } from "./cli"
 import { TerraformProvider } from "./provider"
 import { writeFile } from "fs-extra"

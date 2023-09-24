@@ -19,16 +19,16 @@ import {
   FilesystemError,
   GardenError,
   PluginError,
-} from "@garden-io/sdk/exceptions"
+} from "@garden-io/sdk/build/src/exceptions"
 import { dumpYaml } from "@garden-io/core/build/src/util/serialization"
 import { DeepPrimitiveMap } from "@garden-io/core/build/src/config/common"
 import { loadAndValidateYaml } from "@garden-io/core/build/src/config/base"
 import { getPluginOutputsPath } from "@garden-io/sdk"
-import { Log, PluginContext } from "@garden-io/sdk/types"
+import { Log, PluginContext } from "@garden-io/sdk/build/src/types"
 import { defaultPulumiEnv, pulumi } from "./cli"
 import { PulumiDeploy } from "./action"
 import { PulumiProvider } from "./provider"
-import { dedent, deline, naturalList } from "@garden-io/sdk/util/string"
+import { dedent, deline, naturalList } from "@garden-io/sdk/build/src/util/string"
 import { Resolved } from "@garden-io/core/build/src/actions/types"
 import { ActionLog } from "@garden-io/core/build/src/logger/log-entry"
 

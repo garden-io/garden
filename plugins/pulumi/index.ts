@@ -7,7 +7,7 @@
  */
 
 import { createGardenPlugin } from "@garden-io/sdk"
-import { dedent } from "@garden-io/sdk/util/string"
+import { dedent } from "@garden-io/sdk/build/src/util/string"
 import { deletePulumiDeploy, deployPulumi, getPulumiDeployStatus } from "./handlers"
 import { getPulumiCommands } from "./commands"
 import { pulumiCliSPecs } from "./cli"
@@ -16,7 +16,7 @@ import { pulumiProviderConfigSchema } from "./provider"
 import { ExecBuildConfig } from "@garden-io/core/build/src/plugins/exec/build"
 import { join } from "path"
 import { pathExists } from "fs-extra"
-import { ConfigurationError } from "@garden-io/sdk/exceptions"
+import { ConfigurationError } from "@garden-io/sdk/build/src/exceptions"
 import { omit } from "lodash"
 import { ConvertModuleParams } from "@garden-io/core/build/src/plugin/handlers/Module/convert"
 import { configurePulumiModule, PulumiModule, pulumiModuleSchema } from "./module"

@@ -7,7 +7,7 @@
  */
 
 import { find } from "lodash"
-import { PluginContext, PluginToolSpec } from "@garden-io/sdk/types"
+import { PluginContext, PluginToolSpec } from "@garden-io/sdk/build/src/types"
 import { PluginError } from "@garden-io/core/build/src/exceptions"
 import { resolve } from "path"
 import { pathExists } from "fs-extra"

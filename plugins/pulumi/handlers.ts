@@ -7,7 +7,7 @@
  */
 
 import { pulumi } from "./cli"
-import { ProviderHandlers } from "@garden-io/sdk/types"
+import { ProviderHandlers } from "@garden-io/sdk/build/src/types"
 import {
   applyConfig,
   clearStackVersionTag,

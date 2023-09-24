@@ -8,7 +8,7 @@
 
 import { joi } from "@garden-io/core/build/src/config/common"
 import { GenericProviderConfig, Provider, providerConfigBaseSchema } from "@garden-io/core/build/src/config/provider"
-import { dedent } from "@garden-io/sdk/util/string"
+import { dedent } from "@garden-io/sdk/build/src/util/string"
 import { defaultPulumiVersion, supportedVersions } from "./cli"
 
 export type PulumiProviderConfig = GenericProviderConfig & {

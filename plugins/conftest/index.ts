@@ -11,9 +11,9 @@ import chalk from "chalk"
 import slash from "slash"
 import { ExecaReturnValue } from "execa"
 import { createGardenPlugin } from "@garden-io/sdk"
-import { PluginContext, Log } from "@garden-io/sdk/types"
-import { dedent, naturalList } from "@garden-io/sdk/util/string"
-import { matchGlobs, listDirectory } from "@garden-io/sdk/util/fs"
+import { PluginContext, Log } from "@garden-io/sdk/build/src/types"
+import { dedent, naturalList } from "@garden-io/sdk/build/src/util/string"
+import { matchGlobs, listDirectory } from "@garden-io/sdk/build/src/util/fs"
 
 // TODO: gradually get rid of these core dependencies, move some to SDK etc.
 import { providerConfigBaseSchema, GenericProviderConfig, Provider } from "@garden-io/core/build/src/config/provider"

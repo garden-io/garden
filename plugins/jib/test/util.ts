@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { expectError, makeTestGarden, TestGarden } from "@garden-io/sdk/testing"
+import { expectError, makeTestGarden, TestGarden } from "@garden-io/sdk/build/src/testing"
 import { expect } from "chai"
 import { detectProjectType, getBuildFlags, JibBuildAction } from "../util"
 import { join } from "path"

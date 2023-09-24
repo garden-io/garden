@@ -8,10 +8,10 @@
 
 import { TerraformProvider } from "./provider"
 import which from "which"
-import { ConfigurationError, RuntimeError } from "@garden-io/sdk/exceptions"
-import { CliWrapper, PluginToolSpec } from "@garden-io/sdk/util/ext-tools"
-import { Log, PluginContext } from "@garden-io/sdk/types"
-import { naturalList } from "@garden-io/sdk/util/string"
+import { ConfigurationError, RuntimeError } from "@garden-io/sdk/build/src/exceptions"
+import { CliWrapper, PluginToolSpec } from "@garden-io/sdk/build/src/util/ext-tools"
+import { Log, PluginContext } from "@garden-io/sdk/build/src/types"
+import { naturalList } from "@garden-io/sdk/build/src/util/string"
 
 export function terraform(ctx: PluginContext, provider: TerraformProvider) {
   const version = provider.config.version

@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Log, PluginContext } from "@garden-io/sdk/types"
+import { Log, PluginContext } from "@garden-io/sdk/build/src/types"
 import { Writable } from "node:stream"
 import execa from "execa"
 import { RuntimeError } from "@garden-io/core/build/src/exceptions"

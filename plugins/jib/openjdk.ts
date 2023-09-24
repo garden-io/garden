@@ -7,7 +7,7 @@
  */
 
 import { ToolBuildSpec } from "@garden-io/core/src/plugin/tools"
-import { PluginToolSpec } from "@garden-io/sdk/types"
+import { PluginToolSpec } from "@garden-io/sdk/build/src/types"
 import { posix } from "path"
 
 interface JdkBinary {

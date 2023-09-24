@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { makeTestGarden } from "@garden-io/sdk/testing"
+import { makeTestGarden } from "@garden-io/sdk/build/src/testing"
 import { join } from "path"
 import { gardenPlugin } from ".."
 import { defaultTerraformVersion } from "../cli"

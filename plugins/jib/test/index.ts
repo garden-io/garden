@@ -8,9 +8,9 @@
 
 import { join } from "path"
 
-import { GardenModule } from "@garden-io/sdk/types"
+import { GardenModule } from "@garden-io/sdk/build/src/types"
 import { expect } from "chai"
-import { makeTestGarden, TestGarden } from "@garden-io/sdk/testing"
+import { makeTestGarden, TestGarden } from "@garden-io/sdk/build/src/testing"
 import { gardenPlugin } from ".."
 import { JibBuildAction } from "../util"
 import { Resolved } from "@garden-io/core/build/src/actions/types"

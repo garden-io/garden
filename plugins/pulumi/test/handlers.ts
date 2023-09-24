@@ -6,8 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import type { Log, PluginContext } from "@garden-io/sdk/types"
-import { makeTestGarden, TestGarden } from "@garden-io/sdk/testing"
+import type { Log, PluginContext } from "@garden-io/sdk/build/src/types"
+import { makeTestGarden, TestGarden } from "@garden-io/sdk/build/src/testing"
 import execa from "execa"
 import { pathExists } from "fs-extra"
 import { join, resolve } from "path"

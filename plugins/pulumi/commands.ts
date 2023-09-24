@@ -15,7 +15,7 @@ import {
   PluginCommand,
   PluginCommandParams,
   PluginContext,
-} from "@garden-io/sdk/types"
+} from "@garden-io/sdk/build/src/types"
 
 import { PulumiDeploy } from "./action"
 import { PulumiProvider } from "./provider"
@@ -31,8 +31,8 @@ import {
   reimportStack,
   selectStack,
 } from "./helpers"
-import { dedent, deline } from "@garden-io/sdk/util/string"
-import { BooleanParameter, parsePluginCommandArgs } from "@garden-io/sdk/util/cli"
+import { dedent, deline } from "@garden-io/sdk/build/src/util/string"
+import { BooleanParameter, parsePluginCommandArgs } from "@garden-io/sdk/build/src/util/cli"
 import { copy, emptyDir } from "fs-extra"
 import { join } from "path"
 import { isDeployAction } from "@garden-io/core/build/src/actions/deploy"

@@ -14,7 +14,7 @@ import {
   joiVariables,
 } from "@garden-io/core/build/src/config/common"
 import { DeployAction, DeployActionConfig } from "@garden-io/core/build/src/actions/deploy"
-import { dedent } from "@garden-io/sdk/util/string"
+import { dedent } from "@garden-io/sdk/build/src/util/string"
 
 export interface PulumiDeploySpec {
   allowDestroy: boolean

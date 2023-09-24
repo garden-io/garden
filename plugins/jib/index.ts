@@ -8,7 +8,7 @@
 
 import split2 = require("split2")
 import { createGardenPlugin } from "@garden-io/sdk"
-import { dedent } from "@garden-io/sdk/util/string"
+import { dedent } from "@garden-io/sdk/build/src/util/string"
 
 import { openJdkSpecs } from "./openjdk"
 import { mavenSpec, mvn, mvnVersion } from "./maven"

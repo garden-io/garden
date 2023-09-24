@@ -15,10 +15,7 @@
   },
   "preferGlobal": true,
   "private": true,
-  "files": [
-    "build"
-  ],
-  "main": "build/index.js",
+  "main": "build/src/index.js",
   "dependencies": {
     "@garden-io/core": "*",
     "minimist": "^1.2.8"

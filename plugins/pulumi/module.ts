@@ -7,7 +7,7 @@
  */
 
 import { joi } from "@garden-io/core/build/src/config/common"
-import { GardenModule, ModuleActionHandlers, PluginContext } from "@garden-io/sdk/types"
+import { GardenModule, ModuleActionHandlers, PluginContext } from "@garden-io/sdk/build/src/types"
 import { baseBuildSpecSchema } from "@garden-io/core/build/src/config/module"
 import { dependenciesSchema } from "@garden-io/core/build/src/config/service"
 import { pulumiDeploySchemaKeys, PulumiDeploySpec } from "./action"

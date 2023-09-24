@@ -10,7 +10,7 @@ import { expect } from "chai"
 import { join } from "path"
 
 import { createGardenPlugin } from "@garden-io/sdk"
-import { makeTestGarden } from "@garden-io/sdk/testing"
+import { makeTestGarden } from "@garden-io/sdk/build/src/testing"
 import { gardenPlugin } from ".."
 import { gardenPlugin as conftestPlugin } from "@garden-io/garden-conftest"
 

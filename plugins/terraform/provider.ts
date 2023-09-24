@@ -6,10 +6,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { dedent } from "@garden-io/sdk/util/string"
+import { dedent } from "@garden-io/sdk/build/src/util/string"
 import { defaultTerraformVersion, supportedVersions } from "./cli"
 import { TerraformBaseSpec, variablesSchema } from "./helpers"
-import { docsBaseUrl } from "@garden-io/sdk/constants"
+import { docsBaseUrl } from "@garden-io/sdk/build/src/constants"
 
 import { GenericProviderConfig, Provider, providerConfigBaseSchema } from "@garden-io/core/build/src/config/provider"
 import { joi } from "@garden-io/core/build/src/config/common"

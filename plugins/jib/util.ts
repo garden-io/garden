@@ -7,7 +7,7 @@
  */
 
 import { resolve } from "path"
-import { GardenModule } from "@garden-io/sdk/types"
+import { GardenModule } from "@garden-io/sdk/build/src/types"
 import { ConfigurationError } from "@garden-io/core/build/src/exceptions"
 import { getDockerBuildArgs } from "@garden-io/core/build/src/plugins/container/build"
 import {
