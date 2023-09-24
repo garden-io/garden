@@ -19,7 +19,7 @@ import { getStackVersionTag } from "../helpers"
 import { getPulumiCommands } from "../commands"
 import { ResolvedConfigGraph } from "@garden-io/core/build/src/graph/config-graph"
 
-const projectRoot = resolve(__dirname, "test-project-k8s")
+const projectRoot = resolve(__dirname, "../../test", "test-project-k8s")
 
 const nsModuleRoot = join(projectRoot, "k8s-namespace")
 const deploymentModuleRoot = join(projectRoot, "k8s-deployment")
