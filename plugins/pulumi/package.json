@@ -11,11 +11,13 @@
     "execa": "^4.0.3",
     "fs-extra": "^11.1.0",
     "slash": "^3.0.0",
-    "which": "^3.0.0"
+    "which": "^3.0.0",
+    "json-merge-patch": "^1.0.2"
   },
   "devDependencies": {
     "@types/chai": "^4.3.4",
     "@types/hapi__joi": "^17.1.9",
+    "@types/json-merge-patch": "0.0.8",
     "@types/mocha": "^10.0.1",
     "@types/node": "^18",
     "chai": "^4.3.7",

@@ -2,7 +2,7 @@
   "name": "@garden-io/garden-conftest-container",
   "version": "0.13.14",
   "description": "Auto-generator for the conftest plugin and Garden container modules",
-  "main": "index.js",
+  "main": "build/index.js",
   "dependencies": {
     "@garden-io/core": "*",
     "@garden-io/garden-conftest": "*",

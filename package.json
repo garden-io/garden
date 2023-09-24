@@ -99,7 +99,7 @@
     "cli",
     "core",
     "e2e",
-    "plugins/*",
-    "sdk"
+    "sdk",
+    "plugins/*"
   ]
 }
