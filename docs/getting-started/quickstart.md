@@ -65,19 +65,21 @@ This will significantly speed up the first Garden build of large projects on Win
 
 {% endtabs %}
 
-For more detailed installation instructions, please take a look at our [Installation guide](installation.md).
+For more detailed installation instructions, please take a look at our [Installation guide](./installation.md).
 
-### Step 2 — Deploy the example application
+### Step 2 — Clone the example project
 
-Now that we have Garden installed, we will deploy our example application to an [ephemeral Kubernetes cluster](../guides/ephemeral-clusters.md) provided by Garden.
-
-Clone the example project from GitHub:
+Next, we clone the example project from GitHub and change into the project directory:
 
 ```sh
 git clone https://github.com/garden-io/quickstart-example.git && cd quickstart-example
 ```
 
-Garden ships with an interactive command center we call the **dev console**. To start the dev console, run:
+### Step 3 — Deploy the project
+
+Now we can deploy the example project to an [ephemeral Kubernetes cluster](../guides/ephemeral-clusters.md) provided by Garden.
+
+From inside the project directory, start the **dev console** by running:
 
 ```sh
 garden dev
@@ -102,6 +104,11 @@ You should now be able to visit the example project at the link output by Garden
 The quickstart also comes with some tests of the unit and end-to-end variety. To run your unit test, just run `test unit`. To run your end-to-end test, run `test e2e`. Easy!
 
 The project itself doubles as an interactive guide that walks you through some common Garden commands and workflows. We encourage you to give it a spin!
+
+{% hint style="info" %}
+You can run all the same commands with the CLI directly without starting the dev console. Simply run `garden login` or `garden
+deploy` from your terminal. This is e.g. how you'd use Garden in CI.
+{% endhint %}
 
 
 ## Next Steps

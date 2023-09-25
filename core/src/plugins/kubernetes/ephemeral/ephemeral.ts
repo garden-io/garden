@@ -35,7 +35,7 @@ export const gardenPlugin = () =>
 
     The \`${EPHEMERAL_KUBERNETES_PROVIDER_NAME}\` provider is a specialized version of the [\`kubernetes\` provider](${providerUrl}) that allows to deploy applications to one of the ephemeral Kubernetes clusters provided by Garden.
 
-    For information about using ephemeral Kubernetes clusters, please refer to [Ephemeral Kubernetes clusters guide](../../overview/ephemeral-clusters.md)
+    For information about using ephemeral Kubernetes clusters, please refer to [Ephemeral Kubernetes clusters guide](../../guides/ephemeral-clusters.md)
   `,
     configSchema: configSchema(),
     outputsSchema,
