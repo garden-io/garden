@@ -12,7 +12,7 @@ import { isString } from "lodash"
 import { createReadStream, ensureDir, lstat, pathExists, readlink, realpath, stat, Stats } from "fs-extra"
 import { PassThrough } from "stream"
 import { GetFilesParams, RemoteSourceParams, VcsFile, VcsHandler, VcsHandlerParams, VcsInfo } from "./vcs"
-import { ChildProcessError, ConfigurationError, RuntimeError, isErrnoException } from "../exceptions"
+import { ChildProcessError, ConfigurationError, isErrnoException, RuntimeError } from "../exceptions"
 import { getStatsType, joinWithPosix, matchPath } from "../util/fs"
 import { dedent, deline, splitLast } from "../util/string"
 import { defer, exec } from "../util/util"
@@ -20,14 +20,15 @@ import { Log } from "../logger/log-entry"
 import parseGitConfig from "parse-git-config"
 import { getDefaultProfiler, Profile, Profiler } from "../util/profiling"
 import { STATIC_DIR } from "../constants"
-import split2 = require("split2")
-import execa = require("execa")
 import isGlob from "is-glob"
 import chalk from "chalk"
-import hasha = require("hasha")
 import { pMemoizeDecorator } from "../lib/p-memoize"
 import AsyncLock from "async-lock"
 import PQueue from "p-queue"
+import { isSha1 } from "../util/hashing"
+import split2 = require("split2")
+import execa = require("execa")
+import hasha = require("hasha")
 
 const gitConfigAsyncLock = new AsyncLock()
 
@@ -585,11 +586,6 @@ export class GitHandler extends VcsHandler {
     return files
   }
 
-  private isHashSHA1(hash: string): boolean {
-    const SHA1RegExp = new RegExp(/\b([a-f0-9]{40})\b/)
-    return SHA1RegExp.test(hash)
-  }
-
   private async cloneRemoteSource(
     log: Log,
     repositoryUrl: string,
@@ -600,7 +596,7 @@ export class GitHandler extends VcsHandler {
     await ensureDir(absPath)
     const git = this.gitCli(log, absPath, failOnPrompt)
     // Use `--recursive` to include submodules
-    if (!this.isHashSHA1(hash)) {
+    if (!isSha1(hash)) {
       return git(
         "-c",
         "protocol.file.allow=always",
@@ -673,9 +669,7 @@ export class GitHandler extends VcsHandler {
       await git("remote", "update")
 
       const localCommitId = (await git("rev-parse", "HEAD"))[0]
-      const remoteCommitId = this.isHashSHA1(hash)
-        ? hash
-        : getCommitIdFromRefList(await git("ls-remote", repositoryUrl, hash))
+      const remoteCommitId = isSha1(hash) ? hash : getCommitIdFromRefList(await git("ls-remote", repositoryUrl, hash))
 
       if (localCommitId !== remoteCommitId) {
         gitLog.info(`Fetching from ${url}`)

@@ -20,6 +20,7 @@ import { getForwardablePorts, killPortForwards } from "../port-forward"
 import { getK8sIngresses } from "../status/ingress"
 import {
   getDeployedResource,
+  k8sManifestHashAnnotationKey,
   resolveResourceStatus,
   resolveResourceStatuses,
   ResourceStatus,
@@ -44,6 +45,7 @@ import type { ActionLog } from "../../../logger/log-entry"
 import type { ActionMode, Resolved } from "../../../actions/types"
 import { deployStateToActionState } from "../../../plugin/handlers/Deploy/get-status"
 import { ResolvedDeployAction } from "../../../actions/deploy"
+import { isSha256 } from "../../../util/hashing"
 
 export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>> = {
   configure: configureKubernetesModule,
@@ -238,7 +240,7 @@ async function getResourceStatuses({
     return []
   }
 
-  const maybeDeployedResources: [ManifestMetadata, any][] = await Promise.all(
+  const maybeDeployedResources: [ManifestMetadata, KubernetesResource | null][] = await Promise.all(
     manifestMetadata.map(async (m) => {
       return [m, await api.readOrNull({ log, ...m })]
     })
@@ -253,9 +255,18 @@ async function getResourceStatuses({
           metadata: { name: m.name, namespace: m.namespace },
         }
         return { resource: missingResource, state: "missing" } as ResourceStatus
-      } else {
-        return await resolveResourceStatus({ api, namespace, resource, log })
       }
+
+      // TODO: consider removing this quickfix once we have implemented generic manifests/resources comparison
+      // Check if the "garden.io/manifest-hash" annotation is a valid sha256 hash.
+      // If it's not, consider the remote resource as outdated.
+      // AEC feature uses a dummy non-sha256 value to ensure the outdated state.
+      const manifestHash = resource.metadata?.annotations?.[k8sManifestHashAnnotationKey]
+      if (manifestHash && !isSha256(manifestHash)) {
+        return { resource, state: "outdated" } as ResourceStatus
+      }
+
+      return await resolveResourceStatus({ api, namespace, resource, log })
     })
   )
 }

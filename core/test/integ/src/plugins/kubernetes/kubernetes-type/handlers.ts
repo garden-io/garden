@@ -25,7 +25,10 @@ import { KubeApi } from "../../../../../../src/plugins/kubernetes/api"
 import { ActionLog, createActionLog, Log } from "../../../../../../src/logger/log-entry"
 import { KubernetesPluginContext, KubernetesProvider } from "../../../../../../src/plugins/kubernetes/config"
 import { getActionNamespace } from "../../../../../../src/plugins/kubernetes/namespace"
-import { getDeployedResource } from "../../../../../../src/plugins/kubernetes/status/status"
+import {
+  getDeployedResource,
+  k8sManifestHashAnnotationKey,
+} from "../../../../../../src/plugins/kubernetes/status/status"
 import { ModuleConfig } from "../../../../../../src/config/module"
 import { BaseResource, KubernetesResource } from "../../../../../../src/plugins/kubernetes/types"
 import { DeleteDeployTask } from "../../../../../../src/tasks/delete-deploy"
@@ -262,6 +265,38 @@ describe("kubernetes-type handlers", () => {
       expect(status.detail?.state).to.equal("outdated")
     })
 
+    it("should return outdated status when k8s remote resource version is not a valid sha256 hash", async () => {
+      // We use a standalone module here, because we need to modify the state of the remote resource to perform the test.
+      // Using of the `module-simple` will require remote resource redeployment in many other test cases here,
+      // and that will slow down the test execution.
+      const { resolvedAction, deployParams } = await prepareActionDeployParams("module-simple-isolated", {})
+
+      await kubernetesDeploy(deployParams)
+
+      const namespace = await getActionNamespace({
+        ctx,
+        log,
+        action: resolvedAction,
+        provider: ctx.provider,
+        skipCreate: true,
+      })
+
+      const declaredManifests = await readManifests(ctx, resolvedAction, log)
+      expect(declaredManifests.length).to.equal(1)
+
+      const deploymentManifest = declaredManifests[0].manifest
+      const remoteDeploymentResource = await api.readBySpec({ log, namespace, manifest: deploymentManifest })
+      expect(remoteDeploymentResource.metadata.annotations).to.exist
+
+      // Modify the `k8sManifestHashAnnotationKey` annotation to be non-valid sha256 hash
+      remoteDeploymentResource.metadata.annotations![k8sManifestHashAnnotationKey] = "non-sha256-hash"
+      await api.replace({ log, namespace, resource: remoteDeploymentResource })
+
+      const status = await getKubernetesDeployStatus(deployParams)
+      expect(status.state).to.equal("not-ready")
+      expect(status.detail?.state).to.equal("outdated")
+    })
+
     it("should return outdated status when metadata ConfigMap has different mode", async () => {
       const { resolvedAction, deployParams } = await prepareActionDeployParams("module-simple", {})
 
@@ -488,6 +523,7 @@ describe("kubernetes-type handlers", () => {
 
       expect(await getDeployedResource(ctx, ctx.provider, ns1Manifest!, log), "ns1resource").to.exist
       expect(await getDeployedResource(ctx, ctx.provider, ns2Manifest!, log), "ns2resource").to.not.exist
+      expect(await getDeployedResource(ctx, ctx.provider, ns2Resource!, log), "ns2resource").to.not.exist
     })
 
     it("deletes all resources including a metadata ConfigMap describing what was last deployed", async () => {
