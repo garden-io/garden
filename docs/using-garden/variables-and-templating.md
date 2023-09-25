@@ -224,17 +224,17 @@ kind: Module
 ...
 variables:
   commonArgs:
-    - yarn
+    - npm
     - test
     - -g
 tests:
   - name: test-a
-    # resolves to [yarn, test, -g, suite-a]
+    # resolves to [npm, test, -g, suite-a]
     args:
       - $concat: ${var.commonArgs}
       - suite-a
   - name: test-b
-    # resolves to [yarn, test, -g, suite-b]
+    # resolves to [npm, test, -g, suite-b]
     args:
       - $concat: ${var.commonArgs}
       - suite-b

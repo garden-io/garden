@@ -17,7 +17,7 @@ The [release script](https://github.com/garden-io/garden/blob/main/scripts/relea
 and does the following:
 
 - Checks out a branch named `release-<version>`.
-- Updates `core/package.json`, `core/yarn.lock` and `CHANGELOG.md`.
+- Updates `core/package.json`, `core/package-lock.json` and `CHANGELOG.md`.
 - Commits the changes, tags the commit, and pushes the tag and branch.
 - Pushing the tag triggers a CI process that creates the release artifacts and publishes them to GitHub. If the release is not a pre-release, we create a draft instead of actually publishing.
 
