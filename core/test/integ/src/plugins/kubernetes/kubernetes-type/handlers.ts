@@ -25,7 +25,10 @@ import { KubeApi } from "../../../../../../src/plugins/kubernetes/api"
 import { ActionLog, createActionLog, Log } from "../../../../../../src/logger/log-entry"
 import { KubernetesPluginContext, KubernetesProvider } from "../../../../../../src/plugins/kubernetes/config"
 import { getActionNamespace } from "../../../../../../src/plugins/kubernetes/namespace"
-import { getDeployedResource } from "../../../../../../src/plugins/kubernetes/status/status"
+import {
+  getDeployedResource,
+  k8sManifestHashAnnotationKey,
+} from "../../../../../../src/plugins/kubernetes/status/status"
 import { ModuleConfig } from "../../../../../../src/config/module"
 import { BaseResource, KubernetesResource } from "../../../../../../src/plugins/kubernetes/types"
 import { DeleteDeployTask } from "../../../../../../src/tasks/delete-deploy"
@@ -256,6 +259,35 @@ describe("kubernetes-type handlers", () => {
       metadataManifest.data!.resolvedVersion = "v-foo"
 
       await api.replace({ log, namespace, resource: metadataManifest })
+
+      const status = await getKubernetesDeployStatus(deployParams)
+      expect(status.state).to.equal("not-ready")
+      expect(status.detail?.state).to.equal("outdated")
+    })
+
+    it("should return outdated status when k8s remote resource version is not a valid sha256 hash", async () => {
+      const { resolvedAction, deployParams } = await prepareActionDeployParams("module-simple", {})
+
+      await kubernetesDeploy(deployParams)
+
+      const namespace = await getActionNamespace({
+        ctx,
+        log,
+        action: resolvedAction,
+        provider: ctx.provider,
+        skipCreate: true,
+      })
+
+      const declaredManifests = await readManifests(ctx, resolvedAction, log)
+      expect(declaredManifests.length).to.equal(1)
+
+      // Modify the `k8sManifestHashAnnotationKey` annotation to be non-valid sha256 hash
+      const deploymentManifest = declaredManifests[0].manifest
+      if (!deploymentManifest.metadata.annotations) {
+        deploymentManifest.metadata.annotations = {}
+      }
+      deploymentManifest.metadata.annotations[k8sManifestHashAnnotationKey] = "non-sha256-hash"
+      await api.replace({ log, namespace, resource: deploymentManifest })
 
       const status = await getKubernetesDeployStatus(deployParams)
       expect(status.state).to.equal("not-ready")
