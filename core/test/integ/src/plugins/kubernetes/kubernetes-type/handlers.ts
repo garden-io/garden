@@ -281,17 +281,23 @@ describe("kubernetes-type handlers", () => {
       const declaredManifests = await readManifests(ctx, resolvedAction, log)
       expect(declaredManifests.length).to.equal(1)
 
-      // Modify the `k8sManifestHashAnnotationKey` annotation to be non-valid sha256 hash
       const deploymentManifest = declaredManifests[0].manifest
-      if (!deploymentManifest.metadata.annotations) {
-        deploymentManifest.metadata.annotations = {}
-      }
-      deploymentManifest.metadata.annotations[k8sManifestHashAnnotationKey] = "non-sha256-hash"
-      await api.replace({ log, namespace, resource: deploymentManifest })
+      const remoteDeploymentResource = await api.readBySpec({ log, namespace, manifest: deploymentManifest })
+      expect(remoteDeploymentResource.metadata.annotations).to.exist
 
-      const status = await getKubernetesDeployStatus(deployParams)
-      expect(status.state).to.equal("not-ready")
-      expect(status.detail?.state).to.equal("outdated")
+      try {
+        // Modify the `k8sManifestHashAnnotationKey` annotation to be non-valid sha256 hash
+        remoteDeploymentResource.metadata.annotations![k8sManifestHashAnnotationKey] = "non-sha256-hash"
+        await api.replace({ log, namespace, resource: remoteDeploymentResource })
+
+        const status = await getKubernetesDeployStatus(deployParams)
+        expect(status.state).to.equal("not-ready")
+        expect(status.detail?.state).to.equal("outdated")
+      } finally {
+        // Redeploy the resource to restore the original value of `k8sManifestHashAnnotationKey` annotation,
+        // because the remote resource state is used by the other tests.
+        await kubernetesDeploy(deployParams)
+      }
     })
 
     it("should return outdated status when metadata ConfigMap has different mode", async () => {
