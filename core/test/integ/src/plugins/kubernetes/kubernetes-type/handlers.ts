@@ -268,7 +268,7 @@ describe("kubernetes-type handlers", () => {
     it("should return outdated status when k8s remote resource version is not a valid sha256 hash", async () => {
       // We use a standalone module here, because we need to modify the state of the remote resource to perform the test.
       // Using of the `module-simple` will require remote resource redeployment in many other test cases here,
-      // and that qill slow down the test execution.
+      // and that will slow down the test execution.
       const { resolvedAction, deployParams } = await prepareActionDeployParams("module-simple-isolated", {})
 
       await kubernetesDeploy(deployParams)
