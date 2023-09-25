@@ -266,7 +266,10 @@ describe("kubernetes-type handlers", () => {
     })
 
     it("should return outdated status when k8s remote resource version is not a valid sha256 hash", async () => {
-      const { resolvedAction, deployParams } = await prepareActionDeployParams("module-simple", {})
+      // We use a standalone module here, because we need to modify the state of the remote resource to perform the test.
+      // Using of the `module-simple` will require remote resource redeployment in many other test cases here,
+      // and that qill slow down the test execution.
+      const { resolvedAction, deployParams } = await prepareActionDeployParams("module-simple-isolated", {})
 
       await kubernetesDeploy(deployParams)
 
@@ -285,19 +288,13 @@ describe("kubernetes-type handlers", () => {
       const remoteDeploymentResource = await api.readBySpec({ log, namespace, manifest: deploymentManifest })
       expect(remoteDeploymentResource.metadata.annotations).to.exist
 
-      try {
-        // Modify the `k8sManifestHashAnnotationKey` annotation to be non-valid sha256 hash
-        remoteDeploymentResource.metadata.annotations![k8sManifestHashAnnotationKey] = "non-sha256-hash"
-        await api.replace({ log, namespace, resource: remoteDeploymentResource })
+      // Modify the `k8sManifestHashAnnotationKey` annotation to be non-valid sha256 hash
+      remoteDeploymentResource.metadata.annotations![k8sManifestHashAnnotationKey] = "non-sha256-hash"
+      await api.replace({ log, namespace, resource: remoteDeploymentResource })
 
-        const status = await getKubernetesDeployStatus(deployParams)
-        expect(status.state).to.equal("not-ready")
-        expect(status.detail?.state).to.equal("outdated")
-      } finally {
-        // Redeploy the resource to restore the original value of `k8sManifestHashAnnotationKey` annotation,
-        // because the remote resource state is used by the other tests.
-        await kubernetesDeploy(deployParams)
-      }
+      const status = await getKubernetesDeployStatus(deployParams)
+      expect(status.state).to.equal("not-ready")
+      expect(status.detail?.state).to.equal("outdated")
     })
 
     it("should return outdated status when metadata ConfigMap has different mode", async () => {
@@ -526,6 +523,7 @@ describe("kubernetes-type handlers", () => {
 
       expect(await getDeployedResource(ctx, ctx.provider, ns1Manifest!, log), "ns1resource").to.exist
       expect(await getDeployedResource(ctx, ctx.provider, ns2Manifest!, log), "ns2resource").to.not.exist
+      expect(await getDeployedResource(ctx, ctx.provider, ns2Resource!, log), "ns2resource").to.not.exist
     })
 
     it("deletes all resources including a metadata ConfigMap describing what was last deployed", async () => {
