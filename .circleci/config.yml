@@ -389,7 +389,6 @@ jobs:
   test-dockerhub:
     <<: *node-config
     steps:
-      - *remote-docker
       - checkout
       # This is to copy the pre-built code from a previous step
       - *attach-workspace

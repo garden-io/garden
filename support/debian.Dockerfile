@@ -1,13 +1,11 @@
 # Variant can be root or rootless.
 # Defaults to root.
 ARG VARIANT=root
-ARG NODE_IMAGE_SHA
-ARG PYTHON_IMAGE_SHA
 
 # Node base image
-FROM node:18.15.0-bookworm-slim@sha256:abe13b25e07ccaedcc8797120c37781f0462a0f0682105cf2d8b8d6f99070d55 as garden-bookworm-base-root
+FROM node:18.15.0-buster-slim@sha256:b89966598ea8c38c37543823e54f3ff36c067d90f935085796cbd077a98c4ff8 as garden-buster-base-root
 
-FROM garden-bookworm-base-root as garden-base-root
+FROM garden-buster-base-root as garden-base-root
 # system dependencies
 RUN apt-get update && \
   apt-get install -y --no-install-recommends \
@@ -105,7 +103,7 @@ RUN chmod go+r /etc/apt/keyrings/microsoft.gpg
 RUN echo "deb [arch=`dpkg --print-architecture` signed-by=/etc/apt/keyrings/microsoft.gpg] https://packages.microsoft.com/repos/azure-cli/ $(lsb_release -cs) main" | \
     tee /etc/apt/sources.list.d/azure-cli.list
 RUN apt-get update
-RUN apt-get install azure-cli=${AZURE_CLI_VERSION}-1~bookworm
+RUN apt-get install azure-cli=${AZURE_CLI_VERSION}-1~buster
 RUN az aks install-cli
 
 #
