@@ -94,14 +94,25 @@ commands:
     steps:
       - restore_cache:
           keys:
-            - yarn-v7-<<parameters.context>>-{{ checksum "yarn.lock" }}
+            - npm-v2-<<parameters.context>>-{{ checksum "package-lock.json" }}
 
-      - run: yarn
+      - run: npm ci
 
       - save_cache:
-          key: yarn-v7-<<parameters.context>>-{{ checksum "yarn.lock" }}
+          key: npm-v2-<<parameters.context>>-{{ checksum "package-lock.json" }}
           paths:
-            - ~/.cache/yarn
+            - node_modules
+            - cli/node_modules
+            - core/node_modules
+            - e2e/node_modules
+            - plugins/conftest/node_modules
+            - plugins/conftest-container/node_modules
+            - plugins/conftest-kubernetes/node_modules
+            - plugins/jib/node_modules
+            - plugins/maven-container/node_modules
+            - plugins/pulumi/node_modules
+            - plugins/terraform/node_modules
+            - sdk/node_modules
 
   configure_git:
     description: Configure git (needed for some tests)
@@ -233,7 +244,7 @@ commands:
       - *attach-workspace
       - restore_cache:
           keys:
-            - pkg-v3-{{ checksum "yarn.lock" }}
+            - pkg-v3-{{ checksum "package-lock.json" }}
       - run:
           name: Install Codesigning utility (needed for ARM64 on MacOS)
           command: |
@@ -248,7 +259,7 @@ commands:
             sudo apt-get install -y binfmt-support
       - run:
           name: Run dist script
-          command: yarn run dist --version "<<parameters.version>>"
+          command: npm run dist -- --version "<<parameters.version>>"
       - persist_to_workspace:
           root: ./
           paths:
@@ -256,7 +267,7 @@ commands:
             # Needed for the alpine docker build
             - tmp/pkg/
       - save_cache:
-          key: pkg-v3-{{ checksum "yarn.lock" }}
+          key: pkg-v3-{{ checksum "package-lock.json" }}
           paths:
             - tmp/pkg-fetch
       - run:
@@ -279,7 +290,7 @@ jobs:
       - run:
           name: build
           command: |
-            yarn run build
+            npm run build
       # Save the built output to be used for the docker image and for the release steps
       - persist_to_workspace:
           # Must be an absolute path, or relative path from working_directory. This is a directory on the container which is
@@ -316,10 +327,10 @@ jobs:
       - *attach-workspace
       - run:
           name: lint
-          command: yarn run lint
+          command: npm run lint
       - run:
           name: prettier
-          command: yarn run prettier
+          command: npm run prettier
 
   check-docs:
     <<: *node-config
@@ -329,7 +340,7 @@ jobs:
       - *attach-workspace
       - run:
           name: Make sure generated docs are up-to-date
-          command: yarn run check-docs
+          command: npm run check-docs
 
   check-package-licenses:
     <<: *node-config
@@ -341,7 +352,7 @@ jobs:
           name: Make sure dependency licenses are okay
           command: |
             mkdir tmp
-            yarn check-package-licenses
+            npm run check-package-licenses
 
   test-framework:
     <<: *node-config
@@ -355,7 +366,7 @@ jobs:
       - run:
           name: Unit test framework components
           command: |
-            yarn run test:framework:unit
+            npm run test:framework:unit
           environment:
             CHOKIDAR_USEPOLLING: "1"
             NODE_OPTIONS: --max_old_space_size=4096
@@ -382,7 +393,7 @@ jobs:
             cd e2e/projects/<<parameters.project>>
             git checkout .
             cd ~/project
-            yarn e2e-project --project=<<parameters.project>> --env=<<parameters.environment>> --showlog -b
+            npm run e2e-project -- --project=<<parameters.project>> --env=<<parameters.environment>> --showlog -b
       - cleanup_remote_cluster:
           filter: <<parameters.project>>-testing-ci-$CIRCLE_BUILD_NUM-e2e
 
@@ -579,7 +590,7 @@ jobs:
       # Run tests
       - run:
           name: Plugin tests
-          command: yarn run test:plugins
+          command: npm run test:plugins
       # Persist Maven cache
       - save_cache:
           key: m2-v1
@@ -613,7 +624,7 @@ jobs:
             # Notes:
             # - We skip tests that only work for remote environments
             # - We currently don't support in-cluster building on kind.
-            yarn integ-kind
+            npm run integ-kind
       - run:
           name: Deploy demo-project
           command: ./bin/garden deploy --root examples/demo-project --logger-type basic
@@ -742,7 +753,7 @@ jobs:
           # Note: We skip tests that only work for remote environments
           command: |
             cd core
-            GARDEN_SKIP_TESTS="<<parameters.skipTests>>" yarn _integ
+            GARDEN_SKIP_TESTS="<<parameters.skipTests>>" npm run _integ
       - run:
           name: Deploy demo-project
           command: ./bin/garden deploy --root examples/demo-project
@@ -782,7 +793,7 @@ jobs:
           # Note: We skip tests that only work for remote environments
           command: |
             cd core
-            GARDEN_SKIP_TESTS="<<parameters.skipTests>>" yarn _integ
+            GARDEN_SKIP_TESTS="<<parameters.skipTests>>" npm run _integ
       - run:
           name: Deploy demo-project
           command: ./bin/garden deploy --root examples/demo-project
@@ -902,8 +913,8 @@ workflows:
           requires: [build]
       - lint:
           requires: [build]
-      # - check-docs:
-      #     requires: [build]
+      - check-docs:
+          requires: [build]
       - check-package-licenses:
           requires: [build]
       - test-framework:

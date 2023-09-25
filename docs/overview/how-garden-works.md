@@ -39,21 +39,25 @@ name: db-init
 type: container
 dependencies: [deploy.db]
 ---
+kind: Build
+name: api
+type: container
+---
 kind: Deploy
 name: api
 type: kubernetes
-build: api
-dependencies:
-  - run.db-init
+dependencies: [build.api, run.db-init]
 spec:
   files: [api/manifests]
+---
+kind: Build
+name: web
+type: container
 ---
 kind: Deploy
 name: web
 type: kubernetes
-build: api
-dependencies:
-  - deploy.api
+dependencies: [build.web, deploy.api]
 spec:
   files: [web/manifests]
 ---

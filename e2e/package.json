@@ -24,10 +24,12 @@
     "@garden-io/core": "*"
   },
   "devDependencies": {
+    "@types/chai": "^4.3.6",
     "@types/lodash": "^4.14.191",
     "@types/minimist": "^1.2.2",
     "@types/mocha": "^10.0.1",
     "@types/node": "^18",
+    "chai": "^4.3.7",
     "chalk": "^4.1.2",
     "dedent": "^0.7.0",
     "execa": "^4.1.0",
@@ -38,10 +40,11 @@
     "prettier": "3.0.0",
     "split2": "^4.1.0",
     "ts-node": "^10.8.2",
-    "typescript": "^5.1.3"
+    "typescript": "^5.1.3",
+    "username": "^5.1.0"
   },
   "scripts": {
-    "check-package-lock": "git diff-index --quiet HEAD -- yarn.lock || (echo 'yarn.lock is dirty!' && exit 1)",
+    "check-package-lock": "git diff-index --quiet HEAD -- package-lock.json || (echo 'package-lock.json is dirty!' && exit 1)",
     "clean": "shx rm -rf build",
     "dev": "tsc --build . -w --preserveWatchOutput",
     "e2e-project": "ts-node e2e-project.ts",

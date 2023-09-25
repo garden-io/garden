@@ -226,7 +226,7 @@ interface GardenInstanceState {
 @Profile()
 export class Garden {
   public log: Log
-  private loadedPlugins: GardenPluginSpec[]
+  private loadedPlugins?: GardenPluginSpec[]
   protected actionConfigs: ActionConfigMap
   protected moduleConfigs: ModuleConfigMap
   protected workflowConfigs: WorkflowConfigMap
@@ -244,7 +244,7 @@ export class Garden {
   public readonly vcs: VcsHandler
   public readonly treeCache: TreeCache
   public events: EventBus
-  private tools: { [key: string]: PluginTool }
+  private tools?: { [key: string]: PluginTool }
   public configTemplates: { [name: string]: ConfigTemplateConfig }
   private actionTypeBases: ActionTypeMap<ActionTypeDefinition<any>[]>
   private emittedWarnings: Set<string>
@@ -1987,14 +1987,15 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
 })
 
 // Override variables, also allows to override nested variables using dot notation
-export function overrideVariables(variables: DeepPrimitiveMap, overrides: DeepPrimitiveMap): DeepPrimitiveMap {
+// eslint-disable-next-line @typescript-eslint/no-shadow
+export function overrideVariables(variables: DeepPrimitiveMap, overrideVariables: DeepPrimitiveMap): DeepPrimitiveMap {
   let objNew = cloneDeep(variables)
-  Object.keys(overrides).forEach((key) => {
+  Object.keys(overrideVariables).forEach((key) => {
     if (objNew.hasOwnProperty(key)) {
       // if the original key itself is a string with a dot, then override that
-      objNew[key] = overrides[key]
+      objNew[key] = overrideVariables[key]
     } else {
-      set(objNew, key, overrides[key])
+      set(objNew, key, overrideVariables[key])
     }
   })
   return objNew

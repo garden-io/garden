@@ -64,8 +64,8 @@ interface ContextNode {
  *
  */
 export class TreeCache {
-  private cache: CacheEntries
-  private contextTree: ContextNode
+  private cache: CacheEntries = new Map<string, CacheEntry>()
+  private contextTree: ContextNode = makeContextNode([])
 
   constructor() {
     this.clear()

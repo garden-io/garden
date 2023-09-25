@@ -36,6 +36,7 @@ export class HandlerMonitor extends Monitor {
 
   constructor(params: HandlerMonitorParams) {
     super(params)
+    this.type = params.type
     this.events = params.events
     this.action = params.action
     this._key = params.key

@@ -10,7 +10,7 @@ import AsyncLock from "async-lock"
 import chalk from "chalk"
 import { Autocompleter, AutocompleteSuggestion } from "../cli/autocomplete"
 import { parseCliVarFlags } from "../cli/helpers"
-import { ParameterValues } from "../cli/params"
+import { ParameterObject, ParameterValues } from "../cli/params"
 import { CloudApi, CloudApiFactory, CloudApiFactoryParams, getGardenCloudDomain } from "../cloud/api"
 import type { Command } from "../commands/base"
 import { getBuiltinCommands, flattenCommands } from "../commands/commands"
@@ -75,7 +75,7 @@ export class GardenInstanceManager {
   private defaultProjectRootContext: ProjectRootContext
   public readonly monitors: MonitorManager
   private defaultOpts: Partial<GardenOpts> // Used for testing
-  public readonly serveCommand: ServeCommand
+  public readonly serveCommand?: ServeCommand
 
   /**
    * Events from every managed Garden instance are piped to this EventBus. Each event emitted implicitly includes
@@ -95,6 +95,7 @@ export class GardenInstanceManager {
     plugins,
     cloudApiFactory,
   }: GardenInstanceManagerParams) {
+    this.serveCommand = serveCommand
     this.sessionId = sessionId
     this.instances = new Map()
     this.projectRoots = new Map()
@@ -345,8 +346,8 @@ export class GardenInstanceManager {
     projectConfig: ProjectConfig
     globalConfigStore: GlobalConfigStore
     log: Log
-    args: ParameterValues<any>
-    opts: ParameterValues<any>
+    args: ParameterValues<ParameterObject>
+    opts: ParameterValues<ParameterObject>
     environmentString?: string
     sessionId: string
   }) {

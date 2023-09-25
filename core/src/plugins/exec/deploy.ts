@@ -34,7 +34,7 @@ import { deployStateToActionState, DeployStatus } from "../../plugin/handlers/De
 import { ActionState, Resolved } from "../../actions/types"
 import { convertCommandSpec, execRunCommand, getDefaultEnvVars } from "./common"
 import { isRunning, killRecursive } from "../../process"
-import { sdk } from "../../plugin/sdk"
+import { GardenSdkActionDefinitionActionType, GardenSdkActionDefinitionConfigType, sdk } from "../../plugin/sdk"
 import { execProvider } from "./exec"
 import { getTracePropagationEnvVars } from "../../util/open-telemetry/propagation"
 import { DeployState } from "../../types/service"
@@ -106,8 +106,8 @@ export const execDeploy = execProvider.createActionType({
   runtimeOutputsSchema: execRuntimeOutputsSchema,
 })
 
-export type ExecDeployConfig = typeof execDeploy.T.Config
-export type ExecDeploy = typeof execDeploy.T.Action
+export type ExecDeployConfig = GardenSdkActionDefinitionConfigType<typeof execDeploy>
+export type ExecDeploy = GardenSdkActionDefinitionActionType<typeof execDeploy>
 
 execDeploy.addHandler("configure", async ({ config }) => {
   return { config, supportedModes: { sync: !!config.spec.persistent } }

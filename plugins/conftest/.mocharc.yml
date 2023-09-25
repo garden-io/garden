@@ -1,6 +1,6 @@
 reporter: spec
-spec: test/**/*.js
+spec: build/test/**/*.js
 timeout: 100000
 watch-files:
-  - "*.js"
-  - "test/*.js"
+  - "build/*.js"
+  - "build/test/*.js"

@@ -1,11 +1,12 @@
 {
   "extends": "../../tsconfig.base.json",
   "include": [
-    "*.ts",
+    "src/*.ts",
     "test/*.ts"
   ],
   "compilerOptions": {
-    "composite": true
+    "composite": true,
+    "outDir": "build"
   },
   "references": [
     {

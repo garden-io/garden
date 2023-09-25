@@ -68,6 +68,9 @@ describe("common build", () => {
           spec: {
             replicas: 1,
             selector: { matchLabels: { app: "garden-util" } },
+            strategy: {
+              type: "Recreate",
+            },
             template: {
               metadata: { labels: { app: "garden-util" }, annotations: undefined },
               spec: {

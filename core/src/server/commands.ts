@@ -11,7 +11,14 @@ import stringArgv from "string-argv"
 import { Command, CommandParams, CommandResult, ConsoleCommand } from "../commands/base"
 import { createSchema, joi } from "../config/common"
 import { type Log } from "../logger/log-entry"
-import { ParameterValues, ChoicesParameter, StringParameter, StringsParameter, GlobalOptions } from "../cli/params"
+import {
+  ParameterValues,
+  ChoicesParameter,
+  StringParameter,
+  StringsParameter,
+  GlobalOptions,
+  ParameterObject,
+} from "../cli/params"
 import { parseCliArgs, pickCommand, processCliArgs } from "../cli/helpers"
 import type { AutocompleteSuggestion } from "../cli/autocomplete"
 import { naturalList } from "../util/string"
@@ -432,8 +439,8 @@ export async function resolveRequest({
   let command: Command | undefined
   let rest: string[] = []
   let argv: ParsedArgs | undefined
-  let cmdArgs: ParameterValues<any> = {}
-  let cmdOpts: ParameterValues<any> = {}
+  let cmdArgs: ParameterValues<ParameterObject> = {}
+  let cmdOpts: ParameterValues<ParameterObject> = {}
 
   if (request.command) {
     const { commands } = await manager.ensureProjectRootContext(log, projectRoot)

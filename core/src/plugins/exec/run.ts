@@ -8,7 +8,7 @@
 
 import { runResultToActionState } from "../../actions/base"
 import { renderMessageWithDivider } from "../../logger/util"
-import { sdk } from "../../plugin/sdk"
+import { GardenSdkActionDefinitionActionType, GardenSdkActionDefinitionConfigType, sdk } from "../../plugin/sdk"
 import { copyArtifacts, execRunCommand } from "./common"
 import { execRunSpecSchema, execRuntimeOutputsSchema, execStaticOutputsSchema } from "./config"
 import { execProvider } from "./exec"
@@ -24,8 +24,8 @@ export const execRun = execProvider.createActionType({
   runtimeOutputsSchema: execRuntimeOutputsSchema,
 })
 
-export type ExecRunConfig = typeof execRun.T.Config
-export type ExecRun = typeof execRun.T.Action
+export type ExecRunConfig = GardenSdkActionDefinitionConfigType<typeof execRun>
+export type ExecRun = GardenSdkActionDefinitionActionType<typeof execRun>
 
 execRun.addHandler("run", async ({ artifactsPath, log, action, ctx }) => {
   const { command, env, artifacts } = action.getSpec()

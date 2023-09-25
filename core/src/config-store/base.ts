@@ -30,18 +30,13 @@ export abstract class ConfigStore<T extends z.ZodObject<any>> {
   async get<S extends keyof I<T>>(section: S): Promise<I<T>[S]>
   async get<S extends keyof I<T>, K extends keyof I<T>[S]>(section: S, key: K): Promise<I<T>[S][K]>
   async get<S extends keyof I<T>, K extends keyof I<T>[S]>(section?: S, key?: K) {
-    const release = await this.lock()
-    try {
-      const config = await this.readConfig()
-      if (section === undefined) {
-        return config
-      } else if (key === undefined) {
-        return config[section]
-      } else {
-        return config[section][key]
-      }
-    } finally {
-      await release()
+    const config = await this.readConfig()
+    if (section === undefined) {
+      return config
+    } else if (key === undefined) {
+      return config[section]
+    } else {
+      return config[section][key]
     }
   }
 

@@ -217,7 +217,7 @@ export abstract class LoggerBase implements Logger {
   public entries: LogEntry[]
   public storeEntries: boolean
 
-  protected writers: LoggerWriters
+  protected abstract writers: LoggerWriters
 
   constructor(config: LoggerConfigBase) {
     this.level = config.level
@@ -327,6 +327,7 @@ interface RootLoggerParams extends LoggerConfigBase {
  */
 export class RootLogger extends LoggerBase {
   private static instance?: RootLogger
+  protected override writers: LoggerWriters
 
   private constructor(config: RootLoggerParams) {
     super(config)
@@ -464,6 +465,13 @@ export interface CreateEventLogParams extends CreateLogParams {
  * command logs for server requests are emitted but do not pollute the terminal.
  */
 export class ServerLogger extends LoggerBase {
+  // These aren't actually used,
+  // but need to be defined since they're abstract in the base class
+  protected override writers: LoggerWriters = {
+    display: new QuietWriter(),
+    file: [new QuietWriter()],
+  }
+
   private rootLogger: Logger
   /**
    * The log level to use for terminal output. Defaults to silly.
@@ -486,12 +494,19 @@ export class ServerLogger extends LoggerBase {
 }
 
 export class VoidLogger extends LoggerBase {
+  protected override writers: LoggerWriters = {
+    display: new QuietWriter(),
+    file: [new QuietWriter()],
+  }
+
   override log() {
     // No op
   }
 }
 
 export class EventLogger extends LoggerBase {
+  protected override writers: LoggerWriters
+
   constructor(config: EventLoggerParams) {
     super(config)
     this.writers = {

@@ -84,7 +84,6 @@ export abstract class GardenError extends Error {
    */
   public code?: NodeJSErrnoErrorCodes
 
-  public override message: string
   public wrappedErrors?: GardenError[]
 
   constructor({ message, stack, wrappedErrors, taskType, code }: GardenErrorParams) {

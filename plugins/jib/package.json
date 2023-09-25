@@ -2,20 +2,23 @@
   "name": "@garden-io/garden-jib",
   "version": "0.13.14",
   "description": "Jib container plugin for Garden",
-  "main": "index.js",
+  "main": "build/src/index.js",
   "dependencies": {
     "@garden-io/core": "*",
     "@garden-io/sdk": "*",
     "async-lock": "^1.4.0",
     "execa": "^5.1.1",
+    "fast-copy": "^3.0.1",
     "fs-extra": "^11.1.0",
-    "lodash": "^4.17.21"
+    "lodash": "^4.17.21",
+    "split2": "^4.1.0"
   },
   "devDependencies": {
     "@types/async-lock": "^1.4.0",
     "@types/chai": "^4.3.4",
     "@types/fs-extra": "^11.0.1",
     "@types/lodash": "^4.14.191",
+    "@types/mocha": "^10.0.1",
     "@types/node": "^18",
     "chai": "^4.3.7",
     "mocha": "^10.2.0",
@@ -24,7 +27,7 @@
   },
   "scripts": {
     "check-types": "tsc -p . --noEmit",
-    "clean": "rm -f *.js *.d.ts *.map tsconfig.buildinfo tsconfig.tsbuildinfo",
+    "clean": "shx rm -rf build dist",
     "fix-format": "prettier --write \"**/*.ts\"",
     "lint": "eslint -c ../../.eslintrc  --ext .ts .",
     "test": "mocha"

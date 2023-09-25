@@ -76,7 +76,7 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
     await helm({ ctx: k8sCtx, namespace, log, args: [...upgradeArgs], emitLogEvents: true })
 
     // If ctx.cloudApi is defined, the user is logged in and they might be trying to deploy to an environment
-    // that could have been paused by by Garden Cloud's AEC functionality. We therefore make sure to clean up any
+    // that could have been paused by Garden Cloud's AEC functionality. We therefore make sure to clean up any
     // dangling annotations created by Garden Cloud.
     if (ctx.cloudApi) {
       try {
@@ -92,7 +92,7 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
           })
         )
       } catch (error) {
-        const errorMsg = `Failed to remove Garden Cloud AEC annotations for service: ${action.name}.`
+        const errorMsg = `Failed to remove Garden Cloud AEC annotations for deploy: ${action.name}.`
         log.warn(errorMsg)
         log.debug({ error: toGardenError(error) })
       }
@@ -148,7 +148,6 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
     timeoutSec: timeout,
   })
 
-  // Local mode has its own port-forwarding configuration
   const forwardablePorts = getForwardablePorts({ resources: manifests, parentAction: action, mode })
 
   // Make sure port forwards work after redeployment

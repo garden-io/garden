@@ -73,6 +73,10 @@ describe("buildkit build", () => {
         },
       })
 
+      expect(result.spec.strategy).eql({
+        type: "Recreate",
+      })
+
       expect(result.spec.template.spec?.containers.length === 2)
 
       expect(result.spec.template.spec?.containers[0]).eql({
