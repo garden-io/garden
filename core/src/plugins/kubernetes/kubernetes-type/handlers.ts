@@ -45,6 +45,7 @@ import type { ActionLog } from "../../../logger/log-entry"
 import type { ActionMode, Resolved } from "../../../actions/types"
 import { deployStateToActionState } from "../../../plugin/handlers/Deploy/get-status"
 import { ResolvedDeployAction } from "../../../actions/deploy"
+import { isSha256 } from "../../../util/hashing"
 
 export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>> = {
   configure: configureKubernetesModule,
@@ -256,10 +257,12 @@ async function getResourceStatuses({
         return { resource: missingResource, state: "missing" } as ResourceStatus
       }
 
-      // Check if AEC has paused the resource
-      // TODO: remove this quickfix once we have implemented generic manifests/resources comparison
+      // TODO: consider removing this quickfix once we have implemented generic manifests/resources comparison
+      // Check if the "garden.io/manifest-hash" annotation is a valid sha256 hash.
+      // If it's not, consider the remote resource as outdated.
+      // AEC feature uses a dummy non-sha256 value to ensure the outdated state.
       const manifestHash = resource.metadata?.annotations?.[k8sManifestHashAnnotationKey]
-      if (manifestHash === "paused-by-aec") {
+      if (manifestHash && !isSha256(manifestHash)) {
         return { resource, state: "outdated" } as ResourceStatus
       }
 
