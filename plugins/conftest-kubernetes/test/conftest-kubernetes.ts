@@ -10,10 +10,10 @@ import { expect } from "chai"
 import stripAnsi from "strip-ansi"
 import { join } from "path"
 
-import { gardenPlugin } from ".."
-import { gardenPlugin as conftestPlugin } from "@garden-io/garden-conftest"
-import { dedent } from "@garden-io/sdk/util/string"
-import { makeTestGarden } from "@garden-io/sdk/testing"
+import { gardenPlugin } from "../src"
+import { gardenPlugin as conftestPlugin } from "@garden-io/garden-conftest/build/src"
+import { dedent } from "@garden-io/sdk/build/src/util/string"
+import { makeTestGarden } from "@garden-io/sdk/build/src/testing"
 
 import { TestTask } from "@garden-io/core/build/src/tasks/test"
 

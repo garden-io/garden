@@ -11,7 +11,7 @@ import wrapAnsi from "wrap-ansi"
 import stripAnsi from "strip-ansi"
 import { join, resolve } from "path"
 import { createWriteStream, WriteStream } from "fs"
-import { getPackages, yarnPath } from "./script-utils"
+import { getPackages } from "./script-utils"
 
 const colors = [chalk.blueBright, chalk.green, chalk.yellow, chalk.magenta, chalk.cyan]
 
@@ -36,24 +36,25 @@ async function runInPackages(args: string[]) {
     reportStream = createWriteStream(path)
   }
 
-  const packages = await getPackages({ scope, ignore })
-  const packageList: any[] = Object.values(packages)
-
-  for (let i = 0; i < packageList.length; i++) {
-    packageList[i].color = colors[i % colors.length]
-  }
+  const packageList = await getPackages({ scope, ignore })
+  const packagesWithColor = packageList.map((pack, i) => {
+    return {
+      ...pack,
+      color: colors[i % colors.length],
+    }
+  })
+  const packageNames = packagesWithColor.map(({ name }) => name)
 
   write(
     chalk.cyanBright(
-      `\nRunning script ${chalk.whiteBright(script)} in package(s) ` +
-        chalk.whiteBright(Object.keys(packages).join(", "))
+      `\nRunning script ${chalk.whiteBright(script)} in package(s) ` + chalk.whiteBright(packageNames.join(", "))
     )
   )
 
   // Make sure subprocesses inherit color support level
   process.env.FORCE_COLOR = chalk.supportsColor.toString() || "0"
 
-  const maxNameLength = max(packageList.map((p) => p.shortName.length)) as number
+  const maxNameLength = max(packagesWithColor.map((p) => p.shortName.length)) as number
   let lastPackage: string = ""
   let failed: string[] = []
 
@@ -63,15 +64,19 @@ async function runInPackages(args: string[]) {
   }
 
   async function runScript(packageName: string) {
-    const { color, location, shortName, packageJson } = packages[packageName]
+    const pack = packagesWithColor.find((p) => p.name === packageName)
+    if (!pack) {
+      throw new Error(`Could not find package ${packageName}`)
+    }
+    const { color, shortName, packageJson } = pack
 
     if (!packageJson.scripts || !packageJson.scripts[script]) {
       return
     }
 
-    const proc = execa("node", [yarnPath, "run", script, ...rest], { cwd: resolve(repoRoot, location), reject: false })
+    const proc = execa("npm", ["run", script, ...rest, `--workspace=${pack.name}`], { cwd: repoRoot, reject: false })
 
-    proc.on("error", (error) => {
+    void proc.on("error", (error) => {
       write(chalk.redBright(`\nCould not run ${script} script in package ${packageName}: ${error}`))
       process.exit(1)
     })
@@ -127,17 +132,16 @@ async function runInPackages(args: string[]) {
   }
 
   if (parallel) {
-    await Promise.all(Object.keys(packages).map(runScript))
+    const targetPackageNames = packageList.map(({ name }) => name)
+    await Promise.all(targetPackageNames.map(runScript))
   } else {
     const depGraph = new DepGraph()
-    for (const p of packageList) {
+    for (const p of packagesWithColor) {
       depGraph.addNode(p.name)
-      const deps = packages[p.name].workspaceDependencies
+      const deps = p.workspaceDependencies
       for (const dep of deps) {
-        if (packages[dep]) {
-          depGraph.addNode(dep)
-          depGraph.addDependency(p.name, dep)
-        }
+        depGraph.addNode(dep)
+        depGraph.addDependency(p.name, dep)
       }
     }
 

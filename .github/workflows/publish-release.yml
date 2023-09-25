@@ -22,8 +22,8 @@ jobs:
           node-version: 18.x
       - name: Build package
         run: |
-          yarn
-          yarn build
+          npm ci
+          npm run build
       - name: Setup npm registry authentication
         working-directory: ./core
         run: |

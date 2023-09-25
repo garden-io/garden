@@ -18,24 +18,27 @@ RUN apk add --no-cache \
 WORKDIR /garden-tmp/pkg
 
 # Pre-fetch the node binary for pkg
-RUN yarn add pkg@5.7.0 && \
+RUN npm install pkg@5.8.1 && \
   node_modules/.bin/pkg-fetch node18 alpine x64
 
 # Add all the packages
+ADD package.json /garden-tmp/package.json
+ADD package-lock.json /garden-tmp/package-lock.json
 ADD cli /garden-tmp/cli
 ADD core /garden-tmp/core
 ADD plugins /garden-tmp/plugins
 ADD sdk /garden-tmp/sdk
 
 # Install the CLI deps
-WORKDIR /garden-tmp/cli
+WORKDIR /garden-tmp
 
-# Need multiple attempts unfortunately, the old yarn version doesn't handle network issues quite gracefully
-RUN for i in 1 2 3 4 5; do yarn --production && break || sleep 5; done && \
+RUN npm install --omit=dev && \
   # Fix for error in this particular package
   rm -rf node_modules/es-get-iterator/test
 
 ADD static /garden/static
+
+WORKDIR /garden-tmp/cli
 
 # Create the binary
 RUN mkdir -p /garden \
