@@ -105,6 +105,21 @@ async function prepareEnvironment(
 
       const api = await KubeApi.factory(log, ctx, provider)
       await apply({ log, ctx, api, provider, manifests, validate: false })
+    } else if (clusterType === "k3s") {
+      log.debug("Using k3s conformant nginx ingress controller")
+
+      // TODO: use helm to deploy the config defined nginx-k3s.yaml
+      // TODO: handle all template strings
+
+      // const yamlPath = join(STATIC_DIR, "kubernetes", "nginx-k3s.yaml")
+      // const yamlData = (await readFile(yamlPath))
+      //   .toString()
+      //   .replaceAll("${var.namespace}", config.gardenSystemNamespace)
+      // const manifests = loadAll(yamlData)
+      //   .filter(isTruthy)
+      //   .map((m) => m as KubernetesResource)
+      //
+      // await applyYamlFromFile(k8sCtx, log, yamlPath)
     } else if (clusterType === "minikube") {
       log.debug("Using minikube's ingress addon")
       try {
