@@ -6,16 +6,16 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { configureProvider, configSchema } from "./config.js"
+import { configureProvider, configSchema, LocalKubernetesConfig } from "./config.js"
 import { createGardenPlugin } from "../../../plugin/plugin.js"
 import { dedent } from "../../../util/string.js"
-import { DOCS_BASE_URL, STATIC_DIR} from "../../../constants.js"
+import { DOCS_BASE_URL, STATIC_DIR } from "../../../constants.js"
 import {
   PrepareEnvironmentParams,
   PrepareEnvironmentResult,
 } from "../../../plugin/handlers/Provider/prepareEnvironment.js"
 import { KubernetesPluginContext } from "../config.js"
-import { KubernetesEnvironmentStatus, prepareEnvironment as _prepareEnvironmentBase } from "../init.js"
+import { prepareEnvironment as _prepareEnvironmentBase } from "../init.js"
 import { Log } from "../../../logger/log-entry.js"
 import { exec, isTruthy } from "../../../util/util.js"
 import chalk from "chalk"
@@ -57,7 +57,7 @@ export const gardenPlugin = () =>
   })
 
 async function prepareEnvironment(
-  params: PrepareEnvironmentParams<KubernetesEnvironmentStatus>
+  params: PrepareEnvironmentParams<LocalKubernetesConfig>
 ): Promise<PrepareEnvironmentResult> {
   const { ctx, log } = params
   const k8sCtx = <KubernetesPluginContext>ctx
