@@ -62,7 +62,6 @@ const basicConfig: PartialConfig = {
   setupIngressController: null,
   systemNodeSelector: {},
   tlsCertificates: [],
-  _systemServices: [],
 }
 
 const singleTlsConfig: PartialConfig = {

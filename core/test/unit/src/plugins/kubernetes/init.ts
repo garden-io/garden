@@ -61,7 +61,6 @@ const basicConfig: KubernetesConfig = {
   setupIngressController: null,
   systemNodeSelector: {},
   tlsCertificates: [],
-  _systemServices: [],
 }
 
 const basicProvider: KubernetesProvider = {
