@@ -387,7 +387,8 @@ jobs:
           filter: <<parameters.project>>-testing-ci-$CIRCLE_BUILD_NUM-e2e
 
   test-dockerhub:
-    <<: *node-config
+    machine:
+      <<: *shared-machine-config
     steps:
       - checkout
       # This is to copy the pre-built code from a previous step

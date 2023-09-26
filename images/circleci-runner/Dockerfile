@@ -53,8 +53,3 @@ RUN wget -O kubectl https://storage.googleapis.com/kubernetes-release/release/v1
   chmod +x kubectl && \
   sudo mv kubectl /usr/local/bin/ && \
   cd / && kubectl version --client=true # make sure it works
-
-# install buildx
-RUN mkdir -p ~/.docker/cli-plugins && \
-  wget -O ~/.docker/cli-plugins/docker-buildx https://github.com/docker/buildx/releases/download/v0.11.1/buildx-v0.11.1.linux-amd64 && \
-  chmod +x ~/.docker/cli-plugins/docker-buildx
