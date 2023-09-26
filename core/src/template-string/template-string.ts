@@ -7,7 +7,7 @@
  */
 
 import chalk from "chalk"
-import { ConfigurationError, GardenError, TemplateStringError } from "../exceptions"
+import { ConfigurationError, GardenError, GardenErrorParams, TemplateStringError } from "../exceptions"
 import {
   ConfigContext,
   ContextKeySegment,
@@ -33,7 +33,6 @@ import {
   Primitive,
   StringMap,
 } from "../config/common"
-import { profile } from "../util/profiling"
 import { dedent, deline, naturalList, titleize, truncate } from "../util/string"
 import type { ObjectWithName } from "../util/util"
 import { Log } from "../logger/log-entry"
@@ -41,6 +40,7 @@ import type { ModuleConfigContext } from "../config/template-contexts/module"
 import { callHelperFunction } from "./functions"
 import { ActionKind, actionKindsLower } from "../actions/types"
 import { deepMap } from "../util/objects"
+import { ConfigSource } from "../config/validation"
 
 const missingKeyExceptionType = "template-string-missing-key"
 const passthroughExceptionType = "template-string-passthrough"
@@ -80,6 +80,23 @@ function getValue(v: Primitive | undefined | ResolvedClause) {
   return isPlainObject(v) ? (<ResolvedClause>v).resolved : v
 }
 
+type ObjectPath = (string | number)[]
+
+export class TemplateError extends GardenError {
+  type = "template"
+
+  path: ObjectPath | undefined
+  value: any
+  resolved: any
+
+  constructor(params: GardenErrorParams & { path: ObjectPath | undefined; value: any; resolved: any }) {
+    super(params)
+    this.path = params.path
+    this.value = params.value
+    this.resolved = params.resolved
+  }
+}
+
 /**
  * Parse and resolve a templated string, with the given context. The template format is similar to native JS templated
  * strings but only supports simple lookups from the given context, e.g. "prefix-${nested.key}-suffix", and not
@@ -88,7 +105,17 @@ function getValue(v: Primitive | undefined | ResolvedClause) {
  * The context should be a ConfigContext instance. The optional `stack` parameter is used to detect circular
  * dependencies when resolving context variables.
  */
-export function resolveTemplateString(string: string, context: ConfigContext, opts: ContextResolveOpts = {}): any {
+export function resolveTemplateString({
+  string,
+  context,
+  contextOpts = {},
+  path,
+}: {
+  string: string
+  context: ConfigContext
+  contextOpts?: ContextResolveOpts
+  path?: ObjectPath
+}): any {
   // Just return immediately if this is definitely not a template string
   if (!maybeTemplateString(string)) {
     return string
@@ -98,10 +125,10 @@ export function resolveTemplateString(string: string, context: ConfigContext, op
   try {
     const parsed = parser.parse(string, {
       getKey: (key: string[], resolveOpts?: ContextResolveOpts) => {
-        return context.resolve({ key, nodePath: [], opts: { ...opts, ...(resolveOpts || {}) } })
+        return context.resolve({ key, nodePath: [], opts: { ...contextOpts, ...(resolveOpts || {}) } })
       },
       getValue,
-      resolveNested: (nested: string) => resolveTemplateString(nested, context, opts),
+      resolveNested: (nested: string) => resolveTemplateString({ string: nested, context, contextOpts }),
       buildBinaryExpression,
       buildLogicalExpression,
       isArray: Array.isArray,
@@ -109,8 +136,8 @@ export function resolveTemplateString(string: string, context: ConfigContext, op
       TemplateStringError,
       missingKeyExceptionType,
       passthroughExceptionType,
-      allowPartial: !!opts.allowPartial,
-      unescape: !!opts.unescape,
+      allowPartial: !!contextOpts.allowPartial,
+      unescape: !!contextOpts.unescape,
       escapePrefix,
       optionalSuffix: "}?",
       isPlainObject,
@@ -211,7 +238,7 @@ export function resolveTemplateString(string: string, context: ConfigContext, op
     const prefix = `Invalid template string (${chalk.white(truncate(string, 35).replace(/\n/g, "\\n"))}): `
     const message = err.message.startsWith(prefix) ? err.message : prefix + err.message
 
-    throw new TemplateStringError({ message })
+    throw new TemplateStringError({ message, path })
   }
 }
 
@@ -220,23 +247,37 @@ export function resolveTemplateString(string: string, context: ConfigContext, op
  */
 
 // `extends any` here isn't pretty but this function is hard to type correctly
-export const resolveTemplateStrings = profile(function $resolveTemplateStrings<T extends any>(
-  value: T,
-  context: ConfigContext,
-  opts: ContextResolveOpts = {}
-): T {
+//export const resolveTemplateStrings = profile(function $resolveTemplateStrings<T extends any>(
+export function resolveTemplateStrings<T extends any>({
+  value,
+  context,
+  contextOpts = {},
+  path,
+  source,
+}: {
+  value: T
+  context: ConfigContext
+  contextOpts?: ContextResolveOpts
+  path?: ObjectPath
+  source: ConfigSource | undefined
+}): T {
   if (value === null) {
     return null as T
   }
   if (value === undefined) {
     return undefined as T
   }
+
+  if (!path) {
+    path = []
+  }
+
   if (typeof value === "string") {
-    return <T>resolveTemplateString(value, context, opts)
+    return <T>resolveTemplateString({ string: value, context, path, contextOpts })
   } else if (Array.isArray(value)) {
     const output: unknown[] = []
 
-    for (const v of value) {
+    value.forEach((v, i) => {
       if (isPlainObject(v) && v[arrayConcatKey] !== undefined) {
         if (Object.keys(v).length > 1) {
           const extraKeys = naturalList(
@@ -244,51 +285,68 @@ export const resolveTemplateStrings = profile(function $resolveTemplateStrings<T
               .filter((k) => k !== arrayConcatKey)
               .map((k) => JSON.stringify(k))
           )
-          throw new ConfigurationError({
+          throw new TemplateError({
             message: `A list item with a ${arrayConcatKey} key cannot have any other keys (found ${extraKeys})`,
+            path,
+            value,
+            resolved: undefined,
           })
         }
 
         // Handle array concatenation via $concat
-        const resolved = resolveTemplateStrings(v[arrayConcatKey], context, opts)
+        const resolved = resolveTemplateStrings({
+          value: v[arrayConcatKey],
+          context,
+          contextOpts: {
+            ...contextOpts,
+          },
+          path: path && [...path, arrayConcatKey],
+          source,
+        })
 
         if (Array.isArray(resolved)) {
           output.push(...resolved)
-        } else if (opts.allowPartial) {
+        } else if (contextOpts.allowPartial) {
           output.push({ $concat: resolved })
         } else {
-          throw new ConfigurationError({
+          throw new TemplateError({
             message: `Value of ${arrayConcatKey} key must be (or resolve to) an array (got ${typeof resolved})`,
+            path,
+            value,
+            resolved,
           })
         }
       } else {
-        output.push(resolveTemplateStrings(v, context, opts))
+        output.push(resolveTemplateStrings({ value: v, context, contextOpts, source, path: path && [...path, i] }))
       }
-    }
+    })
 
     return <T>(<unknown>output)
   } else if (isPlainObject(value)) {
     if (value[arrayForEachKey] !== undefined) {
       // Handle $forEach loop
-      return handleForEachObject(value, context, opts)
+      return handleForEachObject({ value, context, contextOpts, path, source })
     } else if (value[conditionalKey] !== undefined) {
       // Handle $if conditional
-      return handleConditional(value, context, opts)
+      return handleConditional({ value, context, contextOpts, path, source })
     } else {
       // Resolve $merge keys, depth-first, leaves-first
       let output = {}
 
       for (const [k, v] of Object.entries(value)) {
-        const resolved = resolveTemplateStrings(v, context, opts)
+        const resolved = resolveTemplateStrings({ value: v, context, contextOpts, source, path: path && [...path, k] })
 
         if (k === objectSpreadKey) {
           if (isPlainObject(resolved)) {
             output = { ...output, ...resolved }
-          } else if (opts.allowPartial) {
+          } else if (contextOpts.allowPartial) {
             output[k] = resolved
           } else {
-            throw new ConfigurationError({
+            throw new TemplateError({
               message: `Value of ${objectSpreadKey} key must be (or resolve to) a mapping object (got ${typeof resolved})`,
+              path: [...path, k],
+              value,
+              resolved,
             })
           }
         } else {
@@ -301,17 +359,32 @@ export const resolveTemplateStrings = profile(function $resolveTemplateStrings<T
   } else {
     return <T>value
   }
-})
+}
 
 const expectedForEachKeys = [arrayForEachKey, arrayForEachReturnKey, arrayForEachFilterKey]
 
-function handleForEachObject(value: any, context: ConfigContext, opts: ContextResolveOpts) {
+function handleForEachObject({
+  value,
+  context,
+  contextOpts,
+  path,
+  source,
+}: {
+  value: any
+  context: ConfigContext
+  contextOpts: ContextResolveOpts
+  path: ObjectPath | undefined
+  source: ConfigSource | undefined
+}) {
   // Validate input object
   if (value[arrayForEachReturnKey] === undefined) {
-    throw new ConfigurationError({
+    throw new TemplateError({
       message: `Missing ${arrayForEachReturnKey} field next to ${arrayForEachKey} field. Got ${naturalList(
         Object.keys(value)
       )}`,
+      path: path && [...path, arrayForEachKey],
+      value,
+      resolved: undefined,
     })
   }
 
@@ -320,24 +393,35 @@ function handleForEachObject(value: any, context: ConfigContext, opts: ContextRe
   if (unexpectedKeys.length > 0) {
     const extraKeys = naturalList(unexpectedKeys.map((k) => JSON.stringify(k)))
 
-    throw new ConfigurationError({
+    throw new TemplateError({
       message: `Found one or more unexpected keys on ${arrayForEachKey} object: ${extraKeys}. Expected keys: ${naturalList(
         expectedForEachKeys
       )}`,
+      path,
+      value,
+      resolved: undefined,
     })
   }
 
   // Try resolving the value of the $forEach key
-  let resolvedInput = resolveTemplateStrings(value[arrayForEachKey], context, opts)
-
+  let resolvedInput = resolveTemplateStrings({
+    value: value[arrayForEachKey],
+    context,
+    contextOpts,
+    source,
+    path: path && [...path, arrayForEachKey],
+  })
   const isObject = isPlainObject(resolvedInput)
 
   if (!Array.isArray(resolvedInput) && !isObject) {
-    if (opts.allowPartial) {
+    if (contextOpts.allowPartial) {
       return value
     } else {
-      throw new ConfigurationError({
+      throw new TemplateError({
         message: `Value of ${arrayForEachKey} key must be (or resolve to) an array or mapping object (got ${typeof resolvedInput})`,
+        path: path && [...path, arrayForEachKey],
+        value,
+        resolved: resolvedInput,
       })
     }
   }
@@ -356,11 +440,11 @@ function handleForEachObject(value: any, context: ConfigContext, opts: ContextRe
       // If partial application is disabled
       // then we need to make sure that the resulting expression is evaluated again
       // since the magic keys only get resolved via `resolveTemplateStrings`
-      if (opts.allowPartial) {
+      if (contextOpts.allowPartial) {
         return value
       }
 
-      resolvedInput = resolveTemplateStrings(resolvedInput, context, opts)
+      resolvedInput = resolveTemplateStrings({ value: resolvedInput, context, contextOpts, source: undefined })
     }
   }
 
@@ -386,36 +470,68 @@ function handleForEachObject(value: any, context: ConfigContext, opts: ContextRe
 
     // Check $filter clause output, if applicable
     if (filterExpression !== undefined) {
-      const filterResult = resolveTemplateStrings(value[arrayForEachFilterKey], loopContext, opts)
+      const filterResult = resolveTemplateStrings({
+        value: value[arrayForEachFilterKey],
+        context: loopContext,
+        contextOpts,
+        source,
+        path: path && [...path, arrayForEachFilterKey],
+      })
 
       if (filterResult === false) {
         continue
       } else if (filterResult !== true) {
-        throw new ConfigurationError({
+        throw new TemplateError({
           message: `${arrayForEachFilterKey} clause in ${arrayForEachKey} loop must resolve to a boolean value (got ${typeof resolvedInput})`,
+          path: path && [...path, arrayForEachFilterKey],
+          value,
+          resolved: undefined,
         })
       }
     }
 
-    output.push(resolveTemplateStrings(value[arrayForEachReturnKey], loopContext, opts))
+    output.push(
+      resolveTemplateStrings({
+        value: value[arrayForEachReturnKey],
+        context: loopContext,
+        contextOpts,
+        source,
+        path: path && [...path, arrayForEachKey, i],
+      })
+    )
   }
 
   // Need to resolve once more to handle e.g. $concat expressions
-  return resolveTemplateStrings(output, context, opts)
+  return resolveTemplateStrings({ value: output, context, contextOpts, source, path })
 }
 
 const expectedConditionalKeys = [conditionalKey, conditionalThenKey, conditionalElseKey]
 
-function handleConditional(value: any, context: ConfigContext, opts: ContextResolveOpts) {
+function handleConditional({
+  value,
+  context,
+  contextOpts,
+  path,
+  source,
+}: {
+  value: any
+  context: ConfigContext
+  contextOpts: ContextResolveOpts
+  path: ObjectPath | undefined
+  source: ConfigSource | undefined
+}) {
   // Validate input object
   const thenExpression = value[conditionalThenKey]
   const elseExpression = value[conditionalElseKey]
 
   if (thenExpression === undefined) {
-    throw new ConfigurationError({
+    throw new TemplateError({
       message: `Missing ${conditionalThenKey} field next to ${conditionalKey} field. Got: ${naturalList(
         Object.keys(value)
       )}`,
+      path,
+      value,
+      resolved: undefined,
     })
   }
 
@@ -424,30 +540,54 @@ function handleConditional(value: any, context: ConfigContext, opts: ContextReso
   if (unexpectedKeys.length > 0) {
     const extraKeys = naturalList(unexpectedKeys.map((k) => JSON.stringify(k)))
 
-    throw new ConfigurationError({
+    throw new TemplateError({
       message: `Found one or more unexpected keys on ${conditionalKey} object: ${extraKeys}. Expected: ${naturalList(
         expectedConditionalKeys
       )}`,
+      path,
+      value,
+      resolved: undefined,
     })
   }
 
   // Try resolving the value of the $if key
-  const resolvedConditional = resolveTemplateStrings(value[conditionalKey], context, opts)
+  const resolvedConditional = resolveTemplateStrings({
+    value: value[conditionalKey],
+    context,
+    contextOpts,
+    source,
+    path: path && [...path, conditionalKey],
+  })
 
   if (typeof resolvedConditional !== "boolean") {
-    if (opts.allowPartial) {
+    if (contextOpts.allowPartial) {
       return value
     } else {
-      throw new ConfigurationError({
+      throw new TemplateError({
         message: `Value of ${conditionalKey} key must be (or resolve to) a boolean (got ${typeof resolvedConditional})`,
+        path: path && [...path, conditionalKey],
+        value,
+        resolved: resolvedConditional,
       })
     }
   }
 
   // Note: We implicitly default the $else value to undefined
 
-  const resolvedThen = resolveTemplateStrings(thenExpression, context, opts)
-  const resolvedElse = resolveTemplateStrings(elseExpression, context, opts)
+  const resolvedThen = resolveTemplateStrings({
+    value: thenExpression,
+    context,
+    path: path && [...path, conditionalThenKey],
+    contextOpts,
+    source,
+  })
+  const resolvedElse = resolveTemplateStrings({
+    value: elseExpression,
+    context,
+    path: path && [...path, conditionalElseKey],
+    contextOpts,
+    source,
+  })
 
   if (!!resolvedConditional) {
     return resolvedThen
@@ -487,7 +627,7 @@ export function mayContainTemplateString(obj: any): boolean {
  */
 export function collectTemplateReferences<T extends object>(obj: T): ContextKeySegment[][] {
   const context = new ScanContext()
-  resolveTemplateStrings(obj, context, { allowPartial: true })
+  resolveTemplateStrings({ value: obj, context, contextOpts: { allowPartial: true }, source: undefined })
   return uniq(context.foundKeys.entries()).sort()
 }
 
@@ -602,7 +742,7 @@ export function getModuleTemplateReferences<T extends object>(obj: T, context: M
   const moduleNames = refs.filter((ref) => ref[0] === "modules" && ref.length > 1)
   // Resolve template strings in name refs. This would ideally be done ahead of this function, but is currently
   // necessary to resolve templated module name references in ModuleTemplates.
-  return resolveTemplateStrings(moduleNames, context)
+  return resolveTemplateStrings({ value: moduleNames, context, source: undefined })
 }
 
 /**

@@ -522,9 +522,9 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
     variables: config.variables,
     varfiles: resolvedVarFiles,
   })
-  const resolvedVariables = resolveTemplateStrings(
-    variables,
-    new ActionConfigContext({
+  const resolvedVariables = resolveTemplateStrings({
+    value: variables,
+    context: new ActionConfigContext({
       garden,
       config: { ...config, internal: { ...config.internal, inputs: {} } },
       thisContextParams: {
@@ -533,14 +533,16 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
       },
       variables,
     }),
-    { allowPartial: true }
-  )
+    contextOpts: { allowPartial: true },
+    // TODO: See about mapping this to the original variable sources
+    source: undefined,
+  })
 
   if (templateName) {
     // Partially resolve inputs
-    const partiallyResolvedInputs = resolveTemplateStrings(
-      config.internal.inputs || {},
-      new ActionConfigContext({
+    const partiallyResolvedInputs = resolveTemplateStrings({
+      value: config.internal.inputs || {},
+      context: new ActionConfigContext({
         garden,
         config: { ...config, internal: { ...config.internal, inputs: {} } },
         thisContextParams: {
@@ -549,8 +551,10 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
         },
         variables: resolvedVariables,
       }),
-      { allowPartial: true }
-    )
+      contextOpts: { allowPartial: true },
+      // TODO: See about mapping this to the original inputs source
+      source: undefined,
+    })
 
     const template = garden.configTemplates[templateName]
 
@@ -570,6 +574,7 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
       path: config.internal.basePath,
       schema: template.inputsSchema,
       projectRoot: garden.projectRoot,
+      source: undefined,
     })
   }
 
@@ -584,11 +589,18 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
     variables: resolvedVariables,
   })
 
+  const yamlDoc = config.internal.yamlDoc
+
   function resolveTemplates() {
     // Fully resolve built-in fields that only support `ActionConfigContext`.
     // TODO-0.13.1: better error messages when something goes wrong here (missing inputs for example)
-    const resolvedBuiltin = resolveTemplateStrings(pick(config, builtinConfigKeys), builtinFieldContext, {
-      allowPartial: false,
+    const resolvedBuiltin = resolveTemplateStrings({
+      value: pick(config, builtinConfigKeys),
+      context: builtinFieldContext,
+      contextOpts: {
+        allowPartial: false,
+      },
+      source: { yamlDoc, basePath: [] },
     })
     config = { ...config, ...resolvedBuiltin }
     const { spec = {} } = config
@@ -606,15 +618,20 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
       name: config.name,
       path: config.internal.basePath,
       projectRoot: garden.projectRoot,
+      source: { yamlDoc },
     })
 
     config = { ...config, variables: resolvedVariables, spec }
 
     // Partially resolve other fields
     // TODO-0.13.1: better error messages when something goes wrong here (missing inputs for example)
-
-    const resolvedOther = resolveTemplateStrings(omit(config, builtinConfigKeys), builtinFieldContext, {
-      allowPartial: true,
+    const resolvedOther = resolveTemplateStrings({
+      value: omit(config, builtinConfigKeys),
+      context: builtinFieldContext,
+      contextOpts: {
+        allowPartial: true,
+      },
+      source: { yamlDoc },
     })
     config = { ...config, ...resolvedOther }
   }
@@ -736,7 +753,11 @@ function dependenciesFromActionConfig(
 
     if (maybeTemplateString(ref.name)) {
       try {
-        ref.name = resolveTemplateString(ref.name, templateContext, { allowPartial: false })
+        ref.name = resolveTemplateString({
+          string: ref.name,
+          context: templateContext,
+          contextOpts: { allowPartial: false },
+        })
       } catch (err) {
         log.warn(
           `Unable to infer dependency from action reference in ${description}, because template string '${ref.name}' could not be resolved. Either fix the dependency or specify it explicitly.`

@@ -288,7 +288,13 @@ export class ModuleResolver {
 
     // Try resolving template strings if possible
     let buildDeps: string[] = []
-    const resolvedDeps = resolveTemplateStrings(rawConfig.build.dependencies, configContext, { allowPartial: true })
+    const resolvedDeps = resolveTemplateStrings({
+      value: rawConfig.build.dependencies,
+      context: configContext,
+      contextOpts: { allowPartial: true },
+      // Note: We're not implementing the YAML source mapping for modules
+      source: undefined,
+    })
 
     // The build.dependencies field may not resolve at all, in which case we can't extract any deps from there
     if (isArray(resolvedDeps)) {
@@ -349,12 +355,14 @@ export class ModuleResolver {
     if (templateName) {
       const template = this.garden.configTemplates[templateName]
 
-      inputs = resolveTemplateStrings(
-        inputs,
-        new ModuleConfigContext(templateContextParams),
+      inputs = resolveTemplateStrings({
+        value: inputs,
+        context: new ModuleConfigContext(templateContextParams),
         // Not all inputs may need to be resolvable
-        { allowPartial: true }
-      )
+        contextOpts: { allowPartial: true },
+        // Note: We're not implementing the YAML source mapping for modules
+        source: undefined,
+      })
 
       inputs = validateWithPath({
         config: inputs,
@@ -362,6 +370,7 @@ export class ModuleResolver {
         path: config.configPath || config.path,
         schema: template.inputsSchema,
         projectRoot: garden.projectRoot,
+        source: undefined,
       })
 
       config.inputs = inputs
@@ -371,8 +380,14 @@ export class ModuleResolver {
     const resolvedModuleVariables = await this.resolveVariables(config, templateContextParams)
 
     // Now resolve just references to inputs on the config
-    config = resolveTemplateStrings(cloneDeep(config), new GenericContext({ inputs }), {
-      allowPartial: true,
+    config = resolveTemplateStrings({
+      value: cloneDeep(config),
+      context: new GenericContext({ inputs }),
+      contextOpts: {
+        allowPartial: true,
+      },
+      // Note: We're not implementing the YAML source mapping for modules
+      source: undefined,
     })
 
     // And finally fully resolve the config.
@@ -384,8 +399,14 @@ export class ModuleResolver {
       inputs: { ...inputs },
     })
 
-    config = resolveTemplateStrings({ ...config, inputs: {}, variables: {} }, configContext, {
-      allowPartial: false,
+    config = resolveTemplateStrings({
+      value: { ...config, inputs: {}, variables: {} },
+      context: configContext,
+      contextOpts: {
+        allowPartial: false,
+      },
+      // Note: We're not implementing the YAML source mapping for modules
+      source: undefined,
     })
 
     config.variables = resolvedModuleVariables
@@ -433,6 +454,7 @@ export class ModuleResolver {
         name: config.name,
         path: config.path,
         projectRoot: garden.projectRoot,
+        source: undefined,
       })
     }
 
@@ -444,6 +466,7 @@ export class ModuleResolver {
       name: config.name,
       path: config.path,
       projectRoot: garden.projectRoot,
+      source: undefined,
     })
 
     if (config.repositoryUrl) {
@@ -479,6 +502,7 @@ export class ModuleResolver {
           projectRoot: garden.projectRoot,
           configType: `configuration for module '${config.name}' (base schema from '${base.name}' plugin)`,
           ErrorClass: ConfigurationError,
+          source: undefined,
         })
       }
     }
@@ -548,7 +572,7 @@ export class ModuleResolver {
         }
 
         const resolvedContents = fileSpec.resolveTemplates
-          ? resolveTemplateString(contents, configContext, { unescape: true })
+          ? resolveTemplateString({ string: contents, context: configContext, contextOpts: { unescape: true } })
           : contents
 
         const targetDir = resolve(resolvedConfig.path, ...posix.dirname(fileSpec.targetPath).split(posix.sep))
@@ -608,6 +632,7 @@ export class ModuleResolver {
         path: module.configPath || module.path,
         projectRoot: this.garden.projectRoot,
         ErrorClass: PluginError,
+        source: undefined,
       })
     }
 
@@ -625,6 +650,7 @@ export class ModuleResolver {
           projectRoot: this.garden.projectRoot,
           configType: `outputs for module '${module.name}' (base schema from '${base.name}' plugin)`,
           ErrorClass: PluginError,
+          source: undefined,
         })
       }
     }
@@ -642,9 +668,14 @@ export class ModuleResolver {
   ): Promise<DeepPrimitiveMap> {
     const moduleConfigContext = new ModuleConfigContext(templateContextParams)
     const resolveOpts = { allowPartial: false }
+
     let varfileVars: DeepPrimitiveMap = {}
     if (config.varfile) {
-      const varfilePath = resolveTemplateString(config.varfile, moduleConfigContext, resolveOpts)
+      const varfilePath = resolveTemplateString({
+        string: config.varfile,
+        context: moduleConfigContext,
+        contextOpts: resolveOpts,
+      })
       varfileVars = await loadVarfile({
         configRoot: config.path,
         path: varfilePath,
@@ -653,7 +684,13 @@ export class ModuleResolver {
     }
 
     const rawVariables = config.variables
-    const moduleVariables = resolveTemplateStrings(cloneDeep(rawVariables || {}), moduleConfigContext, resolveOpts)
+    const moduleVariables = resolveTemplateStrings({
+      value: cloneDeep(rawVariables || {}),
+      context: moduleConfigContext,
+      contextOpts: resolveOpts,
+      // Note: We're not implementing the YAML source mapping for modules
+      source: undefined,
+    })
     const mergedVariables: DeepPrimitiveMap = <any>(
       merge(moduleVariables, merge(varfileVars, this.garden.variableOverrides))
     )

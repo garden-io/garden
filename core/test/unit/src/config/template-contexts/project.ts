@@ -305,7 +305,10 @@ describe("ProjectConfigContext", () => {
       commandInfo: { name: "deploy", args: {}, opts: { sync: ["my-service"] } },
     })
 
-    let result = resolveTemplateString("${command.name == 'deploy' && (command.params.sync contains 'my-service')}", c)
+    let result = resolveTemplateString({
+      string: "${command.name == 'deploy' && (command.params.sync contains 'my-service')}",
+      context: c,
+    })
     expect(result).to.be.true
   })
 
@@ -322,10 +325,10 @@ describe("ProjectConfigContext", () => {
       commandInfo: { name: "test", args: {}, opts: {} },
     })
 
-    let result = resolveTemplateString(
-      "${command.params contains 'sync' && command.params.sync contains 'my-service'}",
-      c
-    )
+    let result = resolveTemplateString({
+      string: "${command.params contains 'sync' && command.params.sync contains 'my-service'}",
+      context: c,
+    })
     expect(result).to.be.false
   })
 })
