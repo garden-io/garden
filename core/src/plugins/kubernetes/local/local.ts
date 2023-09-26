@@ -14,7 +14,7 @@ import {
   PrepareEnvironmentParams,
   PrepareEnvironmentResult,
 } from "../../../plugin/handlers/Provider/prepareEnvironment.js"
-import { KubernetesPluginContext } from "../config.js"
+import { KubernetesClusterType, KubernetesPluginContext } from "../config.js"
 import { prepareEnvironment as _prepareEnvironmentBase } from "../init.js"
 import { Log } from "../../../logger/log-entry.js"
 import { exec, isTruthy } from "../../../util/util.js"
@@ -64,7 +64,7 @@ async function prepareEnvironment(
   const provider = k8sCtx.provider
   const config = provider.config
 
-  const clusterType = (await getClusterType(k8sCtx, log)) || "generic"
+  const clusterType = await getClusterType(k8sCtx, log)
 
   const setupIngressController = config.setupIngressController
 
@@ -146,7 +146,7 @@ async function prepareEnvironment(
   return result
 }
 
-async function getClusterType(ctx: KubernetesPluginContext, log: Log) {
+async function getClusterType(ctx: KubernetesPluginContext, log: Log): Promise<KubernetesClusterType> {
   const provider = ctx.provider
   const config = provider.config
 

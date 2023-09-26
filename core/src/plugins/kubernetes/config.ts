@@ -120,6 +120,8 @@ export interface ClusterBuildkitCacheConfig {
   registry?: ContainerRegistryConfig
 }
 
+export type KubernetesClusterType = "kind" | "minikube" | "microk8s" | "k3s" | "generic"
+
 export interface KubernetesConfig extends BaseProviderConfig {
   buildMode: ContainerBuildMode
   clusterBuildkit?: {
@@ -171,7 +173,7 @@ export interface KubernetesConfig extends BaseProviderConfig {
   gardenSystemNamespace: string
   tlsCertificates: IngressTlsCertificate[]
   certManager?: CertManagerConfig
-  clusterType?: "kind" | "minikube" | "microk8s" | "k3s" | "generic"
+  clusterType?: KubernetesClusterType
 }
 
 export type KubernetesProvider = Provider<KubernetesConfig>
