@@ -6,13 +6,19 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import type Joi from "@hapi/joi"
 import { getLogLevelChoices, LogLevel } from "../logger/logger"
 import stringArgv from "string-argv"
 import { Command, CommandParams, CommandResult, ConsoleCommand } from "../commands/base"
 import { createSchema, joi } from "../config/common"
 import { type Log } from "../logger/log-entry"
-import { ParameterValues, ChoicesParameter, StringParameter, StringsParameter, GlobalOptions } from "../cli/params"
+import {
+  ParameterValues,
+  ChoicesParameter,
+  StringParameter,
+  StringsParameter,
+  GlobalOptions,
+  ParameterObject,
+} from "../cli/params"
 import { parseCliArgs, pickCommand, processCliArgs } from "../cli/helpers"
 import type { AutocompleteSuggestion } from "../cli/autocomplete"
 import { naturalList } from "../util/string"
@@ -42,14 +48,6 @@ import { z } from "zod"
 import { exec } from "../util/util"
 import split2 from "split2"
 import pProps from "p-props"
-
-export interface CommandMap {
-  [key: string]: {
-    command: Command
-    requestSchema: Joi.ObjectSchema
-    // TODO: implement resultSchema on Commands, so we can include it here as well (for docs mainly)
-  }
-}
 
 const autocompleteArguments = {
   input: new StringParameter({
@@ -269,7 +267,7 @@ interface GetActionStatusesCommandResult {
 
 export class _GetActionStatusesCommand extends ConsoleCommand {
   name = "_get-action-statuses"
-  help = "[Internal/Experimental] Retuns a map of all actions statuses."
+  help = "[Internal/Experimental] Returns a map of all actions statuses."
   override hidden = true
 
   override streamEvents = false
@@ -441,8 +439,8 @@ export async function resolveRequest({
   let command: Command | undefined
   let rest: string[] = []
   let argv: ParsedArgs | undefined
-  let cmdArgs: ParameterValues<any> = {}
-  let cmdOpts: ParameterValues<any> = {}
+  let cmdArgs: ParameterValues<ParameterObject> = {}
+  let cmdOpts: ParameterValues<ParameterObject> = {}
 
   if (request.command) {
     const { commands } = await manager.ensureProjectRootContext(log, projectRoot)

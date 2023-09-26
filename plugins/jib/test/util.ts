@@ -6,19 +6,19 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { expectError, makeTestGarden, TestGarden } from "@garden-io/sdk/testing"
+import { expectError, makeTestGarden, TestGarden } from "@garden-io/sdk/build/src/testing"
 import { expect } from "chai"
-import { detectProjectType, getBuildFlags, JibBuildAction } from "../util"
-import { join } from "path"
+import { detectProjectType, getBuildFlags, JibBuildAction } from "../src/util"
+import { resolve } from "path"
 import { ResolvedConfigGraph } from "@garden-io/core/build/src/graph/config-graph"
 import { Resolved } from "@garden-io/core/build/src/actions/types"
-import { gardenPlugin } from "../index"
+import { gardenPlugin } from "../src/index"
 
 describe("util", function () {
   // eslint-disable-next-line no-invalid-this
   this.timeout(180 * 1000) // initial jib build can take a long time
 
-  const projectRoot = join(__dirname, "test-project")
+  const projectRoot = resolve(__dirname, "../../test/", "test-project")
 
   let garden: TestGarden
   let graph: ResolvedConfigGraph

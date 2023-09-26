@@ -92,7 +92,7 @@ export class LogOutCommand extends Command<{}, Opts> {
       log.warn(msg)
     } finally {
       await CloudApi.clearAuthToken(log, garden.globalConfigStore, cloudDomain)
-      log.info({ msg: `Succesfully logged out from ${cloudDomain}.` })
+      log.info({ msg: `Successfully logged out from ${cloudDomain}.` })
     }
     return {}
   }

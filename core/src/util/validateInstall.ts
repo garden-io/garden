@@ -24,7 +24,7 @@ function versionCheckError(params: BinaryVersionCheckParams, msg: string): Runti
     message: deline`
       ${msg}
       Please make sure ${params.name} (version ${params.minVersion} or later) is installed and on your PATH.
-      More about garden installation and requirements can be found in our documentation at ${DOCS_BASE_URL}/guides/installation
+      More about garden installation and requirements can be found in our documentation at ${DOCS_BASE_URL}/getting-started/installation
       `,
   })
 }

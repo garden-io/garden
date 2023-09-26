@@ -12,8 +12,17 @@ import { ValidationError } from "../exceptions"
 import { safeDumpYaml } from "../util/serialization"
 
 export class JsonKeyDescription<T = any> extends BaseKeyDescription<T> {
+  override type: string
+  override example?: T | undefined
+  override deprecated: boolean
+  override experimental: boolean
+  override required: boolean
+
   schema: any
   allowedValues?: string[]
+  allowedValuesOnly: boolean
+  description?: string
+  internal: boolean
 
   constructor({
     schema,

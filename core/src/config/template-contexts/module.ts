@@ -141,6 +141,12 @@ export class TaskRuntimeContext extends ServiceRuntimeContext {
 
   @schema(joi.string().required().description("The current version of the task.").example(exampleVersion))
   public override version: string
+
+  constructor(root: ConfigContext, outputs: PrimitiveMap, version: string) {
+    super(root, outputs, version)
+    this.outputs = outputs
+    this.version = version
+  }
 }
 
 class RuntimeConfigContext extends ConfigContext {

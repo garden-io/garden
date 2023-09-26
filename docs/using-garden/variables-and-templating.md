@@ -7,7 +7,7 @@ title: Variables and templating
 
 This guide introduces the templating capabilities available in Garden configuration files, the available ways to provide variable values, and how to reference outputs across modules and providers.
 
-## Template string basics
+## Template string overview
 
 String configuration values in Garden config files can be templated to inject variables, information about the user's environment, references to other actions and more.
 
@@ -224,17 +224,17 @@ kind: Module
 ...
 variables:
   commonArgs:
-    - yarn
+    - npm
     - test
     - -g
 tests:
   - name: test-a
-    # resolves to [yarn, test, -g, suite-a]
+    # resolves to [npm, test, -g, suite-a]
     args:
       - $concat: ${var.commonArgs}
       - suite-a
   - name: test-b
-    # resolves to [yarn, test, -g, suite-b]
+    # resolves to [npm, test, -g, suite-b]
     args:
       - $concat: ${var.commonArgs}
       - suite-b

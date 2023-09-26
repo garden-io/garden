@@ -13,17 +13,27 @@ import { joi, joiVariables } from "../../../config/common"
 
 export type ParamsBase<_ = any> = {}
 
-export abstract class ActionTypeHandlerSpec<K extends ActionKind, P extends ParamsBase, R extends ParamsBase> {
+export type ActionTypeHandlerParamsType<Handler> = Handler extends ActionTypeHandlerSpec<any, infer Params, any>
+  ? Params
+  : never
+export abstract class ActionTypeHandlerSpec<
+  Kind extends ActionKind,
+  Params extends ParamsBase,
+  Result extends ParamsBase,
+> {
   abstract description: string
   abstract paramsSchema: () => Joi.ObjectSchema
   abstract resultSchema: () => Joi.ObjectSchema
 
   required = false
 
-  // These are used internally to map types
-  _kindType: K
-  _paramsType: P
-  _resultType: R
+  // We used to use these types to extract type information
+  // Now we use the generic instead, however TS will erase the generic types
+  // if we aren't using them anywhere.
+  // For that reason they are stored here, but they should never be accessed
+  _kindType?: Kind
+  _paramsType?: Params
+  _resultType?: Result
 
   describe() {
     return {

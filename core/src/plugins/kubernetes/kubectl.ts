@@ -11,7 +11,7 @@ import { ExecParams, PluginTool } from "../../util/ext-tools"
 import { Log } from "../../logger/log-entry"
 import { KubernetesProvider } from "./config"
 import { KubernetesResource } from "./types"
-import { dedent, gardenAnnotationKey } from "../../util/string"
+import { dedent } from "../../util/string"
 import { getResourceKey, hashManifest } from "./util"
 import { PluginToolSpec } from "../../plugin/tools"
 import { PluginContext } from "../../plugin-context"
@@ -19,6 +19,7 @@ import { KUBECTL_RETRY_OPTS, KubeApi, KubernetesError } from "./api"
 import { pathExists } from "fs-extra"
 import { ChildProcessError, ConfigurationError } from "../../exceptions"
 import { requestWithRetry, RetryOpts } from "./retry"
+import { k8sManifestHashAnnotationKey } from "./status/status"
 
 // Corresponds to the default prune whitelist in `kubectl`.
 // See: https://github.com/kubernetes/kubectl/blob/master/pkg/cmd/apply/prune.go#L176-L192
@@ -76,10 +77,10 @@ export async function apply({
     if (!manifest.metadata.annotations) {
       manifest.metadata.annotations = {}
     }
-    if (manifest.metadata.annotations[gardenAnnotationKey("manifest-hash")]) {
-      delete manifest.metadata.annotations[gardenAnnotationKey("manifest-hash")]
+    if (manifest.metadata.annotations[k8sManifestHashAnnotationKey]) {
+      delete manifest.metadata.annotations[k8sManifestHashAnnotationKey]
     }
-    manifest.metadata.annotations[gardenAnnotationKey("manifest-hash")] = await hashManifest(manifest)
+    manifest.metadata.annotations[k8sManifestHashAnnotationKey] = await hashManifest(manifest)
   }
 
   // The `--prune` option for `kubectl apply` currently isn't backwards-compatible, so here, we essentially
@@ -91,7 +92,7 @@ export async function apply({
   // be enough to make `kubectl apply --prune` backwards-compatible.
   let resourcesToPrune: KubernetesResource[] = []
   if (namespace && pruneLabels) {
-    // Fetch all deployed resources in the namesapce matching `pruneLabels` (for all resource kinds represented in
+    // Fetch all deployed resources in the namespace matching `pruneLabels` (for all resource kinds represented in
     // `versionedPruneKinds` - see its definition above).
     const resourcesForLabels = await api.listResourcesForKinds({
       log,

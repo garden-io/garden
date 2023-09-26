@@ -531,7 +531,7 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
       }
 
       switch (versionScope) {
-        // TODO Core 1.0: review these semantics and make tjhe necessary corrections
+        // TODO Core 1.0: review these semantics and make the necessary corrections
         case "major": {
           if (tagSemVer.major === currentSemVer.major) {
             return tagSemVer.minor > currentSemVer.minor

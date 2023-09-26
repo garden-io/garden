@@ -12,7 +12,14 @@ import { apply as jsonMerge } from "json-merge-patch"
 import cloneDeep from "fast-copy"
 import { keyBy, mapValues, flatten } from "lodash"
 import { parseCliArgs, prepareMinimistOpts } from "../cli/helpers"
-import { BooleanParameter, globalOptions, IntegerParameter, Parameter, StringParameter } from "../cli/params"
+import {
+  BooleanParameter,
+  globalOptions,
+  IntegerParameter,
+  Parameter,
+  ParameterObject,
+  StringParameter,
+} from "../cli/params"
 import { loadConfigResources } from "../config/base"
 import {
   CommandResource,
@@ -94,7 +101,13 @@ export class CustomCommandWrapper extends Command {
     log.info(chalk.cyan(this.name))
   }
 
-  async action({ garden, cli, log, args, opts }: CommandParams<any, any>): Promise<CommandResult<CustomCommandResult>> {
+  async action({
+    garden,
+    cli,
+    log,
+    args,
+    opts,
+  }: CommandParams<ParameterObject, ParameterObject>): Promise<CommandResult<CustomCommandResult>> {
     // Prepare args/opts for the template context.
     // Prepare the ${args.$rest} variable
     // Note: The fork of minimist is a slightly unfortunate hack to be able to extract all unknown args and flags.
@@ -184,7 +197,7 @@ export class CustomCommandWrapper extends Command {
 
       // Doing runtime check to avoid updating hundreds of test invocations with a new required param, sorry. - JE
       if (!cli) {
-        throw new InternalError({ message: `Missing cli argument in custom command wrapperd.` })
+        throw new InternalError({ message: `Missing cli argument in custom command wrapper.` })
       }
 
       // Pass explicitly set global opts with the command, if they're not set in the command itself.

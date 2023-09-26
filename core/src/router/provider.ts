@@ -240,8 +240,11 @@ export class ProviderRouter extends BaseRouter {
 
     // Wrap the handler with identifying attributes
     const wrapped: WrappedPluginHandlers[T] = Object.assign(
+      // TODO:
+      // lots of casting and `any` here since we're using the same wrapper for all handlers.
+      // We should probably have a separate wrapper for each handler type or make it more explicit in another way.
       async (...args: any[]) => {
-        const result = await handler.apply(plugin, args)
+        const result = await handler.apply(plugin, args as any)
         if (result === undefined) {
           throw new PluginError({
             message: `Got empty response from ${handlerType} handler on ${pluginName} provider. Called with ${args.length} args.`,
@@ -250,7 +253,7 @@ export class ProviderRouter extends BaseRouter {
         return validateSchema(result, schema, { context: `${handlerType} output from plugin ${pluginName}` })
       },
       { handlerType, pluginName }
-    )
+    ) as WrappedPluginHandlers[T]
 
     wrapped.base = this.wrapBase(handler.base)
 

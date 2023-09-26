@@ -31,7 +31,14 @@ import { GraphResults } from "../graph/results"
 import { expect } from "chai"
 import { ActionConfig, ActionKind, ActionStatus } from "../actions/types"
 import { WrappedActionRouterHandlers } from "../router/base"
-import { BuiltinArgs, Command, CommandResult } from "../commands/base"
+import {
+  BuiltinArgs,
+  Command,
+  CommandArgsType,
+  CommandOptionsType,
+  CommandResult,
+  CommandResultType,
+} from "../commands/base"
 import { validateSchema } from "../config/validation"
 import { mkdirp, remove } from "fs-extra"
 import { GlobalConfigStore } from "../config-store/global"
@@ -141,7 +148,7 @@ export class TestEventBus extends EventBus {
   }
 }
 
-const defaultCommandinfo = { name: "test", args: {}, opts: {} }
+const defaultCommandInfo = { name: "test", args: {}, opts: {} }
 export const repoRoot = resolve(GARDEN_CORE_ROOT, "..")
 
 const paramCache: { [key: string]: GardenParams } = {}
@@ -155,11 +162,11 @@ export type TestGardenOpts = Partial<GardenOpts> & {
 
 export class TestGarden extends Garden {
   override events: TestEventBus
-  public override vcs: VcsHandler // Not readonly, to allow overriding with a mocked handler in tests
-  public override secrets: StringMap // Not readonly, to allow setting secrets in tests
-  public override variables: DeepPrimitiveMap // Not readonly, to allow setting variables in tests
-  private repoRoot: string
-  public cacheKey: string
+  public override vcs!: VcsHandler // Not readonly, to allow overriding with a mocked handler in tests
+  public override secrets!: StringMap // Not readonly, to allow setting secrets in tests
+  public override variables!: DeepPrimitiveMap // Not readonly, to allow setting variables in tests
+  private repoRoot!: string
+  public cacheKey!: string
 
   constructor(params: GardenParams) {
     super(params)
@@ -186,7 +193,7 @@ export class TestGarden extends Garden {
       params.log = opts?.log || getRootLogger().createLog()
       params.plugins = opts?.plugins || []
     } else {
-      params = await resolveGardenParams(currentDirectory, { commandInfo: defaultCommandinfo, ...opts })
+      params = await resolveGardenParams(currentDirectory, { commandInfo: defaultCommandInfo, ...opts })
       if (cacheKey) {
         paramCache[cacheKey] = cloneDeep({ ...params, log: <any>{}, plugins: [] })
       }
@@ -381,16 +388,16 @@ export class TestGarden extends Garden {
     opts,
   }: {
     command: C
-    args: ParameterValues<C["arguments"]> & BuiltinArgs
-    opts: ParameterValues<C["options"]>
-  }): Promise<CommandResult<C["_resultType"]>> {
+    args: ParameterValues<CommandArgsType<C>> & BuiltinArgs
+    opts: ParameterValues<CommandOptionsType<C>>
+  }): Promise<CommandResult<CommandResultType<C>>> {
     const log = this.log
 
     const result = await command.action({
       garden: this,
       log,
       args,
-      opts: <ParameterValues<GlobalOptions> & C["options"]>{
+      opts: <ParameterValues<GlobalOptions> & CommandOptionsType<C>>{
         ...mapValues(globalOptions, (opt) => opt.defaultValue),
         ...opts,
       },

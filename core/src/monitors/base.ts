@@ -7,14 +7,11 @@
  */
 
 import type { Command } from "../commands/base"
-import type { PrimitiveMap } from "../config/common"
 import type { Garden } from "../garden"
 
 export interface MonitorBaseParams {
   garden: Garden
 }
-
-export type MonitorKey = PrimitiveMap
 
 export abstract class Monitor {
   public subscribers: Command[]

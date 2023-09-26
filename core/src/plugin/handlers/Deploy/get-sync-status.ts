@@ -68,7 +68,7 @@ export const getSyncStatusResultSchema = createSchema({
             .string()
             .required()
             .description(
-              "A description of the sync target. This can include plugin specific information about the target to help accurately descibe it."
+              "A description of the sync target. This can include plugin specific information about the target to help accurately describe it."
             ),
           state: joi
             .string()
@@ -78,9 +78,9 @@ export const getSyncStatusResultSchema = createSchema({
           lastSyncAt: joi
             .string()
             .description(
-              "ISO format date string for the last successful sync event. May not be availabe for all plugins."
+              "ISO format date string for the last successful sync event. May not be available for all plugins."
             ),
-          syncCount: joi.number().description("The number of successful syncs. May not be availabe for all plugins."),
+          syncCount: joi.number().description("The number of successful syncs. May not be available for all plugins."),
           mode: syncModeSchema(),
           message: joi
             .string()

@@ -1,4 +1,4 @@
 ---
 title: Other Plugins
-order: 7
+order: 8
 ---

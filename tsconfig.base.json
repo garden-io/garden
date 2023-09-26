@@ -30,7 +30,8 @@
     "strictFunctionTypes": true,
     "strictNullChecks": true,
     "inlineSourceMap": true,
-    "target": "es2019"
+    "target": "es2019",
+    "strict": true
   },
   "exclude": [
     "core/build",

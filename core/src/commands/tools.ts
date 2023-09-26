@@ -129,7 +129,7 @@ export class ToolsCommand extends Command<Args, Opts> {
       const projectRoot = await findProjectConfig({ log, path: garden.projectRoot })
 
       if (projectRoot) {
-        // This will normally be the case, but we're checking explictly to accommodate testing
+        // This will normally be the case, but we're checking explicitly to accommodate testing
         if (garden instanceof DummyGarden) {
           try {
             garden = await Garden.factory(garden.projectRoot, { ...omit(garden.opts, "config"), log })

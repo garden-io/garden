@@ -23,15 +23,11 @@ import { CommandParams } from "./base"
 import { ServeCommandOpts } from "./serve"
 import { DevCommand } from "./dev"
 
-export function makeGetTestOrTaskLog(actions: (TestAction | RunAction)[]) {
-  return actions.map((t) => prettyPrintTestOrTask(t)).join("\n")
-}
-
 /**
  * Runs a `dev` command and runs `commandName` with the args & opts provided in `params` as the first
  * interactive command.
  *
- * Also updates the `commandInfo` accordinly so that the session registration parameters sent to Cloud are correct.
+ * Also updates the `commandInfo` accordingly so that the session registration parameters sent to Cloud are correct.
  */
 export async function runAsDevCommand(
   commandName: string, // The calling command's opts need to extend `ServeCommandOpts`.

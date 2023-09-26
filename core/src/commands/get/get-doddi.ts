@@ -21,8 +21,6 @@ export class GetDoddiCommand extends Command {
     He's nice. We promise. Don't be afraid.
   `
 
-  loggerType: "basic"
-
   override hidden = true
   override noProject = true
 

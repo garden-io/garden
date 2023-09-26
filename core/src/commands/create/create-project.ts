@@ -61,7 +61,7 @@ interface CreateProjectResult {
 }
 
 class CreateError extends GardenError {
-  type: "create"
+  type: "create" = "create"
 }
 
 export class CreateProjectCommand extends Command<CreateProjectArgs, CreateProjectOpts> {
@@ -72,7 +72,7 @@ export class CreateProjectCommand extends Command<CreateProjectArgs, CreateProje
 
   override description = dedent`
     Creates a new Garden project configuration. The generated config includes some default values, as well as the
-    schema of the config in the form of commentented-out fields. Also creates a default (blank) .gardenignore file
+    schema of the config in the form of commented-out fields. Also creates a default (blank) .gardenignore file
     in the same path.
 
     Examples:

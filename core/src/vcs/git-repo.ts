@@ -65,7 +65,7 @@ export class GitRepoHandler extends GitHandler {
     }
 
     log.debug(
-      `Found ${moduleFiles.length} files in module path, filering by ${include.length} include and ${exclude.length} exclude globs`
+      `Found ${moduleFiles.length} files in module path, filtering by ${include.length} include and ${exclude.length} exclude globs`
     )
     log.silly(`Include globs: ${include.join(", ")}`)
     log.silly(exclude.length > 0 ? `Exclude globs: ${exclude.join(", ")}` : "No exclude globs")

@@ -29,7 +29,7 @@ export function renderProviderReference(name: string, plugin: GardenPluginSpec, 
   let configSchema = plugin.configSchema
   let outputsSchema = plugin.outputsSchema
 
-  // If the plugin doesn't specify its own sschema, we need to walk through its bases to get a schema to document
+  // If the plugin doesn't specify its own schema, we need to walk through its bases to get a schema to document
   if (!configSchema) {
     for (const base of getPluginBases(plugin, allPlugins)) {
       if (base.configSchema) {

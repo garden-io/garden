@@ -29,7 +29,7 @@ type UpOpts = typeof upOpts
 export class UpCommand extends Command<UpArgs, UpOpts> {
   name = "up"
   help = "Spin up your stack with the dev console and streaming logs."
-  emoji: "🚀"
+  emoji = "🚀"
 
   override description = dedent`
     Spin up your stack with the dev console and streaming logs.

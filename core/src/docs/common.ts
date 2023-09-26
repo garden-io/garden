@@ -11,14 +11,13 @@ import { DOCS_BASE_URL } from "../constants"
 import { getPackageVersion } from "../util/util"
 
 export abstract class BaseKeyDescription<T = any> {
-  type: string
-  allowedValuesOnly: boolean
-  deprecated: boolean
-  description?: string
-  experimental: boolean
-  internal: boolean
-  required: boolean
-  example?: T
+  abstract type: string
+  abstract internal: boolean
+  abstract description?: string
+  abstract example?: T
+  abstract deprecated: boolean
+  abstract experimental: boolean
+  abstract required: boolean
 
   constructor(
     public name: string | undefined,

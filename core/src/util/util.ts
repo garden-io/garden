@@ -697,7 +697,7 @@ export async function streamToString(stream: Readable) {
  */
 export class StringCollector extends Writable {
   private chunks: Buffer[]
-  private error: Error
+  private error?: Error
 
   constructor() {
     super()

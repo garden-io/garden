@@ -6,13 +6,13 @@ _If you love Garden, please ★ star this repository to show your support :green
   <img src="https://github.com/garden-io/garden/assets/59834693/f62a04cb-44bc-4dd4-8426-398b6cd846fd" align="center">
 </p>
 <div align="center">
-  <a href="https://docs.garden.io/basics/5-min-quickstart/?utm_source=github">Quickstart</a>
+  <a href="https://docs.garden.io/getting-started/quickstart/?utm_source=github">Quickstart</a>
   <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
   <a href="https://garden.io/?utm_source=github">Website</a>
   <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
   <a href="https://docs.garden.io/?utm_source=github">Docs</a>
   <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
-  <a href="https://github.com/garden-io/garden/tree/0.13.13/examples">Examples</a>
+  <a href="https://github.com/garden-io/garden/tree/0.13.14/examples">Examples</a>
   <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
   <a href="https://garden.io/blog/?utm_source=github">Blog</a>
   <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
@@ -30,7 +30,7 @@ With Garden you can:
 
 ## Installation
 
-The fastest way to get started with Garden is by following our [quickstart guide](https://docs.garden.io/basics/quickstart).
+The fastest way to get started with Garden is by following our [quickstart guide](https://docs.garden.io/getting-started/quickstart).
 
 Otherwise:
 
@@ -38,7 +38,7 @@ Otherwise:
 curl -sL https://get.garden.io/install.sh | bash
 ```
 
-For more installation options, see the [installation guide](https://docs.garden.io/basics/quickstart#step-1-install-garden).
+For more installation options, see the [installation guide](https://docs.garden.io/getting-started/installation).
 
 ## Demo
 
@@ -124,7 +124,7 @@ The Stack Graph is a key feature of Garden that enables efficient development, t
 
 For more information on the Stack Graph and how Garden works, see:
 
-- [How Garden Works](https://docs.garden.io/basics/how-garden-works)
+- [How Garden Works](https://docs.garden.io/overview/how-garden-works)
 - [A video tour of the Stack Graph and guide to getting started](https://www.youtube.com/watch?app=desktop&v=3gMJWGV0WE8)
 
 ## Plugins

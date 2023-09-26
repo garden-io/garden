@@ -72,8 +72,6 @@ interface StreamTarget {
   clientAuthToken?: string
 }
 
-export type StreamRecordType = "event" | "logEntry"
-
 interface ApiBatchBase {
   workflowRunUid?: string
   sessionId: string | null
@@ -125,7 +123,7 @@ export class BufferedEventStream {
   private workflowRunUid: string | undefined
   private garden: Garden
   private closed: boolean
-  private intervalId: NodeJS.Timer | null
+  private intervalId: NodeJS.Timer | null = null
   private bufferedEvents: StreamEvent[]
   private bufferedLogEntries: LogEntryEventPayload[]
   private eventListener: GardenEventAnyListener

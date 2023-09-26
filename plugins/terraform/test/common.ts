@@ -6,19 +6,19 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { join } from "path"
+import { join, resolve } from "path"
 import { pathExists, remove } from "fs-extra"
-import { gardenPlugin } from ".."
-import { TerraformProvider } from "../provider"
-import { makeTestGarden, TestGarden } from "@garden-io/sdk/testing"
-import { Log, PluginContext } from "@garden-io/sdk/types"
-import { getWorkspaces, setWorkspace } from "../helpers"
+import { gardenPlugin } from "../src/index"
+import { TerraformProvider } from "../src/provider"
+import { makeTestGarden, TestGarden } from "@garden-io/sdk/build/src/testing"
+import { Log, PluginContext } from "@garden-io/sdk/build/src/types"
+import { getWorkspaces, setWorkspace } from "../src/helpers"
 import { expect } from "chai"
-import { defaultTerraformVersion, terraform } from "../cli"
+import { defaultTerraformVersion, terraform } from "../src/cli"
 
 for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
   describe(`Terraform common with version ${terraformVersion}`, () => {
-    const testRoot = join(__dirname, "test-project")
+    const testRoot = resolve(__dirname, "../../test/", "test-project")
 
     let root: string
     let terraformDirPath: string

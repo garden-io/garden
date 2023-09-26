@@ -24,8 +24,9 @@ import { ActionMode, Resolved } from "../../../actions/types"
 import { deployStateToActionState } from "../../../plugin/handlers/Deploy/get-status"
 import { isTruthy } from "../../../util/util"
 import { ChildProcessError } from "../../../exceptions"
+import { gardenAnnotationKey } from "../../../util/string"
 
-export const gardenCloudAECPauseAnnotation = "garden.io/aec-status"
+export const gardenCloudAECPauseAnnotation = gardenAnnotationKey("aec-status")
 
 const helmStatusMap: { [status: string]: DeployState } = {
   unknown: "unknown",
@@ -39,8 +40,6 @@ const helmStatusMap: { [status: string]: DeployState } = {
 interface HelmStatusDetail {
   remoteResources?: KubernetesServerResource[]
 }
-
-export type HelmServiceStatus = ServiceStatus<HelmStatusDetail>
 
 export const getHelmDeployStatus: DeployActionHandler<"getStatus", HelmDeployAction> = async (params) => {
   const { ctx, action, log } = params

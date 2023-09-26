@@ -71,6 +71,12 @@ export function getTarballFilename(version: string, targetName: string): string 
   return composePackageFilename(version, targetName, "tar.gz")
 }
 
+export type NPMWorkspaceQueryResult = {
+  name: string
+  location: string
+  dependencies: Record<string, string>
+}
+
 async function buildBinaries(args: string[]) {
   const argv = minimist(args)
   const version = argv.version || getPackageVersion()
@@ -90,14 +96,14 @@ async function buildBinaries(args: string[]) {
 
   // Copy each package to the temp dir
   console.log(chalk.cyan("Getting package info"))
-  const res = (await exec("yarn", ["--json", "workspaces", "info"])).stdout
-  const workspaces = JSON.parse(JSON.parse(res).data)
+  const res = (await exec("npm", ["query", ".workspace"])).stdout
+  const workspaces: NPMWorkspaceQueryResult[] = JSON.parse(res)
 
   console.log(chalk.cyan("Copying packages"))
   await Promise.all(
-    Object.entries(workspaces).map(async ([name, info]: [string, any]) => {
-      const sourcePath = resolve(repoRoot, info.location)
-      const targetPath = resolve(tmpDirPath, info.location)
+    workspaces.map(async ({ name, location }: { name: string; location: string }) => {
+      const sourcePath = resolve(repoRoot, location)
+      const targetPath = resolve(tmpDirPath, location)
       await remove(targetPath)
       await mkdirp(targetPath)
       await exec("rsync", [
@@ -117,13 +123,19 @@ async function buildBinaries(args: string[]) {
   // Edit all the packages to have them directly link any internal dependencies
   console.log(chalk.cyan("Modifying package.json files for direct installation"))
   await Promise.all(
-    Object.entries(workspaces).map(async ([name, info]: [string, any]) => {
-      const packageRoot = resolve(tmpDirPath, info.location)
+    workspaces.map(async ({ name, location, dependencies }) => {
+      const packageRoot = resolve(tmpDirPath, location)
       const packageJsonPath = resolve(packageRoot, "package.json")
       const packageJson = require(packageJsonPath)
 
-      for (const depName of info.workspaceDependencies) {
-        const depInfo = workspaces[depName]
+      const workspaceDependencies = Object.keys(dependencies).filter((dependencyName) => {
+        return workspaces.some((p) => p.name === dependencyName)
+      })
+      for (const depName of workspaceDependencies) {
+        const depInfo = workspaces.find((p) => p.name === depName)
+        if (!depInfo) {
+          throw new Error("Could not find workspace info for " + depName)
+        }
         const targetRoot = resolve(tmpDirPath, depInfo.location)
         const relPath = relative(packageRoot, targetRoot)
         packageJson.dependencies[depName] = "file:" + relPath
@@ -141,11 +153,16 @@ async function buildBinaries(args: string[]) {
     })
   )
 
-  // Run yarn install in the cli package
-  console.log(chalk.cyan("Installing packages in @garden-io/cli package"))
-  const cliPath = resolve(tmpDirPath, workspaces["@garden-io/cli"].location)
-  await exec("yarn", ["--production"], { cwd: cliPath })
+  // Run npm install in the cli package
+  await copy(resolve(repoRoot, "package.json"), resolve(tmpDirPath, "package.json"))
+  await copy(resolve(repoRoot, "package-lock.json"), resolve(tmpDirPath, "package-lock.json"))
+  // The `.npmrc` config ensures that we're not hoisting any dependencies
+  await copy(resolve(repoRoot, ".npmrc"), resolve(tmpDirPath, ".npmrc"))
 
+  console.log("Installing all packages in workspaces")
+  await exec("npm", ["install", "--omit=dev"], { cwd: tmpDirPath, stdio: "inherit" })
+
+  const cliPath = resolve(tmpDirPath, workspaces.find((p) => p.name === "@garden-io/cli")!.location)
   // Run pkg and pack up each platform binary
   console.log(chalk.cyan("Packaging garden binaries"))
 
@@ -292,7 +309,7 @@ async function pkgCommon({
   } else {
     const filename = nodeBinaryPlatform === "linuxmusl" ? `node.abi${abi}.musl.node` : `node.abi${abi}.node`
     const abiPath = resolve(
-      repoRoot,
+      GARDEN_CORE_ROOT,
       "node_modules",
       "node-pty-prebuilt-multiarch",
       "prebuilds",
@@ -322,7 +339,7 @@ async function pkgCommon({
       "--output",
       resolve(targetPath, binFilename),
     ],
-    { env: { PKG_CACHE_PATH: pkgFetchTmpDir } }
+    { env: { PKG_CACHE_PATH: pkgFetchTmpDir }, stdio: "inherit" }
   )
 
   console.log(` - ${targetName} -> static`)

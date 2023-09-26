@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { BaseTask, Task, ValidResultType } from "../tasks/base"
+import { BaseTask, Task, TaskResultType, ValidResultType } from "../tasks/base"
 import { fromPairs, omit, pick } from "lodash"
 import { toGraphResultEventPayload } from "../events/events"
 import CircularJSON from "circular-json"
@@ -39,7 +39,7 @@ export interface GraphResult<R extends ValidResultType = ValidResultType> extend
 
 export type GraphResultWithoutTask<T extends Task = Task> = Omit<GraphResultFromTask<T>, "task">
 
-export type GraphResultFromTask<T extends Task> = GraphResult<T["_resultType"]>
+export type GraphResultFromTask<T extends Task> = GraphResult<TaskResultType<T>>
 
 export interface GraphResultMap<T extends Task = Task> {
   [key: string]: GraphResultFromTask<T> | null
@@ -49,22 +49,22 @@ export interface GraphResultMapWithoutTask<T extends Task = Task> {
   [key: string]: GraphResultWithoutTask<T> | null
 }
 
-export class GraphResults<B extends Task = Task> {
-  private results: Map<string, GraphResultFromTask<B> | null>
-  private tasks: Map<string, B>
+export class GraphResults<TaskType extends Task = Task> {
+  private results: Map<string, GraphResultFromTask<TaskType> | null>
+  private tasks: Map<string, TaskType>
 
-  constructor(tasks: B[]) {
+  constructor(tasks: TaskType[]) {
     this.results = new Map(tasks.map((t) => [t.getBaseKey(), null]))
     this.tasks = new Map(tasks.map((t) => [t.getBaseKey(), t]))
   }
 
-  setResult<T extends BaseTask>(task: T, result: GraphResultFromTask<T>) {
+  setResult<T extends TaskType>(task: T, result: GraphResultFromTask<T>) {
     const key = task.getBaseKey()
     this.checkKey(key)
     this.results.set(key, result)
   }
 
-  getResult<T extends BaseTask>(task: T): GraphResultFromTask<T> | null {
+  getResult<T extends TaskType>(task: T): GraphResultFromTask<T> | null {
     const key = task.getBaseKey()
     this.checkKey(key)
     return this.results.get(key) || null
@@ -73,9 +73,9 @@ export class GraphResults<B extends Task = Task> {
   /**
    * Get results for all tasks with the same type as the given `task`.
    */
-  getResultsByType<T extends Task>(task: T): (GraphResultFromTask<T> | null)[] {
+  getResultsByType<T extends TaskType>(task: T): (GraphResultFromTask<T> | null)[] {
     return this.getTasks()
-      .filter((t) => t.type === task.type)
+      .filter((t): t is TaskType => t.type === task.type)
       .map((t) => this.getResult(t))
   }
 
@@ -84,7 +84,7 @@ export class GraphResults<B extends Task = Task> {
   }
 
   getMissing(): Task[] {
-    return this.getTasks().filter((t) => this.getResult(t) === null)
+    return this.getTasks().filter((t) => this.getResult(t as TaskType) === null)
   }
 
   getAll(): (GraphResult | null)[] {

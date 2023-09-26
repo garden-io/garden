@@ -1,4 +1,4 @@
 ---
 title: Pulumi Plugin
-order: 6
+order: 7
 ---

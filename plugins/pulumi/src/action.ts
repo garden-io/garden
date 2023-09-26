@@ -1,0 +1,145 @@
+/*
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+import {
+  createSchema,
+  DeepPrimitiveMap,
+  joi,
+  joiSparseArray,
+  joiVariables,
+} from "@garden-io/core/build/src/config/common"
+import { DeployAction, DeployActionConfig } from "@garden-io/core/build/src/actions/deploy"
+import { dedent } from "@garden-io/sdk/build/src/util/string"
+
+export interface PulumiDeploySpec {
+  allowDestroy: boolean
+  autoApply: boolean
+  createStack: boolean
+  pulumiVariables: DeepPrimitiveMap
+  pulumiVarfiles: string[]
+  orgName?: string
+  cacheStatus: boolean
+  stackReferences: string[]
+  deployFromPreview: boolean
+  root: string
+  stack?: string
+}
+
+export type PulumiDeployConfig = DeployActionConfig<"pulumi", PulumiDeploySpec>
+export type PulumiDeploy = DeployAction<PulumiDeployConfig, any>
+
+// Validate that the path ends in .yaml or .yml
+const yamlFileRegex = /(\.yaml)|(\.yml)$/
+
+export const pulumiDeploySchemaKeys = () => ({
+  allowDestroy: joi.boolean().default(true).description(dedent`
+    If set to true, Garden will destroy the stack when calling \`garden cleanup namespace\` or \`garden cleanup deploy <deploy action name>\`.
+    This is useful to prevent unintentional destroys in production or shared environments.
+    `),
+  autoApply: joi.boolean().default(true).description(dedent`
+    If set to false, deployments will fail unless a \`planPath\` is provided for this deploy action. This is useful when deploying to
+    production or shared environments, or when the action deploys infrastructure that you don't want to unintentionally update/create.
+    `),
+  createStack: joi.boolean().default(false).description(dedent`
+    If set to true, Garden will automatically create the stack if it doesn't already exist.
+    `),
+  root: joi.posixPath().subPathOnly().default(".").description(dedent`
+    Specify the path to the Pulumi project root, relative to the deploy action's root.
+    `),
+  pulumiVariables: joiVariables().default({}).description(dedent`
+    A map of config variables to use when applying the stack. These are merged with the contents of any \`pulumiVarfiles\` provided
+    for this deploy action. The deploy action's stack config will be overwritten with the resulting merged config.
+    Variables declared here override any conflicting config variables defined in this deploy action's \`pulumiVarfiles\`.
+
+    Note: \`pulumiVariables\` should not include action outputs from other pulumi deploy actions when \`cacheStatus\` is set to true, since
+    the outputs may change from the time the stack status of the dependency action is initially queried to when it's been deployed.
+
+    Instead, use pulumi stack references when using the \`cacheStatus\` config option.
+    `),
+  pulumiVarfiles: joiSparseArray(joi.posixPath().pattern(yamlFileRegex)).description(
+    dedent`
+      Specify one or more paths (relative to the deploy action's root) to YAML files containing pulumi config variables.
+
+      Templated paths that resolve to \`null\`, \`undefined\` or an empty string are ignored.
+
+      Any Garden template strings in these varfiles will be resolved when the files are loaded.
+
+      Each file must consist of a single YAML document, which must be a map (dictionary). Keys may contain any
+      value type.
+
+      If one or more varfiles is not found, no error is thrown (that varfile path is simply ignored).
+
+      Note: There is no need to nest the variables under a \`config\` field as is done in a pulumi
+      config. Simply specify all the config variables at the top level.
+        `
+  ),
+  orgName: joi.string().optional().empty(["", null]).description(dedent`
+    The name of the pulumi organization to use. Overrides the \`orgName\` set on the pulumi provider (if any).
+    To use the default org, set to null.
+    `),
+  cacheStatus: joi
+    .boolean()
+    .default(false)
+    .description(
+      dedent`
+        When set to true, the pulumi stack will be tagged with the Garden service version when deploying. The tag
+        will then be used for service status checks for this service. If the version doesn't change between deploys,
+        the subsequent deploy is skipped.
+
+        Note that this will not pick up changes to stack outputs referenced via stack references in your pulumi stack,
+        unless they're referenced via template strings in the deploy action configuration.
+
+        When using stack references to other pulumi deploy actions in your project, we recommend including them in this
+        deploy action's \`stackReferences\` config field (see the documentation for that field on this page).
+
+        \`cacheStatus: true\` is not supported for self-managed state backends.
+    `
+    ),
+  stackReferences: joiSparseArray(joi.string())
+    .description(
+      dedent`
+        When setting \`cacheStatus\` to true for this deploy action, you should include all stack references used by this
+        deploy action's pulumi stack in this field.
+
+        This lets Garden know to redeploy the pulumi stack if the output values of one or more of these stack references
+        have changed since the last deployment.
+      `
+    )
+    .example([
+      "${actions.deploy.some-pulumi-deploy-action.outputs.ip-address}",
+      "${actions.deploy.some-other-pulumi-deploy-action.outputs.database-url}",
+    ]),
+  deployFromPreview: joi
+    .boolean()
+    .default(false)
+    .description(
+      dedent`
+        When set to true, will use pulumi plans generated by the \`garden plugins pulumi preview\` command when
+        deploying, and will fail if no plan exists locally for the deploy action.
+
+        When this option is used, the pulumi plugin bypasses the status check altogether and passes the plan directly
+        to \`pulumi up\` (via the \`--plan\` option, which is experimental as of March 2022). You should therefore
+        take care to only use this config option when you're sure you want to apply the changes in the plan.
+
+        This option is intended for two-phase pulumi deployments, where pulumi preview diffs are first reviewed (e.g.
+        during code review).
+      `
+    ),
+  stack: joi
+    .string()
+    .allow(null)
+    .description("The name of the pulumi stack to use. Defaults to the current environment name."),
+})
+
+export const pulumiDeploySchema = createSchema({
+  name: "pulumi:Deploy",
+  keys: pulumiDeploySchemaKeys,
+})
+
+export const pulumiDeployOutputsSchema = () =>
+  joiVariables().description("A map of all the outputs returned by the Pulumi stack.")

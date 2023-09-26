@@ -190,7 +190,7 @@ export function generateTableOfContents(docsRoot: string): string {
     dedent`
     # Table of Contents
 
-    * [Welcome!](welcome.md)
+    * [Welcome to Garden!](welcome.md)
     ` +
     "\n" +
     generateMarkdown({ tree: preparedTree, docsRoot })
@@ -203,5 +203,5 @@ export async function writeTableOfContents(docsRoot: string, outputFileName: str
   const tocPath = resolve(docsRoot, outputFileName)
   await createFile(tocPath)
   await writeFile(tocPath, toWrite)
-  console.log("Table of contents generated successfuly.")
+  console.log("Table of contents generated successfully.")
 }

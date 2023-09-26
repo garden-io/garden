@@ -24,8 +24,7 @@ import { RuntimeError, GardenError, InternalError, toGardenError } from "../exce
 import { Garden } from "../garden"
 import { Log } from "../logger/log-entry"
 import { LoggerType, LoggerBase, LoggerConfigBase, eventLogLevel, LogLevel } from "../logger/logger"
-import { printFooter, renderMessageWithDivider } from "../logger/util"
-import { capitalize } from "lodash"
+import { printFooter } from "../logger/util"
 import {
   getCloudDistributionName,
   getCloudLogSectionName,
@@ -34,7 +33,7 @@ import {
   userPrompt,
 } from "../util/util"
 import { renderOptions, renderCommands, renderArguments, cliStyles, optionsWithAliasValues } from "../cli/helpers"
-import { GlobalOptions, ParameterValues, Parameters, globalOptions } from "../cli/params"
+import { GlobalOptions, ParameterValues, ParameterObject, globalOptions } from "../cli/params"
 import { GardenCli } from "../cli/cli"
 import { CommandLine } from "../cli/command-line"
 import { SolveResult } from "../graph/solver"
@@ -75,29 +74,39 @@ export interface BuiltinArgs {
   "--"?: string[]
 }
 
-export interface CommandParamsBase<T extends Parameters = {}, U extends Parameters = {}> {
+export interface CommandParamsBase<
+  T extends ParameterObject = ParameterObject,
+  U extends ParameterObject = ParameterObject,
+> {
   args: ParameterValues<T> & BuiltinArgs
-  opts: ParameterValues<GlobalOptions & U>
+  opts: ParameterValues<U & GlobalOptions>
 }
 
-export interface PrintHeaderParams<T extends Parameters = {}, U extends Parameters = {}>
-  extends CommandParamsBase<T, U> {
+export interface PrintHeaderParams<
+  T extends ParameterObject = ParameterObject,
+  U extends ParameterObject = ParameterObject,
+> extends CommandParamsBase<T, U> {
   log: Log
 }
 
-export interface PrepareParams<T extends Parameters = {}, U extends Parameters = {}> extends CommandParamsBase<T, U> {
+export interface PrepareParams<T extends ParameterObject = ParameterObject, U extends ParameterObject = ParameterObject>
+  extends CommandParamsBase<T, U> {
   log: Log
   commandLine?: CommandLine
   // The ServeCommand or DevCommand when applicable
   parentCommand?: Command
 }
 
-export interface CommandParams<T extends Parameters = {}, U extends Parameters = {}> extends PrepareParams<T, U> {
+export interface CommandParams<T extends ParameterObject = ParameterObject, U extends ParameterObject = ParameterObject>
+  extends PrepareParams<T, U> {
   cli?: GardenCli
   garden: Garden
 }
 
-export interface RunCommandParams<A extends Parameters = {}, O extends Parameters = {}> extends CommandParams<A, O> {
+export interface RunCommandParams<
+  A extends ParameterObject = ParameterObject,
+  O extends ParameterObject = ParameterObject,
+> extends CommandParams<A, O> {
   sessionId: string
   /**
    * The session ID of the parent serve command (e.g. the 'garden dev' command that started the CLI process and the server)
@@ -161,7 +170,14 @@ export const suggestedCommandSchema = createSchema({
 
 type DataCallback = (data: string) => void
 
-export abstract class Command<A extends Parameters = {}, O extends Parameters = {}, R = any> {
+export type CommandArgsType<C extends Command> = C extends Command<infer Args, any> ? Args : never
+export type CommandOptionsType<C extends Command> = C extends Command<any, infer Opts> ? Opts : never
+export type CommandResultType<C extends Command> = C extends Command<any, any, infer R> ? R : never
+export abstract class Command<
+  A extends ParameterObject = ParameterObject,
+  O extends ParameterObject = ParameterObject,
+  R = any,
+> {
   abstract name: string
   abstract help: string
 
@@ -169,9 +185,8 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
   aliases?: string[]
 
   allowUndefinedArguments: boolean = false
-  arguments: A
-  options: O
-  _resultType: R
+  arguments?: A
+  options?: O
 
   outputsSchema?: () => Joi.ObjectSchema
 
@@ -315,7 +330,6 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
           const commandResultUrl = cloudSession.api.getCommandResultUrl({
             sessionId: garden.sessionId,
             projectId: cloudSession.projectId,
-            userId,
             shortId: cloudSession.shortId,
           }).href
           const cloudLog = log.createLog({ name: getCloudLogSectionName(distroName) })
@@ -390,7 +404,7 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
             })
             log.silly(`Completed command '${this.getFullName()}' action successfully`)
           } else {
-            // The command is protected and the user decided to not continue with the exectution.
+            // The command is protected and the user decided to not continue with the execution.
             log.info("\nCommand aborted.")
             return {}
           }
@@ -629,11 +643,11 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
   }
 }
 
-export abstract class ConsoleCommand<A extends Parameters = {}, O extends Parameters = {}, R = any> extends Command<
-  A,
-  O,
-  R
-> {
+export abstract class ConsoleCommand<
+  A extends ParameterObject = {},
+  O extends ParameterObject = {},
+  R = any,
+> extends Command<A, O, R> {
   override isDevCommand = true
 }
 
@@ -679,22 +693,6 @@ ${cliStyles.heading("COMMANDS")}
 ${renderCommands(commands)}
 `
   }
-}
-
-export function printResult({
-  log,
-  result,
-  success,
-  description,
-}: {
-  log: Log
-  result: string
-  success: boolean
-  description: string
-}) {
-  const prefix = success ? `${capitalize(description)} output:` : `${capitalize(description)} failed with error:`
-  const msg = renderMessageWithDivider({ prefix, msg: result, isError: !success })
-  success ? log.info(chalk.white(msg)) : log.error(msg)
 }
 
 // fixme: These interfaces and schemas are mostly copied from their original locations. This is to ensure that
@@ -819,7 +817,7 @@ export interface ProcessCommandResult {
 export const resultMetadataKeys = () => ({
   aborted: joi.boolean().description("Set to true if the action was not attempted, e.g. if a dependency failed."),
   durationMsec: joi.number().integer().description("The duration of the action's execution in msec, if applicable."),
-  success: joi.boolean().required().description("Whether the action was succeessfully executed."),
+  success: joi.boolean().required().description("Whether the action was successfully executed."),
   error: joi.string().description("An error message, if the action's execution failed."),
   inputVersion: joi
     .string()
@@ -1096,7 +1094,7 @@ export const emptyActionResults = {
   graphResults: {},
 }
 
-export function describeParameters(args?: Parameters) {
+export function describeParameters(args?: ParameterObject) {
   if (!args) {
     return
   }

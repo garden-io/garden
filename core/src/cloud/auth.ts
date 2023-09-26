@@ -28,8 +28,8 @@ export const makeAuthHeader = (clientAuthToken: string) => ({ [authTokenHeader]:
 // TODO: Add analytics tracking
 export class AuthRedirectServer {
   private log: Log
-  private server: Server
-  private app: Koa
+  private server?: Server
+  private app?: Koa
   private enterpriseDomain: string
   private events: EventEmitter2
 
@@ -60,7 +60,12 @@ export class AuthRedirectServer {
 
   async close() {
     this.log.debug("Shutting down redirect server...")
-    return this.server.close()
+
+    if (this.server) {
+      return this.server.close()
+    }
+
+    return undefined
   }
 
   async createApp() {

@@ -162,8 +162,8 @@ For tasks and tests either the `kubernetes-pod` or [`kubernetes-exec`](./kuberne
 
 [`kubernetes-pod` run](../../reference/action-types/Run/kubernetes-pod.md)
 and [`kubernetes-pod` test](../../reference/action-types/Test/kubernetes-pod.md) will create a fresh kubernetes workload and run your command in it.
-These actions are cached. This means that if garden will not rerun them if the version of the action hasn't changed. If a remote kubernetes
-cluster is used, test results are stored there which allows to share test results between the team or ci runs to decrease the number or re-runs.
+These actions are cached. This means that Garden will not rerun them if the version of the action hasn't changed. If a remote Kubernetes
+cluster is used, test results are stored there which allows to share test results between the team or CI runs to decrease the number or re-runs.
 
 `kubernetes-pod` actions don't have to depend on the deploy actions. The manifests are gathered from the kubernetes manifests and deployed to the cluster.
 

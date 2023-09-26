@@ -77,8 +77,8 @@ const cachedApiResourceInfo: { [context: string]: ApiResourceMap } = {}
 const apiInfoLock = new AsyncLock()
 
 // NOTE: be warned, the API of the client library is very likely to change
-
 type K8sApi =
+  | ApisApi
   | ApiextensionsV1Api
   | AppsV1Api
   | CoreApi
@@ -86,18 +86,6 @@ type K8sApi =
   | NetworkingV1Api
   | PolicyV1Api
   | RbacAuthorizationV1Api
-type K8sApiConstructor<T extends K8sApi> = new (basePath?: string) => T
-
-const apiTypes: { [key: string]: K8sApiConstructor<any> } = {
-  apis: ApisApi,
-  apps: AppsV1Api,
-  core: CoreV1Api,
-  coreApi: CoreApi,
-  extensions: ApiextensionsV1Api,
-  networking: NetworkingV1Api,
-  policy: PolicyV1Api,
-  rbac: RbacAuthorizationV1Api,
-}
 
 const crudMap = {
   Deployment: {
@@ -241,10 +229,14 @@ export class KubeApi {
       })
     }
 
-    for (const [name, cls] of Object.entries(apiTypes)) {
-      const api = new cls(cluster.server)
-      this[name] = this.wrapApi(log, api, this.config)
-    }
+    this.apis = this.wrapApi(log, new ApisApi(cluster.server), this.config)
+    this.apps = this.wrapApi(log, new AppsV1Api(cluster.server), this.config)
+    this.core = this.wrapApi(log, new CoreV1Api(cluster.server), this.config)
+    this.coreApi = this.wrapApi(log, new CoreApi(cluster.server), this.config)
+    this.extensions = this.wrapApi(log, new ApiextensionsV1Api(cluster.server), this.config)
+    this.networking = this.wrapApi(log, new NetworkingV1Api(cluster.server), this.config)
+    this.policy = this.wrapApi(log, new PolicyV1Api(cluster.server), this.config)
+    this.rbac = this.wrapApi(log, new RbacAuthorizationV1Api(cluster.server), this.config)
   }
 
   static async factory(log: Log, ctx: PluginContext, provider: KubernetesProvider) {
@@ -385,7 +377,7 @@ export class KubeApi {
   /**
    * Fetch the specified resource from the cluster.
    */
-  async read({ log, namespace, apiVersion, kind, name }: ReadParams) {
+  async read({ log, namespace, apiVersion, kind, name }: ReadParams): Promise<KubernetesResource> {
     log.silly(`Fetching Kubernetes resource ${apiVersion}/${kind}/${name}`)
 
     const typePath = await this.getResourceTypeApiPath({
@@ -398,29 +390,29 @@ export class KubeApi {
     const apiPath = typePath + "/" + name
 
     const res = await this.request({ log, path: apiPath })
-    return res.body
+    return res.body as KubernetesResource
   }
 
-  async readOrNull(params: ReadParams) {
+  async readOrNull(params: ReadParams): Promise<KubernetesResource | null> {
     return await nullIfNotFound(() => this.read(params))
   }
 
   /**
    * Given a manifest, attempt to read the matching resource from the cluster.
    */
-  async readBySpec({ log, namespace, manifest }: ReadBySpecParams) {
+  async readBySpec({ log, namespace, manifest }: ReadBySpecParams): Promise<KubernetesResource> {
     log.silly(`Fetching Kubernetes resource ${manifest.apiVersion}/${manifest.kind}/${manifest.metadata.name}`)
 
     const apiPath = await this.getResourceApiPathFromManifest({ manifest, log, namespace })
 
     const res = await this.request({ log, path: apiPath })
-    return res.body
+    return res.body as KubernetesResource
   }
 
   /**
    * Same as readBySpec() but returns null if the resource is missing.
    */
-  async readBySpecOrNull(params: ReadBySpecParams) {
+  async readBySpecOrNull(params: ReadBySpecParams): Promise<KubernetesResource | null> {
     return await nullIfNotFound(() => this.readBySpec(params))
   }
 
@@ -671,7 +663,7 @@ export class KubeApi {
   /**
    * Wrapping the API objects to deal with bugs.
    */
-  private wrapApi<T extends K8sApi>(log: Log, api: T, config: KubeConfig): T {
+  private wrapApi<T extends K8sApi>(log: Log, api: T, config: KubeConfig): WrappedApi<T> {
     api.setDefaultAuthentication(config)
 
     return new Proxy(api, {
@@ -723,7 +715,7 @@ export class KubeApi {
           })
         }
       },
-    })
+    }) as WrappedApi<T>
   }
 
   /**

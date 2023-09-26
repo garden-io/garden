@@ -10,17 +10,17 @@ import { expect } from "chai"
 import stripAnsi from "strip-ansi"
 import { join } from "path"
 
-import { dedent } from "@garden-io/sdk/util/string"
-import { defaultNamespace } from "@garden-io/sdk/constants"
-import { gardenPlugin } from ".."
-import { ProjectConfig } from "@garden-io/sdk/types"
-import { makeTestGarden } from "@garden-io/sdk/testing"
+import { dedent } from "@garden-io/sdk/build/src/util/string"
+import { defaultNamespace } from "@garden-io/sdk/build/src/constants"
+import { gardenPlugin } from "../src/index"
+import { ProjectConfig } from "@garden-io/sdk/build/src/types"
+import { makeTestGarden } from "@garden-io/sdk/build/src/testing"
 
 import { TestTask } from "@garden-io/core/build/src/tasks/test"
 import { defaultDotIgnoreFile } from "@garden-io/core/build/src/util/fs"
 import { GardenApiVersion } from "@garden-io/core/build/src/constants"
 
-describe.skip("conftest provider", () => {
+describe("conftest provider", () => {
   const projectRoot = join(__dirname, "test-project")
 
   const projectConfig: ProjectConfig = {
@@ -35,7 +35,7 @@ describe.skip("conftest provider", () => {
     variables: {},
   }
 
-  describe("testModule", () => {
+  describe.skip("testModule", () => {
     it("should format warnings and errors nicely", async () => {
       const garden = await makeTestGarden(projectRoot, {
         plugins: [gardenPlugin()],
