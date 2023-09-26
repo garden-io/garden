@@ -7,12 +7,13 @@
  */
 
 import { PluginCommand } from "../../../plugin/command"
-import { prepareSystem, getEnvironmentStatus } from "../init"
+import { prepareEnvironment, getEnvironmentStatus } from "../init"
 import chalk from "chalk"
 
+// TODO: remove in 0.14
 export const clusterInit: PluginCommand = {
   name: "cluster-init",
-  description: "Initialize or update cluster-wide Garden services.",
+  description: "[DEPRECATED] Initialize or update cluster-wide Garden services.",
 
   title: ({ environmentName }) => {
     return `Initializing/updating cluster-wide services for ${chalk.white(environmentName)} environment`
@@ -25,12 +26,11 @@ export const clusterInit: PluginCommand = {
     if (status.ready) {
       log.info("All services already initialized!")
     } else {
-      result = await prepareSystem({
+      result = await prepareEnvironment({
         ctx,
         log,
         force: true,
         status,
-        clusterInit: true,
       })
     }
 

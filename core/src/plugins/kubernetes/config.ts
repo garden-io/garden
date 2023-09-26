@@ -8,7 +8,6 @@
 
 import {
   joi,
-  joiArray,
   joiIdentifier,
   joiIdentifierDescription,
   joiProviderName,
@@ -171,7 +170,6 @@ export interface KubernetesConfig extends BaseProviderConfig {
   tlsCertificates: IngressTlsCertificate[]
   certManager?: CertManagerConfig
   clusterType?: "kind" | "minikube" | "microk8s" | "k3s"
-  _systemServices: string[]
 }
 
 export type KubernetesProvider = Provider<KubernetesConfig>
@@ -630,7 +628,6 @@ export const kubernetesConfigBase = () =>
       tlsCertificates: joiSparseArray(tlsCertificateSchema())
         .unique("name")
         .description("One or more certificates to use for ingress."),
-      _systemServices: joiArray(joiIdentifier()).meta({ internal: true }),
       systemNodeSelector: joiStringMap(joi.string())
         .description(
           dedent`

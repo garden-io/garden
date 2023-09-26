@@ -36,7 +36,6 @@ describe("kubernetes configureProvider", () => {
     setupIngressController: null,
     systemNodeSelector: {},
     tlsCertificates: [],
-    _systemServices: [],
   }
 
   let tmpDir: TempDirectory
