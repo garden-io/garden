@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { configureProvider, configSchema } from "./config"
+import { configureProvider, configSchema, LocalKubernetesConfig } from "./config"
 import { createGardenPlugin } from "../../../plugin/plugin"
 import { dedent } from "../../../util/string"
 import { DOCS_BASE_URL, STATIC_DIR } from "../../../constants"
@@ -15,7 +15,7 @@ import {
   PrepareEnvironmentResult,
 } from "../../../plugin/handlers/Provider/prepareEnvironment"
 import { KubernetesPluginContext } from "../config"
-import { KubernetesEnvironmentStatus, prepareEnvironment as _prepareEnvironmentBase } from "../init"
+import { prepareEnvironment as _prepareEnvironmentBase } from "../init"
 import { Log } from "../../../logger/log-entry"
 import { exec, isTruthy } from "../../../util/util"
 import chalk from "chalk"
@@ -57,7 +57,7 @@ export const gardenPlugin = () =>
   })
 
 async function prepareEnvironment(
-  params: PrepareEnvironmentParams<KubernetesEnvironmentStatus>
+  params: PrepareEnvironmentParams<LocalKubernetesConfig>
 ): Promise<PrepareEnvironmentResult> {
   const { ctx, log } = params
   const k8sCtx = <KubernetesPluginContext>ctx
