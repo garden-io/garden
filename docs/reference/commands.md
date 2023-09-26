@@ -457,6 +457,43 @@ Examples:
   | `--from-file` |  | path | Read the secrets from the file at the given path. The file should have standard &quot;dotenv&quot; format, as defined by [dotenv](https://github.com/motdotla/dotenv#rules).
 
 
+### garden cloud secrets update
+
+**Update secrets in Garden Cloud**
+
+Update secrets in Garden Cloud. You can update the secrets by either specifying secret name or secret ID.
+When updating by name, the behavior is upsert (existing secrets are updated while missing secrets are created).
+
+If you have multiple secrets with same name across different environments and users, specify the environment and user id using `--scope-to-env` and `--scope-to-user-id` flags.
+
+When you want to update the secrets by ID, use the `--update-by-id` flag. To get the IDs of the secrets you want to update, run the `garden cloud secrets list` command.
+
+Examples:
+    garden cloud secrets update MY_SECRET=foo MY_SECRET_2=bar # update two secret values with the given names.
+    garden cloud secrets update MY_SECRET=foo MY_SECRET_2=bar --scope-to-env local --scope-to-user-id <user-id> # update two secret values with the given names for the environment local and specified user id.
+    garden cloud secrets update <ID 1>=foo <ID 2>=bar --update-by-id # update two secret values with the given IDs.
+
+#### Usage
+
+    garden cloud secrets update [secretNamesOrIds] [options]
+
+#### Arguments
+
+| Argument | Required | Description |
+| -------- | -------- | ----------- |
+  | `secretNamesOrIds` | No | The name(s) or ID(s) of the secrets to update along with the new values, separated by &#x27;&#x3D;&#x27;. You may specify multiple secret id/value pairs, separated by spaces.
+
+#### Options
+
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+  | `--upsert` |  | boolean | Set this flag to upsert secrets instead of updating them. I.e., existing secrets will be updated while missing secrets will be created.
+  | `--update-by-id` |  | boolean | Update secret(s) by secret ID(s). By default, the command args are considered to be secret name(s).
+  | `--from-file` |  | path | Read the secrets from the file at the given path. The file should have standard &quot;dotenv&quot; format, as defined by [dotenv](https://github.com/motdotla/dotenv#rules).
+  | `--scope-to-user-id` |  | string | Update the secret(s) in scope of user with the given user ID. This must be specified if you want to update secrets by name instead of secret ID.
+  | `--scope-to-env` |  | string | Update the secret(s) in scope of the specified environment. This must be specified if you want to update secrets by name instead of secret ID.
+
+
 ### garden cloud secrets delete
 
 **Delete secrets from Garden Cloud.**
