@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { expectError, getDataDir, grouped } from "../../../../../../helpers"
+import { expectError, grouped } from "../../../../../../helpers"
 import { Garden } from "../../../../../../../src/garden"
 import { ConfigGraph } from "../../../../../../../src/graph/config-graph"
 import { PluginContext } from "../../../../../../../src/plugin-context"
@@ -16,7 +16,6 @@ import { getContainerTestGarden } from "../container"
 import { containerHelpers } from "../../../../../../../src/plugins/container/helpers"
 import { k8sPublishContainerBuild } from "../../../../../../../src/plugins/kubernetes/container/publish"
 import { ActionLog, createActionLog } from "../../../../../../../src/logger/log-entry"
-import { cloneDeep } from "lodash"
 import { ContainerBuildAction } from "../../../../../../../src/plugins/container/config"
 import { BuildTask } from "../../../../../../../src/tasks/build"
 import { k8sContainerBuildExtension } from "../../../../../../../src/plugins/kubernetes/container/extensions"
