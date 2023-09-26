@@ -69,6 +69,7 @@
     "execa": "^4.1.0",
     "fast-copy": "^3.0.1",
     "fs-extra": "^11.1.0",
+    "fsevents": "^2.3.3",
     "get-port": "^5.1.1",
     "get-port-please": "^3.0.1",
     "glob": "^10.2.6",
@@ -288,6 +289,9 @@
       "package.json",
       "build/src/**/*.js"
     ]
+  },
+  "optionalDependencies": {
+    "fsevents": "^2.3.3"
   },
   "gitHead": "b0647221a4d2ff06952bae58000b104215aed922"
 }
