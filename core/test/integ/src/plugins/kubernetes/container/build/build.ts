@@ -6,13 +6,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { expectError, grouped } from "../../../../../../helpers"
+import { expectError, getDataDir, grouped } from "../../../../../../helpers"
 import { Garden } from "../../../../../../../src/garden"
 import { ConfigGraph } from "../../../../../../../src/graph/config-graph"
-import {
-  k8sBuildContainer,
-  k8sGetContainerBuildStatus,
-} from "../../../../../../../src/plugins/kubernetes/container/build/build"
 import { PluginContext } from "../../../../../../../src/plugin-context"
 import { KubernetesProvider } from "../../../../../../../src/plugins/kubernetes/config"
 import { expect } from "chai"
@@ -23,8 +19,12 @@ import { ActionLog, createActionLog } from "../../../../../../../src/logger/log-
 import { cloneDeep } from "lodash"
 import { ContainerBuildAction } from "../../../../../../../src/plugins/container/config"
 import { BuildTask } from "../../../../../../../src/tasks/build"
+import { k8sContainerBuildExtension } from "../../../../../../../src/plugins/kubernetes/container/extensions"
+import { deleteGoogleArtifactImage, listGoogleArtifactImageTags } from "../../../../../helpers"
 
-describe("kubernetes build flow", () => {
+describe("Kubernetes Container Build Extension", () => {
+  const builder = k8sContainerBuildExtension()
+
   let garden: Garden
   let cleanup: (() => void) | undefined
   let log: ActionLog
@@ -32,8 +32,6 @@ describe("kubernetes build flow", () => {
   let provider: KubernetesProvider
   let ctx: PluginContext
   let currentEnv: string
-
-  const builtImages: { [key: string]: any } = {}
 
   after(async () => {
     if (garden) {
@@ -59,70 +57,102 @@ describe("kubernetes build flow", () => {
   }
 
   context("local mode", () => {
-    before(async () => {
+    beforeEach(async () => {
       await init("local")
+
+      await containerHelpers.removeLocalImage("simple-service", log, ctx)
     })
 
-    after(async () => {
+    afterEach(async () => {
       if (cleanup) {
         cleanup()
       }
+
+      await containerHelpers.removeLocalImage("simple-service", log, ctx)
     })
 
     it("should build a simple container", async () => {
       await executeBuild("simple-service")
+
+      const imageExists = await containerHelpers.imageExistsLocally("simple-service", log, ctx)
+      expect(imageExists?.identifier).to.equal("simple-service")
     })
   })
 
   grouped("remote-only").context("local-remote-registry mode", () => {
-    before(async () => {
+    const serviceImageName = "remote-registry-test"
+    const localImageName = `garden-integ-tests/${serviceImageName}`
+    const remoteImageName = `europe-west3-docker.pkg.dev/garden-ci/${localImageName}`
+
+    beforeEach(async () => {
       await init("local-remote-registry", true)
+
+      await deleteGoogleArtifactImage(serviceImageName)
+      await containerHelpers.removeLocalImage(localImageName, log, ctx)
+      await containerHelpers.removeLocalImage(remoteImageName, log, ctx)
     })
 
-    after(async () => {
+    afterEach(async () => {
       if (cleanup) {
         cleanup()
       }
+
+      await containerHelpers.removeLocalImage(localImageName, log, ctx)
+      await containerHelpers.removeLocalImage(remoteImageName, log, ctx)
+      await deleteGoogleArtifactImage(serviceImageName)
     })
 
     it("should push to configured deploymentRegistry if specified", async () => {
-      const action = await executeBuild("remote-registry-test")
+      const action = await executeBuild(serviceImageName)
 
       const remoteId = action.getOutput("deployment-image-id")
-      // This throws if the image doesn't exist
-      await containerHelpers.dockerCli({
-        cwd: action.getBuildPath(),
-        args: ["manifest", "inspect", remoteId],
-        log,
-        ctx,
-      })
+      const tag = action.versionString()
+      const taggedLocalName = `${localImageName}:${tag}`
+      const taggedRemoteName = `${remoteImageName}:${tag}`
+
+      expect(remoteId).to.equal(taggedRemoteName)
+
+      const remoteNameExists = await containerHelpers.imageExistsLocally(taggedRemoteName, log, ctx)
+      expect(remoteNameExists?.identifier).to.equal(taggedRemoteName)
+
+      const localNameExists = await containerHelpers.imageExistsLocally(taggedLocalName, log, ctx)
+      expect(localNameExists?.identifier).to.equal(taggedLocalName)
+
+      const remoteTags = await listGoogleArtifactImageTags(serviceImageName)
+      expect(remoteTags).has.length(1)
+      expect(remoteTags[0]).to.equal(tag)
     })
 
-    it("should get the build status from the deploymentRegistry", async () => {
-      const action = await executeBuild("remote-registry-test")
+    it("should get the build status from the remote deploymentRegistry", async () => {
+      const action = await executeBuild(serviceImageName)
 
       const remoteId = action.getOutput("deployment-image-id")
 
-      await containerHelpers.dockerCli({
-        cwd: action.getBuildPath(),
-        args: ["rmi", remoteId],
-        log,
-        ctx,
-      })
-      builtImages[`${currentEnv}.${action.name}.${action.versionString()}`] = false
+      await containerHelpers.removeLocalImage(localImageName, log, ctx)
+      await containerHelpers.removeLocalImage(remoteImageName, log, ctx)
 
-      const status = await k8sGetContainerBuildStatus({
+      const resultExists = await builder.handlers.getStatus!({
         ctx,
         log,
         action,
       })
 
-      expect(status.state).to.equal("ready")
+      expect(resultExists.state).to.equal("ready")
+
+      await deleteGoogleArtifactImage(serviceImageName)
+
+      const resultNotExists = await builder.handlers.getStatus!({
+        ctx,
+        log,
+        action,
+      })
+
+      expect(resultNotExists.state).to.equal("not-ready")
     })
 
     context("publish handler", () => {
       it("should publish the built image", async () => {
-        const action = await executeBuild("remote-registry-test")
+        const action = await executeBuild(serviceImageName)
 
         const result = await k8sPublishContainerBuild({
           ctx,
@@ -131,13 +161,12 @@ describe("kubernetes build flow", () => {
         })
 
         expect(result.detail?.message).to.eql(
-          "Published europe-west3-docker.pkg.dev/garden-ci/garden-integ-tests/remote-registry-test:" +
-            action.versionString()
+          `Published europe-west3-docker.pkg.dev/garden-ci/garden-integ-tests/${serviceImageName}:${action.versionString()}`
         )
       })
 
       it("should set custom tag if specified", async () => {
-        const action = await executeBuild("remote-registry-test")
+        const action = await executeBuild(serviceImageName)
 
         const result = await k8sPublishContainerBuild({
           ctx,
@@ -147,7 +176,7 @@ describe("kubernetes build flow", () => {
         })
 
         expect(result.detail?.message).to.eql(
-          "Published europe-west3-docker.pkg.dev/garden-ci/garden-integ-tests/remote-registry-test:foo"
+          `Published europe-west3-docker.pkg.dev/garden-ci/garden-integ-tests/${serviceImageName}:foo`
         )
       })
     })
@@ -171,7 +200,7 @@ describe("kubernetes build flow", () => {
     it("should get the build status from the registry", async () => {
       const action = await executeBuild("simple-service")
 
-      const status = await k8sGetContainerBuildStatus({
+      const status = await builder.handlers.getStatus!({
         ctx,
         log,
         action,
@@ -199,28 +228,13 @@ describe("kubernetes build flow", () => {
     it("should get the build status from the registry", async () => {
       const action = await executeBuild("remote-registry-test")
 
-      const status = await k8sGetContainerBuildStatus({
+      const status = await builder.handlers.getStatus!({
         ctx,
         log,
         action,
       })
 
       expect(status.state).to.equal("ready")
-    })
-
-    it("should return ready=false status when image doesn't exist in registry", async () => {
-      const action = cloneDeep(graph.getBuild("remote-registry-test"))
-      await garden.buildStaging.syncFromSrc({ action, log: garden.log })
-
-      action.getFullVersion().versionString = "v-0000000000"
-
-      const status = await k8sGetContainerBuildStatus({
-        ctx,
-        log,
-        action: await garden.resolveAction<ContainerBuildAction>({ action, log: garden.log, graph }),
-      })
-
-      expect(status.state).to.equal("not-ready")
     })
 
     grouped("remote-only").it("should support pulling from private registries", async () => {
@@ -233,7 +247,7 @@ describe("kubernetes build flow", () => {
 
       await expectError(
         async () =>
-          k8sBuildContainer({
+          await builder.handlers.build!({
             ctx,
             log,
             action: await garden.resolveAction<ContainerBuildAction>({ action, log: garden.log, graph }),
@@ -312,7 +326,7 @@ describe("kubernetes build flow", () => {
     it("should get the build status from the registry", async () => {
       const action = await executeBuild("simple-service")
 
-      const status = await k8sGetContainerBuildStatus({
+      const status = await builder.handlers.getStatus!({
         ctx,
         log,
         action,
@@ -329,9 +343,9 @@ describe("kubernetes build flow", () => {
       const action = graph.getBuild("simple-service")
       await garden.buildStaging.syncFromSrc({ action, log: garden.log })
 
-      action["_config"].spec.image = "skee-ba-dee-skoop"
+      action["_config"].spec.localId = "skee-ba-dee-skoop"
 
-      const status = await k8sGetContainerBuildStatus({
+      const status = await builder.handlers.getStatus!({
         ctx,
         log,
         action: await garden.resolveAction<ContainerBuildAction>({ action, log: garden.log, graph }),
@@ -346,7 +360,7 @@ describe("kubernetes build flow", () => {
 
       await expectError(
         async () =>
-          k8sBuildContainer({
+          await builder.handlers.build!({
             ctx,
             log,
             action: await garden.resolveAction<ContainerBuildAction>({ action, log: garden.log, graph }),
@@ -409,7 +423,7 @@ describe("kubernetes build flow", () => {
     it("should get the build status from the registry", async () => {
       const action = await executeBuild("simple-service")
 
-      const status = await k8sGetContainerBuildStatus({
+      const status = await builder.handlers.getStatus!({
         ctx,
         log,
         action,
@@ -426,9 +440,9 @@ describe("kubernetes build flow", () => {
       const action = graph.getBuild("simple-service")
       await garden.buildStaging.syncFromSrc({ action, log: garden.log })
 
-      action["_config"].spec.image = "skee-ba-dee-skoop"
+      action["_config"].spec.localId = "skee-ba-dee-skoop"
 
-      const status = await k8sGetContainerBuildStatus({
+      const status = await builder.handlers.getStatus!({
         ctx,
         log,
         action: await garden.resolveAction<ContainerBuildAction>({ action, log: garden.log, graph }),
@@ -443,7 +457,7 @@ describe("kubernetes build flow", () => {
 
       await expectError(
         async () =>
-          k8sBuildContainer({
+          await builder.handlers.build!({
             ctx,
             log,
             action: await garden.resolveAction<ContainerBuildAction>({ action, log: garden.log, graph }),

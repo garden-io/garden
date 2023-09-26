@@ -233,15 +233,46 @@ const helpers = {
     }
   },
 
-  async imageExistsLocally(identifier: string, log: Log, ctx: PluginContext) {
+  async imageExistsLocally(
+    identifier: string,
+    log: Log,
+    ctx: PluginContext
+  ): Promise<{ identifier: string; imageIds: string[] } | undefined> {
     const result = await helpers.dockerCli({
       cwd: ctx.projectRoot,
       args: ["images", identifier, "-q"],
       log,
       ctx,
     })
-    const exists = result.stdout!.length > 0
-    return exists ? identifier : null
+
+    if (result.stdout!.length === 0) {
+      return undefined
+    }
+
+    const imageIds = result.stdout.split("\n")
+    return { identifier, imageIds }
+  },
+
+  // Remove all images for a given identifier
+  async removeLocalImage(identifier: string, log: Log, ctx: PluginContext) {
+    const { identifier: _, imageIds } = (await containerHelpers.imageExistsLocally(identifier, log, ctx)) || {}
+
+    if (!imageIds) {
+      return undefined
+    }
+
+    const result = await helpers.dockerCli({
+      cwd: ctx.projectRoot,
+      args: ["rmi", "--force", imageIds.join(" ").trim()],
+      log,
+      ctx,
+    })
+
+    if (result.stdout!.length === 0) {
+      return undefined
+    }
+
+    return { identifier, imageIds }
   },
 
   /**

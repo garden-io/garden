@@ -10,7 +10,6 @@ import { pullBuild } from "../../../../../../src/plugins/kubernetes/commands/pul
 import { Garden } from "../../../../../../src/garden"
 import { ConfigGraph } from "../../../../../../src/graph/config-graph"
 import { getContainerTestGarden } from "../container/container"
-import { k8sBuildContainer } from "../../../../../../src/plugins/kubernetes/container/build/build"
 import { PluginContext } from "../../../../../../src/plugin-context"
 import { KubernetesProvider, KubernetesPluginContext } from "../../../../../../src/plugins/kubernetes/config"
 import { containerHelpers } from "../../../../../../src/plugins/container/helpers"
@@ -18,6 +17,7 @@ import { expect } from "chai"
 import { grouped } from "../../../../../helpers"
 import { BuildAction, ResolvedBuildAction } from "../../../../../../src/actions/build"
 import { createActionLog } from "../../../../../../src/logger/log-entry"
+import { k8sContainerBuildExtension } from "../../../../../../src/plugins/kubernetes/container/extensions"
 
 describe("pull-image plugin command", () => {
   let garden: Garden
@@ -25,6 +25,7 @@ describe("pull-image plugin command", () => {
   let graph: ConfigGraph
   let provider: KubernetesProvider
   let ctx: PluginContext
+  const builder = k8sContainerBuildExtension()
 
   after(async () => {
     if (garden) {
@@ -84,7 +85,7 @@ describe("pull-image plugin command", () => {
         actionKind: resolvedAction.kind,
       })
 
-      await k8sBuildContainer({
+      builder.handlers.build!({
         ctx,
         log: actionLog,
         action: resolvedAction,
@@ -124,7 +125,7 @@ describe("pull-image plugin command", () => {
       await garden.buildStaging.syncFromSrc({ action, log: garden.log })
       const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
 
-      await k8sBuildContainer({
+      builder.handlers.build!({
         ctx,
         log: actionLog,
         action: resolvedAction,

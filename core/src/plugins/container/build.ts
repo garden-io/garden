@@ -23,7 +23,7 @@ export const getContainerBuildStatus: BuildActionHandler<"getStatus", ContainerB
   log,
 }) => {
   const outputs = action.getOutputs()
-  const identifier = await containerHelpers.imageExistsLocally(outputs.localImageId, log, ctx)
+  const { identifier } = (await containerHelpers.imageExistsLocally(outputs.localImageId, log, ctx)) || {}
 
   if (identifier) {
     log.debug(`Image ${identifier} already exists`)
