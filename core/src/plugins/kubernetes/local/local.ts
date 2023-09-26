@@ -134,6 +134,8 @@ async function prepareEnvironment(
       log.debug("Using microk8s's ingress addon")
       microk8sAddons.push("ingress")
       await applyYamlFromFile(k8sCtx, log, join(STATIC_DIR, "kubernetes", "nginx-ingress-class.yaml"))
+    } else {
+      clusterType satisfies "generic"
     }
   }
 
