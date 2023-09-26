@@ -32,7 +32,6 @@ const supportedContexts = [
   "k3d-k3s-default",
   "orbstack",
 ]
-const nginxServices = ["ingress-controller", "default-backend"]
 
 function isSupportedContext(context: string) {
   return supportedContexts.includes(context) || context.startsWith("kind-")
