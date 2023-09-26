@@ -266,6 +266,16 @@ commands:
       - store_artifacts:
           path: dist
           destination: dist
+  update_buildx:
+    description: Update buildx to a version that supports syntax in bakefile
+    steps:
+      - run:
+          name: Update buildx
+          command: |
+            mkdir -p ~/.docker/cli-plugins
+            wget -O ~/.docker/cli-plugins/docker-buildx https://github.com/docker/buildx/releases/download/v0.11.1/buildx-v0.11.1.linux-amd64
+            echo "34927047282ef9052f57809fe94783b2dc0ab556fdd60c2c0b7f4e6e5f05a53b  ~/.docker/cli-plugins/docker-buildx" | sha256sum -c
+            chmod +x ~/.docker/cli-plugins/docker-buildx
 
 #
 # Jobs section
@@ -390,6 +400,7 @@ jobs:
     machine:
       <<: *shared-machine-config
     steps:
+      - update_buildx
       - checkout
       # This is to copy the pre-built code from a previous step
       - *attach-workspace
@@ -398,9 +409,10 @@ jobs:
           command: |
             bash support/docker-bake-test.sh $CIRCLE_BRANCH
   dockerhub-release:
-    <<: *node-config
+    machine:
+      <<: *shared-machine-config
     steps:
-      - *remote-docker
+      - update_buildx
       - checkout
       # This is to copy the pre-built code from a previous step
       - *attach-workspace
