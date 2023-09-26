@@ -42,6 +42,8 @@ import { combineStates, DeployState } from "../../../types/service"
 import { isTruthy, sleep } from "../../../util/util"
 import dedent = require("dedent")
 
+export const k8sManifestHashAnnotationKey = gardenAnnotationKey("manifest-hash")
+
 export interface ResourceStatus<T extends BaseResource | KubernetesObject = BaseResource> {
   state: DeployState
   resource: KubernetesServerResource<T>
@@ -460,12 +462,11 @@ export async function compareDeployedResources({
     }
 
     // Discard any last applied config from the input manifest
-    const hashKey = gardenAnnotationKey("manifest-hash")
-    if (manifest.metadata?.annotations?.[hashKey]) {
-      delete manifest.metadata?.annotations?.[hashKey]
+    if (manifest.metadata?.annotations?.[k8sManifestHashAnnotationKey]) {
+      delete manifest.metadata?.annotations?.[k8sManifestHashAnnotationKey]
     }
-    if (manifest.spec?.template?.metadata?.annotations?.[hashKey]) {
-      delete manifest.spec?.template?.metadata?.annotations?.[hashKey]
+    if (manifest.spec?.template?.metadata?.annotations?.[k8sManifestHashAnnotationKey]) {
+      delete manifest.spec?.template?.metadata?.annotations?.[k8sManifestHashAnnotationKey]
     }
 
     if (isWorkloadResource(manifest)) {
@@ -480,7 +481,7 @@ export async function compareDeployedResources({
     // Start by checking for "last applied configuration" annotations and comparing against those.
     // This can be more accurate than comparing against resolved resources.
     if (deployedResource.metadata && deployedResource.metadata.annotations) {
-      const lastAppliedHashed = deployedResource.metadata.annotations[hashKey]
+      const lastAppliedHashed = deployedResource.metadata.annotations[k8sManifestHashAnnotationKey]
 
       // The new manifest matches the last applied manifest
       if (lastAppliedHashed && (await hashManifest(manifest)) === lastAppliedHashed) {

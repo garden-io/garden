@@ -377,7 +377,7 @@ export class KubeApi {
   /**
    * Fetch the specified resource from the cluster.
    */
-  async read({ log, namespace, apiVersion, kind, name }: ReadParams) {
+  async read({ log, namespace, apiVersion, kind, name }: ReadParams): Promise<KubernetesResource> {
     log.silly(`Fetching Kubernetes resource ${apiVersion}/${kind}/${name}`)
 
     const typePath = await this.getResourceTypeApiPath({
@@ -390,29 +390,29 @@ export class KubeApi {
     const apiPath = typePath + "/" + name
 
     const res = await this.request({ log, path: apiPath })
-    return res.body
+    return res.body as KubernetesResource
   }
 
-  async readOrNull(params: ReadParams) {
+  async readOrNull(params: ReadParams): Promise<KubernetesResource | null> {
     return await nullIfNotFound(() => this.read(params))
   }
 
   /**
    * Given a manifest, attempt to read the matching resource from the cluster.
    */
-  async readBySpec({ log, namespace, manifest }: ReadBySpecParams) {
+  async readBySpec({ log, namespace, manifest }: ReadBySpecParams): Promise<KubernetesResource> {
     log.silly(`Fetching Kubernetes resource ${manifest.apiVersion}/${manifest.kind}/${manifest.metadata.name}`)
 
     const apiPath = await this.getResourceApiPathFromManifest({ manifest, log, namespace })
 
     const res = await this.request({ log, path: apiPath })
-    return res.body
+    return res.body as KubernetesResource
   }
 
   /**
    * Same as readBySpec() but returns null if the resource is missing.
    */
-  async readBySpecOrNull(params: ReadBySpecParams) {
+  async readBySpecOrNull(params: ReadBySpecParams): Promise<KubernetesResource | null> {
     return await nullIfNotFound(() => this.readBySpec(params))
   }
 

@@ -1,6 +1,6 @@
 # End to end Tests
 
-To run the end to end test suite against the given example project, use `yarn e2e-project --project <example project name>` from the repo root. This runs `test/e2e/e2e-project.ts`.
+To run the end to end test suite against the given example project, use `npm run e2e-project -- --project <example project name>` from the repo root. This runs `test/e2e/e2e-project.ts`.
 
 The script performs the following cleanup operations befor running the tests:
 
@@ -20,5 +20,5 @@ The `e2e-project` script supports the following options:
 For example:
 
 ```sh
-yarn e2e-project --binPath=/some/path/garden-bin --project=tasks
+npm run e2e-project -- --binPath=/some/path/garden-bin --project=tasks
 ```

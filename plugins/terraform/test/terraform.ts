@@ -6,26 +6,26 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { join } from "path"
+import { join, resolve } from "path"
 
 import { expect } from "chai"
 import { pathExists, readFile, remove } from "fs-extra"
 
-import { getRootLogMessages, makeTestGarden, TestGarden } from "@garden-io/sdk/testing"
+import { getRootLogMessages, makeTestGarden, TestGarden } from "@garden-io/sdk/build/src/testing"
 import { findByName } from "@garden-io/core/build/src/util/util"
-import { getTerraformCommands } from "../commands"
-import { ConfigGraph, LogLevel } from "@garden-io/sdk/types"
-import { gardenPlugin } from ".."
-import { TerraformProvider } from "../provider"
+import { getTerraformCommands } from "../src/commands"
+import { ConfigGraph, LogLevel } from "@garden-io/sdk/build/src/types"
+import { gardenPlugin } from "../src/index"
+import { TerraformProvider } from "../src/provider"
 import { DeployTask } from "@garden-io/core/build/src/tasks/deploy"
-import { getWorkspaces, setWorkspace } from "../helpers"
+import { getWorkspaces, setWorkspace } from "../src/helpers"
 import { resolveAction } from "@garden-io/core/build/src/graph/actions"
 import { RunTask } from "@garden-io/core/build/src/tasks/run"
-import { defaultTerraformVersion } from "../cli"
+import { defaultTerraformVersion } from "../src/cli"
 
 for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
   describe(`Terraform provider with terraform ${terraformVersion}`, () => {
-    const testRoot = join(__dirname, "test-project")
+    const testRoot = resolve(__dirname, "../../test/", "test-project")
     let garden: TestGarden
     let tfRoot: string
     let stateDirPath: string
@@ -290,7 +290,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
   })
 
   describe("Terraform action type", () => {
-    const testRoot = join(__dirname, "test-project-action")
+    const testRoot = resolve(__dirname, "../../test/", "test-project-action")
     const tfRoot = join(testRoot, "tf")
     const stateDirPath = join(tfRoot, "terraform.tfstate")
     const testFilePath = join(tfRoot, "test.log")
@@ -728,7 +728,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
   })
 
   describe("Terraform module type", () => {
-    const testRoot = join(__dirname, "test-project-module")
+    const testRoot = resolve(__dirname, "../../test/", "test-project-module")
     const tfRoot = join(testRoot, "tf")
     const stateDirPath = join(tfRoot, "terraform.tfstate")
     const testFilePath = join(tfRoot, "test.log")

@@ -2,24 +2,30 @@
   "name": "@garden-io/garden-pulumi",
   "version": "0.13.14",
   "description": "Pulumi plugin for Garden",
-  "main": "index.js",
+  "main": "build/src/index.js",
   "dependencies": {
     "@garden-io/core": "*",
     "@garden-io/sdk": "*",
+    "js-yaml": "^4.1.0",
     "chalk": "^4.1.0",
     "execa": "^4.0.3",
     "fs-extra": "^11.1.0",
     "slash": "^3.0.0",
-    "which": "^3.0.0"
+    "which": "^3.0.0",
+    "json-merge-patch": "^1.0.2"
   },
   "devDependencies": {
     "@types/chai": "^4.3.4",
+    "@types/hapi__joi": "^17.1.9",
+    "@types/json-merge-patch": "0.0.8",
+    "@types/mocha": "^10.0.1",
     "@types/node": "^18",
     "chai": "^4.3.7",
     "mocha": "^10.2.0",
     "strip-ansi": "^6.0.0"
   },
   "scripts": {
+    "clean": "shx rm -rf build dist",
     "check-types": "tsc -p . --noEmit",
     "fix-format": "prettier --write \"**/*.ts\"",
     "lint": "eslint -c ../../.eslintrc  --ignore-pattern 'test/test-project-k8s/**' --ext .ts .",

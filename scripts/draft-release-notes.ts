@@ -3,7 +3,7 @@
 import { writeFile } from "fs-extra"
 import { execSync } from "child_process"
 import { resolve } from "path"
-import { dedent } from "@garden-io/sdk/util/string"
+import { dedent } from "@garden-io/sdk/build/src/util/string"
 import { getChangelog } from "./changelog"
 import parseArgs = require("minimist")
 

@@ -20,9 +20,9 @@ const gardenRoot = resolve(__dirname, "..")
 /**
  * Performs the following steps to prepare for a release:
  * 1. Check out to a branch named release-${version}
- * 2. Bump the version in core/package.json and core/yarn.lock.
+ * 2. Bump the version in core/package.json and core/package-lock.json.
  * 5. Update the changelog.
- * 6. Add and commit CHANGELOG.md, core/package.json and core/yarn.lock
+ * 6. Add and commit CHANGELOG.md, core/package.json and core/package-lock.json
  * 7. Tag the commit.
  * 8. Push the tag. This triggers a CircleCI job that creates the release artifacts and publishes them to Github.
  * 9. If we're making a minor release, update links to examples and re-push the tag.
