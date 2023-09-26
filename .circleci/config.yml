@@ -274,7 +274,7 @@ commands:
           command: |
             mkdir -p ~/.docker/cli-plugins
             wget -O ~/.docker/cli-plugins/docker-buildx https://github.com/docker/buildx/releases/download/v0.11.1/buildx-v0.11.1.linux-amd64
-            echo "34927047282ef9052f57809fe94783b2dc0ab556fdd60c2c0b7f4e6e5f05a53b  ~/.docker/cli-plugins/docker-buildx" | sha256sum -c
+            echo "34927047282ef9052f57809fe94783b2dc0ab556fdd60c2c0b7f4e6e5f05a53b  ${HOME}/.docker/cli-plugins/docker-buildx" | sha256sum -c
             chmod +x ~/.docker/cli-plugins/docker-buildx
 
 #
