@@ -35,12 +35,10 @@ export const k8sPublishContainerBuild: BuildActionHandler<"publish", ContainerBu
 
   // optionally use the tag instead of the garden version, this requires that we tag the image locally
   // before publishing to the remote registry
-  let remotePublishId = remoteId
 
-  if (tag) {
-    remotePublishId = `${action.getOutput("deploymentImageName")}:${tag}`
-    await containerHelpers.dockerCli({ cwd: action.getBuildPath(), args: ["tag", remoteId, remotePublishId], log, ctx })
-  }
+  let remotePublishId = tag ? `${action.getOutput("deploymentImageName")}:${tag}` : remoteId
+
+  await containerHelpers.dockerCli({ cwd: action.getBuildPath(), args: ["tag", localId, remotePublishId], log, ctx })
 
   log.info({ msg: `Publishing image ${remotePublishId}...` })
   // TODO: stream output to log if at debug log level

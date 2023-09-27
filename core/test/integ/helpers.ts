@@ -45,13 +45,11 @@ export async function getArtifactRegistryClient() {
 }
 
 function isGCloudServiceError(err: any): err is GCloudServiceError {
-  const gcloudErr = err as GCloudServiceError
-
-  if (gcloudErr === undefined) {
+  if (err === undefined) {
     return false
   }
 
-  return gcloudErr?.code !== undefined && gcloudErr?.details !== undefined && gcloudErr?.metadata !== undefined
+  return err?.code !== undefined && err?.details !== undefined && err?.metadata !== undefined
 }
 
 interface GCloudServiceError {
