@@ -127,7 +127,7 @@ provider.addHandler("prepareEnvironment", async ({ ctx, log }) => {
   const allExporters: OtelExportersConfig[] = ctx.provider.config.exporters
   const exporters: OtelExportersConfig[] = allExporters.filter((exporter) => exporter.enabled)
 
-  if (!exporters) {
+  if (exporters.length === 0) {
     scopedLog.debug("No OTEL exporters are enabled, otel-collector is not needed.")
     configureNoOpExporter()
     return { status: { ready: true, disableCache: true, outputs: {} } }
