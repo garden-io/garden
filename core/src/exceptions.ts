@@ -266,6 +266,13 @@ export class CloudApiError extends GardenError {
 
 export class TemplateStringError extends GardenError {
   type = "template-string"
+
+  path?: (string | number)[]
+
+  constructor(params: GardenErrorParams & { path?: (string | number)[] }) {
+    super(params)
+    this.path = params.path
+  }
 }
 
 interface GenericGardenErrorParams extends GardenErrorParams {

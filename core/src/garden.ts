@@ -829,7 +829,7 @@ export class Garden {
           provider.moduleConfigs.map(async (moduleConfig) => {
             // Make sure module and all nested entities are scoped to the plugin
             moduleConfig.plugin = provider.name
-            await this.addModuleConfig(moduleConfig)
+            return this.addModuleConfig(moduleConfig)
           })
         )
       )
@@ -1503,9 +1503,15 @@ export class Garden {
    */
   public getProjectSources() {
     const context = new RemoteSourceConfigContext(this, this.variables)
-    const resolved = validateSchema(resolveTemplateStrings(this.projectSources, context), projectSourcesSchema(), {
-      context: "remote source",
-    })
+    const source = { yamlDoc: this.projectConfig.internal.yamlDoc, basePath: ["sources"] }
+    const resolved = validateSchema(
+      resolveTemplateStrings({ value: this.projectSources, context, source }),
+      projectSourcesSchema(),
+      {
+        context: "remote source",
+        source,
+      }
+    )
     return resolved
   }
 
@@ -1723,19 +1729,20 @@ export async function resolveGardenParamsPartial(currentDirectory: string, opts:
     configType: "project environments",
     path: config.path,
     projectRoot: config.path,
+    source: { yamlDoc: config.internal.yamlDoc, basePath: ["environments"] },
   })
 
-  const configDefaultEnvironment = resolveTemplateString(
-    config.defaultEnvironment || "",
-    new DefaultEnvironmentContext({
+  const configDefaultEnvironment = resolveTemplateString({
+    string: config.defaultEnvironment || "",
+    context: new DefaultEnvironmentContext({
       projectName,
       projectRoot,
       artifactsPath,
       vcsInfo,
       username: _username,
       commandInfo,
-    })
-  ) as string
+    }),
+  }) as string
 
   const localConfigStore = new LocalConfigStore(gardenDirPath)
 
@@ -2025,6 +2032,9 @@ export async function makeDummyGarden(root: string, gardenOpts: GardenOpts) {
     apiVersion: GardenApiVersion.v1,
     kind: "Project",
     name: "no-project",
+    internal: {
+      basePath: root,
+    },
     defaultEnvironment: "",
     dotIgnoreFile: defaultDotIgnoreFile,
     environments: [{ name: environmentName, defaultNamespace: _defaultNamespace, variables: {} }],

@@ -21,6 +21,7 @@ import {
 import { EnvironmentConfig, defaultNamespace } from "../../../../src/config/project"
 import { join } from "path"
 import { GardenApiVersion } from "../../../../src/constants"
+import { omit } from "lodash"
 
 describe("resolveWorkflowConfig", () => {
   let garden: TestGarden
@@ -173,7 +174,7 @@ describe("resolveWorkflowConfig", () => {
     }
 
     await expectError(() => resolveWorkflowConfig(garden, configWithTemplateStringInName), {
-      contains: 'key .name with value "workflow-${secrets.foo}" fails to match the required pattern',
+      contains: 'name with value "workflow-${secrets.foo}" fails to match the required pattern',
     })
 
     const configWithTemplateStringInTrigger: WorkflowConfig = {
@@ -268,7 +269,7 @@ describe("resolveWorkflowConfig", () => {
 
     expect(workflow).to.exist
     expect(workflow.steps[0].script).to.equal('echo "${inputs.envName}"') // <- resolved later
-    expect(workflow.internal).to.eql(internal)
+    expect(omit(workflow.internal, "yamlDoc")).to.eql(internal)
   })
 
   describe("populateNamespaceForTriggers", () => {

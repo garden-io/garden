@@ -73,6 +73,9 @@ export async function writeConfigReferenceDocs(
         apiVersion: GardenApiVersion.v1,
         kind: "Project",
         name: "generate-docs",
+        internal: {
+          basePath: __dirname,
+        },
         defaultEnvironment,
         dotIgnoreFile: defaultDotIgnoreFile,
         variables: {},

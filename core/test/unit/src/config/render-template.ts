@@ -77,7 +77,10 @@ describe("config templates", () => {
         foo: "bar",
       }
       await expectError(() => resolveConfigTemplate(garden, config), {
-        contains: 'Error validating ConfigTemplate (templates.garden.yml): key "foo" is not allowed at path [foo]',
+        contains: [
+          "Error validating ConfigTemplate 'test' (templates.garden.yml)",
+          '"foo" is not allowed at path [foo]',
+        ],
       })
     })
 
@@ -207,7 +210,7 @@ describe("config templates", () => {
         foo: "bar",
       }
       await expectError(() => renderConfigTemplate({ garden, log, config, templates }), {
-        contains: 'Error validating Render test (modules.garden.yml): key "foo" is not allowed',
+        contains: ["Error validating Render test (modules.garden.yml)", '"foo" is not allowed'],
       })
     })
 
@@ -367,7 +370,8 @@ describe("config templates", () => {
       await expectError(() => renderConfigTemplate({ garden, log, config, templates: _templates }), {
         contains: [
           "ConfigTemplate test returned an invalid module (named foo) for templated module test",
-          "Error validating module (modules.garden.yml): key .type must be a string",
+          "Error validating module (modules.garden.yml)",
+          "type must be a string",
         ],
       })
     })
@@ -388,8 +392,11 @@ describe("config templates", () => {
         ...defaults,
       }
       await expectError(() => renderConfigTemplate({ garden, log, config, templates: _templates }), {
-        contains:
-          "ConfigTemplate test returned an invalid module (named 123) for templated module test: Error validating module (modules.garden.yml): key .name must be a string",
+        contains: [
+          "ConfigTemplate test returned an invalid module (named 123) for templated module test",
+          "Error validating module (modules.garden.yml)",
+          "name must be a string",
+        ],
       })
     })
 
@@ -456,7 +463,9 @@ describe("config templates", () => {
 
       await expectError(() => renderConfigTemplate({ garden, log, config, templates: _templates }), {
         contains: [
-          'ConfigTemplate test returned an invalid module (named module-${modules.foo.version}-test) for templated module test: Error validating module (modules.garden.yml): key .name with value "module-${modules.foo.version}-test" fails to match the required pattern: /^(?!garden)(?=.{1,63}$)[a-z][a-z0-9]*(-[a-z0-9]+)*$/.',
+          "ConfigTemplate test returned an invalid module (named module-${modules.foo.version}-test) for templated module test",
+          "Error validating module (modules.garden.yml)",
+          'name with value "module-${modules.foo.version}-test" fails to match the required pattern: /^(?!garden)(?=.{1,63}$)[a-z][a-z0-9]*(-[a-z0-9]+)*$/.',
           "Note that if a template string is used in the name of a module in a template, then the template string must be fully resolvable at the time of module scanning. This means that e.g. references to other modules or runtime outputs cannot be used.",
         ],
       })

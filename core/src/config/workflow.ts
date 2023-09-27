@@ -23,12 +23,12 @@ import { ServiceLimitSpec } from "../plugins/container/moduleConfig"
 import { Garden } from "../garden"
 import { WorkflowConfigContext } from "./template-contexts/workflow"
 import { resolveTemplateStrings } from "../template-string/template-string"
-import { validateWithPath } from "./validation"
+import { validateConfig } from "./validation"
 import { ConfigurationError, GardenError } from "../exceptions"
 import { EnvironmentConfig, getNamespace } from "./project"
 import { omitUndefined } from "../util/objects"
 import { BaseGardenResource, GardenResource } from "./base"
-import { DOCS_BASE_URL } from "../constants"
+import { DOCS_BASE_URL, GardenApiVersion } from "../constants"
 
 export const minimumWorkflowRequests = {
   cpu: 50, // 50 millicpu
@@ -53,7 +53,7 @@ export const defaultWorkflowResources = {
 }
 
 export interface WorkflowConfig extends BaseGardenResource {
-  apiVersion: string
+  apiVersion: GardenApiVersion
   description?: string
   envVars: PrimitiveMap
   kind: "Workflow"
@@ -358,7 +358,7 @@ export function resolveWorkflowConfig(garden: Garden, config: WorkflowConfig) {
   }
 
   let resolvedPartialConfig: WorkflowConfig = {
-    ...resolveTemplateStrings(partialConfig, context),
+    ...resolveTemplateStrings({ value: partialConfig, context, source: { yamlDoc: config.internal.yamlDoc } }),
     name: config.name,
   }
 
@@ -367,19 +367,24 @@ export function resolveWorkflowConfig(garden: Garden, config: WorkflowConfig) {
   }
 
   if (config.internal.inputs) {
-    resolvedPartialConfig.internal.inputs = resolveTemplateStrings(config.internal.inputs, context, {
-      allowPartial: true,
+    resolvedPartialConfig.internal.inputs = resolveTemplateStrings({
+      value: config.internal.inputs,
+      context,
+      contextOpts: {
+        allowPartial: true,
+      },
+      // TODO: Map inputs to their original YAML sources
+      source: undefined,
     })
   }
 
   log.silly(`Validating config for workflow ${config.name}`)
 
-  resolvedPartialConfig = validateWithPath({
+  resolvedPartialConfig = validateConfig({
     config: resolvedPartialConfig,
-    configType: "workflow",
     schema: workflowConfigSchema(),
-    path: config.internal.basePath,
     projectRoot: garden.projectRoot,
+    yamlDocBasePath: [],
   })
 
   // Re-add the deferred step commands and scripts

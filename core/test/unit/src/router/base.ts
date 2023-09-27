@@ -637,7 +637,7 @@ describe("BaseActionRouter", () => {
       await expectError(
         async () => await router.validateActionOutputs(resolvedBuildAction, "static", { staticKey: 123 }),
         {
-          contains: ["Error validating static action outputs from Build", "key .staticKey must be a string."],
+          contains: ["Error validating static action outputs from Build", "staticKey must be a string"],
         }
       )
     })
@@ -646,7 +646,7 @@ describe("BaseActionRouter", () => {
       const { router } = await createTestRouter(testPlugins)
 
       await expectError(async () => await router.validateActionOutputs(resolvedBuildAction, "runtime", { foo: 123 }), {
-        contains: "Error validating runtime action outputs from Build 'module-a': key .foo must be a string.",
+        contains: ["Error validating runtime action outputs from Build 'module-a'", "foo must be a string"],
       })
     })
 
@@ -670,7 +670,7 @@ describe("BaseActionRouter", () => {
             thisPropertyFromBaseMustBePresent: "this should be a number",
           }),
         {
-          contains: "key .thispropertyfrombasemustbepresent must be a number",
+          contains: "thispropertyfrombasemustbepresent must be a number",
         }
       )
     })

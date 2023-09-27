@@ -20,6 +20,7 @@ import type { BaseAction } from "./base"
 import type { ValidResultType } from "../tasks/base"
 import type { BaseGardenResource, GardenResourceInternalFields } from "../config/base"
 import type { LinkedSource } from "../config-store/local"
+import { GardenApiVersion } from "../constants"
 
 // TODO: split this file
 
@@ -48,7 +49,7 @@ export interface BaseActionConfig<K extends ActionKind = ActionKind, T = string,
   extends BaseGardenResource {
   // Basics
   // -> No templating is allowed on these.
-  apiVersion?: string
+  apiVersion?: GardenApiVersion
   kind: K
   type: T
   name: string
