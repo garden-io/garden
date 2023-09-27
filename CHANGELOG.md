@@ -1,4 +1,27 @@
 
+<a name="0.13.15"></a>
+## [0.13.15](https://github.com/garden-io/garden/compare/0.13.14...0.13.15) (2023-09-27)
+
+### Bug Fixes
+
+* otel collector enabled detection ([#5141](https://github.com/garden-io/garden/issues/5141)) ([4b05677f7](https://github.com/garden-io/garden/commit/4b05677f7))
+* memoize memory leak ([#5137](https://github.com/garden-io/garden/issues/5137)) ([106eb72ba](https://github.com/garden-io/garden/commit/106eb72ba))
+* add fsevents as a dependency ([#5133](https://github.com/garden-io/garden/issues/5133)) ([76e186fe5](https://github.com/garden-io/garden/commit/76e186fe5))
+* remove read lock from config get ([#5114](https://github.com/garden-io/garden/issues/5114)) ([2967dc5b6](https://github.com/garden-io/garden/commit/2967dc5b6))
+* **k8s:** handle AEC-paused resources properly ([#5122](https://github.com/garden-io/garden/issues/5122)) ([ed87cfdac](https://github.com/garden-io/garden/commit/ed87cfdac))
+* **k8s:** correctly resolve manifests when `build` is set ([#4846](https://github.com/garden-io/garden/issues/4846)) ([6c737a905](https://github.com/garden-io/garden/commit/6c737a905))
+* **module:** only merge relevant variables overrides in config ([#5138](https://github.com/garden-io/garden/issues/5138)) ([b0d7a4756](https://github.com/garden-io/garden/commit/b0d7a4756))
+* **remote-building:** use "Recreate" strategy garden-util (kaniko) and garden-buildkit deployments ([#5125](https://github.com/garden-io/garden/issues/5125)) ([541851b8c](https://github.com/garden-io/garden/commit/541851b8c))
+
+### Features
+
+* **cli:** add cloud secrets update command ([#4804](https://github.com/garden-io/garden/issues/4804)) ([8b8fc0060](https://github.com/garden-io/garden/commit/8b8fc0060))
+* **config:** better error messages around schema validation ([#4889](https://github.com/garden-io/garden/issues/4889)) ([a098a1497](https://github.com/garden-io/garden/commit/a098a1497))
+
+### Improvements
+
+* **build:** update moby/buildkit to v0.12.2 ([#5105](https://github.com/garden-io/garden/issues/5105)) ([5faac9ecc](https://github.com/garden-io/garden/commit/5faac9ecc))
+
 <a name="0.13.14"></a>
 ## [0.13.14](https://github.com/garden-io/garden/compare/0.13.13...0.13.14) (2023-09-19)
 
