@@ -327,17 +327,23 @@ describe("Kubernetes Container Build Extension", () => {
 
   grouped("kaniko", "image-override", "remote-only").context("kaniko - image - override mode", () => {
     before(async () => {
-      await init("kaniko-image-override")
+      await init("kaniko-image-override", true)
     })
 
     after(async () => {
       if (cleanup) {
         cleanup()
       }
+
+      await deleteGoogleArtifactImage("remote-registry-test")
     })
 
     it("should push to configured deploymentRegistry if specified", async () => {
-      await executeBuild("remote-registry-test")
+      const action = await executeBuild("remote-registry-test")
+
+      const remoteTags = await listGoogleArtifactImageTags("remote-registry-test")
+      expect(remoteTags).has.length(1)
+      expect(remoteTags[0]).to.equal(action.versionString())
     })
   })
 

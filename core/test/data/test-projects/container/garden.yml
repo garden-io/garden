@@ -41,7 +41,7 @@ providers:
     environments: [kaniko-image-override]
     buildMode: kaniko
     kaniko:
-      image: gcr.io/kaniko-project/executor:debug-perf
+      image: gcr.io/kaniko-project/executor:v1.16.0-debug
     deploymentRegistry: *deploymentRegistry
   - <<: *base
     environments: [kaniko-remote-registry]
