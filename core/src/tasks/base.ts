@@ -160,7 +160,7 @@ export abstract class BaseTask<O extends ValidResultType = ValidResultType> exte
   /**
    * Wrapper around resolveProcessDependencies() that memoizes the results and applies filters.
    */
-  @Memoize()
+  @Memoize((params: ResolveProcessDependenciesParams<O>) => (params.status ? params.status.state : null))
   getProcessDependencies(params: ResolveProcessDependenciesParams<O>): BaseTask[] {
     if (this.skipDependencies) {
       return []
