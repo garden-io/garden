@@ -122,29 +122,30 @@ describe("Kubernetes Container Build Extension", () => {
       expect(remoteTags[0]).to.equal(tag)
     })
 
-    it("should get the build status from the remote deploymentRegistry", async () => {
+    it("should get the build status from the private deploymentRegistry", async () => {
       const action = await executeBuild(serviceImageName)
 
+      // delete any local images to make sure we are not fetching from the wrong place
       await containerHelpers.removeLocalImage(localImageName, log, ctx)
       await containerHelpers.removeLocalImage(remoteImageName, log, ctx)
 
-      const resultExists = await builder.handlers.getStatus!({
+      const resultReady = await builder.handlers.getStatus!({
         ctx,
         log,
         action,
       })
 
-      expect(resultExists.state).to.equal("ready")
+      expect(resultReady.state).to.equal("ready")
 
       await deleteGoogleArtifactImage(serviceImageName)
 
-      const resultNotExists = await builder.handlers.getStatus!({
+      const resultNotReady = await builder.handlers.getStatus!({
         ctx,
         log,
         action,
       })
 
-      expect(resultNotExists.state).to.equal("not-ready")
+      expect(resultNotReady.state).to.equal("not-ready")
     })
 
     context("publish handler", () => {
@@ -184,12 +185,10 @@ describe("Kubernetes Container Build Extension", () => {
   })
 
   grouped("kaniko", "remote-only").context("kaniko-project-namespace mode", () => {
-    const serviceImageName = "simple-service"
-
     beforeEach(async () => {
       await init("kaniko-project-namespace", true)
 
-      await deleteGoogleArtifactImage(serviceImageName)
+      await deleteGoogleArtifactImage("simple-service")
     })
 
     afterEach(async () => {
@@ -197,27 +196,37 @@ describe("Kubernetes Container Build Extension", () => {
         cleanup()
       }
 
-      await deleteGoogleArtifactImage(serviceImageName)
+      await deleteGoogleArtifactImage("simple-service")
     })
 
     it("should build a simple container", async () => {
       const action = await executeBuild("simple-service")
 
-      const remoteTags = await listGoogleArtifactImageTags(serviceImageName)
+      const remoteTags = await listGoogleArtifactImageTags("simple-service")
       expect(remoteTags).has.length(1)
       expect(remoteTags[0]).to.equal(action.versionString())
     })
 
-    it("should get the build status from the registry", async () => {
+    it("should get the build status from the private deploymentRegistry", async () => {
       const action = await executeBuild("simple-service")
 
-      const status = await builder.handlers.getStatus!({
+      const resultReady = await builder.handlers.getStatus!({
         ctx,
         log,
         action,
       })
 
-      expect(status.state).to.equal("ready")
+      expect(resultReady.state).to.equal("ready")
+
+      await deleteGoogleArtifactImage("simple-service")
+
+      const resultNotReady = await builder.handlers.getStatus!({
+        ctx,
+        log,
+        action,
+      })
+
+      expect(resultNotReady.state).to.equal("not-ready")
     })
   })
 
@@ -240,7 +249,7 @@ describe("Kubernetes Container Build Extension", () => {
       await containerHelpers.removeLocalImage(localImageName, log, ctx)
     })
 
-    it("should build and push to configured remote deploymentRegistry", async () => {
+    it("should build and push to configured private deploymentRegistry", async () => {
       const action = await executeBuild(serviceImageName)
 
       const remoteTags = await listGoogleArtifactImageTags(serviceImageName)
@@ -248,7 +257,7 @@ describe("Kubernetes Container Build Extension", () => {
       expect(remoteTags[0]).to.equal(action.versionString())
     })
 
-    it("should get the build status from the registry", async () => {
+    it("should get the build status from the private deploymentRegistry", async () => {
       const action = await executeBuild(serviceImageName)
 
       const status = await builder.handlers.getStatus!({
@@ -265,7 +274,7 @@ describe("Kubernetes Container Build Extension", () => {
       const action = await executeBuild("simple-service")
 
       // Relies on the publish and tagging to work
-      const result = await k8sPublishContainerBuild({
+      await k8sPublishContainerBuild({
         ctx,
         action,
         log,
@@ -306,6 +315,10 @@ describe("Kubernetes Container Build Extension", () => {
           "Published europe-west3-docker.pkg.dev/garden-ci/garden-integ-tests/remote-registry-test:" +
             action.versionString()
         )
+
+        const remoteTags = await listGoogleArtifactImageTags("remote-registry-test")
+        expect(remoteTags).has.length(1)
+        expect(remoteTags[0]).to.equal(action.versionString())
       })
 
       it("should set custom tag if specified", async () => {
@@ -321,6 +334,10 @@ describe("Kubernetes Container Build Extension", () => {
         expect(result.detail?.message).to.eql(
           "Published europe-west3-docker.pkg.dev/garden-ci/garden-integ-tests/remote-registry-test:foo"
         )
+
+        const remoteTags = await listGoogleArtifactImageTags("remote-registry-test")
+        expect(remoteTags).has.length(1)
+        expect(remoteTags[0]).to.equal("foo")
       })
     })
   })
@@ -350,48 +367,61 @@ describe("Kubernetes Container Build Extension", () => {
   // TODO: Reenable these tests e.g. for Minikube?
   grouped("cluster-buildkit", "remote-only").context("cluster-buildkit mode", () => {
     before(async () => {
-      await init("cluster-buildkit")
+      await init("cluster-buildkit", true)
     })
 
-    after(async () => {
+    afterEach(async () => {
       if (cleanup) {
         cleanup()
       }
+
+      await deleteGoogleArtifactImage("simple-service")
+      await containerHelpers.removeLocalImage("simple-service", log, ctx)
     })
 
     it("should build and push a simple container", async () => {
-      await executeBuild("simple-service")
-    })
-
-    it("should get the build status from the registry", async () => {
       const action = await executeBuild("simple-service")
 
-      const status = await builder.handlers.getStatus!({
+      const remoteTags = await listGoogleArtifactImageTags("simple-service")
+      expect(remoteTags).has.length(2)
+      expect(remoteTags).to.have.members([action.versionString(), "_buildcache"])
+    })
+
+    it("should get the build status from the private deploymentRegistry", async () => {
+      const action = await executeBuild("simple-service")
+
+      const resultReady = await builder.handlers.getStatus!({
         ctx,
         log,
         action,
       })
 
-      expect(status.state).to.equal("ready")
+      expect(resultReady.state).to.equal("ready")
+
+      await deleteGoogleArtifactImage("simple-service")
+
+      const resultNotExists = await builder.handlers.getStatus!({
+        ctx,
+        log,
+        action,
+      })
+
+      expect(resultNotExists.state).to.equal("not-ready")
     })
 
     it("should support pulling from private registries", async () => {
-      await executeBuild("private-base")
-    })
+      // Ensure the simple service image exists, this is referenced from the private-base dockerfile
+      const action = await executeBuild("simple-service")
 
-    it("should return ready=false status when image doesn't exist in registry", async () => {
-      const action = graph.getBuild("simple-service")
-      await garden.buildStaging.syncFromSrc({ action, log: garden.log })
-
-      action["_config"].spec.localId = "skee-ba-dee-skoop"
-
-      const status = await builder.handlers.getStatus!({
+      // Relies on the publish and tagging to work
+      await k8sPublishContainerBuild({
         ctx,
+        action,
         log,
-        action: await garden.resolveAction<ContainerBuildAction>({ action, log: garden.log, graph }),
+        tag: "0.1.0",
       })
 
-      expect(status.state).to.equal("not-ready")
+      await executeBuild("private-base")
     })
 
     it("should throw if attempting to pull from private registry without access", async () => {
@@ -412,6 +442,16 @@ describe("Kubernetes Container Build Extension", () => {
     })
 
     context("publish handler", () => {
+      afterEach(async () => {
+        await deleteGoogleArtifactImage("remote-registry-test")
+        await containerHelpers.removeLocalImage("garden-integ-tests/remote-registry-test", log, ctx)
+        await containerHelpers.removeLocalImage(
+          "europe-west3-docker.pkg.dev/garden-ci/garden-integ-tests/remote-registry-test",
+          log,
+          ctx
+        )
+      })
+
       it("should publish the built image", async () => {
         const action = await executeBuild("remote-registry-test")
 
@@ -425,6 +465,10 @@ describe("Kubernetes Container Build Extension", () => {
           "Published europe-west3-docker.pkg.dev/garden-ci/garden-integ-tests/remote-registry-test:" +
             action.versionString()
         )
+
+        const remoteTags = await listGoogleArtifactImageTags("remote-registry-test")
+        expect(remoteTags).has.length(2)
+        expect(remoteTags).to.have.members([action.versionString(), "_buildcache"])
       })
 
       it("should set custom tag if specified", async () => {
@@ -440,6 +484,10 @@ describe("Kubernetes Container Build Extension", () => {
         expect(result.detail?.message).to.eql(
           "Published europe-west3-docker.pkg.dev/garden-ci/garden-integ-tests/remote-registry-test:foo"
         )
+
+        const remoteTags = await listGoogleArtifactImageTags("remote-registry-test")
+        expect(remoteTags).has.length(3)
+        expect(remoteTags).to.have.members(["foo", action.versionString(), "_buildcache"])
       })
     })
   })
@@ -460,7 +508,7 @@ describe("Kubernetes Container Build Extension", () => {
       await executeBuild("simple-service")
     })
 
-    it("should get the build status from the registry", async () => {
+    it("should get the build status from the private deploymentRegistry", async () => {
       const action = await executeBuild("simple-service")
 
       const status = await builder.handlers.getStatus!({
@@ -473,6 +521,17 @@ describe("Kubernetes Container Build Extension", () => {
     })
 
     grouped("remote-only").it("should support pulling from private registries", async () => {
+      // Ensure the simple service image exists, this is referenced from the private-base dockerfile
+      const action = await executeBuild("simple-service")
+
+      // Relies on the publish and tagging to work
+      await k8sPublishContainerBuild({
+        ctx,
+        action,
+        log,
+        tag: "0.1.0",
+      })
+
       await executeBuild("private-base")
     })
 

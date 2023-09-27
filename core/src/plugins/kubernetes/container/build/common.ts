@@ -231,20 +231,22 @@ export async function skopeoBuildStatus({
       const res = err.details.result
 
       // Non-zero exit code can both mean the manifest is not found, and any other unexpected error
-      if (res?.exitCode !== 0 && !skopeoManifestUnknown(res?.stderr)) {
-        const output = res?.allLogs || err.message
-
-        throw new RuntimeError({
-          message: `Unable to query registry for image status: Command "${skopeoCommand.join(
-            " "
-          )}" failed. This is the output:\n${output}`,
-        })
+      if (res?.exitCode !== 0 && skopeoManifestUnknown(res?.stderr)) {
+        // This would happen when the image does not exist, i.e. not ready
+        return { state: "not-ready", outputs, detail: {} }
       }
+
+      const output = res?.allLogs || err.message
+
+      throw new RuntimeError({
+        message: `Unable to query registry for image status: Command "${skopeoCommand.join(
+          " "
+        )}" failed. This is the output:\n${output}`,
+      })
     }
 
-    // TODO: Do we really want to return state: "unknown" with no details on any other error?
-    // NOTE(steffen): I'd have expected us to throw here
-    return { state: "unknown", outputs, detail: {} }
+    // NOTE: unhandled error when running the skopeo command in a pod, is there a better error to throw?
+    throw InternalError.wrapError(err)
   }
 }
 
@@ -259,6 +261,7 @@ export function skopeoManifestUnknown(errMsg: string | null | undefined): boolea
   return (
     errMsg.includes("manifest unknown") ||
     errMsg.includes("name unknown") ||
+    errMsg.includes("Failed to fetch") ||
     /(artifact|repository) [^ ]+ not found/.test(errMsg)
   )
 }
