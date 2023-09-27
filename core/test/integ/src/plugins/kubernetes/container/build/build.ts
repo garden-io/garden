@@ -498,26 +498,42 @@ describe("Kubernetes Container Build Extension", () => {
       await init("cluster-buildkit-rootless", true)
     })
 
-    after(async () => {
+    afterEach(async () => {
       if (cleanup) {
         cleanup()
       }
+
+      await deleteGoogleArtifactImage("simple-service")
     })
 
     it("should build a simple container", async () => {
-      await executeBuild("simple-service")
+      const action = await executeBuild("simple-service")
+
+      const remoteTags = await listGoogleArtifactImageTags("simple-service")
+      expect(remoteTags).has.length(2)
+      expect(remoteTags).to.have.members([action.versionString(), "_buildcache"])
     })
 
     it("should get the build status from the private deploymentRegistry", async () => {
       const action = await executeBuild("simple-service")
 
-      const status = await builder.handlers.getStatus!({
+      const resultReady = await builder.handlers.getStatus!({
         ctx,
         log,
         action,
       })
 
-      expect(status.state).to.equal("ready")
+      expect(resultReady.state).to.equal("ready")
+
+      await deleteGoogleArtifactImage("simple-service")
+
+      const resultNotExists = await builder.handlers.getStatus!({
+        ctx,
+        log,
+        action,
+      })
+
+      expect(resultNotExists.state).to.equal("not-ready")
     })
 
     grouped("remote-only").it("should support pulling from private registries", async () => {
@@ -533,21 +549,6 @@ describe("Kubernetes Container Build Extension", () => {
       })
 
       await executeBuild("private-base")
-    })
-
-    it("should return ready=false status when image doesn't exist in registry", async () => {
-      const action = graph.getBuild("simple-service")
-      await garden.buildStaging.syncFromSrc({ action, log: garden.log })
-
-      action["_config"].spec.localId = "skee-ba-dee-skoop"
-
-      const status = await builder.handlers.getStatus!({
-        ctx,
-        log,
-        action: await garden.resolveAction<ContainerBuildAction>({ action, log: garden.log, graph }),
-      })
-
-      expect(status.state).to.equal("not-ready")
     })
 
     it("should throw if attempting to pull from private registry without access", async () => {
