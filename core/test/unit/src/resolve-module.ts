@@ -38,6 +38,30 @@ describe("ModuleResolver", () => {
     expect(module.build.dependencies[0].name).to.equal("test-project-a")
   })
 
+  it("sets the relevant variables in module config from variable overrides", async () => {
+    const garden = await makeTestGardenA([], {
+      variableOverrides: {
+        foo: "override",
+        bar: "no-override",
+      },
+    })
+
+    garden.setModuleConfigs([
+      {
+        name: "test-project-a",
+        type: "test",
+        path: join(garden.projectRoot, "module-a"),
+        build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
+        variables: {
+          foo: "somevalue",
+        },
+      },
+    ])
+
+    const module = await garden.resolveModule("test-project-a")
+    expect(module.variables).to.eql({ foo: "override" })
+  })
+
   it("handles a module template reference in a build dependency name", async () => {
     const garden = await makeTestGardenA()
 

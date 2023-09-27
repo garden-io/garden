@@ -7,7 +7,7 @@
  */
 
 import cloneDeep from "fast-copy"
-import { isArray, isString, keyBy } from "lodash"
+import { isArray, isString, keyBy, keys, pick, union } from "lodash"
 import { validateWithPath } from "./config/validation"
 import {
   getModuleTemplateReferences,
@@ -691,9 +691,13 @@ export class ModuleResolver {
       // Note: We're not implementing the YAML source mapping for modules
       source: undefined,
     })
-    const mergedVariables: DeepPrimitiveMap = <any>(
-      merge(moduleVariables, merge(varfileVars, this.garden.variableOverrides))
+
+    // only override the relevant variables
+    const relevantVariableOverrides = pick(
+      this.garden.variableOverrides,
+      union(keys(moduleVariables), keys(varfileVars))
     )
+    const mergedVariables: DeepPrimitiveMap = <any>merge(moduleVariables, merge(varfileVars, relevantVariableOverrides))
     return mergedVariables
   }
 }
