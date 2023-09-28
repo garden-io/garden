@@ -1,4 +1,11 @@
 
+<a name="0.13.16"></a>
+## [0.13.16](https://github.com/garden-io/garden/compare/0.13.15...0.13.16) (2023-09-28)
+
+### Bug Fixes
+
+* testing to include fsevents in core instead of cli ([#5154](https://github.com/garden-io/garden/issues/5154)) ([e7d3ebac6](https://github.com/garden-io/garden/commit/e7d3ebac6))
+
 <a name="0.13.15"></a>
 ## [0.13.15](https://github.com/garden-io/garden/compare/0.13.14...0.13.15) (2023-09-27)
 
