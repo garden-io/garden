@@ -28,11 +28,12 @@ import titleize from "titleize"
 import { deline, stripQuotes, splitLast, splitFirst } from "../../util/string"
 import { PluginContext } from "../../plugin-context"
 import { ModuleVersion } from "../../vcs/vcs"
-import { SpawnParams } from "../../util/ext-tools"
+import { CliWrapper, SpawnParams } from "../../util/ext-tools"
 import { ContainerBuildAction, defaultDockerfileName } from "./config"
 import { joinWithPosix } from "../../util/fs"
 import { Resolved } from "../../actions/types"
 import pMemoize from "../../lib/p-memoize"
+import { ContainerCli } from "./container"
 
 interface DockerVersion {
   client?: string
@@ -58,9 +59,15 @@ const helpers = {
    * Returns the image ID used locally, when building and deploying to local environments
    * (when we don't need to push to remote registries).
    */
-  getLocalImageId(buildName: string, explicitImage: string | undefined, version: ModuleVersion): string {
+  getLocalImageId(
+    buildName: string,
+    explicitImage: string | undefined,
+    version: ModuleVersion,
+    containerCli?: ContainerCli)
+    : string {
+    const buildNameSpec = containerCli === "podman" ? "localhost/".concat(buildName) : buildName
     const { versionString } = version
-    const name = helpers.getLocalImageName(buildName, explicitImage)
+    const name = helpers.getLocalImageName(buildNameSpec, explicitImage)
     const parsedImage = helpers.parseImageId(name)
     return helpers.unparseImageId({ ...parsedImage, tag: versionString })
   },
@@ -69,12 +76,13 @@ const helpers = {
    * Returns the image name used locally (without tag/version), when building and deploying to local environments
    * (when we don't need to push to remote registries).
    */
-  getLocalImageName(buildName: string, explicitImage: string | undefined): string {
+  getLocalImageName(buildName: string, explicitImage: string | undefined, containerCli?: ContainerCli): string {
     if (explicitImage) {
       const parsedImage = helpers.parseImageId(explicitImage)
       return helpers.unparseImageId({ ...parsedImage, tag: undefined })
     } else {
-      return buildName
+      const buildNameSpec = containerCli === "podman" ? "localhost/".concat(buildName) : buildName
+      return buildNameSpec
     }
   },
 
@@ -307,7 +315,12 @@ const helpers = {
     stderr?: Writable
     timeout?: number
   }) {
-    const docker = ctx.tools["container.docker"]
+
+
+    const docker = ctx.provider.config.containerCli ? new CliWrapper({
+      name: "containerCli",
+      path: ctx.provider.config.containerCli
+    }) : ctx.tools["container.docker"]
 
     try {
       const res = await docker.spawnAndWait({

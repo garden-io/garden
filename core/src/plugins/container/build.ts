@@ -35,7 +35,7 @@ export const getContainerBuildStatus: BuildActionHandler<"getStatus", ContainerB
 }
 
 export const buildContainer: BuildActionHandler<"build", ContainerBuildAction> = async ({ ctx, action, log }) => {
-  containerHelpers.checkDockerServerVersion(await containerHelpers.getDockerVersion())
+  //containerHelpers.checkDockerServerVersion(await containerHelpers.getDockerVersion())
 
   const buildPath = action.getBuildPath()
   const spec = action.getSpec()
@@ -109,8 +109,8 @@ export function getContainerBuildActionOutputs(action: Resolved<ContainerBuildAc
   }
   const version = action.moduleVersion()
 
-  const localImageName = containerHelpers.getLocalImageName(buildName, localId)
-  const localImageId = containerHelpers.getLocalImageId(buildName, localId, version)
+  const localImageName = containerHelpers.getLocalImageName(buildName, localId, "podman")
+  const localImageId = containerHelpers.getLocalImageId(buildName, localId, version, "podman")
 
   // Note: The deployment image name/ID outputs are overridden by the kubernetes provider, these defaults are
   // generally not used.

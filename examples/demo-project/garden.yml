@@ -7,8 +7,11 @@ environments:
   - name: remote
     defaultNamespace: ${var.userId}
 providers:
+  - name: container
+    containerCli: podman
   - name: local-kubernetes
     environments: [local]
+    kubeconfig: /etc/rancher/k3s/k3s.yaml
   - name: kubernetes
     environments: [remote]
     # Replace the below values as appropriate

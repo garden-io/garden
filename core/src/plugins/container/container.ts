@@ -43,11 +43,24 @@ import { publishContainerBuild } from "./publish"
 import { Resolved } from "../../actions/types"
 import { getDeployedImageId } from "../kubernetes/container/util"
 import { KubernetesProvider } from "../kubernetes/config"
-import { DeepPrimitiveMap } from "../../config/common"
+import { DeepPrimitiveMap, joi } from "../../config/common"
 import { DEFAULT_DEPLOY_TIMEOUT_SEC } from "../../constants"
 import { ExecBuildConfig } from "../exec/build"
 
-export interface ContainerProviderConfig extends GenericProviderConfig {}
+export type ContainerCli = "podman" | "docker"
+export interface ContainerProviderConfig extends GenericProviderConfig {
+  containerCli?: ContainerCli
+}
+
+export const configSchema = () =>
+  providerConfigBaseSchema()
+    .keys({
+      containerCli: joi
+        .posixPath()
+        .allow("podman", "docker")
+        .description("Alternative container cli on the machine. Binary must be in $PATH"),
+    })
+    .unknown(false)
 
 export type ContainerProvider = Provider<ContainerProviderConfig>
 
