@@ -48,10 +48,6 @@ export const gardenPlugin = () =>
     configSchema: configSchema(),
     handlers: {
       configureProvider,
-      // Best to just force the execution (which will anyway be cached)
-      async getEnvironmentStatus() {
-        return { ready: false, outputs: {} }
-      },
       prepareEnvironment,
     },
   })
