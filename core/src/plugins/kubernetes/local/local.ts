@@ -28,9 +28,10 @@ import { join } from "path"
 import { KubeApi } from "../api.js"
 import { loadAll } from "js-yaml"
 import { readFile } from "fs-extra"
-import { isK3sFamilyCluster } from "./k3s.js"
+import { getK3sNginxHelmValues, isK3sFamilyCluster } from "./k3s.js"
 import { KubernetesResource } from "../types.js"
 import { ChildProcessError } from "../../../exceptions.js"
+import { helmNginxInstall } from "../integrations/nginx.js"
 
 const providerUrl = "./kubernetes.md"
 
@@ -104,18 +105,7 @@ async function prepareEnvironment(
     } else if (clusterType === "k3s") {
       log.debug("Using k3s conformant nginx ingress controller")
 
-      // TODO: use helm to deploy the config defined nginx-k3s.yaml
-      // TODO: handle all template strings
-
-      // const yamlPath = join(STATIC_DIR, "kubernetes", "nginx-k3s.yaml")
-      // const yamlData = (await readFile(yamlPath))
-      //   .toString()
-      //   .replaceAll("${var.namespace}", config.gardenSystemNamespace)
-      // const manifests = loadAll(yamlData)
-      //   .filter(isTruthy)
-      //   .map((m) => m as KubernetesResource)
-      //
-      // await applyYamlFromFile(k8sCtx, log, yamlPath)
+      await helmNginxInstall(k8sCtx, log, getK3sNginxHelmValues)
     } else if (clusterType === "minikube") {
       log.debug("Using minikube's ingress addon")
       try {

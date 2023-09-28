@@ -7,12 +7,12 @@
  */
 
 import chalk from "chalk"
-import { Log } from "../../../logger/log-entry"
-import { DeployState } from "../../../types/service"
-import { KubernetesPluginContext } from "../config"
-import { helm } from "../helm/helm-cli"
-import { helmStatusMap } from "../helm/status"
-import { getKubernetesSystemVariables, SystemVars } from "../init"
+import { Log } from "../../../logger/log-entry.js"
+import { DeployState } from "../../../types/service.js"
+import { KubernetesPluginContext } from "../config.js"
+import { helm } from "../helm/helm-cli.js"
+import { helmStatusMap } from "../helm/status.js"
+import { getKubernetesSystemVariables, SystemVars } from "../init.js"
 
 const HELM_INGRESS_NGINX_REPO = "https://kubernetes.github.io/ingress-nginx"
 const HELM_INGRESS_NGINX_VERSION = "4.0.13"
@@ -47,7 +47,7 @@ export async function helmNginxStatus(ctx: KubernetesPluginContext, log: Log): P
 }
 
 // TODO: consider using some specific return type here, maybe something from helm SDK?
-type NginxHelmValuesGetter = (systemVars: SystemVars) => object
+export type NginxHelmValuesGetter = (systemVars: SystemVars) => object
 
 export const getGenericNginxHelmValues: NginxHelmValuesGetter = (systemVars: SystemVars) => {
   return {

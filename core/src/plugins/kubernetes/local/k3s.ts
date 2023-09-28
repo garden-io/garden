@@ -11,6 +11,8 @@ import type { KubernetesProvider } from "../config.js"
 import { KubeApi } from "../api.js"
 import type { KubernetesResource } from "../types.js"
 import type { PluginContext } from "../../../plugin-context.js"
+import type { SystemVars } from "../init.js"
+import type { NginxHelmValuesGetter } from "../integrations/nginx.js"
 
 export async function isK3sFamilyCluster(ctx: PluginContext, provider: KubernetesProvider, log: Log): Promise<boolean> {
   return await isK3sFamilyClusterContext(ctx, provider, log)
@@ -34,4 +36,37 @@ async function isK3sFamilyClusterContext(ctx: PluginContext, provider: Kubernete
   }
 
   return false
+}
+
+export const getK3sNginxHelmValues: NginxHelmValuesGetter = (systemVars: SystemVars) => {
+  return {
+    name: "ingress-controller",
+    controller: {
+      extraArgs: {
+        "default-backend-service": `${systemVars.namespace}/default-backend`,
+      },
+      kind: "Deployment",
+      replicaCount: 1,
+      updateStrategy: {
+        type: "RollingUpdate",
+        rollingUpdate: {
+          maxUnavailable: 1,
+        },
+      },
+      minReadySeconds: 1,
+      tolerations: systemVars["system-tolerations"],
+      nodeSelector: systemVars["system-node-selector"],
+      admissionWebhooks: {
+        enabled: false,
+      },
+      ingressClassResource: {
+        name: "nginx",
+        enabled: true,
+        default: true,
+      },
+    },
+    defaultBackend: {
+      enabled: false,
+    },
+  }
 }
