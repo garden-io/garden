@@ -186,7 +186,7 @@ async function pkgMacos({ targetName, sourcePath, pkgType, version }: TargetHand
   if (!fsEventsCopied) {
     fsEventsCopied = copy(
       resolve(GARDEN_CORE_ROOT, "lib", "fsevents"),
-      resolve(tmpDirPath, "cli", "node_modules", "fsevents")
+      resolve(tmpDirPath, "core", "node_modules", "fsevents")
     )
   }
   await fsEventsCopied
