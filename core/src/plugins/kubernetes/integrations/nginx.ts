@@ -47,7 +47,7 @@ export async function helmNginxStatus(ctx: KubernetesPluginContext, log: Log): P
 }
 
 // TODO: consider using some specific return type here, maybe something from helm SDK?
-type NginxHelmValuesGetter = (systemVars: SystemVars) => object
+export type NginxHelmValuesGetter = (systemVars: SystemVars) => object
 
 export const getGenericNginxHelmValues: NginxHelmValuesGetter = (systemVars: SystemVars) => {
   return {
