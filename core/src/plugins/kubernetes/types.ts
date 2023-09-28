@@ -52,6 +52,13 @@ export type KubernetesResource<T extends BaseResource | KubernetesObject = BaseR
       [P in Extract<keyof T, "spec">]: Exclude<T[P], undefined>
     }
 
+export interface KubernetesPatchResource {
+  name: string
+  kind: string
+  patch: Omit<KubernetesResource, "apiVersion" | "kind" | "metadata">
+  strategy: "json" | "merge" | "strategic"
+}
+
 // Server-side resources always have some fields set if they're in the schema, e.g. status
 export type KubernetesServerResource<T extends BaseResource | KubernetesObject = BaseResource> =
   KubernetesResource<T> & {

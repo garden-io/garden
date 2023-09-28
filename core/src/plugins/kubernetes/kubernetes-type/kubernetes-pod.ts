@@ -26,13 +26,14 @@ import { runResultToActionState } from "../../../actions/base"
 import {
   kubernetesFilesSchema,
   kubernetesManifestsSchema,
+  kubernetesPatchResourcesSchema,
   KubernetesRunOutputs,
   kubernetesRunOutputsSchema,
   KubernetesTestOutputs,
   kubernetesTestOutputsSchema,
 } from "./config"
-import { KubernetesResource } from "../types"
-import { KubernetesKustomizeSpec } from "./kustomize"
+import { KubernetesPatchResource, KubernetesResource } from "../types"
+import { KubernetesKustomizeSpec, kustomizeSpecSchema } from "./kustomize"
 import { ObjectSchema } from "@hapi/joi"
 import { TestActionConfig, TestAction } from "../../../actions/test"
 import { storeTestResult, k8sGetTestResult } from "../test-results"
@@ -43,6 +44,7 @@ export interface KubernetesPodRunActionSpec extends KubernetesCommonRunSpec {
   files: string[]
   kustomize?: KubernetesKustomizeSpec
   manifests: KubernetesResource[]
+  patchResources?: KubernetesPatchResource[]
   resource?: KubernetesTargetResourceSpec
   podSpec?: V1PodSpec
 }
@@ -61,6 +63,8 @@ export const kubernetesRunPodSchema = (kind: string) => {
     name,
     keys: () => ({
       ...kubernetesCommonRunSchemaKeys(),
+      kustomize: kustomizeSpecSchema(),
+      patchResources: kubernetesPatchResourcesSchema(),
       manifests: kubernetesManifestsSchema().description(
         `List of Kubernetes resource manifests to be searched (using \`resource\`e for the pod spec for the ${kind}. If \`files\` is also specified, this is combined with the manifests read from the files.`
       ),

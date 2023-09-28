@@ -334,4 +334,275 @@ describe("getManifests", () => {
       )
     })
   })
+  context("resource patches", () => {
+    before(async () => {
+      garden = await getKubernetesTestGarden()
+      const provider = (await garden.resolveProvider(garden.log, "local-kubernetes")) as KubernetesProvider
+      ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
+      api = await KubeApi.factory(garden.log, ctx, provider)
+    })
+
+    beforeEach(async () => {
+      graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+    })
+
+    it("should apply patches to a manifest", async () => {
+      const action = cloneDeep(graph.getDeploy("deploy-action"))
+      action["_config"]["spec"]["patchResources"] = [
+        {
+          name: "busybox-deployment",
+          kind: "Deployment",
+          patch: {
+            spec: {
+              replicas: 3,
+              template: {
+                spec: {
+                  containers: [
+                    {
+                      name: "busybox",
+                      env: [
+                        {
+                          name: "PATCH", // <--- This gets appended to the list when using the default 'strategic'
+                          // merge strategy
+                          value: "patch-val",
+                        },
+                      ],
+                    },
+                  ],
+                },
+              },
+            },
+          },
+        },
+      ]
+      const resolvedAction = await garden.resolveAction<KubernetesDeployAction>({
+        action,
+        log: garden.log,
+        graph,
+      })
+
+      const manifests = await getManifests({ ctx, api, action: resolvedAction, log: garden.log, defaultNamespace })
+
+      expect(manifests[0].spec.template.spec.containers[0].env).to.eql([
+        {
+          name: "PATCH",
+          value: "patch-val",
+        },
+        {
+          name: "FOO",
+          value: "banana",
+        },
+        {
+          name: "BAR",
+          value: "",
+        },
+        {
+          name: "BAZ",
+          value: null,
+        },
+      ])
+      expect(manifests[0].spec.replicas).to.eql(3)
+    })
+    it("should handle multiple patches", async () => {
+      const action = cloneDeep(graph.getDeploy("deploy-action"))
+      action["_config"]["spec"]["patchResources"] = [
+        {
+          name: "busybox-deployment",
+          kind: "Deployment",
+          patch: {
+            spec: {
+              replicas: 3,
+            },
+          },
+        },
+        {
+          name: "test-configmap",
+          kind: "ConfigMap",
+          patch: {
+            data: {
+              hello: "patched-world",
+            },
+          },
+        },
+      ]
+      const resolvedAction = await garden.resolveAction<KubernetesDeployAction>({
+        action,
+        log: garden.log,
+        graph,
+      })
+
+      const manifests = await getManifests({ ctx, api, action: resolvedAction, log: garden.log, defaultNamespace })
+
+      expect(manifests[0].spec.replicas).to.eql(3)
+      expect(manifests[1].data.hello).to.eql("patched-world")
+    })
+    it("should apply patches to file and inline manifests", async () => {
+      const action = cloneDeep(graph.getDeploy("deploy-action"))
+      action["_config"]["spec"]["manifests"] = [
+        {
+          apiVersion: "v1",
+          kind: "ConfigMap",
+          metadata: {
+            name: "test-configmap-inline",
+          },
+          data: {
+            hello: "world-inline",
+          },
+        },
+      ]
+      action["_config"]["spec"]["patchResources"] = [
+        {
+          name: "busybox-deployment",
+          kind: "Deployment",
+          patch: {
+            spec: {
+              replicas: 3,
+            },
+          },
+        },
+        {
+          name: "test-configmap",
+          kind: "ConfigMap",
+          patch: {
+            data: {
+              hello: "patched-world",
+            },
+          },
+        },
+        {
+          name: "test-configmap-inline",
+          kind: "ConfigMap",
+          patch: {
+            data: {
+              hello: "patched-world-inline",
+            },
+          },
+        },
+      ]
+      const resolvedAction = await garden.resolveAction<KubernetesDeployAction>({
+        action,
+        log: garden.log,
+        graph,
+      })
+
+      const manifests = await getManifests({ ctx, api, action: resolvedAction, log: garden.log, defaultNamespace })
+
+      expect(manifests[0].data.hello).to.eql("patched-world-inline")
+      expect(manifests[1].spec.replicas).to.eql(3)
+      expect(manifests[2].data.hello).to.eql("patched-world")
+    })
+    it("should apply patches BEFORE post processing manifests", async () => {
+      const action = cloneDeep(graph.getDeploy("deploy-action"))
+      action["_config"]["spec"]["patchResources"] = [
+        {
+          name: "busybox-deployment",
+          kind: "Deployment",
+          patch: {
+            spec: {
+              replicas: 3, // <--- This should be set
+            },
+            metadata: {
+              annotations: {
+                "garden.io/service": "patched-service-annotation", // <--- This should not be set
+                "garden.io/mode": "patched-mode",
+              },
+            },
+          },
+        },
+      ]
+
+      const resolvedAction = await garden.resolveAction<KubernetesDeployAction>({
+        action,
+        log: garden.log,
+        graph,
+      })
+
+      const manifests = await getManifests({ ctx, api, action: resolvedAction, log: garden.log, defaultNamespace })
+
+      expect(manifests[0].spec.replicas).to.eql(3)
+      // These annotations are set during manifest post processing and should stay intact
+      expect(manifests[0].metadata.annotations).to.eql({
+        "garden.io/service": "deploy-action",
+        "garden.io/mode": "default",
+      })
+    })
+    it("should allow the user to configure the merge patch strategy", async () => {
+      const action = cloneDeep(graph.getDeploy("deploy-action"))
+      action["_config"]["spec"]["patchResources"] = [
+        {
+          name: "busybox-deployment",
+          kind: "Deployment",
+          strategy: "merge",
+          patch: {
+            spec: {
+              replicas: 3,
+              template: {
+                spec: {
+                  containers: [
+                    {
+                      name: "busybox",
+                      env: [
+                        {
+                          name: "PATCH", // <--- This overwrites the list when using the 'merge' strategy
+                          value: "patch-val",
+                        },
+                      ],
+                    },
+                  ],
+                },
+              },
+            },
+          },
+        },
+      ]
+
+      const resolvedAction = await garden.resolveAction<KubernetesDeployAction>({
+        action,
+        log: garden.log,
+        graph,
+      })
+
+      const manifests = await getManifests({ ctx, api, action: resolvedAction, log: garden.log, defaultNamespace })
+
+      // Existing env values get replaced when using the 'merge' strategy
+      expect(manifests[0].spec.template.spec.containers[0].env).to.eql([
+        {
+          name: "PATCH",
+          value: "patch-val",
+        },
+      ])
+      expect(manifests[0].spec.replicas).to.eql(3)
+    })
+    it("should log a warning if patches don't match manifests", async () => {
+      garden.log.root["entries"] = []
+      const action = cloneDeep(graph.getDeploy("deploy-action"))
+      action["_config"]["spec"]["patchResources"] = [
+        {
+          name: "non-existent-resource",
+          kind: "Deployment",
+          patch: {
+            spec: {
+              replicas: 3,
+            },
+          },
+        },
+      ]
+
+      const resolvedAction = await garden.resolveAction<KubernetesDeployAction>({
+        action,
+        log: garden.log,
+        graph,
+      })
+
+      await getManifests({ ctx, api, action: resolvedAction, log: garden.log, defaultNamespace })
+
+      const logMsgs = garden.log.root.getLogEntries().map((e) => e.msg)
+      const unMatched = logMsgs.find((msg) => msg?.includes("A patch is defined"))
+
+      expect(unMatched).to.exist
+      expect(unMatched).to.eql(
+        `A patch is defined for a Kubernetes Deployment with name non-existent-resource but no Kubernetes resource with a corresponding kind and name found.`
+      )
+    })
+  })
 })

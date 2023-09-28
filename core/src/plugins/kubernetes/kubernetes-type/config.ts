@@ -16,7 +16,7 @@ import {
 } from "../config"
 import { kubernetesDeploySyncSchema, KubernetesDeploySyncSpec } from "../sync"
 import { KubernetesKustomizeSpec, kustomizeSpecSchema } from "./kustomize"
-import type { KubernetesResource } from "../types"
+import type { KubernetesPatchResource, KubernetesResource } from "../types"
 import type { DeployAction, DeployActionConfig } from "../../../actions/deploy"
 import { defaultTargetSchema } from "../helm/config"
 import type {
@@ -33,10 +33,12 @@ import {
   KubernetesExecTestAction,
   KubernetesExecTestActionConfig,
 } from "./kubernetes-exec"
+import { dedent } from "../../../util/string"
 
 export interface KubernetesTypeCommonDeploySpec {
   files: string[]
   kustomize?: KubernetesKustomizeSpec
+  patchResources?: KubernetesPatchResource[]
   manifests: KubernetesResource[]
   namespace?: string
   portForwards?: PortForwardSpec[]
@@ -68,6 +70,27 @@ const kubernetesResourceSchema = () =>
     })
     .unknown(true)
 
+const kubernetesPatchResourceSchema = () =>
+  joi.object().keys({
+    kind: joi.string().required().description("The kind of the resource to patch."),
+    name: joi.string().required().description("The name of the resource to patch."),
+    strategy: joi
+      .string()
+      .allow("json", "merge", "strategic")
+      .required()
+      .description(
+        dedent`
+        The patch strategy to use. One of 'json', 'merge', or 'strategic'. Defaults to 'strategic'.
+
+        You can read more about the different strategies in the offical Kubernetes documentation at:
+        https://kubernetes.io/docs/tasks/manage-kubernetes-objects/update-api-object-kubectl-patch/
+        `
+      )
+      .default("strategic")
+      .optional(),
+    patch: joi.object().required().description("The patch to apply").unknown(true),
+  })
+
 export const kubernetesFilesSchema = () =>
   joiSparseArray(joi.posixPath().subPathOnly().allowGlobs()).description(
     "POSIX-style paths to YAML files to load manifests from. Each can contain multiple manifests, and can include any Garden template strings, which will be resolved before applying the manifests."
@@ -78,10 +101,26 @@ export const kubernetesManifestsSchema = () =>
     "List of Kubernetes resource manifests to deploy. If `files` is also specified, this is combined with the manifests read from the files."
   )
 
+export const kubernetesPatchResourcesSchema = () =>
+  joiSparseArray(kubernetesPatchResourceSchema()).description(
+    dedent`
+      A list of resources to patch using Kubernetes' patch strategies. This is useful for e.g. overwriting a given container image name with an image built by Garden
+      without having to actually modify the underlying Kubernetes manifest in your source code. Another common example is to use this to change the number of replicas for a given
+      Kubernetes Deployment.
+
+      Under the hood, Garden just applies the \`kubectl patch\` command to the resource that matches the specified \`kind\` and \`name\`.
+
+      Patches are applied to file manifests, inline manifests, and kustomize files.
+
+      You can learn more about patching Kubernetes resources here: https://kubernetes.io/docs/tasks/manage-kubernetes-objects/update-api-object-kubectl-patch/
+    `
+  )
+
 export const kubernetesCommonDeploySpecKeys = () => ({
   files: kubernetesFilesSchema(),
   kustomize: kustomizeSpecSchema(),
   manifests: kubernetesManifestsSchema(),
+  patchResources: kubernetesPatchResourcesSchema(),
   namespace: namespaceNameSchema(),
   portForwards: portForwardsSchema(),
   timeout: k8sDeploymentTimeoutSchema(),

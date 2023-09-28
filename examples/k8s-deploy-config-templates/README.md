@@ -4,7 +4,10 @@ This example project demonstrates how to use config templates to create re-usabl
 
 The config template defines a Build and Deploy action "pair" for building a container with the `container` Build action and deploying it to Kubernetes with the `kubernetes` Deploy action.
 
-The Kubernetes manifests themselves include template strings so that common values can be overwritten, similar to the pattern used in [this Kubernetes Deploy action example](../k8s-deploy-shared-manifests). We recommend checking that out for more details on using Garden template strings in K8s manifests.
+In the example we use the `patchResources` field of the `kubernetes` Deploy action to patch some fields in the
+K8s manifests without modifying the manifests themselves.
+
+This is the same pattern that's used in [this Kubernetes Deploy action example](../k8s-deploy-patch-resources). We recommend checking that out for more details on patching K8s manifests.
 
 The example is a three tier web app with web, API, and database components.
 
@@ -12,15 +15,16 @@ The example is a three tier web app with web, API, and database components.
 
 ### The overview
 
-At the root of the project there's a directory called `manifests` which contains manifests for K8s Deployment, Ingress, and Service objects respectively.
+At the root of the project there's a directory called `manifests` which contains manifests for the API and web
+components.
 
-In the `templates.garden.yml` file we define a `ConfigTemplate` kind that includes a `container` Build action and a corresponding `kubernetes` Deploy action that references these manifests like so:
+In the `templates/garden.yml` file we define a `ConfigTemplate` kind that includes a `container` Build action and a corresponding `kubernetes` Deploy action that references these manifests like so:
 
 ```yaml
 # In templates.garden.yml
 kind: ConfigTemplate
 name: k8s-deploy
-inputsSchemaPath: template-schemas/k8s-schema.json # <--- Defines the "inputs" for the template
+inputsSchemaPath: ./k8s-schema.json # <--- Defines the "inputs" for the template
 
 configs:
   - kind: Build
@@ -33,16 +37,11 @@ configs:
     name: ${parent.name}
 
     spec:
-      files:
-        - manifests/deployment.yaml
-        - manifests/service.yaml
-        - "${inputs.enableIngress ? 'manifests/ingress.yaml' : null }" # <--- The "inputs" are defined in the JSON schema referenced in the 'inputsSchemaPath' field
+      files: ${inputs.manifests} # <--- The "inputs" are defined in the JSON schema referenced in the 'inputsSchemaPath' field
 # ...
 ```
 
 Note the `inputsSchemaPath` field. This allows users to define "inputs" for the `ConfigTemplate` via a JSON schema. Inputs can be required or optional and can have default values. Garden validates the config to ensure all required values are set.
-
-In the example above we use the `enableIngress` input to optionally apply the Ingress manifest ([see below](#optional-ingress) for more details).
 
 We then re-use this template in the Garden config for the API and web components like so:
 
@@ -54,9 +53,7 @@ name: api
 inputs: # <--- The inputs defined in the JSON schema
   relativeProjectRoot: ../
   relativeSourcePath: .
-  enableIngress: false
   containerPath: /app
-  containerArgs: [python, app.py]
 # ...
 
 # In web/garden.yml
@@ -66,9 +63,7 @@ name: web
 inputs:
   relativeProjectRoot: ../
   relativeSourcePath: .
-  enableIngress: true
   containerPath: /app
-  containerArgs: [npm, run, serve]
 # ...
 ```
 
@@ -112,113 +107,6 @@ inputs:
   relativeProjectRoot: ../ # <--- The project root is one level up
 ```
 
-### Configuring ports with default values
-
-The `ConfigTemplate` defines sensible default values for container ports which users can overwrite as needed.
-
-The `containerPorts` input is defined in the JSON schema like so:
-
-```json
-{
-  "containerPorts": {
-    "type": "array",
-    "items": {
-      "type": "object",
-      "properties": {
-        "name": {
-          "type": "string",
-          "default": "http"
-        },
-        "containerPort": {
-          "type": "integer",
-          "default": 8080
-        },
-        "protocol": {
-          "type": "string",
-          "enum": [
-            "TCP",
-            "UDP"
-          ],
-          "default": "TCP"
-        }
-      }
-    },
-    "default": [
-      {
-        "name": "http",
-        "containerPort": 8080,
-        "protocol": "TCP"
-      }
-    ]
-  },
-}
-```
-
-And then referenced it in the manifest for the K8s Deployment:
-
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-# ...
-spec:
-  template:
-    spec:
-      containers:
-        - name: ${parent.name}
-          ports: ${jsonEncode(inputs.containerPorts)}
-```
-
-If the consumer of the template doesn't define any container ports, the default values will be used and the rendered K8s manifest will looks something like this:
-
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-# ...
-spec:
-  template:
-    spec:
-      containers:
-        - name: api
-          ports:
-            - name: http
-              containerPort: 8080
-              protocol: TCP
-# ...
-```
-
-If the user needs to set a different port, they can override the default like so in the template consumer:
-
-```yaml
-# api/garden.yml
-kind: RenderTemplate
-template: k8s-deploy
-name: api
-inputs:
-  containerPorts:
-    - containerPort: 8090 # <--- Set custom port
-# ...
-```
-
-The rendered K8s manifest will then look like this:
-
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-# ...
-spec:
-  template:
-    spec:
-      containers:
-        - name: api
-          ports:
-            - name: http
-              containerPort: 8090 # <--- Default port has been overwritten
-              protocol: TCP # <--- Other defaults are still used
-# ...
-```
-
-A similar pattern is used for service ports.
-
 ### Optional sync spec
 
 Not all Deploy actions will have syncing enabled. To account for that, we add a boolean field called `enableSync` to the JSON schema which defaults to `false`:
@@ -232,8 +120,7 @@ Not all Deploy actions will have syncing enabled. To account for that, we add a 
 }
 ```
 
-We then enable the `sync` field in the `ConfigTemplate` conditionally like
-so:
+We then enable the `sync` field in the `ConfigTemplate` conditionally like so:
 
 ```yaml
 # In templates.garden.yml
@@ -261,25 +148,6 @@ inputs:
   sourcePath: ./web
   containerPath: /app
   syncCommand: [npm, run, dev]
-# ...
-```
-
-### Optional ingress
-
-We also allow consumers of the template to optionally enable ingress, similar to how we allow them to enable syncing above.
-
-First we add a boolean field called `enableIngress` to the JSON schema. Now, if it's set to `true`, we include the K8s Ingress manifest in the `files` field in the `ConfigTemplate` like so:
-
-```yaml
-# In templates.garden.yml
-- kind: Deploy
-  type: kubernetes
-  name: ${parent.name}
-  spec:
-    files:
-      - manifests/deployment.yaml
-      - manifests/service.yaml
-      - "${inputs.enableIngress ? 'manifests/ingress.yaml' : null }" # <--- Only include the Ingress manifest if enableIngress=true
 # ...
 ```
 

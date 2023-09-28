@@ -1,0 +1,65 @@
+{
+  "type": "object",
+  "properties": {
+    "manifests": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "relativeSourcePath": {
+      "type": "string"
+    },
+    "relativeProjectRoot": {
+      "type": "string"
+    },
+    "containerPath": {
+      "type": "string"
+    },
+    "replicas": {
+      "type": "integer",
+      "default": 1
+    },
+    "dependencies": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "syncCommand": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "enableSync": {
+      "type": "boolean",
+      "default": false
+    },
+    "env": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "value"
+        ]
+      }
+    }
+  },
+  "required": [
+    "manifests",
+    "relativeSourcePath",
+    "relativeProjectRoot",
+    "containerPath",
+    "syncCommand"
+  ]
+}
