@@ -9,7 +9,6 @@
 import chalk from "chalk"
 import { mkdirp, writeFile } from "fs-extra"
 import { load } from "js-yaml"
-import { remove } from "lodash"
 import moment from "moment"
 import { join } from "path"
 import { joi, joiProviderName } from "../../../config/common"
@@ -123,10 +122,7 @@ export async function configureProvider(params: ConfigureProviderParams<Kubernet
 
   // setup ingress controller unless setupIngressController is set to false/null in provider config
   if (baseConfig.setupIngressController) {
-    const _systemServices = updatedConfig._systemServices
-    const nginxServices = ["ingress-controller", "default-backend"]
-    remove(_systemServices, (s) => nginxServices.includes(s))
-    _systemServices.push("nginx-ephemeral")
+    // FIXME: apply manifests from nginx-ephemeral.yaml
     updatedConfig.setupIngressController = "nginx"
     // set default hostname
     updatedConfig.defaultHostname = createEphemeralClusterResponse.ingressesHostname
