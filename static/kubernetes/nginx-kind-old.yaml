@@ -249,7 +249,7 @@ spec:
           effect: NoSchedule
       containers:
         - name: nginx-ingress-controller
-          image: quay.io/kubernetes-ingress-controller/nginx-ingress-controller:0.30.0
+          image: quay.io/kubernetes-ingress-controller/nginx-ingress-controller:0.30.0@sha256:b312c91d0de688a21075078982b5e3a48b13b46eda4df743317d3059fc3ca0d9
           args:
             - /nginx-ingress-controller
             - --configmap=$(POD_NAMESPACE)/nginx-configuration
