@@ -7,17 +7,15 @@
  */
 
 import chalk from "chalk"
-import { getAbi } from "node-abi"
 import { resolve, relative, join } from "path"
-import { STATIC_DIR, GARDEN_CLI_ROOT, GARDEN_CORE_ROOT } from "@garden-io/core/build/src/constants"
+import { STATIC_DIR, GARDEN_CLI_ROOT } from "@garden-io/core/build/src/constants"
 import { remove, mkdirp, copy, writeFile } from "fs-extra"
 import { exec, getPackageVersion, sleep } from "@garden-io/core/build/src/util/util"
-import { dedent, randomString } from "@garden-io/core/build/src/util/string"
+import { randomString } from "@garden-io/core/build/src/util/string"
 import { pick } from "lodash"
 import minimist from "minimist"
 import { createHash } from "crypto"
 import { createReadStream } from "fs"
-import { makeTempDir } from "@garden-io/core/build/test/helpers"
 
 require("source-map-support").install()
 
@@ -179,30 +177,12 @@ async function buildBinaries(args: string[]) {
 
 let fsEventsCopied: Promise<void> | undefined = undefined
 async function pkgMacos({ targetName, sourcePath, pkgType, version }: TargetHandlerParams) {
-  console.log(` - ${targetName} -> fsevents`)
-  // Copy fsevents from lib to node_modules
-  // This might happen concurrently for multiple targets
-  // so we only do it once and then wait for that process to complete
-  if (!fsEventsCopied) {
-    fsEventsCopied = copy(
-      resolve(GARDEN_CORE_ROOT, "lib", "fsevents"),
-      resolve(tmpDirPath, "cli", "node_modules", "fsevents")
-    )
-  }
-  await fsEventsCopied
-
   await pkgCommon({
     sourcePath,
     targetName,
     pkgType,
     binFilename: "garden",
   })
-
-  console.log(` - ${targetName} -> fsevents.node`)
-  await copy(
-    resolve(GARDEN_CORE_ROOT, "lib", "fsevents", "fsevents.node"),
-    resolve(distPath, targetName, "fsevents.node")
-  )
 
   await tarball(targetName, version)
 }
@@ -284,41 +264,6 @@ async function pkgCommon({
   const pkgFetchTmpDir = resolve(repoRoot, "tmp", "pkg-fetch", targetName)
   await mkdirp(pkgFetchTmpDir)
 
-  console.log(` - ${targetName} -> node-pty`)
-  const abi = getAbi(process.version, "node")
-  // TODO: make arch configurable
-  const { nodeBinaryPlatform } = targets[targetName]
-
-  if (nodeBinaryPlatform === "win32") {
-    const tmpDir = await makeTempDir()
-    // Seriously, this is so much easier than anything more native...
-    await exec(
-      "sh",
-      [
-        "-c",
-        dedent`
-          set -e
-          curl -s -L https://github.com/oznu/node-pty-prebuilt-multiarch/releases/download/v0.10.1-pre.5/node-pty-prebuilt-multiarch-v0.10.1-pre.5-node-v108-win32-x64.tar.gz | tar -xzv -C .
-          cp build/Release/* '${targetPath}'
-        `,
-      ],
-      { cwd: tmpDir.path }
-    )
-
-    await tmpDir.cleanup()
-  } else {
-    const filename = nodeBinaryPlatform === "linuxmusl" ? `node.abi${abi}.musl.node` : `node.abi${abi}.node`
-    const abiPath = resolve(
-      GARDEN_CORE_ROOT,
-      "node_modules",
-      "node-pty-prebuilt-multiarch",
-      "prebuilds",
-      `${nodeBinaryPlatform}-x64`,
-      filename
-    )
-    await copy(abiPath, resolve(targetPath, "pty.node"))
-  }
-
   console.log(` - ${targetName} -> pkg`)
   await exec(
     pkgPath,
@@ -332,8 +277,6 @@ async function pkgCommon({
       "--public",
       "--public-packages",
       "*",
-      // We include all native binaries required manually
-      "--no-native-build",
       "--options",
       nodeOptions.join(","),
       "--output",
