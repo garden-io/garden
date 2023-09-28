@@ -6,16 +6,14 @@ order: 1
 # Quickstart Guide
 
 {% hint style="info" %}
-A visual quickstart is also available by logging in to the Garden Dashboard. The Dashboard can show you the status of your builds, deployments and stream logs from your services in real-time. To get started, click [Dashboard Quickstart](https://app.garden.io).
+An interactive quickstart is also available by logging in to the Garden Web Dashboard. With the dashboard you can see the status of your builds and deployments, stream logs in real-time, and manage ephemeral clusters. To get started, click [Dashboard Quickstart](https://app.garden.io).
 {% endhint %}
-
-Garden is an all-in-one DevOps platform that enables you to build, test, deploy your applications and infrastructure in a single, unified workflow.
 
 ## Quickstart
 
-In this quickstart, we'll introduce you to the one interactive command you'll spend most of your time in as a developer: `garden dev`.
+Garden is an all-in-one DevOps automation platform that enables you to build, test, and deploy your applications and infrastructure in a single, unified workflow.
 
-In just 2 steps, we'll:
+In this quickstart guide, we'll:
 
 * Install Garden
 * Deploy an example application to a remote ephemeral Kubernetes cluster.
