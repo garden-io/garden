@@ -178,8 +178,8 @@ describe("Kubernetes Container Build Extension", () => {
         expect(result.detail?.message).to.eql(`Published ${remoteImageName}:foo`)
 
         const remoteTags = await listGoogleArtifactImageTags(serviceImageName)
-        expect(remoteTags).has.length(1)
-        expect(remoteTags[0]).to.equal(action.versionString())
+        expect(remoteTags).has.length(2)
+        expect(remoteTags).to.have.members(["foo", action.versionString()])
       })
     })
   })
@@ -336,8 +336,8 @@ describe("Kubernetes Container Build Extension", () => {
         )
 
         const remoteTags = await listGoogleArtifactImageTags("remote-registry-test")
-        expect(remoteTags).has.length(1)
-        expect(remoteTags[0]).to.equal("foo")
+        expect(remoteTags).has.length(2)
+        expect(remoteTags).to.have.members(["foo", action.versionString()])
       })
     })
   })
