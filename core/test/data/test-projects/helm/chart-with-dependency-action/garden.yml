@@ -1,0 +1,10 @@
+kind: Deploy
+description: The API backend for the voting UI
+type: helm
+name: chart-with-dependency-action
+spec:
+  values:
+    image:
+      tag: ${modules.api-image.version}
+    ingress:
+      enabled: false

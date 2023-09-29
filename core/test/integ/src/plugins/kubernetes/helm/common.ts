@@ -668,9 +668,9 @@ ${expectedIngressOutput}
         expect(pathFiles).to.include("Chart.yaml")
       })
 
-      it("updates dependencies for local charts", async () => {
+      it("updates dependencies for local charts in build dir for modules", async () => {
         const action = await garden.resolveAction<HelmDeployAction>({
-          action: graph.getDeploy("chart-with-dependency"),
+          action: graph.getDeploy("chart-with-dependency-module"),
           log,
           graph,
         })
@@ -682,9 +682,50 @@ ${expectedIngressOutput}
 
         const helmDependencyUpdateLogLine = log.entries.find(
           ({ msg }) =>
-            msg?.includes("helm") && msg?.includes("dependency update") && msg.includes("chart-with-dependency")
+            msg?.includes("helm") && msg?.includes("dependency update") && msg.includes("chart-with-dependency-module")
         )
         expect(helmDependencyUpdateLogLine).to.exist
+      })
+
+      it("updates dependencies for local charts in action dir for native actions", async () => {
+        const action = await garden.resolveAction<HelmDeployAction>({
+          action: graph.getDeploy("chart-with-dependency-action"),
+          log,
+          graph,
+        })
+
+        const l = log as any
+        l.entries = []
+
+        await prepareTemplates({ ctx, log, action })
+
+        const helmDependencyUpdateLogLine = log.entries.find(
+          ({ msg }) =>
+            msg?.includes("helm") && msg?.includes("dependency update") && msg.includes("chart-with-dependency-action")
+        )
+        expect(helmDependencyUpdateLogLine).to.exist
+      })
+
+      it("uses build directory for deploy actions converted from Helm modules", async() => {
+        const action = await garden.resolveAction<HelmDeployAction>({
+          action: graph.getDeploy("chart-with-dependency-module"),
+          log,
+          graph,
+        })
+        const buildPath = action.getBuildAction()?.getBuildPath()
+        const chartPath = await getChartPath(action)
+        expect(chartPath).to.equal(buildPath)
+      })
+
+      it("uses action directory for native deploy actions", async() => {
+        const action = await garden.resolveAction<HelmDeployAction>({
+          action: graph.getDeploy("chart-with-dependency-action"),
+          log,
+          graph,
+        })
+        const buildPath = action.getBuildAction()?.getBuildPath()
+        const chartPath = await getChartPath(action)
+        expect(chartPath).to.not.equal(buildPath)
       })
     })
 
