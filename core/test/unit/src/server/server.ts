@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { makeTestGardenA, taskResultOutputs, testPluginReferences } from "../../../helpers"
+import { expectError, makeTestGardenA, taskResultOutputs, testPluginReferences } from "../../../helpers"
 import { Server } from "http"
 import { GardenServer, startServer } from "../../../../src/server/server"
 import { Garden } from "../../../../src/garden"
@@ -114,6 +114,59 @@ describe("GardenServer", () => {
       await gardenServerCustomPort.start()
 
       expect(gardenServerCustomPort.port).to.eql(customPort)
+    })
+  })
+
+  context("port conflicts", () => {
+    const serverPort = 9777
+
+    it("should throw an error if an explicitly defined port is already in use", async () => {
+      const gardenServer1 = new GardenServer({
+        log: garden.log,
+        port: serverPort,
+        manager,
+        defaultProjectRoot: garden.projectRoot,
+        serveCommand,
+      })
+      await gardenServer1.start()
+
+      const gardenServer2 = new GardenServer({
+        log: garden.log,
+        port: serverPort,
+        manager,
+        defaultProjectRoot: garden.projectRoot,
+        serveCommand,
+      })
+
+      expectError(() => gardenServer2.start(), {
+        contains: `Port ${serverPort} is already in use, possibly by another Garden server process`,
+      })
+
+      await gardenServer1.close()
+      await gardenServer2.close()
+    })
+
+    it("two servers should use different ports if no ports have been declared explicitly", async () => {
+      const gardenServer1 = new GardenServer({
+        log: garden.log,
+        manager,
+        defaultProjectRoot: garden.projectRoot,
+        serveCommand,
+      })
+      await gardenServer1.start()
+
+      const gardenServer2 = new GardenServer({
+        log: garden.log,
+        manager,
+        defaultProjectRoot: garden.projectRoot,
+        serveCommand,
+      })
+      await gardenServer2.start()
+
+      expect(gardenServer1.port).to.not.equal(gardenServer2.port)
+
+      await gardenServer1.close()
+      await gardenServer2.close()
     })
   })
 
