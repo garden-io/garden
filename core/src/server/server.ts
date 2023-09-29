@@ -22,11 +22,18 @@ import { BaseServerRequest, resolveRequest, serverRequestSchema, shellCommandPar
 import { DEFAULT_GARDEN_DIR_NAME, gardenEnv } from "../constants"
 import { Log } from "../logger/log-entry"
 import { Command, CommandResult, PrepareParams } from "../commands/base"
-import { toGardenError, GardenError } from "../exceptions"
+import {
+  toGardenError,
+  GardenError,
+  isEAddrInUseException,
+  ParameterError,
+  isErrnoException,
+  CommandError,
+} from "../exceptions"
 import { EventName, Events, EventBus, shouldStreamWsEvent } from "../events/events"
 import type { ValueOf } from "../util/util"
 import { joi } from "../config/common"
-import { randomString } from "../util/string"
+import { dedent, randomString } from "../util/string"
 import { authTokenHeader } from "../cloud/auth"
 import { ApiEventBatch, BufferedEventStream, LogEntryEventPayload } from "../cloud/buffered-event-stream"
 import { eventLogLevel, LogLevel } from "../logger/logger"
@@ -181,7 +188,6 @@ export class GardenServer extends EventEmitter {
         this.server = createServer(app.callback())
 
         this.server.on("error", (error) => {
-          console.log(error)
           this.emit("error", error)
           reject(error)
         })
@@ -210,7 +216,23 @@ export class GardenServer extends EventEmitter {
             alternativePortRange: [defaultWatchServerPort - 1, defaultWatchServerPort - 50],
           })
           await _start()
-        } catch {}
+        } catch (err) {
+          if (isEAddrInUseException(err)) {
+            throw new ParameterError({
+              message: dedent`
+            Port ${this.port} is already in use, possibly by another Garden server process.
+            Either terminate the other process, or choose another port using the --port parameter.
+          `,
+            })
+          } else if (isErrnoException(err)) {
+            throw new CommandError({
+              message: `Unable to start server: ${err.message}`,
+              code: err.code,
+            })
+          }
+
+          throw err
+        }
       } while (!this.server)
     }
 
