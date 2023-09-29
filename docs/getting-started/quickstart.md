@@ -6,7 +6,9 @@ order: 1
 # Quickstart Guide
 
 {% hint style="info" %}
-An interactive quickstart is also available by logging in to the Garden Web Dashboard. With the dashboard you can see the status of your builds and deployments, stream logs in real-time, and manage ephemeral clusters. To get started, click [Dashboard Quickstart](https://app.garden.io).
+An interactive quickstart is also available by logging in to the Garden Web Dashboard. With the dashboard you can see the status of your builds and deployments, stream logs in real-time, and manage ephemeral clusters. To get started, [launch the Garden Web Dashboard](https://app.garden.io).
+
+![Short tour of the features of the Garden Web Dashboard including command history, visualized dependency graph, and the Garden dev console](https://ce-content.s3.fr-par.scw.cloud/garden-web-dashboard-tour.gif)
 {% endhint %}
 
 ## Quickstart
@@ -106,7 +108,6 @@ You can run all the same commands with the CLI directly without starting the dev
 deploy` from your terminal. This is e.g. how you'd use Garden in CI.
 {% endhint %}
 
-
 ## Next Steps
 
 Now that you have Garden installed and seen its basic capabilities it's time to take the next steps.
@@ -116,6 +117,5 @@ through our [first project tutorial](../tutorials/your-first-project/README.md) 
 
 If you like to dive right in and configure your own project for Garden, we recommend referencing our [example
 projects on GitHub](https://github.com/garden-io/garden/tree/0.13.15/examples) and the section of our docs title [Using Garden](../using-garden/configuration-overview.md), which covers all parts of Garden in detail.
-
 
 If you have any questions or feedback—or just want to say hi 🙂—we encourage you to join our [Discord community](https://go.garden.io/discord)!
