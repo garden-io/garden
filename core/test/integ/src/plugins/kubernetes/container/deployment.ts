@@ -655,7 +655,7 @@ describe("kubernetes container deployment handlers", () => {
         if (cleanup) {
           cleanup()
         }
-        })
+      })
 
       it("should deploy a simple Deploy", async () => {
         const action = await resolveDeployAction("simple-service")
@@ -816,28 +816,75 @@ describe("kubernetes container deployment handlers", () => {
         }
       })
 
-      it("should deploy a simple service", async () => {
-        const action = await resolveDeployAction("remote-registry-test")
-
+      const processDeployAction = async (
+        resolvedAction: ResolvedDeployAction<ContainerDeployActionConfig, ContainerDeployOutputs, any>
+      ) => {
         const deployTask = new DeployTask({
           garden,
           graph,
           log: garden.log,
-          action,
+          action: resolvedAction,
           force: true,
           forceBuild: false,
         })
 
         const results = await garden.processTasks({ tasks: [deployTask], log: garden.log, throwOnError: true })
         const statuses = getDeployStatuses(results.results)
-        const status = statuses[action.name]
+
+        return statuses[resolvedAction.name]
+      }
+
+      it("should deploy a simple service without dockerfile", async () => {
+        const action = await resolveDeployAction("simple-server-busybox")
+        const status = await processDeployAction(action)
+
+        const resources = keyBy(status.detail?.detail["remoteResources"], "kind")
+        const buildVersionString = action.getBuildAction()?.versionString()
+
+        // Note: the image version should match the image in the module not the
+        // deploy action version
+        expect(resources.Deployment.spec.template.spec.containers[0].image).to.equal(`busybox:1.31.1`)
+      })
+
+      it("should deploy a simple service without image", async () => {
+        const action = await resolveDeployAction("remote-registry-test")
+        const status = await processDeployAction(action)
+
         const resources = keyBy(status.detail?.detail["remoteResources"], "kind")
         const buildVersionString = action.getBuildAction()?.versionString()
 
         // Note: the image version should match the build action version and not the
         // deploy action version
         expect(resources.Deployment.spec.template.spec.containers[0].image).to.equal(
-          `garden-integ-tests/${action.name}:${buildVersionString}`
+          `europe-west3-docker.pkg.dev/garden-ci/garden-integ-tests/${action.name}:${buildVersionString}`
+        )
+      })
+
+      it("should deploy a simple service with absolute image path", async () => {
+        const action = await resolveDeployAction("remote-registry-test-absolute-image")
+        const status = await processDeployAction(action)
+
+        const resources = keyBy(status.detail?.detail["remoteResources"], "kind")
+        const buildVersionString = action.getBuildAction()?.versionString()
+
+        // Note: the image version should match the build action version and not the
+        // deploy action version
+        expect(resources.Deployment.spec.template.spec.containers[0].image).to.equal(
+          `europe-west3-docker.pkg.dev/garden-ci/garden-integ-tests/${action.name}:${buildVersionString}`
+        )
+      })
+
+      it("should deploy a simple service with relative image path", async () => {
+        const action = await resolveDeployAction("remote-registry-test-relative-image")
+        const status = await processDeployAction(action)
+
+        const resources = keyBy(status.detail?.detail["remoteResources"], "kind")
+        const buildVersionString = action.getBuildAction()?.versionString()
+
+        // Note: the image version should match the build action version and not the
+        // deploy action version
+        expect(resources.Deployment.spec.template.spec.containers[0].image).to.equal(
+          `europe-west3-docker.pkg.dev/garden-ci/garden-integ-tests/${action.name}:${buildVersionString}`
         )
       })
     })

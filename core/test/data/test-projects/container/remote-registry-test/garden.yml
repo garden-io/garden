@@ -2,9 +2,34 @@ kind: Module
 name: remote-registry-test
 description: Test module for pushing to private registry
 type: container
-image: garden-integ-tests/remote-registry-test
 services:
   - name: remote-registry-test
+    command: [sh, -c, "nc -l -p 8080"]
+    ports:
+      - name: http
+        containerPort: 8080
+
+---
+kind: Module
+name: remote-registry-test-absolute-image
+description: Test module for pushing to private registry with absolute image
+type: container
+image: europe-west3-docker.pkg.dev/garden-ci/garden-integ-tests/remote-registry-test-absolute-image
+services:
+  - name: remote-registry-test-absolute-image
+    command: [sh, -c, "nc -l -p 8080"]
+    ports:
+      - name: http
+        containerPort: 8080
+
+---
+kind: Module
+name: remote-registry-test-relative-image
+description: Test module for pushing to private registry with a relative image
+type: container
+image: remote-registry-test-relative-image
+services:
+  - name: remote-registry-test-relative-image
     command: [sh, -c, "nc -l -p 8080"]
     ports:
       - name: http

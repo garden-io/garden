@@ -25,23 +25,17 @@ import {
 import { V1ResourceRequirements, V1SecurityContext } from "@kubernetes/client-node"
 import { ConfigurationError } from "../../../exceptions"
 import { Resolved } from "../../../actions/types"
-import { containerHelpers } from "../../container/helpers"
 import { kilobytesToString, megabytesToString, millicpuToString } from "../util"
 
 export function getDeployedImageId(action: Resolved<ContainerRuntimeAction>, provider: KubernetesProvider): string {
   const explicitImage = action.getSpec().image
   const build = action.getResolvedBuildAction<Resolved<ContainerBuildAction>>()
 
-  if (explicitImage) {
+  // if there is a build, we had a configured dockerfile and should use that image
+  if (build) {
+    return build.getOutput("deployment-image-id")
+  } else if (explicitImage) {
     return explicitImage
-  } else if (build) {
-    // TODO-0.13.0: we can get this off the BuildAction when static outputs are implemented
-    return containerHelpers.getBuildDeploymentImageId(
-      build.name,
-      undefined,
-      build.moduleVersion(),
-      provider.config.deploymentRegistry
-    )
   } else {
     throw new ConfigurationError({
       message: `${action.longDescription()} specifies neither a \`build\` nor \`spec.image\``,
