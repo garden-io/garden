@@ -411,7 +411,7 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
 
       if (extension === "zip") {
         // Note: lazy-loading for startup performance
-        const { Extract } = require("unzipper")
+        const { Extract } = require("unzip-stream")
 
         await new Promise((_resolve, reject) => {
           const extractor = Extract({ path: tempDir.path })
