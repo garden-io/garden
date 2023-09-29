@@ -181,6 +181,7 @@ export class GardenServer extends EventEmitter {
         this.server = createServer(app.callback())
 
         this.server.on("error", (error) => {
+          console.log(error)
           this.emit("error", error)
           reject(error)
         })
@@ -203,6 +204,7 @@ export class GardenServer extends EventEmitter {
       do {
         try {
           this.port = await getPort({
+            host: hostname,
             port: defaultWatchServerPort,
             portRange: [defaultWatchServerPort + 1, defaultWatchServerPort + 50],
             alternativePortRange: [defaultWatchServerPort - 1, defaultWatchServerPort - 50],
