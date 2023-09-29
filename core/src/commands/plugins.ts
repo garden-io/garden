@@ -39,6 +39,7 @@ export class PluginsCommand extends Command<Args> {
   name = "plugins"
   help = "Plugin-specific commands."
   override aliases = ["plugin"]
+  override streamEvents = true
 
   override description = dedent`
     Execute a command defined by a plugin in your project.
