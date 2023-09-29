@@ -228,8 +228,7 @@ export class GardenServer extends EventEmitter {
           this.port = await getPort({
             host: hostname,
             port: defaultServerPort,
-            portRange: [defaultServerPort + 1, defaultServerPort + 50],
-            alternativePortRange: [defaultServerPort - 50, defaultServerPort - 1],
+            portRange: [defaultServerPort + 1, defaultServerPort + 99],
           })
           await _start()
           serverStarted = true
