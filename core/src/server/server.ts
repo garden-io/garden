@@ -204,9 +204,28 @@ export class GardenServer extends EventEmitter {
       })
     }
 
-    if (this.port) {
-      await _start()
+    if (this.port !== undefined) {
+      try {
+        await _start()
+      } catch (err) {
+        // Fail if the explicitly specified port is already in use.
+        if (isEAddrInUseException(err)) {
+          throw new ParameterError({
+            message: dedent`
+            Port ${this.port} is already in use, possibly by another Garden server process.
+            Either terminate the other process, or choose another port using the --port parameter.
+          `,
+          })
+        } else if (isErrnoException(err)) {
+          throw new CommandError({
+            message: `Unable to start server: ${err.message}`,
+            code: err.code,
+          })
+        }
+        throw err
+      }
     } else {
+      let serverStarted = false
       do {
         try {
           this.port = await getPort({
@@ -216,25 +235,21 @@ export class GardenServer extends EventEmitter {
             alternativePortRange: [defaultWatchServerPort - 1, defaultWatchServerPort - 50],
           })
           await _start()
+          serverStarted = true
         } catch (err) {
           if (isEAddrInUseException(err)) {
-            throw new ParameterError({
-              message: dedent`
-            Port ${this.port} is already in use, possibly by another Garden server process.
-            Either terminate the other process, or choose another port using the --port parameter.
-          `,
-            })
+            this.log.debug(`Unable to start server. Port ${this.port} is already in use. Retrying with another port...`)
           } else if (isErrnoException(err)) {
             throw new CommandError({
               message: `Unable to start server: ${err.message}`,
               code: err.code,
             })
           }
-
           throw err
         }
-      } while (!this.server)
+      } while (!serverStarted)
     }
+    this.log.info(chalk.white(`Garden server has successfully started at port ${chalk.bold(this.port)}.\n`))
 
     const processRecord = await this.globalConfigStore.get("activeProcesses", String(process.pid))
 
