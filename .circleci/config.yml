@@ -24,7 +24,7 @@ orbs:
       docker_layer_caching: true
 
   runner-image: &runner-image
-    image: gardendev/circleci-runner:18.15.0-1@sha256:c830e29ab30a1c5b08cba4d041d3325ef6958aebeba1b10b1ee9566d7b1a4d42
+    image: gardendev/circleci-runner:18.18.0@sha256:687ab1e9f59050898d21b7531410cc449ba9acd1ab14ce5f642f4cd91745f7fe
 
   # Configuration for our node jobs
   node-config: &node-config

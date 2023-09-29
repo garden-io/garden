@@ -3,7 +3,7 @@
 ARG VARIANT=root
 
 # Node base image
-FROM node:18.15.0-buster-slim@sha256:8fc14971a14387a8b2cbeeddbd2298f73d8e2346dc24648096ca24e57e1d31f4 as garden-buster-base-root
+FROM node:18.18.0-buster-slim@sha256:6d2b0d6bff110ef4a4f6d892c61eca83bf55550d1a64061414b5c3add5996670 as garden-buster-base-root
 
 FROM garden-buster-base-root as garden-base-root
 # system dependencies
