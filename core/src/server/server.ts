@@ -53,12 +53,9 @@ import type { AutocompleteSuggestion } from "../cli/autocomplete"
 import { z } from "zod"
 import { omitUndefined } from "../util/objects"
 import { createServer } from "http"
+import { defaultServerPort } from "../commands/serve"
 
 const pty = require("node-pty-prebuilt-multiarch")
-
-// Note: This is different from the `garden serve` default port.
-// We may no longer embed servers in watch processes from 0.13 onwards.
-export const defaultWatchServerPort = 9777
 
 const skipLogsForCommands = ["autocomplete"]
 
@@ -230,9 +227,9 @@ export class GardenServer extends EventEmitter {
         try {
           this.port = await getPort({
             host: hostname,
-            port: defaultWatchServerPort,
-            portRange: [defaultWatchServerPort + 1, defaultWatchServerPort + 50],
-            alternativePortRange: [defaultWatchServerPort - 1, defaultWatchServerPort - 50],
+            port: defaultServerPort,
+            portRange: [defaultServerPort + 1, defaultServerPort + 50],
+            alternativePortRange: [defaultServerPort - 1, defaultServerPort - 50],
           })
           await _start()
           serverStarted = true
