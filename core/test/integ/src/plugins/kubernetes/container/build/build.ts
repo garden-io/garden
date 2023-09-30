@@ -73,7 +73,7 @@ describe("Kubernetes Container Build Extension", () => {
     it("should build a simple container", async () => {
       await executeBuild("simple-service")
 
-      const imageExists = await containerHelpers.imageExistsLocally("simple-service", log, ctx)
+      const imageExists = await containerHelpers.getLocalImageInfo("simple-service", log, ctx)
       expect(imageExists?.identifier).to.equal("simple-service")
     })
   })
@@ -111,10 +111,10 @@ describe("Kubernetes Container Build Extension", () => {
 
       expect(remoteId).to.equal(taggedRemoteName)
 
-      const remoteNameExists = await containerHelpers.imageExistsLocally(taggedRemoteName, log, ctx)
+      const remoteNameExists = await containerHelpers.getLocalImageInfo(taggedRemoteName, log, ctx)
       expect(remoteNameExists?.identifier).to.equal(taggedRemoteName)
 
-      const localNameExists = await containerHelpers.imageExistsLocally(taggedLocalName, log, ctx)
+      const localNameExists = await containerHelpers.getLocalImageInfo(taggedLocalName, log, ctx)
       expect(localNameExists?.identifier).to.equal(taggedLocalName)
 
       const remoteTags = await listGoogleArtifactImageTags(serviceImageName)

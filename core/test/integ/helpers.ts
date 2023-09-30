@@ -58,14 +58,18 @@ interface GCloudServiceError {
   metadata: any
 }
 
+const ArtifactRegistryPackagePathPrefix =
+  "projects/garden-ci/locations/europe-west3/repositories/garden-integ-tests/packages/"
+
 export async function listGoogleArtifactImageTags(packageName: string): Promise<string[]> {
   const client = await getArtifactRegistryClient()
 
-  const parent = `projects/garden-ci/locations/europe-west3/repositories/garden-integ-tests/packages/${packageName}`
+  const parent = `${ArtifactRegistryPackagePathPrefix}/${packageName}`
 
   try {
-    const [allTags, _req, _resp] = await client.listTags({ parent })
+    const [allTags] = await client.listTags({ parent })
 
+    // removing the package parent path + /tags/ to
     return allTags.flatMap(({ name }) => {
       return name ? name?.replace(`${parent}/tags/`, "") : []
     })
@@ -83,9 +87,10 @@ export async function listGoogleArtifactImageTags(packageName: string): Promise<
 }
 
 export async function deleteGoogleArtifactImage(packageName: string): Promise<void> {
+  const GCloudNotFoundErrorCode = 5
   const client = await getArtifactRegistryClient()
 
-  const fullName = `projects/garden-ci/locations/europe-west3/repositories/garden-integ-tests/packages/${packageName}`
+  const fullName = `${ArtifactRegistryPackagePathPrefix}/${packageName}`
 
   try {
     await client.deletePackage({ name: fullName })
@@ -93,7 +98,7 @@ export async function deleteGoogleArtifactImage(packageName: string): Promise<vo
     if (isGCloudServiceError(err)) {
       const gcloudErr = err as GCloudServiceError
 
-      if (gcloudErr.code === 5 && gcloudErr.details === `Package "${fullName}" was not found.`) {
+      if (gcloudErr.code === GCloudNotFoundErrorCode && gcloudErr.details === `Package "${fullName}" was not found.`) {
         return
       }
     }

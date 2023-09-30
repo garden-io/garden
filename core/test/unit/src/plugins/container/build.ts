@@ -42,7 +42,7 @@ context("build.ts", () => {
   describe("getContainerBuildStatus", () => {
     it("should return ready if build exists locally", async () => {
       const action = await getAction()
-      sinon.replace(containerHelpers, "imageExistsLocally", async () => {
+      sinon.replace(containerHelpers, "getLocalImageInfo", async () => {
         return { identifier: "fake image identifier string", imageIds: [] }
       })
 
@@ -52,7 +52,7 @@ context("build.ts", () => {
 
     it("should return not-ready if build does not exist locally", async () => {
       const action = await getAction()
-      sinon.replace(containerHelpers, "imageExistsLocally", async () => undefined)
+      sinon.replace(containerHelpers, "getLocalImageInfo", async () => undefined)
 
       const result = await getContainerBuildStatus({ ctx, log: actionLog, action })
       expect(result.state).to.eql("not-ready")

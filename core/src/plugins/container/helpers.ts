@@ -233,7 +233,9 @@ const helpers = {
     }
   },
 
-  async imageExistsLocally(
+  // Verifies the existance of a local image with the given identifier
+  // and returns the identifier with a list of corresponding image IDs
+  async getLocalImageInfo(
     identifier: string,
     log: Log,
     ctx: PluginContext
@@ -255,7 +257,7 @@ const helpers = {
 
   // Remove all images for a given identifier
   async removeLocalImage(identifier: string, log: Log, ctx: PluginContext) {
-    const { identifier: _, imageIds } = (await containerHelpers.imageExistsLocally(identifier, log, ctx)) || {}
+    const { imageIds } = (await containerHelpers.getLocalImageInfo(identifier, log, ctx)) || {}
 
     if (!imageIds) {
       return undefined
