@@ -22,11 +22,18 @@ import { BaseServerRequest, resolveRequest, serverRequestSchema, shellCommandPar
 import { DEFAULT_GARDEN_DIR_NAME, gardenEnv } from "../constants"
 import { Log } from "../logger/log-entry"
 import { Command, CommandResult, PrepareParams } from "../commands/base"
-import { toGardenError, GardenError } from "../exceptions"
+import {
+  toGardenError,
+  GardenError,
+  isEAddrInUseException,
+  ParameterError,
+  isErrnoException,
+  CommandError,
+} from "../exceptions"
 import { EventName, Events, EventBus, shouldStreamWsEvent } from "../events/events"
 import type { ValueOf } from "../util/util"
 import { joi } from "../config/common"
-import { randomString } from "../util/string"
+import { dedent, randomString } from "../util/string"
 import { authTokenHeader } from "../cloud/auth"
 import { ApiEventBatch, BufferedEventStream, LogEntryEventPayload } from "../cloud/buffered-event-stream"
 import { eventLogLevel, LogLevel } from "../logger/logger"
@@ -46,12 +53,9 @@ import type { AutocompleteSuggestion } from "../cli/autocomplete"
 import { z } from "zod"
 import { omitUndefined } from "../util/objects"
 import { createServer } from "http"
+import { defaultServerPort } from "../commands/serve"
 
 const pty = require("node-pty-prebuilt-multiarch")
-
-// Note: This is different from the `garden serve` default port.
-// We may no longer embed servers in watch processes from 0.13 onwards.
-export const defaultWatchServerPort = 9777
 
 const skipLogsForCommands = ["autocomplete"]
 
@@ -197,20 +201,51 @@ export class GardenServer extends EventEmitter {
       })
     }
 
-    if (this.port) {
-      await _start()
+    if (this.port !== undefined) {
+      try {
+        await _start()
+      } catch (err) {
+        // Fail if the explicitly specified port is already in use.
+        if (isEAddrInUseException(err)) {
+          throw new ParameterError({
+            message: dedent`
+            Port ${this.port} is already in use, possibly by another Garden server process.
+            Either terminate the other process, or choose another port using the --port parameter.
+          `,
+          })
+        } else if (isErrnoException(err)) {
+          throw new CommandError({
+            message: `Unable to start server: ${err.message}`,
+            code: err.code,
+          })
+        }
+        throw err
+      }
     } else {
+      let serverStarted = false
       do {
         try {
           this.port = await getPort({
-            port: defaultWatchServerPort,
-            portRange: [defaultWatchServerPort + 1, defaultWatchServerPort + 50],
-            alternativePortRange: [defaultWatchServerPort - 1, defaultWatchServerPort - 50],
+            host: hostname,
+            port: defaultServerPort,
+            portRange: [defaultServerPort + 1, defaultServerPort + 99],
           })
           await _start()
-        } catch {}
-      } while (!this.server)
+          serverStarted = true
+        } catch (err) {
+          if (isEAddrInUseException(err)) {
+            this.log.debug(`Unable to start server. Port ${this.port} is already in use. Retrying with another port...`)
+          } else if (isErrnoException(err)) {
+            throw new CommandError({
+              message: `Unable to start server: ${err.message}`,
+              code: err.code,
+            })
+          }
+          throw err
+        }
+      } while (!serverStarted)
     }
+    this.log.info(chalk.white(`Garden server has successfully started at port ${chalk.bold(this.port)}.\n`))
 
     const processRecord = await this.globalConfigStore.get("activeProcesses", String(process.pid))
 
