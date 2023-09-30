@@ -9,8 +9,7 @@ description: >-
 
 Garden lets you spin up **production-like environments** for development, testing, and CI **on demand**. It enables teams to use the **same configuration** and workflows for **every stage of software delivery**—and dramatically **speeds up builds and test runs** via smart caching.
 
-You can get started in minutes with the new [Garden Web Dashboard](https://app.garden.io)! Just click the link and follow the
-interactive guide to deploy your first example project with Garden.
+You can get started in minutes with the new [Garden Web Dashboard](https://app.garden.io)! Just click the link and follow the interactive guide to deploy your first example project with Garden.
 
 ![Short tour of the features of the Garden Web Dashboard including command history, visualized dependency graph, and the Garden dev console](https://ce-content.s3.fr-par.scw.cloud/garden-web-dashboard-tour.gif)
 
