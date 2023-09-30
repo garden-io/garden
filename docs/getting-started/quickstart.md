@@ -6,16 +6,16 @@ order: 1
 # Quickstart Guide
 
 {% hint style="info" %}
-A visual quickstart is also available by logging in to the Garden Dashboard. The Dashboard can show you the status of your builds, deployments and stream logs from your services in real-time. To get started, click [Dashboard Quickstart](https://app.garden.io).
-{% endhint %}
+An interactive quickstart is also available by logging in to the Garden Web Dashboard. With the dashboard you can access command history, stream logs in real-time, view the status of your builds, tests, and deploys, visualize your dependency graph, and manage your free ephemeral clusters. To get started, [launch the Garden Web Dashboard](https://app.garden.io).
 
-Garden is an all-in-one DevOps platform that enables you to build, test, deploy your applications and infrastructure in a single, unified workflow.
+![Short tour of the features of the Garden Web Dashboard including command history, visualized dependency graph, and the Garden dev console](https://ce-content.s3.fr-par.scw.cloud/garden-web-dashboard-tour.gif)
+{% endhint %}
 
 ## Quickstart
 
-In this quickstart, we'll introduce you to the one interactive command you'll spend most of your time in as a developer: `garden dev`.
+Garden is an all-in-one DevOps automation platform that enables you to build, test, and deploy your applications and infrastructure in a single, unified workflow.
 
-In just 2 steps, we'll:
+In this quickstart guide, we'll:
 
 * Install Garden
 * Deploy an example application to a remote ephemeral Kubernetes cluster.
@@ -108,7 +108,6 @@ You can run all the same commands with the CLI directly without starting the dev
 deploy` from your terminal. This is e.g. how you'd use Garden in CI.
 {% endhint %}
 
-
 ## Next Steps
 
 Now that you have Garden installed and seen its basic capabilities it's time to take the next steps.
@@ -118,6 +117,5 @@ through our [first project tutorial](../tutorials/your-first-project/README.md) 
 
 If you like to dive right in and configure your own project for Garden, we recommend referencing our [example
 projects on GitHub](https://github.com/garden-io/garden/tree/0.13.16/examples) and the section of our docs title [Using Garden](../using-garden/configuration-overview.md), which covers all parts of Garden in detail.
-
 
 If you have any questions or feedback—or just want to say hi 🙂—we encourage you to join our [Discord community](https://go.garden.io/discord)!
