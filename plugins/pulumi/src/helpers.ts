@@ -31,6 +31,7 @@ import { PulumiProvider } from "./provider"
 import { dedent, deline, naturalList } from "@garden-io/sdk/build/src/util/string"
 import { Resolved } from "@garden-io/core/build/src/actions/types"
 import { ActionLog } from "@garden-io/core/build/src/logger/log-entry"
+import { PulumiCommandResult } from "./commands"
 
 export interface PulumiParams {
   ctx: PluginContext
@@ -371,7 +372,7 @@ export function countAffectedResources(plan: PulumiPlan): number {
 /**
  * Wrapper for `pulumi cancel --yes`. Does not throw on error, since we may also want to cancel other updates upstream.
  */
-export async function cancelUpdate({ action, ctx, provider, log }: PulumiParams): Promise<void> {
+export async function cancelUpdate({ action, ctx, provider, log }: PulumiParams): Promise<PulumiCommandResult> {
   const res = await pulumi(ctx, provider).exec({
     log,
     ignoreError: true,
@@ -383,13 +384,22 @@ export async function cancelUpdate({ action, ctx, provider, log }: PulumiParams)
 
   if (res.exitCode !== 0) {
     log.warn(chalk.yellow(`pulumi cancel failed:\n${res.stderr}`))
+    return {
+      state: "failed",
+      outputs: {},
+    }
+  }
+
+  return {
+    state: "ready",
+    outputs: {},
   }
 }
 
 /**
  * Wrapper for `pulumi refresh --yes`.
  */
-export async function refreshResources(params: PulumiParams): Promise<void> {
+export async function refreshResources(params: PulumiParams): Promise<PulumiCommandResult> {
   const { action, ctx, provider, log } = params
   const configPath = await applyConfig(params)
 
@@ -401,12 +411,16 @@ export async function refreshResources(params: PulumiParams): Promise<void> {
     cwd: getActionStackRoot(action),
   })
   log.info(res.stdout)
+  return {
+    state: "ready",
+    outputs: {},
+  }
 }
 
 /**
  * Wrapper for `pulumi stack export|pulumi stack import`.
  */
-export async function reimportStack(params: PulumiParams): Promise<void> {
+export async function reimportStack(params: PulumiParams): Promise<PulumiCommandResult> {
   const { action, ctx, provider, log } = params
   const cwd = getActionStackRoot(action)
 
@@ -426,6 +440,10 @@ export async function reimportStack(params: PulumiParams): Promise<void> {
     env: ensureEnv({ log, ctx, provider, action }),
     cwd,
   })
+  return {
+    state: "ready",
+    outputs: {},
+  }
 }
 
 // Lower-level helpers

@@ -44,7 +44,7 @@ import { ActionConfigContext } from "@garden-io/core/build/src/config/template-c
 
 type PulumiBaseParams = Omit<PulumiParams, "action">
 
-type PulumiRunFn = (params: PulumiParams) => Promise<any>
+type PulumiRunFn = (params: PulumiParams) => Promise<PulumiCommandResult>
 
 interface PulumiCommandSpec {
   name: string
@@ -109,13 +109,19 @@ const pulumiCommandSpecs: PulumiCommandSpec[] = [
         await copy(planPath, modifiedPlanPath)
         log.debug(`Copied plan to ${modifiedPlanPath}`)
         return {
-          affectedResourcesCount,
-          operationCounts,
-          modifiedPlanPath,
-          previewUrl,
+          state: "ready",
+          outputs: {
+            affectedResourcesCount,
+            operationCounts,
+            modifiedPlanPath,
+            previewUrl,
+          }
         }
       } else {
-        return null
+        return {
+          state: "ready",
+          outputs: {}
+        }
       }
     },
     // TODO-G2-thor: Re-enable and test when 0.13 is stable enough to run commands.
@@ -164,7 +170,12 @@ const pulumiCommandSpecs: PulumiCommandSpec[] = [
     commandDescription: "pulumi destroy",
     runFn: async (params) => {
       if (params.action.getSpec("allowDestroy")) {
-        await deletePulumiDeploy!(params)
+        return await deletePulumiDeploy!(params)
+      }
+      // do nothing and return ready if allowDestory is not set
+      return {
+        state: "ready",
+        outputs: {}
       }
     },
   },
@@ -197,7 +208,7 @@ interface PulumiPluginCommandTaskParams {
   pulumiParams: PulumiBaseParams
 }
 
-interface PulumiCommandResult extends ValidResultType {}
+export interface PulumiCommandResult extends ValidResultType {}
 
 @Profile()
 class PulumiPluginCommandTask extends PluginActionTask<PulumiDeploy, PulumiCommandResult> {

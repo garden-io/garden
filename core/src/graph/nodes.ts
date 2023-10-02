@@ -271,7 +271,11 @@ export class ProcessTaskNode<T extends Task = Task> extends TaskNode<T> {
     const dependencyResults = this.getDependencyResults()
 
     try {
-      const processResult: TaskResultType<T> = await this.task.process({ status, dependencyResults, statusOnly: false })
+      const processResult: TaskResultType<T> = await this.task.process({
+        status,
+        dependencyResults,
+        statusOnly: false,
+      })
       this.task.emit("processed", { result: processResult })
       if (processResult.state === "ready") {
         const msg = `${this.task.getDescription()} is ready.`
@@ -304,7 +308,10 @@ export class StatusTaskNode<T extends Task = Task> extends TaskNode<T> {
     const dependencyResults = this.getDependencyResults()
 
     try {
-      const result: TaskResultType<T> = await this.task.getStatus({ statusOnly: this.statusOnly, dependencyResults })
+      const result: TaskResultType<T> = await this.task.getStatus({
+        statusOnly: this.statusOnly,
+        dependencyResults,
+      })
       this.task.emit("statusResolved", { result })
       if (!this.task.force && result?.state === "ready") {
         const msg = `${this.task.getDescription()} status is ready.`
