@@ -59,7 +59,7 @@ interface GCloudServiceError {
 }
 
 const ArtifactRegistryPackagePathPrefix =
-  "projects/garden-ci/locations/europe-west3/repositories/garden-integ-tests/packages/"
+  "projects/garden-ci/locations/europe-west3/repositories/garden-integ-tests/packages"
 
 export async function listGoogleArtifactImageTags(packageName: string): Promise<string[]> {
   const client = await getArtifactRegistryClient()

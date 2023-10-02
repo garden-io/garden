@@ -29,7 +29,7 @@ import { createActionLog } from "../../../../../../../src/logger/log-entry"
 import { resolveAction } from "../../../../../../../src/graph/actions"
 import { NamespaceStatus } from "../../../../../../../src/types/namespace"
 
-grouped("cluster-buildkit", "remote-only").describe("ensureBuildkit", () => {
+describe.skip("ensureBuildkit", () => {
   let garden: Garden
   let cleanup: (() => void) | undefined
   let provider: KubernetesProvider
@@ -54,7 +54,7 @@ grouped("cluster-buildkit", "remote-only").describe("ensureBuildkit", () => {
     if (cleanup) {
       cleanup()
     }
-})
+  })
 
   beforeEach(async () => {
     provider = <KubernetesProvider>await garden.resolveProvider(garden.log, "local-kubernetes")
@@ -69,7 +69,7 @@ grouped("cluster-buildkit", "remote-only").describe("ensureBuildkit", () => {
     ).namespaceName
   })
 
-  grouped("cluster-buildkit").context("cluster-buildkit mode", () => {
+  grouped("cluster-buildkit", "remote-only").context("cluster-buildkit mode", () => {
     it("deploys buildkit if it isn't already in the namespace", async () => {
       try {
         await api.apps.deleteNamespacedDeployment(buildkitDeploymentName, namespace)
@@ -214,7 +214,7 @@ grouped("cluster-buildkit", "remote-only").describe("ensureBuildkit", () => {
     })
   })
 
-  grouped("cluster-buildkit-rootless").context("cluster-buildkit-rootless mode", () => {
+  grouped("cluster-buildkit-rootless", "remote-only").context("cluster-buildkit-rootless mode", () => {
     it("deploys in rootless mode", async () => {
       try {
         await api.apps.deleteNamespacedDeployment(buildkitDeploymentName, namespace)

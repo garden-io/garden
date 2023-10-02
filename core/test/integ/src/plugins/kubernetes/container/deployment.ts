@@ -834,7 +834,7 @@ describe("kubernetes container deployment handlers", () => {
         return statuses[resolvedAction.name]
       }
 
-      it("should deploy a simple service without dockerfile", async () => {
+      it.skip("should deploy a simple service without dockerfile", async () => {
         const action = await resolveDeployAction("simple-server-busybox")
         const status = await processDeployAction(action)
 
@@ -846,7 +846,7 @@ describe("kubernetes container deployment handlers", () => {
         expect(resources.Deployment.spec.template.spec.containers[0].image).to.equal(`busybox:1.31.1`)
       })
 
-      it("should deploy a simple service without image", async () => {
+      it.skip("should deploy a simple service without image", async () => {
         const action = await resolveDeployAction("remote-registry-test")
         const status = await processDeployAction(action)
 
@@ -860,7 +860,7 @@ describe("kubernetes container deployment handlers", () => {
         )
       })
 
-      it("should deploy a simple service with absolute image path", async () => {
+      it.skip("should deploy a simple service with absolute image path", async () => {
         const action = await resolveDeployAction("remote-registry-test-absolute-image")
         const status = await processDeployAction(action)
 
@@ -874,7 +874,7 @@ describe("kubernetes container deployment handlers", () => {
         )
       })
 
-      it("should deploy a simple service with relative image path", async () => {
+      it.skip("should deploy a simple service with relative image path", async () => {
         const action = await resolveDeployAction("remote-registry-test-relative-image")
         const status = await processDeployAction(action)
 

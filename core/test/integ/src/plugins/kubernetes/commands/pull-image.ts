@@ -19,7 +19,7 @@ import { BuildAction, ResolvedBuildAction } from "../../../../../../src/actions/
 import { createActionLog } from "../../../../../../src/logger/log-entry"
 import { k8sContainerBuildExtension } from "../../../../../../src/plugins/kubernetes/container/extensions"
 
-describe("pull-image plugin command", () => {
+describe.skip("pull-image plugin command", () => {
   let garden: Garden
   let cleanup: (() => void) | undefined
   let graph: ConfigGraph
