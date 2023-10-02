@@ -97,6 +97,7 @@ interface GCloudServiceError {
 
 const ArtifactRegistryPackagePathPrefix =
   "projects/garden-ci/locations/europe-west3/repositories/garden-integ-tests/packages"
+const GCloudNotFoundErrorCode = 5
 
 export async function listGoogleArtifactImageTags(packageName: string): Promise<string[]> {
   const client = await getArtifactRegistryClient()
@@ -114,7 +115,7 @@ export async function listGoogleArtifactImageTags(packageName: string): Promise<
     if (isGCloudServiceError(err)) {
       const gcloudErr = err as GCloudServiceError
 
-      if (gcloudErr.code === 5 && gcloudErr.details === "Requested entity was not found.") {
+      if (gcloudErr.code === GCloudNotFoundErrorCode && gcloudErr.details === "Requested entity was not found.") {
         return []
       }
     }
@@ -124,7 +125,6 @@ export async function listGoogleArtifactImageTags(packageName: string): Promise<
 }
 
 export async function deleteGoogleArtifactImage(packageName: string): Promise<void> {
-  const GCloudNotFoundErrorCode = 5
   const client = await getArtifactRegistryClient()
 
   const fullName = `${ArtifactRegistryPackagePathPrefix}/${packageName}`
