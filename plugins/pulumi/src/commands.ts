@@ -115,12 +115,12 @@ const pulumiCommandSpecs: PulumiCommandSpec[] = [
             operationCounts,
             modifiedPlanPath,
             previewUrl,
-          }
+          },
         }
       } else {
         return {
           state: "ready",
-          outputs: {}
+          outputs: {},
         }
       }
     },
@@ -175,7 +175,7 @@ const pulumiCommandSpecs: PulumiCommandSpec[] = [
       // do nothing and return ready if allowDestory is not set
       return {
         state: "ready",
-        outputs: {}
+        outputs: {},
       }
     },
   },
