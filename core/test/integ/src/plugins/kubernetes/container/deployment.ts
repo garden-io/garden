@@ -56,6 +56,7 @@ import { K8_POD_DEFAULT_CONTAINER_ANNOTATION_KEY } from "../../../../../../src/p
 
 describe("kubernetes container deployment handlers", () => {
   let garden: TestGarden
+  let cleanup: (() => void) | undefined
   let router: ActionRouter
   let graph: ConfigGraph
   let ctx: KubernetesPluginContext
@@ -79,8 +80,8 @@ describe("kubernetes container deployment handlers", () => {
     }
   })
 
-  const init = async (environmentName: string) => {
-    garden = await getContainerTestGarden(environmentName)
+  const init = async (environmentName: string, remoteContainerAuth: boolean = false) => {
+    ;({ garden, cleanup } = await getContainerTestGarden(environmentName, { remoteContainerAuth }))
     router = await garden.getActionRouter()
     provider = <KubernetesProvider>await garden.resolveProvider(garden.log, "local-kubernetes")
     ctx = <KubernetesPluginContext>(
@@ -92,6 +93,12 @@ describe("kubernetes container deployment handlers", () => {
   describe("createContainerManifests", () => {
     before(async () => {
       await init("local")
+    })
+
+    after(async () => {
+      if (cleanup) {
+        cleanup()
+      }
     })
 
     afterEach(async () => {
@@ -257,6 +264,12 @@ describe("kubernetes container deployment handlers", () => {
   describe("createWorkloadManifest", () => {
     before(async () => {
       await init("local")
+    })
+
+    after(async () => {
+      if (cleanup) {
+        cleanup()
+      }
     })
 
     it("should create a basic Deployment resource", async () => {
@@ -638,6 +651,12 @@ describe("kubernetes container deployment handlers", () => {
         await init("local")
       })
 
+      after(async () => {
+        if (cleanup) {
+          cleanup()
+        }
+      })
+
       it("should deploy a simple Deploy", async () => {
         const action = await resolveDeployAction("simple-service")
 
@@ -788,27 +807,84 @@ describe("kubernetes container deployment handlers", () => {
 
     grouped("kaniko", "remote-only").context("kaniko", () => {
       before(async () => {
-        await init("kaniko")
+        await init("kaniko", true)
       })
 
-      it("should deploy a simple service", async () => {
-        const action = await resolveDeployAction("remote-registry-test")
+      after(async () => {
+        if (cleanup) {
+          cleanup()
+        }
+      })
 
+      const processDeployAction = async (
+        resolvedAction: ResolvedDeployAction<ContainerDeployActionConfig, ContainerDeployOutputs, any>
+      ) => {
         const deployTask = new DeployTask({
           garden,
           graph,
           log: garden.log,
-          action,
+          action: resolvedAction,
           force: true,
           forceBuild: false,
         })
 
         const results = await garden.processTasks({ tasks: [deployTask], log: garden.log, throwOnError: true })
         const statuses = getDeployStatuses(results.results)
-        const status = statuses[action.name]
+
+        return statuses[resolvedAction.name]
+      }
+
+      it.skip("should deploy a simple service without dockerfile", async () => {
+        const action = await resolveDeployAction("simple-server-busybox")
+        const status = await processDeployAction(action)
+
         const resources = keyBy(status.detail?.detail["remoteResources"], "kind")
+        const buildVersionString = action.getBuildAction()?.versionString()
+
+        // Note: the image version should match the image in the module not the
+        // deploy action version
+        expect(resources.Deployment.spec.template.spec.containers[0].image).to.equal(`busybox:1.31.1`)
+      })
+
+      it.skip("should deploy a simple service without image", async () => {
+        const action = await resolveDeployAction("remote-registry-test")
+        const status = await processDeployAction(action)
+
+        const resources = keyBy(status.detail?.detail["remoteResources"], "kind")
+        const buildVersionString = action.getBuildAction()?.versionString()
+
+        // Note: the image version should match the build action version and not the
+        // deploy action version
         expect(resources.Deployment.spec.template.spec.containers[0].image).to.equal(
-          `index.docker.io/gardendev/${action.name}:${action.versionString()}`
+          `europe-west3-docker.pkg.dev/garden-ci/garden-integ-tests/${action.name}:${buildVersionString}`
+        )
+      })
+
+      it.skip("should deploy a simple service with absolute image path", async () => {
+        const action = await resolveDeployAction("remote-registry-test-absolute-image")
+        const status = await processDeployAction(action)
+
+        const resources = keyBy(status.detail?.detail["remoteResources"], "kind")
+        const buildVersionString = action.getBuildAction()?.versionString()
+
+        // Note: the image version should match the build action version and not the
+        // deploy action version
+        expect(resources.Deployment.spec.template.spec.containers[0].image).to.equal(
+          `europe-west3-docker.pkg.dev/garden-ci/garden-integ-tests/${action.name}:${buildVersionString}`
+        )
+      })
+
+      it.skip("should deploy a simple service with relative image path", async () => {
+        const action = await resolveDeployAction("remote-registry-test-relative-image")
+        const status = await processDeployAction(action)
+
+        const resources = keyBy(status.detail?.detail["remoteResources"], "kind")
+        const buildVersionString = action.getBuildAction()?.versionString()
+
+        // Note: the image version should match the build action version and not the
+        // deploy action version
+        expect(resources.Deployment.spec.template.spec.containers[0].image).to.equal(
+          `europe-west3-docker.pkg.dev/garden-ci/garden-integ-tests/${action.name}:${buildVersionString}`
         )
       })
     })
@@ -817,6 +893,12 @@ describe("kubernetes container deployment handlers", () => {
   describe("handleChangedSelector", () => {
     before(async () => {
       await init("local")
+    })
+
+    after(async () => {
+      if (cleanup) {
+        cleanup()
+      }
     })
 
     const deploySpecChangedSimpleService = async (

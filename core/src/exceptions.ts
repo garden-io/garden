@@ -102,17 +102,9 @@ export abstract class GardenError extends Error {
 `
 
       if (this.wrappedErrors) {
-        return dedent`
-          ${errorDetails}
-
-          Wrapped errors:
-          ${this.wrappedErrors?.map(
-            (e) => dedent`
-            ⮑ ${indentString(e.toString(verbose), 3).trim()}
-
-          `
-          )}
-        `
+        return `${errorDetails}\nWrapped errors:\n${this.wrappedErrors?.map(
+          (e) => `⮑ ${indentString(e.toString(verbose), 3).trim()}`
+        )}`
       } else {
         return errorDetails
       }

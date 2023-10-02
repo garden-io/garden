@@ -22,20 +22,23 @@ import { waitForOutputFlush } from "../../../../../../src/process"
 
 describe("runContainerTask", () => {
   let garden: TestGarden
+  let cleanup: (() => void) | undefined
   let graph: ConfigGraph
   let provider: KubernetesProvider
 
   before(async () => {
-    garden = await getContainerTestGarden()
+    ;({ garden, cleanup } = await getContainerTestGarden())
     provider = <KubernetesProvider>await garden.resolveProvider(garden.log, "local-kubernetes")
+  })
+
+  after(async () => {
+    if (cleanup) {
+      cleanup()
+    }
   })
 
   beforeEach(async () => {
     graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-  })
-
-  after(async () => {
-    garden.close()
   })
 
   it("should run a basic Run and emit log events", async () => {

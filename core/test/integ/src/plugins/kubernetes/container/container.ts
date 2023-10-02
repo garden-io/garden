@@ -10,32 +10,65 @@ import { getDataDir, makeTestGarden, expectError, TestGarden } from "../../../..
 import { TestTask } from "../../../../../../src/tasks/test"
 import { emptyDir, pathExists } from "fs-extra"
 import { expect } from "chai"
-import { join, resolve } from "path"
+import { dirname, join } from "path"
 import { Garden } from "../../../../../../src/garden"
 import { ConfigGraph } from "../../../../../../src/graph/config-graph"
 import { deline } from "../../../../../../src/util/string"
 import { KubeApi } from "../../../../../../src/plugins/kubernetes/api"
 import { KubernetesProvider } from "../../../../../../src/plugins/kubernetes/config"
-import { decryptSecretFile } from "../../../../helpers"
-import { GARDEN_CORE_ROOT } from "../../../../../../src/constants"
-import { KubernetesResource } from "../../../../../../src/plugins/kubernetes/types"
 import { V1Secret } from "@kubernetes/client-node"
 import { clusterInit } from "../../../../../../src/plugins/kubernetes/commands/cluster-init"
 import { ContainerTestAction } from "../../../../../../src/plugins/container/config"
 import { createActionLog } from "../../../../../../src/logger/log-entry"
 import { TestGardenOpts } from "../../../../../../src/util/testing"
 import { waitForOutputFlush } from "../../../../../../src/process"
+import { getGoogleADCImagePullSecret } from "../../../../helpers"
+import { KubernetesResource } from "../../../../../../src/plugins/kubernetes/types"
+import { mkdir, writeFile } from "fs/promises"
+import { isErrnoException } from "../../../../../../src/exceptions"
 
 const root = getDataDir("test-projects", "container")
 const defaultEnvironment = process.env.GARDEN_INTEG_TEST_MODE === "remote" ? "kaniko" : "local"
 const initializedEnvs: string[] = []
 let localInstance: Garden
 
-export async function getContainerTestGarden(environmentName: string = defaultEnvironment, opts?: TestGardenOpts) {
+export interface ContainerTestGardenResult {
+  garden: TestGarden
+  cleanup: () => void
+}
+
+export async function getContainerTestGarden(
+  environmentName: string = defaultEnvironment,
+  opts?: TestGardenOpts
+): Promise<ContainerTestGardenResult> {
+  const cleanups: (() => void)[] = []
+
   const garden = await makeTestGarden(root, { environmentString: environmentName, noTempDir: opts?.noTempDir })
+  cleanups.push(() => garden.close())
+
+  let dockerConfig: string | undefined
 
   if (!localInstance) {
     localInstance = await makeTestGarden(root, { environmentString: "local", noTempDir: opts?.noTempDir })
+  }
+
+  if (opts?.remoteContainerAuth) {
+    dockerConfig = JSON.stringify(await getGoogleADCImagePullSecret())
+
+    const dockerConfigPath = join(garden.projectRoot, ".docker-remote-test-config", "config.json")
+    try {
+      await mkdir(dirname(dockerConfigPath))
+    } catch (e) {
+      if (!isErrnoException(e) || e.code !== "EEXIST") {
+        throw e
+      }
+    }
+    await writeFile(dockerConfigPath, dockerConfig)
+    process.env["DOCKER_CONFIG"] = dirname(dockerConfigPath)
+
+    cleanups.push(() => {
+      delete process.env["DOCKER_CONFIG"]
+    })
   }
 
   const needsInit = !environmentName.startsWith("local") && !initializedEnvs.includes(environmentName)
@@ -49,15 +82,22 @@ export async function getContainerTestGarden(environmentName: string = defaultEn
       localProvider
     )
 
-    try {
-      const authSecret = JSON.parse(
-        (await decryptSecretFile(resolve(GARDEN_CORE_ROOT, "..", "secrets", "test-docker-auth.json"))).toString()
-      )
+    // Only set when remote container auth is true
+    if (dockerConfig) {
+      const authSecret: KubernetesResource<V1Secret> = {
+        apiVersion: "v1",
+        kind: "Secret",
+        type: "kubernetes.io/dockerconfigjson",
+        metadata: {
+          name: "test-docker-auth",
+          namespace: "default",
+        },
+        stringData: {
+          ".dockerconfigjson": dockerConfig,
+        },
+      }
       await api.upsert({ kind: "Secret", namespace: "default", obj: authSecret, log: garden.log })
-    } catch (err) {
-      // This is expected when running without access to gcloud (e.g. in minikube tests)
-      // eslint-disable-next-line no-console
-      console.log("Warning: Unable to decrypt docker auth secret")
+    } else {
       const authSecret: KubernetesResource<V1Secret> = {
         apiVersion: "v1",
         kind: "Secret",
@@ -103,7 +143,7 @@ export async function getContainerTestGarden(environmentName: string = defaultEn
     initializedEnvs.push(environmentName)
   }
 
-  return garden
+  return { garden, cleanup: () => cleanups.forEach((c) => c()) }
 }
 
 describe("kubernetes container module handlers", () => {

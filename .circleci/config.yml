@@ -721,7 +721,12 @@ jobs:
       skipTests:
         description: Integ test groups to skip
         type: string
+        # Note: By default, we skip tests that only work for remote environments
         default: "kaniko remote-only"
+      remoteCluster:
+        description: "Configure remote cluster"
+        type: boolean
+        default: false
     environment:
       <<: *shared-env-config
       K8S_VERSION: <<parameters.kubernetesVersion>>
@@ -760,15 +765,25 @@ jobs:
             # Work around annoying issue on recent minikubes where namespaces take a long time to generate default service account
             kubectl create namespace container-default
             sleep 10
+      - when:
+          condition: <<parameters.remoteCluster>>
+          steps:
+            - configure_remote_cluster
       - run:
           name: Integ tests
-          # Note: We skip tests that only work for remote environments
           command: |
             cd core
             GARDEN_SKIP_TESTS="<<parameters.skipTests>>" npm run _integ
       - run:
           name: Deploy demo-project
           command: ./bin/garden deploy --root examples/demo-project
+      - when:
+          condition: <<parameters.remoteCluster>>
+          steps:
+            # NOTE: currently we do not create a namespace in the remote ci cluster during remote integ tests.
+            # If we start doing that, we need to use the environment variable CIRCLE_BUILD_NUM in the tests.
+            - cleanup_remote_cluster:
+                filter: $CIRCLE_BUILD_NUM-remote
 
   test-k3s:
     machine:
@@ -1066,6 +1081,17 @@ workflows:
       #     name: e2e-vote-helm-modules
       #     project: vote-helm-modules
       #     requires: [build]
+
+      ### REMOTE TESTS ###
+      # The remote tests (e.g. kaniko and buildkit) still require a local kubernetes cluster for some reason…
+      - test-minikube:
+          <<: *only-internal-prs
+          name: test-remote
+          requires: [build]
+          kubernetesVersion: "1.23.3"
+          minikubeVersion: "v1.25.2"
+          skipTests: "local-only"
+          remoteCluster: true
 
       ### VM TESTS ###
 

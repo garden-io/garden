@@ -33,6 +33,7 @@ import { MUTAGEN_DIR_NAME } from "../../../../../src/constants"
 
 describe("sync mode deployments and sync behavior", () => {
   let garden: TestGarden
+  let cleanup: (() => void) | undefined
   let graph: ConfigGraph
   let ctx: KubernetesPluginContext
   let provider: KubernetesProvider
@@ -54,6 +55,12 @@ describe("sync mode deployments and sync behavior", () => {
     await init("local")
   })
 
+  after(async () => {
+    if (cleanup) {
+      cleanup()
+    }
+  })
+
   beforeEach(async () => {
     graph = await garden.getConfigGraph({ log: garden.log, emit: false })
   })
@@ -68,7 +75,7 @@ describe("sync mode deployments and sync behavior", () => {
   })
 
   const init = async (environmentName: string) => {
-    garden = await getContainerTestGarden(environmentName, { noTempDir: true })
+    ;({ garden, cleanup } = await getContainerTestGarden(environmentName, { noTempDir: true }))
     graph = await garden.getConfigGraph({
       log: garden.log,
       emit: false,
