@@ -93,11 +93,11 @@ describe.skip("Kubernetes Container Build Extension", () => {
     afterEach(async () => {
       if (cleanup) {
         cleanup()
-      }
 
-      await containerHelpers.removeLocalImage(localImageName, log, ctx)
-      await containerHelpers.removeLocalImage(remoteImageName, log, ctx)
-      await deleteGoogleArtifactImage(localImageName)
+        await containerHelpers.removeLocalImage(localImageName, log, ctx)
+        await containerHelpers.removeLocalImage(remoteImageName, log, ctx)
+        await deleteGoogleArtifactImage(localImageName)
+      }
     })
 
     it("should push to configured deploymentRegistry if specified", async () => {

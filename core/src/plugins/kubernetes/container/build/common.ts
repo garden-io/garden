@@ -223,10 +223,6 @@ export async function skopeoBuildStatus({
     })
     return { state: "ready", outputs, detail: {} }
   } catch (err) {
-    if (!(err instanceof GardenError)) {
-      throw err
-    }
-
     if (err instanceof PodRunnerError) {
       const res = err.details.result
 
@@ -242,11 +238,11 @@ export async function skopeoBuildStatus({
         message: `Unable to query registry for image status: Command "${skopeoCommand.join(
           " "
         )}" failed. This is the output:\n${output}`,
+        wrappedErrors: [err],
       })
     }
 
-    // NOTE: unhandled error when running the skopeo command in a pod, is there a better error to throw?
-    throw InternalError.wrapError(err)
+    throw err
   }
 }
 
