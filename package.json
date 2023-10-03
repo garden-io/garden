@@ -17,6 +17,7 @@
   "devDependencies": {
     "@commitlint/cli": "^17.6.7",
     "@commitlint/config-conventional": "^17.6.7",
+    "@trunkio/launcher": "^1.2.7",
     "@types/bluebird": "^3.5.32",
     "@types/fs-extra": "^9.0.1",
     "@types/lodash": "^4.14.153",
@@ -84,8 +85,8 @@
     "fix-format": "./scripts/run-script.ts fix-format --no-bail --parallel",
     "generate-docs": "./scripts/run-script.ts generate-docs",
     "integ": "./scripts/run-script.ts integ",
-    "lint": "./scripts/run-script.ts lint --no-bail --parallel && gulp check-licenses",
-    "prettier": "prettier --check \"./**/*.ts\"",
+    "lint": "trunk check && gulp check-licenses",
+    "prettier": "trunk check --filter=prettier",
     "test:plugins": "./scripts/run-script.ts test --no-bail --scope @garden-io/garden-*",
     "test:framework:unit": "./scripts/run-script.ts test --no-bail --ignore @garden-io/garden-* --report report.tmp",
     "check-types": "./scripts/run-script.ts check-types --parallel"
