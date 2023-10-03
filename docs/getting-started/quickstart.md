@@ -7,9 +7,9 @@ order: 1
 
 {% hint style="info" %}
 An interactive quickstart is also available by logging in to the Garden Web Dashboard. With the dashboard you can access command history, stream logs in real-time, view the status of your builds, tests, and deploys, visualize your dependency graph, and manage your free ephemeral clusters. To get started, [launch the Garden Web Dashboard](https://app.garden.io).
-
-![Short tour of the features of the Garden Web Dashboard including command history, visualized dependency graph, and the Garden dev console](https://ce-content.s3.fr-par.scw.cloud/garden-web-dashboard-tour.gif)
 {% endhint %}
+
+![Short tour of the features of the Garden Web Dashboard including command history, visualized dependency graph, and the Garden dev console](https://ce-content.s3.fr-par.scw.cloud/web-dashboard-gif.gif)
 
 ## Quickstart
 
