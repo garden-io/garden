@@ -1008,7 +1008,7 @@ This always takes the precedence over sync mode if there are any conflicts, i.e.
   | `--forward` |  | boolean | Create port forwards and leave process running after deploying. This is implied if any of --sync / --local or --logs are set.
   | `--logs` |  | boolean | Stream logs from the requested Deploy(s) (or services if using modules) during deployment, and leave the log streaming process running after deploying. Note: This option implies the --forward option.
   | `--timestamps` |  | boolean | Show timestamps with log output. Should be used with the &#x60;--logs&#x60; option (has no effect if that option is not used).
-  | `--port` |  | number | The port number for the server to listen on (defaults to 9700 if available).
+  | `--port` |  | number | The port number for the server to listen on (defaults to 9777 if available).
 
 #### Outputs
 

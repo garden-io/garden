@@ -23,7 +23,7 @@ import { Garden } from "../garden"
 import { GardenPluginReference } from "../plugin/plugin"
 import { CommandError, ParameterError, isEAddrInUseException, isErrnoException } from "../exceptions"
 
-export const defaultServerPort = 9700
+export const defaultServerPort = 9777
 
 export const serveArgs = {}
 
