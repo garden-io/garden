@@ -57,7 +57,9 @@ export const k8sGetTestResult: TestActionHandler<"getResult", any> = async (para
 }
 
 export function getTestResultKey(ctx: PluginContext, action: StoreTestResultParams["action"]) {
-  const key = `${ctx.projectName}--${action.name}--${action.versionString()}`
+  // change the result format version if the result format changes breaking backwards-compatibility e.g. serialization format
+  const resultFormatVersion = 1
+  const key = `${ctx.projectName}--${action.name}--${action.versionString()}--${resultFormatVersion}`
   const hash = hasha(key, { algorithm: "sha1" })
   return `test-result--${hash.slice(0, 32)}`
 }

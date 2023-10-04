@@ -7,7 +7,6 @@
  */
 
 import { mapValues } from "lodash"
-import Cryo from "cryo"
 import { writeFile } from "fs-extra"
 import { DumpOptions, dump } from "js-yaml"
 import highlight from "cli-highlight"
@@ -50,11 +49,11 @@ export async function dumpYamlMulti(yamlPath: string, objects: object[]) {
 }
 
 export function serializeObject(o: any): string {
-  return Buffer.from(Cryo.stringify(o)).toString("base64")
+  return Buffer.from(JSON.stringify(o)).toString("base64")
 }
 
 export function deserializeObject(s: string) {
-  return Cryo.parse(Buffer.from(s, "base64"))
+  return JSON.parse(Buffer.from(s, "base64").toString())
 }
 
 export function serializeValues(o: { [key: string]: any }): { [key: string]: string } {
