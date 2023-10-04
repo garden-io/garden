@@ -393,7 +393,7 @@ export class GardenInstanceManager {
       gardenOpts
     )
 
-    if (cloudApi && garden.projectId && this.serveCommand.server) {
+    if (cloudApi && garden.projectId && this.serveCommand?.server) {
       // Ensure cloud session is registered for the domain and server session, since this may not happen on startup
       // if the command isn't started in a Garden project root. This is a no-op if it's already registered.
       // FIXME: We still need to rethink on the Cloud side how sessions are scoped
