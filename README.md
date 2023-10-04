@@ -3,7 +3,11 @@
 _If you love Garden, please ★ star this repository to show your support :green_heart:. Looking for support? Join our [Discord](https://go.garden.io/discord)._
 
 <p align="center">
-  <img src="https://github.com/garden-io/garden/assets/59834693/f62a04cb-44bc-4dd4-8426-398b6cd846fd" align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://github-production-user-asset-6210df.s3.amazonaws.com/658727/272340510-34957be5-7318-4473-8141-2751ca571c4f.png">
+    <source media="(prefers-color-scheme: light)" srcset="https://github-production-user-asset-6210df.s3.amazonaws.com/658727/272340472-ad8d7a46-ef85-47ea-9129-d815206ed2f6.png">
+    <img alt="Garden" src="https://github-production-user-asset-6210df.s3.amazonaws.com/658727/272340472-ad8d7a46-ef85-47ea-9129-d815206ed2f6.png">
+  </picture>
 </p>
 <div align="center">
   <a href="https://docs.garden.io/getting-started/quickstart/?utm_source=github">Quickstart</a>
