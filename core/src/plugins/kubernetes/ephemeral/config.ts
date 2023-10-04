@@ -19,6 +19,7 @@ import { ConfigureProviderParams } from "../../../plugin/handlers/Provider/confi
 import { dedent } from "../../../util/string"
 import { KubernetesConfig, namespaceSchema } from "../config"
 import { EPHEMERAL_KUBERNETES_PROVIDER_NAME } from "./ephemeral"
+import { DEFAULT_GARDEN_CLOUD_DOMAIN } from "../../../constants"
 
 export const configSchema = () =>
   providerConfigBaseSchema()
@@ -52,7 +53,7 @@ export async function configureProvider(params: ConfigureProviderParams<Kubernet
       message: `You are not logged in. You must be logged into Garden Cloud in order to use ${EPHEMERAL_KUBERNETES_PROVIDER_NAME} provider.`,
     })
   }
-  if (ctx.cloudApi && ctx.cloudApi?.domain !== "https://app.garden.io") {
+  if (ctx.cloudApi && ctx.cloudApi?.domain !== DEFAULT_GARDEN_CLOUD_DOMAIN) {
     throw new ConfigurationError({
       message: `${EPHEMERAL_KUBERNETES_PROVIDER_NAME} provider is currently not supported for ${ctx.cloudApi.distroName}.`,
     })
