@@ -104,6 +104,13 @@ export async function helmNginxInstall(
   const systemVars: SystemVars = getKubernetesSystemVariables(config)
   const values = nginxHelmValuesGetter(systemVars)
 
+  const valueArgs: string[] = []
+  for (const key in values) {
+    if (values.hasOwnProperty(key)) {
+      valueArgs.push(`${key}=${JSON.stringify(values[key])}`)
+    }
+  }
+
   // TODO-G2: update the nginx version
   const args = [
     "install",
@@ -116,7 +123,7 @@ export async function helmNginxInstall(
     "--timeout",
     HELM_INGRESS_NGINX_DEPLOYMENT_TIMEOUT,
     "--set-json",
-    JSON.stringify(values),
+    `${valueArgs.join(",")}`,
   ]
 
   log.info(`Installing nginx in ${namespace} namespace...`)
