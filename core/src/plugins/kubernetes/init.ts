@@ -242,6 +242,8 @@ export function getKubernetesSystemVariables(config: KubernetesConfig) {
   }
 }
 
+export type SystemVars = ReturnType<typeof getKubernetesSystemVariables>
+
 interface DockerConfigJson {
   experimental: string
   auths: { [registry: string]: { [key: string]: string } }
