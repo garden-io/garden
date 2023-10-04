@@ -12,7 +12,7 @@ import { DeployState } from "../../../types/service"
 import { KubernetesPluginContext } from "../config"
 import { helm } from "../helm/helm-cli"
 import { helmStatusMap } from "../helm/status"
-import { getKubernetesSystemVariables } from "../init"
+import { getKubernetesSystemVariables, SystemVars } from "../init"
 
 const releaseName = "garden-nginx"
 
@@ -42,21 +42,11 @@ export async function helmNginxStatus(ctx: KubernetesPluginContext, log: Log): P
   }
 }
 
-export async function helmNginxInstall(ctx: KubernetesPluginContext, log: Log) {
-  const provider = ctx.provider
-  const config = provider.config
+// TODO: consider using some specific return type here, maybe something from helm SDK?
+type NginxHelmValuesGetter = (systemVars: SystemVars) => object
 
-  const namespace = config.gardenSystemNamespace
-
-  const status = await helmNginxStatus(ctx, log)
-
-  if (status === "ready") {
-    return
-  }
-
-  const systemVars = getKubernetesSystemVariables(config)
-
-  const values = {
+export const getGenericNginxHelmValues: NginxHelmValuesGetter = (systemVars: SystemVars) => {
+  return {
     name: "ingress-controller",
     controller: {
       kind: "DaemonSet",
@@ -89,6 +79,26 @@ export async function helmNginxInstall(ctx: KubernetesPluginContext, log: Log) {
       enabled: true,
     },
   }
+}
+
+export async function helmNginxInstall(
+  ctx: KubernetesPluginContext,
+  log: Log,
+  nginxHelmValuesGetter: NginxHelmValuesGetter = getGenericNginxHelmValues
+) {
+  const provider = ctx.provider
+  const config = provider.config
+
+  const namespace = config.gardenSystemNamespace
+
+  const status = await helmNginxStatus(ctx, log)
+
+  if (status === "ready") {
+    return
+  }
+
+  const systemVars: SystemVars = getKubernetesSystemVariables(config)
+  const values = nginxHelmValuesGetter(systemVars)
 
   // TODO-G2: update the nginx version
   const args = [
