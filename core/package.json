@@ -165,7 +165,7 @@
     "ws": "^8.12.1",
     "yaml": "^2.2.2",
     "yaml-lint": "^1.2.4",
-    "zod": "^3.20.6",
+    "zod": "^3.22.3",
     "zod-to-json-schema": "^3.21.1"
   },
   "devDependencies": {
