@@ -26,7 +26,7 @@ nvm alias default v18
 nvm use default
 
 # install/update global packages
-npm install -g gulp-cli ts-node typescript
+npm install -g ts-node typescript
 
 # install npm
 npm install -g npm@9
