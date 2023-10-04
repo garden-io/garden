@@ -14,7 +14,11 @@ import { helm } from "../helm/helm-cli"
 import { helmStatusMap } from "../helm/status"
 import { getKubernetesSystemVariables, SystemVars } from "../init"
 
-const releaseName = "garden-nginx"
+const HELM_INGRESS_NGINX_REPO = "https://kubernetes.github.io/ingress-nginx"
+const HELM_INGRESS_NGINX_VERSION = "4.0.13"
+const HELM_INGRESS_NGINX_CHART = "ingress-nginx"
+const HELM_INGRESS_NGINX_RELEASE_NAME = "garden-nginx"
+const HELM_INGRESS_NGINX_DEPLOYMENT_TIMEOUT = "300s"
 
 export async function helmNginxStatus(ctx: KubernetesPluginContext, log: Log): Promise<DeployState> {
   const provider = ctx.provider
@@ -28,16 +32,16 @@ export async function helmNginxStatus(ctx: KubernetesPluginContext, log: Log): P
         ctx,
         log,
         namespace,
-        args: ["status", releaseName, "--output", "json"],
+        args: ["status", HELM_INGRESS_NGINX_RELEASE_NAME, "--output", "json"],
         // do not send JSON output to Garden Cloud or CLI verbose log
         emitLogEvents: false,
       })
     )
     const status = statusRes.info?.status || "unknown"
-    log.debug(chalk.yellow(`Helm release status for ${releaseName}: ${status}`))
+    log.debug(chalk.yellow(`Helm release status for ${HELM_INGRESS_NGINX_RELEASE_NAME}: ${status}`))
     return helmStatusMap[status] || "unknown"
   } catch (error) {
-    log.warn(chalk.yellow(`Unable to get helm status for ${releaseName} release: ${error}`))
+    log.warn(chalk.yellow(`Unable to get helm status for ${HELM_INGRESS_NGINX_RELEASE_NAME} release: ${error}`))
     return "unknown"
   }
 }
@@ -103,16 +107,16 @@ export async function helmNginxInstall(
   // TODO-G2: update the nginx version
   const args = [
     "install",
-    releaseName,
-    "ingress-nginx",
+    HELM_INGRESS_NGINX_RELEASE_NAME,
+    HELM_INGRESS_NGINX_CHART,
     "--version",
-    "4.0.13",
+    HELM_INGRESS_NGINX_VERSION,
     "--repo",
-    "https://kubernetes.github.io/ingress-nginx",
+    HELM_INGRESS_NGINX_REPO,
     "--namespace",
     namespace,
     "--timeout",
-    "300s",
+    HELM_INGRESS_NGINX_DEPLOYMENT_TIMEOUT,
     "--set-json",
     JSON.stringify(values),
   ]
@@ -130,5 +134,5 @@ export async function helmNginxUninstall(ctx: KubernetesPluginContext, log: Log)
 
   const namespace = config.gardenSystemNamespace
 
-  await helm({ ctx, namespace, log, args: ["uninstall", releaseName], emitLogEvents: false })
+  await helm({ ctx, namespace, log, args: ["uninstall", HELM_INGRESS_NGINX_RELEASE_NAME], emitLogEvents: false })
 }
