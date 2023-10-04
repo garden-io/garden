@@ -16,9 +16,11 @@ import { providerConfigBaseSchema } from "../../../config/provider"
 import { ConfigurationError } from "../../../exceptions"
 import { ConfigureProviderParams } from "../../../plugin/handlers/Provider/configureProvider"
 import { dedent } from "../../../util/string"
-import { KubernetesConfig, namespaceSchema } from "../config"
+import { KubernetesConfig, KubernetesPluginContext, namespaceSchema } from "../config"
 import { EPHEMERAL_KUBERNETES_PROVIDER_NAME } from "./ephemeral"
 import { DEFAULT_GARDEN_CLOUD_DOMAIN } from "../../../constants"
+import { helmNginxInstall, NginxHelmValuesGetter } from "../integrations/nginx"
+import { SystemVars } from "../init"
 
 export const configSchema = () =>
   providerConfigBaseSchema()
@@ -37,6 +39,47 @@ export const configSchema = () =>
         ),
     })
     .description(`The provider configuration for the ${EPHEMERAL_KUBERNETES_PROVIDER_NAME} plugin.`)
+
+export const getEphemeralNginxHelmValues: NginxHelmValuesGetter = (systemVars: SystemVars) => {
+  return {
+    name: "ingress-controller",
+    controller: {
+      extraArgs: {
+        "default-backend-service": `${systemVars.namespace}/default-backend`,
+      },
+      kind: "Deployment",
+      replicaCount: 1,
+      updateStrategy: {
+        type: "RollingUpdate",
+        rollingUpdate: {
+          maxUnavailable: 1,
+        },
+      },
+      minReadySeconds: 1,
+      tolerations: systemVars["system-tolerations"],
+      nodeSelector: systemVars["system-node-selector"],
+      admissionWebhooks: {
+        enabled: false,
+      },
+      ingressClassResource: {
+        name: "nginx",
+        enabled: true,
+        default: true,
+      },
+      service: {
+        annotations: {
+          "kubernetes.namespace.so/expose": "true",
+          "kubernetes.namespace.so/exposed-port-80": "wildcard",
+          "kubernetes.namespace.so/exposed-port-443": "wildcard",
+        },
+        type: "LoadBalancer",
+      },
+    },
+    defaultBackend: {
+      enabled: false,
+    },
+  }
+}
 
 export async function configureProvider(params: ConfigureProviderParams<KubernetesConfig>) {
   const { base, log, projectName, ctx, config: baseConfig } = params
@@ -121,8 +164,10 @@ export async function configureProvider(params: ConfigureProviderParams<Kubernet
   const { config: updatedConfig } = await base!(kubernetesPluginConfig)
 
   // setup ingress controller unless setupIngressController is set to false/null in provider config
-  if (baseConfig.setupIngressController) {
-    // FIXME: apply manifests from nginx-ephemeral.yaml
+  if (!!baseConfig.setupIngressController) {
+    const k8sCtx = <KubernetesPluginContext>ctx
+    await helmNginxInstall(k8sCtx, log, getEphemeralNginxHelmValues)
+
     updatedConfig.setupIngressController = "nginx"
     // set default hostname
     updatedConfig.defaultHostname = createEphemeralClusterResponse.ingressesHostname
