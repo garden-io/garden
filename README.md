@@ -2,11 +2,11 @@
   <img src="docs/logo.png" align="center">
 </p>
 <div align="center">
-  <a href="https://docs.garden.io/basics/5-min-quickstart/?utm_source=github">Quickstart</a>
+  <a href="https://docs.garden.io/v/acorn-0.12/basics/quickstart/?utm_source=github">Quickstart</a>
   <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
   <a href="https://garden.io/?utm_source=github">Website</a>
   <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
-  <a href="https://docs.garden.io/?utm_source=github">Docs</a>
+  <a href="https://docs.garden.io/v/acorn-0.12/?utm_source=github">Docs</a>
   <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
   <a href="https://github.com/garden-io/garden/tree/0.12.64/examples">Examples</a>
   <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
@@ -36,7 +36,7 @@ _If you’re using Garden or if you like the project, please ★ star this repos
 
 ### **Getting started**
 
-The fastest way to get started with Garden is by following our [quickstart guide](https://docs.garden.io/basics/quickstart).
+The fastest way to get started with Garden is by following our [quickstart guide](https://docs.garden.io/v/acorn-0.12/basics/quickstart).
 
 ### **Who should use Garden?**
 
@@ -64,7 +64,7 @@ Afterwards, the entire team benefits:
 
 ### **How does it work?**
 
-Garden Core is a standalone binary that can run from CI or from a developer’s machine. It allows you to codify a complete description of your stack, including how it's built, deployed and tested, using the [Stack Graph](https://docs.garden.io/basics/stack-graph)—making your workflows **reproducible and portable**.
+Garden Core is a standalone binary that can run from CI or from a developer’s machine. It allows you to codify a complete description of your stack, including how it's built, deployed and tested, using the [Stack Graph](https://docs.garden.io/v/acorn-0.12/basics/stack-graph)—making your workflows **reproducible and portable**.
 
 With the Stack Graph, each part of your stack describes itself using simple, intuitive YAML declarations, without changing any of your existing code. Garden collects all of your declarations—even across multiple repositories—into a full graph of your stack.
 
@@ -92,11 +92,11 @@ garden dev
 
 The Stack Graph is pluggable so how these actions are actually executed depends on the plugins used. Our Kubernetes plugin is currently the most popular, and chances are that’s what you’re here for. To learn more about how Garden works with Kubernetes, check out:
 
-- [Kubernetes Plugins documentation](https://docs.garden.io/guides/remote-kubernetes).
+- [Kubernetes Plugins documentation](https://docs.garden.io/v/acorn-0.12/guides/remote-kubernetes).
 
 And for a deeper dive on how Garden works in general, we recommend:
 
-- [This guide on how Garden works](https://docs.garden.io/basics/how-garden-works).
+- [This guide on how Garden works](https://docs.garden.io/v/acorn-0.12/basics/how-garden-works).
 - [This video series on the Stack Graph and getting started with Garden](https://www.youtube.com/watch?app=desktop&v=3gMJWGV0WE8).
 
 ### **Plugins**
@@ -136,7 +136,7 @@ We are trying to make Garden the best tool possible, and data on how it’s bein
 
 When you use Garden, we collect information about the commands you run, the tasks being executed, the project and operating system. We care about your privacy and we take special care to anonymize all the information. For example, we hash module names, and use randomly generated IDs to identify projects.
 
-If you are curious to see an example of the data we collect or if you would like to update your preference, please visit the [Telemetry](https://docs.garden.io/misc/telemetry) page.
+If you are curious to see an example of the data we collect or if you would like to update your preference, please visit the [Telemetry](https://docs.garden.io/v/acorn-0.12/misc/telemetry) page.
 
 ### **License**
 

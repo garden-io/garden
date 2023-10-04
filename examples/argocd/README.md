@@ -48,12 +48,12 @@ helm:
 ```
 ArgoCD image updater by default uses the same repo credential that ArgoCD would use, to commit above changes. We use a GitHub App that has been installed on the repo.
 
-ArgoCD watches updates to the GitHub repo. Once the image tag has been updated, changes are sync'd via the [App of apps](https://argo-cd.readthedocs.io/en/stable/operator-manual/cluster-bootstrapping/#app-of-apps-pattern) pattern. 
+ArgoCD watches updates to the GitHub repo. Once the image tag has been updated, changes are sync'd via the [App of apps](https://argo-cd.readthedocs.io/en/stable/operator-manual/cluster-bootstrapping/#app-of-apps-pattern) pattern.
 
 In the current example; A dedicated `values-prod.yaml` file has been created per service, which will be used by ArgoCD to overwrite default values and then sync to the Prod cluster.
 
 ## Setup
-- To get started, set up two GKE clusters - one for development and continuous integration (Dev/CI) and another for production (Prod). Refer to our comprehensive documentation for detailed instructions on using the [remote Kubernetes plugin](https://docs.garden.io/kubernetes-plugins/remote-k8s) with Garden.io.
+- To get started, set up two GKE clusters - one for development and continuous integration (Dev/CI) and another for production (Prod). Refer to our comprehensive documentation for detailed instructions on using the [remote Kubernetes plugin](https://docs.garden.io/v/acorn-0.12/kubernetes-plugins/remote-k8s) with Garden.io.
 - For the __api__ and __web__ services, create repositories on Docker Hub to simplify the deployment process.
 - For ease of use, we'll be using the same cluster for both the Dev and CI workloads. However, you can also choose to use separate clusters depending on your requirements.
 

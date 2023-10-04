@@ -65,4 +65,4 @@ To run the workflow:
 garden run workflow full-test
 ```
 
-For more complex use-cases and additional configuration options please refer to the [docs](https://docs.garden.io/using-garden/workflows).
+For more complex use-cases and additional configuration options please refer to the [docs](https://docs.garden.io/v/acorn-0.12/using-garden/workflows).

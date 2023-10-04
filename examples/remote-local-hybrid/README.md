@@ -84,14 +84,14 @@ Hello from local frontend
 
 ## Advanced
 
-It's also possible to run local services with `garden deploy` or `garden dev` by using the [`services` spec](https://docs.garden.io/reference/module-types/exec#services) on `exec` modules.
+It's also possible to run local services with `garden deploy` or `garden dev` by using the [`services` spec](https://docs.garden.io/v/acorn-0.12/reference/module-types/exec#services) on `exec` modules.
 
 However, it requires a bit of work, since currently Garden will wait for the process to exit (which never happens for long running processes).
 
 You can conceptually work around this by doing the following:
 
-1. Write a script that runs the process in the background and stores the PID, and call it via the [`deployCommand` field](https://docs.garden.io/reference/module-types/exec#services-.deploycommand).
-2. Have another script for killing the process based on the store PID and call it via the [`cleanupCommand` field](https://docs.garden.io/reference/module-types/exec#services-.cleanupcommand).
-3. Optionally use the [`statusCommand` field](https://docs.garden.io/reference/module-types/exec#services-.statuscommand) to skip running the process if it's already running.
+1. Write a script that runs the process in the background and stores the PID, and call it via the [`deployCommand` field](https://docs.garden.io/v/acorn-0.12/reference/module-types/exec#services-.deploycommand).
+2. Have another script for killing the process based on the store PID and call it via the [`cleanupCommand` field](https://docs.garden.io/v/acorn-0.12/reference/module-types/exec#services-.cleanupcommand).
+3. Optionally use the [`statusCommand` field](https://docs.garden.io/v/acorn-0.12/reference/module-types/exec#services-.statuscommand) to skip running the process if it's already running.
 
 Obviously, this is a bit convoluted, and adding Garden native support for this workflow is on our short-term roadmap.

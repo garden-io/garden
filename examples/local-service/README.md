@@ -39,7 +39,7 @@ services:
 
 In the config above the local module is always enabled when in dev mode but you can choose to conditionally enable it as well.
 
-You could e.g. use [command line variables](https://docs.garden.io/using-garden/variables-and-templating#variable-files-varfiles) to control whether the local module should be enabled or create a custom command.
+You could e.g. use [command line variables](https://docs.garden.io/v/acorn-0.12/using-garden/variables-and-templating#variable-files-varfiles) to control whether the local module should be enabled or create a custom command.
 
 ## Usage
 
@@ -51,7 +51,7 @@ yarn install
 cd ..
 ```
 
-Assuming you've [set _your_ K8s context](https://docs.garden.io/kubernetes-plugins/remote-k8s), you can start the project with:
+Assuming you've [set _your_ K8s context](https://docs.garden.io/v/acorn-0.12/kubernetes-plugins/remote-k8s), you can start the project with:
 
 ```console
 garden dev
