@@ -9,7 +9,7 @@ title: FAQ
 
 ### How do I include multiple modules with multiple Dockerfiles in the same directory?
 
-You will have to use the module-level [`include`](https://docs.garden.io/v/acorn-0.12/reference/module-types/container#include) directive to specify which files belong to each module. You will also have to provide the path to the Dockerfile with the [`dockerfile`](https://docs.garden.io/reference/module-types/container#dockerfile) directive.
+You will have to use the module-level [`include`](https://docs.garden.io/v/acorn-0.12/reference/module-types/container#include) directive to specify which files belong to each module. You will also have to provide the path to the Dockerfile with the [`dockerfile`](https://docs.garden.io/v/acorn-0.12/reference/module-types/container#dockerfile) directive.
 
 If the module only has a Dockerfile but no other files, say because it's a 3rd party image, you should set `include: []`.
 
@@ -229,7 +229,7 @@ See [this section](https://docs.garden.io/v/acorn-0.12/k8s-plugins/module-types/
 
 ### How do I mount secrets as volumes?
 
-You'll need to use the [`kubernetes`](https://docs.garden.io/v/acorn-0.12/reference/module-types/kubernetes) or [`helm`](https://docs.garden.io/reference/module-types/helm) module types for that. Here's the official [Kubernetes guide](https://kubernetes.io/docs/concepts/configuration/secret/#using-secrets-as-files-from-a-pod) for mounting secrets as files.
+You'll need to use the [`kubernetes`](https://docs.garden.io/v/acorn-0.12/reference/module-types/kubernetes) or [`helm`](https://docs.garden.io/v/acorn-0.12/reference/module-types/helm) module types for that. Here's the official [Kubernetes guide](https://kubernetes.io/docs/concepts/configuration/secret/#using-secrets-as-files-from-a-pod) for mounting secrets as files.
 
 ### Can I use Kubernetes secrets as `buildArgs`?
 

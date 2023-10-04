@@ -1,6 +1,6 @@
 # jib-container example
 
-This simple example showcases the [`jib-container` module type](https://docs.garden.io/reference/module-types/jib-container), which uses [Jib](https://github.com/GoogleContainerTools/jib) to build the container images instead of a normal Docker build.
+This simple example showcases the [`jib-container` module type](https://docs.garden.io/v/acorn-0.12/reference/module-types/jib-container), which uses [Jib](https://github.com/GoogleContainerTools/jib) to build the container images instead of a normal Docker build.
 
 The example services are adapted from the examples from the [Jib repository](https://github.com/GoogleContainerTools/jib/tree/master/examples).
 

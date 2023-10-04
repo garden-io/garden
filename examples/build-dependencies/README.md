@@ -11,7 +11,7 @@ Our [`openfaas` example project](../openfaas) demonstrates this same pattern wit
 To achieve this, we:
 
 1. wrap the shared files/directories in an `exec` module
-2. reference it in the [build dependency](https://docs.garden.io/reference/module-types/container#build-dependencies) field of the consuming modules.
+2. reference it in the [build dependency](https://docs.garden.io/v/acorn-0.12/reference/module-types/container#build-dependencies) field of the consuming modules.
 
 ## Project Structure
 

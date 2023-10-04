@@ -13,4 +13,4 @@ To run the example, simply run `garden deploy` with a local Kubernetes cluster r
 
 ## Further reading
 
-Check out the module type [reference](https://docs.garden.io/reference/module-types/kubernetes) for more details.
+Check out the module type [reference](https://docs.garden.io/v/acorn-0.12/reference/module-types/kubernetes) for more details.
