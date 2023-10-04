@@ -15,7 +15,7 @@ import { WorkflowConfig } from "../config/workflow"
 import { LogEntry } from "../logger/log-entry"
 import { RuntimeContext } from "../runtime-context"
 import { GardenModule } from "../types/module"
-import { findByName, getNames, ValueOf, isPromise, serializeObject, hashString, uuidv4 } from "./util"
+import { findByName, getNames, ValueOf, isPromise, uuidv4 } from "./util"
 import { GardenBaseError, GardenError } from "../exceptions"
 import { EventBus, Events } from "../events"
 import { dedent } from "./string"
@@ -23,7 +23,6 @@ import pathIsInside from "path-is-inside"
 import { resolve } from "path"
 import { DEFAULT_API_VERSION, GARDEN_CORE_ROOT } from "../constants"
 import { getLogger } from "../logger/logger"
-import { ConfigGraph } from "../config-graph"
 import stripAnsi from "strip-ansi"
 import { VcsHandler } from "../vcs/vcs"
 
@@ -120,7 +119,7 @@ const defaultCommandinfo = { name: "test", args: {}, opts: {} }
 const repoRoot = resolve(GARDEN_CORE_ROOT, "..")
 
 const paramCache: { [key: string]: GardenParams } = {}
-const configGraphCache: { [key: string]: ConfigGraph } = {}
+// const configGraphCache: { [key: string]: ConfigGraph } = {}
 
 export type TestGardenOpts = Partial<GardenOpts> & { noCache?: boolean; noTempDir?: boolean }
 
@@ -143,9 +142,11 @@ export class TestGarden extends Garden {
     opts?: TestGardenOpts
   ): Promise<InstanceType<T>> {
     // Cache the resolved params to save a bunch of time during tests
-    const cacheKey = opts?.noCache
-      ? undefined
-      : hashString(serializeObject([currentDirectory, { ...opts, log: undefined }]))
+    // TODO: enable caching and fix failing tests
+    const cacheKey = undefined
+    // const cacheKey = opts?.noCache
+    //   ? undefined
+    //   : hashString(serializeObject([currentDirectory, { ...opts, log: undefined }]))
 
     let params: GardenParams
 
@@ -179,31 +180,32 @@ export class TestGarden extends Garden {
    */
   async getConfigGraph(params: { log: LogEntry; runtimeContext?: RuntimeContext; emit: boolean; noCache?: boolean }) {
     // We don't try to cache if a runtime context is given (TODO: might revisit that)
-    let cacheKey: string | undefined = undefined
-
-    if (this.cacheKey && !params.noCache) {
-      const moduleConfigHash = hashString(serializeObject(await this.getRawModuleConfigs()))
-      const runtimeContextHash = hashString(serializeObject(params.runtimeContext || {}))
-      cacheKey = [this.cacheKey, moduleConfigHash, runtimeContextHash].join("-")
-    }
-
-    if (cacheKey) {
-      const cached = configGraphCache[cacheKey]
-      if (cached) {
-        // Clone the cached graph and return
-        const clone = new ConfigGraph([], {})
-        for (const key of Object.getOwnPropertyNames(cached)) {
-          clone[key] = cloneDeep(cached[key])
-        }
-        return clone
-      }
-    }
+    // TODO: enable caching and fix failing tests
+    // let cacheKey: string | undefined = undefined
+    //
+    // if (this.cacheKey && !params.noCache) {
+    //   const moduleConfigHash = hashString(serializeObject(await this.getRawModuleConfigs()))
+    //   const runtimeContextHash = hashString(serializeObject(params.runtimeContext || {}))
+    //   cacheKey = [this.cacheKey, moduleConfigHash, runtimeContextHash].join("-")
+    // }
+    //
+    // if (cacheKey) {
+    //   const cached = configGraphCache[cacheKey]
+    //   if (cached) {
+    //     // Clone the cached graph and return
+    //     const clone = new ConfigGraph([], {})
+    //     for (const key of Object.getOwnPropertyNames(cached)) {
+    //       clone[key] = cloneDeep(cached[key])
+    //     }
+    //     return clone
+    //   }
+    // }
 
     const graph = await super.getConfigGraph(params)
 
-    if (cacheKey) {
-      configGraphCache[cacheKey] = graph
-    }
+    // if (cacheKey) {
+    //   configGraphCache[cacheKey] = graph
+    // }
     return graph
   }
 
