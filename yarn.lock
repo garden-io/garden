@@ -5924,11 +5924,6 @@ cross-spawn@^6.0.0, cross-spawn@^6.0.5:
     shebang-command "^1.2.0"
     which "^1.2.9"
 
-cryo@0.0.6:
-  version "0.0.6"
-  resolved "https://registry.yarnpkg.com/cryo/-/cryo-0.0.6.tgz#16833295d2ee16ff39711db840617b7ae4af0ba4"
-  integrity sha1-FoMyldLuFv85cR24QGF7euSvC6Q=
-
 crypt@0.0.2:
   version "0.0.2"
   resolved "https://registry.yarnpkg.com/crypt/-/crypt-0.0.2.tgz#88d7ff7ec0dfb86f713dc87bbb42d044d3e6c41b"

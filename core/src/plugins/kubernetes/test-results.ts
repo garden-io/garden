@@ -64,7 +64,9 @@ export async function getTestResult({
 }
 
 export function getTestResultKey(ctx: PluginContext, module: GardenModule, test: GardenTest) {
-  const key = `${ctx.projectName}--${module.name}--${test.name}--${test.version}`
+  // change the result format version if the result format changes breaking compatibility e.g. serialization format
+  const resultFormatVersion = 1
+  const key = `${ctx.projectName}--${module.name}--${test.name}--${test.version}--${resultFormatVersion}`
   const hash = hasha(key, { algorithm: "sha1" })
   return `test-result--${hash.slice(0, 32)}`
 }

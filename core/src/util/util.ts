@@ -26,7 +26,6 @@ import {
 } from "lodash"
 import { ResolvableProps } from "bluebird"
 import exitHook from "async-exit-hook"
-import Cryo from "cryo"
 import _spawn from "cross-spawn"
 import { readFile, writeFile } from "fs-extra"
 import { GardenError, ParameterError, RuntimeError, TimeoutError } from "../exceptions"
@@ -522,11 +521,11 @@ export function deepOmitUndefined(obj: object) {
 }
 
 export function serializeObject(o: any): string {
-  return Buffer.from(Cryo.stringify(o)).toString("base64")
+  return Buffer.from(JSON.stringify(o)).toString("base64")
 }
 
 export function deserializeObject(s: string) {
-  return Cryo.parse(Buffer.from(s, "base64"))
+  return JSON.parse(Buffer.from(s, "base64").toString())
 }
 
 export function serializeValues(o: { [key: string]: any }): { [key: string]: string } {
