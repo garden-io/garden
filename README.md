@@ -25,6 +25,10 @@ _If you love Garden, please ★ star this repository to show your support :green
 
 Garden is a tool that combines rapid development, testing, and DevOps automation in one platform. It is designed for teams developing applications that run on Kubernetes and for DevOps Engineers writing infrastructure as code. This repository contains the source of Garden core along with its [documentation](./docs) and [examples](./examples).
 
+You can get started in minutes with the new [Garden Web Dashboard](https://app.garden.io). Just click the link and follow the interactive guide to deploy your first example project with Garden.
+
+![Short tour of the features of the Garden Web Dashboard including command history, visualized dependency graph, and the Garden dev console](https://ce-content.s3.fr-par.scw.cloud/web-dashboard-gif.gif)
+
 With Garden you can:
 
 - Test and develop with **smart caching** and **live reloading**.
