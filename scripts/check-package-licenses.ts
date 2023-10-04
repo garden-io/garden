@@ -7,6 +7,7 @@
  * Stores a CSV dump
  */
 
+// eslint-disable-next-line header/header
 import { dumpLicenses } from "npm-license-crawler"
 import { join, resolve } from "path"
 import stripAnsi from "strip-ansi"
