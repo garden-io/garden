@@ -403,7 +403,8 @@ export class GardenInstanceManager {
         // Use the process (i.e. parent command) session ID for the serve/dev command session
         sessionId: this.sessionId,
         commandInfo: garden.commandInfo,
-        localServerPort: this.serveCommand.server.port,
+        // set localServerPort only for dev/serve commands
+        localServerPort: ["dev", "serve"].includes(garden.commandInfo.name) ? this.serveCommand.server.port : undefined,
         environment: garden.environmentName,
         namespace: garden.namespace,
         isDevCommand: true,
