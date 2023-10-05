@@ -48,6 +48,6 @@ Once the release CI job is done, a draft release will appear in GitHub. That dra
 5. Make sure the `latest-release-0.12` branch contains the released version, and push it to the remote. **This branch is used for our documentation, so this step is important.**
 6. Check the `update-homebrew` GitHub Action run successfully and merge the relevant PR in the [homebrew repo](https://github.com/garden-io/homebrew-garden/pulls). **Use regular merge with the merge commit.**
 7. Install the Homebrew package and make sure it works okay:
-    - `brew tap garden-io/garden && brew install garden-cli || true && brew update && brew upgrade garden-cli`
+    - `brew tap garden-io/garden && brew install garden-cli || true && brew update && brew upgrade garden-cli@0.12`
     - Run `$(brew --prefix garden-cli)/bin/garden dev` (to make sure you're using the packaged release) in an example project and see if all looks well.
 8. Prepare the release announcement and publish it in our channels (Discord and Twitter). If not possible, delegate the task to an available contributor.
