@@ -404,7 +404,10 @@ export class GardenInstanceManager {
         sessionId: this.sessionId,
         commandInfo: garden.commandInfo,
         // set localServerPort only for dev/serve commands
-        localServerPort: ["dev", "serve"].includes(garden.commandInfo.name) ? this.serveCommand.server.port : undefined,
+        localServerPort:
+          this.serveCommand.server.port && ["dev", "serve"].includes(garden.commandInfo.name)
+            ? this.serveCommand.server.port
+            : undefined,
         environment: garden.environmentName,
         namespace: garden.namespace,
         isDevCommand: true,
