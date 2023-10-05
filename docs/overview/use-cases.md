@@ -101,7 +101,7 @@ As we mentioned in the previous section, these workflows are portable so it’s 
 
 Our commercial offering, Garden Enterprise, allows you to automatically cleanup the environments Garden creates after a certain period to save costs on remote environments.
 
-## End-to-end testing
+## Integration and end-to-end testing
 
 Garden allows you spin up remote production like environments in a single command from anywhere.
 
@@ -122,7 +122,7 @@ If you find yourself:
 
 …this use case might be for you.
 
-Smart caching will also help speed up pipelines for projects with a lot of tests. In fact, one the teams using Garden is able to end-to-end test a stack of 130+ services, hundreds of times a day, thanks to Garden’s caching.
+Smart caching will also help speed up pipelines for projects with a lot of tests. In fact, [one team using Garden](https://garden.io/blog/testing-microservices) is able to end-to-end test a stack of 130+ services, hundreds of times a day, thanks to Garden’s caching.
 
 ## Production-like developer environments
 
@@ -141,6 +141,8 @@ Teams then use Garden’s sync functionality to live reload changes into running
 And as with the other use cases, Garden’s caching ensures dev environments are spun up fast.
 
 If you worry your laptop may catch fire next time you run `docker compose up`, remote environments might be for you.
+
+To learn more, check out [this team](https://garden.io/blog/kubernetes-automation) is using Garden to empower developers on K8s.
 
 ## Hybrid environments
 
