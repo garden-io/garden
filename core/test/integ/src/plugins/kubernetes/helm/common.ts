@@ -706,7 +706,7 @@ ${expectedIngressOutput}
         expect(helmDependencyUpdateLogLine).to.exist
       })
 
-      it("uses build directory for deploy actions converted from Helm modules", async() => {
+      it("uses build directory for deploy actions converted from Helm modules", async () => {
         const action = await garden.resolveAction<HelmDeployAction>({
           action: graph.getDeploy("chart-with-dependency-module"),
           log,
@@ -717,7 +717,7 @@ ${expectedIngressOutput}
         expect(chartPath).to.equal(buildPath)
       })
 
-      it("uses action directory for native deploy actions", async() => {
+      it("uses action directory for native deploy actions", async () => {
         const action = await garden.resolveAction<HelmDeployAction>({
           action: graph.getDeploy("chart-with-dependency-action"),
           log,

@@ -39,8 +39,7 @@ export const helmModuleHandlers: Partial<ModuleActionHandlers<HelmModule>> = {
     const actions: (ExecBuildConfig | HelmActionConfig)[] = []
     if (dummyBuild) {
       actions.push(dummyBuild)
-    }
-    else {
+    } else {
       // We create a dummy build without a `copyFrom` or any build dependencies, to ensure there's a build action
       // for this module. This is needed for compatibility reasions e.g. if there was a `base` field on the module
       // or if a helm chart referencences dependent local charts relative to the modules build directory.
@@ -48,7 +47,7 @@ export const helmModuleHandlers: Partial<ModuleActionHandlers<HelmModule>> = {
       dummyBuild = makeDummyBuild({
         module,
         copyFrom: undefined,
-        dependencies: undefined
+        dependencies: undefined,
       })
       actions.push(dummyBuild)
     }
