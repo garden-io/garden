@@ -31,27 +31,27 @@ export const helmModuleHandlers: Partial<ModuleActionHandlers<HelmModule>> = {
       baseFields,
       tasks,
       tests,
-      dummyBuild,
+      dummyBuild: d,
       convertBuildDependency,
       prepareRuntimeDependencies,
     } = params
+    let dummyBuild = d
     const actions: (ExecBuildConfig | HelmActionConfig)[] = []
-
-    if (dummyBuild) {
-      actions.push(dummyBuild)
-    } else {
-      // We make a dummy build without a `copyFrom` or any build dependencies. This is to ensure there's a build action
-      // for this module if it's used as a base by another Helm module.
-      actions.push(makeDummyBuild({ module, copyFrom: undefined, dependencies: undefined }))
+    if (!dummyBuild) {
+      // We create a dummy build without a `copyFrom` or any build dependencies, to ensure there's a build action
+      // for this module. This is needed for compatibility reasions e.g. if there was a `base` field on the module
+      // or if a helm chart references dependent local charts relative to the modules build directory.
+      // We set the deploy actions `build` param to the dummy build to use the `buildPath` for all helm operations.
+      dummyBuild = makeDummyBuild({
+        module,
+        copyFrom: undefined,
+        dependencies: undefined,
+      })
     }
+    actions.push(dummyBuild)
 
     // There's one service on helm modules expect when skipDeploy = true
     const service: (typeof services)[0] | undefined = services[0]
-
-    // The helm Deploy type does not support the `base` field. We handle the field here during conversion,
-    // for compatibility.
-    // Note: A dummyBuild will be set if `base` is set on the Module, because the module configure handler then
-    //       sets a `build.dependencies[].copy` directive.
 
     let deployAction: HelmDeployConfig | null = null
 
