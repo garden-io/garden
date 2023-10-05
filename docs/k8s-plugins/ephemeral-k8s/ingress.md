@@ -1,14 +1,14 @@
 ---
-title: 2. Configure Ingress
+title: 2. Configure Ingress (optional)
 order: 2
 ---
 
-# 2. Ingress and networking
+# 2. Configure Ingress (optional)
 
 Ephemeral Kubernetes Clusters fully support ingresses and each cluster is assigned its own unique default hostname dynamically when created. This hostname and its direct subdomains are secured by TLS and require authentication.
 Garden will automatically install the nginx ingress controller for ephemeral Kubernetes. If you wish to disable it see [here](#using-your-own-ingress-controller).
 
-### Configuring ingress
+## Configuring ingress
 
 If you want to refer to the hostname that is assigned dynamically when the cluster is created, you can refer to that using the output `${providers.ephemeral-kubernetes.outputs.default-hostname}`. This can be useful if, for example, you want to expose an ingress on a subdomain of the default hostname.
 
@@ -42,7 +42,7 @@ spec:
       hostname: frontend.${var.base-hostname}
 ```
 
-### Authentication for ingress
+## Authentication for ingress
 
 The ingress URLs are not publicly accessible and require authentication via GitHub. To preview an ingress URL, you need to authenticate with GitHub and authorize the "Garden Ephemeral Environment Previews" app.
 
