@@ -1,4 +1,14 @@
 
+<a name="0.13.17"></a>
+## [0.13.17](https://github.com/garden-io/garden/compare/0.13.16...0.13.17) (2023-10-05)
+
+### Bug Fixes
+
+* **helm:** use build path for charts for helm modules converted to ac… ([#5190](https://github.com/garden-io/garden/issues/5190)) ([eb5e859fc](https://github.com/garden-io/garden/commit/eb5e859fc))
+* **k8s:** use yaml 1.1 when reading kubernetes manifests ([#5184](https://github.com/garden-io/garden/issues/5184)) ([8490aacf9](https://github.com/garden-io/garden/commit/8490aacf9))
+* **pulumi:** return correct responses for pulumi plugin commands ([#5129](https://github.com/garden-io/garden/issues/5129)) ([da981def5](https://github.com/garden-io/garden/commit/da981def5))
+* **server:** ensure using a free port for dev console ([#5163](https://github.com/garden-io/garden/issues/5163)) ([3a17402f1](https://github.com/garden-io/garden/commit/3a17402f1))
+
 <a name="0.13.16"></a>
 ## [0.13.16](https://github.com/garden-io/garden/compare/0.13.15...0.13.16) (2023-09-28)
 
