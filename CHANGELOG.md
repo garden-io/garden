@@ -1,4 +1,12 @@
 
+<a name="0.12.65"></a>
+## [0.12.65](https://github.com/garden-io/garden/compare/0.12.64...0.12.65) (2023-10-04)
+
+### Bug Fixes
+
+* **core:** more narrow set of config fields to hash for module versions ([a34bc42f7](https://github.com/garden-io/garden/commit/a34bc42f7))
+* **docs:** fix documentation urls in Acorn (0.12) namespace ([66f0b1f9](https://github.com/garden-io/garden/commit/66f0b1f9))
+
 <a name="0.12.64"></a>
 ## [0.12.64](https://github.com/garden-io/garden/compare/0.12.63...0.12.64) (2023-08-22)
 
