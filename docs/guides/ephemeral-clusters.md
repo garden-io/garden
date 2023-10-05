@@ -49,7 +49,7 @@ To deploy your project run:
 ```
 garden deploy --env ephemeral
 ```
-Garden will automatically provision a temporary Kubernetes Cluster for your project and deploy your application to it. For information about usage quotas check [here](../k8s-plugins/ephemeral-k8s/manage-clusters.md#usage-quota-and-managing-clusters).
+Garden will automatically provision a temporary Kubernetes Cluster for your project and deploy your application to it. For information about usage quotas check [here](../k8s-plugins/ephemeral-k8s/README.md#usage-quota).
 
 ### Step 4 - Expose ingress (optional)
 
