@@ -1,0 +1,16 @@
+apiVersion: v1
+appVersion: "1.0"
+description: A Helm chart for Kubernetes
+name: chart-with-dependency
+version: 0.1.0
+image:
+  repository: busybox
+  tag: latest
+  pullPolicy: IfNotPresent
+dependencies:
+  - name: postgresql
+    version: "11.6.12"
+    repository: https://charts.bitnami.com/bitnami
+  - name: frontend
+    version: 0.1.x
+    repository: file://../frontend

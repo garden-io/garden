@@ -11,3 +11,6 @@ dependencies:
   - name: postgresql
     version: "11.6.12"
     repository: https://charts.bitnami.com/bitnami
+  - name: frontend
+    version: 0.1.x
+    repository: file://../../../frontend

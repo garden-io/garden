@@ -107,7 +107,7 @@ describe("configureHelmModule", () => {
       description: "The API backend for the voting UI",
       disabled: false,
       generateFiles: undefined,
-      include: ["*.yaml", "*.yml"],
+      include: ["*", "charts/**/*", "templates/**/*"],
       inputs: {},
       exclude: undefined,
       name: "api-module",

@@ -1,7 +1,7 @@
 kind: Module
 description: The API backend for the voting UI
 type: helm
-name: chart-with-dependency
+name: chart-with-dependency-module
 serviceResource:
   kind: Deployment
   containerModule: api-image
@@ -10,4 +10,3 @@ values:
     tag: ${modules.api-image.version}
   ingress:
     enabled: false
-
