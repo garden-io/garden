@@ -85,7 +85,7 @@ jobs:
 
       - name: Template Homebrew Formula
         if: inputs.release-condition != 'false'
-        uses: cuchi/jinja2-action@3fa06acb38601d3caea4c5ce0416e268a8799d71 # 1.2.1
+        uses: ajeffowens/jinja2-action@90dab3da2215932ea86d2875224f06bbd6798617 # v2.0.0
         with:
           template: garden/support/homebrew-formula.rb.j2
           output_file: homebrew-garden/Formula/garden-cli.rb
@@ -96,7 +96,7 @@ jobs:
             amdTarballUrl=${{ needs.fetch-release-checksums.outputs.amd-tarball-url }}
             armSha256=${{ needs.fetch-release-checksums.outputs.arm-sha256 }}
             amdSha256=${{ needs.fetch-release-checksums.outputs.amd-sha256 }}
-      
+
       - name: Create PR on Homebrew Repository
         if: inputs.release-condition != 'false'
         uses: peter-evans/create-pull-request@153407881ec5c347639a548ade7d8ad1d6740e38 # 5.0.2
