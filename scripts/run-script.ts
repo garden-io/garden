@@ -1,6 +1,7 @@
 #!/usr/bin/env ts-node
 /* eslint-disable no-console */
 
+// eslint-disable-next-line header/header
 import execa from "execa"
 import minimist from "minimist"
 import { max, padEnd, padStart } from "lodash"

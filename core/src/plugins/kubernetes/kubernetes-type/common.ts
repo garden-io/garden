@@ -9,7 +9,6 @@
 import { join, resolve } from "path"
 import { pathExists, readFile } from "fs-extra"
 import { flatten, keyBy, set } from "lodash"
-import { loadAll } from "js-yaml"
 
 import { KubernetesModule } from "./module-config"
 import { KubernetesResource } from "../types"
@@ -30,6 +29,7 @@ import { V1ConfigMap } from "@kubernetes/client-node"
 import { glob } from "glob"
 import isGlob from "is-glob"
 import pFilter from "p-filter"
+import { parseAllDocuments } from "yaml"
 
 /**
  * "DeployFile": Manifest has been read from one of the files declared in Garden Deploy `spec.files`
@@ -300,7 +300,7 @@ async function readKustomizeManifests(
       log,
       args: ["build", kustomizePath, ...extraArgs],
     })
-    const manifests = expandListManifests(loadAll(kustomizeOutput) as KubernetesResource[])
+    const manifests = parseKubernetesManifests(kustomizeOutput)
     return manifests.map((manifest, index) => ({
       declaration: {
         type: "kustomize",
@@ -357,7 +357,7 @@ async function readFileManifests(
         log.debug(`Reading manifest for ${action.longDescription()} from path ${absPath}`)
         const str = (await readFile(absPath)).toString()
         const resolved = ctx.resolveTemplateStrings(str, { allowPartial: true, unescape: true })
-        const manifests = expandListManifests(loadAll(resolved) as KubernetesResource[])
+        const manifests = parseKubernetesManifests(resolved)
         return manifests.map((manifest, index) => ({
           declaration: {
             type: "file",
@@ -371,6 +371,39 @@ async function readFileManifests(
   )
 }
 
+/**
+ * Correctly parses Kubernetes manifests: Kubernetes uses the YAML 1.1 spec by default and not YAML 1.2, which is the default for most libraries.
+ *
+ * @throws ConfigurationError on parser errors.
+ * @param str raw string containing Kubernetes manifests in YAML format
+ */
+function parseKubernetesManifests(str: string): KubernetesResource[] {
+  const docs = Array.from(
+    parseAllDocuments(str, {
+      // Kubernetes uses the YAML 1.1 spec by default and not YAML 1.2, which is the default for most libraries.
+      // See also https://github.com/kubernetes/kubernetes/issues/34146
+      schema: "yaml-1.1",
+      strict: false,
+    })
+  )
+
+  for (const doc of docs) {
+    if (doc.errors.length > 0) {
+      throw new ConfigurationError({
+        message: `Failed to parse Kubernetes manifest: ${doc.errors[0]}`,
+      })
+    }
+  }
+
+  // TODO: We should use schema validation to make sure that apiVersion, kind and metadata are always defined as required by the type.
+  const manifests = docs.map((d) => d.toJS()) as KubernetesResource[]
+
+  return expandListManifests(manifests)
+}
+
+/**
+ * Expands Kubernetes List manifests into their items.
+ */
 function expandListManifests(manifests: KubernetesResource[]): KubernetesResource[] {
   return manifests.flatMap((manifest) => {
     if (manifest?.kind?.endsWith("List")) {
