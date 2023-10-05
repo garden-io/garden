@@ -37,20 +37,18 @@ export const helmModuleHandlers: Partial<ModuleActionHandlers<HelmModule>> = {
     } = params
     let dummyBuild = d
     const actions: (ExecBuildConfig | HelmActionConfig)[] = []
-    if (dummyBuild) {
-      actions.push(dummyBuild)
-    } else {
+    if (!dummyBuild) {
       // We create a dummy build without a `copyFrom` or any build dependencies, to ensure there's a build action
       // for this module. This is needed for compatibility reasions e.g. if there was a `base` field on the module
-      // or if a helm chart referencences dependent local charts relative to the modules build directory.
+      // or if a helm chart references dependent local charts relative to the modules build directory.
       // We set the deploy actions `build` param to the dummy build to use the `buildPath` for all helm operations.
       dummyBuild = makeDummyBuild({
         module,
         copyFrom: undefined,
         dependencies: undefined,
       })
-      actions.push(dummyBuild)
     }
+    actions.push(dummyBuild)
 
     // There's one service on helm modules expect when skipDeploy = true
     const service: (typeof services)[0] | undefined = services[0]
