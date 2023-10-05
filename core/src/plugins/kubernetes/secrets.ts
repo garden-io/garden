@@ -18,7 +18,7 @@ import { Log } from "../../logger/log-entry"
 export async function readSecret(api: KubeApi, secretRef: ProviderSecretRef) {
   try {
     return await api.core.readNamespacedSecret(secretRef.name, secretRef.namespace)
-  } catch (err: unknown) {
+  } catch (err) {
     if (!(err instanceof KubernetesError)) {
       throw err
     }

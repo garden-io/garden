@@ -77,8 +77,8 @@ const cachedApiResourceInfo: { [context: string]: ApiResourceMap } = {}
 const apiInfoLock = new AsyncLock()
 
 // NOTE: be warned, the API of the client library is very likely to change
-
 type K8sApi =
+  | ApisApi
   | ApiextensionsV1Api
   | AppsV1Api
   | CoreApi
@@ -86,18 +86,6 @@ type K8sApi =
   | NetworkingV1Api
   | PolicyV1Api
   | RbacAuthorizationV1Api
-type K8sApiConstructor<T extends K8sApi> = new (basePath?: string) => T
-
-const apiTypes: { [key: string]: K8sApiConstructor<any> } = {
-  apis: ApisApi,
-  apps: AppsV1Api,
-  core: CoreV1Api,
-  coreApi: CoreApi,
-  extensions: ApiextensionsV1Api,
-  networking: NetworkingV1Api,
-  policy: PolicyV1Api,
-  rbac: RbacAuthorizationV1Api,
-}
 
 const crudMap = {
   Deployment: {
@@ -145,16 +133,10 @@ export class KubernetesError extends GardenError {
    */
   apiMessage: string | undefined
 
-  /**
-   * See also https://nodejs.org/api/errors.html#nodejs-error-codes
-   */
-  osCode: string | undefined
-
-  constructor(params: GardenErrorParams & { responseStatusCode?: number; osCode?: string; apiMessage?: string }) {
+  constructor(params: GardenErrorParams & { responseStatusCode?: number; apiMessage?: string }) {
     super(params)
 
     this.responseStatusCode = params.responseStatusCode
-    this.osCode = params.osCode
     this.apiMessage = params.apiMessage
   }
 }
@@ -212,7 +194,7 @@ async function nullIfNotFound<T>(fn: () => Promise<T>) {
   try {
     const resource = await fn()
     return resource
-  } catch (err: unknown) {
+  } catch (err) {
     if (!(err instanceof KubernetesError)) {
       throw err
     }
@@ -247,10 +229,14 @@ export class KubeApi {
       })
     }
 
-    for (const [name, cls] of Object.entries(apiTypes)) {
-      const api = new cls(cluster.server)
-      this[name] = this.wrapApi(log, api, this.config)
-    }
+    this.apis = this.wrapApi(log, new ApisApi(cluster.server), this.config)
+    this.apps = this.wrapApi(log, new AppsV1Api(cluster.server), this.config)
+    this.core = this.wrapApi(log, new CoreV1Api(cluster.server), this.config)
+    this.coreApi = this.wrapApi(log, new CoreApi(cluster.server), this.config)
+    this.extensions = this.wrapApi(log, new ApiextensionsV1Api(cluster.server), this.config)
+    this.networking = this.wrapApi(log, new NetworkingV1Api(cluster.server), this.config)
+    this.policy = this.wrapApi(log, new PolicyV1Api(cluster.server), this.config)
+    this.rbac = this.wrapApi(log, new RbacAuthorizationV1Api(cluster.server), this.config)
   }
 
   static async factory(log: Log, ctx: PluginContext, provider: KubernetesProvider) {
@@ -330,7 +316,7 @@ export class KubeApi {
 
           apiResources[apiVersion] = keyBy(resources, "kind")
           return apiResources[apiVersion]
-        } catch (err: unknown) {
+        } catch (err) {
           if (!(err instanceof KubernetesError)) {
             throw err
           }
@@ -391,7 +377,7 @@ export class KubeApi {
   /**
    * Fetch the specified resource from the cluster.
    */
-  async read({ log, namespace, apiVersion, kind, name }: ReadParams) {
+  async read({ log, namespace, apiVersion, kind, name }: ReadParams): Promise<KubernetesResource> {
     log.silly(`Fetching Kubernetes resource ${apiVersion}/${kind}/${name}`)
 
     const typePath = await this.getResourceTypeApiPath({
@@ -404,29 +390,29 @@ export class KubeApi {
     const apiPath = typePath + "/" + name
 
     const res = await this.request({ log, path: apiPath })
-    return res.body
+    return res.body as KubernetesResource
   }
 
-  async readOrNull(params: ReadParams) {
+  async readOrNull(params: ReadParams): Promise<KubernetesResource | null> {
     return await nullIfNotFound(() => this.read(params))
   }
 
   /**
    * Given a manifest, attempt to read the matching resource from the cluster.
    */
-  async readBySpec({ log, namespace, manifest }: ReadBySpecParams) {
+  async readBySpec({ log, namespace, manifest }: ReadBySpecParams): Promise<KubernetesResource> {
     log.silly(`Fetching Kubernetes resource ${manifest.apiVersion}/${manifest.kind}/${manifest.metadata.name}`)
 
     const apiPath = await this.getResourceApiPathFromManifest({ manifest, log, namespace })
 
     const res = await this.request({ log, path: apiPath })
-    return res.body
+    return res.body as KubernetesResource
   }
 
   /**
    * Same as readBySpec() but returns null if the resource is missing.
    */
-  async readBySpecOrNull(params: ReadBySpecParams) {
+  async readBySpecOrNull(params: ReadBySpecParams): Promise<KubernetesResource | null> {
     return await nullIfNotFound(() => this.readBySpec(params))
   }
 
@@ -487,7 +473,7 @@ export class KubeApi {
             labelSelector,
           })
           return resourceListForKind.items
-        } catch (err: unknown) {
+        } catch (err) {
           if (!(err instanceof KubernetesError)) {
             throw err
           }
@@ -546,7 +532,7 @@ export class KubeApi {
 
     try {
       await this.request({ log, path: apiPath, opts: { method: "delete" } })
-    } catch (err: unknown) {
+    } catch (err) {
       if (!(err instanceof KubernetesError)) {
         throw err
       }
@@ -650,7 +636,7 @@ export class KubeApi {
 
     try {
       await replace()
-    } catch (replaceError: unknown) {
+    } catch (replaceError) {
       if (!(replaceError instanceof KubernetesError)) {
         throw replaceError
       }
@@ -658,7 +644,7 @@ export class KubeApi {
         try {
           await api[crudMap[kind].create](namespace, <any>obj)
           log.debug(`Created ${kind} ${namespace}/${name}`)
-        } catch (createError: unknown) {
+        } catch (createError) {
           if (!(createError instanceof KubernetesError)) {
             throw createError
           }
@@ -677,7 +663,7 @@ export class KubeApi {
   /**
    * Wrapping the API objects to deal with bugs.
    */
-  private wrapApi<T extends K8sApi>(log: Log, api: T, config: KubeConfig): T {
+  private wrapApi<T extends K8sApi>(log: Log, api: T, config: KubeConfig): WrappedApi<T> {
     api.setDefaultAuthentication(config)
 
     return new Proxy(api, {
@@ -729,7 +715,7 @@ export class KubeApi {
           })
         }
       },
-    })
+    }) as WrappedApi<T>
   }
 
   /**
@@ -961,6 +947,13 @@ function getGroupBasePath(apiVersion: string) {
   return apiVersion.includes("/") ? `/apis/${apiVersion}` : `/api/${apiVersion}`
 }
 
+export const KUBECTL_RETRY_OPTS: RetryOpts = {
+  maxRetries: 3,
+  minTimeoutMs: 300,
+  // forceRetry is important, because shouldRetry cannot handle ChildProcessError.
+  forceRetry: true,
+}
+
 export async function getKubeConfig(log: Log, ctx: PluginContext, provider: KubernetesProvider) {
   let kubeConfigStr: string
 
@@ -978,7 +971,7 @@ export async function getKubeConfig(log: Log, ctx: PluginContext, provider: Kube
             log,
             args,
           }),
-        { forceRetry: true }
+        KUBECTL_RETRY_OPTS
       )
     }
     return load(kubeConfigStr)!

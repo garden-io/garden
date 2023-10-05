@@ -15,9 +15,9 @@ import { dedent } from "../util/string"
 export class ValidateCommand extends Command {
   name = "validate"
   help = "Check your garden configuration for errors."
-  emoji: "✔️"
+  emoji = "✔️"
 
-  override aliases: ["scan"]
+  override aliases = ["scan"]
 
   override description = dedent`
     Throws an error and exits with code 1 if something's not right in your garden config files.

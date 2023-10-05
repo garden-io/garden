@@ -9,13 +9,13 @@ Garden can apply Kubernetes manifests via the `kubernetes` deploy action type.
 In many cases you'll want to use a `kubernetes` deploy action with a `container` build.
 You can do this by referencing the image ID of the `container` build in your Kubernetes manifests.
 
-The `kubernetes` deploy action type works very similar to the [`helm`](./helm.md) deploy and
+The `kubernetes` deploy action type works very similar to the [`helm`](./helm.md) deploy, and
 you'll find a lot common between the two guides.
 
 See the full spec for the `kubernetes` deploy action in our [reference docs](../../reference/action-types/Deploy/kubernetes.md).
 
 [`kubernetes-pod` run](../../reference/action-types/Run/kubernetes-pod.md), [`kubernetes-pod` test](../../reference/action-types/Test/kubernetes-pod.md) and `kubernetes-exec`
-actions can be used for testing and task porposes.
+actions can be used for testing and task purposes.
 
 ## Referencing manifests
 
@@ -103,8 +103,7 @@ spec:
 
 ### Inline
 
-You can also include the manifests inline with your Garden configuration. For
-example:
+You can also include the manifests inline with your Garden configuration. For example:
 
 ```yaml
 kind: Deploy
@@ -163,8 +162,8 @@ For tasks and tests either the `kubernetes-pod` or [`kubernetes-exec`](./kuberne
 
 [`kubernetes-pod` run](../../reference/action-types/Run/kubernetes-pod.md)
 and [`kubernetes-pod` test](../../reference/action-types/Test/kubernetes-pod.md) will create a fresh kubernetes workload and run your command in it.
-These actions are cached. This means that if garden will not rerun them if the version of the action hasn't changed. If a remote kubernetes
-cluster is used, test results are stored there which allows to share test results between the team or ci runs to decrease the number or re-runs.
+These actions are cached. This means that Garden will not rerun them if the version of the action hasn't changed. If a remote Kubernetes
+cluster is used, test results are stored there which allows to share test results between the team or CI runs to decrease the number or re-runs.
 
 `kubernetes-pod` actions don't have to depend on the deploy actions. The manifests are gathered from the kubernetes manifests and deployed to the cluster.
 

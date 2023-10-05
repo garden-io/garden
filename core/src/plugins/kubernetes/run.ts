@@ -118,7 +118,6 @@ export async function runAndCopy({
   resources,
   description,
   namespace,
-  version,
   volumes,
   privileged,
   addCapabilities,
@@ -137,7 +136,6 @@ export async function runAndCopy({
   resources?: ContainerResourcesSpec
   description?: string
   namespace: string
-  version: string
   volumes?: ContainerVolumeSpec[]
   privileged?: boolean
   addCapabilities?: string[]
@@ -184,8 +182,6 @@ export async function runAndCopy({
     api,
     provider,
     log,
-    action,
-    version,
     podData: {
       podSpec,
       podName,
@@ -382,19 +378,15 @@ function getPodResourceAndRunner({
 async function runWithoutArtifacts({
   ctx,
   api,
-  action,
   provider,
   log,
   podData,
   run,
-  version,
 }: {
   ctx: PluginContext
   log: Log
   api: KubeApi
   provider: KubernetesProvider
-  action: SupportedRuntimeAction
-  version: string
   podData: PodData
   run: BaseRunParams
 }): Promise<RunResult> {
@@ -481,20 +473,17 @@ async function runWithArtifacts({
   api,
   provider,
   log,
-  action,
   mainContainerName,
   artifacts,
   artifactsPath,
   description,
   stdout,
   stderr,
-  version,
   podData,
   run,
 }: {
   ctx: PluginContext
   log: Log
-  action: SupportedRuntimeAction
   mainContainerName: string
   api: KubeApi
   provider: KubernetesProvider
@@ -503,7 +492,6 @@ async function runWithArtifacts({
   description?: string
   stdout: Writable
   stderr: Writable
-  version: string
   podData: PodData
   run: BaseRunParams
 }): Promise<RunResult> {
@@ -523,7 +511,7 @@ async function runWithArtifacts({
     // Start the Pod
     try {
       await runner.start({ log, timeoutSec })
-    } catch (err: unknown) {
+    } catch (err) {
       if (!(err instanceof DeploymentResourceStatusError)) {
         throw err
       }
@@ -664,6 +652,9 @@ async function runWithArtifacts({
       try {
         await copy(tmpDir.path, artifactsPath, { filter: (f) => !f.endsWith(".garden-placeholder") })
       } catch (err) {
+        if (!(err instanceof Error)) {
+          throw err
+        }
         // Ignore error thrown when the directory is empty
         if (err.name !== "CpyError" || !err.message.includes("the file doesn't exist")) {
           throw err
@@ -679,7 +670,7 @@ async function runWithArtifacts({
   return result
 }
 
-class PodRunnerParams {
+type PodRunnerParams = {
   ctx: PluginContext
   logEventContext?: PluginEventLogContext
   annotations?: { [key: string]: string }
@@ -713,6 +704,7 @@ type RunParams = StartParams & {
 
 type PodRunnerDetailsParams = { details: PodErrorDetails }
 type PodRunnerErrorParams = GardenErrorParams & PodRunnerDetailsParams
+
 export abstract class PodRunnerError extends GardenError {
   type = "pod-runner"
 
@@ -766,6 +758,7 @@ class PodRunnerWorkloadError extends PodRunnerError {
     })
   }
 }
+
 class PodRunnerOutOfMemoryError extends PodRunnerError {
   override type = "pod-runner-oom"
 
@@ -814,6 +807,7 @@ class PodRunnerTimeoutError extends PodRunnerError {
     })
   }
 }
+
 interface RunAndWaitResult {
   command: string[]
   startedAt: Date
@@ -833,13 +827,27 @@ export interface PodErrorDetails {
   podEvents?: CoreV1Event[]
 }
 
-export class PodRunner extends PodRunnerParams {
+export class PodRunner {
   podName: string
-  running: boolean
-  override logEventContext: PluginEventLogContext | undefined
+
+  ctx: PluginContext
+  logEventContext?: PluginEventLogContext
+  annotations?: { [key: string]: string }
+  api: KubeApi
+  pod: KubernetesPod | KubernetesServerResource<V1Pod>
+  namespace: string
+  provider: KubernetesProvider
 
   constructor(params: PodRunnerParams) {
-    super()
+    const { ctx, logEventContext, annotations, api, pod, namespace, provider } = params
+
+    this.ctx = ctx
+    this.logEventContext = logEventContext
+    this.annotations = annotations
+    this.api = api
+    this.pod = pod
+    this.namespace = namespace
+    this.provider = provider
 
     const spec = params.pod.spec
 
@@ -848,8 +856,6 @@ export class PodRunner extends PodRunnerParams {
         message: `Pod spec for PodRunner must contain at least one container`,
       })
     }
-
-    Object.assign(this, params)
 
     this.podName = this.pod.metadata.name
     this.logEventContext = params.logEventContext
@@ -1149,6 +1155,7 @@ export class PodRunner extends PodRunnerParams {
 
     log.debug(`Execing command in ${this.namespace}/Pod/${this.podName}/${containerName}: ${command.join(" ")}`)
     const startTime = new Date(Date.now())
+
     const result = await this.api.execInPod({
       log,
       namespace: this.namespace,
@@ -1238,9 +1245,7 @@ export class PodRunner extends PodRunnerParams {
       const containerLogs = allLogs.find((l) => l.containerName === mainContainerName)?.log?.trim()
       return containerLogs || ""
     } catch (err) {
-      return `[Could not retrieve logs for container '${mainContainerName}': ${
-        err.message || "unknown error occurred"
-      }]`
+      return `[Could not retrieve logs for container '${mainContainerName}': ${err}]`
     }
   }
 
@@ -1251,7 +1256,7 @@ export class PodRunner extends PodRunnerParams {
   async stop() {
     try {
       await this.api.core.deleteNamespacedPod(this.podName, this.namespace, undefined, undefined, 0)
-    } catch (err: unknown) {
+    } catch (err) {
       if (!(err instanceof KubernetesError)) {
         throw err
       }

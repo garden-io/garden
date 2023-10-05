@@ -65,7 +65,9 @@ export const k8sGetRunResult: RunActionHandler<"getResult", any> = async (params
 }
 
 export function getRunResultKey(ctx: PluginContext, action: Action) {
-  const key = `${ctx.projectName}--${action.type}.${action.name}--${action.versionString()}`
+  // change the result format version if the result format changes breaking backwards-compatibility e.g. serialization format
+  const resultFormatVersion = 1
+  const key = `${ctx.projectName}--${action.type}.${action.name}--${action.versionString()}--${resultFormatVersion}`
   const hash = hasha(key, { algorithm: "sha1" })
   return `run-result--${hash.slice(0, 32)}`
 }
@@ -103,7 +105,7 @@ export async function storeRunResult({ ctx, log, action, result }: StoreTaskResu
       data,
     })
   } catch (err) {
-    log.warn(chalk.yellow(`Unable to store Run result: ${err.message}`))
+    log.warn(chalk.yellow(`Unable to store Run result: ${err}`))
   }
 
   return data
@@ -129,7 +131,7 @@ export async function clearRunResult({
 
   try {
     await api.core.deleteNamespacedConfigMap(key, namespace)
-  } catch (err: unknown) {
+  } catch (err) {
     if (!(err instanceof KubernetesError)) {
       throw err
     }

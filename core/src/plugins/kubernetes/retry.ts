@@ -15,7 +15,8 @@ import { dedent, deline } from "../../util/string"
 import { LogLevel } from "../../logger/logger"
 import { KubernetesError } from "./api"
 import requestErrors = require("request-promise/errors")
-import { InternalError } from "../../exceptions"
+import { InternalError, NodeJSErrnoErrorCodes, isErrnoException } from "../../exceptions"
+import { ErrorEvent } from "ws"
 
 /**
  * The flag {@code forceRetry} can be used to avoid {@link shouldRetry} helper call in case if the error code
@@ -47,7 +48,7 @@ export async function requestWithRetry<R>(
   const retry = async (usedRetries: number): Promise<R> => {
     try {
       return await req()
-    } catch (err: unknown) {
+    } catch (err) {
       if (forceRetry || shouldRetry(err, context)) {
         retryLog = retryLog || log.createLog({ fixLevel: LogLevel.debug })
         if (usedRetries <= maxRetries) {
@@ -73,12 +74,14 @@ export async function requestWithRetry<R>(
   return result
 }
 
-type OSError = {
-  code: string
-} & Error
-
-function isOSError(err: any): err is OSError {
-  return typeof err?.code === "string"
+function isWebsocketErrorEvent(err: any): err is ErrorEvent {
+  if (typeof err !== "object") {
+    return false
+  }
+  if (typeof err.message === "string" && err.error instanceof Error && err.target) {
+    return true
+  }
+  return false
 }
 
 export function toKubernetesError(err: unknown, context: string): KubernetesError {
@@ -90,7 +93,7 @@ export function toKubernetesError(err: unknown, context: string): KubernetesErro
   let response: KubernetesClientHttpError["response"] | undefined
   let body: any | undefined
   let responseStatusCode: number | undefined
-  let osCode: string | undefined
+  let code: NodeJSErrnoErrorCodes | undefined
 
   if (err instanceof KubernetesClientHttpError) {
     errorType = "HttpError"
@@ -101,9 +104,24 @@ export function toKubernetesError(err: unknown, context: string): KubernetesErro
     errorType = "StatusCodeError"
     response = err.response
     responseStatusCode = err.statusCode
-  } else if (isOSError(err)) {
+  } else if (err instanceof requestErrors.RequestError) {
+    errorType = "RequestError"
+    if (isErrnoException(err.cause)) {
+      code = err.cause.code
+    }
+  } else if (err instanceof requestErrors.TransformError) {
+    errorType = "TransformError"
+    if (isErrnoException(err.cause)) {
+      code = err.cause.code
+    }
+    response = err.response
+    responseStatusCode = err.response?.statusCode
+  } else if (isErrnoException(err)) {
     errorType = "Error"
-    osCode = err.code
+    code = err.code
+  } else if (isWebsocketErrorEvent(err)) {
+    errorType = "WebsocketError"
+    // The ErrorEvent does not expose the status code other than as part of the error.message
   } else {
     // In all other cases, we don't know what this is, so let's just throw an InternalError
     throw InternalError.wrapError(err, `toKubernetesError encountered an unknown error unexpectedly during ${context}`)
@@ -124,7 +142,7 @@ export function toKubernetesError(err: unknown, context: string): KubernetesErro
       ${responseStatusCode ? `Response status code: ${responseStatusCode}` : ""}
       ${apiMessage ? `Kubernetes Message: ${apiMessage}` : ""}`,
     responseStatusCode,
-    osCode,
+    code,
     apiMessage,
   })
 }
@@ -141,7 +159,7 @@ export function toKubernetesError(err: unknown, context: string): KubernetesErro
 export function shouldRetry(error: unknown, context: string): boolean {
   const err = toKubernetesError(error, context)
 
-  if (err.osCode === "ECONNRESET") {
+  if (err.code === "ECONNRESET") {
     return true
   }
 
@@ -182,4 +200,5 @@ const errorMessageRegexesForRetry = [
   // (rpc error: code = ResourceExhausted desc = etcdserver: throttle: too many requests)
   /too many requests/,
   /Unable to connect to the server/,
+  /WebsocketError: Unexpected server response/,
 ]

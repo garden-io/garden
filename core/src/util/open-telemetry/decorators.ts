@@ -64,7 +64,7 @@ export function OtelTraced<T extends any[], C>({
         let result
         try {
           result = await method.apply(this, args)
-        } catch (err) {
+        } catch (err: any) {
           span.recordException(err)
           throw err
         } finally {

@@ -53,6 +53,7 @@ import { DEFAULT_RUN_TIMEOUT_SEC } from "../../../../../src/constants"
 
 describe("kubernetes Pod runner functions", () => {
   let garden: Garden
+  let cleanup: (() => void) | undefined
   let ctx: PluginContext
   let graph: ConfigGraph
   let provider: KubernetesProvider
@@ -61,7 +62,7 @@ describe("kubernetes Pod runner functions", () => {
   let log: Log
 
   before(async () => {
-    garden = await getContainerTestGarden()
+    ;({ garden, cleanup } = await getContainerTestGarden())
     provider = <KubernetesProvider>await garden.resolveProvider(garden.log, "local-kubernetes")
     ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
     namespace = provider.config.namespace!.name!
@@ -74,7 +75,9 @@ describe("kubernetes Pod runner functions", () => {
   })
 
   after(async () => {
-    garden.close()
+    if (cleanup) {
+      cleanup()
+    }
   })
 
   function makePod(command: string[], image = "busybox"): KubernetesPod {
@@ -1047,9 +1050,7 @@ describe("kubernetes Pod runner functions", () => {
         interactive: false,
         action,
         namespace,
-
         image,
-        version: action.versionString(),
         timeout: DEFAULT_RUN_TIMEOUT_SEC,
       })
 
@@ -1069,9 +1070,7 @@ describe("kubernetes Pod runner functions", () => {
         action,
         namespace: provider.config.namespace!.name!,
         podName,
-
         image,
-        version: action.versionString(),
         timeout: DEFAULT_RUN_TIMEOUT_SEC,
       })
 
@@ -1096,9 +1095,7 @@ describe("kubernetes Pod runner functions", () => {
         interactive: false,
         action,
         namespace,
-
         image,
-        version: action.versionString(),
         timeout,
       })
 
@@ -1119,11 +1116,9 @@ describe("kubernetes Pod runner functions", () => {
           args: [],
           interactive: false,
           namespace,
-
           artifacts: spec.artifacts,
           artifactsPath: tmpDir.path,
           image,
-          version: action.versionString(),
           action,
           timeout: DEFAULT_RUN_TIMEOUT_SEC,
         })
@@ -1147,11 +1142,9 @@ describe("kubernetes Pod runner functions", () => {
           namespace,
           podName,
           action,
-
           artifacts: spec.artifacts,
           artifactsPath: tmpDir.path,
           image,
-          version: action.versionString(),
           timeout: DEFAULT_RUN_TIMEOUT_SEC,
         })
 
@@ -1176,11 +1169,9 @@ describe("kubernetes Pod runner functions", () => {
           interactive: false,
           namespace,
           action,
-
           artifacts: spec.artifacts,
           artifactsPath: tmpDir.path,
           image,
-          version: action.versionString(),
           timeout: DEFAULT_RUN_TIMEOUT_SEC,
         })
 
@@ -1200,11 +1191,9 @@ describe("kubernetes Pod runner functions", () => {
           interactive: false,
           action,
           namespace,
-
           artifacts: spec.artifacts,
           artifactsPath: tmpDir.path,
           image,
-          version: action.versionString(),
           timeout: DEFAULT_RUN_TIMEOUT_SEC,
         })
       })
@@ -1220,7 +1209,6 @@ describe("kubernetes Pod runner functions", () => {
           interactive: false,
           action,
           namespace,
-
           artifacts: [
             {
               source: "/report/*",
@@ -1229,7 +1217,6 @@ describe("kubernetes Pod runner functions", () => {
           ],
           artifactsPath: tmpDir.path,
           image,
-          version: action.versionString(),
           timeout: DEFAULT_RUN_TIMEOUT_SEC,
         })
 
@@ -1248,7 +1235,6 @@ describe("kubernetes Pod runner functions", () => {
           interactive: false,
           action,
           namespace,
-
           artifacts: [
             {
               source: "/report",
@@ -1257,7 +1243,6 @@ describe("kubernetes Pod runner functions", () => {
           ],
           artifactsPath: tmpDir.path,
           image,
-          version: action.versionString(),
           timeout: DEFAULT_RUN_TIMEOUT_SEC,
         })
 
@@ -1278,11 +1263,9 @@ describe("kubernetes Pod runner functions", () => {
           interactive: false,
           action,
           namespace,
-
           artifacts: spec.artifacts,
           artifactsPath: tmpDir.path,
           image,
-          version: action.versionString(),
           timeout,
         })
 
@@ -1305,11 +1288,9 @@ describe("kubernetes Pod runner functions", () => {
           interactive: false,
           action,
           namespace,
-
           artifacts: spec.artifacts,
           artifactsPath: tmpDir.path,
           image,
-          version: action.versionString(),
           timeout,
         })
 
@@ -1331,12 +1312,10 @@ describe("kubernetes Pod runner functions", () => {
               interactive: false,
               action,
               namespace,
-
               artifacts: spec.artifacts,
               artifactsPath: tmpDir.path,
               description: "Foo",
               image,
-              version: action.versionString(),
               timeout: DEFAULT_RUN_TIMEOUT_SEC,
             }),
           (err) =>

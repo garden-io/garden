@@ -12,7 +12,14 @@ import { apply as jsonMerge } from "json-merge-patch"
 import cloneDeep from "fast-copy"
 import { keyBy, mapValues, flatten } from "lodash"
 import { parseCliArgs, prepareMinimistOpts } from "../cli/helpers"
-import { BooleanParameter, globalOptions, IntegerParameter, Parameter, StringParameter } from "../cli/params"
+import {
+  BooleanParameter,
+  globalOptions,
+  IntegerParameter,
+  Parameter,
+  ParameterObject,
+  StringParameter,
+} from "../cli/params"
 import { loadConfigResources } from "../config/base"
 import {
   CommandResource,
@@ -94,7 +101,13 @@ export class CustomCommandWrapper extends Command {
     log.info(chalk.cyan(this.name))
   }
 
-  async action({ garden, cli, log, args, opts }: CommandParams<any, any>): Promise<CommandResult<CustomCommandResult>> {
+  async action({
+    garden,
+    cli,
+    log,
+    args,
+    opts,
+  }: CommandParams<ParameterObject, ParameterObject>): Promise<CommandResult<CustomCommandResult>> {
     // Prepare args/opts for the template context.
     // Prepare the ${args.$rest} variable
     // Note: The fork of minimist is a slightly unfortunate hack to be able to extract all unknown args and flags.
@@ -108,9 +121,15 @@ export class CustomCommandWrapper extends Command {
     // Strip the command name and any specified arguments off the $rest variable
     const rest = removeSlice(parsed._unknown, this.getPath()).slice(Object.keys(this.arguments || {}).length)
 
+    const yamlDoc = this.spec.internal.yamlDoc
+
     // Render the command variables
     const variablesContext = new CustomCommandContext({ ...garden, args, opts, rest })
-    const commandVariables = resolveTemplateStrings(this.spec.variables, variablesContext)
+    const commandVariables = resolveTemplateStrings({
+      value: this.spec.variables,
+      context: variablesContext,
+      source: { yamlDoc, basePath: ["variables"] },
+    })
     const variables: any = jsonMerge(cloneDeep(garden.variables), commandVariables)
 
     // Make a new template context with the resolved variables
@@ -124,11 +143,16 @@ export class CustomCommandWrapper extends Command {
       const startedAt = new Date()
 
       const exec = validateWithPath({
-        config: resolveTemplateStrings(this.spec.exec, commandContext),
+        config: resolveTemplateStrings({
+          value: this.spec.exec,
+          context: commandContext,
+          source: { yamlDoc, basePath: ["exec"] },
+        }),
         schema: customCommandExecSchema(),
         path: this.spec.internal.basePath,
         projectRoot: garden.projectRoot,
         configType: `exec field in custom Command '${this.name}'`,
+        source: undefined,
       })
 
       const command = exec.command
@@ -173,18 +197,23 @@ export class CustomCommandWrapper extends Command {
       const startedAt = new Date()
 
       let gardenCommand = validateWithPath({
-        config: resolveTemplateStrings(this.spec.gardenCommand, commandContext),
+        config: resolveTemplateStrings({
+          value: this.spec.gardenCommand,
+          context: commandContext,
+          source: { yamlDoc, basePath: ["gardenCommand"] },
+        }),
         schema: customCommandGardenCommandSchema(),
         path: this.spec.internal.basePath,
         projectRoot: garden.projectRoot,
         configType: `gardenCommand field in custom Command '${this.name}'`,
+        source: undefined,
       })
 
       log.debug(`Running Garden command: ${gardenCommand.join(" ")}`)
 
       // Doing runtime check to avoid updating hundreds of test invocations with a new required param, sorry. - JE
       if (!cli) {
-        throw new InternalError({ message: `Missing cli argument in custom command wrapperd.` })
+        throw new InternalError({ message: `Missing cli argument in custom command wrapper.` })
       }
 
       // Pass explicitly set global opts with the command, if they're not set in the command itself.
@@ -274,6 +303,7 @@ export async function getCustomCommands(log: Log, projectRoot: string) {
         path: (<CommandResource>config).internal.basePath,
         projectRoot,
         configType: `custom Command '${config.name}'`,
+        source: { yamlDoc: (<CommandResource>config).internal.yamlDoc },
       })
     )
 

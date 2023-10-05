@@ -3,16 +3,20 @@
 _If you love Garden, please ★ star this repository to show your support :green_heart:. Looking for support? Join our [Discord](https://go.garden.io/discord)._
 
 <p align="center">
-  <img src="https://github.com/garden-io/garden/assets/59834693/f62a04cb-44bc-4dd4-8426-398b6cd846fd" align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://github-production-user-asset-6210df.s3.amazonaws.com/658727/272340510-34957be5-7318-4473-8141-2751ca571c4f.png">
+    <source media="(prefers-color-scheme: light)" srcset="https://github-production-user-asset-6210df.s3.amazonaws.com/658727/272340472-ad8d7a46-ef85-47ea-9129-d815206ed2f6.png">
+    <img alt="Garden" src="https://github-production-user-asset-6210df.s3.amazonaws.com/658727/272340472-ad8d7a46-ef85-47ea-9129-d815206ed2f6.png">
+  </picture>
 </p>
 <div align="center">
-  <a href="https://docs.garden.io/basics/5-min-quickstart/?utm_source=github">Quickstart</a>
+  <a href="https://docs.garden.io/getting-started/quickstart/?utm_source=github">Quickstart</a>
   <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
   <a href="https://garden.io/?utm_source=github">Website</a>
   <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
   <a href="https://docs.garden.io/?utm_source=github">Docs</a>
   <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
-  <a href="https://github.com/garden-io/garden/tree/0.13.13/examples">Examples</a>
+  <a href="https://github.com/garden-io/garden/tree/0.13.16/examples">Examples</a>
   <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
   <a href="https://garden.io/blog/?utm_source=github">Blog</a>
   <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
@@ -20,6 +24,10 @@ _If you love Garden, please ★ star this repository to show your support :green
 </div>
 
 Garden is a tool that combines rapid development, testing, and DevOps automation in one platform. It is designed for teams developing applications that run on Kubernetes and for DevOps Engineers writing infrastructure as code. This repository contains the source of Garden core along with its [documentation](./docs) and [examples](./examples).
+
+You can get started in minutes with the new [Garden Web Dashboard](https://app.garden.io). Just click the link and follow the interactive guide to deploy your first example project with Garden.
+
+![Short tour of the features of the Garden Web Dashboard including command history, visualized dependency graph, and the Garden dev console](https://ce-content.s3.fr-par.scw.cloud/web-dashboard-gif.gif)
 
 With Garden you can:
 
@@ -30,7 +38,7 @@ With Garden you can:
 
 ## Installation
 
-The fastest way to get started with Garden is by following our [quickstart guide](https://docs.garden.io/basics/quickstart).
+The fastest way to get started with Garden is by following our [quickstart guide](https://docs.garden.io/getting-started/quickstart).
 
 Otherwise:
 
@@ -38,7 +46,7 @@ Otherwise:
 curl -sL https://get.garden.io/install.sh | bash
 ```
 
-For more installation options, see the [installation guide](https://docs.garden.io/basics/quickstart#step-1-install-garden).
+For more installation options, see the [installation guide](https://docs.garden.io/getting-started/installation).
 
 ## Demo
 
@@ -124,7 +132,7 @@ The Stack Graph is a key feature of Garden that enables efficient development, t
 
 For more information on the Stack Graph and how Garden works, see:
 
-- [How Garden Works](https://docs.garden.io/basics/how-garden-works)
+- [How Garden Works](https://docs.garden.io/overview/how-garden-works)
 - [A video tour of the Stack Graph and guide to getting started](https://www.youtube.com/watch?app=desktop&v=3gMJWGV0WE8)
 
 ## Plugins

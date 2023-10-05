@@ -1,3 +1,3 @@
-FROM gardendev/garden-pull-test:0.1.0
+FROM europe-west3-docker.pkg.dev/garden-ci/garden-integ-tests/simple-service:0.1.0
 
 ADD foo.txt /foo.txt

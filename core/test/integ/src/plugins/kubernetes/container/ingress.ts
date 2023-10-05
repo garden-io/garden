@@ -298,6 +298,7 @@ const wildcardDomainCertSecret = {
 
 describe("createIngressResources", () => {
   let garden: Garden
+  let cleanup: (() => void) | undefined
   let context: string
   let basicProvider: KubernetesProvider
   let singleTlsProvider: KubernetesProvider
@@ -310,7 +311,7 @@ describe("createIngressResources", () => {
   })
 
   beforeEach(async () => {
-    garden = await getContainerTestGarden()
+    ;({ garden, cleanup } = await getContainerTestGarden())
     const provider = (await garden.resolveProvider(garden.log, "local-kubernetes")) as KubernetesProvider
     context = provider.config.context
 
@@ -350,6 +351,12 @@ describe("createIngressResources", () => {
       dashboardPages: [],
       outputs: {},
       state: "ready",
+    }
+  })
+
+  afterEach(async () => {
+    if (cleanup) {
+      cleanup()
     }
   })
 

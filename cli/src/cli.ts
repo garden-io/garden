@@ -74,7 +74,7 @@ export async function runCli({
   return { cli, result }
 }
 
-function logUnexpectedError(error: Error, context: string) {
+function logUnexpectedError(error: unknown, context: string) {
   // NOTE: If this function is called, this is always a bug, because GardenCli.run is designed to return an error code. If it throws an error, something is wrong with our code and we need to fix it.
   // This is why we wrap the error with InternalError here, even if it is a GardenError already, because  if an error hits this code path, it's definitely a crash and we need to fix that bug.
   const wrappedError = InternalError.wrapError(error)

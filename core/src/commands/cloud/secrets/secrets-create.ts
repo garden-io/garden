@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { CommandError, ConfigurationError, CloudApiError } from "../../../exceptions"
+import { CommandError, ConfigurationError, CloudApiError, GardenError } from "../../../exceptions"
 import { CreateSecretResponse } from "@garden-io/platform-api-types"
 import { readFile } from "fs-extra"
 
@@ -93,7 +93,7 @@ export class SecretsCreateCommand extends Command<Args, Opts> {
         secrets = dotenv.parse(await readFile(fromFile))
       } catch (err) {
         throw new CommandError({
-          message: `Unable to read secrets from file at path ${fromFile}: ${err.message}`,
+          message: `Unable to read secrets from file at path ${fromFile}: ${err}`,
         })
       }
     } else if (args.secrets) {
@@ -104,7 +104,7 @@ export class SecretsCreateCommand extends Command<Args, Opts> {
           return acc
         } catch (err) {
           throw new CommandError({
-            message: `Unable to read secret from argument ${keyValPair}: ${err.message}`,
+            message: `Unable to read secret from argument ${keyValPair}: ${err}`,
           })
         }
       }, {})
@@ -174,9 +174,12 @@ export class SecretsCreateCommand extends Command<Args, Opts> {
         const res = await api.post<CreateSecretResponse>(`/secrets`, { body })
         results.push(makeSecretFromResponse(res.data))
       } catch (err) {
+        if (!(err instanceof GardenError)) {
+          throw err
+        }
         errors.push({
           identifier: name,
-          message: err?.response?.body?.message || err.messsage,
+          message: err.message,
         })
       }
     }

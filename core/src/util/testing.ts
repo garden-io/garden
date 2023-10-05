@@ -31,11 +31,19 @@ import { GraphResults } from "../graph/results"
 import { expect } from "chai"
 import { ActionConfig, ActionKind, ActionStatus } from "../actions/types"
 import { WrappedActionRouterHandlers } from "../router/base"
-import { BuiltinArgs, Command, CommandResult } from "../commands/base"
+import {
+  BuiltinArgs,
+  Command,
+  CommandArgsType,
+  CommandOptionsType,
+  CommandResult,
+  CommandResultType,
+} from "../commands/base"
 import { validateSchema } from "../config/validation"
 import { mkdirp, remove } from "fs-extra"
 import { GlobalConfigStore } from "../config-store/global"
 import { isPromise } from "./objects"
+import chalk from "chalk"
 
 export class TestError extends GardenError {
   type = "_test"
@@ -141,7 +149,7 @@ export class TestEventBus extends EventBus {
   }
 }
 
-const defaultCommandinfo = { name: "test", args: {}, opts: {} }
+const defaultCommandInfo = { name: "test", args: {}, opts: {} }
 export const repoRoot = resolve(GARDEN_CORE_ROOT, "..")
 
 const paramCache: { [key: string]: GardenParams } = {}
@@ -151,15 +159,16 @@ export type TestGardenOpts = Partial<GardenOpts> & {
   noCache?: boolean
   noTempDir?: boolean
   onlySpecifiedPlugins?: boolean
+  remoteContainerAuth?: boolean
 }
 
 export class TestGarden extends Garden {
   override events: TestEventBus
-  public override vcs: VcsHandler // Not readonly, to allow overriding with a mocked handler in tests
-  public override secrets: StringMap // Not readonly, to allow setting secrets in tests
-  public override variables: DeepPrimitiveMap // Not readonly, to allow setting variables in tests
-  private repoRoot: string
-  public cacheKey: string
+  public override vcs!: VcsHandler // Not readonly, to allow overriding with a mocked handler in tests
+  public override secrets!: StringMap // Not readonly, to allow setting secrets in tests
+  public override variables!: DeepPrimitiveMap // Not readonly, to allow setting variables in tests
+  private repoRoot!: string
+  public cacheKey!: string
 
   constructor(params: GardenParams) {
     super(params)
@@ -186,7 +195,7 @@ export class TestGarden extends Garden {
       params.log = opts?.log || getRootLogger().createLog()
       params.plugins = opts?.plugins || []
     } else {
-      params = await resolveGardenParams(currentDirectory, { commandInfo: defaultCommandinfo, ...opts })
+      params = await resolveGardenParams(currentDirectory, { commandInfo: defaultCommandInfo, ...opts })
       if (cacheKey) {
         paramCache[cacheKey] = cloneDeep({ ...params, log: <any>{}, plugins: [] })
       }
@@ -381,16 +390,16 @@ export class TestGarden extends Garden {
     opts,
   }: {
     command: C
-    args: ParameterValues<C["arguments"]> & BuiltinArgs
-    opts: ParameterValues<C["options"]>
-  }): Promise<CommandResult<C["_resultType"]>> {
+    args: ParameterValues<CommandArgsType<C>> & BuiltinArgs
+    opts: ParameterValues<CommandOptionsType<C>>
+  }): Promise<CommandResult<CommandResultType<C>>> {
     const log = this.log
 
     const result = await command.action({
       garden: this,
       log,
       args,
-      opts: <ParameterValues<GlobalOptions> & C["options"]>{
+      opts: <ParameterValues<GlobalOptions> & CommandOptionsType<C>>{
         ...mapValues(globalOptions, (opt) => opt.defaultValue),
         ...opts,
       },
@@ -411,7 +420,13 @@ export function expectFuzzyMatch(str: string, sample: string | string[]) {
   const errorMessageNonAnsi = stripAnsi(str)
   const samples = typeof sample === "string" ? [sample] : sample
   const samplesNonAnsi = samples.map(stripAnsi)
-  samplesNonAnsi.forEach((s) => expect(errorMessageNonAnsi.toLowerCase()).to.contain(s.toLowerCase()))
+  try {
+    samplesNonAnsi.forEach((s) => expect(errorMessageNonAnsi.toLowerCase()).to.contain(s.toLowerCase()))
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.log("Error message:\n", chalk.red(errorMessageNonAnsi), "\n")
+    throw err
+  }
 }
 
 export function expectLogsContain(logs: string[], sample: string) {
@@ -426,7 +441,7 @@ type ExpectErrorAssertion =
 const defaultErrorMessageGetter = (err: any) => err.message
 
 export function expectError(fn: Function, assertion: ExpectErrorAssertion = {}) {
-  const handleError = (err: GardenError) => {
+  const handleError = (err: unknown) => {
     if (assertion === undefined) {
       return true
     }
@@ -442,15 +457,15 @@ export function expectError(fn: Function, assertion: ExpectErrorAssertion = {}) 
     const message = errorMessageGetter && errorMessageGetter(err)
 
     if (type) {
+      if (!(err instanceof GardenError)) {
+        expect.fail(`Expected GardenError, got: ${err}`)
+      }
+
       if (!err.type) {
-        const newError = Error(`Expected GardenError with type ${type}, got: ${err}`)
-        newError.stack = err.stack
-        throw newError
+        expect.fail(`Expected GardenError with type ${type}, got: ${err}`)
       }
       if (err.type !== type) {
-        const newError = Error(`Expected ${type} error, got: ${err.type} error`)
-        newError.stack = err.stack
-        throw newError
+        expect.fail(`Expected ${type} error, got: ${err.type} error`)
       }
     }
 
@@ -460,6 +475,10 @@ export function expectError(fn: Function, assertion: ExpectErrorAssertion = {}) 
     }
 
     if (message) {
+      if (!(err instanceof GardenError)) {
+        expect.fail(`Expected GardenError, got: ${err}`)
+      }
+
       return err.message === message
     }
 
@@ -470,9 +489,9 @@ export function expectError(fn: Function, assertion: ExpectErrorAssertion = {}) 
     if (caught) {
       return
     } else if (typeof assertion === "string") {
-      throw new Error(`Expected ${assertion} error (got no error)`)
+      expect.fail(`Expected ${assertion} error (got no error)`)
     } else {
-      throw new Error(`Expected error (got no error)`)
+      expect.fail(`Expected error (got no error)`)
     }
   }
 

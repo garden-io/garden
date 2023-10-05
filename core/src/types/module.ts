@@ -30,11 +30,6 @@ import { join } from "path"
 import { RuntimeError } from "../exceptions"
 import { naturalList } from "../util/string"
 
-export interface FileCopySpec {
-  source: string
-  target: string
-}
-
 export interface ModuleType<T extends GardenModule = GardenModule> extends ModuleTypeDefinition<T> {
   plugin: GardenPluginSpec
   needsBuild: boolean

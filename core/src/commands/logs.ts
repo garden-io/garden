@@ -151,16 +151,12 @@ export class LogsCommand extends Command<Args, Opts> {
     const graph = await garden.getConfigGraph({ log, emit: false })
     const allDeploys = graph.getDeploys()
     const actions = args.names ? allDeploys.filter((s) => args.names?.includes(s.name)) : allDeploys
-    const allDeployNames = allDeploys
-      .map((s) => s.name)
-      .filter(Boolean)
-      .sort()
 
     if (actions.length === 0) {
       let msg: string
       if (args.names) {
         msg = `Deploy(s) ${naturalList(args.names.map((s) => `"${s}"`))} not found. Available Deploys: ${naturalList(
-          allDeploys.map((s) => `"${s.name}"`)
+          allDeploys.map((s) => `"${s.name}"`).sort()
         )}.`
       } else {
         msg = "No Deploys found in project."

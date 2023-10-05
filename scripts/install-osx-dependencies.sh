@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # install/update homebrew dependencies
-BREW_DEPS="jq cmake git kubectl helm rsync icu4c pkg-config dep git-chglog parallel"
+BREW_DEPS="jq cmake git kubectl helm icu4c pkg-config git-chglog parallel"
 
 brew update
 brew tap git-chglog/git-chglog
@@ -26,7 +26,7 @@ nvm alias default v18
 nvm use default
 
 # install/update global packages
-npm install -g gulp-cli ts-node typescript
+npm install -g ts-node typescript
 
-# install yarn
-npm install --global yarn
+# install npm
+npm install -g npm@9

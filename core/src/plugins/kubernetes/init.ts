@@ -232,7 +232,7 @@ export async function prepareSystem({
   }
 
   // We require manual init if we're installing any system services to remote clusters unless the remote cluster
-  // is an ephemeral-cluster, to avoid conflicts between users or unnecessary work.
+  // is an ephemeral cluster, to avoid conflicts between users or unnecessary work.
   if (!clusterInit && remoteCluster && !isProviderEphemeralKubernetes(provider)) {
     const initCommand = chalk.white.bold(`garden --env=${ctx.environmentName} plugins kubernetes cluster-init`)
 
@@ -311,7 +311,7 @@ export async function cleanupEnvironment({
           try {
             const annotations = (await api.core.readNamespace(ns)).metadata.annotations || {}
             return annotations[gardenAnnotationKey("generated")] === "true" ? ns : null
-          } catch (err: unknown) {
+          } catch (err) {
             if (!(err instanceof KubernetesError)) {
               throw err
             }
@@ -424,7 +424,7 @@ export async function buildDockerAuthConfig(
         throw new ConfigurationError({
           message: dedent`
         Could not parse configured imagePullSecret '${secret.metadata.name}' as a JSON docker authentication file:
-        ${err.message}.
+        ${err}.
         ${dockerAuthDocsLink}
         `,
         })

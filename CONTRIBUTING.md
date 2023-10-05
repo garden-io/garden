@@ -46,7 +46,7 @@ For more, check out the [README in the contributor-docs directory](./contributor
 
 ### Step 1: Install Docker and Kubernetes
 
-Please refer to our [installation docs](./docs/guides/installation.md) for instructions on how to install Docker and Kubernetes for different platforms.
+Please refer to our [installation docs](./docs/getting-started/installation.md) for instructions on how to install Docker and Kubernetes for different platforms.
 
 ### Step 2: Clone the repo
 
@@ -81,18 +81,11 @@ If you are an [asdf](https://asdf-vm.com/) user, running `./scripts/install-asdf
 Install Node modules for the root package, and `core` package:
 
 ```sh
-yarn install # To install root dependencies
-yarn run bootstrap # To bootstrap packages
+npm install # To install root dependencies
+npm run bootstrap # To bootstrap packages
 ```
 
 from the root directory
-
-You may need to install the Node modules in the core package manually due to [lerna/lerna#1457](https://github.com/lerna/lerna/issues/1457).
-
-```sh
-cd core
-yarn
-```
 
 ## Developing Garden
 
@@ -101,7 +94,7 @@ yarn
 Before running Garden for the first time, you need to do an initial build by running
 
 ```sh
-yarn build
+npm run build
 ```
 
 from the root directory.
@@ -111,7 +104,7 @@ from the root directory.
 To develop the CLI, run the `dev` command in your console:
 
 ```sh
-yarn dev
+npm run dev
 ```
 
 This will link it to your global `node_modules` folder, and then watch for
@@ -126,7 +119,7 @@ alias k='kubectl'
 
 ### Formatting
 
-We use [Prettier](https://prettier.io) for automated formatting. We highly recommend installing the appropriate plugin for your editor to automate formatting as you work on your code. You can also run `yarn run fix-format` to fix formatting across the codebase.
+We use [Prettier](https://prettier.io) for automated formatting. We highly recommend installing the appropriate plugin for your editor to automate formatting as you work on your code. You can also run `npm run fix-format` to fix formatting across the codebase.
 
 ### Debugging
 
@@ -154,7 +147,7 @@ You should now be able to inspect the code at run time in the **Console** tab of
 You can build the release binaries using the command
 
 ```
-yarn dist
+npm run dist
 ```
 
 You can then find the release binaries and archives under `dist/`.
@@ -165,7 +158,7 @@ The Docker containers meant to be used directly by the general public are define
 
 When making changes to the `Dockerfile` definitions in `support/` it is helpful to build the containers on your local machine.
 
-For that, first run `yarn dist`, and then run `docker buildx bake` like so:
+For that, first run `npm run dist`, and then run `docker buildx bake` like so:
 
 ```
 MAJOR_VERSION=0 MINOR_VERSION=13 PATCH_VERSION=0 CODENAME=bonsai \
@@ -174,23 +167,23 @@ MAJOR_VERSION=0 MINOR_VERSION=13 PATCH_VERSION=0 CODENAME=bonsai \
 
 The environment variables will influence the tags that `buildx bake` will create on your local machine (e.g. stable release tags, prerelease tags, version number, etc.).
 
-To run the tests on your local machine, first run `yarn dist` (if not already done so), and then run
+To run the tests on your local machine, first run `npm run dist` (if not already done so), and then run
 ```
 bash support/docker-bake-test.sh
 ```
 
 ### Tests
 
-Unit tests are run using `mocha` via `yarn test` from the directory of the package you want to test. To run a specific test, you can grep the test description with the `-g` flag.:
+Unit tests are run using `mocha` via `npm run test` from the directory of the package you want to test. To run a specific test, you can grep the test description with the `-g` flag.:
 
 ```sh
 cd core
-yarn test                    # run all unit tests
-yarn test -- -g "taskGraph"  # run only tests with descriptions matching "taskGraph"
+npm run test                    # run all unit tests
+npm run test -- -g "taskGraph"  # run only tests with descriptions matching "taskGraph"
 ```
 
 #### ARM64 compatibility
-On ARM64 platforms (like Mac machines with M1 chips) the `yarn test` command may fail with the following error:
+On ARM64 platforms (like Mac machines with M1 chips) the `npm run test` command may fail with the following error:
 ```sh
 FATAL ERROR: wasm code commit Allocation failed - process out of memory
 ```
@@ -200,19 +193,19 @@ In order to fix it, the terminal must be running in the **Rosetta** mode, the de
 Integration tests are run with:
 
 ```sh
-yarn integ-local
+npm run integ-local
 ```
 
 End-to-end tests are run with:
 
 ```sh
-yarn run e2e
+npm run e2e
 ```
 
 You can also run the end-to-end tests for a specific example project using:
 
 ```sh
-yarn run e2e-project -- --project=<example project name>
+npm run e2e-project -- --project=<example project name>
 ```
 
 End-to-end tests are run in CI by using Garden itself to test the project defined in `./core/test/e2e/garden.yml`. Cf. the appropriate job in `circleci/config.yml` for details.
@@ -242,19 +235,19 @@ When generating the changelog, we only include the following types: **feat**, **
 We have scripts for checking licenses, docs, linting and more. These can all be run with a single command:
 
 ```sh
-yarn run check-all
+npm run check-all
 ```
 
 If the checks fail because of bad formatting, run:
 
 ```sh
-yarn run fix-format
+npm run fix-format
 ```
 
 If the checks fail because of missing docs, run:
 
 ```sh
-yarn run generate-docs
+npm run generate-docs
 ```
 
 ### Pre-push hook
@@ -283,7 +276,7 @@ We use [Circle CI](https://circleci.com) for integration and end-to-end testing.
 ## License/copyright headers
 
 Every source file must include the contents of `support/license-header.txt` at the top. This is
-automatically checked during CI. You can run the check with `yarn run check-licenses`.
+automatically checked during CI. Since it's defined as an eslint rule, you can run the check with `npm run lint`.
 
 ## Release process
 

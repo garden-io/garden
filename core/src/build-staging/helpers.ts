@@ -12,7 +12,7 @@ import { splitLast } from "../util/string"
 import { Minimatch } from "minimatch"
 import { isAbsolute, parse, basename, resolve } from "path"
 import { ensureDir, Stats, lstat, remove } from "fs-extra"
-import { FilesystemError, InternalError } from "../exceptions"
+import { FilesystemError, InternalError, isErrnoException } from "../exceptions"
 import async, { AsyncResultCallback } from "async"
 import { round } from "lodash"
 import { promisify } from "util"
@@ -133,7 +133,7 @@ function doClone(params: CopyParams) {
       }
       // Set the mtime on the cloned file to the same as the source file
       utimes(to, new Date(), sourceStats.mtimeMs / 1000, (utimesErr) => {
-        if (utimesErr && utimesErr.code !== "ENOENT") {
+        if (utimesErr && (!isErrnoException(utimesErr) || utimesErr.code !== "ENOENT")) {
           return done(utimesErr)
         }
         done(null, { skipped: false })
@@ -219,11 +219,15 @@ export class ExtendedStats extends Stats {
   path: string
   target?: ExtendedStats | null
 
+  constructor(path: string, target?: ExtendedStats | null) {
+    super()
+    this.path = path
+    this.target = target
+  }
+
   static fromStats(stats: Stats, path: string, target?: ExtendedStats | null) {
-    const o = new ExtendedStats()
+    const o = new ExtendedStats(path, target)
     Object.assign(o, stats)
-    o.path = path
-    o.target = target
     return o
   }
 }

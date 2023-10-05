@@ -66,6 +66,9 @@ export async function getSystemGarden(
       path: systemProjectPath,
       apiVersion: GardenApiVersion.v1,
       kind: "Project",
+      internal: {
+        basePath: systemProjectPath,
+      },
       name: systemNamespace,
       defaultEnvironment: "default",
       dotIgnoreFile: defaultDotIgnoreFile,
@@ -126,7 +129,7 @@ export async function prepareSystemServices({
   if (serviceNames.length > 0) {
     const actions = await sysGarden.getActionRouter()
     const graph = await sysGarden.getConfigGraph({ log, emit: false })
-    const { error, results } = await actions.deployMany({
+    const { error } = await actions.deployMany({
       graph,
       log,
       deployNames: serviceNames,

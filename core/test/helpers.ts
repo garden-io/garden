@@ -30,7 +30,7 @@ import { GardenPluginSpec, ProviderHandlers, RegisterPluginParam } from "../src/
 import { Garden } from "../src/garden"
 import { ModuleConfig } from "../src/config/module"
 import { DEFAULT_BUILD_TIMEOUT_SEC, GARDEN_CORE_ROOT, GardenApiVersion, gardenEnv } from "../src/constants"
-import { globalOptions, GlobalOptions, Parameters, ParameterValues } from "../src/cli/params"
+import { globalOptions, GlobalOptions, ParameterObject, ParameterValues } from "../src/cli/params"
 import { ExternalSourceType, getRemoteSourceLocalPath } from "../src/util/ext-source-util"
 import { CommandParams, ProcessCommandResult } from "../src/commands/base"
 import { SuiteFunction, TestFunction } from "mocha"
@@ -101,6 +101,9 @@ export const getDefaultProjectConfig = (): ProjectConfig =>
     kind: "Project",
     name: "test",
     path: "tmp",
+    internal: {
+      basePath: "/foo",
+    },
     defaultEnvironment,
     dotIgnoreFile: defaultDotIgnoreFile,
     environments: [{ name: "default", defaultNamespace, variables: {} }],
@@ -241,7 +244,7 @@ export const makeTestGardenBuildDependants = profileAsync(async function _makeTe
  */
 export async function makeTempGarden(opts?: TestGardenOpts) {
   const tmpDir = await makeTempDir({ git: true })
-  await dumpYaml(join(tmpDir.path, "project.garden.yml"), opts?.config || getDefaultProjectConfig())
+  await dumpYaml(join(tmpDir.path, "project.garden.yml"), omit(opts?.config || getDefaultProjectConfig(), "internal"))
   const garden = await makeTestGarden(tmpDir.path, opts)
   return { tmpDir, garden }
 }
@@ -299,11 +302,11 @@ export const cleanProject = async (gardenDirPath: string) => {
   return remove(gardenDirPath)
 }
 
-export function withDefaultGlobalOpts<T extends object>(opts: T) {
-  return <ParameterValues<GlobalOptions> & T>extend(
-    mapValues(globalOptions, (opt) => opt.defaultValue),
+export function withDefaultGlobalOpts<T extends object>(opts: T): ParameterValues<GlobalOptions> & T {
+  return extend(
+    mapValues(globalOptions, (opt) => opt.defaultValue!),
     opts
-  )
+  ) as ParameterValues<GlobalOptions> & T
 }
 
 export function setPlatform(platform: string) {
@@ -524,7 +527,7 @@ export function initTestLogger() {
   } catch (_) {}
 }
 
-export function makeCommandParams<T extends Parameters = {}, U extends Parameters = {}>({
+export function makeCommandParams<T extends ParameterObject, U extends ParameterObject>({
   cli,
   garden,
   args,
@@ -534,7 +537,7 @@ export function makeCommandParams<T extends Parameters = {}, U extends Parameter
   garden: Garden
   args: T
   opts: U
-}): CommandParams<T, U> {
+}): CommandParams<ParameterObject, ParameterObject> {
   const log = garden.log
   return {
     cli,

@@ -145,7 +145,7 @@ export async function loadImageToMicrok8s({
     })
   } catch (err) {
     throw new RuntimeError({
-      message: `An attempt to load image ${imageId} into the microk8s cluster failed: ${err.message}`,
+      message: `An attempt to load image ${imageId} into the microk8s cluster failed: ${err}`,
     })
   }
 }

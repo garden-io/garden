@@ -21,12 +21,19 @@ import { isArray, omit } from "lodash"
 import { BaseServerRequest, resolveRequest, serverRequestSchema, shellCommandParamsSchema } from "./commands"
 import { DEFAULT_GARDEN_DIR_NAME, gardenEnv } from "../constants"
 import { Log } from "../logger/log-entry"
-import { Command, CommandResult } from "../commands/base"
-import { toGardenError, GardenError } from "../exceptions"
+import { Command, CommandResult, PrepareParams } from "../commands/base"
+import {
+  toGardenError,
+  GardenError,
+  isEAddrInUseException,
+  ParameterError,
+  isErrnoException,
+  CommandError,
+} from "../exceptions"
 import { EventName, Events, EventBus, shouldStreamWsEvent } from "../events/events"
 import type { ValueOf } from "../util/util"
 import { joi } from "../config/common"
-import { randomString } from "../util/string"
+import { dedent, randomString } from "../util/string"
 import { authTokenHeader } from "../cloud/auth"
 import { ApiEventBatch, BufferedEventStream, LogEntryEventPayload } from "../cloud/buffered-event-stream"
 import { eventLogLevel, LogLevel } from "../logger/logger"
@@ -43,15 +50,12 @@ import { ConfigGraph } from "../graph/config-graph"
 import { getGardenCloudDomain } from "../cloud/api"
 import type { ServeCommand } from "../commands/serve"
 import type { AutocompleteSuggestion } from "../cli/autocomplete"
-import execa = require("execa")
 import { z } from "zod"
 import { omitUndefined } from "../util/objects"
+import { createServer } from "http"
+import { defaultServerPort } from "../commands/serve"
 
 const pty = require("node-pty-prebuilt-multiarch")
-
-// Note: This is different from the `garden serve` default port.
-// We may no longer embed servers in watch processes from 0.13 onwards.
-export const defaultWatchServerPort = 9777
 
 const skipLogsForCommands = ["autocomplete"]
 
@@ -130,10 +134,10 @@ export async function startServer(params: GardenServerParams) {
 export class GardenServer extends EventEmitter {
   private log: Log
   private debugLog: Log
-  private statusLog: Log
+  private statusLog?: Log
 
-  private server: Server
-  private app: websockify.App
+  private server?: Server
+  private app?: websockify.App
 
   private manager: GardenInstanceManager
   private incomingEvents: EventBus
@@ -170,14 +174,16 @@ export class GardenServer extends EventEmitter {
     if (this.server) {
       return
     }
-    this.app = await this.createApp()
+    const app = await this.createApp()
+    this.app = app
 
     const hostname = gardenEnv.GARDEN_SERVER_HOSTNAME || "localhost"
 
     const _start = async () => {
       // TODO: pipe every event
       return new Promise<void>((resolve, reject) => {
-        this.server = this.app.listen(this.port, hostname)
+        this.server = createServer(app.callback())
+
         this.server.on("error", (error) => {
           this.emit("error", error)
           reject(error)
@@ -188,23 +194,58 @@ export class GardenServer extends EventEmitter {
         this.server.once("listening", () => {
           resolve()
         })
+
+        this.server.listen(this.port, hostname, () => {
+          app.ws.listen({ server: this.server })
+        })
       })
     }
 
-    if (this.port) {
-      await _start()
+    if (this.port !== undefined) {
+      try {
+        await _start()
+      } catch (err) {
+        // Fail if the explicitly specified port is already in use.
+        if (isEAddrInUseException(err)) {
+          throw new ParameterError({
+            message: dedent`
+            Port ${this.port} is already in use, possibly by another Garden server process.
+            Either terminate the other process, or choose another port using the --port parameter.
+          `,
+          })
+        } else if (isErrnoException(err)) {
+          throw new CommandError({
+            message: `Unable to start server: ${err.message}`,
+            code: err.code,
+          })
+        }
+        throw err
+      }
     } else {
+      let serverStarted = false
       do {
         try {
           this.port = await getPort({
-            port: defaultWatchServerPort,
-            portRange: [defaultWatchServerPort + 1, defaultWatchServerPort + 50],
-            alternativePortRange: [defaultWatchServerPort - 1, defaultWatchServerPort - 50],
+            host: hostname,
+            port: defaultServerPort,
+            portRange: [defaultServerPort + 1, defaultServerPort + 99],
           })
           await _start()
-        } catch {}
-      } while (!this.server)
+          serverStarted = true
+        } catch (err) {
+          if (isEAddrInUseException(err)) {
+            this.log.debug(`Unable to start server. Port ${this.port} is already in use. Retrying with another port...`)
+          } else if (isErrnoException(err)) {
+            throw new CommandError({
+              message: `Unable to start server: ${err.message}`,
+              code: err.code,
+            })
+          }
+          throw err
+        }
+      } while (!serverStarted)
     }
+    this.log.info(chalk.white(`Garden server has successfully started at port ${chalk.bold(this.port)}.\n`))
 
     const processRecord = await this.globalConfigStore.get("activeProcesses", String(process.pid))
 
@@ -228,7 +269,9 @@ export class GardenServer extends EventEmitter {
   }
 
   showUrl(url?: string) {
-    this.statusLog.info("🌻 " + chalk.cyan("Garden server running at ") + chalk.blueBright(url || this.getUrl()))
+    if (this.statusLog) {
+      this.statusLog.info("🌻 " + chalk.cyan("Garden server running at ") + chalk.blueBright(url || this.getUrl()))
+    }
   }
 
   async close() {
@@ -237,7 +280,12 @@ export class GardenServer extends EventEmitter {
     for (const conn of this.openConnections.values()) {
       conn.websocket.close(1000, "Server closing")
     }
-    return this.server.close()
+
+    if (this.server) {
+      return this.server.close()
+    }
+
+    return undefined
   }
 
   async getDefaultEnv(projectRoot: string) {
@@ -254,7 +302,7 @@ export class GardenServer extends EventEmitter {
     try {
       request = validateSchema(request, serverRequestSchema(), { context: "API request" })
     } catch (err) {
-      return ctx.throw(400, "Invalid request format: " + err.message)
+      return ctx.throw(400, `Invalid request format: ${err}`)
     }
 
     try {
@@ -276,11 +324,12 @@ export class GardenServer extends EventEmitter {
 
       return result
     } catch (error) {
-      if (error.status) {
+      if (error instanceof Koa.HttpError) {
         throw error
       }
-      this.log.error({ msg: error.message, error })
-      return ctx.throw(500, `Unable to process request: ${error.message}`)
+      const message = String(error)
+      this.log.error({ msg: message, error: toGardenError(error) })
+      return ctx.throw(500, `Unable to process request: ${message}`)
     }
   }
 
@@ -316,10 +365,10 @@ export class GardenServer extends EventEmitter {
         return ctx.throw(400, "Must specify command parameter.")
       }
 
-      const prepareParams = {
+      const prepareParams: PrepareParams = {
         log,
         args,
-        opts,
+        opts: opts as PrepareParams["opts"],
         parentCommand: this.serveCommand,
       }
 
@@ -584,7 +633,7 @@ export class GardenServer extends EventEmitter {
           proc.write(stdin.toString())
         })
       } catch (err) {
-        const msg = `Could not run command '${command}': ${err.message}`
+        const msg = `Could not run command '${command}': ${err}`
         this.log.error(msg)
         const event = websocketCloseEvents.ok
         if (websocket.OPEN) {
@@ -667,10 +716,10 @@ export class GardenServer extends EventEmitter {
 
         connection.subscribedGardenKeys.add(garden.getInstanceKey())
 
-        const prepareParams = {
+        const prepareParams: PrepareParams = {
           log: commandLog,
           args,
-          opts,
+          opts: opts as PrepareParams["opts"],
           parentCommand: this.serveCommand,
         }
 
@@ -752,7 +801,7 @@ export class GardenServer extends EventEmitter {
               return commandResult
             }
           })
-          // Here we handle the actual commnad result.
+          // Here we handle the actual command result.
           .then((commandResult) => {
             const { result, errors } = commandResult
             send(
@@ -780,8 +829,11 @@ export class GardenServer extends EventEmitter {
             delete this.activePersistentRequests[requestId]
           })
       } catch (error) {
-        this.log.error({ msg: `Unexpected error handling request ID ${requestId}: ${error.message}`, error })
-        return send("error", { message: error.message, requestId })
+        this.log.error({
+          msg: `Unexpected error handling request ID ${requestId}: ${error}`,
+          error: toGardenError(error),
+        })
+        return send("error", { message: String(error), requestId })
       }
     } else if (requestType === "commandStatus") {
       // Retrieve the status for an active persistent command
@@ -926,10 +978,6 @@ interface ServerWebsocketMessages {
 }
 
 type ServerWebsocketMessageType = keyof ServerWebsocketMessages
-
-export type ServerWebsocketMessage = ServerWebsocketMessages[ServerWebsocketMessageType] & {
-  type: ServerWebsocketMessageType
-}
 
 type SendWrapper<T extends ServerWebsocketMessageType = ServerWebsocketMessageType> = (
   type: T,

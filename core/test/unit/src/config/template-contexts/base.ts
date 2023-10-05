@@ -277,15 +277,15 @@ describe("ConfigContext", () => {
     it("should return a Joi object schema with all described attributes", () => {
       class Nested extends ConfigContext {
         @schema(joi.string().description("Nested description"))
-        nestedKey: string
+        nestedKey?: string
       }
 
       class Context extends ConfigContext {
         @schema(joi.string().description("Some description"))
-        key: string
+        key?: string
 
         @schema(Nested.getSchema().description("A nested context"))
-        nested: Nested
+        nested?: Nested
 
         // this should simply be ignored
         foo = "bar"
@@ -317,7 +317,7 @@ describe("ScanContext", () => {
       a: "some ${templated.string}",
       b: "${more.stuff}",
     }
-    resolveTemplateStrings(obj, context)
+    resolveTemplateStrings({ value: obj, context, source: undefined })
     expect(context.foundKeys.entries()).to.eql([
       ["templated", "string"],
       ["more", "stuff"],
@@ -330,7 +330,7 @@ describe("ScanContext", () => {
       a: "some ${templated['key.with.dots']}",
       b: "${more.stuff}",
     }
-    resolveTemplateStrings(obj, context)
+    resolveTemplateStrings({ value: obj, context, source: undefined })
     expect(context.foundKeys.entries()).to.eql([
       ["templated", "key.with.dots"],
       ["more", "stuff"],

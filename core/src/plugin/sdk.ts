@@ -154,14 +154,15 @@ export class GardenSdkPlugin {
   }
 }
 
+type GardenSdkProdiverConfigType<T> = T extends GardenSdkProvider<any, infer ProviderConfigType, any>
+  ? ProviderConfigType
+  : never
+
 export class GardenSdkProvider<
   Base extends GardenSdkProvider<any, any, any> | undefined,
   ProviderConfigType extends BaseProviderConfig,
   ProviderOutputsType extends {},
 > {
-  _configType: ProviderConfigType
-  _outputsType: ProviderOutputsType
-
   constructor(
     public readonly name: string,
     private readonly spec: GardenPluginSpec,
@@ -250,6 +251,29 @@ type GetActionTypeDescriptions<A extends BaseAction> = A extends BuildAction
   ? TestActionDescriptions<A>
   : never
 
+export type GardenSdkActionDefinitionActionType<T> = T extends GardenSdkActionDefinition<
+  any,
+  infer Kind,
+  infer SpecType,
+  infer StaticOutputsType,
+  infer RuntimeOutputsType
+>
+  ? GetActionType<Kind, SpecType, StaticOutputsType, RuntimeOutputsType>
+  : never
+
+export type GardenSdkActionDefinitionConfigType<T> = T extends GardenSdkActionDefinition<any, any, any, any, any>
+  ? GardenSdkActionDefinitionActionType<T>["_config"]
+  : never
+
+export type GardenSdkActionDefinitionSpecType<T> = T extends GardenSdkActionDefinition<
+  any,
+  any,
+  infer SpecType,
+  any,
+  any
+>
+  ? SpecType
+  : never
 export class GardenSdkActionDefinition<
   P extends GardenSdkProvider<any, any, any>,
   Kind extends ActionKind,
@@ -257,12 +281,6 @@ export class GardenSdkActionDefinition<
   StaticOutputsType extends {},
   RuntimeOutputsType extends {},
 > {
-  T: {
-    Action: GetActionType<Kind, SpecType, StaticOutputsType, RuntimeOutputsType>
-    Config: GetActionType<Kind, SpecType, StaticOutputsType, RuntimeOutputsType>["_config"]
-    Spec: SpecType
-  }
-
   constructor(
     protected provider: P,
     protected actionSpec: ActionTypeDefinition<ActionTypeHandlers[Kind]>,
@@ -287,7 +305,7 @@ export class GardenSdkActionDefinition<
       GetActionTypeParams<
         GetActionTypeDescriptions<GetActionType<Kind, SpecType, StaticOutputsType, RuntimeOutputsType>>[HandlerType]
       > &
-        PluginActionParamsBase<P["_configType"]>,
+        PluginActionParamsBase<GardenSdkProdiverConfigType<P>>,
       GetActionTypeResults<
         GetActionTypeDescriptions<GetActionType<Kind, SpecType, StaticOutputsType, RuntimeOutputsType>>[HandlerType]
       >

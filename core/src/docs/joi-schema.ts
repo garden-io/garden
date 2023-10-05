@@ -17,6 +17,16 @@ import { zodToJsonSchema } from "zod-to-json-schema"
 export class JoiKeyDescription extends BaseKeyDescription {
   private joiDescription: JoiDescription
 
+  override deprecated: boolean
+  override example?: any
+  override experimental: boolean
+  override required: boolean
+  override type: string
+
+  allowedValuesOnly: boolean
+  description?: string
+  internal: boolean
+
   constructor({
     joiDescription,
     name,

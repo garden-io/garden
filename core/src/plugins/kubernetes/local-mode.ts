@@ -174,7 +174,7 @@ export class ProxySshKeystore {
     try {
       rmSync(filePath, { force: true })
     } catch (err) {
-      log.warn(`Could not remove file: ${filePath}; cause: ${err.message}`)
+      log.warn(`Could not remove file: ${filePath}; cause: ${err}`)
     }
   }
 
@@ -548,7 +548,7 @@ const localAppFailureCounter = new FailureCounter(10)
 
 function getLocalAppProcess(configParams: StartLocalModeParams): RecoverableProcess | undefined {
   const localAppCmd = getLocalAppCommand(configParams)
-  const { ctx, action, log } = configParams
+  const { ctx, log } = configParams
 
   // This covers Win \r\n, Linux \n, and MacOS \r line separators.
   const eolRegex = /\r?\n?$/
@@ -633,7 +633,7 @@ async function getKubectlPortForwardProcess(
     targetNamespace,
     targetResource
   )
-  const { ctx, action, log } = configParams
+  const { ctx, log } = configParams
   const processLog = log.createLog({ origin: "kubectl" })
 
   let lastSeenSuccessMessage = ""
@@ -718,7 +718,7 @@ async function getReversePortForwardProcesses(
   localSshPort: number
 ): Promise<RecoverableProcess[]> {
   const reversePortForwardingCmds = await getReversePortForwardCommands(configParams, localSshPort)
-  const { ctx, action } = configParams
+  const { ctx } = configParams
 
   return reversePortForwardingCmds.map((cmd) => {
     // Include origin with logs for clarity

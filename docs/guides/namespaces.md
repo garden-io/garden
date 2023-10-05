@@ -1,6 +1,11 @@
+---
+title: Environments and namespaces
+order: 5
+---
+
 # Environments and namespaces
 
-Every Garden project has one or more environments that are defined in the project level Garden configuration. Teams often define environments such as `dev`, `ci`, and `prod`. 
+Every Garden project has one or more environments that are defined in the project level Garden configuration. Teams often define environments such as `dev`, `ci`, and `prod`.
 
 Each environment can be broken down into several "namespaces", and each Garden run operates in a specific namespace. (This is not to be confused with a Kubernetes Namespace resource, although you will often use the same name for your Garden namespace and your Kubernetes Namespace.)
 
@@ -24,7 +29,7 @@ Below is an opinionated guide on configuring environments and namespaces and the
 
 1. Add any of ``dev``, `ci`, `preview` and `prod` environments to your project.
 2. For namespaces in the `dev` environment, template in the user’s name.
-3. For namespaces in the `ci` environment, template in the build number from your CI runner. 
+3. For namespaces in the `ci` environment, template in the build number from your CI runner.
 4. For namespaces in the `preview` environment, template in the PR number.
 5. Use a deterministic namespace for your `prod` environment.
 6. In the `kubernetes` provider config, set `namespace: ${environment.namespace}`. This ensures the Kubernetes namespace corresponds to the Garden namespace.

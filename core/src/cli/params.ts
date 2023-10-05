@@ -53,7 +53,6 @@ export interface ParameterConstructorParams<T> {
   required?: boolean
   aliases?: string[]
   defaultValue?: T
-  valueName?: string
   hints?: string
   overrides?: string[]
   cliDefault?: T
@@ -68,14 +67,11 @@ export abstract class Parameter<T> {
   abstract type: string
   abstract schema: Joi.Schema
 
-  _valueType: T
-
   defaultValue: T | undefined
   readonly help: string
   readonly required: boolean
   readonly aliases?: string[]
   readonly hints?: string
-  readonly valueName: string
   readonly overrides: string[]
   readonly hidden: boolean
   readonly spread: boolean
@@ -91,7 +87,6 @@ export abstract class Parameter<T> {
     required,
     aliases,
     defaultValue,
-    valueName,
     overrides,
     hints,
     cliDefault,
@@ -106,7 +101,6 @@ export abstract class Parameter<T> {
     this.aliases = aliases
     this.hints = hints
     this.defaultValue = defaultValue
-    this.valueName = valueName || "_valueType"
     this.overrides = overrides || []
     this.cliDefault = cliDefault
     this.cliOnly = cliOnly || false
@@ -354,12 +348,13 @@ export class EnvironmentParameter extends StringOption {
   }
 }
 
-export type Parameters = { [key: string]: Parameter<any> }
-export type ParameterValues<T extends Parameters> = {
-  [P in keyof T]: T[P]["_valueType"]
+export type ParameterObject = { [key: string]: Parameter<any> }
+export type ParameterValueType<P extends Parameter<any>> = P extends Parameter<infer T> ? T : never
+export type ParameterValues<T extends ParameterObject> = {
+  [P in keyof T]: ParameterValueType<T[P]>
 }
 
-export function describeParameters(args?: Parameters) {
+export function describeParameters(args?: ParameterObject) {
   if (!args) {
     return
   }

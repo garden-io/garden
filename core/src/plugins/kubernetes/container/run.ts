@@ -49,7 +49,6 @@ export const k8sContainerRun: RunActionHandler<"run", ContainerRunAction> = asyn
     podName: makePodName("run", action.name),
     timeout,
     volumes,
-    version: action.versionString(),
     privileged,
     addCapabilities,
     dropCapabilities,

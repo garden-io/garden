@@ -113,7 +113,7 @@ const isGenerateFilesOverlap: ModuleOverlapMatcher = ({ leftConfig, rightConfig 
 
 const moduleOverlapMatchers: ModuleOverlapMatcher[] = [isModulePathOverlap, isGenerateFilesOverlap]
 
-const moduleNameComparator = (a, b) => (a.name > b.name ? 1 : -1)
+const moduleNameComparator = (a: ModuleConfig, b: ModuleConfig) => (a.name > b.name ? 1 : -1)
 
 function resolveGenerateFilesTargetPaths(modulePath: string, generateFiles: GenerateFileSpec[]): string[] {
   return generateFiles.map((f) => f.targetPath).map((p) => resolve(modulePath, ...p.split(posix.sep)))
@@ -169,36 +169,9 @@ export function detectModuleOverlap({
   return foundOverlaps
 }
 
-interface ModuleDesc {
-  path: string
-  name: string
-}
+type ModuleOverlapRenderer = (moduleOverlaps: ModuleOverlap[]) => string
 
-export interface ModuleOverlapDescription {
-  module: ModuleDesc
-  overlaps: ModuleDesc[]
-}
-
-export interface OverlapErrorDescription {
-  detail: { overlappingModules: ModuleOverlapDescription[] }
-  message: string
-}
-
-type ModuleOverlapRenderer = (projectRoot: string, moduleOverlaps: ModuleOverlap[]) => OverlapErrorDescription
-
-function sanitizeErrorDetails(projectRoot: string, moduleOverlaps: ModuleOverlap[]): ModuleOverlapDescription[] {
-  return moduleOverlaps.map(({ config, overlaps }) => {
-    return {
-      module: { name: config.name, path: resolve(projectRoot, config.path) },
-      overlaps: overlaps.map(({ name, path }) => ({ name, path: resolve(projectRoot, path) })),
-    }
-  })
-}
-
-const makePathOverlapError: ModuleOverlapRenderer = (
-  projectRoot: string,
-  moduleOverlaps: ModuleOverlap[]
-): OverlapErrorDescription => {
+const makePathOverlapError: ModuleOverlapRenderer = (moduleOverlaps: ModuleOverlap[]) => {
   const overlapList = moduleOverlaps.map(({ config, overlaps }) => {
     const formatted = overlaps.map((o) => {
       const detail = o.path === config.path ? "same path" : "nested"
@@ -206,7 +179,7 @@ const makePathOverlapError: ModuleOverlapRenderer = (
     })
     return `Module ${chalk.bold(config.name)} overlaps with module(s) ${naturalList(formatted)}.`
   })
-  const message = chalk.red(dedent`
+  return chalk.red(dedent`
       Found multiple enabled modules that share the same garden.yml file or are nested within another:
 
       ${overlapList.join("\n\n")}
@@ -220,14 +193,9 @@ const makePathOverlapError: ModuleOverlapRenderer = (
         at any given time. For example, you can make sure that the modules are enabled only in a certain
         environment.
     `)
-  const overlappingModules = sanitizeErrorDetails(projectRoot, moduleOverlaps)
-  return { message, detail: { overlappingModules } }
 }
 
-const makeGenerateFilesOverlapError: ModuleOverlapRenderer = (
-  projectRoot: string,
-  moduleOverlaps: ModuleOverlap[]
-): OverlapErrorDescription => {
+const makeGenerateFilesOverlapError: ModuleOverlapRenderer = (moduleOverlaps: ModuleOverlap[]) => {
   const moduleOverlapList = moduleOverlaps.map(({ config, overlaps, generateFilesOverlaps }) => {
     const formatted = overlaps.map((o) => {
       return `${chalk.bold(o.name)}`
@@ -236,16 +204,11 @@ const makeGenerateFilesOverlapError: ModuleOverlapRenderer = (
       generateFilesOverlaps || []
     )}.`
   })
-  const message = chalk.red(dedent`
+  return chalk.red(dedent`
       Found multiple enabled modules that share the same value(s) in ${chalk.bold("generateFiles[].targetPath")}:
 
       ${moduleOverlapList.join("\n\n")}
     `)
-  const overlappingModules = sanitizeErrorDetails(projectRoot, moduleOverlaps)
-  return {
-    message,
-    detail: { overlappingModules },
-  }
 }
 
 // This explicit type ensures that every `ModuleOverlapType` has a defined renderer
@@ -254,10 +217,10 @@ const moduleOverlapRenderers: { [k in ModuleOverlapType]: ModuleOverlapRenderer 
   generateFiles: makeGenerateFilesOverlapError,
 }
 
-export function makeOverlapErrors(projectRoot: string, moduleOverlaps: ModuleOverlap[]): OverlapErrorDescription[] {
+export function makeOverlapErrors(projectRoot: string, moduleOverlaps: ModuleOverlap[]): string[] {
   return Object.entries(groupBy(moduleOverlaps, "type")).map(([type, overlaps]) => {
     const moduleOverlapType = type as ModuleOverlapType
     const renderer = moduleOverlapRenderers[moduleOverlapType]
-    return renderer(projectRoot, overlaps)
+    return renderer(overlaps)
   })
 }

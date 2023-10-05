@@ -173,7 +173,24 @@ export class ResolveProviderTask extends BaseTask<Provider> {
     const context = new ProviderConfigContext(this.garden, resolvedProviders, this.garden.variables)
 
     this.log.silly(`Resolving template strings for provider ${this.config.name}`)
-    let resolvedConfig = resolveTemplateStrings(this.config, context)
+
+    const projectConfig = this.garden.getProjectConfig()
+    const yamlDoc = projectConfig.internal.yamlDoc
+    let yamlDocBasePath: (string | number)[] = []
+
+    if (yamlDoc) {
+      projectConfig.providers.forEach((p, i) => {
+        if (p.name === this.config.name) {
+          yamlDocBasePath = ["providers", i]
+          return false
+        }
+        return true
+      })
+    }
+
+    const source = { yamlDoc, basePath: yamlDocBasePath }
+
+    let resolvedConfig = resolveTemplateStrings({ value: this.config, context, source })
 
     const providerName = resolvedConfig.name
 
@@ -187,6 +204,7 @@ export class ResolveProviderTask extends BaseTask<Provider> {
         projectRoot: this.garden.projectRoot,
         configType: "provider configuration",
         ErrorClass: ConfigurationError,
+        source,
       })
     }
 
@@ -254,6 +272,7 @@ export class ResolveProviderTask extends BaseTask<Provider> {
         projectRoot: this.garden.projectRoot,
         configType: `provider configuration (base schema from '${base.name}' plugin)`,
         ErrorClass: ConfigurationError,
+        source: { yamlDoc, basePath: yamlDocBasePath },
       })
     }
 
@@ -301,7 +320,7 @@ export class ResolveProviderTask extends BaseTask<Provider> {
         cachedStatus = validateSchema(cachedData, cachedStatusSchema)
       } catch (err) {
         // Can't find or read a cached status
-        this.log.silly(`Unable to find or read provider status from ${cachePath}: ${err.message}`)
+        this.log.silly(`Unable to find or read provider status from ${cachePath}: ${err}`)
       }
     }
 

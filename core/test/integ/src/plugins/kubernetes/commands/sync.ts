@@ -20,6 +20,7 @@ import { getContainerTestGarden } from "../container/container"
 
 describe("sync plugin commands", () => {
   let garden: Garden
+  let cleanup: (() => void) | undefined
   let graph: ConfigGraph
   let provider: KubernetesProvider
   let ctx: PluginContext
@@ -30,8 +31,8 @@ describe("sync plugin commands", () => {
   })
 
   after(async () => {
-    if (garden) {
-      garden.close()
+    if (cleanup) {
+      cleanup()
       const dataDir = getMutagenDataDir(garden.gardenDirPath, garden.log)
       await getMutagenMonitor({ log, dataDir }).stop()
       await cleanProject(garden.gardenDirPath)
@@ -41,7 +42,8 @@ describe("sync plugin commands", () => {
   const init = async (environmentName: string) => {
     // we use noTempDir here because the tests may fail otherwise locally
     // This has something to do with with the project being in a temp directory.
-    garden = await getContainerTestGarden(environmentName, { noTempDir: true })
+    ;({ garden, cleanup } = await getContainerTestGarden(environmentName, { noTempDir: true }))
+
     graph = await garden.getConfigGraph({
       log: garden.log,
       emit: false,

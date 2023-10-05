@@ -11,7 +11,7 @@ Here, we'll describe at a high level the common day-to-day usage of the Garden C
 
 The `garden` CLI is how you work with Garden in most scenarios, during development and in CI pipelines. It features a fairly large number of commands, so we'll list the most common ones below. You can run `garden --help` to list them, and use `garden <command> --help` to learn more about individual commands, arguments, option flags, usage examples etc. You can also find a full reference [here](../reference/commands.md).
 
-If you've not installed the CLI yet, please check out the [installation guide](../guides/installation.md).
+If you've not installed the CLI yet, please check out the [installation guide](../getting-started/installation.md).
 
 Most of the examples below assume that you've already defined a Garden project.
 

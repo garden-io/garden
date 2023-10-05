@@ -17,7 +17,7 @@ import { BuiltinArgs, Command, CommandGroup, CommandResult, PrepareParams } from
 import { ServeCommand } from "../commands/serve"
 import { GlobalConfigStore } from "../config-store/global"
 import { findProjectConfig } from "../config/base"
-import { toGardenError } from "../exceptions"
+import { GardenError, toGardenError } from "../exceptions"
 import { Garden } from "../garden"
 import type { Log } from "../logger/log-entry"
 import { getTermWidth, renderDivider } from "../logger/util"
@@ -35,7 +35,7 @@ import {
   renderCommandErrors,
   renderCommands,
 } from "./helpers"
-import type { GlobalOptions, ParameterValues } from "./params"
+import type { GlobalOptions, ParameterObject, ParameterValues } from "./params"
 import { bindActiveContext, withSessionContext } from "../util/open-telemetry/context"
 import { wrapActiveSpan } from "../util/open-telemetry/spans"
 
@@ -129,7 +129,7 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
   private commandLineCallback: SetStringCallback
   private statusCallback: SetStringCallback
   private messageCallback: SetStringCallback
-  private messageTimeout: NodeJS.Timeout
+  private messageTimeout?: NodeJS.Timeout
 
   private serveCommand: ServeCommand
   private extraCommands: Command[]
@@ -472,6 +472,9 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
     const char = "┈"
     const color = chalk.bold
 
+    // `dedent` has a bug where it doesn't indent correctly
+    // when there's ANSI codes in the beginning of a line.
+    // Thus we have to dedent like this.
     const wrapped = `
 ${renderDivider({ title: chalk.bold(title), width, char, color })}
 ${text}
@@ -591,8 +594,8 @@ ${chalk.white.underline("Keys:")}
     }
 
     // Prepare args and opts
-    let args: BuiltinArgs & ParameterValues<any> = {}
-    let opts: ParameterValues<any> = {}
+    let args: BuiltinArgs & ParameterValues<ParameterObject> = {}
+    let opts: ParameterValues<ParameterObject & GlobalOptions>
 
     try {
       const parsedArgs = parseCliArgs({ stringArgs: rest, command, cli: false, skipGlobalDefault: true })
@@ -629,6 +632,9 @@ ${chalk.white.underline("Keys:")}
       args = processed.args
       opts = processed.opts
     } catch (error) {
+      if (!(error instanceof GardenError)) {
+        throw error
+      }
       this.flashError(error.message)
       return
     }
@@ -657,13 +663,13 @@ ${chalk.white.underline("Keys:")}
   }: {
     command: Command
     rawArgs: string[]
-    args: ParameterValues<any>
-    opts: ParameterValues<any>
+    args: PrepareParams["args"]
+    opts: PrepareParams["opts"]
   }) {
     const id = uuidv4()
     const width = getTermWidth() - 2
 
-    const prepareParams = {
+    const prepareParams: PrepareParams = {
       log: this.log,
       args,
       opts,
@@ -722,7 +728,7 @@ ${chalk.white.underline("Keys:")}
             if (!projectConfig) {
               const msg = opts.root
                 ? `Could not find project at specified --root '${opts.root}'`
-                : `Could not find project in current directory or any parent directoty`
+                : `Could not find project in current directory or any parent directory`
               this.flashError(getCmdFailMsg(name))
               this.log.error(msg)
               return
@@ -743,7 +749,7 @@ ${chalk.white.underline("Keys:")}
             this.flashError(getCmdFailMsg(name))
             delete this.runningCommands[id]
             this.renderStatus()
-            this.log.error({ error })
+            this.log.error({ error: toGardenError(error) })
             return
           }
 

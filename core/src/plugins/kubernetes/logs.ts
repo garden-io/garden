@@ -289,7 +289,7 @@ export class K8sLogFollower<T extends LogEntryBase> {
     )
   }
 
-  private async handleConnectionClose(connection: LogConnection, status: ConnectionStatus, error: Error | string) {
+  private async handleConnectionClose(connection: LogConnection, status: ConnectionStatus, error: unknown) {
     clearTimeout(connection.timeout)
 
     const prevStatus = connection.status
@@ -354,7 +354,7 @@ export class K8sLogFollower<T extends LogEntryBase> {
       pods = await getAllPods(this.k8sApi, this.defaultNamespace, this.resources)
     } catch (err) {
       // Log the error and keep trying.
-      this.log.debug(`<Getting pods failed with error: ${err?.message}>`)
+      this.log.debug(`<Getting pods failed with error: ${err}>`)
       return
     }
     const containers = pods.flatMap((pod) => {

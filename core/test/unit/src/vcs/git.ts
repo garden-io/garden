@@ -20,6 +20,7 @@ import { deline } from "../../../../src/util/string"
 import { uuidv4 } from "../../../../src/util/random"
 import { VcsHandlerParams } from "../../../../src/vcs/vcs"
 import { repoRoot } from "../../../../src/util/testing"
+import { GardenError } from "../../../../src/exceptions"
 
 // Overriding this to make sure any ignorefile name is respected
 export const defaultIgnoreFilename = ".testignore"
@@ -896,7 +897,7 @@ export const commonGitHandlerTests = (handlerCls: new (params: VcsHandlerParams)
         await execa("git", ["remote", "add", "origin", "https://fake@github.com/private/private.git"], {
           cwd: clonePath,
         })
-        let error: Error | undefined
+        let error: unknown
         try {
           await handler.updateRemoteSource({
             url: repoUrl,
@@ -908,7 +909,9 @@ export const commonGitHandlerTests = (handlerCls: new (params: VcsHandlerParams)
         } catch (e) {
           error = e
         }
-        expect(error).to.be.instanceOf(Error)
+        if (!(error instanceof GardenError)) {
+          expect.fail("Expected error to be an instance of GardenError")
+        }
         expect(error?.message).to.contain("Invalid username or password.")
       })
 

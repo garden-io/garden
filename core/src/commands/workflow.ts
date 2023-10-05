@@ -92,7 +92,12 @@ export class WorkflowCommand extends Command<Args, {}> {
     await registerAndSetUid(garden, log, workflow)
     garden.events.emit("workflowRunning", {})
     const templateContext = new WorkflowConfigContext(garden, garden.variables)
-    const files = resolveTemplateStrings(workflow.files || [], templateContext)
+    const yamlDoc = workflow.internal.yamlDoc
+    const files = resolveTemplateStrings({
+      value: workflow.files || [],
+      context: templateContext,
+      source: { yamlDoc, basePath: ["files"] },
+    })
 
     // Write all the configured files for the workflow
     await Promise.all(files.map((file) => writeWorkflowFile(garden, file)))
@@ -162,14 +167,19 @@ export class WorkflowCommand extends Command<Args, {}> {
       stepBodyLog.root.storeEntries = true
       try {
         if (step.command) {
-          step.command = resolveTemplateStrings(step.command, stepTemplateContext).filter((arg) => !!arg)
+          step.command = resolveTemplateStrings({
+            value: step.command,
+            context: stepTemplateContext,
+            source: { yamlDoc, basePath: ["steps", index, "command"] },
+          }).filter((arg) => !!arg)
+
           stepResult = await runStepCommand(stepParams)
         } else if (step.script) {
-          step.script = resolveTemplateString(step.script, stepTemplateContext)
+          step.script = resolveTemplateString({ string: step.script, context: stepTemplateContext })
           stepResult = await runStepScript(stepParams)
         } else {
           garden.events.emit("workflowStepError", getStepEndEvent(index, stepStartedAt))
-          // This should be catched by the validation layer
+          // This should be caught by the validation layer
           throw new InternalError({
             message: `Workflow steps must specify either a command or a script. Got: ${JSON.stringify(step)}`,
           })
@@ -520,7 +530,7 @@ async function writeWorkflowFile(garden: Garden, file: WorkflowFileSpec) {
     await writeFile(fullPath, data)
   } catch (error) {
     throw new FilesystemError({
-      message: `Unable to write file '${file.path}': ${error.message || error}`,
+      message: `Unable to write file '${file.path}': ${error}`,
     })
   }
 }

@@ -5,7 +5,7 @@ ARG VARIANT=root
 #
 # garden-base
 #
-FROM node:18.15.0-alpine@sha256:47d97b93629d9461d64197773966cc49081cf4463b1b07de5a38b6bd5acfbe9d as garden-alpine-base-root
+FROM node:18.15.0-alpine@sha256:47d97b93629d9461d64197773966cc49081cf4463b1b07de5a38b6bd5acfbe9d as garden-base-root
 
 RUN apk add --no-cache \
   bash \
@@ -43,14 +43,14 @@ ENTRYPOINT []
 # Required by Azure DevOps to tell the system where node is installed
 LABEL "com.azure.dev.pipelines.agent.handler.node.path"="/usr/local/bin/node"
 
-FROM garden-alpine-base-root as garden-alpine-base-rootless
+FROM garden-base-root as garden-base-rootless
 
 ENV USER=gardenuser
 ENV HOME=/home/gardenuser
 RUN adduser -D $USER
 USER $USER
 
-FROM garden-alpine-base-$VARIANT as garden-alpine-base
+FROM garden-base-$VARIANT as garden-base
 
 # Note: This Dockerfile is run with dist/linux-amd64 as the context root
 ADD --chown=$USER:root . /garden
@@ -62,10 +62,10 @@ RUN GARDEN_DISABLE_ANALYTICS=true GARDEN_DISABLE_VERSION_CHECK=true garden util 
 
 WORKDIR /project
 
-FROM python:3.11-alpine@sha256:4e8e9a59bf1b3ca8e030244bc5f801f23e41e37971907371da21191312087a07 AS aws-builder
+FROM python:3.11-alpine@sha256:e5d592c422d6e527cb946ae6abb1886c511a5e163d3543865f5a5b9b61c01584 AS aws-builder
 
-ENV AWSCLI_VERSION=2.11.18
-ENV AWSCLI_SHA256="b09bee1a52a1dc8c3f5e904195933fd27583f867276dd0deefc53358b9074b9d"
+ENV AWSCLI_VERSION=2.13.15
+ENV AWSCLI_SHA256="ac63e8f42c7f8775edccdc004921420159420de9185cf011952dba8fda5895ff"
 
 RUN apk add --no-cache \
   wget \
@@ -91,7 +91,7 @@ RUN wget -O aws-iam-authenticator https://amazon-eks.s3.us-west-2.amazonaws.com/
 #
 # garden-aws-base
 #
-FROM garden-alpine-base as garden-aws-base
+FROM garden-base as garden-aws-base
 
 COPY --chown=$USER:root --from=aws-builder /aws-cli /aws-cli
 COPY --chown=$USER:root --from=aws-builder /usr/bin/aws-iam-authenticator /usr/bin/aws-iam-authenticator
@@ -99,7 +99,7 @@ COPY --chown=$USER:root --from=aws-builder /usr/bin/aws-iam-authenticator /usr/b
 #
 # gcloud base
 #
-FROM google/cloud-sdk:445.0.0-alpine@sha256:0e934ffbe78ccceafe352b137d5ae442e2cb57ceda2d5c1c655af51aff53d158 as gcloud-base
+FROM google/cloud-sdk:448.0.0-alpine@sha256:28724c69e488f0d36869e7d98d4c7f8ed05aa62e9ff0a690437179ea4b462a65 as gcloud-base
 
 RUN gcloud components install kubectl gke-gcloud-auth-plugin --quiet
 
@@ -109,13 +109,13 @@ RUN rm -rf $(find /google-cloud-sdk/ -regex ".*/__pycache__") && rm -rf /google-
 #
 # garden-azure-base
 #
-FROM garden-alpine-base-root as garden-azure-base
+FROM garden-base-root as garden-azure-base
 
 WORKDIR /
-ENV AZURE_CLI_VERSION=2.48.1
+ENV AZURE_CLI_VERSION=2.50.0
 
 RUN wget -O requirements.txt https://raw.githubusercontent.com/Azure/azure-cli/azure-cli-$AZURE_CLI_VERSION/src/azure-cli/requirements.py3.Linux.txt && \
-  echo "c552be7337282c28b28cded6bd8d4b64247ddd2c4faf59042555fcc478405afb  requirements.txt" | sha256sum -c
+  echo "ff3dcee6677fbdeab3a9e2288caf27a5990514df2c5e7b4800418ffdef5430fd  requirements.txt" | sha256sum -c
 RUN wget -O trim_sdk.py https://raw.githubusercontent.com/Azure/azure-cli/azure-cli-$AZURE_CLI_VERSION/scripts/trim_sdk.py && \
   echo "2e6292f5285b4fcedbe8efd77309fade550667d1c502a6ffa078f1aa97942c64  trim_sdk.py" | sha256sum -c
 
@@ -131,7 +131,7 @@ RUN az aks install-cli
 #
 # garden-azure
 #
-FROM garden-alpine-base as garden-azure
+FROM garden-base as garden-azure
 
 COPY --chown=$USER:root --from=garden-azure-base /azure-cli /azure-cli
 COPY --chown=$USER:root --from=garden-azure-base /usr/local/bin/az /usr/local/bin/az
@@ -141,7 +141,7 @@ COPY --chown=$USER:root --from=garden-azure-base /usr/local/bin/kubelogin /usr/l
 #
 # garden-aws
 #
-FROM garden-alpine-base as garden-aws
+FROM garden-base as garden-aws
 
 # Copy aws cli
 COPY --chown=$USER:root --from=garden-aws-base /aws-cli/lib/aws-cli /aws-cli
@@ -152,7 +152,7 @@ ENV PATH /aws-cli:$PATH
 #
 # garden-gloud
 #
-FROM garden-alpine-base as garden-gcloud
+FROM garden-base as garden-gcloud
 
 ENV CLOUDSDK_PYTHON=python3
 
@@ -162,7 +162,7 @@ ENV PATH /google-cloud-sdk/bin:$PATH
 #
 # garden-aws-gloud
 #
-FROM garden-alpine-base as garden-aws-gcloud
+FROM garden-base as garden-aws-gcloud
 
 # Copy aws cli
 COPY --chown=$USER:root --from=garden-aws-base /aws-cli/lib/aws-cli /aws-cli
@@ -178,7 +178,7 @@ ENV PATH /google-cloud-sdk/bin:$PATH
 #
 # garden-aws-gloud-azure
 #
-FROM garden-alpine-base as garden-aws-gcloud-azure
+FROM garden-base as garden-aws-gcloud-azure
 
 # Copy aws cli
 COPY --chown=$USER:root --from=garden-aws-base /aws-cli/lib/aws-cli /aws-cli

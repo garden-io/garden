@@ -88,6 +88,10 @@ describe("SelfUpdateCommand", () => {
     server = createServer((req, res) => {
       serve(req, res, finalhandler(req, res))
     })
+    server.on("error", (err) => {
+      // eslint-disable-next-line no-console
+      console.error(err)
+    })
     server.listen(staticServerPort)
 
     command._baseReleasesUrl = `http://127.0.0.1:${staticServerPort}/`

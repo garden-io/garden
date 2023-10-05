@@ -32,7 +32,7 @@ interface ContextNode {
 }
 
 /**
- *  A simple in-memory cache that additionally indexes keys in a tree by a seperate context key, so that keys
+ *  A simple in-memory cache that additionally indexes keys in a tree by a separate context key, so that keys
  *  can be invalidated based on surrounding context.
  *
  *  For example, we can cache the version of a directory path, and then invalidate every cached key under a
@@ -64,8 +64,8 @@ interface ContextNode {
  *
  */
 export class TreeCache {
-  private cache: CacheEntries
-  private contextTree: ContextNode
+  private cache: CacheEntries = new Map<string, CacheEntry>()
+  private contextTree: ContextNode = makeContextNode([])
 
   constructor() {
     this.clear()

@@ -458,10 +458,19 @@ joi = joi.extend({
         try {
           return schema.parse(value)
         } catch (error) {
+          if (!(error instanceof z.ZodError)) {
+            throw error
+          }
           // TODO: customize the error output here to make it a bit nicer
           const outputError = helpers.error("validation")
           outputError.message = error.message
           outputError.zodError = error
+
+          if (error instanceof z.ZodError && error.issues.length > 0) {
+            // Not perfect, but at least we can get the path of the first error
+            outputError.path = error.issues[0].path
+          }
+
           return outputError
         }
       },
@@ -726,6 +735,9 @@ joi = joi.extend({
 
       return { value }
     } catch (err) {
+      if (!(err instanceof Error)) {
+        throw err
+      }
       const error = opts.error("validation")
       error.message = err.message
       return { errors: error }

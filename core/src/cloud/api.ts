@@ -37,6 +37,7 @@ const gardenClientName = "garden-core"
 const gardenClientVersion = getPackageVersion()
 
 export class CloudApiDuplicateProjectsError extends CloudApiError {}
+
 export class CloudApiTokenRefreshError extends CloudApiError {}
 
 function extractErrorMessageBodyFromGotError(error: any): error is GotHttpError {
@@ -173,7 +174,7 @@ export type CloudApiFactory = (params: CloudApiFactoryParams) => Promise<CloudAp
  * for cases where the user is not logged in (e.g. the login method itself).
  */
 export class CloudApi {
-  private intervalId: NodeJS.Timer | null
+  private intervalId: NodeJS.Timer | null = null
   private intervalMsec = 4500 // Refresh interval in ms, it needs to be less than refreshThreshold/2
   private apiPrefix = "api"
   private _profile?: GetProfileResponse["data"]
@@ -598,7 +599,19 @@ export class CloudApi {
       method: "POST",
       body: body || {},
       headers: headers || {},
-      retry: retry === true ? true : false, // defaults to false unless true is explicitly passed
+      retry: !!retry, // defaults to false unless true is explicitly passed
+      retryDescription,
+      maxRetries,
+    })
+  }
+
+  async put<T>(path: string, opts: ApiFetchOptions & { body?: any } = {}) {
+    const { body, headers, retry, retryDescription, maxRetries } = opts
+    return this.apiFetch<T>(path, {
+      method: "PUT",
+      body: body || {},
+      headers: headers || {},
+      retry: !!retry, // defaults to false unless true is explicitly passed
       retryDescription,
       maxRetries,
     })
@@ -734,17 +747,7 @@ export class CloudApi {
     return new URL(`/projects/${projectId}`, this.domain)
   }
 
-  getCommandResultUrl({
-    projectId,
-    sessionId,
-    userId,
-    shortId,
-  }: {
-    projectId: string
-    sessionId: string
-    userId: string
-    shortId: string
-  }) {
+  getCommandResultUrl({ projectId, sessionId, shortId }: { projectId: string; sessionId: string; shortId: string }) {
     // fallback to full url if shortid is missing
     const path = shortId ? `/go/command/${shortId}` : `/projects/${projectId}/commands/${sessionId}`
     return new URL(path, this.domain)

@@ -96,7 +96,7 @@ build:
     # The duration of the action's execution in msec, if applicable.
     durationMsec:
 
-    # Whether the action was succeessfully executed.
+    # Whether the action was successfully executed.
     success:
 
     # An error message, if the action's execution failed.
@@ -133,7 +133,7 @@ build:
     # The duration of the action's execution in msec, if applicable.
     durationMsec:
 
-    # Whether the action was succeessfully executed.
+    # Whether the action was successfully executed.
     success:
 
     # An error message, if the action's execution failed.
@@ -222,7 +222,7 @@ deploy:
     # The duration of the action's execution in msec, if applicable.
     durationMsec:
 
-    # Whether the action was succeessfully executed.
+    # Whether the action was successfully executed.
     success:
 
     # An error message, if the action's execution failed.
@@ -309,7 +309,7 @@ deploy:
     # The duration of the action's execution in msec, if applicable.
     durationMsec:
 
-    # Whether the action was succeessfully executed.
+    # Whether the action was successfully executed.
     success:
 
     # An error message, if the action's execution failed.
@@ -455,6 +455,43 @@ Examples:
   | `--scope-to-user-id` |  | number | Scope the secret to a user with the given ID. User scoped secrets must be scoped to an environment as well.
   | `--scope-to-env` |  | string | Scope the secret to an environment. Note that this does not default to the environment that the command runs in (i.e. the one set via the --env flag) and that you need to set this explicitly if you want to create an environment scoped secret.
   | `--from-file` |  | path | Read the secrets from the file at the given path. The file should have standard &quot;dotenv&quot; format, as defined by [dotenv](https://github.com/motdotla/dotenv#rules).
+
+
+### garden cloud secrets update
+
+**Update secrets in Garden Cloud**
+
+Update secrets in Garden Cloud. You can update the secrets by either specifying secret name or secret ID.
+When updating by name, the behavior is upsert (existing secrets are updated while missing secrets are created).
+
+If you have multiple secrets with same name across different environments and users, specify the environment and user id using `--scope-to-env` and `--scope-to-user-id` flags.
+
+When you want to update the secrets by ID, use the `--update-by-id` flag. To get the IDs of the secrets you want to update, run the `garden cloud secrets list` command.
+
+Examples:
+    garden cloud secrets update MY_SECRET=foo MY_SECRET_2=bar # update two secret values with the given names.
+    garden cloud secrets update MY_SECRET=foo MY_SECRET_2=bar --scope-to-env local --scope-to-user-id <user-id> # update two secret values with the given names for the environment local and specified user id.
+    garden cloud secrets update <ID 1>=foo <ID 2>=bar --update-by-id # update two secret values with the given IDs.
+
+#### Usage
+
+    garden cloud secrets update [secretNamesOrIds] [options]
+
+#### Arguments
+
+| Argument | Required | Description |
+| -------- | -------- | ----------- |
+  | `secretNamesOrIds` | No | The name(s) or ID(s) of the secrets to update along with the new values, separated by &#x27;&#x3D;&#x27;. You may specify multiple secret id/value pairs, separated by spaces.
+
+#### Options
+
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+  | `--upsert` |  | boolean | Set this flag to upsert secrets instead of updating them. I.e., existing secrets will be updated while missing secrets will be created.
+  | `--update-by-id` |  | boolean | Update secret(s) by secret ID(s). By default, the command args are considered to be secret name(s).
+  | `--from-file` |  | path | Read the secrets from the file at the given path. The file should have standard &quot;dotenv&quot; format, as defined by [dotenv](https://github.com/motdotla/dotenv#rules).
+  | `--scope-to-user-id` |  | string | Update the secret(s) in scope of user with the given user ID. This must be specified if you want to update secrets by name instead of secret ID.
+  | `--scope-to-env` |  | string | Update the secret(s) in scope of the specified environment. This must be specified if you want to update secrets by name instead of secret ID.
 
 
 ### garden cloud secrets delete
@@ -633,7 +670,7 @@ Examples:
 **Create a new Garden project.**
 
 Creates a new Garden project configuration. The generated config includes some default values, as well as the
-schema of the config in the form of commentented-out fields. Also creates a default (blank) .gardenignore file
+schema of the config in the form of commented-out fields. Also creates a default (blank) .gardenignore file
 in the same path.
 
 Examples:
@@ -971,7 +1008,7 @@ This always takes the precedence over sync mode if there are any conflicts, i.e.
   | `--forward` |  | boolean | Create port forwards and leave process running after deploying. This is implied if any of --sync / --local or --logs are set.
   | `--logs` |  | boolean | Stream logs from the requested Deploy(s) (or services if using modules) during deployment, and leave the log streaming process running after deploying. Note: This option implies the --forward option.
   | `--timestamps` |  | boolean | Show timestamps with log output. Should be used with the &#x60;--logs&#x60; option (has no effect if that option is not used).
-  | `--port` |  | number | The port number for the server to listen on (defaults to 9700 if available).
+  | `--port` |  | number | The port number for the server to listen on (defaults to 9777 if available).
 
 #### Outputs
 
@@ -1003,7 +1040,7 @@ build:
     # The duration of the action's execution in msec, if applicable.
     durationMsec:
 
-    # Whether the action was succeessfully executed.
+    # Whether the action was successfully executed.
     success:
 
     # An error message, if the action's execution failed.
@@ -1040,7 +1077,7 @@ build:
     # The duration of the action's execution in msec, if applicable.
     durationMsec:
 
-    # Whether the action was succeessfully executed.
+    # Whether the action was successfully executed.
     success:
 
     # An error message, if the action's execution failed.
@@ -1129,7 +1166,7 @@ deploy:
     # The duration of the action's execution in msec, if applicable.
     durationMsec:
 
-    # Whether the action was succeessfully executed.
+    # Whether the action was successfully executed.
     success:
 
     # An error message, if the action's execution failed.
@@ -1216,7 +1253,7 @@ deploy:
     # The duration of the action's execution in msec, if applicable.
     durationMsec:
 
-    # Whether the action was succeessfully executed.
+    # Whether the action was successfully executed.
     success:
 
     # An error message, if the action's execution failed.
@@ -3892,7 +3929,7 @@ sources:
 
 After linking a remote module, Garden will read the source from the module's local directory instead of from
 the remote URL. Garden can only link modules that have a remote source,
-i.e. modules that specifiy a `repositoryUrl` in their `garden.yml` config file.
+i.e. modules that specify a `repositoryUrl` in their `garden.yml` config file.
 
 Examples:
 
@@ -4111,7 +4148,7 @@ build:
     # The duration of the action's execution in msec, if applicable.
     durationMsec:
 
-    # Whether the action was succeessfully executed.
+    # Whether the action was successfully executed.
     success:
 
     # An error message, if the action's execution failed.
@@ -4148,7 +4185,7 @@ build:
     # The duration of the action's execution in msec, if applicable.
     durationMsec:
 
-    # Whether the action was succeessfully executed.
+    # Whether the action was successfully executed.
     success:
 
     # An error message, if the action's execution failed.
@@ -4237,7 +4274,7 @@ deploy:
     # The duration of the action's execution in msec, if applicable.
     durationMsec:
 
-    # Whether the action was succeessfully executed.
+    # Whether the action was successfully executed.
     success:
 
     # An error message, if the action's execution failed.
@@ -4324,7 +4361,7 @@ deploy:
     # The duration of the action's execution in msec, if applicable.
     durationMsec:
 
-    # Whether the action was succeessfully executed.
+    # Whether the action was successfully executed.
     success:
 
     # An error message, if the action's execution failed.
@@ -4436,7 +4473,7 @@ published:
     # The duration of the action's execution in msec, if applicable.
     durationMsec:
 
-    # Whether the action was succeessfully executed.
+    # Whether the action was successfully executed.
     success:
 
     # An error message, if the action's execution failed.
@@ -4521,7 +4558,7 @@ build:
     # The duration of the action's execution in msec, if applicable.
     durationMsec:
 
-    # Whether the action was succeessfully executed.
+    # Whether the action was successfully executed.
     success:
 
     # An error message, if the action's execution failed.
@@ -4558,7 +4595,7 @@ build:
     # The duration of the action's execution in msec, if applicable.
     durationMsec:
 
-    # Whether the action was succeessfully executed.
+    # Whether the action was successfully executed.
     success:
 
     # An error message, if the action's execution failed.
@@ -4647,7 +4684,7 @@ deploy:
     # The duration of the action's execution in msec, if applicable.
     durationMsec:
 
-    # Whether the action was succeessfully executed.
+    # Whether the action was successfully executed.
     success:
 
     # An error message, if the action's execution failed.
@@ -4734,7 +4771,7 @@ deploy:
     # The duration of the action's execution in msec, if applicable.
     durationMsec:
 
-    # Whether the action was succeessfully executed.
+    # Whether the action was successfully executed.
     success:
 
     # An error message, if the action's execution failed.
@@ -5112,7 +5149,7 @@ build:
     # The duration of the action's execution in msec, if applicable.
     durationMsec:
 
-    # Whether the action was succeessfully executed.
+    # Whether the action was successfully executed.
     success:
 
     # An error message, if the action's execution failed.
@@ -5149,7 +5186,7 @@ build:
     # The duration of the action's execution in msec, if applicable.
     durationMsec:
 
-    # Whether the action was succeessfully executed.
+    # Whether the action was successfully executed.
     success:
 
     # An error message, if the action's execution failed.
@@ -5238,7 +5275,7 @@ deploy:
     # The duration of the action's execution in msec, if applicable.
     durationMsec:
 
-    # Whether the action was succeessfully executed.
+    # Whether the action was successfully executed.
     success:
 
     # An error message, if the action's execution failed.
@@ -5325,7 +5362,7 @@ deploy:
     # The duration of the action's execution in msec, if applicable.
     durationMsec:
 
-    # Whether the action was succeessfully executed.
+    # Whether the action was successfully executed.
     success:
 
     # An error message, if the action's execution failed.

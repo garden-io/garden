@@ -65,7 +65,7 @@ describe("deploy actions", () => {
             action: resolvedDeployAction,
             graph,
           }),
-        { contains: "Error validating runtime action outputs from Deploy 'service-a': key .foo must be a string." }
+        { contains: ["Error validating runtime action outputs from Deploy 'service-a'", "foo must be a string"] }
       )
     })
   })
@@ -95,7 +95,7 @@ describe("deploy actions", () => {
             graph,
             force: true,
           }),
-        { contains: "Error validating runtime action outputs from Deploy 'service-a': key .foo must be a string." }
+        { contains: ["Error validating runtime action outputs from Deploy 'service-a'", "foo must be a string"] }
       )
     })
   })

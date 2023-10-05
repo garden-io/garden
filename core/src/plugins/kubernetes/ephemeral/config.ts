@@ -19,6 +19,7 @@ import { ConfigureProviderParams } from "../../../plugin/handlers/Provider/confi
 import { dedent } from "../../../util/string"
 import { KubernetesConfig, namespaceSchema } from "../config"
 import { EPHEMERAL_KUBERNETES_PROVIDER_NAME } from "./ephemeral"
+import { DEFAULT_GARDEN_CLOUD_DOMAIN } from "../../../constants"
 
 export const configSchema = () =>
   providerConfigBaseSchema()
@@ -52,7 +53,7 @@ export async function configureProvider(params: ConfigureProviderParams<Kubernet
       message: `You are not logged in. You must be logged into Garden Cloud in order to use ${EPHEMERAL_KUBERNETES_PROVIDER_NAME} provider.`,
     })
   }
-  if (ctx.cloudApi && ctx.cloudApi?.domain !== "https://app.garden.io") {
+  if (ctx.cloudApi && ctx.cloudApi?.domain !== DEFAULT_GARDEN_CLOUD_DOMAIN) {
     throw new ConfigurationError({
       message: `${EPHEMERAL_KUBERNETES_PROVIDER_NAME} provider is currently not supported for ${ctx.cloudApi.distroName}.`,
     })
@@ -60,10 +61,10 @@ export async function configureProvider(params: ConfigureProviderParams<Kubernet
   // creating tmp dir .garden/ephemeral-kubernetes for storing kubeconfig
   const ephemeralClusterDirPath = join(ctx.gardenDirPath, "ephemeral-kubernetes")
   await mkdirp(ephemeralClusterDirPath)
-  log.info("Creating ephemeral kubernetes cluster")
+  log.info("Retrieving ephemeral Kubernetes cluster")
   const createEphemeralClusterResponse = await ctx.cloudApi.createEphemeralCluster()
   const clusterId = createEphemeralClusterResponse.instanceMetadata.instanceId
-  log.info(`Ephemeral kubernetes cluster created successfully`)
+  log.info(`Ephemeral Kubernetes cluster retrieved successfully`)
   const deadlineDateTime = moment(createEphemeralClusterResponse.instanceMetadata.deadline)
   const diffInNowAndDeadline = moment.duration(deadlineDateTime.diff(moment())).asMinutes().toFixed(1)
   log.info(
@@ -73,7 +74,7 @@ export async function configureProvider(params: ConfigureProviderParams<Kubernet
       )}`
     )
   )
-  log.info("Getting Kubeconfig for the cluster")
+  log.info("Fetching kubeconfig for the ephemeral cluster")
   const kubeConfig = await ctx.cloudApi.getKubeConfigForCluster(clusterId)
   const kubeconfigFileName = `${clusterId}-kubeconfig.yaml`
   const kubeConfigPath = join(ctx.gardenDirPath, "ephemeral-kubernetes", kubeconfigFileName)

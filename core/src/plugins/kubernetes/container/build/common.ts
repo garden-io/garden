@@ -8,20 +8,12 @@
 
 import AsyncLock from "async-lock"
 import { ContainerBuildAction, ContainerRegistryConfig } from "../../../container/moduleConfig"
-import { getRunningDeploymentPod } from "../../util"
-import {
-  buildSyncVolumeName,
-  dockerAuthSecretKey,
-  gardenUtilDaemonDeploymentName,
-  k8sUtilImageName,
-  rsyncPortName,
-} from "../../constants"
 import { KubeApi } from "../../api"
 import { KubernetesPluginContext, KubernetesProvider } from "../../config"
 import { PodRunner, PodRunnerError } from "../../run"
 import { PluginContext } from "../../../../plugin-context"
 import { hashString, sleep } from "../../../../util/util"
-import { GardenError, InternalError, RuntimeError } from "../../../../exceptions"
+import { InternalError, RuntimeError } from "../../../../exceptions"
 import { Log } from "../../../../logger/log-entry"
 import { prepareDockerAuth } from "../../init"
 import { prepareSecrets } from "../../secrets"
@@ -37,6 +29,8 @@ import { k8sGetContainerBuildActionOutputs } from "../handlers"
 import { Resolved } from "../../../../actions/types"
 import { stringifyResources } from "../util"
 import { getKubectlExecDestination } from "../../sync"
+import { getRunningDeploymentPod } from "../../util"
+import { buildSyncVolumeName, dockerAuthSecretKey, k8sUtilImageName, rsyncPortName } from "../../constants"
 
 export const utilContainerName = "util"
 export const utilRsyncPort = 8730
@@ -229,26 +223,26 @@ export async function skopeoBuildStatus({
     })
     return { state: "ready", outputs, detail: {} }
   } catch (err) {
-    if (!(err instanceof GardenError)) {
-      throw err
-    }
-
     if (err instanceof PodRunnerError) {
       const res = err.details.result
 
       // Non-zero exit code can both mean the manifest is not found, and any other unexpected error
-      if (res?.exitCode !== 0 && !skopeoManifestUnknown(res?.stderr)) {
-        const output = res?.allLogs || err.message
-
-        throw new RuntimeError({
-          message: `Unable to query registry for image status: Command "${skopeoCommand.join(" ")}" failed. This is the output:\n${output}`,
-        })
+      if (res?.exitCode !== 0 && skopeoManifestUnknown(res?.stderr)) {
+        // This would happen when the image does not exist, i.e. not ready
+        return { state: "not-ready", outputs, detail: {} }
       }
+
+      const output = res?.allLogs || err.message
+
+      throw new RuntimeError({
+        message: `Unable to query registry for image status: Command "${skopeoCommand.join(
+          " "
+        )}" failed. This is the output:\n${output}`,
+        wrappedErrors: [err],
+      })
     }
 
-    // TODO: Do we really want to return state: "unknown" with no details on any other error?
-    // NOTE(steffen): I'd have expected us to throw here
-    return { state: "unknown", outputs, detail: {} }
+    throw err
   }
 }
 
@@ -263,37 +257,9 @@ export function skopeoManifestUnknown(errMsg: string | null | undefined): boolea
   return (
     errMsg.includes("manifest unknown") ||
     errMsg.includes("name unknown") ||
+    errMsg.includes("Failed to fetch") ||
     /(artifact|repository) [^ ]+ not found/.test(errMsg)
   )
-}
-
-/**
- * Get a PodRunner for the util deployment in the garden-system namespace.
- */
-export async function getUtilDaemonPodRunner({
-  api,
-  systemNamespace,
-  ctx,
-  provider,
-}: {
-  api: KubeApi
-  systemNamespace: string
-  ctx: PluginContext
-  provider: KubernetesProvider
-}) {
-  const pod = await getRunningDeploymentPod({
-    api,
-    deploymentName: gardenUtilDaemonDeploymentName,
-    namespace: systemNamespace,
-  })
-
-  return new PodRunner({
-    api,
-    ctx,
-    provider,
-    namespace: systemNamespace,
-    pod,
-  })
 }
 
 /**
@@ -511,6 +477,11 @@ export function getUtilManifests(
         matchLabels: {
           app: utilDeploymentName,
         },
+      },
+      strategy: {
+        // Note: When updating the deployment, we make sure to kill off old buildkit pods before new pods are started.
+        // This is important because with multiple running Pods we might end up syncing or building to the wrong Pod.
+        type: "Recreate",
       },
       template: {
         metadata: {

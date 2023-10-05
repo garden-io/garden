@@ -10,7 +10,11 @@ services:
     command: [sh, -c, "echo $ENV_VAR"]
     env:
       ENV_VAR: foo
-
+  - name: simple-server-busybox
+    command: [sh, -c, "echo Server running... && nc -l -p 8080"]
+    ports:
+      - name: http
+        containerPort: 8080
 tasks:
   - name: echo-task
     command: [sh, -c, "echo ok"]

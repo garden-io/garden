@@ -24,6 +24,7 @@ import { honeycombValidator } from "./config/honeycomb"
 import { loggingValidator } from "./config/logging"
 import { newRelicValidator } from "./config/newrelic"
 import { otlpHttpValidator } from "./config/otlphttp"
+import { toGardenError } from "../../exceptions"
 
 const OTEL_CONFIG_NAME = "otel-config.yaml"
 
@@ -126,7 +127,7 @@ provider.addHandler("prepareEnvironment", async ({ ctx, log }) => {
   const allExporters: OtelExportersConfig[] = ctx.provider.config.exporters
   const exporters: OtelExportersConfig[] = allExporters.filter((exporter) => exporter.enabled)
 
-  if (!exporters) {
+  if (exporters.length === 0) {
     scopedLog.debug("No OTEL exporters are enabled, otel-collector is not needed.")
     configureNoOpExporter()
     return { status: { ready: true, disableCache: true, outputs: {} } }
@@ -205,7 +206,7 @@ provider.addHandler("prepareEnvironment", async ({ ctx, log }) => {
   } catch (error) {
     // TODO: We might not want to fail if the collector didn't initialize correctly
     scopedLog.error("otel-collector failed to initialize")
-    scopedLog.error({ error })
+    scopedLog.error({ error: toGardenError(error) })
     return { status: { ready: false, disableCache: true, outputs: {} } }
   }
 })

@@ -72,8 +72,6 @@ interface StreamTarget {
   clientAuthToken?: string
 }
 
-export type StreamRecordType = "event" | "logEntry"
-
 interface ApiBatchBase {
   workflowRunUid?: string
   sessionId: string | null
@@ -125,7 +123,7 @@ export class BufferedEventStream {
   private workflowRunUid: string | undefined
   private garden: Garden
   private closed: boolean
-  private intervalId: NodeJS.Timer | null
+  private intervalId: NodeJS.Timer | null = null
   private bufferedEvents: StreamEvent[]
   private bufferedLogEntries: LogEntryEventPayload[]
   private eventListener: GardenEventAnyListener
@@ -230,7 +228,7 @@ export class BufferedEventStream {
        * We don't throw an exception here, since a failure to stream events and log entries doesn't mean that the
        * command failed.
        */
-      this.log.error(`Error while flushing events and log entries: ${err.message}`)
+      this.log.error(`Error while flushing events and log entries: ${err}`)
     }
   }
 
@@ -331,7 +329,7 @@ export class BufferedEventStream {
        * We don't throw an exception here, since a failure to stream events and log entries doesn't mean that the
        * command failed.
        */
-      this.log.debug(`Error while flushing events and log entries: ${err.message}`)
+      this.log.debug(`Error while flushing events and log entries: ${err}`)
     }
   }
 

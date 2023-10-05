@@ -13,7 +13,7 @@ actions right away.
 
 It's great for running auth scripts as well as executing various scaffolding scripts that need to run "locally".
 
-It can also be used to start applications locally (e.g. by executing commands like `yarn dev`).
+It can also be used to start applications locally (e.g. by executing commands like `npm run dev`).
 
 This can be very useful for hybrid environments where you have, say, your backend running in a remote production-like
 environment but your frontend running locally.
@@ -78,7 +78,7 @@ name: db-init
 type: exec
 dependencies: [ run.auth, run.prepare-data ]
 spec:
-  command: [ yarn, run, db-init ]
+  command: [ npm, run, db-init ]
 ```
 
 It's also possible to reference the output from `exec` actions:
@@ -108,7 +108,7 @@ name: web-local
 type: exec
 spec:
   persistent: true
-  deployCommand: [ "yarn", "run", "dev" ] # <--- This is the command Garden runs to start the process in persistent mode.
+  deployCommand: [ "npm", "run", "dev" ] # <--- This is the command Garden runs to start the process in persistent mode.
 ```
 
 Set `spec.persistent: true` if the `spec.deployCommand` is not expected to return, and should run until the Garden

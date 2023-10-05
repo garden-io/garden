@@ -6,13 +6,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { join } from "path"
+import { join, resolve } from "path"
 
-import { GardenModule } from "@garden-io/sdk/types"
+import { GardenModule } from "@garden-io/sdk/build/src/types"
 import { expect } from "chai"
-import { makeTestGarden, TestGarden } from "@garden-io/sdk/testing"
-import { gardenPlugin } from ".."
-import { JibBuildAction } from "../util"
+import { makeTestGarden, TestGarden } from "@garden-io/sdk/build/src/testing"
+import { gardenPlugin } from "../src"
+import { JibBuildAction } from "../src/util"
 import { Resolved } from "@garden-io/core/build/src/actions/types"
 import { ResolvedConfigGraph } from "@garden-io/core/build/src/graph/config-graph"
 import { createActionLog } from "@garden-io/core/build/src/logger/log-entry"
@@ -21,7 +21,7 @@ describe("jib-container", function () {
   // eslint-disable-next-line no-invalid-this
   this.timeout(180 * 1000) // initial jib build can take a long time
 
-  const projectRoot = join(__dirname, "test-project")
+  const projectRoot = resolve(__dirname, "../../test/", "test-project")
 
   let garden: TestGarden
   let graph: ResolvedConfigGraph

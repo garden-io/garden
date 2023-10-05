@@ -24,7 +24,7 @@ function versionCheckError(params: BinaryVersionCheckParams, msg: string): Runti
     message: deline`
       ${msg}
       Please make sure ${params.name} (version ${params.minVersion} or later) is installed and on your PATH.
-      More about garden installation and requirements can be found in our documentation at ${DOCS_BASE_URL}/guides/installation
+      More about garden installation and requirements can be found in our documentation at ${DOCS_BASE_URL}/getting-started/installation
       `,
   })
 }
@@ -33,7 +33,7 @@ async function execVersionCheck(params: BinaryVersionCheckParams): Promise<strin
   try {
     return (await exec(params.versionCommand.cmd, params.versionCommand.args)).stdout
   } catch (error) {
-    throw versionCheckError(params, `Could not find ${params.name} binary: ${error.message || error}`)
+    throw versionCheckError(params, `Could not find ${params.name} binary: ${error}`)
   }
 }
 
@@ -55,7 +55,7 @@ function validateVersionNumber(version: string, params: BinaryVersionCheckParams
   } catch (error) {
     throw versionCheckError(
       params,
-      `Could not parse the ${params.name} version ${version} as a valid semver value: ${error.message || error}`
+      `Could not parse the ${params.name} version ${version} as a valid semver value: ${error}`
     )
   }
 }

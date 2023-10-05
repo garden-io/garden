@@ -125,7 +125,7 @@ export class RunCommand extends Command<Args, Opts> {
     // Needs to be done before graph init to support lazy init usecases, e.g. workflows
     let names: string[] | undefined = undefined
     if (args.names && args.names.length > 0) {
-      names = args.names
+      names = args.names as string[]
       const result = await maybeOldRunCommand(names, args, opts, log, params)
       // If we get a result from the old-style compatibility runner, early return it instead of continuing
       if (result) {

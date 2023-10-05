@@ -240,7 +240,7 @@ async function getCertificateHostnames(api: KubeApi, cert: IngressTlsCertificate
 
     try {
       secret = await api.core.readNamespacedSecret(cert.secretRef.name, cert.secretRef.namespace)
-    } catch (err: unknown) {
+    } catch (err) {
       if (!(err instanceof KubernetesError)) {
         throw err
       }
@@ -267,9 +267,7 @@ async function getCertificateHostnames(api: KubeApi, cert: IngressTlsCertificate
       return getHostnamesFromPem(crtData)
     } catch (error) {
       throw new ConfigurationError({
-        message: `Unable to parse Secret '${cert.secretRef.name}' as a valid TLS certificate: ${
-          error.message || error
-        }`,
+        message: `Unable to parse Secret '${cert.secretRef.name}' as a valid TLS certificate: ${error}`,
       })
     }
   }

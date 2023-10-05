@@ -6,6 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import { Document } from "yaml"
 import { ModuleConfig } from "./module"
 import { dedent, deline, naturalList } from "../util/string"
 import {
@@ -16,11 +17,12 @@ import {
   prepareResource,
   RenderTemplateKind,
   renderTemplateKind,
+  YamlDocumentWithSource,
 } from "./base"
 import { maybeTemplateString, resolveTemplateString, resolveTemplateStrings } from "../template-string/template-string"
 import { validateWithPath } from "./validation"
 import { Garden } from "../garden"
-import { ConfigurationError } from "../exceptions"
+import { ConfigurationError, GardenError } from "../exceptions"
 import { resolve, posix } from "path"
 import { ensureDir } from "fs-extra"
 import type { TemplatedModuleConfig } from "../plugins/templated"
@@ -119,9 +121,21 @@ export async function renderConfigTemplate({
   const loggedIn = garden.isLoggedIn()
   const enterpriseDomain = garden.cloudApi?.domain
   const templateContext = new EnvironmentConfigContext({ ...garden, loggedIn, enterpriseDomain })
-  const resolvedWithoutInputs = resolveTemplateStrings({ ...omit(config, "inputs") }, templateContext)
-  const partiallyResolvedInputs = resolveTemplateStrings(config.inputs || {}, templateContext, {
-    allowPartial: true,
+
+  const yamlDoc = config.internal.yamlDoc
+
+  const resolvedWithoutInputs = resolveTemplateStrings({
+    value: { ...omit(config, "inputs") },
+    context: templateContext,
+    source: { yamlDoc },
+  })
+  const partiallyResolvedInputs = resolveTemplateStrings({
+    value: config.inputs || {},
+    context: templateContext,
+    contextOpts: {
+      allowPartial: true,
+    },
+    source: { yamlDoc, basePath: ["inputs"] },
   })
   let resolved: RenderTemplateConfig = {
     ...resolvedWithoutInputs,
@@ -142,6 +156,7 @@ export async function renderConfigTemplate({
     path: resolved.internal.configFilePath || resolved.internal.basePath,
     schema: renderTemplateConfigSchema(),
     projectRoot: garden.projectRoot,
+    source: undefined,
   })
 
   const template = templates[resolved.template]
@@ -167,7 +182,7 @@ export async function renderConfigTemplate({
   })
 
   // TODO: remove in 0.14
-  const modules = await renderModules({ garden, log, template, context, renderConfig: resolved })
+  const modules = await renderModules({ garden, template, context, renderConfig: resolved })
 
   const configs = await renderConfigs({ garden, log, template, context, renderConfig: resolved })
 
@@ -176,21 +191,26 @@ export async function renderConfigTemplate({
 
 async function renderModules({
   garden,
-  log,
   template,
   context,
   renderConfig,
 }: {
   garden: Garden
-  log: Log
   template: ConfigTemplateConfig
   context: RenderTemplateConfigContext
   renderConfig: RenderTemplateConfig
 }): Promise<ModuleConfig[]> {
+  const yamlDoc = template.internal.yamlDoc
+
   return Promise.all(
-    (template.modules || []).map(async (m) => {
+    (template.modules || []).map(async (m, i) => {
       // Run a partial template resolution with the parent+template info
-      const spec = resolveTemplateStrings(m, context, { allowPartial: true })
+      const spec = resolveTemplateStrings({
+        value: m,
+        context,
+        contextOpts: { allowPartial: true },
+        source: { yamlDoc, basePath: ["modules", i] },
+      })
       const renderConfigPath = renderConfig.internal.configFilePath || renderConfig.internal.basePath
 
       let moduleConfig: ModuleConfig
@@ -198,7 +218,10 @@ async function renderModules({
       try {
         moduleConfig = prepareModuleResource(spec, renderConfigPath, garden.projectRoot)
       } catch (error) {
-        let msg = error.message || String(error)
+        if (!(error instanceof GardenError)) {
+          throw error
+        }
+        let msg = error.message
 
         if (spec.name && spec.name.includes && spec.name.includes("${")) {
           msg +=
@@ -253,12 +276,10 @@ async function renderConfigs({
       let resolvedName = m.name
 
       try {
-        resolvedName = resolveTemplateString(m.name, context, { allowPartial: false })
+        resolvedName = resolveTemplateString({ string: m.name, context, contextOpts: { allowPartial: false } })
       } catch (error) {
         throw new ConfigurationError({
-          message: `Could not resolve the \`name\` field (${m.name}) for a config in ${templateDescription}: ${
-            error.message || error
-          }\n\nNote that template strings in config names in must be fully resolvable at the time of scanning. This means that e.g. references to other actions, modules or runtime outputs cannot be used.`,
+          message: `Could not resolve the \`name\` field (${m.name}) for a config in ${templateDescription}: ${error}\n\nNote that template strings in config names in must be fully resolvable at the time of scanning. This means that e.g. references to other actions, modules or runtime outputs cannot be used.`,
         })
       }
 
@@ -287,7 +308,7 @@ async function renderConfigs({
       try {
         resource = <TemplatableConfig>prepareResource({
           log,
-          spec,
+          doc: new Document(spec) as YamlDocumentWithSource,
           configFilePath: renderConfigPath,
           projectRoot: garden.projectRoot,
           description: `resource in Render ${renderConfig.name}`,

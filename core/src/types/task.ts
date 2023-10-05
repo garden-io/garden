@@ -54,5 +54,5 @@ export function taskFromConfig<M extends GardenModule = GardenModule>(module: M,
 export const taskVersionSchema = memoize(() =>
   moduleVersionSchema().description(deline`
     The task run's version. In addition to the parent module's version, this also
-    factors in the module versions of the tasks's runtime dependencies (if any).`)
+    factors in the module versions of the tasks' runtime dependencies (if any).`)
 )

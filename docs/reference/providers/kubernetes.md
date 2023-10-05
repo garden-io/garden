@@ -13,7 +13,7 @@ Kubernetes clusters, and adds the [`helm`](../../k8s-plugins/action-types/helm.m
 
 For usage information, please refer to the [guides section](../../guides). A good place to start is
 the [Remote Kubernetes guide](../../k8s-plugins/remote-k8s/README.md) guide if you're connecting to remote clusters.
-The [Quickstart guide](../../basics/quickstart.md) guide is also helpful as an introduction.
+The [Quickstart guide](../../getting-started/quickstart.md) guide is also helpful as an introduction.
 
 Note that if you're using a local Kubernetes cluster (e.g. minikube or Docker Desktop), the [local-kubernetes provider](./local-kubernetes.md) simplifies (and automates) the configuration and setup quite a bit.
 

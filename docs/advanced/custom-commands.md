@@ -41,7 +41,7 @@ Before diving in, there are a few constraints and caveats to be aware of when de
 
 We may later lift some of these limitations. Please post a [GitHub issue](https://github.com/garden-io/garden/issues) if any of the above is getting in your way!
 
-## Basics
+## Overview
 
 Each command has to define a `name`, which must be a valid identifier (following the same rules as action names etc.). A short description must also be provided with `description.short`, and you can also provide a longer description on `description.long` which is shown when you run the command with `--help`. For example:
 

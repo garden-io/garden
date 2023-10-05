@@ -158,7 +158,7 @@ import { OtelTraced } from "./util/open-telemetry/decorators"
 import { wrapActiveSpan } from "./util/open-telemetry/spans"
 import { GitRepoHandler } from "./vcs/git-repo"
 import { configureNoOpExporter } from "./util/open-telemetry/tracing"
-import { detectModuleOverlap, makeOverlapErrors, ModuleOverlapDescription } from "./util/module-overlap"
+import { detectModuleOverlap, makeOverlapErrors } from "./util/module-overlap"
 
 const defaultLocalAddress = "localhost"
 
@@ -226,7 +226,7 @@ interface GardenInstanceState {
 @Profile()
 export class Garden {
   public log: Log
-  private loadedPlugins: GardenPluginSpec[]
+  private loadedPlugins?: GardenPluginSpec[]
   protected actionConfigs: ActionConfigMap
   protected moduleConfigs: ModuleConfigMap
   protected workflowConfigs: WorkflowConfigMap
@@ -244,7 +244,7 @@ export class Garden {
   public readonly vcs: VcsHandler
   public readonly treeCache: TreeCache
   public events: EventBus
-  private tools: { [key: string]: PluginTool }
+  private tools?: { [key: string]: PluginTool }
   public configTemplates: { [name: string]: ConfigTemplateConfig }
   private actionTypeBases: ActionTypeMap<ActionTypeDefinition<any>[]>
   private emittedWarnings: Set<string>
@@ -829,7 +829,7 @@ export class Garden {
           provider.moduleConfigs.map(async (moduleConfig) => {
             // Make sure module and all nested entities are scoped to the plugin
             moduleConfig.plugin = provider.name
-            await this.addModuleConfig(moduleConfig)
+            return this.addModuleConfig(moduleConfig)
           })
         )
       )
@@ -991,15 +991,8 @@ export class Garden {
     })
     if (overlaps.length > 0) {
       const overlapErrors = makeOverlapErrors(this.projectRoot, overlaps)
-      const messages: string[] = []
-      const overlappingModules: ModuleOverlapDescription[] = []
-      for (const overlapError of overlapErrors) {
-        const { message, detail } = overlapError
-        messages.push(message)
-        overlappingModules.push(...detail.overlappingModules)
-      }
       throw new ConfigurationError({
-        message: messages.join("\n\n"),
+        message: overlapErrors.join("\n\n"),
       })
     }
 
@@ -1389,7 +1382,7 @@ export class Garden {
         // This is only available with apiVersion `garden.io/v1` or newer.
         if (actionConfigs.length && this.projectApiVersion !== GardenApiVersion.v1) {
           throw new ConfigurationError({
-            message: `Action kinds are only supported in project configurations with "apiVersion: ${GardenApiVersion.v1}". A detailed migration guide is available at ${DOCS_BASE_URL}/tutorials/migrating-to-bonsai`,
+            message: `Action kinds are only supported in project configurations with "apiVersion: ${GardenApiVersion.v1}". A detailed migration guide is available at ${DOCS_BASE_URL}/guides/migrating-to-bonsai`,
           })
         }
 
@@ -1510,9 +1503,15 @@ export class Garden {
    */
   public getProjectSources() {
     const context = new RemoteSourceConfigContext(this, this.variables)
-    const resolved = validateSchema(resolveTemplateStrings(this.projectSources, context), projectSourcesSchema(), {
-      context: "remote source",
-    })
+    const source = { yamlDoc: this.projectConfig.internal.yamlDoc, basePath: ["sources"] }
+    const resolved = validateSchema(
+      resolveTemplateStrings({ value: this.projectSources, context, source }),
+      projectSourcesSchema(),
+      {
+        context: "remote source",
+        source,
+      }
+    )
     return resolved
   }
 
@@ -1723,26 +1722,27 @@ export async function resolveGardenParamsPartial(currentDirectory: string, opts:
 
   // Since we iterate/traverse them before fully validating them (which we do after resolving template strings), we
   // validate that `config.environments` and `config.providers` are both arrays.
-  // This prevents cryptic type errors when the user mistakely writes down e.g. a map instead of an array.
+  // This prevents cryptic type errors when the user mistakenly writes down e.g. a map instead of an array.
   validateWithPath({
     config: config.environments,
     schema: joi.array().items(joi.object()).min(1).required(),
     configType: "project environments",
     path: config.path,
     projectRoot: config.path,
+    source: { yamlDoc: config.internal.yamlDoc, basePath: ["environments"] },
   })
 
-  const configDefaultEnvironment = resolveTemplateString(
-    config.defaultEnvironment || "",
-    new DefaultEnvironmentContext({
+  const configDefaultEnvironment = resolveTemplateString({
+    string: config.defaultEnvironment || "",
+    context: new DefaultEnvironmentContext({
       projectName,
       projectRoot,
       artifactsPath,
       vcsInfo,
       username: _username,
       commandInfo,
-    })
-  ) as string
+    }),
+  }) as string
 
   const localConfigStore = new LocalConfigStore(gardenDirPath)
 
@@ -1829,7 +1829,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
         try {
           cloudProject = await cloudApi.getProjectById(cloudProjectId)
         } catch (err) {
-          cloudLog.debug(`Getting project from API failed with error: ${err.message}`)
+          cloudLog.debug(`Getting project from API failed with error: ${err}`)
         }
       }
 
@@ -1845,7 +1845,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
           if (err instanceof CloudApiDuplicateProjectsError) {
             cloudLog.warn(chalk.yellow(wordWrap(err.message, 120)))
           } else {
-            cloudLog.debug(`Creating a new cloud project failed with error: ${err.message}`)
+            cloudLog.debug(`Creating a new cloud project failed with error: ${err}`)
           }
         }
       }
@@ -1868,7 +1868,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
           cloudLog.verbose(chalk.green("Ready"))
           cloudLog.debug(`Fetched ${Object.keys(secrets).length} secrets from ${cloudDomain}`)
         } catch (err) {
-          cloudLog.debug(`Fetching secrets failed with error: ${err.message}`)
+          cloudLog.debug(`Fetching secrets failed with error: ${err}`)
         }
       } else {
         cloudLog.info(
@@ -1987,6 +1987,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
 })
 
 // Override variables, also allows to override nested variables using dot notation
+// eslint-disable-next-line @typescript-eslint/no-shadow
 export function overrideVariables(variables: DeepPrimitiveMap, overrideVariables: DeepPrimitiveMap): DeepPrimitiveMap {
   let objNew = cloneDeep(variables)
   Object.keys(overrideVariables).forEach((key) => {
@@ -2031,6 +2032,9 @@ export async function makeDummyGarden(root: string, gardenOpts: GardenOpts) {
     apiVersion: GardenApiVersion.v1,
     kind: "Project",
     name: "no-project",
+    internal: {
+      basePath: root,
+    },
     defaultEnvironment: "",
     dotIgnoreFile: defaultDotIgnoreFile,
     environments: [{ name: environmentName, defaultNamespace: _defaultNamespace, variables: {} }],

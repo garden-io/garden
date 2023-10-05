@@ -13,6 +13,36 @@ import chalk from "chalk"
 import stripAnsi from "strip-ansi"
 import { Cycle } from "./graph/common"
 import indentString from "indent-string"
+import { constants } from "os"
+
+// See https://nodejs.org/api/os.html#error-constants
+type NodeJSErrnoErrors = typeof constants.errno
+export type NodeJSErrnoErrorCodes = keyof NodeJSErrnoErrors
+
+const errnoErrorCodeSet = new Set(Object.keys(constants.errno))
+
+/**
+ * NodeJS native errors with a code property.
+ */
+export type NodeJSErrnoException = NodeJS.ErrnoException & {
+  code: NodeJSErrnoErrorCodes
+  errno: number
+}
+
+export type EAddrInUseException = NodeJSErrnoException & {
+  code: "EADDRINUSE"
+  syscall: string
+  address: string
+  port: number
+}
+
+export function isErrnoException(err: any): err is NodeJSErrnoException {
+  return typeof err.code === "string" && typeof err.errno === "number" && errnoErrorCodeSet.has(err.code)
+}
+
+export function isEAddrInUseException(err: any): err is EAddrInUseException {
+  return isErrnoException(err) && err.code === "EADDRINUSE"
+}
 
 export type StackTraceMetadata = {
   functionName: string
@@ -34,7 +64,10 @@ export interface GardenErrorParams {
    * The type of task, if the error was thrown as part of resolving or executing a node in the stack graph.
    */
   readonly taskType?: string
+
+  readonly code?: NodeJSErrnoErrorCodes
 }
+
 export abstract class GardenError extends Error {
   /**
    * The error type will be used for rendering the error to json, and also for analytics.
@@ -46,34 +79,32 @@ export abstract class GardenError extends Error {
    */
   public taskType?: string
 
-  public override message: string
+  /**
+   * If there was an underlying NodeJSErrnoException, the error code
+   */
+  public code?: NodeJSErrnoErrorCodes
+
   public wrappedErrors?: GardenError[]
 
-  constructor({ message, stack, wrappedErrors, taskType }: GardenErrorParams) {
+  constructor({ message, stack, wrappedErrors, taskType, code }: GardenErrorParams) {
     super(message.trim())
     this.stack = stack || this.stack
     this.wrappedErrors = wrappedErrors
     this.taskType = taskType
+    this.code = code
   }
 
   override toString(verbose: boolean = false): string {
     if (verbose || testFlags.expandErrors) {
-      const errorDetails = this.stack || this.message
+      const errorDetails = `${this.stack || this.message}\n\nError type: ${this.type}${
+        this.code ? `\nUnderlying error code: ${this.code}` : ""
+      }
+`
 
       if (this.wrappedErrors) {
-        return dedent`
-          ${errorDetails}
-
-          Error type: ${this.type}
-
-          Wrapped errors:
-          ${this.wrappedErrors?.map(
-            (e) => dedent`
-            ⮑ ${indentString(e.toString(verbose), 3).trim()}
-
-          `
-          )}
-        `
+        return `${errorDetails}\nWrapped errors:\n${this.wrappedErrors?.map(
+          (e) => `⮑ ${indentString(e.toString(verbose), 3).trim()}`
+        )}`
       } else {
         return errorDetails
       }
@@ -98,12 +129,15 @@ export abstract class GardenError extends Error {
   toJSON() {
     return {
       type: this.type,
+      taskType: this.taskType,
+      code: this.code,
       message: this.message,
       stack: this.stack,
       wrappedErrors: this.wrappedErrors,
     }
   }
 }
+
 export class BuildError extends GardenError {
   type = "build"
 }
@@ -117,6 +151,7 @@ type CircularDependenciesErrorParams = {
   cycles: Cycle[]
   cyclesSummary: string
 }
+
 export class CircularDependenciesError extends ConfigurationError {
   private _messagePrefix: string
   cycles: Cycle[]
@@ -183,10 +218,6 @@ export class TimeoutError extends GardenError {
   type = "timeout"
 }
 
-export class OutOfMemoryError extends GardenError {
-  type = "out-of-memory"
-}
-
 export class NotFoundError extends GardenError {
   type = "not-found"
 }
@@ -227,11 +258,19 @@ export class CloudApiError extends GardenError {
 
 export class TemplateStringError extends GardenError {
   type = "template-string"
+
+  path?: (string | number)[]
+
+  constructor(params: GardenErrorParams & { path?: (string | number)[] }) {
+    super(params)
+    this.path = params.path
+  }
 }
 
 interface GenericGardenErrorParams extends GardenErrorParams {
   type: string
 }
+
 export class GenericGardenError extends GardenError {
   type: string
 
@@ -250,6 +289,7 @@ type ChildProcessErrorDetails = {
   stdout: string
   opts?: SpawnOpts
 }
+
 export class ChildProcessError extends GardenError {
   type = "childprocess"
 
@@ -300,8 +340,13 @@ export class InternalError extends GardenError {
   static wrapError(error: Error | string | any, prefix?: string): InternalError {
     let message: string | undefined
     let stack: string | undefined
+    let code: NodeJSErrnoErrorCodes | undefined
 
-    if (error instanceof Error) {
+    if (isErrnoException(error)) {
+      message = error.message
+      stack = error.stack
+      code = error.code
+    } else if (error instanceof Error) {
       message = error.message
       stack = error.stack
     } else if (isString(error)) {
@@ -313,7 +358,7 @@ export class InternalError extends GardenError {
 
     message = message ? stripAnsi(message) : ""
 
-    return new InternalError({ message: prefix ? `${stripAnsi(prefix)}: ${message}` : message, stack })
+    return new InternalError({ message: prefix ? `${stripAnsi(prefix)}: ${message}` : message, stack, code })
   }
 
   override explain(context?: string): string {

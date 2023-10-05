@@ -884,7 +884,7 @@ export const kubernetesCommonRunSchemaKeys = () => ({
   args: joi
     .sparseArray()
     .items(joi.string().allow(""))
-    .description("The arguments to pass to the command/entypoint used for execution.")
+    .description("The arguments to pass to the command/entrypoint used for execution.")
     .example(["rake", "db:migrate"]),
   env: containerEnvVarsSchema(),
   artifacts: joiSparseArray(containerArtifactSchema()).description(artifactsDescription),

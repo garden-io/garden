@@ -135,7 +135,7 @@ export async function runGarden(cwd: string, command: string[]): Promise<JsonLog
     await proc
     return parsedLog
   } catch (err) {
-    let msg = err.message.split("\n")[0]
+    let msg = String(err).split("\n")[0]
     if (parsedLog.length > 0) {
       msg += "\n" + parsedLog.map((l) => stringifyJsonLog(l, { error: true })).join("\n")
     }
@@ -197,12 +197,13 @@ export type WatchTestAction = (logEntries: JsonLogEntry[]) => Promise<void>
  * The pre-relase tests contain some good examples to illustrate this flow.
  */
 export class GardenWatch {
-  public proc: ChildProcess
   public logEntries: JsonLogEntry[]
   public checkIntervalMs: number
-  public testSteps: WatchTestStep[]
-  public currentTestStepIdx: number
-  public running: boolean
+  public currentTestStepIdx: number = 0
+  public running: boolean = false
+  public testSteps: WatchTestStep[] = []
+
+  public proc?: ChildProcess
 
   constructor(
     public dir: string,
@@ -261,7 +262,7 @@ export class GardenWatch {
 
     this.checkIntervalMs = checkIntervalMs
 
-    let error: Error | undefined = undefined
+    let error: unknown = undefined
     const startTime = new Date().getTime()
 
     while (this.running) {
@@ -352,12 +353,12 @@ export class GardenWatch {
     }
 
     this.running = false
-    this.proc.kill()
+    this.proc!.kill()
 
     const startTime = new Date().getTime()
     while (true) {
       await sleep(DEFAULT_CHECK_INTERVAL_MS)
-      if (this.proc.killed) {
+      if (this.proc!.killed) {
         break
       }
       const now = new Date().getTime()

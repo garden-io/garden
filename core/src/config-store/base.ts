@@ -9,7 +9,6 @@
 import { ensureFile, readFile } from "fs-extra"
 import { z, ZodType } from "zod"
 import { lock } from "proper-lockfile"
-import { dump } from "js-yaml"
 import writeFileAtomic from "write-file-atomic"
 import { InternalError } from "../exceptions"
 
@@ -31,18 +30,13 @@ export abstract class ConfigStore<T extends z.ZodObject<any>> {
   async get<S extends keyof I<T>>(section: S): Promise<I<T>[S]>
   async get<S extends keyof I<T>, K extends keyof I<T>[S]>(section: S, key: K): Promise<I<T>[S][K]>
   async get<S extends keyof I<T>, K extends keyof I<T>[S]>(section?: S, key?: K) {
-    const release = await this.lock()
-    try {
-      const config = await this.readConfig()
-      if (section === undefined) {
-        return config
-      } else if (key === undefined) {
-        return config[section]
-      } else {
-        return config[section][key]
-      }
-    } finally {
-      await release()
+    const config = await this.readConfig()
+    if (section === undefined) {
+      return config
+    } else if (key === undefined) {
+      return config[section]
+    } else {
+      return config[section][key]
     }
   }
 
@@ -144,7 +138,7 @@ export abstract class ConfigStore<T extends z.ZodObject<any>> {
     } catch (error) {
       const configPath = this.getConfigPath()
       throw new InternalError({
-        message: `Validation error(s) when ${context} configuration file at ${configPath}:\n${dump(error.message)}`,
+        message: `Validation error(s) when ${context} configuration file at ${configPath}:\n${error}`,
       })
     }
   }

@@ -52,7 +52,7 @@ describe("runCli", () => {
         const record = find(allProcesses, (p) => p.command)
 
         if (!record) {
-          throw new Error("Could not find process record")
+          expect.fail("Could not find process record")
         }
 
         return { result: {} }

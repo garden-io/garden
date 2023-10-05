@@ -1,4 +1,4 @@
-FROM moby/buildkit:v0.10.5@sha256:ca9d86324a000a0cc6d93ae9d0d5a9df750a194d0d43644c3a71fc6230ceba44 as buildkit
+FROM moby/buildkit:v0.12.2@sha256:8ea9857f95c2a0402c245bb0e94f36e2b5b4a1cb05e7ed322c213ed50607ce62 as buildkit
 
 RUN apk add --no-cache wget
 
@@ -16,7 +16,7 @@ RUN wget "https://github.com/GoogleCloudPlatform/docker-credential-gcr/releases/
   chmod +x /usr/local/bin/docker-credential-gcr && \
   rm docker-credential-gcr_linux_amd64-2.0.1.tar.gz
 
-FROM moby/buildkit:v0.10.5-rootless@sha256:3a5eca9b8d5d0e6cdcd0e756d607bf7386cd1b61950daf63afadee79b43ba8bf as buildkit-rootless
+FROM moby/buildkit:v0.12.2-rootless@sha256:0919807170af622451887366c17408dc9a946d04c6fe4fcca3071f9637f8598f as buildkit-rootless
 
 COPY --from=buildkit /usr/local/bin/docker-credential-ecr-login /usr/local/bin/docker-credential-ecr-login
 COPY --from=buildkit /usr/local/bin/docker-credential-gcr /usr/local/bin/docker-credential-gcr

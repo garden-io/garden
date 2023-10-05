@@ -34,7 +34,7 @@ import { deployStateToActionState, DeployStatus } from "../../plugin/handlers/De
 import { ActionState, Resolved } from "../../actions/types"
 import { convertCommandSpec, execRunCommand, getDefaultEnvVars } from "./common"
 import { isRunning, killRecursive } from "../../process"
-import { sdk } from "../../plugin/sdk"
+import { GardenSdkActionDefinitionActionType, GardenSdkActionDefinitionConfigType, sdk } from "../../plugin/sdk"
 import { execProvider } from "./exec"
 import { getTracePropagationEnvVars } from "../../util/open-telemetry/propagation"
 import { DeployState } from "../../types/service"
@@ -106,8 +106,8 @@ export const execDeploy = execProvider.createActionType({
   runtimeOutputsSchema: execRuntimeOutputsSchema,
 })
 
-export type ExecDeployConfig = typeof execDeploy.T.Config
-export type ExecDeploy = typeof execDeploy.T.Action
+export type ExecDeployConfig = GardenSdkActionDefinitionConfigType<typeof execDeploy>
+export type ExecDeploy = GardenSdkActionDefinitionActionType<typeof execDeploy>
 
 execDeploy.addHandler("configure", async ({ config }) => {
   return { config, supportedModes: { sync: !!config.spec.persistent } }
@@ -195,7 +195,7 @@ execDeploy.addHandler("deploy", async (params) => {
     })
 
     if (result.outputLog) {
-      const prefix = `Finished deploying service ${chalk.white(action.name)}. Here is the output:`
+      const prefix = `Finished deploying ${chalk.white(action.name)}. Here is the output:`
       log.verbose(
         renderMessageWithDivider({
           prefix,
@@ -236,7 +236,7 @@ export async function deployPersistentExecService({
   try {
     await resetLogFile(logFilePath)
   } catch (err) {
-    log.debug(`Failed resetting log file for service ${deployName} at path ${logFilePath}: ${err.message}`)
+    log.debug(`Failed resetting log file for service ${deployName} at path ${logFilePath}: ${err}`)
   }
 
   await killProcess(log, pidFilePath, deployName)
@@ -370,7 +370,7 @@ async function killProcess(log: Log, pidFilePath: string, deployName: string) {
           log.debug(`Sent SIGTERM to existing ${deployName} process (PID ${oldPid})`)
         } catch (err) {
           // This most likely means that the process had already been terminated, which is fine for our purposes here.
-          log.debug(`An error occurred while deleting existing ${deployName} process (PID ${oldPid}): ${err.message}`)
+          log.debug(`An error occurred while deleting existing ${deployName} process (PID ${oldPid}): ${err}`)
         }
       }
     }

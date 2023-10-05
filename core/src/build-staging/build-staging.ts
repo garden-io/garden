@@ -8,7 +8,7 @@
 
 import { isAbsolute, join, resolve, relative, parse, basename } from "path"
 import { emptyDir, ensureDir, mkdirp, pathExists, remove } from "fs-extra"
-import { ConfigurationError, InternalError } from "../exceptions"
+import { ConfigurationError, InternalError, isErrnoException } from "../exceptions"
 import { normalizeRelativePath, joinWithPosix } from "../util/fs"
 import { Log } from "../logger/log-entry"
 import { Profile } from "../util/profiling"
@@ -346,7 +346,7 @@ export class BuildStaging {
               fileSyncConcurrencyLimit,
               (targetRelative, fileCb) => {
                 unlink(joinWithPosix(targetPath, targetRelative), (err) => {
-                  if (err && err.code !== "ENOENT") {
+                  if (err && (!isErrnoException(err) || err.code !== "ENOENT")) {
                     fileCb(err)
                   } else {
                     fileCb()

@@ -114,14 +114,6 @@ export function combineStates(states: DeployState[]): DeployState {
 // TODO: support TCP, UDP and gRPC
 export type ServiceProtocol = "http" | "https" // | "tcp" | "udp"
 
-export interface ServiceIngressSpec {
-  hostname?: string
-  linkUrl?: string
-  path: string
-  port: number
-  protocol: ServiceProtocol
-}
-
 export interface ServiceIngress {
   hostname: string
   linkUrl?: string
@@ -217,10 +209,6 @@ export interface ServiceStatus<D = any, O = PrimitiveMap> {
   runningReplicas?: number
   state: DeployState
   updatedAt?: string
-}
-
-export interface ServiceStatusMap {
-  [key: string]: ServiceStatus
 }
 
 export const serviceStatusSchema = createSchema({

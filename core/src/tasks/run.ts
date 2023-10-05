@@ -25,8 +25,8 @@ import { GardenError } from "../exceptions"
  *
  * Unexpected errors should just bubble up; When the task ran successfully, but it reported a failure (e.g. linter found issues).
  *
- * TODO: This probably should not be handled with an exception and instead just be an object that represents a run failure or succcess.
- * For now however, we use the error and should be careful with how we use it.
+ * TODO: This probably should not be handled with an exception and instead just be an object that represents a run failure or success.
+ *   For now however, we use the error and should be careful with how we use it.
  */
 class RunFailedError extends GardenError {
   override type = "run-failed"

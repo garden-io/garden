@@ -75,7 +75,7 @@ describe("run actions", () => {
     it("should throw if the outputs don't match the task outputs schema of the plugin", async () => {
       resolvedRunAction._config[returnWrongOutputsCfgKey] = true
       await expectError(() => actionRouter.run.getResult({ log, action: resolvedRunAction, graph }), {
-        contains: "Error validating runtime action outputs from Run 'task-a': key .foo must be a string",
+        contains: ["Error validating runtime action outputs from Run 'task-a'", "foo must be a string"],
       })
     })
   })
@@ -101,7 +101,7 @@ describe("run actions", () => {
             interactive: true,
             graph,
           }),
-        { contains: "Error validating runtime action outputs from Run 'task-a': key .foo must be a string" }
+        { contains: ["Error validating runtime action outputs from Run 'task-a'", "foo must be a string"] }
       )
     })
 

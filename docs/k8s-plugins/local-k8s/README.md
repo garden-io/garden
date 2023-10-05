@@ -17,6 +17,9 @@ The officially supported variants of local Kubernetes are the latest stable vers
 - [Minikube](https://github.com/kubernetes/minikube)
 - [MicroK8s](https://microk8s.io)
 - [KinD](https://github.com/kubernetes-sigs/kind)
+- [K3s](https://k3s.io)
+- [Rancher Desktop](https://rancherdesktop.io)
+- [Orbstack](https://orbstack.dev)
 
 Other distributions may also work, but are not routinely tested or explicitly supported. Please don't hesitate to file issues, PRs or requests for your distribution of choice!
 

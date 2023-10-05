@@ -12,7 +12,7 @@ import { CloudApi, getGardenCloudDomain } from "../cloud/api"
 import { dedent, deline } from "../util/string"
 import { getCloudDistributionName } from "../util/util"
 import { ConfigurationError } from "../exceptions"
-import { ProjectResource } from "../config/project"
+import { ProjectConfig } from "../config/project"
 import { findProjectConfig } from "../config/base"
 import { BooleanParameter } from "../cli/params"
 
@@ -43,7 +43,7 @@ export class LogOutCommand extends Command<{}, Opts> {
     // The Cloud API is missing from the Garden class for commands with noProject
     // so we initialize it with a cloud domain derived from `getGardenCloudDomain`.
 
-    let projectConfig: ProjectResource | undefined = undefined
+    let projectConfig: ProjectConfig | undefined = undefined
     const forceProjectCheck = !opts["disable-project-check"]
 
     if (forceProjectCheck) {
@@ -87,12 +87,12 @@ export class LogOutCommand extends Command<{}, Opts> {
       cloudApi.close()
     } catch (err) {
       const msg = dedent`
-      The following issue occurred while logging out from ${distroName} (your session will be cleared regardless): ${err.message}\n
+      The following issue occurred while logging out from ${distroName} (your session will be cleared regardless): ${err}\n
       `
       log.warn(msg)
     } finally {
       await CloudApi.clearAuthToken(log, garden.globalConfigStore, cloudDomain)
-      log.info({ msg: `Succesfully logged out from ${cloudDomain}.` })
+      log.info({ msg: `Successfully logged out from ${cloudDomain}.` })
     }
     return {}
   }

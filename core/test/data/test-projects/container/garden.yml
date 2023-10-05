@@ -7,6 +7,7 @@ environments:
   - name: kaniko
   - name: kaniko-project-namespace
   - name: kaniko-image-override
+  - name: kaniko-remote-registry
   - name: cluster-buildkit
   - name: cluster-buildkit-rootless
 providers:
@@ -18,8 +19,8 @@ providers:
           - "**/prefix-*"
   - name: local-kubernetes
     deploymentRegistry: &deploymentRegistry
-      hostname: index.docker.io
-      namespace: gardendev
+      hostname: europe-west3-docker.pkg.dev
+      namespace: garden-ci/garden-integ-tests
     environments: [local-remote-registry]
   - &base
     name: local-kubernetes
@@ -40,7 +41,11 @@ providers:
     environments: [kaniko-image-override]
     buildMode: kaniko
     kaniko:
-      image: gcr.io/kaniko-project/executor:debug-perf
+      image: gcr.io/kaniko-project/executor:v1.16.0-debug
+    deploymentRegistry: *deploymentRegistry
+  - <<: *base
+    environments: [kaniko-remote-registry]
+    buildMode: kaniko
     deploymentRegistry: *deploymentRegistry
   - <<: *base
     environments: [cluster-buildkit]

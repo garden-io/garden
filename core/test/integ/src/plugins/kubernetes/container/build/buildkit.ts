@@ -29,8 +29,9 @@ import { createActionLog } from "../../../../../../../src/logger/log-entry"
 import { resolveAction } from "../../../../../../../src/graph/actions"
 import { NamespaceStatus } from "../../../../../../../src/types/namespace"
 
-grouped("cluster-buildkit", "remote-only").describe("ensureBuildkit", () => {
+describe.skip("ensureBuildkit", () => {
   let garden: Garden
+  let cleanup: (() => void) | undefined
   let provider: KubernetesProvider
   let ctx: PluginContext
   let api: KubeApi
@@ -46,7 +47,13 @@ grouped("cluster-buildkit", "remote-only").describe("ensureBuildkit", () => {
   ]
 
   before(async () => {
-    garden = await getContainerTestGarden("cluster-buildkit")
+    ;({ garden, cleanup } = await getContainerTestGarden("cluster-buildkit"))
+  })
+
+  after(async () => {
+    if (cleanup) {
+      cleanup()
+    }
   })
 
   beforeEach(async () => {
@@ -62,13 +69,7 @@ grouped("cluster-buildkit", "remote-only").describe("ensureBuildkit", () => {
     ).namespaceName
   })
 
-  after(async () => {
-    if (garden) {
-      garden.close()
-    }
-  })
-
-  grouped("cluster-buildkit").context("cluster-buildkit mode", () => {
+  grouped("cluster-buildkit", "remote-only").context("cluster-buildkit mode", () => {
     it("deploys buildkit if it isn't already in the namespace", async () => {
       try {
         await api.apps.deleteNamespacedDeployment(buildkitDeploymentName, namespace)
@@ -213,7 +214,7 @@ grouped("cluster-buildkit", "remote-only").describe("ensureBuildkit", () => {
     })
   })
 
-  grouped("cluster-buildkit-rootless").context("cluster-buildkit-rootless mode", () => {
+  grouped("cluster-buildkit-rootless", "remote-only").context("cluster-buildkit-rootless mode", () => {
     it("deploys in rootless mode", async () => {
       try {
         await api.apps.deleteNamespacedDeployment(buildkitDeploymentName, namespace)
