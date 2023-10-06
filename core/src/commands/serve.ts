@@ -137,6 +137,7 @@ export class ServeCommand<
         port: opts.port,
         defaultProjectRoot: manager.defaultProjectRoot || process.cwd(),
         serveCommand: this,
+        remoteWsServerUrl: `${cloudDomain}/ws/cli`,
       })
     } catch (err) {
       if (isEAddrInUseException(err)) {

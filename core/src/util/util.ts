@@ -83,6 +83,10 @@ export type MakeOptional<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>
 export interface Dictionary<T> {
   [index: string]: T
 }
+// From: https://stackoverflow.com/a/59774743
+export type AsyncReturnType<T extends (...args: any) => Promise<any>> = T extends (...args: any) => Promise<infer R>
+  ? R
+  : any
 
 const MAX_BUFFER_SIZE = 1024 * 1024
 

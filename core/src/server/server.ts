@@ -7,6 +7,7 @@
  */
 
 import type { Server } from "http"
+import WebSocket from "ws"
 
 import Koa from "koa"
 import Router from "koa-router"
@@ -17,14 +18,21 @@ import { isArray, omit } from "lodash-es"
 
 import type { BaseServerRequest } from "./commands.js"
 import { resolveRequest, serverRequestSchema, shellCommandParamsSchema } from "./commands.js"
-import { DEFAULT_GARDEN_DIR_NAME, gardenEnv } from "../constants.js"
+import { DEFAULT_GARDEN_DIR_NAME, DEFAULT_MAX_REMOTE_WS_RETRIES, gardenEnv } from "../constants.js"
 import type { Log } from "../logger/log-entry.js"
 import type { Command, CommandResult, PrepareParams } from "../commands/base.js"
 import type { GardenError } from "../exceptions.js"
-import { toGardenError, isEAddrInUseException, ParameterError, isErrnoException, CommandError } from "../exceptions.js"
+import {
+  toGardenError,
+  isEAddrInUseException,
+  ParameterError,
+  isErrnoException,
+  CommandError,
+  ServerError,
+} from "../exceptions.js"
 import type { EventName, Events } from "../events/events.js"
 import { EventBus, shouldStreamWsEvent } from "../events/events.js"
-import type { ValueOf } from "../util/util.js"
+import type { AsyncReturnType, ValueOf } from "../util/util.js"
 import { joi } from "../config/common.js"
 import { dedent, randomString } from "../util/string.js"
 import { authTokenHeader } from "../cloud/auth.js"
@@ -40,7 +48,7 @@ import { join } from "path"
 import { GlobalConfigStore } from "../config-store/global.js"
 import { validateSchema } from "../config/validation.js"
 import type { ConfigGraph } from "../graph/config-graph.js"
-import { getGardenCloudDomain } from "../cloud/api.js"
+import { CloudApi, getGardenCloudDomain } from "../cloud/api.js"
 import type { ServeCommand } from "../commands/serve.js"
 import type { AutocompleteSuggestion } from "../cli/autocomplete.js"
 import { z } from "zod"
@@ -54,6 +62,7 @@ import { styles } from "../logger/styles.js"
 
 const skipLogsForCommands = ["autocomplete"]
 const serverLogName = "garden-server"
+const defaultRemoteWsRetryIntervalMs = 2500
 
 const skipAnalyticsForCommands = ["sync status"]
 
@@ -96,11 +105,14 @@ interface GardenServerParams {
   defaultProjectRoot: string
   serveCommand: ServeCommand
   port?: number
+  remoteWsServerUrl: string | null
+  remoteWsRetryIntervalMs?: number
 }
 
 interface ServerConnection {
   id: string
-  websocket: Koa.Context["websocket"]
+  //  websocket: Koa.Context["websocket"]
+  websocket: WebSocket
   subscribedGardenKeys: Set<string>
   eventListener: EventPipeListener
   logListener: EventPipeListener
@@ -124,7 +136,13 @@ export async function startServer(params: GardenServerParams) {
   }
   const server = new GardenServer(params)
   await server.start()
+
   return server
+}
+
+interface EventQueueItem<T extends ServerWebsocketMessageType = ServerWebsocketMessageType> {
+  type: T
+  payload: ServerWebsocketMessages[T]
 }
 
 export class GardenServer extends EventEmitter {
@@ -139,17 +157,31 @@ export class GardenServer extends EventEmitter {
   private globalConfigStore: GlobalConfigStore
   private serveCommand: ServeCommand
 
+  private remoteWsServerUrl: string | null
+  private remoteWsRetryIntervalMs: number
+  private remoteWsReconnectAttempts: number
+
   private defaultProjectRoot: string
   private defaultEnv?: string
 
   private activePersistentRequests: { [requestId: string]: { command: Command; connection: ServerConnection } }
   private openConnections: Map<string, ServerConnection>
 
+  private eventQueue: EventQueueItem[]
+
   public port: number | undefined
   public readonly authKey: string
   public readonly sessionId: string
 
-  constructor({ log, manager, port, defaultProjectRoot, serveCommand }: GardenServerParams) {
+  constructor({
+    log,
+    manager,
+    port,
+    defaultProjectRoot,
+    serveCommand,
+    remoteWsServerUrl,
+    remoteWsRetryIntervalMs = defaultRemoteWsRetryIntervalMs,
+  }: GardenServerParams) {
     super()
     this.log = log
     this.debugLog = this.log.createLog({ fixLevel: LogLevel.debug })
@@ -163,6 +195,10 @@ export class GardenServer extends EventEmitter {
     this.incomingEvents = new EventBus()
     this.activePersistentRequests = {}
     this.serveCommand = serveCommand
+    this.remoteWsServerUrl = remoteWsServerUrl
+    this.remoteWsRetryIntervalMs = remoteWsRetryIntervalMs
+    this.remoteWsReconnectAttempts = 0
+    this.eventQueue = []
   }
 
   async start() {
@@ -251,6 +287,11 @@ export class GardenServer extends EventEmitter {
     }
 
     this.statusLog = this.log.createLog()
+
+    // Connect to API server over ws
+    if (gardenEnv.GARDEN_ENABLE_REMOTE_WS) {
+      await this.initRemoteWs()
+    }
   }
 
   getBaseUrl() {
@@ -290,12 +331,12 @@ export class GardenServer extends EventEmitter {
     return localConfig.get("defaultEnv")
   }
 
-  async resolveRequest(ctx: Router.IRouterContext | Koa.ParameterizedContext, request: BaseServerRequest) {
+  async resolveRequest(request: BaseServerRequest) {
     // Perform basic validation and find command.
     try {
       request = validateSchema(request, serverRequestSchema(), { context: "API request" })
     } catch (err) {
-      return ctx.throw(400, `Invalid request format: ${err}`)
+      throw new ServerError({ message: `Invalid request format: ${err}`, httpCode: 400 })
     }
 
     try {
@@ -312,17 +353,17 @@ export class GardenServer extends EventEmitter {
         if (result.error.detail) {
           msg += ": " + result.error.detail
         }
-        return ctx.throw(result.error.code, msg)
+        throw new ServerError({ message: msg, httpCode: result.error.code })
       }
 
       return result
     } catch (error) {
-      if (error instanceof Koa.HttpError) {
+      if (error instanceof ServerError) {
         throw error
       }
       const message = String(error)
       this.log.error({ msg: message, error: toGardenError(error) })
-      return ctx.throw(500, `Unable to process request: ${message}`)
+      throw new ServerError({ message: `Unable to process request: ${message}`, httpCode: 500 })
     }
   }
 
@@ -335,7 +376,7 @@ export class GardenServer extends EventEmitter {
       const authToken = ctx.header[authTokenHeader] || ctx.query.key
       const sessionId = ctx.query.sessionId
 
-      // We allow either sessionId or authKey ro authorize
+      // We allow either sessionId or authKey to authorize
       if (authToken !== this.authKey && sessionId !== this.sessionId) {
         return ctx.throw(401, `Unauthorized request`)
       }
@@ -352,7 +393,17 @@ export class GardenServer extends EventEmitter {
     http.post("/api", async (ctx) => {
       this.debugLog.debug(`Received request: ${JSON.stringify(ctx.request.body)}`)
 
-      const { garden, command, log, args, opts } = await this.resolveRequest(ctx, ctx.request.body as BaseServerRequest)
+      let resolved: AsyncReturnType<typeof this.resolveRequest>
+      try {
+        resolved = await this.resolveRequest(ctx.request.body as BaseServerRequest)
+      } catch (err) {
+        if (err instanceof ServerError) {
+          return ctx.throw(err.httpCode, err.message)
+        }
+        throw err
+      }
+
+      const { garden, command, log, args, opts } = resolved
 
       if (!command) {
         return ctx.throw(400, "Must specify command parameter.")
@@ -399,7 +450,18 @@ export class GardenServer extends EventEmitter {
      * Resolves the URL for the given provider dashboard page, and redirects to it.
      */
     http.get("/dashboardPages/:pluginName/:pageName", async (ctx) => {
-      const { garden } = await this.resolveRequest(ctx, ctx.request.body as BaseServerRequest)
+      let resolved: AsyncReturnType<typeof this.resolveRequest>
+      try {
+        resolved = await this.resolveRequest(ctx.request.body as BaseServerRequest)
+      } catch (err) {
+        if (err instanceof ServerError) {
+          return ctx.throw(err.httpCode, err.message)
+        } else {
+          throw err
+        }
+      }
+
+      const { garden } = resolved
 
       const { pluginName, pageName } = ctx.params
 
@@ -460,90 +522,13 @@ export class GardenServer extends EventEmitter {
       // The typing for koa-router isn't working currently
       const websocket: Koa.Context["websocket"] = ctx["websocket"]
 
-      const connectionId = uuidv4()
-
-      // Helper to make JSON messages, make them type-safe, and to log errors.
-      const send: SendWrapper = (type, payload) => {
-        // Need to make sure that the log entries created here aren't emitted to prevent
-        // an infinite loop.
-        const skipEmit = true
-        const event = { type, ...(<object>payload) }
-        const jsonEvent = JSON.stringify(event)
-        this.log.debug({ msg: `Send ${type} event: ${jsonEvent}`, skipEmit })
-        websocket.send(jsonEvent, (err?: Error) => {
-          if (err) {
-            this.debugLog.debug({ error: toGardenError(err), skipEmit })
-          }
-        })
-      }
-
       if (ctx.query.key !== this.authKey && ctx.query.sessionId !== this.sessionId) {
-        send("error", { message: `401 Unauthorized` })
-        const wsUnauthorizedEvent = websocketCloseEvents.unauthorized
-        websocket.close(wsUnauthorizedEvent.code, wsUnauthorizedEvent.message)
+        this.sendWsMessage(websocket, "error", { message: `401 Unauthorized` })
+        websocket.close(websocketCloseEvents.unauthorized.code, websocketCloseEvents.unauthorized.message)
         return
       }
 
-      const subscribedGardenKeys: Set<string> = new Set()
-
-      const eventListener: EventPipeListener = (name, payload) => {
-        if (shouldStreamWsEvent(name, payload)) {
-          send("event", { name, payload })
-        }
-      }
-
-      const logListener: EventPipeListener = (name: EventName, payload) => {
-        const gardenKey = payload?.context?.gardenKey
-        if (name === "logEntry" && gardenKey) {
-          send(name, payload)
-        }
-      }
-
-      const connection = {
-        id: connectionId,
-        websocket,
-        subscribedGardenKeys,
-        eventListener,
-        logListener,
-      }
-
-      this.openConnections.set(connectionId, connection)
-
-      send("event", { name: "connectionReady", payload: {} })
-
-      const cleanup = () => {
-        this.log.debug(`Connection ${connectionId} terminated, cleaning up.`)
-
-        this.manager.events.offAny(eventListener)
-        this.log.root.events.offAny(logListener)
-
-        for (const [id, req] of Object.entries(this.activePersistentRequests)) {
-          if (connectionId === req.connection.id) {
-            req.command.terminate()
-
-            delete this.activePersistentRequests[id]
-          }
-        }
-
-        this.openConnections.delete(connectionId)
-      }
-
-      // Set up heartbeat to detect dead connections
-      this.setupWsHeartbeat(connectionId, websocket, cleanup)
-
-      this.manager.events.ensureAny(eventListener)
-      // TODO: scope and filter logs instead of emitting everything from all instances
-      this.log.root.events.ensureAny(logListener)
-
-      // Make sure we clean up listeners when connections end.
-      websocket.on("close", cleanup)
-
-      // Respond to commands.
-      websocket.on("message", (msg: string | Buffer) => {
-        this.handleWsMessage({ msg, ctx, send, connection }).catch((err) => {
-          send("error", { message: err.message })
-        })
-      })
+      this.registerWsConnection({ websocket })
     })
 
     wsRouter.get("/pty", async (ctx) => {
@@ -615,7 +600,7 @@ export class GardenServer extends EventEmitter {
           }
         })
 
-        this.setupWsHeartbeat(connectionId, websocket, cleanup)
+        this.startWsHeartbeat(connectionId, websocket, cleanup)
 
         // Make sure we clean up listeners when connections end.
         websocket.on("close", cleanup)
@@ -640,9 +625,165 @@ export class GardenServer extends EventEmitter {
     app.ws.use(<Koa.Middleware<any>>wsRouter.allowedMethods())
   }
 
-  private setupWsHeartbeat(connectionId: string, websocket: Koa.Context["websocket"], cleanup: () => void) {
+  private sendWsMessage<T extends ServerWebsocketMessageType = ServerWebsocketMessageType>(
+    websocket: WebSocket,
+    type: T,
+    payload: ServerWebsocketMessages[T]
+  ) {
+    if (websocket.readyState !== 1) {
+      // Queue events until connection is ready
+      this.eventQueue.push({ type, payload })
+      return
+    }
+    // Need to make sure that the log entries created here aren't emitted to prevent
+    // an infinite loop.
+    const skipEmit = true
+    const event = { type, ...(<object>payload) }
+    const jsonEvent = JSON.stringify(event)
+    this.log.debug({ msg: `Send ${type} event: ${jsonEvent}`, skipEmit })
+    websocket.send(jsonEvent, (err?: Error) => {
+      if (err) {
+        this.debugLog.debug({ error: toGardenError(err), skipEmit })
+      }
+    })
+  }
+
+  /**
+   * Create a ws connection between Core and the Cloud API server.
+   */
+  private async initRemoteWs() {
+    if (!this.remoteWsServerUrl) {
+      return
+    }
+
+    const wsServerUrl = new URL(this.remoteWsServerUrl)
+    // FIXME @eysi: Don't use the token fallback
+    const authToken = (await CloudApi.getStoredAuthToken(
+      this.log,
+      this.globalConfigStore,
+      `https://${wsServerUrl.hostname}`
+    )) || { token: "" }
+    wsServerUrl.search = `?sessionId=${this.sessionId}&accessToken=${authToken.token}`
+
+    let websocket: WebSocket = new WebSocket(wsServerUrl.toString())
+
+    this.registerWsConnection({ websocket })
+
+    let sendAuthKeyIntervalId: NodeJS.Timeout
+    let isReconnecting = false
+    const reconnect = (code: number, reason: string) => {
+      if (sendAuthKeyIntervalId) {
+        clearInterval(sendAuthKeyIntervalId)
+      }
+
+      if (isReconnecting) {
+        return
+      }
+
+      isReconnecting = true
+
+      if (this.remoteWsReconnectAttempts >= DEFAULT_MAX_REMOTE_WS_RETRIES) {
+        this.log.warn(`Unable to reconnect to websocket server. Giving up.`)
+        isReconnecting = false
+        return
+      }
+
+      this.log.debug(
+        `WebSocket closed (code=${code}, reason=${reason}). Will reconnect (attempt ${this.remoteWsReconnectAttempts}/${DEFAULT_MAX_REMOTE_WS_RETRIES})`
+      )
+
+      // Create a new connection (the old one is cleaned up in the initRemoteWs handler)
+      setTimeout(() => {
+        this.remoteWsReconnectAttempts += 1
+        this.initRemoteWs()
+        isReconnecting = false
+      }, this.remoteWsRetryIntervalMs)
+    }
+
+    const sendAuthKey = () => {
+      this.sendWsMessage(websocket, "event", { name: "authKey", payload: { authKey: this.authKey } })
+    }
+
+    websocket.on("open", () => {
+      sendAuthKey()
+      sendAuthKeyIntervalId = setInterval(sendAuthKey, 2500)
+
+      // Drain queue when connection opens in FIFO fashion
+      while (this.eventQueue.length > 0) {
+        const item = this.eventQueue.shift()
+        if (item) {
+          this.sendWsMessage(websocket, item.type, item.payload)
+        }
+      }
+    })
+    websocket.on("close", reconnect)
+  }
+
+  private registerWsConnection({ websocket }: { websocket: WebSocket }) {
+    const connectionId = uuidv4()
+    const subscribedGardenKeys: Set<string> = new Set()
+
+    const eventListener: EventPipeListener = (name, payload) => {
+      if (shouldStreamWsEvent(name, payload)) {
+        this.sendWsMessage(websocket, "event", { name, payload })
+      }
+    }
+
+    const logListener: EventPipeListener = (name: EventName, payload) => {
+      const gardenKey = payload?.context?.gardenKey
+      if (name === "logEntry" && gardenKey) {
+        this.sendWsMessage(websocket, name, payload)
+      }
+    }
+
+    const connection = {
+      id: connectionId,
+      websocket,
+      subscribedGardenKeys,
+      eventListener,
+      logListener,
+    }
+
+    this.openConnections.set(connectionId, connection)
+    this.sendWsMessage(websocket, "event", { name: "connectionReady", payload: {} })
+
+    const cleanup = () => {
+      this.log.debug(`Connection ${connectionId} terminated, cleaning up.`)
+
+      this.manager.events.offAny(eventListener)
+      this.log.root.events.offAny(logListener)
+
+      for (const [id, req] of Object.entries(this.activePersistentRequests)) {
+        if (connectionId === req.connection.id) {
+          req.command.terminate()
+
+          delete this.activePersistentRequests[id]
+        }
+      }
+
+      this.openConnections.delete(connectionId)
+    }
+
+    this.manager.events.ensureAny(eventListener)
+    // TODO: scope and filter logs instead of emitting everything from all instances
+    this.log.root.events.ensureAny(logListener)
+
+    // Make sure we clean up listeners when connections end.
+    websocket.on("close", cleanup)
+    websocket.on("open", () => {
+      this.startWsHeartbeat(connectionId, websocket, cleanup)
+    })
+    websocket.on("message", (msg: string | Buffer) => {
+      this.handleWsMessage({ msg, websocket, connection }).catch((err) => {
+        this.sendWsMessage(websocket, "error", { message: err.message })
+      })
+    })
+  }
+
+  private startWsHeartbeat(connectionId: string, websocket: WebSocket, cleanup: () => void) {
     // Set up heartbeat to detect dead connections
     let isAlive = true
+
     const heartbeatInterval = setInterval(() => {
       if (!isAlive) {
         this.log.debug(`Connection ${connectionId} timed out.`)
@@ -652,7 +793,7 @@ export class GardenServer extends EventEmitter {
       }
 
       isAlive = false
-      websocket.ping(() => {})
+      websocket.ping(() => { })
     }, 1000)
 
     websocket.on("pong", () => {
@@ -662,48 +803,76 @@ export class GardenServer extends EventEmitter {
 
   private async handleWsMessage({
     msg,
-    ctx,
-    send,
+    websocket,
     connection,
   }: {
     msg: string | Buffer
-    ctx: Koa.ParameterizedContext
-    send: SendWrapper
+    websocket: WebSocket
     connection: ServerConnection
   }) {
     let request: any
 
-    this.log.silly(() => "Got request: " + msg)
+    this.log.silly(() => "Got request: " + msg.toString())
 
     try {
       request = JSON.parse(msg.toString())
     } catch {
-      return send("error", { message: "Could not parse message as JSON" })
+      return this.sendWsMessage(websocket, "error", { message: "Could not parse message as JSON" })
     }
 
+    const authKey: string = request.authKey
+    const sessionId: string = request.sessionId
     const requestId: string = request.id
     const requestType: string = request.type
+
+    if (gardenEnv.GARDEN_ENABLE_REMOTE_WS) {
+      try {
+        joi.attempt(authKey, joi.string().required())
+      } catch {
+        return this.sendWsMessage(websocket, "error", {
+          message: "Message should contain an `authKey` field with a string value",
+          requestId,
+        })
+      }
+      try {
+        joi.attempt(sessionId, joi.string().required())
+      } catch {
+        return this.sendWsMessage(websocket, "error", {
+          message: "Message should contain a `sessionId` field with a UUID value",
+          requestId,
+        })
+      }
+
+      if (authKey !== this.authKey || sessionId !== this.sessionId) {
+        this.sendWsMessage(websocket, "error", { message: `401 Unauthorized` })
+        websocket.close(websocketCloseEvents.unauthorized.code, websocketCloseEvents.unauthorized.message)
+        return
+      }
+    }
 
     try {
       joi.attempt(requestId, joi.string().uuid().required())
     } catch {
-      return send("error", { message: "Message should contain an `id` field with a UUID value", requestId })
+      return this.sendWsMessage(websocket, "error", {
+        message: "Message should contain an `id` field with a UUID value",
+        requestId,
+      })
     }
 
     try {
       joi.attempt(request.type, joi.string().required())
     } catch {
-      return send("error", { message: "Message should contain a type field" })
+      return this.sendWsMessage(websocket, "error", { message: "Message should contain a type field" })
     }
 
     if (requestType === "command") {
       // Start a command
       try {
-        const resolved = await this.resolveRequest(ctx, omit(request, "type"))
+        const resolved = await this.resolveRequest(omit(request, "type"))
         const { garden, command, log: commandLog, args, opts, internal } = resolved
 
         if (!command) {
-          return send("error", { message: "Command not specified in type=command request" })
+          return this.sendWsMessage(websocket, "error", { message: "Command not specified in type=command request" })
         }
 
         connection.subscribedGardenKeys.add(garden.getInstanceKey())
@@ -723,9 +892,9 @@ export class GardenServer extends EventEmitter {
         const requestLog = skipLogsForCommands.includes(command.getFullName())
           ? null
           : this.log.createLog({
-              name: serverLogName,
-              fixLevel: internal ? LogLevel.debug : undefined,
-            })
+            name: serverLogName,
+            fixLevel: internal ? LogLevel.debug : undefined,
+          })
 
         const cmdNameStr = styles.command(request.command + (internal ? ` (internal)` : ""))
         const commandSessionId = requestId
@@ -747,7 +916,7 @@ export class GardenServer extends EventEmitter {
           .prepare(prepareParams)
           .then(() => {
             if (persistent) {
-              send("commandStart", {
+              this.sendWsMessage(websocket, "commandStart", {
                 ...commandResponseBase,
                 args,
                 opts,
@@ -755,7 +924,7 @@ export class GardenServer extends EventEmitter {
               this.activePersistentRequests[requestId] = { command, connection }
 
               command.subscribe((data: any) => {
-                send("commandOutput", {
+                this.sendWsMessage(websocket, "commandOutput", {
                   ...commandResponseBase,
                   data: sanitizeValue(data),
                 })
@@ -802,7 +971,8 @@ export class GardenServer extends EventEmitter {
           // Here we handle the actual command result.
           .then((commandResult) => {
             const { result, errors } = commandResult
-            send(
+            this.sendWsMessage(
+              websocket,
               "commandResult",
               sanitizeValue({
                 ...commandResponseBase,
@@ -823,7 +993,7 @@ export class GardenServer extends EventEmitter {
             delete this.activePersistentRequests[requestId]
           })
           .catch((error) => {
-            send("error", { message: error.message, requestId })
+            this.sendWsMessage(websocket, "error", { message: error.message, requestId })
             requestLog?.error({
               msg: `Command ${cmdNameStr} failed with errors:`,
               error: toGardenError(error),
@@ -835,13 +1005,13 @@ export class GardenServer extends EventEmitter {
           msg: `Unexpected error handling request ID ${requestId}: ${error}`,
           error: toGardenError(error),
         })
-        return send("error", { message: String(error), requestId })
+        return this.sendWsMessage(websocket, "error", { message: String(error), requestId })
       }
     } else if (requestType === "commandStatus") {
       // Retrieve the status for an active persistent command
       const r = this.activePersistentRequests[requestId]
       const status = r ? "active" : "not found"
-      send("commandStatus", {
+      this.sendWsMessage(websocket, "commandStatus", {
         requestId,
         status,
       })
@@ -857,7 +1027,7 @@ export class GardenServer extends EventEmitter {
       delete this.activePersistentRequests[requestId]
     } else if (requestType === "loadConfig") {
       // Emit the config graph for the project (used for the Cloud dashboard)
-      const resolved = await this.resolveRequest(ctx, omit(request, "type"))
+      const resolved = await this.resolveRequest(omit(request, "type"))
       let { garden } = resolved
       const { log: _log } = resolved
       const log = _log.createLog({ fixLevel: LogLevel.silly })
@@ -900,7 +1070,8 @@ export class GardenServer extends EventEmitter {
           loadConfigLog.success("Config loaded")
         }
         await cloudEventStream.close() // Note: This also flushes events
-        send(
+        this.sendWsMessage(
+          websocket,
           "commandResult",
           sanitizeValue({
             requestId,
@@ -914,12 +1085,14 @@ export class GardenServer extends EventEmitter {
       // Note: If "loadConfig" or a Garden command has not been run, a limited set of results will be returned.
       const input = request.input
       if (!request.input || typeof input !== "string") {
-        return send("error", { message: "Message should contain an input field of type string" })
+        return this.sendWsMessage(websocket, "error", {
+          message: "Message should contain an input field of type string",
+        })
       }
 
       const projectRoot = request.projectRoot
       if (projectRoot && typeof projectRoot !== "string") {
-        return send("error", { message: "projectRoot must be a string" })
+        return this.sendWsMessage(websocket, "error", { message: "projectRoot must be a string" })
       }
 
       try {
@@ -928,12 +1101,15 @@ export class GardenServer extends EventEmitter {
           projectRoot: projectRoot || this.defaultProjectRoot,
           input,
         })
-        return send("autocompleteResult", { requestId, suggestions })
+        return this.sendWsMessage(websocket, "autocompleteResult", { requestId, suggestions })
       } catch (error) {
-        return send("error", { requestId, message: `Failed computing suggestions for input '${input}': ${error}` })
+        return this.sendWsMessage(websocket, "error", {
+          requestId,
+          message: `Failed computing suggestions for input '${input}': ${error}`,
+        })
       }
     } else {
-      return send("error", {
+      return this.sendWsMessage(websocket, "error", {
         requestId,
         message: `Unsupported request type: ${requestType}`,
       })
@@ -984,11 +1160,6 @@ interface ServerWebsocketMessages {
 }
 
 type ServerWebsocketMessageType = keyof ServerWebsocketMessages
-
-type SendWrapper<T extends ServerWebsocketMessageType = ServerWebsocketMessageType> = (
-  type: T,
-  payload: ServerWebsocketMessages[T]
-) => void
 
 const shellCommandBodySchema = shellCommandParamsSchema.extend({
   key: z.string().describe("The server auth key."),

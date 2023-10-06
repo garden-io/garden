@@ -266,6 +266,17 @@ export class NotFoundError extends GardenError {
   type = "not-found"
 }
 
+export class ServerError extends GardenError {
+  type = "server-error"
+
+  httpCode: number
+
+  constructor(params: GardenErrorParams & { httpCode: number }) {
+    super(params)
+    this.httpCode = params.httpCode
+  }
+}
+
 interface WorkflowScriptErrorDetails {
   output: string
   exitCode: number

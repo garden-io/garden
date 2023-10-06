@@ -194,6 +194,9 @@ export interface Events {
   }
   connectionReady: {}
   receivedToken: AuthTokenResponse
+  authKey: {
+    authKey: string
+  }
 
   // Session events - one of these is emitted when the command process ends
   sessionCompleted: {} // Command exited with a 0 status

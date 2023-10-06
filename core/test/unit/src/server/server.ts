@@ -13,7 +13,7 @@ import type { Garden } from "../../../../src/garden.js"
 import { expect } from "chai"
 import { authTokenHeader } from "../../../../src/cloud/auth.js"
 import { ServeCommand } from "../../../../src/commands/serve.js"
-import { gardenEnv } from "../../../../src/constants.js"
+import { DEFAULT_MAX_REMOTE_WS_RETRIES, gardenEnv } from "../../../../src/constants.js"
 import { deepOmitUndefined } from "../../../../src/util/objects.js"
 import { uuidv4 } from "../../../../src/util/random.js"
 import { GardenInstanceManager } from "../../../../src/server/instance-manager.js"
@@ -24,7 +24,7 @@ import getPort from "get-port"
 import WebSocket from "ws"
 import { FakeCloudApi } from "../../../helpers/api.js"
 
-describe("GardenServer", () => {
+describe.only("GardenServer", () => {
   let garden: Garden
   let gardenServer: GardenServer
   let server: Server
@@ -71,6 +71,7 @@ describe("GardenServer", () => {
       defaultProjectRoot: garden.projectRoot,
       port,
       serveCommand,
+      remoteWsServerUrl: null,
     })
     await gardenServer.start()
     server = gardenServer["server"]!
@@ -111,6 +112,7 @@ describe("GardenServer", () => {
         manager,
         defaultProjectRoot: garden.projectRoot,
         serveCommand,
+        remoteWsServerUrl: null,
       })
       await gardenServerCustomPort.start()
 
@@ -128,6 +130,7 @@ describe("GardenServer", () => {
         manager,
         defaultProjectRoot: garden.projectRoot,
         serveCommand,
+        remoteWsServerUrl: null,
       })
       await gardenServer1.start()
 
@@ -137,6 +140,7 @@ describe("GardenServer", () => {
         manager,
         defaultProjectRoot: garden.projectRoot,
         serveCommand,
+        remoteWsServerUrl: null,
       })
 
       expectError(() => gardenServer2.start(), {
@@ -153,6 +157,7 @@ describe("GardenServer", () => {
         manager,
         defaultProjectRoot: garden.projectRoot,
         serveCommand,
+        remoteWsServerUrl: null,
       })
       await gardenServer1.start()
 
@@ -161,6 +166,7 @@ describe("GardenServer", () => {
         manager,
         defaultProjectRoot: garden.projectRoot,
         serveCommand,
+        remoteWsServerUrl: null,
       })
       await gardenServer2.start()
 
@@ -168,6 +174,299 @@ describe("GardenServer", () => {
 
       await gardenServer1.close()
       await gardenServer2.close()
+    })
+  })
+
+  context("GARDEN_ENABLE_REMOTE_WS=true", () => {
+    let wsServerPort: number
+    let gardenServerForWsTest: GardenServer
+    let gardenServerPort: number
+    let currentGardenEnableRemoteWs = gardenEnv.GARDEN_ENABLE_REMOTE_WS
+    let wss: WebSocket.Server
+
+    before(async () => {
+      gardenEnv.GARDEN_ENABLE_REMOTE_WS = true
+    })
+
+    beforeEach(async () => {
+      wsServerPort = await getPort()
+      gardenServerPort = await getPort()
+    })
+
+    afterEach(async () => {
+      gardenServerForWsTest["server"]?.close()
+      wss.clients.forEach((ws) => {
+        ws.close()
+      })
+    })
+
+    after(async () => {
+      gardenEnv.GARDEN_ENABLE_REMOTE_WS = currentGardenEnableRemoteWs
+    })
+
+    it("should connect to remote ws server", async () => {
+      wss = new WebSocket.WebSocketServer({ host: hostname, port: wsServerPort })
+      gardenServerForWsTest = new GardenServer({
+        log: garden.log,
+        port: gardenServerPort,
+        manager,
+        defaultProjectRoot: garden.projectRoot,
+        serveCommand,
+        remoteWsServerUrl: `ws://${hostname}:${wsServerPort}`,
+      })
+      await gardenServerForWsTest.start()
+
+      let didConnect = false
+      const waitForWsConnection = () =>
+        new Promise((res, _rej) => {
+          wss.on("connection", () => {
+            didConnect = true
+            res({})
+          })
+        })
+
+      await waitForWsConnection()
+
+      expect(didConnect).to.eql(true)
+    })
+
+    it("should attempt to reconnect when server closes connection", async () => {
+      wss = new WebSocket.WebSocketServer({ host: hostname, port: wsServerPort })
+      gardenServerForWsTest = new GardenServer({
+        log: garden.log,
+        port: gardenServerPort,
+        manager,
+        defaultProjectRoot: garden.projectRoot,
+        serveCommand,
+        remoteWsServerUrl: `ws://${hostname}:${wsServerPort}`,
+        remoteWsRetryIntervalMs: 100,
+      })
+
+      await gardenServerForWsTest.start()
+
+      let retryCount = 0
+      const waitForRetries = () =>
+        new Promise<boolean>((res, _rej) => {
+          wss.on("connection", (ws) => {
+            ws.terminate()
+            if (retryCount === DEFAULT_MAX_REMOTE_WS_RETRIES) {
+              res(true)
+            }
+            retryCount += 1
+          })
+        })
+
+      const didRetry = await waitForRetries()
+
+      expect(didRetry).to.eql(true)
+    })
+
+    it("should queue events until connection is open and then drain the queue in the correct order", async () => {
+      wss = new WebSocket.WebSocketServer({ host: hostname, port: wsServerPort })
+      gardenServerForWsTest = new GardenServer({
+        log: garden.log,
+        port: gardenServerPort,
+        manager,
+        defaultProjectRoot: garden.projectRoot,
+        serveCommand,
+        remoteWsServerUrl: `ws://${hostname}:${wsServerPort}`,
+      })
+
+      const waitForQueueDrain = () =>
+        new Promise<any[]>((res, _rej) => {
+          wss.on("connection", (ws) => {
+            const messages: any[] = []
+
+            ws.on("message", (msg) => {
+              if (messages.length === 3) {
+                res(messages)
+              }
+              messages.push(JSON.parse(msg.toString()))
+            })
+          })
+
+          // Start server and emit events before connection opens
+          gardenServerForWsTest.start().then(() => {
+            garden.events.emit("sessionCompleted", {})
+            garden.events.emit("sessionCompleted", {})
+            // The two 'sessionCompoleted' events plus the two init events should be queued
+            expect(gardenServerForWsTest["eventQueue"].length).to.eql(3)
+          })
+        })
+
+      const messages = await waitForQueueDrain()
+
+      expect(messages[0].name).to.eql("authKey")
+      expect(messages[1].name).to.eql("connectionReady")
+      expect(messages[2].name).to.eql("sessionCompleted")
+      expect(messages[3].name).to.eql("sessionCompleted")
+      expect(gardenServerForWsTest["eventQueue"]).to.eql([])
+    })
+
+    it("should send auth key to server", async () => {
+      wss = new WebSocket.WebSocketServer({ host: hostname, port: wsServerPort })
+      gardenServerForWsTest = new GardenServer({
+        log: garden.log,
+        port: gardenServerPort,
+        manager,
+        defaultProjectRoot: garden.projectRoot,
+        serveCommand,
+        remoteWsServerUrl: `ws://${hostname}:${wsServerPort}`,
+      })
+
+      const waitForAuthKeyMsg = () =>
+        new Promise<any>((res, _rej) => {
+          wss.on("connection", (ws) => {
+            ws.on("message", (msg) => {
+              const parsed = JSON.parse(msg.toString())
+              if (parsed.name === "authKey") {
+                res(parsed)
+              }
+            })
+          })
+
+          gardenServerForWsTest.start().then(() => { })
+        })
+
+      const authKeyMsg = await waitForAuthKeyMsg()
+
+      expect(authKeyMsg.payload.authKey).to.eql(gardenServerForWsTest.authKey)
+    })
+
+    it("should send a 401 message if auth key is invalid and close the connection", async () => {
+      wss = new WebSocket.WebSocketServer({ host: hostname, port: wsServerPort })
+      gardenServerForWsTest = new GardenServer({
+        log: garden.log,
+        port: gardenServerPort,
+        manager,
+        defaultProjectRoot: garden.projectRoot,
+        serveCommand,
+        remoteWsServerUrl: `ws://${hostname}:${wsServerPort}`,
+      })
+
+      const waitForClose = () =>
+        new Promise<any[]>((res, _rej) => {
+          wss.on("connection", (ws) => {
+            const messages: any[] = []
+
+            ws.on("message", (msg) => {
+              const parsed = JSON.parse(msg.toString())
+              messages.push(parsed)
+            })
+
+            ws.on("close", () => {
+              res(messages)
+            })
+
+            ws.send(
+              JSON.stringify({
+                type: "command",
+                id: uuidv4(),
+                authKey: "foo",
+                sessionId: gardenServerForWsTest.sessionId,
+              })
+            )
+          })
+
+          gardenServerForWsTest.start().then(() => { })
+        })
+
+      const messages = await waitForClose()
+      const errorMsg = messages.find((msg) => msg.type === "error")
+
+      expect(errorMsg).to.exist
+      expect(errorMsg.message).to.eql(`401 Unauthorized`)
+    })
+    it("should send a 401 message if sessionId is invalid and close the connection", async () => {
+      wss = new WebSocket.WebSocketServer({ host: hostname, port: wsServerPort })
+      gardenServerForWsTest = new GardenServer({
+        log: garden.log,
+        port: gardenServerPort,
+        manager,
+        defaultProjectRoot: garden.projectRoot,
+        serveCommand,
+        remoteWsServerUrl: `ws://${hostname}:${wsServerPort}`,
+      })
+
+      const waitForClose = () =>
+        new Promise<any[]>((res, _rej) => {
+          wss.on("connection", (ws) => {
+            const messages: any[] = []
+
+            ws.on("message", (msg) => {
+              const parsed = JSON.parse(msg.toString())
+              messages.push(parsed)
+            })
+
+            ws.on("close", () => {
+              res(messages)
+            })
+
+            ws.send(
+              JSON.stringify({
+                type: "command",
+                id: uuidv4(),
+                authKey: gardenServerForWsTest.authKey,
+                sessionId: "foo",
+              })
+            )
+          })
+
+          gardenServerForWsTest.start().then(() => { })
+        })
+
+      const messages = await waitForClose()
+      const errorMsg = messages.find((msg) => msg.type === "error")
+
+      expect(errorMsg).to.exist
+      expect(errorMsg.message).to.eql(`401 Unauthorized`)
+    })
+    it("should successfully send and receive messages", async () => {
+      wss = new WebSocket.WebSocketServer({ host: hostname, port: wsServerPort })
+      gardenServerForWsTest = new GardenServer({
+        log: garden.log,
+        port: gardenServerPort,
+        manager,
+        defaultProjectRoot: garden.projectRoot,
+        serveCommand,
+        remoteWsServerUrl: `ws://${hostname}:${wsServerPort}`,
+      })
+
+      const waitForErrorMsg = () =>
+        new Promise<any[]>((res, _rej) => {
+          wss.on("connection", (ws) => {
+            const messages: any[] = []
+
+            ws.on("message", (msg) => {
+              const parsed = JSON.parse(msg.toString())
+              if (parsed.type === "commandResult") {
+                res(messages)
+              }
+              messages.push(parsed)
+            })
+
+            ws.send(
+              JSON.stringify({
+                type: "command",
+                command: "validate",
+                id: uuidv4(),
+                authKey: gardenServerForWsTest.authKey,
+                sessionId: gardenServerForWsTest.sessionId,
+              })
+            )
+          })
+
+          gardenServerForWsTest.start().then(() => { })
+        })
+
+      const messages = await waitForErrorMsg()
+      const commandResultMsg = messages.find((msg) => msg.type === "commandResult")
+
+      expect(messages.find((msg) => msg.name === "authKey")).to.exist
+      expect(messages.find((msg) => msg.name === "connectionReady")).to.exist
+      expect(messages.filter((msg) => msg.type === "logEntry").length).to.be.greaterThan(5)
+      expect(commandResultMsg).to.exist
+      expect(commandResultMsg.command).to.eql("validate")
     })
   })
 
@@ -327,8 +626,8 @@ describe("GardenServer", () => {
     function onMessageAfterReady({ cb, skipType }: { cb: (req: any) => void; skipType?: string }) {
       ws.on("message", (msg) => {
         const parsed = JSON.parse(msg.toString())
-        // This message is always sent at the beginning and we skip it here to simplify testing.
-        if (parsed.name !== "connectionReady" && skipType !== parsed.type) {
+        // These messages are always sent at the beginning and we skip them here to simplify testing.
+        if (!["authKey", "connectionReady"].includes(parsed.name) && skipType !== parsed.type) {
           cb(parsed)
         }
       })

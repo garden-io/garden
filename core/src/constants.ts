@@ -55,6 +55,8 @@ export const DEFAULT_GARDEN_CLOUD_DOMAIN = "https://app.garden.io"
 
 export const DEFAULT_BROWSER_DIVIDER_WIDTH = 80
 
+export const DEFAULT_MAX_REMOTE_WS_RETRIES = 10
+
 /**
  * Environment variables, with defaults where appropriate.
  *
@@ -100,4 +102,9 @@ export const gardenEnv = {
     .required(false)
     .default("https://get.garden.io/releases")
     .asUrlString(),
+  GARDEN_ENABLE_REMOTE_WS: env
+    .get("GARDEN_ENABLE_REMOTE_WS")
+    .required(false)
+    .default("false")
+    .asBool(),
 }

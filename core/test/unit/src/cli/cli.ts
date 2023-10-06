@@ -500,6 +500,7 @@ describe("cli", () => {
             defaultProjectRoot: projectRootA,
             manager: GardenInstanceManager.getInstance({ log, sessionId, serveCommand, plugins: [] }),
             serveCommand,
+            remoteWsServerUrl: null,
           })
         }
 
