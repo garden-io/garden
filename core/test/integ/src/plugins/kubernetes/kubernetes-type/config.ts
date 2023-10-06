@@ -122,6 +122,7 @@ describe("configureKubernetesModule", () => {
               },
             },
           ],
+          patchResources: [],
           serviceResource: {
             kind: "Deployment",
             name: "busybox-deployment",

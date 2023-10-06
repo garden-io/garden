@@ -9,10 +9,8 @@ inputs:
   enableSync: true
   enableIngress: true
 
-  containerArgs:
-    - npm
-    - run
-    - serve
+  # Manifests files, relative to the project root
+  manifests: [./manifests/web.yaml]
 
   syncCommand:
     - npm

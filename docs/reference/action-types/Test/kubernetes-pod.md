@@ -183,6 +183,47 @@ spec:
   # characters.
   namespace:
 
+  # Resolve the specified kustomization and include the resulting resources. Note that if you specify `files` or
+  # `manifests` as well, these are also included.
+  kustomize:
+    # The directory path where the desired kustomization.yaml is, or a git repository URL. This could be the path to
+    # an overlay directory, for example. If it's a path, must be a relative POSIX-style path and must be within the
+    # action root. Defaults to the action root. If you set this to null, kustomize will not be run.
+    path: .
+
+    # A list of additional arguments to pass to the `kustomize build` command. Note that specifying '-o' or '--output'
+    # is not allowed.
+    extraArgs: []
+
+  # A list of resources to patch using Kubernetes' patch strategies. This is useful for e.g. overwriting a given
+  # container image name with an image built by Garden
+  # without having to actually modify the underlying Kubernetes manifest in your source code. Another common example
+  # is to use this to change the number of replicas for a given
+  # Kubernetes Deployment.
+  #
+  # Under the hood, Garden just applies the `kubectl patch` command to the resource that matches the specified `kind`
+  # and `name`.
+  #
+  # Patches are applied to file manifests, inline manifests, and kustomize files.
+  #
+  # You can learn more about patching Kubernetes resources here:
+  # https://kubernetes.io/docs/tasks/manage-kubernetes-objects/update-api-object-kubectl-patch/
+  patchResources:
+    - # The kind of the resource to patch.
+      kind:
+
+      # The name of the resource to patch.
+      name:
+
+      # The patch strategy to use. One of 'json', 'merge', or 'strategic'. Defaults to 'strategic'.
+      #
+      # You can read more about the different strategies in the offical Kubernetes documentation at:
+      # https://kubernetes.io/docs/tasks/manage-kubernetes-objects/update-api-object-kubectl-patch/
+      strategy: strategic
+
+      # The patch to apply.
+      patch:
+
   # List of Kubernetes resource manifests to be searched (using `resource`e for the pod spec for the Test. If `files`
   # is also specified, this is combined with the manifests read from the files.
   manifests:
@@ -3581,6 +3622,97 @@ A valid Kubernetes namespace name. Must be a valid RFC1035/RFC1123 (DNS) label (
 | Type     | Required |
 | -------- | -------- |
 | `string` | No       |
+
+### `spec.kustomize`
+
+[spec](#spec) > kustomize
+
+Resolve the specified kustomization and include the resulting resources. Note that if you specify `files` or `manifests` as well, these are also included.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+### `spec.kustomize.path`
+
+[spec](#spec) > [kustomize](#speckustomize) > path
+
+The directory path where the desired kustomization.yaml is, or a git repository URL. This could be the path to an overlay directory, for example. If it's a path, must be a relative POSIX-style path and must be within the action root. Defaults to the action root. If you set this to null, kustomize will not be run.
+
+| Type                  | Default | Required |
+| --------------------- | ------- | -------- |
+| `posixPath \| string` | `"."`   | No       |
+
+### `spec.kustomize.extraArgs[]`
+
+[spec](#spec) > [kustomize](#speckustomize) > extraArgs
+
+A list of additional arguments to pass to the `kustomize build` command. Note that specifying '-o' or '--output' is not allowed.
+
+| Type            | Default | Required |
+| --------------- | ------- | -------- |
+| `array[string]` | `[]`    | No       |
+
+### `spec.patchResources[]`
+
+[spec](#spec) > patchResources
+
+A list of resources to patch using Kubernetes' patch strategies. This is useful for e.g. overwriting a given container image name with an image built by Garden
+without having to actually modify the underlying Kubernetes manifest in your source code. Another common example is to use this to change the number of replicas for a given
+Kubernetes Deployment.
+
+Under the hood, Garden just applies the `kubectl patch` command to the resource that matches the specified `kind` and `name`.
+
+Patches are applied to file manifests, inline manifests, and kustomize files.
+
+You can learn more about patching Kubernetes resources here: https://kubernetes.io/docs/tasks/manage-kubernetes-objects/update-api-object-kubectl-patch/
+
+| Type            | Default | Required |
+| --------------- | ------- | -------- |
+| `array[object]` | `[]`    | No       |
+
+### `spec.patchResources[].kind`
+
+[spec](#spec) > [patchResources](#specpatchresources) > kind
+
+The kind of the resource to patch.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
+
+### `spec.patchResources[].name`
+
+[spec](#spec) > [patchResources](#specpatchresources) > name
+
+The name of the resource to patch.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
+
+### `spec.patchResources[].strategy`
+
+[spec](#spec) > [patchResources](#specpatchresources) > strategy
+
+The patch strategy to use. One of 'json', 'merge', or 'strategic'. Defaults to 'strategic'.
+
+You can read more about the different strategies in the offical Kubernetes documentation at:
+https://kubernetes.io/docs/tasks/manage-kubernetes-objects/update-api-object-kubectl-patch/
+
+| Type     | Default       | Required |
+| -------- | ------------- | -------- |
+| `string` | `"strategic"` | No       |
+
+### `spec.patchResources[].patch`
+
+[spec](#spec) > [patchResources](#specpatchresources) > patch
+
+The patch to apply.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | Yes      |
 
 ### `spec.manifests[]`
 

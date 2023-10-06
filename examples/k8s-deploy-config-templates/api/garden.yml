@@ -8,9 +8,8 @@ inputs:
   healthCheckPath: /health
   enableSync: true
 
-  containerArgs:
-    - python
-    - app.py
+  # Manifests files, relative to the project root
+  manifests: [manifests/api.yaml]
 
   syncCommand:
     - /bin/sh

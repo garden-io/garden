@@ -1,6 +1,6 @@
 kind: ConfigTemplate
 name: k8s-deploy
-inputsSchemaPath: template-schemas/k8s-schema.json
+inputsSchemaPath: ./k8s-schema.json
 
 configs:
   - kind: Build
@@ -22,15 +22,28 @@ configs:
       - $concat: "${input.dependencies ? input.dependencies : []}"
 
     spec:
-      files:
-        - manifests/deployment.yaml
-        - manifests/service.yaml
-        - "${inputs.enableIngress ? 'manifests/ingress.yaml' : null }"
+      files: ${inputs.manifests}
 
       # Default target for syncs and exec commands
       defaultTarget:
         kind: Deployment
         name: ${parent.name}
+
+      # Patch the K8s manifests so that we can set the correct image and other variables.
+      patchResources:
+        - name: ${parent.name}
+          kind: Deployment
+          patch:
+            spec:
+              replicas: 1
+              template:
+                spec:
+                  containers:
+                    - name: ${parent.name}
+                      image: ${actions.build[parent.name].outputs.deployment-image-id}
+                      env: ${inputs.env}
+                  imagePullSecrets:
+                    - name: ${var.imagePullSecretName}
 
       # Conditionally enable sync
       sync:

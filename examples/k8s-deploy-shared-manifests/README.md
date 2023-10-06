@@ -18,7 +18,7 @@ kind: Deploy
 type: kubernetes
 name: api
 source:
-  path: ../ # <--- We set the source path of the action the root so that we can reference the manifest files
+  path: ../ # <--- We set the source path of the action to the root so that we can reference the manifest files
 
 spec:
   files:

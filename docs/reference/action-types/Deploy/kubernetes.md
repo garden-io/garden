@@ -186,6 +186,35 @@ spec:
         # The name of the resource.
         name:
 
+  # A list of resources to patch using Kubernetes' patch strategies. This is useful for e.g. overwriting a given
+  # container image name with an image built by Garden
+  # without having to actually modify the underlying Kubernetes manifest in your source code. Another common example
+  # is to use this to change the number of replicas for a given
+  # Kubernetes Deployment.
+  #
+  # Under the hood, Garden just applies the `kubectl patch` command to the resource that matches the specified `kind`
+  # and `name`.
+  #
+  # Patches are applied to file manifests, inline manifests, and kustomize files.
+  #
+  # You can learn more about patching Kubernetes resources here:
+  # https://kubernetes.io/docs/tasks/manage-kubernetes-objects/update-api-object-kubectl-patch/
+  patchResources:
+    - # The kind of the resource to patch.
+      kind:
+
+      # The name of the resource to patch.
+      name:
+
+      # The patch strategy to use. One of 'json', 'merge', or 'strategic'. Defaults to 'strategic'.
+      #
+      # You can read more about the different strategies in the offical Kubernetes documentation at:
+      # https://kubernetes.io/docs/tasks/manage-kubernetes-objects/update-api-object-kubectl-patch/
+      strategy: strategic
+
+      # The patch to apply.
+      patch:
+
   # A valid Kubernetes namespace name. Must be a valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters,
   # numbers and dashes, must start with a letter, and cannot end with a dash) and must not be longer than 63
   # characters.
@@ -730,6 +759,67 @@ The name of the resource.
 | Type     | Required |
 | -------- | -------- |
 | `string` | Yes      |
+
+### `spec.patchResources[]`
+
+[spec](#spec) > patchResources
+
+A list of resources to patch using Kubernetes' patch strategies. This is useful for e.g. overwriting a given container image name with an image built by Garden
+without having to actually modify the underlying Kubernetes manifest in your source code. Another common example is to use this to change the number of replicas for a given
+Kubernetes Deployment.
+
+Under the hood, Garden just applies the `kubectl patch` command to the resource that matches the specified `kind` and `name`.
+
+Patches are applied to file manifests, inline manifests, and kustomize files.
+
+You can learn more about patching Kubernetes resources here: https://kubernetes.io/docs/tasks/manage-kubernetes-objects/update-api-object-kubectl-patch/
+
+| Type            | Default | Required |
+| --------------- | ------- | -------- |
+| `array[object]` | `[]`    | No       |
+
+### `spec.patchResources[].kind`
+
+[spec](#spec) > [patchResources](#specpatchresources) > kind
+
+The kind of the resource to patch.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
+
+### `spec.patchResources[].name`
+
+[spec](#spec) > [patchResources](#specpatchresources) > name
+
+The name of the resource to patch.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
+
+### `spec.patchResources[].strategy`
+
+[spec](#spec) > [patchResources](#specpatchresources) > strategy
+
+The patch strategy to use. One of 'json', 'merge', or 'strategic'. Defaults to 'strategic'.
+
+You can read more about the different strategies in the offical Kubernetes documentation at:
+https://kubernetes.io/docs/tasks/manage-kubernetes-objects/update-api-object-kubectl-patch/
+
+| Type     | Default       | Required |
+| -------- | ------------- | -------- |
+| `string` | `"strategic"` | No       |
+
+### `spec.patchResources[].patch`
+
+[spec](#spec) > [patchResources](#specpatchresources) > patch
+
+The patch to apply.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | Yes      |
 
 ### `spec.namespace`
 
