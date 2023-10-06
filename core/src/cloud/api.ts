@@ -631,7 +631,7 @@ export class CloudApi {
     sessionId: string
     projectId: string
     commandInfo: CommandInfo
-    localServerPort?: number
+    localServerPort: number | undefined
     environment: string
     namespace: string
     isDevCommand: boolean

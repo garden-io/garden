@@ -317,7 +317,8 @@ export abstract class Command<
             sessionId: garden.sessionId,
             projectId: garden.projectId,
             commandInfo: garden.commandInfo,
-            localServerPort: server?.port,
+            // localServerPort only needs to be set for dev/serve commands
+            localServerPort: undefined,
             environment: garden.environmentName,
             namespace: garden.namespace,
             isDevCommand: garden.commandInfo.name === "dev",
