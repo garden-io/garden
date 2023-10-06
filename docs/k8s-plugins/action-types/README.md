@@ -11,34 +11,62 @@ Garden projects can utilize multiple action types and you can mix and match as n
 
 Below is a quick overview of the action types for the Kubernetes plugin with links to in-depth usage guides.
 
-### The `kubernetes` action type
+## Build actions
 
-Choose this action type if you already have Kubernetes manifests for some of the workloads you want to deploy.
+### The `container` Build action type
+
+Use this action for building source code you then deploy with one of the Deploy actions below.
+
+## Deploy actions
+
+### The `kubernetes` Deploy action type
+
+Choose this action type if you already have Kubernetes manifests for some of the workloads you want to deploy and/or if you're using Kustomize.
 
 [See here](./kubernetes.md) for how to configure it.
 
-### The `helm` action type
+### The `helm` Deploy action type
 
 Choose this action type if you're using Helm and have the corresponding Helm charts.
 
 [See here](./helm.md) for an in-depth guide on using Garden with Helm.
 
-### The `container` action type
+### The `container` Deploy action type
 
-{% hint style="info" %}
-Note that the container action type can be used with other plugins as well.
+{% hint style="warning" %}
+The `container` Deploy action type can be useful for getting started quickly but has several limitations and is not suitable for production. Instead we encourage users to use the `kubernetes` or `helm` types which are a lot more flexible.
 {% endhint %}
 
 Use this action type if you want to deploy to Kubernetes but don't have the required Kubernetes manifests or Helm charts.
 
 In this case, Garden will generate the Kubernetes manifests for you based on the action config.
 
-This is a good choice when getting started.
-
 [See here](./container.md) for how to use the `container` action type
 type with the Kubernetes plugin.
 
-There's also a [separate in-depth guide](../../other-plugins/container.md) on the action type itself.
+There are in fact multiple actions of type `container`  that you can learn more about in [this in-depth guide](../../other-plugins/container.md).
+
+## Run and Test actions
+
+### The `kubernetes-pod` Test and Run action types
+
+Choose this action type for Test and Run actions if you already have the corresponding Kubernetes manifests and want to run the test/run command in a dedicated Pod that gets cleaned up after the run.
+
+[See here](./kubernetes-pod.md) for how to configure it.
+
+### The `kubernetes-exec` Test and Run action types
+
+Choose this action type for Test and Run actions if you already have Kubernetes manifests and want to run the test/run command
+in an already deployed Kubernetes Pod. This is faster than (potentially) waiting for an image build and for a new Pod being created
+and is a good choice for e.g. running tests during inner loop development.
+
+[See here](./kubernetes-exec.md) for how to configure it.
+
+### The `helm-pod` Test and Run action types
+
+Choose this action type for Test and Run actions if you have the corresponding Helm charts.
+
+[See here](./helm-pod.md) for how to configure it.
 
 ### The `persistentvolumeclaim` and `configmap` action types
 

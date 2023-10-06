@@ -3,10 +3,10 @@ title: Kubernetes-exec
 order: 7
 ---
 
-# `kubernetes-exec` runs and tests
+# `kubernetes-exec`
 
-[`kubernetes-exec` run](../../reference/action-types/Run/kubernetes-exec.md) and
-[`kubernetes-exec` test](../../reference/action-types/Test/kubernetes-exec.md) actions are used to execute a command in an already deployed
+[`kubernetes-exec` Run](../../reference/action-types/Run/kubernetes-exec.md) and
+[`kubernetes-exec` Test](../../reference/action-types/Test/kubernetes-exec.md) actions are used to execute a command in an already deployed
 Kubernetes Pod and wait for it to complete. These actions are not cached. They can be used with deploys running in sync mode
 for rapid testing and development. These actions should depend on the deploy action that creates the kubernetes workloads they run in.
 
