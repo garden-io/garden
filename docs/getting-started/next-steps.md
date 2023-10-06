@@ -5,13 +5,13 @@ order: 4
 
 # Next Steps
 
-If you've kicked the tires with the [Quickstart guide](./quickstart.md) or in the [interactive playgrounds](./interactive-playgrounds.md) you've seen how Garden lets you spin up production-like environments for development, testing, and CI—with blazing fast caching.
+If you've kicked the tires with the [Quickstart guide](./quickstart.md) or in the [interactive playgrounds](./interactive-playgrounds.md) you've seen how Garden lets you **spin up production-like environments for development, testing, and CI—with blazing fast caching**.
 
-Now is the time to set up Garden for your own project to get some of these benefits and more.
+Now is the time to set up Garden for your own project to get these benefits and more.
 
 This guide describes the main steps involved. It's meant as a roadmap for the configuration process with links to more in-depth resources. The configuration snippets are mostly for demonstration purposes to help you understand how your config evolves.
 
-For an even higher level guide of adopting Garden in your organization, check out our [Adopting Garden guide](../overview/adopting-garden.md).
+For a more high level guide of adopting Garden in your organization, check out our [Adopting Garden guide](../overview/adopting-garden.md).
 
 ## Step 1 — Create a project
 
@@ -57,15 +57,13 @@ providers:
 ```
 
 {% hint style="info" %}
-Plugins have a "provider" part that's configured at the project level and defines how the plugin works. For the Kubernetes plugins you'd
-e.g. set the cluster context here. For the Terraform plugin you'd set the path to your Terraform stack.
-
-Plugins also define actions that we get to below.
+Plugins have a **provider** part that's configured at the project level and defines how the plugin works. For the Kubernetes plugins you'd
+e.g. set the cluster context here. For the Terraform plugin you'd set the path to your Terraform stack. Plugins also define **actions** that we get to below.
 {% endhint %}
 
 Below you'll find a brief overview of our main plugins. Once you know what you need, we suggest heading to the "Configure Plugin" guide for your plugin of choice.
 
-#### Ephemeral Kubernetes
+### Ephemeral Kubernetes
 
 The [ephemeral Kubernetes plugin](../k8s-plugins/ephemeral-k8s/README.md) is the easiest way to get started. Garden will
 spin-up a zero-config, managed Kubernetes cluster in a matter of seconds. Each cluster is available for 4 hours.
@@ -74,13 +72,13 @@ Our [Quickstart Guide](../getting-started/quickstart.md) uses this plugin.
 
 This plugin is great for testing things out without needing to actually setup a Kubernetes cluster.
 
-#### Local Kubernetes
+### Local Kubernetes
 
 The [local Kubernetes plugin](../k8s-plugins/local-k8s/README.md) is a good choice if you already have Kubernetes installed locally on your machine (e.g. K3s, Minikube or Docker for Desktop).
 
 This plugin is great for developing smaller projects that you can comfortably run on your laptop but we definitely recommend using the remote Kubernetes plugin for team work so that you can share preview environments and benefit from caching.
 
-#### (Remote) Kubernetes
+### (Remote) Kubernetes
 
 To use the [Kubernetes plugin](../k8s-plugins/remote-k8s/README.md) you'll need access to a Kubernetes cluster so it may require a bit of up-front work.
 
@@ -91,7 +89,7 @@ This is a great pick for _teams_ building apps that run on Kubernetes because:
 - It allows you to share build and test caches with your entire team and across environments. This can dramatically speed up pipelines and development.
 - It allows you to easily create preview environments that you can share with others, e.g. for pull requests.
 
-#### Terraform
+### Terraform
 
 The [Terraform plugin](../terraform-plugin/README.md) is usually used in conjunction with the Kubernetes plugin to provision infrastructure and/or cloud managed services such as databases.
 
@@ -102,11 +100,11 @@ It allows you to:
 
 Pick this plugin if you're already using Terraform and want to codify the relationship between your runtime services and Terraform stack.
 
-#### Pulumi
+### Pulumi
 
 The [Pulumi plugin](../pulumi-plugin/README.md) is very similar to the Terraform plugin (see above) except for use with Pulumi.
 
-#### Local scripts (`exec`)
+### Local scripts (`exec`)
 
 The [Exec plugin](../other-plugins/exec.md) allows you to execute arbitrary scripts on the host (e.g. your laptop or CI runner).
 
@@ -120,10 +118,9 @@ Once you've configured your plugin(s), it's time to add actions.
 
 Actions are the basic building blocks that make up your Garden project. The four actions kinds are `Build`, `Deploy`, `Test`, and `Run` and how they're configured depends on the action _kind_ and _type_.
 
-For example, if you're using one of the Kubernetes plugins you can use a Build action of type `container` and a Deploy action of type `kubernetes` to deploy a give service. You could e.g. also use the `helm` action type
-to deploy your own, or off the shelf, Helm charts.
+For example, if you're using one of the Kubernetes plugins you can use a Build action of type `container` and a Deploy action of type `kubernetes` to deploy a give service. You could e.g. also use the `helm` action type to deploy your own Helm charts.
 
-Importantly, actions can define dependencies between. Actions and their dependencies are what makes up the nodes and edges of the [Stack Graph](../overview/how-garden-works.md#the-stack-graph).
+Importantly, actions can define dependencies between one another. This is what makes up the nodes and edges of the [Stack Graph](../overview/how-garden-works.md#the-stack-graph).
 
 We recommend putting each action in its own `garden.yml` file and locating it next to any source files.
 
@@ -264,7 +261,6 @@ Checkout our guide [in-depth guide on configuring environments](../guides/namesp
 
 And that's the gist of it!
 
-We encourage you to try adding Garden to your own project. You won't need to change any of your existing code or configuration, only sprinkle in some Garden config files to codify your workflows so you can from zero
-to a running system in a single command.
+We encourage you to try adding Garden to your own project. You won't need to change any of your existing code or configuration, only sprinkle in some Garden config files to codify your workflows and you'll be going **from zero to a running system in a single command**.
 
 And if you have any questions, don't hesitate to reach out to our [our Discord community](https://discord.gg/FrmhuUjFs6).
