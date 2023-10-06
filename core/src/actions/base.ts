@@ -481,8 +481,8 @@ export abstract class BaseAction<
     return this.dependencies
   }
 
-  getDependencies(): Action[] {
-    return this.dependencies.map((d) => this.graph.getActionByRef(d))
+  getDependencies(opts?: GetActionOpts): Action[] {
+    return this.dependencies.map((d) => this.graph.getActionByRef(d, opts))
   }
 
   hasDependency(refOrString: string | ActionReference) {
