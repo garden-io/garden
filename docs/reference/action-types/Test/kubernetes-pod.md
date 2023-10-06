@@ -221,7 +221,7 @@ spec:
       # https://kubernetes.io/docs/tasks/manage-kubernetes-objects/update-api-object-kubectl-patch/
       strategy: strategic
 
-      # The patch to apply
+      # The patch to apply.
       patch:
 
   # List of Kubernetes resource manifests to be searched (using `resource`e for the pod spec for the Test. If `files`
@@ -3708,7 +3708,7 @@ https://kubernetes.io/docs/tasks/manage-kubernetes-objects/update-api-object-kub
 
 [spec](#spec) > [patchResources](#specpatchresources) > patch
 
-The patch to apply
+The patch to apply.
 
 | Type     | Required |
 | -------- | -------- |

@@ -216,7 +216,7 @@ patchResources:
     # https://kubernetes.io/docs/tasks/manage-kubernetes-objects/update-api-object-kubectl-patch/
     strategy: strategic
 
-    # The patch to apply
+    # The patch to apply.
     patch:
 
 # A valid Kubernetes namespace name. Must be a valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters,
@@ -1016,7 +1016,7 @@ https://kubernetes.io/docs/tasks/manage-kubernetes-objects/update-api-object-kub
 
 [patchResources](#patchresources) > patch
 
-The patch to apply
+The patch to apply.
 
 | Type     | Required |
 | -------- | -------- |

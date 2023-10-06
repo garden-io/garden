@@ -88,7 +88,7 @@ const kubernetesPatchResourceSchema = () =>
       )
       .default("strategic")
       .optional(),
-    patch: joi.object().required().description("The patch to apply").unknown(true),
+    patch: joi.object().required().description("The patch to apply.").unknown(true),
   })
 
 export const kubernetesFilesSchema = () =>
