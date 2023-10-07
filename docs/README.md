@@ -193,3 +193,12 @@
 * [FAQ](./misc/faq.md)
 * [Troubleshooting](./misc/troubleshooting.md)
 * [Telemetry](./misc/telemetry.md)
+
+## 🌳 Contributing to Garden
+
+* [Contributor Covenant Code of Conduct](./contributing/CODE_OF_CONDUCT.md)
+* [Contributing to the Docs](./contributing/contributing-docs.md)
+* [Setting up your developer environment](./contributing/garden-dev-env-setup.md)
+* [Developing Garden](./contributing/developing-garden.md)
+* [Config resolution](./contributing/config-resolution.md)
+* [Graph execution](./contributing/graph-execution.md)
