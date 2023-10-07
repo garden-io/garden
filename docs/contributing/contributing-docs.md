@@ -23,8 +23,9 @@ There's a few things you'll need to make your first contribution to the docs:
 1. A local copy of the `garden` Git repository downloaded to your machine. You can find instructions in GitHub's official documentation for [cloning a Git repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository).
 2. Garden's developer tools installed. Our [documentation explains how to install Garden's developer tools](./garden-dev-env-setup.md#step-3-install-dependencies)
 3. Some basic knowledge of Git. If one or more users are contributing to the docs at the same time you are, it is likely you will need to resolve merge conflicts on the CLI or in your visual Git tool. GitHub has [documentation on resolving merge conflicts using the CLI](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/addressing-merge-conflicts/resolving-a-merge-conflict-using-the-command-line) or you can use a simple, visual Git tool like [Fork](https://fork.dev/) available for macOS and Windows.
-  a. In case of emergencies, refer to [Oh Shit, Git!?!](https://ohshitgit.com/)
+  a. In case of emergencies, refer to [Oh Shit, Git!?!](https://ohshitgit.com/).
   b. For new learners, the [computer game, Oh my Git!](https://ohmygit.org/) can teach you Git.
+4. Some form of Markdown linter. A linter enforces standards and consistency in your Markdown writing. The industry standard is [`markdownlint`](https://github.com/DavidAnson/markdownlint). A [markdownlint extension is available for Visual Studio Code](https://marketplace.visualstudio.com/items?itemName=DavidAnson.vscode-markdownlint).
 
 ### Make your changes and open a pull request (PR)
 
