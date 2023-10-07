@@ -198,7 +198,7 @@ export class GetActionsCommand extends Command {
           ...tmp,
           path: getRelativeActionConfigPath(garden.projectRoot, a),
           dependencies: a
-            .getDependencies()
+            .getDependencies({ includeDisabled: true })
             .map((d) => d.key())
             .sort(),
           dependents: graph
