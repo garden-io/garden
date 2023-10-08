@@ -892,7 +892,7 @@ export class GardenServer extends EventEmitter {
       } catch (error) {
         errors.push(toGardenError(error))
       } finally {
-        loadConfigLog.success(`Loading config failed with error: ${errors[0].message}`)
+        loadConfigLog.error(`Loading config failed with error: ${errors[0].message}`)
         await cloudEventStream.close() // Note: This also flushes events
         send(
           "commandResult",
