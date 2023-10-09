@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { join, resolve } from "path"
+import { basename, dirname, join, resolve } from "path"
 import { pathExists, readFile } from "fs-extra"
 import { flatten, keyBy, set } from "lodash"
 
@@ -29,8 +29,8 @@ import { V1ConfigMap } from "@kubernetes/client-node"
 import { glob } from "glob"
 import isGlob from "is-glob"
 import pFilter from "p-filter"
-import { parseAllDocuments } from "yaml"
 import { kubectl } from "../kubectl"
+import { loadAndValidateYaml } from "../../../config/base"
 
 /**
  * "DeployFile": Manifest has been read from one of the files declared in Garden Deploy `spec.files`
@@ -369,7 +369,7 @@ async function readKustomizeManifests(
       log,
       args: ["build", kustomizePath, ...extraArgs],
     })
-    const manifests = parseKubernetesManifests(kustomizeOutput)
+    const manifests = await parseKubernetesManifests(kustomizeOutput, `kustomize output of ${action.longDescription()}`)
     return manifests.map((manifest, index) => ({
       declaration: {
         type: "kustomize",
@@ -426,7 +426,10 @@ async function readFileManifests(
         log.debug(`Reading manifest for ${action.longDescription()} from path ${absPath}`)
         const str = (await readFile(absPath)).toString()
         const resolved = ctx.resolveTemplateStrings(str, { allowPartial: true, unescape: true })
-        const manifests = parseKubernetesManifests(resolved)
+        const manifests = await parseKubernetesManifests(
+          resolved,
+          `${basename(absPath)} in directory ${dirname(absPath)} (specified in ${action.longDescription()})`
+        )
         return manifests.map((manifest, index) => ({
           declaration: {
             type: "file",
@@ -445,38 +448,17 @@ async function readFileManifests(
  *
  * @throws ConfigurationError on parser errors.
  * @param str raw string containing Kubernetes manifests in YAML format
+ * @param sourceDescription description of where the YAML string comes from, e.g. "foo.yaml in directory /bar"
  */
-function parseKubernetesManifests(str: string): KubernetesResource[] {
-  const docs = Array.from(
-    parseAllDocuments(str, {
-      // Kubernetes uses the YAML 1.1 spec by default and not YAML 1.2, which is the default for most libraries.
-      // See also https://github.com/kubernetes/kubernetes/issues/34146
-      schema: "yaml-1.1",
-      strict: false,
-    })
-  )
-
-  for (const doc of docs) {
-    if (doc.errors.length > 0) {
-      throw new ConfigurationError({
-        message: `Failed to parse Kubernetes manifest: ${doc.errors[0]}`,
-      })
-    }
-  }
-
-  let manifests: any[]
-  try {
-    manifests = docs.map((d) => d.toJS())
-  } catch (error) {
-    // toJS sometimes throws errors that are not caught by the above error check.
-    // See also https://github.com/eemeli/yaml/issues/497
-    throw new ConfigurationError({
-      message: `Failed to parse Kubernetes manifest: ${error}`,
-    })
-  }
+async function parseKubernetesManifests(str: string, sourceDescription: string): Promise<KubernetesResource[]> {
+  // parse yaml with version 1.1 by default, as Kubernetes still uses this version.
+  // See also https://github.com/kubernetes/kubernetes/issues/34146
+  const docs = await loadAndValidateYaml(str, sourceDescription, "1.1")
 
   // TODO: We should use schema validation to make sure that apiVersion, kind and metadata are always defined as required by the type.
-  return expandListManifests(manifests as KubernetesResource[])
+  const manifests = docs.map((d) => d.toJS()) as KubernetesResource[]
+
+  return expandListManifests(manifests)
 }
 
 /**

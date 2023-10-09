@@ -11,7 +11,7 @@ import { load } from "js-yaml"
 import stripAnsi from "strip-ansi"
 import chalk from "chalk"
 import { merge } from "json-merge-patch"
-import { extname, join, resolve } from "path"
+import { basename, dirname, extname, join, resolve } from "path"
 import { ensureDir, pathExists, readFile } from "fs-extra"
 import {
   ChildProcessError,
@@ -257,7 +257,10 @@ export async function applyConfig(params: PulumiParams & { previewDirPath?: stri
   let stackConfigFileExists: boolean
   try {
     const fileData = await readFile(stackConfigPath)
-    stackConfig = (await loadAndValidateYaml(fileData.toString(), stackConfigPath))[0].toJS()
+    stackConfig = await loadAndValidateYaml(
+      fileData.toString(),
+      `${basename(stackConfigPath)} in directory ${dirname(stackConfigPath)}`
+    )[0].toJS()
     stackConfigFileExists = true
   } catch (err) {
     log.debug(`No pulumi stack configuration file for action ${action.name} found at ${stackConfigPath}`)
