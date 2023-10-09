@@ -102,7 +102,7 @@ export async function loadAndValidateYaml(
   version: DocumentOptions["version"] = "1.2"
 ): Promise<YamlDocumentWithSource[]> {
   try {
-    return Array.from(parseAllDocuments(content, { merge: true, strict: false, version }) || []).map((doc: any) => {
+    return Array.from(parseAllDocuments(content, { merge: true, strict: false, version }) || []).map((doc) => {
       if (doc.errors.length > 0) {
         throw doc.errors[0]
       }
@@ -111,8 +111,10 @@ export async function loadAndValidateYaml(
       // We call this here to catch this error early and prevent crashes later on.
       doc.toJS()
 
-      doc.source = content
-      return doc
+      const docWithSource = doc as YamlDocumentWithSource
+      docWithSource.source = content
+
+      return docWithSource
     })
   } catch (loadErr) {
     // We try to find the error using a YAML linter
