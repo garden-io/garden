@@ -21,7 +21,7 @@ to get going:
 5. Make sure your whole project builds and deploys successfully.
 6. Start thinking about tests. Garden excels at managing all the different test suites in your stack, especially
    integration and end-to-end tests that need to run inside your deployment environment.
-7. Consider [running Garden in your CI](../../guides/using-garden-in-ci.md), to deploy preview environments and/or to
+7. Consider taking advantage of [portable CI pipelines](../../use-cases/portable-ci-pipelines.md), to deploy preview environments and/or to
    test your project.
 
 In summary, **gradually put all the pieces together**, learn the details as you go, and use more and more features as
