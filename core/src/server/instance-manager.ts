@@ -236,7 +236,7 @@ export class GardenInstanceManager {
 
     // Flag the instance for reloading when configs change
     garden.events.once("configChanged", (_payload) => {
-      if (!garden.needsReload) {
+      if (!garden.needsReload()) {
         garden.needsReload(true)
         garden.log.info(
           chalk.magenta.bold(
