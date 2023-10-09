@@ -514,7 +514,7 @@ export function expectError(fn: Function, assertion: ExpectErrorAssertion = {}) 
 // adapted from https://stackoverflow.com/a/18543419/1518423
 export function captureStream(stream: NodeJS.WritableStream) {
   const oldWrite = stream.write
-  let buf: string = ""
+  let buf = ""
 
   class FakeWrite {
     write(chunk, _callback)

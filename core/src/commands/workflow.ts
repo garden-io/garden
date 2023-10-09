@@ -110,7 +110,7 @@ export class WorkflowCommand extends Command<Args, {}> {
       steps: {},
     }
 
-    let stepErrors: StepErrors = {}
+    const stepErrors: StepErrors = {}
 
     for (const [index, step] of steps.entries()) {
       if (shouldBeDropped(index, steps, stepErrors)) {
@@ -256,7 +256,7 @@ export interface RunStepLogParams extends RunStepParams {
   success: boolean
 }
 
-export interface RunStepCommandParams extends RunStepParams {}
+export type RunStepCommandParams = RunStepParams
 
 interface StepErrors {
   [index: number]: any[]
@@ -270,7 +270,7 @@ const minWidth = 120
 
 export function printStepHeader(log: Log, stepIndex: number, stepCount: number, stepDescription?: string) {
   const maxWidth = Math.min(getTerminalWidth(), minWidth)
-  let text = `Running step ${formattedStepDescription(stepIndex, stepCount, stepDescription)}`
+  const text = `Running step ${formattedStepDescription(stepIndex, stepCount, stepDescription)}`
   const header = dedent`
     ${chalk.cyan.bold(wordWrap(text, maxWidth))}
     ${getStepSeparatorBar()}
@@ -335,7 +335,7 @@ function printResult({
 
 export async function runStepCommand(params: RunStepCommandParams): Promise<CommandResult<any>> {
   const { cli, garden, bodyLog, inheritedOpts, step } = params
-  let rawArgs = step.command!
+  const rawArgs = step.command!
 
   let { command, rest, matchedPath } = pickCommand(getBuiltinCommands(), rawArgs)
 
@@ -430,7 +430,7 @@ export function shouldBeDropped(stepIndex: number, steps: WorkflowStepSpec[], st
       return true
     }
 
-    let previousOnErrorStepIndexes: number[] = []
+    const previousOnErrorStepIndexes: number[] = []
     for (const [index, s] of steps.entries()) {
       if (s.when === "onError" && lastErrorIndex < index && index < stepIndex) {
         previousOnErrorStepIndexes.push(index)

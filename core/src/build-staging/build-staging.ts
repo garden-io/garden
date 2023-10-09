@@ -246,8 +246,8 @@ export class BuildStaging {
       })
     }
 
-    let targetStat = await statsHelper.extendedStat({ path: targetPath })
-    let targetIsFile = targetStat && !targetStat.isDirectory()
+    const targetStat = await statsHelper.extendedStat({ path: targetPath })
+    const targetIsFile = targetStat && !targetStat.isDirectory()
 
     // Throw if target path ends with a slash but is not a directory
     if (targetShouldBeDirectory && targetStat && !targetStat.isDirectory()) {

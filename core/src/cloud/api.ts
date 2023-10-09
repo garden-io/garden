@@ -365,7 +365,7 @@ export class CloudApi {
       throw err
     }
 
-    let projectList: ListProjectsResponse["data"] = response.data
+    const projectList: ListProjectsResponse["data"] = response.data
 
     return projectList.map((p) => {
       const project = toCloudProject(p)

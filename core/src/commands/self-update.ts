@@ -127,7 +127,7 @@ export namespace GitHubReleaseApi {
     It is a memory consumer, but also a trade-off to avoid GitHub API rate limit errors.
     This will not eat gigs of RAM.
     */
-    let allReleases: any[] = []
+    const allReleases: any[] = []
     do {
       /*
       This returns the releases ordered by 'published_at' field.
@@ -308,7 +308,7 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
       }
 
       let architecture = getArchitecture()
-      let isArmInRosetta = isDarwinARM()
+      const isArmInRosetta = isDarwinARM()
 
       // When running under Rosetta,
       // the architecture is reported back as amd64

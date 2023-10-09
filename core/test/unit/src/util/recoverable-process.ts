@@ -171,7 +171,7 @@ describe("RecoverableProcess", async () => {
 
   async function yieldToRetry(maxRetries: number, minTimeoutMs: number): Promise<void> {
     // wait for while background retrying is finished
-    let retryTimeoutMs = maxRetries * minTimeoutMs
+    const retryTimeoutMs = maxRetries * minTimeoutMs
     log.info(`Sleep for ${retryTimeoutMs}ms while background retry is in progress`)
     await sleep(retryTimeoutMs)
   }

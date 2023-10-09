@@ -18,8 +18,7 @@ import {
 import { Action, BaseActionConfig } from "./types"
 import { DEFAULT_DEPLOY_TIMEOUT_SEC } from "../constants"
 
-export interface DeployActionConfig<N extends string = any, S extends object = any>
-  extends BaseRuntimeActionConfig<"Deploy", N, S> {}
+export type DeployActionConfig<N extends string = any, S extends object = any> = BaseRuntimeActionConfig<"Deploy", N, S>
 
 export const deployActionConfigSchema = memoize(() =>
   baseRuntimeActionConfigSchema().keys({

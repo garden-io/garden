@@ -20,7 +20,7 @@ export interface PulumiModuleSpec extends PulumiDeploySpec {
   dependencies: string[]
 }
 
-export interface PulumiModule extends GardenModule<PulumiModuleSpec> {}
+export type PulumiModule = GardenModule<PulumiModuleSpec>
 
 type PulumiModuleConfig = PulumiModule["_config"]
 

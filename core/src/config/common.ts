@@ -571,7 +571,7 @@ interface SchemaRegistry {
 const schemaRegistry: SchemaRegistry = {}
 
 export function createSchema(spec: CreateSchemaParams): CreateSchemaOutput {
-  let { name } = spec
+  const { name } = spec
 
   if (schemaRegistry[name]) {
     throw new InternalError({ message: `Object schema ${name} defined multiple times` })
@@ -668,7 +668,7 @@ export function parseActionReference(reference: string | object): ActionReferenc
       throw actionRefParseError(reference)
     }
 
-    let [kind, name] = split
+    const [kind, name] = split
     const nameResult = joiIdentifier().validate(name)
 
     if (nameResult.error) {
@@ -677,7 +677,7 @@ export function parseActionReference(reference: string | object): ActionReferenc
 
     return { kind: titleize(kind) as ActionKind, name }
   } else if (isPlainObject(reference)) {
-    let kind = reference["kind"]
+    const kind = reference["kind"]
 
     if (!isString(kind)) {
       throw actionRefParseError(reference)
@@ -1000,7 +1000,7 @@ export function describeSchema(schema: Joi.ObjectSchema): SchemaDescription {
 export function zodObjectToJoi(schema: z.ZodObject<any>): Joi.ObjectSchema {
   let wrapped = joi.object().zodSchema(schema)
 
-  let description = schema.description || ""
+  const description = schema.description || ""
 
   const example = schema.getExample()
   if (example) {

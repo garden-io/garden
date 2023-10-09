@@ -311,7 +311,7 @@ describe("createIngressResources", () => {
   })
 
   beforeEach(async () => {
-    ;({ garden, cleanup } = await getContainerTestGarden())
+    ({ garden, cleanup } = await getContainerTestGarden())
     const provider = (await garden.resolveProvider(garden.log, "local-kubernetes")) as KubernetesProvider
     context = provider.config.context
 

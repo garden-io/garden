@@ -99,7 +99,7 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
     }
   }
 
-  let preparedManifests = await prepareManifests({
+  const preparedManifests = await prepareManifests({
     ctx: k8sCtx,
     log,
     action,

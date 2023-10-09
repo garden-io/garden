@@ -113,7 +113,7 @@ export async function apply({
   const manifestLogLevel = "debug" as const
   log[manifestLogLevel](`Applying Kubernetes manifests:\n${input.toString()}`)
 
-  let args = ["apply"]
+  const args = ["apply"]
   dryRun && args.push("--dry-run")
   args.push("--output=json", "-f", "-")
   !validate && args.push("--validate=false")
@@ -220,7 +220,7 @@ export async function deleteObjectsBySelector({
   objectTypes: string[]
   includeUninitialized?: boolean
 }) {
-  let args = ["delete", objectTypes.join(","), "-l", selector, "--wait=true"]
+  const args = ["delete", objectTypes.join(","), "-l", selector, "--wait=true"]
 
   includeUninitialized && args.push("--include-uninitialized")
 

@@ -516,7 +516,7 @@ function renderParameters(params: ParameterObject, formatName: (name: string, pa
 
   const helpTexts = sortedParams.map((name) => {
     const param = params[name]
-    let out = param.help
+    const out = param.help
     let hints = ""
     if (param.hints) {
       hints = param.hints

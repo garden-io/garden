@@ -18,8 +18,7 @@ import {
 import { Action, BaseActionConfig } from "./types"
 import { DEFAULT_RUN_TIMEOUT_SEC } from "../constants"
 
-export interface RunActionConfig<N extends string = any, S extends object = any>
-  extends BaseRuntimeActionConfig<"Run", N, S> {}
+export type RunActionConfig<N extends string = any, S extends object = any> = BaseRuntimeActionConfig<"Run", N, S>
 
 export const runActionConfigSchema = memoize(() =>
   baseRuntimeActionConfigSchema().keys({

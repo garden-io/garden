@@ -13,7 +13,7 @@ import { ActionTypeHandlerSpec } from "../base/base"
 import { Resolved } from "../../../actions/types"
 import { BuildStatus, getBuildStatusSchema } from "./get-status"
 
-export interface DoBuildActionParams<T extends BuildAction> extends PluginBuildActionParamsBase<T> {}
+export type DoBuildActionParams<T extends BuildAction> = PluginBuildActionParamsBase<T>
 
 export class DoBuildAction<T extends BuildAction = BuildAction> extends ActionTypeHandlerSpec<
   "Build",

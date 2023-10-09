@@ -449,10 +449,10 @@ describe("docs config module", () => {
   describe("renderMarkdownLink", () => {
     it("should return a markdown link with a name and relative path", () => {
       class TestKeyDescription extends BaseKeyDescription {
-        override deprecated: boolean = false
-        override experimental: boolean = false
-        override required: boolean = false
-        override internal: boolean = false
+        override deprecated = false
+        override experimental = false
+        override required = false
+        override internal = false
         override description?: string
         override example?: any
         override type = "string"

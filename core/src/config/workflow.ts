@@ -81,7 +81,7 @@ export function makeRunConfig(
   return { ...omit(workflowConfig, ["triggers"]), environment, namespace }
 }
 
-export interface WorkflowResource extends WorkflowConfig {}
+export type WorkflowResource = WorkflowConfig
 
 const workflowResourceRequestsSchema = createSchema({
   name: "workflow-resource-request",

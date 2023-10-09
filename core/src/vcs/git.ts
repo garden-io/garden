@@ -450,7 +450,7 @@ export class GitHandler extends VcsHandler {
         return
       }
 
-      let { path: filePath, hash } = entry
+      const { path: filePath, hash } = entry
 
       // Check filter function, if provided
       if (filter && !filter(filePath)) {
@@ -533,7 +533,7 @@ export class GitHandler extends VcsHandler {
 
     // Start git process
     gitLog.silly(`Calling git with args '${args.join(" ")}' in ${path}`)
-    let processEnded = defer<void>()
+    const processEnded = defer<void>()
 
     const proc = execa("git", args, { cwd: path, buffer: false })
     const splitStream = split2()

@@ -78,7 +78,7 @@ export interface ContainerModuleSpec extends ModuleSpec {
   tasks: ContainerTaskSpec[]
 }
 
-export interface ContainerModuleConfig extends ModuleConfig<ContainerModuleSpec> {}
+export type ContainerModuleConfig = ModuleConfig<ContainerModuleSpec>
 
 export const defaultImageNamespace = "_"
 export const defaultTag = "latest"
@@ -172,10 +172,10 @@ export interface ContainerModuleOutputs {
 export const containerModuleOutputsSchema = () =>
   joi.object().keys(mapKeys(containerBuildOutputSchemaKeys(), (_, k) => kebabCase(k)))
 
-export interface ContainerModule<
+export type ContainerModule<
   M extends ContainerModuleSpec = ContainerModuleSpec,
   S extends ContainerServiceSpec = ContainerServiceSpec,
   T extends ContainerTestSpec = ContainerTestSpec,
   W extends ContainerTaskSpec = ContainerTaskSpec,
   O extends ContainerModuleOutputs = ContainerModuleOutputs,
-> extends GardenModule<M, S, T, W, O> {}
+> = GardenModule<M, S, T, W, O>

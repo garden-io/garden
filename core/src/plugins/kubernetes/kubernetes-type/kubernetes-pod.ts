@@ -130,7 +130,7 @@ export const kubernetesPodRunDefinition = (): RunActionDefinition<KubernetesPodR
 
 // TEST //
 
-interface KubernetesPodTestActionSpec extends KubernetesPodRunActionSpec {}
+type KubernetesPodTestActionSpec = KubernetesPodRunActionSpec
 export type KubernetesPodTestActionConfig = TestActionConfig<"kubernetes-pod", KubernetesPodTestActionSpec>
 export type KubernetesPodTestAction = TestAction<KubernetesPodTestActionConfig, KubernetesTestOutputs>
 

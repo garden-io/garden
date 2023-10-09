@@ -37,7 +37,7 @@ export interface ConftestProviderConfig extends GenericProviderConfig {
   testFailureThreshold: "deny" | "warn" | "none"
 }
 
-export interface ConftestProvider extends Provider<ConftestProviderConfig> {}
+export type ConftestProvider = Provider<ConftestProviderConfig>
 
 export const configSchema = () =>
   providerConfigBaseSchema()
@@ -529,7 +529,7 @@ function parseConftestResult(provider: ConftestProvider, log: Log, result: Execa
     resultCategories.push(`${countWarnings} warning(s)`)
   }
 
-  let formattedHeader = `conftest reported ${naturalList(resultCategories)}`
+  const formattedHeader = `conftest reported ${naturalList(resultCategories)}`
 
   const threshold = provider.config.testFailureThreshold
 

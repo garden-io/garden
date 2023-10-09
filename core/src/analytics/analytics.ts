@@ -768,7 +768,7 @@ export class AnalyticsHandler {
     // the event queue is already empty. However, the network request might not have fired and the events are
     // dropped if Garden exits before the request gets the chance to. We therefore wait until
     // `pendingEvents.size === 0` or until we time out.
-    const waitForPending = async (retry: number = 0) => {
+    const waitForPending = async (retry = 0) => {
       // Wait for 500 ms, for 3 retries at most, or a total of 2000 ms.
       await sleep(500)
       if (this.pendingEvents.size === 0 || retry >= 3) {

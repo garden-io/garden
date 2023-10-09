@@ -181,7 +181,7 @@ export abstract class BaseTask<O extends ValidResultType = ValidResultType> exte
    */
   getKey(): string {
     // TODO-0.13.1
-    let key = this.getBaseKey()
+    const key = this.getBaseKey()
 
     // if (this.force) {
     //   key += ".force=true"
@@ -206,7 +206,7 @@ export abstract class BaseTask<O extends ValidResultType = ValidResultType> exte
   }
 }
 
-export interface ActionTaskStatusParams<_ extends Action> extends TaskProcessParams {}
+export type ActionTaskStatusParams<_ extends Action> = TaskProcessParams
 
 export interface ActionTaskProcessParams<T extends Action, S extends ValidResultType>
   extends ActionTaskStatusParams<T> {

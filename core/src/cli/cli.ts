@@ -71,7 +71,7 @@ export interface GardenCliParams {
 @Profile()
 export class GardenCli {
   private commands: { [key: string]: Command } = {}
-  private fileWritersInitialized: boolean = false
+  private fileWritersInitialized = false
   public plugins: GardenPluginReference[]
   private initLogger: boolean
   public processRecord?: GardenProcess
@@ -201,7 +201,7 @@ ${renderCommands(commands)}
     workingDir: string
     log: Log
   }) {
-    let {
+    const {
       "env": environmentName,
       silent,
       output,

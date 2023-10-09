@@ -305,7 +305,7 @@ describe("ProjectConfigContext", () => {
       commandInfo: { name: "deploy", args: {}, opts: { sync: ["my-service"] } },
     })
 
-    let result = resolveTemplateString({
+    const result = resolveTemplateString({
       string: "${command.name == 'deploy' && (command.params.sync contains 'my-service')}",
       context: c,
     })
@@ -325,7 +325,7 @@ describe("ProjectConfigContext", () => {
       commandInfo: { name: "test", args: {}, opts: {} },
     })
 
-    let result = resolveTemplateString({
+    const result = resolveTemplateString({
       string: "${command.params contains 'sync' && command.params.sync contains 'my-service'}",
       context: c,
     })

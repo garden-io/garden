@@ -487,7 +487,7 @@ export class K8sLogFollower<T extends LogEntryBase> {
 
     // Get timestamp of last seen message from previous connection attempt, and only fetch logs since this time.
     // This is because we've already streamed all the previous logs. This helps avoid unnecessary data transfer.
-    let sinceTime = connection.lastLogEntries?.timestamp.toISOString()
+    const sinceTime = connection.lastLogEntries?.timestamp.toISOString()
 
     // If this is a retry attempt and the sinceOnRetry parameter is set, we don't want to fetch old logs
     if (sinceTime && sinceOnRetry) {

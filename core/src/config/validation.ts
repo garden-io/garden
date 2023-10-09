@@ -204,7 +204,7 @@ export interface ArtifactSpec {
 function addYamlContext({ rawYaml, range, message }: { rawYaml: string; range: Range; message: string }): string {
   // Get one line before the error location start, and the line including the error location end
   const toStart = rawYaml.slice(0, range[0])
-  let lineNumber = toStart.split("\n").length + 1
+  const lineNumber = toStart.split("\n").length + 1
   let snippetLines = 1
 
   const errorLineStart = toStart.lastIndexOf("\n") + 1

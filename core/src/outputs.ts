@@ -26,9 +26,9 @@ export async function resolveProjectOutputs(garden: Garden, log: Log): Promise<O
   }
 
   // Check for template references to figure out what needs to be resolved
-  let needProviders: string[] = []
-  let needModules: string[] = []
-  let needActions: ActionReference[] = []
+  const needProviders: string[] = []
+  const needModules: string[] = []
+  const needActions: ActionReference[] = []
 
   const templateRefs = collectTemplateReferences(garden.rawOutputs)
 

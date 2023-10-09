@@ -27,7 +27,7 @@ export interface BuildStatusForEventPayload {
   state: BuildState
 }
 
-interface GetBuildStatusParams<T extends BuildAction = BuildAction> extends PluginBuildActionParamsBase<T> {}
+type GetBuildStatusParams<T extends BuildAction = BuildAction> = PluginBuildActionParamsBase<T>
 
 export interface BuildResult {
   buildLog?: string
@@ -48,8 +48,7 @@ export const buildResultSchema = createSchema({
   }),
 })
 
-export interface BuildStatus<T extends BuildAction = BuildAction, D extends {} = BuildResult>
-  extends ActionStatus<T, D> {}
+export type BuildStatus<T extends BuildAction = BuildAction, D extends {} = BuildResult> = ActionStatus<T, D>
 
 export interface BuildStatusMap extends ActionStatusMap<BuildAction> {
   [key: string]: BuildStatus

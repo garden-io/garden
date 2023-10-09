@@ -33,9 +33,9 @@ import { detectProjectType, getBuildFlags, JibBuildActionSpec, JibBuildConfig, J
 import { ConvertModuleParams, ConvertModuleResult } from "@garden-io/core/build/src/plugin/handlers/Module/convert"
 import { PluginEventLogContext } from "@garden-io/core/build/src/plugin-context"
 
-export interface JibProviderConfig extends GenericProviderConfig {}
+export type JibProviderConfig = GenericProviderConfig
 
-export interface JibProvider extends Provider<JibProviderConfig> {}
+export type JibProvider = Provider<JibProviderConfig>
 
 export const configSchema = () => providerConfigBaseSchema().unknown(false)
 

@@ -72,7 +72,7 @@ interface CommandLineEvents {
 }
 
 function getCmdsRunningMsg(commandNames: string[]) {
-  let msg: string = ""
+  let msg = ""
   if (commandNames.length === 1) {
     msg = chalk.cyan(`Running ${styles.command(commandNames[0])} command...`)
   } else if (commandNames.length > 1) {

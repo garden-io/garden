@@ -47,7 +47,7 @@ interface FileTree extends dtree.DirectoryTree, Metadata {
 }
 
 function createNewTree(tree: FileTree, transform: Function): FileTree {
-  let newTree = cloneDeep(tree)
+  const newTree = cloneDeep(tree)
   transform(newTree)
   return newTree
 }
@@ -105,7 +105,7 @@ function attachMetadata(tree: FileTree) {
   }
 
   if (tree.children) {
-    for (let item in tree.children) {
+    for (const item in tree.children) {
       attachMetadata(tree.children[item])
     }
   }
@@ -120,7 +120,7 @@ function sortTree(tree: FileTree) {
       }
       return a.order > b.order ? 1 : -1
     })
-    for (let item in tree.children) {
+    for (const item in tree.children) {
       sortTree(tree.children[item])
     }
   }
@@ -166,7 +166,7 @@ function generateMarkdown({
     output = ""
   }
 
-  for (let item in tree.children) {
+  for (const item in tree.children) {
     output += generateMarkdown({ tree: tree.children[item], docsRoot, depth: depth + 1, topLevelPageIdx })
     // Bump the page idx for the top level pages
     if (tree.topLevel) {
@@ -176,7 +176,7 @@ function generateMarkdown({
   return output
 }
 
-const indent: string = "  "
+const indent = "  "
 
 export function generateTableOfContents(docsRoot: string): string {
   const rawTree = <FileTree>dtree(docsRoot, { extensions: /\.md/, attributes: ["size", "type", "extension"] })

@@ -394,7 +394,7 @@ export function renderTemplateStringReference({
     // Omit objects without descriptions
     .filter((d) => !(d.type === "object" && !d.description))
     .map((d) => {
-      let orgTitle = d.title
+      const orgTitle = d.title
 
       if (placeholder) {
         d.title = `${placeholder}.${d.title}`

@@ -203,7 +203,7 @@ async function pullFromExternalRegistry({ ctx, log, localId, remoteId }: PullPar
 
 async function loadImage({ ctx, runner, log }: { ctx: PluginContext; runner: PodRunner; log: Log }) {
   await tmp.withFile(async ({ path }) => {
-    let writeStream = fs.createWriteStream(path)
+    const writeStream = fs.createWriteStream(path)
 
     await runner.exec({
       command: ["cat", tmpTarPath],

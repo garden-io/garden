@@ -371,7 +371,7 @@ const standardProtocolPortIndex = invert(standardProtocolPorts)
 
 function guessProtocol(spec: ForwardablePort) {
   const port = spec.targetPort
-  let protocol = standardProtocolPortIndex[port]
+  const protocol = standardProtocolPortIndex[port]
 
   if (protocol) {
     return protocol

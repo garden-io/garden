@@ -298,7 +298,7 @@ export function spawn(cmd: string, args: string[], opts: SpawnOpts = {}) {
     proc,
   }
 
-  let _process = <any>process
+  const _process = <any>process
 
   if (tty) {
     if (data) {

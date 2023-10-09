@@ -53,7 +53,7 @@ describe("local mode deployments and ssh tunneling behavior", () => {
   })
 
   const init = async (environmentName: string) => {
-    ;({ garden, cleanup } = await getContainerTestGarden(environmentName))
+    ({ garden, cleanup } = await getContainerTestGarden(environmentName))
     graph = await garden.getConfigGraph({
       log: garden.log,
       emit: false,

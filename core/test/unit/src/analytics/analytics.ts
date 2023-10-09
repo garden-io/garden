@@ -45,7 +45,7 @@ describe("AnalyticsHandler", () => {
   let analytics: AnalyticsHandler
   let garden: TestGarden
   let resetAnalyticsConfig: Function
-  let ciInfo = {
+  const ciInfo = {
     isCi: false,
     ciName: null,
   }

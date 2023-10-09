@@ -151,7 +151,7 @@ _testPlugin.addDashboardPage({
 const testPluginProvider = _testPlugin.createProvider({ configSchema: s.object({}), outputsSchema: s.object({}) })
 
 testPluginProvider.addHandler("configureProvider", async ({ config }) => {
-  for (let member in testPluginSecrets) {
+  for (const member in testPluginSecrets) {
     delete testPluginSecrets[member]
   }
   return { config }

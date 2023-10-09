@@ -119,7 +119,7 @@ export async function configureProvider(params: ConfigureProviderParams<Kubernet
       setupIngressController: null,
     },
   }
-  let { config: updatedConfig } = await base!(kubernetesPluginConfig)
+  const { config: updatedConfig } = await base!(kubernetesPluginConfig)
 
   // setup ingress controller unless setupIngressController is set to false/null in provider config
   if (baseConfig.setupIngressController) {

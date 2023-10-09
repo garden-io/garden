@@ -651,7 +651,7 @@ export class GardenServer extends EventEmitter {
   private setupWsHeartbeat(connectionId: string, websocket: Koa.Context["websocket"], cleanup: () => void) {
     // Set up heartbeat to detect dead connections
     let isAlive = true
-    let heartbeatInterval = setInterval(() => {
+    const heartbeatInterval = setInterval(() => {
       if (!isAlive) {
         this.log.debug(`Connection ${connectionId} timed out.`)
         clearInterval(heartbeatInterval)

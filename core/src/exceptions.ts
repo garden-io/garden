@@ -94,7 +94,7 @@ export abstract class GardenError extends Error {
     this.code = code
   }
 
-  override toString(verbose: boolean = false): string {
+  override toString(verbose = false): string {
     if (verbose || testFlags.expandErrors) {
       const errorDetails = `${this.stack || this.message}\n\nError type: ${this.type}${
         this.code ? `\nUnderlying error code: ${this.code}` : ""
@@ -423,7 +423,7 @@ function getStackTraceFromString(stack: string): StackTraceMetadata[] {
       relativeFileName = filePath.slice(lastFilePos)
     }
 
-    let lineNumber = parseInt(atLine[3], 10) || -1
+    const lineNumber = parseInt(atLine[3], 10) || -1
 
     return [
       {

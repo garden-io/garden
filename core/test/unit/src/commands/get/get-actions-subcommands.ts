@@ -50,7 +50,7 @@ describe("GetActionsSubCommands", () => {
   const projectRoot = getDataDir("test-project-a")
 
   actionKinds.forEach((kind) => {
-    let command = getCommandInstance(kind)
+    const command = getCommandInstance(kind)
 
     describe(`Get${kind}sCommand`, () => {
       it("should run without errors when called without arguments", async () => {

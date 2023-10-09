@@ -74,7 +74,7 @@ export function isConfigFilename(filename: string) {
 }
 
 export async function getChildDirNames(parentDir: string): Promise<string[]> {
-  let dirNames: string[] = []
+  const dirNames: string[] = []
   // Filter on hidden dirs by default. We could make the filter function a param if needed later
   const filter = (item: string) => !basename(item).startsWith(".")
 
@@ -168,7 +168,7 @@ export function normalizeRelativePath(root: string, path: string) {
 /**
  * Joins a POSIX-formatted path with a `basePath` of any format/platform.
  */
-export function joinWithPosix(basePath: string, posixRelPath: string = "") {
+export function joinWithPosix(basePath: string, posixRelPath = "") {
   return join(basePath, ...posixRelPath.split("/"))
 }
 

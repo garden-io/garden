@@ -46,8 +46,7 @@ export const defaultHelmTimeout = 300
 // A Helm Module always maps to a single Service
 export type HelmModuleSpec = HelmServiceSpec
 
-export interface HelmModule
-  extends GardenModule<HelmModuleSpec, HelmServiceSpec, KubernetesTestSpec, KubernetesTaskSpec> {}
+export type HelmModule = GardenModule<HelmModuleSpec, HelmServiceSpec, KubernetesTestSpec, KubernetesTaskSpec>
 
 export type HelmModuleConfig = HelmModule["_config"]
 

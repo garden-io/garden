@@ -169,7 +169,7 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
             // TODO-0.13.1: better aggregate error output
             let msg = `Failed to complete ${failed.length}/${tasks.length} tasks:`
 
-            let wrappedErrors: GardenError[] = []
+            const wrappedErrors: GardenError[] = []
 
             for (const [_, r] of failed) {
               if (!r) {

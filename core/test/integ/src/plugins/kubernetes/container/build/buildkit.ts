@@ -47,7 +47,7 @@ describe.skip("ensureBuildkit", () => {
   ]
 
   before(async () => {
-    ;({ garden, cleanup } = await getContainerTestGarden("cluster-buildkit"))
+    ({ garden, cleanup } = await getContainerTestGarden("cluster-buildkit"))
   })
 
   after(async () => {

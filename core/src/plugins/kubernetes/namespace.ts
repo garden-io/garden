@@ -60,7 +60,7 @@ export async function ensureNamespace(
   namespace: NamespaceConfig,
   log: Log
 ): Promise<EnsureNamespaceResult> {
-  let result: EnsureNamespaceResult = { patched: false, created: false }
+  const result: EnsureNamespaceResult = { patched: false, created: false }
   await nsCreationLock.acquire(namespace.name, async () => {
     const providerUid = ctx.provider.uid
     const cache = nsCache.get(providerUid) || {}
@@ -77,7 +77,7 @@ export async function ensureNamespace(
         namespaces = namespacesStatus.items
       } catch (error) {
         log.warn("Unable to list all namespaces. If you are using OpenShift, ignore this warning.")
-        let namespaceStatus = await api.core.readNamespace(namespace.name)
+        const namespaceStatus = await api.core.readNamespace(namespace.name)
         namespaces = [namespaceStatus]
       }
 

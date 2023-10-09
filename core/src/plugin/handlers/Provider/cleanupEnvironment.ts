@@ -11,7 +11,7 @@ import { dedent } from "../../../util/string"
 import { joi } from "../../../config/common"
 import type { BaseProviderConfig } from "../../../config/provider"
 
-export interface CleanupEnvironmentParams<C extends BaseProviderConfig = any> extends PluginActionParamsBase<C> {}
+export type CleanupEnvironmentParams<C extends BaseProviderConfig = any> = PluginActionParamsBase<C>
 
 export interface CleanupEnvironmentResult {}
 

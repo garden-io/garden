@@ -31,8 +31,7 @@ import { kubernetesLocalModeSchema, KubernetesLocalModeSpec } from "../local-mod
 // A Kubernetes Module always maps to a single Service
 export type KubernetesModuleSpec = KubernetesServiceSpec
 
-export interface KubernetesModule
-  extends GardenModule<KubernetesModuleSpec, KubernetesServiceSpec, KubernetesTestSpec, KubernetesTaskSpec> {}
+export type KubernetesModule = GardenModule<KubernetesModuleSpec, KubernetesServiceSpec, KubernetesTestSpec, KubernetesTaskSpec>
 
 export type KubernetesModuleConfig = KubernetesModule["_config"]
 

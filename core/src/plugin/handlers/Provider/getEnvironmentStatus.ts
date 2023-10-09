@@ -11,7 +11,7 @@ import { dedent } from "../../../util/string"
 import { environmentStatusSchema } from "../../../config/status"
 import type { BaseProviderConfig } from "../../../config/provider"
 
-export interface GetEnvironmentStatusParams<C extends BaseProviderConfig = any> extends PluginActionParamsBase<C> {}
+export type GetEnvironmentStatusParams<C extends BaseProviderConfig = any> = PluginActionParamsBase<C>
 
 export interface EnvironmentStatus<O extends {} = any, D extends {} = any> {
   ready: boolean

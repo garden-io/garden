@@ -354,7 +354,7 @@ function getRouterUnitTestPlugins() {
             return {
               group: {
                 // This is an annoying TypeScript limitation :P
-                kind: <"Group">"Group",
+                kind: <const>"Group",
                 name: module.name,
                 path: module.path,
                 actions,

@@ -78,8 +78,8 @@ declare class _TypedEventEmitter<T> {
   listenTo(target: GeneralEventEmitter, events: keyof T | eventNS, options?: ListenToOptions): this
   listenTo(target: GeneralEventEmitter, events: keyof T[], options?: ListenToOptions): this
   listenTo(target: GeneralEventEmitter, events: Object, options?: ListenToOptions): this
-  stopListeningTo(target?: GeneralEventEmitter, event?: keyof T | eventNS): Boolean
-  hasListeners(event?: String): Boolean
+  stopListeningTo(target?: GeneralEventEmitter, event?: keyof T | eventNS): boolean
+  hasListeners(event?: string): boolean
   static once<T extends object = any>(
     emitter: _TypedEventEmitter<T>,
     event: keyof T | eventNS,

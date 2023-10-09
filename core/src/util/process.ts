@@ -25,8 +25,8 @@ export function streamLogs({
 }): void {
   const logStream = split2()
 
-  let stdout: string = ""
-  let stderr: string = ""
+  let stdout = ""
+  let stderr = ""
 
   if (proc.stderr) {
     proc.stderr.pipe(logStream)
@@ -72,8 +72,8 @@ export function waitForProcessExit({ proc }: { proc: ChildProcess }): Promise<vo
 export function waitForProcess({ proc, errorPrefix }: { proc: ChildProcess; errorPrefix: string }): Promise<void> {
   const logStream = split2()
 
-  let stdout: string = ""
-  let stderr: string = ""
+  let stdout = ""
+  let stderr = ""
 
   if (proc.stderr) {
     proc.stderr.pipe(logStream)

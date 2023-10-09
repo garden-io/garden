@@ -354,7 +354,7 @@ async function runKaniko({
   // Escape the args so that we can safely interpolate them into the kaniko command
   const argsStr = args.map((arg) => JSON.stringify(arg)).join(" ")
 
-  let commandStr = dedent`
+  const commandStr = dedent`
     /kaniko/executor ${argsStr};
     export exitcode=$?;
     touch ${sharedMountPath}/done;

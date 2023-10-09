@@ -1989,7 +1989,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
 // Override variables, also allows to override nested variables using dot notation
 // eslint-disable-next-line @typescript-eslint/no-shadow
 export function overrideVariables(variables: DeepPrimitiveMap, overrideVariables: DeepPrimitiveMap): DeepPrimitiveMap {
-  let objNew = cloneDeep(variables)
+  const objNew = cloneDeep(variables)
   Object.keys(overrideVariables).forEach((key) => {
     if (objNew.hasOwnProperty(key)) {
       // if the original key itself is a string with a dot, then override that

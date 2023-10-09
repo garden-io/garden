@@ -100,8 +100,8 @@ describe("RunTask", () => {
         },
       ])
 
-      let graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      let taskTask = new RunTask({
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+      const taskTask = new RunTask({
         garden,
         graph,
         action: graph.getRun("test"),

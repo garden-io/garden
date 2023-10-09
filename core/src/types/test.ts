@@ -82,7 +82,7 @@ export function testFromModule<M extends GardenModule = GardenModule>(
   return testFromConfig(module, config, graph)
 }
 
-export interface TestResult extends RunResult {}
+export type TestResult = RunResult
 
 export const testResultSchema = createSchema({
   name: "test-result",
