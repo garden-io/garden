@@ -18,7 +18,7 @@ import { FilesystemError } from "../exceptions"
 import { VcsHandler } from "../vcs/vcs"
 import { Log } from "../logger/log-entry"
 import { exec } from "./util"
-import type Micromatch from "micromatch"
+import micromatch from "micromatch"
 import { uuidv4 } from "./random"
 
 export const defaultConfigFilename = "garden.yml"
@@ -180,21 +180,11 @@ export async function listDirectory(path: string, { recursive = true } = {}) {
   return glob(pattern, { cwd: path, dot: true })
 }
 
-let _micromatch: typeof Micromatch
-
-function micromatch() {
-  if (!_micromatch) {
-    // Note: lazy-loading for startup performance
-    _micromatch = require("micromatch").match
-  }
-  return _micromatch
-}
-
 /**
  * Given a list of `paths`, return a list of paths that match any of the given `patterns`
  */
 export function matchGlobs(paths: string[], patterns: string[]): string[] {
-  return micromatch()(paths, patterns, { dot: true })
+  return micromatch(paths, patterns, { dot: true })
 }
 
 /**

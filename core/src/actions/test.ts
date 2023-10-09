@@ -37,7 +37,7 @@ export class TestAction<
   StaticOutputs extends {} = any,
   RuntimeOutputs extends {} = any,
 > extends RuntimeAction<C, StaticOutputs, RuntimeOutputs> {
-  override kind: "Test" = "Test"
+  override kind = "Test" as const
   override _staticOutputs: StaticOutputs = {} as StaticOutputs
 }
 
@@ -46,7 +46,7 @@ export class ResolvedTestAction<
   StaticOutputs extends {} = any,
   RuntimeOutputs extends {} = any,
 > extends ResolvedRuntimeAction<C, StaticOutputs, RuntimeOutputs> {
-  override kind: "Test" = "Test"
+  override kind = "Test" as const
 }
 
 export class ExecutedTestAction<
@@ -54,7 +54,7 @@ export class ExecutedTestAction<
   StaticOutputs extends {} = any,
   RuntimeOutputs extends {} = any,
 > extends ExecutedRuntimeAction<C, StaticOutputs, RuntimeOutputs> {
-  override kind: "Test" = "Test"
+  override kind = "Test" as const
 }
 
 export function isTestAction(action: Action): action is TestAction {

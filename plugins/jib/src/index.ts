@@ -299,7 +299,8 @@ export const gardenPlugin = () =>
         needsBuild: true,
         handlers: {
           async configure(params: ConfigureModuleParams<JibContainerModule>) {
-            let { base, moduleConfig } = params
+            const { base } = params
+            let { moduleConfig } = params
 
             // The base handler will either auto-detect or set include if there's no Dockerfile, so we need to
             // override that behavior.

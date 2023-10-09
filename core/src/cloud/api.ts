@@ -434,7 +434,7 @@ export class CloudApi {
     }
 
     // Note: lazy-loading for startup performance
-    const { sub, isAfter } = require("date-fns")
+    const { sub, isAfter } = await import("date-fns")
 
     if (isAfter(new Date(), sub(token.validity, { seconds: refreshThreshold }))) {
       await this.refreshToken(token)
@@ -443,8 +443,7 @@ export class CloudApi {
 
   private async refreshToken(token: ClientAuthToken) {
     try {
-      let res: any
-      res = await this.get<any>("token/refresh", { headers: { Cookie: `rt=${token?.refreshToken}` } })
+      const res = await this.get<any>("token/refresh", { headers: { Cookie: `rt=${token?.refreshToken}` } })
 
       let cookies: any
       if (res.headers["set-cookie"] instanceof Array) {

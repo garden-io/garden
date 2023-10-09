@@ -145,7 +145,8 @@ export function renderSchemaDescriptionYaml(
   const getPresetValue = (desc: BaseKeyDescription) => get(presetValues, desc.fullKey().replace(/\[\]/g, "[0]"))
 
   const output = schemaDescriptions.map((desc) => {
-    let { description, required, name, level, type, parent } = desc
+    const { required, name, level, type, parent } = desc
+    let { description } = desc
     const indentSpaces = level * 2
     const width = maxWidth - indentSpaces - 2
     const comment: string[] = []

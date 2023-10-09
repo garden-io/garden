@@ -1782,14 +1782,14 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
   opts: GardenOpts
 ): Promise<GardenParams> {
   return wrapActiveSpan("resolveGardenParams", async () => {
-    let {
+    const partialResolved = await resolveGardenParamsPartial(currentDirectory, opts)
+
+    const {
       artifactsPath,
       commandInfo,
-      config,
       configDefaultEnvironment,
       environmentName,
       environmentStr,
-      namespace,
       gardenDirPath,
       localConfigStore,
       log,
@@ -1798,7 +1798,12 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
       treeCache,
       username: _username,
       vcsInfo,
-    } = await resolveGardenParamsPartial(currentDirectory, opts)
+    } = partialResolved
+
+    let {
+      config,
+      namespace,
+    } = partialResolved
 
     await ensureDir(gardenDirPath)
     await ensureDir(artifactsPath)

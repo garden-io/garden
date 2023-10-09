@@ -41,13 +41,13 @@ export async function runCli({
   try {
     // initialize the tracing to capture the full cli execution
     result = await withContextFromEnv(() =>
-      wrapActiveSpan("garden", async (span) => {
+      wrapActiveSpan("garden", async () => {
         if (!cli) {
           cli = new GardenCli({ plugins: getBundledPlugins(), initLogger })
         }
 
         // Note: We slice off the binary/script name from argv.
-        const results = await cli!.run({ args: args || [], exitOnError })
+        const results = await cli.run({ args: args || [], exitOnError })
 
         return results
       })

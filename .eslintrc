@@ -18,6 +18,12 @@
         "allowTemplateLiterals": true
       }
     ],
+    // We allow empty functions for cases where callbacks are required but unneeded
+    "@typescript-eslint/no-empty-function": "warn",
+    // We use `{}` everywhere.
+    // To make this safe, we need to actually go through all the cases and see
+    // if it's supposed to be a plain object, any object, or really means "anything".
+    "@typescript-eslint/ban-types": "warn",
     "arrow-body-style": "off",
     "jsdoc/check-indentation": "off",
     "jsdoc/newline-after-description": "off",

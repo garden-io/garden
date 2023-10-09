@@ -523,6 +523,7 @@ export class RecoverableProcess {
   }
 
   public getTreeRoot() {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
     let cur: RecoverableProcess = this
     while (!!cur.parent) {
       cur = cur.parent

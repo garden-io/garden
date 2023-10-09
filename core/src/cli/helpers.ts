@@ -316,7 +316,10 @@ export function processCliArgs<A extends ParameterObject, O extends ParameterObj
     }
   }
 
-  for (let [key, value] of Object.entries(parsedArgs)) {
+  for (const kv of Object.entries(parsedArgs)) {
+    const key = kv[0]
+    let value = kv[1]
+
     if (key === "_" || key === "--") {
       continue
     }

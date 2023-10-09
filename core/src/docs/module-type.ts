@@ -39,7 +39,8 @@ export const moduleTypes = [
  */
 export function renderModuleTypeReference(name: string, definitions: { [name: string]: ModuleTypeDefinition }) {
   const desc = definitions[name]
-  let { schema, docs } = desc
+  const { docs } = desc
+  let { schema } = desc
 
   if (!schema) {
     schema = joi.object().keys({}).unknown(false)

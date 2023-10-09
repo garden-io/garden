@@ -14,8 +14,6 @@ import { getBundledPlugins } from "./cli"
 import { getSupportedPlugins } from "@garden-io/core/build/src/plugins/plugins"
 import { gracefulExit } from "@scg82/exit-hook"
 
-require("source-map-support").install()
-
 // make sure logger is initialized
 try {
   RootLogger.initialize({

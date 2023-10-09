@@ -794,7 +794,7 @@ export function removeSlice(array: any[], slice: any[]) {
  *
  * Note: Wrapping inquirer here and requiring inline because it is surprisingly slow to import on load.
  */
-export function userPrompt(params: {
+export async function userPrompt(params: {
   name: string
   message: string
   type: "confirm" | "list" | "input"
@@ -802,7 +802,8 @@ export function userPrompt(params: {
   choices?: string[]
   pageSize?: number
 }): Promise<any> {
-  return require("inquirer").prompt(params)
+  const inquirer = await import("inquirer")
+  return inquirer.prompt(params)
 }
 
 export function getGitHubIssueLink(title: string, type: "bug" | "crash" | "feature-request") {

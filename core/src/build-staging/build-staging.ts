@@ -163,7 +163,8 @@ export class BuildStaging {
    * If withDelete = true, files/folders in targetPath that are not in sourcePath will also be deleted.
    */
   protected async sync(params: SyncParams): Promise<void> {
-    let { sourceRoot, targetRoot, sourceRelPath, targetRelPath, withDelete, log, files } = params
+    const { targetRoot, withDelete, log, files } = params
+    let { sourceRoot, sourceRelPath, targetRelPath } = params
 
     if (targetRelPath && hasMagic(targetRelPath)) {
       throw new ConfigurationError({

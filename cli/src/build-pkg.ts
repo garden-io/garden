@@ -10,7 +10,7 @@ import chalk from "chalk"
 import { getAbi } from "node-abi"
 import { resolve, relative, join } from "path"
 import { STATIC_DIR, GARDEN_CLI_ROOT, GARDEN_CORE_ROOT } from "@garden-io/core/build/src/constants"
-import { remove, mkdirp, copy, writeFile } from "fs-extra"
+import { remove, mkdirp, copy, writeFile, readFile } from "fs-extra"
 import { exec, getPackageVersion, sleep } from "@garden-io/core/build/src/util/util"
 import { dedent, randomString } from "@garden-io/core/build/src/util/string"
 import { pick } from "lodash"
@@ -18,8 +18,6 @@ import minimist from "minimist"
 import { createHash } from "crypto"
 import { createReadStream } from "fs"
 import { makeTempDir } from "@garden-io/core/build/test/helpers"
-
-require("source-map-support").install()
 
 const repoRoot = resolve(GARDEN_CLI_ROOT, "..")
 const tmpDirPath = resolve(repoRoot, "tmp", "pkg")
@@ -126,7 +124,7 @@ async function buildBinaries(args: string[]) {
     workspaces.map(async ({ name, location, dependencies }) => {
       const packageRoot = resolve(tmpDirPath, location)
       const packageJsonPath = resolve(packageRoot, "package.json")
-      const packageJson = require(packageJsonPath)
+      const packageJson = JSON.parse(await readFile(packageJsonPath, "utf-8"))
 
       const workspaceDependencies = Object.keys(dependencies).filter((dependencyName) => {
         return workspaces.some((p) => p.name === dependencyName)
