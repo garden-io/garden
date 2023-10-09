@@ -123,8 +123,8 @@ used types below.
 
 Generally, we recommend using the same deployment tools you use in CI or in production. That way, you can get up and running with Garden more easily, and also minimize the difference between your Garden environment and your production environment.
 
-- [kubernetes](../k8s-plugins/action-types/kubernetes.md) action types use Kubernetes manifests for Deploys, Tests and Runs. These support [Kustomize](https://kustomize.io/) out of the box. Use these actions when you prefer the more lightweight deployment approach of using Kubernetes manifests directly, which is a valid alternative to the Helm chart-based `helm` actions.
-- [helm](../k8s-plugins/action-types/helm.md) action type allow you to deploy your own Helm charts, or 3rd-party
+- [kubernetes](../k8s-plugins/action-types/deploy/kubernetes.md) action types use Kubernetes manifests for Deploys, Tests and Runs. These support [Kustomize](https://kustomize.io/) out of the box. Use these actions when you prefer the more lightweight deployment approach of using Kubernetes manifests directly, which is a valid alternative to the Helm chart-based `helm` actions.
+- [helm](../k8s-plugins/action-types/deploy/helm.md) action type allow you to deploy your own Helm charts, or 3rd-party
   charts from remote repositories. [Helm](https://helm.sh/) is a powerful tool, especially when deploying 3rd-party (or
   otherwise external) charts. You can also make your own charts, but we recommend only doing so when you need its
   flexible templating capabilities, or if you aim to publish the charts.

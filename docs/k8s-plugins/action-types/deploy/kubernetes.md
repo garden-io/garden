@@ -17,7 +17,7 @@ In the sections below we'll explain how to:
 
 The `kubernetes` Deploy action type works very similar to the [`helm`](./helm.md) Deploy action, and you'll find a lot common between the two guides.
 
-See the full spec for the `kubernetes` deploy action in our [reference docs](../../reference/action-types/Deploy/kubernetes.md).
+See the full spec for the `kubernetes` deploy action in our [reference docs](../../../reference/action-types/Deploy/kubernetes.md).
 
 ## Referencing manifests
 
@@ -227,7 +227,7 @@ spec:
 
 With this approach, you can add the Garden action to your project without making any changes to existing config.
 
-Here's a [complete example project](https://github.com/garden-io/garden/tree/main/examples/k8s-deploy-pathc-resources) using this approach.
+Here's a [complete example project](https://github.com/garden-io/garden/tree/main/examples/k8s-deploy-patch-resources) using this approach.
 
 ### Option 2: Using Garden template strings
 
@@ -315,7 +315,7 @@ spec:
 
 The benefit of this approach is that you don't need to make any changes to your existing manifests.
 
-If you'd rather use template strings in the manifests, you can do that as well as described in the [referencing container images](#option-2-Using-garden-template-strings) section above.
+If you'd rather use template strings in the manifests, you can do that as well as described in the [referencing container images](#option-2-using-garden-template-strings) section above.
 
 ## Setting a default target resource
 
@@ -374,16 +374,16 @@ spec:
         mode: two-way
 ```
 
-For more information on synchronization, check out the full [Code Synchronization Guide](../../guides/code-synchronization.md).
+For more information on synchronization, check out the full [Code Synchronization Guide](../../../guides/code-synchronization.md).
 
 ## Production environments
 
-You can define a remote environment as a `production` environment by setting the [production flag](../../reference/project-config.md#environmentsproduction) to `true`. This affects some default behavior when working with `kubernetes` actions. See the [Deploying to production](../advanced/deploying-to-production.md) guide for details.
+You can define a remote environment as a `production` environment by setting the [production flag](../../../reference/project-config.md#environmentsproduction) to `true`. This affects some default behavior when working with `kubernetes` actions. See the [Deploying to production](../../advanced/deploying-to-production.md) guide for details.
 
 ## Next steps
 
-Add Test and Run actions via the [`kubernetes-pod`](./kubernetes-pod.md) and [`kubernetes-exec`](./kubernetes-exec.md) action types.
+Add Test and Run actions via the [`kubernetes-pod`](../run-test/kubernetes-pod.md) and [`kubernetes-exec`](../run-test/kubernetes-exec.md) action types.
 
-You'll also find the [full Kubernetes Deploy action reference here](../../reference/action-types/README.md).
+You'll also find the [full Kubernetes Deploy action reference here](../../../reference/action-types/README.md).
 
 

@@ -47,10 +47,10 @@ This will mount the `my-volume` PVC at `/volume` in the `my-deploy` deploy when 
 Notice the `accessModes` field in the volume Deploy above. The default storage classes in Kubernetes generally don't support being mounted by multiple Pods at the same time. If your volume Deploy doesn't support the `ReadWriteMany` access mode, you must take care not to use the same volume in multiple Deploys, Runs or Tests, or multiple replicas. See [Shared volumes](#shared-volumes) below for how to share a single volume with multiple Pods.
 {% endhint %}
 
-You can do the same for Tests and Runs using the same `spec.volumes` field for both [Tests](../../reference/action-types/Test/container.md#specvolumes) and [Runs](../../reference/action-types/Run/container.md#specvolumes) fields. `persistentvolumeclaim` volumes can of course also be referenced in `kubernetes` and
+You can do the same for Tests and Runs using the same `spec.volumes` field for both [Tests](../../../reference/action-types/Test/container.md#specvolumes) and [Runs](../../../reference/action-types/Run/container.md#specvolumes) fields. `persistentvolumeclaim` volumes can of course also be referenced in `kubernetes` and
 `helm` actions, since they are deployed as standard PersistentVolumeClaim resources.
 
-Take a look at the [`persistentvolumeclaim`](../../reference/action-types/Deploy/persistentvolumeclaim.md) and [`container` Deploy](../../reference/action-types/Deploy/container.md#servicesvolumes) reference docs for more details.
+Take a look at the [`persistentvolumeclaim`](../../../reference/action-types/Deploy/persistentvolumeclaim.md) and [`container` Deploy](../../../reference/action-types/Deploy/container.md#servicesvolumes) reference docs for more details.
 
 ### Shared volumes
 

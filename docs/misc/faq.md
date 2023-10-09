@@ -188,16 +188,16 @@ This will run the Run even if the result is cached.
 
 ### How do I pass secrets to container actions?
 
-See [this section](../k8s-plugins/action-types/container.md#secrets) of our docs.
+See [this section](../k8s-plugins/action-types/deploy/container.md#secrets) of our docs.
 
 ### How do I mount secrets as volumes?
 
-You'll need to use the [`kubernetes`](../k8s-plugins/action-types/kubernetes.md) or [`helm`](../k8s-plugins/action-types/helm.md) action types for that. Here's the official [Kubernetes guide](https://kubernetes.io/docs/concepts/configuration/secret/#using-secrets-as-files-from-a-pod) for mounting secrets as files.
+You'll need to use the [`kubernetes`](../k8s-plugins/action-types/deploy/kubernetes.md) or [`helm`](../k8s-plugins/action-types/deploy/helm.md) action types for that. Here's the official [Kubernetes guide](https://kubernetes.io/docs/concepts/configuration/secret/#using-secrets-as-files-from-a-pod) for mounting secrets as files.
 
 ### Can I use Kubernetes secrets as `buildArgs` for docker Builds?
 
 No, Kubernetes secrets can only be used at runtime, by referencing them in the `spec.env` field of Run, Deploy and Test Actions.
-See [the secrets section](../k8s-plugins/action-types/container.md#secrets) of our docs for more.
+See [the secrets section](../k8s-plugins/action-types/deploy/container.md#secrets) of our docs for more.
 
 Also note that secrets as `buildArgs` are considered a bad practice and a security risk.
 
@@ -209,13 +209,13 @@ No, secrets have to be in the same namespace as the project. This is how Kuberne
 
 ### How do I mount persistent volumes?
 
-See [this section](../k8s-plugins/action-types/container.md#mounting-volumes) of our docs.
+See [this section](../k8s-plugins/action-types/deploy/container.md#mounting-volumes) of our docs.
 
 ### How do I access files that are generated at runtime (e.g. migration files that are checked into version control)?
 
 You can generate the files via a Run, store them as artifacts, and copy them from the local artifacts directory. [Here's an example](../using-garden/tests.md#test-artifacts) of this.
 
-You can also use the [`persistentvolumeclaim`](../reference/action-types/Deploy/persistentvolumeclaim.md) action type to store data and share it across actions. See [this section](../k8s-plugins/action-types/persistentvolumeclaim.md) of our docs for more.
+You can also use the [`persistentvolumeclaim`](../reference/action-types/Deploy/persistentvolumeclaim.md) action type to store data and share it across actions. See [this section](../k8s-plugins/action-types/deploy/persistentvolumeclaim.md) of our docs for more.
 
 ## Kubernetes
 
@@ -229,7 +229,7 @@ Garden interfaces with your cluster via `kubectl` and by using the Kubernetes AP
 
 ### Can I add Kubernetes-specific fields to `container` actions (e.g. annotations and labels)?
 
-No, you have to use the [`kubernetes`](../k8s-plugins/action-types/kubernetes.md) action type for that.
+No, you have to use the [`kubernetes`](../k8s-plugins/action-types/deploy/kubernetes.md) action type for that.
 
 ## Misc
 

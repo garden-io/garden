@@ -7,11 +7,11 @@ order: 3
 
 The [Helm](https://helm.sh/) package manager is one of the most commonly used tools for managing Kubernetes manifests. Garden supports using your own Helm charts, alongside your container builds, via the `kubernetes` and `local-kubernetes` providers. This guide shows you how to configure and use 3rd-party (or otherwise external) Helm charts, as well as your own charts in your Garden project. We also go through how to set up tests, runs and code synchronization for your charts.
 
-In this guide we'll be using the [vote-helm](../../../examples/vote-helm/README.md) project. If you prefer to just check out a complete example, the project itself is also a good resource.
+In this guide we'll be using the [vote-helm](../../../../examples/vote-helm/README.md) project. If you prefer to just check out a complete example, the project itself is also a good resource.
 
-You may also want to have a look at the reference documentation for the helm [`deploy`](../../reference/action-types/Deploy/helm.md) action type.
-[`helm-pod` run](../../reference/action-types/Run/helm-pod.md), [`helm-pod` test](../../reference/action-types/Test/helm-pod.md) and
-[`kubernetes-exec`](./kubernetes-exec.md) actions can be used for testing and task purposes.
+You may also want to have a look at the reference documentation for the helm [`deploy`](../../../reference/action-types/Deploy/helm.md) action type.
+[`helm-pod` run](../../../reference/action-types/Run/helm-pod.md), [`helm-pod` test](../../../reference/action-types/Test/helm-pod.md) and
+[`kubernetes-exec`](../run-test/kubernetes-exec.md) actions can be used for testing and task purposes.
 
 _Note: If you only need a way to deploy some Kubernetes manifests and don't need all the features of Helm, you can_
 _use the simpler `kubernetes` action type instead. Check out the_
@@ -66,16 +66,16 @@ source:
 
 ## `helm-pod` runs and tests
 
-For tasks and tests either the `helm-pod` or [`kubernetes-exec`](./kubernetes-exec.md) action types can be used.
+For tasks and tests either the `helm-pod` or [`kubernetes-exec`](../run-test/kubernetes-exec.md) action types can be used.
 
-[`helm-pod` run](../../reference/action-types/Run/helm-pod.md)
-and [`helm-pod` test](../../reference/action-types/Test/helm-pod.md) actions will create a fresh kubernetes workload and run your command in it.
+[`helm-pod` run](../../../reference/action-types/Run/helm-pod.md)
+and [`helm-pod` test](../../../reference/action-types/Test/helm-pod.md) actions will create a fresh kubernetes workload and run your command in it.
 These actions are cached. This means that if garden will not rerun them if the version of the action hasn't changed. If a remote kubernetes
 cluster is used, test results are stored there which allows to share test results between the team or ci runs to decrease the number or re-runs.
 
 `helm-pod` actions don't have to depend on the deploy actions. The manifests are gathered from the rendered helm charts and deployed to the cluster.
 
-Here's a test action from the [vote-helm example](../../../examples/vote-helm/vote/garden.yml).
+Here's a test action from the [vote-helm example](../../../../examples/vote-helm/vote/garden.yml).
 
 ```yaml
 kind: Test
@@ -200,7 +200,7 @@ spec:
 
 ```
 
-For more information on synchronization check out the [Code Synchronization Guide](../../guides/code-synchronization.md).
+For more information on synchronization check out the [Code Synchronization Guide](../../../guides/code-synchronization.md).
 
 ## Re-using charts
 
@@ -212,12 +212,12 @@ want to repeat those configurations all over the place.
 
 ## Production environments
 
-You can define a remote environment as a `production` environment by setting the [production flag](../../reference/project-config.md#environmentsproduction) to `true`. This affects some default behavior when working with `helm` actions. See the [Deploying to production](../advanced/deploying-to-production.md) guide for details.
+You can define a remote environment as a `production` environment by setting the [production flag](../../../reference/project-config.md#environmentsproduction) to `true`. This affects some default behavior when working with `helm` actions. See the [Deploying to production](../../advanced/deploying-to-production.md) guide for details.
 
 ## Next steps
 
-Check out the full [action reference](../../reference/action-types/README.md) for more details
-and the [vote-helm](../../../examples/vote-helm/README.md) example project for a full project
+Check out the full [action reference](../../../reference/action-types/README.md) for more details
+and the [vote-helm](../../../../examples/vote-helm/README.md) example project for a full project
 that showcases Garden's Helm support.
 
 Also check out the [Kubernetes action type](./kubernetes.md) if you don't need all the features of Helm.

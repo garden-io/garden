@@ -149,7 +149,7 @@ export const makeDocsLinkOpts = {
  * @param fragment URI fragment
  * @returns a functioning url
  *
- * @example makeDocsLink("k8s-plugins/action-types/container", "#secrets")
+ * @example makeDocsLink("k8s-plugins/action-types/deploy/container", "#secrets")
  */
 export function makeDocsLink(docsPathInput: string | TemplateStringsArray, fragment = ""): string {
   const docsPath: string = Array.isArray(docsPathInput) ? docsPathInput[0] : docsPathInput

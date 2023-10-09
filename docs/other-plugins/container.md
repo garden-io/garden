@@ -133,8 +133,8 @@ following:
 
 After your application has been built, you probably also want to deploy it.
 For this, check out our [guide on deploying to Kubernetes using `container` `Deploy`
-actions](../k8s-plugins/action-types/container.md), or the [`kubernetes`](../k8s-plugins/action-types/kubernetes.md)
-or [`helm`](../k8s-plugins/action-types/helm.md) type of `Deploy` actions for more advanced capabilities.
+actions](../k8s-plugins/action-types/deploy/container.md), or the [`kubernetes`](../k8s-plugins/action-types/deploy/kubernetes.md)
+or [`helm`](../k8s-plugins/action-types/deploy/helm.md) type of `Deploy` actions for more advanced capabilities.
 
 See the full spec of the `Deploy` action of `container` type in
 our [reference docs](../reference/action-types/Deploy/container.md).
@@ -247,9 +247,9 @@ and [`Test`](../reference/action-types/Test/container.md#outputs) action kinds.
 Volumes and ConfigMaps can be mounted in all `Deploy`, `Run`, and `Test` actions of the `container` type.
 
 For mounting volumes, check out our guide on
-the [`persistentvolumeclaim` action type](../k8s-plugins/action-types/persistentvolumeclaim.md), supported by
+the [`persistentvolumeclaim` action type](../k8s-plugins/action-types/deploy/persistentvolumeclaim.md), supported by
 the `kubernetes` provider.
 
-And for ConfigMaps, check out this guide on the [`configmap` action type](../k8s-plugins/action-types/configmap.md),
+And for ConfigMaps, check out this guide on the [`configmap` action type](../k8s-plugins/action-types/deploy/configmap.md),
 also supported by the `kubernetes` provider.
 

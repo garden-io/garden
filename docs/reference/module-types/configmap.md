@@ -13,7 +13,7 @@ Modules are deprecated and will be removed in version `0.14`. Please use [action
 
 Creates a [ConfigMap](https://kubernetes.io/docs/concepts/configuration/configmap/) in your namespace, that can be referenced and mounted by other resources and [container actions](./container.md).
 
-See the [Mounting Kubernetes ConfigMaps](../../k8s-plugins/action-types/configmap.md) guide for more info and usage examples.
+See the [Mounting Kubernetes ConfigMaps](../../k8s-plugins/action-types/deploy/configmap.md) guide for more info and usage examples.
 
 Below is the full schema reference. For an introduction to configuring Garden modules, please look at our [Configuration
 guide](../../using-garden/configuration-overview.md).

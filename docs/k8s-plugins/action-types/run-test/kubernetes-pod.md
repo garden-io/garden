@@ -7,8 +7,8 @@ order: 7
 
 For Run and Test actions, either the `kubernetes-pod` or [`kubernetes-exec`](./kubernetes-exec.md) action types can be used.
 
-[`kubernetes-pod` Run](../../reference/action-types/Run/kubernetes-pod.md)
-and [`kubernetes-pod` test](../../reference/action-types/Test/kubernetes-pod.md) will create a fresh Kubernetes workload and run your command in it.
+[`kubernetes-pod` Run](../../../reference/action-types/Run/kubernetes-pod.md)
+and [`kubernetes-pod` test](../../../reference/action-types/Test/kubernetes-pod.md) will create a fresh Kubernetes workload and run your command in it.
 These actions are cached. This means that Garden will not rerun them if the version of the action hasn't changed. If a remote Kubernetes
 cluster is used, test results are stored there which allows to share test results between the team or CI runs to decrease the number or re-runs.
 

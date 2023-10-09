@@ -136,10 +136,10 @@ export const gardenPlugin = () => {
     dependencies: [{ name: "container" }, { name: "jib", optional: true }],
     docs: dedent`
     The \`kubernetes\` provider allows you to deploy [\`container\` actions](${makeDocsLink(
-      "k8s-plugins/action-types/container"
+      "k8s-plugins/action-types/deploy/container"
     )}) to
-    Kubernetes clusters, and adds the [\`helm\`](${makeDocsLink`k8s-plugins/action-types/helm`}) and
-    [\`kubernetes\`](${makeDocsLink("k8s-plugins/action-types/kubernetes")}) action types.
+    Kubernetes clusters, and adds the [\`helm\`](${makeDocsLink`k8s-plugins/action-types/deploy/helm`}) and
+    [\`kubernetes\`](${makeDocsLink("k8s-plugins/action-types/deploy/kubernetes")}) action types.
 
     For usage information, please refer to the [guides section](../../guides). A good place to start is
     the [Remote Kubernetes guide](${makeDocsLink`k8s-plugins/remote-k8s/README`}) guide if you're connecting to remote clusters.
