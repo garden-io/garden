@@ -884,22 +884,25 @@ export class GardenServer extends EventEmitter {
       })
 
       let graph: ConfigGraph | undefined
-      let errors: GardenError[] = []
+      let error: GardenError | undefined
 
       try {
         graph = await garden.getConfigGraph({ log, emit: true })
-        loadConfigLog.success("Config loaded")
-      } catch (error) {
-        errors.push(toGardenError(error))
+      } catch (err) {
+        error = toGardenError(err)
       } finally {
-        loadConfigLog.error(`Loading config failed with error: ${errors[0].message}`)
+        if (error) {
+          loadConfigLog.error(`Loading config failed with error: ${error.message}`)
+        } else {
+          loadConfigLog.success("Config loaded")
+        }
         await cloudEventStream.close() // Note: This also flushes events
         send(
           "commandResult",
           sanitizeValue({
             requestId,
             result: graph,
-            errors,
+            errors: [error],
           })
         )
       }
