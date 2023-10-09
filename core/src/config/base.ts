@@ -101,6 +101,11 @@ export async function loadAndValidateYaml(content: string, path: string): Promis
       if (doc.errors.length > 0) {
         throw doc.errors[0]
       }
+      // Workaround: Call toJS might throw an error that is not listed in the errors above.
+      // See also https://github.com/eemeli/yaml/issues/497
+      // We call this here to catch this error early and prevent crashes later on.
+      doc.toJS()
+
       doc.source = content
       return doc
     })

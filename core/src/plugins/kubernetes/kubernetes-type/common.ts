@@ -464,10 +464,19 @@ function parseKubernetesManifests(str: string): KubernetesResource[] {
     }
   }
 
-  // TODO: We should use schema validation to make sure that apiVersion, kind and metadata are always defined as required by the type.
-  const manifests = docs.map((d) => d.toJS()) as KubernetesResource[]
+  let manifests: any[]
+  try {
+    manifests = docs.map((d) => d.toJS())
+  } catch (error) {
+    // toJS sometimes throws errors that are not caught by the above error check.
+    // See also https://github.com/eemeli/yaml/issues/497
+    throw new ConfigurationError({
+      message: `Failed to parse Kubernetes manifest: ${error}`,
+    })
+  }
 
-  return expandListManifests(manifests)
+  // TODO: We should use schema validation to make sure that apiVersion, kind and metadata are always defined as required by the type.
+  return expandListManifests(manifests as KubernetesResource[])
 }
 
 /**

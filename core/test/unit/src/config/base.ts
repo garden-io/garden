@@ -15,6 +15,7 @@ import {
   noTemplateFields,
   validateRawConfig,
   configTemplateKind,
+  loadAndValidateYaml,
 } from "../../../../src/config/base"
 import { resolve, join } from "path"
 import { expectError, getDataDir, getDefaultProjectConfig } from "../../../helpers"
@@ -25,6 +26,7 @@ import { getRootLogger } from "../../../../src/logger/logger"
 import { ConfigurationError } from "../../../../src/exceptions"
 import { resetNonRepeatableWarningHistory } from "../../../../src/warnings"
 import { omit } from "lodash"
+import { dedent } from "../../../../src/util/string"
 
 const projectPathA = getDataDir("test-project-a")
 const modulePathA = resolve(projectPathA, "module-a")
@@ -589,5 +591,44 @@ describe("findProjectConfig", async () => {
     await expectError(async () => await findProjectConfig({ log, path: projectPathMultipleProjects }), {
       contains: "Multiple project declarations found at paths",
     })
+  })
+})
+
+describe("loadAndValidateYaml", () => {
+  it("should load and validate yaml and annotate every document with the source", async () => {
+    const yaml = dedent`
+      apiVersion: v1
+      kind: Test
+      spec:
+        foo: bar
+      name: foo
+    `
+
+    const yamlDocs = await loadAndValidateYaml(yaml, "/foo")
+
+    expect(yamlDocs).to.have.length(1)
+    expect(yamlDocs[0].source).to.equal(yaml)
+    expect(yamlDocs[0].toJS()).to.eql({
+      apiVersion: "v1",
+      kind: "Test",
+      spec: {
+        foo: "bar",
+      },
+      name: "foo",
+    })
+  })
+
+  it("should throw ConfigurationError if yaml contains reference to undefined alias", async () => {
+    const yaml = dedent`
+      foo: *bar
+    `
+
+    await expectError(
+      () => loadAndValidateYaml(yaml, "/foo"),
+      (err) => {
+        expect(err.message).to.include("ReferenceError: Unresolved alias")
+        expect(err.message).to.include("bar")
+      }
+    )
   })
 })
