@@ -120,7 +120,7 @@ export async function getManifests({
     if (!manifest.metadata?.namespace) {
       if (!manifest.metadata) {
         // TODO: Type system complains that name is missing
-        (manifest as any).metadata = {}
+        ;(manifest as any).metadata = {}
       }
 
       const info = await api.getApiResourceInfo(log, manifest.apiVersion, manifest.kind)

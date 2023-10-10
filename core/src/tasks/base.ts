@@ -34,7 +34,6 @@ import {
   makeActionGetStatusPayload,
 } from "../events/util"
 
-
 export function makeBaseKey(type: string, name: string) {
   return `${type}.${name}`
 }

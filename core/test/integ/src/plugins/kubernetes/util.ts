@@ -116,7 +116,7 @@ describe("util", () => {
     let cleanup: (() => void) | undefined
 
     beforeEach(async () => {
-      ({ garden, cleanup } = await getContainerTestGarden("local"))
+      ;({ garden, cleanup } = await getContainerTestGarden("local"))
     })
 
     afterEach(async () => {

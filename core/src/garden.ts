@@ -1800,10 +1800,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
       vcsInfo,
     } = partialResolved
 
-    let {
-      config,
-      namespace,
-    } = partialResolved
+    let { config, namespace } = partialResolved
 
     await ensureDir(gardenDirPath)
     await ensureDir(artifactsPath)

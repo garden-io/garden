@@ -62,7 +62,7 @@ describe("kubernetes Pod runner functions", () => {
   let log: Log
 
   before(async () => {
-    ({ garden, cleanup } = await getContainerTestGarden())
+    ;({ garden, cleanup } = await getContainerTestGarden())
     provider = <KubernetesProvider>await garden.resolveProvider(garden.log, "local-kubernetes")
     ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
     namespace = provider.config.namespace!.name!

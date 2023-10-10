@@ -356,7 +356,7 @@ export class PluginTool extends CliWrapper {
           extractor.on("end", () => resolve())
         } else if (format === "zip") {
           // Note: lazy-loading for startup performance
-          const { Extract } = await import ("unzipper")
+          const { Extract } = await import("unzipper")
           extractor = Extract({ path: tmpPath })
           extractor.on("close", () => resolve())
         } else {

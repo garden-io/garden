@@ -345,7 +345,7 @@ export const LocalModeEnv = {
    * This env variable is supported by the openssh-server,
    * see https://docs.linuxserver.io/images/docker-openssh-server for the details.
    */
-  GARDEN_PROXY_CONTAINER_USER_NAME: "USER_NAME" as const
+  GARDEN_PROXY_CONTAINER_USER_NAME: "USER_NAME" as const,
 }
 
 async function prepareLocalModeEnvVars(portSpecs: V1ContainerPort[], keyPair: KeyPair): Promise<PrimitiveMap> {

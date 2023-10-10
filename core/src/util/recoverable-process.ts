@@ -94,7 +94,7 @@ export const CommandExecutors = {
   }) as CommandExecutor,
   execExecutor: ((osCommand: OsCommand) => {
     return execFile(osCommand.command, osCommand.args, { cwd: osCommand.cwd })
-  }) as CommandExecutor
+  }) as CommandExecutor,
   // no fork executor support yet
 } as const
 

@@ -7,7 +7,12 @@
  */
 
 import { renderMessageWithDivider } from "../../logger/util"
-import { GardenSdkActionDefinitionActionType, GardenSdkActionDefinitionConfigType, BuildStatus, sdk } from "../../plugin/sdk"
+import {
+  GardenSdkActionDefinitionActionType,
+  GardenSdkActionDefinitionConfigType,
+  BuildStatus,
+  sdk,
+} from "../../plugin/sdk"
 import { execRunCommand } from "./common"
 import { execCommonSchema, execEnvVarDoc, execRuntimeOutputsSchema, execStaticOutputsSchema } from "./config"
 import { execProvider } from "./exec"
