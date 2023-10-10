@@ -40,6 +40,9 @@ import { ResolvedConfigGraph } from "../graph/config-graph"
 import { ActionVersion } from "../vcs/vcs"
 import { Memoize } from "typescript-memoize"
 import { DEFAULT_BUILD_TIMEOUT_SEC } from "../constants"
+import { createBuildTask } from "../tasks/build"
+import { BaseActionTaskParams, ExecuteTask } from "../tasks/base"
+import { ResolveActionTask } from "../tasks/resolve-action"
 
 export interface BuildCopyFrom {
   build: string
@@ -186,6 +189,14 @@ export class BuildAction<
     } else {
       return join(this.baseBuildDirectory, this.name)
     }
+  }
+
+  override getExecuteTask(baseParams: Omit<BaseActionTaskParams, "action">): ExecuteTask {
+    return createBuildTask({ ...baseParams, action: this })
+  }
+
+  getResolveTask(baseParams: Omit<BaseActionTaskParams, "action">): ResolveActionTask<typeof this> {
+    return new ResolveActionTask({ ...baseParams, action: this })
   }
 }
 

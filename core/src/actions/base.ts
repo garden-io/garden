@@ -64,6 +64,7 @@ import { RunAction } from "./run"
 import { createActionLog, Log } from "../logger/log-entry"
 import { joinWithPosix } from "../util/fs"
 import { LinkedSource } from "../config-store/local"
+import { BaseActionTaskParams, ExecuteTask } from "../tasks/base"
 
 // TODO: split this file
 
@@ -641,6 +642,8 @@ export abstract class BaseAction<
       actionName: this.name,
     })
   }
+
+  abstract getExecuteTask(baseParams: Omit<BaseActionTaskParams, "action">): ExecuteTask
 }
 
 export abstract class RuntimeAction<

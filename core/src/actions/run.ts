@@ -17,6 +17,9 @@ import {
 } from "./base"
 import { Action, BaseActionConfig } from "./types"
 import { DEFAULT_RUN_TIMEOUT_SEC } from "../constants"
+import { createRunTask } from "../tasks/run"
+import { BaseActionTaskParams, ExecuteTask } from "../tasks/base"
+import { ResolveActionTask } from "../tasks/resolve-action"
 
 export type RunActionConfig<N extends string = any, S extends object = any> = BaseRuntimeActionConfig<"Run", N, S>
 
@@ -39,6 +42,14 @@ export class RunAction<
 > extends RuntimeAction<C, StaticOutputs, RuntimeOutputs> {
   override kind = "Run" as const
   override _staticOutputs: StaticOutputs = {} as StaticOutputs
+
+  getExecuteTask(baseParams: Omit<BaseActionTaskParams, "action">): ExecuteTask {
+    return createRunTask({ ...baseParams, action: this })
+  }
+
+  getResolveTask(baseParams: Omit<BaseActionTaskParams, "action">): ResolveActionTask<typeof this> {
+    return new ResolveActionTask({ ...baseParams, action: this })
+  }
 }
 
 export class ResolvedRunAction<
@@ -47,6 +58,14 @@ export class ResolvedRunAction<
   RuntimeOutputs extends {} = any,
 > extends ResolvedRuntimeAction<C, StaticOutputs, RuntimeOutputs> {
   override kind = "Run" as const
+
+  getExecuteTask(baseParams: Omit<BaseActionTaskParams, "action">): ExecuteTask {
+    return createRunTask({ ...baseParams, action: this })
+  }
+
+  getResolveTask(baseParams: Omit<BaseActionTaskParams, "action">): ResolveActionTask<typeof this> {
+    return new ResolveActionTask({ ...baseParams, action: this })
+  }
 }
 
 export class ExecutedRunAction<
@@ -55,6 +74,14 @@ export class ExecutedRunAction<
   RuntimeOutputs extends {} = any,
 > extends ExecutedRuntimeAction<C, StaticOutputs, RuntimeOutputs> {
   override kind = "Run" as const
+
+  getExecuteTask(baseParams: Omit<BaseActionTaskParams, "action">): ExecuteTask {
+    return createRunTask({ ...baseParams, action: this })
+  }
+
+  getResolveTask(baseParams: Omit<BaseActionTaskParams, "action">): ResolveActionTask<typeof this> {
+    return new ResolveActionTask({ ...baseParams, action: this })
+  }
 }
 
 export function isRunAction(action: Action): action is RunAction {

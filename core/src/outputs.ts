@@ -13,7 +13,6 @@ import { Log } from "./logger/log-entry"
 import { OutputSpec } from "./config/project"
 import { ActionReference } from "./config/common"
 import { ActionKind } from "./plugin/action-types"
-import { getExecuteTaskForAction } from "./tasks/helpers"
 import { GraphResults } from "./graph/results"
 
 /**
@@ -90,7 +89,7 @@ export async function resolveProjectOutputs(garden: Garden, log: Log): Promise<O
   const graphTasks = needActions.map((ref) => {
     // TODO: we may not need full execution for all these actions
     const action = graph.getActionByRef(ref)
-    return getExecuteTaskForAction(action, baseParams)
+    return action.getExecuteTask(baseParams)
   })
 
   const { results } =

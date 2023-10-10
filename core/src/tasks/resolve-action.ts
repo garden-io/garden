@@ -8,7 +8,7 @@
 
 import { BaseActionTask, ActionTaskProcessParams, ActionTaskStatusParams, BaseTask, ValidResultType } from "./base"
 import { Profile } from "../util/profiling"
-import { Action, ActionState, BaseActionConfig, ExecutedAction, Resolved, ResolvedAction } from "../actions/types"
+import type { Action, ActionState, BaseActionConfig, ExecutedAction, Resolved, ResolvedAction } from "../actions/types"
 import { ActionSpecContext } from "../config/template-contexts/actions"
 import { resolveTemplateStrings } from "../template-string/template-string"
 import { InternalError } from "../exceptions"

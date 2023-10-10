@@ -17,6 +17,9 @@ import {
 } from "./base"
 import { Action, BaseActionConfig } from "./types"
 import { DEFAULT_DEPLOY_TIMEOUT_SEC } from "../constants"
+import { createDeployTask } from "../tasks/deploy"
+import { BaseActionTaskParams, ExecuteTask } from "../tasks/base"
+import { ResolveActionTask } from "../tasks/resolve-action"
 
 export type DeployActionConfig<N extends string = any, S extends object = any> = BaseRuntimeActionConfig<"Deploy", N, S>
 
@@ -39,6 +42,14 @@ export class DeployAction<
 > extends RuntimeAction<C, StaticOutputs, RuntimeOutputs> {
   override kind = "Deploy" as const
   override _staticOutputs: StaticOutputs = {} as StaticOutputs
+
+  getExecuteTask(baseParams: Omit<BaseActionTaskParams, "action">): ExecuteTask {
+    return createDeployTask({ ...baseParams, action: this })
+  }
+
+  getResolveTask(baseParams: Omit<BaseActionTaskParams, "action">): ResolveActionTask<typeof this> {
+    return new ResolveActionTask({ ...baseParams, action: this })
+  }
 }
 
 export class ResolvedDeployAction<
@@ -47,6 +58,14 @@ export class ResolvedDeployAction<
   RuntimeOutputs extends {} = any,
 > extends ResolvedRuntimeAction<C, StaticOutputs, RuntimeOutputs> {
   override kind = "Deploy" as const
+
+  getExecuteTask(baseParams: Omit<BaseActionTaskParams, "action">): ExecuteTask {
+    return createDeployTask({ ...baseParams, action: this })
+  }
+
+  getResolveTask(baseParams: Omit<BaseActionTaskParams, "action">): ResolveActionTask<typeof this> {
+    return new ResolveActionTask({ ...baseParams, action: this })
+  }
 }
 
 export class ExecutedDeployAction<
@@ -55,6 +74,14 @@ export class ExecutedDeployAction<
   RuntimeOutputs extends {} = any,
 > extends ExecutedRuntimeAction<C, StaticOutputs, RuntimeOutputs> {
   override kind = "Deploy" as const
+
+  getExecuteTask(baseParams: Omit<BaseActionTaskParams, "action">): ExecuteTask {
+    return createDeployTask({ ...baseParams, action: this })
+  }
+
+  getResolveTask(baseParams: Omit<BaseActionTaskParams, "action">): ResolveActionTask<typeof this> {
+    return new ResolveActionTask({ ...baseParams, action: this })
+  }
 }
 
 export function isDeployAction(action: Action): action is DeployAction {

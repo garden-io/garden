@@ -25,7 +25,6 @@ import type { ResolveProviderTask } from "./resolve-provider"
 import type { RunTask } from "./run"
 import type { TestTask } from "./test"
 import { Memoize } from "typescript-memoize"
-import { getExecuteTaskForAction, getResolveTaskForAction } from "./helpers"
 import { TypedEventEmitter } from "../util/events"
 import { Events, ActionStatusEventName } from "../events/events"
 import {
@@ -34,6 +33,7 @@ import {
   makeActionProcessingPayload,
   makeActionGetStatusPayload,
 } from "../events/util"
+
 
 export function makeBaseKey(type: string, name: string) {
   return `${type}.${name}`
@@ -349,7 +349,7 @@ export abstract class BaseActionTask<T extends Action, O extends ValidResultType
    */
   protected getResolveTask(action: Action) {
     const force = !!this.forceActions.find((r) => r.kind === action.kind && r.name === action.name)
-    return getResolveTaskForAction(action, { ...this.getDependencyParams(), force })
+    return action.getResolveTask({ ...this.getDependencyParams(), force })
   }
 
   /**
@@ -359,7 +359,7 @@ export abstract class BaseActionTask<T extends Action, O extends ValidResultType
    */
   protected getExecuteTask(action: Action) {
     const force = !!this.forceActions.find((r) => r.kind === action.kind && r.name === action.name)
-    return getExecuteTaskForAction(action, { ...this.getDependencyParams(), force })
+    return action.getExecuteTask({ ...this.getDependencyParams(), force })
   }
 }
 
