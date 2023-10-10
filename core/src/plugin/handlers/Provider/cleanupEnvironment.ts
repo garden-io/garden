@@ -13,7 +13,7 @@ import type { BaseProviderConfig } from "../../../config/provider"
 
 export type CleanupEnvironmentParams<C extends BaseProviderConfig = any> = PluginActionParamsBase<C>
 
-export interface CleanupEnvironmentResult {}
+export type CleanupEnvironmentResult = object
 
 export const cleanupEnvironment = () => ({
   description: dedent`

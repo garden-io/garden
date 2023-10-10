@@ -10,7 +10,7 @@ import { ChildProcess } from "child_process"
 
 import getPort = require("get-port")
 
-const AsyncLock = require("async-lock")
+import AsyncLock = require("async-lock")
 import { V1ContainerPort, V1Deployment, V1PodTemplate, V1Service } from "@kubernetes/client-node"
 
 import { KubernetesProvider, KubernetesPluginContext } from "./config"
@@ -92,8 +92,6 @@ export async function getPortForward({
   const key = getPortForwardKey(targetResource, port)
 
   return portForwardRegistrationLock.acquire("register-port-forward", async () => {
-    let localPort: number
-
     const registered = registeredPortForwards[key]
 
     if (registered && !registered.proc.killed) {
@@ -104,7 +102,7 @@ export async function getPortForward({
     const k8sCtx = <KubernetesPluginContext>ctx
 
     // Forward random free local port to the remote container.
-    localPort = await getPort()
+    const localPort = await getPort()
     const portMapping = `${localPort}:${port}`
 
     log.debug(`Forwarding local port ${localPort} to ${targetResource} port ${port}`)

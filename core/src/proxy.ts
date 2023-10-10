@@ -9,7 +9,7 @@
 import { isEqual, invert } from "lodash"
 import chalk = require("chalk")
 import { createServer, Server, Socket } from "net"
-const AsyncLock = require("async-lock")
+import AsyncLock = require("async-lock")
 import getPort = require("get-port")
 import { ServiceStatus, ForwardablePort } from "./types/service"
 import { Garden } from "./garden"

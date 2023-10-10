@@ -214,7 +214,7 @@ export async function loadPlugin(log: Log, projectRoot: string, nameOrPlugin: Re
   } else if (nameOrPlugin instanceof GardenSdkPlugin) {
     plugin = nameOrPlugin.getSpec()
   } else if (nameOrPlugin["callback"]) {
-    plugin = (<GardenPluginReference>nameOrPlugin).callback()
+    plugin = await (<GardenPluginReference>nameOrPlugin).callback()
   } else {
     plugin = <GardenPluginSpec>nameOrPlugin
   }
@@ -970,8 +970,8 @@ function resolveModuleDefinition(
 // Note: We clone the handler to avoid possible circular references
 // (plugin authors may re-use handlers for various reasons).
 function cloneHandler(org: any): any {
-  function handler() {
-    return org.apply(org, arguments)
+  function handler(...args) {
+    return org.apply(org, args)
   }
 
   for (const key in org) {

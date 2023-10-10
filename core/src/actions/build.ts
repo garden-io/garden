@@ -151,7 +151,7 @@ export class BuildAction<
   StaticOutputs extends {} = any,
   RuntimeOutputs extends {} = any,
 > extends BaseAction<C, StaticOutputs, RuntimeOutputs> {
-  override kind: "Build" = "Build"
+  override kind = "Build" as const
   // TODO:
   // `_staticOutputs` is abstract since the base class uses it but doesn't define it in the constructor.
   // In this case this would also be the case, but the class isn't actually abstract so it needs it to be defined.

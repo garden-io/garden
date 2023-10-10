@@ -30,11 +30,21 @@ function getLeafErrors(error: GardenError): AnalyticsGardenErrorDetail[] {
 }
 
 function getAnalyticsError(error: GardenError): AnalyticsGardenError {
+  let wrapped: AnalyticsGardenErrorDetail | undefined = undefined
+
+  const { wrappedErrors } = error
+  if (wrappedErrors && wrappedErrors.length > 0) {
+    const firstError = wrappedErrors.at(0)
+    if (firstError) {
+      wrapped = getErrorDetail(firstError)
+    }
+  }
+
   return {
     // details of the root error
     error: getErrorDetail(error),
     // the first wrapped error
-    wrapped: error.wrappedErrors?.at(0) ? getErrorDetail(error.wrappedErrors?.at(0)!) : undefined,
+    wrapped,
     // recursively get all the leaf errors and select the first one
     leaf: error.wrappedErrors ? getLeafErrors(error).at(0) : undefined,
   }

@@ -87,7 +87,7 @@ export interface GardenPluginReference {
   callback: GardenPluginCallback
 }
 
-export type GardenPluginCallback = () => GardenPluginSpec
+export type GardenPluginCallback = () => GardenPluginSpec | Promise<GardenPluginSpec>
 
 export interface PluginMap {
   [name: string]: GardenPluginSpec

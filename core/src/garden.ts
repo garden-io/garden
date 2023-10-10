@@ -1915,7 +1915,8 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
       commandInfo,
     })
 
-    let { providers, variables, production } = pickedEnv
+    const { providers, production } = pickedEnv
+    let { variables } = pickedEnv
 
     // Allow overriding variables
     const variableOverrides = opts.variableOverrides || {}

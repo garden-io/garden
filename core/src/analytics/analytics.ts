@@ -27,6 +27,7 @@ import { GardenError, NodeJSErrnoErrorCodes, StackTraceMetadata } from "../excep
 import { ActionConfigMap } from "../actions/types"
 import { actionKinds } from "../actions/types"
 import { getResultErrorProperties } from "./helpers"
+import segmentClient = require("analytics-node")
 
 const CI_USER = "ci-user"
 
@@ -302,7 +303,6 @@ export class AnalyticsHandler {
     cloudUser?: UserResult
     ciInfo: CiInfo
   }) {
-    const segmentClient = require("analytics-node")
     const segmentApiKey = gardenEnv.ANALYTICS_DEV ? SEGMENT_DEV_API_KEY : SEGMENT_PROD_API_KEY
 
     this.segment = new segmentClient(segmentApiKey, { flushAt: 20, flushInterval: 300 })

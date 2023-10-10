@@ -82,7 +82,7 @@ export interface GenerateFileSpec {
   value?: string
 }
 
-export interface ModuleSpec {}
+export type ModuleSpec = object
 
 interface ModuleSpecCommon {
   apiVersion?: string

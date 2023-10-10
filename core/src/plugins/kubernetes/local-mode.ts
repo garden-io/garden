@@ -37,12 +37,12 @@ import getPort = require("get-port")
 import touch = require("touch")
 import { Resolved } from "../../actions/types"
 import { DOCS_BASE_URL } from "../../constants"
+import AsyncLock = require("async-lock")
 
 export const localModeGuideLink = `${DOCS_BASE_URL}/guides/running-service-in-local-mode`
 
 const localhost = "127.0.0.1"
 
-const AsyncLock = require("async-lock")
 const sshKeystoreAsyncLock = new AsyncLock()
 
 const portForwardRetryTimeoutMs = 5000
