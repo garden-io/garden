@@ -14,9 +14,10 @@ import getPort from "get-port"
 import { dirname } from "path"
 import { ParameterValues } from "../../../../src/cli/params"
 import {
-  GitHubReleaseApi,
+  findRelease,
   isEdgeVersion,
   isPreReleaseVersion,
+  Pagination,
   SelfUpdateArgs,
   SelfUpdateCommand,
   SelfUpdateOpts,
@@ -433,7 +434,7 @@ describe("SelfUpdateCommand", () => {
 
       it("should find the latest minor release if there are multiple minor versions", async () => {
         // Mock the data fetcher to return only one page
-        const fetcher = async (pagination: GitHubReleaseApi.Pagination) => {
+        const fetcher = async (pagination: Pagination) => {
           if (pagination.pageNumber > 1) {
             return []
           }
@@ -445,13 +446,13 @@ describe("SelfUpdateCommand", () => {
           ]
         }
         const primaryPredicate = command.getTargetVersionPredicate(currentSemVer, "minor")
-        const release = await GitHubReleaseApi.findRelease({ primaryPredicate, fetcher })
+        const release = await findRelease({ primaryPredicate, fetcher })
         expect(release.tag_name).to.eql("0.13.1")
       })
 
       it("should fallback to the latest patch release if no minor version found", async () => {
         // Mock the data fetcher to return only one page
-        const fetcher = async (pagination: GitHubReleaseApi.Pagination) => {
+        const fetcher = async (pagination: Pagination) => {
           if (pagination.pageNumber > 1) {
             return []
           }
@@ -462,7 +463,7 @@ describe("SelfUpdateCommand", () => {
         }
         const primaryPredicate = command.getTargetVersionPredicate(currentSemVer, "minor")
         const fallbackPredicate = command.getTargetVersionPredicate(currentSemVer, "patch")
-        const release = await GitHubReleaseApi.findRelease({
+        const release = await findRelease({
           primaryPredicate,
           fallbackPredicates: [fallbackPredicate],
           fetcher,
