@@ -91,7 +91,11 @@ async function runInPackages(args: string[]) {
       return
     }
 
-    const proc = execa("npm", ["run", script, `--workspace=${pack.name}`, ...(rest.length > 0 ? ["--", ...rest] : [])], { cwd: repoRoot, reject: false })
+    const proc = execa(
+      "npm",
+      ["run", script, `--workspace=${pack.name}`, ...(rest.length > 0 ? ["--", ...rest] : [])],
+      { cwd: repoRoot, reject: false }
+    )
 
     void proc.on("error", (error) => {
       write(chalk.redBright(`\nCould not run ${script} script in package ${packageName}: ${error}`))

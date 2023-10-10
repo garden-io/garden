@@ -28,8 +28,8 @@
   "scripts": {
     "check-types": "tsc -p . --noEmit",
     "clean": "shx rm -rf build dist",
-    "fix-format": "prettier --write \"**/*.ts\"",
-    "lint": "eslint -c ../../.eslintrc  --ext .ts .",
+    "fix-format": "npm run lint -- --fix --quiet",
+    "lint": "eslint --ext .ts .",
     "test": "mocha"
   },
   "author": "Garden Technologies, Inc. <info@garden.io>",

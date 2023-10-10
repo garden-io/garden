@@ -47,7 +47,7 @@ The project code is composed of several components, most of which are written in
 
 ### Formatting
 
-We use [Prettier](https://prettier.io) for automated formatting. We highly recommend installing the appropriate plugin for your editor to automate formatting as you work on your code. You can also run `yarn run fix-format` to fix formatting across the codebase.
+We use [Prettier](https://prettier.io) for automated formatting. We highly recommend installing the appropriate plugin for your editor to automate formatting as you work on your code. You can also run `npm run fix-format` to fix formatting across the codebase.
 
 ### Commit messages
 
@@ -74,19 +74,19 @@ When generating the changelog, we only include the following types: **feat**, **
 We have scripts for checking licenses, docs, linting and more. These can all be run with a single command:
 
 ```sh
-yarn run check-all
+npm run check-all
 ```
 
 If the checks fail because of bad formatting, run:
 
 ```sh
-yarn run fix-format
+npm run fix-format
 ```
 
 If the checks fail because of missing docs, run:
 
 ```sh
-yarn run generate-docs
+npm run generate-docs
 ```
 
 ### Pre-push hook
@@ -115,7 +115,7 @@ We use [Circle CI](https://circleci.com) for integration and end-to-end testing.
 ## License/copyright headers
 
 Every source file must include the contents of `support/license-header.txt` at the top. This is
-automatically checked during CI. You can run the check with `yarn run check-licenses`.
+automatically checked during CI. You can run the check with `npm run check-licenses`.
 
 ## Release process
 
