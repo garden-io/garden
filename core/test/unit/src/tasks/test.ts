@@ -19,7 +19,7 @@ describe("TestTask", () => {
 
   beforeEach(async () => {
     garden = await makeTestGarden(getDataDir("test-project-test-deps"))
-    graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+    graph = await garden.getResolvedConfigGraph({ log: garden.log, emit: false })
     log = garden.log
   })
 
