@@ -88,13 +88,15 @@ export interface IOStreamListener {
 
 export type CommandExecutor = (command: OsCommand) => ChildProcess
 
-export namespace CommandExecutors {
-  export const spawnExecutor: CommandExecutor = (osCommand: OsCommand) =>
-    spawn(osCommand.command, osCommand.args, { cwd: osCommand.cwd, shell: true })
-  export const execExecutor: CommandExecutor = (osCommand: OsCommand) =>
-    execFile(osCommand.command, osCommand.args, { cwd: osCommand.cwd })
+export const CommandExecutors = {
+  spawnExecutor: ((osCommand: OsCommand) => {
+    return spawn(osCommand.command, osCommand.args, { cwd: osCommand.cwd, shell: true })
+  }) as CommandExecutor,
+  execExecutor: ((osCommand: OsCommand) => {
+    return execFile(osCommand.command, osCommand.args, { cwd: osCommand.cwd })
+  }) as CommandExecutor
   // no fork executor support yet
-}
+} as const
 
 export type FailureHandler = () => Promise<void>
 

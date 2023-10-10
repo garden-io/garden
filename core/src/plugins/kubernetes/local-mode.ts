@@ -328,24 +328,24 @@ function validateContainerPorts(container: V1Container, spec: ContainerLocalMode
   return matchingPorts
 }
 
-export namespace LocalModeEnv {
+export const LocalModeEnv = {
   /**
    * Stores the ports of the target container which should be executed in local mode.
    * The proxy container has to expose the same ports.
    */
-  export const GARDEN_REMOTE_CONTAINER_PORTS = "GARDEN_REMOTE_CONTAINER_PORTS"
+  GARDEN_REMOTE_CONTAINER_PORTS: "GARDEN_REMOTE_CONTAINER_PORTS" as const,
   /**
    * Stores the generated SSH public key for the local mode's SSH connection.
    * This env variable is supported by the openssh-server,
    * see https://docs.linuxserver.io/images/docker-openssh-server for the details.
    */
-  export const GARDEN_PROXY_CONTAINER_PUBLIC_KEY = "PUBLIC_KEY"
+  GARDEN_PROXY_CONTAINER_PUBLIC_KEY: "PUBLIC_KEY" as const,
   /**
    * Stores the username for the local mode's SSH connection.
    * This env variable is supported by the openssh-server,
    * see https://docs.linuxserver.io/images/docker-openssh-server for the details.
    */
-  export const GARDEN_PROXY_CONTAINER_USER_NAME = "USER_NAME"
+  GARDEN_PROXY_CONTAINER_USER_NAME: "USER_NAME" as const
 }
 
 async function prepareLocalModeEnvVars(portSpecs: V1ContainerPort[], keyPair: KeyPair): Promise<PrimitiveMap> {
