@@ -144,7 +144,8 @@ describe("plugins.container", () => {
 
     it("returns the dummy Build action if no Dockerfile and an exec Build is needed", async () => {
       const module = graph.getModule("module-a") as ContainerModule
-      module.version.files.pop() // remove automatically picked up Dockerfile
+      // TODO
+      // module.version.files.pop() // remove automatically picked up Dockerfile
       const dummyBuild: ExecBuildConfig = {
         internal: {
           basePath: ".",

@@ -4636,8 +4636,8 @@ describe("Garden", () => {
         const moduleVersionA: ModuleVersion = {
           contentHash: treeVersionA.contentHash,
           versionString: treeVersionA.contentHash,
-          files: [],
           dependencyVersions: {},
+          files: [],
         }
         moduleA.version = moduleVersionA
         handlerA.setTestTreeVersion(moduleA.path, treeVersionA)
@@ -4646,8 +4646,8 @@ describe("Garden", () => {
         const moduleVersionB: ModuleVersion = {
           contentHash: versionStringB,
           versionString: versionStringB,
-          files: [],
           dependencyVersions: { "module-a": moduleVersionA.versionString },
+          files: [],
         }
         moduleB.version = moduleVersionB
         const treeVersionB: TreeVersion = { contentHash: versionStringB, files: [] }

@@ -60,32 +60,27 @@ const mavendPaths = ["pom.xml", ".mvnd"]
 
 export function detectProjectType({
   actionName,
-  actionBasePath,
   actionFiles,
 }: {
   actionName: string
-  actionBasePath: string
   actionFiles: string[]
 }): JibPluginType {
   // TODO: support the Jib CLI
 
   for (const filename of gradlePaths) {
-    const path = resolve(actionBasePath, filename)
-    if (actionFiles.includes(path)) {
+    if (actionFiles.includes(filename)) {
       return "gradle"
     }
   }
 
   for (const filename of mavenPaths) {
-    const path = resolve(actionBasePath, filename)
-    if (actionFiles.includes(path)) {
+    if (actionFiles.includes(filename)) {
       return "maven"
     }
   }
 
   for (const filename of mavendPaths) {
-    const path = resolve(actionBasePath, filename)
-    if (actionFiles.includes(path)) {
+    if (actionFiles.includes(filename)) {
       return "mavend"
     }
   }

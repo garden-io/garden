@@ -9,7 +9,7 @@
 import { isAbsolute, join, resolve, relative, parse, basename } from "path"
 import { emptyDir, ensureDir, mkdirp, pathExists, remove } from "fs-extra"
 import { ConfigurationError, InternalError, isErrnoException } from "../exceptions"
-import { normalizeRelativePath, joinWithPosix } from "../util/fs"
+import { joinWithPosix } from "../util/fs"
 import { Log } from "../logger/log-entry"
 import { Profile } from "../util/profiling"
 import async from "async"
@@ -61,7 +61,7 @@ export class BuildStaging {
     }
 
     // Normalize to relative POSIX-style paths
-    const files = action.getFullVersion().files.map((f) => normalizeRelativePath(action.basePath(), f))
+    const files = action.getFullVersion().files.filter((f) => f.source === "vcs").map((f) => f.relativePath)
 
     const buildPath = action.getBuildPath()
     await this.ensureDir(buildPath)

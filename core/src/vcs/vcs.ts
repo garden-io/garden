@@ -70,14 +70,6 @@ export interface ModuleVersion extends TreeVersion {
   dependencyVersions: DependencyVersions
 }
 
-export interface ActionVersion {
-  versionString: string
-  dependencyVersions: DependencyVersions
-  configVersion: string
-  sourceVersion: string
-  files: string[]
-}
-
 export interface NamedModuleVersion extends ModuleVersion {
   name: string
 }

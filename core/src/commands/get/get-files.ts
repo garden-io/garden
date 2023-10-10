@@ -12,6 +12,7 @@ import { joi } from "../../config/common"
 import { printHeader } from "../../logger/util"
 import { Command, CommandParams, CommandResult } from "../base"
 import chalk from "chalk"
+import { ActionFile } from "../../actions/base"
 
 const getFilesArgs = {
   keys: new StringsParameter({
@@ -24,7 +25,7 @@ type Args = typeof getFilesArgs
 type Opts = {}
 
 interface Result {
-  [key: string]: string[]
+  [key: string]: ActionFile[]
 }
 
 export class GetFilesCommand extends Command<Args, Opts> {
@@ -35,7 +36,8 @@ export class GetFilesCommand extends Command<Args, Opts> {
 
   override arguments = getFilesArgs
 
-  override outputsSchema = () => joi.object().pattern(joi.string(), joi.array().items(joi.string()).required())
+  // TODO: change output schema
+  override outputsSchema = () => joi.object().pattern(joi.string(), joi.array().items(joi.object()).required())
 
   override printHeader({ log }) {
     printHeader(log, "Get Files", "🗂️")
@@ -52,7 +54,7 @@ export class GetFilesCommand extends Command<Args, Opts> {
 
         log.info("")
         log.info(chalk.cyanBright(key))
-        log.info(files.length ? files.map((f) => "- " + f).join("\n") : "(none)")
+        log.info(files.length ? files.map((f) => `- ${f.relativePath} (from ${f.source}; absolute path: ${f.absolutePath})`).join("\n") : "(none)")
 
         return [key, files]
       })

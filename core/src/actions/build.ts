@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { join } from "path"
+import { isAbsolute, join } from "path"
 import {
   ActionReference,
   createSchema,
@@ -35,11 +35,13 @@ import {
   actionReferenceToString,
   ResolvedActionExtension,
   ExecutedActionExtension,
+  ActionVersion,
+  ActionFile,
 } from "./base"
 import { ResolvedConfigGraph } from "../graph/config-graph"
-import { ActionVersion } from "../vcs/vcs"
 import { Memoize } from "typescript-memoize"
 import { DEFAULT_BUILD_TIMEOUT_SEC } from "../constants"
+import { ConfigurationError } from "../exceptions"
 
 export interface BuildCopyFrom {
   build: string
@@ -168,13 +170,47 @@ export class BuildAction<
    * similar changes to the underlying build-relevant parts of the module config, or to the included sources.
    */
   @Memoize()
-  override getFullVersion(): ActionVersion {
+  override  getFullVersion(): ActionVersion {
     const actionVersion = super.getFullVersion()
     if (this._moduleVersion) {
       actionVersion.versionString = this.moduleVersion().versionString
     }
     return actionVersion
   }
+
+  @Memoize()
+  override getFilesFromDependencies(): ActionFile[] {
+    return (this.getConfig("copyFrom") || []).flatMap((copy) => {
+      const sourceBuild = this.getDependency({ kind: "Build", name: copy.build })
+
+      if (!sourceBuild) {
+        throw new ConfigurationError({
+          message: `${this.longDescription()} specifies build '${
+            copy.build
+          }' in \`copyFrom\` which could not be found.`,
+        })
+      }
+
+      if (isAbsolute(copy.sourcePath)) {
+        throw new ConfigurationError({
+          message: `Source path in build dependency copy spec must be a relative path. Actually got '${copy.sourcePath}'`,
+        })
+      }
+
+      if (isAbsolute(copy.targetPath)) {
+        throw new ConfigurationError({
+          message: `Target path in build dependency copy spec must be a relative path. Actually got '${copy.targetPath}'`,
+        })
+      }
+
+      return {
+          // TODO: target path
+          relativePath: copy.targetPath,
+          source: "dependency",
+          absolutePath: `${join(sourceBuild.getBuildPath(), copy.sourcePath)}`
+        } as ActionFile
+      })
+    }
 
   /**
    * Returns the build path for the action. The path is generally `<project root>/.garden/build/<action name>`.

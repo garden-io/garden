@@ -40,8 +40,7 @@ describe("util", function () {
       expect(
         detectProjectType({
           actionName: "foo",
-          actionBasePath: "/foo",
-          actionFiles: ["/foo/build.gradle"],
+          actionFiles: ["build.gradle"],
         })
       ).to.equal("gradle")
     })
@@ -50,8 +49,7 @@ describe("util", function () {
       expect(
         detectProjectType({
           actionName: "foo",
-          actionBasePath: "/foo",
-          actionFiles: ["/foo/pom.xml"],
+          actionFiles: ["pom.xml"],
         })
       ).to.equal("maven")
     })
@@ -61,7 +59,6 @@ describe("util", function () {
         () =>
           detectProjectType({
             actionName: "foo",
-            actionBasePath: "/foo",
             actionFiles: [],
           }),
         {

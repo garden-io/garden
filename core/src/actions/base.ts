@@ -25,7 +25,7 @@ import {
 } from "../config/common"
 import { DOCS_BASE_URL } from "../constants"
 import { dedent, naturalList, stableStringify } from "../util/string"
-import { ActionVersion, hashStrings, ModuleVersion, TreeVersion, versionStringPrefix } from "../vcs/vcs"
+import { DependencyVersions, hashStrings, ModuleVersion, TreeVersion, versionStringPrefix } from "../vcs/vcs"
 import type { BuildAction, ResolvedBuildAction } from "./build"
 import type { ActionKind } from "../plugin/action-types"
 import pathIsInside from "path-is-inside"
@@ -62,7 +62,7 @@ import { DeployAction } from "./deploy"
 import { TestAction } from "./test"
 import { RunAction } from "./run"
 import { createActionLog, Log } from "../logger/log-entry"
-import { joinWithPosix } from "../util/fs"
+import { joinWithPosix, normalizeRelativePath } from "../util/fs"
 import { LinkedSource } from "../config-store/local"
 
 // TODO: split this file
@@ -313,6 +313,25 @@ export interface ActionDescription {
   version: ActionVersion
 }
 
+
+export type ActionFile = {
+  // relative path from the actions base or build path.
+  relativePath: string
+  source: "vcs" | "dependency"
+  // absolute path on this computer.
+  // If source === "vcs", then it's the absolute path to the file in the VCS.
+  // If source === "dependency", then it's the absolute path to the file in the build folder the action we depend on.
+  absolutePath: string
+}
+
+export interface ActionVersion {
+  versionString: string
+  dependencyVersions: DependencyVersions
+  configVersion: string
+  sourceVersion: string
+  files: ActionFile[]
+}
+
 export abstract class BaseAction<
   C extends BaseActionConfig = BaseActionConfig,
   StaticOutputs extends {} = any,
@@ -472,7 +491,8 @@ export abstract class BaseAction<
         contentHash: version.sourceVersion,
         versionString: version.versionString,
         dependencyVersions: version.dependencyVersions,
-        files: version.files,
+        // TODO: is this what we want?
+        files: this.getFilesFromSource().map((f) => f.absolutePath),
       }
     }
   }
@@ -533,8 +553,31 @@ export abstract class BaseAction<
       sourceVersion: this._treeVersion.contentHash,
       versionString,
       dependencyVersions,
-      files: this._treeVersion.files,
+      files: this.getFiles()
     }
+  }
+
+  @Memoize()
+  getFiles(): ActionFile[] {
+    return [
+      ...this.getFilesFromDependencies(),
+      ...this.getFilesFromSource()
+    ].flat()
+  }
+
+  @Memoize()
+  getFilesFromSource(): ActionFile[] {
+    return this._treeVersion.files.map((absolutePath) => ({
+      relativePath: normalizeRelativePath(this.basePath(), absolutePath),
+      source: "vcs",
+      absolutePath,
+    }))
+  }
+
+  @Memoize()
+  getFilesFromDependencies(): ActionFile[] {
+    // Needs to be overridden in the BuildAction
+    return []
   }
 
   treeVersion() {

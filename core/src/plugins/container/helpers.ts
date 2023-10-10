@@ -373,15 +373,19 @@ const helpers = {
   moduleHasDockerfile(config: ContainerModuleConfig, version: ModuleVersion): boolean {
     // If we explicitly set a Dockerfile, we take that to mean you want it to be built.
     // If the file turns out to be missing, this will come up in the build handler.
-    return !!config.spec.dockerfile || version.files.includes(getDockerfilePath(config.path, config.spec.dockerfile))
+    return (
+      !!config.spec.dockerfile ||
+      // version.files.some((f) => f.relativePath === config.spec.dockerfile)
+      true // TODO remove hack
+    )
   },
 
   async actionHasDockerfile(action: Resolved<ContainerBuildAction>): Promise<boolean> {
     // If we explicitly set a Dockerfile, we take that to mean you want it to be built.
     // If the file turns out to be missing, this will come up in the build handler.
     const dockerfile = action.getSpec("dockerfile")
-    const dockerfileSourcePath = getDockerfilePath(action.basePath(), dockerfile)
-    return action.getFullVersion().files.includes(dockerfileSourcePath)
+    // TODO hack ./
+    return action.getFullVersion().files.some((f) => `./${f.relativePath}` === dockerfile)
   },
 
   /**

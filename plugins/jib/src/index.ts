@@ -208,8 +208,7 @@ export const gardenPlugin = () =>
               if (!projectType) {
                 projectType = detectProjectType({
                   actionName: action.name,
-                  actionBasePath: action.basePath(),
-                  actionFiles: action.getFullVersion().files,
+                  actionFiles: action.getFullVersion().files.map((f) => f.relativePath),
                 })
                 statusLine.info(`Detected project type ${projectType}`)
               }
