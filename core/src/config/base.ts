@@ -26,7 +26,7 @@ import { emitNonRepeatableWarning } from "../warnings"
 import { ActionKind, actionKinds } from "../actions/types"
 import { mayContainTemplateString } from "../template-string/template-string"
 import { Log } from "../logger/log-entry"
-import { Document, parseAllDocuments } from "yaml"
+import { Document, DocumentOptions, parseAllDocuments } from "yaml"
 import { dedent, deline } from "../util/string"
 
 export const configTemplateKind = "ConfigTemplate"
@@ -93,16 +93,28 @@ export const allConfigKinds = ["Module", "Workflow", "Project", configTemplateKi
  * content is not valid YAML.
  *
  * @param content - The contents of the file as a string.
- * @param path - The path to the file.
+ * @param sourceDescription - A description of the location of the yaml file, e.g. "bar.yaml at directory /foo/".
+ * @param version - YAML standard version. Defaults to "1.2"
  */
-export async function loadAndValidateYaml(content: string, path: string): Promise<YamlDocumentWithSource[]> {
+export async function loadAndValidateYaml(
+  content: string,
+  sourceDescription: string,
+  version: DocumentOptions["version"] = "1.2"
+): Promise<YamlDocumentWithSource[]> {
   try {
-    return Array.from(parseAllDocuments(content, { merge: true, strict: false }) || []).map((doc: any) => {
+    return Array.from(parseAllDocuments(content, { merge: true, strict: false, version }) || []).map((doc) => {
       if (doc.errors.length > 0) {
         throw doc.errors[0]
       }
-      doc.source = content
-      return doc
+      // Workaround: Call toJS might throw an error that is not listed in the errors above.
+      // See also https://github.com/eemeli/yaml/issues/497
+      // We call this here to catch this error early and prevent crashes later on.
+      doc.toJS()
+
+      const docWithSource = doc as YamlDocumentWithSource
+      docWithSource.source = content
+
+      return docWithSource
     })
   } catch (loadErr) {
     // We try to find the error using a YAML linter
@@ -110,13 +122,13 @@ export async function loadAndValidateYaml(content: string, path: string): Promis
       await lint(content)
     } catch (linterErr) {
       throw new ConfigurationError({
-        message: `Could not parse ${basename(path)} in directory ${path} as valid YAML: ${linterErr}`,
+        message: `Could not parse ${sourceDescription} as valid YAML: ${linterErr}`,
       })
     }
     // ... but default to throwing a generic error, in case the error wasn't caught by yaml-lint.
     throw new ConfigurationError({
       message: dedent`
-        Failed to load YAML from ${basename(path)} in directory ${path}.
+        Failed to load YAML from ${sourceDescription}.
 
         Linting the file did not yield any errors. This is all we know: ${loadErr}
       `,
@@ -156,7 +168,7 @@ export async function validateRawConfig({
   projectRoot: string
   allowInvalid?: boolean
 }) {
-  let rawSpecs = await loadAndValidateYaml(rawConfig, configPath)
+  let rawSpecs = await loadAndValidateYaml(rawConfig, `${basename(configPath)} in directory ${dirname(configPath)}`)
 
   // Ignore empty resources
   rawSpecs = rawSpecs.filter(Boolean)

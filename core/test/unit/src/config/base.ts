@@ -15,6 +15,7 @@ import {
   noTemplateFields,
   validateRawConfig,
   configTemplateKind,
+  loadAndValidateYaml,
 } from "../../../../src/config/base"
 import { resolve, join } from "path"
 import { expectError, getDataDir, getDefaultProjectConfig } from "../../../helpers"
@@ -25,6 +26,7 @@ import { getRootLogger } from "../../../../src/logger/logger"
 import { ConfigurationError } from "../../../../src/exceptions"
 import { resetNonRepeatableWarningHistory } from "../../../../src/warnings"
 import { omit } from "lodash"
+import { dedent } from "../../../../src/util/string"
 
 const projectPathA = getDataDir("test-project-a")
 const modulePathA = resolve(projectPathA, "module-a")
@@ -589,5 +591,138 @@ describe("findProjectConfig", async () => {
     await expectError(async () => await findProjectConfig({ log, path: projectPathMultipleProjects }), {
       contains: "Multiple project declarations found at paths",
     })
+  })
+})
+
+describe("loadAndValidateYaml", () => {
+  it("should load and validate yaml and annotate every document with the source", async () => {
+    const yaml = dedent`
+      apiVersion: v1
+      kind: Test
+      spec:
+        foo: bar
+      name: foo
+    `
+
+    const yamlDocs = await loadAndValidateYaml(yaml, "foo.yaml in directory bar")
+
+    expect(yamlDocs).to.have.length(1)
+    expect(yamlDocs[0].source).to.equal(yaml)
+    expect(yamlDocs[0].toJS()).to.eql({
+      apiVersion: "v1",
+      kind: "Test",
+      spec: {
+        foo: "bar",
+      },
+      name: "foo",
+    })
+  })
+
+  it("supports loading multiple documents", async () => {
+    const yaml = dedent`
+      name: doc1
+      ---
+      name: doc2
+      ---
+      name: doc3
+    `
+
+    const yamlDocs = await loadAndValidateYaml(yaml, "foo.yaml in directory bar")
+
+    expect(yamlDocs).to.have.length(3)
+
+    // they all share the same source:
+    expect(yamlDocs[0].source).to.equal(yaml)
+    expect(yamlDocs[1].source).to.equal(yaml)
+    expect(yamlDocs[2].source).to.equal(yaml)
+
+    expect(yamlDocs[0].toJS()).to.eql({
+      name: "doc1",
+    })
+    expect(yamlDocs[1].toJS()).to.eql({
+      name: "doc2",
+    })
+    expect(yamlDocs[2].toJS()).to.eql({
+      name: "doc3",
+    })
+  })
+
+  it("should use the yaml 1.2 standard by default for reading", async () => {
+    const yaml = dedent`
+      # yaml 1.2 will interpret this as decimal number 777 (in accordance to the standard)
+      oldYamlOctalNumber: 0777
+
+      # yaml 1.2 will interpret this as octal number 0o777 (in accordance to the standard)
+      newYamlOctalNumber: 0o777
+    `
+
+    const yamlDocs = await loadAndValidateYaml(yaml, "foo.yaml in directory bar")
+
+    expect(yamlDocs).to.have.length(1)
+    expect(yamlDocs[0].source).to.equal(yaml)
+    expect(yamlDocs[0].toJS()).to.eql({
+      oldYamlOctalNumber: 777,
+      newYamlOctalNumber: 0o777,
+    })
+  })
+
+  it("should allows using the 1.1 yaml standard with the '%YAML 1.1' directive", async () => {
+    const yaml = dedent`
+      %YAML 1.1
+      ---
+
+      # yaml 1.1 will interpret this as octal number 0o777 (in accordance to the standard)
+      oldYamlOctalNumber: 0777
+
+      # yaml 1.1 will interpret this as string (in accordance to the standard)
+      newYamlOctalNumber: 0o777
+    `
+
+    const yamlDocs = await loadAndValidateYaml(yaml, "foo.yaml in directory bar")
+
+    expect(yamlDocs).to.have.length(1)
+    expect(yamlDocs[0].source).to.equal(yaml)
+    expect(yamlDocs[0].toJS()).to.eql({
+      oldYamlOctalNumber: 0o777,
+      newYamlOctalNumber: "0o777",
+    })
+  })
+
+  it("should allow using the 1.1 yaml standard using the version parameter", async () => {
+    const yaml = dedent`
+      # yaml 1.1 will interpret this as octal number 0o777 (in accordance to the standard)
+      oldYamlOctalNumber: 0777
+
+      # yaml 1.1 will interpret this as string (in accordance to the standard)
+      newYamlOctalNumber: 0o777
+    `
+
+    // we use the version parameter to force the yaml 1.1 standard
+    const yamlDocs = await loadAndValidateYaml(yaml, "foo.yaml in directory bar", "1.1")
+
+    expect(yamlDocs).to.have.length(1)
+    expect(yamlDocs[0].source).to.equal(yaml)
+    expect(yamlDocs[0].toJS()).to.eql({
+      oldYamlOctalNumber: 0o777,
+      newYamlOctalNumber: "0o777",
+    })
+  })
+
+  it("should throw ConfigurationError if yaml contains reference to undefined alias", async () => {
+    const yaml = dedent`
+      foo: *bar
+    `
+
+    await expectError(
+      () => loadAndValidateYaml(yaml, "foo.yaml in directory bar"),
+      (err) => {
+        expect(err.message).to.eql(dedent`
+          Could not parse foo.yaml in directory bar as valid YAML: YAMLException: unidentified alias "bar" (1:10)
+
+           1 | foo: *bar
+          --------------^
+        `)
+      }
+    )
   })
 })

@@ -307,7 +307,7 @@ describe("validateSchema", () => {
       name: bar
     `
 
-    const yamlDocs = await loadAndValidateYaml(yaml, "/foo")
+    const yamlDocs = await loadAndValidateYaml(yaml, "foo.yaml in directory bar")
     const yamlDoc = yamlDocs[1]
 
     const config: any = {
