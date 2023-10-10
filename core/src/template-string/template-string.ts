@@ -247,7 +247,7 @@ export function resolveTemplateString({
  */
 
 // `extends any` here isn't pretty but this function is hard to type correctly
-//export const resolveTemplateStrings = profile(function $resolveTemplateStrings<T extends any>(
+// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-constraint
 export function resolveTemplateStrings<T extends any>({
   value,
   context,

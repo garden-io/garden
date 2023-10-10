@@ -306,7 +306,10 @@ export const testPluginReferences: () => GardenPluginReference[] = () =>
   [testPlugin, testPluginB, testPluginC].map((p) => {
     return { name: p().name, callback: p }
   })
-export const testPlugins = () => testPluginReferences().map((p) => p.callback())
+export const testPlugins = async () => {
+  const plugins = testPluginReferences().map((p) => p.callback())
+  return await Promise.all(plugins)
+}
 
 export const noOpTestPlugin = () =>
   customizedTestPlugin({

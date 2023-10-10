@@ -91,7 +91,7 @@ export async function getPortForward({
   // Using lock here to avoid concurrency issues (multiple parallel requests for same forward).
   const key = getPortForwardKey(targetResource, port)
 
-  return portForwardRegistrationLock.acquire("register-port-forward", async () => {
+  return portForwardRegistrationLock.acquire<PortForward>("register-port-forward", async () => {
     const registered = registeredPortForwards[key]
 
     if (registered && !registered.proc.killed) {

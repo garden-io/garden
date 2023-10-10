@@ -272,7 +272,7 @@
     "clean": "shx rm -rf build",
     "dev": "nodemon --watch src/template-string/*.pegjs --exec yarn build",
     "fix-format": "prettier --write \"{src,test}/**/*.ts\"",
-    "lint": "eslint -c ../.eslintrc --ignore-pattern 'src/lib/**' --ext .ts src/ test/",
+    "lint": "eslint --ignore-pattern 'src/lib/**' --ext .ts src/ test/",
     "migration:generate": "typeorm migration:generate --config ormconfig.js -n",
     "_integ": "mocha --config .mocharc.integ.yml",
     "integ-kind": "GARDEN_INTEG_TEST_MODE=local GARDEN_SKIP_TESTS=\"cluster-buildkit cluster-buildkit-rootless kaniko remote-only\" npm run _integ",

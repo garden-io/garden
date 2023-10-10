@@ -23,14 +23,14 @@ import {
 // Note: This file is a fairly ugly hack to add some additional type safety possibilities on eventemitter2.
 // Ain't pretty here, but it does work in usage.
 
-const EventEmitter2 = require("eventemitter2")
+import EventEmitter2 = require("eventemitter2")
 
 interface ListenerFn<V = any> {
   (payload: V, ...values: any[]): void
 }
 
 // Copied and adapted from the eventemitter2 type
-// @ts-expect-error
+// @ts-expect-error There is a class of the same name, but this one has the declaration only
 declare class _TypedEventEmitter<T> {
   constructor(options?: ConstructorOptions)
   emit<N extends keyof T>(event: N, payload: T[N]): boolean
@@ -88,21 +88,22 @@ declare class _TypedEventEmitter<T> {
   static defaultMaxListeners: number
 }
 
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 class _TypedEventEmitter {}
 
 export class TypedEventEmitter<T> extends _TypedEventEmitter<T> {
   constructor(options?: ConstructorOptions) {
     super()
-    const cls = new EventEmitter2(options)
+    const cls = new EventEmitter2.EventEmitter2(options)
     Object.assign(this, cls)
   }
 }
 
-Object.getOwnPropertyNames(EventEmitter2.prototype).forEach((name) => {
+Object.getOwnPropertyNames(EventEmitter2.EventEmitter2.prototype).forEach((name) => {
   Object.defineProperty(
     TypedEventEmitter.prototype,
     name,
-    Object.getOwnPropertyDescriptor(EventEmitter2.prototype, name) || Object.create(null)
+    Object.getOwnPropertyDescriptor(EventEmitter2.EventEmitter2.prototype, name) || Object.create(null)
   )
 })

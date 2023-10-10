@@ -10,7 +10,7 @@ import { asyncExitHook, gracefulExit } from "@scg82/exit-hook"
 import { execSync } from "child_process"
 import _spawn from "cross-spawn"
 import { createHash } from "crypto"
-import { readFile } from "fs-extra"
+import { readFile, readFileSync } from "fs-extra"
 import { load } from "js-yaml"
 import {
   difference,
@@ -30,7 +30,7 @@ import {
 } from "lodash"
 import pMap from "p-map"
 import pProps from "p-props"
-import { isAbsolute, relative } from "path"
+import { isAbsolute, relative, resolve as resolvePath } from "path"
 import { Readable, Writable } from "stream"
 import type { PrimitiveMap } from "../config/common"
 import { DEFAULT_GARDEN_CLOUD_DOMAIN, DOCS_BASE_URL, gardenEnv } from "../constants"
@@ -110,8 +110,12 @@ export function registerCleanupFunction(name: string, func: HookCallback) {
   })
 }
 
+let packageJson: { version: string } | undefined = undefined
 export function getPackageVersion(): string {
-  const version = require("../../../package.json").version
+  if (!packageJson) {
+    packageJson = JSON.parse(readFileSync(resolvePath(__dirname, "../../../package.json"), "utf8"))
+  }
+  const { version } = packageJson as { version: string }
   return version
 }
 
