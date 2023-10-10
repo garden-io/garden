@@ -431,7 +431,10 @@ export function emitGetStatusEvents<
       const donePayload = makeActionCompletePayload({
         result,
         startedAt,
-        action: this.action,
+        // Use executedAction instead of this.action here for correct version
+        // as executedAction is the resolved action and this.action is unresolved.
+        // The action is resolved in method.apply and getStatus handlers use the resolved action.
+        action: result.executedAction,
         operation: methodName,
         force: this.force,
         sessionId: this.garden.sessionId,
