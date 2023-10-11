@@ -113,8 +113,6 @@ export async function helmNginxInstall(
     HELM_INGRESS_NGINX_VERSION,
     "--repo",
     HELM_INGRESS_NGINX_REPO,
-    "--namespace",
-    namespace,
     "--timeout",
     HELM_INGRESS_NGINX_DEPLOYMENT_TIMEOUT,
     "--set-json",
