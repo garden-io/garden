@@ -1,6 +1,0 @@
-kind: Deploy
-name: util
-description: Long lived utility containers.
-type: helm
-spec:
-  releaseName: garden-util-daemon
