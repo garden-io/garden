@@ -38,7 +38,6 @@ function isSupportedContext(context: string) {
 }
 
 export interface LocalKubernetesConfig extends KubernetesConfig {
-  setupIngressController: string | null
 }
 
 export const configSchema = () =>
