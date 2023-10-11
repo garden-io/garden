@@ -287,6 +287,15 @@ commands:
             wget -O ~/.docker/cli-plugins/docker-buildx https://github.com/docker/buildx/releases/download/v0.11.1/buildx-v0.11.1.linux-amd64
             echo "34927047282ef9052f57809fe94783b2dc0ab556fdd60c2c0b7f4e6e5f05a53b  ${HOME}/.docker/cli-plugins/docker-buildx" | sha256sum -c
             chmod +x ~/.docker/cli-plugins/docker-buildx
+  fail_fast:
+    description: Fail the whole workflow if this job fails
+    steps:
+      - run:
+          name: Fail Fast
+          when: on_fail
+          command: |
+            echo "Canceling workflow as a step resulted in failure"
+            curl -X POST --header "Content-Type: application/json" "https://circleci.com/api/v2/workflow/${CIRCLE_WORKFLOW_ID}/cancel?circle-token=${CIRCLE_TOKEN}" 
 
 #
 # Jobs section
@@ -316,6 +325,8 @@ jobs:
             - sdk/
             - plugins/
             - e2e/
+      - fail_fast
+
   build-dist:
     <<: *node-config
     resource_class: xlarge
@@ -327,6 +338,7 @@ jobs:
     steps:
       - build_dist:
           version: <<parameters.version>>
+      - fail_fast
 
   lint:
     <<: *node-config
@@ -338,6 +350,10 @@ jobs:
       - run:
           name: lint
           command: npm run lint
+      - run:
+          name: prettier
+          command: npm run prettier
+      - fail_fast
 
   check-docs:
     <<: *node-config
@@ -348,6 +364,7 @@ jobs:
       - run:
           name: Make sure generated docs are up-to-date
           command: npm run check-docs
+      - fail_fast
 
   check-package-licenses:
     <<: *node-config
@@ -360,6 +377,7 @@ jobs:
           command: |
             mkdir tmp
             npm run check-package-licenses
+      - fail_fast
 
   test-framework:
     <<: *node-config
@@ -377,6 +395,7 @@ jobs:
           environment:
             CHOKIDAR_USEPOLLING: "1"
             NODE_OPTIONS: --max_old_space_size=4096
+      - fail_fast
 
   e2e-project:
     <<: *node-config
@@ -403,6 +422,7 @@ jobs:
             npm run e2e-project -- --project=<<parameters.project>> --env=<<parameters.environment>> --showlog -b
       - cleanup_remote_cluster:
           filter: <<parameters.project>>-testing-ci-$CIRCLE_BUILD_NUM-e2e
+      - fail_fast
 
   test-dockerhub:
     machine:
@@ -416,6 +436,8 @@ jobs:
           name: Build and test docker images
           command: |
             bash support/docker-bake-test.sh $CIRCLE_BRANCH
+      - fail_fast
+
   dockerhub-release:
     machine:
       <<: *shared-machine-config
@@ -464,6 +486,7 @@ jobs:
 
             # Build and publish
             docker buildx bake --push --progress=plain -f support/docker-bake.hcl all
+      - fail_fast
 
   test-docker-gcloud:
     docker:
@@ -483,6 +506,7 @@ jobs:
           command: CIRCLE_BUILD_NUM=$CIRCLE_BUILD_NUM-docker /garden/garden build --root examples/demo-project --env remote --logger-type basic
       - cleanup_remote_cluster:
           filter: $CIRCLE_BUILD_NUM-docker
+      - fail_fast
 
   github-release-tag:
     <<: *release-config
@@ -508,6 +532,8 @@ jobs:
               ${PRERELEASE} \
               ${DRAFT} \
               ${VERSION} ./dist
+      - fail_fast
+
   github-edge-prerelease:
     <<: *release-config
     parameters:
@@ -549,6 +575,8 @@ jobs:
               -replace \
               -prerelease \
               ${VERSION} ./dist
+      - fail_fast
+
   test-dist:
     <<: *node-config
     steps:
@@ -571,6 +599,7 @@ jobs:
           command: CIRCLE_BUILD_NUM=$CIRCLE_BUILD_NUM-dist dist/linux-amd64/garden deploy --root examples/demo-project --env remote --logger-type basic --var userId=$CIRCLE_BUILD_NUM-dist
       - cleanup_remote_cluster:
           filter: $CIRCLE_BUILD_NUM-dist
+      - fail_fast
 
   test-plugins:
     machine:
@@ -605,6 +634,7 @@ jobs:
           key: m2-v1
           paths:
             - ~/.m2
+      - fail_fast
 
   test-kind:
     machine:
@@ -637,6 +667,7 @@ jobs:
       - run:
           name: Deploy demo-project
           command: ./bin/garden deploy --root examples/demo-project --logger-type basic
+      - fail_fast
 
   test-microk8s:
     machine:
@@ -702,6 +733,7 @@ jobs:
       - run:
           name: Deploy demo-project
           command: ./bin/garden deploy --root examples/demo-project --logger-type basic
+      - fail_fast
 
   test-minikube:
     machine:
@@ -781,6 +813,7 @@ jobs:
             # If we start doing that, we need to use the environment variable CIRCLE_BUILD_NUM in the tests.
             - cleanup_remote_cluster:
                 filter: $CIRCLE_BUILD_NUM-remote
+      - fail_fast
 
   test-k3s:
     machine:
@@ -821,6 +854,7 @@ jobs:
       - run:
           name: Deploy demo-project
           command: ./bin/garden deploy --root examples/demo-project
+      - fail_fast
 
   test-macos:
     macos:
@@ -855,6 +889,8 @@ jobs:
           command: dist/macos-amd64/garden deploy --root examples/demo-project --logger-type basic -l=silly --env remote --var userId=$CIRCLE_BUILD_NUM-macos
       - cleanup_remote_cluster:
           filter: $CIRCLE_BUILD_NUM-macos
+      - fail_fast
+
   test-macos-arm:
     macos:
       xcode: "13.4.1"
@@ -889,6 +925,7 @@ jobs:
           command: dist/macos-arm64/garden deploy --root examples/demo-project --logger-type basic -l=silly --env remote --var userId=$CIRCLE_BUILD_NUM-macos-arm
       - cleanup_remote_cluster:
           filter: $CIRCLE_BUILD_NUM-macos-arm
+      - fail_fast
 
   test-windows:
     executor: win/default
@@ -925,6 +962,7 @@ jobs:
           name: Cleanup
           command: (kubectl delete namespace --wait=false demo-project-testing-$env:CIRCLE_BUILD_NUM-win) -or $true
           when: always
+      - fail_fast
 
 workflows:
   version: 2
