@@ -77,7 +77,7 @@ git clone https://github.com/garden-io/quickstart-example.git && cd quickstart-e
 
 ### Step 3 — Deploy the project
 
-Now we can deploy the example project to an [ephemeral Kubernetes cluster](../guides/ephemeral-clusters.md) provided by Garden.
+Now we can deploy the example project to an [ephemeral Kubernetes cluster](../k8s-plugins/ephemeral-k8s/README.md) provided by Garden.
 
 From inside the project directory, log in to the Garden web dashboard by running the log in command from the dev console:
 

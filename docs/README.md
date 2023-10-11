@@ -57,8 +57,9 @@
   * [2. Configure the Provider](./k8s-plugins/local-k8s/configure-provider.md)
 * [Ephemeral K8s Plugin Configuration](./k8s-plugins/ephemeral-k8s/README.md)
   * [1. Configure the Provider](./k8s-plugins/ephemeral-k8s/configure-provider.md)
-  * [2. Configure Ingress](./k8s-plugins/ephemeral-k8s/ingress.md)
-  * [3. Manage ephemeral clusters](./k8s-plugins/ephemeral-k8s/manage-clusters.md)
+  * [2. Login to the Garden Web Dashboard](./k8s-plugins/ephemeral-k8s/login-web-dashboard.md)
+  * [3. Configure Ingress (optional)](./k8s-plugins/ephemeral-k8s/ingress.md)
+  * [4. Retrieve Kubeconfig (optional)](./k8s-plugins/ephemeral-k8s/retrieve-kubeconfig.md)
 * [Action Configuration](./k8s-plugins/action-types/README.md)
   * [Container](./k8s-plugins/action-types/container.md)
   * [Kubernetes](./k8s-plugins/action-types/kubernetes.md)
@@ -91,12 +92,11 @@
 ## 🌼 Guides
 
 * [Migrating to Bonsai](./guides/migrating-to-bonsai.md)
-* [Environments and namespaces](./guides/namespaces.md)
-* [Code Synchronization](./guides/code-synchronization.md)
 * [Connecting a local application to a Kubernetes cluster (Local Mode)](./guides/running-service-in-local-mode.md)
+* [Environments and namespaces](./guides/namespaces.md)
 * [Migrating from Docker Compose to Garden](./guides/migrating-from-docker-compose.md)
+* [Code Synchronization](./guides/code-synchronization.md)
 * [Using Garden in CI](./guides/using-garden-in-ci.md)
-* [Ephemeral Kubernetes Clusters](./guides/ephemeral-clusters.md)
 
 ## 🌷 Advanced
 
