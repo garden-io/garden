@@ -187,7 +187,7 @@ describe("resolveProjectOutputs", () => {
         startedAt: new Date(),
       },
       outputs: { log: "hello" },
-      state: "ready" as "ready",
+      state: "ready" as const,
     }
 
     const plugin = createGardenPlugin({

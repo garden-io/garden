@@ -23,7 +23,7 @@ import { Log } from "../../../logger/log-entry"
 
 export const fetchAllSecrets = async (api: CloudApi, projectId: string, log: Log): Promise<SecretResult[]> => {
   let page = 0
-  let secrets: SecretResult[] = []
+  const secrets: SecretResult[] = []
   let hasMore = true
   while (hasMore) {
     log.debug(`Fetching page ${page}`)

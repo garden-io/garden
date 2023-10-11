@@ -33,7 +33,7 @@ import { Garden } from "../garden"
 import chalk from "chalk"
 import { Profile } from "../util/profiling"
 
-const AsyncLock = require("async-lock")
+import AsyncLock = require("async-lock")
 const scanLock = new AsyncLock()
 
 export const versionStringPrefix = "v-"

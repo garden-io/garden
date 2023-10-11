@@ -10,12 +10,13 @@ import chalk from "chalk"
 import {
   ActionTaskProcessParams,
   ActionTaskStatusParams,
+  BaseActionTaskParams,
   ExecuteActionTask,
   emitGetStatusEvents,
   emitProcessingEvents,
 } from "../tasks/base"
 import { Profile } from "../util/profiling"
-import { BuildAction, BuildActionConfig, ResolvedBuildAction } from "../actions/build"
+import type { BuildAction, BuildActionConfig, ResolvedBuildAction } from "../actions/build"
 import pluralize from "pluralize"
 import { BuildStatus } from "../plugin/handlers/Build/get-status"
 import { resolvedActionToExecuted } from "../actions/helpers"
@@ -138,4 +139,8 @@ export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {
       await this.garden.buildStaging.syncDependencyProducts(action, log)
     })
   }
+}
+
+export function createBuildTask(params: BaseActionTaskParams<BuildAction>) {
+  return new BuildTask(params)
 }

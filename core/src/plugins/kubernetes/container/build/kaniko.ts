@@ -199,7 +199,9 @@ export const getKanikoFlags = (flags?: string[], topLevelFlags?: string[]): stri
   const flagToKey = (flag: string) => {
     const found = flag.match(/--([a-zA-Z]*)/)
     if (found === null) {
-      throw new ConfigurationError({ message: `Invalid format for a kaniko flag. Expected it to match /--([a-zA-Z]*)/, actually got: ${flag}` })
+      throw new ConfigurationError({
+        message: `Invalid format for a kaniko flag. Expected it to match /--([a-zA-Z]*)/, actually got: ${flag}`,
+      })
     }
     return found[0]
   }
@@ -354,7 +356,7 @@ async function runKaniko({
   // Escape the args so that we can safely interpolate them into the kaniko command
   const argsStr = args.map((arg) => JSON.stringify(arg)).join(" ")
 
-  let commandStr = dedent`
+  const commandStr = dedent`
     /kaniko/executor ${argsStr};
     export exitcode=$?;
     touch ${sharedMountPath}/done;

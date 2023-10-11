@@ -15,7 +15,7 @@ import { actionStatusSchema } from "../../../actions/base"
 import { ActionStatus, ActionStatusMap, Resolved } from "../../../actions/types"
 import { createSchema } from "../../../config/common"
 
-interface GetTestResultParams<T extends TestAction> extends PluginTestActionParamsBase<T> {}
+type GetTestResultParams<T extends TestAction> = PluginTestActionParamsBase<T>
 
 export type GetTestResult<T extends TestAction = TestAction> = ActionStatus<T, TestResult>
 

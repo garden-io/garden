@@ -17,9 +17,11 @@ import {
 } from "./base"
 import { Action, BaseActionConfig } from "./types"
 import { DEFAULT_TEST_TIMEOUT_SEC } from "../constants"
+import { BaseActionTaskParams, ExecuteTask } from "../tasks/base"
+import { createTestTask } from "../tasks/test"
+import { ResolveActionTask } from "../tasks/resolve-action"
 
-export interface TestActionConfig<N extends string = any, S extends object = any>
-  extends BaseRuntimeActionConfig<"Test", N, S> {}
+export type TestActionConfig<N extends string = any, S extends object = any> = BaseRuntimeActionConfig<"Test", N, S>
 
 export const testActionConfigSchema = memoize(() =>
   baseRuntimeActionConfigSchema().keys({
@@ -38,8 +40,16 @@ export class TestAction<
   StaticOutputs extends {} = any,
   RuntimeOutputs extends {} = any,
 > extends RuntimeAction<C, StaticOutputs, RuntimeOutputs> {
-  override kind: "Test" = "Test"
+  override kind = "Test" as const
   override _staticOutputs: StaticOutputs = {} as StaticOutputs
+
+  getExecuteTask(baseParams: Omit<BaseActionTaskParams, "action">): ExecuteTask {
+    return createTestTask({ ...baseParams, action: this })
+  }
+
+  getResolveTask(baseParams: Omit<BaseActionTaskParams, "action">): ResolveActionTask<typeof this> {
+    return new ResolveActionTask({ ...baseParams, action: this })
+  }
 }
 
 export class ResolvedTestAction<
@@ -47,7 +57,15 @@ export class ResolvedTestAction<
   StaticOutputs extends {} = any,
   RuntimeOutputs extends {} = any,
 > extends ResolvedRuntimeAction<C, StaticOutputs, RuntimeOutputs> {
-  override kind: "Test" = "Test"
+  override kind = "Test" as const
+
+  getExecuteTask(baseParams: Omit<BaseActionTaskParams, "action">): ExecuteTask {
+    return createTestTask({ ...baseParams, action: this })
+  }
+
+  getResolveTask(baseParams: Omit<BaseActionTaskParams, "action">): ResolveActionTask<typeof this> {
+    return new ResolveActionTask({ ...baseParams, action: this })
+  }
 }
 
 export class ExecutedTestAction<
@@ -55,7 +73,15 @@ export class ExecutedTestAction<
   StaticOutputs extends {} = any,
   RuntimeOutputs extends {} = any,
 > extends ExecutedRuntimeAction<C, StaticOutputs, RuntimeOutputs> {
-  override kind: "Test" = "Test"
+  override kind = "Test" as const
+
+  getExecuteTask(baseParams: Omit<BaseActionTaskParams, "action">): ExecuteTask {
+    return createTestTask({ ...baseParams, action: this })
+  }
+
+  getResolveTask(baseParams: Omit<BaseActionTaskParams, "action">): ResolveActionTask<typeof this> {
+    return new ResolveActionTask({ ...baseParams, action: this })
+  }
 }
 
 export function isTestAction(action: Action): action is TestAction {

@@ -23,7 +23,7 @@ import { ActionReferenceContext } from "../config/template-contexts/actions"
  * The reference includes the rendered output from the config-partial.hbs template.
  */
 export function renderActionTypeReference(kind: ActionKind, name: string, desc: ActionTypeDefinition<any>) {
-  let { schema, docs } = desc
+  const { schema, docs } = desc
 
   const kindLower = kind.toLowerCase()
 

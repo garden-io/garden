@@ -618,9 +618,9 @@ describe("actionConfigsToGraph", () => {
       variableOverrides: { "foo": "NEW_FOO", "nested.key1": "NEW_KEY_1_VALUE" },
     })
 
-    let tmpDir = dummyGardenInstance.tmpDir
-    let garden = dummyGardenInstance.garden
-    let log = garden.log
+    const tmpDir = dummyGardenInstance.tmpDir
+    const garden = dummyGardenInstance.garden
+    const log = garden.log
 
     try {
       const varfilePath = join(tmpDir.path, "varfile.yml")
@@ -990,8 +990,8 @@ describe("actionConfigsToGraph", () => {
       groupConfigs: [],
       configs: [
         {
-          kind: <"Build">"Build",
-          type: <"test">"test",
+          kind: <const>"Build",
+          type: <const>"test",
           name: "foo",
           timeout: DEFAULT_BUILD_TIMEOUT_SEC,
           internal: {

@@ -24,7 +24,7 @@ import { Resolved } from "../../../actions/types"
 import { splitFirst } from "../../../util/string"
 
 async function configure(params: ConfigureModuleParams<ContainerModule>) {
-  let { moduleConfig } = await params.base!(params)
+  const { moduleConfig } = await params.base!(params)
   params.moduleConfig = moduleConfig
   return validateConfig(params)
 }

@@ -52,7 +52,7 @@ describe("testFromConfig", () => {
 
   it("should include dependencies in version calculation", async () => {
     const garden = await makeTestGarden(getDataDir("test-project-test-deps"))
-    let graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+    const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     let moduleA = graph.getModule("module-a")
     const testConfig = moduleA.testConfigs[0]
     const versionBeforeChange = testFromConfig(moduleA, testConfig, graph.moduleGraph).version

@@ -18,7 +18,7 @@ interface ValidateActionParams<T extends BaseAction> extends PluginActionParamsB
 }
 
 // TODO: allow returning an error instead of throwing
-interface ValidateActionResult {}
+type ValidateActionResult = object
 
 export class ValidateAction<T extends BaseAction = BaseAction> extends ActionTypeHandlerSpec<
   any,

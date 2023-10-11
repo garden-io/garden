@@ -93,96 +93,94 @@ interface SelfUpdateResult {
 /**
  * Utilities and wrappers on top of GitHub REST API.
  */
-export namespace GitHubReleaseApi {
-  export type Pagination = { pageNumber: number; pageSize: number }
+export type Pagination = { pageNumber: number; pageSize: number }
 
-  export async function fetchReleases({ pageNumber, pageSize }: Pagination) {
-    const results: any[] = await got(
-      `https://api.github.com/repos/garden-io/garden/releases?page=${pageNumber}&per_page=${[pageSize]}`
-    ).json()
-    return results
-  }
+export async function fetchReleases({ pageNumber, pageSize }: Pagination) {
+  const results: any[] = await got(
+    `https://api.github.com/repos/garden-io/garden/releases?page=${pageNumber}&per_page=${[pageSize]}`
+  ).json()
+  return results
+}
 
-  /**
-   * Traverse the Garden releases on GitHub and get the first one matching the given predicate.
-   *
-   * @param primaryPredicate the primary predicate to identify the wanted release
-   * @param fallbackPredicates the list of fallback predicates to be used if the primary one returns no result
-   * @param fetcher the optional function to override the default release fetching machinery
-   */
-  export async function findRelease({
-    primaryPredicate,
-    fallbackPredicates = [],
-    fetcher = fetchReleases,
-  }: {
-    primaryPredicate: (any: any) => boolean
-    fallbackPredicates?: ((any: any) => boolean)[]
-    fetcher?: (pagination: Pagination) => Promise<any[]>
-  }) {
-    const pageSize = 100
-    let pageNumber = 1
-    let fetchedReleases: any[]
+/**
+ * Traverse the Garden releases on GitHub and get the first one matching the given predicate.
+ *
+ * @param primaryPredicate the primary predicate to identify the wanted release
+ * @param fallbackPredicates the list of fallback predicates to be used if the primary one returns no result
+ * @param fetcher the optional function to override the default release fetching machinery
+ */
+export async function findRelease({
+  primaryPredicate,
+  fallbackPredicates = [],
+  fetcher = fetchReleases,
+}: {
+  primaryPredicate: (any: any) => boolean
+  fallbackPredicates?: ((any: any) => boolean)[]
+  fetcher?: (pagination: Pagination) => Promise<any[]>
+}) {
+  const pageSize = 100
+  let pageNumber = 1
+  let fetchedReleases: any[]
+  /*
+  Stores already fetched releases. This will be used with the fallback predicates.
+  It is a memory consumer, but also a trade-off to avoid GitHub API rate limit errors.
+  This will not eat gigs of RAM.
+  */
+  const allReleases: any[] = []
+  do {
     /*
-    Stores already fetched releases. This will be used with the fallback predicates.
-    It is a memory consumer, but also a trade-off to avoid GitHub API rate limit errors.
-    This will not eat gigs of RAM.
+    This returns the releases ordered by 'published_at' field.
+    It means that there are 2 ordered subsequences of 0.12.x and 0.13.x releases in the result list,
+    but the list itself is not properly ordered.
     */
-    let allReleases: any[] = []
-    do {
-      /*
-      This returns the releases ordered by 'published_at' field.
-      It means that there are 2 ordered subsequences of 0.12.x and 0.13.x releases in the result list,
-      but the list itself is not properly ordered.
-      */
-      fetchedReleases = await fetcher({ pageNumber, pageSize })
-      for (const release of fetchedReleases) {
-        if (primaryPredicate(release)) {
-          return release
-        }
-      }
-      allReleases.push(...fetchedReleases)
-      pageNumber++
-    } while (fetchedReleases.length > 0)
-
-    for (const fallbackPredicate of fallbackPredicates) {
-      for (const release of allReleases) {
-        if (fallbackPredicate(release)) {
-          return release
-        }
+    fetchedReleases = await fetcher({ pageNumber, pageSize })
+    for (const release of fetchedReleases) {
+      if (primaryPredicate(release)) {
+        return release
       }
     }
+    allReleases.push(...fetchedReleases)
+    pageNumber++
+  } while (fetchedReleases.length > 0)
 
-    return undefined
-  }
-
-  /**
-   * @return the latest version tag
-   * @throws {RuntimeError} if the latest version cannot be detected
-   */
-  export async function getLatestVersion(): Promise<string> {
-    const latestVersionRes: any = await got("https://api.github.com/repos/garden-io/garden/releases/latest").json()
-    const latestVersion = latestVersionRes.tag_name
-    if (!latestVersion) {
-      throw new RuntimeError({
-        message: `Unable to detect the latest Garden version: ${latestVersionRes}`,
-      })
+  for (const fallbackPredicate of fallbackPredicates) {
+    for (const release of allReleases) {
+      if (fallbackPredicate(release)) {
+        return release
+      }
     }
-
-    return latestVersion
   }
 
-  export async function getLatestVersions(numOfStableVersions: number) {
-    const res: any = await got("https://api.github.com/repos/garden-io/garden/releases?per_page=100").json()
+  return undefined
+}
 
-    return [
-      chalk.cyan("edge-acorn"),
-      chalk.cyan("edge-bonsai"),
-      ...res
-        .filter((r: any) => !r.prerelease && !r.draft)
-        .map((r: any) => chalk.cyan(r.name))
-        .slice(0, numOfStableVersions),
-    ]
+/**
+ * @return the latest version tag
+ * @throws {RuntimeError} if the latest version cannot be detected
+ */
+export async function getLatestVersion(): Promise<string> {
+  const latestVersionRes: any = await got("https://api.github.com/repos/garden-io/garden/releases/latest").json()
+  const latestVersion = latestVersionRes.tag_name
+  if (!latestVersion) {
+    throw new RuntimeError({
+      message: `Unable to detect the latest Garden version: ${latestVersionRes}`,
+    })
   }
+
+  return latestVersion
+}
+
+export async function getLatestVersions(numOfStableVersions: number) {
+  const res: any = await got("https://api.github.com/repos/garden-io/garden/releases?per_page=100").json()
+
+  return [
+    chalk.cyan("edge-acorn"),
+    chalk.cyan("edge-bonsai"),
+    ...res
+      .filter((r: any) => !r.prerelease && !r.draft)
+      .map((r: any) => chalk.cyan(r.name))
+      .slice(0, numOfStableVersions),
+  ]
 }
 
 export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
@@ -251,7 +249,7 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
     installationDirectory = resolve(installationDirectory)
 
     log.info(chalk.white("Checking for target and latest versions..."))
-    const latestVersion = await GitHubReleaseApi.getLatestVersion()
+    const latestVersion = await getLatestVersion()
 
     if (!desiredVersion) {
       const versionScope = getVersionScope(opts)
@@ -308,7 +306,7 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
       }
 
       let architecture = getArchitecture()
-      let isArmInRosetta = isDarwinARM()
+      const isArmInRosetta = isDarwinARM()
 
       // When running under Rosetta,
       // the architecture is reported back as amd64
@@ -368,7 +366,7 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
 
           // Print the latest available stable versions
           try {
-            const latestVersions = await GitHubReleaseApi.getLatestVersions(10)
+            const latestVersions = await getLatestVersions(10)
 
             log.info(
               chalk.white.bold(`Here are the latest available versions: `) + latestVersions.join(chalk.white(", "))
@@ -411,7 +409,7 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
 
       if (extension === "zip") {
         // Note: lazy-loading for startup performance
-        const { Extract } = require("unzipper")
+        const { Extract } = await import("unzipper")
 
         await new Promise((_resolve, reject) => {
           const extractor = Extract({ path: tempDir.path })
@@ -484,12 +482,12 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
    */
   private async findTargetVersion(currentVersion: string, versionScope: VersionScope): Promise<string> {
     if (isEdgeVersion(currentVersion)) {
-      return GitHubReleaseApi.getLatestVersion()
+      return getLatestVersion()
     }
 
     const currentSemVer = semver.parse(currentVersion)
     if (isPreReleaseVersion(currentSemVer)) {
-      return GitHubReleaseApi.getLatestVersion()
+      return getLatestVersion()
     }
 
     // The current version is necessary, it's not possible to proceed without its value
@@ -503,7 +501,7 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
     const fallbackVersionPredicate = this.getTargetVersionPredicate(currentSemVer, "patch")
     // Currently we support only semver minor and patch versions, so we use patch as a fallback predicate.
     // TODO Core 1.0 implement proper fallback predicates for all semver version parts.
-    const targetRelease = await GitHubReleaseApi.findRelease({
+    const targetRelease = await findRelease({
       primaryPredicate: targetVersionPredicate,
       fallbackPredicates: [fallbackVersionPredicate],
     })

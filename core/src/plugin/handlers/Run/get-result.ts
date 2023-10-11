@@ -14,9 +14,9 @@ import { actionStatusSchema } from "../../../actions/base"
 import { ActionStatus, ActionStatusMap, Resolved } from "../../../actions/types"
 import { createSchema } from "../../../config/common"
 
-interface GetRunResultParams<T extends RunAction> extends PluginRunActionParamsBase<T> {}
+type GetRunResultParams<T extends RunAction> = PluginRunActionParamsBase<T>
 
-export interface GetRunResult<T extends RunAction = RunAction> extends ActionStatus<T, RunResult> {}
+export type GetRunResult<T extends RunAction = RunAction> = ActionStatus<T, RunResult>
 
 export interface RunStatusMap extends ActionStatusMap<RunAction> {
   [key: string]: GetRunResult

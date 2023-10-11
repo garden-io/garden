@@ -31,7 +31,7 @@ describe("BaseActionRouter", () => {
         },
         projectName: params.ctx.resolveTemplateStrings("${project.name}"),
       },
-      state: "ready" as "ready",
+      state: "ready" as const,
     }
   }
 

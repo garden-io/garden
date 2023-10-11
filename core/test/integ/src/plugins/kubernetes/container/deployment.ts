@@ -80,7 +80,7 @@ describe("kubernetes container deployment handlers", () => {
     }
   })
 
-  const init = async (environmentName: string, remoteContainerAuth: boolean = false) => {
+  const init = async (environmentName: string, remoteContainerAuth = false) => {
     ;({ garden, cleanup } = await getContainerTestGarden(environmentName, { remoteContainerAuth }))
     router = await garden.getActionRouter()
     provider = <KubernetesProvider>await garden.resolveProvider(garden.log, "local-kubernetes")

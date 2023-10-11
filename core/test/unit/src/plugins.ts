@@ -26,7 +26,7 @@ describe("resolvePlugins", () => {
         // Pass through to allow validation of inputs
         params,
       },
-      state: "ready" as "ready",
+      state: "ready" as const,
     }
   }
 

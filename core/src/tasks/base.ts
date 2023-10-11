@@ -25,7 +25,6 @@ import type { ResolveProviderTask } from "./resolve-provider"
 import type { RunTask } from "./run"
 import type { TestTask } from "./test"
 import { Memoize } from "typescript-memoize"
-import { getExecuteTaskForAction, getResolveTaskForAction } from "./helpers"
 import { TypedEventEmitter } from "../util/events"
 import { Events, ActionStatusEventName } from "../events/events"
 import {
@@ -181,7 +180,7 @@ export abstract class BaseTask<O extends ValidResultType = ValidResultType> exte
    */
   getKey(): string {
     // TODO-0.13.1
-    let key = this.getBaseKey()
+    const key = this.getBaseKey()
 
     // if (this.force) {
     //   key += ".force=true"
@@ -206,7 +205,7 @@ export abstract class BaseTask<O extends ValidResultType = ValidResultType> exte
   }
 }
 
-export interface ActionTaskStatusParams<_ extends Action> extends TaskProcessParams {}
+export type ActionTaskStatusParams<_ extends Action> = TaskProcessParams
 
 export interface ActionTaskProcessParams<T extends Action, S extends ValidResultType>
   extends ActionTaskStatusParams<T> {
@@ -349,7 +348,7 @@ export abstract class BaseActionTask<T extends Action, O extends ValidResultType
    */
   protected getResolveTask(action: Action) {
     const force = !!this.forceActions.find((r) => r.kind === action.kind && r.name === action.name)
-    return getResolveTaskForAction(action, { ...this.getDependencyParams(), force })
+    return action.getResolveTask({ ...this.getDependencyParams(), force })
   }
 
   /**
@@ -359,7 +358,7 @@ export abstract class BaseActionTask<T extends Action, O extends ValidResultType
    */
   protected getExecuteTask(action: Action) {
     const force = !!this.forceActions.find((r) => r.kind === action.kind && r.name === action.name)
-    return getExecuteTaskForAction(action, { ...this.getDependencyParams(), force })
+    return action.getExecuteTask({ ...this.getDependencyParams(), force })
   }
 }
 

@@ -22,7 +22,7 @@
  * @module    enumerate
  * @function  default
  */
-export function* enumerate<T>(it: Iterable<T>, start: number = 0) {
+export function* enumerate<T>(it: Iterable<T>, start = 0) {
   let i = start
   for (const x of it) {
     const tuple: [number, T] = [i++, x]

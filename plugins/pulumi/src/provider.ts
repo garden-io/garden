@@ -19,7 +19,7 @@ export type PulumiProviderConfig = GenericProviderConfig & {
   pluginTaskConcurrencyLimit: number
 }
 
-export interface PulumiProvider extends Provider<PulumiProviderConfig> {}
+export type PulumiProvider = Provider<PulumiProviderConfig>
 
 export const pulumiProviderConfigSchema = providerConfigBaseSchema()
   .keys({

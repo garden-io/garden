@@ -357,8 +357,6 @@ export class RootLogger extends LoggerBase {
       return RootLogger.instance
     }
 
-    let instance: RootLogger
-
     // The GARDEN_LOG_LEVEL env variable takes precedence over the config param
     if (gardenEnv.GARDEN_LOG_LEVEL) {
       try {
@@ -392,7 +390,7 @@ export class RootLogger extends LoggerBase {
       file: [],
     }
 
-    instance = new RootLogger({ ...config, storeEntries: config.storeEntries, writers })
+    const instance = new RootLogger({ ...config, storeEntries: config.storeEntries, writers })
 
     const initLog = instance.createLog()
 

@@ -61,7 +61,7 @@ interface CreateProjectResult {
 }
 
 class CreateError extends GardenError {
-  type: "create" = "create"
+  type = "create" as const
 }
 
 export class CreateProjectCommand extends Command<CreateProjectArgs, CreateProjectOpts> {

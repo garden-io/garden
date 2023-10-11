@@ -13,7 +13,6 @@ import { Log } from "./logger/log-entry"
 import { OutputSpec } from "./config/project"
 import { ActionReference } from "./config/common"
 import { ActionKind } from "./plugin/action-types"
-import { getExecuteTaskForAction } from "./tasks/helpers"
 import { GraphResults } from "./graph/results"
 
 /**
@@ -26,9 +25,9 @@ export async function resolveProjectOutputs(garden: Garden, log: Log): Promise<O
   }
 
   // Check for template references to figure out what needs to be resolved
-  let needProviders: string[] = []
-  let needModules: string[] = []
-  let needActions: ActionReference[] = []
+  const needProviders: string[] = []
+  const needModules: string[] = []
+  const needActions: ActionReference[] = []
 
   const templateRefs = collectTemplateReferences(garden.rawOutputs)
 
@@ -90,7 +89,7 @@ export async function resolveProjectOutputs(garden: Garden, log: Log): Promise<O
   const graphTasks = needActions.map((ref) => {
     // TODO: we may not need full execution for all these actions
     const action = graph.getActionByRef(ref)
-    return getExecuteTaskForAction(action, baseParams)
+    return action.getExecuteTask(baseParams)
   })
 
   const { results } =

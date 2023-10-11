@@ -19,9 +19,9 @@ export class ReconfigurableExporter implements SpanExporter {
   private pendingSpans: PendingSpan[] = []
   private targetExporter?: SpanExporter = undefined
 
-  private forceFlushRequested: boolean = false
+  private forceFlushRequested = false
   private forceFlushDeferred?: Deferred<void>
-  private shutdownRequested: boolean = false
+  private shutdownRequested = false
   private shutdownDeferred?: Deferred<void>
 
   public export(spans: ReadableSpan[], resultCallback: (result: ExportResult) => void): void {

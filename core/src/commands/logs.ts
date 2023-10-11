@@ -114,7 +114,7 @@ export class LogsCommand extends Command<Args, Opts> {
   async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<DeployLogEntry[]>> {
     const { follow, tag } = opts
 
-    let tail = opts.tail as number | undefined
+    const tail = opts.tail as number | undefined
     let since = opts.since as string | undefined
 
     const showTags = opts["show-tags"]
@@ -164,7 +164,7 @@ export class LogsCommand extends Command<Args, Opts> {
       throw new CommandError({ message: msg })
     }
 
-    let details: string = ""
+    let details = ""
 
     if (tail) {
       details = ` (showing last ${tail} lines from each service)`

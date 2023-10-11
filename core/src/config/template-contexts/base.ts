@@ -102,6 +102,7 @@ export abstract class ConfigContext {
 
     // keep track of which resolvers have been called, in order to detect circular references
     let available: any[] | null = null
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
     let value: any = this
     let partial = false
     let nextKey = key[0]

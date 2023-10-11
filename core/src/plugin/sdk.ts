@@ -56,6 +56,8 @@ class SdkError extends GardenError {
   type = "sdk"
 }
 
+export type BuildStatus = _BuildStatus
+
 export class GardenSdkPlugin {
   public readonly name: string
   private spec: GardenPluginSpec
@@ -402,10 +404,4 @@ export const sdk = {
     chalk,
     dedent,
   },
-}
-
-export namespace sdk {
-  export namespace types {
-    export type BuildStatus = _BuildStatus
-  }
 }

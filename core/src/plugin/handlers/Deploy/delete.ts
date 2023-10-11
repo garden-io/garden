@@ -15,7 +15,7 @@ import type { ActionStatus, Resolved } from "../../../actions/types"
 import { createSchema } from "../../../config/common"
 import { actionStatusSchema } from "../../../actions/base"
 
-interface DeleteDeployParams<T extends DeployAction> extends PluginDeployActionParamsBase<T> {}
+type DeleteDeployParams<T extends DeployAction> = PluginDeployActionParamsBase<T>
 
 type DeleteDeployStatus<T extends DeployAction = DeployAction> = ActionStatus<T, ServiceStatus, {}>
 

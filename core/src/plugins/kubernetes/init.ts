@@ -443,7 +443,7 @@ export async function buildDockerAuthConfig(
     })
   )
 
-  let finalSecret = { experimental: "enabled", auths: {}, credHelpers: {} }
+  const finalSecret = { experimental: "enabled", auths: {}, credHelpers: {} }
 
   for (const { auths, credHelpers } of decodedSecrets) {
     finalSecret.auths = { ...finalSecret.auths, ...auths }

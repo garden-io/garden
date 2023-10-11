@@ -47,7 +47,7 @@ export const k8sGetContainerDeployStatus: DeployActionHandler<"getStatus", Conta
     action,
     imageId,
   })
-  let {
+  const {
     state,
     remoteResources,
     mode: deployedMode,

@@ -1782,14 +1782,14 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
   opts: GardenOpts
 ): Promise<GardenParams> {
   return wrapActiveSpan("resolveGardenParams", async () => {
-    let {
+    const partialResolved = await resolveGardenParamsPartial(currentDirectory, opts)
+
+    const {
       artifactsPath,
       commandInfo,
-      config,
       configDefaultEnvironment,
       environmentName,
       environmentStr,
-      namespace,
       gardenDirPath,
       localConfigStore,
       log,
@@ -1798,7 +1798,9 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
       treeCache,
       username: _username,
       vcsInfo,
-    } = await resolveGardenParamsPartial(currentDirectory, opts)
+    } = partialResolved
+
+    let { config, namespace } = partialResolved
 
     await ensureDir(gardenDirPath)
     await ensureDir(artifactsPath)
@@ -1910,7 +1912,8 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
       commandInfo,
     })
 
-    let { providers, variables, production } = pickedEnv
+    const { providers, production } = pickedEnv
+    let { variables } = pickedEnv
 
     // Allow overriding variables
     const variableOverrides = opts.variableOverrides || {}
@@ -1989,7 +1992,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
 // Override variables, also allows to override nested variables using dot notation
 // eslint-disable-next-line @typescript-eslint/no-shadow
 export function overrideVariables(variables: DeepPrimitiveMap, overrideVariables: DeepPrimitiveMap): DeepPrimitiveMap {
-  let objNew = cloneDeep(variables)
+  const objNew = cloneDeep(variables)
   Object.keys(overrideVariables).forEach((key) => {
     if (objNew.hasOwnProperty(key)) {
       // if the original key itself is a string with a dot, then override that

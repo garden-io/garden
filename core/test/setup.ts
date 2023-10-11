@@ -14,7 +14,9 @@ import { gardenEnv } from "../src/constants"
 import { testFlags } from "../src/util/util"
 import { initTestLogger, testProjectTempDirs } from "./helpers"
 
-require("source-map-support").install()
+import sourceMapSupport from "source-map-support"
+sourceMapSupport.install()
+
 initTestLogger()
 
 // Global hooks
@@ -23,8 +25,10 @@ exports.mochaHooks = {
     // override fetch to handle node 18 issue when using nock
     // https://github.com/nock/nock/issues/2336
     // TODO: remove when we move to node 20
-    const fetch = require("node-fetch")
-    globalThis.fetch = fetch
+    const { default: fetch } = await import("node-fetch")
+    // the native fetch and node-fetch aren't using strictly the same interface
+    // so we force it as `any` here to avoid type errors
+    globalThis.fetch = fetch as any
 
     getDefaultProfiler().setEnabled(true)
     gardenEnv.GARDEN_DISABLE_ANALYTICS = true

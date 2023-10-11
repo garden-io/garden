@@ -149,7 +149,7 @@ export async function runOrTestWithChart(
     action,
     log,
   })
-  let preparedManifests = await prepareManifests({
+  const preparedManifests = await prepareManifests({
     ctx: k8sCtx,
     log,
     action,

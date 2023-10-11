@@ -14,8 +14,6 @@ import { STATIC_DIR, GARDEN_VERSIONFILE_NAME } from "@garden-io/core/build/src/c
 import { writeTreeVersionFile } from "@garden-io/core/build/src/vcs/vcs"
 import { TreeCache } from "@garden-io/core/build/src/cache"
 
-require("source-map-support").install()
-
 // make sure logger is initialized
 RootLogger.initialize({ level: LogLevel.info, displayWriterType: "quiet", storeEntries: false })
 

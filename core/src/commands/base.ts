@@ -184,22 +184,22 @@ export abstract class Command<
   description?: string
   aliases?: string[]
 
-  allowUndefinedArguments: boolean = false
+  allowUndefinedArguments = false
   arguments?: A
   options?: O
 
   outputsSchema?: () => Joi.ObjectSchema
 
-  cliOnly: boolean = false
-  hidden: boolean = false
-  noProject: boolean = false
-  protected: boolean = false
-  streamEvents: boolean = false // Set to true to stream events for the command
-  streamLogEntries: boolean = false // Set to true to stream log entries for the command
-  isCustom: boolean = false // Used to identify custom commands
-  isDevCommand: boolean = false // Set to true for internal commands in interactive command-line commands
-  ignoreOptions: boolean = false // Completely ignore all option flags and pass all arguments directly to the command
-  enableAnalytics: boolean = true // Set to false to avoid reporting analytics
+  cliOnly = false
+  hidden = false
+  noProject = false
+  protected = false
+  streamEvents = false // Set to true to stream events for the command
+  streamLogEntries = false // Set to true to stream log entries for the command
+  isCustom = false // Used to identify custom commands
+  isDevCommand = false // Set to true for internal commands in interactive command-line commands
+  ignoreOptions = false // Completely ignore all option flags and pass all arguments directly to the command
+  enableAnalytics = true // Set to false to avoid reporting analytics
 
   subscribers: DataCallback[]
   terminated: boolean
@@ -590,7 +590,7 @@ export abstract class Command<
    * @returns {Promise<Boolean>}
    * @memberof Command
    */
-  async isAllowedToRun(garden: Garden, log: Log, opts: ParameterValues<GlobalOptions>): Promise<Boolean> {
+  async isAllowedToRun(garden: Garden, log: Log, opts: ParameterValues<GlobalOptions>): Promise<boolean> {
     if (!opts.yes && this.protected && garden.production) {
       const defaultMessage = chalk.yellow(dedent`
         Warning: you are trying to run "garden ${this.getFullName()}" against a production environment ([${
@@ -764,7 +764,7 @@ const deployResultForExportSchema = createSchema({
   }),
 })
 
-interface RunResultForExport extends TestResultForExport {}
+type RunResultForExport = TestResultForExport
 
 const runResultForExportSchema = createSchema({
   name: "run-result-for-export",

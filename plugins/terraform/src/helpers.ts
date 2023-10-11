@@ -194,8 +194,8 @@ export async function applyStack(params: TerraformParamsWithVariables) {
   const statusLine = log.createLog({}).info("→ Applying Terraform stack...")
   const logStream = split2()
 
-  let stdout: string = ""
-  let stderr: string = ""
+  let stdout = ""
+  let stderr = ""
 
   if (proc.stdout) {
     proc.stdout.pipe(logStream)

@@ -73,7 +73,7 @@ export async function copyArtifacts({
   let files: string[] = []
 
   // Note: lazy-loading for startup performance
-  const cpy = require("cpy")
+  const { default: cpy } = await import("cpy")
 
   try {
     files = await cpy("**/*", garden.artifactsPath, { cwd: artifactsPath, parents: true })

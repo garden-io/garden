@@ -77,7 +77,7 @@ export class UsersListCommand extends Command<{}, Opts> {
       : "VCS"
 
     let page = 0
-    let users: UserResult[] = []
+    const users: UserResult[] = []
     let hasMore = true
     while (hasMore) {
       log.debug(`Fetching page ${page}`)

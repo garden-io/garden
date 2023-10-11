@@ -42,7 +42,7 @@ const testProvider = createGardenPlugin({
         convert: async (params: ConvertModuleParams) => {
           return {
             group: {
-              kind: <"Group">"Group",
+              kind: <const>"Group",
               path: params.module.path,
               name: params.module.name,
               actions: [

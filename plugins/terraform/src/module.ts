@@ -22,7 +22,7 @@ export interface TerraformModuleSpec extends TerraformBaseSpec {
   dependencies: string[]
 }
 
-export interface TerraformModule extends GardenModule<TerraformModuleSpec> {}
+export type TerraformModule = GardenModule<TerraformModuleSpec>
 
 type TerraformModuleConfig = TerraformModule["_config"]
 

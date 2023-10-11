@@ -7,6 +7,7 @@
  */
 
 import { expect } from "chai"
+import { readFile } from "fs/promises"
 import { optionsWithAliasValues, pickCommand, processCliArgs } from "../../../../src/cli/helpers"
 import { ParameterObject, StringParameter, StringsParameter } from "../../../../src/cli/params"
 import { expectError } from "../../../helpers"
@@ -35,7 +36,7 @@ const validLogLevels = getLogLevelChoices()
 
 describe("getPackageVersion", () => {
   it("should return the version in package.json", async () => {
-    const version = require(join(GARDEN_CORE_ROOT, "package.json")).version
+    const version = JSON.parse(await readFile(join(GARDEN_CORE_ROOT, "package.json"), "utf-8")).version
     expect(getPackageVersion()).to.eq(version)
   })
 })

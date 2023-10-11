@@ -21,7 +21,7 @@ describe("Logger", () => {
 
   describe("events", () => {
     let logWriterEvents: LogEntryEventPayload[] = []
-    let listener = (event: LogEntryEventPayload) => logWriterEvents.push(event)
+    const listener = (event: LogEntryEventPayload) => logWriterEvents.push(event)
 
     before(() => logger.events.on("logEntry", listener))
     after(() => logger.events.off("logEntry", listener))

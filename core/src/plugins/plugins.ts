@@ -8,17 +8,79 @@
 
 // These plugins are always registered and the providers documented
 export const getSupportedPlugins = () => [
-  { name: "container", callback: () => require("./container/container").gardenPlugin() },
-  { name: "exec", callback: () => require("./exec/exec").gardenPlugin.getSpec() },
-  { name: "hadolint", callback: () => require("./hadolint/hadolint").gardenPlugin.getSpec() },
-  { name: "kubernetes", callback: () => require("./kubernetes/kubernetes").gardenPlugin() },
-  { name: "local-kubernetes", callback: () => require("./kubernetes/local/local").gardenPlugin() },
-  { name: "ephemeral-kubernetes", callback: () => require("./kubernetes/ephemeral/ephemeral").gardenPlugin() },
-  { name: "openshift", callback: () => require("./openshift/openshift").gardenPlugin() },
-  { name: "octant", callback: () => require("./octant/octant").gardenPlugin() },
-  { name: "otel-collector", callback: () => require("./otel-collector/otel-collector").gardenPlugin.getSpec() },
+  {
+    name: "container",
+    callback: async () => {
+      const plugin = await import("./container/container")
+      return plugin.gardenPlugin()
+    },
+  },
+  {
+    name: "exec",
+    callback: async () => {
+      const plugin = await import("./exec/exec")
+      return plugin.gardenPlugin.getSpec()
+    },
+  },
+  {
+    name: "hadolint",
+    callback: async () => {
+      const plugin = await import("./hadolint/hadolint")
+      return plugin.gardenPlugin.getSpec()
+    },
+  },
+  {
+    name: "kubernetes",
+    callback: async () => {
+      const plugin = await import("./kubernetes/kubernetes")
+      return plugin.gardenPlugin()
+    },
+  },
+  {
+    name: "local-kubernetes",
+    callback: async () => {
+      const plugin = await import("./kubernetes/local/local")
+      return plugin.gardenPlugin()
+    },
+  },
+  {
+    name: "ephemeral-kubernetes",
+    callback: async () => {
+      const plugin = await import("./kubernetes/ephemeral/ephemeral")
+      return plugin.gardenPlugin()
+    },
+  },
+  {
+    name: "openshift",
+    callback: async () => {
+      const plugin = await import("./openshift/openshift")
+      return plugin.gardenPlugin()
+    },
+  },
+  {
+    name: "octant",
+    callback: async () => {
+      const plugin = await import("./octant/octant")
+      return plugin.gardenPlugin()
+    },
+  },
+  {
+    name: "otel-collector",
+    callback: async () => {
+      const plugin = await import("./otel-collector/otel-collector")
+      return plugin.gardenPlugin.getSpec()
+    },
+  },
 ]
 
 // These plugins are always registered
 export const getBuiltinPlugins = () =>
-  getSupportedPlugins().concat([{ name: "templated", callback: () => require("./templated").gardenPlugin() }])
+  getSupportedPlugins().concat([
+    {
+      name: "templated",
+      callback: async () => {
+        const plugin = await import("./templated")
+        return plugin.gardenPlugin()
+      },
+    },
+  ])

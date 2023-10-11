@@ -18,7 +18,7 @@ import { FilesystemError } from "../exceptions"
 import { VcsHandler } from "../vcs/vcs"
 import { Log } from "../logger/log-entry"
 import { exec } from "./util"
-import type Micromatch from "micromatch"
+import micromatch from "micromatch"
 import { uuidv4 } from "./random"
 
 export const defaultConfigFilename = "garden.yml"
@@ -74,7 +74,7 @@ export function isConfigFilename(filename: string) {
 }
 
 export async function getChildDirNames(parentDir: string): Promise<string[]> {
-  let dirNames: string[] = []
+  const dirNames: string[] = []
   // Filter on hidden dirs by default. We could make the filter function a param if needed later
   const filter = (item: string) => !basename(item).startsWith(".")
 
@@ -168,7 +168,7 @@ export function normalizeRelativePath(root: string, path: string) {
 /**
  * Joins a POSIX-formatted path with a `basePath` of any format/platform.
  */
-export function joinWithPosix(basePath: string, posixRelPath: string = "") {
+export function joinWithPosix(basePath: string, posixRelPath = "") {
   return join(basePath, ...posixRelPath.split("/"))
 }
 
@@ -180,21 +180,11 @@ export async function listDirectory(path: string, { recursive = true } = {}) {
   return glob(pattern, { cwd: path, dot: true })
 }
 
-let _micromatch: typeof Micromatch
-
-function micromatch() {
-  if (!_micromatch) {
-    // Note: lazy-loading for startup performance
-    _micromatch = require("micromatch").match
-  }
-  return _micromatch
-}
-
 /**
  * Given a list of `paths`, return a list of paths that match any of the given `patterns`
  */
 export function matchGlobs(paths: string[], patterns: string[]): string[] {
-  return micromatch()(paths, patterns, { dot: true })
+  return micromatch(paths, patterns, { dot: true })
 }
 
 /**

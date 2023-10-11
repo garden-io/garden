@@ -13,7 +13,7 @@ import { DeployAction } from "../../../actions/deploy"
 import { ActionTypeHandlerSpec } from "../base/base"
 import { Executed } from "../../../actions/types"
 
-interface StartSyncParams<T extends DeployAction> extends PluginDeployActionParamsBase<T> {}
+type StartSyncParams<T extends DeployAction> = PluginDeployActionParamsBase<T>
 
 export class StartSync<T extends DeployAction = DeployAction> extends ActionTypeHandlerSpec<
   "Deploy",

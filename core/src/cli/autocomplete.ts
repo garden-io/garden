@@ -62,7 +62,7 @@ export class Autocompleter {
       return output
     }
 
-    let { command, rest, matchedPath = [] } = this.findCommand(input.split(" "))
+    const { command, rest, matchedPath = [] } = this.findCommand(input.split(" "))
 
     this.debug({ input, command: command?.getFullName(), rest })
 
@@ -272,7 +272,7 @@ export class Autocompleter {
     }
 
     let keys = Object.keys(opts)
-    let aliases = Object.values(opts).flatMap((o) => o.aliases || [])
+    const aliases = Object.values(opts).flatMap((o) => o.aliases || [])
 
     let prefix = "--"
 

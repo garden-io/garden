@@ -11,7 +11,7 @@ import { deline, dedent } from "../util/string"
 import { memoize } from "lodash"
 import { DEFAULT_RUN_TIMEOUT_SEC } from "../constants"
 
-export interface TaskSpec {}
+export type TaskSpec = object
 
 export interface BaseTaskSpec extends TaskSpec {
   name: string

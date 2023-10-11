@@ -194,7 +194,7 @@ export class DeployCommand extends Command<Args, Opts> {
     const disablePortForwards = gardenEnv.GARDEN_DISABLE_PORT_FORWARDS || opts["disable-port-forwards"] || false
 
     // TODO-0.13.0: make these both explicit options
-    let forward = monitor && !disablePortForwards
+    const forward = monitor && !disablePortForwards
     const streamLogs = opts.logs
 
     const actionModes: ActionModeMap = {

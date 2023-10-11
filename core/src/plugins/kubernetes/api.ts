@@ -895,7 +895,7 @@ const WEBSOCKET_KEEPALIVE_INTERVAL = 5_000
 const WEBSOCKET_PING_TIMEOUT = 30_000
 
 function attachWebsocketKeepalive(ws: WebSocket): WebSocket {
-  let keepAlive: NodeJS.Timeout = setInterval(() => {
+  const keepAlive: NodeJS.Timeout = setInterval(() => {
     ws.ping()
   }, WEBSOCKET_KEEPALIVE_INTERVAL)
 

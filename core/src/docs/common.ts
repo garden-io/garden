@@ -152,7 +152,7 @@ export const makeDocsLinkOpts = {
  * @example makeDocsLink("k8s-plugins/action-types/container", "#secrets")
  */
 export function makeDocsLink(docsPathInput: string | TemplateStringsArray, fragment = ""): string {
-  let docsPath: string = Array.isArray(docsPathInput) ? docsPathInput[0] : docsPathInput
+  const docsPath: string = Array.isArray(docsPathInput) ? docsPathInput[0] : docsPathInput
 
   // If this is set it means we're rendering the reference docs
   // so we return a relative link

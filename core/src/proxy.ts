@@ -9,7 +9,7 @@
 import { isEqual, invert } from "lodash"
 import chalk = require("chalk")
 import { createServer, Server, Socket } from "net"
-const AsyncLock = require("async-lock")
+import AsyncLock = require("async-lock")
 import getPort = require("get-port")
 import { ServiceStatus, ForwardablePort } from "./types/service"
 import { Garden } from "./garden"
@@ -371,7 +371,7 @@ const standardProtocolPortIndex = invert(standardProtocolPorts)
 
 function guessProtocol(spec: ForwardablePort) {
   const port = spec.targetPort
-  let protocol = standardProtocolPortIndex[port]
+  const protocol = standardProtocolPortIndex[port]
 
   if (protocol) {
     return protocol

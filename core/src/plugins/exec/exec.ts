@@ -15,7 +15,7 @@ import { configureExecModule, execModuleSpecSchema } from "./moduleConfig"
 import { convertExecModule } from "./convert"
 import { sdk } from "../../plugin/sdk"
 
-export interface ExecProviderConfig extends GenericProviderConfig {}
+export type ExecProviderConfig = GenericProviderConfig
 
 export type ExecProvider = Provider<ExecProviderConfig>
 export interface ExecProviderOutputs {
