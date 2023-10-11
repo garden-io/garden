@@ -47,9 +47,7 @@ orbs:
   only-prs: &only-prs
     filters:
       branches:
-        # TODO: remove regex once 0.13 is merged to main.
-        ignore: /^main|0\.13$/
-        #ignore: main
+        ignore: main
       tags:
         ignore: /.*/
 
@@ -59,8 +57,6 @@ orbs:
       branches:
         only:
           - main
-          # TODO: remove 0.13 once 0.13 is merged to main.
-          - "0.13"
       tags:
         ignore: /.*/
 
