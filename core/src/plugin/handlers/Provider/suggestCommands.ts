@@ -63,7 +63,7 @@ export const suggestedCommandsSchema = memoize(() =>
     .unique("name")
 )
 
-export interface SuggestCommandsParams<C extends BaseProviderConfig = any> extends PluginActionParamsBase<C> {}
+export type SuggestCommandsParams<C extends BaseProviderConfig = any> = PluginActionParamsBase<C>
 
 export interface SuggestCommandsResult {
   commands: SuggestedCommand[]

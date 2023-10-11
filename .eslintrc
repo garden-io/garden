@@ -25,6 +25,8 @@
     // To make this safe, we need to actually go through all the cases and see
     // if it's supposed to be a plain object, any object, or really means "anything".
     "@typescript-eslint/ban-types": "warn",
+    // We need namespaces for our SDK (but otherwise don't recommend them)
+    "@typescript-eslint/no-namespace": "off",
     "arrow-body-style": "off",
     "jsdoc/check-indentation": "off",
     "jsdoc/newline-after-description": "off",
@@ -41,14 +43,18 @@
     "mocha/no-skipped-tests": "warn",
     "mocha/no-exclusive-tests": "error",
     "unused-imports/no-unused-imports": "error",
-    "header/header": [2, "block", [
-      "",
-      " * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>",
-      " *",
-      " * This Source Code Form is subject to the terms of the Mozilla Public",
-      " * License, v. 2.0. If a copy of the MPL was not distributed with this",
-      " * file, You can obtain one at http://mozilla.org/MPL/2.0/.",
-      " "
-    ]]
+    "header/header": [
+      2,
+      "block",
+      [
+        "",
+        " * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>",
+        " *",
+        " * This Source Code Form is subject to the terms of the Mozilla Public",
+        " * License, v. 2.0. If a copy of the MPL was not distributed with this",
+        " * file, You can obtain one at http://mozilla.org/MPL/2.0/.",
+        " "
+      ]
+    ]
   }
 }

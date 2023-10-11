@@ -314,7 +314,7 @@ export async function getComposeContainers(
  * See https://docs.docker.com/compose/compose-file/compose-file-v3/#ports
  */
 export function getIngresses(portsArray: DockerComposePortsSpec) {
-  let ingresses: sdk.types.ServiceIngress[] = []
+  const ingresses: sdk.types.ServiceIngress[] = []
 
   for (const spec of portsArray) {
     if (spec.mode !== "ingress" || !spec.published || spec.protocol !== "tcp") {
