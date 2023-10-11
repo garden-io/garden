@@ -1,9 +1,9 @@
 ---
-title: 2. Configure Ingress (optional)
-order: 2
+title: 3. Configure Ingress (optional)
+order: 3
 ---
 
-# 2. Configure Ingress (optional)
+# 3. Configure Ingress (optional)
 
 Ephemeral Kubernetes Clusters fully support ingresses and each cluster is assigned its own unique default hostname dynamically when created. This hostname and its direct subdomains are secured by TLS and require authentication.
 Garden will automatically install the nginx ingress controller for ephemeral Kubernetes. If you wish to disable it see [here](#using-your-own-ingress-controller).
