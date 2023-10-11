@@ -20,6 +20,7 @@ import { createReadStream, createWriteStream } from "fs"
 import { copy, mkdirp, move, readdir, remove } from "fs-extra"
 import { GotHttpError, got } from "../util/http"
 import { promisify } from "node:util"
+import { gardenEnv } from "../constants"
 import semver from "semver"
 import stream from "stream"
 
@@ -97,7 +98,7 @@ export type Pagination = { pageNumber: number; pageSize: number }
 
 export async function fetchReleases({ pageNumber, pageSize }: Pagination) {
   const results: any[] = await got(
-    `https://api.github.com/repos/garden-io/garden/releases?page=${pageNumber}&per_page=${[pageSize]}`
+    `${gardenEnv.GARDEN_RELEASES_ENDPOINT}?page=${pageNumber}&per_page=${[pageSize]}`
   ).json()
   return results
 }
@@ -159,7 +160,7 @@ export async function findRelease({
  * @throws {RuntimeError} if the latest version cannot be detected
  */
 export async function getLatestVersion(): Promise<string> {
-  const latestVersionRes: any = await got("https://api.github.com/repos/garden-io/garden/releases/latest").json()
+  const latestVersionRes: any = await got(`${gardenEnv.GARDEN_RELEASES_ENDPOINT}/latest`).json()
   const latestVersion = latestVersionRes.tag_name
   if (!latestVersion) {
     throw new RuntimeError({
@@ -171,7 +172,7 @@ export async function getLatestVersion(): Promise<string> {
 }
 
 export async function getLatestVersions(numOfStableVersions: number) {
-  const res: any = await got("https://api.github.com/repos/garden-io/garden/releases?per_page=100").json()
+  const res: any = await got(`${gardenEnv.GARDEN_RELEASES_ENDPOINT}?per_page=100`).json()
 
   return [
     chalk.cyan("edge-acorn"),

@@ -345,8 +345,8 @@ ${renderCommands(commands)}
 
         // Note: No reason to await the check
         checkForUpdates(garden.globalConfigStore, log).catch((err) => {
-          log.verbose("Something went wrong while checking for the latest Garden version.")
-          log.verbose(err)
+          log.verbose(`Something went wrong while checking for the latest Garden version.`)
+          log.verbose(err.toString())
         })
 
         await checkForStaticDir()
