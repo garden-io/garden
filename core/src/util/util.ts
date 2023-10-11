@@ -667,7 +667,14 @@ export async function runScript({
     log.error(line.toString())
   })
   errorStream.on("data", (line: Buffer) => {
-    log.error(line.toString())
+    // NOTE: We're intentionally logging stderr streams at the "info" level
+    // because some tools will write to stderr even if it's not an actual error.
+    // So rendering it as such will look confusing to the user.
+    // An example of this is the gcloud CLI tool. If run from e.g. the exec
+    // provider init script, Garden would log those lines as errors if we don't
+    // use the info level here.
+    // Actual error are handled specifically.
+    log.info(line.toString())
   })
   // Workaround for https://github.com/vercel/pkg/issues/897
   env.PKG_EXECPATH = ""
