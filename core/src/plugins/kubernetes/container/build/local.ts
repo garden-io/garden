@@ -92,7 +92,7 @@ export const localBuild: BuildHandler = async (params) => {
 }
 
 /**
- * Loads a built local image to a local Kubernetes instance
+ * Loads a built local image to a local Kubernetes instance.
  */
 export async function loadToLocalK8s(params: BuildActionParams<"build", ContainerBuildAction>) {
   const { ctx, log, action } = params
