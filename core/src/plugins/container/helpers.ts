@@ -373,15 +373,25 @@ const helpers = {
   moduleHasDockerfile(config: ContainerModuleConfig, version: ModuleVersion): boolean {
     // If we explicitly set a Dockerfile, we take that to mean you want it to be built.
     // If the file turns out to be missing, this will come up in the build handler.
-    return !!config.spec.dockerfile || version.files.includes(getDockerfilePath(config.path, config.spec.dockerfile))
+
+    if (!!config.spec.dockerfile) {
+      return true
+    }
+
+    // NOTE: The fact that we overloaded the `image` field of a container module means the Dockerfile must be checked into version control
+    // This means it's not possible to use `copyFrom` or `generateFiles` to get it from dependencies or generate it at runtime.
+    // That's because the `image` field has the following two meanings:
+    // 1. Build an image with this name, if a Dockerfile exists
+    // 2. Deploy this image from the registry, if no Dockerfile exists
+    // This means we need to know if the Dockerfile exists before we know wether or not the Dockerfile will be present at runtime.
+    return version.files.includes(getDockerfilePath(config.path, config.spec.dockerfile))
   },
 
   async actionHasDockerfile(action: Resolved<ContainerBuildAction>): Promise<boolean> {
-    // If we explicitly set a Dockerfile, we take that to mean you want it to be built.
-    // If the file turns out to be missing, this will come up in the build handler.
     const dockerfile = action.getSpec("dockerfile")
-    const dockerfileSourcePath = getDockerfilePath(action.basePath(), dockerfile)
-    return action.getFullVersion().files.includes(dockerfileSourcePath)
+    // NOTE: it's important to check for the files existence in the build path to allow dynamically copying the Dockerfile from other actions using `copyFrom`.
+    const dockerfileSourcePath = getDockerfilePath(action.getBuildPath(), dockerfile)
+    return await pathExists(dockerfileSourcePath)
   },
 
   /**

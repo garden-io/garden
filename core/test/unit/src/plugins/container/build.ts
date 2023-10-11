@@ -18,6 +18,7 @@ import { ContainerProvider, gardenPlugin } from "../../../../../src/plugins/cont
 import { containerHelpers } from "../../../../../src/plugins/container/helpers"
 import { joinWithPosix } from "../../../../../src/util/fs"
 import { getDataDir, TestGarden, makeTestGarden } from "../../../../helpers"
+import { createFile } from "fs-extra"
 
 context("build.ts", () => {
   const projectRoot = getDataDir("test-project-container")
@@ -85,6 +86,7 @@ context("build.ts", () => {
       sinon.replace(action, "getOutputs", () => ({ localImageId: "some/image" }))
 
       const buildPath = action.getBuildPath()
+      await createFile(join(buildPath, "Dockerfile"))
 
       const cmdArgs = getCmdArgs(action, buildPath)
       sinon.replace(containerHelpers, "dockerCli", async ({ cwd, args, ctx: _ctx }) => {
@@ -109,6 +111,7 @@ context("build.ts", () => {
       sinon.replace(action, "getOutputs", () => ({ localImageId: "some/image" }))
 
       const buildPath = action.getBuildPath()
+      await createFile(join(buildPath, "docker-dir/Dockerfile"))
 
       const cmdArgs = getCmdArgs(action, buildPath)
       sinon.replace(containerHelpers, "dockerCli", async ({ cwd, args, ctx: _ctx }) => {

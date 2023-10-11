@@ -57,6 +57,12 @@ export async function validateGitInstall() {
 
 export interface TreeVersion {
   contentHash: string
+  /**
+   * Important! Do not use the files to determine if a file will exist when performing an action.
+   * Other mechanisms, e.g. the build command itself and `copyFrom` might affect available files at runtime.
+   *
+   * See also https://github.com/garden-io/garden/issues/5201
+   */
   files: string[]
 }
 
