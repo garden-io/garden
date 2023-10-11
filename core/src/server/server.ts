@@ -15,7 +15,8 @@ import type PTY from "node-pty-prebuilt-multiarch"
 import websockify from "koa-websocket"
 import bodyParser = require("koa-bodyparser")
 // TODO: switch from get-port-please to get-port once get-port is upgraded to v6.0+ which is ESM only
-const { getPort } = require("get-port-please")
+import getPortPlease = require("get-port-please")
+const { getPort } = getPortPlease
 import { isArray, omit } from "lodash"
 
 import { BaseServerRequest, resolveRequest, serverRequestSchema, shellCommandParamsSchema } from "./commands"
@@ -55,7 +56,7 @@ import { omitUndefined } from "../util/objects"
 import { createServer } from "http"
 import { defaultServerPort } from "../commands/serve"
 
-const pty = require("node-pty-prebuilt-multiarch")
+import pty = require("node-pty-prebuilt-multiarch")
 
 const skipLogsForCommands = ["autocomplete"]
 
@@ -651,7 +652,7 @@ export class GardenServer extends EventEmitter {
   private setupWsHeartbeat(connectionId: string, websocket: Koa.Context["websocket"], cleanup: () => void) {
     // Set up heartbeat to detect dead connections
     let isAlive = true
-    let heartbeatInterval = setInterval(() => {
+    const heartbeatInterval = setInterval(() => {
       if (!isAlive) {
         this.log.debug(`Connection ${connectionId} timed out.`)
         clearInterval(heartbeatInterval)
@@ -856,7 +857,8 @@ export class GardenServer extends EventEmitter {
     } else if (requestType === "loadConfig") {
       // Emit the config graph for the project (used for the Cloud dashboard)
       const resolved = await this.resolveRequest(ctx, omit(request, "type"))
-      let { garden, log: _log } = resolved
+      let { garden } = resolved
+      const { log: _log } = resolved
       const log = _log.createLog({ fixLevel: LogLevel.silly })
 
       const loadConfigLog = this.log.createLog({ name: "garden-server", showDuration: true })

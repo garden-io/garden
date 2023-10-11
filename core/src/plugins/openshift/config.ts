@@ -11,7 +11,7 @@ import { BaseProviderConfig, Provider, providerConfigBaseSchema } from "../../co
 import { PluginContext } from "../../plugin-context"
 import { resourcesSchema } from "../kubernetes/config"
 
-export interface OpenShiftConfig extends BaseProviderConfig {}
+export type OpenShiftConfig = BaseProviderConfig
 export type OpenShiftProvider = Provider<OpenShiftConfig>
 export type OpenShiftPluginContext = PluginContext<OpenShiftConfig>
 

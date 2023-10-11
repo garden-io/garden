@@ -145,11 +145,9 @@ export async function deleteGoogleArtifactImage(packageName: string): Promise<vo
 }
 
 export async function getGoogleADCImagePullSecret() {
-  let token: string | null | undefined
-
   const client = await getImpersonatedClientForIntegTests()
   // Obtain an authenticated client via ADC.
-  token = (await client.getAccessToken()).token
+  const token = (await client.getAccessToken()).token
 
   if (!token) {
     expect.fail("Failed to downscope token for image pull secret via ADC: token was not set")

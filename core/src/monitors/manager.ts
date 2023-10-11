@@ -110,7 +110,7 @@ export class MonitorManager extends TypedEventEmitter<MonitorEvents> {
   }
 
   start(monitor: Monitor) {
-    let status = this.getStatus(monitor)
+    const status = this.getStatus(monitor)
 
     if (status !== "stopped" && status !== "stopping") {
       this.log.silly(`${monitor.description()} already ${status}.`)

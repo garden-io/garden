@@ -19,7 +19,7 @@ import {
 } from "./base"
 import { getLinkUrl } from "../types/service"
 import { Profile } from "../util/profiling"
-import { DeployAction } from "../actions/deploy"
+import type { DeployAction } from "../actions/deploy"
 import { DeployStatus } from "../plugin/handlers/Deploy/get-status"
 import { displayState, resolvedActionToExecuted } from "../actions/helpers"
 import { PluginEventBroker } from "../plugin-context"
@@ -163,4 +163,8 @@ export class DeployTask extends ExecuteActionTask<DeployAction, DeployStatus> {
 
 export function isDeployTask(task: BaseTask): task is DeployTask {
   return task.type === "deploy"
+}
+
+export function createDeployTask(params: DeployTaskParams) {
+  return new DeployTask(params)
 }

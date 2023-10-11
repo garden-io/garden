@@ -28,7 +28,7 @@ import { toGardenError } from "../../exceptions"
 
 const OTEL_CONFIG_NAME = "otel-config.yaml"
 
-export interface OtelCollectorProviderConfig extends GenericProviderConfig {}
+export type OtelCollectorProviderConfig = GenericProviderConfig
 export type OtelCollectorProvider = Provider<OtelCollectorProviderConfig>
 
 export const gardenPlugin = sdk.createGardenPlugin({

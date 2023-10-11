@@ -64,7 +64,7 @@ async function buildAndPushViaRemote(params: BuildActionParams<"build", Containe
   const k8sCtx = ctx as KubernetesPluginContext
 
   const provider = <KubernetesProvider>ctx.provider
-  let buildMode = provider.config.buildMode
+  const buildMode = provider.config.buildMode
 
   // Build the tarball with the base handler
   const spec: any = action.getSpec()

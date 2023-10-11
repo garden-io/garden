@@ -56,9 +56,9 @@
     "build": "tsc --build . --verbose && npm run add-version-files && npm run generate-docs",
     "check-package-lock": "git diff-index --quiet HEAD -- package-lock.json || (echo 'package-lock.json is dirty!' && exit 1)",
     "clean": "shx rm -rf build dist",
-    "fix-format": "prettier --write \"{src,test}/**/*.ts\"",
+    "fix-format": "npm run lint -- --fix --quiet",
     "generate-docs": "node ./build/src/generate-docs.js",
-    "lint": "eslint -c ../.eslintrc --ext .ts src/",
+    "lint": "eslint --ext .ts src/",
     "postinstall": "patch-package",
     "test": "mocha"
   },

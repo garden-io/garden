@@ -299,4 +299,4 @@ export const execModuleSpecSchema = createSchema({
   allowUnknown: false,
 })
 
-export interface ExecModule extends GardenModule<ExecModuleSpec, ExecServiceSpec, ExecTestSpec, ExecTaskSpec> {}
+export type ExecModule = GardenModule<ExecModuleSpec, ExecServiceSpec, ExecTestSpec, ExecTaskSpec>

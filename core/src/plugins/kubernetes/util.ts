@@ -708,7 +708,7 @@ export async function readTargetResource({
   query: KubernetesTargetResourceSpec
 }): Promise<SyncableResource> {
   const targetKind = query.kind
-  let targetName = query.name
+  const targetName = query.name
 
   if (!targetName) {
     // This should be caught in config/schema validation

@@ -117,7 +117,7 @@ export class LogMonitor extends Monitor {
   async start() {
     const stream = new Stream<DeployLogEntry>()
     // Note: lazy-loading for startup performance
-    const { isMatch } = require("micromatch")
+    const { isMatch } = await import("micromatch")
 
     const matchTagFilters = (entry: DeployLogEntry): boolean => {
       if (!this.tagFilters) {

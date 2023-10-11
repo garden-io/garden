@@ -316,7 +316,10 @@ export function processCliArgs<A extends ParameterObject, O extends ParameterObj
     }
   }
 
-  for (let [key, value] of Object.entries(parsedArgs)) {
+  for (const kv of Object.entries(parsedArgs)) {
+    const key = kv[0]
+    let value = kv[1]
+
     if (key === "_" || key === "--") {
       continue
     }
@@ -516,7 +519,7 @@ function renderParameters(params: ParameterObject, formatName: (name: string, pa
 
   const helpTexts = sortedParams.map((name) => {
     const param = params[name]
-    let out = param.help
+    const out = param.help
     let hints = ""
     if (param.hints) {
       hints = param.hints

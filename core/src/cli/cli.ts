@@ -71,7 +71,7 @@ export interface GardenCliParams {
 @Profile()
 export class GardenCli {
   private commands: { [key: string]: Command } = {}
-  private fileWritersInitialized: boolean = false
+  private fileWritersInitialized = false
   public plugins: GardenPluginReference[]
   private initLogger: boolean
   public processRecord?: GardenProcess
@@ -201,7 +201,7 @@ ${renderCommands(commands)}
     workingDir: string
     log: Log
   }) {
-    let {
+    const {
       "env": environmentName,
       silent,
       output,
@@ -431,7 +431,9 @@ ${renderCommands(commands)}
     let projectConfig: ProjectConfig | undefined
 
     // First look for native Garden commands
-    let { command, rest, matchedPath } = pickCommand(Object.values(this.commands), argv._)
+    const picked = pickCommand(Object.values(this.commands), argv._)
+    const { rest } = picked
+    let { command, matchedPath } = picked
 
     // Note: We partially initialize the logger here with the default writer or the one set via
     // command line flags / env var by the user so that we can use it right away.

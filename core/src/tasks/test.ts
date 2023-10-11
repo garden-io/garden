@@ -16,7 +16,7 @@ import {
 } from "../tasks/base"
 import { Profile } from "../util/profiling"
 import { resolvedActionToExecuted } from "../actions/helpers"
-import { TestAction } from "../actions/test"
+import type { TestAction } from "../actions/test"
 import { GetTestResult } from "../plugin/handlers/Test/get-result"
 import { OtelTraced } from "../util/open-telemetry/decorators"
 import { GardenError } from "../exceptions"
@@ -154,4 +154,8 @@ export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
 
     return { ...status, version: action.versionString(), executedAction: resolvedActionToExecuted(action, { status }) }
   }
+}
+
+export function createTestTask(params: TestTaskParams) {
+  return new TestTask(params)
 }

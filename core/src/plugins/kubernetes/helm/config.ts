@@ -236,7 +236,7 @@ export const helmPodRunSchema = (kind: string) => {
 export type HelmPodRunConfig = RunActionConfig<"helm-pod", HelmPodRunActionSpec>
 export type HelmPodRunAction = RunAction<HelmPodRunConfig, KubernetesRunOutputs>
 
-export interface HelmPodTestActionSpec extends HelmPodRunActionSpec {}
+export type HelmPodTestActionSpec = HelmPodRunActionSpec
 
 export type HelmPodTestConfig = TestActionConfig<"helm-pod", HelmPodTestActionSpec>
 export type HelmPodTestAction = TestAction<HelmPodTestConfig, KubernetesRunOutputs>

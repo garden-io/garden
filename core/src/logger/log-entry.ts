@@ -430,7 +430,7 @@ export abstract class Log<C extends BaseContext = LogContext> implements LogConf
   /**
    * Returns the duration in seconds, defaults to 2 decimal precision
    */
-  getDuration(precision: number = 2): number {
+  getDuration(precision = 2): number {
     return round((new Date().getTime() - new Date(this.timestamp).getTime()) / 1000, precision)
   }
 

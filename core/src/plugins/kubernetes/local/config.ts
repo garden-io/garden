@@ -70,7 +70,7 @@ export const configSchema = () =>
 export async function configureProvider(params: ConfigureProviderParams<LocalKubernetesConfig>) {
   const { base, log, projectName, ctx } = params
 
-  let { config } = await base!(params)
+  const { config } = await base!(params)
   const providerLog = log.createLog({ name: config.name })
 
   const provider = ctx.provider as KubernetesProvider

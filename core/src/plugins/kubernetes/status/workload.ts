@@ -133,7 +133,7 @@ export async function checkWorkloadStatus({ api, namespace, resource }: StatusHa
 
   // Look for warnings or failures in the events,
   // so that we can display them or fail fast instead of timing out
-  for (let event of await getEvents()) {
+  for (const event of await getEvents()) {
     if (
       event.type === "Error" ||
       event.type === "Failed" ||

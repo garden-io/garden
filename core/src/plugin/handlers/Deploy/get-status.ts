@@ -15,7 +15,7 @@ import { actionStatusSchema } from "../../../actions/base"
 import { createSchema } from "../../../config/common"
 import { ServiceStatus, DeployState, serviceStatusSchema } from "../../../types/service"
 
-interface GetDeployStatusParams<T extends DeployAction> extends PluginDeployActionParamsBase<T> {}
+type GetDeployStatusParams<T extends DeployAction> = PluginDeployActionParamsBase<T>
 
 export type DeployStatus<T extends DeployAction = DeployAction> = ActionStatus<
   T,

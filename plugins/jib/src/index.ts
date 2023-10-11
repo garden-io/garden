@@ -33,9 +33,9 @@ import { detectProjectType, getBuildFlags, JibBuildActionSpec, JibBuildConfig, J
 import { ConvertModuleParams, ConvertModuleResult } from "@garden-io/core/build/src/plugin/handlers/Module/convert"
 import { PluginEventLogContext } from "@garden-io/core/build/src/plugin-context"
 
-export interface JibProviderConfig extends GenericProviderConfig {}
+export type JibProviderConfig = GenericProviderConfig
 
-export interface JibProvider extends Provider<JibProviderConfig> {}
+export type JibProvider = Provider<JibProviderConfig>
 
 export const configSchema = () => providerConfigBaseSchema().unknown(false)
 
@@ -299,7 +299,8 @@ export const gardenPlugin = () =>
         needsBuild: true,
         handlers: {
           async configure(params: ConfigureModuleParams<JibContainerModule>) {
-            let { base, moduleConfig } = params
+            const { base } = params
+            let { moduleConfig } = params
 
             // The base handler will either auto-detect or set include if there's no Dockerfile, so we need to
             // override that behavior.

@@ -50,7 +50,7 @@ export const publishOpts = {
 type Args = typeof publishArgs
 type Opts = typeof publishOpts
 
-interface PublishCommandResult extends ProcessCommandResult {}
+type PublishCommandResult = ProcessCommandResult
 
 export class PublishCommand extends Command<Args, Opts, ProcessCommandResult> {
   name = "publish"

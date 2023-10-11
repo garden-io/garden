@@ -89,7 +89,7 @@ export const kubernetesExecRunDefinition = (): RunActionDefinition<KubernetesExe
 
 // TEST //
 
-export interface KubernetesExecTestActionSpec extends KubernetesExecRunActionSpec {}
+export type KubernetesExecTestActionSpec = KubernetesExecRunActionSpec
 export type KubernetesExecTestActionConfig = TestActionConfig<"kubernetes-exec", KubernetesExecTestActionSpec>
 export type KubernetesExecTestAction = TestAction<KubernetesExecTestActionConfig, KubernetesRunOutputs>
 

@@ -163,7 +163,8 @@ export class BuildStaging {
    * If withDelete = true, files/folders in targetPath that are not in sourcePath will also be deleted.
    */
   protected async sync(params: SyncParams): Promise<void> {
-    let { sourceRoot, targetRoot, sourceRelPath, targetRelPath, withDelete, log, files } = params
+    const { targetRoot, withDelete, log, files } = params
+    let { sourceRoot, sourceRelPath, targetRelPath } = params
 
     if (targetRelPath && hasMagic(targetRelPath)) {
       throw new ConfigurationError({
@@ -246,8 +247,8 @@ export class BuildStaging {
       })
     }
 
-    let targetStat = await statsHelper.extendedStat({ path: targetPath })
-    let targetIsFile = targetStat && !targetStat.isDirectory()
+    const targetStat = await statsHelper.extendedStat({ path: targetPath })
+    const targetIsFile = targetStat && !targetStat.isDirectory()
 
     // Throw if target path ends with a slash but is not a directory
     if (targetShouldBeDirectory && targetStat && !targetStat.isDirectory()) {

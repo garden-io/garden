@@ -1,9 +1,14 @@
 #!/usr/bin/env ts-node
+/*
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
 /* eslint-disable no-console */
 
-// eslint-disable-next-line header/header
 import execa from "execa"
-import minimist from "minimist"
 import { max, padEnd, padStart } from "lodash"
 import { DepGraph } from "dependency-graph"
 import split2 = require("split2")
@@ -13,16 +18,27 @@ import stripAnsi from "strip-ansi"
 import { join, resolve } from "path"
 import { createWriteStream, WriteStream } from "fs"
 import { getPackages } from "./script-utils"
+import yargs from "yargs/yargs"
 
 const colors = [chalk.blueBright, chalk.green, chalk.yellow, chalk.magenta, chalk.cyan]
 
 const lineChar = "┄"
 
 async function runInPackages(args: string[]) {
-  const argv = minimist(args, { boolean: ["bail", "parallel"], default: { bail: true } })
-  const script = argv._[0]
-  const rest = argv._.slice(1)
-  const { scope, ignore, bail, parallel } = argv
+  const parsed = await yargs()
+    .parserConfiguration({
+      "unknown-options-as-args": true,
+    })
+    .option("bail", { type: "boolean", default: true })
+    .option("parallel", { type: "boolean", default: false })
+    .option("scope", { type: "string" })
+    .option("ignore", { type: "string" })
+    .option("report", { type: "string" })
+    .parse(args)
+
+  const script = parsed._[0] as string
+  const rest = parsed._.slice(1) as string[]
+  const { scope, ignore, bail, parallel } = parsed
   const repoRoot = resolve(__dirname, "..")
 
   if (!script) {
@@ -31,8 +47,8 @@ async function runInPackages(args: string[]) {
 
   let reportStream: WriteStream | undefined = undefined
 
-  if (argv.report) {
-    const path = join(process.cwd(), argv.report)
+  if (parsed.report) {
+    const path = join(process.cwd(), parsed.report)
     console.log(chalk.cyan(`Writing script output to ${path}`))
     reportStream = createWriteStream(path)
   }
@@ -56,8 +72,8 @@ async function runInPackages(args: string[]) {
   process.env.FORCE_COLOR = chalk.supportsColor.toString() || "0"
 
   const maxNameLength = max(packagesWithColor.map((p) => p.shortName.length)) as number
-  let lastPackage: string = ""
-  let failed: string[] = []
+  let lastPackage = ""
+  const failed: string[] = []
 
   function write(line: string) {
     console.log(line)
@@ -75,7 +91,11 @@ async function runInPackages(args: string[]) {
       return
     }
 
-    const proc = execa("npm", ["run", script, ...rest, `--workspace=${pack.name}`], { cwd: repoRoot, reject: false })
+    const proc = execa(
+      "npm",
+      ["run", script, `--workspace=${pack.name}`, ...(rest.length > 0 ? ["--", ...rest] : [])],
+      { cwd: repoRoot, reject: false }
+    )
 
     void proc.on("error", (error) => {
       write(chalk.redBright(`\nCould not run ${script} script in package ${packageName}: ${error}`))

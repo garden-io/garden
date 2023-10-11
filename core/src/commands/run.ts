@@ -153,7 +153,7 @@ export class RunCommand extends Command<Args, Opts> {
       graph.getModules({ names: opts.module })
     }
 
-    let allActions = graph.getActionsByKind("Run", {
+    const allActions = graph.getActionsByKind("Run", {
       excludeNames: opts.skip,
       includeDisabled: true,
     })

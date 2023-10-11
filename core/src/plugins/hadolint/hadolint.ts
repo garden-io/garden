@@ -333,7 +333,7 @@ hadolintTest.addHandler("run", async ({ ctx, log, action }) => {
     resultCategories.push(`${warnings.length} warning(s)`)
   }
 
-  let formattedHeader = `hadolint reported ${naturalList(resultCategories)}`
+  const formattedHeader = `hadolint reported ${naturalList(resultCategories)}`
 
   if (parsed.length > 0) {
     const dockerfileLines = splitLines(dockerfile)

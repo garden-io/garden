@@ -19,7 +19,7 @@ export type TerraformProviderConfig = GenericProviderConfig &
     initRoot?: string
   }
 
-export interface TerraformProvider extends Provider<TerraformProviderConfig> {}
+export type TerraformProvider = Provider<TerraformProviderConfig>
 
 export const terraformProviderConfigSchema = providerConfigBaseSchema()
   .keys({

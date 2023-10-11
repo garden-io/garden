@@ -153,7 +153,7 @@ export const kubernetesRunOutputsSchema = () => containerRunOutputSchema()
 export type KubernetesRunActionConfig = KubernetesPodRunActionConfig | KubernetesExecRunActionConfig
 export type KubernetesRunAction = KubernetesPodRunAction | KubernetesExecRunAction
 
-export interface KubernetesTestOutputs extends KubernetesRunOutputs {}
+export type KubernetesTestOutputs = KubernetesRunOutputs
 
 export const kubernetesTestOutputsSchema = () => kubernetesRunOutputsSchema()
 

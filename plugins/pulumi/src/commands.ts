@@ -208,7 +208,7 @@ interface PulumiPluginCommandTaskParams {
   pulumiParams: PulumiBaseParams
 }
 
-export interface PulumiCommandResult extends ValidResultType {}
+export type PulumiCommandResult = ValidResultType
 
 @Profile()
 class PulumiPluginCommandTask extends PluginActionTask<PulumiDeploy, PulumiCommandResult> {

@@ -40,6 +40,9 @@ import { ResolvedConfigGraph } from "../graph/config-graph"
 import { ActionVersion } from "../vcs/vcs"
 import { Memoize } from "typescript-memoize"
 import { DEFAULT_BUILD_TIMEOUT_SEC } from "../constants"
+import { createBuildTask } from "../tasks/build"
+import { BaseActionTaskParams, ExecuteTask } from "../tasks/base"
+import { ResolveActionTask } from "../tasks/resolve-action"
 
 export interface BuildCopyFrom {
   build: string
@@ -151,7 +154,7 @@ export class BuildAction<
   StaticOutputs extends {} = any,
   RuntimeOutputs extends {} = any,
 > extends BaseAction<C, StaticOutputs, RuntimeOutputs> {
-  override kind: "Build" = "Build"
+  override kind = "Build" as const
   // TODO:
   // `_staticOutputs` is abstract since the base class uses it but doesn't define it in the constructor.
   // In this case this would also be the case, but the class isn't actually abstract so it needs it to be defined.
@@ -186,6 +189,14 @@ export class BuildAction<
     } else {
       return join(this.baseBuildDirectory, this.name)
     }
+  }
+
+  override getExecuteTask(baseParams: Omit<BaseActionTaskParams, "action">): ExecuteTask {
+    return createBuildTask({ ...baseParams, action: this })
+  }
+
+  getResolveTask(baseParams: Omit<BaseActionTaskParams, "action">): ResolveActionTask<typeof this> {
+    return new ResolveActionTask({ ...baseParams, action: this })
   }
 }
 

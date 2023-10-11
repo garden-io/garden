@@ -52,7 +52,7 @@ interface PrepareTemplatesParams {
   log: Log
 }
 
-interface GetChartResourcesParams extends PrepareTemplatesParams {}
+type GetChartResourcesParams = PrepareTemplatesParams
 
 /**
  * Render the template in the specified Helm module (locally), and return all the resources in the chart.

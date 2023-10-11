@@ -401,11 +401,10 @@ export class K8sLogFollower<T extends LogEntryBase> {
           }, idleTimeout)
         }
 
-        const _self = this
         // The ts-stream library that we use for service logs entries doesn't properly implement
         // a writeable stream which the K8s API expects so we wrap it here.
         const writableStream = new Writable({
-          write(chunk: Buffer | undefined, _encoding: BufferEncoding, next) {
+          write: (chunk: Buffer | undefined, _encoding: BufferEncoding, next) => {
             // clear the timeout, as we have activity on the socket
             clearTimeout(connection.timeout)
             connection.timeout = makeTimeout()
@@ -423,14 +422,14 @@ export class K8sLogFollower<T extends LogEntryBase> {
 
             // If we can't parse the timestamp, we encountered a kubernetes error
             if (!timestamp) {
-              _self.log.debug(
+              this.log.debug(
                 `Encountered a log message without timestamp. This is probably an error message from the Kubernetes API: ${line}`
               )
-            } else if (_self.isDuplicate({ connection, timestamp, msg })) {
-              _self.log.silly(`Dropping duplicate log message: ${line}`)
+            } else if (this.isDuplicate({ connection, timestamp, msg })) {
+              this.log.silly(`Dropping duplicate log message: ${line}`)
             } else {
-              _self.updateLastLogEntries({ connection, timestamp, msg })
-              _self.write({
+              this.updateLastLogEntries({ connection, timestamp, msg })
+              this.write({
                 msg,
                 containerName,
                 timestamp,
@@ -487,7 +486,7 @@ export class K8sLogFollower<T extends LogEntryBase> {
 
     // Get timestamp of last seen message from previous connection attempt, and only fetch logs since this time.
     // This is because we've already streamed all the previous logs. This helps avoid unnecessary data transfer.
-    let sinceTime = connection.lastLogEntries?.timestamp.toISOString()
+    const sinceTime = connection.lastLogEntries?.timestamp.toISOString()
 
     // If this is a retry attempt and the sinceOnRetry parameter is set, we don't want to fetch old logs
     if (sinceTime && sinceOnRetry) {

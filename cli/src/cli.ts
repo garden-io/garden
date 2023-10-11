@@ -17,12 +17,48 @@ import { InternalError } from "@garden-io/core/build/src/exceptions"
 
 // These plugins are always registered
 export const getBundledPlugins = (): GardenPluginReference[] => [
-  { name: "conftest", callback: () => require("@garden-io/garden-conftest").gardenPlugin() },
-  { name: "conftest-container", callback: () => require("@garden-io/garden-conftest-container").gardenPlugin() },
-  { name: "conftest-kubernetes", callback: () => require("@garden-io/garden-conftest-kubernetes").gardenPlugin() },
-  { name: "jib", callback: () => require("@garden-io/garden-jib").gardenPlugin() },
-  { name: "terraform", callback: () => require("@garden-io/garden-terraform").gardenPlugin() },
-  { name: "pulumi", callback: () => require("@garden-io/garden-pulumi").gardenPlugin() },
+  {
+    name: "conftest",
+    callback: async () => {
+      const plugin = await import("@garden-io/garden-conftest")
+      return plugin.gardenPlugin()
+    },
+  },
+  {
+    name: "conftest-container",
+    callback: async () => {
+      const plugin = await import("@garden-io/garden-conftest-container")
+      return plugin.gardenPlugin()
+    },
+  },
+  {
+    name: "conftest-kubernetes",
+    callback: async () => {
+      const plugin = await import("@garden-io/garden-conftest-kubernetes")
+      return plugin.gardenPlugin()
+    },
+  },
+  {
+    name: "jib",
+    callback: async () => {
+      const plugin = await import("@garden-io/garden-jib")
+      return plugin.gardenPlugin()
+    },
+  },
+  {
+    name: "terraform",
+    callback: async () => {
+      const plugin = await import("@garden-io/garden-terraform")
+      return plugin.gardenPlugin()
+    },
+  },
+  {
+    name: "pulumi",
+    callback: async () => {
+      const plugin = await import("@garden-io/garden-pulumi")
+      return plugin.gardenPlugin()
+    },
+  },
 ]
 
 export async function runCli({
@@ -41,13 +77,13 @@ export async function runCli({
   try {
     // initialize the tracing to capture the full cli execution
     result = await withContextFromEnv(() =>
-      wrapActiveSpan("garden", async (span) => {
+      wrapActiveSpan("garden", async () => {
         if (!cli) {
           cli = new GardenCli({ plugins: getBundledPlugins(), initLogger })
         }
 
         // Note: We slice off the binary/script name from argv.
-        const results = await cli!.run({ args: args || [], exitOnError })
+        const results = await cli.run({ args: args || [], exitOnError })
 
         return results
       })

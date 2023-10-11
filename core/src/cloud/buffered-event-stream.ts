@@ -387,7 +387,7 @@ export class BufferedEventStream {
     const batch: B[] = []
     let batchBytes = 0
     while (batchBytes < this.maxBatchBytes && buffered.length > 0) {
-      let nextRecordBytes = Buffer.from(stringify(buffered[0])).length
+      const nextRecordBytes = Buffer.from(stringify(buffered[0])).length
       if (nextRecordBytes > this.maxBatchBytes) {
         this.log.error(`Event or log entry too large to flush (${nextRecordBytes} bytes), dropping it.`)
         // Note: This must be a silly log to avoid recursion

@@ -38,7 +38,7 @@ describe.skip("Kubernetes Container Build Extension", () => {
     }
   })
 
-  const init = async (environmentName: string, remoteContainerAuth: boolean = false) => {
+  const init = async (environmentName: string, remoteContainerAuth = false) => {
     currentEnv = environmentName
     ;({ garden, cleanup } = await getContainerTestGarden(environmentName, { remoteContainerAuth }))
     log = createActionLog({ log: garden.log, actionName: "", actionKind: "" })

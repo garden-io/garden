@@ -467,7 +467,7 @@ export async function findProjectConfig({
   allowInvalid?: boolean
   scan?: boolean
 }): Promise<ProjectConfig | undefined> {
-  let sepCount = path.split(sep).length - 1
+  const sepCount = path.split(sep).length - 1
 
   let allProjectSpecs: GardenResource[] = []
 
@@ -477,7 +477,7 @@ export async function findProjectConfig({
     for (const configFile of configFiles) {
       const resources = await loadConfigResources(log, path, join(path, configFile), allowInvalid)
 
-      let projectSpecs = resources.filter((s) => s.kind === "Project")
+      const projectSpecs = resources.filter((s) => s.kind === "Project")
 
       if (projectSpecs.length > 1 && !allowInvalid) {
         throw new ConfigurationError({

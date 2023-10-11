@@ -47,7 +47,7 @@ import { DeepPrimitiveMap } from "../../config/common"
 import { DEFAULT_DEPLOY_TIMEOUT_SEC } from "../../constants"
 import { ExecBuildConfig } from "../exec/build"
 
-export interface ContainerProviderConfig extends GenericProviderConfig {}
+export type ContainerProviderConfig = GenericProviderConfig
 
 export type ContainerProvider = Provider<ContainerProviderConfig>
 
@@ -202,7 +202,7 @@ function convertContainerModuleRuntimeActions(
   const volumeModulesReferenced: string[] = []
   function configureActionVolumes(action: ContainerRuntimeActionConfig, volumeSpec: ContainerModuleVolumeSpec[]) {
     volumeSpec.forEach((v) => {
-      const referencedPvcAction = v.module ? { kind: <"Deploy">"Deploy", name: v.module } : undefined
+      const referencedPvcAction = v.module ? { kind: <const>"Deploy", name: v.module } : undefined
       action.spec.volumes.push({
         ...omit(v, "module"),
         action: referencedPvcAction,
@@ -336,7 +336,7 @@ export async function convertContainerModule(params: ConvertModuleParams<Contain
   return {
     group: {
       // This is an annoying TypeScript limitation :P
-      kind: <"Group">"Group",
+      kind: <const>"Group",
       name: module.name,
       path: module.path,
       actions,

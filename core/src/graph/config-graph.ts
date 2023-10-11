@@ -210,7 +210,7 @@ export abstract class BaseConfigGraph<
   ): PickTypeByKind<K, B, D, R, T>[] {
     const foundNames: string[] = []
 
-    let found = Object.values(this.actions[kind]).filter((a) => {
+    const found = Object.values(this.actions[kind]).filter((a) => {
       if (a.isDisabled() && !includeDisabled) {
         return false
       }
@@ -422,7 +422,7 @@ export abstract class BaseConfigGraph<
   render(): RenderedActionGraph {
     const nodes = Object.values(this.dependencyGraph)
     let edges: ConfigGraphEdge[] = []
-    let simpleEdges: string[][] = []
+    const simpleEdges: string[][] = []
     for (const dependant of nodes) {
       for (const dependency of dependant.dependencies) {
         edges.push({ dependant, dependency })

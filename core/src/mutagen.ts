@@ -142,7 +142,7 @@ interface MutagenMonitorParams {
   dataDir: string
 }
 
-let monitorLock = new AsyncLock()
+const monitorLock = new AsyncLock()
 let _monitor: _MutagenMonitor
 
 export function getMutagenMonitor(params: MutagenMonitorParams) {
@@ -477,7 +477,7 @@ export class Mutagen {
       }
 
       const active = await this.getActiveSyncSessions()
-      let existing = active.find((s) => s.name === key)
+      const existing = active.find((s) => s.name === key)
 
       if (existing) {
         // TODO: compare existing sync instead of just re-creating naively (need help from Mutagen side)

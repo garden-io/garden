@@ -199,8 +199,8 @@ export type WatchTestAction = (logEntries: JsonLogEntry[]) => Promise<void>
 export class GardenWatch {
   public logEntries: JsonLogEntry[]
   public checkIntervalMs: number
-  public currentTestStepIdx: number = 0
-  public running: boolean = false
+  public currentTestStepIdx = 0
+  public running = false
   public testSteps: WatchTestStep[] = []
 
   public proc?: ChildProcess

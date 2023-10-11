@@ -19,7 +19,7 @@ const versionRegex = /rsync\s+version\s+v?(\d+.\d+.\d+)/
 export class BuildStagingRsync extends BuildStaging {
   private rsyncPath = "rsync"
 
-  private validated: boolean = false
+  private validated = false
 
   setRsyncPath(rsyncPath: string) {
     this.rsyncPath = rsyncPath

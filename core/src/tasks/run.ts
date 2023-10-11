@@ -9,12 +9,13 @@
 import {
   ActionTaskProcessParams,
   ActionTaskStatusParams,
+  BaseActionTaskParams,
   ExecuteActionTask,
   emitGetStatusEvents,
   emitProcessingEvents,
 } from "./base"
 import { Profile } from "../util/profiling"
-import { RunAction } from "../actions/run"
+import type { RunAction } from "../actions/run"
 import { GetRunResult } from "../plugin/handlers/Run/get-result"
 import { resolvedActionToExecuted } from "../actions/helpers"
 import { OtelTraced } from "../util/open-telemetry/decorators"
@@ -138,4 +139,8 @@ export class RunTask extends ExecuteActionTask<RunAction, GetRunResult> {
 
     return { ...status, version: action.versionString(), executedAction: resolvedActionToExecuted(action, { status }) }
   }
+}
+
+export function createRunTask(params: BaseActionTaskParams<RunAction>) {
+  return new RunTask(params)
 }

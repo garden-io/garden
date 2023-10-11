@@ -16,7 +16,7 @@ import { LogLevel } from "../../../../src/logger/logger"
 import { expect } from "chai"
 import chalk from "chalk"
 import { getLogMessages } from "../../../../src/util/testing"
-const _loggerUtil = require("../../../../src/logger/util")
+import _loggerUtil = require("../../../../src/logger/util")
 
 describe("PluginsCommand", () => {
   let tmpDir: TempDirectory

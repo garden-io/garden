@@ -315,7 +315,7 @@ export class PluginTool extends CliWrapper {
     hash.setEncoding("hex")
     response.pipe(hash)
 
-    return new Promise<void>((resolve, reject) => {
+    return new Promise<void>(async (resolve, reject) => {
       response.on("error", (err) => {
         log.error(`Failed fetching ${this.buildSpec.url}`)
         reject(err)
@@ -356,7 +356,7 @@ export class PluginTool extends CliWrapper {
           extractor.on("end", () => resolve())
         } else if (format === "zip") {
           // Note: lazy-loading for startup performance
-          const { Extract } = require("unzipper")
+          const { Extract } = await import("unzipper")
           extractor = Extract({ path: tmpPath })
           extractor.on("close", () => resolve())
         } else {

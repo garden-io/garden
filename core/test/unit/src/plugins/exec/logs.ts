@@ -34,7 +34,7 @@ function getStream(): [Stream<LocalServiceLogEntry>, any[]] {
   return [stream, logBuffer]
 }
 
-async function writeLogFile(path: string, entries: LocalServiceLogEntry[], append: boolean = false) {
+async function writeLogFile(path: string, entries: LocalServiceLogEntry[], append = false) {
   const data = entries.map((e) => JSON.stringify(e)).join("\n") + "\n" // File ends on a new line
   if (append) {
     return appendFile(path, data)

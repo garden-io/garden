@@ -20,6 +20,7 @@ import { createWriteStream } from "fs"
  * @returns {Promise}
  */
 export async function zipFolder(src: string, dest: string, log: Log) {
+  const { default: archiver } = await import("archiver")
   return new Promise<void>((resolve, reject) => {
     const output = createWriteStream(dest)
     const archiveOpts = {
@@ -29,7 +30,6 @@ export async function zipFolder(src: string, dest: string, log: Log) {
     }
 
     // Note: lazy-loading for startup performance
-    const archiver = require("archiver")
     const archive = archiver("zip", archiveOpts)
 
     output.on("close", () => {

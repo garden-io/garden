@@ -17,9 +17,11 @@ import {
 } from "./base"
 import { Action, BaseActionConfig } from "./types"
 import { DEFAULT_DEPLOY_TIMEOUT_SEC } from "../constants"
+import { createDeployTask } from "../tasks/deploy"
+import { BaseActionTaskParams, ExecuteTask } from "../tasks/base"
+import { ResolveActionTask } from "../tasks/resolve-action"
 
-export interface DeployActionConfig<N extends string = any, S extends object = any>
-  extends BaseRuntimeActionConfig<"Deploy", N, S> {}
+export type DeployActionConfig<N extends string = any, S extends object = any> = BaseRuntimeActionConfig<"Deploy", N, S>
 
 export const deployActionConfigSchema = memoize(() =>
   baseRuntimeActionConfigSchema().keys({
@@ -38,8 +40,16 @@ export class DeployAction<
   StaticOutputs extends {} = any,
   RuntimeOutputs extends {} = any,
 > extends RuntimeAction<C, StaticOutputs, RuntimeOutputs> {
-  override kind: "Deploy" = "Deploy"
+  override kind = "Deploy" as const
   override _staticOutputs: StaticOutputs = {} as StaticOutputs
+
+  getExecuteTask(baseParams: Omit<BaseActionTaskParams, "action">): ExecuteTask {
+    return createDeployTask({ ...baseParams, action: this })
+  }
+
+  getResolveTask(baseParams: Omit<BaseActionTaskParams, "action">): ResolveActionTask<typeof this> {
+    return new ResolveActionTask({ ...baseParams, action: this })
+  }
 }
 
 export class ResolvedDeployAction<
@@ -47,7 +57,15 @@ export class ResolvedDeployAction<
   StaticOutputs extends {} = any,
   RuntimeOutputs extends {} = any,
 > extends ResolvedRuntimeAction<C, StaticOutputs, RuntimeOutputs> {
-  override kind: "Deploy" = "Deploy"
+  override kind = "Deploy" as const
+
+  getExecuteTask(baseParams: Omit<BaseActionTaskParams, "action">): ExecuteTask {
+    return createDeployTask({ ...baseParams, action: this })
+  }
+
+  getResolveTask(baseParams: Omit<BaseActionTaskParams, "action">): ResolveActionTask<typeof this> {
+    return new ResolveActionTask({ ...baseParams, action: this })
+  }
 }
 
 export class ExecutedDeployAction<
@@ -55,7 +73,15 @@ export class ExecutedDeployAction<
   StaticOutputs extends {} = any,
   RuntimeOutputs extends {} = any,
 > extends ExecutedRuntimeAction<C, StaticOutputs, RuntimeOutputs> {
-  override kind: "Deploy" = "Deploy"
+  override kind = "Deploy" as const
+
+  getExecuteTask(baseParams: Omit<BaseActionTaskParams, "action">): ExecuteTask {
+    return createDeployTask({ ...baseParams, action: this })
+  }
+
+  getResolveTask(baseParams: Omit<BaseActionTaskParams, "action">): ResolveActionTask<typeof this> {
+    return new ResolveActionTask({ ...baseParams, action: this })
+  }
 }
 
 export function isDeployAction(action: Action): action is DeployAction {

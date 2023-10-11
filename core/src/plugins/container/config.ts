@@ -920,7 +920,7 @@ export const containerTestActionSchema = createSchema({
 
 // RUN //
 
-export interface ContainerRunOutputs extends ContainerTestOutputs {}
+export type ContainerRunOutputs = ContainerTestOutputs
 
 export const containerRunOutputSchema = () => containerTestOutputSchema()
 

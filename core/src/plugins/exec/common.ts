@@ -105,7 +105,7 @@ export async function copyArtifacts(
       log.verbose(`→ Copying artifacts ${spec.source}`)
 
       // Note: lazy-loading for startup performance
-      const cpy = require("cpy")
+      const { default: cpy } = await import("cpy")
 
       await cpy(spec.source, join(artifactsPath, spec.target || "."), { cwd: from })
     })

@@ -588,8 +588,9 @@ export const pickEnvironment = profileAsync(async function _pickEnvironment({
   commandInfo: CommandInfo
 }) {
   const { environments, name: projectName, path: projectRoot } = projectConfig
-
-  let { environment, namespace } = parseEnvironment(envString)
+  const parsed = parseEnvironment(envString)
+  const { environment } = parsed
+  let { namespace } = parsed
 
   let environmentConfig: EnvironmentConfig | undefined
   let index = -1

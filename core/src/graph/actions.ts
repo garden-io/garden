@@ -44,7 +44,6 @@ import type { Log } from "../logger/log-entry"
 import type { ActionTypeDefinition } from "../plugin/action-types"
 import { ActionDefinitionMap, getActionTypeBases } from "../plugins"
 import type { ActionRouter } from "../router/router"
-import { getExecuteTaskForAction } from "../tasks/helpers"
 import { ResolveActionTask } from "../tasks/resolve-action"
 import {
   getActionTemplateReferences,
@@ -456,7 +455,7 @@ export async function executeAction<T extends Action>({
   log: Log
   statusOnly?: boolean
 }): Promise<Executed<T>> {
-  const task = getExecuteTaskForAction(action, {
+  const task = action.getExecuteTask({
     garden,
     graph,
     log,

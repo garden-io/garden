@@ -99,7 +99,6 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
   async solve(params: SolveParams): Promise<SolveResult> {
     const { statusOnly, tasks, throwOnError, log } = params
 
-    const _this = this
     const batchId = uuidv4()
     const results = new GraphResults(tasks)
     let aborted = false
@@ -115,7 +114,7 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
       const output = await new Promise<SolveResult>((resolve, reject) => {
         const requests = keyBy(
           tasks.map((t) => {
-            return _this.requestTask({ solver: _this, task: t, batchId, statusOnly: !!statusOnly, completeHandler })
+            return this.requestTask({ solver: this, task: t, batchId, statusOnly: !!statusOnly, completeHandler })
           }),
           (r) => r.task.getKey()
         )
@@ -169,7 +168,7 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
             // TODO-0.13.1: better aggregate error output
             let msg = `Failed to complete ${failed.length}/${tasks.length} tasks:`
 
-            let wrappedErrors: GardenError[] = []
+            const wrappedErrors: GardenError[] = []
 
             for (const [_, r] of failed) {
               if (!r) {
@@ -197,24 +196,24 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
           resolve({ error, results })
         }
 
-        function cleanup({ error }: { error: GraphResultError | null }) {
+        const cleanup = ({ error }: { error: GraphResultError | null }) => {
           // TODO: abort remaining pending tasks?
           aborted = true
-          delete _this.requestedTasks[batchId]
-          _this.off("abort", cleanup)
+          delete this.requestedTasks[batchId]
+          this.off("abort", cleanup)
           if (error) {
             reject(error)
           }
         }
 
-        _this.on("abort", cleanup)
+        this.on("abort", cleanup)
 
-        _this.start()
+        this.start()
       }).finally(() => {
         // Clean up
         // TODO-0.13.1: needs revising for concurrency, shortcutting just for now
-        _this.nodes = {}
-        _this.pendingNodes = {}
+        this.nodes = {}
+        this.pendingNodes = {}
       })
 
       return output

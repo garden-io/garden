@@ -16,7 +16,7 @@ describe("GetWorkflowsCommand", () => {
   const projectRoot = getDataDir("test-project-a")
   const defaultWorkflowConf = {
     apiVersion: GardenApiVersion.v0,
-    kind: "Workflow" as "Workflow",
+    kind: "Workflow" as const,
     envVars: {},
     resources: defaultWorkflowResources,
     internal: {
