@@ -522,7 +522,7 @@ Example: `["/bin/sh"]`
       To learn more about how `entrypoint` and `cmd` work together in Docker, please check out the following pages:
 
       https://docs.docker.com/engine/reference/run/#cmd-default-command-or-options
-      
+
       https://docs.docker.com/engine/reference/builder/#cmd
     
 

@@ -39,7 +39,7 @@ spec:
 
 apiVersion: garden.io/v1
 kind: Project
-name: vote
+name: docker-compose
 environments:
 - name: local
   variables:

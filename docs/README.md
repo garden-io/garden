@@ -84,12 +84,21 @@
 * [Plugin Configuration](./pulumi-plugin/configure-provider.md)
 * [Action Configuration](./pulumi-plugin/action-configuration.md)
 
-## 🌹 Other Plugins
+## 🌹 Docker Compose Plugin
+
+* [About](./docker-compose-plugin/about.md)
+
+## 🌼 Other Plugins
 
 * [Container](./other-plugins/container.md)
 * [Exec (local scripts)](./other-plugins/exec.md)
 
-## 🌼 Guides
+## 🌷 Advanced
+
+* [Using Remote Sources](./advanced/using-remote-sources.md)
+* [Custom Commands](./advanced/custom-commands.md)
+
+## 🪷 Guides
 
 * [Migrating to Bonsai](./guides/migrating-to-bonsai.md)
 * [Connecting a local application to a Kubernetes cluster (Local Mode)](./guides/running-service-in-local-mode.md)
@@ -98,20 +107,15 @@
 * [Code Synchronization](./guides/code-synchronization.md)
 * [Using Garden in CI](./guides/using-garden-in-ci.md)
 
-## 🌷 Advanced
-
-* [Using Remote Sources](./advanced/using-remote-sources.md)
-* [Custom Commands](./advanced/custom-commands.md)
-
-## 🪷 Reference
+## 🎋 Reference
 
 * [Providers](./reference/providers/README.md)
   * [`conftest-container`](./reference/providers/conftest-container.md)
   * [`conftest-kubernetes`](./reference/providers/conftest-kubernetes.md)
   * [`conftest`](./reference/providers/conftest.md)
   * [`container`](./reference/providers/container.md)
-  * [`ephemeral-kubernetes`](./reference/providers/ephemeral-kubernetes.md)
   * [`docker-compose`](./reference/providers/docker-compose.md)
+  * [`ephemeral-kubernetes`](./reference/providers/ephemeral-kubernetes.md)
   * [`exec`](./reference/providers/exec.md)
   * [`hadolint`](./reference/providers/hadolint.md)
   * [`jib`](./reference/providers/jib.md)
@@ -191,19 +195,19 @@
   * [`templated`](./reference/module-types/templated.md)
   * [`terraform`](./reference/module-types/terraform.md)
 
-## 🎋 Garden Seeds
+## 🌸 Garden Seeds
 
 * [About](./garden-seeds/about.md)
 * [Languages](./garden-seeds/languages/README.md)
   * [Go 🌸](./garden-seeds/languages/go.md)
 
-## 🌸 Misc
+## 🌳 Misc
 
 * [FAQ](./misc/faq.md)
 * [Troubleshooting](./misc/troubleshooting.md)
 * [Telemetry](./misc/telemetry.md)
 
-## 🌳 Contributing to Garden
+## 🌻 Contributing to Garden
 
 * [Contributor Covenant Code of Conduct](./contributing/CODE_OF_CONDUCT.md)
 * [Contributing to the Docs](./contributing/contributing-docs.md)
