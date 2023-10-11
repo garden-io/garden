@@ -21,7 +21,7 @@ import { BuildTask } from "../../../../../../../src/tasks/build"
 import { k8sContainerBuildExtension } from "../../../../../../../src/plugins/kubernetes/container/extensions"
 import { deleteGoogleArtifactImage, listGoogleArtifactImageTags } from "../../../../../helpers"
 
-describe.skip("Kubernetes Container Build Extension", () => {
+describe("Kubernetes Container Build Extension", () => {
   const builder = k8sContainerBuildExtension()
 
   let garden: Garden

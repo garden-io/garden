@@ -126,80 +126,72 @@ describe("util", () => {
     })
 
     it("should return workload pods", async () => {
-      try {
-        const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-        const provider = (await garden.resolveProvider(garden.log, "local-kubernetes")) as Provider<KubernetesConfig>
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+      const provider = (await garden.resolveProvider(garden.log, "local-kubernetes")) as Provider<KubernetesConfig>
 
-        const rawAction = graph.getDeploy("simple-service")
-        const action = await garden.resolveAction({
-          action: rawAction,
-          log: garden.log,
-          graph,
-        })
+      const rawAction = graph.getDeploy("simple-service")
+      const action = await garden.resolveAction({
+        action: rawAction,
+        log: garden.log,
+        graph,
+      })
 
-        const deployTask = new DeployTask({
-          force: false,
-          forceBuild: false,
-          garden,
-          graph,
-          log: garden.log,
-          action,
-        })
+      const deployTask = new DeployTask({
+        force: false,
+        forceBuild: false,
+        garden,
+        graph,
+        log: garden.log,
+        action,
+      })
 
-        const resource = await createWorkloadManifest({
-          api,
-          provider,
-          action,
-          ctx,
-          imageId: action.getSpec().image,
-          namespace: provider.config.namespace!.name!,
-          log: createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind }),
-          production: false,
-        })
-        await garden.processTasks({ tasks: [deployTask], throwOnError: true })
+      const resource = await createWorkloadManifest({
+        api,
+        provider,
+        action,
+        ctx,
+        imageId: action.getSpec().image,
+        namespace: provider.config.namespace!.name!,
+        log: createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind }),
+        production: false,
+      })
+      await garden.processTasks({ tasks: [deployTask], throwOnError: true })
 
-        const pods = await getWorkloadPods(api, "container", resource)
-        const services = flatten(pods.map((pod) => pod.spec.containers.map((container) => container.name)))
-        expect(services).to.eql(["simple-service"])
-      } finally {
-        garden.close()
-      }
+      const pods = await getWorkloadPods(api, "container", resource)
+      const services = flatten(pods.map((pod) => pod.spec.containers.map((container) => container.name)))
+      expect(services).to.eql(["simple-service"])
     })
 
     it("should read a Pod from a namespace directly when given a Pod manifest", async () => {
-      try {
-        const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-        const rawAction = graph.getDeploy("simple-service")
-        const action = await garden.resolveAction({
-          action: rawAction,
-          log: garden.log,
-          graph,
-        })
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+      const rawAction = graph.getDeploy("simple-service")
+      const action = await garden.resolveAction({
+        action: rawAction,
+        log: garden.log,
+        graph,
+      })
 
-        const deployTask = new DeployTask({
-          force: false,
-          forceBuild: false,
-          garden,
-          graph,
-          log: garden.log,
-          action,
-        })
+      const deployTask = new DeployTask({
+        force: false,
+        forceBuild: false,
+        garden,
+        graph,
+        log: garden.log,
+        action,
+      })
 
-        const provider = (await garden.resolveProvider(garden.log, "local-kubernetes")) as Provider<KubernetesConfig>
-        await garden.processTasks({ tasks: [deployTask], throwOnError: true })
+      const provider = (await garden.resolveProvider(garden.log, "local-kubernetes")) as Provider<KubernetesConfig>
+      await garden.processTasks({ tasks: [deployTask], throwOnError: true })
 
-        const namespace = await getAppNamespace(ctx, log, provider)
-        const allPods = await api.core.listNamespacedPod(namespace)
+      const namespace = await getAppNamespace(ctx, log, provider)
+      const allPods = await api.core.listNamespacedPod(namespace)
 
-        const pod = allPods.items[0]
+      const pod = allPods.items[0]
 
-        const pods = await getWorkloadPods(api, namespace, pod)
-        expect(pods.length).to.equal(1)
-        expect(pods[0].kind).to.equal("Pod")
-        expect(pods[0].metadata.name).to.equal(pod.metadata.name)
-      } finally {
-        garden.close()
-      }
+      const pods = await getWorkloadPods(api, namespace, pod)
+      expect(pods.length).to.equal(1)
+      expect(pods[0].kind).to.equal("Pod")
+      expect(pods[0].metadata.name).to.equal(pod.metadata.name)
     })
   })
 

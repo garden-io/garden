@@ -29,7 +29,7 @@ import { createActionLog } from "../../../../../../../src/logger/log-entry"
 import { resolveAction } from "../../../../../../../src/graph/actions"
 import { NamespaceStatus } from "../../../../../../../src/types/namespace"
 
-describe.skip("ensureBuildkit", () => {
+describe("ensureBuildkit", () => {
   let garden: Garden
   let cleanup: (() => void) | undefined
   let provider: KubernetesProvider
@@ -98,8 +98,6 @@ describe.skip("ensureBuildkit", () => {
       ])
     })
 
-    // TODO: For some reason (seemingly Mutagen-related), the `syncToBuildSync` call inside `buildkitBuildHandler`
-    // hangs. We'd need to investigate & fix that to enable this test case.
     it.skip("builds a Docker image and emits a namespace status event", async () => {
       const log = garden.log
       const graph = await garden.getConfigGraph({ log, emit: false })
