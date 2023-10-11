@@ -44,6 +44,10 @@ const selfUpdateOpts = {
     choices: ["macos", "linux", "windows"],
     help: `Override the platform, instead of detecting it automatically.`,
   }),
+  "architecture": new ChoicesParameter({
+    choices: ["arm64", "amd64"],
+    help: `Override the architecture, instead of detecting it automatically.`,
+  }),
   "major": new BooleanParameter({
     defaultValue: false,
     // TODO Core 1.0 major release: add these notes:
@@ -306,7 +310,7 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
         platform = getPlatform() === "darwin" ? "macos" : getPlatform()
       }
 
-      let architecture = getArchitecture()
+      let architecture: Architecture = opts.architecture ? (opts.architecture as Architecture) : getArchitecture()
       const isArmInRosetta = isDarwinARM()
 
       // When running under Rosetta,
@@ -315,13 +319,15 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
       // so we override the architecture here
       // and then check if the version is supported or not
       // potentially reverting it back to amd64 again
-      if (isArmInRosetta) {
+      if (!opts.architecture && isArmInRosetta) {
         architecture = "arm64"
       }
 
       if (
+        !opts.architecture &&
         architecture === "arm64" &&
         desiredVersion !== "edge-bonsai" &&
+        semver.valid(desiredVersion) !== null &&
         semver.lt(desiredVersion, ARM64_INTRODUCTION_VERSION)
       ) {
         if (platform === "macos") {
