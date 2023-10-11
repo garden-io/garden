@@ -6,9 +6,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { PluginContext, PluginToolSpec } from "@garden-io/sdk/types"
+import { sdk } from "@garden-io/sdk"
 
-export const dockerComposeSpec: PluginToolSpec = {
+export const dockerComposeSpec: sdk.types.PluginToolSpec = {
   name: "docker-compose",
   description: "The Docker Compose CLI.",
   type: "binary",
@@ -42,7 +42,7 @@ export const dockerComposeSpec: PluginToolSpec = {
 }
 
 // TODO: Deduplicate. This was copied from core/src/plugins/container/container.ts.
-export const dockerSpec: PluginToolSpec = {
+export const dockerSpec: sdk.types.PluginToolSpec = {
   name: "docker",
   version: "20.10.9",
   description: "The official Docker CLI.",
@@ -92,10 +92,10 @@ export const dockerSpec: PluginToolSpec = {
   ],
 }
 
-export function compose(ctx: PluginContext) {
+export function compose(ctx: sdk.types.PluginContext) {
   return ctx.tools["docker-compose.docker-compose"]
 }
 
-export function docker(ctx: PluginContext) {
+export function docker(ctx: sdk.types.PluginContext) {
   return ctx.tools["docker-compose.docker"]
 }

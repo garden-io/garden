@@ -9,7 +9,6 @@
 import { ResolvedRunAction, RunActionConfig } from "@garden-io/core/build/src/actions/run"
 import { ResolvedTestAction, TestActionConfig } from "@garden-io/core/src/actions/test"
 import { sdk } from "@garden-io/sdk"
-import { dedent, deline } from "@garden-io/sdk/util/string"
 
 const s = sdk.schema
 
@@ -41,7 +40,7 @@ export const dockerComposeDeploySchema = s.object({
   envFiles: s.array(s.string()).optional().describe("Paths to specific environment files instead of the default."),
   files: s.array(s.string()).optional().describe("List of paths to specific compose files instead of the default."),
   profiles: s.array(s.string()).optional().describe("Specify profiles to enable."),
-  projectName: s.string().optional().describe(deline`
+  projectName: s.string().optional().describe(sdk.util.deline`
     The Compose project name. Defaults to the name of the Docker Compose project that the action config is nested inside.
   `),
 })
@@ -102,7 +101,7 @@ export const dockerComposeExecSchema = commonRunKeys.extend({
   command: s
     .array(s.string())
     .describe(
-      dedent`
+      sdk.util.dedent`
       The command to run inside the container. Note that there's no entrypoint on this schema: When we exec into
       a running container, there's no need to override the image's entrypoint.
 
@@ -144,7 +143,7 @@ export const dockerComposeRunSchema = commonRunKeys.extend({
       To learn more about how \`entrypoint\` and \`cmd\` work together in Docker, please check out the following pages:
 
       https://docs.docker.com/engine/reference/run/#cmd-default-command-or-options
-      
+
       https://docs.docker.com/engine/reference/builder/#cmd
     `
     )

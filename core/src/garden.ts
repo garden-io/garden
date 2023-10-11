@@ -1709,10 +1709,12 @@ export class Garden {
     // Call plugin handlers to get plugin-specific suggestions
     const router = await this.getActionRouter()
 
-    await Bluebird.map(providers, async (provider) => {
-      const { commands } = await router.provider.suggestCommands({ log, provider })
-      suggestions.push(...commands.map((c) => ({ ...c, source: c.source || provider.name })))
-    })
+    await Promise.all(
+      providers.map(async (provider) => {
+        const { commands } = await router.provider.suggestCommands({ log, provider })
+        suggestions.push(...commands.map((c) => ({ ...c, source: c.source || provider.name })))
+      })
+    )
 
     return suggestions
   }

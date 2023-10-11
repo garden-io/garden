@@ -15,7 +15,7 @@ import type { TestAction, TestActionConfig } from "../actions/test"
 import { joi, zodObjectToJoi } from "../config/common"
 import { BaseProviderConfig, GenericProviderConfig, Provider, baseProviderConfigSchemaZod } from "../config/provider"
 import { s } from "../config/zod"
-import { GardenError, ValidationError } from "../exceptions"
+import { ConfigurationError, GardenError, ValidationError, toGardenError } from "../exceptions"
 import type {
   ActionKind,
   ActionTypeDefinition,
@@ -40,8 +40,8 @@ import type {
   ProviderActionParams,
   ProviderHandlers,
 } from "./plugin"
-import type { PluginToolSpec } from "./tools"
-import { dedent, splitLast } from "../util/string"
+import type { PluginToolSpec as _PluginToolSpec } from "./tools"
+import { dedent, deline, splitLast } from "../util/string"
 import type { BuildStatus as _BuildStatus } from "./handlers/Build/get-status"
 import chalk from "chalk"
 import type { PluginContext as _PluginContext } from "../plugin-context"
@@ -49,6 +49,11 @@ import type { ServiceIngress as _ServiceIngress } from "../types/service"
 import { joinWithPosix } from "../util/fs"
 import type { Log as _Log } from "../logger/log-entry"
 import { LogLevel } from "../logger/logger"
+import { BuildTask } from "../tasks/build"
+import { DeployTask } from "../tasks/deploy"
+import { TestTask } from "../tasks/test"
+import { RunTask } from "../tasks/run"
+import type { TestGarden as _TestGarden } from "../util/testing"
 
 type ObjectBaseZod = z.ZodObject<{}>
 
@@ -152,7 +157,7 @@ export class GardenSdkPlugin {
     this.spec.dependencies.push(dep)
   }
 
-  addTool(spec: PluginToolSpec) {
+  addTool(spec: _PluginToolSpec) {
     this.spec.tools.push(spec)
   }
 
@@ -413,11 +418,24 @@ export const sdk = {
   createProvider,
   createActionType,
 
+  exceptions: {
+    ConfigurationError,
+    toGardenError,
+  },
+
   util: {
     chalk,
     dedent,
+    deline,
     joinPathWithPosix: joinWithPosix,
     splitLast,
+  },
+
+  testing: {
+    BuildTask,
+    DeployTask,
+    TestTask,
+    RunTask,
   },
 }
 
@@ -426,8 +444,13 @@ export namespace sdk {
     export type BuildStatus = _BuildStatus
     export type Log = _Log
     export type PluginContext<C extends GenericProviderConfig = GenericProviderConfig> = _PluginContext<C>
+    export type PluginToolSpec = _PluginToolSpec
     export type ServiceIngress = _ServiceIngress
 
     export type infer<T extends z.ZodType<any, any, any>> = z.infer<T>
+  }
+
+  export namespace testing {
+    export type TestGarden = _TestGarden
   }
 }

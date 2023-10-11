@@ -7,8 +7,7 @@
  */
 
 import { sdk } from "@garden-io/sdk"
-import { docsBaseUrl } from "@garden-io/sdk/constants"
-import { dedent } from "@garden-io/sdk/util/string"
+import { docsBaseUrl } from "@garden-io/sdk/build/src/constants"
 
 import {
   providerSchema,
@@ -42,17 +41,17 @@ import {
   runToolWithArgs,
   withLockOnNetworkCreation,
 } from "./common"
-import { ActionState, actionReferenceToString } from "@garden-io/core/build/src/actions/types"
+import { ActionState } from "@garden-io/core/build/src/actions/types"
 import { DeployState } from "@garden-io/core/build/src/types/service"
-import { Log, LogLevel, PluginContext } from "@garden-io/sdk/types"
 import { isTruthy } from "@garden-io/core/build/src/util/util"
 import { DeepPrimitiveMap } from "@garden-io/core/build/src/config/common"
+import { actionReferenceToString } from "@garden-io/core/build/src/actions/base"
 
 const s = sdk.schema
 
 export const gardenPlugin = sdk.createGardenPlugin({
   name: "docker-compose",
-  docs: dedent`
+  docs: sdk.util.dedent`
       **EXPERIMENTAL**
 
       This plugin allows you to integrate [Docker Compose](https://docs.docker.com/compose/) projects into your Garden project.
@@ -60,7 +59,7 @@ export const gardenPlugin = sdk.createGardenPlugin({
       It works by parsing the Docker Compose projects, and creating Build and Deploy actions for each [service](https://docs.docker.com/compose/compose-file/05-services/) in the project.
 
       You can then easily add Run and Test actions to complement your Compose project.
-      
+
       This can be very useful e.g. for running tests against a Docker Compose stack in CI (and locally), and to wrap various scripts you use during development (e.g. a Run for seeding a database with test data, or a Run for generating a database migration inside a container that you're developing).
 
       See the [Docker Compose guide](${docsBaseUrl}/docker-compose-plugin/about) for more information on the action types provided by the plugin, and how to use it for developing and testing your Compose project.
@@ -240,7 +239,7 @@ composeProvider.addHandler("augmentGraph", async ({ ctx, log, actions }) => {
 const composeBuild = composeProvider.createActionType({
   kind: "Build",
   name: "docker-compose-service",
-  docs: dedent`
+  docs: sdk.util.dedent`
     Uses \`docker compose build\` to build a service in a Docker Compose project.
   `,
   specSchema: dockerComposeServiceBuildSchema,
@@ -333,7 +332,7 @@ composeDeploy.addHandler("deploy", async ({ ctx, log, action, force }) => {
         cwd,
         args,
         log,
-        streamLogs: { ctx, print: true, logLevel: LogLevel.info },
+        streamLogs: { ctx, print: true, logLevel: sdk.LogLevel.info },
       }),
     {
       log,
@@ -389,7 +388,7 @@ composeDeploy.addHandler("delete", async ({ ctx, log, action }) => {
     args,
     log,
     timeoutSec: action.getConfig().timeout,
-    streamLogs: { ctx, print: true, logLevel: LogLevel.info },
+    streamLogs: { ctx, print: true, logLevel: sdk.LogLevel.info },
   })
 
   return {
@@ -416,7 +415,7 @@ composeDeploy.addHandler("getLogs", async ({ ctx, log, action, since, follow, ta
     cwd: action.basePath(),
     args,
     log,
-    streamLogs: { ctx, print: true, emitEvent: false, logLevel: LogLevel.info },
+    streamLogs: { ctx, print: true, emitEvent: false, logLevel: sdk.LogLevel.info },
   })
 
   return {}
@@ -451,7 +450,7 @@ const makeComposeExecHandler = () => {
       args: ["exec", ...opts, ...args],
       log,
       env: spec.env,
-      streamLogs: { ctx, print: true, logLevel: LogLevel.info },
+      streamLogs: { ctx, print: true, logLevel: sdk.LogLevel.info },
     })
 
     return {
@@ -504,8 +503,8 @@ const makeDockerFreshHandler = () => {
     log,
     action,
   }: {
-    ctx: PluginContext
-    log: Log
+    ctx: sdk.types.PluginContext
+    log: sdk.types.Log
     action: ResolvedDockerRunAction | ResolvedDockerTestAction
   }) => {
     const spec = action.getSpec()
@@ -519,7 +518,7 @@ const makeDockerFreshHandler = () => {
       args,
       log,
       env: spec.env,
-      streamLogs: { ctx, print: true, logLevel: LogLevel.info },
+      streamLogs: { ctx, print: true, logLevel: sdk.LogLevel.info },
     })
 
     return {
@@ -568,8 +567,8 @@ const makeDockerComposeFreshHandler = () => {
     log,
     action,
   }: {
-    ctx: PluginContext
-    log: Log
+    ctx: sdk.types.PluginContext
+    log: sdk.types.Log
     action: ResolvedComposeRunAction | ResolvedComposeTestAction
   }) => {
     const spec = action.getSpec()
@@ -582,7 +581,7 @@ const makeDockerComposeFreshHandler = () => {
       args,
       log,
       env: spec.env,
-      streamLogs: { ctx, print: true, logLevel: LogLevel.info },
+      streamLogs: { ctx, print: true, logLevel: sdk.LogLevel.info },
     })
 
     return {

@@ -2,7 +2,7 @@
   "name": "@garden-io/garden-docker-compose",
   "version": "0.12.51",
   "description": "Docker Compose plugin for Garden",
-  "main": "index.js",
+  "main": "build/src/index.js",
   "dependencies": {
     "@garden-io/core": "*",
     "@garden-io/sdk": "*",
@@ -17,6 +17,7 @@
     "@types/chai": "^4.3.4",
     "@types/fs-extra": "^11.0.1",
     "@types/lodash": "^4.14.191",
+    "@types/mocha": "^10.0.0",
     "@types/node": "^18",
     "chai": "^4.3.7",
     "mocha": "^10.2.0",

@@ -8,18 +8,18 @@
 
 import { join } from "path"
 import { expect } from "chai"
-import { makeTestGarden, TestGarden } from "@garden-io/sdk/testing"
-import { BuildTask, DeployTask, Log, PluginContext, RunTask, TestTask } from "@garden-io/sdk/types"
-import { DockerComposeProvider, gardenPlugin as dockerComposePlugin } from ".."
+import { DockerComposeProvider, gardenPlugin as dockerComposePlugin } from "../src"
 import { ActionRouter } from "@garden-io/core/build/src/router/router"
 import { ResolvedConfigGraph } from "@garden-io/core/src/graph/config-graph"
+import { makeTestGarden } from "@garden-io/core/build/test/helpers"
+import { sdk } from "@garden-io/sdk"
 
 const testRoot = join(__dirname, "test-project")
 
 describe("Docker Compose plugin handlers", () => {
-  let garden: TestGarden
-  let log: Log
-  let ctx: PluginContext
+  let garden: sdk.testing.TestGarden
+  let log: sdk.types.Log
+  let ctx: sdk.types.PluginContext
   let provider: DockerComposeProvider
   let resolvedGraph: ResolvedConfigGraph
   let router: ActionRouter
@@ -40,14 +40,14 @@ describe("Docker Compose plugin handlers", () => {
     it("should create a Build and Deploy action for each service in a Docker Compose project", async () => {
       const buildActions = resolvedGraph.getActionsByKind("Build")
       const deployActions = resolvedGraph.getActionsByKind("Deploy")
-      expect(buildActions.map((a) => a.name).sort()).to.eql(["web-compose"])
+      expect(buildActions.map((a) => a.name).sort()).to.eql(["wesb-compose"])
       expect(deployActions.map((a) => a.name).sort()).to.eql(["redis-compose", "web-compose"])
     })
   })
 
   describe("build", () => {
     it("should build the Docker image for a Compose service", async () => {
-      const buildTask = new BuildTask({
+      const buildTask = new sdk.testing.BuildTask({
         garden,
         log,
         graph: resolvedGraph,
@@ -62,7 +62,7 @@ describe("Docker Compose plugin handlers", () => {
 
   describe("deploy", () => {
     it("should deploy a Compose service to the local Docker daemon", async () => {
-      const deployTask = new DeployTask({
+      const deployTask = new sdk.testing.DeployTask({
         garden,
         log,
         graph: resolvedGraph,
@@ -78,7 +78,7 @@ describe("Docker Compose plugin handlers", () => {
   describe("delete", () => {
     it("should delete a running Compose service from the local Docker daemon", async () => {
       const deploy = resolvedGraph.getDeploy("web-compose")
-      const deployTask = new DeployTask({
+      const deployTask = new sdk.testing.DeployTask({
         garden,
         log,
         graph: resolvedGraph,
@@ -104,7 +104,7 @@ describe("Docker Compose plugin handlers", () => {
     describe("Run", () => {
       it("should execute the specified command in an already-running container", async () => {
         const action = resolvedGraph.getRun("web-exec-echo-env")
-        const runTask = new RunTask({
+        const runTask = new sdk.testing.RunTask({
           garden,
           graph: resolvedGraph,
           action,
@@ -119,7 +119,7 @@ describe("Docker Compose plugin handlers", () => {
 
       it("should return an error if the command failed inside the container", async () => {
         const action = resolvedGraph.getRun("web-exec-bork")
-        const runTask = new RunTask({
+        const runTask = new sdk.testing.RunTask({
           garden,
           graph: resolvedGraph,
           action,
@@ -136,7 +136,7 @@ describe("Docker Compose plugin handlers", () => {
     describe("Test", () => {
       it("should execute the specified command in an already-running container", async () => {
         const action = resolvedGraph.getTest("web-exec-echo")
-        const runTask = new TestTask({
+        const runTask = new sdk.testing.TestTask({
           garden,
           graph: resolvedGraph,
           action,
@@ -155,7 +155,7 @@ describe("Docker Compose plugin handlers", () => {
     describe("Run", () => {
       it("should execute the specified command in a fresh container", async () => {
         const action = resolvedGraph.getRun("web-run-echo-env")
-        const runTask = new RunTask({
+        const runTask = new sdk.testing.RunTask({
           garden,
           graph: resolvedGraph,
           action,
@@ -170,7 +170,7 @@ describe("Docker Compose plugin handlers", () => {
 
       it("should return an error if the command failed inside the container", async () => {
         const action = resolvedGraph.getRun("web-run-bork")
-        const runTask = new RunTask({
+        const runTask = new sdk.testing.RunTask({
           garden,
           graph: resolvedGraph,
           action,
@@ -187,7 +187,7 @@ describe("Docker Compose plugin handlers", () => {
     describe("Test", () => {
       it("should execute the specified command in a fresh container", async () => {
         const action = resolvedGraph.getTest("web-run-echo")
-        const runTask = new TestTask({
+        const runTask = new sdk.testing.TestTask({
           garden,
           graph: resolvedGraph,
           action,
@@ -206,7 +206,7 @@ describe("Docker Compose plugin handlers", () => {
     describe("Run", () => {
       it("should execute the specified command in a fresh container", async () => {
         const action = resolvedGraph.getRun("docker-run-echo")
-        const runTask = new RunTask({
+        const runTask = new sdk.testing.RunTask({
           garden,
           graph: resolvedGraph,
           action,
@@ -221,7 +221,7 @@ describe("Docker Compose plugin handlers", () => {
 
       it("should return an error if the command failed inside the container", async () => {
         const action = resolvedGraph.getRun("docker-run-bork")
-        const runTask = new RunTask({
+        const runTask = new sdk.testing.RunTask({
           garden,
           graph: resolvedGraph,
           action,
@@ -238,7 +238,7 @@ describe("Docker Compose plugin handlers", () => {
     describe("Test", () => {
       it("should execute the specified command in a fresh container", async () => {
         const action = resolvedGraph.getRun("docker-run-echo")
-        const runTask = new RunTask({
+        const runTask = new sdk.testing.RunTask({
           garden,
           graph: resolvedGraph,
           action,

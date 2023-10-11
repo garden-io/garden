@@ -24,7 +24,6 @@ import {
 import { range } from "lodash"
 import type { DockerComposeProviderConfig } from "."
 import { compose } from "./tools"
-import { ConfigurationError } from "@garden-io/sdk/exceptions"
 import { ExecParams, PluginTool } from "@garden-io/core/src/util/ext-tools"
 import { ActionState } from "@garden-io/core/build/src/actions/types"
 import { DeepPrimitiveMap, PrimitiveMap } from "@garden-io/core/build/src/config/common"
@@ -151,7 +150,7 @@ export async function runToolWithArgs(tool: PluginTool, params: ExecParams & { e
     state = "ready"
   } catch (err) {
     state = "failed"
-    params.log.error(chalk.red(err.message))
+    params.log.error(chalk.red((err as Error).message))
     // console.log(chalk.red(err.message))
     success = false
   }
@@ -255,12 +254,9 @@ export async function getComposeConfig({
     config = await compose(ctx).json({ log, cwd, args: ["config", "--format=json"] })
     cachedComposeConfig = config
   } catch (error) {
-    throw new ConfigurationError({
+    throw new sdk.exceptions.ConfigurationError({
       message: `Unable to find or process Docker Compose configuration in path '${cwd}': ${error}`,
-      detail: {
-        path: cwd,
-        error,
-      },
+      wrappedErrors: [sdk.exceptions.toGardenError(error)],
     })
   }
 

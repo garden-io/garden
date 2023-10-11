@@ -10,7 +10,7 @@ import chalk from "chalk"
 import { max, fromPairs, zip } from "lodash"
 import { findByName, getNames } from "../util/util"
 import { dedent, naturalList, renderTable, tablePresets } from "../util/string"
-import { ParameterError, toGardenError } from "../exceptions"
+import { ChildProcessError, ParameterError, isErrnoException, toGardenError } from "../exceptions"
 import { Log } from "../logger/log-entry"
 import { Garden } from "../garden"
 import { Command, CommandResult, CommandParams } from "./base"
@@ -131,7 +131,11 @@ export class PluginsCommand extends Command<Args, Opts> {
       } = await command.handler({ garden, ctx, log, args: commandArgs, graph, cwd: opts.cwd })
       return { result, exitCode, errors: errors.map(toGardenError) }
     } catch (err) {
-      return { exitCode: err.exitCode, errors: [toGardenError(err)] }
+      if (err instanceof ChildProcessError) {
+        return { exitCode: err.details.code, errors: [toGardenError(err)] }
+      } else {
+        return { exitCode: 1, errors: [toGardenError(err)] }
+      }
     }
   }
 }
