@@ -9,10 +9,12 @@
 import { expectError, makeTestGarden, TestGarden } from "@garden-io/sdk/build/src/testing"
 import { expect } from "chai"
 import { detectProjectType, getBuildFlags, JibBuildAction } from "../src/util"
-import { resolve } from "path"
+import { join, resolve } from "path"
 import { ResolvedConfigGraph } from "@garden-io/core/build/src/graph/config-graph"
 import { Resolved } from "@garden-io/core/build/src/actions/types"
 import { gardenPlugin } from "../src/index"
+import { rm } from "fs/promises"
+import { createFile } from "fs-extra"
 
 describe("util", function () {
   // eslint-disable-next-line no-invalid-this
@@ -23,6 +25,7 @@ describe("util", function () {
   let garden: TestGarden
   let graph: ResolvedConfigGraph
   let action: Resolved<JibBuildAction>
+  let buildPath: string
 
   before(async () => {
     garden = await makeTestGarden(projectRoot, {
@@ -33,41 +36,35 @@ describe("util", function () {
   beforeEach(async () => {
     graph = await garden.getResolvedConfigGraph({ log: garden.log, emit: false })
     action = graph.getBuild("foo")
+    buildPath = action.getBuildPath()
   })
 
-  describe("detectProjectType", () => {
-    it("returns gradle if action files include a gradle config", () => {
-      expect(
-        detectProjectType({
-          actionName: "foo",
-          actionBasePath: "/foo",
-          actionFiles: ["/foo/build.gradle"],
-        })
-      ).to.equal("gradle")
+  describe("detectProjectType", async () => {
+    afterEach(async () => {
+      try {
+        await rm(join(`${buildPath}/build.gradle`), { recursive: true })
+      } catch (e) {}
+      try {
+        await rm(join(`${buildPath}/pom.xml`), { recursive: true })
+      } catch (e) {}
     })
 
-    it("returns maven if action files include a maven config", () => {
-      expect(
-        detectProjectType({
-          actionName: "foo",
-          actionBasePath: "/foo",
-          actionFiles: ["/foo/pom.xml"],
-        })
-      ).to.equal("maven")
+    it("returns gradle if action files include a gradle config", async () => {
+      await createFile(resolve(buildPath, "build.gradle"))
+
+      expect(await detectProjectType(action)).to.equal("gradle")
     })
 
-    it("throws if no maven or gradle config is in the action file list", () => {
-      void expectError(
-        () =>
-          detectProjectType({
-            actionName: "foo",
-            actionBasePath: "/foo",
-            actionFiles: [],
-          }),
-        {
-          contains: "Could not detect a gradle or maven project to build foo",
-        }
-      )
+    it("returns maven if action files include a maven config", async () => {
+      await createFile(resolve(buildPath, "pom.xml"))
+
+      expect(await detectProjectType(action)).to.equal("maven")
+    })
+
+    it("throws if no maven or gradle config is in the action file list", async () => {
+      await expectError(() => detectProjectType(action), {
+        contains: `Could not detect a gradle or maven project to build ${action.longDescription()}`,
+      })
     })
   })
 

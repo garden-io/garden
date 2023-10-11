@@ -15,9 +15,10 @@ import {
   ContainerModuleBuildSpec,
   ContainerModuleSpec,
 } from "@garden-io/core/build/src/plugins/container/moduleConfig"
-import { BuildAction, BuildActionConfig } from "@garden-io/core/build/src/actions/build"
+import { BuildAction, BuildActionConfig, ResolvedBuildAction } from "@garden-io/core/build/src/actions/build"
 import { ContainerBuildOutputs } from "@garden-io/core/build/src/plugins/container/config"
 import { Resolved } from "@garden-io/core/build/src/actions/types"
+import { pathExists } from "fs-extra"
 
 interface JibBuildSpec {
   dockerBuild?: boolean
@@ -58,40 +59,32 @@ const gradlePaths = [
 const mavenPaths = ["pom.xml", ".mvn"]
 const mavendPaths = ["pom.xml", ".mvnd"]
 
-export function detectProjectType({
-  actionName,
-  actionBasePath,
-  actionFiles,
-}: {
-  actionName: string
-  actionBasePath: string
-  actionFiles: string[]
-}): JibPluginType {
+export async function detectProjectType(action: ResolvedBuildAction): Promise<JibPluginType> {
   // TODO: support the Jib CLI
 
   for (const filename of gradlePaths) {
-    const path = resolve(actionBasePath, filename)
-    if (actionFiles.includes(path)) {
+    const path = resolve(action.getBuildPath(), filename)
+    if (await pathExists(path)) {
       return "gradle"
     }
   }
 
   for (const filename of mavenPaths) {
-    const path = resolve(actionBasePath, filename)
-    if (actionFiles.includes(path)) {
+    const path = resolve(action.getBuildPath(), filename)
+    if (await pathExists(path)) {
       return "maven"
     }
   }
 
   for (const filename of mavendPaths) {
-    const path = resolve(actionBasePath, filename)
-    if (actionFiles.includes(path)) {
+    const path = resolve(action.getBuildPath(), filename)
+    if (await pathExists(path)) {
       return "mavend"
     }
   }
 
   throw new ConfigurationError({
-    message: `Could not detect a gradle or maven project to build ${actionName}`,
+    message: `Could not detect a gradle or maven project to build ${action.longDescription()}`,
   })
 }
 

@@ -206,11 +206,7 @@ export const gardenPlugin = () =>
               let projectType = spec.projectType
 
               if (!projectType) {
-                projectType = detectProjectType({
-                  actionName: action.name,
-                  actionBasePath: action.basePath(),
-                  actionFiles: action.getFullVersion().files,
-                })
+                projectType = await detectProjectType(action)
                 statusLine.info(`Detected project type ${projectType}`)
               }
 
