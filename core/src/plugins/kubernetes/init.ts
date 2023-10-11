@@ -142,7 +142,7 @@ export async function getIngressMisconfigurationWarnings(
 }
 
 /**
- * Deploys system services (if any)
+ * Deploys system services (if any).
  */
 export async function prepareEnvironment(
   params: PrepareEnvironmentParams<KubernetesConfig, KubernetesEnvironmentStatus>
@@ -152,12 +152,12 @@ export async function prepareEnvironment(
   const provider = k8sCtx.provider
   const config = provider.config
 
-  // TODO-G2: remove this option for remote kubernetes clusters?
-  if (config.setupIngressController === "nginx") {
+  // TODO-0.13/TODO-0.14: remove this option for remote kubernetes clusters?
+  if (config.setupIngressController === "nginx" && !config.clusterType) {
+    // Install nginx for remote clusters
     await helmNginxInstall(k8sCtx, log)
   }
 
-  // Prepare system services
   const nsStatus = await getNamespaceStatus({ ctx: k8sCtx, log, provider })
   ctx.events.emit("namespaceStatus", nsStatus)
   return { status: { ready: true, outputs: status.outputs } }
