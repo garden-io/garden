@@ -32,8 +32,7 @@ function isSupportedContext(context: string) {
   return supportedContexts.includes(context) || context.startsWith("kind-")
 }
 
-export interface LocalKubernetesConfig extends KubernetesConfig {
-}
+export type LocalKubernetesConfig = KubernetesConfig
 
 export const configSchema = () =>
   kubernetesConfigBase()

@@ -57,11 +57,10 @@ async function prepareEnvironment(
   params: PrepareEnvironmentParams<LocalKubernetesConfig>
 ): Promise<PrepareEnvironmentResult> {
   const { ctx, log } = params
-  const k8sCtx = <KubernetesPluginContext>ctx
-  const provider = k8sCtx.provider
+  const provider = ctx.provider
   const config = provider.config
 
-  const clusterType = await getClusterType(k8sCtx, log)
+  const clusterType = await getClusterType(ctx, log)
 
   const setupIngressController = config.setupIngressController
 
@@ -105,7 +104,7 @@ async function prepareEnvironment(
     } else if (clusterType === "k3s") {
       log.debug("Using k3s conformant nginx ingress controller")
 
-      await helmNginxInstall(k8sCtx, log, getK3sNginxHelmValues)
+      await helmNginxInstall(ctx, log, getK3sNginxHelmValues)
     } else if (clusterType === "minikube") {
       log.debug("Using minikube's ingress addon")
       try {
@@ -119,7 +118,7 @@ async function prepareEnvironment(
     } else if (clusterType === "microk8s") {
       log.debug("Using microk8s's ingress addon")
       microk8sAddons.push("ingress")
-      await applyYamlFromFile(k8sCtx, log, join(STATIC_DIR, "kubernetes", "nginx-ingress-class.yaml"))
+      await applyYamlFromFile(ctx, log, join(STATIC_DIR, "kubernetes", "nginx-ingress-class.yaml"))
     } else {
       clusterType satisfies "generic"
     }
