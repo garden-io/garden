@@ -1947,7 +1947,7 @@ describe("Garden", () => {
       await expectError(
         () => garden.resolveProviders(garden.log),
         (err) => {
-          expectFuzzyMatch(err.toString(), [
+          expectFuzzyMatch(err.toString(true), [
             "Failed resolving one or more providers:",
             "- test",
             "Error validating provider configuration",
@@ -1981,7 +1981,7 @@ describe("Garden", () => {
       await expectError(
         () => garden.resolveProviders(garden.log),
         (err) => {
-          expectFuzzyMatch(err.toString(), [
+          expectFuzzyMatch(err.toString(true), [
             "Failed resolving one or more providers:",
             "- test",
             "Error validating provider configuration",
@@ -2189,7 +2189,7 @@ describe("Garden", () => {
         await expectError(
           () => garden.resolveProviders(garden.log),
           (err) => {
-            expectFuzzyMatch(err.toString(), [
+            expectFuzzyMatch(err.toString(true), [
               "Failed resolving one or more providers:",
               "- test",
               "Error validating provider configuration",
@@ -2229,7 +2229,7 @@ describe("Garden", () => {
         await expectError(
           () => garden.resolveProviders(garden.log),
           (err) => {
-            expectFuzzyMatch(err.toString(), [
+            expectFuzzyMatch(err.toString(true), [
               "Failed resolving one or more providers:",
               "- test",
               "Error validating provider configuration",
