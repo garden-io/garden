@@ -209,15 +209,10 @@ export class ModuleResolver {
         const errorStr = Object.entries(errors)
           .map(([name, err]) => `${chalk.white.bold(name)}: ${err.message}`)
           .join("\n")
-        const errorStack = Object.entries(errors)
-          .map(([name, err]) => `${chalk.white.bold(name)}: ${err.stack || err.message}`)
-          .join("\n\n")
-
         const msg = `Failed resolving one or more modules:\n\n${errorStr}`
 
         const combined = new ConfigurationError({
           message: chalk.red(msg),
-          stack: errorStack,
           wrappedErrors: Object.values(errors),
         })
         throw combined
