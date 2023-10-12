@@ -57,7 +57,6 @@ export type GardenErrorStackTrace = {
 
 export interface GardenErrorParams {
   message: string
-  readonly stack?: string
   readonly wrappedErrors?: GardenError[]
 
   /**
@@ -86,24 +85,40 @@ export abstract class GardenError extends Error {
 
   public wrappedErrors?: GardenError[]
 
-  constructor({ message, stack, wrappedErrors, taskType, code }: GardenErrorParams) {
+  /**
+   * Necessary to make testFlags.expandErrors work.
+   */
+  private unexpandedStack: string | undefined
+
+  constructor({ message, wrappedErrors, taskType, code }: GardenErrorParams) {
     super(message.trim())
-    this.stack = stack || this.stack
+    this.stack = this.stack
     this.wrappedErrors = wrappedErrors
     this.taskType = taskType
     this.code = code
+
+    if (testFlags.expandErrors) {
+      this.unexpandedStack = this.stack
+      this.stack = this.toString(true)
+    }
   }
 
   override toString(verbose = false): string {
-    if (verbose || testFlags.expandErrors) {
-      const errorDetails = `${this.stack || this.message}\n\nError type: ${this.type}${
-        this.code ? `\nUnderlying error code: ${this.code}` : ""
+    if (verbose) {
+      let errorDetails = `${this.unexpandedStack || this.stack || this.message}`
+
+      // type can be undefined when running the tests, as the abstract type gets initialized after the ABC constructor finishes.
+      if (this.type) {
+        errorDetails += `\nError type: ${this.type}`
       }
-`
+
+      if (this.code) {
+        errorDetails += `\nUnderlying error code: ${this.code}`
+      }
 
       if (this.wrappedErrors) {
         return `${errorDetails}\nWrapped errors:\n${this.wrappedErrors?.map(
-          (e) => `⮑ ${indentString(e.toString(verbose), 3).trim()}`
+          (e) => `⮑  ${indentString(e.toString(verbose), 4).trim()}`
         )}`
       } else {
         return errorDetails
@@ -358,7 +373,10 @@ export class InternalError extends GardenError {
 
     message = message ? stripAnsi(message) : ""
 
-    return new InternalError({ message: prefix ? `${stripAnsi(prefix)}: ${message}` : message, stack, code })
+    const err = new InternalError({ message: prefix ? `${stripAnsi(prefix)}: ${message}` : message, code })
+    err.stack = stack
+
+    return err
   }
 
   override explain(context?: string): string {

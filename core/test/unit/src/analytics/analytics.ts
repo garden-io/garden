@@ -750,33 +750,35 @@ describe("AnalyticsHandler", () => {
       analytics = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo })
 
       timekeeper.travel(startTime.getTime() + 60000)
+
       const errors = [
         new RuntimeError({
           message: "Testing Runtime",
-          stack: `Error: Testing Runtime
-          at Testing.runtime (/path/to/src/utils/exec.ts:17:13)
-          at Test.Runnable.run (/path/to/node_modules/mocha/lib/runnable.js:354:5)
-          at processImmediate (node:internal/timers:471:21)`,
           wrappedErrors: [
             new ConfigurationError({
               message: "Testing Configuration",
-              stack: `Error: Testing Configuration
-              at Testing.configuration (/path/to/src/garden.ts:42:13)
-              at Test.Runnable.run (/path/to/node_modules/mocha/lib/runnable.js:354:5)
-              at processImmediate (node:internal/timers:471:21)`,
               wrappedErrors: [
                 new DeploymentError({
                   message: "Testing Deployment",
-                  stack: `Error: Testing Deployment
-                  at Testing.deployment (/path/to/src/plugins/kubernetes.ts:12:13)
-                  at Test.Runnable.run (/path/to/node_modules/mocha/lib/runnable.js:354:5)
-                  at processImmediate (node:internal/timers:471:21)`,
                 }),
               ],
             }),
           ],
         }),
       ]
+      errors[0].stack = `Error: Testing Runtime
+      at Testing.runtime (/path/to/src/utils/exec.ts:17:13)
+      at Test.Runnable.run (/path/to/node_modules/mocha/lib/runnable.js:354:5)
+      at processImmediate (node:internal/timers:471:21)`
+      errors[0].wrappedErrors![0].stack = `Error: Testing Configuration
+      at Testing.configuration (/path/to/src/garden.ts:42:13)
+      at Test.Runnable.run (/path/to/node_modules/mocha/lib/runnable.js:354:5)
+      at processImmediate (node:internal/timers:471:21)`
+      errors[0].wrappedErrors![0].wrappedErrors![0].stack = `Error: Testing Deployment
+      at Testing.deployment (/path/to/src/plugins/kubernetes.ts:12:13)
+      at Test.Runnable.run (/path/to/node_modules/mocha/lib/runnable.js:354:5)
+      at processImmediate (node:internal/timers:471:21)`
+
       const eventOrFalse = analytics.trackCommandResult("testCommand", errors, startTime, 0)
 
       expect(eventOrFalse).to.not.eql(false)
@@ -832,19 +834,19 @@ describe("AnalyticsHandler", () => {
       const errors = [
         new RuntimeError({
           message: "Testing Runtime",
-          stack: `Error: Testing Runtime
-          at Testing.runtime (/path/to/src/utils/exec.ts:17:13)
-          at Test.Runnable.run (/path/to/node_modules/mocha/lib/runnable.js:354:5)
-          at processImmediate (node:internal/timers:471:21)`,
         }),
         new ConfigurationError({
           message: "Testing Configuration",
-          stack: `Error: Testing Configuration
-          at Testing.configuration (/path/to/src/garden.ts:42:13)
-          at Test.Runnable.run (/path/to/node_modules/mocha/lib/runnable.js:354:5)
-          at processImmediate (node:internal/timers:471:21)`,
         }),
       ]
+      errors[0].stack = `Error: Testing Runtime
+      at Testing.runtime (/path/to/src/utils/exec.ts:17:13)
+      at Test.Runnable.run (/path/to/node_modules/mocha/lib/runnable.js:354:5)
+      at processImmediate (node:internal/timers:471:21)`
+      errors[1].stack = `Error: Testing Configuration
+      at Testing.configuration (/path/to/src/garden.ts:42:13)
+      at Test.Runnable.run (/path/to/node_modules/mocha/lib/runnable.js:354:5)
+      at processImmediate (node:internal/timers:471:21)`
 
       const eventOrFalse = analytics.trackCommandResult("testCommand", errors, startTime, 0)
 
