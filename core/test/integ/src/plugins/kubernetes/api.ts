@@ -96,9 +96,12 @@ describe("KubeApi", () => {
     })
 
     describe("execInPod", () => {
-      it("should exec a command in a Pod and return the output", async () => {
-        const pod = makePod(["/bin/sh", "-c", "sleep 600"])
-        const podName = pod.metadata.name
+      let pod: KubernetesPod
+      let podName: string
+
+      beforeEach(async () => {
+        pod = makePod(["/bin/sh", "-c", "sleep 600"])
+        podName = pod.metadata.name
 
         await api.createPod(namespace, pod)
         await waitForResources({
@@ -110,93 +113,61 @@ describe("KubeApi", () => {
           log: garden.log,
           timeoutSec: KUBECTL_DEFAULT_TIMEOUT,
         })
+      })
 
-        try {
-          const res = await api.execInPod({
-            log: garden.log,
-            namespace,
-            podName,
-            containerName,
-            command: ["/bin/sh", "-c", "echo some output"],
-            tty: false,
-            buffer: true,
-          })
-          expect(res.stdout).to.equal("some output\n")
-          expect(res.stderr).to.equal("")
-          expect(res.exitCode).to.equal(0)
-          expect(res.timedOut).to.be.false
-        } finally {
+      afterEach(async () => {
+        if (podName) {
           await api.core.deleteNamespacedPod(podName, namespace)
         }
+      })
+
+      it("should exec a command in a Pod and return the output", async () => {
+        const res = await api.execInPod({
+          log: garden.log,
+          namespace,
+          podName,
+          containerName,
+          command: ["/bin/sh", "-c", "echo some output"],
+          tty: false,
+          buffer: true,
+        })
+        expect(res.stdout).to.equal("some output\n")
+        expect(res.stderr).to.equal("")
+        expect(res.exitCode).to.equal(0)
+        expect(res.timedOut).to.be.false
       })
 
       it("should correctly return an error exit code", async () => {
-        const pod = makePod(["/bin/sh", "-c", "sleep 600"])
-        const podName = pod.metadata.name
-
-        await api.createPod(namespace, pod)
-        await waitForResources({
-          namespace,
-          ctx,
-          provider,
-          actionName: "exec-test",
-          resources: [pod],
+        const res = await api.execInPod({
           log: garden.log,
-          timeoutSec: KUBECTL_DEFAULT_TIMEOUT,
+          namespace,
+          podName,
+          containerName,
+          command: ["/bin/sh", "-c", "exit 2"],
+          tty: false,
+          buffer: true,
         })
-
-        try {
-          const res = await api.execInPod({
-            log: garden.log,
-            namespace,
-            podName,
-            containerName,
-            command: ["/bin/sh", "-c", "exit 2"],
-            tty: false,
-            buffer: true,
-          })
-          expect(res.stdout).to.equal("")
-          expect(res.stderr).to.equal("")
-          expect(res.exitCode).to.equal(2)
-          expect(res.timedOut).to.be.false
-        } finally {
-          await api.core.deleteNamespacedPod(podName, namespace)
-        }
+        expect(res.stdout).to.equal("")
+        expect(res.stderr).to.equal("")
+        expect(res.exitCode).to.equal(2)
+        expect(res.timedOut).to.be.false
       })
 
       it("should optionally time out", async () => {
-        const pod = makePod(["/bin/sh", "-c", "sleep 600"])
-        const podName = pod.metadata.name
-
-        await api.createPod(namespace, pod)
-        await waitForResources({
-          namespace,
-          ctx,
-          provider,
-          actionName: "exec-test",
-          resources: [pod],
+        const res = await api.execInPod({
           log: garden.log,
-          timeoutSec: KUBECTL_DEFAULT_TIMEOUT,
+          namespace,
+          podName,
+          containerName: "main",
+          command: ["/bin/sh", "-c", "echo foo && sleep 100"],
+          tty: false,
+          timeoutSec: 2,
+          buffer: true,
         })
-
-        try {
-          const res = await api.execInPod({
-            log: garden.log,
-            namespace,
-            podName,
-            containerName: "main",
-            command: ["/bin/sh", "-c", "echo foo && sleep 100"],
-            tty: false,
-            timeoutSec: 2,
-            buffer: true,
-          })
-          expect(res.stdout).to.equal("foo\n")
-          expect(res.stderr).to.equal("")
-          expect(res.exitCode).to.be.undefined
-          expect(res.timedOut).to.be.true
-        } finally {
-          await api.core.deleteNamespacedPod(podName, namespace)
-        }
+        expect(res.stdout).to.equal("foo\n")
+        expect(res.stderr).to.equal("")
+        expect(res.exitCode).to.be.undefined
+        expect(res.timedOut).to.be.true
       })
     })
 

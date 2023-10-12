@@ -62,6 +62,7 @@ describe("kubernetes container deployment handlers", () => {
   let ctx: KubernetesPluginContext
   let provider: KubernetesProvider
   let api: KubeApi
+  let deploymentRegistry: string | undefined
 
   async function resolveDeployAction(name: string, mode: ActionMode = "default") {
     if (mode !== "default") {
@@ -88,6 +89,9 @@ describe("kubernetes container deployment handlers", () => {
       await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
     )
     api = await KubeApi.factory(garden.log, ctx, provider)
+    deploymentRegistry = provider.config.deploymentRegistry
+      ? `${provider.config.deploymentRegistry.hostname}/${provider.config.deploymentRegistry.namespace}`
+      : undefined
   }
 
   describe("createContainerManifests", () => {
@@ -862,8 +866,8 @@ describe("kubernetes container deployment handlers", () => {
 
         // Note: the image version should match the build action version and not the
         // deploy action version
-        expect(resources.Deployment.spec.template.spec.containers[0].image).to.equal(
-          `europe-west3-docker.pkg.dev/garden-ci/garden-integ-tests/${action.name}:${buildVersionString}`
+        expect(resources.Deployment.spec.template.spec.containers[0].image).to.eql(
+          `${deploymentRegistry}/${action.name}:${buildVersionString}`
         )
       })
 
@@ -877,7 +881,7 @@ describe("kubernetes container deployment handlers", () => {
         // Note: the image version should match the build action version and not the
         // deploy action version
         expect(resources.Deployment.spec.template.spec.containers[0].image).to.equal(
-          `europe-west3-docker.pkg.dev/garden-ci/garden-integ-tests/${action.name}:${buildVersionString}`
+          `${deploymentRegistry}/${action.name}:${buildVersionString}`
         )
       })
 
@@ -891,7 +895,7 @@ describe("kubernetes container deployment handlers", () => {
         // Note: the image version should match the build action version and not the
         // deploy action version
         expect(resources.Deployment.spec.template.spec.containers[0].image).to.equal(
-          `europe-west3-docker.pkg.dev/garden-ci/garden-integ-tests/${action.name}:${buildVersionString}`
+          `${deploymentRegistry}/${action.name}:${buildVersionString}`
         )
       })
     })

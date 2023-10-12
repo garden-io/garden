@@ -12,6 +12,8 @@ import { base64, dedent } from "../../src/util/string"
 import chalk from "chalk"
 
 import { ArtifactRegistryClient } from "@google-cloud/artifact-registry"
+import { KubeApi, KubernetesError } from "../../src/plugins/kubernetes/api"
+import { sleep } from "../../src/util/util"
 
 const targetProject = "garden-ci"
 const targetPrincipal = "gar-serviceaccount@garden-ci.iam.gserviceaccount.com"
@@ -97,10 +99,16 @@ interface GCloudServiceError {
 
 const ArtifactRegistryPackagePathPrefix =
   "projects/garden-ci/locations/europe-west3/repositories/garden-integ-tests/packages"
+const RemoteImageNamePrefix = "europe-west3-docker.pkg.dev/garden-ci/garden-integ-tests/"
 const GCloudNotFoundErrorCode = 5
 
-export async function listGoogleArtifactImageTags(packageName: string): Promise<string[]> {
+export async function listGoogleArtifactImageTags(remoteImageName: string): Promise<string[]> {
   const client = await getArtifactRegistryClient()
+
+  if (!remoteImageName.startsWith(RemoteImageNamePrefix)) {
+    expect.fail(`remoteImageName must start with ${RemoteImageNamePrefix}. Actually got: ${remoteImageName}`)
+  }
+  const packageName = encodeURIComponent(remoteImageName.replace(RemoteImageNamePrefix, ""))
 
   const parent = `${ArtifactRegistryPackagePathPrefix}/${packageName}`
 
@@ -124,8 +132,13 @@ export async function listGoogleArtifactImageTags(packageName: string): Promise<
   }
 }
 
-export async function deleteGoogleArtifactImage(packageName: string): Promise<void> {
+export async function deleteGoogleArtifactImage(remoteImageName: string): Promise<void> {
   const client = await getArtifactRegistryClient()
+
+  if (!remoteImageName.startsWith(RemoteImageNamePrefix)) {
+    expect.fail(`remoteImageName must start with ${RemoteImageNamePrefix}. Actually got: ${remoteImageName}`)
+  }
+  const packageName = encodeURIComponent(remoteImageName.replace(RemoteImageNamePrefix, ""))
 
   const fullName = `${ArtifactRegistryPackagePathPrefix}/${packageName}`
 
@@ -161,4 +174,29 @@ export async function getGoogleADCImagePullSecret() {
       "europe-docker.pkg.dev": { auth },
     },
   }
+}
+
+export async function deleteNamespace(api: KubeApi, name: string) {
+  try {
+    await api.core.deleteNamespace(name)
+  } catch (e) {
+    if (e instanceof KubernetesError && e.responseStatusCode === 404) {
+      // already deleted
+    } else {
+      throw e
+    }
+  }
+  let finished = false
+  do {
+    try {
+      await api.core.readNamespaceStatus(name)
+      await sleep(100)
+    } catch (e) {
+      if (e instanceof KubernetesError && e.responseStatusCode === 404) {
+        finished = true
+      } else {
+        throw e
+      }
+    }
+  } while (!finished)
 }

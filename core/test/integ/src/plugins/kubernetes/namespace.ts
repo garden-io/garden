@@ -15,6 +15,7 @@ import { Log } from "../../../../../src/logger/log-entry"
 import { expect } from "chai"
 import { getPackageVersion } from "../../../../../src/util/util"
 import { NamespaceStatus } from "../../../../../src/types/namespace"
+import { deleteNamespace } from "../../../helpers"
 
 describe("Kubernetes Namespace helpers", () => {
   let api: KubeApi
@@ -41,15 +42,12 @@ describe("Kubernetes Namespace helpers", () => {
   })
 
   afterEach(async () => {
-    try {
-      await api.core.deleteNamespace(namespaceName)
-    } catch {}
+    await deleteNamespace(api, namespaceName)
   })
 
   describe("getNamespaceStatus", () => {
     it("should return the namespace status and emit a namespace status event on the plugin event broker", async () => {
       let namespaceStatusFromEvent: NamespaceStatus | null = null
-      const namespaceName = "container-default"
       ctx.events.once("namespaceStatus", (status) => (namespaceStatusFromEvent = status))
       const status = await getNamespaceStatus({
         log,
