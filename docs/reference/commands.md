@@ -4915,6 +4915,7 @@ Examples:
   | `--force` |  | boolean | Install the Garden CLI even if the specified or detected latest version is the same as the current version.
   | `--install-dir` |  | string | Specify an installation directory, instead of using the directory of the Garden CLI being used. Implies --force.
   | `--platform` |  | `macos` `linux` `windows`  | Override the platform, instead of detecting it automatically.
+  | `--architecture` |  | `arm64` `amd64`  | Override the architecture, instead of detecting it automatically.
   | `--major` |  | boolean | Install the latest major version of Garden. Falls back to the current version if the greater major version does not exist.
 
 Note! If you use a non-stable version (i.e. pre-release, or draft, or edge), then the latest possible major version will be installed.
