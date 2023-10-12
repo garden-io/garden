@@ -32,10 +32,12 @@ describe("Kubernetes Container Build Extension", () => {
   let provider: KubernetesProvider
   let ctx: PluginContext
   let deploymentRegistry: string | undefined
+  let api: KubeApi
 
   after(async () => {
-    if (garden) {
-      garden.close()
+    if (cleanup) {
+      cleanup()
+      await deleteNamespace(api, "container-default")
     }
   })
 
@@ -45,14 +47,11 @@ describe("Kubernetes Container Build Extension", () => {
     graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     provider = <KubernetesProvider>await garden.resolveProvider(garden.log, "local-kubernetes")
     ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
-    const api = await KubeApi.factory(garden.log, ctx, provider)
+    api = await KubeApi.factory(garden.log, ctx, provider)
 
     deploymentRegistry = provider.config.deploymentRegistry
       ? `${provider.config.deploymentRegistry.hostname}/${provider.config.deploymentRegistry.namespace}`
       : undefined
-
-    // Hack: delete namespace of simple-service to make sure there is no running container that would prevent deletion.
-    await deleteNamespace(api, "container-default")
   }
 
   async function executeBuild(buildActionName: string) {
