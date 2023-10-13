@@ -822,7 +822,7 @@ export class CloudApi {
   }
 
   async getCacheStatus(key: string) {
-    const response = await this.get<{status: Status, data: any}>(`/cache/${key}`)
+    const response = await this.get<{ status: Status; data: any }>(`/cache/${key}`)
     return response
   }
 }
