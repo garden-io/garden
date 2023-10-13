@@ -513,7 +513,7 @@ export function emitProcessingEvents<
       const donePayload = makeActionCompletePayload({
         startedAt,
         result,
-        action: this.action,
+        action: result.executedAction,
         force: this.force,
         operation: methodName,
         sessionId: this.garden.sessionId,
