@@ -22,7 +22,7 @@ import { ParameterValues, Parameter, ParameterObject, globalDisplayOptions } fro
 import { GardenError, ParameterError, RuntimeError, toGardenError } from "../exceptions"
 import { getPackageVersion, removeSlice } from "../util/util"
 import { Log } from "../logger/log-entry"
-import { STATIC_DIR, VERSION_CHECK_URL, gardenEnv, ERROR_LOG_FILENAME } from "../constants"
+import { STATIC_DIR, gardenEnv, ERROR_LOG_FILENAME } from "../constants"
 import { printWarningMessage } from "../logger/util"
 import { GlobalConfigStore } from "../config-store/global"
 import { got } from "../util/http"
@@ -95,7 +95,7 @@ export async function checkForUpdates(config: GlobalConfigStore, logger: Log) {
     headers["X-ci-name"] = ci.name
   }
 
-  const res = await got(`${VERSION_CHECK_URL}?${qs.stringify(query)}`, { headers }).json<any>()
+  const res = await got(`${gardenEnv.GARDEN_VERSION_CHECK_ENDPOINT}?${qs.stringify(query)}`, { headers }).json<any>()
   const versionCheck = await config.get("versionCheck")
   const showMessage = versionCheck && moment().subtract(1, "days").isAfter(moment(versionCheck.lastRun))
 

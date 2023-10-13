@@ -26,9 +26,10 @@ import {
 import { DummyGarden, makeDummyGarden } from "../../../../src/garden"
 import { makeTempDir, TempDirectory } from "../../../../src/util/fs"
 import { getPackageVersion } from "../../../../src/util/util"
-import { getDataDir, withDefaultGlobalOpts } from "../../../helpers"
+import { expectError, getDataDir, withDefaultGlobalOpts } from "../../../helpers"
 import { createServer, Server } from "http"
 import semver from "semver"
+import nock from "nock"
 
 describe("version helpers", () => {
   describe("isEdgeVersion", () => {
@@ -124,56 +125,126 @@ describe("SelfUpdateCommand", () => {
   }
 
   it(`detects the current installation directory if none is provided`, async () => {
+    // mock the same version as we pass in to avoid going through cases
+    // checking for available releases
+    const scope = nock("https://get.garden.io")
+    scope.get("/releases/latest").reply(200, { tag_name: getPackageVersion() })
+
     const { result } = await action(
-      { version: "" },
+      { version: getPackageVersion() },
       {
         "force": false,
         "install-dir": "",
         "platform": "",
+        "architecture": "",
         "major": false,
         // "minor": false,
       }
     )
     expect(result?.installationDirectory).to.equal(dirname(process.execPath))
+
+    expect(scope.isDone()).to.be.true
   })
 
   it(`uses the specified --install-dir if set`, async () => {
+    const scope = nock("https://get.garden.io")
+    scope.get("/releases/latest").reply(200, { tag_name: getPackageVersion() })
+
     const { result } = await action(
-      { version: "edge" },
+      { version: getPackageVersion() },
       {
         "force": false,
         "install-dir": tempDir.path,
         "platform": "",
+        "architecture": "",
         "major": false,
         // "minor": false,
       }
     )
 
     expect(result?.installationDirectory).to.equal(tempDir.path)
+
+    expect(scope.isDone()).to.be.true
+  })
+
+  it(`should throw a runtime error when the latest endpoint is not available`, async () => {
+    const scope = nock("https://get.garden.io")
+    scope.get("/releases/latest").reply(500)
+
+    await expectError(
+      async () =>
+        await action(
+          { version: getPackageVersion() },
+          {
+            "force": false,
+            "install-dir": tempDir.path,
+            "platform": "",
+            "architecture": "",
+            "major": false,
+          }
+        ),
+      { contains: "Unable to retrieve the latest garden" }
+    )
+
+    expect(scope.isDone()).to.be.true
+  })
+
+  it(`should handle when the releases endpoint fails.`, async () => {
+    const scope = nock("https://get.garden.io")
+    scope.get("/releases/latest").reply(200, { tag_name: "0.13.0" })
+    scope.get("/releases?per_page=100").reply(500)
+
+    // using a version which does not have a binary will trigger
+    // the call to /releases
+    const { result } = await action(
+      { version: "0.13.15" },
+      {
+        "force": true,
+        "install-dir": tempDir.path,
+        "platform": "",
+        "architecture": "",
+        "major": false,
+        // "minor": false,
+      }
+    )
+    expect(result?.installedVersion).to.be.undefined
+    expect(result?.abortReason).to.equal("Version not found")
+
+    expect(scope.isDone()).to.be.true
   })
 
   it(`aborts if desired version is the same as the current version`, async () => {
+    const scope = nock("https://get.garden.io")
+    scope.get("/releases/latest").reply(200, { tag_name: getPackageVersion() })
+
     const { result } = await action(
       { version: getPackageVersion() },
       {
         "force": false,
         "install-dir": "",
         "platform": "",
+        "architecture": "",
         "major": false,
         // "minor": false,
       }
     )
     expect(result?.installedVersion).to.be.undefined
     expect(result?.abortReason).to.equal("Version already installed")
+
+    expect(scope.isDone()).to.be.true
   })
 
   it(`proceeds if desired version is the same as the current version and --force is set`, async () => {
+    const scope = nock("https://get.garden.io")
+    scope.get("/releases/latest").reply(200, { tag_name: getPackageVersion() })
+
     const { result } = await action(
       { version: getPackageVersion() },
       {
         "force": true,
         "install-dir": "",
         "platform": "",
+        "architecture": "",
         "major": false,
         // "minor": false,
       }
@@ -181,45 +252,66 @@ describe("SelfUpdateCommand", () => {
     expect(result?.installedVersion).to.be.undefined
     // The command will abort because we're running a dev build
     expect(result?.abortReason).to.not.equal("Version already installed")
+
+    expect(scope.isDone()).to.be.true
   })
 
   it(`aborts if trying to run from a dev build`, async () => {
+    const scope = nock("https://get.garden.io")
+    scope.get("/releases/latest").reply(200, { tag_name: getPackageVersion() })
+
     const { result } = await action(
-      { version: "" },
+      { version: getPackageVersion() },
       {
         "force": true,
         "install-dir": "",
         "platform": "",
+        "architecture": "",
         "major": false,
         // "minor": false,
       }
     )
     expect(result?.installedVersion).to.be.undefined
     expect(result?.abortReason).to.equal("Not running from binary installation")
+
+    expect(scope.isDone()).to.be.true
   })
 
   it(`aborts cleanly if desired version isn't found`, async () => {
+    const scope = nock("https://get.garden.io")
+    scope.get("/releases/latest").reply(200, { tag_name: "0.13.0" })
+    scope.get("/releases?per_page=100").reply(200, [{ tag_name: "0.13.0" }])
+
+    // using a version which does not have a binary served from
+    // the local data dir
     const { result } = await action(
-      { version: "foo" },
+      { version: "0.13.15" },
       {
         "force": true,
         "install-dir": tempDir.path,
         "platform": "",
+        "architecture": "",
         "major": false,
         // "minor": false,
       }
     )
     expect(result?.installedVersion).to.be.undefined
     expect(result?.abortReason).to.equal("Version not found")
+
+    expect(scope.isDone()).to.be.true
   })
 
   it(`installs successfully to an empty --install-dir`, async () => {
+    const scope = nock("https://get.garden.io")
+    scope.get("/releases/latest").reply(200, { tag_name: "edge" })
+
     const { result } = await action(
       { version: "edge" },
       {
         "force": false,
         "install-dir": tempDir.path,
         "platform": "",
+        "architecture": "",
         "major": false,
         // "minor": false,
       }
@@ -230,15 +322,22 @@ describe("SelfUpdateCommand", () => {
     const extracted = await readdir(tempDir.path)
     expect(extracted).to.include("garden")
     expect(extracted).to.include("static")
+
+    expect(scope.isDone()).to.be.true
   })
 
   it(`installs successfully to an --install-dir with a previous release and creates a backup`, async () => {
+    const scope = nock("https://get.garden.io")
+    scope.get("/releases/latest").reply(200, { tag_name: "edge" })
+    scope.get("/releases/latest").reply(200, { tag_name: "edge" })
+
     await action(
       { version: "edge" },
       {
         "force": false,
         "install-dir": tempDir.path,
         "platform": "",
+        "architecture": "",
         "major": false,
         // "minor": false,
       }
@@ -249,6 +348,7 @@ describe("SelfUpdateCommand", () => {
         "force": false,
         "install-dir": tempDir.path,
         "platform": "",
+        "architecture": "",
         "major": false,
         // "minor": false,
       }
@@ -260,15 +360,23 @@ describe("SelfUpdateCommand", () => {
     expect(extracted).to.include("garden")
     expect(extracted).to.include("static")
     expect(extracted).to.include(".backup")
+
+    expect(scope.isDone()).to.be.true
   })
 
   it(`installs successfully to an --install-dir with a previous release and overwrites a backup`, async () => {
+    const scope = nock("https://get.garden.io")
+    scope.get("/releases/latest").reply(200, { tag_name: "edge" })
+    scope.get("/releases/latest").reply(200, { tag_name: "edge" })
+    scope.get("/releases/latest").reply(200, { tag_name: "edge" })
+
     await action(
       { version: "edge" },
       {
         "force": false,
         "install-dir": tempDir.path,
         "platform": "",
+        "architecture": "",
         "major": false,
         // "minor": false,
       }
@@ -279,6 +387,7 @@ describe("SelfUpdateCommand", () => {
         "force": false,
         "install-dir": tempDir.path,
         "platform": "",
+        "architecture": "",
         "major": false,
         // "minor": false,
       }
@@ -291,6 +400,7 @@ describe("SelfUpdateCommand", () => {
         "force": false,
         "install-dir": tempDir.path,
         "platform": "",
+        "architecture": "",
         "major": false,
         // "minor": false,
       }
@@ -302,15 +412,21 @@ describe("SelfUpdateCommand", () => {
     expect(extracted).to.include("garden")
     expect(extracted).to.include("static")
     expect(extracted).to.include(".backup")
+
+    expect(scope.isDone()).to.be.true
   })
 
   it(`handles --platform=windows and zip archives correctly`, async () => {
+    const scope = nock("https://get.garden.io")
+    scope.get("/releases/latest").reply(200, { tag_name: "edge" })
+
     await action(
       { version: "edge" },
       {
         "force": false,
         "install-dir": tempDir.path,
         "platform": "windows",
+        "architecture": "amd64",
         "major": false,
         // "minor": false,
       }
@@ -319,15 +435,21 @@ describe("SelfUpdateCommand", () => {
     const extracted = await readdir(tempDir.path)
     expect(extracted).to.include("garden.exe")
     expect(extracted).to.include("static")
+
+    expect(scope.isDone()).to.be.true
   })
 
   it(`handles --platform=macos and tar.gz archives correctly`, async () => {
+    const scope = nock("https://get.garden.io")
+    scope.get("/releases/latest").reply(200, { tag_name: "edge" })
+
     await action(
       { version: "edge" },
       {
         "force": false,
         "install-dir": tempDir.path,
         "platform": "macos",
+        "architecture": "amd64",
         "major": false,
         // "minor": false,
       }
@@ -336,6 +458,54 @@ describe("SelfUpdateCommand", () => {
     const extracted = await readdir(tempDir.path)
     expect(extracted).to.include("garden")
     expect(extracted).to.include("static")
+
+    expect(scope.isDone()).to.be.true
+  })
+
+  it(`handles --platform=macos, --architecture=arm64 and tar.gz archives correctly`, async () => {
+    const scope = nock("https://get.garden.io")
+    scope.get("/releases/latest").reply(200, { tag_name: "edge" })
+
+    await action(
+      { version: "edge" },
+      {
+        "force": false,
+        "install-dir": tempDir.path,
+        "platform": "macos",
+        "architecture": "arm64",
+        "major": false,
+        // "minor": false,
+      }
+    )
+
+    const extracted = await readdir(tempDir.path)
+    expect(extracted).to.include("garden")
+    expect(extracted).to.include("static")
+
+    expect(scope.isDone()).to.be.true
+  })
+
+  it(`handles --platform=macos, --architecture=amd64 and tar.gz archives correctly`, async () => {
+    const scope = nock("https://get.garden.io")
+    scope.get("/releases/latest").reply(200, { tag_name: "edge" })
+
+    await action(
+      { version: "edge" },
+      {
+        "force": false,
+        "install-dir": tempDir.path,
+        "platform": "macos",
+        "architecture": "amd64",
+        "major": false,
+        // "minor": false,
+      }
+    )
+
+    const extracted = await readdir(tempDir.path)
+    expect(extracted).to.include("garden")
+    expect(extracted).to.include("static")
+
+    expect(scope.isDone()).to.be.true
   })
 
   describe("getTargetVersionPredicate", () => {

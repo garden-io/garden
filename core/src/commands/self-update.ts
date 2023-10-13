@@ -20,8 +20,10 @@ import { createReadStream, createWriteStream } from "fs"
 import { copy, mkdirp, move, readdir, remove } from "fs-extra"
 import { GotHttpError, got } from "../util/http"
 import { promisify } from "node:util"
+import { gardenEnv } from "../constants"
 import semver from "semver"
 import stream from "stream"
+import { Log } from "../logger/log-entry"
 
 const ARM64_INTRODUCTION_VERSION = "0.13.12"
 
@@ -42,6 +44,10 @@ const selfUpdateOpts = {
   "platform": new ChoicesParameter({
     choices: ["macos", "linux", "windows"],
     help: `Override the platform, instead of detecting it automatically.`,
+  }),
+  "architecture": new ChoicesParameter({
+    choices: ["arm64", "amd64"],
+    help: `Override the architecture, instead of detecting it automatically.`,
   }),
   "major": new BooleanParameter({
     defaultValue: false,
@@ -97,7 +103,7 @@ export type Pagination = { pageNumber: number; pageSize: number }
 
 export async function fetchReleases({ pageNumber, pageSize }: Pagination) {
   const results: any[] = await got(
-    `https://api.github.com/repos/garden-io/garden/releases?page=${pageNumber}&per_page=${[pageSize]}`
+    `${gardenEnv.GARDEN_RELEASES_ENDPOINT}?page=${pageNumber}&per_page=${[pageSize]}`
   ).json()
   return results
 }
@@ -158,25 +164,46 @@ export async function findRelease({
  * @return the latest version tag
  * @throws {RuntimeError} if the latest version cannot be detected
  */
-export async function getLatestVersion(): Promise<string> {
-  const latestVersionRes: any = await got("https://api.github.com/repos/garden-io/garden/releases/latest").json()
-  const latestVersion = latestVersionRes.tag_name
+export async function getLatestVersion(log: Log): Promise<string> {
+  let latestVersion: string | undefined = undefined
+  const endpoint = `${gardenEnv.GARDEN_RELEASES_ENDPOINT}/latest`
+
+  try {
+    const latestVersionRes: any = await got(endpoint).json()
+    latestVersion = latestVersionRes.tag_name
+  } catch (err) {
+    log.debug(`Retrieving the latest Garden version from ${endpoint} failed with error ${err}.`)
+  }
+
   if (!latestVersion) {
     throw new RuntimeError({
-      message: `Unable to detect the latest Garden version: ${latestVersionRes}`,
+      message: `Unable to retrieve the latest Garden release version, this could be a temporary service error, please try again later.`,
     })
   }
 
   return latestVersion
 }
 
-export async function getLatestVersions(numOfStableVersions: number) {
-  const res: any = await got("https://api.github.com/repos/garden-io/garden/releases?per_page=100").json()
+export async function getLatestVersions(numOfStableVersions: number, log: Log) {
+  let releasesResponse: any | undefined = undefined
+  const endpoint = `${gardenEnv.GARDEN_RELEASES_ENDPOINT}`
+
+  try {
+    releasesResponse = await got(`${endpoint}?per_page=100`).json()
+  } catch (err) {
+    log.debug(`Retrieving the latest Garden releases from ${endpoint} failed with error ${err}.`)
+  }
+
+  if (!releasesResponse) {
+    throw new RuntimeError({
+      message: `Unable to retrieve the list of Garden releases, this could be a temporary service error, please try again later.`,
+    })
+  }
 
   return [
     chalk.cyan("edge-acorn"),
     chalk.cyan("edge-bonsai"),
-    ...res
+    ...releasesResponse
       .filter((r: any) => !r.prerelease && !r.draft)
       .map((r: any) => chalk.cyan(r.name))
       .slice(0, numOfStableVersions),
@@ -249,11 +276,11 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
     installationDirectory = resolve(installationDirectory)
 
     log.info(chalk.white("Checking for target and latest versions..."))
-    const latestVersion = await getLatestVersion()
+    const latestVersion = await getLatestVersion(log)
 
     if (!desiredVersion) {
       const versionScope = getVersionScope(opts)
-      desiredVersion = await this.findTargetVersion(currentVersion, versionScope)
+      desiredVersion = await this.findTargetVersion(currentVersion, versionScope, latestVersion)
     }
 
     log.info(chalk.white("Current Garden version: ") + chalk.cyan(currentVersion))
@@ -305,7 +332,7 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
         platform = getPlatform() === "darwin" ? "macos" : getPlatform()
       }
 
-      let architecture = getArchitecture()
+      let architecture: Architecture = opts.architecture ? (opts.architecture as Architecture) : getArchitecture()
       const isArmInRosetta = isDarwinARM()
 
       // When running under Rosetta,
@@ -314,13 +341,15 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
       // so we override the architecture here
       // and then check if the version is supported or not
       // potentially reverting it back to amd64 again
-      if (isArmInRosetta) {
+      if (!opts.architecture && isArmInRosetta) {
         architecture = "arm64"
       }
 
       if (
+        !opts.architecture &&
         architecture === "arm64" &&
         desiredVersion !== "edge-bonsai" &&
+        semver.valid(desiredVersion) !== null &&
         semver.lt(desiredVersion, ARM64_INTRODUCTION_VERSION)
       ) {
         if (platform === "macos") {
@@ -366,12 +395,14 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
 
           // Print the latest available stable versions
           try {
-            const latestVersions = await getLatestVersions(10)
+            const latestVersions = await getLatestVersions(10, log)
 
             log.info(
               chalk.white.bold(`Here are the latest available versions: `) + latestVersions.join(chalk.white(", "))
             )
-          } catch {}
+          } catch (err) {
+            log.debug(`Could not retrieve the latest available versions, ${err}`)
+          }
 
           return {
             result: {
@@ -480,14 +511,18 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
    * @return the matching version tag
    * @throws {RuntimeError} if the desired version cannot be detected, or if the current version cannot be recognized as a valid release version
    */
-  private async findTargetVersion(currentVersion: string, versionScope: VersionScope): Promise<string> {
+  private async findTargetVersion(
+    currentVersion: string,
+    versionScope: VersionScope,
+    latestVersion: string
+  ): Promise<string> {
     if (isEdgeVersion(currentVersion)) {
-      return getLatestVersion()
+      return latestVersion
     }
 
     const currentSemVer = semver.parse(currentVersion)
     if (isPreReleaseVersion(currentSemVer)) {
-      return getLatestVersion()
+      return latestVersion
     }
 
     // The current version is necessary, it's not possible to proceed without its value

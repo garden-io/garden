@@ -45,7 +45,6 @@ export const SEGMENT_DEV_API_KEY = "D3DUZ3lBSDO3krnuIO7eYDdtlDAjooKW" // ggignor
 export const SEGMENT_PROD_API_KEY = "b6ovUD9A0YjQqT3ZWetWUbuZ9OmGxKMa" // ggignore
 
 export const DOCS_BASE_URL = "https://docs.garden.io"
-export const VERSION_CHECK_URL = "https://get.garden.io/version"
 
 export const DEFAULT_GARDEN_CLOUD_DOMAIN = "https://app.garden.io"
 
@@ -78,4 +77,14 @@ export const gardenEnv = {
   GARDEN_WORKFLOW_RUN_UID: env.get("GARDEN_WORKFLOW_RUN_UID").required(false).asString(),
   GARDEN_CLOUD_DOMAIN: env.get("GARDEN_CLOUD_DOMAIN").required(false).asUrlString(),
   GARDEN_ENABLE_TRACING: env.get("GARDEN_ENABLE_TRACING").required(false).default("true").asBool(),
+  GARDEN_VERSION_CHECK_ENDPOINT: env
+    .get("GARDEN_VERSION_CHECK_ENDPOINT")
+    .required(false)
+    .default("https://get.garden.io/version")
+    .asUrlString(),
+  GARDEN_RELEASES_ENDPOINT: env
+    .get("GARDEN_RELEASES_ENDPOINT")
+    .required(false)
+    .default("https://get.garden.io/releases")
+    .asUrlString(),
 }
