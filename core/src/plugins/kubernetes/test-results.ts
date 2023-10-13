@@ -23,6 +23,7 @@ import { TestActionHandler } from "../../plugin/action-types"
 import { runResultToActionState } from "../../actions/base"
 import { HelmPodTestAction } from "./helm/config"
 import { KubernetesTestAction } from "./kubernetes-type/config"
+import { DEFAULT_GARDEN_CLOUD_DOMAIN } from "../../constants"
 
 // TODO: figure out how to get rid of the any cast
 export const k8sGetTestResult: TestActionHandler<"getResult", any> = async (params) => {
@@ -30,6 +31,27 @@ export const k8sGetTestResult: TestActionHandler<"getResult", any> = async (para
   const action = <ContainerTestAction>params.action
   const k8sCtx = <KubernetesPluginContext>ctx
   const api = await KubeApi.factory(log, ctx, k8sCtx.provider)
+
+  // enterprise
+  if (ctx.projectId && ctx.cloudApi && ctx.cloudApi?.domain !== DEFAULT_GARDEN_CLOUD_DOMAIN) {
+    const keyString = `${ctx.projectId}_${action.name}_${action.kind}_${action.versionString()}`
+    const res = await ctx.cloudApi.getCacheStatus(keyString)
+    if (res.status === "error") {
+      return { state: "not-ready", detail: null, outputs: {} }
+    }
+    return {
+      state: "ready",
+      detail: <TestResult>{
+        success: true,
+        completedAt: res.data.completedAt,
+        startedAt: res.data.startedAt,
+        log: res.data.log || "",
+      },
+      outputs: { log: res.data.log || "" },
+    }
+  }
+
+  // free-tier
   const testResultNamespace = await getSystemNamespace(k8sCtx, k8sCtx.provider, log)
 
   const resultKey = getTestResultKey(k8sCtx, action)
@@ -76,7 +98,13 @@ interface StoreTestResultParams {
  *
  * TODO: Implement a CRD for this.
  */
-export async function storeTestResult({ ctx, log, action, result }: StoreTestResultParams): Promise<TestResult> {
+export async function storeTestResult({ ctx, log, action, result }: StoreTestResultParams): Promise<TestResult | null> {
+  if (ctx.cloudApi && ctx.cloudApi?.domain !== DEFAULT_GARDEN_CLOUD_DOMAIN) {
+    // no need to store results for enterprise
+    // automatically stored from the events that are sent to cloud
+    return null
+  }
+
   const k8sCtx = <KubernetesPluginContext>ctx
   const api = await KubeApi.factory(log, ctx, k8sCtx.provider)
   const testResultNamespace = await getSystemNamespace(k8sCtx, k8sCtx.provider, log)

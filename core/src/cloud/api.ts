@@ -24,6 +24,7 @@ import {
   GetProfileResponse,
   GetProjectResponse,
   ListProjectsResponse,
+  Status,
 } from "@garden-io/platform-api-types"
 import { getCloudDistributionName, getCloudLogSectionName, getPackageVersion } from "../util/util"
 import { CommandInfo } from "../plugin-context"
@@ -818,5 +819,10 @@ export class CloudApi {
         }`,
       })
     }
+  }
+
+  async getCacheStatus(key: string) {
+    const response = await this.get<{status: Status, data: any}>(`/cache/${key}`)
+    return response
   }
 }
