@@ -189,6 +189,30 @@ describe("SelfUpdateCommand", () => {
     expect(scope.isDone()).to.be.true
   })
 
+  it(`should handle when the releases endpoint fails.`, async () => {
+    const scope = nock("https://get.garden.io")
+    scope.get("/releases/latest").reply(200, { tag_name: "0.13.0" })
+    scope.get("/releases?per_page=100").reply(500)
+
+    // using a version which does not have a binary will trigger
+    // the call to /releases
+    const { result } = await action(
+      { version: "0.13.15" },
+      {
+        "force": true,
+        "install-dir": tempDir.path,
+        "platform": "",
+        "architecture": "",
+        "major": false,
+        // "minor": false,
+      }
+    )
+    expect(result?.installedVersion).to.be.undefined
+    expect(result?.abortReason).to.equal("Version not found")
+
+    expect(scope.isDone()).to.be.true
+  })
+
   it(`aborts if desired version is the same as the current version`, async () => {
     const scope = nock("https://get.garden.io")
     scope.get("/releases/latest").reply(200, { tag_name: getPackageVersion() })
@@ -256,9 +280,12 @@ describe("SelfUpdateCommand", () => {
   it(`aborts cleanly if desired version isn't found`, async () => {
     const scope = nock("https://get.garden.io")
     scope.get("/releases/latest").reply(200, { tag_name: "0.13.0" })
+    scope.get("/releases?per_page=100").reply(200, [{ tag_name: "0.13.0" }])
 
+    // using a version which does not have a binary served from
+    // the local data dir
     const { result } = await action(
-      { version: "foo" },
+      { version: "0.13.15" },
       {
         "force": true,
         "install-dir": tempDir.path,

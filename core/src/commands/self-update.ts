@@ -400,7 +400,9 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
             log.info(
               chalk.white.bold(`Here are the latest available versions: `) + latestVersions.join(chalk.white(", "))
             )
-          } catch {}
+          } catch (err) {
+            log.debug(`Could not retrieve the latest available versions, ${err}`)
+          }
 
           return {
             result: {
