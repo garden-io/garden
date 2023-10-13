@@ -158,7 +158,7 @@ copyFrom:
 
     # POSIX-style path or filename to copy the directory or file(s), relative to the build directory.
     # Defaults to to same as source path.
-    targetPath: ''
+    targetPath:
 
 # Specify a list of POSIX-style paths or globs that should be included as the build context for the Build, and will
 # affect the computed _version_ of the action.
@@ -496,9 +496,9 @@ POSIX-style path or filename of the directory or file(s) to copy to the target, 
 POSIX-style path or filename to copy the directory or file(s), relative to the build directory.
 Defaults to to same as source path.
 
-| Type        | Default | Required |
-| ----------- | ------- | -------- |
-| `posixPath` | `""`    | No       |
+| Type        | Required |
+| ----------- | -------- |
+| `posixPath` | No       |
 
 ### `include[]`
 
