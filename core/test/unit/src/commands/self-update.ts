@@ -26,7 +26,7 @@ import {
 import { DummyGarden, makeDummyGarden } from "../../../../src/garden"
 import { makeTempDir, TempDirectory } from "../../../../src/util/fs"
 import { getPackageVersion } from "../../../../src/util/util"
-import { getDataDir, withDefaultGlobalOpts } from "../../../helpers"
+import { expectError, getDataDir, withDefaultGlobalOpts } from "../../../helpers"
 import { createServer, Server } from "http"
 import semver from "semver"
 import nock from "nock"
@@ -163,6 +163,28 @@ describe("SelfUpdateCommand", () => {
     )
 
     expect(result?.installationDirectory).to.equal(tempDir.path)
+
+    expect(scope.isDone()).to.be.true
+  })
+
+  it(`should throw a runtime error when the latest endpoint is not available`, async () => {
+    const scope = nock("https://get.garden.io")
+    scope.get("/releases/latest").reply(500)
+
+    await expectError(
+      async () =>
+        await action(
+          { version: getPackageVersion() },
+          {
+            "force": false,
+            "install-dir": tempDir.path,
+            "platform": "",
+            "architecture": "",
+            "major": false,
+          }
+        ),
+      { contains: "Unable to retrieve the latest garden" }
+    )
 
     expect(scope.isDone()).to.be.true
   })
