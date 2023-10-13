@@ -213,6 +213,124 @@ describe("cli", () => {
       })
     })
 
+    context("exit codes", () => {
+      const cwd = getDataDir("test-project-a")
+
+      context("garden binary", () => {
+        it("garden exits with code 1 on no flags", async () => {
+          const res = await cli.run({ args: [], exitOnError: false, cwd })
+
+          expect(res.code).to.equal(1)
+        })
+
+        it("garden exits with code 0 on --help flag", async () => {
+          const res = await cli.run({ args: ["--help"], exitOnError: false, cwd })
+
+          expect(res.code).to.equal(0)
+        })
+
+        it("garden exits with code 1 on unrecognized flag", async () => {
+          const res = await cli.run({ args: ["--i-am-groot"], exitOnError: false, cwd })
+
+          expect(res.code).to.equal(1)
+          expect(stripAnsi(res.consoleOutput!).toLowerCase()).to.contain("unrecognized option flag")
+        })
+      })
+
+      context("garden command without sub-commands", () => {
+        it("garden exits with code 0 on recognized command", async () => {
+          const res = await cli.run({ args: ["validate"], exitOnError: false, cwd })
+
+          expect(res.code).to.equal(0)
+        })
+
+        it("garden exits with code 0 on recognized command with --help flag", async () => {
+          const res = await cli.run({ args: ["validate", "--help"], exitOnError: false, cwd })
+
+          expect(res.code).to.equal(0)
+        })
+
+        it("garden exits with code 1 on recognized command with unrecognized flag", async () => {
+          const res = await cli.run({ args: ["validate", "--i-am-groot"], exitOnError: false, cwd })
+
+          expect(res.code).to.equal(1)
+          expect(stripAnsi(res.consoleOutput!).toLowerCase()).to.contain("unrecognized option flag")
+        })
+
+        it("garden exits with code 1 on unrecognized command", async () => {
+          const res = await cli.run({ args: ["baby-groot"], exitOnError: false, cwd })
+
+          expect(res.code).to.equal(1)
+        })
+
+        it("garden exits with code 1 on unrecognized command with --help flag", async () => {
+          const res = await cli.run({ args: ["baby-groot", "--help"], exitOnError: false, cwd })
+
+          expect(res.code).to.equal(1)
+        })
+
+        it("garden exits with code 1 on unrecognized command with unrecognized flag", async () => {
+          const res = await cli.run({ args: ["baby-groot", "--i-am-groot"], exitOnError: false, cwd })
+
+          expect(res.code).to.equal(1)
+        })
+      })
+
+      // Command with sub-commands is always a recognized command, so here we test only flags.
+      context("garden command with sub-commands", () => {
+        it("garden exits with code 0 on incomplete sub-command with --help flag", async () => {
+          const res = await cli.run({ args: ["get", "--help"], exitOnError: false, cwd })
+
+          expect(res.code).to.equal(0)
+        })
+
+        it("garden exits with code 1 on incomplete sub-command with unrecognized flag", async () => {
+          const res = await cli.run({ args: ["get", "--i-am-groot"], exitOnError: false, cwd })
+
+          expect(res.code).to.equal(1)
+        })
+      })
+
+      context("garden sub-command", () => {
+        it("garden exits with code 0 on recognized sub-command", async () => {
+          const res = await cli.run({ args: ["get", "actions"], exitOnError: false, cwd })
+
+          expect(res.code).to.equal(0)
+        })
+
+        it("garden exits with code 0 on recognized sub-command with --help flag", async () => {
+          const res = await cli.run({ args: ["get", "actions", "--help"], exitOnError: false, cwd })
+
+          expect(res.code).to.equal(0)
+        })
+
+        it("garden exits with code 1 on recognized sub-command with unrecognized flag", async () => {
+          const res = await cli.run({ args: ["get", "actions", "--i-am-groot"], exitOnError: false, cwd })
+
+          expect(res.code).to.equal(1)
+          expect(stripAnsi(res.consoleOutput!).toLowerCase()).to.contain("unrecognized option flag")
+        })
+
+        it("garden exits with code 1 on unrecognized sub-command", async () => {
+          const res = await cli.run({ args: ["get", "baby-groot"], exitOnError: false, cwd })
+
+          expect(res.code).to.equal(1)
+        })
+
+        it("garden exits with code 1 on unrecognized sub-command with --help flag", async () => {
+          const res = await cli.run({ args: ["get", "baby-groot", "--help"], exitOnError: false, cwd })
+
+          expect(res.code).to.equal(1)
+        })
+
+        it("garden exits with code 1 on unrecognized sub-command with unrecognized flag", async () => {
+          const res = await cli.run({ args: ["get", "baby-groot", "--i-am-groot"], exitOnError: false, cwd })
+
+          expect(res.code).to.equal(1)
+        })
+      })
+    })
+
     context("test logger initialization", () => {
       const envLoggerType = process.env.GARDEN_LOGGER_TYPE
 
