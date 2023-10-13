@@ -7,7 +7,7 @@
  */
 
 import type { ValidExecutionActionResultType } from "../tasks/base"
-import { type Action, type ActionState } from "../actions/types"
+import { Resolved, type Action, type ActionState } from "../actions/types"
 import type { DeployStatus } from "../plugin/handlers/Deploy/get-status"
 import type { DeployStatusForEventPayload } from "../types/service"
 import { Events, ActionStatusEventName } from "./events"
@@ -147,7 +147,7 @@ export function makeActionProcessingPayload({
  * but here we're erring on making things explicit and also type correctness via the 'satisfies' keyword.
  */
 export function makeActionCompletePayload<
-  A extends Action,
+  A extends Resolved<Action>,
   R extends ValidExecutionActionResultType = {
     state: ActionState
     outputs: A["_runtimeOutputs"]
@@ -163,7 +163,7 @@ export function makeActionCompletePayload<
   sessionId,
 }: {
   result: R
-  action: Action
+  action: Resolved<Action>
   force: boolean
   operation: "getStatus" | "process"
   startedAt: string
