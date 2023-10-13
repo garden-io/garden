@@ -68,6 +68,7 @@ import { dedent } from "../util/string"
 import { renderDivider } from "../logger/util"
 import { emoji as nodeEmoji } from "node-emoji"
 import { GlobalConfigStore, RequirementsCheck } from "../config-store"
+import minimist from "minimist"
 
 export async function makeDummyGarden(root: string, gardenOpts: GardenOpts) {
   const environments = gardenOpts.environmentName
@@ -110,6 +111,10 @@ export interface RunOutput {
   result: any
   // Mainly used for testing
   consoleOutput?: string
+}
+
+function hasHelpFlag(argv: minimist.ParsedArgs) {
+  return argv.h || argv.help
 }
 
 @Profile()
@@ -637,30 +642,63 @@ ${renderCommands(commands)}
 
     // If we still haven't found a valid command, print help
     if (!command) {
-      const exitCode = argv._.length === 0 || argv._[0] === "help" ? 0 : 1
+      const exitCode = argv._.length === 0 && hasHelpFlag(argv) ? 0 : 1
       return done(exitCode, await this.renderHelp(workingDir))
     }
 
     // Parse the arguments again with the Command set, to fully validate, and to ensure boolean options are
-    // handled correctly
+    // handled correctly.
     argv = parseCliArgs({ stringArgs: args, command, cli: true })
 
     // Slice command name from the positional args
     argv._ = argv._.slice(command.getPath().length)
 
-    // Handle -h, --help, and subcommand listings
-    if (argv.h || argv.help || command instanceof CommandGroup) {
-      // Try to show specific help for given subcommand
+    // Handle -h and --help flags, those are always valid and should return exit code 0
+    if (hasHelpFlag(argv)) {
+      // Handle subcommand listings
       if (command instanceof CommandGroup) {
+        const subCommandName = rest[0]
+        if (subCommandName === undefined) {
+          // Exit code 0 if sub-command is not specified and --help flag is passed, e.g. garden get --help
+          return done(0, command.renderHelp())
+        }
+
+        // Try to show specific help for given subcommand
         for (const subCommand of command.subCommands) {
           const sub = new subCommand()
           if (sub.name === rest[0]) {
             return done(0, sub.renderHelp())
           }
         }
-        // If not found, falls through to general command help below
+
+        // If sub-command was not found, then the sub-command name is incorrect.
+        // Falls through to general command help and exit code 1.
+        return done(1, command.renderHelp())
       }
+
       return done(0, command.renderHelp())
+    }
+
+    // Handle incomplete subcommand listings.
+    // A complete sub-command won't be recognized as CommandGroup.
+    if (command instanceof CommandGroup) {
+      const subCommandName = rest[0]
+      if (subCommandName === undefined) {
+        // exit code 1 if sub-command is missing
+        return done(1, command.renderHelp())
+      }
+
+      // Try to show specific help for given subcommand
+      for (const subCommand of command.subCommands) {
+        const sub = new subCommand()
+        if (sub.name === rest[0]) {
+          return done(1, sub.renderHelp())
+        }
+      }
+
+      // If sub-command was not found, then the sub-command name is incorrect.
+      // Falls through to general command help and exit code 1.
+      return done(1, command.renderHelp())
     }
 
     let parsedArgs: BuiltinArgs & ParameterValues<any>
