@@ -18,11 +18,13 @@ import { ConfigurationError } from "../../../exceptions.js"
 import type { ConfigureProviderParams } from "../../../plugin/handlers/Provider/configureProvider.js"
 import { dedent } from "../../../util/string.js"
 import type { KubernetesConfig, KubernetesPluginContext } from "../config.js"
+import { defaultResources } from "../config.js"
 import { namespaceSchema } from "../config.js"
 import { EPHEMERAL_KUBERNETES_PROVIDER_NAME } from "./ephemeral.js"
 import { DEFAULT_GARDEN_CLOUD_DOMAIN } from "../../../constants.js"
 import { helmNginxInstall, NginxHelmValuesGetter } from "../integrations/nginx.js"
 import type { SystemVars } from "../init.js"
+import { getSystemNamespace } from "../namespace.js"
 
 export const configSchema = () =>
   providerConfigBaseSchema()
@@ -85,12 +87,7 @@ export const getEphemeralNginxHelmValues: NginxHelmValuesGetter = (systemVars: S
 
 export async function configureProvider(params: ConfigureProviderParams<KubernetesConfig>) {
   const { base, log, projectName, ctx, config: baseConfig } = params
-  if (projectName === "garden-system") {
-    // avoid configuring ephemeral-kubernetes provider and creating ephemeral-cluster for garden-system project
-    return {
-      config: baseConfig,
-    }
-  }
+
   log.info(`Configuring ${EPHEMERAL_KUBERNETES_PROVIDER_NAME} provider for project ${projectName}`)
   if (!ctx.cloudApi) {
     throw new ConfigurationError({
@@ -145,6 +142,8 @@ export async function configureProvider(params: ConfigureProviderParams<Kubernet
   ]
   // set build mode to kaniko
   baseConfig.buildMode = "kaniko"
+  // set resource requests and limits defaults for builder, sync and util
+  baseConfig.resources = defaultResources
   // set additional kaniko flags
   baseConfig.kaniko = {
     extraFlags: [
@@ -154,6 +153,10 @@ export async function configureProvider(params: ConfigureProviderParams<Kubernet
       "--force",
     ],
   }
+
+  // use garden-system as system namespace for ephemeral-kubernetes
+  baseConfig.gardenSystemNamespace = "garden-system"
+
   // set setupIngressController to null while initializing kubernetes plugin
   // as we use it later and configure it separately for ephemeral-kubernetes
   const kubernetesPluginConfig = {
@@ -164,6 +167,9 @@ export async function configureProvider(params: ConfigureProviderParams<Kubernet
     },
   }
   const { config: updatedConfig } = await base!(kubernetesPluginConfig)
+
+  // make sure that the system namespace exists
+  await getSystemNamespace(ctx, ctx.provider, log)
 
   // setup ingress controller unless setupIngressController is set to false/null in provider config
   if (!!baseConfig.setupIngressController) {
