@@ -83,6 +83,7 @@ export const pluginContextSchema = createSchema({
       .description("Indicate if the current environment is a production environment.")
       .example(true),
     projectName: projectNameSchema(),
+    projectId: joi.string().optional().description("Project id"),
     projectRoot: joi.string().description("The absolute path of the project root."),
     projectSources: projectSourcesSchema(),
     provider: providerSchema().description("The provider being used for this context.").id("ctxProviderSchema"),
