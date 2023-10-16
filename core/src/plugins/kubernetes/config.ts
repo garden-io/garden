@@ -28,7 +28,6 @@ import {
 } from "../container/moduleConfig"
 import { PluginContext } from "../../plugin-context"
 import { dedent, deline } from "../../util/string"
-import { defaultSystemNamespace } from "./system"
 import { SyncableKind, syncableKinds } from "./types"
 import { BaseTaskSpec, baseTaskSpecSchema, cacheResultSchema } from "../../config/task"
 import { BaseTestSpec, baseTestSpecSchema } from "../../config/test"
@@ -40,7 +39,7 @@ import { KUBECTL_DEFAULT_TIMEOUT } from "./kubectl"
 import { readFileSync } from "fs-extra"
 import { join } from "path"
 import { DOCS_BASE_URL, STATIC_DIR } from "../../constants"
-import { defaultKanikoImageName } from "./constants"
+import { defaultKanikoImageName, defaultSystemNamespace } from "./constants"
 
 export interface ProviderSecretRef {
   name: string

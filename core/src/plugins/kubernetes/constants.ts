@@ -45,3 +45,4 @@ export const defaultKanikoImageName: DockerImageWithDigest =
 
 export const buildkitDeploymentName = "garden-buildkit"
 export const buildkitContainerName = "buildkitd"
+export const defaultSystemNamespace = "garden-system"

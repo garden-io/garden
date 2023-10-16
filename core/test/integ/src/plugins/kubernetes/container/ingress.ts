@@ -19,7 +19,6 @@ import {
 } from "../../../../../../src/plugins/kubernetes/container/ingress"
 import { ContainerDeployAction } from "../../../../../../src/plugins/container/moduleConfig"
 import { ServicePortProtocol, ContainerIngressSpec } from "../../../../../../src/plugins/container/moduleConfig"
-import { defaultSystemNamespace } from "../../../../../../src/plugins/kubernetes/system"
 import { getContainerTestGarden } from "./container"
 import { PartialBy } from "../../../../../../src/util/util"
 import { Resolved } from "../../../../../../src/actions/types"
@@ -27,6 +26,7 @@ import { actionFromConfig } from "../../../../../../src/graph/actions"
 import { DeployAction } from "../../../../../../src/actions/deploy"
 import { DEFAULT_DEPLOY_TIMEOUT_SEC } from "../../../../../../src/constants"
 import { uuidv4 } from "../../../../../../src/util/random"
+import { defaultSystemNamespace } from "../../../../../../src/plugins/kubernetes/constants"
 
 const namespace = "my-namespace"
 const ports = [

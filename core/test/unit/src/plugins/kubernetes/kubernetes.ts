@@ -8,11 +8,11 @@
 
 import { configureProvider, gardenPlugin } from "../../../../../src/plugins/kubernetes/kubernetes"
 import { KubernetesConfig, defaultResources } from "../../../../../src/plugins/kubernetes/config"
-import { defaultSystemNamespace } from "../../../../../src/plugins/kubernetes/system"
 import { expect } from "chai"
 import { TempDirectory, makeTempDir } from "../../../../helpers"
 import { providerFromConfig } from "../../../../../src/config/provider"
 import { Garden, makeDummyGarden } from "../../../../../src/garden"
+import { defaultSystemNamespace } from "../../../../../src/plugins/kubernetes/constants"
 
 describe("kubernetes configureProvider", () => {
   const basicConfig: KubernetesConfig = {
