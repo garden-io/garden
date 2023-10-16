@@ -40,7 +40,7 @@ import { describeSchema, parseActionReference } from "../config/common.js"
 import type { GroupConfig } from "../config/group.js"
 import { ActionConfigContext } from "../config/template-contexts/actions.js"
 import { validateWithPath } from "../config/validation.js"
-import { ConfigurationError, PluginError, InternalError, ValidationError, GardenError } from "../exceptions.js"
+import { ConfigurationError, PluginError, InternalError, GardenError } from "../exceptions.js"
 import { overrideVariables, type Garden } from "../garden.js"
 import type { Log } from "../logger/log-entry.js"
 import type { ActionTypeDefinition } from "../plugin/action-types.js"
@@ -916,17 +916,27 @@ function dependenciesFromActionConfig({
   }
 
   const deps: ActionDependency[] = config.dependencies.map((d) => {
-    try {
-      const { kind, name } = parseActionReference(d)
-      return { kind, name, explicit: true, needsExecutedOutputs: false, needsStaticOutputs: false }
-    } catch (error) {
-      throw new ValidationError({
-        message: `Invalid dependency specified: ${error}`,
+    const { kind, name } = parseActionReference(d)
+    const depKey = actionReferenceToString(d)
+    const depConfig = configsByKey[depKey]
+
+    if (!depConfig) {
+      throw new ConfigurationError({
+        message: `${description} references depdendency ${depKey}, but no such action could be found`,
       })
+    }
+
+    return {
+      kind,
+      name,
+      type: depConfig.type,
+      explicit: true,
+      needsExecutedOutputs: false,
+      needsStaticOutputs: false,
     }
   })
 
-  function addDep(ref: ActionReference, attributes: ActionDependencyAttributes) {
+  function addDep(ref: ActionReference & { type: string }, attributes: ActionDependencyAttributes) {
     addActionDependency({ ...ref, ...attributes }, deps)
   }
 
@@ -943,7 +953,12 @@ function dependenciesFromActionConfig({
         })
       }
 
-      addDep(ref, { explicit: true, needsExecutedOutputs: false, needsStaticOutputs: false })
+      const refWithType = {
+        ...ref,
+        type: config.type,
+      }
+
+      addDep(refWithType, { explicit: true, needsExecutedOutputs: false, needsStaticOutputs: false })
     }
   } else if (config.build) {
     // -> build field on runtime actions
@@ -956,7 +971,11 @@ function dependenciesFromActionConfig({
       })
     }
 
-    addDep(ref, { explicit: true, needsExecutedOutputs: false, needsStaticOutputs: false })
+    const refWithType = {
+      ...ref,
+      type: config.type,
+    }
+    addDep(refWithType, { explicit: true, needsExecutedOutputs: false, needsStaticOutputs: false })
   }
 
   // Action template references in spec/variables
@@ -1003,7 +1022,12 @@ function dependenciesFromActionConfig({
       needsExecuted = true
     }
 
-    addDep(ref, { explicit: false, needsExecutedOutputs: needsExecuted, needsStaticOutputs: !needsExecuted })
+    const refWithType = {
+      ...ref,
+      type: refActionType,
+    }
+
+    addDep(refWithType, { explicit: false, needsExecutedOutputs: needsExecuted, needsStaticOutputs: !needsExecuted })
   }
 
   return deps

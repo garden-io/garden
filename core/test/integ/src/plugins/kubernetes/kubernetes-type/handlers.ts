@@ -115,7 +115,7 @@ describe("kubernetes-type handlers", () => {
   }
 
   async function deployInNamespace({ nsName, deployName }: { nsName: string; deployName: string }) {
-    garden.setModuleConfigs([withNamespace(nsModuleConfig, nsName)])
+    garden.mergeModuleConfigs([withNamespace(nsModuleConfig, nsName)])
     const graph = await garden.getConfigGraph({ log, emit: false })
     const action = graph.getDeploy(deployName)
     const resolvedAction = await garden.resolveAction<KubernetesDeployAction>({ action, log: garden.log, graph })

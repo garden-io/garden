@@ -300,9 +300,23 @@ export class TestGarden extends Garden {
     this.addActionConfig(config)
   }
 
+  /**
+   * Replace all module configs with the one provided.
+   */
   setModuleConfigs(moduleConfigs: PartialModuleConfig[]) {
     this.state.configsScanned = true
     this.moduleConfigs = keyBy(moduleConfigs.map(moduleConfigWithDefaults), "name")
+  }
+
+  /**
+   * Merge the provided module configs with the existing ones.
+   */
+  mergeModuleConfigs(moduleConfigs: PartialModuleConfig[]) {
+    this.state.configsScanned = true
+    this.moduleConfigs = {
+      ...this.moduleConfigs,
+      ...keyBy(moduleConfigs.map(moduleConfigWithDefaults), "name"),
+    }
   }
 
   setActionConfigs(actionConfigs: PartialActionConfig[]) {
