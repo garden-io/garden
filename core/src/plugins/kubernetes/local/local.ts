@@ -66,7 +66,7 @@ async function prepareEnvironment(
   const setupIngressController = config.setupIngressController
 
   // We need this function call to make sure that the system namespace exists.
-  const systemNamespace = await getSystemNamespace(ctx, provider, log)
+  await getSystemNamespace(ctx, provider, log)
 
   if (clusterType !== "generic") {
     // We'll override the nginx setup here
