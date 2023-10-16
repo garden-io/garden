@@ -48,7 +48,6 @@ export const SEGMENT_DEV_API_KEY = "D3DUZ3lBSDO3krnuIO7eYDdtlDAjooKW" // ggignor
 export const SEGMENT_PROD_API_KEY = "b6ovUD9A0YjQqT3ZWetWUbuZ9OmGxKMa" // ggignore
 
 export const DOCS_BASE_URL = "https://docs.garden.io/v/acorn-0.12"
-export const VERSION_CHECK_URL = "https://get.garden.io/version"
 
 export const DEFAULT_GARDEN_CLOUD_DOMAIN = "https://app.garden.io"
 
@@ -83,4 +82,14 @@ export const gardenEnv = {
   // issues on terminals we haven't tested. We can remove again in v0.13.
   GARDEN_LEGACY_FANCY_LOG_RENDER: env.get("GARDEN_LEGACY_FANCY_LOG_RENDER").required(false).asBool(),
   GARDEN_CLOUD_DOMAIN: env.get("GARDEN_CLOUD_DOMAIN").required(false).asUrlString(),
+  GARDEN_VERSION_CHECK_ENDPOINT: env
+    .get("GARDEN_VERSION_CHECK_ENDPOINT")
+    .required(false)
+    .default("https://get.garden.io/version")
+    .asUrlString(),
+  GARDEN_RELEASES_ENDPOINT: env
+    .get("GARDEN_RELEASES_ENDPOINT")
+    .required(false)
+    .default("https://get.garden.io/releases")
+    .asUrlString(),
 }
