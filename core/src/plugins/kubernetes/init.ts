@@ -38,7 +38,7 @@ import type { PrimitiveMap } from "../../config/common.js"
 import { mapValues, omit } from "lodash-es"
 import { getIngressApiVersion, supportedIngressApiVersions } from "./container/ingress.js"
 import type { Log } from "../../logger/log-entry.js"
-import { helmNginxInstall, helmNginxStatus } from "./integrations/nginx.js"
+import { helmNginxInstall, ingressControllerReady } from "./integrations/nginx.js"
 
 const dockerAuthSecretType = "kubernetes.io/dockerconfigjson"
 const dockerAuthDocsLink = `
@@ -100,11 +100,9 @@ export async function getEnvironmentStatus({
   }
 
   if (provider.config.setupIngressController === "nginx") {
-    const state = await helmNginxStatus(k8sCtx, log)
-    if (state !== "ready") {
-      result.ready = false
-      detail.systemReady = false
-    }
+    const ingressControllerReadiness = await ingressControllerReady(ctx, log)
+    result.ready = ingressControllerReadiness
+    detail.systemReady = ingressControllerReadiness
   }
 
   return result
@@ -154,7 +152,7 @@ export async function prepareEnvironment(
 
   // TODO-0.13/TODO-0.14: remove this option for remote kubernetes clusters?
   if (config.setupIngressController === "nginx" && !config.clusterType) {
-    // Install nginx for remote clusters
+    // Install nginx and default backend for remote clusters
     await helmNginxInstall(k8sCtx, log)
   }
 

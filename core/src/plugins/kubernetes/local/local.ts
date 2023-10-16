@@ -32,6 +32,7 @@ import { getK3sNginxHelmValues, isK3sFamilyCluster } from "./k3s.js"
 import { KubernetesResource } from "../types.js"
 import { ChildProcessError } from "../../../exceptions.js"
 import { helmNginxInstall } from "../integrations/nginx.js"
+import { getSystemNamespace } from "../namespace.js"
 
 const providerUrl = "./kubernetes.md"
 
@@ -64,6 +65,9 @@ async function prepareEnvironment(
 
   const setupIngressController = config.setupIngressController
 
+  // We need this function call to make sure that the system namespace exists.
+  const systemNamespace = await getSystemNamespace(ctx, provider, log)
+
   if (clusterType !== "generic") {
     // We'll override the nginx setup here
     config.setupIngressController = null
@@ -92,9 +96,7 @@ async function prepareEnvironment(
       }
 
       // Note: This basic string replace is fine for now, no other templating is done in these files
-      const yamlData = (await readFile(yamlPath))
-        .toString()
-        .replaceAll("${var.namespace}", config.gardenSystemNamespace)
+      const yamlData = (await readFile(yamlPath)).toString().replaceAll("${var.namespace}", systemNamespace)
       const manifests = loadAll(yamlData)
         .filter(isTruthy)
         .map((m) => m as KubernetesResource)
