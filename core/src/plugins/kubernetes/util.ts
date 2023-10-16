@@ -20,7 +20,7 @@ import type {
   SupportedRuntimeAction,
 } from "./types.js"
 import { isPodResource } from "./types.js"
-import { findByName, exec } from "../../util/util.js"
+import { findByName } from "../../util/util.js"
 import { KubeApi, KubernetesError } from "./api.js"
 import {
   gardenAnnotationKey,
@@ -152,16 +152,6 @@ interface K8sVersion {
 export interface K8sClientServerVersions {
   clientVersion: K8sVersion
   serverVersion: K8sVersion
-}
-
-/**
- * get objectyfied result of "kubectl version"
- */
-export async function getK8sClientServerVersions(ctx: string): Promise<K8sClientServerVersions> {
-  const versions: K8sClientServerVersions = JSON.parse(
-    (await exec("kubectl", ["version", "--context", ctx, "--output", "json"])).stdout
-  )
-  return versions
 }
 
 /**

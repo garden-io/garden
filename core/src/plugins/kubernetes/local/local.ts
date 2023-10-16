@@ -22,8 +22,7 @@ import chalk from "chalk"
 import { setMinikubeDockerEnv } from "./minikube.js"
 import { isKindCluster } from "./kind.js"
 import { configureMicrok8sAddons } from "./microk8s.js"
-import { K8sClientServerVersions, getK8sClientServerVersions } from "../util.js"
-import { applyYamlFromFile, apply } from "../kubectl.js"
+import { apply, applyYamlFromFile } from "../kubectl.js"
 import { join } from "path"
 import { KubeApi } from "../api.js"
 import { loadAll } from "js-yaml"
@@ -82,25 +81,14 @@ async function prepareEnvironment(
   if (setupIngressController === "nginx") {
     if (clusterType === "kind") {
       log.debug("Using nginx-kind service for ingress")
-      let versions: K8sClientServerVersions | undefined
-      try {
-        versions = await getK8sClientServerVersions(config.context)
-      } catch (err) {
-        log.debug("Failed to get Kubernetes version with error: " + err)
-      }
-      // TODO: remove this once we no longer support k8s v1.20
-      let yamlPath = join(STATIC_DIR, "kubernetes", "nginx-kind-old.yaml")
-
-      if (versions && versions.serverVersion.minor >= 21) {
-        yamlPath = join(STATIC_DIR, "kubernetes", "nginx-kind-new.yaml")
-      }
+      const yamlPath = join(STATIC_DIR, "kubernetes", "nginx-kind.yaml")
+      const systemNamespace = await getSystemNamespace(ctx, provider, log)
 
       // Note: This basic string replace is fine for now, no other templating is done in these files
       const yamlData = (await readFile(yamlPath)).toString().replaceAll("${var.namespace}", systemNamespace)
       const manifests = loadAll(yamlData)
         .filter(isTruthy)
         .map((m) => m as KubernetesResource)
-
       const api = await KubeApi.factory(log, ctx, provider)
       await apply({ log, ctx, api, provider, manifests, validate: false })
     } else if (clusterType === "k3s") {
