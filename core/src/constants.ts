@@ -47,7 +47,7 @@ export const SUPPORTED_ARCHITECTURES: SupportedArchitecture[] = ["x64", "arm64"]
 export const SEGMENT_DEV_API_KEY = "D3DUZ3lBSDO3krnuIO7eYDdtlDAjooKW" // ggignore
 export const SEGMENT_PROD_API_KEY = "b6ovUD9A0YjQqT3ZWetWUbuZ9OmGxKMa" // ggignore
 
-export const DOCS_BASE_URL = "https://docs.garden.io"
+export const DOCS_BASE_URL = "https://docs.garden.io/v/acorn-0.12"
 
 export const DEFAULT_GARDEN_CLOUD_DOMAIN = "https://app.garden.io"
 
