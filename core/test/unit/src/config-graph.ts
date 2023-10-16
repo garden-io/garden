@@ -1567,7 +1567,7 @@ describe("ConfigGraph (module-based configs)", () => {
 describe("ConfigGraphNode", () => {
   describe("render", () => {
     it("should render a build node", () => {
-      const node = new ConfigGraphNode("Build", "module-a", false)
+      const node = new ConfigGraphNode("Build", "container", "module-a", false)
       const res = node.render()
       expect(res).to.eql({
         kind: "Build",
@@ -1578,7 +1578,7 @@ describe("ConfigGraphNode", () => {
     })
 
     it("should render a deploy node", () => {
-      const node = new ConfigGraphNode("Deploy", "service-a", false)
+      const node = new ConfigGraphNode("Deploy", "container", "service-a", false)
       const res = node.render()
       expect(res).to.eql({
         kind: "Deploy",
@@ -1589,7 +1589,7 @@ describe("ConfigGraphNode", () => {
     })
 
     it("should render a run node", () => {
-      const node = new ConfigGraphNode("Run", "task-a", false)
+      const node = new ConfigGraphNode("Run", "container", "task-a", false)
       const res = node.render()
       expect(res).to.eql({
         kind: "Run",
@@ -1600,7 +1600,7 @@ describe("ConfigGraphNode", () => {
     })
 
     it("should render a test node", () => {
-      const node = new ConfigGraphNode("Test", "module-a.test-a", false)
+      const node = new ConfigGraphNode("Test", "container", "module-a.test-a", false)
       const res = node.render()
       expect(res).to.eql({
         kind: "Test",
@@ -1611,7 +1611,7 @@ describe("ConfigGraphNode", () => {
     })
 
     it("should indicate if the node is disabled", () => {
-      const node = new ConfigGraphNode("Test", "module-a.test-a", true)
+      const node = new ConfigGraphNode("Test", "container", "module-a.test-a", true)
       const res = node.render()
       expect(res).to.eql({
         kind: "Test",
