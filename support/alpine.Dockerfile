@@ -115,7 +115,7 @@ WORKDIR /
 ENV AZURE_CLI_VERSION=2.53.0
 
 RUN wget -O requirements.txt https://raw.githubusercontent.com/Azure/azure-cli/azure-cli-$AZURE_CLI_VERSION/src/azure-cli/requirements.py3.Linux.txt && \
-  echo "ff3dcee6677fbdeab3a9e2288caf27a5990514df2c5e7b4800418ffdef5430fd  requirements.txt" | sha256sum -c
+  echo "833a12c837df6b9d8b27abf908073eb2da971c8506d2b112946be4a36e1db7af  requirements.txt" | sha256sum -c
 RUN wget -O trim_sdk.py https://raw.githubusercontent.com/Azure/azure-cli/azure-cli-$AZURE_CLI_VERSION/scripts/trim_sdk.py && \
   echo "2e6292f5285b4fcedbe8efd77309fade550667d1c502a6ffa078f1aa97942c64  trim_sdk.py" | sha256sum -c
 
