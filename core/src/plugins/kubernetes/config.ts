@@ -28,7 +28,6 @@ import {
 } from "../container/moduleConfig.js"
 import type { PluginContext } from "../../plugin-context.js"
 import { dedent, deline } from "../../util/string.js"
-import { defaultSystemNamespace } from "./system.js"
 import type { SyncableKind } from "./types.js"
 import { syncableKinds } from "./types.js"
 import type { BaseTaskSpec } from "../../config/task.js"
@@ -42,7 +41,7 @@ import type { SyncDefaults } from "./sync.js"
 import { syncDefaultsSchema } from "./sync.js"
 import { KUBECTL_DEFAULT_TIMEOUT } from "./kubectl.js"
 import { DOCS_BASE_URL } from "../../constants.js"
-import { defaultKanikoImageName } from "./constants.js"
+import { defaultKanikoImageName, defaultSystemNamespace } from "./constants.js"
 
 export interface ProviderSecretRef {
   name: string

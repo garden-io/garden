@@ -10,7 +10,7 @@ import { join } from "path"
 
 import { GardenApiVersion, STATIC_DIR } from "../../constants.js"
 import { Garden } from "../../garden.js"
-import type { KubernetesPluginContext, KubernetesConfig } from "./config.js"
+import type { KubernetesConfig, KubernetesPluginContext } from "./config.js"
 import type { Log } from "../../logger/log-entry.js"
 import { getSystemNamespace } from "./namespace.js"
 import { PluginError } from "../../exceptions.js"
@@ -21,8 +21,6 @@ import { LogLevel } from "../../logger/logger.js"
 import { defaultNamespace } from "../../config/project.js"
 
 const systemProjectPath = join(STATIC_DIR, "kubernetes", "system")
-
-export const defaultSystemNamespace = "garden-system"
 
 export function getSystemMetadataNamespaceName(config: KubernetesConfig) {
   return `${config.gardenSystemNamespace}--metadata`

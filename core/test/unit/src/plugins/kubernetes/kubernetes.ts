@@ -9,13 +9,13 @@
 import { configureProvider, gardenPlugin } from "../../../../../src/plugins/kubernetes/kubernetes.js"
 import type { KubernetesConfig } from "../../../../../src/plugins/kubernetes/config.js"
 import { defaultResources } from "../../../../../src/plugins/kubernetes/config.js"
-import { defaultSystemNamespace } from "../../../../../src/plugins/kubernetes/system.js"
 import { expect } from "chai"
 import type { TempDirectory } from "../../../../helpers.js"
 import { makeTempDir } from "../../../../helpers.js"
 import { providerFromConfig } from "../../../../../src/config/provider.js"
 import type { Garden } from "../../../../../src/garden.js"
 import { makeDummyGarden } from "../../../../../src/garden.js"
+import { defaultSystemNamespace } from "../../../../../src/plugins/kubernetes/constants.js"
 
 describe("kubernetes configureProvider", () => {
   const basicConfig: KubernetesConfig = {
