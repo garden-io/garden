@@ -112,7 +112,7 @@ RUN rm -rf $(find /google-cloud-sdk/ -regex ".*/__pycache__") && rm -rf /google-
 FROM garden-base-root as garden-azure-base
 
 WORKDIR /
-ENV AZURE_CLI_VERSION=2.50.0
+ENV AZURE_CLI_VERSION=2.53.0
 
 RUN wget -O requirements.txt https://raw.githubusercontent.com/Azure/azure-cli/azure-cli-$AZURE_CLI_VERSION/src/azure-cli/requirements.py3.Linux.txt && \
   echo "ff3dcee6677fbdeab3a9e2288caf27a5990514df2c5e7b4800418ffdef5430fd  requirements.txt" | sha256sum -c
