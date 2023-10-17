@@ -95,6 +95,7 @@ async function prepareEnvironment(
         yamlPath = join(STATIC_DIR, "kubernetes", "nginx-kind-new.yaml")
       }
 
+      const systemNamespace = await getSystemNamespace(ctx, provider, log)
       // Note: This basic string replace is fine for now, no other templating is done in these files
       const yamlData = (await readFile(yamlPath)).toString().replaceAll("${var.namespace}", systemNamespace)
       const manifests = loadAll(yamlData)
