@@ -1,4 +1,11 @@
 
+<a name="0.12.66"></a>
+## [0.12.66](https://github.com/garden-io/garden/compare/0.12.65...0.12.66) (2023-10-16)
+
+### Improvements
+
+* using a new release endpoint for self-update ([#5236](https://github.com/garden-io/garden/issues/5236)) ([34a143c1](https://github.com/garden-io/garden/commit/34a143c1))
+
 <a name="0.12.65"></a>
 ## [0.12.65](https://github.com/garden-io/garden/compare/0.12.64...0.12.65) (2023-10-04)
 
