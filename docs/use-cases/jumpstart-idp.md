@@ -1,5 +1,5 @@
 ---
-title: Jumpstart your internal developer portal
+title: Jumpstart your Internal Developer Platform
 order: 3
 ---
 
