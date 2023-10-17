@@ -7,6 +7,6 @@
 
 This page is a redirect to our main contributing guide. To learn more about how you can contribute, please follow the link below: :point_down:
 
-[Click here to go to the docs!](./contributing/README.md) :rocket:
+[Click here to go to the docs!](./docs/contributing/README.md) :rocket:
 
 We look forward to your valuable contributions! :heart:
