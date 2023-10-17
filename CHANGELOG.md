@@ -1,4 +1,26 @@
 
+<a name="0.13.18"></a>
+## [0.13.18](https://github.com/garden-io/garden/compare/0.13.17...0.13.18) (2023-10-17)
+
+### Bug Fixes
+
+* allow generated files in build actions ([#5230](https://github.com/garden-io/garden/issues/5230)) ([1a55cf7c2](https://github.com/garden-io/garden/commit/1a55cf7c2))
+* prevent crash due to unresolved alias in yaml ([#5215](https://github.com/garden-io/garden/issues/5215)) ([1ceb355d7](https://github.com/garden-io/garden/commit/1ceb355d7))
+* allow listing disabled actions in get actions cmd ([#5203](https://github.com/garden-io/garden/issues/5203)) ([eb316b1af](https://github.com/garden-io/garden/commit/eb316b1af))
+* **build:** make `copyFrom.targetPath` default to `copyFrom.sourcePath` ([#5234](https://github.com/garden-io/garden/issues/5234)) ([62567d720](https://github.com/garden-io/garden/commit/62567d720))
+* **cli:** exit code 1 on unknown commands, sub-commands and flags ([#5235](https://github.com/garden-io/garden/issues/5235)) ([66007f28a](https://github.com/garden-io/garden/commit/66007f28a))
+* **core:** ensure needsReload flag works ([#5211](https://github.com/garden-io/garden/issues/5211)) ([cdf65e3b6](https://github.com/garden-io/garden/commit/cdf65e3b6))
+* **serve:** connect to Cloud if process is started outside of project dir ([#4822](https://github.com/garden-io/garden/issues/4822)) ([61b424e5c](https://github.com/garden-io/garden/commit/61b424e5c))
+
+### Features
+
+* **k8s:** add support for patching manifests ([#5187](https://github.com/garden-io/garden/issues/5187)) ([5f7f5336a](https://github.com/garden-io/garden/commit/5f7f5336a))
+
+### Improvements
+
+* using a new release endpoint for self-update ([#5229](https://github.com/garden-io/garden/issues/5229)) ([33cfebc34](https://github.com/garden-io/garden/commit/33cfebc34))
+* **core:** log stderr from exec as info ([#5227](https://github.com/garden-io/garden/issues/5227)) ([c6016f420](https://github.com/garden-io/garden/commit/c6016f420))
+
 <a name="0.13.17"></a>
 ## [0.13.17](https://github.com/garden-io/garden/compare/0.13.16...0.13.17) (2023-10-05)
 
