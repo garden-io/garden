@@ -1,35 +1,10 @@
 
 <a name="0.12.66"></a>
-## [0.12.66](https://github.com/garden-io/garden/compare/0.13.18...0.12.66) (2023-10-16)
-
-### Bug Fixes
-
-* detect overlapping `targetPath` in `generateFiles` ([#4958](https://github.com/garden-io/garden/issues/4958)) ([34eb11a57](https://github.com/garden-io/garden/commit/34eb11a57))
-* escape rsync special characters in filenames on windows ([#4434](https://github.com/garden-io/garden/issues/4434)) ([#4438](https://github.com/garden-io/garden/issues/4438)) ([8247044a6](https://github.com/garden-io/garden/commit/8247044a6))
-* update version hash if a file is renamed ([0c32af3da](https://github.com/garden-io/garden/commit/0c32af3da))
-* **core:** more narrow set of config fields to hash for module versions ([a34bc42f7](https://github.com/garden-io/garden/commit/a34bc42f7))
-* **jib:** fix sha256 hashes for `mvnd` binaries ([4e317efa6](https://github.com/garden-io/garden/commit/4e317efa6))
-* **k8s:** handle intermittent socket hang up errors ([51458c674](https://github.com/garden-io/garden/commit/51458c674))
-* **k8s:** update default Kaniko version ([b0badbdbc](https://github.com/garden-io/garden/commit/b0badbdbc))
-* **pulumi:** fix pulumi stack tag rm error ([59a054036](https://github.com/garden-io/garden/commit/59a054036))
-* **pulumi:** remove PULUMI_EXPERIMENTAL flag due to side effects ([#4617](https://github.com/garden-io/garden/issues/4617)) ([e02f9bf2b](https://github.com/garden-io/garden/commit/e02f9bf2b))
-* **self-update:** fix target release finding machinery ([9aed119c5](https://github.com/garden-io/garden/commit/9aed119c5))
-* **self-update:** fix list of the latest available versions ([8f4df701b](https://github.com/garden-io/garden/commit/8f4df701b))
-* **template:** allow `null` as a valid argument in helper functions ([05d1dacc1](https://github.com/garden-io/garden/commit/05d1dacc1))
-* **template:** allow empty string as a valid arg of `isEmpty` helper ([66458a9e7](https://github.com/garden-io/garden/commit/66458a9e7))
-* **template-strings:** do not apply helper functions on unresolved string ([#4710](https://github.com/garden-io/garden/issues/4710)) ([8d5180090](https://github.com/garden-io/garden/commit/8d5180090))
-
-### Features
-
-* update helm to `3.12.0` ([64de8054f](https://github.com/garden-io/garden/commit/64de8054f))
+## [0.12.66](https://github.com/garden-io/garden/compare/0.12.65...0.12.66) (2023-10-16)
 
 ### Improvements
 
-* update docker to v24.0.4 ([13db6076f](https://github.com/garden-io/garden/commit/13db6076f))
-* **jib:** allow concurrent maven builds ([b34c0fe15](https://github.com/garden-io/garden/commit/b34c0fe15))
-* **jib:** support custom `mvnd` binaries ([00588911a](https://github.com/garden-io/garden/commit/00588911a))
-* **jib:** upgrade Maven Daemon version to `0.9.0` ([45f501b6c](https://github.com/garden-io/garden/commit/45f501b6c))
-* **jib:** upgrade Maven version to `3.8.8` ([ade1e43fa](https://github.com/garden-io/garden/commit/ade1e43fa))
+* using a new release endpoint for self-update ([#5236](https://github.com/garden-io/garden/issues/5236)) ([34a143c1](https://github.com/garden-io/garden/commit/34a143c1))
 
 <a name="0.12.65"></a>
 ## [0.12.65](https://github.com/garden-io/garden/compare/0.12.64...0.12.65) (2023-10-04)
