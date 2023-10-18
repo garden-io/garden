@@ -37,9 +37,7 @@ import { V1Toleration } from "@kubernetes/client-node"
 import { runPodSpecIncludeFields } from "./run"
 import { SyncDefaults, syncDefaultsSchema } from "./sync"
 import { KUBECTL_DEFAULT_TIMEOUT } from "./kubectl"
-import { readFileSync } from "fs-extra"
-import { join } from "path"
-import { DOCS_BASE_URL, STATIC_DIR } from "../../constants"
+import { DOCS_BASE_URL } from "../../constants"
 import { defaultKanikoImageName } from "./constants"
 
 export interface ProviderSecretRef {
@@ -903,24 +901,21 @@ export const runPodResourceSchema = (kind: string) =>
         `
   )
 
-// Need to use a sync read to avoid having to refactor createGardenPlugin()
-// The `podspec-v1.json` file is copied from the handy
-// kubernetes-json-schema repo (https://github.com/instrumenta/kubernetes-json-schema/tree/master/v1.18.1-standalone).
-const jsonSchema = () => JSON.parse(readFileSync(join(STATIC_DIR, "kubernetes", "podspec-v1.json")).toString())
-
 // TODO: allow reading the pod spec from a file
 export const runPodSpecSchema = (kind: string) =>
   joi
     .object()
-    .jsonSchema({ ...jsonSchema(), type: "object" })
     .description(
       dedent`
     Supply a custom Pod specification. This should be a normal Kubernetes Pod manifest. Note that the spec will be modified for the ${kind}, including overriding with other fields you may set here (such as \`args\` and \`env\`), and removing certain fields that are not supported.
+
+    You can find the full Pod spec in the [official Kubernetes documentation](https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#PodSpec)
 
     The following Pod spec fields from the selected \`resource\` will be used (if present) when executing the ${kind}:
     ${runPodSpecWhitelistDescription()}
   `
     )
+    .unknown(true)
 
 export const kubernetesTaskSchema = () =>
   baseTaskSpecSchema()
