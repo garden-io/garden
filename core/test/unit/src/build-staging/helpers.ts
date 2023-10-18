@@ -20,7 +20,8 @@ import { realpath, symlink, writeFile, readFile, mkdir, ensureFile, ensureDir } 
 import { expect } from "chai"
 import { expectError } from "../../../helpers"
 import { sleep } from "../../../../src/util/util"
-import { round, sortBy } from "lodash"
+import { sortBy } from "lodash"
+import { equalWithPrecision } from "../../../../src/util/testing"
 
 describe("build staging helpers", () => {
   let statsHelper: FileStatsHelper
@@ -86,7 +87,7 @@ describe("build staging helpers", () => {
       const statA = await statsHelper.extendedStat({ path: a })
       const statB = await statsHelper.extendedStat({ path: b })
 
-      expect(round(statA?.mtimeMs!, 2)).to.equal(round(statB?.mtimeMs!, 2))
+      expect(equalWithPrecision(statA?.mtimeMs!, statB?.mtimeMs!, 2)).to.be.true
     })
 
     it("skips if file at target exists and has same mtime and size", async () => {
