@@ -8,15 +8,15 @@
 
 import { join } from "path"
 import {
-  FileStatsHelper,
-  ExtendedStats,
-  ResolveSymlinkParams,
   cloneFileAsync,
-  scanDirectoryForClone,
+  ExtendedStats,
+  FileStatsHelper,
   MappedPaths,
+  ResolveSymlinkParams,
+  scanDirectoryForClone,
 } from "../../../../src/build-staging/helpers"
-import { TempDirectory, makeTempDir } from "../../../../src/util/fs"
-import { realpath, symlink, writeFile, readFile, mkdir, ensureFile, ensureDir } from "fs-extra"
+import { makeTempDir, TempDirectory } from "../../../../src/util/fs"
+import { ensureDir, ensureFile, mkdir, readFile, realpath, symlink, writeFile } from "fs-extra"
 import { expect } from "chai"
 import { expectError } from "../../../helpers"
 import { sleep } from "../../../../src/util/util"
