@@ -70,55 +70,55 @@ TEST "test cloud provider tool availability"
     docker buildx bake --progress=plain -f "$(dirname "$0")/docker-bake.hcl" alpine
 
   # aws
-  should_succeed aws --version gardendev/garden-aws-gcloud-azure
-  should_succeed aws --version gardendev/garden-aws-gcloud
-  should_succeed aws --version gardendev/garden-aws
-  should_fail aws --version gardendev/garden
-  should_fail aws --version gardendev/garden-gcloud
-  should_fail aws --version gardendev/garden-azure
+  should_succeed aws --version gardendev/garden-aws-gcloud-azure:acorn-alpine
+  should_succeed aws --version gardendev/garden-aws-gcloud:acorn-alpine
+  should_succeed aws --version gardendev/garden-aws:acorn-alpine
+  should_fail aws --version gardendev/garden:acorn-alpine
+  should_fail aws --version gardendev/garden-gcloud:acorn-alpine
+  should_fail aws --version gardendev/garden-azure:acorn-alpine
 
   # Gcloud
-  should_succeed gcloud version gardendev/garden-aws-gcloud-azure
-  should_succeed gcloud version gardendev/garden-aws-gcloud
-  should_succeed gcloud version gardendev/garden-gcloud
-  should_fail gcloud version gardendev/garden
-  should_fail gcloud version gardendev/garden-azure
-  should_fail gcloud version gardendev/garden-aws
+  should_succeed gcloud version gardendev/garden-aws-gcloud-azure:acorn-alpine
+  should_succeed gcloud version gardendev/garden-aws-gcloud:acorn-alpine
+  should_succeed gcloud version gardendev/garden-gcloud:acorn-alpine
+  should_fail gcloud version gardendev/garden:acorn-alpine
+  should_fail gcloud version gardendev/garden-azure:acorn-alpine
+  should_fail gcloud version gardendev/garden-aws:acorn-alpine
 
   # Azure
-  should_succeed az version gardendev/garden-aws-gcloud-azure
-  should_succeed az version gardendev/garden-azure
-  should_fail az version gardendev/garden
-  should_fail az version gardendev/garden-gcloud
-  should_fail az version gardendev/garden-aws
-  should_fail az version gardendev/garden-aws-gcloud
+  should_succeed az version gardendev/garden-aws-gcloud-azure:acorn-alpine
+  should_succeed az version gardendev/garden-azure:acorn-alpine
+  should_fail az version gardendev/garden:acorn-alpine
+  should_fail az version gardendev/garden-gcloud:acorn-alpine
+  should_fail az version gardendev/garden-aws:acorn-alpine
+  should_fail az version gardendev/garden-aws-gcloud:acorn-alpine
 
 TEST "run all binaries"
   MAJOR_VERSION=0 MINOR_VERSION=12 PATCH_VERSION=0 CODENAME=acorn \
     docker buildx bake --progress=plain -f "$(dirname "$0")/docker-bake.hcl" all
 
   # garden
-  should_succeed garden --version gardendev/garden-aws-gcloud-azure
-  should_succeed garden --version gardendev/garden-aws-gcloud
-  should_succeed garden --version gardendev/garden-aws
-  should_succeed garden --version gardendev/garden-gcloud
-  should_succeed garden --version gardendev/garden-azure
+  should_succeed garden --version gardendev/garden-aws-gcloud-azure:acorn-alpine
+  should_succeed garden --version gardendev/garden-aws-gcloud:acorn-alpine
+  should_succeed garden --version gardendev/garden-aws:acorn-alpine
+  should_succeed garden --version gardendev/garden-gcloud:acorn-alpine
+  should_succeed garden --version gardendev/garden-azure:acorn-alpine
   should_succeed garden --version gardendev/garden:acorn-alpine
   should_succeed garden --version gardendev/garden:acorn-buster
 
   # aws
-  should_succeed aws --version gardendev/garden-aws-gcloud-azure
-  should_succeed aws --version gardendev/garden-aws-gcloud
-  should_succeed aws --version gardendev/garden-aws
+  should_succeed aws --version gardendev/garden-aws-gcloud-azure:acorn-alpine
+  should_succeed aws --version gardendev/garden-aws-gcloud:acorn-alpine
+  should_succeed aws --version gardendev/garden-aws:acorn-alpine
 
   # Gcloud
-  should_succeed gcloud version gardendev/garden-aws-gcloud-azure
-  should_succeed gcloud version gardendev/garden-aws-gcloud
-  should_succeed gcloud version gardendev/garden-gcloud
+  should_succeed gcloud version gardendev/garden-aws-gcloud-azure:acorn-alpine
+  should_succeed gcloud version gardendev/garden-aws-gcloud:acorn-alpine
+  should_succeed gcloud version gardendev/garden-gcloud:acorn-alpine
 
   # Azure
-  should_succeed az version gardendev/garden-aws-gcloud-azure
-  should_succeed az version gardendev/garden-azure
+  should_succeed az version gardendev/garden-aws-gcloud-azure:acorn-alpine
+  should_succeed az version gardendev/garden-azure:acorn-alpine
 
 TEST "edge tags for buster"
   MAJOR_VERSION=0 MINOR_VERSION=12 PRERELEASE=edge CODENAME=acorn \
