@@ -3,4 +3,4 @@ redis==4.4.4
 gunicorn==20.1.0
 flask-cors==3.0.10
 requests==2.31.0
-urllib3==1.26.17
+urllib3==1.26.18
