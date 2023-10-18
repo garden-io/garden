@@ -36,7 +36,7 @@ run_binary() {
   command=$2
   image=$3
 
-  docker run --platform=linux/amd64 --rm -it --entrypoint=$binary $image $command
+  docker run --pull=never --platform=linux/amd64 --rm -it --entrypoint=$binary $image $command
 }
 
 should_succeed() {
