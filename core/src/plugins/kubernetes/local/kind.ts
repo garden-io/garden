@@ -131,15 +131,16 @@ async function getKindClusters(): Promise<Array<string>> {
 }
 
 async function getClusterForContext(context: string) {
-  for (const cluster of await getKindClusters()) {
-    if (await isContextAMatch(cluster, context)) {
+  const clusters = await getKindClusters()
+  for (const cluster of clusters) {
+    if (await contextMatches(cluster, context)) {
       return cluster
     }
   }
   return null
 }
 
-async function isContextAMatch(cluster: string, context: string): Promise<boolean> {
+async function contextMatches(cluster: string, context: string): Promise<boolean> {
   try {
     const kubeConfigString = (await exec("kind", ["get", "kubeconfig", `--name=${cluster}`])).stdout
     const kubeConfig = load(kubeConfigString)!
