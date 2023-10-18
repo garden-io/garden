@@ -67,7 +67,7 @@ TEST() {
 
 TEST "test cloud provider tool availability"
   MAJOR_VERSION=0 MINOR_VERSION=12 PATCH_VERSION=0 CODENAME=acorn \
-    docker buildx bake --progress=plain -f support/docker-bake.hcl alpine
+    docker buildx bake --progress=plain -f "$(dirname "$0")/docker-bake.hcl" alpine
 
   # aws
   should_succeed aws --version gardendev/garden-aws-gcloud-azure
@@ -95,7 +95,7 @@ TEST "test cloud provider tool availability"
 
 TEST "run all binaries"
   MAJOR_VERSION=0 MINOR_VERSION=12 PATCH_VERSION=0 CODENAME=acorn \
-    docker buildx bake --progress=plain -f support/docker-bake.hcl all
+    docker buildx bake --progress=plain -f "$(dirname "$0")/docker-bake.hcl" all
 
   # garden
   should_succeed garden --version gardendev/garden-aws-gcloud-azure
@@ -122,7 +122,7 @@ TEST "run all binaries"
 
 TEST "edge tags for buster"
   MAJOR_VERSION=0 MINOR_VERSION=12 PRERELEASE=edge CODENAME=acorn \
-    docker buildx bake --progress=plain -f support/docker-bake.hcl buster
+    docker buildx bake --progress=plain -f "$(dirname "$0")/docker-bake.hcl" buster
 
   should_not_exist gardendev/garden latest
   should_not_exist gardendev/garden 0.12-buster
@@ -131,7 +131,7 @@ TEST "edge tags for buster"
 
 TEST "edge tags for alpine"
   MAJOR_VERSION=0 MINOR_VERSION=12 PRERELEASE=edge CODENAME=acorn \
-    docker buildx bake --progress=plain -f support/docker-bake.hcl alpine
+    docker buildx bake --progress=plain -f "$(dirname "$0")/docker-bake.hcl" alpine
 
   for image in gardendev/garden{,-aws,-azure,-gcloud,-aws-gcloud,-aws-gcloud-azure}
     do
@@ -143,7 +143,7 @@ TEST "edge tags for alpine"
 
 TEST "prerelease tags for buster"
   MAJOR_VERSION=0 MINOR_VERSION=12 PATCH_VERSION=0 PRERELEASE=alpha1 CODENAME=acorn \
-    docker buildx bake --progress=plain -f support/docker-bake.hcl buster
+    docker buildx bake --progress=plain -f "$(dirname "$0")/docker-bake.hcl" buster
 
   should_not_exist gardendev/garden latest
   should_not_exist gardendev/garden 0.12-buster
@@ -153,7 +153,7 @@ TEST "prerelease tags for buster"
 
 TEST "prerelease tags for alpine"
   MAJOR_VERSION=0 MINOR_VERSION=12 PATCH_VERSION=0 PRERELEASE=alpha1 CODENAME=acorn \
-    docker buildx bake --progress=plain -f support/docker-bake.hcl alpine
+    docker buildx bake --progress=plain -f "$(dirname "$0")/docker-bake.hcl" alpine
 
   for image in gardendev/garden{,-aws,-azure,-gcloud,-aws-gcloud,-aws-gcloud-azure}
     do
@@ -166,7 +166,7 @@ TEST "prerelease tags for alpine"
 
 TEST "production release tags for buster"
   MAJOR_VERSION=0 MINOR_VERSION=12 PATCH_VERSION=0 CODENAME=acorn \
-    docker buildx bake --progress=plain -f support/docker-bake.hcl buster
+    docker buildx bake --progress=plain -f "$(dirname "$0")/docker-bake.hcl" buster
 
   should_not_exist gardendev/garden latest
   should_exist gardendev/garden 0.12-buster
@@ -177,7 +177,7 @@ TEST "production release tags for buster"
 
 TEST "production release tags for alpine"
   MAJOR_VERSION=0 MINOR_VERSION=12 PATCH_VERSION=0 CODENAME=acorn \
-    docker buildx bake --progress=plain -f support/docker-bake.hcl alpine
+    docker buildx bake --progress=plain -f "$(dirname "$0")/docker-bake.hcl" alpine
 
   for image in gardendev/garden{,-aws,-azure,-gcloud,-aws-gcloud,-aws-gcloud-azure}
     do
