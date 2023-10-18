@@ -6,24 +6,24 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { deserializeValues } from "../../util/serialization"
-import { KubeApi, KubernetesError } from "./api"
-import { ContainerTestAction } from "../container/moduleConfig"
-import { PluginContext } from "../../plugin-context"
-import { KubernetesPluginContext } from "./config"
-import { Log } from "../../logger/log-entry"
-import { TestResult } from "../../types/test"
-import hasha from "hasha"
-import { gardenAnnotationKey } from "../../util/string"
-import { upsertConfigMap } from "./util"
-import { trimRunOutput } from "./helm/common"
-import { getSystemNamespace } from "./namespace"
 import chalk from "chalk"
-import { TestActionHandler } from "../../plugin/action-types"
+import hasha from "hasha"
 import { runResultToActionState } from "../../actions/base"
+import { Log } from "../../logger/log-entry"
+import { PluginContext } from "../../plugin-context"
+import { TestActionHandler } from "../../plugin/action-types"
+import { TestResult } from "../../types/test"
+import { isGardenEnterprise } from "../../util/enterprise"
+import { deserializeValues } from "../../util/serialization"
+import { gardenAnnotationKey } from "../../util/string"
+import { ContainerTestAction } from "../container/moduleConfig"
+import { KubeApi, KubernetesError } from "./api"
+import { KubernetesPluginContext } from "./config"
+import { trimRunOutput } from "./helm/common"
 import { HelmPodTestAction } from "./helm/config"
 import { KubernetesTestAction } from "./kubernetes-type/config"
-import { DEFAULT_GARDEN_CLOUD_DOMAIN } from "../../constants"
+import { getSystemNamespace } from "./namespace"
+import { upsertConfigMap } from "./util"
 
 // TODO: figure out how to get rid of the any cast
 export const k8sGetTestResult: TestActionHandler<"getResult", any> = async (params) => {
@@ -33,7 +33,7 @@ export const k8sGetTestResult: TestActionHandler<"getResult", any> = async (para
   const api = await KubeApi.factory(log, ctx, k8sCtx.provider)
 
   // enterprise
-  if (ctx.projectId && ctx.cloudApi && ctx.cloudApi?.domain !== DEFAULT_GARDEN_CLOUD_DOMAIN) {
+  if (ctx.cloudApi && isGardenEnterprise(ctx)) {
     const keyString = `${ctx.projectId}_${action.name}_${action.kind}_${action.versionString()}`
     const res = await ctx.cloudApi.getCacheStatus(keyString)
     if (res.status === "error") {
@@ -99,7 +99,7 @@ interface StoreTestResultParams {
  * TODO: Implement a CRD for this.
  */
 export async function storeTestResult({ ctx, log, action, result }: StoreTestResultParams): Promise<TestResult | null> {
-  if (ctx.cloudApi && ctx.cloudApi?.domain !== DEFAULT_GARDEN_CLOUD_DOMAIN) {
+  if (isGardenEnterprise(ctx)) {
     // no need to store results for enterprise
     // automatically stored from the events that are sent to cloud
     return null
