@@ -242,7 +242,7 @@ spec:
         - name: health
           configMap:
             name: redis-health
-            defaultMode: 0o755
+            defaultMode: 0755
         - name: config
           configMap:
             name: redis
@@ -350,7 +350,7 @@ spec:
         - name: health
           configMap:
             name: redis-health
-            defaultMode: 0o755
+            defaultMode: 0755
         - name: config
           configMap:
             name: redis
