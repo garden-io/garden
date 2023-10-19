@@ -8,7 +8,7 @@
 
 import { GlobalOptions, globalOptions, ParameterValues } from "../cli/params"
 import cloneDeep from "fast-copy"
-import { isEqual, keyBy, set, mapValues } from "lodash"
+import { isEqual, keyBy, set, mapValues, round } from "lodash"
 import { Garden, GardenOpts, GardenParams, GetConfigGraphParams, resolveGardenParams } from "../garden"
 import { DeepPrimitiveMap, StringMap } from "../config/common"
 import { ModuleConfig } from "../config/module"
@@ -533,4 +533,11 @@ export function captureStream(stream: NodeJS.WritableStream) {
       return buf
     },
   }
+}
+
+export function equalWithPrecision(a: number, b: number, precision: number): boolean {
+  const rawDiff = Math.abs(a - b)
+  const diff = round(rawDiff, precision)
+  const eps = Math.pow(10, -precision)
+  return diff <= eps
 }

@@ -37,7 +37,7 @@ export function renderActionTypeReference(kind: ActionKind, name: string, desc: 
   const fullSchema = baseSchemas[kind].keys({ spec: schema })
 
   const templatePath = resolve(TEMPLATES_DIR, "action-type.hbs")
-  const { markdownReference, yaml } = renderConfigReference(fullSchema)
+  const { markdownReference } = renderConfigReference(fullSchema)
 
   const staticOutputsSchema = desc.staticOutputsSchema || joi.object()
   const runtimeOutputsSchema = desc.runtimeOutputsSchema || joi.object()
@@ -61,7 +61,6 @@ export function renderActionTypeReference(kind: ActionKind, name: string, desc: 
     name,
     docs,
     markdownReference,
-    yaml,
     hasOutputs: outputsReference,
     outputsReference,
   })
