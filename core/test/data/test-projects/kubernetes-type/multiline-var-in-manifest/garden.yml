@@ -1,0 +1,11 @@
+kind: Deploy
+type: kubernetes
+name: multiline-var-in-manifest-deploy
+spec:
+  files: [ "deployment.yml" ]
+variables:
+  multiline-var: |
+    this is a
+    multiline
+    variable
+  foo: bar

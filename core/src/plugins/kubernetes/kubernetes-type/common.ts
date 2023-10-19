@@ -424,13 +424,14 @@ async function readFileManifests(
       resolvedFiles.map(async (path): Promise<DeclaredManifest[]> => {
         const absPath = resolve(manifestPath, path)
         log.debug(`Reading manifest for ${action.longDescription()} from path ${absPath}`)
-        const str = (await readFile(absPath)).toString()
-        const resolved = ctx.resolveTemplateStrings(str, { allowPartial: true, unescape: true })
+        // parse manifests as yaml before resolving the template strings
+        // to avoid the whole yaml file being treated as single string.
         const manifests = await parseKubernetesManifests(
-          resolved,
+          (await readFile(absPath)).toString(),
           `${basename(absPath)} in directory ${dirname(absPath)} (specified in ${action.longDescription()})`
         )
-        return manifests.map((manifest, index) => ({
+        const resolved = ctx.resolveTemplateStrings(manifests, { allowPartial: true, unescape: true })
+        return resolved.map((manifest, index) => ({
           declaration: {
             type: "file",
             filename: absPath,
