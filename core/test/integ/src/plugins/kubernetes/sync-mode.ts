@@ -265,8 +265,6 @@ describe("sync mode deployments and sync behavior", () => {
             target: {
               kind: "Deployment",
               name: "some-deployment",
-              containerName: undefined,
-              podSelector: undefined,
             },
             mode: "two-way",
             sourcePath: join(module.path, "src"),
@@ -323,8 +321,6 @@ describe("sync mode deployments and sync behavior", () => {
             target: {
               kind: "Deployment",
               name: "some-deployment",
-              containerName: undefined,
-              podSelector: undefined,
             },
             mode: "two-way",
             exclude: ["bad/things"],
