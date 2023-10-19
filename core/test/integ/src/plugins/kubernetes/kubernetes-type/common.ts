@@ -9,16 +9,18 @@
 import { expect } from "chai"
 import cloneDeep from "fast-copy"
 
+import dedent from "dedent"
+import { omit } from "lodash"
+import { dirname, join } from "path"
+import { Resolved } from "../../../../../../src/actions/types"
+import { ProviderConfigContext } from "../../../../../../src/config/template-contexts/provider"
 import { ConfigGraph } from "../../../../../../src/graph/config-graph"
 import { PluginContext } from "../../../../../../src/plugin-context"
-import { getManifests } from "../../../../../../src/plugins/kubernetes/kubernetes-type/common"
-import { expectError, getDataDir, getExampleDir, makeTestGarden, TestGarden } from "../../../../../helpers"
-import { KubernetesDeployAction } from "../../../../../../src/plugins/kubernetes/kubernetes-type/config"
-import { Resolved } from "../../../../../../src/actions/types"
 import { KubeApi } from "../../../../../../src/plugins/kubernetes/api"
 import { KubernetesProvider } from "../../../../../../src/plugins/kubernetes/config"
-import dedent from "dedent"
-import { dirname, join } from "path"
+import { getManifests } from "../../../../../../src/plugins/kubernetes/kubernetes-type/common"
+import { KubernetesDeployAction } from "../../../../../../src/plugins/kubernetes/kubernetes-type/config"
+import { expectError, getDataDir, getExampleDir, makeTestGarden, TestGarden } from "../../../../../helpers"
 
 let kubernetesTestGarden: TestGarden
 
@@ -146,6 +148,50 @@ describe("getManifests", () => {
             `)
         }
       )
+    })
+  })
+
+  context("resolve template strings in manifests", () => {
+    let action: Resolved<KubernetesDeployAction>
+
+    before(async () => {
+      garden = await getKubernetesTestGarden()
+    })
+
+    beforeEach(async () => {
+      graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+    })
+
+    it("resolves multi-line template strings in the manifests correctly", async () => {
+      action = await garden.resolveAction<KubernetesDeployAction>({
+        action: cloneDeep(graph.getDeploy("multiline-var-in-manifest-deploy")),
+        log: garden.log,
+        graph,
+      })
+      const provider = (await garden.resolveProvider(garden.log, "local-kubernetes")) as KubernetesProvider
+      ctx = await garden.getPluginContext({
+        provider,
+        templateContext: new ProviderConfigContext(garden, provider.dependencies, action.getVariables()),
+        events: undefined,
+      })
+      api = await KubeApi.factory(garden.log, ctx, provider)
+
+      const manifests = await getManifests({ ctx, api, action, log: garden.log, defaultNamespace })
+      const configmap = manifests.find((m) => m.metadata.name === "test-configmap")
+      const expectedConfigMap = {
+        ...configmap,
+        // remove annotations/labels added by garden
+        metadata: omit(configmap?.metadata, ["annotations", "labels"]),
+      }
+      expect(expectedConfigMap).eql({
+        apiVersion: "v1",
+        kind: "ConfigMap",
+        metadata: {
+          name: "test-configmap",
+          namespace: "foobar",
+        },
+        data: { hello: "this is a\nmultiline\nvariable\n" },
+      })
     })
   })
 
