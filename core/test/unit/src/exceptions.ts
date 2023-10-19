@@ -16,6 +16,7 @@ import {
   getStackTraceMetadata,
 } from "../../../src/exceptions"
 import dedent from "dedent"
+import { testFlags } from "../../../src/util/util"
 
 describe("GardenError", () => {
   // helper to avoid dealing with changing line numbers
@@ -104,6 +105,132 @@ describe("GardenError", () => {
       { relativeFileName: "mocha/lib/runnable.js", lineNumber: undefined, functionName: "Test.Runnable.run" },
       { relativeFileName: "timers", lineNumber: undefined, functionName: "processImmediate" },
     ])
+  })
+
+  it("should not expand error stack with wrapped errors trace by default", () => {
+    testFlags.expandErrors = false
+
+    const wrappedError = new ConfigurationError({ message: "wrapped error" })
+
+    const error = new RuntimeError({ message: "test exception", wrappedErrors: [wrappedError] })
+
+    expect(error.stack).to.contain("test exception")
+    expect(error.stack).not.to.contain("wrapped error")
+  })
+
+  it("should expand error stack with wrapped errors trace if testFlags.expandErrors is true", () => {
+    testFlags.expandErrors = true
+
+    const wrappedError = new ConfigurationError({ message: "wrapped error" })
+
+    const error = new RuntimeError({ message: "test exception", wrappedErrors: [wrappedError] })
+
+    expect(error.stack).to.contain("test exception")
+    expect(error.stack).to.contain("wrapped error")
+  })
+
+  it("should format expanded errors correctly", () => {
+    testFlags.expandErrors = true
+
+    const error1 = new RuntimeError({
+      message: "test exception",
+      wrappedErrors: [
+        new ConfigurationError({ message: "wrapped error one" }),
+        new ConfigurationError({ message: "wrapped error two" }),
+      ],
+    })
+
+    expect(error1.stack?.replaceAll(/at .+$/gm, "at (stack trace)")).to.eql(dedent`
+      Error: test exception
+          at (stack trace)
+          at (stack trace)
+          at (stack trace)
+          at (stack trace)
+          at (stack trace)
+          at (stack trace)
+          at (stack trace)
+          at (stack trace)
+          at (stack trace)
+          at (stack trace)
+      Wrapped errors:
+      ⮑  Error: wrapped error one
+              at (stack trace)
+              at (stack trace)
+              at (stack trace)
+              at (stack trace)
+              at (stack trace)
+              at (stack trace)
+              at (stack trace)
+              at (stack trace)
+              at (stack trace)
+              at (stack trace)
+          Error type: configuration
+      ⮑  Error: wrapped error two
+              at (stack trace)
+              at (stack trace)
+              at (stack trace)
+              at (stack trace)
+              at (stack trace)
+              at (stack trace)
+              at (stack trace)
+              at (stack trace)
+              at (stack trace)
+              at (stack trace)
+          Error type: configuration`)
+
+    const error2 = new RuntimeError({
+      message: "test exception",
+      wrappedErrors: [
+        new ConfigurationError({
+          message: "wrapped error one",
+          wrappedErrors: [new ConfigurationError({ message: "wrapped error two" })],
+        }),
+      ],
+    })
+
+    expect(error2.stack?.replaceAll(/at .+$/gm, "at (stack trace)")).to.eql(dedent`
+      Error: test exception
+          at (stack trace)
+          at (stack trace)
+          at (stack trace)
+          at (stack trace)
+          at (stack trace)
+          at (stack trace)
+          at (stack trace)
+          at (stack trace)
+          at (stack trace)
+          at (stack trace)
+      Wrapped errors:
+      ⮑  Error: wrapped error one
+              at (stack trace)
+              at (stack trace)
+              at (stack trace)
+              at (stack trace)
+              at (stack trace)
+              at (stack trace)
+              at (stack trace)
+              at (stack trace)
+              at (stack trace)
+              at (stack trace)
+          Error type: configuration
+          Wrapped errors:
+          ⮑  Error: wrapped error two
+                  at (stack trace)
+                  at (stack trace)
+                  at (stack trace)
+                  at (stack trace)
+                  at (stack trace)
+                  at (stack trace)
+                  at (stack trace)
+                  at (stack trace)
+                  at (stack trace)
+                  at (stack trace)
+              Error type: configuration`)
+  })
+
+  afterEach(() => {
+    // restore testFlag to default value
+    testFlags.expandErrors = true
   })
 })
 
