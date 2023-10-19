@@ -5,4 +5,3 @@ environments:
   - name: local
 providers:
   - name: local-kubernetes
-    context: minikube
