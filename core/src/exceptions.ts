@@ -92,7 +92,6 @@ export abstract class GardenError extends Error {
 
   constructor({ message, wrappedErrors, taskType, code }: GardenErrorParams) {
     super(message.trim())
-    this.stack = this.stack
     this.wrappedErrors = wrappedErrors
     this.taskType = taskType
     this.code = code
