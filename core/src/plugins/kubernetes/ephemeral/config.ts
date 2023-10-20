@@ -22,10 +22,8 @@ import { defaultResources } from "../config.js"
 import { namespaceSchema } from "../config.js"
 import { EPHEMERAL_KUBERNETES_PROVIDER_NAME } from "./ephemeral.js"
 import { DEFAULT_GARDEN_CLOUD_DOMAIN } from "../../../constants.js"
-import type { SystemVars } from "../init.js"
 import { getSystemNamespace } from "../namespace.js"
 import { defaultSystemNamespace } from "../constants.js"
-import { NginxHelmValuesGetter } from "../nginx/nginx-helm.js"
 
 export const configSchema = () =>
   providerConfigBaseSchema()
@@ -44,47 +42,6 @@ export const configSchema = () =>
         ),
     })
     .description(`The provider configuration for the ${EPHEMERAL_KUBERNETES_PROVIDER_NAME} plugin.`)
-
-export const getEphemeralNginxHelmValues: NginxHelmValuesGetter = (systemVars: SystemVars) => {
-  return {
-    name: "ingress-controller",
-    controller: {
-      extraArgs: {
-        "default-backend-service": `${systemVars.namespace}/default-backend`,
-      },
-      kind: "Deployment",
-      replicaCount: 1,
-      updateStrategy: {
-        type: "RollingUpdate",
-        rollingUpdate: {
-          maxUnavailable: 1,
-        },
-      },
-      minReadySeconds: 1,
-      tolerations: systemVars["system-tolerations"],
-      nodeSelector: systemVars["system-node-selector"],
-      admissionWebhooks: {
-        enabled: false,
-      },
-      ingressClassResource: {
-        name: "nginx",
-        enabled: true,
-        default: true,
-      },
-      service: {
-        annotations: {
-          "kubernetes.namespace.so/expose": "true",
-          "kubernetes.namespace.so/exposed-port-80": "wildcard",
-          "kubernetes.namespace.so/exposed-port-443": "wildcard",
-        },
-        type: "LoadBalancer",
-      },
-    },
-    defaultBackend: {
-      enabled: false,
-    },
-  }
-}
 
 export async function configureProvider(params: ConfigureProviderParams<KubernetesConfig>) {
   const { base, log, projectName, ctx, config: baseConfig } = params
