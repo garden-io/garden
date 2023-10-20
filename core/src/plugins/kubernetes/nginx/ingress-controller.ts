@@ -30,45 +30,62 @@ const HELM_INGRESS_NGINX_DEPLOYMENT_TIMEOUT = "300s"
 
 export async function ingressControllerReady(ctx: KubernetesPluginContext, log: Log): Promise<boolean> {
   const clusterType = ctx.provider.config.clusterType
+  if (clusterType === undefined) {
+    return false
+  }
+
   if (clusterType === "kind") {
     return (await kindNginxStatus(ctx, log)) === "ready"
   } else if (clusterType === "microk8s") {
     return (await microk8sNginxStatus(log)) === "ready"
   } else if (clusterType === "minikube") {
     return (await minikubeNginxStatus(log)) === "ready"
-  } else if (clusterType) {
+  } else if (clusterType === "k3s" || clusterType === "generic") {
     const nginxStatus = await helmNginxStatus(ctx, log)
     const backendStatus = await defaultBackendStatus(ctx, log)
     return nginxStatus === "ready" && backendStatus === "ready"
+  } else {
+    return clusterType satisfies never
   }
-  return false
 }
 
 export async function ingressControllerInstall(ctx: KubernetesPluginContext, log: Log) {
   const clusterType = ctx.provider.config.clusterType
+  if (clusterType === undefined) {
+    return
+  }
+
   if (clusterType === "kind") {
     await kindNginxInstall(ctx, log)
   } else if (clusterType === "microk8s") {
     await microk8sNginxInstall(ctx, log)
   } else if (clusterType === "minikube") {
     await minikubeNginxInstall(log)
-  } else if (clusterType) {
+  } else if (clusterType === "k3s" || clusterType === "generic") {
     await helmNginxInstall(ctx, log)
     await defaultBackendInstall(ctx, log)
+  } else {
+    return clusterType satisfies never
   }
 }
 
 export async function ingressControllerUninstall(ctx: KubernetesPluginContext, log: Log) {
   const clusterType = ctx.provider.config.clusterType
+  if (clusterType === undefined) {
+    return
+  }
+
   if (clusterType === "kind") {
     await kindNginxUninstall(ctx, log)
   } else if (clusterType === "microk8s") {
     await microk8sNginxUninstall(ctx, log)
   } else if (clusterType === "minikube") {
     await minikubeNginxUninstall(log)
-  } else if (clusterType) {
+  } else if (clusterType === "k3s" || clusterType === "generic") {
     await helmNginxUninstall(ctx, log)
     await defaultBackendUninstall(ctx, log)
+  } else {
+    return clusterType satisfies never
   }
 }
 
