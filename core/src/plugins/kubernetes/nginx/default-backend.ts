@@ -57,6 +57,9 @@ export async function defaultBackendUninstall(ctx: KubernetesPluginContext, log:
   await api.deleteBySpec({ namespace, manifest: deployment, log })
 }
 
+const GARDEN_DEFAULT_BACKEND_IMAGE =
+  "gardendev/default-backend:v0.1@sha256:1b02920425eea569c6be53bb2e3d2c1182243212de229be375da7a93594498cf"
+
 function defaultBackendGetManifests(ctx: KubernetesPluginContext): {
   deployment: KubernetesDeployment
   service: KubernetesService
@@ -98,8 +101,7 @@ function defaultBackendGetManifests(ctx: KubernetesPluginContext): {
         spec: {
           containers: [
             {
-              image:
-                "gardendev/default-backend:v0.1@sha256:1b02920425eea569c6be53bb2e3d2c1182243212de229be375da7a93594498cf",
+              image: GARDEN_DEFAULT_BACKEND_IMAGE,
               imagePullPolicy: "IfNotPresent",
               name: "default-backend",
               ports: [
