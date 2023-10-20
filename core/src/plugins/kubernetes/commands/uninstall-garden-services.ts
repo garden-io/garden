@@ -9,7 +9,7 @@
 import chalk from "chalk"
 import type { PluginCommand } from "../../../plugin/command.js"
 import type { KubernetesPluginContext } from "../config.js"
-import { ingressControllerUninstall } from "../nginx/nginx.js"
+import { ingressControllerUninstall } from "../nginx/ingress-controller.js"
 
 export const uninstallGardenServices: PluginCommand = {
   name: "uninstall-garden-services",

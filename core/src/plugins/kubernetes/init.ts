@@ -35,10 +35,10 @@ import { systemDockerAuthSecretName, dockerAuthSecretKey } from "./constants.js"
 import type { V1IngressClass, V1Secret, V1Toleration } from "@kubernetes/client-node"
 import type { KubernetesResource } from "./types.js"
 import type { PrimitiveMap } from "../../config/common.js"
-import { mapValues, omit } from "lodash-es"
+import { mapValues } from "lodash-es"
 import { getIngressApiVersion, supportedIngressApiVersions } from "./container/ingress.js"
 import type { Log } from "../../logger/log-entry.js"
-import { ingressControllerInstall, ingressControllerReady } from "./integrations/nginx.js"
+import { ingressControllerInstall, ingressControllerReady } from "./nginx/ingress-controller.js"
 
 const dockerAuthSecretType = "kubernetes.io/dockerconfigjson"
 const dockerAuthDocsLink = `

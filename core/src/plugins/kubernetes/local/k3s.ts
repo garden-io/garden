@@ -12,7 +12,7 @@ import { KubeApi } from "../api.js"
 import type { KubernetesResource } from "../types.js"
 import type { PluginContext } from "../../../plugin-context.js"
 import type { SystemVars } from "../init.js"
-import type { NginxHelmValuesGetter } from "../nginx/nginx.js"
+import type { NginxHelmValuesGetter } from "../nginx/ingress-controller.js"
 
 export async function isK3sFamilyCluster(ctx: PluginContext, provider: KubernetesProvider, log: Log): Promise<boolean> {
   return await isK3sFamilyClusterContext(ctx, provider, log)
