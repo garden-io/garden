@@ -127,15 +127,15 @@ function defaultBackendGetManifests(ctx: KubernetesPluginContext): {
 }
 
 export async function defaultBackendInstall(ctx: KubernetesPluginContext, log: Log) {
-  const provider = ctx.provider
-  const config = provider.config
-  const namespace = config.gardenSystemNamespace
   const { deployment, service } = defaultBackendGetManifests(ctx)
   const status = await defaultBackendStatus(ctx, log)
   if (status === "ready") {
     return
   }
 
+  const provider = ctx.provider
+  const config = provider.config
+  const namespace = config.gardenSystemNamespace
   const api = await KubeApi.factory(log, ctx, provider)
   await api.upsert({ kind: "Service", namespace, log, obj: service })
   await api.upsert({ kind: "Deployment", namespace, log, obj: deployment })
@@ -143,15 +143,15 @@ export async function defaultBackendInstall(ctx: KubernetesPluginContext, log: L
 }
 
 export async function defaultBackendUninstall(ctx: KubernetesPluginContext, log: Log) {
-  const provider = ctx.provider
-  const config = provider.config
-  const namespace = config.gardenSystemNamespace
   const { deployment, service } = defaultBackendGetManifests(ctx)
   const status = await defaultBackendStatus(ctx, log)
   if (status === "missing") {
     return
   }
 
+  const provider = ctx.provider
+  const config = provider.config
+  const namespace = config.gardenSystemNamespace
   const api = await KubeApi.factory(log, ctx, provider)
   await api.deleteBySpec({ namespace, manifest: service, log })
   await api.deleteBySpec({ namespace, manifest: deployment, log })

@@ -179,11 +179,6 @@ export async function helmNginxInstall(
   log: Log,
   nginxHelmValuesGetter: NginxHelmValuesGetter
 ) {
-  const provider = ctx.provider
-  const config = provider.config
-
-  const namespace = config.gardenSystemNamespace
-
   const nginxStatus = await helmNginxStatus(ctx, log)
   const backendStatus = await defaultBackendStatus(ctx, log)
 
@@ -191,6 +186,9 @@ export async function helmNginxInstall(
     return
   }
 
+  const provider = ctx.provider
+  const config = provider.config
+  const namespace = config.gardenSystemNamespace
   const systemVars: SystemVars = getKubernetesSystemVariables(config)
   const values = nginxHelmValuesGetter(systemVars)
 
@@ -224,15 +222,17 @@ export async function helmNginxInstall(
 }
 
 export async function helmNginxUninstall(ctx: KubernetesPluginContext, log: Log) {
-  const provider = ctx.provider
-  const config = provider.config
-
-  const namespace = config.gardenSystemNamespace
-  const status = await helmNginxStatus(ctx, log)
-
+  // uninstall default-backend first
   await defaultBackendUninstall(ctx, log)
+
+  const status = await helmNginxStatus(ctx, log)
   if (status === "missing") {
     return
   }
+
+  const provider = ctx.provider
+  const config = provider.config
+  const namespace = config.gardenSystemNamespace
+
   await helm({ ctx, namespace, log, args: ["uninstall", HELM_INGRESS_NGINX_RELEASE_NAME], emitLogEvents: false })
 }
