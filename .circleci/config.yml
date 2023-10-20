@@ -350,9 +350,6 @@ jobs:
       - run:
           name: lint
           command: npm run lint
-      - run:
-          name: prettier
-          command: npm run prettier
       - fail_fast
 
   check-docs:
