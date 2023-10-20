@@ -22,10 +22,10 @@ import { defaultResources } from "../config.js"
 import { namespaceSchema } from "../config.js"
 import { EPHEMERAL_KUBERNETES_PROVIDER_NAME } from "./ephemeral.js"
 import { DEFAULT_GARDEN_CLOUD_DOMAIN } from "../../../constants.js"
-import { NginxHelmValuesGetter } from "../nginx/ingress-controller.js"
 import type { SystemVars } from "../init.js"
 import { getSystemNamespace } from "../namespace.js"
 import { defaultSystemNamespace } from "../constants.js"
+import { NginxHelmValuesGetter } from "../nginx/nginx-helm.js"
 
 export const configSchema = () =>
   providerConfigBaseSchema()
