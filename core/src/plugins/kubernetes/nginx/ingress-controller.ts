@@ -10,9 +10,8 @@ import type { Log } from "../../../logger/log-entry.js"
 import type { KubernetesPluginContext } from "../config.js"
 import { KubeApi } from "../api.js"
 import { apply } from "../kubectl.js"
-import { defaultBackendStatus } from "./default-backend.js"
+import { helmIngressControllerReady, helmNginxInstall, helmNginxUninstall } from "./nginx-helm.js"
 import { getGenericNginxHelmValues } from "./nginx-helm-generic.js"
-import { helmNginxInstall, helmNginxStatus, helmNginxUninstall } from "./nginx-helm.js"
 import { getK3sNginxHelmValues } from "./nginx-helm-k3s.js"
 import { microk8sNginxInstall, microk8sNginxStatus, microk8sNginxUninstall } from "./nginx-microk8s.js"
 import { minikubeNginxInstall, minikubeNginxStatus, minikubeNginxUninstall } from "./nginx-minikube.js"
@@ -31,9 +30,7 @@ export async function ingressControllerReady(ctx: KubernetesPluginContext, log: 
   } else if (clusterType === "minikube") {
     return (await minikubeNginxStatus(log)) === "ready"
   } else if (clusterType === "k3s" || clusterType === "generic") {
-    const nginxStatus = await helmNginxStatus(ctx, log)
-    const backendStatus = await defaultBackendStatus(ctx, log)
-    return nginxStatus === "ready" && backendStatus === "ready"
+    return await helmIngressControllerReady(ctx, log)
   } else {
     return clusterType satisfies never
   }
