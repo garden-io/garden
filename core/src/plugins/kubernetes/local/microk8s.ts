@@ -17,8 +17,6 @@ import { deline, naturalList } from "../../../util/string.js"
 import type { ExecaReturnValue } from "execa"
 import type { PluginContext } from "../../../plugin-context.js"
 import { parse as parsePath } from "path"
-import { KubernetesPluginContext } from "../config"
-import { DeployState } from "../../../types/service"
 
 // TODO: Pass the correct log context instead of creating it here.
 export async function configureMicrok8sAddons(log: Log, addons: string[]) {
@@ -150,33 +148,4 @@ export async function loadImageToMicrok8s({
       message: `An attempt to load image ${imageId} into the microk8s cluster failed: ${err}`,
     })
   }
-}
-
-export async function microk8sNginxStatus(log: Log): Promise<DeployState> {
-  const statusCommandResult = await exec("microk8s", ["status", "--format", "short"])
-  const status = statusCommandResult.stdout
-  const addonEnabled = status.includes("core/ingress: enabled")
-  log.debug(chalk.yellow(`Status of microk8s ingress controller addon: ${addonEnabled ? "enabled" : "disabled"}`))
-  if (addonEnabled) {
-    return "ready"
-  }
-  return "missing"
-}
-
-export async function microk8sNginxInstall(ctx: KubernetesPluginContext, log: Log) {
-  const status = await microk8sNginxStatus(log)
-  if (status === "ready") {
-    return
-  }
-  log.info("Enabling microk8s ingress controller addon")
-  await configureMicrok8sAddons(log, ["ingress"])
-}
-
-export async function microk8sNginxUninstall(ctx: KubernetesPluginContext, log: Log) {
-  const status = await microk8sNginxStatus(log)
-  if (status === "missing") {
-    return
-  }
-  log.info("Disabling microk8s ingress controller addon")
-  await exec("microk8s", ["disable", "ingress"])
 }
