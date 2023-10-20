@@ -700,9 +700,23 @@ function dependenciesFromActionConfig(
   const deps: ActionDependency[] = config.dependencies.map((d) => {
     try {
       const { kind, name } = parseActionReference(d)
+      const depKey = actionReferenceToString(d)
+      const depConfig = configsByKey[depKey]
+      if (!depConfig) {
+        throw new ConfigurationError({
+          message: `${description} references depdendency ${depKey}, but no such action could be found`,
+        })
+      }
       // FIXME @eysi: We're setting the "parent" config type as the dep type which is not correct
       // and we need to the dep type.
-      return { kind, name, type: config.type, explicit: true, needsExecutedOutputs: false, needsStaticOutputs: false }
+      return {
+        kind,
+        name,
+        type: depConfig.type,
+        explicit: true,
+        needsExecutedOutputs: false,
+        needsStaticOutputs: false,
+      }
     } catch (error) {
       throw new ValidationError({
         message: `Invalid dependency specified: ${error}`,
