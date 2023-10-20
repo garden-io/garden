@@ -19,7 +19,7 @@ import { checkResourceStatus } from "../status/status.js"
 import chalk from "chalk"
 import { apply, deleteResources } from "../kubectl.js"
 import type { DeployState } from "../../../types/service.js"
-import { kindNginxGetManifests } from "./nginx-kind-manifests.js"
+import { kindNginxGetManifests } from "../nginx/nginx-kind-manifests.js"
 
 const nodeCache: { [context: string]: string[] } = {}
 
