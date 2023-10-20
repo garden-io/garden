@@ -21,6 +21,7 @@ Here's a simple example:
 
 ```yaml
 # At the root of your project
+apiVersion: garden.io/v1
 kind: Project
 name: my-project
 
