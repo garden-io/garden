@@ -8,7 +8,7 @@
 
 import { basename, dirname, join, resolve } from "path"
 import { pathExists, readFile } from "fs-extra"
-import { flatten, keyBy, set } from "lodash"
+import { flatten, isEmpty, keyBy, set } from "lodash"
 
 import { KubernetesModule } from "./module-config"
 import { KubernetesResource } from "../types"
@@ -424,13 +424,14 @@ async function readFileManifests(
       resolvedFiles.map(async (path): Promise<DeclaredManifest[]> => {
         const absPath = resolve(manifestPath, path)
         log.debug(`Reading manifest for ${action.longDescription()} from path ${absPath}`)
-        const str = (await readFile(absPath)).toString()
-        const resolved = ctx.resolveTemplateStrings(str, { allowPartial: true, unescape: true })
+        // parse manifests as yaml before resolving the template strings
+        // to avoid the whole yaml file being treated as single string.
         const manifests = await parseKubernetesManifests(
-          resolved,
+          (await readFile(absPath)).toString(),
           `${basename(absPath)} in directory ${dirname(absPath)} (specified in ${action.longDescription()})`
         )
-        return manifests.map((manifest, index) => ({
+        const resolved = ctx.resolveTemplateStrings(manifests, { allowPartial: true, unescape: true })
+        return resolved.map((manifest, index) => ({
           declaration: {
             type: "file",
             filename: absPath,
@@ -496,12 +497,37 @@ export function convertServiceResource(
     return null
   }
 
-  return {
-    kind: s.kind,
-    name: s.name || module.name,
-    podSelector: s.podSelector,
-    containerName: s.containerName,
+  return convertServiceResourceSpec(s, module.name)
+}
+
+/**
+ * Converts 0.12 {@link ServiceResourceSpec} to 0.13 {@link KubernetesTargetResourceSpec}.
+ *
+ * NOTE! In 0.13 {@link KubernetesTargetResourceSpec} has stricter schema validation rules
+ * than {@link ServiceResourceSpec} in 0.12.
+ *
+ * The resulting {@link KubernetesTargetResourceSpec} can contain either a pair of {@code (kind, name)}
+ * or a {@code podSelector}.
+ * The {@code podSelector} takes precedence over the {@code (kind, name)}, see {@link getTargetResource}.
+ *
+ * @param module the current module
+ * @param serviceResourceSpec the input service resource spec in 0.12 format
+ * @return the 0.13 compatible kubernetes service resource spec
+ * @see targetResourceSpecSchema
+ * @see getTargetResource
+ */
+export function convertServiceResourceSpec(s: ServiceResourceSpec, moduleName: string): KubernetesTargetResourceSpec {
+  // Set only the necessary fields to satisfy the schema restrictions defined for KubernetesTargetResourceSpec.
+  const result: KubernetesTargetResourceSpec =
+    s.podSelector && !isEmpty(s.podSelector)
+      ? { podSelector: s.podSelector }
+      : { kind: s.kind, name: s.name || moduleName }
+
+  if (s.containerName) {
+    result.containerName = s.containerName
   }
+
+  return result
 }
 
 export async function runOrTestWithPod(

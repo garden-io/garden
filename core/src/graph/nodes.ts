@@ -348,11 +348,9 @@ export class GraphNodeError extends GraphError {
   constructor({ resultError, node }: GraphNodeErrorParams) {
     const message = `${node.describe()} failed: ${resultError}`
     const wrappedErrors = [toGardenError(resultError)]
-    const stack = resultError.stack
 
     super({
       message,
-      stack,
       wrappedErrors,
       taskType: node.task.type,
     })

@@ -2,7 +2,7 @@
 
 This example project demonstrates how to use Garden's ephemeral-kubernetes provider for deploying an application to one of the ephemeral Kubernetes clusters provided by Garden.
 
-For information about ephemeral Kubernetes clusters, [`check out the docs.`](https://docs.garden.io/guides/ephemeral-clusters)
+For information about ephemeral Kubernetes clusters, [`check out the docs.`](../../docs/k8s-plugins/ephemeral-k8s/README.md)
 
 ## Configuring ephemeral kubernetes
 

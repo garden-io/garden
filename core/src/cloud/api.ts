@@ -33,6 +33,7 @@ import { add } from "date-fns"
 import { LogLevel } from "../logger/logger"
 import { makeAuthHeader } from "./auth"
 import { StringMap } from "../config/common"
+import chalk from "chalk"
 
 const gardenClientName = "garden-core"
 const gardenClientVersion = getPackageVersion()
@@ -773,13 +774,41 @@ export class CloudApi {
       if (!(err instanceof GotHttpError)) {
         throw err
       }
+      // This happens if an environment or project does not exist
       if (err.response.statusCode === 404) {
-        log.debug(dedent`
-          No secrets were received from ${distroName}.
+        const errorHeaderMsg = chalk.red(`Unable to read secrets from ${distroName}.`)
+        const errorDetailMsg = chalk.white(dedent`
+          Either the environment ${chalk.bold.whiteBright(environmentName)} does not exist in ${distroName},
+          or no project matches the project ID ${chalk.bold.whiteBright(
+            projectId
+          )} in your project level garden.yml file.
 
-          Either the environment ${environmentName} does not exist in ${distroName}, or no project with the id in your project configuration exists in ${distroName}.
+          💡Suggestion:
 
-          Please visit ${this.domain} to review the environments and projects currently in the system.
+          Visit ${chalk.underline(this.domain)} to review existing environments and projects.
+
+          First check whether an environment with name ${environmentName} exists for this project. You
+          can view the list of environments and the project ID on the project's Settings page.
+
+          ${chalk.bold.whiteBright(
+            "If the environment does not exist"
+          )}, you can either create one from the Settings page or update
+          the environments in your project level garden.yml config to match one that already exists.
+
+          ${chalk.bold.whiteBright(
+            "If a project with this ID does not exist"
+          )}, it's likely because the ID has been changed in the
+          project level garden.yml config file or the project has been deleted from ${distroName}.
+
+          Either update the ID in the project level garden.yml config file to match one of an
+          existing project or import a new project from the Projects page and replace the ID in your
+          project configuration with the ID of the new project.
+        `)
+
+        log.error(dedent`
+          ${errorHeaderMsg}
+
+          ${errorDetailMsg}\n
           `)
       } else {
         throw err

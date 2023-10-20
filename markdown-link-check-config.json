@@ -13,6 +13,10 @@
     {
       "pattern": "^https://docs\\.github\\.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads$",
       "reason": "Ignore this particular GitHub URL, it fails consistently with HTTP 403 code despite the link works fine"
+    },
+    {
+      "pattern": "^https://support.apple.com/en-us/HT211861$",
+      "reason": "Ignore this particular URL to Apple Rosetta guide. CI reports it as a dead one quite regularly despite the link is alive."
     }
   ]
 }

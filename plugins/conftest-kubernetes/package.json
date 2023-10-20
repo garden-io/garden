@@ -1,6 +1,6 @@
 {
   "name": "@garden-io/garden-conftest-kubernetes",
-  "version": "0.13.17",
+  "version": "0.13.18",
   "description": "Auto-generator for the conftest plugin and Garden kubernetes/helm modules",
   "main": "build/src/index.js",
   "private": true,

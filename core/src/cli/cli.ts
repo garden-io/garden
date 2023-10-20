@@ -12,7 +12,7 @@ import chalk from "chalk"
 import { pathExists } from "fs-extra"
 import { getBuiltinCommands } from "../commands/commands"
 import { shutdown, getPackageVersion, getCloudDistributionName } from "../util/util"
-import { Command, CommandResult, CommandGroup, BuiltinArgs } from "../commands/base"
+import { Command, CommandResult, BuiltinArgs, CommandGroup } from "../commands/base"
 import { PluginError, toGardenError, GardenError } from "../exceptions"
 import { Garden, GardenOpts, makeDummyGarden } from "../garden"
 import { getRootLogger, getTerminalWriterType, LogLevel, parseLogLevel, RootLogger } from "../logger/logger"
@@ -51,6 +51,7 @@ import { uuidv4 } from "../util/random"
 import { withSessionContext } from "../util/open-telemetry/context"
 import { wrapActiveSpan } from "../util/open-telemetry/spans"
 import { JsonFileWriter } from "../logger/writers/json-file-writer"
+import minimist from "minimist"
 
 export interface RunOutput {
   argv: any
@@ -65,6 +66,10 @@ export interface GardenCliParams {
   plugins?: GardenPluginReference[]
   initLogger?: boolean
   cloudApiFactory?: CloudApiFactory
+}
+
+function hasHelpFlag(argv: minimist.ParsedArgs) {
+  return argv.h || argv.help
 }
 
 // TODO: this is used in more contexts now, should rename to GardenCommandRunner or something like that
@@ -482,30 +487,63 @@ ${renderCommands(commands)}
 
     // If we still haven't found a valid command, print help
     if (!command) {
-      const exitCode = argv._.length === 0 || argv._[0] === "help" ? 0 : 1
+      const exitCode = argv._.length === 0 && hasHelpFlag(argv) ? 0 : 1
       return done(exitCode, await this.renderHelp(log, workingDir))
     }
 
     // Parse the arguments again with the Command set, to fully validate, and to ensure boolean options are
-    // handled correctly
+    // handled correctly.
     argv = parseCliArgs({ stringArgs: args, command, cli: true })
 
     // Slice command name from the positional args
     argv._ = argv._.slice(command.getPath().length)
 
-    // Handle -h, --help, and subcommand listings
-    if (argv.h || argv.help || command instanceof CommandGroup) {
-      // Try to show specific help for given subcommand
+    // Handle -h and --help flags, those are always valid and should return exit code 0
+    if (hasHelpFlag(argv)) {
+      // Handle subcommand listings
       if (command instanceof CommandGroup) {
+        const subCommandName = rest[0]
+        if (subCommandName === undefined) {
+          // Exit code 0 if sub-command is not specified and --help flag is passed, e.g. garden get --help
+          return done(0, command.renderHelp())
+        }
+
+        // Try to show specific help for given subcommand
         for (const subCommand of command.subCommands) {
           const sub = new subCommand()
           if (sub.name === rest[0]) {
             return done(0, sub.renderHelp())
           }
         }
-        // If not found, falls through to general command help below
+
+        // If sub-command was not found, then the sub-command name is incorrect.
+        // Falls through to general command help and exit code 1.
+        return done(1, command.renderHelp())
       }
+
       return done(0, command.renderHelp())
+    }
+
+    // Handle incomplete subcommand listings.
+    // A complete sub-command won't be recognized as CommandGroup.
+    if (command instanceof CommandGroup) {
+      const subCommandName = rest[0]
+      if (subCommandName === undefined) {
+        // exit code 1 if sub-command is missing
+        return done(1, command.renderHelp())
+      }
+
+      // Try to show specific help for given subcommand
+      for (const subCommand of command.subCommands) {
+        const sub = new subCommand()
+        if (sub.name === rest[0]) {
+          return done(1, sub.renderHelp())
+        }
+      }
+
+      // If sub-command was not found, then the sub-command name is incorrect.
+      // Falls through to general command help and exit code 1.
+      return done(1, command.renderHelp())
     }
 
     let parsedArgs: BuiltinArgs & ParameterValues<ParameterObject>

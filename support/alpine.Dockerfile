@@ -99,7 +99,7 @@ COPY --chown=$USER:root --from=aws-builder /usr/bin/aws-iam-authenticator /usr/b
 #
 # gcloud base
 #
-FROM google/cloud-sdk:449.0.0-alpine@sha256:6c33ba78fdbb78f53dd7d263f57db28afd383981d244e1a20e78ff6c3cbec43c as gcloud-base
+FROM google/cloud-sdk:450.0.0-alpine@sha256:926cfc3a59737841fbad50389bb8d00b2b75ba3a42a789dedc89d8f95ba696ad as gcloud-base
 
 RUN gcloud components install kubectl gke-gcloud-auth-plugin --quiet
 
@@ -112,10 +112,10 @@ RUN rm -rf $(find /google-cloud-sdk/ -regex ".*/__pycache__") && rm -rf /google-
 FROM garden-base-root as garden-azure-base
 
 WORKDIR /
-ENV AZURE_CLI_VERSION=2.50.0
+ENV AZURE_CLI_VERSION=2.53.0
 
 RUN wget -O requirements.txt https://raw.githubusercontent.com/Azure/azure-cli/azure-cli-$AZURE_CLI_VERSION/src/azure-cli/requirements.py3.Linux.txt && \
-  echo "ff3dcee6677fbdeab3a9e2288caf27a5990514df2c5e7b4800418ffdef5430fd  requirements.txt" | sha256sum -c
+  echo "833a12c837df6b9d8b27abf908073eb2da971c8506d2b112946be4a36e1db7af  requirements.txt" | sha256sum -c
 RUN wget -O trim_sdk.py https://raw.githubusercontent.com/Azure/azure-cli/azure-cli-$AZURE_CLI_VERSION/scripts/trim_sdk.py && \
   echo "2e6292f5285b4fcedbe8efd77309fade550667d1c502a6ffa078f1aa97942c64  trim_sdk.py" | sha256sum -c
 

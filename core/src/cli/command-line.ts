@@ -82,7 +82,7 @@ function getCmdsRunningMsg(commandNames: string[]) {
 }
 
 function getCmdSuccessMsg(commandName: string) {
-  return `${chalk.whiteBright(commandName)} command completed successfully!`
+  return `${chalk.cyan(commandName)} command completed successfully!`
 }
 
 function getCmdFailMsg(commandName: string) {
