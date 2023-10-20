@@ -25,45 +25,6 @@ const HELM_INGRESS_NGINX_DEPLOYMENT_TIMEOUT = "300s"
 // TODO: consider using some specific return type here, maybe something from helm SDK?
 export type NginxHelmValuesGetter = (systemVars: SystemVars) => object
 
-export const getGenericNginxHelmValues: NginxHelmValuesGetter = (systemVars: SystemVars) => {
-  return {
-    name: "ingress-controller",
-    controller: {
-      kind: "DaemonSet",
-      updateStrategy: {
-        type: "RollingUpdate",
-        rollingUpdate: {
-          maxUnavailable: 1,
-        },
-      },
-      extraArgs: {
-        "default-backend-service": `${systemVars.namespace}/default-backend`,
-      },
-      hostPort: {
-        enabled: true,
-        ports: {
-          http: systemVars["ingress-http-port"],
-          https: systemVars["ingress-https-port"],
-        },
-      },
-      minReadySeconds: 1,
-      tolerations: systemVars["system-tolerations"],
-      nodeSelector: systemVars["system-node-selector"],
-      admissionWebhooks: {
-        enabled: false,
-      },
-      ingressClassResource: {
-        name: "nginx",
-        enabled: true,
-        default: true,
-      },
-    },
-    defaultBackend: {
-      enabled: false,
-    },
-  }
-}
-
 export async function helmNginxStatus(ctx: KubernetesPluginContext, log: Log): Promise<DeployState> {
   const provider = ctx.provider
   const config = provider.config

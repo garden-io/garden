@@ -6,21 +6,17 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import chalk from "chalk"
-import { Log } from "../../../logger/log-entry.js"
-import { DeployState } from "../../../types/service.js"
-import { KubernetesPluginContext } from "../config.js"
-import { helm } from "../helm/helm-cli.js"
-import { helmStatusMap } from "../helm/status.js"
-import { getKubernetesSystemVariables, SystemVars } from "../init.js"
+import type { Log } from "../../../logger/log-entry.js"
+import type { KubernetesPluginContext } from "../config.js"
 import { KubeApi } from "../api.js"
 import { kindNginxInstall, kindNginxStatus, kindNginxUninstall } from "../local/kind.js"
 import { microk8sNginxInstall, microk8sNginxStatus, microk8sNginxUninstall } from "../local/microk8s.js"
 import { apply } from "../kubectl.js"
 import { minikubeNginxInstall, minikubeNginxStatus, minikubeNginxUninstall } from "../local/minikube.js"
-import { defaultBackendInstall, defaultBackendStatus, defaultBackendUninstall } from "./default-backend.js"
+import { defaultBackendStatus } from "./default-backend.js"
 import { getK3sNginxHelmValues } from "../local/k3s.js"
-import { getGenericNginxHelmValues, helmNginxInstall, helmNginxStatus, helmNginxUninstall } from "./nginx-helm.js"
+import { getGenericNginxHelmValues } from "./nginx-helm-generic.js"
+import { helmNginxInstall, helmNginxStatus, helmNginxUninstall } from "./nginx-helm.js"
 
 export async function ingressControllerReady(ctx: KubernetesPluginContext, log: Log): Promise<boolean> {
   const clusterType = ctx.provider.config.clusterType
