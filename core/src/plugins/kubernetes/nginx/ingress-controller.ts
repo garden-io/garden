@@ -83,7 +83,6 @@ export async function ingressControllerUninstall(ctx: KubernetesPluginContext, l
     await minikubeNginxUninstall(log)
   } else if (clusterType === "k3s" || clusterType === "generic") {
     await helmNginxUninstall(ctx, log)
-    await defaultBackendUninstall(ctx, log)
   } else {
     return clusterType satisfies never
   }
