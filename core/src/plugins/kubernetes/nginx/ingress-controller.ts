@@ -11,12 +11,12 @@ import type { KubernetesPluginContext } from "../config.js"
 import { KubeApi } from "../api.js"
 import { kindNginxInstall, kindNginxStatus, kindNginxUninstall } from "../local/kind.js"
 import { apply } from "../kubectl.js"
-import { minikubeNginxInstall, minikubeNginxStatus, minikubeNginxUninstall } from "../local/minikube.js"
 import { defaultBackendStatus } from "./default-backend.js"
 import { getGenericNginxHelmValues } from "./nginx-helm-generic.js"
 import { helmNginxInstall, helmNginxStatus, helmNginxUninstall } from "./nginx-helm.js"
 import { getK3sNginxHelmValues } from "./nginx-helm-k3s.js"
 import { microk8sNginxInstall, microk8sNginxStatus, microk8sNginxUninstall } from "./nginx-microk8s.js"
+import { minikubeNginxInstall, minikubeNginxStatus, minikubeNginxUninstall } from "./nginx-minikube.js"
 
 export async function ingressControllerReady(ctx: KubernetesPluginContext, log: Log): Promise<boolean> {
   const clusterType = ctx.provider.config.clusterType
