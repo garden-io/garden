@@ -14,13 +14,12 @@ import { helm } from "../helm/helm-cli.js"
 import { helmStatusMap } from "../helm/status.js"
 import { getKubernetesSystemVariables, SystemVars } from "../init.js"
 import { KubeApi } from "../api.js"
-import type { KubernetesDeployment, KubernetesService } from "../types.js"
-import { checkResourceStatus, waitForResources } from "../status/status.js"
 import { kindNginxInstall, kindNginxStatus, kindNginxUninstall } from "../local/kind.js"
 import { microk8sNginxInstall, microk8sNginxStatus, microk8sNginxUninstall } from "../local/microk8s.js"
 import { apply } from "../kubectl.js"
 import { minikubeNginxInstall, minikubeNginxStatus, minikubeNginxUninstall } from "../local/minikube.js"
 import { defaultBackendInstall, defaultBackendStatus, defaultBackendUninstall } from "./default-backend.js"
+import { getK3sNginxHelmValues } from "../local/k3s.js"
 
 const HELM_INGRESS_NGINX_REPO = "https://kubernetes.github.io/ingress-nginx"
 const HELM_INGRESS_NGINX_VERSION = "4.0.13"
@@ -61,8 +60,11 @@ export async function ingressControllerInstall(ctx: KubernetesPluginContext, log
     await microk8sNginxInstall(ctx, log)
   } else if (clusterType === "minikube") {
     await minikubeNginxInstall(log)
-  } else if (clusterType === "k3s" || clusterType === "generic") {
-    await helmNginxInstall(ctx, log)
+  } else if (clusterType === "k3s") {
+    await helmNginxInstall(ctx, log, getK3sNginxHelmValues)
+    await defaultBackendInstall(ctx, log)
+  } else if (clusterType === "generic") {
+    await helmNginxInstall(ctx, log, getGenericNginxHelmValues)
     await defaultBackendInstall(ctx, log)
   } else {
     return clusterType satisfies never
@@ -178,7 +180,7 @@ export const getGenericNginxHelmValues: NginxHelmValuesGetter = (systemVars: Sys
 export async function helmNginxInstall(
   ctx: KubernetesPluginContext,
   log: Log,
-  nginxHelmValuesGetter: NginxHelmValuesGetter = getGenericNginxHelmValues
+  nginxHelmValuesGetter: NginxHelmValuesGetter
 ) {
   const provider = ctx.provider
   const config = provider.config
