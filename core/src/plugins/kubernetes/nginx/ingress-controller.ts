@@ -62,10 +62,8 @@ export async function ingressControllerInstall(ctx: KubernetesPluginContext, log
     await minikubeNginxInstall(log)
   } else if (clusterType === "k3s") {
     await helmNginxInstall(ctx, log, getK3sNginxHelmValues)
-    await defaultBackendInstall(ctx, log)
   } else if (clusterType === "generic") {
     await helmNginxInstall(ctx, log, getGenericNginxHelmValues)
-    await defaultBackendInstall(ctx, log)
   } else {
     return clusterType satisfies never
   }
