@@ -224,7 +224,7 @@ export function getKubernetesSystemVariables(config: KubernetesConfig) {
   const systemNamespace = config.gardenSystemNamespace
   const systemTolerations: V1Toleration[] = [
     {
-      key: "garden-system",
+      key: systemNamespace,
       operator: "Equal",
       value: "true",
       effect: "NoSchedule",
