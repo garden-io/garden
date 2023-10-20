@@ -9,12 +9,17 @@
 import { exec } from "../../../util/util.js"
 import type { Log } from "../../../logger/log-entry.js"
 import { load } from "js-yaml"
-import type { KubernetesConfig, KubernetesProvider } from "../config.js"
+import type { KubernetesConfig, KubernetesPluginContext, KubernetesProvider } from "../config.js"
 import { GardenError, RuntimeError } from "../../../exceptions.js"
 import { KubeApi } from "../api.js"
 import type { KubernetesResource } from "../types.js"
 import type { PluginContext } from "../../../plugin-context.js"
 import { containerHelpers } from "../../container/helpers.js"
+import { checkResourceStatus } from "../status/status.js"
+import chalk from "chalk"
+import { apply, deleteResources } from "../kubectl.js"
+import type { DeployState } from "../../../types/service.js"
+import { kindNginxGetManifests } from "./nginx-kind.js"
 
 const nodeCache: { [context: string]: string[] } = {}
 
@@ -147,4 +152,43 @@ async function contextMatches(cluster: string, context: string): Promise<boolean
     return kubeConfig["current-context"] === context
   } catch (err) {}
   return false
+}
+
+export async function kindNginxStatus(ctx: KubernetesPluginContext, log: Log): Promise<DeployState> {
+  const provider = ctx.provider
+  const config = provider.config
+  const namespace = config.gardenSystemNamespace
+  const api = await KubeApi.factory(log, ctx, provider)
+  const manifests = kindNginxGetManifests(namespace)
+  const deploymentManifest = manifests.filter((m) => m.kind === "Deployment")[0]
+  const deploymentStatus = await checkResourceStatus({ api, namespace, manifest: deploymentManifest, log })
+  log.debug(chalk.yellow(`Status of ingress controller: ${deploymentStatus.state}`))
+  return deploymentStatus.state
+}
+
+export async function kindNginxInstall(ctx: KubernetesPluginContext, log: Log) {
+  const provider = ctx.provider
+  const config = provider.config
+  const namespace = config.gardenSystemNamespace
+  const manifests = kindNginxGetManifests(namespace)
+  const status = await kindNginxStatus(ctx, log)
+  if (status === "ready") {
+    return
+  }
+  const api = await KubeApi.factory(log, ctx, provider)
+  log.info("Installing ingress controller for kind cluster")
+  await apply({ log, ctx, api, provider, manifests, namespace })
+}
+
+export async function kindNginxUninstall(ctx: KubernetesPluginContext, log: Log) {
+  const provider = ctx.provider
+  const config = provider.config
+  const namespace = config.gardenSystemNamespace
+  const manifests = kindNginxGetManifests(namespace)
+  const status = await kindNginxStatus(ctx, log)
+  if (status === "missing") {
+    return
+  }
+  log.info("Uninstalling ingress controller for kind cluster")
+  await deleteResources({ log, ctx, provider, namespace, resources: manifests })
 }

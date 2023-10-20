@@ -9,28 +9,18 @@
 import { configureProvider, configSchema, LocalKubernetesConfig } from "./config.js"
 import { createGardenPlugin } from "../../../plugin/plugin.js"
 import { dedent } from "../../../util/string.js"
-import { DOCS_BASE_URL, STATIC_DIR } from "../../../constants.js"
-import {
+import { DOCS_BASE_URL } from "../../../constants.js"
+import type {
   PrepareEnvironmentParams,
   PrepareEnvironmentResult,
 } from "../../../plugin/handlers/Provider/prepareEnvironment.js"
 import { KubernetesClusterType, KubernetesPluginContext } from "../config.js"
 import { prepareEnvironment as _prepareEnvironmentBase } from "../init.js"
 import { Log } from "../../../logger/log-entry.js"
-import { exec, isTruthy } from "../../../util/util.js"
-import chalk from "chalk"
 import { setMinikubeDockerEnv } from "./minikube.js"
 import { isKindCluster } from "./kind.js"
 import { configureMicrok8sAddons } from "./microk8s.js"
-import { apply, applyYamlFromFile } from "../kubectl.js"
-import { join } from "path"
-import { KubeApi } from "../api.js"
-import { loadAll } from "js-yaml"
-import { readFile } from "fs-extra"
-import { getK3sNginxHelmValues, isK3sFamilyCluster } from "./k3s.js"
-import { KubernetesResource } from "../types.js"
-import { ChildProcessError } from "../../../exceptions.js"
-import { helmNginxInstall } from "../integrations/nginx.js"
+import { isK3sFamilyCluster } from "./k3s.js"
 import { getSystemNamespace } from "../namespace.js"
 
 const providerUrl = "./kubernetes.md"
@@ -58,65 +48,18 @@ async function prepareEnvironment(
 ): Promise<PrepareEnvironmentResult> {
   const { ctx, log } = params
   const provider = ctx.provider
-  const config = provider.config
 
   const clusterType = await getClusterType(ctx, log)
-
-  const setupIngressController = config.setupIngressController
 
   // We need this function call to make sure that the system namespace exists.
   await getSystemNamespace(ctx, provider, log)
 
-  if (clusterType !== "generic") {
-    // We'll override the nginx setup here
-    config.setupIngressController = null
-  }
-
   const result = await _prepareEnvironmentBase(params)
-
-  config.setupIngressController = setupIngressController
-
-  const microk8sAddons = ["dns", "registry", "storage"]
-
-  if (setupIngressController === "nginx") {
-    if (clusterType === "kind") {
-      log.debug("Using nginx-kind service for ingress")
-      const yamlPath = join(STATIC_DIR, "kubernetes", "nginx-kind.yaml")
-      const systemNamespace = await getSystemNamespace(ctx, provider, log)
-
-      // Note: This basic string replace is fine for now, no other templating is done in these files
-      const yamlData = (await readFile(yamlPath)).toString().replaceAll("${var.namespace}", systemNamespace)
-      const manifests = loadAll(yamlData)
-        .filter(isTruthy)
-        .map((m) => m as KubernetesResource)
-      const api = await KubeApi.factory(log, ctx, provider)
-      await apply({ log, ctx, api, provider, manifests, validate: false })
-    } else if (clusterType === "k3s") {
-      log.debug("Using k3s conformant nginx ingress controller")
-
-      await helmNginxInstall(ctx, log, getK3sNginxHelmValues)
-    } else if (clusterType === "minikube") {
-      log.debug("Using minikube's ingress addon")
-      try {
-        await exec("minikube", ["addons", "enable", "ingress"])
-      } catch (err) {
-        if (!(err instanceof ChildProcessError)) {
-          throw err
-        }
-        log.warn(chalk.yellow(`Unable to enable minikube ingress addon: ${err.details.output}`))
-      }
-    } else if (clusterType === "microk8s") {
-      log.debug("Using microk8s's ingress addon")
-      microk8sAddons.push("ingress")
-      await applyYamlFromFile(ctx, log, join(STATIC_DIR, "kubernetes", "nginx-ingress-class.yaml"))
-    } else {
-      clusterType satisfies "generic"
-    }
-  }
 
   if (clusterType === "minikube") {
     await setMinikubeDockerEnv()
   } else if (clusterType === "microk8s") {
+    const microk8sAddons = ["dns", "registry", "storage"]
     await configureMicrok8sAddons(log, microk8sAddons)
   }
 

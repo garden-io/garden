@@ -154,32 +154,21 @@ export async function configureProvider(params: ConfigureProviderParams<Kubernet
     ],
   }
 
+  // set default hostname
+  baseConfig.defaultHostname = createEphemeralClusterResponse.ingressesHostname
+
   // use garden-system as system namespace for ephemeral-kubernetes
   baseConfig.gardenSystemNamespace = "garden-system"
 
-  // set setupIngressController to null while initializing kubernetes plugin
-  // as we use it later and configure it separately for ephemeral-kubernetes
   const kubernetesPluginConfig = {
     ...params,
     config: {
       ...baseConfig,
-      setupIngressController: null,
     },
   }
   const { config: updatedConfig } = await base!(kubernetesPluginConfig)
-
   // make sure that the system namespace exists
   await getSystemNamespace(ctx, ctx.provider, log)
-
-  // setup ingress controller unless setupIngressController is set to false/null in provider config
-  if (!!baseConfig.setupIngressController) {
-    const k8sCtx = <KubernetesPluginContext>ctx
-    await helmNginxInstall(k8sCtx, log, getEphemeralNginxHelmValues)
-
-    updatedConfig.setupIngressController = "nginx"
-    // set default hostname
-    updatedConfig.defaultHostname = createEphemeralClusterResponse.ingressesHostname
-  }
 
   return {
     config: updatedConfig,

@@ -9,7 +9,7 @@
 import chalk from "chalk"
 import type { PluginCommand } from "../../../plugin/command.js"
 import type { KubernetesPluginContext } from "../config.js"
-import { helmNginxUninstall } from "../integrations/nginx.js"
+import { ingressControllerUninstall } from "../integrations/nginx.js"
 
 export const uninstallGardenServices: PluginCommand = {
   name: "uninstall-garden-services",
@@ -22,7 +22,7 @@ export const uninstallGardenServices: PluginCommand = {
   handler: async ({ ctx, log }) => {
     const k8sCtx = <KubernetesPluginContext>ctx
 
-    await helmNginxUninstall(k8sCtx, log)
+    await ingressControllerUninstall(k8sCtx, log)
 
     log.info(chalk.green("\nDone!"))
 

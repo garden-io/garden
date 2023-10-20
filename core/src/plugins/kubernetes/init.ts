@@ -38,7 +38,7 @@ import type { PrimitiveMap } from "../../config/common.js"
 import { mapValues, omit } from "lodash-es"
 import { getIngressApiVersion, supportedIngressApiVersions } from "./container/ingress.js"
 import type { Log } from "../../logger/log-entry.js"
-import { helmNginxInstall, ingressControllerReady } from "./integrations/nginx.js"
+import { ingressControllerInstall, ingressControllerReady } from "./integrations/nginx.js"
 
 const dockerAuthSecretType = "kubernetes.io/dockerconfigjson"
 const dockerAuthDocsLink = `
@@ -80,15 +80,6 @@ export async function getEnvironmentStatus({
     systemManagedCertificatesReady: true,
   }
 
-  const ingressApiVersion = await getIngressApiVersion(log, api, supportedIngressApiVersions)
-  const ingressWarnings = await getIngressMisconfigurationWarnings(
-    provider.config.ingressClass,
-    ingressApiVersion,
-    log,
-    api
-  )
-  ingressWarnings.forEach((w) => log.warn(w))
-
   const namespaceNames = mapValues(namespaces, (s) => s.namespaceName)
   const result: KubernetesEnvironmentStatus = {
     ready: true,
@@ -103,8 +94,17 @@ export async function getEnvironmentStatus({
     const ingressControllerReadiness = await ingressControllerReady(ctx, log)
     result.ready = ingressControllerReadiness
     detail.systemReady = ingressControllerReadiness
+  } else {
+    // We only need to warn about missing ingress classes if we're not using garden installed nginx
+    const ingressApiVersion = await getIngressApiVersion(log, api, supportedIngressApiVersions)
+    const ingressWarnings = await getIngressMisconfigurationWarnings(
+      provider.config.ingressClass,
+      ingressApiVersion,
+      log,
+      api
+    )
+    ingressWarnings.forEach((w) => log.warn(w))
   }
-
   return result
 }
 
@@ -151,9 +151,9 @@ export async function prepareEnvironment(
   const config = provider.config
 
   // TODO-0.13/TODO-0.14: remove this option for remote kubernetes clusters?
-  if (config.setupIngressController === "nginx" && !config.clusterType) {
-    // Install nginx and default backend for remote clusters
-    await helmNginxInstall(k8sCtx, log)
+  if (config.setupIngressController === "nginx") {
+    // Install nginx ingress controller
+    await ingressControllerInstall(k8sCtx, log)
   }
 
   const nsStatus = await getNamespaceStatus({ ctx: k8sCtx, log, provider })

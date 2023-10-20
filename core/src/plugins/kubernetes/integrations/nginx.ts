@@ -16,6 +16,10 @@ import { getKubernetesSystemVariables, SystemVars } from "../init.js"
 import { KubeApi } from "../api.js"
 import type { KubernetesDeployment, KubernetesService } from "../types.js"
 import { checkResourceStatus, waitForResources } from "../status/status.js"
+import { kindNginxInstall, kindNginxStatus, kindNginxUninstall } from "../local/kind.js"
+import { microk8sNginxInstall, microk8sNginxStatus, microk8sNginxUninstall } from "../local/microk8s.js"
+import { apply } from "../kubectl.js"
+import { minikubeNginxInstall, minikubeNginxStatus, minikubeNginxUninstall } from "../local/minikube.js"
 
 const HELM_INGRESS_NGINX_REPO = "https://kubernetes.github.io/ingress-nginx"
 const HELM_INGRESS_NGINX_VERSION = "4.0.13"
@@ -24,9 +28,66 @@ const HELM_INGRESS_NGINX_RELEASE_NAME = "garden-nginx"
 const HELM_INGRESS_NGINX_DEPLOYMENT_TIMEOUT = "300s"
 
 export async function ingressControllerReady(ctx: KubernetesPluginContext, log: Log): Promise<boolean> {
-  const nginxStatus = await helmNginxStatus(ctx, log)
-  const backendStatus = await defaultBackendStatus(ctx, log)
-  return nginxStatus === "ready" && backendStatus === "ready"
+  const clusterType = ctx.provider.config.clusterType
+  if (clusterType === "kind") {
+    return (await kindNginxStatus(ctx, log)) === "ready"
+  } else if (clusterType === "microk8s") {
+    return (await microk8sNginxStatus(log)) === "ready"
+  } else if (clusterType === "minikube") {
+    return (await minikubeNginxStatus(log)) === "ready"
+  } else if (clusterType) {
+    const nginxStatus = await helmNginxStatus(ctx, log)
+    const backendStatus = await defaultBackendStatus(ctx, log)
+    return nginxStatus === "ready" && backendStatus === "ready"
+  }
+  return false
+}
+
+export async function ingressControllerInstall(ctx: KubernetesPluginContext, log: Log) {
+  const clusterType = ctx.provider.config.clusterType
+  if (clusterType === "kind") {
+    await kindNginxInstall(ctx, log)
+  } else if (clusterType === "microk8s") {
+    await microk8sNginxInstall(ctx, log)
+  } else if (clusterType === "minikube") {
+    await minikubeNginxInstall(log)
+  } else if (clusterType) {
+    await helmNginxInstall(ctx, log)
+    await defaultBackendInstall(ctx, log)
+  }
+}
+
+export async function ingressControllerUninstall(ctx: KubernetesPluginContext, log: Log) {
+  const clusterType = ctx.provider.config.clusterType
+  if (clusterType === "kind") {
+    await kindNginxUninstall(ctx, log)
+  } else if (clusterType === "microk8s") {
+    await microk8sNginxUninstall(ctx, log)
+  } else if (clusterType === "minikube") {
+    await minikubeNginxUninstall(log)
+  } else if (clusterType) {
+    await helmNginxUninstall(ctx, log)
+    await defaultBackendUninstall(ctx, log)
+  }
+}
+
+export async function ingressClassCreate(ctx: KubernetesPluginContext, log: Log) {
+  const provider = ctx.provider
+  const config = provider.config
+
+  const namespace = config.gardenSystemNamespace
+  const api = await KubeApi.factory(log, ctx, provider)
+  const ingressClass = {
+    apiVersion: "networking.k8s.io/v1",
+    kind: "IngressClass",
+    metadata: {
+      name: "nginx",
+    },
+    spec: {
+      controller: "kubernetes.io/ingress-nginx",
+    },
+  }
+  await apply({ log, ctx, api, provider, manifests: [ingressClass], namespace })
 }
 
 export async function helmNginxStatus(ctx: KubernetesPluginContext, log: Log): Promise<DeployState> {
