@@ -20,36 +20,44 @@ export async function kindNginxStatus(ctx: KubernetesPluginContext, log: Log): P
   const config = provider.config
   const namespace = config.gardenSystemNamespace
   const api = await KubeApi.factory(log, ctx, provider)
+
   const manifests = kindNginxGetManifests(namespace)
   const deploymentManifest = manifests.filter((m) => m.kind === "Deployment")[0]
   const deploymentStatus = await checkResourceStatus({ api, namespace, manifest: deploymentManifest, log })
+
   log.debug(chalk.yellow(`Status of ingress controller: ${deploymentStatus.state}`))
   return deploymentStatus.state
 }
 
 export async function kindNginxInstall(ctx: KubernetesPluginContext, log: Log) {
-  const provider = ctx.provider
-  const config = provider.config
-  const namespace = config.gardenSystemNamespace
-  const manifests = kindNginxGetManifests(namespace)
   const status = await kindNginxStatus(ctx, log)
   if (status === "ready") {
     return
   }
+
+  const provider = ctx.provider
+  const config = provider.config
+  const namespace = config.gardenSystemNamespace
   const api = await KubeApi.factory(log, ctx, provider)
+
+  const manifests = kindNginxGetManifests(namespace)
+
   log.info("Installing ingress controller for kind cluster")
   await apply({ log, ctx, api, provider, manifests, namespace })
 }
 
 export async function kindNginxUninstall(ctx: KubernetesPluginContext, log: Log) {
-  const provider = ctx.provider
-  const config = provider.config
-  const namespace = config.gardenSystemNamespace
-  const manifests = kindNginxGetManifests(namespace)
   const status = await kindNginxStatus(ctx, log)
   if (status === "missing") {
     return
   }
+
+  const provider = ctx.provider
+  const config = provider.config
+  const namespace = config.gardenSystemNamespace
+
+  const manifests = kindNginxGetManifests(namespace)
+
   log.info("Uninstalling ingress controller for kind cluster")
   await deleteResources({ log, ctx, provider, namespace, resources: manifests })
 }
