@@ -48,6 +48,8 @@ export const DOCS_BASE_URL = "https://docs.garden.io"
 
 export const DEFAULT_GARDEN_CLOUD_DOMAIN = "https://app.garden.io"
 
+export const DEFAULT_BROWSER_DIVIDER_WIDTH = 80
+
 /**
  * Environment variables, with defaults where appropriate.
  *

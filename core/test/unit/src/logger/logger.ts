@@ -36,6 +36,7 @@ describe("Logger", () => {
         const log = logger.createLog({ name: "log-context-name" })
         log.info({
           msg: "hello",
+          rawMsg: "hello-browser",
           symbol: "success",
           data: { foo: "bar" },
           dataFormat: "json",
@@ -54,6 +55,7 @@ describe("Logger", () => {
           level: 2,
           message: {
             msg: "hello",
+            rawMsg: "hello-browser",
             section: "log-context-name",
             symbol: "success",
             dataFormat: "json",
