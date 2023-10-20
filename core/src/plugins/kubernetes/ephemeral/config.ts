@@ -25,6 +25,7 @@ import { DEFAULT_GARDEN_CLOUD_DOMAIN } from "../../../constants.js"
 import { NginxHelmValuesGetter } from "../nginx/ingress-controller.js"
 import type { SystemVars } from "../init.js"
 import { getSystemNamespace } from "../namespace.js"
+import { defaultSystemNamespace } from "../constants.js"
 
 export const configSchema = () =>
   providerConfigBaseSchema()
@@ -158,7 +159,7 @@ export async function configureProvider(params: ConfigureProviderParams<Kubernet
   baseConfig.defaultHostname = createEphemeralClusterResponse.ingressesHostname
 
   // use garden-system as system namespace for ephemeral-kubernetes
-  baseConfig.gardenSystemNamespace = "garden-system"
+  baseConfig.gardenSystemNamespace = defaultSystemNamespace
 
   const kubernetesPluginConfig = {
     ...params,
