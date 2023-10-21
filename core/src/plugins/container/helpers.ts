@@ -21,7 +21,7 @@ import {
 } from "./moduleConfig"
 import { Writable } from "stream"
 import { flatten, uniq, fromPairs, reduce } from "lodash"
-import { Log } from "../../logger/log-entry"
+import { ActionLog, Log } from "../../logger/log-entry"
 import chalk from "chalk"
 import isUrl from "is-url"
 import titleize from "titleize"
@@ -39,10 +39,10 @@ interface DockerVersion {
   server?: string
 }
 
-export const minDockerVersion: DockerVersion = {
+export const minDockerVersion = {
   client: "19.03.0",
   server: "17.07.0",
-}
+} as const
 
 interface ParsedImageId {
   host?: string
@@ -309,15 +309,26 @@ const helpers = {
   /**
    * Asserts that the specified docker client version meets the minimum requirements.
    */
-  checkDockerServerVersion(version: DockerVersion) {
+  checkDockerServerVersion(version: DockerVersion, log: ActionLog) {
     if (!version.server) {
       throw new RuntimeError({
         message: `Failed to check Docker server version: Docker server is not running or cannot be reached.`,
       })
-    } else if (!checkMinDockerVersion(version.server, minDockerVersion.server!)) {
-      throw new RuntimeError({
-        message: `Docker server needs to be version ${minDockerVersion.server} or newer (got ${version.server})`,
-      })
+    } else {
+      let hasMinVersion = true
+      try {
+        hasMinVersion = checkMinDockerVersion(version.server, minDockerVersion.server)
+      } catch (err) {
+        log.warn(
+          `Failed to parse Docker server version: ${version.server}. Please check your Docker installation. A docker factory reset may be required.`
+        )
+        return
+      }
+      if (!hasMinVersion) {
+        throw new RuntimeError({
+          message: `Docker server needs to be version ${minDockerVersion.server} or newer (got ${version.server})`,
+        })
+      }
     }
   },
 
