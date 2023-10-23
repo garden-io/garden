@@ -196,7 +196,7 @@ execDeploy.addHandler("deploy", async (params) => {
 
     if (result.outputLog) {
       const prefix = `Finished deploying ${chalk.white(action.name)}. Here is the output:`
-      log.verbose(
+      log.info(
         renderMessageWithDivider({
           prefix,
           msg: result.outputLog,
