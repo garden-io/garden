@@ -32,11 +32,6 @@ If there's something you can't find in our docs, we happily encourage you to [jo
       <td><a href="./overview/how-garden-works.md">How Garden Works</a></td>
     </tr>
     <tr>
-      <td><strong>Use Cases</strong></td>
-      <td>Learn how teams use Garden in the real world to deliver cloud native apps faster</td>
-      <td><a href="./overview/use-cases.md">Use Cases</a></td>
-    </tr>
-    <tr>
       <td><strong>Garden vs Other Tools</strong></td>
       <td>The cloud native tooling space is complex—learn where Garden fits in</td>
       <td><a href="./overview/garden-vs-other-tools.md">Garden vs Other Tools</a></td>

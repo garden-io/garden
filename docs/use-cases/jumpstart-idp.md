@@ -24,7 +24,7 @@ Navigate to [Examples](#examples) for a selection of pre-configured stacks you c
 Before you proceed, make sure you have gone through the following steps:
 
 - [Installing Garden](../getting-started/installation.md)
-- [Set up a local Kubernetes cluster](../k8s-plugins/local-k8s/configure-provider.md) _or_ use our [Ephemeral Clusters](../guides/ephemeral-clusters.md)
+- [Set up a local Kubernetes cluster](../k8s-plugins/local-k8s/configure-provider.md) _or_ use our [Ephemeral Clusters](../k8s-plugins/ephemeral-k8s/configure-provider.md)
 - If you're coming from Docker Compose, visit our [Migrating From Docker Compose](../guides/migrating-from-docker-compose.md) guide
 
 Setting up a remote Kubernetes environment for local development creates a developer namespace in a remote cluster. This namespace acts as a sandbox for your application, allowing you to test and develop without affecting other applications or services in the cluster.

@@ -16,7 +16,7 @@ Garden creates a developer namespace inside a remote Kubernetes cluster that loo
 - **Visualize your dependency graph**, centralize logs, and view command history with the [Garden Web Dashboard](https://app.garden.io)
 - **Proxy local services** with [Local Mode](../guides/running-service-in-local-mode.md)
 - **Accelerate build times** with [remote image builds](../k8s-plugins/advanced/in-cluster-building.md) to accelerate your image build times
-- **Spin up powerful [ephemeral clusters](../guides/ephemeral-clusters.md)** in seconds
+- **Spin up powerful [ephemeral clusters](../k8s-plugins/ephemeral-k8s/configure-provider.md)** in seconds
 
 If you're already familiar with Garden and just want to get going, click any of the links above to set up your features.
 
@@ -27,7 +27,7 @@ Navigate to [Examples](#examples) for a selection of pre-configured stacks you c
 Before you proceed, make sure you have gone through the following steps:
 
 - [Installing Garden](../getting-started/installation.md)
-- [Set up a local Kubernetes cluster](../k8s-plugins/local-k8s/configure-provider.md) _or_ use our [Ephemeral Clusters](../guides/ephemeral-clusters.md)
+- [Set up a local Kubernetes cluster](../k8s-plugins/local-k8s/configure-provider.md) _or_ use our [Ephemeral Clusters](../k8s-plugins/ephemeral-k8s/configure-provider.md)
 - If you're coming from Docker Compose, visit our [Migrating From Docker Compose](../guides/migrating-from-docker-compose.md) guide
 
 Setting up a remote Kubernetes environment for local development creates a developer namespace in a remote cluster. This namespace acts as a sandbox for your application, allowing you to test and develop without affecting other applications or services in the cluster.
