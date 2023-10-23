@@ -22,7 +22,9 @@ export const uninstallGardenServices: PluginCommand = {
   handler: async ({ ctx, log }) => {
     const k8sCtx = <KubernetesPluginContext>ctx
 
-    await ingressControllerUninstall(k8sCtx, log)
+    if (k8sCtx.provider.config.setupIngressController === "nginx") {
+      await ingressControllerUninstall(k8sCtx, log)
+    }
 
     log.info(chalk.green("\nDone!"))
 
