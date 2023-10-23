@@ -8,8 +8,6 @@
 
 import type { Log } from "../../../logger/log-entry.js"
 import type { KubernetesPluginContext } from "../config.js"
-import { KubeApi } from "../api.js"
-import { apply } from "../kubectl.js"
 import { helmIngressControllerReady, helmNginxInstall, helmNginxUninstall } from "./nginx-helm.js"
 import { getGenericNginxHelmValues } from "./nginx-helm-generic.js"
 import { getK3sNginxHelmValues } from "./nginx-helm-k3s.js"
@@ -74,23 +72,4 @@ export async function ingressControllerUninstall(ctx: KubernetesPluginContext, l
   } else {
     return clusterType satisfies never
   }
-}
-
-export async function ingressClassCreate(ctx: KubernetesPluginContext, log: Log) {
-  const provider = ctx.provider
-  const config = provider.config
-
-  const namespace = config.gardenSystemNamespace
-  const api = await KubeApi.factory(log, ctx, provider)
-  const ingressClass = {
-    apiVersion: "networking.k8s.io/v1",
-    kind: "IngressClass",
-    metadata: {
-      name: "nginx",
-    },
-    spec: {
-      controller: "kubernetes.io/ingress-nginx",
-    },
-  }
-  await apply({ log, ctx, api, provider, manifests: [ingressClass], namespace })
 }
