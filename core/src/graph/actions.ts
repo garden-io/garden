@@ -707,8 +707,6 @@ function dependenciesFromActionConfig(
           message: `${description} references depdendency ${depKey}, but no such action could be found`,
         })
       }
-      // FIXME @eysi: We're setting the "parent" config type as the dep type which is not correct
-      // and we need to the dep type.
       return {
         kind,
         name,
