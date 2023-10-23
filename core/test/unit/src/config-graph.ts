@@ -1477,98 +1477,84 @@ describe("ConfigGraph (module-based configs)", () => {
       expect(rendered.nodes).to.include.deep.members([
         {
           kind: "Build",
-          type: "test",
           name: "module-a",
           key: "module-a",
           disabled: false,
         },
         {
           kind: "Build",
-          type: "test",
           name: "module-b",
           key: "module-b",
           disabled: false,
         },
         {
           kind: "Build",
-          type: "test",
           name: "module-c",
           key: "module-c",
           disabled: false,
         },
         {
           kind: "Test",
-          type: "test",
           name: "module-c-unit",
           key: "module-c-unit",
           disabled: false,
         },
         {
           kind: "Test",
-          type: "test",
           name: "module-c-integ",
           key: "module-c-integ",
           disabled: false,
         },
         {
           kind: "Run",
-          type: "test",
           name: "task-c",
           key: "task-c",
           disabled: false,
         },
         {
           kind: "Deploy",
-          type: "test",
           name: "service-c",
           key: "service-c",
           disabled: false,
         },
         {
           kind: "Test",
-          type: "test",
           name: "module-a-unit",
           key: "module-a-unit",
           disabled: false,
         },
         {
           kind: "Test",
-          type: "test",
           name: "module-a-integration",
           key: "module-a-integration",
           disabled: false,
         },
         {
           kind: "Run",
-          type: "test",
           name: "task-a",
           key: "task-a",
           disabled: false,
         },
         {
           kind: "Test",
-          type: "test",
           name: "module-b-unit",
           key: "module-b-unit",
           disabled: false,
         },
         {
           kind: "Run",
-          type: "test",
           name: "task-b",
           key: "task-b",
           disabled: false,
         },
         {
           kind: "Deploy",
-          type: "test",
           name: "service-a",
           key: "service-a",
           disabled: false,
         },
         {
           kind: "Deploy",
-          type: "test",
           name: "service-b",
           key: "service-b",
           disabled: false,
@@ -1585,7 +1571,6 @@ describe("ConfigGraphNode", () => {
       const res = node.render()
       expect(res).to.eql({
         kind: "Build",
-        type: "container",
         name: "module-a",
         key: "module-a",
         disabled: false,
@@ -1597,7 +1582,6 @@ describe("ConfigGraphNode", () => {
       const res = node.render()
       expect(res).to.eql({
         kind: "Deploy",
-        type: "container",
         name: "service-a",
         key: "service-a",
         disabled: false,
@@ -1609,7 +1593,6 @@ describe("ConfigGraphNode", () => {
       const res = node.render()
       expect(res).to.eql({
         kind: "Run",
-        type: "container",
         name: "task-a",
         key: "task-a",
         disabled: false,
@@ -1621,7 +1604,6 @@ describe("ConfigGraphNode", () => {
       const res = node.render()
       expect(res).to.eql({
         kind: "Test",
-        type: "container",
         name: "module-a.test-a",
         key: "module-a.test-a",
         disabled: false,
@@ -1633,7 +1615,6 @@ describe("ConfigGraphNode", () => {
       const res = node.render()
       expect(res).to.eql({
         kind: "Test",
-        type: "container",
         name: "module-a.test-a",
         key: "module-a.test-a",
         disabled: true,
