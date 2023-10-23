@@ -169,7 +169,7 @@ describe("plugins.container", () => {
 
   describe("checkDockerServerVersion", () => {
     it("should return if server version is equal to the minimum version", async () => {
-      containerHelpers.checkDockerServerVersion(minDockerVersion)
+      containerHelpers.checkDockerServerVersion(minDockerVersion, log)
     })
 
     it("should return if server version is greater than the minimum version", async () => {
@@ -178,7 +178,20 @@ describe("plugins.container", () => {
         server: "99.99",
       }
 
-      containerHelpers.checkDockerServerVersion(version)
+      containerHelpers.checkDockerServerVersion(version, log)
+    })
+
+    // see https://github.com/garden-io/garden/issues/5284
+    it("should print a warning message if server returns an unparsable server version", async () => {
+      const version = {
+        client: "99.99",
+        server: "dev",
+      }
+
+      expect(() => containerHelpers.checkDockerServerVersion(version, log)).to.not.throw()
+      expect(log.entries[0].msg).to.equal(
+        "Failed to parse Docker server version: dev. Please check your Docker installation. A docker factory reset may be required."
+      )
     })
 
     it("should throw if server is not reachable (version is undefined)", async () => {
@@ -188,7 +201,7 @@ describe("plugins.container", () => {
       }
 
       await expectError(
-        () => containerHelpers.checkDockerServerVersion(version),
+        () => containerHelpers.checkDockerServerVersion(version, log),
         (err) => {
           expect(err.message).to.equal(
             "Failed to check Docker server version: Docker server is not running or cannot be reached."
@@ -204,7 +217,7 @@ describe("plugins.container", () => {
       }
 
       await expectError(
-        () => containerHelpers.checkDockerServerVersion(version),
+        () => containerHelpers.checkDockerServerVersion(version, log),
         (err) => {
           expect(err.message).to.equal("Docker server needs to be version 17.07.0 or newer (got 17.06)")
         }
