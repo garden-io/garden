@@ -973,11 +973,10 @@ workflows:
   # Only run test-dockerhub if path-filter noticed changes in ./support/*
     when:
       condition: <<pipeline.parameters.run-test-dockerhub>>
-      equal: true
     jobs:
+      - build
       - build-dist:
-          # Don't attempt to run dist tests for external PRs (they won't have access to the required keys)
-          <<: *only-internal-prs
+          requires: [build]
       - test-dockerhub:
           requires: [build-dist]
           <<: *only-prs
