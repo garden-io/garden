@@ -430,15 +430,23 @@ jobs:
     machine:
       <<: *shared-machine-config
     steps:
-      - update_buildx
-      - checkout
-      # This is to copy the pre-built code from a previous step
-      - *attach-workspace
-      - deploy:
-          name: Build and test docker images
-          command: |
-            bash support/docker-bake-test.sh $CIRCLE_BRANCH
-      - fail_fast
+      # Only run test-dockerhub if path-filter noticed changes in ./support/*
+      - when:
+          condition: <<pipeline.parameters.run-test-dockerhub>>
+          steps:
+            - update_buildx
+            - checkout
+            # This is to copy the pre-built code from a previous step
+            - *attach-workspace
+            - deploy:
+                name: Build and test docker images
+                command: |
+                  bash support/docker-bake-test.sh $CIRCLE_BRANCH
+            - fail_fast
+      - unless:
+          condition: <<pipeline.parameters.run-test-dockerhub>>
+          steps:
+            - run: echo "Skipping test-dockerhub because no changes in ./support/*"
 
   dockerhub-release:
     machine:
@@ -969,18 +977,6 @@ jobs:
 workflows:
   version: 2
 
-  test-dockerhub:
-  # Only run test-dockerhub if path-filter noticed changes in ./support/*
-    when:
-      condition: <<pipeline.parameters.run-test-dockerhub>>
-    jobs:
-      - build
-      - build-dist:
-          requires: [build]
-      - test-dockerhub:
-          requires: [build-dist]
-          <<: *only-prs
-
   commit:
     jobs:
       ### ALL BRANCHES ###
@@ -1005,6 +1001,9 @@ workflows:
           requires: [build-dist]
       - test-macos-arm:
           <<: *only-internal-prs
+          requires: [build-dist]
+      - test-dockerhub:
+          <<: *only-prs
           requires: [build-dist]
       - test-windows:
           <<: *only-internal-prs
