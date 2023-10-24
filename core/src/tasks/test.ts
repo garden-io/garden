@@ -20,6 +20,7 @@ import type { TestAction } from "../actions/test"
 import { GetTestResult } from "../plugin/handlers/Test/get-result"
 import { OtelTraced } from "../util/open-telemetry/decorators"
 import { GardenError } from "../exceptions"
+import { isGardenEnterprise } from "../util/enterprise"
 
 /**
  * Only throw this error when the test itself failed, and not when Garden failed to execute the test.
@@ -73,21 +74,98 @@ export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
   @(emitGetStatusEvents<TestAction>)
   async getStatus({ dependencyResults }: ActionTaskStatusParams<TestAction>) {
     this.log.verbose("Checking status...")
-    const action = this.getResolvedAction(this.action, dependencyResults)
+    const resolvedAction = this.getResolvedAction(this.action, dependencyResults)
     const router = await this.garden.getActionRouter()
+    const cloudApi = this.garden.cloudApi
+
+    // todo cache strategies
+    // todo check cloud for availability of feature instead of
+    // domain check. session level obj
+    const cacheStrategy: string = "template-changes"
+
+    // enterprise
+    if (cloudApi && this.garden.projectId && isGardenEnterprise(this.garden)) {
+      // cache strategy: never
+      // if (cacheStrategy === 'never') {
+
+      // }
+
+      if (cacheStrategy === "code-changes") {
+        // cache strategy: code-changes (use unresolved action version)
+        const res = await cloudApi.checkCacheStatus({
+          projectId: this.garden.projectId,
+          actionKind: this.action.kind,
+          actionName: this.action.name,
+          unresolvedActionVersion: this.action.versionString(),
+        })
+        this.log.verbose("Status check complete")
+        if (res.status === "success") {
+          // success
+          if (!this.force) {
+            this.log.success("Already passed")
+          }
+          return {
+            state: "ready" as const,
+            detail: null,
+            outputs: {},
+            version: this.action.versionString(),
+            executedAction: resolvedActionToExecuted(resolvedAction, {
+              status: { state: "ready", detail: null, outputs: {} },
+            }),
+          }
+        }
+      }
+
+      if (cacheStrategy === "template-changes") {
+        // cache strategy: template-changes (use resolved action version)
+        const res = await cloudApi.checkCacheStatus({
+          projectId: this.garden.projectId,
+          actionKind: resolvedAction.kind,
+          actionName: resolvedAction.name,
+          resolvedActionVersion: resolvedAction.versionString(),
+        })
+        this.log.verbose("Status check complete")
+        if (res.status === "success") {
+          // success
+          if (!this.force) {
+            this.log.success("Already passed")
+          }
+          return {
+            state: "ready" as const,
+            detail: null,
+            outputs: {},
+            version: this.action.versionString(),
+            executedAction: resolvedActionToExecuted(resolvedAction, {
+              status: { state: "ready", detail: null, outputs: {} },
+            }),
+          }
+        }
+      }
+
+      // error
+      return {
+        state: "not-ready" as const,
+        version: this.action.versionString(),
+        executedAction: resolvedActionToExecuted(resolvedAction, {
+          status: { state: "not-ready", detail: {}, outputs: {} },
+        }),
+        detail: null,
+        outputs: {},
+      }
+    }
 
     const { result: status } = await router.test.getResult({
       log: this.log,
       graph: this.graph,
-      action,
+      action: resolvedAction,
     })
 
     this.log.verbose("Status check complete")
 
     const testResult = status?.detail
 
-    const version = action.versionString()
-    const executedAction = resolvedActionToExecuted(action, { status })
+    const version = resolvedAction.versionString()
+    const executedAction = resolvedActionToExecuted(resolvedAction, { status })
 
     if (testResult && testResult.success) {
       if (!this.force) {

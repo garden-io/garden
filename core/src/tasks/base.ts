@@ -434,7 +434,8 @@ export function emitGetStatusEvents<
         // Use executedAction instead of this.action here for correct version
         // as executedAction is the resolved action and this.action is unresolved.
         // The action is resolved in method.apply and getStatus handlers use the resolved action.
-        action: result.executedAction,
+        action: this.action,
+        resolvedAction: result.executedAction,
         operation: methodName,
         force: this.force,
         sessionId: this.garden.sessionId,
@@ -513,7 +514,8 @@ export function emitProcessingEvents<
       const donePayload = makeActionCompletePayload({
         startedAt,
         result,
-        action: result.executedAction,
+        action: this.action,
+        resolvedAction: result.executedAction,
         force: this.force,
         operation: methodName,
         sessionId: this.garden.sessionId,

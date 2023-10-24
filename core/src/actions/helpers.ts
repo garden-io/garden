@@ -169,6 +169,7 @@ export async function getDeployStatusPayloads({
           startedAt,
           force: false,
           action,
+          resolvedAction: action,
           sessionId,
         }) as ActionStatusPayload<DeployStatusForEventPayload>
 
@@ -204,6 +205,7 @@ export async function getBuildStatusPayloads({
           startedAt,
           force: false,
           action,
+          resolvedAction: action,
           sessionId,
         }) as ActionStatusPayload<BuildStatusForEventPayload>
 
@@ -238,6 +240,7 @@ export async function getTestStatusPayloads({
           startedAt,
           force: false,
           action,
+          resolvedAction: action,
           sessionId,
         }) as ActionStatusPayload<RunStatusForEventPayload>
         return [action.name, payload]
@@ -272,6 +275,7 @@ export async function getRunStatusPayloads({
           startedAt,
           force: false,
           action,
+          resolvedAction: action,
           sessionId,
         }) as ActionStatusPayload<RunStatusForEventPayload>
 

@@ -34,6 +34,8 @@ import { LogLevel } from "../logger/logger"
 import { makeAuthHeader } from "./auth"
 import { StringMap } from "../config/common"
 import chalk from "chalk"
+// import querystring from 'querystring'
+import qs from "qs"
 
 const gardenClientName = "garden-core"
 const gardenClientVersion = getPackageVersion()
@@ -852,6 +854,31 @@ export class CloudApi {
 
   async getCacheStatus(key: string) {
     const response = await this.get<{ status: Status; data: any }>(`/cache/${key}`)
+    return response
+  }
+
+  async checkCacheStatus({
+    projectId,
+    actionName,
+    actionKind,
+    resolvedActionVersion,
+    unresolvedActionVersion,
+  }: {
+    projectId: string
+    actionName: string
+    actionKind: string
+    resolvedActionVersion?: string
+    unresolvedActionVersion?: string
+  }) {
+    const params = {
+      projectId,
+      actionName,
+      actionKind,
+      resolvedActionVersion,
+      unresolvedActionVersion,
+    }
+    const queryParamsString = qs.stringify(params)
+    const response = await this.get<{ status: Status; data: any }>(`/cache/check?${queryParamsString}`)
     return response
   }
 }

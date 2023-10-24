@@ -6,9 +6,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import { Garden } from ".."
 import { DEFAULT_GARDEN_CLOUD_DOMAIN } from "../constants"
 import { PluginContext } from "../plugin-context"
 
-export function isGardenEnterprise(ctx: PluginContext): boolean {
+export function isGardenEnterprise(ctx: PluginContext | Garden): boolean {
   return !!(ctx.projectId && ctx.cloudApi && ctx.cloudApi?.domain !== DEFAULT_GARDEN_CLOUD_DOMAIN)
 }

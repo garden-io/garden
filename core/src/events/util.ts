@@ -57,12 +57,14 @@ function getStatusEventCompleteState(state: ActionState, operation: "getStatus" 
 
 export function makeActionStatusPayloadBase({
   action,
+  resolvedAction,
   force,
   operation,
   startedAt,
   sessionId,
 }: {
   action: Action
+  resolvedAction?: Resolved<Action>
   force: boolean
   operation: "getStatus" | "process"
   startedAt: string
@@ -71,6 +73,7 @@ export function makeActionStatusPayloadBase({
   return {
     actionName: action.name,
     actionVersion: action.versionString(),
+    resolvedActionVersion: resolvedAction?.versionString(),
     // NOTE: The type/kind needs to be lower case in the event payload
     actionType: action.kind.toLowerCase(),
     actionKind: action.kind.toLowerCase(),
@@ -147,7 +150,7 @@ export function makeActionProcessingPayload({
  * but here we're erring on making things explicit and also type correctness via the 'satisfies' keyword.
  */
 export function makeActionCompletePayload<
-  A extends Resolved<Action>,
+  A extends Action,
   R extends ValidExecutionActionResultType = {
     state: ActionState
     outputs: A["_runtimeOutputs"]
@@ -157,19 +160,21 @@ export function makeActionCompletePayload<
 >({
   result,
   action,
+  resolvedAction,
   force,
   operation,
   startedAt,
   sessionId,
 }: {
   result: R
-  action: Resolved<Action>
+  action: Action
+  resolvedAction: Resolved<Action>
   force: boolean
   operation: "getStatus" | "process"
   startedAt: string
   sessionId: string
 }) {
-  const payloadAttrs = makeActionStatusPayloadBase({ action, force, operation, startedAt, sessionId })
+  const payloadAttrs = makeActionStatusPayloadBase({ action, resolvedAction, force, operation, startedAt, sessionId })
   const actionKind = action.kind.toLowerCase() as Lowercase<Action["kind"]>
 
   // Map the result state to one of the allowed "complete" states.

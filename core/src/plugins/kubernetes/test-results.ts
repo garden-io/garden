@@ -13,7 +13,6 @@ import { Log } from "../../logger/log-entry"
 import { PluginContext } from "../../plugin-context"
 import { TestActionHandler } from "../../plugin/action-types"
 import { TestResult } from "../../types/test"
-import { isGardenEnterprise } from "../../util/enterprise"
 import { deserializeValues } from "../../util/serialization"
 import { gardenAnnotationKey } from "../../util/string"
 import { ContainerTestAction } from "../container/moduleConfig"
@@ -33,23 +32,23 @@ export const k8sGetTestResult: TestActionHandler<"getResult", any> = async (para
   const api = await KubeApi.factory(log, ctx, k8sCtx.provider)
 
   // enterprise
-  if (ctx.cloudApi && isGardenEnterprise(ctx)) {
-    const keyString = `${ctx.projectId}_${action.name}_${action.kind}_${action.versionString()}`
-    const res = await ctx.cloudApi.getCacheStatus(keyString)
-    if (res.status === "error") {
-      return { state: "not-ready", detail: null, outputs: {} }
-    }
-    return {
-      state: "ready",
-      detail: <TestResult>{
-        success: true,
-        completedAt: res.data.completedAt,
-        startedAt: res.data.startedAt,
-        log: res.data.log || "",
-      },
-      outputs: { log: res.data.log || "" },
-    }
-  }
+  // if (ctx.cloudApi && isGardenEnterprise(ctx)) {
+  //   const keyString = `${ctx.projectId}_${action.name}_${action.kind}_${action.versionString()}`
+  //   const res = await ctx.cloudApi.getCacheStatus(keyString)
+  //   if (res.status === "error") {
+  //     return { state: "not-ready", detail: null, outputs: {} }
+  //   }
+  //   return {
+  //     state: "ready",
+  //     detail: <TestResult>{
+  //       success: true,
+  //       completedAt: res.data.completedAt,
+  //       startedAt: res.data.startedAt,
+  //       log: res.data.log || "",
+  //     },
+  //     outputs: { log: res.data.log || "" },
+  //   }
+  // }
 
   // free-tier
   const testResultNamespace = await getSystemNamespace(k8sCtx, k8sCtx.provider, log)
@@ -99,11 +98,11 @@ interface StoreTestResultParams {
  * TODO: Implement a CRD for this.
  */
 export async function storeTestResult({ ctx, log, action, result }: StoreTestResultParams): Promise<TestResult | null> {
-  if (isGardenEnterprise(ctx)) {
-    // no need to store results for enterprise
-    // automatically stored from the events that are sent to cloud
-    return null
-  }
+  // if (isGardenEnterprise(ctx)) {
+  //   // no need to store results for enterprise
+  //   // automatically stored from the events that are sent to cloud
+  //   return null
+  // }
 
   const k8sCtx = <KubernetesPluginContext>ctx
   const api = await KubeApi.factory(log, ctx, k8sCtx.provider)
