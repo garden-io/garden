@@ -19,6 +19,7 @@ import { GardenError } from "../exceptions"
 import hasAnsi from "has-ansi"
 import { omitUndefined } from "../util/objects"
 import { renderDuration } from "./util"
+import { errorStyle, warningStyle } from "./renderers"
 
 export type LogSymbol = keyof typeof logSymbols | "empty"
 export type TaskLogStatus = "active" | "success" | "error"
@@ -144,6 +145,14 @@ export interface LogEntry<C extends BaseContext = LogContext>
    */
   msg?: string
   /**
+   * A "raw" version of the log line. This field is preferred over 'msg' if set when rendering
+   * log entries in the web dashboard.
+   *
+   * Use this if the entry has a msg that doesn't render well in the UI. In that case you
+   * can set terminal log line via the 'msg' field and a web friendly version via this field.
+   */
+  rawMsg?: string
+  /**
    * A symbol that's printed with the log message to indicate it's type (e.g. "error" or "success").
    */
   symbol?: LogSymbol
@@ -154,7 +163,7 @@ export interface LogEntry<C extends BaseContext = LogContext>
 }
 
 interface LogParams
-  extends Pick<LogEntry, "metadata" | "msg" | "symbol" | "data" | "dataFormat" | "error" | "skipEmit">,
+  extends Pick<LogEntry, "metadata" | "msg" | "rawMsg" | "symbol" | "data" | "dataFormat" | "error" | "skipEmit">,
     Pick<LogContext, "origin">,
     Pick<LogConfig<LogContext>, "showDuration"> {}
 
@@ -294,9 +303,12 @@ export abstract class Log<C extends BaseContext = LogContext> implements LogConf
     // log line in question).
     const showDuration = params.showDuration !== undefined ? params.showDuration : this.showDuration
     if (showDuration && params.msg) {
-      const msg = hasAnsi(params.msg) ? params.msg : chalk.green(params.msg)
+      const styleFn =
+        params.level === LogLevel.error ? errorStyle : params.level === LogLevel.warn ? warningStyle : chalk.green
+      const msg = hasAnsi(params.msg) ? params.msg : styleFn(params.msg)
       return msg + " " + chalk.white(renderDuration(this.getDuration(1)))
     }
+
     return params.msg
   }
 

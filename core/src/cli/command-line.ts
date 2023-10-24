@@ -38,6 +38,7 @@ import {
 import type { GlobalOptions, ParameterObject, ParameterValues } from "./params"
 import { bindActiveContext, withSessionContext } from "../util/open-telemetry/context"
 import { wrapActiveSpan } from "../util/open-telemetry/spans"
+import { DEFAULT_BROWSER_DIVIDER_WIDTH } from "../constants"
 
 const defaultMessageDuration = 3000
 const commandLinePrefix = chalk.yellow("🌼  > ")
@@ -89,24 +90,41 @@ function getCmdFailMsg(commandName: string) {
   return `Failed running the ${commandName} command. Please see above for the logs. ☝️`
 }
 
+/**
+ * Helper command for logging dev console command start and finish.
+ *
+ * Those log line don't map well between browser and terminal so we print a specific
+ * log line for the terminal but also include the 'rawMsg' which will be preferred
+ * by the web UI.
+ */
+function logCommand({ msg, log, width, error }: { msg: string; log: Log; width: number; error: boolean }) {
+  const dividerColor = error ? chalk.red : chalk.blueBright
+  const dividerOptsBase = { width, title: msg, color: dividerColor, char: "┈" }
+  const terminalMsg = renderDivider(dividerOptsBase)
+  const rawMsg = renderDivider({ ...dividerOptsBase, width: DEFAULT_BROWSER_DIVIDER_WIDTH })
+  if (error) {
+    log.error({ msg: terminalMsg, rawMsg })
+  } else {
+    log.info({ msg: "\n" + terminalMsg, rawMsg })
+  }
+}
+
 export function logCommandStart({ commandName, log, width }: { commandName: string; log: Log; width: number }) {
-  const msg = getCmdsRunningMsg([commandName])
-  log.info("\n" + renderDivider({ width, title: msg, color: chalk.blueBright, char: "┈" }))
+  logCommand({ msg: getCmdsRunningMsg([commandName]), log, width, error: false })
 }
 
 export function logCommandSuccess({ commandName, log, width }: { commandName: string; log: Log; width: number }) {
-  const msg = getCmdSuccessMsg(commandName)
-  log.info(renderDivider({ width, title: chalk.green("✓ ") + msg, color: chalk.blueBright, char: "┈" }))
+  logCommand({ msg: getCmdSuccessMsg(commandName), log, width, error: false })
 }
 
 export function logCommandOutputErrors({ errors, log, width }: { errors: Error[]; log: Log; width: number }) {
   renderCommandErrors(log.root, errors, log)
-  log.error({ msg: renderDivider({ width, color: chalk.red }) })
+  logCommand({ msg: "", log, width, error: true })
 }
 
 export function logCommandError({ error, log, width }: { error: Error; log: Log; width: number }) {
   log.error({ error: toGardenError(error) })
-  log.error({ msg: renderDivider({ width, color: chalk.red, char: "┈" }) })
+  logCommand({ msg: "", log, width, error: true })
 }
 
 // TODO-0.13.1+: support --root flag in commands

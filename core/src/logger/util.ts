@@ -10,6 +10,7 @@ import chalk, { Chalk } from "chalk"
 import hasAnsi from "has-ansi"
 import dedent from "dedent"
 import stringWidth from "string-width"
+import { DEFAULT_BROWSER_DIVIDER_WIDTH } from "../constants"
 
 // Add platforms/terminals?
 export function envSupportsEmoji() {
@@ -115,6 +116,20 @@ export function renderDuration(duration: number): string {
   return `(took ${duration} sec)`
 }
 
+function makeMessageWithDivider({ prefix, msg, divider }: { prefix: string; msg: string; divider: string }) {
+  return dedent`
+  ${prefix}\n
+  ${divider}
+  ${msg}
+  ${divider}
+  `
+}
+
+/**
+ * Render a given log message with a divider at the start and end of the message.
+ * Returns a 'msg' string for printing the message to the terminal and a 'rawMsg'
+ * string which is used for logs displayed in the browser.
+ */
 export function renderMessageWithDivider({
   prefix,
   msg,
@@ -128,10 +143,15 @@ export function renderMessageWithDivider({
 }) {
   // Allow overwriting color as an escape hatch. Otherwise defaults to white or red in case of errors.
   const msgColor = color || (isError ? chalk.red : chalk.white)
-  return dedent`
-  ${msgColor.bold(prefix)}\n
-  ${msgColor.bold(renderDivider())}
-  ${hasAnsi(msg) ? msg : msgColor(msg)}
-  ${msgColor.bold(renderDivider())}
-  `
+  const terminalDivider = msgColor.bold(renderDivider())
+  const browserDivider = msgColor.bold(renderDivider({ width: DEFAULT_BROWSER_DIVIDER_WIDTH }))
+  const dividerOpts = {
+    prefix: msgColor.bold(prefix),
+    msg: hasAnsi(msg) ? msg : msgColor(msg),
+    divider: terminalDivider,
+  }
+  return {
+    msg: makeMessageWithDivider({ ...dividerOpts, divider: terminalDivider }),
+    rawMsg: makeMessageWithDivider({ ...dividerOpts, divider: browserDivider }),
+  }
 }

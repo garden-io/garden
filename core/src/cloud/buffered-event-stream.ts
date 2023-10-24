@@ -15,7 +15,7 @@ import { got } from "../util/http"
 import type { LogLevel } from "../logger/logger"
 import type { Garden } from "../garden"
 import type { CloudSession } from "./api"
-import { getSection } from "../logger/renderers"
+import { getSection, renderError } from "../logger/renderers"
 import { registerCleanupFunction } from "../util/util"
 import { makeAuthHeader } from "./auth"
 
@@ -33,7 +33,7 @@ export type StreamEvent = {
   timestamp: Date
 }
 
-type LogEntryMessage = Pick<LogEntry, "msg" | "symbol" | "data" | "dataFormat"> & {
+type LogEntryMessage = Pick<LogEntry, "msg" | "rawMsg" | "symbol" | "data" | "dataFormat"> & {
   section: string
 }
 
@@ -50,6 +50,7 @@ export interface LogEntryEventPayload {
 export function formatLogEntryForEventStream(entry: LogEntry): LogEntryEventPayload {
   // TODO @eysi: We're sending the section for backwards compatibility but it shouldn't really be needed.
   const section = getSection(entry) || ""
+  const msg = entry.error ? renderError(entry) : entry.msg
   return {
     key: entry.key,
     metadata: entry.metadata,
@@ -58,7 +59,8 @@ export function formatLogEntryForEventStream(entry: LogEntry): LogEntryEventPayl
     context: entry.context,
     message: {
       section,
-      msg: entry.msg,
+      msg,
+      rawMsg: entry.rawMsg,
       symbol: entry.symbol,
       data: entry.data,
       dataFormat: entry.dataFormat,

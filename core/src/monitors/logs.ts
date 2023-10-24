@@ -185,11 +185,15 @@ export class LogMonitor extends Monitor {
 
   logEntry(entry: DeployLogEntry) {
     const levelStr = logLevelMap[entry.level || LogLevel.info] || "info"
-    const msg = this.formatLogMonitorEntry(entry)
+    const rawMsg = entry.msg
+    const terminalMsg = this.formatLogMonitorEntry(entry)
     for (const cmd of this.subscribers) {
-      cmd.emit(this.log, JSON.stringify({ msg, timestamp: entry.timestamp?.getTime(), level: levelStr }))
+      cmd.emit(
+        this.log,
+        JSON.stringify({ msg: terminalMsg, rawMsg, timestamp: entry.timestamp?.getTime(), level: levelStr })
+      )
     }
-    this.log[levelStr]({ msg })
+    this.log[levelStr]({ msg: terminalMsg, rawMsg })
   }
 
   private formatLogMonitorEntry(entry: DeployLogEntry) {
