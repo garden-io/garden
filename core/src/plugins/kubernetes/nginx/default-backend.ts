@@ -39,7 +39,17 @@ export async function defaultBackendInstall(ctx: KubernetesPluginContext, log: L
   const api = await KubeApi.factory(log, ctx, provider)
   await api.upsert({ kind: "Service", namespace, log, obj: service })
   await api.upsert({ kind: "Deployment", namespace, log, obj: deployment })
-  await waitForResources({ namespace, ctx, provider, resources: [deployment], log, timeoutSec: 20 })
+  await waitForResources({
+    // this is necessary to display the logs in provider-section
+    // because the function waitForResources uses actionName as a new Log name
+    actionName: "providers",
+    namespace,
+    ctx,
+    provider,
+    resources: [deployment],
+    log,
+    timeoutSec: 20,
+  })
 }
 
 export async function defaultBackendUninstall(ctx: KubernetesPluginContext, log: Log) {
