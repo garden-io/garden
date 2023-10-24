@@ -6,6 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import type { LocalKubernetesClusterType } from "./config.js"
 import { configureProvider, configSchema, LocalKubernetesConfig } from "./config.js"
 import { createGardenPlugin } from "../../../plugin/plugin.js"
 import { dedent } from "../../../util/string.js"
@@ -14,7 +15,7 @@ import type {
   PrepareEnvironmentParams,
   PrepareEnvironmentResult,
 } from "../../../plugin/handlers/Provider/prepareEnvironment.js"
-import { KubernetesClusterType, KubernetesPluginContext } from "../config.js"
+import { KubernetesPluginContext } from "../config.js"
 import { prepareEnvironment as _prepareEnvironmentBase } from "../init.js"
 import { Log } from "../../../logger/log-entry.js"
 import { setMinikubeDockerEnv } from "./minikube.js"
@@ -55,7 +56,7 @@ async function prepareEnvironment(
     provider.config.clusterType = clusterType
   }
 
-  // We need this function call to make sure that the system namespace exists.
+  // make sure that the system namespace exists
   await getSystemNamespace(ctx, provider, log)
 
   const result = await _prepareEnvironmentBase(params)
@@ -70,7 +71,7 @@ async function prepareEnvironment(
   return result
 }
 
-async function getClusterType(ctx: KubernetesPluginContext, log: Log): Promise<KubernetesClusterType> {
+async function getClusterType(ctx: KubernetesPluginContext, log: Log): Promise<LocalKubernetesClusterType> {
   const provider = ctx.provider
   const config = provider.config
 

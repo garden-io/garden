@@ -41,6 +41,7 @@ import { syncDefaultsSchema } from "./sync.js"
 import { KUBECTL_DEFAULT_TIMEOUT } from "./kubectl.js"
 import { DOCS_BASE_URL } from "../../constants.js"
 import { defaultKanikoImageName, defaultSystemNamespace } from "./constants.js"
+import { LocalKubernetesClusterType } from "./local/config.js"
 
 export interface ProviderSecretRef {
   name: string
@@ -120,7 +121,7 @@ export interface ClusterBuildkitCacheConfig {
   registry?: ContainerRegistryConfig
 }
 
-export type KubernetesClusterType = "kind" | "minikube" | "microk8s" | "k3s" | "generic"
+export type KubernetesClusterType = LocalKubernetesClusterType
 
 export interface KubernetesConfig extends BaseProviderConfig {
   buildMode: ContainerBuildMode

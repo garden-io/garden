@@ -28,6 +28,8 @@ const supportedContexts = [
   "orbstack",
 ]
 
+export type LocalKubernetesClusterType = "kind" | "minikube" | "microk8s" | "k3s" | "generic"
+
 function isSupportedContext(context: string) {
   return supportedContexts.includes(context) || context.startsWith("kind-")
 }
