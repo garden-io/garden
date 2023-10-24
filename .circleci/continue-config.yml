@@ -56,6 +56,11 @@ parameters:
       tags:
         ignore: /.*/
 
+  ignore-main: &ignore-main
+    filters:
+      branches:
+        ignore: main
+
   # Only run jobs on main branch
   only-main: &only-main
     filters:
@@ -78,7 +83,9 @@ parameters:
     filters:
       branches:
         # Forked pull requests have CIRCLE_BRANCH set to pull/XXX
-        ignore: /pull\/[0-9]+/
+        ignore:
+          - /pull\/[0-9]+/
+          - main # Only run on PRs
 
 # Reuseable commands to execute in jobs
 # see https://circleci.com/docs/2.0/configuration-reference/#commands-requires-version21
@@ -981,7 +988,8 @@ workflows:
     jobs:
       ### ALL BRANCHES ###
 
-      - build
+      - build:
+          <<: *ignore-main
       - build-dist:
           requires: [build]
       - lint:
@@ -1203,11 +1211,16 @@ workflows:
           kindNodeImage: kindest/node:v1.21.14@sha256:27ef72ea623ee879a25fe6f9982690a3e370c68286f4356bf643467c552a3888
 
       # This is only for edge release (Overrides version to edge-bonsai)
+      - build:
+          <<: *only-main
+          name: build-edge
+          version: edge-bonsai
+
       - build-dist:
           <<: *only-main
           name: build-dist-edge
           version: edge-bonsai
-          requires: [build]
+          requires: [build-edge]
 
       - github-edge-prerelease:
           <<: *only-main
