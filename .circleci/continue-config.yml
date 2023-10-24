@@ -987,6 +987,9 @@ workflows:
       ### ALL BRANCHES ###
 
       - build:
+          # We only want to run tests on branches (e.g. for the merge queue) and pull requests.
+          # On main we do not need to re-run all the tests, as the merge queue guarantees that tests already passed.
+          # For the edge release we declare the `build-edge` job below that only runs on main. 
           <<: *ignore-main
       - build-dist:
           requires: [build]
