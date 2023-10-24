@@ -60,13 +60,16 @@ export async function configureProvider(params: ConfigureProviderParams<Kubernet
       message: `${EPHEMERAL_KUBERNETES_PROVIDER_NAME} provider is currently not supported for ${ctx.cloudApi.distroName}.`,
     })
   }
+
   // creating tmp dir .garden/ephemeral-kubernetes for storing kubeconfig
   const ephemeralClusterDirPath = join(ctx.gardenDirPath, "ephemeral-kubernetes")
   await mkdirp(ephemeralClusterDirPath)
+
   log.info("Retrieving ephemeral Kubernetes cluster")
   const createEphemeralClusterResponse = await ctx.cloudApi.createEphemeralCluster()
   const clusterId = createEphemeralClusterResponse.instanceMetadata.instanceId
   log.info(`Ephemeral Kubernetes cluster retrieved successfully`)
+
   const deadlineDateTime = moment(createEphemeralClusterResponse.instanceMetadata.deadline)
   const diffInNowAndDeadline = moment.duration(deadlineDateTime.diff(moment())).asMinutes().toFixed(1)
   log.info(
@@ -76,6 +79,7 @@ export async function configureProvider(params: ConfigureProviderParams<Kubernet
       )}`
     )
   )
+
   log.info("Fetching kubeconfig for the ephemeral cluster")
   const kubeConfig = await ctx.cloudApi.getKubeConfigForCluster(clusterId)
   const kubeconfigFileName = `${clusterId}-kubeconfig.yaml`
@@ -84,8 +88,7 @@ export async function configureProvider(params: ConfigureProviderParams<Kubernet
   log.info(`Kubeconfig for ephemeral cluster saved at path: ${chalk.underline(kubeConfigPath)}`)
 
   const parsedKubeConfig: any = load(kubeConfig)
-  const currentContext = parsedKubeConfig["current-context"]
-  baseConfig.context = currentContext
+  baseConfig.context = parsedKubeConfig["current-context"]
   baseConfig.kubeconfig = kubeConfigPath
 
   // set deployment registry
@@ -94,6 +97,7 @@ export async function configureProvider(params: ConfigureProviderParams<Kubernet
     namespace: createEphemeralClusterResponse.registry.repository,
     insecure: false,
   }
+
   // set imagePullSecrets
   baseConfig.imagePullSecrets = [
     {
@@ -101,10 +105,13 @@ export async function configureProvider(params: ConfigureProviderParams<Kubernet
       namespace: createEphemeralClusterResponse.registry.imagePullSecret.namespace,
     },
   ]
+
   // set build mode to kaniko
   baseConfig.buildMode = "kaniko"
+
   // set resource requests and limits defaults for builder, sync and util
   baseConfig.resources = defaultResources
+
   // set additional kaniko flags
   baseConfig.kaniko = {
     extraFlags: [
