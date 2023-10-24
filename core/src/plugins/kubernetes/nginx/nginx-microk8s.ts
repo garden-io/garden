@@ -18,10 +18,7 @@ export async function microk8sNginxStatus(log: Log): Promise<DeployState> {
   const status = statusCommandResult.stdout
   const addonEnabled = status.includes("core/ingress: enabled")
   log.debug(chalk.yellow(`Status of microk8s ingress controller addon: ${addonEnabled ? "enabled" : "disabled"}`))
-  if (addonEnabled) {
-    return "ready"
-  }
-  return "missing"
+  return addonEnabled ? "ready" : "missing"
 }
 
 export async function microk8sNginxInstall(ctx: KubernetesPluginContext, log: Log) {
