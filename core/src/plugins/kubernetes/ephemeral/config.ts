@@ -17,15 +17,15 @@ import { providerConfigBaseSchema } from "../../../config/provider.js"
 import { ConfigurationError } from "../../../exceptions.js"
 import type { ConfigureProviderParams } from "../../../plugin/handlers/Provider/configureProvider.js"
 import { dedent } from "../../../util/string.js"
-import type { KubernetesConfig, KubernetesPluginContext } from "../config.js"
+import type { KubernetesConfig } from "../config.js"
 import { defaultResources } from "../config.js"
 import { namespaceSchema } from "../config.js"
 import { EPHEMERAL_KUBERNETES_PROVIDER_NAME } from "./ephemeral.js"
 import { DEFAULT_GARDEN_CLOUD_DOMAIN } from "../../../constants.js"
 import { getSystemNamespace } from "../namespace.js"
 import { defaultSystemNamespace } from "../constants.js"
-import { helmNginxInstall } from "../nginx/nginx-helm.js"
-import { getEphemeralNginxHelmValues } from "../nginx/nginx-helm-ephemeral.js"
+
+export type EphemeralKubernetesClusterType = "ephemeral"
 
 
 export const configSchema = () =>
@@ -128,6 +128,9 @@ export async function configureProvider(params: ConfigureProviderParams<Kubernet
   // use garden-system as system namespace for ephemeral-kubernetes
   baseConfig.gardenSystemNamespace = defaultSystemNamespace
 
+  // set the proper cluster type explicitly
+  baseConfig.clusterType = "ephemeral"
+
   const kubernetesPluginConfig = {
     ...params,
     config: {
@@ -138,11 +141,6 @@ export async function configureProvider(params: ConfigureProviderParams<Kubernet
 
   // make sure that the system namespace exists
   await getSystemNamespace(ctx, ctx.provider, log)
-
-  if (updatedConfig.setupIngressController === "nginx") {
-    const k8sCtx = <KubernetesPluginContext>ctx
-    await helmNginxInstall(k8sCtx, log, getEphemeralNginxHelmValues)
-  }
 
   return {
     config: updatedConfig,

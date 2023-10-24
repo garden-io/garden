@@ -14,6 +14,7 @@ import { getK3sNginxHelmValues } from "./nginx-helm-k3s.js"
 import { microk8sNginxInstall, microk8sNginxStatus, microk8sNginxUninstall } from "./nginx-microk8s.js"
 import { minikubeNginxInstall, minikubeNginxStatus, minikubeNginxUninstall } from "./nginx-minikube.js"
 import { kindNginxInstall, kindNginxStatus, kindNginxUninstall } from "./nginx-kind.js"
+import { getEphemeralNginxHelmValues } from "./nginx-helm-ephemeral.js"
 
 export async function ingressControllerReady(ctx: KubernetesPluginContext, log: Log): Promise<boolean> {
   const clusterType = ctx.provider.config.clusterType
@@ -27,7 +28,7 @@ export async function ingressControllerReady(ctx: KubernetesPluginContext, log: 
     return (await microk8sNginxStatus(log)) === "ready"
   } else if (clusterType === "minikube") {
     return (await minikubeNginxStatus(log)) === "ready"
-  } else if (clusterType === "k3s" || clusterType === "generic") {
+  } else if (clusterType === "k3s" || clusterType === "generic" || clusterType === "ephemeral") {
     return await helmIngressControllerReady(ctx, log)
   } else {
     return clusterType satisfies never
@@ -50,6 +51,8 @@ export async function ingressControllerInstall(ctx: KubernetesPluginContext, log
     await helmNginxInstall(ctx, log, getK3sNginxHelmValues)
   } else if (clusterType === "generic") {
     await helmNginxInstall(ctx, log, getGenericNginxHelmValues)
+  } else if (clusterType === "ephemeral") {
+    await helmNginxInstall(ctx, log, getEphemeralNginxHelmValues)
   } else {
     return clusterType satisfies never
   }
@@ -67,7 +70,7 @@ export async function ingressControllerUninstall(ctx: KubernetesPluginContext, l
     await microk8sNginxUninstall(ctx, log)
   } else if (clusterType === "minikube") {
     await minikubeNginxUninstall(log)
-  } else if (clusterType === "k3s" || clusterType === "generic") {
+  } else if (clusterType === "k3s" || clusterType === "generic" || clusterType === "ephemeral") {
     await helmNginxUninstall(ctx, log)
   } else {
     return clusterType satisfies never

@@ -42,6 +42,7 @@ import { KUBECTL_DEFAULT_TIMEOUT } from "./kubectl.js"
 import { DOCS_BASE_URL } from "../../constants.js"
 import { defaultKanikoImageName, defaultSystemNamespace } from "./constants.js"
 import { LocalKubernetesClusterType } from "./local/config.js"
+import type { EphemeralKubernetesClusterType } from "./ephemeral/config.js"
 
 export interface ProviderSecretRef {
   name: string
@@ -121,7 +122,7 @@ export interface ClusterBuildkitCacheConfig {
   registry?: ContainerRegistryConfig
 }
 
-export type KubernetesClusterType = LocalKubernetesClusterType
+export type KubernetesClusterType = LocalKubernetesClusterType | EphemeralKubernetesClusterType
 
 export interface KubernetesConfig extends BaseProviderConfig {
   buildMode: ContainerBuildMode
