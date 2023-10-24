@@ -83,9 +83,7 @@ parameters:
     filters:
       branches:
         # Forked pull requests have CIRCLE_BRANCH set to pull/XXX
-        ignore:
-          - /pull\/[0-9]+/
-          - main # Only run on PRs
+        ignore: /pull\/[0-9]+/
 
 # Reuseable commands to execute in jobs
 # see https://circleci.com/docs/2.0/configuration-reference/#commands-requires-version21
