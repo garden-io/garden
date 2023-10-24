@@ -7,7 +7,7 @@
  */
 
 import { memoize } from "lodash"
-import { joi } from "../config/common"
+import { createSchema, joi } from "../config/common"
 import {
   BaseRuntimeActionConfig,
   baseRuntimeActionConfigSchema,
@@ -23,6 +23,15 @@ import { ResolveActionTask } from "../tasks/resolve-action"
 
 export type TestActionConfig<N extends string = any, S extends object = any> = BaseRuntimeActionConfig<"Test", N, S>
 
+const cacheConfigSchema = createSchema({
+  name: "action-cache-config",
+  keys: () => ({
+    strategy: joi.string().allow("never", "code-changes", "template-changes").default("never").description(`
+    Set the cache strategy for this action. The default is "never".
+    `),
+  }),
+})
+
 export const testActionConfigSchema = memoize(() =>
   baseRuntimeActionConfigSchema().keys({
     kind: joi.string().allow("Test").only(),
@@ -32,6 +41,7 @@ export const testActionConfigSchema = memoize(() =>
       .min(1)
       .default(DEFAULT_TEST_TIMEOUT_SEC)
       .description("Set a timeout for the test to complete, in seconds."),
+    cache: cacheConfigSchema(),
   })
 )
 

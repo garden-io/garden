@@ -78,71 +78,61 @@ export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
     const router = await this.garden.getActionRouter()
     const cloudApi = this.garden.cloudApi
 
-    // todo cache strategies
-    // todo check cloud for availability of feature instead of
-    // domain check. session level obj
-    const cacheStrategy: string = "template-changes"
-
-    // enterprise
+    // distributed cloud cache
+    // todo check cloud for availability of feature, instead of enterprise domain check.
     if (cloudApi && this.garden.projectId && isGardenEnterprise(this.garden)) {
-      // cache strategy: never
-      // if (cacheStrategy === 'never') {
+      // todo fix types and infer from config
+      const cacheStrategy: string = this.action.getConfig().cache?.strategy
 
-      // }
+      // skip check altogether if cache strategy is never or -f is set
 
-      if (cacheStrategy === "code-changes") {
-        // cache strategy: code-changes (use unresolved action version)
-        const res = await cloudApi.checkCacheStatus({
+      if (!this.force && (cacheStrategy === "code-changes" || cacheStrategy === "template-changes")) {
+        let reqParams: {
+          projectId: string
+
+          actionKind: string
+          actionName: string
+          unresolvedActionVersion?: string
+          resolvedActionVersion?: string
+        } = {
           projectId: this.garden.projectId,
           actionKind: this.action.kind,
           actionName: this.action.name,
-          unresolvedActionVersion: this.action.versionString(),
-        })
+        }
+
+        if (cacheStrategy === "code-changes") {
+          // for cache strategy: code-changes, use unresolved action version
+          reqParams = {
+            ...reqParams,
+            unresolvedActionVersion: this.action.versionString(),
+          }
+        } else if (cacheStrategy === "template-changes") {
+          // for cache strategy: template-changes, use resolved action version
+          reqParams = {
+            ...reqParams,
+            resolvedActionVersion: resolvedAction.versionString(),
+          }
+        }
+
+        const res = await cloudApi.checkCacheStatus(reqParams)
         this.log.verbose("Status check complete")
+
         if (res.status === "success") {
           // success
-          if (!this.force) {
-            this.log.success("Already passed")
-          }
+          this.log.success("Already passed")
           return {
             state: "ready" as const,
-            detail: null,
-            outputs: {},
+            detail: null, // todo
+            outputs: { log: ''},
             version: this.action.versionString(),
             executedAction: resolvedActionToExecuted(resolvedAction, {
-              status: { state: "ready", detail: null, outputs: {} },
+              status: { state: "ready", detail: null, outputs: { log: ''} },
             }),
           }
         }
       }
 
-      if (cacheStrategy === "template-changes") {
-        // cache strategy: template-changes (use resolved action version)
-        const res = await cloudApi.checkCacheStatus({
-          projectId: this.garden.projectId,
-          actionKind: resolvedAction.kind,
-          actionName: resolvedAction.name,
-          resolvedActionVersion: resolvedAction.versionString(),
-        })
-        this.log.verbose("Status check complete")
-        if (res.status === "success") {
-          // success
-          if (!this.force) {
-            this.log.success("Already passed")
-          }
-          return {
-            state: "ready" as const,
-            detail: null,
-            outputs: {},
-            version: this.action.versionString(),
-            executedAction: resolvedActionToExecuted(resolvedAction, {
-              status: { state: "ready", detail: null, outputs: {} },
-            }),
-          }
-        }
-      }
-
-      // error
+      // cache miss / cache strategy never / -f set
       return {
         state: "not-ready" as const,
         version: this.action.versionString(),
@@ -153,6 +143,8 @@ export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
         outputs: {},
       }
     }
+
+    // local cache
 
     const { result: status } = await router.test.getResult({
       log: this.log,
