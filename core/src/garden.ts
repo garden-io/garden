@@ -1852,11 +1852,11 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
         }
       }
 
-      if (cloudProject) {
+      // Fetch Secrets. Not supported on the community tier (i.e. when config.domain is not set).
+      if (cloudProject && config.domain) {
         // ensure we use the fetched/created project ID
         cloudProjectId = cloudProject.id
 
-        // Only fetch secrets if the projectId exists in the cloud API instance
         try {
           secrets = await wrapActiveSpan(
             "getSecrets",
@@ -1872,7 +1872,8 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
         } catch (err) {
           cloudLog.debug(`Fetching secrets failed with error: ${err}`)
         }
-      } else {
+        // User is on enterprise domain but project could not be found
+      } else if (config.domain) {
         cloudLog.info(
           chalk.yellow(
             wordWrap(
