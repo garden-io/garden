@@ -17,7 +17,7 @@ jobs:
         run: echo "SHORT_SHA=$(echo "$GITHUB_SHA" | cut -c1-8)" >> "$GITHUB_ENV"
       - uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608
       - name: Use Node.js 18.x
-        uses: actions/setup-node@5e21ff4d9bc1a8cf6de233a3057d20ec6b3fb69d
+        uses: actions/setup-node@8f152de45cc393bb48ce5d89d36b731f54556e65
         with:
           node-version: 18.x
       - name: Build package
