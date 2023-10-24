@@ -49,7 +49,11 @@ async function prepareEnvironment(
   const { ctx, log } = params
   const provider = ctx.provider
 
-  const clusterType = await getClusterType(ctx, log)
+  let clusterType = provider.config.clusterType
+  if (!clusterType) {
+    clusterType = await getClusterType(ctx, log)
+    provider.config.clusterType = clusterType
+  }
 
   // We need this function call to make sure that the system namespace exists.
   await getSystemNamespace(ctx, provider, log)
@@ -70,21 +74,15 @@ async function getClusterType(ctx: KubernetesPluginContext, log: Log): Promise<K
   const provider = ctx.provider
   const config = provider.config
 
-  if (config.clusterType) {
-    return config.clusterType
-  }
-
   if (await isKindCluster(ctx, provider, log)) {
-    config.clusterType = "kind"
+    return "kind"
   } else if (await isK3sFamilyCluster(ctx, provider, log)) {
-    config.clusterType = "k3s"
+    return "k3s"
   } else if (config.context === "minikube") {
-    config.clusterType = "minikube"
+    return "minikube"
   } else if (config.context === "microk8s") {
-    config.clusterType = "microk8s"
+    return "microk8s"
   } else {
-    config.clusterType = "generic"
+    return "generic"
   }
-
-  return config.clusterType
 }
