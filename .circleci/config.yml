@@ -16,3 +16,4 @@ workflows:
           config-path: .circleci/continue-config.yml
           mapping: |
             support/.* run-test-dockerhub true
+            .circleci/.* run-test-dockerhub true
