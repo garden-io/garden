@@ -22,7 +22,6 @@ import { setMinikubeDockerEnv } from "./minikube.js"
 import { isKindCluster } from "./kind.js"
 import { configureMicrok8sAddons } from "./microk8s.js"
 import { isK3sFamilyCluster } from "./k3s.js"
-import { getSystemNamespace } from "../namespace.js"
 
 const providerUrl = "./kubernetes.md"
 
@@ -55,9 +54,6 @@ async function prepareEnvironment(
     clusterType = await getClusterType(ctx, log)
     provider.config.clusterType = clusterType
   }
-
-  // make sure that the system namespace exists
-  await getSystemNamespace(ctx, provider, log)
 
   const result = await _prepareEnvironmentBase(params)
 

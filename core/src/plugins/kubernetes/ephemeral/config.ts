@@ -22,11 +22,9 @@ import { defaultResources } from "../config.js"
 import { namespaceSchema } from "../config.js"
 import { EPHEMERAL_KUBERNETES_PROVIDER_NAME } from "./ephemeral.js"
 import { DEFAULT_GARDEN_CLOUD_DOMAIN } from "../../../constants.js"
-import { getSystemNamespace } from "../namespace.js"
 import { defaultSystemNamespace } from "../constants.js"
 
 export type EphemeralKubernetesClusterType = "ephemeral"
-
 
 export const configSchema = () =>
   providerConfigBaseSchema()
@@ -138,9 +136,6 @@ export async function configureProvider(params: ConfigureProviderParams<Kubernet
     },
   }
   const { config: updatedConfig } = await base!(kubernetesPluginConfig)
-
-  // make sure that the system namespace exists
-  await getSystemNamespace(ctx, ctx.provider, log)
 
   return {
     config: updatedConfig,

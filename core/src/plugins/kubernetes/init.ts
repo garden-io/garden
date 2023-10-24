@@ -13,6 +13,7 @@ import {
   deleteNamespaces,
   getNamespaceStatus,
   clearNamespaceCache,
+  getSystemNamespace,
 } from "./namespace.js"
 import type { KubernetesPluginContext, KubernetesConfig, KubernetesProvider, ProviderSecretRef } from "./config.js"
 import type {
@@ -149,6 +150,9 @@ export async function prepareEnvironment(
   const k8sCtx = <KubernetesPluginContext>ctx
   const provider = k8sCtx.provider
   const config = provider.config
+
+  // make sure that the system namespace exists
+  await getSystemNamespace(ctx, ctx.provider, log)
 
   // TODO-0.13/TODO-0.14: remove this option for remote kubernetes clusters?
   if (config.setupIngressController === "nginx") {
