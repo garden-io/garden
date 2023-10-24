@@ -1212,7 +1212,6 @@ workflows:
       - build:
           <<: *only-main
           name: build-edge
-          version: edge-bonsai
 
       - build-dist:
           <<: *only-main
