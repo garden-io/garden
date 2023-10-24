@@ -35,7 +35,7 @@ export const getContainerBuildStatus: BuildActionHandler<"getStatus", ContainerB
 }
 
 export const buildContainer: BuildActionHandler<"build", ContainerBuildAction> = async ({ ctx, action, log }) => {
-  containerHelpers.checkDockerServerVersion(await containerHelpers.getDockerVersion())
+  containerHelpers.checkDockerServerVersion(await containerHelpers.getDockerVersion(), log)
 
   const buildPath = action.getBuildPath()
   const spec = action.getSpec()
