@@ -67,19 +67,15 @@ describe("It should manage ingress controller for respective cluster type", () =
     ctx.provider.config.setupIngressController = "nginx"
     await prepareEnvironment(params)
 
-    const ingressControllerIsReady = await pRetry(
-      async () => {
-        await sleep(3000)
-        const _status = await ingressControllerReady(ctx, log)
-        if (!_status) {
-          throw "not-yet ready, wait a bit and try again"
-        }
-        return _status
-      },
-      {
-        retries: 3,
+    let ingressControllerIsReady
+
+    for (let i = 0; i < 5; i++) {
+      ingressControllerIsReady = await ingressControllerReady(ctx, log)
+      if (ingressControllerIsReady) {
+        break
       }
-    )
+      await sleep(5000)
+    }
     expect(ingressControllerIsReady).to.eql(true)
   })
 
@@ -107,19 +103,15 @@ describe("It should manage ingress controller for respective cluster type", () =
     ctx.provider.config.setupIngressController = "nginx"
     await prepareEnvironment(params)
 
-    const ingressControllerIsReadyAfterInstall = await pRetry(
-      async () => {
-        await sleep(3000)
-        const _status = await ingressControllerReady(ctx, log)
-        if (!_status) {
-          throw "not-yet ready, wait a bit and try again"
-        }
-        return _status
-      },
-      {
-        retries: 3,
+    let ingressControllerIsReadyAfterInstall
+
+    for (let i = 0; i < 5; i++) {
+      ingressControllerIsReadyAfterInstall = await ingressControllerReady(ctx, log)
+      if (ingressControllerIsReadyAfterInstall) {
+        break
       }
-    )
+      await sleep(5000)
+    }
     expect(ingressControllerIsReadyAfterInstall).to.eql(true)
     await cleanup()
     const ingressControllerIsReadyAfterUninstall = await ingressControllerReady(ctx, log)

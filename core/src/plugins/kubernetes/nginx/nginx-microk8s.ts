@@ -14,6 +14,7 @@ import { DeployState } from "../../../types/service"
 import { configureMicrok8sAddons } from "../local/microk8s"
 
 export async function microk8sNginxStatus(log: Log): Promise<DeployState> {
+  // The microk8s addons implement healthchecks, so we can just check if the addon is enabled
   const statusCommandResult = await exec("microk8s", ["status", "--format", "short"])
   const status = statusCommandResult.stdout
   const addonEnabled = status.includes("core/ingress: enabled")

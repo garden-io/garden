@@ -43,14 +43,24 @@ export async function helmNginxStatus(ctx: KubernetesPluginContext, log: Log): P
         ctx,
         log,
         namespace,
-        args: ["status", HELM_INGRESS_NGINX_RELEASE_NAME, "--output", "json"],
+        args: ["status", HELM_INGRESS_NGINX_RELEASE_NAME, "--show-resources", "--output", "json"],
         // do not send JSON output to Garden Cloud or CLI verbose log
         emitLogEvents: false,
       })
     )
-    const status = statusRes.info?.status || "unknown"
-    log.debug(chalk.yellow(`Helm release status for ${HELM_INGRESS_NGINX_RELEASE_NAME}: ${status}`))
-    return helmStatusMap[status] || "unknown"
+    const releaseStatus = statusRes.info?.status || "unknown"
+
+    // we check that the deployment is ready by checking that the number of ready replicas in the deployment
+    // is > 0. This is because the status of the helm release can be "deployed" even if the deployment is not ready.
+    const deploymentReadyReplicasCount = statusRes.info?.resources["v1/Deployment"][0].status.readyReplicas || 0
+
+    if (releaseStatus === "deployed" && deploymentReadyReplicasCount === 0) {
+      log.debug(chalk.yellow(`Helm release ${HELM_INGRESS_NGINX_RELEASE_NAME} is deployed but not ready.`))
+      return "unhealthy"
+    }
+
+    log.debug(chalk.yellow(`Helm release status for ${HELM_INGRESS_NGINX_RELEASE_NAME}: ${releaseStatus}`))
+    return helmStatusMap[releaseStatus] || "unknown"
   } catch (error) {
     log.debug(chalk.yellow(`Helm release ${HELM_INGRESS_NGINX_RELEASE_NAME} missing.`))
     return "missing"
@@ -80,9 +90,9 @@ export async function helmNginxInstall(
     }
   }
 
-  // TODO-G2: update the nginx version
   const args = [
-    "install",
+    "upgrade",
+    "--install",
     HELM_INGRESS_NGINX_RELEASE_NAME,
     HELM_INGRESS_NGINX_CHART,
     "--version",
