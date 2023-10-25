@@ -23,11 +23,17 @@ import { ResolveActionTask } from "../tasks/resolve-action"
 
 export type TestActionConfig<N extends string = any, S extends object = any> = BaseRuntimeActionConfig<"Test", N, S>
 
+export enum CacheStrategy {
+  Never = "never",
+  CodeOnly = "code-only",
+  TemplateAndCode = "template-and-code",
+}
+
 const cacheConfigSchema = createSchema({
   name: "action-cache-config",
   keys: () => ({
-    strategy: joi.string().allow("never", "code-changes", "template-changes").default("never").description(`
-    Set the cache strategy for this action. The default is "never".
+    strategy: joi.string().valid(...Object.values(CacheStrategy)).default(CacheStrategy.TemplateAndCode).description(`
+    Set the cache strategy for action. The default is "template-and-code".
     `),
   }),
 })

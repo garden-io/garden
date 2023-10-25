@@ -16,11 +16,12 @@ import {
 } from "../tasks/base"
 import { Profile } from "../util/profiling"
 import { resolvedActionToExecuted } from "../actions/helpers"
-import type { TestAction } from "../actions/test"
+import { CacheStrategy, TestAction } from "../actions/test"
 import { GetTestResult } from "../plugin/handlers/Test/get-result"
 import { OtelTraced } from "../util/open-telemetry/decorators"
 import { GardenError } from "../exceptions"
 import { isGardenEnterprise } from "../util/enterprise"
+import { TestResult } from "../types/test"
 
 /**
  * Only throw this error when the test itself failed, and not when Garden failed to execute the test.
@@ -76,20 +77,20 @@ export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
     this.log.verbose("Checking status...")
     const resolvedAction = this.getResolvedAction(this.action, dependencyResults)
     const router = await this.garden.getActionRouter()
-    const cloudApi = this.garden.cloudApi
 
     // distributed cloud cache
-    // todo check cloud for availability of feature, instead of enterprise domain check.
-    if (cloudApi && this.garden.projectId && isGardenEnterprise(this.garden)) {
+    if (this.garden.availableCloudFeatures.distributedCache && this.garden.cloudApi && this.garden.projectId) {
+      const cloudApi = this.garden.cloudApi
       // todo fix types and infer from config
-      const cacheStrategy: string = this.action.getConfig().cache?.strategy
+      const cacheStrategy: CacheStrategy = this.action.getConfig().cache?.strategy
 
-      // skip check altogether if cache strategy is never or -f is set
-
-      if (!this.force && (cacheStrategy === "code-changes" || cacheStrategy === "template-changes")) {
+      // only check cloud when cache strategy is not never, or force is not set.
+      if (
+        !this.force &&
+        (cacheStrategy === CacheStrategy.CodeOnly || cacheStrategy === CacheStrategy.TemplateAndCode)
+      ) {
         let reqParams: {
           projectId: string
-
           actionKind: string
           actionName: string
           unresolvedActionVersion?: string
@@ -100,14 +101,14 @@ export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
           actionName: this.action.name,
         }
 
-        if (cacheStrategy === "code-changes") {
-          // for cache strategy: code-changes, use unresolved action version
+        if (cacheStrategy === CacheStrategy.CodeOnly) {
+          // for cache strategy: code-only, use unresolved action version
           reqParams = {
             ...reqParams,
             unresolvedActionVersion: this.action.versionString(),
           }
-        } else if (cacheStrategy === "template-changes") {
-          // for cache strategy: template-changes, use resolved action version
+        } else if (cacheStrategy === CacheStrategy.TemplateAndCode) {
+          // for cache strategy: template-and-code, use resolved action version
           reqParams = {
             ...reqParams,
             resolvedActionVersion: resolvedAction.versionString(),
@@ -118,26 +119,33 @@ export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
         this.log.verbose("Status check complete")
 
         if (res.status === "success") {
-          // success
+          const status = {
+            state: "ready" as const,
+            detail: {
+              success: true,
+              completedAt: res.data.completedAt,
+              startedAt: res.data.startedAt,
+              log: res.data.log || "",
+            } as TestResult,
+            outputs: { log: res.data.log || "" },
+          }
           this.log.success("Already passed")
           return {
-            state: "ready" as const,
-            detail: null, // todo
-            outputs: { log: ''},
+            ...status,
             version: this.action.versionString(),
             executedAction: resolvedActionToExecuted(resolvedAction, {
-              status: { state: "ready", detail: null, outputs: { log: ''} },
+              status,
             }),
           }
         }
       }
 
-      // cache miss / cache strategy never / -f set
+      // cache miss / cache strategy never / force set
       return {
         state: "not-ready" as const,
         version: this.action.versionString(),
         executedAction: resolvedActionToExecuted(resolvedAction, {
-          status: { state: "not-ready", detail: {}, outputs: {} },
+          status: { state: "not-ready", detail: null, outputs: {} },
         }),
         detail: null,
         outputs: {},
@@ -145,7 +153,6 @@ export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
     }
 
     // local cache
-
     const { result: status } = await router.test.getResult({
       log: this.log,
       graph: this.graph,

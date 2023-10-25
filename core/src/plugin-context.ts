@@ -30,6 +30,7 @@ type WrappedFromGarden = Pick<
   | "workingCopyId"
   | "cloudApi"
   | "projectId"
+  | "availableCloudFeatures"
   // TODO: remove this from the interface
   | "environmentName"
   | "namespace"
@@ -84,6 +85,7 @@ export const pluginContextSchema = createSchema({
       .example(true),
     projectName: projectNameSchema(),
     projectId: joi.string().optional().description("Project id"),
+    availableCloudFeatures: joi.array().items(joi.string()).description("List of available cloud features").optional(),
     projectRoot: joi.string().description("The absolute path of the project root."),
     projectSources: projectSourcesSchema(),
     provider: providerSchema().description("The provider being used for this context.").id("ctxProviderSchema"),
@@ -214,6 +216,7 @@ export async function createPluginContext({
     projectName: garden.projectName,
     projectRoot: garden.projectRoot,
     projectId: garden.projectId,
+    availableCloudFeatures: garden.availableCloudFeatures,
     projectSources: garden.getProjectSources(),
     provider,
     production: garden.production,

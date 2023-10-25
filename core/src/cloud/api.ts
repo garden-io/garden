@@ -129,6 +129,14 @@ export interface GetSecretsParams {
   environmentName: string
 }
 
+export interface CheckCacheRequestParams {
+  projectId: string
+  actionName: string
+  actionKind: string
+  resolvedActionVersion?: string
+  unresolvedActionVersion?: string
+}
+
 function toCloudProject(
   project: GetProjectResponse["data"] | ListProjectsResponse["data"][0] | CreateProjectsForRepoResponse["data"][0]
 ): CloudProject {
@@ -863,13 +871,7 @@ export class CloudApi {
     actionKind,
     resolvedActionVersion,
     unresolvedActionVersion,
-  }: {
-    projectId: string
-    actionName: string
-    actionKind: string
-    resolvedActionVersion?: string
-    unresolvedActionVersion?: string
-  }) {
+  }: CheckCacheRequestParams) {
     const params = {
       projectId,
       actionName,

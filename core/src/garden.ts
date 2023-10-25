@@ -159,6 +159,7 @@ import { wrapActiveSpan } from "./util/open-telemetry/spans"
 import { GitRepoHandler } from "./vcs/git-repo"
 import { configureNoOpExporter } from "./util/open-telemetry/tracing"
 import { detectModuleOverlap, makeOverlapErrors } from "./util/module-overlap"
+import { isGardenEnterprise } from "./util/enterprise"
 
 const defaultLocalAddress = "localhost"
 
@@ -249,6 +250,7 @@ export class Garden {
   private actionTypeBases: ActionTypeMap<ActionTypeDefinition<any>[]>
   private emittedWarnings: Set<string>
   public cloudApi: CloudApi | null
+  public availableCloudFeatures: { distributedCache?: boolean} = {}
 
   public readonly production: boolean
   public readonly projectRoot: string
@@ -422,6 +424,11 @@ export class Garden {
     if (!hasOtelCollectorProvider) {
       this.log.silly("No OTEL collector configured, setting no-op exporter")
       configureNoOpExporter()
+    }
+
+    // cloud features
+    if (this.cloudApi && this.projectId && isGardenEnterprise(this)) {
+      this.availableCloudFeatures.distributedCache = true
     }
   }
 

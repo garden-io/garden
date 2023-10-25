@@ -31,26 +31,6 @@ export const k8sGetTestResult: TestActionHandler<"getResult", any> = async (para
   const k8sCtx = <KubernetesPluginContext>ctx
   const api = await KubeApi.factory(log, ctx, k8sCtx.provider)
 
-  // enterprise
-  // if (ctx.cloudApi && isGardenEnterprise(ctx)) {
-  //   const keyString = `${ctx.projectId}_${action.name}_${action.kind}_${action.versionString()}`
-  //   const res = await ctx.cloudApi.getCacheStatus(keyString)
-  //   if (res.status === "error") {
-  //     return { state: "not-ready", detail: null, outputs: {} }
-  //   }
-  //   return {
-  //     state: "ready",
-  //     detail: <TestResult>{
-  //       success: true,
-  //       completedAt: res.data.completedAt,
-  //       startedAt: res.data.startedAt,
-  //       log: res.data.log || "",
-  //     },
-  //     outputs: { log: res.data.log || "" },
-  //   }
-  // }
-
-  // free-tier
   const testResultNamespace = await getSystemNamespace(k8sCtx, k8sCtx.provider, log)
 
   const resultKey = getTestResultKey(k8sCtx, action)
@@ -98,11 +78,10 @@ interface StoreTestResultParams {
  * TODO: Implement a CRD for this.
  */
 export async function storeTestResult({ ctx, log, action, result }: StoreTestResultParams): Promise<TestResult | null> {
-  // if (isGardenEnterprise(ctx)) {
-  //   // no need to store results for enterprise
-  //   // automatically stored from the events that are sent to cloud
-  //   return null
-  // }
+  if (ctx.availableCloudFeatures.distributedCache) {
+    // no need to store results in ConfigMap for distributed cache
+    return null
+  }
 
   const k8sCtx = <KubernetesPluginContext>ctx
   const api = await KubeApi.factory(log, ctx, k8sCtx.provider)
