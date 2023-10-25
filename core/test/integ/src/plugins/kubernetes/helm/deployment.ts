@@ -233,6 +233,7 @@ describe("helmDeploy", () => {
     })
 
     expect(status.state).to.equal("ready")
+    expect(status.detail.mode).to.eql("sync")
     expect(status.detail["values"][".garden"]).to.eql({
       moduleName: "api",
       projectName: garden.projectName,
