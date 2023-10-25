@@ -317,6 +317,7 @@ describe("kubernetes-type handlers", () => {
 
       const status = await getKubernetesDeployStatus(deployParams)
       expect(status.state).to.equal("not-ready")
+      expect(status.detail?.mode).to.equal("sync")
       expect(status.detail?.state).to.equal("outdated")
     })
 

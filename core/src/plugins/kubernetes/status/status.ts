@@ -381,7 +381,7 @@ export async function waitForResources({
 interface ComparisonResult {
   state: DeployState
   remoteResources: KubernetesResource[]
-  mode: ActionMode
+  deployedMode: ActionMode
   /**
    * These resources have changes in `spec.selector`, and would need to be deleted before redeploying (since Kubernetes
    * doesn't allow updates to immutable fields).
@@ -417,7 +417,7 @@ export async function compareDeployedResources({
   const result: ComparisonResult = {
     state: "unknown",
     remoteResources: <KubernetesResource[]>deployedResources.filter((o) => o !== null),
-    mode: "default",
+    deployedMode: "default",
     selectorChangedResourceKeys: detectChangedSpecSelector(manifestsMap, deployedMap),
   }
 
@@ -469,12 +469,12 @@ export async function compareDeployedResources({
       delete manifest.spec?.template?.metadata?.annotations?.[k8sManifestHashAnnotationKey]
     }
 
-    if (isWorkloadResource(manifest)) {
-      if (isConfiguredForSyncMode(manifest)) {
-        result.mode = "sync"
+    if (deployedResource && isWorkloadResource(deployedResource)) {
+      if (isConfiguredForSyncMode(deployedResource)) {
+        result.deployedMode = "sync"
       }
-      if (isConfiguredForLocalMode(manifest)) {
-        result.mode = "local"
+      if (isConfiguredForLocalMode(deployedResource)) {
+        result.deployedMode = "local"
       }
     }
 
