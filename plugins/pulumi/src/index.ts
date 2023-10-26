@@ -56,7 +56,7 @@ export const gardenPlugin = () =>
             validate: async ({ action }) => {
               const root = action.getSpec("root")
               if (root) {
-                const absRoot = join(action.basePath(), root)
+                const absRoot = join(action.sourcePath(), root)
                 const exists = await pathExists(absRoot)
 
                 if (!exists) {

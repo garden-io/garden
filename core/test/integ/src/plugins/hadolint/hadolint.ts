@@ -95,7 +95,7 @@ describe("hadolint provider", () => {
     const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     const testAction = graph.getTest("hadolint-foo")
 
-    expect(testAction.basePath()).to.equal(tmpPath)
+    expect(testAction.sourcePath()).to.equal(tmpPath)
     expect(testAction.getConfig("spec")).to.eql({ dockerfilePath: "foo.Dockerfile" })
     expect(testAction.getConfig().description).to.include("auto-generated")
   })
@@ -143,7 +143,7 @@ describe("hadolint provider", () => {
     const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     const testAction = graph.getTest("hadolint-foo")
 
-    expect(testAction.basePath()).to.equal(tmpPath)
+    expect(testAction.sourcePath()).to.equal(tmpPath)
     expect(testAction.getConfig("spec")).to.eql({ dockerfilePath: "foo.Dockerfile" })
     expect(testAction.getConfig().description).to.include("auto-generated")
   })

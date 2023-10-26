@@ -452,7 +452,7 @@ function commonSyncTests(legacyBuildSync: boolean) {
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const buildActionA = graph.getBuild("module-a")
 
-      buildActionA.getFullVersion().files = [join(buildActionA.basePath(), defaultConfigFilename)]
+      buildActionA.getFullVersion().files = [join(buildActionA.sourcePath(), defaultConfigFilename)]
 
       await buildStaging.syncFromSrc({ action: buildActionA, log: garden.log })
       const buildDirA = buildStaging.getBuildPath(buildActionA.getConfig())

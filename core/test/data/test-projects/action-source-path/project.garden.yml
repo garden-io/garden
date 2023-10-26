@@ -1,0 +1,7 @@
+apiVersion: garden.io/v1
+kind: Project
+name: action-source-path
+environments:
+  - name: local
+providers:
+  - name: test-plugin

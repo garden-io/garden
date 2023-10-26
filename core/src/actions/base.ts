@@ -422,7 +422,7 @@ export abstract class BaseAction<
       return true
     }
 
-    const path = this.basePath()
+    const path = this.sourcePath()
 
     for (const source of linkedSources) {
       if (path === source.path || pathIsInside(path, source.path)) {
@@ -443,14 +443,13 @@ export abstract class BaseAction<
     return internal?.groupName
   }
 
-  // TODO: rename to sourcePath
-  basePath(): string {
+  sourcePath(): string {
     const basePath = this.remoteSourcePath || this._config.internal.basePath
     const sourceRelPath = this._config.source?.path
 
     if (sourceRelPath) {
       // TODO: validate that this is a directory here?
-      return joinWithPosix(basePath, sourceRelPath)
+      return getSourceAbsPath(basePath, sourceRelPath)
     } else {
       return basePath
     }
@@ -670,7 +669,7 @@ export abstract class RuntimeAction<
    */
   getBuildPath() {
     const buildAction = this.getBuildAction()
-    return buildAction?.getBuildPath() || this.basePath()
+    return buildAction?.getBuildPath() || this.sourcePath()
   }
 }
 
@@ -850,6 +849,11 @@ export function isActionConfig(config: any): config is BaseActionConfig {
 
 export function actionRefMatches(a: ActionReference, b: ActionReference) {
   return a.kind === b.kind && a.name === b.name
+}
+
+export function getSourceAbsPath(basePath: string, sourceRelPath: string) {
+  // TODO: validate that this is a directory here?
+  return joinWithPosix(basePath, sourceRelPath)
 }
 
 export function describeActionConfig(config: ActionConfig) {

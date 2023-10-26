@@ -27,7 +27,7 @@ import type { TaskConfig } from "../config/task"
 import type { TestConfig } from "../config/test"
 import type { GardenModule } from "../types/module"
 import { validateInstall } from "../util/validateInstall"
-import { isActionConfig } from "../actions/base"
+import { getSourceAbsPath, isActionConfig } from "../actions/base"
 import type { BaseActionConfig } from "../actions/types"
 import { Garden } from "../garden"
 import chalk from "chalk"
@@ -195,7 +195,7 @@ export abstract class VcsHandler {
     }
 
     const configPath = getConfigFilePath(config)
-    const path = getConfigBasePath(config)
+    const path = getSourcePath(config)
 
     let result: TreeVersion = { contentHash: NEW_RESOURCE_VERSION, files: [] }
 
@@ -264,7 +264,7 @@ export abstract class VcsHandler {
 
   async resolveTreeVersion(params: GetTreeVersionParams): Promise<TreeVersion> {
     // the version file is used internally to specify versions outside of source control
-    const path = getConfigBasePath(params.config)
+    const path = getSourcePath(params.config)
     const versionFilePath = join(path, GARDEN_TREEVERSION_FILENAME)
     const fileVersion = await readTreeVersionFile(versionFilePath)
     return fileVersion || (await this.getTreeVersion(params))
@@ -445,7 +445,7 @@ export function hashStrings(hashes: string[]) {
 }
 
 export function getResourceTreeCacheKey(config: ModuleConfig | BaseActionConfig) {
-  const cacheKey = ["source", getConfigBasePath(config)]
+  const cacheKey = ["source", getSourcePath(config)]
 
   if (config.include) {
     cacheKey.push("include", hashStrings(config.include.sort()))
@@ -461,8 +461,14 @@ export function getConfigFilePath(config: ModuleConfig | BaseActionConfig) {
   return isActionConfig(config) ? config.internal?.configFilePath : config.configPath
 }
 
-export function getConfigBasePath(config: ModuleConfig | BaseActionConfig) {
-  return isActionConfig(config) ? config.internal.basePath : config.path
+export function getSourcePath(config: ModuleConfig | BaseActionConfig) {
+  if (isActionConfig(config)) {
+    const basePath = config.internal.basePath
+    const sourceRelPath = config.source?.path
+    return sourceRelPath ? getSourceAbsPath(basePath, sourceRelPath) : basePath
+  } else {
+    return config.path
+  }
 }
 
 export function describeConfig(config: ModuleConfig | BaseActionConfig) {

@@ -83,7 +83,7 @@ export async function warnOnLinkedActions(garden: Garden, log: Log, actions: Act
 
   const linkedActionsMsg = actions
     .filter((a) => a.isLinked(linkedSources))
-    .map((a) => `${a.longDescription()} linked to path ${chalk.white(a.basePath())}`)
+    .map((a) => `${a.longDescription()} linked to path ${chalk.white(a.sourcePath())}`)
     .map((msg) => "  " + msg) // indent list
 
   if (linkedActionsMsg.length > 0) {

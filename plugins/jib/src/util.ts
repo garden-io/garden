@@ -121,7 +121,7 @@ export function getBuildFlags(action: Resolved<JibBuildAction>, projectType: Jib
   // TODO: don't assume action path is the project root
   // Unlike many other types,
   // jib-container builds are done from the source directory instead of the build staging directory.
-  const tarPath = resolve(action.basePath(), targetDir, tarFilename)
+  const tarPath = resolve(action.sourcePath(), targetDir, tarFilename)
 
   const dockerBuildArgs = getDockerBuildArgs(action.versionString(), buildArgs)
   const outputs = action.getOutputs()

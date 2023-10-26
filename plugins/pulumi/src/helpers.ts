@@ -239,7 +239,7 @@ export function getStackName(action: Resolved<PulumiDeploy>): string {
 }
 
 export function getActionStackRoot(action: Resolved<PulumiDeploy>): string {
-  return join(action.basePath(), action.getSpec("root"))
+  return join(action.sourcePath(), action.getSpec("root"))
 }
 
 /**
@@ -537,7 +537,7 @@ async function loadPulumiVarfile({
   log: Log
   varfilePath: string
 }): Promise<DeepPrimitiveMap> {
-  const resolvedPath = resolve(action.basePath(), varfilePath)
+  const resolvedPath = resolve(action.sourcePath(), varfilePath)
   if (!(await pathExists(resolvedPath))) {
     log.verbose(`Could not find varfile at path '${resolvedPath}' for pulumi action ${action.name}`)
     return {}
