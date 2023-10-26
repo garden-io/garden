@@ -9,11 +9,19 @@
 import { Log } from "../../../logger/log-entry"
 import { KubernetesPluginContext } from "../config"
 import { KubeApi } from "../api"
-import { checkResourceStatus } from "../status/status"
+import { checkResourceStatus, waitForResources } from "../status/status"
 import chalk from "chalk"
 import { apply, deleteResources } from "../kubectl"
 import { DeployState } from "../../../types/service"
 import { kindNginxGetManifests } from "./nginx-kind-manifests"
+
+const nginxKindMainResource = {
+  apiVersion: "apps/v1",
+  kind: "Deployment",
+  metadata: {
+    name: "ingress-nginx-controller",
+  },
+}
 
 export async function kindNginxStatus(ctx: KubernetesPluginContext, log: Log): Promise<DeployState> {
   const provider = ctx.provider
@@ -21,9 +29,7 @@ export async function kindNginxStatus(ctx: KubernetesPluginContext, log: Log): P
   const namespace = config.gardenSystemNamespace
   const api = await KubeApi.factory(log, ctx, provider)
 
-  const manifests = kindNginxGetManifests(namespace)
-  const deploymentManifest = manifests.filter((m) => m.kind === "Deployment")[0]
-  const deploymentStatus = await checkResourceStatus({ api, namespace, manifest: deploymentManifest, log })
+  const deploymentStatus = await checkResourceStatus({ api, namespace, manifest: nginxKindMainResource, log })
 
   log.debug(chalk.yellow(`Status of ingress controller: ${deploymentStatus.state}`))
   return deploymentStatus.state
@@ -44,6 +50,17 @@ export async function kindNginxInstall(ctx: KubernetesPluginContext, log: Log) {
 
   log.info("Installing ingress controller for kind cluster")
   await apply({ log, ctx, api, provider, manifests, namespace })
+
+  await waitForResources({
+    // setting the action name to providers is necessary to display the logs in provider-section
+    actionName: "providers",
+    namespace,
+    ctx,
+    provider,
+    resources: [nginxKindMainResource],
+    log,
+    timeoutSec: 60,
+  })
 }
 
 export async function kindNginxUninstall(ctx: KubernetesPluginContext, log: Log) {

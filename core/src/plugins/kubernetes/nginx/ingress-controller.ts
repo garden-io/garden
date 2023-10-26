@@ -28,8 +28,12 @@ export async function ingressControllerReady(ctx: KubernetesPluginContext, log: 
     return (await microk8sNginxStatus(log)) === "ready"
   } else if (clusterType === "minikube") {
     return (await minikubeNginxStatus(ctx, log)) === "ready"
-  } else if (clusterType === "k3s" || clusterType === "generic" || clusterType === "ephemeral") {
-    return await helmIngressControllerReady(ctx, log)
+  } else if (clusterType === "k3s") {
+    return await helmIngressControllerReady(ctx, log, getK3sNginxHelmValues)
+  } else if (clusterType === "generic") {
+    return await helmIngressControllerReady(ctx, log, getGenericNginxHelmValues)
+  } else if (clusterType === "ephemeral") {
+    return await helmIngressControllerReady(ctx, log, getEphemeralNginxHelmValues)
   } else {
     return clusterType satisfies never
   }
@@ -70,8 +74,12 @@ export async function ingressControllerUninstall(ctx: KubernetesPluginContext, l
     await microk8sNginxUninstall(ctx, log)
   } else if (clusterType === "minikube") {
     await minikubeNginxUninstall(ctx, log)
-  } else if (clusterType === "k3s" || clusterType === "generic" || clusterType === "ephemeral") {
-    await helmNginxUninstall(ctx, log)
+  } else if (clusterType === "k3s") {
+    await helmNginxUninstall(ctx, log, getK3sNginxHelmValues)
+  } else if (clusterType === "generic") {
+    await helmNginxUninstall(ctx, log, getGenericNginxHelmValues)
+  } else if (clusterType === "ephemeral") {
+    await helmNginxUninstall(ctx, log, getEphemeralNginxHelmValues)
   } else {
     return clusterType satisfies never
   }

@@ -12,12 +12,21 @@ import { exec } from "../../../util/util"
 import chalk from "chalk"
 import { KubernetesPluginContext } from "../config"
 import { KubeApi } from "../api"
+import { checkResourceStatus, waitForResources } from "../status/status"
 
 interface MinikubeAddons {
   [key: string]: {
     Profile: string
     Status: string
   }
+}
+
+const nginxKindMainResource = {
+  apiVersion: "apps/v1",
+  kind: "Deployment",
+  metadata: {
+    name: "ingress-nginx-controller",
+  },
 }
 
 export async function minikubeNginxStatus(ctx: KubernetesPluginContext, log: Log): Promise<DeployState> {
@@ -28,32 +37,39 @@ export async function minikubeNginxStatus(ctx: KubernetesPluginContext, log: Log
   const minikubeAddons = JSON.parse(result.stdout) as MinikubeAddons
   const addonEnabled = minikubeAddons.ingress.Status === "enabled"
 
-  let state: DeployState = addonEnabled ? "ready" : "missing"
-  //check if ingress controller deployment is ready
-  if (addonEnabled) {
-    const nginxDeployment = await api.listResourcesForKinds({
-      log,
-      namespace: "ingress-nginx",
-      versionedKinds: [{ apiVersion: "apps/v1", kind: "Deployment" }],
-      labelSelector: { "app.kubernetes.io/name": "ingress-nginx" },
-    })
-    if (nginxDeployment.length === 0) {
-      state = "missing"
-    } else if (nginxDeployment[0].status?.numberReady === 0) {
-      state = "unhealthy"
-    }
+  if (!addonEnabled) {
+    log.debug(chalk.yellow("Status of minikube ingress controller addon: missing"))
+    return "missing"
   }
-  log.debug(chalk.yellow(`Status of minikube ingress controller addon: ${state}`))
-  return state
+  //check if ingress controller deployment is ready
+  const deploymentStatus = await checkResourceStatus({
+    api,
+    namespace: "ingress-nginx",
+    manifest: nginxKindMainResource,
+    log,
+  })
+  log.debug(chalk.yellow(`Status of minikube ingress controller addon: ${deploymentStatus.state}`))
+  return deploymentStatus.state
 }
 
 export async function minikubeNginxInstall(ctx: KubernetesPluginContext, log: Log) {
+  const provider = ctx.provider
   const status = await minikubeNginxStatus(ctx, log)
   if (status === "ready") {
     return
   }
   log.info("Enabling minikube ingress controller addon")
   await exec("minikube", ["addons", "enable", "ingress"])
+  await waitForResources({
+    // setting the action name to providers is necessary to display the logs in provider-section
+    actionName: "providers",
+    namespace: "ingress-nginx",
+    ctx,
+    provider,
+    resources: [nginxKindMainResource],
+    log,
+    timeoutSec: 60,
+  })
 }
 
 export async function minikubeNginxUninstall(ctx: KubernetesPluginContext, log: Log) {

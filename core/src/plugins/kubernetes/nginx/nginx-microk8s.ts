@@ -12,9 +12,11 @@ import chalk from "chalk"
 import { KubernetesPluginContext } from "../config"
 import { DeployState } from "../../../types/service"
 import { configureMicrok8sAddons } from "../local/microk8s"
+import { waitForResources } from "../status/status"
 
 export async function microk8sNginxStatus(log: Log): Promise<DeployState> {
-  // The microk8s addons implement healthchecks, so we can just check if the addon is enabled
+  // The microk8s addons implement healthchecks and auto-corrects the addon status
+  // in case the deployment becomes unhealthy so we can just check if the addon is enabled
   const statusCommandResult = await exec("microk8s", ["status", "--format", "short"])
   const status = statusCommandResult.stdout
   const addonEnabled = status.includes("core/ingress: enabled")
@@ -23,12 +25,31 @@ export async function microk8sNginxStatus(log: Log): Promise<DeployState> {
 }
 
 export async function microk8sNginxInstall(ctx: KubernetesPluginContext, log: Log) {
+  const provider = ctx.provider
+
   const status = await microk8sNginxStatus(log)
   if (status === "ready") {
     return
   }
   log.info("Enabling microk8s ingress controller addon")
   await configureMicrok8sAddons(log, ["ingress"])
+  const nginxMainResource = {
+    apiVersion: "apps/v1",
+    kind: "DaemonSet",
+    metadata: {
+      name: "nginx-ingress-microk8s-controller",
+    },
+  }
+  await waitForResources({
+    // setting the action name to providers is necessary to display the logs in provider-section
+    actionName: "providers",
+    namespace: "ingress",
+    ctx,
+    provider,
+    resources: [nginxMainResource],
+    log,
+    timeoutSec: 60,
+  })
 }
 
 export async function microk8sNginxUninstall(ctx: KubernetesPluginContext, log: Log) {

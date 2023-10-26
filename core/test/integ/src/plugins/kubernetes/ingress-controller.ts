@@ -9,8 +9,6 @@
 import { expect } from "chai"
 import { Log } from "../../../../../src/logger/log-entry"
 import { KubernetesPluginContext, KubernetesProvider } from "../../../../../src/plugins/kubernetes/config"
-import pRetry = require("p-retry")
-import { sleep } from "../../../../../src/util/util"
 import { ingressControllerReady } from "../../../../../src/plugins/kubernetes/nginx/ingress-controller"
 import { uninstallGardenServices } from "../../../../../src/plugins/kubernetes/commands/uninstall-garden-services"
 import { prepareEnvironment } from "../../../../../src/plugins/kubernetes/init"
@@ -66,16 +64,7 @@ describe("It should manage ingress controller for respective cluster type", () =
     }
     ctx.provider.config.setupIngressController = "nginx"
     await prepareEnvironment(params)
-
-    let ingressControllerIsReady
-
-    for (let i = 0; i < 5; i++) {
-      ingressControllerIsReady = await ingressControllerReady(ctx, log)
-      if (ingressControllerIsReady) {
-        break
-      }
-      await sleep(5000)
-    }
+    const ingressControllerIsReady = await ingressControllerReady(ctx, log)
     expect(ingressControllerIsReady).to.eql(true)
   })
 
@@ -103,15 +92,7 @@ describe("It should manage ingress controller for respective cluster type", () =
     ctx.provider.config.setupIngressController = "nginx"
     await prepareEnvironment(params)
 
-    let ingressControllerIsReadyAfterInstall
-
-    for (let i = 0; i < 5; i++) {
-      ingressControllerIsReadyAfterInstall = await ingressControllerReady(ctx, log)
-      if (ingressControllerIsReadyAfterInstall) {
-        break
-      }
-      await sleep(5000)
-    }
+    const ingressControllerIsReadyAfterInstall = await ingressControllerReady(ctx, log)
     expect(ingressControllerIsReadyAfterInstall).to.eql(true)
     await cleanup()
     const ingressControllerIsReadyAfterUninstall = await ingressControllerReady(ctx, log)

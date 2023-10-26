@@ -15,6 +15,8 @@ import { helmStatusMap } from "../helm/status.js"
 import { getKubernetesSystemVariables } from "../init.js"
 import type { SystemVars } from "../init.js"
 import { defaultBackendInstall, defaultBackendStatus, defaultBackendUninstall } from "./default-backend.js"
+import { checkResourceStatus, waitForResources } from "../status/status.js"
+import { KubeApi } from "../api.js"
 
 const HELM_INGRESS_NGINX_REPO = "https://kubernetes.github.io/ingress-nginx"
 const HELM_INGRESS_NGINX_VERSION = "4.0.13"
@@ -22,19 +24,30 @@ const HELM_INGRESS_NGINX_CHART = "ingress-nginx"
 const HELM_INGRESS_NGINX_RELEASE_NAME = "garden-nginx"
 const HELM_INGRESS_NGINX_DEPLOYMENT_TIMEOUT = "300s"
 
-// TODO: consider using some specific return type here, maybe something from helm SDK?
-export type NginxHelmValuesGetter = (systemVars: SystemVars) => object
+// TODO: Can we have a better type for this where we define some base required helm values and optional values?
+export type NginxHelmValuesGetter = (systemVars: SystemVars) => any
 
-export async function helmIngressControllerReady(ctx: KubernetesPluginContext, log: Log) {
-  const nginxStatus = await helmNginxStatus(ctx, log)
+export async function helmIngressControllerReady(
+  ctx: KubernetesPluginContext,
+  log: Log,
+  nginxHelmValuesGetter: NginxHelmValuesGetter
+) {
+  const nginxStatus = await helmNginxStatus(ctx, log, nginxHelmValuesGetter)
   const backendStatus = await defaultBackendStatus(ctx, log)
 
   return nginxStatus === "ready" && backendStatus === "ready"
 }
 
-export async function helmNginxStatus(ctx: KubernetesPluginContext, log: Log): Promise<DeployState> {
+export async function helmNginxStatus(
+  ctx: KubernetesPluginContext,
+  log: Log,
+  nginxHelmValuesGetter: NginxHelmValuesGetter
+): Promise<DeployState> {
   const provider = ctx.provider
   const config = provider.config
+  const api = await KubeApi.factory(log, ctx, provider)
+  const systemVars: SystemVars = getKubernetesSystemVariables(config)
+  const values = nginxHelmValuesGetter(systemVars)
 
   const namespace = config.gardenSystemNamespace
   try {
@@ -43,24 +56,29 @@ export async function helmNginxStatus(ctx: KubernetesPluginContext, log: Log): P
         ctx,
         log,
         namespace,
-        args: ["status", HELM_INGRESS_NGINX_RELEASE_NAME, "--show-resources", "--output", "json"],
+        args: ["status", HELM_INGRESS_NGINX_RELEASE_NAME, "--output", "json"],
         // do not send JSON output to Garden Cloud or CLI verbose log
         emitLogEvents: false,
       })
     )
     const releaseStatus = statusRes.info?.status || "unknown"
 
-    // we check that the deployment is ready by checking that the number of ready replicas in the deployment
-    // is > 0. This is because the status of the helm release can be "deployed" even if the deployment is not ready.
-    const deploymentReadyReplicasCount = statusRes.info?.resources["v1/Deployment"][0].status.readyReplicas || 0
-
-    if (releaseStatus === "deployed" && deploymentReadyReplicasCount === 0) {
-      log.debug(chalk.yellow(`Helm release ${HELM_INGRESS_NGINX_RELEASE_NAME} is deployed but not ready.`))
-      return "unhealthy"
+    if (releaseStatus !== "deployed") {
+      log.debug(chalk.yellow(`Helm release status for ${HELM_INGRESS_NGINX_RELEASE_NAME}: ${releaseStatus}`))
+      return helmStatusMap[releaseStatus] || "unknown"
     }
 
-    log.debug(chalk.yellow(`Helm release status for ${HELM_INGRESS_NGINX_RELEASE_NAME}: ${releaseStatus}`))
-    return helmStatusMap[releaseStatus] || "unknown"
+    // we check that the deployment or daemonset is ready because the status of the helm release
+    // can be "deployed" even if the deployed resource is not ready.
+    const nginxHelmMainResource = {
+      apiVersion: "apps/v1",
+      kind: values.controller?.kind,
+      metadata: {
+        name: "garden-nginx-ingress-nginx-controller",
+      },
+    }
+    const deploymentStatus = await checkResourceStatus({ api, namespace, manifest: nginxHelmMainResource, log })
+    return deploymentStatus.state
   } catch (error) {
     log.debug(chalk.yellow(`Helm release ${HELM_INGRESS_NGINX_RELEASE_NAME} missing.`))
     return "missing"
@@ -72,7 +90,7 @@ export async function helmNginxInstall(
   log: Log,
   nginxHelmValuesGetter: NginxHelmValuesGetter
 ) {
-  const ingressControllerReady = await helmIngressControllerReady(ctx, log)
+  const ingressControllerReady = await helmIngressControllerReady(ctx, log, nginxHelmValuesGetter)
   if (ingressControllerReady) {
     return
   }
@@ -109,14 +127,33 @@ export async function helmNginxInstall(
   await defaultBackendInstall(ctx, log)
   await helm({ ctx, namespace, log, args, emitLogEvents: false })
 
+  const nginxHelmMainResource = {
+    apiVersion: "apps/v1",
+    kind: values.controller?.kind,
+    metadata: {
+      name: "garden-nginx-ingress-nginx-controller",
+    },
+  }
+  await waitForResources({
+    // setting the action name to providers is necessary to display the logs in provider-section
+    actionName: "providers",
+    namespace,
+    ctx,
+    provider,
+    resources: [nginxHelmMainResource],
+    log,
+    timeoutSec: 60,
+  })
+
   log.success(`nginx successfully installed in ${namespace} namespace`)
 }
 
-export async function helmNginxUninstall(ctx: KubernetesPluginContext, log: Log) {
-  // uninstall default-backend first
-  await defaultBackendUninstall(ctx, log)
-
-  const status = await helmNginxStatus(ctx, log)
+export async function helmNginxUninstall(
+  ctx: KubernetesPluginContext,
+  log: Log,
+  nginxHelmValuesGetter: NginxHelmValuesGetter
+) {
+  const status = await helmNginxStatus(ctx, log, nginxHelmValuesGetter)
   if (status === "missing") {
     return
   }
@@ -126,4 +163,5 @@ export async function helmNginxUninstall(ctx: KubernetesPluginContext, log: Log)
   const namespace = config.gardenSystemNamespace
 
   await helm({ ctx, namespace, log, args: ["uninstall", HELM_INGRESS_NGINX_RELEASE_NAME], emitLogEvents: false })
+  await defaultBackendUninstall(ctx, log)
 }
