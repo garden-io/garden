@@ -77,6 +77,7 @@ import {
   SUPPORTED_ARCHITECTURES,
   GardenApiVersion,
   DOCS_BASE_URL,
+  DEFAULT_GARDEN_CLOUD_DOMAIN,
 } from "./constants"
 import { Log } from "./logger/log-entry"
 import { EventBus } from "./events/events"
@@ -126,7 +127,7 @@ import {
   ProjectConfigContext,
   RemoteSourceConfigContext,
 } from "./config/template-contexts/project"
-import { CloudApi, CloudProject, CloudApiDuplicateProjectsError, getGardenCloudDomain } from "./cloud/api"
+import { CloudApi, CloudProject } from "./cloud/api"
 import { OutputConfigContext } from "./config/template-contexts/module"
 import { ProviderConfigContext } from "./config/template-contexts/provider"
 import type { ConfigContext } from "./config/template-contexts/base"
@@ -1806,57 +1807,30 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
     await ensureDir(artifactsPath)
 
     const projectApiVersion = config.apiVersion
-
     const sessionId = opts.sessionId || uuidv4()
+    const cloudApi = opts.cloudApi || null
 
     let secrets: StringMap = {}
-    const cloudApi = opts.cloudApi || null
-    // fall back to get the domain from config if the cloudApi instance failed
-    // to login or was not defined.
-    const cloudDomain = cloudApi?.domain || getGardenCloudDomain(config.domain)
-
-    // The cloudApi instance only has a project ID when the configured ID has
-    // been verified against the cloud instance.
-    let cloudProjectId: string | undefined = config.id
-
+    let cloudProject: CloudProject | null = null
+    // If true, then user is logged in and we fetch the remote project and secrets (if applicable)
     if (!opts.noEnterprise && cloudApi) {
-      const distroName = getCloudDistributionName(cloudDomain || "")
+      const distroName = getCloudDistributionName(cloudApi.domain)
+      const useCommunityDashboard = !config.domain
       const cloudLog = log.createLog({ name: getCloudLogSectionName(distroName) })
+
       cloudLog.verbose(`Connecting to ${distroName}...`)
 
-      let cloudProject: CloudProject | undefined
+      cloudProject = await getCloudProject({
+        cloudApi,
+        config,
+        log: cloudLog,
+        projectName,
+        projectRoot,
+        useCommunityDashboard,
+      })
 
-      if (cloudProjectId) {
-        // Ensure that the current projectId exists in the remote project
-        try {
-          cloudProject = await cloudApi.getProjectById(cloudProjectId)
-        } catch (err) {
-          cloudLog.debug(`Getting project from API failed with error: ${err}`)
-        }
-      }
-
-      if (!cloudProject && !cloudProjectId && !config.domain) {
-        // Create a new project in case the project does not exist
-        // and the user is logged in to a default domain.
-        // Note: excluding projects with a domain is for backwards compatibility
-        cloudLog.debug(`Creating or retrieving a ${distroName} project called ${projectName}.`)
-
-        try {
-          cloudProject = await cloudApi.getOrCreateProjectByName(projectName)
-        } catch (err) {
-          if (err instanceof CloudApiDuplicateProjectsError) {
-            cloudLog.warn(chalk.yellow(wordWrap(err.message, 120)))
-          } else {
-            cloudLog.debug(`Creating a new cloud project failed with error: ${err}`)
-          }
-        }
-      }
-
-      // Fetch Secrets. Not supported on the community tier (i.e. when config.domain is not set).
-      if (cloudProject && config.domain) {
-        // ensure we use the fetched/created project ID
-        cloudProjectId = cloudProject.id
-
+      // Fetch Secrets. Not supported on the community edition.
+      if (cloudProject && !useCommunityDashboard) {
         try {
           secrets = await wrapActiveSpan(
             "getSecrets",
@@ -1867,23 +1841,13 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
                 environmentName,
               })
           )
-          cloudLog.verbose(chalk.green("Ready"))
-          cloudLog.debug(`Fetched ${Object.keys(secrets).length} secrets from ${cloudDomain}`)
+          cloudLog.debug(`Fetched ${Object.keys(secrets).length} secrets from ${cloudApi.domain}`)
         } catch (err) {
-          cloudLog.debug(`Fetching secrets failed with error: ${err}`)
+          cloudLog.error(`Fetching secrets failed with error: ${err}`)
         }
-        // User is on enterprise domain but project could not be found
-      } else if (config.domain) {
-        cloudLog.info(
-          chalk.yellow(
-            wordWrap(
-              deline`Logged in to ${cloudDomain}, but could not find the project '${projectName}'.
-              Command results for this command run will not be available in ${distroName}.`,
-              120
-            )
-          )
-        )
       }
+
+      cloudLog.success("Ready")
     }
 
     const loggedIn = !!cloudApi
@@ -1896,7 +1860,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
       vcsInfo,
       username: _username,
       loggedIn,
-      enterpriseDomain: cloudDomain,
+      enterpriseDomain: config.domain,
       secrets,
       commandInfo,
     })
@@ -1908,7 +1872,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
       vcsInfo,
       username: _username,
       loggedIn,
-      enterpriseDomain: cloudDomain,
+      enterpriseDomain: config.domain,
       secrets,
       commandInfo,
     })
@@ -1951,11 +1915,17 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
       hostname: proxyHostname,
     }
 
+    // If the user is logged in and a cloud project exists we use that ID
+    // but fallback to the one set in the config since that's e.g. unsed in analytics.
+    // The same applies for domains.
+    const projectId = cloudProject?.id || config.id
+    const cloudDomain = cloudApi?.domain || config.domain || DEFAULT_GARDEN_CLOUD_DOMAIN
+
     return {
       artifactsPath,
       vcsInfo,
       sessionId,
-      projectId: cloudProjectId,
+      projectId,
       cloudDomain,
       projectConfig: config,
       projectRoot,
@@ -1989,6 +1959,80 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
     }
   })
 })
+
+/**
+ * Returns the cloud project for the respective cloud edition (i.e. community or commercial).
+ */
+async function getCloudProject({
+  cloudApi,
+  config,
+  log,
+  useCommunityDashboard,
+  projectRoot,
+  projectName,
+}: {
+  cloudApi: CloudApi
+  config: ProjectConfig
+  log: Log
+  useCommunityDashboard: boolean
+  projectRoot: string
+  projectName: string
+}) {
+  const distroName = getCloudDistributionName(cloudApi.domain)
+  const projectIdFromConfig = config.id
+
+  // If logged into community edition, throw if ID is set
+  if (projectIdFromConfig && useCommunityDashboard) {
+    const msg = wordWrap(
+      deline`
+        Invalid field 'id' found in project configuration at path ${projectRoot}. The 'id'
+        field should only be set if using a commerical edition of Garden. Please remove to continue
+        using the Garden community edition.
+      `,
+      120
+    )
+    throw new ConfigurationError({ message: msg })
+  }
+
+  // If logged into community edition, return project or throw if it can't be fetched/created
+  if (useCommunityDashboard) {
+    log.debug(`Fetching or creating project ${projectName} from ${cloudApi.domain}`)
+    try {
+      const cloudProject = await cloudApi.getOrCreateProjectByName(projectName)
+      return cloudProject
+    } catch (err) {
+      log.error(`Fetching or creating project ${projectName} from ${cloudApi.domain} failed with error: ${err}`)
+      throw err
+    }
+  }
+
+  // If logged into commercial edition and ID is not set, log warning and return null
+  if (!projectIdFromConfig) {
+    log.warn(
+      chalk.yellow(
+        wordWrap(
+          deline`
+            Logged in to ${cloudApi.domain}, but could not find remote project '${projectName}'.
+            Command results for this command run will not be available in ${distroName}.
+          `,
+          120
+        )
+      )
+    )
+
+    return null
+  }
+
+  // If logged into commercial edition, return project or throw if unable to fetch by ID
+  log.debug(`Fetching project ${projectIdFromConfig} from ${cloudApi.domain}.`)
+  try {
+    const cloudProject = await cloudApi.getProjectById(projectIdFromConfig)
+    return cloudProject
+  } catch (err) {
+    log.error(`Fetching project with ID=${projectIdFromConfig} failed with error: ${err}`)
+    throw err
+  }
+}
 
 // Override variables, also allows to override nested variables using dot notation
 // eslint-disable-next-line @typescript-eslint/no-shadow
