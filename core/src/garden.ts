@@ -78,7 +78,6 @@ import {
   SUPPORTED_ARCHITECTURES,
   GardenApiVersion,
   DOCS_BASE_URL,
-  DEFAULT_GARDEN_CLOUD_DOMAIN,
 } from "./constants"
 import { Log } from "./logger/log-entry"
 import { EventBus } from "./events/events"
@@ -128,7 +127,7 @@ import {
   ProjectConfigContext,
   RemoteSourceConfigContext,
 } from "./config/template-contexts/project"
-import { CloudApi, CloudProject } from "./cloud/api"
+import { CloudApi, CloudProject, getGardenCloudDomain } from "./cloud/api"
 import { OutputConfigContext } from "./config/template-contexts/module"
 import { ProviderConfigContext } from "./config/template-contexts/provider"
 import type { ConfigContext } from "./config/template-contexts/base"
@@ -1854,6 +1853,12 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
 
     const loggedIn = !!cloudApi
 
+    // If the user is logged in and a cloud project exists we use that ID
+    // but fallback to the one set in the config (even if the user isn't logged in).
+    // Same applies for domains.
+    const projectId = cloudProject?.id || config.id
+    const cloudDomain = cloudApi?.domain || getGardenCloudDomain(config.domain)
+
     config = resolveProjectConfig({
       log,
       defaultEnvironmentName: configDefaultEnvironment,
@@ -1916,12 +1921,6 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
     const proxy = {
       hostname: proxyHostname,
     }
-
-    // If the user is logged in and a cloud project exists we use that ID
-    // but fallback to the one set in the config since that's e.g. unsed in analytics.
-    // The same applies for domains.
-    const projectId = cloudProject?.id || config.id
-    const cloudDomain = cloudApi?.domain || config.domain || DEFAULT_GARDEN_CLOUD_DOMAIN
 
     return {
       artifactsPath,
@@ -2043,7 +2042,7 @@ async function getCloudProject({
           level Garden config file at ${chalk.cyan(projectRoot)} has been changed and does not match
           one of the existing projects.
 
-          You can view your existing projects at ${chalk.cyan.underline(cloudApi.domain)}/projects and
+          You can view your existing projects at ${chalk.cyan.underline(cloudApi.domain + "/projects")} and
           see their ID on the Settings page for the respective project.
         `)
         errorMsg = dedent`
