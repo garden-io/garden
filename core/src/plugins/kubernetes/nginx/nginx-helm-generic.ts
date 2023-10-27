@@ -23,13 +23,6 @@ export const getGenericNginxHelmValues: NginxHelmValuesGetter = (systemVars: Sys
       extraArgs: {
         "default-backend-service": `${systemVars.namespace}/default-backend`,
       },
-      hostPort: {
-        enabled: true,
-        ports: {
-          http: systemVars["ingress-http-port"],
-          https: systemVars["ingress-https-port"],
-        },
-      },
       minReadySeconds: 1,
       tolerations: systemVars["system-tolerations"],
       nodeSelector: systemVars["system-node-selector"],
@@ -40,6 +33,13 @@ export const getGenericNginxHelmValues: NginxHelmValuesGetter = (systemVars: Sys
         name: "nginx",
         enabled: true,
         default: true,
+      },
+      hostPort: {
+        enabled: true,
+        ports: {
+          http: systemVars["ingress-http-port"],
+          https: systemVars["ingress-https-port"],
+        },
       },
     },
     defaultBackend: {

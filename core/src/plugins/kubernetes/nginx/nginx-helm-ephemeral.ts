@@ -13,16 +13,15 @@ export const getEphemeralNginxHelmValues: NginxHelmValuesGetter = (systemVars: S
   return {
     name: "ingress-controller",
     controller: {
-      extraArgs: {
-        "default-backend-service": `${systemVars.namespace}/default-backend`,
-      },
       kind: "Deployment",
-      replicaCount: 1,
       updateStrategy: {
         type: "RollingUpdate",
         rollingUpdate: {
           maxUnavailable: 1,
         },
+      },
+      extraArgs: {
+        "default-backend-service": `${systemVars.namespace}/default-backend`,
       },
       minReadySeconds: 1,
       tolerations: systemVars["system-tolerations"],
@@ -35,6 +34,7 @@ export const getEphemeralNginxHelmValues: NginxHelmValuesGetter = (systemVars: S
         enabled: true,
         default: true,
       },
+      replicaCount: 1,
       service: {
         annotations: {
           "kubernetes.namespace.so/expose": "true",

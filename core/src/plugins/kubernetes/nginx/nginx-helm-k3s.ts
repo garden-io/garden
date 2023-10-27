@@ -13,16 +13,15 @@ export const getK3sNginxHelmValues: NginxHelmValuesGetter = (systemVars: SystemV
   return {
     name: "ingress-controller",
     controller: {
-      extraArgs: {
-        "default-backend-service": `${systemVars.namespace}/default-backend`,
-      },
       kind: "Deployment",
-      replicaCount: 1,
       updateStrategy: {
         type: "RollingUpdate",
         rollingUpdate: {
           maxUnavailable: 1,
         },
+      },
+      extraArgs: {
+        "default-backend-service": `${systemVars.namespace}/default-backend`,
       },
       minReadySeconds: 1,
       tolerations: systemVars["system-tolerations"],
@@ -35,6 +34,7 @@ export const getK3sNginxHelmValues: NginxHelmValuesGetter = (systemVars: SystemV
         enabled: true,
         default: true,
       },
+      replicaCount: 1,
     },
     defaultBackend: {
       enabled: false,

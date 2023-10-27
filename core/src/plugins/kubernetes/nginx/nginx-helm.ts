@@ -24,8 +24,44 @@ const HELM_INGRESS_NGINX_CHART = "ingress-nginx"
 const HELM_INGRESS_NGINX_RELEASE_NAME = "garden-nginx"
 const HELM_INGRESS_NGINX_DEPLOYMENT_TIMEOUT = "300s"
 
-// TODO: Can we have a better type for this where we define some base required helm values and optional values?
-export type NginxHelmValuesGetter = (systemVars: SystemVars) => any
+type _HelmValue = number | string | boolean | object | null | undefined
+
+export interface NginxHelmValues {
+  name: string
+  controller: {
+    kind: string
+    // change this if necessary to support more update strategies
+    updateStrategy: {
+      type: "RollingUpdate"
+      rollingUpdate: {
+        maxUnavailable: number
+      }
+    }
+    extraArgs: {
+      [key: string]: string
+    }
+    minReadySeconds: number
+    tolerations: SystemVars["system-tolerations"]
+    nodeSelector: SystemVars["system-node-selector"]
+    admissionWebhooks: {
+      enabled: boolean
+    }
+    ingressClassResource: {
+      name: string
+      enabled: boolean
+      default: boolean
+    }
+    replicaCount?: number
+    [key: string]: _HelmValue
+  }
+  defaultBackend: {
+    enabled: boolean
+  }
+
+  [key: string]: _HelmValue
+}
+
+export type NginxHelmValuesGetter = (systemVars: SystemVars) => NginxHelmValues
 
 export async function helmIngressControllerReady(
   ctx: KubernetesPluginContext,
@@ -72,7 +108,7 @@ export async function helmNginxStatus(
     // can be "deployed" even if the deployed resource is not ready.
     const nginxHelmMainResource = {
       apiVersion: "apps/v1",
-      kind: values.controller?.kind,
+      kind: values.controller.kind,
       metadata: {
         name: "garden-nginx-ingress-nginx-controller",
       },
@@ -129,7 +165,7 @@ export async function helmNginxInstall(
 
   const nginxHelmMainResource = {
     apiVersion: "apps/v1",
-    kind: values.controller?.kind,
+    kind: values.controller.kind,
     metadata: {
       name: "garden-nginx-ingress-nginx-controller",
     },
