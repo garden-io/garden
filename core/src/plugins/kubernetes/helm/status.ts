@@ -218,9 +218,7 @@ export async function getReleaseStatus({
       let deployedVersion: string | undefined = undefined
       // JSON.parse can return null
       if (values !== null) {
-        log.verbose(
-          `No helm values returned for release ${releaseName}. It looks like the relevant deployments were removed manually.`
-        )
+        log.verbose(`No helm values returned for release ${releaseName}. Is this release managed outside of garden?`)
         deployedVersion = values[".garden"]?.version
         deployedMode = values[".garden"]?.mode
       }
