@@ -48,6 +48,7 @@ import {
   InternalError,
   toGardenError,
   CircularDependenciesError,
+  CloudApiError,
 } from "./exceptions"
 import { VcsHandler, ModuleVersion, getModuleVersionString, VcsInfo } from "./vcs/vcs"
 import { GitHandler } from "./vcs/git"
@@ -160,6 +161,7 @@ import { wrapActiveSpan } from "./util/open-telemetry/spans"
 import { GitRepoHandler } from "./vcs/git-repo"
 import { configureNoOpExporter } from "./util/open-telemetry/tracing"
 import { detectModuleOverlap, makeOverlapErrors } from "./util/module-overlap"
+import { GotHttpError } from "./util/http"
 
 const defaultLocalAddress = "localhost"
 
@@ -2002,6 +2004,9 @@ async function getCloudProject({
       return cloudProject
     } catch (err) {
       log.error(`Fetching or creating project ${projectName} from ${cloudApi.domain} failed with error: ${err}`)
+      if (err instanceof GotHttpError) {
+        throw new CloudApiError({ responseStatusCode: err.response.statusCode, message: err.message })
+      }
       throw err
     }
   }
@@ -2029,7 +2034,29 @@ async function getCloudProject({
     const cloudProject = await cloudApi.getProjectById(projectIdFromConfig)
     return cloudProject
   } catch (err) {
-    log.error(`Fetching project with ID=${projectIdFromConfig} failed with error: ${err}`)
+    let errorMsg = `Fetching project with ID=${projectIdFromConfig} failed with error: ${err}`
+    if (err instanceof GotHttpError) {
+      if (err.response.statusCode === 404) {
+        const errorHeaderMsg = chalk.red(`Project with ID=${projectIdFromConfig} was not found in ${distroName}`)
+        const errorDetailMsg = chalk.white(dedent`
+          Either the project has been deleted from ${distroName} or the ID in the project
+          level Garden config file at ${chalk.cyan(projectRoot)} has been changed and does not match
+          one of the existing projects.
+
+          You can view your existing projects at ${chalk.cyan.underline(cloudApi.domain)}/projects and
+          see their ID on the Settings page for the respective project.
+        `)
+        errorMsg = dedent`
+          ${errorHeaderMsg}
+
+          ${errorDetailMsg}\n
+        `
+      }
+      log.error(errorMsg)
+      throw new CloudApiError({ responseStatusCode: err.response.statusCode, message: err.message })
+    }
+
+    log.error(errorMsg)
     throw err
   }
 }

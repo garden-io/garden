@@ -733,9 +733,9 @@ describe("Garden", () => {
           expect(garden.projectId).to.eql(undefined)
           expect(scope.isDone()).to.be.true
         })
-        it("should throw if project with ID can't be found", async () => {
+        it("should throw if unable to fetch project", async () => {
           scope.get("/api/token/verify").reply(200, {})
-          scope.get(`/api/projects/uid/${projectId}`).reply(404, {})
+          scope.get(`/api/projects/uid/${projectId}`).reply(500, {})
           getRootLogger()["entries"] = []
 
           const cloudApi = await makeCloudApi(fakeCloudDomain)
@@ -759,8 +759,47 @@ describe("Garden", () => {
           expect(expectedLog[0].level).to.eql(0)
           const cleanMsg = stripAnsi(expectedLog[0].msg || "").replace("\n", " ")
           expect(cleanMsg).to.eql(
-            `Fetching project with ID=${projectId} failed with error: HTTPError: Response code 404 (Not Found)`
+            `Fetching project with ID=${projectId} failed with error: HTTPError: Response code 500 (Internal Server Error)`
           )
+          expect(error).to.exist
+          expect(error!.message).to.eql("Response code 500 (Internal Server Error)")
+          expect(scope.isDone()).to.be.true
+        })
+        it("should throw a helpful error if project with ID can't be found", async () => {
+          scope.get("/api/token/verify").reply(200, {})
+          scope.get(`/api/projects/uid/${projectId}`).reply(404, {})
+          getRootLogger()["entries"] = []
+
+          const cloudApi = await makeCloudApi(fakeCloudDomain)
+
+          let error: Error | undefined
+          try {
+            await TestGarden.factory(pathFoo, {
+              config,
+              environmentString: envName,
+              cloudApi,
+            })
+          } catch (err) {
+            if (err instanceof Error) {
+              error = err
+            }
+          }
+
+          const expectedLog = log.root.getLogEntries().filter((l) => l.msg?.includes(`Project with ID=`))
+
+          expect(expectedLog.length).to.eql(1)
+          expect(expectedLog[0].level).to.eql(0)
+          const cleanMsg = stripAnsi(expectedLog[0].msg || "")
+          expect(cleanMsg).to.eql(dedent`
+            Project with ID=${projectId} was not found in Garden Enterprise
+
+            Either the project has been deleted from Garden Enterprise or the ID in the project
+            level Garden config file at tmp has been changed and does not match
+            one of the existing projects.
+
+            You can view your existing projects at https://example.com/projects and
+            see their ID on the Settings page for the respective project.\n
+          `)
           expect(error).to.exist
           expect(error!.message).to.eql("Response code 404 (Not Found)")
           expect(scope.isDone()).to.be.true
