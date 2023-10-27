@@ -250,7 +250,7 @@ export class Garden {
   private actionTypeBases: ActionTypeMap<ActionTypeDefinition<any>[]>
   private emittedWarnings: Set<string>
   public cloudApi: CloudApi | null
-  public availableCloudFeatures: { distributedCache?: boolean} = {}
+  public availableCloudFeatures: { distributedCache?: boolean } = {}
 
   public readonly production: boolean
   public readonly projectRoot: string

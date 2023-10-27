@@ -32,7 +32,10 @@ export enum CacheStrategy {
 const cacheConfigSchema = createSchema({
   name: "action-cache-config",
   keys: () => ({
-    strategy: joi.string().valid(...Object.values(CacheStrategy)).default(CacheStrategy.TemplateAndCode).description(`
+    strategy: joi
+      .string()
+      .valid(...Object.values(CacheStrategy))
+      .default(CacheStrategy.TemplateAndCode).description(`
     Set the cache strategy for action. The default is "template-and-code".
     `),
   }),

@@ -6,23 +6,26 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import chalk from "chalk"
 import cloneDeep from "fast-copy"
-import { forOwn, includes, isArray, isEqual, isPlainObject, isString, mapValues, memoize, omit, pick, some, uniq } from "lodash"
 import {
-  Action,
-  ActionConfig,
-  ActionConfigsByKey,
-  ActionDependency,
-  ActionDependencyAttributes,
-  ActionKind,
-  actionKinds,
-  ActionMode,
-  ActionModeMap,
-  ActionWrapperParams,
-  Executed,
-  Resolved,
-} from "../actions/types"
+  forOwn,
+  includes,
+  isArray,
+  isEqual,
+  isPlainObject,
+  isString,
+  mapValues,
+  memoize,
+  omit,
+  pick,
+  some,
+  uniq,
+} from "lodash"
+import minimatch from "minimatch"
+import { relative } from "path"
 import {
+  actionIsDisabled,
   actionReferenceToString,
   addActionDependency,
   baseRuntimeActionConfigSchema,
@@ -31,14 +34,30 @@ import {
 } from "../actions/base"
 import { BuildAction, buildActionConfigSchema, isBuildActionConfig } from "../actions/build"
 import { DeployAction, deployActionConfigSchema, isDeployActionConfig } from "../actions/deploy"
-import { RunAction, runActionConfigSchema, isRunActionConfig } from "../actions/run"
-import { TestAction, testActionConfigSchema, isTestActionConfig } from "../actions/test"
+import { RunAction, isRunActionConfig, runActionConfigSchema } from "../actions/run"
+import { TestAction, isTestActionConfig, testActionConfigSchema } from "../actions/test"
+import {
+  Action,
+  ActionConfig,
+  ActionConfigsByKey,
+  ActionDependency,
+  ActionDependencyAttributes,
+  ActionKind,
+  ActionMode,
+  ActionModeMap,
+  ActionWrapperParams,
+  Executed,
+  Resolved,
+  actionKinds,
+} from "../actions/types"
+import { LinkedSource, LinkedSourceMap } from "../config-store/local"
 import { noTemplateFields } from "../config/base"
-import { ActionReference, describeSchema, JoiDescription, parseActionReference } from "../config/common"
+import { ActionReference, JoiDescription, describeSchema, parseActionReference } from "../config/common"
 import type { GroupConfig } from "../config/group"
 import { ActionConfigContext } from "../config/template-contexts/actions"
+import { ConfigContext } from "../config/template-contexts/base"
 import { validateWithPath } from "../config/validation"
-import { ConfigurationError, PluginError, InternalError, ValidationError, GardenError } from "../exceptions"
+import { ConfigurationError, GardenError, InternalError, PluginError, ValidationError } from "../exceptions"
 import { overrideVariables, type Garden } from "../garden"
 import type { Log } from "../logger/log-entry"
 import type { ActionTypeDefinition } from "../plugin/action-types"
@@ -51,20 +70,14 @@ import {
   resolveTemplateString,
   resolveTemplateStrings,
 } from "../template-string/template-string"
+import { profileAsync } from "../util/profiling"
+import { uuidv4 } from "../util/random"
 import { dedent, deline, naturalList } from "../util/string"
+import type { MaybeUndefined } from "../util/util"
+import { getConfigBasePath } from "../vcs/vcs"
 import { mergeVariables } from "./common"
 import { ConfigGraph, MutableConfigGraph } from "./config-graph"
 import type { ModuleGraph } from "./modules"
-import chalk from "chalk"
-import type { MaybeUndefined } from "../util/util"
-import minimatch from "minimatch"
-import { ConfigContext } from "../config/template-contexts/base"
-import { LinkedSource, LinkedSourceMap } from "../config-store/local"
-import { relative } from "path"
-import { profileAsync } from "../util/profiling"
-import { uuidv4 } from "../util/random"
-import { getConfigBasePath } from "../vcs/vcs"
-import { actionIsDisabled } from "../actions/base"
 
 export const actionConfigsToGraph = profileAsync(async function actionConfigsToGraph({
   garden,
@@ -327,7 +340,7 @@ export const actionFromConfig = profileAsync(async function actionFromConfig({
   variables = overrideVariables(variables ?? {}, variableOverrides)
 
   // todo load ignore keys from config
-  const ignoreVars = ['base-hostname']
+  const ignoreVars = ["base-hostname"]
   const ignoreKeysForVersion = computeIgnoreKeysFromConfig(inputConfig, ignoreVars)
 
   const params: ActionWrapperParams<any> = {
@@ -370,19 +383,16 @@ export const actionFromConfig = profileAsync(async function actionFromConfig({
  * @returns {Array} - An array of objects, each containing the matching key and the string that caused the match.
  */
 export function computeIgnoreKeysFromConfig(config: ActionConfig, ignoreVars: string[]) {
-  const result: Array<{ key: string, matchedValue: string}> = [];
+  const result: Array<{ key: string; matchedValue: string }> = []
 
   const searchObject = (obj: {}, keyPath: (string | number)[]) => {
     if (isPlainObject(obj)) {
       forOwn(obj, (value: string, key: string) => {
-        const currentKeyPath = keyPath.concat(key);
-        if (
-          isString(value) &&
-          some(ignoreVars, (item: string) => value.includes(item))
-        ) {
-          result.push({ key: currentKeyPath.join('.'), matchedValue: value });
+        const currentKeyPath = keyPath.concat(key)
+        if (isString(value) && some(ignoreVars, (item: string) => value.includes(item))) {
+          result.push({ key: currentKeyPath.join("."), matchedValue: value })
         } else if (isPlainObject(value) || isArray(value)) {
-          searchObject(value, currentKeyPath);
+          searchObject(value, currentKeyPath)
         }
       })
     } else if (isArray(obj)) {
@@ -390,15 +400,15 @@ export function computeIgnoreKeysFromConfig(config: ActionConfig, ignoreVars: st
       obj.forEach((item: {}, index: number) => {
         const currentKeyPath = keyPath.concat(index)
         if (isString(item) && includes(ignoreVars, item)) {
-          result.push({ key: currentKeyPath.join('.'), matchedValue: item })
+          result.push({ key: currentKeyPath.join("."), matchedValue: item })
         } else if (isPlainObject(item) || isArray(item)) {
           searchObject(item, currentKeyPath)
         }
-      });
+      })
     }
   }
-  searchObject(omit(config, 'internal'), []);
-  return result;
+  searchObject(omit(config, "internal"), [])
+  return result
 }
 
 export function actionNameConflictError(configA: ActionConfig, configB: ActionConfig, rootPath: string) {

@@ -339,7 +339,6 @@ export abstract class BaseAction<
   // Thus we simply initialize it to `{}` and use it as a type.
   _runtimeOutputs: RuntimeOutputs = {} as RuntimeOutputs
 
-
   protected readonly baseBuildDirectory: string
   protected readonly compatibleTypes: string[]
   protected readonly dependencies: ActionDependency[]
@@ -548,7 +547,7 @@ export abstract class BaseAction<
 
   @Memoize()
   private stringifyConfig() {
-    console.log("this.ignoredKeysForVersion",this.ignoredKeysForVersion)
+    console.log("this.ignoredKeysForVersion", this.ignoredKeysForVersion)
     const clonedConfig = cloneDeep(this._config)
     const configExcludingIgnoreKeys = omit(clonedConfig, "internal", ...this.ignoredKeysForVersion)
     return stableStringify(configExcludingIgnoreKeys)
