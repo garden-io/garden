@@ -63,6 +63,16 @@ export interface NginxHelmValues {
 
 export type NginxHelmValuesGetter = (systemVars: SystemVars) => NginxHelmValues
 
+function getNginxHelmMainResource(values: NginxHelmValues) {
+  return {
+    apiVersion: "apps/v1",
+    kind: values.controller.kind,
+    metadata: {
+      name: "garden-nginx-ingress-nginx-controller",
+    },
+  }
+}
+
 export async function helmIngressControllerReady(
   ctx: KubernetesPluginContext,
   log: Log,
@@ -106,13 +116,7 @@ export async function helmNginxStatus(
 
     // we check that the deployment or daemonset is ready because the status of the helm release
     // can be "deployed" even if the deployed resource is not ready.
-    const nginxHelmMainResource = {
-      apiVersion: "apps/v1",
-      kind: values.controller.kind,
-      metadata: {
-        name: "garden-nginx-ingress-nginx-controller",
-      },
-    }
+    const nginxHelmMainResource = getNginxHelmMainResource(values)
     const deploymentStatus = await checkResourceStatus({ api, namespace, manifest: nginxHelmMainResource, log })
     return deploymentStatus.state
   } catch (error) {
@@ -163,13 +167,7 @@ export async function helmNginxInstall(
   await defaultBackendInstall(ctx, log)
   await helm({ ctx, namespace, log, args, emitLogEvents: false })
 
-  const nginxHelmMainResource = {
-    apiVersion: "apps/v1",
-    kind: values.controller.kind,
-    metadata: {
-      name: "garden-nginx-ingress-nginx-controller",
-    },
-  }
+  const nginxHelmMainResource = getNginxHelmMainResource(values)
   await waitForResources({
     // setting the action name to providers is necessary to display the logs in provider-section
     actionName: "providers",
