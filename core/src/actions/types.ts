@@ -162,6 +162,7 @@ export interface ActionWrapperParams<C extends BaseActionConfig> {
   supportedModes: ActionModes
   treeVersion: TreeVersion
   variables: DeepPrimitiveMap
+  ignoreKeysForVersion: string[]
 }
 
 export interface ResolveActionParams<C extends BaseActionConfig, StaticOutputs extends {} = any> {

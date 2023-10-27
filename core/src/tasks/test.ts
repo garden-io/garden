@@ -20,8 +20,8 @@ import { CacheStrategy, TestAction } from "../actions/test"
 import { GetTestResult } from "../plugin/handlers/Test/get-result"
 import { OtelTraced } from "../util/open-telemetry/decorators"
 import { GardenError } from "../exceptions"
-import { isGardenEnterprise } from "../util/enterprise"
 import { TestResult } from "../types/test"
+import { CheckCacheRequestParams } from "../cloud/api"
 
 /**
  * Only throw this error when the test itself failed, and not when Garden failed to execute the test.
@@ -89,13 +89,7 @@ export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
         !this.force &&
         (cacheStrategy === CacheStrategy.CodeOnly || cacheStrategy === CacheStrategy.TemplateAndCode)
       ) {
-        let reqParams: {
-          projectId: string
-          actionKind: string
-          actionName: string
-          unresolvedActionVersion?: string
-          resolvedActionVersion?: string
-        } = {
+        let reqParams: CheckCacheRequestParams = {
           projectId: this.garden.projectId,
           actionKind: this.action.kind,
           actionName: this.action.name,

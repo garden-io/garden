@@ -339,6 +339,7 @@ export abstract class BaseAction<
   // Thus we simply initialize it to `{}` and use it as a type.
   _runtimeOutputs: RuntimeOutputs = {} as RuntimeOutputs
 
+
   protected readonly baseBuildDirectory: string
   protected readonly compatibleTypes: string[]
   protected readonly dependencies: ActionDependency[]
@@ -352,6 +353,8 @@ export abstract class BaseAction<
   protected readonly _supportedModes: ActionModes
   protected readonly _treeVersion: TreeVersion
   protected readonly variables: DeepPrimitiveMap
+  // keys to ignore from the config for action version calculation
+  protected readonly ignoredKeysForVersion: string[]
 
   constructor(protected readonly params: ActionWrapperParams<C>) {
     this.kind = params.config.kind
@@ -374,6 +377,7 @@ export abstract class BaseAction<
     this.variables = params.variables
     this.resolved = false
     this.executed = false
+    this.ignoredKeysForVersion = params.ignoreKeysForVersion
   }
 
   abstract getBuildPath(): string
@@ -544,7 +548,10 @@ export abstract class BaseAction<
 
   @Memoize()
   private stringifyConfig() {
-    return stableStringify(omit(this._config, "internal"))
+    console.log("this.ignoredKeysForVersion",this.ignoredKeysForVersion)
+    const clonedConfig = cloneDeep(this._config)
+    const configExcludingIgnoreKeys = omit(clonedConfig, "internal", ...this.ignoredKeysForVersion)
+    return stableStringify(configExcludingIgnoreKeys)
   }
 
   /**

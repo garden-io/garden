@@ -7,7 +7,7 @@
  */
 
 import cloneDeep from "fast-copy"
-import { isEqual, mapValues, memoize, omit, pick, uniq } from "lodash"
+import { forOwn, includes, isArray, isEqual, isPlainObject, isString, mapValues, memoize, omit, pick, some, uniq } from "lodash"
 import {
   Action,
   ActionConfig,
@@ -326,6 +326,10 @@ export const actionFromConfig = profileAsync(async function actionFromConfig({
   const variableOverrides = garden.variableOverrides || {}
   variables = overrideVariables(variables ?? {}, variableOverrides)
 
+  // todo load ignore keys from config
+  const ignoreVars = ['base-hostname']
+  const ignoreKeysForVersion = computeIgnoreKeysFromConfig(inputConfig, ignoreVars)
+
   const params: ActionWrapperParams<any> = {
     baseBuildDirectory: garden.buildStaging.buildDirPath,
     compatibleTypes,
@@ -342,6 +346,7 @@ export const actionFromConfig = profileAsync(async function actionFromConfig({
     moduleVersion: config.internal.moduleVersion,
     mode,
     supportedModes,
+    ignoreKeysForVersion: ignoreKeysForVersion.map((k) => k.key),
   }
 
   if (isBuildActionConfig(config)) {
@@ -356,6 +361,45 @@ export const actionFromConfig = profileAsync(async function actionFromConfig({
     return config satisfies never
   }
 })
+
+/**
+ * Find keys in a action config object whose values include one of the strings ignoreVars array.
+ *
+ * @param {Object} config - Action config object.
+ * @param {Array} ignoreVars - An array of strings to match against values in the config object.
+ * @returns {Array} - An array of objects, each containing the matching key and the string that caused the match.
+ */
+export function computeIgnoreKeysFromConfig(config: ActionConfig, ignoreVars: string[]) {
+  const result: Array<{ key: string, matchedValue: string}> = [];
+
+  const searchObject = (obj: {}, keyPath: (string | number)[]) => {
+    if (isPlainObject(obj)) {
+      forOwn(obj, (value: string, key: string) => {
+        const currentKeyPath = keyPath.concat(key);
+        if (
+          isString(value) &&
+          some(ignoreVars, (item: string) => value.includes(item))
+        ) {
+          result.push({ key: currentKeyPath.join('.'), matchedValue: value });
+        } else if (isPlainObject(value) || isArray(value)) {
+          searchObject(value, currentKeyPath);
+        }
+      })
+    } else if (isArray(obj)) {
+      // handle array of objects
+      obj.forEach((item: {}, index: number) => {
+        const currentKeyPath = keyPath.concat(index)
+        if (isString(item) && includes(ignoreVars, item)) {
+          result.push({ key: currentKeyPath.join('.'), matchedValue: item })
+        } else if (isPlainObject(item) || isArray(item)) {
+          searchObject(item, currentKeyPath)
+        }
+      });
+    }
+  }
+  searchObject(omit(config, 'internal'), []);
+  return result;
+}
 
 export function actionNameConflictError(configA: ActionConfig, configB: ActionConfig, rootPath: string) {
   return new ConfigurationError({
