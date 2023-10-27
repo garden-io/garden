@@ -217,14 +217,16 @@ export async function getReleaseStatus({
 
       let deployedVersion: string | undefined = undefined
       // JSON.parse can return null
-      if (values !== null) {
+      if (values === null) {
+        state = "outdated"
+      } else {
         log.verbose(`No helm values returned for release ${releaseName}. Is this release managed outside of garden?`)
         deployedVersion = values[".garden"]?.version
         deployedMode = values[".garden"]?.mode
-      }
 
-      if (action.mode() !== deployedMode || !deployedVersion || deployedVersion !== action.versionString()) {
-        state = "outdated"
+        if (action.mode() !== deployedMode || !deployedVersion || deployedVersion !== action.versionString()) {
+          state = "outdated"
+        }
       }
 
       // If ctx.cloudApi is defined, the user is logged in and they might be trying to deploy to an environment
