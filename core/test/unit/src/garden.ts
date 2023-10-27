@@ -726,9 +726,8 @@ describe("Garden", () => {
           expect(expectedLog.length).to.eql(1)
           expect(expectedLog[0].level).to.eql(1)
           const cleanMsg = stripAnsi(expectedLog[0].msg || "").replace("\n", " ")
-          expect(cleanMsg).to
-            .eql(deline`Logged in to ${fakeCloudDomain}, but could not find remote project '${projectName}'.
-            Command results for this command run will not be available in Garden Enterprise.`)
+          const expected = `Logged in to ${fakeCloudDomain}, but could not find remote project '${projectName}'. Command results for this command run will not be available in Garden Enterprise.`
+          expect(cleanMsg).to.eql(expected)
           expect(garden.cloudDomain).to.eql(fakeCloudDomain)
           expect(garden.projectId).to.eql(undefined)
           expect(scope.isDone()).to.be.true
