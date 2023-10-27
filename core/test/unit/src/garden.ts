@@ -52,7 +52,7 @@ import { keyBy, set, mapValues, omit, cloneDeep } from "lodash"
 import { joi } from "../../../src/config/common"
 import { defaultDotIgnoreFile, makeTempDir } from "../../../src/util/fs"
 import { realpath, writeFile, readFile, remove, pathExists, mkdirp, copy } from "fs-extra"
-import { dedent, deline, randomString } from "../../../src/util/string"
+import { dedent, deline, randomString, wordWrap } from "../../../src/util/string"
 import { getLinkedSources, addLinkedSources } from "../../../src/util/ext-source-util"
 import { dump } from "js-yaml"
 import { TestVcsHandler } from "./vcs/vcs"
@@ -585,40 +585,42 @@ describe("Garden", () => {
         gardenEnv.GARDEN_PROXY_DEFAULT_ADDRESS = saveEnv
       }
     })
-    it("should have domain and id if set in project config", async () => {
-      const projectId = uuidv4()
-      const projectName = "test"
-      const envName = "default"
-      const config: ProjectConfig = createProjectConfig({
-        name: projectName,
-        id: projectId,
-        domain: "https://example.com",
-        path: pathFoo,
-      })
+    context("user is NOT logged in", () => {
+      it("should have domain and id if set in project config", async () => {
+        const projectId = uuidv4()
+        const projectName = "test"
+        const envName = "default"
+        const config: ProjectConfig = createProjectConfig({
+          name: projectName,
+          id: projectId,
+          domain: "https://example.com",
+          path: pathFoo,
+        })
 
-      const garden = await TestGarden.factory(pathFoo, {
-        config,
-        environmentString: envName,
-      })
+        const garden = await TestGarden.factory(pathFoo, {
+          config,
+          environmentString: envName,
+        })
 
-      expect(garden.cloudDomain).to.eql("https://example.com")
-      expect(garden.projectId).to.eql(projectId)
-    })
-    it("should use default cloud domain if not set in project config", async () => {
-      const projectName = "test"
-      const envName = "default"
-      const config: ProjectConfig = createProjectConfig({
-        name: projectName,
-        path: pathFoo,
+        expect(garden.cloudDomain).to.eql("https://example.com")
+        expect(garden.projectId).to.eql(projectId)
       })
+      it("should use default cloud domain if not set in project config", async () => {
+        const projectName = "test"
+        const envName = "default"
+        const config: ProjectConfig = createProjectConfig({
+          name: projectName,
+          path: pathFoo,
+        })
 
-      const garden = await TestGarden.factory(pathFoo, {
-        config,
-        environmentString: envName,
+        const garden = await TestGarden.factory(pathFoo, {
+          config,
+          environmentString: envName,
+        })
+
+        expect(garden.cloudDomain).to.eql(DEFAULT_GARDEN_CLOUD_DOMAIN)
+        expect(garden.projectId).to.eql(undefined)
       })
-
-      expect(garden.cloudDomain).to.eql(DEFAULT_GARDEN_CLOUD_DOMAIN)
-      expect(garden.projectId).to.eql(undefined)
     })
     context("user is logged in", () => {
       let configStoreTmpDir: tmp.DirectoryResult
@@ -705,9 +707,7 @@ describe("Garden", () => {
         })
         it("should log a warning if logged in but project ID is missing", async () => {
           scope.get("/api/token/verify").reply(200, {})
-
-          getRootLogger()["entries"] = []
-          const log = getRootLogger().createLog()
+          log.root["entries"] = []
 
           const cloudApi = await makeCloudApi(fakeCloudDomain)
 
@@ -726,9 +726,8 @@ describe("Garden", () => {
           expect(expectedLog.length).to.eql(1)
           expect(expectedLog[0].level).to.eql(1)
           const cleanMsg = stripAnsi(expectedLog[0].msg || "").replace("\n", " ")
-          expect(cleanMsg).to
-            .eql(deline`Logged in to ${fakeCloudDomain}, but could not find remote project '${projectName}'.
-            Command results for this command run will not be available in Garden Enterprise.`)
+          const expected = `Logged in to ${fakeCloudDomain}, but could not find remote project '${projectName}'. Command results for this command run will not be available in Garden Enterprise.`
+          expect(cleanMsg).to.eql(expected)
           expect(garden.cloudDomain).to.eql(fakeCloudDomain)
           expect(garden.projectId).to.eql(undefined)
           expect(scope.isDone()).to.be.true
@@ -736,7 +735,7 @@ describe("Garden", () => {
         it("should throw if unable to fetch project", async () => {
           scope.get("/api/token/verify").reply(200, {})
           scope.get(`/api/projects/uid/${projectId}`).reply(500, {})
-          getRootLogger()["entries"] = []
+          log.root["entries"] = []
 
           const cloudApi = await makeCloudApi(fakeCloudDomain)
 
@@ -746,6 +745,7 @@ describe("Garden", () => {
               config,
               environmentString: envName,
               cloudApi,
+              log,
             })
           } catch (err) {
             if (err instanceof Error) {
@@ -768,7 +768,7 @@ describe("Garden", () => {
         it("should throw a helpful error if project with ID can't be found", async () => {
           scope.get("/api/token/verify").reply(200, {})
           scope.get(`/api/projects/uid/${projectId}`).reply(404, {})
-          getRootLogger()["entries"] = []
+          log.root["entries"] = []
 
           const cloudApi = await makeCloudApi(fakeCloudDomain)
 
@@ -778,6 +778,7 @@ describe("Garden", () => {
               config,
               environmentString: envName,
               cloudApi,
+              log,
             })
           } catch (err) {
             if (err instanceof Error) {
@@ -866,17 +867,21 @@ describe("Garden", () => {
           }
 
           expect(error).to.exist
-          expect(error!.message.replace("\n", " ")).to.eql(deline`
-            Invalid field 'id' found in project configuration at path tmp. The 'id'
-            field should only be set if using a commerical edition of Garden. Please remove to continue
-            using the Garden community edition.
-          `)
+          const expected = wordWrap(
+            deline`
+              Invalid field 'id' found in project configuration at path tmp. The 'id'
+              field should only be set if using a commerical edition of Garden. Please remove to continue
+              using the Garden community edition.
+            `,
+            120
+          )
+          expect(error!.message).to.eql(expected)
           expect(scope.isDone()).to.be.true
         })
         it("should throw if unable to fetch or create project", async () => {
           scope.get("/api/token/verify").reply(200, {})
           scope.get(`/api/projects`).reply(500, {})
-          getRootLogger()["entries"] = []
+          log.root["entries"] = []
 
           const cloudApi = await makeCloudApi(DEFAULT_GARDEN_CLOUD_DOMAIN)
 
@@ -886,6 +891,7 @@ describe("Garden", () => {
               config,
               environmentString: envName,
               cloudApi,
+              log,
             })
           } catch (err) {
             if (err instanceof Error) {

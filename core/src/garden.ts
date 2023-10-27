@@ -1816,7 +1816,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
     // If true, then user is logged in and we fetch the remote project and secrets (if applicable)
     if (!opts.noEnterprise && cloudApi) {
       const distroName = getCloudDistributionName(cloudApi.domain)
-      const useCommunityDashboard = !config.domain
+      const isCommunityEdition = !config.domain
       const cloudLog = log.createLog({ name: getCloudLogSectionName(distroName) })
 
       cloudLog.verbose(`Connecting to ${distroName}...`)
@@ -1827,11 +1827,11 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
         log: cloudLog,
         projectName,
         projectRoot,
-        useCommunityDashboard,
+        isCommunityEdition,
       })
 
       // Fetch Secrets. Not supported on the community edition.
-      if (cloudProject && !useCommunityDashboard) {
+      if (cloudProject && !isCommunityEdition) {
         try {
           secrets = await wrapActiveSpan(
             "getSecrets",
@@ -1968,14 +1968,14 @@ async function getCloudProject({
   cloudApi,
   config,
   log,
-  useCommunityDashboard,
+  isCommunityEdition,
   projectRoot,
   projectName,
 }: {
   cloudApi: CloudApi
   config: ProjectConfig
   log: Log
-  useCommunityDashboard: boolean
+  isCommunityEdition: boolean
   projectRoot: string
   projectName: string
 }) {
@@ -1983,7 +1983,7 @@ async function getCloudProject({
   const projectIdFromConfig = config.id
 
   // If logged into community edition, throw if ID is set
-  if (projectIdFromConfig && useCommunityDashboard) {
+  if (projectIdFromConfig && isCommunityEdition) {
     const msg = wordWrap(
       deline`
         Invalid field 'id' found in project configuration at path ${projectRoot}. The 'id'
@@ -1996,7 +1996,7 @@ async function getCloudProject({
   }
 
   // If logged into community edition, return project or throw if it can't be fetched/created
-  if (useCommunityDashboard) {
+  if (isCommunityEdition) {
     log.debug(`Fetching or creating project ${projectName} from ${cloudApi.domain}`)
     try {
       const cloudProject = await cloudApi.getOrCreateProjectByName(projectName)
