@@ -21,7 +21,6 @@ import { testFlags } from "../../../src/util/util"
 import { readFile } from "fs-extra"
 import { resolve4 } from "dns/promises"
 import dns from "node:dns"
-import os from "node:os"
 
 describe("isErrnoException", async () => {
   it("should return true for file not found errors", async () => {
