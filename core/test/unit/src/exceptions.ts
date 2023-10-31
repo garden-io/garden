@@ -14,9 +14,57 @@ import {
   RuntimeError,
   StackTraceMetadata,
   getStackTraceMetadata,
+  isErrnoException,
 } from "../../../src/exceptions"
 import dedent from "dedent"
 import { testFlags } from "../../../src/util/util"
+import { readFile } from "fs-extra"
+import { resolve4 } from "dns/promises"
+import dns from "node:dns"
+import os from "node:os"
+
+describe("isErrnoException", async () => {
+  it("should return true for file not found errors", async () => {
+    let err: unknown
+
+    try {
+      await readFile("non-existent-file")
+      expect.fail("should have thrown")
+    } catch (e) {
+      err = e
+    }
+
+    if (isErrnoException(err)) {
+      expect(err.code).to.equal("ENOENT")
+      expect(err.errno).to.equal(os.constants.errno.ENOENT) // for sanity
+    } else {
+      expect.fail("should have been an NodeJSErrnoException")
+    }
+  })
+
+  it("should return true for DNS ENOTFOUND errors", async () => {
+    let err: unknown
+
+    try {
+      await resolve4("non-existent-hostname")
+      expect.fail("should have thrown")
+    } catch (e) {
+      err = e
+    }
+
+    if (isErrnoException(err)) {
+      expect(err.code).to.equal(dns.NOTFOUND)
+      expect(dns.NOTFOUND).to.equal("ENOTFOUND") // for sanity
+    } else {
+      expect.fail("should have been an NodeJSErrnoException")
+    }
+  })
+
+  it("should return false for other errors", () => {
+    const err = new Error("test exception")
+    expect(isErrnoException(err)).to.be.false
+  })
+})
 
 describe("GardenError", () => {
   // helper to avoid dealing with changing line numbers
