@@ -249,7 +249,10 @@ class PulumiPluginCommandTask extends PluginActionTask<PulumiDeploy, PulumiComma
     return this.action.longDescription()
   }
 
-  resolveDependencies() {
+  /**
+   * Override the base method to be sure that `garden plugins pulumi preview` happens in dependency order.
+   */
+  override resolveProcessDependencies() {
     const pulumiDeployNames = this.graph
       .getDeploys()
       .filter((d) => d.type === "pulumi")
