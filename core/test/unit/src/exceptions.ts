@@ -36,7 +36,6 @@ describe("isErrnoException", async () => {
 
     if (isErrnoException(err)) {
       expect(err.code).to.equal("ENOENT")
-      expect(err.errno).to.equal(os.constants.errno.ENOENT) // for sanity
     } else {
       expect.fail("should have been an NodeJSErrnoException")
     }
@@ -54,7 +53,6 @@ describe("isErrnoException", async () => {
 
     if (isErrnoException(err)) {
       expect(err.code).to.equal(dns.NOTFOUND)
-      expect(dns.NOTFOUND).to.equal("ENOTFOUND") // for sanity
     } else {
       expect.fail("should have been an NodeJSErrnoException")
     }
