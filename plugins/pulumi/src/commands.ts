@@ -369,8 +369,6 @@ function makePulumiCommand({ name, commandDescription, beforeFn, runFn, afterFn 
 
       const pulumiProvider = ctx.provider as PulumiProvider
       const actions = graph.getDeploys({ names }).filter((a) => a.type === "pulumi")
-      // Provider resolution is a heavy operation.
-      // Resolve providers only once and pass those to each PulumiPluginCommandTask to be created.
       const resolvedProviders = await garden.resolveProviders(log)
 
       const tasks = await Promise.all(
