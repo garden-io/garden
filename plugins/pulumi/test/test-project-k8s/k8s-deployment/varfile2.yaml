@@ -1,1 +1,2 @@
 pulumi-k8s-test:appName: api-varfile2-override
+pulumi-k8s-test:nsName: ${actions["k8s-namespace"].name}-varfile2-override
