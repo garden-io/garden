@@ -40,6 +40,11 @@ export interface ActionSourceSpec {
   repository?: SourceRepositorySpec
 }
 
+export interface ActionNoCacheConfig {
+  disabled: boolean
+  variables?: string[]
+}
+
 /**
  * These are the built-in fields in all action configs.
  *
@@ -88,6 +93,7 @@ export interface BaseActionConfig<K extends ActionKind = ActionKind, T = string,
   variables?: DeepPrimitiveMap
   // -> Templating with ActionConfigContext allowed, including in variables defined in the varfiles
   varfiles?: string[]
+  noCache?: ActionNoCacheConfig
 
   // Type-specific
   spec: Spec

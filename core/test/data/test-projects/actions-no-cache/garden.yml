@@ -1,0 +1,58 @@
+kind: Build
+name: test-build-container
+type: container
+include: [.]
+
+---
+kind: Deploy
+type: container
+name: test-deploy-container
+build: test-build-container
+noCache:
+  variables:
+    - ${var.base-hostname}
+description: Deploy the container
+spec:
+  ports:
+    - name: http
+      containerPort: 8080
+      servicePort: 80
+  healthCheck:
+    httpGet:
+      path: /
+      port: http
+  ingresses:
+    - path: /
+      port: http
+      hostname: foo.${var.base-hostname}
+  # env:
+  #   HOSTNAME: foo.${var.base-hostname}
+  #   VITE_USERNAME: ${local.username}
+
+---
+kind: Deploy
+type: container
+name: test-deploy-container-with-merge
+build: test-build-container
+noCache:
+  variables:
+    - ${var.base-hostname}
+    - ${var.nestedVars.EXTERNAL_API_URL}
+  # values:
+  #   - ${var.base-hostname}
+description: Deploy the container
+spec:
+  ports:
+    - name: http
+      containerPort: 8080
+      servicePort: 80
+  healthCheck:
+    httpGet:
+      path: /
+      port: http
+  ingresses:
+    - path: /
+      port: http
+      hostname: foo.${var.base-hostname}
+  env:
+    $merge: ${var.nestedVars}

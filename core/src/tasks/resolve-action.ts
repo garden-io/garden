@@ -19,6 +19,7 @@ import { mergeVariables } from "../graph/common"
 import { actionToResolved } from "../actions/helpers"
 import { ResolvedConfigGraph } from "../graph/config-graph"
 import { OtelTraced } from "../util/open-telemetry/decorators"
+import { computeKeyPathsToIgnoreFromConfig } from "./helpers"
 
 export interface ResolveActionResults<T extends Action> extends ValidResultType {
   state: ActionState
@@ -226,6 +227,11 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
       params: { action: resolvedAction, graph: resolvedGraph, log: this.log, events: undefined },
       defaultHandler: async (_) => ({}),
     })
+
+    // once action is resolved, find paths of keys to ignore for action version calculation
+    const ignoreValues = resolvedAction.getConfig()?.noCache?.variables ?? []
+    const ignoreKeys = computeKeyPathsToIgnoreFromConfig(resolvedAction.getConfig(), ignoreValues)
+    resolvedAction.ignoredKeysForVersion.push(...ignoreKeys.map(k => k.key))
 
     // TODO: avoid this private assignment
     resolvedAction["_staticOutputs"] = staticOutputs

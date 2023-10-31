@@ -23,24 +23,6 @@ import { ResolveActionTask } from "../tasks/resolve-action"
 
 export type TestActionConfig<N extends string = any, S extends object = any> = BaseRuntimeActionConfig<"Test", N, S>
 
-export enum CacheStrategy {
-  Never = "never",
-  CodeOnly = "code-only",
-  TemplateAndCode = "template-and-code",
-}
-
-const cacheConfigSchema = createSchema({
-  name: "action-cache-config",
-  keys: () => ({
-    strategy: joi
-      .string()
-      .valid(...Object.values(CacheStrategy))
-      .default(CacheStrategy.TemplateAndCode).description(`
-    Set the cache strategy for action. The default is "template-and-code".
-    `),
-  }),
-})
-
 export const testActionConfigSchema = memoize(() =>
   baseRuntimeActionConfigSchema().keys({
     kind: joi.string().allow("Test").only(),
@@ -50,7 +32,6 @@ export const testActionConfigSchema = memoize(() =>
       .min(1)
       .default(DEFAULT_TEST_TIMEOUT_SEC)
       .description("Set a timeout for the test to complete, in seconds."),
-    cache: cacheConfigSchema(),
   })
 )
 

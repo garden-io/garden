@@ -1,0 +1,23 @@
+apiVersion: garden.io/v1
+kind: Project
+name: actions-no-cache-test
+environments:
+  - name: local1
+    defaultNamespace: test-actions-no-cache-env-1
+    variables:
+      base-hostname: foo.com
+      nestedVars:
+        EXTERNAL_API_URL: http://api.foo.com
+  - name: local2
+    defaultNamespace: test-actions-no-cache-env-2
+    variables:
+      base-hostname: bar.com
+      nestedVars:
+        EXTERNAL_API_URL: http://api.bar.com
+providers:
+  - name: local-kubernetes
+    environments: [local1]
+    namespace: ${environment.namespace}
+  - name: local-kubernetes
+    environments: [local2]
+    namespace: ${environment.namespace}

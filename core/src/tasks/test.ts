@@ -16,7 +16,7 @@ import {
 } from "../tasks/base"
 import { Profile } from "../util/profiling"
 import { resolvedActionToExecuted } from "../actions/helpers"
-import { CacheStrategy, TestAction } from "../actions/test"
+import { TestAction } from "../actions/test"
 import { GetTestResult } from "../plugin/handlers/Test/get-result"
 import { OtelTraced } from "../util/open-telemetry/decorators"
 import { GardenError } from "../exceptions"
@@ -82,31 +82,18 @@ export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
     if (this.garden.availableCloudFeatures.distributedCache && this.garden.cloudApi && this.garden.projectId) {
       const cloudApi = this.garden.cloudApi
       // todo fix types and infer from config
-      const cacheStrategy: CacheStrategy = this.action.getConfig().cache?.strategy
+      // const cacheStrategy: CacheStrategy = this.action.getConfig().cache?.strategy
 
-      // only check cloud when cache strategy is not never, or force is not set.
+      // only check cloud when force is not set.
       if (
-        !this.force &&
-        (cacheStrategy === CacheStrategy.CodeOnly || cacheStrategy === CacheStrategy.TemplateAndCode)
+        !this.force
       ) {
         let reqParams: CheckCacheRequestParams = {
           projectId: this.garden.projectId,
           actionKind: this.action.kind,
           actionName: this.action.name,
-        }
-
-        if (cacheStrategy === CacheStrategy.CodeOnly) {
-          // for cache strategy: code-only, use unresolved action version
-          reqParams = {
-            ...reqParams,
-            unresolvedActionVersion: this.action.versionString(),
-          }
-        } else if (cacheStrategy === CacheStrategy.TemplateAndCode) {
-          // for cache strategy: template-and-code, use resolved action version
-          reqParams = {
-            ...reqParams,
-            resolvedActionVersion: resolvedAction.versionString(),
-          }
+          //  use resolved action version
+          resolvedActionVersion: resolvedAction.versionString(),
         }
 
         const res = await cloudApi.checkCacheStatus(reqParams)

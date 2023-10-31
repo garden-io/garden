@@ -234,6 +234,15 @@ export const baseActionConfigSchema = createSchema({
       .example("my-action.env")
       .meta({ templateContext: ActionConfigContext }),
 
+    noCache: joi.object().keys({
+      disabled: joi.boolean().default(false).description(
+        dedent`
+          Set this to \`true\` to disable caching for this action.
+        `
+      ),
+      variables: joiSparseArray(joi.string()).description(`A list of variables to ignore when caching this action.`),
+    }),
+
     spec: joi
       .object()
       .unknown(true)
@@ -353,7 +362,7 @@ export abstract class BaseAction<
   protected readonly _treeVersion: TreeVersion
   protected readonly variables: DeepPrimitiveMap
   // keys to ignore from the config for action version calculation
-  protected readonly ignoredKeysForVersion: string[]
+  ignoredKeysForVersion: string[]
 
   constructor(protected readonly params: ActionWrapperParams<C>) {
     this.kind = params.config.kind
@@ -547,9 +556,10 @@ export abstract class BaseAction<
 
   @Memoize()
   private stringifyConfig() {
-    console.log("this.ignoredKeysForVersion", this.ignoredKeysForVersion)
+    // console.log(`${this.key()} - ignoredKeys:`, this.ignoredKeysForVersion)
     const clonedConfig = cloneDeep(this._config)
     const configExcludingIgnoreKeys = omit(clonedConfig, "internal", ...this.ignoredKeysForVersion)
+    // console.log(`${this.key()} - config: `, configExcludingIgnoreKeys)
     return stableStringify(configExcludingIgnoreKeys)
   }
 
