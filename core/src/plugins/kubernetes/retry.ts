@@ -15,8 +15,9 @@ import { dedent, deline } from "../../util/string"
 import { LogLevel } from "../../logger/logger"
 import { KubernetesError } from "./api"
 import requestErrors = require("request-promise/errors")
-import { InternalError, NodeJSErrnoErrorCodes, isErrnoException } from "../../exceptions"
+import { InternalError, NodeJSErrnoException, isErrnoException } from "../../exceptions"
 import { ErrorEvent } from "ws"
+import dns from "node:dns"
 
 /**
  * The flag {@code forceRetry} can be used to avoid {@link shouldRetry} helper call in case if the error code
@@ -93,7 +94,7 @@ export function toKubernetesError(err: unknown, context: string): KubernetesErro
   let response: KubernetesClientHttpError["response"] | undefined
   let body: any | undefined
   let responseStatusCode: number | undefined
-  let code: NodeJSErrnoErrorCodes | undefined
+  let code: NodeJSErrnoException["code"] | undefined
 
   if (err instanceof KubernetesClientHttpError) {
     errorType = "HttpError"
@@ -159,7 +160,7 @@ export function toKubernetesError(err: unknown, context: string): KubernetesErro
 export function shouldRetry(error: unknown, context: string): boolean {
   const err = toKubernetesError(error, context)
 
-  if (err.code === "ECONNRESET") {
+  if (err.code && errorCodesForRetry.includes(err.code)) {
     return true
   }
 
@@ -184,6 +185,8 @@ export const statusCodesForRetry: number[] = [
   522, // Connection Timed Out
   524, // A Timeout Occurred
 ]
+
+const errorCodesForRetry: NodeJSErrnoException["code"][] = ["ECONNRESET", dns.NOTFOUND]
 
 const errorMessageRegexesForRetry = [
   /ETIMEDOUT/,

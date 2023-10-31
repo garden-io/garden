@@ -14,19 +14,48 @@ import stripAnsi from "strip-ansi"
 import { Cycle } from "./graph/common"
 import indentString from "indent-string"
 import { constants } from "os"
+import dns from "node:dns"
+
+// Unfortunately, NodeJS does not provide a list of all error codes, so we have to maintain this list manually.
+// See https://nodejs.org/docs/latest-v18.x/api/dns.html#error-codes
+const dnsErrorCodes = [
+  dns.NODATA,
+  dns.FORMERR,
+  dns.SERVFAIL,
+  dns.NOTFOUND,
+  dns.NOTIMP,
+  dns.REFUSED,
+  dns.BADQUERY,
+  dns.BADNAME,
+  dns.BADFAMILY,
+  dns.BADRESP,
+  dns.CONNREFUSED,
+  dns.TIMEOUT,
+  dns.EOF,
+  dns.FILE,
+  dns.NOMEM,
+  dns.DESTRUCTION,
+  dns.BADSTR,
+  dns.BADFLAGS,
+  dns.NONAME,
+  dns.BADHINTS,
+  dns.NOTINITIALIZED,
+  dns.LOADIPHLPAPI,
+  dns.ADDRGETNETWORKPARAMS,
+  dns.CANCELLED,
+]
 
 // See https://nodejs.org/api/os.html#error-constants
-type NodeJSErrnoErrors = typeof constants.errno
-export type NodeJSErrnoErrorCodes = keyof NodeJSErrnoErrors
+const errnoErrors = Object.keys(constants.errno)
 
-const errnoErrorCodeSet = new Set(Object.keys(constants.errno))
+const errnoErrorCodeSet = new Set([errnoErrors, dnsErrorCodes].flat())
 
 /**
  * NodeJS native errors with a code property.
  */
 export type NodeJSErrnoException = NodeJS.ErrnoException & {
-  code: NodeJSErrnoErrorCodes
-  errno: number
+  // Unfortunately we can't make this type more concrete, as DNS error codes are not known at typescript compile time.
+  code: string
 }
 
 export type EAddrInUseException = NodeJSErrnoException & {
@@ -37,7 +66,7 @@ export type EAddrInUseException = NodeJSErrnoException & {
 }
 
 export function isErrnoException(err: any): err is NodeJSErrnoException {
-  return typeof err.code === "string" && typeof err.errno === "number" && errnoErrorCodeSet.has(err.code)
+  return typeof err.code === "string" && errnoErrorCodeSet.has(err.code)
 }
 
 export function isEAddrInUseException(err: any): err is EAddrInUseException {
@@ -64,7 +93,7 @@ export interface GardenErrorParams {
    */
   readonly taskType?: string
 
-  readonly code?: NodeJSErrnoErrorCodes
+  readonly code?: NodeJSErrnoException["code"]
 }
 
 export abstract class GardenError extends Error {
@@ -81,7 +110,7 @@ export abstract class GardenError extends Error {
   /**
    * If there was an underlying NodeJSErrnoException, the error code
    */
-  public code?: NodeJSErrnoErrorCodes
+  public code?: NodeJSErrnoException["code"]
 
   public wrappedErrors?: GardenError[]
 
@@ -354,7 +383,7 @@ export class InternalError extends GardenError {
   static wrapError(error: Error | string | any, prefix?: string): InternalError {
     let message: string | undefined
     let stack: string | undefined
-    let code: NodeJSErrnoErrorCodes | undefined
+    let code: NodeJSErrnoException["code"] | undefined
 
     if (isErrnoException(error)) {
       message = error.message
