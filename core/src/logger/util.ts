@@ -74,7 +74,7 @@ interface DividerOpts {
   padding?: number
 }
 
-const getSideDividerWidth = (width: number, titleWidth: number) => (width - titleWidth) / 2
+const getSideDividerWidth = (width: number, titleWidth: number) => Math.max((width - titleWidth) / 2, 1)
 const getNumberOfCharsPerWidth = (char: string, width: number) => width / stringWidth(char)
 
 // Adapted from https://github.com/JureSotosek/ink-divider
