@@ -525,23 +525,6 @@ export const kubernetesConfigBase = () =>
         })
         .default(() => ({}))
         .description("Configuration options for the `cluster-buildkit` build mode."),
-      clusterDocker: joi
-        .object()
-        .keys({
-          enableBuildKit: joi
-            .boolean()
-            .default(false)
-            .description(
-              deline`
-            Enable [BuildKit](https://github.com/moby/buildkit) support. This should in most cases work well and be
-            more performant, but we're opting to keep it optional until it's enabled by default in Docker.
-          `
-            )
-            .meta({ deprecated: true }),
-        })
-        .default(() => ({}))
-        .description("Configuration options for the `cluster-docker` build mode.")
-        .meta({ deprecated: "The cluster-docker build mode has been deprecated." }),
       jib: joi
         .object()
         .keys({
@@ -551,12 +534,6 @@ export const kubernetesConfigBase = () =>
             .description(
               "In some cases you may need to push images built with Jib to the remote registry via Kubernetes cluster, e.g. if you don't have connectivity or access from where Garden is being run. In that case, set this flag to true, but do note that the build will take considerably take longer to complete! Only applies when using in-cluster building."
             ),
-          annotations: annotationsSchema().description(
-            "Specify annotations to apply to both the Pod and Deployment resources associated with cluster-buildkit. Annotations may have an effect on the behaviour of certain components, for example autoscalers."
-          ),
-        })
-        .default(() => ({}))
-        .description("Configuration options for the `cluster-buildkit` build mode."),
       kaniko: joi
         .object()
         .keys({
@@ -620,13 +597,13 @@ export const kubernetesConfigBase = () =>
         .allow("rolling", "blue-green")
         .description(
           dedent`
-            Sets the deployment strategy for \`container\` services.
-  
-            Note that this field has been deprecated since 0.13, and has no effect.
-            The \`"rolling"\` will be applied in all cases.
-            The experimental support for blue/green deployments (via the \`"blue-green"\` strategy) has been removed.
-  
-            Note that this setting only applies to \`container\` deploy actions (and not, for example,  \`kubernetes\` or \`helm\` deploy actions).
+          Sets the deployment strategy for \`container\` deploy actions.
+
+          Note that this field has been deprecated since 0.13, and has no effect.
+          The \`"rolling"\` will be applied in all cases.
+          The experimental support for blue/green deployments (via the \`"blue-green"\` strategy) has been removed.
+
+          Note that this setting only applies to \`container\` deploy actions (and not, for example,  \`kubernetes\` or \`helm\` deploy actions).
           `
         )
         .meta({
