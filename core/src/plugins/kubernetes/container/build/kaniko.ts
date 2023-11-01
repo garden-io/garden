@@ -34,6 +34,8 @@ import {
   builderToleration,
   ensureUtilDeployment,
   utilDeploymentName,
+  inClusterBuilderServiceAccount,
+  ensureServiceAccount,
 } from "./common.js"
 import { differenceBy, isEmpty } from "lodash-es"
 import { getDockerBuildFlags } from "../../../container/build.js"
@@ -118,6 +120,8 @@ export const kanikoBuild: BuildHandler = async (params) => {
     kanikoNamespace = await getSystemNamespace(k8sCtx, provider, log)
   }
 
+  await ensureNamespace(api, k8sCtx, { name: kanikoNamespace }, log)
+
   if (kanikoNamespace !== projectNamespace) {
     // Make sure the Kaniko Pod namespace has the auth secret ready
     const secretRes = await ensureBuilderSecret({
@@ -128,9 +132,16 @@ export const kanikoBuild: BuildHandler = async (params) => {
     })
 
     authSecret = secretRes.authSecret
-  }
 
-  await ensureNamespace(api, k8sCtx, { name: kanikoNamespace }, log)
+    // Make sure the Kaniko Pod namespace has the garden-in-cluster-builder service account
+    await ensureServiceAccount({
+      ctx,
+      log,
+      api,
+      namespace: kanikoNamespace,
+      annotations: provider.config.kaniko?.serviceAccountAnnotations,
+    })
+  }
 
   // Execute the build
   const args = [
@@ -323,6 +334,7 @@ export function getKanikoBuilderPodManifest({
       },
     ],
     tolerations: kanikoTolerations,
+    serviceAccountName: inClusterBuilderServiceAccount,
   }
 
   const pod: KubernetesPod = {

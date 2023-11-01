@@ -192,7 +192,7 @@ export async function skopeoBuildStatus({
   const outputs = k8sGetContainerBuildActionOutputs({ action, provider })
 
   const remoteId = outputs.deploymentImageId
-  const skopeoCommand = ["skopeo", "--command-timeout=30s", "inspect", "--raw", "--authfile", "/.docker/config.json"]
+  const skopeoCommand = ["skopeo", "--command-timeout=30s", "inspect", "--raw", "--authfile", "~/.docker/config.json"]
 
   if (deploymentRegistry?.insecure === true) {
     skopeoCommand.push("--tls-verify=false")
@@ -280,6 +280,11 @@ export async function ensureServiceAccount({
 }): Promise<boolean> {
   return deployLock.acquire(namespace, async () => {
     const serviceAccount = getBuilderServiceAccountSpec(annotations)
+
+    // the manifest does not contain the namespace, so we need to set it here
+    // otherwise the comparison with deployed resources returns success if the
+    // serviceAccount exists in any namespace
+    serviceAccount.metadata.namespace = namespace
 
     const status = await compareDeployedResources({
       ctx: ctx as KubernetesPluginContext,

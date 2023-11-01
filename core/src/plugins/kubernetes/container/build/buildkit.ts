@@ -224,7 +224,7 @@ export async function ensureBuildkit({
     // if the service account changed, all pods part of the deployment must be restarted
     // so that they receive new credentials (e.g. for IRSA)
     if (status.remoteResources.length > 0 && serviceAccountChanged) {
-      await cycleDeployment({ ctx, provider, deployment, api, namespace, deployLog })
+      await cycleDeployment({ ctx, provider, deployment: manifest, api, namespace, deployLog })
     }
 
     if (status.state === "ready") {

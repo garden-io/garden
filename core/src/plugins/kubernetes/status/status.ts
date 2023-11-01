@@ -541,6 +541,7 @@ export async function compareDeployedResources({
     manifest = removeEmptyEnvValues(manifest)
     // ...and from the deployedResource for good measure, in case the K8s API changes.
     deployedResource = removeEmptyEnvValues(deployedResource)
+    const isItSubset = isSubset(deployedResource, manifest)
 
     if (!isSubset(deployedResource, manifest)) {
       if (manifest) {
