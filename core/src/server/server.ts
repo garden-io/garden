@@ -41,7 +41,6 @@ import { eventLogLevel, LogLevel } from "../logger/logger"
 import { EventEmitter } from "eventemitter3"
 import { sanitizeValue } from "../util/logging"
 import { uuidv4 } from "../util/random"
-import { renderCommandErrors } from "../cli/helpers"
 import { GardenInstanceManager } from "./instance-manager"
 import { LocalConfigStore } from "../config-store/local"
 import { join } from "path"
@@ -725,10 +724,18 @@ export class GardenServer extends EventEmitter {
         }
 
         const persistent = command.maybePersistent(prepareParams)
-        // We don't want to print logs on every request for some commands.
-        const isInternal = internal || skipLogsForCommands.includes(command.getFullName())
-        const requestLog = this.log.createLog({ name: "garden-server" })
-        const cmdNameStr = chalk.bold.white(command.getFullName())
+
+        // The request log does the "high level" logging around the request life cycle
+        // but a separate command log is passed to the command that executes the request.
+        // Some commands we don't log at all, and internal commands we log at a higher log level.
+        const requestLog = skipLogsForCommands.includes(command.getFullName())
+          ? null
+          : this.log.createLog({
+              name: "garden-server",
+              fixLevel: internal ? LogLevel.debug : undefined,
+            })
+
+        const cmdNameStr = chalk.bold.white(command.getFullName() + (internal ? ` (internal)` : ""))
         const commandSessionId = requestId
 
         if (skipAnalyticsForCommands.includes(command.getFullName())) {
@@ -763,9 +770,7 @@ export class GardenServer extends EventEmitter {
               })
             }
 
-            if (!isInternal) {
-              requestLog.info(chalk.grey(`Running command ${cmdNameStr}`))
-            }
+            requestLog?.info(`Running command ${cmdNameStr}`)
 
             return command.run({
               ...prepareParams,
@@ -813,24 +818,27 @@ export class GardenServer extends EventEmitter {
                 errors,
               })
             )
-            if (!isInternal) {
-              if (errors?.length) {
-                renderCommandErrors(requestLog.root, errors, commandLog)
-              } else {
-                requestLog.success(chalk.green(`Command ${cmdNameStr} completed successfully`))
+
+            if (errors?.length && requestLog) {
+              requestLog.error(chalk.red(`Command ${cmdNameStr} failed with errors:`))
+              for (const error of errors) {
+                requestLog.error({ error })
               }
+            } else {
+              requestLog?.success(chalk.green(`Command ${cmdNameStr} completed successfully`))
             }
             delete this.activePersistentRequests[requestId]
           })
           .catch((error) => {
             send("error", { message: error.message, requestId })
-            if (!isInternal) {
-              requestLog.error({ error: toGardenError(error) })
-            }
+            requestLog?.error({
+              msg: chalk.red(`Command ${cmdNameStr} failed with errors:`),
+              error: toGardenError(error),
+            })
             delete this.activePersistentRequests[requestId]
           })
       } catch (error) {
-        this.log.error({
+        this.log.createLog({ name: "garden-server" }).error({
           msg: `Unexpected error handling request ID ${requestId}: ${error}`,
           error: toGardenError(error),
         })
