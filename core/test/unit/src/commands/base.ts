@@ -10,8 +10,14 @@ import { expect } from "chai"
 import { Command, CommandGroup } from "../../../../src/commands/base.js"
 import { StringsParameter } from "../../../../src/cli/params.js"
 import stripAnsi from "strip-ansi"
-import { dedent } from "../../../../src/util/string.js"
-import { trimLineEnds } from "../../../helpers.js"
+import replaceInFile from "replace-in-file"
+import { join } from "path"
+import dedent from "dedent"
+import { BuildCommand } from "../../../../src/commands/build.js"
+import { DevCommand } from "../../../../src/commands/dev.js"
+import { ValidateCommand } from "../../../../src/commands/validate.js"
+import { uuidv4 } from "../../../../src/util/random.js"
+import { trimLineEnds, getDataDir, makeTestGarden, withDefaultGlobalOpts } from "../../../helpers.js"
 
 describe("Command", () => {
   describe("renderHelp", () => {
@@ -210,6 +216,80 @@ describe("Command", () => {
         ["group-alias", "test-command"],
         ["group-alias", "command-alias"],
       ])
+    })
+  })
+
+  describe("run", () => {
+    // This applies e.g. when running a command on the dev command line.
+    context("when called with a parentSessionId and a reload is needed after a config change", () => {
+      const projectRoot = getDataDir("test-projects", "config-template-reloading")
+
+      it("passes on changed configs and templates to the parent and subsequent child instances", async () => {
+        const garden = await makeTestGarden(projectRoot)
+        // `makeTestGarden` does some trickery to copy the project root into a temp directory and work from there
+        // (which is nice, since it avoids the need for cleanup).
+        // Therefore, we need to make our find & replace substitutions inside the temp dir here.
+        const tmpRoot = garden.projectRoot
+        const log = garden.log
+
+        const devCmd = new DevCommand()
+        const devCmdSessionId = uuidv4()
+
+        const validateCmd = new ValidateCommand()
+        const buildCmd = new BuildCommand()
+
+        // We run this command to trigger the initial scan for configs
+        await validateCmd.run({
+          log,
+          args: {},
+          opts: withDefaultGlobalOpts({}),
+          garden,
+          sessionId: uuidv4(),
+          parentSessionId: devCmdSessionId,
+          parentCommand: devCmd,
+        })
+
+        await replaceInFile.replaceInFile({
+          files: join(tmpRoot, "templates.garden.yml"),
+          from: new RegExp("echo-prefix"),
+          to: "reloaded-prefix",
+        })
+        await replaceInFile.replaceInFile({
+          files: join(tmpRoot, "actions.garden.yml"),
+          from: new RegExp("name: test"),
+          to: "name: reloaded-name",
+        })
+
+        // The modification to `templates.garden.yml` above would normally trigger a `configChanged` event which would
+        // result in this call, but we're doing it manually here to simplify the test setup.
+        garden.needsReload(true)
+        await validateCmd.run({
+          log,
+          args: {},
+          opts: withDefaultGlobalOpts({}),
+          garden,
+          sessionId: uuidv4(),
+          parentSessionId: devCmdSessionId,
+          parentCommand: devCmd,
+        })
+
+        const { result } = await buildCmd.run({
+          log,
+          args: { names: undefined },
+          opts: withDefaultGlobalOpts({ "watch": false, "force": false, "with-dependants": false }),
+          garden,
+          sessionId: uuidv4(),
+          parentSessionId: devCmdSessionId,
+          parentCommand: devCmd,
+        })
+
+        // This means that when the config was rescanned during the second `validate` command run:
+        // * The action, module and workflow configs and config templates were also set on the parent Garden instance
+        //   when the first validate command run rescanned & added configs.
+        //  * The build command run that came immediately after received updated config templates, and the appropriately
+        //    re-generated action configs from the updated template.
+        expect(result.build["foo-reloaded-name"].buildLog).to.eql("reloaded-prefix reloaded-name")
+      })
     })
   })
 })
