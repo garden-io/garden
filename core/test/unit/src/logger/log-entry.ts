@@ -301,6 +301,39 @@ describe("ActionLog", () => {
       })
     })
 
+    it("inherits fixLevel from input log if not set", () => {
+      const inputLog = log.createLog({
+        name: "test-log",
+        origin: "foo",
+        fixLevel: LogLevel.verbose,
+      })
+      // Inherits fixLevel from input log
+      const actionLogVerbose = createActionLog({
+        log: inputLog,
+        origin: "origin",
+        actionName: "api",
+        actionKind: "build",
+      })
+      expect(actionLogVerbose.fixLevel).to.eql(LogLevel.verbose)
+    })
+
+    it("overwrites input log fixLevel if set", () => {
+      const inputLog = log.createLog({
+        name: "test-log",
+        origin: "foo",
+        fixLevel: LogLevel.verbose,
+      })
+      // Overwrites fixLevel that was set on the input log
+      const actionLogDebug = createActionLog({
+        log: inputLog,
+        origin: "origin",
+        actionName: "api",
+        actionKind: "build",
+        fixLevel: LogLevel.debug,
+      })
+      expect(actionLogDebug.fixLevel).to.eql(LogLevel.debug)
+    })
+
     it("inherits context from input log", () => {
       log.context.sessionId = "foo"
       const actionLog = createActionLog({
