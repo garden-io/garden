@@ -609,7 +609,7 @@ export function configureVolumes(
       volumes.push({
         name: volumeName,
         hostPath: {
-          path: resolve(action.basePath(), volume.hostPath),
+          path: resolve(action.sourcePath(), volume.hostPath),
         },
       })
     } else if (volume.action) {

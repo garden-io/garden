@@ -89,7 +89,7 @@ function makeActionCommand(commandName: string): PluginCommand {
       const resolvedAction = await garden.resolveAction({ graph, action, log })
       const spec = resolvedAction.getSpec()
 
-      const root = join(action.basePath(), spec.root)
+      const root = join(action.sourcePath(), spec.root)
 
       const provider = ctx.provider as TerraformProvider
       const workspace = spec.workspace || null

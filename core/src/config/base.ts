@@ -48,7 +48,21 @@ export interface YamlDocumentWithSource extends Document {
 }
 
 export interface GardenResourceInternalFields {
+  /**
+   * The path/working directory where commands and operations relating to the config should be executed. This is
+   * most commonly the directory containing the config file.
+   *
+   * Note: WHen possible, use `action.getSourcePath()` instead, since it factors in remote source paths and source
+   * overrides (i.e. `BaseActionConfig.source.path`). This is a lower-level field that doesn't contain template strings,
+   * and can thus be used early in the resolution flow.
+   */
   basePath: string
+  /**
+   * The path to the resource's config file, if any.
+   *
+   * Configs that are read from a file should always have this set, but generated configs (e.g. from templates
+   * or `augmentGraph` handlers) don't necessarily have a path on disk.
+   */
   configFilePath?: string
   // -> set by templates
   inputs?: DeepPrimitiveMap

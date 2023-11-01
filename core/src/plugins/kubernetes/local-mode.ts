@@ -540,7 +540,7 @@ function getLocalAppCommand({ spec: localModeSpec, action }: StartLocalModeParam
   }
   const commandName = command[0]
   const commandArgs = command.slice(1)
-  const cwd = isAbsolute(commandName) ? undefined : action.basePath()
+  const cwd = isAbsolute(commandName) ? undefined : action.sourcePath()
   return { command: commandName, args: commandArgs, cwd, description: "Local app" }
 }
 

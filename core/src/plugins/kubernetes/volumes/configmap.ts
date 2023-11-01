@@ -161,7 +161,7 @@ function getKubernetesAction(action: Resolved<ConfigmapAction>) {
     type: "kubernetes",
     name: action.name,
     internal: {
-      basePath: action.basePath(),
+      basePath: action.sourcePath(),
     },
     include: [],
     timeout: KUBECTL_DEFAULT_TIMEOUT,
