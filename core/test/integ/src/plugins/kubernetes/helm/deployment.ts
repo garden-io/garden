@@ -21,13 +21,12 @@ import { KubeApi } from "../../../../../../src/plugins/kubernetes/api"
 import { buildHelmModules, getHelmLocalModeTestGarden, getHelmTestGarden } from "./common"
 import { ConfigGraph } from "../../../../../../src/graph/config-graph"
 import { isWorkload } from "../../../../../../src/plugins/kubernetes/util"
-import { CloudApi } from "../../../../../../src/cloud/api"
 import { getRootLogger } from "../../../../../../src/logger/logger"
 import { LocalModeProcessRegistry, ProxySshKeystore } from "../../../../../../src/plugins/kubernetes/local-mode"
 import { HelmDeployAction } from "../../../../../../src/plugins/kubernetes/helm/config"
-import { GlobalConfigStore } from "../../../../../../src/config-store/global"
 import { createActionLog } from "../../../../../../src/logger/log-entry"
 import { NamespaceStatus } from "../../../../../../src/types/namespace"
+import { FakeCloudApi } from "../../../../../helpers/api"
 
 describe("helmDeploy in local-mode", () => {
   let garden: TestGarden
@@ -281,11 +280,9 @@ describe("helmDeploy", () => {
   })
 
   it("should mark a chart that has been paused by Garden Cloud AEC as outdated", async () => {
-    const fakeCloudApi = new CloudApi({
-      log: getRootLogger().createLog(),
-      domain: "https://test.cloud.garden.io",
-      globalConfigStore: new GlobalConfigStore(),
-    })
+    const log = getRootLogger().createLog()
+    const fakeCloudApi = await FakeCloudApi.factory({ log })
+
     const projectRoot = getDataDir("test-projects", "helm")
     const gardenWithCloudApi = await makeTestGarden(projectRoot, { cloudApi: fakeCloudApi, noCache: true })
 
