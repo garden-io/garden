@@ -534,6 +534,8 @@ export const kubernetesConfigBase = () =>
             .description(
               "In some cases you may need to push images built with Jib to the remote registry via Kubernetes cluster, e.g. if you don't have connectivity or access from where Garden is being run. In that case, set this flag to true, but do note that the build will take considerably take longer to complete! Only applies when using in-cluster building."
             ),
+        })
+        .description("Setting related to Jib image builds."),
       kaniko: joi
         .object()
         .keys({
@@ -604,7 +606,7 @@ export const kubernetesConfigBase = () =>
           The experimental support for blue/green deployments (via the \`"blue-green"\` strategy) has been removed.
 
           Note that this setting only applies to \`container\` deploy actions (and not, for example,  \`kubernetes\` or \`helm\` deploy actions).
-          `
+        `
         )
         .meta({
           experimental: true,
