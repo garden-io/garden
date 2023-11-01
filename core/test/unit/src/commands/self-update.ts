@@ -108,7 +108,9 @@ describe("SelfUpdateCommand", () => {
       if (tempDir) {
         await tempDir.cleanup()
       }
-    } catch {}
+    } catch (err) {
+      console.error(`Cleaning up tmp dir for 'SelfUpdateCommand' test failed with error:`, err)
+    }
   })
 
   after(() => {
@@ -416,27 +418,40 @@ describe("SelfUpdateCommand", () => {
     expect(scope.isDone()).to.be.true
   })
 
-  it(`handles --platform=windows and zip archives correctly`, async () => {
-    const scope = nock("https://get.garden.io")
-    scope.get("/releases/latest").reply(200, { tag_name: "edge" })
+  context("running flaky test with retries", () => {
+    let runIdx = 0
 
-    await action(
-      { version: "edge" },
-      {
-        "force": false,
-        "install-dir": tempDir.path,
-        "platform": "windows",
-        "architecture": "amd64",
-        "major": false,
-        // "minor": false,
+    it(`handles --platform=windows and zip archives correctly`, async function() {
+      // this.retries(3)
+
+      console.log(`Flaky test run number ${runIdx}`)
+
+      const scope = nock("https://get.garden.io")
+      scope.get("/releases/latest").reply(200, { tag_name: "edge" })
+
+      try {
+        await action(
+          { version: "edge" },
+          {
+            "force": false,
+            "install-dir": tempDir.path,
+            "platform": "windows",
+            "architecture": "amd64",
+            "major": false,
+            // "minor": false,
+          }
+        )
+      } catch (err) {
+        console.error(`Running action failed with error:`, err)
+        throw err
       }
-    )
 
-    const extracted = await readdir(tempDir.path)
-    expect(extracted).to.include("garden.exe")
-    expect(extracted).to.include("static")
+      const extracted = await readdir(tempDir.path)
+      expect(extracted).to.include("garden.exe")
+      expect(extracted).to.include("static")
 
-    expect(scope.isDone()).to.be.true
+      expect(scope.isDone()).to.be.true
+    })
   })
 
   it(`handles --platform=macos and tar.gz archives correctly`, async () => {
