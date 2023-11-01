@@ -265,6 +265,10 @@ providers:
       # are specifically set under `util.annotations`
       annotations:
 
+      # Specify annotations to apply to the Kubernetes service account used by kaniko. This can be useful to set up
+      # IRSA with in-cluster building.
+      serviceAccountAnnotations:
+
       util:
         # Specify tolerations to apply to each garden-util pod.
         tolerations:
@@ -298,10 +302,6 @@ providers:
 
         # Specify the nodeSelector constraints for each garden-util pod.
         nodeSelector:
-
-      # Specify annotations to apply to the Kubernetes service account used by kaniko. This can be useful to set up
-      # IRSA with in-cluster building.
-      serviceAccountAnnotations:
 
     # A default hostname to use when no hostname is explicitly configured for a service.
     defaultHostname:
@@ -864,6 +864,26 @@ providers:
           cluster-autoscaler.kubernetes.io/safe-to-evict: 'false'
 ```
 
+### `providers[].clusterBuildkit.serviceAccountAnnotations`
+
+[providers](#providers) > [clusterBuildkit](#providersclusterbuildkit) > serviceAccountAnnotations
+
+Specify annotations to apply to the Kubernetes service account used by cluster-buildkit. This can be useful to set up IRSA with in-cluster building.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+Example:
+
+```yaml
+providers:
+  - clusterBuildkit:
+      ...
+      serviceAccountAnnotations:
+          eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/my-role
+```
+
 ### `providers[].jib`
 
 [providers](#providers) > jib
@@ -1024,6 +1044,26 @@ providers:
           cluster-autoscaler.kubernetes.io/safe-to-evict: 'false'
 ```
 
+### `providers[].kaniko.serviceAccountAnnotations`
+
+[providers](#providers) > [kaniko](#providerskaniko) > serviceAccountAnnotations
+
+Specify annotations to apply to the Kubernetes service account used by kaniko. This can be useful to set up IRSA with in-cluster building.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+Example:
+
+```yaml
+providers:
+  - kaniko:
+      ...
+      serviceAccountAnnotations:
+          eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/my-role
+```
+
 ### `providers[].kaniko.util`
 
 [providers](#providers) > [kaniko](#providerskaniko) > util
@@ -1131,26 +1171,6 @@ Specify the nodeSelector constraints for each garden-util pod.
 | Type     | Required |
 | -------- | -------- |
 | `object` | No       |
-
-### `providers[].kaniko.serviceAccountAnnotations`
-
-[providers](#providers) > [kaniko](#providerskaniko) > serviceAccountAnnotations
-
-Specify annotations to apply to the Kubernetes service account used by kaniko. This can be useful to set up IRSA with in-cluster building.
-
-| Type     | Required |
-| -------- | -------- |
-| `object` | No       |
-
-Example:
-
-```yaml
-providers:
-  - kaniko:
-      ...
-      serviceAccountAnnotations:
-          eks.amazonaws.com/role-arn: 'arn:aws:iam::111122223333:role/my-role'
-```
 
 ### `providers[].defaultHostname`
 

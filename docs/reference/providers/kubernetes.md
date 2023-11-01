@@ -269,6 +269,10 @@ providers:
       # are specifically set under `util.annotations`
       annotations:
 
+      # Specify annotations to apply to the Kubernetes service account used by kaniko. This can be useful to set up
+      # IRSA with in-cluster building.
+      serviceAccountAnnotations:
+
       util:
         # Specify tolerations to apply to each garden-util pod.
         tolerations:
@@ -302,10 +306,6 @@ providers:
 
         # Specify the nodeSelector constraints for each garden-util pod.
         nodeSelector:
-
-      # Specify annotations to apply to the Kubernetes service account used by kaniko. This can be useful to set up
-      # IRSA with in-cluster building.
-      serviceAccountAnnotations:
 
     # A default hostname to use when no hostname is explicitly configured for a service.
     defaultHostname:
@@ -933,36 +933,8 @@ providers:
   - clusterBuildkit:
       ...
       serviceAccountAnnotations:
-          eks.amazonaws.com/role-arn: 'arn:aws:iam::111122223333:role/my-role'
+          eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/my-role
 ```
-
-### `providers[].clusterDocker`
-
-[providers](#providers) > clusterDocker
-
-{% hint style="warning" %}
-**Deprecated**: This field will be removed in a future release.
-{% endhint %}
-
-Configuration options for the `cluster-docker` build mode.
-
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `object` | `{}`    | No       |
-
-### `providers[].clusterDocker.enableBuildKit`
-
-[providers](#providers) > [clusterDocker](#providersclusterdocker) > enableBuildKit
-
-{% hint style="warning" %}
-**Deprecated**: This field will be removed in a future release.
-{% endhint %}
-
-Enable [BuildKit](https://github.com/moby/buildkit) support. This should in most cases work well and be more performant, but we're opting to keep it optional until it's enabled by default in Docker.
-
-| Type      | Default | Required |
-| --------- | ------- | -------- |
-| `boolean` | `false` | No       |
 
 ### `providers[].jib`
 
@@ -1124,6 +1096,26 @@ providers:
           cluster-autoscaler.kubernetes.io/safe-to-evict: 'false'
 ```
 
+### `providers[].kaniko.serviceAccountAnnotations`
+
+[providers](#providers) > [kaniko](#providerskaniko) > serviceAccountAnnotations
+
+Specify annotations to apply to the Kubernetes service account used by kaniko. This can be useful to set up IRSA with in-cluster building.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+Example:
+
+```yaml
+providers:
+  - kaniko:
+      ...
+      serviceAccountAnnotations:
+          eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/my-role
+```
+
 ### `providers[].kaniko.util`
 
 [providers](#providers) > [kaniko](#providerskaniko) > util
@@ -1231,26 +1223,6 @@ Specify the nodeSelector constraints for each garden-util pod.
 | Type     | Required |
 | -------- | -------- |
 | `object` | No       |
-
-### `providers[].kaniko.serviceAccountAnnotations`
-
-[providers](#providers) > [kaniko](#providerskaniko) > serviceAccountAnnotations
-
-Specify annotations to apply to the Kubernetes service account used by kaniko. This can be useful to set up IRSA with in-cluster building.
-
-| Type     | Required |
-| -------- | -------- |
-| `object` | No       |
-
-Example:
-
-```yaml
-providers:
-  - kaniko:
-      ...
-      serviceAccountAnnotations:
-          eks.amazonaws.com/role-arn: 'arn:aws:iam::111122223333:role/my-role'
-```
 
 ### `providers[].defaultHostname`
 
