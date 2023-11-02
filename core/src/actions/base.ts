@@ -234,13 +234,20 @@ export const baseActionConfigSchema = createSchema({
       .example("my-action.env")
       .meta({ templateContext: ActionConfigContext }),
 
-    noCache: joi.object().keys({
-      disabled: joi.boolean().default(false).description(
-        dedent`
-          Set this to \`true\` to disable caching for this action.
-        `
-      ),
-      variables: joiSparseArray(joi.string()).description(`A list of variables to ignore when caching this action.`),
+    cache: joi.object().keys({
+      noCache: joi.object().keys({
+        variables: joiSparseArray(joi.string()).description(
+          dedent`
+            Specify the list of variables to ignore when caching this action. This is particularly useful for the
+            distributed caching where a certain variable might change across environments, but the action should
+            still be cached.
+
+            For instance, if you have an 'deploy' action that relies on a variable to determine the ingress hostname,
+            you may wish to designate the \`\${var.ingress-hostname}\` variable as one to be ignored. This ensures
+            that the action's version remains consistent, even as the hostname varies across different environments.
+          `
+        ),
+      }),
     }),
 
     spec: joi

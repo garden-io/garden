@@ -860,11 +860,6 @@ export class CloudApi {
     }
   }
 
-  async getCacheStatus(key: string) {
-    const response = await this.get<{ status: Status; data: any }>(`/cache/${key}`)
-    return response
-  }
-
   async checkCacheStatus({
     projectId,
     actionName,
@@ -880,6 +875,7 @@ export class CloudApi {
       unresolvedActionVersion,
     }
     const queryParamsString = qs.stringify(params)
+    // TODO: import types from platform-api-types package once published to npm
     const response = await this.get<{ status: Status; data: any }>(`/cache/check?${queryParamsString}`)
     return response
   }

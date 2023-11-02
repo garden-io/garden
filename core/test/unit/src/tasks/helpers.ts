@@ -19,9 +19,10 @@ describe("TaskHelpers", () => {
       kind: "Deploy",
       type: "container",
       name: "foo",
-      noCache: {
-        disabled: false,
-        variables: ["${var.hostname}"],
+      cache: {
+        noCache: {
+          variables: ["${var.hostname}"],
+        },
       },
       variables: {
         hostname: "foo.com",
@@ -56,7 +57,7 @@ describe("TaskHelpers", () => {
       const result = computeKeyPathsToIgnoreFromConfig(config, ignoreVars)
       expect(result).to.eql([
         {
-          key: "noCache.variables.0",
+          key: "cache.noCache.variables.0",
           matchedValue: "${var.hostname}",
         },
         { key: "spec.ingresses.0.hostname", matchedValue: "foo.${var.hostname}" },

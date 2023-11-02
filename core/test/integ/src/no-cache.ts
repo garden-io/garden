@@ -20,15 +20,6 @@ describe("noCache", () => {
   let provider2: KubernetesProvider
   let ctx2: PluginContext
 
-  after(async () => {
-    if (garden1) {
-      garden1.close()
-    }
-    if (garden2) {
-      garden2.close()
-    }
-  })
-
   before(async () => {
     // env 1
     const projectRoot = getDataDir("test-projects", "actions-no-cache")
@@ -41,6 +32,15 @@ describe("noCache", () => {
     provider2 = (await garden2.resolveProvider(garden2.log, "local-kubernetes")) as KubernetesProvider
     ctx2 = await garden2.getPluginContext({ provider: provider2, templateContext: undefined, events: undefined })
     graph2 = await garden2.getConfigGraph({ log: garden2.log, emit: false })
+  })
+
+  after(async () => {
+    if (garden1) {
+      garden1.close()
+    }
+    if (garden2) {
+      garden2.close()
+    }
   })
 
   it("should find keys to ignore for action version calculation from action config", async () => {
@@ -61,12 +61,12 @@ describe("noCache", () => {
       }
     )
     expect(resolvedAction1.ignoredKeysForVersion).to.have.members([
-      "noCache.variables.0",
+      "cache.noCache.variables.0",
       "spec.ingresses.0.hostname"
     ])
     expect(resolvedAction2.ignoredKeysForVersion).to.have.members([
-      "noCache.variables.0",
-      "noCache.variables.1",
+      "cache.noCache.variables.0",
+      "cache.noCache.variables.1",
       "spec.ingresses.0.hostname",
       "spec.env.EXTERNAL_API_URL"
     ])

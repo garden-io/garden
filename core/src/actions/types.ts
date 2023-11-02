@@ -41,7 +41,6 @@ export interface ActionSourceSpec {
 }
 
 export interface ActionNoCacheConfig {
-  disabled: boolean
   variables?: string[]
 }
 
@@ -93,7 +92,11 @@ export interface BaseActionConfig<K extends ActionKind = ActionKind, T = string,
   variables?: DeepPrimitiveMap
   // -> Templating with ActionConfigContext allowed, including in variables defined in the varfiles
   varfiles?: string[]
-  noCache?: ActionNoCacheConfig
+
+  // action cache config
+  cache?: {
+    noCache?: ActionNoCacheConfig
+  }
 
   // Type-specific
   spec: Spec

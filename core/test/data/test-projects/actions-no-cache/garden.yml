@@ -8,9 +8,10 @@ kind: Deploy
 type: container
 name: test-deploy-container
 build: test-build-container
-noCache:
-  variables:
-    - ${var.base-hostname}
+cache:
+  noCache:
+    variables:
+      - ${var.base-hostname}
 description: Deploy the container
 spec:
   ports:
@@ -34,12 +35,11 @@ kind: Deploy
 type: container
 name: test-deploy-container-with-merge
 build: test-build-container
-noCache:
-  variables:
-    - ${var.base-hostname}
-    - ${var.nestedVars.EXTERNAL_API_URL}
-  # values:
-  #   - ${var.base-hostname}
+cache:
+  noCache:
+    variables:
+      - ${var.base-hostname}
+      - ${var.nestedVars.EXTERNAL_API_URL}
 description: Deploy the container
 spec:
   ports:
