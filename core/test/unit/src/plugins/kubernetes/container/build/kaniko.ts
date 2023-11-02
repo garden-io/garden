@@ -139,6 +139,7 @@ describe("kaniko build", () => {
             },
           ],
           shareProcessNamespace: true,
+          serviceAccountName: "garden-in-cluster-builder",
           tolerations: [
             {
               effect: "NoSchedule",
