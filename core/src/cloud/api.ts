@@ -200,7 +200,8 @@ export class CloudApi {
   /**
    * Initialize the Cloud API.
    *
-   * Returns null if the project is not configured for Garden Cloud or if the user is not logged in.
+   * Returns null if the user is not logged in.
+   *
    * Throws if the user is logged in but the token is invalid and can't be refreshed.
    *
    * Optionally skip logging during initialization. Useful for noProject commands that need to use the class
