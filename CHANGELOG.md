@@ -1,4 +1,31 @@
 
+<a name="0.13.19"></a>
+## [0.13.19](https://github.com/garden-io/garden/compare/0.13.18...0.13.19) (2023-11-01)
+
+### Bug Fixes
+
+* resolve multiline variables in kubernetes manifests correctly ([#5270](https://github.com/garden-io/garden/issues/5270)) ([946e74b97](https://github.com/garden-io/garden/commit/946e74b97))
+* change contributing redirect ([#5280](https://github.com/garden-io/garden/issues/5280)) ([49f3e7520](https://github.com/garden-io/garden/commit/49f3e7520))
+* handle and retry DNS errors ([#5326](https://github.com/garden-io/garden/issues/5326)) ([e1738ac51](https://github.com/garden-io/garden/commit/e1738ac51))
+* **api:** visible and better error when fetching secrets 404s ([#5277](https://github.com/garden-io/garden/issues/5277)) ([32fc4b5a8](https://github.com/garden-io/garden/commit/32fc4b5a8))
+* **cloud:** do not fetch secrets on community tier ([#5291](https://github.com/garden-io/garden/issues/5291)) ([5eae8baf1](https://github.com/garden-io/garden/commit/5eae8baf1))
+* **cloud:** ensure cloud project id is set on garden class ([#5306](https://github.com/garden-io/garden/issues/5306)) ([66a341e2f](https://github.com/garden-io/garden/commit/66a341e2f))
+* **core:** print warning message if docker server version is unparsable (garden-io[#5284](https://github.com/garden-io/garden/issues/5284)) ([#5288](https://github.com/garden-io/garden/issues/5288)) ([5f92abd07](https://github.com/garden-io/garden/commit/5f92abd07))
+* **core:** correctly apply source.path in VCS logic ([#5305](https://github.com/garden-io/garden/issues/5305)) ([aaaf6d5f4](https://github.com/garden-io/garden/commit/aaaf6d5f4))
+* **core:** print success message with cyan color ([#5279](https://github.com/garden-io/garden/issues/5279)) ([acefb96a4](https://github.com/garden-io/garden/commit/acefb96a4))
+* **dev:** fix crash on very narrow terminals ([#5327](https://github.com/garden-io/garden/issues/5327)) ([4af4d6c6a](https://github.com/garden-io/garden/commit/4af4d6c6a))
+* **examples:** use yaml 1.1 octal numbers in kubernetes manifest files ([#5273](https://github.com/garden-io/garden/issues/5273)) ([450099a22](https://github.com/garden-io/garden/commit/450099a22))
+* **helm:** handle missing (null) values in version check ([#5307](https://github.com/garden-io/garden/issues/5307)) ([31f442029](https://github.com/garden-io/garden/commit/31f442029))
+* **k8s:** correct `0.12 => 0.13` service resource conversion ([#5272](https://github.com/garden-io/garden/issues/5272)) ([bfdd0af35](https://github.com/garden-io/garden/commit/bfdd0af35))
+* **k8s:** return deployed mode in container Deploy status ([#5302](https://github.com/garden-io/garden/issues/5302)) ([6c18b6d3f](https://github.com/garden-io/garden/commit/6c18b6d3f))
+* **logger:** log exec build/deploy actions at info level ([#5292](https://github.com/garden-io/garden/issues/5292)) ([522e30578](https://github.com/garden-io/garden/commit/522e30578))
+* **pulumi:** fix process dependency resolution in plugin command ([#5325](https://github.com/garden-io/garden/issues/5325)) ([d460f3f0f](https://github.com/garden-io/garden/commit/d460f3f0f))
+* **pulumi:** propagate resolved action context to pulumi plugin commands ([#5324](https://github.com/garden-io/garden/issues/5324)) ([750e88dfe](https://github.com/garden-io/garden/commit/750e88dfe))
+
+### Improvements
+
+* **logs:** add 'rawMsg' field to logEntry ([#5282](https://github.com/garden-io/garden/issues/5282)) ([242a9c4b4](https://github.com/garden-io/garden/commit/242a9c4b4))
+
 <a name="0.13.18"></a>
 ## [0.13.18](https://github.com/garden-io/garden/compare/0.13.17...0.13.18) (2023-10-17)
 
