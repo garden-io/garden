@@ -556,10 +556,8 @@ export abstract class BaseAction<
 
   @Memoize()
   private stringifyConfig() {
-    // console.log(`${this.key()} - ignoredKeys:`, this.ignoredKeysForVersion)
     const clonedConfig = cloneDeep(this._config)
     const configExcludingIgnoreKeys = omit(clonedConfig, "internal", ...this.ignoredKeysForVersion)
-    // console.log(`${this.key()} - config: `, configExcludingIgnoreKeys)
     return stableStringify(configExcludingIgnoreKeys)
   }
 

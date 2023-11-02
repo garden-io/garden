@@ -81,8 +81,6 @@ export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
     // distributed cloud cache
     if (this.garden.availableCloudFeatures.distributedCache && this.garden.cloudApi && this.garden.projectId) {
       const cloudApi = this.garden.cloudApi
-      // todo fix types and infer from config
-      // const cacheStrategy: CacheStrategy = this.action.getConfig().cache?.strategy
 
       // only check cloud when force is not set.
       if (
