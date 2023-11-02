@@ -7,8 +7,8 @@
     "build": "vue-cli-service build",
     "lint": "vue-cli-service lint",
     "test:unit": "vue-cli-service test:unit",
-    "test:integ": "node_modules/mocha/bin/mocha tests/integ/test.js",
-    "test:e2e": "node_modules/mocha/bin/mocha tests/integ/test.js"
+    "test:integ": "mocha tests/integ/test.js",
+    "test:e2e": "mocha tests/integ/test.js"
   },
   "dependencies": {
     "axios": "^0.21.2",
