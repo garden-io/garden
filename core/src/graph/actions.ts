@@ -63,7 +63,7 @@ import { LinkedSource, LinkedSourceMap } from "../config-store/local"
 import { relative } from "path"
 import { profileAsync } from "../util/profiling"
 import { uuidv4 } from "../util/random"
-import { getSourcePath } from "../vcs/vcs"
+import { getConfigBasePath } from "../vcs/vcs"
 import { actionIsDisabled } from "../actions/base"
 
 export const actionConfigsToGraph = profileAsync(async function actionConfigsToGraph({
@@ -125,7 +125,7 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
   }
 
   // Optimize file scanning by avoiding unnecessarily broad scans when project is not in repo root.
-  const allPaths = Object.values(configsByKey).map((c) => getSourcePath(c))
+  const allPaths = Object.values(configsByKey).map((c) => getConfigBasePath(c))
   const minimalRoots = await garden.vcs.getMinimalRoots(log, allPaths)
 
   const router = await garden.getActionRouter()
@@ -177,7 +177,7 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
           configsByKey,
           mode,
           linkedSources,
-          scanRoot: minimalRoots[getSourcePath(config)],
+          scanRoot: minimalRoots[getConfigBasePath(config)],
         })
 
         if (!action.supportsMode(mode)) {

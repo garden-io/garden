@@ -106,7 +106,7 @@ context("build.ts", () => {
       const action = await getAction()
 
       action["_config"].spec.dockerfile = "docker-dir/Dockerfile"
-      action.treeVersion().files.push(join(action.sourcePath(), "docker-dir", "Dockerfile"))
+      action.treeVersion().files.push(join(action.basePath(), "docker-dir", "Dockerfile"))
 
       sinon.replace(action, "getOutputs", () => ({ localImageId: "some/image" }))
 

@@ -122,7 +122,7 @@ describe("sync mode deployments and sync behavior", () => {
     const workload = status.detail?.detail.workload!
 
     // First, we create a file locally and verify that it gets synced into the pod
-    const actionPath = action.sourcePath()
+    const actionPath = action.basePath()
     await writeFile(join(actionPath, "made_locally"), "foo")
     await sleep(300)
     const execRes = await execInPod(["/bin/sh", "-c", "cat /tmp/made_locally"], log, workload)
@@ -183,7 +183,7 @@ describe("sync mode deployments and sync behavior", () => {
     })
 
     const workload = status.detail?.detail.workload!
-    const actionPath = action.sourcePath()
+    const actionPath = action.basePath()
 
     // First, we create a non-ignored file locally
     await writeFile(join(actionPath, "made_locally"), "foo")
@@ -394,7 +394,7 @@ describe("sync mode deployments and sync behavior", () => {
             mode: "two-way",
             defaultDirectoryMode: 0o755,
             defaultFileMode: 0o644,
-            sourcePath: join(action.sourcePath(), "src"),
+            sourcePath: join(action.basePath(), "src"),
             containerPath: "/app/src",
           },
         ],

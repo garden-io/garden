@@ -207,7 +207,7 @@ function getKubernetesAction(action: Resolved<PersistentVolumeClaimAction>) {
     type: "kubernetes",
     name: action.name,
     internal: {
-      basePath: action.sourcePath(),
+      basePath: action.basePath(),
     },
     include: [],
     timeout: KUBECTL_DEFAULT_TIMEOUT,

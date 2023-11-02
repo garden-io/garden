@@ -264,7 +264,7 @@ export function convertContainerSyncSpec(
   const spec = action.getSpec()
   const kind: SyncableKind = spec.daemon ? "DaemonSet" : "Deployment"
   const target = { kind, name: action.name }
-  const sourcePath = action.sourcePath()
+  const sourcePath = action.basePath()
   const syncSpec = spec.sync
 
   if (!syncSpec || !target) {
@@ -832,7 +832,7 @@ function getSyncKeyPrefix(ctx: PluginContext, action: SupportedRuntimeAction) {
  *  It cannot contain any characters that can break the command execution (like / \ < > | :).
  */
 function getSyncKey({ ctx, action, spec }: PrepareSyncParams, target: SyncableResource): string {
-  const sourcePath = relative(action.sourcePath(), spec.sourcePath)
+  const sourcePath = relative(action.basePath(), spec.sourcePath)
   const containerPath = spec.containerPath
   return kebabCase(
     `${getSyncKeyPrefix(ctx, action)}${target.kind}--${target.metadata.name}--${sourcePath}--${containerPath}`

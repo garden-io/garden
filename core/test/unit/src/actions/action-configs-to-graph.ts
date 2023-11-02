@@ -61,7 +61,7 @@ describe("actionConfigsToGraph", () => {
     expect(actions.length).to.equal(1)
     expect(action.kind).to.equal("Build")
     expect(action.name).to.equal("foo")
-    expect(action.sourcePath()).to.equal(tmpDir.path)
+    expect(action.basePath()).to.equal(tmpDir.path)
   })
 
   it("resolves a Deploy action", async () => {
@@ -93,7 +93,7 @@ describe("actionConfigsToGraph", () => {
     expect(actions.length).to.equal(1)
     expect(action.kind).to.equal("Deploy")
     expect(action.name).to.equal("foo")
-    expect(action.sourcePath()).to.equal(tmpDir.path)
+    expect(action.basePath()).to.equal(tmpDir.path)
   })
 
   it("resolves a Run action", async () => {
@@ -125,7 +125,7 @@ describe("actionConfigsToGraph", () => {
     expect(actions.length).to.equal(1)
     expect(action.kind).to.equal("Run")
     expect(action.name).to.equal("foo")
-    expect(action.sourcePath()).to.equal(tmpDir.path)
+    expect(action.basePath()).to.equal(tmpDir.path)
   })
 
   it("resolves a Test action", async () => {
@@ -157,7 +157,7 @@ describe("actionConfigsToGraph", () => {
     expect(actions.length).to.equal(1)
     expect(action.kind).to.equal("Test")
     expect(action.name).to.equal("foo")
-    expect(action.sourcePath()).to.equal(tmpDir.path)
+    expect(action.basePath()).to.equal(tmpDir.path)
   })
 
   it("resolves actions in groups", async () => {
@@ -196,7 +196,7 @@ describe("actionConfigsToGraph", () => {
     expect(actions.length).to.equal(1)
     expect(action.kind).to.equal("Test")
     expect(action.name).to.equal("foo")
-    expect(action.sourcePath()).to.equal(tmpDir.path)
+    expect(action.basePath()).to.equal(tmpDir.path)
   })
 
   it("adds dependencies from copyFrom on Build actions", async () => {

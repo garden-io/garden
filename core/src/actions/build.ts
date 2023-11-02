@@ -188,7 +188,7 @@ export class BuildAction<
    */
   getBuildPath() {
     if (this._config.buildAtSource) {
-      return this.sourcePath()
+      return this.basePath()
     } else {
       return join(this.baseBuildDirectory, this.name)
     }

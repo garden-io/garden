@@ -179,7 +179,7 @@ provider.addHandler("augmentGraph", async ({ ctx, actions }) => {
     .filter(isHadolintTest)
     // Can't really reason about templated dockerfile spec field
     .filter((a) => !mayContainTemplateString(a.getConfig("spec").dockerfilePath))
-    .map((a) => resolve(a.sourcePath(), a.getConfig("spec").dockerfilePath))
+    .map((a) => resolve(a.basePath(), a.getConfig("spec").dockerfilePath))
 
   const pickCompatibleAction = (action: BaseAction): action is BuildAction | HadolintTest => {
     // Make sure we don't step on an existing custom hadolint module
@@ -187,7 +187,7 @@ provider.addHandler("augmentGraph", async ({ ctx, actions }) => {
       const dockerfilePath = action.getConfig("spec").dockerfilePath
       if (
         !mayContainTemplateString(dockerfilePath) &&
-        existingHadolintDockerfiles.includes(resolve(action.sourcePath(), dockerfilePath))
+        existingHadolintDockerfiles.includes(resolve(action.basePath(), dockerfilePath))
       ) {
         return false
       }
@@ -222,7 +222,7 @@ provider.addHandler("augmentGraph", async ({ ctx, actions }) => {
       description: `hadolint test for '${action.longDescription()}' (auto-generated)`,
       include,
       internal: {
-        basePath: action.sourcePath(),
+        basePath: action.basePath(),
       },
       timeout: action.getConfig().timeout,
       spec: {
@@ -286,7 +286,7 @@ hadolintTest.addHandler("configure", async ({ ctx, config }) => {
 
 hadolintTest.addHandler("run", async ({ ctx, log, action }) => {
   const spec = action.getSpec()
-  const dockerfilePath = join(action.sourcePath(), spec.dockerfilePath)
+  const dockerfilePath = join(action.basePath(), spec.dockerfilePath)
   const startedAt = new Date()
   let dockerfile: string
 
@@ -294,12 +294,12 @@ hadolintTest.addHandler("run", async ({ ctx, log, action }) => {
     dockerfile = (await readFile(dockerfilePath)).toString()
   } catch {
     throw new ConfigurationError({
-      message: `hadolint: Could not find Dockerfile at ${spec.dockerfilePath}. Action path: ${action.sourcePath()}`,
+      message: `hadolint: Could not find Dockerfile at ${spec.dockerfilePath}. Action path: ${action.basePath()}`,
     })
   }
 
   let configPath: string
-  const moduleConfigPath = join(action.sourcePath(), configFilename)
+  const moduleConfigPath = join(action.basePath(), configFilename)
   const projectConfigPath = join(ctx.projectRoot, configFilename)
 
   if (await pathExists(moduleConfigPath)) {

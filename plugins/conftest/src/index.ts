@@ -171,7 +171,7 @@ export const gardenPlugin = () =>
                 }
               }
 
-              const args = prepareArgs(ctx, provider, action.sourcePath(), spec)
+              const args = prepareArgs(ctx, provider, action.basePath(), spec)
               args.push(...files)
 
               const result = await ctx.tools["conftest.conftest"].exec({ log, args, ignoreError: true, cwd: buildPath })
@@ -276,7 +276,7 @@ export const gardenPlugin = () =>
               })
 
               // Run conftest, piping the rendered chart to stdin
-              const args = prepareArgs(ctx, provider, action.sourcePath(), spec)
+              const args = prepareArgs(ctx, provider, action.basePath(), spec)
               args.push("-")
 
               const result = await ctx.tools["conftest.conftest"].exec({

@@ -236,7 +236,7 @@ export const gardenPlugin = () =>
                 await mvn({
                   ctx,
                   log,
-                  cwd: action.sourcePath(),
+                  cwd: action.basePath(),
                   args: [...mavenPhases, ...args],
                   openJdkPath,
                   binaryPath: mavenPath,
@@ -247,7 +247,7 @@ export const gardenPlugin = () =>
                 await mvnd({
                   ctx,
                   log,
-                  cwd: action.sourcePath(),
+                  cwd: action.basePath(),
                   args: [...mavenPhases, ...args],
                   openJdkPath,
                   binaryPath: mavendPath,
@@ -258,7 +258,7 @@ export const gardenPlugin = () =>
                 await gradle({
                   ctx,
                   log,
-                  cwd: action.sourcePath(),
+                  cwd: action.basePath(),
                   args,
                   openJdkPath,
                   binaryPath: gradlePath,

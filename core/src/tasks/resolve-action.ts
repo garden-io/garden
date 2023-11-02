@@ -147,7 +147,7 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
 
     const actionVariables = resolveTemplateStrings({
       value: await mergeVariables({
-        basePath: action.sourcePath(),
+        basePath: action.basePath(),
         variables: config.variables,
         varfiles: config.varfiles,
       }),
@@ -261,7 +261,7 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
       })
     }
 
-    const path = this.action.sourcePath()
+    const path = this.action.basePath()
     const internal = this.action.getInternal()
 
     spec = validateWithPath({
