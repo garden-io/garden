@@ -119,7 +119,7 @@ export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
         }
       }
 
-      // cache miss / cache strategy never / force set
+      // cache miss / force set
       return {
         state: "not-ready" as const,
         version: this.action.versionString(),

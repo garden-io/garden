@@ -6,12 +6,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { expect } from "chai"
-import tmp from "tmp-promise"
+import { makeGarden, makeTempDir, noOpTestPlugin, TestGarden } from "../../../helpers"
+import { preprocessActionConfig } from "../../../../src/graph/actions"
 import { RunActionConfig } from "../../../../src/actions/run"
 import { DEFAULT_RUN_TIMEOUT_SEC } from "../../../../src/constants"
-import { preprocessActionConfig } from "../../../../src/graph/actions"
-import { makeGarden, makeTempDir, noOpTestPlugin, TestGarden } from "../../../helpers"
+import tmp from "tmp-promise"
+import { expect } from "chai"
 
 // TODO: add more tests
 describe("preprocessActionConfig", () => {
