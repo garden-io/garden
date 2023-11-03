@@ -23,6 +23,7 @@ import {
   GetKubeconfigResponse,
   GetProfileResponse,
   GetProjectResponse,
+  ListFeatureFlagResponse,
   ListProjectsResponse,
   Status,
 } from "@garden-io/platform-api-types"
@@ -858,6 +859,11 @@ export class CloudApi {
         }`,
       })
     }
+  }
+
+
+  async getFeatureFlags(): Promise<ListFeatureFlagResponse> {
+    return await this.get<ListFeatureFlagResponse>(`/feature-flags`)
   }
 
   async checkCacheStatus({

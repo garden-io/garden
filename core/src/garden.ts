@@ -429,9 +429,18 @@ export class Garden {
     }
 
     // cloud features
-    if (this.cloudApi && this.projectId && isGardenEnterprise(this)) {
-      this.availableCloudFeatures.distributedCache = true
-    }
+    this.cloudApi
+      ?.getFeatureFlags()
+      .then((response) => {
+        // TODO: update platform types to get rid of string cast
+        if (response.data.find((flag) => <string>flag.name === "distributedCache")?.enabled) {
+          this.availableCloudFeatures.distributedCache = true
+        }
+      })
+      .catch((err) => {
+        this.log.debug(`Failed to get feature flags from cloud: ${err}`)
+        this.availableCloudFeatures.distributedCache = false
+      })
   }
 
   static async factory<T extends typeof Garden>(
