@@ -18,6 +18,7 @@ import {
   actionKinds,
   ActionMode,
   ActionModeMap,
+  ActionModes,
   ActionWrapperParams,
   Executed,
   Resolved,
@@ -124,51 +125,45 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
     }
   }
 
-  // Optimize file scanning by avoiding unnecessarily broad scans when project is not in repo root.
-  const allPaths = Object.values(configsByKey).map((c) => getSourcePath(c))
-  const minimalRoots = await garden.vcs.getMinimalRoots(log, allPaths)
-
   const router = await garden.getActionRouter()
+
+  // We need to preprocess the action configs to make sure any template strings have been resolved on the `source.path`
+  // field (if any).
+  //
+  // We then finish the process of converting the configs to actions once we've computed the minimal roots.
+  //
+  // Doing this in two steps makes the code a bit less readable, but it's worth it for the performance boost.
+  const preprocessResults: { [key: string]: PreprocessActionResult } = {}
+  const computedActionModes: { [key: string]: { mode: ActionMode; explicitMode: boolean } } = {}
+  await Promise.all(
+    Object.entries(configsByKey).map(async ([key, config]) => {
+      const { mode, explicitMode } = getActionMode(config, actionModes, log)
+      computedActionModes[key] = { mode, explicitMode }
+      preprocessResults[key] = await preprocessActionConfig({
+        garden,
+        config,
+        router,
+        log,
+        mode,
+      })
+    })
+  )
+
+  // Optimize file scanning by avoiding unnecessarily broad scans when project is not in repo root.
+  const preprocessedConfigs = Object.values(preprocessResults).map((r) => r.config)
+  const allPaths = preprocessedConfigs.map((c) => getSourcePath(c))
+  const minimalRoots = await garden.vcs.getMinimalRoots(log, allPaths)
 
   // TODO: Maybe we could optimize resolving tree versions, avoid parallel scanning of the same directory etc.
   const graph = new MutableConfigGraph({ actions: [], moduleGraph, groups: groupConfigs })
 
   await Promise.all(
-    Object.entries(configsByKey).map(async ([key, config]) => {
-      // Apply action modes
-      let mode: ActionMode = "default"
-      let explicitMode = false // set if a key is explicitly set (as opposed to a wildcard match)
-
-      for (const pattern of actionModes.sync || []) {
-        if (key === pattern) {
-          explicitMode = true
-          mode = "sync"
-          log.silly(`Action ${key} set to ${mode} mode, matched on exact key`)
-          break
-        } else if (minimatch(key, pattern)) {
-          mode = "sync"
-          log.silly(`Action ${key} set to ${mode} mode, matched with pattern '${pattern}'`)
-          break
-        }
-      }
-
-      // Local mode takes precedence over sync
-      // TODO: deduplicate
-      for (const pattern of actionModes.local || []) {
-        if (key === pattern) {
-          explicitMode = true
-          mode = "local"
-          log.silly(`Action ${key} set to ${mode} mode, matched on exact key`)
-          break
-        } else if (minimatch(key, pattern)) {
-          mode = "local"
-          log.silly(`Action ${key} set to ${mode} mode, matched with pattern '${pattern}'`)
-          break
-        }
-      }
+    Object.entries(preprocessResults).map(async ([key, res]) => {
+      const { config, supportedModes, templateContext } = res
+      const { mode, explicitMode } = computedActionModes[key]
 
       try {
-        const action = await actionFromConfig({
+        const action = await processActionConfig({
           garden,
           graph,
           config,
@@ -177,6 +172,8 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
           configsByKey,
           mode,
           linkedSources,
+          templateContext,
+          supportedModes,
           scanRoot: minimalRoots[getSourcePath(config)],
         })
 
@@ -210,6 +207,41 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
   return graph
 })
 
+function getActionMode(config: ActionConfig, actionModes: ActionModeMap, log: Log) {
+  let mode: ActionMode = "default"
+  const key = actionReferenceToString(config)
+  let explicitMode = false // set if a key is explicitly set (as opposed to a wildcard match)
+
+  for (const pattern of actionModes.sync || []) {
+    if (key === pattern) {
+      explicitMode = true
+      mode = "sync"
+      log.silly(`Action ${key} set to ${mode} mode, matched on exact key`)
+      break
+    } else if (minimatch(key, pattern)) {
+      mode = "sync"
+      log.silly(`Action ${key} set to ${mode} mode, matched with pattern '${pattern}'`)
+      break
+    }
+  }
+
+  // Local mode takes precedence over sync
+  // TODO: deduplicate
+  for (const pattern of actionModes.local || []) {
+    if (key === pattern) {
+      explicitMode = true
+      mode = "local"
+      log.silly(`Action ${key} set to ${mode} mode, matched on exact key`)
+      break
+    } else if (minimatch(key, pattern)) {
+      mode = "local"
+      log.silly(`Action ${key} set to ${mode} mode, matched with pattern '${pattern}'`)
+      break
+    }
+  }
+  return { mode, explicitMode }
+}
+
 export const actionFromConfig = profileAsync(async function actionFromConfig({
   garden,
   graph,
@@ -240,6 +272,46 @@ export const actionFromConfig = profileAsync(async function actionFromConfig({
     log,
   })
 
+  return processActionConfig({
+    garden,
+    graph,
+    config,
+    router,
+    log,
+    configsByKey,
+    mode,
+    linkedSources,
+    templateContext,
+    supportedModes,
+    scanRoot,
+  })
+})
+
+async function processActionConfig({
+  garden,
+  graph,
+  config,
+  router,
+  log,
+  configsByKey,
+  mode,
+  linkedSources,
+  templateContext,
+  supportedModes,
+  scanRoot,
+}: {
+  garden: Garden
+  graph: ConfigGraph
+  config: ActionConfig
+  router: ActionRouter
+  log: Log
+  configsByKey: ActionConfigsByKey
+  mode: ActionMode
+  linkedSources: LinkedSourceMap
+  templateContext: ActionConfigContext
+  supportedModes: ActionModes
+  scanRoot?: string
+}) {
   const actionTypes = await garden.getActionTypes()
   const definition = actionTypes[config.kind][config.type]?.spec
   const compatibleTypes = [config.type, ...getActionTypeBases(definition, actionTypes[config.kind]).map((t) => t.name)]
@@ -355,7 +427,7 @@ export const actionFromConfig = profileAsync(async function actionFromConfig({
   } else {
     return config satisfies never
   }
-})
+}
 
 export function actionNameConflictError(configA: ActionConfig, configB: ActionConfig, rootPath: string) {
   return new ConfigurationError({
@@ -498,6 +570,12 @@ function getActionSchema(kind: ActionKind) {
   }
 }
 
+interface PreprocessActionResult {
+  config: ActionConfig
+  supportedModes: ActionModes
+  templateContext: ActionConfigContext
+}
+
 export const preprocessActionConfig = profileAsync(async function preprocessActionConfig({
   garden,
   config,
@@ -510,7 +588,7 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
   router: ActionRouter
   mode: ActionMode
   log: Log
-}) {
+}): Promise<PreprocessActionResult> {
   const description = describeActionConfig(config)
   const templateName = config.internal.templateName
 
