@@ -436,6 +436,54 @@ describe("getManifests", () => {
       expect(manifests[0].spec.replicas).to.eql(3)
       expect(manifests[1].data.hello).to.eql("patched-world")
     })
+    it("should store patched version in metadata ConfigMap", async () => {
+      const action = cloneDeep(graph.getDeploy("deploy-action"))
+      action["_config"]["spec"]["patchResources"] = [
+        {
+          name: "busybox-deployment",
+          kind: "Deployment",
+          patch: {
+            metadata: {
+              namespace: "patched-namespace-deployment",
+            },
+          },
+        },
+        {
+          name: "test-configmap",
+          kind: "ConfigMap",
+          patch: {
+            metadata: {
+              namespace: "patched-namespace-configmap",
+            },
+          },
+        },
+      ]
+      const resolvedAction = await garden.resolveAction<KubernetesDeployAction>({
+        action,
+        log: garden.log,
+        graph,
+      })
+
+      const manifests = await getManifests({ ctx, api, action: resolvedAction, log: garden.log, defaultNamespace })
+
+      const metadataConfigMap = manifests.filter((m) => m.metadata.name === "garden-meta-deploy-deploy-action")
+      expect(JSON.parse(metadataConfigMap[0].data.manifestMetadata)).to.eql({
+        "Deployment/busybox-deployment": {
+          apiVersion: "apps/v1",
+          key: "Deployment/busybox-deployment",
+          kind: "Deployment",
+          name: "busybox-deployment",
+          namespace: "patched-namespace-deployment", // <--- The patched namespace should be used here
+        },
+        "ConfigMap/test-configmap": {
+          apiVersion: "v1",
+          key: "ConfigMap/test-configmap",
+          kind: "ConfigMap",
+          name: "test-configmap",
+          namespace: "patched-namespace-configmap", // <--- The patched namespace should be used here
+        },
+      })
+    })
     it("should apply patches to file and inline manifests", async () => {
       const action = cloneDeep(graph.getDeploy("deploy-action"))
       action["_config"]["spec"]["manifests"] = [

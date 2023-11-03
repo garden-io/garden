@@ -150,19 +150,7 @@ export async function getManifests({
   }
 
   const declaredManifests = await readManifests(ctx, action, log)
-
-  if (action.kind === "Deploy") {
-    // Add metadata ConfigMap to aid quick status check
-    const metadataManifest = getMetadataManifest(action, defaultNamespace, declaredManifests)
-    const declaredMetadataManifest: DeclaredManifest = {
-      declaration: { type: "inline", index: declaredManifests.length },
-      manifest: metadataManifest,
-    }
-    declaredManifests.push(declaredMetadataManifest)
-  }
-
   const patchedManifests = await Promise.all(declaredManifests.map(patchManifest))
-
   const unmatchedPatches = (actionSpec.patchResources || []).filter((p) => {
     const manifest = declaredManifests.find((m) => m.manifest.kind === p.kind && m.manifest.metadata.name === p.name)
     if (manifest) {
@@ -175,6 +163,16 @@ export async function getManifests({
     log.warn(
       `A patch is defined for a Kubernetes ${p.kind} with name ${p.name} but no Kubernetes resource with a corresponding kind and name found.`
     )
+  }
+
+  if (action.kind === "Deploy") {
+    // Add metadata ConfigMap to aid quick status check
+    const metadataManifest = getMetadataManifest(action, defaultNamespace, patchedManifests)
+    const declaredMetadataManifest: DeclaredManifest = {
+      declaration: { type: "inline", index: patchedManifests.length },
+      manifest: metadataManifest,
+    }
+    patchedManifests.push(declaredMetadataManifest)
   }
 
   const postProcessedManifests = await Promise.all(patchedManifests.map(postProcessManifest))

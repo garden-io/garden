@@ -19,8 +19,9 @@ workflows:
             .circleci/.* run-test-dockerhub true
           # By default circleci runs on all branches, but not on all tags.
           # This filter adds all tags to trigger the workflows defined in continue-config.yml
-          # The branches don't need to be added, because they are already included by default.
+          # Adding the branch filter is necessary to first filter for tags.
           filters:
             tags:
-              only:
-                - /.*
+              only: /.*/
+            branches:
+              only: /.*/

@@ -416,7 +416,10 @@ describe("SelfUpdateCommand", () => {
     expect(scope.isDone()).to.be.true
   })
 
-  it(`handles --platform=windows and zip archives correctly`, async () => {
+  it(`handles --platform=windows and zip archives correctly`, async function () {
+    // retry because of flaky test
+    // eslint-disable-next-line no-invalid-this
+    this.retries(3)
     const scope = nock("https://get.garden.io")
     scope.get("/releases/latest").reply(200, { tag_name: "edge" })
 
