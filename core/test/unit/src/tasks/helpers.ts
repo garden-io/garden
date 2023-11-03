@@ -36,8 +36,8 @@ describe("TaskHelpers", () => {
           },
         ],
         env: {
-          foo: 'bar'
-        }
+          foo: "bar",
+        },
       },
     }
     it("returns an empty array when ignoreVars is empty", () => {

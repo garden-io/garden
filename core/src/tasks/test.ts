@@ -83,10 +83,8 @@ export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
       const cloudApi = this.garden.cloudApi
 
       // only check cloud when force is not set.
-      if (
-        !this.force
-      ) {
-        let reqParams: CheckCacheRequestParams = {
+      if (!this.force) {
+        const reqParams: CheckCacheRequestParams = {
           projectId: this.garden.projectId,
           actionKind: this.action.kind,
           actionName: this.action.name,

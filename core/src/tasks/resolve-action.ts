@@ -231,7 +231,7 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
     // once action is resolved, find paths of keys to ignore for action version calculation
     const ignoreValues = resolvedAction.getConfig().cache?.noCache?.variables ?? []
     const ignoreKeys = computeKeyPathsToIgnoreFromConfig(resolvedAction.getConfig(), ignoreValues)
-    resolvedAction.ignoredKeysForVersion.push(...ignoreKeys.map(k => k.key))
+    resolvedAction.ignoredKeysForVersion.push(...ignoreKeys.map((k) => k.key))
 
     // TODO: avoid this private assignment
     resolvedAction["_staticOutputs"] = staticOutputs

@@ -7,7 +7,7 @@
  */
 
 import { memoize } from "lodash"
-import { createSchema, joi } from "../config/common"
+import { joi } from "../config/common"
 import {
   BaseRuntimeActionConfig,
   baseRuntimeActionConfigSchema,

@@ -6,12 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import {
-  forOwn,
-  includes,
-  isArray, isPlainObject,
-  isString, mapKeys, mapValues, omit, pickBy, some
-} from "lodash"
+import { forOwn, includes, isArray, isPlainObject, isString, mapKeys, mapValues, omit, pickBy, some } from "lodash"
 import { ActionConfig } from "../actions/types"
 import type { GraphResults } from "../graph/results"
 import type { DeployStatus } from "../plugin/handlers/Deploy/get-status"
@@ -64,7 +59,10 @@ export function computeKeyPathsToIgnoreFromConfig(
     if (isPlainObject(obj) || isArray(obj)) {
       forOwn(obj, (value: string, key: string | number) => {
         const currentKeyPath = keyPath.concat(key)
-        if ((isString(value) || includes(ignoreVars, value)) && some(ignoreVars, (item: string) => value.includes(item))) {
+        if (
+          (isString(value) || includes(ignoreVars, value)) &&
+          some(ignoreVars, (item: string) => value.includes(item))
+        ) {
           result.push({ key: currentKeyPath.join("."), matchedValue: value })
         } else {
           searchObject(value, currentKeyPath)

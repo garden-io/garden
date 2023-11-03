@@ -1,4 +1,10 @@
-// test action version changes
+/*
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
 
 import { expect } from "chai"
 import { cloneDeep } from "lodash"
@@ -46,29 +52,25 @@ describe("noCache", () => {
   it("should find keys to ignore for action version calculation from action config", async () => {
     const unresolvedAction1 = graph1.getDeploy("test-deploy-container")
     const unresolvedAction2 = graph1.getDeploy("test-deploy-container-with-merge")
-    const resolvedAction1 = await garden1.resolveAction<KubernetesDeployAction>(
-      {
-        action: unresolvedAction1,
-        log: garden1.log,
-        graph: graph1,
-      }
-    )
-    const resolvedAction2 = await garden1.resolveAction<KubernetesDeployAction>(
-      {
-        action: unresolvedAction2,
-        log: garden1.log,
-        graph: graph1,
-      }
-    )
+    const resolvedAction1 = await garden1.resolveAction<KubernetesDeployAction>({
+      action: unresolvedAction1,
+      log: garden1.log,
+      graph: graph1,
+    })
+    const resolvedAction2 = await garden1.resolveAction<KubernetesDeployAction>({
+      action: unresolvedAction2,
+      log: garden1.log,
+      graph: graph1,
+    })
     expect(resolvedAction1.ignoredKeysForVersion).to.have.members([
       "cache.noCache.variables.0",
-      "spec.ingresses.0.hostname"
+      "spec.ingresses.0.hostname",
     ])
     expect(resolvedAction2.ignoredKeysForVersion).to.have.members([
       "cache.noCache.variables.0",
       "cache.noCache.variables.1",
       "spec.ingresses.0.hostname",
-      "spec.env.EXTERNAL_API_URL"
+      "spec.env.EXTERNAL_API_URL",
     ])
   })
 
@@ -77,21 +79,17 @@ describe("noCache", () => {
       const unresolvedAction1 = cloneDeep(graph1.getDeploy("test-deploy-container"))
       const unresolvedAction2 = cloneDeep(graph2.getDeploy("test-deploy-container"))
 
-      const resolvedAction1 = await garden1.resolveAction<KubernetesDeployAction>(
-        {
-          action: unresolvedAction1,
-          log: garden1.log,
-          graph: graph1,
-        }
-      )
+      const resolvedAction1 = await garden1.resolveAction<KubernetesDeployAction>({
+        action: unresolvedAction1,
+        log: garden1.log,
+        graph: graph1,
+      })
 
-      const resolvedAction2 = await garden2.resolveAction<KubernetesDeployAction>(
-        {
-          action: unresolvedAction2,
-          log: garden2.log,
-          graph: graph2,
-        }
-      )
+      const resolvedAction2 = await garden2.resolveAction<KubernetesDeployAction>({
+        action: unresolvedAction2,
+        log: garden2.log,
+        graph: graph2,
+      })
 
       expect(resolvedAction1.versionString()).to.eql(resolvedAction2.versionString())
     })
@@ -100,24 +98,19 @@ describe("noCache", () => {
       const unresolvedAction1 = cloneDeep(graph1.getDeploy("test-deploy-container-with-merge"))
       const unresolvedAction2 = cloneDeep(graph2.getDeploy("test-deploy-container-with-merge"))
 
-      const resolvedAction1 = await garden1.resolveAction<KubernetesDeployAction>(
-        {
-          action: unresolvedAction1,
-          log: garden1.log,
-          graph: graph1,
-        }
-      )
+      const resolvedAction1 = await garden1.resolveAction<KubernetesDeployAction>({
+        action: unresolvedAction1,
+        log: garden1.log,
+        graph: graph1,
+      })
 
-      const resolvedAction2 = await garden2.resolveAction<KubernetesDeployAction>(
-        {
-          action: unresolvedAction2,
-          log: garden2.log,
-          graph: graph2,
-        }
-      )
+      const resolvedAction2 = await garden2.resolveAction<KubernetesDeployAction>({
+        action: unresolvedAction2,
+        log: garden2.log,
+        graph: graph2,
+      })
 
       expect(resolvedAction1.versionString()).to.eql(resolvedAction2.versionString())
-
     })
   })
 })
