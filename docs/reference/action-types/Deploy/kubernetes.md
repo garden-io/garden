@@ -213,6 +213,36 @@ varfiles:
   "my-action.env"
 ```
 
+### `cache`
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+### `cache.noCache`
+
+[cache](#cache) > noCache
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+### `cache.noCache.variables[]`
+
+[cache](#cache) > [noCache](#cachenocache) > variables
+
+Specify the list of variables to ignore when caching this action. This is particularly useful for the
+distributed caching where a certain variable might change across environments, but the action should
+still be cached.
+
+For instance, if you have an 'deploy' action that relies on a variable to determine the ingress hostname,
+you may wish to designate the `${var.ingress-hostname}` variable as one to be ignored. This ensures
+that the action's version remains consistent, even as the hostname varies across different environments.
+
+| Type            | Default | Required |
+| --------------- | ------- | -------- |
+| `array[string]` | `[]`    | No       |
+
 ### `build`
 
 Specify a _Build_ action, and resolve this action from the context of that Build.
