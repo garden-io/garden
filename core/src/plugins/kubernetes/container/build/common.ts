@@ -279,12 +279,7 @@ export async function ensureServiceAccount({
   annotations?: StringMap
 }): Promise<boolean> {
   return deployLock.acquire(namespace, async () => {
-    const serviceAccount = getBuilderServiceAccountSpec(annotations)
-
-    // the manifest does not contain the namespace, so we need to set it here
-    // otherwise the comparison with deployed resources returns success if the
-    // serviceAccount exists in any namespace
-    serviceAccount.metadata.namespace = namespace
+    const serviceAccount = getBuilderServiceAccountSpec(namespace, annotations)
 
     const status = await compareDeployedResources({
       ctx: ctx as KubernetesPluginContext,
@@ -314,7 +309,7 @@ export async function ensureServiceAccount({
   })
 }
 
-function isEqualAnnotations(r1: KubernetesResource, r2: KubernetesResource): boolean {
+export function isEqualAnnotations(r1: KubernetesResource, r2: KubernetesResource): boolean {
   // normalize annotations before comparison
   const a1 = r1.metadata.annotations !== undefined ? r1.metadata.annotations : {}
   const a2 = r2.metadata.annotations !== undefined ? r2.metadata.annotations : {}
@@ -359,7 +354,7 @@ export async function ensureUtilDeployment({
     const imagePullSecrets = await prepareSecrets({ api, namespace, secrets: provider.config.imagePullSecrets, log })
 
     // Check status of the util deployment
-    const { deployment, service } = getUtilManifests(provider, authSecret.metadata.name, imagePullSecrets)
+    const { deployment, service } = getUtilManifests(provider, authSecret.metadata.name, imagePullSecrets, namespace)
     const status = await compareDeployedResources({
       ctx: ctx as KubernetesPluginContext,
       api,
@@ -499,7 +494,7 @@ export async function ensureBuilderSecret({
   return { authSecret, updated }
 }
 
-export function getBuilderServiceAccountSpec(annotations?: StringMap) {
+export function getBuilderServiceAccountSpec(namespace: string, annotations?: StringMap) {
   const serviceAccount: KubernetesServiceAccount = {
     apiVersion: "v1",
     kind: "ServiceAccount",
@@ -507,6 +502,7 @@ export function getBuilderServiceAccountSpec(annotations?: StringMap) {
       name: inClusterBuilderServiceAccount,
       // ensure we clear old annotations if config flags are removed
       annotations: annotations || {},
+      namespace,
     },
   }
 
@@ -580,7 +576,8 @@ export function getUtilContainer(authSecretName: string, provider: KubernetesPro
 export function getUtilManifests(
   provider: KubernetesProvider,
   authSecretName: string,
-  imagePullSecrets: { name: string }[]
+  imagePullSecrets: { name: string }[],
+  namespace?: string
 ) {
   const kanikoTolerations = [
     ...(provider.config.kaniko?.util?.tolerations || provider.config.kaniko?.tolerations || []),
@@ -597,6 +594,7 @@ export function getUtilManifests(
       },
       name: utilDeploymentName,
       annotations: kanikoAnnotations,
+      namespace,
     },
     spec: {
       replicas: 1,
@@ -646,6 +644,7 @@ export function getUtilManifests(
   }
 
   const service = cloneDeep(baseUtilService)
+  service.metadata.namespace = namespace
 
   // Set the configured nodeSelector, if any
   const nodeSelector = provider.config.kaniko?.util?.nodeSelector || provider.config.kaniko?.nodeSelector
