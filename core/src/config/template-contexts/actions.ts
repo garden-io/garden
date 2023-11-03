@@ -219,7 +219,7 @@ class ActionReferencesContext extends ConfigContext {
           version: action.versionString(),
           disabled: action.isDisabled(),
           buildPath: action.getBuildPath(),
-          sourcePath: action.basePath(),
+          sourcePath: action.sourcePath(),
           mode: action.mode(),
           variables: action.getVariables(),
         })
@@ -297,7 +297,7 @@ export class ActionSpecContext extends OutputConfigContext {
 
     const name = action.name
     const buildPath = action.getBuildPath()
-    const sourcePath = action.basePath()
+    const sourcePath = action.sourcePath()
     const parentName = internal?.parentName
     const templateName = internal?.templateName
 

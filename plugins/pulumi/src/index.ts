@@ -23,7 +23,7 @@ import { configurePulumiModule, PulumiModule, pulumiModuleSchema } from "./modul
 
 // Need to make these variables to avoid escaping issues
 const moduleOutputsTemplateString = "${runtime.services.<module-name>.outputs.<key>}"
-const actionOutputsTemplateString = "${actions.<name>.outputs.<key>}"
+const actionOutputsTemplateString = "${actions.<action-kind>.<action-name>.outputs.<key>}"
 
 const defaultPulumiTimeoutSec = 600
 
@@ -56,7 +56,7 @@ export const gardenPlugin = () =>
             validate: async ({ action }) => {
               const root = action.getSpec("root")
               if (root) {
-                const absRoot = join(action.basePath(), root)
+                const absRoot = join(action.sourcePath(), root)
                 const exists = await pathExists(absRoot)
 
                 if (!exists) {

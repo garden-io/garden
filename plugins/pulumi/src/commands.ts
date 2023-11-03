@@ -40,7 +40,8 @@ import { TemplatableConfigContext } from "@garden-io/core/build/src/config/templ
 import { ActionTaskProcessParams, ValidResultType } from "@garden-io/core/build/src/tasks/base"
 import { deletePulumiDeploy } from "./handlers"
 import { ActionLog, createActionLog, Log } from "@garden-io/core/build/src/logger/log-entry"
-import { ActionConfigContext } from "@garden-io/core/build/src/config/template-contexts/actions"
+import { ActionSpecContext } from "@garden-io/core/build/src/config/template-contexts/actions"
+import { ProviderMap } from "@garden-io/core/build/src/config/provider"
 
 type PulumiBaseParams = Omit<PulumiParams, "action">
 
@@ -181,15 +182,23 @@ const pulumiCommandSpecs: PulumiCommandSpec[] = [
   },
 ]
 
-const makePluginContextForDeploy = async (params: PulumiParams & { garden: Garden; graph: ConfigGraph }) => {
-  const { garden, provider, ctx, action } = params
-  const templateContext = new ActionConfigContext({
+const makePluginContextForDeploy = async (
+  params: PulumiParams & {
+    garden: Garden
+    graph: ConfigGraph
+    resolvedProviders: ProviderMap
+  }
+) => {
+  const { garden, graph, provider, resolvedProviders, ctx, action } = params
+  const templateContext = new ActionSpecContext({
     garden,
-    config: action.getConfig(),
-    thisContextParams: {
-      name: action.name,
-      mode: action.mode(),
-    },
+    resolvedProviders,
+    action,
+    partialRuntimeResolution: false,
+    modules: graph.getModules(),
+    resolvedDependencies: action.getResolvedDependencies(),
+    executedDependencies: action.getExecutedDependencies(),
+    inputs: action.getInternal().inputs || {},
     variables: action.getVariables(),
   })
   const ctxForDeploy = await garden.getPluginContext({ provider, templateContext, events: ctx.events })
@@ -206,6 +215,7 @@ interface PulumiPluginCommandTaskParams {
   skipRuntimeDependencies: boolean
   runFn: PulumiRunFn
   pulumiParams: PulumiBaseParams
+  resolvedProviders: ProviderMap
 }
 
 export type PulumiCommandResult = ValidResultType
@@ -217,6 +227,7 @@ class PulumiPluginCommandTask extends PluginActionTask<PulumiDeploy, PulumiComma
   commandDescription: string
   override skipRuntimeDependencies: boolean
   runFn: PulumiRunFn
+  resolvedProviders: ProviderMap
 
   constructor({
     garden,
@@ -228,6 +239,7 @@ class PulumiPluginCommandTask extends PluginActionTask<PulumiDeploy, PulumiComma
     skipRuntimeDependencies = false,
     runFn,
     pulumiParams,
+    resolvedProviders,
   }: PulumiPluginCommandTaskParams) {
     super({
       garden,
@@ -243,13 +255,17 @@ class PulumiPluginCommandTask extends PluginActionTask<PulumiDeploy, PulumiComma
     this.pulumiParams = pulumiParams
     const provider = <PulumiProvider>pulumiParams.ctx.provider
     this.concurrencyLimit = provider.config.pluginTaskConcurrencyLimit
+    this.resolvedProviders = resolvedProviders
   }
 
   getDescription() {
     return this.action.longDescription()
   }
 
-  resolveDependencies() {
+  /**
+   * Override the base method to be sure that `garden plugins pulumi preview` happens in dependency order.
+   */
+  override resolveProcessDependencies() {
     const pulumiDeployNames = this.graph
       .getDeploys()
       .filter((d) => d.type === "pulumi")
@@ -275,6 +291,7 @@ class PulumiPluginCommandTask extends PluginActionTask<PulumiDeploy, PulumiComma
         skipRuntimeDependencies: this.skipRuntimeDependencies,
         runFn: this.runFn,
         pulumiParams: this.pulumiParams,
+        resolvedProviders: this.resolvedProviders,
       })
     })
 
@@ -288,7 +305,11 @@ class PulumiPluginCommandTask extends PluginActionTask<PulumiDeploy, PulumiComma
   async process({ dependencyResults }: ActionTaskProcessParams<PulumiDeploy, PulumiCommandResult>) {
     this.log.info(chalk.gray(`Running ${chalk.white(this.commandDescription)}`))
 
-    const params = { ...this.pulumiParams, action: this.getResolvedAction(this.action, dependencyResults) }
+    const params = {
+      ...this.pulumiParams,
+      action: this.getResolvedAction(this.action, dependencyResults),
+      resolvedProviders: this.resolvedProviders,
+    }
 
     try {
       await selectStack(params)
@@ -349,9 +370,9 @@ function makePulumiCommand({ name, commandDescription, beforeFn, runFn, afterFn 
 
       beforeFn && (await beforeFn({ ctx, log }))
 
-      const provider = ctx.provider as PulumiProvider
-
+      const pulumiProvider = ctx.provider as PulumiProvider
       const actions = graph.getDeploys({ names }).filter((a) => a.type === "pulumi")
+      const resolvedProviders = await garden.resolveProviders(log)
 
       const tasks = await Promise.all(
         actions.map(async (action) => {
@@ -359,14 +380,15 @@ function makePulumiCommand({ name, commandDescription, beforeFn, runFn, afterFn 
           const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
 
           const pulumiParams: PulumiBaseParams = {
-            ctx: await garden.getPluginContext({ provider, templateContext, events: ctx.events }),
-            provider,
+            ctx: await garden.getPluginContext({ provider: pulumiProvider, templateContext, events: ctx.events }),
+            provider: pulumiProvider,
             log: actionLog,
           }
 
           return new PulumiPluginCommandTask({
             garden,
             graph,
+            resolvedProviders,
             log: actionLog,
             action,
             commandName: name,

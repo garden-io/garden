@@ -6,26 +6,23 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import chalk from "chalk"
 import cloneDeep from "fast-copy"
+import { isEqual, mapValues, memoize, omit, pick, uniq } from "lodash"
 import {
-  forOwn,
-  includes,
-  isArray,
-  isEqual,
-  isPlainObject,
-  isString,
-  mapValues,
-  memoize,
-  omit,
-  pick,
-  some,
-  uniq,
-} from "lodash"
-import minimatch from "minimatch"
-import { relative } from "path"
+  Action,
+  ActionConfig,
+  ActionConfigsByKey,
+  ActionDependency,
+  ActionDependencyAttributes,
+  ActionKind,
+  actionKinds,
+  ActionMode,
+  ActionModeMap,
+  ActionWrapperParams,
+  Executed,
+  Resolved,
+} from "../actions/types"
 import {
-  actionIsDisabled,
   actionReferenceToString,
   addActionDependency,
   baseRuntimeActionConfigSchema,
@@ -34,30 +31,14 @@ import {
 } from "../actions/base"
 import { BuildAction, buildActionConfigSchema, isBuildActionConfig } from "../actions/build"
 import { DeployAction, deployActionConfigSchema, isDeployActionConfig } from "../actions/deploy"
-import { RunAction, isRunActionConfig, runActionConfigSchema } from "../actions/run"
-import { TestAction, isTestActionConfig, testActionConfigSchema } from "../actions/test"
-import {
-  Action,
-  ActionConfig,
-  ActionConfigsByKey,
-  ActionDependency,
-  ActionDependencyAttributes,
-  ActionKind,
-  ActionMode,
-  ActionModeMap,
-  ActionWrapperParams,
-  Executed,
-  Resolved,
-  actionKinds,
-} from "../actions/types"
-import { LinkedSource, LinkedSourceMap } from "../config-store/local"
+import { RunAction, runActionConfigSchema, isRunActionConfig } from "../actions/run"
+import { TestAction, testActionConfigSchema, isTestActionConfig } from "../actions/test"
 import { noTemplateFields } from "../config/base"
-import { ActionReference, JoiDescription, describeSchema, parseActionReference } from "../config/common"
+import { ActionReference, describeSchema, JoiDescription, parseActionReference } from "../config/common"
 import type { GroupConfig } from "../config/group"
 import { ActionConfigContext } from "../config/template-contexts/actions"
-import { ConfigContext } from "../config/template-contexts/base"
 import { validateWithPath } from "../config/validation"
-import { ConfigurationError, GardenError, InternalError, PluginError, ValidationError } from "../exceptions"
+import { ConfigurationError, PluginError, InternalError, ValidationError, GardenError } from "../exceptions"
 import { overrideVariables, type Garden } from "../garden"
 import type { Log } from "../logger/log-entry"
 import type { ActionTypeDefinition } from "../plugin/action-types"
@@ -70,14 +51,20 @@ import {
   resolveTemplateString,
   resolveTemplateStrings,
 } from "../template-string/template-string"
-import { profileAsync } from "../util/profiling"
-import { uuidv4 } from "../util/random"
 import { dedent, deline, naturalList } from "../util/string"
-import type { MaybeUndefined } from "../util/util"
-import { getConfigBasePath } from "../vcs/vcs"
 import { mergeVariables } from "./common"
 import { ConfigGraph, MutableConfigGraph } from "./config-graph"
 import type { ModuleGraph } from "./modules"
+import chalk from "chalk"
+import type { MaybeUndefined } from "../util/util"
+import minimatch from "minimatch"
+import { ConfigContext } from "../config/template-contexts/base"
+import { LinkedSource, LinkedSourceMap } from "../config-store/local"
+import { relative } from "path"
+import { profileAsync } from "../util/profiling"
+import { uuidv4 } from "../util/random"
+import { getSourcePath } from "../vcs/vcs"
+import { actionIsDisabled } from "../actions/base"
 
 export const actionConfigsToGraph = profileAsync(async function actionConfigsToGraph({
   garden,
@@ -138,7 +125,7 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
   }
 
   // Optimize file scanning by avoiding unnecessarily broad scans when project is not in repo root.
-  const allPaths = Object.values(configsByKey).map((c) => getConfigBasePath(c))
+  const allPaths = Object.values(configsByKey).map((c) => getSourcePath(c))
   const minimalRoots = await garden.vcs.getMinimalRoots(log, allPaths)
 
   const router = await garden.getActionRouter()
@@ -190,7 +177,7 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
           configsByKey,
           mode,
           linkedSources,
-          scanRoot: minimalRoots[getConfigBasePath(config)],
+          scanRoot: minimalRoots[getSourcePath(config)],
         })
 
         if (!action.supportsMode(mode)) {

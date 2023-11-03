@@ -11,6 +11,8 @@ import { getRootLogger, Logger, LogLevel, RootLogger } from "../../../../src/log
 import { LogEntryEventPayload } from "../../../../src/cloud/buffered-event-stream"
 import { freezeTime } from "../../../helpers"
 import { QuietWriter } from "../../../../src/logger/writers/quiet-writer"
+import { ConfigurationError } from "../../../../src/exceptions"
+import chalk from "chalk"
 
 const logger: Logger = getRootLogger()
 
@@ -37,6 +39,7 @@ describe("Logger", () => {
         log.info({
           msg: "hello",
           rawMsg: "hello-browser",
+          error: new ConfigurationError({ message: "hello-error" }),
           symbol: "success",
           data: { foo: "bar" },
           dataFormat: "json",
@@ -56,6 +59,7 @@ describe("Logger", () => {
           message: {
             msg: "hello",
             rawMsg: "hello-browser",
+            error: chalk.red("hello-error"),
             section: "log-context-name",
             symbol: "success",
             dataFormat: "json",

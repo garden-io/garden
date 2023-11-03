@@ -81,6 +81,8 @@ kind: Test
 name: e2e-runner
 type: container
 build: web
-dependencies: [deploy.api]
+dependencies:
+  - deploy.api
+  - deploy.web
 spec:
   args: [npm, run, test:integ]

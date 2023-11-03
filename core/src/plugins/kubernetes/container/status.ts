@@ -47,12 +47,13 @@ export const k8sGetContainerDeployStatus: DeployActionHandler<"getStatus", Conta
     action,
     imageId,
   })
-  const {
-    state,
-    remoteResources,
-    mode: deployedMode,
-    selectorChangedResourceKeys,
-  } = await compareDeployedResources({ ctx: k8sCtx, api, namespace, manifests, log })
+  const { state, remoteResources, deployedMode, selectorChangedResourceKeys } = await compareDeployedResources({
+    ctx: k8sCtx,
+    api,
+    namespace,
+    manifests,
+    log,
+  })
   const ingresses = await getIngresses(action, api, provider)
 
   return prepareContainerDeployStatus({

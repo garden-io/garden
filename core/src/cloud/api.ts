@@ -584,7 +584,7 @@ export class CloudApi {
 
   async get<T>(path: string, opts: ApiFetchOptions = {}) {
     const { headers, retry, retryDescription, maxRetries } = opts
-    return await this.apiFetch<T>(path, {
+    return this.apiFetch<T>(path, {
       method: "GET",
       headers: headers || {},
       retry: retry === false ? false : true, // defaults to true unless false is explicitly passed
@@ -694,7 +694,7 @@ export class CloudApi {
     }
   }
 
-  async getProjectById(projectId: string): Promise<CloudProject | undefined> {
+  async getProjectById(projectId: string) {
     const existing = this.projects.get(projectId)
 
     if (existing) {

@@ -205,22 +205,28 @@ export async function getReleaseStatus({
 
     if (state === "ready") {
       // Make sure the right version is deployed
-      values = JSON.parse(
-        await helm({
-          ctx,
-          log,
-          namespace,
-          args: ["get", "values", releaseName, "--output", "json"],
-          // do not send JSON output to Garden Cloud or CLI verbose log
-          emitLogEvents: false,
-        })
-      )
+      const helmResponse = await helm({
+        ctx,
+        log,
+        namespace,
+        args: ["get", "values", releaseName, "--output", "json"],
+        // do not send JSON output to Garden Cloud or CLI verbose log
+        emitLogEvents: false,
+      })
+      values = JSON.parse(helmResponse)
 
-      const deployedVersion = values[".garden"]?.version
-      deployedMode = values[".garden"]?.mode
-
-      if (action.mode() !== deployedMode || !deployedVersion || deployedVersion !== action.versionString()) {
+      let deployedVersion: string | undefined = undefined
+      // JSON.parse can return null
+      if (values === null) {
+        log.verbose(`No helm values returned for release ${releaseName}. Is this release managed outside of garden?`)
         state = "outdated"
+      } else {
+        deployedVersion = values[".garden"]?.version
+        deployedMode = values[".garden"]?.mode
+
+        if (action.mode() !== deployedMode || !deployedVersion || deployedVersion !== action.versionString()) {
+          state = "outdated"
+        }
       }
 
       // If ctx.cloudApi is defined, the user is logged in and they might be trying to deploy to an environment

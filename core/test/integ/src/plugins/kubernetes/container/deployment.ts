@@ -53,6 +53,7 @@ import { ActionRouter } from "../../../../../../src/router/router"
 import { ActionMode } from "../../../../../../src/actions/types"
 import { createActionLog } from "../../../../../../src/logger/log-entry"
 import { K8_POD_DEFAULT_CONTAINER_ANNOTATION_KEY } from "../../../../../../src/plugins/kubernetes/run"
+import { k8sGetContainerDeployStatus } from "../../../../../../src/plugins/kubernetes/container/status"
 
 describe("kubernetes container deployment handlers", () => {
   let garden: TestGarden
@@ -886,6 +887,65 @@ describe("kubernetes container deployment handlers", () => {
         expect(resources.Deployment.spec.template.spec.containers[0].image).to.equal(
           `europe-west3-docker.pkg.dev/garden-ci/garden-integ-tests/${action.name}:${buildVersionString}`
         )
+      })
+    })
+  })
+
+  describe("k8sGetContainerDeployStatus", () => {
+    before(async () => {
+      await init("local")
+    })
+
+    after(async () => {
+      if (cleanup) {
+        cleanup()
+      }
+    })
+    context("sync mode", () => {
+      it("should return the action mode registered on the remote resource, if any", async () => {
+        const deployName = "sync-mode"
+        const log = garden.log
+        const deployGraph = await garden.getConfigGraph({
+          log,
+          emit: false,
+          actionModes: { sync: [`deploy.${deployName}`] }, // <----
+        })
+        const deployAction = await garden.resolveAction<ContainerDeployAction>({
+          action: deployGraph.getDeploy(deployName),
+          log,
+          graph: deployGraph,
+        })
+        const deployTask = new DeployTask({
+          garden,
+          graph: deployGraph,
+          log,
+          action: deployAction,
+          force: true,
+          forceBuild: false,
+        })
+
+        await garden.processTasks({ tasks: [deployTask], log: garden.log, throwOnError: true })
+
+        // Important: This is a fresh config graoh with no action modes set, as would be the case e.g. when
+        // calling the `get status` command. This is to test that we're indeed using the action mode written in the
+        // deployed resources.
+        const statusGraph = await garden.getConfigGraph({
+          log,
+          emit: false,
+        })
+
+        const statusAction = await garden.resolveAction<ContainerDeployAction>({
+          action: statusGraph.getDeploy(deployName),
+          log,
+          graph: statusGraph,
+        })
+        const actionLog = createActionLog({ log, actionName: deployName, actionKind: "deploy" })
+        const status = await k8sGetContainerDeployStatus({
+          ctx,
+          log: actionLog,
+          action: statusAction,
+        })
+        expect(status.detail?.mode).to.eql("sync")
       })
     })
   })

@@ -20,7 +20,7 @@ import {
   NamedModuleVersion,
   NamedTreeVersion,
   describeConfig,
-  getConfigBasePath,
+  getSourcePath,
   getConfigFilePath,
   GetTreeVersionParams,
 } from "../../../../src/vcs/vcs"
@@ -61,7 +61,7 @@ export class TestVcsHandler extends VcsHandler {
   }
 
   override async getTreeVersion(params: GetTreeVersionParams) {
-    return this.testTreeVersions[getConfigBasePath(params.config)] || super.getTreeVersion(params)
+    return this.testTreeVersions[getSourcePath(params.config)] || super.getTreeVersion(params)
   }
 
   setTestTreeVersion(path: string, version: TreeVersion) {
@@ -192,6 +192,21 @@ describe("VcsHandler", () => {
       })
 
       expect(version.files).to.eql([resolve(moduleConfig.path, "yes.txt")])
+    })
+
+    it("should join the config's base path with source.path (if provided) when calling getFiles", async () => {
+      const projectRoot = getDataDir("test-projects", "action-source-path")
+      const garden = await makeTestGarden(projectRoot)
+      const log = garden.log
+      const graph = await garden.getConfigGraph({ emit: false, log })
+      const action = graph.getActionByRef("build.with-source")
+      const config = action.getConfig()
+      const treeVersion = await garden.vcs.getTreeVersion({
+        log,
+        projectName: garden.projectName,
+        config,
+      })
+      expect(treeVersion.files).to.eql([join(config.internal.basePath, "../", "/some-dir/some-other-file.txt")])
     })
 
     it("should not be affected by changes to the module's garden.yml that don't affect the module config", async () => {
@@ -649,7 +664,7 @@ describe("helpers", () => {
     })
 
     it("getConfigBasePath", () => {
-      const configBasePath = getConfigBasePath(baseActionConfig)
+      const configBasePath = getSourcePath(baseActionConfig)
       expect(configBasePath).to.equal(baseActionConfig.internal.basePath)
     })
 
@@ -681,7 +696,7 @@ describe("helpers", () => {
     })
 
     it("getConfigBasePath", () => {
-      const configBasePath = getConfigBasePath(moduleConfig)
+      const configBasePath = getSourcePath(moduleConfig)
       expect(configBasePath).to.equal(moduleConfig.path)
     })
 
