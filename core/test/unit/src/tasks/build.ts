@@ -77,7 +77,6 @@ describe("BuildTask", () => {
 
     graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     resolvedGraph = await garden.getResolvedConfigGraph({ log: garden.log, emit: false })
-
   })
 
   after(async () => {
