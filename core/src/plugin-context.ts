@@ -85,7 +85,9 @@ export const pluginContextSchema = createSchema({
       .example(true),
     projectName: projectNameSchema(),
     projectId: joi.string().optional().description("Project id"),
-    availableCloudFeatures: joi.array().items(joi.string()).description("List of available cloud features").optional(),
+    availableCloudFeatures: joi.object().keys({
+      distributedCache: joi.boolean().optional().description("Indicates if the distributed cache feature is enabled"),
+    }),
     projectRoot: joi.string().description("The absolute path of the project root."),
     projectSources: projectSourcesSchema(),
     provider: providerSchema().description("The provider being used for this context.").id("ctxProviderSchema"),
