@@ -182,7 +182,9 @@ describe("DeployTask", () => {
   describe("process", () => {
     it("should emit deployStatus events", async () => {
       garden.events.eventLog = []
+      const resolvedConfigGraph = await garden.getResolvedConfigGraph({ log: garden.log, emit: false })
       const action = graph.getDeploy("test-deploy")
+      const resolvedAction = resolvedConfigGraph.getDeploy("test-deploy")
 
       const deployTask = new DeployTask({
         garden,
@@ -201,6 +203,7 @@ describe("DeployTask", () => {
         // We ignore status events for dependencies since it works the same.
         .filter((e) => e.payload.actionName === "test-deploy")
       const actionVersion = deployStatusEvents[0].payload.actionVersion
+      const resolvedActionVersion = resolvedAction.versionString()
       const actionUid = deployStatusEvents[0].payload.actionUid
 
       expect(deployStatusEvents).to.eql([
@@ -209,6 +212,7 @@ describe("DeployTask", () => {
           payload: {
             actionName: "test-deploy",
             actionVersion,
+            resolvedActionVersion: undefined,
             actionType: "deploy",
             actionKind: "deploy",
             actionUid,
@@ -226,6 +230,7 @@ describe("DeployTask", () => {
           payload: {
             actionName: "test-deploy",
             actionVersion,
+            resolvedActionVersion,
             actionType: "deploy",
             actionKind: "deploy",
             actionUid,
@@ -249,6 +254,7 @@ describe("DeployTask", () => {
           payload: {
             actionName: "test-deploy",
             actionVersion,
+            resolvedActionVersion: undefined,
             actionType: "deploy",
             actionKind: "deploy",
             actionUid,
@@ -266,6 +272,7 @@ describe("DeployTask", () => {
           payload: {
             actionName: "test-deploy",
             actionVersion,
+            resolvedActionVersion,
             actionType: "deploy",
             actionKind: "deploy",
             actionUid,

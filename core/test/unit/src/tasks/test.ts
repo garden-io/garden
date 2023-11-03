@@ -42,6 +42,7 @@ describe("TestTask", () => {
 
       const testStatusEvents = garden.events.eventLog.filter((e) => e.name === "testStatus")
       const actionVersion = testStatusEvents[0].payload.actionVersion
+      const resolvedActionVersion = action.versionString()
       const actionUid = testStatusEvents[0].payload.actionUid
 
       expect(testStatusEvents).to.eql([
@@ -50,6 +51,7 @@ describe("TestTask", () => {
           payload: {
             actionName: "module-a-integ",
             actionVersion,
+            resolvedActionVersion: undefined,
             actionType: "test",
             actionKind: "test",
             actionUid,
@@ -67,6 +69,7 @@ describe("TestTask", () => {
           payload: {
             actionName: "module-a-integ",
             actionVersion,
+            resolvedActionVersion,
             actionType: "test",
             actionKind: "test",
             actionUid,
@@ -85,6 +88,7 @@ describe("TestTask", () => {
           payload: {
             actionName: "module-a-integ",
             actionVersion,
+            resolvedActionVersion: undefined,
             actionType: "test",
             actionKind: "test",
             actionUid,
@@ -102,6 +106,7 @@ describe("TestTask", () => {
           payload: {
             actionName: "module-a-integ",
             actionVersion,
+            resolvedActionVersion,
             actionType: "test",
             actionKind: "test",
             actionUid,

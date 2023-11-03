@@ -139,7 +139,9 @@ describe("RunTask", () => {
         },
       ])
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+      const resolvedConfigGraph = await garden.getResolvedConfigGraph({ log: garden.log, emit: false })
       const action = graph.getRun("test")
+      const resolvedAction = resolvedConfigGraph.getRun("test")
 
       const runTask = new RunTask({
         garden,
@@ -155,6 +157,7 @@ describe("RunTask", () => {
 
       const runStatusEvents = garden.events.eventLog.filter((e) => e.name === "runStatus")
       const actionVersion = runStatusEvents[0].payload.actionVersion
+      const resolvedActionVersion = resolvedAction.versionString()
       const actionUid = runStatusEvents[0].payload.actionUid
 
       expect(runStatusEvents).to.eql([
@@ -163,6 +166,7 @@ describe("RunTask", () => {
           payload: {
             actionName: "test",
             actionVersion,
+            resolvedActionVersion: undefined,
             actionType: "run",
             actionKind: "run",
             actionUid,
@@ -180,6 +184,7 @@ describe("RunTask", () => {
           payload: {
             actionName: "test",
             actionVersion,
+            resolvedActionVersion,
             actionType: "run",
             actionKind: "run",
             actionUid,
@@ -198,6 +203,7 @@ describe("RunTask", () => {
           payload: {
             actionName: "test",
             actionVersion,
+            resolvedActionVersion: undefined,
             actionType: "run",
             actionKind: "run",
             actionUid,
@@ -215,6 +221,7 @@ describe("RunTask", () => {
           payload: {
             actionName: "test",
             actionVersion,
+            resolvedActionVersion,
             actionType: "run",
             actionKind: "run",
             actionUid,

@@ -12,13 +12,14 @@ import type { ProjectConfig } from "../../../../src/config/project"
 import { freezeTime, createProjectConfig, makeTempDir, TestGarden } from "../../../helpers"
 import { GardenPluginSpec, createGardenPlugin } from "../../../../src/plugin/plugin"
 import { joi } from "../../../../src/config/common"
-import { ConfigGraph } from "../../../../src/graph/config-graph"
+import { ConfigGraph, ResolvedConfigGraph } from "../../../../src/graph/config-graph"
 import { BuildTask } from "../../../../src/tasks/build"
 
 describe("BuildTask", () => {
   let tmpDir: tmp.DirectoryResult
   let garden: TestGarden
   let graph: ConfigGraph
+  let resolvedGraph: ResolvedConfigGraph
   let config: ProjectConfig
   let testPlugin: GardenPluginSpec
 
@@ -75,6 +76,8 @@ describe("BuildTask", () => {
     ])
 
     graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+    resolvedGraph = await garden.getResolvedConfigGraph({ log: garden.log, emit: false })
+
   })
 
   after(async () => {
@@ -85,6 +88,7 @@ describe("BuildTask", () => {
     it("should emit buildStatus events", async () => {
       garden.events.eventLog = []
       const action = graph.getBuild("test-build")
+      const resolvedAction = resolvedGraph.getBuild("test-build")
 
       const buildTask = new BuildTask({
         garden,
@@ -100,6 +104,7 @@ describe("BuildTask", () => {
 
       const buildStatusEvents = garden.events.eventLog.filter((e) => e.name === "buildStatus")
       const actionVersion = buildStatusEvents[0].payload.actionVersion
+      const resolvedActionVersion = resolvedAction.versionString()
       const actionUid = buildStatusEvents[0].payload.actionUid
 
       expect(buildStatusEvents).to.eql([
@@ -108,6 +113,7 @@ describe("BuildTask", () => {
           payload: {
             actionName: "test-build",
             actionVersion,
+            resolvedActionVersion: undefined,
             actionType: "build",
             actionKind: "build",
             actionUid,
@@ -125,6 +131,7 @@ describe("BuildTask", () => {
           payload: {
             actionName: "test-build",
             actionVersion,
+            resolvedActionVersion,
             actionType: "build",
             actionKind: "build",
             actionUid,
@@ -143,6 +150,7 @@ describe("BuildTask", () => {
           payload: {
             actionName: "test-build",
             actionVersion,
+            resolvedActionVersion: undefined,
             actionType: "build",
             actionKind: "build",
             actionUid,
@@ -160,6 +168,7 @@ describe("BuildTask", () => {
           payload: {
             actionName: "test-build",
             actionVersion,
+            resolvedActionVersion,
             actionType: "build",
             actionKind: "build",
             actionUid,
