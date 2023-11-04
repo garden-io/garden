@@ -1,6 +1,8 @@
 apiVersion: garden.io/v1
 kind: Project
 name: action-source-path
+variables:
+  sourcePath: "../"
 environments:
   - name: local
 providers:
