@@ -92,7 +92,7 @@ export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
           resolvedActionVersion: resolvedAction.versionString(),
         }
 
-        const res = await cloudApi.checkCacheStatus(reqParams)
+        const res = await cloudApi.getCachedAction(reqParams)
         this.log.verbose("Status check complete")
 
         if (res.status === "success") {

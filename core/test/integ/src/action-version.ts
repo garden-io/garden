@@ -15,8 +15,7 @@ import { KubernetesProvider } from "../../../src/plugins/kubernetes/config"
 import { KubernetesDeployAction } from "../../../src/plugins/kubernetes/kubernetes-type/config"
 import { getDataDir, makeTestGarden } from "../../helpers"
 
-describe("noCache", () => {
-  let cleanup: (() => void) | undefined
+describe("action-version", () => {
   let garden1: Garden
   let graph1: ConfigGraph
   let provider1: KubernetesProvider
@@ -30,6 +29,8 @@ describe("noCache", () => {
     // env 1
     const projectRoot = getDataDir("test-projects", "actions-no-cache")
     garden1 = await makeTestGarden(projectRoot, { environmentString: "local1" })
+    // garden1.availableCloudFeatures.distributedCache = true
+    // garden1.projectId = "test-project-id"
     provider1 = (await garden1.resolveProvider(garden1.log, "local-kubernetes")) as KubernetesProvider
     ctx1 = await garden1.getPluginContext({ provider: provider1, templateContext: undefined, events: undefined })
     graph1 = await garden1.getConfigGraph({ log: garden1.log, emit: false })
@@ -74,43 +75,41 @@ describe("noCache", () => {
     ])
   })
 
-  context("across the environments", () => {
-    it("should not change action version, if an ignored variable changes", async () => {
-      const unresolvedAction1 = cloneDeep(graph1.getDeploy("test-deploy-container"))
-      const unresolvedAction2 = cloneDeep(graph2.getDeploy("test-deploy-container"))
+  it("should not change action version, if an ignored variable changes", async () => {
+    const unresolvedAction1 = cloneDeep(graph1.getDeploy("test-deploy-container"))
+    const unresolvedAction2 = cloneDeep(graph2.getDeploy("test-deploy-container"))
 
-      const resolvedAction1 = await garden1.resolveAction<KubernetesDeployAction>({
-        action: unresolvedAction1,
-        log: garden1.log,
-        graph: graph1,
-      })
-
-      const resolvedAction2 = await garden2.resolveAction<KubernetesDeployAction>({
-        action: unresolvedAction2,
-        log: garden2.log,
-        graph: graph2,
-      })
-
-      expect(resolvedAction1.versionString()).to.eql(resolvedAction2.versionString())
+    const resolvedAction1 = await garden1.resolveAction<KubernetesDeployAction>({
+      action: unresolvedAction1,
+      log: garden1.log,
+      graph: graph1,
     })
 
-    it("should not change action version, if an ignored variable changes inside $merge", async () => {
-      const unresolvedAction1 = cloneDeep(graph1.getDeploy("test-deploy-container-with-merge"))
-      const unresolvedAction2 = cloneDeep(graph2.getDeploy("test-deploy-container-with-merge"))
-
-      const resolvedAction1 = await garden1.resolveAction<KubernetesDeployAction>({
-        action: unresolvedAction1,
-        log: garden1.log,
-        graph: graph1,
-      })
-
-      const resolvedAction2 = await garden2.resolveAction<KubernetesDeployAction>({
-        action: unresolvedAction2,
-        log: garden2.log,
-        graph: graph2,
-      })
-
-      expect(resolvedAction1.versionString()).to.eql(resolvedAction2.versionString())
+    const resolvedAction2 = await garden2.resolveAction<KubernetesDeployAction>({
+      action: unresolvedAction2,
+      log: garden2.log,
+      graph: graph2,
     })
+
+    expect(resolvedAction1.versionString()).to.eql(resolvedAction2.versionString())
+  })
+
+  it("should not change action version, if an ignored variable changes inside $merge", async () => {
+    const unresolvedAction1 = cloneDeep(graph1.getDeploy("test-deploy-container-with-merge"))
+    const unresolvedAction2 = cloneDeep(graph2.getDeploy("test-deploy-container-with-merge"))
+
+    const resolvedAction1 = await garden1.resolveAction<KubernetesDeployAction>({
+      action: unresolvedAction1,
+      log: garden1.log,
+      graph: graph1,
+    })
+
+    const resolvedAction2 = await garden2.resolveAction<KubernetesDeployAction>({
+      action: unresolvedAction2,
+      log: garden2.log,
+      graph: graph2,
+    })
+
+    expect(resolvedAction1.versionString()).to.eql(resolvedAction2.versionString())
   })
 })

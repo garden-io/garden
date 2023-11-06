@@ -8,13 +8,6 @@
 
 import { IncomingHttpHeaders } from "http"
 
-import { got, GotHeaders, GotHttpError, GotJsonOptions, GotResponse } from "../util/http"
-import { CloudApiError, InternalError } from "../exceptions"
-import { Log } from "../logger/log-entry"
-import { DEFAULT_GARDEN_CLOUD_DOMAIN, gardenEnv } from "../constants"
-import { Cookie } from "tough-cookie"
-import { cloneDeep, isObject } from "lodash"
-import { dedent, deline } from "../util/string"
 import {
   BaseResponse,
   CreateEphemeralClusterResponse,
@@ -23,20 +16,26 @@ import {
   GetKubeconfigResponse,
   GetProfileResponse,
   GetProjectResponse,
-  ListFeatureFlagResponse,
   ListProjectsResponse,
-  Status,
+  Status
 } from "@garden-io/platform-api-types"
-import { getCloudDistributionName, getCloudLogSectionName, getPackageVersion } from "../util/util"
-import { CommandInfo } from "../plugin-context"
-import type { ClientAuthToken, GlobalConfigStore } from "../config-store/global"
-import { add } from "date-fns"
-import { LogLevel } from "../logger/logger"
-import { makeAuthHeader } from "./auth"
-import { StringMap } from "../config/common"
 import chalk from "chalk"
-// import querystring from 'querystring'
+import { add } from "date-fns"
+import { cloneDeep, isObject } from "lodash"
 import qs from "qs"
+import { Cookie } from "tough-cookie"
+import type { ClientAuthToken, GlobalConfigStore } from "../config-store/global"
+import { StringMap } from "../config/common"
+import { DEFAULT_GARDEN_CLOUD_DOMAIN, gardenEnv } from "../constants"
+import { CloudApiError, InternalError } from "../exceptions"
+import { AvailableCloudFeatures } from "../garden"
+import { Log } from "../logger/log-entry"
+import { LogLevel } from "../logger/logger"
+import { CommandInfo } from "../plugin-context"
+import { got, GotHeaders, GotHttpError, GotJsonOptions, GotResponse } from "../util/http"
+import { dedent, deline } from "../util/string"
+import { getCloudDistributionName, getCloudLogSectionName, getPackageVersion } from "../util/util"
+import { makeAuthHeader } from "./auth"
 
 const gardenClientName = "garden-core"
 const gardenClientVersion = getPackageVersion()
@@ -102,6 +101,9 @@ export interface CloudSessionResponse {
   environmentId: string
   namespaceId: string
   shortId: string
+  availableFeatures: {
+    distributedCache: boolean
+  }
 }
 
 export interface CloudSession extends CloudSessionResponse {
@@ -122,6 +124,7 @@ export interface CloudProject {
   name: string
   repositoryUrl: string
   environments: CloudEnvironment[]
+  availableFeatures?: AvailableCloudFeatures
 }
 
 export interface GetSecretsParams {
@@ -152,6 +155,10 @@ function toCloudProject(
     name: project.name,
     repositoryUrl: project.repositoryUrl,
     environments,
+    availableFeatures: {
+      // todo fix types once imported platform types package is updated
+      distributedCache: (project as any).availableFeatures?.distributedCache || false,
+    }
   }
 }
 
@@ -862,11 +869,7 @@ export class CloudApi {
   }
 
 
-  async getFeatureFlags(): Promise<ListFeatureFlagResponse> {
-    return await this.get<ListFeatureFlagResponse>(`/feature-flags`)
-  }
-
-  async checkCacheStatus({
+  async getCachedAction({
     projectId,
     actionName,
     actionKind,
@@ -882,7 +885,7 @@ export class CloudApi {
     }
     const queryParamsString = qs.stringify(params)
     // TODO: import types from platform-api-types package once published to npm
-    const response = await this.get<{ status: Status; data: any }>(`/cache/check?${queryParamsString}`)
+    const response = await this.get<{ status: Status; data: any }>(`/cache/action?${queryParamsString}`, { retry: false})
     return response
   }
 }

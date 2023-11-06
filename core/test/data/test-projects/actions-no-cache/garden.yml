@@ -16,8 +16,8 @@ description: Deploy the container
 spec:
   ports:
     - name: http
-      containerPort: 8080
-      servicePort: 80
+      containerPort: 80
+      servicePort: 8080
   healthCheck:
     httpGet:
       path: /
@@ -56,3 +56,25 @@ spec:
       hostname: foo.${var.base-hostname}
   env:
     $merge: ${var.nestedVars}
+
+# E2E Runner configs
+---
+kind: Build
+name: e2e-runner
+type: container
+
+# ---
+# kind: Deploy
+# type: container
+# name: e2e-runner
+# dependencies: [deploy.test-deploy-container]
+# build: test-build-container
+
+---
+kind: Test
+type: container
+name: e2e-test
+build: e2e-runner
+dependencies: [deploy.test-deploy-container]
+spec:
+  args: [echo, hello]

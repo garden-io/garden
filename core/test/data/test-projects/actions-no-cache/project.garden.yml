@@ -1,6 +1,9 @@
 apiVersion: garden.io/v1
 kind: Project
 name: actions-no-cache-test
+domain: https://garden.io
+id: be19908b-5274-446c-bd2d-b8675d62fbad # dummy uuid
+
 environments:
   - name: local1
     defaultNamespace: test-actions-no-cache-env-1

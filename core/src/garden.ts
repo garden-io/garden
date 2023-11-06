@@ -160,10 +160,13 @@ import { wrapActiveSpan } from "./util/open-telemetry/spans"
 import { GitRepoHandler } from "./vcs/git-repo"
 import { configureNoOpExporter } from "./util/open-telemetry/tracing"
 import { detectModuleOverlap, makeOverlapErrors } from "./util/module-overlap"
-import { isGardenEnterprise } from "./util/enterprise"
 import { GotHttpError } from "./util/http"
 
 const defaultLocalAddress = "localhost"
+
+export interface AvailableCloudFeatures {
+  distributedCache: boolean
+}
 
 export interface GardenOpts {
   commandInfo: CommandInfo
@@ -218,6 +221,7 @@ export interface GardenParams {
   workingCopyId: string
   forceRefresh?: boolean
   cloudApi?: CloudApi | null
+  availableCloudFeatures: AvailableCloudFeatures
   projectApiVersion: ProjectConfig["apiVersion"]
 }
 
@@ -252,7 +256,7 @@ export class Garden {
   private actionTypeBases: ActionTypeMap<ActionTypeDefinition<any>[]>
   private emittedWarnings: Set<string>
   public cloudApi: CloudApi | null
-  public availableCloudFeatures: { distributedCache?: boolean } = {}
+  public availableCloudFeatures: AvailableCloudFeatures
 
   public readonly production: boolean
   public readonly projectRoot: string
@@ -332,6 +336,7 @@ export class Garden {
     this.cloudApi = params.cloudApi || null
     this.commandInfo = params.opts.commandInfo
     this.treeCache = params.cache
+    this.availableCloudFeatures = params.availableCloudFeatures
     this.isGarden = true
     this.configTemplates = {}
     this.emittedWarnings = new Set()
@@ -428,19 +433,6 @@ export class Garden {
       configureNoOpExporter()
     }
 
-    // cloud features
-    this.cloudApi
-      ?.getFeatureFlags()
-      .then((response) => {
-        // TODO: update platform types to get rid of string cast
-        if (response.data.find((flag) => <string>flag.name === "distributedCache")?.enabled) {
-          this.availableCloudFeatures.distributedCache = true
-        }
-      })
-      .catch((err) => {
-        this.log.debug(`Failed to get feature flags from cloud: ${err}`)
-        this.availableCloudFeatures.distributedCache = false
-      })
   }
 
   static async factory<T extends typeof Garden>(
@@ -1874,6 +1866,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
     // Same applies for domains.
     const projectId = cloudProject?.id || config.id
     const cloudDomain = cloudApi?.domain || getGardenCloudDomain(config.domain)
+    const availableCloudFeatures = cloudProject?.availableFeatures ?? { distributedCache: false}
 
     config = resolveProjectConfig({
       log,
@@ -1973,6 +1966,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
       cloudApi,
       cache: treeCache,
       projectApiVersion,
+      availableCloudFeatures
     }
   })
 })
