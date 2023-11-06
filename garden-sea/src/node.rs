@@ -1,6 +1,7 @@
 use std::{
     env,
     ffi::OsString,
+    fs,
     path::Path,
     process::{Child, Command},
     thread::JoinHandle,
@@ -23,11 +24,12 @@ where
     // Some users depend on this, e.g. for NODE_EXTRA_CA_CERTS.
     let mut command = Command::new(path.join(node));
 
-    command.env("GARDEN_SEA_EXTRACTED_ROOT", OsString::from(path));
-    command.env(
-        "GARDEN_SEA_EXECUTABLE_PATH",
+    // Canonicalize resolves symlinks, which is important so self-update updates in the correct directory.
+    let executable_path = fs::canonicalize(
         process_path::get_executable_path().expect("Failed to get executable path"),
-    );
+    )?;
+    command.env("GARDEN_SEA_EXTRACTED_ROOT", OsString::from(path));
+    command.env("GARDEN_SEA_EXECUTABLE_PATH", executable_path);
 
     // Allow users to override the heap size if needed.
     let max_old_space_size = env::var("GARDEN_MAX_OLD_SPACE_SIZE").unwrap_or("4096".into());
