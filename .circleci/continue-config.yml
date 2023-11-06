@@ -482,6 +482,7 @@ jobs:
   test-dockerhub:
     machine:
       <<: *shared-machine-config
+    resource_class: large
     steps:
       # Only run test-dockerhub if path-filter noticed changes in ./support/*
       - when:
@@ -504,6 +505,7 @@ jobs:
   dockerhub-release:
     machine:
       <<: *shared-machine-config
+    resource_class: large
     steps:
       - update_buildx
       - checkout
@@ -991,16 +993,16 @@ jobs:
       - fail_fast
 
   test-windows:
-    executor: win/default
+    executor:
+      name: win/default
+      size: large
     steps:
       - checkout
       - *attach-workspace
       - run:
           name: Install Deps
           command: |
-            choco install --limit-output --no-progress -y git
-            choco install --limit-output --no-progress -y rsync
-            choco upgrade --limit-output --no-progress -y git rsync gcloudsdk kubernetes-cli
+            choco install --limit-output --no-progress -y git rsync gcloudsdk kubernetes-cli
             $Env:CLOUDSDK_PYTHON = gcloud components copy-bundled-python
             gcloud components install gke-gcloud-auth-plugin --quiet
             $Env:USE_GKE_GCLOUD_AUTH_PLUGIN = True
