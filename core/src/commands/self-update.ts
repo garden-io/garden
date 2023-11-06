@@ -28,6 +28,7 @@ import { gardenEnv } from "../constants.js"
 import semver from "semver"
 import stream from "stream"
 import type { Log } from "../logger/log-entry.js"
+import { realpath } from "fs/promises"
 
 const ARM64_INTRODUCTION_VERSION = "0.13.12"
 
@@ -265,7 +266,7 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
 
     let installationDirectory = opts["install-dir"]
     let platform = opts.platform
-    const processExecPath = process.env.GARDEN_SEA_EXECUTABLE_PATH || process.execPath
+    const processExecPath = await realpath(process.env.GARDEN_SEA_EXECUTABLE_PATH || process.execPath)
 
     if (!installationDirectory) {
       installationDirectory = dirname(processExecPath)
