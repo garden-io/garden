@@ -482,7 +482,7 @@ jobs:
   test-dockerhub:
     machine:
       <<: *shared-machine-config
-    resource_class: large
+    resource_class: xlarge
     steps:
       # Only run test-dockerhub if path-filter noticed changes in ./support/*
       - when:
