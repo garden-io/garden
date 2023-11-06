@@ -164,7 +164,7 @@ fn unpack(path: &Path, archive: &[u8]) -> Result<(), std::io::Error> {
 
 #[cfg(test)]
 mod tests {
-    use std::{path::PathBuf, fs};
+    use std::{fs, path::PathBuf};
 
     use super::extract_archives_if_needed;
 
