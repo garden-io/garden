@@ -275,8 +275,7 @@ describe("GraphSolver", () => {
     const result = await processTask(taskB)
 
     expect(result).to.exist
-    expect(result!.error).to.exist
-    expect(result!.error?.message).to.include("Throwing error in process method")
+    expect(result!.aborted).to.be.true
   })
 
   it("cascades an error recursively from dependency and fails the execution", async () => {
@@ -291,8 +290,39 @@ describe("GraphSolver", () => {
     const result = await processTask(taskC)
 
     expect(result).to.exist
-    expect(result!.error).to.exist
-    expect(result!.error?.message).to.include("Throwing error in process method")
+    expect(result!.aborted).to.be.true
+  })
+
+  it("recursively aborts unprocessed task requests when a dependency fails", async () => {
+    const failTask = makeTask({ name: "fail-task" })
+    const failTask2 = makeTask({ name: "fail-task-2" })
+    const taskB1 = makeTask({ name: "task-b1", dependencies: [failTask] })
+    const taskB2 = makeTask({ name: "task-b2", dependencies: [failTask2] })
+    const taskC = makeTask({ name: "task-c", dependencies: [taskB1] })
+
+    failTask.process = async () => {
+      throw new Error(`Throwing error in process method`)
+    }
+    failTask2.process = async () => {
+      throw new Error(`Throwing error in process method`)
+    }
+
+    const result = await garden.processTasks({ tasks: [taskC, taskB2, failTask2], throwOnError: false })
+    const exported = result.results.export()
+    const failTask2Result = exported[failTask2.getKey()]
+    const taskB2Result = exported[taskB2.getKey()]
+    const taskCResult = exported[taskC.getKey()]
+
+    expect(exported[failTask.getKey()]).to.be.undefined
+
+    expect(failTask2Result?.aborted).to.eql(false)
+    expect(failTask2Result?.error).to.exist
+
+    expect(taskB2Result?.aborted).to.eql(true)
+    expect(taskB2Result?.error).to.not.exist
+
+    expect(taskCResult?.aborted).to.eql(true)
+    expect(taskCResult?.error).to.not.exist
   })
 
   it("returns status directly and skips processing if state is ready", async () => {

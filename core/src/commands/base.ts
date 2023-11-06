@@ -1025,10 +1025,11 @@ export async function handleProcessResults(
   const graphResults = results.results
   const graphResultsForExport = graphResults.export()
 
-  const failed = pickBy(graphResultsForExport, (r) => r && r.error)
+  const failed = pickBy(graphResultsForExport, (r) => r && !r.aborted && !!r.error)
   const failedCount = size(failed)
+  const abortedCount = size(pickBy(graphResultsForExport, (r) => r && !!r.aborted && !r.error))
 
-  const success = failedCount === 0
+  const success = failedCount === 0 && abortedCount === 0
 
   const buildResults = prepareProcessResults("build", graphResults) as ProcessCommandResult["build"]
   const deployResults = prepareProcessResults("deploy", graphResults) as ProcessCommandResult["deploy"]
@@ -1053,8 +1054,14 @@ export async function handleProcessResults(
       return f && f.error ? [toGardenError(f.error)] : []
     })
 
+    const errMsg = abortedCount
+      ? failedCount
+        ? `${failedCount} requested ${taskType} action(s) failed, ${abortedCount} aborted!`
+        : `${abortedCount} requested ${taskType} action(s) aborted!`
+      : `${failedCount} requested ${taskType} action(s) failed!`
+
     const error = new RuntimeError({
-      message: `${failedCount} ${taskType} action(s) failed!`,
+      message: errMsg,
       wrappedErrors,
     })
     return { result, errors: [error] }

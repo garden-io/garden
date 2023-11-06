@@ -110,7 +110,7 @@ export abstract class TaskNode<T extends Task = Task> {
    * If the node was already completed, this is a no-op (may e.g. happen if the node has been completed
    * but a dependency fails and is aborting dependants).
    */
-  complete({ startedAt, error, result, aborted }: CompleteTaskParams): GraphResult<TaskResultType<T>> {
+  complete({ startedAt, error, result, aborted, abortedKeys }: CompleteTaskParams): GraphResult<TaskResultType<T>> {
     if (this.result) {
       return this.result
     }
@@ -146,14 +146,32 @@ export abstract class TaskNode<T extends Task = Task> {
     }
 
     if (aborted || error) {
-      // Fail every dependant
+      // We abort every dependant, and complete the corresponding request node for the failed node with an error.
+      const keys = abortedKeys || new Set<string>([task.getKey()])
       for (const d of Object.values(this.dependants)) {
+        const depKey = d.task.getKey()
+        let depAborted: boolean
+        let depError: Error | null
+        if (depKey === task.getKey() && d.executionType === "request" && error) {
+          depAborted = false
+          depError = new GraphNodeError({ resultError: error, node: d })
+        } else {
+          depAborted = true
+          depError = null
+          if (!keys.has(depKey)) {
+            d.task.log.info({
+              msg: `Aborting because upstream dependency failed.`,
+              metadata: metadataForLog(d.task, "error", inputVersion),
+            })
+            keys.add(depKey)
+          }
+        }
         d.complete({
           startedAt,
-          aborted: true,
+          aborted: depAborted,
           result: null,
-          // If it was aborted without error, we don't need a GraphNodeError
-          error: error ? new GraphNodeError({ resultError: error, node: d }) : null,
+          error: depError,
+          abortedKeys: keys,
         })
       }
     }
@@ -337,6 +355,10 @@ export interface CompleteTaskParams {
   error: Error | null
   result: ValidResultType | null
   aborted: boolean
+  // Used to track the unique task keys that have been aborted when a dependency fails and we recursively cancel
+  // its dependants (see `TaskNode#complete`). This helps us log each aborted key only once (since we may need to
+  // cancel e.g. both a request node and a process node for the same key).
+  abortedKeys?: Set<string>
 }
 export interface GraphNodeErrorParams {
   resultError: Error
