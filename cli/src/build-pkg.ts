@@ -213,7 +213,6 @@ async function buildBinaries(args: string[]) {
   await mkdirp(sourceTmpDir)
 
   console.log(chalk.cyan("Creating temp node binary directory at " + nodeTmpDir))
-  await remove(nodeTmpDir)
   await mkdirp(nodeTmpDir)
 
   console.log(chalk.cyan("Creating static directory at " + tmpStaticDir))
@@ -315,15 +314,6 @@ async function buildBinaries(args: string[]) {
     Object.entries(selected).map(async ([targetName, { spec }]) => {
       const extractionDir = resolve(nodeTmpDir, targetName)
 
-      console.log(chalk.cyan(`Downloading node ${spec.node} for ${targetName} from ${spec.url}`))
-      const response = await fetch(spec.url)
-
-      if (!response.body) {
-        throw new Error(`No response body for ${spec.url}`)
-      }
-
-      const body = Readable.fromWeb(response.body)
-
       // We know it's just those two file types, so we can hardcode this
       // If we switch to other types, this needs adapting.
       // Why aren't we just using `path.extname`?
@@ -331,21 +321,42 @@ async function buildBinaries(args: string[]) {
       // Having generic code for that is still more than twice as much as this comment block and the ternary below.
       const fileEnding = spec.url.endsWith("tar.gz") ? ".tar.gz" : ".zip"
 
-      const targetFileName = resolve(nodeTmpDir, `${targetName}${fileEnding}`)
+      const nodeArchiveFilename = resolve(nodeTmpDir, `${targetName}${fileEnding}`)
 
-      const hash = body.pipe(createHash("sha256"))
-
-      const writeStream = createWriteStream(targetFileName)
-      await finished(body.pipe(writeStream))
-
-      console.log(chalk.green(` ✓ Downloaded node ${spec.node} for ${targetName}`))
-
-      const sha256 = hash.digest("hex")
-
-      if (sha256 !== spec.checksum) {
-        throw new Error(`Checksum mismatch for ${spec.url}! Expected ${spec.checksum} but got ${sha256}`)
+      let nodeArchiveChecksum: string | undefined
+      if (await fsExtra.pathExists(nodeArchiveFilename)) {
+        const readStream = createReadStream(nodeArchiveFilename)
+        const hash = readStream.pipe(createHash("sha256"))
+        await finished(readStream)
+        nodeArchiveChecksum = hash.digest("hex")
       }
-      console.log(chalk.green(` ✓ Verified checksum for ${targetName}`))
+
+      if (nodeArchiveChecksum === spec.checksum) {
+        console.log(chalk.green(` ✓ Using cached node ${spec.node} for ${targetName} at ${nodeArchiveFilename}`))
+      } else {
+        console.log(chalk.cyan(`Downloading node ${spec.node} for ${targetName} from ${spec.url}`))
+        const response = await fetch(spec.url)
+
+        if (!response.body) {
+          throw new Error(`No response body for ${spec.url}`)
+        }
+
+        const body = Readable.fromWeb(response.body)
+
+        const hash = body.pipe(createHash("sha256"))
+
+        const writeStream = createWriteStream(nodeArchiveFilename)
+        await finished(body.pipe(writeStream))
+
+        console.log(chalk.green(` ✓ Downloaded node ${spec.node} for ${targetName}`))
+
+        const sha256 = hash.digest("hex")
+
+        if (sha256 !== spec.checksum) {
+          throw new Error(`Checksum mismatch for ${spec.url}! Expected ${spec.checksum} but got ${sha256}`)
+        }
+        console.log(chalk.green(` ✓ Verified checksum for ${targetName}`))
+      }
 
       console.log(chalk.cyan(`Extracting node ${spec.node} for ${targetName}`))
       await mkdirp(extractionDir)
@@ -362,9 +373,9 @@ async function buildBinaries(args: string[]) {
             return path.endsWith(`/bin/${nodeFileName}`)
           },
         })
-        await finished(createReadStream(targetFileName).pipe(extractStream))
+        await finished(createReadStream(nodeArchiveFilename).pipe(extractStream))
       } else {
-        const zip = createReadStream(targetFileName).pipe(unzipper.Parse({ forceStream: true }))
+        const zip = createReadStream(nodeArchiveFilename).pipe(unzipper.Parse({ forceStream: true }))
         for await (const i of zip) {
           const entry = i as Entry
           const fileName = entry.path
