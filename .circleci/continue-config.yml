@@ -1281,12 +1281,12 @@ workflows:
       - github-edge-prerelease:
           <<: *only-main
           version: edge-bonsai
-          requires: [build-dist-macos-edge, build-dist-linux-windows]
+          requires: [build-dist-macos-edge, build-dist-linux-windows-edge]
 
       - dockerhub-release:
           <<: *only-main
           context: docker
-          requires: [build-dist-macos-edge, build-dist-linux-windows]
+          requires: [build-dist-macos-edge, build-dist-linux-windows-edge]
 
       - test-docker-gcloud:
           context: docker
