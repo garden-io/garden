@@ -4,7 +4,6 @@
 
 ### Bug Fixes
 
-* resolve multiline variables in kubernetes manifests correctly ([#5270](https://github.com/garden-io/garden/issues/5270)) ([946e74b97](https://github.com/garden-io/garden/commit/946e74b97))
 * handle and retry DNS errors ([#5326](https://github.com/garden-io/garden/issues/5326)) ([e1738ac51](https://github.com/garden-io/garden/commit/e1738ac51))
 * change contributing redirect ([#5280](https://github.com/garden-io/garden/issues/5280)) ([49f3e7520](https://github.com/garden-io/garden/commit/49f3e7520))
 * **api:** visible and better error when fetching secrets 404s ([#5277](https://github.com/garden-io/garden/issues/5277)) ([32fc4b5a8](https://github.com/garden-io/garden/commit/32fc4b5a8))
