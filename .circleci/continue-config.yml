@@ -272,6 +272,9 @@ commands:
       - run:
           name: NPM install
           command: npm ci
+      # restore node cache
+      - restore_cache:
+          key: node-cache-v1
       - run:
           name: Run dist script
           command: |
@@ -282,6 +285,11 @@ commands:
             source "$HOME/.cargo/env"
 
             npm run dist -- --version "<<parameters.version>>" <<parameters.targets>>
+      # We cache the node archives because the NodeJS download mirror is unreliable
+      - save_cache:
+          key: node-cache-v1
+          paths:
+            - garden-sea/tmp/node
       - persist_to_workspace:
           root: ./
           paths:
