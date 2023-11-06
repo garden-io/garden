@@ -505,7 +505,7 @@ jobs:
   dockerhub-release:
     machine:
       <<: *shared-machine-config
-    resource_class: large
+    resource_class: xlarge
     steps:
       - update_buildx
       - checkout
