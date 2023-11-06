@@ -6,14 +6,16 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { expectError, withDefaultGlobalOpts, makeTestGardenA, cleanProject, TestGarden } from "../../../../helpers"
-import { GetTestResultCommand } from "../../../../../src/commands/get/get-test-result"
+import type { TestGarden } from "../../../../helpers.js"
+import { expectError, withDefaultGlobalOpts, makeTestGardenA, cleanProject } from "../../../../helpers.js"
+import { GetTestResultCommand } from "../../../../../src/commands/get/get-test-result.js"
 import { expect } from "chai"
-import { Log } from "../../../../../src/logger/log-entry"
-import { getArtifactKey } from "../../../../../src/util/artifacts"
+import type { Log } from "../../../../../src/logger/log-entry.js"
+import { getArtifactKey } from "../../../../../src/util/artifacts.js"
 import { join } from "path"
-import { writeFile } from "fs-extra"
-import { GetTestResult } from "../../../../../src/plugin/handlers/Test/get-result"
+import fsExtra from "fs-extra"
+const { writeFile } = fsExtra
+import type { GetTestResult } from "../../../../../src/plugin/handlers/Test/get-result.js"
 
 const now = new Date()
 

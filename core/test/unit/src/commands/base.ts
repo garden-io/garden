@@ -7,11 +7,11 @@
  */
 
 import { expect } from "chai"
-import { Command, CommandGroup } from "../../../../src/commands/base"
-import { StringsParameter } from "../../../../src/cli/params"
+import { Command, CommandGroup } from "../../../../src/commands/base.js"
+import { StringsParameter } from "../../../../src/cli/params.js"
 import stripAnsi from "strip-ansi"
-import { dedent } from "../../../../src/util/string"
-import { trimLineEnds } from "../../../helpers"
+import { dedent } from "../../../../src/util/string.js"
+import { trimLineEnds } from "../../../helpers.js"
 
 describe("Command", () => {
   describe("renderHelp", () => {

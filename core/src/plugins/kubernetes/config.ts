@@ -6,6 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import type { StringMap } from "../../config/common.js"
 import {
   joi,
   joiArray,
@@ -14,31 +15,34 @@ import {
   joiProviderName,
   joiSparseArray,
   joiStringMap,
-  StringMap,
-} from "../../config/common"
-import { BaseProviderConfig, Provider, providerConfigBaseSchema } from "../../config/provider"
+} from "../../config/common.js"
+import type { BaseProviderConfig, Provider } from "../../config/provider.js"
+import { providerConfigBaseSchema } from "../../config/provider.js"
+import type { ContainerEnvVars, ContainerRegistryConfig } from "../container/moduleConfig.js"
 import {
   artifactsDescription,
   commandExample,
   containerArtifactSchema,
-  ContainerEnvVars,
   containerEnvVarsSchema,
-  ContainerRegistryConfig,
   containerRegistryConfigSchema,
-} from "../container/moduleConfig"
-import { PluginContext } from "../../plugin-context"
-import { dedent, deline } from "../../util/string"
-import { defaultSystemNamespace } from "./system"
-import { SyncableKind, syncableKinds } from "./types"
-import { BaseTaskSpec, baseTaskSpecSchema, cacheResultSchema } from "../../config/task"
-import { BaseTestSpec, baseTestSpecSchema } from "../../config/test"
-import { ArtifactSpec } from "../../config/validation"
-import { V1Toleration } from "@kubernetes/client-node"
-import { runPodSpecIncludeFields } from "./run"
-import { SyncDefaults, syncDefaultsSchema } from "./sync"
-import { KUBECTL_DEFAULT_TIMEOUT } from "./kubectl"
-import { DOCS_BASE_URL } from "../../constants"
-import { defaultKanikoImageName } from "./constants"
+} from "../container/moduleConfig.js"
+import type { PluginContext } from "../../plugin-context.js"
+import { dedent, deline } from "../../util/string.js"
+import { defaultSystemNamespace } from "./system.js"
+import type { SyncableKind } from "./types.js"
+import { syncableKinds } from "./types.js"
+import type { BaseTaskSpec } from "../../config/task.js"
+import { baseTaskSpecSchema, cacheResultSchema } from "../../config/task.js"
+import type { BaseTestSpec } from "../../config/test.js"
+import { baseTestSpecSchema } from "../../config/test.js"
+import type { ArtifactSpec } from "../../config/validation.js"
+import type { V1Toleration } from "@kubernetes/client-node"
+import { runPodSpecIncludeFields } from "./run.js"
+import type { SyncDefaults } from "./sync.js"
+import { syncDefaultsSchema } from "./sync.js"
+import { KUBECTL_DEFAULT_TIMEOUT } from "./kubectl.js"
+import { DOCS_BASE_URL } from "../../constants.js"
+import { defaultKanikoImageName } from "./constants.js"
 
 export interface ProviderSecretRef {
   name: string

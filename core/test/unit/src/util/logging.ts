@@ -7,12 +7,13 @@
  */
 
 import { expect } from "chai"
-import { makeDummyGarden } from "../../../../src/garden"
-import { joi } from "../../../../src/config/common"
-import type { Log } from "../../../../src/logger/log-entry"
-import { getRootLogger, Logger } from "../../../../src/logger/logger"
-import { sanitizeValue } from "../../../../src/util/logging"
-import { projectRootA } from "../../../helpers"
+import { makeDummyGarden } from "../../../../src/garden.js"
+import { joi } from "../../../../src/config/common.js"
+import type { Log } from "../../../../src/logger/log-entry.js"
+import type { Logger } from "../../../../src/logger/logger.js"
+import { getRootLogger } from "../../../../src/logger/logger.js"
+import { sanitizeValue } from "../../../../src/util/logging.js"
+import { projectRootA } from "../../../helpers.js"
 
 describe("sanitizeValue", () => {
   const logger: Logger = getRootLogger()

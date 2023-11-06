@@ -7,9 +7,9 @@
  */
 
 import { resolve } from "path"
-import { GARDEN_CORE_ROOT } from "../../src/constants"
-import { hashRepoUrl } from "../../src/util/ext-source-util"
-import { ModuleVersion } from "../../src/vcs/vcs"
+import { GARDEN_CORE_ROOT } from "../../src/constants.js"
+import { hashRepoUrl } from "../../src/util/ext-source-util.js"
+import type { ModuleVersion } from "../../src/vcs/vcs.js"
 
 export const testDataDir = resolve(GARDEN_CORE_ROOT, "test", "data")
 export const testNow = new Date()

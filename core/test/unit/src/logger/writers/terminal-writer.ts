@@ -8,9 +8,10 @@
 
 import { expect } from "chai"
 
-import { TerminalWriter } from "../../../../../src/logger/writers/terminal-writer"
-import { getRootLogger, Logger } from "../../../../../src/logger/logger"
-import { formatForTerminal } from "../../../../../src/logger/renderers"
+import { TerminalWriter } from "../../../../../src/logger/writers/terminal-writer.js"
+import type { Logger } from "../../../../../src/logger/logger.js"
+import { getRootLogger } from "../../../../../src/logger/logger.js"
+import { formatForTerminal } from "../../../../../src/logger/renderers.js"
 
 const logger: Logger = getRootLogger()
 

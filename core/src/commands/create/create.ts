@@ -6,8 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { CommandGroup } from "../base"
-import { CreateProjectCommand } from "./create-project"
+import { CommandGroup } from "../base.js"
+import { CreateProjectCommand } from "./create-project.js"
 
 export class CreateCommand extends CommandGroup {
   name = "create"

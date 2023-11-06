@@ -8,9 +8,10 @@
 
 import { expect } from "chai"
 
-import { JsonTerminalWriter } from "../../../../../src/logger/writers/json-terminal-writer"
-import { getRootLogger, Logger } from "../../../../../src/logger/logger"
-import { freezeTime } from "../../../../helpers"
+import { JsonTerminalWriter } from "../../../../../src/logger/writers/json-terminal-writer.js"
+import type { Logger } from "../../../../../src/logger/logger.js"
+import { getRootLogger } from "../../../../../src/logger/logger.js"
+import { freezeTime } from "../../../../helpers.js"
 
 const logger: Logger = getRootLogger()
 

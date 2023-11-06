@@ -6,17 +6,17 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { SecretResult as SecretResultApi, UserResult as UserResultApi } from "@garden-io/platform-api-types"
-import { dedent } from "../../util/string"
+import type { SecretResult as SecretResultApi, UserResult as UserResultApi } from "@garden-io/platform-api-types"
+import { dedent } from "../../util/string.js"
 
-import { Log } from "../../logger/log-entry"
-import { capitalize } from "lodash"
+import type { Log } from "../../logger/log-entry.js"
+import { capitalize } from "lodash-es"
 import minimatch from "minimatch"
 import pluralize from "pluralize"
 import chalk from "chalk"
-import { CommandError, toGardenError } from "../../exceptions"
-import { CommandResult } from "../base"
-import { userPrompt } from "../../util/util"
+import { CommandError, toGardenError } from "../../exceptions.js"
+import type { CommandResult } from "../base.js"
+import { userPrompt } from "../../util/util.js"
 
 export interface DeleteResult {
   id: string | number

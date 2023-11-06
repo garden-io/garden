@@ -6,22 +6,23 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Command, CommandResult, CommandParams } from "./base"
-import { startServer } from "../server/server"
-import { IntegerParameter, StringsParameter } from "../cli/params"
-import { printEmoji, printHeader } from "../logger/util"
-import { dedent } from "../util/string"
-import { CommandLine } from "../cli/command-line"
-import { GardenInstanceManager } from "../server/instance-manager"
+import type { CommandResult, CommandParams } from "./base.js"
+import { Command } from "./base.js"
+import { startServer } from "../server/server.js"
+import { IntegerParameter, StringsParameter } from "../cli/params.js"
+import { printEmoji, printHeader } from "../logger/util.js"
+import { dedent } from "../util/string.js"
+import type { CommandLine } from "../cli/command-line.js"
+import { GardenInstanceManager } from "../server/instance-manager.js"
 import chalk from "chalk"
-import { getCloudDistributionName, sleep } from "../util/util"
-import { Log } from "../logger/log-entry"
-import { findProjectConfig } from "../config/base"
-import { CloudApiTokenRefreshError, getGardenCloudDomain } from "../cloud/api"
-import { uuidv4 } from "../util/random"
-import { Garden } from "../garden"
-import { GardenPluginReference } from "../plugin/plugin"
-import { CommandError, ParameterError, isEAddrInUseException, isErrnoException } from "../exceptions"
+import { getCloudDistributionName, sleep } from "../util/util.js"
+import type { Log } from "../logger/log-entry.js"
+import { findProjectConfig } from "../config/base.js"
+import { CloudApiTokenRefreshError, getGardenCloudDomain } from "../cloud/api.js"
+import { uuidv4 } from "../util/random.js"
+import type { Garden } from "../garden.js"
+import type { GardenPluginReference } from "../plugin/plugin.js"
+import { CommandError, ParameterError, isEAddrInUseException, isErrnoException } from "../exceptions.js"
 
 export const defaultServerPort = 9777
 

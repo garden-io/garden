@@ -7,10 +7,11 @@
  */
 
 import AsyncLock from "async-lock"
-import { PluginContext, PluginToolSpec } from "@garden-io/sdk/build/src/types"
-import { find } from "lodash"
-import { PluginError } from "@garden-io/core/build/src/exceptions"
-import { BuildToolParams, runBuildTool, verifyBinaryPath, VerifyBinaryParams } from "./build-tool-base"
+import type { PluginContext, PluginToolSpec } from "@garden-io/sdk/build/src/types.js"
+import { find } from "lodash-es"
+import { PluginError } from "@garden-io/core/build/src/exceptions.js"
+import type { BuildToolParams, VerifyBinaryParams } from "./build-tool-base.js"
+import { runBuildTool, verifyBinaryPath } from "./build-tool-base.js"
 
 const buildLock = new AsyncLock()
 

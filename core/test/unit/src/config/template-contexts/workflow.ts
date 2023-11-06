@@ -7,11 +7,16 @@
  */
 
 import { expect } from "chai"
-import { ConfigContext } from "../../../../../src/config/template-contexts/base"
-import { expectError, makeTestGardenA, TestGarden } from "../../../../helpers"
-import { WorkflowConfigContext, WorkflowStepConfigContext } from "../../../../../src/config/template-contexts/workflow"
-import { defaultWorkflowResources, WorkflowConfig } from "../../../../../src/config/workflow"
-import { GardenApiVersion } from "../../../../../src/constants"
+import type { ConfigContext } from "../../../../../src/config/template-contexts/base.js"
+import type { TestGarden } from "../../../../helpers.js"
+import { expectError, makeTestGardenA } from "../../../../helpers.js"
+import {
+  WorkflowConfigContext,
+  WorkflowStepConfigContext,
+} from "../../../../../src/config/template-contexts/workflow.js"
+import type { WorkflowConfig } from "../../../../../src/config/workflow.js"
+import { defaultWorkflowResources } from "../../../../../src/config/workflow.js"
+import { GardenApiVersion } from "../../../../../src/constants.js"
 
 type TestValue = string | ConfigContext | TestValues | TestValueFunction
 type TestValueFunction = () => TestValue | Promise<TestValue>

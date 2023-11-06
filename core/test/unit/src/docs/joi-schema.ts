@@ -7,9 +7,10 @@
  */
 
 import { expect } from "chai"
-import { joi, JoiDescription } from "../../../../src/config/common"
-import { JoiKeyDescription } from "../../../../src/docs/joi-schema"
-import { testJsonSchema } from "./json-schema"
+import type { JoiDescription } from "../../../../src/config/common.js"
+import { joi } from "../../../../src/config/common.js"
+import { JoiKeyDescription } from "../../../../src/docs/joi-schema.js"
+import { testJsonSchema } from "./json-schema.js"
 
 describe("JoiKeyDescription", () => {
   it("correctly set the basic attributes of an object schema", () => {

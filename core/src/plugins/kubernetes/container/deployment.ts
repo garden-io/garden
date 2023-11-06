@@ -7,40 +7,48 @@
  */
 
 import chalk from "chalk"
-import { V1Affinity, V1Container, V1DaemonSet, V1Deployment, V1PodSpec, V1VolumeMount } from "@kubernetes/client-node"
-import { extend, keyBy, omit, set } from "lodash"
-import { ContainerDeployAction, ContainerDeploySpec, ContainerVolumeSpec } from "../../container/moduleConfig"
-import { createIngressResources } from "./ingress"
-import { createServiceResources } from "./service"
-import { waitForResources } from "../status/status"
-import { apply, deleteObjectsBySelector, deleteResourceKeys, KUBECTL_DEFAULT_TIMEOUT } from "../kubectl"
-import { getAppNamespace, getNamespaceStatus } from "../namespace"
-import { PluginContext } from "../../../plugin-context"
-import { KubeApi } from "../api"
-import { KubernetesPluginContext, KubernetesProvider } from "../config"
-import { ActionLog, Log } from "../../../logger/log-entry"
-import { prepareEnvVars } from "../util"
-import { deline, gardenAnnotationKey } from "../../../util/string"
+import type {
+  V1Affinity,
+  V1Container,
+  V1DaemonSet,
+  V1Deployment,
+  V1PodSpec,
+  V1VolumeMount,
+} from "@kubernetes/client-node"
+import { extend, keyBy, omit, set } from "lodash-es"
+import type { ContainerDeployAction, ContainerDeploySpec, ContainerVolumeSpec } from "../../container/moduleConfig.js"
+import { createIngressResources } from "./ingress.js"
+import { createServiceResources } from "./service.js"
+import { waitForResources } from "../status/status.js"
+import { apply, deleteObjectsBySelector, deleteResourceKeys, KUBECTL_DEFAULT_TIMEOUT } from "../kubectl.js"
+import { getAppNamespace, getNamespaceStatus } from "../namespace.js"
+import type { PluginContext } from "../../../plugin-context.js"
+import { KubeApi } from "../api.js"
+import type { KubernetesPluginContext, KubernetesProvider } from "../config.js"
+import type { ActionLog, Log } from "../../../logger/log-entry.js"
+import { prepareEnvVars } from "../util.js"
+import { deline, gardenAnnotationKey } from "../../../util/string.js"
 import { resolve } from "path"
-import { killPortForwards } from "../port-forward"
-import { prepareSecrets } from "../secrets"
-import { configureSyncMode, convertContainerSyncSpec } from "../sync"
-import { getDeployedImageId, getResourceRequirements, getSecurityContext } from "./util"
-import { configureLocalMode, convertContainerLocalModeSpec, startServiceInLocalMode } from "../local-mode"
-import { DeployActionHandler, DeployActionParams } from "../../../plugin/action-types"
-import { ActionMode, Resolved } from "../../../actions/types"
-import { ConfigurationError, DeploymentError } from "../../../exceptions"
-import {
+import { killPortForwards } from "../port-forward.js"
+import { prepareSecrets } from "../secrets.js"
+import { configureSyncMode, convertContainerSyncSpec } from "../sync.js"
+import { getDeployedImageId, getResourceRequirements, getSecurityContext } from "./util.js"
+import { configureLocalMode, convertContainerLocalModeSpec, startServiceInLocalMode } from "../local-mode.js"
+import type { DeployActionHandler, DeployActionParams } from "../../../plugin/action-types.js"
+import type { ActionMode, Resolved } from "../../../actions/types.js"
+import { ConfigurationError, DeploymentError } from "../../../exceptions.js"
+import type {
   SyncableKind,
-  syncableKinds,
   SyncableResource,
   KubernetesWorkload,
   KubernetesResource,
   SupportedRuntimeAction,
-} from "../types"
-import { k8sGetContainerDeployStatus, ContainerServiceStatus } from "./status"
-import { emitNonRepeatableWarning } from "../../../warnings"
-import { K8_POD_DEFAULT_CONTAINER_ANNOTATION_KEY } from "../run"
+} from "../types.js"
+import { syncableKinds } from "../types.js"
+import type { ContainerServiceStatus } from "./status.js"
+import { k8sGetContainerDeployStatus } from "./status.js"
+import { emitNonRepeatableWarning } from "../../../warnings.js"
+import { K8_POD_DEFAULT_CONTAINER_ANNOTATION_KEY } from "../run.js"
 
 export const REVISION_HISTORY_LIMIT_PROD = 10
 export const REVISION_HISTORY_LIMIT_DEFAULT = 3
@@ -54,7 +62,7 @@ export const k8sContainerDeploy: DeployActionHandler<"deploy", ContainerDeployAc
   const { deploymentStrategy } = k8sCtx.provider.config
   const api = await KubeApi.factory(log, k8sCtx, k8sCtx.provider)
 
-  const imageId = getDeployedImageId(action, k8sCtx.provider)
+  const imageId = getDeployedImageId(action)
 
   const status = await k8sGetContainerDeployStatus(params)
   const specChangedResourceKeys: string[] = status.detail?.detail.selectorChangedResourceKeys || []

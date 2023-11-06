@@ -7,15 +7,16 @@
  */
 
 import chalk from "chalk"
-import { terraform } from "./cli"
-import { TerraformProvider } from "./provider"
-import { ConfigurationError, ParameterError } from "@garden-io/sdk/build/src/exceptions"
-import { prepareVariables, setWorkspace, tfValidate } from "./helpers"
-import { ConfigGraph, PluginCommand, PluginCommandParams } from "@garden-io/sdk/build/src/types"
+import { terraform } from "./cli.js"
+import type { TerraformProvider } from "./provider.js"
+import { ConfigurationError, ParameterError } from "@garden-io/sdk/build/src/exceptions.js"
+import { prepareVariables, setWorkspace, tfValidate } from "./helpers.js"
+import type { ConfigGraph, PluginCommand, PluginCommandParams } from "@garden-io/sdk/build/src/types.js"
 import { join } from "path"
-import { remove } from "fs-extra"
-import { getProviderStatusCachePath } from "@garden-io/core/build/src/tasks/resolve-provider"
-import { TerraformDeploy } from "./action"
+import fsExtra from "fs-extra"
+const { remove } = fsExtra
+import { getProviderStatusCachePath } from "@garden-io/core/build/src/tasks/resolve-provider.js"
+import type { TerraformDeploy } from "./action.js"
 
 const commandsToWrap = ["apply", "plan", "destroy"]
 const initCommand = chalk.bold("terraform init")

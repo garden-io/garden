@@ -6,17 +6,18 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { containerHelpers } from "../../../container/helpers"
-import { buildContainer, getContainerBuildStatus } from "../../../container/build"
-import { KubernetesProvider, KubernetesPluginContext } from "../../config"
-import { loadImageToKind, getKindImageStatus } from "../../local/kind"
-import chalk = require("chalk")
-import { loadImageToMicrok8s, getMicrok8sImageStatus } from "../../local/microk8s"
-import { ContainerProvider } from "../../../container/container"
-import { BuildHandler, BuildStatusHandler, BuildStatusResult, getManifestInspectArgs } from "./common"
-import { ContainerBuildAction } from "../../../container/moduleConfig"
-import { BuildActionParams } from "../../../../plugin/action-types"
-import { k8sGetContainerBuildActionOutputs } from "../handlers"
+import { containerHelpers } from "../../../container/helpers.js"
+import { buildContainer, getContainerBuildStatus } from "../../../container/build.js"
+import type { KubernetesProvider, KubernetesPluginContext } from "../../config.js"
+import { loadImageToKind, getKindImageStatus } from "../../local/kind.js"
+import chalk from "chalk"
+import { loadImageToMicrok8s, getMicrok8sImageStatus } from "../../local/microk8s.js"
+import type { ContainerProvider } from "../../../container/container.js"
+import type { BuildHandler, BuildStatusHandler, BuildStatusResult } from "./common.js"
+import { getManifestInspectArgs } from "./common.js"
+import type { ContainerBuildAction } from "../../../container/moduleConfig.js"
+import type { BuildActionParams } from "../../../../plugin/action-types.js"
+import { k8sGetContainerBuildActionOutputs } from "../handlers.js"
 
 export const getLocalBuildStatus: BuildStatusHandler = async (params) => {
   const { ctx, action, log } = params

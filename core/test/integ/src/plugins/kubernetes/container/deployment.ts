@@ -7,53 +7,54 @@
  */
 
 import { expect } from "chai"
-import { ConfigGraph } from "../../../../../../src/graph/config-graph"
-import { KubeApi, KubernetesError } from "../../../../../../src/plugins/kubernetes/api"
+import type { ConfigGraph } from "../../../../../../src/graph/config-graph.js"
+import { KubeApi, KubernetesError } from "../../../../../../src/plugins/kubernetes/api.js"
 import {
   createContainerManifests,
   createWorkloadManifest,
   getDeploymentLabels,
   handleChangedSelector,
-} from "../../../../../../src/plugins/kubernetes/container/deployment"
-import { KubernetesPluginContext, KubernetesProvider } from "../../../../../../src/plugins/kubernetes/config"
-import { V1ConfigMap, V1Secret } from "@kubernetes/client-node"
-import { KubernetesResource, KubernetesWorkload } from "../../../../../../src/plugins/kubernetes/types"
+} from "../../../../../../src/plugins/kubernetes/container/deployment.js"
+import type { KubernetesPluginContext, KubernetesProvider } from "../../../../../../src/plugins/kubernetes/config.js"
+import type { V1ConfigMap, V1Secret } from "@kubernetes/client-node"
+import type { KubernetesResource, KubernetesWorkload } from "../../../../../../src/plugins/kubernetes/types.js"
 import cloneDeep from "fast-copy"
-import { keyBy } from "lodash"
-import { getContainerTestGarden } from "./container"
-import { DeployTask } from "../../../../../../src/tasks/deploy"
-import { TestGarden, expectError, findNamespaceStatusEvent, grouped } from "../../../../../helpers"
-import { kilobytesToString, millicpuToString } from "../../../../../../src/plugins/kubernetes/util"
-import { getDeployedImageId, getResourceRequirements } from "../../../../../../src/plugins/kubernetes/container/util"
-import { isConfiguredForSyncMode } from "../../../../../../src/plugins/kubernetes/status/status"
-import {
+import { keyBy } from "lodash-es"
+import { getContainerTestGarden } from "./container.js"
+import { DeployTask } from "../../../../../../src/tasks/deploy.js"
+import type { TestGarden } from "../../../../../helpers.js"
+import { expectError, findNamespaceStatusEvent, grouped } from "../../../../../helpers.js"
+import { kilobytesToString, millicpuToString } from "../../../../../../src/plugins/kubernetes/util.js"
+import { getDeployedImageId, getResourceRequirements } from "../../../../../../src/plugins/kubernetes/container/util.js"
+import { isConfiguredForSyncMode } from "../../../../../../src/plugins/kubernetes/status/status.js"
+import type {
   ContainerDeployAction,
   ContainerDeployActionConfig,
   ContainerDeployOutputs,
-} from "../../../../../../src/plugins/container/moduleConfig"
-import { apply } from "../../../../../../src/plugins/kubernetes/kubectl"
-import { getAppNamespace } from "../../../../../../src/plugins/kubernetes/namespace"
-import { gardenAnnotationKey } from "../../../../../../src/util/string"
+} from "../../../../../../src/plugins/container/moduleConfig.js"
+import { apply } from "../../../../../../src/plugins/kubernetes/kubectl.js"
+import { getAppNamespace } from "../../../../../../src/plugins/kubernetes/namespace.js"
+import { gardenAnnotationKey } from "../../../../../../src/util/string.js"
 import {
   k8sReverseProxyImageName,
   k8sSyncUtilImageName,
   PROXY_CONTAINER_SSH_TUNNEL_PORT,
   PROXY_CONTAINER_SSH_TUNNEL_PORT_NAME,
   PROXY_CONTAINER_USER_NAME,
-} from "../../../../../../src/plugins/kubernetes/constants"
+} from "../../../../../../src/plugins/kubernetes/constants.js"
 import {
   LocalModeEnv,
   LocalModeProcessRegistry,
   ProxySshKeystore,
-} from "../../../../../../src/plugins/kubernetes/local-mode"
+} from "../../../../../../src/plugins/kubernetes/local-mode.js"
 import stripAnsi from "strip-ansi"
-import { getDeployStatuses } from "../../../../../../src/tasks/helpers"
-import { ResolvedDeployAction } from "../../../../../../src/actions/deploy"
-import { ActionRouter } from "../../../../../../src/router/router"
-import { ActionMode } from "../../../../../../src/actions/types"
-import { createActionLog } from "../../../../../../src/logger/log-entry"
-import { K8_POD_DEFAULT_CONTAINER_ANNOTATION_KEY } from "../../../../../../src/plugins/kubernetes/run"
-import { k8sGetContainerDeployStatus } from "../../../../../../src/plugins/kubernetes/container/status"
+import { getDeployStatuses } from "../../../../../../src/tasks/helpers.js"
+import type { ResolvedDeployAction } from "../../../../../../src/actions/deploy.js"
+import type { ActionRouter } from "../../../../../../src/router/router.js"
+import type { ActionMode } from "../../../../../../src/actions/types.js"
+import { createActionLog } from "../../../../../../src/logger/log-entry.js"
+import { K8_POD_DEFAULT_CONTAINER_ANNOTATION_KEY } from "../../../../../../src/plugins/kubernetes/run.js"
+import { k8sGetContainerDeployStatus } from "../../../../../../src/plugins/kubernetes/container/status.js"
 
 describe("kubernetes container deployment handlers", () => {
   let garden: TestGarden
@@ -153,7 +154,7 @@ describe("kubernetes container deployment handlers", () => {
           api,
           action,
           log: createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind }),
-          imageId: getDeployedImageId(action, provider),
+          imageId: getDeployedImageId(action),
         })
 
         expectSshContainerPort(workload)
@@ -167,7 +168,7 @@ describe("kubernetes container deployment handlers", () => {
           api,
           action,
           log: createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind }),
-          imageId: getDeployedImageId(action, provider),
+          imageId: getDeployedImageId(action),
         })
 
         expectEmptyContainerArgs(workload)
@@ -181,7 +182,7 @@ describe("kubernetes container deployment handlers", () => {
           api,
           action,
           log: createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind }),
-          imageId: getDeployedImageId(action, provider),
+          imageId: getDeployedImageId(action),
         })
 
         expectContainerEnvVars(workload)
@@ -195,7 +196,7 @@ describe("kubernetes container deployment handlers", () => {
           api,
           action,
           log: createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind }),
-          imageId: getDeployedImageId(action, provider),
+          imageId: getDeployedImageId(action),
         })
 
         expectNoProbes(workload)
@@ -211,7 +212,7 @@ describe("kubernetes container deployment handlers", () => {
           api,
           action,
           log: createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind }),
-          imageId: getDeployedImageId(action, provider),
+          imageId: getDeployedImageId(action),
         })
 
         expectSshContainerPort(workload)
@@ -225,7 +226,7 @@ describe("kubernetes container deployment handlers", () => {
           api,
           action,
           log: createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind }),
-          imageId: getDeployedImageId(action, provider),
+          imageId: getDeployedImageId(action),
         })
 
         expectProxyContainerImage(workload)
@@ -240,7 +241,7 @@ describe("kubernetes container deployment handlers", () => {
           api,
           action,
           log: createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind }),
-          imageId: getDeployedImageId(action, provider),
+          imageId: getDeployedImageId(action),
         })
 
         expectContainerEnvVars(workload)
@@ -254,7 +255,7 @@ describe("kubernetes container deployment handlers", () => {
           api,
           action,
           log: createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind }),
-          imageId: getDeployedImageId(action, provider),
+          imageId: getDeployedImageId(action),
         })
 
         expectNoProbes(workload)
@@ -277,7 +278,7 @@ describe("kubernetes container deployment handlers", () => {
       const action = await resolveDeployAction("simple-service")
       const namespace = provider.config.namespace!.name!
 
-      const imageId = getDeployedImageId(action, provider)
+      const imageId = getDeployedImageId(action)
 
       const resource = await createWorkloadManifest({
         ctx,
@@ -359,7 +360,7 @@ describe("kubernetes container deployment handlers", () => {
         api,
         provider,
         action,
-        imageId: getDeployedImageId(action, provider),
+        imageId: getDeployedImageId(action),
         namespace,
         log: createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind }),
         production: false,
@@ -384,7 +385,7 @@ describe("kubernetes container deployment handlers", () => {
         api,
         provider,
         action,
-        imageId: getDeployedImageId(action, provider),
+        imageId: getDeployedImageId(action),
         namespace,
         log: createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind }),
         production: false,
@@ -408,7 +409,7 @@ describe("kubernetes container deployment handlers", () => {
         api,
         provider,
         action,
-        imageId: getDeployedImageId(action, provider),
+        imageId: getDeployedImageId(action),
         namespace,
         log: createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind }),
         production: false,
@@ -433,7 +434,7 @@ describe("kubernetes container deployment handlers", () => {
         api,
         provider,
         action,
-        imageId: getDeployedImageId(action, provider),
+        imageId: getDeployedImageId(action),
         namespace,
         log: createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind }),
         production: false,
@@ -476,7 +477,7 @@ describe("kubernetes container deployment handlers", () => {
         api,
         provider,
         action,
-        imageId: getDeployedImageId(action, provider),
+        imageId: getDeployedImageId(action),
         namespace,
         log: createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind }),
         production: false,
@@ -522,13 +523,13 @@ describe("kubernetes container deployment handlers", () => {
         api,
         provider: _provider,
         action,
-        imageId: getDeployedImageId(action, provider),
+        imageId: getDeployedImageId(action),
         namespace,
         log: createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind }),
         production: false,
       })
 
-      const copiedSecret = await api.core.readNamespacedSecret(secretName, namespace)
+      const copiedSecret = await api.core.readNamespacedSecret({ name: secretName, namespace })
       expect(copiedSecret).to.exist
       expect(resource.spec.template?.spec?.imagePullSecrets).to.eql([{ name: secretName }])
     })
@@ -560,13 +561,13 @@ describe("kubernetes container deployment handlers", () => {
         api,
         provider: _provider,
         action,
-        imageId: getDeployedImageId(action, provider),
+        imageId: getDeployedImageId(action),
         namespace,
         log: createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind }),
         production: false,
       })
 
-      const copiedSecret = await api.core.readNamespacedSecret(secretName, namespace)
+      const copiedSecret = await api.core.readNamespacedSecret({ name: secretName, namespace })
       expect(copiedSecret).to.exist
       expect(resource.spec.template?.spec?.imagePullSecrets).to.eql([{ name: secretName }])
     })
@@ -580,7 +581,7 @@ describe("kubernetes container deployment handlers", () => {
         api,
         provider,
         action,
-        imageId: getDeployedImageId(action, provider),
+        imageId: getDeployedImageId(action),
         namespace,
         log: createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind }),
         production: false,
@@ -601,7 +602,7 @@ describe("kubernetes container deployment handlers", () => {
         api,
         provider,
         action,
-        imageId: getDeployedImageId(action, provider),
+        imageId: getDeployedImageId(action),
         namespace,
         log: createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind }),
         production: false,
@@ -633,7 +634,7 @@ describe("kubernetes container deployment handlers", () => {
             api,
             provider,
             action,
-            imageId: getDeployedImageId(action, provider),
+            imageId: getDeployedImageId(action),
             namespace,
             log: createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind }),
             production: false,
@@ -710,21 +711,24 @@ describe("kubernetes container deployment handlers", () => {
         await apply({ log, ctx, api, provider, manifests: [configMapToPrune], namespace })
 
         try {
-          await api.core.deleteNamespacedConfigMap(mapToNotPruneKey, namespace)
+          await api.core.deleteNamespacedConfigMap({ name: mapToNotPruneKey, namespace })
         } catch (_e) {}
 
         // Here, we create via the k8s API (not `kubetl apply`), so that unlike `configMapToPrune`, it won't acquire
         // the "last applied" annotation. This means that it should *not* be pruned when we deploy the service, even
         // though it has the service's label.
-        await api.core.createNamespacedConfigMap(namespace, {
-          apiVersion: "v1",
-          kind: "ConfigMap",
-          metadata: {
-            name: mapToNotPruneKey,
-            annotations: { ...labels },
-            labels: { ...labels },
+        await api.core.createNamespacedConfigMap({
+          namespace,
+          body: {
+            apiVersion: "v1",
+            kind: "ConfigMap",
+            metadata: {
+              name: mapToNotPruneKey,
+              annotations: { ...labels },
+              labels: { ...labels },
+            },
+            data: {},
           },
-          data: {},
         })
 
         const deployTask = new DeployTask({
@@ -739,11 +743,11 @@ describe("kubernetes container deployment handlers", () => {
         await garden.processTasks({ tasks: [deployTask], log: garden.log, throwOnError: true })
 
         // We expect this `ConfigMap` to still exist.
-        await api.core.readNamespacedConfigMap(mapToNotPruneKey, namespace)
+        await api.core.readNamespacedConfigMap({ name: mapToNotPruneKey, namespace })
 
         // ...and we expect this `ConfigMap` to have been deleted.
         await expectError(
-          () => api.core.readNamespacedConfigMap(mapToPruneKey, namespace),
+          () => api.core.readNamespacedConfigMap({ name: mapToPruneKey, namespace }),
           (err) => {
             expect(stripAnsi(err.message)).to.match(
               /Error while performing Kubernetes API operation readNamespacedConfigMap/
@@ -753,7 +757,7 @@ describe("kubernetes container deployment handlers", () => {
           }
         )
 
-        await api.core.deleteNamespacedConfigMap(mapToNotPruneKey, namespace)
+        await api.core.deleteNamespacedConfigMap({ name: mapToNotPruneKey, namespace })
       })
 
       it("should ignore empty env vars in status check comparison", async () => {
@@ -840,7 +844,6 @@ describe("kubernetes container deployment handlers", () => {
         const status = await processDeployAction(action)
 
         const resources = keyBy(status.detail?.detail["remoteResources"], "kind")
-        const buildVersionString = action.getBuildAction()?.versionString()
 
         // Note: the image version should match the image in the module not the
         // deploy action version
@@ -970,7 +973,7 @@ describe("kubernetes container deployment handlers", () => {
         api,
         provider,
         action,
-        imageId: getDeployedImageId(action, provider),
+        imageId: getDeployedImageId(action),
         namespace,
         log: createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind }),
         production: false,
@@ -1001,7 +1004,7 @@ describe("kubernetes container deployment handlers", () => {
       action: ResolvedDeployAction<ContainerDeployActionConfig, ContainerDeployOutputs>
     ) => {
       try {
-        await api.apps.deleteNamespacedDeployment(action.name, provider.config.namespace!.name)
+        await api.apps.deleteNamespacedDeployment({ name: action.name, namespace: provider.config.namespace!.name })
       } catch (err) {}
     }
 
@@ -1009,7 +1012,7 @@ describe("kubernetes container deployment handlers", () => {
       action: ResolvedDeployAction<ContainerDeployActionConfig, ContainerDeployOutputs>
     ) => {
       try {
-        await api.apps.readNamespacedDeployment(action.name, provider.config.namespace!.name)
+        await api.apps.readNamespacedDeployment({ name: action.name, namespace: provider.config.namespace!.name })
         return true
       } catch (err) {
         if (!(err instanceof KubernetesError)) {

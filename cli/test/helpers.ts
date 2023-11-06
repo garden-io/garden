@@ -7,6 +7,6 @@
  */
 
 import { join } from "path"
-import { GARDEN_CLI_ROOT } from "@garden-io/core/build/src/constants"
+import { GARDEN_CLI_ROOT } from "@garden-io/core/build/src/constants.js"
 
 export const testRoot = join(GARDEN_CLI_ROOT, "test")

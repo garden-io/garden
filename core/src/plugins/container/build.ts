@@ -6,16 +6,17 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { containerHelpers } from "./helpers"
-import { ConfigurationError } from "../../exceptions"
-import { PrimitiveMap } from "../../config/common"
+import { containerHelpers } from "./helpers.js"
+import { ConfigurationError } from "../../exceptions.js"
+import type { PrimitiveMap } from "../../config/common.js"
 import split2 from "split2"
-import { BuildActionHandler } from "../../plugin/action-types"
-import { ContainerBuildAction, ContainerBuildOutputs, defaultDockerfileName } from "./config"
-import { joinWithPosix } from "../../util/fs"
-import { Resolved } from "../../actions/types"
+import type { BuildActionHandler } from "../../plugin/action-types.js"
+import type { ContainerBuildAction, ContainerBuildOutputs } from "./config.js"
+import { defaultDockerfileName } from "./config.js"
+import { joinWithPosix } from "../../util/fs.js"
+import type { Resolved } from "../../actions/types.js"
 import dedent from "dedent"
-import { splitFirst } from "../../util/string"
+import { splitFirst } from "../../util/string.js"
 
 export const getContainerBuildStatus: BuildActionHandler<"getStatus", ContainerBuildAction> = async ({
   ctx,

@@ -8,73 +8,69 @@
 
 import stripAnsi from "strip-ansi"
 
-import {
+import type {
   ContainerDeployAction,
-  containerSyncPathSchema,
   ContainerSyncSpec,
-  defaultSyncMode,
   DevModeSyncOptions,
   DevModeSyncSpec,
+  SyncMode,
+} from "../container/moduleConfig.js"
+import {
+  containerSyncPathSchema,
+  defaultSyncMode,
   syncDefaultDirectoryModeSchema,
   syncDefaultFileModeSchema,
   syncDefaultGroupSchema,
   syncDefaultOwnerSchema,
   syncExcludeSchema,
-  SyncMode,
   syncModeSchema,
   syncTargetPathSchema,
-} from "../container/moduleConfig"
-import { dedent, gardenAnnotationKey } from "../../util/string"
+} from "../container/moduleConfig.js"
+import { dedent, gardenAnnotationKey } from "../../util/string.js"
 import cloneDeep from "fast-copy"
-import { kebabCase, keyBy, omit, set } from "lodash"
+import { kebabCase, keyBy, omit, set } from "lodash-es"
 import {
   getResourceContainer,
   getResourceKey,
   getResourcePodSpec,
   getTargetResource,
   labelSelectorToString,
-} from "./util"
-import {
+} from "./util.js"
+import type {
   KubernetesResource,
   OctalPermissionMask,
   SupportedRuntimeAction,
   SyncableKind,
   SyncableResource,
   SyncableRuntimeAction,
-} from "./types"
-import { ActionLog, Log } from "../../logger/log-entry"
+} from "./types.js"
+import type { ActionLog, Log } from "../../logger/log-entry.js"
 import chalk from "chalk"
-import { joi, joiIdentifier } from "../../config/common"
-import {
+import { joi, joiIdentifier } from "../../config/common.js"
+import type {
   KubernetesPluginContext,
   KubernetesProvider,
   KubernetesTargetResourceSpec,
   ServiceResourceSpec,
-  targetResourceSpecSchema,
-} from "./config"
-import { isConfiguredForSyncMode } from "./status/status"
-import { PluginContext } from "../../plugin-context"
-import {
-  mutagenAgentPath,
-  Mutagen,
-  SyncConfig,
-  SyncSession,
-  haltedStatuses,
-  mutagenStatusDescriptions,
-} from "../../mutagen"
-import { k8sSyncUtilImageName } from "./constants"
-import { templateStringLiteral } from "../../docs/common"
+} from "./config.js"
+import { targetResourceSpecSchema } from "./config.js"
+import { isConfiguredForSyncMode } from "./status/status.js"
+import type { PluginContext } from "../../plugin-context.js"
+import type { SyncConfig, SyncSession } from "../../mutagen.js"
+import { mutagenAgentPath, Mutagen, haltedStatuses, mutagenStatusDescriptions } from "../../mutagen.js"
+import { k8sSyncUtilImageName } from "./constants.js"
+import { templateStringLiteral } from "../../docs/common.js"
 import { relative, resolve } from "path"
-import { Resolved } from "../../actions/types"
+import type { Resolved } from "../../actions/types.js"
 import { isAbsolute } from "path"
-import { joinWithPosix } from "../../util/fs"
-import { KubernetesModule, KubernetesService } from "./kubernetes-type/module-config"
-import { HelmModule, HelmService } from "./helm/module-config"
-import { convertServiceResource } from "./kubernetes-type/common"
-import { prepareConnectionOpts } from "./kubectl"
-import { GetSyncStatusResult, SyncState, SyncStatus } from "../../plugin/handlers/Deploy/get-sync-status"
-import { ConfigurationError } from "../../exceptions"
-import { DOCS_BASE_URL } from "../../constants"
+import { joinWithPosix } from "../../util/fs.js"
+import type { KubernetesModule, KubernetesService } from "./kubernetes-type/module-config.js"
+import type { HelmModule, HelmService } from "./helm/module-config.js"
+import { convertServiceResource } from "./kubernetes-type/common.js"
+import { prepareConnectionOpts } from "./kubectl.js"
+import type { GetSyncStatusResult, SyncState, SyncStatus } from "../../plugin/handlers/Deploy/get-sync-status.js"
+import { ConfigurationError } from "../../exceptions.js"
+import { DOCS_BASE_URL } from "../../constants.js"
 
 export const builtInExcludes = ["/**/*.git", "**/*.garden"]
 

@@ -7,17 +7,12 @@
  */
 
 import { expect } from "chai"
-import stripAnsi = require("strip-ansi")
-import {
-  ConfigContext,
-  ContextKey,
-  ContextResolveParams,
-  schema,
-  ScanContext,
-} from "../../../../../src/config/template-contexts/base"
-import { expectError } from "../../../../helpers"
-import { joi } from "../../../../../src/config/common"
-import { resolveTemplateStrings } from "../../../../../src/template-string/template-string"
+import stripAnsi from "strip-ansi"
+import type { ContextKey, ContextResolveParams } from "../../../../../src/config/template-contexts/base.js"
+import { ConfigContext, schema, ScanContext } from "../../../../../src/config/template-contexts/base.js"
+import { expectError } from "../../../../helpers.js"
+import { joi } from "../../../../../src/config/common.js"
+import { resolveTemplateStrings } from "../../../../../src/template-string/template-string.js"
 
 type TestValue = string | ConfigContext | TestValues | TestValueFunction
 type TestValueFunction = () => TestValue | Promise<TestValue>

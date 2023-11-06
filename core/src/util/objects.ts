@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { isArray, isPlainObject, mapValues, pickBy } from "lodash"
+import { isArray, isPlainObject, mapValues, pickBy } from "lodash-es"
 
 /**
  * Recursively process all values in the given input,

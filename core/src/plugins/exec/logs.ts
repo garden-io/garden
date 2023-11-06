@@ -6,20 +6,23 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import Stream from "ts-stream"
-import split2 = require("split2")
+import type { Stream } from "ts-stream"
+import split2 from "split2"
 
-import { Log } from "../../logger/log-entry"
-import { DeployLogEntry } from "../../types/service"
-import { pathExists, stat, watch } from "fs-extra"
+import type { Log } from "../../logger/log-entry.js"
+import type { DeployLogEntry } from "../../types/service.js"
+import fsExtra from "fs-extra"
+const { pathExists, stat, watch } = fsExtra
 import parseDuration from "parse-duration"
-import { validateSchema } from "../../config/validation"
-import { createReadStream, FSWatcher, ReadStream } from "fs"
-import { EventEmitter2 } from "eventemitter2"
-import { getGitHubIssueLink, sleep } from "../../util/util"
-import { dedent } from "../../util/string"
-import { LogLevel } from "../../logger/logger"
-import { deployLogEntrySchema } from "../../types/service"
+import { validateSchema } from "../../config/validation.js"
+import type { FSWatcher, ReadStream } from "fs"
+import { createReadStream } from "fs"
+import EventEmitter2 from "eventemitter2"
+import { sleep } from "../../util/util.js"
+import { dedent } from "../../util/string.js"
+import type { LogLevel } from "../../logger/logger.js"
+import { deployLogEntrySchema } from "../../types/service.js"
+import { getGitHubIssueLink } from "../../exceptions.js"
 
 const defaultRetryIntervalMs = 5000
 const watcherShelfLifeSec = 15
@@ -72,7 +75,7 @@ interface StreamEvents {
 
 type StreamEventName = keyof StreamEvents
 
-class StreamEventBus extends EventEmitter2 {
+class StreamEventBus extends EventEmitter2.EventEmitter2 {
   constructor() {
     super()
   }
@@ -90,7 +93,7 @@ export class ExecLogsFollower {
   private deployName: string
   private stream: Stream<DeployLogEntry>
   private log: Log
-  private intervalId: NodeJS.Timer | null
+  private intervalId: NodeJS.Timeout | null
   private resolve: ((val: unknown) => void) | null
   private retryIntervalMs: number
   private logFilePath: string

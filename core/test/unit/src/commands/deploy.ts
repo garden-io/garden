@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { DeployCommand } from "../../../../src/commands/deploy"
+import { DeployCommand } from "../../../../src/commands/deploy.js"
 import { expect } from "chai"
 import {
   taskResultOutputs,
@@ -17,12 +17,12 @@ import {
   testTestSchema,
   getAllProcessedTaskNames,
   getDataDir,
-} from "../../../helpers"
-import { getRootLogger } from "../../../../src/logger/logger"
-import { ActionStatus } from "../../../../src/actions/types"
-import { DeployStatus } from "../../../../src/plugin/handlers/Deploy/get-status"
-import { defaultServerPort } from "../../../../src/commands/serve"
-import { zodObjectToJoi } from "../../../../src/config/common"
+} from "../../../helpers.js"
+import { getRootLogger } from "../../../../src/logger/logger.js"
+import type { ActionStatus } from "../../../../src/actions/types.js"
+import type { DeployStatus } from "../../../../src/plugin/handlers/Deploy/get-status.js"
+import { defaultServerPort } from "../../../../src/commands/serve.js"
+import { zodObjectToJoi } from "../../../../src/config/common.js"
 
 // TODO-G2: rename test cases to match the new graph model semantics
 const placeholderTimestamp = new Date()

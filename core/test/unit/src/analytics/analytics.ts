@@ -8,23 +8,25 @@
 
 import { expect } from "chai"
 import nock from "nock"
-import { isEqual } from "lodash"
+import { isEqual } from "lodash-es"
 import { validate as validateUuid } from "uuid"
 
-import { makeTestGardenA, TestGarden, enableAnalytics, getDataDir, makeTestGarden, freezeTime } from "../../../helpers"
-import { FakeCloudApi, apiProjectName, apiRemoteOriginUrl } from "../../../helpers/api"
-import { AnalyticsHandler, CommandResultEvent, getAnonymousUserId } from "../../../../src/analytics/analytics"
+import type { TestGarden } from "../../../helpers.js"
+import { makeTestGardenA, enableAnalytics, getDataDir, makeTestGarden, freezeTime } from "../../../helpers.js"
+import { FakeCloudApi, apiProjectName, apiRemoteOriginUrl } from "../../../helpers/api.js"
+import type { CommandResultEvent } from "../../../../src/analytics/analytics.js"
+import { AnalyticsHandler, getAnonymousUserId } from "../../../../src/analytics/analytics.js"
 import {
   DEFAULT_BUILD_TIMEOUT_SEC,
   DEFAULT_GARDEN_CLOUD_DOMAIN,
   GardenApiVersion,
   gardenEnv,
-} from "../../../../src/constants"
-import { LogLevel, RootLogger } from "../../../../src/logger/logger"
-import { AnalyticsGlobalConfig } from "../../../../src/config-store/global"
-import { QuietWriter } from "../../../../src/logger/writers/quiet-writer"
+} from "../../../../src/constants.js"
+import { LogLevel, RootLogger } from "../../../../src/logger/logger.js"
+import type { AnalyticsGlobalConfig } from "../../../../src/config-store/global.js"
+import { QuietWriter } from "../../../../src/logger/writers/quiet-writer.js"
 import timekeeper from "timekeeper"
-import { ConfigurationError, DeploymentError, RuntimeError } from "../../../../src/exceptions"
+import { ConfigurationError, DeploymentError, RuntimeError } from "../../../../src/exceptions.js"
 
 const host = "https://api.segment.io"
 // The codenamize version + the sha512 hash of "test-project-a"

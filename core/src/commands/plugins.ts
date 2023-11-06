@@ -7,17 +7,18 @@
  */
 
 import chalk from "chalk"
-import { max, fromPairs, zip } from "lodash"
-import { findByName, getNames } from "../util/util"
-import { dedent, naturalList, renderTable, tablePresets } from "../util/string"
-import { ParameterError, toGardenError } from "../exceptions"
-import { Log } from "../logger/log-entry"
-import { Garden } from "../garden"
-import { Command, CommandResult, CommandParams } from "./base"
-import { printHeader, getTerminalWidth } from "../logger/util"
-import { StringOption } from "../cli/params"
-import { ConfigGraph } from "../graph/config-graph"
-import { ModuleGraph } from "../graph/modules"
+import { max, fromPairs, zip } from "lodash-es"
+import { findByName, getNames } from "../util/util.js"
+import { dedent, naturalList, renderTable, tablePresets } from "../util/string.js"
+import { ParameterError, toGardenError } from "../exceptions.js"
+import type { Log } from "../logger/log-entry.js"
+import type { Garden } from "../garden.js"
+import type { CommandResult, CommandParams } from "./base.js"
+import { Command } from "./base.js"
+import { printHeader, getTerminalWidth } from "../logger/util.js"
+import { StringOption } from "../cli/params.js"
+import { ConfigGraph } from "../graph/config-graph.js"
+import { ModuleGraph } from "../graph/modules.js"
 
 const pluginArgs = {
   plugin: new StringOption({

@@ -6,33 +6,31 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { BaseTask, CommonTaskParams, ResolveProcessDependenciesParams, TaskProcessParams } from "./base"
-import {
-  GenericProviderConfig,
-  Provider,
-  providerFromConfig,
-  getProviderTemplateReferences,
-  ProviderMap,
-} from "../config/provider"
-import { resolveTemplateStrings } from "../template-string/template-string"
-import { ConfigurationError, PluginError } from "../exceptions"
-import { keyBy, omit, flatten, uniq } from "lodash"
-import { ProviderConfigContext } from "../config/template-contexts/provider"
-import { ModuleConfig } from "../config/module"
-import { GardenPluginSpec } from "../plugin/plugin"
-import { joi } from "../config/common"
-import { validateWithPath, validateSchema } from "../config/validation"
-import { defaultEnvironmentStatus, EnvironmentStatus } from "../plugin/handlers/Provider/getEnvironmentStatus"
-import { getPluginBases, getPluginBaseNames } from "../plugins"
-import { Profile } from "../util/profiling"
+import type { CommonTaskParams, ResolveProcessDependenciesParams, TaskProcessParams } from "./base.js"
+import { BaseTask } from "./base.js"
+import type { GenericProviderConfig, Provider, ProviderMap } from "../config/provider.js"
+import { providerFromConfig, getProviderTemplateReferences } from "../config/provider.js"
+import { resolveTemplateStrings } from "../template-string/template-string.js"
+import { ConfigurationError, PluginError } from "../exceptions.js"
+import { keyBy, omit, flatten, uniq } from "lodash-es"
+import { ProviderConfigContext } from "../config/template-contexts/provider.js"
+import type { ModuleConfig } from "../config/module.js"
+import type { GardenPluginSpec } from "../plugin/plugin.js"
+import { joi } from "../config/common.js"
+import { validateWithPath, validateSchema } from "../config/validation.js"
+import type { EnvironmentStatus } from "../plugin/handlers/Provider/getEnvironmentStatus.js"
+import { defaultEnvironmentStatus } from "../plugin/handlers/Provider/getEnvironmentStatus.js"
+import { getPluginBases, getPluginBaseNames } from "../plugins.js"
+import { Profile } from "../util/profiling.js"
 import { join, dirname } from "path"
-import { readFile, writeFile, ensureDir } from "fs-extra"
+import fsExtra from "fs-extra"
+const { readFile, writeFile, ensureDir } = fsExtra
 import { deserialize, serialize } from "v8"
-import { environmentStatusSchema } from "../config/status"
-import { hashString, isNotNull } from "../util/util"
-import { gardenEnv } from "../constants"
-import { stableStringify } from "../util/string"
-import { OtelTraced } from "../util/open-telemetry/decorators"
+import { environmentStatusSchema } from "../config/status.js"
+import { hashString, isNotNull } from "../util/util.js"
+import { gardenEnv } from "../constants.js"
+import { stableStringify } from "../util/string.js"
+import { OtelTraced } from "../util/open-telemetry/decorators.js"
 
 interface Params extends CommonTaskParams {
   plugin: GardenPluginSpec

@@ -6,37 +6,31 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import {
-  kubernetesCommonRunSchemaKeys,
-  KubernetesCommonRunSpec,
-  KubernetesPluginContext,
-  KubernetesTargetResourceSpec,
-  runPodResourceSchema,
-  runPodSpecSchema,
-} from "../config"
-import { k8sGetRunResult, storeRunResult } from "../run-results"
-import { getActionNamespaceStatus } from "../namespace"
-import type { RunActionDefinition, TestActionDefinition } from "../../../plugin/action-types"
-import { dedent } from "../../../util/string"
-import type { RunAction, RunActionConfig } from "../../../actions/run"
-import { createSchema } from "../../../config/common"
+import type { KubernetesCommonRunSpec, KubernetesPluginContext, KubernetesTargetResourceSpec } from "../config.js"
+import { kubernetesCommonRunSchemaKeys, runPodResourceSchema, runPodSpecSchema } from "../config.js"
+import { k8sGetRunResult, storeRunResult } from "../run-results.js"
+import { getActionNamespaceStatus } from "../namespace.js"
+import type { RunActionDefinition, TestActionDefinition } from "../../../plugin/action-types.js"
+import { dedent } from "../../../util/string.js"
+import type { RunAction, RunActionConfig } from "../../../actions/run.js"
+import { createSchema } from "../../../config/common.js"
 import type { V1PodSpec } from "@kubernetes/client-node"
-import { runOrTestWithPod } from "./common"
-import { runResultToActionState } from "../../../actions/base"
+import { runOrTestWithPod } from "./common.js"
+import { runResultToActionState } from "../../../actions/base.js"
+import type { KubernetesRunOutputs, KubernetesTestOutputs } from "./config.js"
 import {
   kubernetesFilesSchema,
   kubernetesManifestsSchema,
   kubernetesPatchResourcesSchema,
-  KubernetesRunOutputs,
   kubernetesRunOutputsSchema,
-  KubernetesTestOutputs,
   kubernetesTestOutputsSchema,
-} from "./config"
-import { KubernetesPatchResource, KubernetesResource } from "../types"
-import { KubernetesKustomizeSpec, kustomizeSpecSchema } from "./kustomize"
-import { ObjectSchema } from "@hapi/joi"
-import { TestActionConfig, TestAction } from "../../../actions/test"
-import { storeTestResult, k8sGetTestResult } from "../test-results"
+} from "./config.js"
+import type { KubernetesPatchResource, KubernetesResource } from "../types.js"
+import type { KubernetesKustomizeSpec } from "./kustomize.js"
+import { kustomizeSpecSchema } from "./kustomize.js"
+import type { ObjectSchema } from "@hapi/joi"
+import type { TestActionConfig, TestAction } from "../../../actions/test.js"
+import { storeTestResult, k8sGetTestResult } from "../test-results.js"
 
 // RUN //
 

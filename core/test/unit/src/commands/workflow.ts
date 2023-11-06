@@ -18,19 +18,21 @@ import {
   createProjectConfig,
   makeTempDir,
   getDataDir,
-} from "../../../helpers"
-import { GardenApiVersion } from "../../../../src/constants"
-import { WorkflowCommand, shouldBeDropped } from "../../../../src/commands/workflow"
-import { createGardenPlugin } from "../../../../src/plugin/plugin"
-import { joi } from "../../../../src/config/common"
-import { ProjectConfig } from "../../../../src/config/project"
+} from "../../../helpers.js"
+import { GardenApiVersion } from "../../../../src/constants.js"
+import { WorkflowCommand, shouldBeDropped } from "../../../../src/commands/workflow.js"
+import { createGardenPlugin } from "../../../../src/plugin/plugin.js"
+import { joi } from "../../../../src/config/common.js"
+import type { ProjectConfig } from "../../../../src/config/project.js"
 import { join } from "path"
-import { remove, readFile, pathExists } from "fs-extra"
-import { dedent } from "../../../../src/util/string"
-import { LogEntry } from "../../../../src/logger/log-entry"
-import { defaultWorkflowResources, WorkflowStepSpec } from "../../../../src/config/workflow"
-import { TestGardenCli } from "../../../helpers/cli"
-import { WorkflowScriptError } from "../../../../src/exceptions"
+import fsExtra from "fs-extra"
+const { remove, readFile, pathExists } = fsExtra
+import { dedent } from "../../../../src/util/string.js"
+import type { LogEntry } from "../../../../src/logger/log-entry.js"
+import type { WorkflowStepSpec } from "../../../../src/config/workflow.js"
+import { defaultWorkflowResources } from "../../../../src/config/workflow.js"
+import { TestGardenCli } from "../../../helpers/cli.js"
+import { WorkflowScriptError } from "../../../../src/exceptions.js"
 
 describe("RunWorkflowCommand", () => {
   const cmd = new WorkflowCommand()

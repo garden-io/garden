@@ -6,24 +6,24 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { CommandResult, CommandParams, ConsoleCommand } from "./base"
-import { renderDivider } from "../logger/util"
+import { CommandResult, CommandParams, ConsoleCommand } from "./base.js"
+import { renderDivider } from "../logger/util.js"
 import React, { FC, useState } from "react"
 import { Box, render, Text, useInput, useStdout } from "ink"
-import { serveArgs, ServeCommand, serveOpts } from "./serve"
-import { LoggerType } from "../logger/logger"
-import { ParameterError, toGardenError } from "../exceptions"
-import { InkTerminalWriter } from "../logger/writers/ink-terminal-writer"
-import { CommandLine } from "../cli/command-line"
+import { serveArgs, ServeCommand, serveOpts } from "./serve.js"
+import { LoggerType } from "../logger/logger.js"
+import { ParameterError, toGardenError } from "../exceptions.js"
+import { InkTerminalWriter } from "../logger/writers/ink-terminal-writer.js"
+import { CommandLine } from "../cli/command-line.js"
 import chalk from "chalk"
-import { globalOptions, StringsParameter } from "../cli/params"
-import { pick } from "lodash"
-import Divider from "ink-divider"
+import { globalOptions, StringsParameter } from "../cli/params.js"
+import { pick } from "lodash-es"
 import moment from "moment"
-import { dedent } from "../util/string"
+import { dedent } from "../util/string.js"
 import Spinner from "ink-spinner"
-import type { Log } from "../logger/log-entry"
-import { bindActiveContext } from "../util/open-telemetry/context"
+import type { Log } from "../logger/log-entry.js"
+import { bindActiveContext } from "../util/open-telemetry/context.js"
+import Divider from "../util/ink-divider.js"
 
 const devCommandArgs = {
   ...serveArgs,
@@ -93,7 +93,9 @@ Use ${chalk.bold("up/down")} arrow keys to scroll through your command history.
     if (terminalWriter.type === "ink") {
       inkWriter = terminalWriter as InkTerminalWriter
     } else {
-      throw new ParameterError({ message: `This command can only be used with the ink logger type. Got type ${terminalWriter.type}.` })
+      throw new ParameterError({
+        message: `This command can only be used with the ink logger type. Got type ${terminalWriter.type}.`,
+      })
     }
 
     const commandLine = await this.initCommandHandler(params)
@@ -118,9 +120,11 @@ Use ${chalk.bold("up/down")} arrow keys to scroll through your command history.
         },
       })
 
-      useInput(bindActiveContext((input, key) => {
-        commandLine.handleInput(input, key)
-      }))
+      useInput(
+        bindActiveContext((input, key) => {
+          commandLine.handleInput(input, key)
+        })
+      )
 
       const width = stdout ? stdout.columns - 2 : 50
 

@@ -8,14 +8,16 @@
 
 import winston from "winston"
 import { dirname, isAbsolute } from "path"
-import { ensureDir, truncate } from "fs-extra"
+import fsExtra from "fs-extra"
+const { ensureDir, truncate } = fsExtra
 import stripAnsi from "strip-ansi"
 
-import { LogLevel } from "../logger"
-import { LogEntry } from "../log-entry"
-import { BaseWriterParams, Writer } from "./base"
-import { renderError, renderMsg } from "../renderers"
-import { InternalError } from "../../exceptions"
+import { LogLevel } from "../logger.js"
+import type { LogEntry } from "../log-entry.js"
+import type { BaseWriterParams } from "./base.js"
+import { Writer } from "./base.js"
+import { renderError, renderMsg } from "../renderers.js"
+import { InternalError } from "../../exceptions.js"
 
 export interface FileWriterConfig extends BaseWriterParams {
   level: LogLevel

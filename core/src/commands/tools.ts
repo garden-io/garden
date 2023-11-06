@@ -7,17 +7,18 @@
  */
 
 import chalk from "chalk"
-import { max, omit, sortBy } from "lodash"
-import { dedent, naturalList, renderTable, tablePresets } from "../util/string"
-import { Log } from "../logger/log-entry"
-import { Garden, DummyGarden } from "../garden"
-import { Command, CommandParams } from "./base"
-import { getTerminalWidth } from "../logger/util"
-import { ParameterError } from "../exceptions"
-import { uniqByName, exec, shutdown } from "../util/util"
-import { PluginTool } from "../util/ext-tools"
-import { findProjectConfig } from "../config/base"
-import { StringOption, BooleanParameter } from "../cli/params"
+import { max, omit, sortBy } from "lodash-es"
+import { dedent, naturalList, renderTable, tablePresets } from "../util/string.js"
+import type { Log } from "../logger/log-entry.js"
+import { Garden, DummyGarden } from "../garden.js"
+import type { CommandParams } from "./base.js"
+import { Command } from "./base.js"
+import { getTerminalWidth } from "../logger/util.js"
+import { ParameterError } from "../exceptions.js"
+import { uniqByName, exec, shutdown } from "../util/util.js"
+import { PluginTool } from "../util/ext-tools.js"
+import { findProjectConfig } from "../config/base.js"
+import { StringOption, BooleanParameter } from "../cli/params.js"
 
 const toolsArgs = {
   tool: new StringOption({

@@ -6,19 +6,21 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { BooleanParameter, StringsParameter } from "../../cli/params"
-import { joi } from "../../config/common"
-import { printHeader } from "../../logger/util"
-import { DeployTask } from "../../tasks/deploy"
-import { dedent, naturalList } from "../../util/string"
-import { Command, CommandParams, CommandResult, PrepareParams } from "../base"
+import { BooleanParameter, StringsParameter } from "../../cli/params.js"
+import { joi } from "../../config/common.js"
+import { printHeader } from "../../logger/util.js"
+import { DeployTask } from "../../tasks/deploy.js"
+import { dedent, naturalList } from "../../util/string.js"
+import type { CommandParams, CommandResult, PrepareParams } from "../base.js"
+import { Command } from "../base.js"
 import chalk from "chalk"
-import { ParameterError, RuntimeError } from "../../exceptions"
-import { SyncMonitor } from "../../monitors/sync"
-import { Log, createActionLog } from "../../logger/log-entry"
-import { DeployAction } from "../../actions/deploy"
-import { ConfigGraph } from "../../graph/config-graph"
-import { Garden } from "../.."
+import { ParameterError, RuntimeError } from "../../exceptions.js"
+import { SyncMonitor } from "../../monitors/sync.js"
+import type { Log } from "../../logger/log-entry.js"
+import { createActionLog } from "../../logger/log-entry.js"
+import type { DeployAction } from "../../actions/deploy.js"
+import type { ConfigGraph } from "../../graph/config-graph.js"
+import type { Garden } from "../../index.js"
 
 const syncStartArgs = {
   names: new StringsParameter({

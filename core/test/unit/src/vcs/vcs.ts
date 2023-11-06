@@ -6,39 +6,43 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import {
-  VcsHandler,
+import type {
   TreeVersions,
   TreeVersion,
+  GetFilesParams,
+  VcsFile,
+  NamedModuleVersion,
+  NamedTreeVersion,
+  GetTreeVersionParams,
+} from "../../../../src/vcs/vcs.js"
+import {
+  VcsHandler,
   getModuleVersionString,
   writeTreeVersionFile,
   readTreeVersionFile,
-  GetFilesParams,
-  VcsFile,
   getResourceTreeCacheKey,
   hashModuleVersion,
-  NamedModuleVersion,
-  NamedTreeVersion,
   describeConfig,
   getSourcePath,
   getConfigFilePath,
-  GetTreeVersionParams,
-} from "../../../../src/vcs/vcs"
-import { makeTestGardenA, makeTestGarden, getDataDir, TestGarden, defaultModuleConfig } from "../../../helpers"
+} from "../../../../src/vcs/vcs.js"
+import type { TestGarden } from "../../../helpers.js"
+import { makeTestGardenA, makeTestGarden, getDataDir, defaultModuleConfig } from "../../../helpers.js"
 import { expect } from "chai"
 import cloneDeep from "fast-copy"
 
-import { ModuleConfig } from "../../../../src/config/module"
-import { GitHandler } from "../../../../src/vcs/git"
+import type { ModuleConfig } from "../../../../src/config/module.js"
+import { GitHandler } from "../../../../src/vcs/git.js"
 import { resolve, join } from "path"
-import td from "testdouble"
+import * as td from "testdouble"
 import tmp from "tmp-promise"
-import { realpath, readFile, writeFile, rm, rename } from "fs-extra"
-import { DEFAULT_BUILD_TIMEOUT_SEC, GARDEN_VERSIONFILE_NAME, GardenApiVersion } from "../../../../src/constants"
-import { defaultDotIgnoreFile, fixedProjectExcludes } from "../../../../src/util/fs"
-import { createActionLog } from "../../../../src/logger/log-entry"
-import { BaseActionConfig } from "../../../../src/actions/types"
-import { TreeCache } from "../../../../src/cache"
+import fsExtra from "fs-extra"
+const { realpath, readFile, writeFile, rm, rename } = fsExtra
+import { DEFAULT_BUILD_TIMEOUT_SEC, GARDEN_VERSIONFILE_NAME, GardenApiVersion } from "../../../../src/constants.js"
+import { defaultDotIgnoreFile, fixedProjectExcludes } from "../../../../src/util/fs.js"
+import { createActionLog } from "../../../../src/logger/log-entry.js"
+import type { BaseActionConfig } from "../../../../src/actions/types.js"
+import { TreeCache } from "../../../../src/cache.js"
 
 export class TestVcsHandler extends VcsHandler {
   name = "test"

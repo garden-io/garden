@@ -6,11 +6,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { baseModuleSpecSchema, ModuleSpec } from "../config/module"
-import { createSchema, joi } from "../config/common"
-import { dedent } from "../util/string"
-import { createGardenPlugin } from "../plugin/plugin"
-import { memoize } from "lodash"
+import type { ModuleSpec } from "../config/module.js"
+import { baseModuleSpecSchema } from "../config/module.js"
+import { createSchema, joi } from "../config/common.js"
+import { dedent } from "../util/string.js"
+import { createGardenPlugin } from "../plugin/plugin.js"
+import { memoize } from "lodash-es"
 
 export type VolumeAccessMode = "ReadOnlyMany" | "ReadWriteOnce" | "ReadWriteMany"
 

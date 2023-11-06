@@ -7,16 +7,16 @@
  */
 
 import { expect } from "chai"
-import { Garden } from "../../../../../../src/garden"
-import { ConfigGraph } from "../../../../../../src/graph/config-graph"
-import { Log } from "../../../../../../src/logger/log-entry"
-import { getMutagenDataDir, getMutagenMonitor } from "../../../../../../src/mutagen"
-import { PluginContext } from "../../../../../../src/plugin-context"
-import { syncPause, syncResume, syncStatus } from "../../../../../../src/plugins/kubernetes/commands/sync"
-import { KubernetesProvider } from "../../../../../../src/plugins/kubernetes/config"
-import { DeployTask } from "../../../../../../src/tasks/deploy"
-import { cleanProject } from "../../../../../helpers"
-import { getContainerTestGarden } from "../container/container"
+import type { Garden } from "../../../../../../src/garden.js"
+import type { ConfigGraph } from "../../../../../../src/graph/config-graph.js"
+import type { Log } from "../../../../../../src/logger/log-entry.js"
+import { getMutagenDataDir, getMutagenMonitor } from "../../../../../../src/mutagen.js"
+import type { PluginContext } from "../../../../../../src/plugin-context.js"
+import { syncPause, syncResume, syncStatus } from "../../../../../../src/plugins/kubernetes/commands/sync.js"
+import type { KubernetesProvider } from "../../../../../../src/plugins/kubernetes/config.js"
+import { DeployTask } from "../../../../../../src/tasks/deploy.js"
+import { cleanProject } from "../../../../../helpers.js"
+import { getContainerTestGarden } from "../container/container.js"
 
 describe("sync plugin commands", () => {
   let garden: Garden

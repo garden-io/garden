@@ -6,16 +6,17 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ConfigureProviderParams } from "../../plugin/handlers/Provider/configureProvider"
-import { createGardenPlugin } from "../../plugin/plugin"
-import { k8sContainerRunExtension, k8sContainerTestExtension } from "../kubernetes/container/extensions"
+import type { ConfigureProviderParams } from "../../plugin/handlers/Provider/configureProvider.js"
+import { createGardenPlugin } from "../../plugin/plugin.js"
+import { k8sContainerRunExtension, k8sContainerTestExtension } from "../kubernetes/container/extensions.js"
 import {
   kubernetesExecRunDefinition,
   kubernetesExecTestDefinition,
-} from "../kubernetes/kubernetes-type/kubernetes-exec"
-import { openshiftContainerBuildExtension } from "./build"
-import { OpenShiftConfig, configSchema } from "./config"
-import { openshiftContainerDeployExtension } from "./deploy"
+} from "../kubernetes/kubernetes-type/kubernetes-exec.js"
+import { openshiftContainerBuildExtension } from "./build.js"
+import type { OpenShiftConfig } from "./config.js"
+import { configSchema } from "./config.js"
+import { openshiftContainerDeployExtension } from "./deploy.js"
 
 export async function configureProvider({ config }: ConfigureProviderParams<OpenShiftConfig>) {
   return { config }

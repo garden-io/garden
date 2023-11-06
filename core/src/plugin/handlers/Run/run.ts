@@ -6,12 +6,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { runBaseParams, PluginRunActionParamsBase, actionParamsSchema } from "../../../plugin/base"
-import { dedent } from "../../../util/string"
-import { RunAction } from "../../../actions/run"
-import { ActionTypeHandlerSpec } from "../base/base"
-import { GetRunResult, getRunResultSchema } from "./get-result"
-import { Resolved } from "../../../actions/types"
+import type { PluginRunActionParamsBase } from "../../../plugin/base.js"
+import { runBaseParams, actionParamsSchema } from "../../../plugin/base.js"
+import { dedent } from "../../../util/string.js"
+import type { RunAction } from "../../../actions/run.js"
+import { ActionTypeHandlerSpec } from "../base/base.js"
+import type { GetRunResult } from "./get-result.js"
+import { getRunResultSchema } from "./get-result.js"
+import type { Resolved } from "../../../actions/types.js"
 
 export interface CommonRunParams {
   artifactsPath: string

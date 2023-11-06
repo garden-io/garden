@@ -6,26 +6,32 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { join, resolve } from "path"
+import { dirname, join, resolve } from "node:path"
 
 import { expect } from "chai"
-import { pathExists, readFile, remove } from "fs-extra"
+import fsExtra from "fs-extra"
+const { pathExists, readFile, remove } = fsExtra
 
-import { getRootLogMessages, makeTestGarden, TestGarden } from "@garden-io/sdk/build/src/testing"
-import { findByName } from "@garden-io/core/build/src/util/util"
-import { getTerraformCommands } from "../src/commands"
-import { ConfigGraph, LogLevel } from "@garden-io/sdk/build/src/types"
-import { gardenPlugin } from "../src/index"
-import { TerraformProvider } from "../src/provider"
-import { DeployTask } from "@garden-io/core/build/src/tasks/deploy"
-import { getWorkspaces, setWorkspace } from "../src/helpers"
-import { resolveAction } from "@garden-io/core/build/src/graph/actions"
-import { RunTask } from "@garden-io/core/build/src/tasks/run"
-import { defaultTerraformVersion } from "../src/cli"
+import type { TestGarden } from "@garden-io/sdk/build/src/testing.js"
+import { getRootLogMessages, makeTestGarden } from "@garden-io/sdk/build/src/testing.js"
+import { findByName } from "@garden-io/core/build/src/util/util.js"
+import { getTerraformCommands } from "../src/commands.js"
+import type { ConfigGraph } from "@garden-io/sdk/build/src/types.js"
+import { LogLevel } from "@garden-io/sdk/build/src/types.js"
+import { gardenPlugin } from "../src/index.js"
+import type { TerraformProvider } from "../src/provider.js"
+import { DeployTask } from "@garden-io/core/build/src/tasks/deploy.js"
+import { getWorkspaces, setWorkspace } from "../src/helpers.js"
+import { resolveAction } from "@garden-io/core/build/src/graph/actions.js"
+import { RunTask } from "@garden-io/core/build/src/tasks/run.js"
+import { defaultTerraformVersion } from "../src/cli.js"
+import { fileURLToPath } from "node:url"
+
+const moduleDirName = dirname(fileURLToPath(import.meta.url))
 
 for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
   describe(`Terraform provider with terraform ${terraformVersion}`, () => {
-    const testRoot = resolve(__dirname, "../../test/", "test-project")
+    const testRoot = resolve(moduleDirName, "../../test/", "test-project")
     let garden: TestGarden
     let tfRoot: string
     let stateDirPath: string
@@ -290,7 +296,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
   })
 
   describe("Terraform action type", () => {
-    const testRoot = resolve(__dirname, "../../test/", "test-project-action")
+    const testRoot = resolve(moduleDirName, "../../test/", "test-project-action")
     const tfRoot = join(testRoot, "tf")
     const stateDirPath = join(tfRoot, "terraform.tfstate")
     const testFilePath = join(tfRoot, "test.log")
@@ -728,7 +734,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
   })
 
   describe("Terraform module type", () => {
-    const testRoot = resolve(__dirname, "../../test/", "test-project-module")
+    const testRoot = resolve(moduleDirName, "../../test/", "test-project-module")
     const tfRoot = join(testRoot, "tf")
     const stateDirPath = join(tfRoot, "terraform.tfstate")
     const testFilePath = join(tfRoot, "test.log")

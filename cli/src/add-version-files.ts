@@ -6,13 +6,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { GitHandler } from "@garden-io/core/build/src/vcs/git"
-import { Garden } from "@garden-io/core/build/src/garden"
-import { LogLevel, RootLogger } from "@garden-io/core/build/src/logger/logger"
+import { GitHandler } from "@garden-io/core/build/src/vcs/git.js"
+import { Garden } from "@garden-io/core/build/src/garden.js"
+import { LogLevel, RootLogger } from "@garden-io/core/build/src/logger/logger.js"
 import { resolve, relative } from "path"
-import { STATIC_DIR, GARDEN_VERSIONFILE_NAME } from "@garden-io/core/build/src/constants"
-import { writeTreeVersionFile } from "@garden-io/core/build/src/vcs/vcs"
-import { TreeCache } from "@garden-io/core/build/src/cache"
+import { STATIC_DIR, GARDEN_VERSIONFILE_NAME } from "@garden-io/core/build/src/constants.js"
+import { writeTreeVersionFile } from "@garden-io/core/build/src/vcs/vcs.js"
+import { TreeCache } from "@garden-io/core/build/src/cache.js"
+import * as url from "node:url"
 
 // make sure logger is initialized
 RootLogger.initialize({ level: LogLevel.info, displayWriterType: "quiet", storeEntries: false })
@@ -47,7 +48,8 @@ async function addVersionFiles() {
   )
 }
 
-if (require.main === module) {
+const modulePath = url.fileURLToPath(import.meta.url)
+if (process.argv[1] === modulePath) {
   addVersionFiles().catch((err) => {
     // eslint-disable-next-line no-console
     console.error(err)

@@ -6,13 +6,16 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { dedent } from "../../../util/string"
-import { GardenModule } from "../../../types/module"
-import { PluginContext, pluginContextSchema } from "../../../plugin-context"
-import { logEntrySchema, PluginActionContextParams } from "../../../plugin/base"
-import { baseModuleSpecSchema, ModuleConfig, moduleConfigSchema } from "../../../config/module"
-import { joi } from "../../../config/common"
-import { Log } from "../../../logger/log-entry"
+import { dedent } from "../../../util/string.js"
+import type { GardenModule } from "../../../types/module.js"
+import type { PluginContext } from "../../../plugin-context.js"
+import { pluginContextSchema } from "../../../plugin-context.js"
+import type { PluginActionContextParams } from "../../../plugin/base.js"
+import { logEntrySchema } from "../../../plugin/base.js"
+import type { ModuleConfig } from "../../../config/module.js"
+import { baseModuleSpecSchema, moduleConfigSchema } from "../../../config/module.js"
+import { joi } from "../../../config/common.js"
+import type { Log } from "../../../logger/log-entry.js"
 
 export interface ConfigureModuleParams<T extends GardenModule = GardenModule> extends PluginActionContextParams {
   ctx: PluginContext

@@ -7,19 +7,21 @@
  */
 
 import { isAbsolute, join, resolve, relative, parse, basename } from "path"
-import { emptyDir, ensureDir, mkdirp, pathExists, remove } from "fs-extra"
-import { ConfigurationError, InternalError, isErrnoException } from "../exceptions"
-import { normalizeRelativePath, joinWithPosix } from "../util/fs"
-import { Log } from "../logger/log-entry"
-import { Profile } from "../util/profiling"
+import fsExtra from "fs-extra"
+const { emptyDir, ensureDir, mkdirp, pathExists, remove } = fsExtra
+import { ConfigurationError, InternalError, isErrnoException } from "../exceptions.js"
+import { normalizeRelativePath, joinWithPosix } from "../util/fs.js"
+import type { Log } from "../logger/log-entry.js"
+import { Profile } from "../util/profiling.js"
 import async from "async"
 import chalk from "chalk"
 import { hasMagic } from "glob"
-import { FileStatsHelper, syncFileAsync, cloneFile, scanDirectoryForClone, MappedPaths } from "./helpers"
-import { difference } from "lodash"
+import type { MappedPaths } from "./helpers.js"
+import { FileStatsHelper, syncFileAsync, cloneFile, scanDirectoryForClone } from "./helpers.js"
+import { difference } from "lodash-es"
 import { unlink } from "fs"
-import { BuildAction, BuildActionConfig } from "../actions/build"
-import { ModuleConfig } from "../config/module"
+import type { BuildAction, BuildActionConfig } from "../actions/build.js"
+import type { ModuleConfig } from "../config/module.js"
 
 const fileSyncConcurrencyLimit = 100
 

@@ -6,8 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ToolBuildSpec } from "@garden-io/core/src/plugin/tools"
-import { PluginToolSpec } from "@garden-io/sdk/build/src/types"
+import type { ToolBuildSpec } from "@garden-io/core/src/plugin/tools.js"
+import type { PluginToolSpec } from "@garden-io/sdk/build/src/types.js"
 import { posix } from "path"
 
 interface JdkBinary {

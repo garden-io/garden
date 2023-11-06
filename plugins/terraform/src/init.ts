@@ -6,12 +6,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { TerraformProvider } from "./provider"
-import { applyStack, getRoot, getStackStatus, getTfOutputs, prepareVariables, setWorkspace } from "./helpers"
+import type { TerraformProvider } from "./provider.js"
+import { applyStack, getRoot, getStackStatus, getTfOutputs, prepareVariables, setWorkspace } from "./helpers.js"
 import chalk from "chalk"
-import { deline } from "@garden-io/sdk/build/src/util/string"
-import { ProviderHandlers } from "@garden-io/sdk/build/src/types"
-import { terraform } from "./cli"
+import { deline } from "@garden-io/sdk/build/src/util/string.js"
+import type { ProviderHandlers } from "@garden-io/sdk/build/src/types.js"
+import { terraform } from "./cli.js"
 
 export const getEnvironmentStatus: ProviderHandlers["getEnvironmentStatus"] = async ({ ctx, log }) => {
   const provider = ctx.provider as TerraformProvider

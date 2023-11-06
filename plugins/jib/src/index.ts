@@ -6,32 +6,37 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import split2 = require("split2")
+import split2 from "split2"
 import { createGardenPlugin } from "@garden-io/sdk"
-import { dedent } from "@garden-io/sdk/build/src/util/string"
+import { dedent } from "@garden-io/sdk/build/src/util/string.js"
 
-import { openJdkSpecs } from "./openjdk"
-import { mavenSpec, mvn, mvnVersion } from "./maven"
-import { mavendSpec, mvnd, mvndVersion } from "./mavend"
-import { gradle, gradleSpec, gradleVersion } from "./gradle"
+import { openJdkSpecs } from "./openjdk.js"
+import { mavenSpec, mvn, mvnVersion } from "./maven.js"
+import { mavendSpec, mvnd, mvndVersion } from "./mavend.js"
+import { gradle, gradleSpec, gradleVersion } from "./gradle.js"
 
 // TODO: gradually get rid of these core dependencies, move some to SDK etc.
-import { GenericProviderConfig, Provider, providerConfigBaseSchema } from "@garden-io/core/build/src/config/provider"
-import { getGitHubUrl } from "@garden-io/core/build/src/docs/common"
+import type { GenericProviderConfig, Provider } from "@garden-io/core/build/src/config/provider.js"
+import { providerConfigBaseSchema } from "@garden-io/core/build/src/config/provider.js"
+import { getGitHubUrl } from "@garden-io/core/build/src/docs/common.js"
 import {
   containerBuildSpecSchema,
   containerModuleSpecSchema,
-} from "@garden-io/core/build/src/plugins/container/moduleConfig"
-import { joi } from "@garden-io/core/build/src/config/common"
-import { baseBuildSpecSchema } from "@garden-io/core/build/src/config/module"
-import { ConfigureModuleParams } from "@garden-io/core/build/src/plugin/handlers/Module/configure"
-import { containerHelpers } from "@garden-io/core/build/src/plugins/container/helpers"
+} from "@garden-io/core/build/src/plugins/container/moduleConfig.js"
+import { joi } from "@garden-io/core/build/src/config/common.js"
+import { baseBuildSpecSchema } from "@garden-io/core/build/src/config/module.js"
+import type { ConfigureModuleParams } from "@garden-io/core/build/src/plugin/handlers/Module/configure.js"
+import { containerHelpers } from "@garden-io/core/build/src/plugins/container/helpers.js"
 import cloneDeep from "fast-copy"
-import { pick } from "lodash"
-import { LogLevel } from "@garden-io/core/build/src/logger/logger"
-import { detectProjectType, getBuildFlags, JibBuildActionSpec, JibBuildConfig, JibContainerModule } from "./util"
-import { ConvertModuleParams, ConvertModuleResult } from "@garden-io/core/build/src/plugin/handlers/Module/convert"
-import { PluginEventLogContext } from "@garden-io/core/build/src/plugin-context"
+import { pick } from "lodash-es"
+import { LogLevel } from "@garden-io/core/build/src/logger/logger.js"
+import type { JibBuildActionSpec, JibBuildConfig, JibContainerModule } from "./util.js"
+import { detectProjectType, getBuildFlags } from "./util.js"
+import type {
+  ConvertModuleParams,
+  ConvertModuleResult,
+} from "@garden-io/core/build/src/plugin/handlers/Module/convert.js"
+import type { PluginEventLogContext } from "@garden-io/core/build/src/plugin-context.js"
 
 export type JibProviderConfig = GenericProviderConfig
 

@@ -7,27 +7,21 @@
  */
 
 import { expect } from "chai"
-import td from "testdouble"
-import {
-  expectError,
-  getDataDir,
-  makeTempDir,
-  makeTestGarden,
-  TempDirectory,
-  withDefaultGlobalOpts,
-} from "../../../helpers"
-import { AuthRedirectServer } from "../../../../src/cloud/auth"
+import * as td from "testdouble"
+import type { TempDirectory } from "../../../helpers.js"
+import { expectError, getDataDir, makeTempDir, makeTestGarden, withDefaultGlobalOpts } from "../../../helpers.js"
+import { AuthRedirectServer } from "../../../../src/cloud/auth.js"
 
-import { LoginCommand } from "../../../../src/commands/login"
-import { dedent, randomString } from "../../../../src/util/string"
-import { CloudApi } from "../../../../src/cloud/api"
-import { LogLevel } from "../../../../src/logger/logger"
-import { DEFAULT_GARDEN_CLOUD_DOMAIN, gardenEnv } from "../../../../src/constants"
-import { CloudApiError } from "../../../../src/exceptions"
-import { getLogMessages } from "../../../../src/util/testing"
-import { GlobalConfigStore } from "../../../../src/config-store/global"
-import { makeDummyGarden } from "../../../../src/garden"
-import { Garden } from "../../../../src"
+import { LoginCommand } from "../../../../src/commands/login.js"
+import { dedent, randomString } from "../../../../src/util/string.js"
+import { CloudApi } from "../../../../src/cloud/api.js"
+import { LogLevel } from "../../../../src/logger/logger.js"
+import { DEFAULT_GARDEN_CLOUD_DOMAIN, gardenEnv } from "../../../../src/constants.js"
+import { CloudApiError } from "../../../../src/exceptions.js"
+import { getLogMessages } from "../../../../src/util/testing.js"
+import { GlobalConfigStore } from "../../../../src/config-store/global.js"
+import { makeDummyGarden } from "../../../../src/garden.js"
+import type { Garden } from "../../../../src/index.js"
 
 function loginCommandParams({ garden, opts = { "disable-project-check": false } }: { garden: Garden; opts?: any }) {
   const log = garden.log
@@ -46,7 +40,6 @@ function loginCommandParams({ garden, opts = { "disable-project-check": false } 
 describe("LoginCommand", () => {
   let tmpDir: TempDirectory
   let globalConfigStore: GlobalConfigStore
-  const loginOpts = { "disable-project-check": false }
 
   beforeEach(async () => {
     td.replace(AuthRedirectServer.prototype, "start", async () => {})

@@ -8,24 +8,25 @@
 
 import chalk from "chalk"
 import type { Key } from "ink"
-import { max } from "lodash"
+import { max } from "lodash-es"
 import { resolve } from "path"
 import sliceAnsi from "slice-ansi"
 import stringArgv from "string-argv"
 import stringWidth from "string-width"
-import { BuiltinArgs, Command, CommandGroup, CommandResult, PrepareParams } from "../commands/base"
-import { ServeCommand } from "../commands/serve"
-import { GlobalConfigStore } from "../config-store/global"
-import { findProjectConfig } from "../config/base"
-import { GardenError, toGardenError } from "../exceptions"
-import { Garden } from "../garden"
-import type { Log } from "../logger/log-entry"
-import { getTermWidth, renderDivider } from "../logger/util"
-import type { GardenInstanceManager } from "../server/instance-manager"
-import { TypedEventEmitter } from "../util/events"
-import { uuidv4 } from "../util/random"
-import { sleep } from "../util/util"
-import { AutocompleteSuggestion } from "./autocomplete"
+import type { BuiltinArgs, Command, CommandResult, PrepareParams } from "../commands/base.js"
+import { CommandGroup } from "../commands/base.js"
+import type { ServeCommand } from "../commands/serve.js"
+import { GlobalConfigStore } from "../config-store/global.js"
+import { findProjectConfig } from "../config/base.js"
+import { GardenError, toGardenError } from "../exceptions.js"
+import type { Garden } from "../garden.js"
+import type { Log } from "../logger/log-entry.js"
+import { getTermWidth, renderDivider } from "../logger/util.js"
+import type { GardenInstanceManager } from "../server/instance-manager.js"
+import { TypedEventEmitter } from "../util/events.js"
+import { uuidv4 } from "../util/random.js"
+import { sleep } from "../util/util.js"
+import type { AutocompleteSuggestion } from "./autocomplete.js"
 import {
   getOtherCommands,
   getPopularCommands,
@@ -34,11 +35,11 @@ import {
   processCliArgs,
   renderCommandErrors,
   renderCommands,
-} from "./helpers"
-import type { GlobalOptions, ParameterObject, ParameterValues } from "./params"
-import { bindActiveContext, withSessionContext } from "../util/open-telemetry/context"
-import { wrapActiveSpan } from "../util/open-telemetry/spans"
-import { DEFAULT_BROWSER_DIVIDER_WIDTH } from "../constants"
+} from "./helpers.js"
+import type { GlobalOptions, ParameterObject, ParameterValues } from "./params.js"
+import { bindActiveContext, withSessionContext } from "../util/open-telemetry/context.js"
+import { wrapActiveSpan } from "../util/open-telemetry/spans.js"
+import { DEFAULT_BROWSER_DIVIDER_WIDTH } from "../constants.js"
 
 const defaultMessageDuration = 3000
 const commandLinePrefix = chalk.yellow("🌼  > ")

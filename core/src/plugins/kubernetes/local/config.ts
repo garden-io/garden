@@ -6,25 +6,21 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import {
-  KubernetesConfig,
-  kubernetesConfigBase,
-  k8sContextSchema,
-  KubernetesProvider,
-  namespaceSchema,
-} from "../config"
-import { ConfigureProviderParams } from "../../../plugin/handlers/Provider/configureProvider"
-import { joiProviderName, joi } from "../../../config/common"
-import { getKubeConfig } from "../api"
-import { configureMicrok8sAddons } from "./microk8s"
-import { setMinikubeDockerEnv } from "./minikube"
-import { exec } from "../../../util/util"
-import { remove } from "lodash"
+import type { KubernetesConfig, KubernetesProvider } from "../config.js"
+import { kubernetesConfigBase, k8sContextSchema, namespaceSchema } from "../config.js"
+import type { ConfigureProviderParams } from "../../../plugin/handlers/Provider/configureProvider.js"
+import { joiProviderName, joi } from "../../../config/common.js"
+import { getKubeConfig } from "../api.js"
+import { configureMicrok8sAddons } from "./microk8s.js"
+import { setMinikubeDockerEnv } from "./minikube.js"
+import { exec } from "../../../util/util.js"
+import { remove } from "lodash-es"
 import chalk from "chalk"
-import { isKindCluster } from "./kind"
-import { isK3sFamilyCluster } from "./k3s"
-import { getK8sClientServerVersions, K8sClientServerVersions } from "../util"
-import { ChildProcessError } from "../../../exceptions"
+import { isKindCluster } from "./kind.js"
+import { isK3sFamilyCluster } from "./k3s.js"
+import type { K8sClientServerVersions } from "../util.js"
+import { getK8sClientServerVersions } from "../util.js"
+import { ChildProcessError } from "../../../exceptions.js"
 
 // TODO: split this into separate plugins to handle Docker for Mac and Minikube
 // note: this is in order of preference, in case neither is set as the current kubectl context

@@ -8,13 +8,14 @@
 
 import { expect } from "chai"
 import { join } from "path"
-import { keyBy } from "lodash"
-import { ConfigContext } from "../../../../../src/config/template-contexts/base"
-import { makeTestGardenA, TestGarden } from "../../../../helpers"
-import { ModuleConfigContext } from "../../../../../src/config/template-contexts/module"
-import { WorkflowConfigContext } from "../../../../../src/config/template-contexts/workflow"
-import { GardenModule } from "../../../../../src/types/module"
-import { ConfigGraph } from "../../../../../src/graph/config-graph"
+import { keyBy } from "lodash-es"
+import type { ConfigContext } from "../../../../../src/config/template-contexts/base.js"
+import type { TestGarden } from "../../../../helpers.js"
+import { makeTestGardenA } from "../../../../helpers.js"
+import { ModuleConfigContext } from "../../../../../src/config/template-contexts/module.js"
+import { WorkflowConfigContext } from "../../../../../src/config/template-contexts/workflow.js"
+import type { GardenModule } from "../../../../../src/types/module.js"
+import type { ConfigGraph } from "../../../../../src/graph/config-graph.js"
 
 type TestValue = string | ConfigContext | TestValues | TestValueFunction
 type TestValueFunction = () => TestValue | Promise<TestValue>

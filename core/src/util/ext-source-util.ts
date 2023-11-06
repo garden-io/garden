@@ -6,15 +6,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { keyBy } from "lodash"
+import { keyBy } from "lodash-es"
 import chalk from "chalk"
 
-import { LinkedSource } from "../config-store/local"
-import { ParameterError } from "../exceptions"
-import { GardenModule } from "../types/module"
-import { Garden } from "../garden"
-import { hashString } from "./util"
-import { naturalList, titleize } from "./string"
+import type { LinkedSource } from "../config-store/local.js"
+import { ParameterError } from "../exceptions.js"
+import type { GardenModule } from "../types/module.js"
+import type { Garden } from "../garden.js"
+import { hashString } from "./util.js"
+import { naturalList, titleize } from "./string.js"
 import { join } from "path"
 
 export type ExternalSourceType = "project" | "module" | "action"

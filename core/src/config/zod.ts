@@ -6,8 +6,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Schema, z, infer as inferZodType, ZodType } from "zod"
-import { envVarRegex, identifierRegex, joiIdentifierDescription, userIdentifierRegex } from "./constants"
+import type { infer as inferZodType, ZodType } from "zod"
+import z, { Schema } from "zod"
+import { envVarRegex, identifierRegex, joiIdentifierDescription, userIdentifierRegex } from "./constants.js"
 
 // Add metadata support to schemas. See https://github.com/colinhacks/zod/issues/273#issuecomment-1434077058
 declare module "zod" {
@@ -75,82 +76,83 @@ type GardenSchema = typeof z & {
 }
 
 // This should be imported instead of z because we augment zod with custom methods
-export const s = z as GardenSchema
+const gardenZod = Object.assign(
+  {
+    envVars: () => z.record(z.string().regex(envVarRegex).min(1), z.string()),
+    posixPath: (opts: PosixPathOpts = {}) => {
+      return z
+        .string()
+        .superRefine((value, ctx) => {
+          if (opts.absoluteOnly && !value.startsWith("/")) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: `Path must be absolute (i.e. start with /).`,
+            })
+          }
+          if (!opts.allowGlobs && (value.includes("*") || value.includes("?"))) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: "Path cannot include globs or wildcards.",
+            })
+          }
+          if (opts.filenameOnly && value.includes("/")) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: "Must be a filename (may not contain slashes).",
+            })
+          }
+          if (opts.relativeOnly && value.startsWith("/")) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: "Must be a relative path (may not start with a slash).",
+            })
+          }
+          if (opts.subPathOnly && value.includes("..")) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: "Must be a sub-path (may not include '..').",
+            })
+          }
+        })
+        .setMetadata({
+          // Picked up when converting to joi schemas
+          posixPath: opts,
+        })
+    },
+    identifier: () => {
+      return z
+        .string({
+          errorMap: (issue, ctx) => {
+            if (issue.code === z.ZodIssueCode.invalid_string && issue.validation === "regex") {
+              return { message: "Expected a valid identifier. Should be a " + joiIdentifierDescription }
+            }
+            return { message: ctx.defaultError }
+          },
+        })
+        .regex(identifierRegex)
+    },
+    userIdentifier: () => {
+      return z
+        .string({
+          errorMap: (issue, ctx) => {
+            if (issue.code === z.ZodIssueCode.invalid_string && issue.validation === "regex") {
+              return {
+                message:
+                  "Expected a valid identifier (that also cannot start with 'garden'). Should be a " +
+                  joiIdentifierDescription,
+              }
+            }
+            return { message: ctx.defaultError }
+          },
+        })
+        .regex(userIdentifierRegex)
+    },
+    sparseArray: <T extends z.ZodTypeAny>(schema: T, params?: z.RawCreateParams) => {
+      return z.array(schema, params).transform((value) => value.filter((v: any) => v !== undefined && v !== null))
+    },
+  },
+  z
+) as GardenSchema
 export type inferType<T extends ZodType<any, any, any>> = inferZodType<T>
 
-s.envVars = () => s.record(s.string().regex(envVarRegex).min(1), z.string())
-
-s.posixPath = (opts: PosixPathOpts = {}) => {
-  return z
-    .string()
-    .superRefine((value, ctx) => {
-      if (opts.absoluteOnly && !value.startsWith("/")) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: `Path must be absolute (i.e. start with /).`,
-        })
-      }
-      if (!opts.allowGlobs && (value.includes("*") || value.includes("?"))) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "Path cannot include globs or wildcards.",
-        })
-      }
-      if (opts.filenameOnly && value.includes("/")) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "Must be a filename (may not contain slashes).",
-        })
-      }
-      if (opts.relativeOnly && value.startsWith("/")) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "Must be a relative path (may not start with a slash).",
-        })
-      }
-      if (opts.subPathOnly && value.includes("..")) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "Must be a sub-path (may not include '..').",
-        })
-      }
-    })
-    .setMetadata({
-      // Picked up when converting to joi schemas
-      posixPath: opts,
-    })
-}
-
-s.identifier = () => {
-  return z
-    .string({
-      errorMap: (issue, ctx) => {
-        if (issue.code === z.ZodIssueCode.invalid_string && issue.validation === "regex") {
-          return { message: "Expected a valid identifier. Should be a " + joiIdentifierDescription }
-        }
-        return { message: ctx.defaultError }
-      },
-    })
-    .regex(identifierRegex)
-}
-
-s.userIdentifier = () => {
-  return z
-    .string({
-      errorMap: (issue, ctx) => {
-        if (issue.code === z.ZodIssueCode.invalid_string && issue.validation === "regex") {
-          return {
-            message:
-              "Expected a valid identifier (that also cannot start with 'garden'). Should be a " +
-              joiIdentifierDescription,
-          }
-        }
-        return { message: ctx.defaultError }
-      },
-    })
-    .regex(userIdentifierRegex)
-}
-
-s.sparseArray = <T extends z.ZodTypeAny>(schema: T, params?: z.RawCreateParams) => {
-  return s.array(schema, params).transform((value) => value.filter((v: any) => v !== undefined && v !== null))
-}
+export { gardenZod as s }

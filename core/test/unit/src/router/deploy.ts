@@ -7,14 +7,15 @@
  */
 
 import { expect } from "chai"
-import Stream from "ts-stream"
-import { ResolvedDeployAction } from "../../../../src/actions/deploy"
-import { ConfigGraph } from "../../../../src/graph/config-graph"
-import { ActionLog } from "../../../../src/logger/log-entry"
-import { ActionRouter } from "../../../../src/router/router"
-import { DeployLogEntry } from "../../../../src/types/service"
-import { TestGarden, expectError } from "../../../helpers"
-import { getRouterTestData } from "./_helpers"
+import { Stream } from "ts-stream"
+import type { ResolvedDeployAction } from "../../../../src/actions/deploy.js"
+import type { ConfigGraph } from "../../../../src/graph/config-graph.js"
+import type { ActionLog } from "../../../../src/logger/log-entry.js"
+import type { ActionRouter } from "../../../../src/router/router.js"
+import type { DeployLogEntry } from "../../../../src/types/service.js"
+import type { TestGarden } from "../../../helpers.js"
+import { expectError } from "../../../helpers.js"
+import { getRouterTestData } from "./_helpers.js"
 
 describe("deploy actions", () => {
   let garden: TestGarden

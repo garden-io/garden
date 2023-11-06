@@ -6,16 +6,18 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { deline } from "../../../util/string"
-import { GardenModule } from "../../../types/module"
-import { PluginActionContextParams, logEntrySchema } from "../../base"
-import { joi, PrimitiveMap, joiVariables, moduleVersionSchema } from "../../../config/common"
-import { templateStringLiteral } from "../../../docs/common"
-import { ModuleVersion } from "../../../vcs/vcs"
-import { Log } from "../../../logger/log-entry"
-import { pluginContextSchema } from "../../../plugin-context"
-import { baseModuleSpecSchema } from "../../../config/module"
-import { memoize } from "lodash"
+import { deline } from "../../../util/string.js"
+import type { GardenModule } from "../../../types/module.js"
+import type { PluginActionContextParams } from "../../base.js"
+import { logEntrySchema } from "../../base.js"
+import type { PrimitiveMap } from "../../../config/common.js"
+import { joi, joiVariables, moduleVersionSchema } from "../../../config/common.js"
+import { templateStringLiteral } from "../../../docs/common.js"
+import type { ModuleVersion } from "../../../vcs/vcs.js"
+import type { Log } from "../../../logger/log-entry.js"
+import { pluginContextSchema } from "../../../plugin-context.js"
+import { baseModuleSpecSchema } from "../../../config/module.js"
+import { memoize } from "lodash-es"
 
 export interface GetModuleOutputsParams<T extends GardenModule = GardenModule> extends PluginActionContextParams {
   log: Log

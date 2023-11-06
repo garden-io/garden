@@ -6,21 +6,27 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { expectError, makeTestGarden, TestGarden } from "@garden-io/sdk/build/src/testing"
+import type { TestGarden } from "@garden-io/sdk/build/src/testing.js"
+import { expectError, makeTestGarden } from "@garden-io/sdk/build/src/testing.js"
 import { expect } from "chai"
-import { detectProjectType, getBuildFlags, JibBuildAction } from "../src/util"
-import { join, resolve } from "path"
-import { ResolvedConfigGraph } from "@garden-io/core/build/src/graph/config-graph"
-import { Resolved } from "@garden-io/core/build/src/actions/types"
-import { gardenPlugin } from "../src/index"
-import { rm } from "fs/promises"
-import { createFile } from "fs-extra"
+import type { JibBuildAction } from "../src/util.js"
+import { detectProjectType, getBuildFlags } from "../src/util.js"
+import { dirname, join, resolve } from "node:path"
+import type { ResolvedConfigGraph } from "@garden-io/core/build/src/graph/config-graph.js"
+import type { Resolved } from "@garden-io/core/build/src/actions/types.js"
+import { gardenPlugin } from "../src/index.js"
+import { fileURLToPath } from "node:url"
+import { rm } from "node:fs/promises"
+import fsExtra from "fs-extra"
+const { createFile } = fsExtra
+
+const moduleDirName = dirname(fileURLToPath(import.meta.url))
 
 describe("util", function () {
   // eslint-disable-next-line no-invalid-this
   this.timeout(180 * 1000) // initial jib build can take a long time
 
-  const projectRoot = resolve(__dirname, "../../test/", "test-project")
+  const projectRoot = resolve(moduleDirName, "../../test/", "test-project")
 
   let garden: TestGarden
   let graph: ResolvedConfigGraph
@@ -90,7 +96,6 @@ describe("util", function () {
     it("correctly sets the target for maven", () => {
       action["_staticOutputs"].deploymentImageId = imageId
 
-      const versionString = action.getFullVersion().versionString
       const { args } = getBuildFlags(action, "maven")
 
       expect(args).to.include("jib:build")

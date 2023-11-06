@@ -7,21 +7,22 @@
  */
 
 import { expect } from "chai"
-import { getDataDir, makeTestGarden, TestGarden } from "../../../../../helpers"
-import { ConfigGraph } from "../../../../../../src/graph/config-graph"
-import { DeployTask } from "../../../../../../src/tasks/deploy"
-import { k8sGetContainerDeployLogs } from "../../../../../../src/plugins/kubernetes/container/logs"
+import type { TestGarden } from "../../../../../helpers.js"
+import { getDataDir, makeTestGarden } from "../../../../../helpers.js"
+import type { ConfigGraph } from "../../../../../../src/graph/config-graph.js"
+import { DeployTask } from "../../../../../../src/tasks/deploy.js"
+import { k8sGetContainerDeployLogs } from "../../../../../../src/plugins/kubernetes/container/logs.js"
 import { Stream } from "ts-stream"
-import { DeployLogEntry } from "../../../../../../src/types/service"
-import { KubernetesPluginContext, KubernetesProvider } from "../../../../../../src/plugins/kubernetes/config"
-import { K8sLogFollower, makeDeployLogEntry } from "../../../../../../src/plugins/kubernetes/logs"
-import { KubeApi } from "../../../../../../src/plugins/kubernetes/api"
-import { createWorkloadManifest } from "../../../../../../src/plugins/kubernetes/container/deployment"
-import { sleep } from "../../../../../../src/util/util"
-import { DeleteDeployTask } from "../../../../../../src/tasks/delete-deploy"
-import { getDeployedImageId } from "../../../../../../src/plugins/kubernetes/container/util"
-import { ContainerDeployAction } from "../../../../../../src/plugins/container/config"
-import { createActionLog } from "../../../../../../src/logger/log-entry"
+import type { DeployLogEntry } from "../../../../../../src/types/service.js"
+import type { KubernetesPluginContext, KubernetesProvider } from "../../../../../../src/plugins/kubernetes/config.js"
+import { K8sLogFollower, makeDeployLogEntry } from "../../../../../../src/plugins/kubernetes/logs.js"
+import { KubeApi } from "../../../../../../src/plugins/kubernetes/api.js"
+import { createWorkloadManifest } from "../../../../../../src/plugins/kubernetes/container/deployment.js"
+import { sleep } from "../../../../../../src/util/util.js"
+import { DeleteDeployTask } from "../../../../../../src/tasks/delete-deploy.js"
+import { getDeployedImageId } from "../../../../../../src/plugins/kubernetes/container/util.js"
+import type { ContainerDeployAction } from "../../../../../../src/plugins/container/config.js"
+import { createActionLog } from "../../../../../../src/logger/log-entry.js"
 
 describe("kubernetes", () => {
   let garden: TestGarden
@@ -127,7 +128,7 @@ describe("kubernetes", () => {
             provider,
             action: resolvedDeployAction,
             namespace,
-            imageId: getDeployedImageId(resolvedDeployAction, provider),
+            imageId: getDeployedImageId(resolvedDeployAction),
 
             production: ctx.production,
             log: actionLog,
@@ -202,7 +203,7 @@ describe("kubernetes", () => {
             provider,
             action: resolvedDeployAction,
             namespace,
-            imageId: getDeployedImageId(resolvedDeployAction, provider),
+            imageId: getDeployedImageId(resolvedDeployAction),
             production: ctx.production,
             log: actionLog,
           }),

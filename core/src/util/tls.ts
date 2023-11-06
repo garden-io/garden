@@ -6,14 +6,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { pki } from "node-forge"
-import { certpem } from "certpem"
-import { find } from "lodash"
+import forge from "node-forge"
+import { X509Certificate } from "node:crypto"
 
 // Reference: https://github.com/digitalbazaar/forge#x509
 export function createSelfSignedTlsCert(hostName: string) {
-  const keys = pki.rsa.generateKeyPair(2048)
-  const cert = pki.createCertificate()
+  const keys = forge.pki.rsa.generateKeyPair(2048)
+  const cert = forge.pki.createCertificate()
 
   cert.publicKey = keys.publicKey
 
@@ -101,35 +100,34 @@ export function createSelfSignedTlsCert(hostName: string) {
   // self-sign certificate
   cert.sign(keys.privateKey)
 
-  const certPem = pki.certificateToPem(cert)
+  const certPem = forge.pki.certificateToPem(cert)
 
   return {
     cert,
     keys,
     certPem,
-    privateKeyPem: pki.privateKeyToPem(keys.privateKey),
-    publicKeyPem: pki.publicKeyToPem(keys.publicKey),
+    privateKeyPem: forge.pki.privateKeyToPem(keys.privateKey),
+    publicKeyPem: forge.pki.publicKeyToPem(keys.publicKey),
   }
 }
 
 export function getHostnamesFromPem(crtData: string) {
-  // Note: Can't use the certpem.info() method here because of multiple bugs.
-  // And yes, this API is insane. Crypto people are bonkers. Seriously. - JE
-  const certInfo = certpem.debug(crtData)
-
+  const cert = new X509Certificate(crtData)
+  const legacyObject = cert.toLegacyObject()
   const hostnames: string[] = []
 
-  const commonNameField = find(certInfo.subject.types_and_values, ["type", "2.5.4.3"])
-  if (commonNameField) {
-    hostnames.push(commonNameField.value.value_block.value)
+  const commonName = legacyObject.subject.CN
+
+  if (commonName) {
+    hostnames.push(commonName)
   }
 
-  for (const ext of certInfo.extensions || []) {
-    if (ext.parsedValue && ext.parsedValue.altNames) {
-      for (const alt of ext.parsedValue.altNames) {
-        hostnames.push(alt.Name)
-      }
-    }
+  const altNames = cert.subjectAltName?.split(",").map((s) => s.trim()) ?? []
+
+  for (const altName of altNames) {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const [_type, name] = altName.split(":")
+    hostnames.push(name)
   }
 
   return hostnames

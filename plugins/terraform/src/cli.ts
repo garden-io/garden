@@ -6,12 +6,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { TerraformProvider } from "./provider"
+import type { TerraformProvider } from "./provider.js"
 import which from "which"
-import { ConfigurationError, RuntimeError } from "@garden-io/sdk/build/src/exceptions"
-import { CliWrapper, PluginToolSpec } from "@garden-io/sdk/build/src/util/ext-tools"
-import { Log, PluginContext } from "@garden-io/sdk/build/src/types"
-import { naturalList } from "@garden-io/sdk/build/src/util/string"
+import { ConfigurationError, RuntimeError } from "@garden-io/sdk/build/src/exceptions.js"
+import type { PluginToolSpec } from "@garden-io/sdk/build/src/util/ext-tools.js"
+import { CliWrapper } from "@garden-io/sdk/build/src/util/ext-tools.js"
+import type { Log, PluginContext } from "@garden-io/sdk/build/src/types.js"
+import { naturalList } from "@garden-io/sdk/build/src/util/string.js"
 
 export function terraform(ctx: PluginContext, provider: TerraformProvider) {
   const version = provider.config.version

@@ -7,10 +7,11 @@
  */
 
 import { expect } from "chai"
-import { StreamEvent, LogEntryEventPayload, BufferedEventStream } from "../../../../src/cloud/buffered-event-stream"
-import { getRootLogger, LogLevel } from "../../../../src/logger/logger"
-import { makeTestGardenA } from "../../../helpers"
-import { find, isMatch, range, repeat } from "lodash"
+import type { StreamEvent, LogEntryEventPayload } from "../../../../src/cloud/buffered-event-stream.js"
+import { BufferedEventStream } from "../../../../src/cloud/buffered-event-stream.js"
+import { getRootLogger, LogLevel } from "../../../../src/logger/logger.js"
+import { makeTestGardenA } from "../../../helpers.js"
+import { find, isMatch, range, repeat } from "lodash-es"
 
 function makeDummyRecord(sizeKb: number) {
   return { someKey: repeat("a", sizeKb * 1024) }

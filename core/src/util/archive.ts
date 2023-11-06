@@ -6,8 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { isErrnoException } from "../exceptions"
-import { Log } from "../logger/log-entry"
+import { isErrnoException } from "../exceptions.js"
+import type { Log } from "../logger/log-entry.js"
 import { createWriteStream } from "fs"
 
 /**

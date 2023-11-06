@@ -6,29 +6,31 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { memoize, omit } from "lodash"
+import { memoize, omit } from "lodash-es"
+import type { PrimitiveMap } from "./common.js"
 import {
   joi,
   joiUserIdentifier,
   joiVariableName,
   joiIdentifier,
   joiEnvVars,
-  PrimitiveMap,
   joiSparseArray,
   createSchema,
   unusedApiVersionSchema,
-} from "./common"
-import { deline, dedent } from "../util/string"
-import { ServiceLimitSpec } from "../plugins/container/moduleConfig"
-import { Garden } from "../garden"
-import { WorkflowConfigContext } from "./template-contexts/workflow"
-import { resolveTemplateStrings } from "../template-string/template-string"
-import { validateConfig } from "./validation"
-import { ConfigurationError, GardenError } from "../exceptions"
-import { EnvironmentConfig, getNamespace } from "./project"
-import { omitUndefined } from "../util/objects"
-import { BaseGardenResource, GardenResource } from "./base"
-import { DOCS_BASE_URL, GardenApiVersion } from "../constants"
+} from "./common.js"
+import { deline, dedent } from "../util/string.js"
+import type { ServiceLimitSpec } from "../plugins/container/moduleConfig.js"
+import type { Garden } from "../garden.js"
+import { WorkflowConfigContext } from "./template-contexts/workflow.js"
+import { resolveTemplateStrings } from "../template-string/template-string.js"
+import { validateConfig } from "./validation.js"
+import { ConfigurationError, GardenError } from "../exceptions.js"
+import type { EnvironmentConfig } from "./project.js"
+import { getNamespace } from "./project.js"
+import { omitUndefined } from "../util/objects.js"
+import type { BaseGardenResource, GardenResource } from "./base.js"
+import type { GardenApiVersion } from "../constants.js"
+import { DOCS_BASE_URL } from "../constants.js"
 
 export const minimumWorkflowRequests = {
   cpu: 50, // 50 millicpu

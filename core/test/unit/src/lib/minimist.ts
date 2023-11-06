@@ -7,7 +7,7 @@
  */
 
 import { expect } from "chai"
-import { customMinimist } from "../../../../src/lib/minimist"
+import { customMinimist } from "../../../../src/lib/minimist.js"
 
 describe("customMinimist", () => {
   it("collects unspecified options and arguments to _unknown", () => {

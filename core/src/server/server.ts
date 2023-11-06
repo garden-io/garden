@@ -6,56 +6,53 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Server } from "http"
+import type { Server } from "http"
 
 import chalk from "chalk"
 import Koa from "koa"
-import Router = require("koa-router")
+import Router from "koa-router"
 import type PTY from "node-pty-prebuilt-multiarch"
 import websockify from "koa-websocket"
-import bodyParser = require("koa-bodyparser")
+import bodyParser from "koa-bodyparser"
 // TODO: switch from get-port-please to get-port once get-port is upgraded to v6.0+ which is ESM only
-import getPortPlease = require("get-port-please")
+import * as getPortPlease from "get-port-please"
 const { getPort } = getPortPlease
-import { isArray, omit } from "lodash"
+import { isArray, omit } from "lodash-es"
 
-import { BaseServerRequest, resolveRequest, serverRequestSchema, shellCommandParamsSchema } from "./commands"
-import { DEFAULT_GARDEN_DIR_NAME, gardenEnv } from "../constants"
-import { Log } from "../logger/log-entry"
-import { Command, CommandResult, PrepareParams } from "../commands/base"
-import {
-  toGardenError,
-  GardenError,
-  isEAddrInUseException,
-  ParameterError,
-  isErrnoException,
-  CommandError,
-} from "../exceptions"
-import { EventName, Events, EventBus, shouldStreamWsEvent } from "../events/events"
-import type { ValueOf } from "../util/util"
-import { joi } from "../config/common"
-import { dedent, randomString } from "../util/string"
-import { authTokenHeader } from "../cloud/auth"
-import { ApiEventBatch, BufferedEventStream, LogEntryEventPayload } from "../cloud/buffered-event-stream"
-import { eventLogLevel, LogLevel } from "../logger/logger"
+import type { BaseServerRequest } from "./commands.js"
+import { resolveRequest, serverRequestSchema, shellCommandParamsSchema } from "./commands.js"
+import { DEFAULT_GARDEN_DIR_NAME, gardenEnv } from "../constants.js"
+import type { Log } from "../logger/log-entry.js"
+import type { Command, CommandResult, PrepareParams } from "../commands/base.js"
+import type { GardenError } from "../exceptions.js"
+import { toGardenError, isEAddrInUseException, ParameterError, isErrnoException, CommandError } from "../exceptions.js"
+import type { EventName, Events } from "../events/events.js"
+import { EventBus, shouldStreamWsEvent } from "../events/events.js"
+import type { ValueOf } from "../util/util.js"
+import { joi } from "../config/common.js"
+import { dedent, randomString } from "../util/string.js"
+import { authTokenHeader } from "../cloud/auth.js"
+import type { ApiEventBatch, LogEntryEventPayload } from "../cloud/buffered-event-stream.js"
+import { BufferedEventStream } from "../cloud/buffered-event-stream.js"
+import { eventLogLevel, LogLevel } from "../logger/logger.js"
 import { EventEmitter } from "eventemitter3"
-import { sanitizeValue } from "../util/logging"
-import { uuidv4 } from "../util/random"
-import { GardenInstanceManager } from "./instance-manager"
-import { LocalConfigStore } from "../config-store/local"
+import { sanitizeValue } from "../util/logging.js"
+import { uuidv4 } from "../util/random.js"
+import type { GardenInstanceManager } from "./instance-manager.js"
+import { LocalConfigStore } from "../config-store/local.js"
 import { join } from "path"
-import { GlobalConfigStore } from "../config-store/global"
-import { validateSchema } from "../config/validation"
-import { ConfigGraph } from "../graph/config-graph"
-import { getGardenCloudDomain } from "../cloud/api"
-import type { ServeCommand } from "../commands/serve"
-import type { AutocompleteSuggestion } from "../cli/autocomplete"
+import { GlobalConfigStore } from "../config-store/global.js"
+import { validateSchema } from "../config/validation.js"
+import type { ConfigGraph } from "../graph/config-graph.js"
+import { getGardenCloudDomain } from "../cloud/api.js"
+import type { ServeCommand } from "../commands/serve.js"
+import type { AutocompleteSuggestion } from "../cli/autocomplete.js"
 import { z } from "zod"
-import { omitUndefined } from "../util/objects"
+import { omitUndefined } from "../util/objects.js"
 import { createServer } from "http"
-import { defaultServerPort } from "../commands/serve"
+import { defaultServerPort } from "../commands/serve.js"
 
-import pty = require("node-pty-prebuilt-multiarch")
+import pty from "node-pty-prebuilt-multiarch"
 
 const skipLogsForCommands = ["autocomplete"]
 
@@ -611,7 +608,6 @@ export class GardenServer extends EventEmitter {
         proc.onExit(({ exitCode, signal }) => {
           const msg = `Command '${command}' exited with code ${exitCode}, signal ${signal}`
           this.log.info(msg)
-          const event = websocketCloseEvents.ok
           if (websocket.OPEN) {
             if (exitCode !== 0) {
               websocket.send(msg + "\r\n")

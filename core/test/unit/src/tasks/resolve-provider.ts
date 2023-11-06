@@ -6,24 +6,20 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { PluginMap, createGardenPlugin } from "../../../../src/plugin/plugin"
-import { getPluginBases } from "../../../../src/plugins"
+import type { PluginMap } from "../../../../src/plugin/plugin.js"
+import { createGardenPlugin } from "../../../../src/plugin/plugin.js"
+import { getPluginBases } from "../../../../src/plugins.js"
 import { expect } from "chai"
-import { sortBy } from "lodash"
-import {
-  makeTempDir,
-  TempDirectory,
-  TestGarden,
-  makeTestGarden,
-  stubProviderAction,
-  createProjectConfig,
-} from "../../../helpers"
-import { ResolveProviderTask } from "../../../../src/tasks/resolve-provider"
-import { pathExists, writeFile, remove } from "fs-extra"
+import { sortBy } from "lodash-es"
+import type { TempDirectory, TestGarden } from "../../../helpers.js"
+import { makeTempDir, makeTestGarden, stubProviderAction, createProjectConfig } from "../../../helpers.js"
+import { ResolveProviderTask } from "../../../../src/tasks/resolve-provider.js"
+import fsExtra from "fs-extra"
+const { pathExists, writeFile, remove } = fsExtra
 import { join } from "path"
 import { serialize } from "v8"
 import moment from "moment"
-import { GraphResults } from "../../../../src/graph/results"
+import { GraphResults } from "../../../../src/graph/results.js"
 
 describe("ResolveProviderTask", () => {
   let tmpDir: TempDirectory

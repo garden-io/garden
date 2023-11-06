@@ -6,12 +6,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { KubeApi, KubernetesError } from "../api"
-import { KubernetesServerResource, KubernetesPod } from "../types"
-import { V1Pod, V1Status } from "@kubernetes/client-node"
-import { ResourceStatus } from "./status"
+import type { KubeApi } from "../api.js"
+import { KubernetesError } from "../api.js"
+import type { KubernetesServerResource, KubernetesPod } from "../types.js"
+import type { V1Pod, V1Status } from "@kubernetes/client-node"
+import type { ResourceStatus } from "./status.js"
 import chalk from "chalk"
-import { DeployState, combineStates } from "../../../types/service"
+import type { DeployState } from "../../../types/service.js"
+import { combineStates } from "../../../types/service.js"
 import stringify from "json-stringify-safe"
 
 export const POD_LOG_LINES = 30
@@ -96,26 +98,26 @@ export async function getPodLogs({
   }
 
   return Promise.all(
-    podContainers.map(async (containerName) => {
+    podContainers.map(async (container) => {
       const follow = false
-      const insecureSkipTLSVerify = false
+      const insecureSkipTLSVerifyBackend = false
       const pretty = undefined
 
       let log: any
       try {
-        log = await api.core.readNamespacedPodLog(
-          pod.metadata!.name!,
+        log = await api.core.readNamespacedPodLog({
+          name: pod.metadata!.name!,
           namespace,
-          containerName,
+          container,
           follow,
-          insecureSkipTLSVerify,
-          byteLimit,
+          insecureSkipTLSVerifyBackend,
+          limitBytes: byteLimit,
           pretty,
-          false, // previous
+          previous: false,
           sinceSeconds,
-          lineLimit,
-          timestamps
-        )
+          tailLines: lineLimit,
+          timestamps,
+        })
       } catch (error) {
         if (!(error instanceof KubernetesError)) {
           throw error
@@ -126,19 +128,19 @@ export async function getPodLogs({
         if (terminated || error.responseStatusCode === 404) {
           // Couldn't find pod/container, try requesting a previously terminated one
           try {
-            log = await api.core.readNamespacedPodLog(
-              pod.metadata!.name!,
+            log = await api.core.readNamespacedPodLog({
+              name: pod.metadata!.name!,
               namespace,
-              containerName,
+              container,
               follow,
-              insecureSkipTLSVerify,
-              byteLimit,
+              insecureSkipTLSVerifyBackend,
+              limitBytes: byteLimit,
               pretty,
-              true, // previous
+              previous: true,
               sinceSeconds,
-              lineLimit,
-              timestamps
-            )
+              tailLines: lineLimit,
+              timestamps,
+            })
           } catch (err) {
             log = `[Could not retrieve previous logs for deleted pod ${pod.metadata!.name!}: ${
               err || "Unknown error occurred"
@@ -156,7 +158,7 @@ export async function getPodLogs({
       }
 
       // the API returns undefined if no logs have been output, for some reason
-      return { containerName, log: log || "" }
+      return { containerName: container, log: log || "" }
     })
   )
 }

@@ -8,8 +8,9 @@
 
 import { expect } from "chai"
 import { join } from "path"
-import { detectModuleOverlap, ModuleOverlap } from "../../../../src/util/module-overlap"
-import { ModuleConfig } from "../../../../src/config/module"
+import type { ModuleOverlap } from "../../../../src/util/module-overlap.js"
+import { detectModuleOverlap } from "../../../../src/util/module-overlap.js"
+import type { ModuleConfig } from "../../../../src/config/module.js"
 
 describe("detectModuleOverlap", () => {
   const projectRoot = join("/", "user", "code")

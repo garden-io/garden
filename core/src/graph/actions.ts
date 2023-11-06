@@ -7,65 +7,68 @@
  */
 
 import cloneDeep from "fast-copy"
-import { isEqual, mapValues, memoize, omit, pick, uniq } from "lodash"
-import {
+import { isEqual, mapValues, memoize, omit, pick, uniq } from "lodash-es"
+import type {
   Action,
   ActionConfig,
   ActionConfigsByKey,
   ActionDependency,
   ActionDependencyAttributes,
   ActionKind,
-  actionKinds,
   ActionMode,
   ActionModeMap,
   ActionModes,
   ActionWrapperParams,
   Executed,
   Resolved,
-} from "../actions/types"
+} from "../actions/types.js"
+import { actionKinds } from "../actions/types.js"
 import {
   actionReferenceToString,
   addActionDependency,
   baseRuntimeActionConfigSchema,
   describeActionConfig,
   describeActionConfigWithPath,
-} from "../actions/base"
-import { BuildAction, buildActionConfigSchema, isBuildActionConfig } from "../actions/build"
-import { DeployAction, deployActionConfigSchema, isDeployActionConfig } from "../actions/deploy"
-import { RunAction, runActionConfigSchema, isRunActionConfig } from "../actions/run"
-import { TestAction, testActionConfigSchema, isTestActionConfig } from "../actions/test"
-import { noTemplateFields } from "../config/base"
-import { ActionReference, describeSchema, JoiDescription, parseActionReference } from "../config/common"
-import type { GroupConfig } from "../config/group"
-import { ActionConfigContext } from "../config/template-contexts/actions"
-import { validateWithPath } from "../config/validation"
-import { ConfigurationError, PluginError, InternalError, ValidationError, GardenError } from "../exceptions"
-import { overrideVariables, type Garden } from "../garden"
-import type { Log } from "../logger/log-entry"
-import type { ActionTypeDefinition } from "../plugin/action-types"
-import { ActionDefinitionMap, getActionTypeBases } from "../plugins"
-import type { ActionRouter } from "../router/router"
-import { ResolveActionTask } from "../tasks/resolve-action"
+} from "../actions/base.js"
+import { BuildAction, buildActionConfigSchema, isBuildActionConfig } from "../actions/build.js"
+import { DeployAction, deployActionConfigSchema, isDeployActionConfig } from "../actions/deploy.js"
+import { RunAction, runActionConfigSchema, isRunActionConfig } from "../actions/run.js"
+import { TestAction, testActionConfigSchema, isTestActionConfig } from "../actions/test.js"
+import { noTemplateFields } from "../config/base.js"
+import type { ActionReference, JoiDescription } from "../config/common.js"
+import { describeSchema, parseActionReference } from "../config/common.js"
+import type { GroupConfig } from "../config/group.js"
+import { ActionConfigContext } from "../config/template-contexts/actions.js"
+import { validateWithPath } from "../config/validation.js"
+import { ConfigurationError, PluginError, InternalError, ValidationError, GardenError } from "../exceptions.js"
+import { overrideVariables, type Garden } from "../garden.js"
+import type { Log } from "../logger/log-entry.js"
+import type { ActionTypeDefinition } from "../plugin/action-types.js"
+import type { ActionDefinitionMap } from "../plugins.js"
+import { getActionTypeBases } from "../plugins.js"
+import type { ActionRouter } from "../router/router.js"
+import { ResolveActionTask } from "../tasks/resolve-action.js"
 import {
   getActionTemplateReferences,
   maybeTemplateString,
   resolveTemplateString,
   resolveTemplateStrings,
-} from "../template-string/template-string"
-import { dedent, deline, naturalList } from "../util/string"
-import { mergeVariables } from "./common"
-import { ConfigGraph, MutableConfigGraph } from "./config-graph"
-import type { ModuleGraph } from "./modules"
+} from "../template-string/template-string.js"
+import { dedent, deline, naturalList } from "../util/string.js"
+import { mergeVariables } from "./common.js"
+import type { ConfigGraph } from "./config-graph.js"
+import { MutableConfigGraph } from "./config-graph.js"
+import type { ModuleGraph } from "./modules.js"
 import chalk from "chalk"
-import type { MaybeUndefined } from "../util/util"
+import type { MaybeUndefined } from "../util/util.js"
 import minimatch from "minimatch"
-import { ConfigContext } from "../config/template-contexts/base"
-import { LinkedSource, LinkedSourceMap } from "../config-store/local"
+import type { ConfigContext } from "../config/template-contexts/base.js"
+import type { LinkedSource, LinkedSourceMap } from "../config-store/local.js"
 import { relative } from "path"
-import { profileAsync } from "../util/profiling"
-import { uuidv4 } from "../util/random"
-import { getSourcePath } from "../vcs/vcs"
-import { actionIsDisabled } from "../actions/base"
+import { profileAsync } from "../util/profiling.js"
+import { uuidv4 } from "../util/random.js"
+import { getSourcePath } from "../vcs/vcs.js"
+import { actionIsDisabled } from "../actions/base.js"
 
 export const actionConfigsToGraph = profileAsync(async function actionConfigsToGraph({
   garden,
@@ -167,7 +170,6 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
           garden,
           graph,
           config,
-          router,
           log,
           configsByKey,
           mode,
@@ -276,7 +278,6 @@ export const actionFromConfig = profileAsync(async function actionFromConfig({
     garden,
     graph,
     config,
-    router,
     log,
     configsByKey,
     mode,
@@ -291,7 +292,6 @@ async function processActionConfig({
   garden,
   graph,
   config,
-  router,
   log,
   configsByKey,
   mode,
@@ -303,7 +303,6 @@ async function processActionConfig({
   garden: Garden
   graph: ConfigGraph
   config: ActionConfig
-  router: ActionRouter
   log: Log
   configsByKey: ActionConfigsByKey
   mode: ActionMode

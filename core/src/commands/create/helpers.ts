@@ -6,7 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { pathExists, readFile, writeFile } from "fs-extra"
+import fsExtra from "fs-extra"
+const { pathExists, readFile, writeFile } = fsExtra
 
 export async function addConfig(configPath: string, yaml: string) {
   let output = yaml

@@ -7,18 +7,24 @@
  */
 
 import env from "env-var"
-import { join, resolve } from "path"
+import { dirname, join, resolve } from "node:path"
 import { homedir } from "os"
+import { fileURLToPath } from "node:url"
 
-export const isPkg = !!(<any>process).pkg
+const moduleDirName = dirname(fileURLToPath(import.meta.url))
+
+// This environment variable is set by the garden-sea rust wrapper and points to a temporary directory where rollup bundle and nodejs are extracted to.
+const extractedRoot = process.env.GARDEN_SEA_EXTRACTED_ROOT
 
 export const gitScanModes = ["repo", "subtree"] as const
 export type GitScanMode = (typeof gitScanModes)[number]
 export const defaultGitScanMode: GitScanMode = "subtree"
 
-export const GARDEN_CORE_ROOT = isPkg ? resolve(process.execPath, "..") : resolve(__dirname, "..", "..")
-export const GARDEN_CLI_ROOT = isPkg ? resolve(process.execPath, "..") : resolve(GARDEN_CORE_ROOT, "..", "cli")
-export const STATIC_DIR = isPkg ? resolve(process.execPath, "..", "static") : resolve(GARDEN_CORE_ROOT, "..", "static")
+export const GARDEN_CORE_ROOT = !!extractedRoot
+  ? resolve(extractedRoot, "src", "core")
+  : resolve(moduleDirName, "..", "..")
+export const GARDEN_CLI_ROOT = resolve(GARDEN_CORE_ROOT, "..", "cli")
+export const STATIC_DIR = !!extractedRoot ? resolve(extractedRoot, "static") : resolve(GARDEN_CORE_ROOT, "..", "static")
 export const DEFAULT_GARDEN_DIR_NAME = ".garden"
 export const MUTAGEN_DIR_NAME = "mutagen"
 export const LOGS_DIR_NAME = "logs"

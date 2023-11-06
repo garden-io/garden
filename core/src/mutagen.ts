@@ -9,27 +9,28 @@
 import AsyncLock from "async-lock"
 import chalk from "chalk"
 import dedent from "dedent"
-import EventEmitter from "events"
-import { ExecaReturnValue } from "execa"
-import { mkdirp, pathExists } from "fs-extra"
+import type EventEmitter from "events"
+import type { ExecaReturnValue } from "execa"
+import fsExtra from "fs-extra"
+const { mkdirp, pathExists } = fsExtra
 import hasha from "hasha"
 import pRetry from "p-retry"
 import { join } from "path"
 import respawn from "respawn"
 import split2 from "split2"
-import { GARDEN_GLOBAL_PATH, MUTAGEN_DIR_NAME } from "./constants"
-import { ChildProcessError, GardenError } from "./exceptions"
-import pMemoize from "./lib/p-memoize"
-import { Log } from "./logger/log-entry"
-import { PluginContext } from "./plugin-context"
-import { PluginToolSpec } from "./plugin/tools"
-import { syncGuideLink } from "./plugins/kubernetes/sync"
-import { TypedEventEmitter } from "./util/events"
-import { PluginTool } from "./util/ext-tools"
-import { deline } from "./util/string"
-import { registerCleanupFunction, sleep } from "./util/util"
-import { emitNonRepeatableWarning } from "./warnings"
-import { OctalPermissionMask } from "./plugins/kubernetes/types"
+import { GARDEN_GLOBAL_PATH, MUTAGEN_DIR_NAME } from "./constants.js"
+import { ChildProcessError, GardenError } from "./exceptions.js"
+import pMemoize from "./lib/p-memoize.js"
+import type { Log } from "./logger/log-entry.js"
+import type { PluginContext } from "./plugin-context.js"
+import type { PluginToolSpec } from "./plugin/tools.js"
+import { syncGuideLink } from "./plugins/kubernetes/sync.js"
+import { TypedEventEmitter } from "./util/events.js"
+import { PluginTool } from "./util/ext-tools.js"
+import { deline } from "./util/string.js"
+import { registerCleanupFunction, sleep } from "./util/util.js"
+import { emitNonRepeatableWarning } from "./warnings.js"
+import type { OctalPermissionMask } from "./plugins/kubernetes/types.js"
 
 const maxRestarts = 10
 const mutagenLogSection = "<mutagen>"
@@ -207,7 +208,10 @@ class _MutagenMonitor extends TypedEventEmitter<MonitorEvents> {
 
       await ensureDataDir(dataDir)
 
-      const proc = respawn([mutagenPath, "sync", "monitor", "--template", "{{ json . }}", "--long"], {
+      const mutagenOpts = [mutagenPath, "sync", "monitor", "--template", "{{ json . }}", "--long"]
+      log.silly(`Spawning mutagen using respawn: "${mutagenOpts.join(" ")}"`)
+
+      const proc = respawn(mutagenOpts, {
         cwd: dataDir,
         name: "mutagen",
         env: {

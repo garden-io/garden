@@ -6,10 +6,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { LogEntry } from "../log-entry"
-import { Logger } from "../logger"
-import { formatForTerminal } from "../renderers"
-import { Writer } from "./base"
+import type { LogEntry } from "../log-entry.js"
+import type { Logger } from "../logger.js"
+import { formatForTerminal } from "../renderers.js"
+import { Writer } from "./base.js"
 
 export class TerminalWriter extends Writer {
   type = "default"

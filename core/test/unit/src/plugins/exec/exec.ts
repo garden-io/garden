@@ -9,10 +9,12 @@
 import { expect } from "chai"
 import { join } from "path"
 
-import { Garden } from "../../../../../src/garden"
-import { ExecProvider, gardenPlugin } from "../../../../../src/plugins/exec/exec"
-import { ActionLog, createActionLog } from "../../../../../src/logger/log-entry"
-import { keyBy, omit } from "lodash"
+import type { Garden } from "../../../../../src/garden.js"
+import type { ExecProvider } from "../../../../../src/plugins/exec/exec.js"
+import { gardenPlugin } from "../../../../../src/plugins/exec/exec.js"
+import type { ActionLog } from "../../../../../src/logger/log-entry.js"
+import { createActionLog } from "../../../../../src/logger/log-entry.js"
+import { keyBy, omit } from "lodash-es"
 import {
   getDataDir,
   makeTestModule,
@@ -21,38 +23,35 @@ import {
   TestGarden,
   makeModuleConfig,
   makeTempDir,
-} from "../../../../helpers"
-import { RunTask } from "../../../../../src/tasks/run"
-import { makeTestGarden } from "../../../../helpers"
-import { ModuleConfig } from "../../../../../src/config/module"
-import { ConfigGraph } from "../../../../../src/graph/config-graph"
-import { pathExists, emptyDir } from "fs-extra"
-import { TestTask } from "../../../../../src/tasks/test"
-import { readFile, remove } from "fs-extra"
-import { dedent } from "../../../../../src/util/string"
-import { sleep } from "../../../../../src/util/util"
-import { configureExecModule, ExecModuleConfig } from "../../../../../src/plugins/exec/moduleConfig"
-import { actionFromConfig } from "../../../../../src/graph/actions"
-import { TestAction, TestActionConfig } from "../../../../../src/actions/test"
-import { PluginContext } from "../../../../../src/plugin-context"
-import {
-  convertModules,
-  ConvertModulesResult,
-  findActionConfigInGroup,
-  findGroupConfig,
-} from "../../../../../src/resolve-module"
-import tmp from "tmp-promise"
-import { ProjectConfig } from "../../../../../src/config/project"
-import { BuildActionConfig } from "../../../../../src/actions/build"
-import { DeployActionConfig } from "../../../../../src/actions/deploy"
-import { RunActionConfig } from "../../../../../src/actions/run"
-import { getLogFilePath } from "../../../../../src/plugins/exec/deploy"
+} from "../../../../helpers.js"
+import { RunTask } from "../../../../../src/tasks/run.js"
+import { makeTestGarden } from "../../../../helpers.js"
+import type { ModuleConfig } from "../../../../../src/config/module.js"
+import type { ConfigGraph } from "../../../../../src/graph/config-graph.js"
+import fsExtra from "fs-extra"
+const { pathExists, emptyDir, readFile, remove } = fsExtra
+import { TestTask } from "../../../../../src/tasks/test.js"
+import { dedent } from "../../../../../src/util/string.js"
+import { sleep } from "../../../../../src/util/util.js"
+import type { ExecModuleConfig } from "../../../../../src/plugins/exec/moduleConfig.js"
+import { configureExecModule } from "../../../../../src/plugins/exec/moduleConfig.js"
+import { actionFromConfig } from "../../../../../src/graph/actions.js"
+import type { TestAction, TestActionConfig } from "../../../../../src/actions/test.js"
+import type { PluginContext } from "../../../../../src/plugin-context.js"
+import type { ConvertModulesResult } from "../../../../../src/resolve-module.js"
+import { convertModules, findActionConfigInGroup, findGroupConfig } from "../../../../../src/resolve-module.js"
+import type tmp from "tmp-promise"
+import type { ProjectConfig } from "../../../../../src/config/project.js"
+import type { BuildActionConfig } from "../../../../../src/actions/build.js"
+import type { DeployActionConfig } from "../../../../../src/actions/deploy.js"
+import type { RunActionConfig } from "../../../../../src/actions/run.js"
+import { getLogFilePath } from "../../../../../src/plugins/exec/deploy.js"
 import {
   DEFAULT_BUILD_TIMEOUT_SEC,
   DEFAULT_RUN_TIMEOUT_SEC,
   DEFAULT_TEST_TIMEOUT_SEC,
-} from "../../../../../src/constants"
-import { isRunning, killRecursive } from "../../../../../src/process"
+} from "../../../../../src/constants.js"
+import { isRunning, killRecursive } from "../../../../../src/process.js"
 
 describe("exec plugin", () => {
   context("test-project based tests", () => {

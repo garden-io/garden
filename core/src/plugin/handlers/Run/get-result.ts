@@ -6,13 +6,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { PluginRunActionParamsBase, actionParamsSchema, RunResult, runResultSchema } from "../../base"
-import { dedent } from "../../../util/string"
-import { RunAction } from "../../../actions/run"
-import { ActionTypeHandlerSpec } from "../base/base"
-import { actionStatusSchema } from "../../../actions/base"
-import { ActionStatus, ActionStatusMap, Resolved } from "../../../actions/types"
-import { createSchema } from "../../../config/common"
+import type { PluginRunActionParamsBase, RunResult } from "../../base.js"
+import { actionParamsSchema, runResultSchema } from "../../base.js"
+import { dedent } from "../../../util/string.js"
+import type { RunAction } from "../../../actions/run.js"
+import { ActionTypeHandlerSpec } from "../base/base.js"
+import { actionStatusSchema } from "../../../actions/base.js"
+import type { ActionStatus, ActionStatusMap, Resolved } from "../../../actions/types.js"
+import { createSchema } from "../../../config/common.js"
 
 type GetRunResultParams<T extends RunAction> = PluginRunActionParamsBase<T>
 

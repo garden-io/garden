@@ -6,10 +6,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ServiceIngress, ServiceProtocol } from "../../../types/service"
-import { KubernetesProvider } from "../config"
-import { isProviderEphemeralKubernetes } from "../ephemeral/ephemeral"
-import { KubernetesIngress, KubernetesResource } from "../types"
+import type { ServiceIngress, ServiceProtocol } from "../../../types/service.js"
+import type { KubernetesProvider } from "../config.js"
+import { isProviderEphemeralKubernetes } from "../ephemeral/ephemeral.js"
+import type { KubernetesIngress, KubernetesResource } from "../types.js"
 
 /**
  * Returns a list of ServiceIngresses found in a list of k8s resources.

@@ -6,20 +6,20 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import logSymbols from "log-symbols"
+import type logSymbols from "log-symbols"
 import cloneDeep from "fast-copy"
-import { round } from "lodash"
+import { round } from "lodash-es"
 
-import { LogLevel } from "./logger"
-import { Omit } from "../util/util"
-import { Logger } from "./logger"
+import { LogLevel } from "./logger.js"
+import type { Omit } from "../util/util.js"
+import type { Logger } from "./logger.js"
 import uniqid from "uniqid"
 import chalk from "chalk"
-import { GardenError } from "../exceptions"
+import type { GardenError } from "../exceptions.js"
 import hasAnsi from "has-ansi"
-import { omitUndefined } from "../util/objects"
-import { renderDuration } from "./util"
-import { errorStyle, warningStyle } from "./renderers"
+import { omitUndefined } from "../util/objects.js"
+import { renderDuration } from "./util.js"
+import { errorStyle, warningStyle } from "./renderers.js"
 
 export type LogSymbol = keyof typeof logSymbols | "empty"
 export type TaskLogStatus = "active" | "success" | "error"

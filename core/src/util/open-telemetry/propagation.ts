@@ -8,7 +8,7 @@
 
 import * as opentelemetry from "@opentelemetry/sdk-node"
 import env from "env-var"
-import { getActiveContext } from "./context"
+import { getActiveContext } from "./context.js"
 
 const VERSION = "00"
 const VERSION_PART = "(?!ff)[\\da-f]{2}"

@@ -6,10 +6,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { configureProvider, configSchema } from "./config"
-import { createGardenPlugin } from "../../../plugin/plugin"
-import { dedent } from "../../../util/string"
-import { DOCS_BASE_URL } from "../../../constants"
+import { configureProvider, configSchema } from "./config.js"
+import { createGardenPlugin } from "../../../plugin/plugin.js"
+import { dedent } from "../../../util/string.js"
+import { DOCS_BASE_URL } from "../../../constants.js"
 
 const providerUrl = "./kubernetes.md"
 

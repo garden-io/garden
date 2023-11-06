@@ -11,13 +11,14 @@ import {
   renderConfigReference,
   renderMarkdownLink,
   sanitizeYamlStringForGitBook,
-} from "../../../../src/docs/config"
+} from "../../../../src/docs/config.js"
 import { expect } from "chai"
-import { joiArray, joi, joiEnvVars, JoiDescription } from "../../../../src/config/common"
-import { buildDependencySchema } from "../../../../src/config/module"
-import { JoiKeyDescription } from "../../../../src/docs/joi-schema"
-import { BaseKeyDescription, flattenSchema } from "../../../../src/docs/common"
-import { dedent } from "../../../../src/util/string"
+import type { JoiDescription } from "../../../../src/config/common.js"
+import { joiArray, joi, joiEnvVars } from "../../../../src/config/common.js"
+import { buildDependencySchema } from "../../../../src/config/module.js"
+import { JoiKeyDescription } from "../../../../src/docs/joi-schema.js"
+import { BaseKeyDescription, flattenSchema } from "../../../../src/docs/common.js"
+import { dedent } from "../../../../src/util/string.js"
 
 describe("docs config module", () => {
   const servicePortSchema = joi

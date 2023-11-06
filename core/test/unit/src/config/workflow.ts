@@ -7,21 +7,22 @@
  */
 
 import { expect } from "chai"
-import { expectError, getDataDir, makeTestGarden, makeTestGardenA, TestGarden } from "../../../helpers"
+import type { TestGarden } from "../../../helpers.js"
+import { expectError, getDataDir, makeTestGarden, makeTestGardenA } from "../../../helpers.js"
+import type { WorkflowConfig, TriggerSpec } from "../../../../src/config/workflow.js"
 import {
-  WorkflowConfig,
   resolveWorkflowConfig,
   populateNamespaceForTriggers,
-  TriggerSpec,
   minimumWorkflowLimits,
   defaultWorkflowRequests,
   defaultWorkflowLimits,
   defaultWorkflowResources,
-} from "../../../../src/config/workflow"
-import { EnvironmentConfig, defaultNamespace } from "../../../../src/config/project"
+} from "../../../../src/config/workflow.js"
+import type { EnvironmentConfig } from "../../../../src/config/project.js"
+import { defaultNamespace } from "../../../../src/config/project.js"
 import { join } from "path"
-import { GardenApiVersion } from "../../../../src/constants"
-import { omit } from "lodash"
+import { GardenApiVersion } from "../../../../src/constants.js"
+import { omit } from "lodash-es"
 
 describe("resolveWorkflowConfig", () => {
   let garden: TestGarden

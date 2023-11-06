@@ -6,11 +6,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { dedent } from "../../util/string"
-import { CommandGroup } from "../base"
-import { GroupsCommand } from "./groups/groups"
-import { SecretsCommand } from "./secrets/secrets"
-import { UsersCommand } from "./users/users"
+import { dedent } from "../../util/string.js"
+import { CommandGroup } from "../base.js"
+import { GroupsCommand } from "./groups/groups.js"
+import { SecretsCommand } from "./secrets/secrets.js"
+import { UsersCommand } from "./users/users.js"
 
 export class CloudCommand extends CommandGroup {
   name = "cloud"

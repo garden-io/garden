@@ -6,10 +6,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { formatForTerminal } from "../renderers"
-import { LogEntry } from "../log-entry"
-import { Logger } from "../logger"
-import { BaseWriterParams, Writer } from "./base"
+import { formatForTerminal } from "../renderers.js"
+import type { LogEntry } from "../log-entry.js"
+import type { Logger } from "../logger.js"
+import type { BaseWriterParams } from "./base.js"
+import { Writer } from "./base.js"
 
 type WriteCallback = (data: string) => void
 

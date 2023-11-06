@@ -6,12 +6,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Command, CommandResult } from "../base"
-import dedent = require("dedent")
-import { readFile } from "fs-extra"
-import { STATIC_DIR } from "../../constants"
+import type { CommandResult } from "../base.js"
+import { Command } from "../base.js"
+import dedent from "dedent"
+import fsExtra from "fs-extra"
+const { readFile } = fsExtra
+import { STATIC_DIR } from "../../constants.js"
 import { join } from "path"
-import { exec } from "../../util/util"
+import { exec } from "../../util/util.js"
 
 export class GetDoddiCommand extends Command {
   name = "doddi"

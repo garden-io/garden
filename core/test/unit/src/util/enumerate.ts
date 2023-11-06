@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { enumerate } from "../../../../src/util/enumerate"
+import { enumerate } from "../../../../src/util/enumerate.js"
 import { expect } from "chai"
 
 describe("enumerate", () => {

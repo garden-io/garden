@@ -6,31 +6,28 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ObjectSchema } from "@hapi/joi"
+import type { ObjectSchema } from "@hapi/joi"
 import chalk from "chalk"
-import { runResultToActionState } from "../../../actions/base"
-import { RunAction, RunActionConfig } from "../../../actions/run"
-import { TestAction, TestActionConfig } from "../../../actions/test"
-import { Resolved } from "../../../actions/types"
-import { createSchema, joi } from "../../../config/common"
-import { ConfigurationError } from "../../../exceptions"
-import { Log } from "../../../logger/log-entry"
-import { PluginContext } from "../../../plugin-context"
-import { RunActionDefinition, TestActionDefinition } from "../../../plugin/action-types"
-import { RunResult } from "../../../plugin/base"
-import { dedent } from "../../../util/string"
-import { KubeApi, KubernetesError } from "../api"
-import {
-  KubernetesPluginContext,
-  KubernetesTargetResourceSpec,
-  namespaceNameSchema,
-  runPodResourceSchema,
-} from "../config"
-import { getActionNamespaceStatus } from "../namespace"
-import { k8sGetRunResult } from "../run-results"
-import { SyncableResource } from "../types"
-import { execInWorkload, readTargetResource } from "../util"
-import { KubernetesRunOutputs, kubernetesRunOutputsSchema } from "./config"
+import { runResultToActionState } from "../../../actions/base.js"
+import type { RunAction, RunActionConfig } from "../../../actions/run.js"
+import type { TestAction, TestActionConfig } from "../../../actions/test.js"
+import type { Resolved } from "../../../actions/types.js"
+import { createSchema, joi } from "../../../config/common.js"
+import { ConfigurationError } from "../../../exceptions.js"
+import type { Log } from "../../../logger/log-entry.js"
+import type { PluginContext } from "../../../plugin-context.js"
+import type { RunActionDefinition, TestActionDefinition } from "../../../plugin/action-types.js"
+import type { RunResult } from "../../../plugin/base.js"
+import { dedent } from "../../../util/string.js"
+import { KubeApi, KubernetesError } from "../api.js"
+import type { KubernetesPluginContext, KubernetesTargetResourceSpec } from "../config.js"
+import { namespaceNameSchema, runPodResourceSchema } from "../config.js"
+import { getActionNamespaceStatus } from "../namespace.js"
+import { k8sGetRunResult } from "../run-results.js"
+import type { SyncableResource } from "../types.js"
+import { execInWorkload, readTargetResource } from "../util.js"
+import type { KubernetesRunOutputs } from "./config.js"
+import { kubernetesRunOutputsSchema } from "./config.js"
 
 // RUN //
 

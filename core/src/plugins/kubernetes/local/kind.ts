@@ -6,15 +6,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { exec } from "../../../util/util"
-import { Log } from "../../../logger/log-entry"
+import { exec } from "../../../util/util.js"
+import type { Log } from "../../../logger/log-entry.js"
 import { load } from "js-yaml"
-import { KubernetesConfig, KubernetesProvider } from "../config"
-import { GardenError, RuntimeError } from "../../../exceptions"
-import { KubeApi } from "../api"
-import { KubernetesResource } from "../types"
-import { PluginContext } from "../../../plugin-context"
-import { containerHelpers } from "../../container/helpers"
+import type { KubernetesConfig, KubernetesProvider } from "../config.js"
+import { GardenError, RuntimeError } from "../../../exceptions.js"
+import { KubeApi } from "../api.js"
+import type { KubernetesResource } from "../types.js"
+import type { PluginContext } from "../../../plugin-context.js"
+import { containerHelpers } from "../../container/helpers.js"
 
 const nodeCache: { [context: string]: string[] } = {}
 

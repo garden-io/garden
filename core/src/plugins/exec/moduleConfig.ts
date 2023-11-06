@@ -18,19 +18,23 @@ import {
   joiSparseArray,
   createSchema,
   artifactsTargetDescription,
-} from "../../config/common"
-import { ArtifactSpec } from "../../config/validation"
-import { GardenModule } from "../../types/module"
-import { baseServiceSpecSchema, CommonServiceSpec } from "../../config/service"
-import { BaseTestSpec, baseTestSpecSchema } from "../../config/test"
-import { ModuleSpec, baseBuildSpecSchema, ModuleConfig } from "../../config/module"
-import { BaseTaskSpec, baseTaskSpecSchema } from "../../config/task"
-import { dedent } from "../../util/string"
-import { ExecSyncModeSpec } from "./config"
-import { ConfigureModuleParams, ConfigureModuleResult } from "../../plugin/handlers/Module/configure"
-import { ConfigurationError } from "../../exceptions"
-import { memoize, omit } from "lodash"
-import { DEFAULT_RUN_TIMEOUT_SEC } from "../../constants"
+} from "../../config/common.js"
+import type { ArtifactSpec } from "../../config/validation.js"
+import type { GardenModule } from "../../types/module.js"
+import type { CommonServiceSpec } from "../../config/service.js"
+import { baseServiceSpecSchema } from "../../config/service.js"
+import type { BaseTestSpec } from "../../config/test.js"
+import { baseTestSpecSchema } from "../../config/test.js"
+import type { ModuleSpec, ModuleConfig } from "../../config/module.js"
+import { baseBuildSpecSchema } from "../../config/module.js"
+import type { BaseTaskSpec } from "../../config/task.js"
+import { baseTaskSpecSchema } from "../../config/task.js"
+import { dedent } from "../../util/string.js"
+import type { ExecSyncModeSpec } from "./config.js"
+import type { ConfigureModuleParams, ConfigureModuleResult } from "../../plugin/handlers/Module/configure.js"
+import { ConfigurationError } from "../../exceptions.js"
+import { memoize, omit } from "lodash-es"
+import { DEFAULT_RUN_TIMEOUT_SEC } from "../../constants.js"
 
 const execPathDoc = dedent`
   By default, the command is run inside the Garden build directory (under .garden/build/<module-name>).

@@ -7,15 +7,15 @@
  */
 
 import { expect } from "chai"
-import { SecretResult } from "../../../../../../src/commands/cloud/helpers"
+import type { SecretResult } from "../../../../../../src/commands/cloud/helpers.js"
 import {
   SecretsUpdateCommand,
   getSecretsToCreate,
   getSecretsToUpdateByName,
-} from "../../../../../../src/commands/cloud/secrets/secrets-update"
-import { StringMap } from "../../../../../../src/config/common"
-import { deline } from "../../../../../../src/util/string"
-import { expectError, getDataDir, makeTestGarden } from "../../../../../helpers"
+} from "../../../../../../src/commands/cloud/secrets/secrets-update.js"
+import type { StringMap } from "../../../../../../src/config/common.js"
+import { deline } from "../../../../../../src/util/string.js"
+import { expectError, getDataDir, makeTestGarden } from "../../../../../helpers.js"
 
 describe("SecretsUpdateCommand", () => {
   const projectRoot = getDataDir("test-project-b")
@@ -92,7 +92,6 @@ describe("SecretsUpdateCommand", () => {
       userId: undefined,
       secretsToUpdateArgs,
       log,
-      args: secretsToUpdateArgs,
     })
 
     const expectedSecret = allSecrets.find((a) => a.id === "2")
@@ -119,7 +118,6 @@ describe("SecretsUpdateCommand", () => {
           userId: undefined,
           secretsToUpdateArgs,
           log,
-          args: secretsToUpdateArgs,
         }),
       (err) => {
         expect(err.message).to.eql(
@@ -143,7 +141,6 @@ describe("SecretsUpdateCommand", () => {
       userId: "u1",
       secretsToUpdateArgs,
       log,
-      args: secretsToUpdateArgs,
     })
 
     const expectedSecret = allSecrets.find((a) => a.id === "4")
@@ -170,7 +167,6 @@ describe("SecretsUpdateCommand", () => {
       userId: "u1",
       secretsToUpdateArgs,
       log,
-      args: secretsToUpdateArgs,
     })
 
     const secretsToCreate = getSecretsToCreate(secretsToUpdateArgs, secretsToUpdate)

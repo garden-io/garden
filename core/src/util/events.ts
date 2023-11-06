@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import {
+import type {
   CancelablePromise,
   ConstructorOptions,
   EventAndListener,
@@ -23,7 +23,7 @@ import {
 // Note: This file is a fairly ugly hack to add some additional type safety possibilities on eventemitter2.
 // Ain't pretty here, but it does work in usage.
 
-import EventEmitter2 = require("eventemitter2")
+import EventEmitter2 from "eventemitter2"
 
 interface ListenerFn<V = any> {
   (payload: V, ...values: any[]): void

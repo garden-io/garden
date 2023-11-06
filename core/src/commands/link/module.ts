@@ -7,18 +7,19 @@
  */
 
 import { resolve } from "path"
-import dedent = require("dedent")
+import dedent from "dedent"
 import chalk from "chalk"
 
-import { ParameterError } from "../../exceptions"
-import { Command, CommandResult, CommandParams } from "../base"
-import { LinkedSource } from "../../config-store/local"
-import { printHeader } from "../../logger/util"
-import { addLinkedSources, moduleHasRemoteSource } from "../../util/ext-source-util"
-import { joiArray, joi } from "../../config/common"
-import { linkedModuleSchema } from "../../config/project"
-import { StringParameter, PathParameter } from "../../cli/params"
-import { naturalList } from "../../util/string"
+import { ParameterError } from "../../exceptions.js"
+import type { CommandResult, CommandParams } from "../base.js"
+import { Command } from "../base.js"
+import type { LinkedSource } from "../../config-store/local.js"
+import { printHeader } from "../../logger/util.js"
+import { addLinkedSources, moduleHasRemoteSource } from "../../util/ext-source-util.js"
+import { joiArray, joi } from "../../config/common.js"
+import { linkedModuleSchema } from "../../config/project.js"
+import { StringParameter, PathParameter } from "../../cli/params.js"
+import { naturalList } from "../../util/string.js"
 
 const linkModuleArguments = {
   module: new StringParameter({

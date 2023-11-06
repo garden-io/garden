@@ -6,38 +6,39 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { CreateSecretResponse, UpdateSecretResponse } from "@garden-io/platform-api-types"
-import { pickBy, sortBy, uniqBy } from "lodash"
-import { BooleanParameter, PathParameter, StringParameter, StringsParameter } from "../../../cli/params"
-import { CloudProject } from "../../../cloud/api"
-import { StringMap } from "../../../config/common"
-import { CloudApiError, CommandError, ConfigurationError, GardenError } from "../../../exceptions"
-import { printHeader } from "../../../logger/util"
-import { dedent, deline } from "../../../util/string"
-import { getCloudDistributionName } from "../../../util/util"
-import { Command, CommandParams, CommandResult } from "../../base"
-import { ApiCommandError, SecretResult, handleBulkOperationResult, makeSecretFromResponse, noApiMsg } from "../helpers"
-import dotenv = require("dotenv")
-import { readFile } from "fs-extra"
-import { fetchAllSecrets } from "./secrets-list"
-import { Log } from "../../../logger/log-entry"
+import type { CreateSecretResponse, UpdateSecretResponse } from "@garden-io/platform-api-types"
+import { pickBy, sortBy, uniqBy } from "lodash-es"
+import { BooleanParameter, PathParameter, StringParameter, StringsParameter } from "../../../cli/params.js"
+import type { CloudProject } from "../../../cloud/api.js"
+import type { StringMap } from "../../../config/common.js"
+import { CloudApiError, CommandError, ConfigurationError, GardenError } from "../../../exceptions.js"
+import { printHeader } from "../../../logger/util.js"
+import { dedent, deline } from "../../../util/string.js"
+import { getCloudDistributionName } from "../../../util/util.js"
+import type { CommandParams, CommandResult } from "../../base.js"
+import { Command } from "../../base.js"
+import type { ApiCommandError, SecretResult } from "../helpers.js"
+import { handleBulkOperationResult, makeSecretFromResponse, noApiMsg } from "../helpers.js"
+import dotenv from "dotenv"
+import fsExtra from "fs-extra"
+const { readFile } = fsExtra
+import { fetchAllSecrets } from "./secrets-list.js"
+import type { Log } from "../../../logger/log-entry.js"
 
 export type UpdateSecretBody = SecretResult & { newValue: string }
 
-export async function getSecretsToUpdateByName<T>({
+export async function getSecretsToUpdateByName({
   allSecrets,
   envName,
   userId,
   secretsToUpdateArgs,
   log,
-  args,
 }: {
   allSecrets: SecretResult[]
   envName?: string
   userId?: string
   secretsToUpdateArgs: StringMap
   log: Log
-  args: T
 }): Promise<Array<UpdateSecretBody>> {
   const filteredSecrets = sortBy(allSecrets, "name")
     .filter((s) => (envName ? s.environment?.name === envName : true))
@@ -221,7 +222,6 @@ export class SecretsUpdateCommand extends Command<Args, Opts> {
         userId,
         secretsToUpdateArgs,
         log,
-        args,
       })
 
       if (isUpsert) {

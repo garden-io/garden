@@ -6,15 +6,16 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ContainerDeployAction } from "../../container/moduleConfig"
-import { getAppNamespace } from "../namespace"
-import { KubernetesPluginContext, KubernetesTargetResourceSpec } from "../config"
-import { getSyncStatus, KubernetesDeployDevModeSyncSpec, startSyncs, stopSyncs } from "../sync"
-import { DeployActionHandler } from "../../../plugin/action-types"
-import { KubernetesResource, SyncableKind } from "../types"
-import { KubernetesDeployAction } from "../kubernetes-type/config"
-import { HelmDeployAction } from "../helm/config"
-import { Executed } from "../../../actions/types"
+import type { ContainerDeployAction } from "../../container/moduleConfig.js"
+import { getAppNamespace } from "../namespace.js"
+import type { KubernetesPluginContext, KubernetesTargetResourceSpec } from "../config.js"
+import type { KubernetesDeployDevModeSyncSpec } from "../sync.js"
+import { getSyncStatus, startSyncs, stopSyncs } from "../sync.js"
+import type { DeployActionHandler } from "../../../plugin/action-types.js"
+import type { KubernetesResource, SyncableKind } from "../types.js"
+import type { KubernetesDeployAction } from "../kubernetes-type/config.js"
+import type { HelmDeployAction } from "../helm/config.js"
+import type { Executed } from "../../../actions/types.js"
 
 export const k8sContainerStartSync: DeployActionHandler<"startSync", ContainerDeployAction> = async (params) => {
   const { ctx, action, log } = params

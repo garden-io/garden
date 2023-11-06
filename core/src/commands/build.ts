@@ -6,24 +6,18 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import {
-  Command,
-  CommandResult,
-  CommandParams,
-  handleProcessResults,
-  ProcessCommandResult,
-  processCommandResultSchema,
-} from "./base"
+import type { CommandResult, CommandParams, ProcessCommandResult } from "./base.js"
+import { Command, handleProcessResults, processCommandResultSchema } from "./base.js"
 import dedent from "dedent"
-import { printHeader } from "../logger/util"
-import { flatten } from "lodash"
-import { BuildTask } from "../tasks/build"
-import { StringsParameter, BooleanParameter } from "../cli/params"
-import { uniqByName } from "../util/util"
-import { deline } from "../util/string"
-import { isBuildAction } from "../actions/build"
-import { watchParameter, watchRemovedWarning } from "./helpers"
-import { warnOnLinkedActions } from "../actions/helpers"
+import { printHeader } from "../logger/util.js"
+import { flatten } from "lodash-es"
+import { BuildTask } from "../tasks/build.js"
+import { StringsParameter, BooleanParameter } from "../cli/params.js"
+import { uniqByName } from "../util/util.js"
+import { deline } from "../util/string.js"
+import { isBuildAction } from "../actions/build.js"
+import { warnOnLinkedActions } from "../actions/helpers.js"
+import { watchParameter, watchRemovedWarning } from "./util/watch-parameter.js"
 
 const buildArgs = {
   names: new StringsParameter({

@@ -6,15 +6,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import Joi from "@hapi/joi"
+import type Joi from "@hapi/joi"
 import { readFileSync } from "fs"
 import { resolve } from "path"
-import handlebars = require("handlebars")
-import { joiArray, joi } from "../config/common"
-import { providerConfigBaseSchema } from "../config/provider"
-import { GardenPluginSpec, PluginMap } from "../plugin/plugin"
-import { getPluginBases } from "../plugins"
-import { renderTemplateStringReference, renderConfigReference, TEMPLATES_DIR } from "./config"
+import handlebars from "handlebars"
+import { joiArray, joi } from "../config/common.js"
+import { providerConfigBaseSchema } from "../config/provider.js"
+import type { GardenPluginSpec, PluginMap } from "../plugin/plugin.js"
+import { getPluginBases } from "../plugins.js"
+import { renderTemplateStringReference, renderConfigReference, TEMPLATES_DIR } from "./config.js"
 
 const populateProviderSchema = (schema: Joi.ObjectSchema) =>
   joi.object().keys({

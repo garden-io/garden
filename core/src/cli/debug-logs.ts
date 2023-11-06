@@ -7,10 +7,11 @@
  */
 
 import moment from "moment"
-import { lstat, pathExists, remove } from "fs-extra"
+import fsExtra from "fs-extra"
+const { lstat, pathExists, remove } = fsExtra
 import { join } from "path"
-import { Log } from "../logger/log-entry"
-import { listDirectory } from "../util/fs"
+import type { Log } from "../logger/log-entry.js"
+import { listDirectory } from "../util/fs.js"
 
 const logfileExpiryDays = 7
 

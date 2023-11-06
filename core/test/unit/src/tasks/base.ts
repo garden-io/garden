@@ -7,12 +7,14 @@
  */
 
 import { expect } from "chai"
-import { getDataDir, makeTestGarden, TestGarden } from "../../../helpers"
-import { Log } from "../../../../src/logger/log-entry"
-import { ConfigGraph } from "../../../../src/graph/config-graph"
-import { BaseActionTask, ValidResultType } from "../../../../src/tasks/base"
-import { TestAction } from "../../../../src/actions/test"
-import { DEFAULT_TEST_TIMEOUT_SEC } from "../../../../src/constants"
+import type { TestGarden } from "../../../helpers.js"
+import { getDataDir, makeTestGarden } from "../../../helpers.js"
+import type { Log } from "../../../../src/logger/log-entry.js"
+import type { ConfigGraph } from "../../../../src/graph/config-graph.js"
+import type { ValidResultType } from "../../../../src/tasks/base.js"
+import { BaseActionTask } from "../../../../src/tasks/base.js"
+import type { TestAction } from "../../../../src/actions/test.js"
+import { DEFAULT_TEST_TIMEOUT_SEC } from "../../../../src/constants.js"
 
 describe("BaseActionTask", () => {
   let garden: TestGarden

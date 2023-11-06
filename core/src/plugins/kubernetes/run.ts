@@ -9,34 +9,40 @@
 import tar from "tar"
 import tmp from "tmp-promise"
 import cloneDeep from "fast-copy"
-import { omit, pick, some } from "lodash"
-import { Log } from "../../logger/log-entry"
-import { CoreV1Event } from "@kubernetes/client-node"
-import { PluginError, GardenError, RuntimeError, ConfigurationError, GardenErrorParams } from "../../exceptions"
-import { KubernetesProvider } from "./config"
-import { Writable, Readable, PassThrough } from "stream"
-import { uniqByName, sleep } from "../../util/util"
-import { ExecInPodResult, KubeApi, KubernetesError } from "./api"
-import { getPodLogs, checkPodStatus } from "./status/pod"
-import { KubernetesResource, KubernetesPod, KubernetesServerResource, SupportedRuntimeAction } from "./types"
-import { ContainerEnvVars, ContainerResourcesSpec, ContainerVolumeSpec } from "../container/config"
-import { prepareEnvVars, makePodName, renderPodEvents } from "./util"
-import { dedent, deline, randomString } from "../../util/string"
-import { ArtifactSpec } from "../../config/validation"
-import { prepareSecrets } from "./secrets"
-import { configureVolumes } from "./container/deployment"
-import { PluginContext, PluginEventBroker, PluginEventLogContext } from "../../plugin-context"
-import { waitForResources, ResourceStatus, DeploymentResourceStatusError } from "./status/status"
-import { getResourceRequirements, getSecurityContext } from "./container/util"
-import { KUBECTL_DEFAULT_TIMEOUT } from "./kubectl"
-import { copy } from "fs-extra"
-import { K8sLogFollower, PodLogEntryConverter, PodLogEntryConverterParams } from "./logs"
+import { omit, pick, some } from "lodash-es"
+import type { Log } from "../../logger/log-entry.js"
+import type { CoreV1Event } from "@kubernetes/client-node"
+import type { GardenErrorParams } from "../../exceptions.js"
+import { PluginError, GardenError, RuntimeError, ConfigurationError } from "../../exceptions.js"
+import type { KubernetesProvider } from "./config.js"
+import type { Writable, Readable } from "stream"
+import { PassThrough } from "stream"
+import { uniqByName, sleep } from "../../util/util.js"
+import type { ExecInPodResult } from "./api.js"
+import { KubeApi, KubernetesError } from "./api.js"
+import { getPodLogs, checkPodStatus } from "./status/pod.js"
+import type { KubernetesResource, KubernetesPod, KubernetesServerResource, SupportedRuntimeAction } from "./types.js"
+import type { ContainerEnvVars, ContainerResourcesSpec, ContainerVolumeSpec } from "../container/config.js"
+import { prepareEnvVars, makePodName, renderPodEvents } from "./util.js"
+import { dedent, deline, randomString } from "../../util/string.js"
+import type { ArtifactSpec } from "../../config/validation.js"
+import { prepareSecrets } from "./secrets.js"
+import { configureVolumes } from "./container/deployment.js"
+import type { PluginContext, PluginEventBroker, PluginEventLogContext } from "../../plugin-context.js"
+import type { ResourceStatus } from "./status/status.js"
+import { waitForResources, DeploymentResourceStatusError } from "./status/status.js"
+import { getResourceRequirements, getSecurityContext } from "./container/util.js"
+import { KUBECTL_DEFAULT_TIMEOUT } from "./kubectl.js"
+import fsExtra from "fs-extra"
+const { copy } = fsExtra
+import type { PodLogEntryConverter, PodLogEntryConverterParams } from "./logs.js"
+import { K8sLogFollower } from "./logs.js"
 import { Stream } from "ts-stream"
-import { BaseRunParams } from "../../plugin/handlers/base/base"
-import { V1PodSpec, V1Container, V1Pod, V1ContainerStatus, V1PodStatus } from "@kubernetes/client-node"
-import { RunResult } from "../../plugin/base"
-import { LogLevel } from "../../logger/logger"
-import { getResourceEvents } from "./status/events"
+import type { BaseRunParams } from "../../plugin/handlers/base/base.js"
+import type { V1PodSpec, V1Container, V1Pod, V1ContainerStatus, V1PodStatus } from "@kubernetes/client-node"
+import type { RunResult } from "../../plugin/base.js"
+import { LogLevel } from "../../logger/logger.js"
+import { getResourceEvents } from "./status/events.js"
 import stringify from "json-stringify-safe"
 
 // ref: https://kubernetes.io/docs/reference/labels-annotations-taints/#kubectl-kubernetes-io-default-container
@@ -497,7 +503,7 @@ async function runWithArtifacts({
 }): Promise<RunResult> {
   const { args, command, timeout: timeoutSec } = run
 
-  const { pod, runner } = getPodResourceAndRunner({
+  const { runner } = getPodResourceAndRunner({
     ctx,
     api,
     provider,
@@ -990,7 +996,7 @@ export class PodRunner {
     while (true) {
       let serverPod: KubernetesServerResource<V1Pod>
       try {
-        serverPod = await this.api.core.readNamespacedPodStatus(podName, namespace)
+        serverPod = await this.api.core.readNamespacedPodStatus({ name: podName, namespace })
       } catch (e) {
         if (e instanceof KubernetesError) {
           // if the pod has been deleted during execution we might run into a 404 error.
@@ -1255,7 +1261,7 @@ export class PodRunner {
    */
   async stop() {
     try {
-      await this.api.core.deleteNamespacedPod(this.podName, this.namespace, undefined, undefined, 0)
+      await this.api.core.deleteNamespacedPod({ name: this.podName, namespace: this.namespace, gracePeriodSeconds: 0 })
     } catch (err) {
       if (!(err instanceof KubernetesError)) {
         throw err

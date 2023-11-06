@@ -6,14 +6,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import tmp from "tmp-promise"
+import type tmp from "tmp-promise"
 import { expect } from "chai"
-import { createProjectConfig, freezeTime, makeTempDir, TestGarden } from "../../../helpers"
-import { ProjectConfig } from "../../../../src/config/project"
-import { createGardenPlugin } from "../../../../src/plugin/plugin"
-import { RunTask } from "../../../../src/tasks/run"
-import { GetRunResult } from "../../../../src/plugin/handlers/Run/get-result"
-import { joi } from "../../../../src/config/common"
+import { createProjectConfig, freezeTime, makeTempDir, TestGarden } from "../../../helpers.js"
+import type { ProjectConfig } from "../../../../src/config/project.js"
+import { createGardenPlugin } from "../../../../src/plugin/plugin.js"
+import { RunTask } from "../../../../src/tasks/run.js"
+import type { GetRunResult } from "../../../../src/plugin/handlers/Run/get-result.js"
+import { joi } from "../../../../src/config/common.js"
 
 describe("RunTask", () => {
   let tmpDir: tmp.DirectoryResult

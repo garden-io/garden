@@ -6,34 +6,32 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { joi, joiSparseArray } from "../../../config/common"
-import {
-  portForwardsSchema,
-  PortForwardSpec,
-  KubernetesTargetResourceSpec,
-  k8sDeploymentTimeoutSchema,
-  namespaceNameSchema,
-} from "../config"
-import { kubernetesDeploySyncSchema, KubernetesDeploySyncSpec } from "../sync"
-import { KubernetesKustomizeSpec, kustomizeSpecSchema } from "./kustomize"
-import type { KubernetesPatchResource, KubernetesResource } from "../types"
-import type { DeployAction, DeployActionConfig } from "../../../actions/deploy"
-import { defaultTargetSchema } from "../helm/config"
+import { joi, joiSparseArray } from "../../../config/common.js"
+import type { PortForwardSpec, KubernetesTargetResourceSpec } from "../config.js"
+import { portForwardsSchema, k8sDeploymentTimeoutSchema, namespaceNameSchema } from "../config.js"
+import type { KubernetesDeploySyncSpec } from "../sync.js"
+import { kubernetesDeploySyncSchema } from "../sync.js"
+import type { KubernetesKustomizeSpec } from "./kustomize.js"
+import { kustomizeSpecSchema } from "./kustomize.js"
+import type { KubernetesPatchResource, KubernetesResource } from "../types.js"
+import type { DeployAction, DeployActionConfig } from "../../../actions/deploy.js"
+import { defaultTargetSchema } from "../helm/config.js"
 import type {
   KubernetesPodRunAction,
   KubernetesPodRunActionConfig,
   KubernetesPodTestAction,
   KubernetesPodTestActionConfig,
-} from "./kubernetes-pod"
-import { kubernetesLocalModeSchema, KubernetesLocalModeSpec } from "../local-mode"
-import { containerRunOutputSchema } from "../../container/config"
-import {
+} from "./kubernetes-pod.js"
+import type { KubernetesLocalModeSpec } from "../local-mode.js"
+import { kubernetesLocalModeSchema } from "../local-mode.js"
+import { containerRunOutputSchema } from "../../container/config.js"
+import type {
   KubernetesExecRunAction,
   KubernetesExecRunActionConfig,
   KubernetesExecTestAction,
   KubernetesExecTestActionConfig,
-} from "./kubernetes-exec"
-import { dedent } from "../../../util/string"
+} from "./kubernetes-exec.js"
+import { dedent } from "../../../util/string.js"
 
 export interface KubernetesTypeCommonDeploySpec {
   files: string[]

@@ -6,11 +6,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { createSchema, joi, joiVariables } from "@garden-io/core/build/src/config/common"
-import { dedent } from "@garden-io/core/build/src/util/string"
-import { supportedVersions } from "./cli"
-import { TerraformBaseSpec, variablesSchema } from "./helpers"
-import { DeployAction, DeployActionConfig } from "@garden-io/core/build/src/actions/deploy"
+import { createSchema, joi, joiVariables } from "@garden-io/core/build/src/config/common.js"
+import { dedent } from "@garden-io/core/build/src/util/string.js"
+import { supportedVersions } from "./cli.js"
+import type { TerraformBaseSpec } from "./helpers.js"
+import { variablesSchema } from "./helpers.js"
+import type { DeployAction, DeployActionConfig } from "@garden-io/core/build/src/actions/deploy.js"
 
 export interface TerraformDeploySpec extends TerraformBaseSpec {
   root: string

@@ -6,20 +6,20 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { memoize } from "lodash"
-import { BaseGardenResource, baseInternalFieldsSchema } from "./base"
+import { memoize } from "lodash-es"
+import type { BaseGardenResource } from "./base.js"
+import { baseInternalFieldsSchema } from "./base.js"
+import type { DeepPrimitiveMap, StringMap } from "./common.js"
 import {
-  DeepPrimitiveMap,
   joi,
   joiArray,
   joiEnvVars,
   joiIdentifier,
   joiUserIdentifier,
   joiVariables,
-  StringMap,
   createSchema,
   unusedApiVersionSchema,
-} from "./common"
+} from "./common.js"
 
 interface BaseParameter {
   name: string

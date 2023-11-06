@@ -7,14 +7,15 @@
  */
 
 import { expect } from "chai"
-import { getActionState, getRelativeActionConfigPath } from "../../../../../src/actions/helpers"
-import { GetActionsCommand } from "../../../../../src/commands/get/get-actions"
-import { TestGarden, getDataDir, makeTestGarden, withDefaultGlobalOpts } from "../../../../helpers"
-import { Action } from "../../../../../src/actions/types"
-import { ActionRouter } from "../../../../../src/router/router"
-import { ResolvedConfigGraph } from "../../../../../src/graph/config-graph"
-import { Log } from "../../../../../src/logger/log-entry"
-import { sortBy } from "lodash"
+import { getActionState, getRelativeActionConfigPath } from "../../../../../src/actions/helpers.js"
+import { GetActionsCommand } from "../../../../../src/commands/get/get-actions.js"
+import type { TestGarden } from "../../../../helpers.js"
+import { getDataDir, makeTestGarden, withDefaultGlobalOpts } from "../../../../helpers.js"
+import type { Action } from "../../../../../src/actions/types.js"
+import type { ActionRouter } from "../../../../../src/router/router.js"
+import type { ResolvedConfigGraph } from "../../../../../src/graph/config-graph.js"
+import type { Log } from "../../../../../src/logger/log-entry.js"
+import { sortBy } from "lodash-es"
 
 export const getActionsToSimpleOutput = (d) => {
   return { name: d.name, kind: d.kind, type: d.type }
@@ -234,7 +235,6 @@ describe("GetActionsCommand", () => {
       opts: withDefaultGlobalOpts({ "detail": false, "sort": "name", "include-state": false, "kind": "deploy" }),
     })
     const graph = await garden.getResolvedConfigGraph({ log, emit: false })
-    const router = await garden.getActionRouter()
     const expected = sortBy(graph.getDeploys().map(getActionsToSimpleOutput), "name")
     expect(command.outputsSchema().validate(result).error).to.be.undefined
     expect(result).to.eql({ actions: expected })
@@ -252,7 +252,6 @@ describe("GetActionsCommand", () => {
       opts: withDefaultGlobalOpts({ "detail": false, "sort": "kind", "include-state": false, "kind": "" }),
     })
     const graph = await garden.getResolvedConfigGraph({ log, emit: false })
-    const router = await garden.getActionRouter()
     const expected = sortBy(graph.getActions().map(getActionsToSimpleOutput), ["kind", "name"])
     expect(command.outputsSchema().validate(result).error).to.be.undefined
     expect(result).to.eql({ actions: expected })
@@ -270,7 +269,6 @@ describe("GetActionsCommand", () => {
       opts: withDefaultGlobalOpts({ "detail": false, "sort": "type", "include-state": false, "kind": "" }),
     })
     const graph = await garden.getResolvedConfigGraph({ log, emit: false })
-    const router = await garden.getActionRouter()
     const expected = sortBy(graph.getActions().map(getActionsToSimpleOutput), ["type", "name"])
     expect(command.outputsSchema().validate(result).error).to.be.undefined
     expect(result).to.eql({ actions: expected })

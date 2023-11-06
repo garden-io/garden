@@ -55,9 +55,10 @@ FROM garden-base-$VARIANT as garden-base
 # Note: This Dockerfile is run with dist/linux-amd64 as the context root
 ADD --chown=$USER:root . /garden
 ENV PATH /garden:$PATH
-RUN cd /garden/static && git init
+# Make sure we run garden once so that it extracts all the binaries already
 
 WORKDIR $HOME
+RUN GARDEN_DISABLE_ANALYTICS=true GARDEN_SEA_DEBUG=1 garden --help > /dev/null
 RUN GARDEN_DISABLE_ANALYTICS=true GARDEN_DISABLE_VERSION_CHECK=true garden util fetch-tools --all --garden-image-build
 
 WORKDIR /project

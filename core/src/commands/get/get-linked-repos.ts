@@ -7,12 +7,13 @@
  */
 
 import chalk from "chalk"
-import { sortBy } from "lodash"
-import { Command, CommandParams, CommandResult } from "../base"
-import { LinkedSource } from "../../config-store/local"
-import { printHeader } from "../../logger/util"
-import { getLinkedSources } from "../../util/ext-source-util"
-import { renderTable } from "../../util/string"
+import { sortBy } from "lodash-es"
+import type { CommandParams, CommandResult } from "../base.js"
+import { Command } from "../base.js"
+import type { LinkedSource } from "../../config-store/local.js"
+import { printHeader } from "../../logger/util.js"
+import { getLinkedSources } from "../../util/ext-source-util.js"
+import { renderTable } from "../../util/string.js"
 
 const getLinkedReposArguments = {}
 

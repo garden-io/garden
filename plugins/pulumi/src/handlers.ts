@@ -6,8 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { pulumi } from "./cli"
-import { ProviderHandlers } from "@garden-io/sdk/build/src/types"
+import { pulumi } from "./cli.js"
+import type { ProviderHandlers } from "@garden-io/sdk/build/src/types.js"
 import {
   applyConfig,
   clearStackVersionTag,
@@ -19,13 +19,13 @@ import {
   getStackStatusFromTag,
   selectStack,
   setStackVersionTag,
-} from "./helpers"
-import { PulumiDeploy } from "./action"
-import { PulumiProvider } from "./provider"
+} from "./helpers.js"
+import type { PulumiDeploy } from "./action.js"
+import type { PulumiProvider } from "./provider.js"
 import chalk from "chalk"
-import { DeployActionHandlers } from "@garden-io/core/build/src/plugin/action-types"
-import { DeployState } from "@garden-io/core/build/src/types/service"
-import { deployStateToActionState } from "@garden-io/core/build/src/plugin/handlers/Deploy/get-status"
+import type { DeployActionHandlers } from "@garden-io/core/build/src/plugin/action-types.js"
+import type { DeployState } from "@garden-io/core/build/src/types/service.js"
+import { deployStateToActionState } from "@garden-io/core/build/src/plugin/handlers/Deploy/get-status.js"
 
 export const cleanupEnvironment: ProviderHandlers["cleanupEnvironment"] = async (_params) => {
   // To properly implement this handler, we'd need access to the config graph (or at least the list of pulumi services

@@ -7,14 +7,16 @@
  */
 
 import chalk from "chalk"
-import { getActionState, getRelativeActionConfigPath } from "../../actions/helpers"
-import { ActionKind, ActionState, ResolvedAction, actionKinds, actionStateTypes } from "../../actions/types"
-import { BooleanParameter, ChoicesParameter, StringsParameter } from "../../cli/params"
-import { createSchema, joi, joiArray } from "../../config/common"
-import { printHeader } from "../../logger/util"
-import { dedent, deline, renderTable } from "../../util/string"
-import { Command, CommandParams, CommandResult } from "../base"
-import { sortBy } from "lodash"
+import { getActionState, getRelativeActionConfigPath } from "../../actions/helpers.js"
+import type { ActionKind, ActionState, ResolvedAction } from "../../actions/types.js"
+import { actionKinds, actionStateTypes } from "../../actions/types.js"
+import { BooleanParameter, ChoicesParameter, StringsParameter } from "../../cli/params.js"
+import { createSchema, joi, joiArray } from "../../config/common.js"
+import { printHeader } from "../../logger/util.js"
+import { dedent, deline, renderTable } from "../../util/string.js"
+import type { CommandParams, CommandResult } from "../base.js"
+import { Command } from "../base.js"
+import { sortBy } from "lodash-es"
 
 interface GetActionsCommandResultItem {
   name: string
@@ -100,9 +102,6 @@ const getActionsOpts = {
 
 export type Args = typeof getActionsArgs
 export type Opts = typeof getActionsOpts
-
-type CmdParams = CommandParams<Args, Opts>
-type foo = CmdParams["opts"]
 
 export class GetActionsCommand extends Command {
   name = "actions"

@@ -7,9 +7,11 @@
  */
 
 import { expect } from "chai"
-import { readFile } from "fs-extra"
+import fsExtra from "fs-extra"
+const { readFile } = fsExtra
 import { join } from "node:path"
-import { getDataDir, makeTestGarden, TestGarden } from "../../../../helpers"
+import type { TestGarden } from "../../../../helpers.js"
+import { getDataDir, makeTestGarden } from "../../../../helpers.js"
 
 describe("exec provider initialization cache behaviour", () => {
   let gardenOne: TestGarden

@@ -7,7 +7,7 @@
  */
 
 import { expect } from "chai"
-import { deepFilter, deepOmitUndefined } from "../../../../src/util/objects"
+import { deepFilter, deepOmitUndefined } from "../../../../src/util/objects.js"
 
 describe("deepFilter", () => {
   const fn = (v) => v !== 99

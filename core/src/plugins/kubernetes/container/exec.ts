@@ -6,14 +6,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { includes } from "lodash"
-import { DeploymentError } from "../../../exceptions"
-import { ContainerDeployAction } from "../../container/moduleConfig"
-import { getAppNamespace } from "../namespace"
-import { KubernetesPluginContext } from "../config"
-import { execInWorkload } from "../util"
-import { DeployActionHandler } from "../../../plugin/action-types"
-import { k8sGetContainerDeployStatus } from "./status"
+import { includes } from "lodash-es"
+import { DeploymentError } from "../../../exceptions.js"
+import type { ContainerDeployAction } from "../../container/moduleConfig.js"
+import { getAppNamespace } from "../namespace.js"
+import type { KubernetesPluginContext } from "../config.js"
+import { execInWorkload } from "../util.js"
+import type { DeployActionHandler } from "../../../plugin/action-types.js"
+import { k8sGetContainerDeployStatus } from "./status.js"
 
 export const execInContainer: DeployActionHandler<"exec", ContainerDeployAction> = async (params) => {
   const { ctx, log, action, command, interactive, target: containerName } = params

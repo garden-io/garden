@@ -6,10 +6,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { joi } from "@garden-io/core/build/src/config/common"
-import { GenericProviderConfig, Provider, providerConfigBaseSchema } from "@garden-io/core/build/src/config/provider"
-import { dedent } from "@garden-io/sdk/build/src/util/string"
-import { defaultPulumiVersion, supportedVersions } from "./cli"
+import { joi } from "@garden-io/core/build/src/config/common.js"
+import type { GenericProviderConfig, Provider } from "@garden-io/core/build/src/config/provider.js"
+import { providerConfigBaseSchema } from "@garden-io/core/build/src/config/provider.js"
+import { dedent } from "@garden-io/sdk/build/src/util/string.js"
+import { defaultPulumiVersion, supportedVersions } from "./cli.js"
 
 export type PulumiProviderConfig = GenericProviderConfig & {
   version: string | null

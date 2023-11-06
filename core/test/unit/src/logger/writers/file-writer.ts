@@ -9,11 +9,12 @@
 import { expect } from "chai"
 import chalk from "chalk"
 import stripAnsi from "strip-ansi"
-import { RuntimeError } from "../../../../../src/exceptions"
+import { RuntimeError } from "../../../../../src/exceptions.js"
 
-import { getRootLogger, Logger, LogLevel } from "../../../../../src/logger/logger"
-import { renderError } from "../../../../../src/logger/renderers"
-import { render } from "../../../../../src/logger/writers/file-writer"
+import type { Logger } from "../../../../../src/logger/logger.js"
+import { getRootLogger, LogLevel } from "../../../../../src/logger/logger.js"
+import { renderError } from "../../../../../src/logger/renderers.js"
+import { render } from "../../../../../src/logger/writers/file-writer.js"
 
 const logger: Logger = getRootLogger()
 

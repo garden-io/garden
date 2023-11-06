@@ -6,27 +6,28 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { dependenciesSchema } from "../../../config/service"
-import { joi, joiModuleIncludeDirective, joiSparseArray } from "../../../config/common"
-import { GardenModule } from "../../../types/module"
-import { ConfigureModuleParams, ConfigureModuleResult } from "../../../plugin/handlers/Module/configure"
-import { GardenService } from "../../../types/service"
-import { baseBuildSpecSchema } from "../../../config/module"
-import { dedent } from "../../../util/string"
+import { dependenciesSchema } from "../../../config/service.js"
+import { joi, joiModuleIncludeDirective, joiSparseArray } from "../../../config/common.js"
+import type { GardenModule } from "../../../types/module.js"
+import type { ConfigureModuleParams, ConfigureModuleResult } from "../../../plugin/handlers/Module/configure.js"
+import type { GardenService } from "../../../types/service.js"
+import { baseBuildSpecSchema } from "../../../config/module.js"
+import { dedent } from "../../../util/string.js"
+import type { KubernetesTaskSpec, KubernetesTestSpec, ServiceResourceSpec } from "../config.js"
 import {
   containerModuleSchema,
   kubernetesTaskSchema,
-  KubernetesTaskSpec,
   kubernetesTestSchema,
-  KubernetesTestSpec,
   serviceResourceDescription,
   serviceResourceSchema,
-  ServiceResourceSpec,
-} from "../config"
-import { ContainerModule } from "../../container/moduleConfig"
-import { kubernetesModuleSyncSchema, KubernetesModuleDevModeSpec } from "../sync"
-import { KubernetesTypeCommonDeploySpec, kubernetesCommonDeploySpecKeys } from "./config"
-import { kubernetesLocalModeSchema, KubernetesLocalModeSpec } from "../local-mode"
+} from "../config.js"
+import type { ContainerModule } from "../../container/moduleConfig.js"
+import type { KubernetesModuleDevModeSpec } from "../sync.js"
+import { kubernetesModuleSyncSchema } from "../sync.js"
+import type { KubernetesTypeCommonDeploySpec } from "./config.js"
+import { kubernetesCommonDeploySpecKeys } from "./config.js"
+import type { KubernetesLocalModeSpec } from "../local-mode.js"
+import { kubernetesLocalModeSchema } from "../local-mode.js"
 
 // A Kubernetes Module always maps to a single Service
 export type KubernetesModuleSpec = KubernetesServiceSpec

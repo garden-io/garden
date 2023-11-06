@@ -6,12 +6,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { memoize } from "lodash"
-import { GardenModule } from "./module"
-import { TaskConfig, taskConfigSchema } from "../config/task"
-import { getEntityVersion } from "../vcs/vcs"
-import { joi, joiUserIdentifier, moduleVersionSchema, versionStringSchema, createSchema } from "../config/common"
-import { deline } from "../util/string"
+import { memoize } from "lodash-es"
+import type { GardenModule } from "./module.js"
+import type { TaskConfig } from "../config/task.js"
+import { taskConfigSchema } from "../config/task.js"
+import { getEntityVersion } from "../vcs/vcs.js"
+import { joi, joiUserIdentifier, moduleVersionSchema, versionStringSchema, createSchema } from "../config/common.js"
+import { deline } from "../util/string.js"
 
 export interface GardenTask<M extends GardenModule = GardenModule> {
   name: string

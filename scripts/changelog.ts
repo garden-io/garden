@@ -8,9 +8,12 @@
  */
 
 import execa from "execa"
-import { resolve } from "path"
+import { fileURLToPath } from "node:url"
+import { dirname, resolve } from "node:path"
 
-const gardenRoot = resolve(__dirname, "..")
+const moduleDirName = dirname(fileURLToPath(import.meta.url))
+
+const gardenRoot = resolve(moduleDirName, "..")
 
 export async function getChangelog(curReleaseTag: string) {
   try {

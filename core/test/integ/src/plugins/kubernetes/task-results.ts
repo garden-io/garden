@@ -6,15 +6,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Garden } from "../../../../../src/garden"
-import { Provider } from "../../../../../src/config/provider"
-import { KubernetesConfig } from "../../../../../src/plugins/kubernetes/config"
-import { getDataDir, makeTestGarden } from "../../../../helpers"
-import { randomString } from "../../../../../src/util/string"
+import type { Garden } from "../../../../../src/garden.js"
+import type { Provider } from "../../../../../src/config/provider.js"
+import type { KubernetesConfig } from "../../../../../src/plugins/kubernetes/config.js"
+import { getDataDir, makeTestGarden } from "../../../../helpers.js"
+import { randomString } from "../../../../../src/util/string.js"
 import { expect } from "chai"
-import { k8sGetRunResult, storeRunResult } from "../../../../../src/plugins/kubernetes/run-results"
-import { MAX_RUN_RESULT_LOG_LENGTH } from "../../../../../src/plugins/kubernetes/constants"
-import { createActionLog } from "../../../../../src/logger/log-entry"
+import { k8sGetRunResult, storeRunResult } from "../../../../../src/plugins/kubernetes/run-results.js"
+import { MAX_RUN_RESULT_LOG_LENGTH } from "../../../../../src/plugins/kubernetes/constants.js"
+import { createActionLog } from "../../../../../src/logger/log-entry.js"
 
 describe("kubernetes Run results", () => {
   let garden: Garden

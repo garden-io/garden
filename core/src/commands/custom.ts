@@ -10,37 +10,28 @@ import chalk from "chalk"
 import execa from "execa"
 import { apply as jsonMerge } from "json-merge-patch"
 import cloneDeep from "fast-copy"
-import { keyBy, mapValues, flatten } from "lodash"
-import { parseCliArgs, prepareMinimistOpts } from "../cli/helpers"
-import {
-  BooleanParameter,
-  globalOptions,
-  IntegerParameter,
-  Parameter,
-  ParameterObject,
-  StringParameter,
-} from "../cli/params"
-import { loadConfigResources } from "../config/base"
-import {
-  CommandResource,
-  customCommandExecSchema,
-  customCommandGardenCommandSchema,
-  CustomCommandOption,
-  customCommandSchema,
-} from "../config/command"
-import { joi } from "../config/common"
-import { CustomCommandContext } from "../config/template-contexts/custom-command"
-import { validateWithPath } from "../config/validation"
-import { ConfigurationError, GardenError, RuntimeError, InternalError, toGardenError } from "../exceptions"
-import { resolveTemplateStrings } from "../template-string/template-string"
-import { listDirectory, isConfigFilename } from "../util/fs"
-import { Command, CommandParams, CommandResult, PrintHeaderParams } from "./base"
-import { customMinimist } from "../lib/minimist"
-import { removeSlice } from "../util/util"
+import { keyBy, mapValues, flatten } from "lodash-es"
+import { parseCliArgs, prepareMinimistOpts } from "../cli/helpers.js"
+import type { Parameter, ParameterObject } from "../cli/params.js"
+import { BooleanParameter, globalOptions, IntegerParameter, StringParameter } from "../cli/params.js"
+import { loadConfigResources } from "../config/base.js"
+import type { CommandResource, CustomCommandOption } from "../config/command.js"
+import { customCommandExecSchema, customCommandGardenCommandSchema, customCommandSchema } from "../config/command.js"
+import { joi } from "../config/common.js"
+import { CustomCommandContext } from "../config/template-contexts/custom-command.js"
+import { validateWithPath } from "../config/validation.js"
+import type { GardenError } from "../exceptions.js"
+import { ConfigurationError, RuntimeError, InternalError, toGardenError } from "../exceptions.js"
+import { resolveTemplateStrings } from "../template-string/template-string.js"
+import { listDirectory, isConfigFilename } from "../util/fs.js"
+import type { CommandParams, CommandResult, PrintHeaderParams } from "./base.js"
+import { Command } from "./base.js"
+import { customMinimist } from "../lib/minimist.js"
+import { removeSlice } from "../util/util.js"
 import { join } from "path"
-import { getBuiltinCommands } from "./commands"
-import { Log } from "../logger/log-entry"
-import { getTracePropagationEnvVars } from "../util/open-telemetry/propagation"
+import { getBuiltinCommands } from "./commands.js"
+import type { Log } from "../logger/log-entry.js"
+import { getTracePropagationEnvVars } from "../util/open-telemetry/propagation.js"
 
 function convertArgSpec(spec: CustomCommandOption) {
   const params = {
@@ -163,8 +154,6 @@ export class CustomCommandWrapper extends Command {
         buffer: true,
         env: {
           ...process.env,
-          // Workaround for https://github.com/vercel/pkg/issues/897
-          PKG_EXECPATH: "",
           ...(exec.env || {}),
           ...getTracePropagationEnvVars(),
         },

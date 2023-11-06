@@ -6,19 +6,21 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Command, CommandGroup, CommandParams, CommandResult } from "./base"
+import type { CommandParams, CommandResult } from "./base.js"
+import { Command, CommandGroup } from "./base.js"
 import dedent from "dedent"
-import { printHeader } from "../logger/util"
-import { EnvironmentStatusMap } from "../plugin/handlers/Provider/getEnvironmentStatus"
-import { DeleteDeployTask, deletedDeployStatuses } from "../tasks/delete-deploy"
-import { joi, joiIdentifierMap } from "../config/common"
-import { environmentStatusSchema } from "../config/status"
-import { BooleanParameter, StringsParameter } from "../cli/params"
-import { deline } from "../util/string"
-import { uniqByName } from "../util/util"
-import { isDeployAction } from "../actions/deploy"
-import { omit, mapValues } from "lodash"
-import { DeployStatus, DeployStatusMap, getDeployStatusSchema } from "../plugin/handlers/Deploy/get-status"
+import { printHeader } from "../logger/util.js"
+import type { EnvironmentStatusMap } from "../plugin/handlers/Provider/getEnvironmentStatus.js"
+import { DeleteDeployTask, deletedDeployStatuses } from "../tasks/delete-deploy.js"
+import { joi, joiIdentifierMap } from "../config/common.js"
+import { environmentStatusSchema } from "../config/status.js"
+import { BooleanParameter, StringsParameter } from "../cli/params.js"
+import { deline } from "../util/string.js"
+import { uniqByName } from "../util/util.js"
+import { isDeployAction } from "../actions/deploy.js"
+import { omit, mapValues } from "lodash-es"
+import type { DeployStatus, DeployStatusMap } from "../plugin/handlers/Deploy/get-status.js"
+import { getDeployStatusSchema } from "../plugin/handlers/Deploy/get-status.js"
 import chalk from "chalk"
 
 // TODO: rename this to CleanupCommand, and do the same for all related classes, constants, variables and functions

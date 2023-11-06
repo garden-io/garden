@@ -7,7 +7,7 @@
  */
 
 import { expect } from "chai"
-import { JsonKeyDescription } from "../../../../src/docs/json-schema"
+import { JsonKeyDescription } from "../../../../src/docs/json-schema.js"
 
 describe("JsonKeyDescription", () => {
   it("correctly set the basic attributes of an object schema", () => {

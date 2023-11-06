@@ -6,15 +6,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { randomString, gardenAnnotationKey } from "../../../../../src/util/string"
-import { KubeApi } from "../../../../../src/plugins/kubernetes/api"
-import { getDataDir, makeTestGarden } from "../../../../helpers"
-import { KubernetesPluginContext, KubernetesProvider } from "../../../../../src/plugins/kubernetes/config"
-import { ensureNamespace, getNamespaceStatus } from "../../../../../src/plugins/kubernetes/namespace"
-import { Log } from "../../../../../src/logger/log-entry"
+import { randomString, gardenAnnotationKey } from "../../../../../src/util/string.js"
+import { KubeApi } from "../../../../../src/plugins/kubernetes/api.js"
+import { getDataDir, makeTestGarden } from "../../../../helpers.js"
+import type { KubernetesPluginContext, KubernetesProvider } from "../../../../../src/plugins/kubernetes/config.js"
+import { ensureNamespace, getNamespaceStatus } from "../../../../../src/plugins/kubernetes/namespace.js"
+import type { Log } from "../../../../../src/logger/log-entry.js"
 import { expect } from "chai"
-import { getPackageVersion } from "../../../../../src/util/util"
-import { NamespaceStatus } from "../../../../../src/types/namespace"
+import { getPackageVersion } from "../../../../../src/util/util.js"
+import type { NamespaceStatus } from "../../../../../src/types/namespace.js"
 
 describe("Kubernetes Namespace helpers", () => {
   let api: KubeApi
@@ -42,7 +42,7 @@ describe("Kubernetes Namespace helpers", () => {
 
   afterEach(async () => {
     try {
-      await api.core.deleteNamespace(namespaceName)
+      await api.core.deleteNamespace({ name: namespaceName })
     } catch {}
   })
 
@@ -90,13 +90,15 @@ describe("Kubernetes Namespace helpers", () => {
 
     it("should add configured annotations if any are missing", async () => {
       await api.core.createNamespace({
-        apiVersion: "v1",
-        kind: "Namespace",
-        metadata: {
-          name: namespaceName,
-          annotations: {
-            [gardenAnnotationKey("generated")]: "true",
-            [gardenAnnotationKey("version")]: getPackageVersion(),
+        body: {
+          apiVersion: "v1",
+          kind: "Namespace",
+          metadata: {
+            name: namespaceName,
+            annotations: {
+              [gardenAnnotationKey("generated")]: "true",
+              [gardenAnnotationKey("version")]: getPackageVersion(),
+            },
           },
         },
       })
@@ -123,11 +125,13 @@ describe("Kubernetes Namespace helpers", () => {
 
     it("should add configured labels if any are missing", async () => {
       await api.core.createNamespace({
-        apiVersion: "v1",
-        kind: "Namespace",
-        metadata: {
-          name: namespaceName,
-          labels: { foo: "bar" },
+        body: {
+          apiVersion: "v1",
+          kind: "Namespace",
+          metadata: {
+            name: namespaceName,
+            labels: { foo: "bar" },
+          },
         },
       })
 
@@ -150,16 +154,18 @@ describe("Kubernetes Namespace helpers", () => {
 
     it("should do nothing if the namespace has already been configured", async () => {
       await api.core.createNamespace({
-        apiVersion: "v1",
-        kind: "Namespace",
-        metadata: {
-          name: namespaceName,
-          annotations: {
-            [gardenAnnotationKey("generated")]: "true",
-            [gardenAnnotationKey("version")]: getPackageVersion(),
-            foo: "bar",
+        body: {
+          apiVersion: "v1",
+          kind: "Namespace",
+          metadata: {
+            name: namespaceName,
+            annotations: {
+              [gardenAnnotationKey("generated")]: "true",
+              [gardenAnnotationKey("version")]: getPackageVersion(),
+              foo: "bar",
+            },
+            labels: { existing: "label", floo: "blar" },
           },
-          labels: { existing: "label", floo: "blar" },
         },
       })
 

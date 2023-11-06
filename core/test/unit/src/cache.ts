@@ -6,10 +6,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { BoundedCache, TreeCache } from "../../../src/cache"
+import { BoundedCache, TreeCache } from "../../../src/cache.js"
 import { expect } from "chai"
-import { expectError } from "../../helpers"
-import { getRootLogger } from "../../../src/logger/logger"
+import { expectError } from "../../helpers.js"
+import { getRootLogger } from "../../../src/logger/logger.js"
 
 describe("TreeCache", () => {
   let cache: TreeCache

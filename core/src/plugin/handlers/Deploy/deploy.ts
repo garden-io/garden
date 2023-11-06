@@ -6,13 +6,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { actionParamsSchema, PluginDeployActionParamsBase } from "../../base"
-import { dedent } from "../../../util/string"
-import { joi } from "../../../config/common"
-import { ActionTypeHandlerSpec } from "../base/base"
-import { DeployAction } from "../../../actions/deploy"
-import { DeployStatus, getDeployStatusSchema } from "./get-status"
-import { Resolved } from "../../../actions/types"
+import type { PluginDeployActionParamsBase } from "../../base.js"
+import { actionParamsSchema } from "../../base.js"
+import { dedent } from "../../../util/string.js"
+import { joi } from "../../../config/common.js"
+import { ActionTypeHandlerSpec } from "../base/base.js"
+import type { DeployAction } from "../../../actions/deploy.js"
+import type { DeployStatus } from "./get-status.js"
+import { getDeployStatusSchema } from "./get-status.js"
+import type { Resolved } from "../../../actions/types.js"
 
 interface DeployParams<T extends DeployAction> extends PluginDeployActionParamsBase<T> {
   force: boolean

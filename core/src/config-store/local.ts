@@ -7,12 +7,13 @@
  */
 
 import { join } from "path"
-import { joi } from "../config/common"
-import { ConfigStore } from "./base"
+import { joi } from "../config/common.js"
+import { ConfigStore } from "./base.js"
 import { z } from "zod"
-import { readFile } from "fs-extra"
+import fsExtra from "fs-extra"
+const { readFile } = fsExtra
 import { load } from "js-yaml"
-import { keyBy, memoize } from "lodash"
+import { keyBy, memoize } from "lodash-es"
 
 export const legacyLocalConfigFilename = "local-config.yml"
 export const localConfigFilename = "local-config.json"

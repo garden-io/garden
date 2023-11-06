@@ -56,9 +56,10 @@ FROM garden-base-$VARIANT as garden-base
 # Note: This Dockerfile is run with dist/linux-amd64 as the context root
 ADD --chown=$USER:root . /garden
 ENV PATH /garden:$PATH
-RUN cd /garden/static && git init
+# Make sure we run garden once so that it extracts all the binaries already
 
 WORKDIR $HOME
+RUN GARDEN_DISABLE_ANALYTICS=true GARDEN_SEA_DEBUG=1 garden --help > /dev/null
 RUN GARDEN_DISABLE_ANALYTICS=true GARDEN_DISABLE_VERSION_CHECK=true garden util fetch-tools --all --garden-image-build
 
 WORKDIR /project
@@ -83,7 +84,7 @@ ENV GCLOUD_VERSION=444.0.0
 ENV GCLOUD_SHA256="cc76b9b40508253f812af5e52d4630e90230312969eece04ccfb5328c557acac"
 
 RUN curl -O https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-${GCLOUD_VERSION}-linux-x86_64.tar.gz
-RUN echo "${GCLOUD_SHA256}  google-cloud-cli-${GCLOUD_VERSION}-linux-x86_64.tar.gz" | sha256sum -c 
+RUN echo "${GCLOUD_SHA256}  google-cloud-cli-${GCLOUD_VERSION}-linux-x86_64.tar.gz" | sha256sum -c
 RUN tar -xf google-cloud-cli-${GCLOUD_VERSION}-linux-x86_64.tar.gz
 RUN ./google-cloud-sdk/install.sh --quiet
 RUN ./google-cloud-sdk/bin/gcloud components install kubectl gke-gcloud-auth-plugin --quiet

@@ -6,9 +6,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { joiUserIdentifier, joi, joiSparseArray, createSchema } from "./common"
-import { deline, dedent } from "../util/string"
-import { DEFAULT_TEST_TIMEOUT_SEC } from "../constants"
+import { joiUserIdentifier, joi, joiSparseArray, createSchema } from "./common.js"
+import { deline, dedent } from "../util/string.js"
+import { DEFAULT_TEST_TIMEOUT_SEC } from "../constants.js"
 
 export interface BaseTestSpec {
   name: string

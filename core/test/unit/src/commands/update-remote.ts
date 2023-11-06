@@ -6,10 +6,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import td from "testdouble"
+import * as td from "testdouble"
 import { expect } from "chai"
 import { join } from "path"
-import { mkdirp, pathExists } from "fs-extra"
+import fsExtra from "fs-extra"
+const { mkdirp, pathExists } = fsExtra
 
 import {
   expectError,
@@ -17,12 +18,12 @@ import {
   makeExtProjectSourcesGarden,
   makeExtModuleSourcesGarden,
   makeExtActionSourcesGarden,
-} from "../../../helpers"
-import { UpdateRemoteSourcesCommand } from "../../../../src/commands/update-remote/sources"
-import { UpdateRemoteModulesCommand } from "../../../../src/commands/update-remote/modules"
-import { Garden } from "../../../../src/garden"
-import { Log } from "../../../../src/logger/log-entry"
-import { UpdateRemoteActionsCommand } from "../../../../src/commands/update-remote/actions"
+} from "../../../helpers.js"
+import { UpdateRemoteSourcesCommand } from "../../../../src/commands/update-remote/sources.js"
+import { UpdateRemoteModulesCommand } from "../../../../src/commands/update-remote/modules.js"
+import type { Garden } from "../../../../src/garden.js"
+import type { Log } from "../../../../src/logger/log-entry.js"
+import { UpdateRemoteActionsCommand } from "../../../../src/commands/update-remote/actions.js"
 
 function withDefaultOpts(opts: any) {
   return withDefaultGlobalOpts({ parallel: false, ...opts })

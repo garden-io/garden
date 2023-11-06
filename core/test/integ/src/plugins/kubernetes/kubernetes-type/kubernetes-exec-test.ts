@@ -8,11 +8,12 @@
 
 import { expect } from "chai"
 
-import { TestGarden, findNamespaceStatusEvent } from "../../../../../helpers"
-import { ConfigGraph } from "../../../../../../src/graph/config-graph"
-import { getKubernetesTestGarden } from "./common"
-import { clearRunResult } from "../../../../../../src/plugins/kubernetes/run-results"
-import { TestTask } from "../../../../../../src/tasks/test"
+import type { TestGarden } from "../../../../../helpers.js"
+import { findNamespaceStatusEvent } from "../../../../../helpers.js"
+import type { ConfigGraph } from "../../../../../../src/graph/config-graph.js"
+import { getKubernetesTestGarden } from "./common.js"
+import { clearRunResult } from "../../../../../../src/plugins/kubernetes/run-results.js"
+import { TestTask } from "../../../../../../src/tasks/test.js"
 
 describe("kubernetes-type exec Test", () => {
   let garden: TestGarden

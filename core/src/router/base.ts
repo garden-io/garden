@@ -6,41 +6,42 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { fromPairs, keyBy, mapValues, pickBy } from "lodash"
+import { fromPairs, keyBy, mapValues, pickBy } from "lodash-es"
 
-import type { Garden } from "../garden"
-import type { Log } from "../logger/log-entry"
+import type { Garden } from "../garden.js"
+import type { Log } from "../logger/log-entry.js"
 import type {
   PluginActionContextParams,
   PluginActionParamsBase,
   ResolvedActionHandlerDescription,
   WrappedActionHandler,
-} from "../plugin/base"
-import type { GardenPluginSpec, ActionHandler, PluginMap } from "../plugin/plugin"
-import type { PluginContext, PluginEventBroker } from "../plugin-context"
-import type { ConfigContext } from "../config/template-contexts/base"
-import type { BaseAction } from "../actions/base"
-import type { ActionKind, BaseActionConfig, Resolved } from "../actions/types"
-import {
+} from "../plugin/base.js"
+import type { GardenPluginSpec, ActionHandler, PluginMap } from "../plugin/plugin.js"
+import type { PluginContext, PluginEventBroker } from "../plugin-context.js"
+import type { ConfigContext } from "../config/template-contexts/base.js"
+import type { BaseAction } from "../actions/base.js"
+import type { ActionKind, BaseActionConfig, Resolved } from "../actions/types.js"
+import type {
   ActionTypeDefinition,
   ActionClassMap,
   GetActionTypeHandler,
-  getActionTypeHandlerDescriptions,
   GetActionTypeResults,
   WrappedActionTypeHandler,
   ActionTypeClasses,
   GetActionTypeParams,
-} from "../plugin/action-types"
-import { ParameterError, PluginError, InternalError } from "../exceptions"
-import { validateSchema } from "../config/validation"
-import { getActionTypeBases, getPluginBases, getPluginDependencies } from "../plugins"
-import { getNames, MaybeUndefined } from "../util/util"
-import { defaultProvider } from "../config/provider"
-import type { ConfigGraph } from "../graph/config-graph"
-import { ActionConfigContext, ActionSpecContext } from "../config/template-contexts/actions"
-import type { NamespaceStatus } from "../types/namespace"
-import { TemplatableConfigContext } from "../config/template-contexts/project"
-import { ParamsBase } from "../plugin/handlers/base/base"
+} from "../plugin/action-types.js"
+import { getActionTypeHandlerDescriptions } from "../plugin/action-types.js"
+import { ParameterError, PluginError, InternalError } from "../exceptions.js"
+import { validateSchema } from "../config/validation.js"
+import { getActionTypeBases, getPluginBases, getPluginDependencies } from "../plugins.js"
+import type { MaybeUndefined } from "../util/util.js"
+import { getNames } from "../util/util.js"
+import { defaultProvider } from "../config/provider.js"
+import type { ConfigGraph } from "../graph/config-graph.js"
+import { ActionConfigContext, ActionSpecContext } from "../config/template-contexts/actions.js"
+import type { NamespaceStatus } from "../types/namespace.js"
+import { TemplatableConfigContext } from "../config/template-contexts/project.js"
+import type { ParamsBase } from "../plugin/handlers/base/base.js"
 
 export type CommonParams = keyof PluginActionContextParams
 

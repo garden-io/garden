@@ -6,16 +6,17 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { dedent } from "../../../util/string"
-import { PluginTestActionParamsBase } from "../../../plugin/base"
-import { TestAction } from "../../../actions/test"
-import { joi } from "../../../config/common"
-import { ActionTypeHandlerSpec } from "../base/base"
-import { runBaseParams } from "../../base"
-import { GetTestResult, getTestResultSchema } from "./get-result"
-import { CommonRunParams } from "../Run/run"
-import { Resolved } from "../../../actions/types"
-import { actionParamsSchema } from "../../plugin"
+import { dedent } from "../../../util/string.js"
+import type { PluginTestActionParamsBase } from "../../../plugin/base.js"
+import type { TestAction } from "../../../actions/test.js"
+import { joi } from "../../../config/common.js"
+import { ActionTypeHandlerSpec } from "../base/base.js"
+import { runBaseParams } from "../../base.js"
+import type { GetTestResult } from "./get-result.js"
+import { getTestResultSchema } from "./get-result.js"
+import type { CommonRunParams } from "../Run/run.js"
+import type { Resolved } from "../../../actions/types.js"
+import { actionParamsSchema } from "../../plugin.js"
 
 type TestActionParams<T extends TestAction> = PluginTestActionParamsBase<T> &
   CommonRunParams & {

@@ -6,8 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ValidateCommand } from "../../../../src/commands/validate"
-import { expectError, withDefaultGlobalOpts, makeTestGardenA, makeTestGarden, getDataDir } from "../../../helpers"
+import { ValidateCommand } from "../../../../src/commands/validate.js"
+import { expectError, withDefaultGlobalOpts, makeTestGardenA, makeTestGarden, getDataDir } from "../../../helpers.js"
 
 describe("commands.validate", () => {
   it(`should successfully validate a test project`, async () => {

@@ -6,17 +6,19 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { PluginsCommand } from "../../../../src/commands/plugins"
-import { withDefaultGlobalOpts, TestGarden, makeTempDir, TempDirectory } from "../../../helpers"
-import { createGardenPlugin } from "../../../../src/plugin/plugin"
-import { writeFile } from "fs-extra"
+import { PluginsCommand } from "../../../../src/commands/plugins.js"
+import type { TempDirectory } from "../../../helpers.js"
+import { withDefaultGlobalOpts, TestGarden, makeTempDir } from "../../../helpers.js"
+import { createGardenPlugin } from "../../../../src/plugin/plugin.js"
+import fsExtra from "fs-extra"
+const { writeFile } = fsExtra
 import { join } from "path"
-import { dedent } from "../../../../src/util/string"
-import { LogLevel } from "../../../../src/logger/logger"
+import { dedent } from "../../../../src/util/string.js"
+import { LogLevel } from "../../../../src/logger/logger.js"
 import { expect } from "chai"
 import chalk from "chalk"
-import { getLogMessages } from "../../../../src/util/testing"
-import _loggerUtil = require("../../../../src/logger/util")
+import { getLogMessages } from "../../../../src/util/testing.js"
+import * as _loggerUtil from "../../../../src/logger/util.js"
 
 describe("PluginsCommand", () => {
   let tmpDir: TempDirectory
@@ -69,13 +71,13 @@ describe("PluginsCommand", () => {
       `
     )
 
-    _loggerUtil.overrideTerminalWidth = 100
+    _loggerUtil.overrideTerminalWidth(100)
     chalk.level = 0
   })
 
   after(async () => {
     await tmpDir.cleanup()
-    _loggerUtil.overrideTerminalWidth = undefined
+    _loggerUtil.overrideTerminalWidth(undefined)
     chalk.level = chalkLevel
   })
 

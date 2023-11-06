@@ -6,11 +6,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { configureProvider, configSchema } from "./config"
-import { createGardenPlugin } from "../../../plugin/plugin"
-import { dedent } from "../../../util/string"
-import { KubernetesProvider } from "../config"
-import { joi, joiIdentifier } from "../../../config/common"
+import { configureProvider, configSchema } from "./config.js"
+import { createGardenPlugin } from "../../../plugin/plugin.js"
+import { dedent } from "../../../util/string.js"
+import type { KubernetesProvider } from "../config.js"
+import { joi, joiIdentifier } from "../../../config/common.js"
 
 const providerUrl = "./kubernetes.md"
 export const EPHEMERAL_KUBERNETES_PROVIDER_NAME = "ephemeral-kubernetes"

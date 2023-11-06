@@ -6,22 +6,20 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { mergeWith } from "lodash"
-import { MergeDeep } from "type-fest"
-import {
-  OtlpHttpExporterConfigPartial,
-  OtelCollectorOtlpHttpConfiguration,
-  makeOtlpHttpPartialConfig,
-} from "./config/otlphttp"
-import {
-  DatadogExporterConfigPartial,
-  OtelCollectorDatadogConfiguration,
-  makeDatadogPartialConfig,
-} from "./config/datadog"
-import { OtelCollectorNewRelicConfiguration, makeNewRelicPartialConfig } from "./config/newrelic"
-import { OtelCollectorBaseConfig, getOtelCollectorBaseConfig } from "./config/base"
-import { OtelCollectorHoneycombConfiguration, makeHoneycombPartialConfig } from "./config/honeycomb"
-import { OtelCollectorLoggingConfiguration, makeLoggingPartialConfig } from "./config/logging"
+import { mergeWith } from "lodash-es"
+import type { MergeDeep } from "type-fest"
+import type { OtlpHttpExporterConfigPartial, OtelCollectorOtlpHttpConfiguration } from "./config/otlphttp.js"
+import { makeOtlpHttpPartialConfig } from "./config/otlphttp.js"
+import type { DatadogExporterConfigPartial, OtelCollectorDatadogConfiguration } from "./config/datadog.js"
+import { makeDatadogPartialConfig } from "./config/datadog.js"
+import type { OtelCollectorNewRelicConfiguration } from "./config/newrelic.js"
+import { makeNewRelicPartialConfig } from "./config/newrelic.js"
+import type { OtelCollectorBaseConfig } from "./config/base.js"
+import { getOtelCollectorBaseConfig } from "./config/base.js"
+import type { OtelCollectorHoneycombConfiguration } from "./config/honeycomb.js"
+import { makeHoneycombPartialConfig } from "./config/honeycomb.js"
+import type { OtelCollectorLoggingConfiguration } from "./config/logging.js"
+import { makeLoggingPartialConfig } from "./config/logging.js"
 
 export type OtelConfigFile = MergeDeep<
   OtelCollectorBaseConfig,

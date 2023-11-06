@@ -6,13 +6,16 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { configureProvider, gardenPlugin } from "../../../../../src/plugins/kubernetes/kubernetes"
-import { KubernetesConfig, defaultResources } from "../../../../../src/plugins/kubernetes/config"
-import { defaultSystemNamespace } from "../../../../../src/plugins/kubernetes/system"
+import { configureProvider, gardenPlugin } from "../../../../../src/plugins/kubernetes/kubernetes.js"
+import type { KubernetesConfig } from "../../../../../src/plugins/kubernetes/config.js"
+import { defaultResources } from "../../../../../src/plugins/kubernetes/config.js"
+import { defaultSystemNamespace } from "../../../../../src/plugins/kubernetes/system.js"
 import { expect } from "chai"
-import { TempDirectory, makeTempDir } from "../../../../helpers"
-import { providerFromConfig } from "../../../../../src/config/provider"
-import { Garden, makeDummyGarden } from "../../../../../src/garden"
+import type { TempDirectory } from "../../../../helpers.js"
+import { makeTempDir } from "../../../../helpers.js"
+import { providerFromConfig } from "../../../../../src/config/provider.js"
+import type { Garden } from "../../../../../src/garden.js"
+import { makeDummyGarden } from "../../../../../src/garden.js"
 
 describe("kubernetes configureProvider", () => {
   const basicConfig: KubernetesConfig = {

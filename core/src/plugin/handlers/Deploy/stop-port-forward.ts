@@ -6,13 +6,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { actionParamsSchema, PluginDeployActionParamsBase } from "../../base"
-import { dedent } from "../../../util/string"
-import { ForwardablePort, forwardablePortKeys } from "../../../types/service"
-import { joi } from "../../../config/common"
-import { DeployAction } from "../../../actions/deploy"
-import { ActionTypeHandlerSpec } from "../base/base"
-import { Resolved } from "../../../actions/types"
+import type { PluginDeployActionParamsBase } from "../../base.js"
+import { actionParamsSchema } from "../../base.js"
+import { dedent } from "../../../util/string.js"
+import type { ForwardablePort } from "../../../types/service.js"
+import { forwardablePortKeys } from "../../../types/service.js"
+import { joi } from "../../../config/common.js"
+import type { DeployAction } from "../../../actions/deploy.js"
+import { ActionTypeHandlerSpec } from "../base/base.js"
+import type { Resolved } from "../../../actions/types.js"
 
 type StopPortForwardParams<T extends DeployAction> = PluginDeployActionParamsBase<T> & ForwardablePort
 

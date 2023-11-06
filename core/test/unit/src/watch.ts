@@ -9,18 +9,15 @@
 import pEvent from "p-event"
 import { resolve, join } from "path"
 import { expect } from "chai"
-import { TestGarden, makeTestGarden, getDataDir } from "../../helpers"
-import { CacheContext, pathToCacheContext } from "../../../src/cache"
-import { Watcher } from "../../../src/watch"
-import { sleep } from "../../../src/util/util"
+import type { TestGarden } from "../../helpers.js"
+import { makeTestGarden, getDataDir } from "../../helpers.js"
+import { Watcher } from "../../../src/watch.js"
+import { sleep } from "../../../src/util/util.js"
 import touch from "touch"
 
 describe("Watcher", () => {
   let garden: TestGarden
   let modulePath: string
-  let doubleModulePath: string
-  let includeModulePath: string
-  let moduleContext: CacheContext
   let watcher: Watcher
 
   // function emitEvent(name: string, payload: any) {
@@ -31,9 +28,6 @@ describe("Watcher", () => {
     garden = await makeTestGarden(getDataDir("test-project-watch"), { noTempDir: true, noCache: true })
 
     modulePath = resolve(garden.projectRoot, "module-a")
-    doubleModulePath = resolve(garden.projectRoot, "double-module")
-    includeModulePath = resolve(garden.projectRoot, "with-include")
-    moduleContext = pathToCacheContext(modulePath)
     await garden.scanAndAddConfigs()
 
     garden.watchPaths()

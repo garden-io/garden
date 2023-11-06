@@ -6,10 +6,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { PluginActionParamsBase, projectActionParamsSchema } from "../../base"
-import { dedent } from "../../../util/string"
-import { joi } from "../../../config/common"
-import type { BaseProviderConfig } from "../../../config/provider"
+import type { PluginActionParamsBase } from "../../base.js"
+import { projectActionParamsSchema } from "../../base.js"
+import { dedent } from "../../../util/string.js"
+import { joi } from "../../../config/common.js"
+import type { BaseProviderConfig } from "../../../config/provider.js"
 
 export type CleanupEnvironmentParams<C extends BaseProviderConfig = any> = PluginActionParamsBase<C>
 

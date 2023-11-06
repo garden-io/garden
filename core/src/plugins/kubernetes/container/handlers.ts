@@ -6,22 +6,22 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ConfigurationError } from "../../../exceptions"
-import { KubernetesProvider } from "../config"
-import { ConfigureModuleParams } from "../../../plugin/handlers/Module/configure"
-import {
+import { ConfigurationError } from "../../../exceptions.js"
+import type { KubernetesProvider } from "../config.js"
+import type { ConfigureModuleParams } from "../../../plugin/handlers/Module/configure.js"
+import type {
   ContainerBuildAction,
   ContainerBuildOutputs,
   ContainerDeploySpec,
   ContainerModule,
   ContainerServiceSpec,
-} from "../../container/moduleConfig"
-import { GetModuleOutputsParams } from "../../../plugin/handlers/Module/get-outputs"
-import { containerHelpers } from "../../container/helpers"
-import { getContainerModuleOutputs } from "../../container/container"
-import { getContainerBuildActionOutputs } from "../../container/build"
-import { Resolved } from "../../../actions/types"
-import { splitFirst } from "../../../util/string"
+} from "../../container/moduleConfig.js"
+import type { GetModuleOutputsParams } from "../../../plugin/handlers/Module/get-outputs.js"
+import { containerHelpers } from "../../container/helpers.js"
+import { getContainerModuleOutputs } from "../../container/container.js"
+import { getContainerBuildActionOutputs } from "../../container/build.js"
+import type { Resolved } from "../../../actions/types.js"
+import { splitFirst } from "../../../util/string.js"
 
 async function configure(params: ConfigureModuleParams<ContainerModule>) {
   const { moduleConfig } = await params.base!(params)

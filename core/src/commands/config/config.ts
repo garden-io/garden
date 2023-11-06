@@ -6,8 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { CommandGroup } from "../base"
-import { ConfigAnalyticsEnabled } from "./config-analytics-enabled"
+import { CommandGroup } from "../base.js"
+import { ConfigAnalyticsEnabled } from "./config-analytics-enabled.js"
 
 export class ConfigCommand extends CommandGroup {
   name = "config"

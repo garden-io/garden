@@ -7,16 +7,17 @@
  */
 
 import { v4 as uuidv4 } from "uuid"
-import { createHash } from "crypto"
-import { TemplateStringError } from "../exceptions"
-import { camelCase, escapeRegExp, isArrayLike, isEmpty, isString, kebabCase, keyBy, mapValues, trim } from "lodash"
-import { joi, JoiDescription, joiPrimitive, Primitive } from "../config/common"
-import Joi from "@hapi/joi"
-import { validateSchema } from "../config/validation"
+import { createHash } from "node:crypto"
+import { TemplateStringError } from "../exceptions.js"
+import { camelCase, escapeRegExp, isArrayLike, isEmpty, isString, kebabCase, keyBy, mapValues, trim } from "lodash-es"
+import type { JoiDescription, Primitive } from "../config/common.js"
+import { joi, joiPrimitive } from "../config/common.js"
+import type Joi from "@hapi/joi"
+import { validateSchema } from "../config/validation.js"
 import { load, loadAll } from "js-yaml"
-import { safeDumpYaml } from "../util/serialization"
+import { safeDumpYaml } from "../util/serialization.js"
 import indentString from "indent-string"
-import { maybeTemplateString } from "./template-string"
+import { maybeTemplateString } from "./template-string.js"
 
 interface ExampleArgument {
   input: any[]

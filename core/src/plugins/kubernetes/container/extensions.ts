@@ -6,36 +6,36 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { DeepPrimitiveMap } from "../../../config/common"
-import {
+import type { DeepPrimitiveMap } from "../../../config/common.js"
+import type {
   BuildActionExtension,
   DeployActionExtension,
   RunActionExtension,
   TestActionExtension,
-} from "../../../plugin/action-types"
-import {
+} from "../../../plugin/action-types.js"
+import type {
   ContainerBuildAction,
   ContainerDeployAction,
   ContainerRunAction,
   ContainerTestAction,
-} from "../../container/config"
-import { ContainerBuildMode, KubernetesProvider } from "../config"
-import { getPortForwardHandler } from "../port-forward"
-import { k8sGetRunResult } from "../run-results"
-import { k8sGetTestResult } from "../test-results"
-import { getBuildkitBuildStatus, buildkitBuildHandler } from "./build/buildkit"
-import { BuildStatusHandler, BuildHandler } from "./build/common"
-import { getKanikoBuildStatus, kanikoBuild } from "./build/kaniko"
-import { getLocalBuildStatus, localBuild } from "./build/local"
-import { deleteContainerDeploy, k8sContainerDeploy } from "./deployment"
-import { execInContainer } from "./exec"
-import { k8sGetContainerBuildActionOutputs, validateDeploySpec } from "./handlers"
-import { k8sGetContainerDeployLogs } from "./logs"
-import { k8sPublishContainerBuild } from "./publish"
-import { k8sContainerRun } from "./run"
-import { k8sGetContainerDeployStatus } from "./status"
-import { k8sContainerGetSyncStatus, k8sContainerStartSync, k8sContainerStopSync } from "./sync"
-import { k8sContainerTest } from "./test"
+} from "../../container/config.js"
+import type { ContainerBuildMode, KubernetesProvider } from "../config.js"
+import { getPortForwardHandler } from "../port-forward.js"
+import { k8sGetRunResult } from "../run-results.js"
+import { k8sGetTestResult } from "../test-results.js"
+import { getBuildkitBuildStatus, buildkitBuildHandler } from "./build/buildkit.js"
+import type { BuildStatusHandler, BuildHandler } from "./build/common.js"
+import { getKanikoBuildStatus, kanikoBuild } from "./build/kaniko.js"
+import { getLocalBuildStatus, localBuild } from "./build/local.js"
+import { deleteContainerDeploy, k8sContainerDeploy } from "./deployment.js"
+import { execInContainer } from "./exec.js"
+import { k8sGetContainerBuildActionOutputs, validateDeploySpec } from "./handlers.js"
+import { k8sGetContainerDeployLogs } from "./logs.js"
+import { k8sPublishContainerBuild } from "./publish.js"
+import { k8sContainerRun } from "./run.js"
+import { k8sGetContainerDeployStatus } from "./status.js"
+import { k8sContainerGetSyncStatus, k8sContainerStartSync, k8sContainerStopSync } from "./sync.js"
+import { k8sContainerTest } from "./test.js"
 
 export const k8sContainerBuildExtension = (): BuildActionExtension<ContainerBuildAction> => ({
   name: "container",

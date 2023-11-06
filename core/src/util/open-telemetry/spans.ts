@@ -6,10 +6,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import * as opentelemetry from "@opentelemetry/sdk-node"
-import { tracer } from "./tracing"
-import { getSessionContext } from "./context"
-import { prefixWithGardenNamespace } from "./util"
+import type * as opentelemetry from "@opentelemetry/sdk-node"
+import { tracer } from "./tracing.js"
+import { getSessionContext } from "./context.js"
+import { prefixWithGardenNamespace } from "./util.js"
 
 /**
  * Starts a new Span and calls the given function passing it the created span as first argument.

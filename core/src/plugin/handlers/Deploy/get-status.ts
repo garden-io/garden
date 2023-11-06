@@ -6,14 +6,22 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { actionParamsSchema, PluginDeployActionParamsBase } from "../../base"
-import { dedent } from "../../../util/string"
-import type { DeployAction } from "../../../actions/deploy"
-import { ActionTypeHandlerSpec } from "../base/base"
-import type { ActionState, ActionStatus, ActionStatusMap, GetActionOutputType, Resolved } from "../../../actions/types"
-import { actionStatusSchema } from "../../../actions/base"
-import { createSchema } from "../../../config/common"
-import { ServiceStatus, DeployState, serviceStatusSchema } from "../../../types/service"
+import type { PluginDeployActionParamsBase } from "../../base.js"
+import { actionParamsSchema } from "../../base.js"
+import { dedent } from "../../../util/string.js"
+import type { DeployAction } from "../../../actions/deploy.js"
+import { ActionTypeHandlerSpec } from "../base/base.js"
+import type {
+  ActionState,
+  ActionStatus,
+  ActionStatusMap,
+  GetActionOutputType,
+  Resolved,
+} from "../../../actions/types.js"
+import { actionStatusSchema } from "../../../actions/base.js"
+import { createSchema } from "../../../config/common.js"
+import type { ServiceStatus, DeployState } from "../../../types/service.js"
+import { serviceStatusSchema } from "../../../types/service.js"
 
 type GetDeployStatusParams<T extends DeployAction> = PluginDeployActionParamsBase<T>
 

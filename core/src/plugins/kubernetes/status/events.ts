@@ -6,9 +6,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { sortBy } from "lodash"
-import { KubeApi } from "../api"
-import { KubernetesResource } from "../types"
+import { sortBy } from "lodash-es"
+import type { KubeApi } from "../api.js"
+import type { KubernetesResource } from "../types.js"
 
 export async function getResourceEvents(api: KubeApi, resource: KubernetesResource, minVersion?: number) {
   const fieldSelector =
@@ -19,8 +19,8 @@ export async function getResourceEvents(api: KubeApi, resource: KubernetesResour
   const namespace = resource.metadata?.namespace
 
   const res = namespace
-    ? await api.core.listNamespacedEvent(namespace, undefined, undefined, undefined, fieldSelector)
-    : await api.core.listEventForAllNamespaces(undefined, fieldSelector)
+    ? await api.core.listNamespacedEvent({ namespace, fieldSelector })
+    : await api.core.listEventForAllNamespaces({ fieldSelector })
 
   const events = res.items
     // Filter out old events (relating to prior versions of the resource)

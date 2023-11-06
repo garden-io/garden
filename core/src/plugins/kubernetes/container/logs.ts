@@ -6,14 +6,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ContainerDeployAction } from "../../container/moduleConfig"
-import { getAppNamespace } from "../namespace"
-import { streamK8sLogs } from "../logs"
-import { KubernetesPluginContext } from "../config"
-import { createWorkloadManifest } from "./deployment"
-import { KubeApi } from "../api"
-import { DeployActionHandler } from "../../../plugin/action-types"
-import { getDeployedImageId } from "./util"
+import type { ContainerDeployAction } from "../../container/moduleConfig.js"
+import { getAppNamespace } from "../namespace.js"
+import { streamK8sLogs } from "../logs.js"
+import type { KubernetesPluginContext } from "../config.js"
+import { createWorkloadManifest } from "./deployment.js"
+import { KubeApi } from "../api.js"
+import type { DeployActionHandler } from "../../../plugin/action-types.js"
+import { getDeployedImageId } from "./util.js"
 
 export const k8sGetContainerDeployLogs: DeployActionHandler<"getLogs", ContainerDeployAction> = async (params) => {
   const { ctx, log, action } = params
@@ -22,7 +22,7 @@ export const k8sGetContainerDeployLogs: DeployActionHandler<"getLogs", Container
   const namespace = await getAppNamespace(k8sCtx, log, provider)
   const api = await KubeApi.factory(log, ctx, provider)
 
-  const imageId = getDeployedImageId(action, provider)
+  const imageId = getDeployedImageId(action)
 
   const resources = [
     await createWorkloadManifest({

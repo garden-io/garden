@@ -4,6 +4,7 @@ dist/
 src/**/*.js
 src/**/*.map
 src/**/*.d.ts
+!src/template-string/parser.d.ts
 support/**/*.js
 support/**/*.map
 support/**/*.d.ts

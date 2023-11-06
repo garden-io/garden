@@ -6,9 +6,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { createProjectConfig, makeTestGarden, projectRootA } from "../../../../helpers"
+import { createProjectConfig, makeTestGarden, projectRootA } from "../../../../helpers.js"
 import { expect } from "chai"
-import { got } from "../../../../../src/util/http"
+import { got } from "../../../../../src/util/http.js"
 
 describe("octant provider", () => {
   describe("getDashboardPage", () => {

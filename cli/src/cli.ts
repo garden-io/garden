@@ -6,14 +6,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { shutdown } from "@garden-io/core/build/src/util/util"
-import { GardenCli, RunOutput } from "@garden-io/core/build/src/cli/cli"
-import { GardenPluginReference } from "@garden-io/core/build/src/plugin/plugin"
-import { GlobalConfigStore } from "@garden-io/core/build/src/config-store/global"
-import { getOtelSDK } from "@garden-io/core/build/src/util/open-telemetry/tracing"
-import { withContextFromEnv } from "@garden-io/core/build/src/util/open-telemetry/propagation"
-import { wrapActiveSpan } from "@garden-io/core/build/src/util/open-telemetry/spans"
-import { InternalError } from "@garden-io/core/build/src/exceptions"
+import { shutdown } from "@garden-io/core/build/src/util/util.js"
+import type { RunOutput } from "@garden-io/core/build/src/cli/cli.js"
+import { GardenCli } from "@garden-io/core/build/src/cli/cli.js"
+import type { GardenPluginReference } from "@garden-io/core/build/src/plugin/plugin.js"
+import { GlobalConfigStore } from "@garden-io/core/build/src/config-store/global.js"
+import { getOtelSDK } from "@garden-io/core/build/src/util/open-telemetry/tracing.js"
+import { withContextFromEnv } from "@garden-io/core/build/src/util/open-telemetry/propagation.js"
+import { wrapActiveSpan } from "@garden-io/core/build/src/util/open-telemetry/spans.js"
+import { InternalError } from "@garden-io/core/build/src/exceptions.js"
 
 // These plugins are always registered
 export const getBundledPlugins = (): GardenPluginReference[] => [

@@ -7,39 +7,45 @@
  */
 
 import chalk from "chalk"
-import { fromPairs, mapValues, omit } from "lodash"
+import { fromPairs, mapValues, omit } from "lodash-es"
 import pProps from "p-props"
 
-import { validateSchema } from "../config/validation"
-import { defaultProvider } from "../config/provider"
-import { ParameterError, PluginError } from "../exceptions"
-import { Log } from "../logger/log-entry"
-import { PluginActionParamsBase } from "../plugin/base"
-import {
+import { validateSchema } from "../config/validation.js"
+import { defaultProvider } from "../config/provider.js"
+import { ParameterError, PluginError } from "../exceptions.js"
+import type { Log } from "../logger/log-entry.js"
+import type { PluginActionParamsBase } from "../plugin/base.js"
+import type {
   ProviderActionOutputs,
   ProviderActionParams,
   GardenPluginSpec,
   WrappedActionHandler,
-  getProviderActionDescriptions,
   ResolvedActionHandlerDescriptions,
-  getProviderHandlerNames,
   ProviderHandlers,
-} from "../plugin/plugin"
-import { CleanupEnvironmentParams, CleanupEnvironmentResult } from "../plugin/handlers/Provider/cleanupEnvironment"
-import {
+} from "../plugin/plugin.js"
+import { getProviderActionDescriptions, getProviderHandlerNames } from "../plugin/plugin.js"
+import type {
+  CleanupEnvironmentParams,
+  CleanupEnvironmentResult,
+} from "../plugin/handlers/Provider/cleanupEnvironment.js"
+import type {
   EnvironmentStatusMap,
   GetEnvironmentStatusParams,
   EnvironmentStatus,
-} from "../plugin/handlers/Provider/getEnvironmentStatus"
-import { Omit } from "../util/util"
-import { DebugInfoMap } from "../plugin/handlers/Provider/getDebugInfo"
-import { PrepareEnvironmentParams, PrepareEnvironmentResult } from "../plugin/handlers/Provider/prepareEnvironment"
-import { ConfigureProviderParams, ConfigureProviderResult } from "../plugin/handlers/Provider/configureProvider"
-import { PluginContext, PluginEventBroker } from "../plugin-context"
-import { AugmentGraphResult, AugmentGraphParams } from "../plugin/handlers/Provider/augmentGraph"
-import { Profile } from "../util/profiling"
-import { GetDashboardPageParams, GetDashboardPageResult } from "../plugin/handlers/Provider/getDashboardPage"
-import { BaseRouter, BaseRouterParams, CommonParams } from "./base"
+} from "../plugin/handlers/Provider/getEnvironmentStatus.js"
+import type { Omit } from "../util/util.js"
+import type { DebugInfoMap } from "../plugin/handlers/Provider/getDebugInfo.js"
+import type {
+  PrepareEnvironmentParams,
+  PrepareEnvironmentResult,
+} from "../plugin/handlers/Provider/prepareEnvironment.js"
+import type { ConfigureProviderParams, ConfigureProviderResult } from "../plugin/handlers/Provider/configureProvider.js"
+import type { PluginContext, PluginEventBroker } from "../plugin-context.js"
+import type { AugmentGraphResult, AugmentGraphParams } from "../plugin/handlers/Provider/augmentGraph.js"
+import { Profile } from "../util/profiling.js"
+import type { GetDashboardPageParams, GetDashboardPageResult } from "../plugin/handlers/Provider/getDashboardPage.js"
+import type { CommonParams, BaseRouterParams } from "./base.js"
+import { BaseRouter } from "./base.js"
 
 /**
  * The ProviderRouter takes care of choosing which plugin should be responsible for handling a provider action,

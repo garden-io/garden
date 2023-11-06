@@ -6,10 +6,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { CommandGroup } from "../base"
-import { FetchToolsCommand } from "./fetch-tools"
-import { HideWarningCommand } from "./hide-warning"
-import { MutagenCommand } from "./mutagen"
+import { CommandGroup } from "../base.js"
+import { FetchToolsCommand } from "./fetch-tools.js"
+import { HideWarningCommand } from "./hide-warning.js"
+import { MutagenCommand } from "./mutagen.js"
 
 export class UtilCommand extends CommandGroup {
   name = "util"

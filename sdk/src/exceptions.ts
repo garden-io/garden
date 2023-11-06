@@ -6,4 +6,4 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-export * from "@garden-io/core/build/src/exceptions"
+export * from "@garden-io/core/build/src/exceptions.js"

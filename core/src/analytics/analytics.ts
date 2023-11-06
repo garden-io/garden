@@ -6,28 +6,28 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import codenamize = require("@codenamize/codenamize")
+import codenamize from "@codenamize/codenamize"
 import { platform, release } from "os"
-import ci = require("ci-info")
-import { uniq } from "lodash"
-import { AnalyticsGlobalConfig } from "../config-store/global"
-import { getPackageVersion, sleep, getDurationMsec } from "../util/util"
-import { SEGMENT_PROD_API_KEY, SEGMENT_DEV_API_KEY, gardenEnv } from "../constants"
-import { Log } from "../logger/log-entry"
-import hasha = require("hasha")
-import { Garden } from "../garden"
-import { AnalyticsCommandResult, AnalyticsEventType } from "./analytics-types"
+import ci from "ci-info"
+import { uniq } from "lodash-es"
+import type { AnalyticsGlobalConfig } from "../config-store/global.js"
+import { getPackageVersion, sleep, getDurationMsec } from "../util/util.js"
+import { SEGMENT_PROD_API_KEY, SEGMENT_DEV_API_KEY, gardenEnv } from "../constants.js"
+import type { Log } from "../logger/log-entry.js"
+import hasha from "hasha"
+import type { Garden } from "../garden.js"
+import type { AnalyticsCommandResult, AnalyticsEventType } from "./analytics-types.js"
 import dedent from "dedent"
-import { getGitHubUrl } from "../docs/common"
-import { Profile } from "../util/profiling"
-import { ModuleConfig } from "../config/module"
-import { UserResult } from "@garden-io/platform-api-types"
-import { uuidv4 } from "../util/random"
-import { GardenError, NodeJSErrnoException, StackTraceMetadata } from "../exceptions"
-import { ActionConfigMap } from "../actions/types"
-import { actionKinds } from "../actions/types"
-import { getResultErrorProperties } from "./helpers"
-import segmentClient = require("analytics-node")
+import { getGitHubUrl } from "../docs/common.js"
+import { Profile } from "../util/profiling.js"
+import type { ModuleConfig } from "../config/module.js"
+import type { UserResult } from "@garden-io/platform-api-types"
+import { uuidv4 } from "../util/random.js"
+import type { GardenError, NodeJSErrnoException, StackTraceMetadata } from "../exceptions.js"
+import type { ActionConfigMap } from "../actions/types.js"
+import { actionKinds } from "../actions/types.js"
+import { getResultErrorProperties } from "./helpers.js"
+import segmentClient from "analytics-node"
 
 const CI_USER = "ci-user"
 
@@ -322,7 +322,7 @@ export class AnalyticsHandler {
     for (const kind of actionKinds) {
       countByActionKind[kind] = 0
 
-      for (const name in actionConfigs[kind]) {
+      for (const _name in actionConfigs[kind]) {
         countByActionKind[kind] = countByActionKind[kind] + 1
         actionsCount++
       }

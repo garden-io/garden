@@ -7,13 +7,14 @@
  */
 
 import { expect } from "chai"
-import { BooleanParameter, IntegerParameter, StringParameter } from "../../../../src/cli/params"
-import { CustomCommandWrapper } from "../../../../src/commands/custom"
-import { Log } from "../../../../src/logger/log-entry"
-import { expectError, TestGarden } from "../../../../src/util/testing"
-import { makeTestGardenA, withDefaultGlobalOpts } from "../../../helpers"
-import { GardenApiVersion } from "../../../../src/constants"
-import { TestGardenCli } from "../../../helpers/cli"
+import { BooleanParameter, IntegerParameter, StringParameter } from "../../../../src/cli/params.js"
+import { CustomCommandWrapper } from "../../../../src/commands/custom.js"
+import type { Log } from "../../../../src/logger/log-entry.js"
+import type { TestGarden } from "../../../../src/util/testing.js"
+import { expectError } from "../../../../src/util/testing.js"
+import { makeTestGardenA, withDefaultGlobalOpts } from "../../../helpers.js"
+import { GardenApiVersion } from "../../../../src/constants.js"
+import { TestGardenCli } from "../../../helpers/cli.js"
 
 describe("CustomCommandWrapper", () => {
   let garden: TestGarden

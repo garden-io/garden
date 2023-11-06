@@ -6,8 +6,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { GardenError, getStackTraceMetadata } from "../exceptions"
-import { AnalyticsGardenError, AnalyticsGardenErrorDetail } from "./analytics"
+import type { GardenError } from "../exceptions.js"
+import { getStackTraceMetadata } from "../exceptions.js"
+import type { AnalyticsGardenError, AnalyticsGardenErrorDetail } from "./analytics.js"
 
 function getErrorDetail(error: GardenError): AnalyticsGardenErrorDetail {
   const stackTrace = getStackTraceMetadata(error)

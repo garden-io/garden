@@ -6,10 +6,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { GardenCli, GardenCliParams } from "../../src/cli/cli"
-import type { GardenOpts } from "../../src/garden"
-import { makeTestGarden } from "../helpers"
-import { FakeCloudApi } from "./api"
+import type { GardenCliParams } from "../../src/cli/cli.js"
+import { GardenCli } from "../../src/cli/cli.js"
+import type { GardenOpts } from "../../src/garden.js"
+import { makeTestGarden } from "../helpers.js"
+import { FakeCloudApi } from "./api.js"
 
 export class TestGardenCli extends GardenCli {
   constructor(params: GardenCliParams = {}) {

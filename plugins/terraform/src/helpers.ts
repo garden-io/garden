@@ -7,17 +7,19 @@
  */
 
 import { resolve } from "path"
-import { mapValues, startCase } from "lodash"
+import { mapValues, startCase } from "lodash-es"
 
-import { ConfigurationError, PluginError, RuntimeError } from "@garden-io/sdk/build/src/exceptions"
-import { Log, PluginContext } from "@garden-io/sdk/build/src/types"
-import { dedent } from "@garden-io/sdk/build/src/util/string"
-import { terraform } from "./cli"
-import { TerraformProvider } from "./provider"
-import { writeFile } from "fs-extra"
+import { ConfigurationError, PluginError, RuntimeError } from "@garden-io/sdk/build/src/exceptions.js"
+import type { Log, PluginContext } from "@garden-io/sdk/build/src/types.js"
+import { dedent } from "@garden-io/sdk/build/src/util/string.js"
+import { terraform } from "./cli.js"
+import type { TerraformProvider } from "./provider.js"
+import fsExtra from "fs-extra"
+const { writeFile } = fsExtra
 import chalk from "chalk"
-import { joi, joiStringMap, PrimitiveMap } from "@garden-io/core/build/src/config/common"
-import split2 = require("split2")
+import type { PrimitiveMap } from "@garden-io/core/build/src/config/common.js"
+import { joi, joiStringMap } from "@garden-io/core/build/src/config/common.js"
+import split2 from "split2"
 
 export const variablesSchema = () => joiStringMap(joi.any())
 
@@ -194,15 +196,7 @@ export async function applyStack(params: TerraformParamsWithVariables) {
   const statusLine = log.createLog({}).info("→ Applying Terraform stack...")
   const logStream = split2()
 
-  let stdout = ""
   let stderr = ""
-
-  if (proc.stdout) {
-    proc.stdout.pipe(logStream)
-    proc.stdout.on("data", (data) => {
-      stdout += data
-    })
-  }
 
   if (proc.stderr) {
     proc.stderr.pipe(logStream)

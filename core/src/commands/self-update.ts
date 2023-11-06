@@ -7,23 +7,27 @@
  */
 
 import tar from "tar"
-import { Command, CommandParams, CommandResult } from "./base"
-import { printHeader } from "../logger/util"
-import { BooleanParameter, ChoicesParameter, GlobalOptions, ParameterValues, StringParameter } from "../cli/params"
-import { dedent } from "../util/string"
+import type { CommandParams, CommandResult } from "./base.js"
+import { Command } from "./base.js"
+import { printHeader } from "../logger/util.js"
+import type { GlobalOptions, ParameterValues } from "../cli/params.js"
+import { BooleanParameter, ChoicesParameter, StringParameter } from "../cli/params.js"
+import { dedent } from "../util/string.js"
 import { basename, dirname, join, resolve } from "path"
 import chalk from "chalk"
-import { Architecture, getArchitecture, isDarwinARM, getPackageVersion, getPlatform } from "../util/util"
-import { RuntimeError } from "../exceptions"
-import { makeTempDir } from "../util/fs"
+import type { Architecture } from "../util/util.js"
+import { getArchitecture, isDarwinARM, getPackageVersion, getPlatform } from "../util/util.js"
+import { RuntimeError } from "../exceptions.js"
+import { makeTempDir } from "../util/fs.js"
 import { createReadStream, createWriteStream } from "fs"
-import { copy, mkdirp, move, readdir, remove } from "fs-extra"
-import { GotHttpError, got } from "../util/http"
+import fsExtra from "fs-extra"
+const { copy, mkdirp, move, readdir, remove } = fsExtra
+import { GotHttpError, got } from "../util/http.js"
 import { promisify } from "node:util"
-import { gardenEnv } from "../constants"
+import { gardenEnv } from "../constants.js"
 import semver from "semver"
 import stream from "stream"
-import { Log } from "../logger/log-entry"
+import type { Log } from "../logger/log-entry.js"
 
 const ARM64_INTRODUCTION_VERSION = "0.13.12"
 
@@ -261,9 +265,10 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
 
     let installationDirectory = opts["install-dir"]
     let platform = opts.platform
+    const processExecPath = process.env.GARDEN_SEA_EXECUTABLE_PATH || process.execPath
 
     if (!installationDirectory) {
-      installationDirectory = dirname(process.execPath)
+      installationDirectory = dirname(processExecPath)
       log.info(
         chalk.white(
           "No installation directory specified via --install-dir option. Garden will be re-installed to the current installation directory: "
@@ -308,10 +313,10 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
     // Find the executable location
     // -> Make sure it's an actual executable, not a script (e.g. from a local dev build)
     const expectedExecutableName = process.platform === "win32" ? "garden.exe" : "garden"
-    if (!opts["install-dir"] && basename(process.execPath) !== expectedExecutableName) {
+    if (!opts["install-dir"] && basename(processExecPath) !== expectedExecutableName) {
       log.error(
         chalk.redBright(
-          `The executable path ${process.execPath} doesn't indicate this is a normal binary installation for your platform. Perhaps you're running a local development build?`
+          `The executable path ${processExecPath} doesn't indicate this is a normal binary installation for your platform. Perhaps you're running a local development build?`
         )
       )
       return {
@@ -440,10 +445,10 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
 
       if (extension === "zip") {
         // Note: lazy-loading for startup performance
-        const { Extract } = await import("unzipper")
+        const { default: unzipStream } = await import("unzip-stream")
 
         await new Promise((_resolve, reject) => {
-          const extractor = Extract({ path: tempDir.path })
+          const extractor = unzipStream.Extract({ path: tempDir.path })
 
           extractor.on("error", reject)
           extractor.on("finish", _resolve)

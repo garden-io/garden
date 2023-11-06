@@ -6,9 +6,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import _got, { Response, HTTPError as GotHttpError, OptionsOfJSONResponseBody } from "got"
+import type { Response, OptionsOfJSONResponseBody } from "got"
+import _got, { HTTPError as GotHttpError } from "got"
 import { bootstrap } from "global-agent"
-import { OptionsOfTextResponseBody, Headers } from "got"
+import type { OptionsOfTextResponseBody, Headers } from "got"
 
 // Handle proxy environment settings
 // (see https://github.com/gajus/global-agent#what-is-the-reason-global-agentbootstrap-does-not-use-http_proxy)
@@ -17,6 +18,9 @@ const isProxyEnvSet = process.env.HTTP_PROXY || process.env.HTTPS_PROXY || proce
 if (isProxyEnvSet) {
   bootstrap({
     environmentVariableNamespace: "",
+    // We can't force the global agent because the Kubernetes client library relies on the agent to configure trusted CA certificates.
+    // In the Kubernetes client, we added code to make sure we respect the PROXY environment variables (using the proxy-agent lirbary).
+    forceGlobalAgent: false,
   })
 }
 

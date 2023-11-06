@@ -6,11 +6,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ActionTaskProcessParams, BaseActionTask, BaseActionTaskParams } from "./base"
-import { GraphResults } from "../graph/results"
-import { DeployAction, isDeployAction } from "../actions/deploy"
-import { DeployStatus } from "../plugin/handlers/Deploy/get-status"
-import { omit } from "lodash"
+import type { ActionTaskProcessParams, BaseActionTaskParams } from "./base.js"
+import { BaseActionTask } from "./base.js"
+import type { GraphResults } from "../graph/results.js"
+import type { DeployAction } from "../actions/deploy.js"
+import { isDeployAction } from "../actions/deploy.js"
+import type { DeployStatus } from "../plugin/handlers/Deploy/get-status.js"
+import { omit } from "lodash-es"
 
 export interface DeleteDeployTaskParams extends BaseActionTaskParams<DeployAction> {
   /**
