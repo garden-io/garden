@@ -6,22 +6,23 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import Joi = require("@hapi/joi")
+import type Joi from "@hapi/joi"
 import stripAnsi from "strip-ansi"
 import stringify from "json-stringify-safe"
 
-import { joi, DeepPrimitiveMap } from "../config/common"
-import { ParameterError } from "../exceptions"
-import { parseEnvironment } from "../config/project"
-import { getLogLevelChoices, LOGGER_TYPES, LogLevel } from "../logger/logger"
-import { dedent, deline } from "../util/string"
-import chalk = require("chalk")
-import { safeDumpYaml } from "../util/serialization"
+import type { DeepPrimitiveMap } from "../config/common.js"
+import { joi } from "../config/common.js"
+import { ParameterError } from "../exceptions.js"
+import { parseEnvironment } from "../config/project.js"
+import { getLogLevelChoices, LOGGER_TYPES, LogLevel } from "../logger/logger.js"
+import { dedent, deline } from "../util/string.js"
+import chalk from "chalk"
+import { safeDumpYaml } from "../util/serialization.js"
 import { resolve } from "path"
-import { isArray } from "lodash"
-import { gardenEnv } from "../constants"
-import { envSupportsEmoji } from "../logger/util"
-import { ConfigDump } from "../garden"
+import { isArray } from "lodash-es"
+import { gardenEnv } from "../constants.js"
+import { envSupportsEmoji } from "../logger/util.js"
+import type { ConfigDump } from "../garden.js"
 
 export const OUTPUT_RENDERERS = {
   json: (data: DeepPrimitiveMap) => {

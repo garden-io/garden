@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { PluginCommand } from "../../../plugin/command"
+import type { PluginCommand } from "../../../plugin/command.js"
 
 export const cleanupClusterRegistry: PluginCommand = {
   name: "cleanup-cluster-registry",

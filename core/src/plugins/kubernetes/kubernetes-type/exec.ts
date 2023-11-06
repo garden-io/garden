@@ -6,14 +6,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { includes } from "lodash"
-import { ConfigurationError, DeploymentError } from "../../../exceptions"
-import { getAppNamespace } from "../namespace"
-import { KubernetesPluginContext } from "../config"
-import { execInWorkload, getTargetResource } from "../util"
-import { DeployActionHandler } from "../../../plugin/action-types"
-import { KubernetesDeployAction } from "./config"
-import { getKubernetesDeployStatus } from "./handlers"
+import { includes } from "lodash-es"
+import { ConfigurationError, DeploymentError } from "../../../exceptions.js"
+import { getAppNamespace } from "../namespace.js"
+import type { KubernetesPluginContext } from "../config.js"
+import { execInWorkload, getTargetResource } from "../util.js"
+import type { DeployActionHandler } from "../../../plugin/action-types.js"
+import type { KubernetesDeployAction } from "./config.js"
+import { getKubernetesDeployStatus } from "./handlers.js"
 import chalk from "chalk"
 
 export const execInKubernetesDeploy: DeployActionHandler<"exec", KubernetesDeployAction> = async (params) => {

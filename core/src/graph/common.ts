@@ -7,17 +7,17 @@
  */
 
 import { DepGraph } from "dependency-graph"
-import { flatten, merge, uniq } from "lodash"
-import { get, isEqual, join, set, uniqWith } from "lodash"
-import { CircularDependenciesError } from "../exceptions"
-import { GraphNodes, ConfigGraphNode } from "./config-graph"
-import { Profile } from "../util/profiling"
-import type { ModuleDependencyGraphNode, ModuleDependencyGraphNodeKind, ModuleGraphNodes } from "./modules"
-import { ActionKind } from "../plugin/action-types"
-import { loadVarfile } from "../config/base"
-import { DeepPrimitiveMap } from "../config/common"
-import { Task } from "../tasks/base"
-import { LogMetadata, TaskLogStatus } from "../logger/log-entry"
+import { flatten, merge, uniq } from "lodash-es"
+import { get, isEqual, join, set, uniqWith } from "lodash-es"
+import { CircularDependenciesError } from "../exceptions.js"
+import type { GraphNodes, ConfigGraphNode } from "./config-graph.js"
+import { Profile } from "../util/profiling.js"
+import type { ModuleDependencyGraphNode, ModuleDependencyGraphNodeKind, ModuleGraphNodes } from "./modules.js"
+import type { ActionKind } from "../plugin/action-types.js"
+import { loadVarfile } from "../config/base.js"
+import type { DeepPrimitiveMap } from "../config/common.js"
+import type { Task } from "../tasks/base.js"
+import type { LogMetadata, TaskLogStatus } from "../logger/log-entry.js"
 
 // Shared type used by ConfigGraph and TaskGraph to facilitate circular dependency detection
 export type DependencyGraphNode = {

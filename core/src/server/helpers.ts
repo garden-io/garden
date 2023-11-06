@@ -6,10 +6,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { isEmpty } from "lodash"
+import { isEmpty } from "lodash-es"
 import { resolve } from "path"
-import { PrimitiveMap } from "../config/common"
-import { serializeObject } from "../util/serialization"
+import type { PrimitiveMap } from "../config/common.js"
+import { serializeObject } from "../util/serialization.js"
 
 export interface GardenInstanceKeyParams {
   environmentName: string

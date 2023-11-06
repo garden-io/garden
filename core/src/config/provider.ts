@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { deline } from "../util/string"
+import { deline } from "../util/string.js"
 import {
   joiIdentifier,
   joiUserIdentifier,
@@ -15,19 +15,21 @@ import {
   joiIdentifierMap,
   joiSparseArray,
   createSchema,
-} from "./common"
-import { collectTemplateReferences } from "../template-string/template-string"
-import { ConfigurationError } from "../exceptions"
-import { ModuleConfig, moduleConfigSchema } from "./module"
-import { memoize, uniq } from "lodash"
-import { GardenPluginSpec } from "../plugin/plugin"
-import { EnvironmentStatus } from "../plugin/handlers/Provider/getEnvironmentStatus"
-import { environmentStatusSchema } from "./status"
-import { DashboardPage, dashboardPagesSchema } from "../plugin/handlers/Provider/getDashboardPage"
-import type { ActionState } from "../actions/types"
-import { ValidResultType } from "../tasks/base"
-import { uuidv4 } from "../util/random"
-import { s } from "./zod"
+} from "./common.js"
+import { collectTemplateReferences } from "../template-string/template-string.js"
+import { ConfigurationError } from "../exceptions.js"
+import type { ModuleConfig } from "./module.js"
+import { moduleConfigSchema } from "./module.js"
+import { memoize, uniq } from "lodash-es"
+import type { GardenPluginSpec } from "../plugin/plugin.js"
+import type { EnvironmentStatus } from "../plugin/handlers/Provider/getEnvironmentStatus.js"
+import { environmentStatusSchema } from "./status.js"
+import type { DashboardPage } from "../plugin/handlers/Provider/getDashboardPage.js"
+import { dashboardPagesSchema } from "../plugin/handlers/Provider/getDashboardPage.js"
+import type { ActionState } from "../actions/types.js"
+import type { ValidResultType } from "../tasks/base.js"
+import { uuidv4 } from "../util/random.js"
+import { s } from "./zod.js"
 
 // TODO: dedupe from the joi schema below
 export const baseProviderConfigSchemaZod = s.object({

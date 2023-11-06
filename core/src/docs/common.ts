@@ -6,9 +6,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { padEnd, max } from "lodash"
-import { DOCS_BASE_URL } from "../constants"
-import { getPackageVersion } from "../util/util"
+import { padEnd, max } from "lodash-es"
+import { DOCS_BASE_URL } from "../constants.js"
+import { getPackageVersion } from "../util/util.js"
 
 export abstract class BaseKeyDescription<T = any> {
   abstract type: string

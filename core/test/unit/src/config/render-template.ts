@@ -7,21 +7,21 @@
  */
 
 import { expect } from "chai"
-import { DEFAULT_BUILD_TIMEOUT_SEC, GardenApiVersion } from "../../../../src/constants"
-import { expectError, getDataDir, makeTestGarden, TestGarden } from "../../../helpers"
-import {
-  ConfigTemplateResource,
-  resolveConfigTemplate,
-  ConfigTemplateConfig,
-} from "../../../../src/config/config-template"
+import { DEFAULT_BUILD_TIMEOUT_SEC, GardenApiVersion } from "../../../../src/constants.js"
+import type { TestGarden } from "../../../helpers.js"
+import { expectError, getDataDir, makeTestGarden } from "../../../helpers.js"
+import type { ConfigTemplateResource, ConfigTemplateConfig } from "../../../../src/config/config-template.js"
+import { resolveConfigTemplate } from "../../../../src/config/config-template.js"
 import { resolve } from "path"
-import { joi } from "../../../../src/config/common"
-import { pathExists, remove } from "fs-extra"
+import { joi } from "../../../../src/config/common.js"
+import fsExtra from "fs-extra"
+const { pathExists, remove } = fsExtra
 import cloneDeep from "fast-copy"
 
-import { configTemplateKind, renderTemplateKind } from "../../../../src/config/base"
-import { RenderTemplateConfig, renderConfigTemplate } from "../../../../src/config/render-template"
-import { Log } from "../../../../src/logger/log-entry"
+import { configTemplateKind, renderTemplateKind } from "../../../../src/config/base.js"
+import type { RenderTemplateConfig } from "../../../../src/config/render-template.js"
+import { renderConfigTemplate } from "../../../../src/config/render-template.js"
+import type { Log } from "../../../../src/logger/log-entry.js"
 
 describe("config templates", () => {
   let garden: TestGarden

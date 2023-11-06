@@ -14,6 +14,8 @@ node_modules
 .idea
 *.iml
 .vscode
+# We store specific project relevant settings in this file
+!.vscode/settings.json
 .vs
 .history
 *~

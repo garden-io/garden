@@ -6,15 +6,17 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { mapValues } from "lodash"
-import { PrimitiveMap, joiIdentifierMap, joiPrimitive, DeepPrimitiveMap } from "../common"
-import { Provider, GenericProviderConfig, ProviderMap } from "../provider"
-import { Garden } from "../../garden"
-import { joi } from "../common"
-import { deline } from "../../util/string"
-import { getProviderUrl } from "../../docs/common"
-import { ConfigContext, schema } from "./base"
-import { WorkflowConfigContext } from "./workflow"
+import { mapValues } from "lodash-es"
+import type { DeepPrimitiveMap, PrimitiveMap } from "../common.js"
+import { joiIdentifierMap, joiPrimitive } from "../common.js"
+import type { Provider, ProviderMap } from "../provider.js"
+import type { GenericProviderConfig } from "../provider.js"
+import type { Garden } from "../../garden.js"
+import { joi } from "../common.js"
+import { deline } from "../../util/string.js"
+import { getProviderUrl } from "../../docs/common.js"
+import { ConfigContext, schema } from "./base.js"
+import { WorkflowConfigContext } from "./workflow.js"
 
 class ProviderContext extends ConfigContext {
   @schema(

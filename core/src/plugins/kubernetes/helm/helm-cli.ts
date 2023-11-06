@@ -6,12 +6,16 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Log } from "../../../logger/log-entry"
-import { KubernetesPluginContext } from "../config"
-import { StringMap } from "../../../config/common"
-import { PluginToolSpec } from "../../../plugin/tools"
+import type { Log } from "../../../logger/log-entry.js"
+import type { KubernetesPluginContext } from "../config.js"
+import type { StringMap } from "../../../config/common.js"
+import type { PluginToolSpec } from "../../../plugin/tools.js"
 import split2 from "split2"
-import { Dictionary, pickBy } from "lodash"
+import { pickBy } from "lodash-es"
+
+interface Dictionary<T> {
+  [index: string]: T
+}
 
 export const HELM_VERSION = "3.12.0"
 

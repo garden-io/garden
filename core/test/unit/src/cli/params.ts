@@ -7,7 +7,7 @@
  */
 
 import { expect } from "chai"
-import { StringsParameter } from "../../../../src/cli/params"
+import { StringsParameter } from "../../../../src/cli/params.js"
 
 describe("StringsParameter", () => {
   const param = new StringsParameter({ help: "" })

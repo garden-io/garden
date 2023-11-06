@@ -6,15 +6,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { includes } from "lodash"
-import { ConfigurationError, DeploymentError } from "../../../exceptions"
-import { getAppNamespace } from "../namespace"
-import { KubernetesPluginContext } from "../config"
-import { execInWorkload, getTargetResource } from "../util"
-import { getHelmDeployStatus } from "./status"
-import { getChartResources } from "./common"
-import { DeployActionHandler } from "../../../plugin/action-types"
-import { HelmDeployAction } from "./config"
+import { includes } from "lodash-es"
+import { ConfigurationError, DeploymentError } from "../../../exceptions.js"
+import { getAppNamespace } from "../namespace.js"
+import type { KubernetesPluginContext } from "../config.js"
+import { execInWorkload, getTargetResource } from "../util.js"
+import { getHelmDeployStatus } from "./status.js"
+import { getChartResources } from "./common.js"
+import type { DeployActionHandler } from "../../../plugin/action-types.js"
+import type { HelmDeployAction } from "./config.js"
 import chalk from "chalk"
 
 export const execInHelmDeploy: DeployActionHandler<"exec", HelmDeployAction> = async (params) => {

@@ -8,7 +8,8 @@
 
 import { expect } from "chai"
 
-import { getRootLogger, Logger } from "../../../../src/logger/logger"
+import type { Logger } from "../../../../src/logger/logger.js"
+import { getRootLogger } from "../../../../src/logger/logger.js"
 import {
   renderMsg,
   msgStyle,
@@ -21,16 +22,17 @@ import {
   padSection,
   renderSection,
   warningStyle,
-} from "../../../../src/logger/renderers"
-import { GenericGardenError } from "../../../../src/exceptions"
+} from "../../../../src/logger/renderers.js"
+import { GenericGardenError } from "../../../../src/exceptions.js"
 
-import { createActionLog, TaskMetadata } from "../../../../src/logger/log-entry"
-import logSymbols = require("log-symbols")
-import stripAnsi = require("strip-ansi")
-import { highlightYaml, safeDumpYaml } from "../../../../src/util/serialization"
-import { freezeTime } from "../../../helpers"
-import chalk = require("chalk")
-import format from "date-fns/format"
+import type { TaskMetadata } from "../../../../src/logger/log-entry.js"
+import { createActionLog } from "../../../../src/logger/log-entry.js"
+import logSymbols from "log-symbols"
+import stripAnsi from "strip-ansi"
+import { highlightYaml, safeDumpYaml } from "../../../../src/util/serialization.js"
+import { freezeTime } from "../../../helpers.js"
+import chalk from "chalk"
+import format from "date-fns/format/index.js"
 
 const logger: Logger = getRootLogger()
 

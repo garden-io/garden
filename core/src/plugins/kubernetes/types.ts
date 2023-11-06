@@ -18,15 +18,15 @@ import type {
   V1Ingress,
 } from "@kubernetes/client-node"
 
-import type { Omit } from "../../util/util"
+import type { Omit } from "../../util/util.js"
 import type {
   ContainerBuildAction,
   ContainerDeployAction,
   ContainerRunAction,
   ContainerTestAction,
-} from "../container/config"
-import type { HelmDeployAction, HelmPodRunAction, HelmPodTestAction } from "./helm/config"
-import type { KubernetesDeployAction, KubernetesRunAction, KubernetesTestAction } from "./kubernetes-type/config"
+} from "../container/config.js"
+import type { HelmDeployAction, HelmPodRunAction, HelmPodTestAction } from "./helm/config.js"
+import type { KubernetesDeployAction, KubernetesRunAction, KubernetesTestAction } from "./kubernetes-type/config.js"
 
 export interface BaseResource {
   apiVersion: string

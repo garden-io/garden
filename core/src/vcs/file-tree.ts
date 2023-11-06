@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { VcsFile } from "./vcs"
+import type { VcsFile } from "./vcs.js"
 import * as path from "path"
 
 type FileTreeNodeOptions = {

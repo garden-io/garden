@@ -6,14 +6,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Garden } from "./garden"
-import { collectTemplateReferences, resolveTemplateStrings } from "./template-string/template-string"
-import { OutputConfigContext } from "./config/template-contexts/module"
-import { Log } from "./logger/log-entry"
-import { OutputSpec } from "./config/project"
-import { ActionReference } from "./config/common"
-import { ActionKind } from "./plugin/action-types"
-import { GraphResults } from "./graph/results"
+import type { Garden } from "./garden.js"
+import { collectTemplateReferences, resolveTemplateStrings } from "./template-string/template-string.js"
+import { OutputConfigContext } from "./config/template-contexts/module.js"
+import type { Log } from "./logger/log-entry.js"
+import type { OutputSpec } from "./config/project.js"
+import type { ActionReference } from "./config/common.js"
+import type { ActionKind } from "./plugin/action-types.js"
+import { GraphResults } from "./graph/results.js"
 
 /**
  * Resolves all declared project outputs. If necessary, this will resolve providers and modules, and ensure services

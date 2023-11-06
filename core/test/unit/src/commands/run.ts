@@ -7,18 +7,12 @@
  */
 
 import { expect } from "chai"
-import { RunCommand } from "../../../../src/commands/run"
-import {
-  TestGarden,
-  expectError,
-  getAllProcessedTaskNames,
-  makeTestGarden,
-  getDataDir,
-  makeTestGardenA,
-} from "../../../helpers"
-import { expectLogsContain, getLogMessages } from "../../../../src/util/testing"
-import { LogLevel } from "../../../../src/logger/logger"
-import { DEFAULT_RUN_TIMEOUT_SEC } from "../../../../src/constants"
+import { RunCommand } from "../../../../src/commands/run.js"
+import type { TestGarden } from "../../../helpers.js"
+import { expectError, getAllProcessedTaskNames, makeTestGarden, getDataDir, makeTestGardenA } from "../../../helpers.js"
+import { expectLogsContain, getLogMessages } from "../../../../src/util/testing.js"
+import { LogLevel } from "../../../../src/logger/logger.js"
+import { DEFAULT_RUN_TIMEOUT_SEC } from "../../../../src/constants.js"
 
 // TODO-G2: fill in test implementations. use TestCommand tests for reference.
 

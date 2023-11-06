@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Log } from "./logger/log-entry"
+import type { Log } from "./logger/log-entry.js"
 
 interface LoggerContext {
   readonly history: Set<string>

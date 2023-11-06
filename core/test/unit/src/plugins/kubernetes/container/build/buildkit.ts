@@ -7,20 +7,20 @@
  */
 
 import { expect } from "chai"
-import { DeepPartial } from "utility-types"
-import { ContainerBuildAction } from "../../../../../../../src/plugins/container/config"
-import {
+import type { DeepPartial } from "utility-types"
+import type { ContainerBuildAction } from "../../../../../../../src/plugins/container/config.js"
+import type {
   ClusterBuildkitCacheConfig,
-  defaultResources,
   KubernetesProvider,
-} from "../../../../../../../src/plugins/kubernetes/config"
-import { buildkitImageName, k8sUtilImageName } from "../../../../../../../src/plugins/kubernetes/constants"
+} from "../../../../../../../src/plugins/kubernetes/config.js"
+import { defaultResources } from "../../../../../../../src/plugins/kubernetes/config.js"
+import { buildkitImageName, k8sUtilImageName } from "../../../../../../../src/plugins/kubernetes/constants.js"
 import {
   getBuildkitDeployment,
   getBuildkitFlags,
   getBuildkitImageFlags,
-} from "../../../../../../../src/plugins/kubernetes/container/build/buildkit"
-import { getDataDir, makeTestGarden } from "../../../../../../helpers"
+} from "../../../../../../../src/plugins/kubernetes/container/build/buildkit.js"
+import { getDataDir, makeTestGarden } from "../../../../../../helpers.js"
 
 describe("getBuildkitModuleFlags", () => {
   it("should correctly format the build target option", async () => {

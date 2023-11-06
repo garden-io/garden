@@ -7,12 +7,13 @@
  */
 
 import { expect } from "chai"
-import { Autocompleter } from "../../../../src/cli/autocomplete"
-import { globalDisplayOptions, globalOptions } from "../../../../src/cli/params"
-import { BuildCommand } from "../../../../src/commands/build"
-import { getBuiltinCommands } from "../../../../src/commands/commands"
-import { ConfigDump } from "../../../../src/garden"
-import { makeTestGardenA, TestGarden } from "../../../helpers"
+import { Autocompleter } from "../../../../src/cli/autocomplete.js"
+import { globalDisplayOptions, globalOptions } from "../../../../src/cli/params.js"
+import { BuildCommand } from "../../../../src/commands/build.js"
+import { getBuiltinCommands } from "../../../../src/commands/commands.js"
+import type { ConfigDump } from "../../../../src/garden.js"
+import type { TestGarden } from "../../../helpers.js"
+import { makeTestGardenA } from "../../../helpers.js"
 
 describe("Autocompleter", () => {
   let garden: TestGarden

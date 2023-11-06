@@ -6,15 +6,17 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Command, CommandParams } from "../base"
-import { RuntimeError } from "../../exceptions"
+import type { CommandParams } from "../base.js"
+import { Command } from "../base.js"
+import { RuntimeError } from "../../exceptions.js"
 import dedent from "dedent"
-import { findProjectConfig } from "../../config/base"
-import { DEFAULT_GARDEN_DIR_NAME, MUTAGEN_DIR_NAME } from "../../constants"
+import { findProjectConfig } from "../../config/base.js"
+import { DEFAULT_GARDEN_DIR_NAME, MUTAGEN_DIR_NAME } from "../../constants.js"
 import { join } from "path"
-import { exec } from "../../util/util"
-import { mutagenCli } from "../../mutagen"
-import { mkdirp } from "fs-extra"
+import { exec } from "../../util/util.js"
+import { mutagenCli } from "../../mutagen.js"
+import fsExtra from "fs-extra"
+const { mkdirp } = fsExtra
 
 export class MutagenCommand extends Command<{}, {}> {
   name = "mutagen"

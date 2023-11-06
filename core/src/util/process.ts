@@ -6,11 +6,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ChildProcess } from "child_process"
+import type { ChildProcess } from "child_process"
 import split2 from "split2"
-import { RuntimeError } from "../exceptions"
-import { PluginContext } from "../plugin-context"
-import { StringLogLevel } from "../logger/logger"
+import { RuntimeError } from "../exceptions.js"
+import type { PluginContext } from "../plugin-context.js"
+import type { StringLogLevel } from "../logger/logger.js"
 
 export function streamLogs({
   proc,
@@ -25,31 +25,18 @@ export function streamLogs({
 }): void {
   const logStream = split2()
 
-  let stdout = ""
-  let stderr = ""
-
   if (proc.stderr) {
     proc.stderr.pipe(logStream)
-    proc.stderr.on("data", (data) => {
-      stderr += data
-    })
   }
 
   if (proc.stdout) {
     proc.stdout.pipe(logStream)
-    proc.stdout.on("data", (data) => {
-      stdout += data
-    })
   }
 
   const logEventContext = {
     origin: name,
     level: level ?? ("verbose" as const),
   }
-
-  const logger = ctx.log.createLog({
-    name,
-  })
 
   logStream.on("data", (line: Buffer) => {
     const logLine = line.toString()
@@ -175,19 +162,19 @@ export function waitForLogLine({
   let stdErrString = ""
 
   const stringWasSeen = new Promise<void>((resolve, reject) => {
-    function hasError(string: string): boolean {
+    function hasError(): boolean {
       return errorLog !== undefined && (stdOutString.includes(errorLog) || stdErrString.includes(errorLog))
     }
 
-    function hasSuccess(string: string): boolean {
+    function hasSuccess(): boolean {
       return stdOutString.includes(successLog) || stdErrString.includes(successLog)
     }
 
     process.stdout?.on("data", (chunk) => {
       stdOutString = stdOutString + chunk
-      if (hasSuccess(stdOutString)) {
+      if (hasSuccess()) {
         resolve()
-      } else if (hasError(stdOutString)) {
+      } else if (hasError()) {
         reject(
           new ErrorLogLineSeenError({
             stdout: stdOutString,
@@ -201,9 +188,9 @@ export function waitForLogLine({
 
     process.stderr?.on("data", (chunk) => {
       stdErrString = stdErrString + chunk
-      if (hasSuccess(stdOutString)) {
+      if (hasSuccess()) {
         resolve()
-      } else if (hasError(stdOutString)) {
+      } else if (hasError()) {
         reject(
           new ErrorLogLineSeenError({
             stdout: stdOutString,

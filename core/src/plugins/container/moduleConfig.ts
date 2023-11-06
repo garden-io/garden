@@ -6,28 +6,35 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { GardenModule } from "../../types/module"
-import { PrimitiveMap, joi, joiModuleIncludeDirective, joiSparseArray, joiIdentifier } from "../../config/common"
-import { ModuleSpec, ModuleConfig, baseBuildSpecSchema } from "../../config/module"
-import { baseServiceSpecSchema, CommonServiceSpec } from "../../config/service"
-import { baseTaskSpecSchema, BaseTaskSpec } from "../../config/task"
-import { baseTestSpecSchema, BaseTestSpec } from "../../config/test"
-import { dedent, deline } from "../../util/string"
+import type { GardenModule } from "../../types/module.js"
+import type { PrimitiveMap } from "../../config/common.js"
+import { joi, joiModuleIncludeDirective, joiSparseArray, joiIdentifier } from "../../config/common.js"
+import type { ModuleSpec, ModuleConfig } from "../../config/module.js"
+import { baseBuildSpecSchema } from "../../config/module.js"
+import type { CommonServiceSpec } from "../../config/service.js"
+import { baseServiceSpecSchema } from "../../config/service.js"
+import type { BaseTaskSpec } from "../../config/task.js"
+import { baseTaskSpecSchema } from "../../config/task.js"
+import type { BaseTestSpec } from "../../config/test.js"
+import { baseTestSpecSchema } from "../../config/test.js"
+import { dedent, deline } from "../../util/string.js"
+import type {
+  ContainerCommonDeploySpec,
+  ContainerRunActionSpec,
+  ContainerTestActionSpec,
+  ContainerVolumeSpecBase,
+} from "./config.js"
 import {
   containerBuildOutputSchemaKeys,
   containerCommonBuildSpecKeys,
-  ContainerCommonDeploySpec,
   containerDeploySchemaKeys,
   containerSyncPathSchema,
-  ContainerRunActionSpec,
   containerRunSpecKeys,
-  ContainerTestActionSpec,
   containerTestSpecKeys,
-  ContainerVolumeSpecBase,
   getContainerVolumesSchema,
   volumeSchemaBase,
-} from "./config"
-import { kebabCase, mapKeys } from "lodash"
+} from "./config.js"
+import { kebabCase, mapKeys } from "lodash-es"
 
 /**
  * PLEASE DO NOT UPDATE THESE SCHEMAS UNLESS ABSOLUTELY NECESSARY, AND IF YOU DO, MAKE SURE
@@ -35,7 +42,7 @@ import { kebabCase, mapKeys } from "lodash"
  */
 
 // To reduce the amount of edits to make before removing module configs
-export * from "./config"
+export * from "./config.js"
 
 export interface ContainerModuleVolumeSpec extends ContainerVolumeSpecBase {
   module?: string

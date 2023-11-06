@@ -7,14 +7,16 @@
  */
 
 import { expect } from "chai"
-import { emptyDir, pathExists, readFile } from "fs-extra"
+import fsExtra from "fs-extra"
+const { emptyDir, pathExists, readFile } = fsExtra
 import { join } from "path"
-import { ResolvedRunAction } from "../../../../src/actions/run"
-import { ConfigGraph } from "../../../../src/graph/config-graph"
-import { ActionLog } from "../../../../src/logger/log-entry"
-import { ActionRouter } from "../../../../src/router/router"
-import { TestGarden, expectError } from "../../../helpers"
-import { getRouterTestData } from "./_helpers"
+import type { ResolvedRunAction } from "../../../../src/actions/run.js"
+import type { ConfigGraph } from "../../../../src/graph/config-graph.js"
+import type { ActionLog } from "../../../../src/logger/log-entry.js"
+import type { ActionRouter } from "../../../../src/router/router.js"
+import type { TestGarden } from "../../../helpers.js"
+import { expectError } from "../../../helpers.js"
+import { getRouterTestData } from "./_helpers.js"
 
 describe("run actions", () => {
   let garden: TestGarden

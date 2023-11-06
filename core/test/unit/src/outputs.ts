@@ -6,15 +6,16 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import tmp from "tmp-promise"
-import { createProjectConfig, makeTempDir, TestGarden } from "../../helpers"
-import { resolveProjectOutputs } from "../../../src/outputs"
+import type tmp from "tmp-promise"
+import { createProjectConfig, makeTempDir, TestGarden } from "../../helpers.js"
+import { resolveProjectOutputs } from "../../../src/outputs.js"
 import { expect } from "chai"
-import { realpath } from "fs-extra"
-import { createGardenPlugin } from "../../../src/plugin/plugin"
-import { ProjectConfig } from "../../../src/config/project"
-import { DEFAULT_BUILD_TIMEOUT_SEC, GardenApiVersion } from "../../../src/constants"
-import { joi } from "../../../src/config/common"
+import fsExtra from "fs-extra"
+const { realpath } = fsExtra
+import { createGardenPlugin } from "../../../src/plugin/plugin.js"
+import type { ProjectConfig } from "../../../src/config/project.js"
+import { DEFAULT_BUILD_TIMEOUT_SEC, GardenApiVersion } from "../../../src/constants.js"
+import { joi } from "../../../src/config/common.js"
 
 describe("resolveProjectOutputs", () => {
   let tmpDir: tmp.DirectoryResult

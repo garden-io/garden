@@ -7,16 +7,19 @@
  */
 
 import chalk from "chalk"
-import { printHeader } from "../logger/util"
-import { Command, CommandResult, CommandParams } from "./base"
+import { printHeader } from "../logger/util.js"
+import type { CommandResult, CommandParams } from "./base.js"
+import { Command } from "./base.js"
 import dedent from "dedent"
-import { StringParameter, BooleanParameter, ParameterValues, StringsParameter } from "../cli/params"
-import { ExecInDeployResult, execInDeployResultSchema } from "../plugin/handlers/Deploy/exec"
-import { executeAction } from "../graph/actions"
-import { NotFoundError } from "../exceptions"
-import { DeployStatus } from "../plugin/handlers/Deploy/get-status"
-import { createActionLog } from "../logger/log-entry"
-import { K8_POD_DEFAULT_CONTAINER_ANNOTATION_KEY } from "../plugins/kubernetes/run"
+import type { ParameterValues } from "../cli/params.js"
+import { StringParameter, BooleanParameter, StringsParameter } from "../cli/params.js"
+import type { ExecInDeployResult } from "../plugin/handlers/Deploy/exec.js"
+import { execInDeployResultSchema } from "../plugin/handlers/Deploy/exec.js"
+import { executeAction } from "../graph/actions.js"
+import { NotFoundError } from "../exceptions.js"
+import type { DeployStatus } from "../plugin/handlers/Deploy/get-status.js"
+import { createActionLog } from "../logger/log-entry.js"
+import { K8_POD_DEFAULT_CONTAINER_ANNOTATION_KEY } from "../plugins/kubernetes/run.js"
 
 const execArgs = {
   deploy: new StringParameter({

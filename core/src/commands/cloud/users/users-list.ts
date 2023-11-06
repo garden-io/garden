@@ -6,18 +6,20 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ConfigurationError, CloudApiError } from "../../../exceptions"
-import { ListUsersResponse } from "@garden-io/platform-api-types"
+import { ConfigurationError, CloudApiError } from "../../../exceptions.js"
+import type { ListUsersResponse } from "@garden-io/platform-api-types"
 
-import { printHeader } from "../../../logger/util"
-import { dedent, deline, renderTable } from "../../../util/string"
-import { Command, CommandParams, CommandResult } from "../../base"
-import { applyFilter, makeUserFromResponse, noApiMsg, UserResult } from "../helpers"
+import { printHeader } from "../../../logger/util.js"
+import { dedent, deline, renderTable } from "../../../util/string.js"
+import type { CommandParams, CommandResult } from "../../base.js"
+import { Command } from "../../base.js"
+import type { UserResult } from "../helpers.js"
+import { applyFilter, makeUserFromResponse, noApiMsg } from "../helpers.js"
 import chalk from "chalk"
-import { sortBy } from "lodash"
-import { StringsParameter } from "../../../cli/params"
-import { getCloudDistributionName } from "../../../util/util"
-import { CloudProject } from "../../../cloud/api"
+import { sortBy } from "lodash-es"
+import { StringsParameter } from "../../../cli/params.js"
+import { getCloudDistributionName } from "../../../util/util.js"
+import type { CloudProject } from "../../../cloud/api.js"
 
 export const usersListOpts = {
   "filter-names": new StringsParameter({

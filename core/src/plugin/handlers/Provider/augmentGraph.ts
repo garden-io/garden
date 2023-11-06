@@ -6,12 +6,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { PluginActionParamsBase, projectActionParamsSchema } from "../../base"
-import { dedent } from "../../../util/string"
-import { joi, joiArray, joiIdentifierMap } from "../../../config/common"
-import { providerSchema, ProviderMap, BaseProviderConfig } from "../../../config/provider"
-import { BaseAction, baseActionConfigSchema } from "../../../actions/base"
-import type { ActionKind, BaseActionConfig } from "../../../actions/types"
+import type { PluginActionParamsBase } from "../../base.js"
+import { projectActionParamsSchema } from "../../base.js"
+import { dedent } from "../../../util/string.js"
+import { joi, joiArray, joiIdentifierMap } from "../../../config/common.js"
+import type { ProviderMap, BaseProviderConfig } from "../../../config/provider.js"
+import { providerSchema } from "../../../config/provider.js"
+import type { BaseAction } from "../../../actions/base.js"
+import { baseActionConfigSchema } from "../../../actions/base.js"
+import type { ActionKind, BaseActionConfig } from "../../../actions/types.js"
 
 export interface AugmentGraphParams<C extends BaseProviderConfig = any> extends PluginActionParamsBase<C> {
   actions: BaseAction[]

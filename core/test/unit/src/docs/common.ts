@@ -6,9 +6,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { joi, JoiDescription } from "../../../../src/config/common"
-import { JoiKeyDescription } from "../../../../src/docs/joi-schema"
-import { flattenSchema } from "../../../../src/docs/common"
+import type { JoiDescription } from "../../../../src/config/common.js"
+import { joi } from "../../../../src/config/common.js"
+import { JoiKeyDescription } from "../../../../src/docs/joi-schema.js"
+import { flattenSchema } from "../../../../src/docs/common.js"
 import { expect } from "chai"
 
 describe("flattenSchema", () => {

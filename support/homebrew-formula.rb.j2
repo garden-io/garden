@@ -14,7 +14,7 @@ class GardenCli < Formula
   end
 
   def install
-    libexec.install "garden", "fsevents.node", "static"
+    libexec.install "garden"
     bin.install_symlink libexec/"garden"
   end
 

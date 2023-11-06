@@ -6,10 +6,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { variableNameRegex, joiPrimitive, joiArray, DeepPrimitiveMap, joiVariables, joiIdentifierMap } from "../common"
-import { joi } from "../common"
-import { DefaultEnvironmentContext, DefaultEnvironmentContextParams } from "./project"
-import { schema } from "./base"
+import type { DeepPrimitiveMap } from "../common.js"
+import { variableNameRegex, joiPrimitive, joiArray, joiVariables, joiIdentifierMap } from "../common.js"
+import { joi } from "../common.js"
+import type { DefaultEnvironmentContextParams } from "./project.js"
+import { DefaultEnvironmentContext } from "./project.js"
+import { schema } from "./base.js"
 
 interface ArgsSchema {
   [name: string]: string | number | string[]

@@ -7,21 +7,22 @@
  */
 
 import dedent from "dedent"
-import { runResultToActionState } from "../../../actions/base"
-import { Resolved } from "../../../actions/types"
-import { ConfigurationError } from "../../../exceptions"
-import { Log } from "../../../logger/log-entry"
-import { RunActionDefinition, TestActionDefinition } from "../../../plugin/action-types"
-import { CommonRunParams } from "../../../plugin/handlers/Run/run"
-import { KubernetesPluginContext } from "../config"
-import { getActionNamespaceStatus } from "../namespace"
-import { k8sGetRunResult, storeRunResult } from "../run-results"
-import { getResourceContainer, getResourcePodSpec, getTargetResource, makePodName } from "../util"
-import { HelmPodRunAction, helmPodRunSchema, HelmPodTestAction } from "./config"
-import { runAndCopy } from "../run"
-import { filterManifests, prepareManifests, prepareTemplates } from "./common"
-import { storeTestResult } from "../test-results"
-import { kubernetesRunOutputsSchema } from "../kubernetes-type/config"
+import { runResultToActionState } from "../../../actions/base.js"
+import type { Resolved } from "../../../actions/types.js"
+import { ConfigurationError } from "../../../exceptions.js"
+import type { Log } from "../../../logger/log-entry.js"
+import type { RunActionDefinition, TestActionDefinition } from "../../../plugin/action-types.js"
+import type { CommonRunParams } from "../../../plugin/handlers/Run/run.js"
+import type { KubernetesPluginContext } from "../config.js"
+import { getActionNamespaceStatus } from "../namespace.js"
+import { k8sGetRunResult, storeRunResult } from "../run-results.js"
+import { getResourceContainer, getResourcePodSpec, getTargetResource, makePodName } from "../util.js"
+import type { HelmPodRunAction, HelmPodTestAction } from "./config.js"
+import { helmPodRunSchema } from "./config.js"
+import { runAndCopy } from "../run.js"
+import { filterManifests, prepareManifests, prepareTemplates } from "./common.js"
+import { storeTestResult } from "../test-results.js"
+import { kubernetesRunOutputsSchema } from "../kubernetes-type/config.js"
 
 const helmRunPodOutputsSchema = kubernetesRunOutputsSchema
 const helmTestPodOutputsSchema = helmRunPodOutputsSchema
@@ -133,7 +134,6 @@ export async function runOrTestWithChart(
   const { ctx, action, log, namespace } = params
   // Get the container spec to use for running
   const spec = action.getSpec()
-  const version = action.versionString()
 
   const resourceSpec = spec.resource
 

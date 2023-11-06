@@ -7,10 +7,10 @@
  */
 
 import { expect } from "chai"
-import { makeTestGardenA } from "../../../helpers"
-import { TaskConfig } from "../../../../src/config/task"
-import { taskFromConfig } from "../../../../src/types/task"
-import { DEFAULT_RUN_TIMEOUT_SEC } from "../../../../src/constants"
+import { makeTestGardenA } from "../../../helpers.js"
+import type { TaskConfig } from "../../../../src/config/task.js"
+import { taskFromConfig } from "../../../../src/types/task.js"
+import { DEFAULT_RUN_TIMEOUT_SEC } from "../../../../src/constants.js"
 
 describe("taskFromConfig", () => {
   it("should propagate the disabled flag from the config", async () => {

@@ -7,12 +7,13 @@
  */
 
 import { join } from "path"
-import { GitHandler, augmentGlobs } from "./git"
-import type { GetFilesParams, VcsFile } from "./vcs"
-import { isDirectory, joinWithPosix, matchPath } from "../util/fs"
-import { pathExists } from "fs-extra"
-import { pathToCacheContext } from "../cache"
-import { FileTree } from "./file-tree"
+import { GitHandler, augmentGlobs } from "./git.js"
+import type { GetFilesParams, VcsFile } from "./vcs.js"
+import { isDirectory, joinWithPosix, matchPath } from "../util/fs.js"
+import fsExtra from "fs-extra"
+const { pathExists } = fsExtra
+import { pathToCacheContext } from "../cache.js"
+import { FileTree } from "./file-tree.js"
 
 type ScanRepoParams = Pick<GetFilesParams, "log" | "path" | "pathDescription" | "failOnPrompt">
 

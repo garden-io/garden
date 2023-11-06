@@ -8,17 +8,17 @@
 
 import { join } from "path"
 
-import { GardenApiVersion, STATIC_DIR } from "../../constants"
-import { Garden } from "../../garden"
-import { KubernetesPluginContext, KubernetesConfig } from "./config"
-import { Log } from "../../logger/log-entry"
-import { getSystemNamespace } from "./namespace"
-import { PluginError } from "../../exceptions"
-import { DeepPrimitiveMap } from "../../config/common"
-import { combineStates } from "../../types/service"
-import { defaultDotIgnoreFile } from "../../util/fs"
-import { LogLevel } from "../../logger/logger"
-import { defaultNamespace } from "../../config/project"
+import { GardenApiVersion, STATIC_DIR } from "../../constants.js"
+import { Garden } from "../../garden.js"
+import type { KubernetesPluginContext, KubernetesConfig } from "./config.js"
+import type { Log } from "../../logger/log-entry.js"
+import { getSystemNamespace } from "./namespace.js"
+import { PluginError } from "../../exceptions.js"
+import type { DeepPrimitiveMap } from "../../config/common.js"
+import { combineStates } from "../../types/service.js"
+import { defaultDotIgnoreFile } from "../../util/fs.js"
+import { LogLevel } from "../../logger/logger.js"
+import { defaultNamespace } from "../../config/project.js"
 
 const systemProjectPath = join(STATIC_DIR, "kubernetes", "system")
 

@@ -7,10 +7,10 @@
  */
 
 import stringify from "json-stringify-safe"
-import { LogEntry, LogMetadata } from "../log-entry"
-import { Logger } from "../logger"
-import { Writer } from "./base"
-import { formatForJson } from "../renderers"
+import type { LogEntry, LogMetadata } from "../log-entry.js"
+import type { Logger } from "../logger.js"
+import { Writer } from "./base.js"
+import { formatForJson } from "../renderers.js"
 
 export interface JsonLogEntry {
   msg: string

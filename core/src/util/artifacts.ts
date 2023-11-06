@@ -7,9 +7,10 @@
  */
 
 import { join, relative } from "path"
-import { readFile, writeFile } from "fs-extra"
-import { Log } from "../logger/log-entry"
-import { Garden } from "../garden"
+import fsExtra from "fs-extra"
+const { readFile, writeFile } = fsExtra
+import type { Log } from "../logger/log-entry.js"
+import type { Garden } from "../garden.js"
 import chalk from "chalk"
 
 const maxArtifactLogLines = 5 // max number of artifacts to list in console after run+test runs

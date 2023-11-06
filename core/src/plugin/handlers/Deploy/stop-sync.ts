@@ -6,11 +6,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { actionParamsSchema, PluginDeployActionParamsBase } from "../../base"
-import { dedent } from "../../../util/string"
-import { joi } from "../../../config/common"
-import { DeployAction } from "../../../actions/deploy"
-import { ActionTypeHandlerSpec } from "../base/base"
+import type { PluginDeployActionParamsBase } from "../../base.js"
+import { actionParamsSchema } from "../../base.js"
+import { dedent } from "../../../util/string.js"
+import { joi } from "../../../config/common.js"
+import type { DeployAction } from "../../../actions/deploy.js"
+import { ActionTypeHandlerSpec } from "../base/base.js"
 
 type StopSyncParams<T extends DeployAction> = PluginDeployActionParamsBase<T>
 

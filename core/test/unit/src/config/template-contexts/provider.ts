@@ -7,9 +7,9 @@
  */
 
 import { expect } from "chai"
-import { ConfigContext } from "../../../../../src/config/template-contexts/base"
-import { projectRootA, makeTestGarden } from "../../../../helpers"
-import { ProviderConfigContext } from "../../../../../src/config/template-contexts/provider"
+import type { ConfigContext } from "../../../../../src/config/template-contexts/base.js"
+import { projectRootA, makeTestGarden } from "../../../../helpers.js"
+import { ProviderConfigContext } from "../../../../../src/config/template-contexts/provider.js"
 
 type TestValue = string | ConfigContext | TestValues | TestValueFunction
 type TestValueFunction = () => TestValue | Promise<TestValue>

@@ -7,10 +7,10 @@
  */
 
 import { expect } from "chai"
-import { validateActionSearchResults } from "../../../../src/commands/helpers"
-import { getRootLogger } from "../../../../src/logger/logger"
-import { initTestLogger } from "../../../helpers"
-import { expectError } from "../../../helpers"
+import { validateActionSearchResults } from "../../../../src/commands/helpers.js"
+import { getRootLogger } from "../../../../src/logger/logger.js"
+import { initTestLogger } from "../../../helpers.js"
+import { expectError } from "../../../helpers.js"
 
 describe("command helpers", () => {
   initTestLogger()

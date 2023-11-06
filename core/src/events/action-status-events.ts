@@ -6,11 +6,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { actionStateTypes } from "../actions/types"
-import { BuildState } from "../plugin/handlers/Build/get-status"
-import { RunState } from "../plugin/plugin"
-import { DeployState } from "../types/service"
-import { PickFromUnion } from "../util/util"
+import { actionStateTypes } from "../actions/types.js"
+import type { BuildState } from "../plugin/handlers/Build/get-status.js"
+import type { RunState } from "../plugin/plugin.js"
+import type { DeployState } from "../types/service.js"
+import type { PickFromUnion } from "../util/util.js"
 
 export type ActionStatusDetailedState = DeployState | BuildState | RunState
 

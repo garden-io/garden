@@ -7,13 +7,13 @@
  */
 
 import chalk from "chalk"
-import type { Command } from "../commands/base"
-import { EventBus } from "../events/events"
-import type { Log } from "../logger/log-entry"
-import { LogLevel } from "../logger/logger"
-import { TypedEventEmitter } from "../util/events"
-import { KeyedSet } from "../util/keyed-set"
-import type { Monitor } from "./base"
+import type { Command } from "../commands/base.js"
+import type { EventBus } from "../events/events.js"
+import type { Log } from "../logger/log-entry.js"
+import { LogLevel } from "../logger/logger.js"
+import { TypedEventEmitter } from "../util/events.js"
+import { KeyedSet } from "../util/keyed-set.js"
+import type { Monitor } from "./base.js"
 
 type MonitorStatus = "starting" | "started" | "stopping" | "stopped"
 

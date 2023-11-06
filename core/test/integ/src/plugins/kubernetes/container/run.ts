@@ -8,17 +8,19 @@
 
 import { expect } from "chai"
 
-import { expectError, TestGarden } from "../../../../../helpers"
-import { ConfigGraph } from "../../../../../../src/graph/config-graph"
-import { RunTask } from "../../../../../../src/tasks/run"
-import { emptyDir, pathExists } from "fs-extra"
+import type { TestGarden } from "../../../../../helpers.js"
+import { expectError } from "../../../../../helpers.js"
+import type { ConfigGraph } from "../../../../../../src/graph/config-graph.js"
+import { RunTask } from "../../../../../../src/tasks/run.js"
+import fsExtra from "fs-extra"
+const { emptyDir, pathExists } = fsExtra
 import { join } from "path"
-import { getContainerTestGarden } from "./container"
-import { clearRunResult } from "../../../../../../src/plugins/kubernetes/run-results"
-import { KubernetesProvider } from "../../../../../../src/plugins/kubernetes/config"
-import { ContainerRunAction } from "../../../../../../src/plugins/container/config"
-import { createActionLog } from "../../../../../../src/logger/log-entry"
-import { waitForOutputFlush } from "../../../../../../src/process"
+import { getContainerTestGarden } from "./container.js"
+import { clearRunResult } from "../../../../../../src/plugins/kubernetes/run-results.js"
+import type { KubernetesProvider } from "../../../../../../src/plugins/kubernetes/config.js"
+import type { ContainerRunAction } from "../../../../../../src/plugins/container/config.js"
+import { createActionLog } from "../../../../../../src/logger/log-entry.js"
+import { waitForOutputFlush } from "../../../../../../src/process.js"
 
 describe("runContainerTask", () => {
   let garden: TestGarden

@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { createGardenPlugin } from "../../../../src/plugin/plugin"
+import { createGardenPlugin } from "../../../../src/plugin/plugin.js"
 
 export const gardenPlugin = () =>
   createGardenPlugin({

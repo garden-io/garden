@@ -6,21 +6,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import {
-  Command,
-  CommandParams,
-  CommandResult,
-  handleProcessResults,
-  ProcessCommandResult,
-  processCommandResultSchema,
-  resultMetadataKeys,
-} from "./base"
-import { PublishTask } from "../tasks/publish"
-import { printHeader } from "../logger/util"
-import dedent = require("dedent")
-import { publishResultSchema } from "../plugin/handlers/Build/publish"
-import { joiIdentifierMap } from "../config/common"
-import { StringsParameter, BooleanParameter, StringOption } from "../cli/params"
+import type { CommandParams, CommandResult, ProcessCommandResult } from "./base.js"
+import { Command, handleProcessResults, processCommandResultSchema, resultMetadataKeys } from "./base.js"
+import { PublishTask } from "../tasks/publish.js"
+import { printHeader } from "../logger/util.js"
+import dedent from "dedent"
+import { publishResultSchema } from "../plugin/handlers/Build/publish.js"
+import { joiIdentifierMap } from "../config/common.js"
+import { StringsParameter, BooleanParameter, StringOption } from "../cli/params.js"
 
 export const publishArgs = {
   names: new StringsParameter({

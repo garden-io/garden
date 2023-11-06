@@ -6,6 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import type { Primitive, PrimitiveMap, ActionReference } from "../../config/common.js"
 import {
   artifactsTargetDescription,
   envVarRegex,
@@ -14,25 +15,22 @@ import {
   joiSparseArray,
   joiStringMap,
   joiUserIdentifier,
-  Primitive,
-  PrimitiveMap,
   createSchema,
-  ActionReference,
-} from "../../config/common"
-import { ArtifactSpec } from "../../config/validation"
-import { ingressHostnameSchema, linkUrlSchema } from "../../types/service"
-import { DEFAULT_PORT_PROTOCOL } from "../../constants"
-import { dedent, deline } from "../../util/string"
-import { syncGuideLink } from "../kubernetes/sync"
-import { k8sDeploymentTimeoutSchema, runCacheResultSchema } from "../kubernetes/config"
-import { localModeGuideLink } from "../kubernetes/local-mode"
-import { BuildAction, BuildActionConfig } from "../../actions/build"
-import { DeployAction, DeployActionConfig } from "../../actions/deploy"
-import { TestAction, TestActionConfig } from "../../actions/test"
-import { RunAction, RunActionConfig } from "../../actions/run"
-import { memoize } from "lodash"
-import Joi from "@hapi/joi"
-import { OctalPermissionMask } from "../kubernetes/types"
+} from "../../config/common.js"
+import type { ArtifactSpec } from "../../config/validation.js"
+import { ingressHostnameSchema, linkUrlSchema } from "../../types/service.js"
+import { DEFAULT_PORT_PROTOCOL } from "../../constants.js"
+import { dedent, deline } from "../../util/string.js"
+import { syncGuideLink } from "../kubernetes/sync.js"
+import { k8sDeploymentTimeoutSchema, runCacheResultSchema } from "../kubernetes/config.js"
+import { localModeGuideLink } from "../kubernetes/local-mode.js"
+import type { BuildAction, BuildActionConfig } from "../../actions/build.js"
+import type { DeployAction, DeployActionConfig } from "../../actions/deploy.js"
+import type { TestAction, TestActionConfig } from "../../actions/test.js"
+import type { RunAction, RunActionConfig } from "../../actions/run.js"
+import { memoize } from "lodash-es"
+import type Joi from "@hapi/joi"
+import type { OctalPermissionMask } from "../kubernetes/types.js"
 
 export const defaultDockerfileName = "Dockerfile"
 

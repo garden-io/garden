@@ -6,21 +6,21 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { makeTestGarden, withDefaultGlobalOpts, getDataDir } from "../../../../helpers"
-import { GetRunsCommand } from "../../../../../src/commands/get/get-runs"
+import { makeTestGarden, withDefaultGlobalOpts, getDataDir } from "../../../../helpers.js"
+import { GetRunsCommand } from "../../../../../src/commands/get/get-runs.js"
 import { expect } from "chai"
 import {
   getActionsToDetailedOutput,
   getActionsToDetailedWithStateOutput,
   getActionsToSimpleOutput,
   getActionsToSimpleWithStateOutput,
-} from "./get-actions"
-import { actionKinds } from "../../../../../src/actions/types"
-import { GetBuildsCommand } from "../../../../../src/commands/get/get-builds"
-import { GetTestsCommand } from "../../../../../src/commands/get/get-tests"
-import { GetDeploysCommand } from "../../../../../src/commands/get/get-deploys"
-import { ActionKind } from "../../../../../src/plugin/action-types"
-import { sortBy } from "lodash"
+} from "./get-actions.js"
+import { actionKinds } from "../../../../../src/actions/types.js"
+import { GetBuildsCommand } from "../../../../../src/commands/get/get-builds.js"
+import { GetTestsCommand } from "../../../../../src/commands/get/get-tests.js"
+import { GetDeploysCommand } from "../../../../../src/commands/get/get-deploys.js"
+import type { ActionKind } from "../../../../../src/plugin/action-types.js"
+import { sortBy } from "lodash-es"
 
 const getCommandInstance = (
   kind: ActionKind

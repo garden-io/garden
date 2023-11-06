@@ -6,25 +6,26 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { DeployActionDefinition } from "../../../plugin/action-types"
-import { dedent } from "../../../util/string"
-import { KubernetesPluginContext } from "../config"
-import { getPortForwardHandler } from "../port-forward"
-import { getActionNamespace } from "../namespace"
-import { KubernetesDeployAction, kubernetesDeploySchema } from "./config"
-import { execInKubernetesDeploy } from "./exec"
+import type { DeployActionDefinition } from "../../../plugin/action-types.js"
+import { dedent } from "../../../util/string.js"
+import type { KubernetesPluginContext } from "../config.js"
+import { getPortForwardHandler } from "../port-forward.js"
+import { getActionNamespace } from "../namespace.js"
+import type { KubernetesDeployAction } from "./config.js"
+import { kubernetesDeploySchema } from "./config.js"
+import { execInKubernetesDeploy } from "./exec.js"
 import {
   deleteKubernetesDeploy,
   getKubernetesDeployLogs,
   getKubernetesDeployStatus,
   kubernetesDeploy,
-} from "./handlers"
-import { ConfigurationError, GardenError } from "../../../exceptions"
-import { uniq } from "lodash"
-import { DOCS_BASE_URL } from "../../../constants"
-import { kubernetesGetSyncStatus, kubernetesStartSync } from "./sync"
-import { k8sContainerStopSync } from "../container/sync"
-import { isTruthy } from "../../../util/util"
+} from "./handlers.js"
+import { ConfigurationError, GardenError } from "../../../exceptions.js"
+import { uniq } from "lodash-es"
+import { DOCS_BASE_URL } from "../../../constants.js"
+import { kubernetesGetSyncStatus, kubernetesStartSync } from "./sync.js"
+import { k8sContainerStopSync } from "../container/sync.js"
+import { isTruthy } from "../../../util/util.js"
 
 export const kubernetesDeployDocs = dedent`
   Specify one or more Kubernetes manifests to deploy.

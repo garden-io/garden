@@ -7,12 +7,14 @@
  */
 
 import { expect } from "chai"
-import { emptyGlobalConfig, GlobalConfigStore, legacyGlobalConfigFilename } from "../../../src/config-store/global"
-import { makeTempDir, TempDirectory } from "../../helpers"
-import { dedent } from "../../../src/util/string"
+import { emptyGlobalConfig, GlobalConfigStore, legacyGlobalConfigFilename } from "../../../src/config-store/global.js"
+import type { TempDirectory } from "../../helpers.js"
+import { makeTempDir } from "../../helpers.js"
+import { dedent } from "../../../src/util/string.js"
 import { resolve } from "path"
-import { writeFile } from "fs-extra"
-import { legacyLocalConfigFilename, LocalConfigStore } from "../../../src/config-store/local"
+import fsExtra from "fs-extra"
+const { writeFile } = fsExtra
+import { legacyLocalConfigFilename, LocalConfigStore } from "../../../src/config-store/local.js"
 
 describe("ConfigStore", () => {
   let store: GlobalConfigStore

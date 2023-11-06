@@ -7,13 +7,13 @@
  */
 
 import { expect } from "chai"
-import { providerFromConfig } from "../../../../src/config/provider"
-import { ConfigGraph } from "../../../../src/graph/config-graph"
-import { Log } from "../../../../src/logger/log-entry"
-import { DashboardPage } from "../../../../src/plugin/handlers/Provider/getDashboardPage"
-import { ActionRouter } from "../../../../src/router/router"
-import { TestGarden } from "../../../helpers"
-import { getRouterTestData } from "./_helpers"
+import { providerFromConfig } from "../../../../src/config/provider.js"
+import type { ConfigGraph } from "../../../../src/graph/config-graph.js"
+import type { Log } from "../../../../src/logger/log-entry.js"
+import type { DashboardPage } from "../../../../src/plugin/handlers/Provider/getDashboardPage.js"
+import type { ActionRouter } from "../../../../src/router/router.js"
+import type { TestGarden } from "../../../helpers.js"
+import { getRouterTestData } from "./_helpers.js"
 
 describe("provider actions", async () => {
   let garden: TestGarden

@@ -4,6 +4,8 @@ version: 2.1
 orbs:
   win: circleci/windows@2.2.0
   rok8s-scripts: fairwinds/rok8s-scripts@11.1.3
+  node: circleci/node@5.1.0
+  macos: circleci/macos@2.4.0
 
 parameters:
   run-test-dockerhub:
@@ -233,7 +235,24 @@ commands:
           command: kubectl get ns | grep -E '(d|h)$' | grep -- '-testing' | awk '{print $1}' | xargs -n 1 kubectl delete namespace --wait=false || true
           when: always
 
-  build_dist:
+  install_rust:
+    description: Installs Rust
+    steps:
+      - run:
+          name: "Install Rust and Cross"
+          command: |
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+
+            # To be able to run cargo
+            source "$HOME/.cargo/env"
+
+            # Cargo builds the other targets in Docker
+            cargo install cross --git https://github.com/cross-rs/cross
+
+            # So that cross can be called
+            source "$HOME/.cargo/env"
+
+  run_npm_dist:
     description: Package built code into executables and persist to dist directory
     parameters:
       version:
@@ -242,40 +261,31 @@ commands:
           e.g. when creating unstable releases. The script defaults to using the version from core/package.json.
         type: string
         default: ""
+      targets:
+        description: |
+          The version tag used when building. Use to set the version string in the generated zip file names,
+          e.g. when creating unstable releases. The script defaults to using the version from core/package.json.
+        type: string
+        default: ""
     steps:
-      # We need Docker for building the Alpine package
-      - *remote-docker
-      - checkout
-      - npm_install
       - *attach-workspace
-      - restore_cache:
-          keys:
-            - pkg-v3-{{ checksum "package-lock.json" }}
       - run:
-          name: Install Codesigning utility (needed for ARM64 on MacOS)
-          command: |
-            curl -Lo ldid https://github.com/ProcursusTeam/ldid/releases/download/v2.1.5-procursus7/ldid_linux_x86_64
-            chmod +x ldid
-            sudo mv ldid /usr/local/bin
-      - run:
-          name: Setup buildx and qemu for cross-platform builds
-          command: |
-            sudo apt-get update
-            sudo apt-get install -y qemu-user-static
-            sudo apt-get install -y binfmt-support
+          name: NPM install
+          command: npm ci
       - run:
           name: Run dist script
-          command: npm run dist -- --version "<<parameters.version>>"
+          command: |
+            # This is already done in the step that installs rust
+            # It also work on the native macos runner,
+            # but somehow it doesn't work for the docker based runner.
+            # We just source it again so we're sure it's available for the next steps
+            source "$HOME/.cargo/env"
+
+            npm run dist -- --version "<<parameters.version>>" <<parameters.targets>>
       - persist_to_workspace:
           root: ./
           paths:
             - dist/
-            # Needed for the alpine docker build
-            - tmp/pkg/
-      - save_cache:
-          key: pkg-v3-{{ checksum "package-lock.json" }}
-          paths:
-            - tmp/pkg-fetch
       - run:
           # No need to store the raw files as artifacts, we just want the archives
           name: Cleanup
@@ -283,6 +293,7 @@ commands:
       - store_artifacts:
           path: dist
           destination: dist
+
   update_buildx:
     description: Update buildx to a version that supports syntax in bakefile
     steps:
@@ -337,17 +348,54 @@ jobs:
             - e2e/
       - fail_fast
 
-  build-dist:
-    <<: *node-config
-    resource_class: xlarge
+  build-dist-macos:
+    macos:
+      xcode: 15.0.0
+    resource_class: macos.m1.medium.gen1
     parameters:
       version:
         description: The version tag/name to set
         type: string
         default: ""
     steps:
-      - build_dist:
+      - checkout
+      - node/install:
+          node-version: '18.18.2'
+      - install_rust
+      # We need rosetta for running the tests for x86_64
+      - macos/install-rosetta
+      - run:
+          name: "Install darwin rustup targets"
+          command: |
+            # We build these on real Apple hardware as we would otherwise violate the Apple Licensing Agreement for Xcode
+            rustup target add x86_64-apple-darwin
+            rustup target add aarch64-apple-darwin
+      - run_npm_dist:
           version: <<parameters.version>>
+          targets: "macos-amd64 macos-arm64"
+      - fail_fast
+
+  build-dist-linux-windows:
+    machine:
+      image: ubuntu-2204:current
+      docker_layer_caching: true
+    resource_class: large
+    parameters:
+      version:
+        description: The version tag/name to set
+        type: string
+        default: ""
+    steps:
+      - checkout
+      - node/install:
+          node-version: '18.18.2'
+      - install_rust
+      - run:
+          name: "Install rollup linux"
+          command: npm install --save-dev @rollup/rollup-linux-x64-gnu
+      - run_npm_dist:
+          version: <<parameters.version>>
+          targets: "linux-amd64 linux-arm64 alpine-amd64 windows-amd64"
       - fail_fast
 
   lint:
@@ -873,7 +921,7 @@ jobs:
 
   test-macos:
     macos:
-      xcode: "13.4.1"
+      xcode: "15.0.0"
     steps:
       - checkout
       - *attach-workspace
@@ -989,9 +1037,11 @@ workflows:
       - build:
           # We only want to run tests on branches (e.g. for the merge queue) and pull requests.
           # On main we do not need to re-run all the tests, as the merge queue guarantees that tests already passed.
-          # For the edge release we declare the `build-edge` job below that only runs on main. 
+          # For the edge release we declare the `build-edge` job below that only runs on main.
           <<: *ignore-main
-      - build-dist:
+      - build-dist-macos:
+          requires: [build]
+      - build-dist-linux-windows:
           requires: [build]
       - lint:
           requires: [build]
@@ -1004,19 +1054,19 @@ workflows:
       - test-dist:
           # Don't attempt to run dist tests for external PRs (they won't have access to the required keys)
           <<: *only-internal-prs
-          requires: [build-dist]
+          requires: [build-dist-macos, build-dist-linux-windows]
       - test-macos:
           <<: *only-internal-prs
-          requires: [build-dist]
+          requires: [build-dist-macos]
       - test-macos-arm:
           <<: *only-internal-prs
-          requires: [build-dist]
+          requires: [build-dist-macos]
       - test-dockerhub:
           <<: *only-prs
-          requires: [build-dist]
+          requires: [build-dist-linux-windows]
       - test-windows:
           <<: *only-internal-prs
-          requires: [build-dist]
+          requires: [build-dist-linux-windows]
 
       # - e2e-project:
       #     <<: *only-internal-prs
@@ -1216,22 +1266,28 @@ workflows:
           <<: *only-main
           name: build-edge
 
-      - build-dist:
+      - build-dist-macos:
           <<: *only-main
-          name: build-dist-edge
+          name: build-dist-macos-edge
+          version: edge-bonsai
+          requires: [build-edge]
+
+      - build-dist-linux-windows:
+          <<: *only-main
+          name: build-dist-linux-windows-edge
           version: edge-bonsai
           requires: [build-edge]
 
       - github-edge-prerelease:
           <<: *only-main
           version: edge-bonsai
-          requires: [build-dist-edge]
+          requires: [build-dist-macos-edge, build-dist-linux-windows]
 
       - dockerhub-release:
           <<: *only-main
           context: docker
-          requires:
-            - build-dist-edge
+          requires: [build-dist-macos-edge, build-dist-linux-windows]
+
       - test-docker-gcloud:
           context: docker
           requires: [dockerhub-release]
@@ -1239,13 +1295,16 @@ workflows:
     jobs:
       - build:
           <<: *only-tags
-      - build-dist:
+      - build-dist-macos:
+          <<: *only-tags
+          requires: [build]
+      - build-dist-linux-windows:
           <<: *only-tags
           requires: [build]
       - dockerhub-release:
           <<: *only-tags
           context: docker
-          requires: [build-dist]
+          requires: [build-dist-macos, build-dist-linux-windows]
       - github-release-tag:
           <<: *only-tags
-          requires: [build-dist]
+          requires: [build-dist-macos, build-dist-linux-windows]

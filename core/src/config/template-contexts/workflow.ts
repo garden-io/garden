@@ -6,13 +6,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { joiIdentifierMap, DeepPrimitiveMap, joiVariables } from "../common"
-import { Garden } from "../../garden"
-import { joi } from "../common"
-import { dedent } from "../../util/string"
-import { RemoteSourceConfigContext, TemplatableConfigContext } from "./project"
-import { schema, ConfigContext, ErrorContext } from "./base"
-import type { WorkflowConfig } from "../workflow"
+import type { DeepPrimitiveMap } from "../common.js"
+import { joiIdentifierMap, joiVariables } from "../common.js"
+import type { Garden } from "../../garden.js"
+import { joi } from "../common.js"
+import { dedent } from "../../util/string.js"
+import { RemoteSourceConfigContext, TemplatableConfigContext } from "./project.js"
+import { schema, ConfigContext, ErrorContext } from "./base.js"
+import type { WorkflowConfig } from "../workflow.js"
 
 /**
  * This context is available for template strings in all workflow config fields except `name` and `triggers[]`.

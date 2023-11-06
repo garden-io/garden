@@ -7,13 +7,14 @@
  */
 
 import { expect } from "chai"
-import { joi } from "../../../src/config/common"
-import { getRootLogger } from "../../../src/logger/logger"
-import { BuildActionDefinition } from "../../../src/plugin/action-types"
-import { createGardenPlugin, PluginBuildActionParamsBase } from "../../../src/plugin/plugin"
-import { resolvePlugins } from "../../../src/plugins"
-import { findByName } from "../../../src/util/util"
-import { expectError } from "../../helpers"
+import { joi } from "../../../src/config/common.js"
+import { getRootLogger } from "../../../src/logger/logger.js"
+import type { BuildActionDefinition } from "../../../src/plugin/action-types.js"
+import type { PluginBuildActionParamsBase } from "../../../src/plugin/plugin.js"
+import { createGardenPlugin } from "../../../src/plugin/plugin.js"
+import { resolvePlugins } from "../../../src/plugins.js"
+import { findByName } from "../../../src/util/util.js"
+import { expectError } from "../../helpers.js"
 
 describe("resolvePlugins", () => {
   const log = getRootLogger().createLog()

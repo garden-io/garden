@@ -7,10 +7,11 @@
  */
 
 import chalk from "chalk"
-import { EnvironmentParameter } from "../cli/params"
-import { dedent } from "../util/string"
-import { Command, CommandGroup, CommandParams } from "./base"
-import { ConfigurationError } from "../exceptions"
+import { EnvironmentParameter } from "../cli/params.js"
+import { dedent } from "../util/string.js"
+import type { CommandParams } from "./base.js"
+import { Command, CommandGroup } from "./base.js"
+import { ConfigurationError } from "../exceptions.js"
 
 export class SetCommand extends CommandGroup {
   name = "set"

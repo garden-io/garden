@@ -9,16 +9,19 @@
 /* eslint-disable no-console */
 
 import execa from "execa"
-import { max, padEnd, padStart } from "lodash"
+import { max, padEnd, padStart } from "lodash-es"
 import { DepGraph } from "dependency-graph"
-import split2 = require("split2")
+import split2 from "split2"
 import chalk from "chalk"
 import wrapAnsi from "wrap-ansi"
 import stripAnsi from "strip-ansi"
-import { join, resolve } from "path"
-import { createWriteStream, WriteStream } from "fs"
-import { getPackages } from "./script-utils"
+import { dirname, join, resolve } from "node:path"
+import { createWriteStream, WriteStream } from "node:fs"
+import { getPackages } from "./script-utils.js"
 import yargs from "yargs/yargs"
+import { fileURLToPath } from "node:url"
+
+const moduleDirName = dirname(fileURLToPath(import.meta.url))
 
 const colors = [chalk.blueBright, chalk.green, chalk.yellow, chalk.magenta, chalk.cyan]
 
@@ -39,7 +42,7 @@ async function runInPackages(args: string[]) {
   const script = parsed._[0] as string
   const rest = parsed._.slice(1) as string[]
   const { scope, ignore, bail, parallel } = parsed
-  const repoRoot = resolve(__dirname, "..")
+  const repoRoot = resolve(moduleDirName, "..")
 
   if (!script) {
     throw new Error("Must specify script name")

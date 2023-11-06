@@ -1,3 +1,0 @@
-#!/usr/bin/env node --inspect --stack-trace-limit=1000 --max-semi-space-size=64
-
-require("./garden")

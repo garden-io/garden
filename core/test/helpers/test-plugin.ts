@@ -7,29 +7,27 @@
  */
 
 import cloneDeep from "fast-copy"
-import { get, isString, merge } from "lodash"
+import { get, isString, merge } from "lodash-es"
 
-import { convertExecModule } from "../../src/plugins/exec/convert"
-import { createSchema, joi, joiArray } from "../../src/config/common"
-import { createGardenPlugin, GardenPluginReference, PartialGardenPluginSpec } from "../../src/plugin/plugin"
-import { ConfigureModuleParams } from "../../src/plugin/handlers/Module/configure"
-import {
-  execModuleBuildSpecSchema,
-  ExecModule,
-  execTaskSpecSchema,
-  execTestSchema,
-} from "../../src/plugins/exec/moduleConfig"
-import { RunActionHandler, TestActionHandler } from "../../src/plugin/action-types"
-import { GetRunResult } from "../../src/plugin/handlers/Run/get-result"
-import { ConvertModuleParams } from "../../src/plugin/handlers/Module/convert"
-import { baseServiceSpecSchema } from "../../src/config/service"
-import { ExecTest, execTestSpecSchema } from "../../src/plugins/exec/test"
-import { ExecRun } from "../../src/plugins/exec/run"
-import { execDeployCommandSchema, execDeploySpecSchema } from "../../src/plugins/exec/deploy"
-import { execRunSpecSchema, execRuntimeOutputsSchema } from "../../src/plugins/exec/config"
-import { sdk } from "../../src/plugin/sdk"
-import { testNow } from "./constants"
-import { execBuildHandler, execBuildSpecSchema } from "../../src/plugins/exec/build"
+import { convertExecModule } from "../../src/plugins/exec/convert.js"
+import { createSchema, joi, joiArray } from "../../src/config/common.js"
+import type { GardenPluginReference, PartialGardenPluginSpec } from "../../src/plugin/plugin.js"
+import { createGardenPlugin } from "../../src/plugin/plugin.js"
+import type { ConfigureModuleParams } from "../../src/plugin/handlers/Module/configure.js"
+import type { ExecModule } from "../../src/plugins/exec/moduleConfig.js"
+import { execModuleBuildSpecSchema, execTaskSpecSchema, execTestSchema } from "../../src/plugins/exec/moduleConfig.js"
+import type { RunActionHandler, TestActionHandler } from "../../src/plugin/action-types.js"
+import type { GetRunResult } from "../../src/plugin/handlers/Run/get-result.js"
+import type { ConvertModuleParams } from "../../src/plugin/handlers/Module/convert.js"
+import { baseServiceSpecSchema } from "../../src/config/service.js"
+import type { ExecTest } from "../../src/plugins/exec/test.js"
+import { execTestSpecSchema } from "../../src/plugins/exec/test.js"
+import type { ExecRun } from "../../src/plugins/exec/run.js"
+import { execDeployCommandSchema, execDeploySpecSchema } from "../../src/plugins/exec/deploy.js"
+import { execRunSpecSchema, execRuntimeOutputsSchema } from "../../src/plugins/exec/config.js"
+import { sdk } from "../../src/plugin/sdk.js"
+import { testNow } from "./constants.js"
+import { execBuildHandler, execBuildSpecSchema } from "../../src/plugins/exec/build.js"
 
 const s = sdk.schema
 

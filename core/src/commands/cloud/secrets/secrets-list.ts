@@ -7,19 +7,21 @@
  */
 
 import { stringify } from "query-string"
-import { ConfigurationError, CloudApiError } from "../../../exceptions"
-import { ListSecretsResponse } from "@garden-io/platform-api-types"
+import { ConfigurationError, CloudApiError } from "../../../exceptions.js"
+import type { ListSecretsResponse } from "@garden-io/platform-api-types"
 
-import { printHeader } from "../../../logger/util"
-import { dedent, deline, renderTable } from "../../../util/string"
-import { Command, CommandParams, CommandResult } from "../../base"
-import { applyFilter, makeSecretFromResponse, noApiMsg, SecretResult } from "../helpers"
+import { printHeader } from "../../../logger/util.js"
+import { dedent, deline, renderTable } from "../../../util/string.js"
+import type { CommandParams, CommandResult } from "../../base.js"
+import { Command } from "../../base.js"
+import type { SecretResult } from "../helpers.js"
+import { applyFilter, makeSecretFromResponse, noApiMsg } from "../helpers.js"
 import chalk from "chalk"
-import { sortBy } from "lodash"
-import { StringsParameter } from "../../../cli/params"
-import { getCloudDistributionName } from "../../../util/util"
-import { CloudApi, CloudProject } from "../../../cloud/api"
-import { Log } from "../../../logger/log-entry"
+import { sortBy } from "lodash-es"
+import { StringsParameter } from "../../../cli/params.js"
+import { getCloudDistributionName } from "../../../util/util.js"
+import type { CloudApi, CloudProject } from "../../../cloud/api.js"
+import type { Log } from "../../../logger/log-entry.js"
 
 export const fetchAllSecrets = async (api: CloudApi, projectId: string, log: Log): Promise<SecretResult[]> => {
   let page = 0

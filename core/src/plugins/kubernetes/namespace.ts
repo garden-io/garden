@@ -6,24 +6,24 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { intersection, cloneDeep } from "lodash"
+import { intersection, cloneDeep } from "lodash-es"
 
-import { KubeApi, KubernetesError } from "./api"
-import type { KubernetesProvider, KubernetesPluginContext, NamespaceConfig } from "./config"
-import { DeploymentError, TimeoutError } from "../../exceptions"
-import { getPackageVersion, sleep } from "../../util/util"
-import type { GetEnvironmentStatusParams } from "../../plugin/handlers/Provider/getEnvironmentStatus"
-import { KUBECTL_DEFAULT_TIMEOUT } from "./kubectl"
-import type { Log } from "../../logger/log-entry"
-import { gardenAnnotationKey } from "../../util/string"
+import { KubeApi, KubernetesError } from "./api.js"
+import type { KubernetesProvider, KubernetesPluginContext, NamespaceConfig } from "./config.js"
+import { DeploymentError, TimeoutError } from "../../exceptions.js"
+import { getPackageVersion, sleep } from "../../util/util.js"
+import type { GetEnvironmentStatusParams } from "../../plugin/handlers/Provider/getEnvironmentStatus.js"
+import { KUBECTL_DEFAULT_TIMEOUT } from "./kubectl.js"
+import type { Log } from "../../logger/log-entry.js"
+import { gardenAnnotationKey } from "../../util/string.js"
 import dedent from "dedent"
 import type { V1Namespace } from "@kubernetes/client-node"
-import { isSubset } from "../../util/is-subset"
+import { isSubset } from "../../util/is-subset.js"
 import chalk from "chalk"
-import type { NamespaceStatus } from "../../types/namespace"
-import type { KubernetesServerResource, SupportedRuntimeAction } from "./types"
-import type { Resolved } from "../../actions/types"
-import { BoundedCache } from "../../cache"
+import type { NamespaceStatus } from "../../types/namespace.js"
+import type { KubernetesServerResource, SupportedRuntimeAction } from "./types.js"
+import type { Resolved } from "../../actions/types.js"
+import { BoundedCache } from "../../cache.js"
 import AsyncLock from "async-lock"
 
 const GARDEN_VERSION = getPackageVersion()
@@ -77,7 +77,7 @@ export async function ensureNamespace(
         namespaces = namespacesStatus.items
       } catch (error) {
         log.warn("Unable to list all namespaces. If you are using OpenShift, ignore this warning.")
-        const namespaceStatus = await api.core.readNamespace(namespace.name)
+        const namespaceStatus = await api.core.readNamespace({ name: namespace.name })
         namespaces = [namespaceStatus]
       }
 
@@ -106,16 +106,18 @@ export async function ensureNamespace(
         log.verbose("Creating namespace " + namespace.name)
         try {
           result.remoteResource = await api.core.createNamespace({
-            apiVersion: "v1",
-            kind: "Namespace",
-            metadata: {
-              name: namespace.name,
-              annotations: {
-                [gardenAnnotationKey("generated")]: "true",
-                [gardenAnnotationKey("version")]: GARDEN_VERSION,
-                ...(namespace.annotations || {}),
+            body: {
+              apiVersion: "v1",
+              kind: "Namespace",
+              metadata: {
+                name: namespace.name,
+                annotations: {
+                  [gardenAnnotationKey("generated")]: "true",
+                  [gardenAnnotationKey("version")]: GARDEN_VERSION,
+                  ...(namespace.annotations || {}),
+                },
+                labels: namespace.labels,
               },
-              labels: namespace.labels,
             },
           })
           result.created = true
@@ -128,10 +130,13 @@ export async function ensureNamespace(
         // Make sure annotations and labels are set correctly if the namespace already exists
         log.verbose("Updating annotations and labels on namespace " + namespace.name)
         try {
-          result.remoteResource = await api.core.patchNamespace(namespace.name, {
-            metadata: {
-              annotations: namespace.annotations,
-              labels: namespace.labels,
+          result.remoteResource = await api.core.patchNamespace({
+            name: namespace.name,
+            body: {
+              metadata: {
+                annotations: namespace.annotations,
+                labels: namespace.labels,
+              },
             },
           })
           result.patched = true
@@ -166,7 +171,7 @@ export async function namespaceExists(api: KubeApi, ctx: KubernetesPluginContext
   }
 
   try {
-    await api.core.readNamespace(name)
+    await api.core.readNamespace({ name })
     return true
   } catch (err) {
     if (!(err instanceof KubernetesError)) {
@@ -302,9 +307,7 @@ export async function prepareNamespaces({ ctx, log }: GetEnvironmentStatusParams
 export async function deleteNamespaces(namespaces: string[], api: KubeApi, log?: Log) {
   for (const ns of namespaces) {
     try {
-      // Note: Need to call the delete method with an empty object
-      // TODO: any cast is required until https://github.com/kubernetes-client/javascript/issues/52 is fixed
-      await api.core.deleteNamespace(ns, <any>{})
+      await api.core.deleteNamespace({ name: ns })
     } catch (err) {
       if (!(err instanceof KubernetesError)) {
         throw err

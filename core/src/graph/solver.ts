@@ -6,30 +6,24 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import type { BaseTask, Task, ValidResultType } from "../tasks/base"
-import type { Log } from "../logger/log-entry"
-import { GardenError, GardenErrorParams, GraphError, toGardenError } from "../exceptions"
-import { uuidv4 } from "../util/random"
-import { DependencyGraph, metadataForLog } from "./common"
-import { Profile } from "../util/profiling"
-import { TypedEventEmitter } from "../util/events"
-import { groupBy, keyBy } from "lodash"
-import { GraphResult, GraphResults, resultToString, TaskEventBase } from "./results"
-import { gardenEnv } from "../constants"
-import type { Garden } from "../garden"
-import { GraphResultEventPayload } from "../events/events"
-import { renderDivider, renderDuration, renderMessageWithDivider } from "../logger/util"
+import type { BaseTask, Task, ValidResultType } from "../tasks/base.js"
+import type { Log } from "../logger/log-entry.js"
+import type { GardenError, GardenErrorParams } from "../exceptions.js"
+import { GraphError, toGardenError } from "../exceptions.js"
+import { uuidv4 } from "../util/random.js"
+import { DependencyGraph, metadataForLog } from "./common.js"
+import { Profile } from "../util/profiling.js"
+import { TypedEventEmitter } from "../util/events.js"
+import { groupBy, keyBy } from "lodash-es"
+import type { GraphResult, TaskEventBase } from "./results.js"
+import { GraphResults, resultToString } from "./results.js"
+import { gardenEnv } from "../constants.js"
+import type { Garden } from "../garden.js"
+import type { GraphResultEventPayload } from "../events/events.js"
+import { renderDivider, renderDuration, renderMessageWithDivider } from "../logger/util.js"
 import chalk from "chalk"
-import {
-  CompleteTaskParams,
-  getNodeKey,
-  InternalNodeTypes,
-  ProcessTaskNode,
-  RequestTaskNode,
-  StatusTaskNode,
-  TaskNode,
-  TaskRequestParams,
-} from "./nodes"
+import type { CompleteTaskParams, InternalNodeTypes, TaskNode, TaskRequestParams } from "./nodes.js"
+import { getNodeKey, ProcessTaskNode, RequestTaskNode, StatusTaskNode } from "./nodes.js"
 import AsyncLock from "async-lock"
 
 const taskStyle = chalk.cyan.bold
@@ -378,13 +372,11 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
   private async processNode(node: TaskNode, startedAt: Date) {
     this.logTask(node)
 
-    let result: GraphResult
-
     try {
       const processResult = await node.execute()
-      result = this.completeTask({ startedAt, error: null, result: processResult, node, aborted: false })
+      this.completeTask({ startedAt, error: null, result: processResult, node, aborted: false })
     } catch (error) {
-      result = this.completeTask({ startedAt, error: toGardenError(error), result: null, node, aborted: false })
+      this.completeTask({ startedAt, error: toGardenError(error), result: null, node, aborted: false })
       if (!node.task.interactive) {
         this.logTaskError(node, toGardenError(error))
       }

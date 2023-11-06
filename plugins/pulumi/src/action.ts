@@ -6,15 +6,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import {
-  createSchema,
-  DeepPrimitiveMap,
-  joi,
-  joiSparseArray,
-  joiVariables,
-} from "@garden-io/core/build/src/config/common"
-import { DeployAction, DeployActionConfig } from "@garden-io/core/build/src/actions/deploy"
-import { dedent } from "@garden-io/sdk/build/src/util/string"
+import type { DeepPrimitiveMap } from "@garden-io/core/build/src/config/common.js"
+import { createSchema, joi, joiSparseArray, joiVariables } from "@garden-io/core/build/src/config/common.js"
+import type { DeployAction, DeployActionConfig } from "@garden-io/core/build/src/actions/deploy.js"
+import { dedent } from "@garden-io/sdk/build/src/util/string.js"
 
 export interface PulumiDeploySpec {
   allowDestroy: boolean

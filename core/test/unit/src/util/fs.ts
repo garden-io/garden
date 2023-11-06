@@ -8,7 +8,7 @@
 
 import { expect } from "chai"
 import { join } from "path"
-import { getDataDir, makeTestGardenA, makeTestGarden } from "../../../helpers"
+import { getDataDir, makeTestGardenA, makeTestGarden } from "../../../helpers.js"
 import {
   scanDirectory,
   toCygwinPath,
@@ -17,9 +17,10 @@ import {
   getWorkingCopyId,
   findConfigPathsInPath,
   joinWithPosix,
-} from "../../../../src/util/fs"
+} from "../../../../src/util/fs.js"
 import { withDir } from "tmp-promise"
-import { mkdirp, writeFile } from "fs-extra"
+import fsExtra from "fs-extra"
+const { mkdirp, writeFile } = fsExtra
 
 describe("scanDirectory", () => {
   it("should iterate through all files in a directory", async () => {

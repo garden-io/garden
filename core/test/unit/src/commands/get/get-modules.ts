@@ -7,10 +7,10 @@
  */
 
 import { expect } from "chai"
-import { keyBy, mapValues } from "lodash"
-import { makeTestGardenA, withDefaultGlobalOpts } from "../../../../helpers"
-import { GetModulesCommand } from "../../../../../src/commands/get/get-modules"
-import { withoutInternalFields } from "../../../../../src/util/logging"
+import { keyBy, mapValues } from "lodash-es"
+import { makeTestGardenA, withDefaultGlobalOpts } from "../../../../helpers.js"
+import { GetModulesCommand } from "../../../../../src/commands/get/get-modules.js"
+import { withoutInternalFields } from "../../../../../src/util/logging.js"
 
 describe("GetModulesCommand", () => {
   const command = new GetModulesCommand()

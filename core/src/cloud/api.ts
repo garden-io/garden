@@ -6,16 +6,17 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { IncomingHttpHeaders } from "http"
+import type { IncomingHttpHeaders } from "http"
 
-import { got, GotHeaders, GotHttpError, GotJsonOptions, GotResponse } from "../util/http"
-import { CloudApiError, InternalError } from "../exceptions"
-import { Log } from "../logger/log-entry"
-import { DEFAULT_GARDEN_CLOUD_DOMAIN, gardenEnv } from "../constants"
+import type { GotHeaders, GotJsonOptions, GotResponse } from "../util/http.js"
+import { got, GotHttpError } from "../util/http.js"
+import { CloudApiError, InternalError } from "../exceptions.js"
+import type { Log } from "../logger/log-entry.js"
+import { DEFAULT_GARDEN_CLOUD_DOMAIN, gardenEnv } from "../constants.js"
 import { Cookie } from "tough-cookie"
-import { cloneDeep, isObject } from "lodash"
-import { dedent, deline } from "../util/string"
-import {
+import { cloneDeep, isObject } from "lodash-es"
+import { dedent, deline } from "../util/string.js"
+import type {
   BaseResponse,
   CreateEphemeralClusterResponse,
   CreateProjectsForRepoResponse,
@@ -25,13 +26,13 @@ import {
   GetProjectResponse,
   ListProjectsResponse,
 } from "@garden-io/platform-api-types"
-import { getCloudDistributionName, getCloudLogSectionName, getPackageVersion } from "../util/util"
-import { CommandInfo } from "../plugin-context"
-import type { ClientAuthToken, GlobalConfigStore } from "../config-store/global"
+import { getCloudDistributionName, getCloudLogSectionName, getPackageVersion } from "../util/util.js"
+import type { CommandInfo } from "../plugin-context.js"
+import type { ClientAuthToken, GlobalConfigStore } from "../config-store/global.js"
 import { add } from "date-fns"
-import { LogLevel } from "../logger/logger"
-import { makeAuthHeader } from "./auth"
-import { StringMap } from "../config/common"
+import { LogLevel } from "../logger/logger.js"
+import { makeAuthHeader } from "./auth.js"
+import type { StringMap } from "../config/common.js"
 import chalk from "chalk"
 
 const gardenClientName = "garden-core"
@@ -175,7 +176,7 @@ export type CloudApiFactory = (params: CloudApiFactoryParams) => Promise<CloudAp
  * for cases where the user is not logged in (e.g. the login method itself).
  */
 export class CloudApi {
-  private intervalId: NodeJS.Timer | null = null
+  private intervalId: NodeJS.Timeout | null = null
   private intervalMsec = 4500 // Refresh interval in ms, it needs to be less than refreshThreshold/2
   private apiPrefix = "api"
   private _profile?: GetProfileResponse["data"]
@@ -497,6 +498,8 @@ export class CloudApi {
       responseType: "json",
     }
 
+    const url = new URL(`/${this.apiPrefix}/${stripLeadingSlash(path)}`, this.domain)
+
     if (retry) {
       let retryLog: Log | undefined = undefined
       const retryLimit = params.maxRetries || 3
@@ -520,10 +523,10 @@ export class CloudApi {
       }
       requestOptions.hooks = {
         beforeRetry: [
-          (options, error, retryCount) => {
+          (error, retryCount) => {
             if (error) {
               // Intentionally skipping search params in case they contain tokens or sensitive data.
-              const href = options.url.origin + options.url.pathname
+              const href = url.origin + url.pathname
               const description = retryDescription || `Request`
               retryLog = retryLog || this.log.createLog({ fixLevel: LogLevel.debug })
               const statusCodeDescription = error.code ? ` (status code ${error.code})` : ``
@@ -546,10 +549,9 @@ export class CloudApi {
         ],
       }
     } else {
-      requestOptions.retry = 0 // Disables retry
+      requestOptions.retry = undefined // Disables retry
     }
 
-    const url = new URL(`/${this.apiPrefix}/${stripLeadingSlash(path)}`, this.domain)
     const res = await got<T>(url.href, requestOptions)
 
     if (!isObject(res.body)) {

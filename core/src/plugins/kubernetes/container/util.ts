@@ -6,28 +6,23 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { getPortForward } from "../port-forward"
-import { CLUSTER_REGISTRY_DEPLOYMENT_NAME, CLUSTER_REGISTRY_PORT } from "../constants"
-import { Log } from "../../../logger/log-entry"
-import {
-  KubernetesResourceConfig,
-  KubernetesPluginContext,
-  KubernetesProvider,
-  KubernetesResourceSpec,
-} from "../config"
-import { getSystemNamespace } from "../namespace"
-import {
+import { getPortForward } from "../port-forward.js"
+import { CLUSTER_REGISTRY_DEPLOYMENT_NAME, CLUSTER_REGISTRY_PORT } from "../constants.js"
+import type { Log } from "../../../logger/log-entry.js"
+import type { KubernetesResourceConfig, KubernetesPluginContext, KubernetesResourceSpec } from "../config.js"
+import { getSystemNamespace } from "../namespace.js"
+import type {
   ContainerBuildAction,
   ContainerResourcesSpec,
   ContainerRuntimeAction,
   ServiceLimitSpec,
-} from "../../container/moduleConfig"
-import { V1ResourceRequirements, V1SecurityContext } from "@kubernetes/client-node"
-import { ConfigurationError } from "../../../exceptions"
-import { Resolved } from "../../../actions/types"
-import { kilobytesToString, megabytesToString, millicpuToString } from "../util"
+} from "../../container/moduleConfig.js"
+import type { V1ResourceRequirements, V1SecurityContext } from "@kubernetes/client-node"
+import { ConfigurationError } from "../../../exceptions.js"
+import type { Resolved } from "../../../actions/types.js"
+import { kilobytesToString, megabytesToString, millicpuToString } from "../util.js"
 
-export function getDeployedImageId(action: Resolved<ContainerRuntimeAction>, provider: KubernetesProvider): string {
+export function getDeployedImageId(action: Resolved<ContainerRuntimeAction>): string {
   const explicitImage = action.getSpec().image
   const build = action.getResolvedBuildAction<Resolved<ContainerBuildAction>>()
 

@@ -6,19 +6,19 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { getPlatform, getArchitecture } from "../../../../../src/util/util"
+import { getPlatform, getArchitecture } from "../../../../../src/util/util.js"
+import type { TempDirectory } from "../../../../helpers.js"
 import {
   createProjectConfig,
   makeTempDir,
   makeTempGarden,
-  TempDirectory,
   TestGarden,
   withDefaultGlobalOpts,
-} from "../../../../helpers"
-import { FetchToolsCommand } from "../../../../../src/commands/util/fetch-tools"
+} from "../../../../helpers.js"
+import { FetchToolsCommand } from "../../../../../src/commands/util/fetch-tools.js"
 import { expect } from "chai"
-import { GARDEN_GLOBAL_PATH } from "../../../../../src/constants"
-import { createGardenPlugin } from "../../../../../src/plugin/plugin"
+import { GARDEN_GLOBAL_PATH } from "../../../../../src/constants.js"
+import { createGardenPlugin } from "../../../../../src/plugin/plugin.js"
 import { join } from "path"
 
 describe("FetchToolsCommand", () => {

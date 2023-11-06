@@ -6,11 +6,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { CommandGroup } from "../base"
-import { UpdateRemoteSourcesCommand } from "./sources"
-import { UpdateRemoteModulesCommand } from "./modules"
-import { UpdateRemoteAllCommand } from "./all"
-import { UpdateRemoteActionsCommand } from "./actions"
+import { CommandGroup } from "../base.js"
+import { UpdateRemoteSourcesCommand } from "./sources.js"
+import { UpdateRemoteModulesCommand } from "./modules.js"
+import { UpdateRemoteAllCommand } from "./all.js"
+import { UpdateRemoteActionsCommand } from "./actions.js"
 
 export class UpdateRemoteCommand extends CommandGroup {
   name = "update-remote"

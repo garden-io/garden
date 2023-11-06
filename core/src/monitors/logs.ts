@@ -8,18 +8,20 @@
 
 import chalk from "chalk"
 import hasAnsi from "has-ansi"
-import { every, some } from "lodash"
-import Stream from "ts-stream"
-import type { DeployAction } from "../actions/deploy"
-import { Resolved } from "../actions/types"
-import { ConfigGraph } from "../graph/config-graph"
-import { createActionLog, Log } from "../logger/log-entry"
-import { LogLevel, logLevelMap } from "../logger/logger"
-import { padSection } from "../logger/renderers"
-import { PluginEventBroker } from "../plugin-context"
-import { waitForOutputFlush } from "../process"
-import { DeployLogEntry } from "../types/service"
-import { MonitorBaseParams, Monitor } from "./base"
+import { every, some } from "lodash-es"
+import { Stream } from "ts-stream"
+import type { DeployAction } from "../actions/deploy.js"
+import type { Resolved } from "../actions/types.js"
+import type { ConfigGraph } from "../graph/config-graph.js"
+import type { Log } from "../logger/log-entry.js"
+import { createActionLog } from "../logger/log-entry.js"
+import { LogLevel, logLevelMap } from "../logger/logger.js"
+import { padSection } from "../logger/renderers.js"
+import { PluginEventBroker } from "../plugin-context.js"
+import { waitForOutputFlush } from "../process.js"
+import type { DeployLogEntry } from "../types/service.js"
+import type { MonitorBaseParams } from "./base.js"
+import { Monitor } from "./base.js"
 
 export const logMonitorColors = ["green", "cyan", "magenta", "yellow", "blueBright", "blue"]
 
@@ -116,8 +118,8 @@ export class LogMonitor extends Monitor {
 
   async start() {
     const stream = new Stream<DeployLogEntry>()
-    // Note: lazy-loading for startup performance
-    const { isMatch } = await import("micromatch")
+    const { default: micromatch } = await import("micromatch")
+    const { isMatch } = micromatch
 
     const matchTagFilters = (entry: DeployLogEntry): boolean => {
       if (!this.tagFilters) {

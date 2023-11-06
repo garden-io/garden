@@ -6,11 +6,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { CloudApi, CloudProject, GetSecretsParams } from "../../src/cloud/api"
-import { Log } from "../../src/logger/log-entry"
-import { GlobalConfigStore } from "../../src/config-store/global"
-import { uuidv4 } from "../../src/util/random"
-import { StringMap } from "../../src/config/common"
+import type { CloudProject, GetSecretsParams } from "../../src/cloud/api.js"
+import { CloudApi } from "../../src/cloud/api.js"
+import type { Log } from "../../src/logger/log-entry.js"
+import { GlobalConfigStore } from "../../src/config-store/global.js"
+import { uuidv4 } from "../../src/util/random.js"
+import type { StringMap } from "../../src/config/common.js"
 
 export const apiProjectId = uuidv4()
 export const apiRemoteOriginUrl = "git@github.com:garden-io/garden.git"

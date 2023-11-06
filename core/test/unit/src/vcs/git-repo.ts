@@ -6,8 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { GitRepoHandler } from "../../../../src/vcs/git-repo"
-import { commonGitHandlerTests } from "./git"
+import { GitRepoHandler } from "../../../../src/vcs/git-repo.js"
+import { commonGitHandlerTests } from "./git.js"
 
 describe("GitRepoHandler", () => {
   describe("getFiles", () => commonGitHandlerTests(GitRepoHandler))

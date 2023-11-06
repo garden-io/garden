@@ -6,46 +6,46 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { isEmpty, omit, partition, uniq } from "lodash"
-import type { ModuleActionHandlers } from "../../../plugin/plugin"
-import { DeployState, ForwardablePort, ServiceStatus } from "../../../types/service"
-import { gardenAnnotationKey } from "../../../util/string"
-import { KubeApi } from "../api"
-import type { KubernetesPluginContext, KubernetesProvider } from "../config"
-import { configureSyncMode, convertKubernetesModuleDevModeSpec } from "../sync"
-import { apply, deleteObjectsBySelector } from "../kubectl"
-import { streamK8sLogs } from "../logs"
-import { getActionNamespace, getActionNamespaceStatus } from "../namespace"
-import { getForwardablePorts, killPortForwards } from "../port-forward"
-import { getK8sIngresses } from "../status/ingress"
+import { isEmpty, omit, partition, uniq } from "lodash-es"
+import type { ModuleActionHandlers } from "../../../plugin/plugin.js"
+import type { DeployState, ForwardablePort, ServiceStatus } from "../../../types/service.js"
+import { gardenAnnotationKey } from "../../../util/string.js"
+import { KubeApi } from "../api.js"
+import type { KubernetesPluginContext, KubernetesProvider } from "../config.js"
+import { configureSyncMode, convertKubernetesModuleDevModeSpec } from "../sync.js"
+import { apply, deleteObjectsBySelector } from "../kubectl.js"
+import { streamK8sLogs } from "../logs.js"
+import { getActionNamespace, getActionNamespaceStatus } from "../namespace.js"
+import { getForwardablePorts, killPortForwards } from "../port-forward.js"
+import { getK8sIngresses } from "../status/ingress.js"
+import type { ResourceStatus } from "../status/status.js"
 import {
   getDeployedResource,
   k8sManifestHashAnnotationKey,
   resolveResourceStatus,
   resolveResourceStatuses,
-  ResourceStatus,
   waitForResources,
-} from "../status/status"
-import type { BaseResource, KubernetesResource, KubernetesServerResource, SyncableResource } from "../types"
+} from "../status/status.js"
+import type { BaseResource, KubernetesResource, KubernetesServerResource, SyncableResource } from "../types.js"
+import type { ManifestMetadata, ParsedMetadataManifestData } from "./common.js"
 import {
   convertServiceResource,
   gardenNamespaceAnnotationValue,
   getManifests,
   getMetadataManifest,
-  ManifestMetadata,
-  ParsedMetadataManifestData,
   parseMetadataResource,
-} from "./common"
-import { configureKubernetesModule, KubernetesModule } from "./module-config"
-import { configureLocalMode, startServiceInLocalMode } from "../local-mode"
-import type { ExecBuildConfig } from "../../exec/build"
-import type { KubernetesActionConfig, KubernetesDeployAction, KubernetesDeployActionConfig } from "./config"
-import type { DeployActionHandler } from "../../../plugin/action-types"
-import type { ActionLog } from "../../../logger/log-entry"
-import type { ActionMode, Resolved } from "../../../actions/types"
-import { deployStateToActionState } from "../../../plugin/handlers/Deploy/get-status"
-import { ResolvedDeployAction } from "../../../actions/deploy"
-import { isSha256 } from "../../../util/hashing"
+} from "./common.js"
+import type { KubernetesModule } from "./module-config.js"
+import { configureKubernetesModule } from "./module-config.js"
+import { configureLocalMode, startServiceInLocalMode } from "../local-mode.js"
+import type { ExecBuildConfig } from "../../exec/build.js"
+import type { KubernetesActionConfig, KubernetesDeployAction, KubernetesDeployActionConfig } from "./config.js"
+import type { DeployActionHandler } from "../../../plugin/action-types.js"
+import type { ActionLog } from "../../../logger/log-entry.js"
+import type { ActionMode, Resolved } from "../../../actions/types.js"
+import { deployStateToActionState } from "../../../plugin/handlers/Deploy/get-status.js"
+import type { ResolvedDeployAction } from "../../../actions/deploy.js"
+import { isSha256 } from "../../../util/hashing.js"
 
 export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>> = {
   configure: configureKubernetesModule,

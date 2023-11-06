@@ -6,14 +6,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { joi } from "../../config/common"
-import { dedent } from "../../util/string"
-import { runScript } from "../../util/util"
-import { ChildProcessError, RuntimeError } from "../../exceptions"
-import { GenericProviderConfig, Provider } from "../../config/provider"
-import { configureExecModule, execModuleSpecSchema } from "./moduleConfig"
-import { convertExecModule } from "./convert"
-import { sdk } from "../../plugin/sdk"
+import { joi } from "../../config/common.js"
+import { dedent } from "../../util/string.js"
+import { runScript } from "../../util/util.js"
+import { ChildProcessError, RuntimeError } from "../../exceptions.js"
+import type { GenericProviderConfig, Provider } from "../../config/provider.js"
+import { configureExecModule, execModuleSpecSchema } from "./moduleConfig.js"
+import { convertExecModule } from "./convert.js"
+import { sdk } from "../../plugin/sdk.js"
 
 export type ExecProviderConfig = GenericProviderConfig
 
@@ -113,10 +113,11 @@ execProvider.addHandler("prepareEnvironment", async ({ ctx, log }) => {
   return { status: { ready: true, outputs: {} } }
 })
 
-// Attach the action types
-require("./build")
-require("./deploy")
-require("./run")
-require("./test")
-
 export const gardenPlugin = execPlugin
+export const initializeActionTypes = async () => {
+  // Attach the action types
+  await import("./build.js")
+  await import("./deploy.js")
+  await import("./run.js")
+  await import("./test.js")
+}

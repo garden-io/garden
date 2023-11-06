@@ -6,18 +6,19 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import type { ActionLog, Log } from "../logger/log-entry"
-import { PluginContext, pluginContextSchema } from "../plugin-context"
-import { createSchema, joi } from "../config/common"
-import { dedent, deline } from "../util/string"
-import type { BuildAction } from "../actions/build"
-import type { DeployAction } from "../actions/deploy"
-import type { RunAction } from "../actions/run"
-import type { TestAction } from "../actions/test"
-import { NamespaceStatus } from "../types/namespace"
-import Joi from "@hapi/joi"
-import { memoize } from "lodash"
-import { BaseProviderConfig } from "../config/provider"
+import type { ActionLog, Log } from "../logger/log-entry.js"
+import type { PluginContext } from "../plugin-context.js"
+import { pluginContextSchema } from "../plugin-context.js"
+import { createSchema, joi } from "../config/common.js"
+import { dedent, deline } from "../util/string.js"
+import type { BuildAction } from "../actions/build.js"
+import type { DeployAction } from "../actions/deploy.js"
+import type { RunAction } from "../actions/run.js"
+import type { TestAction } from "../actions/test.js"
+import type { NamespaceStatus } from "../types/namespace.js"
+import type Joi from "@hapi/joi"
+import { memoize } from "lodash-es"
+import type { BaseProviderConfig } from "../config/provider.js"
 
 export interface ActionHandlerParamsBase<O = any> {
   base?: ActionHandler<any, O>

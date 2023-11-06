@@ -7,18 +7,19 @@
  */
 
 import { expect } from "chai"
-import td from "testdouble"
-import { getDataDir, makeTempDir, makeTestGarden, TempDirectory, withDefaultGlobalOpts } from "../../../helpers"
-import { randomString } from "../../../../src/util/string"
-import { CloudApi } from "../../../../src/cloud/api"
-import { LogLevel } from "../../../../src/logger/logger"
-import { LogOutCommand } from "../../../../src/commands/logout"
-import { expectError, getLogMessages } from "../../../../src/util/testing"
-import { DEFAULT_GARDEN_CLOUD_DOMAIN, gardenEnv } from "../../../../src/constants"
+import * as td from "testdouble"
+import type { TempDirectory } from "../../../helpers.js"
+import { getDataDir, makeTempDir, makeTestGarden, withDefaultGlobalOpts } from "../../../helpers.js"
+import { randomString } from "../../../../src/util/string.js"
+import { CloudApi } from "../../../../src/cloud/api.js"
+import { LogLevel } from "../../../../src/logger/logger.js"
+import { LogOutCommand } from "../../../../src/commands/logout.js"
+import { expectError, getLogMessages } from "../../../../src/util/testing.js"
+import { DEFAULT_GARDEN_CLOUD_DOMAIN, gardenEnv } from "../../../../src/constants.js"
 
-import { GlobalConfigStore } from "../../../../src/config-store/global"
-import { Garden } from "../../../../src"
-import { makeDummyGarden } from "../../../../src/garden"
+import { GlobalConfigStore } from "../../../../src/config-store/global.js"
+import type { Garden } from "../../../../src/index.js"
+import { makeDummyGarden } from "../../../../src/garden.js"
 
 function logoutCommandParams({ garden, opts = { "disable-project-check": false } }: { garden: Garden; opts?: any }) {
   const log = garden.log

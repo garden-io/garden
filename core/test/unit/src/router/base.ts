@@ -9,18 +9,18 @@
 import { expect } from "chai"
 import cloneDeep from "fast-copy"
 
-import { ResolvedBuildAction } from "../../../../src/actions/build"
-import { joi } from "../../../../src/config/common"
-import { resolveAction } from "../../../../src/graph/actions"
-import { BuildActionDefinition } from "../../../../src/plugin/action-types"
-import { createGardenPlugin, GardenPluginSpec, PluginBuildActionParamsBase } from "../../../../src/plugin/plugin"
-import { ActionKindRouter } from "../../../../src/router/base"
-import { expectError, TestGarden, getDefaultProjectConfig, makeTempGarden, TempDirectory } from "../../../helpers"
-import { getRouterTestData } from "./_helpers"
+import type { ResolvedBuildAction } from "../../../../src/actions/build.js"
+import { joi } from "../../../../src/config/common.js"
+import { resolveAction } from "../../../../src/graph/actions.js"
+import type { BuildActionDefinition } from "../../../../src/plugin/action-types.js"
+import type { GardenPluginSpec, PluginBuildActionParamsBase } from "../../../../src/plugin/plugin.js"
+import { createGardenPlugin } from "../../../../src/plugin/plugin.js"
+import type { ActionKindRouter } from "../../../../src/router/base.js"
+import type { TestGarden } from "../../../helpers.js"
+import { expectError, getDefaultProjectConfig, makeTempGarden } from "../../../helpers.js"
+import { getRouterTestData } from "./_helpers.js"
 
 describe("BaseActionRouter", () => {
-  let tmpDir: TempDirectory
-
   const testHandler = (params: PluginBuildActionParamsBase<any>) => {
     return {
       detail: {},
@@ -56,7 +56,6 @@ describe("BaseActionRouter", () => {
         },
       })
       garden = res.garden
-      tmpDir = res.tmpDir
     }
 
     const router = await garden.getActionRouter()

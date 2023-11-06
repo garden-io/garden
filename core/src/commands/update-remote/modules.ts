@@ -6,21 +6,24 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { difference } from "lodash"
-import dedent = require("dedent")
+import { difference } from "lodash-es"
+import dedent from "dedent"
 import chalk from "chalk"
 
-import { Command, CommandResult, CommandParams } from "../base"
-import { SourceConfig, moduleSourceSchema } from "../../config/project"
-import { ParameterError } from "../../exceptions"
-import { pruneRemoteSources, updateRemoteSharedOptions } from "./helpers"
-import { moduleHasRemoteSource } from "../../util/ext-source-util"
-import { printHeader } from "../../logger/util"
-import { Garden } from "../../garden"
-import { Log } from "../../logger/log-entry"
-import { joiArray, joi } from "../../config/common"
-import { StringsParameter, ParameterValues } from "../../cli/params"
-import { naturalList } from "../../util/string"
+import type { CommandResult, CommandParams } from "../base.js"
+import { Command } from "../base.js"
+import type { SourceConfig } from "../../config/project.js"
+import { moduleSourceSchema } from "../../config/project.js"
+import { ParameterError } from "../../exceptions.js"
+import { pruneRemoteSources, updateRemoteSharedOptions } from "./helpers.js"
+import { moduleHasRemoteSource } from "../../util/ext-source-util.js"
+import { printHeader } from "../../logger/util.js"
+import type { Garden } from "../../garden.js"
+import type { Log } from "../../logger/log-entry.js"
+import { joiArray, joi } from "../../config/common.js"
+import type { ParameterValues } from "../../cli/params.js"
+import { StringsParameter } from "../../cli/params.js"
+import { naturalList } from "../../util/string.js"
 
 const updateRemoteModulesArguments = {
   modules: new StringsParameter({

@@ -8,13 +8,14 @@
 
 import { join } from "path"
 
-import { GARDEN_GLOBAL_PATH } from "../constants"
-import { ConfigStore } from "./base"
+import { GARDEN_GLOBAL_PATH } from "../constants.js"
+import { ConfigStore } from "./base.js"
 import { z } from "zod"
-import { readFile } from "fs-extra"
+import fsExtra from "fs-extra"
+const { readFile } = fsExtra
 import { load } from "js-yaml"
 import cloneDeep from "fast-copy"
-import { omit } from "lodash"
+import { omit } from "lodash-es"
 
 export const legacyGlobalConfigFilename = "global-config.yml"
 export const globalConfigFilename = "global-config.json"

@@ -7,15 +7,20 @@
  */
 
 import { expect } from "chai"
-import { withDefaultGlobalOpts, TempDirectory, makeTempDir, expectError } from "../../../../helpers"
-import { CreateProjectCommand, defaultProjectConfigFilename } from "../../../../../src/commands/create/create-project"
-import { makeDummyGarden } from "../../../../../src/garden"
-import { Garden } from "../../../../../src/garden"
+import type { TempDirectory } from "../../../../helpers.js"
+import { withDefaultGlobalOpts, makeTempDir, expectError } from "../../../../helpers.js"
+import {
+  CreateProjectCommand,
+  defaultProjectConfigFilename,
+} from "../../../../../src/commands/create/create-project.js"
+import { makeDummyGarden } from "../../../../../src/garden.js"
+import type { Garden } from "../../../../../src/garden.js"
 import { basename, join } from "path"
-import { pathExists, readFile, writeFile } from "fs-extra"
+import fsExtra from "fs-extra"
+const { pathExists, readFile, writeFile } = fsExtra
 import { loadAll } from "js-yaml"
-import { safeDumpYaml } from "../../../../../src/util/serialization"
-import { GardenApiVersion } from "../../../../../src/constants"
+import { safeDumpYaml } from "../../../../../src/util/serialization.js"
+import { GardenApiVersion } from "../../../../../src/constants.js"
 
 describe("CreateProjectCommand", () => {
   const command = new CreateProjectCommand()

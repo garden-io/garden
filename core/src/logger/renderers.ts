@@ -10,14 +10,15 @@ import logSymbols from "log-symbols"
 import chalk from "chalk"
 import stringify from "json-stringify-safe"
 import stripAnsi from "strip-ansi"
-import { isArray, repeat, trim } from "lodash"
-import stringWidth = require("string-width")
-import format from "date-fns/format"
-import { LogEntry } from "./log-entry"
-import { JsonLogEntry } from "./writers/json-terminal-writer"
-import { highlightYaml, safeDumpYaml } from "../util/serialization"
-import { Logger, logLevelMap, LogLevel } from "./logger"
-import { toGardenError } from "../exceptions"
+import { isArray, repeat, trim } from "lodash-es"
+import stringWidth from "string-width"
+import format from "date-fns/format/index.js"
+import type { LogEntry } from "./log-entry.js"
+import type { JsonLogEntry } from "./writers/json-terminal-writer.js"
+import { highlightYaml, safeDumpYaml } from "../util/serialization.js"
+import type { Logger } from "./logger.js"
+import { logLevelMap, LogLevel } from "./logger.js"
+import { toGardenError } from "../exceptions.js"
 
 type RenderFn = (entry: LogEntry, logger: Logger) => string
 

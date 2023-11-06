@@ -9,10 +9,10 @@
 import { readFileSync, writeFileSync } from "fs"
 import handlebars from "handlebars"
 import { resolve } from "path"
-import { globalOptions } from "../cli/params"
-import { getCoreCommands } from "../commands/commands"
-import { describeParameters, CommandGroup } from "../commands/base"
-import { TEMPLATES_DIR, renderConfigReference } from "./config"
+import { globalOptions } from "../cli/params.js"
+import { getCoreCommands } from "../commands/commands.js"
+import { describeParameters, CommandGroup } from "../commands/base.js"
+import { TEMPLATES_DIR, renderConfigReference } from "./config.js"
 
 export function writeCommandReferenceDocs(docsRoot: string) {
   const referenceDir = resolve(docsRoot, "reference")

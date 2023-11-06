@@ -6,14 +6,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { DeployActionExtension, DeployActionHandler } from "../../plugin/action-types"
-import { ContainerDeployAction } from "../container/moduleConfig"
-import { KubernetesProvider } from "../kubernetes/config"
-import { deleteContainerDeploy, k8sContainerDeploy } from "../kubernetes/container/deployment"
-import { validateDeploySpec } from "../kubernetes/container/handlers"
-import { k8sGetContainerDeployStatus } from "../kubernetes/container/status"
-import { k8sContainerStartSync, k8sContainerStopSync, k8sContainerGetSyncStatus } from "../kubernetes/container/sync"
-import { k8sGetContainerDeployLogs } from "../kubernetes/container/logs"
+import type { DeployActionExtension, DeployActionHandler } from "../../plugin/action-types.js"
+import type { ContainerDeployAction } from "../container/moduleConfig.js"
+import type { KubernetesProvider } from "../kubernetes/config.js"
+import { deleteContainerDeploy, k8sContainerDeploy } from "../kubernetes/container/deployment.js"
+import { validateDeploySpec } from "../kubernetes/container/handlers.js"
+import { k8sGetContainerDeployStatus } from "../kubernetes/container/status.js"
+import { k8sContainerStartSync, k8sContainerStopSync, k8sContainerGetSyncStatus } from "../kubernetes/container/sync.js"
+import { k8sGetContainerDeployLogs } from "../kubernetes/container/logs.js"
 
 export const openshiftGetContainerDeployStatus: DeployActionHandler<"getStatus", ContainerDeployAction> = async (
   params

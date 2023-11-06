@@ -7,10 +7,11 @@
  */
 
 import chalk from "chalk"
-import { ActionState } from "../actions/types"
-import { PluginEventBroker } from "../plugin-context"
-import { DeployState } from "../types/service"
-import { BaseRouterParams, createActionRouter } from "./base"
+import type { ActionState } from "../actions/types.js"
+import { PluginEventBroker } from "../plugin-context.js"
+import type { DeployState } from "../types/service.js"
+import type { BaseRouterParams } from "./base.js"
+import { createActionRouter } from "./base.js"
 
 const API_ACTION_TYPE = "deploy"
 

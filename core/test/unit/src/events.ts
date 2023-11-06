@@ -6,8 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { range } from "lodash"
-import { EventBus } from "../../../src/events/events"
+import { range } from "lodash-es"
+import { EventBus } from "../../../src/events/events.js"
 import { expect } from "chai"
 
 describe("EventBus", () => {

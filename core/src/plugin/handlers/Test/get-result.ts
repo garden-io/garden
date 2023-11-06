@@ -6,14 +6,16 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { dedent } from "../../../util/string"
-import { PluginTestActionParamsBase, actionParamsSchema } from "../../base"
-import { TestAction } from "../../../actions/test"
-import { TestResult, testResultSchema } from "../../../types/test"
-import { ActionTypeHandlerSpec } from "../base/base"
-import { actionStatusSchema } from "../../../actions/base"
-import { ActionStatus, ActionStatusMap, Resolved } from "../../../actions/types"
-import { createSchema } from "../../../config/common"
+import { dedent } from "../../../util/string.js"
+import type { PluginTestActionParamsBase } from "../../base.js"
+import { actionParamsSchema } from "../../base.js"
+import type { TestAction } from "../../../actions/test.js"
+import type { TestResult } from "../../../types/test.js"
+import { testResultSchema } from "../../../types/test.js"
+import { ActionTypeHandlerSpec } from "../base/base.js"
+import { actionStatusSchema } from "../../../actions/base.js"
+import type { ActionStatus, ActionStatusMap, Resolved } from "../../../actions/types.js"
+import { createSchema } from "../../../config/common.js"
 
 type GetTestResultParams<T extends TestAction> = PluginTestActionParamsBase<T>
 

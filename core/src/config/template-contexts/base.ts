@@ -6,18 +6,19 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import Joi from "@hapi/joi"
+import type Joi from "@hapi/joi"
 import chalk from "chalk"
-import { isString } from "lodash"
-import { ConfigurationError } from "../../exceptions"
+import { isString } from "lodash-es"
+import { ConfigurationError } from "../../exceptions.js"
 import {
   resolveTemplateString,
   TemplateStringMissingKeyException,
   TemplateStringPassthroughException,
-} from "../../template-string/template-string"
-import { CustomObjectSchema, isPrimitive, joi, joiIdentifier } from "../common"
-import { KeyedSet } from "../../util/keyed-set"
-import { naturalList } from "../../util/string"
+} from "../../template-string/template-string.js"
+import type { CustomObjectSchema } from "../common.js"
+import { isPrimitive, joi, joiIdentifier } from "../common.js"
+import { KeyedSet } from "../../util/keyed-set.js"
+import { naturalList } from "../../util/string.js"
 
 export type ContextKeySegment = string | number
 export type ContextKey = ContextKeySegment[]

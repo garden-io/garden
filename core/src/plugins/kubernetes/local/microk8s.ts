@@ -7,15 +7,15 @@
  */
 
 import tmp from "tmp-promise"
-import { ChildProcessError, RuntimeError } from "../../../exceptions"
-import { Log } from "../../../logger/log-entry"
-import { exec } from "../../../util/util"
-import { containerHelpers } from "../../container/helpers"
-import { ContainerBuildAction } from "../../container/moduleConfig"
+import { ChildProcessError, RuntimeError } from "../../../exceptions.js"
+import type { Log } from "../../../logger/log-entry.js"
+import { exec } from "../../../util/util.js"
+import { containerHelpers } from "../../container/helpers.js"
+import type { ContainerBuildAction } from "../../container/moduleConfig.js"
 import chalk from "chalk"
-import { deline, naturalList } from "../../../util/string"
-import { ExecaReturnValue } from "execa"
-import { PluginContext } from "../../../plugin-context"
+import { deline, naturalList } from "../../../util/string.js"
+import type { ExecaReturnValue } from "execa"
+import type { PluginContext } from "../../../plugin-context.js"
 import { parse as parsePath } from "path"
 
 // TODO: Pass the correct log context instead of creating it here.

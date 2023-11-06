@@ -7,11 +7,11 @@
  */
 
 import { expect } from "chai"
-import { Log } from "../../../../src/logger/log-entry"
-import { ActionRouter } from "../../../../src/router/router"
-import { TestGarden } from "../../../helpers"
-import { getRouterTestData } from "./_helpers"
-import { DEFAULT_BUILD_TIMEOUT_SEC } from "../../../../src/constants"
+import type { Log } from "../../../../src/logger/log-entry.js"
+import type { ActionRouter } from "../../../../src/router/router.js"
+import type { TestGarden } from "../../../helpers.js"
+import { getRouterTestData } from "./_helpers.js"
+import { DEFAULT_BUILD_TIMEOUT_SEC } from "../../../../src/constants.js"
 
 describe("module actions", () => {
   let garden: TestGarden

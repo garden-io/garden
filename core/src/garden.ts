@@ -7,29 +7,28 @@
  */
 
 import chalk from "chalk"
-import { ensureDir } from "fs-extra"
+import fsExtra from "fs-extra"
+const { ensureDir } = fsExtra
 import { platform, arch } from "os"
 import { relative, resolve } from "path"
 import cloneDeep from "fast-copy"
-import { flatten, sortBy, keyBy, mapValues, groupBy, set } from "lodash"
+import { flatten, sortBy, keyBy, mapValues, groupBy, set } from "lodash-es"
 import AsyncLock from "async-lock"
 
-import { TreeCache } from "./cache"
-import { getBuiltinPlugins } from "./plugins/plugins"
-import { GardenModule, getModuleCacheContext, ModuleConfigMap, ModuleTypeMap } from "./types/module"
+import { TreeCache } from "./cache.js"
+import { getBuiltinPlugins } from "./plugins/plugins.js"
+import type { GardenModule, ModuleConfigMap, ModuleTypeMap } from "./types/module.js"
+import { getModuleCacheContext } from "./types/module.js"
+import type { SourceConfig, ProjectConfig, OutputSpec, ProxyConfig } from "./config/project.js"
 import {
-  SourceConfig,
-  ProjectConfig,
   resolveProjectConfig,
   pickEnvironment,
-  OutputSpec,
   parseEnvironment,
   getDefaultEnvironmentName,
   projectSourcesSchema,
-  ProxyConfig,
   defaultNamespace,
   defaultEnvironment,
-} from "./config/project"
+} from "./config/project.js"
 import {
   findByName,
   pickKeys,
@@ -39,38 +38,39 @@ import {
   duplicatesByKey,
   getCloudDistributionName,
   getCloudLogSectionName,
-} from "./util/util"
+} from "./util/util.js"
+import type { GardenError } from "./exceptions.js"
 import {
   ConfigurationError,
-  GardenError,
   PluginError,
   RuntimeError,
   InternalError,
   toGardenError,
   CircularDependenciesError,
   CloudApiError,
-} from "./exceptions"
-import { VcsHandler, ModuleVersion, getModuleVersionString, VcsInfo } from "./vcs/vcs"
-import { GitHandler } from "./vcs/git"
-import { BuildStaging } from "./build-staging/build-staging"
-import { ConfigGraph, ResolvedConfigGraph } from "./graph/config-graph"
-import { getRootLogger } from "./logger/logger"
-import { GardenPluginSpec } from "./plugin/plugin"
-import {
-  loadConfigResources,
-  findProjectConfig,
-  GardenResource,
-  configTemplateKind,
-  renderTemplateKind,
-} from "./config/base"
-import { DeepPrimitiveMap, StringMap, PrimitiveMap, treeVersionSchema, joi, allowUnknown } from "./config/common"
-import { GlobalConfigStore } from "./config-store/global"
-import { LocalConfigStore, LinkedSource } from "./config-store/local"
-import { getLinkedSources, ExternalSourceType } from "./util/ext-source-util"
-import { ModuleConfig } from "./config/module"
-import { convertModules, ModuleResolver } from "./resolve-module"
-import { createPluginContext, CommandInfo, PluginEventBroker } from "./plugin-context"
-import { RegisterPluginParam } from "./plugin/plugin"
+} from "./exceptions.js"
+import type { VcsHandler, ModuleVersion, VcsInfo } from "./vcs/vcs.js"
+import { getModuleVersionString } from "./vcs/vcs.js"
+import { GitHandler } from "./vcs/git.js"
+import { BuildStaging } from "./build-staging/build-staging.js"
+import type { ConfigGraph } from "./graph/config-graph.js"
+import { ResolvedConfigGraph } from "./graph/config-graph.js"
+import { getRootLogger } from "./logger/logger.js"
+import type { GardenPluginSpec } from "./plugin/plugin.js"
+import type { GardenResource } from "./config/base.js"
+import { loadConfigResources, findProjectConfig, configTemplateKind, renderTemplateKind } from "./config/base.js"
+import type { DeepPrimitiveMap, StringMap, PrimitiveMap } from "./config/common.js"
+import { treeVersionSchema, joi, allowUnknown } from "./config/common.js"
+import { GlobalConfigStore } from "./config-store/global.js"
+import type { LinkedSource } from "./config-store/local.js"
+import { LocalConfigStore } from "./config-store/local.js"
+import type { ExternalSourceType } from "./util/ext-source-util.js"
+import { getLinkedSources } from "./util/ext-source-util.js"
+import type { ModuleConfig } from "./config/module.js"
+import { convertModules, ModuleResolver } from "./resolve-module.js"
+import type { CommandInfo, PluginEventBroker } from "./plugin-context.js"
+import { createPluginContext } from "./plugin-context.js"
+import type { RegisterPluginParam } from "./plugin/plugin.js"
 import {
   SUPPORTED_PLATFORMS,
   DEFAULT_GARDEN_DIR_NAME,
@@ -78,89 +78,95 @@ import {
   SUPPORTED_ARCHITECTURES,
   GardenApiVersion,
   DOCS_BASE_URL,
-} from "./constants"
-import { Log } from "./logger/log-entry"
-import { EventBus } from "./events/events"
-import { Watcher } from "./watch"
+} from "./constants.js"
+import type { Log } from "./logger/log-entry.js"
+import { EventBus } from "./events/events.js"
+import { Watcher } from "./watch.js"
 import {
   findConfigPathsInPath,
   getWorkingCopyId,
   fixedProjectExcludes,
   defaultConfigFilename,
   defaultDotIgnoreFile,
-} from "./util/fs"
-import {
-  Provider,
-  GenericProviderConfig,
-  getAllProviderDependencyNames,
-  defaultProvider,
-  ProviderMap,
-} from "./config/provider"
-import { ResolveProviderTask } from "./tasks/resolve-provider"
-import { ActionRouter } from "./router/router"
+} from "./util/fs.js"
+import type { Provider, GenericProviderConfig, ProviderMap } from "./config/provider.js"
+import { getAllProviderDependencyNames, defaultProvider } from "./config/provider.js"
+import { ResolveProviderTask } from "./tasks/resolve-provider.js"
+import { ActionRouter } from "./router/router.js"
+import type { ActionDefinitionMap, ActionTypeMap } from "./plugins.js"
 import {
   loadAndResolvePlugins,
   getDependencyOrder,
   getModuleTypes,
   loadPlugin,
   getActionTypes,
-  ActionDefinitionMap,
   getActionTypeBases,
-  ActionTypeMap,
-} from "./plugins"
-import { dedent, deline, naturalList, wordWrap } from "./util/string"
-import { DependencyGraph } from "./graph/common"
-import { Profile, profileAsync } from "./util/profiling"
+} from "./plugins.js"
+import { dedent, deline, naturalList, wordWrap } from "./util/string.js"
+import { DependencyGraph } from "./graph/common.js"
+import { Profile, profileAsync } from "./util/profiling.js"
 import username from "username"
 import {
   throwOnMissingSecretKeys,
   resolveTemplateString,
   resolveTemplateStrings,
-} from "./template-string/template-string"
-import { WorkflowConfig, WorkflowConfigMap, resolveWorkflowConfig, isWorkflowConfig } from "./config/workflow"
-import { PluginTool, PluginTools } from "./util/ext-tools"
-import { ConfigTemplateResource, resolveConfigTemplate, ConfigTemplateConfig } from "./config/config-template"
-import { TemplatedModuleConfig } from "./plugins/templated"
-import { BuildStagingRsync } from "./build-staging/rsync"
+} from "./template-string/template-string.js"
+import type { WorkflowConfig, WorkflowConfigMap } from "./config/workflow.js"
+import { resolveWorkflowConfig, isWorkflowConfig } from "./config/workflow.js"
+import type { PluginTools } from "./util/ext-tools.js"
+import { PluginTool } from "./util/ext-tools.js"
+import type { ConfigTemplateResource, ConfigTemplateConfig } from "./config/config-template.js"
+import { resolveConfigTemplate } from "./config/config-template.js"
+import type { TemplatedModuleConfig } from "./plugins/templated.js"
+import { BuildStagingRsync } from "./build-staging/rsync.js"
 import {
   DefaultEnvironmentContext,
   ProjectConfigContext,
   RemoteSourceConfigContext,
-} from "./config/template-contexts/project"
-import { CloudApi, CloudProject, getGardenCloudDomain } from "./cloud/api"
-import { OutputConfigContext } from "./config/template-contexts/module"
-import { ProviderConfigContext } from "./config/template-contexts/provider"
-import type { ConfigContext } from "./config/template-contexts/base"
-import { validateSchema, validateWithPath } from "./config/validation"
-import { pMemoizeDecorator } from "./lib/p-memoize"
-import { ModuleGraph } from "./graph/modules"
+} from "./config/template-contexts/project.js"
+import type { CloudApi, CloudProject } from "./cloud/api.js"
+import { getGardenCloudDomain } from "./cloud/api.js"
+import { OutputConfigContext } from "./config/template-contexts/module.js"
+import { ProviderConfigContext } from "./config/template-contexts/provider.js"
+import type { ConfigContext } from "./config/template-contexts/base.js"
+import { validateSchema, validateWithPath } from "./config/validation.js"
+import { pMemoizeDecorator } from "./lib/p-memoize.js"
+import { ModuleGraph } from "./graph/modules.js"
 import {
-  Action,
-  ActionConfigMap,
-  ActionConfigsByKey,
-  ActionKind,
   actionKinds,
-  ActionModeMap,
-  BaseActionConfig,
-} from "./actions/types"
-import { actionIsDisabled, actionReferenceToString, isActionConfig } from "./actions/base"
-import { GraphSolver, SolveOpts, SolveParams, SolveResult } from "./graph/solver"
-import { actionConfigsToGraph, actionFromConfig, executeAction, resolveAction, resolveActions } from "./graph/actions"
-import { ActionTypeDefinition } from "./plugin/action-types"
-import type { Task } from "./tasks/base"
-import { GraphResultFromTask, GraphResults } from "./graph/results"
-import { uuidv4 } from "./util/random"
-import { convertTemplatedModuleToRender, RenderTemplateConfig, renderConfigTemplate } from "./config/render-template"
-import { MonitorManager } from "./monitors/manager"
-import { AnalyticsHandler } from "./analytics/analytics"
-import { getGardenInstanceKey } from "./server/helpers"
-import { SuggestedCommand } from "./commands/base"
-import { OtelTraced } from "./util/open-telemetry/decorators"
-import { wrapActiveSpan } from "./util/open-telemetry/spans"
-import { GitRepoHandler } from "./vcs/git-repo"
-import { configureNoOpExporter } from "./util/open-telemetry/tracing"
-import { detectModuleOverlap, makeOverlapErrors } from "./util/module-overlap"
-import { GotHttpError } from "./util/http"
+  type Action,
+  type ActionConfigMap,
+  type ActionConfigsByKey,
+  type ActionKind,
+  type ActionModeMap,
+  type BaseActionConfig,
+} from "./actions/types.js"
+import { actionIsDisabled, actionReferenceToString, isActionConfig } from "./actions/base.js"
+import type { SolveOpts, SolveParams, SolveResult } from "./graph/solver.js"
+import { GraphSolver } from "./graph/solver.js"
+import {
+  actionConfigsToGraph,
+  actionFromConfig,
+  executeAction,
+  resolveAction,
+  resolveActions,
+} from "./graph/actions.js"
+import type { ActionTypeDefinition } from "./plugin/action-types.js"
+import type { Task } from "./tasks/base.js"
+import type { GraphResultFromTask, GraphResults } from "./graph/results.js"
+import { uuidv4 } from "./util/random.js"
+import type { RenderTemplateConfig } from "./config/render-template.js"
+import { convertTemplatedModuleToRender, renderConfigTemplate } from "./config/render-template.js"
+import { MonitorManager } from "./monitors/manager.js"
+import { AnalyticsHandler } from "./analytics/analytics.js"
+import { getGardenInstanceKey } from "./server/helpers.js"
+import type { SuggestedCommand } from "./commands/base.js"
+import { OtelTraced } from "./util/open-telemetry/decorators.js"
+import { wrapActiveSpan } from "./util/open-telemetry/spans.js"
+import { GitRepoHandler } from "./vcs/git-repo.js"
+import { configureNoOpExporter } from "./util/open-telemetry/tracing.js"
+import { detectModuleOverlap, makeOverlapErrors } from "./util/module-overlap.js"
+import { GotHttpError } from "./util/http.js"
 
 const defaultLocalAddress = "localhost"
 
@@ -1637,7 +1643,11 @@ export class Garden {
         modules.map((m) => m._config),
         "name"
       )
-      workflowConfigs = (await this.getRawWorkflowConfigs()).map((config) => resolveWorkflowConfig(this, config))
+      if (resolveWorkflows) {
+        workflowConfigs = (await this.getRawWorkflowConfigs()).map((config) => resolveWorkflowConfig(this, config))
+      } else {
+        workflowConfigs = await this.getRawWorkflowConfigs()
+      }
     } else {
       providers = this.getRawProviderConfigs()
       moduleConfigs = await this.getRawModuleConfigs()

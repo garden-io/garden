@@ -6,28 +6,28 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { keyBy, omit } from "lodash"
+import { keyBy, omit } from "lodash-es"
 
-import { ConfigurationError } from "../../exceptions"
-import { createGardenPlugin } from "../../plugin/plugin"
-import { containerHelpers } from "./helpers"
-import {
+import { ConfigurationError } from "../../exceptions.js"
+import { createGardenPlugin } from "../../plugin/plugin.js"
+import { containerHelpers } from "./helpers.js"
+import type {
   ContainerActionConfig,
   ContainerBuildActionConfig,
   ContainerModule,
   ContainerModuleVolumeSpec,
   ContainerRuntimeActionConfig,
-  containerModuleOutputsSchema,
-  containerModuleSpecSchema,
-  defaultDockerfileName,
-} from "./moduleConfig"
-import { buildContainer, getContainerBuildActionOutputs, getContainerBuildStatus } from "./build"
-import { ConfigureModuleParams } from "../../plugin/handlers/Module/configure"
-import { dedent, naturalList } from "../../util/string"
-import { Provider, GenericProviderConfig, providerConfigBaseSchema } from "../../config/provider"
-import { GetModuleOutputsParams } from "../../plugin/handlers/Module/get-outputs"
-import { ConvertModuleParams } from "../../plugin/handlers/Module/convert"
-import { ExecActionConfig } from "../exec/config"
+} from "./moduleConfig.js"
+import { containerModuleOutputsSchema, containerModuleSpecSchema, defaultDockerfileName } from "./moduleConfig.js"
+import { buildContainer, getContainerBuildActionOutputs, getContainerBuildStatus } from "./build.js"
+import type { ConfigureModuleParams } from "../../plugin/handlers/Module/configure.js"
+import { dedent, naturalList } from "../../util/string.js"
+import type { Provider, GenericProviderConfig } from "../../config/provider.js"
+import { providerConfigBaseSchema } from "../../config/provider.js"
+import type { GetModuleOutputsParams } from "../../plugin/handlers/Module/get-outputs.js"
+import type { ConvertModuleParams } from "../../plugin/handlers/Module/convert.js"
+import type { ExecActionConfig } from "../exec/config.js"
+import type { ContainerRuntimeAction } from "./config.js"
 import {
   containerBuildOutputsSchema,
   containerDeploySchema,
@@ -37,15 +37,13 @@ import {
   containerDeployOutputsSchema,
   containerTestOutputSchema,
   containerRunOutputSchema,
-  ContainerRuntimeAction,
-} from "./config"
-import { publishContainerBuild } from "./publish"
-import { Resolved } from "../../actions/types"
-import { getDeployedImageId } from "../kubernetes/container/util"
-import { KubernetesProvider } from "../kubernetes/config"
-import { DeepPrimitiveMap } from "../../config/common"
-import { DEFAULT_DEPLOY_TIMEOUT_SEC } from "../../constants"
-import { ExecBuildConfig } from "../exec/build"
+} from "./config.js"
+import { publishContainerBuild } from "./publish.js"
+import type { Resolved } from "../../actions/types.js"
+import { getDeployedImageId } from "../kubernetes/container/util.js"
+import type { DeepPrimitiveMap } from "../../config/common.js"
+import { DEFAULT_DEPLOY_TIMEOUT_SEC } from "../../constants.js"
+import type { ExecBuildConfig } from "../exec/build.js"
 
 export type ContainerProviderConfig = GenericProviderConfig
 
@@ -437,11 +435,10 @@ export const gardenPlugin = () =>
               return {}
             },
 
-            async getOutputs({ ctx, action }) {
-              const provider = ctx.provider as KubernetesProvider
+            async getOutputs({ action }) {
               return {
                 outputs: {
-                  deployedImageId: getDeployedImageId(action, provider),
+                  deployedImageId: getDeployedImageId(action),
                 },
               }
             },

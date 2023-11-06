@@ -6,12 +6,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { dedent } from "../../../util/string"
-import { actionParamsSchema, PluginActionParamsBase } from "../../../plugin/base"
-import { joi } from "../../../config/common"
-import { BaseAction } from "../../../actions/base"
-import { Resolved } from "../../../actions/types"
-import { ActionTypeHandlerSpec } from "./base"
+import { dedent } from "../../../util/string.js"
+import type { PluginActionParamsBase } from "../../../plugin/base.js"
+import { actionParamsSchema } from "../../../plugin/base.js"
+import { joi } from "../../../config/common.js"
+import type { BaseAction } from "../../../actions/base.js"
+import type { Resolved } from "../../../actions/types.js"
+import { ActionTypeHandlerSpec } from "./base.js"
 
 interface ValidateActionParams<T extends BaseAction> extends PluginActionParamsBase {
   action: T

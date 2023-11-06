@@ -7,12 +7,14 @@
  */
 
 import { expect } from "chai"
-import { BaseTask, CommonTaskParams, TaskProcessParams, ValidResultType } from "../../../../src/tasks/base"
-import { makeTestGarden, freezeTime, TestGarden, getDataDir, expectError } from "../../../helpers"
-import { MakeOptional } from "../../../../src/util/util"
-import { SolveOpts } from "../../../../src/graph/solver"
-import { ActionState } from "../../../../src/actions/types"
-import { GardenError, GenericGardenError } from "../../../../src/exceptions"
+import type { CommonTaskParams, TaskProcessParams, ValidResultType } from "../../../../src/tasks/base.js"
+import { BaseTask } from "../../../../src/tasks/base.js"
+import type { TestGarden } from "../../../helpers.js"
+import { makeTestGarden, freezeTime, getDataDir, expectError } from "../../../helpers.js"
+import type { MakeOptional } from "../../../../src/util/util.js"
+import type { SolveOpts } from "../../../../src/graph/solver.js"
+import type { ActionState } from "../../../../src/actions/types.js"
+import { GardenError, GenericGardenError } from "../../../../src/exceptions.js"
 
 const projectRoot = getDataDir("test-project-empty")
 

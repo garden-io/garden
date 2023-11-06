@@ -6,16 +6,18 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { BuildTask } from "./build"
-import { ActionTaskProcessParams, BaseActionTask, BaseActionTaskParams } from "../tasks/base"
-import { resolveTemplateString } from "../template-string/template-string"
-import { joi } from "../config/common"
-import { versionStringPrefix } from "../vcs/vcs"
-import { ConfigContext, schema } from "../config/template-contexts/base"
-import { PublishActionResult } from "../plugin/handlers/Build/publish"
-import type { BuildAction } from "../actions/build"
-import { ActionSpecContext, ActionSpecContextParams } from "../config/template-contexts/actions"
-import { OtelTraced } from "../util/open-telemetry/decorators"
+import { BuildTask } from "./build.js"
+import type { BaseActionTaskParams, ActionTaskProcessParams } from "../tasks/base.js"
+import { BaseActionTask } from "../tasks/base.js"
+import { resolveTemplateString } from "../template-string/template-string.js"
+import { joi } from "../config/common.js"
+import { versionStringPrefix } from "../vcs/vcs.js"
+import { ConfigContext, schema } from "../config/template-contexts/base.js"
+import type { PublishActionResult } from "../plugin/handlers/Build/publish.js"
+import type { BuildAction } from "../actions/build.js"
+import type { ActionSpecContextParams } from "../config/template-contexts/actions.js"
+import { ActionSpecContext } from "../config/template-contexts/actions.js"
+import { OtelTraced } from "../util/open-telemetry/decorators.js"
 
 export interface PublishTaskParams extends BaseActionTaskParams<BuildAction> {
   tagTemplate?: string

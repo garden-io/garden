@@ -14,9 +14,9 @@ import {
   removeLinkedSources,
   getRemoteSourceLocalPath,
   hashRepoUrl,
-} from "../../../../src/util/ext-source-util"
-import { expectError, makeTestGardenA } from "../../../helpers"
-import { Garden } from "../../../../src/garden"
+} from "../../../../src/util/ext-source-util.js"
+import { expectError, makeTestGardenA } from "../../../helpers.js"
+import type { Garden } from "../../../../src/garden.js"
 import { join } from "path"
 
 describe("ext-source-util", () => {

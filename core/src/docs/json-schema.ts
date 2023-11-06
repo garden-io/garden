@@ -6,10 +6,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { isArray } from "lodash"
-import { BaseKeyDescription } from "./common"
-import { ValidationError } from "../exceptions"
-import { safeDumpYaml } from "../util/serialization"
+import { isArray } from "lodash-es"
+import { BaseKeyDescription } from "./common.js"
+import { ValidationError } from "../exceptions.js"
+import { safeDumpYaml } from "../util/serialization.js"
 
 export class JsonKeyDescription<T = any> extends BaseKeyDescription<T> {
   override type: string

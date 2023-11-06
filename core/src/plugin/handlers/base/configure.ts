@@ -6,16 +6,17 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { dedent } from "../../../util/string"
-import { logEntrySchema, PluginActionContextParams } from "../../../plugin/base"
-import { joi } from "../../../config/common"
-import { Log } from "../../../logger/log-entry"
-import { ActionModes, BaseActionConfig } from "../../../actions/types"
-import { baseActionConfigSchema } from "../../../actions/base"
-import { ActionTypeHandlerSpec } from "./base"
-import { pluginContextSchema } from "../../../plugin-context"
-import { noTemplateFields } from "../../../config/base"
-import { actionConfigSchema } from "../../../actions/helpers"
+import { dedent } from "../../../util/string.js"
+import type { PluginActionContextParams } from "../../../plugin/base.js"
+import { logEntrySchema } from "../../../plugin/base.js"
+import { joi } from "../../../config/common.js"
+import type { Log } from "../../../logger/log-entry.js"
+import type { ActionModes, BaseActionConfig } from "../../../actions/types.js"
+import { baseActionConfigSchema } from "../../../actions/base.js"
+import { ActionTypeHandlerSpec } from "./base.js"
+import { pluginContextSchema } from "../../../plugin-context.js"
+import { noTemplateFields } from "../../../config/base.js"
+import { actionConfigSchema } from "../../../actions/helpers.js"
 
 interface ConfigureActionConfigParams<T extends BaseActionConfig> extends PluginActionContextParams {
   log: Log

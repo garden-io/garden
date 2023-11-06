@@ -7,10 +7,10 @@
  */
 
 import { apply, merge } from "json-merge-patch"
-import { dedent, deline, naturalList } from "../util/string"
+import { dedent, deline, naturalList } from "../util/string.js"
+import type { DeepPrimitiveMap, Primitive, PrimitiveMap } from "./common.js"
 import {
   createSchema,
-  DeepPrimitiveMap,
   includeGuideLink,
   joi,
   joiIdentifier,
@@ -20,26 +20,27 @@ import {
   joiUserIdentifier,
   joiVariables,
   joiVariablesDescription,
-  Primitive,
-  PrimitiveMap,
-} from "./common"
-import { validateConfig, validateWithPath } from "./validation"
-import { resolveTemplateStrings } from "../template-string/template-string"
-import { EnvironmentConfigContext, ProjectConfigContext } from "./template-contexts/project"
-import { findByName, getNames } from "../util/util"
-import { ConfigurationError, ParameterError, ValidationError } from "../exceptions"
+} from "./common.js"
+import { validateConfig, validateWithPath } from "./validation.js"
+import { resolveTemplateStrings } from "../template-string/template-string.js"
+import { EnvironmentConfigContext, ProjectConfigContext } from "./template-contexts/project.js"
+import { findByName, getNames } from "../util/util.js"
+import { ConfigurationError, ParameterError, ValidationError } from "../exceptions.js"
 import cloneDeep from "fast-copy"
-import { memoize } from "lodash"
-import { GenericProviderConfig, providerConfigBaseSchema } from "./provider"
-import { DOCS_BASE_URL, GardenApiVersion, GitScanMode, gitScanModes } from "../constants"
-import { defaultDotIgnoreFile } from "../util/fs"
-import type { CommandInfo } from "../plugin-context"
-import type { VcsInfo } from "../vcs/vcs"
-import { profileAsync } from "../util/profiling"
-import { BaseGardenResource, baseInternalFieldsSchema, loadVarfile, varfileDescription } from "./base"
-import chalk = require("chalk")
-import { Log } from "../logger/log-entry"
-import { renderDivider } from "../logger/util"
+import { memoize } from "lodash-es"
+import type { GenericProviderConfig } from "./provider.js"
+import { providerConfigBaseSchema } from "./provider.js"
+import type { GitScanMode } from "../constants.js"
+import { DOCS_BASE_URL, GardenApiVersion, gitScanModes } from "../constants.js"
+import { defaultDotIgnoreFile } from "../util/fs.js"
+import type { CommandInfo } from "../plugin-context.js"
+import type { VcsInfo } from "../vcs/vcs.js"
+import { profileAsync } from "../util/profiling.js"
+import type { BaseGardenResource } from "./base.js"
+import { baseInternalFieldsSchema, loadVarfile, varfileDescription } from "./base.js"
+import chalk from "chalk"
+import type { Log } from "../logger/log-entry.js"
+import { renderDivider } from "../logger/util.js"
 
 export const defaultVarfilePath = "garden.env"
 export const defaultEnvVarfilePath = (environmentName: string) => `garden.${environmentName}.env`

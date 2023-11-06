@@ -7,24 +7,19 @@
  */
 
 import chalk from "chalk"
-import {
-  Command,
-  CommandParams,
-  CommandResult,
-  handleProcessResults,
-  PrepareParams,
-  ProcessCommandResult,
-  processCommandResultSchema,
-} from "./base"
-import { RunTask } from "../tasks/run"
-import { printHeader } from "../logger/util"
-import { ParameterError } from "../exceptions"
-import { dedent, deline } from "../util/string"
-import { BooleanParameter, StringsParameter } from "../cli/params"
-import { validateActionSearchResults, watchParameter, watchRemovedWarning } from "./helpers"
-import { Log } from "../logger/log-entry"
-import { TestCommand } from "./test"
-import { WorkflowCommand, WorkflowRunOutput } from "./workflow"
+import type { CommandParams, CommandResult, PrepareParams, ProcessCommandResult } from "./base.js"
+import { Command, handleProcessResults, processCommandResultSchema } from "./base.js"
+import { RunTask } from "../tasks/run.js"
+import { printHeader } from "../logger/util.js"
+import { ParameterError } from "../exceptions.js"
+import { dedent, deline } from "../util/string.js"
+import { BooleanParameter, StringsParameter } from "../cli/params.js"
+import { validateActionSearchResults } from "./helpers.js"
+import type { Log } from "../logger/log-entry.js"
+import { TestCommand } from "./test.js"
+import type { WorkflowRunOutput } from "./workflow.js"
+import { WorkflowCommand } from "./workflow.js"
+import { watchParameter, watchRemovedWarning } from "./util/watch-parameter.js"
 
 // TODO: support interactive execution for a single Run (needs implementation from RunTask through plugin handlers).
 

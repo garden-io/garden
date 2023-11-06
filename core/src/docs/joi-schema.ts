@@ -6,12 +6,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { uniq, isFunction, extend, isArray, isPlainObject } from "lodash"
-import { BaseKeyDescription, isArrayType } from "./common"
-import { findByName } from "../util/util"
-import { JsonKeyDescription } from "./json-schema"
-import { JoiDescription, metadataFromDescription } from "../config/common"
-import { safeDumpYaml } from "../util/serialization"
+import { uniq, isFunction, extend, isArray, isPlainObject } from "lodash-es"
+import { BaseKeyDescription, isArrayType } from "./common.js"
+import { findByName } from "../util/util.js"
+import { JsonKeyDescription } from "./json-schema.js"
+import type { JoiDescription } from "../config/common.js"
+import { metadataFromDescription } from "../config/common.js"
+import { safeDumpYaml } from "../util/serialization.js"
 import { zodToJsonSchema } from "zod-to-json-schema"
 
 export class JoiKeyDescription extends BaseKeyDescription {

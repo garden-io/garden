@@ -7,11 +7,11 @@
  */
 
 import { expect } from "chai"
-import tmp from "tmp-promise"
-import { withDefaultGlobalOpts, TestGarden, createProjectConfig, makeTempDir } from "../../../../helpers"
-import { GetOutputsCommand } from "../../../../../src/commands/get/get-outputs"
-import { ProjectConfig } from "../../../../../src/config/project"
-import { createGardenPlugin } from "../../../../../src/plugin/plugin"
+import type tmp from "tmp-promise"
+import { withDefaultGlobalOpts, TestGarden, createProjectConfig, makeTempDir } from "../../../../helpers.js"
+import { GetOutputsCommand } from "../../../../../src/commands/get/get-outputs.js"
+import type { ProjectConfig } from "../../../../../src/config/project.js"
+import { createGardenPlugin } from "../../../../../src/plugin/plugin.js"
 
 describe("GetOutputsCommand", () => {
   let tmpDir: tmp.DirectoryResult

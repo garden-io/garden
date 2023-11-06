@@ -6,13 +6,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { DeployActionHandler } from "../../../plugin/action-types"
-import { KubernetesPluginContext } from "../config"
-import { getActionNamespace } from "../namespace"
-import { getSyncStatus, startSyncs } from "../sync"
-import { getReleaseName } from "./common"
-import { HelmDeployAction } from "./config"
-import { getDeployedChartResources } from "./status"
+import type { DeployActionHandler } from "../../../plugin/action-types.js"
+import type { KubernetesPluginContext } from "../config.js"
+import { getActionNamespace } from "../namespace.js"
+import { getSyncStatus, startSyncs } from "../sync.js"
+import { getReleaseName } from "./common.js"
+import type { HelmDeployAction } from "./config.js"
+import { getDeployedChartResources } from "./status.js"
 
 export const helmStartSync: DeployActionHandler<"startSync", HelmDeployAction> = async (params) => {
   const { ctx, log, action } = params

@@ -7,11 +7,11 @@
  */
 
 import { performance } from "perf_hooks"
-import { sum, sortBy } from "lodash"
-import { gardenEnv } from "../constants"
-import { renderTable, tablePresets } from "./string"
+import { sum, sortBy } from "lodash-es"
+import { gardenEnv } from "../constants.js"
+import { renderTable, tablePresets } from "./string.js"
 import chalk from "chalk"
-import { isPromise } from "./objects"
+import { isPromise } from "./objects.js"
 
 const skipProfiling = process.env.GARDEN_SKIP_TEST_PROFILING
 

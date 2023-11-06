@@ -6,17 +6,17 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Garden } from "../../../../../src/garden"
-import { Provider } from "../../../../../src/config/provider"
-import { KubernetesConfig, KubernetesPluginContext } from "../../../../../src/plugins/kubernetes/config"
-import { getDataDir, makeTestGarden } from "../../../../helpers"
+import type { Garden } from "../../../../../src/garden.js"
+import type { Provider } from "../../../../../src/config/provider.js"
+import type { KubernetesConfig, KubernetesPluginContext } from "../../../../../src/plugins/kubernetes/config.js"
+import { getDataDir, makeTestGarden } from "../../../../helpers.js"
 import { expect } from "chai"
-import { TestTask } from "../../../../../src/tasks/test"
-import { getSystemGarden } from "../../../../../src/plugins/kubernetes/system"
-import { getKubernetesSystemVariables } from "../../../../../src/plugins/kubernetes/init"
-import { convertModules } from "../../../../../src/resolve-module"
-import { TestAction } from "../../../../../src/actions/test"
-import { actionFromConfig } from "../../../../../src/graph/actions"
+import { TestTask } from "../../../../../src/tasks/test.js"
+import { getSystemGarden } from "../../../../../src/plugins/kubernetes/system.js"
+import { getKubernetesSystemVariables } from "../../../../../src/plugins/kubernetes/init.js"
+import { convertModules } from "../../../../../src/resolve-module.js"
+import type { TestAction } from "../../../../../src/actions/test.js"
+import { actionFromConfig } from "../../../../../src/graph/actions.js"
 
 describe("System services", () => {
   let garden: Garden

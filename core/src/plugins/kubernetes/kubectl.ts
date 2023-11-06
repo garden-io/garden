@@ -6,20 +6,24 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { encodeYamlMulti } from "../../util/serialization"
-import { ExecParams, PluginTool } from "../../util/ext-tools"
-import { Log } from "../../logger/log-entry"
-import { KubernetesProvider } from "./config"
-import { KubernetesResource } from "./types"
-import { dedent } from "../../util/string"
-import { getResourceKey, hashManifest } from "./util"
-import { PluginToolSpec } from "../../plugin/tools"
-import { PluginContext } from "../../plugin-context"
-import { KUBECTL_RETRY_OPTS, KubeApi, KubernetesError } from "./api"
-import { pathExists } from "fs-extra"
-import { ChildProcessError, ConfigurationError } from "../../exceptions"
-import { requestWithRetry, RetryOpts } from "./retry"
-import { k8sManifestHashAnnotationKey } from "./status/status"
+import { encodeYamlMulti } from "../../util/serialization.js"
+import type { ExecParams } from "../../util/ext-tools.js"
+import { PluginTool } from "../../util/ext-tools.js"
+import type { Log } from "../../logger/log-entry.js"
+import type { KubernetesProvider } from "./config.js"
+import type { KubernetesResource } from "./types.js"
+import { dedent } from "../../util/string.js"
+import { getResourceKey, hashManifest } from "./util.js"
+import type { PluginToolSpec } from "../../plugin/tools.js"
+import type { PluginContext } from "../../plugin-context.js"
+import type { KubeApi } from "./api.js"
+import { KUBECTL_RETRY_OPTS, KubernetesError } from "./api.js"
+import fsExtra from "fs-extra"
+const { pathExists } = fsExtra
+import { ChildProcessError, ConfigurationError } from "../../exceptions.js"
+import type { RetryOpts } from "./retry.js"
+import { requestWithRetry } from "./retry.js"
+import { k8sManifestHashAnnotationKey } from "./status/status.js"
 
 // Corresponds to the default prune whitelist in `kubectl`.
 // See: https://github.com/kubernetes/kubectl/blob/master/pkg/cmd/apply/prune.go#L176-L192

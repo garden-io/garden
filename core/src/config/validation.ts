@@ -6,15 +6,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import Joi from "@hapi/joi"
-import { ConfigurationError } from "../exceptions"
+import type Joi from "@hapi/joi"
+import { ConfigurationError } from "../exceptions.js"
 import chalk from "chalk"
 import { relative } from "path"
-import { uuidv4 } from "../util/random"
-import { profile } from "../util/profiling"
-import { BaseGardenResource, YamlDocumentWithSource } from "./base"
-import { ParsedNode, Range } from "yaml"
-import { padEnd } from "lodash"
+import { uuidv4 } from "../util/random.js"
+import { profile } from "../util/profiling.js"
+import type { BaseGardenResource, YamlDocumentWithSource } from "./base.js"
+import type { ParsedNode, Range } from "yaml"
+import { padEnd } from "lodash-es"
 
 export const joiPathPlaceholder = uuidv4()
 const joiPathPlaceholderRegex = new RegExp(joiPathPlaceholder, "g")

@@ -6,22 +6,22 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { DeleteEnvironmentCommand, DeleteDeployCommand } from "../../../../src/commands/delete"
+import { DeleteEnvironmentCommand, DeleteDeployCommand } from "../../../../src/commands/delete.js"
+import type { TestGarden } from "../../../helpers.js"
 import {
   getDataDir,
   customizedTestPlugin,
   withDefaultGlobalOpts,
   makeTestGarden,
   makeModuleConfig,
-  TestGarden,
-} from "../../../helpers"
+} from "../../../helpers.js"
 import { expect } from "chai"
-import { EnvironmentStatus } from "../../../../src/plugin/handlers/Provider/getEnvironmentStatus"
-import { ModuleConfig } from "../../../../src/config/module"
-import { Log } from "../../../../src/logger/log-entry"
-import { ActionStatus } from "../../../../src/actions/types"
-import { joi } from "../../../../src/config/common"
-import { execDeploySpecSchema } from "../../../../src/plugins/exec/deploy"
+import type { EnvironmentStatus } from "../../../../src/plugin/handlers/Provider/getEnvironmentStatus.js"
+import type { ModuleConfig } from "../../../../src/config/module.js"
+import type { Log } from "../../../../src/logger/log-entry.js"
+import type { ActionStatus } from "../../../../src/actions/types.js"
+import { joi } from "../../../../src/config/common.js"
+import { execDeploySpecSchema } from "../../../../src/plugins/exec/deploy.js"
 
 const projectRootB = getDataDir("test-project-b")
 const moduleConfigs: ModuleConfig[] = [

@@ -7,29 +7,32 @@
  */
 
 import { expect } from "chai"
-import { mkdirp, pathExists, readFile, remove, writeFile } from "fs-extra"
+import fsExtra from "fs-extra"
+const { mkdirp, pathExists, readFile, remove, writeFile } = fsExtra
 import { join } from "path"
-import { ConfigGraph } from "../../../../../src/graph/config-graph"
-import { k8sGetContainerDeployStatus } from "../../../../../src/plugins/kubernetes/container/status"
-import { createActionLog, Log } from "../../../../../src/logger/log-entry"
-import { KubernetesPluginContext, KubernetesProvider } from "../../../../../src/plugins/kubernetes/config"
-import { getMutagenMonitor, Mutagen } from "../../../../../src/mutagen"
-import { KubernetesWorkload } from "../../../../../src/plugins/kubernetes/types"
-import { execInWorkload } from "../../../../../src/plugins/kubernetes/util"
-import { dedent } from "../../../../../src/util/string"
-import { sleep } from "../../../../../src/util/util"
-import { getContainerTestGarden } from "./container/container"
+import type { ConfigGraph } from "../../../../../src/graph/config-graph.js"
+import { k8sGetContainerDeployStatus } from "../../../../../src/plugins/kubernetes/container/status.js"
+import type { Log } from "../../../../../src/logger/log-entry.js"
+import { createActionLog } from "../../../../../src/logger/log-entry.js"
+import type { KubernetesPluginContext, KubernetesProvider } from "../../../../../src/plugins/kubernetes/config.js"
+import { getMutagenMonitor, Mutagen } from "../../../../../src/mutagen.js"
+import type { KubernetesWorkload } from "../../../../../src/plugins/kubernetes/types.js"
+import { execInWorkload } from "../../../../../src/plugins/kubernetes/util.js"
+import { dedent } from "../../../../../src/util/string.js"
+import { sleep } from "../../../../../src/util/util.js"
+import { getContainerTestGarden } from "./container/container.js"
 import {
   convertContainerSyncSpec,
   convertKubernetesModuleDevModeSpec,
-} from "../../../../../src/plugins/kubernetes/sync"
-import { HelmModuleConfig } from "../../../../../src/plugins/kubernetes/helm/module-config"
-import { KubernetesModuleConfig } from "../../../../../src/plugins/kubernetes/kubernetes-type/module-config"
-import { TestGarden, cleanProject } from "../../../../helpers"
-import { ContainerDeployActionConfig } from "../../../../../src/plugins/container/moduleConfig"
-import { resolveAction } from "../../../../../src/graph/actions"
-import { DeployTask } from "../../../../../src/tasks/deploy"
-import { MUTAGEN_DIR_NAME } from "../../../../../src/constants"
+} from "../../../../../src/plugins/kubernetes/sync.js"
+import type { HelmModuleConfig } from "../../../../../src/plugins/kubernetes/helm/module-config.js"
+import type { KubernetesModuleConfig } from "../../../../../src/plugins/kubernetes/kubernetes-type/module-config.js"
+import type { TestGarden } from "../../../../helpers.js"
+import { cleanProject } from "../../../../helpers.js"
+import type { ContainerDeployActionConfig } from "../../../../../src/plugins/container/moduleConfig.js"
+import { resolveAction } from "../../../../../src/graph/actions.js"
+import { DeployTask } from "../../../../../src/tasks/deploy.js"
+import { MUTAGEN_DIR_NAME } from "../../../../../src/constants.js"
 
 describe("sync mode deployments and sync behavior", () => {
   let garden: TestGarden

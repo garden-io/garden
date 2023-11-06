@@ -7,22 +7,23 @@
  */
 
 import { diffString } from "json-diff"
-import { DeploymentError, GardenErrorParams } from "../../../exceptions"
-import { PluginContext } from "../../../plugin-context"
-import { KubeApi, KubernetesError } from "../api"
-import { getAppNamespace } from "../namespace"
-import {
+import type { GardenErrorParams } from "../../../exceptions.js"
+import { DeploymentError } from "../../../exceptions.js"
+import type { PluginContext } from "../../../plugin-context.js"
+import { KubeApi, KubernetesError } from "../api.js"
+import { getAppNamespace } from "../namespace.js"
+import type {
   BaseResource,
   KubernetesResource,
   KubernetesServerResource,
   KubernetesWorkload,
   SyncableResource,
-} from "../types"
-import { cloneDeep, flatten, isArray, isEqual, isPlainObject, keyBy, mapValues, omit, pickBy } from "lodash"
-import { KubernetesPluginContext, KubernetesProvider } from "../config"
-import { isSubset } from "../../../util/is-subset"
-import { Log } from "../../../logger/log-entry"
-import {
+} from "../types.js"
+import { cloneDeep, flatten, isArray, isEqual, isPlainObject, keyBy, mapValues, omit, pickBy } from "lodash-es"
+import type { KubernetesPluginContext, KubernetesProvider } from "../config.js"
+import { isSubset } from "../../../util/is-subset.js"
+import type { Log } from "../../../logger/log-entry.js"
+import type {
   KubernetesObject,
   V1Container,
   V1Job,
@@ -32,15 +33,16 @@ import {
   V1ReplicationController,
   V1Service,
 } from "@kubernetes/client-node"
-import { getPods, getResourceKey, hashManifest } from "../util"
-import { checkWorkloadStatus } from "./workload"
-import { checkWorkloadPodStatus } from "./pod"
-import { deline, gardenAnnotationKey, stableStringify } from "../../../util/string"
-import { ActionMode } from "../../../actions/types"
-import { deepMap } from "../../../util/objects"
-import { combineStates, DeployState } from "../../../types/service"
-import { isTruthy, sleep } from "../../../util/util"
-import dedent = require("dedent")
+import { getPods, getResourceKey, hashManifest } from "../util.js"
+import { checkWorkloadStatus } from "./workload.js"
+import { checkWorkloadPodStatus } from "./pod.js"
+import { deline, gardenAnnotationKey, stableStringify } from "../../../util/string.js"
+import type { ActionMode } from "../../../actions/types.js"
+import { deepMap } from "../../../util/objects.js"
+import type { DeployState } from "../../../types/service.js"
+import { combineStates } from "../../../types/service.js"
+import { isTruthy, sleep } from "../../../util/util.js"
+import dedent from "dedent"
 
 export const k8sManifestHashAnnotationKey = gardenAnnotationKey("manifest-hash")
 

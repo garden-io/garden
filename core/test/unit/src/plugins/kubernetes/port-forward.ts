@@ -7,12 +7,12 @@
  */
 
 import { expect } from "chai"
-import { getForwardablePorts } from "../../../../../src/plugins/kubernetes/port-forward"
-import {
+import { getForwardablePorts } from "../../../../../src/plugins/kubernetes/port-forward.js"
+import type {
   KubernetesDeployActionConfig,
   KubernetesDeployActionSpec,
-} from "../../../../../src/plugins/kubernetes/kubernetes-type/config"
-import { ResolvedDeployAction } from "../../../../../src/actions/deploy"
+} from "../../../../../src/plugins/kubernetes/kubernetes-type/config.js"
+import type { ResolvedDeployAction } from "../../../../../src/actions/deploy.js"
 
 describe("getForwardablePorts", () => {
   it("returns all ports for Service resources", () => {

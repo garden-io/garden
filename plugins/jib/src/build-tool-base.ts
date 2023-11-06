@@ -6,10 +6,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Log, PluginContext } from "@garden-io/sdk/build/src/types"
-import { Writable } from "node:stream"
+import type { Log, PluginContext } from "@garden-io/sdk/build/src/types.js"
+import type { Writable } from "node:stream"
 import execa from "execa"
-import { RuntimeError } from "@garden-io/core/build/src/exceptions"
+import { RuntimeError } from "@garden-io/core/build/src/exceptions.js"
 
 export interface CheckVersionParams {
   binaryPath: string
@@ -47,7 +47,7 @@ export interface VerifyBinaryParams extends CheckVersionParams {
 }
 
 export async function verifyBinaryPath(params: VerifyBinaryParams) {
-  const { binaryPath, toolName, outputVerificationString } = params
+  const { toolName, outputVerificationString } = params
   const versionOutput = await getBuildToolVersion(params)
   const isMaven = versionOutput.toLowerCase().includes(outputVerificationString)
   if (!isMaven) {

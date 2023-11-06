@@ -7,31 +7,34 @@
  */
 
 import chalk from "chalk"
-import ci = require("ci-info")
-import dotenv = require("dotenv")
-import { pathExists } from "fs-extra"
-import { range, sortBy, max, isEqual, mapValues, pickBy, memoize, indexOf } from "lodash"
+import ci from "ci-info"
+import dotenv from "dotenv"
+import fsExtra from "fs-extra"
+const { pathExists } = fsExtra
+import { range, sortBy, max, isEqual, mapValues, pickBy, memoize, indexOf } from "lodash-es"
 import moment from "moment"
 import { platform, release } from "os"
 import qs from "qs"
 import stringWidth from "string-width"
-import { maxBy, zip } from "lodash"
-import { Logger } from "../logger/logger"
+import { maxBy, zip } from "lodash-es"
+import type { Logger } from "../logger/logger.js"
 
-import { ParameterValues, Parameter, ParameterObject, globalDisplayOptions } from "./params"
-import { GardenError, ParameterError, RuntimeError, toGardenError } from "../exceptions"
-import { getPackageVersion, removeSlice } from "../util/util"
-import { Log } from "../logger/log-entry"
-import { STATIC_DIR, gardenEnv, ERROR_LOG_FILENAME } from "../constants"
-import { printWarningMessage } from "../logger/util"
-import { GlobalConfigStore } from "../config-store/global"
-import { got } from "../util/http"
-import minimist = require("minimist")
-import { renderTable, tablePresets, naturalList, deline } from "../util/string"
-import { globalOptions, GlobalOptions } from "./params"
-import { BuiltinArgs, Command, CommandGroup } from "../commands/base"
-import { DeepPrimitiveMap } from "../config/common"
-import { validateGitInstall } from "../vcs/vcs"
+import type { ParameterValues, Parameter, ParameterObject } from "./params.js"
+import { globalDisplayOptions } from "./params.js"
+import { GardenError, ParameterError, RuntimeError, toGardenError } from "../exceptions.js"
+import { getPackageVersion, removeSlice } from "../util/util.js"
+import type { Log } from "../logger/log-entry.js"
+import { STATIC_DIR, gardenEnv, ERROR_LOG_FILENAME } from "../constants.js"
+import { printWarningMessage } from "../logger/util.js"
+import type { GlobalConfigStore } from "../config-store/global.js"
+import { got } from "../util/http.js"
+import minimist from "minimist"
+import { renderTable, tablePresets, naturalList, deline } from "../util/string.js"
+import type { GlobalOptions } from "./params.js"
+import { globalOptions } from "./params.js"
+import type { BuiltinArgs, Command, CommandGroup } from "../commands/base.js"
+import type { DeepPrimitiveMap } from "../config/common.js"
+import { validateGitInstall } from "../vcs/vcs.js"
 
 export const cliStyles = {
   heading: (str: string) => chalk.white.bold(str),

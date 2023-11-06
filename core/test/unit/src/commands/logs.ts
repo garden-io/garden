@@ -6,33 +6,33 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import tmp from "tmp-promise"
+import type tmp from "tmp-promise"
 import { expect } from "chai"
-import { Garden } from "../../../../src"
-import { LogsCommand } from "../../../../src/commands/logs"
-import { ProjectConfig } from "../../../../src/config/project"
-import { GardenPluginSpec } from "../../../../src/plugin/plugin"
-import { TestGarden } from "../../../../src/util/testing"
+import type { Garden } from "../../../../src/index.js"
+import { LogsCommand } from "../../../../src/commands/logs.js"
+import type { ProjectConfig } from "../../../../src/config/project.js"
+import type { GardenPluginSpec } from "../../../../src/plugin/plugin.js"
+import { TestGarden } from "../../../../src/util/testing.js"
 import {
   createProjectConfig,
   customizedTestPlugin,
   expectError,
   makeTempDir,
   withDefaultGlobalOpts,
-} from "../../../helpers"
-import { DEFAULT_DEPLOY_TIMEOUT_SEC, GardenApiVersion } from "../../../../src/constants"
-import { formatForTerminal } from "../../../../src/logger/renderers"
+} from "../../../helpers.js"
+import { DEFAULT_DEPLOY_TIMEOUT_SEC, GardenApiVersion } from "../../../../src/constants.js"
+import { formatForTerminal } from "../../../../src/logger/renderers.js"
 import chalk from "chalk"
-import { LogEntry } from "../../../../src/logger/log-entry"
-import { LogLevel } from "../../../../src/logger/logger"
-import { DeployLogEntry } from "../../../../src/types/service"
-import { GetDeployLogs } from "../../../../src/plugin/handlers/Deploy/get-logs"
-import { BaseActionConfig } from "../../../../src/actions/types"
-import { LogMonitor, logMonitorColors } from "../../../../src/monitors/logs"
+import type { LogEntry } from "../../../../src/logger/log-entry.js"
+import { LogLevel } from "../../../../src/logger/logger.js"
+import type { DeployLogEntry } from "../../../../src/types/service.js"
+import type { GetDeployLogs } from "../../../../src/plugin/handlers/Deploy/get-logs.js"
+import type { BaseActionConfig } from "../../../../src/actions/types.js"
+import { LogMonitor } from "../../../../src/monitors/logs.js"
 import stripAnsi from "strip-ansi"
-import { execDeploySpecSchema } from "../../../../src/plugins/exec/deploy"
-import { joi } from "../../../../src/config/common"
-import { ActionTypeHandlerParamsType } from "../../../../src/plugin/handlers/base/base"
+import { execDeploySpecSchema } from "../../../../src/plugins/exec/deploy.js"
+import { joi } from "../../../../src/config/common.js"
+import type { ActionTypeHandlerParamsType } from "../../../../src/plugin/handlers/base/base.js"
 
 // TODO-G2: rename test cases to match the new graph model semantics
 
@@ -97,7 +97,6 @@ describe("LogsCommand", () => {
   const msgColor = chalk.bgRedBright
   const logMsg = "Yes, this is log"
   const logMsgWithColor = msgColor(logMsg)
-  const color = chalk[logMonitorColors[0]]
 
   type GetDeployLogsParams = ActionTypeHandlerParamsType<GetDeployLogs>
 

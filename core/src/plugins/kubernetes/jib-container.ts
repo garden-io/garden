@@ -6,25 +6,31 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { mkdirp } from "fs-extra"
+import fsExtra from "fs-extra"
+const { mkdirp } = fsExtra
 import { resolve } from "path"
 import tar from "tar"
-import { ConfigurationError, PluginError } from "../../exceptions"
-import { ModuleActionHandlers } from "../../plugin/plugin"
-import { makeTempDir } from "../../util/fs"
-import { KubeApi } from "./api"
-import { KubernetesPluginContext, KubernetesProvider } from "./config"
-import { ensureBuildkit } from "./container/build/buildkit"
-import { ensureUtilDeployment, syncToBuildSync, utilContainerName, utilDeploymentName } from "./container/build/common"
-import { loadToLocalK8s } from "./container/build/local"
-import { containerHandlers } from "./container/handlers"
-import { getNamespaceStatus } from "./namespace"
-import { PodRunner } from "./run"
-import { getRunningDeploymentPod } from "./util"
-import { BuildActionExtension, BuildActionParams } from "../../plugin/action-types"
-import { ContainerBuildAction } from "../container/config"
-import { buildkitDeploymentName } from "./constants"
-import { naturalList } from "../../util/string"
+import { ConfigurationError, PluginError } from "../../exceptions.js"
+import type { ModuleActionHandlers } from "../../plugin/plugin.js"
+import { makeTempDir } from "../../util/fs.js"
+import { KubeApi } from "./api.js"
+import type { KubernetesPluginContext, KubernetesProvider } from "./config.js"
+import { ensureBuildkit } from "./container/build/buildkit.js"
+import {
+  ensureUtilDeployment,
+  syncToBuildSync,
+  utilContainerName,
+  utilDeploymentName,
+} from "./container/build/common.js"
+import { loadToLocalK8s } from "./container/build/local.js"
+import { containerHandlers } from "./container/handlers.js"
+import { getNamespaceStatus } from "./namespace.js"
+import { PodRunner } from "./run.js"
+import { getRunningDeploymentPod } from "./util.js"
+import type { BuildActionExtension, BuildActionParams } from "../../plugin/action-types.js"
+import type { ContainerBuildAction } from "../container/config.js"
+import { buildkitDeploymentName } from "./constants.js"
+import { naturalList } from "../../util/string.js"
 
 export const jibContainerHandlers: Partial<ModuleActionHandlers> = {
   ...containerHandlers,

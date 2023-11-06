@@ -9,25 +9,26 @@
 import finalhandler from "finalhandler"
 import serveStatic from "serve-static"
 import { expect } from "chai"
-import { readdir } from "fs-extra"
+import fsExtra from "fs-extra"
+const { readdir } = fsExtra
 import getPort from "get-port"
 import { dirname } from "path"
-import { ParameterValues } from "../../../../src/cli/params"
+import type { ParameterValues } from "../../../../src/cli/params.js"
+import type { Pagination, SelfUpdateArgs, SelfUpdateOpts, VersionScope } from "../../../../src/commands/self-update.js"
 import {
   findRelease,
   isEdgeVersion,
   isPreReleaseVersion,
-  Pagination,
-  SelfUpdateArgs,
   SelfUpdateCommand,
-  SelfUpdateOpts,
-  VersionScope,
-} from "../../../../src/commands/self-update"
-import { DummyGarden, makeDummyGarden } from "../../../../src/garden"
-import { makeTempDir, TempDirectory } from "../../../../src/util/fs"
-import { getPackageVersion } from "../../../../src/util/util"
-import { expectError, getDataDir, withDefaultGlobalOpts } from "../../../helpers"
-import { createServer, Server } from "http"
+} from "../../../../src/commands/self-update.js"
+import type { DummyGarden } from "../../../../src/garden.js"
+import { makeDummyGarden } from "../../../../src/garden.js"
+import type { TempDirectory } from "../../../../src/util/fs.js"
+import { makeTempDir } from "../../../../src/util/fs.js"
+import { getPackageVersion } from "../../../../src/util/util.js"
+import { expectError, getDataDir, withDefaultGlobalOpts } from "../../../helpers.js"
+import type { Server } from "http"
+import { createServer } from "http"
 import semver from "semver"
 import nock from "nock"
 

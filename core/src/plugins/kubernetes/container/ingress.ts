@@ -6,21 +6,22 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { extend } from "lodash"
-import { findByName } from "../../../util/util"
-import { ContainerIngressSpec, ContainerDeployAction } from "../../container/moduleConfig"
-import { IngressTlsCertificate, KubernetesProvider } from "../config"
-import { ServiceIngress, ServiceProtocol } from "../../../types/service"
-import { KubeApi, KubernetesError } from "../api"
-import { ConfigurationError, PluginError } from "../../../exceptions"
-import { ensureSecret } from "../secrets"
-import { getHostnamesFromPem } from "../../../util/tls"
-import { KubernetesResource } from "../types"
-import { V1Ingress, V1Secret } from "@kubernetes/client-node"
-import { Log } from "../../../logger/log-entry"
+import { extend } from "lodash-es"
+import { findByName } from "../../../util/util.js"
+import type { ContainerIngressSpec, ContainerDeployAction } from "../../container/moduleConfig.js"
+import type { IngressTlsCertificate, KubernetesProvider } from "../config.js"
+import type { ServiceIngress, ServiceProtocol } from "../../../types/service.js"
+import type { KubeApi } from "../api.js"
+import { KubernetesError } from "../api.js"
+import { ConfigurationError, PluginError } from "../../../exceptions.js"
+import { ensureSecret } from "../secrets.js"
+import { getHostnamesFromPem } from "../../../util/tls.js"
+import type { KubernetesResource } from "../types.js"
+import type { V1Ingress, V1Secret } from "@kubernetes/client-node"
+import type { Log } from "../../../logger/log-entry.js"
 import chalk from "chalk"
-import { Resolved } from "../../../actions/types"
-import { isProviderEphemeralKubernetes } from "../ephemeral/ephemeral"
+import type { Resolved } from "../../../actions/types.js"
+import { isProviderEphemeralKubernetes } from "../ephemeral/ephemeral.js"
 
 // Ingress API versions in descending order of preference
 export const supportedIngressApiVersions = ["networking.k8s.io/v1", "networking.k8s.io/v1beta1", "extensions/v1beta1"]
@@ -239,7 +240,7 @@ async function getCertificateHostnames(api: KubeApi, cert: IngressTlsCertificate
     let secret: KubernetesResource<V1Secret>
 
     try {
-      secret = await api.core.readNamespacedSecret(cert.secretRef.name, cert.secretRef.namespace)
+      secret = await api.core.readNamespacedSecret({ name: cert.secretRef.name, namespace: cert.secretRef.namespace })
     } catch (err) {
       if (!(err instanceof KubernetesError)) {
         throw err

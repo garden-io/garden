@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { BuildCommand } from "../../../../src/commands/build"
+import { BuildCommand } from "../../../../src/commands/build.js"
 import { expect } from "chai"
 import {
   makeModuleConfig,
@@ -16,14 +16,15 @@ import {
   projectRootBuildDependants,
   testProjectTempDirs,
   withDefaultGlobalOpts,
-} from "../../../helpers"
-import { taskResultOutputs, getAllTaskResults } from "../../../helpers"
-import { ModuleConfig } from "../../../../src/config/module"
-import { Log } from "../../../../src/logger/log-entry"
-import { writeFile } from "fs-extra"
+} from "../../../helpers.js"
+import { taskResultOutputs, getAllTaskResults } from "../../../helpers.js"
+import type { ModuleConfig } from "../../../../src/config/module.js"
+import type { Log } from "../../../../src/logger/log-entry.js"
+import fsExtra from "fs-extra"
+const { writeFile } = fsExtra
 import { join } from "path"
-import { ProcessCommandResult } from "../../../../src/commands/base"
-import { nodeKey } from "../../../../src/graph/modules"
+import type { ProcessCommandResult } from "../../../../src/commands/base.js"
+import { nodeKey } from "../../../../src/graph/modules.js"
 
 describe("BuildCommand", () => {
   it("should build everything in a project and output the results", async () => {
@@ -38,7 +39,6 @@ describe("BuildCommand", () => {
       opts: withDefaultGlobalOpts({ "watch": false, "force": true, "with-dependants": false }),
     })
 
-    const err = command.outputsSchema().validate(result).error
     expect(command.outputsSchema().validate(result).error).to.be.undefined
 
     const graph = await garden.getResolvedConfigGraph({ log, emit: false })
@@ -259,7 +259,6 @@ describe("BuildCommand", () => {
 
     it("should rebuild module if a deep dependency has been modified", async () => {
       let garden = await getFreshTestGarden()
-      let graph = await garden.getConfigGraph({ log: garden.log, emit: false })
 
       const { result: result1 } = await buildCommand.action({
         garden,
@@ -273,7 +272,6 @@ describe("BuildCommand", () => {
       await writeFile(join(projectPath, "C/file.txt"), "module c has been modified")
 
       garden = await getFreshTestGarden()
-      graph = await garden.getConfigGraph({ log: garden.log, emit: false })
 
       const { result: result2 } = await buildCommand.action({
         garden: await getFreshTestGarden(),

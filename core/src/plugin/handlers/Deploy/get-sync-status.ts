@@ -6,13 +6,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { actionParamsSchema, PluginDeployActionParamsBase } from "../../base"
-import { dedent } from "../../../util/string"
-import { createSchema, joi, joiVariables } from "../../../config/common"
-import type { DeployAction } from "../../../actions/deploy"
-import { ActionTypeHandlerSpec } from "../base/base"
-import type { Executed } from "../../../actions/types"
-import { SyncMode, syncModeSchema } from "../../../plugins/container/config"
+import type { PluginDeployActionParamsBase } from "../../base.js"
+import { actionParamsSchema } from "../../base.js"
+import { dedent } from "../../../util/string.js"
+import { createSchema, joi, joiVariables } from "../../../config/common.js"
+import type { DeployAction } from "../../../actions/deploy.js"
+import { ActionTypeHandlerSpec } from "../base/base.js"
+import type { Executed } from "../../../actions/types.js"
+import type { SyncMode } from "../../../plugins/container/config.js"
+import { syncModeSchema } from "../../../plugins/container/config.js"
 
 interface GetSyncStatusParams<T extends DeployAction> extends PluginDeployActionParamsBase<T> {
   monitor: boolean

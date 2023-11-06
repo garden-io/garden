@@ -7,18 +7,20 @@
  */
 
 import { resolve } from "path"
-import { GardenModule } from "@garden-io/sdk/build/src/types"
-import { ConfigurationError } from "@garden-io/core/build/src/exceptions"
-import { getDockerBuildArgs } from "@garden-io/core/build/src/plugins/container/build"
-import {
+import type { GardenModule } from "@garden-io/sdk/build/src/types.js"
+import { ConfigurationError } from "@garden-io/core/build/src/exceptions.js"
+import { getDockerBuildArgs } from "@garden-io/core/build/src/plugins/container/build.js"
+import type {
   ContainerBuildActionSpec,
   ContainerModuleBuildSpec,
   ContainerModuleSpec,
-} from "@garden-io/core/build/src/plugins/container/moduleConfig"
-import { BuildAction, BuildActionConfig, ResolvedBuildAction } from "@garden-io/core/build/src/actions/build"
-import { ContainerBuildOutputs } from "@garden-io/core/build/src/plugins/container/config"
-import { Resolved } from "@garden-io/core/build/src/actions/types"
-import { pathExists } from "fs-extra"
+} from "@garden-io/core/build/src/plugins/container/moduleConfig.js"
+import type { BuildAction, BuildActionConfig, ResolvedBuildAction } from "@garden-io/core/build/src/actions/build.js"
+import type { ContainerBuildOutputs } from "@garden-io/core/build/src/plugins/container/config.js"
+import type { Resolved } from "@garden-io/core/build/src/actions/types.js"
+
+import fsExtra from "fs-extra"
+const { pathExists } = fsExtra
 
 interface JibBuildSpec {
   dockerBuild?: boolean

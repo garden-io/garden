@@ -7,7 +7,7 @@
  */
 
 import { expect } from "chai"
-import { builtInExcludes, getLocalSyncPath, makeSyncConfig } from "../../../../../src/plugins/kubernetes/sync"
+import { builtInExcludes, getLocalSyncPath, makeSyncConfig } from "../../../../../src/plugins/kubernetes/sync.js"
 
 describe("k8s sync helpers", () => {
   describe("getLocalSyncPath", () => {

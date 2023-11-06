@@ -7,7 +7,7 @@
  */
 
 import { expect } from "chai"
-import { makeTestGardenA } from "../../../helpers"
+import { makeTestGardenA } from "../../../helpers.js"
 
 describe("BuildAction", () => {
   it("When converted from a module, uses the module's version string in its full version", async () => {

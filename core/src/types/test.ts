@@ -6,16 +6,18 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { GardenModule } from "./module"
-import { TestConfig, testConfigSchema } from "../config/test"
-import { getEntityVersion, hashStrings, versionStringPrefix } from "../vcs/vcs"
-import { findByName } from "../util/util"
-import { NotFoundError } from "../exceptions"
-import { createSchema, joi, joiUserIdentifier, versionStringSchema } from "../config/common"
-import { sortBy } from "lodash"
-import { serializeConfig } from "../config/module"
-import { RunResult, runResultSchema } from "../plugin/base"
-import { ModuleGraph } from "../graph/modules"
+import type { GardenModule } from "./module.js"
+import type { TestConfig } from "../config/test.js"
+import { testConfigSchema } from "../config/test.js"
+import { getEntityVersion, hashStrings, versionStringPrefix } from "../vcs/vcs.js"
+import { findByName } from "../util/util.js"
+import { NotFoundError } from "../exceptions.js"
+import { createSchema, joi, joiUserIdentifier, versionStringSchema } from "../config/common.js"
+import { sortBy } from "lodash-es"
+import { serializeConfig } from "../config/module.js"
+import type { RunResult } from "../plugin/base.js"
+import { runResultSchema } from "../plugin/base.js"
+import type { ModuleGraph } from "../graph/modules.js"
 
 export interface GardenTest<M extends GardenModule = GardenModule> {
   name: string

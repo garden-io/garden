@@ -6,10 +6,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { CommandGroup } from "../base"
-import { LinkSourceCommand } from "./source"
-import { LinkModuleCommand } from "./module"
-import { LinkActionCommand } from "./action"
+import { CommandGroup } from "../base.js"
+import { LinkSourceCommand } from "./source.js"
+import { LinkModuleCommand } from "./module.js"
+import { LinkActionCommand } from "./action.js"
 
 export class LinkCommand extends CommandGroup {
   name = "link"

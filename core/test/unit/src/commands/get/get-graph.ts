@@ -7,8 +7,8 @@
  */
 
 import { expect } from "chai"
-import { getDataDir, makeTestGarden, withDefaultGlobalOpts } from "../../../../helpers"
-import { GetGraphCommand } from "../../../../../src/commands/get/get-graph"
+import { getDataDir, makeTestGarden, withDefaultGlobalOpts } from "../../../../helpers.js"
+import { GetGraphCommand } from "../../../../../src/commands/get/get-graph.js"
 
 describe("GetGraphCommand", () => {
   // TODO: Switch to a stable topological sorting algorithm that's more amenable to testing.

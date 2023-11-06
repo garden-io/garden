@@ -6,13 +6,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import type { DeployAction } from "../actions/deploy"
-import { Executed } from "../actions/types"
-import { ConfigGraph } from "../graph/config-graph"
-import { ActionLog, createActionLog, Log } from "../logger/log-entry"
-import { PluginEventBroker } from "../plugin-context"
-import { ActionRouter } from "../router/router"
-import { MonitorBaseParams, Monitor } from "./base"
+import type { DeployAction } from "../actions/deploy.js"
+import type { Executed } from "../actions/types.js"
+import type { ConfigGraph } from "../graph/config-graph.js"
+import type { ActionLog, Log } from "../logger/log-entry.js"
+import { createActionLog } from "../logger/log-entry.js"
+import { PluginEventBroker } from "../plugin-context.js"
+import type { ActionRouter } from "../router/router.js"
+import type { MonitorBaseParams } from "./base.js"
+import { Monitor } from "./base.js"
 
 interface SyncMonitorParams extends MonitorBaseParams {
   action: Executed<DeployAction>

@@ -6,14 +6,16 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { difference } from "lodash"
+import { difference } from "lodash-es"
 import { join, basename } from "path"
-import { remove, pathExists } from "fs-extra"
+import fsExtra from "fs-extra"
+const { remove, pathExists } = fsExtra
 
-import { getChildDirNames } from "../../util/fs"
-import { ExternalSourceType, getRemoteSourceLocalPath, getRemoteSourcesPath } from "../../util/ext-source-util"
-import { SourceConfig } from "../../config/project"
-import { BooleanParameter } from "../../cli/params"
+import { getChildDirNames } from "../../util/fs.js"
+import type { ExternalSourceType } from "../../util/ext-source-util.js"
+import { getRemoteSourceLocalPath, getRemoteSourcesPath } from "../../util/ext-source-util.js"
+import type { SourceConfig } from "../../config/project.js"
+import { BooleanParameter } from "../../cli/params.js"
 
 export const updateRemoteSharedOptions = {
   parallel: new BooleanParameter({

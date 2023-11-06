@@ -6,11 +6,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ActionReference, StringMap } from "../../config/common"
-import { ConvertModuleParams } from "../../plugin/handlers/Module/convert"
-import { ExecBuildConfig } from "./build"
-import { ExecActionConfig, defaultStatusTimeout } from "./config"
-import { ExecModule } from "./moduleConfig"
+import type { ActionReference, StringMap } from "../../config/common.js"
+import type { ConvertModuleParams } from "../../plugin/handlers/Module/convert.js"
+import type { ExecBuildConfig } from "./build.js"
+import type { ExecActionConfig } from "./config.js"
+import { defaultStatusTimeout } from "./config.js"
+import type { ExecModule } from "./moduleConfig.js"
 
 export function prepareExecBuildAction(params: ConvertModuleParams<ExecModule>): ExecBuildConfig | undefined {
   const { module, convertBuildDependency, dummyBuild } = params

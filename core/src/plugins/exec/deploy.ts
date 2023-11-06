@@ -6,38 +6,42 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { mapValues } from "lodash"
+import { mapValues } from "lodash-es"
 import { join } from "path"
-import split2 = require("split2")
-import { PrimitiveMap } from "../../config/common"
-import { dedent } from "../../util/string"
-import { ExecOpts, sleep } from "../../util/util"
-import { TimeoutError } from "../../exceptions"
-import { Log } from "../../logger/log-entry"
+import split2 from "split2"
+import type { PrimitiveMap } from "../../config/common.js"
+import { dedent } from "../../util/string.js"
+import type { ExecOpts } from "../../util/util.js"
+import { sleep } from "../../util/util.js"
+import { TimeoutError } from "../../exceptions.js"
+import type { Log } from "../../logger/log-entry.js"
 import execa from "execa"
 import chalk from "chalk"
-import { renderMessageWithDivider } from "../../logger/util"
-import { LogLevel } from "../../logger/logger"
+import { renderMessageWithDivider } from "../../logger/util.js"
+import { LogLevel } from "../../logger/logger.js"
 import { createWriteStream } from "fs"
-import { ensureFile, readFile, remove, writeFile } from "fs-extra"
+import fsExtra from "fs-extra"
+const { ensureFile, readFile, remove, writeFile } = fsExtra
 import { Transform } from "stream"
-import { ExecLogsFollower } from "./logs"
-import { PluginContext } from "../../plugin-context"
+import { ExecLogsFollower } from "./logs.js"
+import type { PluginContext } from "../../plugin-context.js"
 import {
   defaultStatusTimeout,
   execCommonSchema,
   execPathDoc,
   execRuntimeOutputsSchema,
   execStaticOutputsSchema,
-} from "./config"
-import { deployStateToActionState, DeployStatus } from "../../plugin/handlers/Deploy/get-status"
-import { ActionState, Resolved } from "../../actions/types"
-import { convertCommandSpec, execRunCommand, getDefaultEnvVars } from "./common"
-import { isRunning, killRecursive } from "../../process"
-import { GardenSdkActionDefinitionActionType, GardenSdkActionDefinitionConfigType, sdk } from "../../plugin/sdk"
-import { execProvider } from "./exec"
-import { getTracePropagationEnvVars } from "../../util/open-telemetry/propagation"
-import { DeployState } from "../../types/service"
+} from "./config.js"
+import type { DeployStatus } from "../../plugin/handlers/Deploy/get-status.js"
+import { deployStateToActionState } from "../../plugin/handlers/Deploy/get-status.js"
+import type { ActionState, Resolved } from "../../actions/types.js"
+import { convertCommandSpec, execRunCommand, getDefaultEnvVars } from "./common.js"
+import { isRunning, killRecursive } from "../../process.js"
+import type { GardenSdkActionDefinitionActionType, GardenSdkActionDefinitionConfigType } from "../../plugin/sdk.js"
+import { sdk } from "../../plugin/sdk.js"
+import { execProvider } from "./exec.js"
+import { getTracePropagationEnvVars } from "../../util/open-telemetry/propagation.js"
+import type { DeployState } from "../../types/service.js"
 
 const persistentLocalProcRetryIntervalMs = 2500
 

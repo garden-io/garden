@@ -7,15 +7,15 @@
  */
 
 import { join } from "path"
-import { deline } from "@garden-io/core/build/src/util/string"
-import { terraform } from "./cli"
-import { applyStack, getStackStatus, getTfOutputs, prepareVariables, setWorkspace } from "./helpers"
-import { TerraformProvider } from "./provider"
-import { DeployActionHandler } from "@garden-io/core/build/src/plugin/action-types"
-import { DeployState } from "@garden-io/core/build/src/types/service"
-import { deployStateToActionState } from "@garden-io/core/build/src/plugin/handlers/Deploy/get-status"
-import { TerraformDeploy, TerraformDeploySpec } from "./action"
-import chalk = require("chalk")
+import { deline } from "@garden-io/core/build/src/util/string.js"
+import { terraform } from "./cli.js"
+import { applyStack, getStackStatus, getTfOutputs, prepareVariables, setWorkspace } from "./helpers.js"
+import type { TerraformProvider } from "./provider.js"
+import type { DeployActionHandler } from "@garden-io/core/build/src/plugin/action-types.js"
+import type { DeployState } from "@garden-io/core/build/src/types/service.js"
+import { deployStateToActionState } from "@garden-io/core/build/src/plugin/handlers/Deploy/get-status.js"
+import type { TerraformDeploy, TerraformDeploySpec } from "./action.js"
+import chalk from "chalk"
 
 export const getTerraformStatus: DeployActionHandler<"getStatus", TerraformDeploy> = async ({ ctx, log, action }) => {
   const provider = ctx.provider as TerraformProvider

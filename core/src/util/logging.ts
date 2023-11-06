@@ -6,11 +6,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { isArray, isPlainObject, isString, mapValues } from "lodash"
+import { isArray, isPlainObject, isString, mapValues } from "lodash-es"
 import stripAnsi from "strip-ansi"
-import { isPrimitive } from "../config/common"
-import { deepFilter } from "./objects"
-import { InternalError } from "../exceptions"
+import { isPrimitive } from "../config/common.js"
+import { deepFilter } from "./objects.js"
+import { InternalError } from "../exceptions.js"
 
 let _callingToSanitizedValue = false
 

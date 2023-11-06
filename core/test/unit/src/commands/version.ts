@@ -7,12 +7,12 @@
  */
 
 import { expect } from "chai"
-import { getPackageVersion } from "../../../../src/util/util"
-import { GardenCli } from "../../../../src/cli/cli"
-import { VersionCommand } from "../../../../src/commands/version"
-import { TempDirectory } from "../../../helpers"
-import { makeTempDir } from "../../../helpers"
-import { makeDummyGarden } from "../../../../src/garden"
+import { getPackageVersion } from "../../../../src/util/util.js"
+import { GardenCli } from "../../../../src/cli/cli.js"
+import { VersionCommand } from "../../../../src/commands/version.js"
+import type { TempDirectory } from "../../../helpers.js"
+import { makeTempDir } from "../../../helpers.js"
+import { makeDummyGarden } from "../../../../src/garden.js"
 
 describe("VersionCommand", () => {
   let tmpDir: TempDirectory

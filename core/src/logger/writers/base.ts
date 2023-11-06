@@ -6,9 +6,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { LogEntry } from "../log-entry"
-import { Logger } from "../logger"
-import { LogLevel } from "../logger"
+import type { LogEntry } from "../log-entry.js"
+import type { Logger } from "../logger.js"
+import { LogLevel } from "../logger.js"
 
 export interface BaseWriterParams {
   level?: LogLevel

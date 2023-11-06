@@ -7,9 +7,9 @@
  */
 
 import chalk from "chalk"
-import { flatten, sortBy } from "lodash"
-import { KubernetesPod, KubernetesServerResource } from "../types"
-import {
+import { flatten, sortBy } from "lodash-es"
+import type { KubernetesPod, KubernetesServerResource } from "../types.js"
+import type {
   V1Deployment,
   V1DaemonSet,
   V1DaemonSetStatus,
@@ -20,11 +20,11 @@ import {
   CoreV1Event,
   V1DeploymentSpec,
 } from "@kubernetes/client-node"
-import dedent = require("dedent")
-import { getCurrentWorkloadPods, renderPodEvents } from "../util"
-import { getFormattedPodLogs, POD_LOG_LINES } from "./pod"
-import { ResourceStatus, StatusHandlerParams } from "./status"
-import { getResourceEvents } from "./events"
+import dedent from "dedent"
+import { getCurrentWorkloadPods, renderPodEvents } from "../util.js"
+import { getFormattedPodLogs, POD_LOG_LINES } from "./pod.js"
+import type { ResourceStatus, StatusHandlerParams } from "./status.js"
+import { getResourceEvents } from "./events.js"
 
 const containerStatusFailures = ["CrashLoopBackOff", "CreateContainerConfigError", "ImagePullBackOff"]
 

@@ -6,16 +6,16 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { renderMessageWithDivider } from "../../logger/util"
-import {
+import { renderMessageWithDivider } from "../../logger/util.js"
+import type {
   GardenSdkActionDefinitionActionType,
   GardenSdkActionDefinitionConfigType,
   BuildStatus,
-  sdk,
-} from "../../plugin/sdk"
-import { execRunCommand } from "./common"
-import { execCommonSchema, execEnvVarDoc, execRuntimeOutputsSchema, execStaticOutputsSchema } from "./config"
-import { execProvider } from "./exec"
+} from "../../plugin/sdk.js"
+import { sdk } from "../../plugin/sdk.js"
+import { execRunCommand } from "./common.js"
+import { execCommonSchema, execEnvVarDoc, execRuntimeOutputsSchema, execStaticOutputsSchema } from "./config.js"
+import { execProvider } from "./exec.js"
 
 const s = sdk.schema
 

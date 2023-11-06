@@ -8,12 +8,13 @@
 
 import dedent from "dedent"
 
-import { Command, CommandResult, CommandParams } from "../base"
-import { removeLinkedSources } from "../../util/ext-source-util"
-import { printHeader } from "../../logger/util"
-import { LinkedSource } from "../../config-store/local"
-import { StringsParameter, BooleanParameter } from "../../cli/params"
-import { actionKinds } from "../../actions/types"
+import type { CommandResult, CommandParams } from "../base.js"
+import { Command } from "../base.js"
+import { removeLinkedSources } from "../../util/ext-source-util.js"
+import { printHeader } from "../../logger/util.js"
+import type { LinkedSource } from "../../config-store/local.js"
+import { StringsParameter, BooleanParameter } from "../../cli/params.js"
+import { actionKinds } from "../../actions/types.js"
 
 const unlinkActionArguments = {
   actions: new StringsParameter({
