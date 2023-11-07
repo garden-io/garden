@@ -54,7 +54,7 @@
     "cli-truncate": "^4.0.0",
     "cpy": "^11.0.0",
     "cross-spawn": "^7.0.3",
-    "crypto-random-string": "^3.3.1",
+    "crypto-random-string": "^5.0.0",
     "date-fns": "^2.29.3",
     "dedent": "^0.7.0",
     "deline": "^1.0.4",
