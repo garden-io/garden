@@ -10,8 +10,8 @@ import chalk from "chalk"
 import { getAbi } from "node-abi"
 import { resolve, relative, join } from "path"
 import { STATIC_DIR, GARDEN_CLI_ROOT, GARDEN_CORE_ROOT } from "@garden-io/core/build/src/constants.js"
-import fsExtra from "fs-extra"
-const { remove, mkdirp, copy, writeFile, readFile } = fsExtra
+import { readFile, writeFile } from "fs/promises"
+import { remove, mkdirp, copy, pathExists } from "fs-extra/esm"
 import { exec, getPackageVersion } from "@garden-io/core/build/src/util/util.js"
 import { dedent } from "@garden-io/core/build/src/util/string.js"
 import { pick } from "lodash-es"
@@ -324,7 +324,7 @@ async function buildBinaries(args: string[]) {
       const nodeArchiveFilename = resolve(nodeTmpDir, `${targetName}${fileEnding}`)
 
       let nodeArchiveChecksum: string | undefined
-      if (await fsExtra.pathExists(nodeArchiveFilename)) {
+      if (await pathExists(nodeArchiveFilename)) {
         const readStream = createReadStream(nodeArchiveFilename)
         const hash = readStream.pipe(createHash("sha256"))
         await finished(readStream)
