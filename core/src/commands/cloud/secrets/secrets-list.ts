@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { stringify } from "query-string"
+import queryString from "query-string"
 import { ConfigurationError, CloudApiError } from "../../../exceptions.js"
 import type { ListSecretsResponse } from "@garden-io/platform-api-types"
 
@@ -29,7 +29,7 @@ export const fetchAllSecrets = async (api: CloudApi, projectId: string, log: Log
   let hasMore = true
   while (hasMore) {
     log.debug(`Fetching page ${page}`)
-    const q = stringify({ projectId, offset: page * pageLimit, limit: pageLimit })
+    const q = queryString.stringify({ projectId, offset: page * pageLimit, limit: pageLimit })
     const res = await api.get<ListSecretsResponse>(`/secrets?${q}`)
     if (res.data.length === 0) {
       hasMore = false
