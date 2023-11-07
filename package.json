@@ -74,7 +74,8 @@
   "scripts": {
     "add-licenses": "copyright-header --license-file support/license-header.txt --syntax support/license-syntax.yaml --add-path core/src:core/test --output-dir .",
     "bootstrap": "npm install",
-    "build": "npm run clean && npm run bootstrap && ./scripts/run-script.ts build",
+    "build": "./scripts/run-script.ts build",
+    "clean-build": "npm run clean && npm run bootstrap && ./scripts/run-script.ts build",
     "check-all": "npm run check-package-lock && npm run lint && npm run check-docs",
     "check-docs": "./scripts/check-docs.sh",
     "check-package-licenses": "./scripts/check-package-licenses.ts",
