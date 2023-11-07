@@ -8,15 +8,15 @@
 
 import { expect } from "chai"
 import nock from "nock"
-import { Garden } from "../../../../src"
-import { CloudApi } from "../../../../src/cloud/api"
-import { GlobalConfigStore } from "../../../../src/config-store/global"
-import { ConfigGraph } from "../../../../src/graph/config-graph"
-import { getRootLogger } from "../../../../src/logger/logger"
-import { PluginContext } from "../../../../src/plugin-context"
-import { KubernetesProvider } from "../../../../src/plugins/kubernetes/config"
-import { TestTask } from "../../../../src/tasks/test"
-import { TestGarden, getDataDir, makeTestGarden } from "../../../helpers"
+import { CloudApi } from "../../../../src/cloud/api.js"
+import { GlobalConfigStore } from "../../../../src/config-store/global.js"
+import { ConfigGraph } from "../../../../src/graph/config-graph.js"
+import { getRootLogger } from "../../../../src/logger/logger.js"
+import { PluginContext } from "../../../../src/plugin-context.js"
+import { KubernetesProvider } from "../../../../src/plugins/kubernetes/config.js"
+import { TestTask } from "../../../../src/tasks/test.js"
+import { TestGarden, getDataDir, makeTestGarden } from "../../../helpers.js"
+import { Garden } from "../../../../src/index.js"
 
 const mockProjectWithDistributedCache = {
   status: "success",

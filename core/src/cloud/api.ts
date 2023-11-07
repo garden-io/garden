@@ -25,6 +25,7 @@ import type {
   GetProfileResponse,
   GetProjectResponse,
   ListProjectsResponse,
+  Status,
 } from "@garden-io/platform-api-types"
 import { getCloudDistributionName, getCloudLogSectionName, getPackageVersion } from "../util/util.js"
 import type { CommandInfo } from "../plugin-context.js"
@@ -35,6 +36,7 @@ import { makeAuthHeader } from "./auth.js"
 import type { StringMap } from "../config/common.js"
 import chalk from "chalk"
 import { AvailableCloudFeatures } from "../garden.js"
+import qs from "qs"
 
 const gardenClientName = "garden-core"
 const gardenClientVersion = getPackageVersion()

@@ -7,9 +7,9 @@
  */
 
 import { expect } from "chai"
-import { computeKeyPathsToIgnoreFromConfig } from "../../../../src/tasks/helpers"
-import { DeployActionConfig } from "../../../../src/actions/deploy"
-import { DEFAULT_DEPLOY_TIMEOUT_SEC } from "../../../../src/constants"
+import { computeKeyPathsToIgnoreFromConfig } from "../../../../src/tasks/helpers.js"
+import { DeployActionConfig } from "../../../../src/actions/deploy.js"
+import { DEFAULT_DEPLOY_TIMEOUT_SEC } from "../../../../src/constants.js"
 
 describe("TaskHelpers", () => {
   context("computeKeyPathsToIgnoreFromConfig", () => {
