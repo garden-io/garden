@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import pEvent from "p-event"
+import { pEvent } from "p-event"
 import { resolve, join } from "path"
 import { expect } from "chai"
 import type { TestGarden } from "../../helpers.js"
