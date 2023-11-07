@@ -38,8 +38,8 @@ where
     let mut node_args: Vec<OsString> = vec![
         // Allow larger heap size than default
         // TODO: consider what happens when users also set the NODE_OPTIONS env var
-        format!("--max-semi-space-size={}", max_semi_space_size).into(),
-        format!("--max-old-space-size={}", max_old_space_size).into(),
+        format!("--max-semi-space-size={max_semi_space_size}").into(),
+        format!("--max-old-space-size={max_old_space_size}").into(),
         // execute garden.mjs
         path.join("rollup").join("garden.mjs").into(),
     ];
@@ -47,10 +47,12 @@ where
     node_args.extend(sea_args.skip(1).map(|s| s.into()));
 
     debug!("Spawning {} with {:?}", node, node_args);
-    for env in command.get_envs() {
-        debug!("Environment variable: {:?}={:?}", env.0, env.1.unwrap());
+    for var in command.get_envs() {
+        if let (key, Some(value)) = var {
+            debug!("Environment variable: {:?}={:?}", key, value);
+        }
     }
-    command.args(node_args.clone());
+    command.args(&node_args);
 
     Command::spawn(&mut command)
         .wrap_err_with(|| format!("Failed to spawn {} with {:?}", node, node_args))
@@ -108,7 +110,7 @@ mod tests {
 
         let child = spawn_garden(&result, ["garden".into(), "version".into()].into_iter())
             .expect("Failed to spawn garden");
-        let return_code = wait(child).expect("Failed waiting for garden").unwrap();
-        assert!(return_code == 0);
+        let return_code = wait(child).expect("Failed waiting for garden");
+        assert!(return_code == Some(0));
     }
 }

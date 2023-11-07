@@ -11,7 +11,10 @@ use windows::Win32::System::Console::{
 
 #[cfg(unix)]
 pub fn interrupt(pid: u32) -> Result<(), nix::errno::Errno> {
-    signal::kill(Pid::from_raw(pid.try_into().unwrap()), Signal::SIGINT)?;
+    signal::kill(
+        Pid::from_raw(pid.try_into().expect("Pid could not be coerced into i32")),
+        Signal::SIGINT,
+    )?;
     Ok(())
 }
 

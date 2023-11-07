@@ -23,8 +23,8 @@ enum Signal {
 #[cfg(windows)]
 lazy_static! {
     static ref _C: (Sender<Signal>, Receiver<Signal>) = bounded(100);
-    static ref SEND: Sender<Signal> = _C.0.clone();
-    static ref RECEIVE: Receiver<Signal> = _C.1.clone();
+    static ref SEND: Sender<Signal> = _C.0;
+    static ref RECEIVE: Receiver<Signal> = _C.1;
 }
 
 #[cfg(windows)]

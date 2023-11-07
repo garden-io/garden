@@ -7,7 +7,7 @@ use std::{fs, io::Write};
 
 use eyre::{Result, WrapErr};
 
-use crate::artifacts::{GardenArtifact, NATIVE_MODULES, NODE_BINARY, SOURCE, STATIC};
+use crate::artifacts::{GardenArtifact, ALL_ARTIFACTS};
 use crate::cleanup::start_cleanup_thread;
 use crate::log::debug;
 
@@ -30,9 +30,10 @@ pub(crate) fn extract_archives_if_needed(root_path: &Path) -> Result<PathBuf> {
     let s: String = (0..7).map(|_| rng.sample(Alphanumeric) as char).collect();
     let current_time = SystemTime::now()
         .duration_since(SystemTime::UNIX_EPOCH)
-        .unwrap();
-    let dirname = format!("{}-{}.r", current_time.as_secs(), s);
-    let extract_path = root_path.join(OsString::from(dirname.clone()));
+        .expect("Failed to calculate duration since unix epoch. Check your system time settings.")
+        .as_secs();
+    let dirname = format!("{current_time}-{s}.r");
+    let extract_path = root_path.join(OsString::from(dirname));
 
     if extract_path.exists() {
         debug!("{}: already exists", extract_path.display());
@@ -41,12 +42,11 @@ pub(crate) fn extract_archives_if_needed(root_path: &Path) -> Result<PathBuf> {
         return extract_archives_if_needed(root_path);
     }
 
-    fs::create_dir_all(extract_path.clone())?;
+    fs::create_dir_all(&extract_path)?;
 
-    extract_archive(&extract_path, NODE_BINARY)?;
-    extract_archive(&extract_path, NATIVE_MODULES)?;
-    extract_archive(&extract_path, STATIC)?;
-    extract_archive(&extract_path, SOURCE)?;
+    for artifact in ALL_ARTIFACTS {
+        extract_archive(&extract_path, artifact)?;
+    }
 
     // cleanup happens in the background to avoid users waiting for it
     start_cleanup_thread(older_dirs, extract_path.clone());
@@ -55,16 +55,19 @@ pub(crate) fn extract_archives_if_needed(root_path: &Path) -> Result<PathBuf> {
 }
 
 fn extracts_needed(path: &Path) -> Result<bool> {
-    Ok(is_extract_needed(path, NODE_BINARY)?
-        || is_extract_needed(path, NATIVE_MODULES)?
-        || is_extract_needed(path, STATIC)?
-        || is_extract_needed(path, SOURCE)?)
+    for artifact in ALL_ARTIFACTS {
+        if !is_extract_needed(path, artifact)? {
+            return Ok(false);
+        }
+    }
+
+    Ok(true)
 }
 
 fn find_existing_extract_dirs(root_path: &Path) -> Result<(Option<PathBuf>, Vec<PathBuf>)> {
     // list all Garden extraction directories in the temporary directory root_path
     let mut directories: Vec<PathBuf> = fs::read_dir(root_path)
-        .wrap_err_with(|| format!("Failed to read directory {:?}", root_path))?
+        .wrap_err_with(|| format!("Failed to read directory {root_path:?}"))?
         .flatten() // remove failed directories, e.g. where permissions are not sufficient
         .map(|entry| entry.path())
         .filter(|path| {
@@ -94,7 +97,7 @@ fn find_existing_extract_dirs(root_path: &Path) -> Result<(Option<PathBuf>, Vec<
 
 // extract needed check
 
-fn is_extract_needed(path: &Path, artifact: GardenArtifact) -> Result<bool> {
+fn is_extract_needed(path: &Path, artifact: &GardenArtifact) -> Result<bool> {
     let checksum_file = path.join(format!("{}.sha256sum", artifact.name));
 
     if !checksum_file.exists() {
@@ -106,8 +109,7 @@ fn is_extract_needed(path: &Path, artifact: GardenArtifact) -> Result<bool> {
     }
 
     if checksum_file.exists()
-        && fs::read(checksum_file.clone())
-            .wrap_err_with(|| format!("Failed read {:?}", checksum_file))?
+        && fs::read(&checksum_file).wrap_err_with(|| format!("Failed read {checksum_file:?}"))?
             == artifact.sha256.to_vec()
     {
         debug!(
@@ -124,7 +126,7 @@ fn is_extract_needed(path: &Path, artifact: GardenArtifact) -> Result<bool> {
 
 // extraction
 
-fn extract_archive(path: &Path, artifact: GardenArtifact) -> Result<()> {
+fn extract_archive(path: &Path, artifact: &GardenArtifact) -> Result<()> {
     debug!(
         "{}: extracting {:?} bytes...",
         artifact.name,
@@ -132,22 +134,18 @@ fn extract_archive(path: &Path, artifact: GardenArtifact) -> Result<()> {
     );
 
     // if not match, extract the NODE_BINARY_ARCHIVE
-    unpack(path, artifact.archive).wrap_err_with(|| {
-        format!(
-            "Failed to extract archive {} into {:?}",
-            artifact.name, path
-        )
-    })?;
+    unpack(path, artifact.archive)
+        .wrap_err_with(|| format!("Failed to extract archive {} into {path:?}", artifact.name,))?;
 
     debug!("{}: Successfully extracted to {:?}", artifact.name, path);
 
     let checksum_file = path.join(format!("{}.sha256sum", artifact.name));
 
     // write the checksum file
-    fs::File::create(checksum_file.clone())
-        .wrap_err_with(|| format!("Failed to create checksum file {:?}", checksum_file))?
+    fs::File::create(&checksum_file)
+        .wrap_err_with(|| format!("Failed to create checksum file {checksum_file:?}"))?
         .write_all(artifact.sha256)
-        .wrap_err_with(|| format!("Failed to write checksum file {:?}", checksum_file))?;
+        .wrap_err_with(|| format!("Failed to write checksum file {checksum_file:?}"))?;
 
     Ok(())
 }

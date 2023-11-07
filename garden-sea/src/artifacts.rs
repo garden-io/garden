@@ -1,9 +1,10 @@
-#[derive(Copy, Clone)]
 pub struct GardenArtifact {
     pub name: &'static str,
     pub archive: &'static [u8],
     pub sha256: &'static [u8],
 }
+
+pub static ALL_ARTIFACTS: [&GardenArtifact; 4] = [&SOURCE, &STATIC, &NODE_BINARY, &NATIVE_MODULES];
 
 // source
 

@@ -4,7 +4,7 @@ use crate::log::debug;
 use eyre::Result;
 use std::path::PathBuf;
 
-// background cleanup thread
+// background cleanup thread.
 pub(crate) fn start_cleanup_thread(cleanup_dirs: Vec<PathBuf>, current_dir: PathBuf) {
     std::thread::spawn(move || {
         for dir in cleanup_dirs {
@@ -25,7 +25,7 @@ pub(crate) fn start_cleanup_thread(cleanup_dirs: Vec<PathBuf>, current_dir: Path
                 }
 
                 debug!("Removing {:?}...", dir);
-                let result = std::fs::remove_dir_all(dir.clone());
+                let result = std::fs::remove_dir_all(&dir);
                 if let Err(e) = result {
                     debug!("Failed to remove {:?}: {:?}", dir, e);
                 } else {

@@ -26,7 +26,7 @@ fn main() -> Result<()> {
     let pid = child.id();
 
     let exit_code =
-        node::wait(child).wrap_err_with(|| format!("Failed waiting for garden (pid {})", pid))?;
+        node::wait(child).wrap_err_with(|| format!("Failed waiting for garden (pid {pid})"))?;
 
     // we need to unwrap, as in case the child was terminated by a signal, we don't have an exit code
     exit(exit_code.unwrap_or(EXIT_GARDEN_SEA_ERROR))
