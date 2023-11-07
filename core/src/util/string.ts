@@ -12,6 +12,7 @@ import _urlJoin from "proper-url-join"
 import _stableStringify from "json-stable-stringify"
 import _titleize from "titleize"
 import CliTable from "cli-table3"
+import type { Options as CliTruncateOptions } from "cli-truncate"
 import cliTruncate from "cli-truncate"
 import { getTerminalWidth } from "../logger/util.js"
 import wrapAnsi from "wrap-ansi"
@@ -165,7 +166,7 @@ export function wordWrap(text: string, maxWidth: number, opts: any = {}) {
  * @param length maximum length of the output text
  * @param opts options passed to `cli-truncate`
  */
-export function truncate(text: string, length: number, opts: cliTruncate.Options = {}) {
+export function truncate(text: string, length: number, opts: CliTruncateOptions = {}) {
   return cliTruncate(text, length, opts)
 }
 
