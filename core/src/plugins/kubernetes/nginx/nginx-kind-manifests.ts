@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { KubernetesResource } from "../types"
+import type { KubernetesResource } from "../types.js"
 
 export function kindNginxGetManifests(namespace: string): KubernetesResource[] {
   return [

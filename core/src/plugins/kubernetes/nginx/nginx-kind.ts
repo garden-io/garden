@@ -6,14 +6,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Log } from "../../../logger/log-entry"
-import { KubernetesPluginContext } from "../config"
-import { KubeApi } from "../api"
-import { checkResourceStatus, waitForResources } from "../status/status"
+import type { Log } from "../../../logger/log-entry.js"
+import type { KubernetesPluginContext } from "../config.js"
+import { KubeApi } from "../api.js"
+import { checkResourceStatus, waitForResources } from "../status/status.js"
 import chalk from "chalk"
-import { apply, deleteResources } from "../kubectl"
-import { DeployState } from "../../../types/service"
-import { kindNginxGetManifests } from "./nginx-kind-manifests"
+import { apply, deleteResources } from "../kubectl.js"
+import type { DeployState } from "../../../types/service.js"
+import { kindNginxGetManifests } from "./nginx-kind-manifests.js"
 
 const nginxKindMainResource = {
   apiVersion: "apps/v1",

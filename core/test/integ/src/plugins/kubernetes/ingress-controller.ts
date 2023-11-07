@@ -7,15 +7,15 @@
  */
 
 import { expect } from "chai"
-import { Log } from "../../../../../src/logger/log-entry"
-import { KubernetesPluginContext, KubernetesProvider } from "../../../../../src/plugins/kubernetes/config"
-import { ingressControllerReady } from "../../../../../src/plugins/kubernetes/nginx/ingress-controller"
-import { uninstallGardenServices } from "../../../../../src/plugins/kubernetes/commands/uninstall-garden-services"
-import { prepareEnvironment } from "../../../../../src/plugins/kubernetes/init"
-import { PrepareEnvironmentParams } from "../../../../../src/plugin/handlers/Provider/prepareEnvironment"
-import { defaultEnvironmentStatus } from "../../../../../src/plugin/handlers/Provider/getEnvironmentStatus"
-import { getContainerTestGarden } from "./container/container"
-import { Garden } from "../../../../../src"
+import type { Log } from "../../../../../src/logger/log-entry.js"
+import type { KubernetesPluginContext, KubernetesProvider } from "../../../../../src/plugins/kubernetes/config.js"
+import { ingressControllerReady } from "../../../../../src/plugins/kubernetes/nginx/ingress-controller.js"
+import { uninstallGardenServices } from "../../../../../src/plugins/kubernetes/commands/uninstall-garden-services.js"
+import { prepareEnvironment } from "../../../../../src/plugins/kubernetes/init.js"
+import type { PrepareEnvironmentParams } from "../../../../../src/plugin/handlers/Provider/prepareEnvironment.js"
+import { defaultEnvironmentStatus } from "../../../../../src/plugin/handlers/Provider/getEnvironmentStatus.js"
+import { getContainerTestGarden } from "./container/container.js"
+import type { Garden } from "../../../../../src/garden.js"
 
 describe("It should manage ingress controller for respective cluster type", () => {
   let garden: Garden

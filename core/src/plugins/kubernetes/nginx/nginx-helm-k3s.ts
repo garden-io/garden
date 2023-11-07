@@ -6,8 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { SystemVars } from "../init"
-import { NginxHelmValuesGetter } from "./nginx-helm"
+import type { SystemVars } from "../init.js"
+import type { NginxHelmValuesGetter } from "./nginx-helm.js"
 
 export const getK3sNginxHelmValues: NginxHelmValuesGetter = (systemVars: SystemVars) => {
   return {

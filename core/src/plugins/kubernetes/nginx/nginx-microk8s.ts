@@ -6,13 +6,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Log } from "../../../logger/log-entry"
-import { exec } from "../../../util/util"
+import type { Log } from "../../../logger/log-entry.js"
+import { exec } from "../../../util/util.js"
 import chalk from "chalk"
-import { KubernetesPluginContext } from "../config"
-import { DeployState } from "../../../types/service"
-import { configureMicrok8sAddons } from "../local/microk8s"
-import { waitForResources } from "../status/status"
+import type { KubernetesPluginContext } from "../config.js"
+import { type DeployState } from "../../../types/service.js"
+import { configureMicrok8sAddons } from "../local/microk8s.js"
+import { waitForResources } from "../status/status.js"
 
 export async function microk8sNginxStatus(log: Log): Promise<DeployState> {
   // The microk8s addons implement healthchecks and auto-corrects the addon status

@@ -41,7 +41,7 @@ import { syncDefaultsSchema } from "./sync.js"
 import { KUBECTL_DEFAULT_TIMEOUT } from "./kubectl.js"
 import { DOCS_BASE_URL } from "../../constants.js"
 import { defaultKanikoImageName, defaultSystemNamespace } from "./constants.js"
-import { LocalKubernetesClusterType } from "./local/config.js"
+import type { LocalKubernetesClusterType } from "./local/config.js"
 import type { EphemeralKubernetesClusterType } from "./ephemeral/config.js"
 
 export interface ProviderSecretRef {

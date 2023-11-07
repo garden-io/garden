@@ -6,8 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import type { LocalKubernetesClusterType } from "./config.js"
-import { configureProvider, configSchema, LocalKubernetesConfig } from "./config.js"
+import type { LocalKubernetesClusterType, LocalKubernetesConfig } from "./config.js"
+import { configureProvider, configSchema } from "./config.js"
 import { createGardenPlugin } from "../../../plugin/plugin.js"
 import { dedent } from "../../../util/string.js"
 import { DOCS_BASE_URL } from "../../../constants.js"
@@ -15,9 +15,9 @@ import type {
   PrepareEnvironmentParams,
   PrepareEnvironmentResult,
 } from "../../../plugin/handlers/Provider/prepareEnvironment.js"
-import { KubernetesPluginContext } from "../config.js"
+import type { KubernetesPluginContext } from "../config.js"
 import { prepareEnvironment as _prepareEnvironmentBase } from "../init.js"
-import { Log } from "../../../logger/log-entry.js"
+import type { Log } from "../../../logger/log-entry.js"
 import { setMinikubeDockerEnv } from "./minikube.js"
 import { isKindCluster } from "./kind.js"
 import { configureMicrok8sAddons } from "./microk8s.js"

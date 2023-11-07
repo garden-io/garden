@@ -7,7 +7,7 @@
  */
 
 import { ChildProcessError } from "../../../exceptions.js"
-import type { exec } from "../../../util/util.js"
+import { exec } from "../../../util/util.js"
 
 /**
  * Automatically set docker environment variables for minikube

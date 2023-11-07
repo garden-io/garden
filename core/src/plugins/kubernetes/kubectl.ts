@@ -28,7 +28,6 @@ import { loadAll } from "js-yaml"
 import { isTruthy } from "../../util/util.js"
 import { readFile } from "fs/promises"
 
-
 // Corresponds to the default prune whitelist in `kubectl`.
 // See: https://github.com/kubernetes/kubectl/blob/master/pkg/cmd/apply/prune.go#L176-L192
 const versionedPruneKinds = [
