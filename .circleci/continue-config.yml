@@ -110,8 +110,6 @@ commands:
       - run: npm ci --prefer-offline --cache ~/.npm --no-audit
 
       - save_cache:
-          # We need the arch in the key because CircleCI stores the absolute paths, so restore would fail
-          # on a different operating system (project directory is different between windows/linux/macos)
           key: npm-v4-<<parameters.context>>-{{ checksum "package-lock.json" }}
           paths:
             - ~/.npm
