@@ -10,34 +10,22 @@ import { expect } from "chai"
 import { cloneDeep } from "lodash"
 import type { Garden } from "../../../src/index.js"
 import type { ConfigGraph } from "../../../src/graph/config-graph.js"
-import type { PluginContext } from "../../../src/plugin-context.js"
-import type { KubernetesProvider } from "../../../src/plugins/kubernetes/config.js"
 import type { KubernetesDeployAction } from "../../../src/plugins/kubernetes/kubernetes-type/config.js"
 import { getDataDir, makeTestGarden } from "../../helpers.js"
 
 describe("action-version", () => {
   let garden1: Garden
   let graph1: ConfigGraph
-  let provider1: KubernetesProvider
-  let ctx1: PluginContext
   let garden2: Garden
   let graph2: ConfigGraph
-  let provider2: KubernetesProvider
-  let ctx2: PluginContext
 
   before(async () => {
     // env 1
     const projectRoot = getDataDir("test-projects", "actions-no-cache")
     garden1 = await makeTestGarden(projectRoot, { environmentString: "local1" })
-    // garden1.availableCloudFeatures.distributedCache = true
-    // garden1.projectId = "test-project-id"
-    provider1 = (await garden1.resolveProvider(garden1.log, "local-kubernetes")) as KubernetesProvider
-    ctx1 = await garden1.getPluginContext({ provider: provider1, templateContext: undefined, events: undefined })
     graph1 = await garden1.getConfigGraph({ log: garden1.log, emit: false })
     // env 2
     garden2 = await makeTestGarden(projectRoot, { environmentString: "local2" })
-    provider2 = (await garden2.resolveProvider(garden2.log, "local-kubernetes")) as KubernetesProvider
-    ctx2 = await garden2.getPluginContext({ provider: provider2, templateContext: undefined, events: undefined })
     graph2 = await garden2.getConfigGraph({ log: garden2.log, emit: false })
   })
 

@@ -11,13 +11,11 @@ import nock from "nock"
 import { CloudApi } from "../../../../src/cloud/api.js"
 import { GlobalConfigStore } from "../../../../src/config-store/global.js"
 import type { ConfigGraph } from "../../../../src/graph/config-graph.js"
+import type { Garden } from "../../../../src/index.js"
 import { getRootLogger } from "../../../../src/logger/logger.js"
-import type { PluginContext } from "../../../../src/plugin-context.js"
-import type { KubernetesProvider } from "../../../../src/plugins/kubernetes/config.js"
 import { TestTask } from "../../../../src/tasks/test.js"
 import type { TestGarden } from "../../../helpers.js"
 import { getDataDir, makeTestGarden } from "../../../helpers.js"
-import type { Garden } from "../../../../src/index.js"
 
 const mockProjectWithDistributedCache = {
   status: "success",
@@ -76,13 +74,9 @@ describe("TestTask", () => {
 
     let garden1: TestGarden
     let graph1: ConfigGraph
-    let provider1: KubernetesProvider
-    let ctx1: PluginContext
 
     let garden2: Garden
     let graph2: ConfigGraph
-    let provider2: KubernetesProvider
-    let ctx2: PluginContext
 
     before(async () => {
       scope = nock("https://garden.io/")
@@ -101,14 +95,10 @@ describe("TestTask", () => {
       // env 1
       garden1 = await makeTestGarden(projectRoot, { environmentString: "local1", cloudApi })
       garden1.availableCloudFeatures.distributedCache = true
-      provider1 = (await garden1.resolveProvider(garden1.log, "local-kubernetes")) as KubernetesProvider
-      ctx1 = await garden1.getPluginContext({ provider: provider1, templateContext: undefined, events: undefined })
       graph1 = await garden1.getConfigGraph({ log: garden1.log, emit: false })
 
       // env 2
       garden2 = await makeTestGarden(projectRoot, { environmentString: "local2" })
-      provider2 = (await garden2.resolveProvider(garden2.log, "local-kubernetes")) as KubernetesProvider
-      ctx2 = await garden2.getPluginContext({ provider: provider2, templateContext: undefined, events: undefined })
       graph2 = await garden2.getConfigGraph({ log: garden2.log, emit: false })
     })
 
@@ -127,7 +117,7 @@ describe("TestTask", () => {
       const router1 = await garden1.getActionRouter()
       await router1.deleteDeploys({ graph: graph1, log: garden1.log })
       const router2 = await garden2.getActionRouter()
-      await router2.deleteDeploys({ graph: graph1, log: garden1.log })
+      await router2.deleteDeploys({ graph: graph2, log: garden1.log })
     })
 
     it("should not run tests again, if the api returns a cache hit", async () => {
