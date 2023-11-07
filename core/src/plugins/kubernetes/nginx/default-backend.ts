@@ -13,7 +13,7 @@ import { KubeApi } from "../api.js"
 import { checkResourceStatus, waitForResources } from "../status/status.js"
 import chalk from "chalk"
 import type { KubernetesDeployment, KubernetesService } from "../types.js"
-import { gardenIngressControllerDefaultBackendImage } from "../constants.js"
+import { defaultGardenIngressControllerDefaultBackendImage } from "../constants.js"
 
 export async function defaultBackendStatus(ctx: KubernetesPluginContext, log: Log): Promise<DeployState> {
   const provider = ctx.provider
@@ -109,7 +109,7 @@ function defaultBackendGetManifests(ctx: KubernetesPluginContext): {
         spec: {
           containers: [
             {
-              image: gardenIngressControllerDefaultBackendImage,
+              image: defaultGardenIngressControllerDefaultBackendImage,
               imagePullPolicy: "IfNotPresent",
               name: "default-backend",
               ports: [

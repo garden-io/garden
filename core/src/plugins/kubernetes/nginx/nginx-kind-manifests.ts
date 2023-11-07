@@ -7,6 +7,10 @@
  */
 
 import type { KubernetesResource } from "../types.js"
+import {
+  defaultGardenIngressControllerImage,
+  defaultGardenIngressControllerKubeWebhookCertGenImage,
+} from "../constants.js"
 
 export function kindNginxGetManifests(namespace: string): KubernetesResource[] {
   return [
@@ -476,8 +480,7 @@ export function kindNginxGetManifests(namespace: string): KubernetesResource[] {
                     value: "/usr/local/lib/libmimalloc.so",
                   },
                 ],
-                image:
-                  "k8s.gcr.io/ingress-nginx/controller:v1.1.3@sha256:31f47c1e202b39fadecf822a9b76370bd4baed199a005b3e7d4d1455f4fd3fe2",
+                image: defaultGardenIngressControllerImage,
                 imagePullPolicy: "IfNotPresent",
                 lifecycle: {
                   preStop: {
@@ -624,8 +627,7 @@ export function kindNginxGetManifests(namespace: string): KubernetesResource[] {
                     },
                   },
                 ],
-                image:
-                  "k8s.gcr.io/ingress-nginx/kube-webhook-certgen:v1.1.1@sha256:64d8c73dca984af206adf9d6d7e46aa550362b1d7a01f3a0a91b20cc67868660",
+                image: defaultGardenIngressControllerKubeWebhookCertGenImage,
                 imagePullPolicy: "IfNotPresent",
                 name: "create",
                 securityContext: {
@@ -694,8 +696,7 @@ export function kindNginxGetManifests(namespace: string): KubernetesResource[] {
                     },
                   },
                 ],
-                image:
-                  "k8s.gcr.io/ingress-nginx/kube-webhook-certgen:v1.1.1@sha256:64d8c73dca984af206adf9d6d7e46aa550362b1d7a01f3a0a91b20cc67868660",
+                image: defaultGardenIngressControllerKubeWebhookCertGenImage,
                 imagePullPolicy: "IfNotPresent",
                 name: "patch",
                 securityContext: {
