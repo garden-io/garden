@@ -5,7 +5,7 @@ FROM google/cloud-sdk:411.0.0@sha256:b5c292e4cbf1ff57853a5f48bda5bf1f01c4750bc3d
 FROM cibuilds/github:0.12.2@sha256:a247975213771f2f4c61b806771ef6c22b225fdc46558738b7c935517c0dcdd4 AS ghr
 
 #### ldid utility ####
-FROM cimg/node:18.15.0@sha256:df9aca3abafd201dec9bfa7bff8acda46fdaee9dc20be669aeaf025fcaa0c029 as ldid
+FROM cimg/node:21.1.0@sha256:371d4fd082e62b57d8bcd2294624880e35e25bebe07ed5ece0a28b09d0d9e0bb as ldid
 
 RUN sudo apt-get update && sudo apt-get install -qq -y --no-install-recommends \
   git \
@@ -22,7 +22,7 @@ RUN cd /tmp && \
   sudo cp -f ./ldid /usr/local/bin/ldid
 
 #### main ####
-FROM cimg/node:18.15.0@sha256:df9aca3abafd201dec9bfa7bff8acda46fdaee9dc20be669aeaf025fcaa0c029
+FROM cimg/node:21.1.0@sha256:371d4fd082e62b57d8bcd2294624880e35e25bebe07ed5ece0a28b09d0d9e0bb
 
 # install system deps
 RUN sudo apt-get update && sudo apt-get -y install rsync parallel python3 curl

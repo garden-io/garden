@@ -31,7 +31,7 @@ parameters:
       docker_layer_caching: true
 
   runner-image: &runner-image
-    image: gardendev/circleci-runner:18.15.0-1@sha256:c830e29ab30a1c5b08cba4d041d3325ef6958aebeba1b10b1ee9566d7b1a4d42
+    image: gardendev/circleci-runner:21.1.0-1@sha256:1b773f6fcde1d9b65cb8a609c823076b3048104e73f04247e0fd86aa9bcc92dd
 
   # Configuration for our node jobs
   docker-runner: &docker-runner
@@ -381,7 +381,7 @@ jobs:
     steps:
       - checkout
       - node/install:
-          node-version: '18.18.2'
+          node-version: '21.1.0'
       - install_rust
       # We need rosetta for running the tests for x86_64
       - macos/install-rosetta
@@ -409,7 +409,7 @@ jobs:
     steps:
       - checkout
       - node/install:
-          node-version: '18.18.2'
+          node-version: '21.1.0'
       - install_rust
       - run:
           name: "Install rollup linux"
