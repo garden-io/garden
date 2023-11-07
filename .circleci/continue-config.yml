@@ -21,7 +21,7 @@ parameters:
     GARDEN_DISABLE_ANALYTICS: "true"
     GARDEN_K8S_BUILD_SYNC_MODE: "mutagen"
 
-  shared-machine-config: &shared-machine-config
+  ubuntu-vm-runner: &ubuntu-vm-runner
     image: "ubuntu-2204:2023.02.1"
     docker_layer_caching: true
 
@@ -34,7 +34,7 @@ parameters:
     image: gardendev/circleci-runner:18.15.0-1@sha256:c830e29ab30a1c5b08cba4d041d3325ef6958aebeba1b10b1ee9566d7b1a4d42
 
   # Configuration for our node jobs
-  node-config: &node-config
+  docker-runner: &docker-runner
     docker:
       - <<: *runner-image
         environment:
@@ -98,17 +98,21 @@ commands:
       context:
         description: Set this to vm if installing in a VM, to avoid conflicting caches with the docker runs
         type: string
-        default: docker
     steps:
+      # See also https://github.com/CircleCI-Public/node-orb/issues/158#issuecomment-1461095390
+      - run: rm -rf ~/.npm
       - restore_cache:
           keys:
-            - npm-v2-<<parameters.context>>-{{ checksum "package-lock.json" }}
+            # Prefer using the NPM cache for the package-lock hash, but fall back to any other cache too
+            - npm-v4-<<parameters.context>>-{{ checksum "package-lock.json" }}
+            - npm-v4-<<parameters.context>>
 
-      - run: npm ci
+      - run: npm ci --prefer-offline --cache ~/.npm --no-audit
 
       - save_cache:
-          key: npm-v2-<<parameters.context>>-{{ checksum "package-lock.json" }}
+          key: npm-v4-<<parameters.context>>-{{ checksum "package-lock.json" }}
           paths:
+            - ~/.npm
             - node_modules
             - cli/node_modules
             - core/node_modules
@@ -267,14 +271,20 @@ commands:
           e.g. when creating unstable releases. The script defaults to using the version from core/package.json.
         type: string
         default: ""
+      context:
+        description: Set this to the operating system, to avoid conflicting caches with the docker runs
+        type: string
     steps:
       - *attach-workspace
-      - run:
-          name: NPM install
-          command: npm ci
-      # restore node cache
+
+      - npm_install:
+          context: <<parameters.context>>
+
       - restore_cache:
-          key: node-cache-v1
+          keys:
+            - node-cache-v2-<<parameters.context>>-{{ checksum "cli/src/build-pkg.ts" }}
+            - node-cache-v2-<<parameters.context>>
+
       - run:
           name: Run dist script
           command: |
@@ -285,11 +295,13 @@ commands:
             source "$HOME/.cargo/env"
 
             npm run dist -- --version "<<parameters.version>>" <<parameters.targets>>
+
       # We cache the node archives because the NodeJS download mirror is unreliable
       - save_cache:
-          key: node-cache-v1
+          key: node-cache-v2-<<parameters.context>>-{{ checksum "cli/src/build-pkg.ts" }}
           paths:
             - garden-sea/tmp/node
+
       - persist_to_workspace:
           root: ./
           paths:
@@ -331,10 +343,11 @@ commands:
 #
 jobs:
   build:
-    <<: *node-config
+    <<: *docker-runner
     steps:
       - checkout
-      - npm_install
+      - npm_install:
+          context: docker
       - run:
           name: build
           command: |
@@ -381,12 +394,12 @@ jobs:
       - run_npm_dist:
           version: <<parameters.version>>
           targets: "macos-amd64 macos-arm64"
+          context: vm-macos
       - fail_fast
 
   build-dist-linux-windows:
     machine:
-      image: ubuntu-2204:current
-      docker_layer_caching: true
+      <<: *ubuntu-vm-runner
     resource_class: large
     parameters:
       version:
@@ -404,14 +417,16 @@ jobs:
       - run_npm_dist:
           version: <<parameters.version>>
           targets: "linux-amd64 linux-arm64 alpine-amd64 windows-amd64"
+          context: vm-ubuntu
       - fail_fast
 
   lint:
-    <<: *node-config
+    <<: *docker-runner
     resource_class: large
     steps:
       - checkout
-      - npm_install
+      - npm_install:
+          context: docker
       - *attach-workspace
       - run:
           name: lint
@@ -419,10 +434,11 @@ jobs:
       - fail_fast
 
   check-docs:
-    <<: *node-config
+    <<: *docker-runner
     steps:
       - checkout
-      - npm_install
+      - npm_install:
+          context: docker
       - *attach-workspace
       - run:
           name: Make sure generated docs are up-to-date
@@ -430,10 +446,11 @@ jobs:
       - fail_fast
 
   check-package-licenses:
-    <<: *node-config
+    <<: *docker-runner
     steps:
       - checkout
-      - npm_install
+      - npm_install:
+          context: docker
       - *attach-workspace
       - run:
           name: Make sure dependency licenses are okay
@@ -443,12 +460,13 @@ jobs:
       - fail_fast
 
   test-framework:
-    <<: *node-config
+    <<: *docker-runner
     resource_class: large
     steps:
       - checkout
       - *remote-docker
-      - npm_install
+      - npm_install:
+          context: docker
       - *attach-workspace
       - configure_git
       - run:
@@ -461,7 +479,7 @@ jobs:
       - fail_fast
 
   e2e-project:
-    <<: *node-config
+    <<: *docker-runner
     parameters:
       project:
         description: The example project to test
@@ -472,7 +490,8 @@ jobs:
         default: testing
     steps:
       - checkout
-      - npm_install
+      - npm_install:
+          context: docker
       - configure_remote_cluster
       - docker_login
       - *attach-workspace
@@ -489,7 +508,7 @@ jobs:
 
   test-dockerhub:
     machine:
-      <<: *shared-machine-config
+      <<: *ubuntu-vm-runner
     resource_class: xlarge
     steps:
       # Only run test-dockerhub if path-filter noticed changes in ./support/*
@@ -512,7 +531,7 @@ jobs:
 
   dockerhub-release:
     machine:
-      <<: *shared-machine-config
+      <<: *ubuntu-vm-runner
     resource_class: xlarge
     steps:
       - update_buildx
@@ -651,7 +670,7 @@ jobs:
       - fail_fast
 
   test-dist:
-    <<: *node-config
+    <<: *docker-runner
     steps:
       # Need to checkout to run example project
       - checkout
@@ -676,7 +695,7 @@ jobs:
 
   test-plugins:
     machine:
-      <<: *shared-machine-config
+      <<: *ubuntu-vm-runner
     parameters:
       kindNodeImage:
         description: The kind node image to use
@@ -692,7 +711,7 @@ jobs:
           kindNodeImage: <<parameters.kindNodeImage>>
       - configure_git
       - npm_install:
-          context: vm
+          context: vm-ubuntu
       - *attach-workspace
       # Restore Maven cache
       - restore_cache:
@@ -711,7 +730,7 @@ jobs:
 
   test-kind:
     machine:
-      <<: *shared-machine-config
+      <<: *ubuntu-vm-runner
     parameters:
       kindNodeImage:
         description: The kind node image to use
@@ -727,7 +746,7 @@ jobs:
           kindNodeImage: <<parameters.kindNodeImage>>
       - configure_git
       - npm_install:
-          context: vm
+          context: vm-ubuntu
       - *attach-workspace
       - run:
           name: Integ tests
@@ -744,7 +763,7 @@ jobs:
 
   test-microk8s:
     machine:
-      <<: *shared-machine-config
+      <<: *ubuntu-vm-runner
     resource_class: large
     parameters:
       kubernetesVersion:
@@ -793,7 +812,7 @@ jobs:
             echo "********* env prepped! *********"
       - configure_git
       - npm_install:
-          context: vm
+          context: vm-ubuntu
       - *attach-workspace
       - run:
           name: Integ tests
@@ -810,7 +829,7 @@ jobs:
 
   test-minikube:
     machine:
-      <<: *shared-machine-config
+      <<: *ubuntu-vm-runner
     resource_class: large
     parameters:
       minikubeVersion:
@@ -845,7 +864,7 @@ jobs:
       - docker_login
       - configure_git
       - npm_install:
-          context: vm
+          context: vm-ubuntu
       - *attach-workspace
       - run:
           name: Install Minikube Executable
@@ -890,7 +909,7 @@ jobs:
 
   test-k3s:
     machine:
-      <<: *shared-machine-config
+      <<: *ubuntu-vm-runner
     resource_class: large
     parameters:
       k3sVersion:
@@ -912,7 +931,7 @@ jobs:
       - docker_login
       - configure_git
       - npm_install:
-          context: vm
+          context: vm-ubuntu
       - *attach-workspace
       - run:
           name: Install K3s and start cluster
