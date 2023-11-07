@@ -105,7 +105,7 @@ import {
 import { dedent, deline, naturalList, wordWrap } from "./util/string.js"
 import { DependencyGraph } from "./graph/common.js"
 import { Profile, profileAsync } from "./util/profiling.js"
-import username from "username"
+import { username } from "username"
 import {
   throwOnMissingSecretKeys,
   resolveTemplateString,

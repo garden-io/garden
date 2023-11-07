@@ -15,7 +15,8 @@ import type { ExecOpts } from "../../util/util.js"
 import { sleep } from "../../util/util.js"
 import { TimeoutError } from "../../exceptions.js"
 import type { Log } from "../../logger/log-entry.js"
-import execa from "execa"
+import type { ExecaReturnBase } from "execa"
+import { execa } from "execa"
 import chalk from "chalk"
 import { renderMessageWithDivider } from "../../logger/util.js"
 import { LogLevel } from "../../logger/logger.js"
@@ -266,7 +267,7 @@ export async function deployPersistentExecService({
 
   if (spec.statusCommand) {
     let ready = false
-    let lastStatusResult: execa.ExecaReturnBase<string> | undefined
+    let lastStatusResult: ExecaReturnBase<string> | undefined
 
     while (!ready) {
       await sleep(persistentLocalProcRetryIntervalMs)

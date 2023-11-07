@@ -28,6 +28,7 @@ import {
   some,
   uniqBy,
 } from "lodash-es"
+import type { Options as PMapOptions } from "p-map"
 import pMap from "p-map"
 import pProps from "p-props"
 import { isAbsolute, relative } from "node:path"
@@ -47,7 +48,8 @@ import type { Log } from "../logger/log-entry.js"
 import { getDefaultProfiler } from "./profiling.js"
 import { dedent, naturalList, tailString } from "./string.js"
 import split2 from "split2"
-import execa from "execa"
+import type { ExecaError, Options as ExecaOptions } from "execa"
+import { execa } from "execa"
 import corePackageJson from "../../package.json" assert { type: "json" }
 
 export { apply as jsonMerge } from "json-merge-patch"
@@ -189,7 +191,7 @@ export function createOutputStream(log: Log, origin?: string) {
 
   return outputStream
 }
-export interface ExecOpts extends execa.Options {
+export interface ExecOpts extends ExecaOptions {
   stdout?: Writable
   stderr?: Writable
 }
@@ -233,7 +235,7 @@ export async function exec(cmd: string, args: string[], opts: ExecOpts = {}) {
       })
     }
 
-    const error = <execa.ExecaError>err
+    const error = <ExecaError>err
     throw new ChildProcessError({
       cmd,
       args,
@@ -396,7 +398,9 @@ export async function deepResolve<T>(
   if (isArray(value)) {
     return await pMap(value, deepResolve)
   } else if (isPlainObject(value)) {
-    return await pProps(<ResolvableProps<T>>mapValues(<ResolvableProps<T>>value, deepResolve))
+    return (await pProps(<ResolvableProps<T>>mapValues(<ResolvableProps<T>>value, deepResolve))) as {
+      [K in keyof T]: T[K]
+    }
   } else {
     return Promise.resolve(<T>value)
   }
@@ -411,7 +415,7 @@ type DeepMappable = any | ArrayLike<DeepMappable> | { [k: string]: DeepMappable 
 export async function asyncDeepMap<T extends DeepMappable>(
   obj: T,
   mapper: (value) => Promise<any>,
-  options?: pMap.Options
+  options?: PMapOptions
 ): Promise<T> {
   if (isArray(obj)) {
     return <any>pMap(obj, (v) => asyncDeepMap(v, mapper, options), options)

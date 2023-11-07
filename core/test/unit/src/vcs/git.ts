@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import execa from "execa"
+import { execa } from "execa"
 import { expect } from "chai"
 import tmp from "tmp-promise"
 import fsExtra from "fs-extra"

@@ -9,11 +9,11 @@
     "@garden-io/sdk": "*",
     "js-yaml": "^4.1.0",
     "chalk": "^4.1.0",
-    "execa": "^4.0.3",
+    "execa": "^8.0.1",
     "fs-extra": "^11.1.0",
     "lodash-es": "^4.17.21",
-    "slash": "^3.0.0",
-    "which": "^3.0.0",
+    "slash": "^5.1.0",
+    "which": "^4.0.0",
     "json-merge-patch": "^1.0.2"
   },
   "devDependencies": {

@@ -8,7 +8,7 @@
 
 import type { ChildProcess } from "child_process"
 import { spawn } from "child_process"
-import execa from "execa"
+import { execa } from "execa"
 import { resolve } from "path"
 import { sleep } from "@garden-io/core/build/src/util/util.js"
 import { searchLog, findTasks, touchFile, parsedArgs, parseLogEntry, stringifyJsonLog } from "./helpers.js"

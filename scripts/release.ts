@@ -9,7 +9,7 @@
 
 /* eslint-disable no-console */
 
-import execa from "execa"
+import { execa } from "execa"
 import semver from "semver"
 import inquirer from "inquirer"
 import chalk from "chalk"

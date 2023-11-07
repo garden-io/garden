@@ -8,7 +8,7 @@
 
 import type tmp from "tmp-promise"
 import type { ProjectConfig } from "../../../../../../src/config/project.js"
-import execa from "execa"
+import { execa } from "execa"
 import { DEFAULT_BUILD_TIMEOUT_SEC, GardenApiVersion } from "../../../../../../src/constants.js"
 import { expect } from "chai"
 import { TestGarden, makeTempDir, createProjectConfig } from "../../../../../helpers.js"
