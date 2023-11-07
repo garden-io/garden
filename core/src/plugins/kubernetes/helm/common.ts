@@ -10,7 +10,7 @@ import { flatten, isPlainObject } from "lodash-es"
 import { join, resolve } from "path"
 import fsExtra from "fs-extra"
 const { pathExists, readFile, remove, writeFile } = fsExtra
-import tempy from "tempy"
+import { temporaryWrite } from "tempy"
 import cryptoRandomString from "crypto-random-string"
 
 import type { PluginContext } from "../../../plugin-context.js"
@@ -101,7 +101,7 @@ export async function prepareTemplates({ ctx, action, log }: PrepareTemplatesPar
     version: action.versionString(),
   }
 
-  const valuesPath = await tempy.write(safeDumpYaml(values))
+  const valuesPath = await temporaryWrite(safeDumpYaml(values))
   log.silly(`Wrote chart values to ${valuesPath}`)
 
   const releaseName = getReleaseName(action)

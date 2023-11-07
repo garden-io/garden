@@ -138,7 +138,7 @@
     "strip-ansi": "^6.0.1",
     "supertest": "^6.3.3",
     "tar": "^6.1.13",
-    "tempy": "^1.0.1",
+    "tempy": "^3.1.0",
     "titleize": "^4.0.0",
     "tmp-promise": "^3.0.3",
     "toposort": "^2.0.2",
