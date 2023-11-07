@@ -117,19 +117,21 @@ commands:
           name: Install NodeJS
           command: |
             if [[ "$(node --version)" != "<<parameters.node_version>>" ]]; then
-              # Install fnm if it's not already installed
               export PATH="$HOME/.fnm:$PATH"
+              echo 'export PATH="$HOME/.fnm:$PATH"' >> $BASH_ENV
 
+              # Install fnm if it's not already installed
               if which fnm; then
                 echo "Using cached fnm installation"
               else
                 curl -fsSL https://raw.githubusercontent.com/Schniz/fnm/9d0dd1b04521ac4a1c25bb91a65323dbb691e40c/.ci/install.sh | bash -s -- --install-dir "$HOME/.fnm" --force-install
               fi
 
-              fnm env >> $BASH_ENV
-              eval $(fnm env)
+              eval "`fnm env --fnm-dir "$HOME/.fnm-cache"`"
+              fnm env --fnm-dir "$HOME/.fnm-cache" >> $BASH_ENV
 
               fnm use "<<parameters.node_version>>" --fnm-dir "$HOME/.fnm-cache" --install-if-missing
+              fnm default "<<parameters.node_version>>" --fnm-dir "$HOME/.fnm-cache"
             fi
       - run:
           name: Test NodeJS version
