@@ -432,7 +432,6 @@ export class Garden {
       this.log.silly("No OTEL collector configured, setting no-op exporter")
       configureNoOpExporter()
     }
-
   }
 
   static async factory<T extends typeof Garden>(
@@ -1866,7 +1865,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
     // Same applies for domains.
     const projectId = cloudProject?.id || config.id
     const cloudDomain = cloudApi?.domain || getGardenCloudDomain(config.domain)
-    const availableCloudFeatures = cloudProject?.availableFeatures ?? { distributedCache: false}
+    const availableCloudFeatures = cloudProject?.availableFeatures ?? { distributedCache: false }
 
     config = resolveProjectConfig({
       log,
@@ -1966,7 +1965,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
       cloudApi,
       cache: treeCache,
       projectApiVersion,
-      availableCloudFeatures
+      availableCloudFeatures,
     }
   })
 })

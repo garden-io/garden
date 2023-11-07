@@ -167,12 +167,9 @@ describe("TestTask", () => {
 
     it("should run tests, if the api returns a cache miss", async () => {
       // mock a cache miss
-      scope
-        .get("/api/cache/action")
-        .query(true)
-        .reply(200, {
-          status: "error",
-        })
+      scope.get("/api/cache/action").query(true).reply(200, {
+        status: "error",
+      })
 
       const unresolvedAction1 = graph1.getTest("e2e-test")
       const testTask = new TestTask({

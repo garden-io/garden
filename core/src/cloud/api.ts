@@ -17,7 +17,7 @@ import {
   GetProfileResponse,
   GetProjectResponse,
   ListProjectsResponse,
-  Status
+  Status,
 } from "@garden-io/platform-api-types"
 import chalk from "chalk"
 import { add } from "date-fns"
@@ -158,7 +158,7 @@ function toCloudProject(
     availableFeatures: {
       // todo fix types once imported platform types package is updated
       distributedCache: (project as any).availableFeatures?.distributedCache || false,
-    }
+    },
   }
 }
 
@@ -868,7 +868,6 @@ export class CloudApi {
     }
   }
 
-
   async getCachedAction({
     projectId,
     actionName,
@@ -885,7 +884,9 @@ export class CloudApi {
     }
     const queryParamsString = qs.stringify(params)
     // TODO: import types from platform-api-types package once published to npm
-    const response = await this.get<{ status: Status; data: any }>(`/cache/action?${queryParamsString}`, { retry: false})
+    const response = await this.get<{ status: Status; data: any }>(`/cache/action?${queryParamsString}`, {
+      retry: false,
+    })
     return response
   }
 }
