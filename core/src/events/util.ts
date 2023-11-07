@@ -7,7 +7,8 @@
  */
 
 import type { ValidExecutionActionResultType } from "../tasks/base.js"
-import { Resolved, type Action, type ActionState } from "../actions/types.js"
+import type { Resolved } from "../actions/types.js"
+import { type Action, type ActionState } from "../actions/types.js"
 import type { DeployStatus } from "../plugin/handlers/Deploy/get-status.js"
 import type { DeployStatusForEventPayload } from "../types/service.js"
 import type { Events, ActionStatusEventName } from "./events.js"

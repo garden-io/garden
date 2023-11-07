@@ -14,8 +14,8 @@ import type { TestAction } from "../actions/test.js"
 import type { GetTestResult } from "../plugin/handlers/Test/get-result.js"
 import { OtelTraced } from "../util/open-telemetry/decorators.js"
 import { GardenError } from "../exceptions.js"
-import { CheckCacheRequestParams } from "../cloud/api.js"
-import { TestResult } from "../types/test.js"
+import type { CheckCacheRequestParams } from "../cloud/api.js"
+import type { TestResult } from "../types/test.js"
 
 /**
  * Only throw this error when the test itself failed, and not when Garden failed to execute the test.

@@ -35,7 +35,7 @@ import { LogLevel } from "../logger/logger.js"
 import { makeAuthHeader } from "./auth.js"
 import type { StringMap } from "../config/common.js"
 import chalk from "chalk"
-import { AvailableCloudFeatures } from "../garden.js"
+import type { AvailableCloudFeatures } from "../garden.js"
 import qs from "qs"
 
 const gardenClientName = "garden-core"

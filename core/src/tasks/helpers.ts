@@ -10,7 +10,7 @@ import { forOwn, includes, isArray, isPlainObject, isString, mapKeys, mapValues,
 import type { GraphResults } from "../graph/results.js"
 import type { DeployStatus } from "../plugin/handlers/Deploy/get-status.js"
 import { splitLast } from "../util/string.js"
-import { ActionConfig } from "../actions/types.js"
+import type { ActionConfig } from "../actions/types.js"
 
 export function getDeployStatuses(dependencyResults: GraphResults): { [name: string]: DeployStatus } {
   const deployResults = pickBy(dependencyResults.getMap(), (r) => r && r.type === "deploy")

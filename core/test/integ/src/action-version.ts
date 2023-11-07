@@ -8,11 +8,11 @@
 
 import { expect } from "chai"
 import { cloneDeep } from "lodash"
-import { Garden } from "../../../src/index.js"
-import { ConfigGraph } from "../../../src/graph/config-graph.js"
-import { PluginContext } from "../../../src/plugin-context.js"
-import { KubernetesProvider } from "../../../src/plugins/kubernetes/config.js"
-import { KubernetesDeployAction } from "../../../src/plugins/kubernetes/kubernetes-type/config.js"
+import type { Garden } from "../../../src/index.js"
+import type { ConfigGraph } from "../../../src/graph/config-graph.js"
+import type { PluginContext } from "../../../src/plugin-context.js"
+import type { KubernetesProvider } from "../../../src/plugins/kubernetes/config.js"
+import type { KubernetesDeployAction } from "../../../src/plugins/kubernetes/kubernetes-type/config.js"
 import { getDataDir, makeTestGarden } from "../../helpers.js"
 
 describe("action-version", () => {
