@@ -1,4 +1,4 @@
-#!/usr/bin/env node --experimental-loader=ts-node/esm
+#!/usr/bin/env node --import ./scripts/register-hook.js
 /*
  * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
