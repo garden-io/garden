@@ -8,7 +8,6 @@
 
 import { difference } from "lodash-es"
 import dedent from "dedent"
-import chalk from "chalk"
 
 import type { CommandResult, CommandParams } from "../base.js"
 import { Command } from "../base.js"
@@ -24,6 +23,7 @@ import { joiArray, joi } from "../../config/common.js"
 import type { ParameterValues } from "../../cli/params.js"
 import { StringsParameter } from "../../cli/params.js"
 import { naturalList } from "../../util/string.js"
+import { styles } from "../../logger/styles.js"
 
 const updateRemoteModulesArguments = {
   modules: new StringsParameter({
@@ -106,7 +106,7 @@ export async function updateRemoteModules({
 
     throw new ParameterError({
       message: dedent`
-        Expected module(s) ${chalk.underline(diff.join(","))} to have a remote source.
+        Expected module(s) ${styles.underline(diff.join(","))} to have a remote source.
         Modules with remote source: ${naturalList(modulesWithRemoteSource.map((m) => m.name))}
       `,
     })

@@ -18,11 +18,11 @@ import { gardenAnnotationKey } from "../../util/string.js"
 import { upsertConfigMap } from "./util.js"
 import { trimRunOutput } from "./helm/common.js"
 import { getSystemNamespace } from "./namespace.js"
-import chalk from "chalk"
 import type { TestActionHandler } from "../../plugin/action-types.js"
 import { runResultToActionState } from "../../actions/base.js"
 import type { HelmPodTestAction } from "./helm/config.js"
 import type { KubernetesTestAction } from "./kubernetes-type/config.js"
+import { styles } from "../../logger/styles.js"
 
 // TODO: figure out how to get rid of the any cast
 export const k8sGetTestResult: TestActionHandler<"getResult", any> = async (params) => {
@@ -96,7 +96,7 @@ export async function storeTestResult({ ctx, log, action, result }: StoreTestRes
       data,
     })
   } catch (err) {
-    log.warn(chalk.yellow(`Unable to store test result: ${err}`))
+    log.warn(styles.warning(`Unable to store test result: ${err}`))
   }
 
   return data

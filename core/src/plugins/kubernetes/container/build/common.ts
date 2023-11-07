@@ -17,7 +17,6 @@ import { InternalError, RuntimeError } from "../../../../exceptions.js"
 import type { Log } from "../../../../logger/log-entry.js"
 import { prepareDockerAuth } from "../../init.js"
 import { prepareSecrets } from "../../secrets.js"
-import chalk from "chalk"
 import { Mutagen } from "../../../../mutagen.js"
 import { randomString } from "../../../../util/string.js"
 import type { V1Container, V1Service } from "@kubernetes/client-node"
@@ -31,6 +30,7 @@ import { stringifyResources } from "../util.js"
 import { getKubectlExecDestination } from "../../sync.js"
 import { getRunningDeploymentPod } from "../../util.js"
 import { buildSyncVolumeName, dockerAuthSecretKey, k8sUtilImageName, rsyncPortName } from "../../constants.js"
+import { styles } from "../../../../logger/styles.js"
 
 export const utilContainerName = "util"
 export const utilRsyncPort = 8730
@@ -311,7 +311,7 @@ export async function ensureUtilDeployment({
 
     // Deploy the service
     deployLog.info(
-      chalk.gray(`-> Deploying ${utilDeploymentName} service in ${namespace} namespace (was ${status.state})`)
+      styles.primary(`-> Deploying ${utilDeploymentName} service in ${namespace} namespace (was ${status.state})`)
     )
 
     await api.upsert({ kind: "Deployment", namespace, log: deployLog, obj: deployment })
@@ -378,7 +378,7 @@ export async function ensureBuilderSecret({
   const existingSecret = await api.readBySpecOrNull({ log, namespace, manifest: authSecret })
 
   if (!existingSecret || authSecret.data?.[dockerAuthSecretKey] !== existingSecret.data?.[dockerAuthSecretKey]) {
-    log.info(chalk.gray(`-> Updating Docker auth secret in namespace ${namespace}`))
+    log.info(styles.primary(`-> Updating Docker auth secret in namespace ${namespace}`))
     await api.upsert({ kind: "Secret", namespace, log, obj: authSecret })
     updated = true
   }

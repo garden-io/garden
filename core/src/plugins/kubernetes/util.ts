@@ -9,7 +9,6 @@
 import { get, flatten, sortBy, omit, sample, isEmpty, find, cloneDeep, uniqBy } from "lodash-es"
 import type { V1Pod, V1EnvVar, V1Container, V1PodSpec, CoreV1Event } from "@kubernetes/client-node"
 import { apply as jsonMerge } from "json-merge-patch"
-import chalk from "chalk"
 import hasha from "hasha"
 
 import type {
@@ -51,6 +50,7 @@ import { getActionNamespace } from "./namespace.js"
 import type { Resolved } from "../../actions/types.js"
 import { serializeValues } from "../../util/serialization.js"
 import { PassThrough } from "stream"
+import { styles } from "../../logger/styles.js"
 
 const STATIC_LABEL_REGEX = /[0-9]/g
 export const workloadTypes = ["Deployment", "DaemonSet", "ReplicaSet", "StatefulSet"]
@@ -586,7 +586,7 @@ export async function getTargetResource({
     if (!pod) {
       const selectorStr = getSelectorString(query.podSelector)
       throw new ConfigurationError({
-        message: chalk.red(
+        message: styles.error(
           `Could not find any Pod matching provided podSelector (${selectorStr}) for target in ` +
             `${action.longDescription()}`
         ),
@@ -632,7 +632,7 @@ export async function getTargetResource({
       if (!target) {
         throw new ConfigurationError({
           message: dedent`
-            ${action.longDescription()} does not contain specified ${targetKind} ${chalk.white(targetName)}
+            ${action.longDescription()} does not contain specified ${targetKind} ${styles.accent(targetName)}
 
             The chart does declare the following resources: ${naturalList(chartResourceNames)}
             `,
@@ -651,7 +651,7 @@ export async function getTargetResource({
 
       if (applicableChartResources.length > 1) {
         throw new ConfigurationError({
-          message: chalk.red(
+          message: styles.error(
             deline`${action.longDescription()} contains multiple ${targetKind}s.
             You must specify a resource name in the appropriate config in order to identify the correct ${targetKind}
             to use.
@@ -678,7 +678,7 @@ export async function getTargetResource({
     }
     if (err.responseStatusCode === 404) {
       throw new ConfigurationError({
-        message: chalk.red(
+        message: styles.error(
           deline`${action.longDescription()} specifies target resource ${targetKind}/${targetName}, which could not be found in namespace ${namespace}.`
         ),
       })
@@ -794,18 +794,18 @@ export function getK8sProvider(providers: ProviderMap): KubernetesProvider {
 export function renderPodEvents(events: CoreV1Event[]): string {
   let text = ""
 
-  text += `${chalk.white("━━━ Events ━━━")}\n`
+  text += `${styles.accent("━━━ Events ━━━")}\n`
   for (const event of events) {
     const obj = event.involvedObject
-    const name = chalk.blueBright(`${obj.kind} ${obj.name}:`)
+    const name = styles.highlight(`${obj.kind} ${obj.name}:`)
     const msg = `${event.reason} - ${event.message}`
     const colored =
-      event.type === "Error" ? chalk.red(msg) : event.type === "Warning" ? chalk.yellow(msg) : chalk.white(msg)
+      event.type === "Error" ? styles.error(msg) : event.type === "Warning" ? styles.warning(msg) : styles.accent(msg)
     text += `${name} ${colored}\n`
   }
 
   if (events.length === 0) {
-    text += `${chalk.red("No matching events found")}\n`
+    text += `${styles.error("No matching events found")}\n`
   }
 
   return text

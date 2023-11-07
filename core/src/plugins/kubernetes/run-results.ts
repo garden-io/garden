@@ -17,13 +17,13 @@ import { gardenAnnotationKey } from "../../util/string.js"
 import hasha from "hasha"
 import { upsertConfigMap } from "./util.js"
 import { trimRunOutput } from "./helm/common.js"
-import chalk from "chalk"
 import { runResultToActionState } from "../../actions/base.js"
 import type { Action } from "../../actions/types.js"
 import type { RunResult } from "../../plugin/base.js"
 import type { RunActionHandler } from "../../plugin/action-types.js"
 import type { HelmPodRunAction } from "./helm/config.js"
 import type { KubernetesRunAction } from "./kubernetes-type/config.js"
+import { styles } from "../../logger/styles.js"
 
 // TODO: figure out how to get rid of the any cast here
 export const k8sGetRunResult: RunActionHandler<"getResult", any> = async (params) => {
@@ -105,7 +105,7 @@ export async function storeRunResult({ ctx, log, action, result }: StoreTaskResu
       data,
     })
   } catch (err) {
-    log.warn(chalk.yellow(`Unable to store Run result: ${err}`))
+    log.warn(styles.warning(`Unable to store Run result: ${err}`))
   }
 
   return data

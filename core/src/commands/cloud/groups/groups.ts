@@ -7,7 +7,6 @@
  */
 
 import type { ListGroupsResponse } from "@garden-io/platform-api-types"
-import chalk from "chalk"
 import { sortBy } from "lodash-es"
 import { StringsParameter } from "../../../cli/params.js"
 import { ConfigurationError } from "../../../exceptions.js"
@@ -16,6 +15,7 @@ import { dedent, deline, renderTable } from "../../../util/string.js"
 import type { CommandParams, CommandResult } from "../../base.js"
 import { Command, CommandGroup } from "../../base.js"
 import { noApiMsg, applyFilter } from "../helpers.js"
+import { styles } from "../../../logger/styles.js"
 
 // TODO: Add created at and updated at timestamps. Need to add it to the API response first.
 interface Groups {
@@ -91,9 +91,9 @@ export class GroupsListCommand extends Command<{}, Opts> {
 
     log.debug(`Found ${filtered.length} groups that match filters`)
 
-    const heading = ["Name", "ID", "Default Admin Group"].map((s) => chalk.bold(s))
+    const heading = ["Name", "ID", "Default Admin Group"].map((s) => styles.bold(s))
     const rows: string[][] = filtered.map((g) => {
-      return [chalk.cyan.bold(g.name), String(g.id), String(g.defaultAdminGroup)]
+      return [styles.highlight.bold(g.name), String(g.id), String(g.defaultAdminGroup)]
     })
 
     log.info(renderTable([heading].concat(rows)))

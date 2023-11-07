@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import chalk from "chalk"
 import type { Key } from "ink"
 import { max } from "lodash-es"
 import { resolve } from "path"
@@ -40,14 +39,15 @@ import type { GlobalOptions, ParameterObject, ParameterValues } from "./params.j
 import { bindActiveContext, withSessionContext } from "../util/open-telemetry/context.js"
 import { wrapActiveSpan } from "../util/open-telemetry/spans.js"
 import { DEFAULT_BROWSER_DIVIDER_WIDTH } from "../constants.js"
+import { styles } from "../logger/styles.js"
 
 const defaultMessageDuration = 3000
-const commandLinePrefix = chalk.yellow("🌼  > ")
-const emptyCommandLinePlaceholder = chalk.gray("<enter command> (enter help for more info)")
+const commandLinePrefix = styles.warning("🌼  > ")
+const emptyCommandLinePlaceholder = styles.primary("<enter command> (enter help for more info)")
 const inputHistoryLength = 100
 
-const styles = {
-  command: chalk.white.bold,
+const commandLineStyles = {
+  command: styles.accent.bold,
 }
 
 export type SetStringCallback = (data: string) => void
@@ -76,15 +76,16 @@ interface CommandLineEvents {
 function getCmdsRunningMsg(commandNames: string[]) {
   let msg = ""
   if (commandNames.length === 1) {
-    msg = chalk.cyan(`Running ${styles.command(commandNames[0])} command...`)
+    msg = styles.highlight(`Running ${commandLineStyles.command(commandNames[0])} command...`)
   } else if (commandNames.length > 1) {
-    msg = chalk.cyan(`Running ${commandNames.length} commands: `) + styles.command(commandNames.join(", "))
+    msg =
+      styles.highlight(`Running ${commandNames.length} commands: `) + commandLineStyles.command(commandNames.join(", "))
   }
   return msg
 }
 
 function getCmdSuccessMsg(commandName: string) {
-  return `${chalk.cyan(commandName)} command completed successfully!`
+  return `${styles.highlight(commandName)} command completed successfully!`
 }
 
 function getCmdFailMsg(commandName: string) {
@@ -99,7 +100,7 @@ function getCmdFailMsg(commandName: string) {
  * by the web UI.
  */
 function logCommand({ msg, log, width, error }: { msg: string; log: Log; width: number; error: boolean }) {
-  const dividerColor = error ? chalk.red : chalk.blueBright
+  const dividerColor = error ? styles.error : styles.highlight
   const dividerOptsBase = { width, title: msg, color: dividerColor, char: "┈" }
   const terminalMsg = renderDivider(dividerOptsBase)
   const rawMsg = renderDivider({ ...dividerOptsBase, width: DEFAULT_BROWSER_DIVIDER_WIDTH })
@@ -428,18 +429,18 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
     const suggestions = this.getSuggestions(this.currentCommand.length)
 
     if (this.isSuggestedCommand(suggestions)) {
-      renderedCommand = chalk.cyan(renderedCommand)
+      renderedCommand = styles.highlight(renderedCommand)
     }
 
     if (suggestions.length > 0) {
       // Show autocomplete suggestion after string
-      renderedCommand = renderedCommand + chalk.gray(suggestions[0].line.substring(renderedCommand.length))
+      renderedCommand = renderedCommand + styles.primary(suggestions[0].line.substring(renderedCommand.length))
     }
 
     if (renderedCommand.length === 0) {
       if (this.showCursor) {
         renderedCommand =
-          chalk.underline(sliceAnsi(emptyCommandLinePlaceholder, 0, 1)) + sliceAnsi(emptyCommandLinePlaceholder, 1)
+          styles.underline(sliceAnsi(emptyCommandLinePlaceholder, 0, 1)) + sliceAnsi(emptyCommandLinePlaceholder, 1)
       } else {
         renderedCommand = emptyCommandLinePlaceholder
       }
@@ -450,7 +451,7 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
 
       renderedCommand =
         sliceAnsi(renderedCommand, 0, this.cursorPosition) +
-        (this.showCursor ? chalk.underline(cursorChar) : cursorChar) +
+        (this.showCursor ? styles.underline(cursorChar) : cursorChar) +
         sliceAnsi(renderedCommand, this.cursorPosition + 1)
     }
 
@@ -489,13 +490,13 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
     }
 
     const char = "┈"
-    const color = chalk.bold
+    const color = styles.bold
 
     // `dedent` has a bug where it doesn't indent correctly
     // when there's ANSI codes in the beginning of a line.
     // Thus we have to dedent like this.
     const wrapped = `
-${renderDivider({ title: chalk.bold(title), width, char, color })}
+${renderDivider({ title: styles.bold(title), width, char, color })}
 ${text}
 ${renderDivider({ width, char, color })}
 `
@@ -509,17 +510,17 @@ ${renderDivider({ width, char, color })}
     })
 
     const helpText = `
-${chalk.white.underline("Popular commands:")}
+${styles.accent.underline("Popular commands:")}
 
 ${renderCommands(getPopularCommands(commandsToRender))}
 
-${chalk.white.underline("Other commands:")}
+${styles.accent.underline("Other commands:")}
 
 ${renderCommands(getOtherCommands(commandsToRender))}
 
-${chalk.white.underline("Keys:")}
+${styles.accent.underline("Keys:")}
 
-  ${chalk.gray(`[tab]: auto-complete  [up/down]: command history  [ctrl-u]: clear line  [ctrl-d]: quit`)}
+  ${styles.primary(`[tab]: auto-complete  [up/down]: command history  [ctrl-u]: clear line  [ctrl-d]: quit`)}
 `
     this.printWithDividers(helpText, "help")
   }
@@ -543,15 +544,15 @@ ${chalk.white.underline("Keys:")}
   }
 
   flashSuccess(message: string, opts: FlashOpts = {}) {
-    this.flashMessage(chalk.green(message), { prefix: chalk.green("✔︎  "), ...opts })
+    this.flashMessage(styles.success(message), { prefix: styles.success("✔︎  "), ...opts })
   }
 
   flashError(message: string, opts: FlashOpts = {}) {
-    this.flashMessage(chalk.red(message), { prefix: "❗️  ", ...opts })
+    this.flashMessage(styles.error(message), { prefix: "❗️  ", ...opts })
   }
 
   flashWarning(message: string, opts: FlashOpts = {}) {
-    this.flashMessage(chalk.yellowBright(message), { prefix: chalk.yellow("⚠️  "), ...opts })
+    this.flashMessage(styles.warning(message), { prefix: styles.warning("⚠️  "), ...opts })
   }
 
   setKeyHandler(stringKey: string, handler: KeyHandler) {
@@ -608,7 +609,7 @@ ${chalk.white.underline("Keys:")}
     const { command, rest, matchedPath } = pickCommand(this.getCommands(), rawArgs)
 
     if (!command) {
-      this.flashError(`Could not find command. Try typing ${chalk.white("help")} to see the available commands.`)
+      this.flashError(`Could not find command. Try typing ${styles.accent("help")} to see the available commands.`)
       return
     }
 
@@ -775,7 +776,7 @@ ${chalk.white.underline("Keys:")}
           // Update persisted history
           // Note: We're currently not resolving history across concurrent dev commands, but that's anyway not well supported
           garden.localConfigStore.set("devCommandHistory", this.commandHistory).catch((error) => {
-            this.log.warn(chalk.yellow(`Could not persist command history: ${error}`))
+            this.log.warn(styles.warning(`Could not persist command history: ${error}`))
           })
 
           command

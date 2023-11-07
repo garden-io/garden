@@ -7,7 +7,6 @@
  */
 
 import type { ObjectSchema } from "@hapi/joi"
-import chalk from "chalk"
 import { runResultToActionState } from "../../../actions/base.js"
 import type { RunAction, RunActionConfig } from "../../../actions/run.js"
 import type { TestAction, TestActionConfig } from "../../../actions/test.js"
@@ -28,6 +27,7 @@ import type { SyncableResource } from "../types.js"
 import { execInWorkload, readTargetResource } from "../util.js"
 import type { KubernetesRunOutputs } from "./config.js"
 import { kubernetesRunOutputsSchema } from "./config.js"
+import { styles } from "../../../logger/styles.js"
 
 // RUN //
 
@@ -149,7 +149,7 @@ async function readAndExec({
     }
     if (err.responseStatusCode === 404) {
       throw new ConfigurationError({
-        message: chalk.red(
+        message: styles.error(
           dedent`
             ${action.longDescription()} specifies target resource ${targetKind}/${targetName}, which could not be found in namespace ${namespace}.
 

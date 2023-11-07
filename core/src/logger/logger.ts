@@ -206,7 +206,7 @@ interface LoggerInitParams extends LoggerConfigBase {
  * Other notes:
  *   - The Log instances may apply some styling depending on the context. In general you should
  *     not have to overwrite this and simply default to calling e.g. log.warn("oh noes")
- *     as opposed to log.warn({ msg: chalk.yellow("oh noes"), symbol: "warning" })
+ *     as opposed to log.warn({ msg: styles.warning("oh noes"), symbol: "warning" })
  *   - A Log instance contains all it's parent Log configs so conceptually we can rebuild
  *     the entire log graph, e.g. for testing. We're not using this as of writing.
  */

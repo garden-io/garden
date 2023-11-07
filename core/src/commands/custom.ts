@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import chalk from "chalk"
 import { execa } from "execa"
 import { apply as jsonMerge } from "json-merge-patch"
 import cloneDeep from "fast-copy"
@@ -32,6 +31,7 @@ import { join } from "path"
 import { getBuiltinCommands } from "./commands.js"
 import type { Log } from "../logger/log-entry.js"
 import { getTracePropagationEnvVars } from "../util/open-telemetry/propagation.js"
+import { styles } from "../logger/styles.js"
 
 function convertArgSpec(spec: CustomCommandOption) {
   const params = {
@@ -89,7 +89,7 @@ export class CustomCommandWrapper extends Command {
   }
 
   override printHeader({ log }: PrintHeaderParams) {
-    log.info(chalk.cyan(this.name))
+    log.info(styles.highlight(this.name))
   }
 
   async action({
@@ -272,7 +272,7 @@ export async function getCustomCommands(log: Log, projectRoot: string) {
       if (builtinNames.includes(r.name)) {
         // eslint-disable-next-line no-console
         console.log(
-          chalk.yellow(
+          styles.warning(
             `Ignoring custom command ${r.name} because it conflicts with a built-in command with the same name`
           )
         )

@@ -8,7 +8,6 @@
 
 import { resolve } from "path"
 import dedent from "dedent"
-import chalk from "chalk"
 
 import { ParameterError } from "../../exceptions.js"
 import type { CommandResult, CommandParams } from "../base.js"
@@ -20,6 +19,7 @@ import { joiArray, joi } from "../../config/common.js"
 import { linkedModuleSchema } from "../../config/project.js"
 import { StringParameter, PathParameter } from "../../cli/params.js"
 import { naturalList } from "../../util/string.js"
+import { styles } from "../../logger/styles.js"
 
 const linkModuleArguments = {
   module: new StringParameter({
@@ -78,7 +78,7 @@ export class LinkModuleCommand extends Command<Args> {
 
       throw new ParameterError({
         message: dedent`
-          Expected module(s) ${chalk.underline(
+          Expected module(s) ${styles.underline(
             moduleName
           )} to have a remote source. Did you mean to use the "link source" command? ${
             modulesWithRemoteSource.length > 0

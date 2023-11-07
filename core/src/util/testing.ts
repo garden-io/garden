@@ -47,7 +47,7 @@ import fsExtra from "fs-extra"
 const { mkdirp, remove } = fsExtra
 import { GlobalConfigStore } from "../config-store/global.js"
 import { isPromise } from "./objects.js"
-import chalk from "chalk"
+import { styles } from "../logger/styles.js"
 
 export class TestError extends GardenError {
   type = "_test"
@@ -428,7 +428,7 @@ export function expectFuzzyMatch(str: string, sample: string | string[]) {
     samplesNonAnsi.forEach((s) => expect(errorMessageNonAnsi.toLowerCase()).to.contain(s.toLowerCase()))
   } catch (err) {
     // eslint-disable-next-line no-console
-    console.log("Error message:\n", chalk.red(errorMessageNonAnsi), "\n")
+    console.log("Error message:\n", styles.error(errorMessageNonAnsi), "\n")
     throw err
   }
 }

@@ -36,7 +36,6 @@ import { getLinkedSources } from "./util/ext-source-util.js"
 import type { ActionReference, DeepPrimitiveMap } from "./config/common.js"
 import { allowUnknown } from "./config/common.js"
 import type { ProviderMap } from "./config/provider.js"
-import chalk from "chalk"
 import { DependencyGraph } from "./graph/common.js"
 import fsExtra from "fs-extra"
 const { mkdirp, readFile } = fsExtra
@@ -58,6 +57,7 @@ import type { ModuleGraph } from "./graph/modules.js"
 import type { GraphResults } from "./graph/results.js"
 import type { ExecBuildConfig } from "./plugins/exec/build.js"
 import { pMemoizeDecorator } from "./lib/p-memoize.js"
+import { styles } from "./logger/styles.js"
 
 // This limit is fairly arbitrary, but we need to have some cap on concurrent processing.
 export const moduleResolutionConcurrencyLimit = 50
@@ -206,12 +206,12 @@ export class ModuleResolver {
     const processLeaves = async () => {
       if (Object.keys(errors).length > 0) {
         const errorStr = Object.entries(errors)
-          .map(([name, err]) => `${chalk.white.bold(name)}: ${err.message}`)
+          .map(([name, err]) => `${styles.accent.bold(name)}: ${err.message}`)
           .join("\n")
         const msg = `Failed resolving one or more modules:\n\n${errorStr}`
 
         const combined = new ConfigurationError({
-          message: chalk.red(msg),
+          message: styles.error(msg),
           wrappedErrors: Object.values(errors),
         })
         throw combined
@@ -919,9 +919,9 @@ function inheritModuleToAction(module: GardenModule, action: ActionConfig) {
 
 function missingBuildDependency(moduleName: string, dependencyName: string) {
   return new ConfigurationError({
-    message: chalk.red(
-      `Could not find build dependency ${chalk.white(dependencyName)}, ` +
-        `configured in module ${chalk.white(moduleName)}`
+    message: styles.error(
+      `Could not find build dependency ${styles.accent(dependencyName)}, ` +
+        `configured in module ${styles.accent(moduleName)}`
     ),
   })
 }

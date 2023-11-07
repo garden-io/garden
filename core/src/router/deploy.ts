@@ -6,10 +6,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import chalk from "chalk"
 import type { ActionState } from "../actions/types.js"
 import { PluginEventBroker } from "../plugin-context.js"
 import type { DeployState } from "../types/service.js"
+import { styles } from "../logger/styles.js"
 import type { BaseRouterParams } from "./base.js"
 import { createActionRouter } from "./base.js"
 
@@ -92,7 +92,7 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
         params,
         handlerType: "getLogs",
         defaultHandler: async () => {
-          log.warn(chalk.yellow(`No handler for log retrieval available for action type ${action.type}`))
+          log.warn(styles.warning(`No handler for log retrieval available for action type ${action.type}`))
           return {}
         },
       })
@@ -137,7 +137,7 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
         params,
         handlerType: "startSync",
         defaultHandler: async () => {
-          log.debug(chalk.yellow(`No startSync handler available for action type ${action.type}`))
+          log.debug(styles.warning(`No startSync handler available for action type ${action.type}`))
           return {}
         },
       })
@@ -150,7 +150,7 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
         params,
         handlerType: "stopSync",
         defaultHandler: async () => {
-          log.debug(chalk.yellow(`No stopSync handler available for action type ${action.type}`))
+          log.debug(styles.warning(`No stopSync handler available for action type ${action.type}`))
           return {}
         },
       })

@@ -13,7 +13,6 @@ import { DeployTask } from "../../tasks/deploy.js"
 import { dedent, naturalList } from "../../util/string.js"
 import type { CommandParams, CommandResult, PrepareParams } from "../base.js"
 import { Command } from "../base.js"
-import chalk from "chalk"
 import { ParameterError, RuntimeError } from "../../exceptions.js"
 import { SyncMonitor } from "../../monitors/sync.js"
 import type { Log } from "../../logger/log-entry.js"
@@ -21,6 +20,7 @@ import { createActionLog } from "../../logger/log-entry.js"
 import type { DeployAction } from "../../actions/deploy.js"
 import type { ConfigGraph } from "../../graph/config-graph.js"
 import type { Garden } from "../../index.js"
+import { styles } from "../../logger/styles.js"
 
 const syncStartArgs = {
   names: new StringsParameter({
@@ -125,7 +125,7 @@ export class SyncStartCommand extends Command<Args, Opts> {
       const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
       if (!action.supportsMode("sync")) {
         if (names.includes(action.name)) {
-          actionLog.warn(chalk.yellow(`${action.longDescription()} does not support syncing.`))
+          actionLog.warn(styles.warning(`${action.longDescription()} does not support syncing.`))
         } else {
           actionLog.debug(`${action.longDescription()} does not support syncing.`)
         }
@@ -161,7 +161,7 @@ export class SyncStartCommand extends Command<Args, Opts> {
         return task
       })
       await garden.processTasks({ tasks, log })
-      log.info(chalk.green("\nDone!"))
+      log.info(styles.success("\nDone!"))
       return {}
     } else {
       // Don't deploy, just start syncs
@@ -175,7 +175,7 @@ export class SyncStartCommand extends Command<Args, Opts> {
         stopOnExit,
       })
       if (garden.monitors.getAll().length === 0) {
-        log.info(chalk.green("\nDone!"))
+        log.info(styles.success("\nDone!"))
       }
       return {}
     }
@@ -231,7 +231,7 @@ export async function startSyncWithoutDeploy({
       if (executedAction && (state === "outdated" || state === "ready")) {
         if (mode !== "sync") {
           actionLog.warn(
-            chalk.yellow(
+            styles.warning(
               `Not deployed in sync mode, cannot start sync. Try running this command with \`--deploy\` set.`
             )
           )
@@ -248,7 +248,7 @@ export async function startSyncWithoutDeploy({
           }
         } catch (error) {
           actionLog.warn(
-            chalk.yellow(dedent`
+            styles.warning(dedent`
             Failed starting sync for ${action.longDescription()}: ${error}
 
             You may need to re-deploy the action. Try running this command with \`--deploy\` set, or running \`garden deploy --sync\` before running this command again.
@@ -256,7 +256,7 @@ export async function startSyncWithoutDeploy({
           )
         }
       } else {
-        actionLog.warn(chalk.yellow(`${action.longDescription()} is not deployed, cannot start sync.`))
+        actionLog.warn(styles.warning(`${action.longDescription()} is not deployed, cannot start sync.`))
       }
     })
   )

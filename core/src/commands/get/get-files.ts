@@ -12,7 +12,7 @@ import { joi } from "../../config/common.js"
 import { printHeader } from "../../logger/util.js"
 import type { CommandParams, CommandResult } from "../base.js"
 import { Command } from "../base.js"
-import chalk from "chalk"
+import { styles } from "../../logger/styles.js"
 
 const getFilesArgs = {
   keys: new StringsParameter({
@@ -52,7 +52,7 @@ export class GetFilesCommand extends Command<Args, Opts> {
         const files = a.getFullVersion().files
 
         log.info("")
-        log.info(chalk.cyanBright(key))
+        log.info(styles.highlight(key))
         log.info(files.length ? files.map((f) => "- " + f).join("\n") : "(none)")
 
         return [key, files]

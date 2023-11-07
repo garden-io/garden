@@ -21,12 +21,12 @@ import { gardenEnv } from "../constants.js"
 import type { Garden } from "../garden.js"
 import type { GraphResultEventPayload } from "../events/events.js"
 import { renderDivider, renderDuration, renderMessageWithDivider } from "../logger/util.js"
-import chalk from "chalk"
 import type { CompleteTaskParams, InternalNodeTypes, TaskNode, TaskRequestParams } from "./nodes.js"
 import { getNodeKey, ProcessTaskNode, RequestTaskNode, StatusTaskNode } from "./nodes.js"
 import AsyncLock from "async-lock"
+import { styles } from "../logger/styles.js"
 
-const taskStyle = chalk.cyan.bold
+const taskStyle = styles.highlight.bold
 
 export interface SolveOpts {
   statusOnly?: boolean
@@ -506,7 +506,7 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
     log.error({ msg, rawMsg, error, showDuration: false })
     const divider = renderDivider()
     log.silly(
-      chalk.gray(`Full error with stack trace and wrapped errors:\n${divider}\n${error.toString(true)}\n${divider}`)
+      styles.primary(`Full error with stack trace and wrapped errors:\n${divider}\n${error.toString(true)}\n${divider}`)
     )
   }
 }

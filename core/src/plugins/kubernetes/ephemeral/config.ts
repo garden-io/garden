@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import chalk from "chalk"
 import fsExtra from "fs-extra"
 const { mkdirp, writeFile } = fsExtra
 import { load } from "js-yaml"
@@ -23,6 +22,7 @@ import { namespaceSchema } from "../config.js"
 import { EPHEMERAL_KUBERNETES_PROVIDER_NAME } from "./ephemeral.js"
 import { DEFAULT_GARDEN_CLOUD_DOMAIN } from "../../../constants.js"
 import { defaultSystemNamespace } from "../constants.js"
+import { styles } from "../../../logger/styles.js"
 
 export type EphemeralKubernetesClusterType = "ephemeral"
 
@@ -71,7 +71,7 @@ export async function configureProvider(params: ConfigureProviderParams<Kubernet
   const deadlineDateTime = moment(createEphemeralClusterResponse.instanceMetadata.deadline)
   const diffInNowAndDeadline = moment.duration(deadlineDateTime.diff(moment())).asMinutes().toFixed(1)
   log.info(
-    chalk.white(
+    styles.accent(
       `Ephemeral cluster will be destroyed in ${diffInNowAndDeadline} minutes, at ${deadlineDateTime.format(
         "YYYY-MM-DD HH:mm:ss"
       )}`
@@ -83,7 +83,7 @@ export async function configureProvider(params: ConfigureProviderParams<Kubernet
   const kubeconfigFileName = `${clusterId}-kubeconfig.yaml`
   const kubeConfigPath = join(ctx.gardenDirPath, "ephemeral-kubernetes", kubeconfigFileName)
   await writeFile(kubeConfigPath, kubeConfig)
-  log.info(`Kubeconfig for ephemeral cluster saved at path: ${chalk.underline(kubeConfigPath)}`)
+  log.info(`Kubeconfig for ephemeral cluster saved at path: ${styles.underline(kubeConfigPath)}`)
 
   const parsedKubeConfig: any = load(kubeConfig)
   baseConfig.context = parsedKubeConfig["current-context"]

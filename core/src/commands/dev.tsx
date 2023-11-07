@@ -15,7 +15,6 @@ import { LoggerType } from "../logger/logger.js"
 import { ParameterError, toGardenError } from "../exceptions.js"
 import { InkTerminalWriter } from "../logger/writers/ink-terminal-writer.js"
 import { CommandLine } from "../cli/command-line.js"
-import chalk from "chalk"
 import { globalOptions, StringsParameter } from "../cli/params.js"
 import { pick } from "lodash-es"
 import moment from "moment"
@@ -24,6 +23,7 @@ import Spinner from "ink-spinner"
 import type { Log } from "../logger/log-entry.js"
 import { bindActiveContext } from "../util/open-telemetry/context.js"
 import Divider from "../util/ink-divider.js"
+import { styles } from "../logger/styles.js"
 
 const devCommandArgs = {
   ...serveArgs,
@@ -58,17 +58,17 @@ export class DevCommand extends ServeCommand<DevCommandArgs, DevCommandOpts> {
     console.clear()
 
     log.info(
-      chalk.magenta(`
-${renderDivider({ color: chalk.green, title: chalk.green.bold("🌳  garden dev 🌳 "), width })}
+      styles.highlightSecondary(`
+${renderDivider({ color: styles.success, title: styles.success.bold("🌳  garden dev 🌳 "), width })}
 
-${chalk.bold(`Good ${getGreetingTime()}! Welcome to the Garden interactive development console.`)}
+${styles.bold(`Good ${getGreetingTime()}! Welcome to the Garden interactive development console.`)}
 
-Here, you can ${chalk.white("build")}, ${chalk.white("deploy")}, ${chalk.white("test")} and ${chalk.white(
+Here, you can ${styles.accent("build")}, ${styles.accent("deploy")}, ${styles.accent("test")} and ${styles.accent(
         "run"
       )} anything in your project, start code syncing, stream live logs and more.
 
-Use the command line below to enter Garden commands. Type ${chalk.white("help")} to get a full list of commands.
-Use ${chalk.bold("up/down")} arrow keys to scroll through your command history.
+Use the command line below to enter Garden commands. Type ${styles.accent("help")} to get a full list of commands.
+Use ${styles.bold("up/down")} arrow keys to scroll through your command history.
     `)
     )
   }
@@ -180,7 +180,7 @@ Use ${chalk.bold("up/down")} arrow keys to scroll through your command history.
       log.error(`Failed loading the project: ${error}`)
       log.error({ error: toGardenError(error) })
       this.commandLine?.flashError(
-        `Failed loading the project. See above logs for details. Type ${chalk.white("reload")} to try again.`
+        `Failed loading the project. See above logs for details. Type ${styles.accent("reload")} to try again.`
       )
     } finally {
       this.commandLine?.enable()
@@ -211,7 +211,7 @@ Use ${chalk.bold("up/down")} arrow keys to scroll through your command history.
       // We ensure that the process exits at most 5 seconds after a SIGINT / ctrl-c.
       setTimeout(() => {
         // eslint-disable-next-line no-console
-        console.error(chalk.red("\nTimed out waiting for Garden to exit. This is a bug, please report it!"))
+        console.error(styles.error("\nTimed out waiting for Garden to exit. This is a bug, please report it!"))
         process.exit(1)
       }, 5000)
 
@@ -219,12 +219,12 @@ Use ${chalk.bold("up/down")} arrow keys to scroll through your command history.
         .emitWarning({
           log,
           key: "dev-syncs-active",
-          message: chalk.yellow(
-            `Syncs started during this session may still be active when this command terminates. You can run ${chalk.white(
+          message: styles.warning(
+            `Syncs started during this session may still be active when this command terminates. You can run ${styles.accent(
               "garden sync stop '*'"
-            )} to stop all code syncs. Hint: To stop code syncing when exiting ${chalk.white(
+            )} to stop all code syncs. Hint: To stop code syncing when exiting ${styles.accent(
               "garden dev"
-            )}, use ${chalk.white("Ctrl-D")} or the ${chalk.white(`exit`)} command.`
+            )}, use ${styles.accent("Ctrl-D")} or the ${styles.accent(`exit`)} command.`
           ),
         })
         .catch(() => {})
@@ -281,7 +281,7 @@ class QuietCommand extends ConsoleCommand {
   override hidden = true
 
   async action({ commandLine }: CommandParams) {
-    commandLine?.flashMessage(chalk.italic("Shh!"), { prefix: "🤫  " })
+    commandLine?.flashMessage(styles.italic("Shh!"), { prefix: "🤫  " })
     return {}
   }
 }
@@ -292,7 +292,7 @@ class QuiteCommand extends ConsoleCommand {
   override hidden = true
 
   async action({ commandLine }: CommandParams) {
-    commandLine?.flashMessage(chalk.italic("Indeed!"), { prefix: "🎩  " })
+    commandLine?.flashMessage(styles.italic("Indeed!"), { prefix: "🎩  " })
     return {}
   }
 }

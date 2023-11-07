@@ -10,7 +10,6 @@ import { containerHelpers } from "../../../container/helpers.js"
 import { buildContainer, getContainerBuildStatus } from "../../../container/build.js"
 import type { KubernetesProvider, KubernetesPluginContext } from "../../config.js"
 import { loadImageToKind, getKindImageStatus } from "../../local/kind.js"
-import chalk from "chalk"
 import { loadImageToMicrok8s, getMicrok8sImageStatus } from "../../local/microk8s.js"
 import type { ContainerProvider } from "../../../container/container.js"
 import type { BuildHandler, BuildStatusHandler, BuildStatusResult } from "./common.js"
@@ -18,6 +17,7 @@ import { getManifestInspectArgs } from "./common.js"
 import type { ContainerBuildAction } from "../../../container/moduleConfig.js"
 import type { BuildActionParams } from "../../../../plugin/action-types.js"
 import { k8sGetContainerBuildActionOutputs } from "../handlers.js"
+import { styles } from "../../../../logger/styles.js"
 
 export const getLocalBuildStatus: BuildStatusHandler = async (params) => {
   const { ctx, action, log } = params
@@ -42,7 +42,7 @@ export const getLocalBuildStatus: BuildStatusHandler = async (params) => {
     // Non-zero exit code can both mean the manifest is not found, and any other unexpected error
     if (res.code !== 0 && !res.all.includes("no such manifest")) {
       const detail = res.all || `docker manifest inspect exited with code ${res.code}`
-      log.warn(chalk.yellow(`Unable to query registry for image status: ${detail}`))
+      log.warn(styles.warning(`Unable to query registry for image status: ${detail}`))
     }
 
     if (res.code === 0) {

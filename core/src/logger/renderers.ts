@@ -7,7 +7,6 @@
  */
 
 import logSymbols from "log-symbols"
-import chalk from "chalk"
 import stringify from "json-stringify-safe"
 import stripAnsi from "strip-ansi"
 import { isArray, repeat, trim } from "lodash-es"
@@ -19,10 +18,10 @@ import { highlightYaml, safeDumpYaml } from "../util/serialization.js"
 import type { Logger } from "./logger.js"
 import { logLevelMap, LogLevel } from "./logger.js"
 import { toGardenError } from "../exceptions.js"
+import { styles } from "./styles.js"
+import type chalk from "chalk"
 
 type RenderFn = (entry: LogEntry, logger: Logger) => string
-
-/*** STYLE HELPERS ***/
 
 export const SECTION_PADDING = 20
 
@@ -30,12 +29,6 @@ export function padSection(section: string, width: number = SECTION_PADDING) {
   const diff = width - stringWidth(section)
   return diff <= 0 ? section : section + repeat(" ", diff)
 }
-
-export const msgStyle = (s: string) => chalk.gray(s)
-export const errorStyle = (s: string) => chalk.red(s)
-export const warningStyle = (s: string) => chalk.yellow(s)
-
-/*** RENDER HELPERS ***/
 
 /**
  * Combines the render functions and returns a string with the output value
@@ -56,7 +49,7 @@ export function renderError(entry: LogEntry): string {
     const noAnsiMsg = stripAnsi(msg || "")
     // render error only if message doesn't already contain it
     if (!noAnsiMsg?.includes(trim(noAnsiErr, "\n"))) {
-      out = "\n\n" + chalk.red(error.message)
+      out = "\n\n" + styles.error(error.message)
     }
   }
 
@@ -76,6 +69,11 @@ export function renderSymbol(entry: LogEntry): string {
     return "  "
   }
 
+  if (symbol === "cached") {
+    return styles.highlightSecondary.bold("🞦 ")
+    // return styles.highlightSecondary.bold("🌸")
+  }
+
   // Always show symbol with sections
   if (!symbol && section) {
     symbol = "info"
@@ -89,9 +87,23 @@ export function renderTimestamp(entry: LogEntry, logger: Logger): string {
     return ""
   }
   const formattedDate = format(new Date(entry.timestamp), "HH:mm:ss")
-  return chalk.gray(formattedDate) + " "
+  return styles.secondary(formattedDate) + " "
 }
 
+export function getStyle(level: LogLevel): chalk.Chalk {
+  let style: chalk.Chalk
+  if (level === LogLevel.error) {
+    style = styles.error
+  } else if (level === LogLevel.warn) {
+    style = styles.warning
+  } else if (level === LogLevel.info) {
+    style = styles.primary
+  } else {
+    style = styles.secondary
+  }
+
+  return style
+}
 export function getSection(entry: LogEntry): string | null {
   if (entry.context.type === "actionLog") {
     return `${entry.context.actionKind.toLowerCase()}.${entry.context.actionName}`
@@ -102,16 +114,19 @@ export function getSection(entry: LogEntry): string | null {
 }
 
 export function renderMsg(entry: LogEntry): string {
-  const { level, msg, context } = entry
+  const { context, level, msg } = entry
   const { origin } = context
+  const style = getStyle(level)
 
   if (!msg) {
     return ""
   }
 
-  const styleFn = level === LogLevel.error ? errorStyle : level === LogLevel.warn ? warningStyle : msgStyle
+  // if (level > LogLevel.info) {
+  //   msg = stripAnsi(msg)
+  // }
 
-  return styleFn(origin ? chalk.gray(`[${origin}] ${msg}`) : msg)
+  return style(origin ? `[${styles.italic(origin)}] ` + msg : msg)
 }
 
 export function renderData(entry: LogEntry): string {
@@ -127,14 +142,13 @@ export function renderData(entry: LogEntry): string {
 }
 
 export function renderSection(entry: LogEntry): string {
-  const style = chalk.cyan.italic
   const { msg } = entry
   let section = getSection(entry)
 
   // For log levels higher than "info" we print the log level name.
   // This should technically happen when we render the symbol but it's harder
   // to deal with the padding that way.
-  const logLevelName = chalk.gray(`[${logLevelMap[entry.level]}]`)
+  const logLevelName = styles.secondary(`[${logLevelMap[entry.level]}]`)
 
   // Just print the log level name directly without padding. E.g:
   // ℹ api                       → Deploying version v-37d6c44559...
@@ -151,9 +165,9 @@ export function renderSection(entry: LogEntry): string {
   }
 
   if (section && msg) {
-    return `${style(padSection(section))} → `
+    return `${styles.section(padSection(section))} ${styles.accent.bold("→")} `
   } else if (section) {
-    return style(padSection(section))
+    return styles.section(padSection(section))
   }
   return ""
 }

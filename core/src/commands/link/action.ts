@@ -8,7 +8,6 @@
 
 import { resolve } from "path"
 import dedent from "dedent"
-import chalk from "chalk"
 
 import { ParameterError } from "../../exceptions.js"
 import type { CommandResult, CommandParams } from "../base.js"
@@ -20,6 +19,7 @@ import { joiArray, joi } from "../../config/common.js"
 import { StringParameter, PathParameter } from "../../cli/params.js"
 import { linkedActionSchema } from "../../config/project.js"
 import { actionKinds } from "../../actions/types.js"
+import { styles } from "../../logger/styles.js"
 
 const linkActionArguments = {
   action: new StringParameter({
@@ -74,7 +74,7 @@ export class LinkActionCommand extends Command<Args> {
     if (!action.hasRemoteSource()) {
       throw new ParameterError({
         message: dedent`
-          Expected action ${chalk.underline(key)} to have a remote source.
+          Expected action ${styles.underline(key)} to have a remote source.
           Did you mean to use the "link source" command?
         `,
       })

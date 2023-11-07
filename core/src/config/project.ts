@@ -38,9 +38,9 @@ import type { VcsInfo } from "../vcs/vcs.js"
 import { profileAsync } from "../util/profiling.js"
 import type { BaseGardenResource } from "./base.js"
 import { baseInternalFieldsSchema, loadVarfile, varfileDescription } from "./base.js"
-import chalk from "chalk"
 import type { Log } from "../logger/log-entry.js"
 import { renderDivider } from "../logger/util.js"
+import { styles } from "../logger/styles.js"
 
 export const defaultVarfilePath = "garden.env"
 export const defaultEnvVarfilePath = (environmentName: string) => `garden.${environmentName}.env`
@@ -504,7 +504,7 @@ export function resolveProjectConfig({
     })
   } catch (err) {
     log.error("Failed to resolve project configuration.")
-    log.error(chalk.red.bold(renderDivider()))
+    log.error(styles.error.bold(renderDivider()))
     throw err
   }
 
@@ -699,10 +699,10 @@ export function getNamespace(environmentConfig: EnvironmentConfig, namespace: st
   }
 
   if (!namespace) {
-    const exampleFlag = chalk.white(`--env=${chalk.bold("some-namespace.")}${envName}`)
+    const exampleFlag = styles.accent(`--env=${styles.bold("some-namespace.")}${envName}`)
 
     throw new ParameterError({
-      message: `Environment ${chalk.white.bold(
+      message: `Environment ${styles.accent.bold(
         envName
       )} has defaultNamespace set to null in the project configuration, and no explicit namespace was specified. Please either set a defaultNamespace or explicitly set a namespace at runtime (e.g. ${exampleFlag}).`,
     })

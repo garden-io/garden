@@ -6,12 +6,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import chalk from "chalk"
 import { EnvironmentParameter } from "../cli/params.js"
 import { dedent } from "../util/string.js"
 import type { CommandParams } from "./base.js"
 import { Command, CommandGroup } from "./base.js"
 import { ConfigurationError } from "../exceptions.js"
+import { styles } from "../logger/styles.js"
 
 export class SetCommand extends CommandGroup {
   name = "set"
@@ -64,9 +64,9 @@ export class SetDefaultEnvCommand extends Command<SetDefaultEnvArgs, {}> {
     log.info("")
 
     if (args.env) {
-      log.success(chalk.white(`Set the default environment to ${chalk.cyan(args.env)}`))
+      log.success(styles.accent(`Set the default environment to ${styles.highlight(args.env)}`))
     } else {
-      log.success(chalk.white("Cleared the default environment"))
+      log.success(styles.accent("Cleared the default environment"))
     }
 
     return {}

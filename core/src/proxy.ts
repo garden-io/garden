@@ -7,7 +7,6 @@
  */
 
 import { isEqual, invert } from "lodash-es"
-import chalk from "chalk"
 import type { Server } from "net"
 import { createServer, Socket } from "net"
 import AsyncLock from "async-lock"
@@ -23,6 +22,7 @@ import type { GetPortForwardResult } from "./plugin/handlers/Deploy/get-port-for
 import type { Executed } from "./actions/types.js"
 import type { PluginEventBroker } from "./plugin-context.js"
 import { GardenError, isErrnoException } from "./exceptions.js"
+import { styles } from "./logger/styles.js"
 
 export interface PortProxy {
   key: string
@@ -126,10 +126,10 @@ async function createProxy({ garden, graph, log, action, spec, events }: StartPo
         const msg = err.message.trim()
 
         if (msg !== lastPrintedError) {
-          log.warn(chalk.gray(`→ Could not start port forward to ${key} (will retry): ${msg}`))
+          log.warn(styles.primary(`→ Could not start port forward to ${key} (will retry): ${msg}`))
           lastPrintedError = msg
         } else {
-          log.silly(chalk.gray(`→ Could not start port forward to ${key} (will retry): ${msg}`))
+          log.silly(styles.primary(`→ Could not start port forward to ${key} (will retry): ${msg}`))
         }
       }
 
@@ -279,7 +279,7 @@ async function createProxy({ garden, graph, log, action, spec, events }: StartPo
     if (started) {
       if (spec.preferredLocalPort && (localIp !== defaultLocalAddress || localPort !== spec.preferredLocalPort)) {
         log.warn(
-          chalk.yellow(`→ Unable to bind port forward ${key} to preferred local port ${spec.preferredLocalPort}`)
+          styles.warning(`→ Unable to bind port forward ${key} to preferred local port ${spec.preferredLocalPort}`)
         )
       }
 

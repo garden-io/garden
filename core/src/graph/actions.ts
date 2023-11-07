@@ -59,7 +59,6 @@ import { mergeVariables } from "./common.js"
 import type { ConfigGraph } from "./config-graph.js"
 import { MutableConfigGraph } from "./config-graph.js"
 import type { ModuleGraph } from "./modules.js"
-import chalk from "chalk"
 import type { MaybeUndefined } from "../util/util.js"
 import minimatch from "minimatch"
 import type { ConfigContext } from "../config/template-contexts/base.js"
@@ -69,6 +68,7 @@ import { profileAsync } from "../util/profiling.js"
 import { uuidv4 } from "../util/random.js"
 import { getSourcePath } from "../vcs/vcs.js"
 import { actionIsDisabled } from "../actions/base.js"
+import { styles } from "../logger/styles.js"
 
 export const actionConfigsToGraph = profileAsync(async function actionConfigsToGraph({
   garden,
@@ -181,7 +181,9 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
 
         if (!action.supportsMode(mode)) {
           if (explicitMode) {
-            log.warn(chalk.yellow(`${action.longDescription()} is not configured for or does not support ${mode} mode`))
+            log.warn(
+              styles.warning(`${action.longDescription()} is not configured for or does not support ${mode} mode`)
+            )
           }
         }
 
@@ -193,11 +195,11 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
 
         throw new ConfigurationError({
           message:
-            chalk.redBright(
-              `\nError processing config for ${chalk.white.bold(config.kind)} action ${chalk.white.bold(
+            styles.error(
+              `\nError processing config for ${styles.accent.bold(config.kind)} action ${styles.accent.bold(
                 config.name
               )}:\n`
-            ) + chalk.red(error.message),
+            ) + styles.error(error.message),
           wrappedErrors: [error],
         })
       }

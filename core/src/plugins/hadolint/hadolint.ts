@@ -13,7 +13,6 @@ import { joi } from "../../config/common.js"
 import { dedent, splitLines, naturalList } from "../../util/string.js"
 import { STATIC_DIR } from "../../constants.js"
 import { padStart, padEnd } from "lodash-es"
-import chalk from "chalk"
 import { ConfigurationError, GardenError } from "../../exceptions.js"
 import { defaultDockerfileName } from "../container/config.js"
 import { baseBuildSpecSchema } from "../../config/module.js"
@@ -23,6 +22,7 @@ import { mayContainTemplateString } from "../../template-string/template-string.
 import type { BaseAction } from "../../actions/base.js"
 import type { BuildAction } from "../../actions/build.js"
 import { sdk } from "../../plugin/sdk.js"
+import { styles } from "../../logger/styles.js"
 
 const defaultConfigPath = join(STATIC_DIR, "hadolint", "default.hadolint.yaml")
 const configFilename = ".hadolint.yaml"
@@ -343,15 +343,15 @@ hadolintTest.addHandler("run", async ({ ctx, log, action }) => {
       `${formattedHeader}:\n\n` +
       parsed
         .map((msg: any) => {
-          const color = msg.level === "error" ? chalk.bold.red : chalk.bold.yellow
+          const color = msg.level === "error" ? styles.bold.red : styles.bold.yellow
           const rawLine = dockerfileLines[msg.line - 1]
           const linePrefix = padEnd(`${msg.line}:`, 5, " ")
           const columnCursorPosition = (msg.column || 1) + linePrefix.length
 
           return dedent`
-          ${color(msg.code + ":")} ${chalk.bold(msg.message || "")}
-          ${linePrefix}${chalk.gray(rawLine)}
-          ${chalk.gray(padStart("^", columnCursorPosition, "-"))}
+          ${color(msg.code + ":")} ${styles.bold(msg.message || "")}
+          ${linePrefix}${styles.primary(rawLine)}
+          ${styles.primary(padStart("^", columnCursorPosition, "-"))}
         `
         })
         .join("\n")
@@ -364,7 +364,7 @@ hadolintTest.addHandler("run", async ({ ctx, log, action }) => {
   } else if (errors.length > 0 && threshold !== "none") {
     success = false
   } else if (warnings.length > 0) {
-    log.warn(chalk.yellow(formattedHeader))
+    log.warn(styles.warning(formattedHeader))
   }
 
   return {

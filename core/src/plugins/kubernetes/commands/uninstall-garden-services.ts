@@ -6,17 +6,17 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import chalk from "chalk"
 import type { PluginCommand } from "../../../plugin/command.js"
 import type { KubernetesPluginContext } from "../config.js"
 import { ingressControllerUninstall } from "../nginx/ingress-controller.js"
+import { styles } from "../../../logger/styles.js"
 
 export const uninstallGardenServices: PluginCommand = {
   name: "uninstall-garden-services",
   description: "Clean up all installed cluster-wide Garden services.",
 
   title: ({ environmentName }) => {
-    return `Removing cluster-wide services for ${chalk.white(environmentName)} environment`
+    return `Removing cluster-wide services for ${styles.accent(environmentName)} environment`
   },
 
   handler: async ({ ctx, log }) => {
@@ -26,7 +26,7 @@ export const uninstallGardenServices: PluginCommand = {
       await ingressControllerUninstall(k8sCtx, log)
     }
 
-    log.info(chalk.green("\nDone!"))
+    log.info(styles.success("\nDone!"))
 
     return { result: {} }
   },

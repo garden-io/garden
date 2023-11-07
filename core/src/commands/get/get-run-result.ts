@@ -10,13 +10,13 @@ import type { ConfigGraph } from "../../graph/config-graph.js"
 import type { CommandParams } from "../base.js"
 import { Command } from "../base.js"
 import { printHeader } from "../../logger/util.js"
-import chalk from "chalk"
 import { getArtifactFileList, getArtifactKey } from "../../util/artifacts.js"
 import { joiArray, joi } from "../../config/common.js"
 import { StringParameter } from "../../cli/params.js"
 import type { GetRunResult } from "../../plugin/handlers/Run/get-result.js"
 import { getRunResultSchema } from "../../plugin/handlers/Run/get-result.js"
 import { createActionLog } from "../../logger/log-entry.js"
+import { styles } from "../../logger/styles.js"
 
 const getRunResultArgs = {
   name: new StringParameter({
@@ -56,7 +56,7 @@ export class GetRunResultCommand extends Command<Args, {}, GetRunResultCommandRe
 
   override printHeader({ log, args }) {
     const taskName = args.name
-    printHeader(log, `Run result for ${chalk.cyan(taskName)}`, "🚀")
+    printHeader(log, `Run result for ${styles.highlight(taskName)}`, "🚀")
   }
 
   async action({ garden, log, args }: CommandParams<Args>) {

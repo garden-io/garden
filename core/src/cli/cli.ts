@@ -8,7 +8,6 @@
 
 import { intersection, mapValues, sortBy } from "lodash-es"
 import { resolve, join } from "path"
-import chalk from "chalk"
 import fsExtra from "fs-extra"
 const { pathExists } = fsExtra
 import { getBuiltinCommands } from "../commands/commands.js"
@@ -60,6 +59,7 @@ import { withSessionContext } from "../util/open-telemetry/context.js"
 import { wrapActiveSpan } from "../util/open-telemetry/spans.js"
 import { JsonFileWriter } from "../logger/writers/json-file-writer.js"
 import type minimist from "minimist"
+import { styles } from "../logger/styles.js"
 
 export interface RunOutput {
   argv: any
@@ -109,7 +109,7 @@ export class GardenCli {
     // Thus we have to dedent like this.
     let msg = `
 ${cliStyles.heading("USAGE")}
-  garden ${cliStyles.commandPlaceholder()} ${cliStyles.optionsPlaceholder()}
+  garden ${cliStyles.commandPlaceholder()} ${cliStyles.argumentsPlaceholder()} ${cliStyles.optionsPlaceholder()}
 
 ${cliStyles.heading("COMMANDS")}
 ${renderCommands(commands)}
@@ -251,7 +251,7 @@ ${renderCommands(commands)}
         } catch (err) {
           if (err instanceof CloudApiTokenRefreshError) {
             log.warn(dedent`
-              ${chalk.yellow(`Unable to authenticate against ${distroName} with the current session token.`)}
+              ${styles.warning(`Unable to authenticate against ${distroName} with the current session token.`)}
               Command results for this command run will not be available in ${distroName}. If this not a
               ${distroName} project you can ignore this warning. Otherwise, please try logging out with
               \`garden logout\` and back in again with \`garden login\`.
@@ -314,18 +314,23 @@ ${renderCommands(commands)}
             await garden.emitWarning({
               key: "0.13-bonsai",
               log,
-              message: chalk.yellow(dedent`
+              message: styles.warning(dedent`
                 Garden v0.13 (Bonsai) is a major release with significant changes. Please help us improve it by reporting any issues/bugs here:
                 https://go.garden.io/report-bonsai
               `),
             })
           }
 
-          nsLog.info(`Running in Garden environment ${chalk.cyan(`${garden.environmentName}.${garden.namespace}`)}`)
+          nsLog.info(
+            `Running in Garden environment ${styles.highlight(`${garden.environmentName}.${garden.namespace}`)}`
+          )
 
           if (!cloudApi && garden.projectId) {
+            log.info("")
             log.warn(
-              `You are not logged in into Garden Cloud. Please log in via the ${chalk.green("garden login")} command.`
+              `Warning: You are not logged in into Garden Cloud. Please log in via the ${styles.command(
+                "garden login"
+              )} command.`
             )
             log.info("")
           }
@@ -376,7 +381,7 @@ ${renderCommands(commands)}
 
         if (garden.monitors.anyMonitorsActive()) {
           // Wait for monitors to exit
-          log.debug(chalk.gray("One or more monitors active, waiting until all exit."))
+          log.debug(styles.primary("One or more monitors active, waiting until all exit."))
           await garden.monitors.waitUntilStopped()
         }
 
@@ -438,7 +443,7 @@ ${renderCommands(commands)}
     const workingDir = resolve(cwd || process.cwd(), argv.root || "")
 
     if (!(await pathExists(workingDir))) {
-      return done(1, chalk.red(`Could not find specified root path (${argv.root})`))
+      return done(1, styles.error(`Could not find specified root path (${argv.root})`))
     }
 
     let projectConfig: ProjectConfig | undefined

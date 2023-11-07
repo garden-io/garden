@@ -24,7 +24,6 @@ import parseGitConfig from "parse-git-config"
 import type { Profiler } from "../util/profiling.js"
 import { getDefaultProfiler, Profile } from "../util/profiling.js"
 import isGlob from "is-glob"
-import chalk from "chalk"
 import { pMemoizeDecorator } from "../lib/p-memoize.js"
 import AsyncLock from "async-lock"
 import PQueue from "p-queue"
@@ -33,8 +32,9 @@ import split2 from "split2"
 import type { ExecaError } from "execa"
 import { execa } from "execa"
 import hasha from "hasha"
+import { styles } from "../logger/styles.js"
 
-const submoduleErrorSuggestion = `Perhaps you need to run ${chalk.underline(`git submodule update --recursive`)}?`
+const submoduleErrorSuggestion = `Perhaps you need to run ${styles.underline(`git submodule update --recursive`)}?`
 
 interface GitEntry extends VcsFile {
   mode: string

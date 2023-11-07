@@ -12,11 +12,11 @@ import type { Log } from "../../../logger/log-entry.js"
 import { exec } from "../../../util/util.js"
 import { containerHelpers } from "../../container/helpers.js"
 import type { ContainerBuildAction } from "../../container/moduleConfig.js"
-import chalk from "chalk"
 import { deline, naturalList } from "../../../util/string.js"
 import type { ExecaReturnValue } from "execa"
 import type { PluginContext } from "../../../plugin-context.js"
 import { parse as parsePath } from "path"
+import { styles } from "../../../logger/styles.js"
 
 // TODO: Pass the correct log context instead of creating it here.
 export async function configureMicrok8sAddons(log: Log, addons: string[]) {
@@ -33,7 +33,7 @@ export async function configureMicrok8sAddons(log: Log, addons: string[]) {
     }
     if (err.details.output.includes("permission denied") || err.details.output.includes("Insufficient permissions")) {
       microK8sLog.warn(
-        chalk.yellow(
+        styles.warning(
           deline`Unable to get microk8s status and manage addons. You may need to add the current user to the microk8s
           group. Alternatively, you can manually ensure that the ${naturalList(addons)} are enabled.`
         )

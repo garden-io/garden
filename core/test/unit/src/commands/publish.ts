@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import chalk from "chalk"
 import { it } from "mocha"
 import { expect } from "chai"
 import { PublishCommand } from "../../../../src/commands/publish.js"
@@ -22,6 +21,7 @@ import { PublishTask } from "../../../../src/tasks/publish.js"
 import { joi } from "../../../../src/config/common.js"
 import { execBuildSpecSchema } from "../../../../src/plugins/exec/build.js"
 import type { ActionTypeHandlerParamsType } from "../../../../src/plugin/handlers/base/base.js"
+import { styles } from "../../../../src/logger/styles.js"
 
 const projectRootB = getDataDir("test-project-b")
 
@@ -228,7 +228,7 @@ describe("PublishCommand", () => {
 
     expect(res).to.exist
     expect(res.state).to.equal("unknown")
-    expect(res.detail.message).to.be.equal(chalk.yellow("No publish handler available for type test"))
+    expect(res.detail.message).to.be.equal(styles.warning("No publish handler available for type test"))
   })
 })
 

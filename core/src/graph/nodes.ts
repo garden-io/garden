@@ -11,9 +11,9 @@ import { GraphError, InternalError, toGardenError } from "../exceptions.js"
 import type { GraphResult, GraphResultFromTask } from "./results.js"
 import { GraphResults } from "./results.js"
 import type { GraphSolver } from "./solver.js"
-import chalk from "chalk"
 import { metadataForLog } from "./common.js"
 import { Profile } from "../util/profiling.js"
+import { styles } from "../logger/styles.js"
 
 export interface InternalNodeTypes {
   status: StatusTaskNode
@@ -120,7 +120,7 @@ export abstract class TaskNode<T extends Task = Task> {
     const inputVersion = task.getInputVersion()
 
     task.log.silly({
-      msg: `Completing node ${chalk.underline(this.getKey())}. aborted=${aborted}, error=${
+      msg: `Completing node ${styles.underline(this.getKey())}. aborted=${aborted}, error=${
         error ? error.message : null
       }`,
       metadata: metadataForLog(task, error ? "error" : "success", inputVersion),
@@ -269,7 +269,7 @@ export class ProcessTaskNode<T extends Task = Task> extends TaskNode<T> {
   }
 
   async execute() {
-    this.task.log.silly(`Executing node ${chalk.underline(this.getKey())}`)
+    this.task.log.silly(`Executing node ${styles.underline(this.getKey())}`)
 
     const statusTask = this.getNode("status", this.task)
     // TODO: make this more type-safe
@@ -323,7 +323,7 @@ export class StatusTaskNode<T extends Task = Task> extends TaskNode<T> {
   }
 
   async execute() {
-    this.task.log.silly(`Executing node ${chalk.underline(this.getKey())}`)
+    this.task.log.silly(`Executing node ${styles.underline(this.getKey())}`)
     const dependencyResults = this.getDependencyResults()
 
     try {

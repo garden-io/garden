@@ -8,7 +8,6 @@
 
 import deline from "deline"
 import dedent from "dedent"
-import chalk from "chalk"
 
 import type { CommandParams, CommandResult, PrepareParams, ProcessCommandResult } from "./base.js"
 import { Command, handleProcessResults, processCommandResultSchema, emptyActionResults } from "./base.js"
@@ -31,6 +30,7 @@ import { serveOpts } from "./serve.js"
 import { gardenEnv } from "../constants.js"
 import type { DeployAction } from "../actions/deploy.js"
 import { watchParameter, watchRemovedWarning } from "./util/watch-parameter.js"
+import { styles } from "../logger/styles.js"
 
 export const deployArgs = {
   names: new StringsParameter({
@@ -203,10 +203,10 @@ export class DeployCommand extends Command<Args, Opts> {
     const disabled = deployActions.filter((s) => s.isDisabled()).map((s) => s.name)
 
     if (disabled.length > 0) {
-      const bold = disabled.map((d) => chalk.white(d))
+      const bold = disabled.map((d) => styles.accent(d))
       const msg =
         disabled.length === 1 ? `Deploy action ${bold} is disabled` : `Deploy actions ${naturalList(bold)} are disabled`
-      log.info(chalk.gray(msg))
+      log.info(styles.primary(msg))
     }
 
     const skipRuntimeDependencies = opts["skip-dependencies"]

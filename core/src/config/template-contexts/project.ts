@@ -7,7 +7,6 @@
  */
 
 import { last, isEmpty } from "lodash-es"
-import chalk from "chalk"
 import type { PrimitiveMap, DeepPrimitiveMap } from "../common.js"
 import { joiIdentifierMap, joiStringMap, joiPrimitive, joiVariables } from "../common.js"
 import { joi } from "../common.js"
@@ -19,6 +18,7 @@ import type { Garden } from "../../garden.js"
 import type { VcsInfo } from "../../vcs/vcs.js"
 import type { ActionConfig } from "../../actions/types.js"
 import type { WorkflowConfig } from "../workflow.js"
+import { styles } from "../../logger/styles.js"
 
 class LocalContext extends ConfigContext {
   @schema(
@@ -316,7 +316,7 @@ export class ProjectConfigContext extends DefaultEnvironmentContext {
       return dedent`
         You are not logged in to Garden Cloud, but one or more secrets are referenced in template strings in your Garden configuration files.
 
-        Please log in via the ${chalk.green("garden login")} command to use Garden with secrets.
+        Please log in via the ${styles.command("garden login")} command to use Garden with secrets.
       `
     }
 
