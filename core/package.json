@@ -151,7 +151,7 @@
     "unzip-stream": "^0.3.1",
     "username": "^5.1.0",
     "uuid": "^9.0.0",
-    "which": "^3.0.0",
+    "which": "^4.0.0",
     "winston": "^3.8.2",
     "wrap-ansi": "^7.0.0",
     "write-file-atomic": "^5.0.0",
