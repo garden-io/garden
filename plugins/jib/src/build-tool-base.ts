@@ -8,7 +8,7 @@
 
 import type { Log, PluginContext } from "@garden-io/sdk/build/src/types.js"
 import type { Writable } from "node:stream"
-import execa from "execa"
+import { execa } from "execa"
 import { RuntimeError } from "@garden-io/core/build/src/exceptions.js"
 
 export interface CheckVersionParams {

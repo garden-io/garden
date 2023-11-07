@@ -7,7 +7,7 @@
  */
 
 import { expect } from "chai"
-import execa from "execa"
+import { execa } from "execa"
 import cloneDeep from "fast-copy"
 
 import tmp from "tmp-promise"

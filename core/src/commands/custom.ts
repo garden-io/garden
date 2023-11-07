@@ -7,7 +7,7 @@
  */
 
 import chalk from "chalk"
-import execa from "execa"
+import { execa } from "execa"
 import { apply as jsonMerge } from "json-merge-patch"
 import cloneDeep from "fast-copy"
 import { keyBy, mapValues, flatten } from "lodash-es"

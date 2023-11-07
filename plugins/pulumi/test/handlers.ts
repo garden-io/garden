@@ -9,7 +9,7 @@
 import type { Log, PluginContext } from "@garden-io/sdk/build/src/types.js"
 import type { TestGarden } from "@garden-io/sdk/build/src/testing.js"
 import { makeTestGarden } from "@garden-io/sdk/build/src/testing.js"
-import execa from "execa"
+import { execa } from "execa"
 import fsExtra from "fs-extra"
 const { pathExists } = fsExtra
 import { dirname, join, resolve } from "node:path"

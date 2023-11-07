@@ -47,7 +47,8 @@ import type { Log } from "../logger/log-entry.js"
 import { getDefaultProfiler } from "./profiling.js"
 import { dedent, naturalList, tailString } from "./string.js"
 import split2 from "split2"
-import execa from "execa"
+import type { ExecaError, Options } from "execa"
+import { execa } from "execa"
 import corePackageJson from "../../package.json" assert { type: "json" }
 
 export { apply as jsonMerge } from "json-merge-patch"
@@ -189,7 +190,7 @@ export function createOutputStream(log: Log, origin?: string) {
 
   return outputStream
 }
-export interface ExecOpts extends execa.Options {
+export interface ExecOpts extends Options {
   stdout?: Writable
   stderr?: Writable
 }
@@ -233,7 +234,7 @@ export async function exec(cmd: string, args: string[], opts: ExecOpts = {}) {
       })
     }
 
-    const error = <execa.ExecaError>err
+    const error = <ExecaError>err
     throw new ChildProcessError({
       cmd,
       args,

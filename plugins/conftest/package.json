@@ -9,7 +9,7 @@
     "@garden-io/core": "*",
     "@garden-io/sdk": "*",
     "chalk": "^4.1.0",
-    "execa": "^4.0.3",
+    "execa": "^8.0.1",
     "slash": "^3.0.0"
   },
   "devDependencies": {

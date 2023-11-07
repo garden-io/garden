@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import execa from "execa"
+import { execa } from "execa"
 import chalk from "chalk"
 import { expect } from "chai"
 import { resolve } from "path"

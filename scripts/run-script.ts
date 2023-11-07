@@ -8,7 +8,7 @@
  */
 /* eslint-disable no-console */
 
-import execa from "execa"
+import { execa } from "execa"
 import { max, padEnd, padStart } from "lodash-es"
 import { DepGraph } from "dependency-graph"
 import split2 from "split2"

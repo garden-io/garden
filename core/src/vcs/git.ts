@@ -30,7 +30,8 @@ import AsyncLock from "async-lock"
 import PQueue from "p-queue"
 import { isSha1 } from "../util/hashing.js"
 import split2 from "split2"
-import execa from "execa"
+import type { ExecaError } from "execa"
+import { execa } from "execa"
 import hasha from "hasha"
 
 const gitConfigAsyncLock = new AsyncLock()
@@ -560,7 +561,7 @@ export class GitHandler extends VcsHandler {
 
     proc.stdout?.pipe(splitStream)
 
-    void proc.on("error", (err: execa.ExecaError) => {
+    void proc.on("error", (err: ExecaError) => {
       if (err.exitCode !== 128) {
         fail(err)
       }

@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import execa from "execa"
+import { execa } from "execa"
 import minimist from "minimist"
 import { dirname, resolve } from "node:path"
 import { projectsDir } from "./helpers.js"

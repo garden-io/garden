@@ -7,7 +7,7 @@
  */
 
 import chalk from "chalk"
-import execa from "execa"
+import { execa } from "execa"
 import fsExtra from "fs-extra"
 const { remove } = fsExtra
 import { get, intersection, padEnd } from "lodash-es"
