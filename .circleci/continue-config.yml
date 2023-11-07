@@ -129,7 +129,9 @@ commands:
 
               fnm use "<<parameters.node_version>>" --fnm-dir "$HOME/.fnm-cache" --install-if-missing
             fi
-
+      - run:
+          name: Test NodeJS version
+          command: |
             if [[ "$(node --version)" != "<<parameters.node_version>>" ]]; then
               echo "NodeJS installation failed. Expected version: <<parameters.node_version>>; Actually got: $(node --version)"
               exit 1
