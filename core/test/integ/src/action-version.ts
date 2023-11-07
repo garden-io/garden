@@ -7,7 +7,7 @@
  */
 
 import { expect } from "chai"
-import { cloneDeep } from "lodash"
+import { cloneDeep } from "lodash-es"
 import type { Garden } from "../../../src/index.js"
 import type { ConfigGraph } from "../../../src/graph/config-graph.js"
 import type { KubernetesDeployAction } from "../../../src/plugins/kubernetes/kubernetes-type/config.js"
