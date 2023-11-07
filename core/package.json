@@ -128,7 +128,7 @@
     "readdir-enhanced": "^6.0.4",
     "respawn": "^2.6.0",
     "semver": "^7.5.4",
-    "slash": "^3.0.0",
+    "slash": "^5.1.0",
     "slice-ansi": "^4.0.0",
     "source-map-support": "^0.5.21",
     "split": "^1.0.1",

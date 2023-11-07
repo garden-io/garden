@@ -11,7 +11,7 @@
     "@garden-io/sdk": "*",
     "chalk": "^4.1.0",
     "execa": "^8.0.1",
-    "slash": "^3.0.0"
+    "slash": "^5.1.0"
   },
   "devDependencies": {
     "@types/chai": "^4.3.4",
