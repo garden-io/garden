@@ -26,9 +26,6 @@ spec:
     - path: /
       port: http
       hostname: foo.${var.base-hostname}
-  # env:
-  #   HOSTNAME: foo.${var.base-hostname}
-  #   VITE_USERNAME: ${local.username}
 
 ---
 kind: Deploy
@@ -62,13 +59,6 @@ spec:
 kind: Build
 name: e2e-runner
 type: container
-
-# ---
-# kind: Deploy
-# type: container
-# name: e2e-runner
-# dependencies: [deploy.test-deploy-container]
-# build: test-build-container
 
 ---
 kind: Test

@@ -33,28 +33,7 @@ export function computeKeyPathsToIgnoreFromConfig(
     return []
   }
   const result: Array<{ key: string; matchedValue: string }> = []
-  // const searchObject1 = (obj: {}, keyPath: (string | number)[]) => {
-  //   if (isPlainObject(obj)) {
-  //     forOwn(obj, (value: string, key: string) => {
-  //       const currentKeyPath = keyPath.concat(key)
-  //       if (isString(value) && some(ignoreVars, (item: string) => value.includes(item))) {
-  //         result.push({ key: currentKeyPath.join("."), matchedValue: value })
-  //       } else if (isPlainObject(value) || isArray(value)) {
-  //         searchObject(value, currentKeyPath)
-  //       }
-  //     })
-  //   } else if (isArray(obj)) {
-  //     // handle array of objects
-  //     obj.forEach((item: {}, index: number) => {
-  //       const currentKeyPath = keyPath.concat(index)
-  //       if (isString(item) && includes(ignoreVars, item)) {
-  //         result.push({ key: currentKeyPath.join("."), matchedValue: item })
-  //       } else if (isPlainObject(item) || isArray(item)) {
-  //         searchObject(item, currentKeyPath)
-  //       }
-  //     })
-  //   }
-  // }
+  // recursively search the config object for keys whose values include one of the strings in ignoreVars
   const searchObject = (obj: {}, keyPath: (string | number)[]) => {
     if (isPlainObject(obj) || isArray(obj)) {
       forOwn(obj, (value: string, key: string | number) => {
