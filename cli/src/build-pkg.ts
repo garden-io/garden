@@ -138,7 +138,7 @@ const targets: { [name: string]: { spec: TargetSpec; handler: (p: TargetHandlerP
       node: "21.1.0",
       nodeBinaryPlatform: "win32",
       url: "https://nodejs.org/dist/v21.1.0/node-v21.1.0-win-x64.zip",
-      checksum: "a3c838b0d00e7c2a218ceef39b4bf2c6dd6a433eb5970012fe36038904c8feef",
+      checksum: "6ee3e74ecceb27f388d75a94d6782df670bad37a4d10ff2d28a7c7bcb75bdb49",
     },
     handler: pkgWindows,
   },
