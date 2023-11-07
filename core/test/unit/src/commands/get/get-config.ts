@@ -7,19 +7,20 @@
  */
 
 import { expect } from "chai"
-import { pick } from "lodash"
-import { getDataDir, makeTestGarden, makeTestGardenA, withDefaultGlobalOpts } from "../../../../helpers"
-import { GetConfigCommand } from "../../../../../src/commands/get/get-config"
-import { sortBy } from "lodash"
+import { pick } from "lodash-es"
+import { getDataDir, makeTestGarden, makeTestGardenA, withDefaultGlobalOpts } from "../../../../helpers.js"
+import { GetConfigCommand } from "../../../../../src/commands/get/get-config.js"
+import { sortBy } from "lodash-es"
 import {
   DEFAULT_BUILD_TIMEOUT_SEC,
   DEFAULT_RUN_TIMEOUT_SEC,
   DEFAULT_TEST_TIMEOUT_SEC,
   GardenApiVersion,
-} from "../../../../../src/constants"
-import { defaultWorkflowResources, WorkflowConfig } from "../../../../../src/config/workflow"
-import { defaultContainerLimits } from "../../../../../src/plugins/container/moduleConfig"
-import { ModuleConfig } from "../../../../../src/config/module"
+} from "../../../../../src/constants.js"
+import type { WorkflowConfig } from "../../../../../src/config/workflow.js"
+import { defaultWorkflowResources } from "../../../../../src/config/workflow.js"
+import { defaultContainerLimits } from "../../../../../src/plugins/container/moduleConfig.js"
+import type { ModuleConfig } from "../../../../../src/config/module.js"
 
 describe("GetConfigCommand", () => {
   const command = new GetConfigCommand()

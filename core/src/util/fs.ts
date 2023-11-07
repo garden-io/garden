@@ -6,20 +6,21 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import unixify = require("unixify")
-import klaw = require("klaw")
+import unixify from "unixify"
+import klaw from "klaw"
 import { glob } from "glob"
 import tmp from "tmp-promise"
-import { pathExists, readFile, writeFile, lstat, realpath, Stats } from "fs-extra"
+import fsExtra from "fs-extra"
+const { pathExists, readFile, writeFile, lstat, realpath } = fsExtra
 import { join, basename, win32, posix } from "path"
 import { platform } from "os"
 
-import { FilesystemError } from "../exceptions"
-import { VcsHandler } from "../vcs/vcs"
-import { Log } from "../logger/log-entry"
-import { exec } from "./util"
+import { FilesystemError } from "../exceptions.js"
+import type { VcsHandler } from "../vcs/vcs.js"
+import type { Log } from "../logger/log-entry.js"
+import { exec } from "./util.js"
 import micromatch from "micromatch"
-import { uuidv4 } from "./random"
+import { uuidv4 } from "./random.js"
 
 export const defaultConfigFilename = "garden.yml"
 export const configFilenamePattern = "*garden.y*ml"
@@ -270,7 +271,7 @@ export async function makeTempDir({
  *
  * @param stats an fs.Stats instance
  */
-export function getStatsType(stats: Stats) {
+export function getStatsType(stats: fsExtra.Stats) {
   if (stats.isBlockDevice()) {
     return "block device"
   } else if (stats.isCharacterDevice()) {

@@ -6,22 +6,25 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { CommandError, ConfigurationError, GardenError } from "../../../exceptions"
-import {
+import { CommandError, ConfigurationError, GardenError } from "../../../exceptions.js"
+import type {
   CreateUserBulkRequest,
   CreateUserBulkResponse,
   UserResult as UserResultApi,
 } from "@garden-io/platform-api-types"
-import { readFile } from "fs-extra"
+import fsExtra from "fs-extra"
+const { readFile } = fsExtra
 
-import { printHeader } from "../../../logger/util"
-import { Command, CommandParams, CommandResult } from "../../base"
-import { ApiCommandError, handleBulkOperationResult, makeUserFromResponse, noApiMsg, UserResult } from "../helpers"
-import { dedent, deline } from "../../../util/string"
-import { PathParameter, StringsParameter } from "../../../cli/params"
-import { StringMap } from "../../../config/common"
-import { chunk } from "lodash"
-import dotenv = require("dotenv")
+import { printHeader } from "../../../logger/util.js"
+import type { CommandParams, CommandResult } from "../../base.js"
+import { Command } from "../../base.js"
+import type { ApiCommandError, UserResult } from "../helpers.js"
+import { handleBulkOperationResult, makeUserFromResponse, noApiMsg } from "../helpers.js"
+import { dedent, deline } from "../../../util/string.js"
+import { PathParameter, StringsParameter } from "../../../cli/params.js"
+import type { StringMap } from "../../../config/common.js"
+import { chunk } from "lodash-es"
+import dotenv from "dotenv"
 import pMap from "p-map"
 
 // This is the limit set by the API.

@@ -8,23 +8,16 @@
 
 import chalk from "chalk"
 
-import {
-  BaseActionTaskParams,
-  ActionTaskProcessParams,
-  ExecuteActionTask,
-  ActionTaskStatusParams,
-  BaseTask,
-  emitGetStatusEvents,
-  emitProcessingEvents,
-} from "./base"
-import { getLinkUrl } from "../types/service"
-import { Profile } from "../util/profiling"
-import type { DeployAction } from "../actions/deploy"
-import { DeployStatus } from "../plugin/handlers/Deploy/get-status"
-import { displayState, resolvedActionToExecuted } from "../actions/helpers"
-import { PluginEventBroker } from "../plugin-context"
-import { ActionLog } from "../logger/log-entry"
-import { OtelTraced } from "../util/open-telemetry/decorators"
+import type { BaseActionTaskParams, BaseTask, ActionTaskProcessParams, ActionTaskStatusParams } from "./base.js"
+import { ExecuteActionTask, emitGetStatusEvents, emitProcessingEvents } from "./base.js"
+import { getLinkUrl } from "../types/service.js"
+import { Profile } from "../util/profiling.js"
+import type { DeployAction } from "../actions/deploy.js"
+import type { DeployStatus } from "../plugin/handlers/Deploy/get-status.js"
+import { displayState, resolvedActionToExecuted } from "../actions/helpers.js"
+import type { PluginEventBroker } from "../plugin-context.js"
+import type { ActionLog } from "../logger/log-entry.js"
+import { OtelTraced } from "../util/open-telemetry/decorators.js"
 
 export interface DeployTaskParams extends BaseActionTaskParams<DeployAction> {
   events?: PluginEventBroker

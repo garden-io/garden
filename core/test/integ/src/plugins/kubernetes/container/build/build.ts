@@ -6,20 +6,21 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { expectError, grouped } from "../../../../../../helpers"
-import { Garden } from "../../../../../../../src/garden"
-import { ConfigGraph } from "../../../../../../../src/graph/config-graph"
-import { PluginContext } from "../../../../../../../src/plugin-context"
-import { KubernetesProvider } from "../../../../../../../src/plugins/kubernetes/config"
+import { expectError, grouped } from "../../../../../../helpers.js"
+import type { Garden } from "../../../../../../../src/garden.js"
+import type { ConfigGraph } from "../../../../../../../src/graph/config-graph.js"
+import type { PluginContext } from "../../../../../../../src/plugin-context.js"
+import type { KubernetesProvider } from "../../../../../../../src/plugins/kubernetes/config.js"
 import { expect } from "chai"
-import { getContainerTestGarden } from "../container"
-import { containerHelpers } from "../../../../../../../src/plugins/container/helpers"
-import { k8sPublishContainerBuild } from "../../../../../../../src/plugins/kubernetes/container/publish"
-import { ActionLog, createActionLog } from "../../../../../../../src/logger/log-entry"
-import { ContainerBuildAction } from "../../../../../../../src/plugins/container/config"
-import { BuildTask } from "../../../../../../../src/tasks/build"
-import { k8sContainerBuildExtension } from "../../../../../../../src/plugins/kubernetes/container/extensions"
-import { deleteGoogleArtifactImage, listGoogleArtifactImageTags } from "../../../../../helpers"
+import { getContainerTestGarden } from "../container.js"
+import { containerHelpers } from "../../../../../../../src/plugins/container/helpers.js"
+import { k8sPublishContainerBuild } from "../../../../../../../src/plugins/kubernetes/container/publish.js"
+import type { ActionLog } from "../../../../../../../src/logger/log-entry.js"
+import { createActionLog } from "../../../../../../../src/logger/log-entry.js"
+import type { ContainerBuildAction } from "../../../../../../../src/plugins/container/config.js"
+import { BuildTask } from "../../../../../../../src/tasks/build.js"
+import { k8sContainerBuildExtension } from "../../../../../../../src/plugins/kubernetes/container/extensions.js"
+import { deleteGoogleArtifactImage, listGoogleArtifactImageTags } from "../../../../../helpers.js"
 
 describe.skip("Kubernetes Container Build Extension", () => {
   const builder = k8sContainerBuildExtension()
@@ -30,7 +31,6 @@ describe.skip("Kubernetes Container Build Extension", () => {
   let graph: ConfigGraph
   let provider: KubernetesProvider
   let ctx: PluginContext
-  let currentEnv: string
 
   after(async () => {
     if (garden) {
@@ -39,7 +39,6 @@ describe.skip("Kubernetes Container Build Extension", () => {
   })
 
   const init = async (environmentName: string, remoteContainerAuth = false) => {
-    currentEnv = environmentName
     ;({ garden, cleanup } = await getContainerTestGarden(environmentName, { remoteContainerAuth }))
     log = createActionLog({ log: garden.log, actionName: "", actionKind: "" })
     graph = await garden.getConfigGraph({ log: garden.log, emit: false })

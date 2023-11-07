@@ -6,20 +6,21 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ModuleActionHandlers } from "../../../plugin/plugin"
-import { HelmModule, configureHelmModule, HelmService } from "./module-config"
-import { getBaseModule } from "./common"
-import { ExecBuildConfig } from "../../exec/build"
-import { HelmActionConfig, HelmDeployConfig, HelmPodTestConfig } from "./config"
-import { getServiceResourceSpec } from "../util"
-import { jsonMerge } from "../../../util/util"
+import type { ModuleActionHandlers } from "../../../plugin/plugin.js"
+import type { HelmModule, HelmService } from "./module-config.js"
+import { configureHelmModule } from "./module-config.js"
+import { getBaseModule } from "./common.js"
+import type { ExecBuildConfig } from "../../exec/build.js"
+import type { HelmActionConfig, HelmDeployConfig, HelmPodTestConfig } from "./config.js"
+import { getServiceResourceSpec } from "../util.js"
+import { jsonMerge } from "../../../util/util.js"
 import cloneDeep from "fast-copy"
-import { omit } from "lodash"
-import { DeepPrimitiveMap } from "../../../config/common"
-import { convertServiceResource } from "../kubernetes-type/common"
-import { ConvertModuleParams } from "../../../plugin/handlers/Module/convert"
-import { makeDummyBuild } from "../../../resolve-module"
-import { convertKubernetesModuleDevModeSpec } from "../sync"
+import { omit } from "lodash-es"
+import type { DeepPrimitiveMap } from "../../../config/common.js"
+import { convertServiceResource } from "../kubernetes-type/common.js"
+import type { ConvertModuleParams } from "../../../plugin/handlers/Module/convert.js"
+import { makeDummyBuild } from "../../../resolve-module.js"
+import { convertKubernetesModuleDevModeSpec } from "../sync.js"
 
 export const helmModuleHandlers: Partial<ModuleActionHandlers<HelmModule>> = {
   configure: configureHelmModule,

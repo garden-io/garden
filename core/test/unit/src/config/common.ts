@@ -20,9 +20,9 @@ import {
   createSchema,
   metadataFromDescription,
   removeSchema,
-} from "../../../../src/config/common"
-import { validateSchema } from "../../../../src/config/validation"
-import { expectError } from "../../../helpers"
+} from "../../../../src/config/common.js"
+import { validateSchema } from "../../../../src/config/validation.js"
+import { expectError } from "../../../helpers.js"
 
 describe("joiSparseArray", () => {
   it("should filter out undefined values", () => {

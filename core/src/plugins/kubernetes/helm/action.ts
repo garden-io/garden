@@ -6,20 +6,21 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { DeployActionDefinition } from "../../../plugin/action-types"
-import { dedent } from "../../../util/string"
-import { KubernetesPluginContext } from "../config"
-import { getPortForwardHandler } from "../port-forward"
-import { getActionNamespace } from "../namespace"
-import { HelmDeployAction, helmDeploySchema } from "./config"
-import { deleteHelmDeploy, helmDeploy } from "./deployment"
-import { execInHelmDeploy } from "./exec"
-import { getHelmDeployLogs } from "./logs"
-import { getHelmDeployStatus } from "./status"
+import type { DeployActionDefinition } from "../../../plugin/action-types.js"
+import { dedent } from "../../../util/string.js"
+import type { KubernetesPluginContext } from "../config.js"
+import { getPortForwardHandler } from "../port-forward.js"
+import { getActionNamespace } from "../namespace.js"
+import type { HelmDeployAction } from "./config.js"
+import { helmDeploySchema } from "./config.js"
+import { deleteHelmDeploy, helmDeploy } from "./deployment.js"
+import { execInHelmDeploy } from "./exec.js"
+import { getHelmDeployLogs } from "./logs.js"
+import { getHelmDeployStatus } from "./status.js"
 import { posix } from "path"
-import { k8sContainerStopSync } from "../container/sync"
-import { helmGetSyncStatus, helmStartSync } from "./sync"
-import { makeDocsLink } from "../../../docs/common"
+import { k8sContainerStopSync } from "../container/sync.js"
+import { helmGetSyncStatus, helmStartSync } from "./sync.js"
+import { makeDocsLink } from "../../../docs/common.js"
 
 export const getHelmDeployDocs = () => dedent`
   Specify a Helm chart (either in your repository or remote from a registry) to deploy.

@@ -7,12 +7,12 @@
  */
 
 import { expect } from "chai"
-import { getDataDir, makeTestGarden, makeTestGardenA } from "../../../helpers"
-import { TestConfig } from "../../../../src/config/test"
-import { testFromConfig } from "../../../../src/types/test"
+import { getDataDir, makeTestGarden, makeTestGardenA } from "../../../helpers.js"
+import type { TestConfig } from "../../../../src/config/test.js"
+import { testFromConfig } from "../../../../src/types/test.js"
 import cloneDeep from "fast-copy"
 
-import { DEFAULT_TEST_TIMEOUT_SEC } from "../../../../src/constants"
+import { DEFAULT_TEST_TIMEOUT_SEC } from "../../../../src/constants.js"
 
 describe("testFromConfig", () => {
   it("should propagate the disabled flag from the config", async () => {

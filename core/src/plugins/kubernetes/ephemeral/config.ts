@@ -7,19 +7,21 @@
  */
 
 import chalk from "chalk"
-import { mkdirp, writeFile } from "fs-extra"
+import fsExtra from "fs-extra"
+const { mkdirp, writeFile } = fsExtra
 import { load } from "js-yaml"
-import { remove } from "lodash"
+import { remove } from "lodash-es"
 import moment from "moment"
 import { join } from "path"
-import { joi, joiProviderName } from "../../../config/common"
-import { providerConfigBaseSchema } from "../../../config/provider"
-import { ConfigurationError } from "../../../exceptions"
-import { ConfigureProviderParams } from "../../../plugin/handlers/Provider/configureProvider"
-import { dedent } from "../../../util/string"
-import { KubernetesConfig, namespaceSchema } from "../config"
-import { EPHEMERAL_KUBERNETES_PROVIDER_NAME } from "./ephemeral"
-import { DEFAULT_GARDEN_CLOUD_DOMAIN } from "../../../constants"
+import { joi, joiProviderName } from "../../../config/common.js"
+import { providerConfigBaseSchema } from "../../../config/provider.js"
+import { ConfigurationError } from "../../../exceptions.js"
+import type { ConfigureProviderParams } from "../../../plugin/handlers/Provider/configureProvider.js"
+import { dedent } from "../../../util/string.js"
+import type { KubernetesConfig } from "../config.js"
+import { namespaceSchema } from "../config.js"
+import { EPHEMERAL_KUBERNETES_PROVIDER_NAME } from "./ephemeral.js"
+import { DEFAULT_GARDEN_CLOUD_DOMAIN } from "../../../constants.js"
 
 export const configSchema = () =>
   providerConfigBaseSchema()

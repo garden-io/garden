@@ -7,25 +7,33 @@
  */
 
 import chalk from "chalk"
-import { fromPairs, memoize } from "lodash"
-import { joi } from "../config/common"
-import { Garden } from "../garden"
-import { createActionLog, Log } from "../logger/log-entry"
-import { renderDivider } from "../logger/util"
-import { getLinkedSources } from "../util/ext-source-util"
-import { buildActionConfigSchema, ExecutedBuildAction, isBuildAction, ResolvedBuildAction } from "./build"
-import { deployActionConfigSchema, ExecutedDeployAction, isDeployAction, ResolvedDeployAction } from "./deploy"
-import { ExecutedRunAction, isRunAction, ResolvedRunAction, runActionConfigSchema } from "./run"
-import { ExecutedTestAction, isTestAction, ResolvedTestAction, testActionConfigSchema } from "./test"
-import type { Action, ActionState, ExecuteActionParams, Executed, ResolveActionParams, ResolvedAction } from "./types"
-import { ActionRouter } from "../router/router"
-import { ResolvedConfigGraph } from "../graph/config-graph"
+import { fromPairs, memoize } from "lodash-es"
+import { joi } from "../config/common.js"
+import type { Garden } from "../garden.js"
+import type { Log } from "../logger/log-entry.js"
+import { createActionLog } from "../logger/log-entry.js"
+import { renderDivider } from "../logger/util.js"
+import { getLinkedSources } from "../util/ext-source-util.js"
+import { buildActionConfigSchema, ExecutedBuildAction, isBuildAction, ResolvedBuildAction } from "./build.js"
+import { deployActionConfigSchema, ExecutedDeployAction, isDeployAction, ResolvedDeployAction } from "./deploy.js"
+import { ExecutedRunAction, isRunAction, ResolvedRunAction, runActionConfigSchema } from "./run.js"
+import { ExecutedTestAction, isTestAction, ResolvedTestAction, testActionConfigSchema } from "./test.js"
+import type {
+  Action,
+  ActionState,
+  ExecuteActionParams,
+  Executed,
+  ResolveActionParams,
+  ResolvedAction,
+} from "./types.js"
+import type { ActionRouter } from "../router/router.js"
+import type { ResolvedConfigGraph } from "../graph/config-graph.js"
 import { relative, sep } from "path"
-import { makeActionCompletePayload } from "../events/util"
-import { ActionStatusPayload } from "../events/action-status-events"
-import { BuildStatusForEventPayload } from "../plugin/handlers/Build/get-status"
-import { DeployStatusForEventPayload } from "../types/service"
-import { RunStatusForEventPayload } from "../plugin/plugin"
+import { makeActionCompletePayload } from "../events/util.js"
+import type { ActionStatusPayload } from "../events/action-status-events.js"
+import type { BuildStatusForEventPayload } from "../plugin/handlers/Build/get-status.js"
+import type { DeployStatusForEventPayload } from "../types/service.js"
+import type { RunStatusForEventPayload } from "../plugin/plugin.js"
 
 /**
  * Creates a corresponding Resolved version of the given Action, given the additional parameters needed.

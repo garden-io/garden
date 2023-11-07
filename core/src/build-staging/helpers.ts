@@ -8,13 +8,15 @@
 
 import { readlink, copyFile, constants, utimes } from "fs"
 import readdir from "@jsdevtools/readdir-enhanced"
-import { splitLast } from "../util/string"
+import { splitLast } from "../util/string.js"
 import { Minimatch } from "minimatch"
 import { isAbsolute, parse, basename, resolve } from "path"
-import { ensureDir, Stats, lstat, remove } from "fs-extra"
-import { FilesystemError, InternalError, isErrnoException } from "../exceptions"
-import async, { AsyncResultCallback } from "async"
-import { round } from "lodash"
+import fsExtra from "fs-extra"
+const { ensureDir, Stats, lstat, remove } = fsExtra
+import { FilesystemError, InternalError, isErrnoException } from "../exceptions.js"
+import type { AsyncResultCallback } from "async"
+import async from "async"
+import { round } from "lodash-es"
 import { promisify } from "util"
 
 export type MappedPaths = [string, string][]
@@ -110,7 +112,7 @@ export const cloneFileAsync = promisify(cloneFile) as (params: CloneFileParams) 
 interface CopyParams {
   from: string
   to: string
-  sourceStats: Stats
+  sourceStats: fsExtra.Stats
   done: SyncCallback
   statsHelper: FileStatsHelper
   resolvedSymlinkPaths?: string[]
@@ -161,7 +163,7 @@ export async function scanDirectoryForClone(root: string, pattern?: string): Pro
 
   // No wildcards, so we just read and return the entire set of files from the source directory.
   if (!pattern) {
-    return (await readdir(root, { deep: true, filter: (stats) => stats.isFile() })).map((f) => [f, f])
+    return (await readdir.readdirAsync(root, { deep: true, filter: (stats) => stats.isFile() })).map((f) => [f, f])
   }
 
   // We have a pattern to match, so we go into the more complex routine.
@@ -177,7 +179,7 @@ export async function scanDirectoryForClone(root: string, pattern?: string): Pro
   const mm = new Minimatch(pattern)
 
   // TODO: ignore links that points outside of `root`
-  await readdir(root, {
+  await readdir.readdirAsync(root, {
     deep: true,
     sep: "/",
     filter: (stats) => {
@@ -225,7 +227,7 @@ export class ExtendedStats extends Stats {
     this.target = target
   }
 
-  static fromStats(stats: Stats, path: string, target?: ExtendedStats | null) {
+  static fromStats(stats: fsExtra.Stats, path: string, target?: ExtendedStats | null) {
     const o = new ExtendedStats(path, target)
     Object.assign(o, stats)
     return o
@@ -251,7 +253,7 @@ type ExtendedStatsCallback = (err: NodeJS.ErrnoException | null, stats: Extended
  * The idea is for an instance to be used for the duration of e.g. one sync flow, but not for longer.
  */
 export class FileStatsHelper {
-  private lstatCache: { [path: string]: Stats }
+  private lstatCache: { [path: string]: fsExtra.Stats }
   private extendedStatCache: { [path: string]: ExtendedStats | null }
 
   constructor() {
@@ -262,7 +264,7 @@ export class FileStatsHelper {
   /**
    * Calls fs.lstat on the given path, and caches the result.
    */
-  lstat(path: string, cb: (err: NodeJS.ErrnoException | null, stats: Stats) => void) {
+  lstat(path: string, cb: (err: NodeJS.ErrnoException | null, stats: fsExtra.Stats) => void) {
     if (this.lstatCache[path]) {
       cb(null, this.lstatCache[path])
     } else {

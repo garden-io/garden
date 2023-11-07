@@ -7,12 +7,13 @@
  */
 
 import { expect } from "chai"
-import { ResolvedRunAction } from "../../../../../src/actions/run"
-import { executeAction, resolveAction } from "../../../../../src/graph/actions"
-import { ConfigGraph } from "../../../../../src/graph/config-graph"
-import { TestGarden, getDataDir, makeTestGarden } from "../../../../helpers"
-import { Log } from "../../../../../src/logger/log-entry"
-import { ExecProviderOutputs } from "../../../../../src/plugins/exec/exec"
+import type { ResolvedRunAction } from "../../../../../src/actions/run.js"
+import { executeAction, resolveAction } from "../../../../../src/graph/actions.js"
+import type { ConfigGraph } from "../../../../../src/graph/config-graph.js"
+import type { TestGarden } from "../../../../helpers.js"
+import { getDataDir, makeTestGarden } from "../../../../helpers.js"
+import type { Log } from "../../../../../src/logger/log-entry.js"
+import type { ExecProviderOutputs } from "../../../../../src/plugins/exec/exec.js"
 
 describe("exec plugin", () => {
   let garden: TestGarden

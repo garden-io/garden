@@ -1,7 +1,8 @@
 {
   "name": "@garden-io/garden-jib",
-  "version": "0.13.18",
+  "version": "0.13.19",
   "description": "Jib container plugin for Garden",
+  "type": "module",
   "main": "build/src/index.js",
   "dependencies": {
     "@garden-io/core": "*",
@@ -10,14 +11,14 @@
     "execa": "^5.1.1",
     "fast-copy": "^3.0.1",
     "fs-extra": "^11.1.0",
-    "lodash": "^4.17.21",
+    "lodash-es": "^4.17.21",
     "split2": "^4.1.0"
   },
   "devDependencies": {
     "@types/async-lock": "^1.4.0",
     "@types/chai": "^4.3.4",
     "@types/fs-extra": "^11.0.1",
-    "@types/lodash": "^4.14.191",
+    "@types/lodash-es": "^4.17.9",
     "@types/mocha": "^10.0.1",
     "@types/node": "^18",
     "chai": "^4.3.7",

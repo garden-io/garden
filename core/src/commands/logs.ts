@@ -6,17 +6,19 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import dotenv = require("dotenv")
-import { Command, CommandResult, CommandParams, PrepareParams } from "./base"
+import dotenv from "dotenv"
+import type { CommandResult, CommandParams, PrepareParams } from "./base.js"
+import { Command } from "./base.js"
 import chalk from "chalk"
-import { omit, sortBy } from "lodash"
-import { DeployLogEntry } from "../types/service"
-import { LogLevel, parseLogLevel, VoidLogger } from "../logger/logger"
-import { StringsParameter, BooleanParameter, IntegerParameter, DurationParameter, TagsOption } from "../cli/params"
-import { printHeader, renderDivider } from "../logger/util"
-import { dedent, deline, naturalList } from "../util/string"
-import { CommandError, ParameterError } from "../exceptions"
-import { LogMonitor, LogsTagOrFilter } from "../monitors/logs"
+import { omit, sortBy } from "lodash-es"
+import type { DeployLogEntry } from "../types/service.js"
+import { LogLevel, parseLogLevel, VoidLogger } from "../logger/logger.js"
+import { StringsParameter, BooleanParameter, IntegerParameter, DurationParameter, TagsOption } from "../cli/params.js"
+import { printHeader, renderDivider } from "../logger/util.js"
+import { dedent, deline, naturalList } from "../util/string.js"
+import { CommandError, ParameterError } from "../exceptions.js"
+import type { LogsTagOrFilter } from "../monitors/logs.js"
+import { LogMonitor } from "../monitors/logs.js"
 
 const logsArgs = {
   names: new StringsParameter({

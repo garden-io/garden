@@ -6,26 +6,19 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import Joi from "@hapi/joi"
+import type Joi from "@hapi/joi"
 import { readFileSync } from "fs"
 import linewrap from "linewrap"
 import { resolve } from "path"
-import { projectSchema } from "../config/project"
-import { get, isFunction, isString } from "lodash"
-import handlebars = require("handlebars")
-import { JoiDescription } from "../config/common"
-import { STATIC_DIR } from "../constants"
-import {
-  indent,
-  renderMarkdownTable,
-  convertMarkdownLinks,
-  BaseKeyDescription,
-  NormalizeOptions,
-  flattenSchema,
-  isArrayType,
-} from "./common"
-import { JoiKeyDescription } from "./joi-schema"
-import { safeDumpYaml } from "../util/serialization"
+import { projectSchema } from "../config/project.js"
+import { get, isFunction, isString } from "lodash-es"
+import handlebars from "handlebars"
+import type { JoiDescription } from "../config/common.js"
+import { STATIC_DIR } from "../constants.js"
+import type { BaseKeyDescription, NormalizeOptions } from "./common.js"
+import { indent, renderMarkdownTable, convertMarkdownLinks, flattenSchema, isArrayType } from "./common.js"
+import { JoiKeyDescription } from "./joi-schema.js"
+import { safeDumpYaml } from "../util/serialization.js"
 
 export const TEMPLATES_DIR = resolve(STATIC_DIR, "docs", "templates")
 const partialTemplatePath = resolve(TEMPLATES_DIR, "config-partial.hbs")

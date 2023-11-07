@@ -7,12 +7,12 @@
  */
 
 import sinon from "sinon"
-import td from "testdouble"
+import * as td from "testdouble"
 import timekeeper from "timekeeper"
-import { getDefaultProfiler } from "../src/util/profiling"
-import { gardenEnv } from "../src/constants"
-import { testFlags } from "../src/util/util"
-import { initTestLogger, testProjectTempDirs } from "./helpers"
+import { getDefaultProfiler } from "../src/util/profiling.js"
+import { gardenEnv } from "../src/constants.js"
+import { testFlags } from "../src/util/util.js"
+import { initTestLogger, testProjectTempDirs } from "./helpers.js"
 
 import sourceMapSupport from "source-map-support"
 sourceMapSupport.install()
@@ -20,7 +20,7 @@ sourceMapSupport.install()
 initTestLogger()
 
 // Global hooks
-exports.mochaHooks = {
+export const mochaHooks = {
   async beforeAll() {
     // override fetch to handle node 18 issue when using nock
     // https://github.com/nock/nock/issues/2336

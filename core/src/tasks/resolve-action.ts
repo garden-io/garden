@@ -6,20 +6,28 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { BaseActionTask, ActionTaskProcessParams, ActionTaskStatusParams, BaseTask, ValidResultType } from "./base"
-import { Profile } from "../util/profiling"
-import type { Action, ActionState, BaseActionConfig, ExecutedAction, Resolved, ResolvedAction } from "../actions/types"
-import { ActionSpecContext } from "../config/template-contexts/actions"
-import { resolveTemplateStrings } from "../template-string/template-string"
-import { InternalError } from "../exceptions"
-import { validateWithPath } from "../config/validation"
-import { DeepPrimitiveMap } from "../config/common"
-import { merge } from "lodash"
-import { mergeVariables } from "../graph/common"
-import { actionToResolved } from "../actions/helpers"
-import { ResolvedConfigGraph } from "../graph/config-graph"
-import { OtelTraced } from "../util/open-telemetry/decorators"
-import { computeKeyPathsToIgnoreFromConfig } from "./helpers"
+import type { ActionTaskStatusParams, BaseTask, ValidResultType, ActionTaskProcessParams } from "./base.js"
+import { BaseActionTask } from "./base.js"
+import { Profile } from "../util/profiling.js"
+import type {
+  Action,
+  ActionState,
+  BaseActionConfig,
+  ExecutedAction,
+  Resolved,
+  ResolvedAction,
+} from "../actions/types.js"
+import { ActionSpecContext } from "../config/template-contexts/actions.js"
+import { resolveTemplateStrings } from "../template-string/template-string.js"
+import { InternalError } from "../exceptions.js"
+import { validateWithPath } from "../config/validation.js"
+import type { DeepPrimitiveMap } from "../config/common.js"
+import { merge } from "lodash-es"
+import { mergeVariables } from "../graph/common.js"
+import { actionToResolved } from "../actions/helpers.js"
+import { ResolvedConfigGraph } from "../graph/config-graph.js"
+import { OtelTraced } from "../util/open-telemetry/decorators.js"
+import { computeKeyPathsToIgnoreFromConfig } from "./helpers.js"
 
 export interface ResolveActionResults<T extends Action> extends ValidResultType {
   state: ActionState

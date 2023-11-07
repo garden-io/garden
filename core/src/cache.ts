@@ -6,10 +6,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { isEqual } from "lodash"
+import { isEqual } from "lodash-es"
 import { normalize, parse, sep } from "path"
-import { ParameterError, NotFoundError } from "./exceptions"
-import { Log } from "./logger/log-entry"
+import { ParameterError, NotFoundError } from "./exceptions.js"
+import type { Log } from "./logger/log-entry.js"
 
 export type CacheKey = string[]
 export type CacheContext = string[]

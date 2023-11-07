@@ -6,13 +6,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { deline } from "../../../util/string"
-import { PluginActionParamsBase, actionParamsSchema } from "../../base"
-import { joi, joiVariables, DeepPrimitiveMap } from "../../../config/common"
-import { templateStringLiteral } from "../../../docs/common"
-import { BaseAction } from "../../../actions/base"
-import { Resolved } from "../../../actions/types"
-import { ActionTypeHandlerSpec } from "./base"
+import { deline } from "../../../util/string.js"
+import type { PluginActionParamsBase } from "../../base.js"
+import { actionParamsSchema } from "../../base.js"
+import type { DeepPrimitiveMap } from "../../../config/common.js"
+import { joi, joiVariables } from "../../../config/common.js"
+import { templateStringLiteral } from "../../../docs/common.js"
+import type { BaseAction } from "../../../actions/base.js"
+import type { Resolved } from "../../../actions/types.js"
+import { ActionTypeHandlerSpec } from "./base.js"
 
 export interface GetActionOutputsParams<T extends BaseAction> extends PluginActionParamsBase {
   action: Resolved<T>

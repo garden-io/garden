@@ -7,24 +7,24 @@
  */
 
 import type { ValuesType } from "utility-types"
-import type { ConfigGraph, ResolvedConfigGraph } from "../graph/config-graph"
-import type { ActionReference, DeepPrimitiveMap } from "../config/common"
-import type { ModuleVersion, TreeVersion } from "../vcs/vcs"
-import type { BuildAction, BuildActionConfig, ExecutedBuildAction, ResolvedBuildAction } from "./build"
-import type { DeployAction, DeployActionConfig, ExecutedDeployAction, ResolvedDeployAction } from "./deploy"
-import type { ExecutedRunAction, ResolvedRunAction, RunAction, RunActionConfig } from "./run"
-import type { ExecutedTestAction, ResolvedTestAction, TestAction, TestActionConfig } from "./test"
-import type { ActionKind } from "../plugin/action-types"
-import type { GraphResults } from "../graph/results"
-import type { BaseAction } from "./base"
-import type { ValidResultType } from "../tasks/base"
-import type { BaseGardenResource, GardenResourceInternalFields } from "../config/base"
-import type { LinkedSource } from "../config-store/local"
-import { GardenApiVersion } from "../constants"
+import type { ConfigGraph, ResolvedConfigGraph } from "../graph/config-graph.js"
+import type { ActionReference, DeepPrimitiveMap } from "../config/common.js"
+import type { ModuleVersion, TreeVersion } from "../vcs/vcs.js"
+import type { BuildAction, BuildActionConfig, ExecutedBuildAction, ResolvedBuildAction } from "./build.js"
+import type { DeployAction, DeployActionConfig, ExecutedDeployAction, ResolvedDeployAction } from "./deploy.js"
+import type { ExecutedRunAction, ResolvedRunAction, RunAction, RunActionConfig } from "./run.js"
+import type { ExecutedTestAction, ResolvedTestAction, TestAction, TestActionConfig } from "./test.js"
+import type { ActionKind } from "../plugin/action-types.js"
+import type { GraphResults } from "../graph/results.js"
+import type { BaseAction } from "./base.js"
+import type { ValidResultType } from "../tasks/base.js"
+import type { BaseGardenResource, GardenResourceInternalFields } from "../config/base.js"
+import type { LinkedSource } from "../config-store/local.js"
+import type { GardenApiVersion } from "../constants.js"
 
 // TODO: split this file
 
-export type { ActionKind } from "../plugin/action-types"
+export type { ActionKind } from "../plugin/action-types.js"
 
 export const actionKinds: ActionKind[] = ["Build", "Deploy", "Run", "Test"]
 export const actionKindsLower = actionKinds.map((k) => k.toLowerCase())

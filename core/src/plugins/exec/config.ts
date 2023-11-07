@@ -6,14 +6,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Resolved } from "../../actions/types"
-import { artifactsTargetDescription } from "../../config/common"
-import { dedent } from "../../util/string"
-import { sdk } from "../../plugin/sdk"
-import type { ExecBuild, ExecBuildConfig } from "./build"
-import type { ExecTest, ExecTestConfig } from "./test"
-import type { ExecRun, ExecRunConfig } from "./run"
-import type { ExecDeploy, ExecDeployConfig } from "./deploy"
+import type { Resolved } from "../../actions/types.js"
+import { artifactsTargetDescription } from "../../config/common.js"
+import { dedent } from "../../util/string.js"
+import { sdk } from "../../plugin/sdk.js"
+import type { ExecBuild, ExecBuildConfig } from "./build.js"
+import type { ExecTest, ExecTestConfig } from "./test.js"
+import type { ExecRun, ExecRunConfig } from "./run.js"
+import type { ExecDeploy, ExecDeployConfig } from "./deploy.js"
 
 const s = sdk.schema
 

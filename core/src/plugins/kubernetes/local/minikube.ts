@@ -6,8 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ChildProcessError } from "../../../exceptions"
-import { exec } from "../../../util/util"
+import { ChildProcessError } from "../../../exceptions.js"
+import { exec } from "../../../util/util.js"
 
 /**
  * Automatically set docker environment variables for minikube

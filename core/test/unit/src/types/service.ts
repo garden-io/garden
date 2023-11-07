@@ -7,9 +7,9 @@
  */
 
 import { expect } from "chai"
-import { combineStates, deployStates, serviceFromConfig } from "../../../../src/types/service"
-import { ServiceConfig } from "../../../../src/config/service"
-import { makeTestGardenA } from "../../../helpers"
+import { combineStates, deployStates, serviceFromConfig } from "../../../../src/types/service.js"
+import type { ServiceConfig } from "../../../../src/config/service.js"
+import { makeTestGardenA } from "../../../helpers.js"
 
 describe("combineStates", () => {
   it("should return ready if all states are ready", () => {

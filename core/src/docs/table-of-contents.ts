@@ -23,16 +23,17 @@
  * - For directories, put their front matter in the README.md file inside it.
  */
 
-import matter = require("gray-matter")
-import dtree = require("directory-tree")
-import { readFileSync, writeFile, createFile } from "fs-extra"
+import matter from "gray-matter"
+import dtree from "directory-tree"
+import fsExtra from "fs-extra"
+const { readFileSync, writeFile, createFile } = fsExtra
 import { resolve } from "path"
 import cloneDeep from "fast-copy"
-import { repeat } from "lodash"
-import titleize = require("titleize")
-import humanizeString = require("humanize-string")
-import { dedent } from "../util/string"
-import { isErrnoException } from "../exceptions"
+import { repeat } from "lodash-es"
+import titleize from "titleize"
+import humanizeString from "humanize-string"
+import { dedent } from "../util/string.js"
+import { isErrnoException } from "../exceptions.js"
 
 interface Metadata {
   order: number

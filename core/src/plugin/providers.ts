@@ -6,33 +6,24 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import {
-  CleanupEnvironmentParams,
-  CleanupEnvironmentResult,
-  cleanupEnvironment,
-} from "./handlers/Provider/cleanupEnvironment"
-import {
-  ConfigureProviderParams,
-  ConfigureProviderResult,
-  configureProvider,
-} from "./handlers/Provider/configureProvider"
-import {
-  EnvironmentStatus,
-  GetEnvironmentStatusParams,
-  getEnvironmentStatus,
-} from "./handlers/Provider/getEnvironmentStatus"
-import {
-  PrepareEnvironmentParams,
-  PrepareEnvironmentResult,
-  prepareEnvironment,
-} from "./handlers/Provider/prepareEnvironment"
-import { ActionHandler, ResolvedActionHandlerDescriptions } from "./base"
-import { mapValues } from "lodash"
-import { getDebugInfo, DebugInfo, GetDebugInfoParams } from "./handlers/Provider/getDebugInfo"
-import { AugmentGraphResult, AugmentGraphParams, augmentGraph } from "./handlers/Provider/augmentGraph"
-import { GetDashboardPageParams, GetDashboardPageResult, getDashboardPage } from "./handlers/Provider/getDashboardPage"
-import { baseHandlerSchema } from "./handlers/base/base"
-import type { BaseProviderConfig } from "../config/provider"
+import type { CleanupEnvironmentParams, CleanupEnvironmentResult } from "./handlers/Provider/cleanupEnvironment.js"
+import { cleanupEnvironment } from "./handlers/Provider/cleanupEnvironment.js"
+import type { ConfigureProviderParams, ConfigureProviderResult } from "./handlers/Provider/configureProvider.js"
+import { configureProvider } from "./handlers/Provider/configureProvider.js"
+import type { EnvironmentStatus, GetEnvironmentStatusParams } from "./handlers/Provider/getEnvironmentStatus.js"
+import { getEnvironmentStatus } from "./handlers/Provider/getEnvironmentStatus.js"
+import type { PrepareEnvironmentParams, PrepareEnvironmentResult } from "./handlers/Provider/prepareEnvironment.js"
+import { prepareEnvironment } from "./handlers/Provider/prepareEnvironment.js"
+import type { ActionHandler, ResolvedActionHandlerDescriptions } from "./base.js"
+import { mapValues } from "lodash-es"
+import type { DebugInfo, GetDebugInfoParams } from "./handlers/Provider/getDebugInfo.js"
+import { getDebugInfo } from "./handlers/Provider/getDebugInfo.js"
+import type { AugmentGraphResult, AugmentGraphParams } from "./handlers/Provider/augmentGraph.js"
+import { augmentGraph } from "./handlers/Provider/augmentGraph.js"
+import type { GetDashboardPageParams, GetDashboardPageResult } from "./handlers/Provider/getDashboardPage.js"
+import { getDashboardPage } from "./handlers/Provider/getDashboardPage.js"
+import { baseHandlerSchema } from "./handlers/base/base.js"
+import type { BaseProviderConfig } from "../config/provider.js"
 
 export type ProviderHandlers<C extends BaseProviderConfig = any, O extends object = any> = {
   [P in keyof ProviderActionParams]: ActionHandler<ProviderActionParams<C>[P], ProviderActionOutputs<C, O>[P]>

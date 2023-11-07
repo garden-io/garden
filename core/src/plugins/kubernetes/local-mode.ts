@@ -6,38 +6,42 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ContainerDeployAction, containerLocalModeSchema, ContainerLocalModeSpec } from "../container/config"
-import { dedent, gardenAnnotationKey, splitLast } from "../../util/string"
+import type { ContainerDeployAction, ContainerLocalModeSpec } from "../container/config.js"
+import { containerLocalModeSchema } from "../container/config.js"
+import { dedent, gardenAnnotationKey, splitLast } from "../../util/string.js"
 import cloneDeep from "fast-copy"
-import { remove, set } from "lodash"
-import { BaseResource, KubernetesResource, SyncableResource, SyncableRuntimeAction } from "./types"
-import { PrimitiveMap } from "../../config/common"
+import { remove, set } from "lodash-es"
+import type { BaseResource, KubernetesResource, SyncableResource, SyncableRuntimeAction } from "./types.js"
+import type { PrimitiveMap } from "../../config/common.js"
 import {
   k8sReverseProxyImageName,
   PROXY_CONTAINER_SSH_TUNNEL_PORT,
   PROXY_CONTAINER_SSH_TUNNEL_PORT_NAME,
   PROXY_CONTAINER_USER_NAME,
-} from "./constants"
-import { ConfigurationError, InternalError, RuntimeError } from "../../exceptions"
-import { getResourceContainer, getResourceKey, getTargetResource, prepareEnvVars } from "./util"
-import { V1Container, V1ContainerPort } from "@kubernetes/client-node"
-import { KubernetesPluginContext, KubernetesTargetResourceSpec, targetResourceSpecSchema } from "./config"
-import { ActionLog, Log } from "../../logger/log-entry"
+} from "./constants.js"
+import { ConfigurationError, InternalError, RuntimeError } from "../../exceptions.js"
+import { getResourceContainer, getResourceKey, getTargetResource, prepareEnvVars } from "./util.js"
+import type { V1Container, V1ContainerPort } from "@kubernetes/client-node"
+import type { KubernetesPluginContext, KubernetesTargetResourceSpec } from "./config.js"
+import { targetResourceSpecSchema } from "./config.js"
+import type { ActionLog, Log } from "../../logger/log-entry.js"
 import chalk from "chalk"
 import { rmSync } from "fs"
 import { execSync } from "child_process"
 import { isAbsolute, join } from "path"
-import { ensureDir, readFile } from "fs-extra"
-import { PluginContext } from "../../plugin-context"
-import { kubectl } from "./kubectl"
-import { OsCommand, ProcessMessage, RecoverableProcess, RetryInfo } from "../../util/recoverable-process"
-import { isConfiguredForLocalMode } from "./status/status"
-import { exec, registerCleanupFunction, shutdown } from "../../util/util"
-import getPort = require("get-port")
-import touch = require("touch")
-import { Resolved } from "../../actions/types"
-import { DOCS_BASE_URL } from "../../constants"
-import AsyncLock = require("async-lock")
+import fsExtra from "fs-extra"
+const { ensureDir, readFile } = fsExtra
+import type { PluginContext } from "../../plugin-context.js"
+import { kubectl } from "./kubectl.js"
+import type { OsCommand, ProcessMessage, RetryInfo } from "../../util/recoverable-process.js"
+import { RecoverableProcess } from "../../util/recoverable-process.js"
+import { isConfiguredForLocalMode } from "./status/status.js"
+import { exec, registerCleanupFunction, shutdown } from "../../util/util.js"
+import getPort from "get-port"
+import touch from "touch"
+import type { Resolved } from "../../actions/types.js"
+import { DOCS_BASE_URL } from "../../constants.js"
+import AsyncLock from "async-lock"
 
 export const localModeGuideLink = `${DOCS_BASE_URL}/guides/running-service-in-local-mode`
 

@@ -6,16 +6,17 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Command, CommandParams } from "../base"
-import { RuntimeError } from "../../exceptions"
+import type { CommandParams } from "../base.js"
+import { Command } from "../base.js"
+import { RuntimeError } from "../../exceptions.js"
 import dedent from "dedent"
-import { GardenPluginSpec } from "../../plugin/plugin"
-import { findProjectConfig } from "../../config/base"
-import { Garden, DummyGarden } from "../../garden"
-import { PluginTool } from "../../util/ext-tools"
-import { fromPairs, omit, uniqBy } from "lodash"
-import { printHeader, printFooter } from "../../logger/util"
-import { BooleanParameter } from "../../cli/params"
+import type { GardenPluginSpec } from "../../plugin/plugin.js"
+import { findProjectConfig } from "../../config/base.js"
+import { Garden, DummyGarden } from "../../garden.js"
+import { PluginTool } from "../../util/ext-tools.js"
+import { fromPairs, omit, uniqBy } from "lodash-es"
+import { printHeader, printFooter } from "../../logger/util.js"
+import { BooleanParameter } from "../../cli/params.js"
 
 const fetchToolsOpts = {
   "all": new BooleanParameter({

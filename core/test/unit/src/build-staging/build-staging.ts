@@ -6,20 +6,24 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import readdir from "@jsdevtools/readdir-enhanced"
+import readdirModule from "@jsdevtools/readdir-enhanced"
+const readdir = readdirModule.default
 import { join, basename } from "path"
-import { pathExists, createFile, realpath, readFile, ensureFile, writeFile, ensureDir } from "fs-extra"
+import fsExtra from "fs-extra"
+const { pathExists, createFile, realpath, readFile, ensureFile, writeFile, ensureDir } = fsExtra
 import { expect } from "chai"
-import { makeTestGarden, TestGarden, expectError, getDataDir } from "../../../helpers"
-import { defaultConfigFilename, TempDirectory, makeTempDir, joinWithPosix } from "../../../../src/util/fs"
-import { BuildStaging, SyncParams } from "../../../../src/build-staging/build-staging"
-import { Log } from "../../../../src/logger/log-entry"
-import { TestGardenOpts } from "../../../../src/util/testing"
-import { BuildStagingRsync, minRsyncVersion } from "../../../../src/build-staging/rsync"
-import { BuildTask } from "../../../../src/tasks/build"
-import { ConfigGraph } from "../../../../src/graph/config-graph"
-import { BuildAction } from "../../../../src/actions/build"
-import { DOCS_BASE_URL } from "../../../../src/constants"
+import type { TestGarden } from "../../../helpers.js"
+import { makeTestGarden, expectError, getDataDir } from "../../../helpers.js"
+import type { TempDirectory } from "../../../../src/util/fs.js"
+import { defaultConfigFilename, makeTempDir, joinWithPosix } from "../../../../src/util/fs.js"
+import type { BuildStaging, SyncParams } from "../../../../src/build-staging/build-staging.js"
+import type { Log } from "../../../../src/logger/log-entry.js"
+import type { TestGardenOpts } from "../../../../src/util/testing.js"
+import { BuildStagingRsync, minRsyncVersion } from "../../../../src/build-staging/rsync.js"
+import { BuildTask } from "../../../../src/tasks/build.js"
+import type { ConfigGraph } from "../../../../src/graph/config-graph.js"
+import type { BuildAction } from "../../../../src/actions/build.js"
+import { DOCS_BASE_URL } from "../../../../src/constants.js"
 
 // TODO-G2: rename test cases to match the new graph model semantics
 

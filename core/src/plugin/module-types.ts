@@ -6,18 +6,22 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import Joi = require("@hapi/joi")
-import { ConfigureModuleParams, ConfigureModuleResult, configure } from "./handlers/Module/configure"
-import { joiIdentifier, joi, joiSchema, createSchema } from "../config/common"
-import { GardenModule } from "../types/module"
-import { ActionHandlerParamsBase, outputSchemaDocs, WrappedActionHandler } from "./base"
-import { mapValues, memoize } from "lodash"
-import { dedent } from "../util/string"
-import { templateStringLiteral } from "../docs/common"
-import { GetModuleOutputsParams, GetModuleOutputsResult, getModuleOutputs } from "./handlers/Module/get-outputs"
-import { convert, ConvertModuleParams, ConvertModuleResult } from "./handlers/Module/convert"
-import { baseHandlerSchema } from "./handlers/base/base"
-import { ResolvedActionHandlerDescriptions } from "./plugin"
+import type Joi from "@hapi/joi"
+import type { ConfigureModuleParams, ConfigureModuleResult } from "./handlers/Module/configure.js"
+import { configure } from "./handlers/Module/configure.js"
+import { joiIdentifier, joi, joiSchema, createSchema } from "../config/common.js"
+import type { GardenModule } from "../types/module.js"
+import type { ActionHandlerParamsBase, WrappedActionHandler } from "./base.js"
+import { outputSchemaDocs } from "./base.js"
+import { mapValues, memoize } from "lodash-es"
+import { dedent } from "../util/string.js"
+import { templateStringLiteral } from "../docs/common.js"
+import type { GetModuleOutputsParams, GetModuleOutputsResult } from "./handlers/Module/get-outputs.js"
+import { getModuleOutputs } from "./handlers/Module/get-outputs.js"
+import type { ConvertModuleParams, ConvertModuleResult } from "./handlers/Module/convert.js"
+import { convert } from "./handlers/Module/convert.js"
+import { baseHandlerSchema } from "./handlers/base/base.js"
+import type { ResolvedActionHandlerDescriptions } from "./plugin.js"
 
 export type ModuleActionHandler<P extends ActionHandlerParamsBase, O> = ((params: P) => Promise<O>) & {
   handlerType?: string

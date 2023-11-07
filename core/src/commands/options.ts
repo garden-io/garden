@@ -6,9 +6,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Command, CommandParams, CommandResult } from "./base"
-import { renderOptions, cliStyles } from "../cli/helpers"
-import { globalOptions } from "../cli/params"
+import type { CommandParams, CommandResult } from "./base.js"
+import { Command } from "./base.js"
+import { renderOptions, cliStyles } from "../cli/helpers.js"
+import { globalOptions } from "../cli/params.js"
 
 export class OptionsCommand extends Command {
   name = "options"

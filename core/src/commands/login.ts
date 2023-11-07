@@ -6,19 +6,21 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Command, CommandParams, CommandResult } from "./base"
-import { printHeader } from "../logger/util"
-import dedent = require("dedent")
-import { AuthTokenResponse, CloudApi, getGardenCloudDomain } from "../cloud/api"
-import { Log } from "../logger/log-entry"
-import { ConfigurationError, TimeoutError, InternalError, CloudApiError } from "../exceptions"
-import { AuthRedirectServer } from "../cloud/auth"
-import { EventBus } from "../events/events"
-import { getCloudDistributionName } from "../util/util"
-import { ProjectConfig } from "../config/project"
-import { findProjectConfig } from "../config/base"
-import { BooleanParameter } from "../cli/params"
-import { deline } from "../util/string"
+import type { CommandParams, CommandResult } from "./base.js"
+import { Command } from "./base.js"
+import { printHeader } from "../logger/util.js"
+import dedent from "dedent"
+import type { AuthTokenResponse } from "../cloud/api.js"
+import { CloudApi, getGardenCloudDomain } from "../cloud/api.js"
+import type { Log } from "../logger/log-entry.js"
+import { ConfigurationError, TimeoutError, InternalError, CloudApiError } from "../exceptions.js"
+import { AuthRedirectServer } from "../cloud/auth.js"
+import type { EventBus } from "../events/events.js"
+import { getCloudDistributionName } from "../util/util.js"
+import type { ProjectConfig } from "../config/project.js"
+import { findProjectConfig } from "../config/base.js"
+import { BooleanParameter } from "../cli/params.js"
+import { deline } from "../util/string.js"
 
 const loginTimeoutSec = 60
 

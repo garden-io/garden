@@ -6,19 +6,20 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ServiceStatus, ForwardablePort, DeployState, ServiceIngress } from "../../../types/service"
-import { createContainerManifests } from "./deployment"
-import { ContainerDeployAction, ContainerDeployOutputs } from "../../container/moduleConfig"
-import { KubeApi } from "../api"
-import { compareDeployedResources } from "../status/status"
-import { getIngresses } from "./ingress"
-import { getNamespaceStatus } from "../namespace"
-import { KubernetesPluginContext } from "../config"
-import { KubernetesServerResource, KubernetesWorkload } from "../types"
-import { DeployActionHandler } from "../../../plugin/action-types"
-import { getDeployedImageId } from "./util"
-import { ActionMode, Resolved } from "../../../actions/types"
-import { deployStateToActionState, DeployStatus } from "../../../plugin/handlers/Deploy/get-status"
+import type { ServiceStatus, ForwardablePort, DeployState, ServiceIngress } from "../../../types/service.js"
+import { createContainerManifests } from "./deployment.js"
+import type { ContainerDeployAction, ContainerDeployOutputs } from "../../container/moduleConfig.js"
+import { KubeApi } from "../api.js"
+import { compareDeployedResources } from "../status/status.js"
+import { getIngresses } from "./ingress.js"
+import { getNamespaceStatus } from "../namespace.js"
+import type { KubernetesPluginContext } from "../config.js"
+import type { KubernetesServerResource, KubernetesWorkload } from "../types.js"
+import type { DeployActionHandler } from "../../../plugin/action-types.js"
+import { getDeployedImageId } from "./util.js"
+import type { ActionMode, Resolved } from "../../../actions/types.js"
+import type { DeployStatus } from "../../../plugin/handlers/Deploy/get-status.js"
+import { deployStateToActionState } from "../../../plugin/handlers/Deploy/get-status.js"
 
 interface ContainerStatusDetail {
   remoteResources: KubernetesServerResource[]
@@ -37,7 +38,7 @@ export const k8sGetContainerDeployStatus: DeployActionHandler<"getStatus", Conta
   const api = await KubeApi.factory(log, ctx, provider)
   const namespaceStatus = await getNamespaceStatus({ ctx: k8sCtx, log, provider: k8sCtx.provider })
   const namespace = namespaceStatus.namespaceName
-  const imageId = getDeployedImageId(action, provider)
+  const imageId = getDeployedImageId(action)
 
   // FIXME: [objects, matched] and ingresses can be run in parallel
   const { workload, manifests } = await createContainerManifests({

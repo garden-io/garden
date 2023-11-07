@@ -6,11 +6,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { BaseTask, Task, TaskResultType, ValidResultType } from "../tasks/base"
-import { fromPairs, omit, pick } from "lodash"
-import { toGraphResultEventPayload } from "../events/events"
+import type { BaseTask, Task, TaskResultType, ValidResultType } from "../tasks/base.js"
+import { fromPairs, omit, pick } from "lodash-es"
+import { toGraphResultEventPayload } from "../events/events.js"
 import CircularJSON from "circular-json"
-import { GardenError, InternalError, toGardenError } from "../exceptions"
+import type { GardenError } from "../exceptions.js"
+import { InternalError, toGardenError } from "../exceptions.js"
 
 export interface TaskEventBase {
   type: string

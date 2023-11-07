@@ -8,25 +8,26 @@
 
 import { expect } from "chai"
 
-import { getDataDir, makeTestGarden, TestGarden } from "../../../../../helpers"
-import { helmDeploy } from "../../../../../../src/plugins/kubernetes/helm/deployment"
-import { KubernetesPluginContext, KubernetesProvider } from "../../../../../../src/plugins/kubernetes/config"
+import type { TestGarden } from "../../../../../helpers.js"
+import { getDataDir, makeTestGarden } from "../../../../../helpers.js"
+import { helmDeploy } from "../../../../../../src/plugins/kubernetes/helm/deployment.js"
+import type { KubernetesPluginContext, KubernetesProvider } from "../../../../../../src/plugins/kubernetes/config.js"
 import {
   gardenCloudAECPauseAnnotation,
   getReleaseStatus,
   getRenderedResources,
-} from "../../../../../../src/plugins/kubernetes/helm/status"
-import { getReleaseName } from "../../../../../../src/plugins/kubernetes/helm/common"
-import { KubeApi } from "../../../../../../src/plugins/kubernetes/api"
-import { buildHelmModules, getHelmLocalModeTestGarden, getHelmTestGarden } from "./common"
-import { ConfigGraph } from "../../../../../../src/graph/config-graph"
-import { isWorkload } from "../../../../../../src/plugins/kubernetes/util"
-import { getRootLogger } from "../../../../../../src/logger/logger"
-import { LocalModeProcessRegistry, ProxySshKeystore } from "../../../../../../src/plugins/kubernetes/local-mode"
-import { HelmDeployAction } from "../../../../../../src/plugins/kubernetes/helm/config"
-import { createActionLog } from "../../../../../../src/logger/log-entry"
-import { NamespaceStatus } from "../../../../../../src/types/namespace"
-import { FakeCloudApi } from "../../../../../helpers/api"
+} from "../../../../../../src/plugins/kubernetes/helm/status.js"
+import { getReleaseName } from "../../../../../../src/plugins/kubernetes/helm/common.js"
+import { KubeApi } from "../../../../../../src/plugins/kubernetes/api.js"
+import { buildHelmModules, getHelmLocalModeTestGarden, getHelmTestGarden } from "./common.js"
+import type { ConfigGraph } from "../../../../../../src/graph/config-graph.js"
+import { isWorkload } from "../../../../../../src/plugins/kubernetes/util.js"
+import { getRootLogger } from "../../../../../../src/logger/logger.js"
+import { LocalModeProcessRegistry, ProxySshKeystore } from "../../../../../../src/plugins/kubernetes/local-mode.js"
+import type { HelmDeployAction } from "../../../../../../src/plugins/kubernetes/helm/config.js"
+import { createActionLog } from "../../../../../../src/logger/log-entry.js"
+import type { NamespaceStatus } from "../../../../../../src/types/namespace.js"
+import { FakeCloudApi } from "../../../../../helpers/api.js"
 
 describe("helmDeploy in local-mode", () => {
   let garden: TestGarden
@@ -273,10 +274,10 @@ describe("helmDeploy", () => {
     const api = await KubeApi.factory(garden.log, ctx, provider)
 
     // Namespace should exist
-    await api.core.readNamespace(namespace)
+    await api.core.readNamespace({ name: namespace })
 
     // Deployment should exist
-    await api.apps.readNamespacedDeployment("chart-with-namespace", namespace)
+    await api.apps.readNamespacedDeployment({ name: "chart-with-namespace", namespace })
   })
 
   it("should mark a chart that has been paused by Garden Cloud AEC as outdated", async () => {
@@ -347,7 +348,11 @@ describe("helmDeploy", () => {
       [gardenCloudAECPauseAnnotation]: "paused",
     }
 
-    await api.apps.patchNamespacedDeployment(apiDeployment.metadata?.name, "helm-test-default", apiDeployment)
+    await api.apps.patchNamespacedDeployment({
+      name: apiDeployment.metadata?.name,
+      namespace: "helm-test-default",
+      body: apiDeployment,
+    })
 
     const releaseStatusAfterScaleDown = await getReleaseStatus({
       ctx: ctxWithCloudApi,

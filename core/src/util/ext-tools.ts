@@ -6,25 +6,26 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { pathExists, createWriteStream, ensureDir, chmod, remove, move, createReadStream } from "fs-extra"
-import { ConfigurationError, InternalError } from "../exceptions"
+import fsExtra from "fs-extra"
+const { pathExists, createWriteStream, ensureDir, chmod, remove, move, createReadStream } = fsExtra
+import { ConfigurationError, InternalError } from "../exceptions.js"
 import { join, dirname, basename, posix } from "path"
-import { hashString, exec, getPlatform, getArchitecture, isDarwinARM } from "./util"
+import { hashString, exec, getPlatform, getArchitecture, isDarwinARM } from "./util.js"
 import tar from "tar"
-import { GARDEN_GLOBAL_PATH } from "../constants"
-import { Log } from "../logger/log-entry"
-import { createHash } from "crypto"
+import { GARDEN_GLOBAL_PATH } from "../constants.js"
+import type { Log } from "../logger/log-entry.js"
+import { createHash } from "node:crypto"
 import crossSpawn from "cross-spawn"
-import { spawn } from "./util"
-import { Writable } from "stream"
-import got from "got/dist/source"
-import { PluginToolSpec, ToolBuildSpec } from "../plugin/tools"
+import { spawn } from "./util.js"
+import type { Writable } from "stream"
+import got from "got"
+import type { PluginToolSpec, ToolBuildSpec } from "../plugin/tools.js"
 import { parse } from "url"
 import AsyncLock from "async-lock"
-import { PluginContext } from "../plugin-context"
-import { LogLevel } from "../logger/logger"
-import { uuidv4 } from "./random"
-import { streamLogs, waitForProcess } from "./process"
+import type { PluginContext } from "../plugin-context.js"
+import { LogLevel } from "../logger/logger.js"
+import { uuidv4 } from "./random.js"
+import { streamLogs, waitForProcess } from "./process.js"
 
 const toolsPath = join(GARDEN_GLOBAL_PATH, "tools")
 const lock = new AsyncLock()
@@ -346,7 +347,7 @@ export class PluginTool extends CliWrapper {
         response.on("end", () => resolve())
       } else {
         const format = this.buildSpec.extract.format
-        let extractor: Writable
+        let extractor: NodeJS.WritableStream
 
         if (format === "tar") {
           extractor = tar.x({
@@ -356,8 +357,8 @@ export class PluginTool extends CliWrapper {
           extractor.on("end", () => resolve())
         } else if (format === "zip") {
           // Note: lazy-loading for startup performance
-          const { Extract } = await import("unzipper")
-          extractor = Extract({ path: tmpPath })
+          const { default: unzipStream } = await import("unzip-stream")
+          extractor = unzipStream.Extract({ path: tmpPath })
           extractor.on("close", () => resolve())
         } else {
           reject(

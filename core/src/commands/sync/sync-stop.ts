@@ -6,13 +6,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { StringsParameter } from "../../cli/params"
-import { joi } from "../../config/common"
-import { printHeader } from "../../logger/util"
-import { dedent, naturalList } from "../../util/string"
-import { Command, CommandParams, CommandResult } from "../base"
+import { StringsParameter } from "../../cli/params.js"
+import { joi } from "../../config/common.js"
+import { printHeader } from "../../logger/util.js"
+import { dedent, naturalList } from "../../util/string.js"
+import type { CommandParams, CommandResult } from "../base.js"
+import { Command } from "../base.js"
 import chalk from "chalk"
-import { createActionLog } from "../../logger/log-entry"
+import { createActionLog } from "../../logger/log-entry.js"
 
 const syncStopArgs = {
   names: new StringsParameter({

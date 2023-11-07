@@ -6,11 +6,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { forOwn, includes, isArray, isPlainObject, isString, mapKeys, mapValues, omit, pickBy, some } from "lodash"
-import { ActionConfig } from "../actions/types"
-import type { GraphResults } from "../graph/results"
-import type { DeployStatus } from "../plugin/handlers/Deploy/get-status"
-import { splitLast } from "../util/string"
+import { forOwn, includes, isArray, isPlainObject, isString, mapKeys, mapValues, omit, pickBy, some } from "lodash-es"
+import type { GraphResults } from "../graph/results.js"
+import type { DeployStatus } from "../plugin/handlers/Deploy/get-status.js"
+import { splitLast } from "../util/string.js"
+import { ActionConfig } from "../actions/types.js"
 
 export function getDeployStatuses(dependencyResults: GraphResults): { [name: string]: DeployStatus } {
   const deployResults = pickBy(dependencyResults.getMap(), (r) => r && r.type === "deploy")

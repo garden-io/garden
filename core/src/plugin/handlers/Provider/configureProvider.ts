@@ -6,15 +6,19 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { projectNameSchema, projectRootSchema } from "../../../config/project"
-import { BaseProviderConfig, providerConfigBaseSchema, providerSchema, ProviderMap } from "../../../config/provider"
-import { PluginActionParamsBase, projectActionParamsSchema } from "../../base"
-import { joiArray, joi, joiIdentifier, joiIdentifierMap } from "../../../config/common"
-import { moduleConfigSchema, ModuleConfig } from "../../../config/module"
-import { deline, dedent } from "../../../util/string"
-import { ActionHandler } from "../../plugin"
-import { Log } from "../../../logger/log-entry"
-import { configStoreSchema, LocalConfigStore } from "../../../config-store/local"
+import { projectNameSchema, projectRootSchema } from "../../../config/project.js"
+import type { BaseProviderConfig, ProviderMap } from "../../../config/provider.js"
+import { providerConfigBaseSchema, providerSchema } from "../../../config/provider.js"
+import type { PluginActionParamsBase } from "../../base.js"
+import { projectActionParamsSchema } from "../../base.js"
+import { joiArray, joi, joiIdentifier, joiIdentifierMap } from "../../../config/common.js"
+import type { ModuleConfig } from "../../../config/module.js"
+import { moduleConfigSchema } from "../../../config/module.js"
+import { deline, dedent } from "../../../util/string.js"
+import type { ActionHandler } from "../../plugin.js"
+import type { Log } from "../../../logger/log-entry.js"
+import type { LocalConfigStore } from "../../../config-store/local.js"
+import { configStoreSchema } from "../../../config-store/local.js"
 
 // Note: These are the only plugin handler params that don't inherit from PluginActionParamsBase
 export interface ConfigureProviderParams<T extends BaseProviderConfig = any> extends PluginActionParamsBase {

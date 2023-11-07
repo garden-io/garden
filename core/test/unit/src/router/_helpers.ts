@@ -6,25 +6,28 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import Joi from "@hapi/joi"
-import { ensureFile } from "fs-extra"
-import { omit } from "lodash"
+import type Joi from "@hapi/joi"
+import fsExtra from "fs-extra"
+const { ensureFile } = fsExtra
+import { omit } from "lodash-es"
 import { join } from "path"
-import { BaseRuntimeActionConfig } from "../../../../src/actions/base"
-import { BuildActionConfig } from "../../../../src/actions/build"
-import { joi } from "../../../../src/config/common"
-import { validateSchema } from "../../../../src/config/validation"
-import { createActionLog } from "../../../../src/logger/log-entry"
-import { getModuleHandlerDescriptions } from "../../../../src/plugin/module-types"
-import { createGardenPlugin, PartialGardenPluginSpec } from "../../../../src/plugin/plugin"
-import { getProviderActionDescriptions, ProviderHandlers } from "../../../../src/plugin/providers"
-import { createProjectConfig, makeTestGarden, projectRootA } from "../../../helpers"
+import type { BaseRuntimeActionConfig } from "../../../../src/actions/base.js"
+import type { BuildActionConfig } from "../../../../src/actions/build.js"
+import { joi } from "../../../../src/config/common.js"
+import { validateSchema } from "../../../../src/config/validation.js"
+import { createActionLog } from "../../../../src/logger/log-entry.js"
+import { getModuleHandlerDescriptions } from "../../../../src/plugin/module-types.js"
+import type { PartialGardenPluginSpec } from "../../../../src/plugin/plugin.js"
+import { createGardenPlugin } from "../../../../src/plugin/plugin.js"
+import type { ProviderHandlers } from "../../../../src/plugin/providers.js"
+import { getProviderActionDescriptions } from "../../../../src/plugin/providers.js"
+import { createProjectConfig, makeTestGarden, projectRootA } from "../../../helpers.js"
 import {
   DEFAULT_BUILD_TIMEOUT_SEC,
   DEFAULT_DEPLOY_TIMEOUT_SEC,
   DEFAULT_RUN_TIMEOUT_SEC,
   DEFAULT_TEST_TIMEOUT_SEC,
-} from "../../../../src/constants"
+} from "../../../../src/constants.js"
 
 export async function getRouterTestData() {
   const { basePlugin, dateUsedForCompleted, returnWrongOutputsCfgKey, testPluginA, testPluginB } =

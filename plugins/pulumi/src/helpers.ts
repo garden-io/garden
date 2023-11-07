@@ -6,32 +6,33 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { countBy, flatten, isEmpty, uniq } from "lodash"
+import { countBy, flatten, isEmpty, uniq } from "lodash-es"
 import { load } from "js-yaml"
 import stripAnsi from "strip-ansi"
 import chalk from "chalk"
 import { merge } from "json-merge-patch"
 import { basename, dirname, extname, join, resolve } from "path"
-import { ensureDir, pathExists, readFile } from "fs-extra"
+import fsExtra from "fs-extra"
+const { ensureDir, pathExists, readFile } = fsExtra
 import {
   ChildProcessError,
   ConfigurationError,
   FilesystemError,
   GardenError,
   PluginError,
-} from "@garden-io/sdk/build/src/exceptions"
-import { dumpYaml } from "@garden-io/core/build/src/util/serialization"
-import { DeepPrimitiveMap } from "@garden-io/core/build/src/config/common"
-import { loadAndValidateYaml } from "@garden-io/core/build/src/config/base"
+} from "@garden-io/sdk/build/src/exceptions.js"
+import { dumpYaml } from "@garden-io/core/build/src/util/serialization.js"
+import type { DeepPrimitiveMap } from "@garden-io/core/build/src/config/common.js"
+import { loadAndValidateYaml } from "@garden-io/core/build/src/config/base.js"
 import { getPluginOutputsPath } from "@garden-io/sdk"
-import { Log, PluginContext } from "@garden-io/sdk/build/src/types"
-import { defaultPulumiEnv, pulumi } from "./cli"
-import { PulumiDeploy } from "./action"
-import { PulumiProvider } from "./provider"
-import { dedent, deline, naturalList } from "@garden-io/sdk/build/src/util/string"
-import { Resolved } from "@garden-io/core/build/src/actions/types"
-import { ActionLog } from "@garden-io/core/build/src/logger/log-entry"
-import { PulumiCommandResult } from "./commands"
+import type { Log, PluginContext } from "@garden-io/sdk/build/src/types.js"
+import { defaultPulumiEnv, pulumi } from "./cli.js"
+import type { PulumiDeploy } from "./action.js"
+import type { PulumiProvider } from "./provider.js"
+import { dedent, deline, naturalList } from "@garden-io/sdk/build/src/util/string.js"
+import type { Resolved } from "@garden-io/core/build/src/actions/types.js"
+import type { ActionLog } from "@garden-io/core/build/src/logger/log-entry.js"
+import type { PulumiCommandResult } from "./commands.js"
 
 export interface PulumiParams {
   ctx: PluginContext

@@ -6,9 +6,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { exec } from "./util"
-import { Log } from "../logger/log-entry"
-import { LogLevel } from "../logger/logger"
+import { exec } from "./util.js"
+import type { Log } from "../logger/log-entry.js"
+import { LogLevel } from "../logger/logger.js"
 
 /**
  * Syncs `sourcePath` with `destinationPath` using `syncOpts`. Adds options to `syncOpts` as appropriate for the

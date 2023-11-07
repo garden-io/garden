@@ -6,14 +6,16 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { DeployAction } from "../../../actions/deploy"
-import { actionParamsSchema, PluginDeployActionParamsBase } from "../../../plugin/base"
-import { dedent } from "../../../util/string"
-import { ServiceStatus, serviceStatusSchema } from "../../../types/service"
-import { ActionTypeHandlerSpec } from "../base/base"
-import type { ActionStatus, Resolved } from "../../../actions/types"
-import { createSchema } from "../../../config/common"
-import { actionStatusSchema } from "../../../actions/base"
+import type { DeployAction } from "../../../actions/deploy.js"
+import type { PluginDeployActionParamsBase } from "../../../plugin/base.js"
+import { actionParamsSchema } from "../../../plugin/base.js"
+import { dedent } from "../../../util/string.js"
+import type { ServiceStatus } from "../../../types/service.js"
+import { serviceStatusSchema } from "../../../types/service.js"
+import { ActionTypeHandlerSpec } from "../base/base.js"
+import type { ActionStatus, Resolved } from "../../../actions/types.js"
+import { createSchema } from "../../../config/common.js"
+import { actionStatusSchema } from "../../../actions/base.js"
 
 type DeleteDeployParams<T extends DeployAction> = PluginDeployActionParamsBase<T>
 

@@ -6,21 +6,20 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { mapValues } from "lodash"
+import { mapValues } from "lodash-es"
 import { join } from "path"
-import split2 = require("split2")
-import { PrimitiveMap } from "../../config/common"
-import { ArtifactSpec } from "../../config/validation"
-import { exec, ExecOpts } from "../../util/util"
-import { Log } from "../../logger/log-entry"
-import { PluginContext } from "../../plugin-context"
-import { ResolvedExecAction } from "./config"
+import split2 from "split2"
+import type { PrimitiveMap } from "../../config/common.js"
+import type { ArtifactSpec } from "../../config/validation.js"
+import type { ExecOpts } from "../../util/util.js"
+import { exec } from "../../util/util.js"
+import type { Log } from "../../logger/log-entry.js"
+import type { PluginContext } from "../../plugin-context.js"
+import type { ResolvedExecAction } from "./config.js"
 
 export function getDefaultEnvVars(action: ResolvedExecAction) {
   return {
     ...process.env,
-    // Workaround for https://github.com/vercel/pkg/issues/897
-    PKG_EXECPATH: "",
     ...action.getEnvVars(),
     ...action.getSpec().env,
   }

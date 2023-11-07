@@ -6,8 +6,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { KubernetesTargetResourceSpec, ServiceResourceSpec } from "../../../../../../src/plugins/kubernetes/config"
-import { convertServiceResourceSpec } from "../../../../../../src/plugins/kubernetes/kubernetes-type/common"
+import type {
+  KubernetesTargetResourceSpec,
+  ServiceResourceSpec,
+} from "../../../../../../src/plugins/kubernetes/config.js"
+import { convertServiceResourceSpec } from "../../../../../../src/plugins/kubernetes/kubernetes-type/common.js"
 import { expect } from "chai"
 
 describe("convertServiceResource", () => {

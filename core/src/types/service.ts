@@ -8,25 +8,26 @@
 
 import normalizeUrl from "normalize-url"
 import { format } from "url"
+import type { PrimitiveMap } from "../config/common.js"
 import {
   joiUserIdentifier,
   joi,
   joiIdentifier,
   joiArray,
-  PrimitiveMap,
   joiVariables,
   versionStringSchema,
   joiStringMap,
   createSchema,
-} from "../config/common"
-import type { GardenModule } from "./module"
-import { ServiceConfig, serviceConfigSchema } from "../config/service"
+} from "../config/common.js"
+import type { GardenModule } from "./module.js"
+import type { ServiceConfig } from "../config/service.js"
+import { serviceConfigSchema } from "../config/service.js"
 import dedent from "dedent"
-import { memoize, uniq } from "lodash"
-import { getEntityVersion } from "../vcs/vcs"
-import type { LogLevel } from "../logger/logger"
-import type { ActionMode } from "../actions/types"
-import type { ModuleGraph } from "../graph/modules"
+import { memoize, uniq } from "lodash-es"
+import { getEntityVersion } from "../vcs/vcs.js"
+import type { LogLevel } from "../logger/logger.js"
+import type { ActionMode } from "../actions/types.js"
+import type { ModuleGraph } from "../graph/modules.js"
 
 export interface GardenService<M extends GardenModule = GardenModule, S extends GardenModule = GardenModule> {
   name: string

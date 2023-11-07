@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Profiler, Profile, profile, profileAsync } from "../../../../src/util/profiling"
+import { Profiler, Profile, profile, profileAsync } from "../../../../src/util/profiling.js"
 import { expect } from "chai"
 
 describe("profiling", () => {

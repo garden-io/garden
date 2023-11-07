@@ -7,18 +7,18 @@
  */
 
 import { expect } from "chai"
-import { TestCommand } from "../../../../src/commands/test"
+import { TestCommand } from "../../../../src/commands/test.js"
+import type { TestGarden } from "../../../helpers.js"
 import {
   makeModuleConfig,
   makeTestGardenA,
   taskResultOutputs,
-  TestGarden,
   withDefaultGlobalOpts,
   expectError,
   getAllProcessedTaskNames,
-} from "../../../helpers"
-import { ModuleConfig } from "../../../../src/config/module"
-import { Log } from "../../../../src/logger/log-entry"
+} from "../../../helpers.js"
+import type { ModuleConfig } from "../../../../src/config/module.js"
+import type { Log } from "../../../../src/logger/log-entry.js"
 
 describe("TestCommand", () => {
   const command = new TestCommand()

@@ -6,11 +6,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { makeTestGarden, withDefaultGlobalOpts, getDataDir } from "../../../../helpers"
+import { makeTestGarden, withDefaultGlobalOpts, getDataDir } from "../../../../helpers.js"
 import { expect } from "chai"
-import { GetWorkflowsCommand } from "../../../../../src/commands/get/get-workflows"
-import { defaultWorkflowResources } from "../../../../../src/config/workflow"
-import { GardenApiVersion } from "../../../../../src/constants"
+import { GetWorkflowsCommand } from "../../../../../src/commands/get/get-workflows.js"
+import { defaultWorkflowResources } from "../../../../../src/config/workflow.js"
+import { GardenApiVersion } from "../../../../../src/constants.js"
 
 describe("GetWorkflowsCommand", () => {
   const projectRoot = getDataDir("test-project-a")

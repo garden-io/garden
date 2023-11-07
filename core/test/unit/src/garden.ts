@@ -7,12 +7,12 @@
  */
 
 import { expect } from "chai"
-import td from "testdouble"
+import * as td from "testdouble"
 import tmp from "tmp-promise"
 import nock from "nock"
 
-import { join, resolve } from "path"
-import { Garden } from "../../../src/garden"
+import { dirname, join, resolve } from "node:path"
+import { Garden } from "../../../src/garden.js"
 import {
   expectError,
   makeTestGarden,
@@ -32,41 +32,50 @@ import {
   makeModuleConfig,
   makeTempGarden,
   getEmptyPluginActionDefinitions,
-} from "../../helpers"
-import { getNames, findByName, exec } from "../../../src/util/util"
-import { LinkedSource } from "../../../src/config-store/local"
-import { getModuleVersionString, ModuleVersion, TreeVersion } from "../../../src/vcs/vcs"
-import { getModuleCacheContext } from "../../../src/types/module"
-import { createGardenPlugin, ProviderActionName } from "../../../src/plugin/plugin"
-import { ConfigureProviderParams } from "../../../src/plugin/handlers/Provider/configureProvider"
-import { ProjectConfig, defaultNamespace } from "../../../src/config/project"
-import { ModuleConfig, baseModuleSpecSchema } from "../../../src/config/module"
+} from "../../helpers.js"
+import { getNames, findByName, exec } from "../../../src/util/util.js"
+import type { LinkedSource } from "../../../src/config-store/local.js"
+import type { ModuleVersion, TreeVersion } from "../../../src/vcs/vcs.js"
+import { getModuleVersionString } from "../../../src/vcs/vcs.js"
+import { getModuleCacheContext } from "../../../src/types/module.js"
+import type { ProviderActionName } from "../../../src/plugin/plugin.js"
+import { createGardenPlugin } from "../../../src/plugin/plugin.js"
+import type { ConfigureProviderParams } from "../../../src/plugin/handlers/Provider/configureProvider.js"
+import type { ProjectConfig } from "../../../src/config/project.js"
+import { defaultNamespace } from "../../../src/config/project.js"
+import type { ModuleConfig } from "../../../src/config/module.js"
+import { baseModuleSpecSchema } from "../../../src/config/module.js"
 import {
   DEFAULT_BUILD_TIMEOUT_SEC,
   DEFAULT_GARDEN_CLOUD_DOMAIN,
   GardenApiVersion,
   gardenEnv,
-} from "../../../src/constants"
-import { providerConfigBaseSchema } from "../../../src/config/provider"
-import { keyBy, set, mapValues, omit, cloneDeep } from "lodash"
-import { joi } from "../../../src/config/common"
-import { defaultDotIgnoreFile, makeTempDir } from "../../../src/util/fs"
-import { realpath, writeFile, readFile, remove, pathExists, mkdirp, copy } from "fs-extra"
-import { dedent, deline, randomString, wordWrap } from "../../../src/util/string"
-import { getLinkedSources, addLinkedSources } from "../../../src/util/ext-source-util"
+} from "../../../src/constants.js"
+import { providerConfigBaseSchema } from "../../../src/config/provider.js"
+import { keyBy, set, mapValues, omit, cloneDeep } from "lodash-es"
+import { joi } from "../../../src/config/common.js"
+import { defaultDotIgnoreFile, makeTempDir } from "../../../src/util/fs.js"
+import fsExtra from "fs-extra"
+const { realpath, writeFile, readFile, remove, pathExists, mkdirp, copy } = fsExtra
+import { dedent, deline, randomString, wordWrap } from "../../../src/util/string.js"
+import { getLinkedSources, addLinkedSources } from "../../../src/util/ext-source-util.js"
 import { dump } from "js-yaml"
-import { TestVcsHandler } from "./vcs/vcs"
-import { ActionRouter } from "../../../src/router/router"
-import { convertExecModule } from "../../../src/plugins/exec/convert"
-import { getLogMessages } from "../../../src/util/testing"
-import { TreeCache } from "../../../src/cache"
-import { omitUndefined } from "../../../src/util/objects"
-import { CloudApi, CloudProject } from "../../../src/cloud/api"
-import { GlobalConfigStore } from "../../../src/config-store/global"
-import { getRootLogger } from "../../../src/logger/logger"
+import { TestVcsHandler } from "./vcs/vcs.js"
+import type { ActionRouter } from "../../../src/router/router.js"
+import { convertExecModule } from "../../../src/plugins/exec/convert.js"
+import { getLogMessages } from "../../../src/util/testing.js"
+import { TreeCache } from "../../../src/cache.js"
+import { omitUndefined } from "../../../src/util/objects.js"
 import { add } from "date-fns"
-import { uuidv4 } from "../../../src/util/random"
 import stripAnsi from "strip-ansi"
+import type { CloudProject } from "../../../src/cloud/api.js"
+import { CloudApi } from "../../../src/cloud/api.js"
+import { GlobalConfigStore } from "../../../src/config-store/global.js"
+import { getRootLogger } from "../../../src/logger/logger.js"
+import { uuidv4 } from "../../../src/util/random.js"
+import { fileURLToPath } from "node:url"
+
+const moduleDirName = dirname(fileURLToPath(import.meta.url))
 
 // TODO-G2: change all module config based tests to be action-based.
 
@@ -987,7 +996,7 @@ describe("Garden", () => {
     })
 
     it("should throw if plugin module exports invalid name", async () => {
-      const pluginPath = join(__dirname, "plugins", "invalid-name.js")
+      const pluginPath = join(moduleDirName, "plugins", "invalid-name.js")
       const plugins = [pluginPath]
       const projectRoot = getDataDir("test-project-empty")
       const garden = await makeTestGarden(projectRoot, { plugins })
@@ -1001,7 +1010,7 @@ describe("Garden", () => {
     })
 
     it("should throw if plugin module doesn't contain plugin", async () => {
-      const pluginPath = join(__dirname, "plugins", "missing-plugin.js")
+      const pluginPath = join(moduleDirName, "plugins", "missing-plugin.js")
       const plugins = [pluginPath]
       const projectRoot = getDataDir("test-project-empty")
       const garden = await makeTestGarden(projectRoot, { plugins })

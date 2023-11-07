@@ -6,10 +6,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import type { Action } from "../actions/types"
-import { Log } from "../logger/log-entry"
-import type { PluginEventBroker } from "../plugin-context"
-import { MonitorBaseParams, Monitor } from "./base"
+import type { Action } from "../actions/types.js"
+import type { Log } from "../logger/log-entry.js"
+import type { PluginEventBroker } from "../plugin-context.js"
+import type { MonitorBaseParams } from "./base.js"
+import { Monitor } from "./base.js"
 
 interface HandlerMonitorParams extends MonitorBaseParams {
   type: string

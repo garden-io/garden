@@ -9,11 +9,11 @@
 import slash from "slash"
 import { relative, resolve } from "path"
 import { createGardenPlugin } from "@garden-io/sdk"
-import { ConftestProvider } from "@garden-io/garden-conftest/build/src"
+import type { ConftestProvider } from "@garden-io/garden-conftest/build/src/index.js"
 
 // TODO: remove direct references to @garden-io/core
-import { dedent } from "@garden-io/core/build/src/util/string"
-import { getGitHubUrl } from "@garden-io/core/build/src/docs/common"
+import { dedent } from "@garden-io/core/build/src/util/string.js"
+import { getGitHubUrl } from "@garden-io/core/build/src/docs/common.js"
 
 const gitHubUrl = getGitHubUrl("examples/conftest")
 

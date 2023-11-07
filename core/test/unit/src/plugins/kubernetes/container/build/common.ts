@@ -9,11 +9,12 @@
 import {
   getUtilManifests,
   skopeoManifestUnknown,
-} from "../../../../../../../src/plugins/kubernetes/container/build/common"
+} from "../../../../../../../src/plugins/kubernetes/container/build/common.js"
 import { expect } from "chai"
-import { defaultResources, KubernetesProvider } from "../../../../../../../src/plugins/kubernetes/config"
-import { DeepPartial } from "../../../../../../../src/util/util"
-import { k8sUtilImageName } from "../../../../../../../src/plugins/kubernetes/constants"
+import type { KubernetesProvider } from "../../../../../../../src/plugins/kubernetes/config.js"
+import { defaultResources } from "../../../../../../../src/plugins/kubernetes/config.js"
+import type { DeepPartial } from "../../../../../../../src/util/util.js"
+import { k8sUtilImageName } from "../../../../../../../src/plugins/kubernetes/constants.js"
 
 describe("common build", () => {
   describe("manifest error", () => {

@@ -6,22 +6,16 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import {
-  Command,
-  CommandParams,
-  CommandResult,
-  handleProcessResults,
-  PrepareParams,
-  ProcessCommandResult,
-  processCommandResultSchema,
-} from "./base"
-import { TestTask } from "../tasks/test"
-import { printHeader } from "../logger/util"
-import { StringsParameter, BooleanParameter } from "../cli/params"
-import { dedent, deline } from "../util/string"
-import { ParameterError } from "../exceptions"
-import { warnOnLinkedActions } from "../actions/helpers"
-import { validateActionSearchResults, watchParameter, watchRemovedWarning } from "./helpers"
+import type { CommandParams, CommandResult, PrepareParams, ProcessCommandResult } from "./base.js"
+import { Command, handleProcessResults, processCommandResultSchema } from "./base.js"
+import { TestTask } from "../tasks/test.js"
+import { printHeader } from "../logger/util.js"
+import { StringsParameter, BooleanParameter } from "../cli/params.js"
+import { dedent, deline } from "../util/string.js"
+import { ParameterError } from "../exceptions.js"
+import { warnOnLinkedActions } from "../actions/helpers.js"
+import { validateActionSearchResults } from "./helpers.js"
+import { watchParameter, watchRemovedWarning } from "./util/watch-parameter.js"
 
 export const testArgs = {
   names: new StringsParameter({

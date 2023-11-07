@@ -8,10 +8,12 @@
 
 import { expect } from "chai"
 
-import { getRootLogger, LogLevel, Logger } from "../../../../src/logger/logger"
-import { freezeTime } from "../../../helpers"
-import { CoreLog, createActionLog, Log, LogMetadata } from "../../../../src/logger/log-entry"
-import { omit } from "lodash"
+import type { Logger } from "../../../../src/logger/logger.js"
+import { getRootLogger, LogLevel } from "../../../../src/logger/logger.js"
+import { freezeTime } from "../../../helpers.js"
+import type { CoreLog, Log, LogMetadata } from "../../../../src/logger/log-entry.js"
+import { createActionLog } from "../../../../src/logger/log-entry.js"
+import { omit } from "lodash-es"
 import chalk from "chalk"
 
 const logger: Logger = getRootLogger()

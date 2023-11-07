@@ -7,11 +7,13 @@
  */
 
 import { Memoize } from "typescript-memoize"
-import { Command, CommandGroup } from "../commands/base"
-import { ConfigDump } from "../garden"
-import { Log } from "../logger/log-entry"
-import { parseCliArgs, pickCommand } from "./helpers"
-import { globalDisplayOptions, globalGardenInstanceOptions, globalOptions, Parameter, ParameterObject } from "./params"
+import type { Command } from "../commands/base.js"
+import { CommandGroup } from "../commands/base.js"
+import type { ConfigDump } from "../garden.js"
+import type { Log } from "../logger/log-entry.js"
+import { parseCliArgs, pickCommand } from "./helpers.js"
+import type { Parameter, ParameterObject } from "./params.js"
+import { globalDisplayOptions, globalGardenInstanceOptions, globalOptions } from "./params.js"
 import stringify from "json-stringify-safe"
 
 export interface AutocompleteSuggestion {

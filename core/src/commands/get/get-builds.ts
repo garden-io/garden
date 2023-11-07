@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { GetActionsSubCommand } from "./get-actions-subcommand"
+import { GetActionsSubCommand } from "./get-actions-subcommand.js"
 
 export class GetBuildsCommand extends GetActionsSubCommand {
   constructor() {

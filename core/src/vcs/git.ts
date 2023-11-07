@@ -8,27 +8,30 @@
 
 import { performance } from "perf_hooks"
 import { isAbsolute, join, posix, relative, resolve } from "path"
-import { isString } from "lodash"
-import { createReadStream, ensureDir, lstat, pathExists, readlink, realpath, stat, Stats } from "fs-extra"
+import { isString } from "lodash-es"
+import fsExtra from "fs-extra"
+const { createReadStream, ensureDir, lstat, pathExists, readlink, realpath, stat } = fsExtra
 import { PassThrough } from "stream"
-import { GetFilesParams, RemoteSourceParams, VcsFile, VcsHandler, VcsHandlerParams, VcsInfo } from "./vcs"
-import { ChildProcessError, ConfigurationError, isErrnoException, RuntimeError } from "../exceptions"
-import { getStatsType, joinWithPosix, matchPath } from "../util/fs"
-import { dedent, deline, splitLast } from "../util/string"
-import { defer, exec } from "../util/util"
-import { Log } from "../logger/log-entry"
+import type { GetFilesParams, RemoteSourceParams, VcsFile, VcsInfo, VcsHandlerParams } from "./vcs.js"
+import { VcsHandler } from "./vcs.js"
+import { ChildProcessError, ConfigurationError, isErrnoException, RuntimeError } from "../exceptions.js"
+import { getStatsType, joinWithPosix, matchPath } from "../util/fs.js"
+import { dedent, deline, splitLast } from "../util/string.js"
+import { defer, exec } from "../util/util.js"
+import type { Log } from "../logger/log-entry.js"
 import parseGitConfig from "parse-git-config"
-import { getDefaultProfiler, Profile, Profiler } from "../util/profiling"
-import { STATIC_DIR } from "../constants"
+import type { Profiler } from "../util/profiling.js"
+import { getDefaultProfiler, Profile } from "../util/profiling.js"
+import { STATIC_DIR } from "../constants.js"
 import isGlob from "is-glob"
 import chalk from "chalk"
-import { pMemoizeDecorator } from "../lib/p-memoize"
+import { pMemoizeDecorator } from "../lib/p-memoize.js"
 import AsyncLock from "async-lock"
 import PQueue from "p-queue"
-import { isSha1 } from "../util/hashing"
-import split2 = require("split2")
-import execa = require("execa")
-import hasha = require("hasha")
+import { isSha1 } from "../util/hashing.js"
+import split2 from "split2"
+import execa from "execa"
+import hasha from "hasha"
 
 const gitConfigAsyncLock = new AsyncLock()
 
@@ -425,7 +428,7 @@ export class GitHandler extends VcsHandler {
     // Make sure we have a fresh hash for each file
     let count = 0
 
-    const ensureHash = async (file: VcsFile, stats: Stats | undefined): Promise<void> => {
+    const ensureHash = async (file: VcsFile, stats: fsExtra.Stats | undefined): Promise<void> => {
       if (file.hash === "" || modified.has(file.path)) {
         // Don't attempt to hash directories. Directories (which will only come up via symlinks btw)
         // will by extension be filtered out of the list.
@@ -702,7 +705,7 @@ export class GitHandler extends VcsHandler {
    * We deviate from git's behavior when dealing with symlinks, by hashing the target of the symlink and not the
    * symlink itself. If the symlink cannot be read, we hash the link contents like git normally does.
    */
-  async hashObject(stats: Stats, path: string): Promise<string> {
+  async hashObject(stats: fsExtra.Stats, path: string): Promise<string> {
     const start = performance.now()
     const hash = hasha.stream({ algorithm: "sha1" })
 

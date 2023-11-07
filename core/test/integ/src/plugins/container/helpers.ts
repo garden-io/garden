@@ -7,7 +7,7 @@
  */
 
 import { expect } from "chai"
-import { containerHelpers as helpers } from "../../../../../src/plugins/container/helpers"
+import { containerHelpers as helpers } from "../../../../../src/plugins/container/helpers.js"
 
 describe("containerHelpers", () => {
   describe("getDockerVersion", () => {

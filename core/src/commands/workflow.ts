@@ -8,39 +8,33 @@
 
 import chalk from "chalk"
 import cloneDeep from "fast-copy"
-import { flatten, last, repeat, size } from "lodash"
-import { printHeader, getTerminalWidth, renderMessageWithDivider, renderDuration } from "../logger/util"
-import { Command, CommandParams, CommandResult } from "./base"
-import { dedent, wordWrap, deline, naturalList } from "../util/string"
-import { Garden } from "../garden"
-import { WorkflowStepSpec, WorkflowConfig, WorkflowFileSpec } from "../config/workflow"
-import { Log } from "../logger/log-entry"
-import {
-  ChildProcessError,
-  GardenError,
-  InternalError,
-  RuntimeError,
-  WorkflowScriptError,
-  toGardenError,
-} from "../exceptions"
-import {
-  WorkflowConfigContext,
-  WorkflowStepConfigContext,
-  WorkflowStepResult,
-} from "../config/template-contexts/workflow"
-import { resolveTemplateStrings, resolveTemplateString } from "../template-string/template-string"
-import { ConfigurationError, FilesystemError } from "../exceptions"
+import { flatten, last, repeat, size } from "lodash-es"
+import { printHeader, getTerminalWidth, renderMessageWithDivider, renderDuration } from "../logger/util.js"
+import type { CommandParams, CommandResult } from "./base.js"
+import { Command } from "./base.js"
+import { dedent, wordWrap, deline, naturalList } from "../util/string.js"
+import type { Garden } from "../garden.js"
+import type { WorkflowStepSpec, WorkflowConfig, WorkflowFileSpec } from "../config/workflow.js"
+import type { Log } from "../logger/log-entry.js"
+import type { GardenError } from "../exceptions.js"
+import { ChildProcessError, InternalError, RuntimeError, WorkflowScriptError, toGardenError } from "../exceptions.js"
+import type { WorkflowStepResult } from "../config/template-contexts/workflow.js"
+import { WorkflowConfigContext, WorkflowStepConfigContext } from "../config/template-contexts/workflow.js"
+import { resolveTemplateStrings, resolveTemplateString } from "../template-string/template-string.js"
+import { ConfigurationError, FilesystemError } from "../exceptions.js"
 import { posix, join } from "path"
-import { ensureDir, writeFile } from "fs-extra"
-import { getDurationMsec, toEnvVars } from "../util/util"
-import { runScript } from "../util/util"
-import { LogLevel } from "../logger/logger"
-import { registerWorkflowRun } from "../cloud/workflow-lifecycle"
-import { parseCliArgs, pickCommand, processCliArgs } from "../cli/helpers"
-import { GlobalOptions, ParameterValues, StringParameter } from "../cli/params"
-import { GardenCli } from "../cli/cli"
-import { getCustomCommands } from "./custom"
-import { getBuiltinCommands } from "./commands"
+import fsExtra from "fs-extra"
+const { ensureDir, writeFile } = fsExtra
+import { getDurationMsec, toEnvVars } from "../util/util.js"
+import { runScript } from "../util/util.js"
+import { LogLevel } from "../logger/logger.js"
+import { registerWorkflowRun } from "../cloud/workflow-lifecycle.js"
+import { parseCliArgs, pickCommand, processCliArgs } from "../cli/helpers.js"
+import type { GlobalOptions, ParameterValues } from "../cli/params.js"
+import { StringParameter } from "../cli/params.js"
+import type { GardenCli } from "../cli/cli.js"
+import { getCustomCommands } from "./custom.js"
+import { getBuiltinCommands } from "./commands.js"
 
 const runWorkflowArgs = {
   workflow: new StringParameter({

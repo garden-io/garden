@@ -7,21 +7,17 @@
  */
 
 import { join } from "path"
-import {
-  cloneFileAsync,
-  ExtendedStats,
-  FileStatsHelper,
-  MappedPaths,
-  ResolveSymlinkParams,
-  scanDirectoryForClone,
-} from "../../../../src/build-staging/helpers"
-import { makeTempDir, TempDirectory } from "../../../../src/util/fs"
-import { ensureDir, ensureFile, mkdir, readFile, realpath, symlink, writeFile } from "fs-extra"
+import type { ExtendedStats, MappedPaths, ResolveSymlinkParams } from "../../../../src/build-staging/helpers.js"
+import { cloneFileAsync, FileStatsHelper, scanDirectoryForClone } from "../../../../src/build-staging/helpers.js"
+import type { TempDirectory } from "../../../../src/util/fs.js"
+import { makeTempDir } from "../../../../src/util/fs.js"
+import fsExtra from "fs-extra"
+const { realpath, symlink, writeFile, readFile, mkdir, ensureFile, ensureDir } = fsExtra
 import { expect } from "chai"
-import { expectError } from "../../../helpers"
-import { sleep } from "../../../../src/util/util"
-import { sortBy } from "lodash"
-import { equalWithPrecision } from "../../../../src/util/testing"
+import { expectError } from "../../../helpers.js"
+import { sleep } from "../../../../src/util/util.js"
+import { sortBy } from "lodash-es"
+import { equalWithPrecision } from "../../../../src/util/testing.js"
 
 describe("build staging helpers", () => {
   let statsHelper: FileStatsHelper

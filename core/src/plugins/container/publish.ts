@@ -6,9 +6,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ContainerBuildAction } from "./moduleConfig"
-import { containerHelpers } from "./helpers"
-import { BuildActionHandler } from "../../plugin/action-types"
+import type { ContainerBuildAction } from "./moduleConfig.js"
+import { containerHelpers } from "./helpers.js"
+import type { BuildActionHandler } from "../../plugin/action-types.js"
 
 export const publishContainerBuild: BuildActionHandler<"publish", ContainerBuildAction> = async ({
   ctx,

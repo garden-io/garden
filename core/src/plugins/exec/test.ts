@@ -6,14 +6,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { runResultToActionState } from "../../actions/base"
-import { renderMessageWithDivider } from "../../logger/util"
-import { GardenSdkActionDefinitionActionType, GardenSdkActionDefinitionConfigType, sdk } from "../../plugin/sdk"
-import { copyArtifacts, execRunCommand } from "./common"
-import { execRunSpecSchema, execRuntimeOutputsSchema, execStaticOutputsSchema } from "./config"
-import { execProvider } from "./exec"
-
-const s = sdk.schema
+import { runResultToActionState } from "../../actions/base.js"
+import { renderMessageWithDivider } from "../../logger/util.js"
+import type { GardenSdkActionDefinitionActionType, GardenSdkActionDefinitionConfigType } from "../../plugin/sdk.js"
+import { sdk } from "../../plugin/sdk.js"
+import { copyArtifacts, execRunCommand } from "./common.js"
+import { execRunSpecSchema, execRuntimeOutputsSchema, execStaticOutputsSchema } from "./config.js"
+import { execProvider } from "./exec.js"
 
 export const execTestSpecSchema = execRunSpecSchema
 

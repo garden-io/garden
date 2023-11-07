@@ -9,8 +9,8 @@
 import { expect } from "chai"
 import { join } from "path"
 
-import { LinkModuleCommand } from "../../../../src/commands/link/module"
-import { UnlinkModuleCommand } from "../../../../src/commands/unlink/module"
+import { LinkModuleCommand } from "../../../../src/commands/link/module.js"
+import { UnlinkModuleCommand } from "../../../../src/commands/unlink/module.js"
 import {
   getDataDir,
   withDefaultGlobalOpts,
@@ -18,13 +18,13 @@ import {
   makeExtModuleSourcesGarden,
   resetLocalConfig,
   makeExtActionSourcesGarden,
-} from "../../../helpers"
-import { LinkSourceCommand } from "../../../../src/commands/link/source"
-import { UnlinkSourceCommand } from "../../../../src/commands/unlink/source"
-import { Garden } from "../../../../src/garden"
-import { Log } from "../../../../src/logger/log-entry"
-import { LinkActionCommand } from "../../../../src/commands/link/action"
-import { UnlinkActionCommand } from "../../../../src/commands/unlink/action"
+} from "../../../helpers.js"
+import { LinkSourceCommand } from "../../../../src/commands/link/source.js"
+import { UnlinkSourceCommand } from "../../../../src/commands/unlink/source.js"
+import type { Garden } from "../../../../src/garden.js"
+import type { Log } from "../../../../src/logger/log-entry.js"
+import { LinkActionCommand } from "../../../../src/commands/link/action.js"
+import { UnlinkActionCommand } from "../../../../src/commands/unlink/action.js"
 
 describe("UnlinkCommand", () => {
   let garden: Garden

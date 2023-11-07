@@ -6,10 +6,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Command, CommandResult, CommandParams } from "../base"
-import { printHeader } from "../../logger/util"
-import { StringsParameter } from "../../cli/params"
-import { prettyPrintWorkflow } from "../helpers"
+import type { CommandResult, CommandParams } from "../base.js"
+import { Command } from "../base.js"
+import { printHeader } from "../../logger/util.js"
+import { StringsParameter } from "../../cli/params.js"
+import { prettyPrintWorkflow } from "../helpers.js"
 
 const getWorkflowsArgs = {
   workflows: new StringsParameter({

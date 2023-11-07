@@ -7,24 +7,25 @@
  */
 
 import { resolve } from "path"
-import { TEMPLATES_DIR, renderTemplateStringReference } from "./config"
+import { TEMPLATES_DIR, renderTemplateStringReference } from "./config.js"
 import { readFileSync, writeFileSync } from "fs"
 import handlebars from "handlebars"
-import { GARDEN_CORE_ROOT } from "../constants"
+import { GARDEN_CORE_ROOT } from "../constants.js"
 import {
   ProjectConfigContext,
   EnvironmentConfigContext,
   RemoteSourceConfigContext,
-} from "../config/template-contexts/project"
-import { ProviderConfigContext } from "../config/template-contexts/provider"
-import { ModuleConfigContext, OutputConfigContext } from "../config/template-contexts/module"
-import { WorkflowStepConfigContext } from "../config/template-contexts/workflow"
-import { getHelperFunctions } from "../template-string/functions"
-import { isEqual, kebabCase, sortBy } from "lodash"
-import { CustomCommandContext } from "../config/template-contexts/custom-command"
-import Joi from "@hapi/joi"
-import { ActionConfigContext, ActionSpecContext } from "../config/template-contexts/actions"
-import { InternalError } from "../exceptions"
+} from "../config/template-contexts/project.js"
+import { ProviderConfigContext } from "../config/template-contexts/provider.js"
+import { ModuleConfigContext, OutputConfigContext } from "../config/template-contexts/module.js"
+import { WorkflowStepConfigContext } from "../config/template-contexts/workflow.js"
+import { getHelperFunctions } from "../template-string/functions.js"
+import { isEqual, kebabCase, sortBy } from "lodash-es"
+import { CustomCommandContext } from "../config/template-contexts/custom-command.js"
+import type Joi from "@hapi/joi"
+import { ActionConfigContext, ActionSpecContext } from "../config/template-contexts/actions.js"
+import { InternalError } from "../exceptions.js"
+import * as url from "node:url"
 
 interface ContextSpec {
   schema: Joi.ObjectSchema
@@ -183,6 +184,7 @@ export function writeTemplateStringReferenceDocs(docsRoot: string) {
   writeFileSync(readmeOutputPath, readmeTemplate({ contexts: annotatedContexts }))
 }
 
-if (require.main === module) {
+const modulePath = url.fileURLToPath(import.meta.url)
+if (process.argv[1] === modulePath) {
   writeTemplateStringReferenceDocs(resolve(GARDEN_CORE_ROOT, "..", "docs"))
 }

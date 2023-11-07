@@ -6,36 +6,42 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import {
+import type {
   PluginMap,
   GardenPluginSpec,
   ModuleTypeDefinition,
   ModuleTypeExtension,
-  pluginSchema,
   RegisterPluginParam,
-  pluginNodeModuleSchema,
   GardenPluginReference,
-} from "./plugin/plugin"
-import type { GenericProviderConfig } from "./config/provider"
-import { CircularDependenciesError, ConfigurationError, PluginError, RuntimeError } from "./exceptions"
-import { uniq, mapValues, fromPairs, flatten, keyBy, some, isString, sortBy, Dictionary } from "lodash"
-import { findByName, pushToKey, getNames, isNotNull, MaybeUndefined } from "./util/util"
-import { dedent, deline, naturalList } from "./util/string"
-import { validateSchema } from "./config/validation"
-import type { Log } from "./logger/log-entry"
-import { DependencyGraph } from "./graph/common"
+} from "./plugin/plugin.js"
+import { pluginSchema, pluginNodeModuleSchema } from "./plugin/plugin.js"
+import type { GenericProviderConfig } from "./config/provider.js"
+import { CircularDependenciesError, ConfigurationError, PluginError, RuntimeError } from "./exceptions.js"
+import { uniq, mapValues, fromPairs, flatten, keyBy, some, isString, sortBy } from "lodash-es"
+import type { MaybeUndefined } from "./util/util.js"
+import { findByName, pushToKey, getNames, isNotNull } from "./util/util.js"
+import { dedent, deline, naturalList } from "./util/string.js"
+import { validateSchema } from "./config/validation.js"
+import type { Log } from "./logger/log-entry.js"
+import { DependencyGraph } from "./graph/common.js"
 import { parse, resolve } from "path"
-import { ModuleTypeMap, getModuleTypeBases } from "./types/module"
-import { ActionKind, actionKinds } from "./actions/types"
+import type { ModuleTypeMap } from "./types/module.js"
+import { getModuleTypeBases } from "./types/module.js"
+import type { ActionKind } from "./actions/types.js"
+import { actionKinds } from "./actions/types.js"
 import type {
   ActionTypeDefinition,
   ActionTypeDefinitions,
   ActionTypeExtensions,
   ManyActionTypeDefinitions,
   ManyActionTypeExtensions,
-} from "./plugin/action-types"
-import { ObjectSchema } from "@hapi/joi"
-import { GardenSdkPlugin } from "./plugin/sdk"
+} from "./plugin/action-types.js"
+import type { ObjectSchema } from "@hapi/joi"
+import { GardenSdkPlugin } from "./plugin/sdk.js"
+
+interface Dictionary<T> {
+  [index: string]: T
+}
 
 export async function loadAndResolvePlugins(
   log: Log,
@@ -43,9 +49,10 @@ export async function loadAndResolvePlugins(
   registeredPlugins: RegisterPluginParam[],
   configs: GenericProviderConfig[]
 ) {
-  const loadedPlugins = keyBy(await Promise.all(registeredPlugins.map((p) => loadPlugin(log, projectRoot, p))), "name")
+  const loadedPlugins = await Promise.all(registeredPlugins.map((p) => loadPlugin(log, projectRoot, p)))
+  const pluginsByName = keyBy(loadedPlugins, "name")
 
-  return resolvePlugins(log, loadedPlugins, configs)
+  return resolvePlugins(log, pluginsByName, configs)
 }
 
 export function resolvePlugins(
@@ -181,6 +188,7 @@ function validateOutputSchemas(
 
 export async function loadPlugin(log: Log, projectRoot: string, nameOrPlugin: RegisterPluginParam) {
   let plugin: GardenPluginSpec
+  log.silly(`Loading plugin ${isString(nameOrPlugin) ? nameOrPlugin : nameOrPlugin.name}`)
 
   if (isString(nameOrPlugin)) {
     let moduleNameOrLocation = nameOrPlugin
@@ -193,7 +201,7 @@ export async function loadPlugin(log: Log, projectRoot: string, nameOrPlugin: Re
     let pluginModule: any
 
     try {
-      pluginModule = require(moduleNameOrLocation)
+      pluginModule = await import(moduleNameOrLocation)
     } catch (error) {
       throw new ConfigurationError({
         message: `Unable to load plugin "${moduleNameOrLocation}" (could not load module: ${error})`,

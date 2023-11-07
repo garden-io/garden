@@ -6,50 +6,51 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import td from "testdouble"
+import * as td from "testdouble"
 import tmp from "tmp-promise"
-import { expectError, pruneEmpty } from "../../../../helpers"
-import { pathExists } from "fs-extra"
+import { expectError, pruneEmpty } from "../../../../helpers.js"
+import fsExtra from "fs-extra"
+const { pathExists } = fsExtra
 import { expect } from "chai"
 import { join } from "path"
-import { Garden } from "../../../../../src/garden"
-import { ConfigGraph } from "../../../../../src/graph/config-graph"
-import { deline, randomString, dedent } from "../../../../../src/util/string"
-import { runAndCopy, PodRunner, prepareRunPodSpec } from "../../../../../src/plugins/kubernetes/run"
-import { KubeApi, KubernetesError } from "../../../../../src/plugins/kubernetes/api"
-import {
+import type { Garden } from "../../../../../src/garden.js"
+import type { ConfigGraph } from "../../../../../src/graph/config-graph.js"
+import { deline, randomString, dedent } from "../../../../../src/util/string.js"
+import { runAndCopy, PodRunner, prepareRunPodSpec } from "../../../../../src/plugins/kubernetes/run.js"
+import { KubeApi, KubernetesError } from "../../../../../src/plugins/kubernetes/api.js"
+import type {
   KubernetesPluginContext,
   KubernetesProvider,
   ServiceResourceSpec,
-} from "../../../../../src/plugins/kubernetes/config"
+} from "../../../../../src/plugins/kubernetes/config.js"
 import {
   getTargetResource,
   getResourceContainer,
   getServiceResourceSpec,
   getResourcePodSpec,
   makePodName,
-} from "../../../../../src/plugins/kubernetes/util"
-import { getContainerTestGarden } from "./container/container"
-import {
+} from "../../../../../src/plugins/kubernetes/util.js"
+import { getContainerTestGarden } from "./container/container.js"
+import type {
   KubernetesPod,
   KubernetesServerResource,
   KubernetesWorkload,
-} from "../../../../../src/plugins/kubernetes/types"
-import { PluginContext } from "../../../../../src/plugin-context"
-import { Log } from "../../../../../src/logger/log-entry"
-import { sleep } from "../../../../../src/util/util"
-import { buildHelmModules, getHelmTestGarden } from "./helm/common"
-import { getBaseModule, getChartResources } from "../../../../../src/plugins/kubernetes/helm/common"
-import { getActionNamespace } from "../../../../../src/plugins/kubernetes/namespace"
-import { GardenModule } from "../../../../../src/types/module"
-import { V1Container, V1Pod, V1PodSpec } from "@kubernetes/client-node"
-import { getResourceRequirements } from "../../../../../src/plugins/kubernetes/container/util"
-import { ContainerBuildAction, ContainerResourcesSpec } from "../../../../../src/plugins/container/moduleConfig"
-import { KubernetesPodRunActionSpec } from "../../../../../src/plugins/kubernetes/kubernetes-type/kubernetes-pod"
-import { Resolved } from "../../../../../src/actions/types"
-import { HelmDeployAction } from "../../../../../src/plugins/kubernetes/helm/config"
-import { executeAction } from "../../../../../src/graph/actions"
-import { DEFAULT_RUN_TIMEOUT_SEC } from "../../../../../src/constants"
+} from "../../../../../src/plugins/kubernetes/types.js"
+import type { PluginContext } from "../../../../../src/plugin-context.js"
+import type { Log } from "../../../../../src/logger/log-entry.js"
+import { sleep } from "../../../../../src/util/util.js"
+import { buildHelmModules, getHelmTestGarden } from "./helm/common.js"
+import { getBaseModule, getChartResources } from "../../../../../src/plugins/kubernetes/helm/common.js"
+import { getActionNamespace } from "../../../../../src/plugins/kubernetes/namespace.js"
+import type { GardenModule } from "../../../../../src/types/module.js"
+import type { V1Container, V1Pod, V1PodSpec } from "@kubernetes/client-node"
+import { getResourceRequirements } from "../../../../../src/plugins/kubernetes/container/util.js"
+import type { ContainerBuildAction, ContainerResourcesSpec } from "../../../../../src/plugins/container/moduleConfig.js"
+import type { KubernetesPodRunActionSpec } from "../../../../../src/plugins/kubernetes/kubernetes-type/kubernetes-pod.js"
+import type { Resolved } from "../../../../../src/actions/types.js"
+import type { HelmDeployAction } from "../../../../../src/plugins/kubernetes/helm/config.js"
+import { executeAction } from "../../../../../src/graph/actions.js"
+import { DEFAULT_RUN_TIMEOUT_SEC } from "../../../../../src/constants.js"
 
 describe("kubernetes Pod runner functions", () => {
   let garden: Garden
@@ -431,7 +432,9 @@ describe("kubernetes Pod runner functions", () => {
             startTime: new Date(),
           },
         }
-        td.when(core.readNamespacedPodStatus(runner.podName, namespace)).thenResolve(readNamespacedPodStatusRes)
+        td.when(core.readNamespacedPodStatus({ name: runner.podName, namespace })).thenResolve(
+          readNamespacedPodStatusRes
+        )
 
         await expectError(
           () => runner.runAndWait({ log, remove: true, tty: false, events: ctx.events }),
@@ -510,7 +513,9 @@ describe("kubernetes Pod runner functions", () => {
             startTime: new Date(),
           },
         }
-        td.when(core.readNamespacedPodStatus(runner.podName, namespace)).thenResolve(readNamespacedPodStatusRes)
+        td.when(core.readNamespacedPodStatus({ name: runner.podName, namespace })).thenResolve(
+          readNamespacedPodStatusRes
+        )
 
         await expectError(
           () => runner.runAndWait({ log, remove: true, tty: false, events: ctx.events }),
@@ -1075,7 +1080,7 @@ describe("kubernetes Pod runner functions", () => {
       })
 
       await expectError(
-        () => api.core.readNamespacedPod(podName, namespace),
+        () => api.core.readNamespacedPod({ name: podName, namespace }),
         (err) => {
           expect(err).to.be.instanceOf(KubernetesError)
           expect(err.responseStatusCode).to.equal(404)
@@ -1149,7 +1154,7 @@ describe("kubernetes Pod runner functions", () => {
         })
 
         await expectError(
-          () => api.core.readNamespacedPod(podName, namespace),
+          () => api.core.readNamespacedPod({ name: podName, namespace }),
           (err) => {
             expect(err).to.be.instanceOf(KubernetesError)
             expect(err.responseStatusCode).to.equal(404)

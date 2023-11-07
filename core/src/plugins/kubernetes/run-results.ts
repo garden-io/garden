@@ -6,24 +6,24 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ContainerRunAction } from "../container/moduleConfig"
-import { KubernetesPluginContext, KubernetesProvider } from "./config"
-import { KubeApi, KubernetesError } from "./api"
-import { getAppNamespace } from "./namespace"
-import { deserializeValues } from "../../util/serialization"
-import { PluginContext } from "../../plugin-context"
-import { Log } from "../../logger/log-entry"
-import { gardenAnnotationKey } from "../../util/string"
+import type { ContainerRunAction } from "../container/moduleConfig.js"
+import type { KubernetesPluginContext, KubernetesProvider } from "./config.js"
+import { KubeApi, KubernetesError } from "./api.js"
+import { getAppNamespace } from "./namespace.js"
+import { deserializeValues } from "../../util/serialization.js"
+import type { PluginContext } from "../../plugin-context.js"
+import type { Log } from "../../logger/log-entry.js"
+import { gardenAnnotationKey } from "../../util/string.js"
 import hasha from "hasha"
-import { upsertConfigMap } from "./util"
-import { trimRunOutput } from "./helm/common"
+import { upsertConfigMap } from "./util.js"
+import { trimRunOutput } from "./helm/common.js"
 import chalk from "chalk"
-import { runResultToActionState } from "../../actions/base"
-import { Action } from "../../actions/types"
-import { RunResult } from "../../plugin/base"
-import { RunActionHandler } from "../../plugin/action-types"
-import { HelmPodRunAction } from "./helm/config"
-import { KubernetesRunAction } from "./kubernetes-type/config"
+import { runResultToActionState } from "../../actions/base.js"
+import type { Action } from "../../actions/types.js"
+import type { RunResult } from "../../plugin/base.js"
+import type { RunActionHandler } from "../../plugin/action-types.js"
+import type { HelmPodRunAction } from "./helm/config.js"
+import type { KubernetesRunAction } from "./kubernetes-type/config.js"
 
 // TODO: figure out how to get rid of the any cast here
 export const k8sGetRunResult: RunActionHandler<"getResult", any> = async (params) => {
@@ -35,7 +35,7 @@ export const k8sGetRunResult: RunActionHandler<"getResult", any> = async (params
   const resultKey = getRunResultKey(ctx, action)
 
   try {
-    const res = await api.core.readNamespacedConfigMap(resultKey, ns)
+    const res = await api.core.readNamespacedConfigMap({ name: resultKey, namespace: ns })
     const result: any = deserializeValues(res.data!)
 
     // Backwards compatibility for modified result schema
@@ -130,7 +130,7 @@ export async function clearRunResult({
   const key = getRunResultKey(ctx, action)
 
   try {
-    await api.core.deleteNamespacedConfigMap(key, namespace)
+    await api.core.deleteNamespacedConfigMap({ name: key, namespace })
   } catch (err) {
     if (!(err instanceof KubernetesError)) {
       throw err

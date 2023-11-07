@@ -6,35 +6,31 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import Joi = require("@hapi/joi")
-import { joiArray, joiIdentifier, joi, joiSchema, createSchema } from "../config/common"
-import { mapValues } from "lodash"
-import { dedent } from "../util/string"
-import { pluginCommandSchema, PluginCommand } from "./command"
-import { toolSchema, PluginToolSpec } from "./tools"
-import { DashboardPage, dashboardPagesSchema } from "./handlers/Provider/getDashboardPage"
-import {
-  createModuleTypeSchema,
-  extendModuleTypeSchema,
-  ModuleTypeDefinition,
-  ModuleTypeExtension,
-} from "./module-types"
-import { getProviderActionDescriptions, ProviderHandlers } from "./providers"
-import {
-  ManyActionTypeDefinitions,
-  ManyActionTypeExtensions,
-  createActionTypesSchema,
-  extendActionTypesSchema,
-} from "./action-types"
-import { PluginContext } from "../plugin-context"
+import type Joi from "@hapi/joi"
+import { joiArray, joiIdentifier, joi, joiSchema, createSchema } from "../config/common.js"
+import { mapValues } from "lodash-es"
+import { dedent } from "../util/string.js"
+import type { PluginCommand } from "./command.js"
+import { pluginCommandSchema } from "./command.js"
+import type { PluginToolSpec } from "./tools.js"
+import { toolSchema } from "./tools.js"
+import type { DashboardPage } from "./handlers/Provider/getDashboardPage.js"
+import { dashboardPagesSchema } from "./handlers/Provider/getDashboardPage.js"
+import type { ModuleTypeDefinition, ModuleTypeExtension } from "./module-types.js"
+import { createModuleTypeSchema, extendModuleTypeSchema } from "./module-types.js"
+import type { ProviderHandlers } from "./providers.js"
+import { getProviderActionDescriptions } from "./providers.js"
+import type { ManyActionTypeDefinitions, ManyActionTypeExtensions } from "./action-types.js"
+import { createActionTypesSchema, extendActionTypesSchema } from "./action-types.js"
+import type { PluginContext } from "../plugin-context.js"
 import { join } from "path"
-import { GardenSdkPlugin } from "./sdk"
-import { providerConfigBaseSchema } from "../config/provider"
+import type { GardenSdkPlugin } from "./sdk.js"
+import { providerConfigBaseSchema } from "../config/provider.js"
 
 // FIXME: Reduce number of import updates needed
-export * from "./base"
-export * from "./module-types"
-export * from "./providers"
+export * from "./base.js"
+export * from "./module-types.js"
+export * from "./providers.js"
 
 export interface PluginDependency {
   name: string

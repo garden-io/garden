@@ -7,4 +7,4 @@
  */
 
 // Borrow the basic test setup from core
-require("@garden-io/core/build/test/setup")
+export * from "@garden-io/core/build/test/setup.js"

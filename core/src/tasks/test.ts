@@ -6,22 +6,16 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import {
-  BaseActionTaskParams,
-  ActionTaskProcessParams,
-  ExecuteActionTask,
-  ActionTaskStatusParams,
-  emitGetStatusEvents,
-  emitProcessingEvents,
-} from "../tasks/base"
-import { Profile } from "../util/profiling"
-import { resolvedActionToExecuted } from "../actions/helpers"
-import { TestAction } from "../actions/test"
-import { GetTestResult } from "../plugin/handlers/Test/get-result"
-import { OtelTraced } from "../util/open-telemetry/decorators"
-import { GardenError } from "../exceptions"
-import { TestResult } from "../types/test"
-import { CheckCacheRequestParams } from "../cloud/api"
+import type { BaseActionTaskParams, ActionTaskProcessParams, ActionTaskStatusParams } from "../tasks/base.js"
+import { ExecuteActionTask, emitGetStatusEvents, emitProcessingEvents } from "../tasks/base.js"
+import { Profile } from "../util/profiling.js"
+import { resolvedActionToExecuted } from "../actions/helpers.js"
+import type { TestAction } from "../actions/test.js"
+import type { GetTestResult } from "../plugin/handlers/Test/get-result.js"
+import { OtelTraced } from "../util/open-telemetry/decorators.js"
+import { GardenError } from "../exceptions.js"
+import { CheckCacheRequestParams } from "../cloud/api.js"
+import { TestResult } from "../types/test.js"
 
 /**
  * Only throw this error when the test itself failed, and not when Garden failed to execute the test.

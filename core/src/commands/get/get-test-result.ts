@@ -6,20 +6,24 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Command, CommandParams } from "../base"
-import { printHeader } from "../../logger/util"
+import type { CommandParams } from "../base.js"
+import { Command } from "../base.js"
+import { printHeader } from "../../logger/util.js"
 import chalk from "chalk"
-import { getArtifactFileList, getArtifactKey } from "../../util/artifacts"
-import { joi, joiArray } from "../../config/common"
-import { GetTestResult, getTestResultSchema } from "../../plugin/handlers/Test/get-result"
-import { ParameterValues, StringOption, StringParameter } from "../../cli/params"
-import { ParameterError } from "../../exceptions"
-import { ConfigGraph } from "../../graph/config-graph"
-import { GardenModule, moduleTestNameToActionName } from "../../types/module"
-import { findByName, getNames } from "../../util/util"
-import { createActionLog } from "../../logger/log-entry"
+import { getArtifactFileList, getArtifactKey } from "../../util/artifacts.js"
+import { joi, joiArray } from "../../config/common.js"
+import type { GetTestResult } from "../../plugin/handlers/Test/get-result.js"
+import { getTestResultSchema } from "../../plugin/handlers/Test/get-result.js"
+import type { ParameterValues } from "../../cli/params.js"
+import { StringOption, StringParameter } from "../../cli/params.js"
+import { ParameterError } from "../../exceptions.js"
+import type { ConfigGraph } from "../../graph/config-graph.js"
+import type { GardenModule } from "../../types/module.js"
+import { moduleTestNameToActionName } from "../../types/module.js"
+import { findByName, getNames } from "../../util/util.js"
+import { createActionLog } from "../../logger/log-entry.js"
 import dedent from "dedent"
-import { naturalList } from "../../util/string"
+import { naturalList } from "../../util/string.js"
 
 const getTestResultArgs = {
   name: new StringParameter({

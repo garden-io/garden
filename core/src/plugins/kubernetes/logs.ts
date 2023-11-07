@@ -6,25 +6,23 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { omit, sortBy } from "lodash"
+import { omit, sortBy } from "lodash-es"
 import parseDuration from "parse-duration"
 
-import { DeployLogEntry } from "../../types/service"
-import { KubernetesResource, KubernetesPod, BaseResource } from "./types"
-import { getAllPods, summarize } from "./util"
-import { KubeApi, KubernetesError } from "./api"
-import Stream from "ts-stream"
-import { Log } from "../../logger/log-entry"
-import { KubernetesProvider } from "./config"
-import { PluginContext } from "../../plugin-context"
-import { getPodLogs } from "./status/pod"
-import { isValidDateInstance, sleep } from "../../util/util"
+import type { DeployLogEntry } from "../../types/service.js"
+import type { KubernetesResource, KubernetesPod, BaseResource } from "./types.js"
+import { getAllPods, summarize } from "./util.js"
+import { KubeApi, KubernetesError } from "./api.js"
+import type { Stream } from "ts-stream"
+import type { Log } from "../../logger/log-entry.js"
+import type { KubernetesProvider } from "./config.js"
+import type { PluginContext } from "../../plugin-context.js"
+import { getPodLogs } from "./status/pod.js"
+import { isValidDateInstance, sleep } from "../../util/util.js"
 import { Writable } from "stream"
-import request from "request"
-import { LogLevel } from "../../logger/logger"
-import { clearTimeout } from "timers"
-import { HttpError as KubernetesClientHttpError } from "@kubernetes/client-node"
-import { splitFirst } from "../../util/string"
+import { LogLevel } from "../../logger/logger.js"
+import { splitFirst } from "../../util/string.js"
+import { toKubernetesError } from "./retry.js"
 
 // When not following logs, the entire log is read into memory and sorted.
 // We therefore set a maximum on the number of lines we fetch.
@@ -138,7 +136,7 @@ interface LogConnection {
   namespace: string
   status: ConnectionStatus
   shouldRetry: boolean
-  request?: request.Request
+  abortController?: AbortController
   timeout?: NodeJS.Timeout
 
   // for reconnect & deduplication logic
@@ -177,7 +175,7 @@ export class K8sLogFollower<T extends LogEntryBase> {
   private log: Log
   private defaultNamespace: string
   private resources: KubernetesResource<BaseResource>[]
-  private timeoutId?: NodeJS.Timer | null
+  private timeoutId?: NodeJS.Timeout | null
   private resolve: ((val: unknown) => void) | null
   private retryIntervalMs: number
 
@@ -261,7 +259,7 @@ export class K8sLogFollower<T extends LogEntryBase> {
     }
     conns.forEach((conn) => {
       try {
-        conn.request?.abort()
+        conn.abortController?.abort()
       } catch {}
     })
   }
@@ -302,8 +300,8 @@ export class K8sLogFollower<T extends LogEntryBase> {
     // Also no need to log the error event after a timed-out event
     if (!(prevStatus === "error" && status === "closed") && !(prevStatus === "timed-out" && status === "error")) {
       let reason = error
-      if (error instanceof KubernetesClientHttpError) {
-        reason = `HTTP request failed with status ${error.statusCode}`
+      if (error instanceof KubernetesError) {
+        reason = `HTTP request failed with status ${error.code}`
       }
       this.log.silly(`<Lost connection to ${description}. Reason: ${reason}>`)
     }
@@ -321,7 +319,10 @@ export class K8sLogFollower<T extends LogEntryBase> {
     }
 
     try {
-      const pod = await this.k8sApi.core.readNamespacedPodStatus(connection.pod.metadata.name, connection.namespace)
+      const pod = await this.k8sApi.core.readNamespacedPodStatus({
+        name: connection.pod.metadata.name,
+        namespace: connection.namespace,
+      })
 
       // we want to retry anyway if fetching logs failed recently
       const wasError = prevStatus === "error" || status === "error"
@@ -387,7 +388,7 @@ export class K8sLogFollower<T extends LogEntryBase> {
           return
         }
 
-        let req: request.Request
+        let abortController: AbortController
 
         const makeTimeout = () => {
           const idleTimeout = 60000
@@ -397,7 +398,7 @@ export class K8sLogFollower<T extends LogEntryBase> {
               "timed-out",
               `Connection has been idle for ${idleTimeout / 1000} seconds.`
             )
-            req?.abort()
+            abortController?.abort()
           }, idleTimeout)
         }
 
@@ -440,8 +441,10 @@ export class K8sLogFollower<T extends LogEntryBase> {
           },
         })
 
+        const context = `Follow logs of '${containerName}' in Pod '${pod.metadata.name}'`
+
         try {
-          req = await this.streamPodLogs({
+          abortController = await this.streamPodLogs({
             connection,
             stream: writableStream,
             tail: tail || Math.floor(maxLogLinesInMemory / containers.length),
@@ -450,15 +453,18 @@ export class K8sLogFollower<T extends LogEntryBase> {
           })
           this.log.silly(`<Connected to container '${containerName}' in Pod '${pod.metadata.name}'>`)
         } catch (err) {
-          await this.handleConnectionClose(connection, "error", err)
+          await this.handleConnectionClose(connection, "error", toKubernetesError(err, context))
           return
         }
-        connection.request = req
+        connection.abortController = abortController
         connection.status = "connected"
         connection.timeout = makeTimeout()
 
-        req.on("error", async (error) => await this.handleConnectionClose(connection, "error", error))
-        req.on("close", async () => await this.handleConnectionClose(connection, "closed", "Request closed"))
+        writableStream.on(
+          "error",
+          async (error) => await this.handleConnectionClose(connection, "error", toKubernetesError(error, context))
+        )
+        writableStream.on("close", async () => await this.handleConnectionClose(connection, "closed", "Request closed"))
       })
     )
   }

@@ -6,13 +6,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { BaseResponse } from "@garden-io/platform-api-types"
-import { StringsParameter } from "../../../cli/params"
-import { CommandError, ConfigurationError, GardenError } from "../../../exceptions"
-import { printHeader } from "../../../logger/util"
-import { dedent, deline } from "../../../util/string"
-import { Command, CommandParams, CommandResult } from "../../base"
-import { ApiCommandError, confirmDelete, DeleteResult, handleBulkOperationResult, noApiMsg } from "../helpers"
+import type { BaseResponse } from "@garden-io/platform-api-types"
+import { StringsParameter } from "../../../cli/params.js"
+import { CommandError, ConfigurationError, GardenError } from "../../../exceptions.js"
+import { printHeader } from "../../../logger/util.js"
+import { dedent, deline } from "../../../util/string.js"
+import type { CommandParams, CommandResult } from "../../base.js"
+import { Command } from "../../base.js"
+import type { ApiCommandError, DeleteResult } from "../helpers.js"
+import { confirmDelete, handleBulkOperationResult, noApiMsg } from "../helpers.js"
 
 export const secretsDeleteArgs = {
   ids: new StringsParameter({

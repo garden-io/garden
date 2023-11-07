@@ -9,22 +9,23 @@
 import { resolve } from "path"
 import { expect } from "chai"
 import cloneDeep from "fast-copy"
-import { omit } from "lodash"
+import { omit } from "lodash-es"
 
-import { expectError, getDataDir, makeTestGarden, TestGarden, withDefaultGlobalOpts } from "../../../../../helpers"
-import { PluginContext } from "../../../../../../src/plugin-context"
-import { dedent } from "../../../../../../src/util/string"
-import { ModuleConfig } from "../../../../../../src/config/module"
+import type { TestGarden } from "../../../../../helpers.js"
+import { expectError, getDataDir, makeTestGarden, withDefaultGlobalOpts } from "../../../../../helpers.js"
+import type { PluginContext } from "../../../../../../src/plugin-context.js"
+import { dedent } from "../../../../../../src/util/string.js"
+import type { ModuleConfig } from "../../../../../../src/config/module.js"
 import { apply } from "json-merge-patch"
-import { getHelmTestGarden } from "./common"
-import { defaultHelmTimeout } from "../../../../../../src/plugins/kubernetes/helm/module-config"
-import stripAnsi = require("strip-ansi")
+import { getHelmTestGarden } from "./common.js"
+import { defaultHelmTimeout } from "../../../../../../src/plugins/kubernetes/helm/module-config.js"
+import stripAnsi from "strip-ansi"
 import {
   DEFAULT_BUILD_TIMEOUT_SEC,
   DEFAULT_DEPLOY_TIMEOUT_SEC,
   GardenApiVersion,
-} from "../../../../../../src/constants"
-import { ValidateCommand } from "../../../../../../src/commands/validate"
+} from "../../../../../../src/constants.js"
+import { ValidateCommand } from "../../../../../../src/commands/validate.js"
 
 describe("configureHelmModule", () => {
   let garden: TestGarden

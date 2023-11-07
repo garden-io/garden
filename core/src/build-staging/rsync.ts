@@ -7,11 +7,13 @@
  */
 
 import { relative, parse } from "path"
-import { ensureDir } from "fs-extra"
-import { normalizeLocalRsyncPath, joinWithPosix } from "../util/fs"
-import { syncWithOptions } from "../util/sync"
-import { BuildStaging, SyncParams } from "./build-staging"
-import { validateInstall } from "../util/validateInstall"
+import fsExtra from "fs-extra"
+const { ensureDir } = fsExtra
+import { normalizeLocalRsyncPath, joinWithPosix } from "../util/fs.js"
+import { syncWithOptions } from "../util/sync.js"
+import type { SyncParams } from "./build-staging.js"
+import { BuildStaging } from "./build-staging.js"
+import { validateInstall } from "../util/validateInstall.js"
 
 export const minRsyncVersion = "3.1.0"
 const versionRegex = /rsync\s+version\s+v?(\d+.\d+.\d+)/

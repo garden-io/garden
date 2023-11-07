@@ -6,11 +6,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import chalk, { Chalk } from "chalk"
+import type { Chalk } from "chalk"
+import chalk from "chalk"
 import hasAnsi from "has-ansi"
 import dedent from "dedent"
 import stringWidth from "string-width"
-import { DEFAULT_BROWSER_DIVIDER_WIDTH } from "../constants"
+import { DEFAULT_BROWSER_DIVIDER_WIDTH } from "../constants.js"
 
 // Add platforms/terminals?
 export function envSupportsEmoji() {
@@ -19,12 +20,16 @@ export function envSupportsEmoji() {
   )
 }
 
-export let overrideTerminalWidth: number | undefined
+let _overrideTerminalWidth: number | undefined
+
+export function overrideTerminalWidth(width: number | undefined) {
+  _overrideTerminalWidth = width
+}
 
 export function getTerminalWidth(stream: NodeJS.WriteStream = process.stdout) {
   // Used for unit tests
-  if (overrideTerminalWidth) {
-    return overrideTerminalWidth
+  if (_overrideTerminalWidth) {
+    return _overrideTerminalWidth
   }
 
   const columns = (stream || {}).columns

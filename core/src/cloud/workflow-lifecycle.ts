@@ -6,15 +6,16 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { WorkflowConfig, makeRunConfig } from "../config/workflow"
-import { Log } from "../logger/log-entry"
-import { CloudApiError } from "../exceptions"
-import { gardenEnv } from "../constants"
-import { Garden } from "../garden"
-import { ApiFetchResponse } from "./api"
-import { CreateWorkflowRunResponse } from "@garden-io/platform-api-types"
-import { dedent } from "../util/string"
-import { GotHttpError } from "../util/http"
+import type { WorkflowConfig } from "../config/workflow.js"
+import { makeRunConfig } from "../config/workflow.js"
+import type { Log } from "../logger/log-entry.js"
+import { CloudApiError } from "../exceptions.js"
+import { gardenEnv } from "../constants.js"
+import type { Garden } from "../garden.js"
+import type { ApiFetchResponse } from "./api.js"
+import type { CreateWorkflowRunResponse } from "@garden-io/platform-api-types"
+import { dedent } from "../util/string.js"
+import { GotHttpError } from "../util/http.js"
 
 export interface RegisterWorkflowRunParams {
   workflowConfig: WorkflowConfig

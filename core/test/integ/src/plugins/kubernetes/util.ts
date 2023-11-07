@@ -7,43 +7,45 @@
  */
 
 import { expect } from "chai"
-import { flatten, find, first } from "lodash"
+import { flatten, find, first } from "lodash-es"
 import stripAnsi from "strip-ansi"
-import { TestGarden, expectError } from "../../../../helpers"
-import { ConfigGraph } from "../../../../../src/graph/config-graph"
-import { actionFromConfig } from "../../../../../src/graph/actions"
-import { Provider } from "../../../../../src/config/provider"
-import { DeployTask } from "../../../../../src/tasks/deploy"
-import { KubeApi } from "../../../../../src/plugins/kubernetes/api"
-import {
+import type { TestGarden } from "../../../../helpers.js"
+import { expectError } from "../../../../helpers.js"
+import type { ConfigGraph } from "../../../../../src/graph/config-graph.js"
+import { actionFromConfig } from "../../../../../src/graph/actions.js"
+import type { Provider } from "../../../../../src/config/provider.js"
+import { DeployTask } from "../../../../../src/tasks/deploy.js"
+import { KubeApi } from "../../../../../src/plugins/kubernetes/api.js"
+import type {
   KubernetesConfig,
   KubernetesPluginContext,
   ServiceResourceSpec,
-} from "../../../../../src/plugins/kubernetes/config"
+} from "../../../../../src/plugins/kubernetes/config.js"
 import {
   getWorkloadPods,
   getServiceResourceSpec,
   getTargetResource,
   getResourceContainer,
   getResourcePodSpec,
-} from "../../../../../src/plugins/kubernetes/util"
-import { createWorkloadManifest } from "../../../../../src/plugins/kubernetes/container/deployment"
-import { getHelmTestGarden } from "./helm/common"
-import { getChartResources } from "../../../../../src/plugins/kubernetes/helm/common"
-import { createActionLog, Log } from "../../../../../src/logger/log-entry"
-import { BuildTask } from "../../../../../src/tasks/build"
-import { getContainerTestGarden } from "./container/container"
-import {
+} from "../../../../../src/plugins/kubernetes/util.js"
+import { createWorkloadManifest } from "../../../../../src/plugins/kubernetes/container/deployment.js"
+import { getHelmTestGarden } from "./helm/common.js"
+import { getChartResources } from "../../../../../src/plugins/kubernetes/helm/common.js"
+import type { Log } from "../../../../../src/logger/log-entry.js"
+import { createActionLog } from "../../../../../src/logger/log-entry.js"
+import { BuildTask } from "../../../../../src/tasks/build.js"
+import { getContainerTestGarden } from "./container/container.js"
+import type {
   KubernetesDeployment,
   KubernetesPod,
   KubernetesWorkload,
   SyncableKind,
-} from "../../../../../src/plugins/kubernetes/types"
-import { getAppNamespace } from "../../../../../src/plugins/kubernetes/namespace"
-import { convertModules } from "../../../../../src/resolve-module"
-import { BuildAction } from "../../../../../src/actions/build"
-import { DeployAction } from "../../../../../src/actions/deploy"
-import { HelmDeployAction } from "../../../../../src/plugins/kubernetes/helm/config"
+} from "../../../../../src/plugins/kubernetes/types.js"
+import { getAppNamespace } from "../../../../../src/plugins/kubernetes/namespace.js"
+import { convertModules } from "../../../../../src/resolve-module.js"
+import type { BuildAction } from "../../../../../src/actions/build.js"
+import type { DeployAction } from "../../../../../src/actions/deploy.js"
+import type { HelmDeployAction } from "../../../../../src/plugins/kubernetes/helm/config.js"
 
 describe("util", () => {
   let helmGarden: TestGarden
@@ -159,7 +161,7 @@ describe("util", () => {
         await garden.processTasks({ tasks: [deployTask], throwOnError: true })
 
         const pods = await getWorkloadPods(api, "container", resource)
-        const services = flatten(pods.map((pod) => pod.spec.containers.map((container) => container.name)))
+        const services = flatten(pods.map((pod) => pod.spec?.containers.map((container) => container.name)))
         expect(services).to.eql(["simple-service"])
       } finally {
         garden.close()
@@ -189,7 +191,7 @@ describe("util", () => {
         await garden.processTasks({ tasks: [deployTask], throwOnError: true })
 
         const namespace = await getAppNamespace(ctx, log, provider)
-        const allPods = await api.core.listNamespacedPod(namespace)
+        const allPods = await api.core.listNamespacedPod({ namespace })
 
         const pod = allPods.items[0]
 

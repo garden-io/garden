@@ -8,8 +8,8 @@
 
 import AsyncLock from "async-lock"
 import chalk from "chalk"
-import split2 = require("split2")
-import { isEmpty } from "lodash"
+import split2 from "split2"
+import { isEmpty } from "lodash-es"
 import {
   buildSyncVolumeName,
   buildkitContainerName,
@@ -17,33 +17,32 @@ import {
   buildkitImageName,
   buildkitRootlessImageName,
   dockerAuthSecretKey,
-} from "../../constants"
-import { KubeApi } from "../../api"
-import { KubernetesDeployment } from "../../types"
-import { Log } from "../../../../logger/log-entry"
-import { waitForResources, compareDeployedResources } from "../../status/status"
-import { KubernetesProvider, KubernetesPluginContext, ClusterBuildkitCacheConfig } from "../../config"
-import { PluginContext } from "../../../../plugin-context"
+} from "../../constants.js"
+import { KubeApi } from "../../api.js"
+import type { KubernetesDeployment } from "../../types.js"
+import type { Log } from "../../../../logger/log-entry.js"
+import { waitForResources, compareDeployedResources } from "../../status/status.js"
+import type { KubernetesProvider, KubernetesPluginContext, ClusterBuildkitCacheConfig } from "../../config.js"
+import type { PluginContext } from "../../../../plugin-context.js"
+import type { BuildStatusHandler, BuildHandler } from "./common.js"
 import {
-  BuildStatusHandler,
   skopeoBuildStatus,
-  BuildHandler,
   syncToBuildSync,
   getUtilContainer,
   ensureBuilderSecret,
   builderToleration,
-} from "./common"
-import { getNamespaceStatus } from "../../namespace"
-import { sleep } from "../../../../util/util"
-import { ContainerBuildAction, ContainerModuleOutputs } from "../../../container/moduleConfig"
-import { getDockerBuildArgs } from "../../../container/build"
-import { Resolved } from "../../../../actions/types"
-import { PodRunner } from "../../run"
-import { prepareSecrets } from "../../secrets"
-import { getRunningDeploymentPod } from "../../util"
-import { defaultDockerfileName } from "../../../container/config"
-import { k8sGetContainerBuildActionOutputs } from "../handlers"
-import { stringifyResources } from "../util"
+} from "./common.js"
+import { getNamespaceStatus } from "../../namespace.js"
+import { sleep } from "../../../../util/util.js"
+import type { ContainerBuildAction, ContainerModuleOutputs } from "../../../container/moduleConfig.js"
+import { getDockerBuildArgs } from "../../../container/build.js"
+import type { Resolved } from "../../../../actions/types.js"
+import { PodRunner } from "../../run.js"
+import { prepareSecrets } from "../../secrets.js"
+import { getRunningDeploymentPod } from "../../util.js"
+import { defaultDockerfileName } from "../../../container/config.js"
+import { k8sGetContainerBuildActionOutputs } from "../handlers.js"
+import { stringifyResources } from "../util.js"
 
 const deployLock = new AsyncLock()
 

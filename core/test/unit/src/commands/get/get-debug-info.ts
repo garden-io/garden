@@ -8,7 +8,7 @@
 
 import { expect } from "chai"
 import yaml from "js-yaml"
-import { makeTestGardenA, cleanProject, withDefaultGlobalOpts } from "../../../../helpers"
+import { makeTestGardenA, cleanProject, withDefaultGlobalOpts } from "../../../../helpers.js"
 import {
   generateBasicDebugInfoReport,
   TEMP_DEBUG_ROOT,
@@ -18,16 +18,17 @@ import {
   collectProviderDebugInfo,
   PROVIDER_INFO_FILENAME_NO_EXT,
   GetDebugInfoCommand,
-} from "../../../../../src/commands/get/get-debug-info"
-import { readdir, remove, pathExists, readJSON, readFile } from "fs-extra"
-import { ERROR_LOG_FILENAME } from "../../../../../src/constants"
+} from "../../../../../src/commands/get/get-debug-info.js"
+import fsExtra from "fs-extra"
+const { readdir, remove, pathExists, readJSON, readFile } = fsExtra
+import { ERROR_LOG_FILENAME } from "../../../../../src/constants.js"
 import { join, relative, basename } from "path"
-import { Garden } from "../../../../../src/garden"
-import { Log } from "../../../../../src/logger/log-entry"
-import { defaultConfigFilename } from "../../../../../src/util/fs"
-import { makeTestGarden } from "../../../../helpers"
-import { getDataDir } from "../../../../helpers"
-import { defaultProjectConfigFilename } from "../../../../../src/commands/create/create-project"
+import type { Garden } from "../../../../../src/garden.js"
+import type { Log } from "../../../../../src/logger/log-entry.js"
+import { defaultConfigFilename } from "../../../../../src/util/fs.js"
+import { makeTestGarden } from "../../../../helpers.js"
+import { getDataDir } from "../../../../helpers.js"
+import { defaultProjectConfigFilename } from "../../../../../src/commands/create/create-project.js"
 
 const debugZipFileRegex = new RegExp(/debug-info-.*?.zip/)
 

@@ -1,7 +1,8 @@
 {
   "name": "@garden-io/cli",
-  "version": "0.13.18",
+  "version": "0.13.19",
   "description": "Cloud native testing platform for testing and developing container applications on Kubernetes",
+  "type": "module",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/garden-io/garden.git"
@@ -19,7 +20,7 @@
     "build"
   ],
   "bin": {
-    "garden": "bin/garden"
+    "garden": "bin/garden.js"
   },
   "dependencies": {
     "@garden-io/core": "*",
@@ -32,24 +33,22 @@
     "@scg82/exit-hook": "^3.4.1",
     "chalk": "^4.1.2",
     "node-abi": "^3.45.0",
-    "patch-package": "^6.5.1",
-    "pkg": "5.8.1",
-    "source-map-support": "^0.5.21"
+    "tar": "^6.2.0",
+    "undici": "^5.26.5",
+    "unzipper": "^0.10.14"
   },
   "devDependencies": {
     "@types/chai": "^4.3.4",
+    "@types/fs-extra": "^11.0.3",
     "@types/mocha": "^10.0.1",
-    "bluebird": "^3.7.2",
+    "@types/tar": "^6.1.7",
+    "@types/unzipper": "^0.10.8",
     "chai": "^4.3.7",
-    "execa": "^4.1.0",
-    "lodash": "^4.17.21",
+    "fs-extra": "^11.1.1",
+    "lodash-es": "^4.17.21",
     "minimist": "^1.2.8",
     "mocha": "^10.2.0",
-    "postinstall-postinstall": "^2.1.0",
-    "prettier": "3.0.0",
-    "split2": "^4.1.0",
-    "typescript": "^5.1.3",
-    "username": "^5.1.0"
+    "typescript": "^5.1.3"
   },
   "scripts": {
     "add-version-files": "node build/src/add-version-files.js",
@@ -59,15 +58,6 @@
     "fix-format": "npm run lint -- --fix --quiet",
     "generate-docs": "node ./build/src/generate-docs.js",
     "lint": "eslint --ext .ts src/",
-    "postinstall": "patch-package",
     "test": "mocha"
-  },
-  "pkg": {
-    "scripts": [
-      "package.json",
-      "build/src/cli.js",
-      "node_modules/@garden-io/**/*.js",
-      "node_modules/es-get-iterator/**/*.js"
-    ]
   }
 }

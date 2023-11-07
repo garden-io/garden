@@ -6,11 +6,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import Joi = require("@hapi/joi")
-import { dedent } from "../../../util/string"
-import { joi } from "../../../config/common"
-import { templateStringLiteral } from "../../../docs/common"
-import { ActionTypeHandlerSpec } from "./base"
+import type Joi from "@hapi/joi"
+import { dedent } from "../../../util/string.js"
+import { joi } from "../../../config/common.js"
+import { templateStringLiteral } from "../../../docs/common.js"
+import { ActionTypeHandlerSpec } from "./base.js"
 
 // NOTE: THIS IS CURRENTLY NOT USED
 

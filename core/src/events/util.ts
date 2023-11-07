@@ -6,14 +6,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import type { ValidExecutionActionResultType } from "../tasks/base"
-import { Resolved, type Action, type ActionState } from "../actions/types"
-import type { DeployStatus } from "../plugin/handlers/Deploy/get-status"
-import type { DeployStatusForEventPayload } from "../types/service"
-import { Events, ActionStatusEventName } from "./events"
-import { pick } from "lodash"
-import { BuildState } from "../plugin/handlers/Build/get-status"
-import { ActionStatusDetailedState, ActionCompleteState } from "./action-status-events"
+import type { ValidExecutionActionResultType } from "../tasks/base.js"
+import { Resolved, type Action, type ActionState } from "../actions/types.js"
+import type { DeployStatus } from "../plugin/handlers/Deploy/get-status.js"
+import type { DeployStatusForEventPayload } from "../types/service.js"
+import type { Events, ActionStatusEventName } from "./events.js"
+import { pick } from "lodash-es"
+import type { BuildState } from "../plugin/handlers/Build/get-status.js"
+import type { ActionStatusDetailedState, ActionCompleteState } from "./action-status-events.js"
 
 type ActionKind = "build" | "deploy" | "run" | "test"
 

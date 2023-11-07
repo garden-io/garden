@@ -7,41 +7,43 @@
  */
 
 import chalk from "chalk"
-import {
+import type {
   ConfigGraph,
   Garden,
   GraphResults,
-  PluginActionTask,
   PluginCommand,
   PluginCommandParams,
   PluginContext,
-} from "@garden-io/sdk/build/src/types"
+} from "@garden-io/sdk/build/src/types.js"
+import { PluginActionTask } from "@garden-io/sdk/build/src/types.js"
 
-import { PulumiDeploy } from "./action"
-import { PulumiProvider } from "./provider"
-import { Profile } from "@garden-io/core/build/src/util/profiling"
+import type { PulumiDeploy } from "./action.js"
+import type { PulumiProvider } from "./provider.js"
+import { Profile } from "@garden-io/core/build/src/util/profiling.js"
+import type { PulumiParams } from "./helpers.js"
 import {
   cancelUpdate,
   getModifiedPlansDirPath,
   getPlanFileName,
   getPreviewDirPath,
   previewStack,
-  PulumiParams,
   refreshResources,
   reimportStack,
   selectStack,
-} from "./helpers"
-import { dedent, deline } from "@garden-io/sdk/build/src/util/string"
-import { BooleanParameter, parsePluginCommandArgs } from "@garden-io/sdk/build/src/util/cli"
-import { copy, emptyDir } from "fs-extra"
+} from "./helpers.js"
+import { dedent, deline } from "@garden-io/sdk/build/src/util/string.js"
+import { BooleanParameter, parsePluginCommandArgs } from "@garden-io/sdk/build/src/util/cli.js"
+import fsExtra from "fs-extra"
+const { copy, emptyDir } = fsExtra
 import { join } from "path"
-import { isDeployAction } from "@garden-io/core/build/src/actions/deploy"
-import { TemplatableConfigContext } from "@garden-io/core/build/src/config/template-contexts/project"
-import { ActionTaskProcessParams, ValidResultType } from "@garden-io/core/build/src/tasks/base"
-import { deletePulumiDeploy } from "./handlers"
-import { ActionLog, createActionLog, Log } from "@garden-io/core/build/src/logger/log-entry"
-import { ActionSpecContext } from "@garden-io/core/build/src/config/template-contexts/actions"
-import { ProviderMap } from "@garden-io/core/build/src/config/provider"
+import { isDeployAction } from "@garden-io/core/build/src/actions/deploy.js"
+import { TemplatableConfigContext } from "@garden-io/core/build/src/config/template-contexts/project.js"
+import type { ActionTaskProcessParams, ValidResultType } from "@garden-io/core/build/src/tasks/base.js"
+import { deletePulumiDeploy } from "./handlers.js"
+import type { ActionLog, Log } from "@garden-io/core/build/src/logger/log-entry.js"
+import { createActionLog } from "@garden-io/core/build/src/logger/log-entry.js"
+import { ActionSpecContext } from "@garden-io/core/build/src/config/template-contexts/actions.js"
+import type { ProviderMap } from "@garden-io/core/build/src/config/provider.js"
 
 type PulumiBaseParams = Omit<PulumiParams, "action">
 

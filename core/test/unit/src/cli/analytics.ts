@@ -9,12 +9,13 @@
 import nock from "nock"
 import { expect } from "chai"
 
-import { GardenCli } from "../../../../src/cli/cli"
-import { GlobalConfigStore } from "../../../../src/config-store/global"
-import { TestGarden, enableAnalytics, makeTestGardenA } from "../../../helpers"
-import { Command } from "../../../../src/commands/base"
-import { isEqual } from "lodash"
-import { TestGardenCli } from "../../../helpers/cli"
+import type { GardenCli } from "../../../../src/cli/cli.js"
+import { GlobalConfigStore } from "../../../../src/config-store/global.js"
+import type { TestGarden } from "../../../helpers.js"
+import { enableAnalytics, makeTestGardenA } from "../../../helpers.js"
+import { Command } from "../../../../src/commands/base.js"
+import { isEqual } from "lodash-es"
+import { TestGardenCli } from "../../../helpers/cli.js"
 
 // TODO: These tests are skipped because they fail repeatedly in CI, but works fine locally
 describe("cli analytics", () => {

@@ -6,10 +6,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { SortedStreamIntersection } from "../../../../src/util/streams"
+import { SortedStreamIntersection } from "../../../../src/util/streams.js"
 import { expect } from "chai"
-import { splitStream } from "../../../../src/util/streams"
-import { expectFuzzyMatch } from "../../../helpers"
+import { splitStream } from "../../../../src/util/streams.js"
+import { expectFuzzyMatch } from "../../../helpers.js"
 
 describe("SortedStreamIntersection", () => {
   const comparator = (a: Buffer, b: Buffer) => a.toString().localeCompare(b.toString())

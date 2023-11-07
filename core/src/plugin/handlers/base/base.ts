@@ -6,10 +6,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import Joi from "@hapi/joi"
-import { memoize } from "lodash"
-import { ActionKind } from "../../../actions/types"
-import { joi, joiVariables } from "../../../config/common"
+import type Joi from "@hapi/joi"
+import { memoize } from "lodash-es"
+import type { ActionKind } from "../../../actions/types.js"
+import { joi, joiVariables } from "../../../config/common.js"
 
 export type ParamsBase<_ = any> = {}
 

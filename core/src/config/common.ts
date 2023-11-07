@@ -6,17 +6,21 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import Joi, { SchemaLike } from "@hapi/joi"
-import Ajv from "ajv"
-import addFormats from "ajv-formats"
-import { splitLast, deline, dedent, naturalList, titleize } from "../util/string"
+import type { SchemaLike } from "@hapi/joi"
+import Joi from "@hapi/joi"
+import ajvPackage from "ajv"
+const Ajv = ajvPackage.default
+import addFormatsPackage from "ajv-formats"
+const addFormats = addFormatsPackage.default
+import { splitLast, deline, dedent, naturalList, titleize } from "../util/string.js"
 import cloneDeep from "fast-copy"
-import { isArray, isPlainObject, isString, mapValues, memoize } from "lodash"
-import { joiPathPlaceholder } from "./validation"
-import { DOCS_BASE_URL, GardenApiVersion } from "../constants"
-import { ActionKind, actionKinds, actionKindsLower } from "../actions/types"
-import { ConfigurationError, InternalError } from "../exceptions"
-import type { ConfigContextType } from "./template-contexts/base"
+import { isArray, isPlainObject, isString, mapValues, memoize } from "lodash-es"
+import { joiPathPlaceholder } from "./validation.js"
+import { DOCS_BASE_URL, GardenApiVersion } from "../constants.js"
+import type { ActionKind } from "../actions/types.js"
+import { actionKinds, actionKindsLower } from "../actions/types.js"
+import { ConfigurationError, InternalError } from "../exceptions.js"
+import type { ConfigContextType } from "./template-contexts/base.js"
 import { z } from "zod"
 import {
   gitUrlRegex,
@@ -30,10 +34,10 @@ import {
   userIdentifierRegex,
   variableNameRegex,
   envVarRegex,
-} from "./constants"
+} from "./constants.js"
 
 // Avoid chasing moved references
-export * from "./constants"
+export * from "./constants.js"
 
 const ajv = new Ajv({ allErrors: true, useDefaults: true, strict: false })
 addFormats(ajv)

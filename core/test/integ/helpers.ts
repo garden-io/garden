@@ -8,7 +8,7 @@
 
 import { GoogleAuth, Impersonated } from "google-auth-library"
 import { expect } from "chai"
-import { base64, dedent } from "../../src/util/string"
+import { base64, dedent } from "../../src/util/string.js"
 import chalk from "chalk"
 
 import { ArtifactRegistryClient } from "@google-cloud/artifact-registry"

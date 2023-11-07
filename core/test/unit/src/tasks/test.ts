@@ -7,10 +7,11 @@
  */
 
 import { expect } from "chai"
-import { TestTask } from "../../../../src/tasks/test"
-import { freezeTime, getDataDir, makeTestGarden, TestGarden } from "../../../helpers"
-import { Log } from "../../../../src/logger/log-entry"
-import { ConfigGraph } from "../../../../src/graph/config-graph"
+import { TestTask } from "../../../../src/tasks/test.js"
+import type { TestGarden } from "../../../helpers.js"
+import { freezeTime, getDataDir, makeTestGarden } from "../../../helpers.js"
+import type { Log } from "../../../../src/logger/log-entry.js"
+import type { ConfigGraph } from "../../../../src/graph/config-graph.js"
 
 describe("TestTask", () => {
   let garden: TestGarden

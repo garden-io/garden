@@ -7,10 +7,10 @@
  */
 
 import chalk from "chalk"
-import { PluginCommand } from "../../../plugin/command"
-import { getKubernetesSystemVariables } from "../init"
-import { KubernetesPluginContext } from "../config"
-import { getSystemGarden } from "../system"
+import type { PluginCommand } from "../../../plugin/command.js"
+import { getKubernetesSystemVariables } from "../init.js"
+import type { KubernetesPluginContext } from "../config.js"
+import { getSystemGarden } from "../system.js"
 
 export const uninstallGardenServices: PluginCommand = {
   name: "uninstall-garden-services",

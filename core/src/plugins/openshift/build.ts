@@ -6,16 +6,16 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { DeepPrimitiveMap } from "@garden-io/platform-api-types"
-import { BuildActionExtension } from "../../plugin/action-types"
-import { ContainerBuildAction } from "../container/config"
-import { ContainerBuildMode, KubernetesProvider } from "../kubernetes/config"
-import { k8sGetContainerBuildActionOutputs } from "../kubernetes/container/handlers"
-import { k8sPublishContainerBuild } from "../kubernetes/container/publish"
-import { BuildHandler, BuildStatusHandler } from "../kubernetes/container/build/common"
-import { getLocalBuildStatus, localBuild } from "../kubernetes/container/build/local"
-import { getKanikoBuildStatus, kanikoBuild } from "../kubernetes/container/build/kaniko"
-import { NotImplementedError } from "../../exceptions"
+import type { DeepPrimitiveMap } from "@garden-io/platform-api-types"
+import type { BuildActionExtension } from "../../plugin/action-types.js"
+import type { ContainerBuildAction } from "../container/config.js"
+import type { ContainerBuildMode, KubernetesProvider } from "../kubernetes/config.js"
+import { k8sGetContainerBuildActionOutputs } from "../kubernetes/container/handlers.js"
+import { k8sPublishContainerBuild } from "../kubernetes/container/publish.js"
+import type { BuildHandler, BuildStatusHandler } from "../kubernetes/container/build/common.js"
+import { getLocalBuildStatus, localBuild } from "../kubernetes/container/build/local.js"
+import { getKanikoBuildStatus, kanikoBuild } from "../kubernetes/container/build/kaniko.js"
+import { NotImplementedError } from "../../exceptions.js"
 
 export const openshiftContainerBuildExtension = (): BuildActionExtension<ContainerBuildAction> => ({
   name: "container",

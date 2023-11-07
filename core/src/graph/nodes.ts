@@ -6,13 +6,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Task, TaskResultType, ValidResultType } from "../tasks/base"
-import { GraphError, InternalError, toGardenError } from "../exceptions"
-import { GraphResult, GraphResultFromTask, GraphResults } from "./results"
-import type { GraphSolver } from "./solver"
+import type { Task, TaskResultType, ValidResultType } from "../tasks/base.js"
+import { GraphError, InternalError, toGardenError } from "../exceptions.js"
+import type { GraphResult, GraphResultFromTask } from "./results.js"
+import { GraphResults } from "./results.js"
+import type { GraphSolver } from "./solver.js"
 import chalk from "chalk"
-import { metadataForLog } from "./common"
-import { Profile } from "../util/profiling"
+import { metadataForLog } from "./common.js"
+import { Profile } from "../util/profiling.js"
 
 export interface InternalNodeTypes {
   status: StatusTaskNode

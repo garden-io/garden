@@ -10,26 +10,24 @@ import { expect } from "chai"
 import { join } from "path"
 import cloneDeep from "fast-copy"
 
-import td from "testdouble"
+import * as td from "testdouble"
 import tmp from "tmp-promise"
-import { writeFile, mkdir } from "fs-extra"
+import fsExtra from "fs-extra"
+const { writeFile, mkdir } = fsExtra
 
-import { Garden } from "../../../../../src/garden"
-import { PluginContext } from "../../../../../src/plugin-context"
-import { gardenPlugin } from "../../../../../src/plugins/container/container"
-import { expectError, getDataDir, getPropertyName, makeTestGarden } from "../../../../helpers"
-import { moduleFromConfig } from "../../../../../src/types/module"
-import { ModuleConfig } from "../../../../../src/config/module"
-import { Log } from "../../../../../src/logger/log-entry"
-import {
-  ContainerModuleSpec,
-  ContainerModuleConfig,
-  defaultDockerfileName,
-} from "../../../../../src/plugins/container/moduleConfig"
-import { containerHelpers as helpers } from "../../../../../src/plugins/container/helpers"
-import { DEFAULT_BUILD_TIMEOUT_SEC, GardenApiVersion } from "../../../../../src/constants"
-import { dedent } from "../../../../../src/util/string"
-import { ModuleVersion } from "../../../../../src/vcs/vcs"
+import { Garden } from "../../../../../src/garden.js"
+import type { PluginContext } from "../../../../../src/plugin-context.js"
+import { gardenPlugin } from "../../../../../src/plugins/container/container.js"
+import { expectError, getDataDir, getPropertyName, makeTestGarden } from "../../../../helpers.js"
+import { moduleFromConfig } from "../../../../../src/types/module.js"
+import type { ModuleConfig } from "../../../../../src/config/module.js"
+import type { Log } from "../../../../../src/logger/log-entry.js"
+import type { ContainerModuleSpec, ContainerModuleConfig } from "../../../../../src/plugins/container/moduleConfig.js"
+import { defaultDockerfileName } from "../../../../../src/plugins/container/moduleConfig.js"
+import { containerHelpers as helpers } from "../../../../../src/plugins/container/helpers.js"
+import { DEFAULT_BUILD_TIMEOUT_SEC, GardenApiVersion } from "../../../../../src/constants.js"
+import { dedent } from "../../../../../src/util/string.js"
+import type { ModuleVersion } from "../../../../../src/vcs/vcs.js"
 
 describe("containerHelpers", () => {
   const projectRoot = getDataDir("test-project-container")

@@ -6,8 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { PluginCommand } from "../../../plugin/command"
-import { prepareSystem, getEnvironmentStatus } from "../init"
+import type { PluginCommand } from "../../../plugin/command.js"
+import { prepareSystem, getEnvironmentStatus } from "../init.js"
 import chalk from "chalk"
 
 export const clusterInit: PluginCommand = {

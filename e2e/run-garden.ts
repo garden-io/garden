@@ -6,22 +6,23 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ChildProcess, spawn } from "child_process"
+import type { ChildProcess } from "child_process"
+import { spawn } from "child_process"
 import execa from "execa"
 import { resolve } from "path"
-import { sleep } from "@garden-io/core/build/src/util/util"
-import { searchLog, findTasks, touchFile, parsedArgs, parseLogEntry, stringifyJsonLog } from "./helpers"
-import { JsonLogEntry } from "@garden-io/core/build/src/logger/writers/json-terminal-writer"
-import { ParameterError, TimeoutError } from "@garden-io/core/build/src/exceptions"
-import { dedent, deline } from "@garden-io/core/build/src/util/string"
-import { GARDEN_CLI_ROOT } from "@garden-io/core/build/src/constants"
+import { sleep } from "@garden-io/core/build/src/util/util.js"
+import { searchLog, findTasks, touchFile, parsedArgs, parseLogEntry, stringifyJsonLog } from "./helpers.js"
+import type { JsonLogEntry } from "@garden-io/core/build/src/logger/writers/json-terminal-writer.js"
+import { ParameterError, TimeoutError } from "@garden-io/core/build/src/exceptions.js"
+import { dedent, deline } from "@garden-io/core/build/src/util/string.js"
+import { GARDEN_CLI_ROOT } from "@garden-io/core/build/src/constants.js"
 import chalk from "chalk"
-import split2 = require("split2")
+import split2 from "split2"
 
 export const DEFAULT_CHECK_INTERVAL_MS = 500
 export const DEFAULT_RUN_TIMEOUT_SECS = 360
 
-export const gardenBinPath = parsedArgs.binPath || resolve(GARDEN_CLI_ROOT, "bin", "garden")
+export const gardenBinPath = parsedArgs.binPath || resolve(GARDEN_CLI_ROOT, "bin", "garden.js")
 export const showLog = !!parsedArgs.showlog
 
 const DEFAULT_ARGS = ["--logger-type", "json", "--log-level", "silly"]

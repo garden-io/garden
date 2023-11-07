@@ -6,15 +6,16 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ListGroupsResponse } from "@garden-io/platform-api-types"
+import type { ListGroupsResponse } from "@garden-io/platform-api-types"
 import chalk from "chalk"
-import { sortBy } from "lodash"
-import { StringsParameter } from "../../../cli/params"
-import { ConfigurationError } from "../../../exceptions"
-import { printHeader } from "../../../logger/util"
-import { dedent, deline, renderTable } from "../../../util/string"
-import { Command, CommandGroup, CommandParams, CommandResult } from "../../base"
-import { noApiMsg, applyFilter } from "../helpers"
+import { sortBy } from "lodash-es"
+import { StringsParameter } from "../../../cli/params.js"
+import { ConfigurationError } from "../../../exceptions.js"
+import { printHeader } from "../../../logger/util.js"
+import { dedent, deline, renderTable } from "../../../util/string.js"
+import type { CommandParams, CommandResult } from "../../base.js"
+import { Command, CommandGroup } from "../../base.js"
+import { noApiMsg, applyFilter } from "../helpers.js"
 
 // TODO: Add created at and updated at timestamps. Need to add it to the API response first.
 interface Groups {

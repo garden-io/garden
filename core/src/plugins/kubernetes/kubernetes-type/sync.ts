@@ -6,14 +6,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { DeployActionHandler } from "../../../plugin/action-types"
-import { KubeApi } from "../api"
-import { KubernetesPluginContext } from "../config"
-import { getActionNamespace } from "../namespace"
-import { getDeployedResources } from "../status/status"
-import { getSyncStatus, startSyncs } from "../sync"
-import { getManifests } from "./common"
-import { KubernetesDeployAction } from "./config"
+import type { DeployActionHandler } from "../../../plugin/action-types.js"
+import { KubeApi } from "../api.js"
+import type { KubernetesPluginContext } from "../config.js"
+import { getActionNamespace } from "../namespace.js"
+import { getDeployedResources } from "../status/status.js"
+import { getSyncStatus, startSyncs } from "../sync.js"
+import { getManifests } from "./common.js"
+import type { KubernetesDeployAction } from "./config.js"
 
 export const kubernetesStartSync: DeployActionHandler<"startSync", KubernetesDeployAction> = async (params) => {
   const { ctx, log, action } = params

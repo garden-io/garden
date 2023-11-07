@@ -8,12 +8,16 @@
 
 import execa from "execa"
 import minimist from "minimist"
-import { resolve } from "path"
-import { projectsDir } from "./helpers"
+import { dirname, resolve } from "node:path"
+import { projectsDir } from "./helpers.js"
 import dedent from "dedent"
 import chalk from "chalk"
 import { join } from "path"
-import { realpath } from "fs-extra"
+import fsExtra from "fs-extra"
+const { realpath } = fsExtra
+import { fileURLToPath } from "node:url"
+
+const moduleDirName = dirname(fileURLToPath(import.meta.url))
 
 export const parsedArgs = minimist(process.argv.slice(2))
 
@@ -62,7 +66,7 @@ async function run() {
     chalk.cyan.bold("*** Starting e2e tests for project ") + chalk.white.bold(project) + chalk.cyan.bold(" ***")
   )
 
-  const mochaOpts = ["--config", join(__dirname, ".mocharc.yml")]
+  const mochaOpts = ["--config", join(moduleDirName, ".mocharc.yml")]
 
   if (parsedArgs.b) {
     mochaOpts.push("-b")
@@ -74,9 +78,9 @@ async function run() {
     }
   }
 
-  const mochaBinPath = resolve(__dirname, "node_modules/.bin/mocha")
+  const mochaBinPath = resolve(moduleDirName, "node_modules/.bin/mocha")
   await execa(mochaBinPath, mochaOpts, {
-    cwd: __dirname,
+    cwd: moduleDirName,
     stdio: "inherit",
   })
 

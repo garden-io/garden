@@ -6,11 +6,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { CommandGroup } from "../../base"
-import { SecretsCreateCommand } from "./secrets-create"
-import { SecretsDeleteCommand } from "./secrets-delete"
-import { SecretsListCommand } from "./secrets-list"
-import { SecretsUpdateCommand } from "./secrets-update"
+import { CommandGroup } from "../../base.js"
+import { SecretsCreateCommand } from "./secrets-create.js"
+import { SecretsDeleteCommand } from "./secrets-delete.js"
+import { SecretsListCommand } from "./secrets-list.js"
+import { SecretsUpdateCommand } from "./secrets-update.js"
 
 export class SecretsCommand extends CommandGroup {
   name = "secrets"

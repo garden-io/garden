@@ -11,11 +11,16 @@
     "test/integ/src/**/*.ts",
     "test/unit/*.ts",
     "test/unit/src/**/*.ts",
-    "src/commands/dev.tsx"
+    "src/commands/dev.tsx",
+    "src/util/ink-divider.tsx",
+    "package.json",
   ],
   "compilerOptions": {
     "composite": true,
     "outDir": "build",
-    "jsx": "react"
+    "jsx": "react",
+    "resolveJsonModule": true,
+    "module": "nodenext",
+    "moduleResolution": "nodenext"
   }
 }

@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { KubeApi, KubernetesError } from "./api"
+import { KubeApi, KubernetesError } from "./api.js"
 import {
   getAppNamespace,
   prepareNamespaces,
@@ -14,28 +14,38 @@ import {
   getSystemNamespace,
   getNamespaceStatus,
   clearNamespaceCache,
-} from "./namespace"
-import { KubernetesPluginContext, KubernetesConfig, KubernetesProvider, ProviderSecretRef } from "./config"
-import { prepareSystemServices, getSystemServiceStatus, getSystemGarden } from "./system"
-import { GetEnvironmentStatusParams, EnvironmentStatus } from "../../plugin/handlers/Provider/getEnvironmentStatus"
-import { PrepareEnvironmentParams, PrepareEnvironmentResult } from "../../plugin/handlers/Provider/prepareEnvironment"
-import { CleanupEnvironmentParams, CleanupEnvironmentResult } from "../../plugin/handlers/Provider/cleanupEnvironment"
-import { millicpuToString, megabytesToString } from "./util"
+} from "./namespace.js"
+import type { KubernetesPluginContext, KubernetesConfig, KubernetesProvider, ProviderSecretRef } from "./config.js"
+import { prepareSystemServices, getSystemServiceStatus, getSystemGarden } from "./system.js"
+import type {
+  GetEnvironmentStatusParams,
+  EnvironmentStatus,
+} from "../../plugin/handlers/Provider/getEnvironmentStatus.js"
+import type {
+  PrepareEnvironmentParams,
+  PrepareEnvironmentResult,
+} from "../../plugin/handlers/Provider/prepareEnvironment.js"
+import type {
+  CleanupEnvironmentParams,
+  CleanupEnvironmentResult,
+} from "../../plugin/handlers/Provider/cleanupEnvironment.js"
+import { millicpuToString, megabytesToString } from "./util.js"
 import chalk from "chalk"
-import { deline, dedent, gardenAnnotationKey } from "../../util/string"
-import { combineStates, DeployState } from "../../types/service"
-import { ConfigurationError } from "../../exceptions"
-import { readSecret } from "./secrets"
-import { systemDockerAuthSecretName, dockerAuthSecretKey } from "./constants"
-import { V1IngressClass, V1Secret, V1Toleration } from "@kubernetes/client-node"
-import { KubernetesResource } from "./types"
-import { compareDeployedResources } from "./status/status"
-import { PrimitiveMap } from "../../config/common"
-import { mapValues, omit } from "lodash"
-import { getIngressApiVersion, supportedIngressApiVersions } from "./container/ingress"
-import { Log } from "../../logger/log-entry"
-import { DeployStatusMap } from "../../plugin/handlers/Deploy/get-status"
-import { isProviderEphemeralKubernetes } from "./ephemeral/ephemeral"
+import { deline, dedent, gardenAnnotationKey } from "../../util/string.js"
+import type { DeployState } from "../../types/service.js"
+import { combineStates } from "../../types/service.js"
+import { ConfigurationError } from "../../exceptions.js"
+import { readSecret } from "./secrets.js"
+import { systemDockerAuthSecretName, dockerAuthSecretKey } from "./constants.js"
+import type { V1IngressClass, V1Secret, V1Toleration } from "@kubernetes/client-node"
+import type { KubernetesResource } from "./types.js"
+import { compareDeployedResources } from "./status/status.js"
+import type { PrimitiveMap } from "../../config/common.js"
+import { mapValues, omit } from "lodash-es"
+import { getIngressApiVersion, supportedIngressApiVersions } from "./container/ingress.js"
+import type { Log } from "../../logger/log-entry.js"
+import type { DeployStatusMap } from "../../plugin/handlers/Deploy/get-status.js"
+import { isProviderEphemeralKubernetes } from "./ephemeral/ephemeral.js"
 
 const dockerAuthSecretType = "kubernetes.io/dockerconfigjson"
 const dockerAuthDocsLink = `
@@ -309,7 +319,7 @@ export async function cleanupEnvironment({
       await Promise.all(
         [namespace].map(async (ns) => {
           try {
-            const annotations = (await api.core.readNamespace(ns)).metadata.annotations || {}
+            const annotations = (await api.core.readNamespace({ name: ns })).metadata.annotations || {}
             return annotations[gardenAnnotationKey("generated")] === "true" ? ns : null
           } catch (err) {
             if (!(err instanceof KubernetesError)) {

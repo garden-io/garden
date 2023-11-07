@@ -7,13 +7,13 @@
  */
 
 import { posix, resolve } from "path"
-import { GenerateFileSpec, ModuleConfig } from "../config/module"
+import type { GenerateFileSpec, ModuleConfig } from "../config/module.js"
 import pathIsInside from "path-is-inside"
-import { groupBy, intersection } from "lodash"
+import { groupBy, intersection } from "lodash-es"
 import chalk from "chalk"
-import { naturalList } from "./string"
+import { naturalList } from "./string.js"
 import dedent from "dedent"
-import { InternalError } from "../exceptions"
+import { InternalError } from "../exceptions.js"
 
 export const moduleOverlapTypes = ["path", "generateFiles"] as const
 export type ModuleOverlapType = (typeof moduleOverlapTypes)[number]

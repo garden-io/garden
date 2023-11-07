@@ -8,11 +8,12 @@
 
 import { expect } from "chai"
 import tmp from "tmp-promise"
-import { realpath, writeFile } from "fs-extra"
+import fsExtra from "fs-extra"
+const { realpath, writeFile } = fsExtra
 import normalizePath from "normalize-path"
 import { join } from "path"
-import { getArtifactFileList, getArtifactKey } from "../../../../src/util/artifacts"
-import { getRootLogger } from "../../../../src/logger/logger"
+import { getArtifactFileList, getArtifactKey } from "../../../../src/util/artifacts.js"
+import { getRootLogger } from "../../../../src/logger/logger.js"
 
 describe("artifacts", () => {
   describe("getArtifactKey", () => {

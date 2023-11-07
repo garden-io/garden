@@ -6,9 +6,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ExportResult } from "@opentelemetry/core"
-import { ReadableSpan, SpanExporter } from "@opentelemetry/sdk-trace-base"
-import { Deferred, defer } from "../../util"
+import type { ExportResult } from "@opentelemetry/core"
+import type { ReadableSpan, SpanExporter } from "@opentelemetry/sdk-trace-base"
+import type { Deferred } from "../../util.js"
+import { defer } from "../../util.js"
 
 type PendingSpan = {
   spans: ReadableSpan[]

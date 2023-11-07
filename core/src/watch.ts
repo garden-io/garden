@@ -6,12 +6,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { watch, FSWatcher } from "chokidar"
-import { Log } from "./logger/log-entry"
-import { InternalError } from "./exceptions"
+import type { FSWatcher } from "chokidar"
+import { watch } from "chokidar"
+import type { Log } from "./logger/log-entry.js"
 import EventEmitter2 from "eventemitter2"
-import { EventBus } from "./events/events"
-import { Stats } from "fs"
+import type { EventBus } from "./events/events.js"
+import type { Stats } from "fs"
 import { join } from "path"
 import stringify from "json-stringify-safe"
 
@@ -36,7 +36,7 @@ interface WatcherParams {
  *
  * Individual Garden instances should subscribe()
  */
-export class Watcher extends EventEmitter2 {
+export class Watcher extends EventEmitter2.EventEmitter2 {
   private log: Log
   private subscribers: Subscriber[]
   public ready: boolean
@@ -49,16 +49,6 @@ export class Watcher extends EventEmitter2 {
     this.ready = false
 
     this.log.debug(`Watcher: Initializing`)
-
-    // Make sure that fsevents works when we're on macOS. This has come up before without us noticing, which has
-    // a dramatic performance impact, so it's best if we simply throw here so that our tests catch such issues.
-    if (process.platform === "darwin") {
-      try {
-        require("fsevents")
-      } catch (error) {
-        throw InternalError.wrapError(error, "Unable to load fsevents module")
-      }
-    }
 
     this.log.debug(`Watcher: Starting FSWatcher`)
     this.fsWatcher = watch([], {

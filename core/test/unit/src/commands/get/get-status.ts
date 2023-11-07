@@ -6,12 +6,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { makeTestGardenA } from "../../../../helpers"
-import { GetStatusCommand } from "../../../../../src/commands/get/get-status"
-import { withDefaultGlobalOpts } from "../../../../helpers"
+import { makeTestGardenA } from "../../../../helpers.js"
+import { GetStatusCommand } from "../../../../../src/commands/get/get-status.js"
+import { withDefaultGlobalOpts } from "../../../../helpers.js"
 import { expect } from "chai"
-import { LogLevel } from "../../../../../src/logger/logger"
-import { getLogMessages } from "../../../../../src/util/testing"
+import { LogLevel } from "../../../../../src/logger/logger.js"
+import { getLogMessages } from "../../../../../src/util/testing.js"
 
 describe("GetStatusCommand", () => {
   const command = new GetStatusCommand()

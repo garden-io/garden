@@ -7,21 +7,22 @@
  */
 
 import { expect } from "chai"
-import { ConfigGraph } from "../../../../../src/graph/config-graph"
-import { k8sGetContainerDeployStatus } from "../../../../../src/plugins/kubernetes/container/status"
-import { KubernetesPluginContext, KubernetesProvider } from "../../../../../src/plugins/kubernetes/config"
-import { TestGarden } from "../../../../helpers"
-import { getContainerTestGarden } from "./container/container"
+import type { ConfigGraph } from "../../../../../src/graph/config-graph.js"
+import { k8sGetContainerDeployStatus } from "../../../../../src/plugins/kubernetes/container/status.js"
+import type { KubernetesPluginContext, KubernetesProvider } from "../../../../../src/plugins/kubernetes/config.js"
+import type { TestGarden } from "../../../../helpers.js"
+import { getContainerTestGarden } from "./container/container.js"
 import { join } from "path"
-import { pathExists } from "fs-extra"
+import fsExtra from "fs-extra"
+const { pathExists } = fsExtra
 import { execSync } from "child_process"
-import { PROXY_CONTAINER_USER_NAME } from "../../../../../src/plugins/kubernetes/constants"
-import { RuntimeError } from "../../../../../src/exceptions"
-import { LocalModeProcessRegistry, ProxySshKeystore } from "../../../../../src/plugins/kubernetes/local-mode"
-import pRetry = require("p-retry")
-import { sleep } from "../../../../../src/util/util"
-import { DeployTask } from "../../../../../src/tasks/deploy"
-import { createActionLog } from "../../../../../src/logger/log-entry"
+import { PROXY_CONTAINER_USER_NAME } from "../../../../../src/plugins/kubernetes/constants.js"
+import { RuntimeError } from "../../../../../src/exceptions.js"
+import { LocalModeProcessRegistry, ProxySshKeystore } from "../../../../../src/plugins/kubernetes/local-mode.js"
+import pRetry from "p-retry"
+import { sleep } from "../../../../../src/util/util.js"
+import { DeployTask } from "../../../../../src/tasks/deploy.js"
+import { createActionLog } from "../../../../../src/logger/log-entry.js"
 
 describe("local mode deployments and ssh tunneling behavior", () => {
   let garden: TestGarden

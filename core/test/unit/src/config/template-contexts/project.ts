@@ -7,12 +7,13 @@
  */
 
 import { expect } from "chai"
-import stripAnsi = require("strip-ansi")
-import { ConfigContext } from "../../../../../src/config/template-contexts/base"
-import { DefaultEnvironmentContext, ProjectConfigContext } from "../../../../../src/config/template-contexts/project"
-import { resolveTemplateString } from "../../../../../src/template-string/template-string"
-import { deline } from "../../../../../src/util/string"
-import { freezeTime, makeTestGardenA, TestGarden } from "../../../../helpers"
+import stripAnsi from "strip-ansi"
+import type { ConfigContext } from "../../../../../src/config/template-contexts/base.js"
+import { DefaultEnvironmentContext, ProjectConfigContext } from "../../../../../src/config/template-contexts/project.js"
+import { resolveTemplateString } from "../../../../../src/template-string/template-string.js"
+import { deline } from "../../../../../src/util/string.js"
+import type { TestGarden } from "../../../../helpers.js"
+import { freezeTime, makeTestGardenA } from "../../../../helpers.js"
 
 type TestValue = string | ConfigContext | TestValues | TestValueFunction
 type TestValueFunction = () => TestValue | Promise<TestValue>

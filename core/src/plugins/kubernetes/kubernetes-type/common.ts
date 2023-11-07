@@ -7,30 +7,30 @@
  */
 
 import { basename, dirname, join, resolve } from "path"
-import { pathExists, readFile } from "fs-extra"
-import { flatten, isEmpty, keyBy, set } from "lodash"
-
-import { KubernetesModule } from "./module-config"
-import { KubernetesResource } from "../types"
-import { KubeApi } from "../api"
-import { dedent, gardenAnnotationKey, naturalList, stableStringify } from "../../../util/string"
-import { Log } from "../../../logger/log-entry"
-import { PluginContext } from "../../../plugin-context"
-import { ConfigurationError, GardenError, PluginError } from "../../../exceptions"
-import { KubernetesPluginContext, KubernetesTargetResourceSpec, ServiceResourceSpec } from "../config"
-import { HelmModule } from "../helm/module-config"
-import { KubernetesDeployAction } from "./config"
-import { CommonRunParams } from "../../../plugin/handlers/Run/run"
-import { runAndCopy } from "../run"
-import { getResourceContainer, getResourceKey, getResourcePodSpec, getTargetResource, makePodName } from "../util"
-import { ActionMode, Resolved } from "../../../actions/types"
-import { KubernetesPodRunAction, KubernetesPodTestAction } from "./kubernetes-pod"
-import { V1ConfigMap } from "@kubernetes/client-node"
+import fsExtra from "fs-extra"
+const { pathExists, readFile } = fsExtra
+import { flatten, isEmpty, keyBy, set } from "lodash-es"
+import type { KubernetesModule } from "./module-config.js"
+import type { KubernetesResource } from "../types.js"
+import { KubeApi } from "../api.js"
+import { dedent, gardenAnnotationKey, naturalList, stableStringify } from "../../../util/string.js"
+import type { Log } from "../../../logger/log-entry.js"
+import type { PluginContext } from "../../../plugin-context.js"
+import { ConfigurationError, GardenError, PluginError } from "../../../exceptions.js"
+import type { KubernetesPluginContext, KubernetesTargetResourceSpec, ServiceResourceSpec } from "../config.js"
+import type { HelmModule } from "../helm/module-config.js"
+import type { KubernetesDeployAction } from "./config.js"
+import type { CommonRunParams } from "../../../plugin/handlers/Run/run.js"
+import { runAndCopy } from "../run.js"
+import { getResourceContainer, getResourceKey, getResourcePodSpec, getTargetResource, makePodName } from "../util.js"
+import type { ActionMode, Resolved } from "../../../actions/types.js"
+import type { KubernetesPodRunAction, KubernetesPodTestAction } from "./kubernetes-pod.js"
+import type { V1ConfigMap } from "@kubernetes/client-node"
 import { glob } from "glob"
 import isGlob from "is-glob"
 import pFilter from "p-filter"
-import { kubectl } from "../kubectl"
-import { loadAndValidateYaml } from "../../../config/base"
+import { kubectl } from "../kubectl.js"
+import { loadAndValidateYaml } from "../../../config/base.js"
 
 /**
  * "DeployFile": Manifest has been read from one of the files declared in Garden Deploy `spec.files`
@@ -538,7 +538,6 @@ export async function runOrTestWithPod(
   const { ctx, action, log, namespace } = params
   // Get the container spec to use for running
   const spec = action.getSpec()
-  const version = action.versionString()
 
   let podSpec = spec.podSpec
   let container = spec.podSpec?.containers[0]

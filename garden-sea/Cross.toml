@@ -1,0 +1,8 @@
+
+[target.x86_64-unknown-linux-gnu]
+# Link with glibc 2.17 to make sure we stay compatible with old Linux distros, to retain the same compatibility that we had with pkg.
+image = "ghcr.io/cross-rs/x86_64-unknown-linux-gnu:main-centos"
+
+[target.aarch64-unknown-linux-gnu]
+# Link with glibc 2.17 to make sure we stay compatible with old Linux distros, to retain the same compatibility that we had with pkg.
+image = "ghcr.io/cross-rs/aarch64-unknown-linux-gnu:main-centos"

@@ -7,24 +7,26 @@
  */
 
 import { join } from "path"
-import { GenericProviderConfig, Provider } from "../../config/provider"
-import { dedent } from "../../util/string"
-import { sdk } from "../../plugin/sdk"
-import { registerCleanupFunction } from "../../util/util"
-import { configureNoOpExporter, configureOTLPHttpExporter } from "../../util/open-telemetry/tracing"
-import { OtelExportersConfig, getOtelCollectorConfigFile } from "./config"
+import type { GenericProviderConfig, Provider } from "../../config/provider.js"
+import { dedent } from "../../util/string.js"
+import { sdk } from "../../plugin/sdk.js"
+import { registerCleanupFunction } from "../../util/util.js"
+import { configureNoOpExporter, configureOTLPHttpExporter } from "../../util/open-telemetry/tracing.js"
+import type { OtelExportersConfig } from "./config.js"
+import { getOtelCollectorConfigFile } from "./config.js"
 import YAML from "yaml"
-import { makeTempDir } from "../../util/fs"
-import { writeFile } from "fs-extra"
-import { streamLogs, waitForLogLine, waitForProcessExit } from "../../util/process"
+import { makeTempDir } from "../../util/fs.js"
+import fsExtra from "fs-extra"
+const { writeFile } = fsExtra
+import { streamLogs, waitForLogLine, waitForProcessExit } from "../../util/process.js"
 import getPort from "get-port"
-import { wrapActiveSpan } from "../../util/open-telemetry/spans"
-import { dataDogValidator } from "./config/datadog"
-import { honeycombValidator } from "./config/honeycomb"
-import { loggingValidator } from "./config/logging"
-import { newRelicValidator } from "./config/newrelic"
-import { otlpHttpValidator } from "./config/otlphttp"
-import { toGardenError } from "../../exceptions"
+import { wrapActiveSpan } from "../../util/open-telemetry/spans.js"
+import { dataDogValidator } from "./config/datadog.js"
+import { honeycombValidator } from "./config/honeycomb.js"
+import { loggingValidator } from "./config/logging.js"
+import { newRelicValidator } from "./config/newrelic.js"
+import { otlpHttpValidator } from "./config/otlphttp.js"
+import { toGardenError } from "../../exceptions.js"
 
 const OTEL_CONFIG_NAME = "otel-config.yaml"
 
@@ -116,7 +118,7 @@ const providerConfigSchema = s.object({
 
 export const provider = gardenPlugin.createProvider({ configSchema: providerConfigSchema, outputsSchema: s.object({}) })
 
-provider.addHandler("getEnvironmentStatus", async ({ ctx }) => {
+provider.addHandler("getEnvironmentStatus", async () => {
   return { ready: false, outputs: {} }
 })
 

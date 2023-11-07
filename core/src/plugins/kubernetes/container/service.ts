@@ -6,13 +6,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { V1Service, V1ServicePort } from "@kubernetes/client-node"
-import { ServicePortSpec } from "../../container/moduleConfig"
-import { ContainerDeployAction } from "../../container/moduleConfig"
-import { getDeploymentSelector } from "./deployment"
-import { KubernetesResource } from "../types"
-import { find } from "lodash"
-import { Resolved } from "../../../actions/types"
+import type { V1Service, V1ServicePort } from "@kubernetes/client-node"
+import type { ServicePortSpec } from "../../container/moduleConfig.js"
+import type { ContainerDeployAction } from "../../container/moduleConfig.js"
+import { getDeploymentSelector } from "./deployment.js"
+import type { KubernetesResource } from "../types.js"
+import { find } from "lodash-es"
+import type { Resolved } from "../../../actions/types.js"
 
 function toServicePort(portSpec: ServicePortSpec): V1ServicePort {
   const port: V1ServicePort = {

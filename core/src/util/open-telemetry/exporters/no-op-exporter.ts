@@ -6,8 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ExportResult } from "@opentelemetry/core"
-import { ReadableSpan, SpanExporter } from "@opentelemetry/sdk-trace-base"
+import type { ExportResult } from "@opentelemetry/core"
+import type { ReadableSpan, SpanExporter } from "@opentelemetry/sdk-trace-base"
 
 /**
  * This exporter does nothing.

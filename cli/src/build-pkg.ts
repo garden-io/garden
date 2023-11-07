@@ -9,47 +9,139 @@
 import chalk from "chalk"
 import { getAbi } from "node-abi"
 import { resolve, relative, join } from "path"
-import { STATIC_DIR, GARDEN_CLI_ROOT, GARDEN_CORE_ROOT } from "@garden-io/core/build/src/constants"
-import { remove, mkdirp, copy, writeFile, readFile } from "fs-extra"
-import { exec, getPackageVersion, sleep } from "@garden-io/core/build/src/util/util"
-import { dedent, randomString } from "@garden-io/core/build/src/util/string"
-import { pick } from "lodash"
+import { STATIC_DIR, GARDEN_CLI_ROOT, GARDEN_CORE_ROOT } from "@garden-io/core/build/src/constants.js"
+import { readFile, writeFile } from "fs/promises"
+import { remove, mkdirp, copy, pathExists } from "fs-extra/esm"
+import { exec, getPackageVersion } from "@garden-io/core/build/src/util/util.js"
+import { dedent } from "@garden-io/core/build/src/util/string.js"
+import { pick } from "lodash-es"
 import minimist from "minimist"
-import { createHash } from "crypto"
-import { createReadStream } from "fs"
-import { makeTempDir } from "@garden-io/core/build/test/helpers"
+import { createHash } from "node:crypto"
+import { createReadStream, createWriteStream } from "fs"
+import { makeTempDir } from "@garden-io/core/build/test/helpers.js"
+import * as url from "node:url"
+import { Readable } from "node:stream"
+import { finished } from "node:stream/promises"
+import type { Entry } from "unzipper"
+import unzipper from "unzipper"
+
+// Temporary workaround for NodeJS / DOM type conflict
+// See https://github.com/DefinitelyTyped/DefinitelyTyped/issues/60924
+import { fetch } from "undici"
+
+import tar from "tar"
 
 const repoRoot = resolve(GARDEN_CLI_ROOT, "..")
-const tmpDirPath = resolve(repoRoot, "tmp", "pkg")
-const tmpStaticDir = resolve(tmpDirPath, "static")
-const pkgPath = resolve(repoRoot, "cli", "node_modules", ".bin", "pkg")
+const gardenSeaDir = resolve(repoRoot, "garden-sea")
+const distTmpDir = resolve(gardenSeaDir, "tmp")
+const sourceTmpDir = resolve(distTmpDir, "source")
+const rollupTmpDir = resolve(distTmpDir, "rollup")
+const tmpStaticDir = resolve(distTmpDir, "static")
+const nodeTmpDir = resolve(distTmpDir, "node")
+const nativeModuleTmpDir = resolve(distTmpDir, "native")
 const distPath = resolve(repoRoot, "dist")
-
-// Allow larger heap size than default
-const nodeOptions = ["max-old-space-size=4096", "max-semi-space-size=64"]
 
 /* eslint-disable no-console */
 
 interface TargetHandlerParams {
+  spec: TargetSpec
   targetName: string
-  sourcePath: string
-  pkgType: string
   version: string
 }
 
 interface TargetSpec {
-  pkgType: string
-  nodeBinaryPlatform: string
-  handler: (params: TargetHandlerParams) => Promise<void>
+  node: `${number}.${number}.${number}`
+  os: "macos" | "linux" | "alpine" | "win"
+  arch: "x64" | "arm64"
+  nodeBinaryPlatform: "darwin" | "linux" | "win32"
+  url: string
+  checksum: string
 }
 
-const targets: { [name: string]: TargetSpec } = {
-  "macos-amd64": { pkgType: "node18-macos-x64", handler: pkgMacos, nodeBinaryPlatform: "darwin" },
-  "macos-arm64": { pkgType: "node18-macos-arm64", handler: pkgMacos, nodeBinaryPlatform: "darwin" },
-  "linux-amd64": { pkgType: "node18-linux-x64", handler: pkgLinux, nodeBinaryPlatform: "linux" },
-  "linux-arm64": { pkgType: "node18-linux-arm64", handler: pkgLinux, nodeBinaryPlatform: "linux" },
-  "windows-amd64": { pkgType: "node18-win-x64", handler: pkgWindows, nodeBinaryPlatform: "win32" },
-  "alpine-amd64": { pkgType: "node18-alpine-x64", handler: pkgAlpine, nodeBinaryPlatform: "linuxmusl" },
+const rustArchMap: Record<TargetSpec["arch"], string> = {
+  x64: "x86_64",
+  arm64: "aarch64",
+}
+
+const rustOsMap: Record<TargetSpec["os"], string> = {
+  win: "pc-windows-gnu",
+  alpine: "unknown-linux-musl",
+  linux: "unknown-linux-gnu",
+  macos: "apple-darwin",
+}
+
+function getRustTarget(spec: TargetSpec): string {
+  return `${rustArchMap[spec.arch]}-${rustOsMap[spec.os]}`
+}
+
+const targets: { [name: string]: { spec: TargetSpec; handler: (p: TargetHandlerParams) => Promise<void> } } = {
+  "macos-amd64": {
+    spec: {
+      os: "macos",
+      arch: "x64",
+      node: "18.18.2",
+      nodeBinaryPlatform: "darwin",
+      url: "https://nodejs.org/dist/v18.18.2/node-v18.18.2-darwin-x64.tar.gz",
+      checksum: "5bb8da908ed590e256a69bf2862238c8a67bc4600119f2f7721ca18a7c810c0f",
+    },
+    handler: pkgMacos,
+  },
+  "macos-arm64": {
+    spec: {
+      os: "macos",
+      arch: "arm64",
+      node: "18.18.2",
+      nodeBinaryPlatform: "darwin",
+      url: "https://nodejs.org/dist/v18.18.2/node-v18.18.2-darwin-arm64.tar.gz",
+      checksum: "9f982cc91b28778dd8638e4f94563b0c2a1da7aba62beb72bd427721035ab553",
+    },
+    handler: pkgMacos,
+  },
+  "linux-amd64": {
+    spec: {
+      os: "linux",
+      arch: "x64",
+      node: "18.18.2",
+      nodeBinaryPlatform: "linux",
+      url: "https://nodejs.org/dist/v18.18.2/node-v18.18.2-linux-x64.tar.gz",
+      checksum: "a44c3e7f8bf91e852c928e5d8bd67ca316b35e27eec1d8acbe3b9dbe03688dab",
+    },
+    handler: pkgLinux,
+  },
+  "linux-arm64": {
+    spec: {
+      os: "linux",
+      arch: "arm64",
+      node: "18.18.2",
+      nodeBinaryPlatform: "linux",
+      url: "https://nodejs.org/dist/v18.18.2/node-v18.18.2-linux-arm64.tar.gz",
+      checksum: "0c9a6502b66310cb26e12615b57304e91d92ac03d4adcb91c1906351d7928f0d",
+    },
+    handler: pkgLinux,
+  },
+  "alpine-amd64": {
+    spec: {
+      os: "alpine",
+      arch: "x64",
+      node: "18.18.2",
+      nodeBinaryPlatform: "linux",
+      // Alpine builds live in https://unofficial-builds.nodejs.org/download/release/
+      url: "https://unofficial-builds.nodejs.org/download/release/v18.18.2/node-v18.18.2-linux-x64-musl.tar.gz",
+      checksum: "e71212feaa3a54c1736e173f3aa17ba777f1f189659437c589af54742d95a1d0",
+    },
+    handler: pkgAlpine,
+  },
+  "windows-amd64": {
+    spec: {
+      os: "win",
+      arch: "x64",
+      node: "18.18.2",
+      nodeBinaryPlatform: "win32",
+      url: "https://nodejs.org/dist/v18.18.2/node-v18.18.2-win-x64.zip",
+      checksum: "3bb0e51e579a41a22b3bf6cb2f3e79c03801aa17acbe0ca00fc555d1282e7acd",
+    },
+    handler: pkgWindows,
+  },
 }
 
 /**
@@ -75,21 +167,60 @@ export type NPMWorkspaceQueryResult = {
   dependencies: Record<string, string>
 }
 
+type ZipAndHashOptions = {
+  targetDir: string
+  archiveName: string
+  cwd: string
+  fileNames: string[]
+  prefix?: string
+}
+
+async function zipAndHash({ targetDir, archiveName, cwd, prefix, fileNames }: ZipAndHashOptions) {
+  const targetArchive = resolve(targetDir, `${archiveName}.tar.gz`)
+  const archiveStream = tar.c(
+    {
+      gzip: true,
+      prefix,
+      C: cwd,
+      strict: true,
+      portable: true,
+    },
+    fileNames
+  )
+
+  const archiveHash = archiveStream.pipe(createHash("sha256"))
+
+  await finished(archiveStream.pipe(createWriteStream(targetArchive)))
+
+  await writeFile(resolve(targetDir, `${archiveName}.sha256`), archiveHash.digest("hex") + "\n")
+}
+
 async function buildBinaries(args: string[]) {
   const argv = minimist(args)
   const version = argv.version || getPackageVersion()
   const selected = argv._.length > 0 ? pick(targets, argv._) : targets
 
+  if (Object.keys(selected).length === 0) {
+    console.log(chalk.red("No matching targets."))
+    console.log(`Available targets: ${Object.keys(targets).join(", ")}}`)
+    process.exit(1)
+  }
+
   console.log(chalk.cyan("Building targets: ") + Object.keys(selected).join(", "))
 
-  // (re)-create temp dir
-  console.log(chalk.cyan("Creating temp directory at " + tmpDirPath))
-  await remove(tmpDirPath)
-  await mkdirp(tmpDirPath)
+  console.log(chalk.cyan("Creating temp source directory at " + sourceTmpDir))
+  await remove(sourceTmpDir)
+  await mkdirp(sourceTmpDir)
+
+  console.log(chalk.cyan("Creating temp node binary directory at " + nodeTmpDir))
+  await mkdirp(nodeTmpDir)
+
+  console.log(chalk.cyan("Creating static directory at " + tmpStaticDir))
+  await remove(tmpStaticDir)
 
   // Copy static dir, stripping out undesired files for the dist build
   console.log(chalk.cyan("Copying static directory"))
-  await exec("rsync", ["-r", "-L", "--exclude=.garden", "--exclude=.git", STATIC_DIR, tmpDirPath])
+  await exec("rsync", ["-r", "-L", "--exclude=.garden", "--exclude=.git", STATIC_DIR, distTmpDir])
   await exec("git", ["init"], { cwd: tmpStaticDir })
 
   // Copy each package to the temp dir
@@ -101,7 +232,7 @@ async function buildBinaries(args: string[]) {
   await Promise.all(
     workspaces.map(async ({ name, location }: { name: string; location: string }) => {
       const sourcePath = resolve(repoRoot, location)
-      const targetPath = resolve(tmpDirPath, location)
+      const targetPath = resolve(sourceTmpDir, location)
       await remove(targetPath)
       await mkdirp(targetPath)
       await exec("rsync", [
@@ -122,7 +253,7 @@ async function buildBinaries(args: string[]) {
   console.log(chalk.cyan("Modifying package.json files for direct installation"))
   await Promise.all(
     workspaces.map(async ({ name, location, dependencies }) => {
-      const packageRoot = resolve(tmpDirPath, location)
+      const packageRoot = resolve(sourceTmpDir, location)
       const packageJsonPath = resolve(packageRoot, "package.json")
       const packageJson = JSON.parse(await readFile(packageJsonPath, "utf-8"))
 
@@ -134,7 +265,7 @@ async function buildBinaries(args: string[]) {
         if (!depInfo) {
           throw new Error("Could not find workspace info for " + depName)
         }
-        const targetRoot = resolve(tmpDirPath, depInfo.location)
+        const targetRoot = resolve(sourceTmpDir, depInfo.location)
         const relPath = relative(packageRoot, targetRoot)
         packageJson.dependencies[depName] = "file:" + relPath
       }
@@ -152,142 +283,199 @@ async function buildBinaries(args: string[]) {
   )
 
   // Run npm install in the cli package
-  await copy(resolve(repoRoot, "package.json"), resolve(tmpDirPath, "package.json"))
-  await copy(resolve(repoRoot, "package-lock.json"), resolve(tmpDirPath, "package-lock.json"))
+  await copy(resolve(repoRoot, "package.json"), resolve(sourceTmpDir, "package.json"))
+  await copy(resolve(repoRoot, "package-lock.json"), resolve(sourceTmpDir, "package-lock.json"))
   // The `.npmrc` config ensures that we're not hoisting any dependencies
-  await copy(resolve(repoRoot, ".npmrc"), resolve(tmpDirPath, ".npmrc"))
+  await copy(resolve(repoRoot, ".npmrc"), resolve(sourceTmpDir, ".npmrc"))
 
   console.log("Installing all packages in workspaces")
-  await exec("npm", ["install", "--omit=dev"], { cwd: tmpDirPath, stdio: "inherit" })
+  await exec("npm", ["install", "--omit=dev"], { cwd: sourceTmpDir, stdio: "inherit" })
 
-  const cliPath = resolve(tmpDirPath, workspaces.find((p) => p.name === "@garden-io/cli")!.location)
-  // Run pkg and pack up each platform binary
+  // This is not being installed on non mac systems
+  // We need it to always be present though, and it should just not load if on another platform
+  await copy(resolve(GARDEN_CORE_ROOT, "lib", "fsevents"), resolve(sourceTmpDir, "core", "node_modules", "fsevents"))
+
+  console.log(chalk.cyan("Bundling source code"))
+
+  await remove(rollupTmpDir)
+  await exec("npm", ["run", "rollup"], { cwd: repoRoot, stdio: "inherit" })
+
+  await zipAndHash({
+    archiveName: "source",
+    cwd: distTmpDir,
+    targetDir: distTmpDir,
+    fileNames: ["rollup"],
+  })
+
+  console.log(chalk.green(" ✓ Bundled source code"))
+
+  // Dowload selected node binaries
+  await Promise.all(
+    Object.entries(selected).map(async ([targetName, { spec }]) => {
+      const extractionDir = resolve(nodeTmpDir, targetName)
+
+      // We know it's just those two file types, so we can hardcode this
+      // If we switch to other types, this needs adapting.
+      // Why aren't we just using `path.extname`?
+      // Because it doesn't do double endings like `.tar.gz`.
+      // Having generic code for that is still more than twice as much as this comment block and the ternary below.
+      const fileEnding = spec.url.endsWith("tar.gz") ? ".tar.gz" : ".zip"
+
+      const nodeArchiveFilename = resolve(nodeTmpDir, `${targetName}${fileEnding}`)
+
+      let nodeArchiveChecksum: string | undefined
+      if (await pathExists(nodeArchiveFilename)) {
+        const readStream = createReadStream(nodeArchiveFilename)
+        const hash = readStream.pipe(createHash("sha256"))
+        await finished(readStream)
+        nodeArchiveChecksum = hash.digest("hex")
+      }
+
+      if (nodeArchiveChecksum === spec.checksum) {
+        console.log(chalk.green(` ✓ Using cached node ${spec.node} for ${targetName} at ${nodeArchiveFilename}`))
+      } else {
+        console.log(chalk.cyan(`Downloading node ${spec.node} for ${targetName} from ${spec.url}`))
+        const response = await fetch(spec.url)
+
+        if (!response.body) {
+          throw new Error(`No response body for ${spec.url}`)
+        }
+
+        const body = Readable.fromWeb(response.body)
+
+        const hash = body.pipe(createHash("sha256"))
+
+        const writeStream = createWriteStream(nodeArchiveFilename)
+        await finished(body.pipe(writeStream))
+
+        console.log(chalk.green(` ✓ Downloaded node ${spec.node} for ${targetName}`))
+
+        const sha256 = hash.digest("hex")
+
+        if (sha256 !== spec.checksum) {
+          throw new Error(`Checksum mismatch for ${spec.url}! Expected ${spec.checksum} but got ${sha256}`)
+        }
+        console.log(chalk.green(` ✓ Verified checksum for ${targetName}`))
+      }
+
+      console.log(chalk.cyan(`Extracting node ${spec.node} for ${targetName}`))
+      await mkdirp(extractionDir)
+      const nodeFileName = spec.os === "win" ? "node.exe" : "node"
+      if (fileEnding === ".tar.gz") {
+        const extractStream = tar.x({
+          C: extractionDir,
+          // The tarball has first a toplevel directory,
+          // then a /bin subdirectory, then the actual files.
+          // We only want the flat `node` binary within the directory.
+          // The stripping happens after the filter so it works fine
+          strip: 2,
+          filter: (path) => {
+            return path.endsWith(`/bin/${nodeFileName}`)
+          },
+        })
+        await finished(createReadStream(nodeArchiveFilename).pipe(extractStream))
+      } else {
+        const zip = createReadStream(nodeArchiveFilename).pipe(unzipper.Parse({ forceStream: true }))
+        for await (const i of zip) {
+          const entry = i as Entry
+          const fileName = entry.path
+          if (fileName.endsWith(`/${nodeFileName}`)) {
+            await finished(entry.pipe(createWriteStream(resolve(extractionDir, nodeFileName))))
+          } else {
+            entry.autodrain()
+          }
+        }
+      }
+
+      console.log(chalk.green(` ✓ Extracted node ${spec.node} for ${targetName}`))
+
+      console.log(chalk.cyan(`Bundling node ${spec.node} for ${targetName}`))
+
+      await zipAndHash({
+        targetDir: extractionDir,
+        archiveName: "node",
+        cwd: extractionDir,
+        fileNames: [nodeFileName],
+        prefix: "bin",
+      })
+
+      console.log(chalk.green(` ✓ Bundled node ${spec.node} for ${targetName}`))
+    })
+  )
+
   console.log(chalk.cyan("Packaging garden binaries"))
 
   await Promise.all(
-    Object.entries(selected).map(async ([targetName, spec]) => {
-      await spec.handler({ targetName, sourcePath: cliPath, pkgType: spec.pkgType, version })
-      await sleep(5000) // Work around concurrency bug in pkg...
-      console.log(chalk.green(" ✓ " + targetName))
+    Object.entries(selected).map(async ([targetName, target]) => {
+      await pkgCommon({
+        targetName,
+        spec: target.spec,
+      })
     })
   )
+
+  // cross does not support running all compilations in parallel.
+  for (const [targetName, target] of Object.entries(selected)) {
+    const distTargetDir = resolve(distPath, targetName)
+
+    console.log(chalk.cyan("Cleaning " + distTargetDir))
+    await remove(distTargetDir)
+
+    console.log(chalk.cyan("Compiling garden binary for " + targetName))
+    const rustTarget = getRustTarget(target.spec)
+
+    // Run Garden SEA smoke tests. Windows tests run in a wine environment.
+    await exec("cross", ["test", "--target", rustTarget], { cwd: gardenSeaDir, stdio: "inherit" })
+
+    // Build the release binary
+    await exec("cross", ["build", "--target", rustTarget, "--release"], { cwd: gardenSeaDir, stdio: "inherit" })
+
+    const executableFilename = target.spec.os === "win" ? "garden.exe" : "garden"
+    const executablePath = resolve(distTargetDir, executableFilename)
+    await copy(resolve(gardenSeaDir, "target", rustTarget, "release", executableFilename), executablePath)
+    console.log(chalk.green(` ✓ Compiled garden binary for ${targetName}`))
+
+    await target.handler({ targetName, spec: target.spec, version })
+    console.log(chalk.green(" ✓ " + targetName))
+  }
 
   console.log(chalk.green.bold("Done!"))
 }
 
-let fsEventsCopied: Promise<void> | undefined = undefined
-async function pkgMacos({ targetName, sourcePath, pkgType, version }: TargetHandlerParams) {
-  console.log(` - ${targetName} -> fsevents`)
-  // Copy fsevents from lib to node_modules
-  // This might happen concurrently for multiple targets
-  // so we only do it once and then wait for that process to complete
-  if (!fsEventsCopied) {
-    fsEventsCopied = copy(
-      resolve(GARDEN_CORE_ROOT, "lib", "fsevents"),
-      resolve(tmpDirPath, "core", "node_modules", "fsevents")
-    )
+async function pkgMacos({ targetName, version }: TargetHandlerParams) {
+  const executablePath = resolve(distPath, targetName, "garden")
+  try {
+    await exec("codesign", ["-f", "--sign", "-", executablePath])
+  } catch {
+    await exec("ldid", ["-Cadhoc", "-S", executablePath])
   }
-  await fsEventsCopied
-
-  await pkgCommon({
-    sourcePath,
-    targetName,
-    pkgType,
-    binFilename: "garden",
-  })
-
-  console.log(` - ${targetName} -> fsevents.node`)
-  await copy(
-    resolve(GARDEN_CORE_ROOT, "lib", "fsevents", "fsevents.node"),
-    resolve(distPath, targetName, "fsevents.node")
-  )
 
   await tarball(targetName, version)
 }
 
-async function pkgLinux({ targetName, sourcePath, pkgType, version }: TargetHandlerParams) {
-  await pkgCommon({
-    sourcePath,
-    targetName,
-    pkgType,
-    binFilename: "garden",
-  })
+async function pkgLinux({ targetName, version }: TargetHandlerParams) {
   await tarball(targetName, version)
 }
 
-async function pkgWindows({ targetName, sourcePath, pkgType, version }: TargetHandlerParams) {
-  await pkgCommon({
-    sourcePath,
-    targetName,
-    pkgType,
-    binFilename: "garden.exe",
-  })
-
+async function pkgWindows({ targetName, version }: TargetHandlerParams) {
   console.log(` - ${targetName} -> zip`)
   const filename = getZipFilename(version, targetName)
   await exec("zip", ["-q", "-r", filename, targetName], { cwd: distPath })
 }
 
 async function pkgAlpine({ targetName, version }: TargetHandlerParams) {
-  const targetPath = resolve(distPath, targetName)
-  await remove(targetPath)
-  await mkdirp(targetPath)
-
-  console.log(` - ${targetName} -> docker build`)
-  const imageName = "garden-alpine-builder"
-  const containerName = "alpine-builder-" + randomString(8)
-  const supportDir = resolve(repoRoot, "support")
-
-  await copy(resolve(supportDir, ".dockerignore"), resolve(tmpDirPath, ".dockerignore"))
-
-  await exec("docker", [
-    "build",
-    "--platform",
-    "linux/amd64",
-    "-t",
-    imageName,
-    "-f",
-    resolve(repoRoot, "support", "alpine-builder.Dockerfile"),
-    tmpDirPath,
-  ])
-
-  try {
-    console.log(` - ${targetName} -> docker create`)
-    await exec("docker", ["create", "-it", "--name", containerName, imageName, "sh"])
-
-    console.log(` - ${targetName} -> docker copy`)
-    await exec("docker", ["cp", `${containerName}:/garden/.`, targetPath])
-  } finally {
-    await exec("docker", ["rm", "-f", containerName])
-  }
-
   await tarball(targetName, version)
 }
 
-async function pkgCommon({
-  sourcePath,
-  targetName,
-  pkgType,
-  binFilename,
-}: {
-  sourcePath: string
-  targetName: string
-  pkgType: string
-  binFilename: string
-}) {
-  const targetPath = resolve(distPath, targetName)
+async function pkgCommon({ targetName, spec }: { targetName: string; spec: TargetSpec }) {
+  const targetPath = resolve(nativeModuleTmpDir, targetName)
   await remove(targetPath)
   await mkdirp(targetPath)
 
-  const pkgFetchTmpDir = resolve(repoRoot, "tmp", "pkg-fetch", targetName)
-  await mkdirp(pkgFetchTmpDir)
-
   console.log(` - ${targetName} -> node-pty`)
   const abi = getAbi(process.version, "node")
-  // TODO: make arch configurable
-  const { nodeBinaryPlatform } = targets[targetName]
 
-  if (nodeBinaryPlatform === "win32") {
+  if (spec.nodeBinaryPlatform === "win32") {
     const tmpDir = await makeTempDir()
     // Seriously, this is so much easier than anything more native...
     await exec(
@@ -305,49 +493,36 @@ async function pkgCommon({
 
     await tmpDir.cleanup()
   } else {
-    const filename = nodeBinaryPlatform === "linuxmusl" ? `node.abi${abi}.musl.node` : `node.abi${abi}.node`
+    const filename = spec.os === "alpine" ? `node.abi${abi}.musl.node` : `node.abi${abi}.node`
     const abiPath = resolve(
       GARDEN_CORE_ROOT,
       "node_modules",
       "node-pty-prebuilt-multiarch",
       "prebuilds",
-      `${nodeBinaryPlatform}-x64`,
+      `${spec.nodeBinaryPlatform}-${spec.arch}`,
       filename
     )
     await copy(abiPath, resolve(targetPath, "pty.node"))
   }
 
-  console.log(` - ${targetName} -> pkg`)
-  await exec(
-    pkgPath,
-    [
-      "--target",
-      pkgType,
-      sourcePath,
-      "--compress",
-      "Brotli",
-      // We do not need to compile to bytecode and obfuscate the source
-      "--public",
-      "--public-packages",
-      "*",
-      // We include all native binaries required manually
-      "--no-native-build",
-      "--options",
-      nodeOptions.join(","),
-      "--output",
-      resolve(targetPath, binFilename),
-    ],
-    { env: { PKG_CACHE_PATH: pkgFetchTmpDir }, stdio: "inherit" }
-  )
+  if (spec.os === "macos") {
+    await copy(resolve(GARDEN_CORE_ROOT, "lib", "fsevents", "fsevents.node"), resolve(targetPath, "fsevents.node"))
+  }
 
-  console.log(` - ${targetName} -> static`)
-  await copyStatic(targetName)
-}
+  await zipAndHash({
+    targetDir: distTmpDir,
+    archiveName: `${targetName}-native`,
+    cwd: targetPath,
+    fileNames: ["."],
+    prefix: "native",
+  })
 
-async function copyStatic(targetName: string) {
-  const targetPath = resolve(distPath, targetName)
-  console.log(` - ${targetName} -> static dir`)
-  await copy(tmpStaticDir, resolve(targetPath, "static"))
+  await zipAndHash({
+    targetDir: distTmpDir,
+    archiveName: "static",
+    cwd: distTmpDir,
+    fileNames: ["static"],
+  })
 }
 
 async function tarball(targetName: string, version: string): Promise<void> {
@@ -384,7 +559,8 @@ async function tarball(targetName: string, version: string): Promise<void> {
   })
 }
 
-if (require.main === module) {
+const modulePath = url.fileURLToPath(import.meta.url)
+if (process.argv[1] === modulePath) {
   buildBinaries(process.argv.slice(2)).catch((err) => {
     console.error(chalk.red(err.message))
     process.exit(1)

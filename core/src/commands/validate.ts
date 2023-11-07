@@ -7,10 +7,11 @@
  */
 
 import chalk from "chalk"
-import { Command, CommandParams, CommandResult } from "./base"
-import { printEmoji, printHeader } from "../logger/util"
-import { resolveWorkflowConfig } from "../config/workflow"
-import { dedent } from "../util/string"
+import type { CommandParams, CommandResult } from "./base.js"
+import { Command } from "./base.js"
+import { printEmoji, printHeader } from "../logger/util.js"
+import { resolveWorkflowConfig } from "../config/workflow.js"
+import { dedent } from "../util/string.js"
 
 export class ValidateCommand extends Command {
   name = "validate"

@@ -6,32 +6,33 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { fromPairs, uniqBy } from "lodash"
-import { validateSchema } from "../config/validation"
-import { defaultProvider } from "../config/provider"
-import { ParameterError, PluginError, InternalError } from "../exceptions"
-import { GardenModule } from "../types/module"
-import {
+import { fromPairs, uniqBy } from "lodash-es"
+import { validateSchema } from "../config/validation.js"
+import { defaultProvider } from "../config/provider.js"
+import { ParameterError, PluginError, InternalError } from "../exceptions.js"
+import type { GardenModule } from "../types/module.js"
+import type {
   ModuleActionOutputs,
   ModuleActionParams,
   ModuleActionHandlers,
   GardenPluginSpec,
   WrappedModuleActionHandler,
   ModuleTypeDefinition,
-  getModuleHandlerNames,
-  getModuleHandlerDescriptions,
   ResolvedActionHandlerDescriptions,
   ModuleActionMap,
-} from "../plugin/plugin"
-import { Omit, getNames } from "../util/util"
-import { getPluginBases, getPluginDependencies } from "../plugins"
-import { ConfigureModuleParams, ConfigureModuleResult } from "../plugin/handlers/Module/configure"
-import { PluginEventBroker } from "../plugin-context"
-import { BuildDependencyConfig } from "../config/module"
-import { Profile } from "../util/profiling"
-import { GetModuleOutputsParams, GetModuleOutputsResult } from "../plugin/handlers/Module/get-outputs"
-import { BaseRouter, BaseRouterParams } from "./base"
-import { ConvertModuleParams, ConvertModuleResult } from "../plugin/handlers/Module/convert"
+} from "../plugin/plugin.js"
+import { getModuleHandlerNames, getModuleHandlerDescriptions } from "../plugin/plugin.js"
+import type { Omit } from "../util/util.js"
+import { getNames } from "../util/util.js"
+import { getPluginBases, getPluginDependencies } from "../plugins.js"
+import type { ConfigureModuleParams, ConfigureModuleResult } from "../plugin/handlers/Module/configure.js"
+import type { PluginEventBroker } from "../plugin-context.js"
+import type { BuildDependencyConfig } from "../config/module.js"
+import { Profile } from "../util/profiling.js"
+import type { GetModuleOutputsParams, GetModuleOutputsResult } from "../plugin/handlers/Module/get-outputs.js"
+import type { BaseRouterParams } from "./base.js"
+import { BaseRouter } from "./base.js"
+import type { ConvertModuleParams, ConvertModuleResult } from "../plugin/handlers/Module/convert.js"
 import dedent from "dedent"
 
 /**

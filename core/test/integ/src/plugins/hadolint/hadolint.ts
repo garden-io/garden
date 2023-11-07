@@ -7,20 +7,21 @@
  */
 
 import tmp from "tmp-promise"
-import { ProjectConfig } from "../../../../../src/config/project"
-import execa = require("execa")
-import { DEFAULT_BUILD_TIMEOUT_SEC, GardenApiVersion } from "../../../../../src/constants"
-import { createProjectConfig, getDataDir, TestGarden } from "../../../../helpers"
+import type { ProjectConfig } from "../../../../../src/config/project.js"
+import execa from "execa"
+import { DEFAULT_BUILD_TIMEOUT_SEC, GardenApiVersion } from "../../../../../src/constants.js"
+import { createProjectConfig, getDataDir, TestGarden } from "../../../../helpers.js"
 import { expect } from "chai"
 import stripAnsi from "strip-ansi"
-import { dedent } from "../../../../../src/util/string"
-import { TestTask } from "../../../../../src/tasks/test"
-import { writeFile, remove, pathExists } from "fs-extra"
+import { dedent } from "../../../../../src/util/string.js"
+import { TestTask } from "../../../../../src/tasks/test.js"
+import fsExtra from "fs-extra"
+const { writeFile, remove, pathExists } = fsExtra
 import { join } from "path"
-import { createGardenPlugin } from "../../../../../src/plugin/plugin"
-import { convertModules } from "../../../../../src/resolve-module"
-import { actionFromConfig } from "../../../../../src/graph/actions"
-import { TestAction } from "../../../../../src/actions/test"
+import { createGardenPlugin } from "../../../../../src/plugin/plugin.js"
+import { convertModules } from "../../../../../src/resolve-module.js"
+import { actionFromConfig } from "../../../../../src/graph/actions.js"
+import type { TestAction } from "../../../../../src/actions/test.js"
 
 describe("hadolint provider", () => {
   let tmpDir: tmp.DirectoryResult

@@ -6,10 +6,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { expectError, getDataDir, makeTestGarden, TestGarden } from "../../../../../helpers"
+import type { TestGarden } from "../../../../../helpers.js"
+import { expectError, getDataDir, makeTestGarden } from "../../../../../helpers.js"
 import { resolve } from "path"
 import { expect } from "chai"
-import { first, uniq } from "lodash"
+import { first, uniq } from "lodash-es"
 import {
   getBaseModule,
   getChartPath,
@@ -18,19 +19,20 @@ import {
   getValueArgs,
   prepareTemplates,
   renderTemplates,
-} from "../../../../../../src/plugins/kubernetes/helm/common"
-import { Log } from "../../../../../../src/logger/log-entry"
-import { BuildTask } from "../../../../../../src/tasks/build"
-import { dedent, deline } from "../../../../../../src/util/string"
-import { ConfigGraph } from "../../../../../../src/graph/config-graph"
-import { KubernetesPluginContext } from "../../../../../../src/plugins/kubernetes/config"
+} from "../../../../../../src/plugins/kubernetes/helm/common.js"
+import type { Log } from "../../../../../../src/logger/log-entry.js"
+import { BuildTask } from "../../../../../../src/tasks/build.js"
+import { dedent, deline } from "../../../../../../src/util/string.js"
+import type { ConfigGraph } from "../../../../../../src/graph/config-graph.js"
+import type { KubernetesPluginContext } from "../../../../../../src/plugins/kubernetes/config.js"
 import { loadAll } from "js-yaml"
-import { Garden } from "../../../../../../src"
-import { KubeApi } from "../../../../../../src/plugins/kubernetes/api"
-import { getIngressApiVersion } from "../../../../../../src/plugins/kubernetes/container/ingress"
-import { HelmDeployAction } from "../../../../../../src/plugins/kubernetes/helm/config"
+import type { Garden } from "../../../../../../src/index.js"
+import { KubeApi } from "../../../../../../src/plugins/kubernetes/api.js"
+import { getIngressApiVersion } from "../../../../../../src/plugins/kubernetes/container/ingress.js"
+import type { HelmDeployAction } from "../../../../../../src/plugins/kubernetes/helm/config.js"
 import { loadAllYaml, loadYaml } from "@kubernetes/client-node"
-import { readdir, readFile } from "fs-extra"
+import fsExtra from "fs-extra"
+const { readdir, readFile } = fsExtra
 
 let helmTestGarden: TestGarden
 

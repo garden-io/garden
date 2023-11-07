@@ -6,15 +6,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ContainerTestAction } from "../../container/moduleConfig"
-import { storeTestResult } from "../test-results"
-import { runAndCopy } from "../run"
-import { makePodName } from "../util"
-import { getNamespaceStatus } from "../namespace"
-import { KubernetesPluginContext } from "../config"
-import { TestActionHandler } from "../../../plugin/action-types"
-import { getDeployedImageId } from "./util"
-import { runResultToActionState } from "../../../actions/base"
+import type { ContainerTestAction } from "../../container/moduleConfig.js"
+import { storeTestResult } from "../test-results.js"
+import { runAndCopy } from "../run.js"
+import { makePodName } from "../util.js"
+import { getNamespaceStatus } from "../namespace.js"
+import type { KubernetesPluginContext } from "../config.js"
+import type { TestActionHandler } from "../../../plugin/action-types.js"
+import { getDeployedImageId } from "./util.js"
+import { runResultToActionState } from "../../../actions/base.js"
 
 export const k8sContainerTest: TestActionHandler<"run", ContainerTestAction> = async (params) => {
   const { ctx, action, log } = params
@@ -23,7 +23,7 @@ export const k8sContainerTest: TestActionHandler<"run", ContainerTestAction> = a
   const timeout = action.getConfig("timeout")
   const k8sCtx = ctx as KubernetesPluginContext
 
-  const image = getDeployedImageId(action, k8sCtx.provider)
+  const image = getDeployedImageId(action)
   const namespaceStatus = await getNamespaceStatus({ ctx: k8sCtx, log, provider: k8sCtx.provider })
 
   const res = await runAndCopy({

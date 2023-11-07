@@ -6,11 +6,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ChildProcess, execFile, spawn } from "child_process"
-import { Log } from "../logger/log-entry"
-import { sleep } from "./util"
-import { ConfigurationError, RuntimeError } from "../exceptions"
-import { PluginEventBroker } from "../plugin-context"
+import type { ChildProcess } from "node:child_process"
+import { execFile, spawn } from "node:child_process"
+import type { Log } from "../logger/log-entry.js"
+import { sleep } from "./util.js"
+import { ConfigurationError, RuntimeError } from "../exceptions.js"
+import type { PluginEventBroker } from "../plugin-context.js"
 
 export interface OsCommand {
   readonly command: string

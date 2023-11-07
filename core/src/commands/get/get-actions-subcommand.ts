@@ -7,14 +7,15 @@
  */
 
 import dedent from "dedent"
-import { capitalize } from "lodash"
-import { BooleanParameter, ChoicesParameter, StringsParameter } from "../../cli/params"
-import { joi, joiArray } from "../../config/common"
-import { printHeader } from "../../logger/util"
-import { ActionKind } from "../../plugin/action-types"
-import { deline } from "../../util/string"
-import { CommandParams, CommandResult } from "../base"
-import { GetActionsCommand, GetActionsCommandResult, getActionsCmdOutputSchema } from "./get-actions"
+import { capitalize } from "lodash-es"
+import { BooleanParameter, ChoicesParameter, StringsParameter } from "../../cli/params.js"
+import { joi, joiArray } from "../../config/common.js"
+import { printHeader } from "../../logger/util.js"
+import type { ActionKind } from "../../plugin/action-types.js"
+import { deline } from "../../util/string.js"
+import type { CommandParams, CommandResult } from "../base.js"
+import type { GetActionsCommandResult } from "./get-actions.js"
+import { GetActionsCommand, getActionsCmdOutputSchema } from "./get-actions.js"
 
 type Args = {
   names: StringsParameter

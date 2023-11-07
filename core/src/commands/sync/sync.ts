@@ -6,11 +6,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { CommandGroup } from "../base"
-import { SyncRestartCommand } from "./sync-restart"
-import { SyncStartCommand } from "./sync-start"
-import { SyncStatusCommand } from "./sync-status"
-import { SyncStopCommand } from "./sync-stop"
+import { CommandGroup } from "../base.js"
+import { SyncRestartCommand } from "./sync-restart.js"
+import { SyncStartCommand } from "./sync-start.js"
+import { SyncStatusCommand } from "./sync-status.js"
+import { SyncStopCommand } from "./sync-stop.js"
 
 export class SyncCommand extends CommandGroup {
   name = "sync"

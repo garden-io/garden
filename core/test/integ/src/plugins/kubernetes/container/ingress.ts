@@ -7,26 +7,27 @@
  */
 
 import { expect } from "chai"
-import td from "testdouble"
+import * as td from "testdouble"
 
-import { KubeApi, KubernetesError } from "../../../../../../src/plugins/kubernetes/api"
-import { KubernetesProvider, KubernetesConfig, defaultResources } from "../../../../../../src/plugins/kubernetes/config"
-import { expectError } from "../../../../../helpers"
-import { Garden } from "../../../../../../src/garden"
+import { KubeApi, KubernetesError } from "../../../../../../src/plugins/kubernetes/api.js"
+import type { KubernetesProvider, KubernetesConfig } from "../../../../../../src/plugins/kubernetes/config.js"
+import { defaultResources } from "../../../../../../src/plugins/kubernetes/config.js"
+import { expectError } from "../../../../../helpers.js"
+import type { Garden } from "../../../../../../src/garden.js"
 import {
   createIngressResources,
   supportedIngressApiVersions,
-} from "../../../../../../src/plugins/kubernetes/container/ingress"
-import { ContainerDeployAction } from "../../../../../../src/plugins/container/moduleConfig"
-import { ServicePortProtocol, ContainerIngressSpec } from "../../../../../../src/plugins/container/moduleConfig"
-import { defaultSystemNamespace } from "../../../../../../src/plugins/kubernetes/system"
-import { getContainerTestGarden } from "./container"
-import { PartialBy } from "../../../../../../src/util/util"
-import { Resolved } from "../../../../../../src/actions/types"
-import { actionFromConfig } from "../../../../../../src/graph/actions"
-import { DeployAction } from "../../../../../../src/actions/deploy"
-import { DEFAULT_DEPLOY_TIMEOUT_SEC } from "../../../../../../src/constants"
-import { uuidv4 } from "../../../../../../src/util/random"
+} from "../../../../../../src/plugins/kubernetes/container/ingress.js"
+import type { ContainerDeployAction } from "../../../../../../src/plugins/container/moduleConfig.js"
+import type { ServicePortProtocol, ContainerIngressSpec } from "../../../../../../src/plugins/container/moduleConfig.js"
+import { defaultSystemNamespace } from "../../../../../../src/plugins/kubernetes/system.js"
+import { getContainerTestGarden } from "./container.js"
+import type { PartialBy } from "../../../../../../src/util/util.js"
+import type { Resolved } from "../../../../../../src/actions/types.js"
+import { actionFromConfig } from "../../../../../../src/graph/actions.js"
+import type { DeployAction } from "../../../../../../src/actions/deploy.js"
+import { DEFAULT_DEPLOY_TIMEOUT_SEC } from "../../../../../../src/constants.js"
+import { uuidv4 } from "../../../../../../src/util/random.js"
 
 const namespace = "my-namespace"
 const ports = [
@@ -401,9 +402,15 @@ describe("createIngressResources", () => {
     )
 
     const core = td.replace(api, "core")
-    td.when(core.readNamespacedSecret("somesecret", "somenamespace")).thenResolve(myDomainCertSecret)
-    td.when(core.readNamespacedSecret("othersecret", "somenamespace")).thenResolve(otherDomainCertSecret)
-    td.when(core.readNamespacedSecret("wildcardsecret", "somenamespace")).thenResolve(wildcardDomainCertSecret)
+    td.when(core.readNamespacedSecret({ name: "somesecret", namespace: "somenamespace" })).thenResolve(
+      myDomainCertSecret
+    )
+    td.when(core.readNamespacedSecret({ name: "othersecret", namespace: "somenamespace" })).thenResolve(
+      otherDomainCertSecret
+    )
+    td.when(core.readNamespacedSecret({ name: "wildcardsecret", namespace: "somenamespace" })).thenResolve(
+      wildcardDomainCertSecret
+    )
 
     td.replace(api, "upsert")
 
@@ -575,7 +582,7 @@ describe("createIngressResources", () => {
     }
 
     const err = new KubernetesError({ message: "nope", responseStatusCode: 404 })
-    td.when(api.core.readNamespacedSecret("foo", "default")).thenReject(err)
+    td.when(api.core.readNamespacedSecret({ name: "foo", namespace: "default" })).thenReject(err)
 
     await expectError(
       async () => await createIngressResources(api, provider, namespace, action, garden.log),
@@ -614,8 +621,7 @@ describe("createIngressResources", () => {
 
     const api = await getKubeApi(basicProvider)
 
-    const err = new KubernetesError({ message: "nope", responseStatusCode: 404 })
-    td.when(api.core.readNamespacedSecret("foo", "default")).thenResolve({ data: {} })
+    td.when(api.core.readNamespacedSecret({ name: "foo", namespace: "default" })).thenResolve({ data: {} })
 
     await expectError(
       async () => await createIngressResources(api, provider, namespace, action, garden.log),
@@ -654,8 +660,7 @@ describe("createIngressResources", () => {
 
     const api = await getKubeApi(basicProvider)
 
-    const err = new KubernetesError({ message: "nope", responseStatusCode: 404 })
-    td.when(api.core.readNamespacedSecret("foo", "default")).thenResolve({
+    td.when(api.core.readNamespacedSecret({ name: "foo", namespace: "default" })).thenResolve({
       data: {
         "tls.crt": "blablablablablalbalblabl",
       },
@@ -718,7 +723,7 @@ describe("createIngressResources", () => {
       // tools,
     }
 
-    td.when(api.core.readNamespacedSecret("foo", "default")).thenResolve(myDomainCertSecret)
+    td.when(api.core.readNamespacedSecret({ name: "foo", namespace: "default" })).thenResolve(myDomainCertSecret)
     const ingresses = await createIngressResources(api, provider, namespace, action, garden.log)
 
     td.verify(api.upsert({ kind: "Secret", namespace, obj: myDomainCertSecret, log: garden.log }))

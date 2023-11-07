@@ -8,15 +8,15 @@
 
 import { readFileSync } from "fs"
 import { resolve } from "path"
-import handlebars = require("handlebars")
-import { joi } from "../config/common"
-import { renderConfigReference, renderTemplateStringReference, TEMPLATES_DIR } from "./config"
-import { ActionKind, ActionTypeDefinition } from "../plugin/action-types"
-import { buildActionConfigSchema } from "../actions/build"
-import { deployActionConfigSchema } from "../actions/deploy"
-import { runActionConfigSchema } from "../actions/run"
-import { testActionConfigSchema } from "../actions/test"
-import { ActionReferenceContext } from "../config/template-contexts/actions"
+import handlebars from "handlebars"
+import { joi } from "../config/common.js"
+import { renderConfigReference, renderTemplateStringReference, TEMPLATES_DIR } from "./config.js"
+import type { ActionKind, ActionTypeDefinition } from "../plugin/action-types.js"
+import { buildActionConfigSchema } from "../actions/build.js"
+import { deployActionConfigSchema } from "../actions/deploy.js"
+import { runActionConfigSchema } from "../actions/run.js"
+import { testActionConfigSchema } from "../actions/test.js"
+import { ActionReferenceContext } from "../config/template-contexts/actions.js"
 
 /**
  * Generates the action type reference from the action-type.hbs template.

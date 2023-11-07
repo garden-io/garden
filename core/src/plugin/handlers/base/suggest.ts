@@ -6,13 +6,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { dedent } from "../../../util/string"
-import { joi, joiArray } from "../../../config/common"
-import { Log } from "../../../logger/log-entry"
-import { ActionHandlerParamsBase } from "../../../plugin/plugin"
-import { BaseActionConfig } from "../../../actions/types"
-import { baseActionConfigSchema } from "../../../actions/base"
-import { ActionTypeHandlerSpec } from "./base"
+import { dedent } from "../../../util/string.js"
+import { joi, joiArray } from "../../../config/common.js"
+import type { Log } from "../../../logger/log-entry.js"
+import type { ActionHandlerParamsBase } from "../../../plugin/plugin.js"
+import type { BaseActionConfig } from "../../../actions/types.js"
+import { baseActionConfigSchema } from "../../../actions/base.js"
+import { ActionTypeHandlerSpec } from "./base.js"
 
 export const maxDescriptionLength = 48
 

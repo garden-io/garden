@@ -6,21 +6,24 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Garden } from "../../../../../src/garden"
-import { Provider } from "../../../../../src/config/provider"
-import { KubernetesConfig, KubernetesPluginContext } from "../../../../../src/plugins/kubernetes/config"
-import { KubeApi, KubernetesError } from "../../../../../src/plugins/kubernetes/api"
-import { expectError, getDataDir, makeTestGarden } from "../../../../helpers"
-import { getAppNamespace } from "../../../../../src/plugins/kubernetes/namespace"
-import { randomString, gardenAnnotationKey } from "../../../../../src/util/string"
-import { KubeConfig, V1ConfigMap } from "@kubernetes/client-node"
-import { KubernetesResource, KubernetesPod } from "../../../../../src/plugins/kubernetes/types"
+import type { Garden } from "../../../../../src/garden.js"
+import type { Provider } from "../../../../../src/config/provider.js"
+import type { KubernetesConfig, KubernetesPluginContext } from "../../../../../src/plugins/kubernetes/config.js"
+import { KubeApi, KubernetesError } from "../../../../../src/plugins/kubernetes/api.js"
+import { expectError, getDataDir, makeTestGarden } from "../../../../helpers.js"
+import { getAppNamespace } from "../../../../../src/plugins/kubernetes/namespace.js"
+import { randomString, gardenAnnotationKey } from "../../../../../src/util/string.js"
+import type { V1ConfigMap } from "@kubernetes/client-node"
+import { KubeConfig } from "@kubernetes/client-node"
+import type { KubernetesResource, KubernetesPod } from "../../../../../src/plugins/kubernetes/types.js"
 import { expect } from "chai"
-import { waitForResources } from "../../../../../src/plugins/kubernetes/status/status"
-import { PluginContext } from "../../../../../src/plugin-context"
-import { KUBECTL_DEFAULT_TIMEOUT } from "../../../../../src/plugins/kubernetes/kubectl"
+import { waitForResources } from "../../../../../src/plugins/kubernetes/status/status.js"
+import type { PluginContext } from "../../../../../src/plugin-context.js"
+import { KUBECTL_DEFAULT_TIMEOUT } from "../../../../../src/plugins/kubernetes/kubectl.js"
 import { createServer } from "http"
-import { getRootLogger } from "../../../../../src/logger/logger"
+import { getRootLogger } from "../../../../../src/logger/logger.js"
+import type { IncomingMessage, Server, ServerResponse } from "node:http"
+import type { Body } from "node-fetch"
 
 describe("KubeApi", () => {
   context("helpers", () => {
@@ -81,13 +84,13 @@ describe("KubeApi", () => {
           },
         }
 
-        await api.core.createNamespacedConfigMap(namespace, configMap)
+        await api.core.createNamespacedConfigMap({ namespace, body: configMap })
 
         try {
           configMap.data!.other = "thing"
           await api.replace({ log: garden.log, resource: configMap })
 
-          const updated = await api.core.readNamespacedConfigMap(name, namespace)
+          const updated = await api.core.readNamespacedConfigMap({ name, namespace })
           expect(updated.data?.other).to.equal("thing")
         } finally {
           await api.deleteBySpec({ namespace, manifest: configMap, log: garden.log })
@@ -126,7 +129,7 @@ describe("KubeApi", () => {
           expect(res.exitCode).to.equal(0)
           expect(res.timedOut).to.be.false
         } finally {
-          await api.core.deleteNamespacedPod(podName, namespace)
+          await api.core.deleteNamespacedPod({ name: podName, namespace })
         }
       })
 
@@ -160,7 +163,7 @@ describe("KubeApi", () => {
           expect(res.exitCode).to.equal(2)
           expect(res.timedOut).to.be.false
         } finally {
-          await api.core.deleteNamespacedPod(podName, namespace)
+          await api.core.deleteNamespacedPod({ name: podName, namespace })
         }
       })
 
@@ -195,7 +198,7 @@ describe("KubeApi", () => {
           expect(res.exitCode).to.be.undefined
           expect(res.timedOut).to.be.true
         } finally {
-          await api.core.deleteNamespacedPod(podName, namespace)
+          await api.core.deleteNamespacedPod({ name: podName, namespace })
         }
       })
     })
@@ -216,7 +219,7 @@ describe("KubeApi", () => {
           },
         }
 
-        await api.core.createNamespacedConfigMap(namespace, configMap)
+        await api.core.createNamespacedConfigMap({ namespace, body: configMap })
 
         try {
           const list = await api.listResources({
@@ -266,8 +269,8 @@ describe("KubeApi", () => {
           },
         }
 
-        await api.core.createNamespacedConfigMap(namespace, configMapA)
-        await api.core.createNamespacedConfigMap(namespace, configMapB)
+        await api.core.createNamespacedConfigMap({ namespace, body: configMapA })
+        await api.core.createNamespacedConfigMap({ namespace, body: configMapB })
 
         try {
           const list = await api.listResources({
@@ -293,6 +296,11 @@ describe("KubeApi", () => {
     const port = 3021
     let api: KubeApi
     const log = getRootLogger().createLog()
+    let server: Server<typeof IncomingMessage, typeof ServerResponse>
+    let wasRetried: boolean
+    let reqCount: number
+    let statusCodeHandler: () => number
+
     before(async () => {
       class TestKubeConfig extends KubeConfig {
         override getCurrentCluster() {
@@ -305,35 +313,32 @@ describe("KubeApi", () => {
       }
       const config = new TestKubeConfig()
       api = new KubeApi(log, "test-context", config)
+
+      server = createServer((req, res) => {
+        let bodyRaw = ""
+        reqCount++
+        wasRetried = reqCount > 1
+        req.on("data", (data) => {
+          bodyRaw += data
+        })
+        req.on("end", () => {
+          const body = JSON.parse(bodyRaw || "{}") as Body
+
+          res.statusCode = statusCodeHandler()
+          res.setHeader("Content-Type", "application/json")
+          res.end(JSON.stringify(body))
+        })
+      })
+      server.listen(port, hostname)
     })
 
-    let wasRetried: boolean
-    let reqCount: number
-    let statusCodeHandler: () => number
-    afterEach(() => {
+    beforeEach(() => {
       reqCount = 0
       wasRetried = false
       statusCodeHandler = () => {
         throw "implement in test case"
       }
     })
-    const server = createServer((req, res) => {
-      let bodyRaw = ""
-      reqCount++
-      wasRetried = reqCount > 1
-      req.on("data", (data) => {
-        bodyRaw += data
-      })
-      req.on("end", () => {
-        const body = JSON.parse(bodyRaw || "{}") as Body
-
-        res.statusCode = statusCodeHandler()
-        res.setHeader("Content-Type", "application/json")
-        res.end(JSON.stringify(body))
-      })
-    })
-
-    server.listen(port, hostname)
 
     after(() => {
       server.close()
@@ -344,11 +349,11 @@ describe("KubeApi", () => {
       const res = await api.request({
         log,
         path: "",
-        opts: { body: { bodyContent: "foo" } },
+        opts: { method: "POST", body: { bodyContent: "foo" } },
         retryOpts: { maxRetries: 0, minTimeoutMs: 0 },
       })
-      expect(res.body).to.eql({ bodyContent: "foo" })
-      expect(res.statusCode).to.eql(200)
+      expect(await res.json()).to.eql({ bodyContent: "foo" })
+      expect(res.status).to.eql(200)
     })
 
     it("should fail on a bad status code", async () => {
@@ -374,7 +379,7 @@ describe("KubeApi", () => {
         retryOpts: { maxRetries: 1, minTimeoutMs: 0 },
       })
       expect(wasRetried).to.eql(true)
-      expect(res.statusCode).to.eql(200)
+      expect(res.status).to.eql(200)
     })
 
     it("should not retry on certain statuses", async () => {
@@ -395,7 +400,7 @@ describe("KubeApi", () => {
         await api.request({
           log,
           path: "",
-          opts: { body: { msg: "ECONNRESET" } },
+          opts: { method: "POST", body: { message: "ECONNRESET" } },
           retryOpts: { maxRetries: 2, minTimeoutMs: 0 },
         })
       } catch {}
@@ -408,7 +413,7 @@ describe("KubeApi", () => {
         await api.request({
           log,
           path: "",
-          opts: { body: { msg: "unrelated error" } },
+          opts: { method: "POST", body: { message: "unrelated error" } },
           retryOpts: { maxRetries: 1, minTimeoutMs: 0 },
         })
       } catch {}

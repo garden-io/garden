@@ -6,12 +6,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { actionParamsSchema, PluginDeployActionParamsBase } from "../../../plugin/base"
-import { dedent } from "../../../util/string"
-import { joiArray, joi, createSchema } from "../../../config/common"
-import { DeployAction } from "../../../actions/deploy"
-import { ActionTypeHandlerSpec } from "../base/base"
-import { Executed } from "../../../actions/types"
+import type { PluginDeployActionParamsBase } from "../../../plugin/base.js"
+import { actionParamsSchema } from "../../../plugin/base.js"
+import { dedent } from "../../../util/string.js"
+import { joiArray, joi, createSchema } from "../../../config/common.js"
+import type { DeployAction } from "../../../actions/deploy.js"
+import { ActionTypeHandlerSpec } from "../base/base.js"
+import type { Executed } from "../../../actions/types.js"
 
 interface ExecInDeployParams<T extends DeployAction> extends PluginDeployActionParamsBase<T> {
   command: string[]

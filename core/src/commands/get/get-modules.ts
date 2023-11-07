@@ -6,20 +6,23 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Command, CommandParams } from "../base"
-import { StringsParameter, BooleanParameter } from "../../cli/params"
-import { moduleSchema, GardenModule } from "../../types/module"
-import { keyBy, omit, sortBy } from "lodash"
-import { joiIdentifierMap, StringMap, createSchema } from "../../config/common"
-import { printEmoji, printHeader, renderDivider } from "../../logger/util"
-import { withoutInternalFields } from "../../util/logging"
+import type { CommandParams } from "../base.js"
+import { Command } from "../base.js"
+import { StringsParameter, BooleanParameter } from "../../cli/params.js"
+import type { GardenModule } from "../../types/module.js"
+import { moduleSchema } from "../../types/module.js"
+import { keyBy, omit, sortBy } from "lodash-es"
+import type { StringMap } from "../../config/common.js"
+import { joiIdentifierMap, createSchema } from "../../config/common.js"
+import { printEmoji, printHeader, renderDivider } from "../../logger/util.js"
+import { withoutInternalFields } from "../../util/logging.js"
 import chalk from "chalk"
-import { renderTable, dedent, deline } from "../../util/string"
+import { renderTable, dedent, deline } from "../../util/string.js"
 import { relative, sep } from "path"
-import { Garden } from "../.."
-import { Log } from "../../logger/log-entry"
-import { highlightYaml, safeDumpYaml } from "../../util/serialization"
-import { deepMap } from "../../util/objects"
+import type { Garden } from "../../index.js"
+import type { Log } from "../../logger/log-entry.js"
+import { highlightYaml, safeDumpYaml } from "../../util/serialization.js"
+import { deepMap } from "../../util/objects.js"
 
 const getModulesArgs = {
   modules: new StringsParameter({

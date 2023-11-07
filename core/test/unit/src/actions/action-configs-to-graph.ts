@@ -8,17 +8,18 @@
 
 import { expect } from "chai"
 import { join } from "path"
-import { actionConfigsToGraph } from "../../../../src/graph/actions"
-import { ModuleGraph } from "../../../../src/graph/modules"
-import { Log } from "../../../../src/logger/log-entry"
-import { dumpYaml } from "../../../../src/util/serialization"
-import { createProjectConfig, expectError, makeTempGarden, TempDirectory, TestGarden } from "../../../helpers"
+import { actionConfigsToGraph } from "../../../../src/graph/actions.js"
+import { ModuleGraph } from "../../../../src/graph/modules.js"
+import type { Log } from "../../../../src/logger/log-entry.js"
+import { dumpYaml } from "../../../../src/util/serialization.js"
+import type { TempDirectory, TestGarden } from "../../../helpers.js"
+import { createProjectConfig, expectError, makeTempGarden } from "../../../helpers.js"
 import {
   DEFAULT_BUILD_TIMEOUT_SEC,
   DEFAULT_DEPLOY_TIMEOUT_SEC,
   DEFAULT_RUN_TIMEOUT_SEC,
   DEFAULT_TEST_TIMEOUT_SEC,
-} from "../../../../src/constants"
+} from "../../../../src/constants.js"
 
 describe("actionConfigsToGraph", () => {
   let tmpDir: TempDirectory

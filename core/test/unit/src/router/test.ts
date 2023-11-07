@@ -7,23 +7,22 @@
  */
 
 import { expect } from "chai"
-import { emptyDir, pathExists, readFile } from "fs-extra"
+import fsExtra from "fs-extra"
+const { emptyDir, pathExists, readFile } = fsExtra
 import { join } from "path"
-import { TestActionConfig, TestAction } from "../../../../src/actions/test"
-import { actionFromConfig } from "../../../../src/graph/actions"
-import { ConfigGraph } from "../../../../src/graph/config-graph"
-import { ActionLog } from "../../../../src/logger/log-entry"
-import { ActionRouter } from "../../../../src/router/router"
-import { GardenModule } from "../../../../src/types/module"
-import { TestGarden } from "../../../helpers"
-import { getRouterTestData } from "./_helpers"
+import type { TestActionConfig, TestAction } from "../../../../src/actions/test.js"
+import { actionFromConfig } from "../../../../src/graph/actions.js"
+import type { ConfigGraph } from "../../../../src/graph/config-graph.js"
+import type { ActionLog } from "../../../../src/logger/log-entry.js"
+import type { ActionRouter } from "../../../../src/router/router.js"
+import type { TestGarden } from "../../../helpers.js"
+import { getRouterTestData } from "./_helpers.js"
 
 describe("test actions", () => {
   let garden: TestGarden
   let graph: ConfigGraph
   let log: ActionLog
   let actionRouter: ActionRouter
-  let module: GardenModule
 
   async function getResolvedAction(testConfig: TestActionConfig<string, any>) {
     const action = (await actionFromConfig({
@@ -47,7 +46,6 @@ describe("test actions", () => {
     graph = data.graph
     log = data.log
     actionRouter = data.actionRouter
-    module = data.module
   })
 
   after(async () => {

@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { createSchema, joi, joiVariables } from "./common"
+import { createSchema, joi, joiVariables } from "./common.js"
 
 export const environmentStatusSchema = createSchema({
   name: "environment-status",

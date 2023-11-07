@@ -6,10 +6,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { V1Ingress } from "@kubernetes/client-node"
+import type { V1Ingress } from "@kubernetes/client-node"
 import { expect } from "chai"
-import { getK8sIngresses } from "../../../../../../src/plugins/kubernetes/status/ingress"
-import { KubernetesResource } from "../../../../../../src/plugins/kubernetes/types"
+import { getK8sIngresses } from "../../../../../../src/plugins/kubernetes/status/ingress.js"
+import type { KubernetesResource } from "../../../../../../src/plugins/kubernetes/types.js"
 
 describe("getK8sIngresses", () => {
   it("ignores non-Ingress resources", () => {

@@ -7,8 +7,8 @@
  */
 
 import { expect } from "chai"
-import { validateSchema } from "../../../../src/config/validation"
-import { portSchema } from "../../../../src/plugins/container/config"
+import { validateSchema } from "../../../../src/config/validation.js"
+import { portSchema } from "../../../../src/plugins/container/config.js"
 
 describe("portSchema", () => {
   it("should default servicePort to containerPorts value", async () => {

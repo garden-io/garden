@@ -6,9 +6,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Command, CommandParams } from "../base"
+import type { CommandParams } from "../base.js"
+import { Command } from "../base.js"
 import dedent from "dedent"
-import { StringParameter } from "../../cli/params"
+import { StringParameter } from "../../cli/params.js"
 
 const hideWarningArgs = {
   key: new StringParameter({

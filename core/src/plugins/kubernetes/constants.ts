@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { DockerImageWithDigest } from "../../util/string"
+import type { DockerImageWithDigest } from "../../util/string.js"
 
 export const rsyncPortName = "garden-rsync"
 export const buildSyncVolumeName = `garden-sync`

@@ -13,12 +13,13 @@ import {
   collectTemplateReferences,
   throwOnMissingSecretKeys,
   getActionTemplateReferences,
-} from "../../../src/template-string/template-string"
-import { ConfigContext } from "../../../src/config/template-contexts/base"
-import { expectError, getDataDir, makeTestGarden, TestGarden } from "../../helpers"
-import { dedent } from "../../../src/util/string"
+} from "../../../src/template-string/template-string.js"
+import { ConfigContext } from "../../../src/config/template-contexts/base.js"
+import type { TestGarden } from "../../helpers.js"
+import { expectError, getDataDir, makeTestGarden } from "../../helpers.js"
+import { dedent } from "../../../src/util/string.js"
 import stripAnsi from "strip-ansi"
-import { TemplateStringError } from "../../../src/exceptions"
+import { TemplateStringError } from "../../../src/exceptions.js"
 
 class TestContext extends ConfigContext {
   constructor(context) {

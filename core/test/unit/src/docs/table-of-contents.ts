@@ -7,9 +7,9 @@
  */
 
 import { expect } from "chai"
-import { generateTableOfContents } from "../../../../src/docs/table-of-contents"
-import { getDataDir } from "../../../helpers"
-import dedent = require("dedent")
+import { generateTableOfContents } from "../../../../src/docs/table-of-contents.js"
+import { getDataDir } from "../../../helpers.js"
+import dedent from "dedent"
 
 describe("table of contents", () => {
   it("should return a correctly ordered table of contents", async () => {

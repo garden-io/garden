@@ -6,11 +6,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ensureFile, readFile } from "fs-extra"
-import { z, ZodType } from "zod"
+import fsExtra from "fs-extra"
+const { ensureFile, readFile } = fsExtra
+import type { z, ZodType } from "zod"
 import { lock } from "proper-lockfile"
 import writeFileAtomic from "write-file-atomic"
-import { InternalError } from "../exceptions"
+import { InternalError } from "../exceptions.js"
 
 // Just a shorthand to make the code below a little more compact
 type I<T extends ZodType<any>> = z.infer<T>
@@ -43,7 +44,7 @@ export abstract class ConfigStore<T extends z.ZodObject<any>> {
   /**
    * Set the value for the given section or key in a section.
    */
-  async set<S extends keyof I<T>, K extends keyof I<T>[S]>(section: S, value: I<T>[S]): Promise<void>
+  async set<S extends keyof I<T>, _K extends keyof I<T>[S]>(section: S, value: I<T>[S]): Promise<void>
   async set<S extends keyof I<T>, K extends keyof I<T>[S]>(section: S, key: K, value: I<T>[S][K]): Promise<void>
   async set<S extends keyof I<T>, K extends keyof I<T>[S]>(section: S, key: K | I<T>[S], value?: I<T>[S][K]) {
     const release = await this.lock()
@@ -66,7 +67,7 @@ export abstract class ConfigStore<T extends z.ZodObject<any>> {
    * exist, otherwise an error is thrown. If a partial record is provided, the record is updated with the fields
    * given. Returns the full record after update.
    */
-  async update<S extends keyof I<T>, K extends keyof I<T>[S], N extends keyof I<T>[S][K]>(
+  async update<S extends keyof I<T>, K extends keyof I<T>[S], _N extends keyof I<T>[S][K]>(
     section: S,
     key: K,
     value: Partial<I<T>[S][K]>

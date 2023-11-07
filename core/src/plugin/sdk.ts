@@ -6,16 +6,17 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { z } from "zod"
-import type { BaseAction } from "../actions/base"
-import type { BuildAction, BuildActionConfig } from "../actions/build"
-import type { DeployAction, DeployActionConfig } from "../actions/deploy"
-import type { RunAction, RunActionConfig } from "../actions/run"
-import type { TestAction, TestActionConfig } from "../actions/test"
-import { joi, zodObjectToJoi } from "../config/common"
-import { BaseProviderConfig, baseProviderConfigSchemaZod } from "../config/provider"
-import { s } from "../config/zod"
-import { GardenError, ValidationError } from "../exceptions"
+import type { z } from "zod"
+import type { BaseAction } from "../actions/base.js"
+import type { BuildAction, BuildActionConfig } from "../actions/build.js"
+import type { DeployAction, DeployActionConfig } from "../actions/deploy.js"
+import type { RunAction, RunActionConfig } from "../actions/run.js"
+import type { TestAction, TestActionConfig } from "../actions/test.js"
+import { joi, zodObjectToJoi } from "../config/common.js"
+import type { BaseProviderConfig } from "../config/provider.js"
+import { baseProviderConfigSchemaZod } from "../config/provider.js"
+import { s } from "../config/zod.js"
+import { ValidationError } from "../exceptions.js"
 import type {
   ActionKind,
   ActionTypeDefinition,
@@ -27,9 +28,9 @@ import type {
   TestActionDescriptions,
   GetActionTypeParams,
   GetActionTypeResults,
-} from "./action-types"
-import type { PluginCommand } from "./command"
-import type { DashboardPage } from "./handlers/Provider/getDashboardPage"
+} from "./action-types.js"
+import type { PluginCommand } from "./command.js"
+import type { DashboardPage } from "./handlers/Provider/getDashboardPage.js"
 import type {
   ActionHandler,
   GardenPluginSpec,
@@ -39,10 +40,10 @@ import type {
   ProviderActionOutputs,
   ProviderActionParams,
   ProviderHandlers,
-} from "./plugin"
-import type { PluginToolSpec } from "./tools"
-import { dedent } from "../util/string"
-import type { BuildStatus as _BuildStatus } from "./handlers/Build/get-status"
+} from "./plugin.js"
+import type { PluginToolSpec } from "./tools.js"
+import { dedent } from "../util/string.js"
+import type { BuildStatus as _BuildStatus } from "./handlers/Build/get-status.js"
 import chalk from "chalk"
 
 type ObjectBaseZod = z.ZodObject<{}>
@@ -51,10 +52,6 @@ type GardenSdkPluginSpec = Pick<
   PartialGardenPluginSpec,
   "name" | "docs" | "dependencies" | "createModuleTypes" | "extendModuleTypes"
 >
-
-class SdkError extends GardenError {
-  type = "sdk"
-}
 
 export type BuildStatus = _BuildStatus
 

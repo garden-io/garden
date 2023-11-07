@@ -6,32 +6,26 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import {
-  createSchema,
-  DeepPrimitiveMap,
-  joi,
-  joiIdentifier,
-  joiPrimitive,
-  joiSparseArray,
-} from "../../../config/common"
+import type { DeepPrimitiveMap } from "../../../config/common.js"
+import { createSchema, joi, joiIdentifier, joiPrimitive, joiSparseArray } from "../../../config/common.js"
+import type { KubernetesCommonRunSpec, KubernetesTargetResourceSpec, PortForwardSpec } from "../config.js"
 import {
   kubernetesCommonRunSchemaKeys,
-  KubernetesCommonRunSpec,
-  KubernetesTargetResourceSpec,
   namespaceNameSchema,
-  PortForwardSpec,
   portForwardsSchema,
   runPodResourceSchema,
   targetResourceSpecSchema,
-} from "../config"
-import { kubernetesDeploySyncSchema, KubernetesDeploySyncSpec } from "../sync"
-import { DeployAction, DeployActionConfig } from "../../../actions/deploy"
-import { dedent, deline } from "../../../util/string"
-import { kubernetesLocalModeSchema, KubernetesLocalModeSpec } from "../local-mode"
-import { RunActionConfig, RunAction } from "../../../actions/run"
-import { TestAction, TestActionConfig } from "../../../actions/test"
-import { ObjectSchema } from "@hapi/joi"
-import { KubernetesRunOutputs } from "../kubernetes-type/config"
+} from "../config.js"
+import type { KubernetesDeploySyncSpec } from "../sync.js"
+import { kubernetesDeploySyncSchema } from "../sync.js"
+import type { DeployAction, DeployActionConfig } from "../../../actions/deploy.js"
+import { dedent, deline } from "../../../util/string.js"
+import type { KubernetesLocalModeSpec } from "../local-mode.js"
+import { kubernetesLocalModeSchema } from "../local-mode.js"
+import type { RunActionConfig, RunAction } from "../../../actions/run.js"
+import type { TestAction, TestActionConfig } from "../../../actions/test.js"
+import type { ObjectSchema } from "@hapi/joi"
+import type { KubernetesRunOutputs } from "../kubernetes-type/config.js"
 
 // DEPLOY //
 

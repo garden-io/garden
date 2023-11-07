@@ -7,7 +7,7 @@
  */
 
 import { expect } from "chai"
-import { tailString, stripQuotes } from "../../../../src/util/string"
+import { tailString, stripQuotes } from "../../../../src/util/string.js"
 
 describe("tailString", () => {
   it("should return string unchanged if it's shorter than maxLength", () => {

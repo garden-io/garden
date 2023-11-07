@@ -6,10 +6,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { OtlpHttpExporterConfigPartial, makeOtlpHttpPartialConfig } from "./otlphttp"
-import { sdk } from "../../../plugin/sdk"
-import { baseValidator } from "./base"
-import { inferType } from "../../../config/zod"
+import type { OtlpHttpExporterConfigPartial } from "./otlphttp.js"
+import { makeOtlpHttpPartialConfig } from "./otlphttp.js"
+import { sdk } from "../../../plugin/sdk.js"
+import { baseValidator } from "./base.js"
+import type { inferType } from "../../../config/zod.js"
 
 const s = sdk.schema
 

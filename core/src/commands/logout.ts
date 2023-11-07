@@ -6,15 +6,16 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Command, CommandParams, CommandResult } from "./base"
-import { printHeader } from "../logger/util"
-import { CloudApi, getGardenCloudDomain } from "../cloud/api"
-import { dedent, deline } from "../util/string"
-import { getCloudDistributionName } from "../util/util"
-import { ConfigurationError } from "../exceptions"
-import { ProjectConfig } from "../config/project"
-import { findProjectConfig } from "../config/base"
-import { BooleanParameter } from "../cli/params"
+import type { CommandParams, CommandResult } from "./base.js"
+import { Command } from "./base.js"
+import { printHeader } from "../logger/util.js"
+import { CloudApi, getGardenCloudDomain } from "../cloud/api.js"
+import { dedent, deline } from "../util/string.js"
+import { getCloudDistributionName } from "../util/util.js"
+import { ConfigurationError } from "../exceptions.js"
+import type { ProjectConfig } from "../config/project.js"
+import { findProjectConfig } from "../config/base.js"
+import { BooleanParameter } from "../cli/params.js"
 
 export const logoutOpts = {
   "disable-project-check": new BooleanParameter({

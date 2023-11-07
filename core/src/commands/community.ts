@@ -6,9 +6,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Command, CommandResult } from "./base"
-import dedent = require("dedent")
-import { exec } from "../util/util"
+import type { CommandResult } from "./base.js"
+import { Command } from "./base.js"
+import dedent from "dedent"
+import { exec } from "../util/util.js"
 
 export class CommunityCommand extends Command {
   name = "community"

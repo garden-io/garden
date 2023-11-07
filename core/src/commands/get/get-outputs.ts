@@ -6,13 +6,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Command, CommandResult, CommandParams } from "../base"
-import { printHeader } from "../../logger/util"
-import { fromPairs } from "lodash"
-import { PrimitiveMap, joiVariables } from "../../config/common"
-import { renderTable, dedent } from "../../util/string"
+import type { CommandResult, CommandParams } from "../base.js"
+import { Command } from "../base.js"
+import { printHeader } from "../../logger/util.js"
+import { fromPairs } from "lodash-es"
+import type { PrimitiveMap } from "../../config/common.js"
+import { joiVariables } from "../../config/common.js"
+import { renderTable, dedent } from "../../util/string.js"
 import chalk from "chalk"
-import { resolveProjectOutputs } from "../../outputs"
+import { resolveProjectOutputs } from "../../outputs.js"
 
 export class GetOutputsCommand extends Command {
   name = "outputs"

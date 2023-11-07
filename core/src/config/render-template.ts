@@ -7,33 +7,37 @@
  */
 
 import { Document } from "yaml"
-import { ModuleConfig } from "./module"
-import { dedent, deline, naturalList } from "../util/string"
+import type { ModuleConfig } from "./module.js"
+import { dedent, deline, naturalList } from "../util/string.js"
+import type { BaseGardenResource, RenderTemplateKind, YamlDocumentWithSource } from "./base.js"
 import {
-  BaseGardenResource,
   baseInternalFieldsSchema,
   configTemplateKind,
   prepareModuleResource,
   prepareResource,
-  RenderTemplateKind,
   renderTemplateKind,
-  YamlDocumentWithSource,
-} from "./base"
-import { maybeTemplateString, resolveTemplateString, resolveTemplateStrings } from "../template-string/template-string"
-import { validateWithPath } from "./validation"
-import { Garden } from "../garden"
-import { ConfigurationError, GardenError } from "../exceptions"
+} from "./base.js"
+import {
+  maybeTemplateString,
+  resolveTemplateString,
+  resolveTemplateStrings,
+} from "../template-string/template-string.js"
+import { validateWithPath } from "./validation.js"
+import type { Garden } from "../garden.js"
+import { ConfigurationError, GardenError } from "../exceptions.js"
 import { resolve, posix } from "path"
-import { ensureDir } from "fs-extra"
-import type { TemplatedModuleConfig } from "../plugins/templated"
-import { omit } from "lodash"
-import { EnvironmentConfigContext } from "./template-contexts/project"
-import { ConfigTemplateConfig, TemplatableConfig, templatableKinds, templateNoTemplateFields } from "./config-template"
-import { createSchema, joi, joiIdentifier, joiUserIdentifier, unusedApiVersionSchema } from "./common"
-import { DeepPrimitiveMap } from "@garden-io/platform-api-types"
-import { RenderTemplateConfigContext } from "./template-contexts/render"
-import { Log } from "../logger/log-entry"
-import { GardenApiVersion } from "../constants"
+import fsExtra from "fs-extra"
+const { ensureDir } = fsExtra
+import type { TemplatedModuleConfig } from "../plugins/templated.js"
+import { omit } from "lodash-es"
+import { EnvironmentConfigContext } from "./template-contexts/project.js"
+import type { ConfigTemplateConfig, TemplatableConfig } from "./config-template.js"
+import { templatableKinds, templateNoTemplateFields } from "./config-template.js"
+import { createSchema, joi, joiIdentifier, joiUserIdentifier, unusedApiVersionSchema } from "./common.js"
+import type { DeepPrimitiveMap } from "@garden-io/platform-api-types"
+import { RenderTemplateConfigContext } from "./template-contexts/render.js"
+import type { Log } from "../logger/log-entry.js"
+import { GardenApiVersion } from "../constants.js"
 
 export const renderTemplateConfigSchema = createSchema({
   name: renderTemplateKind,

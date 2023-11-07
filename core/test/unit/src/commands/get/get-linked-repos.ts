@@ -8,19 +8,19 @@
 
 import { expect } from "chai"
 import { join } from "path"
+import type { TestGarden } from "../../../../helpers.js"
 import {
   resetLocalConfig,
   getDataDir,
   withDefaultGlobalOpts,
   makeExtModuleSourcesGarden,
   makeExtProjectSourcesGarden,
-  TestGarden,
   makeExtActionSourcesGarden,
-} from "../../../../helpers"
-import { LinkSourceCommand } from "../../../../../src/commands/link/source"
-import { LinkModuleCommand } from "../../../../../src/commands/link/module"
-import { GetLinkedReposCommand } from "../../../../../src/commands/get/get-linked-repos"
-import { LinkActionCommand } from "../../../../../src/commands/link/action"
+} from "../../../../helpers.js"
+import { LinkSourceCommand } from "../../../../../src/commands/link/source.js"
+import { LinkModuleCommand } from "../../../../../src/commands/link/module.js"
+import { GetLinkedReposCommand } from "../../../../../src/commands/get/get-linked-repos.js"
+import { LinkActionCommand } from "../../../../../src/commands/link/action.js"
 
 describe("GetLinkedReposCommand", () => {
   let garden: TestGarden
