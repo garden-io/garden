@@ -20,7 +20,7 @@ import {
   removeExampleDotGardenDir,
   stringifyJsonLog,
 } from "../helpers.js"
-import username from "username"
+import { usernameSync } from "username"
 import fsExtra from "fs-extra"
 const { realpath } = fsExtra
 
@@ -35,7 +35,7 @@ describe("PreReleaseTests", () => {
   const env = parsedArgs["env"]
   const project = parsedArgs["project"]
 
-  const userId = process.env.CIRCLE_BUILD_NUM ? "ci-" + process.env.CIRCLE_BUILD_NUM : username.sync()
+  const userId = process.env.CIRCLE_BUILD_NUM ? "ci-" + process.env.CIRCLE_BUILD_NUM : usernameSync()
 
   if (!project) {
     throw new Error("Must specify project name with --project parameter")

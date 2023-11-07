@@ -43,7 +43,7 @@
     "split2": "^4.1.0",
     "ts-node": "^10.8.2",
     "typescript": "^5.1.3",
-    "username": "^5.1.0"
+    "username": "^6.0.0"
   },
   "scripts": {
     "check-package-lock": "git diff-index --quiet HEAD -- package-lock.json || (echo 'package-lock.json is dirty!' && exit 1)",
