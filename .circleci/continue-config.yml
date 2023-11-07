@@ -108,8 +108,10 @@ commands:
       - restore_cache:
           keys:
             # Prefer using the NPM cache for the package-lock hash, but fall back to any other cache too
-            - npm-v6-<<parameters.context>>-{{ checksum "package-lock.json" }}
-            - npm-v6-<<parameters.context>>
+            - npm-v7-<<parameters.context>>-{{ checksum "package-lock.json" }}
+            # If you uncomment the next line, we also restore caches if package-lock.json changed in case there is no exact match.
+            # We decided not to do that for now for enhanced safety: Every time we update the lock file, we build the caches from scratch. Might be a little paranoid, but hardens against possible NPM bugs.
+            #- npm-v7-<<parameters.context>>
 
       - run:
           name: Install NodeJS
@@ -140,7 +142,7 @@ commands:
       - run: npm ci --prefer-offline --cache ~/.npm --no-audit
 
       - save_cache:
-          key: npm-v6-<<parameters.context>>-{{ checksum "package-lock.json" }}
+          key: npm-v7-<<parameters.context>>-{{ checksum "package-lock.json" }}
           paths:
             - ~/.npm
             - ~/.fnm
