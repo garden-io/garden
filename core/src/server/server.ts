@@ -14,9 +14,7 @@ import Router from "koa-router"
 import type PTY from "node-pty-prebuilt-multiarch"
 import websockify from "koa-websocket"
 import bodyParser from "koa-bodyparser"
-// TODO: switch from get-port-please to get-port once get-port is upgraded to v6.0+ which is ESM only
-import * as getPortPlease from "get-port-please"
-const { getPort } = getPortPlease
+import getPort, { portNumbers } from "get-port"
 import { isArray, omit } from "lodash-es"
 
 import type { BaseServerRequest } from "./commands.js"
@@ -224,8 +222,7 @@ export class GardenServer extends EventEmitter {
         try {
           this.port = await getPort({
             host: hostname,
-            port: defaultServerPort,
-            portRange: [defaultServerPort + 1, defaultServerPort + 99],
+            port: portNumbers(defaultServerPort, defaultServerPort + 99),
           })
           await _start()
           serverStarted = true
