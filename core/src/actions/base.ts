@@ -235,7 +235,7 @@ export const baseActionConfigSchema = createSchema({
       .meta({ templateContext: ActionConfigContext }),
 
     cache: joi.object().keys({
-      noCache: joi.object().keys({
+      exclude: joi.object().keys({
         variables: joiSparseArray(joi.string()).description(
           dedent`
             Specify the list of variables to ignore when caching this action. This is particularly useful for the

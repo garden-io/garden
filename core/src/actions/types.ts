@@ -40,7 +40,7 @@ export interface ActionSourceSpec {
   repository?: SourceRepositorySpec
 }
 
-export interface ActionNoCacheConfig {
+export interface ActionCacheExcludeConfig {
   variables?: string[]
 }
 
@@ -95,7 +95,7 @@ export interface BaseActionConfig<K extends ActionKind = ActionKind, T = string,
 
   // action cache config
   cache?: {
-    noCache?: ActionNoCacheConfig
+    exclude?: ActionCacheExcludeConfig
   }
 
   // Type-specific

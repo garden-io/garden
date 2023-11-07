@@ -64,12 +64,12 @@ describe("action-version", () => {
       graph: graph1,
     })
     expect(resolvedAction1.ignoredKeysForVersion).to.have.members([
-      "cache.noCache.variables.0",
+      "cache.exclude.variables.0",
       "spec.ingresses.0.hostname",
     ])
     expect(resolvedAction2.ignoredKeysForVersion).to.have.members([
-      "cache.noCache.variables.0",
-      "cache.noCache.variables.1",
+      "cache.exclude.variables.0",
+      "cache.exclude.variables.1",
       "spec.ingresses.0.hostname",
       "spec.env.EXTERNAL_API_URL",
     ])

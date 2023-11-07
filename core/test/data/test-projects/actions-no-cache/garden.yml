@@ -9,7 +9,7 @@ type: container
 name: test-deploy-container
 build: test-build-container
 cache:
-  noCache:
+  exclude:
     variables:
       - ${var.base-hostname}
 description: Deploy the container
@@ -36,7 +36,7 @@ type: container
 name: test-deploy-container-with-merge
 build: test-build-container
 cache:
-  noCache:
+  exclude:
     variables:
       - ${var.base-hostname}
       - ${var.nestedVars.EXTERNAL_API_URL}

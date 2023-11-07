@@ -129,7 +129,7 @@ describe("TestTask", () => {
       await router2.deleteDeploys({ graph: graph1, log: garden1.log })
     })
 
-    it("should not run tests again across environments, if the api returns a cache hit", async () => {
+    it("should not run tests again, if the api returns a cache hit", async () => {
       // mock a successful cache check
       scope
         .get("/api/cache/action")
