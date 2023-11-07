@@ -104,13 +104,13 @@ commands:
       - restore_cache:
           keys:
             # Prefer using the NPM cache for the package-lock hash, but fall back to any other cache too
-            - npm-v4-<<parameters.context>>-{{ checksum "package-lock.json" }}
-            - npm-v4-<<parameters.context>>
+            - npm-v5-<<parameters.context>>-{{ checksum "package-lock.json" }}
+            - npm-v5-<<parameters.context>>
 
       - run: npm ci --prefer-offline --cache ~/.npm --no-audit
 
       - save_cache:
-          key: npm-v4-<<parameters.context>>-{{ checksum "package-lock.json" }}
+          key: npm-v5-<<parameters.context>>-{{ checksum "package-lock.json" }}
           paths:
             - ~/.npm
             - node_modules
