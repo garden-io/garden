@@ -215,17 +215,17 @@ varfiles:
 | -------- | -------- |
 | `object` | No       |
 
-### `cache.noCache`
+### `cache.exclude`
 
-[cache](#cache) > noCache
+[cache](#cache) > exclude
 
 | Type     | Required |
 | -------- | -------- |
 | `object` | No       |
 
-### `cache.noCache.variables[]`
+### `cache.exclude.variables[]`
 
-[cache](#cache) > [noCache](#cachenocache) > variables
+[cache](#cache) > [exclude](#cacheexclude) > variables
 
 Specify the list of variables to ignore when caching this action. This is particularly useful for the
 distributed caching where a certain variable might change across environments, but the action should

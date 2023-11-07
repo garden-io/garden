@@ -1831,7 +1831,7 @@ actionConfigs:
       varfiles:
 
       cache:
-        noCache:
+        exclude:
           # Specify the list of variables to ignore when caching this action. This is particularly useful for the
           # distributed caching where a certain variable might change across environments, but the action should
           # still be cached.
@@ -2043,7 +2043,7 @@ actionConfigs:
       varfiles:
 
       cache:
-        noCache:
+        exclude:
           # Specify the list of variables to ignore when caching this action. This is particularly useful for the
           # distributed caching where a certain variable might change across environments, but the action should
           # still be cached.
@@ -2194,7 +2194,7 @@ actionConfigs:
       varfiles:
 
       cache:
-        noCache:
+        exclude:
           # Specify the list of variables to ignore when caching this action. This is particularly useful for the
           # distributed caching where a certain variable might change across environments, but the action should
           # still be cached.
@@ -2345,7 +2345,7 @@ actionConfigs:
       varfiles:
 
       cache:
-        noCache:
+        exclude:
           # Specify the list of variables to ignore when caching this action. This is particularly useful for the
           # distributed caching where a certain variable might change across environments, but the action should
           # still be cached.
