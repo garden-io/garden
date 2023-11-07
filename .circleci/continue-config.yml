@@ -104,17 +104,29 @@ commands:
       - restore_cache:
           keys:
             # Prefer using the NPM cache for the package-lock hash, but fall back to any other cache too
-            - npm-v3-<<parameters.context>>-{{ checksum "package-lock.json" }}
-            - npm-v3-<<parameters.context>>
+            - npm-v4-<<parameters.context>>-{{ checksum "package-lock.json" }}
+            - npm-v4-<<parameters.context>>
 
       - run: npm ci --prefer-offline --cache ~/.npm --no-audit
 
       - save_cache:
           # We need the arch in the key because CircleCI stores the absolute paths, so restore would fail
           # on a different operating system (project directory is different between windows/linux/macos)
-          key: npm-v3-<<parameters.context>>-{{ checksum "package-lock.json" }}
+          key: npm-v4-<<parameters.context>>-{{ checksum "package-lock.json" }}
           paths:
             - ~/.npm
+            - node_modules
+            - cli/node_modules
+            - core/node_modules
+            - e2e/node_modules
+            - plugins/conftest/node_modules
+            - plugins/conftest-container/node_modules
+            - plugins/conftest-kubernetes/node_modules
+            - plugins/jib/node_modules
+            - plugins/maven-container/node_modules
+            - plugins/pulumi/node_modules
+            - plugins/terraform/node_modules
+            - sdk/node_modules
 
   configure_git:
     description: Configure git (needed for some tests)
