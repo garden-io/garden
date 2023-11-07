@@ -52,7 +52,7 @@
     "cli-highlight": "^2.1.11",
     "cli-table3": "^0.6.3",
     "cli-truncate": "^2.1.0",
-    "cpy": "^8.1.2",
+    "cpy": "^11.0.0",
     "cross-spawn": "^7.0.3",
     "crypto-random-string": "^3.3.1",
     "date-fns": "^2.29.3",

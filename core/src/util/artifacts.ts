@@ -77,7 +77,7 @@ export async function copyArtifacts({
   const { default: cpy } = await import("cpy")
 
   try {
-    files = await cpy("**/*", garden.artifactsPath, { cwd: artifactsPath, parents: true })
+    files = await cpy(".", garden.artifactsPath, { cwd: artifactsPath })
   } catch (err) {
     if (!(err instanceof Error)) {
       throw err
