@@ -4,7 +4,6 @@ version: 2.1
 orbs:
   win: circleci/windows@2.2.0
   rok8s-scripts: fairwinds/rok8s-scripts@11.1.3
-  node: circleci/node@5.1.0
   macos: circleci/macos@2.4.0
 
 parameters:
@@ -98,21 +97,52 @@ commands:
       context:
         description: Set this to vm if installing in a VM, to avoid conflicting caches with the docker runs
         type: string
+      node_version:
+        description: The node version to use
+        type: string
+        default: v21.1.0
     steps:
       # See also https://github.com/CircleCI-Public/node-orb/issues/158#issuecomment-1461095390
-      - run: rm -rf ~/.npm
+      - run: rm -rf ~/.npm ~/.fnm
+
       - restore_cache:
           keys:
             # Prefer using the NPM cache for the package-lock hash, but fall back to any other cache too
-            - npm-v5-<<parameters.context>>-{{ checksum "package-lock.json" }}
-            - npm-v5-<<parameters.context>>
+            - npm-v6-<<parameters.context>>-{{ checksum "package-lock.json" }}
+            - npm-v6-<<parameters.context>>
+
+      - run:
+          name: Install NodeJS
+          command: |
+            if [[ "$(node --version)" != "<<parameters.node_version>>" ]]; then
+              # Install fnm if it's not already installed
+              export PATH="$HOME/.fnm:$PATH"
+
+              if which fnm; then
+                echo "Using cached fnm installation"
+              else
+                curl -fsSL https://raw.githubusercontent.com/Schniz/fnm/9d0dd1b04521ac4a1c25bb91a65323dbb691e40c/.ci/install.sh | bash -s -- --install-dir "$HOME/.fnm" --force-install
+              fi
+
+              fnm env >> $BASH_ENV
+              eval $(fnm env)
+
+              fnm use "<<parameters.node_version>>" --fnm-dir "$HOME/.fnm-cache" --install-if-missing
+            fi
+
+            if [[ "$(node --version)" != "<<parameters.node_version>>" ]]; then
+              echo "NodeJS installation failed. Expected version: <<parameters.node_version>>; Actually got: $(node --version)"
+              exit 1
+            fi
 
       - run: npm ci --prefer-offline --cache ~/.npm --no-audit
 
       - save_cache:
-          key: npm-v5-<<parameters.context>>-{{ checksum "package-lock.json" }}
+          key: npm-v6-<<parameters.context>>-{{ checksum "package-lock.json" }}
           paths:
             - ~/.npm
+            - ~/.fnm
+            - ~/.fnm-cache
             - node_modules
             - cli/node_modules
             - core/node_modules
@@ -249,12 +279,10 @@ commands:
 
             # To be able to run cargo
             source "$HOME/.cargo/env"
+            echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> $BASH_ENV
 
             # Cargo builds the other targets in Docker
             cargo install cross --git https://github.com/cross-rs/cross
-
-            # So that cross can be called
-            source "$HOME/.cargo/env"
 
   run_npm_dist:
     description: Package built code into executables and persist to dist directory
@@ -288,12 +316,6 @@ commands:
       - run:
           name: Run dist script
           command: |
-            # This is already done in the step that installs rust
-            # It also work on the native macos runner,
-            # but somehow it doesn't work for the docker based runner.
-            # We just source it again so we're sure it's available for the next steps
-            source "$HOME/.cargo/env"
-
             npm run dist -- --version "<<parameters.version>>" <<parameters.targets>>
 
       # We cache the node archives because the NodeJS download mirror is unreliable
@@ -380,8 +402,6 @@ jobs:
         default: ""
     steps:
       - checkout
-      - node/install:
-          node-version: '21.1.0'
       - install_rust
       # We need rosetta for running the tests for x86_64
       - macos/install-rosetta
@@ -408,8 +428,6 @@ jobs:
         default: ""
     steps:
       - checkout
-      - node/install:
-          node-version: '21.1.0'
       - install_rust
       - run:
           name: "Install rollup linux"
