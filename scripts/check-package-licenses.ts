@@ -1,4 +1,4 @@
-#!/usr/bin/env ts-node
+#!/usr/bin/env node --experimental-loader=ts-node/esm
 /**
  * Scans all package.json files in the repo and throws if one or more packages have a disallowed license
  * (i.e. GPL, other copyleft licenses).

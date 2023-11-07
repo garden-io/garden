@@ -49,7 +49,7 @@
     "check-package-lock": "git diff-index --quiet HEAD -- package-lock.json || (echo 'package-lock.json is dirty!' && exit 1)",
     "clean": "shx rm -rf build",
     "dev": "tsc --build . -w --preserveWatchOutput",
-    "e2e-project": "ts-node e2e-project.ts",
+    "e2e-project": "node --experimental-loader=ts-node/esm e2e-project.ts",
     "fix-format": "npm run lint -- --fix --quiet",
     "lint": "eslint --ignore-pattern 'projects/**' --ext .ts ."
   }
