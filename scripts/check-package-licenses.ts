@@ -1,4 +1,4 @@
-#!/usr/bin/env node --import ./scripts/register-hook.js
+#!/usr/bin/env -S node --import ./scripts/register-hook.js
 /**
  * Scans all package.json files in the repo and throws if one or more packages have a disallowed license
  * (i.e. GPL, other copyleft licenses).

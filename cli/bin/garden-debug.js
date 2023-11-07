@@ -1,4 +1,4 @@
-#!/usr/bin/env node --inspect --stack-trace-limit=1000 --max-semi-space-size=64
+#!/usr/bin/env -S node--inspect --stack-trace-limit=1000 --max-semi-space-size=64
 /*
  * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
