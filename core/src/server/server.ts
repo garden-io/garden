@@ -11,7 +11,6 @@ import type { Server } from "http"
 import chalk from "chalk"
 import Koa from "koa"
 import Router from "koa-router"
-import type PTY from "node-pty-prebuilt-multiarch"
 import websockify from "koa-websocket"
 import bodyParser from "koa-bodyparser"
 import getPort, { portNumbers } from "get-port"
@@ -50,7 +49,8 @@ import { omitUndefined } from "../util/objects.js"
 import { createServer } from "http"
 import { defaultServerPort } from "../commands/serve.js"
 
-import pty from "node-pty-prebuilt-multiarch"
+import type PTY from "@homebridge/node-pty-prebuilt-multiarch"
+import pty from "@homebridge/node-pty-prebuilt-multiarch"
 
 const skipLogsForCommands = ["autocomplete"]
 

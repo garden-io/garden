@@ -13,7 +13,6 @@ import { STATIC_DIR, GARDEN_CLI_ROOT, GARDEN_CORE_ROOT } from "@garden-io/core/b
 import { readFile, writeFile } from "fs/promises"
 import { remove, mkdirp, copy, pathExists } from "fs-extra/esm"
 import { exec, getPackageVersion } from "@garden-io/core/build/src/util/util.js"
-import { dedent } from "@garden-io/core/build/src/util/string.js"
 import { pick } from "lodash-es"
 import minimist from "minimist"
 import { createHash } from "node:crypto"
@@ -335,27 +334,8 @@ async function buildBinaries(args: string[]) {
         console.log(chalk.green(` ✓ Using cached node ${spec.node} for ${targetName} at ${nodeArchiveFilename}`))
       } else {
         console.log(chalk.cyan(`Downloading node ${spec.node} for ${targetName} from ${spec.url}`))
-        const response = await fetch(spec.url)
-
-        if (!response.body) {
-          throw new Error(`No response body for ${spec.url}`)
-        }
-
-        const body = Readable.fromWeb(response.body)
-
-        const hash = body.pipe(createHash("sha256"))
-
-        const writeStream = createWriteStream(nodeArchiveFilename)
-        await finished(body.pipe(writeStream))
-
-        console.log(chalk.green(` ✓ Downloaded node ${spec.node} for ${targetName}`))
-
-        const sha256 = hash.digest("hex")
-
-        if (sha256 !== spec.checksum) {
-          throw new Error(`Checksum mismatch for ${spec.url}! Expected ${spec.checksum} but got ${sha256}`)
-        }
-        console.log(chalk.green(` ✓ Verified checksum for ${targetName}`))
+        await downloadFromWeb({ url: spec.url, checksum: spec.checksum, targetPath: nodeArchiveFilename })
+        console.log(chalk.green(` ✓ Downloaded node ${spec.node} and verified checksum for ${targetName}`))
       }
 
       console.log(chalk.cyan(`Extracting node ${spec.node} for ${targetName}`))
@@ -475,34 +455,56 @@ async function pkgCommon({ targetName, spec }: { targetName: string; spec: Targe
   console.log(` - ${targetName} -> node-pty`)
   const abi = getAbi(spec.node, "node")
 
-  if (spec.nodeBinaryPlatform === "win32") {
-    const tmpDir = await makeTempDir()
-    // Seriously, this is so much easier than anything more native...
-    await exec(
-      "sh",
-      [
-        "-c",
-        dedent`
-          set -e
-          curl -s -L https://github.com/oznu/node-pty-prebuilt-multiarch/releases/download/v0.10.1-pre.5/node-pty-prebuilt-multiarch-v0.10.1-pre.5-node-v108-win32-x64.tar.gz | tar -xzv -C .
-          cp build/Release/* '${targetPath}'
-        `,
-      ],
-      { cwd: tmpDir.path }
-    )
-
-    await tmpDir.cleanup()
-  } else {
+  if (spec.nodeBinaryPlatform === "linux") {
     const filename = spec.os === "alpine" ? `node.abi${abi}.musl.node` : `node.abi${abi}.node`
     const abiPath = resolve(
       GARDEN_CORE_ROOT,
       "node_modules",
+      "@homebridge",
       "node-pty-prebuilt-multiarch",
       "prebuilds",
       `${spec.nodeBinaryPlatform}-${spec.arch}`,
       filename
     )
     await copy(abiPath, resolve(targetPath, "pty.node"))
+  } else {
+    const tmpDir = await makeTempDir()
+    const ptyArchiveFilename = resolve(tmpDir.path, "pty.tar.gz")
+
+    // See also https://github.com/homebridge/node-pty-prebuilt-multiarch/releases
+    const checksums = {
+      "120-win32-x64": "344921e4036277b1edcbc01d2c7b4a22a3e0a85c911bdf9255fe1168e8e439b6",
+      "120-darwin-x64": "c406d1ba59ffa750c8a456ae22a75a221eaee2579f3b6f54296e72a5d79c6853",
+      "120-darwin-arm64": "2818fd6a31dd5889fa9612ceb7ae5ebe5c2422964a4a908d1f05aec120ebccaf",
+    }
+
+    const key = `${abi}-${spec.nodeBinaryPlatform}-${spec.arch}`
+    const checksum = checksums[key]
+
+    if (!checksum) {
+      throw new Error(
+        `Missing checksum for ${key}. Needs to be updated when changing the NodeJS version or pty version.`
+      )
+    }
+
+    await downloadFromWeb({
+      url: `https://github.com/homebridge/node-pty-prebuilt-multiarch/releases/download/v0.11.8/node-pty-prebuilt-multiarch-v0.11.8-node-v${abi}-${spec.nodeBinaryPlatform}-${spec.arch}.tar.gz`,
+      checksum,
+      targetPath: ptyArchiveFilename,
+    })
+
+    // extract
+    const extractStream = tar.x({
+      C: targetPath,
+      // The stripping removes the outer directories, so we end up with the files directly in the target directory.
+      // Filtering happens first, so it works fine.
+      strip: 2,
+      filter: (path) => {
+        return path.startsWith(`build/Release/`)
+      },
+    })
+    await finished(createReadStream(ptyArchiveFilename).pipe(extractStream))
+    await tmpDir.cleanup()
   }
 
   if (spec.os === "macos") {
@@ -565,4 +567,33 @@ if (process.argv[1] === modulePath) {
     console.error(chalk.red(err.message))
     process.exit(1)
   })
+}
+
+async function downloadFromWeb({
+  url: downloadUrl,
+  targetPath,
+  checksum,
+}: {
+  url: string
+  targetPath: string
+  checksum: string
+}) {
+  const response = await fetch(downloadUrl)
+
+  if (!response.body) {
+    throw new Error(`No response body for ${downloadUrl}`)
+  }
+
+  const body = Readable.fromWeb(response.body)
+
+  const hash = body.pipe(createHash("sha256"))
+
+  const writeStream = createWriteStream(targetPath)
+  await finished(body.pipe(writeStream))
+
+  const sha256 = hash.digest("hex")
+
+  if (sha256 !== checksum) {
+    throw new Error(`Checksum mismatch for ${downloadUrl}! Expected ${checksum} but got ${sha256}`)
+  }
 }
