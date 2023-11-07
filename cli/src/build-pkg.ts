@@ -473,7 +473,7 @@ async function pkgCommon({ targetName, spec }: { targetName: string; spec: Targe
   await mkdirp(targetPath)
 
   console.log(` - ${targetName} -> node-pty`)
-  const abi = getAbi(process.version, "node")
+  const abi = getAbi(spec.node, "node")
 
   if (spec.nodeBinaryPlatform === "win32") {
     const tmpDir = await makeTempDir()
