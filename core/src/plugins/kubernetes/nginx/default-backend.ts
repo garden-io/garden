@@ -18,69 +18,57 @@ import { GardenIngressController } from "./ingress-controller-base.js"
 
 export class GardenDefaultBackend extends GardenIngressController {
   override async install(ctx: KubernetesPluginContext, log: Log): Promise<void> {
-    return defaultBackendInstall(ctx, log)
+    const { deployment, service } = defaultBackendGetManifests(ctx)
+    const status = await this.getStatus(ctx, log)
+    if (status === "ready") {
+      return
+    }
+
+    const provider = ctx.provider
+    const config = provider.config
+    const namespace = config.gardenSystemNamespace
+    const api = await KubeApi.factory(log, ctx, provider)
+    await api.upsert({ kind: "Service", namespace, log, obj: service })
+    await api.upsert({ kind: "Deployment", namespace, log, obj: deployment })
+    await waitForResources({
+      // this is necessary to display the logs in provider-section
+      // because the function waitForResources uses actionName as a new Log name
+      actionName: "providers",
+      namespace,
+      ctx,
+      provider,
+      resources: [deployment],
+      log,
+      timeoutSec: 20,
+    })
   }
 
   override async getStatus(ctx: KubernetesPluginContext, log: Log): Promise<DeployState> {
-    return defaultBackendStatus(ctx, log)
+    const provider = ctx.provider
+    const config = provider.config
+    const namespace = config.gardenSystemNamespace
+    const api = await KubeApi.factory(log, ctx, provider)
+    const { deployment } = defaultBackendGetManifests(ctx)
+
+    const deploymentStatus = await checkResourceStatus({ api, namespace, manifest: deployment, log })
+    log.debug(chalk.yellow(`Status of ingress controller default-backend: ${deploymentStatus}`))
+    return deploymentStatus.state
   }
 
   override async uninstall(ctx: KubernetesPluginContext, log: Log): Promise<void> {
-    return defaultBackendUninstall(ctx, log)
+    const { deployment, service } = defaultBackendGetManifests(ctx)
+    const status = await this.getStatus(ctx, log)
+    if (status === "missing") {
+      return
+    }
+
+    const provider = ctx.provider
+    const config = provider.config
+    const namespace = config.gardenSystemNamespace
+    const api = await KubeApi.factory(log, ctx, provider)
+    await api.deleteBySpec({ namespace, manifest: service, log })
+    await api.deleteBySpec({ namespace, manifest: deployment, log })
   }
-}
-
-export async function defaultBackendStatus(ctx: KubernetesPluginContext, log: Log): Promise<DeployState> {
-  const provider = ctx.provider
-  const config = provider.config
-  const namespace = config.gardenSystemNamespace
-  const api = await KubeApi.factory(log, ctx, provider)
-  const { deployment } = defaultBackendGetManifests(ctx)
-
-  const deploymentStatus = await checkResourceStatus({ api, namespace, manifest: deployment, log })
-  log.debug(chalk.yellow(`Status of ingress controller default-backend: ${deploymentStatus}`))
-  return deploymentStatus.state
-}
-
-export async function defaultBackendInstall(ctx: KubernetesPluginContext, log: Log) {
-  const { deployment, service } = defaultBackendGetManifests(ctx)
-  const status = await defaultBackendStatus(ctx, log)
-  if (status === "ready") {
-    return
-  }
-
-  const provider = ctx.provider
-  const config = provider.config
-  const namespace = config.gardenSystemNamespace
-  const api = await KubeApi.factory(log, ctx, provider)
-  await api.upsert({ kind: "Service", namespace, log, obj: service })
-  await api.upsert({ kind: "Deployment", namespace, log, obj: deployment })
-  await waitForResources({
-    // this is necessary to display the logs in provider-section
-    // because the function waitForResources uses actionName as a new Log name
-    actionName: "providers",
-    namespace,
-    ctx,
-    provider,
-    resources: [deployment],
-    log,
-    timeoutSec: 20,
-  })
-}
-
-export async function defaultBackendUninstall(ctx: KubernetesPluginContext, log: Log) {
-  const { deployment, service } = defaultBackendGetManifests(ctx)
-  const status = await defaultBackendStatus(ctx, log)
-  if (status === "missing") {
-    return
-  }
-
-  const provider = ctx.provider
-  const config = provider.config
-  const namespace = config.gardenSystemNamespace
-  const api = await KubeApi.factory(log, ctx, provider)
-  await api.deleteBySpec({ namespace, manifest: service, log })
-  await api.deleteBySpec({ namespace, manifest: deployment, log })
 }
 
 function defaultBackendGetManifests(ctx: KubernetesPluginContext): {
