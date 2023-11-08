@@ -14,7 +14,8 @@ import chalk from "chalk"
 import { apply, deleteResources } from "../kubectl.js"
 import type { DeployState } from "../../../types/service.js"
 import { kindNginxGetManifests } from "./nginx-kind-manifests.js"
-import { GardenIngressController } from "./ingress-controller.js"
+
+import { GardenIngressController } from "./ingress-controller-base.js"
 
 const nginxKindMainResource = {
   apiVersion: "apps/v1",

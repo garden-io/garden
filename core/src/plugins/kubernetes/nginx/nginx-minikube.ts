@@ -13,7 +13,8 @@ import chalk from "chalk"
 import type { KubernetesPluginContext } from "../config.js"
 import { KubeApi } from "../api.js"
 import { checkResourceStatus, waitForResources } from "../status/status.js"
-import { GardenIngressController } from "./ingress-controller.js"
+
+import { GardenIngressController } from "./ingress-controller-base.js"
 
 export class MinikubeGardenIngressController extends GardenIngressController {
   override async install(ctx: KubernetesPluginContext, log: Log): Promise<void> {

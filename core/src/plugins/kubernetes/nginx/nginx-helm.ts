@@ -17,7 +17,8 @@ import type { SystemVars } from "../init.js"
 import { defaultBackendInstall, defaultBackendStatus, defaultBackendUninstall } from "./default-backend.js"
 import { checkResourceStatus, waitForResources } from "../status/status.js"
 import { KubeApi } from "../api.js"
-import { GardenIngressController } from "./ingress-controller.js"
+
+import { GardenIngressController } from "./ingress-controller-base.js"
 
 const HELM_INGRESS_NGINX_REPO = "https://kubernetes.github.io/ingress-nginx"
 const HELM_INGRESS_NGINX_VERSION = "4.0.13"
