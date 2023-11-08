@@ -16,16 +16,45 @@ import { waitForResources } from "../status/status.js"
 import { GardenIngressController } from "./ingress-controller.js"
 
 export class Microk8sGardenIngressController implements GardenIngressController {
-  install(ctx: KubernetesPluginContext, log: Log): Promise<void> {
-    return microk8sNginxInstall(ctx, log)
+  async install(ctx: KubernetesPluginContext, log: Log): Promise<void> {
+    const provider = ctx.provider
+
+    const status = await microk8sNginxStatus(log)
+    if (status === "ready") {
+      return
+    }
+    log.info("Enabling microk8s ingress controller addon")
+    await configureMicrok8sAddons(log, ["ingress"])
+    const nginxMainResource = {
+      apiVersion: "apps/v1",
+      kind: "DaemonSet",
+      metadata: {
+        name: "nginx-ingress-microk8s-controller",
+      },
+    }
+    await waitForResources({
+      // setting the action name to providers is necessary to display the logs in provider-section
+      actionName: "providers",
+      namespace: "ingress",
+      ctx,
+      provider,
+      resources: [nginxMainResource],
+      log,
+      timeoutSec: 60,
+    })
   }
 
   async ready(_ctx: KubernetesPluginContext, log: Log): Promise<boolean> {
     return (await microk8sNginxStatus(log)) === "ready"
   }
 
-  uninstall(ctx: KubernetesPluginContext, log: Log): Promise<void> {
-    return microk8sNginxUninstall(ctx, log)
+  async uninstall(ctx: KubernetesPluginContext, log: Log): Promise<void> {
+    const status = await microk8sNginxStatus(log)
+    if (status === "missing") {
+      return
+    }
+    log.info("Disabling microk8s ingress controller addon")
+    await exec("microk8s", ["disable", "ingress"])
   }
 }
 
@@ -37,41 +66,4 @@ async function microk8sNginxStatus(log: Log): Promise<DeployState> {
   const addonEnabled = status.includes("core/ingress: enabled")
   log.debug(chalk.yellow(`Status of microk8s ingress controller addon: ${addonEnabled ? "enabled" : "disabled"}`))
   return addonEnabled ? "ready" : "missing"
-}
-
-async function microk8sNginxInstall(ctx: KubernetesPluginContext, log: Log) {
-  const provider = ctx.provider
-
-  const status = await microk8sNginxStatus(log)
-  if (status === "ready") {
-    return
-  }
-  log.info("Enabling microk8s ingress controller addon")
-  await configureMicrok8sAddons(log, ["ingress"])
-  const nginxMainResource = {
-    apiVersion: "apps/v1",
-    kind: "DaemonSet",
-    metadata: {
-      name: "nginx-ingress-microk8s-controller",
-    },
-  }
-  await waitForResources({
-    // setting the action name to providers is necessary to display the logs in provider-section
-    actionName: "providers",
-    namespace: "ingress",
-    ctx,
-    provider,
-    resources: [nginxMainResource],
-    log,
-    timeoutSec: 60,
-  })
-}
-
-async function microk8sNginxUninstall(ctx: KubernetesPluginContext, log: Log) {
-  const status = await microk8sNginxStatus(log)
-  if (status === "missing") {
-    return
-  }
-  log.info("Disabling microk8s ingress controller addon")
-  await exec("microk8s", ["disable", "ingress"])
 }

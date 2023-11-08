@@ -16,16 +16,37 @@ import { checkResourceStatus, waitForResources } from "../status/status.js"
 import { GardenIngressController } from "./ingress-controller.js"
 
 export class MinikubeGardenIngressController implements GardenIngressController {
-  install(ctx: KubernetesPluginContext, log: Log): Promise<void> {
-    return minikubeNginxInstall(ctx, log)
+  async install(ctx: KubernetesPluginContext, log: Log): Promise<void> {
+    const provider = ctx.provider
+    const status = await minikubeNginxStatus(ctx, log)
+    if (status === "ready") {
+      return
+    }
+    log.info("Enabling minikube ingress controller addon")
+    await exec("minikube", ["addons", "enable", "ingress"])
+    await waitForResources({
+      // setting the action name to providers is necessary to display the logs in provider-section
+      actionName: "providers",
+      namespace: "ingress-nginx",
+      ctx,
+      provider,
+      resources: [nginxKindMainResource],
+      log,
+      timeoutSec: 60,
+    })
   }
 
   async ready(ctx: KubernetesPluginContext, log: Log): Promise<boolean> {
     return (await minikubeNginxStatus(ctx, log)) === "ready"
   }
 
-  uninstall(ctx: KubernetesPluginContext, log: Log): Promise<void> {
-    return minikubeNginxUninstall(ctx, log)
+  async uninstall(ctx: KubernetesPluginContext, log: Log): Promise<void> {
+    const status = await minikubeNginxStatus(ctx, log)
+    if (status === "missing") {
+      return
+    }
+    log.info("Disabling minikube ingress controller addon")
+    await exec("minikube", ["addons", "disable", "ingress"])
   }
 }
 
@@ -65,33 +86,4 @@ async function minikubeNginxStatus(ctx: KubernetesPluginContext, log: Log): Prom
   })
   log.debug(chalk.yellow(`Status of minikube ingress controller addon: ${deploymentStatus.state}`))
   return deploymentStatus.state
-}
-
-async function minikubeNginxInstall(ctx: KubernetesPluginContext, log: Log) {
-  const provider = ctx.provider
-  const status = await minikubeNginxStatus(ctx, log)
-  if (status === "ready") {
-    return
-  }
-  log.info("Enabling minikube ingress controller addon")
-  await exec("minikube", ["addons", "enable", "ingress"])
-  await waitForResources({
-    // setting the action name to providers is necessary to display the logs in provider-section
-    actionName: "providers",
-    namespace: "ingress-nginx",
-    ctx,
-    provider,
-    resources: [nginxKindMainResource],
-    log,
-    timeoutSec: 60,
-  })
-}
-
-async function minikubeNginxUninstall(ctx: KubernetesPluginContext, log: Log) {
-  const status = await minikubeNginxStatus(ctx, log)
-  if (status === "missing") {
-    return
-  }
-  log.info("Disabling minikube ingress controller addon")
-  await exec("minikube", ["addons", "disable", "ingress"])
 }
