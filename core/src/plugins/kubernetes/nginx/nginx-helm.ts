@@ -84,13 +84,6 @@ export abstract class HelmGardenIngressController extends GardenIngressComponent
     log.success(`nginx successfully installed in ${namespace} namespace`)
   }
 
-  override async ready(ctx: KubernetesPluginContext, log: Log): Promise<boolean> {
-    const nginxStatus = await this.getStatus(ctx, log)
-    const backendStatus = await this.defaultBackend.getStatus(ctx, log)
-
-    return nginxStatus === "ready" && backendStatus === "ready"
-  }
-
   override async getStatus(ctx: KubernetesPluginContext, log: Log): Promise<DeployState> {
     const provider = ctx.provider
     const config = provider.config
@@ -126,6 +119,13 @@ export abstract class HelmGardenIngressController extends GardenIngressComponent
       log.debug(chalk.yellow(`Helm release ${HELM_INGRESS_NGINX_RELEASE_NAME} missing.`))
       return "missing"
     }
+  }
+
+  override async ready(ctx: KubernetesPluginContext, log: Log): Promise<boolean> {
+    const nginxStatus = await this.getStatus(ctx, log)
+    const backendStatus = await this.defaultBackend.getStatus(ctx, log)
+
+    return nginxStatus === "ready" && backendStatus === "ready"
   }
 
   override async uninstall(ctx: KubernetesPluginContext, log: Log): Promise<void> {

@@ -13,11 +13,11 @@ import type { DeployState } from "../../../types/service.js"
 export abstract class GardenIngressComponent {
   abstract install(ctx: KubernetesPluginContext, log: Log): Promise<void>
 
-  abstract uninstall(ctx: KubernetesPluginContext, log: Log): Promise<void>
+  abstract getStatus(ctx: KubernetesPluginContext, log: Log): Promise<DeployState>
 
   async ready(ctx: KubernetesPluginContext, log: Log): Promise<boolean> {
     return (await this.getStatus(ctx, log)) === "ready"
   }
 
-  abstract getStatus(ctx: KubernetesPluginContext, log: Log): Promise<DeployState>
+  abstract uninstall(ctx: KubernetesPluginContext, log: Log): Promise<void>
 }
