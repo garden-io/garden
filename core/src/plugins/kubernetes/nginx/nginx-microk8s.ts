@@ -13,7 +13,6 @@ import type { KubernetesPluginContext } from "../config.js"
 import { type DeployState } from "../../../types/service.js"
 import { configureMicrok8sAddons } from "../local/microk8s.js"
 import { waitForResources } from "../status/status.js"
-
 import { GardenIngressComponent } from "./ingress-controller-base.js"
 
 export class Microk8sGardenIngressController extends GardenIngressComponent {
@@ -46,7 +45,13 @@ export class Microk8sGardenIngressController extends GardenIngressComponent {
   }
 
   override async getStatus(_ctx: KubernetesPluginContext, log: Log): Promise<DeployState> {
-    return await microk8sNginxStatus(log)
+    // The microk8s addons implement healthchecks and auto-corrects the addon status
+    // in case the deployment becomes unhealthy so we can just check if the addon is enabled
+    const statusCommandResult = await exec("microk8s", ["status", "--format", "short"])
+    const status = statusCommandResult.stdout
+    const addonEnabled = status.includes("core/ingress: enabled")
+    log.debug(chalk.yellow(`Status of microk8s ingress controller addon: ${addonEnabled ? "enabled" : "disabled"}`))
+    return addonEnabled ? "ready" : "missing"
   }
 
   override async uninstall(ctx: KubernetesPluginContext, log: Log): Promise<void> {
@@ -57,14 +62,4 @@ export class Microk8sGardenIngressController extends GardenIngressComponent {
     log.info("Disabling microk8s ingress controller addon")
     await exec("microk8s", ["disable", "ingress"])
   }
-}
-
-async function microk8sNginxStatus(log: Log): Promise<DeployState> {
-  // The microk8s addons implement healthchecks and auto-corrects the addon status
-  // in case the deployment becomes unhealthy so we can just check if the addon is enabled
-  const statusCommandResult = await exec("microk8s", ["status", "--format", "short"])
-  const status = statusCommandResult.stdout
-  const addonEnabled = status.includes("core/ingress: enabled")
-  log.debug(chalk.yellow(`Status of microk8s ingress controller addon: ${addonEnabled ? "enabled" : "disabled"}`))
-  return addonEnabled ? "ready" : "missing"
 }

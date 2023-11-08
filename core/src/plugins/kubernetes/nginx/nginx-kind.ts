@@ -14,7 +14,6 @@ import chalk from "chalk"
 import { apply, deleteResources } from "../kubectl.js"
 import type { DeployState } from "../../../types/service.js"
 import { kindNginxGetManifests } from "./nginx-kind-manifests.js"
-
 import { GardenIngressComponent } from "./ingress-controller-base.js"
 
 const nginxKindMainResource = {
@@ -55,7 +54,15 @@ export class KindGardenIngressController extends GardenIngressComponent {
   }
 
   override async getStatus(ctx: KubernetesPluginContext, log: Log): Promise<DeployState> {
-    return await kindNginxStatus(ctx, log)
+    const provider = ctx.provider
+    const config = provider.config
+    const namespace = config.gardenSystemNamespace
+    const api = await KubeApi.factory(log, ctx, provider)
+
+    const deploymentStatus = await checkResourceStatus({ api, namespace, manifest: nginxKindMainResource, log })
+
+    log.debug(chalk.yellow(`Status of ingress controller: ${deploymentStatus.state}`))
+    return deploymentStatus.state
   }
 
   override async uninstall(ctx: KubernetesPluginContext, log: Log): Promise<void> {
@@ -73,16 +80,4 @@ export class KindGardenIngressController extends GardenIngressComponent {
     log.info("Uninstalling ingress controller for kind cluster")
     await deleteResources({ log, ctx, provider, namespace, resources: manifests })
   }
-}
-
-async function kindNginxStatus(ctx: KubernetesPluginContext, log: Log): Promise<DeployState> {
-  const provider = ctx.provider
-  const config = provider.config
-  const namespace = config.gardenSystemNamespace
-  const api = await KubeApi.factory(log, ctx, provider)
-
-  const deploymentStatus = await checkResourceStatus({ api, namespace, manifest: nginxKindMainResource, log })
-
-  log.debug(chalk.yellow(`Status of ingress controller: ${deploymentStatus.state}`))
-  return deploymentStatus.state
 }
