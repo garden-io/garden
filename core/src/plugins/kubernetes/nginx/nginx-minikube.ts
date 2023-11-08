@@ -44,7 +44,7 @@ const nginxKindMainResource = {
   },
 }
 
-export async function minikubeNginxStatus(ctx: KubernetesPluginContext, log: Log): Promise<DeployState> {
+async function minikubeNginxStatus(ctx: KubernetesPluginContext, log: Log): Promise<DeployState> {
   // The minikube addons don't implement healthchecks, so we have to check the status of the addon and the deployment
   const provider = ctx.provider
   const api = await KubeApi.factory(log, ctx, provider)
@@ -67,7 +67,7 @@ export async function minikubeNginxStatus(ctx: KubernetesPluginContext, log: Log
   return deploymentStatus.state
 }
 
-export async function minikubeNginxInstall(ctx: KubernetesPluginContext, log: Log) {
+async function minikubeNginxInstall(ctx: KubernetesPluginContext, log: Log) {
   const provider = ctx.provider
   const status = await minikubeNginxStatus(ctx, log)
   if (status === "ready") {
@@ -87,7 +87,7 @@ export async function minikubeNginxInstall(ctx: KubernetesPluginContext, log: Lo
   })
 }
 
-export async function minikubeNginxUninstall(ctx: KubernetesPluginContext, log: Log) {
+async function minikubeNginxUninstall(ctx: KubernetesPluginContext, log: Log) {
   const status = await minikubeNginxStatus(ctx, log)
   if (status === "missing") {
     return

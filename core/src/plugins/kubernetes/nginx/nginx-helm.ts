@@ -43,7 +43,7 @@ export abstract class HelmGardenIngressController implements GardenIngressContro
   abstract helmValuesGetter(): NginxHelmValuesGetter
 }
 
-export interface NginxHelmValues {
+interface NginxHelmValues {
   name: string
   controller: {
     kind: string
@@ -90,7 +90,7 @@ function getNginxHelmMainResource(values: NginxHelmValues) {
   }
 }
 
-export async function helmIngressControllerReady(
+async function helmIngressControllerReady(
   ctx: KubernetesPluginContext,
   log: Log,
   nginxHelmValuesGetter: NginxHelmValuesGetter
@@ -101,7 +101,7 @@ export async function helmIngressControllerReady(
   return nginxStatus === "ready" && backendStatus === "ready"
 }
 
-export async function helmNginxStatus(
+async function helmNginxStatus(
   ctx: KubernetesPluginContext,
   log: Log,
   nginxHelmValuesGetter: NginxHelmValuesGetter
@@ -142,11 +142,7 @@ export async function helmNginxStatus(
   }
 }
 
-export async function helmNginxInstall(
-  ctx: KubernetesPluginContext,
-  log: Log,
-  nginxHelmValuesGetter: NginxHelmValuesGetter
-) {
+async function helmNginxInstall(ctx: KubernetesPluginContext, log: Log, nginxHelmValuesGetter: NginxHelmValuesGetter) {
   const ingressControllerReady = await helmIngressControllerReady(ctx, log, nginxHelmValuesGetter)
   if (ingressControllerReady) {
     return
@@ -199,7 +195,7 @@ export async function helmNginxInstall(
   log.success(`nginx successfully installed in ${namespace} namespace`)
 }
 
-export async function helmNginxUninstall(
+async function helmNginxUninstall(
   ctx: KubernetesPluginContext,
   log: Log,
   nginxHelmValuesGetter: NginxHelmValuesGetter

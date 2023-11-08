@@ -29,7 +29,7 @@ export class Microk8sGardenIngressController implements GardenIngressController 
   }
 }
 
-export async function microk8sNginxStatus(log: Log): Promise<DeployState> {
+async function microk8sNginxStatus(log: Log): Promise<DeployState> {
   // The microk8s addons implement healthchecks and auto-corrects the addon status
   // in case the deployment becomes unhealthy so we can just check if the addon is enabled
   const statusCommandResult = await exec("microk8s", ["status", "--format", "short"])
@@ -39,7 +39,7 @@ export async function microk8sNginxStatus(log: Log): Promise<DeployState> {
   return addonEnabled ? "ready" : "missing"
 }
 
-export async function microk8sNginxInstall(ctx: KubernetesPluginContext, log: Log) {
+async function microk8sNginxInstall(ctx: KubernetesPluginContext, log: Log) {
   const provider = ctx.provider
 
   const status = await microk8sNginxStatus(log)
@@ -67,7 +67,7 @@ export async function microk8sNginxInstall(ctx: KubernetesPluginContext, log: Lo
   })
 }
 
-export async function microk8sNginxUninstall(ctx: KubernetesPluginContext, log: Log) {
+async function microk8sNginxUninstall(ctx: KubernetesPluginContext, log: Log) {
   const status = await microk8sNginxStatus(log)
   if (status === "missing") {
     return

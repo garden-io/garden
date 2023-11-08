@@ -38,7 +38,7 @@ export class KindGardenIngressController implements GardenIngressController {
   }
 }
 
-export async function kindNginxStatus(ctx: KubernetesPluginContext, log: Log): Promise<DeployState> {
+async function kindNginxStatus(ctx: KubernetesPluginContext, log: Log): Promise<DeployState> {
   const provider = ctx.provider
   const config = provider.config
   const namespace = config.gardenSystemNamespace
@@ -50,7 +50,7 @@ export async function kindNginxStatus(ctx: KubernetesPluginContext, log: Log): P
   return deploymentStatus.state
 }
 
-export async function kindNginxInstall(ctx: KubernetesPluginContext, log: Log) {
+async function kindNginxInstall(ctx: KubernetesPluginContext, log: Log) {
   const status = await kindNginxStatus(ctx, log)
   if (status === "ready") {
     return
@@ -78,7 +78,7 @@ export async function kindNginxInstall(ctx: KubernetesPluginContext, log: Log) {
   })
 }
 
-export async function kindNginxUninstall(ctx: KubernetesPluginContext, log: Log) {
+async function kindNginxUninstall(ctx: KubernetesPluginContext, log: Log) {
   const status = await kindNginxStatus(ctx, log)
   if (status === "missing") {
     return
