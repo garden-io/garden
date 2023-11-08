@@ -41,7 +41,7 @@ export abstract class HelmGardenIngressController extends GardenIngressComponent
     const config = provider.config
     const namespace = config.gardenSystemNamespace
     const systemVars: SystemVars = getKubernetesSystemVariables(config)
-    const values = this.helmValuesGetter()(systemVars)
+    const values = this.helmValuesGetter(systemVars)
 
     const valueArgs: string[] = []
     for (const key in values) {
@@ -89,7 +89,7 @@ export abstract class HelmGardenIngressController extends GardenIngressComponent
     const config = provider.config
     const api = await KubeApi.factory(log, ctx, provider)
     const systemVars: SystemVars = getKubernetesSystemVariables(config)
-    const values = this.helmValuesGetter()(systemVars)
+    const values = this.helmValuesGetter(systemVars)
 
     const namespace = config.gardenSystemNamespace
     try {
@@ -142,10 +142,10 @@ export abstract class HelmGardenIngressController extends GardenIngressComponent
     await this.defaultBackend.uninstall(ctx, log)
   }
 
-  abstract helmValuesGetter(): NginxHelmValuesGetter
+  abstract helmValuesGetter(systemVars: SystemVars): NginxHelmValues
 }
 
-interface NginxHelmValues {
+export interface NginxHelmValues {
   name: string
   controller: {
     kind: string
@@ -179,8 +179,6 @@ interface NginxHelmValues {
 
   [key: string]: _HelmValue
 }
-
-export type NginxHelmValuesGetter = (systemVars: SystemVars) => NginxHelmValues
 
 function getNginxHelmMainResource(values: NginxHelmValues) {
   return {

@@ -7,42 +7,40 @@
  */
 
 import type { SystemVars } from "../init.js"
-import type { NginxHelmValuesGetter } from "./nginx-helm.js"
+import type { NginxHelmValues } from "./nginx-helm.js"
 import { HelmGardenIngressController } from "./nginx-helm.js"
 
 export class K3sHelmGardenIngressController extends HelmGardenIngressController {
-  helmValuesGetter(): NginxHelmValuesGetter {
-    return (systemVars: SystemVars) => {
-      return {
-        name: "ingress-controller",
-        controller: {
-          kind: "Deployment",
-          updateStrategy: {
-            type: "RollingUpdate",
-            rollingUpdate: {
-              maxUnavailable: 1,
-            },
+  override helmValuesGetter(systemVars: SystemVars): NginxHelmValues {
+    return {
+      name: "ingress-controller",
+      controller: {
+        kind: "Deployment",
+        updateStrategy: {
+          type: "RollingUpdate",
+          rollingUpdate: {
+            maxUnavailable: 1,
           },
-          extraArgs: {
-            "default-backend-service": `${systemVars.namespace}/default-backend`,
-          },
-          minReadySeconds: 1,
-          tolerations: systemVars["system-tolerations"],
-          nodeSelector: systemVars["system-node-selector"],
-          admissionWebhooks: {
-            enabled: false,
-          },
-          ingressClassResource: {
-            name: "nginx",
-            enabled: true,
-            default: true,
-          },
-          replicaCount: 1,
         },
-        defaultBackend: {
+        extraArgs: {
+          "default-backend-service": `${systemVars.namespace}/default-backend`,
+        },
+        minReadySeconds: 1,
+        tolerations: systemVars["system-tolerations"],
+        nodeSelector: systemVars["system-node-selector"],
+        admissionWebhooks: {
           enabled: false,
         },
-      }
+        ingressClassResource: {
+          name: "nginx",
+          enabled: true,
+          default: true,
+        },
+        replicaCount: 1,
+      },
+      defaultBackend: {
+        enabled: false,
+      },
     }
   }
 }
