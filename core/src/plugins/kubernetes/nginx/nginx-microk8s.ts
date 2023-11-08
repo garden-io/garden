@@ -13,6 +13,21 @@ import type { KubernetesPluginContext } from "../config.js"
 import { type DeployState } from "../../../types/service.js"
 import { configureMicrok8sAddons } from "../local/microk8s.js"
 import { waitForResources } from "../status/status.js"
+import { GardenIngressController } from "./ingress-controller.js"
+
+export class Microk8sGardenIngressController implements GardenIngressController {
+  install(ctx: KubernetesPluginContext, log: Log): Promise<void> {
+    return microk8sNginxInstall(ctx, log)
+  }
+
+  async ready(_ctx: KubernetesPluginContext, log: Log): Promise<boolean> {
+    return (await microk8sNginxStatus(log)) === "ready"
+  }
+
+  uninstall(ctx: KubernetesPluginContext, log: Log): Promise<void> {
+    return microk8sNginxUninstall(ctx, log)
+  }
+}
 
 export async function microk8sNginxStatus(log: Log): Promise<DeployState> {
   // The microk8s addons implement healthchecks and auto-corrects the addon status

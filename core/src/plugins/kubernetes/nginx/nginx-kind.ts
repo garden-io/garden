@@ -14,6 +14,7 @@ import chalk from "chalk"
 import { apply, deleteResources } from "../kubectl.js"
 import type { DeployState } from "../../../types/service.js"
 import { kindNginxGetManifests } from "./nginx-kind-manifests.js"
+import { GardenIngressController } from "./ingress-controller.js"
 
 const nginxKindMainResource = {
   apiVersion: "apps/v1",
@@ -21,6 +22,20 @@ const nginxKindMainResource = {
   metadata: {
     name: "ingress-nginx-controller",
   },
+}
+
+export class KindGardenIngressController implements GardenIngressController {
+  install(ctx: KubernetesPluginContext, log: Log): Promise<void> {
+    return kindNginxInstall(ctx, log)
+  }
+
+  async ready(ctx: KubernetesPluginContext, log: Log): Promise<boolean> {
+    return (await kindNginxStatus(ctx, log)) === "ready"
+  }
+
+  uninstall(ctx: KubernetesPluginContext, log: Log): Promise<void> {
+    return kindNginxUninstall(ctx, log)
+  }
 }
 
 export async function kindNginxStatus(ctx: KubernetesPluginContext, log: Log): Promise<DeployState> {

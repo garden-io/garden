@@ -8,6 +8,13 @@
 
 import type { SystemVars } from "../init.js"
 import type { NginxHelmValuesGetter } from "./nginx-helm.js"
+import { HelmGardenIngressController } from "./nginx-helm.js"
+
+export class K3sHelmGardenIngressController extends HelmGardenIngressController {
+  helmValuesGetter(): NginxHelmValuesGetter {
+    return getK3sNginxHelmValues
+  }
+}
 
 export const getK3sNginxHelmValues: NginxHelmValuesGetter = (systemVars: SystemVars) => {
   return {

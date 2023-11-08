@@ -16,6 +16,12 @@ import { minikubeNginxInstall, minikubeNginxStatus, minikubeNginxUninstall } fro
 import { kindNginxInstall, kindNginxStatus, kindNginxUninstall } from "./nginx-kind.js"
 import { getEphemeralNginxHelmValues } from "./nginx-helm-ephemeral.js"
 
+export interface GardenIngressController {
+  install: (ctx: KubernetesPluginContext, log: Log) => Promise<void>
+  uninstall: (ctx: KubernetesPluginContext, log: Log) => Promise<void>
+  ready: (ctx: KubernetesPluginContext, log: Log) => Promise<boolean>
+}
+
 export async function ingressControllerReady(ctx: KubernetesPluginContext, log: Log): Promise<boolean> {
   const clusterType = ctx.provider.config.clusterType
   if (clusterType === undefined) {

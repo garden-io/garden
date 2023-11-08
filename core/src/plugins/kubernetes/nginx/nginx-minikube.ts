@@ -13,6 +13,21 @@ import chalk from "chalk"
 import type { KubernetesPluginContext } from "../config.js"
 import { KubeApi } from "../api.js"
 import { checkResourceStatus, waitForResources } from "../status/status.js"
+import { GardenIngressController } from "./ingress-controller.js"
+
+export class MinikubeGardenIngressController implements GardenIngressController {
+  install(ctx: KubernetesPluginContext, log: Log): Promise<void> {
+    return minikubeNginxInstall(ctx, log)
+  }
+
+  async ready(ctx: KubernetesPluginContext, log: Log): Promise<boolean> {
+    return (await minikubeNginxStatus(ctx, log)) === "ready"
+  }
+
+  uninstall(ctx: KubernetesPluginContext, log: Log): Promise<void> {
+    return minikubeNginxUninstall(ctx, log)
+  }
+}
 
 interface MinikubeAddons {
   [key: string]: {

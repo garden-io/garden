@@ -17,6 +17,7 @@ import type { SystemVars } from "../init.js"
 import { defaultBackendInstall, defaultBackendStatus, defaultBackendUninstall } from "./default-backend.js"
 import { checkResourceStatus, waitForResources } from "../status/status.js"
 import { KubeApi } from "../api.js"
+import { GardenIngressController } from "./ingress-controller.js"
 
 const HELM_INGRESS_NGINX_REPO = "https://kubernetes.github.io/ingress-nginx"
 const HELM_INGRESS_NGINX_VERSION = "4.0.13"
@@ -25,6 +26,22 @@ const HELM_INGRESS_NGINX_RELEASE_NAME = "garden-nginx"
 const HELM_INGRESS_NGINX_DEPLOYMENT_TIMEOUT = "300s"
 
 type _HelmValue = number | string | boolean | object | null | undefined
+
+export abstract class HelmGardenIngressController implements GardenIngressController {
+  install(ctx: KubernetesPluginContext, log: Log): Promise<void> {
+    return helmNginxInstall(ctx, log, this.helmValuesGetter())
+  }
+
+  ready(ctx: KubernetesPluginContext, log: Log): Promise<boolean> {
+    return helmIngressControllerReady(ctx, log, this.helmValuesGetter())
+  }
+
+  uninstall(ctx: KubernetesPluginContext, log: Log): Promise<void> {
+    return helmNginxUninstall(ctx, log, this.helmValuesGetter())
+  }
+
+  abstract helmValuesGetter(): NginxHelmValuesGetter
+}
 
 export interface NginxHelmValues {
   name: string
