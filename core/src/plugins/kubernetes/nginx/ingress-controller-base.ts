@@ -10,7 +10,7 @@ import type { Log } from "../../../logger/log-entry.js"
 import type { KubernetesPluginContext } from "../config.js"
 import type { DeployState } from "../../../types/service.js"
 
-export abstract class GardenIngressController {
+export abstract class GardenIngressComponent {
   abstract install(ctx: KubernetesPluginContext, log: Log): Promise<void>
 
   abstract uninstall(ctx: KubernetesPluginContext, log: Log): Promise<void>

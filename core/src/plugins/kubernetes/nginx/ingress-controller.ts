@@ -14,9 +14,9 @@ import { Microk8sGardenIngressController } from "./nginx-microk8s.js"
 import { MinikubeGardenIngressController } from "./nginx-minikube.js"
 import { KindGardenIngressController } from "./nginx-kind.js"
 import { EphemeralHelmGardenIngressController } from "./nginx-helm-ephemeral.js"
-import type { GardenIngressController } from "./ingress-controller-base.js"
+import type { GardenIngressComponent } from "./ingress-controller-base.js"
 
-export function getGardenIngressController(ctx: KubernetesPluginContext): GardenIngressController | undefined {
+export function getGardenIngressController(ctx: KubernetesPluginContext): GardenIngressComponent | undefined {
   const clusterType = ctx.provider.config.clusterType
   if (clusterType === undefined) {
     return undefined

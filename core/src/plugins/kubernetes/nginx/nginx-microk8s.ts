@@ -14,9 +14,9 @@ import { type DeployState } from "../../../types/service.js"
 import { configureMicrok8sAddons } from "../local/microk8s.js"
 import { waitForResources } from "../status/status.js"
 
-import { GardenIngressController } from "./ingress-controller-base.js"
+import { GardenIngressComponent } from "./ingress-controller-base.js"
 
-export class Microk8sGardenIngressController extends GardenIngressController {
+export class Microk8sGardenIngressController extends GardenIngressComponent {
   override async install(ctx: KubernetesPluginContext, log: Log): Promise<void> {
     const provider = ctx.provider
 

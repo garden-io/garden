@@ -14,9 +14,9 @@ import type { KubernetesPluginContext } from "../config.js"
 import { KubeApi } from "../api.js"
 import { checkResourceStatus, waitForResources } from "../status/status.js"
 
-import { GardenIngressController } from "./ingress-controller-base.js"
+import { GardenIngressComponent } from "./ingress-controller-base.js"
 
-export class MinikubeGardenIngressController extends GardenIngressController {
+export class MinikubeGardenIngressController extends GardenIngressComponent {
   override async install(ctx: KubernetesPluginContext, log: Log): Promise<void> {
     const provider = ctx.provider
     const status = await this.getStatus(ctx, log)

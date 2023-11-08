@@ -15,7 +15,7 @@ import { apply, deleteResources } from "../kubectl.js"
 import type { DeployState } from "../../../types/service.js"
 import { kindNginxGetManifests } from "./nginx-kind-manifests.js"
 
-import { GardenIngressController } from "./ingress-controller-base.js"
+import { GardenIngressComponent } from "./ingress-controller-base.js"
 
 const nginxKindMainResource = {
   apiVersion: "apps/v1",
@@ -25,7 +25,7 @@ const nginxKindMainResource = {
   },
 }
 
-export class KindGardenIngressController extends GardenIngressController {
+export class KindGardenIngressController extends GardenIngressComponent {
   override async install(ctx: KubernetesPluginContext, log: Log): Promise<void> {
     const status = await this.getStatus(ctx, log)
     if (status === "ready") {
