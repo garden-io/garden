@@ -14,12 +14,31 @@ import { Microk8sGardenIngressController } from "./nginx-microk8s.js"
 import { MinikubeGardenIngressController } from "./nginx-minikube.js"
 import { KindGardenIngressController } from "./nginx-kind.js"
 import { EphemeralHelmGardenIngressController } from "./nginx-helm-ephemeral.js"
-import type { GardenIngressComponent } from "./ingress-controller-base.js"
+import { GardenIngressComponent } from "./ingress-controller-base.js"
+import type { DeployState } from "../../../types/service.js"
 
-export function getGardenIngressController(ctx: KubernetesPluginContext): GardenIngressComponent | undefined {
+class NoOpGardenIngressController extends GardenIngressComponent {
+  override install(_ctx: KubernetesPluginContext, _log: Log): Promise<void> {
+    return Promise.resolve(undefined)
+  }
+
+  override getStatus(_ctx: KubernetesPluginContext, _log: Log): Promise<DeployState> {
+    return Promise.resolve("missing")
+  }
+
+  override async ready(_ctx: KubernetesPluginContext, _log: Log): Promise<boolean> {
+    return false
+  }
+
+  override uninstall(_ctx: KubernetesPluginContext, _log: Log): Promise<void> {
+    return Promise.resolve(undefined)
+  }
+}
+
+export function getGardenIngressController(ctx: KubernetesPluginContext): GardenIngressComponent {
   const clusterType = ctx.provider.config.clusterType
   if (clusterType === undefined) {
-    return undefined
+    return new NoOpGardenIngressController()
   }
 
   if (clusterType === "kind") {
@@ -40,28 +59,13 @@ export function getGardenIngressController(ctx: KubernetesPluginContext): Garden
 }
 
 export async function ingressControllerReady(ctx: KubernetesPluginContext, log: Log): Promise<boolean> {
-  const gardenIngressController = getGardenIngressController(ctx)
-  if (!gardenIngressController) {
-    return false
-  }
-
-  return await gardenIngressController.ready(ctx, log)
+  return await getGardenIngressController(ctx).ready(ctx, log)
 }
 
 export async function ingressControllerInstall(ctx: KubernetesPluginContext, log: Log) {
-  const gardenIngressController = getGardenIngressController(ctx)
-  if (!gardenIngressController) {
-    return
-  }
-
-  await gardenIngressController.install(ctx, log)
+  await getGardenIngressController(ctx).install(ctx, log)
 }
 
 export async function ingressControllerUninstall(ctx: KubernetesPluginContext, log: Log) {
-  const gardenIngressController = getGardenIngressController(ctx)
-  if (!gardenIngressController) {
-    return
-  }
-
-  return await gardenIngressController.uninstall(ctx, log)
+  return await getGardenIngressController(ctx).uninstall(ctx, log)
 }
