@@ -19,7 +19,7 @@ export class Microk8sGardenIngressController extends GardenIngressController {
   override async install(ctx: KubernetesPluginContext, log: Log): Promise<void> {
     const provider = ctx.provider
 
-    const status = await microk8sNginxStatus(log)
+    const status = await this.getStatus(ctx, log)
     if (status === "ready") {
       return
     }
@@ -44,12 +44,12 @@ export class Microk8sGardenIngressController extends GardenIngressController {
     })
   }
 
-  override async ready(_ctx: KubernetesPluginContext, log: Log): Promise<boolean> {
-    return (await microk8sNginxStatus(log)) === "ready"
+  override async getStatus(_ctx: KubernetesPluginContext, log: Log): Promise<DeployState> {
+    return await microk8sNginxStatus(log)
   }
 
   override async uninstall(ctx: KubernetesPluginContext, log: Log): Promise<void> {
-    const status = await microk8sNginxStatus(log)
+    const status = await this.getStatus(ctx, log)
     if (status === "missing") {
       return
     }

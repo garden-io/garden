@@ -26,7 +26,7 @@ const nginxKindMainResource = {
 
 export class KindGardenIngressController extends GardenIngressController {
   override async install(ctx: KubernetesPluginContext, log: Log): Promise<void> {
-    const status = await kindNginxStatus(ctx, log)
+    const status = await this.getStatus(ctx, log)
     if (status === "ready") {
       return
     }
@@ -53,12 +53,12 @@ export class KindGardenIngressController extends GardenIngressController {
     })
   }
 
-  override async ready(ctx: KubernetesPluginContext, log: Log): Promise<boolean> {
-    return (await kindNginxStatus(ctx, log)) === "ready"
+  override async getStatus(ctx: KubernetesPluginContext, log: Log): Promise<DeployState> {
+    return await kindNginxStatus(ctx, log)
   }
 
   override async uninstall(ctx: KubernetesPluginContext, log: Log): Promise<void> {
-    const status = await kindNginxStatus(ctx, log)
+    const status = await this.getStatus(ctx, log)
     if (status === "missing") {
       return
     }

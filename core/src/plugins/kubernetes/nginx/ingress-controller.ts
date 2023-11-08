@@ -14,13 +14,18 @@ import { Microk8sGardenIngressController } from "./nginx-microk8s.js"
 import { MinikubeGardenIngressController } from "./nginx-minikube.js"
 import { KindGardenIngressController } from "./nginx-kind.js"
 import { EphemeralHelmGardenIngressController } from "./nginx-helm-ephemeral.js"
+import type { DeployState } from "../../../types/service.js"
 
 export abstract class GardenIngressController {
   abstract install(ctx: KubernetesPluginContext, log: Log): Promise<void>
 
   abstract uninstall(ctx: KubernetesPluginContext, log: Log): Promise<void>
 
-  abstract ready(ctx: KubernetesPluginContext, log: Log): Promise<boolean>
+  async ready(ctx: KubernetesPluginContext, log: Log): Promise<boolean> {
+    return (await this.getStatus(ctx, log)) === "ready"
+  }
+
+  abstract getStatus(ctx: KubernetesPluginContext, log: Log): Promise<DeployState>
 }
 
 export function getGardenIngressController(ctx: KubernetesPluginContext): GardenIngressController | undefined {
