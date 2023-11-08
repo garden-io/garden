@@ -14,7 +14,7 @@ import { helm } from "../helm/helm-cli.js"
 import { helmStatusMap } from "../helm/status.js"
 import { getKubernetesSystemVariables } from "../init.js"
 import type { SystemVars } from "../init.js"
-import { defaultBackendInstall, defaultBackendStatus, defaultBackendUninstall } from "./default-backend.js"
+import { GardenDefaultBackend } from "./default-backend.js"
 import { checkResourceStatus, waitForResources } from "../status/status.js"
 import { KubeApi } from "../api.js"
 
@@ -29,6 +29,8 @@ const HELM_INGRESS_NGINX_DEPLOYMENT_TIMEOUT = "300s"
 type _HelmValue = number | string | boolean | object | null | undefined
 
 export abstract class HelmGardenIngressController extends GardenIngressController {
+  private readonly defaultBackend = new GardenDefaultBackend()
+
   override async install(ctx: KubernetesPluginContext, log: Log): Promise<void> {
     const ingressControllerReady = await this.ready(ctx, log)
     if (ingressControllerReady) {
@@ -64,7 +66,7 @@ export abstract class HelmGardenIngressController extends GardenIngressControlle
     ]
 
     log.info(`Installing nginx in ${namespace} namespace...`)
-    await defaultBackendInstall(ctx, log)
+    await this.defaultBackend.install(ctx, log)
     await helm({ ctx, namespace, log, args, emitLogEvents: false })
 
     const nginxHelmMainResource = getNginxHelmMainResource(values)
@@ -84,7 +86,7 @@ export abstract class HelmGardenIngressController extends GardenIngressControlle
 
   override async ready(ctx: KubernetesPluginContext, log: Log): Promise<boolean> {
     const nginxStatus = await this.getStatus(ctx, log)
-    const backendStatus = await defaultBackendStatus(ctx, log)
+    const backendStatus = await this.defaultBackend.getStatus(ctx, log)
 
     return nginxStatus === "ready" && backendStatus === "ready"
   }
@@ -137,7 +139,7 @@ export abstract class HelmGardenIngressController extends GardenIngressControlle
     const namespace = config.gardenSystemNamespace
 
     await helm({ ctx, namespace, log, args: ["uninstall", HELM_INGRESS_NGINX_RELEASE_NAME], emitLogEvents: false })
-    await defaultBackendUninstall(ctx, log)
+    await this.defaultBackend.uninstall(ctx, log)
   }
 
   abstract helmValuesGetter(): NginxHelmValuesGetter

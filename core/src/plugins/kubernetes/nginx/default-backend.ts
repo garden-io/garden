@@ -14,6 +14,21 @@ import { checkResourceStatus, waitForResources } from "../status/status.js"
 import chalk from "chalk"
 import type { KubernetesDeployment, KubernetesService } from "../types.js"
 import { defaultGardenIngressControllerDefaultBackendImage } from "../constants.js"
+import { GardenIngressController } from "./ingress-controller-base.js"
+
+export class GardenDefaultBackend extends GardenIngressController {
+  override async install(ctx: KubernetesPluginContext, log: Log): Promise<void> {
+    return defaultBackendInstall(ctx, log)
+  }
+
+  override async getStatus(ctx: KubernetesPluginContext, log: Log): Promise<DeployState> {
+    return defaultBackendStatus(ctx, log)
+  }
+
+  override async uninstall(ctx: KubernetesPluginContext, log: Log): Promise<void> {
+    return defaultBackendUninstall(ctx, log)
+  }
+}
 
 export async function defaultBackendStatus(ctx: KubernetesPluginContext, log: Log): Promise<DeployState> {
   const provider = ctx.provider
