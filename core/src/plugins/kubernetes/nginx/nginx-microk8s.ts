@@ -15,8 +15,8 @@ import { configureMicrok8sAddons } from "../local/microk8s.js"
 import { waitForResources } from "../status/status.js"
 import { GardenIngressController } from "./ingress-controller.js"
 
-export class Microk8sGardenIngressController implements GardenIngressController {
-  async install(ctx: KubernetesPluginContext, log: Log): Promise<void> {
+export class Microk8sGardenIngressController extends GardenIngressController {
+  override async install(ctx: KubernetesPluginContext, log: Log): Promise<void> {
     const provider = ctx.provider
 
     const status = await microk8sNginxStatus(log)
@@ -44,11 +44,11 @@ export class Microk8sGardenIngressController implements GardenIngressController 
     })
   }
 
-  async ready(_ctx: KubernetesPluginContext, log: Log): Promise<boolean> {
+  override async ready(_ctx: KubernetesPluginContext, log: Log): Promise<boolean> {
     return (await microk8sNginxStatus(log)) === "ready"
   }
 
-  async uninstall(ctx: KubernetesPluginContext, log: Log): Promise<void> {
+  override async uninstall(ctx: KubernetesPluginContext, log: Log): Promise<void> {
     const status = await microk8sNginxStatus(log)
     if (status === "missing") {
       return

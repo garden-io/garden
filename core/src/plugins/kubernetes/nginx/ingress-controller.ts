@@ -15,10 +15,12 @@ import { MinikubeGardenIngressController } from "./nginx-minikube.js"
 import { KindGardenIngressController } from "./nginx-kind.js"
 import { EphemeralHelmGardenIngressController } from "./nginx-helm-ephemeral.js"
 
-export interface GardenIngressController {
-  install: (ctx: KubernetesPluginContext, log: Log) => Promise<void>
-  uninstall: (ctx: KubernetesPluginContext, log: Log) => Promise<void>
-  ready: (ctx: KubernetesPluginContext, log: Log) => Promise<boolean>
+export abstract class GardenIngressController {
+  abstract install(ctx: KubernetesPluginContext, log: Log): Promise<void>
+
+  abstract uninstall(ctx: KubernetesPluginContext, log: Log): Promise<void>
+
+  abstract ready(ctx: KubernetesPluginContext, log: Log): Promise<boolean>
 }
 
 export function getGardenIngressController(ctx: KubernetesPluginContext): GardenIngressController | undefined {

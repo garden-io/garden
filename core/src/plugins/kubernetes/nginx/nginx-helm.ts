@@ -27,16 +27,16 @@ const HELM_INGRESS_NGINX_DEPLOYMENT_TIMEOUT = "300s"
 
 type _HelmValue = number | string | boolean | object | null | undefined
 
-export abstract class HelmGardenIngressController implements GardenIngressController {
-  install(ctx: KubernetesPluginContext, log: Log): Promise<void> {
+export abstract class HelmGardenIngressController extends GardenIngressController {
+  override install(ctx: KubernetesPluginContext, log: Log): Promise<void> {
     return helmNginxInstall(ctx, log, this.helmValuesGetter())
   }
 
-  ready(ctx: KubernetesPluginContext, log: Log): Promise<boolean> {
+  override ready(ctx: KubernetesPluginContext, log: Log): Promise<boolean> {
     return helmIngressControllerReady(ctx, log, this.helmValuesGetter())
   }
 
-  uninstall(ctx: KubernetesPluginContext, log: Log): Promise<void> {
+  override uninstall(ctx: KubernetesPluginContext, log: Log): Promise<void> {
     return helmNginxUninstall(ctx, log, this.helmValuesGetter())
   }
 

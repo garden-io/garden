@@ -15,8 +15,8 @@ import { KubeApi } from "../api.js"
 import { checkResourceStatus, waitForResources } from "../status/status.js"
 import { GardenIngressController } from "./ingress-controller.js"
 
-export class MinikubeGardenIngressController implements GardenIngressController {
-  async install(ctx: KubernetesPluginContext, log: Log): Promise<void> {
+export class MinikubeGardenIngressController extends GardenIngressController {
+  override async install(ctx: KubernetesPluginContext, log: Log): Promise<void> {
     const provider = ctx.provider
     const status = await minikubeNginxStatus(ctx, log)
     if (status === "ready") {
@@ -36,11 +36,11 @@ export class MinikubeGardenIngressController implements GardenIngressController 
     })
   }
 
-  async ready(ctx: KubernetesPluginContext, log: Log): Promise<boolean> {
+  override async ready(ctx: KubernetesPluginContext, log: Log): Promise<boolean> {
     return (await minikubeNginxStatus(ctx, log)) === "ready"
   }
 
-  async uninstall(ctx: KubernetesPluginContext, log: Log): Promise<void> {
+  override async uninstall(ctx: KubernetesPluginContext, log: Log): Promise<void> {
     const status = await minikubeNginxStatus(ctx, log)
     if (status === "missing") {
       return
