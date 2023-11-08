@@ -12,39 +12,37 @@ import { HelmGardenIngressController } from "./nginx-helm.js"
 
 export class K3sHelmGardenIngressController extends HelmGardenIngressController {
   helmValuesGetter(): NginxHelmValuesGetter {
-    return getK3sNginxHelmValues
-  }
-}
-
-export const getK3sNginxHelmValues: NginxHelmValuesGetter = (systemVars: SystemVars) => {
-  return {
-    name: "ingress-controller",
-    controller: {
-      kind: "Deployment",
-      updateStrategy: {
-        type: "RollingUpdate",
-        rollingUpdate: {
-          maxUnavailable: 1,
+    return (systemVars: SystemVars) => {
+      return {
+        name: "ingress-controller",
+        controller: {
+          kind: "Deployment",
+          updateStrategy: {
+            type: "RollingUpdate",
+            rollingUpdate: {
+              maxUnavailable: 1,
+            },
+          },
+          extraArgs: {
+            "default-backend-service": `${systemVars.namespace}/default-backend`,
+          },
+          minReadySeconds: 1,
+          tolerations: systemVars["system-tolerations"],
+          nodeSelector: systemVars["system-node-selector"],
+          admissionWebhooks: {
+            enabled: false,
+          },
+          ingressClassResource: {
+            name: "nginx",
+            enabled: true,
+            default: true,
+          },
+          replicaCount: 1,
         },
-      },
-      extraArgs: {
-        "default-backend-service": `${systemVars.namespace}/default-backend`,
-      },
-      minReadySeconds: 1,
-      tolerations: systemVars["system-tolerations"],
-      nodeSelector: systemVars["system-node-selector"],
-      admissionWebhooks: {
-        enabled: false,
-      },
-      ingressClassResource: {
-        name: "nginx",
-        enabled: true,
-        default: true,
-      },
-      replicaCount: 1,
-    },
-    defaultBackend: {
-      enabled: false,
-    },
+        defaultBackend: {
+          enabled: false,
+        },
+      }
+    }
   }
 }

@@ -12,47 +12,45 @@ import { HelmGardenIngressController } from "./nginx-helm.js"
 
 export class EphemeralHelmGardenIngressController extends HelmGardenIngressController {
   helmValuesGetter(): NginxHelmValuesGetter {
-    return getEphemeralNginxHelmValues
-  }
-}
-
-export const getEphemeralNginxHelmValues: NginxHelmValuesGetter = (systemVars: SystemVars) => {
-  return {
-    name: "ingress-controller",
-    controller: {
-      kind: "Deployment",
-      updateStrategy: {
-        type: "RollingUpdate",
-        rollingUpdate: {
-          maxUnavailable: 1,
+    return (systemVars: SystemVars) => {
+      return {
+        name: "ingress-controller",
+        controller: {
+          kind: "Deployment",
+          updateStrategy: {
+            type: "RollingUpdate",
+            rollingUpdate: {
+              maxUnavailable: 1,
+            },
+          },
+          extraArgs: {
+            "default-backend-service": `${systemVars.namespace}/default-backend`,
+          },
+          minReadySeconds: 1,
+          tolerations: systemVars["system-tolerations"],
+          nodeSelector: systemVars["system-node-selector"],
+          admissionWebhooks: {
+            enabled: false,
+          },
+          ingressClassResource: {
+            name: "nginx",
+            enabled: true,
+            default: true,
+          },
+          replicaCount: 1,
+          service: {
+            annotations: {
+              "kubernetes.namespace.so/expose": "true",
+              "kubernetes.namespace.so/exposed-port-80": "wildcard",
+              "kubernetes.namespace.so/exposed-port-443": "wildcard",
+            },
+            type: "LoadBalancer",
+          },
         },
-      },
-      extraArgs: {
-        "default-backend-service": `${systemVars.namespace}/default-backend`,
-      },
-      minReadySeconds: 1,
-      tolerations: systemVars["system-tolerations"],
-      nodeSelector: systemVars["system-node-selector"],
-      admissionWebhooks: {
-        enabled: false,
-      },
-      ingressClassResource: {
-        name: "nginx",
-        enabled: true,
-        default: true,
-      },
-      replicaCount: 1,
-      service: {
-        annotations: {
-          "kubernetes.namespace.so/expose": "true",
-          "kubernetes.namespace.so/exposed-port-80": "wildcard",
-          "kubernetes.namespace.so/exposed-port-443": "wildcard",
+        defaultBackend: {
+          enabled: false,
         },
-        type: "LoadBalancer",
-      },
-    },
-    defaultBackend: {
-      enabled: false,
-    },
+      }
+    }
   }
 }

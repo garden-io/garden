@@ -12,45 +12,43 @@ import { HelmGardenIngressController } from "./nginx-helm.js"
 
 export class GenericHelmGardenIngressController extends HelmGardenIngressController {
   helmValuesGetter(): NginxHelmValuesGetter {
-    return getGenericNginxHelmValues
-  }
-}
-
-export const getGenericNginxHelmValues: NginxHelmValuesGetter = (systemVars: SystemVars) => {
-  return {
-    name: "ingress-controller",
-    controller: {
-      kind: "DaemonSet",
-      updateStrategy: {
-        type: "RollingUpdate",
-        rollingUpdate: {
-          maxUnavailable: 1,
+    return (systemVars: SystemVars) => {
+      return {
+        name: "ingress-controller",
+        controller: {
+          kind: "DaemonSet",
+          updateStrategy: {
+            type: "RollingUpdate",
+            rollingUpdate: {
+              maxUnavailable: 1,
+            },
+          },
+          extraArgs: {
+            "default-backend-service": `${systemVars.namespace}/default-backend`,
+          },
+          minReadySeconds: 1,
+          tolerations: systemVars["system-tolerations"],
+          nodeSelector: systemVars["system-node-selector"],
+          admissionWebhooks: {
+            enabled: false,
+          },
+          ingressClassResource: {
+            name: "nginx",
+            enabled: true,
+            default: true,
+          },
+          hostPort: {
+            enabled: true,
+            ports: {
+              http: systemVars["ingress-http-port"],
+              https: systemVars["ingress-https-port"],
+            },
+          },
         },
-      },
-      extraArgs: {
-        "default-backend-service": `${systemVars.namespace}/default-backend`,
-      },
-      minReadySeconds: 1,
-      tolerations: systemVars["system-tolerations"],
-      nodeSelector: systemVars["system-node-selector"],
-      admissionWebhooks: {
-        enabled: false,
-      },
-      ingressClassResource: {
-        name: "nginx",
-        enabled: true,
-        default: true,
-      },
-      hostPort: {
-        enabled: true,
-        ports: {
-          http: systemVars["ingress-http-port"],
-          https: systemVars["ingress-https-port"],
+        defaultBackend: {
+          enabled: false,
         },
-      },
-    },
-    defaultBackend: {
-      enabled: false,
-    },
+      }
+    }
   }
 }
