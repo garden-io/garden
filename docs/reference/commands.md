@@ -1832,7 +1832,7 @@ actionConfigs:
 
       cache:
         exclude:
-          # Specify the list of variables to ignore when caching this action. This is particularly useful for the
+          # Specify the list of variables to exclude when caching this action. This is particularly useful for the
           # distributed caching where a certain variable might change across environments, but the action should
           # still be cached.
           #
@@ -2044,7 +2044,7 @@ actionConfigs:
 
       cache:
         exclude:
-          # Specify the list of variables to ignore when caching this action. This is particularly useful for the
+          # Specify the list of variables to exclude when caching this action. This is particularly useful for the
           # distributed caching where a certain variable might change across environments, but the action should
           # still be cached.
           #
@@ -2195,7 +2195,7 @@ actionConfigs:
 
       cache:
         exclude:
-          # Specify the list of variables to ignore when caching this action. This is particularly useful for the
+          # Specify the list of variables to exclude when caching this action. This is particularly useful for the
           # distributed caching where a certain variable might change across environments, but the action should
           # still be cached.
           #
@@ -2346,7 +2346,7 @@ actionConfigs:
 
       cache:
         exclude:
-          # Specify the list of variables to ignore when caching this action. This is particularly useful for the
+          # Specify the list of variables to exclude when caching this action. This is particularly useful for the
           # distributed caching where a certain variable might change across environments, but the action should
           # still be cached.
           #
