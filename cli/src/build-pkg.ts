@@ -126,7 +126,7 @@ const targets: { [name: string]: { spec: TargetSpec; handler: (p: TargetHandlerP
       nodeBinaryPlatform: "linux",
       // Alpine builds live in https://unofficial-builds.nodejs.org/download/release/
       url: "https://unofficial-builds.nodejs.org/download/release/v21.1.0/node-v21.1.0-linux-x64-musl.tar.gz",
-      checksum: "e71212feaa3a54c1736e173f3aa17ba777f1f189659437c589af54742d95a1d0",
+      checksum: "a3c838b0d00e7c2a218ceef39b4bf2c6dd6a433eb5970012fe36038904c8feef",
     },
     handler: pkgAlpine,
   },
