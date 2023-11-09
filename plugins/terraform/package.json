@@ -19,7 +19,7 @@
   },
   "devDependencies": {
     "@types/chai": "^4.3.4",
-    "@types/node": "^18",
+    "@types/node": "^20",
     "chai": "^4.3.7",
     "mocha": "^10.2.0",
     "source-map-support": "^0.5.21",
