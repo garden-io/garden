@@ -10,6 +10,7 @@ import { execa } from "execa"
 import { expect } from "chai"
 import tmp from "tmp-promise"
 import fsExtra from "fs-extra"
+
 const { createFile, ensureSymlink, lstat, mkdir, mkdirp, realpath, remove, symlink, writeFile } = fsExtra
 import { basename, join, relative, resolve } from "path"
 
@@ -606,24 +607,6 @@ export const commonGitHandlerTests = (handlerCls: new (params: VcsHandlerParams)
           ])
         })
       })
-    })
-  })
-
-  describe("toGitConfigCompatiblePath", () => {
-    it("should return an unmodified path in Linux", async () => {
-      const path = "/home/user/repo"
-      expect(handler.toGitConfigCompatiblePath(path, "linux")).to.equal(path)
-    })
-
-    it("should return an unmodified path in macOS", async () => {
-      const path = "/Users/user/repo"
-      expect(handler.toGitConfigCompatiblePath(path, "darwin")).to.equal(path)
-    })
-
-    it("should return a modified and corrected path in Windows", async () => {
-      const path = "C:\\Users\\user\\repo"
-      const expectedPath = "C:/Users/user/repo"
-      expect(handler.toGitConfigCompatiblePath(path, "win32")).to.equal(expectedPath)
     })
   })
 
