@@ -27,7 +27,6 @@ import { resolve } from "path"
 import { dedent } from "../../util/string.js"
 import { kubernetesModuleSpecSchema } from "./kubernetes-type/module-config.js"
 import { helmModuleSpecSchema, helmModuleOutputsSchema } from "./helm/module-config.js"
-import { getSystemMetadataNamespaceName } from "./system.js"
 import { defaultIngressClass } from "./constants.js"
 import { pvcModuleDefinition, persistentvolumeclaimDeployDefinition } from "./volumes/persistentvolumeclaim.js"
 import { helm3Spec } from "./helm/helm-cli.js"
@@ -57,8 +56,6 @@ export async function configureProvider({
   projectRoot,
   config,
 }: ConfigureProviderParams<KubernetesConfig>) {
-  config._systemServices = []
-
   // Convert string shorthand to canonical format
   if (isString(config.namespace)) {
     config.namespace = { name: config.namespace }
@@ -69,8 +66,6 @@ export async function configureProvider({
   }
 
   if (config.setupIngressController === "nginx") {
-    config._systemServices.push("ingress-controller", "default-backend")
-
     if (!config.ingressClass) {
       config.ingressClass = defaultIngressClass
     }
@@ -101,9 +96,8 @@ export async function debugInfo({ ctx, log, includeProject }: GetDebugInfoParams
     .info("collecting provider configuration")
 
   const systemNamespace = await getSystemNamespace(k8sCtx, provider, log)
-  const systemMetadataNamespace = getSystemMetadataNamespaceName(provider.config)
 
-  const namespacesList = [systemNamespace, systemMetadataNamespace]
+  const namespacesList = [systemNamespace]
   if (includeProject) {
     const appNamespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
     namespacesList.push(appNamespace)

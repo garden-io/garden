@@ -9,7 +9,6 @@
 import type { StringMap } from "../../config/common.js"
 import {
   joi,
-  joiArray,
   joiIdentifier,
   joiIdentifierDescription,
   joiProviderName,
@@ -28,7 +27,6 @@ import {
 } from "../container/moduleConfig.js"
 import type { PluginContext } from "../../plugin-context.js"
 import { dedent, deline } from "../../util/string.js"
-import { defaultSystemNamespace } from "./system.js"
 import type { SyncableKind } from "./types.js"
 import { syncableKinds } from "./types.js"
 import type { BaseTaskSpec } from "../../config/task.js"
@@ -42,7 +40,9 @@ import type { SyncDefaults } from "./sync.js"
 import { syncDefaultsSchema } from "./sync.js"
 import { KUBECTL_DEFAULT_TIMEOUT } from "./kubectl.js"
 import { DOCS_BASE_URL } from "../../constants.js"
-import { defaultKanikoImageName } from "./constants.js"
+import { defaultKanikoImageName, defaultSystemNamespace } from "./constants.js"
+import type { LocalKubernetesClusterType } from "./local/config.js"
+import type { EphemeralKubernetesClusterType } from "./ephemeral/config.js"
 
 export interface ProviderSecretRef {
   name: string
@@ -122,6 +122,8 @@ export interface ClusterBuildkitCacheConfig {
   registry?: ContainerRegistryConfig
 }
 
+export type KubernetesClusterType = LocalKubernetesClusterType | EphemeralKubernetesClusterType
+
 export interface KubernetesConfig extends BaseProviderConfig {
   buildMode: ContainerBuildMode
   clusterBuildkit?: {
@@ -173,8 +175,7 @@ export interface KubernetesConfig extends BaseProviderConfig {
   gardenSystemNamespace: string
   tlsCertificates: IngressTlsCertificate[]
   certManager?: CertManagerConfig
-  clusterType?: "kind" | "minikube" | "microk8s" | "k3s"
-  _systemServices: string[]
+  clusterType?: KubernetesClusterType
 }
 
 export type KubernetesProvider = Provider<KubernetesConfig>
@@ -633,7 +634,6 @@ export const kubernetesConfigBase = () =>
       tlsCertificates: joiSparseArray(tlsCertificateSchema())
         .unique("name")
         .description("One or more certificates to use for ingress."),
-      _systemServices: joiArray(joiIdentifier()).meta({ internal: true }),
       systemNodeSelector: joiStringMap(joi.string())
         .description(
           dedent`

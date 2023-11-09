@@ -10,13 +10,13 @@ import { encodeYamlMulti } from "../../util/serialization.js"
 import type { ExecParams } from "../../util/ext-tools.js"
 import { PluginTool } from "../../util/ext-tools.js"
 import type { Log } from "../../logger/log-entry.js"
-import type { KubernetesProvider } from "./config.js"
+import type { KubernetesPluginContext, KubernetesProvider } from "./config.js"
 import type { KubernetesResource } from "./types.js"
 import { dedent } from "../../util/string.js"
 import { getResourceKey, hashManifest } from "./util.js"
 import type { PluginToolSpec } from "../../plugin/tools.js"
 import type { PluginContext } from "../../plugin-context.js"
-import type { KubeApi } from "./api.js"
+import { KubeApi } from "./api.js"
 import { KUBECTL_RETRY_OPTS, KubernetesError } from "./api.js"
 import fsExtra from "fs-extra"
 const { pathExists } = fsExtra
@@ -24,6 +24,9 @@ import { ChildProcessError, ConfigurationError } from "../../exceptions.js"
 import type { RetryOpts } from "./retry.js"
 import { requestWithRetry } from "./retry.js"
 import { k8sManifestHashAnnotationKey } from "./status/status.js"
+import { loadAll } from "js-yaml"
+import { isTruthy } from "../../util/util.js"
+import { readFile } from "fs/promises"
 
 // Corresponds to the default prune whitelist in `kubectl`.
 // See: https://github.com/kubernetes/kubectl/blob/master/pkg/cmd/apply/prune.go#L176-L192
@@ -166,6 +169,14 @@ export async function apply({
   } catch (_) {
     return result
   }
+}
+
+export async function applyYamlFromFile(ctx: KubernetesPluginContext, log: Log, path: string) {
+  const api = await KubeApi.factory(log, ctx, ctx.provider)
+  const manifests = loadAll((await readFile(path)).toString())
+    .filter(isTruthy)
+    .map((m) => m as KubernetesResource)
+  await apply({ log, ctx, api, provider: ctx.provider, manifests, validate: false })
 }
 
 export async function deleteResources(params: {

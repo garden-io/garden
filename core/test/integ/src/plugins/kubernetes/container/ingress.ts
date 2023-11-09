@@ -20,7 +20,6 @@ import {
 } from "../../../../../../src/plugins/kubernetes/container/ingress.js"
 import type { ContainerDeployAction } from "../../../../../../src/plugins/container/moduleConfig.js"
 import type { ServicePortProtocol, ContainerIngressSpec } from "../../../../../../src/plugins/container/moduleConfig.js"
-import { defaultSystemNamespace } from "../../../../../../src/plugins/kubernetes/system.js"
 import { getContainerTestGarden } from "./container.js"
 import type { PartialBy } from "../../../../../../src/util/util.js"
 import type { Resolved } from "../../../../../../src/actions/types.js"
@@ -28,6 +27,7 @@ import { actionFromConfig } from "../../../../../../src/graph/actions.js"
 import type { DeployAction } from "../../../../../../src/actions/deploy.js"
 import { DEFAULT_DEPLOY_TIMEOUT_SEC } from "../../../../../../src/constants.js"
 import { uuidv4 } from "../../../../../../src/util/random.js"
+import { defaultSystemNamespace } from "../../../../../../src/plugins/kubernetes/constants.js"
 
 const namespace = "my-namespace"
 const ports = [
@@ -62,7 +62,6 @@ const basicConfig: PartialConfig = {
   setupIngressController: null,
   systemNodeSelector: {},
   tlsCertificates: [],
-  _systemServices: [],
 }
 
 const singleTlsConfig: PartialConfig = {

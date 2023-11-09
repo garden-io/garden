@@ -28,7 +28,7 @@ import { gardenAnnotationKey } from "../../../util/string.js"
 
 export const gardenCloudAECPauseAnnotation = gardenAnnotationKey("aec-status")
 
-const helmStatusMap: { [status: string]: DeployState } = {
+export const helmStatusMap: { [status: string]: DeployState } = {
   unknown: "unknown",
   deployed: "ready",
   deleted: "missing",
