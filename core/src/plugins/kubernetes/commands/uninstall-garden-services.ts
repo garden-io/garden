@@ -8,9 +8,8 @@
 
 import chalk from "chalk"
 import type { PluginCommand } from "../../../plugin/command.js"
-import { getKubernetesSystemVariables } from "../init.js"
 import type { KubernetesPluginContext } from "../config.js"
-import { getSystemGarden } from "../system.js"
+import { ingressControllerUninstall } from "../nginx/ingress-controller.js"
 
 export const uninstallGardenServices: PluginCommand = {
   name: "uninstall-garden-services",
@@ -22,25 +21,13 @@ export const uninstallGardenServices: PluginCommand = {
 
   handler: async ({ ctx, log }) => {
     const k8sCtx = <KubernetesPluginContext>ctx
-    const variables = getKubernetesSystemVariables(k8sCtx.provider.config)
 
-    const sysGarden = await getSystemGarden(k8sCtx, variables || {}, log)
-    const actions = await sysGarden.getActionRouter()
-
-    const graph = await sysGarden.getConfigGraph({ log, emit: false })
-    const deploys = graph.getDeploys()
-
-    log.info("")
-
-    const deployNames = deploys.map((s) => s.name)
-    const statuses = await actions.deleteDeploys({ graph, log, names: deployNames })
-
-    log.info("")
-
-    const environmentStatuses = await actions.provider.cleanupAll(log)
+    if (k8sCtx.provider.config.setupIngressController === "nginx") {
+      await ingressControllerUninstall(k8sCtx, log)
+    }
 
     log.info(chalk.green("\nDone!"))
 
-    return { result: { serviceStatuses: statuses, environmentStatuses } }
+    return { result: {} }
   },
 }

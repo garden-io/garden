@@ -132,7 +132,6 @@ export class GardenServer extends EventEmitter {
   private statusLog?: Log
 
   private server?: Server
-  private app?: websockify.App
 
   private manager: GardenInstanceManager
   private incomingEvents: EventBus
@@ -169,9 +168,8 @@ export class GardenServer extends EventEmitter {
     if (this.server) {
       return
     }
-    const app = await this.createApp()
-    this.app = app
 
+    const app = await this.createApp()
     const hostname = gardenEnv.GARDEN_SERVER_HOSTNAME || "localhost"
 
     const _start = async () => {

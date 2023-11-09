@@ -223,7 +223,6 @@ async function buildBinaries(args: string[]) {
   // Copy static dir, stripping out undesired files for the dist build
   console.log(chalk.cyan("Copying static directory"))
   await exec("rsync", ["-r", "-L", "--exclude=.garden", "--exclude=.git", STATIC_DIR, distTmpDir])
-  await exec("git", ["init"], { cwd: tmpStaticDir })
 
   // Copy each package to the temp dir
   console.log(chalk.cyan("Getting package info"))

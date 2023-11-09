@@ -6,22 +6,18 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import type Joi from "@hapi/joi"
-import normalize from "normalize-path"
 import { sortBy, pick } from "lodash-es"
 import { createHash } from "node:crypto"
-import { validateSchema } from "../config/validation.js"
-import { join, relative, isAbsolute, sep } from "path"
-import { DOCS_BASE_URL, GARDEN_VERSIONFILE_NAME as GARDEN_TREEVERSION_FILENAME } from "../constants.js"
+import { relative, sep } from "path"
+import { DOCS_BASE_URL } from "../constants.js"
 import fsExtra from "fs-extra"
-const { pathExists, readFile, writeFile } = fsExtra
-import { ConfigurationError } from "../exceptions.js"
+
+const { writeFile } = fsExtra
 import type { ExternalSourceType } from "../util/ext-source-util.js"
 import { getRemoteSourceLocalPath, getRemoteSourcesPath } from "../util/ext-source-util.js"
 import type { ModuleConfig } from "../config/module.js"
 import { serializeConfig } from "../config/module.js"
 import type { Log } from "../logger/log-entry.js"
-import { treeVersionSchema } from "../config/common.js"
 import { dedent, splitLast } from "../util/string.js"
 import { fixedProjectExcludes } from "../util/fs.js"
 import type { TreeCache } from "../cache.js"
@@ -38,6 +34,7 @@ import chalk from "chalk"
 import { Profile } from "../util/profiling.js"
 
 import AsyncLock from "async-lock"
+
 const scanLock = new AsyncLock()
 
 export const versionStringPrefix = "v-"
@@ -164,9 +161,13 @@ export abstract class VcsHandler {
   abstract name: string
 
   abstract getRepoRoot(log: Log, path: string): Promise<string>
+
   abstract getFiles(params: GetFilesParams): Promise<VcsFile[]>
+
   abstract ensureRemoteSource(params: RemoteSourceParams): Promise<string>
+
   abstract updateRemoteSource(params: RemoteSourceParams): Promise<void>
+
   abstract getPathInfo(log: Log, path: string): Promise<VcsInfo>
 
   clearTreeCache() {
@@ -266,14 +267,6 @@ export abstract class VcsHandler {
     this.cache.invalidateUp(log, pathToCacheContext(path))
   }
 
-  async resolveTreeVersion(params: GetTreeVersionParams): Promise<TreeVersion> {
-    // the version file is used internally to specify versions outside of source control
-    const path = getSourcePath(params.config)
-    const versionFilePath = join(path, GARDEN_TREEVERSION_FILENAME)
-    const fileVersion = await readTreeVersionFile(versionFilePath)
-    return fileVersion || (await this.getTreeVersion(params))
-  }
-
   /**
    * Returns a map of the optimal paths for each of the given action/module source path.
    * This is used to avoid scanning more of each git repository than necessary, and
@@ -344,49 +337,6 @@ export abstract class VcsHandler {
   getRemoteSourceLocalPath(name: string, url: string, type: ExternalSourceType) {
     return getRemoteSourceLocalPath({ gardenDirPath: this.gardenDirPath, name, url, type })
   }
-}
-
-async function readVersionFile(path: string, schema: Joi.Schema): Promise<any> {
-  if (!(await pathExists(path))) {
-    return null
-  }
-
-  // this is used internally to specify version outside of source control
-  const versionFileContents = (await readFile(path)).toString().trim()
-
-  if (!versionFileContents) {
-    return null
-  }
-
-  try {
-    return validateSchema(JSON.parse(versionFileContents), schema)
-  } catch (error) {
-    throw new ConfigurationError({
-      message: `Unable to parse ${path} as valid version file: ${error}`,
-    })
-  }
-}
-
-export async function readTreeVersionFile(path: string): Promise<TreeVersion | null> {
-  return readVersionFile(path, treeVersionSchema())
-}
-
-/**
- * Writes a normalized TreeVersion file to the specified directory
- *
- * @param dir The directory to write the file to
- * @param version The TreeVersion for the directory
- */
-export async function writeTreeVersionFile(dir: string, version: TreeVersion) {
-  const processed = {
-    ...version,
-    files: version.files
-      // Always write relative paths, normalized to POSIX style
-      .map((f) => normalize(isAbsolute(f) ? relative(dir, f) : f))
-      .filter((f) => f !== GARDEN_TREEVERSION_FILENAME),
-  }
-  const path = join(dir, GARDEN_TREEVERSION_FILENAME)
-  await writeFile(path, JSON.stringify(processed, null, 4) + "\n")
 }
 
 /**

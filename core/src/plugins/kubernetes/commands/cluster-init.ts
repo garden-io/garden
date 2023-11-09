@@ -7,30 +7,33 @@
  */
 
 import type { PluginCommand } from "../../../plugin/command.js"
-import { prepareSystem, getEnvironmentStatus } from "../init.js"
+import { prepareEnvironment, getEnvironmentStatus } from "../init.js"
 import chalk from "chalk"
+import { emitNonRepeatableWarning } from "../../../warnings.js"
 
+// TODO: remove in 0.14
 export const clusterInit: PluginCommand = {
   name: "cluster-init",
-  description: "Initialize or update cluster-wide Garden services.",
+  description: "[DEPRECATED] Initialize or update cluster-wide Garden services.",
 
   title: ({ environmentName }) => {
     return `Initializing/updating cluster-wide services for ${chalk.white(environmentName)} environment`
   },
 
   handler: async ({ ctx, log }) => {
+    emitNonRepeatableWarning(log, "This command is now deprecated and will be removed in Garden 0.14.")
+
     const status = await getEnvironmentStatus({ ctx, log })
     let result = {}
 
     if (status.ready) {
       log.info("All services already initialized!")
     } else {
-      result = await prepareSystem({
+      result = await prepareEnvironment({
         ctx,
         log,
         force: true,
         status,
-        clusterInit: true,
       })
     }
 
