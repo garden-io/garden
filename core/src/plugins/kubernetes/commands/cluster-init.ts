@@ -9,6 +9,7 @@
 import type { PluginCommand } from "../../../plugin/command.js"
 import { prepareEnvironment, getEnvironmentStatus } from "../init.js"
 import chalk from "chalk"
+import { emitNonRepeatableWarning } from "../../../warnings.js"
 
 // TODO: remove in 0.14
 export const clusterInit: PluginCommand = {
@@ -20,6 +21,8 @@ export const clusterInit: PluginCommand = {
   },
 
   handler: async ({ ctx, log }) => {
+    emitNonRepeatableWarning(log, "This command is now deprecated and will be removed in Garden 0.14.")
+
     const status = await getEnvironmentStatus({ ctx, log })
     let result = {}
 
