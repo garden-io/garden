@@ -23,12 +23,11 @@ import { createReadStream, createWriteStream } from "fs"
 import fsExtra from "fs-extra"
 const { copy, mkdirp, move, readdir, remove } = fsExtra
 import { GotHttpError, got } from "../util/http.js"
-import { promisify } from "node:util"
 import { gardenEnv } from "../constants.js"
 import semver from "semver"
-import stream from "stream"
 import type { Log } from "../logger/log-entry.js"
 import { realpath } from "fs/promises"
+import { pipeline } from "node:stream/promises"
 
 const ARM64_INTRODUCTION_VERSION = "0.13.12"
 
@@ -387,8 +386,6 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
       const tempPath = join(tempDir.path, filename)
 
       try {
-        // See https://github.com/sindresorhus/got/blob/main/documentation/3-streams.md
-        const pipeline = promisify(stream.pipeline)
         await pipeline(got.stream(url), createWriteStream(tempPath))
       } catch (err) {
         if (

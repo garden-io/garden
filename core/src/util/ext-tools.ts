@@ -26,7 +26,7 @@ import type { PluginContext } from "../plugin-context.js"
 import { LogLevel } from "../logger/logger.js"
 import { uuidv4 } from "./random.js"
 import { streamLogs, waitForProcess } from "./process.js"
-import { finished } from "node:stream/promises"
+import { pipeline } from "node:stream/promises"
 
 const toolsPath = join(GARDEN_GLOBAL_PATH, "tools")
 const lock = new AsyncLock()
@@ -344,7 +344,8 @@ export class PluginTool extends CliWrapper {
 
       if (!this.buildSpec.extract) {
         const targetExecutable = join(tmpPath, ...this.targetSubpath.split(posix.sep))
-        await finished(response.pipe(createWriteStream(targetExecutable)))
+        const writeStream = createWriteStream(targetExecutable)
+        await pipeline(response, writeStream)
         resolve()
       } else {
         const format = this.buildSpec.extract.format

@@ -21,6 +21,7 @@ import parseArgs from "minimist"
 import deline from "deline"
 import replace from "replace-in-file"
 import { fileURLToPath } from "node:url"
+import { finished } from "node:stream/promises"
 
 const moduleDirName = dirname(fileURLToPath(import.meta.url))
 
@@ -298,18 +299,10 @@ async function updateChangelog(version: string) {
       { cwd: gardenRoot }
     )
   ).stdout
-  return new Promise((resolve, reject) => {
-    const writeStream = createWriteStream(changelogPath)
-    writeStream.write(nextChangelogEntry)
-    writeStream.write(changelog)
-    writeStream.close()
-    writeStream.on("close", () => {
-      resolve(null)
-    })
-    writeStream.on("error", (error) => {
-      reject(error)
-    })
-  })
+  const writeStream = createWriteStream(changelogPath)
+  writeStream.write(nextChangelogEntry)
+  writeStream.write(changelog)
+  await finished(writeStream)
 }
 
 /**

@@ -29,6 +29,7 @@ import unzipper from "unzipper"
 import { fetch } from "undici"
 
 import tar from "tar"
+import { pipeline } from "stream"
 
 const repoRoot = resolve(GARDEN_CLI_ROOT, "..")
 const gardenSeaDir = resolve(repoRoot, "garden-sea")
@@ -589,8 +590,8 @@ async function downloadFromWeb({
   const hash = body.pipe(createHash("sha256"))
 
   const writeStream = createWriteStream(targetPath)
-  await finished(body.pipe(writeStream))
-
+  await pipeline(body, writeStream)
+  await finished(hash)
   const sha256 = hash.digest("hex")
 
   if (sha256 !== checksum) {
