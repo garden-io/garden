@@ -237,6 +237,17 @@ export const syncDefaultGroupSchema = memoize(() =>
     .description("Set the default group on files and directories at the target. " + ownerDocs)
 )
 
+export const syncSourcePathSchema = memoize(() =>
+  joi
+    .string()
+    .default(".")
+    .description(
+      deline`
+        POSIX-style or Windows path of the directory to sync to the target. Defaults to the config's directory if no value is provided.
+        `
+    )
+    .example("src")
+)
 export const syncTargetPathSchema = memoize(() =>
   joi
     .posixPath()
@@ -254,15 +265,7 @@ export const syncTargetPathSchema = memoize(() =>
 const containerSyncSchema = createSchema({
   name: "container-sync",
   keys: () => ({
-    source: joi
-      .string()
-      .default(".")
-      .description(
-        deline`
-        POSIX-style or Windows path of the directory to sync to the target. Defaults to the config's directory if no value is provided.
-        `
-      )
-      .example("src"),
+    source: syncSourcePathSchema(),
     target: syncTargetPathSchema(),
     exclude: syncExcludeSchema(),
     mode: syncModeSchema(),
