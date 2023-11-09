@@ -243,8 +243,12 @@ sync:
 
   # Specify one or more source files or directories to automatically sync with the running container.
   paths:
-    - # POSIX-style or Windows path of the directory to sync to the target. Defaults to the config's directory if no
-      # value is provided.
+    - # POSIX-style or Windows-style local path of the directory to sync to the target. Can be either absolute or
+      # relative to the source directory where the Deploy action is defined.
+      # This should generally be a templated path to another action's source path (e.g.
+      # `${actions.build.my-container-image.sourcePath}`), or a relative path. If a path is hard-coded, you must make
+      # sure the path exists, and that it is reliably the correct path for every user.
+      # Defaults to the Deploy action's config's directory if no value is provided.
       source: .
 
       # POSIX-style absolute path to sync to inside the container. The root path (i.e. "/") is not allowed.
@@ -1099,7 +1103,9 @@ Specify one or more source files or directories to automatically sync with the r
 
 [sync](#sync) > [paths](#syncpaths) > source
 
-POSIX-style or Windows path of the directory to sync to the target. Defaults to the config's directory if no value is provided.
+POSIX-style or Windows-style local path of the directory to sync to the target. Can be either absolute or relative to the source directory where the Deploy action is defined.
+This should generally be a templated path to another action's source path (e.g. `${actions.build.my-container-image.sourcePath}`), or a relative path. If a path is hard-coded, you must make sure the path exists, and that it is reliably the correct path for every user.
+Defaults to the Deploy action's config's directory if no value is provided.
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |
