@@ -1084,8 +1084,24 @@ jobs:
           command: |
             .\dist\windows-amd64\garden.exe deploy --root .\examples\demo-project\ --logger-type basic --log-level silly --env remote --force-build --var userId=$env:CIRCLE_BUILD_NUM-win
       - run:
-          name: Cleanup
+          name: Cleanup demo-project
           command: (kubectl delete namespace --wait=false demo-project-testing-$env:CIRCLE_BUILD_NUM-win) -or $true
+          when: always
+      - run:
+          name: Validate vote-helm project # to validate the sync mode paths on Windows with action-based configs
+          command: |
+            .\dist\windows-amd64\garden.exe validate --root .\e2e\projects\vote-helm\ --logger-type basic --log-level silly --env testing --var userId=$env:CIRCLE_BUILD_NUM-win
+      - run:
+          name: Cleanup vote-helm project
+          command: (kubectl delete namespace --wait=false vote-helm-testing-$env:CIRCLE_BUILD_NUM-win) -or $true
+          when: always
+      - run:
+          name: Validate vote-helm-modules project # to validate the sync mode paths on Windows with module-based configs
+          command: |
+            .\dist\windows-amd64\garden.exe validate --root .\e2e\projects\vote-helm-modules\ --logger-type basic --log-level silly --env testing --var userId=$env:CIRCLE_BUILD_NUM-win
+      - run:
+          name: Cleanup vote-helm-modules project
+          command: (kubectl delete namespace --wait=false vote-helm-modules-testing-$env:CIRCLE_BUILD_NUM-win) -or $true
           when: always
       - fail_fast
 
