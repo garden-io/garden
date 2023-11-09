@@ -26,7 +26,6 @@ import type {
   GetProfileResponse,
   GetProjectResponse,
   ListProjectsResponse,
-  Status,
 } from "@garden-io/platform-api-types"
 import { getCloudDistributionName, getCloudLogSectionName, getPackageVersion } from "../util/util.js"
 import type { CommandInfo } from "../plugin-context.js"
