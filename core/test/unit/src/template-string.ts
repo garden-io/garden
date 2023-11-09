@@ -1192,7 +1192,7 @@ describe("resolveTemplateString", () => {
     it("throws if the function fails", () => {
       void expectError(() => resolveTemplateString({ string: "${jsonDecode('{]}')}", context: new TestContext({}) }), {
         contains:
-          "Invalid template string (${jsonDecode('{]}')}): Error from helper function jsonDecode: SyntaxError: Unexpected token ] in JSON at position 1",
+          "Invalid template string (${jsonDecode('{]}')}): Error from helper function jsonDecode: SyntaxError: Expected property name or '}' in JSON at position 1 (line 1 column 2)",
       })
     })
 

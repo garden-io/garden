@@ -25,6 +25,7 @@ import { ensureBuilderSecret } from "../container/build/common.js"
 import type { ContainerBuildAction } from "../../container/config.js"
 import { k8sGetContainerBuildActionOutputs } from "../container/handlers.js"
 import type { Resolved } from "../../../actions/types.js"
+import { finished } from "node:stream/promises"
 
 const tmpTarPath = "/tmp/image.tar"
 const imagePullTimeoutSeconds = 60 * 20
@@ -220,5 +221,7 @@ async function loadImage({ ctx, runner, log }: { ctx: PluginContext; runner: Pod
       args: ["load", "-i", path],
       log,
     })
+
+    await finished(writeStream)
   })
 }

@@ -4,7 +4,6 @@ version: 2.1
 orbs:
   win: circleci/windows@2.2.0
   rok8s-scripts: fairwinds/rok8s-scripts@11.1.3
-  node: circleci/node@5.1.0
   macos: circleci/macos@2.4.0
 
 parameters:
@@ -21,8 +20,16 @@ parameters:
     GARDEN_DISABLE_ANALYTICS: "true"
     GARDEN_K8S_BUILD_SYNC_MODE: "mutagen"
 
+    # Libuv 1.45.0 is affected by a kernel bug on certain kernels (Ubuntu 22)
+    # This leads to errors where Garden tool downloading errors with ETXTBSY
+    # Apparently file descriptor accounting is broken when using USE_IO_URING on older kernels
+    # See also: https://github.com/libuv/libuv/pull/4141/files
+    # TODO: Remove this once libuv 1.47 landed in a future NodeJS version, and we upgraded to it.
+    UV_USE_IO_URING: "0"
+
+
   ubuntu-vm-runner: &ubuntu-vm-runner
-    image: "ubuntu-2204:2023.02.1"
+    image: "ubuntu-2204:2023.10.1"
     docker_layer_caching: true
 
   remote-docker: &remote-docker
@@ -31,7 +38,7 @@ parameters:
       docker_layer_caching: true
 
   runner-image: &runner-image
-    image: gardendev/circleci-runner:18.15.0-1@sha256:c830e29ab30a1c5b08cba4d041d3325ef6958aebeba1b10b1ee9566d7b1a4d42
+    image: gardendev/circleci-runner:21.1.0-1@sha256:1b773f6fcde1d9b65cb8a609c823076b3048104e73f04247e0fd86aa9bcc92dd
 
   # Configuration for our node jobs
   docker-runner: &docker-runner
@@ -98,23 +105,58 @@ commands:
       context:
         description: Set this to vm if installing in a VM, to avoid conflicting caches with the docker runs
         type: string
+      node_version:
+        description: The node version to use
+        type: string
+        default: v21.1.0
     steps:
       # See also https://github.com/CircleCI-Public/node-orb/issues/158#issuecomment-1461095390
-      - run: rm -rf ~/.npm
+      - run: rm -rf ~/.npm ~/.fnm
+
       - restore_cache:
           keys:
             # Prefer using the NPM cache for the package-lock hash, but fall back to any other cache too
-            - npm-v4-<<parameters.context>>-{{ checksum "package-lock.json" }}
+            - npm-v7-<<parameters.context>>-{{ checksum "package-lock.json" }}
             # If you uncomment the next line, we also restore caches if package-lock.json changed in case there is no exact match.
             # We decided not to do that for now for enhanced safety: Every time we update the lock file, we build the caches from scratch. Might be a little paranoid, but hardens against possible NPM bugs.
-            #- npm-v4-<<parameters.context>>
+            #- npm-v7-<<parameters.context>>
+
+      - run:
+          name: Install NodeJS
+          command: |
+            if [[ "$(node --version)" != "<<parameters.node_version>>" ]]; then
+              export PATH="$HOME/.fnm:$PATH"
+              echo 'export PATH="$HOME/.fnm:$PATH"' >> $BASH_ENV
+
+              # Install fnm if it's not already installed
+              if which fnm; then
+                echo "Using cached fnm installation"
+              else
+                curl -fsSL https://raw.githubusercontent.com/Schniz/fnm/9d0dd1b04521ac4a1c25bb91a65323dbb691e40c/.ci/install.sh | bash -s -- --install-dir "$HOME/.fnm" --force-install
+              fi
+
+              eval "`fnm env --fnm-dir "$HOME/.fnm-cache"`"
+              fnm env --fnm-dir "$HOME/.fnm-cache" >> $BASH_ENV
+
+              fnm use "<<parameters.node_version>>" --fnm-dir "$HOME/.fnm-cache" --install-if-missing
+              fnm default "<<parameters.node_version>>" --fnm-dir "$HOME/.fnm-cache"
+            fi
+      - run:
+          name: Test NodeJS version
+          command: |
+            if [[ "$(node --version)" != "<<parameters.node_version>>" ]]; then
+              echo "NodeJS installation failed. Expected version: <<parameters.node_version>>; Actually got: $(node --version)"
+              exit 1
+            fi
 
       - run: npm ci --prefer-offline --cache ~/.npm --no-audit
 
       - save_cache:
-          key: npm-v4-<<parameters.context>>-{{ checksum "package-lock.json" }}
+          key: npm-v7-<<parameters.context>>-{{ checksum "package-lock.json" }}
           paths:
             - ~/.npm
+            - ~/.fnm
+            - ~/.fnm-cache
             - node_modules
             - cli/node_modules
             - core/node_modules
@@ -251,12 +293,10 @@ commands:
 
             # To be able to run cargo
             source "$HOME/.cargo/env"
+            echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> $BASH_ENV
 
             # Cargo builds the other targets in Docker
             cargo install cross --git https://github.com/cross-rs/cross
-
-            # So that cross can be called
-            source "$HOME/.cargo/env"
 
   run_npm_dist:
     description: Package built code into executables and persist to dist directory
@@ -285,17 +325,12 @@ commands:
       - restore_cache:
           keys:
             - node-cache-v2-<<parameters.context>>-{{ checksum "cli/src/build-pkg.ts" }}
-            - node-cache-v2-<<parameters.context>>
+            # Nuke caches fully on every change; Otherwise weird things can happen if the cache is poisoned.
+            # - node-cache-v2-<<parameters.context>>
 
       - run:
           name: Run dist script
           command: |
-            # This is already done in the step that installs rust
-            # It also work on the native macos runner,
-            # but somehow it doesn't work for the docker based runner.
-            # We just source it again so we're sure it's available for the next steps
-            source "$HOME/.cargo/env"
-
             npm run dist -- --version "<<parameters.version>>" <<parameters.targets>>
 
       # We cache the node archives because the NodeJS download mirror is unreliable
@@ -382,8 +417,6 @@ jobs:
         default: ""
     steps:
       - checkout
-      - node/install:
-          node-version: '18.18.2'
       - install_rust
       # We need rosetta for running the tests for x86_64
       - macos/install-rosetta
@@ -410,8 +443,6 @@ jobs:
         default: ""
     steps:
       - checkout
-      - node/install:
-          node-version: '18.18.2'
       - install_rust
       - run:
           name: "Install rollup linux"

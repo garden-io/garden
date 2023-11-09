@@ -23,12 +23,11 @@ import { createReadStream, createWriteStream } from "fs"
 import fsExtra from "fs-extra"
 const { copy, mkdirp, move, readdir, remove } = fsExtra
 import { GotHttpError, got } from "../util/http.js"
-import { promisify } from "node:util"
 import { gardenEnv } from "../constants.js"
 import semver from "semver"
-import stream from "stream"
 import type { Log } from "../logger/log-entry.js"
 import { realpath } from "fs/promises"
+import { pipeline } from "node:stream/promises"
 
 const ARM64_INTRODUCTION_VERSION = "0.13.12"
 
@@ -387,8 +386,6 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
       const tempPath = join(tempDir.path, filename)
 
       try {
-        // See https://github.com/sindresorhus/got/blob/main/documentation/3-streams.md
-        const pipeline = promisify(stream.pipeline)
         await pipeline(got.stream(url), createWriteStream(tempPath))
       } catch (err) {
         if (
@@ -448,15 +445,10 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
         // Note: lazy-loading for startup performance
         const { default: unzipStream } = await import("unzip-stream")
 
-        await new Promise((_resolve, reject) => {
-          const extractor = unzipStream.Extract({ path: tempDir.path })
+        const extractor = unzipStream.Extract({ path: tempDir.path })
 
-          extractor.on("error", reject)
-          extractor.on("finish", _resolve)
-
-          const reader = createReadStream(tempPath)
-          reader.pipe(extractor)
-        })
+        const reader = createReadStream(tempPath)
+        await pipeline(reader, extractor)
       } else {
         await tar.x({
           file: tempPath,

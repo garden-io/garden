@@ -13,7 +13,6 @@ import { STATIC_DIR, GARDEN_CLI_ROOT, GARDEN_CORE_ROOT } from "@garden-io/core/b
 import { readFile, writeFile } from "fs/promises"
 import { remove, mkdirp, copy, pathExists } from "fs-extra/esm"
 import { exec, getPackageVersion } from "@garden-io/core/build/src/util/util.js"
-import { dedent } from "@garden-io/core/build/src/util/string.js"
 import { pick } from "lodash-es"
 import minimist from "minimist"
 import { createHash } from "node:crypto"
@@ -21,7 +20,7 @@ import { createReadStream, createWriteStream } from "fs"
 import { makeTempDir } from "@garden-io/core/build/test/helpers.js"
 import * as url from "node:url"
 import { Readable } from "node:stream"
-import { finished } from "node:stream/promises"
+import { pipeline } from "node:stream/promises"
 import type { Entry } from "unzipper"
 import unzipper from "unzipper"
 
@@ -79,10 +78,10 @@ const targets: { [name: string]: { spec: TargetSpec; handler: (p: TargetHandlerP
     spec: {
       os: "macos",
       arch: "x64",
-      node: "18.18.2",
+      node: "21.1.0",
       nodeBinaryPlatform: "darwin",
-      url: "https://nodejs.org/dist/v18.18.2/node-v18.18.2-darwin-x64.tar.gz",
-      checksum: "5bb8da908ed590e256a69bf2862238c8a67bc4600119f2f7721ca18a7c810c0f",
+      url: "https://nodejs.org/dist/v21.1.0/node-v21.1.0-darwin-x64.tar.gz",
+      checksum: "6b526c08320fcf41ced0ceee7588828ea2cb07ba826af4ff82b0ec53958fd8a4",
     },
     handler: pkgMacos,
   },
@@ -90,10 +89,10 @@ const targets: { [name: string]: { spec: TargetSpec; handler: (p: TargetHandlerP
     spec: {
       os: "macos",
       arch: "arm64",
-      node: "18.18.2",
+      node: "21.1.0",
       nodeBinaryPlatform: "darwin",
-      url: "https://nodejs.org/dist/v18.18.2/node-v18.18.2-darwin-arm64.tar.gz",
-      checksum: "9f982cc91b28778dd8638e4f94563b0c2a1da7aba62beb72bd427721035ab553",
+      url: "https://nodejs.org/dist/v21.1.0/node-v21.1.0-darwin-arm64.tar.gz",
+      checksum: "4872463830381785b91d13a7fbb9b6f4a9c7658e10d964f6c421951cec8833ad",
     },
     handler: pkgMacos,
   },
@@ -101,10 +100,10 @@ const targets: { [name: string]: { spec: TargetSpec; handler: (p: TargetHandlerP
     spec: {
       os: "linux",
       arch: "x64",
-      node: "18.18.2",
+      node: "21.1.0",
       nodeBinaryPlatform: "linux",
-      url: "https://nodejs.org/dist/v18.18.2/node-v18.18.2-linux-x64.tar.gz",
-      checksum: "a44c3e7f8bf91e852c928e5d8bd67ca316b35e27eec1d8acbe3b9dbe03688dab",
+      url: "https://nodejs.org/dist/v21.1.0/node-v21.1.0-linux-x64.tar.gz",
+      checksum: "b919cad4e8a5abbd7e6a4433c4f8a7cdc1a78c1e526c6c1aa4a5fcf74011ad2b",
     },
     handler: pkgLinux,
   },
@@ -112,10 +111,10 @@ const targets: { [name: string]: { spec: TargetSpec; handler: (p: TargetHandlerP
     spec: {
       os: "linux",
       arch: "arm64",
-      node: "18.18.2",
+      node: "21.1.0",
       nodeBinaryPlatform: "linux",
-      url: "https://nodejs.org/dist/v18.18.2/node-v18.18.2-linux-arm64.tar.gz",
-      checksum: "0c9a6502b66310cb26e12615b57304e91d92ac03d4adcb91c1906351d7928f0d",
+      url: "https://nodejs.org/dist/v21.1.0/node-v21.1.0-linux-arm64.tar.gz",
+      checksum: "5480f438703049f55f19fc3247f6aa1e8059b2f47cf08e9adfdcb7ce7aedff70",
     },
     handler: pkgLinux,
   },
@@ -123,11 +122,11 @@ const targets: { [name: string]: { spec: TargetSpec; handler: (p: TargetHandlerP
     spec: {
       os: "alpine",
       arch: "x64",
-      node: "18.18.2",
+      node: "21.1.0",
       nodeBinaryPlatform: "linux",
       // Alpine builds live in https://unofficial-builds.nodejs.org/download/release/
-      url: "https://unofficial-builds.nodejs.org/download/release/v18.18.2/node-v18.18.2-linux-x64-musl.tar.gz",
-      checksum: "e71212feaa3a54c1736e173f3aa17ba777f1f189659437c589af54742d95a1d0",
+      url: "https://unofficial-builds.nodejs.org/download/release/v21.1.0/node-v21.1.0-linux-x64-musl.tar.gz",
+      checksum: "a3c838b0d00e7c2a218ceef39b4bf2c6dd6a433eb5970012fe36038904c8feef",
     },
     handler: pkgAlpine,
   },
@@ -135,10 +134,10 @@ const targets: { [name: string]: { spec: TargetSpec; handler: (p: TargetHandlerP
     spec: {
       os: "win",
       arch: "x64",
-      node: "18.18.2",
+      node: "21.1.0",
       nodeBinaryPlatform: "win32",
-      url: "https://nodejs.org/dist/v18.18.2/node-v18.18.2-win-x64.zip",
-      checksum: "3bb0e51e579a41a22b3bf6cb2f3e79c03801aa17acbe0ca00fc555d1282e7acd",
+      url: "https://nodejs.org/dist/v21.1.0/node-v21.1.0-win-x64.zip",
+      checksum: "6ee3e74ecceb27f388d75a94d6782df670bad37a4d10ff2d28a7c7bcb75bdb49",
     },
     handler: pkgWindows,
   },
@@ -188,11 +187,14 @@ async function zipAndHash({ targetDir, archiveName, cwd, prefix, fileNames }: Zi
     fileNames
   )
 
-  const archiveHash = archiveStream.pipe(createHash("sha256"))
+  const sha256 = archiveStream.pipe(createHash("sha256"))
 
-  await finished(archiveStream.pipe(createWriteStream(targetArchive)))
+  await pipeline(archiveStream, createWriteStream(targetArchive))
 
-  await writeFile(resolve(targetDir, `${archiveName}.sha256`), archiveHash.digest("hex") + "\n")
+  // NOTE(steffen): I expected `await finished(sha256)` to do the job, but calling that crashed node without an error message for some reason.
+  await new Promise((r) => sha256.once("readable", r))
+
+  await writeFile(resolve(targetDir, `${archiveName}.sha256`), sha256.digest("hex") + "\n")
 }
 
 async function buildBinaries(args: string[]) {
@@ -325,8 +327,8 @@ async function buildBinaries(args: string[]) {
       let nodeArchiveChecksum: string | undefined
       if (await pathExists(nodeArchiveFilename)) {
         const readStream = createReadStream(nodeArchiveFilename)
-        const hash = readStream.pipe(createHash("sha256"))
-        await finished(readStream)
+        const hash = createHash("sha256")
+        await pipeline(readStream, hash)
         nodeArchiveChecksum = hash.digest("hex")
       }
 
@@ -334,27 +336,8 @@ async function buildBinaries(args: string[]) {
         console.log(chalk.green(` ✓ Using cached node ${spec.node} for ${targetName} at ${nodeArchiveFilename}`))
       } else {
         console.log(chalk.cyan(`Downloading node ${spec.node} for ${targetName} from ${spec.url}`))
-        const response = await fetch(spec.url)
-
-        if (!response.body) {
-          throw new Error(`No response body for ${spec.url}`)
-        }
-
-        const body = Readable.fromWeb(response.body)
-
-        const hash = body.pipe(createHash("sha256"))
-
-        const writeStream = createWriteStream(nodeArchiveFilename)
-        await finished(body.pipe(writeStream))
-
-        console.log(chalk.green(` ✓ Downloaded node ${spec.node} for ${targetName}`))
-
-        const sha256 = hash.digest("hex")
-
-        if (sha256 !== spec.checksum) {
-          throw new Error(`Checksum mismatch for ${spec.url}! Expected ${spec.checksum} but got ${sha256}`)
-        }
-        console.log(chalk.green(` ✓ Verified checksum for ${targetName}`))
+        await downloadFromWeb({ url: spec.url, checksum: spec.checksum, targetPath: nodeArchiveFilename })
+        console.log(chalk.green(` ✓ Downloaded node ${spec.node} and verified checksum for ${targetName}`))
       }
 
       console.log(chalk.cyan(`Extracting node ${spec.node} for ${targetName}`))
@@ -372,14 +355,14 @@ async function buildBinaries(args: string[]) {
             return path.endsWith(`/bin/${nodeFileName}`)
           },
         })
-        await finished(createReadStream(nodeArchiveFilename).pipe(extractStream))
+        await pipeline(createReadStream(nodeArchiveFilename), extractStream)
       } else {
         const zip = createReadStream(nodeArchiveFilename).pipe(unzipper.Parse({ forceStream: true }))
         for await (const i of zip) {
           const entry = i as Entry
           const fileName = entry.path
           if (fileName.endsWith(`/${nodeFileName}`)) {
-            await finished(entry.pipe(createWriteStream(resolve(extractionDir, nodeFileName))))
+            await pipeline(entry, createWriteStream(resolve(extractionDir, nodeFileName)))
           } else {
             entry.autodrain()
           }
@@ -472,36 +455,58 @@ async function pkgCommon({ targetName, spec }: { targetName: string; spec: Targe
   await mkdirp(targetPath)
 
   console.log(` - ${targetName} -> node-pty`)
-  const abi = getAbi(process.version, "node")
+  const abi = getAbi(spec.node, "node")
 
-  if (spec.nodeBinaryPlatform === "win32") {
-    const tmpDir = await makeTempDir()
-    // Seriously, this is so much easier than anything more native...
-    await exec(
-      "sh",
-      [
-        "-c",
-        dedent`
-          set -e
-          curl -s -L https://github.com/oznu/node-pty-prebuilt-multiarch/releases/download/v0.10.1-pre.5/node-pty-prebuilt-multiarch-v0.10.1-pre.5-node-v108-win32-x64.tar.gz | tar -xzv -C .
-          cp build/Release/* '${targetPath}'
-        `,
-      ],
-      { cwd: tmpDir.path }
-    )
-
-    await tmpDir.cleanup()
-  } else {
+  if (spec.nodeBinaryPlatform === "linux") {
     const filename = spec.os === "alpine" ? `node.abi${abi}.musl.node` : `node.abi${abi}.node`
     const abiPath = resolve(
       GARDEN_CORE_ROOT,
       "node_modules",
+      "@homebridge",
       "node-pty-prebuilt-multiarch",
       "prebuilds",
       `${spec.nodeBinaryPlatform}-${spec.arch}`,
       filename
     )
     await copy(abiPath, resolve(targetPath, "pty.node"))
+  } else {
+    const tmpDir = await makeTempDir()
+    const ptyArchiveFilename = resolve(tmpDir.path, "pty.tar.gz")
+
+    // See also https://github.com/homebridge/node-pty-prebuilt-multiarch/releases
+    const checksums = {
+      "120-win32-x64": "344921e4036277b1edcbc01d2c7b4a22a3e0a85c911bdf9255fe1168e8e439b6",
+      "120-darwin-x64": "c406d1ba59ffa750c8a456ae22a75a221eaee2579f3b6f54296e72a5d79c6853",
+      "120-darwin-arm64": "2818fd6a31dd5889fa9612ceb7ae5ebe5c2422964a4a908d1f05aec120ebccaf",
+    }
+
+    const key = `${abi}-${spec.nodeBinaryPlatform}-${spec.arch}`
+    const checksum = checksums[key]
+
+    if (!checksum) {
+      throw new Error(
+        `Missing checksum for ${key}. Needs to be updated when changing the NodeJS version or pty version.`
+      )
+    }
+
+    await downloadFromWeb({
+      url: `https://github.com/homebridge/node-pty-prebuilt-multiarch/releases/download/v0.11.8/node-pty-prebuilt-multiarch-v0.11.8-node-v${abi}-${spec.nodeBinaryPlatform}-${spec.arch}.tar.gz`,
+      checksum,
+      targetPath: ptyArchiveFilename,
+    })
+
+    // extract
+    const extractStream = tar.x({
+      C: targetPath,
+      // The stripping removes the outer directories, so we end up with the files directly in the target directory.
+      // Filtering happens first, so it works fine.
+      strip: 2,
+      filter: (path) => {
+        return path.startsWith(`build/Release/`)
+      },
+    })
+    await pipeline(createReadStream(ptyArchiveFilename), extractStream)
+    await tmpDir.cleanup()
   }
 
   if (spec.os === "macos") {
@@ -530,32 +535,21 @@ async function tarball(targetName: string, version: string): Promise<void> {
 
   await exec("tar", ["-czf", filename, targetName], { cwd: distPath })
 
-  return new Promise((_resolve, reject) => {
-    const hashFilename = filename + ".sha256"
-    const archivePath = join(distPath, filename)
-    const hashPath = join(distPath, hashFilename)
+  const hashFilename = filename + ".sha256"
+  const archivePath = join(distPath, filename)
+  const hashPath = join(distPath, hashFilename)
 
-    // compute the sha256 checksum
-    console.log(` - ${targetName} -> sha256 (${hashFilename})`)
+  // compute the sha256 checksum
+  console.log(` - ${targetName} -> sha256 (${hashFilename})`)
 
-    const response = createReadStream(archivePath)
-    response.on("error", reject)
+  const readStream = createReadStream(archivePath)
+  const hash = createHash("sha256")
+  hash.setEncoding("hex")
 
-    const hash = createHash("sha256")
-    hash.setEncoding("hex")
+  await pipeline(readStream, hash)
 
-    response.on("end", () => {
-      hash.end()
-      const sha256 = hash.read()
-
-      // eslint-disable-next-line @typescript-eslint/no-floating-promises
-      writeFile(hashPath, sha256 + "\n")
-        .catch(reject)
-        .then(_resolve)
-    })
-
-    response.pipe(hash)
-  })
+  const sha256 = hash.read()
+  await writeFile(hashPath, sha256 + "\n")
 }
 
 const modulePath = url.fileURLToPath(import.meta.url)
@@ -564,4 +558,36 @@ if (process.argv[1] === modulePath) {
     console.error(chalk.red(err.message))
     process.exit(1)
   })
+}
+
+async function downloadFromWeb({
+  url: downloadUrl,
+  targetPath,
+  checksum,
+}: {
+  url: string
+  targetPath: string
+  checksum: string
+}) {
+  const response = await fetch(downloadUrl)
+
+  if (!response.body) {
+    throw new Error(`No response body for ${downloadUrl}`)
+  }
+
+  const body = Readable.fromWeb(response.body)
+
+  const sha256 = body.pipe(createHash("sha256"))
+
+  const writeStream = createWriteStream(targetPath)
+  await pipeline(body, writeStream)
+
+  // NOTE(steffen): I expected `await finished(sha256)` to do the job, but calling that crashed node without an error message for some reason.
+  await new Promise((r) => sha256.once("readable", r))
+
+  const digest = sha256.digest("hex")
+
+  if (digest !== checksum) {
+    throw new Error(`Checksum mismatch for ${downloadUrl}! Expected ${checksum} but got ${digest}`)
+  }
 }

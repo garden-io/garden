@@ -1,4 +1,4 @@
-#!/usr/bin/env ts-node
+#!/usr/bin/env -S node --import ./scripts/register-hook.js
 /*
  * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
@@ -16,7 +16,8 @@ import chalk from "chalk"
 import wrapAnsi from "wrap-ansi"
 import stripAnsi from "strip-ansi"
 import { dirname, join, resolve } from "node:path"
-import { createWriteStream, WriteStream } from "node:fs"
+import type { WriteStream } from "node:fs"
+import { createWriteStream } from "node:fs"
 import { getPackages } from "./script-utils.js"
 import yargs from "yargs/yargs"
 import { fileURLToPath } from "node:url"
