@@ -29,6 +29,14 @@ export default {
     chunkFileNames: "[name]-[hash].mjs",
   },
   plugins: [
+    // Remove unwanted console.log in node-pty-prebuilt-multiarch package
+    replace({
+      include: [/node-pty-prebuilt-multiarch.*prebuild-file-path\.js$/],
+      values: {
+        "console.log('prebuild-file-path:', pathToBuild);": "// Removed console.log in rollup.config.js)",
+      },
+      delimiters: ["", ""],
+    }),
     // Rewrite require calls to use the global require to import native modules.
     {
       name: "rewrite-native-require",

@@ -40,6 +40,8 @@ where
         // TODO: consider what happens when users also set the NODE_OPTIONS env var
         format!("--max-semi-space-size={}", max_semi_space_size).into(),
         format!("--max-old-space-size={}", max_old_space_size).into(),
+        // Disable deprecation warnings; We still see deprecation warnings during development, but in release binaries we want to hide them.
+        "--no-deprecation".into(),
         // execute garden.mjs
         path.join("rollup").join("garden.mjs").into(),
     ];
