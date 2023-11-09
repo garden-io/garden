@@ -11,7 +11,7 @@ import type { NginxHelmValues } from "./nginx-helm.js"
 import { HelmGardenIngressController } from "./nginx-helm.js"
 
 export class GenericHelmGardenIngressController extends HelmGardenIngressController {
-  override helmValuesGetter(systemVars: SystemVars): NginxHelmValues {
+  override getNginxHelmValues(systemVars: SystemVars): NginxHelmValues {
     return {
       name: "ingress-controller",
       controller: {
