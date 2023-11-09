@@ -238,7 +238,7 @@ export const baseActionConfigSchema = createSchema({
       exclude: joi.object().keys({
         variables: joiSparseArray(joi.string()).description(
           dedent`
-            Specify the list of variables to ignore when caching this action. This is particularly useful for the
+            Specify the list of variables to exclude when caching this action. This is particularly useful for the
             distributed caching where a certain variable might change across environments, but the action should
             still be cached.
 
@@ -368,8 +368,8 @@ export abstract class BaseAction<
   protected readonly _supportedModes: ActionModes
   protected readonly _treeVersion: TreeVersion
   protected readonly variables: DeepPrimitiveMap
-  // keys to ignore from the config for action version calculation
-  ignoredKeysForVersion: string[]
+  // key paths to exclude from the config for action version calculation
+  readonly excludedKeysPathsForVersion: string[]
 
   constructor(protected readonly params: ActionWrapperParams<C>) {
     this.kind = params.config.kind
@@ -392,7 +392,7 @@ export abstract class BaseAction<
     this.variables = params.variables
     this.resolved = false
     this.executed = false
-    this.ignoredKeysForVersion = params.ignoreKeysForVersion
+    this.excludedKeysPathsForVersion = params.excludedKeysPathsForVersion
   }
 
   abstract getBuildPath(): string
@@ -563,8 +563,8 @@ export abstract class BaseAction<
   @Memoize()
   private stringifyConfig() {
     const clonedConfig = cloneDeep(this._config)
-    const configExcludingIgnoreKeys = omit(clonedConfig, "internal", ...this.ignoredKeysForVersion)
-    return stableStringify(configExcludingIgnoreKeys)
+    const omittedConfig = omit(clonedConfig, "internal", ...this.excludedKeysPathsForVersion)
+    return stableStringify(omittedConfig)
   }
 
   /**

@@ -7,12 +7,12 @@
  */
 
 import { expect } from "chai"
-import { computeKeyPathsToIgnoreFromConfig } from "../../../../src/tasks/helpers.js"
+import { findKeyPathsToOmitFromConfig } from "../../../../src/tasks/helpers.js"
 import type { DeployActionConfig } from "../../../../src/actions/deploy.js"
 import { DEFAULT_DEPLOY_TIMEOUT_SEC } from "../../../../src/constants.js"
 
 describe("TaskHelpers", () => {
-  context("computeKeyPathsToIgnoreFromConfig", () => {
+  context("findKeyPathsToOmitFromConfig", () => {
     const config: DeployActionConfig = {
       internal: { basePath: "" },
       timeout: DEFAULT_DEPLOY_TIMEOUT_SEC,
@@ -42,19 +42,19 @@ describe("TaskHelpers", () => {
     }
     it("returns an empty array when ignoreVars is empty", () => {
       const ignoreVars: string[] = []
-      const result = computeKeyPathsToIgnoreFromConfig(config, ignoreVars)
+      const result = findKeyPathsToOmitFromConfig(config, ignoreVars)
       expect(result).to.eql([])
     })
 
     it("returns an empty array when no keys match ignoreVars", () => {
       const ignoreVars = ["corge"]
-      const result = computeKeyPathsToIgnoreFromConfig(config, ignoreVars)
+      const result = findKeyPathsToOmitFromConfig(config, ignoreVars)
       expect(result).to.eql([])
     })
 
     it("returns an array of matching keys and values", () => {
       const ignoreVars = ["hostname"]
-      const result = computeKeyPathsToIgnoreFromConfig(config, ignoreVars)
+      const result = findKeyPathsToOmitFromConfig(config, ignoreVars)
       expect(result).to.eql([
         {
           key: "cache.exclude.variables.0",

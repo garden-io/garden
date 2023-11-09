@@ -413,7 +413,7 @@ async function processActionConfig({
     moduleVersion: config.internal.moduleVersion,
     mode,
     supportedModes,
-    ignoreKeysForVersion: [],
+    excludedKeysPathsForVersion: [],
   }
 
   if (isBuildActionConfig(config)) {

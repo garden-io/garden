@@ -21,6 +21,7 @@ import type {
   CreateEphemeralClusterResponse,
   CreateProjectsForRepoResponse,
   EphemeralClusterWithRegistry,
+  GetCachedActionResponse,
   GetKubeconfigResponse,
   GetProfileResponse,
   GetProjectResponse,
@@ -157,8 +158,7 @@ function toCloudProject(
     repositoryUrl: project.repositoryUrl,
     environments,
     availableFeatures: {
-      // todo fix types once imported platform types package is updated
-      distributedCache: (project as any).availableFeatures?.distributedCache || false,
+      distributedCache: project.availableFeatures?.distributedCache || false,
     },
   }
 }
@@ -885,8 +885,7 @@ export class CloudApi {
       unresolvedActionVersion,
     }
     const queryParamsString = qs.stringify(params)
-    // TODO: import types from platform-api-types package once published to npm
-    const response = await this.get<{ status: Status; data: any }>(`/cache/action?${queryParamsString}`, {
+    const response = await this.get<GetCachedActionResponse>(`/cache/action?${queryParamsString}`, {
       retry: false,
     })
     return response

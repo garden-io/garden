@@ -21,7 +21,7 @@ describe("action-version", () => {
 
   before(async () => {
     // env 1
-    const projectRoot = getDataDir("test-projects", "actions-no-cache")
+    const projectRoot = getDataDir("test-projects", "actions-cache-exclude")
     garden1 = await makeTestGarden(projectRoot, { environmentString: "local1" })
     graph1 = await garden1.getConfigGraph({ log: garden1.log, emit: false })
     // env 2
@@ -51,11 +51,11 @@ describe("action-version", () => {
       log: garden1.log,
       graph: graph1,
     })
-    expect(resolvedAction1.ignoredKeysForVersion).to.have.members([
+    expect(resolvedAction1.excludedKeysPathsForVersion).to.have.members([
       "cache.exclude.variables.0",
       "spec.ingresses.0.hostname",
     ])
-    expect(resolvedAction2.ignoredKeysForVersion).to.have.members([
+    expect(resolvedAction2.excludedKeysPathsForVersion).to.have.members([
       "cache.exclude.variables.0",
       "cache.exclude.variables.1",
       "spec.ingresses.0.hostname",

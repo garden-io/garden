@@ -19,13 +19,13 @@ export function getDeployStatuses(dependencyResults: GraphResults): { [name: str
 }
 
 /**
- * Find keys in a action config object whose values include one of the strings ignoreVars array.
+ * Find key paths in a action config object whose values include one of the strings ignoreVars array.
  *
  * @param {Object} config - Action config object.
  * @param {Array} ignoreVars - An array of strings to match against values in the config object.
  * @returns {Array} - An array of objects, each containing the matching key and the string that caused the match.
  */
-export function computeKeyPathsToIgnoreFromConfig(
+export function findKeyPathsToOmitFromConfig(
   config: ActionConfig,
   ignoreVars: string[]
 ): Array<{ key: string; matchedValue: string }> {

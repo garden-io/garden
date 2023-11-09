@@ -1,18 +1,18 @@
 apiVersion: garden.io/v1
 kind: Project
-name: actions-no-cache-test
+name: actions-cache-exclude-repro
 domain: https://garden.io
 id: be19908b-5274-446c-bd2d-b8675d62fbad # dummy uuid
 
 environments:
   - name: local1
-    defaultNamespace: test-actions-no-cache-env-1
+    defaultNamespace: actions-cache-exclude-repro-env-1
     variables:
       base-hostname: foo.com
       nestedVars:
         EXTERNAL_API_URL: http://api.foo.com
   - name: local2
-    defaultNamespace: test-actions-no-cache-env-2
+    defaultNamespace: actions-cache-exclude-repro-env-2
     variables:
       base-hostname: bar.com
       nestedVars:

@@ -27,7 +27,7 @@ import { mergeVariables } from "../graph/common.js"
 import { actionToResolved } from "../actions/helpers.js"
 import { ResolvedConfigGraph } from "../graph/config-graph.js"
 import { OtelTraced } from "../util/open-telemetry/decorators.js"
-import { computeKeyPathsToIgnoreFromConfig } from "./helpers.js"
+import { findKeyPathsToOmitFromConfig } from "./helpers.js"
 
 export interface ResolveActionResults<T extends Action> extends ValidResultType {
   state: ActionState
@@ -236,12 +236,13 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
       defaultHandler: async (_) => ({}),
     })
 
-    // once action is resolved, find paths of keys to ignore for action version calculation
+    // once action is resolved, find paths of keys to omit for action version calculation
     // TODO: look into why getConfig() returns as a any
     const resolvedActionConfig = resolvedAction.getConfig() as BaseActionConfig
-    const ignoreValues = resolvedActionConfig.cache?.exclude?.variables ?? []
-    const ignoreKeys = computeKeyPathsToIgnoreFromConfig(resolvedActionConfig, ignoreValues)
-    resolvedAction.ignoredKeysForVersion.push(...ignoreKeys.map((k) => k.key))
+    // at this point, the template strings have been resolved
+    const cacheExcludeVariables = resolvedActionConfig.cache?.exclude?.variables ?? []
+    const cacheExcludeKeyPaths = findKeyPathsToOmitFromConfig(resolvedActionConfig, cacheExcludeVariables)
+    resolvedAction.excludedKeysPathsForVersion.push(...cacheExcludeKeyPaths.map((k) => k.key))
 
     // TODO: avoid this private assignment
     resolvedAction["_staticOutputs"] = staticOutputs

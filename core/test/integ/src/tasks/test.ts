@@ -23,7 +23,7 @@ const mockProjectWithDistributedCache = {
     id: "0a13e025-1758-4054-9a99-0e82fc1ccab9",
     createdAt: "2023-11-06T10:50:42.066Z",
     updatedAt: "2023-11-06T10:50:42.066Z",
-    name: "actions-no-cache-test",
+    name: "actions-cache-exclude-repro-test",
     repositoryUrl: "",
     status: "connected",
     relativePathInRepo: "",
@@ -88,9 +88,8 @@ describe("TestTask", () => {
         .reply(200, mockProjectWithDistributedCache)
 
       const log = getRootLogger().createLog()
-      // const fakeCloudApi = await FakeCloudApi.factory({ log })
       const cloudApi = new CloudApi({ log, domain: "https://garden.io", globalConfigStore: new GlobalConfigStore() })
-      const projectRoot = getDataDir("test-projects", "actions-no-cache")
+      const projectRoot = getDataDir("test-projects", "actions-cache-exclude")
 
       // env 1
       garden1 = await makeTestGarden(projectRoot, { environmentString: "local1", cloudApi })

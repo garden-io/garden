@@ -16,6 +16,7 @@ import { OtelTraced } from "../util/open-telemetry/decorators.js"
 import { GardenError } from "../exceptions.js"
 import type { CheckCacheRequestParams } from "../cloud/api.js"
 import type { TestResult } from "../types/test.js"
+import moment from "moment"
 
 /**
  * Only throw this error when the test itself failed, and not when Garden failed to execute the test.
@@ -94,11 +95,11 @@ export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
             state: "ready" as const,
             detail: {
               success: true,
-              completedAt: res.data.completedAt,
-              startedAt: res.data.startedAt,
-              log: res.data.log || "",
+              completedAt: moment(res.data?.completedAt).toDate(),
+              startedAt: moment(res.data?.startedAt).toDate(),
+              log: res.data?.log || "",
             } as TestResult,
-            outputs: { log: res.data.log || "" },
+            outputs: { log: res.data?.log || "" },
           }
           this.log.success("Already passed")
           return {
