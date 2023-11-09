@@ -31,6 +31,7 @@ import type { RunAction, RunActionConfig } from "../../actions/run.js"
 import { memoize } from "lodash-es"
 import type Joi from "@hapi/joi"
 import type { OctalPermissionMask } from "../kubernetes/types.js"
+import { templateStringLiteral } from "../../docs/common.js"
 
 export const defaultDockerfileName = "Dockerfile"
 
@@ -237,13 +238,21 @@ export const syncDefaultGroupSchema = memoize(() =>
     .description("Set the default group on files and directories at the target. " + ownerDocs)
 )
 
+const exampleActionRef = templateStringLiteral("actions.build.my-container-image.sourcePath")
+
 export const syncSourcePathSchema = memoize(() =>
   joi
     .string()
     .default(".")
     .description(
       deline`
-        POSIX-style or Windows path of the directory to sync to the target. Defaults to the config's directory if no value is provided.
+        POSIX-style or Windows-style local path of the directory to sync to the target.
+        Can be either absolute or relative to the source directory where the Deploy action is defined.
+
+        This should generally be a templated path to another action's source path (e.g. ${exampleActionRef}), or a relative path.
+        If a path is hard-coded, you must make sure the path exists, and that it is reliably the correct path for every user.
+
+        Defaults to the Deploy action's config's directory if no value is provided.
         `
     )
     .example("src")
