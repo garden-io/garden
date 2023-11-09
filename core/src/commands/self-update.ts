@@ -445,15 +445,10 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
         // Note: lazy-loading for startup performance
         const { default: unzipStream } = await import("unzip-stream")
 
-        await new Promise((_resolve, reject) => {
-          const extractor = unzipStream.Extract({ path: tempDir.path })
+        const extractor = unzipStream.Extract({ path: tempDir.path })
 
-          extractor.on("error", reject)
-          extractor.on("finish", _resolve)
-
-          const reader = createReadStream(tempPath)
-          reader.pipe(extractor)
-        })
+        const reader = createReadStream(tempPath)
+        await pipeline(reader, extractor)
       } else {
         await tar.x({
           file: tempPath,

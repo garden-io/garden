@@ -278,7 +278,7 @@ export class PluginTool extends CliWrapper {
       await ensureDir(tmpPath)
 
       try {
-        await this.fetch(tmpPath, log)
+        await this.fetch(tmpPath)
 
         if (this.buildSpec.extract && !(await pathExists(targetAbsPath))) {
           // if this happens, it's a bug!
@@ -300,7 +300,7 @@ export class PluginTool extends CliWrapper {
     })
   }
 
-  protected async fetch(tmpPath: string, log: Log) {
+  protected async fetch(tmpPath: string) {
     const parsed = parse(this.buildSpec.url)
     const protocol = parsed.protocol
 
@@ -313,72 +313,46 @@ export class PluginTool extends CliWrapper {
           })
 
     // compute the sha256 checksum
-    const hash = createHash("sha256")
-    hash.setEncoding("hex")
-    response.pipe(hash)
+    const hash = response.pipe(createHash("sha256"))
 
-    return new Promise<void>(async (resolve, reject) => {
-      response.on("error", (err) => {
-        log.error(`Failed fetching ${this.buildSpec.url}`)
-        reject(err)
-      })
+    if (!this.buildSpec.extract) {
+      const targetExecutable = join(tmpPath, ...this.targetSubpath.split(posix.sep))
+      const writeStream = createWriteStream(targetExecutable)
+      await pipeline(response, writeStream)
+    } else {
+      const format = this.buildSpec.extract.format
+      let extractor: NodeJS.WritableStream
 
-      hash.on("readable", () => {
-        // validate sha256 if provided
-        const sha256 = hash.read()
-
-        // end of stream event
-        if (sha256 === null) {
-          return
-        }
-
-        if (this.buildSpec.sha256 && sha256 !== this.buildSpec.sha256) {
-          reject(
-            // if this happens, it's a bug!
-            new InternalError({
-              message: `Failed to download ${this.name}: Invalid checksum from ${this.buildSpec.url} (expected ${this.buildSpec.sha256}, actually got ${sha256})`,
-            })
-          )
-        }
-      })
-
-      if (!this.buildSpec.extract) {
-        const targetExecutable = join(tmpPath, ...this.targetSubpath.split(posix.sep))
-        const writeStream = createWriteStream(targetExecutable)
-        await pipeline(response, writeStream)
-        resolve()
+      if (format === "tar") {
+        extractor = tar.x({
+          C: tmpPath,
+          strict: true,
+        })
+      } else if (format === "zip") {
+        // Note: lazy-loading for startup performance
+        const { default: unzipStream } = await import("unzip-stream")
+        extractor = unzipStream.Extract({ path: tmpPath })
       } else {
-        const format = this.buildSpec.extract.format
-        let extractor: NodeJS.WritableStream
-
-        if (format === "tar") {
-          extractor = tar.x({
-            C: tmpPath,
-            strict: true,
-          })
-          extractor.on("end", () => resolve())
-        } else if (format === "zip") {
-          // Note: lazy-loading for startup performance
-          const { default: unzipStream } = await import("unzip-stream")
-          extractor = unzipStream.Extract({ path: tmpPath })
-          extractor.on("close", () => resolve())
-        } else {
-          reject(
-            // If this happens, it's a bug!
-            new InternalError({
-              message: `Failed to extract ${this.name}: Invalid archive format: ${format}`,
-            })
-          )
-          return
-        }
-
-        response.pipe(extractor)
-
-        extractor.on("error", (err) => {
-          log.error(`Failed extracting ${format} archive ${this.buildSpec.url}`)
-          reject(err)
+        throw new InternalError({
+          message: `Failed to extract ${this.name}: Invalid archive format: ${format}`,
         })
       }
-    })
+
+      try {
+        await pipeline(response, extractor)
+      } catch (e) {
+        throw InternalError.wrapError(e, `Failed extracting ${format} archive ${this.buildSpec.url}`)
+      }
+    }
+
+    // NOTE(steffen): I expected `await finished(hash)` to do the job, but calling that crashed node without an error message for some reason.
+    await new Promise((r) => hash.once("readable", r))
+    const sha256 = hash.digest("hex")
+    if (sha256 !== this.buildSpec.sha256) {
+      // if this happens, it's a bug!
+      throw new InternalError({
+        message: `Failed to download ${this.name}: Invalid checksum from ${this.buildSpec.url} (expected ${this.buildSpec.sha256}, actually got ${sha256})`,
+      })
+    }
   }
 }

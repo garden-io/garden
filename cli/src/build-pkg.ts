@@ -20,7 +20,7 @@ import { createReadStream, createWriteStream } from "fs"
 import { makeTempDir } from "@garden-io/core/build/test/helpers.js"
 import * as url from "node:url"
 import { Readable } from "node:stream"
-import { finished } from "node:stream/promises"
+import { pipeline } from "node:stream/promises"
 import type { Entry } from "unzipper"
 import unzipper from "unzipper"
 
@@ -29,7 +29,6 @@ import unzipper from "unzipper"
 import { fetch } from "undici"
 
 import tar from "tar"
-import { pipeline } from "stream"
 
 const repoRoot = resolve(GARDEN_CLI_ROOT, "..")
 const gardenSeaDir = resolve(repoRoot, "garden-sea")
@@ -188,11 +187,14 @@ async function zipAndHash({ targetDir, archiveName, cwd, prefix, fileNames }: Zi
     fileNames
   )
 
-  const archiveHash = archiveStream.pipe(createHash("sha256"))
+  const sha256 = archiveStream.pipe(createHash("sha256"))
 
-  await finished(archiveStream.pipe(createWriteStream(targetArchive)))
+  await pipeline(archiveStream, createWriteStream(targetArchive))
 
-  await writeFile(resolve(targetDir, `${archiveName}.sha256`), archiveHash.digest("hex") + "\n")
+  // NOTE(steffen): I expected `await finished(sha256)` to do the job, but calling that crashed node without an error message for some reason.
+  await new Promise((r) => sha256.once("readable", r))
+
+  await writeFile(resolve(targetDir, `${archiveName}.sha256`), sha256.digest("hex") + "\n")
 }
 
 async function buildBinaries(args: string[]) {
@@ -326,8 +328,8 @@ async function buildBinaries(args: string[]) {
       let nodeArchiveChecksum: string | undefined
       if (await pathExists(nodeArchiveFilename)) {
         const readStream = createReadStream(nodeArchiveFilename)
-        const hash = readStream.pipe(createHash("sha256"))
-        await finished(readStream)
+        const hash = createHash("sha256")
+        await pipeline(readStream, hash)
         nodeArchiveChecksum = hash.digest("hex")
       }
 
@@ -354,14 +356,14 @@ async function buildBinaries(args: string[]) {
             return path.endsWith(`/bin/${nodeFileName}`)
           },
         })
-        await finished(createReadStream(nodeArchiveFilename).pipe(extractStream))
+        await pipeline(createReadStream(nodeArchiveFilename), extractStream)
       } else {
         const zip = createReadStream(nodeArchiveFilename).pipe(unzipper.Parse({ forceStream: true }))
         for await (const i of zip) {
           const entry = i as Entry
           const fileName = entry.path
           if (fileName.endsWith(`/${nodeFileName}`)) {
-            await finished(entry.pipe(createWriteStream(resolve(extractionDir, nodeFileName))))
+            await pipeline(entry, createWriteStream(resolve(extractionDir, nodeFileName)))
           } else {
             entry.autodrain()
           }
@@ -504,7 +506,7 @@ async function pkgCommon({ targetName, spec }: { targetName: string; spec: Targe
         return path.startsWith(`build/Release/`)
       },
     })
-    await finished(createReadStream(ptyArchiveFilename).pipe(extractStream))
+    await pipeline(createReadStream(ptyArchiveFilename), extractStream)
     await tmpDir.cleanup()
   }
 
@@ -534,32 +536,21 @@ async function tarball(targetName: string, version: string): Promise<void> {
 
   await exec("tar", ["-czf", filename, targetName], { cwd: distPath })
 
-  return new Promise((_resolve, reject) => {
-    const hashFilename = filename + ".sha256"
-    const archivePath = join(distPath, filename)
-    const hashPath = join(distPath, hashFilename)
+  const hashFilename = filename + ".sha256"
+  const archivePath = join(distPath, filename)
+  const hashPath = join(distPath, hashFilename)
 
-    // compute the sha256 checksum
-    console.log(` - ${targetName} -> sha256 (${hashFilename})`)
+  // compute the sha256 checksum
+  console.log(` - ${targetName} -> sha256 (${hashFilename})`)
 
-    const response = createReadStream(archivePath)
-    response.on("error", reject)
+  const readStream = createReadStream(archivePath)
+  const hash = createHash("sha256")
+  hash.setEncoding("hex")
 
-    const hash = createHash("sha256")
-    hash.setEncoding("hex")
+  await pipeline(readStream, hash)
 
-    response.on("end", () => {
-      hash.end()
-      const sha256 = hash.read()
-
-      // eslint-disable-next-line @typescript-eslint/no-floating-promises
-      writeFile(hashPath, sha256 + "\n")
-        .catch(reject)
-        .then(_resolve)
-    })
-
-    response.pipe(hash)
-  })
+  const sha256 = hash.read()
+  await writeFile(hashPath, sha256 + "\n")
 }
 
 const modulePath = url.fileURLToPath(import.meta.url)
@@ -587,14 +578,17 @@ async function downloadFromWeb({
 
   const body = Readable.fromWeb(response.body)
 
-  const hash = body.pipe(createHash("sha256"))
+  const sha256 = body.pipe(createHash("sha256"))
 
   const writeStream = createWriteStream(targetPath)
   await pipeline(body, writeStream)
-  await finished(hash)
-  const sha256 = hash.digest("hex")
 
-  if (sha256 !== checksum) {
-    throw new Error(`Checksum mismatch for ${downloadUrl}! Expected ${checksum} but got ${sha256}`)
+  // NOTE(steffen): I expected `await finished(sha256)` to do the job, but calling that crashed node without an error message for some reason.
+  await new Promise((r) => sha256.once("readable", r))
+
+  const digest = sha256.digest("hex")
+
+  if (digest !== checksum) {
+    throw new Error(`Checksum mismatch for ${downloadUrl}! Expected ${checksum} but got ${digest}`)
   }
 }
