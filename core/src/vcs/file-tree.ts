@@ -18,7 +18,7 @@ type FileTreeNodeOptions = {
 
 export class FileTreeNode {
   private pathUtils: PlatformPath
-  private ownPath: string
+  public ownPath: string
   private files: VcsFile[] = []
   private childrenBySubpath: Map<string, FileTreeNode> = new Map()
 
@@ -28,7 +28,7 @@ export class FileTreeNode {
   }
 
   addFile(file: VcsFile): boolean {
-    if (!file.path.startsWith(`${this.pathUtils.sep}${this.ownPath}`)) {
+    if (!file.path.startsWith(this.ownPath)) {
       return false
     }
 
@@ -36,7 +36,7 @@ export class FileTreeNode {
 
     const relativePath = file.path.slice(this.ownPath.length)
     // We use absolute paths so the first part of the split is always an empty string
-    const [_, subpathSegment, nextSegment] = relativePath.split(this.pathUtils.sep)
+    const [subpathSegment, nextSegment] = relativePath.split(this.pathUtils.sep)
 
     // We have reached the end of this path
     // and arrived at the file.
@@ -48,7 +48,7 @@ export class FileTreeNode {
     let child: FileTreeNode
     if (!this.childrenBySubpath.has(subpathSegment)) {
       child = new FileTreeNode({
-        ownPath: this.pathUtils.join(this.ownPath, subpathSegment),
+        ownPath: `${this.pathUtils.join(this.ownPath, subpathSegment)}${this.pathUtils.sep}`,
         pathUtils: this.pathUtils,
       })
       this.childrenBySubpath.set(subpathSegment, child)
@@ -80,8 +80,10 @@ export class FileTree {
   }
 
   private getNodeAtPath(filesPath: string): FileTreeNode | undefined {
-    // TODO: leading slash makes things annoying in many places
-    const segments = filesPath.slice(1).split(this.pathUtils.sep)
+    // Since we're always rooted at the same root directory, we remove that from the path we iterate down
+    // and start out iteration on the root node.
+    const rootPath = this.pathUtils.parse(filesPath).root
+    const segments = filesPath.slice(rootPath.length).split(this.pathUtils.sep)
 
     let currentNode: FileTreeNode | undefined = this.root
     while (currentNode) {
@@ -97,6 +99,10 @@ export class FileTree {
   }
 
   getFilesAtPath(filesPath: string): VcsFile[] {
+    if (this.root.ownPath !== this.pathUtils.parse(filesPath).root) {
+      return []
+    }
+
     const node = this.getNodeAtPath(filesPath)
 
     if (!node) {
@@ -119,11 +125,26 @@ export class FileTree {
     // However, for testing, we need to be able to specify the platform explicitly here
     // else we cannot test for example for Windows on a Unix machine.
     const pathUtils = (platform ?? process.platform) === "win32" ? winPath : posixPath
+    if (files.length === 0) {
+      return new FileTree(
+        new FileTreeNode({
+          ownPath: "",
+          pathUtils,
+        }),
+        pathUtils
+      )
+    }
 
     // We assume all files are rooted from the same directory
     // which is the root filesystem directory for most (all?) use cases here.
+    // If we ever have a case where somehow we have files from different roots,
+    // we will need to handle that here.
+    // That probably won't ever be the case on Unix, but on Windows with its drive letter based system,
+    // it could happen at least theoretically.
+    // Practically, garden runs and scans from one directory, and things in that cannot be rooted on a different drive.
+    const rootPath = pathUtils.parse(files[0].path).root
     const node = new FileTreeNode({
-      ownPath: "",
+      ownPath: rootPath,
       pathUtils,
     })
 
