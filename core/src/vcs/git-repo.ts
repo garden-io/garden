@@ -6,14 +6,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { join } from "path"
-import { GitHandler, augmentGlobs } from "./git.js"
+import { GitHandler } from "./git.js"
 import type { GetFilesParams, VcsFile } from "./vcs.js"
-import { isDirectory, joinWithPosix, matchPath } from "../util/fs.js"
+import { isDirectory, matchPath } from "../util/fs.js"
 import fsExtra from "fs-extra"
 const { pathExists } = fsExtra
 import { pathToCacheContext } from "../cache.js"
 import { FileTree } from "./file-tree.js"
+import { sep } from "path"
 
 type ScanRepoParams = Pick<GetFilesParams, "log" | "path" | "pathDescription" | "failOnPrompt">
 
@@ -58,11 +58,11 @@ export class GitRepoHandler extends GitHandler {
 
     const moduleFiles = fileTree.getFilesAtPath(path)
 
-    const include = params.include ? await absGlobs(path, params.include) : [path, join(path, "**", "*")]
-    const exclude = await absGlobs(path, params.exclude || [])
+    const include = params.include ? params.include : ["**/*"]
+    const exclude = params.exclude || []
 
     if (scanRoot === this.garden?.projectRoot) {
-      exclude.push(join(scanRoot, ".garden", "**", "*"))
+      exclude.push("**/.garden/**/*")
     }
 
     log.debug(
@@ -71,7 +71,18 @@ export class GitRepoHandler extends GitHandler {
     log.silly(`Include globs: ${include.join(", ")}`)
     log.silly(exclude.length > 0 ? `Exclude globs: ${exclude.join(", ")}` : "No exclude globs")
 
-    const filtered = moduleFiles.filter(({ path: p }) => (!filter || filter(p)) && matchPath(p, include, exclude))
+    const filtered = moduleFiles.filter(({ path: p }) => {
+      if (filter && !filter(p)) {
+        return false
+      }
+      // We remove the subpath from the file path before matching
+      // so that the globs can be relative to the module path
+      // Previously we prepended the module path to the globs
+      // but that caused issues with the glob matching on windows due to backslashes
+      const relativePath = p.replace(`${path}${sep}`, "")
+      log.silly(`Checking if ${relativePath} matches include/exclude globs`)
+      return matchPath(relativePath, include, exclude)
+    })
 
     log.debug(`Found ${filtered.length} files in module path after glob matching`)
 
@@ -111,9 +122,4 @@ export class GitRepoHandler extends GitHandler {
       return fileTree
     })
   }
-}
-
-async function absGlobs(basePath: string, globs: string[]): Promise<string[]> {
-  const augmented = await augmentGlobs(basePath, globs)
-  return augmented?.map((p) => joinWithPosix(basePath, p)) || []
 }
