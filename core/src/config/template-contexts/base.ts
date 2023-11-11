@@ -170,7 +170,7 @@ export abstract class ConfigContext {
 
     if (value === undefined) {
       if (message === undefined) {
-        message = styles.error(`Could not find key ${styles.accent(nextKey)}`)
+        message = styles.error(`Could not find key ${styles.accent(String(nextKey))}`)
         if (nestedNodePath.length > 1) {
           message += styles.error(" under ") + styles.accent(renderKeyPath(nestedNodePath.slice(0, -1)))
         }

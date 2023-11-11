@@ -6,11 +6,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import type { Chalk } from "chalk"
 import hasAnsi from "has-ansi"
 import dedent from "dedent"
 import stringWidth from "string-width"
 import { DEFAULT_BROWSER_DIVIDER_WIDTH } from "../constants.js"
+import type { Styles } from "./styles.js"
 import { styles } from "./styles.js"
 
 // Add platforms/terminals?
@@ -74,7 +74,7 @@ interface DividerOpts {
   width?: number
   char?: string
   titlePadding?: number
-  color?: Chalk
+  color?: Styles
   title?: string
   padding?: number
 }
@@ -144,7 +144,7 @@ export function renderMessageWithDivider({
   prefix: string
   msg: string
   isError: boolean
-  color?: Chalk
+  color?: Styles
 }) {
   // Allow overwriting color as an escape hatch. Otherwise defaults to white or red in case of errors.
   const msgColor = color || (isError ? styles.error : styles.accent)

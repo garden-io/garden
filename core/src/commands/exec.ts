@@ -109,7 +109,7 @@ export class ExecCommand extends Command<Args, Opts> {
       case "unknown":
         log.warn(
           `The current state of ${action.key()} is ${styles.accent(
-            deployState
+            deployState || "unknown"
           )}. If this command fails, you may need to re-deploy it with the ${styles.accent("deploy")} command.`
         )
         break

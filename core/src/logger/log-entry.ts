@@ -388,7 +388,7 @@ export abstract class Log<C extends BaseContext = LogContext> implements LogConf
     const style = resolved.level === LogLevel.info ? styles.success : getStyle(resolved.level)
     return this.log({
       ...resolved,
-      msg: style(this.getMsgWithDuration(resolved)),
+      msg: style(this.getMsgWithDuration(resolved) || ""),
     })
   }
 

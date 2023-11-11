@@ -190,7 +190,7 @@ export class ServeCommand<
           })
           if (session?.shortId) {
             const distroName = getCloudDistributionName(cloudDomain)
-            const livePageUrl = cloudApi.getLivePageUrl({ shortId: session.shortId })
+            const livePageUrl = cloudApi.getLivePageUrl({ shortId: session.shortId }).toString()
             const msg = dedent`${printEmoji("🌸", log)}Connected to ${distroName} ${printEmoji("🌸", log)}
               Follow the link below to stream logs, run commands, and more from your web dashboard ${printEmoji(
                 "👇",

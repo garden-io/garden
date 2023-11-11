@@ -18,8 +18,8 @@ import { highlightYaml, safeDumpYaml } from "../util/serialization.js"
 import type { Logger } from "./logger.js"
 import { logLevelMap, LogLevel } from "./logger.js"
 import { toGardenError } from "../exceptions.js"
+import type { Styles } from "./styles.js"
 import { styles } from "./styles.js"
-import type chalk from "chalk"
 
 type RenderFn = (entry: LogEntry, logger: Logger) => string
 
@@ -90,8 +90,8 @@ export function renderTimestamp(entry: LogEntry, logger: Logger): string {
   return styles.secondary(formattedDate) + " "
 }
 
-export function getStyle(level: LogLevel): chalk.Chalk {
-  let style: chalk.Chalk
+export function getStyle(level: LogLevel) {
+  let style: Styles
   if (level === LogLevel.error) {
     style = styles.error
   } else if (level === LogLevel.warn) {

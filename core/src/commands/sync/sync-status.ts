@@ -198,7 +198,7 @@ export async function getSyncStatuses({
       const pluralizedSyncs = syncCount === 1 ? "sync" : "syncs"
       log.info(
         `The ${styles.highlight(action.name)} Deploy action has ${styles.highlight(
-          syncCount
+          syncCount.toString()
         )} ${pluralizedSyncs} configured:`
       )
       const leftPad = "  →"

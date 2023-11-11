@@ -784,7 +784,7 @@ export class CloudApi {
 
           💡Suggestion:
 
-          Visit ${styles.underline(this.domain)} to review existing environments and projects.
+          Visit ${styles.link(this.domain)} to review existing environments and projects.
 
           First check whether an environment with name ${environmentName} exists for this project. You
           can view the list of environments and the project ID on the project's Settings page.

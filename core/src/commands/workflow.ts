@@ -121,7 +121,9 @@ export class WorkflowCommand extends Command<Args, {}> {
       garden.log.info({ metadata })
 
       if (step.skip) {
-        stepBodyLog.info(styles.warning(`Skipping step ${styles.accent(index + 1)}/${styles.accent(steps.length)}`))
+        stepBodyLog.info(
+          styles.warning(`Skipping step ${styles.accent(String(index + 1))}/${styles.accent(String(steps.length))}`)
+        )
         result.steps[stepName] = {
           number: index + 1,
           outputs: {},
@@ -282,7 +284,7 @@ export function printStepDuration({ outerLog, stepIndex, bodyLog, stepCount, suc
 
   const text = deline`
     Step ${formattedStepNumber(stepIndex, stepCount)} ${styles.bold(result)} in
-    ${styles.accent(durationSecs)} Sec
+    ${styles.accent(String(durationSecs))} Sec
   `
   outerLog.info(`${getStepSeparatorBar()}\n${styles.highlight.bold(text)}\n`)
 }
@@ -301,7 +303,7 @@ export function formattedStepDescription(stepIndex: number, stepCount: number, s
 }
 
 export function formattedStepNumber(stepIndex: number, stepCount: number) {
-  return `${styles.accent(stepIndex + 1)}/${styles.accent(stepCount)}`
+  return `${styles.accent(String(stepIndex + 1))}/${styles.accent(String(stepCount))}`
 }
 
 function printResult({

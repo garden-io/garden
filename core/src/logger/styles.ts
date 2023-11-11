@@ -8,21 +8,39 @@
 
 import chalk from "chalk"
 
+// Helper types for ensuring the consumer of the "styles" map defined below
+// can only call the allowed keys when chaining styles.
+// Otherwise you could do something like `styles.primary.red` and "break out"
+// of the pre-defined styles.
+//
+// Requires and ugly cast in the maps below but I couldn't find a more elegant
+// way to do this with just Typescript.
+type ThemeKey =
+  | "primary"
+  | "secondary"
+  | "accent"
+  | "highlight"
+  | "highlightSecondary"
+  | "warning"
+  | "error"
+  | "success"
+type StyleKey = "bold" | "underline" | "italic" | "link" | "section" | "command"
+type StyleFn = (s: string) => string
+
+export type Styles = StyleFn & { [key in ThemeKey | StyleKey]: Styles }
+
 /**
  * A map of all the colors we use to render text in the terminal.
  */
 const theme = {
-  primary: chalk.grey,
-  secondary: chalk.grey,
-  // primary: chalk.hex("#a6a1c7"),
-  // secondary: chalk.hex("#454a70"),
-  accent: chalk.white,
-  highlight: chalk.cyan,
-  highlightSecondary: chalk.magenta,
-  // warning: chalk.hex("#FFA500"),
-  warning: chalk.yellow,
-  error: chalk.red,
-  success: chalk.green,
+  primary: chalk.grey as unknown as Styles,
+  secondary: chalk.grey as unknown as Styles,
+  accent: chalk.white as unknown as Styles,
+  highlight: chalk.cyan as unknown as Styles,
+  highlightSecondary: chalk.magenta as unknown as Styles,
+  warning: chalk.yellow as unknown as Styles,
+  error: chalk.red as unknown as Styles,
+  success: chalk.green as unknown as Styles,
 }
 
 /**
@@ -39,17 +57,16 @@ const theme = {
  * ...all of which can be accessed by calling this map.
  *
  * NOTE: In most cases you don't need to apply these styles and can just call
- * the logger directly.
- *
- * For example, you should call `log.warn("oh no")` instead of `log.warn(styles.warning("oh no"))`.
- * since the logger applies the warning styles for you.
+ * the logger directly. For example, you should call `log.warn("oh no")`
+ * instead of `log.warn(styles.warning("oh no"))` since the logger applies the
+ * warning styles for you.
  */
 export const styles = {
   ...theme,
-  italic: chalk.italic,
-  underline: chalk.underline,
-  bold: chalk.bold,
-  link: theme.highlight.underline,
-  section: theme.highlight.italic,
-  command: theme.highlightSecondary.bold,
+  bold: chalk.bold as unknown as Styles,
+  underline: chalk.underline as unknown as Styles,
+  italic: chalk.italic as unknown as Styles,
+  link: theme.highlight.underline as unknown as Styles,
+  section: theme.highlight.italic as unknown as Styles,
+  command: theme.highlightSecondary.bold as unknown as Styles,
 }

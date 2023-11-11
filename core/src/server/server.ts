@@ -237,7 +237,9 @@ export class GardenServer extends EventEmitter {
         }
       } while (!serverStarted)
     }
-    this.log.info(styles.accent(`Garden server has successfully started at port ${styles.bold(this.port)}.\n`))
+    this.log.info(
+      styles.accent(`Garden server has successfully started at port ${styles.bold(this.port.toString())}.\n`)
+    )
 
     const processRecord = await this.globalConfigStore.get("activeProcesses", String(process.pid))
 

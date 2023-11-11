@@ -290,7 +290,7 @@ export async function deployPersistentExecService({
         throw new TimeoutError({
           message: dedent`Timed out waiting for local service ${deployName} to be ready.
 
-          Garden timed out waiting for the command ${styles.primary(spec.statusCommand)} (pid: ${proc.pid})
+          Garden timed out waiting for the command ${styles.primary(spec.statusCommand.join(" "))} (pid: ${proc.pid})
           to return status code 0 (success) after waiting for ${spec.statusTimeout} seconds.
           ${lastResultDescription}
           Possible next steps:
