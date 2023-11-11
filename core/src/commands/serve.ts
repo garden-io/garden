@@ -204,9 +204,9 @@ export class ServeCommand<
       if (err instanceof CloudApiTokenRefreshError) {
         const distroName = getCloudDistributionName(cloudDomain)
         log.warn(dedent`
-          ${styles.warning(`Unable to authenticate against ${distroName} with the current session token.`)}
+          Unable to authenticate against ${distroName} with the current session token.
           The dashboard will not be available until you authenticate again. Please try logging out with
-          ${styles.bold("garden logout")} and back in again with ${styles.bold("garden login")}.
+          ${styles.command("garden logout")} and back in again with ${styles.command("garden login")}.
         `)
       } else {
         // Unhandled error when creating the cloud api

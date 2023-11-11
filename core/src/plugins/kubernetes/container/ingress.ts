@@ -21,7 +21,6 @@ import type { V1Ingress, V1Secret } from "@kubernetes/client-node"
 import type { Log } from "../../../logger/log-entry.js"
 import type { Resolved } from "../../../actions/types.js"
 import { isProviderEphemeralKubernetes } from "../ephemeral/ephemeral.js"
-import { styles } from "../../../logger/styles.js"
 
 // Ingress API versions in descending order of preference
 export const supportedIngressApiVersions = ["networking.k8s.io/v1", "networking.k8s.io/v1beta1", "extensions/v1beta1"]
@@ -68,7 +67,7 @@ export async function createIngressResources(
   const apiVersion = await getIngressApiVersion(log, api, supportedIngressApiVersions)
 
   if (!apiVersion) {
-    log.warn(styles.warning(`Could not find a supported Ingress API version in the target cluster`))
+    log.warn(`Could not find a supported Ingress API version in the target cluster`)
     return []
   }
 

@@ -726,7 +726,7 @@ export class GardenServer extends EventEmitter {
               fixLevel: internal ? LogLevel.debug : undefined,
             })
 
-        const cmdNameStr = styles.bold.white(command.getFullName() + (internal ? ` (internal)` : ""))
+        const cmdNameStr = styles.accent.bold(command.getFullName() + (internal ? ` (internal)` : ""))
         const commandSessionId = requestId
 
         if (skipAnalyticsForCommands.includes(command.getFullName())) {
@@ -811,19 +811,19 @@ export class GardenServer extends EventEmitter {
             )
 
             if (errors?.length && requestLog) {
-              requestLog.error(styles.error(`Command ${cmdNameStr} failed with errors:`))
+              requestLog.error(`Command ${cmdNameStr} failed with errors:`)
               for (const error of errors) {
                 requestLog.error({ error })
               }
             } else {
-              requestLog?.success(styles.success(`Command ${cmdNameStr} completed successfully`))
+              requestLog?.success(`Command ${cmdNameStr} completed successfully`)
             }
             delete this.activePersistentRequests[requestId]
           })
           .catch((error) => {
             send("error", { message: error.message, requestId })
             requestLog?.error({
-              msg: styles.error(`Command ${cmdNameStr} failed with errors:`),
+              msg: `Command ${cmdNameStr} failed with errors:`,
               error: toGardenError(error),
             })
             delete this.activePersistentRequests[requestId]

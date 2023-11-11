@@ -211,7 +211,7 @@ export class ModuleResolver {
         const msg = `Failed resolving one or more modules:\n\n${errorStr}`
 
         const combined = new ConfigurationError({
-          message: styles.error(msg),
+          message: msg,
           wrappedErrors: Object.values(errors),
         })
         throw combined
@@ -919,9 +919,8 @@ function inheritModuleToAction(module: GardenModule, action: ActionConfig) {
 
 function missingBuildDependency(moduleName: string, dependencyName: string) {
   return new ConfigurationError({
-    message: styles.error(
+    message:
       `Could not find build dependency ${styles.accent(dependencyName)}, ` +
-        `configured in module ${styles.accent(moduleName)}`
-    ),
+      `configured in module ${styles.accent(moduleName)}`,
   })
 }

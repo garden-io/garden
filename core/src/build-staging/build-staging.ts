@@ -21,7 +21,6 @@ import { difference } from "lodash-es"
 import { unlink } from "fs"
 import type { BuildAction, BuildActionConfig } from "../actions/build.js"
 import type { ModuleConfig } from "../config/module.js"
-import { styles } from "../logger/styles.js"
 
 const fileSyncConcurrencyLimit = 100
 
@@ -223,7 +222,7 @@ export class BuildStaging {
       }
 
       if (!sourceStat) {
-        log.warn(styles.warning(`Build staging: Could not find source file or directory at path ${sourceRoot}`))
+        log.warn(`Build staging: Could not find source file or directory at path ${sourceRoot}`)
         return
       }
     }

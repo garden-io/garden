@@ -343,7 +343,7 @@ hadolintTest.addHandler("run", async ({ ctx, log, action }) => {
       `${formattedHeader}:\n\n` +
       parsed
         .map((msg: any) => {
-          const color = msg.level === "error" ? styles.bold.red : styles.bold.yellow
+          const color = msg.level === "error" ? styles.error.bold : styles.warning.bold
           const rawLine = dockerfileLines[msg.line - 1]
           const linePrefix = padEnd(`${msg.line}:`, 5, " ")
           const columnCursorPosition = (msg.column || 1) + linePrefix.length
@@ -364,7 +364,7 @@ hadolintTest.addHandler("run", async ({ ctx, log, action }) => {
   } else if (errors.length > 0 && threshold !== "none") {
     success = false
   } else if (warnings.length > 0) {
-    log.warn(styles.warning(formattedHeader))
+    log.warn(formattedHeader)
   }
 
   return {

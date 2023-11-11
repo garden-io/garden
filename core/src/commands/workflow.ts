@@ -461,7 +461,7 @@ export function logErrors(
 ) {
   const description = formattedStepDescription(stepIndex, stepCount, stepDescription)
   const errMsg = `An error occurred while running step ${styles.accent(description)}.\n`
-  log.error(styles.error(errMsg))
+  log.error(errMsg)
   log.debug("")
   for (const error of errors) {
     if (error instanceof WorkflowScriptError) {
@@ -473,7 +473,7 @@ export function logErrors(
       log.error(scriptErrMsg)
     } else {
       const taskDetailErrMsg = error.toString(true)
-      log.debug(styles.error(taskDetailErrMsg))
+      log.debug(taskDetailErrMsg)
       log.error(error.explain() + "\n")
     }
   }

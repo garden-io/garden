@@ -17,7 +17,6 @@ import { getManifestInspectArgs } from "./common.js"
 import type { ContainerBuildAction } from "../../../container/moduleConfig.js"
 import type { BuildActionParams } from "../../../../plugin/action-types.js"
 import { k8sGetContainerBuildActionOutputs } from "../handlers.js"
-import { styles } from "../../../../logger/styles.js"
 
 export const getLocalBuildStatus: BuildStatusHandler = async (params) => {
   const { ctx, action, log } = params
@@ -42,7 +41,7 @@ export const getLocalBuildStatus: BuildStatusHandler = async (params) => {
     // Non-zero exit code can both mean the manifest is not found, and any other unexpected error
     if (res.code !== 0 && !res.all.includes("no such manifest")) {
       const detail = res.all || `docker manifest inspect exited with code ${res.code}`
-      log.warn(styles.warning(`Unable to query registry for image status: ${detail}`))
+      log.warn(`Unable to query registry for image status: ${detail}`)
     }
 
     if (res.code === 0) {

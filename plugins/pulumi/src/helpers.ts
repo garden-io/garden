@@ -387,7 +387,7 @@ export async function cancelUpdate({ action, ctx, provider, log }: PulumiParams)
   log.info(res.stdout)
 
   if (res.exitCode !== 0) {
-    log.warn(styles.warning(`pulumi cancel failed:\n${res.stderr}`))
+    log.warn(`pulumi cancel failed:\n${res.stderr}`)
     return {
       state: "failed",
       outputs: {},

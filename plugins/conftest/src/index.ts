@@ -539,7 +539,7 @@ function parseConftestResult(provider: ConftestProvider, log: Log, result: Execa
   } else if (countFailures > 0 && threshold !== "none") {
     success = false
   } else if (countWarnings > 0) {
-    log.warn(styles.warning(formattedHeader))
+    log.warn(formattedHeader)
   }
 
   if (!success) {

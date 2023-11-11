@@ -315,9 +315,7 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
     const expectedExecutableName = process.platform === "win32" ? "garden.exe" : "garden"
     if (!opts["install-dir"] && basename(processExecPath) !== expectedExecutableName) {
       log.error(
-        styles.error(
-          `The executable path ${processExecPath} doesn't indicate this is a normal binary installation for your platform. Perhaps you're running a local development build?`
-        )
+        `The executable path ${processExecPath} doesn't indicate this is a normal binary installation for your platform. Perhaps you're running a local development build?`
       )
       return {
         result: {
@@ -359,8 +357,8 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
       ) {
         if (platform === "macos") {
           architecture = "amd64"
-          log.info(
-            styles.warning.bold(
+          log.warn(
+            styles.bold(
               `No arm64 build available for Garden version ${desiredVersion}. Falling back to amd64 using Rosetta.`
             )
           )
@@ -462,7 +460,7 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
       await copy(join(tempDir.path, build), installationDirectory)
 
       log.info("")
-      log.info(styles.success("Done!"))
+      log.success({ msg: "Done!", showDuration: false })
 
       return {
         result: {

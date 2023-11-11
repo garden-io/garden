@@ -427,7 +427,7 @@ const helpers = {
         (cmd) => (cmd.name === "ADD" || cmd.name === "COPY") && cmd.args && Number(cmd.args.length) > 0
       )
     } catch (err) {
-      log.warn(styles.warning(`Unable to parse Dockerfile ${dockerfilePath}: ${err}`))
+      log.warn(`Unable to parse Dockerfile ${dockerfilePath}: ${err}`)
       return undefined
     }
 
@@ -473,12 +473,10 @@ const helpers = {
       } else if (path.match(/(?<!\\)(?:\\\\)*\$[{\w]/)) {
         // If the path contains a template string we can't currently reason about it
         // TODO: interpolate args into paths
-        log.warn(
-          styles.warning(deline`
+        log.warn(deline`
           Resolving include paths from Dockerfile ARG and ENV variables is not supported yet. Please specify
           required path in Dockerfile explicitly or use ${styles.bold("include")} for path assigned to ARG or ENV.
-          `)
-        )
+        `)
         return undefined
       }
     }

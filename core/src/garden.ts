@@ -2023,14 +2023,12 @@ async function getCloudProject({
   // If logged into commercial edition and ID is not set, log warning and return null
   if (!projectIdFromConfig) {
     log.warn(
-      styles.warning(
-        wordWrap(
-          deline`
+      wordWrap(
+        deline`
             Logged in to ${cloudApi.domain}, but could not find remote project '${projectName}'.
             Command results for this command run will not be available in ${distroName}.
           `,
-          120
-        )
+        120
       )
     )
 

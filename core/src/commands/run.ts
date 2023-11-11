@@ -174,11 +174,11 @@ export class RunCommand extends Command<Args, Opts> {
     for (const action of actions) {
       if (action.isDisabled() && !opts.force) {
         log.warn(
-          styles.warning(deline`
+          deline`
             ${styles.error(action.longDescription())} is disabled for the ${styles.error(garden.environmentName)}
             environment. If you're sure you want to run it anyway, please run the command again with the
             ${styles.error("--force")} flag.
-          `)
+          `
         )
       }
     }
@@ -222,7 +222,7 @@ function maybeOldRunCommand(names: string[], args: any, opts: any, log: Log, par
     }
     if (firstArg === "task") {
       log.warn(
-        `The ${styles.warning("run task")} command will be removed in Garden 0.14. Please use the ${styles.warning(
+        `The ${styles.command("run task")} command will be removed in Garden 0.14. Please use the ${styles.command(
           "run"
         )} command instead.`
       )
@@ -232,7 +232,7 @@ function maybeOldRunCommand(names: string[], args: any, opts: any, log: Log, par
     }
     if (firstArg === "test") {
       log.warn(
-        `The ${styles.warning("run test")} command will be removed in Garden 0.14. Please use the ${styles.warning(
+        `The ${styles.command("run test")} command will be removed in Garden 0.14. Please use the ${styles.command(
           "test"
         )} command instead.`
       )
@@ -243,7 +243,7 @@ function maybeOldRunCommand(names: string[], args: any, opts: any, log: Log, par
     }
     if (firstArg === "workflow") {
       log.warn(
-        `The ${styles.warning("run workflow")} command will be removed in Garden 0.14. Please use the ${styles.warning(
+        `The ${styles.command("run workflow")} command will be removed in Garden 0.14. Please use the ${styles.command(
           "workflow"
         )} command instead.`
       )

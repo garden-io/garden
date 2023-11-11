@@ -24,7 +24,6 @@ import type { KubernetesServerResource, SupportedRuntimeAction } from "./types.j
 import type { Resolved } from "../../actions/types.js"
 import { BoundedCache } from "../../cache.js"
 import AsyncLock from "async-lock"
-import { styles } from "../../logger/styles.js"
 
 const GARDEN_VERSION = getPackageVersion()
 
@@ -141,9 +140,7 @@ export async function ensureNamespace(
           })
           result.patched = true
         } catch {
-          log.warn(
-            styles.warning(`Unable to apply the configured annotations and labels on namespace ${namespace.name}`)
-          )
+          log.warn(`Unable to apply the configured annotations and labels on namespace ${namespace.name}`)
         }
       }
 

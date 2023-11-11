@@ -181,9 +181,7 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
 
         if (!action.supportsMode(mode)) {
           if (explicitMode) {
-            log.warn(
-              styles.warning(`${action.longDescription()} is not configured for or does not support ${mode} mode`)
-            )
+            log.warn(`${action.longDescription()} is not configured for or does not support ${mode} mode`)
           }
         }
 

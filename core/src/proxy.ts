@@ -22,7 +22,6 @@ import type { GetPortForwardResult } from "./plugin/handlers/Deploy/get-port-for
 import type { Executed } from "./actions/types.js"
 import type { PluginEventBroker } from "./plugin-context.js"
 import { GardenError, isErrnoException } from "./exceptions.js"
-import { styles } from "./logger/styles.js"
 
 export interface PortProxy {
   key: string
@@ -126,10 +125,10 @@ async function createProxy({ garden, graph, log, action, spec, events }: StartPo
         const msg = err.message.trim()
 
         if (msg !== lastPrintedError) {
-          log.warn(styles.primary(`→ Could not start port forward to ${key} (will retry): ${msg}`))
+          log.warn(`→ Could not start port forward to ${key} (will retry): ${msg}`)
           lastPrintedError = msg
         } else {
-          log.silly(styles.primary(`→ Could not start port forward to ${key} (will retry): ${msg}`))
+          log.silly(`→ Could not start port forward to ${key} (will retry): ${msg}`)
         }
       }
 
@@ -278,9 +277,7 @@ async function createProxy({ garden, graph, log, action, spec, events }: StartPo
 
     if (started) {
       if (spec.preferredLocalPort && (localIp !== defaultLocalAddress || localPort !== spec.preferredLocalPort)) {
-        log.warn(
-          styles.warning(`→ Unable to bind port forward ${key} to preferred local port ${spec.preferredLocalPort}`)
-        )
+        log.warn(`→ Unable to bind port forward ${key} to preferred local port ${spec.preferredLocalPort}`)
       }
 
       return { key, server, action, spec, localPort, localUrl }

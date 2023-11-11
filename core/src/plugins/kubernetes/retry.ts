@@ -17,7 +17,6 @@ import type { NodeJSErrnoException } from "../../exceptions.js"
 import { InternalError, isErrnoException } from "../../exceptions.js"
 import type { ErrorEvent } from "ws"
 import dns from "node:dns"
-import { styles } from "../../logger/styles.js"
 
 /**
  * The flag {@code forceRetry} can be used to avoid {@link shouldRetry} helper call in case if the error code
@@ -62,7 +61,7 @@ export async function requestWithRetry<R>(
           return await retry(usedRetries + 1)
         } else {
           if (usedRetries === maxRetries) {
-            retryLog.info(styles.error(`Kubernetes API: Maximum retry count exceeded`))
+            retryLog.error(`Kubernetes API: Maximum retry count exceeded`)
           }
           throw err
         }

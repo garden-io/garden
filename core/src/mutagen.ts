@@ -227,7 +227,7 @@ class _MutagenMonitor extends TypedEventEmitter<MonitorEvents> {
       this.proc = proc
 
       proc.on("crash", () => {
-        log.warn(styles.warning(crashMessage))
+        log.warn(crashMessage)
       })
 
       proc.on("exit", (code: number) => {
@@ -279,7 +279,7 @@ class _MutagenMonitor extends TypedEventEmitter<MonitorEvents> {
           if (resolved) {
             log.debug({
               symbol: "empty",
-              msg: styles.success("Mutagen monitor re-started"),
+              msg: "Mutagen monitor re-started",
             })
           }
         })
@@ -575,7 +575,7 @@ export class Mutagen {
         try {
           await this.flushSync(session.name)
         } catch (err) {
-          log.warn(styles.warning(`Failed to flush sync '${session.name}: ${err}`))
+          log.warn(`Failed to flush sync '${session.name}: ${err}`)
         }
       })
     )

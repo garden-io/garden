@@ -586,10 +586,9 @@ export async function getTargetResource({
     if (!pod) {
       const selectorStr = getSelectorString(query.podSelector)
       throw new ConfigurationError({
-        message: styles.error(
+        message:
           `Could not find any Pod matching provided podSelector (${selectorStr}) for target in ` +
-            `${action.longDescription()}`
-        ),
+          `${action.longDescription()}`,
       })
     }
     return pod
@@ -651,14 +650,12 @@ export async function getTargetResource({
 
       if (applicableChartResources.length > 1) {
         throw new ConfigurationError({
-          message: styles.error(
-            deline`${action.longDescription()} contains multiple ${targetKind}s.
+          message: deline`${action.longDescription()} contains multiple ${targetKind}s.
             You must specify a resource name in the appropriate config in order to identify the correct ${targetKind}
             to use.
 
             The chart declares the following resources: ${naturalList(chartResourceNames)}
-            `
-          ),
+            `,
         })
       }
 
@@ -678,9 +675,7 @@ export async function getTargetResource({
     }
     if (err.responseStatusCode === 404) {
       throw new ConfigurationError({
-        message: styles.error(
-          deline`${action.longDescription()} specifies target resource ${targetKind}/${targetName}, which could not be found in namespace ${namespace}.`
-        ),
+        message: deline`${action.longDescription()} specifies target resource ${targetKind}/${targetName}, which could not be found in namespace ${namespace}.`,
       })
     } else {
       throw err

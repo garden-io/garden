@@ -67,7 +67,7 @@ export function printFooter(log: any) {
 }
 
 export function printWarningMessage(log: any, text: string) {
-  return log.warn(styles.bold.yellow(text))
+  return log.warn(styles.bold(text))
 }
 
 interface DividerOpts {

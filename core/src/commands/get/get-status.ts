@@ -123,13 +123,11 @@ export class GetStatusCommand extends Command {
     for (const [name, status] of Object.entries(finalDeployStatuses)) {
       if (status.state === "unknown") {
         log.warn(
-          styles.warning(
-            deline`
+          deline`
             Unable to resolve status for Deploy ${styles.accent(name)}. It is likely missing or outdated.
             This can come up if the deployment has runtime dependencies that are not resolvable, i.e. not deployed or
             invalid.
             `
-          )
         )
       }
     }

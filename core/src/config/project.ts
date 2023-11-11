@@ -504,7 +504,7 @@ export function resolveProjectConfig({
     })
   } catch (err) {
     log.error("Failed to resolve project configuration.")
-    log.error(styles.error.bold(renderDivider()))
+    log.error(styles.bold(renderDivider()))
     throw err
   }
 

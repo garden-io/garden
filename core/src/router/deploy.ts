@@ -9,7 +9,6 @@
 import type { ActionState } from "../actions/types.js"
 import { PluginEventBroker } from "../plugin-context.js"
 import type { DeployState } from "../types/service.js"
-import { styles } from "../logger/styles.js"
 import type { BaseRouterParams } from "./base.js"
 import { createActionRouter } from "./base.js"
 
@@ -92,7 +91,7 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
         params,
         handlerType: "getLogs",
         defaultHandler: async () => {
-          log.warn(styles.warning(`No handler for log retrieval available for action type ${action.type}`))
+          log.warn(`No handler for log retrieval available for action type ${action.type}`)
           return {}
         },
       })
@@ -137,7 +136,7 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
         params,
         handlerType: "startSync",
         defaultHandler: async () => {
-          log.debug(styles.warning(`No startSync handler available for action type ${action.type}`))
+          log.debug(`No startSync handler available for action type ${action.type}`)
           return {}
         },
       })
@@ -150,7 +149,7 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
         params,
         handlerType: "stopSync",
         defaultHandler: async () => {
-          log.debug(styles.warning(`No stopSync handler available for action type ${action.type}`))
+          log.debug(`No stopSync handler available for action type ${action.type}`)
           return {}
         },
       })

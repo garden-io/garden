@@ -37,7 +37,7 @@ export const clusterInit: PluginCommand = {
       })
     }
 
-    log.info(styles.success("\nDone!"))
+    log.success({ msg: "\nDone!", showDuration: false })
 
     return { result }
   },

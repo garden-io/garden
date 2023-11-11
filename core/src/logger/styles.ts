@@ -11,7 +11,7 @@ import chalk from "chalk"
 /**
  * A map of all the colors we use to render text in the terminal.
  */
-const colors = {
+const theme = {
   primary: chalk.grey,
   secondary: chalk.grey,
   // primary: chalk.hex("#a6a1c7"),
@@ -37,13 +37,19 @@ const colors = {
  *  - element styles such as "link".
  *
  * ...all of which can be accessed by calling this map.
+ *
+ * NOTE: In most cases you don't need to apply these styles and can just call
+ * the logger directly.
+ *
+ * For example, you should call `log.warn("oh no")` instead of `log.warn(styles.warning("oh no"))`.
+ * since the logger applies the warning styles for you.
  */
 export const styles = {
-  ...colors,
+  ...theme,
   italic: chalk.italic,
   underline: chalk.underline,
   bold: chalk.bold,
-  link: colors.highlight.underline,
-  section: colors.highlight.italic,
-  command: colors.highlightSecondary.bold,
+  link: theme.highlight.underline,
+  section: theme.highlight.italic,
+  command: theme.highlightSecondary.bold,
 }

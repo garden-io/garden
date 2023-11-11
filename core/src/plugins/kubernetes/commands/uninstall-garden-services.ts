@@ -26,7 +26,7 @@ export const uninstallGardenServices: PluginCommand = {
       await ingressControllerUninstall(k8sCtx, log)
     }
 
-    log.info(styles.success("\nDone!"))
+    log.success({ msg: "\nDone!", showDuration: false })
 
     return { result: {} }
   },

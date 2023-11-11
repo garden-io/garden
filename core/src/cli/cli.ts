@@ -251,7 +251,7 @@ ${renderCommands(commands)}
         } catch (err) {
           if (err instanceof CloudApiTokenRefreshError) {
             log.warn(dedent`
-              ${styles.warning(`Unable to authenticate against ${distroName} with the current session token.`)}
+              Unable to authenticate against ${distroName} with the current session token.
               Command results for this command run will not be available in ${distroName}. If this not a
               ${distroName} project you can ignore this warning. Otherwise, please try logging out with
               \`garden logout\` and back in again with \`garden login\`.
@@ -314,10 +314,10 @@ ${renderCommands(commands)}
             await garden.emitWarning({
               key: "0.13-bonsai",
               log,
-              message: styles.warning(dedent`
+              message: dedent`
                 Garden v0.13 (Bonsai) is a major release with significant changes. Please help us improve it by reporting any issues/bugs here:
                 https://go.garden.io/report-bonsai
-              `),
+              `,
             })
           }
 

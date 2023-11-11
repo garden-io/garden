@@ -16,7 +16,6 @@ import { resolvedActionToExecuted } from "../actions/helpers.js"
 import { renderDuration } from "../logger/util.js"
 import { OtelTraced } from "../util/open-telemetry/decorators.js"
 import { wrapActiveSpan } from "../util/open-telemetry/spans.js"
-import { styles } from "../logger/styles.js"
 
 @Profile()
 export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {
@@ -127,7 +126,7 @@ export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {
       })
     })
 
-    log.verbose(styles.success(`Done syncing sources ${renderDuration(log.getDuration(1))}`))
+    log.verbose(`Done syncing sources ${renderDuration(log.getDuration(1))}`)
 
     await wrapActiveSpan("syncDependencyProducts", async () => {
       await this.garden.buildStaging.syncDependencyProducts(action, log)

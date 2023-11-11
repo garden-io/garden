@@ -27,7 +27,6 @@ import type { SyncableResource } from "../types.js"
 import { execInWorkload, readTargetResource } from "../util.js"
 import type { KubernetesRunOutputs } from "./config.js"
 import { kubernetesRunOutputsSchema } from "./config.js"
-import { styles } from "../../../logger/styles.js"
 
 // RUN //
 
@@ -149,12 +148,10 @@ async function readAndExec({
     }
     if (err.responseStatusCode === 404) {
       throw new ConfigurationError({
-        message: styles.error(
-          dedent`
+        message: dedent`
             ${action.longDescription()} specifies target resource ${targetKind}/${targetName}, which could not be found in namespace ${namespace}.
 
-            Hint: This action may be missing a dependency on a Deploy in this project that deploys the target resource. If so, adding that dependency will ensure that the Deploy is run before this action.`
-        ),
+            Hint: This action may be missing a dependency on a Deploy in this project that deploys the target resource. If so, adding that dependency will ensure that the Deploy is run before this action.`,
       })
     } else {
       throw err

@@ -51,7 +51,7 @@ export const pullImage: PluginCommand = {
       const valid = b.isCompatible("container")
       if (!valid && args.includes(b.name)) {
         throw new ParameterError({
-          message: styles.error(`Build ${styles.accent(b.name)} is not a container build.`),
+          message: `Build ${styles.accent(b.name)} is not a container build.`,
         })
       }
       return valid
@@ -77,7 +77,7 @@ async function pullBuilds(ctx: KubernetesPluginContext, builds: Resolved<Contain
       const localId = outputs.localImageId
       log.info({ msg: styles.highlight(`Pulling image ${remoteId} to ${localId}`) })
       await pullBuild({ ctx, action, log, localId, remoteId })
-      log.info({ msg: styles.success(`\nPulled image: ${remoteId} -> ${localId}`) })
+      log.success({ msg: styles.success(`\nPulled image: ${remoteId} -> ${localId}`), showDuration: false })
     })
   )
 }

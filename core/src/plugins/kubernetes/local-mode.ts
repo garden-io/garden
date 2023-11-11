@@ -744,9 +744,7 @@ async function getReversePortForwardProcesses(
           const lowercaseOutput = output.toLowerCase()
           if (lowercaseOutput.includes('unsupported option "accept-new"')) {
             log.error({
-              msg: styles.error(
-                "It looks like you're using too old SSH version which doesn't support option -oStrictHostKeyChecking=accept-new. Consider upgrading to OpenSSH 7.6 or higher. Local mode will not work."
-              ),
+              msg: "It looks like you're using too old SSH version which doesn't support option -oStrictHostKeyChecking=accept-new. Consider upgrading to OpenSSH 7.6 or higher. Local mode will not work.",
             })
             return true
           }
@@ -759,9 +757,7 @@ async function getReversePortForwardProcesses(
             lowercaseOutput.includes(indicator)
           })
           if (hasCriticalErrors) {
-            log.error({
-              msg: styles.error(output),
-            })
+            log.error(output)
           }
           return hasCriticalErrors
         },

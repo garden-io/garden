@@ -648,12 +648,12 @@ export function configureVolumes(
         })
       } else {
         throw new ConfigurationError({
-          message: styles.error(deline`${action.longDescription()} specifies a unsupported config
+          message: deline`${action.longDescription()} specifies a unsupported config
           ${styles.accent(volumeAction.name)} for volume mount ${styles.accent(
             volumeName
           )}. Only \`persistentvolumeclaim\`
           and \`configmap\` action are supported at this time.
-          `),
+          `,
         })
       }
     } else {
@@ -724,14 +724,10 @@ export async function handleChangedSelector({
     })
   } else {
     if (production && force) {
-      log.warn(
-        styles.warning(`${msgPrefix} Since we're deploying with force = true, we'll now delete it before redeploying.`)
-      )
+      log.warn(`${msgPrefix} Since we're deploying with force = true, we'll now delete it before redeploying.`)
     } else if (!production) {
       log.warn(
-        styles.warning(
-          `${msgPrefix} Since this environment does not have production = true, we'll now delete it before redeploying.`
-        )
+        `${msgPrefix} Since this environment does not have production = true, we'll now delete it before redeploying.`
       )
     }
     await deleteResourceKeys({

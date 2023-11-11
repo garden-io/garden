@@ -568,12 +568,12 @@ export async function startSyncs(params: StartSyncsParams) {
 
       // Validate the target
       if (!isConfiguredForSyncMode(target)) {
-        log.warn(styles.warning(`Resource ${resourceName} is not deployed in sync mode, cannot start sync.`))
+        log.warn(`Resource ${resourceName} is not deployed in sync mode, cannot start sync.`)
         return
       }
 
       if (!containerName) {
-        log.warn(styles.warning(`Resource ${resourceName} doesn't have any containers, cannot start sync.`))
+        log.warn(`Resource ${resourceName} doesn't have any containers, cannot start sync.`)
         return
       }
 

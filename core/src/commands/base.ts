@@ -757,7 +757,7 @@ type RunResultForExport = TestResultForExport
 const runResultForExportSchema = createSchema({
   name: "run-result-for-export",
   keys: () => ({
-    success: joi.boolean().required().description("Whether the module was uccessfully run."),
+    success: joi.boolean().required().description("Whether the module was successfully run."),
     exitCode: joi.number().integer().description("The exit code of the run (if applicable)."),
     startedAt: joi.date().required().description("When the module run was started."),
     completedAt: joi.date().required().description("When the module run was completed."),

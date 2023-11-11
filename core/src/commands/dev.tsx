@@ -219,13 +219,11 @@ Use ${styles.bold("up/down")} arrow keys to scroll through your command history.
         .emitWarning({
           log,
           key: "dev-syncs-active",
-          message: styles.warning(
-            `Syncs started during this session may still be active when this command terminates. You can run ${styles.accent(
-              "garden sync stop '*'"
-            )} to stop all code syncs. Hint: To stop code syncing when exiting ${styles.accent(
-              "garden dev"
-            )}, use ${styles.accent("Ctrl-D")} or the ${styles.accent(`exit`)} command.`
-          ),
+          message: `Syncs started during this session may still be active when this command terminates. You can run ${styles.accent(
+            "garden sync stop '*'"
+          )} to stop all code syncs. Hint: To stop code syncing when exiting ${styles.accent(
+            "garden dev"
+          )}, use ${styles.accent("Ctrl-D")} or the ${styles.accent(`exit`)} command.`,
         })
         .catch(() => {})
         .finally(() => quit())

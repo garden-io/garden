@@ -176,7 +176,7 @@ export async function collectProviderDebugInfo(garden: Garden, log: Log, format:
  * @param {Log} log
  */
 export async function generateBasicDebugInfoReport(root: string, gardenDirPath: string, log: Log, format = "json") {
-  log.warn(styles.warning("It looks like Garden couldn't validate your project: generating basic report."))
+  log.warn("It looks like Garden couldn't validate your project: generating basic report.")
 
   const tempPath = join(gardenDirPath, TEMP_DEBUG_ROOT)
   log.info({ msg: "Collecting basic debug info" })
@@ -293,7 +293,7 @@ export class GetDebugInfoCommand extends Command<Args, Opts> {
     } catch (err) {
       // One or multiple providers threw an error while processing.
       // Skip the step but still create a report.
-      providerLog.warn(styles.warning(`Failed to collect providers info. Skipping this step.`))
+      providerLog.warn(`Failed to collect providers info. Skipping this step.`)
     }
 
     // Zip report folder
@@ -307,15 +307,18 @@ export class GetDebugInfoCommand extends Command<Args, Opts> {
 
     log.success("Done")
 
-    log.info(styles.success(`\nDone! Please find your report at  ${outputFilePath}.\n`))
+    log.success({
+      msg: styles.success(`\nDone! Please find your report at  ${outputFilePath}.\n`),
+      showDuration: false,
+    })
 
     log.warn(
-      styles.warning(dedent`
+      dedent`
         NOTE: Please be aware that the output file might contain sensitive information.
         If you plan to make the file available to the general public (e.g. GitHub), please review the content first.
         If you need to share a file containing sensitive information with the Garden team, please contact us on
         our Discord community: https://discord.gg/FrmhuUjFs6.
-      `)
+      `
     )
 
     return { result: 0 }

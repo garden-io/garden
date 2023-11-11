@@ -124,7 +124,7 @@ function stateStyle(state: SyncState, msg: string) {
       "active": styles.success,
       "failed": styles.error,
       "not-active": styles.warning,
-    }[state] || styles.bold.dim
+    }[state] || styles.primary.bold
   return styleFn(msg)
 }
 

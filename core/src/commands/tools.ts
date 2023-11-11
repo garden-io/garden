@@ -155,7 +155,7 @@ export class ToolsCommand extends Command<Args, Opts> {
     }
 
     if (matchedTools.length > 1) {
-      log.warn(styles.warning(`Multiple tools matched (${matchedNames.join(", ")}). Running ${matchedNames[0]}`))
+      log.warn(`Multiple tools matched (${matchedNames.join(", ")}). Running ${matchedNames[0]}`)
     }
 
     const toolCls = new PluginTool(matchedTools[0].tool)

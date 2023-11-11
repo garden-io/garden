@@ -776,7 +776,7 @@ ${styles.accent.underline("Keys:")}
           // Update persisted history
           // Note: We're currently not resolving history across concurrent dev commands, but that's anyway not well supported
           garden.localConfigStore.set("devCommandHistory", this.commandHistory).catch((error) => {
-            this.log.warn(styles.warning(`Could not persist command history: ${error}`))
+            this.log.warn(`Could not persist command history: ${error}`)
           })
 
           command

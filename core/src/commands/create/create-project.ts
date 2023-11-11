@@ -197,7 +197,7 @@ export class CreateProjectCommand extends Command<CreateProjectArgs, CreateProje
     await addConfig(configPath, yaml)
 
     log.info(
-      styles.success(`-> Created new project config in ${styles.bold.white(relative(process.cwd(), configPath))}`)
+      styles.success(`-> Created new project config in ${styles.accent.bold(relative(process.cwd(), configPath))}`)
     )
 
     const ignoreFilePath = resolve(configDir, ignorefileName)
@@ -208,7 +208,7 @@ export class CreateProjectCommand extends Command<CreateProjectArgs, CreateProje
 
       if (await pathExists(gitIgnorePath)) {
         await copyFile(gitIgnorePath, ignoreFilePath)
-        const gitIgnoreRelPath = styles.bold.white(relative(process.cwd(), ignoreFilePath))
+        const gitIgnoreRelPath = styles.accent.bold(relative(process.cwd(), ignoreFilePath))
         log.info(
           styles.success(
             `-> Copied the .gitignore file at ${gitIgnoreRelPath} to a new .gardenignore in the same directory. Please edit the .gardenignore file if you'd like Garden to include or ignore different files.`
@@ -216,7 +216,7 @@ export class CreateProjectCommand extends Command<CreateProjectArgs, CreateProje
         )
       } else {
         await writeFile(ignoreFilePath, defaultIgnorefile + "\n")
-        const gardenIgnoreRelPath = styles.bold.white(relative(process.cwd(), ignoreFilePath))
+        const gardenIgnoreRelPath = styles.accent.bold(relative(process.cwd(), ignoreFilePath))
         log.info(
           styles.success(
             `-> Created default .gardenignore file at ${gardenIgnoreRelPath}. Please edit the .gardenignore file to add files or patterns that Garden should ignore when scanning and building.`

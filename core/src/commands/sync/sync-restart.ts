@@ -14,7 +14,6 @@ import type { CommandParams, CommandResult } from "../base.js"
 import { Command } from "../base.js"
 import { createActionLog } from "../../logger/log-entry.js"
 import { startSyncWithoutDeploy } from "./sync-start.js"
-import { styles } from "../../logger/styles.js"
 
 const syncRestartArgs = {
   names: new StringsParameter({
@@ -89,7 +88,7 @@ export class SyncRestartCommand extends Command<Args, Opts> {
     actions = actions.filter((action) => {
       if (!action.supportsMode("sync")) {
         if (names.includes(action.name)) {
-          log.warn(styles.warning(`${action.longDescription()} does not support syncing.`))
+          log.warn(`${action.longDescription()} does not support syncing.`)
         }
         return false
       }
@@ -97,7 +96,7 @@ export class SyncRestartCommand extends Command<Args, Opts> {
     })
 
     if (actions.length === 0) {
-      log.warn(styles.warning(`No matched action supports syncing. Aborting.`))
+      log.warn(`No matched action supports syncing. Aborting.`)
       return {}
     }
 
@@ -113,9 +112,9 @@ export class SyncRestartCommand extends Command<Args, Opts> {
         await router.deploy.stopSync({ log: actionLog, action, graph })
       })
     )
-    syncControlLog.info({ symbol: "success", msg: styles.success("Active syncs stopped") })
+    syncControlLog.success("Active syncs stopped")
 
-    syncControlLog.info({ symbol: "info", msg: "Starting stopped syncs..." })
+    syncControlLog.info("Starting stopped syncs...")
 
     await startSyncWithoutDeploy({
       actions,
@@ -127,7 +126,7 @@ export class SyncRestartCommand extends Command<Args, Opts> {
       stopOnExit: false,
     })
 
-    log.info(styles.success("\nDone!"))
+    log.success({ msg: "\nDone!", showDuration: false })
 
     return {}
   }

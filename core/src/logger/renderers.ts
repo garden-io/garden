@@ -122,6 +122,7 @@ export function renderMsg(entry: LogEntry): string {
     return ""
   }
 
+  // TODO: @eysi Should we strip here?
   // if (level > LogLevel.info) {
   //   msg = stripAnsi(msg)
   // }

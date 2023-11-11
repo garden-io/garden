@@ -25,7 +25,6 @@ import type { PulumiProvider } from "./provider.js"
 import type { DeployActionHandlers } from "@garden-io/core/build/src/plugin/action-types.js"
 import type { DeployState } from "@garden-io/core/build/src/types/service.js"
 import { deployStateToActionState } from "@garden-io/core/build/src/plugin/handlers/Deploy/get-status.js"
-import { styles } from "@garden-io/core/build/src/logger/styles.js"
 
 export const cleanupEnvironment: ProviderHandlers["cleanupEnvironment"] = async (_params) => {
   // To properly implement this handler, we'd need access to the config graph (or at least the list of pulumi services
@@ -124,7 +123,7 @@ export const deployPulumi: DeployActionHandlers<PulumiDeploy>["deploy"] = async 
 
 export const deletePulumiDeploy: DeployActionHandlers<PulumiDeploy>["delete"] = async ({ ctx, log, action }) => {
   if (!action.getSpec("allowDestroy")) {
-    log.warn(styles.warning(`${action.longDescription()} has allowDestroy = false. Skipping destroy.`))
+    log.warn(`${action.longDescription()} has allowDestroy = false. Skipping destroy.`)
     return {
       state: deployStateToActionState("outdated"),
       outputs: {},

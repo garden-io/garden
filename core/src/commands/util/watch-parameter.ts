@@ -8,7 +8,6 @@
 import { BooleanParameter } from "../../cli/params.js"
 import type { Garden } from "../../garden.js"
 import type { Log } from "../../logger/log-entry.js"
-import { styles } from "../../logger/styles.js"
 
 export const watchParameter = new BooleanParameter({
   help: "[REMOVED] Watch for changes and update actions automatically.",
@@ -21,8 +20,7 @@ export async function watchRemovedWarning(garden: Garden, log: Log) {
   return garden.emitWarning({
     log,
     key: "watch-flag-removed",
-    message: styles.warning(
-      "The -w/--watch flag has been removed. Please use other options instead, such as the --sync option for Deploy actions. If you need this feature and would like it re-introduced, please don't hesitate to reach out: https://garden.io/community"
-    ),
+    message:
+      "The -w/--watch flag has been removed. Please use other options instead, such as the --sync option for Deploy actions. If you need this feature and would like it re-introduced, please don't hesitate to reach out: https://garden.io/community",
   })
 }
