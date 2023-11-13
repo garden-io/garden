@@ -662,13 +662,13 @@ providers:
     buildMode: kaniko
     kaniko:
       serviceAccountAnnotations:
-        iam.gke.io/gcp-service-account: gar-access@${PROJECT}.iam.gserviceaccount.com
+        iam.gke.io/gcp-service-account: gar-access@${PROJECT_ID}.iam.gserviceaccount.com
 
     # If you use the buildkit build mode
     buildMode: buildkit
     clusterBuildkit:
       serviceAccountAnnotations:
-        iam.gke.io/gcp-service-account: gar-access@${PROJECT}.iam.gserviceaccount.com
+        iam.gke.io/gcp-service-account: gar-access@${PROJECT_ID}.iam.gserviceaccount.com
 ```
 
 ## Publishing images
