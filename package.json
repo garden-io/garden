@@ -37,7 +37,7 @@
     "csv": "^6.0.5",
     "csv-stringify": "^6.4.2",
     "deline": "^1.0.4",
-    "dependency-graph": "^0.9.0",
+    "dependency-graph": "^0.11.0",
     "eslint": "^8.53.0",
     "eslint-config-prettier": "^9.0.0",
     "eslint-plugin-header": "^3.1.1",
