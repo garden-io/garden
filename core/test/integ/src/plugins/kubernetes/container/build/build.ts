@@ -583,7 +583,7 @@ describe("Kubernetes Container Build Extension", () => {
 
   grouped("kaniko").context("kaniko service account annotations", () => {
     beforeEach(async () => {
-      await init("local")
+      await init("kaniko")
     })
 
     afterEach(async () => {
@@ -671,7 +671,7 @@ describe("Kubernetes Container Build Extension", () => {
 
   grouped("cluster-buildkit").context("cluster-buildkit service account annotations", () => {
     beforeEach(async () => {
-      await init("local")
+      await init("cluster-buildkit")
     })
 
     afterEach(async () => {
