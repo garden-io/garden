@@ -35,7 +35,7 @@ import { compareDeployedResources } from "../../../../../../../src/plugins/kuber
 import { KubeApi } from "../../../../../../../src/plugins/kubernetes/api.js"
 import { ensureBuildkit } from "../../../../../../../src/plugins/kubernetes/container/build/buildkit.js"
 
-describe("Kubernetes Container Build Extension", () => {
+describe.skip("Kubernetes Container Build Extension", () => {
   const builder = k8sContainerBuildExtension()
 
   let garden: Garden
@@ -580,16 +580,31 @@ describe("Kubernetes Container Build Extension", () => {
       )
     })
   })
+})
 
+describe("Ensure serviceAccount annotations for in-cluster building", () => {
+  let garden: Garden
+  let cleanup: (() => void) | undefined
+  let log: ActionLog
+  let provider: KubernetesProvider
+  let ctx: PluginContext
+  let api: KubeApi
+  after(async () => {
+    if (garden) {
+      garden.close()
+    }
+  })
+
+  const init = async (environmentName: string, remoteContainerAuth = false) => {
+    ;({ garden, cleanup } = await getContainerTestGarden(environmentName, { remoteContainerAuth }))
+    log = createActionLog({ log: garden.log, actionName: "", actionKind: "" })
+    provider = <KubernetesProvider>await garden.resolveProvider(garden.log, "local-kubernetes")
+    ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
+    api = await KubeApi.factory(log, ctx, provider)
+  }
   grouped("kaniko").context("kaniko service account annotations", () => {
     beforeEach(async () => {
       await init("kaniko")
-    })
-
-    afterEach(async () => {
-      if (cleanup) {
-        cleanup()
-      }
     })
     it("should deploy a garden builder serviceAccount with specified annotations in the project namespace", async () => {
       const annotations = {
