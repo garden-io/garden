@@ -6,15 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import {
-  isArray,
-  isObject,
-  mapKeys,
-  mapValues,
-  omit,
-  pickBy,
-  remove
-} from "lodash-es"
+import { isArray, isObject, mapKeys, mapValues, omit, pickBy, remove } from "lodash-es"
 import minimatch from "minimatch"
 import type { ActionConfig } from "../actions/types.js"
 import type { GraphResults } from "../graph/results.js"
@@ -51,13 +43,17 @@ export function findCacheKeyPathsToExcludeFromConfig(config: ActionConfig): stri
  * @param {string} [currentPath=''] - The current path during recursive traversal.
  * @returns {string[]} - Array of strings representing key paths in the JSON object that match the patterns.
  */
-export function findMatchingKeyPathsFromWildcardPaths(jsonObject: {}, excludePatterns: string[], currentPath: string = ""): string[] {
+export function findMatchingKeyPathsFromWildcardPaths(
+  jsonObject: {},
+  excludePatterns: string[],
+  currentPath = ""
+): string[] {
   let matchedPaths: string[] = []
   // Iterate over the elements of the object or array
   for (const [key, value] of Object.entries(jsonObject)) {
     const newPath = currentPath ? `${currentPath}.${key}` : key
     if (excludePatterns.some((pattern) => minimatch(newPath, pattern))) {
-       // If matched, add the path to the array
+      // If matched, add the path to the array
       matchedPaths.push(newPath)
     } else if (isObject(value) || isArray(value)) {
       // If not matched, recursively call the function for the nested value

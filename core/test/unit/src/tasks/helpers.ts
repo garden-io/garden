@@ -110,7 +110,12 @@ describe("TaskHelpers", () => {
           },
         }
         const result = findCacheKeyPathsToExcludeFromConfig(config1)
-        expect(result).to.have.members(["spec.ingresses.0.hostname", "spec.ingresses.1.hostname", "spec.ingresses.2.hostname", "spec.env"])
+        expect(result).to.have.members([
+          "spec.ingresses.0.hostname",
+          "spec.ingresses.1.hostname",
+          "spec.ingresses.2.hostname",
+          "spec.env",
+        ])
       })
     })
 

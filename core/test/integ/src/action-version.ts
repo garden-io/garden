@@ -51,9 +51,7 @@ describe("action-version", () => {
       log: garden1.log,
       graph: graph1,
     })
-    expect(resolvedAction1.excludedKeysPathsForVersion).to.have.members([
-      "spec.ingresses.0.hostname",
-    ])
+    expect(resolvedAction1.excludedKeysPathsForVersion).to.have.members(["spec.ingresses.0.hostname"])
     expect(resolvedAction2.excludedKeysPathsForVersion).to.have.members([
       "spec.ingresses.0.hostname",
       "spec.env.EXTERNAL_API_URL",
