@@ -180,7 +180,7 @@
     "@types/got": "^9.6.12",
     "@types/hapi__joi": "^17.1.9",
     "@types/has-ansi": "^3.0.0",
-    "@types/ink-divider": "^2.0.2",
+    "@types/ink-divider": "^2.0.4",
     "@types/inquirer": "7.3.3",
     "@types/ip": "^1.1.0",
     "@types/is-git-url": "^1.0.2",
