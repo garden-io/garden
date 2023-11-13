@@ -312,11 +312,12 @@ services:
 
       # Specify one or more source files or directories to automatically sync with the running container.
       paths:
-        - # POSIX-style or Windows-style local path of the directory to sync to the target. Can be either absolute or
-          # relative to the source directory where the Deploy action is defined.
+        - # Path to a local directory to be synchronized with the target.
           # This should generally be a templated path to another action's source path (e.g.
-          # `${actions.build.my-container-image.sourcePath}`), or a relative path. If a path is hard-coded, you must
-          # make sure the path exists, and that it is reliably the correct path for every user.
+          # `${actions.build.my-container-image.sourcePath}`), or a relative path.
+          # If a path is hard-coded, we recommend sticking with relative paths here, and using forward slashes (`/`)
+          # as a delimiter, as Windows-style paths with back slashes (`\`) and absolute paths will work on some
+          # platforms, but they are not portable and will not work for users on other platforms.
           # Defaults to the Deploy action's config's directory if no value is provided.
           source: .
 
@@ -1413,8 +1414,9 @@ Specify one or more source files or directories to automatically sync with the r
 
 [services](#services) > [sync](#servicessync) > [paths](#servicessyncpaths) > source
 
-POSIX-style or Windows-style local path of the directory to sync to the target. Can be either absolute or relative to the source directory where the Deploy action is defined.
-This should generally be a templated path to another action's source path (e.g. `${actions.build.my-container-image.sourcePath}`), or a relative path. If a path is hard-coded, you must make sure the path exists, and that it is reliably the correct path for every user.
+Path to a local directory to be synchronized with the target.
+This should generally be a templated path to another action's source path (e.g. `${actions.build.my-container-image.sourcePath}`), or a relative path.
+If a path is hard-coded, we recommend sticking with relative paths here, and using forward slashes (`/`) as a delimiter, as Windows-style paths with back slashes (`\`) and absolute paths will work on some platforms, but they are not portable and will not work for users on other platforms.
 Defaults to the Deploy action's config's directory if no value is provided.
 
 | Type     | Default | Required |
