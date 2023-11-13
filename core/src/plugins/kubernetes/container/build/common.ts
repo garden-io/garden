@@ -354,7 +354,7 @@ export async function ensureUtilDeployment({
     const imagePullSecrets = await prepareSecrets({ api, namespace, secrets: provider.config.imagePullSecrets, log })
 
     // Check status of the util deployment
-    const { deployment, service } = getUtilManifests(provider, authSecret.metadata.name, imagePullSecrets, namespace)
+    const { deployment, service } = getUtilManifests(provider, authSecret.metadata.name, imagePullSecrets)
     const status = await compareDeployedResources({
       ctx: ctx as KubernetesPluginContext,
       api,
@@ -576,8 +576,7 @@ export function getUtilContainer(authSecretName: string, provider: KubernetesPro
 export function getUtilManifests(
   provider: KubernetesProvider,
   authSecretName: string,
-  imagePullSecrets: { name: string }[],
-  namespace?: string
+  imagePullSecrets: { name: string }[]
 ) {
   const kanikoTolerations = [
     ...(provider.config.kaniko?.util?.tolerations || provider.config.kaniko?.tolerations || []),
@@ -594,7 +593,6 @@ export function getUtilManifests(
       },
       name: utilDeploymentName,
       annotations: kanikoAnnotations,
-      namespace,
     },
     spec: {
       replicas: 1,
@@ -644,7 +642,6 @@ export function getUtilManifests(
   }
 
   const service = cloneDeep(baseUtilService)
-  service.metadata.namespace = namespace
 
   // Set the configured nodeSelector, if any
   const nodeSelector = provider.config.kaniko?.util?.nodeSelector || provider.config.kaniko?.nodeSelector
