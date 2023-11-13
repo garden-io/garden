@@ -1,7 +1,7 @@
 #
 # garden-base
 #
-FROM node:18-alpine@sha256:f41850f74ff16a33daff988e2ea06ef8f5daeb6fb84913c7df09552a98caba09 as garden-alpine-base-root
+FROM node:21-alpine@sha256:df76a9449df49785f89d517764012e3396b063ba3e746e8d88f36e9f332b1864 as garden-alpine-base-root
 
 RUN apk add --no-cache \
   bash \
