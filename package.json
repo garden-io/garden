@@ -29,7 +29,7 @@
     "@types/node": "^20",
     "@types/prettier": "2.7.3",
     "@types/semver": "^7.5.0",
-    "@types/treeify": "^1.0.0",
+    "@types/treeify": "^1.0.3",
     "@types/yargs": "^17.0.28",
     "@typescript-eslint/eslint-plugin": "^6.10.0",
     "@typescript-eslint/parser": "^6.10.0",
