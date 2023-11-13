@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { GitHandler } from "./git.js"
+import { GitHandler, augmentGlobs } from "./git.js"
 import type { GetFilesParams, VcsFile } from "./vcs.js"
 import { isDirectory, matchPath } from "../util/fs.js"
 import fsExtra from "fs-extra"
@@ -58,8 +58,10 @@ export class GitRepoHandler extends GitHandler {
 
     const moduleFiles = fileTree.getFilesAtPath(path)
 
-    const include = params.include ? params.include : ["**/*"]
-    const exclude = params.exclude || []
+    // We allow just passing a path like `foo` as include and exclude params
+    // Those need to be converted to globs, but we don't want to touch existing globs
+    const include = params.include ? await augmentGlobs(path, params.include) : ["**/*"]
+    const exclude = await augmentGlobs(path, params.exclude || [])
 
     if (scanRoot === this.garden?.projectRoot) {
       exclude.push("**/.garden/**/*")

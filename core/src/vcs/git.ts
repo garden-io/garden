@@ -700,7 +700,9 @@ const notInRepoRootErrorMessage = (path: string) => deline`
  * Given a list of POSIX-style globs/paths and a `basePath`, find paths that point to a directory and append `**\/*`
  * to them, such that they'll be matched consistently between git and our internal pattern matching.
  */
-export async function augmentGlobs(basePath: string, globs?: string[]) {
+export async function augmentGlobs(basePath: string, globs: string[]): Promise<string[]>
+export async function augmentGlobs(basePath: string, globs?: string[]): Promise<string[] | undefined>
+export async function augmentGlobs(basePath: string, globs?: string[]): Promise<string[] | undefined> {
   if (!globs || globs.length === 0) {
     return globs
   }
