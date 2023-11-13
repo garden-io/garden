@@ -71,7 +71,7 @@ describe("AnalyticsHandler", () => {
 
     afterEach(async () => {
       // Flush so queued events don't leak between tests
-      await analytics.flush()
+      await analytics.closeAndFlush()
       AnalyticsHandler.clearInstance()
     })
 
@@ -162,7 +162,7 @@ describe("AnalyticsHandler", () => {
       await garden.globalConfigStore.set("analytics", basicConfig)
       analytics = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo })
 
-      await analytics.flush()
+      await analytics.closeAndFlush()
 
       expect(analytics.isEnabled).to.equal(true)
       expect(scope.isDone()).to.equal(true)
@@ -208,7 +208,7 @@ describe("AnalyticsHandler", () => {
         optedOut: true,
       })
       analytics = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo })
-      await analytics.flush()
+      await analytics.closeAndFlush()
 
       expect(analytics.isEnabled).to.equal(false)
       expect(scope.isDone()).to.equal(false)
@@ -255,7 +255,7 @@ describe("AnalyticsHandler", () => {
     })
 
     afterEach(async () => {
-      await analytics.flush()
+      await analytics.closeAndFlush()
       AnalyticsHandler.clearInstance()
     })
 
@@ -305,7 +305,7 @@ describe("AnalyticsHandler", () => {
       await garden.globalConfigStore.set("analytics", basicConfig)
       analytics = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo })
 
-      await analytics.flush()
+      await analytics.closeAndFlush()
 
       expect(analytics.isEnabled).to.equal(true)
       expect(scope.isDone()).to.equal(true)
@@ -348,7 +348,7 @@ describe("AnalyticsHandler", () => {
       await garden.globalConfigStore.set("analytics", basicConfig)
       analytics = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo })
       gardenEnv.GARDEN_DISABLE_ANALYTICS = originalEnvVar
-      await analytics.flush()
+      await analytics.closeAndFlush()
 
       expect(analytics.isEnabled).to.equal(false)
       expect(scope.isDone()).to.equal(false)
@@ -365,7 +365,7 @@ describe("AnalyticsHandler", () => {
 
     afterEach(async () => {
       // Flush so queued events don't leak between tests
-      await analytics.flush()
+      await analytics.closeAndFlush()
       AnalyticsHandler.clearInstance()
     })
 
@@ -682,7 +682,7 @@ describe("AnalyticsHandler", () => {
 
     afterEach(async () => {
       // Flush so queued events don't leak between tests
-      await analytics.flush()
+      await analytics.closeAndFlush()
       AnalyticsHandler.clearInstance()
     })
 
@@ -893,7 +893,7 @@ describe("AnalyticsHandler", () => {
 
     afterEach(async () => {
       // Flush so queued events don't leak between tests
-      await analytics.flush()
+      await analytics.closeAndFlush()
       AnalyticsHandler.clearInstance()
     })
 
@@ -916,7 +916,7 @@ describe("AnalyticsHandler", () => {
       analytics = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo })
 
       analytics.trackCommand("test-command-A")
-      await analytics.flush()
+      await analytics.closeAndFlush()
 
       expect(analytics["pendingEvents"].size).to.eql(0)
       expect(scope.isDone()).to.equal(true)

@@ -395,7 +395,7 @@ ${renderCommands(commands)}
         }
 
         // flush analytics early since when we throw the instance is not returned
-        await analytics?.flush()
+        await analytics?.closeAndFlush()
 
         throw err
       } finally {
@@ -612,7 +612,7 @@ ${renderCommands(commands)}
     const gardenErrors: GardenError[] = errors.map(toGardenError)
 
     // Flushes the Analytics events queue in case there are some remaining events.
-    await analytics?.flush()
+    await analytics?.closeAndFlush()
 
     // --output option set
     if (argv.output) {
