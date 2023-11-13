@@ -31,7 +31,7 @@
     "@types/semver": "^7.5.0",
     "@types/treeify": "^1.0.3",
     "@types/yargs": "^17.0.28",
-    "@typescript-eslint/eslint-plugin": "^6.10.0",
+    "@typescript-eslint/eslint-plugin": "^6.11.0",
     "@typescript-eslint/parser": "^6.10.0",
     "chalk": "^4.1.0",
     "csv": "^6.0.5",
