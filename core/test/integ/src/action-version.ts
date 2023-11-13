@@ -38,7 +38,7 @@ describe("action-version", () => {
     }
   })
 
-  it("should find keys to ignore for action version calculation from action config", async () => {
+  it("should find key paths to exclude for action version calculation from action config", async () => {
     const unresolvedAction1 = graph1.getDeploy("test-deploy-container")
     const unresolvedAction2 = graph1.getDeploy("test-deploy-container-with-merge")
     const resolvedAction1 = await garden1.resolveAction<KubernetesDeployAction>({
@@ -52,18 +52,15 @@ describe("action-version", () => {
       graph: graph1,
     })
     expect(resolvedAction1.excludedKeysPathsForVersion).to.have.members([
-      "cache.exclude.variables.0",
       "spec.ingresses.0.hostname",
     ])
     expect(resolvedAction2.excludedKeysPathsForVersion).to.have.members([
-      "cache.exclude.variables.0",
-      "cache.exclude.variables.1",
       "spec.ingresses.0.hostname",
       "spec.env.EXTERNAL_API_URL",
     ])
   })
 
-  it("should not change action version, if an ignored variable changes", async () => {
+  it("should not change action version, if value of an excluded path changes", async () => {
     const unresolvedAction1 = cloneDeep(graph1.getDeploy("test-deploy-container"))
     const unresolvedAction2 = cloneDeep(graph2.getDeploy("test-deploy-container"))
 
@@ -82,7 +79,7 @@ describe("action-version", () => {
     expect(resolvedAction1.versionString()).to.eql(resolvedAction2.versionString())
   })
 
-  it("should not change action version, if an ignored variable changes inside $merge", async () => {
+  it("should not change action version, if value of an excluded path changes after $merge", async () => {
     const unresolvedAction1 = cloneDeep(graph1.getDeploy("test-deploy-container-with-merge"))
     const unresolvedAction2 = cloneDeep(graph2.getDeploy("test-deploy-container-with-merge"))
 

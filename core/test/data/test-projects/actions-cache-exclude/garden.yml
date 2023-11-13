@@ -10,8 +10,8 @@ name: test-deploy-container
 build: test-build-container
 cache:
   exclude:
-    variables:
-      - ${var.base-hostname}
+    paths:
+      - spec.ingresses.*.hostname
 description: Deploy the container
 spec:
   ports:
@@ -34,9 +34,9 @@ name: test-deploy-container-with-merge
 build: test-build-container
 cache:
   exclude:
-    variables:
-      - ${var.base-hostname}
-      - ${var.nestedVars.EXTERNAL_API_URL}
+    paths:
+      - spec.ingresses.0.hostname
+      - "spec.*.EXTERNAL_API_URL"
 description: Deploy the container
 spec:
   ports:

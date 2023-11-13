@@ -236,17 +236,20 @@ export const baseActionConfigSchema = createSchema({
 
     cache: joi.object().keys({
       exclude: joi.object().keys({
-        variables: joiSparseArray(joi.string()).description(
+        paths: joiSparseArray(joi.string().regex(/^(?!.*\.\*$).*/))
+        // override the default error message
+        .messages({
+          "string.pattern.base": "{{#label}} with value {{#value}} fails to match the required pattern: {{#regex}}. Wildcards at the end of specified paths are not allowed. Using a wildcard at the end of a path is essentially equivalent to specifying the same path without the wildcard. For example, spec.env.* is the same as spec.env.",
+        })
+        .description(
           dedent`
-            Specify the list of variables to exclude when caching this action. This is particularly useful for the
-            distributed caching where a certain variable might change across environments, but the action should
-            still be cached.
+          The specified paths will be omitted from version calculations for this action.
+          Note that the paths are omitted from the fully resolved configuration after Garden template strings are resolved,
+          including any template operators such as $merge and $concat.
 
-            For instance, if you have an 'deploy' action that relies on a variable to determine the ingress hostname,
-            you may wish to designate the \`\${var.ingress-hostname}\` variable as one to be ignored. This ensures
-            that the action's version remains consistent, even as the hostname varies across different environments.
+          TODO: add link to a guide/examples
           `
-        ),
+        )
       }),
     }),
 
@@ -562,9 +565,14 @@ export abstract class BaseAction<
 
   @Memoize()
   private stringifyConfig() {
-    const clonedConfig = cloneDeep(this._config)
-    const omittedConfig = omit(clonedConfig, "internal", ...this.excludedKeysPathsForVersion)
-    return stableStringify(omittedConfig)
+    if (this.excludedKeysPathsForVersion.length > 0) {
+      // clone and omit excluded keys
+      // lodash omit doesn't work well with deep arrays and may manipulate the original object
+      const clonedConfig = cloneDeep(this._config)
+      const omittedConfig = omit(clonedConfig, "internal", ...this.excludedKeysPathsForVersion)
+      return stableStringify(omittedConfig)
+    }
+    return stableStringify(omit(this._config, "internal"))
   }
 
   /**

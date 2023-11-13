@@ -41,7 +41,7 @@ export interface ActionSourceSpec {
 }
 
 export interface ActionCacheExcludeConfig {
-  variables?: string[]
+  paths?: string[]
 }
 
 /**

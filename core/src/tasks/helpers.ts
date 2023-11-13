@@ -6,11 +6,20 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { forOwn, includes, isArray, isPlainObject, isString, mapKeys, mapValues, omit, pickBy, some } from "lodash-es"
+import {
+  isArray,
+  isObject,
+  mapKeys,
+  mapValues,
+  omit,
+  pickBy,
+  remove
+} from "lodash-es"
+import minimatch from "minimatch"
+import type { ActionConfig } from "../actions/types.js"
 import type { GraphResults } from "../graph/results.js"
 import type { DeployStatus } from "../plugin/handlers/Deploy/get-status.js"
 import { splitLast } from "../util/string.js"
-import type { ActionConfig } from "../actions/types.js"
 
 export function getDeployStatuses(dependencyResults: GraphResults): { [name: string]: DeployStatus } {
   const deployResults = pickBy(dependencyResults.getMap(), (r) => r && r.type === "deploy")
@@ -19,42 +28,43 @@ export function getDeployStatuses(dependencyResults: GraphResults): { [name: str
 }
 
 /**
- * Find key paths in a action config object whose values include one of the strings ignoreVars array.
- *
- * @param {Object} config - Action config object.
- * @param {Array} ignoreVars - An array of strings to match against values in the config object.
- * @returns {Array} - An array of objects, each containing the matching key and the string that caused the match.
+ * Find all the paths that should be excluded from the action config based on the config.
  */
-export function findKeyPathsToOmitFromConfig(
-  config: ActionConfig,
-  ignoreVars: string[]
-): Array<{ key: string; matchedValue: string }> {
-  if (ignoreVars.length === 0) {
-    return []
+export function findCacheKeyPathsToExcludeFromConfig(config: ActionConfig): string[] {
+  const cacheExcludeSpecifiedPaths = config.cache?.exclude?.paths ?? []
+  const matchedPaths: string[] = []
+  if (cacheExcludeSpecifiedPaths.length > 0) {
+    // only do recursive matching if path is a wildcard
+    // wildcard can only be in the beginning or in the middle of the path. e.g. *.foo or foo.*.bar
+    // We validate the paths in the config schema, so we don't need to validate here.
+    const pathsWithWildcards = remove(cacheExcludeSpecifiedPaths, (p) => p.includes(".*.") || p.includes("*."))
+    const pathsWithWildcardsResolved = findMatchingKeyPathsFromWildcardPaths(config, pathsWithWildcards)
+    matchedPaths.push(...cacheExcludeSpecifiedPaths, ...pathsWithWildcardsResolved)
   }
-  const result: Array<{ key: string; matchedValue: string }> = []
-  // recursively search the config object for keys whose values include one of the strings in ignoreVars
-  const searchObject = (obj: {}, keyPath: (string | number)[]) => {
-    if (isPlainObject(obj) || isArray(obj)) {
-      forOwn(obj, (value: string, key: string | number) => {
-        const currentKeyPath = keyPath.concat(key)
-        if (
-          (isString(value) || includes(ignoreVars, value)) &&
-          some(ignoreVars, (item: string) => value.includes(item))
-        ) {
-          result.push({ key: currentKeyPath.join("."), matchedValue: value })
-        } else {
-          searchObject(value, currentKeyPath)
-        }
-      })
+  return matchedPaths
+}
+
+/**
+ * Recursively traverse a JSON object and identify paths that match the patterns.
+ * @param {string[]} excludePatterns - An array of strings representing the patterns.
+ * @param {object|array} jsonObject - Input JSON object to be traversed
+ * @param {string} [currentPath=''] - The current path during recursive traversal.
+ * @returns {string[]} - Array of strings representing key paths in the JSON object that match the patterns.
+ */
+export function findMatchingKeyPathsFromWildcardPaths(jsonObject: {}, excludePatterns: string[], currentPath: string = ""): string[] {
+  let matchedPaths: string[] = []
+  // Iterate over the elements of the object or array
+  for (const [key, value] of Object.entries(jsonObject)) {
+    const newPath = currentPath ? `${currentPath}.${key}` : key
+    if (excludePatterns.some((pattern) => minimatch(newPath, pattern))) {
+       // If matched, add the path to the array
+      matchedPaths.push(newPath)
+    } else if (isObject(value) || isArray(value)) {
+      // If not matched, recursively call the function for the nested value
+      const nestedMatches = findMatchingKeyPathsFromWildcardPaths(value, excludePatterns, newPath)
+      // Concatenate the nested matches to the matched paths array
+      matchedPaths = matchedPaths.concat(nestedMatches)
     }
   }
-  searchObject(omit(config, "internal"), [])
-  // also include variable declarations to be omitted
-  ignoreVars.forEach((v) => {
-    if (config.variables?.[v]) {
-      result.push({ key: `variables.${v}`, matchedValue: config.variables[v]?.toString() ?? "" })
-    }
-  })
-  return result
+  return matchedPaths
 }
