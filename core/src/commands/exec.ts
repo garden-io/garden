@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import chalk from "chalk"
 import { printHeader } from "../logger/util.js"
 import type { CommandResult, CommandParams } from "./base.js"
 import { Command } from "./base.js"
@@ -20,6 +19,7 @@ import { NotFoundError } from "../exceptions.js"
 import type { DeployStatus } from "../plugin/handlers/Deploy/get-status.js"
 import { createActionLog } from "../logger/log-entry.js"
 import { K8_POD_DEFAULT_CONTAINER_ANNOTATION_KEY } from "../plugins/kubernetes/run.js"
+import { styles } from "../logger/styles.js"
 
 const execArgs = {
   deploy: new StringParameter({
@@ -78,7 +78,11 @@ export class ExecCommand extends Command<Args, Opts> {
   override printHeader({ log, args }) {
     const deployName = args.deploy
     const command = this.getCommand(args)
-    printHeader(log, `Running command ${chalk.cyan(command.join(" "))} in Deploy ${chalk.cyan(deployName)}`, "runner")
+    printHeader(
+      log,
+      `Running command ${styles.highlight(command.join(" "))} in Deploy ${styles.highlight(deployName)}`,
+      "runner"
+    )
   }
 
   async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<ExecInDeployResult>> {
@@ -104,9 +108,9 @@ export class ExecCommand extends Command<Args, Opts> {
       case "unhealthy":
       case "unknown":
         log.warn(
-          `The current state of ${action.key()} is ${chalk.whiteBright(
-            deployState
-          )}. If this command fails, you may need to re-deploy it with the ${chalk.whiteBright("deploy")} command.`
+          `The current state of ${action.key()} is ${styles.accent(
+            deployState || "unknown"
+          )}. If this command fails, you may need to re-deploy it with the ${styles.accent("deploy")} command.`
         )
         break
       case "outdated":
@@ -123,9 +127,9 @@ export class ExecCommand extends Command<Args, Opts> {
         // if there is an active sync, the state is likely to be outdated so do not display this warning
         if (!(deploySync?.syncCount && deploySync?.syncCount > 0 && deploySync?.state === "active")) {
           log.warn(
-            `The current state of ${action.key()} is ${chalk.whiteBright(
+            `The current state of ${action.key()} is ${styles.accent(
               deployState
-            )}. If this command fails, you may need to re-deploy it with the ${chalk.whiteBright("deploy")} command.`
+            )}. If this command fails, you may need to re-deploy it with the ${styles.accent("deploy")} command.`
           )
         }
         break

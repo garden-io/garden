@@ -8,7 +8,6 @@
 
 import type { Server } from "http"
 
-import chalk from "chalk"
 import Koa from "koa"
 import Router from "koa-router"
 import websockify from "koa-websocket"
@@ -51,6 +50,7 @@ import { defaultServerPort } from "../commands/serve.js"
 
 import type PTY from "@homebridge/node-pty-prebuilt-multiarch"
 import pty from "@homebridge/node-pty-prebuilt-multiarch"
+import { styles } from "../logger/styles.js"
 
 const skipLogsForCommands = ["autocomplete"]
 
@@ -237,7 +237,9 @@ export class GardenServer extends EventEmitter {
         }
       } while (!serverStarted)
     }
-    this.log.info(chalk.white(`Garden server has successfully started at port ${chalk.bold(this.port)}.\n`))
+    this.log.info(
+      styles.accent(`Garden server has successfully started at port ${styles.bold(this.port.toString())}.\n`)
+    )
 
     const processRecord = await this.globalConfigStore.get("activeProcesses", String(process.pid))
 
@@ -262,7 +264,7 @@ export class GardenServer extends EventEmitter {
 
   showUrl(url?: string) {
     if (this.statusLog) {
-      this.statusLog.info("🌻 " + chalk.cyan("Garden server running at ") + chalk.blueBright(url || this.getUrl()))
+      this.statusLog.info("🌻 " + styles.highlight("Garden server running at ") + styles.link(url || this.getUrl()))
     }
   }
 
@@ -607,7 +609,7 @@ export class GardenServer extends EventEmitter {
             if (exitCode !== 0) {
               websocket.send(msg + "\r\n")
             } else {
-              websocket.send(chalk.green("\r\n\r\nDone!\r\n"))
+              websocket.send(styles.success("\r\n\r\nDone!\r\n"))
             }
             // We use 4700 + exitCode because the websocket close code must be a number between 4000 and 4999
             websocket.close(4700 + exitCode, msg)
@@ -726,7 +728,7 @@ export class GardenServer extends EventEmitter {
               fixLevel: internal ? LogLevel.debug : undefined,
             })
 
-        const cmdNameStr = chalk.bold.white(command.getFullName() + (internal ? ` (internal)` : ""))
+        const cmdNameStr = styles.accent.bold(command.getFullName() + (internal ? ` (internal)` : ""))
         const commandSessionId = requestId
 
         if (skipAnalyticsForCommands.includes(command.getFullName())) {
@@ -811,19 +813,19 @@ export class GardenServer extends EventEmitter {
             )
 
             if (errors?.length && requestLog) {
-              requestLog.error(chalk.red(`Command ${cmdNameStr} failed with errors:`))
+              requestLog.error(`Command ${cmdNameStr} failed with errors:`)
               for (const error of errors) {
                 requestLog.error({ error })
               }
             } else {
-              requestLog?.success(chalk.green(`Command ${cmdNameStr} completed successfully`))
+              requestLog?.success(`Command ${cmdNameStr} completed successfully`)
             }
             delete this.activePersistentRequests[requestId]
           })
           .catch((error) => {
             send("error", { message: error.message, requestId })
             requestLog?.error({
-              msg: chalk.red(`Command ${cmdNameStr} failed with errors:`),
+              msg: `Command ${cmdNameStr} failed with errors:`,
               error: toGardenError(error),
             })
             delete this.activePersistentRequests[requestId]

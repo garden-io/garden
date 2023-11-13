@@ -6,8 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import chalk from "chalk"
-
 import type { BaseActionTaskParams, BaseTask, ActionTaskProcessParams, ActionTaskStatusParams } from "./base.js"
 import { ExecuteActionTask, emitGetStatusEvents, emitProcessingEvents } from "./base.js"
 import { getLinkUrl } from "../types/service.js"
@@ -18,6 +16,7 @@ import { displayState, resolvedActionToExecuted } from "../actions/helpers.js"
 import type { PluginEventBroker } from "../plugin-context.js"
 import type { ActionLog } from "../logger/log-entry.js"
 import { OtelTraced } from "../util/open-telemetry/decorators.js"
+import { styles } from "../logger/styles.js"
 
 export interface DeployTaskParams extends BaseActionTaskParams<DeployAction> {
   events?: PluginEventBroker
@@ -26,7 +25,7 @@ export interface DeployTaskParams extends BaseActionTaskParams<DeployAction> {
 
 function printIngresses(status: DeployStatus, log: ActionLog) {
   for (const ingress of status.detail?.ingresses || []) {
-    log.info(chalk.gray("Ingress: ") + chalk.underline.gray(getLinkUrl(ingress)))
+    log.info(`Ingress: ${styles.link(getLinkUrl(ingress))}`)
   }
 }
 
@@ -85,7 +84,7 @@ export class DeployTask extends ExecuteActionTask<DeployAction, DeployStatus> {
 
     if (!statusOnly && !this.force) {
       if (status.state === "ready") {
-        log.info("Already deployed")
+        log.success({ msg: `Already deployed`, showDuration: false })
         printIngresses(status, log)
       } else {
         const state = status.detail?.state || displayState(status.state)
@@ -146,7 +145,7 @@ export class DeployTask extends ExecuteActionTask<DeployAction, DeployStatus> {
 
     // Start syncing, if requested
     if (this.startSync && action.mode() === "sync") {
-      log.info(chalk.gray("Starting sync"))
+      log.info(styles.primary("Starting sync"))
       await router.deploy.startSync({ log, graph: this.graph, action: executedAction })
     }
 

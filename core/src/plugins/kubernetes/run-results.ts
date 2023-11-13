@@ -17,7 +17,6 @@ import { gardenAnnotationKey } from "../../util/string.js"
 import hasha from "hasha"
 import { upsertConfigMap } from "./util.js"
 import { trimRunOutput } from "./helm/common.js"
-import chalk from "chalk"
 import { runResultToActionState } from "../../actions/base.js"
 import type { Action } from "../../actions/types.js"
 import type { RunResult } from "../../plugin/base.js"
@@ -105,7 +104,7 @@ export async function storeRunResult({ ctx, log, action, result }: StoreTaskResu
       data,
     })
   } catch (err) {
-    log.warn(chalk.yellow(`Unable to store Run result: ${err}`))
+    log.warn(`Unable to store Run result: ${err}`)
   }
 
   return data

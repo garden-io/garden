@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import chalk from "chalk"
 import fsExtra from "fs-extra"
 const { ensureDir } = fsExtra
 import { platform, arch } from "os"
@@ -167,6 +166,7 @@ import { GitRepoHandler } from "./vcs/git-repo.js"
 import { configureNoOpExporter } from "./util/open-telemetry/tracing.js"
 import { detectModuleOverlap, makeOverlapErrors } from "./util/module-overlap.js"
 import { GotHttpError } from "./util/http.js"
+import { styles } from "./logger/styles.js"
 
 const defaultLocalAddress = "localhost"
 
@@ -552,7 +552,7 @@ export class Garden {
 
       if (!existing || !existing.hidden) {
         this.emittedWarnings.add(key)
-        log.warn(message + `\n→ Run ${chalk.underline(`garden util hide-warning ${key}`)} to disable this warning.`)
+        log.warn(message + `\n→ Run ${styles.underline(`garden util hide-warning ${key}`)} to disable this warning.`)
       }
     })
   }
@@ -847,8 +847,8 @@ export class Garden {
       }
 
       if (gotCachedResult) {
-        providerLog.success("Cached")
-        providerLog.info(chalk.gray("Run with --force-refresh to force a refresh of provider statuses."))
+        providerLog.success({ msg: "Cached", showDuration: false })
+        providerLog.info("Run with --force-refresh to force a refresh of provider statuses.")
       } else {
         providerLog.success("Done")
       }
@@ -1155,7 +1155,7 @@ export class Garden {
     // This event is internal only, not to be streamed
     this.events.emit("configGraph", { graph })
 
-    graphLog.success(chalk.green("Done"))
+    graphLog.success("Done")
 
     return graph.toConfigGraph()
   }
@@ -2023,14 +2023,12 @@ async function getCloudProject({
   // If logged into commercial edition and ID is not set, log warning and return null
   if (!projectIdFromConfig) {
     log.warn(
-      chalk.yellow(
-        wordWrap(
-          deline`
+      wordWrap(
+        deline`
             Logged in to ${cloudApi.domain}, but could not find remote project '${projectName}'.
             Command results for this command run will not be available in ${distroName}.
           `,
-          120
-        )
+        120
       )
     )
 
@@ -2046,13 +2044,13 @@ async function getCloudProject({
     let errorMsg = `Fetching project with ID=${projectIdFromConfig} failed with error: ${err}`
     if (err instanceof GotHttpError) {
       if (err.response.statusCode === 404) {
-        const errorHeaderMsg = chalk.red(`Project with ID=${projectIdFromConfig} was not found in ${distroName}`)
-        const errorDetailMsg = chalk.white(dedent`
+        const errorHeaderMsg = styles.error(`Project with ID=${projectIdFromConfig} was not found in ${distroName}`)
+        const errorDetailMsg = styles.accent(dedent`
           Either the project has been deleted from ${distroName} or the ID in the project
-          level Garden config file at ${chalk.cyan(projectRoot)} has been changed and does not match
+          level Garden config file at ${styles.highlight(projectRoot)} has been changed and does not match
           one of the existing projects.
 
-          You can view your existing projects at ${chalk.cyan.underline(cloudApi.domain + "/projects")} and
+          You can view your existing projects at ${styles.highlight.underline(cloudApi.domain + "/projects")} and
           see their ID on the Settings page for the respective project.
         `)
         errorMsg = dedent`

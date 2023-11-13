@@ -22,7 +22,6 @@ import type { Writable } from "stream"
 import { flatten, uniq, fromPairs, reduce } from "lodash-es"
 import type { ActionLog, Log } from "../../logger/log-entry.js"
 
-import chalk from "chalk"
 import isUrl from "is-url"
 import titleize from "titleize"
 import { deline, stripQuotes, splitLast, splitFirst } from "../../util/string.js"
@@ -34,6 +33,7 @@ import { defaultDockerfileName } from "./config.js"
 import { joinWithPosix } from "../../util/fs.js"
 import type { Resolved } from "../../actions/types.js"
 import pMemoize from "../../lib/p-memoize.js"
+import { styles } from "../../logger/styles.js"
 
 interface DockerVersion {
   client?: string
@@ -427,7 +427,7 @@ const helpers = {
         (cmd) => (cmd.name === "ADD" || cmd.name === "COPY") && cmd.args && Number(cmd.args.length) > 0
       )
     } catch (err) {
-      log.warn(chalk.yellow(`Unable to parse Dockerfile ${dockerfilePath}: ${err}`))
+      log.warn(`Unable to parse Dockerfile ${dockerfilePath}: ${err}`)
       return undefined
     }
 
@@ -473,12 +473,10 @@ const helpers = {
       } else if (path.match(/(?<!\\)(?:\\\\)*\$[{\w]/)) {
         // If the path contains a template string we can't currently reason about it
         // TODO: interpolate args into paths
-        log.warn(
-          chalk.yellow(deline`
+        log.warn(deline`
           Resolving include paths from Dockerfile ARG and ENV variables is not supported yet. Please specify
-          required path in Dockerfile explicitly or use ${chalk.bold("include")} for path assigned to ARG or ENV.
-          `)
-        )
+          required path in Dockerfile explicitly or use ${styles.bold("include")} for path assigned to ARG or ENV.
+        `)
         return undefined
       }
     }

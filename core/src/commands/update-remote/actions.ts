@@ -8,7 +8,6 @@
 
 import { difference } from "lodash-es"
 import dedent from "dedent"
-import chalk from "chalk"
 
 import type { CommandResult, CommandParams } from "../base.js"
 import { Command } from "../base.js"
@@ -24,6 +23,7 @@ import type { ParameterValues } from "../../cli/params.js"
 import { StringsParameter } from "../../cli/params.js"
 import pMap from "p-map"
 import { naturalList } from "../../util/string.js"
+import { styles } from "../../logger/styles.js"
 
 const updateRemoteActionsArguments = {
   actions: new StringsParameter({
@@ -110,7 +110,7 @@ export async function updateRemoteActions({
 
     throw new ParameterError({
       message: dedent`
-        Expected action(s) ${chalk.underline(diff.join(","))} to have a remote source.
+        Expected action(s) ${styles.underline(diff.join(","))} to have a remote source.
         Actions with remote source: ${naturalList(actionsWithRemoteSource.map((a) => a.name))}
       `,
     })

@@ -7,7 +7,6 @@
  */
 
 import type Joi from "@hapi/joi"
-import chalk from "chalk"
 import dedent from "dedent"
 import stripAnsi from "strip-ansi"
 import { flatMap, fromPairs, mapValues, pickBy, size } from "lodash-es"
@@ -46,6 +45,7 @@ import type { ActionMode } from "../actions/types.js"
 import type { AnalyticsHandler } from "../analytics/analytics.js"
 import { withSessionContext } from "../util/open-telemetry/context.js"
 import { wrapActiveSpan } from "../util/open-telemetry/spans.js"
+import { styles } from "../logger/styles.js"
 
 export interface CommandConstructor {
   new (parent?: CommandGroup): Command
@@ -323,7 +323,7 @@ export abstract class Command<
           }).href
           const cloudLog = log.createLog({ name: getCloudLogSectionName(distroName) })
 
-          cloudLog.info(`View command results at: ${chalk.cyan(commandResultUrl)}\n`)
+          cloudLog.info(`View command results at: ${styles.highlight(commandResultUrl)}\n`)
         }
 
         let analytics: AnalyticsHandler | undefined
@@ -580,7 +580,7 @@ export abstract class Command<
    */
   async isAllowedToRun(garden: Garden, log: Log, opts: ParameterValues<GlobalOptions>): Promise<boolean> {
     if (!opts.yes && this.protected && garden.production) {
-      const defaultMessage = chalk.yellow(dedent`
+      const defaultMessage = styles.warning(dedent`
         Warning: you are trying to run "garden ${this.getFullName()}" against a production environment ([${
           garden.environmentName
         }])!
@@ -604,10 +604,10 @@ export abstract class Command<
 
   renderHelp() {
     let out = this.description
-      ? `\n${cliStyles.heading("DESCRIPTION")}\n\n${chalk.dim(this.description.trim())}\n\n`
+      ? `\n${cliStyles.heading("DESCRIPTION")}\n\n${styles.secondary(this.description.trim())}\n\n`
       : ""
 
-    out += `${cliStyles.heading("USAGE")}\n  garden ${this.getFullName()} `
+    out += `${cliStyles.heading("USAGE")}\n  garden ${styles.command(this.getFullName())} `
 
     if (this.arguments) {
       out +=

@@ -19,7 +19,6 @@ import { gardenAnnotationKey } from "../../util/string.js"
 import dedent from "dedent"
 import type { V1Namespace } from "@kubernetes/client-node"
 import { isSubset } from "../../util/is-subset.js"
-import chalk from "chalk"
 import type { NamespaceStatus } from "../../types/namespace.js"
 import type { KubernetesServerResource, SupportedRuntimeAction } from "./types.js"
 import type { Resolved } from "../../actions/types.js"
@@ -141,7 +140,7 @@ export async function ensureNamespace(
           })
           result.patched = true
         } catch {
-          log.warn(chalk.yellow(`Unable to apply the configured annotations and labels on namespace ${namespace.name}`))
+          log.warn(`Unable to apply the configured annotations and labels on namespace ${namespace.name}`)
         }
       }
 

@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import chalk from "chalk"
 import { fromPairs, mapValues, omit } from "lodash-es"
 import pProps from "p-props"
 
@@ -46,6 +45,7 @@ import { Profile } from "../util/profiling.js"
 import type { GetDashboardPageParams, GetDashboardPageResult } from "../plugin/handlers/Provider/getDashboardPage.js"
 import type { CommonParams, BaseRouterParams } from "./base.js"
 import { BaseRouter } from "./base.js"
+import { styles } from "../logger/styles.js"
 
 /**
  * The ProviderRouter takes care of choosing which plugin should be responsible for handling a provider action,
@@ -176,7 +176,7 @@ export class ProviderRouter extends BaseRouter {
    * Runs cleanupEnvironment for all configured providers
    */
   async cleanupAll(log: Log) {
-    log.info(chalk.white("Cleaning up environments..."))
+    log.info(styles.accent("Cleaning up environments..."))
     const environmentStatuses: EnvironmentStatusMap = {}
 
     const providers = await this.garden.resolveProviders(log)

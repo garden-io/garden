@@ -22,7 +22,6 @@ import {
 } from "../../../helpers.js"
 import { DEFAULT_DEPLOY_TIMEOUT_SEC, GardenApiVersion } from "../../../../src/constants.js"
 import { formatForTerminal } from "../../../../src/logger/renderers.js"
-import chalk from "chalk"
 import type { LogEntry } from "../../../../src/logger/log-entry.js"
 import { LogLevel } from "../../../../src/logger/logger.js"
 import type { DeployLogEntry } from "../../../../src/types/service.js"
@@ -33,6 +32,7 @@ import stripAnsi from "strip-ansi"
 import { execDeploySpecSchema } from "../../../../src/plugins/exec/deploy.js"
 import { joi } from "../../../../src/config/common.js"
 import type { ActionTypeHandlerParamsType } from "../../../../src/plugin/handlers/base/base.js"
+import { styles } from "../../../../src/logger/styles.js"
 
 // TODO-G2: rename test cases to match the new graph model semantics
 
@@ -94,7 +94,7 @@ function getLogOutput(garden: TestGarden, msg: string, extraFilter: (e: LogEntry
 describe("LogsCommand", () => {
   let tmpDir: tmp.DirectoryResult
   const timestamp = new Date()
-  const msgColor = chalk.bgRedBright
+  const msgColor = styles.error
   const logMsg = "Yes, this is log"
   const logMsgWithColor = msgColor(logMsg)
 

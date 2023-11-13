@@ -13,7 +13,7 @@ import type { LogEntryEventPayload } from "../../../../src/cloud/buffered-event-
 import { freezeTime } from "../../../helpers.js"
 import { QuietWriter } from "../../../../src/logger/writers/quiet-writer.js"
 import { ConfigurationError } from "../../../../src/exceptions.js"
-import chalk from "chalk"
+import { styles } from "../../../../src/logger/styles.js"
 
 const logger: Logger = getRootLogger()
 
@@ -60,7 +60,7 @@ describe("Logger", () => {
           message: {
             msg: "hello",
             rawMsg: "hello-browser",
-            error: chalk.red("hello-error"),
+            error: styles.error("hello-error"),
             section: "log-context-name",
             symbol: "success",
             dataFormat: "json",

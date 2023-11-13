@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import chalk from "chalk"
 import titleize from "titleize"
 import type { ConfigGraph, GetActionOpts, ResolvedConfigGraph } from "../graph/config-graph.js"
 import type { ActionReference, DeepPrimitiveMap } from "../config/common.js"
@@ -65,6 +64,7 @@ import { createActionLog } from "../logger/log-entry.js"
 import { joinWithPosix } from "../util/fs.js"
 import type { LinkedSource } from "../config-store/local.js"
 import type { BaseActionTaskParams, ExecuteTask } from "../tasks/base.js"
+import { styles } from "../logger/styles.js"
 
 // TODO: split this file
 
@@ -398,10 +398,10 @@ export abstract class BaseAction<
    * Verbose string description of the action. Useful for logging and error messages.
    */
   longDescription(): string {
-    let d = `${chalk.white(this.kind)} type=${chalk.bold.white(this.type)} name=${chalk.bold.white(this.name)}`
+    let d = `${styles.accent(this.kind)} type=${styles.accent.bold(this.type)} name=${styles.accent.bold(this.name)}`
 
     if (this._moduleName) {
-      d += ` (from module ${chalk.bold.white(this._moduleName)})`
+      d += ` (from module ${styles.accent.bold(this._moduleName)})`
     }
 
     return d

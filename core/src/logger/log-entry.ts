@@ -14,14 +14,13 @@ import { LogLevel } from "./logger.js"
 import type { Omit } from "../util/util.js"
 import type { Logger } from "./logger.js"
 import uniqid from "uniqid"
-import chalk from "chalk"
 import type { GardenError } from "../exceptions.js"
-import hasAnsi from "has-ansi"
 import { omitUndefined } from "../util/objects.js"
 import { renderDuration } from "./util.js"
-import { errorStyle, warningStyle } from "./renderers.js"
+import { styles } from "./styles.js"
+import { getStyle } from "./renderers.js"
 
-export type LogSymbol = keyof typeof logSymbols | "empty"
+export type LogSymbol = keyof typeof logSymbols | "empty" | "cached"
 export type TaskLogStatus = "active" | "success" | "error"
 
 export interface LogMetadata {
@@ -303,10 +302,7 @@ export abstract class Log<C extends BaseContext = LogContext> implements LogConf
     // log line in question).
     const showDuration = params.showDuration !== undefined ? params.showDuration : this.showDuration
     if (showDuration && params.msg) {
-      const styleFn =
-        params.level === LogLevel.error ? errorStyle : params.level === LogLevel.warn ? warningStyle : chalk.green
-      const msg = hasAnsi(params.msg) ? params.msg : styleFn(params.msg)
-      return msg + " " + chalk.white(renderDuration(this.getDuration(1)))
+      return `${params.msg} ${renderDuration(this.getDuration(1))}`
     }
 
     return params.msg
@@ -369,6 +365,7 @@ export abstract class Log<C extends BaseContext = LogContext> implements LogConf
       ...this.resolveCreateParams(LogLevel.error, params),
       symbol: "error" as LogSymbol,
     }
+
     return this.log({
       ...resolved,
       msg: this.getMsgWithDuration(resolved),
@@ -387,11 +384,11 @@ export abstract class Log<C extends BaseContext = LogContext> implements LogConf
       ...this.resolveCreateParams(LogLevel.info, params),
       symbol: "success" as LogSymbol,
     }
-    const msgWithDuration = this.getMsgWithDuration(resolved)
-    const msg = hasAnsi(msgWithDuration || "") ? msgWithDuration : chalk.green(msgWithDuration)
+
+    const style = resolved.level === LogLevel.info ? styles.success : getStyle(resolved.level)
     return this.log({
       ...resolved,
-      msg,
+      msg: style(this.getMsgWithDuration(resolved) || ""),
     })
   }
 

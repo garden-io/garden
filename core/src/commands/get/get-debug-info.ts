@@ -20,13 +20,13 @@ import { ERROR_LOG_FILENAME } from "../../constants.js"
 import dedent from "dedent"
 import type { Garden } from "../../garden.js"
 import { zipFolder } from "../../util/archive.js"
-import chalk from "chalk"
 import { GitHandler } from "../../vcs/git.js"
 import { ValidationError } from "../../exceptions.js"
 import { ChoicesParameter, BooleanParameter } from "../../cli/params.js"
 import { printHeader } from "../../logger/util.js"
 import { TreeCache } from "../../cache.js"
 import { safeDumpYaml } from "../../util/serialization.js"
+import { styles } from "../../logger/styles.js"
 
 export const TEMP_DEBUG_ROOT = "tmp"
 export const SYSTEM_INFO_FILENAME_NO_EXT = "system-info"
@@ -176,7 +176,7 @@ export async function collectProviderDebugInfo(garden: Garden, log: Log, format:
  * @param {Log} log
  */
 export async function generateBasicDebugInfoReport(root: string, gardenDirPath: string, log: Log, format = "json") {
-  log.warn(chalk.yellow("It looks like Garden couldn't validate your project: generating basic report."))
+  log.warn("It looks like Garden couldn't validate your project: generating basic report.")
 
   const tempPath = join(gardenDirPath, TEMP_DEBUG_ROOT)
   log.info({ msg: "Collecting basic debug info" })
@@ -293,7 +293,7 @@ export class GetDebugInfoCommand extends Command<Args, Opts> {
     } catch (err) {
       // One or multiple providers threw an error while processing.
       // Skip the step but still create a report.
-      providerLog.warn(chalk.yellow(`Failed to collect providers info. Skipping this step.`))
+      providerLog.warn(`Failed to collect providers info. Skipping this step.`)
     }
 
     // Zip report folder
@@ -307,15 +307,18 @@ export class GetDebugInfoCommand extends Command<Args, Opts> {
 
     log.success("Done")
 
-    log.info(chalk.green(`\nDone! Please find your report at  ${outputFilePath}.\n`))
+    log.success({
+      msg: styles.success(`\nDone! Please find your report at  ${outputFilePath}.\n`),
+      showDuration: false,
+    })
 
     log.warn(
-      chalk.yellow(dedent`
+      dedent`
         NOTE: Please be aware that the output file might contain sensitive information.
         If you plan to make the file available to the general public (e.g. GitHub), please review the content first.
         If you need to share a file containing sensitive information with the Garden team, please contact us on
         our Discord community: https://discord.gg/FrmhuUjFs6.
-      `)
+      `
     )
 
     return { result: 0 }

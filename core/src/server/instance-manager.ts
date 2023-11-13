@@ -7,7 +7,6 @@
  */
 
 import AsyncLock from "async-lock"
-import chalk from "chalk"
 import type { AutocompleteSuggestion } from "../cli/autocomplete.js"
 import { Autocompleter } from "../cli/autocomplete.js"
 import { parseCliVarFlags } from "../cli/helpers.js"
@@ -40,6 +39,7 @@ import {
 } from "./commands.js"
 import type { GardenInstanceKeyParams } from "./helpers.js"
 import { getGardenInstanceKey } from "./helpers.js"
+import { styles } from "../logger/styles.js"
 
 interface InstanceContext {
   garden: Garden
@@ -244,8 +244,8 @@ export class GardenInstanceManager {
       if (!garden.needsReload()) {
         garden.needsReload(true)
         garden.log.info(
-          chalk.magenta.bold(
-            `${chalk.white("→")} Config change detected. Project will be reloaded when the next command is run.`
+          styles.highlightSecondary.bold(
+            `${styles.accent("→")} Config change detected. Project will be reloaded when the next command is run.`
           )
         )
       }

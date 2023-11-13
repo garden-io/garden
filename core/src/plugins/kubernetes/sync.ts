@@ -45,7 +45,6 @@ import type {
   SyncableRuntimeAction,
 } from "./types.js"
 import type { ActionLog, Log } from "../../logger/log-entry.js"
-import chalk from "chalk"
 import { joi, joiIdentifier } from "../../config/common.js"
 import type {
   KubernetesPluginContext,
@@ -71,6 +70,7 @@ import { prepareConnectionOpts } from "./kubectl.js"
 import type { GetSyncStatusResult, SyncState, SyncStatus } from "../../plugin/handlers/Deploy/get-sync-status.js"
 import { ConfigurationError } from "../../exceptions.js"
 import { DOCS_BASE_URL } from "../../constants.js"
+import { styles } from "../../logger/styles.js"
 
 export const builtInExcludes = ["/**/*.git", "**/*.garden"]
 
@@ -568,12 +568,12 @@ export async function startSyncs(params: StartSyncsParams) {
 
       // Validate the target
       if (!isConfiguredForSyncMode(target)) {
-        log.warn(chalk.yellow(`Resource ${resourceName} is not deployed in sync mode, cannot start sync.`))
+        log.warn(`Resource ${resourceName} is not deployed in sync mode, cannot start sync.`)
         return
       }
 
       if (!containerName) {
-        log.warn(chalk.yellow(`Resource ${resourceName} doesn't have any containers, cannot start sync.`))
+        log.warn(`Resource ${resourceName} doesn't have any containers, cannot start sync.`)
         return
       }
 
@@ -843,8 +843,8 @@ async function prepareSync(params: PrepareSyncParams) {
 
   const key = getSyncKey(params, target)
 
-  const localPathDescription = chalk.white(spec.sourcePath)
-  const remoteDestinationDescription = `${chalk.white(spec.containerPath)} in ${chalk.white(resourceName)}`
+  const localPathDescription = styles.accent(spec.sourcePath)
+  const remoteDestinationDescription = `${styles.accent(spec.containerPath)} in ${styles.accent(resourceName)}`
 
   const {
     source: orientedSource,

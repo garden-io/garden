@@ -7,7 +7,6 @@
  */
 
 import { keyBy } from "lodash-es"
-import chalk from "chalk"
 
 import type { LinkedSource } from "../config-store/local.js"
 import { ParameterError } from "../exceptions.js"
@@ -16,6 +15,7 @@ import type { Garden } from "../garden.js"
 import { hashString } from "./util.js"
 import { naturalList, titleize } from "./string.js"
 import { join } from "path"
+import { styles } from "../logger/styles.js"
 
 export type ExternalSourceType = "project" | "module" | "action"
 
@@ -113,7 +113,7 @@ export async function removeLinkedSources({
   for (const name of names) {
     if (!currentNames.includes(name)) {
       const msgType = sourceType === "project" ? "source" : titleize(sourceType)
-      const msg = `${titleize(msgType)} ${chalk.underline(name)} is not linked. Did you mean to unlink a ${msgType}?`
+      const msg = `${titleize(msgType)} ${styles.underline(name)} is not linked. Did you mean to unlink a ${msgType}?`
       throw new ParameterError({
         message: `${msg}${currentNames.length ? ` Currently linked: ${naturalList(currentNames)}` : ""}`,
       })

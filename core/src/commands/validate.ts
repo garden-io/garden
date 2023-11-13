@@ -6,12 +6,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import chalk from "chalk"
 import type { CommandParams, CommandResult } from "./base.js"
 import { Command } from "./base.js"
 import { printEmoji, printHeader } from "../logger/util.js"
-import { resolveWorkflowConfig } from "../config/workflow.js"
 import { dedent } from "../util/string.js"
+import { styles } from "../logger/styles.js"
+import { resolveWorkflowConfig } from "../config/workflow.js"
 
 export class ValidateCommand extends Command {
   name = "validate"
@@ -44,7 +44,7 @@ export class ValidateCommand extends Command {
     }
 
     log.info("")
-    log.info(chalk.green("OK") + " " + printEmoji("✔️", log))
+    log.info(styles.success("OK") + " " + printEmoji("✔️", log))
 
     return {}
   }

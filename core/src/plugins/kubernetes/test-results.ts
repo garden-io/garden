@@ -18,7 +18,6 @@ import { gardenAnnotationKey } from "../../util/string.js"
 import { upsertConfigMap } from "./util.js"
 import { trimRunOutput } from "./helm/common.js"
 import { getSystemNamespace } from "./namespace.js"
-import chalk from "chalk"
 import type { TestActionHandler } from "../../plugin/action-types.js"
 import { runResultToActionState } from "../../actions/base.js"
 import type { HelmPodTestAction } from "./helm/config.js"
@@ -96,7 +95,7 @@ export async function storeTestResult({ ctx, log, action, result }: StoreTestRes
       data,
     })
   } catch (err) {
-    log.warn(chalk.yellow(`Unable to store test result: ${err}`))
+    log.warn(`Unable to store test result: ${err}`)
   }
 
   return data

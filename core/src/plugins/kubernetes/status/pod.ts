@@ -11,10 +11,10 @@ import { KubernetesError } from "../api.js"
 import type { KubernetesServerResource, KubernetesPod } from "../types.js"
 import type { V1Pod, V1Status } from "@kubernetes/client-node"
 import type { ResourceStatus } from "./status.js"
-import chalk from "chalk"
 import type { DeployState } from "../../../types/service.js"
 import { combineStates } from "../../../types/service.js"
 import stringify from "json-stringify-safe"
+import { styles } from "../../../logger/styles.js"
 
 export const POD_LOG_LINES = 30
 
@@ -181,9 +181,9 @@ export async function getFormattedPodLogs(api: KubeApi, namespace: string, pods:
   return allLogs
     .map(({ podName, containers }) => {
       return (
-        chalk.blueBright(`\n****** ${podName} ******\n`) +
+        styles.highlight(`\n****** ${podName} ******\n`) +
         containers.map(({ containerName, log }) => {
-          return chalk.gray(`------ ${containerName} ------`) + (log || "<no logs>")
+          return styles.primary(`------ ${containerName} ------`) + (log || "<no logs>")
         })
       )
     })

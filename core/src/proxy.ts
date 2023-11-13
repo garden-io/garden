@@ -7,7 +7,6 @@
  */
 
 import { isEqual, invert } from "lodash-es"
-import chalk from "chalk"
 import type { Server } from "net"
 import { createServer, Socket } from "net"
 import AsyncLock from "async-lock"
@@ -126,10 +125,10 @@ async function createProxy({ garden, graph, log, action, spec, events }: StartPo
         const msg = err.message.trim()
 
         if (msg !== lastPrintedError) {
-          log.warn(chalk.gray(`→ Could not start port forward to ${key} (will retry): ${msg}`))
+          log.warn(`→ Could not start port forward to ${key} (will retry): ${msg}`)
           lastPrintedError = msg
         } else {
-          log.silly(chalk.gray(`→ Could not start port forward to ${key} (will retry): ${msg}`))
+          log.silly(`→ Could not start port forward to ${key} (will retry): ${msg}`)
         }
       }
 
@@ -278,9 +277,7 @@ async function createProxy({ garden, graph, log, action, spec, events }: StartPo
 
     if (started) {
       if (spec.preferredLocalPort && (localIp !== defaultLocalAddress || localPort !== spec.preferredLocalPort)) {
-        log.warn(
-          chalk.yellow(`→ Unable to bind port forward ${key} to preferred local port ${spec.preferredLocalPort}`)
-        )
+        log.warn(`→ Unable to bind port forward ${key} to preferred local port ${spec.preferredLocalPort}`)
       }
 
       return { key, server, action, spec, localPort, localUrl }

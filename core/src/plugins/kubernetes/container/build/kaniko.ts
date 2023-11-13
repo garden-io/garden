@@ -36,13 +36,13 @@ import {
   utilDeploymentName,
 } from "./common.js"
 import { differenceBy, isEmpty } from "lodash-es"
-import chalk from "chalk"
 import { getDockerBuildFlags } from "../../../container/build.js"
 import { k8sGetContainerBuildActionOutputs } from "../handlers.js"
 import { stringifyResources } from "../util.js"
 import { makePodName } from "../../util.js"
 import type { ContainerBuildAction } from "../../../container/config.js"
 import { defaultDockerfileName } from "../../../container/config.js"
+import { styles } from "../../../../logger/styles.js"
 
 export const DEFAULT_KANIKO_FLAGS = ["--cache=true"]
 
@@ -174,7 +174,7 @@ export const kanikoBuild: BuildHandler = async (params) => {
 
   if (kanikoBuildFailed(buildRes)) {
     throw new BuildError({
-      message: `Failed building ${chalk.bold(action.name)}:\n\n${buildLog}`,
+      message: `Failed building ${styles.bold(action.name)}:\n\n${buildLog}`,
     })
   }
 

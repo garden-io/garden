@@ -6,12 +6,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import type { Chalk } from "chalk"
-import chalk from "chalk"
 import hasAnsi from "has-ansi"
 import dedent from "dedent"
 import stringWidth from "string-width"
 import { DEFAULT_BROWSER_DIVIDER_WIDTH } from "../constants.js"
+import type { Styles } from "./styles.js"
+import { styles } from "./styles.js"
 
 // Add platforms/terminals?
 export function envSupportsEmoji() {
@@ -57,24 +57,24 @@ export function printEmoji(emoji: string, log: any) {
 }
 
 export function printHeader(log: any, command: string, emoji: string): void {
-  log.info(chalk.bold.magenta(command) + " " + printEmoji(emoji, log))
+  log.info(styles.command(command) + " " + printEmoji(emoji, log))
   log.info("") // Print new line after header
 }
 
 export function printFooter(log: any) {
   log.info("") // Print new line before footer
-  return log.info(chalk.bold.magenta("Done!") + " " + printEmoji("✔️", log))
+  return log.info(styles.command("Done!") + " " + printEmoji("✔️", log))
 }
 
 export function printWarningMessage(log: any, text: string) {
-  return log.warn(chalk.bold.yellow(text))
+  return log.warn(styles.bold(text))
 }
 
 interface DividerOpts {
   width?: number
   char?: string
   titlePadding?: number
-  color?: Chalk
+  color?: Styles
   title?: string
   padding?: number
 }
@@ -97,7 +97,7 @@ export function renderDivider({
   }
 
   if (!color) {
-    color = chalk.white
+    color = styles.accent
   }
 
   const titleString = title ? `${pad.repeat(titlePadding) + title + pad.repeat(titlePadding)}` : ""
@@ -144,10 +144,10 @@ export function renderMessageWithDivider({
   prefix: string
   msg: string
   isError: boolean
-  color?: Chalk
+  color?: Styles
 }) {
   // Allow overwriting color as an escape hatch. Otherwise defaults to white or red in case of errors.
-  const msgColor = color || (isError ? chalk.red : chalk.white)
+  const msgColor = color || (isError ? styles.error : styles.accent)
   const terminalDivider = msgColor.bold(renderDivider())
   const browserDivider = msgColor.bold(renderDivider({ width: DEFAULT_BROWSER_DIVIDER_WIDTH }))
   const dividerOpts = {

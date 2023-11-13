@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import chalk from "chalk"
 import indentString from "indent-string"
 
 import type { WorkflowConfig } from "../config/workflow.js"
@@ -18,6 +17,7 @@ import { naturalList } from "../util/string.js"
 import type { CommandParams } from "./base.js"
 import type { ServeCommandOpts } from "./serve.js"
 import { DevCommand } from "./dev.js"
+import { styles } from "../logger/styles.js"
 
 /**
  * Runs a `dev` command and runs `commandName` with the args & opts provided in `params` as the first
@@ -46,7 +46,7 @@ export function getCmdOptionForDev(commandName: string, params: CommandParams) {
 }
 
 export function prettyPrintWorkflow(workflow: WorkflowConfig): string {
-  let out = `${chalk.cyan.bold(workflow.name)}`
+  let out = `${styles.highlight.bold(workflow.name)}`
 
   if (workflow.description) {
     out += "\n" + indentString(printField("description", workflow.description), 2)
@@ -58,7 +58,7 @@ export function prettyPrintWorkflow(workflow: WorkflowConfig): string {
 }
 
 function printField(name: string, value: string | null) {
-  return `${chalk.gray(name)}: ${value || ""}`
+  return `${styles.primary(name)}: ${value || ""}`
 }
 
 /**

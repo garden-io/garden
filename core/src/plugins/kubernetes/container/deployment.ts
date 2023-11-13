@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import chalk from "chalk"
 import type {
   V1Affinity,
   V1Container,
@@ -49,6 +48,7 @@ import type { ContainerServiceStatus } from "./status.js"
 import { k8sGetContainerDeployStatus } from "./status.js"
 import { emitNonRepeatableWarning } from "../../../warnings.js"
 import { K8_POD_DEFAULT_CONTAINER_ANNOTATION_KEY } from "../run.js"
+import { styles } from "../../../logger/styles.js"
 
 export const REVISION_HISTORY_LIMIT_PROD = 10
 export const REVISION_HISTORY_LIMIT_DEFAULT = 3
@@ -253,7 +253,7 @@ export async function createWorkloadManifest({
 
   if (mode === "local" && configuredReplicas > 1) {
     log.verbose({
-      msg: chalk.yellow(`Ignoring replicas config on container Deploy ${action.name} while in local mode`),
+      msg: styles.warning(`Ignoring replicas config on container Deploy ${action.name} while in local mode`),
       symbol: "warning",
     })
     configuredReplicas = 1
@@ -449,7 +449,7 @@ export async function createWorkloadManifest({
 
     workload = <KubernetesResource<V1Deployment | V1DaemonSet>>configured.updated[0]
   } else if (mode === "sync" && syncSpec) {
-    log.debug(chalk.gray(`-> Configuring in sync mode`))
+    log.debug(styles.primary(`-> Configuring in sync mode`))
     const configured = await configureSyncMode({
       ctx,
       log,
@@ -648,10 +648,12 @@ export function configureVolumes(
         })
       } else {
         throw new ConfigurationError({
-          message: chalk.red(deline`${action.longDescription()} specifies a unsupported config
-          ${chalk.white(volumeAction.name)} for volume mount ${chalk.white(volumeName)}. Only \`persistentvolumeclaim\`
+          message: deline`${action.longDescription()} specifies a unsupported config
+          ${styles.accent(volumeAction.name)} for volume mount ${styles.accent(
+            volumeName
+          )}. Only \`persistentvolumeclaim\`
           and \`configmap\` action are supported at this time.
-          `),
+          `,
         })
       }
     } else {
@@ -709,27 +711,23 @@ export async function handleChangedSelector({
   production: boolean
   force: boolean
 }) {
-  const msgPrefix = `Deploy ${chalk.white(action.name)} was deployed with a different ${chalk.white(
+  const msgPrefix = `Deploy ${styles.accent(action.name)} was deployed with a different ${styles.accent(
     "spec.selector"
   )} and needs to be deleted before redeploying.`
   if (production && !force) {
     throw new DeploymentError({
-      message: `${msgPrefix} Since this environment has production = true, Garden won't automatically delete this resource. To do so, use the ${chalk.white(
+      message: `${msgPrefix} Since this environment has production = true, Garden won't automatically delete this resource. To do so, use the ${styles.accent(
         "--force"
-      )} flag when deploying e.g. with the ${chalk.white(
+      )} flag when deploying e.g. with the ${styles.accent(
         "garden deploy"
       )} command. You can also delete the resource from your cluster manually and try again.`,
     })
   } else {
     if (production && force) {
-      log.warn(
-        chalk.yellow(`${msgPrefix} Since we're deploying with force = true, we'll now delete it before redeploying.`)
-      )
+      log.warn(`${msgPrefix} Since we're deploying with force = true, we'll now delete it before redeploying.`)
     } else if (!production) {
       log.warn(
-        chalk.yellow(
-          `${msgPrefix} Since this environment does not have production = true, we'll now delete it before redeploying.`
-        )
+        `${msgPrefix} Since this environment does not have production = true, we'll now delete it before redeploying.`
       )
     }
     await deleteResourceKeys({

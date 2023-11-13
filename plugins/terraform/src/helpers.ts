@@ -16,10 +16,10 @@ import { terraform } from "./cli.js"
 import type { TerraformProvider } from "./provider.js"
 import fsExtra from "fs-extra"
 const { writeFile } = fsExtra
-import chalk from "chalk"
 import type { PrimitiveMap } from "@garden-io/core/build/src/config/common.js"
 import { joi, joiStringMap } from "@garden-io/core/build/src/config/common.js"
 import split2 from "split2"
+import { styles } from "@garden-io/core/build/src/logger/styles.js"
 
 export const variablesSchema = () => joiStringMap(joi.any())
 
@@ -166,7 +166,7 @@ export async function getStackStatus(params: TerraformParamsWithVariables): Prom
 
   if (plan.exitCode === 0) {
     // Stack is up-to-date
-    statusLog.success(chalk.green("Stack up-to-date"))
+    statusLog.success(styles.success("Stack up-to-date"))
     return "up-to-date"
   } else if (plan.exitCode === 1) {
     // Error from terraform. This can, for example, happen if variables are missing or there are errors in the tf files.
@@ -206,7 +206,7 @@ export async function applyStack(params: TerraformParamsWithVariables) {
   }
 
   logStream.on("data", (line: Buffer) => {
-    statusLine.info(chalk.gray("→ " + line.toString()))
+    statusLine.info(styles.primary("→ " + line.toString()))
   })
 
   await new Promise<void>((_resolve, reject) => {
