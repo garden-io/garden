@@ -618,6 +618,59 @@ providers:
         namespace: default
 ```
 
+#### Using in-cluster building with Google Workload identity
+
+Workload identity for GKE clusters allows service acccounts in your cluster to impersonate IAM service accounts. Using this method for in-cluster building allows you to avoid storing IAM service account credentials as secrets in your cluster.
+
+Make sure that [workload identity is enabled on your cluster](https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity#enable).
+
+First create an IAM service account:
+
+```sh
+gcloud iam service-accounts create gar-access \
+    --project=${PROJECT_ID}
+```
+
+Then attach the roles required to push and pull to Google Artifact Registry:
+
+```sh
+gcloud projects add-iam-policy-binding ${PROJECT_ID} \
+  --member=serviceAccount:gar-access@${PROJECT_ID}.iam.gserviceaccount.com \
+  --role=roles/artifactregistry.writer
+```
+
+Note that you can also use this method with Google Container Registry, for the required roles [check the section about GCR above](#using-in-cluster-building-with-gcr).
+
+Now you need to add an IAM policy binding to allow the Kubernetes service account to impersonate the IAM service account. Note that GCP workload identity for Kubernetes does not allow wildcards for in the member section. This means that every Kubernetes service account in each namespace must be registered as a member. Garden's build services always use a service account with the name `garden-in-cluster-builder`.
+
+```sh
+gcloud iam service-accounts add-iam-policy-binding gar-access@${PROJECT_ID}.iam.gserviceaccount.com \
+    --role roles/iam.workloadIdentityUser \
+    --member "serviceAccount:${PROJECT_ID}.svc.id.goog[${K8S_NAMESPACE}/garden-in-cluster-builder]"
+```
+
+And finally add the annotation with your IAM service account to the garden project configuration. Garden will make sure to annotate the in cluster builder service account with this annotation.
+
+```yaml
+kind: Project
+name: my-project
+...
+providers:
+  - name: kubernetes
+    ...
+    # If you use the kaniko build mode
+    buildMode: kaniko
+    kaniko:
+      serviceAccountAnnotations:
+        iam.gke.io/gcp-service-account: gar-access@${PROJECT}.iam.gserviceaccount.com
+
+    # If you use the buildkit build mode
+    buildMode: buildkit
+    clusterBuildkit:
+      serviceAccountAnnotations:
+        iam.gke.io/gcp-service-account: gar-access@${PROJECT}.iam.gserviceaccount.com
+```
+
 ## Publishing images
 
 You can publish images that have been built in your cluster, using the `garden publish` command. See the [Publishing images](../../other-plugins/container.md#publishing-images) section in the [Container Action guide](../../other-plugins/container.md) for details.
