@@ -642,7 +642,7 @@ describe("Ensure serviceAccount annotations for in-cluster building", () => {
         log,
       })
       // Both annotations should be present
-      expect(isEqualAnnotations(originalServiceAccount, status.remoteResources[0])).to.be.true
+      expect(isEqualAnnotations(originalServiceAccount)).to.equal(status.remoteResources[0])
 
       const reducedAnnotations = {
         "iam.gke.io/gcp-service-account": "workload-identity-gar@garden-ci.iam.gserviceaccount.com",
