@@ -11,6 +11,7 @@ import dedent from "dedent"
 import type EventEmitter from "events"
 import type { ExecaReturnValue } from "execa"
 import fsExtra from "fs-extra"
+
 const { mkdirp, pathExists } = fsExtra
 import hasha from "hasha"
 import pRetry from "p-retry"
@@ -28,7 +29,6 @@ import { TypedEventEmitter } from "./util/events.js"
 import { PluginTool } from "./util/ext-tools.js"
 import { deline } from "./util/string.js"
 import { registerCleanupFunction, sleep } from "./util/util.js"
-import { emitNonRepeatableWarning } from "./warnings.js"
 import type { OctalPermissionMask } from "./plugins/kubernetes/types.js"
 import { styles } from "./logger/styles.js"
 
@@ -652,10 +652,6 @@ export class Mutagen {
           await this.ensureDaemon()
           await sleep(2000 + loops * 500)
         } else {
-          emitNonRepeatableWarning(
-            this.log,
-            `Consider making your Garden project path shorter. Syncing could fail because of Unix socket path length limitations. It's recommended that the Garden project path does not exceed ${MUTAGEN_DATA_DIRECTORY_LENGTH_LIMIT} characters. The actual value depends on the platform and the mutagen version.`
-          )
           throw err
         }
       }
@@ -785,34 +781,32 @@ export interface SyncSession {
 }
 
 /**
- * Exceeding this limit may cause mutagen daemon failures because of the Unix socket path length limitations.
- * See
- * https://github.com/garden-io/garden/issues/4527#issuecomment-1584286590
- * https://github.com/mutagen-io/mutagen/issues/433#issuecomment-1440352501
- * https://unix.stackexchange.com/questions/367008/why-is-socket-path-length-limited-to-a-hundred-chars/367012#367012
+ *
  */
-const MUTAGEN_DATA_DIRECTORY_LENGTH_LIMIT = 70
 
 /**
  * Returns mutagen data directory path based on the project dir.
- * If the project path longer than `MUTAGEN_DATA_DIRECTORY_LENGTH_LIMIT`, it computes
- * hash of project dir path, uses first 9 characters of hash as directory name
+ *
+ * It always computes sha256 hash of a project dir path, uses first 9 characters of hash as directory name,
  * and creates a directory in $HOME/.garden/mutagen.
  *
- * However, if the path is not longer than `MUTAGEN_DATA_DIRECTORY_LENGTH_LIMIT`, then
- * it uses the ./project-root/.garden/mutagen directory.
+ * This approach ensures that sync source path is never too long to get into one of the known issues with Mutagen,
+ * the sync tool that we use as a main synchronization machinery.
+ * The Mutagen daemon may fail if the source sync path is too long because of the Unix socket path length limitations.
+ * See:
+ * <ul>
+ *   <li>https://github.com/garden-io/garden/issues/4527#issuecomment-1584286590</li>
+ *   <li>https://github.com/mutagen-io/mutagen/issues/433#issuecomment-1440352501</li>
+ *   <li>https://unix.stackexchange.com/questions/367008/why-is-socket-path-length-limited-to-a-hundred-chars/367012#367012</li>
+ * </ul>
  */
 export function getMutagenDataDir(path: string, log: Log) {
-  if (path.length > MUTAGEN_DATA_DIRECTORY_LENGTH_LIMIT) {
-    const hash = hasha(path, { algorithm: "sha256" }).slice(0, 9)
-    const shortPath = join(GARDEN_GLOBAL_PATH, MUTAGEN_DIR_NAME, hash)
-    log.verbose(
-      `Your Garden project path looks too long, that might cause errors while starting the syncs. Garden will create a new directory to manage syncs at path: ${shortPath}.`
-    )
-    return shortPath
-  }
-  // if path is not too long, then use relative directory to the project
-  return join(path, MUTAGEN_DIR_NAME)
+  const hash = hasha(path, { algorithm: "sha256" }).slice(0, 9)
+  const shortPath = join(GARDEN_GLOBAL_PATH, MUTAGEN_DIR_NAME, hash)
+  log.verbose(
+    `Your Garden project path looks too long, that might cause errors while starting the syncs. Garden will create a new directory to manage syncs at path: ${shortPath}.`
+  )
+  return shortPath
 }
 
 export function getMutagenEnv(dataDir: string) {
