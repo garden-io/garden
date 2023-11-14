@@ -110,11 +110,11 @@ export class GitRepoHandler extends GitHandler {
       existing = this.cache.get(log, key)
 
       if (existing) {
-        params.log.silly(`Found cached repository match at ${path}`)
+        log.silly(`Found cached repository match at ${path}`)
         return existing
       }
 
-      params.log.info(`Scanning repository at ${path}`)
+      log.silly(`Scanning repository at ${path}`)
       const files = await super.getFiles({ ...params, scanRoot: undefined })
 
       const fileTree = FileTree.fromFiles(files)
