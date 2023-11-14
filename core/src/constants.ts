@@ -72,7 +72,7 @@ export const gardenEnv = {
   GARDEN_ENVIRONMENT: env.get("GARDEN_ENVIRONMENT").required(false).asString(),
   GARDEN_EXPERIMENTAL_BUILD_STAGE: env.get("GARDEN_EXPERIMENTAL_BUILD_STAGE").required(false).asBool(),
   GARDEN_GE_SCHEDULED: env.get("GARDEN_GE_SCHEDULED").required(false).asBool(),
-  GARDEN_GIT_SCAN_MODE: env.get("GARDEN_GIT_SCAN_MODE").required(false).asEnum(gitScanModes),
+  GARDEN_GIT_SCAN_MODE: env.get("GARDEN_GIT_SCAN_MODE").required(false).default("repo").asEnum(gitScanModes),
   GARDEN_LEGACY_BUILD_STAGE: env.get("GARDEN_LEGACY_BUILD_STAGE").required(false).asBool(),
   GARDEN_LOG_LEVEL: env.get("GARDEN_LOG_LEVEL").required(false).asString(),
   GARDEN_LOGGER_TYPE: env.get("GARDEN_LOGGER_TYPE").required(false).asString(),

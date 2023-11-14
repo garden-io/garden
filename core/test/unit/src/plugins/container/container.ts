@@ -251,7 +251,7 @@ describe("plugins.container", () => {
         config: moduleConfig,
         buildDependencies: [],
         forceVersion: true,
-        scanRoot: garden.projectRoot,
+        scanRoot: projectRoot,
       })
     }
 
