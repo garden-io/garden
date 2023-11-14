@@ -599,7 +599,11 @@ export async function startSyncs(params: StartSyncsParams) {
   )
 
   const allSyncs = expectedKeys.length === 0 ? [] : await mutagen.getActiveSyncSessions()
-  const keyPrefix = getSyncKeyPrefix(ctx, action)
+  const keyPrefix = getSyncKeyPrefix({
+    environmentName: ctx.environmentName,
+    namespace: ctx.namespace,
+    actionName: action.name,
+  })
 
   for (const sync of allSyncs.filter((s) => s.name.startsWith(keyPrefix) && !expectedKeys.includes(s.name))) {
     log.info(`Terminating unexpected/outdated sync ${sync.name}`)
@@ -615,7 +619,11 @@ export async function stopSyncs(params: StopSyncsParams) {
   const mutagen = new Mutagen({ ctx, log })
 
   const allSyncs = await mutagen.getActiveSyncSessions()
-  const keyPrefix = getSyncKeyPrefix(ctx, action)
+  const keyPrefix = getSyncKeyPrefix({
+    environmentName: ctx.environmentName,
+    namespace: ctx.namespace,
+    actionName: action.name,
+  })
   const syncs = allSyncs.filter((sync) => sync.name.startsWith(keyPrefix))
 
   for (const sync of syncs) {
@@ -775,7 +783,11 @@ export async function getSyncStatus(params: GetSyncStatusParams): Promise<GetSyn
     })
   }
 
-  const keyPrefix = getSyncKeyPrefix(ctx, action)
+  const keyPrefix = getSyncKeyPrefix({
+    environmentName: ctx.environmentName,
+    namespace: ctx.namespace,
+    actionName: action.name,
+  })
 
   let extraSyncs = false
 
@@ -807,21 +819,38 @@ export async function getSyncStatus(params: GetSyncStatusParams): Promise<GetSyn
   }
 }
 
-function getSyncKeyPrefix(ctx: PluginContext, action: SupportedRuntimeAction) {
-  return kebabCase(`k8s--${ctx.environmentName}--${ctx.namespace}--${action.name}--`)
+interface StructuredSyncKeyPrefix {
+  environmentName: string
+  namespace: string
+  actionName: string
+}
+
+export function getSyncKeyPrefix({ environmentName, namespace, actionName }: StructuredSyncKeyPrefix) {
+  // Kebab-case each part of the key prefix separately to preserve double-dash delimiters
+  return `k8s--${kebabCase(environmentName)}--${kebabCase(namespace)}--${kebabCase(actionName)}--`
 }
 
 /**
  * Generates a unique key for sa single sync.
  * IMPORTANT!!! The key will be used as an argument in the `mutagen` shell command.
- *  It cannot contain any characters that can break the command execution (like / \ < > | :).
+ * It cannot contain any characters that can break the command execution (like / \ < > | :).
+ *
+ * Note, that function {@link kebabCase} replaces any sequence of multiple dashes with a single dash character.
+ *
+ * It's critical to have double dashes (--) as a delimiter of a key parts here and in {@link getSyncKeyPrefix}
+ * to avoid potential collisions of the sync key prefixes.
  */
-function getSyncKey({ ctx, action, spec }: PrepareSyncParams, target: SyncableResource): string {
+export function getSyncKey({ ctx, action, spec }: PrepareSyncParams, target: SyncableResource): string {
   const sourcePath = relative(action.sourcePath(), spec.sourcePath)
   const containerPath = spec.containerPath
-  return kebabCase(
-    `${getSyncKeyPrefix(ctx, action)}${target.kind}--${target.metadata.name}--${sourcePath}--${containerPath}`
-  )
+  // Kebab-case each part of the key prefix separately to preserve double-dash delimiters
+  return `${getSyncKeyPrefix({
+    environmentName: ctx.environmentName,
+    namespace: ctx.namespace,
+    actionName: action.name,
+  })}${kebabCase(target.kind)}--${kebabCase(target.metadata.name)}--${kebabCase(sourcePath)}--${kebabCase(
+    containerPath
+  )}`
 }
 
 async function prepareSync(params: PrepareSyncParams) {
