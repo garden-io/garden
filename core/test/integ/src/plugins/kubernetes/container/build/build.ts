@@ -29,7 +29,6 @@ import {
   ensureServiceAccount,
   ensureUtilDeployment,
   getBuilderServiceAccountSpec,
-  isEqualAnnotations,
 } from "../../../../../../../src/plugins/kubernetes/container/build/common.js"
 import { compareDeployedResources } from "../../../../../../../src/plugins/kubernetes/status/status.js"
 import { KubeApi } from "../../../../../../../src/plugins/kubernetes/api.js"
@@ -642,7 +641,7 @@ describe("Ensure serviceAccount annotations for in-cluster building", () => {
         log,
       })
       // Both annotations should be present
-      expect(isEqualAnnotations(originalServiceAccount)).to.equal(status.remoteResources[0])
+      expect(originalServiceAccount.metadata.annotations).to.deep.equal(status.remoteResources[0].metadata.annotations)
 
       const reducedAnnotations = {
         "iam.gke.io/gcp-service-account": "workload-identity-gar@garden-ci.iam.gserviceaccount.com",
@@ -660,7 +659,9 @@ describe("Ensure serviceAccount annotations for in-cluster building", () => {
         log,
       })
       // Only reduced annotations should be present
-      expect(isEqualAnnotations(updatedServiceAccount, updatedStatus.remoteResources[0])).to.be.true
+      expect(updatedServiceAccount.metadata.annotations).to.deep.equal(
+        updatedStatus.remoteResources[0].metadata.annotations
+      )
     })
     it("should cycle the util deployment when the serviceAccount annotations changed", async () => {
       const originalAnnotations = {
