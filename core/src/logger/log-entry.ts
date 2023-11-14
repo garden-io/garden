@@ -8,7 +8,7 @@
 
 import type logSymbols from "log-symbols"
 import cloneDeep from "fast-copy"
-import { round } from "lodash-es"
+import { round, memoize } from "lodash-es"
 
 import { LogLevel } from "./logger.js"
 import type { Omit } from "../util/util.js"
@@ -259,6 +259,11 @@ export abstract class Log<C extends BaseContext = LogContext> implements LogConf
       metadata = { ...cloneDeep(this.metadata || {}), ...(params.metadata || {}) }
     }
 
+    let msg = params.msg
+    if (typeof msg === "function") {
+      msg = memoize(msg)
+    }
+
     return {
       ...params,
       parentLogKey: this.key,
@@ -270,6 +275,7 @@ export abstract class Log<C extends BaseContext = LogContext> implements LogConf
       timestamp: new Date().toISOString(),
       metadata,
       key: uniqid(),
+      msg,
     }
   }
 
