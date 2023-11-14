@@ -132,6 +132,19 @@ interface CreateCoreLogParams
   origin?: string
 }
 
+export type Msg = string | (() => string)
+
+export function resolveMsg(logEntry: LogEntry): string | undefined {
+  return typeof logEntry.msg === "function" ? logEntry.msg() : logEntry.msg
+}
+
+export function transformMsg(msg: Msg, transformer: (input: string) => string): Msg {
+  if (typeof msg === "function") {
+    return () => transformer(msg())
+  }
+  return transformer(msg)
+}
+
 export interface LogEntry<C extends BaseContext = LogContext>
   extends Pick<LogConfig<C>, "key" | "timestamp" | "metadata" | "context"> {
   /**
@@ -142,7 +155,7 @@ export interface LogEntry<C extends BaseContext = LogContext>
   /**
    * The actual text of the log message.
    */
-  msg?: string
+  msg?: Msg
   /**
    * A "raw" version of the log line. This field is preferred over 'msg' if set when rendering
    * log entries in the web dashboard.
@@ -150,7 +163,7 @@ export interface LogEntry<C extends BaseContext = LogContext>
    * Use this if the entry has a msg that doesn't render well in the UI. In that case you
    * can set terminal log line via the 'msg' field and a web friendly version via this field.
    */
-  rawMsg?: string
+  rawMsg?: Msg
   /**
    * A symbol that's printed with the log message to indicate it's type (e.g. "error" or "success").
    */
@@ -302,14 +315,17 @@ export abstract class Log<C extends BaseContext = LogContext> implements LogConf
     // log line in question).
     const showDuration = params.showDuration !== undefined ? params.showDuration : this.showDuration
     if (showDuration && params.msg) {
-      return `${params.msg} ${renderDuration(this.getDuration(1))}`
+      const duration = this.getDuration(1)
+      return transformMsg(params.msg, (msg) => {
+        return `${msg} ${renderDuration(duration)}`
+      })
     }
 
     return params.msg
   }
 
-  private resolveCreateParams(level: LogLevel, params: string | LogParams): CreateLogEntryParams {
-    if (typeof params === "string") {
+  private resolveCreateParams(level: LogLevel, params: string | (() => string) | LogParams): CreateLogEntryParams {
+    if (typeof params === "string" || typeof params === "function") {
       return { msg: params, level }
     }
     return { ...params, level }
@@ -318,7 +334,7 @@ export abstract class Log<C extends BaseContext = LogContext> implements LogConf
   /**
    * Render a log entry at the silly level. This is the highest verbosity.
    */
-  silly(params: string | LogParams) {
+  silly(params: Msg | LogParams) {
     return this.log(this.resolveCreateParams(LogLevel.silly, params))
   }
 
@@ -326,7 +342,7 @@ export abstract class Log<C extends BaseContext = LogContext> implements LogConf
    * Render a log entry at the debug level. Intended for internal information
    * which can be useful for debugging.
    */
-  debug(params: string | LogParams) {
+  debug(params: Msg | LogParams) {
     return this.log(this.resolveCreateParams(LogLevel.debug, params))
   }
 
@@ -334,7 +350,7 @@ export abstract class Log<C extends BaseContext = LogContext> implements LogConf
    * Render a log entry at the verbose level. Intended for logs generated when
    * actions are executed. E.g. logs from Kubernetes.
    */
-  verbose(params: string | LogParams) {
+  verbose(params: Msg | LogParams) {
     return this.log(this.resolveCreateParams(LogLevel.verbose, params))
   }
 
@@ -342,14 +358,14 @@ export abstract class Log<C extends BaseContext = LogContext> implements LogConf
    * Render a log entry at the info level. Intended for framework level logs
    * such as information about the action being executed.
    */
-  info(params: string | (LogParams & { symbol?: Extract<LogSymbol, "info" | "empty" | "success"> })) {
+  info(params: Msg | (LogParams & { symbol?: Extract<LogSymbol, "info" | "empty" | "success"> })) {
     return this.log(this.resolveCreateParams(LogLevel.info, params))
   }
 
   /**
    * Render a log entry at the warning level.
    */
-  warn(params: string | Omit<LogParams, "symbol">) {
+  warn(params: Msg | Omit<LogParams, "symbol">) {
     return this.log({
       ...this.resolveCreateParams(LogLevel.warn, params),
       symbol: "warning" as LogSymbol,
@@ -360,7 +376,7 @@ export abstract class Log<C extends BaseContext = LogContext> implements LogConf
    * Render a log entry at the error level.
    * Appends the duration to the message if showDuration=true.
    */
-  error(params: string | Omit<LogParams, "symbol">) {
+  error(params: Msg | Omit<LogParams, "symbol">) {
     const resolved = {
       ...this.resolveCreateParams(LogLevel.error, params),
       symbol: "error" as LogSymbol,
@@ -379,7 +395,7 @@ export abstract class Log<C extends BaseContext = LogContext> implements LogConf
    * TODO @eysi: This should really happen in the renderer and the parent log context
    * timestamp, the log entry timestamp, and showDuration should just be fields on the entry.
    */
-  success(params: string | Omit<LogParams, "symbol">) {
+  success(params: Msg | Omit<LogParams, "symbol">) {
     const resolved = {
       ...this.resolveCreateParams(LogLevel.info, params),
       symbol: "success" as LogSymbol,
@@ -388,7 +404,7 @@ export abstract class Log<C extends BaseContext = LogContext> implements LogConf
     const style = resolved.level === LogLevel.info ? styles.success : getStyle(resolved.level)
     return this.log({
       ...resolved,
-      msg: style(this.getMsgWithDuration(resolved) || ""),
+      msg: transformMsg(this.getMsgWithDuration(resolved) || "", (msg) => style(msg)),
     })
   }
 

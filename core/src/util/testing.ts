@@ -15,7 +15,7 @@ import { Garden, resolveGardenParams } from "../garden.js"
 import type { DeepPrimitiveMap, StringMap } from "../config/common.js"
 import type { ModuleConfig } from "../config/module.js"
 import type { WorkflowConfig } from "../config/workflow.js"
-import type { Log, LogEntry } from "../logger/log-entry.js"
+import { resolveMsg, type Log, type LogEntry } from "../logger/log-entry.js"
 import type { GardenModule } from "../types/module.js"
 import { findByName, getNames } from "./util.js"
 import { GardenError, InternalError } from "../exceptions.js"
@@ -66,7 +66,7 @@ export function getLogMessages(log: Log, filter?: (log: LogEntry) => boolean) {
   return log
     .getLogEntries()
     .filter((entry) => (filter ? filter(entry) : true))
-    .map((entry) => stripAnsi(entry.msg || ""))
+    .map((entry) => stripAnsi(resolveMsg(entry) || ""))
 }
 
 /**
@@ -77,7 +77,7 @@ export function getRootLogMessages(log: Log, filter?: (log: LogEntry) => boolean
   return log
     .getAllLogEntries()
     .filter((entry) => (filter ? filter(entry) : true))
-    .map((entry) => stripAnsi(entry.msg || ""))
+    .map((entry) => stripAnsi(resolveMsg(entry) || ""))
 }
 
 type PartialActionConfig = Partial<ActionConfig> & { kind: ActionKind; type: string; name: string }

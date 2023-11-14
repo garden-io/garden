@@ -22,7 +22,7 @@ import {
 } from "../../../helpers.js"
 import { DEFAULT_DEPLOY_TIMEOUT_SEC, GardenApiVersion } from "../../../../src/constants.js"
 import { formatForTerminal } from "../../../../src/logger/renderers.js"
-import type { LogEntry } from "../../../../src/logger/log-entry.js"
+import { resolveMsg, type LogEntry } from "../../../../src/logger/log-entry.js"
 import { LogLevel } from "../../../../src/logger/logger.js"
 import type { DeployLogEntry } from "../../../../src/types/service.js"
 import type { GetDeployLogs } from "../../../../src/plugin/handlers/Deploy/get-logs.js"
@@ -87,7 +87,7 @@ function getLogOutput(garden: TestGarden, msg: string, extraFilter: (e: LogEntry
   const entries = garden.log
     .getLogEntries()
     .filter(extraFilter)
-    .filter((e) => e.msg?.includes(msg))!
+    .filter((e) => resolveMsg(e)?.includes(msg))!
   return entries.map((e) => formatForTerminal(e, garden.log.root).trim())
 }
 

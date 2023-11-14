@@ -28,7 +28,7 @@ import { join } from "path"
 import fsExtra from "fs-extra"
 const { remove, readFile, pathExists } = fsExtra
 import { dedent } from "../../../../src/util/string.js"
-import type { LogEntry } from "../../../../src/logger/log-entry.js"
+import { resolveMsg, type LogEntry } from "../../../../src/logger/log-entry.js"
 import type { WorkflowStepSpec } from "../../../../src/config/workflow.js"
 import { defaultWorkflowResources } from "../../../../src/config/workflow.js"
 import { TestGardenCli } from "../../../helpers/cli.js"
@@ -171,7 +171,7 @@ describe("RunWorkflowCommand", () => {
   })
 
   function filterLogEntries(entries: LogEntry[], msgRegex: RegExp): LogEntry[] {
-    return entries.filter((e) => msgRegex.test(e.msg || ""))
+    return entries.filter((e) => msgRegex.test(resolveMsg(e) || ""))
   }
 
   it("should collect log outputs from a command step", async () => {
