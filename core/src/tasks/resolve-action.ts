@@ -283,7 +283,7 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
 
     const actionTypeBases = await this.garden.getActionTypeBases(kind, type)
     for (const base of actionTypeBases) {
-      this.log.silly(`Validating ${description} spec against '${base.name}' schema`)
+      this.log.silly(() => `Validating ${description} spec against '${base.name}' schema`)
 
       spec = validateWithPath({
         config: spec,

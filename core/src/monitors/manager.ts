@@ -112,7 +112,7 @@ export class MonitorManager extends TypedEventEmitter<MonitorEvents> {
     const status = this.getStatus(monitor)
 
     if (status !== "stopped" && status !== "stopping") {
-      this.log.silly(`${monitor.description()} already ${status}.`)
+      this.log.silly(() => `${monitor.description()} already ${status}.`)
       return
     }
 
@@ -127,7 +127,7 @@ export class MonitorManager extends TypedEventEmitter<MonitorEvents> {
         // NOTE: Consider calling this.stop() in that case to guarantee the actual monitors stops (would assume stopping is idempotent).
         const currentStatus = this.getStatus(monitor)
         if (currentStatus === "starting") {
-          this.log.silly(`${monitor.description} started successfully`)
+          this.log.silly(() => `${monitor.description} started successfully`)
           this.setStatus(monitor, "started")
         } else {
           this.log.silly(
@@ -159,7 +159,7 @@ export class MonitorManager extends TypedEventEmitter<MonitorEvents> {
         if (currentStatus === "stopping") {
           this.setStatus(monitor, "stopped")
           this.removeAllListeners()
-          log.silly(`${monitor.description()} stopped.`)
+          log.silly(() => `${monitor.description()} stopped.`)
         } else {
           this.log.silly(
             `${monitor.description} status changed from 'stopping' to ${currentStatus} while being stopped. Will not set status to 'stopped'.`

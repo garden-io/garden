@@ -139,7 +139,7 @@ export class ModuleResolver {
         return
       }
 
-      this.log.silly(`ModuleResolver: Process node ${moduleKey}`)
+      this.log.silly(() => `ModuleResolver: Process node ${moduleKey}`)
       inFlight.add(moduleKey)
 
       // Resolve configuration, unless previously resolved.
@@ -153,7 +153,7 @@ export class ModuleResolver {
         if (!resolvedConfig) {
           const rawConfig = this.rawConfigsByKey[moduleKey]
 
-          this.log.silly(`ModuleResolver: Resolve config ${moduleKey}`)
+          this.log.silly(() => `ModuleResolver: Resolve config ${moduleKey}`)
           resolvedConfig = resolvedConfigs[moduleKey] = await this.resolveModuleConfig(rawConfig, resolvedDependencies)
 
           // Check if any new build dependencies were added by the configure handler
@@ -161,7 +161,7 @@ export class ModuleResolver {
             const depKey = dep.name
 
             if (!dependencyNames.includes(depKey)) {
-              this.log.silly(`ModuleResolver: Found new dependency ${depKey} when resolving ${moduleKey}`)
+              this.log.silly(() => `ModuleResolver: Found new dependency ${depKey} when resolving ${moduleKey}`)
 
               // We throw if the build dependency can't be found at all
               if (!fullGraph.hasNode(depKey)) {
@@ -173,7 +173,9 @@ export class ModuleResolver {
 
               // The dependency may already have been processed, we don't want to add it to the graph in that case
               if (processingGraph.hasNode(depKey)) {
-                this.log.silly(`ModuleResolver: Need to re-resolve ${moduleKey} after processing new dependencies`)
+                this.log.silly(
+                  () => `ModuleResolver: Need to re-resolve ${moduleKey} after processing new dependencies`
+                )
                 processingGraph.addDependency(moduleKey, depKey)
               }
             }
@@ -191,11 +193,11 @@ export class ModuleResolver {
             dependencies: resolvedDependencies,
             repoRoot: minimalRoots[resolvedConfig.path],
           })
-          this.log.silly(`ModuleResolver: Module ${moduleKey} resolved`)
+          this.log.silly(() => `ModuleResolver: Module ${moduleKey} resolved`)
           processingGraph.removeNode(moduleKey)
         }
       } catch (err) {
-        this.log.silly(`ModuleResolver: Node ${moduleKey} failed: ${err}`)
+        this.log.silly(() => `ModuleResolver: Node ${moduleKey} failed: ${err}`)
         errors[moduleKey] = toGardenError(err)
       }
 
@@ -230,7 +232,7 @@ export class ModuleResolver {
         throw err
       }
 
-      this.log.silly(`ModuleResolver: Process ${batch.length} leaves`)
+      this.log.silly(() => `ModuleResolver: Process ${batch.length} leaves`)
 
       if (batch.length === 0) {
         return
@@ -250,7 +252,7 @@ export class ModuleResolver {
     let i = 0
 
     while (processingGraph.size() > 0) {
-      this.log.silly(`ModuleResolver: Loop ${++i}`)
+      this.log.silly(() => `ModuleResolver: Loop ${++i}`)
       await processLeaves()
     }
 
@@ -487,7 +489,7 @@ export class ModuleResolver {
 
     for (const base of bases) {
       if (base.schema) {
-        garden.log.silly(`Validating '${config.name}' config against '${base.name}' schema`)
+        garden.log.silly(() => `Validating '${config.name}' config against '${base.name}' schema`)
 
         config.spec = <ModuleConfig>validateWithPath({
           config: config.spec,
@@ -528,7 +530,7 @@ export class ModuleResolver {
     dependencies: GardenModule[]
     repoRoot: string
   }) {
-    this.log.silly(`Resolving module ${resolvedConfig.name}`)
+    this.log.silly(() => `Resolving module ${resolvedConfig.name}`)
 
     // Write module files
     const configContext = new ModuleConfigContext({
@@ -635,7 +637,7 @@ export class ModuleResolver {
 
     for (const base of bases) {
       if (base.moduleOutputsSchema) {
-        this.log.silly(`Validating '${module.name}' module outputs against '${base.name}' schema`)
+        this.log.silly(() => `Validating '${module.name}' module outputs against '${base.name}' schema`)
 
         module.outputs = validateWithPath({
           config: module.outputs,

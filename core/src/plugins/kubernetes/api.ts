@@ -461,7 +461,7 @@ export class KubeApi {
         fetchOptions.agent = await createProxyAgent(fetchOptions.agent)
 
         try {
-          log.silly(`${requestOptions.method.toUpperCase()} ${url}`)
+          log.silly(() => `${requestOptions.method.toUpperCase()} ${url}`)
           const response = await fetch(url, fetchOptions)
 
           if (response.status >= 400) {
@@ -509,7 +509,7 @@ export class KubeApi {
    * Fetch the specified resource from the cluster.
    */
   async read({ log, namespace, apiVersion, kind, name }: ReadParams): Promise<KubernetesResource> {
-    log.silly(`Fetching Kubernetes resource ${apiVersion}/${kind}/${name}`)
+    log.silly(() => `Fetching Kubernetes resource ${apiVersion}/${kind}/${name}`)
 
     const typePath = await this.getResourceTypeApiPath({
       log,
@@ -533,7 +533,7 @@ export class KubeApi {
    * Given a manifest, attempt to read the matching resource from the cluster.
    */
   async readBySpec({ log, namespace, manifest }: ReadBySpecParams): Promise<KubernetesResource> {
-    log.silly(`Fetching Kubernetes resource ${manifest.apiVersion}/${manifest.kind}/${manifest.metadata.name}`)
+    log.silly(() => `Fetching Kubernetes resource ${manifest.apiVersion}/${manifest.kind}/${manifest.metadata.name}`)
 
     const apiPath = await this.getResourceApiPathFromManifest({ manifest, log, namespace })
 
@@ -635,7 +635,7 @@ export class KubeApi {
   }
 
   async replace({ log, resource, namespace }: { log: Log; resource: KubernetesServerResource; namespace?: string }) {
-    log.silly(`Replacing Kubernetes resource ${resource.apiVersion}/${resource.kind}/${resource.metadata.name}`)
+    log.silly(() => `Replacing Kubernetes resource ${resource.apiVersion}/${resource.kind}/${resource.metadata.name}`)
 
     const apiPath = await this.getResourceApiPathFromManifest({ manifest: resource, log, namespace })
 
@@ -663,7 +663,7 @@ export class KubeApi {
   }
 
   async deleteBySpec({ namespace, manifest, log }: { namespace: string; manifest: KubernetesResource; log: Log }) {
-    log.silly(`Deleting Kubernetes resource ${manifest.apiVersion}/${manifest.kind}/${manifest.metadata.name}`)
+    log.silly(() => `Deleting Kubernetes resource ${manifest.apiVersion}/${manifest.kind}/${manifest.metadata.name}`)
 
     const apiPath = await this.getResourceApiPathFromManifest({ manifest, log, namespace })
 

@@ -780,7 +780,7 @@ export function throwOnMissingSecretKeys(configs: ObjectWithName[], secrets: Str
     ${footer}
   `
   if (log) {
-    log.silly(errMsg)
+    log.silly(() => errMsg)
   }
   // throw new ConfigurationError(errMsg, {
   //   loadedSecretKeys: loadedKeys,

@@ -163,7 +163,7 @@ export const buildkitBuildHandler: BuildHandler = async (params) => {
 
   const buildLog = buildRes.log
 
-  log.silly(buildLog)
+  log.silly(() => buildLog)
 
   return {
     state: "ready",

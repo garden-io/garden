@@ -75,7 +75,7 @@ export class CliWrapper {
       cwd = dirname(path)
     }
 
-    log.silly(`Execing '${path} ${args.join(" ")}' in ${cwd}`)
+    log.silly(() => `Execing '${path} ${args!.join(" ")}' in ${cwd}`)
 
     return exec(path, args, {
       cwd,

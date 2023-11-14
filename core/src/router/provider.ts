@@ -82,7 +82,7 @@ export class ProviderRouter extends BaseRouter {
   async configureProvider(params: ConfigureProviderParams & { pluginName: string }): Promise<ConfigureProviderResult> {
     const pluginName = params.pluginName
 
-    this.garden.log.silly(`Calling 'configureProvider' handler on '${pluginName}'`)
+    this.garden.log.silly(() => `Calling 'configureProvider' handler on '${pluginName}'`)
 
     const handler = await this.getPluginHandler({
       handlerType: "configureProvider",
@@ -97,7 +97,7 @@ export class ProviderRouter extends BaseRouter {
 
     const result = await (<Function>handler)(handlerParams)
 
-    this.garden.log.silly(`Called 'configureProvider' handler on '${pluginName}'`)
+    this.garden.log.silly(() => `Called 'configureProvider' handler on '${pluginName}'`)
 
     return result
   }
@@ -216,7 +216,7 @@ export class ProviderRouter extends BaseRouter {
     pluginName: string
     defaultHandler?: ProviderHandlers[T]
   }): Promise<ProviderActionOutputs[T]> {
-    this.garden.log.silly(`Calling ${handlerType} handler on plugin '${pluginName}'`)
+    this.garden.log.silly(() => `Calling ${handlerType} handler on plugin '${pluginName}'`)
 
     const handler = await this.getPluginHandler({
       handlerType,
@@ -231,7 +231,7 @@ export class ProviderRouter extends BaseRouter {
 
     const result = await (<Function>handler)(handlerParams)
 
-    this.garden.log.silly(`Called ${handlerType} handler on plugin '${pluginName}'`)
+    this.garden.log.silly(() => `Called ${handlerType} handler on plugin '${pluginName}'`)
 
     return result
   }
@@ -296,10 +296,10 @@ export class ProviderRouter extends BaseRouter {
 
     // Since we only allow retrieving by plugin name, the length is always either 0 or 1
     if (handlers.length) {
-      this.garden.log.silly(`Found '${handlerType}' handler on '${pluginName}'`)
+      this.garden.log.silly(() => `Found '${handlerType}' handler on '${pluginName}'`)
       return handlers[handlers.length - 1]
     } else if (defaultHandler) {
-      this.garden.log.silly(`Returned default '${handlerType}' handler for '${pluginName}'`)
+      this.garden.log.silly(() => `Returned default '${handlerType}' handler for '${pluginName}'`)
       return Object.assign(
         // TODO: figure out why we need the cast here
         <WrappedPluginHandlers[T]>defaultHandler,

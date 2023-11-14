@@ -169,7 +169,7 @@ export async function getDeployment({ log, ctx, provider, action }: PulumiParams
     env: ensureEnv({ log, ctx, provider, action }),
     cwd: getActionStackRoot(action),
   })
-  log.silly(`stack export for ${action.name}: ${JSON.stringify(res, null, 2)}`)
+  log.silly(() => `stack export for ${action.name}: ${JSON.stringify(res, null, 2)}`)
 
   return res
 }

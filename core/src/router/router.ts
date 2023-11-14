@@ -67,7 +67,7 @@ export class ActionRouter extends BaseRouter {
     this.run = runRouter(baseParams)
     this.test = testRouter(baseParams)
 
-    garden.log.silly(`Creating ActionRouter with ${configuredPlugins.length} configured providers`)
+    garden.log.silly(() => `Creating ActionRouter with ${configuredPlugins.length} configured providers`)
   }
 
   //===========================================================================

@@ -101,10 +101,10 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
 
     if (existing) {
       if (actionIsDisabled(config, environmentName)) {
-        log.silly(`Skipping disabled action ${key} in favor of other action with same key`)
+        log.silly(() => `Skipping disabled action ${key} in favor of other action with same key`)
         return
       } else if (actionIsDisabled(existing, environmentName)) {
-        log.silly(`Skipping disabled action ${key} in favor of other action with same key`)
+        log.silly(() => `Skipping disabled action ${key} in favor of other action with same key`)
         configsByKey[key] = config
         return
       } else {
@@ -218,11 +218,11 @@ function getActionMode(config: ActionConfig, actionModes: ActionModeMap, log: Lo
     if (key === pattern) {
       explicitMode = true
       mode = "sync"
-      log.silly(`Action ${key} set to ${mode} mode, matched on exact key`)
+      log.silly(() => `Action ${key} set to ${mode} mode, matched on exact key`)
       break
     } else if (minimatch(key, pattern)) {
       mode = "sync"
-      log.silly(`Action ${key} set to ${mode} mode, matched with pattern '${pattern}'`)
+      log.silly(() => `Action ${key} set to ${mode} mode, matched with pattern '${pattern}'`)
       break
     }
   }
@@ -233,11 +233,11 @@ function getActionMode(config: ActionConfig, actionModes: ActionModeMap, log: Lo
     if (key === pattern) {
       explicitMode = true
       mode = "local"
-      log.silly(`Action ${key} set to ${mode} mode, matched on exact key`)
+      log.silly(() => `Action ${key} set to ${mode} mode, matched on exact key`)
       break
     } else if (minimatch(key, pattern)) {
       mode = "local"
-      log.silly(`Action ${key} set to ${mode} mode, matched with pattern '${pattern}'`)
+      log.silly(() => `Action ${key} set to ${mode} mode, matched with pattern '${pattern}'`)
       break
     }
   }

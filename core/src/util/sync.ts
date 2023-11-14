@@ -69,8 +69,8 @@ export async function syncWithOptions({
 
   // Avoid rendering the full file list except when at the silly log level
   if (log.root.level === LogLevel.silly) {
-    log.silly(`File list: ${JSON.stringify(files)}`)
-    log.silly(`Rsync args: ${[...opts, sourcePath, destinationPath].join(" ")}`)
+    log.silly(() => `File list: ${JSON.stringify(files)}`)
+    log.silly(() => `Rsync args: ${[...opts, sourcePath, destinationPath].join(" ")}`)
   }
 
   await exec("rsync", [...opts, sourcePath, destinationPath], { input })
