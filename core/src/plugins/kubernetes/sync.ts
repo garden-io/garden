@@ -825,7 +825,7 @@ interface StructuredSyncKeyPrefix {
   actionName: string
 }
 
-function getSyncKeyPrefix({ environmentName, namespace, actionName }: StructuredSyncKeyPrefix) {
+export function getSyncKeyPrefix({ environmentName, namespace, actionName }: StructuredSyncKeyPrefix) {
   // Kebab-case each part of the key prefix separately to preserve double-dash delimiters
   return `k8s--${kebabCase(environmentName)}--${kebabCase(namespace)}--${kebabCase(actionName)}--`
 }
@@ -840,7 +840,7 @@ function getSyncKeyPrefix({ environmentName, namespace, actionName }: Structured
  * It's critical to have double dashes (--) as a delimiter of a key parts here and in {@link getSyncKeyPrefix}
  * to avoid potential collisions of the sync key prefixes.
  */
-function getSyncKey({ ctx, action, spec }: PrepareSyncParams, target: SyncableResource): string {
+export function getSyncKey({ ctx, action, spec }: PrepareSyncParams, target: SyncableResource): string {
   const sourcePath = relative(action.sourcePath(), spec.sourcePath)
   const containerPath = spec.containerPath
   // Kebab-case each part of the key prefix separately to preserve double-dash delimiters

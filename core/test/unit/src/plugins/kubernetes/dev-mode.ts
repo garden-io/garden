@@ -7,7 +7,12 @@
  */
 
 import { expect } from "chai"
-import { builtInExcludes, getLocalSyncPath, makeSyncConfig } from "../../../../../src/plugins/kubernetes/sync.js"
+import {
+  builtInExcludes,
+  getLocalSyncPath,
+  getSyncKeyPrefix,
+  makeSyncConfig,
+} from "../../../../../src/plugins/kubernetes/sync.js"
 
 describe("k8s sync helpers", () => {
   describe("getLocalSyncPath", () => {
@@ -139,6 +144,27 @@ describe("k8s sync helpers", () => {
         defaultDirectoryMode: undefined,
         defaultFileMode: undefined,
       })
+    })
+  })
+
+  describe("getSyncKeyPrefix", () => {
+    const environmentName = "dev"
+    const namespace = "default"
+
+    it("produces a sync key prefix with double-dashes", () => {
+      const syncKeyPrefix = getSyncKeyPrefix({ environmentName, namespace, actionName: "backend" })
+      expect(syncKeyPrefix).to.eql("k8s--dev--default--backend--")
+    })
+
+    it("produces non-colliding keys if one action's name starts with another action's name", () => {
+      const actionName1 = "backend"
+      const actionName2 = "backend-new"
+      expect(actionName2.startsWith(actionName1)).to.be.true
+
+      const syncKeyPrefix1 = getSyncKeyPrefix({ environmentName, namespace, actionName: actionName1 })
+      const syncKeyPrefix2 = getSyncKeyPrefix({ environmentName, namespace, actionName: actionName2 })
+      expect(syncKeyPrefix2.startsWith(syncKeyPrefix1)).to.be.false
+      expect(syncKeyPrefix1.startsWith(syncKeyPrefix2)).to.be.false
     })
   })
 })
