@@ -15,7 +15,7 @@ variables:
 environments:
   - name: local
     variables:
-      imagePullSecretName: "" # <--- Not needed for local dev
+      imagePullSecretName: "fake-secret" # <--- Not needed for local dev
       baseHostname: local.demo.garden
   - name: remote
     defaultNamespace: ${var.remoteEnvName}

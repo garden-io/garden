@@ -15,7 +15,7 @@ spec:
         app: ${var.appName}
     spec:
       imagePullSecrets:
-        - name: ${var.imagePullSecret}
+        - name: ${var.imagePullSecretName}
       containers:
         - name: ${var.appName}
           image: "${actions.build[var.appName].outputs.deployment-image-id}"

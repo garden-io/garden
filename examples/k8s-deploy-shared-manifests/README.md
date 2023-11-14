@@ -19,7 +19,6 @@ type: kubernetes
 name: api
 source:
   path: ../ # <--- We set the source path of the action to the root so that we can reference the manifest files
-
 spec:
   files:
     - manifests/deployment.yaml
@@ -29,6 +28,8 @@ spec:
 kind: Deploy
 type: kubernetes
 name: web
+source:
+  path: ../ # <--- We set the source path of the action to the root so that we can reference the manifest files
 spec:
   files:
     - manifests/deployment.yaml
