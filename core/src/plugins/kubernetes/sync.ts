@@ -808,20 +808,27 @@ export async function getSyncStatus(params: GetSyncStatusParams): Promise<GetSyn
 }
 
 function getSyncKeyPrefix(ctx: PluginContext, action: SupportedRuntimeAction) {
-  return kebabCase(`k8s--${ctx.environmentName}--${ctx.namespace}--${action.name}--`)
+  // Kebab-case each part of the key prefix separately to preserve double-dash delimiters
+  return `k8s--${kebabCase(ctx.environmentName)}--${kebabCase(ctx.namespace)}--${kebabCase(action.name)}--`
 }
 
 /**
  * Generates a unique key for sa single sync.
  * IMPORTANT!!! The key will be used as an argument in the `mutagen` shell command.
- *  It cannot contain any characters that can break the command execution (like / \ < > | :).
+ * It cannot contain any characters that can break the command execution (like / \ < > | :).
+ *
+ * Note, that function {@link kebabCase} replaces any sequence of multiple dashes with a single dash character.
+ *
+ * It's critical to have double dashes (--) as a delimiter of a key parts here and in {@link getSyncKeyPrefix}
+ * to avoid potential collisions of the sync key prefixes.
  */
 function getSyncKey({ ctx, action, spec }: PrepareSyncParams, target: SyncableResource): string {
   const sourcePath = relative(action.sourcePath(), spec.sourcePath)
   const containerPath = spec.containerPath
-  return kebabCase(
-    `${getSyncKeyPrefix(ctx, action)}${target.kind}--${target.metadata.name}--${sourcePath}--${containerPath}`
-  )
+  // Kebab-case each part of the key prefix separately to preserve double-dash delimiters
+  return `${getSyncKeyPrefix(ctx, action)}${kebabCase(target.kind)}--${kebabCase(target.metadata.name)}--${kebabCase(
+    sourcePath
+  )}--${kebabCase(containerPath)}`
 }
 
 async function prepareSync(params: PrepareSyncParams) {
