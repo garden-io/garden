@@ -16,13 +16,13 @@ import type { StringMap } from "../../config/common.js"
 import { joiIdentifierMap, createSchema } from "../../config/common.js"
 import { printEmoji, printHeader, renderDivider } from "../../logger/util.js"
 import { withoutInternalFields } from "../../util/logging.js"
-import chalk from "chalk"
 import { renderTable, dedent, deline } from "../../util/string.js"
 import { relative, sep } from "path"
 import type { Garden } from "../../index.js"
 import type { Log } from "../../logger/log-entry.js"
 import { highlightYaml, safeDumpYaml } from "../../util/serialization.js"
 import { deepMap } from "../../util/objects.js"
+import { styles } from "../../logger/styles.js"
 
 const getModulesArgs = {
   modules: new StringsParameter({
@@ -99,7 +99,7 @@ export class GetModulesCommand extends Command {
 }
 
 function logFull(garden: Garden, modules: GardenModule[], log: Log) {
-  const divider = chalk.gray(renderDivider())
+  const divider = styles.primary(renderDivider())
   log.info("")
   for (const module of modules) {
     const version = module.version.versionString
@@ -128,7 +128,7 @@ function logFull(garden: Garden, modules: GardenModule[], log: Log) {
     const yaml = safeDumpYaml(rendered, { noRefs: true, sortKeys: true })
     log.info(dedent`
       ${divider}
-      ${printEmoji("🌱", log)}  Module: ${chalk.green(module.name)}
+      ${printEmoji("🌱", log)}  Module: ${styles.success(module.name)}
       ${divider}\n
     `)
     log.info(highlightYaml(yaml))
@@ -136,9 +136,9 @@ function logFull(garden: Garden, modules: GardenModule[], log: Log) {
 }
 
 function logAsTable(garden: Garden, modules: GardenModule[], log: Log) {
-  const heading = ["Name", "Version", "Type", "Path"].map((s) => chalk.bold(s))
+  const heading = ["Name", "Version", "Type", "Path"].map((s) => styles.bold(s))
   const rows: string[][] = modules.map((m) => [
-    chalk.cyan.bold(m.name),
+    styles.highlight.bold(m.name),
     m.version.versionString,
     m.type,
     getRelativeModulePath(garden.projectRoot, m.path),

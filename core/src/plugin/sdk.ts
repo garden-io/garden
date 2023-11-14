@@ -44,7 +44,6 @@ import type {
 import type { PluginToolSpec } from "./tools.js"
 import { dedent } from "../util/string.js"
 import type { BuildStatus as _BuildStatus } from "./handlers/Build/get-status.js"
-import chalk from "chalk"
 
 type ObjectBaseZod = z.ZodObject<{}>
 
@@ -398,7 +397,6 @@ export const sdk = {
   createActionType,
 
   util: {
-    chalk,
     dedent,
   },
 }

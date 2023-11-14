@@ -33,7 +33,7 @@ import { add } from "date-fns"
 import { LogLevel } from "../logger/logger.js"
 import { makeAuthHeader } from "./auth.js"
 import type { StringMap } from "../config/common.js"
-import chalk from "chalk"
+import { styles } from "../logger/styles.js"
 
 const gardenClientName = "garden-core"
 const gardenClientVersion = getPackageVersion()
@@ -777,26 +777,24 @@ export class CloudApi {
       }
       // This happens if an environment or project does not exist
       if (err.response.statusCode === 404) {
-        const errorHeaderMsg = chalk.red(`Unable to read secrets from ${distroName}.`)
-        const errorDetailMsg = chalk.white(dedent`
-          Either the environment ${chalk.bold.whiteBright(environmentName)} does not exist in ${distroName},
-          or no project matches the project ID ${chalk.bold.whiteBright(
-            projectId
-          )} in your project level garden.yml file.
+        const errorHeaderMsg = styles.error(`Unable to read secrets from ${distroName}.`)
+        const errorDetailMsg = styles.accent(dedent`
+          Either the environment ${styles.accent.bold(environmentName)} does not exist in ${distroName},
+          or no project matches the project ID ${styles.accent.bold(projectId)} in your project level garden.yml file.
 
           💡Suggestion:
 
-          Visit ${chalk.underline(this.domain)} to review existing environments and projects.
+          Visit ${styles.link(this.domain)} to review existing environments and projects.
 
           First check whether an environment with name ${environmentName} exists for this project. You
           can view the list of environments and the project ID on the project's Settings page.
 
-          ${chalk.bold.whiteBright(
+          ${styles.accent.bold(
             "If the environment does not exist"
           )}, you can either create one from the Settings page or update
           the environments in your project level garden.yml config to match one that already exists.
 
-          ${chalk.bold.whiteBright(
+          ${styles.accent.bold(
             "If a project with this ID does not exist"
           )}, it's likely because the ID has been changed in the
           project level garden.yml config file or the project has been deleted from ${distroName}.

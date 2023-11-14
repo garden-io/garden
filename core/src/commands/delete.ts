@@ -21,7 +21,6 @@ import { isDeployAction } from "../actions/deploy.js"
 import { omit, mapValues } from "lodash-es"
 import type { DeployStatus, DeployStatusMap } from "../plugin/handlers/Deploy/get-status.js"
 import { getDeployStatusSchema } from "../plugin/handlers/Deploy/get-status.js"
-import chalk from "chalk"
 
 // TODO: rename this to CleanupCommand, and do the same for all related classes, constants, variables and functions
 export class DeleteCommand extends CommandGroup {
@@ -101,7 +100,7 @@ export class DeleteEnvironmentCommand extends Command<{}, DeleteEnvironmentOpts>
 
     const providerStatuses = await actions.provider.cleanupAll(log)
 
-    log.info(chalk.green("\nDone!"))
+    log.success({ msg: "\nDone!", showDuration: false })
 
     return {
       result: {
@@ -207,7 +206,7 @@ export class DeleteDeployCommand extends Command<DeleteDeployArgs, DeleteDeployO
     const processed = await garden.processTasks({ tasks, log })
     const result = deletedDeployStatuses(processed.results)
 
-    log.info(chalk.green("\nDone!"))
+    log.success({ msg: "\nDone!", showDuration: false })
 
     return { result }
   }

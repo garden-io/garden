@@ -9,9 +9,9 @@
 import { GoogleAuth, Impersonated } from "google-auth-library"
 import { expect } from "chai"
 import { base64, dedent } from "../../src/util/string.js"
-import chalk from "chalk"
 
 import { ArtifactRegistryClient } from "@google-cloud/artifact-registry"
+import { styles } from "../../src/logger/styles.js"
 
 const targetProject = "garden-ci"
 const targetPrincipal = "gar-serviceaccount@garden-ci.iam.gserviceaccount.com"
@@ -49,7 +49,7 @@ export async function getImpersonatedClientForIntegTests(): Promise<Impersonated
         dedent`
         Could not get downscoped token: Not authenticated to gcloud. Please run the following command:
 
-        ${chalk.bold(`$ gcloud auth application-default login --project ${targetProject}`)}
+        ${styles.bold(`$ gcloud auth application-default login --project ${targetProject}`)}
       `
       )
     }
@@ -61,12 +61,12 @@ export async function getImpersonatedClientForIntegTests(): Promise<Impersonated
         Your user might not be allowed to impersonate the service account '${targetPrincipal}'. You need the role iam.serviceAccountTokenCreator in the project ${targetProject}.
 
         The serviceAccountTokenCreator can be assigned like this:
-        ${chalk.bold(
+        ${styles.bold(
           `$ gcloud iam service-accounts add-iam-policy-binding ${targetPrincipal} --member=<yourIdentity> --role=roles/iam.serviceAccountTokenCreator`
         )}
 
         All developers at garden (dev@garden.io) already have this role, so if you are running into this error and you are part of the google group "Developers <dev@garden.io>", please run the following command:
-        ${chalk.bold(`$ gcloud auth application-default login --project ${targetProject}`)}
+        ${styles.bold(`$ gcloud auth application-default login --project ${targetProject}`)}
         `
       )
     }

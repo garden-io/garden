@@ -8,8 +8,8 @@
 
 import type { PluginCommand } from "../../../plugin/command.js"
 import { prepareEnvironment, getEnvironmentStatus } from "../init.js"
-import chalk from "chalk"
 import { emitNonRepeatableWarning } from "../../../warnings.js"
+import { styles } from "../../../logger/styles.js"
 
 // TODO: remove in 0.14
 export const clusterInit: PluginCommand = {
@@ -17,7 +17,7 @@ export const clusterInit: PluginCommand = {
   description: "[DEPRECATED] Initialize or update cluster-wide Garden services.",
 
   title: ({ environmentName }) => {
-    return `Initializing/updating cluster-wide services for ${chalk.white(environmentName)} environment`
+    return `Initializing/updating cluster-wide services for ${styles.accent(environmentName)} environment`
   },
 
   handler: async ({ ctx, log }) => {
@@ -37,7 +37,7 @@ export const clusterInit: PluginCommand = {
       })
     }
 
-    log.info(chalk.green("\nDone!"))
+    log.success({ msg: "\nDone!", showDuration: false })
 
     return { result }
   },

@@ -30,11 +30,9 @@ import { validateInstall } from "../util/validateInstall.js"
 import { isActionConfig, getSourceAbsPath } from "../actions/base.js"
 import type { BaseActionConfig } from "../actions/types.js"
 import type { Garden } from "../garden.js"
-import chalk from "chalk"
 import { Profile } from "../util/profiling.js"
 
 import AsyncLock from "async-lock"
-
 const scanLock = new AsyncLock()
 
 export const versionStringPrefix = "v-"
@@ -237,10 +235,10 @@ export abstract class VcsHandler {
           await this.garden?.emitWarning({
             key: `${projectName}-filecount-${config.name}`,
             log,
-            message: chalk.yellow(dedent`
+            message: dedent`
               Large number of files (${files.length}) found in ${description}. You may need to configure file exclusions.
               See ${DOCS_BASE_URL}/using-garden/configuration-overview#including-excluding-files-and-directories for details.
-            `),
+            `,
           })
         }
 

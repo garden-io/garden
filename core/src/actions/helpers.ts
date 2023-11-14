@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import chalk from "chalk"
 import { fromPairs, memoize } from "lodash-es"
 import { joi } from "../config/common.js"
 import type { Garden } from "../garden.js"
@@ -34,6 +33,7 @@ import type { ActionStatusPayload } from "../events/action-status-events.js"
 import type { BuildStatusForEventPayload } from "../plugin/handlers/Build/get-status.js"
 import type { DeployStatusForEventPayload } from "../types/service.js"
 import type { RunStatusForEventPayload } from "../plugin/plugin.js"
+import { styles } from "../logger/styles.js"
 
 /**
  * Creates a corresponding Resolved version of the given Action, given the additional parameters needed.
@@ -91,12 +91,12 @@ export async function warnOnLinkedActions(garden: Garden, log: Log, actions: Act
 
   const linkedActionsMsg = actions
     .filter((a) => a.isLinked(linkedSources))
-    .map((a) => `${a.longDescription()} linked to path ${chalk.white(a.sourcePath())}`)
+    .map((a) => `${a.longDescription()} linked to path ${styles.accent(a.sourcePath())}`)
     .map((msg) => "  " + msg) // indent list
 
   if (linkedActionsMsg.length > 0) {
     log.info(renderDivider())
-    log.info(chalk.gray(`The following actions are linked to a local path:\n${linkedActionsMsg.join("\n")}`))
+    log.info(styles.primary(`The following actions are linked to a local path:\n${linkedActionsMsg.join("\n")}`))
     log.info(renderDivider())
   }
 }

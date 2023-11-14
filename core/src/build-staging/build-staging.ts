@@ -14,7 +14,6 @@ import { normalizeRelativePath, joinWithPosix } from "../util/fs.js"
 import type { Log } from "../logger/log-entry.js"
 import { Profile } from "../util/profiling.js"
 import async from "async"
-import chalk from "chalk"
 import { hasMagic } from "glob"
 import type { MappedPaths } from "./helpers.js"
 import { FileStatsHelper, syncFileAsync, cloneFile, scanDirectoryForClone } from "./helpers.js"
@@ -223,7 +222,7 @@ export class BuildStaging {
       }
 
       if (!sourceStat) {
-        log.warn(chalk.yellow(`Build staging: Could not find source file or directory at path ${sourceRoot}`))
+        log.warn(`Build staging: Could not find source file or directory at path ${sourceRoot}`)
         return
       }
     }

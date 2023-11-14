@@ -7,7 +7,6 @@
  */
 
 import AsyncLock from "async-lock"
-import chalk from "chalk"
 import split2 from "split2"
 import { isEmpty } from "lodash-es"
 import {
@@ -43,6 +42,7 @@ import { getRunningDeploymentPod } from "../../util.js"
 import { defaultDockerfileName } from "../../../container/config.js"
 import { k8sGetContainerBuildActionOutputs } from "../handlers.js"
 import { stringifyResources } from "../util.js"
+import { styles } from "../../../../logger/styles.js"
 
 const deployLock = new AsyncLock()
 
@@ -220,7 +220,7 @@ export async function ensureBuildkit({
 
     // Deploy the buildkit daemon
     deployLog.info(
-      chalk.gray(`-> Deploying ${buildkitDeploymentName} daemon in ${namespace} namespace (was ${status.state})`)
+      styles.primary(`-> Deploying ${buildkitDeploymentName} daemon in ${namespace} namespace (was ${status.state})`)
     )
 
     await api.upsert({ kind: "Deployment", namespace, log: deployLog, obj: manifest })

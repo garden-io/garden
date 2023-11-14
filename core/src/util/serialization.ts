@@ -12,9 +12,8 @@ const { writeFile } = fsExtra
 import type { DumpOptions } from "js-yaml"
 import { dump } from "js-yaml"
 import highlightModule from "cli-highlight"
+import { styles } from "../logger/styles.js"
 const highlight = highlightModule.default
-
-import chalk from "chalk"
 
 export async function dumpYaml(yamlPath: string, data: any) {
   return writeFile(yamlPath, safeDumpYaml(data, { noRefs: true }))
@@ -38,9 +37,9 @@ export function highlightYaml(s: string) {
   return highlight(s, {
     language: "yaml",
     theme: {
-      keyword: chalk.white.italic,
-      literal: chalk.white.italic,
-      string: chalk.white,
+      keyword: styles.accent.italic,
+      literal: styles.accent.italic,
+      string: styles.accent,
     },
   })
 }

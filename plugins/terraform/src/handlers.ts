@@ -15,7 +15,7 @@ import type { DeployActionHandler } from "@garden-io/core/build/src/plugin/actio
 import type { DeployState } from "@garden-io/core/build/src/types/service.js"
 import { deployStateToActionState } from "@garden-io/core/build/src/plugin/handlers/Deploy/get-status.js"
 import type { TerraformDeploy, TerraformDeploySpec } from "./action.js"
-import chalk from "chalk"
+import { styles } from "@garden-io/core/build/src/logger/styles.js"
 
 export const getTerraformStatus: DeployActionHandler<"getStatus", TerraformDeploy> = async ({ ctx, log, action }) => {
   const provider = ctx.provider as TerraformProvider
@@ -57,7 +57,7 @@ export const deployTerraform: DeployActionHandler<"deploy", TerraformDeploy> = a
   } else {
     const templateKey = `\${runtime.services.${action.name}.outputs.*}`
     log.warn(
-      chalk.yellow(
+      styles.warning(
         deline`
         Stack is out-of-date but autoApply is set to false, so it will not be applied automatically. If any newly added
         stack outputs are referenced via ${templateKey} template strings and are missing,

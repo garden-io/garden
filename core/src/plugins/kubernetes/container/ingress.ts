@@ -19,7 +19,6 @@ import { getHostnamesFromPem } from "../../../util/tls.js"
 import type { KubernetesResource } from "../types.js"
 import type { V1Ingress, V1Secret } from "@kubernetes/client-node"
 import type { Log } from "../../../logger/log-entry.js"
-import chalk from "chalk"
 import type { Resolved } from "../../../actions/types.js"
 import { isProviderEphemeralKubernetes } from "../ephemeral/ephemeral.js"
 
@@ -68,7 +67,7 @@ export async function createIngressResources(
   const apiVersion = await getIngressApiVersion(log, api, supportedIngressApiVersions)
 
   if (!apiVersion) {
-    log.warn(chalk.yellow(`Could not find a supported Ingress API version in the target cluster`))
+    log.warn(`Could not find a supported Ingress API version in the target cluster`)
     return []
   }
 

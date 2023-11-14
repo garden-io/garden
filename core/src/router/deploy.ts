@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import chalk from "chalk"
 import type { ActionState } from "../actions/types.js"
 import { PluginEventBroker } from "../plugin-context.js"
 import type { DeployState } from "../types/service.js"
@@ -92,7 +91,7 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
         params,
         handlerType: "getLogs",
         defaultHandler: async () => {
-          log.warn(chalk.yellow(`No handler for log retrieval available for action type ${action.type}`))
+          log.warn(`No handler for log retrieval available for action type ${action.type}`)
           return {}
         },
       })
@@ -137,7 +136,7 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
         params,
         handlerType: "startSync",
         defaultHandler: async () => {
-          log.debug(chalk.yellow(`No startSync handler available for action type ${action.type}`))
+          log.debug(`No startSync handler available for action type ${action.type}`)
           return {}
         },
       })
@@ -150,7 +149,7 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
         params,
         handlerType: "stopSync",
         defaultHandler: async () => {
-          log.debug(chalk.yellow(`No stopSync handler available for action type ${action.type}`))
+          log.debug(`No stopSync handler available for action type ${action.type}`)
           return {}
         },
       })

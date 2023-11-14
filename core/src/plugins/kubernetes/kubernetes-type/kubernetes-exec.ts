@@ -7,7 +7,6 @@
  */
 
 import type { ObjectSchema } from "@hapi/joi"
-import chalk from "chalk"
 import { runResultToActionState } from "../../../actions/base.js"
 import type { RunAction, RunActionConfig } from "../../../actions/run.js"
 import type { TestAction, TestActionConfig } from "../../../actions/test.js"
@@ -149,12 +148,10 @@ async function readAndExec({
     }
     if (err.responseStatusCode === 404) {
       throw new ConfigurationError({
-        message: chalk.red(
-          dedent`
+        message: dedent`
             ${action.longDescription()} specifies target resource ${targetKind}/${targetName}, which could not be found in namespace ${namespace}.
 
-            Hint: This action may be missing a dependency on a Deploy in this project that deploys the target resource. If so, adding that dependency will ensure that the Deploy is run before this action.`
-        ),
+            Hint: This action may be missing a dependency on a Deploy in this project that deploys the target resource. If so, adding that dependency will ensure that the Deploy is run before this action.`,
       })
     } else {
       throw err

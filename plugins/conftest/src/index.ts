@@ -7,7 +7,7 @@
  */
 
 import { resolve, relative } from "path"
-import chalk from "chalk"
+import { styles } from "@garden-io/core/build/src/logger/styles.js"
 import slash from "slash"
 import type { ExecaReturnValue } from "execa"
 import { createGardenPlugin } from "@garden-io/sdk"
@@ -503,7 +503,7 @@ function parseConftestResult(provider: ConftestProvider, log: Log, result: Execa
     const failuresForFilename = failures || []
     for (const failure of failuresForFilename) {
       lines.push(
-        chalk.redBright.bold("FAIL") + chalk.gray(" - ") + chalk.redBright(filename) + chalk.gray(" - ") + failure.msg
+        styles.error.bold("FAIL") + styles.primary(" - ") + styles.error(filename) + styles.primary(" - ") + failure.msg
       )
       countFailures += 1
     }
@@ -511,10 +511,10 @@ function parseConftestResult(provider: ConftestProvider, log: Log, result: Execa
     const warningsForFilename = warnings || []
     for (const warning of warningsForFilename) {
       lines.push(
-        chalk.yellowBright.bold("WARN") +
-          chalk.gray(" - ") +
-          chalk.yellowBright(filename) +
-          chalk.gray(" - ") +
+        styles.warning.bold("WARN") +
+          styles.primary(" - ") +
+          styles.warning(filename) +
+          styles.primary(" - ") +
           warning.msg
       )
 
@@ -539,7 +539,7 @@ function parseConftestResult(provider: ConftestProvider, log: Log, result: Execa
   } else if (countFailures > 0 && threshold !== "none") {
     success = false
   } else if (countWarnings > 0) {
-    log.warn(chalk.yellow(formattedHeader))
+    log.warn(formattedHeader)
   }
 
   if (!success) {

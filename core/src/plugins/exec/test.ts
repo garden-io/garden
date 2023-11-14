@@ -10,6 +10,7 @@ import { runResultToActionState } from "../../actions/base.js"
 import { renderMessageWithDivider } from "../../logger/util.js"
 import type { GardenSdkActionDefinitionActionType, GardenSdkActionDefinitionConfigType } from "../../plugin/sdk.js"
 import { sdk } from "../../plugin/sdk.js"
+import { styles } from "../../logger/styles.js"
 import { copyArtifacts, execRunCommand } from "./common.js"
 import { execRunSpecSchema, execRuntimeOutputsSchema, execStaticOutputsSchema } from "./config.js"
 import { execProvider } from "./exec.js"
@@ -39,16 +40,14 @@ execTest.addHandler("run", async ({ log, action, artifactsPath, ctx }) => {
   const artifacts = action.getSpec("artifacts")
   await copyArtifacts(log, artifacts, action.getBuildPath(), artifactsPath)
 
-  const { chalk } = sdk.util
-
   if (result.outputLog) {
-    const prefix = `Finished executing ${chalk.white(action.key())}. Here is the full output:`
+    const prefix = `Finished executing ${styles.accent(action.key())}. Here is the full output:`
     log.info(
       renderMessageWithDivider({
         prefix,
         msg: result.outputLog,
         isError: !result.success,
-        color: chalk.gray,
+        color: styles.primary,
       })
     )
   }

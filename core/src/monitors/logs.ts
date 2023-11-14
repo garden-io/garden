@@ -22,6 +22,7 @@ import { waitForOutputFlush } from "../process.js"
 import type { DeployLogEntry } from "../types/service.js"
 import type { MonitorBaseParams } from "./base.js"
 import { Monitor } from "./base.js"
+import { styles } from "../logger/styles.js"
 
 export const logMonitorColors = ["green", "cyan", "magenta", "yellow", "blueBright", "blue"]
 
@@ -232,13 +233,13 @@ export class LogMonitor extends Monitor {
       out += `${sectionStyle(padSection(entry.name, maxDeployName))} → `
     }
     if (timestamp) {
-      out += `${chalk.gray(timestamp)} → `
+      out += `${styles.primary(timestamp)} → `
     }
     if (tags) {
-      out += chalk.gray("[" + tags + "] ")
+      out += styles.primary("[" + tags + "] ")
     }
     // If the line doesn't have ansi encoding, we color it white to prevent logger from applying styles.
-    out += hasAnsi(serviceLog) ? serviceLog : chalk.white(serviceLog)
+    out += hasAnsi(serviceLog) ? serviceLog : styles.accent(serviceLog)
 
     return out
   }

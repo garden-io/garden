@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import chalk from "chalk"
 import type { BaseActionTaskParams, ActionTaskProcessParams, ActionTaskStatusParams } from "../tasks/base.js"
 import { ExecuteActionTask, emitGetStatusEvents, emitProcessingEvents } from "../tasks/base.js"
 import { Profile } from "../util/profiling.js"
@@ -127,7 +126,7 @@ export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {
       })
     })
 
-    log.verbose(chalk.green(`Done syncing sources ${renderDuration(log.getDuration(1))}`))
+    log.verbose(`Done syncing sources ${renderDuration(log.getDuration(1))}`)
 
     await wrapActiveSpan("syncDependencyProducts", async () => {
       await this.garden.buildStaging.syncDependencyProducts(action, log)

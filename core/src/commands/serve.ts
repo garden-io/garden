@@ -14,7 +14,6 @@ import { printEmoji, printHeader } from "../logger/util.js"
 import { dedent } from "../util/string.js"
 import type { CommandLine } from "../cli/command-line.js"
 import { GardenInstanceManager } from "../server/instance-manager.js"
-import chalk from "chalk"
 import { getCloudDistributionName, sleep } from "../util/util.js"
 import type { Log } from "../logger/log-entry.js"
 import { findProjectConfig } from "../config/base.js"
@@ -23,6 +22,7 @@ import { uuidv4 } from "../util/random.js"
 import type { Garden } from "../garden.js"
 import type { GardenPluginReference } from "../plugin/plugin.js"
 import { CommandError, ParameterError, isEAddrInUseException, isErrnoException } from "../exceptions.js"
+import { styles } from "../logger/styles.js"
 
 export const defaultServerPort = 9777
 
@@ -160,8 +160,8 @@ export class ServeCommand<
         await garden.emitWarning({
           key: "web-app",
           log,
-          message: chalk.green(
-            `🌿 Explore logs, past commands, and your dependency graph in the Garden web App. Log in with ${chalk.cyan(
+          message: styles.success(
+            `🌿 Explore logs, past commands, and your dependency graph in the Garden web App. Log in with ${styles.highlight(
               "garden login"
             )}.`
           ),
@@ -190,13 +190,13 @@ export class ServeCommand<
           })
           if (session?.shortId) {
             const distroName = getCloudDistributionName(cloudDomain)
-            const livePageUrl = cloudApi.getLivePageUrl({ shortId: session.shortId })
+            const livePageUrl = cloudApi.getLivePageUrl({ shortId: session.shortId }).toString()
             const msg = dedent`${printEmoji("🌸", log)}Connected to ${distroName} ${printEmoji("🌸", log)}
               Follow the link below to stream logs, run commands, and more from your web dashboard ${printEmoji(
                 "👇",
                 log
-              )} \n\n${chalk.cyan(livePageUrl)}\n`
-            log.info(chalk.white(msg))
+              )} \n\n${styles.highlight(livePageUrl)}\n`
+            log.info(styles.accent(msg))
           }
         }
       }
@@ -204,9 +204,9 @@ export class ServeCommand<
       if (err instanceof CloudApiTokenRefreshError) {
         const distroName = getCloudDistributionName(cloudDomain)
         log.warn(dedent`
-          ${chalk.yellow(`Unable to authenticate against ${distroName} with the current session token.`)}
+          Unable to authenticate against ${distroName} with the current session token.
           The dashboard will not be available until you authenticate again. Please try logging out with
-          ${chalk.bold("garden logout")} and back in again with ${chalk.bold("garden login")}.
+          ${styles.command("garden logout")} and back in again with ${styles.command("garden login")}.
         `)
       } else {
         // Unhandled error when creating the cloud api
@@ -232,7 +232,7 @@ export class ServeCommand<
               await sleep(1000)
             }
           }
-          this.commandLine?.flashSuccess(chalk.white.bold(`Dev console is ready to go! 🚀`))
+          this.commandLine?.flashSuccess(styles.accent.bold(`Dev console is ready to go! 🚀`))
           this.commandLine?.enable()
         })
         // Errors are handled in the method

@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import chalk from "chalk"
 import { merge } from "lodash-es"
 import type { ActionConfig, Action, ExecutedAction, ResolvedAction } from "../../actions/types.js"
 import type { ActionMode } from "../../actions/types.js"
@@ -21,6 +20,7 @@ import { exampleVersion, OutputConfigContext } from "./module.js"
 import { TemplatableConfigContext } from "./project.js"
 import { DOCS_BASE_URL } from "../../constants.js"
 import type { WorkflowConfig } from "../workflow.js"
+import { styles } from "../../logger/styles.js"
 
 function mergeVariables({ garden, variables }: { garden: Garden; variables: DeepPrimitiveMap }): DeepPrimitiveMap {
   const mergedVariables: DeepPrimitiveMap = {}
@@ -302,7 +302,7 @@ export class ActionSpecContext extends OutputConfigContext {
     // Throw specific error when attempting to resolve self
     this.actions[action.kind.toLowerCase()].set(
       name,
-      new ErrorContext(`Action ${chalk.white.bold(action.key())} cannot reference itself.`)
+      new ErrorContext(`Action ${styles.accent.bold(action.key())} cannot reference itself.`)
     )
 
     if (parentName && templateName) {

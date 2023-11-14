@@ -6,8 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import chalk from "chalk"
-
 import type { Garden } from "../garden.js"
 import type { Log } from "../logger/log-entry.js"
 import type { GardenPluginSpec, ModuleTypeDefinition, PluginActionContextParams } from "../plugin/plugin.js"
@@ -27,6 +25,7 @@ import { testRouter } from "./test.js"
 import type { DeployStatus, DeployStatusMap } from "../plugin/handlers/Deploy/get-status.js"
 import type { GetActionOutputsParams, GetActionOutputsResult } from "../plugin/handlers/base/get-outputs.js"
 import type { ActionKind, BaseActionConfig, ResolvedAction } from "../actions/types.js"
+import { styles } from "../logger/styles.js"
 
 export interface DeployManyParams {
   graph: ConfigGraph
@@ -162,7 +161,7 @@ export class ActionRouter extends BaseRouter {
     dependantsFirst?: boolean
     names?: string[]
   }): Promise<DeployStatusMap> {
-    const servicesLog = log.createLog({}).info(chalk.white("Deleting deployments..."))
+    const servicesLog = log.createLog({}).info(styles.accent("Deleting deployments..."))
     const deploys = graph.getDeploys({ names })
 
     const tasks = deploys.map((action) => {

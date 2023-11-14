@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import chalk from "chalk"
 import httpStatusCodes from "http-status-codes"
 import { ApiException as KubernetesApiException } from "@kubernetes/client-node"
 import { sleep } from "../../util/util.js"
@@ -62,7 +61,7 @@ export async function requestWithRetry<R>(
           return await retry(usedRetries + 1)
         } else {
           if (usedRetries === maxRetries) {
-            retryLog.info(chalk.red(`Kubernetes API: Maximum retry count exceeded`))
+            retryLog.error(`Kubernetes API: Maximum retry count exceeded`)
           }
           throw err
         }
