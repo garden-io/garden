@@ -599,7 +599,11 @@ export async function startSyncs(params: StartSyncsParams) {
   )
 
   const allSyncs = expectedKeys.length === 0 ? [] : await mutagen.getActiveSyncSessions()
-  const keyPrefix = getSyncKeyPrefix(ctx, action)
+  const keyPrefix = getSyncKeyPrefix({
+    environmentName: ctx.environmentName,
+    namespace: ctx.namespace,
+    actionName: action.name,
+  })
 
   for (const sync of allSyncs.filter((s) => s.name.startsWith(keyPrefix) && !expectedKeys.includes(s.name))) {
     log.info(`Terminating unexpected/outdated sync ${sync.name}`)
@@ -615,7 +619,11 @@ export async function stopSyncs(params: StopSyncsParams) {
   const mutagen = new Mutagen({ ctx, log })
 
   const allSyncs = await mutagen.getActiveSyncSessions()
-  const keyPrefix = getSyncKeyPrefix(ctx, action)
+  const keyPrefix = getSyncKeyPrefix({
+    environmentName: ctx.environmentName,
+    namespace: ctx.namespace,
+    actionName: action.name,
+  })
   const syncs = allSyncs.filter((sync) => sync.name.startsWith(keyPrefix))
 
   for (const sync of syncs) {
@@ -775,7 +783,11 @@ export async function getSyncStatus(params: GetSyncStatusParams): Promise<GetSyn
     })
   }
 
-  const keyPrefix = getSyncKeyPrefix(ctx, action)
+  const keyPrefix = getSyncKeyPrefix({
+    environmentName: ctx.environmentName,
+    namespace: ctx.namespace,
+    actionName: action.name,
+  })
 
   let extraSyncs = false
 
@@ -807,9 +819,15 @@ export async function getSyncStatus(params: GetSyncStatusParams): Promise<GetSyn
   }
 }
 
-function getSyncKeyPrefix(ctx: PluginContext, action: SupportedRuntimeAction) {
+interface StructuredSyncKeyPrefix {
+  environmentName: string
+  namespace: string
+  actionName: string
+}
+
+function getSyncKeyPrefix({ environmentName, namespace, actionName }: StructuredSyncKeyPrefix) {
   // Kebab-case each part of the key prefix separately to preserve double-dash delimiters
-  return `k8s--${kebabCase(ctx.environmentName)}--${kebabCase(ctx.namespace)}--${kebabCase(action.name)}--`
+  return `k8s--${kebabCase(environmentName)}--${kebabCase(namespace)}--${kebabCase(actionName)}--`
 }
 
 /**
@@ -826,9 +844,13 @@ function getSyncKey({ ctx, action, spec }: PrepareSyncParams, target: SyncableRe
   const sourcePath = relative(action.sourcePath(), spec.sourcePath)
   const containerPath = spec.containerPath
   // Kebab-case each part of the key prefix separately to preserve double-dash delimiters
-  return `${getSyncKeyPrefix(ctx, action)}${kebabCase(target.kind)}--${kebabCase(target.metadata.name)}--${kebabCase(
-    sourcePath
-  )}--${kebabCase(containerPath)}`
+  return `${getSyncKeyPrefix({
+    environmentName: ctx.environmentName,
+    namespace: ctx.namespace,
+    actionName: action.name,
+  })}${kebabCase(target.kind)}--${kebabCase(target.metadata.name)}--${kebabCase(sourcePath)}--${kebabCase(
+    containerPath
+  )}`
 }
 
 async function prepareSync(params: PrepareSyncParams) {
