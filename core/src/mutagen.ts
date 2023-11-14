@@ -11,6 +11,7 @@ import dedent from "dedent"
 import type EventEmitter from "events"
 import type { ExecaReturnValue } from "execa"
 import fsExtra from "fs-extra"
+
 const { mkdirp, pathExists } = fsExtra
 import hasha from "hasha"
 import pRetry from "p-retry"
@@ -28,7 +29,6 @@ import { TypedEventEmitter } from "./util/events.js"
 import { PluginTool } from "./util/ext-tools.js"
 import { deline } from "./util/string.js"
 import { registerCleanupFunction, sleep } from "./util/util.js"
-import { emitNonRepeatableWarning } from "./warnings.js"
 import type { OctalPermissionMask } from "./plugins/kubernetes/types.js"
 import { styles } from "./logger/styles.js"
 
@@ -652,10 +652,6 @@ export class Mutagen {
           await this.ensureDaemon()
           await sleep(2000 + loops * 500)
         } else {
-          emitNonRepeatableWarning(
-            this.log,
-            `Consider making your Garden project path shorter. Syncing could fail because of Unix socket path length limitations. It's recommended that the Garden project path does not exceed ${MUTAGEN_DATA_DIRECTORY_LENGTH_LIMIT} characters. The actual value depends on the platform and the mutagen version.`
-          )
           throw err
         }
       }
