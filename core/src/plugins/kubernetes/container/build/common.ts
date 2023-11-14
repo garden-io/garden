@@ -20,7 +20,7 @@ import { prepareSecrets } from "../../secrets.js"
 import { Mutagen } from "../../../../mutagen.js"
 import { randomString } from "../../../../util/string.js"
 import type { V1Container, V1Service } from "@kubernetes/client-node"
-import { cloneDeep, isEmpty } from "lodash-es"
+import { cloneDeep, isEmpty, isEqual } from "lodash-es"
 import { compareDeployedResources, waitForResources } from "../../status/status.js"
 import type { KubernetesDeployment, KubernetesResource, KubernetesServiceAccount } from "../../types.js"
 import type { BuildActionHandler, BuildActionResults } from "../../../../plugin/action-types.js"
@@ -313,7 +313,7 @@ export function isEqualAnnotations(r1: KubernetesResource, r2: KubernetesResourc
   // normalize annotations before comparison
   const a1 = r1.metadata.annotations !== undefined ? r1.metadata.annotations : {}
   const a2 = r2.metadata.annotations !== undefined ? r2.metadata.annotations : {}
-  return JSON.stringify(a1) === JSON.stringify(a2)
+  return isEqual(a1, a2)
 }
 
 /**

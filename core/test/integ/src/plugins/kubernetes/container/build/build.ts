@@ -642,7 +642,7 @@ describe("Ensure serviceAccount annotations for in-cluster building", () => {
         log,
       })
       // Both annotations should be present
-      expect(isEqualAnnotations(originalServiceAccount, status.remoteResources[0]))
+      expect(isEqualAnnotations(originalServiceAccount, status.remoteResources[0])).to.be.true
 
       const reducedAnnotations = {
         "iam.gke.io/gcp-service-account": "workload-identity-gar@garden-ci.iam.gserviceaccount.com",
@@ -660,7 +660,7 @@ describe("Ensure serviceAccount annotations for in-cluster building", () => {
         log,
       })
       // Only reduced annotations should be present
-      expect(isEqualAnnotations(updatedServiceAccount, updatedStatus.remoteResources[0]))
+      expect(isEqualAnnotations(updatedServiceAccount, updatedStatus.remoteResources[0])).to.be.true
     })
     it("should cycle the util deployment when the serviceAccount annotations changed", async () => {
       const originalAnnotations = {
@@ -678,7 +678,7 @@ describe("Ensure serviceAccount annotations for in-cluster building", () => {
       provider.config.kaniko = { serviceAccountAnnotations: updatedAnnotations }
       const { updated } = await ensureUtilDeployment({ ctx, provider, log, api, namespace: projectNamespace })
 
-      expect(updated)
+      expect(updated).to.be.true
     })
   })
 
@@ -740,7 +740,7 @@ describe("Ensure serviceAccount annotations for in-cluster building", () => {
       provider.config.clusterBuildkit = { serviceAccountAnnotations: updatedAnnotations, cache: defaultCacheConfig }
       const { updated } = await ensureBuildkit({ ctx, provider, log: garden.log, api, namespace: projectNamespace })
 
-      expect(updated)
+      expect(updated).to.be.true
     })
   })
 })
