@@ -44,7 +44,6 @@ describe.skip("Kubernetes Container Build Extension", () => {
   let graph: ConfigGraph
   let provider: KubernetesProvider
   let ctx: PluginContext
-  let api: KubeApi
 
   after(async () => {
     if (garden) {
@@ -58,7 +57,6 @@ describe.skip("Kubernetes Container Build Extension", () => {
     graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     provider = <KubernetesProvider>await garden.resolveProvider(garden.log, "local-kubernetes")
     ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
-    api = await KubeApi.factory(log, ctx, provider)
   }
 
   async function executeBuild(buildActionName: string) {
