@@ -24,6 +24,7 @@ import {
   syncDefaultOwnerSchema,
   syncExcludeSchema,
   syncModeSchema,
+  syncSourcePathSchema,
   syncTargetPathSchema,
 } from "../container/moduleConfig.js"
 import { dedent, gardenAnnotationKey } from "../../util/string.js"
@@ -58,7 +59,6 @@ import type { PluginContext } from "../../plugin-context.js"
 import type { SyncConfig, SyncSession } from "../../mutagen.js"
 import { mutagenAgentPath, Mutagen, haltedStatuses, mutagenStatusDescriptions } from "../../mutagen.js"
 import { k8sSyncUtilImageName } from "./constants.js"
-import { templateStringLiteral } from "../../docs/common.js"
 import { relative, resolve } from "path"
 import type { Resolved } from "../../actions/types.js"
 import { isAbsolute } from "path"
@@ -136,8 +136,6 @@ export interface KubernetesDeployDevModeSyncSpec extends DevModeSyncOptions {
   containerName?: string
 }
 
-const exampleActionRef = templateStringLiteral("actions.build.my-container-image.sourcePath")
-
 export const kubernetesDeploySyncPathSchema = () =>
   joi
     .object()
@@ -145,16 +143,7 @@ export const kubernetesDeploySyncPathSchema = () =>
       target: targetResourceSpecSchema().description(
         "The Kubernetes resource to sync to. If specified, this is used instead of `spec.defaultTarget`."
       ),
-      sourcePath: joi
-        .posixPath()
-        .default(".")
-        .description(
-          dedent`
-          The local path to sync from, either absolute or relative to the source directory where the Deploy action is defined.
-
-          This should generally be a templated path to another action's source path (e.g. ${exampleActionRef}), or a relative path. If a path is hard-coded, you must make sure the path exists, and that it is reliably the correct path for every user.
-          `
-        ),
+      sourcePath: syncSourcePathSchema(),
       containerPath: syncTargetPathSchema(),
 
       exclude: syncExcludeSchema(),

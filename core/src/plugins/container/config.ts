@@ -31,6 +31,7 @@ import type { RunAction, RunActionConfig } from "../../actions/run.js"
 import { memoize } from "lodash-es"
 import type Joi from "@hapi/joi"
 import type { OctalPermissionMask } from "../kubernetes/types.js"
+import { templateStringLiteral } from "../../docs/common.js"
 
 export const defaultDockerfileName = "Dockerfile"
 
@@ -237,6 +238,27 @@ export const syncDefaultGroupSchema = memoize(() =>
     .description("Set the default group on files and directories at the target. " + ownerDocs)
 )
 
+const exampleActionRef = templateStringLiteral("actions.build.my-container-image.sourcePath")
+const backSlash = "`\\`"
+const forwardSlash = "`/`"
+
+export const syncSourcePathSchema = memoize(() =>
+  joi
+    .string()
+    .default(".")
+    .description(
+      deline`
+        Path to a local directory to be synchronized with the target.
+
+        This should generally be a templated path to another action's source path (e.g. ${exampleActionRef}), or a relative path.
+
+        If a path is hard-coded, we recommend sticking with relative paths here, and using forward slashes (${forwardSlash}) as a delimiter, as Windows-style paths with back slashes (${backSlash}) and absolute paths will work on some platforms, but they are not portable and will not work for users on other platforms.
+
+        Defaults to the Deploy action's config's directory if no value is provided.
+        `
+    )
+    .example("src")
+)
 export const syncTargetPathSchema = memoize(() =>
   joi
     .posixPath()
@@ -254,15 +276,7 @@ export const syncTargetPathSchema = memoize(() =>
 const containerSyncSchema = createSchema({
   name: "container-sync",
   keys: () => ({
-    source: joi
-      .string()
-      .default(".")
-      .description(
-        deline`
-        POSIX-style or Windows path of the directory to sync to the target. Defaults to the config's directory if no value is provided.
-        `
-      )
-      .example("src"),
+    source: syncSourcePathSchema(),
     target: syncTargetPathSchema(),
     exclude: syncExcludeSchema(),
     mode: syncModeSchema(),
