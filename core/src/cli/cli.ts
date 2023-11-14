@@ -6,17 +6,21 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { intersection, mapValues, sortBy } from "lodash"
+import { intersection, mapValues, sortBy } from "lodash-es"
 import { resolve, join } from "path"
-import chalk from "chalk"
-import { pathExists } from "fs-extra"
-import { getBuiltinCommands } from "../commands/commands"
-import { shutdown, getPackageVersion, getCloudDistributionName } from "../util/util"
-import { Command, CommandResult, BuiltinArgs, CommandGroup } from "../commands/base"
-import { PluginError, toGardenError, GardenError } from "../exceptions"
-import { Garden, GardenOpts, makeDummyGarden } from "../garden"
-import { getRootLogger, getTerminalWriterType, LogLevel, parseLogLevel, RootLogger } from "../logger/logger"
-import { FileWriter, FileWriterConfig } from "../logger/writers/file-writer"
+import fsExtra from "fs-extra"
+const { pathExists } = fsExtra
+import { getBuiltinCommands } from "../commands/commands.js"
+import { shutdown, getPackageVersion, getCloudDistributionName } from "../util/util.js"
+import type { Command, CommandResult, BuiltinArgs } from "../commands/base.js"
+import { CommandGroup } from "../commands/base.js"
+import type { GardenError } from "../exceptions.js"
+import { PluginError, toGardenError } from "../exceptions.js"
+import type { GardenOpts } from "../garden.js"
+import { Garden, makeDummyGarden } from "../garden.js"
+import { getRootLogger, getTerminalWriterType, LogLevel, parseLogLevel, RootLogger } from "../logger/logger.js"
+import type { FileWriterConfig } from "../logger/writers/file-writer.js"
+import { FileWriter } from "../logger/writers/file-writer.js"
 
 import {
   checkForUpdates,
@@ -30,28 +34,32 @@ import {
   checkRequirements,
   renderCommandErrors,
   cliStyles,
-} from "./helpers"
-import { ParameterObject, globalOptions, OUTPUT_RENDERERS, GlobalOptions, ParameterValues } from "./params"
-import { ProjectConfig } from "../config/project"
-import { ERROR_LOG_FILENAME, DEFAULT_GARDEN_DIR_NAME, LOGS_DIR_NAME, gardenEnv } from "../constants"
-import { generateBasicDebugInfoReport } from "../commands/get/get-debug-info"
-import { AnalyticsHandler } from "../analytics/analytics"
-import { GardenPluginReference } from "../plugin/plugin"
-import { CloudApi, CloudApiFactory, CloudApiTokenRefreshError, getGardenCloudDomain } from "../cloud/api"
-import { findProjectConfig } from "../config/base"
-import { pMemoizeDecorator } from "../lib/p-memoize"
-import { getCustomCommands } from "../commands/custom"
-import { Profile } from "../util/profiling"
-import { prepareDebugLogfiles } from "./debug-logs"
-import { Log } from "../logger/log-entry"
-import { dedent } from "../util/string"
-import { GardenProcess, GlobalConfigStore } from "../config-store/global"
-import { registerProcess, waitForOutputFlush } from "../process"
-import { uuidv4 } from "../util/random"
-import { withSessionContext } from "../util/open-telemetry/context"
-import { wrapActiveSpan } from "../util/open-telemetry/spans"
-import { JsonFileWriter } from "../logger/writers/json-file-writer"
-import minimist from "minimist"
+} from "./helpers.js"
+import type { ParameterObject, GlobalOptions, ParameterValues } from "./params.js"
+import { globalOptions, OUTPUT_RENDERERS } from "./params.js"
+import type { ProjectConfig } from "../config/project.js"
+import { ERROR_LOG_FILENAME, DEFAULT_GARDEN_DIR_NAME, LOGS_DIR_NAME, gardenEnv } from "../constants.js"
+import { generateBasicDebugInfoReport } from "../commands/get/get-debug-info.js"
+import type { AnalyticsHandler } from "../analytics/analytics.js"
+import type { GardenPluginReference } from "../plugin/plugin.js"
+import type { CloudApiFactory } from "../cloud/api.js"
+import { CloudApi, CloudApiTokenRefreshError, getGardenCloudDomain } from "../cloud/api.js"
+import { findProjectConfig } from "../config/base.js"
+import { pMemoizeDecorator } from "../lib/p-memoize.js"
+import { getCustomCommands } from "../commands/custom.js"
+import { Profile } from "../util/profiling.js"
+import { prepareDebugLogfiles } from "./debug-logs.js"
+import type { Log } from "../logger/log-entry.js"
+import { dedent } from "../util/string.js"
+import type { GardenProcess } from "../config-store/global.js"
+import { GlobalConfigStore } from "../config-store/global.js"
+import { registerProcess, waitForOutputFlush } from "../process.js"
+import { uuidv4 } from "../util/random.js"
+import { withSessionContext } from "../util/open-telemetry/context.js"
+import { wrapActiveSpan } from "../util/open-telemetry/spans.js"
+import { JsonFileWriter } from "../logger/writers/json-file-writer.js"
+import type minimist from "minimist"
+import { styles } from "../logger/styles.js"
 
 export interface RunOutput {
   argv: any
@@ -101,7 +109,7 @@ export class GardenCli {
     // Thus we have to dedent like this.
     let msg = `
 ${cliStyles.heading("USAGE")}
-  garden ${cliStyles.commandPlaceholder()} ${cliStyles.optionsPlaceholder()}
+  garden ${cliStyles.commandPlaceholder()} ${cliStyles.argumentsPlaceholder()} ${cliStyles.optionsPlaceholder()}
 
 ${cliStyles.heading("COMMANDS")}
 ${renderCommands(commands)}
@@ -243,7 +251,7 @@ ${renderCommands(commands)}
         } catch (err) {
           if (err instanceof CloudApiTokenRefreshError) {
             log.warn(dedent`
-              ${chalk.yellow(`Unable to authenticate against ${distroName} with the current session token.`)}
+              Unable to authenticate against ${distroName} with the current session token.
               Command results for this command run will not be available in ${distroName}. If this not a
               ${distroName} project you can ignore this warning. Otherwise, please try logging out with
               \`garden logout\` and back in again with \`garden login\`.
@@ -306,18 +314,23 @@ ${renderCommands(commands)}
             await garden.emitWarning({
               key: "0.13-bonsai",
               log,
-              message: chalk.yellow(dedent`
+              message: dedent`
                 Garden v0.13 (Bonsai) is a major release with significant changes. Please help us improve it by reporting any issues/bugs here:
                 https://go.garden.io/report-bonsai
-              `),
+              `,
             })
           }
 
-          nsLog.info(`Running in Garden environment ${chalk.cyan(`${garden.environmentName}.${garden.namespace}`)}`)
+          nsLog.info(
+            `Running in Garden environment ${styles.highlight(`${garden.environmentName}.${garden.namespace}`)}`
+          )
 
           if (!cloudApi && garden.projectId) {
+            log.info("")
             log.warn(
-              `You are not logged in into Garden Cloud. Please log in via the ${chalk.green("garden login")} command.`
+              `Warning: You are not logged in into Garden Cloud. Please log in via the ${styles.command(
+                "garden login"
+              )} command.`
             )
             log.info("")
           }
@@ -368,7 +381,7 @@ ${renderCommands(commands)}
 
         if (garden.monitors.anyMonitorsActive()) {
           // Wait for monitors to exit
-          log.debug(chalk.gray("One or more monitors active, waiting until all exit."))
+          log.debug(styles.primary("One or more monitors active, waiting until all exit."))
           await garden.monitors.waitUntilStopped()
         }
 
@@ -430,7 +443,7 @@ ${renderCommands(commands)}
     const workingDir = resolve(cwd || process.cwd(), argv.root || "")
 
     if (!(await pathExists(workingDir))) {
-      return done(1, chalk.red(`Could not find specified root path (${argv.root})`))
+      return done(1, styles.error(`Could not find specified root path (${argv.root})`))
     }
 
     let projectConfig: ProjectConfig | undefined

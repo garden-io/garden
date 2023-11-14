@@ -6,50 +6,49 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { createGardenPlugin } from "../../plugin/plugin"
-import { helmModuleHandlers } from "./helm/handlers"
-import { getAppNamespace, getSystemNamespace } from "./namespace"
-import { getEnvironmentStatus, prepareEnvironment, cleanupEnvironment } from "./init"
-import { containerHandlers } from "./container/handlers"
-import { kubernetesHandlers } from "./kubernetes-type/handlers"
-import { ConfigureProviderParams } from "../../plugin/handlers/Provider/configureProvider"
-import { DebugInfo, GetDebugInfoParams } from "../../plugin/handlers/Provider/getDebugInfo"
-import { kubectl, kubectlSpec } from "./kubectl"
-import { KubernetesConfig, KubernetesPluginContext } from "./config"
-import { configSchema } from "./config"
-import { ConfigurationError } from "../../exceptions"
-import { cleanupClusterRegistry } from "./commands/cleanup-cluster-registry"
-import { clusterInit } from "./commands/cluster-init"
-import { pullImage } from "./commands/pull-image"
-import { uninstallGardenServices } from "./commands/uninstall-garden-services"
-import { joi, joiIdentifier } from "../../config/common"
+import { createGardenPlugin } from "../../plugin/plugin.js"
+import { helmModuleHandlers } from "./helm/handlers.js"
+import { getAppNamespace, getSystemNamespace } from "./namespace.js"
+import { getEnvironmentStatus, prepareEnvironment, cleanupEnvironment } from "./init.js"
+import { containerHandlers } from "./container/handlers.js"
+import { kubernetesHandlers } from "./kubernetes-type/handlers.js"
+import type { ConfigureProviderParams } from "../../plugin/handlers/Provider/configureProvider.js"
+import type { DebugInfo, GetDebugInfoParams } from "../../plugin/handlers/Provider/getDebugInfo.js"
+import { kubectl, kubectlSpec } from "./kubectl.js"
+import type { KubernetesConfig, KubernetesPluginContext } from "./config.js"
+import { configSchema } from "./config.js"
+import { ConfigurationError } from "../../exceptions.js"
+import { cleanupClusterRegistry } from "./commands/cleanup-cluster-registry.js"
+import { clusterInit } from "./commands/cluster-init.js"
+import { pullImage } from "./commands/pull-image.js"
+import { uninstallGardenServices } from "./commands/uninstall-garden-services.js"
+import { joi, joiIdentifier } from "../../config/common.js"
 import { resolve } from "path"
-import { dedent } from "../../util/string"
-import { kubernetesModuleSpecSchema } from "./kubernetes-type/module-config"
-import { helmModuleSpecSchema, helmModuleOutputsSchema } from "./helm/module-config"
-import { getSystemMetadataNamespaceName } from "./system"
-import { defaultIngressClass } from "./constants"
-import { pvcModuleDefinition, persistentvolumeclaimDeployDefinition } from "./volumes/persistentvolumeclaim"
-import { helm3Spec } from "./helm/helm-cli"
-import { isString } from "lodash"
-import { mutagenCliSpec } from "../../mutagen"
-import { configMapModuleDefinition, configmapDeployDefinition } from "./volumes/configmap"
+import { dedent } from "../../util/string.js"
+import { kubernetesModuleSpecSchema } from "./kubernetes-type/module-config.js"
+import { helmModuleSpecSchema, helmModuleOutputsSchema } from "./helm/module-config.js"
+import { defaultIngressClass } from "./constants.js"
+import { pvcModuleDefinition, persistentvolumeclaimDeployDefinition } from "./volumes/persistentvolumeclaim.js"
+import { helm3Spec } from "./helm/helm-cli.js"
+import { isString } from "lodash-es"
+import { mutagenCliSpec } from "../../mutagen.js"
+import { configMapModuleDefinition, configmapDeployDefinition } from "./volumes/configmap.js"
 import {
   k8sContainerBuildExtension,
   k8sContainerDeployExtension,
   k8sContainerRunExtension,
   k8sContainerTestExtension,
-} from "./container/extensions"
-import { helmDeployDefinition, getHelmDeployDocs } from "./helm/action"
-import { k8sJibContainerBuildExtension, jibContainerHandlers } from "./jib-container"
-import { kubernetesDeployDefinition, kubernetesDeployDocs } from "./kubernetes-type/deploy"
-import { kustomizeSpec } from "./kubernetes-type/kustomize"
-import { syncPause, syncResume, syncStatus } from "./commands/sync"
-import { helmPodRunDefinition, helmPodTestDefinition } from "./helm/helm-pod"
-import { kubernetesPodRunDefinition, kubernetesPodTestDefinition } from "./kubernetes-type/kubernetes-pod"
-import { kubernetesExecRunDefinition, kubernetesExecTestDefinition } from "./kubernetes-type/kubernetes-exec"
-import { makeDocsLink } from "../../docs/common"
-import { DOCS_BASE_URL } from "../../constants"
+} from "./container/extensions.js"
+import { helmDeployDefinition, getHelmDeployDocs } from "./helm/action.js"
+import { k8sJibContainerBuildExtension, jibContainerHandlers } from "./jib-container.js"
+import { kubernetesDeployDefinition, kubernetesDeployDocs } from "./kubernetes-type/deploy.js"
+import { kustomizeSpec } from "./kubernetes-type/kustomize.js"
+import { syncPause, syncResume, syncStatus } from "./commands/sync.js"
+import { helmPodRunDefinition, helmPodTestDefinition } from "./helm/helm-pod.js"
+import { kubernetesPodRunDefinition, kubernetesPodTestDefinition } from "./kubernetes-type/kubernetes-pod.js"
+import { kubernetesExecRunDefinition, kubernetesExecTestDefinition } from "./kubernetes-type/kubernetes-exec.js"
+import { makeDocsLink } from "../../docs/common.js"
+import { DOCS_BASE_URL } from "../../constants.js"
 
 export async function configureProvider({
   namespace,
@@ -57,8 +56,6 @@ export async function configureProvider({
   projectRoot,
   config,
 }: ConfigureProviderParams<KubernetesConfig>) {
-  config._systemServices = []
-
   // Convert string shorthand to canonical format
   if (isString(config.namespace)) {
     config.namespace = { name: config.namespace }
@@ -69,8 +66,6 @@ export async function configureProvider({
   }
 
   if (config.setupIngressController === "nginx") {
-    config._systemServices.push("ingress-controller", "default-backend")
-
     if (!config.ingressClass) {
       config.ingressClass = defaultIngressClass
     }
@@ -101,9 +96,8 @@ export async function debugInfo({ ctx, log, includeProject }: GetDebugInfoParams
     .info("collecting provider configuration")
 
   const systemNamespace = await getSystemNamespace(k8sCtx, provider, log)
-  const systemMetadataNamespace = getSystemMetadataNamespaceName(provider.config)
 
-  const namespacesList = [systemNamespace, systemMetadataNamespace]
+  const namespacesList = [systemNamespace]
   if (includeProject) {
     const appNamespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
     namespacesList.push(appNamespace)

@@ -6,9 +6,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import split2 = require("split2")
+import split2 from "split2"
 import { Readable } from "stream"
-import { InternalError } from "../exceptions"
+import { InternalError } from "../exceptions.js"
 
 export const splitStream = split2
 

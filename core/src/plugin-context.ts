@@ -6,21 +6,24 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import type { Garden } from "./garden"
-import { projectNameSchema, projectSourcesSchema, environmentNameSchema, SourceConfig } from "./config/project"
-import { Provider, providerSchema, GenericProviderConfig } from "./config/provider"
-import { deline } from "./util/string"
-import { joi, joiVariables, joiStringMap, joiIdentifier, createSchema } from "./config/common"
-import type { PluginTool } from "./util/ext-tools"
-import type { ConfigContext, ContextResolveOpts } from "./config/template-contexts/base"
-import { resolveTemplateStrings } from "./template-string/template-string"
-import type { Log } from "./logger/log-entry"
-import { logEntrySchema } from "./plugin/base"
+import type { Garden } from "./garden.js"
+import type { SourceConfig } from "./config/project.js"
+import { projectNameSchema, projectSourcesSchema, environmentNameSchema } from "./config/project.js"
+import type { Provider, GenericProviderConfig } from "./config/provider.js"
+import { providerSchema } from "./config/provider.js"
+import { deline } from "./util/string.js"
+import { joi, joiVariables, joiStringMap, joiIdentifier, createSchema } from "./config/common.js"
+import type { PluginTool } from "./util/ext-tools.js"
+import type { ConfigContext, ContextResolveOpts } from "./config/template-contexts/base.js"
+import { resolveTemplateStrings } from "./template-string/template-string.js"
+import type { Log } from "./logger/log-entry.js"
+import { logEntrySchema } from "./plugin/base.js"
 import { EventEmitter } from "eventemitter3"
-import { CreateEventLogParams, EventLogger, LogLevel, StringLogLevel } from "./logger/logger"
+import type { CreateEventLogParams, StringLogLevel } from "./logger/logger.js"
+import { EventLogger, LogLevel } from "./logger/logger.js"
 import { Memoize } from "typescript-memoize"
-import type { ParameterObject, ParameterValues } from "./cli/params"
-import { NamespaceStatus } from "./types/namespace"
+import type { ParameterObject, ParameterValues } from "./cli/params.js"
+import type { NamespaceStatus } from "./types/namespace.js"
 
 type WrappedFromGarden = Pick<
   Garden,

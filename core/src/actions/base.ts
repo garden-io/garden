@@ -6,12 +6,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import chalk from "chalk"
 import titleize from "titleize"
-import type { ConfigGraph, GetActionOpts, ResolvedConfigGraph } from "../graph/config-graph"
+import type { ConfigGraph, GetActionOpts, ResolvedConfigGraph } from "../graph/config-graph.js"
+import type { ActionReference, DeepPrimitiveMap } from "../config/common.js"
 import {
-  ActionReference,
-  DeepPrimitiveMap,
   includeGuideLink,
   joi,
   joiIdentifier,
@@ -22,31 +20,30 @@ import {
   parseActionReference,
   createSchema,
   unusedApiVersionSchema,
-} from "../config/common"
-import { DOCS_BASE_URL } from "../constants"
-import { dedent, naturalList, stableStringify } from "../util/string"
-import { ActionVersion, hashStrings, ModuleVersion, TreeVersion, versionStringPrefix } from "../vcs/vcs"
-import type { BuildAction, ResolvedBuildAction } from "./build"
-import type { ActionKind } from "../plugin/action-types"
+} from "../config/common.js"
+import { DOCS_BASE_URL } from "../constants.js"
+import { dedent, naturalList, stableStringify } from "../util/string.js"
+import type { ModuleVersion, TreeVersion, ActionVersion } from "../vcs/vcs.js"
+import { hashStrings, versionStringPrefix } from "../vcs/vcs.js"
+import type { BuildAction, ResolvedBuildAction } from "./build.js"
+import type { ActionKind } from "../plugin/action-types.js"
 import pathIsInside from "path-is-inside"
-import { actionOutputsSchema } from "../plugin/handlers/base/base"
-import type { GraphResult, GraphResults } from "../graph/results"
-import type { RunResult } from "../plugin/base"
+import { actionOutputsSchema } from "../plugin/handlers/base/base.js"
+import type { GraphResult, GraphResults } from "../graph/results.js"
+import type { RunResult } from "../plugin/base.js"
 import { Memoize } from "typescript-memoize"
 import cloneDeep from "fast-copy"
-import { flatten, fromPairs, isString, memoize, omit, sortBy } from "lodash"
-import { ActionConfigContext, ActionSpecContext } from "../config/template-contexts/actions"
+import { flatten, fromPairs, isString, memoize, omit, sortBy } from "lodash-es"
+import { ActionConfigContext, ActionSpecContext } from "../config/template-contexts/actions.js"
 import { relative } from "path"
-import { InternalError } from "../exceptions"
-import {
+import { InternalError } from "../exceptions.js"
+import type {
   Action,
   ActionConfig,
   ActionDependency,
-  actionKinds,
   ActionMode,
   ActionModes,
   ActionReferenceMap,
-  actionStateTypes,
   ActionStatus,
   ActionWrapperParams,
   BaseActionConfig,
@@ -55,16 +52,19 @@ import {
   GetOutputValueType,
   ResolvedAction,
   ResolvedActionWrapperParams,
-} from "./types"
-import { baseInternalFieldsSchema, varfileDescription } from "../config/base"
-import { PickTypeByKind } from "../graph/config-graph"
-import { DeployAction } from "./deploy"
-import { TestAction } from "./test"
-import { RunAction } from "./run"
-import { createActionLog, Log } from "../logger/log-entry"
-import { joinWithPosix } from "../util/fs"
-import { LinkedSource } from "../config-store/local"
-import { BaseActionTaskParams, ExecuteTask } from "../tasks/base"
+} from "./types.js"
+import { actionKinds, actionStateTypes } from "./types.js"
+import { baseInternalFieldsSchema, varfileDescription } from "../config/base.js"
+import type { PickTypeByKind } from "../graph/config-graph.js"
+import type { DeployAction } from "./deploy.js"
+import type { TestAction } from "./test.js"
+import type { RunAction } from "./run.js"
+import type { Log } from "../logger/log-entry.js"
+import { createActionLog } from "../logger/log-entry.js"
+import { joinWithPosix } from "../util/fs.js"
+import type { LinkedSource } from "../config-store/local.js"
+import type { BaseActionTaskParams, ExecuteTask } from "../tasks/base.js"
+import { styles } from "../logger/styles.js"
 
 // TODO: split this file
 
@@ -398,10 +398,10 @@ export abstract class BaseAction<
    * Verbose string description of the action. Useful for logging and error messages.
    */
   longDescription(): string {
-    let d = `${chalk.white(this.kind)} type=${chalk.bold.white(this.type)} name=${chalk.bold.white(this.name)}`
+    let d = `${styles.accent(this.kind)} type=${styles.accent.bold(this.type)} name=${styles.accent.bold(this.name)}`
 
     if (this._moduleName) {
-      d += ` (from module ${chalk.bold.white(this._moduleName)})`
+      d += ` (from module ${styles.accent.bold(this._moduleName)})`
     }
 
     return d

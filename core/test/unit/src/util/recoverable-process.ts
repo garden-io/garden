@@ -8,15 +8,13 @@
 
 import env from "env-var"
 import { expect } from "chai"
-import {
-  RecoverableProcess,
-  RecoverableProcessState,
-  validateRetryConfig,
-} from "../../../../src/util/recoverable-process"
-import { getRootLogger } from "../../../../src/logger/logger"
-import { sleep } from "../../../../src/util/util"
-import { initTestLogger, makeTempGarden, TestGarden } from "../../../helpers"
-import { PluginEventBroker } from "../../../../src/plugin-context"
+import type { RecoverableProcessState } from "../../../../src/util/recoverable-process.js"
+import { RecoverableProcess, validateRetryConfig } from "../../../../src/util/recoverable-process.js"
+import { getRootLogger } from "../../../../src/logger/logger.js"
+import { sleep } from "../../../../src/util/util.js"
+import type { TestGarden } from "../../../helpers.js"
+import { initTestLogger, makeTempGarden } from "../../../helpers.js"
+import { PluginEventBroker } from "../../../../src/plugin-context.js"
 
 describe("validateRetryConfig", () => {
   it("must fail on negative minTimeoutMs", () => {
@@ -218,8 +216,8 @@ describe("RecoverableProcess", async () => {
     const maxRetries = 0
     const minTimeoutMs = 0
 
-    let parent: RecoverableProcess = longSleepingProcess(maxRetries, minTimeoutMs)
-    let child: RecoverableProcess = longSleepingProcess(maxRetries, minTimeoutMs)
+    let parent: RecoverableProcess
+    let child: RecoverableProcess
 
     beforeEach(() => {
       parent = longSleepingProcess(maxRetries, minTimeoutMs)

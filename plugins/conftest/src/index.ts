@@ -7,29 +7,30 @@
  */
 
 import { resolve, relative } from "path"
-import chalk from "chalk"
+import { styles } from "@garden-io/core/build/src/logger/styles.js"
 import slash from "slash"
-import { ExecaReturnValue } from "execa"
+import type { ExecaReturnValue } from "execa"
 import { createGardenPlugin } from "@garden-io/sdk"
-import { PluginContext, Log } from "@garden-io/sdk/build/src/types"
-import { dedent, naturalList } from "@garden-io/sdk/build/src/util/string"
-import { matchGlobs, listDirectory } from "@garden-io/sdk/build/src/util/fs"
+import type { PluginContext, Log } from "@garden-io/sdk/build/src/types.js"
+import { dedent, naturalList } from "@garden-io/sdk/build/src/util/string.js"
+import { matchGlobs, listDirectory } from "@garden-io/sdk/build/src/util/fs.js"
 
 // TODO: gradually get rid of these core dependencies, move some to SDK etc.
-import { providerConfigBaseSchema, GenericProviderConfig, Provider } from "@garden-io/core/build/src/config/provider"
-import { joi, joiIdentifier, joiSparseArray } from "@garden-io/core/build/src/config/common"
-import { baseBuildSpecSchema } from "@garden-io/core/build/src/config/module"
-import { PluginError, ConfigurationError, GardenError } from "@garden-io/core/build/src/exceptions"
-import { getGitHubUrl } from "@garden-io/core/build/src/docs/common"
-import { renderTemplates } from "@garden-io/core/build/src/plugins/kubernetes/helm/common"
-import { getK8sProvider } from "@garden-io/core/build/src/plugins/kubernetes/util"
-import { TestAction, TestActionConfig } from "@garden-io/core/build/src/actions/test"
-import { TestActionHandlers } from "@garden-io/core/build/src/plugin/action-types"
-import { uniq } from "lodash"
-import { HelmDeployAction } from "@garden-io/core/build/src/plugins/kubernetes/helm/config"
-import { actionRefMatches } from "@garden-io/core/build/src/actions/base"
-import { Resolved } from "@garden-io/core/build/src/actions/types"
-import { DEFAULT_TEST_TIMEOUT_SEC } from "@garden-io/core/build/src/constants"
+import type { GenericProviderConfig, Provider } from "@garden-io/core/build/src/config/provider.js"
+import { providerConfigBaseSchema } from "@garden-io/core/build/src/config/provider.js"
+import { joi, joiIdentifier, joiSparseArray } from "@garden-io/core/build/src/config/common.js"
+import { baseBuildSpecSchema } from "@garden-io/core/build/src/config/module.js"
+import { PluginError, ConfigurationError, GardenError } from "@garden-io/core/build/src/exceptions.js"
+import { getGitHubUrl } from "@garden-io/core/build/src/docs/common.js"
+import { renderTemplates } from "@garden-io/core/build/src/plugins/kubernetes/helm/common.js"
+import { getK8sProvider } from "@garden-io/core/build/src/plugins/kubernetes/util.js"
+import type { TestAction, TestActionConfig } from "@garden-io/core/build/src/actions/test.js"
+import type { TestActionHandlers } from "@garden-io/core/build/src/plugin/action-types.js"
+import { uniq } from "lodash-es"
+import type { HelmDeployAction } from "@garden-io/core/build/src/plugins/kubernetes/helm/config.js"
+import { actionRefMatches } from "@garden-io/core/build/src/actions/base.js"
+import type { Resolved } from "@garden-io/core/build/src/actions/types.js"
+import { DEFAULT_TEST_TIMEOUT_SEC } from "@garden-io/core/build/src/constants.js"
 
 export interface ConftestProviderConfig extends GenericProviderConfig {
   policyPath: string
@@ -502,7 +503,7 @@ function parseConftestResult(provider: ConftestProvider, log: Log, result: Execa
     const failuresForFilename = failures || []
     for (const failure of failuresForFilename) {
       lines.push(
-        chalk.redBright.bold("FAIL") + chalk.gray(" - ") + chalk.redBright(filename) + chalk.gray(" - ") + failure.msg
+        styles.error.bold("FAIL") + styles.primary(" - ") + styles.error(filename) + styles.primary(" - ") + failure.msg
       )
       countFailures += 1
     }
@@ -510,10 +511,10 @@ function parseConftestResult(provider: ConftestProvider, log: Log, result: Execa
     const warningsForFilename = warnings || []
     for (const warning of warningsForFilename) {
       lines.push(
-        chalk.yellowBright.bold("WARN") +
-          chalk.gray(" - ") +
-          chalk.yellowBright(filename) +
-          chalk.gray(" - ") +
+        styles.warning.bold("WARN") +
+          styles.primary(" - ") +
+          styles.warning(filename) +
+          styles.primary(" - ") +
           warning.msg
       )
 
@@ -538,7 +539,7 @@ function parseConftestResult(provider: ConftestProvider, log: Log, result: Execa
   } else if (countFailures > 0 && threshold !== "none") {
     success = false
   } else if (countWarnings > 0) {
-    log.warn(chalk.yellow(formattedHeader))
+    log.warn(formattedHeader)
   }
 
   if (!success) {

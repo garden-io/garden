@@ -10,23 +10,25 @@ import type {
   KubernetesObject,
   V1DaemonSet,
   V1Deployment,
+  V1ServiceAccount,
   V1ObjectMeta,
   V1ReplicaSet,
   V1StatefulSet,
   V1Pod,
   V1ListMeta,
   V1Ingress,
+  V1Service,
 } from "@kubernetes/client-node"
 
-import type { Omit } from "../../util/util"
+import type { Omit } from "../../util/util.js"
 import type {
   ContainerBuildAction,
   ContainerDeployAction,
   ContainerRunAction,
   ContainerTestAction,
-} from "../container/config"
-import type { HelmDeployAction, HelmPodRunAction, HelmPodTestAction } from "./helm/config"
-import type { KubernetesDeployAction, KubernetesRunAction, KubernetesTestAction } from "./kubernetes-type/config"
+} from "../container/config.js"
+import type { HelmDeployAction, HelmPodRunAction, HelmPodTestAction } from "./helm/config.js"
+import type { KubernetesDeployAction, KubernetesRunAction, KubernetesTestAction } from "./kubernetes-type/config.js"
 
 export interface BaseResource {
   apiVersion: string
@@ -90,6 +92,8 @@ export type KubernetesDeployment = KubernetesResource<V1Deployment>
 export type KubernetesReplicaSet = KubernetesResource<V1ReplicaSet>
 export type KubernetesStatefulSet = KubernetesResource<V1StatefulSet>
 export type KubernetesPod = KubernetesResource<V1Pod>
+export type KubernetesService = KubernetesResource<V1Service>
+export type KubernetesServiceAccount = KubernetesResource<V1ServiceAccount>
 
 export type KubernetesWorkload = KubernetesResource<V1DaemonSet | V1Deployment | V1ReplicaSet | V1StatefulSet>
 export type KubernetesIngress = KubernetesResource<V1Ingress>

@@ -6,10 +6,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { CommandGroup } from "../base"
-import { UnlinkSourceCommand } from "./source"
-import { UnlinkModuleCommand } from "./module"
-import { UnlinkActionCommand } from "./action"
+import { CommandGroup } from "../base.js"
+import { UnlinkSourceCommand } from "./source.js"
+import { UnlinkModuleCommand } from "./module.js"
+import { UnlinkActionCommand } from "./action.js"
 
 export class UnlinkCommand extends CommandGroup {
   name = "unlink"

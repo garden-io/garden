@@ -6,12 +6,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import execa from "execa"
+import { execa } from "execa"
 import chalk from "chalk"
 import { expect } from "chai"
 import { resolve } from "path"
-import { replaceInFile } from "replace-in-file"
-import { changeFileStep, GardenWatch, runGarden, waitingForChangesStep, sleepStep } from "../run-garden"
+import replaceInFile from "replace-in-file"
+import { changeFileStep, GardenWatch, runGarden, waitingForChangesStep, sleepStep } from "../run-garden.js"
 import {
   projectsDir,
   deleteExampleNamespaces,
@@ -19,9 +19,10 @@ import {
   searchLog,
   removeExampleDotGardenDir,
   stringifyJsonLog,
-} from "../helpers"
-import username from "username"
-import { realpath } from "fs-extra"
+} from "../helpers.js"
+import { usernameSync } from "username"
+import fsExtra from "fs-extra"
+const { realpath } = fsExtra
 
 function log(msg: string) {
   // eslint-disable-next-line
@@ -34,7 +35,7 @@ describe("PreReleaseTests", () => {
   const env = parsedArgs["env"]
   const project = parsedArgs["project"]
 
-  const userId = process.env.CIRCLE_BUILD_NUM ? "ci-" + process.env.CIRCLE_BUILD_NUM : username.sync()
+  const userId = process.env.CIRCLE_BUILD_NUM ? "ci-" + process.env.CIRCLE_BUILD_NUM : usernameSync()
 
   if (!project) {
     throw new Error("Must specify project name with --project parameter")
@@ -132,7 +133,7 @@ describe("PreReleaseTests", () => {
           {
             description: "change 'Node' -> 'foo' in node-service/app.js",
             action: async () => {
-              await replaceInFile({
+              await replaceInFile.replaceInFile({
                 files: resolve(projectPath, "node-service/src/app.js"),
                 from: /Hello from Node/,
                 to: "Hello from foo",

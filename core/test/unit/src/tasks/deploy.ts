@@ -6,15 +6,16 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import tmp from "tmp-promise"
+import type tmp from "tmp-promise"
 
-import { ProjectConfig } from "../../../../src/config/project"
-import { ConfigGraph } from "../../../../src/graph/config-graph"
-import { createGardenPlugin, GardenPluginSpec } from "../../../../src/plugin/plugin"
-import { DeployTask } from "../../../../src/tasks/deploy"
+import type { ProjectConfig } from "../../../../src/config/project.js"
+import type { ConfigGraph } from "../../../../src/graph/config-graph.js"
+import type { GardenPluginSpec } from "../../../../src/plugin/plugin.js"
+import { createGardenPlugin } from "../../../../src/plugin/plugin.js"
+import { DeployTask } from "../../../../src/tasks/deploy.js"
 import { expect } from "chai"
-import { createProjectConfig, freezeTime, makeTempDir, TestGarden } from "../../../helpers"
-import { joi } from "../../../../src/config/common"
+import { createProjectConfig, freezeTime, makeTempDir, TestGarden } from "../../../helpers.js"
+import { joi } from "../../../../src/config/common.js"
 
 describe("DeployTask", () => {
   let tmpDir: tmp.DirectoryResult

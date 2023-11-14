@@ -7,28 +7,22 @@
  */
 
 import cloneDeep from "fast-copy"
-import { flatten, uniq, some } from "lodash"
-import { getNames, findByName } from "../util/util"
-import { ModuleConfig, moduleConfigSchema } from "../config/module"
-import type { ModuleVersion } from "../vcs/vcs"
-import { pathToCacheContext } from "../cache"
-import type { Garden } from "../garden"
-import {
-  joiArray,
-  joiIdentifier,
-  joiIdentifierMap,
-  joi,
-  moduleVersionSchema,
-  DeepPrimitiveMap,
-  createSchema,
-} from "../config/common"
-import { moduleOutputsSchema } from "../plugin/handlers/Module/get-outputs"
-import type { Log } from "../logger/log-entry"
-import type { ModuleTypeDefinition } from "../plugin/module-types"
-import type { GardenPluginSpec } from "../plugin/plugin"
+import { flatten, uniq, some } from "lodash-es"
+import { getNames, findByName } from "../util/util.js"
+import type { ModuleConfig } from "../config/module.js"
+import { moduleConfigSchema } from "../config/module.js"
+import type { ModuleVersion } from "../vcs/vcs.js"
+import { pathToCacheContext } from "../cache.js"
+import type { Garden } from "../garden.js"
+import type { DeepPrimitiveMap } from "../config/common.js"
+import { joiArray, joiIdentifier, joiIdentifierMap, joi, moduleVersionSchema, createSchema } from "../config/common.js"
+import { moduleOutputsSchema } from "../plugin/handlers/Module/get-outputs.js"
+import type { Log } from "../logger/log-entry.js"
+import type { ModuleTypeDefinition } from "../plugin/module-types.js"
+import type { GardenPluginSpec } from "../plugin/plugin.js"
 import { join } from "path"
-import { RuntimeError } from "../exceptions"
-import { naturalList } from "../util/string"
+import { RuntimeError } from "../exceptions.js"
+import { naturalList } from "../util/string.js"
 
 export interface ModuleType<T extends GardenModule = GardenModule> extends ModuleTypeDefinition<T> {
   plugin: GardenPluginSpec

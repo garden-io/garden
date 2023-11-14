@@ -6,14 +6,16 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import type { DeployAction } from "../actions/deploy"
-import { Executed } from "../actions/types"
-import { ConfigGraph } from "../graph/config-graph"
-import { Log } from "../logger/log-entry"
-import { PluginEventBroker } from "../plugin-context"
-import { MonitorBaseParams, Monitor } from "./base"
-import { startPortProxies, PortProxy, stopPortProxy } from "../proxy"
-import chalk from "chalk"
+import type { DeployAction } from "../actions/deploy.js"
+import type { Executed } from "../actions/types.js"
+import type { ConfigGraph } from "../graph/config-graph.js"
+import type { Log } from "../logger/log-entry.js"
+import { PluginEventBroker } from "../plugin-context.js"
+import type { MonitorBaseParams } from "./base.js"
+import { Monitor } from "./base.js"
+import type { PortProxy } from "../proxy.js"
+import { startPortProxies, stopPortProxy } from "../proxy.js"
+import { styles } from "../logger/styles.js"
 
 interface PortForwardMonitorParams extends MonitorBaseParams {
   action: Executed<DeployAction>
@@ -82,9 +84,9 @@ export class PortForwardMonitor extends Monitor {
       const targetHost = proxy.spec.targetName || this.action.name
 
       this.log.info(
-        chalk.gray(
+        styles.primary(
           `Port forward: ` +
-            chalk.underline(proxy.localUrl) +
+            styles.underline(proxy.localUrl) +
             ` → ${targetHost}:${proxy.spec.targetPort}` +
             (proxy.spec.name ? ` (${proxy.spec.name})` : "")
         )

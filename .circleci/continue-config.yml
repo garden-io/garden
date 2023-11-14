@@ -4,6 +4,7 @@ version: 2.1
 orbs:
   win: circleci/windows@2.2.0
   rok8s-scripts: fairwinds/rok8s-scripts@11.1.3
+  macos: circleci/macos@2.4.0
 
 parameters:
   run-test-dockerhub:
@@ -19,8 +20,16 @@ parameters:
     GARDEN_DISABLE_ANALYTICS: "true"
     GARDEN_K8S_BUILD_SYNC_MODE: "mutagen"
 
-  shared-machine-config: &shared-machine-config
-    image: "ubuntu-2204:2023.02.1"
+    # Libuv 1.45.0 is affected by a kernel bug on certain kernels (Ubuntu 22)
+    # This leads to errors where Garden tool downloading errors with ETXTBSY
+    # Apparently file descriptor accounting is broken when using USE_IO_URING on older kernels
+    # See also: https://github.com/libuv/libuv/pull/4141/files
+    # TODO: Remove this once libuv 1.47 landed in a future NodeJS version, and we upgraded to it.
+    UV_USE_IO_URING: "0"
+
+
+  ubuntu-vm-runner: &ubuntu-vm-runner
+    image: "ubuntu-2204:2023.10.1"
     docker_layer_caching: true
 
   remote-docker: &remote-docker
@@ -29,10 +38,10 @@ parameters:
       docker_layer_caching: true
 
   runner-image: &runner-image
-    image: gardendev/circleci-runner:18.15.0-1@sha256:c830e29ab30a1c5b08cba4d041d3325ef6958aebeba1b10b1ee9566d7b1a4d42
+    image: gardendev/circleci-runner:21.1.0-1@sha256:1b773f6fcde1d9b65cb8a609c823076b3048104e73f04247e0fd86aa9bcc92dd
 
   # Configuration for our node jobs
-  node-config: &node-config
+  docker-runner: &docker-runner
     docker:
       - <<: *runner-image
         environment:
@@ -96,17 +105,58 @@ commands:
       context:
         description: Set this to vm if installing in a VM, to avoid conflicting caches with the docker runs
         type: string
-        default: docker
+      node_version:
+        description: The node version to use
+        type: string
+        default: v21.1.0
     steps:
+      # See also https://github.com/CircleCI-Public/node-orb/issues/158#issuecomment-1461095390
+      - run: rm -rf ~/.npm ~/.fnm
+
       - restore_cache:
           keys:
-            - npm-v2-<<parameters.context>>-{{ checksum "package-lock.json" }}
+            # Prefer using the NPM cache for the package-lock hash, but fall back to any other cache too
+            - npm-v7-<<parameters.context>>-{{ checksum "package-lock.json" }}
+            # If you uncomment the next line, we also restore caches if package-lock.json changed in case there is no exact match.
+            # We decided not to do that for now for enhanced safety: Every time we update the lock file, we build the caches from scratch. Might be a little paranoid, but hardens against possible NPM bugs.
+            #- npm-v7-<<parameters.context>>
 
-      - run: npm ci
+      - run:
+          name: Install NodeJS
+          command: |
+            if [[ "$(node --version)" != "<<parameters.node_version>>" ]]; then
+              export PATH="$HOME/.fnm:$PATH"
+              echo 'export PATH="$HOME/.fnm:$PATH"' >> $BASH_ENV
+
+              # Install fnm if it's not already installed
+              if which fnm; then
+                echo "Using cached fnm installation"
+              else
+                curl -fsSL https://raw.githubusercontent.com/Schniz/fnm/9d0dd1b04521ac4a1c25bb91a65323dbb691e40c/.ci/install.sh | bash -s -- --install-dir "$HOME/.fnm" --force-install
+              fi
+
+              eval "`fnm env --fnm-dir "$HOME/.fnm-cache"`"
+              fnm env --fnm-dir "$HOME/.fnm-cache" >> $BASH_ENV
+
+              fnm use "<<parameters.node_version>>" --fnm-dir "$HOME/.fnm-cache" --install-if-missing
+              fnm default "<<parameters.node_version>>" --fnm-dir "$HOME/.fnm-cache"
+            fi
+      - run:
+          name: Test NodeJS version
+          command: |
+            if [[ "$(node --version)" != "<<parameters.node_version>>" ]]; then
+              echo "NodeJS installation failed. Expected version: <<parameters.node_version>>; Actually got: $(node --version)"
+              exit 1
+            fi
+
+      - run: npm ci --prefer-offline --cache ~/.npm --no-audit
 
       - save_cache:
-          key: npm-v2-<<parameters.context>>-{{ checksum "package-lock.json" }}
+          key: npm-v7-<<parameters.context>>-{{ checksum "package-lock.json" }}
           paths:
+            - ~/.npm
+            - ~/.fnm
+            - ~/.fnm-cache
             - node_modules
             - cli/node_modules
             - core/node_modules
@@ -233,7 +283,22 @@ commands:
           command: kubectl get ns | grep -E '(d|h)$' | grep -- '-testing' | awk '{print $1}' | xargs -n 1 kubectl delete namespace --wait=false || true
           when: always
 
-  build_dist:
+  install_rust:
+    description: Installs Rust
+    steps:
+      - run:
+          name: "Install Rust and Cross"
+          command: |
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+
+            # To be able to run cargo
+            source "$HOME/.cargo/env"
+            echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> $BASH_ENV
+
+            # Cargo builds the other targets in Docker
+            cargo install cross --git https://github.com/cross-rs/cross
+
+  run_npm_dist:
     description: Package built code into executables and persist to dist directory
     parameters:
       version:
@@ -242,40 +307,42 @@ commands:
           e.g. when creating unstable releases. The script defaults to using the version from core/package.json.
         type: string
         default: ""
+      targets:
+        description: |
+          The version tag used when building. Use to set the version string in the generated zip file names,
+          e.g. when creating unstable releases. The script defaults to using the version from core/package.json.
+        type: string
+        default: ""
+      context:
+        description: Set this to the operating system, to avoid conflicting caches with the docker runs
+        type: string
     steps:
-      # We need Docker for building the Alpine package
-      - *remote-docker
-      - checkout
-      - npm_install
       - *attach-workspace
+
+      - npm_install:
+          context: <<parameters.context>>
+
       - restore_cache:
           keys:
-            - pkg-v3-{{ checksum "package-lock.json" }}
-      - run:
-          name: Install Codesigning utility (needed for ARM64 on MacOS)
-          command: |
-            curl -Lo ldid https://github.com/ProcursusTeam/ldid/releases/download/v2.1.5-procursus7/ldid_linux_x86_64
-            chmod +x ldid
-            sudo mv ldid /usr/local/bin
-      - run:
-          name: Setup buildx and qemu for cross-platform builds
-          command: |
-            sudo apt-get update
-            sudo apt-get install -y qemu-user-static
-            sudo apt-get install -y binfmt-support
+            - node-cache-v2-<<parameters.context>>-{{ checksum "cli/src/build-pkg.ts" }}
+            # Nuke caches fully on every change; Otherwise weird things can happen if the cache is poisoned.
+            # - node-cache-v2-<<parameters.context>>
+
       - run:
           name: Run dist script
-          command: npm run dist -- --version "<<parameters.version>>"
+          command: |
+            npm run dist -- --version "<<parameters.version>>" <<parameters.targets>>
+
+      # We cache the node archives because the NodeJS download mirror is unreliable
+      - save_cache:
+          key: node-cache-v2-<<parameters.context>>-{{ checksum "cli/src/build-pkg.ts" }}
+          paths:
+            - garden-sea/tmp/node
+
       - persist_to_workspace:
           root: ./
           paths:
             - dist/
-            # Needed for the alpine docker build
-            - tmp/pkg/
-      - save_cache:
-          key: pkg-v3-{{ checksum "package-lock.json" }}
-          paths:
-            - tmp/pkg-fetch
       - run:
           # No need to store the raw files as artifacts, we just want the archives
           name: Cleanup
@@ -283,6 +350,7 @@ commands:
       - store_artifacts:
           path: dist
           destination: dist
+
   update_buildx:
     description: Update buildx to a version that supports syntax in bakefile
     steps:
@@ -312,10 +380,11 @@ commands:
 #
 jobs:
   build:
-    <<: *node-config
+    <<: *docker-runner
     steps:
       - checkout
-      - npm_install
+      - npm_install:
+          context: docker
       - run:
           name: build
           command: |
@@ -337,25 +406,60 @@ jobs:
             - e2e/
       - fail_fast
 
-  build-dist:
-    <<: *node-config
-    resource_class: xlarge
+  build-dist-macos:
+    macos:
+      xcode: 15.0.0
+    resource_class: macos.m1.medium.gen1
     parameters:
       version:
         description: The version tag/name to set
         type: string
         default: ""
     steps:
-      - build_dist:
+      - checkout
+      - install_rust
+      # We need rosetta for running the tests for x86_64
+      - macos/install-rosetta
+      - run:
+          name: "Install darwin rustup targets"
+          command: |
+            # We build these on real Apple hardware as we would otherwise violate the Apple Licensing Agreement for Xcode
+            rustup target add x86_64-apple-darwin
+            rustup target add aarch64-apple-darwin
+      - run_npm_dist:
           version: <<parameters.version>>
+          targets: "macos-amd64 macos-arm64"
+          context: vm-macos
+      - fail_fast
+
+  build-dist-linux-windows:
+    machine:
+      <<: *ubuntu-vm-runner
+    resource_class: large
+    parameters:
+      version:
+        description: The version tag/name to set
+        type: string
+        default: ""
+    steps:
+      - checkout
+      - install_rust
+      - run:
+          name: "Install rollup linux"
+          command: npm install --save-dev @rollup/rollup-linux-x64-gnu
+      - run_npm_dist:
+          version: <<parameters.version>>
+          targets: "linux-amd64 linux-arm64 alpine-amd64 windows-amd64"
+          context: vm-ubuntu
       - fail_fast
 
   lint:
-    <<: *node-config
+    <<: *docker-runner
     resource_class: large
     steps:
       - checkout
-      - npm_install
+      - npm_install:
+          context: docker
       - *attach-workspace
       - run:
           name: lint
@@ -363,10 +467,11 @@ jobs:
       - fail_fast
 
   check-docs:
-    <<: *node-config
+    <<: *docker-runner
     steps:
       - checkout
-      - npm_install
+      - npm_install:
+          context: docker
       - *attach-workspace
       - run:
           name: Make sure generated docs are up-to-date
@@ -374,10 +479,11 @@ jobs:
       - fail_fast
 
   check-package-licenses:
-    <<: *node-config
+    <<: *docker-runner
     steps:
       - checkout
-      - npm_install
+      - npm_install:
+          context: docker
       - *attach-workspace
       - run:
           name: Make sure dependency licenses are okay
@@ -387,12 +493,13 @@ jobs:
       - fail_fast
 
   test-framework:
-    <<: *node-config
+    <<: *docker-runner
     resource_class: large
     steps:
       - checkout
       - *remote-docker
-      - npm_install
+      - npm_install:
+          context: docker
       - *attach-workspace
       - configure_git
       - run:
@@ -405,7 +512,7 @@ jobs:
       - fail_fast
 
   e2e-project:
-    <<: *node-config
+    <<: *docker-runner
     parameters:
       project:
         description: The example project to test
@@ -416,7 +523,8 @@ jobs:
         default: testing
     steps:
       - checkout
-      - npm_install
+      - npm_install:
+          context: docker
       - configure_remote_cluster
       - docker_login
       - *attach-workspace
@@ -433,7 +541,8 @@ jobs:
 
   test-dockerhub:
     machine:
-      <<: *shared-machine-config
+      <<: *ubuntu-vm-runner
+    resource_class: xlarge
     steps:
       # Only run test-dockerhub if path-filter noticed changes in ./support/*
       - when:
@@ -455,7 +564,8 @@ jobs:
 
   dockerhub-release:
     machine:
-      <<: *shared-machine-config
+      <<: *ubuntu-vm-runner
+    resource_class: xlarge
     steps:
       - update_buildx
       - checkout
@@ -593,7 +703,7 @@ jobs:
       - fail_fast
 
   test-dist:
-    <<: *node-config
+    <<: *docker-runner
     steps:
       # Need to checkout to run example project
       - checkout
@@ -618,7 +728,7 @@ jobs:
 
   test-plugins:
     machine:
-      <<: *shared-machine-config
+      <<: *ubuntu-vm-runner
     parameters:
       kindNodeImage:
         description: The kind node image to use
@@ -634,7 +744,7 @@ jobs:
           kindNodeImage: <<parameters.kindNodeImage>>
       - configure_git
       - npm_install:
-          context: vm
+          context: vm-ubuntu
       - *attach-workspace
       # Restore Maven cache
       - restore_cache:
@@ -653,7 +763,7 @@ jobs:
 
   test-kind:
     machine:
-      <<: *shared-machine-config
+      <<: *ubuntu-vm-runner
     parameters:
       kindNodeImage:
         description: The kind node image to use
@@ -669,7 +779,7 @@ jobs:
           kindNodeImage: <<parameters.kindNodeImage>>
       - configure_git
       - npm_install:
-          context: vm
+          context: vm-ubuntu
       - *attach-workspace
       - run:
           name: Integ tests
@@ -686,7 +796,7 @@ jobs:
 
   test-microk8s:
     machine:
-      <<: *shared-machine-config
+      <<: *ubuntu-vm-runner
     resource_class: large
     parameters:
       kubernetesVersion:
@@ -735,7 +845,7 @@ jobs:
             echo "********* env prepped! *********"
       - configure_git
       - npm_install:
-          context: vm
+          context: vm-ubuntu
       - *attach-workspace
       - run:
           name: Integ tests
@@ -752,7 +862,7 @@ jobs:
 
   test-minikube:
     machine:
-      <<: *shared-machine-config
+      <<: *ubuntu-vm-runner
     resource_class: large
     parameters:
       minikubeVersion:
@@ -787,7 +897,7 @@ jobs:
       - docker_login
       - configure_git
       - npm_install:
-          context: vm
+          context: vm-ubuntu
       - *attach-workspace
       - run:
           name: Install Minikube Executable
@@ -832,7 +942,7 @@ jobs:
 
   test-k3s:
     machine:
-      <<: *shared-machine-config
+      <<: *ubuntu-vm-runner
     resource_class: large
     parameters:
       k3sVersion:
@@ -854,7 +964,7 @@ jobs:
       - docker_login
       - configure_git
       - npm_install:
-          context: vm
+          context: vm-ubuntu
       - *attach-workspace
       - run:
           name: Install K3s and start cluster
@@ -873,7 +983,7 @@ jobs:
 
   test-macos:
     macos:
-      xcode: "13.4.1"
+      xcode: "15.0.0"
     steps:
       - checkout
       - *attach-workspace
@@ -943,16 +1053,16 @@ jobs:
       - fail_fast
 
   test-windows:
-    executor: win/default
+    executor:
+      name: win/default
+      size: large
     steps:
       - checkout
       - *attach-workspace
       - run:
           name: Install Deps
           command: |
-            choco install --limit-output --no-progress -y git
-            choco install --limit-output --no-progress -y rsync
-            choco upgrade --limit-output --no-progress -y git rsync gcloudsdk kubernetes-cli
+            choco install --limit-output --no-progress -y git rsync gcloudsdk kubernetes-cli
             $Env:CLOUDSDK_PYTHON = gcloud components copy-bundled-python
             gcloud components install gke-gcloud-auth-plugin --quiet
             $Env:USE_GKE_GCLOUD_AUTH_PLUGIN = True
@@ -974,8 +1084,24 @@ jobs:
           command: |
             .\dist\windows-amd64\garden.exe deploy --root .\examples\demo-project\ --logger-type basic --log-level silly --env remote --force-build --var userId=$env:CIRCLE_BUILD_NUM-win
       - run:
-          name: Cleanup
+          name: Cleanup demo-project
           command: (kubectl delete namespace --wait=false demo-project-testing-$env:CIRCLE_BUILD_NUM-win) -or $true
+          when: always
+      - run:
+          name: Validate vote-helm project # to validate the sync mode paths on Windows with action-based configs
+          command: |
+            .\dist\windows-amd64\garden.exe validate --root .\e2e\projects\vote-helm\ --logger-type basic --log-level silly --env testing --var userId=$env:CIRCLE_BUILD_NUM-win
+      - run:
+          name: Cleanup vote-helm project
+          command: (kubectl delete namespace --wait=false vote-helm-testing-$env:CIRCLE_BUILD_NUM-win) -or $true
+          when: always
+      - run:
+          name: Validate vote-helm-modules project # to validate the sync mode paths on Windows with module-based configs
+          command: |
+            .\dist\windows-amd64\garden.exe validate --root .\e2e\projects\vote-helm-modules\ --logger-type basic --log-level silly --env testing --var userId=$env:CIRCLE_BUILD_NUM-win
+      - run:
+          name: Cleanup vote-helm-modules project
+          command: (kubectl delete namespace --wait=false vote-helm-modules-testing-$env:CIRCLE_BUILD_NUM-win) -or $true
           when: always
       - fail_fast
 
@@ -989,9 +1115,11 @@ workflows:
       - build:
           # We only want to run tests on branches (e.g. for the merge queue) and pull requests.
           # On main we do not need to re-run all the tests, as the merge queue guarantees that tests already passed.
-          # For the edge release we declare the `build-edge` job below that only runs on main. 
+          # For the edge release we declare the `build-edge` job below that only runs on main.
           <<: *ignore-main
-      - build-dist:
+      - build-dist-macos:
+          requires: [build]
+      - build-dist-linux-windows:
           requires: [build]
       - lint:
           requires: [build]
@@ -1004,19 +1132,19 @@ workflows:
       - test-dist:
           # Don't attempt to run dist tests for external PRs (they won't have access to the required keys)
           <<: *only-internal-prs
-          requires: [build-dist]
+          requires: [build-dist-macos, build-dist-linux-windows]
       - test-macos:
           <<: *only-internal-prs
-          requires: [build-dist]
+          requires: [build-dist-macos]
       - test-macos-arm:
           <<: *only-internal-prs
-          requires: [build-dist]
+          requires: [build-dist-macos]
       - test-dockerhub:
           <<: *only-prs
-          requires: [build-dist]
+          requires: [build-dist-linux-windows]
       - test-windows:
           <<: *only-internal-prs
-          requires: [build-dist]
+          requires: [build-dist-linux-windows]
 
       # - e2e-project:
       #     <<: *only-internal-prs
@@ -1216,22 +1344,28 @@ workflows:
           <<: *only-main
           name: build-edge
 
-      - build-dist:
+      - build-dist-macos:
           <<: *only-main
-          name: build-dist-edge
+          name: build-dist-macos-edge
+          version: edge-bonsai
+          requires: [build-edge]
+
+      - build-dist-linux-windows:
+          <<: *only-main
+          name: build-dist-linux-windows-edge
           version: edge-bonsai
           requires: [build-edge]
 
       - github-edge-prerelease:
           <<: *only-main
           version: edge-bonsai
-          requires: [build-dist-edge]
+          requires: [build-dist-macos-edge, build-dist-linux-windows-edge]
 
       - dockerhub-release:
           <<: *only-main
           context: docker
-          requires:
-            - build-dist-edge
+          requires: [build-dist-macos-edge, build-dist-linux-windows-edge]
+
       - test-docker-gcloud:
           context: docker
           requires: [dockerhub-release]
@@ -1239,13 +1373,16 @@ workflows:
     jobs:
       - build:
           <<: *only-tags
-      - build-dist:
+      - build-dist-macos:
+          <<: *only-tags
+          requires: [build]
+      - build-dist-linux-windows:
           <<: *only-tags
           requires: [build]
       - dockerhub-release:
           <<: *only-tags
           context: docker
-          requires: [build-dist]
+          requires: [build-dist-macos, build-dist-linux-windows]
       - github-release-tag:
           <<: *only-tags
-          requires: [build-dist]
+          requires: [build-dist-macos, build-dist-linux-windows]

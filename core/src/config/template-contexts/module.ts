@@ -6,20 +6,21 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import chalk from "chalk"
-import { PrimitiveMap, joiIdentifierMap, joiPrimitive, DeepPrimitiveMap, joiVariables, joiIdentifier } from "../common"
-import { ProviderMap } from "../provider"
-import { Garden } from "../../garden"
-import { joi } from "../common"
-import { deline } from "../../util/string"
-import { getModuleTypeUrl } from "../../docs/common"
-import { GardenModule } from "../../types/module"
-import { ConfigContext, schema, ErrorContext, ParentContext, TemplateContext } from "./base"
-import { ProviderConfigContext } from "./provider"
-import { GraphResultFromTask, GraphResults } from "../../graph/results"
-import { DeployTask } from "../../tasks/deploy"
-import { RunTask } from "../../tasks/run"
-import { DOCS_BASE_URL } from "../../constants"
+import type { PrimitiveMap, DeepPrimitiveMap } from "../common.js"
+import { joiIdentifierMap, joiPrimitive, joiVariables, joiIdentifier } from "../common.js"
+import type { ProviderMap } from "../provider.js"
+import type { Garden } from "../../garden.js"
+import { joi } from "../common.js"
+import { deline } from "../../util/string.js"
+import { getModuleTypeUrl } from "../../docs/common.js"
+import type { GardenModule } from "../../types/module.js"
+import { ConfigContext, schema, ErrorContext, ParentContext, TemplateContext } from "./base.js"
+import { ProviderConfigContext } from "./provider.js"
+import type { GraphResultFromTask, GraphResults } from "../../graph/results.js"
+import type { DeployTask } from "../../tasks/deploy.js"
+import type { RunTask } from "../../tasks/run.js"
+import { DOCS_BASE_URL } from "../../constants.js"
+import { styles } from "../../logger/styles.js"
 
 export const exampleVersion = "v-17ad4cb3fd"
 
@@ -288,7 +289,7 @@ export class ModuleConfigContext extends OutputConfigContext {
     const { name, path, inputs, parentName, templateName, buildPath } = params
 
     // Throw specific error when attempting to resolve self
-    this.modules.set(name, new ErrorContext(`Config ${chalk.white.bold(name)} cannot reference itself.`))
+    this.modules.set(name, new ErrorContext(`Config ${styles.accent.bold(name)} cannot reference itself.`))
 
     if (parentName && templateName) {
       this.parent = new ParentContext(this, parentName)

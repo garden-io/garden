@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Writer } from "./base"
+import { Writer } from "./base.js"
 
 /**
  * The QuietWriter doesn't write any log lines as the name suggests.

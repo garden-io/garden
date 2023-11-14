@@ -7,9 +7,10 @@
  */
 
 import { expect } from "chai"
-import { SetDefaultEnvCommand } from "../../../../src/commands/set"
-import { Log } from "../../../../src/logger/log-entry"
-import { TestGarden, expectError, makeTestGardenA, withDefaultGlobalOpts } from "../../../helpers"
+import { SetDefaultEnvCommand } from "../../../../src/commands/set.js"
+import type { Log } from "../../../../src/logger/log-entry.js"
+import type { TestGarden } from "../../../helpers.js"
+import { expectError, makeTestGardenA, withDefaultGlobalOpts } from "../../../helpers.js"
 
 describe("SetDefaultEnvCommand", () => {
   const command = new SetDefaultEnvCommand()

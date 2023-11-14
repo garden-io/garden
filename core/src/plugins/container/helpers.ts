@@ -7,32 +7,33 @@
  */
 
 import { join, posix } from "path"
-import { readFile, pathExists, lstat } from "fs-extra"
+import fsExtra from "fs-extra"
+const { readFile, pathExists, lstat } = fsExtra
 import semver from "semver"
-import { parse, CommandEntry } from "docker-file-parser"
+import type { CommandEntry } from "docker-file-parser"
+import { parse } from "docker-file-parser"
 import isGlob from "is-glob"
-import { ConfigurationError, GardenError, RuntimeError } from "../../exceptions"
-import { spawn, SpawnOutput } from "../../util/util"
-import {
-  ContainerRegistryConfig,
-  defaultTag as _defaultTag,
-  defaultImageNamespace,
-  ContainerModuleConfig,
-} from "./moduleConfig"
-import { Writable } from "stream"
-import { flatten, uniq, fromPairs, reduce } from "lodash"
-import { ActionLog, Log } from "../../logger/log-entry"
-import chalk from "chalk"
+import { ConfigurationError, GardenError, RuntimeError } from "../../exceptions.js"
+import type { SpawnOutput } from "../../util/util.js"
+import { spawn } from "../../util/util.js"
+import type { ContainerRegistryConfig, ContainerModuleConfig } from "./moduleConfig.js"
+import { defaultTag as _defaultTag, defaultImageNamespace } from "./moduleConfig.js"
+import type { Writable } from "stream"
+import { flatten, uniq, fromPairs, reduce } from "lodash-es"
+import type { ActionLog, Log } from "../../logger/log-entry.js"
+
 import isUrl from "is-url"
 import titleize from "titleize"
-import { deline, stripQuotes, splitLast, splitFirst } from "../../util/string"
-import { PluginContext } from "../../plugin-context"
-import { ModuleVersion } from "../../vcs/vcs"
-import { SpawnParams } from "../../util/ext-tools"
-import { ContainerBuildAction, defaultDockerfileName } from "./config"
-import { joinWithPosix } from "../../util/fs"
-import { Resolved } from "../../actions/types"
-import pMemoize from "../../lib/p-memoize"
+import { deline, stripQuotes, splitLast, splitFirst } from "../../util/string.js"
+import type { PluginContext } from "../../plugin-context.js"
+import type { ModuleVersion } from "../../vcs/vcs.js"
+import type { SpawnParams } from "../../util/ext-tools.js"
+import type { ContainerBuildAction } from "./config.js"
+import { defaultDockerfileName } from "./config.js"
+import { joinWithPosix } from "../../util/fs.js"
+import type { Resolved } from "../../actions/types.js"
+import pMemoize from "../../lib/p-memoize.js"
+import { styles } from "../../logger/styles.js"
 
 interface DockerVersion {
   client?: string
@@ -426,7 +427,7 @@ const helpers = {
         (cmd) => (cmd.name === "ADD" || cmd.name === "COPY") && cmd.args && Number(cmd.args.length) > 0
       )
     } catch (err) {
-      log.warn(chalk.yellow(`Unable to parse Dockerfile ${dockerfilePath}: ${err}`))
+      log.warn(`Unable to parse Dockerfile ${dockerfilePath}: ${err}`)
       return undefined
     }
 
@@ -472,12 +473,10 @@ const helpers = {
       } else if (path.match(/(?<!\\)(?:\\\\)*\$[{\w]/)) {
         // If the path contains a template string we can't currently reason about it
         // TODO: interpolate args into paths
-        log.warn(
-          chalk.yellow(deline`
+        log.warn(deline`
           Resolving include paths from Dockerfile ARG and ENV variables is not supported yet. Please specify
-          required path in Dockerfile explicitly or use ${chalk.bold("include")} for path assigned to ARG or ENV.
-          `)
-        )
+          required path in Dockerfile explicitly or use ${styles.bold("include")} for path assigned to ARG or ENV.
+        `)
         return undefined
       }
     }

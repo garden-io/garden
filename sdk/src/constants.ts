@@ -7,5 +7,5 @@
  */
 
 // TODO: re-organize (and maybe rename) these upstream
-export { DOCS_BASE_URL as docsBaseUrl } from "@garden-io/core/build/src/constants"
-export { defaultNamespace } from "@garden-io/core/build/src/config/project"
+export { DOCS_BASE_URL as docsBaseUrl } from "@garden-io/core/build/src/constants.js"
+export { defaultNamespace } from "@garden-io/core/build/src/config/project.js"

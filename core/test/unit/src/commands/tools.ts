@@ -6,24 +6,24 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { getPlatform, getArchitecture } from "../../../../src/util/util"
+import { getPlatform, getArchitecture } from "../../../../src/util/util.js"
+import type { TempDirectory } from "../../../helpers.js"
 import {
   makeTempDir,
-  TempDirectory,
   TestGarden,
   withDefaultGlobalOpts,
   expectError,
   createProjectConfig,
   getDataDir,
-} from "../../../helpers"
+} from "../../../helpers.js"
 import { expect } from "chai"
-import { createGardenPlugin } from "../../../../src/plugin/plugin"
-import { ToolsCommand } from "../../../../src/commands/tools"
-import { LogLevel } from "../../../../src/logger/logger"
-import { dedent } from "../../../../src/util/string"
-import { Log } from "../../../../src/logger/log-entry"
-import { makeDummyGarden } from "../../../../src/garden"
-import { getLogMessages } from "../../../../src/util/testing"
+import { createGardenPlugin } from "../../../../src/plugin/plugin.js"
+import { ToolsCommand } from "../../../../src/commands/tools.js"
+import { LogLevel } from "../../../../src/logger/logger.js"
+import { dedent } from "../../../../src/util/string.js"
+import type { Log } from "../../../../src/logger/log-entry.js"
+import { makeDummyGarden } from "../../../../src/garden.js"
+import { getLogMessages } from "../../../../src/util/testing.js"
 
 describe("ToolsCommand", () => {
   let tmpDir: TempDirectory

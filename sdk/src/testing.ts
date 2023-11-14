@@ -6,13 +6,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { TestGarden, TestGardenOpts } from "@garden-io/core/build/src/util/testing"
-import { uuidv4 } from "@garden-io/core/build/src/util/random"
-import { LogLevel, RootLogger } from "@garden-io/core/build/src/logger/logger"
+import type { TestGardenOpts } from "@garden-io/core/build/src/util/testing.js"
+import { TestGarden } from "@garden-io/core/build/src/util/testing.js"
+import { uuidv4 } from "@garden-io/core/build/src/util/random.js"
+import { LogLevel, RootLogger } from "@garden-io/core/build/src/logger/logger.js"
 
-export { TestGarden, getLogMessages, getRootLogMessages } from "@garden-io/core/build/src/util/testing"
-export { expectError } from "@garden-io/core/build/src/util/testing"
-export { makeTempDir } from "@garden-io/core/build/src/util/fs"
+export { TestGarden, getLogMessages, getRootLogMessages } from "@garden-io/core/build/src/util/testing.js"
+export { expectError } from "@garden-io/core/build/src/util/testing.js"
+export { makeTempDir } from "@garden-io/core/build/src/util/fs.js"
 
 export const makeTestGarden = async (projectRoot: string, opts: TestGardenOpts = {}): Promise<TestGarden> => {
   // Make sure Logger is initialized

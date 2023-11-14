@@ -6,17 +6,17 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { containerHelpers } from "../../../container/helpers"
-import { buildContainer, getContainerBuildStatus } from "../../../container/build"
-import { KubernetesProvider, KubernetesPluginContext } from "../../config"
-import { loadImageToKind, getKindImageStatus } from "../../local/kind"
-import chalk = require("chalk")
-import { loadImageToMicrok8s, getMicrok8sImageStatus } from "../../local/microk8s"
-import { ContainerProvider } from "../../../container/container"
-import { BuildHandler, BuildStatusHandler, BuildStatusResult, getManifestInspectArgs } from "./common"
-import { ContainerBuildAction } from "../../../container/moduleConfig"
-import { BuildActionParams } from "../../../../plugin/action-types"
-import { k8sGetContainerBuildActionOutputs } from "../handlers"
+import { containerHelpers } from "../../../container/helpers.js"
+import { buildContainer, getContainerBuildStatus } from "../../../container/build.js"
+import type { KubernetesProvider, KubernetesPluginContext } from "../../config.js"
+import { loadImageToKind, getKindImageStatus } from "../../local/kind.js"
+import { loadImageToMicrok8s, getMicrok8sImageStatus } from "../../local/microk8s.js"
+import type { ContainerProvider } from "../../../container/container.js"
+import type { BuildHandler, BuildStatusHandler, BuildStatusResult } from "./common.js"
+import { getManifestInspectArgs } from "./common.js"
+import type { ContainerBuildAction } from "../../../container/moduleConfig.js"
+import type { BuildActionParams } from "../../../../plugin/action-types.js"
+import { k8sGetContainerBuildActionOutputs } from "../handlers.js"
 
 export const getLocalBuildStatus: BuildStatusHandler = async (params) => {
   const { ctx, action, log } = params
@@ -41,7 +41,7 @@ export const getLocalBuildStatus: BuildStatusHandler = async (params) => {
     // Non-zero exit code can both mean the manifest is not found, and any other unexpected error
     if (res.code !== 0 && !res.all.includes("no such manifest")) {
       const detail = res.all || `docker manifest inspect exited with code ${res.code}`
-      log.warn(chalk.yellow(`Unable to query registry for image status: ${detail}`))
+      log.warn(`Unable to query registry for image status: ${detail}`)
     }
 
     if (res.code === 0) {
@@ -92,7 +92,7 @@ export const localBuild: BuildHandler = async (params) => {
 }
 
 /**
- * Loads a built local image to a local Kubernetes instance
+ * Loads a built local image to a local Kubernetes instance.
  */
 export async function loadToLocalK8s(params: BuildActionParams<"build", ContainerBuildAction>) {
   const { ctx, log, action } = params

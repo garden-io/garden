@@ -6,13 +6,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { dedent } from "../../../util/string"
-import { actionParamsSchema, PluginBuildActionParamsBase } from "../../../plugin/base"
-import { createSchema, joi } from "../../../config/common"
-import { BuildAction } from "../../../actions/build"
-import { ActionTypeHandlerSpec } from "../base/base"
-import { ActionStatus, Executed } from "../../../actions/types"
-import { actionStatusSchema } from "../../../actions/base"
+import { dedent } from "../../../util/string.js"
+import type { PluginBuildActionParamsBase } from "../../../plugin/base.js"
+import { actionParamsSchema } from "../../../plugin/base.js"
+import { createSchema, joi } from "../../../config/common.js"
+import type { BuildAction } from "../../../actions/build.js"
+import { ActionTypeHandlerSpec } from "../base/base.js"
+import type { ActionStatus, Executed } from "../../../actions/types.js"
+import { actionStatusSchema } from "../../../actions/base.js"
 
 interface PublishActionParams<T extends BuildAction = BuildAction> extends PluginBuildActionParamsBase<T> {
   tag?: string

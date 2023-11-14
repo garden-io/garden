@@ -6,6 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import type { Primitive, PrimitiveMap, ActionReference } from "../../config/common.js"
 import {
   artifactsTargetDescription,
   envVarRegex,
@@ -14,25 +15,23 @@ import {
   joiSparseArray,
   joiStringMap,
   joiUserIdentifier,
-  Primitive,
-  PrimitiveMap,
   createSchema,
-  ActionReference,
-} from "../../config/common"
-import { ArtifactSpec } from "../../config/validation"
-import { ingressHostnameSchema, linkUrlSchema } from "../../types/service"
-import { DEFAULT_PORT_PROTOCOL } from "../../constants"
-import { dedent, deline } from "../../util/string"
-import { syncGuideLink } from "../kubernetes/sync"
-import { k8sDeploymentTimeoutSchema, runCacheResultSchema } from "../kubernetes/config"
-import { localModeGuideLink } from "../kubernetes/local-mode"
-import { BuildAction, BuildActionConfig } from "../../actions/build"
-import { DeployAction, DeployActionConfig } from "../../actions/deploy"
-import { TestAction, TestActionConfig } from "../../actions/test"
-import { RunAction, RunActionConfig } from "../../actions/run"
-import { memoize } from "lodash"
-import Joi from "@hapi/joi"
-import { OctalPermissionMask } from "../kubernetes/types"
+} from "../../config/common.js"
+import type { ArtifactSpec } from "../../config/validation.js"
+import { ingressHostnameSchema, linkUrlSchema } from "../../types/service.js"
+import { DEFAULT_PORT_PROTOCOL } from "../../constants.js"
+import { dedent, deline } from "../../util/string.js"
+import { syncGuideLink } from "../kubernetes/sync.js"
+import { k8sDeploymentTimeoutSchema, runCacheResultSchema } from "../kubernetes/config.js"
+import { localModeGuideLink } from "../kubernetes/local-mode.js"
+import type { BuildAction, BuildActionConfig } from "../../actions/build.js"
+import type { DeployAction, DeployActionConfig } from "../../actions/deploy.js"
+import type { TestAction, TestActionConfig } from "../../actions/test.js"
+import type { RunAction, RunActionConfig } from "../../actions/run.js"
+import { memoize } from "lodash-es"
+import type Joi from "@hapi/joi"
+import type { OctalPermissionMask } from "../kubernetes/types.js"
+import { templateStringLiteral } from "../../docs/common.js"
 
 export const defaultDockerfileName = "Dockerfile"
 
@@ -239,6 +238,27 @@ export const syncDefaultGroupSchema = memoize(() =>
     .description("Set the default group on files and directories at the target. " + ownerDocs)
 )
 
+const exampleActionRef = templateStringLiteral("actions.build.my-container-image.sourcePath")
+const backSlash = "`\\`"
+const forwardSlash = "`/`"
+
+export const syncSourcePathSchema = memoize(() =>
+  joi
+    .string()
+    .default(".")
+    .description(
+      deline`
+        Path to a local directory to be synchronized with the target.
+
+        This should generally be a templated path to another action's source path (e.g. ${exampleActionRef}), or a relative path.
+
+        If a path is hard-coded, we recommend sticking with relative paths here, and using forward slashes (${forwardSlash}) as a delimiter, as Windows-style paths with back slashes (${backSlash}) and absolute paths will work on some platforms, but they are not portable and will not work for users on other platforms.
+
+        Defaults to the Deploy action's config's directory if no value is provided.
+        `
+    )
+    .example("src")
+)
 export const syncTargetPathSchema = memoize(() =>
   joi
     .posixPath()
@@ -256,15 +276,7 @@ export const syncTargetPathSchema = memoize(() =>
 const containerSyncSchema = createSchema({
   name: "container-sync",
   keys: () => ({
-    source: joi
-      .string()
-      .default(".")
-      .description(
-        deline`
-        POSIX-style or Windows path of the directory to sync to the target. Defaults to the config's directory if no value is provided.
-        `
-      )
-      .example("src"),
+    source: syncSourcePathSchema(),
     target: syncTargetPathSchema(),
     exclude: syncExcludeSchema(),
     mode: syncModeSchema(),

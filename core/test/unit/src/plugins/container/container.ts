@@ -6,42 +6,49 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import td from "testdouble"
+import * as td from "testdouble"
 
-import { PluginContext } from "../../../../../src/plugin-context"
+import type { PluginContext } from "../../../../../src/plugin-context.js"
+import type { ContainerProvider } from "../../../../../src/plugins/container/container.js"
 import {
   gardenPlugin,
-  ContainerProvider,
   convertContainerModule,
   configureContainerModule,
-} from "../../../../../src/plugins/container/container"
-import { expectError, getDataDir, makeTestGarden, TestGarden } from "../../../../helpers"
-import { Log } from "../../../../../src/logger/log-entry"
-import { ConfigGraph } from "../../../../../src/graph/config-graph"
-import { GardenModule, moduleFromConfig } from "../../../../../src/types/module"
+} from "../../../../../src/plugins/container/container.js"
+import type { TestGarden } from "../../../../helpers.js"
+import { expectError, getDataDir, makeTestGarden } from "../../../../helpers.js"
+import type { Log } from "../../../../../src/logger/log-entry.js"
+import type { ConfigGraph } from "../../../../../src/graph/config-graph.js"
+import type { GardenModule } from "../../../../../src/types/module.js"
+import { moduleFromConfig } from "../../../../../src/types/module.js"
 import { expect } from "chai"
-import {
+import type {
   ContainerBuildActionSpec,
   ContainerModule,
   ContainerModuleConfig,
   ContainerRuntimeActionConfig,
+} from "../../../../../src/plugins/container/moduleConfig.js"
+import {
   defaultContainerResources,
   defaultDeploymentStrategy,
   defaultDockerfileName,
-} from "../../../../../src/plugins/container/moduleConfig"
-import { ExecBuildConfig } from "../../../../../src/plugins/exec/build"
+} from "../../../../../src/plugins/container/moduleConfig.js"
+import type { ExecBuildConfig } from "../../../../../src/plugins/exec/build.js"
 import {
   DEFAULT_BUILD_TIMEOUT_SEC,
   DEFAULT_RUN_TIMEOUT_SEC,
   DEFAULT_TEST_TIMEOUT_SEC,
   GardenApiVersion,
-} from "../../../../../src/constants"
+} from "../../../../../src/constants.js"
 import { resolve } from "path"
-import { ConvertModuleParams } from "../../../../../src/plugin/handlers/Module/convert"
-import { omit } from "lodash"
-import { GardenTask, taskFromConfig } from "../../../../../src/types/task"
-import { GardenService, serviceFromConfig } from "../../../../../src/types/service"
-import { GardenTest, testFromConfig } from "../../../../../src/types/test"
+import type { ConvertModuleParams } from "../../../../../src/plugin/handlers/Module/convert.js"
+import { omit } from "lodash-es"
+import type { GardenTask } from "../../../../../src/types/task.js"
+import { taskFromConfig } from "../../../../../src/types/task.js"
+import type { GardenService } from "../../../../../src/types/service.js"
+import { serviceFromConfig } from "../../../../../src/types/service.js"
+import type { GardenTest } from "../../../../../src/types/test.js"
+import { testFromConfig } from "../../../../../src/types/test.js"
 
 describe("plugins.container", () => {
   const projectRoot = getDataDir("test-project-container")
@@ -244,7 +251,7 @@ describe("plugins.container", () => {
         config: moduleConfig,
         buildDependencies: [],
         forceVersion: true,
-        scanRoot: garden.projectRoot,
+        scanRoot: projectRoot,
       })
     }
 

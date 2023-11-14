@@ -6,10 +6,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { dedent } from "../../../../src/util/string"
+import { dedent } from "../../../../src/util/string.js"
 import { expect } from "chai"
-import { convertMarkdownLinks, makeDocsLink, makeDocsLinkOpts } from "../../../../src/docs/common"
-import { DOCS_BASE_URL } from "../../../../src/constants"
+import { convertMarkdownLinks, makeDocsLink, makeDocsLinkOpts } from "../../../../src/docs/common.js"
+import { DOCS_BASE_URL } from "../../../../src/constants.js"
 
 describe("convertMarkdownLinks", () => {
   it("should convert all markdown links in the given text to plain links", () => {

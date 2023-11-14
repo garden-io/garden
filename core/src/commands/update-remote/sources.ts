@@ -6,20 +6,23 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { difference } from "lodash"
-import dedent = require("dedent")
-import chalk from "chalk"
+import { difference } from "lodash-es"
+import dedent from "dedent"
 
-import { Command, CommandResult, CommandParams } from "../base"
-import { ParameterError } from "../../exceptions"
-import { pruneRemoteSources, updateRemoteSharedOptions } from "./helpers"
-import { SourceConfig, projectSourceSchema } from "../../config/project"
-import { printHeader } from "../../logger/util"
-import { Garden } from "../../garden"
-import { Log } from "../../logger/log-entry"
-import { joiArray, joi } from "../../config/common"
-import { StringsParameter, ParameterValues } from "../../cli/params"
-import { naturalList } from "../../util/string"
+import type { CommandResult, CommandParams } from "../base.js"
+import { Command } from "../base.js"
+import { ParameterError } from "../../exceptions.js"
+import { pruneRemoteSources, updateRemoteSharedOptions } from "./helpers.js"
+import type { SourceConfig } from "../../config/project.js"
+import { projectSourceSchema } from "../../config/project.js"
+import { printHeader } from "../../logger/util.js"
+import type { Garden } from "../../garden.js"
+import type { Log } from "../../logger/log-entry.js"
+import { joiArray, joi } from "../../config/common.js"
+import type { ParameterValues } from "../../cli/params.js"
+import { StringsParameter } from "../../cli/params.js"
+import { naturalList } from "../../util/string.js"
+import { styles } from "../../logger/styles.js"
 
 const updateRemoteSourcesArguments = {
   sources: new StringsParameter({
@@ -96,7 +99,7 @@ export async function updateRemoteSources({
   if (diff.length > 0) {
     throw new ParameterError({
       message: dedent`
-        Expected source(s) ${chalk.underline(diff.join(","))} to be specified in the project garden.yml config.
+        Expected source(s) ${styles.underline(diff.join(","))} to be specified in the project garden.yml config.
         Configured remote sources: ${naturalList(projectSources.map((s) => s.name).sort())}
       `,
     })

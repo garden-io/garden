@@ -6,21 +6,22 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { LogMetadata, LogEntry, CoreLog, CoreLogContext } from "./log-entry"
-import { Writer } from "./writers/base"
-import { CommandError, ParameterError, InternalError } from "../exceptions"
-import { TerminalWriter } from "./writers/terminal-writer"
-import { JsonTerminalWriter } from "./writers/json-terminal-writer"
-import { EventBus } from "../events/events"
-import { formatLogEntryForEventStream } from "../cloud/buffered-event-stream"
-import { gardenEnv } from "../constants"
-import { getEnumKeys } from "../util/util"
-import { range } from "lodash"
-import { InkTerminalWriter } from "./writers/ink-terminal-writer"
-import { QuietWriter } from "./writers/quiet-writer"
-import { PluginEventBroker } from "../plugin-context"
-import { EventLogWriter } from "./writers/event-writer"
-import { naturalList } from "../util/string"
+import type { LogMetadata, LogEntry, CoreLogContext } from "./log-entry.js"
+import { CoreLog } from "./log-entry.js"
+import type { Writer } from "./writers/base.js"
+import { CommandError, ParameterError, InternalError } from "../exceptions.js"
+import { TerminalWriter } from "./writers/terminal-writer.js"
+import { JsonTerminalWriter } from "./writers/json-terminal-writer.js"
+import { EventBus } from "../events/events.js"
+import { formatLogEntryForEventStream } from "../cloud/buffered-event-stream.js"
+import { gardenEnv } from "../constants.js"
+import { getEnumKeys } from "../util/util.js"
+import { range } from "lodash-es"
+import { InkTerminalWriter } from "./writers/ink-terminal-writer.js"
+import { QuietWriter } from "./writers/quiet-writer.js"
+import type { PluginEventBroker } from "../plugin-context.js"
+import { EventLogWriter } from "./writers/event-writer.js"
+import { naturalList } from "../util/string.js"
 
 export type LoggerType = "quiet" | "default" | "basic" | "json" | "ink"
 export const LOGGER_TYPES = new Set<LoggerType>(["quiet", "default", "basic", "json", "ink"])
@@ -205,7 +206,7 @@ interface LoggerInitParams extends LoggerConfigBase {
  * Other notes:
  *   - The Log instances may apply some styling depending on the context. In general you should
  *     not have to overwrite this and simply default to calling e.g. log.warn("oh noes")
- *     as opposed to log.warn({ msg: chalk.yellow("oh noes"), symbol: "warning" })
+ *     as opposed to log.warn({ msg: styles.warning("oh noes"), symbol: "warning" })
  *   - A Log instance contains all it's parent Log configs so conceptually we can rebuild
  *     the entire log graph, e.g. for testing. We're not using this as of writing.
  */

@@ -6,15 +6,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import Joi from "@hapi/joi"
-import { ConfigurationError } from "../exceptions"
-import chalk from "chalk"
+import type Joi from "@hapi/joi"
+import { ConfigurationError } from "../exceptions.js"
 import { relative } from "path"
-import { uuidv4 } from "../util/random"
-import { profile } from "../util/profiling"
-import { BaseGardenResource, YamlDocumentWithSource } from "./base"
-import { ParsedNode, Range } from "yaml"
-import { padEnd } from "lodash"
+import { uuidv4 } from "../util/random.js"
+import { profile } from "../util/profiling.js"
+import type { BaseGardenResource, YamlDocumentWithSource } from "./base.js"
+import type { ParsedNode, Range } from "yaml"
+import { padEnd } from "lodash-es"
+import { styles } from "../logger/styles.js"
 
 export const joiPathPlaceholder = uuidv4()
 const joiPathPlaceholderRegex = new RegExp(joiPathPlaceholder, "g")
@@ -162,8 +162,11 @@ export const validateSchema = profile(function $validateSchema<T>(
     }
 
     // a little hack to always use full key paths instead of just the label
-    e.message = e.message.replace(joiLabelPlaceholderRegex, renderedPath ? chalk.bold.underline(renderedPath) : "value")
-    e.message = e.message.replace(joiPathPlaceholderRegex, chalk.bold.underline(renderedPath || "."))
+    e.message = e.message.replace(
+      joiLabelPlaceholderRegex,
+      renderedPath ? styles.bold.underline(renderedPath) : "value"
+    )
+    e.message = e.message.replace(joiPathPlaceholderRegex, styles.bold.underline(renderedPath || "."))
     // FIXME: remove once we've customized the error output from AJV in customObject.jsonSchema()
     e.message = e.message.replace(/should NOT have/g, "should not have")
 
@@ -226,15 +229,18 @@ function addYamlContext({ rawYaml, range, message }: { rawYaml: string; range: R
     .slice(snippetStart, snippetEnd)
     .trimEnd()
     .split("\n")
-    .map((l, i) => chalk.gray(padEnd("" + (lineNumber - snippetLines + i), linePrefixLength) + "| ") + chalk.cyan(l))
+    .map(
+      (l, i) =>
+        styles.primary(padEnd("" + (lineNumber - snippetLines + i), linePrefixLength) + "| ") + styles.highlight(l)
+    )
     .join("\n")
 
   if (snippetStart > 0) {
-    snippet = chalk.gray("...\n") + snippet
+    snippet = styles.primary("...\n") + snippet
   }
 
   const errorLineOffset = range[0] - errorLineStart + linePrefixLength + 2
-  const marker = chalk.red("-".repeat(errorLineOffset)) + chalk.red.bold("^")
+  const marker = styles.error("-".repeat(errorLineOffset)) + styles.error.bold("^")
 
-  return `\n${snippet}\n${marker}\n${chalk.red.bold(message)}`
+  return `\n${snippet}\n${marker}\n${styles.error.bold(message)}`
 }

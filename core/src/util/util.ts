@@ -9,8 +9,9 @@
 import { asyncExitHook, gracefulExit } from "@scg82/exit-hook"
 import { execSync } from "child_process"
 import _spawn from "cross-spawn"
-import { createHash } from "crypto"
-import { readFile, readFileSync } from "fs-extra"
+import { createHash } from "node:crypto"
+import fsExtra from "fs-extra"
+const { readFile } = fsExtra
 import { load } from "js-yaml"
 import {
   difference,
@@ -25,15 +26,16 @@ import {
   pick,
   range,
   some,
-  truncate,
   uniqBy,
-} from "lodash"
+} from "lodash-es"
+import type { Options as PMapOptions } from "p-map"
 import pMap from "p-map"
 import pProps from "p-props"
-import { isAbsolute, relative, resolve as resolvePath } from "path"
-import { Readable, Writable } from "stream"
-import type { PrimitiveMap } from "../config/common"
-import { DEFAULT_GARDEN_CLOUD_DOMAIN, DOCS_BASE_URL, gardenEnv } from "../constants"
+import { isAbsolute, relative } from "node:path"
+import type { Readable } from "stream"
+import { Writable } from "stream"
+import type { PrimitiveMap } from "../config/common.js"
+import { DEFAULT_GARDEN_CLOUD_DOMAIN, DOCS_BASE_URL, gardenEnv } from "../constants.js"
 import {
   ChildProcessError,
   InternalError,
@@ -41,12 +43,14 @@ import {
   RuntimeError,
   TimeoutError,
   isErrnoException,
-} from "../exceptions"
-import type { Log } from "../logger/log-entry"
-import { getDefaultProfiler } from "./profiling"
-import { dedent, naturalList, tailString } from "./string"
-import split2 = require("split2")
-import execa = require("execa")
+} from "../exceptions.js"
+import type { Log } from "../logger/log-entry.js"
+import { getDefaultProfiler } from "./profiling.js"
+import { dedent, naturalList, tailString } from "./string.js"
+import split2 from "split2"
+import type { ExecaError, Options as ExecaOptions } from "execa"
+import { execa } from "execa"
+import corePackageJson from "../../package.json" assert { type: "json" }
 
 export { apply as jsonMerge } from "json-merge-patch"
 
@@ -110,12 +114,8 @@ export function registerCleanupFunction(name: string, func: HookCallback) {
   })
 }
 
-let packageJson: { version: string } | undefined = undefined
 export function getPackageVersion(): string {
-  if (!packageJson) {
-    packageJson = JSON.parse(readFileSync(resolvePath(__dirname, "../../../package.json"), "utf8"))
-  }
-  const { version } = packageJson as { version: string }
+  const { version } = corePackageJson as { version: string }
   return version
 }
 
@@ -191,7 +191,7 @@ export function createOutputStream(log: Log, origin?: string) {
 
   return outputStream
 }
-export interface ExecOpts extends execa.Options {
+export interface ExecOpts extends ExecaOptions {
   stdout?: Writable
   stderr?: Writable
 }
@@ -235,7 +235,7 @@ export async function exec(cmd: string, args: string[], opts: ExecOpts = {}) {
       })
     }
 
-    const error = <execa.ExecaError>err
+    const error = <ExecaError>err
     throw new ChildProcessError({
       cmd,
       args,
@@ -398,7 +398,9 @@ export async function deepResolve<T>(
   if (isArray(value)) {
     return await pMap(value, deepResolve)
   } else if (isPlainObject(value)) {
-    return await pProps(<ResolvableProps<T>>mapValues(<ResolvableProps<T>>value, deepResolve))
+    return (await pProps(<ResolvableProps<T>>mapValues(<ResolvableProps<T>>value, deepResolve))) as {
+      [K in keyof T]: T[K]
+    }
   } else {
     return Promise.resolve(<T>value)
   }
@@ -413,7 +415,7 @@ type DeepMappable = any | ArrayLike<DeepMappable> | { [k: string]: DeepMappable 
 export async function asyncDeepMap<T extends DeepMappable>(
   obj: T,
   mapper: (value) => Promise<any>,
-  options?: pMap.Options
+  options?: PMapOptions
 ): Promise<T> {
   if (isArray(obj)) {
     return <any>pMap(obj, (v) => asyncDeepMap(v, mapper, options), options)
@@ -680,8 +682,6 @@ export async function runScript({
     // Actual error are handled specifically.
     log.info(line.toString())
   })
-  // Workaround for https://github.com/vercel/pkg/issues/897
-  env.PKG_EXECPATH = ""
   // script can be either a command or path to an executable
   // shell script since we use the shell option.
   const result = await exec(script, [], {
@@ -815,30 +815,6 @@ export async function userPrompt(params: {
 }): Promise<any> {
   const inquirer = await import("inquirer")
   return inquirer.prompt(params)
-}
-
-export function getGitHubIssueLink(title: string, type: "bug" | "crash" | "feature-request") {
-  try {
-    title = encodeURIComponent(
-      truncate(title, {
-        length: 80,
-        omission: encodeURIComponent("..."),
-      })
-    ).replaceAll("'", "%27")
-  } catch (e) {
-    // encodeURIComponent might throw URIError with malformed unicode strings.
-    // The title is not that important, we can also leave it empty in that case.
-    title = ""
-  }
-
-  switch (type) {
-    case "feature-request":
-      return `https://github.com/garden-io/garden/issues/new?labels=feature+request&template=FEATURE_REQUEST.md&title=%5BFEATURE%5D%3A+${title}`
-    case "bug":
-      return `https://github.com/garden-io/garden/issues/new?labels=bug&template=BUG_REPORT.md&title=${title}`
-    case "crash":
-      return `https://github.com/garden-io/garden/issues/new?labels=bug,crash&template=CRASH.md&title=${title}`
-  }
 }
 
 /**

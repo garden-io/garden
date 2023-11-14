@@ -7,9 +7,9 @@
  */
 
 import { hostname } from "os"
-import { sdk } from "../../../plugin/sdk"
-import { baseValidator } from "./base"
-import { inferType } from "../../../config/zod"
+import { sdk } from "../../../plugin/sdk.js"
+import { baseValidator } from "./base.js"
+import type { inferType } from "../../../config/zod.js"
 
 const s = sdk.schema
 

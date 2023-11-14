@@ -6,20 +6,22 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { stringify } from "query-string"
-import { ConfigurationError, CloudApiError } from "../../../exceptions"
-import { ListSecretsResponse } from "@garden-io/platform-api-types"
+import queryString from "query-string"
+import { ConfigurationError, CloudApiError } from "../../../exceptions.js"
+import type { ListSecretsResponse } from "@garden-io/platform-api-types"
 
-import { printHeader } from "../../../logger/util"
-import { dedent, deline, renderTable } from "../../../util/string"
-import { Command, CommandParams, CommandResult } from "../../base"
-import { applyFilter, makeSecretFromResponse, noApiMsg, SecretResult } from "../helpers"
-import chalk from "chalk"
-import { sortBy } from "lodash"
-import { StringsParameter } from "../../../cli/params"
-import { getCloudDistributionName } from "../../../util/util"
-import { CloudApi, CloudProject } from "../../../cloud/api"
-import { Log } from "../../../logger/log-entry"
+import { printHeader } from "../../../logger/util.js"
+import { dedent, deline, renderTable } from "../../../util/string.js"
+import type { CommandParams, CommandResult } from "../../base.js"
+import { Command } from "../../base.js"
+import type { SecretResult } from "../helpers.js"
+import { applyFilter, makeSecretFromResponse, noApiMsg } from "../helpers.js"
+import { sortBy } from "lodash-es"
+import { StringsParameter } from "../../../cli/params.js"
+import { getCloudDistributionName } from "../../../util/util.js"
+import type { CloudApi, CloudProject } from "../../../cloud/api.js"
+import type { Log } from "../../../logger/log-entry.js"
+import { styles } from "../../../logger/styles.js"
 
 export const fetchAllSecrets = async (api: CloudApi, projectId: string, log: Log): Promise<SecretResult[]> => {
   let page = 0
@@ -27,7 +29,7 @@ export const fetchAllSecrets = async (api: CloudApi, projectId: string, log: Log
   let hasMore = true
   while (hasMore) {
     log.debug(`Fetching page ${page}`)
-    const q = stringify({ projectId, offset: page * pageLimit, limit: pageLimit })
+    const q = queryString.stringify({ projectId, offset: page * pageLimit, limit: pageLimit })
     const res = await api.get<ListSecretsResponse>(`/secrets?${q}`)
     if (res.data.length === 0) {
       hasMore = false
@@ -116,10 +118,10 @@ export class SecretsListCommand extends Command<{}, Opts> {
 
     log.debug(`Found ${filtered.length} secrets that match filters`)
 
-    const heading = ["Name", "ID", "Environment", "User", "Created At"].map((s) => chalk.bold(s))
+    const heading = ["Name", "ID", "Environment", "User", "Created At"].map((s) => styles.bold(s))
     const rows: string[][] = filtered.map((s) => {
       return [
-        chalk.cyan.bold(s.name),
+        styles.highlight.bold(s.name),
         String(s.id),
         s.environment?.name || "[none]",
         s.user?.name || "[none]",

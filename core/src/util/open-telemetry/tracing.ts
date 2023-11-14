@@ -8,13 +8,13 @@
 
 import * as opentelemetry from "@opentelemetry/sdk-node"
 import { HttpInstrumentation } from "@opentelemetry/instrumentation-http"
-import { gardenEnv } from "../../constants"
-import { getSessionContext } from "./context"
-import { prefixWithGardenNamespace } from "./util"
-import { ReconfigurableExporter } from "./exporters/reconfigurable-exporter"
+import { gardenEnv } from "../../constants.js"
+import { getSessionContext } from "./context.js"
+import { prefixWithGardenNamespace } from "./util.js"
+import { ReconfigurableExporter } from "./exporters/reconfigurable-exporter.js"
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http"
-import { OTLPExporterNodeConfigBase } from "@opentelemetry/otlp-exporter-base"
-import { NoOpExporter } from "./exporters/no-op-exporter"
+import type { OTLPExporterNodeConfigBase } from "@opentelemetry/otlp-exporter-base"
+import { NoOpExporter } from "./exporters/no-op-exporter.js"
 
 export const tracer = opentelemetry.api.trace.getTracer("garden")
 

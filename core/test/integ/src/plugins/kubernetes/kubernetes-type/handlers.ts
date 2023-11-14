@@ -7,43 +7,44 @@
  */
 
 import { expect } from "chai"
-import execa from "execa"
+import { execa } from "execa"
 import cloneDeep from "fast-copy"
 
 import tmp from "tmp-promise"
 
-import { TestGarden } from "../../../../../helpers"
-import { getKubernetesTestGarden } from "./common"
-import { DeployTask } from "../../../../../../src/tasks/deploy"
+import type { TestGarden } from "../../../../../helpers.js"
+import { getKubernetesTestGarden } from "./common.js"
+import { DeployTask } from "../../../../../../src/tasks/deploy.js"
 import {
   getManifests,
   getMetadataManifest,
   parseMetadataResource,
   readManifests,
-} from "../../../../../../src/plugins/kubernetes/kubernetes-type/common"
-import { KubeApi } from "../../../../../../src/plugins/kubernetes/api"
-import { ActionLog, createActionLog, Log } from "../../../../../../src/logger/log-entry"
-import { KubernetesPluginContext, KubernetesProvider } from "../../../../../../src/plugins/kubernetes/config"
-import { getActionNamespace } from "../../../../../../src/plugins/kubernetes/namespace"
+} from "../../../../../../src/plugins/kubernetes/kubernetes-type/common.js"
+import { KubeApi } from "../../../../../../src/plugins/kubernetes/api.js"
+import type { ActionLog, Log } from "../../../../../../src/logger/log-entry.js"
+import { createActionLog } from "../../../../../../src/logger/log-entry.js"
+import type { KubernetesPluginContext, KubernetesProvider } from "../../../../../../src/plugins/kubernetes/config.js"
+import { getActionNamespace } from "../../../../../../src/plugins/kubernetes/namespace.js"
 import {
   getDeployedResource,
   k8sManifestHashAnnotationKey,
-} from "../../../../../../src/plugins/kubernetes/status/status"
-import { ModuleConfig } from "../../../../../../src/config/module"
-import { BaseResource, KubernetesResource } from "../../../../../../src/plugins/kubernetes/types"
-import { DeleteDeployTask } from "../../../../../../src/tasks/delete-deploy"
+} from "../../../../../../src/plugins/kubernetes/status/status.js"
+import type { ModuleConfig } from "../../../../../../src/config/module.js"
+import type { BaseResource, KubernetesResource } from "../../../../../../src/plugins/kubernetes/types.js"
+import { DeleteDeployTask } from "../../../../../../src/tasks/delete-deploy.js"
 import {
   deleteKubernetesDeploy,
   getKubernetesDeployStatus,
   kubernetesDeploy,
-} from "../../../../../../src/plugins/kubernetes/kubernetes-type/handlers"
-import { buildHelmModules } from "../helm/common"
-import { gardenAnnotationKey } from "../../../../../../src/util/string"
-import { LocalModeProcessRegistry, ProxySshKeystore } from "../../../../../../src/plugins/kubernetes/local-mode"
-import { KubernetesDeployAction } from "../../../../../../src/plugins/kubernetes/kubernetes-type/config"
-import { DEFAULT_BUILD_TIMEOUT_SEC, GardenApiVersion } from "../../../../../../src/constants"
-import { ActionModeMap } from "../../../../../../src/actions/types"
-import { NamespaceStatus } from "../../../../../../src/types/namespace"
+} from "../../../../../../src/plugins/kubernetes/kubernetes-type/handlers.js"
+import { buildHelmModules } from "../helm/common.js"
+import { gardenAnnotationKey } from "../../../../../../src/util/string.js"
+import { LocalModeProcessRegistry, ProxySshKeystore } from "../../../../../../src/plugins/kubernetes/local-mode.js"
+import type { KubernetesDeployAction } from "../../../../../../src/plugins/kubernetes/kubernetes-type/config.js"
+import { DEFAULT_BUILD_TIMEOUT_SEC, GardenApiVersion } from "../../../../../../src/constants.js"
+import type { ActionModeMap } from "../../../../../../src/actions/types.js"
+import type { NamespaceStatus } from "../../../../../../src/types/namespace.js"
 
 describe("kubernetes-type handlers", () => {
   let tmpDir: tmp.DirectoryResult
@@ -339,7 +340,7 @@ describe("kubernetes-type handlers", () => {
 
   describe("kubernetesDeploy", () => {
     it("gets the correct manifests when `build` is set", async () => {
-      const { resolvedAction, deployParams } = await prepareActionDeployParams("with-build-action", {})
+      const { deployParams } = await prepareActionDeployParams("with-build-action", {})
 
       const status = await kubernetesDeploy(deployParams)
       expect(status.state).to.eql("ready")
@@ -493,7 +494,7 @@ describe("kubernetes-type handlers", () => {
 
   describe("deleteKubernetesDeploy", () => {
     it("should only delete namespace resources having the current name in the manifests", async () => {
-      const { manifest: ns1Manifest, resource: ns1Resource } = await deployInNamespace({
+      const { manifest: ns1Manifest } = await deployInNamespace({
         nsName: "kubernetes-type-ns-1",
         deployName: "namespace-resource",
       })

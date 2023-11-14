@@ -8,13 +8,15 @@
 
 import { expect } from "chai"
 
-import { expectError, TestGarden } from "../../../../../helpers"
-import { ConfigGraph } from "../../../../../../src/graph/config-graph"
-import { getHelmTestGarden } from "./common"
-import { TestTask } from "../../../../../../src/tasks/test"
-import { emptyDir, pathExists } from "fs-extra"
+import type { TestGarden } from "../../../../../helpers.js"
+import { expectError } from "../../../../../helpers.js"
+import type { ConfigGraph } from "../../../../../../src/graph/config-graph.js"
+import { getHelmTestGarden } from "./common.js"
+import { TestTask } from "../../../../../../src/tasks/test.js"
+import fsExtra from "fs-extra"
+const { emptyDir, pathExists } = fsExtra
 import { join } from "path"
-import { createActionLog } from "../../../../../../src/logger/log-entry"
+import { createActionLog } from "../../../../../../src/logger/log-entry.js"
 
 describe("Helm Pod Test", () => {
   let garden: TestGarden

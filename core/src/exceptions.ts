@@ -6,15 +6,16 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { isString, trimEnd } from "lodash"
-import { SpawnOpts, getGitHubIssueLink, testFlags } from "./util/util"
+import { isString, trimEnd, truncate } from "lodash-es"
+import type { SpawnOpts } from "./util/util.js"
+import { testFlags } from "./util/util.js"
 import dedent from "dedent"
-import chalk from "chalk"
 import stripAnsi from "strip-ansi"
-import { Cycle } from "./graph/common"
+import type { Cycle } from "./graph/common.js"
 import indentString from "indent-string"
 import { constants } from "os"
 import dns from "node:dns"
+import { styles } from "./logger/styles.js"
 
 // Unfortunately, NodeJS does not provide a list of all error codes, so we have to maintain this list manually.
 // See https://nodejs.org/docs/latest-v18.x/api/dns.html#error-codes
@@ -166,7 +167,7 @@ export abstract class GardenError extends Error {
    * @returns A string with ANSI-formatting.
    */
   explain(_context?: string): string {
-    return chalk.red(this.message)
+    return styles.error(this.message)
   }
 
   toJSON() {
@@ -421,7 +422,7 @@ export class InternalError extends GardenError {
       Please attach the following information to the bug report after making sure that the error message does not contain sensitive information:
     `
 
-    return chalk.red(`${chalk.bold(header)}\n\n${body}\n\n${chalk.gray(bugReportInformation)}`)
+    return styles.error(`${styles.bold(header)}\n\n${body}\n\n${styles.primary(bugReportInformation)}`)
   }
 }
 
@@ -499,5 +500,29 @@ export function getStackTraceMetadata(error: GardenError): GardenErrorStackTrace
   return {
     metadata: errorMetadata,
     wrappedMetadata,
+  }
+}
+
+export function getGitHubIssueLink(title: string, type: "bug" | "crash" | "feature-request") {
+  try {
+    title = encodeURIComponent(
+      truncate(title, {
+        length: 80,
+        omission: encodeURIComponent("..."),
+      })
+    ).replaceAll("'", "%27")
+  } catch (e) {
+    // encodeURIComponent might throw URIError with malformed unicode strings.
+    // The title is not that important, we can also leave it empty in that case.
+    title = ""
+  }
+
+  switch (type) {
+    case "feature-request":
+      return `https://github.com/garden-io/garden/issues/new?labels=feature+request&template=FEATURE_REQUEST.md&title=%5BFEATURE%5D%3A+${title}`
+    case "bug":
+      return `https://github.com/garden-io/garden/issues/new?labels=bug&template=BUG_REPORT.md&title=${title}`
+    case "crash":
+      return `https://github.com/garden-io/garden/issues/new?labels=bug,crash&template=CRASH.md&title=${title}`
   }
 }

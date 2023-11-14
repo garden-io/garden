@@ -6,22 +6,26 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { join, resolve } from "path"
+import { dirname, join, resolve } from "node:path"
 
-import { GardenModule } from "@garden-io/sdk/build/src/types"
+import type { GardenModule } from "@garden-io/sdk/build/src/types.js"
 import { expect } from "chai"
-import { makeTestGarden, TestGarden } from "@garden-io/sdk/build/src/testing"
-import { gardenPlugin } from "../src"
-import { JibBuildAction } from "../src/util"
-import { Resolved } from "@garden-io/core/build/src/actions/types"
-import { ResolvedConfigGraph } from "@garden-io/core/build/src/graph/config-graph"
-import { createActionLog } from "@garden-io/core/build/src/logger/log-entry"
+import type { TestGarden } from "@garden-io/sdk/build/src/testing.js"
+import { makeTestGarden } from "@garden-io/sdk/build/src/testing.js"
+import { gardenPlugin } from "../src/index.js"
+import type { JibBuildAction } from "../src/util.js"
+import type { Resolved } from "@garden-io/core/build/src/actions/types.js"
+import type { ResolvedConfigGraph } from "@garden-io/core/build/src/graph/config-graph.js"
+import { createActionLog } from "@garden-io/core/build/src/logger/log-entry.js"
+import { fileURLToPath } from "node:url"
+
+const moduleDirName = dirname(fileURLToPath(import.meta.url))
 
 describe("jib-container", function () {
   // eslint-disable-next-line no-invalid-this
   this.timeout(180 * 1000) // initial jib build can take a long time
 
-  const projectRoot = resolve(__dirname, "../../test/", "test-project")
+  const projectRoot = resolve(moduleDirName, "../../test/", "test-project")
 
   let garden: TestGarden
   let graph: ResolvedConfigGraph

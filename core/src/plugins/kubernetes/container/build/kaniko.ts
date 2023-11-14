@@ -6,28 +6,27 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { V1PodSpec } from "@kubernetes/client-node"
+import type { V1PodSpec } from "@kubernetes/client-node"
 import {
   skopeoDaemonContainerName,
   dockerAuthSecretKey,
   k8sUtilImageName,
   defaultKanikoImageName,
-} from "../../constants"
-import { KubeApi } from "../../api"
-import { Log } from "../../../../logger/log-entry"
-import { KubernetesProvider, KubernetesPluginContext } from "../../config"
-import { BuildError, ConfigurationError } from "../../../../exceptions"
-import { PodRunner } from "../../run"
-import { ensureNamespace, getNamespaceStatus, getSystemNamespace } from "../../namespace"
-import { prepareSecrets } from "../../secrets"
-import { dedent } from "../../../../util/string"
-import { RunResult } from "../../../../plugin/base"
-import { PluginContext } from "../../../../plugin-context"
-import { KubernetesPod } from "../../types"
+} from "../../constants.js"
+import { KubeApi } from "../../api.js"
+import type { Log } from "../../../../logger/log-entry.js"
+import type { KubernetesProvider, KubernetesPluginContext } from "../../config.js"
+import { BuildError, ConfigurationError } from "../../../../exceptions.js"
+import { PodRunner } from "../../run.js"
+import { ensureNamespace, getNamespaceStatus, getSystemNamespace } from "../../namespace.js"
+import { prepareSecrets } from "../../secrets.js"
+import { dedent } from "../../../../util/string.js"
+import type { RunResult } from "../../../../plugin/base.js"
+import type { PluginContext } from "../../../../plugin-context.js"
+import type { KubernetesPod } from "../../types.js"
+import type { BuildStatusHandler, BuildHandler } from "./common.js"
 import {
-  BuildStatusHandler,
   skopeoBuildStatus,
-  BuildHandler,
   utilRsyncPort,
   syncToBuildSync,
   ensureBuilderSecret,
@@ -35,14 +34,17 @@ import {
   builderToleration,
   ensureUtilDeployment,
   utilDeploymentName,
-} from "./common"
-import { differenceBy, isEmpty } from "lodash"
-import chalk from "chalk"
-import { getDockerBuildFlags } from "../../../container/build"
-import { k8sGetContainerBuildActionOutputs } from "../handlers"
-import { stringifyResources } from "../util"
-import { makePodName } from "../../util"
-import { defaultDockerfileName, ContainerBuildAction } from "../../../container/config"
+  inClusterBuilderServiceAccount,
+  ensureServiceAccount,
+} from "./common.js"
+import { differenceBy, isEmpty } from "lodash-es"
+import { getDockerBuildFlags } from "../../../container/build.js"
+import { k8sGetContainerBuildActionOutputs } from "../handlers.js"
+import { stringifyResources } from "../util.js"
+import { makePodName } from "../../util.js"
+import type { ContainerBuildAction } from "../../../container/config.js"
+import { defaultDockerfileName } from "../../../container/config.js"
+import { styles } from "../../../../logger/styles.js"
 
 export const DEFAULT_KANIKO_FLAGS = ["--cache=true"]
 
@@ -118,6 +120,8 @@ export const kanikoBuild: BuildHandler = async (params) => {
     kanikoNamespace = await getSystemNamespace(k8sCtx, provider, log)
   }
 
+  await ensureNamespace(api, k8sCtx, { name: kanikoNamespace }, log)
+
   if (kanikoNamespace !== projectNamespace) {
     // Make sure the Kaniko Pod namespace has the auth secret ready
     const secretRes = await ensureBuilderSecret({
@@ -128,9 +132,16 @@ export const kanikoBuild: BuildHandler = async (params) => {
     })
 
     authSecret = secretRes.authSecret
-  }
 
-  await ensureNamespace(api, k8sCtx, { name: kanikoNamespace }, log)
+    // Make sure the Kaniko Pod namespace has the garden-in-cluster-builder service account
+    await ensureServiceAccount({
+      ctx,
+      log,
+      api,
+      namespace: kanikoNamespace,
+      annotations: provider.config.kaniko?.serviceAccountAnnotations,
+    })
+  }
 
   // Execute the build
   const args = [
@@ -174,7 +185,7 @@ export const kanikoBuild: BuildHandler = async (params) => {
 
   if (kanikoBuildFailed(buildRes)) {
     throw new BuildError({
-      message: `Failed building ${chalk.bold(action.name)}:\n\n${buildLog}`,
+      message: `Failed building ${styles.bold(action.name)}:\n\n${buildLog}`,
     })
   }
 
@@ -323,6 +334,7 @@ export function getKanikoBuilderPodManifest({
       },
     ],
     tolerations: kanikoTolerations,
+    serviceAccountName: inClusterBuilderServiceAccount,
   }
 
   const pod: KubernetesPod = {

@@ -6,20 +6,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import {
-  ActionTaskProcessParams,
-  ActionTaskStatusParams,
-  BaseActionTaskParams,
-  ExecuteActionTask,
-  emitGetStatusEvents,
-  emitProcessingEvents,
-} from "./base"
-import { Profile } from "../util/profiling"
-import type { RunAction } from "../actions/run"
-import { GetRunResult } from "../plugin/handlers/Run/get-result"
-import { resolvedActionToExecuted } from "../actions/helpers"
-import { OtelTraced } from "../util/open-telemetry/decorators"
-import { GardenError } from "../exceptions"
+import type { BaseActionTaskParams, ActionTaskProcessParams, ActionTaskStatusParams } from "./base.js"
+import { ExecuteActionTask, emitGetStatusEvents, emitProcessingEvents } from "./base.js"
+import { Profile } from "../util/profiling.js"
+import type { RunAction } from "../actions/run.js"
+import type { GetRunResult } from "../plugin/handlers/Run/get-result.js"
+import { resolvedActionToExecuted } from "../actions/helpers.js"
+import { OtelTraced } from "../util/open-telemetry/decorators.js"
+import { GardenError } from "../exceptions.js"
 
 /**
  * Only throw this error when the run itself failed, and not when Garden failed to execute the run.

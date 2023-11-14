@@ -6,20 +6,23 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Command, CommandParams } from "../base"
-import { StringsParameter, BooleanParameter } from "../../cli/params"
-import { moduleSchema, GardenModule } from "../../types/module"
-import { keyBy, omit, sortBy } from "lodash"
-import { joiIdentifierMap, StringMap, createSchema } from "../../config/common"
-import { printEmoji, printHeader, renderDivider } from "../../logger/util"
-import { withoutInternalFields } from "../../util/logging"
-import chalk from "chalk"
-import { renderTable, dedent, deline } from "../../util/string"
+import type { CommandParams } from "../base.js"
+import { Command } from "../base.js"
+import { StringsParameter, BooleanParameter } from "../../cli/params.js"
+import type { GardenModule } from "../../types/module.js"
+import { moduleSchema } from "../../types/module.js"
+import { keyBy, omit, sortBy } from "lodash-es"
+import type { StringMap } from "../../config/common.js"
+import { joiIdentifierMap, createSchema } from "../../config/common.js"
+import { printEmoji, printHeader, renderDivider } from "../../logger/util.js"
+import { withoutInternalFields } from "../../util/logging.js"
+import { renderTable, dedent, deline } from "../../util/string.js"
 import { relative, sep } from "path"
-import { Garden } from "../.."
-import { Log } from "../../logger/log-entry"
-import { highlightYaml, safeDumpYaml } from "../../util/serialization"
-import { deepMap } from "../../util/objects"
+import type { Garden } from "../../index.js"
+import type { Log } from "../../logger/log-entry.js"
+import { highlightYaml, safeDumpYaml } from "../../util/serialization.js"
+import { deepMap } from "../../util/objects.js"
+import { styles } from "../../logger/styles.js"
 
 const getModulesArgs = {
   modules: new StringsParameter({
@@ -96,7 +99,7 @@ export class GetModulesCommand extends Command {
 }
 
 function logFull(garden: Garden, modules: GardenModule[], log: Log) {
-  const divider = chalk.gray(renderDivider())
+  const divider = styles.primary(renderDivider())
   log.info("")
   for (const module of modules) {
     const version = module.version.versionString
@@ -125,7 +128,7 @@ function logFull(garden: Garden, modules: GardenModule[], log: Log) {
     const yaml = safeDumpYaml(rendered, { noRefs: true, sortKeys: true })
     log.info(dedent`
       ${divider}
-      ${printEmoji("🌱", log)}  Module: ${chalk.green(module.name)}
+      ${printEmoji("🌱", log)}  Module: ${styles.success(module.name)}
       ${divider}\n
     `)
     log.info(highlightYaml(yaml))
@@ -133,9 +136,9 @@ function logFull(garden: Garden, modules: GardenModule[], log: Log) {
 }
 
 function logAsTable(garden: Garden, modules: GardenModule[], log: Log) {
-  const heading = ["Name", "Version", "Type", "Path"].map((s) => chalk.bold(s))
+  const heading = ["Name", "Version", "Type", "Path"].map((s) => styles.bold(s))
   const rows: string[][] = modules.map((m) => [
-    chalk.cyan.bold(m.name),
+    styles.highlight.bold(m.name),
     m.version.versionString,
     m.type,
     getRelativeModulePath(garden.projectRoot, m.path),

@@ -6,20 +6,25 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import chalk from "chalk"
-import { mkdirp, writeFile } from "fs-extra"
+import fsExtra from "fs-extra"
+const { mkdirp, writeFile } = fsExtra
 import { load } from "js-yaml"
-import { remove } from "lodash"
 import moment from "moment"
 import { join } from "path"
-import { joi, joiProviderName } from "../../../config/common"
-import { providerConfigBaseSchema } from "../../../config/provider"
-import { ConfigurationError } from "../../../exceptions"
-import { ConfigureProviderParams } from "../../../plugin/handlers/Provider/configureProvider"
-import { dedent } from "../../../util/string"
-import { KubernetesConfig, namespaceSchema } from "../config"
-import { EPHEMERAL_KUBERNETES_PROVIDER_NAME } from "./ephemeral"
-import { DEFAULT_GARDEN_CLOUD_DOMAIN } from "../../../constants"
+import { joi, joiProviderName } from "../../../config/common.js"
+import { providerConfigBaseSchema } from "../../../config/provider.js"
+import { ConfigurationError } from "../../../exceptions.js"
+import type { ConfigureProviderParams } from "../../../plugin/handlers/Provider/configureProvider.js"
+import { dedent } from "../../../util/string.js"
+import type { KubernetesConfig } from "../config.js"
+import { defaultResources } from "../config.js"
+import { namespaceSchema } from "../config.js"
+import { EPHEMERAL_KUBERNETES_PROVIDER_NAME } from "./ephemeral.js"
+import { DEFAULT_GARDEN_CLOUD_DOMAIN } from "../../../constants.js"
+import { defaultSystemNamespace } from "../constants.js"
+import { styles } from "../../../logger/styles.js"
+
+export type EphemeralKubernetesClusterType = "ephemeral"
 
 export const configSchema = () =>
   providerConfigBaseSchema()
@@ -41,12 +46,7 @@ export const configSchema = () =>
 
 export async function configureProvider(params: ConfigureProviderParams<KubernetesConfig>) {
   const { base, log, projectName, ctx, config: baseConfig } = params
-  if (projectName === "garden-system") {
-    // avoid configuring ephemeral-kubernetes provider and creating ephemeral-cluster for garden-system project
-    return {
-      config: baseConfig,
-    }
-  }
+
   log.info(`Configuring ${EPHEMERAL_KUBERNETES_PROVIDER_NAME} provider for project ${projectName}`)
   if (!ctx.cloudApi) {
     throw new ConfigurationError({
@@ -58,32 +58,35 @@ export async function configureProvider(params: ConfigureProviderParams<Kubernet
       message: `${EPHEMERAL_KUBERNETES_PROVIDER_NAME} provider is currently not supported for ${ctx.cloudApi.distroName}.`,
     })
   }
+
   // creating tmp dir .garden/ephemeral-kubernetes for storing kubeconfig
   const ephemeralClusterDirPath = join(ctx.gardenDirPath, "ephemeral-kubernetes")
   await mkdirp(ephemeralClusterDirPath)
+
   log.info("Retrieving ephemeral Kubernetes cluster")
   const createEphemeralClusterResponse = await ctx.cloudApi.createEphemeralCluster()
   const clusterId = createEphemeralClusterResponse.instanceMetadata.instanceId
   log.info(`Ephemeral Kubernetes cluster retrieved successfully`)
+
   const deadlineDateTime = moment(createEphemeralClusterResponse.instanceMetadata.deadline)
   const diffInNowAndDeadline = moment.duration(deadlineDateTime.diff(moment())).asMinutes().toFixed(1)
   log.info(
-    chalk.white(
+    styles.accent(
       `Ephemeral cluster will be destroyed in ${diffInNowAndDeadline} minutes, at ${deadlineDateTime.format(
         "YYYY-MM-DD HH:mm:ss"
       )}`
     )
   )
+
   log.info("Fetching kubeconfig for the ephemeral cluster")
   const kubeConfig = await ctx.cloudApi.getKubeConfigForCluster(clusterId)
   const kubeconfigFileName = `${clusterId}-kubeconfig.yaml`
   const kubeConfigPath = join(ctx.gardenDirPath, "ephemeral-kubernetes", kubeconfigFileName)
   await writeFile(kubeConfigPath, kubeConfig)
-  log.info(`Kubeconfig for ephemeral cluster saved at path: ${chalk.underline(kubeConfigPath)}`)
+  log.info(`Kubeconfig for ephemeral cluster saved at path: ${styles.underline(kubeConfigPath)}`)
 
   const parsedKubeConfig: any = load(kubeConfig)
-  const currentContext = parsedKubeConfig["current-context"]
-  baseConfig.context = currentContext
+  baseConfig.context = parsedKubeConfig["current-context"]
   baseConfig.kubeconfig = kubeConfigPath
 
   // set deployment registry
@@ -92,6 +95,7 @@ export async function configureProvider(params: ConfigureProviderParams<Kubernet
     namespace: createEphemeralClusterResponse.registry.repository,
     insecure: false,
   }
+
   // set imagePullSecrets
   baseConfig.imagePullSecrets = [
     {
@@ -99,8 +103,13 @@ export async function configureProvider(params: ConfigureProviderParams<Kubernet
       namespace: createEphemeralClusterResponse.registry.imagePullSecret.namespace,
     },
   ]
+
   // set build mode to kaniko
   baseConfig.buildMode = "kaniko"
+
+  // set resource requests and limits defaults for builder, sync and util
+  baseConfig.resources = defaultResources
+
   // set additional kaniko flags
   baseConfig.kaniko = {
     extraFlags: [
@@ -110,27 +119,23 @@ export async function configureProvider(params: ConfigureProviderParams<Kubernet
       "--force",
     ],
   }
-  // set setupIngressController to null while initializing kubernetes plugin
-  // as we use it later and configure it separately for ephemeral-kubernetes
+
+  // set default hostname
+  baseConfig.defaultHostname = createEphemeralClusterResponse.ingressesHostname
+
+  // use garden-system as system namespace for ephemeral-kubernetes
+  baseConfig.gardenSystemNamespace = defaultSystemNamespace
+
+  // set the proper cluster type explicitly
+  baseConfig.clusterType = "ephemeral"
+
   const kubernetesPluginConfig = {
     ...params,
     config: {
       ...baseConfig,
-      setupIngressController: null,
     },
   }
   const { config: updatedConfig } = await base!(kubernetesPluginConfig)
-
-  // setup ingress controller unless setupIngressController is set to false/null in provider config
-  if (baseConfig.setupIngressController) {
-    const _systemServices = updatedConfig._systemServices
-    const nginxServices = ["ingress-controller", "default-backend"]
-    remove(_systemServices, (s) => nginxServices.includes(s))
-    _systemServices.push("nginx-ephemeral")
-    updatedConfig.setupIngressController = "nginx"
-    // set default hostname
-    updatedConfig.defaultHostname = createEphemeralClusterResponse.ingressesHostname
-  }
 
   return {
     config: updatedConfig,

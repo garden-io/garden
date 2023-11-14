@@ -8,20 +8,23 @@
 
 import { expect } from "chai"
 import stripAnsi from "strip-ansi"
-import { join } from "path"
+import { dirname, join } from "node:path"
 
-import { dedent } from "@garden-io/sdk/build/src/util/string"
-import { defaultNamespace } from "@garden-io/sdk/build/src/constants"
-import { gardenPlugin } from "../src/index"
-import { ProjectConfig } from "@garden-io/sdk/build/src/types"
-import { makeTestGarden } from "@garden-io/sdk/build/src/testing"
+import { dedent } from "@garden-io/sdk/build/src/util/string.js"
+import { defaultNamespace } from "@garden-io/sdk/build/src/constants.js"
+import { gardenPlugin } from "../src/index.js"
+import type { ProjectConfig } from "@garden-io/sdk/build/src/types.js"
+import { makeTestGarden } from "@garden-io/sdk/build/src/testing.js"
 
-import { TestTask } from "@garden-io/core/build/src/tasks/test"
-import { defaultDotIgnoreFile } from "@garden-io/core/build/src/util/fs"
-import { GardenApiVersion } from "@garden-io/core/build/src/constants"
+import { TestTask } from "@garden-io/core/build/src/tasks/test.js"
+import { defaultDotIgnoreFile } from "@garden-io/core/build/src/util/fs.js"
+import { GardenApiVersion } from "@garden-io/core/build/src/constants.js"
+import { fileURLToPath } from "node:url"
+
+const moduleDirName = dirname(fileURLToPath(import.meta.url))
 
 describe("conftest provider", () => {
-  const projectRoot = join(__dirname, "test-project")
+  const projectRoot = join(moduleDirName, "test-project")
 
   const projectConfig: ProjectConfig = {
     apiVersion: GardenApiVersion.v1,

@@ -6,22 +6,21 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { get, flatten, sortBy, omit, chain, sample, isEmpty, find, cloneDeep } from "lodash"
-import { V1Pod, V1EnvVar, V1Container, V1PodSpec, CoreV1Event } from "@kubernetes/client-node"
+import { get, flatten, sortBy, omit, sample, isEmpty, find, cloneDeep, uniqBy } from "lodash-es"
+import type { V1Pod, V1EnvVar, V1Container, V1PodSpec, CoreV1Event } from "@kubernetes/client-node"
 import { apply as jsonMerge } from "json-merge-patch"
-import chalk from "chalk"
 import hasha from "hasha"
 
-import {
+import type {
   KubernetesResource,
   KubernetesWorkload,
   KubernetesPod,
   KubernetesServerResource,
-  isPodResource,
   SupportedRuntimeAction,
-} from "./types"
-import { findByName, exec } from "../../util/util"
-import { KubeApi, KubernetesError } from "./api"
+} from "./types.js"
+import { isPodResource } from "./types.js"
+import { findByName } from "../../util/util.js"
+import { KubeApi, KubernetesError } from "./api.js"
 import {
   gardenAnnotationKey,
   base64,
@@ -31,25 +30,27 @@ import {
   truncate,
   dedent,
   naturalList,
-} from "../../util/string"
-import { MAX_CONFIGMAP_DATA_SIZE } from "./constants"
-import { ContainerEnvVars } from "../container/moduleConfig"
-import { ConfigurationError, DeploymentError, PluginError, InternalError } from "../../exceptions"
-import { KubernetesProvider, KubernetesPluginContext, KubernetesTargetResourceSpec } from "./config"
-import { Log } from "../../logger/log-entry"
-import { PluginContext } from "../../plugin-context"
-import { HelmModule } from "./helm/module-config"
-import { KubernetesModule } from "./kubernetes-type/module-config"
-import { prepareTemplates, renderHelmTemplateString } from "./helm/common"
-import { SyncableResource } from "./types"
-import { ProviderMap } from "../../config/provider"
-import { PodRunner, PodRunnerExecParams } from "./run"
-import { isSubset } from "../../util/is-subset"
-import { checkPodStatus } from "./status/pod"
-import { getActionNamespace } from "./namespace"
-import { Resolved } from "../../actions/types"
-import { serializeValues } from "../../util/serialization"
+} from "../../util/string.js"
+import { MAX_CONFIGMAP_DATA_SIZE } from "./constants.js"
+import type { ContainerEnvVars } from "../container/moduleConfig.js"
+import { ConfigurationError, DeploymentError, PluginError, InternalError } from "../../exceptions.js"
+import type { KubernetesProvider, KubernetesPluginContext, KubernetesTargetResourceSpec } from "./config.js"
+import type { Log } from "../../logger/log-entry.js"
+import type { PluginContext } from "../../plugin-context.js"
+import type { HelmModule } from "./helm/module-config.js"
+import type { KubernetesModule } from "./kubernetes-type/module-config.js"
+import { prepareTemplates, renderHelmTemplateString } from "./helm/common.js"
+import type { SyncableResource } from "./types.js"
+import type { ProviderMap } from "../../config/provider.js"
+import type { PodRunnerExecParams } from "./run.js"
+import { PodRunner } from "./run.js"
+import { isSubset } from "../../util/is-subset.js"
+import { checkPodStatus } from "./status/pod.js"
+import { getActionNamespace } from "./namespace.js"
+import type { Resolved } from "../../actions/types.js"
+import { serializeValues } from "../../util/serialization.js"
 import { PassThrough } from "stream"
+import { styles } from "../../logger/styles.js"
 
 const STATIC_LABEL_REGEX = /[0-9]/g
 export const workloadTypes = ["Deployment", "DaemonSet", "ReplicaSet", "StatefulSet"]
@@ -129,12 +130,10 @@ export function getSelectorFromResource(resource: KubernetesWorkload): { [key: s
 export function deduplicatePodsByLabel(pods: KubernetesServerResource<V1Pod>[]) {
   // We don't filter out pods with no labels
   const noLabel = pods.filter((pod) => isEmpty(pod.metadata.labels))
-  const uniqByLabel = chain(pods)
-    .filter((pod) => !isEmpty(pod.metadata.labels))
-    .sortBy((pod) => pod.metadata.creationTimestamp)
-    .reverse() // We only want the most recent pod in case of duplicates
-    .uniqBy((pod) => JSON.stringify(pod.metadata.labels))
-    .value()
+  const labeled = pods.filter((pod) => !isEmpty(pod.metadata.labels))
+  const labeledByCreation = sortBy(labeled, (pod) => pod.metadata.creationTimestamp).reverse() // We only want the most recent pod in case of duplicates
+  const uniqByLabel = uniqBy(labeledByCreation, (pod) => JSON.stringify(pod.metadata.labels))
+
   return sortBy([...uniqByLabel, ...noLabel], (pod) => pod.metadata.creationTimestamp)
 }
 
@@ -156,16 +155,6 @@ export interface K8sClientServerVersions {
 }
 
 /**
- * get objectyfied result of "kubectl version"
- */
-export async function getK8sClientServerVersions(ctx: string): Promise<K8sClientServerVersions> {
-  const versions: K8sClientServerVersions = JSON.parse(
-    (await exec("kubectl", ["version", "--context", ctx, "--output", "json"])).stdout
-  )
-  return versions
-}
-
-/**
  * Retrieve a list of pods based on the resource selector, deduplicated so that only the most recent
  * pod is returned when multiple pods with the same label are found.
  */
@@ -183,7 +172,12 @@ export async function getCurrentWorkloadPods(
  */
 export async function getWorkloadPods(api: KubeApi, namespace: string, resource: KubernetesWorkload | KubernetesPod) {
   if (isPodResource(resource)) {
-    return [await api.core.readNamespacedPod(resource.metadata.name, resource.metadata.namespace || namespace)]
+    return [
+      await api.core.readNamespacedPod({
+        name: resource.metadata.name,
+        namespace: resource.metadata.namespace || namespace,
+      }),
+    ]
   }
 
   // We don't match on the garden.io/version label because it can fall out of sync
@@ -193,14 +187,10 @@ export async function getWorkloadPods(api: KubeApi, namespace: string, resource:
   if (resource.kind === "Deployment") {
     // Make sure we only return the pods from the current ReplicaSet
     const selectorString = labelSelectorToString(selector)
-    const replicaSetRes = await api.apps.listNamespacedReplicaSet(
-      resource.metadata?.namespace || namespace,
-      undefined, // pretty
-      undefined, // allowWatchBookmarks
-      undefined, // _continue
-      undefined, // fieldSelector
-      selectorString // labelSelector
-    )
+    const replicaSetRes = await api.apps.listNamespacedReplicaSet({
+      namespace: resource.metadata?.namespace || namespace,
+      labelSelector: selectorString,
+    })
 
     const replicaSets = replicaSetRes.items.filter((r) => (r.spec.replicas || 0) > 0)
 
@@ -232,14 +222,10 @@ export async function getPods(
   selector: { [key: string]: string }
 ): Promise<KubernetesServerResource<V1Pod>[]> {
   const selectorString = labelSelectorToString(selector)
-  const res = await api.core.listNamespacedPod(
+  const res = await api.core.listNamespacedPod({
     namespace,
-    undefined, // pretty
-    undefined, // allowWatchBookmarks
-    undefined, // continue
-    undefined, // fieldSelector
-    selectorString // labelSelector
-  )
+    labelSelector: selectorString,
+  })
 
   return <KubernetesServerResource<V1Pod>[]>res.items
 }
@@ -429,13 +415,17 @@ export async function upsertConfigMap({
   }
 
   try {
-    await api.core.createNamespacedConfigMap(namespace, <any>body)
+    await api.core.createNamespacedConfigMap({ namespace, body: <any>body })
   } catch (err) {
     if (!(err instanceof KubernetesError)) {
       throw err
     }
     if (err.responseStatusCode === 409) {
-      await api.core.patchNamespacedConfigMap(key, namespace, body)
+      await api.core.patchNamespacedConfigMap({
+        name: key,
+        namespace,
+        body,
+      })
     } else {
       throw err
     }
@@ -499,7 +489,7 @@ export async function getRunningDeploymentPod({
   deploymentName: string
   namespace: string
 }) {
-  const resource = await api.apps.readNamespacedDeployment(deploymentName, namespace)
+  const resource = await api.apps.readNamespacedDeployment({ name: deploymentName, namespace })
   const pods = await getWorkloadPods(api, namespace, resource)
   const pod = sample(pods.filter((p) => checkPodStatus(p) === "ready"))
   if (!pod) {
@@ -596,10 +586,9 @@ export async function getTargetResource({
     if (!pod) {
       const selectorStr = getSelectorString(query.podSelector)
       throw new ConfigurationError({
-        message: chalk.red(
+        message:
           `Could not find any Pod matching provided podSelector (${selectorStr}) for target in ` +
-            `${action.longDescription()}`
-        ),
+          `${action.longDescription()}`,
       })
     }
     return pod
@@ -642,7 +631,7 @@ export async function getTargetResource({
       if (!target) {
         throw new ConfigurationError({
           message: dedent`
-            ${action.longDescription()} does not contain specified ${targetKind} ${chalk.white(targetName)}
+            ${action.longDescription()} does not contain specified ${targetKind} ${styles.accent(targetName)}
 
             The chart does declare the following resources: ${naturalList(chartResourceNames)}
             `,
@@ -661,14 +650,12 @@ export async function getTargetResource({
 
       if (applicableChartResources.length > 1) {
         throw new ConfigurationError({
-          message: chalk.red(
-            deline`${action.longDescription()} contains multiple ${targetKind}s.
+          message: deline`${action.longDescription()} contains multiple ${targetKind}s.
             You must specify a resource name in the appropriate config in order to identify the correct ${targetKind}
             to use.
 
             The chart declares the following resources: ${naturalList(chartResourceNames)}
-            `
-          ),
+            `,
         })
       }
 
@@ -688,9 +675,7 @@ export async function getTargetResource({
     }
     if (err.responseStatusCode === 404) {
       throw new ConfigurationError({
-        message: chalk.red(
-          deline`${action.longDescription()} specifies target resource ${targetKind}/${targetName}, which could not be found in namespace ${namespace}.`
-        ),
+        message: deline`${action.longDescription()} specifies target resource ${targetKind}/${targetName}, which could not be found in namespace ${namespace}.`,
       })
     } else {
       throw err
@@ -716,11 +701,11 @@ export async function readTargetResource({
   }
 
   if (targetKind === "Deployment") {
-    return api.apps.readNamespacedDeployment(targetName, namespace)
+    return api.apps.readNamespacedDeployment({ name: targetName, namespace })
   } else if (targetKind === "DaemonSet") {
-    return api.apps.readNamespacedDaemonSet(targetName, namespace)
+    return api.apps.readNamespacedDaemonSet({ name: targetName, namespace })
   } else if (targetKind === "StatefulSet") {
-    return api.apps.readNamespacedStatefulSet(targetName, namespace)
+    return api.apps.readNamespacedStatefulSet({ name: targetName, namespace })
   } else {
     // This should be caught in config/schema validation
     throw new InternalError({
@@ -804,18 +789,18 @@ export function getK8sProvider(providers: ProviderMap): KubernetesProvider {
 export function renderPodEvents(events: CoreV1Event[]): string {
   let text = ""
 
-  text += `${chalk.white("━━━ Events ━━━")}\n`
+  text += `${styles.accent("━━━ Events ━━━")}\n`
   for (const event of events) {
     const obj = event.involvedObject
-    const name = chalk.blueBright(`${obj.kind} ${obj.name}:`)
+    const name = styles.highlight(`${obj.kind} ${obj.name}:`)
     const msg = `${event.reason} - ${event.message}`
     const colored =
-      event.type === "Error" ? chalk.red(msg) : event.type === "Warning" ? chalk.yellow(msg) : chalk.white(msg)
+      event.type === "Error" ? styles.error(msg) : event.type === "Warning" ? styles.warning(msg) : styles.accent(msg)
     text += `${name} ${colored}\n`
   }
 
   if (events.length === 0) {
-    text += `${chalk.red("No matching events found")}\n`
+    text += `${styles.error("No matching events found")}\n`
   }
 
   return text

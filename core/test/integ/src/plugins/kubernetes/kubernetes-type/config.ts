@@ -9,16 +9,17 @@
 import { expect } from "chai"
 import cloneDeep from "fast-copy"
 
-import { TestGarden, getDataDir, makeTestGarden } from "../../../../../helpers"
-import { ModuleConfig } from "../../../../../../src/config/module"
+import type { TestGarden } from "../../../../../helpers.js"
+import { getDataDir, makeTestGarden } from "../../../../../helpers.js"
+import type { ModuleConfig } from "../../../../../../src/config/module.js"
 import { apply } from "json-merge-patch"
-import { getKubernetesTestGarden } from "./common"
+import { getKubernetesTestGarden } from "./common.js"
 import {
   DEFAULT_BUILD_TIMEOUT_SEC,
   DEFAULT_DEPLOY_TIMEOUT_SEC,
   DEFAULT_RUN_TIMEOUT_SEC,
   DEFAULT_TEST_TIMEOUT_SEC,
-} from "../../../../../../src/constants"
+} from "../../../../../../src/constants.js"
 
 describe("configureKubernetesModule", () => {
   let garden: TestGarden

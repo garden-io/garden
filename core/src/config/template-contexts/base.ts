@@ -6,18 +6,19 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import Joi from "@hapi/joi"
-import chalk from "chalk"
-import { isString } from "lodash"
-import { ConfigurationError } from "../../exceptions"
+import type Joi from "@hapi/joi"
+import { isString } from "lodash-es"
+import { ConfigurationError } from "../../exceptions.js"
 import {
   resolveTemplateString,
   TemplateStringMissingKeyException,
   TemplateStringPassthroughException,
-} from "../../template-string/template-string"
-import { CustomObjectSchema, isPrimitive, joi, joiIdentifier } from "../common"
-import { KeyedSet } from "../../util/keyed-set"
-import { naturalList } from "../../util/string"
+} from "../../template-string/template-string.js"
+import type { CustomObjectSchema } from "../common.js"
+import { isPrimitive, joi, joiIdentifier } from "../common.js"
+import { KeyedSet } from "../../util/keyed-set.js"
+import { naturalList } from "../../util/string.js"
+import { styles } from "../../logger/styles.js"
 
 export type ContextKeySegment = string | number
 export type ContextKey = ContextKeySegment[]
@@ -169,15 +170,15 @@ export abstract class ConfigContext {
 
     if (value === undefined) {
       if (message === undefined) {
-        message = chalk.red(`Could not find key ${chalk.white(nextKey)}`)
+        message = styles.error(`Could not find key ${styles.accent(String(nextKey))}`)
         if (nestedNodePath.length > 1) {
-          message += chalk.red(" under ") + chalk.white(renderKeyPath(nestedNodePath.slice(0, -1)))
+          message += styles.error(" under ") + styles.accent(renderKeyPath(nestedNodePath.slice(0, -1)))
         }
-        message += chalk.red(".")
+        message += styles.error(".")
 
         if (available) {
-          const availableStr = available.length ? naturalList(available.sort().map((k) => chalk.white(k))) : "(none)"
-          message += chalk.red(" Available keys: " + availableStr + ".")
+          const availableStr = available.length ? naturalList(available.sort().map((k) => styles.accent(k))) : "(none)"
+          message += styles.error(" Available keys: " + availableStr + ".")
         }
         const messageFooter = this.getMissingKeyErrorFooter(nextKey, nestedNodePath.slice(0, -1))
         if (messageFooter) {

@@ -9,7 +9,7 @@
 import { expect } from "chai"
 import { join, resolve } from "path"
 
-import { LinkModuleCommand } from "../../../../src/commands/link/module"
+import { LinkModuleCommand } from "../../../../src/commands/link/module.js"
 import {
   getDataDir,
   expectError,
@@ -18,12 +18,13 @@ import {
   makeExtModuleSourcesGarden,
   resetLocalConfig,
   makeExtActionSourcesGarden,
-} from "../../../helpers"
-import { LinkSourceCommand } from "../../../../src/commands/link/source"
-import { Garden } from "../../../../src/garden"
-import { Log } from "../../../../src/logger/log-entry"
-import { copy } from "fs-extra"
-import { LinkActionCommand } from "../../../../src/commands/link/action"
+} from "../../../helpers.js"
+import { LinkSourceCommand } from "../../../../src/commands/link/source.js"
+import type { Garden } from "../../../../src/garden.js"
+import type { Log } from "../../../../src/logger/log-entry.js"
+import fsExtra from "fs-extra"
+const { copy } = fsExtra
+import { LinkActionCommand } from "../../../../src/commands/link/action.js"
 
 describe("LinkCommand", () => {
   let garden: Garden

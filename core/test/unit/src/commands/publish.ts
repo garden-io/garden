@@ -6,21 +6,22 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import chalk from "chalk"
 import { it } from "mocha"
 import { expect } from "chai"
-import { PublishCommand } from "../../../../src/commands/publish"
-import { withDefaultGlobalOpts, makeTestGarden, getAllTaskResults, getDataDir } from "../../../helpers"
-import { taskResultOutputs } from "../../../helpers"
+import { PublishCommand } from "../../../../src/commands/publish.js"
+import { withDefaultGlobalOpts, makeTestGarden, getAllTaskResults, getDataDir } from "../../../helpers.js"
+import { taskResultOutputs } from "../../../helpers.js"
 import cloneDeep from "fast-copy"
 
-import { PublishActionResult, PublishBuildAction } from "../../../../src/plugin/handlers/Build/publish"
-import { createGardenPlugin, GardenPluginSpec } from "../../../../src/plugin/plugin"
-import { ConvertModuleParams } from "../../../../src/plugin/handlers/Module/convert"
-import { PublishTask } from "../../../../src/tasks/publish"
-import { joi } from "../../../../src/config/common"
-import { execBuildSpecSchema } from "../../../../src/plugins/exec/build"
-import { ActionTypeHandlerParamsType } from "../../../../src/plugin/handlers/base/base"
+import type { PublishActionResult, PublishBuildAction } from "../../../../src/plugin/handlers/Build/publish.js"
+import type { GardenPluginSpec } from "../../../../src/plugin/plugin.js"
+import { createGardenPlugin } from "../../../../src/plugin/plugin.js"
+import type { ConvertModuleParams } from "../../../../src/plugin/handlers/Module/convert.js"
+import { PublishTask } from "../../../../src/tasks/publish.js"
+import { joi } from "../../../../src/config/common.js"
+import { execBuildSpecSchema } from "../../../../src/plugins/exec/build.js"
+import type { ActionTypeHandlerParamsType } from "../../../../src/plugin/handlers/base/base.js"
+import { styles } from "../../../../src/logger/styles.js"
 
 const projectRootB = getDataDir("test-project-b")
 
@@ -227,7 +228,7 @@ describe("PublishCommand", () => {
 
     expect(res).to.exist
     expect(res.state).to.equal("unknown")
-    expect(res.detail.message).to.be.equal(chalk.yellow("No publish handler available for type test"))
+    expect(res.detail.message).to.be.equal(styles.warning("No publish handler available for type test"))
   })
 })
 

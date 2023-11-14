@@ -8,7 +8,7 @@
 
 import { expect } from "chai"
 import { describe } from "mocha"
-import { includes } from "lodash"
+import { includes } from "lodash-es"
 import {
   pickKeys,
   getEnvVarName,
@@ -17,13 +17,13 @@ import {
   spawn,
   relationshipClasses,
   isValidDateInstance,
-} from "../../../../src/util/util"
-import { expectError } from "../../../helpers"
-import { splitLast, splitFirst } from "../../../../src/util/string"
-import { getRootLogger } from "../../../../src/logger/logger"
-import { dedent } from "../../../../src/util/string"
-import { safeDumpYaml } from "../../../../src/util/serialization"
-import { ChildProcessError } from "../../../../src/exceptions"
+} from "../../../../src/util/util.js"
+import { expectError } from "../../../helpers.js"
+import { splitLast, splitFirst } from "../../../../src/util/string.js"
+import { getRootLogger } from "../../../../src/logger/logger.js"
+import { dedent } from "../../../../src/util/string.js"
+import { safeDumpYaml } from "../../../../src/util/serialization.js"
+import { ChildProcessError } from "../../../../src/exceptions.js"
 
 function isLinuxOrDarwin() {
   return process.platform === "darwin" || process.platform === "linux"

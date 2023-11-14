@@ -6,22 +6,23 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import Joi = require("@hapi/joi")
+import type Joi from "@hapi/joi"
 import stripAnsi from "strip-ansi"
 import stringify from "json-stringify-safe"
 
-import { joi, DeepPrimitiveMap } from "../config/common"
-import { ParameterError } from "../exceptions"
-import { parseEnvironment } from "../config/project"
-import { getLogLevelChoices, LOGGER_TYPES, LogLevel } from "../logger/logger"
-import { dedent, deline } from "../util/string"
-import chalk = require("chalk")
-import { safeDumpYaml } from "../util/serialization"
+import type { DeepPrimitiveMap } from "../config/common.js"
+import { joi } from "../config/common.js"
+import { ParameterError } from "../exceptions.js"
+import { parseEnvironment } from "../config/project.js"
+import { getLogLevelChoices, LOGGER_TYPES, LogLevel } from "../logger/logger.js"
+import { dedent, deline } from "../util/string.js"
+import { safeDumpYaml } from "../util/serialization.js"
 import { resolve } from "path"
-import { isArray } from "lodash"
-import { gardenEnv } from "../constants"
-import { envSupportsEmoji } from "../logger/util"
-import { ConfigDump } from "../garden"
+import { isArray } from "lodash-es"
+import { gardenEnv } from "../constants.js"
+import { envSupportsEmoji } from "../logger/util.js"
+import type { ConfigDump } from "../garden.js"
+import { styles } from "../logger/styles.js"
 
 export const OUTPUT_RENDERERS = {
   json: (data: DeepPrimitiveMap) => {
@@ -376,12 +377,12 @@ export const globalDisplayOptions = {
     choices: [...LOGGER_TYPES],
     help: deline`
       Set logger type.
-      ${chalk.bold("default")} The default Garden logger,
-      ${chalk.bold(
+      ${styles.bold("default")} The default Garden logger,
+      ${styles.bold(
         "basic"
       )} [DEPRECATED] Sames as the default Garden logger. This option will be removed in a future release,
-      ${chalk.bold("json")} same as default, but renders log lines as JSON,
-      ${chalk.bold("quiet")} suppresses all log output, same as --silent.
+      ${styles.bold("json")} same as default, but renders log lines as JSON,
+      ${styles.bold("quiet")} suppresses all log output, same as --silent.
     `,
     cliOnly: true,
   }),
@@ -406,7 +407,7 @@ export const globalDisplayOptions = {
   }),
   "show-timestamps": new BooleanParameter({
     help: deline`
-      Show timestamps with log output. When enabled, Garden will use the ${chalk.bold(
+      Show timestamps with log output. When enabled, Garden will use the ${styles.bold(
         "basic"
       )} logger. I.e., log status changes are rendered as new lines instead of being updated in-place.`,
     defaultValue: false,

@@ -6,19 +6,20 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { BooleanParameter, StringsParameter } from "../../cli/params"
-import { joi } from "../../config/common"
-import { printHeader } from "../../logger/util"
-import { DeployTask } from "../../tasks/deploy"
-import { dedent, naturalList } from "../../util/string"
-import { Command, CommandParams, CommandResult, PrepareParams } from "../base"
-import chalk from "chalk"
-import { ParameterError, RuntimeError } from "../../exceptions"
-import { SyncMonitor } from "../../monitors/sync"
-import { Log, createActionLog } from "../../logger/log-entry"
-import { DeployAction } from "../../actions/deploy"
-import { ConfigGraph } from "../../graph/config-graph"
-import { Garden } from "../.."
+import { BooleanParameter, StringsParameter } from "../../cli/params.js"
+import { joi } from "../../config/common.js"
+import { printHeader } from "../../logger/util.js"
+import { DeployTask } from "../../tasks/deploy.js"
+import { dedent, naturalList } from "../../util/string.js"
+import type { CommandParams, CommandResult, PrepareParams } from "../base.js"
+import { Command } from "../base.js"
+import { ParameterError, RuntimeError } from "../../exceptions.js"
+import { SyncMonitor } from "../../monitors/sync.js"
+import type { Log } from "../../logger/log-entry.js"
+import { createActionLog } from "../../logger/log-entry.js"
+import type { DeployAction } from "../../actions/deploy.js"
+import type { ConfigGraph } from "../../graph/config-graph.js"
+import type { Garden } from "../../index.js"
 
 const syncStartArgs = {
   names: new StringsParameter({
@@ -123,7 +124,7 @@ export class SyncStartCommand extends Command<Args, Opts> {
       const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
       if (!action.supportsMode("sync")) {
         if (names.includes(action.name)) {
-          actionLog.warn(chalk.yellow(`${action.longDescription()} does not support syncing.`))
+          actionLog.warn(`${action.longDescription()} does not support syncing.`)
         } else {
           actionLog.debug(`${action.longDescription()} does not support syncing.`)
         }
@@ -159,7 +160,7 @@ export class SyncStartCommand extends Command<Args, Opts> {
         return task
       })
       await garden.processTasks({ tasks, log })
-      log.info(chalk.green("\nDone!"))
+      log.success({ msg: "\nDone!", showDuration: false })
       return {}
     } else {
       // Don't deploy, just start syncs
@@ -173,7 +174,7 @@ export class SyncStartCommand extends Command<Args, Opts> {
         stopOnExit,
       })
       if (garden.monitors.getAll().length === 0) {
-        log.info(chalk.green("\nDone!"))
+        log.success({ msg: "\nDone!", showDuration: false })
       }
       return {}
     }
@@ -229,9 +230,7 @@ export async function startSyncWithoutDeploy({
       if (executedAction && (state === "outdated" || state === "ready")) {
         if (mode !== "sync") {
           actionLog.warn(
-            chalk.yellow(
-              `Not deployed in sync mode, cannot start sync. Try running this command with \`--deploy\` set.`
-            )
+            `Not deployed in sync mode, cannot start sync. Try running this command with \`--deploy\` set.`
           )
           return
         }
@@ -246,15 +245,15 @@ export async function startSyncWithoutDeploy({
           }
         } catch (error) {
           actionLog.warn(
-            chalk.yellow(dedent`
+            dedent`
             Failed starting sync for ${action.longDescription()}: ${error}
 
             You may need to re-deploy the action. Try running this command with \`--deploy\` set, or running \`garden deploy --sync\` before running this command again.
-          `)
+          `
           )
         }
       } else {
-        actionLog.warn(chalk.yellow(`${action.longDescription()} is not deployed, cannot start sync.`))
+        actionLog.warn(`${action.longDescription()} is not deployed, cannot start sync.`)
       }
     })
   )

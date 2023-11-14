@@ -7,24 +7,29 @@
  */
 
 import env from "env-var"
-import { join, resolve } from "path"
+import { dirname, join, resolve } from "node:path"
 import { homedir } from "os"
+import { fileURLToPath } from "node:url"
 
-export const isPkg = !!(<any>process).pkg
+const moduleDirName = dirname(fileURLToPath(import.meta.url))
+
+// This environment variable is set by the garden-sea rust wrapper and points to a temporary directory where rollup bundle and nodejs are extracted to.
+const extractedRoot = process.env.GARDEN_SEA_EXTRACTED_ROOT
 
 export const gitScanModes = ["repo", "subtree"] as const
 export type GitScanMode = (typeof gitScanModes)[number]
 export const defaultGitScanMode: GitScanMode = "subtree"
 
-export const GARDEN_CORE_ROOT = isPkg ? resolve(process.execPath, "..") : resolve(__dirname, "..", "..")
-export const GARDEN_CLI_ROOT = isPkg ? resolve(process.execPath, "..") : resolve(GARDEN_CORE_ROOT, "..", "cli")
-export const STATIC_DIR = isPkg ? resolve(process.execPath, "..", "static") : resolve(GARDEN_CORE_ROOT, "..", "static")
+export const GARDEN_CORE_ROOT = !!extractedRoot
+  ? resolve(extractedRoot, "src", "core")
+  : resolve(moduleDirName, "..", "..")
+export const GARDEN_CLI_ROOT = resolve(GARDEN_CORE_ROOT, "..", "cli")
+export const STATIC_DIR = !!extractedRoot ? resolve(extractedRoot, "static") : resolve(GARDEN_CORE_ROOT, "..", "static")
 export const DEFAULT_GARDEN_DIR_NAME = ".garden"
 export const MUTAGEN_DIR_NAME = "mutagen"
 export const LOGS_DIR_NAME = "logs"
 export const GARDEN_GLOBAL_PATH = join(homedir(), DEFAULT_GARDEN_DIR_NAME)
 export const ERROR_LOG_FILENAME = "error.log"
-export const GARDEN_VERSIONFILE_NAME = ".garden-version"
 export const DEFAULT_PORT_PROTOCOL = "TCP"
 
 export enum GardenApiVersion {
@@ -67,7 +72,7 @@ export const gardenEnv = {
   GARDEN_ENVIRONMENT: env.get("GARDEN_ENVIRONMENT").required(false).asString(),
   GARDEN_EXPERIMENTAL_BUILD_STAGE: env.get("GARDEN_EXPERIMENTAL_BUILD_STAGE").required(false).asBool(),
   GARDEN_GE_SCHEDULED: env.get("GARDEN_GE_SCHEDULED").required(false).asBool(),
-  GARDEN_GIT_SCAN_MODE: env.get("GARDEN_GIT_SCAN_MODE").required(false).asEnum(gitScanModes),
+  GARDEN_GIT_SCAN_MODE: env.get("GARDEN_GIT_SCAN_MODE").required(false).default("repo").asEnum(gitScanModes),
   GARDEN_LEGACY_BUILD_STAGE: env.get("GARDEN_LEGACY_BUILD_STAGE").required(false).asBool(),
   GARDEN_LOG_LEVEL: env.get("GARDEN_LOG_LEVEL").required(false).asString(),
   GARDEN_LOGGER_TYPE: env.get("GARDEN_LOGGER_TYPE").required(false).asString(),

@@ -6,17 +6,16 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import chalk from "chalk"
 import httpStatusCodes from "http-status-codes"
-import { HttpError as KubernetesClientHttpError } from "@kubernetes/client-node"
-import { sleep } from "../../util/util"
-import { Log } from "../../logger/log-entry"
-import { dedent, deline } from "../../util/string"
-import { LogLevel } from "../../logger/logger"
-import { KubernetesError } from "./api"
-import requestErrors = require("request-promise/errors")
-import { InternalError, NodeJSErrnoException, isErrnoException } from "../../exceptions"
-import { ErrorEvent } from "ws"
+import { ApiException as KubernetesApiException } from "@kubernetes/client-node"
+import { sleep } from "../../util/util.js"
+import type { Log } from "../../logger/log-entry.js"
+import { deline } from "../../util/string.js"
+import { LogLevel } from "../../logger/logger.js"
+import { KubernetesError } from "./api.js"
+import type { NodeJSErrnoException } from "../../exceptions.js"
+import { InternalError, isErrnoException } from "../../exceptions.js"
+import type { ErrorEvent } from "ws"
 import dns from "node:dns"
 
 /**
@@ -62,7 +61,7 @@ export async function requestWithRetry<R>(
           return await retry(usedRetries + 1)
         } else {
           if (usedRetries === maxRetries) {
-            retryLog.info(chalk.red(`Kubernetes API: Maximum retry count exceeded`))
+            retryLog.error(`Kubernetes API: Maximum retry count exceeded`)
           }
           throw err
         }
@@ -90,58 +89,57 @@ export function toKubernetesError(err: unknown, context: string): KubernetesErro
     return err
   }
 
+  let originalMessage: string | undefined
+  let apiMessage: string | undefined
   let errorType: string
-  let response: KubernetesClientHttpError["response"] | undefined
-  let body: any | undefined
   let responseStatusCode: number | undefined
   let code: NodeJSErrnoException["code"] | undefined
 
-  if (err instanceof KubernetesClientHttpError) {
-    errorType = "HttpError"
-    response = err.response || {}
-    body = err.body
-    responseStatusCode = err.statusCode
-  } else if (err instanceof requestErrors.StatusCodeError) {
-    errorType = "StatusCodeError"
-    response = err.response
-    responseStatusCode = err.statusCode
-  } else if (err instanceof requestErrors.RequestError) {
-    errorType = "RequestError"
-    if (isErrnoException(err.cause)) {
-      code = err.cause.code
+  if (err instanceof KubernetesApiException) {
+    errorType = "ApiException"
+    // In case of Kubernetes Client API Exception, we do not use the err.message
+    // because it contains the full body including headers.
+    // We only extract the status code and kubernetes message from the body.
+    try {
+      const parsedBody = JSON.parse(err.body)
+      if (typeof parsedBody === "object" && typeof parsedBody.message === "string") {
+        apiMessage = parsedBody.message
+      }
+    } catch (e) {
+      if (e instanceof SyntaxError) {
+        apiMessage = err.body
+      } else {
+        throw e
+      }
     }
-  } else if (err instanceof requestErrors.TransformError) {
-    errorType = "TransformError"
-    if (isErrnoException(err.cause)) {
-      code = err.cause.code
-    }
-    response = err.response
-    responseStatusCode = err.response?.statusCode
+    responseStatusCode = err.code
   } else if (isErrnoException(err)) {
     errorType = "Error"
     code = err.code
+    originalMessage = err.message
   } else if (isWebsocketErrorEvent(err)) {
     errorType = "WebsocketError"
+    originalMessage = err.message
     // The ErrorEvent does not expose the status code other than as part of the error.message
   } else {
     // In all other cases, we don't know what this is, so let's just throw an InternalError
     throw InternalError.wrapError(err, `toKubernetesError encountered an unknown error unexpectedly during ${context}`)
   }
 
-  let apiMessage: string | undefined
-  if (body && typeof body.message === "string") {
-    apiMessage = body.message
+  let message = `Error while performing Kubernetes API operation ${context}: ${errorType}\n`
+
+  if (originalMessage) {
+    message += `\n${originalMessage}`
+  }
+  if (responseStatusCode) {
+    message += `\nResponse status code: ${responseStatusCode}`
+  }
+  if (apiMessage) {
+    message += `\nKubernetes Message: ${apiMessage}`
   }
 
   return new KubernetesError({
-    message: dedent`
-      Error while performing Kubernetes API operation ${context}:
-
-      ${errorType}${err.message ? `: ${err.message}` : ""}
-
-      ${response?.url ? `Request URL: ${response?.url}` : ""}
-      ${responseStatusCode ? `Response status code: ${responseStatusCode}` : ""}
-      ${apiMessage ? `Kubernetes Message: ${apiMessage}` : ""}`,
+    message: message.trim(),
     responseStatusCode,
     code,
     apiMessage,
@@ -204,4 +202,7 @@ const errorMessageRegexesForRetry = [
   /too many requests/,
   /Unable to connect to the server/,
   /WebsocketError: Unexpected server response/,
+  // We often flaked with this error on microk8s in the CI:
+  // > pods "api-test-xxxx" is forbidden: error looking up service account container-default/default: serviceaccount "default" not found
+  /forbidden: error looking up service account/,
 ]

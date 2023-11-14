@@ -1,4 +1,4 @@
-#!/usr/bin/env ts-node
+#!/usr/bin/env -S node --import ./scripts/register-hook.js
 /*
  * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
@@ -9,22 +9,26 @@
 
 /* eslint-disable no-console */
 
-import execa from "execa"
+import { execa } from "execa"
 import semver from "semver"
 import inquirer from "inquirer"
 import chalk from "chalk"
-import { relative, resolve } from "path"
-import { createWriteStream, readFile, writeFile } from "fs-extra"
-import { getPackages } from "./script-utils"
-import parseArgs = require("minimist")
-import deline = require("deline")
+import { dirname, relative, resolve } from "node:path"
+import fsExtra from "fs-extra"
+const { createWriteStream, readFile, writeFile } = fsExtra
+import { getPackages } from "./script-utils.js"
+import parseArgs from "minimist"
+import deline from "deline"
+import replace from "replace-in-file"
+import { fileURLToPath } from "node:url"
+import { finished } from "node:stream/promises"
 
-const replace = require("replace-in-file")
+const moduleDirName = dirname(fileURLToPath(import.meta.url))
 
 type ReleaseType = "minor" | "patch" | "preminor" | "prepatch" | "prerelease"
 const RELEASE_TYPES = ["minor", "patch", "preminor", "prepatch", "prerelease"]
 
-const gardenRoot = resolve(__dirname, "..")
+const gardenRoot = resolve(moduleDirName, "..")
 
 /**
  * Performs the following steps to prepare for a release:
@@ -57,7 +61,7 @@ async function release() {
     throw new Error(`Invalid release type ${releaseType}, available types are: ${RELEASE_TYPES.join(", ")}`)
   }
 
-  const prevVersion = require("../package.json").version
+  const prevVersion = JSON.parse(await readFile("../package.json", "utf-8")).version as string
   const version = semver.inc(prevVersion, releaseType)!
 
   // Update package.json versions
@@ -76,7 +80,7 @@ async function release() {
 
   console.log(`Bumping version from ${prevVersion} to ${version}...`)
 
-  const rootPackageJsonPath = resolve(__dirname, "..", "package.json")
+  const rootPackageJsonPath = resolve(moduleDirName, "..", "package.json")
   await updatePackageJsonVersion(rootPackageJsonPath, version)
 
   console.log(`Setting package versions to ${packageVersion}...`)
@@ -224,7 +228,7 @@ async function release() {
 }
 
 async function updatePackageJsonVersion(packageJsonPath: string, newVersion: string) {
-  const packageJson = require(packageJsonPath)
+  const packageJson = JSON.parse(await readFile(packageJsonPath, "utf-8"))
   packageJson.version = newVersion
   await writeFile(packageJsonPath, JSON.stringify(packageJson, null, 2))
 }
@@ -295,18 +299,10 @@ async function updateChangelog(version: string) {
       { cwd: gardenRoot }
     )
   ).stdout
-  return new Promise((resolve, reject) => {
-    const writeStream = createWriteStream(changelogPath)
-    writeStream.write(nextChangelogEntry)
-    writeStream.write(changelog)
-    writeStream.close()
-    writeStream.on("close", () => {
-      resolve(null)
-    })
-    writeStream.on("error", (error) => {
-      reject(error)
-    })
-  })
+  const writeStream = createWriteStream(changelogPath)
+  writeStream.write(nextChangelogEntry)
+  writeStream.write(changelog)
+  await finished(writeStream)
 }
 
 /**

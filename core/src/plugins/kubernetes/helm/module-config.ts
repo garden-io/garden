@@ -6,40 +6,40 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import type { DeepPrimitiveMap } from "../../../config/common.js"
 import {
-  DeepPrimitiveMap,
   joi,
   joiIdentifier,
   joiModuleIncludeDirective,
   joiSparseArray,
   joiUserIdentifier,
-} from "../../../config/common"
-import { GardenModule } from "../../../types/module"
-import { ConfigurationError } from "../../../exceptions"
-import { dedent, deline } from "../../../util/string"
-import { GardenService } from "../../../types/service"
-import { ContainerModule } from "../../container/moduleConfig"
-import { baseBuildSpecSchema } from "../../../config/module"
-import { ConfigureModuleParams, ConfigureModuleResult } from "../../../plugin/handlers/Module/configure"
+} from "../../../config/common.js"
+import type { GardenModule } from "../../../types/module.js"
+import { ConfigurationError } from "../../../exceptions.js"
+import { dedent, deline } from "../../../util/string.js"
+import type { GardenService } from "../../../types/service.js"
+import type { ContainerModule } from "../../container/moduleConfig.js"
+import { baseBuildSpecSchema } from "../../../config/module.js"
+import type { ConfigureModuleParams, ConfigureModuleResult } from "../../../plugin/handlers/Module/configure.js"
+import type { KubernetesTaskSpec, KubernetesTestSpec, PortForwardSpec, ServiceResourceSpec } from "../config.js"
 import {
   containerModuleSchema,
   kubernetesTaskSchema,
-  KubernetesTaskSpec,
   kubernetesTestSchema,
-  KubernetesTestSpec,
-  PortForwardSpec,
   serviceResourceDescription,
   serviceResourceSchema,
-  ServiceResourceSpec,
-} from "../config"
+} from "../config.js"
 import { join, posix } from "path"
-import { runPodSpecIncludeFields } from "../run"
-import { omit } from "lodash"
-import { kubernetesModuleSyncSchema, KubernetesModuleDevModeSpec } from "../sync"
-import { helmChartNameSchema, helmChartRepoSchema, helmChartVersionSchema, helmCommonSchemaKeys } from "./config"
-import { pathExists } from "fs-extra"
-import { helmChartYamlFilename } from "./common"
-import { kubernetesLocalModeSchema, KubernetesLocalModeSpec } from "../local-mode"
+import { runPodSpecIncludeFields } from "../run.js"
+import { omit } from "lodash-es"
+import type { KubernetesModuleDevModeSpec } from "../sync.js"
+import { kubernetesModuleSyncSchema } from "../sync.js"
+import { helmChartNameSchema, helmChartRepoSchema, helmChartVersionSchema, helmCommonSchemaKeys } from "./config.js"
+import fsExtra from "fs-extra"
+const { pathExists } = fsExtra
+import { helmChartYamlFilename } from "./common.js"
+import type { KubernetesLocalModeSpec } from "../local-mode.js"
+import { kubernetesLocalModeSchema } from "../local-mode.js"
 
 export const defaultHelmTimeout = 300
 

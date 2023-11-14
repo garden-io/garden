@@ -7,19 +7,12 @@
  */
 
 import dedent from "dedent"
-import { ActionConfig } from "../actions/types"
-import { baseActionConfigSchema } from "../actions/base"
-import { templateStringLiteral } from "../docs/common"
-import {
-  createSchema,
-  DeepPrimitiveMap,
-  joi,
-  joiSparseArray,
-  joiUserIdentifier,
-  joiVariables,
-  unusedApiVersionSchema,
-} from "./common"
-import { varfileDescription } from "./base"
+import type { ActionConfig } from "../actions/types.js"
+import { baseActionConfigSchema } from "../actions/base.js"
+import { templateStringLiteral } from "../docs/common.js"
+import type { DeepPrimitiveMap } from "./common.js"
+import { createSchema, joi, joiSparseArray, joiUserIdentifier, joiVariables, unusedApiVersionSchema } from "./common.js"
+import { varfileDescription } from "./base.js"
 
 export interface GroupConfig {
   // Basics

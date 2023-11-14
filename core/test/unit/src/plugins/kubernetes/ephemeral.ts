@@ -7,13 +7,14 @@
  */
 
 import { expect } from "chai"
-import { providerFromConfig } from "../../../../../src/config/provider"
-import { Garden } from "../../../../../src/garden"
-import { getRootLogger } from "../../../../../src/logger/logger"
-import { configureProvider } from "../../../../../src/plugins/kubernetes/ephemeral/config"
-import { gardenPlugin } from "../../../../../src/plugins/kubernetes/ephemeral/ephemeral"
-import { TempDirectory, expectError, makeTempDir, makeTestGardenA } from "../../../../helpers"
-import { FakeCloudApi } from "../../../../helpers/api"
+import { providerFromConfig } from "../../../../../src/config/provider.js"
+import type { Garden } from "../../../../../src/garden.js"
+import { getRootLogger } from "../../../../../src/logger/logger.js"
+import { configureProvider } from "../../../../../src/plugins/kubernetes/ephemeral/config.js"
+import { gardenPlugin } from "../../../../../src/plugins/kubernetes/ephemeral/ephemeral.js"
+import type { TempDirectory } from "../../../../helpers.js"
+import { expectError, makeTempDir, makeTestGardenA } from "../../../../helpers.js"
+import { FakeCloudApi } from "../../../../helpers/api.js"
 
 describe("ephemeral-kubernetes configureProvider", () => {
   const basicConfig = {

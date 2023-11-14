@@ -6,12 +6,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { find } from "lodash"
-import { PluginContext, PluginToolSpec } from "@garden-io/sdk/build/src/types"
-import { PluginError } from "@garden-io/core/build/src/exceptions"
+import { find } from "lodash-es"
+import type { PluginContext, PluginToolSpec } from "@garden-io/sdk/build/src/types.js"
+import { PluginError } from "@garden-io/core/build/src/exceptions.js"
 import { resolve } from "path"
-import { pathExists } from "fs-extra"
-import { runBuildTool, BuildToolParams, verifyBinaryPath, VerifyBinaryParams } from "./build-tool-base"
+import fsExtra from "fs-extra"
+const { pathExists } = fsExtra
+import type { BuildToolParams, VerifyBinaryParams } from "./build-tool-base.js"
+import { runBuildTool, verifyBinaryPath } from "./build-tool-base.js"
 
 export const gradleVersion = "7.5.1"
 

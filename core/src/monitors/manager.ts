@@ -6,14 +6,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import chalk from "chalk"
-import type { Command } from "../commands/base"
-import { EventBus } from "../events/events"
-import type { Log } from "../logger/log-entry"
-import { LogLevel } from "../logger/logger"
-import { TypedEventEmitter } from "../util/events"
-import { KeyedSet } from "../util/keyed-set"
-import type { Monitor } from "./base"
+import type { Command } from "../commands/base.js"
+import type { EventBus } from "../events/events.js"
+import type { Log } from "../logger/log-entry.js"
+import { LogLevel } from "../logger/logger.js"
+import { TypedEventEmitter } from "../util/events.js"
+import { KeyedSet } from "../util/keyed-set.js"
+import type { Monitor } from "./base.js"
 
 type MonitorStatus = "starting" | "started" | "stopping" | "stopped"
 
@@ -137,7 +136,7 @@ export class MonitorManager extends TypedEventEmitter<MonitorEvents> {
         }
       })
       .catch((error) => {
-        this.log.error({ msg: chalk.red(`${monitor.description()} failed: ${error}`), error })
+        this.log.error({ msg: `${monitor.description()} failed: ${error}`, error })
         this.setStatus(monitor, "stopped")
         // TODO: should we retry up to some limit?
       })
@@ -168,7 +167,7 @@ export class MonitorManager extends TypedEventEmitter<MonitorEvents> {
         }
       })
       .catch((error) => {
-        log.error(chalk.red(`Error when stopping ${monitor.description()}: ${error}`))
+        log.error(`Error when stopping ${monitor.description()}: ${error}`)
         this.setStatus(monitor, "stopped")
       })
   }

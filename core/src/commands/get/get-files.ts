@@ -6,12 +6,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { fromPairs } from "lodash"
-import { StringsParameter } from "../../cli/params"
-import { joi } from "../../config/common"
-import { printHeader } from "../../logger/util"
-import { Command, CommandParams, CommandResult } from "../base"
-import chalk from "chalk"
+import { fromPairs } from "lodash-es"
+import { StringsParameter } from "../../cli/params.js"
+import { joi } from "../../config/common.js"
+import { printHeader } from "../../logger/util.js"
+import type { CommandParams, CommandResult } from "../base.js"
+import { Command } from "../base.js"
+import { styles } from "../../logger/styles.js"
 
 const getFilesArgs = {
   keys: new StringsParameter({
@@ -51,7 +52,7 @@ export class GetFilesCommand extends Command<Args, Opts> {
         const files = a.getFullVersion().files
 
         log.info("")
-        log.info(chalk.cyanBright(key))
+        log.info(styles.highlight(key))
         log.info(files.length ? files.map((f) => "- " + f).join("\n") : "(none)")
 
         return [key, files]

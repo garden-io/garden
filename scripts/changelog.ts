@@ -1,4 +1,4 @@
-#!/usr/bin/env ts-node
+#!/usr/bin/env -S node --import ./scripts/register-hook.js
 /*
  * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
@@ -7,10 +7,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import execa from "execa"
-import { resolve } from "path"
+import { execa } from "execa"
+import { fileURLToPath } from "node:url"
+import { dirname, resolve } from "node:path"
 
-const gardenRoot = resolve(__dirname, "..")
+const moduleDirName = dirname(fileURLToPath(import.meta.url))
+
+const gardenRoot = resolve(moduleDirName, "..")
 
 export async function getChangelog(curReleaseTag: string) {
   try {

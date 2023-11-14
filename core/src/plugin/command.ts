@@ -6,14 +6,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Log } from "../logger/log-entry"
-import { PluginContext, pluginContextSchema } from "../plugin-context"
-import { joi, joiArray, joiIdentifier, joiIdentifierDescription, createSchema } from "../config/common"
-import { moduleSchema } from "../types/module"
-import { logEntrySchema } from "./base"
-import { Garden } from "../garden"
-import { ConfigGraph } from "../graph/config-graph"
-import { BaseProviderConfig } from "../config/provider"
+import type { Log } from "../logger/log-entry.js"
+import type { PluginContext } from "../plugin-context.js"
+import { pluginContextSchema } from "../plugin-context.js"
+import { joi, joiArray, joiIdentifier, joiIdentifierDescription, createSchema } from "../config/common.js"
+import { moduleSchema } from "../types/module.js"
+import { logEntrySchema } from "./base.js"
+import type { Garden } from "../garden.js"
+import type { ConfigGraph } from "../graph/config-graph.js"
+import type { BaseProviderConfig } from "../config/provider.js"
 
 // TODO: parse args and opts with a schema
 export interface PluginCommandParams<C extends BaseProviderConfig = any> {

@@ -6,15 +6,16 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import chalk from "chalk"
-import { getMutagenDataDir, getMutagenEnv, mutagenCliSpec, parseSyncListResult } from "../../../mutagen"
-import { pathExists } from "fs-extra"
-import { dedent } from "../../../util/string"
-import { Log } from "../../../logger/log-entry"
-import { PluginTool } from "../../../util/ext-tools"
-import { PluginCommand } from "../../../plugin/command"
+import { getMutagenDataDir, getMutagenEnv, mutagenCliSpec, parseSyncListResult } from "../../../mutagen.js"
+import fsExtra from "fs-extra"
+const { pathExists } = fsExtra
+import { dedent } from "../../../util/string.js"
+import type { Log } from "../../../logger/log-entry.js"
+import { PluginTool } from "../../../util/ext-tools.js"
+import type { PluginCommand } from "../../../plugin/command.js"
+import { styles } from "../../../logger/styles.js"
 
-const logSuccess = (log: Log) => log.info({ msg: chalk.green("\nDone!") })
+const logSuccess = (log: Log) => log.info({ msg: styles.success("\nDone!") })
 
 export const syncStatus: PluginCommand = {
   name: "sync-status",

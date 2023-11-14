@@ -6,12 +6,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { dedent } from "../../util/string"
-import { GetDashboardPageParams } from "../../plugin/handlers/Provider/getDashboardPage"
-import execa, { ExecaChildProcess } from "execa"
+import { dedent } from "../../util/string.js"
+import type { GetDashboardPageParams } from "../../plugin/handlers/Provider/getDashboardPage.js"
+import type { ExecaChildProcess } from "execa"
+import { execa } from "execa"
 import getPort from "get-port"
-import { getK8sProvider } from "../kubernetes/util"
-import { createGardenPlugin } from "../../plugin/plugin"
+import { getK8sProvider } from "../kubernetes/util.js"
+import { createGardenPlugin } from "../../plugin/plugin.js"
 
 let octantProc: ExecaChildProcess
 let octantPort: number

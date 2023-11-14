@@ -6,11 +6,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { memoize } from "lodash"
-import { ServiceConfig, serviceConfigSchema } from "./service"
+import { memoize } from "lodash-es"
+import type { ServiceConfig } from "./service.js"
+import { serviceConfigSchema } from "./service.js"
+import type { DeepPrimitiveMap } from "./common.js"
 import {
   createSchema,
-  DeepPrimitiveMap,
   includeGuideLink,
   joi,
   joiArray,
@@ -20,12 +21,15 @@ import {
   joiUserIdentifier,
   joiVariables,
   unusedApiVersionSchema,
-} from "./common"
-import { TestConfig, testConfigSchema } from "./test"
-import { TaskConfig, taskConfigSchema } from "./task"
-import { dedent, stableStringify } from "../util/string"
-import { configTemplateKind, varfileDescription } from "./base"
-import { DEFAULT_BUILD_TIMEOUT_SEC, GardenApiVersion } from "../constants"
+} from "./common.js"
+import type { TestConfig } from "./test.js"
+import { testConfigSchema } from "./test.js"
+import type { TaskConfig } from "./task.js"
+import { taskConfigSchema } from "./task.js"
+import { dedent, stableStringify } from "../util/string.js"
+import { configTemplateKind, varfileDescription } from "./base.js"
+import type { GardenApiVersion } from "../constants.js"
+import { DEFAULT_BUILD_TIMEOUT_SEC } from "../constants.js"
 
 interface BuildCopySpec {
   source: string

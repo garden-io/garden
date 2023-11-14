@@ -6,11 +6,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { mapValues } from "lodash"
-import { writeFile } from "fs-extra"
-import { DumpOptions, dump } from "js-yaml"
-import highlight from "cli-highlight"
-import chalk from "chalk"
+import { mapValues } from "lodash-es"
+import fsExtra from "fs-extra"
+const { writeFile } = fsExtra
+import type { DumpOptions } from "js-yaml"
+import { dump } from "js-yaml"
+import highlightModule from "cli-highlight"
+import { styles } from "../logger/styles.js"
+const highlight = highlightModule.default
 
 export async function dumpYaml(yamlPath: string, data: any) {
   return writeFile(yamlPath, safeDumpYaml(data, { noRefs: true }))
@@ -34,9 +37,9 @@ export function highlightYaml(s: string) {
   return highlight(s, {
     language: "yaml",
     theme: {
-      keyword: chalk.white.italic,
-      literal: chalk.white.italic,
-      string: chalk.white,
+      keyword: styles.accent.italic,
+      literal: styles.accent.italic,
+      string: styles.accent,
     },
   })
 }

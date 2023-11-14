@@ -6,29 +6,29 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ChildProcess } from "child_process"
+import type { ChildProcess } from "child_process"
 
-import getPort = require("get-port")
+import getPort from "get-port"
 
-import AsyncLock = require("async-lock")
-import { V1ContainerPort, V1Deployment, V1PodTemplate, V1Service } from "@kubernetes/client-node"
+import AsyncLock from "async-lock"
+import type { V1ContainerPort, V1Deployment, V1PodTemplate, V1Service } from "@kubernetes/client-node"
 
-import { KubernetesProvider, KubernetesPluginContext } from "./config"
-import { getAppNamespace } from "./namespace"
-import { registerCleanupFunction, sleep } from "../../util/util"
-import { PluginContext } from "../../plugin-context"
-import { kubectl } from "./kubectl"
-import { KubernetesResource, SupportedRuntimeAction } from "./types"
-import { ForwardablePort } from "../../types/service"
-import { isBuiltIn, matchSelector } from "./util"
-import { Log } from "../../logger/log-entry"
-import { RuntimeError } from "../../exceptions"
-import execa = require("execa")
-import { KubernetesDeployAction } from "./kubernetes-type/config"
-import { HelmDeployAction } from "./helm/config"
-import { DeployAction } from "../../actions/deploy"
-import { GetPortForwardResult } from "../../plugin/handlers/Deploy/get-port-forward"
-import { ActionMode, Resolved } from "../../actions/types"
+import type { KubernetesProvider, KubernetesPluginContext } from "./config.js"
+import { getAppNamespace } from "./namespace.js"
+import { registerCleanupFunction, sleep } from "../../util/util.js"
+import type { PluginContext } from "../../plugin-context.js"
+import { kubectl } from "./kubectl.js"
+import type { KubernetesResource, SupportedRuntimeAction } from "./types.js"
+import type { ForwardablePort } from "../../types/service.js"
+import { isBuiltIn, matchSelector } from "./util.js"
+import type { Log } from "../../logger/log-entry.js"
+import { RuntimeError } from "../../exceptions.js"
+import { execa } from "execa"
+import type { KubernetesDeployAction } from "./kubernetes-type/config.js"
+import type { HelmDeployAction } from "./helm/config.js"
+import type { DeployAction } from "../../actions/deploy.js"
+import type { GetPortForwardResult } from "../../plugin/handlers/Deploy/get-port-forward.js"
+import type { ActionMode, Resolved } from "../../actions/types.js"
 
 // TODO: implement stopPortForward handler
 

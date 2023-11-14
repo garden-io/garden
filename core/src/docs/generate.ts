@@ -6,30 +6,34 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import handlebars = require("handlebars")
-import { resolve } from "path"
-import { writeCommandReferenceDocs } from "./commands"
-import { TEMPLATES_DIR, renderProjectConfigReference, renderConfigReference } from "./config"
-import { writeTemplateStringReferenceDocs } from "./template-strings"
-import { writeTableOfContents } from "./table-of-contents"
-import { Garden } from "../garden"
-import { defaultDotIgnoreFile } from "../util/fs"
-import { keyBy } from "lodash"
-import { writeFileSync, readFile, writeFile, mkdirp } from "fs-extra"
-import { renderModuleTypeReference, moduleTypes } from "./module-type"
-import { renderProviderReference } from "./provider"
-import { defaultEnvironment, defaultNamespace } from "../config/project"
-import { GardenPluginSpec, GardenPluginReference } from "../plugin/plugin"
-import { workflowConfigSchema } from "../config/workflow"
-import { configTemplateSchema } from "../config/config-template"
-import { renderActionTypeReference } from "./action-type"
-import { ActionKind } from "../plugin/action-types"
-import { renderTemplateConfigSchema } from "../config/render-template"
-import { pMemoizeClearAll } from "../lib/p-memoize"
-import { makeDocsLinkOpts } from "./common"
-import { GardenApiVersion } from "../constants"
-import { actionKinds } from "../actions/types"
+import handlebars from "handlebars"
+import { dirname, resolve } from "node:path"
+import { writeCommandReferenceDocs } from "./commands.js"
+import { TEMPLATES_DIR, renderProjectConfigReference, renderConfigReference } from "./config.js"
+import { writeTemplateStringReferenceDocs } from "./template-strings.js"
+import { writeTableOfContents } from "./table-of-contents.js"
+import { Garden } from "../garden.js"
+import { defaultDotIgnoreFile } from "../util/fs.js"
+import { keyBy } from "lodash-es"
+import fsExtra from "fs-extra"
+const { writeFileSync, readFile, writeFile, mkdirp } = fsExtra
+import { renderModuleTypeReference, moduleTypes } from "./module-type.js"
+import { renderProviderReference } from "./provider.js"
+import { defaultEnvironment, defaultNamespace } from "../config/project.js"
+import type { GardenPluginSpec, GardenPluginReference } from "../plugin/plugin.js"
+import { workflowConfigSchema } from "../config/workflow.js"
+import { configTemplateSchema } from "../config/config-template.js"
+import { renderActionTypeReference } from "./action-type.js"
+import type { ActionKind } from "../plugin/action-types.js"
+import { renderTemplateConfigSchema } from "../config/render-template.js"
+import { pMemoizeClearAll } from "../lib/p-memoize.js"
+import { makeDocsLinkOpts } from "./common.js"
+import { GardenApiVersion } from "../constants.js"
+import { actionKinds } from "../actions/types.js"
 
+import { fileURLToPath } from "node:url"
+
+const moduleDirName = dirname(fileURLToPath(import.meta.url))
 /* eslint-disable no-console */
 
 export async function generateDocs(targetDir: string, getPlugins: () => (GardenPluginSpec | GardenPluginReference)[]) {
@@ -66,15 +70,15 @@ export async function writeConfigReferenceDocs(
     { name: "pulumi" },
   ]
   const getFreshGarden = async () => {
-    return await Garden.factory(__dirname, {
+    return await Garden.factory(moduleDirName, {
       commandInfo: { name: "generate-docs", args: {}, opts: {} },
       config: {
-        path: __dirname,
+        path: moduleDirName,
         apiVersion: GardenApiVersion.v1,
         kind: "Project",
         name: "generate-docs",
         internal: {
-          basePath: __dirname,
+          basePath: moduleDirName,
         },
         defaultEnvironment,
         dotIgnoreFile: defaultDotIgnoreFile,

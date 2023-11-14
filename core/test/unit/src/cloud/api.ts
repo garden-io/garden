@@ -7,12 +7,12 @@
  */
 
 import { expect } from "chai"
-import { getRootLogger } from "../../../../src/logger/logger"
-import { gardenEnv } from "../../../../src/constants"
-import { CloudApi } from "../../../../src/cloud/api"
-import { uuidv4 } from "../../../../src/util/random"
-import { randomString } from "../../../../src/util/string"
-import { GlobalConfigStore } from "../../../../src/config-store/global"
+import { getRootLogger } from "../../../../src/logger/logger.js"
+import { gardenEnv } from "../../../../src/constants.js"
+import { CloudApi } from "../../../../src/cloud/api.js"
+import { uuidv4 } from "../../../../src/util/random.js"
+import { randomString } from "../../../../src/util/string.js"
+import { GlobalConfigStore } from "../../../../src/config-store/global.js"
 
 describe("CloudApi", () => {
   const log = getRootLogger().createLog()

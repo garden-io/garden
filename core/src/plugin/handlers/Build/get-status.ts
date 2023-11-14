@@ -6,13 +6,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { dedent } from "../../../util/string"
-import { actionParamsSchema, PluginBuildActionParamsBase } from "../../base"
-import { BuildAction } from "../../../actions/build"
-import { ActionTypeHandlerSpec } from "../base/base"
-import { actionStatusSchema } from "../../../actions/base"
-import { ActionStatus, ActionStatusMap, Resolved } from "../../../actions/types"
-import { createSchema, joi } from "../../../config/common"
+import { dedent } from "../../../util/string.js"
+import type { PluginBuildActionParamsBase } from "../../base.js"
+import { actionParamsSchema } from "../../base.js"
+import type { BuildAction } from "../../../actions/build.js"
+import { ActionTypeHandlerSpec } from "../base/base.js"
+import { actionStatusSchema } from "../../../actions/base.js"
+import type { ActionStatus, ActionStatusMap, Resolved } from "../../../actions/types.js"
+import { createSchema, joi } from "../../../config/common.js"
 
 /**
  * - `fetched`: The build was fetched from a repository instead of building.

@@ -6,19 +6,22 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { CommandError, ConfigurationError, CloudApiError, GardenError } from "../../../exceptions"
-import { CreateSecretResponse } from "@garden-io/platform-api-types"
-import { readFile } from "fs-extra"
+import { CommandError, ConfigurationError, CloudApiError, GardenError } from "../../../exceptions.js"
+import type { CreateSecretResponse } from "@garden-io/platform-api-types"
+import fsExtra from "fs-extra"
+const { readFile } = fsExtra
 
-import { printHeader } from "../../../logger/util"
-import { Command, CommandParams, CommandResult } from "../../base"
-import { ApiCommandError, handleBulkOperationResult, makeSecretFromResponse, noApiMsg, SecretResult } from "../helpers"
-import { dedent, deline } from "../../../util/string"
-import { IntegerParameter, PathParameter, StringParameter, StringsParameter } from "../../../cli/params"
-import { StringMap } from "../../../config/common"
-import dotenv = require("dotenv")
-import { getCloudDistributionName } from "../../../util/util"
-import { CloudProject } from "../../../cloud/api"
+import { printHeader } from "../../../logger/util.js"
+import type { CommandParams, CommandResult } from "../../base.js"
+import { Command } from "../../base.js"
+import type { ApiCommandError, SecretResult } from "../helpers.js"
+import { handleBulkOperationResult, makeSecretFromResponse, noApiMsg } from "../helpers.js"
+import { dedent, deline } from "../../../util/string.js"
+import { IntegerParameter, PathParameter, StringParameter, StringsParameter } from "../../../cli/params.js"
+import type { StringMap } from "../../../config/common.js"
+import dotenv from "dotenv"
+import { getCloudDistributionName } from "../../../util/util.js"
+import type { CloudProject } from "../../../cloud/api.js"
 
 export const secretsCreateArgs = {
   secrets: new StringsParameter({

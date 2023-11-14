@@ -7,7 +7,7 @@
  */
 
 import { expect } from "chai"
-import { DevCommand } from "../../../../src/commands/dev"
+import { DevCommand } from "../../../../src/commands/dev.js"
 
 // TODO-G2: rename test cases to match the new graph model semantics
 describe("DevCommand", () => {

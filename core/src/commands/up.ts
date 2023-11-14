@@ -6,25 +6,16 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import chalk from "chalk"
-import { Command, CommandParams, CommandResult } from "./base"
-import { dedent } from "../util/string"
-import { deployArgs, DeployCommand, deployOpts } from "./deploy"
-import { serveOpts } from "./serve"
-import type { LoggerType } from "../logger/logger"
-import { runAsDevCommand } from "./helpers"
+import type { CommandParams, CommandResult } from "./base.js"
+import { Command } from "./base.js"
+import { dedent } from "../util/string.js"
+import type { deployArgs, deployOpts } from "./deploy.js"
+import type { serveOpts } from "./serve.js"
+import type { LoggerType } from "../logger/logger.js"
+import { styles } from "../logger/styles.js"
 
-const upArgs = {
-  ...deployArgs,
-}
-
-const upOpts = {
-  ...deployOpts,
-  ...serveOpts,
-}
-
-type UpArgs = typeof upArgs
-type UpOpts = typeof upOpts
+type UpArgs = typeof deployArgs
+type UpOpts = typeof deployOpts & typeof serveOpts
 
 export class UpCommand extends Command<UpArgs, UpOpts> {
   name = "up"
@@ -34,9 +25,9 @@ export class UpCommand extends Command<UpArgs, UpOpts> {
   override description = dedent`
     Spin up your stack with the dev console and streaming logs.
 
-    This is basically an alias for ${chalk.cyanBright(
+    This is basically an alias for ${styles.highlight(
       "garden dev --cmd 'deploy --logs'"
-    )}, but you can add any arguments and flags supported by the ${chalk.cyanBright("deploy")} command as well.
+    )}, but you can add any arguments and flags supported by the ${styles.highlight("deploy")} command as well.
   `
 
   override getTerminalWriterType(): LoggerType {
@@ -44,7 +35,11 @@ export class UpCommand extends Command<UpArgs, UpOpts> {
   }
 
   async action(params: CommandParams<UpArgs, UpOpts>): Promise<CommandResult> {
+    const { DeployCommand } = await import("./deploy.js")
     if (!params.commandLine) {
+      // import here to avoid a circular dependency
+      const { runAsDevCommand } = await import("./helpers.js")
+
       // Then we start a dev command and run `deploy --logs` as the first interactive command.
       return runAsDevCommand("deploy --logs", params)
     }

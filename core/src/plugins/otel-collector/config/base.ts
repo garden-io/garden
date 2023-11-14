@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { sdk } from "../../../plugin/sdk"
+import { sdk } from "../../../plugin/sdk.js"
 
 const s = sdk.schema
 

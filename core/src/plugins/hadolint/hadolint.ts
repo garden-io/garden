@@ -7,21 +7,22 @@
  */
 
 import { join, resolve } from "path"
-import { pathExists, readFile } from "fs-extra"
-import { joi } from "../../config/common"
-import { dedent, splitLines, naturalList } from "../../util/string"
-import { STATIC_DIR } from "../../constants"
-import { padStart, padEnd } from "lodash"
-import chalk from "chalk"
-import { ConfigurationError, GardenError } from "../../exceptions"
-import { defaultDockerfileName } from "../container/config"
-import { baseBuildSpecSchema } from "../../config/module"
-import { getGitHubUrl } from "../../docs/common"
-import { TestAction, TestActionConfig } from "../../actions/test"
-import { mayContainTemplateString } from "../../template-string/template-string"
-import { BaseAction } from "../../actions/base"
-import { BuildAction } from "../../actions/build"
-import { sdk } from "../../plugin/sdk"
+import fsExtra from "fs-extra"
+const { pathExists, readFile } = fsExtra
+import { joi } from "../../config/common.js"
+import { dedent, splitLines, naturalList } from "../../util/string.js"
+import { STATIC_DIR } from "../../constants.js"
+import { padStart, padEnd } from "lodash-es"
+import { ConfigurationError, GardenError } from "../../exceptions.js"
+import { defaultDockerfileName } from "../container/config.js"
+import { baseBuildSpecSchema } from "../../config/module.js"
+import { getGitHubUrl } from "../../docs/common.js"
+import type { TestAction, TestActionConfig } from "../../actions/test.js"
+import { mayContainTemplateString } from "../../template-string/template-string.js"
+import type { BaseAction } from "../../actions/base.js"
+import type { BuildAction } from "../../actions/build.js"
+import { sdk } from "../../plugin/sdk.js"
+import { styles } from "../../logger/styles.js"
 
 const defaultConfigPath = join(STATIC_DIR, "hadolint", "default.hadolint.yaml")
 const configFilename = ".hadolint.yaml"
@@ -342,15 +343,15 @@ hadolintTest.addHandler("run", async ({ ctx, log, action }) => {
       `${formattedHeader}:\n\n` +
       parsed
         .map((msg: any) => {
-          const color = msg.level === "error" ? chalk.bold.red : chalk.bold.yellow
+          const color = msg.level === "error" ? styles.error.bold : styles.warning.bold
           const rawLine = dockerfileLines[msg.line - 1]
           const linePrefix = padEnd(`${msg.line}:`, 5, " ")
           const columnCursorPosition = (msg.column || 1) + linePrefix.length
 
           return dedent`
-          ${color(msg.code + ":")} ${chalk.bold(msg.message || "")}
-          ${linePrefix}${chalk.gray(rawLine)}
-          ${chalk.gray(padStart("^", columnCursorPosition, "-"))}
+          ${color(msg.code + ":")} ${styles.bold(msg.message || "")}
+          ${linePrefix}${styles.primary(rawLine)}
+          ${styles.primary(padStart("^", columnCursorPosition, "-"))}
         `
         })
         .join("\n")
@@ -363,7 +364,7 @@ hadolintTest.addHandler("run", async ({ ctx, log, action }) => {
   } else if (errors.length > 0 && threshold !== "none") {
     success = false
   } else if (warnings.length > 0) {
-    log.warn(chalk.yellow(formattedHeader))
+    log.warn(formattedHeader)
   }
 
   return {

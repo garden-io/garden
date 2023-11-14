@@ -6,8 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { pulumi } from "./cli"
-import { ProviderHandlers } from "@garden-io/sdk/build/src/types"
+import { pulumi } from "./cli.js"
+import type { ProviderHandlers } from "@garden-io/sdk/build/src/types.js"
 import {
   applyConfig,
   clearStackVersionTag,
@@ -19,13 +19,12 @@ import {
   getStackStatusFromTag,
   selectStack,
   setStackVersionTag,
-} from "./helpers"
-import { PulumiDeploy } from "./action"
-import { PulumiProvider } from "./provider"
-import chalk from "chalk"
-import { DeployActionHandlers } from "@garden-io/core/build/src/plugin/action-types"
-import { DeployState } from "@garden-io/core/build/src/types/service"
-import { deployStateToActionState } from "@garden-io/core/build/src/plugin/handlers/Deploy/get-status"
+} from "./helpers.js"
+import type { PulumiDeploy } from "./action.js"
+import type { PulumiProvider } from "./provider.js"
+import type { DeployActionHandlers } from "@garden-io/core/build/src/plugin/action-types.js"
+import type { DeployState } from "@garden-io/core/build/src/types/service.js"
+import { deployStateToActionState } from "@garden-io/core/build/src/plugin/handlers/Deploy/get-status.js"
 
 export const cleanupEnvironment: ProviderHandlers["cleanupEnvironment"] = async (_params) => {
   // To properly implement this handler, we'd need access to the config graph (or at least the list of pulumi services
@@ -124,7 +123,7 @@ export const deployPulumi: DeployActionHandlers<PulumiDeploy>["deploy"] = async 
 
 export const deletePulumiDeploy: DeployActionHandlers<PulumiDeploy>["delete"] = async ({ ctx, log, action }) => {
   if (!action.getSpec("allowDestroy")) {
-    log.warn(chalk.yellow(`${action.longDescription()} has allowDestroy = false. Skipping destroy.`))
+    log.warn(`${action.longDescription()} has allowDestroy = false. Skipping destroy.`)
     return {
       state: deployStateToActionState("outdated"),
       outputs: {},

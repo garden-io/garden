@@ -6,11 +6,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Log } from "../../../logger/log-entry"
-import { KubernetesProvider } from "../config"
-import { KubeApi } from "../api"
-import { KubernetesResource } from "../types"
-import { PluginContext } from "../../../plugin-context"
+import type { Log } from "../../../logger/log-entry.js"
+import type { KubernetesProvider } from "../config.js"
+import { KubeApi } from "../api.js"
+import type { KubernetesResource } from "../types.js"
+import type { PluginContext } from "../../../plugin-context.js"
 
 export async function isK3sFamilyCluster(ctx: PluginContext, provider: KubernetesProvider, log: Log): Promise<boolean> {
   return await isK3sFamilyClusterContext(ctx, provider, log)

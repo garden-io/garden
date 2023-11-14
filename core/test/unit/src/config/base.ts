@@ -16,17 +16,17 @@ import {
   validateRawConfig,
   configTemplateKind,
   loadAndValidateYaml,
-} from "../../../../src/config/base"
+} from "../../../../src/config/base.js"
 import { resolve, join } from "path"
-import { expectError, getDataDir, getDefaultProjectConfig } from "../../../helpers"
-import { DEFAULT_BUILD_TIMEOUT_SEC, GardenApiVersion } from "../../../../src/constants"
-import { defaultDotIgnoreFile } from "../../../../src/util/fs"
-import { safeDumpYaml } from "../../../../src/util/serialization"
-import { getRootLogger } from "../../../../src/logger/logger"
-import { ConfigurationError } from "../../../../src/exceptions"
-import { resetNonRepeatableWarningHistory } from "../../../../src/warnings"
-import { omit } from "lodash"
-import { dedent } from "../../../../src/util/string"
+import { expectError, getDataDir, getDefaultProjectConfig } from "../../../helpers.js"
+import { DEFAULT_BUILD_TIMEOUT_SEC, GardenApiVersion } from "../../../../src/constants.js"
+import { defaultDotIgnoreFile } from "../../../../src/util/fs.js"
+import { safeDumpYaml } from "../../../../src/util/serialization.js"
+import { getRootLogger } from "../../../../src/logger/logger.js"
+import { ConfigurationError } from "../../../../src/exceptions.js"
+import { resetNonRepeatableWarningHistory } from "../../../../src/warnings.js"
+import { omit } from "lodash-es"
+import { dedent } from "../../../../src/util/string.js"
 
 const projectPathA = getDataDir("test-project-a")
 const modulePathA = resolve(projectPathA, "module-a")

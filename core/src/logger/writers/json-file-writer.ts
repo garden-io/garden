@@ -8,10 +8,10 @@
 
 import stringify from "json-stringify-safe"
 import winston from "winston"
-import { LogEntry } from "../log-entry"
-import { LogLevel } from "../logger"
-import { formatForJson } from "../renderers"
-import { FileWriter, levelToStr } from "./file-writer"
+import type { LogEntry } from "../log-entry.js"
+import type { LogLevel } from "../logger.js"
+import { formatForJson } from "../renderers.js"
+import { FileWriter, levelToStr } from "./file-writer.js"
 
 export function renderAsJson(level: LogLevel, entry: LogEntry): string | null {
   if (level >= entry.level) {

@@ -7,18 +7,19 @@
  */
 
 import { expect } from "chai"
-import { find } from "lodash"
+import { find } from "lodash-es"
 import { resolve } from "path"
 
-import { runCli, getBundledPlugins } from "../../../src/cli"
-import { testRoot } from "../../helpers"
+import { runCli, getBundledPlugins } from "../../../src/cli.js"
+import { testRoot } from "../../helpers.js"
 
-import { projectRootA } from "@garden-io/core/build/test/helpers"
-import { TestGardenCli } from "@garden-io/core/build/test/helpers/cli"
-import { Command, CommandParams } from "@garden-io/core/build/src/commands/base"
-import { randomString } from "@garden-io/core/build/src/util/string"
-import { GlobalConfigStore } from "@garden-io/core/build/src/config-store/global"
-import { testFlags } from "@garden-io/core/build/src/util/util"
+import { projectRootA } from "@garden-io/core/build/test/helpers.js"
+import { TestGardenCli } from "@garden-io/core/build/test/helpers/cli.js"
+import type { CommandParams } from "@garden-io/core/build/src/commands/base.js"
+import { Command } from "@garden-io/core/build/src/commands/base.js"
+import { randomString } from "@garden-io/core/build/src/util/string.js"
+import { GlobalConfigStore } from "@garden-io/core/build/src/config-store/global.js"
+import { testFlags } from "@garden-io/core/build/src/util/util.js"
 
 describe("runCli", () => {
   const globalConfigStore = new GlobalConfigStore()

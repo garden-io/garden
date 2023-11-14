@@ -6,9 +6,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { createSchema, joi, joiIdentifier } from "../config/common"
-import { deline } from "../util/string"
-import { Architecture, Platform } from "../util/util"
+import { createSchema, joi, joiIdentifier } from "../config/common.js"
+import { deline } from "../util/string.js"
+import type { Architecture, Platform } from "../util/util.js"
 
 export interface ToolBuildSpec {
   platform: Platform

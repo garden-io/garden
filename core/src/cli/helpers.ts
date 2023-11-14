@@ -6,46 +6,50 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import chalk from "chalk"
-import ci = require("ci-info")
-import dotenv = require("dotenv")
-import { pathExists } from "fs-extra"
-import { range, sortBy, max, isEqual, mapValues, pickBy, memoize, indexOf } from "lodash"
+import ci from "ci-info"
+import dotenv from "dotenv"
+import fsExtra from "fs-extra"
+const { pathExists } = fsExtra
+import { range, sortBy, max, isEqual, mapValues, pickBy, memoize, indexOf } from "lodash-es"
 import moment from "moment"
 import { platform, release } from "os"
 import qs from "qs"
 import stringWidth from "string-width"
-import { maxBy, zip } from "lodash"
-import { Logger } from "../logger/logger"
+import { maxBy, zip } from "lodash-es"
+import type { Logger } from "../logger/logger.js"
 
-import { ParameterValues, Parameter, ParameterObject, globalDisplayOptions } from "./params"
-import { GardenError, ParameterError, RuntimeError, toGardenError } from "../exceptions"
-import { getPackageVersion, removeSlice } from "../util/util"
-import { Log } from "../logger/log-entry"
-import { STATIC_DIR, gardenEnv, ERROR_LOG_FILENAME } from "../constants"
-import { printWarningMessage } from "../logger/util"
-import { GlobalConfigStore } from "../config-store/global"
-import { got } from "../util/http"
-import minimist = require("minimist")
-import { renderTable, tablePresets, naturalList, deline } from "../util/string"
-import { globalOptions, GlobalOptions } from "./params"
-import { BuiltinArgs, Command, CommandGroup } from "../commands/base"
-import { DeepPrimitiveMap } from "../config/common"
-import { validateGitInstall } from "../vcs/vcs"
+import type { ParameterValues, Parameter, ParameterObject } from "./params.js"
+import { globalDisplayOptions } from "./params.js"
+import { GardenError, ParameterError, RuntimeError, toGardenError } from "../exceptions.js"
+import { getPackageVersion, removeSlice } from "../util/util.js"
+import type { Log } from "../logger/log-entry.js"
+import { STATIC_DIR, gardenEnv, ERROR_LOG_FILENAME } from "../constants.js"
+import { printWarningMessage } from "../logger/util.js"
+import type { GlobalConfigStore } from "../config-store/global.js"
+import { got } from "../util/http.js"
+import minimist from "minimist"
+import { renderTable, tablePresets, naturalList, deline } from "../util/string.js"
+import type { GlobalOptions } from "./params.js"
+import { globalOptions } from "./params.js"
+import type { BuiltinArgs, Command, CommandGroup } from "../commands/base.js"
+import type { DeepPrimitiveMap } from "../config/common.js"
+import { validateGitInstall } from "../vcs/vcs.js"
+import { styles } from "../logger/styles.js"
 
 export const cliStyles = {
-  heading: (str: string) => chalk.white.bold(str),
-  commandPlaceholder: () => chalk.blueBright("<command>"),
-  optionsPlaceholder: () => chalk.yellowBright("[options]"),
-  hints: (str: string) => chalk.gray(str),
+  heading: (str: string) => styles.accent.bold(str),
+  commandPlaceholder: () => styles.command("<command>"),
+  argumentsPlaceholder: () => styles.highlight("[arguments]"),
+  optionsPlaceholder: () => styles.warning("[options]"),
+  hints: (str: string) => styles.primary(str),
   usagePositional: (key: string, required: boolean, spread: boolean) => {
     if (spread) {
       key += " ..."
     }
 
-    return chalk.cyan(required ? `<${key}>` : `[${key}]`)
+    return styles.highlight(required ? `<${key}>` : `[${key}]`)
   },
-  usageOption: (str: string) => chalk.cyan(`<${str}>`),
+  usageOption: (str: string) => styles.highlight(`<${str}>`),
 }
 
 /**
@@ -250,7 +254,7 @@ export function processCliArgs<A extends ParameterObject, O extends ParameterObj
     // Ensure all required positional arguments are present
     if (!argVal) {
       if (spec.required) {
-        errors.push(`Missing required argument ${chalk.white.bold(argKey)}`)
+        errors.push(`Missing required argument ${styles.accent.bold(argKey)}`)
       }
 
       // Commands expect unused arguments to be explicitly set to undefined.
@@ -278,7 +282,8 @@ export function processCliArgs<A extends ParameterObject, O extends ParameterObj
     } else if (command.allowUndefinedArguments) {
       continue
     } else {
-      const expected = argKeys.length > 0 ? "only " + naturalList(argKeys.map((key) => chalk.white.bold(key))) : "none"
+      const expected =
+        argKeys.length > 0 ? "only " + naturalList(argKeys.map((key) => styles.accent.bold(key))) : "none"
 
       throw new ParameterError({
         message: `Unexpected positional argument "${argVal}" (expected ${expected})`,
@@ -298,7 +303,7 @@ export function processCliArgs<A extends ParameterObject, O extends ParameterObj
       }
     } catch (error) {
       throw new ParameterError({
-        message: `Invalid value for argument ${chalk.white.bold(argKey)}: ${error}`,
+        message: `Invalid value for argument ${styles.accent.bold(argKey)}: ${error}`,
       })
     }
   }
@@ -325,7 +330,7 @@ export function processCliArgs<A extends ParameterObject, O extends ParameterObj
     }
 
     const spec = optsWithAliases[key]
-    const flagStr = chalk.white.bold(key.length === 1 ? "-" + key : "--" + key)
+    const flagStr = styles.accent.bold(key.length === 1 ? "-" + key : "--" + key)
 
     if (!spec) {
       if (command.allowUndefinedArguments && value !== undefined) {
@@ -366,7 +371,7 @@ export function processCliArgs<A extends ParameterObject, O extends ParameterObj
 
   if (errors.length > 0) {
     throw new ParameterError({
-      message: chalk.red.bold(errors.join("\n")),
+      message: styles.error.bold(errors.join("\n")),
     })
   }
 
@@ -479,7 +484,7 @@ export function renderCommands(commands: Command[]) {
   }
 
   const rows = commands.map((command) => {
-    return [` ${chalk.cyan(command.getFullName())}`, command.help]
+    return [` ${styles.command(command.getFullName())}`, command.help]
   })
 
   const maxCommandLength = max(rows.map((r) => r[0]!.length))!
@@ -508,7 +513,7 @@ export function renderOptions(params: ParameterObject) {
     // Note: If there is more than one alias we don't actually want to print them all in help texts,
     // since generally they're there for backwards compatibility more than normal usage.
     const renderedAlias = renderAlias(param.aliases?.[0])
-    return chalk.green(` ${renderedAlias}--${name} `)
+    return styles.warning(` ${renderedAlias}--${name} `)
   })
 }
 
@@ -529,7 +534,7 @@ function renderParameters(params: ParameterObject, formatName: (name: string, pa
         hints += ` [default: ${param.defaultValue}]`
       }
     }
-    return out + chalk.gray(hints)
+    return out + styles.primary(hints)
   })
 
   const nameColWidth = stringWidth(maxBy(names, (n) => stringWidth(n)) || "") + 2

@@ -7,19 +7,20 @@
  */
 
 import { resolve } from "path"
-import dedent = require("dedent")
-import chalk from "chalk"
+import dedent from "dedent"
 
-import { ParameterError } from "../../exceptions"
-import { Command, CommandResult } from "../base"
-import { addLinkedSources } from "../../util/ext-source-util"
-import { LinkedSource } from "../../config-store/local"
-import { CommandParams } from "../base"
-import { printHeader } from "../../logger/util"
-import { joiArray, joi } from "../../config/common"
-import { linkedSourceSchema } from "../../config/project"
-import { StringParameter, PathParameter } from "../../cli/params"
-import { naturalList } from "../../util/string"
+import { ParameterError } from "../../exceptions.js"
+import type { CommandResult } from "../base.js"
+import { Command } from "../base.js"
+import { addLinkedSources } from "../../util/ext-source-util.js"
+import type { LinkedSource } from "../../config-store/local.js"
+import type { CommandParams } from "../base.js"
+import { printHeader } from "../../logger/util.js"
+import { joiArray, joi } from "../../config/common.js"
+import { linkedSourceSchema } from "../../config/project.js"
+import { StringParameter, PathParameter } from "../../cli/params.js"
+import { naturalList } from "../../util/string.js"
+import { styles } from "../../logger/styles.js"
 
 const linkSourceArguments = {
   source: new StringParameter({
@@ -77,7 +78,7 @@ export class LinkSourceCommand extends Command<Args> {
 
       throw new ParameterError({
         message: dedent`
-          Remote source ${chalk.underline(
+          Remote source ${styles.underline(
             sourceName
           )} not found in project config. Did you mean to use the "link module" command?${
             availableRemoteSources.length > 0

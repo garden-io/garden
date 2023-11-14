@@ -8,14 +8,16 @@
 
 import dedent from "dedent"
 
-import { Command, CommandResult, CommandParams } from "../base"
-import { updateRemoteSources } from "./sources"
-import { updateRemoteModules } from "./modules"
-import { SourceConfig, projectSourceSchema, moduleSourceSchema, actionSourceSchema } from "../../config/project"
-import { printHeader } from "../../logger/util"
-import { joi, joiArray } from "../../config/common"
-import { updateRemoteSharedOptions } from "./helpers"
-import { updateRemoteActions } from "./actions"
+import type { CommandResult, CommandParams } from "../base.js"
+import { Command } from "../base.js"
+import { updateRemoteSources } from "./sources.js"
+import { updateRemoteModules } from "./modules.js"
+import type { SourceConfig } from "../../config/project.js"
+import { projectSourceSchema, moduleSourceSchema, actionSourceSchema } from "../../config/project.js"
+import { printHeader } from "../../logger/util.js"
+import { joi, joiArray } from "../../config/common.js"
+import { updateRemoteSharedOptions } from "./helpers.js"
+import { updateRemoteActions } from "./actions.js"
 
 export interface UpdateRemoteAllResult {
   projectSources: SourceConfig[]

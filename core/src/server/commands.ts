@@ -6,46 +6,42 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { getLogLevelChoices, LogLevel } from "../logger/logger"
+import { getLogLevelChoices, LogLevel } from "../logger/logger.js"
 import stringArgv from "string-argv"
-import { Command, CommandParams, CommandResult, ConsoleCommand } from "../commands/base"
-import { createSchema, joi } from "../config/common"
-import { type Log } from "../logger/log-entry"
-import {
-  ParameterValues,
-  ChoicesParameter,
-  StringParameter,
-  StringsParameter,
-  GlobalOptions,
-  ParameterObject,
-} from "../cli/params"
-import { parseCliArgs, pickCommand, processCliArgs } from "../cli/helpers"
-import type { AutocompleteSuggestion } from "../cli/autocomplete"
-import { naturalList } from "../util/string"
-import { isMatch } from "micromatch"
-import type { GardenInstanceManager } from "./instance-manager"
-import { isDirectory } from "../util/fs"
-import { pathExists } from "fs-extra"
-import type { ProjectConfig } from "../config/project"
-import { findProjectConfig } from "../config/base"
-import type { GlobalConfigStore } from "../config-store/global"
+import type { Command, CommandParams, CommandResult } from "../commands/base.js"
+import { ConsoleCommand } from "../commands/base.js"
+import { createSchema, joi } from "../config/common.js"
+import { type Log } from "../logger/log-entry.js"
+import type { ParameterValues, GlobalOptions, ParameterObject } from "../cli/params.js"
+import { ChoicesParameter, StringParameter, StringsParameter } from "../cli/params.js"
+import { parseCliArgs, pickCommand, processCliArgs } from "../cli/helpers.js"
+import type { AutocompleteSuggestion } from "../cli/autocomplete.js"
+import { naturalList } from "../util/string.js"
+import micromatch from "micromatch"
+import type { GardenInstanceManager } from "./instance-manager.js"
+import { isDirectory } from "../util/fs.js"
+import fsExtra from "fs-extra"
+const { pathExists } = fsExtra
+import type { ProjectConfig } from "../config/project.js"
+import { findProjectConfig } from "../config/base.js"
+import type { GlobalConfigStore } from "../config-store/global.js"
 import type { ParsedArgs } from "minimist"
-import type { ServeCommand } from "../commands/serve"
-import { uuidv4 } from "../util/random"
-import type { GetSyncStatusResult } from "../plugin/handlers/Deploy/get-sync-status"
-import { getSyncStatuses } from "../commands/sync/sync-status"
-import { ActionStatusPayload } from "../events/action-status-events"
-import { BuildStatusForEventPayload } from "../plugin/handlers/Build/get-status"
-import { DeployStatusForEventPayload } from "../types/service"
-import { RunStatusForEventPayload } from "../plugin/plugin"
+import type { ServeCommand } from "../commands/serve.js"
+import { uuidv4 } from "../util/random.js"
+import type { GetSyncStatusResult } from "../plugin/handlers/Deploy/get-sync-status.js"
+import { getSyncStatuses } from "../commands/sync/sync-status.js"
+import type { ActionStatusPayload } from "../events/action-status-events.js"
+import type { BuildStatusForEventPayload } from "../plugin/handlers/Build/get-status.js"
+import type { DeployStatusForEventPayload } from "../types/service.js"
+import type { RunStatusForEventPayload } from "../plugin/plugin.js"
 import {
   getBuildStatusPayloads,
   getDeployStatusPayloads,
   getRunStatusPayloads,
   getTestStatusPayloads,
-} from "../actions/helpers"
+} from "../actions/helpers.js"
 import { z } from "zod"
-import { exec } from "../util/util"
+import { exec } from "../util/util.js"
 import split2 from "split2"
 import pProps from "p-props"
 
@@ -196,7 +192,7 @@ export class HideCommand extends ConsoleCommand<HideArgs> {
     const monitors = garden.monitors.getActive()
 
     for (const monitor of monitors) {
-      if (monitor && (!type || monitor.type === type) && isMatch(monitor.key(), names)) {
+      if (monitor && (!type || monitor.type === type) && micromatch.isMatch(monitor.key(), names)) {
         log.info(`Stopping ${monitor.description()}...`)
         garden.monitors.stop(monitor, log)
       }

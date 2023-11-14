@@ -1,4 +1,4 @@
-#!/usr/bin/env ts-node
+#!/usr/bin/env -S node --import ./scripts/register-hook.js
 /*
  * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
@@ -9,14 +9,18 @@
 
 /* eslint-disable no-console */
 
-import { writeFile } from "fs-extra"
-import { execSync } from "child_process"
-import { resolve } from "path"
-import { dedent } from "@garden-io/sdk/build/src/util/string"
-import { getChangelog } from "./changelog"
-import parseArgs = require("minimist")
+import fsExtra from "fs-extra"
+const { writeFile } = fsExtra
+import { execSync } from "node:child_process"
+import { dirname, resolve } from "node:path"
+import { dedent } from "@garden-io/sdk/build/src/util/string.js"
+import { getChangelog } from "./changelog.js"
+import parseArgs from "minimist"
+import { fileURLToPath } from "node:url"
 
-const gardenRoot = resolve(__dirname, "..")
+const moduleDirName = dirname(fileURLToPath(import.meta.url))
+
+const gardenRoot = resolve(moduleDirName, "..")
 
 function getContributors(prevReleaseTag: string, curReleaseTag: string) {
   try {

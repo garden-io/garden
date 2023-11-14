@@ -7,21 +7,21 @@
  */
 
 import { expect } from "chai"
-import { ResolvedBuildAction } from "../../../../src/actions/build"
-import { ActionKind, ActionModeMap } from "../../../../src/actions/types"
-import { configTemplateKind } from "../../../../src/config/base"
-import { joi } from "../../../../src/config/common"
-import { Log } from "../../../../src/logger/log-entry"
-import { createGardenPlugin } from "../../../../src/plugin/plugin"
-import { ResolveActionTask } from "../../../../src/tasks/resolve-action"
+import { ResolvedBuildAction } from "../../../../src/actions/build.js"
+import type { ActionKind, ActionModeMap } from "../../../../src/actions/types.js"
+import { configTemplateKind } from "../../../../src/config/base.js"
+import { joi } from "../../../../src/config/common.js"
+import type { Log } from "../../../../src/logger/log-entry.js"
+import { createGardenPlugin } from "../../../../src/plugin/plugin.js"
+import { ResolveActionTask } from "../../../../src/tasks/resolve-action.js"
+import type { TestGarden } from "../../../helpers.js"
 import {
-  TestGarden,
   makeTestGarden,
   getDataDir,
   expectError,
   getAllTaskResults,
   getDefaultProjectConfig,
-} from "../../../helpers"
+} from "../../../helpers.js"
 
 describe("ResolveActionTask", () => {
   let garden: TestGarden

@@ -7,17 +7,11 @@
  */
 
 import { join } from "path"
-import {
-  ActionReference,
-  createSchema,
-  includeGuideLink,
-  joi,
-  joiSparseArray,
-  joiUserIdentifier,
-} from "../config/common"
-import { ActionConfigContext } from "../config/template-contexts/actions"
-import type { GraphResult, GraphResults } from "../graph/results"
-import { dedent } from "../util/string"
+import type { ActionReference } from "../config/common.js"
+import { createSchema, includeGuideLink, joi, joiSparseArray, joiUserIdentifier } from "../config/common.js"
+import { ActionConfigContext } from "../config/template-contexts/actions.js"
+import type { GraphResult, GraphResults } from "../graph/results.js"
+import { dedent } from "../util/string.js"
 import type {
   BaseActionConfig,
   ResolvedActionWrapperParams,
@@ -27,22 +21,16 @@ import type {
   ExecutedAction,
   ResolvedAction,
   GetOutputValueType,
-} from "./types"
-import {
-  baseActionConfigSchema,
-  BaseAction,
-  includeExcludeSchema,
-  actionReferenceToString,
-  ResolvedActionExtension,
-  ExecutedActionExtension,
-} from "./base"
-import { ResolvedConfigGraph } from "../graph/config-graph"
-import { ActionVersion } from "../vcs/vcs"
+} from "./types.js"
+import type { ResolvedActionExtension, ExecutedActionExtension } from "./base.js"
+import { baseActionConfigSchema, BaseAction, includeExcludeSchema, actionReferenceToString } from "./base.js"
+import type { ResolvedConfigGraph } from "../graph/config-graph.js"
+import type { ActionVersion } from "../vcs/vcs.js"
 import { Memoize } from "typescript-memoize"
-import { DEFAULT_BUILD_TIMEOUT_SEC } from "../constants"
-import { createBuildTask } from "../tasks/build"
-import { BaseActionTaskParams, ExecuteTask } from "../tasks/base"
-import { ResolveActionTask } from "../tasks/resolve-action"
+import { DEFAULT_BUILD_TIMEOUT_SEC } from "../constants.js"
+import { createBuildTask } from "../tasks/build.js"
+import type { BaseActionTaskParams, ExecuteTask } from "../tasks/base.js"
+import { ResolveActionTask } from "../tasks/resolve-action.js"
 
 export interface BuildCopyFrom {
   build: string

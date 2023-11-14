@@ -7,20 +7,15 @@
  */
 
 import { join } from "path"
-import {
-  expectError,
-  withDefaultGlobalOpts,
-  cleanProject,
-  TestGarden,
-  makeTestGarden,
-  getDataDir,
-} from "../../../../helpers"
-import { GetRunResultCommand } from "../../../../../src/commands/get/get-run-result"
+import type { TestGarden } from "../../../../helpers.js"
+import { expectError, withDefaultGlobalOpts, cleanProject, makeTestGarden, getDataDir } from "../../../../helpers.js"
+import { GetRunResultCommand } from "../../../../../src/commands/get/get-run-result.js"
 import { expect } from "chai"
-import { Log } from "../../../../../src/logger/log-entry"
-import { getArtifactKey } from "../../../../../src/util/artifacts"
-import { writeFile } from "fs-extra"
-import { GetRunResult } from "../../../../../src/plugin/handlers/Run/get-result"
+import type { Log } from "../../../../../src/logger/log-entry.js"
+import { getArtifactKey } from "../../../../../src/util/artifacts.js"
+import fsExtra from "fs-extra"
+const { writeFile } = fsExtra
+import type { GetRunResult } from "../../../../../src/plugin/handlers/Run/get-result.js"
 
 const now = new Date()
 

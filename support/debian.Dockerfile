@@ -2,8 +2,9 @@
 # Defaults to root.
 ARG VARIANT=root
 
-# Node base image
-FROM node:18.15.0-buster-slim@sha256:8fc14971a14387a8b2cbeeddbd2298f73d8e2346dc24648096ca24e57e1d31f4 as garden-buster-base-root
+# NOTE: This is not the node version Garden itself will run in. Garden binaries have node "built in" and the version installed on the system does not matter.
+# The main reason we base these images off of the Node image is for Azure DevOps Support.
+FROM node:20.9.0-buster-slim@sha256:11efdfc01506ac049c33b0f615a7ca84225ce812d93c66be735b6fce44a86fda as garden-buster-base-root
 
 FROM garden-buster-base-root as garden-base-root
 # system dependencies
@@ -56,9 +57,10 @@ FROM garden-base-$VARIANT as garden-base
 # Note: This Dockerfile is run with dist/linux-amd64 as the context root
 ADD --chown=$USER:root . /garden
 ENV PATH /garden:$PATH
-RUN cd /garden/static && git init
+# Make sure we run garden once so that it extracts all the binaries already
 
 WORKDIR $HOME
+RUN GARDEN_DISABLE_ANALYTICS=true GARDEN_SEA_DEBUG=1 garden --help > /dev/null
 RUN GARDEN_DISABLE_ANALYTICS=true GARDEN_DISABLE_VERSION_CHECK=true garden util fetch-tools --all --garden-image-build
 
 WORKDIR /project
@@ -83,7 +85,7 @@ ENV GCLOUD_VERSION=444.0.0
 ENV GCLOUD_SHA256="cc76b9b40508253f812af5e52d4630e90230312969eece04ccfb5328c557acac"
 
 RUN curl -O https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-${GCLOUD_VERSION}-linux-x86_64.tar.gz
-RUN echo "${GCLOUD_SHA256}  google-cloud-cli-${GCLOUD_VERSION}-linux-x86_64.tar.gz" | sha256sum -c 
+RUN echo "${GCLOUD_SHA256}  google-cloud-cli-${GCLOUD_VERSION}-linux-x86_64.tar.gz" | sha256sum -c
 RUN tar -xf google-cloud-cli-${GCLOUD_VERSION}-linux-x86_64.tar.gz
 RUN ./google-cloud-sdk/install.sh --quiet
 RUN ./google-cloud-sdk/bin/gcloud components install kubectl gke-gcloud-auth-plugin --quiet

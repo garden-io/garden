@@ -6,8 +6,16 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { IncomingMessage } from "http"
-import { ReadStream } from "tty"
+import type { ReadStream } from "tty"
+import type {
+  ApiType,
+  AuthMethodsConfiguration,
+  Configuration,
+  KubernetesObject,
+  V1APIGroup,
+  V1APIResource,
+  V1APIVersions,
+} from "@kubernetes/client-node"
 import {
   ApiextensionsV1Api,
   ApisApi,
@@ -16,46 +24,53 @@ import {
   CoreV1Api,
   Exec,
   KubeConfig,
-  KubernetesObject,
   Log as K8sLog,
   NetworkingV1Api,
   PolicyV1Api,
   RbacAuthorizationV1Api,
-  V1APIGroup,
-  V1APIResource,
-  V1APIVersions,
   V1Deployment,
   V1Secret,
   V1Service,
+  V1ServiceAccount,
+  ServerConfiguration,
+  createConfiguration,
 } from "@kubernetes/client-node"
 import { load } from "js-yaml"
-import { readFile } from "fs-extra"
-import WebSocket from "isomorphic-ws"
+import fsExtra from "fs-extra"
+const { readFile } = fsExtra
+import type WebSocket from "isomorphic-ws"
 import pRetry from "p-retry"
-import { Omit, StringCollector } from "../../util/util"
-import { flatten, isPlainObject, keyBy } from "lodash"
-import { ConfigurationError, GardenError, GardenErrorParams, RuntimeError } from "../../exceptions"
-import {
+import { StringCollector } from "../../util/util.js"
+import { flatten, keyBy } from "lodash-es"
+import type { GardenErrorParams, NodeJSErrnoException } from "../../exceptions.js"
+import { ConfigurationError, GardenError, InternalError, RuntimeError } from "../../exceptions.js"
+import type {
   BaseResource,
   KubernetesList,
   KubernetesPod,
   KubernetesResource,
   KubernetesServerList,
   KubernetesServerResource,
-} from "./types"
-import { Log } from "../../logger/log-entry"
-import { kubectl } from "./kubectl"
-import { urlJoin } from "../../util/string"
-import { KubernetesProvider } from "./config"
-import { StringMap } from "../../config/common"
-import { PluginContext } from "../../plugin-context"
-import { PassThrough, Readable, Writable } from "stream"
-import { getExecExitCode } from "./status/pod"
-import { labelSelectorToString } from "./util"
-import { safeDumpYaml } from "../../util/serialization"
+} from "./types.js"
+import type { Log } from "../../logger/log-entry.js"
+import { kubectl } from "./kubectl.js"
+import type { KubernetesProvider } from "./config.js"
+import type { StringMap } from "../../config/common.js"
+import type { PluginContext } from "../../plugin-context.js"
+import type { Readable, Writable } from "stream"
+import { PassThrough } from "stream"
+import { getExecExitCode } from "./status/pod.js"
+import { labelSelectorToString } from "./util.js"
+import { safeDumpYaml } from "../../util/serialization.js"
 import AsyncLock from "async-lock"
-import { requestWithRetry, RetryOpts, toKubernetesError } from "./retry"
-import request = require("request-promise")
+import type { RetryOpts } from "./retry.js"
+import { requestWithRetry, toKubernetesError } from "./retry.js"
+import type { Response, RequestInit } from "node-fetch"
+import fetch, { FetchError } from "node-fetch"
+import type { RequestOptions } from "http"
+import https from "node:https"
+import http from "node:http"
+import { ProxyAgent } from "proxy-agent"
 
 interface ApiGroupMap {
   [groupVersion: string]: V1APIGroup
@@ -115,6 +130,15 @@ const crudMap = {
     delete: "deleteNamespacedService",
     patch: "patchNamespacedService",
   },
+  ServiceAccount: {
+    cls: new V1ServiceAccount(),
+    group: "core",
+    read: "readNamespacedServiceAccount",
+    create: "createNamespacedServiceAccount",
+    replace: "replaceNamespacedServiceAccount",
+    delete: "deleteNamespacedServiceAccount",
+    patch: "patchNamespacedServiceAccount",
+  },
 }
 
 type CrudMap = typeof crudMap
@@ -154,7 +178,7 @@ type WrappedList<T extends List> = T["items"] extends Array<infer V extends Base
 type WrappedApi<T> = {
   // Wrap each API method
   [P in keyof T]:
-  T[P] extends (...args: infer A) => Promise<{ response: IncomingMessage; body: infer U }>
+  T[P] extends (...args: infer A) => Promise<infer U>
     ? (
       // If so we wrap it and return the `body` part of the output directly and...
       // If it's a list, we cast to a KubernetesServerList, which in turn wraps the array type
@@ -206,6 +230,63 @@ async function nullIfNotFound<T>(fn: () => Promise<T>) {
   }
 }
 
+/**
+ * The ProxyAgent class ensures that HTTP_PROXY, NO_PROXY and HTTPS_PROXY environment variables are respected.
+ *
+ * @param agent http.Agent | https.Agent | undefined
+ * @returns ProxyAgent
+ */
+async function createProxyAgent(agent: RequestInit["agent"]): Promise<ProxyAgent> {
+  if (agent instanceof https.Agent) {
+    return new ProxyAgent(agent.options)
+  } else if (agent instanceof http.Agent || agent === undefined) {
+    // no options to apply
+    return new ProxyAgent()
+  } else {
+    throw new InternalError({ message: `createProxyAgent: Unhandled agent type: ${agent}` })
+  }
+}
+
+type ApiConstructor<T extends ApiType> = new (config: Configuration) => T
+
+function makeApiClient<T extends ApiType>(kubeConfig: KubeConfig, apiClientType: ApiConstructor<T>): T {
+  const cluster = kubeConfig.getCurrentCluster()
+  if (!cluster) {
+    throw new InternalError({ message: "No active cluster" })
+  }
+  const authConfig: AuthMethodsConfiguration = {
+    default: kubeConfig,
+  }
+  const baseServerConfig: ServerConfiguration<{}> = new ServerConfiguration<{}>(cluster.server, {})
+  const config: Configuration = createConfiguration({
+    baseServer: baseServerConfig,
+    authMethods: authConfig,
+    promiseMiddleware: [
+      {
+        pre: async (context) => {
+          // patch the patch bug... (https://github.com/kubernetes-client/javascript/issues/19)
+          // See also https://github.com/kubernetes-client/javascript/pull/1341 (That's why we have to use the fork)
+          if (context.getHttpMethod() === "PATCH") {
+            // this does not work because it lowercases the header param:
+            // context.setHeaderParam("Content-Type", "application/merge-patch+json")
+            context["headers"]["Content-Type"] = "application/merge-patch+json"
+          }
+
+          const agent = await createProxyAgent(context.getAgent())
+          context.setAgent(agent)
+
+          return context
+        },
+        post: async (context) => context,
+      },
+    ],
+  })
+
+  const apiClient = new apiClientType(config)
+
+  return apiClient
+}
+
 export class KubeApi {
   public apis: WrappedApi<ApisApi>
   public apps: WrappedApi<AppsV1Api>
@@ -229,14 +310,16 @@ export class KubeApi {
       })
     }
 
-    this.apis = this.wrapApi(log, new ApisApi(cluster.server), this.config)
-    this.apps = this.wrapApi(log, new AppsV1Api(cluster.server), this.config)
-    this.core = this.wrapApi(log, new CoreV1Api(cluster.server), this.config)
-    this.coreApi = this.wrapApi(log, new CoreApi(cluster.server), this.config)
-    this.extensions = this.wrapApi(log, new ApiextensionsV1Api(cluster.server), this.config)
-    this.networking = this.wrapApi(log, new NetworkingV1Api(cluster.server), this.config)
-    this.policy = this.wrapApi(log, new PolicyV1Api(cluster.server), this.config)
-    this.rbac = this.wrapApi(log, new RbacAuthorizationV1Api(cluster.server), this.config)
+    this.apis = this.wrapApi(log, makeApiClient(config, ApisApi))
+
+    this.apis = this.wrapApi(log, makeApiClient(config, ApisApi))
+    this.apps = this.wrapApi(log, makeApiClient(config, AppsV1Api))
+    this.core = this.wrapApi(log, makeApiClient(config, CoreV1Api))
+    this.coreApi = this.wrapApi(log, makeApiClient(config, CoreApi))
+    this.extensions = this.wrapApi(log, makeApiClient(config, ApiextensionsV1Api))
+    this.networking = this.wrapApi(log, makeApiClient(config, NetworkingV1Api))
+    this.policy = this.wrapApi(log, makeApiClient(config, PolicyV1Api))
+    this.rbac = this.wrapApi(log, makeApiClient(config, RbacAuthorizationV1Api))
   }
 
   static async factory(log: Log, ctx: PluginContext, provider: KubernetesProvider) {
@@ -310,9 +393,10 @@ export class KubeApi {
 
         try {
           const res = await this.request({ log, path: getGroupBasePath(apiVersion) })
+          const body = (await res.json()) as any
 
           // We're only interested in the entities themselves, not the sub-resources
-          const resources = res.body.resources.filter((r: any) => !r.name.includes("/"))
+          const resources = body.resources.filter((r: any) => !r.name.includes("/"))
 
           apiResources[apiVersion] = keyBy(resources, "kind")
           return apiResources[apiVersion]
@@ -340,33 +424,80 @@ export class KubeApi {
   }: {
     log: Log
     path: string
-    opts?: Omit<request.OptionsWithUrl, "url">
+    opts?: { body?: any; method?: string; query?: Record<string, string> }
     retryOpts?: RetryOpts
-  }): Promise<any> {
+  }): Promise<Response> {
     const baseUrl = this.config.getCurrentCluster()!.server
-    const url = urlJoin(baseUrl, path)
+    const url = new URL(path, baseUrl)
 
-    // set some default values
-    const requestOpts = {
-      url,
-      method: "get",
-      json: true,
-      resolveWithFullResponse: true,
-      ...opts,
+    for (const [key, value] of Object.entries(opts.query ?? {})) {
+      url.searchParams.set(key, value)
     }
 
-    // apply auth
-    await this.config.applyToRequest(requestOpts)
-
-    const context = `Kubernetes API: ${path}`
+    const context = `Kubernetes API: ${url}`
     return await requestWithRetry(
       log,
       context,
       async () => {
+        // set some default values
+        const requestOptions: RequestOptions & { method: string } = {
+          method: opts.method ?? "GET",
+        }
+
+        // apply auth
+        const fetchOptions = await this.config.applyToFetchOptions(requestOptions)
+
+        if (opts.body) {
+          fetchOptions.body = JSON.stringify(opts.body)
+          // We can't use instanceof, because the kubernetes client uses a different version of node-fetch
+          if (typeof fetchOptions.headers?.["set"] !== "function") {
+            // The kubernetes client library returns Headers instance, instead of a plain object (the type is wrong)
+            // might change when we update the library in the future, hence the internal error.
+            throw new InternalError({ message: `Expected Headers instance, got ${fetchOptions.headers}` })
+          }
+          ;(fetchOptions.headers as unknown as Headers).set("content-type", "application/json")
+        }
+
+        fetchOptions.agent = await createProxyAgent(fetchOptions.agent)
+
         try {
-          log.silly(`${requestOpts.method.toUpperCase()} ${url}`)
-          return await request(requestOpts)
+          log.silly(`${requestOptions.method.toUpperCase()} ${url}`)
+          const response = await fetch(url, fetchOptions)
+
+          if (response.status >= 400) {
+            const body = (await response.text()) as any
+            let message: string
+            try {
+              const parsedBody = JSON.parse(body)
+              message = parsedBody.message
+            } catch (err) {
+              if (err instanceof SyntaxError) {
+                message = body
+              } else {
+                throw err
+              }
+            }
+            throw new KubernetesError({
+              message: `Request failed with response code ${response.status}: ${context}. Message from the API: ${message}`,
+              responseStatusCode: response.status,
+              apiMessage: message,
+            })
+          }
+
+          return response
         } catch (err) {
+          if (err instanceof FetchError) {
+            if (err.cause) {
+              throw toKubernetesError(err.cause, context)
+            } else {
+              throw new KubernetesError({
+                message: `Request failed: ${context}: ${err.message}`,
+                code: err.code as NodeJSErrnoException["code"],
+              })
+            }
+          }
+
+          // use toKubernetesError for all other errors
           throw toKubernetesError(err, context)
         }
       },
@@ -390,7 +521,8 @@ export class KubeApi {
     const apiPath = typePath + "/" + name
 
     const res = await this.request({ log, path: apiPath })
-    return res.body as KubernetesResource
+    const body = (await res.json()) as KubernetesResource
+    return body
   }
 
   async readOrNull(params: ReadParams): Promise<KubernetesResource | null> {
@@ -406,7 +538,8 @@ export class KubeApi {
     const apiPath = await this.getResourceApiPathFromManifest({ manifest, log, namespace })
 
     const res = await this.request({ log, path: apiPath })
-    return res.body as KubernetesResource
+    const body = (await res.json()) as KubernetesResource
+    return body
   }
 
   /**
@@ -432,8 +565,12 @@ export class KubeApi {
     const apiPath = await this.getResourceTypeApiPath({ log, apiVersion, kind, namespace })
     const labelSelectorString = labelSelector ? labelSelectorToString(labelSelector) : undefined
 
-    const res = await this.request({ log, path: apiPath, opts: { qs: { labelSelector: labelSelectorString } } })
-    const list = res.body as KubernetesList<T>
+    const res = await this.request({
+      log,
+      path: apiPath,
+      opts: { query: labelSelectorString ? { labelSelector: labelSelectorString } : undefined },
+    })
+    const list = (await res.json()) as KubernetesList<T>
 
     // This fixes an odd issue where apiVersion and kind are sometimes missing from list items coming from the API :/
     list.items = list.items.map((r) => ({
@@ -503,7 +640,7 @@ export class KubeApi {
     const apiPath = await this.getResourceApiPathFromManifest({ manifest: resource, log, namespace })
 
     const res = await this.request({ log, path: apiPath, opts: { method: "put", body: resource } })
-    return res.body
+    return res
   }
 
   /**
@@ -624,12 +761,12 @@ export class KubeApi {
     log.debug(`Upserting ${kind} ${namespace}/${name}`)
 
     const replace = async () => {
-      await api[crudMap[kind].read](name, namespace)
+      await api[crudMap[kind].read]({ name, namespace })
       if (api[crudMap[kind].replace]) {
-        await api[crudMap[kind].replace](name, namespace, obj)
+        await api[crudMap[kind].replace]({ name, namespace, body: obj })
         log.debug(`Replaced ${kind} ${namespace}/${name}`)
       } else {
-        await api[crudMap[kind].patch](name, namespace, obj)
+        await api[crudMap[kind].patch]({ name, namespace, body: obj })
         log.debug(`Patched ${kind} ${namespace}/${name}`)
       }
     }
@@ -642,7 +779,7 @@ export class KubeApi {
       }
       if (replaceError.responseStatusCode === 404) {
         try {
-          await api[crudMap[kind].create](namespace, <any>obj)
+          await api[crudMap[kind].create]({ namespace, body: <any>obj })
           log.debug(`Created ${kind} ${namespace}/${name}`)
         } catch (createError) {
           if (!(createError instanceof KubernetesError)) {
@@ -663,9 +800,7 @@ export class KubeApi {
   /**
    * Wrapping the API objects to deal with bugs.
    */
-  private wrapApi<T extends K8sApi>(log: Log, api: T, config: KubeConfig): WrappedApi<T> {
-    api.setDefaultAuthentication(config)
-
+  private wrapApi<T extends K8sApi>(log: Log, api: T): WrappedApi<T> {
     return new Proxy(api, {
       get: (target: T, name: string, receiver) => {
         if (!(name in Object.getPrototypeOf(target))) {
@@ -674,35 +809,24 @@ export class KubeApi {
         }
 
         return (...args: any[]) => {
-          const defaultHeaders = target["defaultHeaders"]
-
-          if (name.startsWith("patch")) {
-            // patch the patch bug... (https://github.com/kubernetes-client/javascript/issues/19)
-            target["defaultHeaders"] = { ...defaultHeaders, "content-type": "application/merge-patch+json" }
-          }
-
           return requestWithRetry(log, `Kubernetes API: ${name}`, () => {
             const output = target[name](...args)
-            target["defaultHeaders"] = defaultHeaders
 
             if (typeof output.then === "function") {
               return (
                 output
                   // return the result body directly if applicable
                   .then((res: any) => {
-                    if (isPlainObject(res) && res.hasOwnProperty("body")) {
-                      // inexplicably, this API sometimes returns apiVersion and kind as undefined...
-                      if (name === "listNamespacedPod" && res.body.items) {
-                        res.body.items = res.body.items.map((pod: any) => {
-                          pod.apiVersion = "v1"
-                          pod.kind = "Pod"
-                          return pod
-                        })
-                      }
-                      return res["body"]
-                    } else {
-                      return res
+                    // inexplicably, this API sometimes returns apiVersion and kind as undefined...
+                    if (name === "listNamespacedPod" && res !== undefined && res.kind === "PodList") {
+                      res.items = res.items.map((pod: any) => {
+                        pod.apiVersion = "v1"
+                        pod.kind = "Pod"
+                        return pod
+                      })
                     }
+
+                    return res
                   })
                   // the API errors are not properly formed Error objects
                   .catch((err: Error) => {
@@ -869,7 +993,7 @@ export class KubeApi {
   async createPod(namespace: string, pod: KubernetesPod) {
     await pRetry(
       async () => {
-        await this.core.createNamespacedPod(namespace, pod)
+        await this.core.createNamespacedPod({ namespace, body: pod })
       },
       {
         retries: 3,

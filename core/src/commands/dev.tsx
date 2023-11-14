@@ -6,24 +6,24 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { CommandResult, CommandParams, ConsoleCommand } from "./base"
-import { renderDivider } from "../logger/util"
+import { CommandResult, CommandParams, ConsoleCommand } from "./base.js"
+import { renderDivider } from "../logger/util.js"
 import React, { FC, useState } from "react"
 import { Box, render, Text, useInput, useStdout } from "ink"
-import { serveArgs, ServeCommand, serveOpts } from "./serve"
-import { LoggerType } from "../logger/logger"
-import { ParameterError, toGardenError } from "../exceptions"
-import { InkTerminalWriter } from "../logger/writers/ink-terminal-writer"
-import { CommandLine } from "../cli/command-line"
-import chalk from "chalk"
-import { globalOptions, StringsParameter } from "../cli/params"
-import { pick } from "lodash"
-import Divider from "ink-divider"
+import { serveArgs, ServeCommand, serveOpts } from "./serve.js"
+import { LoggerType } from "../logger/logger.js"
+import { ParameterError, toGardenError } from "../exceptions.js"
+import { InkTerminalWriter } from "../logger/writers/ink-terminal-writer.js"
+import { CommandLine } from "../cli/command-line.js"
+import { globalOptions, StringsParameter } from "../cli/params.js"
+import { pick } from "lodash-es"
 import moment from "moment"
-import { dedent } from "../util/string"
+import { dedent } from "../util/string.js"
 import Spinner from "ink-spinner"
-import type { Log } from "../logger/log-entry"
-import { bindActiveContext } from "../util/open-telemetry/context"
+import type { Log } from "../logger/log-entry.js"
+import { bindActiveContext } from "../util/open-telemetry/context.js"
+import Divider from "../util/ink-divider.js"
+import { styles } from "../logger/styles.js"
 
 const devCommandArgs = {
   ...serveArgs,
@@ -58,17 +58,17 @@ export class DevCommand extends ServeCommand<DevCommandArgs, DevCommandOpts> {
     console.clear()
 
     log.info(
-      chalk.magenta(`
-${renderDivider({ color: chalk.green, title: chalk.green.bold("🌳  garden dev 🌳 "), width })}
+      styles.highlightSecondary(`
+${renderDivider({ color: styles.success, title: styles.success.bold("🌳  garden dev 🌳 "), width })}
 
-${chalk.bold(`Good ${getGreetingTime()}! Welcome to the Garden interactive development console.`)}
+${styles.bold(`Good ${getGreetingTime()}! Welcome to the Garden interactive development console.`)}
 
-Here, you can ${chalk.white("build")}, ${chalk.white("deploy")}, ${chalk.white("test")} and ${chalk.white(
+Here, you can ${styles.accent("build")}, ${styles.accent("deploy")}, ${styles.accent("test")} and ${styles.accent(
         "run"
       )} anything in your project, start code syncing, stream live logs and more.
 
-Use the command line below to enter Garden commands. Type ${chalk.white("help")} to get a full list of commands.
-Use ${chalk.bold("up/down")} arrow keys to scroll through your command history.
+Use the command line below to enter Garden commands. Type ${styles.accent("help")} to get a full list of commands.
+Use ${styles.bold("up/down")} arrow keys to scroll through your command history.
     `)
     )
   }
@@ -93,7 +93,9 @@ Use ${chalk.bold("up/down")} arrow keys to scroll through your command history.
     if (terminalWriter.type === "ink") {
       inkWriter = terminalWriter as InkTerminalWriter
     } else {
-      throw new ParameterError({ message: `This command can only be used with the ink logger type. Got type ${terminalWriter.type}.` })
+      throw new ParameterError({
+        message: `This command can only be used with the ink logger type. Got type ${terminalWriter.type}.`,
+      })
     }
 
     const commandLine = await this.initCommandHandler(params)
@@ -118,9 +120,11 @@ Use ${chalk.bold("up/down")} arrow keys to scroll through your command history.
         },
       })
 
-      useInput(bindActiveContext((input, key) => {
-        commandLine.handleInput(input, key)
-      }))
+      useInput(
+        bindActiveContext((input, key) => {
+          commandLine.handleInput(input, key)
+        })
+      )
 
       const width = stdout ? stdout.columns - 2 : 50
 
@@ -176,7 +180,7 @@ Use ${chalk.bold("up/down")} arrow keys to scroll through your command history.
       log.error(`Failed loading the project: ${error}`)
       log.error({ error: toGardenError(error) })
       this.commandLine?.flashError(
-        `Failed loading the project. See above logs for details. Type ${chalk.white("reload")} to try again.`
+        `Failed loading the project. See above logs for details. Type ${styles.accent("reload")} to try again.`
       )
     } finally {
       this.commandLine?.enable()
@@ -207,7 +211,7 @@ Use ${chalk.bold("up/down")} arrow keys to scroll through your command history.
       // We ensure that the process exits at most 5 seconds after a SIGINT / ctrl-c.
       setTimeout(() => {
         // eslint-disable-next-line no-console
-        console.error(chalk.red("\nTimed out waiting for Garden to exit. This is a bug, please report it!"))
+        console.error(styles.error("\nTimed out waiting for Garden to exit. This is a bug, please report it!"))
         process.exit(1)
       }, 5000)
 
@@ -215,13 +219,11 @@ Use ${chalk.bold("up/down")} arrow keys to scroll through your command history.
         .emitWarning({
           log,
           key: "dev-syncs-active",
-          message: chalk.yellow(
-            `Syncs started during this session may still be active when this command terminates. You can run ${chalk.white(
-              "garden sync stop '*'"
-            )} to stop all code syncs. Hint: To stop code syncing when exiting ${chalk.white(
-              "garden dev"
-            )}, use ${chalk.white("Ctrl-D")} or the ${chalk.white(`exit`)} command.`
-          ),
+          message: `Syncs started during this session may still be active when this command terminates. You can run ${styles.accent(
+            "garden sync stop '*'"
+          )} to stop all code syncs. Hint: To stop code syncing when exiting ${styles.accent(
+            "garden dev"
+          )}, use ${styles.accent("Ctrl-D")} or the ${styles.accent(`exit`)} command.`,
         })
         .catch(() => {})
         .finally(() => quit())
@@ -277,7 +279,7 @@ class QuietCommand extends ConsoleCommand {
   override hidden = true
 
   async action({ commandLine }: CommandParams) {
-    commandLine?.flashMessage(chalk.italic("Shh!"), { prefix: "🤫  " })
+    commandLine?.flashMessage(styles.italic("Shh!"), { prefix: "🤫  " })
     return {}
   }
 }
@@ -288,7 +290,7 @@ class QuiteCommand extends ConsoleCommand {
   override hidden = true
 
   async action({ commandLine }: CommandParams) {
-    commandLine?.flashMessage(chalk.italic("Indeed!"), { prefix: "🎩  " })
+    commandLine?.flashMessage(styles.italic("Indeed!"), { prefix: "🎩  " })
     return {}
   }
 }

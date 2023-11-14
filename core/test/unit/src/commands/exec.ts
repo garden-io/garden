@@ -7,8 +7,8 @@
  */
 
 import { expect } from "chai"
-import { ExecCommand } from "../../../../src/commands/exec"
-import { makeTestGardenA, withDefaultGlobalOpts } from "../../../helpers"
+import { ExecCommand } from "../../../../src/commands/exec.js"
+import { makeTestGardenA, withDefaultGlobalOpts } from "../../../helpers.js"
 
 describe("ExecCommand", () => {
   const command = new ExecCommand()

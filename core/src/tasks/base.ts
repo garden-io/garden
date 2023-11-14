@@ -6,33 +6,34 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { GraphResults } from "../graph/results"
+import type { GraphResults } from "../graph/results.js"
 import { v1 as uuidv1 } from "uuid"
-import { Garden } from "../garden"
-import { ActionLog, createActionLog, Log } from "../logger/log-entry"
-import { Profile } from "../util/profiling"
-import { type Action, type ActionState, type Executed, type Resolved } from "../actions/types"
-import { ConfigGraph } from "../graph/config-graph"
-import type { ActionReference } from "../config/common"
-import { GraphError, InternalError, RuntimeError } from "../exceptions"
-import type { DeleteDeployTask } from "./delete-deploy"
-import type { BuildTask } from "./build"
-import type { DeployTask } from "./deploy"
-import type { PluginActionTask, PluginTask } from "./plugin"
-import type { PublishTask } from "./publish"
-import { ResolveActionTask } from "./resolve-action"
-import type { ResolveProviderTask } from "./resolve-provider"
-import type { RunTask } from "./run"
-import type { TestTask } from "./test"
+import type { Garden } from "../garden.js"
+import type { ActionLog, Log } from "../logger/log-entry.js"
+import { createActionLog } from "../logger/log-entry.js"
+import { Profile } from "../util/profiling.js"
+import { type Action, type ActionState, type Executed, type Resolved } from "../actions/types.js"
+import type { ConfigGraph } from "../graph/config-graph.js"
+import type { ActionReference } from "../config/common.js"
+import { GraphError, InternalError, RuntimeError } from "../exceptions.js"
+import type { DeleteDeployTask } from "./delete-deploy.js"
+import type { BuildTask } from "./build.js"
+import type { DeployTask } from "./deploy.js"
+import type { PluginActionTask, PluginTask } from "./plugin.js"
+import type { PublishTask } from "./publish.js"
+import type { ResolveActionTask } from "./resolve-action.js"
+import type { ResolveProviderTask } from "./resolve-provider.js"
+import type { RunTask } from "./run.js"
+import type { TestTask } from "./test.js"
 import { Memoize } from "typescript-memoize"
-import { TypedEventEmitter } from "../util/events"
-import { Events, ActionStatusEventName } from "../events/events"
+import { TypedEventEmitter } from "../util/events.js"
+import type { Events, ActionStatusEventName } from "../events/events.js"
 import {
   makeActionFailedPayload,
   makeActionCompletePayload,
   makeActionProcessingPayload,
   makeActionGetStatusPayload,
-} from "../events/util"
+} from "../events/util.js"
 
 export function makeBaseKey(type: string, name: string) {
   return `${type}.${name}`

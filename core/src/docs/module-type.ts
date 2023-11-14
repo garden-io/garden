@@ -6,15 +6,19 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import Joi = require("@hapi/joi")
+import type Joi from "@hapi/joi"
 import { readFileSync } from "fs"
 import { resolve } from "path"
-import { baseModuleSpecSchema } from "../config/module"
-import handlebars = require("handlebars")
-import { joi } from "../config/common"
-import { ModuleReferenceContext, ServiceRuntimeContext, TaskRuntimeContext } from "../config/template-contexts/module"
-import { ModuleTypeDefinition } from "../plugin/plugin"
-import { renderConfigReference, renderTemplateStringReference, TEMPLATES_DIR } from "./config"
+import { baseModuleSpecSchema } from "../config/module.js"
+import handlebars from "handlebars"
+import { joi } from "../config/common.js"
+import {
+  ModuleReferenceContext,
+  ServiceRuntimeContext,
+  TaskRuntimeContext,
+} from "../config/template-contexts/module.js"
+import type { ModuleTypeDefinition } from "../plugin/plugin.js"
+import { renderConfigReference, renderTemplateStringReference, TEMPLATES_DIR } from "./config.js"
 
 const populateModuleSchema = (schema: Joi.ObjectSchema) => baseModuleSpecSchema().concat(schema)
 

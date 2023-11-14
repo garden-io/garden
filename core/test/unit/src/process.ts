@@ -7,9 +7,10 @@
  */
 
 import { expect } from "chai"
-import { GlobalConfigStore } from "../../../src/config-store/global"
-import { registerProcess } from "../../../src/process"
-import { freezeTime, makeTempDir, TempDirectory } from "../../helpers"
+import { GlobalConfigStore } from "../../../src/config-store/global.js"
+import { registerProcess } from "../../../src/process.js"
+import type { TempDirectory } from "../../helpers.js"
+import { freezeTime, makeTempDir } from "../../helpers.js"
 
 describe("registerProcess", () => {
   let store: GlobalConfigStore

@@ -6,16 +6,17 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { renderMessageWithDivider } from "../../logger/util"
-import {
+import { renderMessageWithDivider } from "../../logger/util.js"
+import type {
   GardenSdkActionDefinitionActionType,
   GardenSdkActionDefinitionConfigType,
   BuildStatus,
-  sdk,
-} from "../../plugin/sdk"
-import { execRunCommand } from "./common"
-import { execCommonSchema, execEnvVarDoc, execRuntimeOutputsSchema, execStaticOutputsSchema } from "./config"
-import { execProvider } from "./exec"
+} from "../../plugin/sdk.js"
+import { sdk } from "../../plugin/sdk.js"
+import { styles } from "../../logger/styles.js"
+import { execRunCommand } from "./common.js"
+import { execCommonSchema, execEnvVarDoc, execRuntimeOutputsSchema, execStaticOutputsSchema } from "./config.js"
+import { execProvider } from "./exec.js"
 
 const s = sdk.schema
 
@@ -54,7 +55,6 @@ export const execBuildHandler = execBuild.addHandler("build", async ({ action, l
   const output: BuildStatus = { state: "ready", outputs: {}, detail: {} }
   const command = action.getSpec("command")
 
-  const { chalk } = sdk.util
   let success = true
 
   if (command?.length) {
@@ -72,13 +72,13 @@ export const execBuildHandler = execBuild.addHandler("build", async ({ action, l
   if (output.detail?.buildLog) {
     output.outputs.log = output.detail?.buildLog
 
-    const prefix = `Finished building ${chalk.white(action.name)}. Here is the full output:`
+    const prefix = `Finished building ${styles.accent(action.name)}. Here is the full output:`
     log.info(
       renderMessageWithDivider({
         prefix,
         msg: output.detail?.buildLog,
         isError: !success,
-        color: chalk.gray,
+        color: styles.primary,
       })
     )
   }

@@ -6,38 +6,42 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ContainerDeployAction, containerLocalModeSchema, ContainerLocalModeSpec } from "../container/config"
-import { dedent, gardenAnnotationKey, splitLast } from "../../util/string"
+import type { ContainerDeployAction, ContainerLocalModeSpec } from "../container/config.js"
+import { containerLocalModeSchema } from "../container/config.js"
+import { dedent, gardenAnnotationKey, splitLast } from "../../util/string.js"
 import cloneDeep from "fast-copy"
-import { remove, set } from "lodash"
-import { BaseResource, KubernetesResource, SyncableResource, SyncableRuntimeAction } from "./types"
-import { PrimitiveMap } from "../../config/common"
+import { remove, set } from "lodash-es"
+import type { BaseResource, KubernetesResource, SyncableResource, SyncableRuntimeAction } from "./types.js"
+import type { PrimitiveMap } from "../../config/common.js"
 import {
   k8sReverseProxyImageName,
   PROXY_CONTAINER_SSH_TUNNEL_PORT,
   PROXY_CONTAINER_SSH_TUNNEL_PORT_NAME,
   PROXY_CONTAINER_USER_NAME,
-} from "./constants"
-import { ConfigurationError, InternalError, RuntimeError } from "../../exceptions"
-import { getResourceContainer, getResourceKey, getTargetResource, prepareEnvVars } from "./util"
-import { V1Container, V1ContainerPort } from "@kubernetes/client-node"
-import { KubernetesPluginContext, KubernetesTargetResourceSpec, targetResourceSpecSchema } from "./config"
-import { ActionLog, Log } from "../../logger/log-entry"
-import chalk from "chalk"
+} from "./constants.js"
+import { ConfigurationError, InternalError, RuntimeError } from "../../exceptions.js"
+import { getResourceContainer, getResourceKey, getTargetResource, prepareEnvVars } from "./util.js"
+import type { V1Container, V1ContainerPort } from "@kubernetes/client-node"
+import type { KubernetesPluginContext, KubernetesTargetResourceSpec } from "./config.js"
+import { targetResourceSpecSchema } from "./config.js"
+import type { ActionLog, Log } from "../../logger/log-entry.js"
 import { rmSync } from "fs"
 import { execSync } from "child_process"
 import { isAbsolute, join } from "path"
-import { ensureDir, readFile } from "fs-extra"
-import { PluginContext } from "../../plugin-context"
-import { kubectl } from "./kubectl"
-import { OsCommand, ProcessMessage, RecoverableProcess, RetryInfo } from "../../util/recoverable-process"
-import { isConfiguredForLocalMode } from "./status/status"
-import { exec, registerCleanupFunction, shutdown } from "../../util/util"
-import getPort = require("get-port")
-import touch = require("touch")
-import { Resolved } from "../../actions/types"
-import { DOCS_BASE_URL } from "../../constants"
-import AsyncLock = require("async-lock")
+import fsExtra from "fs-extra"
+const { ensureDir, readFile } = fsExtra
+import type { PluginContext } from "../../plugin-context.js"
+import { kubectl } from "./kubectl.js"
+import type { OsCommand, ProcessMessage, RetryInfo } from "../../util/recoverable-process.js"
+import { RecoverableProcess } from "../../util/recoverable-process.js"
+import { isConfiguredForLocalMode } from "./status/status.js"
+import { exec, registerCleanupFunction, shutdown } from "../../util/util.js"
+import getPort from "get-port"
+import touch from "touch"
+import type { Resolved } from "../../actions/types.js"
+import { DOCS_BASE_URL } from "../../constants.js"
+import AsyncLock from "async-lock"
+import { styles } from "../../logger/styles.js"
 
 export const localModeGuideLink = `${DOCS_BASE_URL}/guides/running-service-in-local-mode`
 
@@ -456,7 +460,9 @@ export async function configureLocalMode(configParams: ConfigureLocalModeParams)
   })
 
   // Logging this on the debug level because it can be displayed multiple times due to getServiceStatus checks
-  log.debug(`Configuring in local mode, proxy container ${chalk.underline(k8sReverseProxyImageName)} will be deployed.`)
+  log.debug(
+    `Configuring in local mode, proxy container ${styles.underline(k8sReverseProxyImageName)} will be deployed.`
+  )
 
   set(resolvedTarget, ["metadata", "annotations", gardenAnnotationKey("mode")], "local")
 
@@ -572,9 +578,9 @@ function getLocalAppProcess(configParams: StartLocalModeParams): RecoverableProc
       hasErrors: (_chunk: any) => true,
       onError: (msg: ProcessMessage) => {
         if (msg.code || msg.signal) {
-          processLog.error(chalk.gray(composeErrorMessage("Local app stopped", msg)))
+          processLog.error(styles.primary(composeErrorMessage("Local app stopped", msg)))
         } else {
-          processLog.error(chalk.gray(composeErrorMessage(`Cannot start the local app`, msg)))
+          processLog.error(styles.primary(composeErrorMessage(`Cannot start the local app`, msg)))
         }
         localAppFailureCounter.addFailure(() => {
           processLog.error(dedent`${
@@ -592,7 +598,7 @@ function getLocalAppProcess(configParams: StartLocalModeParams): RecoverableProc
       onError: (_msg: ProcessMessage) => {},
       onMessage: (msg: ProcessMessage) => {
         processLog.verbose({
-          msg: chalk.gray(composeMessage(msg, stripEol(msg.message))),
+          msg: styles.primary(composeMessage(msg, stripEol(msg.message))),
         })
       },
     },
@@ -650,7 +656,7 @@ async function getKubectlPortForwardProcess(
       catchCriticalErrors: (_chunk: any) => false,
       hasErrors: (_chunk: any) => true,
       onError: (msg: ProcessMessage) => {
-        processLog.error(chalk.gray(composeErrorMessage(`${msg.processDescription} failed`, msg)))
+        processLog.error(styles.primary(composeErrorMessage(`${msg.processDescription} failed`, msg)))
         kubectlPortForwardFailureCounter.addFailure(() => {
           processLog.error(dedent`${
             msg.processDescription
@@ -673,7 +679,7 @@ async function getKubectlPortForwardProcess(
         }
 
         if (msg.message.includes("Handling connection for")) {
-          processLog.info(chalk.white(consoleMessage))
+          processLog.info(styles.accent(consoleMessage))
           lastSeenSuccessMessage = consoleMessage
         }
       },
@@ -722,7 +728,7 @@ async function getReversePortForwardProcesses(
 
   return reversePortForwardingCmds.map((cmd) => {
     // Include origin with logs for clarity
-    const log = configParams.log.createLog({ origin: chalk.gray(cmd.command) })
+    const log = configParams.log.createLog({ origin: styles.primary(cmd.command) })
 
     return new RecoverableProcess({
       events: ctx.events,
@@ -738,9 +744,7 @@ async function getReversePortForwardProcesses(
           const lowercaseOutput = output.toLowerCase()
           if (lowercaseOutput.includes('unsupported option "accept-new"')) {
             log.error({
-              msg: chalk.red(
-                "It looks like you're using too old SSH version which doesn't support option -oStrictHostKeyChecking=accept-new. Consider upgrading to OpenSSH 7.6 or higher. Local mode will not work."
-              ),
+              msg: "It looks like you're using too old SSH version which doesn't support option -oStrictHostKeyChecking=accept-new. Consider upgrading to OpenSSH 7.6 or higher. Local mode will not work.",
             })
             return true
           }
@@ -753,9 +757,7 @@ async function getReversePortForwardProcesses(
             lowercaseOutput.includes(indicator)
           })
           if (hasCriticalErrors) {
-            log.error({
-              msg: chalk.red(output),
-            })
+            log.error(output)
           }
           return hasCriticalErrors
         },
@@ -769,7 +771,7 @@ async function getReversePortForwardProcesses(
         },
         onError: (msg: ProcessMessage) => {
           log.error({
-            msg: chalk.gray(composeErrorMessage(`${msg.processDescription} port-forward failed`, msg)),
+            msg: styles.primary(composeErrorMessage(`${msg.processDescription} port-forward failed`, msg)),
           })
           reversePortForwardFailureCounter.addFailure(() => {
             log.error(`${
@@ -780,7 +782,7 @@ async function getReversePortForwardProcesses(
         },
         onMessage: (msg: ProcessMessage) => {
           log.success({
-            msg: chalk.white(composeMessage(msg, `${msg.processDescription} is up and running`)),
+            msg: styles.accent(composeMessage(msg, `${msg.processDescription} is up and running`)),
           })
         },
       },
@@ -790,7 +792,7 @@ async function getReversePortForwardProcesses(
         onError: (_msg: ProcessMessage) => {},
         onMessage: (msg: ProcessMessage) => {
           log.success({
-            msg: chalk.white(composeMessage(msg, `${msg.processDescription} is up and running`)),
+            msg: styles.accent(composeMessage(msg, `${msg.processDescription} is up and running`)),
           })
         },
       },
@@ -830,14 +832,14 @@ export async function startServiceInLocalMode(configParams: StartLocalModeParams
   }
 
   log.info({
-    msg: chalk.gray("Starting in local mode..."),
+    msg: styles.primary("Starting in local mode..."),
   })
 
   registerCleanupFunction(`redeploy-alert-for-local-mode-${action.key()}`, () => {
     log.warn(
       `Local mode has been stopped for the action "${action.key()}". ` +
         "Please, re-deploy the original service to restore the original k8s cluster state: " +
-        `${chalk.white(`\`garden deploy ${action.name}\``)}`
+        `${styles.accent(`\`garden deploy ${action.name}\``)}`
     )
   })
 
@@ -849,7 +851,7 @@ export async function startServiceInLocalMode(configParams: StartLocalModeParams
   const localApp = getLocalAppProcess(configParams)
   if (!!localApp) {
     log.info({
-      msg: chalk.white("Starting local app, this can take a while"),
+      msg: styles.accent("Starting local app, this can take a while"),
     })
     const localAppStatus = localModeProcessRegistry.submit(localApp)
     if (!localAppStatus) {
@@ -869,11 +871,11 @@ export async function startServiceInLocalMode(configParams: StartLocalModeParams
 
   const compositeSshTunnel = composeSshTunnelProcessTree(kubectlPortForward, reversePortForwards, log)
   log.info({
-    msg: chalk.white("Starting local mode ssh tunnels, some failures and retries are possible"),
+    msg: styles.accent("Starting local mode ssh tunnels, some failures and retries are possible"),
   })
   const sshTunnelCmdRenderer = (command: OsCommand) => `${command.command} ${command.args?.join(" ")}`
   log.verbose({
-    msg: chalk.gray(
+    msg: styles.primary(
       `Starting the process tree for the local mode ssh tunnels:\n` +
         `${compositeSshTunnel.renderProcessTree(sshTunnelCmdRenderer)}`
     ),

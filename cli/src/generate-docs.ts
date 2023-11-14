@@ -6,13 +6,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { generateDocs } from "@garden-io/core/build/src/docs/generate"
+import { generateDocs } from "@garden-io/core/build/src/docs/generate.js"
 import { resolve } from "path"
-import { LogLevel, RootLogger } from "@garden-io/core/build/src/logger/logger"
-import { GARDEN_CLI_ROOT } from "@garden-io/core/build/src/constants"
-import { getBundledPlugins } from "./cli"
-import { getSupportedPlugins } from "@garden-io/core/build/src/plugins/plugins"
+import { LogLevel, RootLogger } from "@garden-io/core/build/src/logger/logger.js"
+import { GARDEN_CLI_ROOT } from "@garden-io/core/build/src/constants.js"
+import { getBundledPlugins } from "./cli.js"
+import { getSupportedPlugins } from "@garden-io/core/build/src/plugins/plugins.js"
 import { gracefulExit } from "@scg82/exit-hook"
+import * as url from "node:url"
 
 // make sure logger is initialized
 try {
@@ -27,7 +28,8 @@ try {
 
 const getPlugins = () => [...getBundledPlugins(), ...getSupportedPlugins()]
 
-if (require.main === module) {
+const modulePath = url.fileURLToPath(import.meta.url)
+if (process.argv[1] === modulePath) {
   generateDocs(resolve(GARDEN_CLI_ROOT, "..", "docs"), getPlugins)
     .then(() => {
       // eslint-disable-next-line no-console

@@ -6,15 +6,17 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import chalk from "chalk"
-import { getActionState, getRelativeActionConfigPath } from "../../actions/helpers"
-import { ActionKind, ActionState, ResolvedAction, actionKinds, actionStateTypes } from "../../actions/types"
-import { BooleanParameter, ChoicesParameter, StringsParameter } from "../../cli/params"
-import { createSchema, joi, joiArray } from "../../config/common"
-import { printHeader } from "../../logger/util"
-import { dedent, deline, renderTable } from "../../util/string"
-import { Command, CommandParams, CommandResult } from "../base"
-import { sortBy } from "lodash"
+import { getActionState, getRelativeActionConfigPath } from "../../actions/helpers.js"
+import type { ActionKind, ActionState, ResolvedAction } from "../../actions/types.js"
+import { actionKinds, actionStateTypes } from "../../actions/types.js"
+import { BooleanParameter, ChoicesParameter, StringsParameter } from "../../cli/params.js"
+import { createSchema, joi, joiArray } from "../../config/common.js"
+import { printHeader } from "../../logger/util.js"
+import { styles } from "../../logger/styles.js"
+import { dedent, deline, renderTable } from "../../util/string.js"
+import type { CommandParams, CommandResult } from "../base.js"
+import { Command } from "../base.js"
+import { sortBy } from "lodash-es"
 
 interface GetActionsCommandResultItem {
   name: string
@@ -100,9 +102,6 @@ const getActionsOpts = {
 
 export type Args = typeof getActionsArgs
 export type Opts = typeof getActionsOpts
-
-type CmdParams = CommandParams<Args, Opts>
-type foo = CmdParams["opts"]
 
 export class GetActionsCommand extends Command {
   name = "actions"
@@ -223,7 +222,7 @@ export class GetActionsCommand extends Command {
 
     let rows: string[][] = []
     rows = getActionsOutput.map((a) => {
-      let r = [chalk.cyan.bold(a.name), a.kind, a.type]
+      let r = [styles.highlight.bold(a.name), a.kind, a.type]
       if (includeStateInOutput) {
         r.push(a.state ?? "unknown")
       }
@@ -245,7 +244,7 @@ export class GetActionsCommand extends Command {
       cols = cols.concat(["Path", "Dependencies", "Dependents", "Disabled", ...(showModuleCol ? ["Module"] : [])])
     }
 
-    const heading = cols.map((s) => chalk.bold(s))
+    const heading = cols.map((s) => styles.bold(s))
 
     if (getActionsOutput.length > 0) {
       log.info("")

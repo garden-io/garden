@@ -7,18 +7,18 @@
  */
 
 import { expect } from "chai"
+import type { GardenError, StackTraceMetadata } from "../../../src/exceptions.js"
 import {
   ChildProcessError,
   ConfigurationError,
-  GardenError,
   RuntimeError,
-  StackTraceMetadata,
   getStackTraceMetadata,
   isErrnoException,
-} from "../../../src/exceptions"
+} from "../../../src/exceptions.js"
 import dedent from "dedent"
-import { testFlags } from "../../../src/util/util"
-import { readFile } from "fs-extra"
+import { testFlags } from "../../../src/util/util.js"
+import fsExtra from "fs-extra"
+const { readFile } = fsExtra
 import { resolve4 } from "dns/promises"
 import dns from "node:dns"
 
@@ -62,7 +62,6 @@ describe("isErrnoException", async () => {
     expect(isErrnoException(err)).to.be.false
   })
 })
-
 describe("GardenError", () => {
   // helper to avoid dealing with changing line numbers
   const filterTrace = (metadata) => {

@@ -6,17 +6,19 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { last, isEmpty } from "lodash"
-import chalk from "chalk"
-import { PrimitiveMap, joiIdentifierMap, joiStringMap, joiPrimitive, DeepPrimitiveMap, joiVariables } from "../common"
-import { joi } from "../common"
-import { deline, dedent } from "../../util/string"
-import { schema, ConfigContext, ContextKeySegment, EnvironmentContext, ParentContext, TemplateContext } from "./base"
-import { CommandInfo } from "../../plugin-context"
-import { Garden } from "../../garden"
-import { VcsInfo } from "../../vcs/vcs"
-import type { ActionConfig } from "../../actions/types"
-import type { WorkflowConfig } from "../workflow"
+import { last, isEmpty } from "lodash-es"
+import type { PrimitiveMap, DeepPrimitiveMap } from "../common.js"
+import { joiIdentifierMap, joiStringMap, joiPrimitive, joiVariables } from "../common.js"
+import { joi } from "../common.js"
+import { deline, dedent } from "../../util/string.js"
+import type { ContextKeySegment } from "./base.js"
+import { schema, ConfigContext, EnvironmentContext, ParentContext, TemplateContext } from "./base.js"
+import type { CommandInfo } from "../../plugin-context.js"
+import type { Garden } from "../../garden.js"
+import type { VcsInfo } from "../../vcs/vcs.js"
+import type { ActionConfig } from "../../actions/types.js"
+import type { WorkflowConfig } from "../workflow.js"
+import { styles } from "../../logger/styles.js"
 
 class LocalContext extends ConfigContext {
   @schema(
@@ -195,8 +197,6 @@ class VcsContext extends ConfigContext {
   }
 }
 
-const commandSyncModeExample = "${this.mode == 'sync'}"
-
 class CommandContext extends ConfigContext {
   @schema(
     joi
@@ -316,7 +316,7 @@ export class ProjectConfigContext extends DefaultEnvironmentContext {
       return dedent`
         You are not logged in to Garden Cloud, but one or more secrets are referenced in template strings in your Garden configuration files.
 
-        Please log in via the ${chalk.green("garden login")} command to use Garden with secrets.
+        Please log in via the ${styles.command("garden login")} command to use Garden with secrets.
       `
     }
 

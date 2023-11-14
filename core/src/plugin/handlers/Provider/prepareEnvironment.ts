@@ -6,12 +6,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { PluginActionParamsBase, projectActionParamsSchema } from "../../base"
-import { EnvironmentStatus } from "./getEnvironmentStatus"
-import { dedent } from "../../../util/string"
-import { joi } from "../../../config/common"
-import { environmentStatusSchema } from "../../../config/status"
-import type { GenericProviderConfig } from "../../../config/provider"
+import type { PluginActionParamsBase } from "../../base.js"
+import { projectActionParamsSchema } from "../../base.js"
+import type { EnvironmentStatus } from "./getEnvironmentStatus.js"
+import { dedent } from "../../../util/string.js"
+import { joi } from "../../../config/common.js"
+import { environmentStatusSchema } from "../../../config/status.js"
+import type { GenericProviderConfig } from "../../../config/provider.js"
 
 export interface PrepareEnvironmentParams<
   C extends GenericProviderConfig = any,

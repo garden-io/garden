@@ -8,15 +8,17 @@
 
 import { expect } from "chai"
 
-import { TestGarden, expectError, findNamespaceStatusEvent } from "../../../../../helpers"
-import { ConfigGraph } from "../../../../../../src/graph/config-graph"
-import { getKubernetesTestGarden } from "./common"
-import { RunTask } from "../../../../../../src/tasks/run"
-import { emptyDir, pathExists } from "fs-extra"
+import type { TestGarden } from "../../../../../helpers.js"
+import { expectError, findNamespaceStatusEvent } from "../../../../../helpers.js"
+import type { ConfigGraph } from "../../../../../../src/graph/config-graph.js"
+import { getKubernetesTestGarden } from "./common.js"
+import { RunTask } from "../../../../../../src/tasks/run.js"
+import fsExtra from "fs-extra"
+const { emptyDir, pathExists } = fsExtra
 import { join } from "path"
-import { clearRunResult } from "../../../../../../src/plugins/kubernetes/run-results"
-import { KubernetesPodRunAction } from "../../../../../../src/plugins/kubernetes/kubernetes-type/kubernetes-pod"
-import { createActionLog } from "../../../../../../src/logger/log-entry"
+import { clearRunResult } from "../../../../../../src/plugins/kubernetes/run-results.js"
+import type { KubernetesPodRunAction } from "../../../../../../src/plugins/kubernetes/kubernetes-type/kubernetes-pod.js"
+import { createActionLog } from "../../../../../../src/logger/log-entry.js"
 
 describe("kubernetes-type pod Run", () => {
   let garden: TestGarden

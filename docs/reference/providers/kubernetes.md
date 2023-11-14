@@ -202,6 +202,10 @@ providers:
       # Annotations may have an effect on the behaviour of certain components, for example autoscalers.
       annotations:
 
+      # Specify annotations to apply to the Kubernetes service account used by cluster-buildkit. This can be useful to
+      # set up IRSA with in-cluster building.
+      serviceAccountAnnotations:
+
     # Setting related to Jib image builds.
     jib:
       # In some cases you may need to push images built with Jib to the remote registry via Kubernetes cluster, e.g.
@@ -264,6 +268,10 @@ providers:
       # certain components, for example autoscalers. The same annotations will be used for each util pod unless they
       # are specifically set under `util.annotations`
       annotations:
+
+      # Specify annotations to apply to the Kubernetes service account used by kaniko. This can be useful to set up
+      # IRSA with in-cluster building.
+      serviceAccountAnnotations:
 
       util:
         # Specify tolerations to apply to each garden-util pod.
@@ -908,6 +916,26 @@ providers:
           cluster-autoscaler.kubernetes.io/safe-to-evict: 'false'
 ```
 
+### `providers[].clusterBuildkit.serviceAccountAnnotations`
+
+[providers](#providers) > [clusterBuildkit](#providersclusterbuildkit) > serviceAccountAnnotations
+
+Specify annotations to apply to the Kubernetes service account used by cluster-buildkit. This can be useful to set up IRSA with in-cluster building.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+Example:
+
+```yaml
+providers:
+  - clusterBuildkit:
+      ...
+      serviceAccountAnnotations:
+          eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/my-role
+```
+
 ### `providers[].jib`
 
 [providers](#providers) > jib
@@ -1066,6 +1094,26 @@ providers:
       ...
       annotations:
           cluster-autoscaler.kubernetes.io/safe-to-evict: 'false'
+```
+
+### `providers[].kaniko.serviceAccountAnnotations`
+
+[providers](#providers) > [kaniko](#providerskaniko) > serviceAccountAnnotations
+
+Specify annotations to apply to the Kubernetes service account used by kaniko. This can be useful to set up IRSA with in-cluster building.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+Example:
+
+```yaml
+providers:
+  - kaniko:
+      ...
+      serviceAccountAnnotations:
+          eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/my-role
 ```
 
 ### `providers[].kaniko.util`

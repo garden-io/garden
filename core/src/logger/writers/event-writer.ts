@@ -6,11 +6,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import type { PluginEventBroker } from "../../plugin-context"
-import type { LogEntry } from "../log-entry"
-import { Logger, logLevelToString } from "../logger"
-import { formatForTerminal } from "../renderers"
-import { BaseWriterParams, Writer } from "./base"
+import type { PluginEventBroker } from "../../plugin-context.js"
+import type { LogEntry } from "../log-entry.js"
+import type { Logger } from "../logger.js"
+import { logLevelToString } from "../logger.js"
+import { formatForTerminal } from "../renderers.js"
+import type { BaseWriterParams } from "./base.js"
+import { Writer } from "./base.js"
 
 interface EventWriterParams extends BaseWriterParams {
   defaultOrigin?: string

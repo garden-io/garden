@@ -6,13 +6,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import dedent = require("dedent")
+import dedent from "dedent"
 
-import { Command, CommandResult, CommandParams } from "../base"
-import { removeLinkedSources } from "../../util/ext-source-util"
-import { printHeader } from "../../logger/util"
-import { LinkedSource } from "../../config-store/local"
-import { StringsParameter, BooleanParameter } from "../../cli/params"
+import type { CommandResult, CommandParams } from "../base.js"
+import { Command } from "../base.js"
+import { removeLinkedSources } from "../../util/ext-source-util.js"
+import { printHeader } from "../../logger/util.js"
+import type { LinkedSource } from "../../config-store/local.js"
+import { StringsParameter, BooleanParameter } from "../../cli/params.js"
 
 const unlinkModuleArguments = {
   modules: new StringsParameter({

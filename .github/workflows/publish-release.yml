@@ -16,10 +16,10 @@ jobs:
       - name: Set Environment Variables
         run: echo "SHORT_SHA=$(echo "$GITHUB_SHA" | cut -c1-8)" >> "$GITHUB_ENV"
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
-      - name: Use Node.js 18.x
+      - name: Use Node.js 21.x
         uses: actions/setup-node@8f152de45cc393bb48ce5d89d36b731f54556e65 # v4.0.0
         with:
-          node-version: 18.x
+          node-version: 21.x
       - name: Build package
         run: |
           npm ci

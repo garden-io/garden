@@ -6,11 +6,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ContainerBuildAction } from "../../container/moduleConfig"
-import { KubernetesPluginContext } from "../config"
-import { pullBuild } from "../commands/pull-image"
-import { BuildActionHandler } from "../../../plugin/action-types"
-import { containerHelpers } from "../../container/helpers"
+import type { ContainerBuildAction } from "../../container/moduleConfig.js"
+import type { KubernetesPluginContext } from "../config.js"
+import { pullBuild } from "../commands/pull-image.js"
+import type { BuildActionHandler } from "../../../plugin/action-types.js"
+import { containerHelpers } from "../../container/helpers.js"
 
 export const k8sPublishContainerBuild: BuildActionHandler<"publish", ContainerBuildAction> = async (params) => {
   const { ctx, action, log, tag } = params

@@ -6,18 +6,18 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { pullBuild } from "../../../../../../src/plugins/kubernetes/commands/pull-image"
-import { Garden } from "../../../../../../src/garden"
-import { ConfigGraph } from "../../../../../../src/graph/config-graph"
-import { getContainerTestGarden } from "../container/container"
-import { PluginContext } from "../../../../../../src/plugin-context"
-import { KubernetesProvider, KubernetesPluginContext } from "../../../../../../src/plugins/kubernetes/config"
-import { containerHelpers } from "../../../../../../src/plugins/container/helpers"
+import { pullBuild } from "../../../../../../src/plugins/kubernetes/commands/pull-image.js"
+import type { Garden } from "../../../../../../src/garden.js"
+import type { ConfigGraph } from "../../../../../../src/graph/config-graph.js"
+import { getContainerTestGarden } from "../container/container.js"
+import type { PluginContext } from "../../../../../../src/plugin-context.js"
+import type { KubernetesProvider, KubernetesPluginContext } from "../../../../../../src/plugins/kubernetes/config.js"
+import { containerHelpers } from "../../../../../../src/plugins/container/helpers.js"
 import { expect } from "chai"
-import { grouped } from "../../../../../helpers"
-import { BuildAction, ResolvedBuildAction } from "../../../../../../src/actions/build"
-import { createActionLog } from "../../../../../../src/logger/log-entry"
-import { k8sContainerBuildExtension } from "../../../../../../src/plugins/kubernetes/container/extensions"
+import { grouped } from "../../../../../helpers.js"
+import type { BuildAction, ResolvedBuildAction } from "../../../../../../src/actions/build.js"
+import { createActionLog } from "../../../../../../src/logger/log-entry.js"
+import { k8sContainerBuildExtension } from "../../../../../../src/plugins/kubernetes/container/extensions.js"
 
 describe.skip("pull-image plugin command", () => {
   let garden: Garden

@@ -6,18 +6,19 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import chalk from "chalk"
-import { max, omit, sortBy } from "lodash"
-import { dedent, naturalList, renderTable, tablePresets } from "../util/string"
-import { Log } from "../logger/log-entry"
-import { Garden, DummyGarden } from "../garden"
-import { Command, CommandParams } from "./base"
-import { getTerminalWidth } from "../logger/util"
-import { ParameterError } from "../exceptions"
-import { uniqByName, exec, shutdown } from "../util/util"
-import { PluginTool } from "../util/ext-tools"
-import { findProjectConfig } from "../config/base"
-import { StringOption, BooleanParameter } from "../cli/params"
+import { max, omit, sortBy } from "lodash-es"
+import { dedent, naturalList, renderTable, tablePresets } from "../util/string.js"
+import type { Log } from "../logger/log-entry.js"
+import { Garden, DummyGarden } from "../garden.js"
+import type { CommandParams } from "./base.js"
+import { Command } from "./base.js"
+import { getTerminalWidth } from "../logger/util.js"
+import { ParameterError } from "../exceptions.js"
+import { uniqByName, exec, shutdown } from "../util/util.js"
+import { PluginTool } from "../util/ext-tools.js"
+import { findProjectConfig } from "../config/base.js"
+import { StringOption, BooleanParameter } from "../cli/params.js"
+import { styles } from "../logger/styles.js"
 
 const toolsArgs = {
   tool: new StringOption({
@@ -154,7 +155,7 @@ export class ToolsCommand extends Command<Args, Opts> {
     }
 
     if (matchedTools.length > 1) {
-      log.warn(chalk.yellow(`Multiple tools matched (${matchedNames.join(", ")}). Running ${matchedNames[0]}`))
+      log.warn(`Multiple tools matched (${matchedNames.join(", ")}). Running ${matchedNames[0]}`)
     }
 
     const toolCls = new PluginTool(matchedTools[0].tool)
@@ -191,20 +192,20 @@ async function getTools(garden: Garden) {
 
 async function printTools(garden: Garden, log: Log) {
   log.info(dedent`
-  ${chalk.white.bold("USAGE")}
+  ${styles.accent.bold("USAGE")}
 
-    garden ${chalk.yellow("[global options]")} ${chalk.blueBright("<tool>")} -- ${chalk.white("[args ...]")}
-    garden ${chalk.yellow("[global options]")} ${chalk.blueBright("<tool>")} --get-path
+    garden ${styles.warning("[global options]")} ${styles.highlight("<tool>")} -- ${styles.accent("[args ...]")}
+    garden ${styles.warning("[global options]")} ${styles.highlight("<tool>")} --get-path
 
-  ${chalk.white.bold("PLUGIN TOOLS")}
+  ${styles.accent.bold("PLUGIN TOOLS")}
   `)
 
   const tools = await getTools(garden)
 
   const rows = tools.map((tool) => {
     return [
-      ` ${chalk.cyan(tool.pluginName + ".")}${chalk.cyan.bold(tool.name)}`,
-      chalk.gray(`[${tool.type}]`),
+      ` ${styles.highlight(tool.pluginName + ".")}${styles.highlight.bold(tool.name)}`,
+      styles.primary(`[${tool.type}]`),
       tool.description,
     ]
   })

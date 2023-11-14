@@ -6,39 +6,43 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import type { StringMap } from "../../config/common.js"
 import {
   joi,
-  joiArray,
   joiIdentifier,
   joiIdentifierDescription,
   joiProviderName,
   joiSparseArray,
   joiStringMap,
-  StringMap,
-} from "../../config/common"
-import { BaseProviderConfig, Provider, providerConfigBaseSchema } from "../../config/provider"
+} from "../../config/common.js"
+import type { BaseProviderConfig, Provider } from "../../config/provider.js"
+import { providerConfigBaseSchema } from "../../config/provider.js"
+import type { ContainerEnvVars, ContainerRegistryConfig } from "../container/moduleConfig.js"
 import {
   artifactsDescription,
   commandExample,
   containerArtifactSchema,
-  ContainerEnvVars,
   containerEnvVarsSchema,
-  ContainerRegistryConfig,
   containerRegistryConfigSchema,
-} from "../container/moduleConfig"
-import { PluginContext } from "../../plugin-context"
-import { dedent, deline } from "../../util/string"
-import { defaultSystemNamespace } from "./system"
-import { SyncableKind, syncableKinds } from "./types"
-import { BaseTaskSpec, baseTaskSpecSchema, cacheResultSchema } from "../../config/task"
-import { BaseTestSpec, baseTestSpecSchema } from "../../config/test"
-import { ArtifactSpec } from "../../config/validation"
-import { V1Toleration } from "@kubernetes/client-node"
-import { runPodSpecIncludeFields } from "./run"
-import { SyncDefaults, syncDefaultsSchema } from "./sync"
-import { KUBECTL_DEFAULT_TIMEOUT } from "./kubectl"
-import { DOCS_BASE_URL } from "../../constants"
-import { defaultKanikoImageName } from "./constants"
+} from "../container/moduleConfig.js"
+import type { PluginContext } from "../../plugin-context.js"
+import { dedent, deline } from "../../util/string.js"
+import type { SyncableKind } from "./types.js"
+import { syncableKinds } from "./types.js"
+import type { BaseTaskSpec } from "../../config/task.js"
+import { baseTaskSpecSchema, cacheResultSchema } from "../../config/task.js"
+import type { BaseTestSpec } from "../../config/test.js"
+import { baseTestSpecSchema } from "../../config/test.js"
+import type { ArtifactSpec } from "../../config/validation.js"
+import type { V1Toleration } from "@kubernetes/client-node"
+import { runPodSpecIncludeFields } from "./run.js"
+import type { SyncDefaults } from "./sync.js"
+import { syncDefaultsSchema } from "./sync.js"
+import { KUBECTL_DEFAULT_TIMEOUT } from "./kubectl.js"
+import { DOCS_BASE_URL } from "../../constants.js"
+import { defaultKanikoImageName, defaultSystemNamespace } from "./constants.js"
+import type { LocalKubernetesClusterType } from "./local/config.js"
+import type { EphemeralKubernetesClusterType } from "./ephemeral/config.js"
 
 export interface ProviderSecretRef {
   name: string
@@ -118,6 +122,8 @@ export interface ClusterBuildkitCacheConfig {
   registry?: ContainerRegistryConfig
 }
 
+export type KubernetesClusterType = LocalKubernetesClusterType | EphemeralKubernetesClusterType
+
 export interface KubernetesConfig extends BaseProviderConfig {
   buildMode: ContainerBuildMode
   clusterBuildkit?: {
@@ -126,6 +132,7 @@ export interface KubernetesConfig extends BaseProviderConfig {
     nodeSelector?: StringMap
     tolerations?: V1Toleration[]
     annotations?: StringMap
+    serviceAccountAnnotations?: StringMap
   }
   jib?: {
     pushViaCluster?: boolean
@@ -137,6 +144,7 @@ export interface KubernetesConfig extends BaseProviderConfig {
     nodeSelector?: StringMap
     tolerations?: V1Toleration[]
     annotations?: StringMap
+    serviceAccountAnnotations?: StringMap
     util?: {
       tolerations?: V1Toleration[]
       annotations?: StringMap
@@ -169,8 +177,7 @@ export interface KubernetesConfig extends BaseProviderConfig {
   gardenSystemNamespace: string
   tlsCertificates: IngressTlsCertificate[]
   certManager?: CertManagerConfig
-  clusterType?: "kind" | "minikube" | "microk8s" | "k3s"
-  _systemServices: string[]
+  clusterType?: KubernetesClusterType
 }
 
 export type KubernetesProvider = Provider<KubernetesConfig>
@@ -512,6 +519,9 @@ export const kubernetesConfigBase = () =>
           annotations: annotationsSchema().description(
             "Specify annotations to apply to both the Pod and Deployment resources associated with cluster-buildkit. Annotations may have an effect on the behaviour of certain components, for example autoscalers."
           ),
+          serviceAccountAnnotations: serviceAccountAnnotationsSchema().description(
+            "Specify annotations to apply to the Kubernetes service account used by cluster-buildkit. This can be useful to set up IRSA with in-cluster building."
+          ),
         })
         .default(() => ({}))
         .description("Configuration options for the `cluster-buildkit` build mode."),
@@ -561,6 +571,9 @@ export const kubernetesConfigBase = () =>
           annotations: annotationsSchema().description(
             deline`Specify annotations to apply to each Kaniko builder pod. Annotations may have an effect on the behaviour of certain components, for example autoscalers.
           The same annotations will be used for each util pod unless they are specifically set under \`util.annotations\``
+          ),
+          serviceAccountAnnotations: serviceAccountAnnotationsSchema().description(
+            "Specify annotations to apply to the Kubernetes service account used by kaniko. This can be useful to set up IRSA with in-cluster building."
           ),
           util: joi.object().keys({
             tolerations: joiSparseArray(tolerationSchema()).description(
@@ -629,7 +642,6 @@ export const kubernetesConfigBase = () =>
       tlsCertificates: joiSparseArray(tlsCertificateSchema())
         .unique("name")
         .description("One or more certificates to use for ingress."),
-      _systemServices: joiArray(joiIdentifier()).meta({ internal: true }),
       systemNodeSelector: joiStringMap(joi.string())
         .description(
           dedent`
@@ -674,6 +686,13 @@ const annotationsSchema = () =>
   joiStringMap(joi.string())
     .example({
       "cluster-autoscaler.kubernetes.io/safe-to-evict": "false",
+    })
+    .optional()
+
+const serviceAccountAnnotationsSchema = () =>
+  joiStringMap(joi.string())
+    .example({
+      "eks.amazonaws.com/role-arn": "arn:aws:iam::111122223333:role/my-role",
     })
     .optional()
 

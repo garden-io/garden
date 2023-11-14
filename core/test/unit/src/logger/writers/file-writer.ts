@@ -7,13 +7,14 @@
  */
 
 import { expect } from "chai"
-import chalk from "chalk"
 import stripAnsi from "strip-ansi"
-import { RuntimeError } from "../../../../../src/exceptions"
+import { RuntimeError } from "../../../../../src/exceptions.js"
 
-import { getRootLogger, Logger, LogLevel } from "../../../../../src/logger/logger"
-import { renderError } from "../../../../../src/logger/renderers"
-import { render } from "../../../../../src/logger/writers/file-writer"
+import type { Logger } from "../../../../../src/logger/logger.js"
+import { getRootLogger, LogLevel } from "../../../../../src/logger/logger.js"
+import { renderError } from "../../../../../src/logger/renderers.js"
+import { render } from "../../../../../src/logger/writers/file-writer.js"
+import { styles } from "../../../../../src/logger/styles.js"
 
 const logger: Logger = getRootLogger()
 
@@ -24,7 +25,7 @@ beforeEach(() => {
 describe("FileWriter", () => {
   describe("render", () => {
     it("should render message without ansi characters", () => {
-      const entry = logger.createLog().info(chalk.red("hello")).getLatestEntry()
+      const entry = logger.createLog().info(styles.error("hello")).getLatestEntry()
       expect(render(LogLevel.info, entry)).to.equal("hello")
     })
     it("should render error object if passed", () => {

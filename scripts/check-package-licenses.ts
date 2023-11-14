@@ -1,4 +1,4 @@
-#!/usr/bin/env ts-node
+#!/usr/bin/env -S node --import ./scripts/register-hook.js
 /**
  * Scans all package.json files in the repo and throws if one or more packages have a disallowed license
  * (i.e. GPL, other copyleft licenses).
@@ -8,15 +8,19 @@
 /* eslint-disable no-console */
 // eslint-disable-next-line header/header
 import { dumpLicenses } from "npm-license-crawler"
-import { join, resolve } from "path"
+import { dirname, join, resolve } from "node:path"
 import stripAnsi from "strip-ansi"
 import chalk from "chalk"
-import { promisify } from "util"
-import { asTree } from "treeify"
+import { promisify } from "node:util"
+import treeify from "treeify"
 import { stringify } from "csv-stringify/sync"
-import { writeFile } from "fs-extra"
+import fsExtra from "fs-extra"
+const { writeFile } = fsExtra
+import { fileURLToPath } from "node:url"
 
-const gardenRoot = resolve(__dirname, "..")
+const moduleDirName = dirname(fileURLToPath(import.meta.url))
+
+const gardenRoot = resolve(moduleDirName, "..")
 
 const disallowedLicenses = [/^AGPL/, /^copyleft/, "CC-BY-NC", "CC-BY-SA", /^FAL/, /^GPL/]
 
@@ -86,12 +90,13 @@ async function checkPackageLicenses(root: string) {
 
   if (disallowedCount > 0) {
     let msg = chalk.red.bold(`\nFound ${disallowedCount} packages with disallowed licenses:\n`)
-    msg += asTree(disallowedPackages, true, true)
+    msg += treeify.asTree(disallowedPackages, true, true)
     throw new Error(msg)
   }
 }
 
-if (require.main === module) {
+const modulePath = fileURLToPath(import.meta.url)
+if (process.argv[1] === modulePath) {
   checkPackageLicenses(gardenRoot).catch((error) => {
     console.error(error.message)
     process.exit(1)

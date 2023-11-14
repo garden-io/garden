@@ -11,11 +11,13 @@ import {
   getKanikoFlags,
   DEFAULT_KANIKO_FLAGS,
   getKanikoBuilderPodManifest,
-} from "../../../../../../../src/plugins/kubernetes/container/build/kaniko"
+} from "../../../../../../../src/plugins/kubernetes/container/build/kaniko.js"
 import { expect } from "chai"
-import { defaultResources, KubernetesProvider } from "../../../../../../../src/plugins/kubernetes/config"
-import { defaultKanikoImageName, k8sUtilImageName } from "../../../../../../../src/plugins/kubernetes/constants"
-import { DeepPartial } from "utility-types"
+import type { KubernetesProvider } from "../../../../../../../src/plugins/kubernetes/config.js"
+import { defaultResources } from "../../../../../../../src/plugins/kubernetes/config.js"
+import { defaultKanikoImageName, k8sUtilImageName } from "../../../../../../../src/plugins/kubernetes/constants.js"
+import type { DeepPartial } from "utility-types"
+import { inClusterBuilderServiceAccount } from "../../../../../../../src/plugins/kubernetes/container/build/common.js"
 
 describe("kaniko build", () => {
   it("should return as successful when immutable tag already exists in destination", () => {
@@ -138,6 +140,7 @@ describe("kaniko build", () => {
             },
           ],
           shareProcessNamespace: true,
+          serviceAccountName: inClusterBuilderServiceAccount,
           tolerations: [
             {
               effect: "NoSchedule",

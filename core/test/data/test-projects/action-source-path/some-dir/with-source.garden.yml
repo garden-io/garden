@@ -2,6 +2,6 @@ kind: Build
 type: test
 name: with-source
 source:
-  path: ../
+  path: ${var.sourcePath}
 include: [some-dir/**/*]
 exclude: [some-dir/tps-report.txt]

@@ -7,17 +7,19 @@
  */
 
 import { resolve } from "path"
-import { mapValues, startCase } from "lodash"
+import { mapValues, startCase } from "lodash-es"
 
-import { ConfigurationError, PluginError, RuntimeError } from "@garden-io/sdk/build/src/exceptions"
-import { Log, PluginContext } from "@garden-io/sdk/build/src/types"
-import { dedent } from "@garden-io/sdk/build/src/util/string"
-import { terraform } from "./cli"
-import { TerraformProvider } from "./provider"
-import { writeFile } from "fs-extra"
-import chalk from "chalk"
-import { joi, joiStringMap, PrimitiveMap } from "@garden-io/core/build/src/config/common"
-import split2 = require("split2")
+import { ConfigurationError, PluginError, RuntimeError } from "@garden-io/sdk/build/src/exceptions.js"
+import type { Log, PluginContext } from "@garden-io/sdk/build/src/types.js"
+import { dedent } from "@garden-io/sdk/build/src/util/string.js"
+import { terraform } from "./cli.js"
+import type { TerraformProvider } from "./provider.js"
+import fsExtra from "fs-extra"
+const { writeFile } = fsExtra
+import type { PrimitiveMap } from "@garden-io/core/build/src/config/common.js"
+import { joi, joiStringMap } from "@garden-io/core/build/src/config/common.js"
+import split2 from "split2"
+import { styles } from "@garden-io/core/build/src/logger/styles.js"
 
 export const variablesSchema = () => joiStringMap(joi.any())
 
@@ -164,7 +166,7 @@ export async function getStackStatus(params: TerraformParamsWithVariables): Prom
 
   if (plan.exitCode === 0) {
     // Stack is up-to-date
-    statusLog.success(chalk.green("Stack up-to-date"))
+    statusLog.success(styles.success("Stack up-to-date"))
     return "up-to-date"
   } else if (plan.exitCode === 1) {
     // Error from terraform. This can, for example, happen if variables are missing or there are errors in the tf files.
@@ -194,15 +196,7 @@ export async function applyStack(params: TerraformParamsWithVariables) {
   const statusLine = log.createLog({}).info("→ Applying Terraform stack...")
   const logStream = split2()
 
-  let stdout = ""
   let stderr = ""
-
-  if (proc.stdout) {
-    proc.stdout.pipe(logStream)
-    proc.stdout.on("data", (data) => {
-      stdout += data
-    })
-  }
 
   if (proc.stderr) {
     proc.stderr.pipe(logStream)
@@ -212,7 +206,7 @@ export async function applyStack(params: TerraformParamsWithVariables) {
   }
 
   logStream.on("data", (line: Buffer) => {
-    statusLine.info(chalk.gray("→ " + line.toString()))
+    statusLine.info(styles.primary("→ " + line.toString()))
   })
 
   await new Promise<void>((_resolve, reject) => {

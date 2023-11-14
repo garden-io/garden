@@ -6,8 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { joi, joiSparseArray } from "../../../config/common"
-import { PluginToolSpec } from "../../../plugin/tools"
+import { joi, joiSparseArray } from "../../../config/common.js"
+import type { PluginToolSpec } from "../../../plugin/tools.js"
 
 export interface KubernetesKustomizeSpec {
   path: string

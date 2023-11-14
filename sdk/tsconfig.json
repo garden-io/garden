@@ -6,7 +6,9 @@
   ],
   "compilerOptions": {
     "composite": true,
-    "outDir": "build"
+    "outDir": "build",
+    "module": "nodenext",
+    "moduleResolution": "nodenext"
   },
   "references": [
     { "path": "../core" }

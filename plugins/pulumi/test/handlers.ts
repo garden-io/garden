@@ -6,24 +6,29 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import type { Log, PluginContext } from "@garden-io/sdk/build/src/types"
-import { makeTestGarden, TestGarden } from "@garden-io/sdk/build/src/testing"
-import execa from "execa"
-import { pathExists } from "fs-extra"
-import { join, resolve } from "path"
-import { deployPulumi, getPulumiDeployStatus } from "../src/handlers"
-import { PulumiProvider } from "../src/provider"
-import { gardenPlugin as pulumiPlugin } from "../src/index"
+import type { Log, PluginContext } from "@garden-io/sdk/build/src/types.js"
+import type { TestGarden } from "@garden-io/sdk/build/src/testing.js"
+import { makeTestGarden } from "@garden-io/sdk/build/src/testing.js"
+import { execa } from "execa"
+import fsExtra from "fs-extra"
+const { pathExists } = fsExtra
+import { dirname, join, resolve } from "node:path"
+import { deployPulumi, getPulumiDeployStatus } from "../src/handlers.js"
+import type { PulumiProvider } from "../src/provider.js"
+import { gardenPlugin as pulumiPlugin } from "../src/index.js"
 import { expect } from "chai"
-import { getStackVersionTag } from "../src/helpers"
-import { getPulumiCommands } from "../src/commands"
-import { ResolvedConfigGraph } from "@garden-io/core/build/src/graph/config-graph"
+import { getStackVersionTag } from "../src/helpers.js"
+import { getPulumiCommands } from "../src/commands.js"
+import type { ResolvedConfigGraph } from "@garden-io/core/build/src/graph/config-graph.js"
+import { fileURLToPath } from "node:url"
+
+const moduleDirName = dirname(fileURLToPath(import.meta.url))
 
 // Careful here!
 // We have some packages in the test directory but when this here runs we're a subfolder of '/build'
 // so to actually find the files we need to traverse back to the source folder.
 // TODO: Find a better way to do this.
-const projectRoot = resolve(__dirname, "../../test/", "test-project-k8s")
+const projectRoot = resolve(moduleDirName, "../../test/", "test-project-k8s")
 
 const nsModuleRoot = join(projectRoot, "k8s-namespace")
 const deploymentModuleRoot = join(projectRoot, "k8s-deployment")

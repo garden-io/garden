@@ -7,9 +7,9 @@
  */
 
 import { describe } from "mocha"
-import { expectError } from "../../../../src/util/testing"
-import { validateInstall } from "../../../../src/util/validateInstall"
-import { gitVersionRegex } from "../../../../src/vcs/vcs"
+import { expectError } from "../../../../src/util/testing.js"
+import { validateInstall } from "../../../../src/util/validateInstall.js"
+import { gitVersionRegex } from "../../../../src/vcs/vcs.js"
 
 describe("validateInstall", () => {
   it("should validate a binary version", async () => {

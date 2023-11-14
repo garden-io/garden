@@ -7,8 +7,8 @@
  */
 
 import { expect } from "chai"
-import { baseServiceSpecSchema } from "../../../../src/config/service"
-import { validateSchema } from "../../../../src/config/validation"
+import { baseServiceSpecSchema } from "../../../../src/config/service.js"
+import { validateSchema } from "../../../../src/config/validation.js"
 
 describe("baseServiceSpecSchema", () => {
   it("should filter falsy values from dependencies list", () => {

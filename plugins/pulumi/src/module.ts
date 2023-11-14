@@ -6,15 +6,17 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { joi } from "@garden-io/core/build/src/config/common"
-import { GardenModule, ModuleActionHandlers, PluginContext } from "@garden-io/sdk/build/src/types"
-import { baseBuildSpecSchema } from "@garden-io/core/build/src/config/module"
-import { dependenciesSchema } from "@garden-io/core/build/src/config/service"
-import { pulumiDeploySchemaKeys, PulumiDeploySpec } from "./action"
-import { PulumiProvider, PulumiProviderConfig } from "./provider"
+import { joi } from "@garden-io/core/build/src/config/common.js"
+import type { GardenModule, ModuleActionHandlers, PluginContext } from "@garden-io/sdk/build/src/types.js"
+import { baseBuildSpecSchema } from "@garden-io/core/build/src/config/module.js"
+import { dependenciesSchema } from "@garden-io/core/build/src/config/service.js"
+import type { PulumiDeploySpec } from "./action.js"
+import { pulumiDeploySchemaKeys } from "./action.js"
+import type { PulumiProvider, PulumiProviderConfig } from "./provider.js"
 import { join } from "path"
-import { pathExists } from "fs-extra"
-import { ConfigurationError } from "@garden-io/core/build/src/exceptions"
+import fsExtra from "fs-extra"
+const { pathExists } = fsExtra
+import { ConfigurationError } from "@garden-io/core/build/src/exceptions.js"
 
 export interface PulumiModuleSpec extends PulumiDeploySpec {
   dependencies: string[]

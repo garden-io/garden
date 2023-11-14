@@ -8,7 +8,9 @@
 
 import { join } from "path"
 import { expect } from "chai"
-import { ensureDir } from "fs-extra"
+import fsExtra from "fs-extra"
+const { ensureDir } = fsExtra
+import type { TestGarden } from "../../helpers.js"
 import {
   expectError,
   getDataDir,
@@ -18,15 +20,15 @@ import {
   makeTestGardenA,
   makeTestModule,
   noOpTestPlugin,
-  TestGarden,
-} from "../../helpers"
-import { getNames } from "../../../src/util/util"
-import { ConfigGraph, ConfigGraphNode } from "../../../src/graph/config-graph"
-import { Garden } from "../../../src/garden"
-import { DEFAULT_BUILD_TIMEOUT_SEC, GARDEN_CORE_ROOT, GardenApiVersion } from "../../../src/constants"
-import tmp from "tmp-promise"
-import { ActionKind, BaseActionConfig } from "../../../src/actions/types"
-import { GraphError, ParameterError } from "../../../src/exceptions"
+} from "../../helpers.js"
+import { getNames } from "../../../src/util/util.js"
+import type { ConfigGraph } from "../../../src/graph/config-graph.js"
+import { ConfigGraphNode } from "../../../src/graph/config-graph.js"
+import type { Garden } from "../../../src/garden.js"
+import { DEFAULT_BUILD_TIMEOUT_SEC, GARDEN_CORE_ROOT, GardenApiVersion } from "../../../src/constants.js"
+import type tmp from "tmp-promise"
+import type { ActionKind, BaseActionConfig } from "../../../src/actions/types.js"
+import { GraphError, ParameterError } from "../../../src/exceptions.js"
 
 const makeAction = ({
   basePath,

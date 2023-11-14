@@ -6,56 +6,46 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import Joi from "@hapi/joi"
-import chalk from "chalk"
+import type Joi from "@hapi/joi"
 import dedent from "dedent"
 import stripAnsi from "strip-ansi"
-import { flatMap, fromPairs, mapValues, pickBy, size } from "lodash"
-import {
-  PrimitiveMap,
-  createSchema,
-  joi,
-  joiArray,
-  joiIdentifierMap,
-  joiStringMap,
-  joiVariables,
-} from "../config/common"
-import { RuntimeError, GardenError, InternalError, toGardenError } from "../exceptions"
-import { Garden } from "../garden"
-import { Log } from "../logger/log-entry"
-import { LoggerType, LoggerBase, LoggerConfigBase, eventLogLevel, LogLevel } from "../logger/logger"
-import { printFooter } from "../logger/util"
+import { flatMap, fromPairs, mapValues, pickBy, size } from "lodash-es"
+import type { PrimitiveMap } from "../config/common.js"
+import { createSchema, joi, joiArray, joiIdentifierMap, joiStringMap, joiVariables } from "../config/common.js"
+import type { GardenError } from "../exceptions.js"
+import { RuntimeError, InternalError, toGardenError } from "../exceptions.js"
+import type { Garden } from "../garden.js"
+import type { Log } from "../logger/log-entry.js"
+import type { LoggerType, LoggerBase, LoggerConfigBase, LogLevel } from "../logger/logger.js"
+import { eventLogLevel } from "../logger/logger.js"
+import { printFooter } from "../logger/util.js"
 import {
   getCloudDistributionName,
   getCloudLogSectionName,
   getDurationMsec,
   getPackageVersion,
   userPrompt,
-} from "../util/util"
-import { renderOptions, renderCommands, renderArguments, cliStyles, optionsWithAliasValues } from "../cli/helpers"
-import { GlobalOptions, ParameterValues, ParameterObject, globalOptions } from "../cli/params"
-import { GardenCli } from "../cli/cli"
-import { CommandLine } from "../cli/command-line"
-import { SolveResult } from "../graph/solver"
-import { waitForOutputFlush } from "../process"
-import { BufferedEventStream } from "../cloud/buffered-event-stream"
-import { CommandInfo } from "../plugin-context"
-import type { GardenServer } from "../server/server"
-import { CloudSession } from "../cloud/api"
-import {
-  DeployState,
-  ForwardablePort,
-  ServiceIngress,
-  deployStates,
-  forwardablePortSchema,
-  serviceIngressSchema,
-} from "../types/service"
-import { GraphResultMapWithoutTask, GraphResultWithoutTask, GraphResults } from "../graph/results"
-import { splitFirst } from "../util/string"
-import { ActionMode } from "../actions/types"
-import { AnalyticsHandler } from "../analytics/analytics"
-import { withSessionContext } from "../util/open-telemetry/context"
-import { wrapActiveSpan } from "../util/open-telemetry/spans"
+} from "../util/util.js"
+import { renderOptions, renderCommands, renderArguments, cliStyles, optionsWithAliasValues } from "../cli/helpers.js"
+import type { GlobalOptions, ParameterValues, ParameterObject } from "../cli/params.js"
+import { globalOptions } from "../cli/params.js"
+import type { GardenCli } from "../cli/cli.js"
+import type { CommandLine } from "../cli/command-line.js"
+import type { SolveResult } from "../graph/solver.js"
+import { waitForOutputFlush } from "../process.js"
+import { BufferedEventStream } from "../cloud/buffered-event-stream.js"
+import type { CommandInfo } from "../plugin-context.js"
+import type { GardenServer } from "../server/server.js"
+import type { CloudSession } from "../cloud/api.js"
+import type { DeployState, ForwardablePort, ServiceIngress } from "../types/service.js"
+import { deployStates, forwardablePortSchema, serviceIngressSchema } from "../types/service.js"
+import type { GraphResultMapWithoutTask, GraphResultWithoutTask, GraphResults } from "../graph/results.js"
+import { splitFirst } from "../util/string.js"
+import type { ActionMode } from "../actions/types.js"
+import type { AnalyticsHandler } from "../analytics/analytics.js"
+import { withSessionContext } from "../util/open-telemetry/context.js"
+import { wrapActiveSpan } from "../util/open-telemetry/spans.js"
+import { styles } from "../logger/styles.js"
 
 export interface CommandConstructor {
   new (parent?: CommandGroup): Command
@@ -287,7 +277,6 @@ export abstract class Command<
     return withSessionContext({ sessionId, parentSessionId }, () =>
       wrapActiveSpan(this.getFullName(), async () => {
         const commandStartTime = new Date()
-        const server = this.server
 
         let garden = parentGarden
 
@@ -327,7 +316,6 @@ export abstract class Command<
 
         if (cloudSession) {
           const distroName = getCloudDistributionName(cloudSession.api.domain)
-          const userId = (await cloudSession.api.getProfile()).id
           const commandResultUrl = cloudSession.api.getCommandResultUrl({
             sessionId: garden.sessionId,
             projectId: cloudSession.projectId,
@@ -335,7 +323,7 @@ export abstract class Command<
           }).href
           const cloudLog = log.createLog({ name: getCloudLogSectionName(distroName) })
 
-          cloudLog.info(`View command results at: ${chalk.cyan(commandResultUrl)}\n`)
+          cloudLog.info(`View command results at: ${styles.highlight(commandResultUrl)}\n`)
         }
 
         let analytics: AnalyticsHandler | undefined
@@ -592,7 +580,7 @@ export abstract class Command<
    */
   async isAllowedToRun(garden: Garden, log: Log, opts: ParameterValues<GlobalOptions>): Promise<boolean> {
     if (!opts.yes && this.protected && garden.production) {
-      const defaultMessage = chalk.yellow(dedent`
+      const defaultMessage = styles.warning(dedent`
         Warning: you are trying to run "garden ${this.getFullName()}" against a production environment ([${
           garden.environmentName
         }])!
@@ -616,10 +604,10 @@ export abstract class Command<
 
   renderHelp() {
     let out = this.description
-      ? `\n${cliStyles.heading("DESCRIPTION")}\n\n${chalk.dim(this.description.trim())}\n\n`
+      ? `\n${cliStyles.heading("DESCRIPTION")}\n\n${styles.secondary(this.description.trim())}\n\n`
       : ""
 
-    out += `${cliStyles.heading("USAGE")}\n  garden ${this.getFullName()} `
+    out += `${cliStyles.heading("USAGE")}\n  garden ${styles.command(this.getFullName())} `
 
     if (this.arguments) {
       out +=
@@ -1037,10 +1025,11 @@ export async function handleProcessResults(
   const graphResults = results.results
   const graphResultsForExport = graphResults.export()
 
-  const failed = pickBy(graphResultsForExport, (r) => r && r.error)
+  const failed = pickBy(graphResultsForExport, (r) => r && !r.aborted && !!r.error)
   const failedCount = size(failed)
+  const abortedCount = size(pickBy(graphResultsForExport, (r) => r && !!r.aborted && !r.error))
 
-  const success = failedCount === 0
+  const success = failedCount === 0 && abortedCount === 0
 
   const buildResults = prepareProcessResults("build", graphResults) as ProcessCommandResult["build"]
   const deployResults = prepareProcessResults("deploy", graphResults) as ProcessCommandResult["deploy"]
@@ -1065,8 +1054,14 @@ export async function handleProcessResults(
       return f && f.error ? [toGardenError(f.error)] : []
     })
 
+    const errMsg = abortedCount
+      ? failedCount
+        ? `${failedCount} requested ${taskType} action(s) failed, ${abortedCount} aborted!`
+        : `${abortedCount} requested ${taskType} action(s) aborted!`
+      : `${failedCount} requested ${taskType} action(s) failed!`
+
     const error = new RuntimeError({
-      message: `${failedCount} ${taskType} action(s) failed!`,
+      message: errMsg,
       wrappedErrors,
     })
     return { result, errors: [error] }

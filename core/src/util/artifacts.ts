@@ -7,10 +7,11 @@
  */
 
 import { join, relative } from "path"
-import { readFile, writeFile } from "fs-extra"
-import { Log } from "../logger/log-entry"
-import { Garden } from "../garden"
-import chalk from "chalk"
+import fsExtra from "fs-extra"
+const { readFile, writeFile } = fsExtra
+import type { Log } from "../logger/log-entry.js"
+import type { Garden } from "../garden.js"
+import { styles } from "../logger/styles.js"
 
 const maxArtifactLogLines = 5 // max number of artifacts to list in console after run+test runs
 
@@ -76,7 +77,7 @@ export async function copyArtifacts({
   const { default: cpy } = await import("cpy")
 
   try {
-    files = await cpy("**/*", garden.artifactsPath, { cwd: artifactsPath, parents: true })
+    files = await cpy("./**/*", garden.artifactsPath, { cwd: artifactsPath })
   } catch (err) {
     if (!(err instanceof Error)) {
       throw err
@@ -95,10 +96,10 @@ export async function copyArtifacts({
       files = files.slice(0, maxArtifactLogLines)
     }
     for (const file of files) {
-      log.info(chalk.gray(`→ Artifact: ${relative(garden.projectRoot, file)}`))
+      log.info(styles.primary(`→ Artifact: ${relative(garden.projectRoot, file)}`))
     }
     if (count > maxArtifactLogLines) {
-      log.info(chalk.gray(`→ Artifact: … plus ${count - maxArtifactLogLines} more files`))
+      log.info(styles.primary(`→ Artifact: … plus ${count - maxArtifactLogLines} more files`))
     }
   }
 

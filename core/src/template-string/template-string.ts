@@ -6,20 +6,19 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import chalk from "chalk"
-import { ConfigurationError, GardenError, GardenErrorParams, TemplateStringError } from "../exceptions"
-import {
+import type { GardenErrorParams } from "../exceptions.js"
+import { ConfigurationError, GardenError, TemplateStringError } from "../exceptions.js"
+import type {
   ConfigContext,
   ContextKeySegment,
   ContextResolveOpts,
   ContextResolveOutput,
-  GenericContext,
-  ScanContext,
-} from "../config/template-contexts/base"
+} from "../config/template-contexts/base.js"
+import { GenericContext, ScanContext } from "../config/template-contexts/base.js"
 import cloneDeep from "fast-copy"
-import { difference, isNumber, isPlainObject, isString, uniq } from "lodash"
+import { difference, isNumber, isPlainObject, isString, uniq } from "lodash-es"
+import type { ActionReference, Primitive, StringMap } from "../config/common.js"
 import {
-  ActionReference,
   arrayConcatKey,
   arrayForEachFilterKey,
   arrayForEachKey,
@@ -30,17 +29,18 @@ import {
   isPrimitive,
   isSpecialKey,
   objectSpreadKey,
-  Primitive,
-  StringMap,
-} from "../config/common"
-import { dedent, deline, naturalList, titleize, truncate } from "../util/string"
-import type { ObjectWithName } from "../util/util"
-import { Log } from "../logger/log-entry"
-import type { ModuleConfigContext } from "../config/template-contexts/module"
-import { callHelperFunction } from "./functions"
-import { ActionKind, actionKindsLower } from "../actions/types"
-import { deepMap } from "../util/objects"
-import { ConfigSource } from "../config/validation"
+} from "../config/common.js"
+import { dedent, deline, naturalList, titleize, truncate } from "../util/string.js"
+import type { ObjectWithName } from "../util/util.js"
+import type { Log } from "../logger/log-entry.js"
+import type { ModuleConfigContext } from "../config/template-contexts/module.js"
+import { callHelperFunction } from "./functions.js"
+import type { ActionKind } from "../actions/types.js"
+import { actionKindsLower } from "../actions/types.js"
+import { deepMap } from "../util/objects.js"
+import type { ConfigSource } from "../config/validation.js"
+import * as parser from "./parser.js"
+import { styles } from "../logger/styles.js"
 
 const missingKeyExceptionType = "template-string-missing-key"
 const passthroughExceptionType = "template-string-passthrough"
@@ -52,16 +52,6 @@ export class TemplateStringMissingKeyException extends GardenError {
 
 export class TemplateStringPassthroughException extends GardenError {
   type = passthroughExceptionType
-}
-
-let _parser: any
-
-function getParser() {
-  if (!_parser) {
-    _parser = require("./parser")
-  }
-
-  return _parser
 }
 
 interface ResolvedClause extends ContextResolveOutput {
@@ -121,7 +111,6 @@ export function resolveTemplateString({
     return string
   }
 
-  const parser = getParser()
   try {
     const parsed = parser.parse(string, {
       getKey: (key: string[], resolveOpts?: ContextResolveOpts) => {
@@ -235,7 +224,7 @@ export function resolveTemplateString({
     if (!(err instanceof GardenError)) {
       throw err
     }
-    const prefix = `Invalid template string (${chalk.white(truncate(string, 35).replace(/\n/g, "\\n"))}): `
+    const prefix = `Invalid template string (${styles.accent(truncate(string, 35).replace(/\n/g, "\\n"))}): `
     const message = err.message.startsWith(prefix) ? err.message : prefix + err.message
 
     throw new TemplateStringError({ message, path })

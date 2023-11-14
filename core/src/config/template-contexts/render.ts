@@ -6,9 +6,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { DeepPrimitiveMap, joiVariables } from "../common"
-import { ParentContext, schema, TemplateContext } from "./base"
-import { ProjectConfigContext, ProjectConfigContextParams } from "./project"
+import type { DeepPrimitiveMap } from "../common.js"
+import { joiVariables } from "../common.js"
+import { ParentContext, schema, TemplateContext } from "./base.js"
+import type { ProjectConfigContextParams } from "./project.js"
+import { ProjectConfigContext } from "./project.js"
 
 export class RenderTemplateConfigContext extends ProjectConfigContext {
   @schema(ParentContext.getSchema().description(`Information about the templated config being resolved.`))

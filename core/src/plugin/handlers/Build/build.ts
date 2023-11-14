@@ -6,12 +6,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { dedent } from "../../../util/string"
-import { actionParamsSchema, PluginBuildActionParamsBase } from "../../../plugin/base"
-import { BuildAction } from "../../../actions/build"
-import { ActionTypeHandlerSpec } from "../base/base"
-import { Resolved } from "../../../actions/types"
-import { BuildStatus, getBuildStatusSchema } from "./get-status"
+import { dedent } from "../../../util/string.js"
+import type { PluginBuildActionParamsBase } from "../../../plugin/base.js"
+import { actionParamsSchema } from "../../../plugin/base.js"
+import type { BuildAction } from "../../../actions/build.js"
+import { ActionTypeHandlerSpec } from "../base/base.js"
+import type { Resolved } from "../../../actions/types.js"
+import type { BuildStatus } from "./get-status.js"
+import { getBuildStatusSchema } from "./get-status.js"
 
 export type DoBuildActionParams<T extends BuildAction> = PluginBuildActionParamsBase<T>
 

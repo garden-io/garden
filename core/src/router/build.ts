@@ -6,11 +6,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import chalk from "chalk"
-
-import { PluginEventBroker } from "../plugin-context"
-import { BaseRouterParams, createActionRouter } from "./base"
-import { PublishActionResult } from "../plugin/handlers/Build/publish"
+import { PluginEventBroker } from "../plugin-context.js"
+import type { BaseRouterParams } from "./base.js"
+import { createActionRouter } from "./base.js"
+import type { PublishActionResult } from "../plugin/handlers/Build/publish.js"
+import { styles } from "../logger/styles.js"
 
 const API_ACTION_TYPE = "build"
 
@@ -75,7 +75,7 @@ const dummyPublishHandler = async ({ action }): Promise<PublishActionResult> => 
   return {
     state: "unknown",
     detail: {
-      message: chalk.yellow(`No publish handler available for type ${action.type}`),
+      message: styles.warning(`No publish handler available for type ${action.type}`),
       published: false,
     },
     outputs: {},

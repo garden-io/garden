@@ -7,34 +7,34 @@
  */
 
 import AsyncLock from "async-lock"
-import chalk from "chalk"
 import dedent from "dedent"
-import EventEmitter from "events"
-import { ExecaReturnValue } from "execa"
-import { mkdirp, pathExists } from "fs-extra"
+import type EventEmitter from "events"
+import type { ExecaReturnValue } from "execa"
+import fsExtra from "fs-extra"
+const { mkdirp, pathExists } = fsExtra
 import hasha from "hasha"
 import pRetry from "p-retry"
 import { join } from "path"
 import respawn from "respawn"
 import split2 from "split2"
-import { GARDEN_GLOBAL_PATH, MUTAGEN_DIR_NAME } from "./constants"
-import { ChildProcessError, GardenError } from "./exceptions"
-import pMemoize from "./lib/p-memoize"
-import { Log } from "./logger/log-entry"
-import { PluginContext } from "./plugin-context"
-import { PluginToolSpec } from "./plugin/tools"
-import { syncGuideLink } from "./plugins/kubernetes/sync"
-import { TypedEventEmitter } from "./util/events"
-import { PluginTool } from "./util/ext-tools"
-import { deline } from "./util/string"
-import { registerCleanupFunction, sleep } from "./util/util"
-import { emitNonRepeatableWarning } from "./warnings"
-import { OctalPermissionMask } from "./plugins/kubernetes/types"
+import { GARDEN_GLOBAL_PATH, MUTAGEN_DIR_NAME } from "./constants.js"
+import { ChildProcessError, GardenError } from "./exceptions.js"
+import pMemoize from "./lib/p-memoize.js"
+import type { Log } from "./logger/log-entry.js"
+import type { PluginContext } from "./plugin-context.js"
+import type { PluginToolSpec } from "./plugin/tools.js"
+import { syncGuideLink } from "./plugins/kubernetes/sync.js"
+import { TypedEventEmitter } from "./util/events.js"
+import { PluginTool } from "./util/ext-tools.js"
+import { deline } from "./util/string.js"
+import { registerCleanupFunction, sleep } from "./util/util.js"
+import { emitNonRepeatableWarning } from "./warnings.js"
+import type { OctalPermissionMask } from "./plugins/kubernetes/types.js"
+import { styles } from "./logger/styles.js"
 
 const maxRestarts = 10
 const mutagenLogSection = "<mutagen>"
 const crashMessage = `Synchronization monitor has crashed ${maxRestarts} times. Aborting.`
-const syncLogPrefix = "[sync]:"
 
 export const mutagenAgentPath = "/.garden/mutagen-agent"
 
@@ -207,7 +207,10 @@ class _MutagenMonitor extends TypedEventEmitter<MonitorEvents> {
 
       await ensureDataDir(dataDir)
 
-      const proc = respawn([mutagenPath, "sync", "monitor", "--template", "{{ json . }}", "--long"], {
+      const mutagenOpts = [mutagenPath, "sync", "monitor", "--template", "{{ json . }}", "--long"]
+      log.silly(`Spawning mutagen using respawn: "${mutagenOpts.join(" ")}"`)
+
+      const proc = respawn(mutagenOpts, {
         cwd: dataDir,
         name: "mutagen",
         env: {
@@ -224,7 +227,7 @@ class _MutagenMonitor extends TypedEventEmitter<MonitorEvents> {
       this.proc = proc
 
       proc.on("crash", () => {
-        log.warn(chalk.yellow(crashMessage))
+        log.warn(crashMessage)
       })
 
       proc.on("exit", (code: number) => {
@@ -237,7 +240,7 @@ class _MutagenMonitor extends TypedEventEmitter<MonitorEvents> {
         const str = data.toString().trim()
         // This is a little dumb, to detect if the log line starts with a timestamp, but ya know...
         // it'll basically work for the next 979 years :P.
-        const msg = chalk.gray(str.startsWith("2") ? str.split(" ").slice(3).join(" ") : str)
+        const msg = styles.primary(str.startsWith("2") ? str.split(" ").slice(3).join(" ") : str)
         if (msg.includes("Unable") && lastDaemonError !== msg) {
           log.warn(msg)
           // Make sure we don't spam with repeated messages
@@ -276,7 +279,7 @@ class _MutagenMonitor extends TypedEventEmitter<MonitorEvents> {
           if (resolved) {
             log.debug({
               symbol: "empty",
-              msg: chalk.green("Mutagen monitor re-started"),
+              msg: "Mutagen monitor re-started",
             })
           }
         })
@@ -360,7 +363,7 @@ export class Mutagen {
       ]
 
       const { logSection: section } = activeSync
-      const syncLog = this.log.createLog({ name: section })
+      const syncLog = this.log.createLog({ name: section, origin: "sync" })
 
       for (const problem of problems) {
         if (!activeSync.lastProblems.includes(problem)) {
@@ -391,7 +394,7 @@ export class Mutagen {
       if (syncCount > activeSync.lastSyncCount && !activeSync.initialSyncComplete) {
         syncLog.info({
           symbol: "success",
-          msg: chalk.white(`${syncLogPrefix} Completed initial sync ${description}`),
+          msg: `Completed initial sync ${description}`,
         })
         activeSync.initialSyncComplete = true
       }
@@ -412,7 +415,7 @@ export class Mutagen {
       }
 
       if (statusMsg) {
-        syncLog.info(`${syncLogPrefix} ${statusMsg}`)
+        syncLog.info(statusMsg)
         activeSync.lastStatusMsg = statusMsg
       }
 
@@ -549,7 +552,7 @@ export class Mutagen {
         const unableToFlush = err.message.match(/unable to flush session/)
         if (unableToFlush) {
           this.log.warn(
-            chalk.gray(
+            styles.primary(
               `Could not flush synchronization changes, retrying (attempt ${err.attemptNumber}/${err.retriesLeft})...`
             )
           )
@@ -572,7 +575,7 @@ export class Mutagen {
         try {
           await this.flushSync(session.name)
         } catch (err) {
-          log.warn(chalk.yellow(`Failed to flush sync '${session.name}: ${err}`))
+          log.warn(`Failed to flush sync '${session.name}: ${err}`)
         }
       })
     )
@@ -643,7 +646,9 @@ export class Mutagen {
         const unableToConnect = err.message.match(/unable to connect to daemon/)
         if (unableToConnect && loops < 10) {
           loops += 1
-          this.log.warn(chalk.gray(`Could not connect to sync daemon, retrying (attempt ${loops}/${maxRetries})...`))
+          this.log.warn(
+            styles.primary(`Could not connect to sync daemon, retrying (attempt ${loops}/${maxRetries})...`)
+          )
           await this.ensureDaemon()
           await sleep(2000 + loops * 500)
         } else {
@@ -918,17 +923,17 @@ async function isValidLocalPath(syncPoint: string) {
 
 function formatSyncConflict(sourceDescription: string, targetDescription: string, conflict: SyncConflict): string {
   return dedent`
-    Sync conflict detected at path ${chalk.white(
+    Sync conflict detected at path ${styles.accent(
       conflict.root
     )} in sync from ${sourceDescription} to ${targetDescription}.
 
     Until the conflict is resolved, the conflicting paths will not be synced.
 
-    If conflicts come up regularly at this destination, you may want to use either the ${chalk.white(
+    If conflicts come up regularly at this destination, you may want to use either the ${styles.accent(
       "one-way-replica"
-    )} or ${chalk.white("one-way-replica-reverse")} sync modes instead.
+    )} or ${styles.accent("one-way-replica-reverse")} sync modes instead.
 
-    See the code synchronization guide for more details: ${chalk.white(syncGuideLink + "#sync-modes")}`
+    See the code synchronization guide for more details: ${styles.accent(syncGuideLink + "#sync-modes")}`
 }
 
 /**

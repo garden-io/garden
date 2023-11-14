@@ -8,10 +8,11 @@
 
 import { expect } from "chai"
 import { join, dirname } from "path"
-import { getDataDir, makeTestGarden, makeTestGardenA, TestGarden } from "../../helpers"
-import { DEFAULT_BUILD_TIMEOUT_SEC } from "../../../src/constants"
-import { ConfigGraph } from "../../../src/graph/config-graph"
-import { loadYamlFile } from "../../../src/util/util"
+import type { TestGarden } from "../../helpers.js"
+import { getDataDir, makeTestGarden, makeTestGardenA } from "../../helpers.js"
+import { DEFAULT_BUILD_TIMEOUT_SEC } from "../../../src/constants.js"
+import type { ConfigGraph } from "../../../src/graph/config-graph.js"
+import { loadYamlFile } from "../../../src/util/util.js"
 
 describe("ModuleResolver", () => {
   // Note: We test the ModuleResolver via the TestGarden.resolveModule method, for convenience.

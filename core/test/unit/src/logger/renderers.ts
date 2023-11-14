@@ -8,11 +8,10 @@
 
 import { expect } from "chai"
 
-import { getRootLogger, Logger } from "../../../../src/logger/logger"
+import type { Logger } from "../../../../src/logger/logger.js"
+import { getRootLogger } from "../../../../src/logger/logger.js"
 import {
   renderMsg,
-  msgStyle,
-  errorStyle,
   formatForTerminal,
   renderError,
   formatForJson,
@@ -20,17 +19,17 @@ import {
   renderData,
   padSection,
   renderSection,
-  warningStyle,
-} from "../../../../src/logger/renderers"
-import { GenericGardenError } from "../../../../src/exceptions"
+} from "../../../../src/logger/renderers.js"
+import { GenericGardenError } from "../../../../src/exceptions.js"
 
-import { createActionLog, TaskMetadata } from "../../../../src/logger/log-entry"
-import logSymbols = require("log-symbols")
-import stripAnsi = require("strip-ansi")
-import { highlightYaml, safeDumpYaml } from "../../../../src/util/serialization"
-import { freezeTime } from "../../../helpers"
-import chalk = require("chalk")
-import format from "date-fns/format"
+import type { TaskMetadata } from "../../../../src/logger/log-entry.js"
+import { createActionLog } from "../../../../src/logger/log-entry.js"
+import logSymbols from "log-symbols"
+import stripAnsi from "strip-ansi"
+import { highlightYaml, safeDumpYaml } from "../../../../src/util/serialization.js"
+import { freezeTime } from "../../../helpers.js"
+import format from "date-fns/format/index.js"
+import { styles } from "../../../../src/logger/styles.js"
 
 const logger: Logger = getRootLogger()
 
@@ -42,15 +41,15 @@ describe("renderers", () => {
   describe("renderMsg", () => {
     it("should render the message with the message style", () => {
       const log = logger.createLog().info("hello message")
-      expect(renderMsg(log.entries[0])).to.equal(msgStyle("hello message"))
+      expect(renderMsg(log.entries[0])).to.equal(styles.primary("hello message"))
     })
     it("should render the message with the error style if the entry has error level", () => {
       const log = logger.createLog().error({ msg: "hello error" })
-      expect(renderMsg(log.entries[0])).to.equal(errorStyle("hello error"))
+      expect(renderMsg(log.entries[0])).to.equal(styles.error("hello error"))
     })
     it("should render the message with the warning style if the entry has warning level", () => {
       const log = logger.createLog().warn({ msg: "hello error" })
-      expect(renderMsg(log.entries[0])).to.equal(warningStyle("hello error"))
+      expect(renderMsg(log.entries[0])).to.equal(styles.warning("hello error"))
     })
   })
   describe("renderError", () => {
@@ -116,20 +115,22 @@ describe("renderers", () => {
       const entry = logger.createLog({ name: "foo" }).info("hello world").getLatestEntry()
 
       expect(formatForTerminal(entry, logger)).to.equal(
-        `${logSymbols["info"]} ${renderSection(entry)}${msgStyle("hello world")}\n`
+        `${logSymbols["info"]} ${renderSection(entry)}${styles.primary("hello world")}\n`
       )
     })
     it("should print the log level if it's higher then 'info'", () => {
       const entry = logger.createLog().debug({ msg: "hello world" }).getLatestEntry()
 
-      expect(formatForTerminal(entry, logger)).to.equal(`${chalk.gray("[debug]")} ${msgStyle("hello world")}\n`)
+      expect(formatForTerminal(entry, logger)).to.equal(
+        `${styles.primary("[debug]")} ${styles.primary("hello world")}\n`
+      )
     })
     it("should print the log level if it's higher then 'info' after the section if there is one", () => {
       const entry = logger.createLog({ name: "foo" }).debug("hello world").getLatestEntry()
 
-      const section = `foo ${chalk.gray("[debug]")}`
+      const section = `foo ${styles.primary("[debug]")}`
       expect(formatForTerminal(entry, logger)).to.equal(
-        `${logSymbols["info"]} ${chalk.cyan.italic(padSection(section))} → ${msgStyle("hello world")}\n`
+        `${logSymbols["info"]} ${styles.highlight.italic(padSection(section))} → ${styles.primary("hello world")}\n`
       )
     })
     context("basic", () => {
@@ -141,7 +142,7 @@ describe("renderers", () => {
         const entry = logger.createLog().info("hello world").getLatestEntry()
 
         expect(formatForTerminal(entry, logger)).to.equal(
-          `${chalk.gray(format(now, "HH:mm:ss"))} ${msgStyle("hello world")}\n`
+          `${styles.primary(format(now, "HH:mm:ss"))} ${styles.primary("hello world")}\n`
         )
       })
       after(() => {

@@ -7,14 +7,14 @@
  */
 
 import { expect } from "chai"
-import { DeleteEnvironmentCommand } from "../../../../../src/commands/delete"
-import { DeployCommand } from "../../../../../src/commands/deploy"
-import { LogsCommand } from "../../../../../src/commands/logs"
-import { ValidateCommand } from "../../../../../src/commands/validate"
-import { getDataDir, makeTestGarden, withDefaultGlobalOpts } from "../../../../helpers"
-import { defaultDeployOpts } from "../../../../unit/src/commands/deploy"
-import { BuildCommand } from "../../../../../src/commands/build"
-import { TestCommand } from "../../../../../src/commands/test"
+import { DeleteEnvironmentCommand } from "../../../../../src/commands/delete.js"
+import { DeployCommand } from "../../../../../src/commands/deploy.js"
+import { LogsCommand } from "../../../../../src/commands/logs.js"
+import { ValidateCommand } from "../../../../../src/commands/validate.js"
+import { getDataDir, makeTestGarden, withDefaultGlobalOpts } from "../../../../helpers.js"
+import { defaultDeployOpts } from "../../../../unit/src/commands/deploy.js"
+import { BuildCommand } from "../../../../../src/commands/build.js"
+import { TestCommand } from "../../../../../src/commands/test.js"
 
 describe.skip("OpenShift", () => {
   const projectRoot = getDataDir("openshift", "demo-project")
@@ -46,7 +46,7 @@ describe.skip("OpenShift", () => {
       },
       opts: withDefaultGlobalOpts({ "watch": false, "force": true, "with-dependants": false }),
     })
-    expect(result!.success)
+    expect(result!.success).to.be.true
   })
 
   it("should deploy a container", async () => {
@@ -59,7 +59,7 @@ describe.skip("OpenShift", () => {
       },
       opts: defaultDeployOpts,
     })
-    expect(result!.success)
+    expect(result!.success).to.be.true
   })
 
   it("should get logs", async () => {
@@ -109,7 +109,7 @@ describe.skip("OpenShift", () => {
         "skip-dependants": false,
       }),
     })
-    expect(result!.success)
+    expect(result!.success).to.be.true
   })
 
   it("should delete container deploy", async () => {
@@ -120,6 +120,6 @@ describe.skip("OpenShift", () => {
       args: {},
       opts: withDefaultGlobalOpts({ "dependants-first": false }),
     })
-    expect(result!.deployStatuses["openshift-nginx-hello"].state === "ready")
+    expect(result!.deployStatuses["openshift-nginx-hello"].state).eql("ready")
   })
 })

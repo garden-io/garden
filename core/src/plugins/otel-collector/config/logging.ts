@@ -6,9 +6,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { inferType } from "../../../config/zod"
-import { sdk } from "../../../plugin/sdk"
-import { baseValidator } from "./base"
+import type { inferType } from "../../../config/zod.js"
+import { sdk } from "../../../plugin/sdk.js"
+import { baseValidator } from "./base.js"
 
 // Verbosity levels documented in https://github.com/open-telemetry/opentelemetry-collector/blob/main/exporter/loggingexporter/README.md
 export type LoggingExporterVerbosityLevel = "detailed" | "normal" | "basic"

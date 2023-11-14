@@ -6,20 +6,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { memoize } from "lodash"
-import { joi } from "../config/common"
-import {
-  BaseRuntimeActionConfig,
-  baseRuntimeActionConfigSchema,
-  ExecutedRuntimeAction,
-  ResolvedRuntimeAction,
-  RuntimeAction,
-} from "./base"
-import { Action, BaseActionConfig } from "./types"
-import { DEFAULT_DEPLOY_TIMEOUT_SEC } from "../constants"
-import { createDeployTask } from "../tasks/deploy"
-import { BaseActionTaskParams, ExecuteTask } from "../tasks/base"
-import { ResolveActionTask } from "../tasks/resolve-action"
+import { memoize } from "lodash-es"
+import { joi } from "../config/common.js"
+import type { BaseRuntimeActionConfig } from "./base.js"
+import { baseRuntimeActionConfigSchema, ExecutedRuntimeAction, ResolvedRuntimeAction, RuntimeAction } from "./base.js"
+import type { Action, BaseActionConfig } from "./types.js"
+import { DEFAULT_DEPLOY_TIMEOUT_SEC } from "../constants.js"
+import { createDeployTask } from "../tasks/deploy.js"
+import type { BaseActionTaskParams, ExecuteTask } from "../tasks/base.js"
+import { ResolveActionTask } from "../tasks/resolve-action.js"
 
 export type DeployActionConfig<N extends string = any, S extends object = any> = BaseRuntimeActionConfig<"Deploy", N, S>
 

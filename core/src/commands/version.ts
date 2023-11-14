@@ -6,8 +6,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { getPackageVersion } from "../util/util"
-import { Command, CommandParams, CommandResult } from "./base"
+import { getPackageVersion } from "../util/util.js"
+import type { CommandParams, CommandResult } from "./base.js"
+import { Command } from "./base.js"
 
 interface VersionCommandResult {
   version: string

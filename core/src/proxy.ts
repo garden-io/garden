@@ -6,21 +6,22 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { isEqual, invert } from "lodash"
-import chalk = require("chalk")
-import { createServer, Server, Socket } from "net"
-import AsyncLock = require("async-lock")
-import getPort = require("get-port")
-import { ServiceStatus, ForwardablePort } from "./types/service"
-import { Garden } from "./garden"
-import { registerCleanupFunction, sleep } from "./util/util"
-import { createActionLog, Log } from "./logger/log-entry"
-import { ConfigGraph } from "./graph/config-graph"
-import { DeployAction } from "./actions/deploy"
-import { GetPortForwardResult } from "./plugin/handlers/Deploy/get-port-forward"
-import { Executed } from "./actions/types"
-import { PluginEventBroker } from "./plugin-context"
-import { GardenError, isErrnoException } from "./exceptions"
+import { isEqual, invert } from "lodash-es"
+import type { Server } from "net"
+import { createServer, Socket } from "net"
+import AsyncLock from "async-lock"
+import getPort from "get-port"
+import type { ServiceStatus, ForwardablePort } from "./types/service.js"
+import type { Garden } from "./garden.js"
+import { registerCleanupFunction, sleep } from "./util/util.js"
+import type { Log } from "./logger/log-entry.js"
+import { createActionLog } from "./logger/log-entry.js"
+import type { ConfigGraph } from "./graph/config-graph.js"
+import type { DeployAction } from "./actions/deploy.js"
+import type { GetPortForwardResult } from "./plugin/handlers/Deploy/get-port-forward.js"
+import type { Executed } from "./actions/types.js"
+import type { PluginEventBroker } from "./plugin-context.js"
+import { GardenError, isErrnoException } from "./exceptions.js"
 
 export interface PortProxy {
   key: string
@@ -124,10 +125,10 @@ async function createProxy({ garden, graph, log, action, spec, events }: StartPo
         const msg = err.message.trim()
 
         if (msg !== lastPrintedError) {
-          log.warn(chalk.gray(`→ Could not start port forward to ${key} (will retry): ${msg}`))
+          log.warn(`→ Could not start port forward to ${key} (will retry): ${msg}`)
           lastPrintedError = msg
         } else {
-          log.silly(chalk.gray(`→ Could not start port forward to ${key} (will retry): ${msg}`))
+          log.silly(`→ Could not start port forward to ${key} (will retry): ${msg}`)
         }
       }
 
@@ -276,9 +277,7 @@ async function createProxy({ garden, graph, log, action, spec, events }: StartPo
 
     if (started) {
       if (spec.preferredLocalPort && (localIp !== defaultLocalAddress || localPort !== spec.preferredLocalPort)) {
-        log.warn(
-          chalk.yellow(`→ Unable to bind port forward ${key} to preferred local port ${spec.preferredLocalPort}`)
-        )
+        log.warn(`→ Unable to bind port forward ${key} to preferred local port ${spec.preferredLocalPort}`)
       }
 
       return { key, server, action, spec, localPort, localUrl }

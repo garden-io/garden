@@ -6,8 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import type { Command } from "../commands/base"
-import type { Garden } from "../garden"
+import type { Command } from "../commands/base.js"
+import type { Garden } from "../garden.js"
 
 export interface MonitorBaseParams {
   garden: Garden

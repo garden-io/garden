@@ -6,12 +6,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { realpath } from "fs-extra"
+import fsExtra from "fs-extra"
+const { realpath } = fsExtra
 import normalizePath from "normalize-path"
-import { PluginEventBroker } from "../plugin-context"
-import { copyArtifacts, getArtifactKey } from "../util/artifacts"
-import { makeTempDir } from "../util/fs"
-import { BaseRouterParams, createActionRouter } from "./base"
+import { PluginEventBroker } from "../plugin-context.js"
+import { copyArtifacts, getArtifactKey } from "../util/artifacts.js"
+import { makeTempDir } from "../util/fs.js"
+import type { BaseRouterParams } from "./base.js"
+import { createActionRouter } from "./base.js"
 
 const API_ACTION_TYPE = "test"
 
@@ -28,15 +30,6 @@ export const testRouter = (baseParams: BaseRouterParams) =>
       const actionType = API_ACTION_TYPE
       const actionVersion = action.versionString()
       const moduleName = action.moduleName()
-
-      const payloadAttrs = {
-        actionName,
-        actionVersion,
-        actionType,
-        moduleName,
-        actionUid,
-        startedAt: new Date().toISOString(),
-      }
 
       try {
         params.events = params.events || new PluginEventBroker(garden)

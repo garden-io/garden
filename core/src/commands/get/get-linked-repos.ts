@@ -6,13 +6,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import chalk from "chalk"
-import { sortBy } from "lodash"
-import { Command, CommandParams, CommandResult } from "../base"
-import { LinkedSource } from "../../config-store/local"
-import { printHeader } from "../../logger/util"
-import { getLinkedSources } from "../../util/ext-source-util"
-import { renderTable } from "../../util/string"
+import { sortBy } from "lodash-es"
+import type { CommandParams, CommandResult } from "../base.js"
+import { Command } from "../base.js"
+import type { LinkedSource } from "../../config-store/local.js"
+import { printHeader } from "../../logger/util.js"
+import { getLinkedSources } from "../../util/ext-source-util.js"
+import { renderTable } from "../../util/string.js"
+import { styles } from "../../logger/styles.js"
 
 const getLinkedReposArguments = {}
 
@@ -36,7 +37,7 @@ export class GetLinkedReposCommand extends Command {
     log.info("")
 
     if (linkedSources.length === 0) {
-      log.info(chalk.white("No linked sources, actions or modules found for this project."))
+      log.info(styles.accent("No linked sources, actions or modules found for this project."))
     } else {
       const linkedSourcesWithType = [
         ...linkedProjectSources.map((s) => ({ ...s, type: "source" })),
@@ -45,8 +46,12 @@ export class GetLinkedReposCommand extends Command {
       ]
 
       const rows = [
-        [chalk.bold("Name:"), chalk.bold("Type:"), chalk.bold("Path:")],
-        ...linkedSourcesWithType.map((s) => [chalk.cyan.bold(s.name), chalk.cyan.bold(s.type), s.path.trim()]),
+        [styles.bold("Name:"), styles.bold("Type:"), styles.bold("Path:")],
+        ...linkedSourcesWithType.map((s) => [
+          styles.highlight.bold(s.name),
+          styles.highlight.bold(s.type),
+          s.path.trim(),
+        ]),
       ]
 
       log.info(renderTable(rows))

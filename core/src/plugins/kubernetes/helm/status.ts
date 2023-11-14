@@ -6,29 +6,29 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ForwardablePort, ServiceIngress, DeployState, ServiceStatus } from "../../../types/service"
-import { Log } from "../../../logger/log-entry"
-import { helm } from "./helm-cli"
-import { getReleaseName, loadTemplate } from "./common"
-import { KubernetesPluginContext } from "../config"
-import { getForwardablePorts } from "../port-forward"
-import { KubernetesResource, KubernetesServerResource } from "../types"
-import { getActionNamespace } from "../namespace"
-import { getTargetResource, isWorkload } from "../util"
-import { getDeployedResource, isConfiguredForLocalMode } from "../status/status"
-import { KubeApi } from "../api"
-import { getK8sIngresses } from "../status/ingress"
-import { DeployActionHandler } from "../../../plugin/action-types"
-import { HelmDeployAction } from "./config"
-import { ActionMode, Resolved } from "../../../actions/types"
-import { deployStateToActionState } from "../../../plugin/handlers/Deploy/get-status"
-import { isTruthy } from "../../../util/util"
-import { ChildProcessError } from "../../../exceptions"
-import { gardenAnnotationKey } from "../../../util/string"
+import type { ForwardablePort, ServiceIngress, DeployState, ServiceStatus } from "../../../types/service.js"
+import type { Log } from "../../../logger/log-entry.js"
+import { helm } from "./helm-cli.js"
+import { getReleaseName, loadTemplate } from "./common.js"
+import type { KubernetesPluginContext } from "../config.js"
+import { getForwardablePorts } from "../port-forward.js"
+import type { KubernetesResource, KubernetesServerResource } from "../types.js"
+import { getActionNamespace } from "../namespace.js"
+import { getTargetResource, isWorkload } from "../util.js"
+import { getDeployedResource, isConfiguredForLocalMode } from "../status/status.js"
+import { KubeApi } from "../api.js"
+import { getK8sIngresses } from "../status/ingress.js"
+import type { DeployActionHandler } from "../../../plugin/action-types.js"
+import type { HelmDeployAction } from "./config.js"
+import type { ActionMode, Resolved } from "../../../actions/types.js"
+import { deployStateToActionState } from "../../../plugin/handlers/Deploy/get-status.js"
+import { isTruthy } from "../../../util/util.js"
+import { ChildProcessError } from "../../../exceptions.js"
+import { gardenAnnotationKey } from "../../../util/string.js"
 
 export const gardenCloudAECPauseAnnotation = gardenAnnotationKey("aec-status")
 
-const helmStatusMap: { [status: string]: DeployState } = {
+export const helmStatusMap: { [status: string]: DeployState } = {
   unknown: "unknown",
   deployed: "ready",
   deleted: "missing",

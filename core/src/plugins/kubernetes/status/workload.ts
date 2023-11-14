@@ -6,10 +6,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import chalk from "chalk"
-import { flatten, sortBy } from "lodash"
-import { KubernetesPod, KubernetesServerResource } from "../types"
-import {
+import { flatten, sortBy } from "lodash-es"
+import type { KubernetesPod, KubernetesServerResource } from "../types.js"
+import type {
   V1Deployment,
   V1DaemonSet,
   V1DaemonSetStatus,
@@ -20,11 +19,12 @@ import {
   CoreV1Event,
   V1DeploymentSpec,
 } from "@kubernetes/client-node"
-import dedent = require("dedent")
-import { getCurrentWorkloadPods, renderPodEvents } from "../util"
-import { getFormattedPodLogs, POD_LOG_LINES } from "./pod"
-import { ResourceStatus, StatusHandlerParams } from "./status"
-import { getResourceEvents } from "./events"
+import dedent from "dedent"
+import { getCurrentWorkloadPods, renderPodEvents } from "../util.js"
+import { getFormattedPodLogs, POD_LOG_LINES } from "./pod.js"
+import type { ResourceStatus, StatusHandlerParams } from "./status.js"
+import { getResourceEvents } from "./events.js"
+import { styles } from "../../../logger/styles.js"
 
 const containerStatusFailures = ["CrashLoopBackOff", "CreateContainerConfigError", "ImagePullBackOff"]
 
@@ -79,9 +79,9 @@ export async function checkWorkloadStatus({ api, namespace, resource }: StatusHa
     const podLogs = (await getFormattedPodLogs(api, namespace, pods)) || undefined
 
     if (podLogs) {
-      logs += chalk.white("\n\n━━━ Pod logs ━━━\n")
+      logs += styles.accent("\n\n━━━ Pod logs ━━━\n")
       logs +=
-        chalk.gray(dedent`
+        styles.primary(dedent`
       <Showing last ${POD_LOG_LINES} lines per pod in this ${
         workload.kind
       }. Run the following command for complete logs>

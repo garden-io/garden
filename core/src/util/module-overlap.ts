@@ -7,13 +7,13 @@
  */
 
 import { posix, resolve } from "path"
-import { GenerateFileSpec, ModuleConfig } from "../config/module"
+import type { GenerateFileSpec, ModuleConfig } from "../config/module.js"
 import pathIsInside from "path-is-inside"
-import { groupBy, intersection } from "lodash"
-import chalk from "chalk"
-import { naturalList } from "./string"
+import { groupBy, intersection } from "lodash-es"
+import { naturalList } from "./string.js"
 import dedent from "dedent"
-import { InternalError } from "../exceptions"
+import { InternalError } from "../exceptions.js"
+import { styles } from "../logger/styles.js"
 
 export const moduleOverlapTypes = ["path", "generateFiles"] as const
 export type ModuleOverlapType = (typeof moduleOverlapTypes)[number]
@@ -175,21 +175,21 @@ const makePathOverlapError: ModuleOverlapRenderer = (moduleOverlaps: ModuleOverl
   const overlapList = moduleOverlaps.map(({ config, overlaps }) => {
     const formatted = overlaps.map((o) => {
       const detail = o.path === config.path ? "same path" : "nested"
-      return `${chalk.bold(o.name)} (${detail})`
+      return `${styles.bold(o.name)} (${detail})`
     })
-    return `Module ${chalk.bold(config.name)} overlaps with module(s) ${naturalList(formatted)}.`
+    return `Module ${styles.bold(config.name)} overlaps with module(s) ${naturalList(formatted)}.`
   })
-  return chalk.red(dedent`
+  return styles.error(dedent`
       Found multiple enabled modules that share the same garden.yml file or are nested within another:
 
       ${overlapList.join("\n\n")}
 
       If this was intentional, there are two options to resolve this error:
 
-      - You can add ${chalk.bold("include")} and/or ${chalk.bold("exclude")} directives on the affected modules.
+      - You can add ${styles.bold("include")} and/or ${styles.bold("exclude")} directives on the affected modules.
         By explicitly including / excluding files, the modules are actually allowed to overlap in case that is
         what you want.
-      - You can use the ${chalk.bold("disabled")} directive to make sure that only one of the modules is enabled
+      - You can use the ${styles.bold("disabled")} directive to make sure that only one of the modules is enabled
         at any given time. For example, you can make sure that the modules are enabled only in a certain
         environment.
     `)
@@ -198,14 +198,14 @@ const makePathOverlapError: ModuleOverlapRenderer = (moduleOverlaps: ModuleOverl
 const makeGenerateFilesOverlapError: ModuleOverlapRenderer = (moduleOverlaps: ModuleOverlap[]) => {
   const moduleOverlapList = moduleOverlaps.map(({ config, overlaps, generateFilesOverlaps }) => {
     const formatted = overlaps.map((o) => {
-      return `${chalk.bold(o.name)}`
+      return `${styles.bold(o.name)}`
     })
-    return `Module ${chalk.bold(config.name)} overlaps with module(s) ${naturalList(formatted)} in ${naturalList(
+    return `Module ${styles.bold(config.name)} overlaps with module(s) ${naturalList(formatted)} in ${naturalList(
       generateFilesOverlaps || []
     )}.`
   })
-  return chalk.red(dedent`
-      Found multiple enabled modules that share the same value(s) in ${chalk.bold("generateFiles[].targetPath")}:
+  return styles.error(dedent`
+      Found multiple enabled modules that share the same value(s) in ${styles.bold("generateFiles[].targetPath")}:
 
       ${moduleOverlapList.join("\n\n")}
     `)

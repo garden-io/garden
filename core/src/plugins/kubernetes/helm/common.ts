@@ -6,28 +6,29 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { flatten, isPlainObject } from "lodash"
+import { flatten, isPlainObject } from "lodash-es"
 import { join, resolve } from "path"
-import { pathExists, readFile, remove, writeFile } from "fs-extra"
-import tempy from "tempy"
-import cryptoRandomString = require("crypto-random-string")
+import fsExtra from "fs-extra"
+const { pathExists, readFile, remove, writeFile } = fsExtra
+import { temporaryWrite } from "tempy"
+import cryptoRandomString from "crypto-random-string"
 
-import { PluginContext } from "../../../plugin-context"
-import { Log } from "../../../logger/log-entry"
-import { getActionNamespace } from "../namespace"
-import { HelmRuntimeAction, KubernetesResource } from "../types"
+import type { PluginContext } from "../../../plugin-context.js"
+import type { Log } from "../../../logger/log-entry.js"
+import { getActionNamespace } from "../namespace.js"
+import type { HelmRuntimeAction, KubernetesResource } from "../types.js"
 import { loadAll } from "js-yaml"
-import { helm } from "./helm-cli"
-import { HelmModule } from "./module-config"
-import { ConfigurationError, PluginError } from "../../../exceptions"
-import { deline, tailString } from "../../../util/string"
-import { flattenResources, getAnnotation } from "../util"
-import { KubernetesPluginContext } from "../config"
-import { RunResult } from "../../../plugin/base"
-import { MAX_RUN_RESULT_LOG_LENGTH } from "../constants"
-import { safeDumpYaml } from "../../../util/serialization"
-import { HelmDeployAction } from "./config"
-import { Resolved } from "../../../actions/types"
+import { helm } from "./helm-cli.js"
+import type { HelmModule } from "./module-config.js"
+import { ConfigurationError, PluginError } from "../../../exceptions.js"
+import { deline, tailString } from "../../../util/string.js"
+import { flattenResources, getAnnotation } from "../util.js"
+import type { KubernetesPluginContext } from "../config.js"
+import type { RunResult } from "../../../plugin/base.js"
+import { MAX_RUN_RESULT_LOG_LENGTH } from "../constants.js"
+import { safeDumpYaml } from "../../../util/serialization.js"
+import type { HelmDeployAction } from "./config.js"
+import type { Resolved } from "../../../actions/types.js"
 
 export const helmChartYamlFilename = "Chart.yaml"
 
@@ -100,7 +101,7 @@ export async function prepareTemplates({ ctx, action, log }: PrepareTemplatesPar
     version: action.versionString(),
   }
 
-  const valuesPath = await tempy.write(safeDumpYaml(values))
+  const valuesPath = await temporaryWrite(safeDumpYaml(values))
   log.silly(`Wrote chart values to ${valuesPath}`)
 
   const releaseName = getReleaseName(action)

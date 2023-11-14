@@ -8,17 +8,20 @@
 
 import { expect } from "chai"
 import stripAnsi from "strip-ansi"
-import { join } from "path"
+import { dirname, join } from "node:path"
 
-import { gardenPlugin } from "../src"
-import { gardenPlugin as conftestPlugin } from "@garden-io/garden-conftest/build/src"
-import { dedent } from "@garden-io/sdk/build/src/util/string"
-import { makeTestGarden } from "@garden-io/sdk/build/src/testing"
+import { gardenPlugin } from "../src/index.js"
+import { gardenPlugin as conftestPlugin } from "@garden-io/garden-conftest/build/src/index.js"
+import { dedent } from "@garden-io/sdk/build/src/util/string.js"
+import { makeTestGarden } from "@garden-io/sdk/build/src/testing.js"
 
-import { TestTask } from "@garden-io/core/build/src/tasks/test"
+import { TestTask } from "@garden-io/core/build/src/tasks/test.js"
+import { fileURLToPath } from "node:url"
+
+const moduleDirName = dirname(fileURLToPath(import.meta.url))
 
 describe.skip("conftest-kubernetes provider", () => {
-  const projectRoot = join(__dirname, "test-project")
+  const projectRoot = join(moduleDirName, "test-project")
 
   it("should add a conftest module for each helm module, and add runtime dependencies as necessary", async () => {
     const garden = await makeTestGarden(projectRoot, {

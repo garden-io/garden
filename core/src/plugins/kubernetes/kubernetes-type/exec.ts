@@ -6,15 +6,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { includes } from "lodash"
-import { ConfigurationError, DeploymentError } from "../../../exceptions"
-import { getAppNamespace } from "../namespace"
-import { KubernetesPluginContext } from "../config"
-import { execInWorkload, getTargetResource } from "../util"
-import { DeployActionHandler } from "../../../plugin/action-types"
-import { KubernetesDeployAction } from "./config"
-import { getKubernetesDeployStatus } from "./handlers"
-import chalk from "chalk"
+import { includes } from "lodash-es"
+import { ConfigurationError, DeploymentError } from "../../../exceptions.js"
+import { getAppNamespace } from "../namespace.js"
+import type { KubernetesPluginContext } from "../config.js"
+import { execInWorkload, getTargetResource } from "../util.js"
+import type { DeployActionHandler } from "../../../plugin/action-types.js"
+import type { KubernetesDeployAction } from "./config.js"
+import { getKubernetesDeployStatus } from "./handlers.js"
+import { styles } from "../../../logger/styles.js"
 
 export const execInKubernetesDeploy: DeployActionHandler<"exec", KubernetesDeployAction> = async (params) => {
   const { ctx, log, action, command, interactive, target: containerName } = params
@@ -26,7 +26,7 @@ export const execInKubernetesDeploy: DeployActionHandler<"exec", KubernetesDeplo
 
   if (!defaultTarget) {
     throw new ConfigurationError({
-      message: `${action.longDescription()} does not specify a defaultTarget. Please configure this in order to be able to use this command with. This is currently necessary for the ${chalk.white(
+      message: `${action.longDescription()} does not specify a defaultTarget. Please configure this in order to be able to use this command with. This is currently necessary for the ${styles.accent(
         "exec"
       )} command to work with kubernetes Deploy actions.`,
     })

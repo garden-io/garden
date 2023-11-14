@@ -6,19 +6,19 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { omit } from "lodash"
-import { EventEmitter2 } from "eventemitter2"
-import type { LogEntryEventPayload } from "../cloud/buffered-event-stream"
-import type { DeployStatusForEventPayload } from "../types/service"
-import type { RunStatusForEventPayload } from "../plugin/base"
-import type { Omit, PickFromUnion } from "../util/util"
-import type { AuthTokenResponse } from "../cloud/api"
-import type { ConfigGraph, RenderedActionGraph } from "../graph/config-graph"
-import type { CommandInfo } from "../plugin-context"
-import type { GraphResult } from "../graph/results"
-import { NamespaceStatus } from "../types/namespace"
-import { BuildStatusForEventPayload } from "../plugin/handlers/Build/get-status"
-import { ActionStatusPayload } from "./action-status-events"
+import { omit } from "lodash-es"
+import EventEmitter2 from "eventemitter2"
+import type { LogEntryEventPayload } from "../cloud/buffered-event-stream.js"
+import type { DeployStatusForEventPayload } from "../types/service.js"
+import type { RunStatusForEventPayload } from "../plugin/base.js"
+import type { Omit, PickFromUnion } from "../util/util.js"
+import type { AuthTokenResponse } from "../cloud/api.js"
+import type { ConfigGraph, RenderedActionGraph } from "../graph/config-graph.js"
+import type { CommandInfo } from "../plugin-context.js"
+import type { GraphResult } from "../graph/results.js"
+import type { NamespaceStatus } from "../types/namespace.js"
+import type { BuildStatusForEventPayload } from "../plugin/handlers/Build/get-status.js"
+import type { ActionStatusPayload } from "./action-status-events.js"
 
 interface EventContext {
   gardenKey?: string
@@ -36,7 +36,7 @@ export type GardenEventAnyListener<E extends EventName = any> = (name: E, payloa
  *
  * See below for the event interfaces.
  */
-export class EventBus extends EventEmitter2 {
+export class EventBus extends EventEmitter2.EventEmitter2 {
   private keyIndex: {
     [key: string]: { [eventName: string]: ((payload: any) => void)[] }
   }

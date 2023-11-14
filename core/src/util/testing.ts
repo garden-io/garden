@@ -6,44 +6,48 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { GlobalOptions, globalOptions, ParameterValues } from "../cli/params"
+import type { GlobalOptions, ParameterValues } from "../cli/params.js"
+import { globalOptions } from "../cli/params.js"
 import cloneDeep from "fast-copy"
-import { isEqual, keyBy, set, mapValues, round } from "lodash"
-import { Garden, GardenOpts, GardenParams, GetConfigGraphParams, resolveGardenParams } from "../garden"
-import { DeepPrimitiveMap, StringMap } from "../config/common"
-import { ModuleConfig } from "../config/module"
-import { WorkflowConfig } from "../config/workflow"
-import { Log, LogEntry } from "../logger/log-entry"
-import { GardenModule } from "../types/module"
-import { findByName, getNames } from "./util"
-import { GardenError, InternalError } from "../exceptions"
-import { EventBus, EventName, Events } from "../events/events"
-import { dedent, naturalList } from "./string"
+import { isEqual, keyBy, set, mapValues, round } from "lodash-es"
+import type { GardenOpts, GardenParams, GetConfigGraphParams } from "../garden.js"
+import { Garden, resolveGardenParams } from "../garden.js"
+import type { DeepPrimitiveMap, StringMap } from "../config/common.js"
+import type { ModuleConfig } from "../config/module.js"
+import type { WorkflowConfig } from "../config/workflow.js"
+import type { Log, LogEntry } from "../logger/log-entry.js"
+import type { GardenModule } from "../types/module.js"
+import { findByName, getNames } from "./util.js"
+import { GardenError, InternalError } from "../exceptions.js"
+import type { EventName, Events } from "../events/events.js"
+import { EventBus } from "../events/events.js"
+import { dedent, naturalList } from "./string.js"
 import pathIsInside from "path-is-inside"
 import { join, resolve } from "path"
-import { DEFAULT_BUILD_TIMEOUT_SEC, GARDEN_CORE_ROOT, GardenApiVersion } from "../constants"
-import { getRootLogger } from "../logger/logger"
+import { DEFAULT_BUILD_TIMEOUT_SEC, GARDEN_CORE_ROOT, GardenApiVersion } from "../constants.js"
+import { getRootLogger } from "../logger/logger.js"
 import stripAnsi from "strip-ansi"
-import { VcsHandler } from "../vcs/vcs"
-import { ConfigGraph } from "../graph/config-graph"
-import { SolveParams } from "../graph/solver"
-import { GraphResults } from "../graph/results"
+import type { VcsHandler } from "../vcs/vcs.js"
+import type { ConfigGraph } from "../graph/config-graph.js"
+import type { SolveParams } from "../graph/solver.js"
+import type { GraphResults } from "../graph/results.js"
 import { expect } from "chai"
-import { ActionConfig, ActionKind, ActionStatus } from "../actions/types"
-import { WrappedActionRouterHandlers } from "../router/base"
-import {
+import type { ActionConfig, ActionKind, ActionStatus } from "../actions/types.js"
+import type { WrappedActionRouterHandlers } from "../router/base.js"
+import type {
   BuiltinArgs,
   Command,
   CommandArgsType,
   CommandOptionsType,
   CommandResult,
   CommandResultType,
-} from "../commands/base"
-import { validateSchema } from "../config/validation"
-import { mkdirp, remove } from "fs-extra"
-import { GlobalConfigStore } from "../config-store/global"
-import { isPromise } from "./objects"
-import chalk from "chalk"
+} from "../commands/base.js"
+import { validateSchema } from "../config/validation.js"
+import fsExtra from "fs-extra"
+const { mkdirp, remove } = fsExtra
+import { GlobalConfigStore } from "../config-store/global.js"
+import { isPromise } from "./objects.js"
+import { styles } from "../logger/styles.js"
 
 export class TestError extends GardenError {
   type = "_test"
@@ -164,9 +168,9 @@ export type TestGardenOpts = Partial<GardenOpts> & {
 
 export class TestGarden extends Garden {
   override events: TestEventBus
-  public override vcs!: VcsHandler // Not readonly, to allow overriding with a mocked handler in tests
-  public override secrets!: StringMap // Not readonly, to allow setting secrets in tests
-  public override variables!: DeepPrimitiveMap // Not readonly, to allow setting variables in tests
+  public declare vcs: VcsHandler // Not readonly, to allow overriding with a mocked handler in tests
+  public declare secrets: StringMap // Not readonly, to allow setting secrets in tests
+  public declare variables: DeepPrimitiveMap // Not readonly, to allow setting variables in tests
   private repoRoot!: string
   public cacheKey!: string
 
@@ -424,7 +428,7 @@ export function expectFuzzyMatch(str: string, sample: string | string[]) {
     samplesNonAnsi.forEach((s) => expect(errorMessageNonAnsi.toLowerCase()).to.contain(s.toLowerCase()))
   } catch (err) {
     // eslint-disable-next-line no-console
-    console.log("Error message:\n", chalk.red(errorMessageNonAnsi), "\n")
+    console.log("Error message:\n", styles.error(errorMessageNonAnsi), "\n")
     throw err
   }
 }

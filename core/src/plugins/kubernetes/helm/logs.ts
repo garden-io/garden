@@ -6,14 +6,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { streamK8sLogs } from "../logs"
-import { KubernetesPluginContext } from "../config"
-import { getReleaseName } from "./common"
-import { getActionNamespace } from "../namespace"
-import { getDeployedChartResources } from "./status"
-import { sleep } from "../../../util/util"
-import { DeployActionHandler } from "../../../plugin/action-types"
-import { HelmDeployAction } from "./config"
+import { streamK8sLogs } from "../logs.js"
+import type { KubernetesPluginContext } from "../config.js"
+import { getReleaseName } from "./common.js"
+import { getActionNamespace } from "../namespace.js"
+import { getDeployedChartResources } from "./status.js"
+import { sleep } from "../../../util/util.js"
+import type { DeployActionHandler } from "../../../plugin/action-types.js"
+import type { HelmDeployAction } from "./config.js"
 
 export const getHelmDeployLogs: DeployActionHandler<"getLogs", HelmDeployAction> = async (params) => {
   const { ctx, action, log } = params

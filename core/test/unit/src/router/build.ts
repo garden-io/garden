@@ -7,13 +7,12 @@
  */
 
 import { expect } from "chai"
-import { ResolvedBuildAction } from "../../../../src/actions/build"
-import { ConfigGraph } from "../../../../src/graph/config-graph"
-import { ActionLog } from "../../../../src/logger/log-entry"
-import { ActionRouter } from "../../../../src/router/router"
-import { GardenModule } from "../../../../src/types/module"
-import { TestGarden } from "../../../helpers"
-import { getRouterTestData } from "./_helpers"
+import type { ResolvedBuildAction } from "../../../../src/actions/build.js"
+import type { ConfigGraph } from "../../../../src/graph/config-graph.js"
+import type { ActionLog } from "../../../../src/logger/log-entry.js"
+import type { ActionRouter } from "../../../../src/router/router.js"
+import type { TestGarden } from "../../../helpers.js"
+import { getRouterTestData } from "./_helpers.js"
 
 describe("build actions", () => {
   let garden: TestGarden
@@ -21,7 +20,6 @@ describe("build actions", () => {
   let log: ActionLog
   let actionRouter: ActionRouter
   let resolvedBuildAction: ResolvedBuildAction
-  let module: GardenModule
 
   before(async () => {
     const data = await getRouterTestData()
@@ -30,7 +28,6 @@ describe("build actions", () => {
     log = data.log
     actionRouter = data.actionRouter
     resolvedBuildAction = data.resolvedBuildAction
-    module = data.module
   })
 
   after(async () => {

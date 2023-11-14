@@ -6,23 +6,16 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import chalk from "chalk"
-import {
-  ActionTaskProcessParams,
-  ActionTaskStatusParams,
-  BaseActionTaskParams,
-  ExecuteActionTask,
-  emitGetStatusEvents,
-  emitProcessingEvents,
-} from "../tasks/base"
-import { Profile } from "../util/profiling"
-import type { BuildAction, BuildActionConfig, ResolvedBuildAction } from "../actions/build"
+import type { BaseActionTaskParams, ActionTaskProcessParams, ActionTaskStatusParams } from "../tasks/base.js"
+import { ExecuteActionTask, emitGetStatusEvents, emitProcessingEvents } from "../tasks/base.js"
+import { Profile } from "../util/profiling.js"
+import type { BuildAction, BuildActionConfig, ResolvedBuildAction } from "../actions/build.js"
 import pluralize from "pluralize"
-import { BuildStatus } from "../plugin/handlers/Build/get-status"
-import { resolvedActionToExecuted } from "../actions/helpers"
-import { renderDuration } from "../logger/util"
-import { OtelTraced } from "../util/open-telemetry/decorators"
-import { wrapActiveSpan } from "../util/open-telemetry/spans"
+import type { BuildStatus } from "../plugin/handlers/Build/get-status.js"
+import { resolvedActionToExecuted } from "../actions/helpers.js"
+import { renderDuration } from "../logger/util.js"
+import { OtelTraced } from "../util/open-telemetry/decorators.js"
+import { wrapActiveSpan } from "../util/open-telemetry/spans.js"
 
 @Profile()
 export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {
@@ -133,7 +126,7 @@ export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {
       })
     })
 
-    log.verbose(chalk.green(`Done syncing sources ${renderDuration(log.getDuration(1))}`))
+    log.verbose(`Done syncing sources ${renderDuration(log.getDuration(1))}`)
 
     await wrapActiveSpan("syncDependencyProducts", async () => {
       await this.garden.buildStaging.syncDependencyProducts(action, log)

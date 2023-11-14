@@ -6,9 +6,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { RenderedEdge, RenderedNode } from "../../graph/config-graph"
-import { printHeader } from "../../logger/util"
-import { Command, CommandResult, CommandParams } from "../base"
+import type { RenderedEdge, RenderedNode } from "../../graph/config-graph.js"
+import { printHeader } from "../../logger/util.js"
+import type { CommandResult, CommandParams } from "../base.js"
+import { Command } from "../base.js"
 
 export interface GraphOutput {
   nodes: RenderedNode[]

@@ -6,17 +6,19 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import dotenv = require("dotenv")
-import { Command, CommandResult, CommandParams, PrepareParams } from "./base"
-import chalk from "chalk"
-import { omit, sortBy } from "lodash"
-import { DeployLogEntry } from "../types/service"
-import { LogLevel, parseLogLevel, VoidLogger } from "../logger/logger"
-import { StringsParameter, BooleanParameter, IntegerParameter, DurationParameter, TagsOption } from "../cli/params"
-import { printHeader, renderDivider } from "../logger/util"
-import { dedent, deline, naturalList } from "../util/string"
-import { CommandError, ParameterError } from "../exceptions"
-import { LogMonitor, LogsTagOrFilter } from "../monitors/logs"
+import dotenv from "dotenv"
+import type { CommandResult, CommandParams, PrepareParams } from "./base.js"
+import { Command } from "./base.js"
+import { omit, sortBy } from "lodash-es"
+import type { DeployLogEntry } from "../types/service.js"
+import { LogLevel, parseLogLevel, VoidLogger } from "../logger/logger.js"
+import { StringsParameter, BooleanParameter, IntegerParameter, DurationParameter, TagsOption } from "../cli/params.js"
+import { printHeader, renderDivider } from "../logger/util.js"
+import { dedent, deline, naturalList } from "../util/string.js"
+import { CommandError, ParameterError } from "../exceptions.js"
+import type { LogsTagOrFilter } from "../monitors/logs.js"
+import { LogMonitor } from "../monitors/logs.js"
+import { styles } from "../logger/styles.js"
 
 const logsArgs = {
   names: new StringsParameter({
@@ -173,8 +175,8 @@ export class LogsCommand extends Command<Args, Opts> {
     }
 
     log.info("")
-    log.info(chalk.white.bold("Service logs" + details + ":"))
-    log.info(chalk.white.bold(renderDivider()))
+    log.info(styles.accent.bold("Service logs" + details + ":"))
+    log.info(styles.accent.bold(renderDivider()))
 
     const resolvedActions = await garden.resolveActions({ actions, graph, log })
 
@@ -215,7 +217,7 @@ export class LogsCommand extends Command<Args, Opts> {
         entry.monitor.logEntry(entry)
       })
 
-      log.info(chalk.white.bold(renderDivider()))
+      log.info(styles.accent.bold(renderDivider()))
 
       return {
         result: sorted.map((e) => omit(e, "monitor")),

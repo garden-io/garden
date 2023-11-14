@@ -6,22 +6,18 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import chalk from "chalk"
 import indentString from "indent-string"
-import type { RunAction } from "../actions/run"
-import type { TestAction } from "../actions/test"
 
-import type { WorkflowConfig } from "../config/workflow"
-import type { Log } from "../logger/log-entry"
-import { BooleanParameter } from "../cli/params"
-import type { Garden } from "../garden"
-import { ActionKind } from "../actions/types"
+import type { WorkflowConfig } from "../config/workflow.js"
+import type { Log } from "../logger/log-entry.js"
+import type { ActionKind } from "../actions/types.js"
 import isGlob from "is-glob"
-import { ParameterError } from "../exceptions"
-import { naturalList } from "../util/string"
-import { CommandParams } from "./base"
-import { ServeCommandOpts } from "./serve"
-import { DevCommand } from "./dev"
+import { ParameterError } from "../exceptions.js"
+import { naturalList } from "../util/string.js"
+import type { CommandParams } from "./base.js"
+import type { ServeCommandOpts } from "./serve.js"
+import { DevCommand } from "./dev.js"
+import { styles } from "../logger/styles.js"
 
 /**
  * Runs a `dev` command and runs `commandName` with the args & opts provided in `params` as the first
@@ -50,7 +46,7 @@ export function getCmdOptionForDev(commandName: string, params: CommandParams) {
 }
 
 export function prettyPrintWorkflow(workflow: WorkflowConfig): string {
-  let out = `${chalk.cyan.bold(workflow.name)}`
+  let out = `${styles.highlight.bold(workflow.name)}`
 
   if (workflow.description) {
     out += "\n" + indentString(printField("description", workflow.description), 2)
@@ -61,46 +57,8 @@ export function prettyPrintWorkflow(workflow: WorkflowConfig): string {
   return out
 }
 
-function prettyPrintTestOrTask(action: TestAction | RunAction): string {
-  let out = `${chalk.cyan.bold(action.name)}`
-
-  out += "\n" + indentString(printField("type", action.type), 2)
-
-  const { description } = action.getConfig()
-
-  if (description) {
-    out += "\n" + indentString(printField("description", description), 2)
-  }
-
-  const deps = action.getDependencyReferences()
-
-  if (deps.length) {
-    out += "\n" + indentString(`${chalk.gray("dependencies")}:`, 2) + "\n"
-    out += indentString(deps.map((ref) => `• ${ref.kind}.${ref.name}`).join("\n"), 4)
-  }
-
-  return out + "\n"
-}
-
 function printField(name: string, value: string | null) {
-  return `${chalk.gray(name)}: ${value || ""}`
-}
-
-export const watchParameter = new BooleanParameter({
-  help: "[REMOVED] Watch for changes and update actions automatically.",
-  aliases: ["w"],
-  cliOnly: true,
-  hidden: true,
-})
-
-export async function watchRemovedWarning(garden: Garden, log: Log) {
-  return garden.emitWarning({
-    log,
-    key: "watch-flag-removed",
-    message: chalk.yellow(
-      "The -w/--watch flag has been removed. Please use other options instead, such as the --sync option for Deploy actions. If you need this feature and would like it re-introduced, please don't hesitate to reach out: https://garden.io/community"
-    ),
-  })
+  return `${styles.primary(name)}: ${value || ""}`
 }
 
 /**

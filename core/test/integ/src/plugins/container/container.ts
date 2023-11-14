@@ -7,22 +7,28 @@
  */
 
 import sinon from "sinon"
-import td from "testdouble"
+import * as td from "testdouble"
 
-import { PluginContext } from "../../../../../src/plugin-context"
-import { gardenPlugin, ContainerProvider } from "../../../../../src/plugins/container/container"
-import { expectError, getDataDir, makeTestGarden, TestGarden } from "../../../../helpers"
-import { ActionLog, createActionLog } from "../../../../../src/logger/log-entry"
+import type { PluginContext } from "../../../../../src/plugin-context.js"
+import type { ContainerProvider } from "../../../../../src/plugins/container/container.js"
+import { gardenPlugin } from "../../../../../src/plugins/container/container.js"
+import type { TestGarden } from "../../../../helpers.js"
+import { expectError, getDataDir, makeTestGarden } from "../../../../helpers.js"
+import type { ActionLog } from "../../../../../src/logger/log-entry.js"
+import { createActionLog } from "../../../../../src/logger/log-entry.js"
 import { expect } from "chai"
-import { ContainerBuildAction, ContainerBuildActionSpec } from "../../../../../src/plugins/container/moduleConfig"
+import type {
+  ContainerBuildAction,
+  ContainerBuildActionSpec,
+} from "../../../../../src/plugins/container/moduleConfig.js"
 import cloneDeep from "fast-copy"
 
-import { publishContainerBuild } from "../../../../../src/plugins/container/publish"
-import { Executed } from "../../../../../src/actions/types"
-import { BuildActionConfig } from "../../../../../src/actions/build"
-import { containerHelpers, minDockerVersion } from "../../../../../src/plugins/container/helpers"
-import { getDockerBuildFlags } from "../../../../../src/plugins/container/build"
-import { DEFAULT_BUILD_TIMEOUT_SEC } from "../../../../../src/constants"
+import { publishContainerBuild } from "../../../../../src/plugins/container/publish.js"
+import type { Executed } from "../../../../../src/actions/types.js"
+import type { BuildActionConfig } from "../../../../../src/actions/build.js"
+import { containerHelpers, minDockerVersion } from "../../../../../src/plugins/container/helpers.js"
+import { getDockerBuildFlags } from "../../../../../src/plugins/container/build.js"
+import { DEFAULT_BUILD_TIMEOUT_SEC } from "../../../../../src/constants.js"
 
 const testVersionedId = "some/image:12345"
 

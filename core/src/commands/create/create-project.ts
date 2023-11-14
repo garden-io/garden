@@ -6,20 +6,22 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import chalk from "chalk"
 import dedent from "dedent"
-import { pathExists, writeFile, copyFile } from "fs-extra"
-import { Command, CommandResult, CommandParams } from "../base"
-import { printHeader } from "../../logger/util"
-import { isDirectory } from "../../util/fs"
-import { loadConfigResources } from "../../config/base"
+import fsExtra from "fs-extra"
+const { pathExists, writeFile, copyFile } = fsExtra
+import type { CommandResult, CommandParams } from "../base.js"
+import { Command } from "../base.js"
+import { printHeader } from "../../logger/util.js"
+import { isDirectory } from "../../util/fs.js"
+import { loadConfigResources } from "../../config/base.js"
 import { resolve, basename, relative, join } from "path"
-import { GardenError, ParameterError } from "../../exceptions"
-import { addConfig } from "./helpers"
-import { wordWrap } from "../../util/string"
-import { PathParameter, StringParameter, BooleanParameter, StringOption } from "../../cli/params"
-import { userPrompt } from "../../util/util"
-import { DOCS_BASE_URL, GardenApiVersion } from "../../constants"
+import { GardenError, ParameterError } from "../../exceptions.js"
+import { addConfig } from "./helpers.js"
+import { wordWrap } from "../../util/string.js"
+import { PathParameter, StringParameter, BooleanParameter, StringOption } from "../../cli/params.js"
+import { userPrompt } from "../../util/util.js"
+import { DOCS_BASE_URL, GardenApiVersion } from "../../constants.js"
+import { styles } from "../../logger/styles.js"
 
 const ignorefileName = ".gardenignore"
 const defaultIgnorefile = dedent`
@@ -194,7 +196,9 @@ export class CreateProjectCommand extends Command<CreateProjectArgs, CreateProje
 
     await addConfig(configPath, yaml)
 
-    log.info(chalk.green(`-> Created new project config in ${chalk.bold.white(relative(process.cwd(), configPath))}`))
+    log.info(
+      styles.success(`-> Created new project config in ${styles.accent.bold(relative(process.cwd(), configPath))}`)
+    )
 
     const ignoreFilePath = resolve(configDir, ignorefileName)
     let ignoreFileCreated = false
@@ -204,17 +208,17 @@ export class CreateProjectCommand extends Command<CreateProjectArgs, CreateProje
 
       if (await pathExists(gitIgnorePath)) {
         await copyFile(gitIgnorePath, ignoreFilePath)
-        const gitIgnoreRelPath = chalk.bold.white(relative(process.cwd(), ignoreFilePath))
+        const gitIgnoreRelPath = styles.accent.bold(relative(process.cwd(), ignoreFilePath))
         log.info(
-          chalk.green(
+          styles.success(
             `-> Copied the .gitignore file at ${gitIgnoreRelPath} to a new .gardenignore in the same directory. Please edit the .gardenignore file if you'd like Garden to include or ignore different files.`
           )
         )
       } else {
         await writeFile(ignoreFilePath, defaultIgnorefile + "\n")
-        const gardenIgnoreRelPath = chalk.bold.white(relative(process.cwd(), ignoreFilePath))
+        const gardenIgnoreRelPath = styles.accent.bold(relative(process.cwd(), ignoreFilePath))
         log.info(
-          chalk.green(
+          styles.success(
             `-> Created default .gardenignore file at ${gardenIgnoreRelPath}. Please edit the .gardenignore file to add files or patterns that Garden should ignore when scanning and building.`
           )
         )
@@ -226,8 +230,8 @@ export class CreateProjectCommand extends Command<CreateProjectArgs, CreateProje
     log.info("")
 
     // This is to avoid `prettier` messing with the string formatting...
-    const configFilesUrl = chalk.cyan.underline(`${DOCS_BASE_URL}/using-garden/configuration-overview`)
-    const referenceUrl = chalk.cyan.underline(projectReferenceURL)
+    const configFilesUrl = styles.highlight.underline(`${DOCS_BASE_URL}/using-garden/configuration-overview`)
+    const referenceUrl = styles.highlight.underline(projectReferenceURL)
 
     log.info(
       wordWrap(

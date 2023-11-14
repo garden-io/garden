@@ -6,24 +6,30 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { fromPairs, omit } from "lodash"
-import { deepFilter } from "../../util/objects"
-import { Command, CommandResult, CommandParams } from "../base"
-import { ResolvedConfigGraph } from "../../graph/config-graph"
-import { createActionLog, Log } from "../../logger/log-entry"
-import chalk from "chalk"
-import { deline } from "../../util/string"
-import { EnvironmentStatusMap } from "../../plugin/handlers/Provider/getEnvironmentStatus"
-import { joi, joiIdentifierMap, joiStringMap } from "../../config/common"
-import { environmentStatusSchema } from "../../config/status"
-import { printHeader } from "../../logger/util"
-import { BuildStatusMap, getBuildStatusSchema } from "../../plugin/handlers/Build/get-status"
-import { getTestResultSchema, TestStatusMap } from "../../plugin/handlers/Test/get-result"
-import { getRunResultSchema, RunStatusMap } from "../../plugin/handlers/Run/get-result"
-import { DeployStatusMap, getDeployStatusSchema } from "../../plugin/handlers/Deploy/get-status"
-import { ActionRouter } from "../../router/router"
-import { sanitizeValue } from "../../util/logging"
-import { BooleanParameter } from "../../cli/params"
+import { fromPairs, omit } from "lodash-es"
+import { deepFilter } from "../../util/objects.js"
+import type { CommandResult, CommandParams } from "../base.js"
+import { Command } from "../base.js"
+import type { ResolvedConfigGraph } from "../../graph/config-graph.js"
+import type { Log } from "../../logger/log-entry.js"
+import { createActionLog } from "../../logger/log-entry.js"
+import { deline } from "../../util/string.js"
+import type { EnvironmentStatusMap } from "../../plugin/handlers/Provider/getEnvironmentStatus.js"
+import { joi, joiIdentifierMap, joiStringMap } from "../../config/common.js"
+import { environmentStatusSchema } from "../../config/status.js"
+import { printHeader } from "../../logger/util.js"
+import type { BuildStatusMap } from "../../plugin/handlers/Build/get-status.js"
+import { getBuildStatusSchema } from "../../plugin/handlers/Build/get-status.js"
+import type { TestStatusMap } from "../../plugin/handlers/Test/get-result.js"
+import { getTestResultSchema } from "../../plugin/handlers/Test/get-result.js"
+import type { RunStatusMap } from "../../plugin/handlers/Run/get-result.js"
+import { getRunResultSchema } from "../../plugin/handlers/Run/get-result.js"
+import type { DeployStatusMap } from "../../plugin/handlers/Deploy/get-status.js"
+import { getDeployStatusSchema } from "../../plugin/handlers/Deploy/get-status.js"
+import type { ActionRouter } from "../../router/router.js"
+import { sanitizeValue } from "../../util/logging.js"
+import { BooleanParameter } from "../../cli/params.js"
+import { styles } from "../../logger/styles.js"
 
 // Value is "completed" if the test/task has been run for the current version.
 export interface StatusCommandResult {
@@ -117,13 +123,11 @@ export class GetStatusCommand extends Command {
     for (const [name, status] of Object.entries(finalDeployStatuses)) {
       if (status.state === "unknown") {
         log.warn(
-          chalk.yellow(
-            deline`
-            Unable to resolve status for Deploy ${chalk.white(name)}. It is likely missing or outdated.
+          deline`
+            Unable to resolve status for Deploy ${styles.accent(name)}. It is likely missing or outdated.
             This can come up if the deployment has runtime dependencies that are not resolvable, i.e. not deployed or
             invalid.
             `
-          )
         )
       }
     }

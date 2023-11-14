@@ -7,15 +7,14 @@
  */
 
 import tmp from "tmp-promise"
-import { ChildProcessError, RuntimeError } from "../../../exceptions"
-import { Log } from "../../../logger/log-entry"
-import { exec } from "../../../util/util"
-import { containerHelpers } from "../../container/helpers"
-import { ContainerBuildAction } from "../../container/moduleConfig"
-import chalk from "chalk"
-import { deline, naturalList } from "../../../util/string"
-import { ExecaReturnValue } from "execa"
-import { PluginContext } from "../../../plugin-context"
+import { ChildProcessError, RuntimeError } from "../../../exceptions.js"
+import type { Log } from "../../../logger/log-entry.js"
+import { exec } from "../../../util/util.js"
+import { containerHelpers } from "../../container/helpers.js"
+import type { ContainerBuildAction } from "../../container/moduleConfig.js"
+import { deline, naturalList } from "../../../util/string.js"
+import type { ExecaReturnValue } from "execa"
+import type { PluginContext } from "../../../plugin-context.js"
 import { parse as parsePath } from "path"
 
 // TODO: Pass the correct log context instead of creating it here.
@@ -32,12 +31,10 @@ export async function configureMicrok8sAddons(log: Log, addons: string[]) {
       throw err
     }
     if (err.details.output.includes("permission denied") || err.details.output.includes("Insufficient permissions")) {
-      microK8sLog.warn(
-        chalk.yellow(
-          deline`Unable to get microk8s status and manage addons. You may need to add the current user to the microk8s
-          group. Alternatively, you can manually ensure that the ${naturalList(addons)} are enabled.`
-        )
-      )
+      microK8sLog.warn(deline`
+        Unable to get microk8s status and manage addons. You may need to add the current user to the microk8s
+        group. Alternatively, you can manually ensure that the ${naturalList(addons)} are enabled.
+      `)
       return
     } else {
       statusCommandResult = err

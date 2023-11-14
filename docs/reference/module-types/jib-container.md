@@ -11,7 +11,7 @@ Modules are deprecated and will be removed in version `0.14`. Please use [action
 
 ## Description
 
-Extends the [container type](./container.md) to build the image with [Jib](https://github.com/GoogleContainerTools/jib). Use this to efficiently build container images for Java services. Check out the [jib example](https://github.com/garden-io/garden/tree/0.13.18/examples/jib-container) to see it in action.
+Extends the [container type](./container.md) to build the image with [Jib](https://github.com/GoogleContainerTools/jib). Use this to efficiently build container images for Java services. Check out the [jib example](https://github.com/garden-io/garden/tree/0.13.19/examples/jib-container) to see it in action.
 
 The image is always built locally, directly from the source directory (see the note on that below), before shipping the container image to the right place. You can set `build.tarOnly: true` to only build the image as a tarball.
 
@@ -380,8 +380,13 @@ services:
 
       # Specify one or more source files or directories to automatically sync with the running container.
       paths:
-        - # POSIX-style or Windows path of the directory to sync to the target. Defaults to the config's directory if
-          # no value is provided.
+        - # Path to a local directory to be synchronized with the target.
+          # This should generally be a templated path to another action's source path (e.g.
+          # `${actions.build.my-container-image.sourcePath}`), or a relative path.
+          # If a path is hard-coded, we recommend sticking with relative paths here, and using forward slashes (`/`)
+          # as a delimiter, as Windows-style paths with back slashes (`\`) and absolute paths will work on some
+          # platforms, but they are not portable and will not work for users on other platforms.
+          # Defaults to the Deploy action's config's directory if no value is provided.
           source: .
 
           # POSIX-style absolute path to sync to inside the container. The root path (i.e. "/") is not allowed.
@@ -922,9 +927,9 @@ The chosen version will be downloaded by Garden and used to define `JAVA_HOME` e
 
 To use an arbitrary JDK distribution, please use the `jdkPath` configuration option.
 
-| Type     | Allowed Values | Default | Required |
-| -------- | -------------- | ------- | -------- |
-| `number` | 8, 11, 13, 17  | `11`    | Yes      |
+| Type     | Allowed Values    | Default | Required |
+| -------- | ----------------- | ------- | -------- |
+| `number` | 8, 11, 13, 17, 21 | `11`    | Yes      |
 
 ### `build.jdkPath`
 
@@ -1624,7 +1629,10 @@ Specify one or more source files or directories to automatically sync with the r
 
 [services](#services) > [sync](#servicessync) > [paths](#servicessyncpaths) > source
 
-POSIX-style or Windows path of the directory to sync to the target. Defaults to the config's directory if no value is provided.
+Path to a local directory to be synchronized with the target.
+This should generally be a templated path to another action's source path (e.g. `${actions.build.my-container-image.sourcePath}`), or a relative path.
+If a path is hard-coded, we recommend sticking with relative paths here, and using forward slashes (`/`) as a delimiter, as Windows-style paths with back slashes (`\`) and absolute paths will work on some platforms, but they are not portable and will not work for users on other platforms.
+Defaults to the Deploy action's config's directory if no value is provided.
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |

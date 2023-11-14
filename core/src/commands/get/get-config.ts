@@ -6,19 +6,20 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Command, CommandResult, CommandParams, suggestedCommandSchema } from "../base"
-import { ConfigDump } from "../../garden"
-import { environmentNameSchema, projectSourceSchema } from "../../config/project"
-import { joiIdentifier, joiVariables, joiArray, joi, joiStringMap } from "../../config/common"
-import { providerConfigBaseSchema, providerSchema } from "../../config/provider"
-import { moduleConfigSchema } from "../../config/module"
-import { workflowConfigSchema } from "../../config/workflow"
-import { BooleanParameter, ChoicesParameter } from "../../cli/params"
-import { printHeader } from "../../logger/util"
-import { buildActionConfigSchema } from "../../actions/build"
-import { deployActionConfigSchema } from "../../actions/deploy"
-import { runActionConfigSchema } from "../../actions/run"
-import { testActionConfigSchema } from "../../actions/test"
+import type { CommandResult, CommandParams } from "../base.js"
+import { Command, suggestedCommandSchema } from "../base.js"
+import type { ConfigDump } from "../../garden.js"
+import { environmentNameSchema, projectSourceSchema } from "../../config/project.js"
+import { joiIdentifier, joiVariables, joiArray, joi, joiStringMap } from "../../config/common.js"
+import { providerConfigBaseSchema, providerSchema } from "../../config/provider.js"
+import { moduleConfigSchema } from "../../config/module.js"
+import { workflowConfigSchema } from "../../config/workflow.js"
+import { BooleanParameter, ChoicesParameter } from "../../cli/params.js"
+import { printHeader } from "../../logger/util.js"
+import { buildActionConfigSchema } from "../../actions/build.js"
+import { deployActionConfigSchema } from "../../actions/deploy.js"
+import { runActionConfigSchema } from "../../actions/run.js"
+import { testActionConfigSchema } from "../../actions/test.js"
 
 export const getConfigOptions = {
   "exclude-disabled": new BooleanParameter({

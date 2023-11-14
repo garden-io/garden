@@ -7,8 +7,8 @@
  */
 
 import { createGardenPlugin } from "@garden-io/sdk"
-import { ConftestProvider } from "@garden-io/garden-conftest/build/src"
-import { dedent } from "@garden-io/sdk/build/src/util/string"
+import type { ConftestProvider } from "@garden-io/garden-conftest/build/src/index.js"
+import { dedent } from "@garden-io/sdk/build/src/util/string.js"
 
 /**
  * Auto-generates a conftest module for each container module in your project

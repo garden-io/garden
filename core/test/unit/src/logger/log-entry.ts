@@ -8,11 +8,13 @@
 
 import { expect } from "chai"
 
-import { getRootLogger, LogLevel, Logger } from "../../../../src/logger/logger"
-import { freezeTime } from "../../../helpers"
-import { CoreLog, createActionLog, Log, LogMetadata } from "../../../../src/logger/log-entry"
-import { omit } from "lodash"
-import chalk from "chalk"
+import type { Logger } from "../../../../src/logger/logger.js"
+import { getRootLogger, LogLevel } from "../../../../src/logger/logger.js"
+import { freezeTime } from "../../../helpers.js"
+import type { CoreLog, Log, LogMetadata } from "../../../../src/logger/log-entry.js"
+import { createActionLog } from "../../../../src/logger/log-entry.js"
+import { omit } from "lodash-es"
+import { styles } from "../../../../src/logger/styles.js"
 
 const logger: Logger = getRootLogger()
 
@@ -79,11 +81,11 @@ describe("Log", () => {
     it("should log success message in green color by default", () => {
       const entry = log.success("success").getLatestEntry()
       expect(entry.level).to.eql(LogLevel.info)
-      expect(entry.msg).to.eql(chalk.green("success"))
+      expect(entry.msg).to.eql(styles.success("success"))
     })
     it("should log success message in original color if it has ansi", () => {
-      const entry = log.success(`hello ${chalk.cyan("cyan")}`).getLatestEntry()
-      expect(entry.msg).to.eql(`hello ${chalk.cyan("cyan")}`)
+      const entry = log.success(`hello ${styles.highlight("cyan")}`).getLatestEntry()
+      expect(entry.msg).to.eql(`hello ${styles.highlight("cyan")}`)
     })
     it("should set the symbol to success", () => {
       const entry = log.success("success").getLatestEntry()

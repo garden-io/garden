@@ -6,37 +6,31 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import deline = require("deline")
-import dedent = require("dedent")
-import chalk = require("chalk")
+import deline from "deline"
+import dedent from "dedent"
 
-import {
-  Command,
-  CommandParams,
-  CommandResult,
-  handleProcessResults,
-  PrepareParams,
-  processCommandResultSchema,
-  ProcessCommandResult,
-  emptyActionResults,
-} from "./base"
-import { printEmoji, printHeader } from "../logger/util"
-import { runAsDevCommand, watchParameter, watchRemovedWarning } from "./helpers"
-import { DeployTask } from "../tasks/deploy"
-import { naturalList } from "../util/string"
-import { StringsParameter, BooleanParameter } from "../cli/params"
-import { Garden } from "../garden"
-import { ActionModeMap } from "../actions/types"
-import { SyncMonitor } from "../monitors/sync"
-import { warnOnLinkedActions } from "../actions/helpers"
-import { PluginEventBroker } from "../plugin-context"
-import { HandlerMonitor } from "../monitors/handler"
-import { PortForwardMonitor } from "../monitors/port-forward"
-import { LogMonitor } from "../monitors/logs"
-import { LoggerType, parseLogLevel } from "../logger/logger"
-import { serveOpts } from "./serve"
-import { gardenEnv } from "../constants"
-import { DeployAction } from "../actions/deploy"
+import type { CommandParams, CommandResult, PrepareParams, ProcessCommandResult } from "./base.js"
+import { Command, handleProcessResults, processCommandResultSchema, emptyActionResults } from "./base.js"
+import { printEmoji, printHeader } from "../logger/util.js"
+import { runAsDevCommand } from "./helpers.js"
+import { DeployTask } from "../tasks/deploy.js"
+import { naturalList } from "../util/string.js"
+import { StringsParameter, BooleanParameter } from "../cli/params.js"
+import type { Garden } from "../garden.js"
+import type { ActionModeMap } from "../actions/types.js"
+import { SyncMonitor } from "../monitors/sync.js"
+import { warnOnLinkedActions } from "../actions/helpers.js"
+import { PluginEventBroker } from "../plugin-context.js"
+import { HandlerMonitor } from "../monitors/handler.js"
+import { PortForwardMonitor } from "../monitors/port-forward.js"
+import { LogMonitor } from "../monitors/logs.js"
+import type { LoggerType } from "../logger/logger.js"
+import { parseLogLevel } from "../logger/logger.js"
+import { serveOpts } from "./serve.js"
+import { gardenEnv } from "../constants.js"
+import type { DeployAction } from "../actions/deploy.js"
+import { watchParameter, watchRemovedWarning } from "./util/watch-parameter.js"
+import { styles } from "../logger/styles.js"
 
 export const deployArgs = {
   names: new StringsParameter({
@@ -209,10 +203,10 @@ export class DeployCommand extends Command<Args, Opts> {
     const disabled = deployActions.filter((s) => s.isDisabled()).map((s) => s.name)
 
     if (disabled.length > 0) {
-      const bold = disabled.map((d) => chalk.white(d))
+      const bold = disabled.map((d) => styles.accent(d))
       const msg =
         disabled.length === 1 ? `Deploy action ${bold} is disabled` : `Deploy actions ${naturalList(bold)} are disabled`
-      log.info(chalk.gray(msg))
+      log.info(styles.primary(msg))
     }
 
     const skipRuntimeDependencies = opts["skip-dependencies"]

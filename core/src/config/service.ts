@@ -6,10 +6,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { joiIdentifier, joiUserIdentifier, joi, joiVariables, joiSparseArray, createSchema } from "./common"
-import { deline, dedent } from "../util/string"
-import { memoize } from "lodash"
-import { DEFAULT_DEPLOY_TIMEOUT_SEC } from "../constants"
+import { joiIdentifier, joiUserIdentifier, joi, joiVariables, joiSparseArray, createSchema } from "./common.js"
+import { deline, dedent } from "../util/string.js"
+import { memoize } from "lodash-es"
+import { DEFAULT_DEPLOY_TIMEOUT_SEC } from "../constants.js"
 
 /**
  * This interface provides a common set of Service attributes, that are also required for the higher-level

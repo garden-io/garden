@@ -6,21 +6,25 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import execa = require("execa")
+import { execa } from "execa"
 import { expect } from "chai"
 import tmp from "tmp-promise"
-import { createFile, ensureSymlink, lstat, mkdir, mkdirp, realpath, remove, symlink, writeFile } from "fs-extra"
+import fsExtra from "fs-extra"
+
+const { createFile, ensureSymlink, lstat, mkdir, mkdirp, realpath, remove, symlink, writeFile } = fsExtra
 import { basename, join, relative, resolve } from "path"
 
-import { expectError, makeTestGardenA, TestGarden } from "../../../helpers"
-import { getCommitIdFromRefList, GitCli, GitHandler, parseGitUrl } from "../../../../src/vcs/git"
-import { Log } from "../../../../src/logger/log-entry"
-import { hashRepoUrl } from "../../../../src/util/ext-source-util"
-import { deline } from "../../../../src/util/string"
-import { uuidv4 } from "../../../../src/util/random"
-import { VcsHandlerParams } from "../../../../src/vcs/vcs"
-import { repoRoot } from "../../../../src/util/testing"
-import { GardenError } from "../../../../src/exceptions"
+import type { TestGarden } from "../../../helpers.js"
+import { expectError, makeTestGardenA } from "../../../helpers.js"
+import type { GitCli } from "../../../../src/vcs/git.js"
+import { getCommitIdFromRefList, GitHandler, parseGitUrl } from "../../../../src/vcs/git.js"
+import type { Log } from "../../../../src/logger/log-entry.js"
+import { hashRepoUrl } from "../../../../src/util/ext-source-util.js"
+import { deline } from "../../../../src/util/string.js"
+import { uuidv4 } from "../../../../src/util/random.js"
+import type { VcsHandlerParams } from "../../../../src/vcs/vcs.js"
+import { repoRoot } from "../../../../src/util/testing.js"
+import { GardenError } from "../../../../src/exceptions.js"
 
 // Overriding this to make sure any ignorefile name is respected
 export const defaultIgnoreFilename = ".testignore"
@@ -603,24 +607,6 @@ export const commonGitHandlerTests = (handlerCls: new (params: VcsHandlerParams)
           ])
         })
       })
-    })
-  })
-
-  describe("toGitConfigCompatiblePath", () => {
-    it("should return an unmodified path in Linux", async () => {
-      const path = "/home/user/repo"
-      expect(handler.toGitConfigCompatiblePath(path, "linux")).to.equal(path)
-    })
-
-    it("should return an unmodified path in macOS", async () => {
-      const path = "/Users/user/repo"
-      expect(handler.toGitConfigCompatiblePath(path, "darwin")).to.equal(path)
-    })
-
-    it("should return a modified and corrected path in Windows", async () => {
-      const path = "C:\\Users\\user\\repo"
-      const expectedPath = "C:/Users/user/repo"
-      expect(handler.toGitConfigCompatiblePath(path, "win32")).to.equal(expectedPath)
     })
   })
 

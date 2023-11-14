@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import * as opentelemetry from "@opentelemetry/sdk-node"
+import type * as opentelemetry from "@opentelemetry/sdk-node"
 
 /**
  * Automatically prefixes any keys in the input object with `garden.` for attribute namespacing.

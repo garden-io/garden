@@ -6,8 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ToolBuildSpec } from "@garden-io/core/src/plugin/tools"
-import { PluginToolSpec } from "@garden-io/sdk/build/src/types"
+import type { ToolBuildSpec } from "@garden-io/core/src/plugin/tools.js"
+import type { PluginToolSpec } from "@garden-io/sdk/build/src/types.js"
 import { posix } from "path"
 
 interface JdkBinary {
@@ -123,6 +123,33 @@ const jdk17Version: JdkVersion = {
   },
 }
 
+const jdk21Version: JdkVersion = {
+  lookupName: "openjdk-21",
+  description: "The OpenJDK 21 library.",
+  baseUrl: "https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.1%2B12/",
+  versionName: "jdk-21.0.1+12",
+  mac_amd64: {
+    filename: "OpenJDK21U-jdk_x64_mac_hotspot_21.0.1_12.tar.gz",
+    sha256: "35f3cbc86d7ff0a01facefd741d5cfb675867e0a5ec137f62ba071d2511a45c9",
+  },
+  mac_arm64: {
+    filename: "OpenJDK21U-jdk_aarch64_mac_hotspot_21.0.1_12.tar.gz",
+    sha256: "0d29257c9bcb5f20f5c4643ef9437f36b10376863eddaf6248d09093796c6b30",
+  },
+  linux_amd64: {
+    filename: "OpenJDK21U-jdk_x64_linux_hotspot_21.0.1_12.tar.gz",
+    sha256: "1a6fa8abda4c5caed915cfbeeb176e7fbd12eb6b222f26e290ee45808b529aa1",
+  },
+  linux_arm64: {
+    filename: "OpenJDK21U-jdk_aarch64_linux_hotspot_21.0.1_12.tar.gz",
+    sha256: "e184dc29a6712c1f78754ab36fb48866583665fa345324f1a79e569c064f95e9",
+  },
+  windows: {
+    filename: "OpenJDK21U-jdk_x64_windows_hotspot_21.0.1_12.zip",
+    sha256: "36555fd6a1a628abf8063b7781309895a94680c13a0e620013ff44bfdc18d8bd",
+  },
+}
+
 function openJdkSpec(jdkVersion: JdkVersion): PluginToolSpec {
   const macBuilds: ToolBuildSpec[] = [
     {
@@ -196,4 +223,5 @@ export const openJdkSpecs: PluginToolSpec[] = [
   openJdkSpec(jdk11Version),
   openJdkSpec(jdk13Version),
   openJdkSpec(jdk17Version),
+  openJdkSpec(jdk21Version),
 ]

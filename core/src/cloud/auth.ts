@@ -7,16 +7,16 @@
  */
 
 import open from "open"
-import { Server } from "http"
+import type { Server } from "http"
 import Koa from "koa"
-import { EventEmitter2 } from "eventemitter2"
-import bodyParser = require("koa-bodyparser")
-import Router = require("koa-router")
-import getPort = require("get-port")
-import { Log } from "../logger/log-entry"
-import { AuthTokenResponse } from "./api"
-import { isArray } from "lodash"
-import { gardenEnv } from "../constants"
+import type EventEmitter2 from "eventemitter2"
+import bodyParser from "koa-bodyparser"
+import Router from "koa-router"
+import getPort from "get-port"
+import type { Log } from "../logger/log-entry.js"
+import type { AuthTokenResponse } from "./api.js"
+import { isArray } from "lodash-es"
+import { gardenEnv } from "../constants.js"
 
 // If a GARDEN_AUTH_TOKEN is present and Garden is NOT running from a workflow runner pod,
 // switch to ci-token authentication method.
@@ -31,11 +31,11 @@ export class AuthRedirectServer {
   private server?: Server
   private app?: Koa
   private enterpriseDomain: string
-  private events: EventEmitter2
+  private events: EventEmitter2.EventEmitter2
 
   constructor(
     enterpriseDomain: string,
-    events: EventEmitter2,
+    events: EventEmitter2.EventEmitter2,
     log: Log,
     public port?: number
   ) {

@@ -7,9 +7,8 @@
  */
 
 import AsyncLock from "async-lock"
-import chalk from "chalk"
-import split2 = require("split2")
-import { isEmpty } from "lodash"
+import split2 from "split2"
+import { isEmpty } from "lodash-es"
 import {
   buildSyncVolumeName,
   buildkitContainerName,
@@ -17,33 +16,36 @@ import {
   buildkitImageName,
   buildkitRootlessImageName,
   dockerAuthSecretKey,
-} from "../../constants"
-import { KubeApi } from "../../api"
-import { KubernetesDeployment } from "../../types"
-import { Log } from "../../../../logger/log-entry"
-import { waitForResources, compareDeployedResources } from "../../status/status"
-import { KubernetesProvider, KubernetesPluginContext, ClusterBuildkitCacheConfig } from "../../config"
-import { PluginContext } from "../../../../plugin-context"
+} from "../../constants.js"
+import { KubeApi } from "../../api.js"
+import type { KubernetesDeployment } from "../../types.js"
+import type { Log } from "../../../../logger/log-entry.js"
+import { waitForResources, compareDeployedResources } from "../../status/status.js"
+import type { KubernetesProvider, KubernetesPluginContext, ClusterBuildkitCacheConfig } from "../../config.js"
+import type { PluginContext } from "../../../../plugin-context.js"
+import type { BuildStatusHandler, BuildHandler } from "./common.js"
 import {
-  BuildStatusHandler,
   skopeoBuildStatus,
-  BuildHandler,
   syncToBuildSync,
   getUtilContainer,
   ensureBuilderSecret,
   builderToleration,
-} from "./common"
-import { getNamespaceStatus } from "../../namespace"
-import { sleep } from "../../../../util/util"
-import { ContainerBuildAction, ContainerModuleOutputs } from "../../../container/moduleConfig"
-import { getDockerBuildArgs } from "../../../container/build"
-import { Resolved } from "../../../../actions/types"
-import { PodRunner } from "../../run"
-import { prepareSecrets } from "../../secrets"
-import { getRunningDeploymentPod } from "../../util"
-import { defaultDockerfileName } from "../../../container/config"
-import { k8sGetContainerBuildActionOutputs } from "../handlers"
-import { stringifyResources } from "../util"
+  inClusterBuilderServiceAccount,
+  ensureServiceAccount,
+  cycleDeployment,
+} from "./common.js"
+import { getNamespaceStatus } from "../../namespace.js"
+import { sleep } from "../../../../util/util.js"
+import type { ContainerBuildAction, ContainerModuleOutputs } from "../../../container/moduleConfig.js"
+import { getDockerBuildArgs } from "../../../container/build.js"
+import type { Resolved } from "../../../../actions/types.js"
+import { PodRunner } from "../../run.js"
+import { prepareSecrets } from "../../secrets.js"
+import { getRunningDeploymentPod } from "../../util.js"
+import { defaultDockerfileName } from "../../../container/config.js"
+import { k8sGetContainerBuildActionOutputs } from "../handlers.js"
+import { stringifyResources } from "../util.js"
+import { styles } from "../../../../logger/styles.js"
 
 const deployLock = new AsyncLock()
 
@@ -188,6 +190,14 @@ export async function ensureBuildkit({
   api: KubeApi
   namespace: string
 }) {
+  const serviceAccountChanged = await ensureServiceAccount({
+    ctx,
+    log,
+    api,
+    namespace,
+    annotations: provider.config.clusterBuildkit?.serviceAccountAnnotations,
+  })
+
   return deployLock.acquire(namespace, async () => {
     const deployLog = log.createLog()
 
@@ -211,17 +221,23 @@ export async function ensureBuildkit({
       log: deployLog,
     })
 
+    // if the service account changed, all pods part of the deployment must be restarted
+    // so that they receive new credentials (e.g. for IRSA)
+    if (status.remoteResources.length > 0 && serviceAccountChanged) {
+      await cycleDeployment({ ctx, provider, deployment: manifest, api, namespace, deployLog })
+    }
+
     if (status.state === "ready") {
       // Need to wait a little to ensure the secret is updated in the deployment
       if (secretUpdated) {
         await sleep(1000)
       }
-      return { authSecret, updated: false }
+      return { authSecret, updated: serviceAccountChanged }
     }
 
     // Deploy the buildkit daemon
     deployLog.info(
-      chalk.gray(`-> Deploying ${buildkitDeploymentName} daemon in ${namespace} namespace (was ${status.state})`)
+      styles.primary(`-> Deploying ${buildkitDeploymentName} daemon in ${namespace} namespace (was ${status.state})`)
     )
 
     await api.upsert({ kind: "Deployment", namespace, log: deployLog, obj: manifest })
@@ -398,6 +414,7 @@ export function getBuildkitDeployment(
           annotations: provider.config.clusterBuildkit?.annotations,
         },
         spec: {
+          serviceAccountName: inClusterBuilderServiceAccount,
           containers: [
             {
               name: buildkitContainerName,

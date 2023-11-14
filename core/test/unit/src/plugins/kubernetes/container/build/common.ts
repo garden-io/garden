@@ -7,13 +7,16 @@
  */
 
 import {
+  getBuilderServiceAccountSpec,
   getUtilManifests,
+  inClusterBuilderServiceAccount,
   skopeoManifestUnknown,
-} from "../../../../../../../src/plugins/kubernetes/container/build/common"
+} from "../../../../../../../src/plugins/kubernetes/container/build/common.js"
 import { expect } from "chai"
-import { defaultResources, KubernetesProvider } from "../../../../../../../src/plugins/kubernetes/config"
-import { DeepPartial } from "../../../../../../../src/util/util"
-import { k8sUtilImageName } from "../../../../../../../src/plugins/kubernetes/constants"
+import type { KubernetesProvider } from "../../../../../../../src/plugins/kubernetes/config.js"
+import { defaultResources } from "../../../../../../../src/plugins/kubernetes/config.js"
+import type { DeepPartial } from "../../../../../../../src/util/util.js"
+import { k8sUtilImageName } from "../../../../../../../src/plugins/kubernetes/constants.js"
 
 describe("common build", () => {
   describe("manifest error", () => {
@@ -42,6 +45,27 @@ describe("common build", () => {
         "unauthorized: unauthorized to access repository: namespace/image-name, action: push: unauthorized to access repository: namespace/image-name, action: push"
 
       expect(skopeoManifestUnknown(errorMessage)).to.be.false
+    })
+  })
+
+  describe("getBuilderServiceAccountSpec", () => {
+    it("should return the manifest", () => {
+      const annotation = { "some-annotation": "annotation-value" }
+      const result = getBuilderServiceAccountSpec("random-namespace", annotation)
+      expect(result).eql({
+        apiVersion: "v1",
+        kind: "ServiceAccount",
+        metadata: {
+          name: inClusterBuilderServiceAccount,
+          annotations: annotation,
+          namespace: "random-namespace",
+        },
+      })
+    })
+
+    it("should return empty annotations when no annotations are provided", () => {
+      const result = getBuilderServiceAccountSpec("random-namespace")
+      expect(result.metadata.annotations).eql({})
     })
   })
 
@@ -74,6 +98,7 @@ describe("common build", () => {
             template: {
               metadata: { labels: { app: "garden-util" }, annotations: undefined },
               spec: {
+                serviceAccountName: inClusterBuilderServiceAccount,
                 containers: [
                   {
                     name: "util",

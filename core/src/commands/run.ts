@@ -6,25 +6,20 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import chalk from "chalk"
-import {
-  Command,
-  CommandParams,
-  CommandResult,
-  handleProcessResults,
-  PrepareParams,
-  ProcessCommandResult,
-  processCommandResultSchema,
-} from "./base"
-import { RunTask } from "../tasks/run"
-import { printHeader } from "../logger/util"
-import { ParameterError } from "../exceptions"
-import { dedent, deline } from "../util/string"
-import { BooleanParameter, StringsParameter } from "../cli/params"
-import { validateActionSearchResults, watchParameter, watchRemovedWarning } from "./helpers"
-import { Log } from "../logger/log-entry"
-import { TestCommand } from "./test"
-import { WorkflowCommand, WorkflowRunOutput } from "./workflow"
+import type { CommandParams, CommandResult, PrepareParams, ProcessCommandResult } from "./base.js"
+import { Command, handleProcessResults, processCommandResultSchema } from "./base.js"
+import { RunTask } from "../tasks/run.js"
+import { printHeader } from "../logger/util.js"
+import { ParameterError } from "../exceptions.js"
+import { dedent, deline } from "../util/string.js"
+import { BooleanParameter, StringsParameter } from "../cli/params.js"
+import { validateActionSearchResults } from "./helpers.js"
+import type { Log } from "../logger/log-entry.js"
+import { TestCommand } from "./test.js"
+import type { WorkflowRunOutput } from "./workflow.js"
+import { WorkflowCommand } from "./workflow.js"
+import { watchParameter, watchRemovedWarning } from "./util/watch-parameter.js"
+import { styles } from "../logger/styles.js"
 
 // TODO: support interactive execution for a single Run (needs implementation from RunTask through plugin handlers).
 
@@ -179,11 +174,11 @@ export class RunCommand extends Command<Args, Opts> {
     for (const action of actions) {
       if (action.isDisabled() && !opts.force) {
         log.warn(
-          chalk.yellow(deline`
-            ${chalk.redBright(action.longDescription())} is disabled for the ${chalk.redBright(garden.environmentName)}
+          deline`
+            ${styles.error(action.longDescription())} is disabled for the ${styles.error(garden.environmentName)}
             environment. If you're sure you want to run it anyway, please run the command again with the
-            ${chalk.redBright("--force")} flag.
-          `)
+            ${styles.error("--force")} flag.
+          `
         )
       }
     }
@@ -221,13 +216,13 @@ function maybeOldRunCommand(names: string[], args: any, opts: any, log: Log, par
   if (["module", "service", "task", "test", "workflow"].includes(firstArg)) {
     if (firstArg === "module" || firstArg === "service") {
       throw new ParameterError({
-        message: `Error: The ${chalk.white("garden run " + firstArg)} command has been removed.
+        message: `Error: The ${styles.accent("garden run " + firstArg)} command has been removed.
       Please define a Run action instead, or use the underlying tools (e.g. Docker or Kubernetes) directly.`,
       })
     }
     if (firstArg === "task") {
       log.warn(
-        `The ${chalk.yellow("run task")} command will be removed in Garden 0.14. Please use the ${chalk.yellow(
+        `The ${styles.command("run task")} command will be removed in Garden 0.14. Please use the ${styles.command(
           "run"
         )} command instead.`
       )
@@ -237,7 +232,7 @@ function maybeOldRunCommand(names: string[], args: any, opts: any, log: Log, par
     }
     if (firstArg === "test") {
       log.warn(
-        `The ${chalk.yellow("run test")} command will be removed in Garden 0.14. Please use the ${chalk.yellow(
+        `The ${styles.command("run test")} command will be removed in Garden 0.14. Please use the ${styles.command(
           "test"
         )} command instead.`
       )
@@ -248,7 +243,7 @@ function maybeOldRunCommand(names: string[], args: any, opts: any, log: Log, par
     }
     if (firstArg === "workflow") {
       log.warn(
-        `The ${chalk.yellow("run workflow")} command will be removed in Garden 0.14. Please use the ${chalk.yellow(
+        `The ${styles.command("run workflow")} command will be removed in Garden 0.14. Please use the ${styles.command(
           "workflow"
         )} command instead.`
       )

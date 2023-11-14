@@ -7,58 +7,57 @@
  */
 
 import cloneDeep from "fast-copy"
-import { isArray, isString, keyBy, keys, pick, union } from "lodash"
-import { validateWithPath } from "./config/validation"
+import { isArray, isString, keyBy, keys, pick, union } from "lodash-es"
+import { validateWithPath } from "./config/validation.js"
 import {
   getModuleTemplateReferences,
   mayContainTemplateString,
   resolveTemplateString,
   resolveTemplateStrings,
-} from "./template-string/template-string"
-import { GenericContext } from "./config/template-contexts/base"
+} from "./template-string/template-string.js"
+import { GenericContext } from "./config/template-contexts/base.js"
 import { dirname, posix, relative, resolve } from "path"
-import type { Garden } from "./garden"
+import type { Garden } from "./garden.js"
+import type { GardenError } from "./exceptions.js"
 import {
   CircularDependenciesError,
   ConfigurationError,
   FilesystemError,
-  GardenError,
   PluginError,
   toGardenError,
-} from "./exceptions"
-import { dedent } from "./util/string"
-import {
-  GardenModule,
-  getModuleTypeBases,
-  ModuleConfigMap,
-  moduleFromConfig,
-  ModuleMap,
-  ModuleTypeMap,
-} from "./types/module"
-import { BuildDependencyConfig, ModuleConfig, moduleConfigSchema } from "./config/module"
-import { Profile, profileAsync } from "./util/profiling"
-import { getLinkedSources } from "./util/ext-source-util"
-import { ActionReference, allowUnknown, DeepPrimitiveMap } from "./config/common"
-import type { ProviderMap } from "./config/provider"
-import chalk from "chalk"
-import { DependencyGraph } from "./graph/common"
-import { mkdirp, readFile } from "fs-extra"
-import type { Log } from "./logger/log-entry"
-import { ModuleConfigContext, ModuleConfigContextParams } from "./config/template-contexts/module"
-import { pathToCacheContext } from "./cache"
-import { loadVarfile, prepareBuildDependencies } from "./config/base"
+} from "./exceptions.js"
+import { dedent } from "./util/string.js"
+import type { GardenModule, ModuleConfigMap, ModuleMap, ModuleTypeMap } from "./types/module.js"
+import { getModuleTypeBases, moduleFromConfig } from "./types/module.js"
+import type { BuildDependencyConfig, ModuleConfig } from "./config/module.js"
+import { moduleConfigSchema } from "./config/module.js"
+import { Profile, profileAsync } from "./util/profiling.js"
+import { getLinkedSources } from "./util/ext-source-util.js"
+import type { ActionReference, DeepPrimitiveMap } from "./config/common.js"
+import { allowUnknown } from "./config/common.js"
+import type { ProviderMap } from "./config/provider.js"
+import { DependencyGraph } from "./graph/common.js"
+import fsExtra from "fs-extra"
+const { mkdirp, readFile } = fsExtra
+import type { Log } from "./logger/log-entry.js"
+import type { ModuleConfigContextParams } from "./config/template-contexts/module.js"
+import { ModuleConfigContext } from "./config/template-contexts/module.js"
+import { pathToCacheContext } from "./cache.js"
+import { loadVarfile, prepareBuildDependencies } from "./config/base.js"
 import { merge } from "json-merge-patch"
-import type { ModuleTypeDefinition } from "./plugin/plugin"
-import { serviceFromConfig } from "./types/service"
-import { taskFromConfig } from "./types/task"
-import { testFromConfig } from "./types/test"
-import { BuildActionConfig, BuildCopyFrom, isBuildActionConfig } from "./actions/build"
-import type { GroupConfig } from "./config/group"
-import type { ActionConfig, ActionKind, BaseActionConfig } from "./actions/types"
-import type { ModuleGraph } from "./graph/modules"
-import type { GraphResults } from "./graph/results"
-import type { ExecBuildConfig } from "./plugins/exec/build"
-import { pMemoizeDecorator } from "./lib/p-memoize"
+import type { ModuleTypeDefinition } from "./plugin/plugin.js"
+import { serviceFromConfig } from "./types/service.js"
+import { taskFromConfig } from "./types/task.js"
+import { testFromConfig } from "./types/test.js"
+import type { BuildActionConfig, BuildCopyFrom } from "./actions/build.js"
+import { isBuildActionConfig } from "./actions/build.js"
+import type { GroupConfig } from "./config/group.js"
+import type { ActionConfig, ActionKind, BaseActionConfig } from "./actions/types.js"
+import type { ModuleGraph } from "./graph/modules.js"
+import type { GraphResults } from "./graph/results.js"
+import type { ExecBuildConfig } from "./plugins/exec/build.js"
+import { pMemoizeDecorator } from "./lib/p-memoize.js"
+import { styles } from "./logger/styles.js"
 
 // This limit is fairly arbitrary, but we need to have some cap on concurrent processing.
 export const moduleResolutionConcurrencyLimit = 50
@@ -207,12 +206,12 @@ export class ModuleResolver {
     const processLeaves = async () => {
       if (Object.keys(errors).length > 0) {
         const errorStr = Object.entries(errors)
-          .map(([name, err]) => `${chalk.white.bold(name)}: ${err.message}`)
+          .map(([name, err]) => `${styles.accent.bold(name)}: ${err.message}`)
           .join("\n")
         const msg = `Failed resolving one or more modules:\n\n${errorStr}`
 
         const combined = new ConfigurationError({
-          message: chalk.red(msg),
+          message: msg,
           wrappedErrors: Object.values(errors),
         })
         throw combined
@@ -920,9 +919,8 @@ function inheritModuleToAction(module: GardenModule, action: ActionConfig) {
 
 function missingBuildDependency(moduleName: string, dependencyName: string) {
   return new ConfigurationError({
-    message: chalk.red(
-      `Could not find build dependency ${chalk.white(dependencyName)}, ` +
-        `configured in module ${chalk.white(moduleName)}`
-    ),
+    message:
+      `Could not find build dependency ${styles.accent(dependencyName)}, ` +
+      `configured in module ${styles.accent(moduleName)}`,
   })
 }

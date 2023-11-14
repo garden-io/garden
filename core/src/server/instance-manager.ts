@@ -7,24 +7,27 @@
  */
 
 import AsyncLock from "async-lock"
-import chalk from "chalk"
-import { Autocompleter, AutocompleteSuggestion } from "../cli/autocomplete"
-import { parseCliVarFlags } from "../cli/helpers"
-import { ParameterObject, ParameterValues } from "../cli/params"
-import { CloudApi, CloudApiFactory, CloudApiFactoryParams, getGardenCloudDomain } from "../cloud/api"
-import type { Command } from "../commands/base"
-import { getBuiltinCommands, flattenCommands } from "../commands/commands"
-import { getCustomCommands } from "../commands/custom"
-import type { ServeCommand } from "../commands/serve"
-import { GlobalConfigStore } from "../config-store/global"
-import { ProjectConfig } from "../config/project"
-import { EventBus, GardenEventAnyListener } from "../events/events"
-import { ConfigDump, Garden, GardenOpts, makeDummyGarden, resolveGardenParamsPartial } from "../garden"
-import type { Log } from "../logger/log-entry"
-import { MonitorManager } from "../monitors/manager"
-import type { GardenPluginReference } from "../plugin/plugin"
-import { environmentToString } from "../types/namespace"
-import { omitUndefined } from "../util/objects"
+import type { AutocompleteSuggestion } from "../cli/autocomplete.js"
+import { Autocompleter } from "../cli/autocomplete.js"
+import { parseCliVarFlags } from "../cli/helpers.js"
+import type { ParameterObject, ParameterValues } from "../cli/params.js"
+import type { CloudApiFactory, CloudApiFactoryParams } from "../cloud/api.js"
+import { CloudApi, getGardenCloudDomain } from "../cloud/api.js"
+import type { Command } from "../commands/base.js"
+import { getBuiltinCommands, flattenCommands } from "../commands/commands.js"
+import { getCustomCommands } from "../commands/custom.js"
+import type { ServeCommand } from "../commands/serve.js"
+import type { GlobalConfigStore } from "../config-store/global.js"
+import type { ProjectConfig } from "../config/project.js"
+import type { GardenEventAnyListener } from "../events/events.js"
+import { EventBus } from "../events/events.js"
+import type { ConfigDump, GardenOpts } from "../garden.js"
+import { Garden, makeDummyGarden, resolveGardenParamsPartial } from "../garden.js"
+import type { Log } from "../logger/log-entry.js"
+import { MonitorManager } from "../monitors/manager.js"
+import type { GardenPluginReference } from "../plugin/plugin.js"
+import { environmentToString } from "../types/namespace.js"
+import { omitUndefined } from "../util/objects.js"
 import {
   AutocompleteCommand,
   ReloadCommand,
@@ -33,8 +36,10 @@ import {
   _GetDeployStatusCommand,
   _GetActionStatusesCommand,
   _ShellCommand,
-} from "./commands"
-import { getGardenInstanceKey, GardenInstanceKeyParams } from "./helpers"
+} from "./commands.js"
+import type { GardenInstanceKeyParams } from "./helpers.js"
+import { getGardenInstanceKey } from "./helpers.js"
+import { styles } from "../logger/styles.js"
 
 interface InstanceContext {
   garden: Garden
@@ -239,8 +244,8 @@ export class GardenInstanceManager {
       if (!garden.needsReload()) {
         garden.needsReload(true)
         garden.log.info(
-          chalk.magenta.bold(
-            `${chalk.white("→")} Config change detected. Project will be reloaded when the next command is run.`
+          styles.highlightSecondary.bold(
+            `${styles.accent("→")} Config change detected. Project will be reloaded when the next command is run.`
           )
         )
       }

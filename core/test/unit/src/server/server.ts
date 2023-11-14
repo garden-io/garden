@@ -6,22 +6,23 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { expectError, makeTestGardenA, taskResultOutputs, testPluginReferences } from "../../../helpers"
-import { Server } from "http"
-import { GardenServer, startServer } from "../../../../src/server/server"
-import { Garden } from "../../../../src/garden"
+import { expectError, makeTestGardenA, taskResultOutputs, testPluginReferences } from "../../../helpers.js"
+import type { Server } from "http"
+import { GardenServer, startServer } from "../../../../src/server/server.js"
+import type { Garden } from "../../../../src/garden.js"
 import { expect } from "chai"
-import { authTokenHeader } from "../../../../src/cloud/auth"
-import { ServeCommand } from "../../../../src/commands/serve"
-import { gardenEnv } from "../../../../src/constants"
-import { deepOmitUndefined } from "../../../../src/util/objects"
-import { uuidv4 } from "../../../../src/util/random"
-import { GardenInstanceManager } from "../../../../src/server/instance-manager"
-import { Command, CommandParams } from "../../../../src/commands/base"
-import request = require("supertest")
-import getPort = require("get-port")
-import WebSocket = require("ws")
-import { FakeCloudApi } from "../../../helpers/api"
+import { authTokenHeader } from "../../../../src/cloud/auth.js"
+import { ServeCommand } from "../../../../src/commands/serve.js"
+import { gardenEnv } from "../../../../src/constants.js"
+import { deepOmitUndefined } from "../../../../src/util/objects.js"
+import { uuidv4 } from "../../../../src/util/random.js"
+import { GardenInstanceManager } from "../../../../src/server/instance-manager.js"
+import type { CommandParams } from "../../../../src/commands/base.js"
+import { Command } from "../../../../src/commands/base.js"
+import request from "supertest"
+import getPort from "get-port"
+import WebSocket from "ws"
+import { FakeCloudApi } from "../../../helpers/api.js"
 
 describe("GardenServer", () => {
   let garden: Garden

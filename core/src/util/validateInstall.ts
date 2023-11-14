@@ -7,10 +7,10 @@
  */
 
 import semver from "semver"
-import { RuntimeError } from "../exceptions"
-import { deline } from "./string"
-import { exec } from "./util"
-import { DOCS_BASE_URL } from "../constants"
+import { RuntimeError } from "../exceptions.js"
+import { deline } from "./string.js"
+import { exec } from "./util.js"
+import { DOCS_BASE_URL } from "../constants.js"
 
 type BinaryVersionCheckParams = {
   name: string

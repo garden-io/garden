@@ -6,10 +6,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Garden } from "./garden"
-import { Log } from "./logger/log-entry"
-import { GardenProcess, GlobalConfigStore } from "./config-store/global"
-import { sleep } from "./util/util"
+import type { Garden } from "./garden.js"
+import type { Log } from "./logger/log-entry.js"
+import type { GardenProcess, GlobalConfigStore } from "./config-store/global.js"
+import { sleep } from "./util/util.js"
 import psTree from "ps-tree"
 
 export async function waitForExitEvent(garden: Garden, log: Log) {

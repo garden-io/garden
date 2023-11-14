@@ -9,8 +9,8 @@
 import { platform } from "os"
 import { expect } from "chai"
 import tmp from "tmp-promise"
+import type { ProjectConfig } from "../../../../src/config/project.js"
 import {
-  ProjectConfig,
   resolveProjectConfig,
   pickEnvironment,
   defaultVarfilePath,
@@ -19,12 +19,13 @@ import {
   defaultNamespace,
   fixedPlugins,
   defaultEnvironment,
-} from "../../../../src/config/project"
-import { createProjectConfig, expectError } from "../../../helpers"
-import { realpath, writeFile } from "fs-extra"
-import { dedent } from "../../../../src/util/string"
+} from "../../../../src/config/project.js"
+import { createProjectConfig, expectError } from "../../../helpers.js"
+import fsExtra from "fs-extra"
+const { realpath, writeFile } = fsExtra
+import { dedent } from "../../../../src/util/string.js"
 import { resolve, join } from "path"
-import { getRootLogger } from "../../../../src/logger/logger"
+import { getRootLogger } from "../../../../src/logger/logger.js"
 
 const enterpriseDomain = "https://garden.mydomain.com"
 const commandInfo = { name: "test", args: {}, opts: {} }

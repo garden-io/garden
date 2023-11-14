@@ -7,7 +7,7 @@
  */
 
 import { expect } from "chai"
-import { getTarballFilename, getZipFilename } from "../../../src/build-pkg"
+import { getTarballFilename, getZipFilename } from "../../../src/build-pkg.js"
 
 describe("build-pkg", () => {
   const version = "0.12.44"

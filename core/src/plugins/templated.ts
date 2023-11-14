@@ -6,13 +6,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { createGardenPlugin } from "../plugin/plugin"
-import { ModuleConfig, ModuleSpec, baseModuleSpecKeys, baseBuildSpecSchema } from "../config/module"
-import { configTemplateKind, renderTemplateKind } from "../config/base"
-import { DeepPrimitiveMap } from "../config/common"
-import { dedent, naturalList } from "../util/string"
-import { omit } from "lodash"
-import { templatedModuleSpecSchema } from "../config/render-template"
+import { createGardenPlugin } from "../plugin/plugin.js"
+import type { ModuleConfig, ModuleSpec } from "../config/module.js"
+import { baseModuleSpecKeys, baseBuildSpecSchema } from "../config/module.js"
+import { configTemplateKind, renderTemplateKind } from "../config/base.js"
+import type { DeepPrimitiveMap } from "../config/common.js"
+import { dedent, naturalList } from "../util/string.js"
+import { omit } from "lodash-es"
+import { templatedModuleSpecSchema } from "../config/render-template.js"
 
 // TODO: remove in 0.14, replaced with Render kind
 

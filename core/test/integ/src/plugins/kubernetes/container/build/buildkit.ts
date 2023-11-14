@@ -6,28 +6,28 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { getContainerTestGarden } from "../container"
-import {
+import { getContainerTestGarden } from "../container.js"
+import type {
   ClusterBuildkitCacheConfig,
   KubernetesPluginContext,
   KubernetesProvider,
-} from "../../../../../../../src/plugins/kubernetes/config"
-import { Garden } from "../../../../../../../src"
-import { PluginContext } from "../../../../../../../src/plugin-context"
+} from "../../../../../../../src/plugins/kubernetes/config.js"
+import type { Garden } from "../../../../../../../src/index.js"
+import type { PluginContext } from "../../../../../../../src/plugin-context.js"
 import {
   buildkitBuildHandler,
   ensureBuildkit,
-} from "../../../../../../../src/plugins/kubernetes/container/build/buildkit"
-import { KubeApi } from "../../../../../../../src/plugins/kubernetes/api"
-import { getNamespaceStatus } from "../../../../../../../src/plugins/kubernetes/namespace"
+} from "../../../../../../../src/plugins/kubernetes/container/build/buildkit.js"
+import { KubeApi } from "../../../../../../../src/plugins/kubernetes/api.js"
+import { getNamespaceStatus } from "../../../../../../../src/plugins/kubernetes/namespace.js"
 import { expect } from "chai"
-import { cloneDeep } from "lodash"
-import { buildDockerAuthConfig } from "../../../../../../../src/plugins/kubernetes/init"
-import { buildkitDeploymentName, dockerAuthSecretKey } from "../../../../../../../src/plugins/kubernetes/constants"
-import { grouped } from "../../../../../../helpers"
-import { createActionLog } from "../../../../../../../src/logger/log-entry"
-import { resolveAction } from "../../../../../../../src/graph/actions"
-import { NamespaceStatus } from "../../../../../../../src/types/namespace"
+import { cloneDeep } from "lodash-es"
+import { buildDockerAuthConfig } from "../../../../../../../src/plugins/kubernetes/init.js"
+import { buildkitDeploymentName, dockerAuthSecretKey } from "../../../../../../../src/plugins/kubernetes/constants.js"
+import { grouped } from "../../../../../../helpers.js"
+import { createActionLog } from "../../../../../../../src/logger/log-entry.js"
+import { resolveAction } from "../../../../../../../src/graph/actions.js"
+import type { NamespaceStatus } from "../../../../../../../src/types/namespace.js"
 
 describe.skip("ensureBuildkit", () => {
   let garden: Garden
@@ -72,7 +72,7 @@ describe.skip("ensureBuildkit", () => {
   grouped("cluster-buildkit", "remote-only").context("cluster-buildkit mode", () => {
     it("deploys buildkit if it isn't already in the namespace", async () => {
       try {
-        await api.apps.deleteNamespacedDeployment(buildkitDeploymentName, namespace)
+        await api.apps.deleteNamespacedDeployment({ name: buildkitDeploymentName, namespace })
       } catch {}
 
       const { updated } = await ensureBuildkit({
@@ -84,10 +84,10 @@ describe.skip("ensureBuildkit", () => {
       })
 
       // Make sure deployment is there
-      const deployment = await api.apps.readNamespacedDeployment(buildkitDeploymentName, namespace)
+      const deployment = await api.apps.readNamespacedDeployment({ name: buildkitDeploymentName, namespace })
 
       expect(updated).to.be.true
-      expect(deployment.spec.template.spec?.tolerations).to.eql([
+      expect(deployment.spec?.template.spec?.tolerations).to.eql([
         {
           key: "garden-build",
           operator: "Equal",
@@ -121,7 +121,7 @@ describe.skip("ensureBuildkit", () => {
 
     it("deploys buildkit with the configured nodeSelector", async () => {
       try {
-        await api.apps.deleteNamespacedDeployment(buildkitDeploymentName, namespace)
+        await api.apps.deleteNamespacedDeployment({ name: buildkitDeploymentName, namespace })
       } catch {}
 
       const nodeSelector = { "kubernetes.io/os": "linux" }
@@ -136,9 +136,9 @@ describe.skip("ensureBuildkit", () => {
         namespace,
       })
 
-      const deployment = await api.apps.readNamespacedDeployment(buildkitDeploymentName, namespace)
+      const deployment = await api.apps.readNamespacedDeployment({ name: buildkitDeploymentName, namespace })
 
-      expect(deployment.spec.template.spec?.nodeSelector).to.eql(nodeSelector)
+      expect(deployment.spec?.template.spec?.nodeSelector).to.eql(nodeSelector)
     })
 
     it("creates a docker auth secret from configured imagePullSecrets", async () => {
@@ -149,7 +149,7 @@ describe.skip("ensureBuildkit", () => {
         api,
         namespace,
       })
-      await api.core.readNamespacedSecret(authSecret.metadata.name, namespace)
+      await api.core.readNamespacedSecret({ name: authSecret.metadata.name, namespace })
     })
 
     it("creates an empty docker auth secret if there are no imagePullSecrets", async () => {
@@ -164,7 +164,7 @@ describe.skip("ensureBuildkit", () => {
         namespace,
       })
 
-      const secret = await api.core.readNamespacedSecret(authSecret.metadata.name, namespace)
+      const secret = await api.core.readNamespacedSecret({ name: authSecret.metadata.name, namespace })
       const expectedConfig = await buildDockerAuthConfig([], api)
 
       const decoded = JSON.parse(Buffer.from(secret.data![dockerAuthSecretKey], "base64").toString())
@@ -217,7 +217,7 @@ describe.skip("ensureBuildkit", () => {
   grouped("cluster-buildkit-rootless", "remote-only").context("cluster-buildkit-rootless mode", () => {
     it("deploys in rootless mode", async () => {
       try {
-        await api.apps.deleteNamespacedDeployment(buildkitDeploymentName, namespace)
+        await api.apps.deleteNamespacedDeployment({ name: buildkitDeploymentName, namespace })
       } catch {}
 
       provider.config.clusterBuildkit = { rootless: true, cache: defaultConfig }
@@ -230,9 +230,9 @@ describe.skip("ensureBuildkit", () => {
         namespace,
       })
 
-      const deployment = await api.apps.readNamespacedDeployment(buildkitDeploymentName, namespace)
+      const deployment = await api.apps.readNamespacedDeployment({ name: buildkitDeploymentName, namespace })
 
-      expect(deployment.spec.template.spec?.containers[0].securityContext?.runAsUser).to.equal(1000)
+      expect(deployment.spec?.template.spec?.containers[0].securityContext?.runAsUser).to.equal(1000)
     })
 
     it("deploys again if switching from normal to rootless mode", async () => {

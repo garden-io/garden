@@ -6,15 +6,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import tmp from "tmp-promise"
-import { ProjectConfig } from "../../../../../../src/config/project"
-import execa = require("execa")
-import { DEFAULT_BUILD_TIMEOUT_SEC, GardenApiVersion } from "../../../../../../src/constants"
+import type tmp from "tmp-promise"
+import type { ProjectConfig } from "../../../../../../src/config/project.js"
+import { execa } from "execa"
+import { DEFAULT_BUILD_TIMEOUT_SEC, GardenApiVersion } from "../../../../../../src/constants.js"
 import { expect } from "chai"
-import { TestGarden, makeTempDir, createProjectConfig } from "../../../../../helpers"
-import { DeployTask } from "../../../../../../src/tasks/deploy"
-import { isSubset } from "../../../../../../src/util/is-subset"
-import { createActionLog } from "../../../../../../src/logger/log-entry"
+import { TestGarden, makeTempDir, createProjectConfig } from "../../../../../helpers.js"
+import { DeployTask } from "../../../../../../src/tasks/deploy.js"
+import { isSubset } from "../../../../../../src/util/is-subset.js"
+import { createActionLog } from "../../../../../../src/logger/log-entry.js"
 
 describe("persistentvolumeclaim", () => {
   let tmpDir: tmp.DirectoryResult
@@ -90,7 +90,7 @@ describe("persistentvolumeclaim", () => {
 
     const remoteResources = statuses.test.detail?.detail.remoteResources
 
-    expect(statuses.test.state === "ready")
+    expect(statuses.test.state).eql("ready")
     expect(remoteResources.length).to.equal(1)
     expect(
       isSubset(remoteResources[0], {

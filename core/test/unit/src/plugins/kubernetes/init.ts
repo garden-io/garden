@@ -8,22 +8,22 @@
 
 import { expect } from "chai"
 import { join } from "path"
-import td from "testdouble"
-import { Garden } from "../../../../../src/garden"
-import { prepareDockerAuth, getIngressMisconfigurationWarnings } from "../../../../../src/plugins/kubernetes/init"
-import { dockerAuthSecretKey } from "../../../../../src/plugins/kubernetes/constants"
-import { ConfigurationError } from "../../../../../src/exceptions"
-import { KubernetesProvider, KubernetesConfig, defaultResources } from "../../../../../src/plugins/kubernetes/config"
-import { gardenPlugin } from "../../../../../src/plugins/container/container"
-import { defaultSystemNamespace } from "../../../../../src/plugins/kubernetes/system"
-import { KubeApi } from "../../../../../src/plugins/kubernetes/api"
-import { makeTestGarden, expectError, getDataDir } from "../../../../helpers"
-import { KubernetesList, KubernetesResource } from "../../../../../src/plugins/kubernetes/types"
-import { V1IngressClass, V1Secret } from "@kubernetes/client-node"
-import { PluginContext } from "../../../../../src/plugin-context"
-import { kubectlSpec } from "../../../../../src/plugins/kubernetes/kubectl"
-import { PluginTool } from "../../../../../src/util/ext-tools"
-import { uuidv4 } from "../../../../../src/util/random"
+import * as td from "testdouble"
+import type { Garden } from "../../../../../src/garden.js"
+import { prepareDockerAuth, getIngressMisconfigurationWarnings } from "../../../../../src/plugins/kubernetes/init.js"
+import { defaultSystemNamespace, dockerAuthSecretKey } from "../../../../../src/plugins/kubernetes/constants.js"
+import { ConfigurationError } from "../../../../../src/exceptions.js"
+import type { KubernetesProvider, KubernetesConfig } from "../../../../../src/plugins/kubernetes/config.js"
+import { defaultResources } from "../../../../../src/plugins/kubernetes/config.js"
+import { gardenPlugin } from "../../../../../src/plugins/container/container.js"
+import { KubeApi } from "../../../../../src/plugins/kubernetes/api.js"
+import { makeTestGarden, expectError, getDataDir } from "../../../../helpers.js"
+import type { KubernetesList, KubernetesResource } from "../../../../../src/plugins/kubernetes/types.js"
+import type { V1IngressClass, V1Secret } from "@kubernetes/client-node"
+import type { PluginContext } from "../../../../../src/plugin-context.js"
+import { kubectlSpec } from "../../../../../src/plugins/kubernetes/kubectl.js"
+import { PluginTool } from "../../../../../src/util/ext-tools.js"
+import { uuidv4 } from "../../../../../src/util/random.js"
 
 const basicConfig: KubernetesConfig = {
   name: "kubernetes",
@@ -61,7 +61,6 @@ const basicConfig: KubernetesConfig = {
   setupIngressController: null,
   systemNodeSelector: {},
   tlsCertificates: [],
-  _systemServices: [],
 }
 
 const basicProvider: KubernetesProvider = {
@@ -150,8 +149,12 @@ describe("kubernetes init", () => {
             },
           ],
         })
-        td.when(core.readNamespacedSecret("test-docker-auth", "default")).thenResolve(dockerSimpleAuthSecret)
-        td.when(core.readNamespacedSecret("test-cred-helper-auth", "default")).thenResolve(dockerCredentialHelperSecret)
+        td.when(core.readNamespacedSecret({ name: "test-docker-auth", namespace: "default" })).thenResolve(
+          dockerSimpleAuthSecret
+        )
+        td.when(core.readNamespacedSecret({ name: "test-cred-helper-auth", namespace: "default" })).thenResolve(
+          dockerCredentialHelperSecret
+        )
         td.replace(api, "upsert")
       })
       it("should merge both", async () => {
@@ -202,8 +205,10 @@ describe("kubernetes init", () => {
             },
           ],
         })
-        td.when(core.readNamespacedSecret("test-docker-auth", "default")).thenResolve(emptyDockerSimpleAuthSecret)
-        td.when(core.readNamespacedSecret("test-cred-helper-auth", "default")).thenResolve(
+        td.when(core.readNamespacedSecret({ name: "test-docker-auth", namespace: "default" })).thenResolve(
+          emptyDockerSimpleAuthSecret
+        )
+        td.when(core.readNamespacedSecret({ name: "test-cred-helper-auth", namespace: "default" })).thenResolve(
           emptyDockerCredentialHelperSecret
         )
         td.replace(api, "upsert")

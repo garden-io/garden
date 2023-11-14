@@ -7,17 +7,17 @@
  */
 
 import { expect } from "chai"
-import { detectCycles, DependencyGraph } from "../../../../src/graph/common"
-import { makeTestGarden, expectError, getDataDir } from "../../../helpers"
-import { ModuleConfig } from "../../../../src/config/module"
-import { ConfigurationError } from "../../../../src/exceptions"
+import { detectCycles, DependencyGraph } from "../../../../src/graph/common.js"
+import { makeTestGarden, expectError, getDataDir } from "../../../helpers.js"
+import type { ModuleConfig } from "../../../../src/config/module.js"
+import { ConfigurationError } from "../../../../src/exceptions.js"
 import {
   DEFAULT_BUILD_TIMEOUT_SEC,
   DEFAULT_RUN_TIMEOUT_SEC,
   DEFAULT_TEST_TIMEOUT_SEC,
   GardenApiVersion,
-} from "../../../../src/constants"
-import { detectMissingDependencies } from "../../../../src/graph/modules"
+} from "../../../../src/constants.js"
+import { detectMissingDependencies } from "../../../../src/graph/modules.js"
 
 describe("graph common", () => {
   describe("detectMissingDependencies", () => {
@@ -138,7 +138,7 @@ describe("graph common", () => {
           spec: {},
         },
       ]
-      expect(() => detectMissingDependencies(moduleConfigs))
+      expect(() => detectMissingDependencies(moduleConfigs)).to.not.throw
     })
   })
 

@@ -7,7 +7,7 @@
  */
 
 import { expect } from "chai"
-import { sortBy } from "lodash"
+import { sortBy } from "lodash-es"
 import {
   millicpuToString,
   kilobytesToString,
@@ -17,10 +17,10 @@ import {
   getSelectorString,
   makePodName,
   matchSelector,
-} from "../../../../../src/plugins/kubernetes/util"
-import { KubernetesPod, KubernetesServerResource } from "../../../../../src/plugins/kubernetes/types"
-import { V1Pod } from "@kubernetes/client-node"
-import { sleep } from "../../../../../src/util/util"
+} from "../../../../../src/plugins/kubernetes/util.js"
+import type { KubernetesPod, KubernetesServerResource } from "../../../../../src/plugins/kubernetes/types.js"
+import type { V1Pod } from "@kubernetes/client-node"
+import { sleep } from "../../../../../src/util/util.js"
 
 describe("deduplicatePodsByLabel", () => {
   it("should return a list of pods, unique by label so that the latest pod is kept", () => {

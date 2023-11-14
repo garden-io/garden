@@ -6,38 +6,43 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { mapValues } from "lodash"
+import { mapValues } from "lodash-es"
 import { join } from "path"
-import split2 = require("split2")
-import { PrimitiveMap } from "../../config/common"
-import { dedent } from "../../util/string"
-import { ExecOpts, sleep } from "../../util/util"
-import { TimeoutError } from "../../exceptions"
-import { Log } from "../../logger/log-entry"
-import execa from "execa"
-import chalk from "chalk"
-import { renderMessageWithDivider } from "../../logger/util"
-import { LogLevel } from "../../logger/logger"
+import split2 from "split2"
+import type { PrimitiveMap } from "../../config/common.js"
+import { dedent } from "../../util/string.js"
+import type { ExecOpts } from "../../util/util.js"
+import { sleep } from "../../util/util.js"
+import { TimeoutError } from "../../exceptions.js"
+import type { Log } from "../../logger/log-entry.js"
+import type { ExecaReturnBase } from "execa"
+import { execa } from "execa"
+import { renderMessageWithDivider } from "../../logger/util.js"
+import { LogLevel } from "../../logger/logger.js"
 import { createWriteStream } from "fs"
-import { ensureFile, readFile, remove, writeFile } from "fs-extra"
+import fsExtra from "fs-extra"
+const { ensureFile, readFile, remove, writeFile } = fsExtra
 import { Transform } from "stream"
-import { ExecLogsFollower } from "./logs"
-import { PluginContext } from "../../plugin-context"
+import { ExecLogsFollower } from "./logs.js"
+import type { PluginContext } from "../../plugin-context.js"
 import {
   defaultStatusTimeout,
   execCommonSchema,
   execPathDoc,
   execRuntimeOutputsSchema,
   execStaticOutputsSchema,
-} from "./config"
-import { deployStateToActionState, DeployStatus } from "../../plugin/handlers/Deploy/get-status"
-import { ActionState, Resolved } from "../../actions/types"
-import { convertCommandSpec, execRunCommand, getDefaultEnvVars } from "./common"
-import { isRunning, killRecursive } from "../../process"
-import { GardenSdkActionDefinitionActionType, GardenSdkActionDefinitionConfigType, sdk } from "../../plugin/sdk"
-import { execProvider } from "./exec"
-import { getTracePropagationEnvVars } from "../../util/open-telemetry/propagation"
-import { DeployState } from "../../types/service"
+} from "./config.js"
+import type { DeployStatus } from "../../plugin/handlers/Deploy/get-status.js"
+import { deployStateToActionState } from "../../plugin/handlers/Deploy/get-status.js"
+import type { ActionState, Resolved } from "../../actions/types.js"
+import { convertCommandSpec, execRunCommand, getDefaultEnvVars } from "./common.js"
+import { isRunning, killRecursive } from "../../process.js"
+import type { GardenSdkActionDefinitionActionType, GardenSdkActionDefinitionConfigType } from "../../plugin/sdk.js"
+import { sdk } from "../../plugin/sdk.js"
+import { execProvider } from "./exec.js"
+import { getTracePropagationEnvVars } from "../../util/open-telemetry/propagation.js"
+import type { DeployState } from "../../types/service.js"
+import { styles } from "../../logger/styles.js"
 
 const persistentLocalProcRetryIntervalMs = 2500
 
@@ -195,13 +200,13 @@ execDeploy.addHandler("deploy", async (params) => {
     })
 
     if (result.outputLog) {
-      const prefix = `Finished deploying ${chalk.white(action.name)}. Here is the output:`
+      const prefix = `Finished deploying ${styles.accent(action.name)}. Here is the output:`
       log.info(
         renderMessageWithDivider({
           prefix,
           msg: result.outputLog,
           isError: !result.success,
-          color: chalk.gray,
+          color: styles.primary,
         })
       )
     }
@@ -262,7 +267,7 @@ export async function deployPersistentExecService({
 
   if (spec.statusCommand) {
     let ready = false
-    let lastStatusResult: execa.ExecaReturnBase<string> | undefined
+    let lastStatusResult: ExecaReturnBase<string> | undefined
 
     while (!ready) {
       await sleep(persistentLocalProcRetryIntervalMs)
@@ -285,14 +290,16 @@ export async function deployPersistentExecService({
         throw new TimeoutError({
           message: dedent`Timed out waiting for local service ${deployName} to be ready.
 
-          Garden timed out waiting for the command ${chalk.gray(spec.statusCommand)} (pid: ${proc.pid})
+          Garden timed out waiting for the command ${styles.primary(spec.statusCommand.join(" "))} (pid: ${proc.pid})
           to return status code 0 (success) after waiting for ${spec.statusTimeout} seconds.
           ${lastResultDescription}
           Possible next steps:
 
           Find out why the configured status command fails.
 
-          In case the service just needs more time to become ready, you can adjust the ${chalk.gray("timeout")} value
+          In case the service just needs more time to become ready, you can adjust the ${styles.primary(
+            "timeout"
+          )} value
           in your service definition to a value that is greater than the time needed for your service to become ready.
           `,
         })

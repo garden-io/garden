@@ -7,15 +7,16 @@
  */
 
 import { join } from "path"
-import { pathExists } from "fs-extra"
-import { joi } from "@garden-io/core/build/src/config/common"
-import { GardenModule, ModuleActionHandlers, PluginContext } from "@garden-io/sdk/build/src/types"
-import { ConfigurationError } from "@garden-io/sdk/build/src/exceptions"
-import { dependenciesSchema } from "@garden-io/core/build/src/config/service"
-import { TerraformBaseSpec } from "./helpers"
-import { TerraformProvider, TerraformProviderConfig } from "./provider"
-import { baseBuildSpecSchema } from "@garden-io/core/build/src/config/module"
-import { terraformDeploySchemaKeys } from "./action"
+import fsExtra from "fs-extra"
+const { pathExists } = fsExtra
+import { joi } from "@garden-io/core/build/src/config/common.js"
+import type { GardenModule, ModuleActionHandlers, PluginContext } from "@garden-io/sdk/build/src/types.js"
+import { ConfigurationError } from "@garden-io/sdk/build/src/exceptions.js"
+import { dependenciesSchema } from "@garden-io/core/build/src/config/service.js"
+import type { TerraformBaseSpec } from "./helpers.js"
+import type { TerraformProvider, TerraformProviderConfig } from "./provider.js"
+import { baseBuildSpecSchema } from "@garden-io/core/build/src/config/module.js"
+import { terraformDeploySchemaKeys } from "./action.js"
 
 export interface TerraformModuleSpec extends TerraformBaseSpec {
   root: string

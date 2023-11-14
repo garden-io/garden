@@ -7,7 +7,7 @@
  */
 
 import { expect } from "chai"
-import { getResourceRequirements } from "../../../../../../src/plugins/kubernetes/container/util"
+import { getResourceRequirements } from "../../../../../../src/plugins/kubernetes/container/util.js"
 
 describe("getResourceRequirements", () => {
   it("should return resources", () => {

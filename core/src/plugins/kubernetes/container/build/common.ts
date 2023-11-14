@@ -7,31 +7,34 @@
  */
 
 import AsyncLock from "async-lock"
-import { ContainerBuildAction, ContainerRegistryConfig } from "../../../container/moduleConfig"
-import { KubeApi } from "../../api"
-import { KubernetesPluginContext, KubernetesProvider } from "../../config"
-import { PodRunner, PodRunnerError } from "../../run"
-import { PluginContext } from "../../../../plugin-context"
-import { hashString, sleep } from "../../../../util/util"
-import { InternalError, RuntimeError } from "../../../../exceptions"
-import { Log } from "../../../../logger/log-entry"
-import { prepareDockerAuth } from "../../init"
-import { prepareSecrets } from "../../secrets"
-import chalk from "chalk"
-import { Mutagen } from "../../../../mutagen"
-import { randomString } from "../../../../util/string"
-import { V1Container, V1Service } from "@kubernetes/client-node"
-import { cloneDeep, isEmpty } from "lodash"
-import { compareDeployedResources, waitForResources } from "../../status/status"
-import { KubernetesDeployment, KubernetesResource } from "../../types"
-import { BuildActionHandler, BuildActionResults } from "../../../../plugin/action-types"
-import { k8sGetContainerBuildActionOutputs } from "../handlers"
-import { Resolved } from "../../../../actions/types"
-import { stringifyResources } from "../util"
-import { getKubectlExecDestination } from "../../sync"
-import { getRunningDeploymentPod } from "../../util"
-import { buildSyncVolumeName, dockerAuthSecretKey, k8sUtilImageName, rsyncPortName } from "../../constants"
+import type { ContainerBuildAction, ContainerRegistryConfig } from "../../../container/moduleConfig.js"
+import type { KubeApi } from "../../api.js"
+import type { KubernetesPluginContext, KubernetesProvider } from "../../config.js"
+import { PodRunner, PodRunnerError } from "../../run.js"
+import type { PluginContext } from "../../../../plugin-context.js"
+import { hashString, sleep } from "../../../../util/util.js"
+import { InternalError, RuntimeError } from "../../../../exceptions.js"
+import type { Log } from "../../../../logger/log-entry.js"
+import { prepareDockerAuth } from "../../init.js"
+import { prepareSecrets } from "../../secrets.js"
+import { Mutagen } from "../../../../mutagen.js"
+import { randomString } from "../../../../util/string.js"
+import type { V1Container, V1Service } from "@kubernetes/client-node"
+import { cloneDeep, isEmpty, isEqual } from "lodash-es"
+import { compareDeployedResources, waitForResources } from "../../status/status.js"
+import type { KubernetesDeployment, KubernetesResource, KubernetesServiceAccount } from "../../types.js"
+import type { BuildActionHandler, BuildActionResults } from "../../../../plugin/action-types.js"
+import { k8sGetContainerBuildActionOutputs } from "../handlers.js"
+import type { Resolved } from "../../../../actions/types.js"
+import { stringifyResources } from "../util.js"
+import { getKubectlExecDestination } from "../../sync.js"
+import { getRunningDeploymentPod } from "../../util.js"
+import { buildSyncVolumeName, dockerAuthSecretKey, k8sUtilImageName, rsyncPortName } from "../../constants.js"
+import { styles } from "../../../../logger/styles.js"
+import type { StringMap } from "../../../../config/common.js"
 
+export const inClusterBuilderServiceAccount = "garden-in-cluster-builder"
+export const sharedBuildSyncDeploymentName = "garden-build-sync"
 export const utilContainerName = "util"
 export const utilRsyncPort = 8730
 export const utilDeploymentName = "garden-util"
@@ -189,7 +192,7 @@ export async function skopeoBuildStatus({
   const outputs = k8sGetContainerBuildActionOutputs({ action, provider })
 
   const remoteId = outputs.deploymentImageId
-  const skopeoCommand = ["skopeo", "--command-timeout=30s", "inspect", "--raw", "--authfile", "/.docker/config.json"]
+  const skopeoCommand = ["skopeo", "--command-timeout=30s", "inspect", "--raw", "--authfile", "~/.docker/config.json"]
 
   if (deploymentRegistry?.insecure === true) {
     skopeoCommand.push("--tls-verify=false")
@@ -262,6 +265,57 @@ export function skopeoManifestUnknown(errMsg: string | null | undefined): boolea
   )
 }
 
+export async function ensureServiceAccount({
+  ctx,
+  log,
+  api,
+  namespace,
+  annotations,
+}: {
+  ctx: PluginContext
+  log: Log
+  api: KubeApi
+  namespace: string
+  annotations?: StringMap
+}): Promise<boolean> {
+  return deployLock.acquire(namespace, async () => {
+    const serviceAccount = getBuilderServiceAccountSpec(namespace, annotations)
+
+    const status = await compareDeployedResources({
+      ctx: ctx as KubernetesPluginContext,
+      api,
+      namespace,
+      manifests: [serviceAccount],
+      log,
+    })
+
+    // NOTE: This is here to make sure that we remove annotations in case they are removed in the garden config.
+    // `compareDeployedResources` as of today only checks whether the manifest is a subset of the deployed manifest.
+    // The manifest is still a subset of the deployed manifest, if an annotation has been removed. But we want the
+    // annotation to be actually removed.
+    // NOTE(steffen): I tried to change the behaviour of `compareDeployedResources` to return "outdated" when the
+    // annotations have changed. But a lot of code actually depends on the behaviour of it with missing annotations.
+    const annotationsNeedUpdate =
+      status.remoteResources.length > 0 && !isEqualAnnotations(serviceAccount, status.remoteResources[0])
+
+    const needUpsert = status.state !== "ready" || annotationsNeedUpdate
+
+    if (needUpsert) {
+      await api.upsert({ kind: "ServiceAccount", namespace, log, obj: serviceAccount })
+      return true
+    }
+
+    return false
+  })
+}
+
+export function isEqualAnnotations(r1: KubernetesResource, r2: KubernetesResource): boolean {
+  // normalize annotations before comparison
+  const a1 = r1.metadata.annotations !== undefined ? r1.metadata.annotations : {}
+  const a2 = r2.metadata.annotations !== undefined ? r2.metadata.annotations : {}
+  return isEqual(a1, a2)
+}
+
 /**
  * Ensures that a garden-util deployment exists in the specified namespace.
  * Returns the docker auth secret that's generated and mounted in the deployment.
@@ -279,6 +333,14 @@ export async function ensureUtilDeployment({
   api: KubeApi
   namespace: string
 }) {
+  const serviceAccountChanged = await ensureServiceAccount({
+    ctx,
+    log,
+    api,
+    namespace,
+    annotations: provider.config.kaniko?.serviceAccountAnnotations,
+  })
+
   return deployLock.acquire(namespace, async () => {
     const deployLog = log.createLog()
 
@@ -301,17 +363,23 @@ export async function ensureUtilDeployment({
       log: deployLog,
     })
 
+    // if the service account changed, all pods part of the deployment must be restarted
+    // so that they receive new credentials (e.g. for IRSA)
+    if (status.remoteResources.length > 0 && serviceAccountChanged) {
+      await cycleDeployment({ ctx, provider, deployment, api, namespace, deployLog })
+    }
+
     if (status.state === "ready") {
       // Need to wait a little to ensure the secret is updated in the deployment
       if (secretUpdated) {
         await sleep(1000)
       }
-      return { authSecret, updated: false }
+      return { authSecret, updated: serviceAccountChanged }
     }
 
     // Deploy the service
     deployLog.info(
-      chalk.gray(`-> Deploying ${utilDeploymentName} service in ${namespace} namespace (was ${status.state})`)
+      styles.primary(`-> Deploying ${utilDeploymentName} service in ${namespace} namespace (was ${status.state})`)
     )
 
     await api.upsert({ kind: "Deployment", namespace, log: deployLog, obj: deployment })
@@ -330,6 +398,46 @@ export async function ensureUtilDeployment({
     deployLog.info("Done!")
 
     return { authSecret, updated: true }
+  })
+}
+
+export async function cycleDeployment({
+  ctx,
+  provider,
+  deployment,
+  api,
+  namespace,
+  deployLog,
+}: {
+  ctx: PluginContext
+  provider: KubernetesProvider
+  deployment: KubernetesDeployment
+  api: KubeApi
+  namespace: string
+  deployLog: Log
+}) {
+  const originalReplicas = deployment.spec.replicas
+
+  deployment.spec.replicas = 0
+  await api.upsert({ kind: "Deployment", namespace, log: deployLog, obj: deployment })
+  await waitForResources({
+    namespace,
+    ctx,
+    provider,
+    resources: [deployment],
+    log: deployLog,
+    timeoutSec: 600,
+  })
+
+  deployment.spec.replicas = originalReplicas
+  await api.upsert({ kind: "Deployment", namespace, log: deployLog, obj: deployment })
+  await waitForResources({
+    namespace,
+    ctx,
+    provider,
+    resources: [deployment],
+    log: deployLog,
+    timeoutSec: 600,
   })
 }
 
@@ -378,12 +486,27 @@ export async function ensureBuilderSecret({
   const existingSecret = await api.readBySpecOrNull({ log, namespace, manifest: authSecret })
 
   if (!existingSecret || authSecret.data?.[dockerAuthSecretKey] !== existingSecret.data?.[dockerAuthSecretKey]) {
-    log.info(chalk.gray(`-> Updating Docker auth secret in namespace ${namespace}`))
+    log.info(styles.primary(`-> Updating Docker auth secret in namespace ${namespace}`))
     await api.upsert({ kind: "Secret", namespace, log, obj: authSecret })
     updated = true
   }
 
   return { authSecret, updated }
+}
+
+export function getBuilderServiceAccountSpec(namespace: string, annotations?: StringMap) {
+  const serviceAccount: KubernetesServiceAccount = {
+    apiVersion: "v1",
+    kind: "ServiceAccount",
+    metadata: {
+      name: inClusterBuilderServiceAccount,
+      // ensure we clear old annotations if config flags are removed
+      annotations: annotations || {},
+      namespace,
+    },
+  }
+
+  return serviceAccount
 }
 
 export function getUtilContainer(authSecretName: string, provider: KubernetesProvider): V1Container {
@@ -491,6 +614,7 @@ export function getUtilManifests(
           annotations: kanikoAnnotations,
         },
         spec: {
+          serviceAccountName: inClusterBuilderServiceAccount,
           containers: [utilContainer],
           imagePullSecrets,
           volumes: [

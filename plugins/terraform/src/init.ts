@@ -6,12 +6,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { TerraformProvider } from "./provider"
-import { applyStack, getRoot, getStackStatus, getTfOutputs, prepareVariables, setWorkspace } from "./helpers"
-import chalk from "chalk"
-import { deline } from "@garden-io/sdk/build/src/util/string"
-import { ProviderHandlers } from "@garden-io/sdk/build/src/types"
-import { terraform } from "./cli"
+import type { TerraformProvider } from "./provider.js"
+import { applyStack, getRoot, getStackStatus, getTfOutputs, prepareVariables, setWorkspace } from "./helpers.js"
+import { deline } from "@garden-io/sdk/build/src/util/string.js"
+import type { ProviderHandlers } from "@garden-io/sdk/build/src/types.js"
+import { terraform } from "./cli.js"
+import { styles } from "@garden-io/core/build/src/logger/styles.js"
 
 export const getEnvironmentStatus: ProviderHandlers["getEnvironmentStatus"] = async ({ ctx, log }) => {
   const provider = ctx.provider as TerraformProvider
@@ -36,8 +36,8 @@ export const getEnvironmentStatus: ProviderHandlers["getEnvironmentStatus"] = as
       return { ready: false, outputs: {} }
     } else {
       log.warn(deline`
-        Terraform stack is not up-to-date and ${chalk.underline("autoApply")} is not enabled. Please run
-        ${chalk.white.bold("garden plugins terraform apply-root")} to make sure the stack is in the intended state.
+        Terraform stack is not up-to-date and ${styles.underline("autoApply")} is not enabled. Please run
+        ${styles.accent.bold("garden plugins terraform apply-root")} to make sure the stack is in the intended state.
       `)
       const outputs = await getTfOutputs({ log, ctx, provider, root })
       // Make sure the status is not cached when the stack is not up-to-date
