@@ -17,6 +17,7 @@ import type { KubernetesProvider } from "../../../../../../../src/plugins/kubern
 import { defaultResources } from "../../../../../../../src/plugins/kubernetes/config.js"
 import { defaultKanikoImageName, k8sUtilImageName } from "../../../../../../../src/plugins/kubernetes/constants.js"
 import type { DeepPartial } from "utility-types"
+import { inClusterBuilderServiceAccount } from "../../../../../../../src/plugins/kubernetes/container/build/common.js"
 
 describe("kaniko build", () => {
   it("should return as successful when immutable tag already exists in destination", () => {
@@ -139,7 +140,7 @@ describe("kaniko build", () => {
             },
           ],
           shareProcessNamespace: true,
-          serviceAccountName: "garden-in-cluster-builder",
+          serviceAccountName: inClusterBuilderServiceAccount,
           tolerations: [
             {
               effect: "NoSchedule",
