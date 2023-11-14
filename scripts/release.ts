@@ -255,7 +255,7 @@ async function updateExampleLinks(version: string) {
     from: /github\.com\/garden-io\/garden\/tree\/[^\/]*\/examples/g,
     to: `github.com/garden-io/garden/tree/${version}/examples`,
   }
-  const results = await replace(options)
+  const results = await replace.replaceInFile(options)
   console.log(
     "Modified files:",
     results
