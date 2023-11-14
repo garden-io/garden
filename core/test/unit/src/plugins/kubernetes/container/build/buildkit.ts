@@ -77,7 +77,7 @@ describe("buildkit build", () => {
         type: "Recreate",
       })
 
-      expect(result.spec.template.spec?.containers.length === 2)
+      expect(result.spec.template.spec?.containers.length).eql(2)
 
       expect(result.spec.template.spec?.containers[0]).eql({
         args: ["--addr", "unix:///run/buildkit/buildkitd.sock"],

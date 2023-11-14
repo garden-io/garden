@@ -47,6 +47,7 @@
     "eslint-plugin-prettier": "^5.0.0",
     "eslint-plugin-react": "^7.33.2",
     "eslint-plugin-unused-imports": "^3.0.0",
+    "eslint-plugin-chai-expect": "^3.0.0",
     "execa": "^8.0.1",
     "fs-extra": "^9.0.0",
     "handlebars": "^4.7.6",

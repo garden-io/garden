@@ -366,7 +366,7 @@ describe("KubeApi", () => {
             retryOpts: { maxRetries: 0, minTimeoutMs: 0 },
           }),
         (err) => {
-          expect(err instanceof KubernetesError)
+          expect(err).to.be.instanceOf(KubernetesError)
         }
       )
     })

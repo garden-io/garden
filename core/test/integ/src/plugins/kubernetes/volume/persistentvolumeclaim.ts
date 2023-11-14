@@ -90,7 +90,7 @@ describe("persistentvolumeclaim", () => {
 
     const remoteResources = statuses.test.detail?.detail.remoteResources
 
-    expect(statuses.test.state === "ready")
+    expect(statuses.test.state).eql("ready")
     expect(remoteResources.length).to.equal(1)
     expect(
       isSubset(remoteResources[0], {
