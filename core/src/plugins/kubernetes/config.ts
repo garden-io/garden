@@ -132,6 +132,7 @@ export interface KubernetesConfig extends BaseProviderConfig {
     nodeSelector?: StringMap
     tolerations?: V1Toleration[]
     annotations?: StringMap
+    serviceAccountAnnotations?: StringMap
   }
   jib?: {
     pushViaCluster?: boolean
@@ -143,6 +144,7 @@ export interface KubernetesConfig extends BaseProviderConfig {
     nodeSelector?: StringMap
     tolerations?: V1Toleration[]
     annotations?: StringMap
+    serviceAccountAnnotations?: StringMap
     util?: {
       tolerations?: V1Toleration[]
       annotations?: StringMap
@@ -517,6 +519,9 @@ export const kubernetesConfigBase = () =>
           annotations: annotationsSchema().description(
             "Specify annotations to apply to both the Pod and Deployment resources associated with cluster-buildkit. Annotations may have an effect on the behaviour of certain components, for example autoscalers."
           ),
+          serviceAccountAnnotations: serviceAccountAnnotationsSchema().description(
+            "Specify annotations to apply to the Kubernetes service account used by cluster-buildkit. This can be useful to set up IRSA with in-cluster building."
+          ),
         })
         .default(() => ({}))
         .description("Configuration options for the `cluster-buildkit` build mode."),
@@ -566,6 +571,9 @@ export const kubernetesConfigBase = () =>
           annotations: annotationsSchema().description(
             deline`Specify annotations to apply to each Kaniko builder pod. Annotations may have an effect on the behaviour of certain components, for example autoscalers.
           The same annotations will be used for each util pod unless they are specifically set under \`util.annotations\``
+          ),
+          serviceAccountAnnotations: serviceAccountAnnotationsSchema().description(
+            "Specify annotations to apply to the Kubernetes service account used by kaniko. This can be useful to set up IRSA with in-cluster building."
           ),
           util: joi.object().keys({
             tolerations: joiSparseArray(tolerationSchema()).description(
@@ -678,6 +686,13 @@ const annotationsSchema = () =>
   joiStringMap(joi.string())
     .example({
       "cluster-autoscaler.kubernetes.io/safe-to-evict": "false",
+    })
+    .optional()
+
+const serviceAccountAnnotationsSchema = () =>
+  joiStringMap(joi.string())
+    .example({
+      "eks.amazonaws.com/role-arn": "arn:aws:iam::111122223333:role/my-role",
     })
     .optional()
 

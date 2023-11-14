@@ -30,6 +30,9 @@ import {
   getUtilContainer,
   ensureBuilderSecret,
   builderToleration,
+  inClusterBuilderServiceAccount,
+  ensureServiceAccount,
+  cycleDeployment,
 } from "./common.js"
 import { getNamespaceStatus } from "../../namespace.js"
 import { sleep } from "../../../../util/util.js"
@@ -187,6 +190,14 @@ export async function ensureBuildkit({
   api: KubeApi
   namespace: string
 }) {
+  const serviceAccountChanged = await ensureServiceAccount({
+    ctx,
+    log,
+    api,
+    namespace,
+    annotations: provider.config.clusterBuildkit?.serviceAccountAnnotations,
+  })
+
   return deployLock.acquire(namespace, async () => {
     const deployLog = log.createLog()
 
@@ -210,12 +221,18 @@ export async function ensureBuildkit({
       log: deployLog,
     })
 
+    // if the service account changed, all pods part of the deployment must be restarted
+    // so that they receive new credentials (e.g. for IRSA)
+    if (status.remoteResources.length > 0 && serviceAccountChanged) {
+      await cycleDeployment({ ctx, provider, deployment: manifest, api, namespace, deployLog })
+    }
+
     if (status.state === "ready") {
       // Need to wait a little to ensure the secret is updated in the deployment
       if (secretUpdated) {
         await sleep(1000)
       }
-      return { authSecret, updated: false }
+      return { authSecret, updated: serviceAccountChanged }
     }
 
     // Deploy the buildkit daemon
@@ -397,6 +414,7 @@ export function getBuildkitDeployment(
           annotations: provider.config.clusterBuildkit?.annotations,
         },
         spec: {
+          serviceAccountName: inClusterBuilderServiceAccount,
           containers: [
             {
               name: buildkitContainerName,

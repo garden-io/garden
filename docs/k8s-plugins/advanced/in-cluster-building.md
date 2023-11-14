@@ -335,7 +335,7 @@ providers:
 
 #### Configuring Access
 
-To grant your service account the right permission to push to ECR, add this policy to each of the repositories in the container registry that you want to use with in-cluster building:
+If your Kubernetes cluster and ECR repositories are only used for development, an easy way to configure access is to allow push access to all the workers (and subsequently all pods):
 
 ```json
 {
@@ -363,6 +363,130 @@ To grant your service account the right permission to push to ECR, add this poli
 ```
 
 To grant developers permission to push and pull directly from a repository, see [the AWS documentation](https://docs.aws.amazon.com/AmazonECR/latest/userguide/security_iam_id-based-policy-examples.html).
+
+If you need more fine grained control, please use IRSA (see the next section).
+
+#### Using in-cluster-building with IRSA (IAM Roles for Service Accounts)
+
+Using IRSA we can reduce the ECR access from the worker nodes (and subsequently all pods running on these worker nodes) to readonly, and only provide push access to the in-cluster builder Pods.
+
+Depending on how you deployed your EKS cluster you already might have a policy attached to your worker nodes by default that allows read access to all ECR repositories. For more info please check [the ECR on EKS user guide of the AWS docs](https://docs.aws.amazon.com/AmazonECR/latest/userguide/ECR_on_EKS.html).
+
+If it does not exist yet, first create an IAM policy to allow the Kubernetes nodes to pull images from your ECR repositories:
+
+```json
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "GardenAllowPull",
+            "Effect": "Allow",
+            "Principal": {
+                "AWS": ["arn:aws:iam::<account-id>:role/<k8s-worker-iam-role>"]
+            },
+            "Action": [
+                "ecr:BatchGetImage",
+                "ecr:BatchCheckLayerAvailability",
+                "ecr:GetDownloadUrlForLayer",
+            ]
+            "Resource": "arn:aws:ecr:<region>:<account-id>:repository/<ecr-repository>"
+        },
+        {
+            "Sid": "GetAuthorizationToken",
+            "Effect": "Allow",
+            "Action": [
+                "ecr:GetAuthorizationToken"
+            ],
+            "Resource": "*"
+        }
+    ]
+}
+```
+
+Create a [web identity role](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_create_for-idp_oidc.html) to allow pushing images from the in-cluster builder Pods, with the following trust relationship:
+
+```json
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Principal": {
+                "Federated": "arn:aws:iam::<account-id>:oidc-provider/oidc.eks.<region>.amazonaws.com/id/<oidc-provider-id>"
+            },
+            "Action": "sts:AssumeRoleWithWebIdentity",
+            "Condition": {
+                "StringEquals": {
+                    "oidc.eks.<region>.amazonaws.com/id/<oidc-provider-id>:sub": "system:serviceaccount:*:garden-in-cluster-builder",
+                    "oidc.eks.<region>.amazonaws.com/id/<oidc-provider-id>:aud": "sts.amazonaws.com"
+                }
+            }
+        }
+    ]
+}
+```
+
+Note that this trust relationship allows the Pods associated with the `garden-in-cluster-builder` serviceaccount in all namespaces (`*`) to push images.
+
+Configure the following IAM policy with the web identity role:
+
+```json
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "GardenAllowPushPull",
+            "Effect": "Allow",
+            "Action": [
+                "ecr:BatchGetImage",
+                "ecr:BatchCheckLayerAvailability",
+                "ecr:CompleteLayerUpload",
+                "ecr:GetDownloadUrlForLayer",
+                "ecr:InitiateLayerUpload",
+                "ecr:PutImage",
+                "ecr:UploadLayerPart"
+            ],
+            "Resource": "arn:aws:ecr:<region>:<account-id>:repository/<ecr-repository>"
+        },
+        {
+            "Sid": "GetAuthorizationToken",
+            "Effect": "Allow",
+            "Action": [
+                "ecr:GetAuthorizationToken"
+            ],
+            "Resource": "*"
+        }
+    ]
+}
+```
+
+NOTE: You need to replace the following placeholders:
+- `<account-id>` is your AWS Account ID
+- `<k8s-worker-iam-role>` is the Node IAM role name (You can find it in your EKS node group)
+- `<region>` AWS region
+- `<ecr-repository>` name of the ECR repositories ([matching multiple names using wildcards](https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_elements_resource.html#reference_policies_elements_resource_wildcards) is allowed)
+- `<oidc-provider-id>` Part of the OpenID Connect provider URL
+
+Add the IRSA `serviceAccountAnnotations` to your `project.garden.yml`:
+
+```yaml
+kind: Project
+name: my-project
+...
+providers:
+  - name: kubernetes
+    ...
+    # If you use the kaniko build mode
+    buildMode: kaniko
+    kaniko:
+      serviceAccountAnnotations:
+        eks.amazonaws.com/role-arn: arn:aws:iam::<account-id>:role/<web-identity-role-name>
+    # If you use the buildkit build mode
+    buildMode: buildkit
+    clusterBuildkit:
+      serviceAccountAnnotations:
+        eks.amazonaws.com/role-arn: arn:aws:iam::<account-id>:role/<web-identity-role-name>
+```
 
 ### Using in-cluster building with GCR
 
@@ -492,6 +616,59 @@ providers:
     imagePullSecrets:
       - name: gar-config
         namespace: default
+```
+
+#### Using in-cluster building with Google Workload identity
+
+Workload identity for GKE clusters allows service acccounts in your cluster to impersonate IAM service accounts. Using this method for in-cluster building allows you to avoid storing IAM service account credentials as secrets in your cluster.
+
+Make sure that [workload identity is enabled on your cluster](https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity#enable).
+
+First create an IAM service account:
+
+```sh
+gcloud iam service-accounts create gar-access \
+    --project=${PROJECT_ID}
+```
+
+Then attach the roles required to push and pull to Google Artifact Registry:
+
+```sh
+gcloud projects add-iam-policy-binding ${PROJECT_ID} \
+  --member=serviceAccount:gar-access@${PROJECT_ID}.iam.gserviceaccount.com \
+  --role=roles/artifactregistry.writer
+```
+
+Note that you can also use this method with Google Container Registry, for the required roles [check the section about GCR above](#using-in-cluster-building-with-gcr).
+
+Now you need to add an IAM policy binding to allow the Kubernetes service account to impersonate the IAM service account. Note that GCP workload identity for Kubernetes does not allow wildcards for in the member section. This means that every Kubernetes service account in each namespace must be registered as a member. Garden's build services always use a service account with the name `garden-in-cluster-builder`.
+
+```sh
+gcloud iam service-accounts add-iam-policy-binding gar-access@${PROJECT_ID}.iam.gserviceaccount.com \
+    --role roles/iam.workloadIdentityUser \
+    --member "serviceAccount:${PROJECT_ID}.svc.id.goog[${K8S_NAMESPACE}/garden-in-cluster-builder]"
+```
+
+And finally add the annotation with your IAM service account to the garden project configuration. Garden will make sure to annotate the in cluster builder service account with this annotation.
+
+```yaml
+kind: Project
+name: my-project
+...
+providers:
+  - name: kubernetes
+    ...
+    # If you use the kaniko build mode
+    buildMode: kaniko
+    kaniko:
+      serviceAccountAnnotations:
+        iam.gke.io/gcp-service-account: gar-access@${PROJECT_ID}.iam.gserviceaccount.com
+
+    # If you use the buildkit build mode
+    buildMode: buildkit
+    clusterBuildkit:
+      serviceAccountAnnotations:
+        iam.gke.io/gcp-service-account: gar-access@${PROJECT_ID}.iam.gserviceaccount.com
 ```
 
 ## Publishing images
