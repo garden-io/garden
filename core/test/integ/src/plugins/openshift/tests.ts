@@ -46,7 +46,7 @@ describe.skip("OpenShift", () => {
       },
       opts: withDefaultGlobalOpts({ "watch": false, "force": true, "with-dependants": false }),
     })
-    expect(result!.success)
+    expect(result!.success).to.be.true
   })
 
   it("should deploy a container", async () => {
@@ -59,7 +59,7 @@ describe.skip("OpenShift", () => {
       },
       opts: defaultDeployOpts,
     })
-    expect(result!.success)
+    expect(result!.success).to.be.true
   })
 
   it("should get logs", async () => {
@@ -109,7 +109,7 @@ describe.skip("OpenShift", () => {
         "skip-dependants": false,
       }),
     })
-    expect(result!.success)
+    expect(result!.success).to.be.true
   })
 
   it("should delete container deploy", async () => {
@@ -120,6 +120,6 @@ describe.skip("OpenShift", () => {
       args: {},
       opts: withDefaultGlobalOpts({ "dependants-first": false }),
     })
-    expect(result!.deployStatuses["openshift-nginx-hello"].state === "ready")
+    expect(result!.deployStatuses["openshift-nginx-hello"].state).eql("ready")
   })
 })

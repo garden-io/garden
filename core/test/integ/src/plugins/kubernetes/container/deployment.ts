@@ -800,7 +800,7 @@ describe("kubernetes container deployment handlers", () => {
         const status = statuses[action.name]
         const resources = keyBy(status.detail?.detail["remoteResources"], "kind")
 
-        expect(status.state === "ready")
+        expect(status.state).eql("ready")
         expect(resources.Deployment.spec.template.spec.volumes).to.eql([
           { name: "test", persistentVolumeClaim: { claimName: "volume-module" } },
         ])
