@@ -454,7 +454,7 @@ export abstract class Log<C extends BaseContext = LogContext> implements LogConf
   toString(filter?: (log: LogEntry) => boolean) {
     return this.getLogEntries()
       .filter((entry) => (filter ? filter(entry) : true))
-      .map((entry) => entry.msg)
+      .map((entry) => resolveMsg(entry))
       .join("\n")
   }
 
