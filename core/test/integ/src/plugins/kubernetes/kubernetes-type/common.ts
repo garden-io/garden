@@ -647,7 +647,7 @@ describe("getManifests", () => {
       await getManifests({ ctx, api, action: resolvedAction, log: garden.log, defaultNamespace })
 
       const logEntries = garden.log.root.getLogEntries()
-      const unMatched = logEntries.find((entry) => resolveMsg(entry)?.includes("A patch is defined"))
+      const unMatched = resolveMsg(logEntries.find((entry) => resolveMsg(entry)?.includes("A patch is defined"))!)
 
       expect(unMatched).to.exist
       expect(unMatched).to.eql(
