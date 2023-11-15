@@ -15,6 +15,7 @@ import inquirer from "inquirer"
 import chalk from "chalk"
 import { dirname, relative, resolve } from "node:path"
 import fsExtra from "fs-extra"
+
 const { createWriteStream, readFile, writeFile } = fsExtra
 import { getPackages } from "./script-utils.js"
 import parseArgs from "minimist"
@@ -29,6 +30,7 @@ type ReleaseType = "minor" | "patch" | "preminor" | "prepatch" | "prerelease"
 const RELEASE_TYPES = ["minor", "patch", "preminor", "prepatch", "prerelease"]
 
 const gardenRoot = resolve(moduleDirName, "..")
+const rootPackageJsonPath = resolve(gardenRoot, "package.json")
 
 /**
  * Performs the following steps to prepare for a release:
@@ -61,7 +63,7 @@ async function release() {
     throw new Error(`Invalid release type ${releaseType}, available types are: ${RELEASE_TYPES.join(", ")}`)
   }
 
-  const prevVersion = JSON.parse(await readFile("../package.json", "utf-8")).version as string
+  const prevVersion = JSON.parse(await readFile(rootPackageJsonPath, "utf-8")).version as string
   const version = semver.inc(prevVersion, releaseType)!
 
   // Update package.json versions
@@ -80,7 +82,6 @@ async function release() {
 
   console.log(`Bumping version from ${prevVersion} to ${version}...`)
 
-  const rootPackageJsonPath = resolve(moduleDirName, "..", "package.json")
   await updatePackageJsonVersion(rootPackageJsonPath, version)
 
   console.log(`Setting package versions to ${packageVersion}...`)
