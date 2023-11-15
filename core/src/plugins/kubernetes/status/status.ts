@@ -547,10 +547,6 @@ export async function compareDeployedResources({
         log.debug(`Resource ${manifest.metadata.name} is not a superset of deployed resource`)
         log.silly(diffString(deployedResource, manifest))
       }
-      // console.log(JSON.stringify(resource, null, 4))
-      // console.log(JSON.stringify(existingSpec, null, 4))
-      // console.log("----------------------------------------------------")
-      // throw new InternalError("bla")
       result.state = "outdated"
       return result
     }
