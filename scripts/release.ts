@@ -303,6 +303,7 @@ async function updateChangelog(version: string) {
   const writeStream = createWriteStream(changelogPath)
   writeStream.write(nextChangelogEntry)
   writeStream.write(changelog)
+  writeStream.close()
   await finished(writeStream)
 }
 
