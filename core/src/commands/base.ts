@@ -358,7 +358,7 @@ export abstract class Command<
 
         try {
           if (cloudSession && this.streamEvents) {
-            log.silly(`Connecting Garden instance events to Cloud API`)
+            log.silly(() => `Connecting Garden instance events to Cloud API`)
             garden.events.emit("commandInfo", {
               ...commandInfo,
               environmentName: garden.environmentName,
@@ -381,7 +381,7 @@ export abstract class Command<
             // FIXME: use file watching to be more surgical here, this is suboptimal
             garden.treeCache.invalidateDown(log, ["path"])
 
-            log.silly(`Starting command '${this.getFullName()}' action`)
+            log.silly(() => `Starting command '${this.getFullName()}' action`)
             result = await this.action({
               garden,
               cli,
@@ -391,7 +391,7 @@ export abstract class Command<
               commandLine,
               parentCommand,
             })
-            log.silly(`Completed command '${this.getFullName()}' action successfully`)
+            log.silly(() => `Completed command '${this.getFullName()}' action successfully`)
           } else {
             // The command is protected and the user decided to not continue with the execution.
             log.info("\nCommand aborted.")

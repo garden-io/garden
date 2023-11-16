@@ -158,7 +158,7 @@ provider.addHandler("prepareEnvironment", async ({ ctx, log }) => {
   scopedLog.debug(`Creating temporary config in ${configPath}`)
   await writeFile(configPath, configFileYaml)
 
-  scopedLog.silly("Starting collector process")
+  scopedLog.silly(() => "Starting collector process")
   const collectorProcess = await wrapActiveSpan("fetchAndRun", () =>
     ctx.tools["otel-collector.otel-collector"].spawn({
       log,

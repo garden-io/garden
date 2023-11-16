@@ -189,7 +189,7 @@ export const kanikoBuild: BuildHandler = async (params) => {
     })
   }
 
-  log.silly(buildLog)
+  log.silly(() => buildLog)
 
   return {
     state: "ready",

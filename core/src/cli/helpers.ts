@@ -556,7 +556,7 @@ export function renderCommandErrors(logger: Logger, errors: Error[], log?: Log) 
       error,
     })
     // Output error details to console when log level is silly
-    errorLog.silly(error.toString(true))
+    errorLog.silly(() => error.toString(true))
   }
 
   if (logger.getWriters().file.length > 0) {

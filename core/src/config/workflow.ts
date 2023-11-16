@@ -348,7 +348,7 @@ export function resolveWorkflowConfig(garden: Garden, config: WorkflowConfig) {
   const log = garden.log
   const context = new WorkflowConfigContext(garden, garden.variables)
 
-  log.silly(`Resolving template strings for workflow ${config.name}`)
+  log.silly(() => `Resolving template strings for workflow ${config.name}`)
 
   const partialConfig = {
     // Don't allow templating in names and triggers
@@ -380,7 +380,7 @@ export function resolveWorkflowConfig(garden: Garden, config: WorkflowConfig) {
     })
   }
 
-  log.silly(`Validating config for workflow ${config.name}`)
+  log.silly(() => `Validating config for workflow ${config.name}`)
 
   resolvedPartialConfig = validateConfig({
     config: resolvedPartialConfig,

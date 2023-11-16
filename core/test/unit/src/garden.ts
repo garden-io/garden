@@ -74,6 +74,7 @@ import { GlobalConfigStore } from "../../../src/config-store/global.js"
 import { getRootLogger } from "../../../src/logger/logger.js"
 import { uuidv4 } from "../../../src/util/random.js"
 import { fileURLToPath } from "node:url"
+import { resolveMsg } from "../../../src/logger/log-entry.js"
 
 const moduleDirName = dirname(fileURLToPath(import.meta.url))
 
@@ -730,11 +731,13 @@ describe("Garden", () => {
             cloudApi,
           })
 
-          const expectedLog = log.root.getLogEntries().filter((l) => l.msg?.includes(`Logged in to ${fakeCloudDomain}`))
+          const expectedLog = log.root
+            .getLogEntries()
+            .filter((l) => resolveMsg(l)?.includes(`Logged in to ${fakeCloudDomain}`))
 
           expect(expectedLog.length).to.eql(1)
           expect(expectedLog[0].level).to.eql(1)
-          const cleanMsg = stripAnsi(expectedLog[0].msg || "").replace("\n", " ")
+          const cleanMsg = stripAnsi(resolveMsg(expectedLog[0]) || "").replace("\n", " ")
           const expected = `Logged in to ${fakeCloudDomain}, but could not find remote project '${projectName}'. Command results for this command run will not be available in Garden Enterprise.`
           expect(cleanMsg).to.eql(expected)
           expect(garden.cloudDomain).to.eql(fakeCloudDomain)
@@ -762,11 +765,13 @@ describe("Garden", () => {
             }
           }
 
-          const expectedLog = log.root.getLogEntries().filter((l) => l.msg?.includes(`Fetching project with ID=`))
+          const expectedLog = log.root
+            .getLogEntries()
+            .filter((l) => resolveMsg(l)?.includes(`Fetching project with ID=`))
 
           expect(expectedLog.length).to.eql(1)
           expect(expectedLog[0].level).to.eql(0)
-          const cleanMsg = stripAnsi(expectedLog[0].msg || "").replace("\n", " ")
+          const cleanMsg = stripAnsi(resolveMsg(expectedLog[0]) || "").replace("\n", " ")
           expect(cleanMsg).to.eql(
             `Fetching project with ID=${projectId} failed with error: HTTPError: Response code 500 (Internal Server Error)`
           )
@@ -795,11 +800,11 @@ describe("Garden", () => {
             }
           }
 
-          const expectedLog = log.root.getLogEntries().filter((l) => l.msg?.includes(`Project with ID=`))
+          const expectedLog = log.root.getLogEntries().filter((l) => resolveMsg(l)?.includes(`Project with ID=`))
 
           expect(expectedLog.length).to.eql(1)
           expect(expectedLog[0].level).to.eql(0)
-          const cleanMsg = stripAnsi(expectedLog[0].msg || "")
+          const cleanMsg = stripAnsi(resolveMsg(expectedLog[0]) || "")
           expect(cleanMsg).to.eql(dedent`
             Project with ID=${projectId} was not found in Garden Enterprise
 
@@ -908,11 +913,11 @@ describe("Garden", () => {
             }
           }
 
-          const expectedLog = log.root.getLogEntries().filter((l) => l.msg?.includes(`failed with error`))
+          const expectedLog = log.root.getLogEntries().filter((l) => resolveMsg(l)?.includes(`failed with error`))
 
           expect(expectedLog.length).to.eql(1)
           expect(expectedLog[0].level).to.eql(0)
-          const cleanMsg = stripAnsi(expectedLog[0].msg || "").replace("\n", " ")
+          const cleanMsg = stripAnsi(resolveMsg(expectedLog[0]) || "").replace("\n", " ")
           expect(cleanMsg).to.eql(
             `Fetching or creating project ${projectName} from ${DEFAULT_GARDEN_CLOUD_DOMAIN} failed with error: HTTPError: Response code 500 (Internal Server Error)`
           )

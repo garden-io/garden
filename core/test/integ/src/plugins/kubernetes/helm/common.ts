@@ -20,7 +20,7 @@ import {
   prepareTemplates,
   renderTemplates,
 } from "../../../../../../src/plugins/kubernetes/helm/common.js"
-import type { Log } from "../../../../../../src/logger/log-entry.js"
+import { resolveMsg, type Log } from "../../../../../../src/logger/log-entry.js"
 import { BuildTask } from "../../../../../../src/tasks/build.js"
 import { dedent, deline } from "../../../../../../src/util/string.js"
 import type { ConfigGraph } from "../../../../../../src/graph/config-graph.js"
@@ -682,10 +682,12 @@ ${expectedIngressOutput}
 
         await prepareTemplates({ ctx, log, action })
 
-        const helmDependencyUpdateLogLine = log.entries.find(
-          ({ msg }) =>
+        const helmDependencyUpdateLogLine = log.entries.find((entry) => {
+          const msg = resolveMsg(entry)
+          return (
             msg?.includes("helm") && msg?.includes("dependency update") && msg.includes("chart-with-dependency-module")
-        )
+          )
+        })
         expect(helmDependencyUpdateLogLine).to.exist
       })
 
@@ -701,10 +703,12 @@ ${expectedIngressOutput}
 
         await prepareTemplates({ ctx, log, action })
 
-        const helmDependencyUpdateLogLine = log.entries.find(
-          ({ msg }) =>
+        const helmDependencyUpdateLogLine = log.entries.find((entry) => {
+          const msg = resolveMsg(entry)
+          return (
             msg?.includes("helm") && msg?.includes("dependency update") && msg.includes("chart-with-dependency-action")
-        )
+          )
+        })
         expect(helmDependencyUpdateLogLine).to.exist
       })
 

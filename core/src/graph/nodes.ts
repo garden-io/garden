@@ -269,7 +269,7 @@ export class ProcessTaskNode<T extends Task = Task> extends TaskNode<T> {
   }
 
   async execute() {
-    this.task.log.silly(`Executing node ${styles.underline(this.getKey())}`)
+    this.task.log.silly(() => `Executing node ${styles.underline(this.getKey())}`)
 
     const statusTask = this.getNode("status", this.task)
     // TODO: make this more type-safe
@@ -323,7 +323,7 @@ export class StatusTaskNode<T extends Task = Task> extends TaskNode<T> {
   }
 
   async execute() {
-    this.task.log.silly(`Executing node ${styles.underline(this.getKey())}`)
+    this.task.log.silly(() => `Executing node ${styles.underline(this.getKey())}`)
     const dependencyResults = this.getDependencyResults()
 
     try {

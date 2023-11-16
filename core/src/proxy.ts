@@ -128,7 +128,7 @@ async function createProxy({ garden, graph, log, action, spec, events }: StartPo
           log.warn(`→ Could not start port forward to ${key} (will retry): ${msg}`)
           lastPrintedError = msg
         } else {
-          log.silly(`→ Could not start port forward to ${key} (will retry): ${msg}`)
+          log.silly(() => `→ Could not start port forward to ${key} (will retry): ${msg}`)
         }
       }
 

@@ -72,7 +72,7 @@ export class Watcher extends EventEmitter2.EventEmitter2 {
         this.ready = true
       })
       .on("all", (name, path, payload) => {
-        this.log.silly(`FSWatcher event: ${name} ${path} ${stringify(payload)}`)
+        this.log.silly(() => `FSWatcher event: ${name} ${path} ${stringify(payload)}`)
         this.routeEvent(name, path, payload)
       })
   }

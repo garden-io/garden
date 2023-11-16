@@ -12,7 +12,7 @@ import stripAnsi from "strip-ansi"
 import { isArray, repeat, trim } from "lodash-es"
 import stringWidth from "string-width"
 import format from "date-fns/format/index.js"
-import type { LogEntry } from "./log-entry.js"
+import { resolveMsg, type LogEntry } from "./log-entry.js"
 import type { JsonLogEntry } from "./writers/json-terminal-writer.js"
 import { highlightYaml, safeDumpYaml } from "../util/serialization.js"
 import type { Logger } from "./logger.js"
@@ -38,7 +38,8 @@ export function combineRenders(entry: LogEntry, logger: Logger, renderers: Rende
 }
 
 export function renderError(entry: LogEntry): string {
-  const { error, msg } = entry
+  const { error } = entry
+  const msg = resolveMsg(entry)
 
   let out = ""
 
@@ -114,7 +115,8 @@ export function getSection(entry: LogEntry): string | null {
 }
 
 export function renderMsg(entry: LogEntry): string {
-  const { context, level, msg } = entry
+  const { context, level } = entry
+  const msg = resolveMsg(entry)
   const { origin } = context
   const style = getStyle(level)
 
@@ -210,12 +212,12 @@ export function cleanWhitespace(str: string) {
 
 // TODO: Include individual message states with timestamp
 export function formatForJson(entry: LogEntry): JsonLogEntry {
-  const { msg, metadata, timestamp } = entry
+  const { metadata, timestamp } = entry
   const errorDetail = entry.error && entry ? toGardenError(entry.error).toString(true) : undefined
   const section = renderSection(entry)
 
   const jsonLogEntry: JsonLogEntry = {
-    msg: cleanForJSON(msg),
+    msg: cleanForJSON(resolveMsg(entry)),
     data: entry.data,
     metadata,
     // TODO @eysi: Should we include the section here or rather just show the context?

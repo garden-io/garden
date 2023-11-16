@@ -65,14 +65,14 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
   }
 
   if (releaseStatus.state === "missing") {
-    log.silly(`Installing Helm release ${releaseName}`)
+    log.silly(() => `Installing Helm release ${releaseName}`)
     const installArgs = ["install", releaseName, ...reference, ...commonArgs]
     if (force && !ctx.production) {
       installArgs.push("--replace")
     }
     await helm({ ctx: k8sCtx, namespace, log, args: [...installArgs], emitLogEvents: true })
   } else {
-    log.silly(`Upgrading Helm release ${releaseName}`)
+    log.silly(() => `Upgrading Helm release ${releaseName}`)
     const upgradeArgs = ["upgrade", releaseName, ...reference, "--install", ...commonArgs]
     await helm({ ctx: k8sCtx, namespace, log, args: [...upgradeArgs], emitLogEvents: true })
 

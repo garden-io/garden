@@ -66,7 +66,7 @@ export function resolvePlugins(
       return initializedPlugins[name]
     }
 
-    log.silly(`Validating plugin ${name}`)
+    log.silly(() => `Validating plugin ${name}`)
     let plugin = loadedPlugins[name]
 
     if (!plugin) {
@@ -125,7 +125,7 @@ export function resolvePlugins(
       }
     }
 
-    log.silly(`Done loading plugin ${name}`)
+    log.silly(() => `Done loading plugin ${name}`)
 
     return plugin
   }
@@ -188,7 +188,7 @@ function validateOutputSchemas(
 
 export async function loadPlugin(log: Log, projectRoot: string, nameOrPlugin: RegisterPluginParam) {
   let plugin: GardenPluginSpec
-  log.silly(`Loading plugin ${isString(nameOrPlugin) ? nameOrPlugin : nameOrPlugin.name}`)
+  log.silly(() => `Loading plugin ${isString(nameOrPlugin) ? nameOrPlugin : nameOrPlugin.name}`)
 
   if (isString(nameOrPlugin)) {
     let moduleNameOrLocation = nameOrPlugin
@@ -227,7 +227,7 @@ export async function loadPlugin(log: Log, projectRoot: string, nameOrPlugin: Re
     plugin = <GardenPluginSpec>nameOrPlugin
   }
 
-  log.silly(`Loaded plugin ${plugin.name}`)
+  log.silly(() => `Loaded plugin ${plugin.name}`)
 
   return plugin
 }

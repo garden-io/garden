@@ -70,8 +70,8 @@ export class GitRepoHandler extends GitHandler {
     log.debug(
       `Found ${moduleFiles.length} files in module path, filtering by ${include.length} include and ${exclude.length} exclude globs`
     )
-    log.silly(`Include globs: ${include.join(", ")}`)
-    log.silly(exclude.length > 0 ? `Exclude globs: ${exclude.join(", ")}` : "No exclude globs")
+    log.silly(() => `Include globs: ${include.join(", ")}`)
+    log.silly(() => (exclude.length > 0 ? `Exclude globs: ${exclude.join(", ")}` : "No exclude globs"))
 
     const filtered = moduleFiles.filter(({ path: p }) => {
       if (filter && !filter(p)) {
@@ -82,7 +82,7 @@ export class GitRepoHandler extends GitHandler {
       // Previously we prepended the module path to the globs
       // but that caused issues with the glob matching on windows due to backslashes
       const relativePath = p.replace(`${path}${sep}`, "")
-      log.silly(`Checking if ${relativePath} matches include/exclude globs`)
+      log.silly(() => `Checking if ${relativePath} matches include/exclude globs`)
       return matchPath(relativePath, include, exclude)
     })
 
@@ -102,7 +102,7 @@ export class GitRepoHandler extends GitHandler {
     let existing = this.cache.get(log, key) as FileTree
 
     if (existing) {
-      params.log.silly(`Found cached repository match at ${path}`)
+      params.log.silly(() => `Found cached repository match at ${path}`)
       return existing
     }
 
@@ -110,11 +110,11 @@ export class GitRepoHandler extends GitHandler {
       existing = this.cache.get(log, key)
 
       if (existing) {
-        log.silly(`Found cached repository match at ${path}`)
+        log.silly(() => `Found cached repository match at ${path}`)
         return existing
       }
 
-      log.silly(`Scanning repository at ${path}`)
+      log.silly(() => `Scanning repository at ${path}`)
       const files = await super.getFiles({ ...params, scanRoot: undefined })
 
       const fileTree = FileTree.fromFiles(files)

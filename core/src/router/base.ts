@@ -212,7 +212,7 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
     for (const plugin of params.configuredPlugins) {
       const created = <any>plugin.createActionTypes[kind] || []
       for (const spec of created) {
-        garden.log.silly(`Registering ${kind} type ${spec.name}`)
+        garden.log.silly(() => `Registering ${kind} type ${spec.name}`)
         this.definitions[spec.name] = spec
         for (const handlerType of handlerNames) {
           const handler = spec.handlers[handlerType]
@@ -276,7 +276,7 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
   }): Promise<ActionRouterHandlerOutput<GetActionTypeResults<ActionTypeClasses<K>[T]>>> {
     const { action, pluginName, log, graph } = params
 
-    log.silly(`Getting '${String(handlerType)}' handler for ${action.longDescription()}`)
+    log.silly(() => `Getting '${String(handlerType)}' handler for ${action.longDescription()}`)
 
     if (action.kind !== this.kind) {
       throw new InternalError({
@@ -320,7 +320,7 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
       ...params,
     }
 
-    log.silly(`Calling ${String(handlerType)} handler for action ${action.longDescription()}`)
+    log.silly(() => `Calling ${String(handlerType)} handler for action ${action.longDescription()}`)
 
     const result: GetActionTypeResults<ActionTypeClasses<K>[T]> = await handler(handlerParams)
 

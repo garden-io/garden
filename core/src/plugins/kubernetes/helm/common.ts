@@ -102,7 +102,7 @@ export async function prepareTemplates({ ctx, action, log }: PrepareTemplatesPar
   }
 
   const valuesPath = await temporaryWrite(safeDumpYaml(values))
-  log.silly(`Wrote chart values to ${valuesPath}`)
+  log.silly(() => `Wrote chart values to ${valuesPath}`)
 
   const releaseName = getReleaseName(action)
   const namespace = await getActionNamespace({

@@ -11,6 +11,7 @@ import { validateActionSearchResults } from "../../../../src/commands/helpers.js
 import { getRootLogger } from "../../../../src/logger/logger.js"
 import { initTestLogger } from "../../../helpers.js"
 import { expectError } from "../../../helpers.js"
+import { resolveMsg } from "../../../../src/logger/log-entry.js"
 
 describe("command helpers", () => {
   initTestLogger()
@@ -97,7 +98,7 @@ describe("command helpers", () => {
         names: undefined,
       })
 
-      expect(log.entries[0].msg?.includes("No Build actions were found. Aborting.")).to.eql(true)
+      expect(resolveMsg(log.entries[0])?.includes("No Build actions were found. Aborting.")).to.eql(true)
 
       log = logger.createLog()
       validateActionSearchResults({
@@ -108,7 +109,7 @@ describe("command helpers", () => {
         names: [],
       })
 
-      expect(log.entries[0].msg?.includes("No Build actions were found. Aborting.")).to.eql(true)
+      expect(resolveMsg(log.entries[0])?.includes("No Build actions were found. Aborting.")).to.eql(true)
     })
   })
 })

@@ -406,28 +406,28 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
 
         if (status?.aborted || status?.error) {
           // Status is either aborted or failed
-          this.log.silly(`Request ${request.getKey()} status: ${resultToString(status)}`)
+          this.log.silly(() => `Request ${request.getKey()} status: ${resultToString(status)}`)
           this.completeTask({ ...status, node: request })
         } else if (request.statusOnly && status !== undefined) {
           // Status is resolved, and that's all we need
-          this.log.silly(`Request ${request.getKey()} is statusOnly and the status is available. Completing.`)
+          this.log.silly(() => `Request ${request.getKey()} is statusOnly and the status is available. Completing.`)
           this.completeTask({ ...status, node: request })
         } else if (status === undefined) {
           // We're not forcing, and we don't have the status yet, so we ensure that's pending
-          this.log.silly(`Request ${request.getKey()} is missing its status.`)
+          this.log.silly(() => `Request ${request.getKey()} is missing its status.`)
           this.ensurePendingNode(statusNode, request)
         } else if (status.result?.state === "ready" && !task.force) {
-          this.log.silly(`Request ${request.getKey()} has ready status and force=false, no need to process.`)
+          this.log.silly(() => `Request ${request.getKey()} has ready status and force=false, no need to process.`)
           this.completeTask({ ...status, node: request })
         } else {
           const processNode = this.getNode({ type: "process", task, statusOnly: request.statusOnly })
           const result = this.getPendingResult(processNode)
 
           if (result) {
-            this.log.silly(`Request ${request.getKey()} has been processed.`)
+            this.log.silly(() => `Request ${request.getKey()} has been processed.`)
             this.completeTask({ ...result, node: request })
           } else {
-            this.log.silly(`Request ${request.getKey()} should be processed. Status: ${resultToString(status)}`)
+            this.log.silly(() => `Request ${request.getKey()} should be processed. Status: ${resultToString(status)}`)
             this.ensurePendingNode(processNode, request)
           }
         }

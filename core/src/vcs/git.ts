@@ -428,7 +428,7 @@ export class GitHandler extends VcsHandler {
     args.push(...(include || []))
 
     // Start git process
-    gitLog.silly(`Calling git with args '${args.join(" ")}' in ${path}`)
+    gitLog.silly(() => `Calling git with args '${args.join(" ")}' in ${path}`)
     const processEnded = defer<void>()
 
     const proc = execa("git", args, { cwd: path, buffer: false })

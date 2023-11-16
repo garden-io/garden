@@ -179,7 +179,7 @@ export async function getReleaseStatus({
   log: Log
 }): Promise<ServiceStatus> {
   try {
-    log.silly(`Getting the release status for ${releaseName}`)
+    log.silly(() => `Getting the release status for ${releaseName}`)
     const namespace = await getActionNamespace({
       ctx,
       log,

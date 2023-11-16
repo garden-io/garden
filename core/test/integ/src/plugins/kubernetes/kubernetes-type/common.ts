@@ -20,6 +20,7 @@ import { KubeApi } from "../../../../../../src/plugins/kubernetes/api.js"
 import type { KubernetesProvider } from "../../../../../../src/plugins/kubernetes/config.js"
 import dedent from "dedent"
 import { dirname, join } from "path"
+import { resolveMsg } from "../../../../../../src/logger/log-entry.js"
 
 let kubernetesTestGarden: TestGarden
 
@@ -645,8 +646,8 @@ describe("getManifests", () => {
 
       await getManifests({ ctx, api, action: resolvedAction, log: garden.log, defaultNamespace })
 
-      const logMsgs = garden.log.root.getLogEntries().map((e) => e.msg)
-      const unMatched = logMsgs.find((msg) => msg?.includes("A patch is defined"))
+      const logEntries = garden.log.root.getLogEntries()
+      const unMatched = resolveMsg(logEntries.find((entry) => resolveMsg(entry)?.includes("A patch is defined"))!)
 
       expect(unMatched).to.exist
       expect(unMatched).to.eql(

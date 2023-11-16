@@ -192,7 +192,7 @@ export abstract class VcsHandler {
     if (!force) {
       const cached = this.cache.get(log, cacheKey)
       if (cached) {
-        log.silly(`Got cached tree version for ${description} (key ${cacheKey})`)
+        log.silly(() => `Got cached tree version for ${description} (key ${cacheKey})`)
         return cached
       }
     }
@@ -207,7 +207,7 @@ export abstract class VcsHandler {
       if (!force) {
         const cached = this.cache.get(log, cacheKey)
         if (cached) {
-          log.silly(`Got cached tree version for ${description} (key ${cacheKey})`)
+          log.silly(() => `Got cached tree version for ${description} (key ${cacheKey})`)
           result = cached
           return
         }

@@ -365,7 +365,7 @@ export class Garden {
 
     const buildDirCls = legacyBuildSync ? BuildStagingRsync : BuildStaging
     if (legacyBuildSync) {
-      this.log.silly(`Using rsync build staging mode`)
+      this.log.silly(() => `Using rsync build staging mode`)
     }
     this.buildStaging = new buildDirCls(params.projectRoot, params.gardenDirPath)
 
@@ -428,7 +428,7 @@ export class Garden {
     })
 
     if (!hasOtelCollectorProvider) {
-      this.log.silly("No OTEL collector configured, setting no-op exporter")
+      this.log.silly(() => "No OTEL collector configured, setting no-op exporter")
       configureNoOpExporter()
     }
   }
@@ -635,7 +635,7 @@ export class Garden {
         return this.loadedPlugins
       }
 
-      this.log.silly(`Loading plugins`)
+      this.log.silly(() => `Loading plugins`)
       const rawConfigs = this.getRawProviderConfigs()
 
       this.loadedPlugins = await loadAndResolvePlugins(this.log, this.projectRoot, this.registeredPlugins, rawConfigs)
@@ -707,7 +707,7 @@ export class Garden {
       return cloneDeep(this.resolvedProviders[name])
     }
 
-    this.log.silly(`Resolving provider ${name}`)
+    this.log.silly(() => `Resolving provider ${name}`)
 
     const providers = await this.resolveProviders(log, false, [name])
     const provider = providers[name]
@@ -748,7 +748,7 @@ export class Garden {
         return
       }
 
-      log.silly(`Resolving providers`)
+      log.silly(() => `Resolving providers`)
 
       const providerLog = log.createLog({ name: "providers", showDuration: true })
       providerLog.info("Getting status...")
@@ -853,7 +853,7 @@ export class Garden {
         providerLog.success("Done")
       }
 
-      providerLog.silly(`Resolved providers: ${providers.map((p) => p.name).join(", ")}`)
+      providerLog.silly(() => `Resolved providers: ${providers.map((p) => p.name).join(", ")}`)
     })
 
     return keyBy(providers, "name")
@@ -1221,7 +1221,7 @@ export class Garden {
       }
     }
 
-    log.silly(`Resolving version for module ${moduleName}`)
+    log.silly(() => `Resolving version for module ${moduleName}`)
 
     const cacheContexts = [...moduleDependencies, moduleConfig].map((c: ModuleConfig) => getModuleCacheContext(c))
 
@@ -1261,7 +1261,7 @@ export class Garden {
     name: "scanForConfigs",
   })
   async scanForConfigs(log: Log, path: string) {
-    log.silly(`Scanning for configs in ${path}`)
+    log.silly(() => `Scanning for configs in ${path}`)
 
     return findConfigPathsInPath({
       vcs: this.vcs,
@@ -1288,7 +1288,7 @@ export class Garden {
         return
       }
 
-      this.log.silly(`Scanning for configs (force=${force})`)
+      this.log.silly(() => `Scanning for configs (force=${force})`)
 
       // Add external sources that are defined at the project level. External sources are either kept in
       // the .garden/sources dir (and cloned there if needed), or they're linked to a local path via the link command.
@@ -1419,13 +1419,15 @@ export class Garden {
    * Add an action config to the context, after validating and calling the appropriate configure plugin handler.
    */
   protected addActionConfig(config: BaseActionConfig) {
-    this.log.silly(`Adding ${config.kind} action ${config.name}`)
+    this.log.silly(() => `Adding ${config.kind} action ${config.name}`)
     const key = actionReferenceToString(config)
     const existing = this.actionConfigs[config.kind][config.name]
 
     if (existing) {
       if (actionIsDisabled(config, this.environmentName)) {
-        this.log.silly(`Skipping action ${key} because it is disabled and another action with the same key exists`)
+        this.log.silly(
+          () => `Skipping action ${key} because it is disabled and another action with the same key exists`
+        )
         return
       } else if (!actionIsDisabled(existing, this.environmentName)) {
         const paths = [
@@ -1448,7 +1450,7 @@ export class Garden {
    */
   private addModuleConfig(config: ModuleConfig) {
     const key = config.name
-    this.log.silly(`Adding module ${key}`)
+    this.log.silly(() => `Adding module ${key}`)
     const existing = this.moduleConfigs[key]
 
     if (existing) {
@@ -1470,7 +1472,7 @@ export class Garden {
    */
   private addWorkflow(config: WorkflowConfig) {
     const key = config.name
-    this.log.silly(`Adding workflow ${key}`)
+    this.log.silly(() => `Adding workflow ${key}`)
 
     const existing = this.workflowConfigs[key]
 
@@ -1496,9 +1498,9 @@ export class Garden {
   })
   private async loadResources(configPath: string): Promise<(GardenResource | ModuleConfig)[]> {
     configPath = resolve(this.projectRoot, configPath)
-    this.log.silly(`Load configs from ${configPath}`)
+    this.log.silly(() => `Load configs from ${configPath}`)
     const resources = await loadConfigResources(this.log, this.projectRoot, configPath)
-    this.log.silly(`Loaded configs from ${configPath}`)
+    this.log.silly(() => `Loaded configs from ${configPath}`)
     return resources.filter((r) => r.kind && r.kind !== "Project")
   }
 

@@ -303,7 +303,7 @@ export class K8sLogFollower<T extends LogEntryBase> {
       if (error instanceof KubernetesError) {
         reason = `HTTP request failed with status ${error.code}`
       }
-      this.log.silly(`<Lost connection to ${description}. Reason: ${reason}>`)
+      this.log.silly(() => `<Lost connection to ${description}. Reason: ${reason}>`)
     }
 
     /**
@@ -314,7 +314,7 @@ export class K8sLogFollower<T extends LogEntryBase> {
      * the user runs `garden deploy`.
      */
     const stopRetrying = (why: string) => {
-      this.log.silly(`<Will stop retrying connecting to ${description}. Reason: ${why}>`)
+      this.log.silly(() => `<Will stop retrying connecting to ${description}. Reason: ${why}>`)
       connection.shouldRetry = false
     }
 
@@ -333,7 +333,7 @@ export class K8sLogFollower<T extends LogEntryBase> {
       if (["Succeeded", "Failed"].includes(phase) && !wasError) {
         stopRetrying(`The Pod phase is terminal (${phase})`)
       } else {
-        this.log.silly(`<Will retry connecting to ${description}. Reason: The Pod phase is still ${phase}>`)
+        this.log.silly(() => `<Will retry connecting to ${description}. Reason: The Pod phase is still ${phase}>`)
       }
     } catch (e) {
       if (e instanceof KubernetesError) {
@@ -427,7 +427,7 @@ export class K8sLogFollower<T extends LogEntryBase> {
                 `Encountered a log message without timestamp. This is probably an error message from the Kubernetes API: ${line}`
               )
             } else if (this.isDuplicate({ connection, timestamp, msg })) {
-              this.log.silly(`Dropping duplicate log message: ${line}`)
+              this.log.silly(() => `Dropping duplicate log message: ${line}`)
             } else {
               this.updateLastLogEntries({ connection, timestamp, msg })
               this.write({
@@ -451,7 +451,7 @@ export class K8sLogFollower<T extends LogEntryBase> {
             since,
             sinceOnRetry,
           })
-          this.log.silly(`<Connected to container '${containerName}' in Pod '${pod.metadata.name}'>`)
+          this.log.silly(() => `<Connected to container '${containerName}' in Pod '${pod.metadata.name}'>`)
         } catch (err) {
           await this.handleConnectionClose(connection, "error", toKubernetesError(err, context))
           return

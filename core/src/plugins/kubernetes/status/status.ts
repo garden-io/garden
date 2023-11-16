@@ -545,7 +545,7 @@ export async function compareDeployedResources({
     if (!isSubset(deployedResource, manifest)) {
       if (manifest) {
         log.debug(`Resource ${manifest.metadata.name} is not a superset of deployed resource`)
-        log.silly(diffString(deployedResource, manifest))
+        log.silly(() => diffString(deployedResource, manifest))
       }
       result.state = "outdated"
       return result

@@ -208,7 +208,7 @@ class _MutagenMonitor extends TypedEventEmitter<MonitorEvents> {
       await ensureDataDir(dataDir)
 
       const mutagenOpts = [mutagenPath, "sync", "monitor", "--template", "{{ json . }}", "--long"]
-      log.silly(`Spawning mutagen using respawn: "${mutagenOpts.join(" ")}"`)
+      log.silly(() => `Spawning mutagen using respawn: "${mutagenOpts.join(" ")}"`)
 
       const proc = respawn(mutagenOpts, {
         cwd: dataDir,
@@ -246,7 +246,10 @@ class _MutagenMonitor extends TypedEventEmitter<MonitorEvents> {
           // Make sure we don't spam with repeated messages
           lastDaemonError = msg
         } else {
-          log.silly({ symbol: "empty", msg })
+          log.silly({
+            symbol: "empty",
+            msg,
+          })
         }
       }
 
