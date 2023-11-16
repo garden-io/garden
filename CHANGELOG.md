@@ -1,4 +1,32 @@
 
+<a name="0.13.20"></a>
+## [0.13.20](https://github.com/garden-io/garden/compare/0.13.19...0.13.20) (2023-11-16)
+
+### Bug Fixes
+
+* windows file tree ([#5364](https://github.com/garden-io/garden/issues/5364)) ([c5c3c66f4](https://github.com/garden-io/garden/commit/c5c3c66f4))
+* always resolve symlinks for the executable path in the self-updater ([#5352](https://github.com/garden-io/garden/issues/5352)) ([7ee19dd72](https://github.com/garden-io/garden/commit/7ee19dd72))
+* **examples:** fix typo in k8s example + fix comment ([#5337](https://github.com/garden-io/garden/issues/5337)) ([098d59ea4](https://github.com/garden-io/garden/commit/098d59ea4))
+* **garden-sea:** resolve symlinks for GARDEN_SEA_EXECUTABLE_PATH ([#5353](https://github.com/garden-io/garden/issues/5353)) ([aba79f50d](https://github.com/garden-io/garden/commit/aba79f50d))
+* **sync-mode:** avoid collisions in sync key prefixes ([#5409](https://github.com/garden-io/garden/issues/5409)) ([9edc9ac78](https://github.com/garden-io/garden/commit/9edc9ac78))
+* **sync-mode:** use the same source path schemas for all action types ([#5363](https://github.com/garden-io/garden/issues/5363)) ([71b3781cb](https://github.com/garden-io/garden/commit/71b3781cb))
+
+### Features
+
+* change default git scan mode to `repo` ([#5399](https://github.com/garden-io/garden/issues/5399)) ([da3f68fcb](https://github.com/garden-io/garden/commit/da3f68fcb))
+* **k8s:** add service account and irsa support for in-cluster-builder ([#3384](https://github.com/garden-io/garden/issues/3384)) ([9f6b137d6](https://github.com/garden-io/garden/commit/9f6b137d6))
+
+### Improvements
+
+* **core:** log aborted nodes on dep error ([#5360](https://github.com/garden-io/garden/issues/5360)) ([ce1995bc8](https://github.com/garden-io/garden/commit/ce1995bc8))
+* **git:** don't require Garden `static` dir to be a Git repo ([#5120](https://github.com/garden-io/garden/issues/5120)) ([dc8ba20ac](https://github.com/garden-io/garden/commit/dc8ba20ac))
+* **k8s:** remove old system garden and improve local-k8s startup time ([#5136](https://github.com/garden-io/garden/issues/5136)) ([875cacb1f](https://github.com/garden-io/garden/commit/875cacb1f))
+* **sync:** always use short hash-based tmp dirs paths ([#5413](https://github.com/garden-io/garden/issues/5413)) ([453ed6a30](https://github.com/garden-io/garden/commit/453ed6a30))
+
+### Performance Improvements
+
+* do not compute log message until required ([#5410](https://github.com/garden-io/garden/issues/5410)) ([14e713bff](https://github.com/garden-io/garden/commit/14e713bff))
+
 <a name="0.13.19"></a>
 ## [0.13.19](https://github.com/garden-io/garden/compare/0.13.18...0.13.19) (2023-11-04)
 
