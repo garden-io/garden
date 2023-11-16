@@ -323,7 +323,7 @@ export abstract class Command<
           }).href
           const cloudLog = log.createLog({ name: getCloudLogSectionName(distroName) })
 
-          cloudLog.info(`View command results at: ${styles.highlight(commandResultUrl)}\n`)
+          cloudLog.info(`View command results at: ${styles.link(commandResultUrl)}\n`)
         }
 
         let analytics: AnalyticsHandler | undefined

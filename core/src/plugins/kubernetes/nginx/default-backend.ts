@@ -11,7 +11,6 @@ import type { Log } from "../../../logger/log-entry.js"
 import type { DeployState } from "../../../types/service.js"
 import { KubeApi } from "../api.js"
 import { checkResourceStatus, waitForResources } from "../status/status.js"
-import chalk from "chalk"
 import type { KubernetesDeployment, KubernetesService } from "../types.js"
 import { defaultGardenIngressControllerDefaultBackendImage } from "../constants.js"
 import { GardenIngressComponent } from "./ingress-controller-base.js"
@@ -51,7 +50,7 @@ export class GardenDefaultBackend extends GardenIngressComponent {
     const { deployment } = defaultBackendGetManifests(ctx)
 
     const deploymentStatus = await checkResourceStatus({ api, namespace, manifest: deployment, log })
-    log.debug(chalk.yellow(`Status of ingress controller default-backend: ${deploymentStatus}`))
+    log.debug(`Status of ingress controller default-backend: ${deploymentStatus}`)
     return deploymentStatus.state
   }
 

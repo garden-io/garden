@@ -101,18 +101,6 @@ export async function warnOnLinkedActions(garden: Garden, log: Log, actions: Act
   }
 }
 
-const displayStates = {
-  failed: "in a failed state",
-  unknown: "in an unknown state",
-}
-
-/**
- * Just to make action states look nicer in print.
- */
-export function displayState(state: ActionState) {
-  return displayStates[state] || state.replace("-", " ")
-}
-
 /**
  * Get the state of an Action
  */

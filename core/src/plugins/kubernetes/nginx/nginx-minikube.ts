@@ -9,7 +9,6 @@
 import type { Log } from "../../../logger/log-entry.js"
 import type { DeployState } from "../../../types/service.js"
 import { exec } from "../../../util/util.js"
-import chalk from "chalk"
 import type { KubernetesPluginContext } from "../config.js"
 import { KubeApi } from "../api.js"
 import { checkResourceStatus, waitForResources } from "../status/status.js"
@@ -45,7 +44,7 @@ export class MinikubeGardenIngressController extends GardenIngressComponent {
     const addonEnabled = minikubeAddons.ingress.Status === "enabled"
 
     if (!addonEnabled) {
-      log.debug(chalk.yellow("Status of minikube ingress controller addon: missing"))
+      log.debug("Status of minikube ingress controller addon: missing")
       return "missing"
     }
     //check if ingress controller deployment is ready
@@ -55,7 +54,7 @@ export class MinikubeGardenIngressController extends GardenIngressComponent {
       manifest: nginxKindMainResource,
       log,
     })
-    log.debug(chalk.yellow(`Status of minikube ingress controller addon: ${deploymentStatus.state}`))
+    log.debug(`Status of minikube ingress controller addon: ${deploymentStatus.state}`)
     return deploymentStatus.state
   }
 

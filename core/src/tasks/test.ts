@@ -7,7 +7,7 @@
  */
 
 import type { BaseActionTaskParams, ActionTaskProcessParams, ActionTaskStatusParams } from "../tasks/base.js"
-import { ExecuteActionTask, emitGetStatusEvents, emitProcessingEvents } from "../tasks/base.js"
+import { ExecuteActionTask, logAndEmitGetStatusEvents, logAndemitProcessingEvents } from "../tasks/base.js"
 import { Profile } from "../util/profiling.js"
 import { resolvedActionToExecuted } from "../actions/helpers.js"
 import type { TestAction } from "../actions/test.js"
@@ -64,9 +64,8 @@ export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
       }
     },
   })
-  @(emitGetStatusEvents<TestAction>)
+  @(logAndEmitGetStatusEvents<TestAction>)
   async getStatus({ dependencyResults }: ActionTaskStatusParams<TestAction>) {
-    this.log.verbose("Checking status...")
     const action = this.getResolvedAction(this.action, dependencyResults)
     const router = await this.garden.getActionRouter()
 
@@ -76,17 +75,12 @@ export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
       action,
     })
 
-    this.log.verbose("Status check complete")
-
     const testResult = status?.detail
 
     const version = action.versionString()
     const executedAction = resolvedActionToExecuted(action, { status })
 
     if (testResult && testResult.success) {
-      if (!this.force) {
-        this.log.success("Already passed")
-      }
       return {
         ...status,
         version,
@@ -111,11 +105,9 @@ export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
       }
     },
   })
-  @(emitProcessingEvents<TestAction>)
+  @(logAndemitProcessingEvents<TestAction>)
   async process({ dependencyResults }: ActionTaskProcessParams<TestAction, GetTestResult>) {
     const action = this.getResolvedAction(this.action, dependencyResults)
-
-    this.log.info(`Running...`)
 
     const router = await this.garden.getActionRouter()
 
@@ -130,12 +122,9 @@ export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
       })
       status = output.result
     } catch (err) {
-      this.log.error(`Failed running test`)
-
       throw err
     }
     if (status.detail?.success) {
-      this.log.success(`Success`)
     } else {
       const exitCode = status.detail?.exitCode
       const failedMsg = !!exitCode ? `Failed with code ${exitCode}!` : `Failed!`

@@ -18,12 +18,12 @@ import { highlightYaml, safeDumpYaml } from "../util/serialization.js"
 import type { Logger } from "./logger.js"
 import { logLevelMap, LogLevel } from "./logger.js"
 import { toGardenError } from "../exceptions.js"
-import type { Styles } from "./styles.js"
 import { styles } from "./styles.js"
+import type { Chalk } from "chalk"
 
 type RenderFn = (entry: LogEntry, logger: Logger) => string
 
-export const SECTION_PADDING = 20
+export const SECTION_PADDING = 25
 
 export function padSection(section: string, width: number = SECTION_PADDING) {
   const diff = width - stringWidth(section)
@@ -92,7 +92,7 @@ export function renderTimestamp(entry: LogEntry, logger: Logger): string {
 }
 
 export function getStyle(level: LogLevel) {
-  let style: Styles
+  let style: Chalk
   if (level === LogLevel.error) {
     style = styles.error
   } else if (level === LogLevel.warn) {
@@ -116,20 +116,15 @@ export function getSection(entry: LogEntry): string | null {
 
 export function renderMsg(entry: LogEntry): string {
   const { context, level } = entry
-  const msg = resolveMsg(entry)
-  const { origin } = context
+  const msg = resolveMsg(entry) || ""
   const style = getStyle(level)
 
-  if (!msg) {
-    return ""
-  }
+  // For log levels higher than "info" we print the log level name.
+  const logLevelName = entry.level > LogLevel.info ? `[${logLevelMap[entry.level]}] ` : ""
 
-  // TODO: @eysi Should we strip here?
-  // if (level > LogLevel.info) {
-  //   msg = stripAnsi(msg)
-  // }
+  const origin = context.origin ? `[${styles.italic(context.origin)}] ` : ""
 
-  return style(origin ? `[${styles.italic(origin)}] ` + msg : msg)
+  return style(`${logLevelName}${origin}${msg}`)
 }
 
 export function renderData(entry: LogEntry): string {
@@ -146,31 +141,12 @@ export function renderData(entry: LogEntry): string {
 
 export function renderSection(entry: LogEntry): string {
   const { msg } = entry
-  let section = getSection(entry)
-
-  // For log levels higher than "info" we print the log level name.
-  // This should technically happen when we render the symbol but it's harder
-  // to deal with the padding that way.
-  const logLevelName = styles.secondary(`[${logLevelMap[entry.level]}]`)
-
-  // Just print the log level name directly without padding. E.g:
-  // ℹ api                       → Deploying version v-37d6c44559...
-  // [verbose] Some verbose level stuff that doesn't have a section
-  if (!section && entry.level > LogLevel.info) {
-    return logLevelName + " "
-  }
-
-  // Print the log level name after the section name to preserve alignment. E.g.:
-  // ℹ api                       → Deploying version v-37d6c44559...
-  // ℹ api [verbose]             → Some verbose level stuff that has a section
-  if (entry.level > LogLevel.info) {
-    section = section ? `${section} ${logLevelName}` : logLevelName
-  }
+  const section = getSection(entry)
 
   if (section && msg) {
-    return `${styles.section(padSection(section))} ${styles.accent.bold("→")} `
+    return `${padSection(styles.section(section))} ${styles.accent.bold("→")} `
   } else if (section) {
-    return styles.section(padSection(section))
+    return padSection(styles.section(section))
   }
   return ""
 }

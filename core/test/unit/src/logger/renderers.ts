@@ -17,7 +17,6 @@ import {
   formatForJson,
   SECTION_PADDING,
   renderData,
-  padSection,
   renderSection,
 } from "../../../../src/logger/renderers.js"
 import { GenericGardenError } from "../../../../src/exceptions.js"
@@ -121,17 +120,7 @@ describe("renderers", () => {
     it("should print the log level if it's higher then 'info'", () => {
       const entry = logger.createLog().debug({ msg: "hello world" }).getLatestEntry()
 
-      expect(formatForTerminal(entry, logger)).to.equal(
-        `${styles.primary("[debug]")} ${styles.primary("hello world")}\n`
-      )
-    })
-    it("should print the log level if it's higher then 'info' after the section if there is one", () => {
-      const entry = logger.createLog({ name: "foo" }).debug("hello world").getLatestEntry()
-
-      const section = `foo ${styles.primary("[debug]")}`
-      expect(formatForTerminal(entry, logger)).to.equal(
-        `${logSymbols["info"]} ${styles.highlight.italic(padSection(section))} → ${styles.primary("hello world")}\n`
-      )
+      expect(formatForTerminal(entry, logger)).to.equal(`${styles.secondary("[debug] hello world")}\n`)
     })
     context("basic", () => {
       before(() => {
@@ -142,7 +131,7 @@ describe("renderers", () => {
         const entry = logger.createLog().info("hello world").getLatestEntry()
 
         expect(formatForTerminal(entry, logger)).to.equal(
-          `${styles.primary(format(now, "HH:mm:ss"))} ${styles.primary("hello world")}\n`
+          `${styles.secondary(format(now, "HH:mm:ss"))} ${styles.primary("hello world")}\n`
         )
       })
       after(() => {

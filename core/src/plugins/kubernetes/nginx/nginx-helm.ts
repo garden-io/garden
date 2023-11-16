@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import chalk from "chalk"
 import type { Log } from "../../../logger/log-entry.js"
 import type { DeployState } from "../../../types/service.js"
 import type { KubernetesPluginContext } from "../config.js"
@@ -106,7 +105,7 @@ export abstract class HelmGardenIngressController extends GardenIngressComponent
       const releaseStatus = statusRes.info?.status || "unknown"
 
       if (releaseStatus !== "deployed") {
-        log.debug(chalk.yellow(`Helm release status for ${HELM_INGRESS_NGINX_RELEASE_NAME}: ${releaseStatus}`))
+        log.debug(`Helm release status for ${HELM_INGRESS_NGINX_RELEASE_NAME}: ${releaseStatus}`)
         return helmStatusMap[releaseStatus] || "unknown"
       }
 
@@ -116,7 +115,7 @@ export abstract class HelmGardenIngressController extends GardenIngressComponent
       const deploymentStatus = await checkResourceStatus({ api, namespace, manifest: nginxHelmMainResource, log })
       return deploymentStatus.state
     } catch (error) {
-      log.debug(chalk.yellow(`Helm release ${HELM_INGRESS_NGINX_RELEASE_NAME} missing.`))
+      log.debug(`Helm release ${HELM_INGRESS_NGINX_RELEASE_NAME} missing.`)
       return "missing"
     }
   }
