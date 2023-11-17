@@ -48,8 +48,16 @@ export default {
         }
       }
     },
-
-    // we import the package.json file for version number detection
+    // Hack: Replace version in `getPackageVersion()` function, because the `json()` plugin below somehow loads the wrong package.json file.
+    replace({
+      include: [/core.*\.js/],
+      values: {
+        "const { version } = corePackageJson": `const version = ${JSON.stringify(process.env.GARDEN_CORE_VERSION || "0.0.0-dev")}`,
+      },
+      delimiters: ["", ""],
+    }),
+    // we import the package.json file for version number detection, but for some reasons rollup reads the package.json files in ./ instead of in ./garden-sea/tmp/source/
+    // That's why we also need the hack above unfortunately...
     json(),
 
     // NOTE: You may need the following hacks if we ever decide to update ink to the latest version

@@ -199,7 +199,19 @@ async function zipAndHash({ targetDir, archiveName, cwd, prefix, fileNames }: Zi
 
 async function buildBinaries(args: string[]) {
   const argv = minimist(args)
-  const version = argv.version || getPackageVersion()
+
+  let version: string
+
+  if (argv.version === "edge" || argv.version.startsWith("edge-")) {
+    const gitHash = await exec("git", ["rev-parse", "--short", "HEAD"])
+    version = `${getPackageVersion()}-${argv.version}-${gitHash.stdout}`
+  } else if (argv.version) {
+    console.log(`Cannot set Garden to version ${argv.version}. Please update the package.json files instead.`)
+    process.exit(1)
+  } else {
+    version = getPackageVersion()
+  }
+
   const selected = argv._.length > 0 ? pick(targets, argv._) : targets
 
   if (Object.keys(selected).length === 0) {
@@ -271,10 +283,9 @@ async function buildBinaries(args: string[]) {
         packageJson.dependencies[depName] = "file:" + relPath
       }
 
-      if (version === "edge" || version.startsWith("edge-")) {
-        const gitHash = await exec("git", ["rev-parse", "--short", "HEAD"])
-        packageJson.version = `${packageJson.version}-${version}-${gitHash.stdout}`
-        console.log("Set package version to " + packageJson.version)
+      if (version) {
+        packageJson.version = version
+        console.log(`Updated version to ${packageJson.version} in ${packageJsonPath}`)
       }
 
       await writeFile(packageJsonPath, JSON.stringify(packageJson, null, 2))
@@ -299,7 +310,7 @@ async function buildBinaries(args: string[]) {
   console.log(chalk.cyan("Bundling source code"))
 
   await remove(rollupTmpDir)
-  await exec("npm", ["run", "rollup"], { cwd: repoRoot, stdio: "inherit" })
+  await exec("npm", ["run", "rollup"], { cwd: repoRoot, stdio: "inherit", env: { GARDEN_CORE_VERSION: version } })
 
   await zipAndHash({
     archiveName: "source",
