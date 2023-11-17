@@ -10,21 +10,21 @@ import { execa } from "execa"
 import { expect } from "chai"
 import tmp from "tmp-promise"
 import fsExtra from "fs-extra"
-
-const { createFile, ensureSymlink, lstat, mkdir, mkdirp, realpath, remove, symlink, writeFile } = fsExtra
 import { basename, join, relative, resolve } from "path"
 
 import type { TestGarden } from "../../../helpers.js"
 import { expectError, makeTestGardenA } from "../../../helpers.js"
 import type { GitCli } from "../../../../src/vcs/git.js"
-import { getCommitIdFromRefList, GitHandler, parseGitUrl } from "../../../../src/vcs/git.js"
+import { explainGitError, getCommitIdFromRefList, GitHandler, parseGitUrl } from "../../../../src/vcs/git.js"
 import type { Log } from "../../../../src/logger/log-entry.js"
 import { hashRepoUrl } from "../../../../src/util/ext-source-util.js"
-import { deline } from "../../../../src/util/string.js"
+import { dedent, deline } from "../../../../src/util/string.js"
 import { uuidv4 } from "../../../../src/util/random.js"
 import type { VcsHandlerParams } from "../../../../src/vcs/vcs.js"
 import { repoRoot } from "../../../../src/util/testing.js"
-import { GardenError } from "../../../../src/exceptions.js"
+import { ChildProcessError, GardenError, RuntimeError } from "../../../../src/exceptions.js"
+
+const { createFile, ensureSymlink, lstat, mkdir, mkdirp, realpath, remove, symlink, writeFile } = fsExtra
 
 // Overriding this to make sure any ignorefile name is respected
 export const defaultIgnoreFilename = ".testignore"
@@ -986,6 +986,83 @@ describe("git", () => {
     it("should throw a configuration error if the hash part is missing", async () => {
       const url = "https://github.com/org/repo.git"
       await expectError(() => parseGitUrl(url), "configuration")
+    })
+  })
+
+  describe("explainGitError", () => {
+    const path = "/tmp"
+
+    function getChildProcessError(exitCode: number, stderr: string): ChildProcessError {
+      return new ChildProcessError({
+        cmd: "git",
+        args: ["rev-parse", "--show-toplevel"],
+        code: exitCode,
+        output: stderr,
+        stderr,
+        stdout: "",
+      })
+    }
+
+    context("on error code 128", () => {
+      const exitCode = 128
+
+      it("should throw a nice error when given repo is unsafe", async () => {
+        const stderr = `fatal: unsafe repository ('${path}' is owned by someone else)`
+        const gitError = getChildProcessError(exitCode, stderr)
+
+        const explainedGitError = explainGitError(gitError, path)
+        expect(explainedGitError).to.be.instanceof(RuntimeError)
+        expect(explainedGitError.message).to.eql(
+          stderr +
+            `\nIt looks like you're using Git 2.36.0 or newer and the repo directory containing "${path}" is owned by someone else. If this is intentional you can run "git config --global --add safe.directory '<repo root>'" and try again.`
+        )
+      })
+
+      it("should throw a nice error when given a path outside of a repo", async () => {
+        const stderr = "fatal: not a git repository (or any of the parent directories): .git"
+        const gitError = getChildProcessError(exitCode, stderr)
+
+        const explainedGitError = explainGitError(gitError, path)
+        expect(explainedGitError).to.be.instanceof(RuntimeError)
+        expect(explainedGitError.message).to.eql(deline`
+          Path ${path} is not in a git repository root. Garden must be run from within a git repo.
+          Please run \`git init\` if you're starting a new project and repository, or move the project to
+          an existing repository, and try again.
+        `)
+      })
+
+      it("should throw an original error with exit code 128 the rest cases", async () => {
+        const stderr = `fatal: another git error with exit code ${exitCode}`
+        const gitError = getChildProcessError(exitCode, stderr)
+
+        const explainedGitError = explainGitError(gitError, path)
+        expect(explainedGitError).to.be.instanceof(ChildProcessError)
+
+        const castedExplainedGitError = explainedGitError as ChildProcessError
+        expect(castedExplainedGitError.details.code).to.eql(exitCode)
+        expect(castedExplainedGitError.message).to.eql(dedent`
+          Command "git rev-parse --show-toplevel" failed with code ${exitCode}:
+
+          ${stderr}
+        `)
+      })
+    })
+
+    it("should throw an original error when exit code is not 128", async () => {
+      const exitCode = -1
+      const stderr = "fatal: unexpected git error"
+      const gitError = getChildProcessError(exitCode, stderr)
+
+      const explainedGitError = explainGitError(gitError, path)
+      expect(explainedGitError).to.be.instanceof(ChildProcessError)
+
+      const castedExplainedGitError = explainedGitError as ChildProcessError
+      expect(castedExplainedGitError.details.code).to.eql(exitCode)
+      expect(castedExplainedGitError.message).to.eql(dedent`
+          Command "git rev-parse --show-toplevel" failed with code ${exitCode}:
+
+          ${stderr}
+        `)
     })
   })
 })
