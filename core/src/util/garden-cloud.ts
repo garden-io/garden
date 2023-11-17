@@ -23,6 +23,7 @@ export function getCloudDistributionName(domain: string): CloudDistroName {
   if (!domain.match(/^https:\/\/.+\.app\.garden$/i)) {
     return "Garden Enterprise"
   }
+
   return "Garden Cloud"
 }
 
@@ -31,7 +32,9 @@ export function getCloudLogSectionName(distroName: CloudDistroName): string {
     return "cloud-dashboard"
   } else if (distroName === "Garden Cloud") {
     return "garden-cloud"
-  } else {
+  } else if (distroName === "Garden Enterprise") {
     return "garden-enterprise"
+  } else {
+    return distroName satisfies never
   }
 }
