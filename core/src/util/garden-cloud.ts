@@ -27,7 +27,9 @@ export function getCloudDistributionName(domain: string): CloudDistroName {
   return "Garden Cloud"
 }
 
-export function getCloudLogSectionName(distroName: CloudDistroName): string {
+export type CloudLogSectionName = "cloud-dashboard" | "garden-cloud" | "garden-enterprise"
+
+export function getCloudLogSectionName(distroName: CloudDistroName): CloudLogSectionName {
   if (distroName === "Cloud Dashboard") {
     return "cloud-dashboard"
   } else if (distroName === "Garden Cloud") {
