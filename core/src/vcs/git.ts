@@ -10,10 +10,8 @@ import { performance } from "perf_hooks"
 import { isAbsolute, join, posix, relative, resolve } from "path"
 import { isString } from "lodash-es"
 import fsExtra from "fs-extra"
-
-const { createReadStream, ensureDir, lstat, pathExists, readlink, realpath, stat } = fsExtra
 import { PassThrough } from "stream"
-import type { GetFilesParams, RemoteSourceParams, VcsFile, VcsInfo, VcsHandlerParams } from "./vcs.js"
+import type { GetFilesParams, RemoteSourceParams, VcsFile, VcsHandlerParams, VcsInfo } from "./vcs.js"
 import { VcsHandler } from "./vcs.js"
 import { ChildProcessError, ConfigurationError, isErrnoException, RuntimeError } from "../exceptions.js"
 import { getStatsType, joinWithPosix, matchPath } from "../util/fs.js"
@@ -33,6 +31,8 @@ import type { ExecaError } from "execa"
 import { execa } from "execa"
 import hasha from "hasha"
 import { styles } from "../logger/styles.js"
+
+const { createReadStream, ensureDir, lstat, pathExists, readlink, realpath, stat } = fsExtra
 
 const submoduleErrorSuggestion = `Perhaps you need to run ${styles.underline(`git submodule update --recursive`)}?`
 
