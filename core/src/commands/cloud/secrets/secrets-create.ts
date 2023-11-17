@@ -20,8 +20,8 @@ import { dedent, deline } from "../../../util/string.js"
 import { IntegerParameter, PathParameter, StringParameter, StringsParameter } from "../../../cli/params.js"
 import type { StringMap } from "../../../config/common.js"
 import dotenv from "dotenv"
-import { getCloudDistributionName } from "../../../util/util.js"
 import type { CloudProject } from "../../../cloud/api.js"
+import { getCloudDistributionName } from "../../../util/garden-cloud.js"
 
 export const secretsCreateArgs = {
   secrets: new StringsParameter({
