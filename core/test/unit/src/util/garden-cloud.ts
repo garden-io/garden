@@ -7,7 +7,7 @@
  */
 
 import { describe } from "mocha"
-import { getCloudDistributionName } from "../../../../src/util/garden-cloud.js"
+import { getCloudDistributionName, getCloudLogSectionName } from "../../../../src/util/garden-cloud.js"
 import { DEFAULT_GARDEN_CLOUD_DOMAIN } from "../../../../src/constants.js"
 import { expect } from "chai"
 
@@ -50,6 +50,20 @@ describe("garden-cloud", () => {
       it(`returns "Garden Enterprise" for http urls`, () => {
         expect(getCloudDistributionName("http://app.garden-proxy.net")).to.eql("Garden Enterprise")
       })
+    })
+  })
+
+  describe("getCloudLogSectionName", () => {
+    it(`returns "cloud-dashboard" for "Cloud Dashboard"`, () => {
+      expect(getCloudLogSectionName("Cloud Dashboard")).to.eql("cloud-dashboard")
+    })
+
+    it(`returns "garden-cloud" for "Garden Cloud"`, () => {
+      expect(getCloudLogSectionName("Garden Cloud")).to.eql("garden-cloud")
+    })
+
+    it(`returns "garden-enterprise" for "Garden Enterprise"`, () => {
+      expect(getCloudLogSectionName("Garden Enterprise")).to.eql("garden-enterprise")
     })
   })
 })
