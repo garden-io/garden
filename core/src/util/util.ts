@@ -85,6 +85,10 @@ export type Unpacked<T> = T extends (infer U)[]
 export type ExcludesFalsy = <T>(x: T | false | null | undefined) => x is T
 export type MakeOptional<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>
 
+export interface Dictionary<T> {
+  [index: string]: T
+}
+
 const MAX_BUFFER_SIZE = 1024 * 1024
 
 // Used to control process-level operations during testing
