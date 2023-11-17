@@ -18,7 +18,7 @@ import { pluginSchema, pluginNodeModuleSchema } from "./plugin/plugin.js"
 import type { GenericProviderConfig } from "./config/provider.js"
 import { CircularDependenciesError, ConfigurationError, PluginError, RuntimeError } from "./exceptions.js"
 import { uniq, mapValues, fromPairs, flatten, keyBy, some, isString, sortBy } from "lodash-es"
-import type { MaybeUndefined } from "./util/util.js"
+import type { Dictionary, MaybeUndefined } from "./util/util.js"
 import { findByName, pushToKey, getNames, isNotNull } from "./util/util.js"
 import { dedent, deline, naturalList } from "./util/string.js"
 import { validateSchema } from "./config/validation.js"
@@ -38,10 +38,6 @@ import type {
 } from "./plugin/action-types.js"
 import type { ObjectSchema } from "@hapi/joi"
 import { GardenSdkPlugin } from "./plugin/sdk.js"
-
-interface Dictionary<T> {
-  [index: string]: T
-}
 
 export async function loadAndResolvePlugins(
   log: Log,

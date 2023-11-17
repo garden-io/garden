@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { getPlatform, getArchitecture } from "../../../../../src/util/util.js"
+import { getArchitecture, getPlatform } from "../../../../../src/util/arch-platform.js"
 import type { TempDirectory } from "../../../../helpers.js"
 import {
   createProjectConfig,

@@ -784,10 +784,6 @@ export interface SyncSession {
 }
 
 /**
- *
- */
-
-/**
  * Returns mutagen data directory path based on the project dir.
  *
  * It always computes sha256 hash of a project dir path, uses first 9 characters of hash as directory name,
