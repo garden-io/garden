@@ -12,7 +12,7 @@ import type { TestGarden } from "../../helpers.js"
 import { getDataDir, makeTestGarden, makeTestGardenA } from "../../helpers.js"
 import { DEFAULT_BUILD_TIMEOUT_SEC } from "../../../src/constants.js"
 import type { ConfigGraph } from "../../../src/graph/config-graph.js"
-import { loadYamlFile } from "../../../src/util/util.js"
+import { loadYamlFile } from "../../../src/util/serialization.js"
 
 describe("ModuleResolver", () => {
   // Note: We test the ModuleResolver via the TestGarden.resolveModule method, for convenience.

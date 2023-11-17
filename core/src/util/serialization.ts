@@ -8,11 +8,12 @@
 
 import { mapValues } from "lodash-es"
 import fsExtra from "fs-extra"
-const { writeFile } = fsExtra
 import type { DumpOptions } from "js-yaml"
-import { dump } from "js-yaml"
+import { dump, load } from "js-yaml"
 import highlightModule from "cli-highlight"
 import { styles } from "../logger/styles.js"
+
+const { readFile, writeFile } = fsExtra
 const highlight = highlightModule.default
 
 export async function dumpYaml(yamlPath: string, data: any) {
@@ -49,6 +50,11 @@ export function highlightYaml(s: string) {
  */
 export async function dumpYamlMulti(yamlPath: string, objects: object[]) {
   return writeFile(yamlPath, encodeYamlMulti(objects))
+}
+
+export async function loadYamlFile(path: string): Promise<any> {
+  const fileData = await readFile(path)
+  return load(fileData.toString())
 }
 
 export function serializeObject(o: any): string {
