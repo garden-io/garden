@@ -20,6 +20,7 @@ export function getCloudDistributionName(domain: string): CloudDistroName {
     return "Cloud Dashboard"
   }
 
+  // TODO: consider using URL object instead.
   if (!domain.match(/^https:\/\/.+\.app\.garden$/i)) {
     return "Garden Enterprise"
   }

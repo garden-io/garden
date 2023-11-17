@@ -11,7 +11,7 @@ import { resolve, join } from "path"
 import fsExtra from "fs-extra"
 const { pathExists } = fsExtra
 import { getBuiltinCommands } from "../commands/commands.js"
-import { getCloudDistributionName } from "../util/garden-cloud.js"
+import { getCloudDistributionName } from "../util/cloud.js"
 import { shutdown, getPackageVersion } from "../util/util.js"
 import type { Command, CommandResult, BuiltinArgs } from "../commands/base.js"
 import { CommandGroup } from "../commands/base.js"

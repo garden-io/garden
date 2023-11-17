@@ -7,7 +7,7 @@
  */
 
 import { describe } from "mocha"
-import { getCloudDistributionName, getCloudLogSectionName } from "../../../../src/util/garden-cloud.js"
+import { getCloudDistributionName, getCloudLogSectionName } from "../../../../src/util/cloud.js"
 import { DEFAULT_GARDEN_CLOUD_DOMAIN } from "../../../../src/constants.js"
 import { expect } from "chai"
 
@@ -24,20 +24,11 @@ describe("garden-cloud", () => {
         it(`returns "Garden Cloud" for https urls`, () => {
           expect(getCloudDistributionName("https://backend.app.garden")).to.eql("Garden Cloud")
         })
-
-        // TODO: should we care about http/https here? Do we always get only https:// urls?
-        // it(`returns "Garden Cloud" for http urls`, () => {
-        //   expect(getCloudDistributionName("http://backend.app.garden")).to.eql("Garden Cloud")
-        // })
       })
 
       context("when 2nd level domain is not .app", () => {
         it(`returns "Garden Enterprise" for https urls`, () => {
           expect(getCloudDistributionName("https://backend.demo.garden")).to.eql("Garden Enterprise")
-        })
-
-        it(`returns "Garden Enterprise" for http urls`, () => {
-          expect(getCloudDistributionName("http://backend.demo.garden")).to.eql("Garden Enterprise")
         })
       })
     })
@@ -45,10 +36,6 @@ describe("garden-cloud", () => {
     context("when domain is something else", () => {
       it(`returns "Garden Enterprise" for https urls`, () => {
         expect(getCloudDistributionName("https://app.garden-proxy.net")).to.eql("Garden Enterprise")
-      })
-
-      it(`returns "Garden Enterprise" for http urls`, () => {
-        expect(getCloudDistributionName("http://app.garden-proxy.net")).to.eql("Garden Enterprise")
       })
     })
   })

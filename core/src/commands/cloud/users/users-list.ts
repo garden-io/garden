@@ -19,7 +19,7 @@ import { sortBy } from "lodash-es"
 import { StringsParameter } from "../../../cli/params.js"
 import type { CloudProject } from "../../../cloud/api.js"
 import { styles } from "../../../logger/styles.js"
-import { getCloudDistributionName } from "../../../util/garden-cloud.js"
+import { getCloudDistributionName } from "../../../util/cloud.js"
 
 export const usersListOpts = {
   "filter-names": new StringsParameter({

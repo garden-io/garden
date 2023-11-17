@@ -21,7 +21,7 @@ import { IntegerParameter, PathParameter, StringParameter, StringsParameter } fr
 import type { StringMap } from "../../../config/common.js"
 import dotenv from "dotenv"
 import type { CloudProject } from "../../../cloud/api.js"
-import { getCloudDistributionName } from "../../../util/garden-cloud.js"
+import { getCloudDistributionName } from "../../../util/cloud.js"
 
 export const secretsCreateArgs = {
   secrets: new StringsParameter({
