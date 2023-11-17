@@ -134,25 +134,30 @@ export class GitHandler extends VcsHandler {
           throw err
         }
 
-        if (err.details.code === 128 && gitErrorContains(err, "fatal: unsafe repository")) {
-          // Throw nice error when we detect that we're not in a repo root
-          throw new RuntimeError({
-            message:
-              err.details.stderr +
-              `\nIt looks like you're using Git 2.36.0 or newer and the repo directory containing "${path}" is owned by someone else. If this is intentional you can run "git config --global --add safe.directory '<repo root>'" and try again.`,
-          })
-        } else if (err.details.code === 128 && gitErrorContains(err, "fatal: not a git repository")) {
-          // Throw nice error when we detect that we're not in a repo root
-          throw new RuntimeError({
-            message: deline`
+        // handle some errors with exit codes 128 in a specific manner
+        if (err.details.code === 128) {
+          if (gitErrorContains(err, "fatal: unsafe repository")) {
+            // Throw nice error when we detect that we're not in a repo root
+            throw new RuntimeError({
+              message:
+                err.details.stderr +
+                `\nIt looks like you're using Git 2.36.0 or newer and the repo directory containing "${path}" is owned by someone else. If this is intentional you can run "git config --global --add safe.directory '<repo root>'" and try again.`,
+            })
+          }
+          if (gitErrorContains(err, "fatal: not a git repository")) {
+            // Throw nice error when we detect that we're not in a repo root
+            throw new RuntimeError({
+              message: deline`
     Path ${path} is not in a git repository root. Garden must be run from within a git repo.
     Please run \`git init\` if you're starting a new project and repository, or move the project to an
     existing repository, and try again.
   `,
-          })
-        } else {
-          throw err
+            })
+          }
         }
+
+        // otherwise just re-throw the original error
+        throw err
       }
     })
   }
