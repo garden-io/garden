@@ -114,6 +114,7 @@ export function registerCleanupFunction(name: string, func: HookCallback) {
 }
 
 export function getPackageVersion(): string {
+  // This code will be replaced by the version number during the build process in rollup.config.js. Please update the rollup config as well if you change the following line.
   const { version } = corePackageJson as { version: string }
   return version
 }
