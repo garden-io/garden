@@ -7,7 +7,7 @@
  */
 
 import type { BaseActionTaskParams, ActionTaskProcessParams, ActionTaskStatusParams } from "../tasks/base.js"
-import { ExecuteActionTask, logAndEmitGetStatusEvents, logAndemitProcessingEvents } from "../tasks/base.js"
+import { ExecuteActionTask, logAndEmitGetStatusEvents, logAndEmitProcessingEvents } from "../tasks/base.js"
 import { Profile } from "../util/profiling.js"
 import { resolvedActionToExecuted } from "../actions/helpers.js"
 import type { TestAction } from "../actions/test.js"
@@ -105,7 +105,7 @@ export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
       }
     },
   })
-  @(logAndemitProcessingEvents<TestAction>)
+  @(logAndEmitProcessingEvents<TestAction>)
   async process({ dependencyResults }: ActionTaskProcessParams<TestAction, GetTestResult>) {
     const action = this.getResolvedAction(this.action, dependencyResults)
 

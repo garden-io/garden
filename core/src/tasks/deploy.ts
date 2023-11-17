@@ -7,7 +7,7 @@
  */
 
 import type { BaseActionTaskParams, BaseTask, ActionTaskProcessParams, ActionTaskStatusParams } from "./base.js"
-import { ExecuteActionTask, logAndEmitGetStatusEvents, logAndemitProcessingEvents } from "./base.js"
+import { ExecuteActionTask, logAndEmitGetStatusEvents, logAndEmitProcessingEvents } from "./base.js"
 import { getLinkUrl } from "../types/service.js"
 import { Profile } from "../util/profiling.js"
 import type { DeployAction } from "../actions/deploy.js"
@@ -107,7 +107,7 @@ export class DeployTask extends ExecuteActionTask<DeployAction, DeployStatus> {
       }
     },
   })
-  @(logAndemitProcessingEvents<DeployAction>)
+  @(logAndEmitProcessingEvents<DeployAction>)
   async process({ dependencyResults, status }: ActionTaskProcessParams<DeployAction, DeployStatus>) {
     const action = this.getResolvedAction(this.action, dependencyResults)
     const version = action.versionString()

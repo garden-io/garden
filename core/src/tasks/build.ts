@@ -7,7 +7,7 @@
  */
 
 import type { BaseActionTaskParams, ActionTaskProcessParams, ActionTaskStatusParams } from "../tasks/base.js"
-import { ExecuteActionTask, logAndEmitGetStatusEvents, logAndemitProcessingEvents } from "../tasks/base.js"
+import { ExecuteActionTask, logAndEmitGetStatusEvents, logAndEmitProcessingEvents } from "../tasks/base.js"
 import { Profile } from "../util/profiling.js"
 import type { BuildAction, BuildActionConfig, ResolvedBuildAction } from "../actions/build.js"
 import pluralize from "pluralize"
@@ -64,7 +64,7 @@ export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {
       }
     },
   })
-  @(logAndemitProcessingEvents<BuildAction>)
+  @(logAndEmitProcessingEvents<BuildAction>)
   async process({ dependencyResults }: ActionTaskProcessParams<BuildAction, BuildStatus>) {
     const router = await this.garden.getActionRouter()
     const action = this.getResolvedAction(this.action, dependencyResults)

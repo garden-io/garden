@@ -7,7 +7,7 @@
  */
 
 import type { BaseActionTaskParams, ActionTaskProcessParams, ActionTaskStatusParams } from "./base.js"
-import { ExecuteActionTask, logAndEmitGetStatusEvents, logAndemitProcessingEvents } from "./base.js"
+import { ExecuteActionTask, logAndEmitGetStatusEvents, logAndEmitProcessingEvents } from "./base.js"
 import { Profile } from "../util/profiling.js"
 import type { RunAction } from "../actions/run.js"
 import type { GetRunResult } from "../plugin/handlers/Run/get-result.js"
@@ -89,7 +89,7 @@ export class RunTask extends ExecuteActionTask<RunAction, GetRunResult> {
       }
     },
   })
-  @(logAndemitProcessingEvents<RunAction>)
+  @(logAndEmitProcessingEvents<RunAction>)
   async process({ dependencyResults }: ActionTaskProcessParams<RunAction, GetRunResult>) {
     const action = this.getResolvedAction(this.action, dependencyResults)
     const taskLog = this.log.createLog()

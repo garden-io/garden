@@ -377,6 +377,48 @@ const actionKindToEventNameMap = {
   run: "runStatus",
 } satisfies { [key in ExecuteActionTaskType]: ActionStatusEventName }
 
+const displayStates = {
+  failed: "in a failed state",
+  unknown: "in an unknown state",
+}
+
+/**
+ * Just to make action states look nicer in print.
+ */
+function displayState(state: ActionState): string {
+  return displayStates[state] || state.replace("-", " ")
+}
+
+/*+
+ * Map of log strings used for logging the action lifecycle.
+ */
+const actionLogStrings = {
+  Build: {
+    ready: "built",
+    notReady: "will be built",
+    force: "rebuild",
+    running: "Building",
+  },
+  Deploy: {
+    ready: "deployed",
+    notReady: "will be deployed",
+    force: "redeploy",
+    running: "Deploying",
+  },
+  Test: {
+    ready: "run",
+    notReady: "test will be run",
+    force: "rerun test",
+    running: "Testing",
+  },
+  Run: {
+    ready: "run",
+    notReady: "will be run",
+    force: "rerun",
+    running: "Running",
+  },
+}
+
 /**
  * Decorator function for emitting status events to Cloud when calling the
  * getStatus method on ExecutionAction tasks and for logging the operation lifecycle
@@ -412,15 +454,13 @@ export function logAndEmitGetStatusEvents<
     }
 
     const log = this.log.createLog()
-    const actionKind = this.action.kind.toLowerCase() as Lowercase<A["kind"]>
-    const eventName = actionKindToEventNameMap[actionKind]
+    const actionKindLowercased = this.action.kind.toLowerCase() as Lowercase<A["kind"]>
+    const eventName = actionKindToEventNameMap[actionKindLowercased]
     const startedAt = new Date().toISOString()
+    const styledName = styles.highlight(this.action.name)
+    const logStrings = actionLogStrings[this.action.kind]
 
-    log.info(
-      `Getting status for ${this.action.kind} ${styles.highlight(this.action.name)} (type ${styles.highlight(
-        this.action.type
-      )})...`
-    )
+    log.info(`Getting status for ${this.action.kind} ${styledName} (type ${styles.highlight(this.action.type)})...`)
 
     // First we emit the "getting-status" event
     this.garden.events.emit(
@@ -436,13 +476,15 @@ export function logAndEmitGetStatusEvents<
     try {
       const result = (await method.apply(this, args)) as R & ExecuteActionOutputs<A>
 
-      logTaskGetStatusComplete({
-        action: this.action,
-        log,
-        operation: methodName,
-        result,
-        willRerun: this.force && !statusOnly,
-      })
+      const willRerun = this.force && !statusOnly
+      if (result.state === "ready" && !willRerun) {
+        log.success({ msg: `Already ${logStrings.ready}`, showDuration: false })
+      } else if (result.state === "ready" && willRerun) {
+        log.info(`${styledName} is already ${logStrings.ready}, will force ${logStrings.force}`)
+      } else {
+        const stateStr = result.detail?.state || displayState(result.state)
+        log.warn(`Status is '${stateStr}', ${styledName} ${logStrings.notReady}`)
+      }
 
       // Then an event with the results if the status was successfully retrieved...
       const donePayload = makeActionCompletePayload({
@@ -487,7 +529,7 @@ export function logAndEmitGetStatusEvents<
  *
  * The wrapper emits the appropriate events before and after the inner function execution.
  */
-export function logAndemitProcessingEvents<
+export function logAndEmitProcessingEvents<
   A extends Action,
   R extends ValidExecutionActionResultType = {
     state: ActionState
@@ -514,14 +556,9 @@ export function logAndemitProcessingEvents<
     const startedAt = new Date().toISOString()
     const log = this.log.createLog()
     const version = this.action.versionString()
-    const verb = {
-      Build: "Building",
-      Deploy: "Deploying",
-      Test: "Testing",
-      Run: "Running",
-    }[this.action.kind]
+    const logStrings = actionLogStrings[this.action.kind]
     log.info(
-      `${verb} ${styles.highlight(this.action.name)} (type ${styles.highlight(
+      `${logStrings.running} ${styles.highlight(this.action.name)} (type ${styles.highlight(
         this.action.type
       )}) at version ${styles.highlight(version)}...`
     )
@@ -575,73 +612,6 @@ export function logAndemitProcessingEvents<
   }
 
   return descriptor
-}
-
-const displayStates = {
-  failed: "in a failed state",
-  unknown: "in an unknown state",
-}
-
-/**
- * Just to make action states look nicer in print.
- */
-function displayState(state: ActionState): string {
-  return displayStates[state] || state.replace("-", " ")
-}
-
-function logTaskGetStatusComplete<
-  A extends Action,
-  R extends ValidExecutionActionResultType = {
-    state: ActionState
-    outputs: A["_runtimeOutputs"]
-    detail: any
-    version: string
-  },
->({
-  action,
-  log,
-  result,
-  willRerun,
-}: {
-  action: A
-  operation: "getStatus" | "process"
-  log: ActionLog
-  result: R
-  willRerun: boolean
-}) {
-  if (result.state === "ready") {
-    const readyStr = {
-      Build: "built",
-      Deploy: "deployed",
-      Test: "run",
-      Run: "run",
-    }[action.kind]
-    const rerunStr = {
-      Build: "re-build",
-      Deploy: "re-deploy",
-      Test: "re-run test",
-      Run: "re-run",
-    }[action.kind]
-    if (willRerun) {
-      const msg = `${styles.highlight(action.name)} is already ${readyStr}, will force ${rerunStr}`
-      log.info({
-        msg,
-        showDuration: false,
-      })
-    } else {
-      const msg = `Already ${readyStr}`
-      log.success({ msg, showDuration: false })
-    }
-  } else {
-    const runStr = {
-      Build: "will be built",
-      Deploy: "will be deployed",
-      Test: "test will be run",
-      Run: "will be run",
-    }[action.kind]
-    const stateStr = result.detail?.state || displayState(result.state)
-    log.warn(`Status is '${stateStr}', ${styles.highlight(action.name)} ${runStr}`)
-  }
 }
 
 export abstract class ExecuteActionTask<
