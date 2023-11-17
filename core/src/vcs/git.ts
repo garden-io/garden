@@ -133,14 +133,15 @@ export class GitHandler extends VcsHandler {
         if (!(err instanceof ChildProcessError)) {
           throw err
         }
-        if (err.details.code === 128 && err.details.stderr.toLowerCase().includes("fatal: unsafe repository")) {
+
+        if (err.details.code === 128 && gitErrorContains(err, "fatal: unsafe repository")) {
           // Throw nice error when we detect that we're not in a repo root
           throw new RuntimeError({
             message:
               err.details.stderr +
               `\nIt looks like you're using Git 2.36.0 or newer and the repo directory containing "${path}" is owned by someone else. If this is intentional you can run "git config --global --add safe.directory '<repo root>'" and try again.`,
           })
-        } else if (err.details.code === 128 && err.details.stderr.toLowerCase().includes("fatal: not a git repository")) {
+        } else if (err.details.code === 128 && gitErrorContains(err, "fatal: not a git repository")) {
           // Throw nice error when we detect that we're not in a repo root
           throw new RuntimeError({
             message: notInRepoRootErrorMessage(path),
@@ -689,6 +690,9 @@ export class GitHandler extends VcsHandler {
     return output
   }
 }
+
+const gitErrorContains = (err: ChildProcessError, substring: string) =>
+  err.details.stderr.toLowerCase().includes(substring.toLowerCase())
 
 const notInRepoRootErrorMessage = (path: string) => deline`
     Path ${path} is not in a git repository root. Garden must be run from within a git repo.
