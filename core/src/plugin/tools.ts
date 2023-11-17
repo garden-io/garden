@@ -8,7 +8,7 @@
 
 import { createSchema, joi, joiIdentifier } from "../config/common.js"
 import { deline } from "../util/string.js"
-import type { Architecture, Platform } from "../util/util.js"
+import type { Architecture, Platform } from "../util/arch-platform.js"
 
 export interface ToolBuildSpec {
   platform: Platform
