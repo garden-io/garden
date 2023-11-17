@@ -7,7 +7,7 @@
  */
 import { DEFAULT_GARDEN_CLOUD_DOMAIN } from "../constants.js"
 
-type CloudDistroName = "Cloud Dashboard" | "Garden Enterprise" | "Garden Cloud"
+export type CloudDistroName = "Cloud Dashboard" | "Garden Enterprise" | "Garden Cloud"
 
 /**
  * Returns "Garden Cloud" if domain matches https://<some-subdomain>.app.garden,
