@@ -144,7 +144,11 @@ export class GitHandler extends VcsHandler {
         } else if (err.details.code === 128 && gitErrorContains(err, "fatal: not a git repository")) {
           // Throw nice error when we detect that we're not in a repo root
           throw new RuntimeError({
-            message: notInRepoRootErrorMessage(path),
+            message: deline`
+    Path ${path} is not in a git repository root. Garden must be run from within a git repo.
+    Please run \`git init\` if you're starting a new project and repository, or move the project to an
+    existing repository, and try again.
+  `,
           })
         } else {
           throw err
@@ -693,12 +697,6 @@ export class GitHandler extends VcsHandler {
 
 const gitErrorContains = (err: ChildProcessError, substring: string) =>
   err.details.stderr.toLowerCase().includes(substring.toLowerCase())
-
-const notInRepoRootErrorMessage = (path: string) => deline`
-    Path ${path} is not in a git repository root. Garden must be run from within a git repo.
-    Please run \`git init\` if you're starting a new project and repository, or move the project to an
-    existing repository, and try again.
-  `
 
 /**
  * Given a list of POSIX-style globs/paths and a `basePath`, find paths that point to a directory and append `**\/*`
