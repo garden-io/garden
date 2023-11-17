@@ -770,9 +770,6 @@ export function isNotNull<T>(v: T | null): v is T {
  * Find and return the index of the given `slice` within `array`. Returns -1 if the slice is not found.
  *
  * Adapted from https://stackoverflow.com/posts/29426078/revisions
- *
- * @param array
- * @param slice
  */
 export function findSlice(array: any[], slice: any[], fromIndex = 0) {
   let i = fromIndex
