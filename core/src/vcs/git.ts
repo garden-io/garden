@@ -140,7 +140,7 @@ export class GitHandler extends VcsHandler {
               err.details.stderr +
               `\nIt looks like you're using Git 2.36.0 or newer and the repo directory containing "${path}" is owned by someone else. If this is intentional you can run "git config --global --add safe.directory '<repo root>'" and try again.`,
           })
-        } else if (err.details.code === 128) {
+        } else if (err.details.code === 128 && err.details.stderr.toLowerCase().includes("fatal: not a git repository")) {
           // Throw nice error when we detect that we're not in a repo root
           throw new RuntimeError({
             message: notInRepoRootErrorMessage(path),
