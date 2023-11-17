@@ -72,7 +72,8 @@ For more detailed installation instructions, please see our [Installation guide]
 Next, we clone the example project from GitHub and change into the project directory:
 
 ```sh
-git clone https://github.com/garden-io/quickstart-example.git && cd quickstart-example
+git clone https://github.com/garden-io/quickstart-example.git
+cd quickstart-example
 ```
 
 ### Step 3 — Deploy the project
