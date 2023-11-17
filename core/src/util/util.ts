@@ -9,9 +9,6 @@
 import { asyncExitHook, gracefulExit } from "@scg82/exit-hook"
 import _spawn from "cross-spawn"
 import { createHash } from "node:crypto"
-import fsExtra from "fs-extra"
-const { readFile } = fsExtra
-import { load } from "js-yaml"
 import {
   difference,
   find,
@@ -439,11 +436,6 @@ export async function asyncDeepMap<T extends DeepMappable>(
 
 export function getEnumKeys(Enum) {
   return Object.values(Enum).filter((k) => typeof k === "string") as string[]
-}
-
-export async function loadYamlFile(path: string): Promise<any> {
-  const fileData = await readFile(path)
-  return load(fileData.toString())
 }
 
 export interface ObjectWithName {
