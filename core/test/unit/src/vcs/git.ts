@@ -1006,18 +1006,6 @@ describe("git", () => {
     context("on error code 128", () => {
       const exitCode = 128
 
-      it("should throw a nice error when given repo is unsafe", async () => {
-        const stderr = `fatal: unsafe repository ('${path}' is owned by someone else)`
-        const gitError = getChildProcessError(exitCode, stderr)
-
-        const explainedGitError = explainGitError(gitError, path)
-        expect(explainedGitError).to.be.instanceof(RuntimeError)
-        expect(explainedGitError.message).to.eql(
-          stderr +
-            `\nIt looks like you're using Git 2.36.0 or newer and the repo directory containing "${path}" is owned by someone else. If this is intentional you can run "git config --global --add safe.directory '<repo root>'" and try again.`
-        )
-      })
-
       it("should throw a nice error when given a path outside of a repo", async () => {
         const stderr = "fatal: not a git repository (or any of the parent directories): .git"
         const gitError = getChildProcessError(exitCode, stderr)

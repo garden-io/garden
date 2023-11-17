@@ -684,14 +684,6 @@ function gitErrorContains(err: ChildProcessError, substring: string): boolean {
 export function explainGitError(err: ChildProcessError, path: string): GardenError {
   // handle some errors with exit codes 128 in a specific manner
   if (err.details.code === 128) {
-    if (gitErrorContains(err, "fatal: unsafe repository")) {
-      // Throw nice error when we detect that we're not in a repo root
-      return new RuntimeError({
-        message:
-          err.details.stderr +
-          `\nIt looks like you're using Git 2.36.0 or newer and the repo directory containing "${path}" is owned by someone else. If this is intentional you can run "git config --global --add safe.directory '<repo root>'" and try again.`,
-      })
-    }
     if (gitErrorContains(err, "fatal: not a git repository")) {
       // Throw nice error when we detect that we're not in a repo root
       return new RuntimeError({
