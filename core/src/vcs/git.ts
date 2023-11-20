@@ -10,11 +10,10 @@ import { performance } from "perf_hooks"
 import { isAbsolute, join, posix, relative, resolve } from "path"
 import { isString } from "lodash-es"
 import fsExtra from "fs-extra"
-
-const { createReadStream, ensureDir, lstat, pathExists, readlink, realpath, stat } = fsExtra
 import { PassThrough } from "stream"
-import type { GetFilesParams, RemoteSourceParams, VcsFile, VcsInfo, VcsHandlerParams } from "./vcs.js"
+import type { GetFilesParams, RemoteSourceParams, VcsFile, VcsHandlerParams, VcsInfo } from "./vcs.js"
 import { VcsHandler } from "./vcs.js"
+import type { GardenError } from "../exceptions.js"
 import { ChildProcessError, ConfigurationError, isErrnoException, RuntimeError } from "../exceptions.js"
 import { getStatsType, joinWithPosix, matchPath } from "../util/fs.js"
 import { dedent, deline, splitLast } from "../util/string.js"
@@ -33,6 +32,8 @@ import type { ExecaError } from "execa"
 import { execa } from "execa"
 import hasha from "hasha"
 import { styles } from "../logger/styles.js"
+
+const { createReadStream, ensureDir, lstat, pathExists, readlink, realpath, stat } = fsExtra
 
 const submoduleErrorSuggestion = `Perhaps you need to run ${styles.underline(`git submodule update --recursive`)}?`
 
@@ -133,21 +134,7 @@ export class GitHandler extends VcsHandler {
         if (!(err instanceof ChildProcessError)) {
           throw err
         }
-        if (err.details.code === 128 && err.details.stderr.toLowerCase().includes("fatal: unsafe repository")) {
-          // Throw nice error when we detect that we're not in a repo root
-          throw new RuntimeError({
-            message:
-              err.details.stderr +
-              `\nIt looks like you're using Git 2.36.0 or newer and the repo directory containing "${path}" is owned by someone else. If this is intentional you can run "git config --global --add safe.directory '<repo root>'" and try again.`,
-          })
-        } else if (err.details.code === 128) {
-          // Throw nice error when we detect that we're not in a repo root
-          throw new RuntimeError({
-            message: notInRepoRootErrorMessage(path),
-          })
-        } else {
-          throw err
-        }
+        throw explainGitError(err, path)
       }
     })
   }
@@ -690,11 +677,28 @@ export class GitHandler extends VcsHandler {
   }
 }
 
-const notInRepoRootErrorMessage = (path: string) => deline`
+function gitErrorContains(err: ChildProcessError, substring: string): boolean {
+  return err.details.stderr.toLowerCase().includes(substring.toLowerCase())
+}
+
+export function explainGitError(err: ChildProcessError, path: string): GardenError {
+  // handle some errors with exit codes 128 in a specific manner
+  if (err.details.code === 128) {
+    if (gitErrorContains(err, "fatal: not a git repository")) {
+      // Throw nice error when we detect that we're not in a repo root
+      return new RuntimeError({
+        message: deline`
     Path ${path} is not in a git repository root. Garden must be run from within a git repo.
     Please run \`git init\` if you're starting a new project and repository, or move the project to an
     existing repository, and try again.
-  `
+  `,
+      })
+    }
+  }
+
+  // otherwise just re-throw the original error
+  return err
+}
 
 /**
  * Given a list of POSIX-style globs/paths and a `basePath`, find paths that point to a directory and append `**\/*`
