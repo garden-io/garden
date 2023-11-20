@@ -71,11 +71,6 @@ export function renderSymbol(entry: LogEntry): string {
     return "  "
   }
 
-  if (symbol === "cached") {
-    return styles.highlightSecondary.bold("🞦 ")
-    // return styles.highlightSecondary.bold("🌸")
-  }
-
   // Always show symbol with sections
   if (!symbol && section) {
     symbol = "info"

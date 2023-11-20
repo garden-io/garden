@@ -20,7 +20,7 @@ import { renderDuration } from "./util.js"
 import { styles } from "./styles.js"
 import { getStyle } from "./renderers.js"
 
-export type LogSymbol = keyof typeof logSymbols | "empty" | "cached"
+export type LogSymbol = keyof typeof logSymbols | "empty"
 export type TaskLogStatus = "active" | "success" | "error"
 
 export interface LogMetadata {
