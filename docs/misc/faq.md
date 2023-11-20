@@ -255,3 +255,15 @@ We have a team of people working on it full-time, and we make it a priority to a
 
 Garden is not currently designed to work in air-gapped environments but if you have done the initial setup and use a
 local kubernetes provider it might work.
+
+### How do I disable terminal colors?
+
+Garden uses the [Chalk NPM package](https://github.com/chalk/chalk) under the hood which picks a color setting based on what colors your terminal supports.
+
+You can override this behavior with the `FORCE_COLOR` environment variable. For example:
+
+- `FORCE_COLOR=0 garden deploy # No colors`
+- `FORCE_COLOR=1 garden deploy # 16 colors`
+- `FORCE_COLOR=2 garden deploy # 256 colors`
+- `FORCE_COLOR=3 garden deploy # Truecolor (16 million)`
+
