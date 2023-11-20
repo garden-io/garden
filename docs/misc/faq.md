@@ -258,12 +258,8 @@ local kubernetes provider it might work.
 
 ### How do I disable terminal colors?
 
-Garden uses the [Chalk NPM package](https://github.com/chalk/chalk) under the hood which picks a color setting based on what colors your terminal supports.
+You can disable terminal colors with the `NO_COLOR` environment variable. For example:
 
-You can override this behavior with the `FORCE_COLOR` environment variable. For example:
-
-- `FORCE_COLOR=0 garden deploy # No colors`
-- `FORCE_COLOR=1 garden deploy # 16 colors`
-- `FORCE_COLOR=2 garden deploy # 256 colors`
-- `FORCE_COLOR=3 garden deploy # Truecolor (16 million)`
-
+```console
+NO_COLOR=1 garden deploy
+```
