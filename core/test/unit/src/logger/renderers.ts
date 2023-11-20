@@ -29,6 +29,7 @@ import { highlightYaml, safeDumpYaml } from "../../../../src/util/serialization.
 import { freezeTime } from "../../../helpers.js"
 import format from "date-fns/format/index.js"
 import { styles } from "../../../../src/logger/styles.js"
+import { gardenEnv } from "../../../../src/constants.js"
 
 const logger: Logger = getRootLogger()
 
@@ -121,6 +122,20 @@ describe("renderers", () => {
       const entry = logger.createLog().debug({ msg: "hello world" }).getLatestEntry()
 
       expect(formatForTerminal(entry, logger)).to.equal(`${styles.secondary("[debug] hello world")}\n`)
+    })
+    context("NO_COLOR=true", () => {
+      before(() => {
+        gardenEnv.NO_COLOR = true
+      })
+      after(() => {
+        gardenEnv.NO_COLOR = false
+      })
+      it("should not use ANSI terminal colors", () => {
+        const entry = logger.createLog({ name: "test-log" }).info({ msg: "hello world" }).getLatestEntry()
+
+        const sectionWithPadding = "test-log".padEnd(SECTION_PADDING, " ")
+        expect(formatForTerminal(entry, logger)).to.equal(`ℹ ${sectionWithPadding} → hello world\n`)
+      })
     })
     context("basic", () => {
       before(() => {

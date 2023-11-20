@@ -20,6 +20,7 @@ import { logLevelMap, LogLevel } from "./logger.js"
 import { toGardenError } from "../exceptions.js"
 import { styles } from "./styles.js"
 import type { Chalk } from "chalk"
+import { gardenEnv } from "../constants.js"
 
 type RenderFn = (entry: LogEntry, logger: Logger) => string
 
@@ -68,11 +69,6 @@ export function renderSymbol(entry: LogEntry): string {
 
   if (symbol === "empty") {
     return "  "
-  }
-
-  if (symbol === "cached") {
-    return styles.highlightSecondary.bold("🞦 ")
-    // return styles.highlightSecondary.bold("🌸")
   }
 
   // Always show symbol with sections
@@ -162,7 +158,7 @@ export function formatForTerminal(entry: LogEntry, logger: Logger): string {
     return ""
   }
 
-  return combineRenders(entry, logger, [
+  const formattedMsg = combineRenders(entry, logger, [
     renderTimestamp,
     renderSymbol,
     renderSection,
@@ -171,6 +167,11 @@ export function formatForTerminal(entry: LogEntry, logger: Logger): string {
     renderData,
     () => "\n",
   ])
+
+  if (gardenEnv.NO_COLOR) {
+    return stripAnsi(formattedMsg)
+  }
+  return formattedMsg
 }
 
 export function cleanForJSON(input?: string | string[]): string {
