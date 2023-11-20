@@ -1831,7 +1831,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
       const isCommunityEdition = !config.domain
       const cloudLog = log.createLog({ name: getCloudLogSectionName(distroName) })
 
-      cloudLog.verbose(`Connecting to ${distroName}...`)
+      cloudLog.info(`Connecting to ${distroName}...`)
 
       cloudProject = await getCloudProject({
         cloudApi,

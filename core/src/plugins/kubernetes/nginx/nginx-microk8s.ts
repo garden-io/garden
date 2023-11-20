@@ -8,7 +8,6 @@
 
 import type { Log } from "../../../logger/log-entry.js"
 import { exec } from "../../../util/util.js"
-import chalk from "chalk"
 import type { KubernetesPluginContext } from "../config.js"
 import { type DeployState } from "../../../types/service.js"
 import { configureMicrok8sAddons } from "../local/microk8s.js"
@@ -50,7 +49,7 @@ export class Microk8sGardenIngressController extends GardenIngressComponent {
     const statusCommandResult = await exec("microk8s", ["status", "--format", "short"])
     const status = statusCommandResult.stdout
     const addonEnabled = status.includes("core/ingress: enabled")
-    log.debug(chalk.yellow(`Status of microk8s ingress controller addon: ${addonEnabled ? "enabled" : "disabled"}`))
+    log.debug(`Status of microk8s ingress controller addon: ${addonEnabled ? "enabled" : "disabled"}`)
     return addonEnabled ? "ready" : "missing"
   }
 

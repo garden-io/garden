@@ -32,6 +32,7 @@ import { getRunningDeploymentPod } from "../../util.js"
 import { buildSyncVolumeName, dockerAuthSecretKey, k8sUtilImageName, rsyncPortName } from "../../constants.js"
 import { styles } from "../../../../logger/styles.js"
 import type { StringMap } from "../../../../config/common.js"
+import { LogLevel } from "../../../../logger/logger.js"
 
 export const inClusterBuilderServiceAccount = "garden-in-cluster-builder"
 export const sharedBuildSyncDeploymentName = "garden-build-sync"
@@ -95,8 +96,11 @@ export async function syncToBuildSync(params: SyncToSharedBuildSyncParams) {
   // Sync using mutagen
   const key = `k8s--build-sync--${ctx.environmentName}--${namespace}--${action.name}--${randomString(8)}`
   const targetPath = `/data/${ctx.workingCopyId}/${action.name}`
+  // We print the sync logs from Mutagen at a higher level for builds
+  const mutagenLog = log.createLog({ fixLevel: LogLevel.verbose })
+  const mutagen = new Mutagen({ ctx, log: mutagenLog })
 
-  const mutagen = new Mutagen({ ctx, log })
+  const syncLog = log.createLog().info(`Syncing build context to cluster...`)
 
   // Make sure the target path exists
   const runner = new PodRunner({
@@ -153,7 +157,7 @@ export async function syncToBuildSync(params: SyncToSharedBuildSyncParams) {
     log.debug(`Sync connection terminated`)
   }
 
-  log.info("File sync to cluster complete")
+  syncLog.success("File sync to cluster complete")
 
   return { contextRelPath, contextPath, dataPath }
 }

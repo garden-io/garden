@@ -7,12 +7,12 @@
  */
 
 import type { BaseActionTaskParams, BaseTask, ActionTaskProcessParams, ActionTaskStatusParams } from "./base.js"
-import { ExecuteActionTask, emitGetStatusEvents, emitProcessingEvents } from "./base.js"
+import { ExecuteActionTask, logAndEmitGetStatusEvents, logAndEmitProcessingEvents } from "./base.js"
 import { getLinkUrl } from "../types/service.js"
 import { Profile } from "../util/profiling.js"
 import type { DeployAction } from "../actions/deploy.js"
 import type { DeployStatus } from "../plugin/handlers/Deploy/get-status.js"
-import { displayState, resolvedActionToExecuted } from "../actions/helpers.js"
+import { resolvedActionToExecuted } from "../actions/helpers.js"
 import type { PluginEventBroker } from "../plugin-context.js"
 import type { ActionLog } from "../logger/log-entry.js"
 import { OtelTraced } from "../util/open-telemetry/decorators.js"
@@ -65,7 +65,7 @@ export class DeployTask extends ExecuteActionTask<DeployAction, DeployStatus> {
       }
     },
   })
-  @(emitGetStatusEvents<DeployAction>)
+  @(logAndEmitGetStatusEvents<DeployAction>)
   async getStatus({ statusOnly, dependencyResults }: ActionTaskStatusParams<DeployAction>) {
     const log = this.log.createLog()
     const action = this.getResolvedAction(this.action, dependencyResults)
@@ -82,14 +82,8 @@ export class DeployTask extends ExecuteActionTask<DeployAction, DeployStatus> {
       status.state = "not-ready"
     }
 
-    if (!statusOnly && !this.force) {
-      if (status.state === "ready") {
-        log.success({ msg: `Already deployed`, showDuration: false })
-        printIngresses(status, log)
-      } else {
-        const state = status.detail?.state || displayState(status.state)
-        log.info(state)
-      }
+    if (!statusOnly && !this.force && status.state === "ready") {
+      printIngresses(status, log)
     }
 
     const executedAction = resolvedActionToExecuted(action, { status })
@@ -113,7 +107,7 @@ export class DeployTask extends ExecuteActionTask<DeployAction, DeployStatus> {
       }
     },
   })
-  @(emitProcessingEvents<DeployAction>)
+  @(logAndEmitProcessingEvents<DeployAction>)
   async process({ dependencyResults, status }: ActionTaskProcessParams<DeployAction, DeployStatus>) {
     const action = this.getResolvedAction(this.action, dependencyResults)
     const version = action.versionString()
@@ -121,7 +115,6 @@ export class DeployTask extends ExecuteActionTask<DeployAction, DeployStatus> {
     const router = await this.garden.getActionRouter()
 
     const log = this.log.createLog()
-    log.info(`Deploying version ${version}...`)
 
     try {
       const output = await router.deploy.deploy({
@@ -133,11 +126,8 @@ export class DeployTask extends ExecuteActionTask<DeployAction, DeployStatus> {
       })
       status = output.result
     } catch (err) {
-      log.error(`Failed`)
       throw err
     }
-
-    log.success(`Done`)
 
     const executedAction = resolvedActionToExecuted(action, { status })
 

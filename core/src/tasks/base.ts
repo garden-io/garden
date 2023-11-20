@@ -34,6 +34,7 @@ import {
   makeActionProcessingPayload,
   makeActionGetStatusPayload,
 } from "../events/util.js"
+import { styles } from "../logger/styles.js"
 
 export function makeBaseKey(type: string, name: string) {
   return `${type}.${name}`
@@ -376,13 +377,56 @@ const actionKindToEventNameMap = {
   run: "runStatus",
 } satisfies { [key in ExecuteActionTaskType]: ActionStatusEventName }
 
+const displayStates = {
+  failed: "in a failed state",
+  unknown: "in an unknown state",
+}
+
+/**
+ * Just to make action states look nicer in print.
+ */
+function displayState(state: ActionState): string {
+  return displayStates[state] || state.replace("-", " ")
+}
+
+/*+
+ * Map of log strings used for logging the action lifecycle.
+ */
+const actionLogStrings = {
+  Build: {
+    ready: "built",
+    notReady: "will be built",
+    force: "rebuild",
+    running: "Building",
+  },
+  Deploy: {
+    ready: "deployed",
+    notReady: "will be deployed",
+    force: "redeploy",
+    running: "Deploying",
+  },
+  Test: {
+    ready: "run",
+    notReady: "test will be run",
+    force: "rerun test",
+    running: "Testing",
+  },
+  Run: {
+    ready: "run",
+    notReady: "will be run",
+    force: "rerun",
+    running: "Running",
+  },
+}
+
 /**
  * Decorator function for emitting status events to Cloud when calling the
- * getStatus method on ExecutionAction tasks.
+ * getStatus method on ExecutionAction tasks and for logging the operation lifecycle
+ * to the terminal.
  *
  * The wrapper emits the appropriate events before and after the inner function execution.
  */
-export function emitGetStatusEvents<
+export function logAndEmitGetStatusEvents<
   A extends Action,
   R extends ValidExecutionActionResultType = {
     state: ActionState
@@ -403,16 +447,20 @@ export function emitGetStatusEvents<
 
   descriptor.value = async function (this: ExecuteActionTask<A>, ...args: [ActionTaskStatusParams<A>]) {
     const statusOnly = args[0].statusOnly
-
     // We don't emit events when just checking the status
     if (statusOnly) {
       const result = (await method.apply(this, args)) as R & ExecuteActionOutputs<A>
       return result
     }
 
-    const actionKind = this.action.kind.toLowerCase() as Lowercase<A["kind"]>
-    const eventName = actionKindToEventNameMap[actionKind]
+    const log = this.log.createLog()
+    const actionKindLowercased = this.action.kind.toLowerCase() as Lowercase<A["kind"]>
+    const eventName = actionKindToEventNameMap[actionKindLowercased]
     const startedAt = new Date().toISOString()
+    const styledName = styles.highlight(this.action.name)
+    const logStrings = actionLogStrings[this.action.kind]
+
+    log.info(`Getting status for ${this.action.kind} ${styledName} (type ${styles.highlight(this.action.type)})...`)
 
     // First we emit the "getting-status" event
     this.garden.events.emit(
@@ -427,6 +475,16 @@ export function emitGetStatusEvents<
 
     try {
       const result = (await method.apply(this, args)) as R & ExecuteActionOutputs<A>
+
+      const willRerun = this.force && !statusOnly
+      if (result.state === "ready" && !willRerun) {
+        log.success({ msg: `Already ${logStrings.ready}`, showDuration: false })
+      } else if (result.state === "ready" && willRerun) {
+        log.info(`${styledName} is already ${logStrings.ready}, will force ${logStrings.force}`)
+      } else {
+        const stateStr = result.detail?.state || displayState(result.state)
+        log.warn(`Status is '${stateStr}', ${styledName} ${logStrings.notReady}`)
+      }
 
       // Then an event with the results if the status was successfully retrieved...
       const donePayload = makeActionCompletePayload({
@@ -443,6 +501,9 @@ export function emitGetStatusEvents<
       return result
     } catch (err) {
       // ...otherwise we emit a "failed" event
+
+      // The error proper is logged downstream
+      log.error("Failed")
       this.garden.events.emit(
         eventName,
         makeActionFailedPayload({
@@ -463,11 +524,12 @@ export function emitGetStatusEvents<
 
 /**
  * Decorator function for emitting status events to Cloud when calling the
- * process method on ExecutionAction tasks.
+ * process method on ExecutionAction tasks and for logging the operation lifecycle
+ * to the terminal.
  *
  * The wrapper emits the appropriate events before and after the inner function execution.
  */
-export function emitProcessingEvents<
+export function logAndEmitProcessingEvents<
   A extends Action,
   R extends ValidExecutionActionResultType = {
     state: ActionState
@@ -492,6 +554,14 @@ export function emitProcessingEvents<
     const actionKind = this.action.kind.toLowerCase() as Lowercase<A["kind"]>
     const eventName = actionKindToEventNameMap[actionKind]
     const startedAt = new Date().toISOString()
+    const log = this.log.createLog()
+    const version = this.action.versionString()
+    const logStrings = actionLogStrings[this.action.kind]
+    log.info(
+      `${logStrings.running} ${styles.highlight(this.action.name)} (type ${styles.highlight(
+        this.action.type
+      )}) at version ${styles.highlight(version)}...`
+    )
 
     // First we emit the "processing" event
     this.garden.events.emit(
@@ -518,10 +588,14 @@ export function emitProcessingEvents<
       }) as Events[typeof eventName]
 
       this.garden.events.emit(eventName, donePayload)
+      log.success("Done")
 
       return result
     } catch (err) {
       // ...otherwise we emit a "failed" event
+
+      // The error proper is logged downstream
+      log.error("Failed")
       this.garden.events.emit(
         eventName,
         makeActionFailedPayload({
