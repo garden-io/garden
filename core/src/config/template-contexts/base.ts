@@ -64,6 +64,7 @@ export interface ContextResolveOutput {
   message?: string
   partial?: boolean
   resolved: any
+  cached: boolean
 }
 
 export function schema(joiSchema: Joi.Schema) {
@@ -106,8 +107,7 @@ export abstract class ConfigContext {
       })
     }
     if (this.resolvedReferences[parent]) {
-      // TODO: is it ok to resolve multiple times?
-      // throw new InternalError({ message: `Cannot record reference ${parent}: Already resolved` })
+      throw new InternalError({ message: `Cannot record reference ${parent}: Already resolved` })
     }
     this.resolvedReferences[parent] = references
   }
@@ -151,7 +151,7 @@ export abstract class ConfigContext {
     const resolved = this._resolvedValues[path]
 
     if (resolved) {
-      return { resolved }
+      return { resolved, cached: true }
     }
 
     opts.stack = [...(opts.stack || [])]
@@ -262,7 +262,7 @@ export abstract class ConfigContext {
       } else {
         // Otherwise we return the undefined value, so that any logical expressions can be evaluated appropriately.
         // The template resolver will throw the error later if appropriate.
-        return { resolved: undefined, message }
+        return { resolved: undefined, message, cached: false }
       }
     }
 
@@ -271,7 +271,7 @@ export abstract class ConfigContext {
       this._resolvedValues[path] = value
     }
 
-    return { resolved: value }
+    return { resolved: value, cached: false }
   }
 }
 

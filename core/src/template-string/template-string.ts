@@ -129,18 +129,19 @@ export function resolveTemplateString({
           nodePath: [],
           opts: { ...contextOpts, ...(resolveOpts || {}) },
         })
-        if (!path) {
-          throw new InternalError({ message: "Missing path" })
+        // If the value is cached we already tracked the reference, so no need to track it again.
+        // TODO: Without a path we don't need to track references? Can we somehow ensure that we aren't missing references by accident?
+        if (!value.cached && path) {
+          context.recordReference(path.join("."), {
+            rawExpressions: [string],
+            resolvedValue: value.resolved,
+            inputs: {
+              [key.join(".")]: {
+                resolvedValue: value.resolved,
+              }
+            },
+          })
         }
-        context.recordReference(path.join("."), {
-          rawExpressions: [string],
-          resolvedValue: value.resolved,
-          inputs: {
-            [key.join(".")]: {
-              resolvedValue: value.resolved,
-            }
-          },
-        })
         return value
       },
       getValue,
