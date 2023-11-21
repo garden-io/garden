@@ -87,6 +87,13 @@ export class TemplateError extends GardenError {
   }
 }
 
+// function foo(context: ConfigContext) {
+
+//   const resolvedKeys = context.recordTemplateResolution(() => {
+//     const foo: unknown = resolveTemplateString({ context })
+//   })
+// }
+
 /**
  * Parse and resolve a templated string, with the given context. The template format is similar to native JS templated
  * strings but only supports simple lookups from the given context, e.g. "prefix-${nested.key}-suffix", and not
@@ -94,6 +101,8 @@ export class TemplateError extends GardenError {
  *
  * The context should be a ConfigContext instance. The optional `stack` parameter is used to detect circular
  * dependencies when resolving context variables.
+ *
+ * TODO: Update docstring to also talk about resolved reference tracking.
  */
 export function resolveTemplateString({
   string,
@@ -114,7 +123,12 @@ export function resolveTemplateString({
   try {
     const parsed = parser.parse(string, {
       getKey: (key: string[], resolveOpts?: ContextResolveOpts) => {
-        return context.resolve({ key, nodePath: [], opts: { ...contextOpts, ...(resolveOpts || {}) } })
+        return context.resolve({
+          rawExpression: string,
+          key,
+          nodePath: [],
+          opts: { ...contextOpts, ...(resolveOpts || {}) },
+        })
       },
       getValue,
       resolveNested: (nested: string) => resolveTemplateString({ string: nested, context, contextOpts }),

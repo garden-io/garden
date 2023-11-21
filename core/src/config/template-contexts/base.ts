@@ -8,7 +8,7 @@
 
 import type Joi from "@hapi/joi"
 import { isString } from "lodash-es"
-import { ConfigurationError } from "../../exceptions.js"
+import { ConfigurationError, InternalError } from "../../exceptions.js"
 import {
   resolveTemplateString,
   TemplateStringMissingKeyException,
@@ -23,6 +23,28 @@ import { styles } from "../../logger/styles.js"
 export type ContextKeySegment = string | number
 export type ContextKey = ContextKeySegment[]
 
+// Type of `usedReferences`
+type TemplateReferenceMap = {
+  [keyPath: string]: TemplateVariable
+}
+
+// inputs have only a resolved value, but no raw expression
+// Examples: git.commitHash or local.env.FOO or var.foo if provided with --var option
+type TemplateInput = {
+  type: "input"
+  resolvedExpression: unknown
+}
+
+// For declared variables we also need to keep the raw expressions for partial resolution
+type TemplateVariable = {
+  type: "variable"
+  rawExpression: string
+  resolvedExpression: unknown
+  inputs: {
+    [keyPath: string]: TemplateInput | TemplateVariable
+  }
+}
+
 export interface ContextResolveOpts {
   // Allow templates to be partially resolved (used to defer runtime template resolution, for example)
   allowPartial?: boolean
@@ -33,6 +55,8 @@ export interface ContextResolveOpts {
 }
 
 export interface ContextResolveParams {
+  // This must not be partially resolved, but should be the original unevaluated template string
+  rawExpression: string
   key: ContextKey
   nodePath: ContextKey
   opts: ContextResolveOpts
@@ -56,9 +80,12 @@ export interface ConfigContextType {
 }
 
 // Note: we're using classes here to be able to use decorators to describe each context node and key
+// TODO-steffen&thor: Make all instance variables of all config context classes read-only.
 export abstract class ConfigContext {
   private readonly _rootContext: ConfigContext
   private readonly _resolvedValues: { [path: string]: any }
+  // All references that have been resolved from the roots down to this point in the resolution.
+  private resolvedReferences?: TemplateReferenceMap
 
   // This is used for special-casing e.g. runtime.* resolution
   protected _alwaysAllowPartial: boolean
@@ -67,6 +94,41 @@ export abstract class ConfigContext {
     this._rootContext = rootContext || this
     this._resolvedValues = {}
     this._alwaysAllowPartial = false
+    // TODO: Make this a mandatory constructor param
+    this.resolvedReferences = {}
+  }
+
+  /**
+   *
+   */
+  public recordReference(parent: string, references: TemplateVariableReference) {
+    if (!this.resolvedReferences) {
+      throw new InternalError({
+        message: `Cannot record reference ${from}: Context has already been invalidated by calling getRecordedReferences`,
+      })
+    }
+    if (this.resolvedReferences[from]) {
+      throw new InternalError({ message: `Cannot record reference ${from}: Already resolved` })
+    }
+    this.resolvedReferences[from] = to
+  }
+
+  /**
+   * This also invalidates the ConfigContext, and it can't be used again for resolving template strings.
+   * @return TemplateReferenceMap
+   */
+  public getRecordedReferences(): TemplateReferenceMap {
+    if (!this.resolvedReferences) {
+      throw new InternalError({
+        message: `Cannot get recorded references: Context has already been invalidated by calling getRecordedReferences`,
+      })
+    }
+    const refs = this.resolvedReferences
+
+    // invalidate ConfigContext
+    delete this.resolvedReferences
+
+    return refs
   }
 
   static getSchema() {

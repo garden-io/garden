@@ -2017,6 +2017,52 @@ describe("resolveTemplateStrings", () => {
   })
 })
 
+describe("ConfigContext", () => {
+  it("records template references (forEach, no references)", () => {
+    const context = new TestContext({})
+    const obj = {
+      foo: {
+        $forEach: [],
+        $return: "foo",
+      },
+    }
+    const res = resolveTemplateStrings({ source: undefined, value: obj, context })
+    expect(res).to.eql({
+      foo: [],
+    })
+
+    const references = context.getRecordedReferences()
+    expect(references).to.eql({})
+  })
+
+  it("records template references (forEach, 1 reference)", () => {
+    const context = new TestContext({
+      "var.foo": [],
+    })
+    const obj = {
+      foo: {
+        $forEach: "${var.foo}",
+        $return: "foo",
+      },
+    }
+    const res = resolveTemplateStrings({ source: undefined, value: obj, context })
+    expect(res).to.eql({
+      foo: [],
+    })
+
+    const references = context.getRecordedReferences()
+    const expectedRef: TemplateReferenceMap = {
+      "foo": {
+
+      }
+    }      
+
+    expect(references).to.eql({
+    })
+  })
+
+})
+
 describe("collectTemplateReferences", () => {
   it("should return and sort all template string references in an object", () => {
     const obj = {
