@@ -174,6 +174,7 @@ export class DeployCommand extends Command<Args, Opts> {
     const { garden, log, args, opts } = params
 
     this.garden = garden
+    const commandLog = log.createLog({ name: "garden" })
 
     if (opts.watch) {
       await watchRemovedWarning(garden, log)
@@ -206,7 +207,7 @@ export class DeployCommand extends Command<Args, Opts> {
       const bold = disabled.map((d) => styles.accent(d))
       const msg =
         disabled.length === 1 ? `Deploy action ${bold} is disabled` : `Deploy actions ${naturalList(bold)} are disabled`
-      log.info(styles.primary(msg))
+      commandLog.info(msg)
     }
 
     const skipRuntimeDependencies = opts["skip-dependencies"]
@@ -226,7 +227,7 @@ export class DeployCommand extends Command<Args, Opts> {
     deployActions = deployActions.filter((s) => !s.isDisabled() && !skipped.includes(s.name))
 
     if (deployActions.length === 0) {
-      log.error({ msg: "Nothing to deploy. Aborting." })
+      commandLog.error({ msg: "Nothing to deploy. Aborting." })
       return { result: { aborted: true, success: true, ...emptyActionResults } }
     }
 

@@ -480,7 +480,7 @@ export function logAndEmitGetStatusEvents<
       if (result.state === "ready" && !willRerun) {
         log.success({ msg: `Already ${logStrings.ready}`, showDuration: false })
       } else if (result.state === "ready" && willRerun) {
-        log.info(`${styledName} is already ${logStrings.ready}, will force ${logStrings.force}`)
+        log.warn(`${styledName} is already ${logStrings.ready}, will force ${logStrings.force}`)
       } else {
         const stateStr = result.detail?.state || displayState(result.state)
         log.warn(`Status is '${stateStr}', ${styledName} ${logStrings.notReady}`)

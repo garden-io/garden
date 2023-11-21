@@ -224,6 +224,7 @@ ${renderCommands(commands)}
     } = parsedOpts
 
     const parsedCliVars = parseCliVarFlags(cliVars)
+    const gardenLog = log.createLog({ name: "garden" })
 
     // Some commands may set their own logger type so we update the logger config here,
     // once we've resolved the command.
@@ -241,6 +242,7 @@ ${renderCommands(commands)}
       // Init Cloud API (if applicable)
       let cloudApi: CloudApi | undefined
 
+      gardenLog.info("Initializing...")
       if (!command.noProject) {
         const config = await this.getProjectConfig(log, workingDir)
         const cloudDomain = getGardenCloudDomain(config?.domain)
@@ -302,7 +304,6 @@ ${renderCommands(commands)}
 
       contextOpts.persistent = persistent
       // TODO: Link to Cloud namespace page here.
-      const nsLog = log.createLog({ name: "garden" })
 
       try {
         if (command.noProject) {
@@ -321,9 +322,7 @@ ${renderCommands(commands)}
             })
           }
 
-          nsLog.info(
-            `Running in Garden environment ${styles.highlight(`${garden.environmentName}.${garden.namespace}`)}`
-          )
+          gardenLog.info(`Running in environment ${styles.highlight(`${garden.environmentName}.${garden.namespace}`)}`)
 
           if (!cloudApi && garden.projectId) {
             log.info("")

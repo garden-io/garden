@@ -47,8 +47,6 @@ export const configSchema = () =>
 export async function configureProvider(params: ConfigureProviderParams<KubernetesConfig>) {
   const { base, log, ctx, config: baseConfig } = params
 
-  const providerLog = log.createLog({ name: ctx.provider.name }).info("Configuring provider...")
-
   if (!ctx.cloudApi) {
     throw new ConfigurationError({
       message: `You are not logged in. You must be logged into Garden Cloud in order to use ${EPHEMERAL_KUBERNETES_PROVIDER_NAME} provider.`,
@@ -64,30 +62,28 @@ export async function configureProvider(params: ConfigureProviderParams<Kubernet
   const ephemeralClusterDirPath = join(ctx.gardenDirPath, "ephemeral-kubernetes")
   await mkdirp(ephemeralClusterDirPath)
 
-  providerLog.info("Getting cluster info...")
+  log.info("Getting cluster info...")
   const createEphemeralClusterResponse = await ctx.cloudApi.createEphemeralCluster()
   const clusterId = createEphemeralClusterResponse.instanceMetadata.instanceId
 
   const deadlineDateTime = moment(createEphemeralClusterResponse.instanceMetadata.deadline)
   const diffInNowAndDeadline = moment.duration(deadlineDateTime.diff(moment())).asMinutes().toFixed(1)
-  providerLog.info(
+  log.info(
     `Cluster will be destroyed in ${styles.highlight(diffInNowAndDeadline)} minutes (at ${deadlineDateTime.format(
       "YYYY-MM-DD HH:mm:ss"
     )})`
   )
 
-  providerLog.info("Getting kubeconfig...")
+  log.info("Getting kubeconfig...")
   const kubeConfig = await ctx.cloudApi.getKubeConfigForCluster(clusterId)
   const kubeconfigFileName = `${clusterId}-kubeconfig.yaml`
   const kubeConfigPath = join(ctx.gardenDirPath, "ephemeral-kubernetes", kubeconfigFileName)
   await writeFile(kubeConfigPath, kubeConfig)
-  providerLog.info(`Kubeconfig saved at local path: ${styles.highlight(kubeConfigPath)}`)
+  log.info(`Kubeconfig saved at local path: ${styles.highlight(kubeConfigPath)}`)
 
   const parsedKubeConfig: any = load(kubeConfig)
   baseConfig.context = parsedKubeConfig["current-context"]
   baseConfig.kubeconfig = kubeConfigPath
-
-  providerLog.success("Done")
 
   // set deployment registry
   baseConfig.deploymentRegistry = {

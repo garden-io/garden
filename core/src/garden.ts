@@ -748,10 +748,12 @@ export class Garden {
         return
       }
 
-      log.silly(() => `Resolving providers`)
-
       const providerLog = log.createLog({ name: "providers", showDuration: true })
-      providerLog.info("Getting status...")
+      if (this.forceRefresh) {
+        providerLog.info("Resolving providers (will force refresh statuses)...")
+      } else {
+        providerLog.info("Resolving providers...")
+      }
 
       const plugins = keyBy(await this.getAllPlugins(), "name")
 
@@ -830,7 +832,8 @@ export class Garden {
 
       providers = providerResults.map((result) => result!.result)
 
-      const gotCachedResult = !!providers.find((p) => p.status.cached)
+      const allCached = providers.every((p) => p.status.cached)
+      const someCached = providers.some((p) => p.status.cached)
 
       await Promise.all(
         providers.flatMap((provider) =>
@@ -846,14 +849,18 @@ export class Garden {
         this.resolvedProviders[provider.name] = provider
       }
 
-      if (gotCachedResult) {
-        providerLog.success({ msg: "Cached", showDuration: false })
-        providerLog.info("Run with --force-refresh to force a refresh of provider statuses.")
-      } else {
-        providerLog.success("Done")
+      providerLog.success("Finished initializing providers")
+      if (someCached || allCached) {
+        const msg = allCached ? "All" : "Some"
+        providerLog.info(
+          `${msg} provider statuses were cached. Run with --force-refresh to force a refresh of provider statuses.`
+        )
       }
 
       providerLog.silly(() => `Resolved providers: ${providers.map((p) => p.name).join(", ")}`)
+
+      // Print a new line after resolving providers
+      this.log.info("")
     })
 
     return keyBy(providers, "name")
@@ -1156,6 +1163,8 @@ export class Garden {
     this.events.emit("configGraph", { graph })
 
     graphLog.success("Done")
+    // Print a new line after resolving graph
+    this.log.info("")
 
     return graph.toConfigGraph()
   }

@@ -57,12 +57,11 @@ export async function configureProvider(params: ConfigureProviderParams<LocalKub
   const { base, log, projectName, ctx } = params
 
   const { config } = await base!(params)
-  const providerLog = log.createLog({ name: config.name })
 
   const provider = ctx.provider as KubernetesProvider
   provider.config = config
 
-  const kubeConfig: any = await getKubeConfig(providerLog, ctx, provider)
+  const kubeConfig: any = await getKubeConfig(log, ctx, provider)
 
   const currentContext = kubeConfig["current-context"]!
 
@@ -71,14 +70,14 @@ export async function configureProvider(params: ConfigureProviderParams<LocalKub
     if (currentContext && isSupportedContext(currentContext)) {
       // prefer current context if set and supported
       config.context = currentContext
-      providerLog.debug(`Using current context: ${config.context}`)
+      log.info(`Using current context: ${config.context}`)
     } else {
       const availableContexts = kubeConfig.contexts?.map((c: any) => c.name) || []
 
       for (const context of availableContexts) {
         if (isSupportedContext(context)) {
           config.context = context
-          providerLog.debug(`Using detected context: ${config.context}`)
+          log.info(`Using detected context: ${config.context}`)
           break
         }
       }
@@ -86,14 +85,14 @@ export async function configureProvider(params: ConfigureProviderParams<LocalKub
 
     if (!config.context && kubeConfig.contexts?.length > 0) {
       config.context = kubeConfig.contexts[0]!.name
-      providerLog.debug(`No kubectl context auto-detected, using first available: ${config.context}`)
+      log.info(`No kubectl context auto-detected, using first available: ${config.context}`)
     }
   }
 
   // TODO: change this in 0.13 to use the current context
   if (!config.context) {
     config.context = supportedContexts[0]
-    providerLog.debug(`No kubectl context configured, using default: ${config.context}`)
+    log.info(`No kubectl context configured, using default: ${config.context}`)
   }
 
   if (config.context === "minikube") {

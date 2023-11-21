@@ -28,6 +28,7 @@ import type { ConvertModuleParams } from "@garden-io/core/build/src/plugin/handl
 import type { TerraformProvider, TerraformProviderConfig } from "./provider.js"
 import { terraformProviderConfigSchema } from "./provider.js"
 import type { PluginContext } from "@garden-io/core/build/src/plugin-context.js"
+import { styles } from "@garden-io/core/build/src/logger/styles.js"
 
 // Need to make these variables to avoid escaping issues
 const deployOutputsTemplateString = "${deploys.<deploy-name>.outputs.<key>}"
@@ -51,7 +52,7 @@ export const gardenPlugin = () =>
       prepareEnvironment,
       cleanupEnvironment,
 
-      async configureProvider({ config, projectRoot }) {
+      async configureProvider({ config, projectRoot, log }) {
         // Make sure the configured root path exists, if it is set
         if (config.initRoot) {
           const absRoot = join(projectRoot, config.initRoot)
@@ -62,6 +63,7 @@ export const gardenPlugin = () =>
               message: `Terraform: configured initRoot config directory '${config.initRoot}' does not exist`,
             })
           }
+          log.info(`Using Terraform root config at path ${styles.highlight(absRoot)}`)
         }
 
         return { config }

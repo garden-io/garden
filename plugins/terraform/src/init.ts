@@ -76,7 +76,6 @@ export const prepareEnvironment: ProviderHandlers["prepareEnvironment"] = async 
 
 export const cleanupEnvironment: ProviderHandlers["cleanupEnvironment"] = async ({ ctx, log }) => {
   const provider = ctx.provider as TerraformProvider
-  const providerLog = log.createLog({ name: provider.name })
 
   if (!provider.config.initRoot) {
     // Nothing to do!
@@ -84,7 +83,7 @@ export const cleanupEnvironment: ProviderHandlers["cleanupEnvironment"] = async 
   }
 
   if (!provider.config.allowDestroy) {
-    providerLog.warn("allowDestroy is set to false. Not calling terraform destroy for root stack.")
+    log.warn("allowDestroy is set to false. Not calling terraform destroy for root stack.")
     return {}
   }
 
@@ -92,10 +91,10 @@ export const cleanupEnvironment: ProviderHandlers["cleanupEnvironment"] = async 
   const variables = provider.config.variables
   const workspace = provider.config.workspace || null
 
-  await setWorkspace({ ctx, provider, root, log: providerLog, workspace })
+  await setWorkspace({ ctx, provider, root, log, workspace })
 
   const args = ["destroy", "-auto-approve", "-input=false", ...(await prepareVariables(root, variables))]
-  await terraform(ctx, provider).exec({ log: providerLog, args, cwd: root })
+  await terraform(ctx, provider).exec({ log, args, cwd: root })
 
   return {}
 }
