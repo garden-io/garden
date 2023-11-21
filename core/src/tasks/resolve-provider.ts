@@ -41,7 +41,7 @@ import type { Log } from "../logger/log-entry.js"
  * resolved per se. A bit hacky but this is just a cosmetic change.
  */
 function getProviderLog(providerName: string, log: Log) {
-  const verboseLogProviders = ["exec", "templated", "container"]
+  const verboseLogProviders = ["templated", "container"]
   const fixLevel = verboseLogProviders.includes(providerName) ? LogLevel.verbose : undefined
   return log.createLog({ name: providerName, fixLevel })
 }
