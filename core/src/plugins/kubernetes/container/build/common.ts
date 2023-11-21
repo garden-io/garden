@@ -346,11 +346,11 @@ export async function ensureUtilDeployment({
   })
 
   return deployLock.acquire(namespace, async () => {
-    const deployLog = log.createLog()
+    const buildUtilLog = log.createLog({ origin: "build-util" })
 
     const { authSecret, updated: secretUpdated } = await ensureBuilderSecret({
       provider,
-      log,
+      log: buildUtilLog,
       api,
       namespace,
     })
@@ -364,13 +364,13 @@ export async function ensureUtilDeployment({
       api,
       namespace,
       manifests: [deployment, service],
-      log: deployLog,
+      log: buildUtilLog,
     })
 
     // if the service account changed, all pods part of the deployment must be restarted
     // so that they receive new credentials (e.g. for IRSA)
     if (status.remoteResources.length > 0 && serviceAccountChanged) {
-      await cycleDeployment({ ctx, provider, deployment, api, namespace, deployLog })
+      await cycleDeployment({ ctx, provider, deployment, api, namespace, deployLog: buildUtilLog })
     }
 
     if (status.state === "ready") {
@@ -382,12 +382,12 @@ export async function ensureUtilDeployment({
     }
 
     // Deploy the service
-    deployLog.info(
-      styles.primary(`-> Deploying ${utilDeploymentName} service in ${namespace} namespace (was ${status.state})`)
+    buildUtilLog.info(
+      `Deploying ${utilDeploymentName} service in ${styles.highlight(namespace)} namespace (was ${status.state})`
     )
 
-    await api.upsert({ kind: "Deployment", namespace, log: deployLog, obj: deployment })
-    await api.upsert({ kind: "Service", namespace, log: deployLog, obj: service })
+    await api.upsert({ kind: "Deployment", namespace, log: buildUtilLog, obj: deployment })
+    await api.upsert({ kind: "Service", namespace, log: buildUtilLog, obj: service })
 
     await waitForResources({
       namespace,
@@ -395,11 +395,11 @@ export async function ensureUtilDeployment({
       provider,
       actionName: "garden-util",
       resources: [deployment, service],
-      log: deployLog,
+      log: buildUtilLog,
       timeoutSec: 600,
     })
 
-    deployLog.info("Done!")
+    buildUtilLog.success("Done")
 
     return { authSecret, updated: true }
   })
@@ -490,7 +490,8 @@ export async function ensureBuilderSecret({
   const existingSecret = await api.readBySpecOrNull({ log, namespace, manifest: authSecret })
 
   if (!existingSecret || authSecret.data?.[dockerAuthSecretKey] !== existingSecret.data?.[dockerAuthSecretKey]) {
-    log.info(styles.primary(`-> Updating Docker auth secret in namespace ${namespace}`))
+    const reason = !existingSecret ? "was missing" : "has changed"
+    log.info(`Updating Docker auth secret in namespace ${styles.highlight(namespace)} (${reason})`)
     await api.upsert({ kind: "Secret", namespace, log, obj: authSecret })
     updated = true
   }

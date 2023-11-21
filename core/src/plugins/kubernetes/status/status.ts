@@ -289,6 +289,7 @@ export async function waitForResources({
     .createLog({
       // TODO: Avoid setting fallback, the action name should be known
       name: actionName || "<kubernetes>",
+      origin: "kubernetes",
     })
     .info(waitingMsg)
   emitLog(waitingMsg)
