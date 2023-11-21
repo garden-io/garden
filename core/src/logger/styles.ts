@@ -12,7 +12,7 @@ import chalk from "chalk"
  * A map of all the colors we use to render text in the terminal.
  */
 const theme = {
-  primary: chalk.grey,
+  primary: chalk.white,
   secondary: chalk.grey,
   accent: chalk.white,
   highlight: chalk.cyan,
