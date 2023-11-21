@@ -41,7 +41,7 @@
     "@types/chai": "^4.3.4",
     "@types/fs-extra": "^11.0.3",
     "@types/mocha": "^10.0.1",
-    "@types/tar": "^6.1.7",
+    "@types/tar": "^6.1.10",
     "@types/unzipper": "^0.10.8",
     "chai": "^4.3.7",
     "fs-extra": "^11.1.1",
