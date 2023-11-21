@@ -213,7 +213,7 @@
     "@types/slice-ansi": "^7.1.0",
     "@types/split2": "^3.2.1",
     "@types/supertest": "^2.0.12",
-    "@types/tar": "^6.1.4",
+    "@types/tar": "^6.1.10",
     "@types/touch": "^3.1.5",
     "@types/tough-cookie": "^4.0.2",
     "@types/uniqid": "^5.3.2",
