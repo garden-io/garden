@@ -28,7 +28,7 @@
     "@codenamize/codenamize": "^1.1.1",
     "@hapi/joi": "git+https://github.com/garden-io/joi.git#master",
     "@jsdevtools/readdir-enhanced": "^6.0.4",
-    "@kubernetes/client-node": "github:davidgamero/javascript#c17ff3193dbd111b9e5b5db939647af70005381e",
+    "@kubernetes/client-node": "github:garden-io/javascript#60f0ea6de09777ceabd5afc3e306801fd0b025cc",
     "@opentelemetry/api": "^1.6.0",
     "@opentelemetry/core": "^1.17.1",
     "@opentelemetry/exporter-trace-otlp-http": "0.43.0",
