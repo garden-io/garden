@@ -24,22 +24,20 @@ export type ContextKeySegment = string | number
 export type ContextKey = ContextKeySegment[]
 
 // Type of `usedReferences`
-type TemplateReferenceMap = {
+export type TemplateReferenceMap = {
   [keyPath: string]: TemplateVariable
 }
 
 // inputs have only a resolved value, but no raw expression
 // Examples: git.commitHash or local.env.FOO or var.foo if provided with --var option
 type TemplateInput = {
-  type: "input"
-  resolvedExpression: unknown
+  resolvedValue: unknown
 }
 
 // For declared variables we also need to keep the raw expressions for partial resolution
 type TemplateVariable = {
-  type: "variable"
-  rawExpression: string
-  resolvedExpression: unknown
+  rawExpressions: string[]
+  resolvedValue: unknown
   inputs: {
     [keyPath: string]: TemplateInput | TemplateVariable
   }
@@ -55,8 +53,8 @@ export interface ContextResolveOpts {
 }
 
 export interface ContextResolveParams {
-  // This must not be partially resolved, but should be the original unevaluated template string
-  rawExpression: string
+  // // This must not be partially resolved, but should be the original unevaluated template string
+  // rawExpression: string
   key: ContextKey
   nodePath: ContextKey
   opts: ContextResolveOpts
@@ -101,16 +99,17 @@ export abstract class ConfigContext {
   /**
    *
    */
-  public recordReference(parent: string, references: TemplateVariableReference) {
+  public recordReference(parent: string, references: TemplateVariable) {
     if (!this.resolvedReferences) {
       throw new InternalError({
-        message: `Cannot record reference ${from}: Context has already been invalidated by calling getRecordedReferences`,
+        message: `Cannot record reference ${parent}: Context has already been invalidated by calling getRecordedReferences`,
       })
     }
-    if (this.resolvedReferences[from]) {
-      throw new InternalError({ message: `Cannot record reference ${from}: Already resolved` })
+    if (this.resolvedReferences[parent]) {
+      // TODO: is it ok to resolve multiple times?
+      // throw new InternalError({ message: `Cannot record reference ${parent}: Already resolved` })
     }
-    this.resolvedReferences[from] = to
+    this.resolvedReferences[parent] = references
   }
 
   /**

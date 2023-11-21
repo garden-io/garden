@@ -7,7 +7,7 @@
  */
 
 import type { GardenErrorParams } from "../exceptions.js"
-import { ConfigurationError, GardenError, TemplateStringError } from "../exceptions.js"
+import { ConfigurationError, GardenError, InternalError, TemplateStringError } from "../exceptions.js"
 import type {
   ConfigContext,
   ContextKeySegment,
@@ -123,12 +123,25 @@ export function resolveTemplateString({
   try {
     const parsed = parser.parse(string, {
       getKey: (key: string[], resolveOpts?: ContextResolveOpts) => {
-        return context.resolve({
-          rawExpression: string,
+        const value = context.resolve({
+          // rawExpression: string,
           key,
           nodePath: [],
           opts: { ...contextOpts, ...(resolveOpts || {}) },
         })
+        if (!path) {
+          throw new InternalError({ message: "Missing path" })
+        }
+        context.recordReference(path.join("."), {
+          rawExpressions: [string],
+          resolvedValue: value.resolved,
+          inputs: {
+            [key.join(".")]: {
+              resolvedValue: value.resolved,
+            }
+          },
+        })
+        return value
       },
       getValue,
       resolveNested: (nested: string) => resolveTemplateString({ string: nested, context, contextOpts }),
