@@ -11,8 +11,6 @@ Garden lets you spin up **production-like environments** for development, testin
 
 You can get started in minutes with the new [Garden Web Dashboard](https://app.garden.io)! Just click the link and follow the interactive guide to deploy your first example project with Garden.
 
-![Short tour of the features of the Garden Web Dashboard including command history, visualized dependency graph, and the Garden dev console](https://ce-content.s3.fr-par.scw.cloud/web-dashboard-gif.gif)
-
 If there's something you can't find in our docs, we happily encourage you to [join our Discord community](https://discord.gg/FrmhuUjFs6) and/or file an issue on [our GitHub repo](https://github.com/garden-io/garden). We're more than happy to help!
 
 ### Overview
