@@ -65,7 +65,7 @@
     "semver": "^7.5.4",
     "shx": "^0.3.2",
     "split2": "^4.1.0",
-    "strip-ansi": "^6.0.0",
+    "strip-ansi": "^7.1.0",
     "treeify": "^1.1.0",
     "ts-node": "^10.8.2",
     "typescript": "^5.1.3",
