@@ -45,31 +45,10 @@ describe("runExecCommand", () => {
     }
   })
 
-  it("should exec a simple command in a running service", async () => {
+  it("should exec a command in a running service", async () => {
     const execCommand = new ExecCommand()
     const args = { deploy: "simple-service" }
-    args["--"] = "echo ok"
-
-    const { result, errors } = await execCommand.action({
-      garden,
-      log: garden.log,
-      args,
-      opts: withDefaultGlobalOpts({
-        interactive: false,
-        target: "",
-      }),
-    })
-
-    if (errors) {
-      throw errors[0]
-    }
-    expect(result?.output).to.equal("ok")
-  })
-
-  it("should exec a command with a quoted substring in a running service", async () => {
-    const execCommand = new ExecCommand()
-    const args = { deploy: "simple-service" }
-    args["--"] = 'echo "ok, lots of text"'
+    args["--"] = ["echo", "ok, lots of text"]
 
     const { result, errors } = await execCommand.action({
       garden,
