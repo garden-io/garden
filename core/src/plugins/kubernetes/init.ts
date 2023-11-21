@@ -40,6 +40,7 @@ import { mapValues } from "lodash-es"
 import { getIngressApiVersion, supportedIngressApiVersions } from "./container/ingress.js"
 import type { Log } from "../../logger/log-entry.js"
 import { ingressControllerInstall, ingressControllerReady } from "./nginx/ingress-controller.js"
+import { styles } from "../../logger/styles.js"
 
 const dockerAuthSecretType = "kubernetes.io/dockerconfigjson"
 const dockerAuthDocsLink = `
@@ -92,9 +93,11 @@ export async function getEnvironmentStatus({
   }
 
   if (provider.config.setupIngressController === "nginx") {
+    log.info(`Ensuring ${styles.highlight("nginx")} Ingress Controller...`)
     const ingressControllerReadiness = await ingressControllerReady(ctx, log)
     result.ready = ingressControllerReadiness
     detail.systemReady = ingressControllerReadiness
+    log.info(`${styles.highlight("nginx")} Ingress Controller ready`)
   } else {
     // We only need to warn about missing ingress classes if we're not using garden installed nginx
     const ingressApiVersion = await getIngressApiVersion(log, api, supportedIngressApiVersions)
@@ -106,6 +109,7 @@ export async function getEnvironmentStatus({
     )
     ingressWarnings.forEach((w) => log.warn(w))
   }
+
   return result
 }
 

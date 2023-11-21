@@ -31,6 +31,20 @@ import { hashString, isNotNull } from "../util/util.js"
 import { gardenEnv } from "../constants.js"
 import { stableStringify } from "../util/string.js"
 import { OtelTraced } from "../util/open-telemetry/decorators.js"
+import { LogLevel } from "../logger/logger.js"
+import type { Log } from "../logger/log-entry.js"
+
+/**
+ * Returns a provider log context with the provider name set.
+ *
+ * Also sets the log level to verbose for some built in providers that aren't really
+ * resolved per se. A bit hacky but this is just a cosmetic change.
+ */
+function getProviderLog(providerName: string, log: Log) {
+  const verboseLogProviders = ["exec", "templated", "container"]
+  const fixLevel = verboseLogProviders.includes(providerName) ? LogLevel.verbose : undefined
+  return log.createLog({ name: providerName, fixLevel })
+}
 
 interface Params extends CommonTaskParams {
   plugin: GardenPluginSpec
@@ -189,8 +203,9 @@ export class ResolveProviderTask extends BaseTask<Provider> {
     const source = { yamlDoc, basePath: yamlDocBasePath }
 
     let resolvedConfig = resolveTemplateStrings({ value: this.config, context, source })
-
     const providerName = resolvedConfig.name
+    const providerLog = getProviderLog(providerName, this.log)
+    providerLog.info("Configuring provider...")
 
     this.log.silly(() => `Validating ${providerName} config`)
 
@@ -236,7 +251,7 @@ export class ResolveProviderTask extends BaseTask<Provider> {
       environmentName: this.garden.environmentName,
       namespace: this.garden.namespace,
       pluginName: providerName,
-      log: this.log,
+      log: providerLog,
       config: resolvedConfig,
       configStore: this.garden.localConfigStore,
       projectName: this.garden.projectName,
@@ -275,6 +290,7 @@ export class ResolveProviderTask extends BaseTask<Provider> {
     }
 
     this.log.silly(() => `Ensuring ${providerName} provider is ready`)
+    providerLog.success("Provider configured")
 
     const tmpProvider = providerFromConfig({
       plugin: this.plugin,
@@ -361,6 +377,7 @@ export class ResolveProviderTask extends BaseTask<Provider> {
 
   private async ensurePrepared(tmpProvider: Provider) {
     const pluginName = tmpProvider.name
+    const providerLog = getProviderLog(pluginName, this.log)
     const actions = await this.garden.getActionRouter()
     const ctx = await this.garden.getPluginContext({
       provider: tmpProvider,
@@ -378,12 +395,11 @@ export class ResolveProviderTask extends BaseTask<Provider> {
       ctx.log[level]({ msg, origin })
     })
 
-    this.log.silly(() => `Getting status for ${pluginName}`)
-
     // Check for cached provider status
     const cachedStatus = await this.getCachedStatus(tmpProvider.config)
 
     if (cachedStatus) {
+      providerLog.success(`Provider status cached`)
       return cachedStatus
     }
 
@@ -394,20 +410,11 @@ export class ResolveProviderTask extends BaseTask<Provider> {
       defaultHandler: async () => defaultEnvironmentStatus,
     })
 
-    let status = await handler!({ ctx, log: this.log })
-
-    this.log.silly(() => `${pluginName} status: ${status.ready ? "ready" : "not ready"}`)
+    let status = await handler!({ ctx, log: providerLog })
 
     if (this.forceInit || !status.ready) {
-      // Deliberately setting the text on the parent log here
-      this.log.info(`Preparing environment...`)
-
-      const envLogEntry = this.log
-        .createLog({
-          name: pluginName,
-        })
-        .info("Configuring...")
-
+      const statusMsg = status.ready ? "Ready, will force re-init" : "Not ready, will init"
+      providerLog.warn(statusMsg)
       // TODO: avoid calling the handler manually
       const prepareHandler = await actions.provider["getPluginHandler"]({
         handlerType: "prepareEnvironment",
@@ -415,18 +422,18 @@ export class ResolveProviderTask extends BaseTask<Provider> {
         defaultHandler: async () => ({ status }),
       })
 
-      const result = await prepareHandler!({ ctx, log: this.log, force: this.forceInit, status })
+      const result = await prepareHandler!({ ctx, log: providerLog, force: this.forceInit, status })
 
       status = result.status
-
-      envLogEntry.success("Ready")
     }
 
     if (!status.ready) {
+      providerLog.error("Failed initializing provider")
       throw new PluginError({
         message: `Provider ${pluginName} reports status as not ready and could not prepare the configured environment.`,
       })
     }
+    providerLog.success("Provider ready")
 
     if (!status.disableCache) {
       await this.setCachedStatus(tmpProvider.config, status)
