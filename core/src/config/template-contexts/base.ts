@@ -53,8 +53,6 @@ export interface ContextResolveOpts {
 }
 
 export interface ContextResolveParams {
-  // // This must not be partially resolved, but should be the original unevaluated template string
-  // rawExpression: string
   key: ContextKey
   nodePath: ContextKey
   opts: ContextResolveOpts
@@ -303,7 +301,7 @@ export class ScanContext extends ConfigContext {
   override resolve({ key, nodePath }: ContextResolveParams) {
     const fullKey = nodePath.concat(key)
     this.foundKeys.add(fullKey)
-    return { resolved: renderTemplateString(fullKey), partial: true }
+    return { resolved: renderTemplateString(fullKey), partial: true, cached: false }
   }
 }
 
