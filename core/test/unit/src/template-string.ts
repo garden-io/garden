@@ -2194,7 +2194,41 @@ describe("ConfigContext reference recording", () => {
     expect(references).to.eql(expectedRef)
   })
 
+  it("records template references (deep, 1 reference)", () => {
+    const context = new TestContext({
+      var: {
+        foo: {
+          bar: "baz",
+        }
+      }
+    })
+    const obj = {
+      foo: {
+        bar: "${var.foo.bar}",
+      }
+    }
+    const res = resolveTemplateStrings({ source: undefined, value: obj, context })
+    expect(res).to.eql({
+      foo: {
+        bar: "baz",
+      }
+    })
 
+    const references = context.getRecordedReferences()
+
+    const expectedRef: TemplateReferenceMap = {
+      "foo.bar": {
+        rawExpressions: ["${var.foo.bar}"],
+        resolvedValue: "baz",
+        inputs: {
+          "var.foo.bar": {
+            resolvedValue: "baz",
+          }
+        }
+      }
+    }
+    expect(references).to.eql(expectedRef)
+  })
 
     // a:
     //   b:
