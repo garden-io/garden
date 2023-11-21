@@ -1351,18 +1351,17 @@ _NOTE: This command may not be supported for all action types._
 
 Examples:
 
-     garden exec my-service /bin/sh   # runs a shell in the my-service Deploy's container
+     garden exec my-service -- /bin/sh   # runs a shell in the my-service Deploy's container
 
 #### Usage
 
-    garden exec <deploy> <command> [options]
+    garden exec <deploy> [options]
 
 #### Arguments
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
   | `deploy` | Yes | The running Deploy action to exec the command in.
-  | `command` | Yes | The command to run.
 
 #### Options
 
