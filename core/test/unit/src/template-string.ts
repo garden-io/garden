@@ -2037,8 +2037,8 @@ describe("ConfigContext reference recording", () => {
 
   it("records template references (forEach, 1 reference)", () => {
     const context = new TestContext({
-      "var": {
-        "foo": [],
+      var: {
+        foo: [],
       },
     })
     const obj = {
@@ -2061,18 +2061,18 @@ describe("ConfigContext reference recording", () => {
         inputs: {
           "var.foo": {
             resolvedValue: [],
-          }
-        }
-      }
+          },
+        },
+      },
     }
     expect(references).to.eql(expectedRef)
   })
 
   it("records template references (forEach, 2 reference)", () => {
     const context = new TestContext({
-      "var": {
-        "foo": ["foo"],
-        "bar": "baz"
+      var: {
+        foo: ["foo"],
+        bar: "baz",
       },
     })
     const obj = {
@@ -2099,16 +2099,16 @@ describe("ConfigContext reference recording", () => {
           "var.bar": {
             resolvedValue: ["baz"],
           },
-        }
-      }
+        },
+      },
     }
     expect(references).to.eql(expectedRef)
   })
 
   it("records template references (forEach, item.value)", () => {
     const context = new TestContext({
-      "var": {
-        "foo": ["foo"],
+      var: {
+        foo: ["foo"],
       },
     })
     const obj = {
@@ -2141,15 +2141,14 @@ describe("ConfigContext reference recording", () => {
           "var.foo": {
             resolvedValue: ["foo"],
           },
-        }
-      }
+        },
+      },
     }
     expect(references).to.eql(expectedRef)
   })
 
   it("records template references (simple, 0 reference)", () => {
-    const context = new TestContext({
-    })
+    const context = new TestContext({})
     const obj = {
       foo: "bar",
     }
@@ -2168,7 +2167,7 @@ describe("ConfigContext reference recording", () => {
     const context = new TestContext({
       var: {
         bar: "baz",
-      }
+      },
     })
     const obj = {
       foo: "${var.bar}",
@@ -2187,9 +2186,9 @@ describe("ConfigContext reference recording", () => {
         inputs: {
           "var.bar": {
             resolvedValue: "baz",
-          }
-        }
-      }
+          },
+        },
+      },
     }
     expect(references).to.eql(expectedRef)
   })
@@ -2199,19 +2198,19 @@ describe("ConfigContext reference recording", () => {
       var: {
         foo: {
           bar: "baz",
-        }
-      }
+        },
+      },
     })
     const obj = {
       foo: {
         bar: "${var.foo.bar}",
-      }
+      },
     }
     const res = resolveTemplateStrings({ source: undefined, value: obj, context })
     expect(res).to.eql({
       foo: {
         bar: "baz",
-      }
+      },
     })
 
     const references = context.getRecordedReferences()
@@ -2223,38 +2222,75 @@ describe("ConfigContext reference recording", () => {
         inputs: {
           "var.foo.bar": {
             resolvedValue: "baz",
-          }
-        }
-      }
+          },
+        },
+      },
     }
     expect(references).to.eql(expectedRef)
   })
 
-    // a:
-    //   b:
-    //     c:
-    //       $merge: ${var.foo}
-    //
-    // a:
-    //   b:
-    //     c:
-    //       bar: baz
-    //       fruit: banana
-    //
-    // var.something: ${var.a.b.c.fruit}
-    //
-    // // templatereferencemap
-    // "var.a.b.c.fruit" => var.foo.fruit
+  it("records template references (array, 1 reference)", () => {
+    const context = new TestContext({
+      var: {
+        foo: {
+          bar: "baz",
+        },
+      },
+    })
+    const obj = {
+      foo: {
+        bar: ["${var.foo.bar}"],
+      },
+    }
+    const res = resolveTemplateStrings({ source: undefined, value: obj, context })
+    expect(res).to.eql({
+      foo: {
+        bar: ["baz"],
+      },
+    })
 
-    it("records template references (simple, dottis merge)", () => {
-      const context = new TestContext({
+    const references = context.getRecordedReferences()
+
+    const expectedRef: TemplateReferenceMap = {
+      "foo.bar.0": {
+        rawExpressions: ["${var.foo.bar}"],
+        resolvedValue: "baz",
+        inputs: {
+          "var.foo.bar": {
+            resolvedValue: "baz",
+          },
+        },
+      },
+    }
+    expect(references).to.eql(expectedRef)
+  })
+
+  // a:
+  //   b:
+  //     c:
+  //       $merge: ${var.foo}
+  //
+  // a:
+  //   b:
+  //     c:
+  //       bar: baz
+  //       fruit: banana
+  //
+  // var.something: ${var.a.b.c.fruit}
+  //
+  // // templatereferencemap
+  // "var.a.b.c.fruit" => var.foo.fruit
+
+  it("records template references (simple, dottis merge)", () => {
+    const context = new TestContext(
+      {
         var: {
           foo: {
             bar: "baz",
             fruit: "banana",
-          }
-        }
-      },
+          },
+        },
+      }
       // TODO: add the template reference map
       // {
       //   "var.foo.fruit": {
@@ -2267,60 +2303,60 @@ describe("ConfigContext reference recording", () => {
       //     }
       //   }
       // }
-      )
-      const obj = {
-        a: {
-          b: {
-            c: {
-              $merge: "${var.foo}",
-            }
-          }
-        }
-      }
-      const res = resolveTemplateStrings({ source: undefined, value: obj, context })
-      expect(res).to.eql({
-        a: {
-          b: {
-            c: {
-              bar: "baz",
-              fruit: "banana",
-            }
-          }
-        }
-      })
-
-      const references = context.getRecordedReferences()
-
-      // The template reference map should only contain the leaves
-      // Or with other words, every key path is the longest possible / full path
-      const expectedRef: TemplateReferenceMap = {
-        "a.b.c.bar": {
-          rawExpressions: ["$merge", "${var.foo}"],
-          resolvedValue: "baz",
-          inputs: {
-            "var.foo.bar": {
-              resolvedValue: "baz",
-            }
-          }
+    )
+    const obj = {
+      a: {
+        b: {
+          c: {
+            $merge: "${var.foo}",
+          },
         },
-        "a.b.c.fruit": {
-          rawExpressions: ["$merge", "${var.foo}"],
-          resolvedValue: "banana",
-          inputs: {
-            "var.foo.fruit": {
-              resolvedValue: "banana",
-              rawExpressions: ["${local.env.FRUIT}"],
-              inputs: {
-                "local.env.FRUIT": {
-                  resolvedValue: "banana",
-                }
-              }
-            }
-          }
-        }
-      }
-      expect(references).to.eql(expectedRef)
+      },
+    }
+    const res = resolveTemplateStrings({ source: undefined, value: obj, context })
+    expect(res).to.eql({
+      a: {
+        b: {
+          c: {
+            bar: "baz",
+            fruit: "banana",
+          },
+        },
+      },
     })
+
+    const references = context.getRecordedReferences()
+
+    // The template reference map should only contain the leaves
+    // Or with other words, every key path is the longest possible / full path
+    const expectedRef: TemplateReferenceMap = {
+      "a.b.c.bar": {
+        rawExpressions: ["$merge", "${var.foo}"],
+        resolvedValue: "baz",
+        inputs: {
+          "var.foo.bar": {
+            resolvedValue: "baz",
+          },
+        },
+      },
+      "a.b.c.fruit": {
+        rawExpressions: ["$merge", "${var.foo}"],
+        resolvedValue: "banana",
+        inputs: {
+          "var.foo.fruit": {
+            resolvedValue: "banana",
+            rawExpressions: ["${local.env.FRUIT}"],
+            inputs: {
+              "local.env.FRUIT": {
+                resolvedValue: "banana",
+              },
+            },
+          },
+        },
+      },
+    }
+    expect(references).to.eql(expectedRef)
+  })
 })
 
 describe("collectTemplateReferences", () => {
