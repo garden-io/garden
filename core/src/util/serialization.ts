@@ -10,11 +10,10 @@ import { mapValues } from "lodash-es"
 import fsExtra from "fs-extra"
 import type { DumpOptions } from "js-yaml"
 import { dump, load } from "js-yaml"
-import highlightModule from "cli-highlight"
+import { default as highlightModule } from "cli-highlight"
 import { styles } from "../logger/styles.js"
 
 const { readFile, writeFile } = fsExtra
-const highlight = highlightModule.default
 
 export async function dumpYaml(yamlPath: string, data: any) {
   return writeFile(yamlPath, safeDumpYaml(data, { noRefs: true }))
@@ -35,7 +34,7 @@ export function encodeYamlMulti(objects: object[]) {
 }
 
 export function highlightYaml(s: string) {
-  return highlight(s, {
+  return highlightModule.highlight(s, {
     language: "yaml",
     theme: {
       keyword: styles.accent.italic,
