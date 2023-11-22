@@ -2130,6 +2130,144 @@ describe.only("ConfigContext reference recording", () => {
     expect(references).to.eql(expectedRef)
   })
 
+  it("records template references (forEach, item.value.xyz)", () => {
+    const context = new TestContext({
+      var: {
+        foo: [
+          {
+            xyz: "xyz_value_0",
+            abc: "abc_value_0",
+          },
+          {
+            xyz: "xyz_value_1",
+            abc: "abc_value_1",
+          },
+        ],
+      },
+    })
+    const obj = {
+      foo: {
+        $forEach: "${var.foo}",
+        $return: "${item.value.xyz}",
+      },
+    }
+    const res = resolveTemplateStrings({ source: undefined, value: obj, context })
+    expect(res).to.eql({
+      foo: ["xyz_value_0", "xyz_value_1"],
+    })
+
+    const references = context.getRecordedReferences()
+
+    const expectedRef: TemplateReferenceMap = {
+      "foo.0": {
+        rawExpressions: ["${item.value.xyz}"],
+        resolvedValue: "xyz_value_0",
+        inputs: {
+          "item.value.xyz": {
+            resolvedValue: "xyz_value_0",
+            inputs: {
+              "var.foo.0.xyz": {
+                resolvedValue: "xyz_value_0",
+              },
+            },
+          },
+        },
+      },
+      "foo.1": {
+        rawExpressions: ["${item.value.xyz}"],
+        resolvedValue: "xyz_value_1",
+        inputs: {
+          "item.value.xyz": {
+            resolvedValue: "xyz_value_1",
+            inputs: {
+              "var.foo.1.xyz": {
+                resolvedValue: "xyz_value_1",
+              },
+            },
+          },
+        },
+      },
+    }
+
+    expect(references).to.eql(expectedRef)
+  })
+
+  it("records template references (forEach, item.value.xyz with a helper call in collection expression)", () => {
+    const context = new TestContext({
+      var: {
+        foo: [
+          {
+            xyz: "xyz_value_0",
+            abc: "abc_value_0",
+          },
+          {
+            xyz: "xyz_value_1",
+            abc: "abc_value_1",
+          },
+        ],
+      },
+    })
+    const obj = {
+      foo: {
+        $forEach: "${concat(var.foo, [{ xyz: 'xyz_value_concatenated' }])}",
+        $return: "${item.value.xyz}",
+      },
+    }
+    const res = resolveTemplateStrings({ source: undefined, value: obj, context })
+    expect(res).to.eql({
+      foo: ["xyz_value_0", "xyz_value_1", "xyz_value_concatenated"],
+    })
+
+    const references = context.getRecordedReferences()
+
+    const expectedRef: TemplateReferenceMap = {
+      "foo.0": {
+        rawExpressions: ["${item.value.xyz}"],
+        resolvedValue: "xyz_value_0",
+        inputs: {
+          "item.value.xyz": {
+            resolvedValue: "xyz_value_0",
+            inputs: {
+              "var.foo.0.xyz": {
+                resolvedValue: "xyz_value_0",
+              },
+            },
+          },
+        },
+      },
+      "foo.1": {
+        rawExpressions: ["${item.value.xyz}"],
+        resolvedValue: "xyz_value_1",
+        inputs: {
+          "item.value.xyz": {
+            resolvedValue: "xyz_value_1",
+            inputs: {
+              "var.foo.1.xyz": {
+                resolvedValue: "xyz_value_1",
+              },
+            },
+          },
+        },
+      },
+      "foo.2": {
+        rawExpressions: ["${item.value.xyz}"],
+        resolvedValue: "xyz_value_concatenated",
+        inputs: {
+          "item.value.xyz": {
+            resolvedValue: "xyz_value_concatenated",
+            inputs: {
+              "var.foo.1.xyz": {
+                resolvedValue: "xyz_value_concatenated",
+              },
+            },
+          },
+        },
+      },
+    }
+
+    expect(references).to.eql(expectedRef)
+  })
+
   it("records template references (simple, 0 reference)", () => {
     const context = new TestContext({})
     const obj = {
