@@ -11,11 +11,11 @@ import type { CommandResult, CommandParams } from "./base.js"
 import { Command } from "./base.js"
 import dedent from "dedent"
 import type { ParameterValues } from "../cli/params.js"
-import { StringParameter, BooleanParameter, StringsParameter } from "../cli/params.js"
+import { StringParameter, BooleanParameter } from "../cli/params.js"
 import type { ExecInDeployResult } from "../plugin/handlers/Deploy/exec.js"
 import { execInDeployResultSchema } from "../plugin/handlers/Deploy/exec.js"
 import { executeAction } from "../graph/actions.js"
-import { NotFoundError } from "../exceptions.js"
+import { CommandError, NotFoundError } from "../exceptions.js"
 import type { DeployStatus } from "../plugin/handlers/Deploy/get-status.js"
 import { createActionLog } from "../logger/log-entry.js"
 import { K8_POD_DEFAULT_CONTAINER_ANNOTATION_KEY } from "../plugins/kubernetes/run.js"
@@ -29,10 +29,9 @@ const execArgs = {
       return Object.keys(configDump.actionConfigs.Deploy)
     },
   }),
-  command: new StringsParameter({
-    help: "The command to run.",
-    required: true,
-    spread: true,
+  command: new StringParameter({
+    help: "The use of the positional command argument is deprecated. Use  `--` followed by your command instead.",
+    required: false,
   }),
 }
 
@@ -62,12 +61,16 @@ export class ExecCommand extends Command<Args, Opts> {
   override description = dedent`
     Finds an active container for a deployed Deploy and executes the given command within the container.
     Supports interactive shells.
+    You can specify the command to run as a parameter, or pass it after a \`--\` separator. For commands
+    with arguments or quoted substrings, use the \`--\` separator.
 
-    _NOTE: This command may not be supported for all action types._
+    _NOTE: This command may not be supported for all action types. The use of the positional command argument
+    is deprecated. Use  \`--\` followed by your command instead._
 
     Examples:
 
-         garden exec my-service /bin/sh   # runs a shell in the my-service Deploy's container
+         garden exec my-service /bin/sh   # runs an interactive shell in the my-service Deploy's container
+         garden exec my-service -- /bin/sh -c echo "hello world" # prints "hello world" in the my-service Deploy's container and exits
   `
 
   override arguments = execArgs
@@ -88,6 +91,11 @@ export class ExecCommand extends Command<Args, Opts> {
   async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<ExecInDeployResult>> {
     const deployName = args.deploy
     const command = this.getCommand(args)
+
+    if (!command.length) {
+      throw new CommandError({ message: `No command specified. Nothing to execute.` })
+    }
+
     const target = opts["target"] as string | undefined
 
     const graph = await garden.getConfigGraph({ log, emit: false })
@@ -160,6 +168,6 @@ export class ExecCommand extends Command<Args, Opts> {
   }
 
   private getCommand(args: ParameterValues<Args>) {
-    return args.command || []
+    return args.command ? args.command.split(" ") : args["--"] || []
   }
 }
