@@ -50,7 +50,7 @@ export class TestVcsHandler extends VcsHandler {
     return "/foo"
   }
 
-  async getFiles(_: GetFilesParams): Promise<VcsFile[]> {
+  override async getFiles(_: GetFilesParams): Promise<VcsFile[]> {
     return []
   }
 
