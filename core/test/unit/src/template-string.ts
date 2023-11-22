@@ -14,7 +14,8 @@ import {
   throwOnMissingSecretKeys,
   getActionTemplateReferences,
 } from "../../../src/template-string/template-string.js"
-import { ConfigContext, TemplateReferenceMap } from "../../../src/config/template-contexts/base.js"
+import { ConfigContext } from "../../../src/config/template-contexts/base.js"
+import type { TemplateReferenceMap } from "../../../src/config/template-contexts/base.js"
 import type { TestGarden } from "../../helpers.js"
 import { expectError, getDataDir, makeTestGarden } from "../../helpers.js"
 import { dedent } from "../../../src/util/string.js"
@@ -2057,7 +2058,7 @@ describe("ConfigContext reference recording", () => {
     const expectedRef: TemplateReferenceMap = {
       foo: {
         rawExpressions: ["${var.foo}"],
-        resolvedValue: "foo",
+        resolvedValue: [],
         inputs: {
           "var.foo": {
             resolvedValue: [],
@@ -2071,8 +2072,8 @@ describe("ConfigContext reference recording", () => {
   it("records template references (forEach, 2 reference)", () => {
     const context = new TestContext({
       var: {
-        foo: ["foo"],
-        bar: "baz",
+        foo: ["foo_item"],
+        bar: "bar_value",
       },
     })
     const obj = {
@@ -2083,7 +2084,7 @@ describe("ConfigContext reference recording", () => {
     }
     const res = resolveTemplateStrings({ source: undefined, value: obj, context })
     expect(res).to.eql({
-      foo: ["baz"],
+      foo: ["bar_value"],
     })
 
     const references = context.getRecordedReferences()
@@ -2091,13 +2092,13 @@ describe("ConfigContext reference recording", () => {
     const expectedRef: TemplateReferenceMap = {
       "foo.0": {
         rawExpressions: ["$forEach", "${var.foo}", "$then", "${var.bar}"],
-        resolvedValue: "baz",
+        resolvedValue: "bar_value",
         inputs: {
           "var.foo": {
-            resolvedValue: ["foo"],
+            resolvedValue: ["foo_item"],
           },
           "var.bar": {
-            resolvedValue: ["baz"],
+            resolvedValue: "bar_value",
           },
         },
       },

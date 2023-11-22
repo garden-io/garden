@@ -7,12 +7,13 @@
  */
 
 import type { GardenErrorParams } from "../exceptions.js"
-import { ConfigurationError, GardenError, InternalError, TemplateStringError } from "../exceptions.js"
+import { ConfigurationError, GardenError, TemplateStringError } from "../exceptions.js"
 import type {
   ConfigContext,
   ContextKeySegment,
   ContextResolveOpts,
   ContextResolveOutput,
+  ObjectPath,
 } from "../config/template-contexts/base.js"
 import { GenericContext, ScanContext } from "../config/template-contexts/base.js"
 import cloneDeep from "fast-copy"
@@ -70,8 +71,6 @@ function getValue(v: Primitive | undefined | ResolvedClause) {
   return isPlainObject(v) ? (<ResolvedClause>v).resolved : v
 }
 
-type ObjectPath = (string | number)[]
-
 export class TemplateError extends GardenError {
   type = "template"
 
@@ -87,13 +86,6 @@ export class TemplateError extends GardenError {
   }
 }
 
-// function foo(context: ConfigContext) {
-
-//   const resolvedKeys = context.recordTemplateResolution(() => {
-//     const foo: unknown = resolveTemplateString({ context })
-//   })
-// }
-
 /**
  * Parse and resolve a templated string, with the given context. The template format is similar to native JS templated
  * strings but only supports simple lookups from the given context, e.g. "prefix-${nested.key}-suffix", and not
@@ -108,12 +100,10 @@ export function resolveTemplateString({
   string,
   context,
   contextOpts = {},
-  path,
 }: {
   string: string
   context: ConfigContext
   contextOpts?: ContextResolveOpts
-  path?: ObjectPath
 }): any {
   // Just return immediately if this is definitely not a template string
   if (!maybeTemplateString(string)) {
@@ -131,14 +121,14 @@ export function resolveTemplateString({
         })
         // If the value is cached we already tracked the reference, so no need to track it again.
         // TODO: Without a path we don't need to track references? Can we somehow ensure that we aren't missing references by accident?
-        if (!value.cached && path) {
-          context.recordReference(path.join("."), {
+        if (!value.cached && contextOpts.resultPath && contextOpts.resultPath.length > 0) {
+          context.recordReference(contextOpts.resultPath.join("."), {
             rawExpressions: [string],
             resolvedValue: value.resolved,
             inputs: {
               [key.join(".")]: {
                 resolvedValue: value.resolved,
-              }
+              },
             },
           })
         }
@@ -255,7 +245,45 @@ export function resolveTemplateString({
     const prefix = `Invalid template string (${styles.accent(truncate(string, 35).replace(/\n/g, "\\n"))}): `
     const message = err.message.startsWith(prefix) ? err.message : prefix + err.message
 
-    throw new TemplateStringError({ message, path })
+    throw new TemplateStringError({ message, path: contextOpts.yamlPath })
+  }
+}
+
+/**
+ * Returns a new ContextResolveOpts where part is appended to both yamlPath and resultPath
+ *
+ * @param part ObjectPath element to append to yamlPath and resultPath in contextOpts
+ * @param contextOpts ContextResolveOpts
+ * @returns
+ */
+function pushPath(part: ObjectPath[0], contextOpts: ContextResolveOpts): ContextResolveOpts {
+  return pushResultPath(part, pushYamlPath(part, contextOpts))
+}
+
+/**
+ * Returns a new ContextResolveOpts where part is appended to only resultPath in contextOpts
+ *
+ * @param part ObjectPath element to append to resultPath in contextOpts
+ * @param contextOpts ContextResolveOpts
+ * @returns
+ */
+function pushResultPath(part: ObjectPath[0], contextOpts: ContextResolveOpts): ContextResolveOpts {
+  return {
+    ...contextOpts,
+    resultPath: [...(contextOpts.resultPath || []), part],
+  }
+}
+/**
+ * Returns a new ContextResolveOpts where part is appended to only yamlPath in contextOpts
+ *
+ * @param part ObjectPath element to append to yamlPath in contextOpts
+ * @param contextOpts ContextResolveOpts
+ * @returns
+ */
+function pushYamlPath(part: ObjectPath[0], contextOpts: ContextResolveOpts): ContextResolveOpts {
+  return {
+    ...contextOpts,
+    yamlPath: [...(contextOpts.yamlPath || []), part],
   }
 }
 
@@ -269,13 +297,11 @@ export function resolveTemplateStrings<T extends any>({
   value,
   context,
   contextOpts = {},
-  path,
   source,
 }: {
   value: T
   context: ConfigContext
   contextOpts?: ContextResolveOpts
-  path?: ObjectPath
   source: ConfigSource | undefined
 }): T {
   if (value === null) {
@@ -285,12 +311,16 @@ export function resolveTemplateStrings<T extends any>({
     return undefined as T
   }
 
-  if (!path) {
-    path = []
+  if (!contextOpts.yamlPath) {
+    contextOpts.yamlPath = []
+  }
+
+  if (!contextOpts.resultPath) {
+    contextOpts.resultPath = []
   }
 
   if (typeof value === "string") {
-    return <T>resolveTemplateString({ string: value, context, path, contextOpts })
+    return <T>resolveTemplateString({ string: value, context, contextOpts })
   } else if (Array.isArray(value)) {
     const output: unknown[] = []
 
@@ -304,7 +334,7 @@ export function resolveTemplateStrings<T extends any>({
           )
           throw new TemplateError({
             message: `A list item with a ${arrayConcatKey} key cannot have any other keys (found ${extraKeys})`,
-            path,
+            path: contextOpts.yamlPath,
             value,
             resolved: undefined,
           })
@@ -314,10 +344,7 @@ export function resolveTemplateStrings<T extends any>({
         const resolved = resolveTemplateStrings({
           value: v[arrayConcatKey],
           context,
-          contextOpts: {
-            ...contextOpts,
-          },
-          path: path && [...path, arrayConcatKey],
+          contextOpts: pushYamlPath(arrayConcatKey, contextOpts),
           source,
         })
 
@@ -328,13 +355,13 @@ export function resolveTemplateStrings<T extends any>({
         } else {
           throw new TemplateError({
             message: `Value of ${arrayConcatKey} key must be (or resolve to) an array (got ${typeof resolved})`,
-            path,
+            path: contextOpts.yamlPath,
             value,
             resolved,
           })
         }
       } else {
-        output.push(resolveTemplateStrings({ value: v, context, contextOpts, source, path: path && [...path, i] }))
+        output.push(resolveTemplateStrings({ value: v, context, contextOpts: pushPath(i, contextOpts), source }))
       }
     })
 
@@ -342,16 +369,27 @@ export function resolveTemplateStrings<T extends any>({
   } else if (isPlainObject(value)) {
     if (value[arrayForEachKey] !== undefined) {
       // Handle $forEach loop
-      return handleForEachObject({ value, context, contextOpts, path, source })
+      return handleForEachObject({ value, context, contextOpts, source })
     } else if (value[conditionalKey] !== undefined) {
       // Handle $if conditional
-      return handleConditional({ value, context, contextOpts, path, source })
+      return handleConditional({ value, context, contextOpts, source })
     } else {
       // Resolve $merge keys, depth-first, leaves-first
       let output = {}
 
       for (const [k, v] of Object.entries(value)) {
-        const resolved = resolveTemplateStrings({ value: v, context, contextOpts, source, path: path && [...path, k] })
+        let mergeResolveOpts: ContextResolveOpts
+        if (k === objectSpreadKey) {
+          mergeResolveOpts = pushYamlPath(objectSpreadKey, contextOpts)
+        } else {
+          mergeResolveOpts = pushPath(k, contextOpts)
+        }
+        const resolved = resolveTemplateStrings({
+          value: v,
+          context,
+          contextOpts: mergeResolveOpts,
+          source,
+        })
 
         if (k === objectSpreadKey) {
           if (isPlainObject(resolved)) {
@@ -361,7 +399,7 @@ export function resolveTemplateStrings<T extends any>({
           } else {
             throw new TemplateError({
               message: `Value of ${objectSpreadKey} key must be (or resolve to) a mapping object (got ${typeof resolved})`,
-              path: [...path, k],
+              path: pushResultPath(k, contextOpts).yamlPath,
               value,
               resolved,
             })
@@ -384,13 +422,11 @@ function handleForEachObject({
   value,
   context,
   contextOpts,
-  path,
   source,
 }: {
   value: any
   context: ConfigContext
   contextOpts: ContextResolveOpts
-  path: ObjectPath | undefined
   source: ConfigSource | undefined
 }) {
   // Validate input object
@@ -399,7 +435,7 @@ function handleForEachObject({
       message: `Missing ${arrayForEachReturnKey} field next to ${arrayForEachKey} field. Got ${naturalList(
         Object.keys(value)
       )}`,
-      path: path && [...path, arrayForEachKey],
+      path: contextOpts.yamlPath,
       value,
       resolved: undefined,
     })
@@ -414,7 +450,7 @@ function handleForEachObject({
       message: `Found one or more unexpected keys on ${arrayForEachKey} object: ${extraKeys}. Expected keys: ${naturalList(
         expectedForEachKeys
       )}`,
-      path,
+      path: contextOpts.yamlPath,
       value,
       resolved: undefined,
     })
@@ -424,9 +460,13 @@ function handleForEachObject({
   let resolvedInput = resolveTemplateStrings({
     value: value[arrayForEachKey],
     context,
-    contextOpts,
+    contextOpts: {
+      ...pushYamlPath(arrayForEachKey, contextOpts),
+      // The result of the forEach expression (which evaluates to the collection to iterate over) does not end up in the result itself,
+      // only by referncing it through item
+      resultPath: undefined,
+    },
     source,
-    path: path && [...path, arrayForEachKey],
   })
   const isObject = isPlainObject(resolvedInput)
 
@@ -436,7 +476,7 @@ function handleForEachObject({
     } else {
       throw new TemplateError({
         message: `Value of ${arrayForEachKey} key must be (or resolve to) an array or mapping object (got ${typeof resolvedInput})`,
-        path: path && [...path, arrayForEachKey],
+        path: pushYamlPath(arrayForEachKey, contextOpts).yamlPath,
         value,
         resolved: resolvedInput,
       })
@@ -490,9 +530,8 @@ function handleForEachObject({
       const filterResult = resolveTemplateStrings({
         value: value[arrayForEachFilterKey],
         context: loopContext,
-        contextOpts,
+        contextOpts: pushYamlPath(arrayForEachFilterKey, contextOpts),
         source,
-        path: path && [...path, arrayForEachFilterKey],
       })
 
       if (filterResult === false) {
@@ -500,7 +539,7 @@ function handleForEachObject({
       } else if (filterResult !== true) {
         throw new TemplateError({
           message: `${arrayForEachFilterKey} clause in ${arrayForEachKey} loop must resolve to a boolean value (got ${typeof resolvedInput})`,
-          path: path && [...path, arrayForEachFilterKey],
+          path: pushYamlPath(arrayForEachFilterKey, contextOpts).yamlPath,
           value,
           resolved: undefined,
         })
@@ -511,15 +550,14 @@ function handleForEachObject({
       resolveTemplateStrings({
         value: value[arrayForEachReturnKey],
         context: loopContext,
-        contextOpts,
+        contextOpts: pushYamlPath(arrayForEachReturnKey, pushResultPath(i, contextOpts)),
         source,
-        path: path && [...path, arrayForEachKey, i],
       })
     )
   }
 
   // Need to resolve once more to handle e.g. $concat expressions
-  return resolveTemplateStrings({ value: output, context, contextOpts, source, path })
+  return resolveTemplateStrings({ value: output, context, contextOpts, source })
 }
 
 const expectedConditionalKeys = [conditionalKey, conditionalThenKey, conditionalElseKey]
@@ -528,13 +566,11 @@ function handleConditional({
   value,
   context,
   contextOpts,
-  path,
   source,
 }: {
   value: any
   context: ConfigContext
   contextOpts: ContextResolveOpts
-  path: ObjectPath | undefined
   source: ConfigSource | undefined
 }) {
   // Validate input object
@@ -546,7 +582,7 @@ function handleConditional({
       message: `Missing ${conditionalThenKey} field next to ${conditionalKey} field. Got: ${naturalList(
         Object.keys(value)
       )}`,
-      path,
+      path: contextOpts.yamlPath,
       value,
       resolved: undefined,
     })
@@ -561,7 +597,7 @@ function handleConditional({
       message: `Found one or more unexpected keys on ${conditionalKey} object: ${extraKeys}. Expected: ${naturalList(
         expectedConditionalKeys
       )}`,
-      path,
+      path: contextOpts.yamlPath,
       value,
       resolved: undefined,
     })
@@ -571,9 +607,8 @@ function handleConditional({
   const resolvedConditional = resolveTemplateStrings({
     value: value[conditionalKey],
     context,
-    contextOpts,
+    contextOpts: pushYamlPath(conditionalKey, contextOpts),
     source,
-    path: path && [...path, conditionalKey],
   })
 
   if (typeof resolvedConditional !== "boolean") {
@@ -582,7 +617,7 @@ function handleConditional({
     } else {
       throw new TemplateError({
         message: `Value of ${conditionalKey} key must be (or resolve to) a boolean (got ${typeof resolvedConditional})`,
-        path: path && [...path, conditionalKey],
+        path: pushYamlPath(conditionalKey, contextOpts).yamlPath,
         value,
         resolved: resolvedConditional,
       })
@@ -594,15 +629,13 @@ function handleConditional({
   const resolvedThen = resolveTemplateStrings({
     value: thenExpression,
     context,
-    path: path && [...path, conditionalThenKey],
-    contextOpts,
+    contextOpts: pushYamlPath(conditionalThenKey, contextOpts),
     source,
   })
   const resolvedElse = resolveTemplateStrings({
     value: elseExpression,
     context,
-    path: path && [...path, conditionalElseKey],
-    contextOpts,
+    contextOpts: pushYamlPath(conditionalElseKey, contextOpts),
     source,
   })
 

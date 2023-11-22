@@ -43,6 +43,8 @@ type TemplateVariable = {
   }
 }
 
+export type ObjectPath = (string | number)[]
+
 export interface ContextResolveOpts {
   // Allow templates to be partially resolved (used to defer runtime template resolution, for example)
   allowPartial?: boolean
@@ -50,6 +52,20 @@ export interface ContextResolveOpts {
   stack?: string[]
   // Unescape escaped template strings
   unescape?: boolean
+
+  /**
+   * The real YAML path after parsing YAML, e.g. ["spec", "foobar", 0, "$merge"]
+   */
+  yamlPath?: ObjectPath
+  /**
+   * The actualy key path is different than the result key path; So in case we are evaluating expression objects we also track the result path.
+   *
+   * Example: ["spec", "foobar", 0] (Can't contain specialy keys like $merge etc)
+   *
+   * This option is used when recording references to template variables while evaluating expression objects like $if, $merge, $forEach.
+   *
+   */
+  resultPath?: ObjectPath
 }
 
 export interface ContextResolveParams {
