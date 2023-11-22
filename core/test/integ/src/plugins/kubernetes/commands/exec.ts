@@ -45,9 +45,9 @@ describe("runExecCommand", () => {
     }
   })
 
-  it("should exec a command in a running service", async () => {
+  it("should exec a command in a running service using the -- separator", async () => {
     const execCommand = new ExecCommand()
-    const args = { deploy: "simple-service" }
+    const args = { deploy: "simple-service", command: "" }
     args["--"] = ["echo", "ok, lots of text"]
 
     const { result, errors } = await execCommand.action({
@@ -66,9 +66,29 @@ describe("runExecCommand", () => {
     expect(result?.output).to.equal("ok, lots of text")
   })
 
+  it("should exec a command in a running service without the -- separator", async () => {
+    const execCommand = new ExecCommand()
+    const args = { deploy: "simple-service", command: "echo hello" }
+
+    const { result, errors } = await execCommand.action({
+      garden,
+      log: garden.log,
+      args,
+      opts: withDefaultGlobalOpts({
+        interactive: false,
+        target: "",
+      }),
+    })
+
+    if (errors) {
+      throw errors[0]
+    }
+    expect(result?.output).to.equal("hello")
+  })
+
   it("should throw if no command was specified", async () => {
     const execCommand = new ExecCommand()
-    const args = { deploy: "simple-service" }
+    const args = { deploy: "simple-service", command: "" }
     await expectError(
       () =>
         execCommand.action({

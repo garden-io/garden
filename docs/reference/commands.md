@@ -1346,22 +1346,26 @@ run:
 
 Finds an active container for a deployed Deploy and executes the given command within the container.
 Supports interactive shells.
+You can specify the command to run as a parameter, or pass it after a `--` separator. For commands
+with arguments or quoted substrings, use the `--` separator.
 
 _NOTE: This command may not be supported for all action types._
 
 Examples:
 
-     garden exec my-service -- /bin/sh   # runs a shell in the my-service Deploy's container
+     garden exec my-service /bin/sh   # runs an interactive shell in the my-service Deploy's container
+     garden exec my-service -- /bin/sh -c echo "hello world" # prints "hello world" in the my-service Deploy's container and exits
 
 #### Usage
 
-    garden exec <deploy> [options]
+    garden exec <deploy> [command] [options]
 
 #### Arguments
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
   | `deploy` | Yes | The running Deploy action to exec the command in.
+  | `command` | No | The command to run.
 
 #### Options
 
