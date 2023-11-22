@@ -169,6 +169,12 @@ export abstract class VcsHandler {
 
   abstract getRepoRoot(log: Log, path: string): Promise<string>
 
+  /**
+   * Scans the repository returns the list of the tracked files.
+   * Applies Garden's exclude/include filters and .dotignore files.
+   *
+   * Does NOT sort the results by paths and filenames.
+   */
   abstract getFiles(params: GetFilesParams): Promise<VcsFile[]>
 
   abstract ensureRemoteSource(params: RemoteSourceParams): Promise<string>
