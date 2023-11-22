@@ -509,13 +509,16 @@ function handleForEachObject({
 
   // TODO: maybe there's a more efficient way to do the cloning/extending?
   const loopContext = cloneDeep(context)
+  loopContext.setRecordingTarget(context)
 
   const output: unknown[] = []
 
   for (const i of Object.keys(resolvedInput)) {
     const itemValue = resolvedInput[i]
 
-    loopContext["item"] = new GenericContext({ key: i, value: itemValue })
+    const contextForIndex = new GenericContext({ key: i, value: itemValue })
+    contextForIndex.setRecordingTarget(context)
+    loopContext["item"] = contextForIndex
 
     // Have to override the cache in the parent context here
     // TODO: make this a little less hacky :P

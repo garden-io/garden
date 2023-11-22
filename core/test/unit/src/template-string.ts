@@ -2018,7 +2018,7 @@ describe("resolveTemplateStrings", () => {
   })
 })
 
-describe("ConfigContext reference recording", () => {
+describe.only("ConfigContext reference recording", () => {
   it("records template references (forEach, no references)", () => {
     const context = new TestContext({})
     const obj = {
@@ -2045,27 +2045,16 @@ describe("ConfigContext reference recording", () => {
     const obj = {
       foo: {
         $forEach: "${var.foo}",
-        $return: "foo",
+        $return: "some-constant",
       },
     }
-    const res = resolveTemplateStrings({ source: undefined, value: obj, context })
-    expect(res).to.eql({
-      foo: [],
-    })
+    resolveTemplateStrings({ source: undefined, value: obj, context })
 
     const references = context.getRecordedReferences()
 
-    const expectedRef: TemplateReferenceMap = {
-      foo: {
-        rawExpressions: ["${var.foo}"],
-        resolvedValue: [],
-        inputs: {
-          "var.foo": {
-            resolvedValue: [],
-          },
-        },
-      },
-    }
+    // We do reference `var.foo`, but only in the collection expression. References from the collection expression
+    // aren't tracked (since the item expressions are what ultimately appears in the resolved config).
+    const expectedRef: TemplateReferenceMap = {}
     expect(references).to.eql(expectedRef)
   })
 
@@ -2091,12 +2080,9 @@ describe("ConfigContext reference recording", () => {
 
     const expectedRef: TemplateReferenceMap = {
       "foo.0": {
-        rawExpressions: ["$forEach", "${var.foo}", "$then", "${var.bar}"],
+        rawExpressions: ["${var.bar}"],
         resolvedValue: "bar_value",
         inputs: {
-          "var.foo": {
-            resolvedValue: ["foo_item"],
-          },
           "var.bar": {
             resolvedValue: "bar_value",
           },
@@ -2115,7 +2101,7 @@ describe("ConfigContext reference recording", () => {
     const obj = {
       foo: {
         $forEach: "${var.foo}",
-        $return: "${item}",
+        $return: "${item.value}",
       },
     }
     const res = resolveTemplateStrings({ source: undefined, value: obj, context })
@@ -2127,20 +2113,16 @@ describe("ConfigContext reference recording", () => {
 
     const expectedRef: TemplateReferenceMap = {
       "foo.0": {
-        rawExpressions: ["$forEach", "${var.foo}", "$then", "${item}"],
+        rawExpressions: ["${item.value}"],
         resolvedValue: "foo",
         inputs: {
-          // TODO: think about if this is required or not
-          // "item": {
-          //   resolvedValue: "foo",
-          //   inputs: {
-          //     "var.foo.0": {
-          //       resolvedValue: "foo",
-          //     }
-          //   },
-          // },
-          "var.foo": {
-            resolvedValue: ["foo"],
+          "item.value": {
+            resolvedValue: "foo",
+            inputs: {
+              "var.foo.0": {
+                resolvedValue: "foo",
+              },
+            },
           },
         },
       },

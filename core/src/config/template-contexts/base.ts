@@ -99,6 +99,7 @@ export abstract class ConfigContext {
   private readonly _resolvedValues: { [path: string]: any }
   // All references that have been resolved from the roots down to this point in the resolution.
   private resolvedReferences?: TemplateReferenceMap
+  private referenceRecordingTarget?: ConfigContext
 
   // This is used for special-casing e.g. runtime.* resolution
   protected _alwaysAllowPartial: boolean
@@ -111,10 +112,18 @@ export abstract class ConfigContext {
     this.resolvedReferences = {}
   }
 
+  public setRecordingTarget(targetContext: ConfigContext) {
+    this.referenceRecordingTarget = targetContext
+  }
+
   /**
    *
    */
   public recordReference(parent: string, references: TemplateVariable) {
+    if (this.referenceRecordingTarget) {
+      this.referenceRecordingTarget.recordReference(parent, references)
+      return
+    }
     if (!this.resolvedReferences) {
       throw new InternalError({
         message: `Cannot record reference ${parent}: Context has already been invalidated by calling getRecordedReferences`,
@@ -131,6 +140,11 @@ export abstract class ConfigContext {
    * @return TemplateReferenceMap
    */
   public getRecordedReferences(): TemplateReferenceMap {
+    if (this.referenceRecordingTarget) {
+      throw new InternalError({
+        message: `Cannot get recorded references: This config context has a reference recording target set.`,
+      })
+    }
     if (!this.resolvedReferences) {
       throw new InternalError({
         message: `Cannot get recorded references: Context has already been invalidated by calling getRecordedReferences`,
