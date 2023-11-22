@@ -30,7 +30,7 @@ const execArgs = {
     },
   }),
   command: new StringParameter({
-    help: "The command to run.",
+    help: "The use of the positional command argument is deprecated. Use  `--` followed by your command instead.",
     required: false,
   }),
 }
@@ -64,7 +64,8 @@ export class ExecCommand extends Command<Args, Opts> {
     You can specify the command to run as a parameter, or pass it after a \`--\` separator. For commands
     with arguments or quoted substrings, use the \`--\` separator.
 
-    _NOTE: This command may not be supported for all action types._
+    _NOTE: This command may not be supported for all action types. The use of the positional command argument
+    is deprecated. Use  \`--\` followed by your command instead._
 
     Examples:
 

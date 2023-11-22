@@ -1349,7 +1349,8 @@ Supports interactive shells.
 You can specify the command to run as a parameter, or pass it after a `--` separator. For commands
 with arguments or quoted substrings, use the `--` separator.
 
-_NOTE: This command may not be supported for all action types._
+_NOTE: This command may not be supported for all action types. The use of the positional command argument
+is deprecated. Use  `--` followed by your command instead._
 
 Examples:
 
@@ -1365,7 +1366,7 @@ Examples:
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
   | `deploy` | Yes | The running Deploy action to exec the command in.
-  | `command` | No | The command to run.
+  | `command` | No | The use of the positional command argument is deprecated. Use  &#x60;--&#x60; followed by your command instead.
 
 #### Options
 
