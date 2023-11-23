@@ -25,6 +25,7 @@ import { pathToCacheContext } from "../cache.js"
 import type { ServiceConfig } from "../config/service.js"
 import type { TaskConfig } from "../config/task.js"
 import type { TestConfig } from "../config/test.js"
+import type { ActionKind } from "../plugin/action-types.js"
 import type { GardenModule } from "../types/module.js"
 import { validateInstall } from "../util/validateInstall.js"
 import { isActionConfig, getSourceAbsPath } from "../actions/base.js"
@@ -101,10 +102,18 @@ export interface VcsInfo {
   originUrl: string
 }
 
+export type ActionDescription = `${ActionKind} action ${string}`
+export type ActionRoot = `${ActionDescription} root`
+
+export type ModuleDescription = `module ${string}`
+export type ModuleRoot = `${ModuleDescription} root`
+
+export type RepoPathDescription = "directory" | "repository" | "submodule" | "project root" | ActionRoot | ModuleRoot
+
 export interface GetFilesParams {
   log: Log
   path: string
-  pathDescription?: string
+  pathDescription?: RepoPathDescription
   include?: string[]
   exclude?: string[]
   filter?: (path: string) => boolean
@@ -224,7 +233,7 @@ export abstract class VcsHandler {
         let files = await this.getFiles({
           log,
           path,
-          pathDescription: description + " root",
+          pathDescription: `${description} root`,
           include: config.include,
           exclude,
           scanRoot,
@@ -423,6 +432,6 @@ export function getSourcePath(config: ModuleConfig | BaseActionConfig) {
   }
 }
 
-export function describeConfig(config: ModuleConfig | BaseActionConfig) {
+export function describeConfig(config: ModuleConfig | BaseActionConfig): ActionDescription | ModuleDescription {
   return isActionConfig(config) ? `${config.kind} action ${config.name}` : `module ${config.name}`
 }
