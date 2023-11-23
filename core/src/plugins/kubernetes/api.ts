@@ -428,10 +428,16 @@ export class KubeApi {
     retryOpts?: RetryOpts
   }): Promise<Response> {
     const baseUrl = this.config.getCurrentCluster()!.server
-    // URL treats paths starting with / as absolute, so we need to remove it. See:
-    // https://developer.mozilla.org/en-US/docs/Learn/Common_questions/Web_mechanics/What_is_a_URL#absolute_urls_vs._relative_urls
+
+    // When using URL with a base path, the merging of the paths doesn't work as you are used to from most node request libraries.
+    // It uses the semantics of browser URLs where a path starting with `/` is seen as absolute and thus it does not get merged with the base path.
+    // See: https://developer.mozilla.org/en-US/docs/Learn/Common_questions/Web_mechanics/What_is_a_URL#absolute_urls_vs._relative_urls
+    // Similarly, when the base path does not ends with a `/`, the last path segment is seen as a resource and also removed from the joined path.
+    // That's why we need to remove the leading `/` from the path and ensure that the base path ends with a `/`.
+
     const relativePath = path.replace(/^\//, "")
     const absoluteBaseUrl = baseUrl.endsWith("/") ? baseUrl : baseUrl + "/"
+
     const url = new URL(relativePath, absoluteBaseUrl)
 
     for (const [key, value] of Object.entries(opts.query ?? {})) {
