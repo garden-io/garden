@@ -428,7 +428,11 @@ export class KubeApi {
     retryOpts?: RetryOpts
   }): Promise<Response> {
     const baseUrl = this.config.getCurrentCluster()!.server
-    const url = new URL(path, baseUrl)
+    // URL treats paths starting with / as absolute, so we need to remove it. See:
+    // https://developer.mozilla.org/en-US/docs/Learn/Common_questions/Web_mechanics/What_is_a_URL#absolute_urls_vs._relative_urls
+    const relativePath = path.replace(/^\//, "")
+    const absoluteBaseUrl = baseUrl.endsWith("/") ? baseUrl : baseUrl + "/"
+    const url = new URL(relativePath, absoluteBaseUrl)
 
     for (const [key, value] of Object.entries(opts.query ?? {})) {
       url.searchParams.set(key, value)
