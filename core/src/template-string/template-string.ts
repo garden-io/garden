@@ -7,7 +7,7 @@
  */
 
 import type { GardenErrorParams } from "../exceptions.js"
-import { ConfigurationError, GardenError, TemplateStringError } from "../exceptions.js"
+import { ConfigurationError, GardenError, InternalError, TemplateStringError } from "../exceptions.js"
 import type {
   ConfigContext,
   ContextKeySegment,
@@ -42,6 +42,7 @@ import { deepMap } from "../util/objects.js"
 import type { ConfigSource } from "../config/validation.js"
 import * as parser from "./parser.js"
 import { styles } from "../logger/styles.js"
+import { ResolvedTemplateExpression, TemplateExpression, TemplateExpressionInputs } from "../config/template-contexts/input-tracking.js"
 
 const missingKeyExceptionType = "template-string-missing-key"
 const passthroughExceptionType = "template-string-passthrough"
@@ -104,35 +105,35 @@ export function resolveTemplateString({
   string: string
   context: ConfigContext
   contextOpts?: ContextResolveOpts
-}): any {
+}): string | TemplateExpression {
   // Just return immediately if this is definitely not a template string
   if (!maybeTemplateString(string)) {
     return string
   }
 
+  const inputs: TemplateExpressionInputs = {}
+
   try {
     const parsed = parser.parse(string, {
       getKey: (key: string[], resolveOpts?: ContextResolveOpts) => {
-        const value = context.resolve({
-          // rawExpression: string,
+        const res = context.resolve({
           key,
           nodePath: [],
           opts: { ...contextOpts, ...(resolveOpts || {}) },
         })
-        // If the value is cached we already tracked the reference, so no need to track it again.
-        // TODO: Without a path we don't need to track references? Can we somehow ensure that we aren't missing references by accident?
-        if (!value.cached && contextOpts.resultPath && contextOpts.resultPath.length > 0) {
-          context.recordReference(contextOpts.resultPath.join("."), {
-            rawExpressions: [string],
-            resolvedValue: value.resolved,
-            inputs: {
-              [key.join(".")]: {
-                resolvedValue: value.resolved,
-              },
-            },
+        // TODO: Is it ok when this is an Unresolved TemplateExpression?
+        if (res.resolved instanceof ResolvedTemplateExpression) {
+          inputs[key.join(".")] = res.resolved
+
+          return res.resolved.value
+        } else if (res.resolved instanceof TemplateExpression) {
+          // Unresolved is illegal here – or would the parser be able to deal with this somehow?
+          // TODO: enrich the message
+          throw new TemplateStringError({
+            message: `Found unresolved TemplateExpression in resolveTemplateString`,
           })
         }
-        return value
+        return res.resolved
       },
       getValue,
       resolveNested: (nested: string) => resolveTemplateString({ string: nested, context, contextOpts }),
@@ -237,7 +238,8 @@ export function resolveTemplateString({
       resolveTree(tree)
     }
 
-    return resolved
+    // TODO: Verify that we don't actually get to this point in case of a failed partial resolution.
+    return new ResolvedTemplateExpression(string, resolved, inputs)
   } catch (err) {
     if (!(err instanceof GardenError)) {
       throw err
@@ -293,17 +295,17 @@ function pushYamlPath(part: ObjectPath[0], contextOpts: ContextResolveOpts): Con
 
 // `extends any` here isn't pretty but this function is hard to type correctly
 // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-constraint
-export function resolveTemplateStrings<T extends any>({
+export function resolveTemplateStrings({
   value,
   context,
   contextOpts = {},
   source,
 }: {
-  value: T
+  value: unknown
   context: ConfigContext
   contextOpts?: ContextResolveOpts
   source: ConfigSource | undefined
-}): T {
+}): unknown {
   if (value === null) {
     return null as T
   }
@@ -320,7 +322,11 @@ export function resolveTemplateStrings<T extends any>({
   }
 
   if (typeof value === "string") {
-    return <T>resolveTemplateString({ string: value, context, contextOpts })
+    return resolveTemplateString({ string: value, context, contextOpts })
+  } else if (value instanceof ResolvedTemplateExpression) {
+    return value
+  } else if (value instanceof TemplateExpression) {
+    return resolveTemplateString({ string: value.expression, context, contextOpts })
   } else if (Array.isArray(value)) {
     const output: unknown[] = []
 
@@ -348,7 +354,22 @@ export function resolveTemplateStrings<T extends any>({
           source,
         })
 
-        if (Array.isArray(resolved)) {
+        if (resolved instanceof ResolvedTemplateExpression) {
+          if (!Array.isArray(resolved.value)) {
+            throw new TemplateError({
+              message: `Value of ${arrayConcatKey} key must be (or resolve to) an array (got ${typeof resolved})`,
+              path: contextOpts.yamlPath,
+              value,
+              resolved,
+            })
+          }
+          const expressions = resolved.value.map((val, index): ResolvedTemplateExpression => {
+            // TODO: Are we sure we want to pass all of `resolved.inputs` here? Let's reevaluate once we've got
+            // test cases to inspect this in more detail.
+            return new ResolvedTemplateExpression(`${resolved.expression}[${index}]`, val, resolved.inputs)
+          })
+          output.push(...expressions)
+        } else if (Array.isArray(resolved)) {
           output.push(...resolved)
         } else if (contextOpts.allowPartial) {
           output.push({ $concat: resolved })
@@ -468,6 +489,11 @@ function handleForEachObject({
     },
     source,
   })
+
+  if (resolvedInput instanceof TemplateExpression) {
+
+  }
+
   const isObject = isPlainObject(resolvedInput)
 
   if (!Array.isArray(resolvedInput) && !isObject) {
@@ -509,7 +535,7 @@ function handleForEachObject({
 
   // TODO: maybe there's a more efficient way to do the cloning/extending?
   const loopContext = cloneDeep(context)
-  loopContext.setRecordingTarget(context)
+  // loopContext.setRecordingTarget(context)
 
   const output: unknown[] = []
 
@@ -517,7 +543,7 @@ function handleForEachObject({
     const itemValue = resolvedInput[i]
 
     const contextForIndex = new GenericContext({ key: i, value: itemValue })
-    contextForIndex.setRecordingTarget(context)
+    // contextForIndex.setRecordingTarget(context)
     loopContext["item"] = contextForIndex
 
     // Have to override the cache in the parent context here

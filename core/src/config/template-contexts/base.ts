@@ -19,6 +19,8 @@ import { isPrimitive, joi, joiIdentifier } from "../common.js"
 import { KeyedSet } from "../../util/keyed-set.js"
 import { naturalList } from "../../util/string.js"
 import { styles } from "../../logger/styles.js"
+import { ResolvedTemplateExpression, TemplateExpression } from "./input-tracking.js"
+import { Template } from "handlebars"
 
 export type ContextKeySegment = string | number
 export type ContextKey = ContextKeySegment[]
@@ -77,7 +79,7 @@ export interface ContextResolveParams {
 export interface ContextResolveOutput {
   message?: string
   partial?: boolean
-  resolved: any
+  resolved: unknown | TemplateExpression
   cached: boolean
 }
 
