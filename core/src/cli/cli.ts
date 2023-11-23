@@ -225,8 +225,6 @@ ${renderCommands(commands)}
     } = parsedOpts
 
     const parsedCliVars = parseCliVarFlags(cliVars)
-    const gardenLog = log.createLog({ name: "garden" })
-
     // Some commands may set their own logger type so we update the logger config here,
     // once we've resolved the command.
     const commandLoggerType = command.getTerminalWriterType({ opts: parsedOpts, args: parsedArgs })
@@ -240,10 +238,17 @@ ${renderCommands(commands)}
     const sessionId = uuidv4()
 
     return withSessionContext({ sessionId }, async () => {
+      const gardenLog = log.createLog({ name: "garden", showDuration: true })
+      // Log context for printing the start and finish of Garden initialization when not using the dev console
+      const gardenInitLog =
+        command.getFullName() !== "dev" ? log.createLog({ name: "garden", showDuration: true }) : null
+
       // Init Cloud API (if applicable)
       let cloudApi: CloudApi | undefined
 
-      gardenLog.info("Initializing...")
+      if (gardenInitLog) {
+        gardenInitLog.info("Initializing...")
+      }
       if (!command.noProject) {
         const config = await this.getProjectConfig(log, workingDir)
         const cloudDomain = getGardenCloudDomain(config?.domain)
@@ -281,6 +286,7 @@ ${renderCommands(commands)}
         commandInfo,
         environmentString: environmentName,
         log,
+        gardenInitLog: gardenInitLog || undefined,
         forceRefresh,
         variableOverrides: parsedCliVars,
         plugins: this.plugins,

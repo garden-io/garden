@@ -18,7 +18,7 @@ import type { Garden } from "../garden.js"
 import type { Log } from "../logger/log-entry.js"
 import type { LoggerType, LoggerBase, LoggerConfigBase, LogLevel } from "../logger/logger.js"
 import { eventLogLevel } from "../logger/logger.js"
-import { printFooter } from "../logger/util.js"
+import { printEmoji, printFooter } from "../logger/util.js"
 import { getCloudDistributionName, getCloudLogSectionName } from "../util/cloud.js"
 import { getDurationMsec, getPackageVersion, userPrompt } from "../util/util.js"
 import { renderOptions, renderCommands, renderArguments, cliStyles, optionsWithAliasValues } from "../cli/helpers.js"
@@ -284,6 +284,7 @@ export abstract class Command<
         const log = overrideLogLevel ? garden.log.createLog({ fixLevel: overrideLogLevel }) : garden.log
 
         let cloudSession: CloudSession | undefined
+        let cloudLinkMsg: string | undefined
 
         // Session registration for the `dev` and `serve` commands is handled in the `serve` command's `action` method,
         // so we skip registering here to avoid duplication.
@@ -317,8 +318,10 @@ export abstract class Command<
             shortId: cloudSession.shortId,
           }).href
           const cloudLog = log.createLog({ name: getCloudLogSectionName(distroName) })
-
-          cloudLog.info(`View command results at: ${styles.link(commandResultUrl)}\n`)
+          cloudLinkMsg = `View command results at: \n\n${printEmoji("👉", log)}${styles.link(
+            commandResultUrl
+          )} ${printEmoji("👈", log)} \n`
+          cloudLog.info(cloudLinkMsg)
         }
 
         let analytics: AnalyticsHandler | undefined
@@ -429,6 +432,10 @@ export abstract class Command<
         // This is a little trick to do a round trip in the event loop, which may be necessary for event handlers to
         // fire, which may be needed to e.g. capture monitors added in event handlers
         await waitForOutputFlush()
+
+        if (cloudLinkMsg) {
+          log.info("\n" + cloudLinkMsg)
+        }
 
         return result
       })

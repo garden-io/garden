@@ -86,7 +86,7 @@ export class PortForwardMonitor extends Monitor {
       this.log.info(
         styles.primary(
           `Port forward: ` +
-            styles.underline(proxy.localUrl) +
+            styles.link(proxy.localUrl) +
             ` → ${targetHost}:${proxy.spec.targetPort}` +
             (proxy.spec.name ? ` (${proxy.spec.name})` : "")
         )

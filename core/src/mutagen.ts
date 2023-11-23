@@ -388,7 +388,7 @@ export class Mutagen {
       }
 
       const syncCount = session.successfulCycles || 0
-      const description = `from ${sourceDescription} to ${targetDescription}`
+      const description = `from ${styles.highlight(sourceDescription)} to ${styles.highlight(targetDescription)}`
       const isInitialSync = activeSync.lastSyncCount === 0
 
       // Mutagen resets the sync count to zero after resuming from a sync paused

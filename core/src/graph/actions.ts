@@ -467,7 +467,7 @@ export async function resolveAction<T extends Action>({
 
   const results = await garden.processTasks({ tasks: [task], log, throwOnError: true })
 
-  log.info(`Done!`)
+  log.success({ msg: `Done`, showDuration: false })
 
   return <Resolved<T>>(<unknown>results.results.getResult(task)!.result!.outputs.resolvedAction)
 }
