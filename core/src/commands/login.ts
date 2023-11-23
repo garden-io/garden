@@ -16,10 +16,10 @@ import type { Log } from "../logger/log-entry.js"
 import { ConfigurationError, TimeoutError, InternalError, CloudApiError } from "../exceptions.js"
 import { AuthRedirectServer } from "../cloud/auth.js"
 import type { EventBus } from "../events/events.js"
-import { getCloudDistributionName } from "../util/util.js"
 import type { ProjectConfig } from "../config/project.js"
 import { findProjectConfig } from "../config/base.js"
 import { BooleanParameter } from "../cli/params.js"
+import { getCloudDistributionName } from "../util/cloud.js"
 import { deline } from "../util/string.js"
 
 const loginTimeoutSec = 60

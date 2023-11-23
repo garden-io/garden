@@ -17,9 +17,9 @@ import type { UserResult } from "../helpers.js"
 import { applyFilter, makeUserFromResponse, noApiMsg } from "../helpers.js"
 import { sortBy } from "lodash-es"
 import { StringsParameter } from "../../../cli/params.js"
-import { getCloudDistributionName } from "../../../util/util.js"
 import type { CloudProject } from "../../../cloud/api.js"
 import { styles } from "../../../logger/styles.js"
+import { getCloudDistributionName } from "../../../util/cloud.js"
 
 export const usersListOpts = {
   "filter-names": new StringsParameter({

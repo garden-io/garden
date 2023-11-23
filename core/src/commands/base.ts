@@ -19,13 +19,8 @@ import type { Log } from "../logger/log-entry.js"
 import type { LoggerType, LoggerBase, LoggerConfigBase, LogLevel } from "../logger/logger.js"
 import { eventLogLevel } from "../logger/logger.js"
 import { printFooter } from "../logger/util.js"
-import {
-  getCloudDistributionName,
-  getCloudLogSectionName,
-  getDurationMsec,
-  getPackageVersion,
-  userPrompt,
-} from "../util/util.js"
+import { getCloudDistributionName, getCloudLogSectionName } from "../util/cloud.js"
+import { getDurationMsec, getPackageVersion, userPrompt } from "../util/util.js"
 import { renderOptions, renderCommands, renderArguments, cliStyles, optionsWithAliasValues } from "../cli/helpers.js"
 import type { GlobalOptions, ParameterValues, ParameterObject } from "../cli/params.js"
 import { globalOptions } from "../cli/params.js"

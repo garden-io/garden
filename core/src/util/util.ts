@@ -30,7 +30,7 @@ import { isAbsolute, relative } from "node:path"
 import type { Readable } from "stream"
 import { Writable } from "stream"
 import type { PrimitiveMap } from "../config/common.js"
-import { DEFAULT_GARDEN_CLOUD_DOMAIN, DOCS_BASE_URL, gardenEnv } from "../constants.js"
+import { DOCS_BASE_URL, gardenEnv } from "../constants.js"
 import {
   ChildProcessError,
   InternalError,
@@ -117,35 +117,6 @@ export function getPackageVersion(): string {
   // This code will be replaced by the version number during the build process in rollup.config.js. Please update the rollup config as well if you change the following line.
   const { version } = corePackageJson as { version: string }
   return version
-}
-
-type CloudDistroName = "Cloud Dashboard" | "Garden Enterprise" | "Garden Cloud"
-
-/**
- * Returns "Garden Cloud" if domain matches https://<some-subdomain>.app.garden,
- * otherwise "Garden Enterprise".
- *
- * TODO: Return the distribution type from the API and store on the CloudApi class.
- */
-export function getCloudDistributionName(domain: string): CloudDistroName {
-  if (domain === DEFAULT_GARDEN_CLOUD_DOMAIN) {
-    return "Cloud Dashboard"
-  }
-
-  if (!domain.match(/^https:\/\/.+\.app\.garden$/i)) {
-    return "Garden Enterprise"
-  }
-  return "Garden Cloud"
-}
-
-export function getCloudLogSectionName(distroName: CloudDistroName): string {
-  if (distroName === "Cloud Dashboard") {
-    return "cloud-dashboard"
-  } else if (distroName === "Garden Cloud") {
-    return "garden-cloud"
-  } else {
-    return "garden-enterprise"
-  }
 }
 
 export async function sleep(msec: number) {

@@ -28,16 +28,8 @@ import {
   defaultNamespace,
   defaultEnvironment,
 } from "./config/project.js"
-import {
-  findByName,
-  pickKeys,
-  getPackageVersion,
-  getNames,
-  findByNames,
-  duplicatesByKey,
-  getCloudDistributionName,
-  getCloudLogSectionName,
-} from "./util/util.js"
+import { getCloudDistributionName, getCloudLogSectionName } from "./util/cloud.js"
+import { findByName, pickKeys, getPackageVersion, getNames, findByNames, duplicatesByKey } from "./util/util.js"
 import type { GardenError } from "./exceptions.js"
 import {
   ConfigurationError,
