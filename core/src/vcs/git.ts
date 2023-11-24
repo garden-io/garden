@@ -205,13 +205,14 @@ export class GitHandler extends VcsHandler {
     }
 
     const { log, path, pathDescription = "directory", filter, failOnPrompt = false } = params
-    const { absExcludes, augmentedExcludes, augmentedIncludes, exclude, hasIncludes, include } =
+
+    const { absExcludes, augmentedExcludes, augmentedIncludes, exclude, include, hasIncludes } =
       await getIncludeExcludeFiles(params)
 
     const gitLog = log
       .createLog({ name: "git" })
       .debug(
-        `Scanning ${pathDescription} at ${path}\n  → Includes: ${include || "(none)"}\n  → Excludes: ${
+        `Scanning ${pathDescription} at ${path}\n  → Includes: ${params.include || "(none)"}\n  → Excludes: ${
           exclude || "(none)"
         }`
       )
@@ -244,9 +245,13 @@ export class GitHandler extends VcsHandler {
         .map((modifiedRelPath) => resolve(gitRoot, modifiedRelPath))
     )
 
+    // Apply the include patterns to the ls-files queries. We use the --glob-pathspecs flag
+    // to make sure the path handling is consistent with normal POSIX-style globs used generally by Garden.
     const globalArgs = ["--glob-pathspecs"]
     const lsFilesCommonArgs = ["--cached", "--exclude", this.gardenDirPath]
 
+    // Due to an issue in git, we can unfortunately only use _either_ include or exclude patterns in the
+    // ls-files commands, but not both. Trying both just ignores the exclude patterns.
     if (!hasIncludes) {
       for (const p of exclude) {
         lsFilesCommonArgs.push("--exclude", p)
