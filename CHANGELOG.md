@@ -1,4 +1,27 @@
 
+<a name="0.13.21"></a>
+## [0.13.21](https://github.com/garden-io/garden/compare/0.13.20...0.13.21) (2023-11-24)
+
+### Bug Fixes
+
+* **exec:** don't split quoted arguments in `exec` plugin's command (#5470) ([34b07feb3](https://github.com/garden-io/garden/commit/34b07feb3))
+* **core:** log exec provider resolution at info level ([#5469](https://github.com/garden-io/garden/issues/5469)) ([539abf905](https://github.com/garden-io/garden/commit/539abf905))
+* **git:** fix confusing error messages on exit code 128 ([#5439](https://github.com/garden-io/garden/issues/5439)) ([2779705b6](https://github.com/garden-io/garden/commit/2779705b6))
+* **k8s:** fix paths in requests to kubernetes api ([#5476](https://github.com/garden-io/garden/issues/5476)) ([783cc66a9](https://github.com/garden-io/garden/commit/783cc66a9))
+* **k8s:** read tls-server-name correctly from kubeconfig ([#5466](https://github.com/garden-io/garden/issues/5466)) ([554d964ff](https://github.com/garden-io/garden/commit/554d964ff))
+
+### Features
+
+* respect NO_COLOR env var ([#5451](https://github.com/garden-io/garden/issues/5451)) ([889552f87](https://github.com/garden-io/garden/commit/889552f87))
+
+### Improvements
+
+* **core:** better action lifecycle logs ([#5428](https://github.com/garden-io/garden/issues/5428)) ([65653b92e](https://github.com/garden-io/garden/commit/65653b92e))
+* **logger:** some minor fixes ([#5475](https://github.com/garden-io/garden/issues/5475)) ([b1288039f](https://github.com/garden-io/garden/commit/b1288039f))
+* **logger:** use 'white' as primary color ([#5465](https://github.com/garden-io/garden/issues/5465)) ([b8e232cd9](https://github.com/garden-io/garden/commit/b8e232cd9))
+* **logger:** better provider resolution lifecycle logs ([#5464](https://github.com/garden-io/garden/issues/5464)) ([7d5557fc3](https://github.com/garden-io/garden/commit/7d5557fc3))
+* **logger:** various tweaks to log lines ([#5452](https://github.com/garden-io/garden/issues/5452)) ([11f76148b](https://github.com/garden-io/garden/commit/11f76148b))
+
 <a name="0.13.20"></a>
 ## [0.13.20](https://github.com/garden-io/garden/compare/0.13.19...0.13.20) (2023-11-16)
 
