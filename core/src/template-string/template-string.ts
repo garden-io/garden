@@ -43,7 +43,7 @@ import { deepMap } from "../util/objects.js"
 import type { ConfigSource } from "../config/validation.js"
 import * as parser from "./parser.js"
 import { styles } from "../logger/styles.js"
-import { ReferenceRecorder, ResolvedResult, ResolvedValue, isResolvedValue } from "./inputs.js"
+import { ReferenceRecorder, TemplateCollectionOrValue, TemplateValue, isTemplateValue } from "./inputs.js"
 
 const missingKeyExceptionType = "template-string-missing-key"
 const passthroughExceptionType = "template-string-passthrough"
@@ -69,8 +69,8 @@ interface ConditionalTree {
   parent?: ConditionalTree
 }
 
-function getValue(v: ResolvedValue | ResolvedClause) {
-  return isResolvedValue(v) ? v.value : (<ResolvedClause>v).result
+function getValue(v: TemplateValue | ResolvedClause) {
+  return isTemplateValue(v) ? v.value : (<ResolvedClause>v).result
   // return isPlainObject(v) ? (<ResolvedClause>v).result : v
 }
 
@@ -99,8 +99,8 @@ export function resolveTemplateString({
   contextOpts?: ContextResolveOpts
 }): any {
   const result = resolveTemplateStringWithInputs({ string, context, contextOpts })
-  return deepMap(result, (v: ResolvedValue) => {
-    if (!(v instanceof ResolvedValue)) {
+  return deepMap(result, (v: TemplateValue) => {
+    if (!(v instanceof TemplateValue)) {
       throw new InternalError({ message: "Expected ResolvedValue" })
     }
     return v.value
@@ -125,15 +125,14 @@ export function resolveTemplateStringWithInputs({
   string: string
   context: ConfigContext
   contextOpts?: ContextResolveOpts
-}): ResolvedResult {
+}): TemplateCollectionOrValue {
   // Just return immediately if this is definitely not a template string
   if (!maybeTemplateString(string)) {
-    return {
-      // TODO: what is expr in this case?
+    return new TemplateValue({
       expr: undefined,
       value: string,
       inputs: {},
-    }
+    })
   }
 
   try {
@@ -146,17 +145,19 @@ export function resolveTemplateStringWithInputs({
           opts: { ...contextOpts, ...(resolveOpts || {}) },
         })
 
-        const addTemplateReferenceInformation = (v: ResolvedValue) => {
-          return new ResolvedValue({
+        const addTemplateReferenceInformation = (v: TemplateValue) => {
+          return new TemplateValue({
             expr: string,
             value: v.value,
             inputs: {
+              // key might be something like ["var", "foo", "bar"]
+              // TODO: We need the keypath from deepmap, and add it to the key as well
               [renderKeyPath(key)]: v,
             },
           })
         }
 
-        const enriched = isResolvedValue(value.result)
+        const enriched = isTemplateValue(value.result)
           ? addTemplateReferenceInformation(value.result)
           : deepMap(value.result, addTemplateReferenceInformation)
 
@@ -269,7 +270,7 @@ export function resolveTemplateStringWithInputs({
     }
 
     // TODO: Change parser to return ResolvedResult
-    return resolved as ResolvedResult
+    return resolved as TemplateCollectionOrValue
   } catch (err) {
     if (!(err instanceof GardenError)) {
       throw err

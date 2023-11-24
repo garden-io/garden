@@ -19,7 +19,7 @@ import { isPrimitive, joi, joiIdentifier } from "../common.js"
 import { KeyedSet } from "../../util/keyed-set.js"
 import { naturalList } from "../../util/string.js"
 import { styles } from "../../logger/styles.js"
-import { ReferenceRecorder, ResolveReferences, ResolvedResult, ResolvedValue, isResolvedPrimitive } from "../../template-string/inputs.js"
+import { ReferenceRecorder, __ResolveReferences, TemplateCollectionOrValue, TemplateValue, isTemplatePrimitive } from "../../template-string/inputs.js"
 import { deepMap } from "../../util/objects.js"
 
 export type ContextKeySegment = string | number
@@ -61,7 +61,7 @@ export interface ContextResolveParams {
 export interface ContextResolveOutput {
   message?: string
   partial?: boolean
-  result: ResolvedResult
+  result: TemplateCollectionOrValue
   cached: boolean
   // for input tracking
   // ResolvedResult: ResolvedResult
@@ -82,8 +82,8 @@ export interface ConfigContextType {
 // TODO-steffen&thor: Make all instance variables of all config context classes read-only.
 export abstract class ConfigContext {
   private readonly _rootContext: ConfigContext
-  private readonly _resolvedValues: { [path: string]: ResolvedResult }
-  private readonly _resolveReferences: ResolveReferences
+  private readonly _resolvedValues: { [path: string]: TemplateCollectionOrValue }
+  private readonly _resolveReferences: __ResolveReferences
 
   // This is used for special-casing e.g. runtime.* resolution
   protected _alwaysAllowPartial: boolean
@@ -109,7 +109,7 @@ export abstract class ConfigContext {
   }
 
   // TODO: remove this
-  addResolvedValue(name: string, value: any, path: ObjectPath, references: ResolveReferences) {
+  addResolvedValue(name: string, value: any, path: ObjectPath, references: __ResolveReferences) {
     const pathString = path.join(".")
     for (const [referenceKey, reference] of Object.entries(references)) {
       if (!referenceKey.startsWith(pathString) && referenceKey !== pathString) {
@@ -245,7 +245,7 @@ export abstract class ConfigContext {
         return {
           message,
           cached: false,
-          result: new ResolvedValue({
+          result: new TemplateValue({
             expr: undefined,
             value: undefined,
             inputs: {},
@@ -254,11 +254,11 @@ export abstract class ConfigContext {
       }
     }
 
-    let result: ResolvedResult
+    let result: TemplateCollectionOrValue
 
     // Wrap normal data using deepMap; TODO: Handle resolve results here.
-    if (isResolvedPrimitive(value)) {
-      result = new ResolvedValue({
+    if (isTemplatePrimitive(value)) {
+      result = new TemplateValue({
         expr: undefined,
         value,
         inputs: {},
@@ -266,7 +266,7 @@ export abstract class ConfigContext {
     } else {
       // value is a collection
       result = deepMap(value, (v) => {
-        return new ResolvedValue({
+        return new TemplateValue({
           expr: undefined,
           value: v,
           inputs: {},

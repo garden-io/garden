@@ -21,7 +21,7 @@ import { dedent } from "../../../src/util/string.js"
 import stripAnsi from "strip-ansi"
 import { TemplateStringError } from "../../../src/exceptions.js"
 import { ReferenceRecorder } from "../../../src/template-string/inputs.js"
-import type { ResolveReferences } from "../../../src/template-string/inputs.js"
+import type { __ResolveReferences } from "../../../src/template-string/inputs.js"
 
 class TestContext extends ConfigContext {
   constructor(context) {
@@ -2037,7 +2037,7 @@ describe.only("input tracking", () => {
       expect(res).to.eql(["element"])
 
       const references = referenceRecorder.getReferences()
-      const expectedReferences: ResolveReferences = {
+      const expectedReferences: __ResolveReferences = {
         "result.0": {
           expr: "${var.array}",
           inputs: {
@@ -2069,7 +2069,7 @@ describe.only("input tracking", () => {
       expect(res).to.eql([])
 
       const references = referenceRecorder.getReferences()
-      const expectedReferences: ResolveReferences = {
+      const expectedReferences: __ResolveReferences = {
         result: {
           expr: "${var.array}",
           inputs: {
@@ -2104,7 +2104,7 @@ describe.only("input tracking", () => {
       expect(res).to.eql(["element"])
 
       const references = referenceRecorder.getReferences()
-      const expectedReferences: ResolveReferences = {
+      const expectedReferences: __ResolveReferences = {
         "result.foo.bar": {
           expr: "${var.foo}",
           inputs: {
@@ -2216,7 +2216,7 @@ describe.only("input tracking", () => {
 
       // We do reference `var.foo`, but only in the collection expression. References from the collection expression
       // aren't tracked (since the item expressions are what ultimately appears in the resolved config).
-      const expectedRef: ResolveReferences = {
+      const expectedRef: __ResolveReferences = {
         "spec.services.0": {
           expr: undefined,
           value: "some-constant",
@@ -2253,7 +2253,7 @@ describe.only("input tracking", () => {
 
       const references = referenceRecorder.getReferences()
 
-      const expectedRef: ResolveReferences = {
+      const expectedRef: __ResolveReferences = {
         "spec.passwords.0": {
           expr: "${secrets.db_password}",
           value: "secure",
@@ -2293,7 +2293,7 @@ describe.only("input tracking", () => {
 
       const references = referenceRecorder.getReferences()
 
-      const expectedRef: ResolveReferences = {
+      const expectedRef: __ResolveReferences = {
         "spec.elements.0": {
           expr: "${item.value}",
           value: "element",
@@ -2344,7 +2344,7 @@ describe.only("input tracking", () => {
 
       const references = referenceRecorder.getReferences()
 
-      const expectedRef: ResolveReferences = {
+      const expectedRef: __ResolveReferences = {
         "foo.0": {
           expr: "${item.value.xyz}",
           value: "xyz_value_0",
@@ -2413,7 +2413,7 @@ describe.only("input tracking", () => {
 
       const references = referenceRecorder.getReferences()
 
-      const expectedRef: ResolveReferences = {
+      const expectedRef: __ResolveReferences = {
         "foo.0": {
           expr: "${item.value.xyz}",
           value: "xyz_value_0",
@@ -2484,7 +2484,7 @@ describe.only("input tracking", () => {
 
       const references = referenceRecorder.getReferences()
 
-      const expectedRef: ResolveReferences = {}
+      const expectedRef: __ResolveReferences = {}
       expect(references).to.eql(expectedRef)
     })
 
@@ -2510,7 +2510,7 @@ describe.only("input tracking", () => {
 
       const references = referenceRecorder.getReferences()
 
-      const expectedRef: ResolveReferences = {
+      const expectedRef: __ResolveReferences = {
         "spec.password": {
           expr: "${secrets.password}",
           value: "secure",
@@ -2550,7 +2550,7 @@ describe.only("input tracking", () => {
 
       const references = referenceRecorder.getReferences()
 
-      const expectedRef: ResolveReferences = {
+      const expectedRef: __ResolveReferences = {
         "spec.image": {
           expr: "${local.env.IMAGE}",
           value: "image:latest",
@@ -2590,7 +2590,7 @@ describe.only("input tracking", () => {
 
       const references = referenceRecorder.getReferences()
 
-      const expectedRef: ResolveReferences = {
+      const expectedRef: __ResolveReferences = {
         "foo.bar.0": {
           expr: "${var.foo.bar}",
           value: "baz",
@@ -2672,7 +2672,7 @@ describe.only("input tracking", () => {
 
       // The template reference map should only contain the leaves
       // Or with other words, every key path is the longest possible / full path
-      const expectedRef: ResolveReferences = {
+      const expectedRef: __ResolveReferences = {
         "a.b.c.bar": {
           expr: "${var.foo}",
           value: "baz",

@@ -11,50 +11,54 @@ import { ContextResolveOpts } from "../config/template-contexts/base.js"
 import { InternalError } from "../exceptions.js"
 import { isPlainObject } from "lodash-es"
 
-// TODO: remove this type once we removed the recorder
-export type ResolveReferences = {
-  // key is the resolve result key path, e.g. "spec.files[0].path"
-  [resultKeyPath: string]: ResolvedValue
-}
-
-export function isResolvedPrimitive(value: unknown): value is ResolvedPrimitive {
+export function isTemplatePrimitive(value: unknown): value is TemplatePrimitive {
   return (
-    value === undefined ||
     isPrimitive(value) ||
     (isPlainObject(value) && Object.keys(<object>value).length === 0) ||
     (Array.isArray(value) && value.length === 0)
   )
 }
 
-// We need to be able to track inputs even when there are no values, so empty collections must be a Primitive in the ResolvedValue type.
-export type ResolvedPrimitive = Primitive | undefined | { [key: string]: never } | never[]
+type EmptyArray = never[]
+type EmptyObject = { [key: string]: never }
 
-export function isResolvedValue(value: unknown): value is ResolvedValue {
-  return value instanceof ResolvedValue
+export type TemplatePrimitive =
+  | Primitive
+  // We need an instance of TemplateValue to wrap /empty/ Arrays and /empty/ Objects, so we can track their inputs.
+  // If the array/object has elements, those will be wrapped in TemplateValue instances.
+  | EmptyArray
+  | EmptyObject
+
+export function isTemplateValue(value: unknown): value is TemplateValue {
+  return value instanceof TemplateValue
 }
 
 type TemplateInputs = {
   // key is the input variable name, e.g. secrets.someSecret, local.env.SOME_VARIABLE, etc
-  [contextKeyPath: string]: ResolvedValue
+  [contextKeyPath: string]: TemplateValue
 }
 
-export class ResolvedValue<T extends ResolvedPrimitive = ResolvedPrimitive> {
+export class TemplateValue<T extends TemplatePrimitive = TemplatePrimitive> {
   public readonly expr: string | undefined
   public readonly value: T
   public readonly inputs: TemplateInputs
-  constructor({ expr, value, inputs }: { expr: string | undefined, value: T, inputs: TemplateInputs }) {
+  constructor({ expr, value, inputs }: { expr: string | undefined; value: T; inputs: TemplateInputs }) {
     this.expr = expr
     this.value = value
     this.inputs = inputs
   }
 }
 
-export type ResolvedResult = ResolvedValue | Iterable<ResolvedResult> | { [key: string]: ResolvedResult }
+export type TemplateCollectionOrValue =
+  | TemplateValue
+  | Iterable<TemplateCollectionOrValue>
+  | { [key: string]: TemplateCollectionOrValue }
 
+// TODO: Remove the recorder
 export class ReferenceRecorder {
-  private references?: ResolveReferences = {}
+  private references?: __ResolveReferences = {}
 
-  record(contextOpts: ContextResolveOpts, result: ResolvedValue) {
+  record(contextOpts: ContextResolveOpts, result: TemplateValue) {
     if (!this.references) {
       throw new InternalError({ message: "Already collected references" })
     }
@@ -69,7 +73,7 @@ export class ReferenceRecorder {
     }
   }
 
-  getReferences(): ResolveReferences {
+  getReferences(): __ResolveReferences {
     if (!this.references) {
       throw new InternalError({ message: "Already collected references" })
     }
@@ -77,4 +81,9 @@ export class ReferenceRecorder {
     delete this.references
     return refs
   }
+}
+
+export type __ResolveReferences = {
+  // key is the resolve result key path, e.g. "spec.files[0].path"
+  [resultKeyPath: string]: TemplateValue
 }
