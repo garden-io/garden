@@ -152,15 +152,10 @@ export class GitHandler extends VcsHandler {
    * we need to name the function that recurses in here differently from {@link getFiles}
    * so that {@link getFiles} won't refer to the method in the subclass.
    */
-  async _getFiles({
-    log,
-    path,
-    pathDescription = "directory",
-    include,
-    exclude,
-    filter,
-    failOnPrompt = false,
-  }: GetFilesParams): Promise<VcsFile[]> {
+  async _getFiles(params: GetFilesParams): Promise<VcsFile[]> {
+    const { log, path, pathDescription = "directory", filter, failOnPrompt = false } = params
+    let { include, exclude } = params
+
     if (include && include.length === 0) {
       // No need to proceed, nothing should be included
       return []
