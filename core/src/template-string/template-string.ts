@@ -7,13 +7,14 @@
  */
 
 import type { GardenErrorParams } from "../exceptions.js"
-import { ConfigurationError, GardenError, TemplateStringError } from "../exceptions.js"
+import { ConfigurationError, GardenError, InternalError, TemplateStringError } from "../exceptions.js"
 import {
   ConfigContext,
   ContextKeySegment,
   ContextResolveOpts,
   ContextResolveOutput,
   ObjectPath,
+  renderKeyPath,
 } from "../config/template-contexts/base.js"
 import { GenericContext, ScanContext } from "../config/template-contexts/base.js"
 import cloneDeep from "fast-copy"
@@ -42,7 +43,7 @@ import { deepMap } from "../util/objects.js"
 import type { ConfigSource } from "../config/validation.js"
 import * as parser from "./parser.js"
 import { styles } from "../logger/styles.js"
-import { ReferenceRecorder, ResolvedValue } from "./inputs.js"
+import { ReferenceRecorder, ResolvedResult, ResolvedValue, isResolvedValue } from "./inputs.js"
 
 const missingKeyExceptionType = "template-string-missing-key"
 const passthroughExceptionType = "template-string-passthrough"
@@ -68,8 +69,9 @@ interface ConditionalTree {
   parent?: ConditionalTree
 }
 
-function getValue(v: Primitive | undefined | ResolvedClause) {
-  return isPlainObject(v) ? (<ResolvedClause>v).result : v
+function getValue(v: ResolvedValue | ResolvedClause) {
+  return isResolvedValue(v) ? v.value : (<ResolvedClause>v).result
+  // return isPlainObject(v) ? (<ResolvedClause>v).result : v
 }
 
 export class TemplateError extends GardenError {
@@ -97,7 +99,12 @@ export function resolveTemplateString({
   contextOpts?: ContextResolveOpts
 }): any {
   const result = resolveTemplateStringWithInputs({ string, context, contextOpts })
-  return result.value
+  return deepMap(result, (v: ResolvedValue) => {
+    if (!(v instanceof ResolvedValue)) {
+      throw new InternalError({ message: "Expected ResolvedValue" })
+    }
+    return v.value
+  })
 }
 
 /**
@@ -118,7 +125,7 @@ export function resolveTemplateStringWithInputs({
   string: string
   context: ConfigContext
   contextOpts?: ContextResolveOpts
-}): ResolvedValue {
+}): ResolvedResult {
   // Just return immediately if this is definitely not a template string
   if (!maybeTemplateString(string)) {
     return {
@@ -128,8 +135,6 @@ export function resolveTemplateStringWithInputs({
       inputs: {},
     }
   }
-
-  const inputs: ResolvedValue["inputs"] = {}
 
   try {
     const parsed = parser.parse(string, {
@@ -141,29 +146,25 @@ export function resolveTemplateStringWithInputs({
           opts: { ...contextOpts, ...(resolveOpts || {}) },
         })
 
-        if (isPrimitive(value.result.value)) {
-          for (const key of Object.keys(value.result.inputs)) {
-            if (!inputs.hasOwnProperty(key)) {
-              inputs[key] = result.inputs[key]
-            }
-          }
+        const addTemplateReferenceInformation = (v: ResolvedValue) => {
+          return new ResolvedValue({
+            expr: string,
+            value: v.value,
+            inputs: {
+              [renderKeyPath(key)]: v,
+            },
+          })
         }
 
+        const enriched = isResolvedValue(value.result)
+          ? addTemplateReferenceInformation(value.result)
+          : deepMap(value.result, addTemplateReferenceInformation)
 
-        return value.result
+        return enriched
       },
       getValue,
       resolveNested: (nested: string) => {
-        const result = resolveTemplateString({ string: nested, context, contextOpts })
-
-        // TODO: Do we also need to record nested expressions here?
-        for (const key of Object.keys(result.inputs)) {
-          if (!inputs.hasOwnProperty(key)) {
-            inputs[key] = result.inputs[key]
-          }
-        }
-
-        return result.value
+        return resolveTemplateString({ string: nested, context, contextOpts })
       },
       buildBinaryExpression,
       buildLogicalExpression,
@@ -193,6 +194,7 @@ export function resolveTemplateStringWithInputs({
     }
 
     // Use value directly if there is only one (or no) value in the output.
+    // TODO: Should this be ResolvedResult?
     let resolved: unknown = outputs[0]?.result
 
     if (outputs.length > 1) {
@@ -266,11 +268,8 @@ export function resolveTemplateStringWithInputs({
       resolveTree(tree)
     }
 
-    return {
-      expr: string,
-      value: resolved,
-      inputs,
-    }
+    // TODO: Change parser to return ResolvedResult
+    return resolved as ResolvedResult
   } catch (err) {
     if (!(err instanceof GardenError)) {
       throw err

@@ -2053,6 +2053,38 @@ describe.only("input tracking", () => {
       expect(references).to.eql(expectedReferences)
     })
 
+    it("records references for every collection item in the result of the template expression, array", () => {
+      const context = new TestContext({
+        var: {
+          array: [],
+        },
+      })
+
+      const referenceRecorder = new ReferenceRecorder()
+      const res = resolveTemplateString({
+        string: "${var.array ? 'foo' : 'bar' }",
+        context,
+        contextOpts: { referenceRecorder, resultPath: ["result"] },
+      })
+      expect(res).to.eql([])
+
+      const references = referenceRecorder.getReferences()
+      const expectedReferences: ResolveReferences = {
+        result: {
+          expr: "${var.array}",
+          inputs: {
+            "var.array": {
+              expr: undefined,
+              inputs: {},
+              value: [],
+            },
+          },
+          value: "bar",
+        },
+      }
+      expect(references).to.eql(expectedReferences)
+    })
+
     it("records references for every collection item in the result of the template expression, object", () => {
       const context = new TestContext({
         var: {
@@ -2094,7 +2126,7 @@ describe.only("input tracking", () => {
                   expr: undefined,
                   value: "banana",
                   inputs: {},
-                }
+                },
               },
               value: "banana",
             },
@@ -2104,7 +2136,6 @@ describe.only("input tracking", () => {
       }
       expect(references).to.eql(expectedReferences)
     })
-
   })
   describe("resolveTemplateStrings", () => {
     it("records template references (array, direct)", () => {
@@ -2186,16 +2217,10 @@ describe.only("input tracking", () => {
       // We do reference `var.foo`, but only in the collection expression. References from the collection expression
       // aren't tracked (since the item expressions are what ultimately appears in the resolved config).
       const expectedRef: ResolveReferences = {
-        "spec.services": {
-          expr: "${var.array}",
-          inputs: {
-            "var.array": {
-              expr: undefined,
-              inputs: {},
-              value: ["element"],
-            },
-          },
-          value: ["element"],
+        "spec.services.0": {
+          expr: undefined,
+          value: "some-constant",
+          inputs: {},
         },
       }
       expect(references).to.eql(expectedRef)
@@ -2229,17 +2254,6 @@ describe.only("input tracking", () => {
       const references = referenceRecorder.getReferences()
 
       const expectedRef: ResolveReferences = {
-        "spec.passwords": {
-          expr: "${var.array}",
-          inputs: {
-            "var.array": {
-              expr: undefined,
-              inputs: {},
-              value: ["element"],
-            },
-          },
-          value: ["element"],
-        },
         "spec.passwords.0": {
           expr: "${secrets.db_password}",
           value: "secure",

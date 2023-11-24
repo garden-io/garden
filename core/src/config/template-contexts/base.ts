@@ -19,7 +19,8 @@ import { isPrimitive, joi, joiIdentifier } from "../common.js"
 import { KeyedSet } from "../../util/keyed-set.js"
 import { naturalList } from "../../util/string.js"
 import { styles } from "../../logger/styles.js"
-import { ReferenceRecorder, ResolveReferences, ResolvedResult } from "../../template-string/inputs.js"
+import { ReferenceRecorder, ResolveReferences, ResolvedResult, ResolvedValue, isResolvedPrimitive } from "../../template-string/inputs.js"
+import { deepMap } from "../../util/objects.js"
 
 export type ContextKeySegment = string | number
 export type ContextKey = ContextKeySegment[]
@@ -241,18 +242,44 @@ export abstract class ConfigContext {
       } else {
         // Otherwise we return the undefined value, so that any logical expressions can be evaluated appropriately.
         // The template resolver will throw the error later if appropriate.
-        return { message, cached: false, result: { value: undefined, expr: undefined, inputs: {} } }
+        return {
+          message,
+          cached: false,
+          result: new ResolvedValue({
+            expr: undefined,
+            value: undefined,
+            inputs: {},
+          }),
+        }
       }
     }
 
-    const ResolvedResult = { value, expr: undefined, inputs: {} }
+    let result: ResolvedResult
+
+    // Wrap normal data using deepMap; TODO: Handle resolve results here.
+    if (isResolvedPrimitive(value)) {
+      result = new ResolvedValue({
+        expr: undefined,
+        value,
+        inputs: {},
+      })
+    } else {
+      // value is a collection
+      result = deepMap(value, (v) => {
+        return new ResolvedValue({
+          expr: undefined,
+          value: v,
+          inputs: {},
+        })
+      })
+    }
 
     // Cache result, unless it is a partial resolution
     if (!partial) {
-      this._resolvedValues[path] = ResolvedResult
+      this._resolvedValues[path] = result
     }
 
-    return { cached: false, result: value  }
+    return { cached: false, result }
   }
 }
 
@@ -284,7 +311,11 @@ export class ScanContext extends ConfigContext {
   override resolve({ key, nodePath }: ContextResolveParams) {
     const fullKey = nodePath.concat(key)
     this.foundKeys.add(fullKey)
-    return { partial: true, cached: false, result: { value: renderTemplateString(fullKey), expr: undefined, inputs: {} } }
+    return {
+      partial: true,
+      cached: false,
+      result: { value: renderTemplateString(fullKey), expr: undefined, inputs: {} },
+    }
   }
 }
 
@@ -361,7 +392,7 @@ function renderTemplateString(key: ContextKeySegment[]) {
 /**
  * Given all the segments of a template string, return a string path for the key.
  */
-function renderKeyPath(key: ContextKeySegment[]): string {
+export function renderKeyPath(key: ContextKeySegment[]): string {
   // Note: We don't support bracket notation for the first part in a template string
   if (key.length === 0) {
     return ""

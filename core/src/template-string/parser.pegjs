@@ -54,7 +54,7 @@ TemplateString
   = a:(FormatString)+ b:TemplateString? { return [...a, ...(b || [])] }
   / a:Prefix b:(FormatString)+ c:TemplateString? { return [a, ...b, ...(c || [])] }
   / InvalidFormatString
-  / $(.*) { return text() === "" ? [] : [{ resolved: text() }] }
+  / $(.*) { return text() === "" ? [] : [{ resolved: text() }] }
 
 FormatString
   = EscapeStart SourceCharacter* FormatEndWithOptional {
@@ -115,6 +115,8 @@ FormatString
         } else if (e && e._error) {
           return e
         } else {
+          console.log("e._error:", e._error)
+          console.log("e:", e)
           const _error = new TemplateStringError({ message: e.message || "Unable to resolve one or more keys.", detail: {
             text: text(),
           }})
