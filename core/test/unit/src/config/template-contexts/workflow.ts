@@ -112,7 +112,7 @@ describe("WorkflowStepConfigContext", () => {
       },
       stepName: "step-2",
     })
-    expect(c.resolve({ key: ["steps", "step-1", "outputs", "some"], nodePath: [], opts: {} }).resolved).to.equal(
+    expect(c.resolve({ key: ["steps", "step-1", "outputs", "some"], nodePath: [], opts: {} }).result).to.equal(
       "value"
     )
   })
@@ -131,7 +131,7 @@ describe("WorkflowStepConfigContext", () => {
       },
       stepName: "step-2",
     })
-    expect(c.resolve({ key: ["steps", "step-1", "log"], nodePath: [], opts: {} }).resolved).to.equal("bla")
+    expect(c.resolve({ key: ["steps", "step-1", "log"], nodePath: [], opts: {} }).result).to.equal("bla")
   })
 
   it("should throw error when attempting to reference a following step", () => {

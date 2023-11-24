@@ -42,7 +42,7 @@ import { deepMap } from "../util/objects.js"
 import type { ConfigSource } from "../config/validation.js"
 import * as parser from "./parser.js"
 import { styles } from "../logger/styles.js"
-import { ReferenceRecorder, ResolveResult } from "./inputs.js"
+import { ReferenceRecorder, ResolvedValue } from "./inputs.js"
 
 const missingKeyExceptionType = "template-string-missing-key"
 const passthroughExceptionType = "template-string-passthrough"
@@ -69,7 +69,7 @@ interface ConditionalTree {
 }
 
 function getValue(v: Primitive | undefined | ResolvedClause) {
-  return isPlainObject(v) ? (<ResolvedClause>v).resolved : v
+  return isPlainObject(v) ? (<ResolvedClause>v).result : v
 }
 
 export class TemplateError extends GardenError {
@@ -87,6 +87,19 @@ export class TemplateError extends GardenError {
   }
 }
 
+export function resolveTemplateString({
+  string,
+  context,
+  contextOpts = {},
+}: {
+  string: string
+  context: ConfigContext
+  contextOpts?: ContextResolveOpts
+}): any {
+  const result = resolveTemplateStringWithInputs({ string, context, contextOpts })
+  return result.value
+}
+
 /**
  * Parse and resolve a templated string, with the given context. The template format is similar to native JS templated
  * strings but only supports simple lookups from the given context, e.g. "prefix-${nested.key}-suffix", and not
@@ -97,7 +110,7 @@ export class TemplateError extends GardenError {
  *
  * TODO: Update docstring to also talk about resolved reference tracking.
  */
-export function resolveTemplateString({
+export function resolveTemplateStringWithInputs({
   string,
   context,
   contextOpts = {},
@@ -105,13 +118,18 @@ export function resolveTemplateString({
   string: string
   context: ConfigContext
   contextOpts?: ContextResolveOpts
-}): any {
+}): ResolvedValue {
   // Just return immediately if this is definitely not a template string
   if (!maybeTemplateString(string)) {
-    return string
+    return {
+      // TODO: what is expr in this case?
+      expr: undefined,
+      value: string,
+      inputs: {},
+    }
   }
 
-  const inputs: ResolveResult["inputs"] = {}
+  const inputs: ResolvedValue["inputs"] = {}
 
   try {
     const parsed = parser.parse(string, {
@@ -123,18 +141,16 @@ export function resolveTemplateString({
           opts: { ...contextOpts, ...(resolveOpts || {}) },
         })
 
-        // const res = value.resolveResult
-        // if (Array.isArray(res) || isPlainObject(res)) {
-        //   // deep map leaves
-        // } else {
-        //   // Then res itself is a leaf, so we just register it and return.
-        //   const inputReferenceKey = key.join(".")
-        //   if (!inputs.hasOwnProperty(inputReferenceKey)) {
-        //     inputs[inputReferenceKey] = value.resolveResult
-        //   }
-        // }
+        if (isPrimitive(value.result.value)) {
+          for (const key of Object.keys(value.result.inputs)) {
+            if (!inputs.hasOwnProperty(key)) {
+              inputs[key] = result.inputs[key]
+            }
+          }
+        }
 
-        return value.resolved
+
+        return value.result
       },
       getValue,
       resolveNested: (nested: string) => {
@@ -177,7 +193,7 @@ export function resolveTemplateString({
     }
 
     // Use value directly if there is only one (or no) value in the output.
-    let resolved: unknown = outputs[0]?.resolved
+    let resolved: unknown = outputs[0]?.result
 
     if (outputs.length > 1) {
       // Assemble the parts into a conditional tree
@@ -191,7 +207,7 @@ export function resolveTemplateString({
         if (part.block === "if") {
           const node: ConditionalTree = {
             type: "if",
-            value: !!part.resolved,
+            value: !!part.result,
             children: [],
             parent: currentNode,
           }
@@ -250,15 +266,11 @@ export function resolveTemplateString({
       resolveTree(tree)
     }
 
-    const result = {
+    return {
       expr: string,
       value: resolved,
       inputs,
     }
-
-    contextOpts.referenceRecorder?.record(contextOpts, result)
-
-    return result.value
   } catch (err) {
     if (!(err instanceof GardenError)) {
       throw err

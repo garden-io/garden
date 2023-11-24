@@ -6,27 +6,33 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import { Primitive } from "utility-types"
 import { ContextResolveOpts } from "../config/template-contexts/base.js"
 import { InternalError } from "../exceptions.js"
 
+
+
+
 export type ResolveReferences = {
   // key is the resolve result key path, e.g. "spec.files[0].path"
-  [resultKeyPath: string]: ResolveResult
+  [resultKeyPath: string]: ResolvedValue
 }
 
-export type ResolveResult<T = unknown> = {
+export type ResolvedValue<T extends Primitive = Primitive> = {
   expr: string | undefined
   value: T
   inputs: {
     // key is the input variable name, e.g. secrets.someSecret, local.env.SOME_VARIABLE, etc
-    [contextKeyPath: string]: ResolveResult
+    [contextKeyPath: string]: ResolvedValue
   }
 }
+
+export type ResolvedResult = ResolvedValue | ResolvedResult[] | { [key: string] : ResolvedResult }
 
 export class ReferenceRecorder {
   private references?: ResolveReferences = {}
 
-  record(contextOpts: ContextResolveOpts, result: ResolveResult) {
+  record(contextOpts: ContextResolveOpts, result: ResolvedValue) {
     if (!this.references) {
       throw new InternalError({ message: "Already collected references" })
     }

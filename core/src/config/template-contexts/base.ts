@@ -19,7 +19,7 @@ import { isPrimitive, joi, joiIdentifier } from "../common.js"
 import { KeyedSet } from "../../util/keyed-set.js"
 import { naturalList } from "../../util/string.js"
 import { styles } from "../../logger/styles.js"
-import { ReferenceRecorder, ResolveReferences, ResolveResult } from "../../template-string/inputs.js"
+import { ReferenceRecorder, ResolveReferences, ResolvedResult } from "../../template-string/inputs.js"
 
 export type ContextKeySegment = string | number
 export type ContextKey = ContextKeySegment[]
@@ -60,10 +60,10 @@ export interface ContextResolveParams {
 export interface ContextResolveOutput {
   message?: string
   partial?: boolean
-  resolved: unknown
+  result: ResolvedResult
   cached: boolean
   // for input tracking
-  resolveResult: ResolveResult
+  // ResolvedResult: ResolvedResult
 }
 
 export function schema(joiSchema: Joi.Schema) {
@@ -81,7 +81,7 @@ export interface ConfigContextType {
 // TODO-steffen&thor: Make all instance variables of all config context classes read-only.
 export abstract class ConfigContext {
   private readonly _rootContext: ConfigContext
-  private readonly _resolvedValues: { [path: string]: ResolveResult }
+  private readonly _resolvedValues: { [path: string]: ResolvedResult }
   private readonly _resolveReferences: ResolveReferences
 
   // This is used for special-casing e.g. runtime.* resolution
@@ -130,7 +130,7 @@ export abstract class ConfigContext {
     const cachedResult = this._resolvedValues[path]
 
     if (cachedResult) {
-      return { resolved: cachedResult.value, cached: true, resolveResult: cachedResult }
+      return { cached: true, result: cachedResult }
     }
 
     opts.stack = [...(opts.stack || [])]
@@ -190,7 +190,7 @@ export abstract class ConfigContext {
         if (remainder.length > 0) {
           opts.stack.push(stackEntry)
           const res = value.resolve({ key: remainder, nodePath: nestedNodePath, opts })
-          value = res.resolved
+          value = res.result
           message = res.message
           partial = !!res.partial
         }
@@ -241,18 +241,18 @@ export abstract class ConfigContext {
       } else {
         // Otherwise we return the undefined value, so that any logical expressions can be evaluated appropriately.
         // The template resolver will throw the error later if appropriate.
-        return { resolved: undefined, message, cached: false, resolveResult: { value: undefined, expr: undefined, inputs: {} } }
+        return { message, cached: false, result: { value: undefined, expr: undefined, inputs: {} } }
       }
     }
 
-    const resolveResult = { value, expr: undefined, inputs: {} }
+    const ResolvedResult = { value, expr: undefined, inputs: {} }
 
     // Cache result, unless it is a partial resolution
     if (!partial) {
-      this._resolvedValues[path] = resolveResult
+      this._resolvedValues[path] = ResolvedResult
     }
 
-    return { resolved: value, cached: false, resolveResult }
+    return { cached: false, result: value  }
   }
 }
 
@@ -284,7 +284,7 @@ export class ScanContext extends ConfigContext {
   override resolve({ key, nodePath }: ContextResolveParams) {
     const fullKey = nodePath.concat(key)
     this.foundKeys.add(fullKey)
-    return { resolved: renderTemplateString(fullKey), partial: true, cached: false, resolveResult: { value: undefined, expr: undefined, inputs: {} } }
+    return { partial: true, cached: false, result: { value: renderTemplateString(fullKey), expr: undefined, inputs: {} } }
   }
 }
 

@@ -46,7 +46,7 @@ describe("ConfigContext", () => {
 
     it("should return undefined for missing key", async () => {
       const c = new TestContext({})
-      const { resolved, message } = resolveKey(c, ["basic"])
+      const { result: resolved, message } = resolveKey(c, ["basic"])
       expect(resolved).to.be.undefined
       expect(stripAnsi(message!)).to.include("Could not find key basic.")
     })
@@ -90,7 +90,7 @@ describe("ConfigContext", () => {
       const c = new TestContext({
         nested: new TestContext({ key: "value" }),
       })
-      const { resolved, message } = resolveKey(c, ["basic", "bla"])
+      const { result: resolved, message } = resolveKey(c, ["basic", "bla"])
       expect(resolved).to.be.undefined
       expect(stripAnsi(message!)).to.equal("Could not find key basic. Available keys: nested.")
     })
