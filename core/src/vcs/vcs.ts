@@ -34,6 +34,7 @@ import type { Garden } from "../garden.js"
 import { Profile } from "../util/profiling.js"
 
 import AsyncLock from "async-lock"
+
 const scanLock = new AsyncLock()
 
 export const versionStringPrefix = "v-"
@@ -120,6 +121,18 @@ export interface GetFilesParams {
   failOnPrompt?: boolean
   scanRoot: string | undefined
 }
+
+export interface BaseIncludeExcludeFiles {
+  include?: string[]
+  exclude: string[]
+
+  augmentedIncludes?: string[]
+  augmentedExcludes: string[]
+}
+
+export type IncludeExcludeFilesHandler<T extends GetFilesParams, R extends BaseIncludeExcludeFiles> = (
+  params: T
+) => Promise<R>
 
 export interface GetTreeVersionParams {
   log: Log

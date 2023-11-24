@@ -11,7 +11,15 @@ import { isAbsolute, join, posix, relative, resolve } from "path"
 import { isString } from "lodash-es"
 import fsExtra from "fs-extra"
 import { PassThrough } from "stream"
-import type { GetFilesParams, RemoteSourceParams, VcsFile, VcsHandlerParams, VcsInfo } from "./vcs.js"
+import type {
+  BaseIncludeExcludeFiles,
+  GetFilesParams,
+  IncludeExcludeFilesHandler,
+  RemoteSourceParams,
+  VcsFile,
+  VcsHandlerParams,
+  VcsInfo,
+} from "./vcs.js"
 import { VcsHandler } from "./vcs.js"
 import type { GardenError } from "../exceptions.js"
 import { ChildProcessError, ConfigurationError, isErrnoException, RuntimeError } from "../exceptions.js"
@@ -64,6 +72,44 @@ export function parseGitUrl(url: string) {
 
 export interface GitCli {
   (...args: (string | undefined)[]): Promise<string[]>
+}
+
+interface GitSubTreeIncludeExcludeFiles extends BaseIncludeExcludeFiles {
+  hasIncludes: boolean
+  absExcludes: string[]
+}
+
+const getIncludeExcludeFiles: IncludeExcludeFilesHandler<GetFilesParams, GitSubTreeIncludeExcludeFiles> = async (
+  params: GetFilesParams
+) => {
+  const { path } = params
+  let { include, exclude } = params
+
+  if (!exclude) {
+    exclude = []
+  }
+  // Make sure action config is not mutated
+  exclude = [...exclude, "**/.garden/**/*"]
+
+  // Apply the include patterns to the ls-files queries. We use the --glob-pathspecs flag
+  // to make sure the path handling is consistent with normal POSIX-style globs used generally by Garden.
+
+  // Due to an issue in git, we can unfortunately only use _either_ include or exclude patterns in the
+  // ls-files commands, but not both. Trying both just ignores the exclude patterns.
+
+  if (include?.includes("**/*")) {
+    // This is redundant
+    include = undefined
+  }
+
+  const absExcludes = exclude.map((p) => resolve(path, p))
+  const hasIncludes = !!include?.length
+
+  // Need to automatically add `**/*` to directory paths, to match git behavior when filtering.
+  const augmentedIncludes = await augmentGlobs(path, include)
+  const augmentedExcludes = await augmentGlobs(path, exclude)
+
+  return { include, exclude, augmentedIncludes, augmentedExcludes, hasIncludes, absExcludes }
 }
 
 interface Submodule {
@@ -153,19 +199,14 @@ export class GitHandler extends VcsHandler {
    * so that {@link getFiles} won't refer to the method in the subclass.
    */
   async _getFiles(params: GetFilesParams): Promise<VcsFile[]> {
-    const { log, path, pathDescription = "directory", filter, failOnPrompt = false } = params
-    let { include, exclude,  } = params
-
-    if (include && include.length === 0) {
+    if (params.include && params.include.length === 0) {
       // No need to proceed, nothing should be included
       return []
     }
 
-    if (!exclude) {
-      exclude = []
-    }
-    // Make sure action config is not mutated
-    exclude = [...exclude, "**/.garden/**/*"]
+    const { log, path, pathDescription = "directory", filter, failOnPrompt = false } = params
+    const { absExcludes, augmentedExcludes, augmentedIncludes, exclude, hasIncludes, include } =
+      await getIncludeExcludeFiles(params)
 
     const gitLog = log
       .createLog({ name: "git" })
@@ -203,21 +244,6 @@ export class GitHandler extends VcsHandler {
         .map((modifiedRelPath) => resolve(gitRoot, modifiedRelPath))
     )
 
-    const absExcludes = exclude.map((p) => resolve(path, p))
-
-    // Apply the include patterns to the ls-files queries. We use the --glob-pathspecs flag
-    // to make sure the path handling is consistent with normal POSIX-style globs used generally by Garden.
-
-    // Due to an issue in git, we can unfortunately only use _either_ include or exclude patterns in the
-    // ls-files commands, but not both. Trying both just ignores the exclude patterns.
-
-    if (include?.includes("**/*")) {
-      // This is redundant
-      include = undefined
-    }
-
-    const hasIncludes = !!include?.length
-
     const globalArgs = ["--glob-pathspecs"]
     const lsFilesCommonArgs = ["--cached", "--exclude", this.gardenDirPath]
 
@@ -253,10 +279,6 @@ export class GitHandler extends VcsHandler {
     // We start processing submodule paths in parallel
     // and don't await the results until this level of processing is completed
     if (submodulePaths.length > 0) {
-      // Need to automatically add `**/*` to directory paths, to match git behavior when filtering.
-      const augmentedIncludes = await augmentGlobs(path, include)
-      const augmentedExcludes = await augmentGlobs(path, exclude)
-
       // Resolve submodules
       // TODO: see about optimizing this, avoiding scans when we're sure they'll not match includes/excludes etc.
       submoduleFiles = submodulePaths.map(async (submodulePath) => {
