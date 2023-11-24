@@ -6,16 +6,47 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { GitHandler, augmentGlobs } from "./git.js"
-import type { GetFilesParams, VcsFile } from "./vcs.js"
+import { augmentGlobs, GitHandler } from "./git.js"
+import type { BaseIncludeExcludeFiles, GetFilesParams, IncludeExcludeFilesHandler, VcsFile } from "./vcs.js"
 import { isDirectory, matchPath } from "../util/fs.js"
 import fsExtra from "fs-extra"
-const { pathExists } = fsExtra
 import { pathToCacheContext } from "../cache.js"
 import { FileTree } from "./file-tree.js"
 import { sep } from "path"
 
+const { pathExists } = fsExtra
+
 type ScanRepoParams = Pick<GetFilesParams, "log" | "path" | "pathDescription" | "failOnPrompt">
+
+interface GitRepoGetFilesParams extends GetFilesParams {
+  scanFromProjectRoot: boolean
+}
+
+interface GitRepoIncludeExcludeFiles extends BaseIncludeExcludeFiles {
+  augmentedIncludes: string[]
+  augmentedExcludes: string[]
+}
+
+const getIncludeExcludeFiles: IncludeExcludeFilesHandler<GitRepoGetFilesParams, GitRepoIncludeExcludeFiles> = async (
+  params
+) => {
+  const { include, path, scanFromProjectRoot } = params
+  let { exclude } = params
+
+  if (!exclude) {
+    exclude = []
+  }
+
+  // We allow just passing a path like `foo` as include and exclude params
+  // Those need to be converted to globs, but we don't want to touch existing globs
+  const augmentedIncludes = include ? await augmentGlobs(path, include) : ["**/*"]
+  const augmentedExcludes = await augmentGlobs(path, exclude || [])
+  if (scanFromProjectRoot) {
+    augmentedExcludes.push("**/.garden/**/*")
+  }
+
+  return { include, exclude, augmentedIncludes, augmentedExcludes }
+}
 
 export class GitRepoHandler extends GitHandler {
   override name = "git-repo"
@@ -58,20 +89,16 @@ export class GitRepoHandler extends GitHandler {
 
     const moduleFiles = fileTree.getFilesAtPath(path)
 
-    // We allow just passing a path like `foo` as include and exclude params
-    // Those need to be converted to globs, but we don't want to touch existing globs
-    const include = params.include ? await augmentGlobs(path, params.include) : ["**/*"]
-    const exclude = await augmentGlobs(path, params.exclude || [])
-
-    if (scanRoot === this.garden?.projectRoot) {
-      exclude.push("**/.garden/**/*")
-    }
+    const scanFromProjectRoot = scanRoot === this.garden?.projectRoot
+    const { augmentedExcludes, augmentedIncludes } = await getIncludeExcludeFiles({ ...params, scanFromProjectRoot })
 
     log.debug(
-      `Found ${moduleFiles.length} files in module path, filtering by ${include.length} include and ${exclude.length} exclude globs`
+      `Found ${moduleFiles.length} files in module path, filtering by ${augmentedIncludes.length} include and ${augmentedExcludes.length} exclude globs`
     )
-    log.silly(() => `Include globs: ${include.join(", ")}`)
-    log.silly(() => (exclude.length > 0 ? `Exclude globs: ${exclude.join(", ")}` : "No exclude globs"))
+    log.silly(() => `Include globs: ${augmentedIncludes.join(", ")}`)
+    log.silly(() =>
+      augmentedExcludes.length > 0 ? `Exclude globs: ${augmentedExcludes.join(", ")}` : "No exclude globs"
+    )
 
     const filtered = moduleFiles.filter(({ path: p }) => {
       if (filter && !filter(p)) {
@@ -83,7 +110,7 @@ export class GitRepoHandler extends GitHandler {
       // but that caused issues with the glob matching on windows due to backslashes
       const relativePath = p.replace(`${path}${sep}`, "")
       log.silly(() => `Checking if ${relativePath} matches include/exclude globs`)
-      return matchPath(relativePath, include, exclude)
+      return matchPath(relativePath, augmentedIncludes, augmentedExcludes)
     })
 
     log.debug(`Found ${filtered.length} files in module path after glob matching`)
