@@ -395,26 +395,26 @@ function displayState(state: ActionState): string {
 const actionLogStrings = {
   Build: {
     ready: "built",
-    notReady: "will be built",
-    force: "rebuild",
+    notReady: `will be ${styles.highlight("built")}`,
+    force: `will ${styles.highlight("force rebuild")}`,
     running: "Building",
   },
   Deploy: {
     ready: "deployed",
-    notReady: "will be deployed",
-    force: "redeploy",
+    notReady: `will be ${styles.highlight("deployed")}`,
+    force: `will ${styles.highlight("force redeploy")}`,
     running: "Deploying",
   },
   Test: {
     ready: "run",
-    notReady: "test will be run",
-    force: "rerun test",
+    notReady: `test will be ${styles.highlight("run")}`,
+    force: `will ${styles.highlight("force rerun test")}`,
     running: "Testing",
   },
   Run: {
     ready: "run",
-    notReady: "will be run",
-    force: "rerun",
+    notReady: `will be ${styles.highlight("run")}`,
+    force: `will ${styles.highlight("force rerun")}`,
     running: "Running",
   },
 }
@@ -480,10 +480,10 @@ export function logAndEmitGetStatusEvents<
       if (result.state === "ready" && !willRerun) {
         log.success({ msg: `Already ${logStrings.ready}`, showDuration: false })
       } else if (result.state === "ready" && willRerun) {
-        log.warn(`${styledName} is already ${logStrings.ready}, will force ${logStrings.force}`)
+        log.info(`${styledName} is already ${styles.highlight(logStrings.ready)}, ${logStrings.force}`)
       } else {
-        const stateStr = result.detail?.state || displayState(result.state)
-        log.warn(`Status is '${stateStr}', ${styledName} ${logStrings.notReady}`)
+        const stateStr = styles.highlight(result.detail?.state || displayState(result.state))
+        log.info(`Status is '${stateStr}', ${styledName} ${logStrings.notReady}`)
       }
 
       // Then an event with the results if the status was successfully retrieved...

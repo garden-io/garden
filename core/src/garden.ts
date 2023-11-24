@@ -159,6 +159,7 @@ import { configureNoOpExporter } from "./util/open-telemetry/tracing.js"
 import { detectModuleOverlap, makeOverlapErrors } from "./util/module-overlap.js"
 import { GotHttpError } from "./util/http.js"
 import { styles } from "./logger/styles.js"
+import { renderDuration } from "./logger/util.js"
 
 const defaultLocalAddress = "localhost"
 
@@ -171,6 +172,11 @@ export interface GardenOpts {
   globalConfigStore?: GlobalConfigStore
   legacyBuildSync?: boolean
   log?: Log
+  /**
+   * Log context for logging the start and finish of the Garden class
+   * initialization with duration.
+   */
+  gardenInitLog?: Log
   monitors?: MonitorManager
   noEnterprise?: boolean
   persistent?: boolean
@@ -195,6 +201,7 @@ export interface GardenParams {
   globalConfigStore?: GlobalConfigStore
   localConfigStore?: LocalConfigStore
   log: Log
+  gardenInitLog?: Log
   moduleIncludePatterns?: string[]
   moduleExcludePatterns?: string[]
   monitors?: MonitorManager
@@ -226,6 +233,7 @@ interface GardenInstanceState {
 @Profile()
 export class Garden {
   public log: Log
+  private gardenInitLog?: Log
   private loadedPlugins?: GardenPluginSpec[]
   protected actionConfigs: ActionConfigMap
   protected moduleConfigs: ModuleConfigMap
@@ -303,6 +311,7 @@ export class Garden {
     this.namespace = params.namespace
     this.gardenDirPath = params.gardenDirPath
     this.log = params.log
+    this.gardenInitLog = params.gardenInitLog
     this.artifactsPath = params.artifactsPath
     this.vcsInfo = params.vcsInfo
     this.opts = params.opts
@@ -841,7 +850,7 @@ export class Garden {
         this.resolvedProviders[provider.name] = provider
       }
 
-      providerLog.success("Finished initializing providers")
+      providerLog.success("Finished resolving providers")
       if (someCached || allCached) {
         const msg = allCached ? "All" : "Some"
         providerLog.info(
@@ -850,9 +859,6 @@ export class Garden {
       }
 
       providerLog.silly(() => `Resolved providers: ${providers.map((p) => p.name).join(", ")}`)
-
-      // Print a new line after resolving providers
-      this.log.info("")
     })
 
     return keyBy(providers, "name")
@@ -1154,9 +1160,18 @@ export class Garden {
     // This event is internal only, not to be streamed
     this.events.emit("configGraph", { graph })
 
-    graphLog.success("Done")
-    // Print a new line after resolving graph
-    this.log.info("")
+    graphLog.success("Finished resolving graph")
+
+    // Log Garden class initialization exactly once with duration. This basically assumes that
+    // Garden is ready after the graph is resolved for the first time. May not be relevant
+    // for some commands.
+    if (this.gardenInitLog) {
+      // We set the duration "manually" instead of using `gardenInitLog.success()` so we can add a new line at the end.
+      this.gardenInitLog.info(
+        styles.success(`Finished initializing Garden ${renderDuration(this.gardenInitLog.getDuration(1))}\n`)
+      )
+      this.gardenInitLog = undefined
+    }
 
     return graph.toConfigGraph()
   }
@@ -1964,6 +1979,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
       dotIgnoreFile: config.dotIgnoreFile,
       proxy,
       log,
+      gardenInitLog: opts.gardenInitLog,
       moduleIncludePatterns: (config.scan || {}).include,
       username: _username,
       forceRefresh: opts.forceRefresh,

@@ -33,6 +33,7 @@ import { stableStringify } from "../util/string.js"
 import { OtelTraced } from "../util/open-telemetry/decorators.js"
 import { LogLevel } from "../logger/logger.js"
 import type { Log } from "../logger/log-entry.js"
+import { styles } from "../logger/styles.js"
 
 /**
  * Returns a provider log context with the provider name set.
@@ -41,8 +42,8 @@ import type { Log } from "../logger/log-entry.js"
  * resolved per se. A bit hacky but this is just a cosmetic change.
  */
 function getProviderLog(providerName: string, log: Log) {
-  const verboseLogProviders = ["templated", "container"]
-  const fixLevel = verboseLogProviders.includes(providerName) ? LogLevel.verbose : undefined
+  const debugLogProviders = ["templated", "container"]
+  const fixLevel = debugLogProviders.includes(providerName) ? LogLevel.debug : undefined
   return log.createLog({ name: providerName, fixLevel })
 }
 
@@ -413,8 +414,10 @@ export class ResolveProviderTask extends BaseTask<Provider> {
     let status = await handler!({ ctx, log: providerLog })
 
     if (this.forceInit || !status.ready) {
-      const statusMsg = status.ready ? "Ready, will force re-init" : "Not ready, will init"
-      providerLog.warn(statusMsg)
+      const statusMsg = status.ready
+        ? `${styles.highlight("Ready")}, will ${styles.highlight("force re-initialize")}`
+        : `${styles.highlight("Not ready")}, will initialize`
+      providerLog.info(statusMsg)
       // TODO: avoid calling the handler manually
       const prepareHandler = await actions.provider["getPluginHandler"]({
         handlerType: "prepareEnvironment",

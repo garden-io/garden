@@ -92,7 +92,7 @@ export class LoginCommand extends Command<{}, Opts> {
       const cloudApi = await CloudApi.factory({ log, cloudDomain, skipLogging: true, globalConfigStore })
 
       if (cloudApi) {
-        log.info({ msg: `You're already logged in to ${cloudDomain}.` })
+        log.success({ msg: `You're already logged in to ${cloudDomain}.` })
         cloudApi.close()
         return {}
       }
@@ -114,7 +114,7 @@ export class LoginCommand extends Command<{}, Opts> {
     log.info({ msg: `Logging in to ${cloudDomain}...` })
     const tokenResponse = await login(log, cloudDomain, garden.events)
     await CloudApi.saveAuthToken(log, globalConfigStore, tokenResponse, cloudDomain)
-    log.info({ msg: `Successfully logged in to ${cloudDomain}.` })
+    log.success({ msg: `Successfully logged in to ${cloudDomain}.`, showDuration: false })
 
     return {}
   }
