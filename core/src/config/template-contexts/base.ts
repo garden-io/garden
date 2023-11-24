@@ -8,7 +8,7 @@
 
 import type Joi from "@hapi/joi"
 import { isString } from "lodash-es"
-import { ConfigurationError, InternalError } from "../../exceptions.js"
+import { ConfigurationError } from "../../exceptions.js"
 import {
   resolveTemplateString,
   TemplateStringMissingKeyException,
@@ -19,29 +19,10 @@ import { isPrimitive, joi, joiIdentifier } from "../common.js"
 import { KeyedSet } from "../../util/keyed-set.js"
 import { naturalList } from "../../util/string.js"
 import { styles } from "../../logger/styles.js"
+import { ReferenceRecorder, ResolveReferences, ResolveResult } from "../../template-string/inputs.js"
 
 export type ContextKeySegment = string | number
 export type ContextKey = ContextKeySegment[]
-
-// Type of `usedReferences`
-export type TemplateReferenceMap = {
-  [keyPath: string]: TemplateVariable
-}
-
-// inputs have only a resolved value, but no raw expression
-// Examples: git.commitHash or local.env.FOO or var.foo if provided with --var option
-type TemplateInput = {
-  resolvedValue: unknown
-}
-
-// For declared variables we also need to keep the raw expressions for partial resolution
-type TemplateVariable = {
-  rawExpressions: string[]
-  resolvedValue: unknown
-  inputs: {
-    [keyPath: string]: TemplateInput | TemplateVariable
-  }
-}
 
 export type ObjectPath = (string | number)[]
 
@@ -52,6 +33,8 @@ export interface ContextResolveOpts {
   stack?: string[]
   // Unescape escaped template strings
   unescape?: boolean
+
+  referenceRecorder?: ReferenceRecorder
 
   /**
    * The real YAML path after parsing YAML, e.g. ["spec", "foobar", 0, "$merge"]
@@ -77,8 +60,10 @@ export interface ContextResolveParams {
 export interface ContextResolveOutput {
   message?: string
   partial?: boolean
-  resolved: any
+  resolved: unknown
   cached: boolean
+  // for input tracking
+  resolveResult: ResolveResult
 }
 
 export function schema(joiSchema: Joi.Schema) {
@@ -96,10 +81,8 @@ export interface ConfigContextType {
 // TODO-steffen&thor: Make all instance variables of all config context classes read-only.
 export abstract class ConfigContext {
   private readonly _rootContext: ConfigContext
-  private readonly _resolvedValues: { [path: string]: any }
-  // All references that have been resolved from the roots down to this point in the resolution.
-  private _resolvedReferences?: TemplateReferenceMap
-  private _referenceRecordingTarget?: ConfigContext
+  private readonly _resolvedValues: { [path: string]: ResolveResult }
+  private readonly _resolveReferences: ResolveReferences
 
   // This is used for special-casing e.g. runtime.* resolution
   protected _alwaysAllowPartial: boolean
@@ -107,55 +90,8 @@ export abstract class ConfigContext {
   constructor(rootContext?: ConfigContext) {
     this._rootContext = rootContext || this
     this._resolvedValues = {}
+    this._resolveReferences = {}
     this._alwaysAllowPartial = false
-    // TODO: Make this a mandatory constructor param
-    this._resolvedReferences = {}
-  }
-
-  public setRecordingTarget(targetContext: ConfigContext) {
-    this._referenceRecordingTarget = targetContext
-  }
-
-  /**
-   *
-   */
-  public recordReference(parent: string, references: TemplateVariable) {
-    if (this._referenceRecordingTarget) {
-      this._referenceRecordingTarget.recordReference(parent, references)
-      return
-    }
-    if (!this._resolvedReferences) {
-      throw new InternalError({
-        message: `Cannot record reference ${parent}: Context has already been invalidated by calling getRecordedReferences`,
-      })
-    }
-    if (this._resolvedReferences[parent]) {
-      throw new InternalError({ message: `Cannot record reference ${parent}: Already resolved` })
-    }
-    this._resolvedReferences[parent] = references
-  }
-
-  /**
-   * This also invalidates the ConfigContext, and it can't be used again for resolving template strings.
-   * @return TemplateReferenceMap
-   */
-  public getRecordedReferences(): TemplateReferenceMap {
-    if (this._referenceRecordingTarget) {
-      throw new InternalError({
-        message: `Cannot get recorded references: This config context has a reference recording target set.`,
-      })
-    }
-    if (!this._resolvedReferences) {
-      throw new InternalError({
-        message: `Cannot get recorded references: Context has already been invalidated by calling getRecordedReferences`,
-      })
-    }
-    const refs = this._resolvedReferences
-
-    // invalidate ConfigContext
-    delete this._resolvedReferences
-
-    return refs
   }
 
   static getSchema() {
@@ -171,15 +107,30 @@ export abstract class ConfigContext {
     return ""
   }
 
+  // TODO: remove this
+  addResolvedValue(name: string, value: any, path: ObjectPath, references: ResolveReferences) {
+    const pathString = path.join(".")
+    for (const [referenceKey, reference] of Object.entries(references)) {
+      if (!referenceKey.startsWith(pathString) && referenceKey !== pathString) {
+        continue
+      }
+
+      const transformedPath = referenceKey.split(".").slice(path.length).join(".")
+      this._resolveReferences[transformedPath] = reference
+    }
+
+    Object.assign(this, { [name]: value })
+  }
+
   resolve({ key, nodePath, opts }: ContextResolveParams): ContextResolveOutput {
     const path = renderKeyPath(key)
     const fullPath = renderKeyPath(nodePath.concat(key))
 
     // if the key has previously been resolved, return it directly
-    const resolved = this._resolvedValues[path]
+    const cachedResult = this._resolvedValues[path]
 
-    if (resolved) {
-      return { resolved, cached: true }
+    if (cachedResult) {
+      return { resolved: cachedResult.value, cached: true, resolveResult: cachedResult }
     }
 
     opts.stack = [...(opts.stack || [])]
@@ -290,16 +241,18 @@ export abstract class ConfigContext {
       } else {
         // Otherwise we return the undefined value, so that any logical expressions can be evaluated appropriately.
         // The template resolver will throw the error later if appropriate.
-        return { resolved: undefined, message, cached: false }
+        return { resolved: undefined, message, cached: false, resolveResult: { value: undefined, expr: undefined, inputs: {} } }
       }
     }
 
+    const resolveResult = { value, expr: undefined, inputs: {} }
+
     // Cache result, unless it is a partial resolution
     if (!partial) {
-      this._resolvedValues[path] = value
+      this._resolvedValues[path] = resolveResult
     }
 
-    return { resolved: value, cached: false }
+    return { resolved: value, cached: false, resolveResult }
   }
 }
 
@@ -331,7 +284,7 @@ export class ScanContext extends ConfigContext {
   override resolve({ key, nodePath }: ContextResolveParams) {
     const fullKey = nodePath.concat(key)
     this.foundKeys.add(fullKey)
-    return { resolved: renderTemplateString(fullKey), partial: true, cached: false }
+    return { resolved: renderTemplateString(fullKey), partial: true, cached: false, resolveResult: { value: undefined, expr: undefined, inputs: {} } }
   }
 }
 

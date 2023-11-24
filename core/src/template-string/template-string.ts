@@ -8,7 +8,7 @@
 
 import type { GardenErrorParams } from "../exceptions.js"
 import { ConfigurationError, GardenError, TemplateStringError } from "../exceptions.js"
-import type {
+import {
   ConfigContext,
   ContextKeySegment,
   ContextResolveOpts,
@@ -42,6 +42,7 @@ import { deepMap } from "../util/objects.js"
 import type { ConfigSource } from "../config/validation.js"
 import * as parser from "./parser.js"
 import { styles } from "../logger/styles.js"
+import { ReferenceRecorder, ResolveResult } from "./inputs.js"
 
 const missingKeyExceptionType = "template-string-missing-key"
 const passthroughExceptionType = "template-string-passthrough"
@@ -110,6 +111,8 @@ export function resolveTemplateString({
     return string
   }
 
+  const inputs: ResolveResult["inputs"] = {}
+
   try {
     const parsed = parser.parse(string, {
       getKey: (key: string[], resolveOpts?: ContextResolveOpts) => {
@@ -119,23 +122,33 @@ export function resolveTemplateString({
           nodePath: [],
           opts: { ...contextOpts, ...(resolveOpts || {}) },
         })
-        // If the value is cached we already tracked the reference, so no need to track it again.
-        // TODO: Without a path we don't need to track references? Can we somehow ensure that we aren't missing references by accident?
-        if (!value.cached && contextOpts.resultPath && contextOpts.resultPath.length > 0) {
-          context.recordReference(contextOpts.resultPath.join("."), {
-            rawExpressions: [string],
-            resolvedValue: value.resolved,
-            inputs: {
-              [key.join(".")]: {
-                resolvedValue: value.resolved,
-              },
-            },
-          })
-        }
-        return value
+
+        // const res = value.resolveResult
+        // if (Array.isArray(res) || isPlainObject(res)) {
+        //   // deep map leaves
+        // } else {
+        //   // Then res itself is a leaf, so we just register it and return.
+        //   const inputReferenceKey = key.join(".")
+        //   if (!inputs.hasOwnProperty(inputReferenceKey)) {
+        //     inputs[inputReferenceKey] = value.resolveResult
+        //   }
+        // }
+
+        return value.resolved
       },
       getValue,
-      resolveNested: (nested: string) => resolveTemplateString({ string: nested, context, contextOpts }),
+      resolveNested: (nested: string) => {
+        const result = resolveTemplateString({ string: nested, context, contextOpts })
+
+        // TODO: Do we also need to record nested expressions here?
+        for (const key of Object.keys(result.inputs)) {
+          if (!inputs.hasOwnProperty(key)) {
+            inputs[key] = result.inputs[key]
+          }
+        }
+
+        return result.value
+      },
       buildBinaryExpression,
       buildLogicalExpression,
       isArray: Array.isArray,
@@ -164,7 +177,7 @@ export function resolveTemplateString({
     }
 
     // Use value directly if there is only one (or no) value in the output.
-    let resolved: any = outputs[0]?.resolved
+    let resolved: unknown = outputs[0]?.resolved
 
     if (outputs.length > 1) {
       // Assemble the parts into a conditional tree
@@ -237,7 +250,15 @@ export function resolveTemplateString({
       resolveTree(tree)
     }
 
-    return resolved
+    const result = {
+      expr: string,
+      value: resolved,
+      inputs,
+    }
+
+    contextOpts.referenceRecorder?.record(contextOpts, result)
+
+    return result.value
   } catch (err) {
     if (!(err instanceof GardenError)) {
       throw err
@@ -256,7 +277,7 @@ export function resolveTemplateString({
  * @param contextOpts ContextResolveOpts
  * @returns
  */
-function pushPath(part: ObjectPath[0], contextOpts: ContextResolveOpts): ContextResolveOpts {
+function pushPath(part: ObjectPath[0], contextOpts: ContextResolveOpts) {
   return pushResultPath(part, pushYamlPath(part, contextOpts))
 }
 
@@ -267,7 +288,10 @@ function pushPath(part: ObjectPath[0], contextOpts: ContextResolveOpts): Context
  * @param contextOpts ContextResolveOpts
  * @returns
  */
-function pushResultPath(part: ObjectPath[0], contextOpts: ContextResolveOpts): ContextResolveOpts {
+function pushResultPath<T extends { resultPath?: ObjectPath }>(
+  part: ObjectPath[0],
+  contextOpts: T
+): T & { resultPath: ObjectPath } {
   return {
     ...contextOpts,
     resultPath: [...(contextOpts.resultPath || []), part],
@@ -280,7 +304,10 @@ function pushResultPath(part: ObjectPath[0], contextOpts: ContextResolveOpts): C
  * @param contextOpts ContextResolveOpts
  * @returns
  */
-function pushYamlPath(part: ObjectPath[0], contextOpts: ContextResolveOpts): ContextResolveOpts {
+function pushYamlPath<T extends { yamlPath?: ObjectPath }>(
+  part: ObjectPath[0],
+  contextOpts: T
+): T & { yamlPath: ObjectPath } {
   return {
     ...contextOpts,
     yamlPath: [...(contextOpts.yamlPath || []), part],
@@ -456,15 +483,16 @@ function handleForEachObject({
     })
   }
 
+  const referenceRecorder = new ReferenceRecorder()
+
   // Try resolving the value of the $forEach key
   let resolvedInput = resolveTemplateStrings({
     value: value[arrayForEachKey],
     context,
     contextOpts: {
       ...pushYamlPath(arrayForEachKey, contextOpts),
-      // The result of the forEach expression (which evaluates to the collection to iterate over) does not end up in the result itself,
-      // only by referncing it through item
-      resultPath: undefined,
+      resultPath: [],
+      referenceRecorder,
     },
     source,
   })
@@ -501,23 +529,34 @@ function handleForEachObject({
         return value
       }
 
-      resolvedInput = resolveTemplateStrings({ value: resolvedInput, context, contextOpts, source: undefined })
+      resolvedInput = resolveTemplateStrings({
+        value: resolvedInput,
+        context,
+        contextOpts: {
+          ...pushYamlPath(arrayForEachKey, contextOpts),
+          resultPath: [],
+          referenceRecorder,
+        },
+        source: undefined,
+      })
     }
   }
+
 
   const filterExpression = value[arrayForEachFilterKey]
 
   // TODO: maybe there's a more efficient way to do the cloning/extending?
   const loopContext = cloneDeep(context)
-  loopContext.setRecordingTarget(context)
 
+  const references = referenceRecorder.getReferences()
   const output: unknown[] = []
 
   for (const i of Object.keys(resolvedInput)) {
-    const itemValue = resolvedInput[i]
 
-    const contextForIndex = new GenericContext({ key: i, value: itemValue })
-    contextForIndex.setRecordingTarget(context)
+    const contextForIndex = new GenericContext({ key: i })
+    const itemValue = resolvedInput[i]
+    contextForIndex.addResolvedValue("value", itemValue, [i], references)
+
     loopContext["item"] = contextForIndex
 
     // Have to override the cache in the parent context here
