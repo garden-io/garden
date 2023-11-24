@@ -7,7 +7,7 @@ order: 3
 
 When developing microservices, the cognitive load for a new developer to a team or project is very high. Not only does a developer need to set up their developer environment with the tools and scripts they'll need to contribute, they also need to coordinate with other teams to pull in any remote microservices they may call when testing a new feature or API.
 
-Imagine vending self-contained, standardized stacks to your developers that help get them off the ground in seconds not days. This stack might contain a database, Kubernetes manifests defining an API, and a Helm chart containing the frontend. With Garden, you define any number of resources as infrastructure-as-code and services, then deploy them as one group, with one command: `garden deploy`.
+The stack might contain a pre-configured Helm chart for a database, Terraform modules for infrastructure, Kubernetes manifests for services, and more, that teams can compose together to suit their needs. With Garden, you define any number of resources as infrastructure-as-code and services, then deploy them as one group, with one command: `garden deploy`.
 
 ## Key features
 
