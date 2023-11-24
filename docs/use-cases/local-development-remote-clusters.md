@@ -15,6 +15,8 @@ Garden creates a developer namespace inside a remote Kubernetes cluster that loo
 
 - **Visualize your dependency graph**, centralize logs, and view command history with the [Garden Web Dashboard](https://app.garden.io)
 - **Proxy local services** with [Local Mode](../guides/running-service-in-local-mode.md)
+- **Hot reload** your code to containers running in your local and remote Kubernetes clusters for a smooth inner loop with [Code Synchronization](https://docs.garden.io/guides/code-synchronization).
+- **Run tests as you develop**. Stop waiting for CI/CD to tell you what's broken: run your integration and end-to-end tests as you develop, at any time, with `garden test` or, if you're inside the Garden Web Dashboard, with `test`.
 - **Accelerate build times** with [remote image builds](../k8s-plugins/advanced/in-cluster-building.md) to accelerate your image build times
 - **Spin up powerful [ephemeral clusters](../k8s-plugins/ephemeral-k8s/configure-provider.md)** in seconds
 
