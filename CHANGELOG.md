@@ -4,7 +4,7 @@
 
 ### Bug Fixes
 
-* fix flaky test for deploy logs ([#5429](https://github.com/garden-io/garden/issues/5429)) ([22f0015b4](https://github.com/garden-io/garden/commit/22f0015b4))
+* **exec:** don't split quoted arguments in `exec` plugin's command (#5470) ([34b07feb3](https://github.com/garden-io/garden/commit/34b07feb3))
 * **core:** log exec provider resolution at info level ([#5469](https://github.com/garden-io/garden/issues/5469)) ([539abf905](https://github.com/garden-io/garden/commit/539abf905))
 * **git:** fix confusing error messages on exit code 128 ([#5439](https://github.com/garden-io/garden/issues/5439)) ([2779705b6](https://github.com/garden-io/garden/commit/2779705b6))
 * **k8s:** fix paths in requests to kubernetes api ([#5476](https://github.com/garden-io/garden/issues/5476)) ([783cc66a9](https://github.com/garden-io/garden/commit/783cc66a9))
@@ -17,7 +17,6 @@
 ### Improvements
 
 * **core:** better action lifecycle logs ([#5428](https://github.com/garden-io/garden/issues/5428)) ([65653b92e](https://github.com/garden-io/garden/commit/65653b92e))
-* **git:** type-safety for repo path description ([#5473](https://github.com/garden-io/garden/issues/5473)) ([456fa5990](https://github.com/garden-io/garden/commit/456fa5990))
 * **logger:** some minor fixes ([#5475](https://github.com/garden-io/garden/issues/5475)) ([b1288039f](https://github.com/garden-io/garden/commit/b1288039f))
 * **logger:** use 'white' as primary color ([#5465](https://github.com/garden-io/garden/issues/5465)) ([b8e232cd9](https://github.com/garden-io/garden/commit/b8e232cd9))
 * **logger:** better provider resolution lifecycle logs ([#5464](https://github.com/garden-io/garden/issues/5464)) ([7d5557fc3](https://github.com/garden-io/garden/commit/7d5557fc3))
