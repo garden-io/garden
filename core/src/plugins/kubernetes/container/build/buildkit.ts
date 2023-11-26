@@ -120,7 +120,7 @@ export const buildkitBuildHandler: BuildHandler = async (params) => {
     ctx.events.emit("log", { timestamp: new Date().toISOString(), msg: line.toString(), ...logEventContext })
   })
 
-  const command = [
+  const buildkitCommand = [
     "buildctl",
     "build",
     "--frontend=dockerfile.v0",
@@ -138,7 +138,7 @@ export const buildkitBuildHandler: BuildHandler = async (params) => {
     ...getBuildkitFlags(action),
   ]
 
-  const shCommand = ["sh", "-c", command.join(" ")]
+  const command = ["sh", "-c", buildkitCommand.join(" ")]
 
   // Execute the build
   const buildTimeout = action.getConfig("timeout")
@@ -155,7 +155,7 @@ export const buildkitBuildHandler: BuildHandler = async (params) => {
 
   const buildRes = await runner.exec({
     log,
-    shCommand,
+    command,
     timeoutSec: buildTimeout,
     containerName: buildkitContainerName,
     stdout: outputStream,
