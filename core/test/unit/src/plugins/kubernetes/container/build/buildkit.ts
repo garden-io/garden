@@ -273,7 +273,7 @@ describe("buildkit build", () => {
           "--export-cache",
           "type=inline",
           "--output",
-          `type=image,"name=${registry}/namespace/name:v-xxxxxx,${registry}/namespace/name:_buildcache",push=true`,
+          `type=image,\"name=${registry}/namespace/name:v-xxxxxx,${registry}/namespace/name:_buildcache\",push=true`,
           "--import-cache",
           `type=registry,ref=${registry}/namespace/name:_buildcache`,
         ])
@@ -304,7 +304,7 @@ describe("buildkit build", () => {
 
         expect(flags).to.eql([
           "--output",
-          `type=image,"name=${registry}/namespace/name:v-xxxxxx",push=true`,
+          `type=image,\"name=${registry}/namespace/name:v-xxxxxx\",push=true`,
           "--import-cache",
           `type=registry,ref=${registry}/namespace/name:_buildcache`,
           "--export-cache",
@@ -339,7 +339,7 @@ describe("buildkit build", () => {
 
         expect(flags).to.eql([
           "--output",
-          `type=image,"name=${registry}/namespace/name:v-xxxxxx",push=true`,
+          `type=image,\"name=${registry}/namespace/name:v-xxxxxx\",push=true`,
           "--import-cache",
           `type=registry,ref=${registry}/namespace/name:_buildcache`,
           "--export-cache",
@@ -374,7 +374,7 @@ describe("buildkit build", () => {
         "--export-cache",
         "type=inline",
         "--output",
-        `type=image,"name=${registry}/namespace/name:v-xxxxxx,${registry}/namespace/name:_buildcache",push=true`,
+        `type=image,\"name=${registry}/namespace/name:v-xxxxxx,${registry}/namespace/name:_buildcache\",push=true`,
         "--import-cache",
         `type=registry,ref=${registry}/namespace/name:_buildcache`,
       ])
@@ -410,7 +410,7 @@ describe("buildkit build", () => {
       expect(flags).to.eql([
         // output to deploymentRegistry
         "--output",
-        `type=image,"name=${deploymentRegistry}/namespace/name:v-xxxxxx",push=true`,
+        `type=image,\"name=${deploymentRegistry}/namespace/name:v-xxxxxx\",push=true`,
 
         // import and export to cacheRegistry with mode=max
         "--import-cache",
@@ -461,7 +461,7 @@ describe("buildkit build", () => {
       expect(flags).to.eql([
         // output to deploymentRegistry
         "--output",
-        `type=image,"name=${deploymentRegistry}/namespace/name:v-xxxxxx",push=true`,
+        `type=image,\"name=${deploymentRegistry}/namespace/name:v-xxxxxx\",push=true`,
         // import and export to cacheRegistry with mode=max
         // import first _buildcache-featureBranch, then _buildcache-main
         "--import-cache",
