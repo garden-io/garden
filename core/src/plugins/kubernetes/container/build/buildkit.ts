@@ -138,6 +138,8 @@ export const buildkitBuildHandler: BuildHandler = async (params) => {
     ...getBuildkitFlags(action),
   ]
 
+  const shCommand = ["sh", "-c", command.join(" ")]
+
   // Execute the build
   const buildTimeout = action.getConfig("timeout")
 
@@ -153,7 +155,7 @@ export const buildkitBuildHandler: BuildHandler = async (params) => {
 
   const buildRes = await runner.exec({
     log,
-    command,
+    shCommand,
     timeoutSec: buildTimeout,
     containerName: buildkitContainerName,
     stdout: outputStream,
