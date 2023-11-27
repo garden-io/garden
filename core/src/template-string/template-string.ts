@@ -18,7 +18,7 @@ import type {
 import { renderKeyPath } from "../config/template-contexts/base.js"
 import { GenericContext, ScanContext } from "../config/template-contexts/base.js"
 import cloneDeep from "fast-copy"
-import { difference, isNumber, isPlainObject, isString, uniq } from "lodash-es"
+import { difference, isBoolean, isNumber, isPlainObject, isString, uniq } from "lodash-es"
 import type { ActionReference, Primitive, StringMap } from "../config/common.js"
 import {
   arrayConcatKey,
@@ -43,8 +43,8 @@ import { deepMap } from "../util/objects.js"
 import type { ConfigSource } from "../config/validation.js"
 import * as parser from "./parser.js"
 import { styles } from "../logger/styles.js"
-import { ReferenceRecorder, TemplateValue, isTemplatePrimitive, isTemplateValue } from "./inputs.js"
-import type { TemplateCollectionOrValue, TemplatePrimitive } from "./inputs.js"
+import { TemplateValue, isTemplatePrimitive, isTemplateValue, templateIsArray, templateIsObject } from "./inputs.js"
+import type { CollectionOrValue, TemplatePrimitive } from "./inputs.js"
 
 const missingKeyExceptionType = "template-string-missing-key"
 const passthroughExceptionType = "template-string-passthrough"
@@ -102,7 +102,7 @@ export function resolveTemplateString({
   const result = resolveTemplateStringWithInputs({ string, context, contextOpts })
   return deepMap(result, (v: TemplateValue) => {
     if (!(v instanceof TemplateValue)) {
-      throw new InternalError({ message: "Expected ResolvedValue" })
+      throw new InternalError({ message: `Expected TemplateValue; actually got: ${typeof v}` })
     }
     return v.value
   })
@@ -126,7 +126,7 @@ export function resolveTemplateStringWithInputs({
   string: string
   context: ConfigContext
   contextOpts?: ContextResolveOpts
-}): TemplateCollectionOrValue<TemplateValue> {
+}): CollectionOrValue<TemplateValue> {
   // Just return immediately if this is definitely not a template string
   if (!maybeTemplateString(string)) {
     return new TemplateValue({
@@ -371,41 +371,43 @@ function pushYamlPath<T extends { yamlPath?: ObjectPath }>(
  * Recursively parses and resolves all templated strings in the given object.
  */
 
-// `extends any` here isn't pretty but this function is hard to type correctly
-// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-constraint
-export function resolveTemplateStrings<T extends any>({
+export function resolveTemplateStringsWithInputs({
   value,
   context,
   contextOpts = {},
   source,
 }: {
-  value: T
+  value: CollectionOrValue<TemplatePrimitive>
   context: ConfigContext
   contextOpts?: ContextResolveOpts
   source: ConfigSource | undefined
-}): T {
-  if (value === null) {
-    return null as T
-  }
-  if (value === undefined) {
-    return undefined as T
-  }
-
+}): CollectionOrValue<TemplateValue> {
   if (!contextOpts.yamlPath) {
     contextOpts.yamlPath = []
   }
 
+  // TODO: we can remove resultPath tracking
   if (!contextOpts.resultPath) {
     contextOpts.resultPath = []
   }
 
   if (typeof value === "string") {
-    return <T>resolveTemplateString({ string: value, context, contextOpts })
-  } else if (Array.isArray(value)) {
-    const output: unknown[] = []
+    return resolveTemplateString({ string: value, context, contextOpts })
+  } else if (isTemplatePrimitive(value)) {
+    // here we handle things static numbers, empty array etc
+    // we also handle null and undefined
+    return new TemplateValue({
+      expr: undefined,
+      value,
+      inputs: {},
+    })
+  } else if (templateIsArray(value)) {
+    // we know that this is not handling an empty array, as that would have been a TemplatePrimitive.
+
+    const output: CollectionOrValue<TemplateValue>[] = []
 
     value.forEach((v, i) => {
-      if (isPlainObject(v) && v[arrayConcatKey] !== undefined) {
+      if (templateIsObject(v) && v[arrayConcatKey] !== undefined) {
         if (Object.keys(v).length > 1) {
           const extraKeys = naturalList(
             Object.keys(v)
@@ -421,16 +423,18 @@ export function resolveTemplateStrings<T extends any>({
         }
 
         // Handle array concatenation via $concat
-        const resolved = resolveTemplateStrings({
+        const resolved = resolveTemplateStringsWithInputs({
           value: v[arrayConcatKey],
           context,
           contextOpts: pushYamlPath(arrayConcatKey, contextOpts),
           source,
         })
 
-        if (Array.isArray(resolved)) {
+        if (templateIsArray(resolved)) {
           output.push(...resolved)
         } else if (contextOpts.allowPartial) {
+          // TODO: handle allowPartial correctly in resolveTemplateString
+          // Probably we need to go all in with lazy evaluation
           output.push({ $concat: resolved })
         } else {
           throw new TemplateError({
@@ -441,12 +445,14 @@ export function resolveTemplateStrings<T extends any>({
           })
         }
       } else {
-        output.push(resolveTemplateStrings({ value: v, context, contextOpts: pushPath(i, contextOpts), source }))
+        output.push(
+          resolveTemplateStringsWithInputs({ value: v, context, contextOpts: pushPath(i, contextOpts), source })
+        )
       }
     })
 
-    return <T>(<unknown>output)
-  } else if (isPlainObject(value)) {
+    return output
+  } else if (templateIsObject(value)) {
     if (value[arrayForEachKey] !== undefined) {
       // Handle $forEach loop
       return handleForEachObject({ value, context, contextOpts, source })
@@ -464,7 +470,7 @@ export function resolveTemplateStrings<T extends any>({
         } else {
           mergeResolveOpts = pushPath(k, contextOpts)
         }
-        const resolved = resolveTemplateStrings({
+        const resolved = resolveTemplateStringsWithInputs({
           value: v,
           context,
           contextOpts: mergeResolveOpts,
@@ -489,26 +495,55 @@ export function resolveTemplateStrings<T extends any>({
         }
       }
 
-      return <T>output
+      return output
     }
   } else {
-    return <T>value
+    throw new InternalError({
+      message: `Got unexpected value type: ${typeof value}`,
+    })
   }
+}
+
+// `extends any` here isn't pretty but this function is hard to type correctly
+// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-constraint
+// TODO: use TemplateCollectionOrValue<TemplatePrimitive> instead of T; T is lying here, as is any.
+export function resolveTemplateStrings<T = any>({
+  value,
+  context,
+  contextOpts = {},
+  source,
+}: {
+  value: T
+  context: ConfigContext
+  contextOpts?: ContextResolveOpts
+  source: ConfigSource | undefined
+}): T {
+  const resolved = resolveTemplateStringsWithInputs({ value: value as any, context, contextOpts, source })
+  return deepMap(resolved, (v: TemplateValue) => {
+    if (!(v instanceof TemplateValue)) {
+      throw new InternalError({ message: `Expected TemplateValue; actually got: ${typeof v}` })
+    }
+    return v.value
+  }) as any
 }
 
 const expectedForEachKeys = [arrayForEachKey, arrayForEachReturnKey, arrayForEachFilterKey]
 
+/**
+ * @param value Object to be handled as a $forEach loop
+ * @returns Array of resolved values
+ */
 function handleForEachObject({
   value,
   context,
   contextOpts,
   source,
 }: {
-  value: any
+  value: { [key: string]: CollectionOrValue<TemplatePrimitive> }
   context: ConfigContext
   contextOpts: ContextResolveOpts
   source: ConfigSource | undefined
-}) {
+}): CollectionOrValue<TemplateValue>[] {
   // Validate input object
   if (value[arrayForEachReturnKey] === undefined) {
     throw new TemplateError({
@@ -536,24 +571,19 @@ function handleForEachObject({
     })
   }
 
-  const referenceRecorder = new ReferenceRecorder()
-
   // Try resolving the value of the $forEach key
-  let resolvedInput = resolveTemplateStrings({
+  const resolvedInput = resolveTemplateStringsWithInputs({
     value: value[arrayForEachKey],
     context,
-    contextOpts: {
-      ...pushYamlPath(arrayForEachKey, contextOpts),
-      resultPath: [],
-      referenceRecorder,
-    },
+    contextOpts: pushYamlPath(arrayForEachKey, contextOpts),
     source,
   })
   const isObject = isPlainObject(resolvedInput)
 
-  if (!Array.isArray(resolvedInput) && !isObject) {
+  if (!templateIsArray(resolvedInput) && !isObject) {
+    // TODO allow partial
     if (contextOpts.allowPartial) {
-      return value
+      return value as any
     } else {
       throw new TemplateError({
         message: `Value of ${arrayForEachKey} key must be (or resolve to) an array or mapping object (got ${typeof resolvedInput})`,
@@ -579,19 +609,17 @@ function handleForEachObject({
       // then we need to make sure that the resulting expression is evaluated again
       // since the magic keys only get resolved via `resolveTemplateStrings`
       if (contextOpts.allowPartial) {
-        return value
+        // TODO: handle partial
+        return value as any
       }
 
-      resolvedInput = resolveTemplateStrings({
-        value: resolvedInput,
-        context,
-        contextOpts: {
-          ...pushYamlPath(arrayForEachKey, contextOpts),
-          resultPath: [],
-          referenceRecorder,
-        },
-        source: undefined,
-      })
+      // TODO: handle partial
+      // resolvedInput = resolveTemplateStringsWithInputs({
+      //   value: resolvedInput,
+      //   context,
+      //   contextOpts: pushYamlPath(arrayForEachKey, contextOpts),
+      //   source: undefined,
+      // })
     }
   }
 
@@ -600,14 +628,10 @@ function handleForEachObject({
   // TODO: maybe there's a more efficient way to do the cloning/extending?
   const loopContext = cloneDeep(context)
 
-  const references = referenceRecorder.getReferences()
-  const output: unknown[] = []
+  const output: CollectionOrValue<TemplateValue>[] = []
 
   for (const i of Object.keys(resolvedInput)) {
-    const contextForIndex = new GenericContext({ key: i })
-    const itemValue = resolvedInput[i]
-    contextForIndex.addResolvedValue("value", itemValue, [i], references)
-
+    const contextForIndex = new GenericContext({ key: i, value: resolvedInput[i] })
     loopContext["item"] = contextForIndex
 
     // Have to override the cache in the parent context here
@@ -620,16 +644,18 @@ function handleForEachObject({
 
     // Check $filter clause output, if applicable
     if (filterExpression !== undefined) {
-      const filterResult = resolveTemplateStrings({
+      const filterResult = resolveTemplateStringsWithInputs({
         value: value[arrayForEachFilterKey],
         context: loopContext,
         contextOpts: pushYamlPath(arrayForEachFilterKey, contextOpts),
         source,
       })
 
-      if (filterResult === false) {
-        continue
-      } else if (filterResult !== true) {
+      if (isTemplateValue(filterResult) && isBoolean(filterResult.value)) {
+        if (filterResult.value === false) {
+          continue
+        }
+      } else {
         throw new TemplateError({
           message: `${arrayForEachFilterKey} clause in ${arrayForEachKey} loop must resolve to a boolean value (got ${typeof resolvedInput})`,
           path: pushYamlPath(arrayForEachFilterKey, contextOpts).yamlPath,
@@ -640,7 +666,7 @@ function handleForEachObject({
     }
 
     output.push(
-      resolveTemplateStrings({
+      resolveTemplateStringsWithInputs({
         value: value[arrayForEachReturnKey],
         context: loopContext,
         contextOpts: pushYamlPath(arrayForEachReturnKey, pushResultPath(i, contextOpts)),
@@ -650,7 +676,9 @@ function handleForEachObject({
   }
 
   // Need to resolve once more to handle e.g. $concat expressions
-  return resolveTemplateStrings({ value: output, context, contextOpts, source })
+  // TODO: handle partial
+  // return resolveTemplateStringsWithInputs({ value: output, context, contextOpts, source })
+  return output
 }
 
 const expectedConditionalKeys = [conditionalKey, conditionalThenKey, conditionalElseKey]

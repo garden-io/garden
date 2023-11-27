@@ -14,6 +14,7 @@ import {
   throwOnMissingSecretKeys,
   getActionTemplateReferences,
   resolveTemplateStringWithInputs,
+  resolveTemplateStringsWithInputs,
 } from "../../../src/template-string/template-string.js"
 import { ConfigContext } from "../../../src/config/template-contexts/base.js"
 import type { TestGarden } from "../../helpers.js"
@@ -21,8 +22,7 @@ import { expectError, getDataDir, makeTestGarden } from "../../helpers.js"
 import { dedent } from "../../../src/util/string.js"
 import stripAnsi from "strip-ansi"
 import { TemplateStringError } from "../../../src/exceptions.js"
-import { ReferenceRecorder, TemplateValue } from "../../../src/template-string/inputs.js"
-import type { __ResolveReferences } from "../../../src/template-string/inputs.js"
+import { TemplateValue } from "../../../src/template-string/inputs.js"
 
 class TestContext extends ConfigContext {
   constructor(context) {
@@ -2032,7 +2032,7 @@ describe("resolveTemplateStrings", () => {
 // ${hash(var.someString)}
 //
 describe.only("input tracking", () => {
-  describe.only("resolveTemplateString", () => {
+  describe("resolveTemplateString", () => {
     it("records references for every collection item in the result of the template expression, array", () => {
       const context = new TestContext({
         var: {
@@ -2040,43 +2040,32 @@ describe.only("input tracking", () => {
         },
       })
 
-      const referenceRecorder = new ReferenceRecorder()
-      const res = resolveTemplateString({
+      const res = resolveTemplateStringWithInputs({
         string: "${var.elements}",
         context,
-        contextOpts: { referenceRecorder, resultPath: ["result"] },
+        contextOpts: { resultPath: ["result"] },
       })
-      expect(res).to.eql(["element"])
-
-      const references = referenceRecorder.getReferences()
-      const expectedReferences: __ResolveReferences = {
-        "result.0": {
+      expect(res).to.eql([
+        new TemplateValue({
+          value: "element",
           expr: "${var.elements}",
           inputs: {
             "var.elements.0": {
               expr: undefined,
               inputs: {},
-              value: "element",
+              value: "hydrogen",
             },
-          },
-          value: "element",
-        },
-        "result.1": {
-          expr: "${var.elements}",
-          inputs: {
             "var.elements.1": {
               expr: undefined,
               inputs: {},
-              value: "element",
+              value: "caesium",
             },
           },
-          value: "element",
-        },
-      }
-      expect(references).to.eql(expectedReferences)
+        }),
+      ])
     })
 
-    it.only("records references for every collection item in the result of the template expression, array with ternary expression", () => {
+    it("records references for every collection item in the result of the template expression, array with ternary expression", () => {
       const context = new TestContext({
         var: {
           elements: ["hydrogen", "caesium"],
@@ -2153,18 +2142,16 @@ describe.only("input tracking", () => {
         },
       })
 
-      const referenceRecorder = new ReferenceRecorder()
-      const res = resolveTemplateString({
+      const res = resolveTemplateStringWithInputs({
         string: "${var.array ? 'foo' : 'bar' }",
         context,
-        contextOpts: { referenceRecorder, resultPath: ["result"] },
+        contextOpts: { resultPath: ["result"] },
       })
-      expect(res).to.eql([])
 
-      const references = referenceRecorder.getReferences()
-      const expectedReferences: __ResolveReferences = {
-        result: {
-          expr: "${var.array}",
+      expect(res).to.eql([
+        new TemplateValue({
+          expr: "${var.array ? 'foo' : 'bar'}",
+          value: "foo",
           inputs: {
             "var.array": {
               expr: undefined,
@@ -2172,10 +2159,8 @@ describe.only("input tracking", () => {
               value: [],
             },
           },
-          value: "bar",
-        },
-      }
-      expect(references).to.eql(expectedReferences)
+        }),
+      ])
     })
 
     it("records references for every collection item in the result of the template expression, object", () => {
@@ -2188,46 +2173,31 @@ describe.only("input tracking", () => {
         },
       })
 
-      const referenceRecorder = new ReferenceRecorder()
-      const res = resolveTemplateString({
+      const res = resolveTemplateStringWithInputs({
         string: "${var.foo}",
         context,
-        contextOpts: { referenceRecorder, resultPath: ["result"] },
+        contextOpts: { resultPath: ["result"] },
       })
-      expect(res).to.eql(["element"])
-
-      const references = referenceRecorder.getReferences()
-      const expectedReferences: __ResolveReferences = {
-        "result.foo.bar": {
-          expr: "${var.foo}",
-          inputs: {
-            "var.foo.bar": {
-              expr: undefined,
-              inputs: {},
-              value: 1,
+      expect(res).to.eql({
+        foo: {
+          bar: new TemplateValue({
+            value: 1,
+            expr: undefined,
+            inputs: {},
+          }),
+          baz: new TemplateValue({
+            value: "banana",
+            expr: "${local.env.fruit}",
+            inputs: {
+              "local.env.fruit": new TemplateValue({
+                value: "banana",
+                expr: undefined,
+                inputs: {},
+              }),
             },
-          },
-          value: 1,
+          }),
         },
-        "result.foo.baz": {
-          expr: "${var.foo}",
-          inputs: {
-            "var.foo.baz": {
-              expr: undefined,
-              inputs: {
-                "local.env.FRUIT": {
-                  expr: undefined,
-                  value: "banana",
-                  inputs: {},
-                },
-              },
-              value: "banana",
-            },
-          },
-          value: "banana",
-        },
-      }
-      expect(references).to.eql(expectedReferences)
+      })
     })
   })
   describe("resolveTemplateStrings", () => {
@@ -2243,27 +2213,22 @@ describe.only("input tracking", () => {
         },
       }
 
-      const referenceRecorder = new ReferenceRecorder()
-
-      const res = resolveTemplateStrings({ source: undefined, value: obj, context, contextOpts: { referenceRecorder } })
+      const res = resolveTemplateStringsWithInputs({ source: undefined, value: obj, context })
       expect(res).to.eql({
         spec: {
-          elements: ["element"],
-        },
-      })
-
-      const references = referenceRecorder.getReferences()
-      expect(references).to.eql({
-        "spec.elements.0": {
-          expr: "${var.array.0}",
-          inputs: {
-            "var.array.0": {
-              expr: undefined,
-              inputs: {},
-              value: ["element"],
-            },
-          },
-          value: ["element"],
+          elements: [
+            new TemplateValue({
+              expr: "${var.array}",
+              inputs: {
+                "var.array.0": {
+                  expr: undefined,
+                  inputs: {},
+                  value: "element",
+                },
+              },
+              value: "element",
+            }),
+          ],
         },
       })
     })
@@ -2277,15 +2242,10 @@ describe.only("input tracking", () => {
         },
       }
 
-      const referenceRecorder = new ReferenceRecorder()
-
-      const res = resolveTemplateStrings({ source: undefined, value: obj, context, contextOpts: { referenceRecorder } })
+      const res = resolveTemplateStrings({ source: undefined, value: obj, context })
       expect(res).to.eql({
         foo: [],
       })
-
-      const references = referenceRecorder.getReferences()
-      expect(references).to.eql({})
     })
 
     it("records template references (forEach, 1 reference)", () => {
@@ -2303,20 +2263,21 @@ describe.only("input tracking", () => {
         },
       }
 
-      const referenceRecorder = new ReferenceRecorder()
-      resolveTemplateStrings({ source: undefined, value: obj, context, contextOpts: { referenceRecorder } })
-      const references = referenceRecorder.getReferences()
+      const res = resolveTemplateStringsWithInputs({ source: undefined, value: obj, context })
 
-      // We do reference `var.foo`, but only in the collection expression. References from the collection expression
-      // aren't tracked (since the item expressions are what ultimately appears in the resolved config).
-      const expectedRef: __ResolveReferences = {
-        "spec.services.0": {
+      expect(res).to.eql([
+        new TemplateValue({
           expr: undefined,
           value: "some-constant",
-          inputs: {},
-        },
-      }
-      expect(references).to.eql(expectedRef)
+          inputs: {
+            "var.array.0": {
+              expr: undefined,
+              value: "element",
+              inputs: {},
+            },
+          },
+        }),
+      ])
     })
 
     it("records template references (forEach, 2 reference)", () => {
@@ -2336,30 +2297,29 @@ describe.only("input tracking", () => {
           },
         },
       }
-      const referenceRecorder = new ReferenceRecorder()
-      const res = resolveTemplateStrings({ source: undefined, value: obj, context, contextOpts: { referenceRecorder } })
+      const res = resolveTemplateStringsWithInputs({ source: undefined, value: obj, context })
       expect(res).to.eql({
         spec: {
-          passwords: ["secure"],
+          passwords: [
+            new TemplateValue({
+              expr: "${secrets.db_password}",
+              value: "secure",
+              inputs: {
+                "secrets.db_password": {
+                  value: "secure",
+                  expr: undefined,
+                  inputs: {},
+                },
+                "var.array.0": {
+                  value: "element",
+                  expr: undefined,
+                  inputs: {},
+                },
+              },
+            }),
+          ],
         },
       })
-
-      const references = referenceRecorder.getReferences()
-
-      const expectedRef: __ResolveReferences = {
-        "spec.passwords.0": {
-          expr: "${secrets.db_password}",
-          value: "secure",
-          inputs: {
-            "secrets.db_password": {
-              value: "secure",
-              expr: undefined,
-              inputs: {},
-            },
-          },
-        },
-      }
-      expect(references).to.eql(expectedRef)
     })
 
     it("records template references (forEach, item.value)", () => {
@@ -2376,36 +2336,30 @@ describe.only("input tracking", () => {
           },
         },
       }
-      const referenceRecorder = new ReferenceRecorder()
-      const res = resolveTemplateStrings({ source: undefined, value: obj, context, contextOpts: { referenceRecorder } })
+      const res = resolveTemplateStringsWithInputs({ source: undefined, value: obj, context })
       expect(res).to.eql({
         spec: {
-          elements: ["element"],
-        },
-      })
-
-      const references = referenceRecorder.getReferences()
-
-      const expectedRef: __ResolveReferences = {
-        "spec.elements.0": {
-          expr: "${item.value}",
-          value: "element",
-          inputs: {
-            "item.value": {
-              expr: undefined,
+          elements: [
+            new TemplateValue({
+              expr: "${item.value}",
               value: "element",
               inputs: {
-                "var.array.0": {
+                "item.value": {
                   expr: undefined,
                   value: "element",
-                  inputs: {},
+                  inputs: {
+                    "var.array.0": {
+                      expr: undefined,
+                      value: "element",
+                      inputs: {},
+                    },
+                  },
                 },
               },
-            },
-          },
+            }),
+          ],
         },
-      }
-      expect(references).to.eql(expectedRef)
+      })
     })
 
     it("records template references (forEach, item.value.xyz)", () => {
@@ -2429,52 +2383,45 @@ describe.only("input tracking", () => {
           $return: "${item.value.xyz}",
         },
       }
-      const referenceRecorder = new ReferenceRecorder()
-      const res = resolveTemplateStrings({ source: undefined, value: obj, context, contextOpts: { referenceRecorder } })
+      const res = resolveTemplateStringsWithInputs({ source: undefined, value: obj, context })
       expect(res).to.eql({
-        foo: ["xyz_value_0", "xyz_value_1"],
+        foo: [
+          new TemplateValue({
+            expr: "${item.value.xyz}",
+            value: "xyz_value_0",
+            inputs: {
+              "item.value.xyz": {
+                expr: "${item.value.xyz}",
+                value: "xyz_value_0",
+                inputs: {
+                  "var.foo.0.xyz": {
+                    expr: undefined,
+                    inputs: {},
+                    value: "xyz_value_0",
+                  },
+                },
+              },
+            },
+          }),
+          new TemplateValue({
+            expr: "${item.value.xyz}",
+            value: "xyz_value_1",
+            inputs: {
+              "item.value.xyz": {
+                value: "xyz_value_1",
+                expr: "${item.value.xyz}",
+                inputs: {
+                  "var.foo.1.xyz": {
+                    expr: undefined,
+                    inputs: {},
+                    value: "xyz_value_1",
+                  },
+                },
+              },
+            },
+          }),
+        ],
       })
-
-      const references = referenceRecorder.getReferences()
-
-      const expectedRef: __ResolveReferences = {
-        "foo.0": {
-          expr: "${item.value.xyz}",
-          value: "xyz_value_0",
-          inputs: {
-            "item.value.xyz": {
-              expr: "${item.value.xyz}",
-              value: "xyz_value_0",
-              inputs: {
-                "var.foo.0.xyz": {
-                  expr: undefined,
-                  inputs: {},
-                  value: "xyz_value_0",
-                },
-              },
-            },
-          },
-        },
-        "foo.1": {
-          expr: "${item.value.xyz}",
-          value: "xyz_value_1",
-          inputs: {
-            "item.value.xyz": {
-              value: "xyz_value_1",
-              expr: "${item.value.xyz}",
-              inputs: {
-                "var.foo.1.xyz": {
-                  expr: undefined,
-                  inputs: {},
-                  value: "xyz_value_1",
-                },
-              },
-            },
-          },
-        },
-      }
-
-      expect(references).to.eql(expectedRef)
     })
 
     it("records template references (forEach, item.value.xyz with a helper call in collection expression)", () => {
@@ -2498,69 +2445,63 @@ describe.only("input tracking", () => {
           $return: "${item.value.xyz}",
         },
       }
-      const referenceRecorder = new ReferenceRecorder()
-      const res = resolveTemplateStrings({ source: undefined, value: obj, context, contextOpts: { referenceRecorder } })
+
+      const res = resolveTemplateStringsWithInputs({ source: undefined, value: obj, context })
       expect(res).to.eql({
-        foo: ["xyz_value_0", "xyz_value_1", "xyz_value_concatenated"],
+        foo: [
+          new TemplateValue({
+            expr: "${item.value.xyz}",
+            value: "xyz_value_0",
+            inputs: {
+              "item.value.xyz": {
+                expr: "${item.value.xyz}",
+                value: "xyz_value_0",
+                inputs: {
+                  "var.foo.0.xyz": {
+                    expr: undefined,
+                    inputs: {},
+                    value: "xyz_value_0",
+                  },
+                },
+              },
+            },
+          }),
+          new TemplateValue({
+            expr: "${item.value.xyz}",
+            value: "xyz_value_1",
+            inputs: {
+              "item.value.xyz": {
+                value: "xyz_value_1",
+                expr: "${item.value.xyz}",
+                inputs: {
+                  "var.foo.1.xyz": {
+                    expr: undefined,
+                    value: "xyz_value_1",
+                    inputs: {},
+                  },
+                },
+              },
+            },
+          }),
+          new TemplateValue({
+            expr: "${item.value.xyz}",
+            value: "xyz_value_concatenated",
+            inputs: {
+              "item.value.xyz": {
+                value: "xyz_value_concatenated",
+                expr: "${item.value.xyz}",
+                inputs: {
+                  "var.foo.1.xyz": {
+                    value: "xyz_value_concatenated",
+                    expr: undefined,
+                    inputs: {},
+                  },
+                },
+              },
+            },
+          }),
+        ],
       })
-
-      const references = referenceRecorder.getReferences()
-
-      const expectedRef: __ResolveReferences = {
-        "foo.0": {
-          expr: "${item.value.xyz}",
-          value: "xyz_value_0",
-          inputs: {
-            "item.value.xyz": {
-              expr: "${item.value.xyz}",
-              value: "xyz_value_0",
-              inputs: {
-                "var.foo.0.xyz": {
-                  expr: undefined,
-                  inputs: {},
-                  value: "xyz_value_0",
-                },
-              },
-            },
-          },
-        },
-        "foo.1": {
-          expr: "${item.value.xyz}",
-          value: "xyz_value_1",
-          inputs: {
-            "item.value.xyz": {
-              value: "xyz_value_1",
-              expr: "${item.value.xyz}",
-              inputs: {
-                "var.foo.1.xyz": {
-                  expr: undefined,
-                  value: "xyz_value_1",
-                  inputs: {},
-                },
-              },
-            },
-          },
-        },
-        "foo.2": {
-          expr: "${item.value.xyz}",
-          value: "xyz_value_concatenated",
-          inputs: {
-            "item.value.xyz": {
-              value: "xyz_value_concatenated",
-              expr: "${item.value.xyz}",
-              inputs: {
-                "var.foo.1.xyz": {
-                  value: "xyz_value_concatenated",
-                  expr: undefined,
-                  inputs: {},
-                },
-              },
-            },
-          },
-        },
-      }
-
-      expect(references).to.eql(expectedRef)
     })
 
     it("records template references (simple, 0 reference)", () => {
@@ -2569,16 +2510,14 @@ describe.only("input tracking", () => {
         foo: "bar",
       }
 
-      const referenceRecorder = new ReferenceRecorder()
-      const res = resolveTemplateStrings({ source: undefined, value: obj, context, contextOpts: { referenceRecorder } })
+      const res = resolveTemplateStringsWithInputs({ source: undefined, value: obj, context })
       expect(res).to.eql({
-        foo: "bar",
+        foo: new TemplateValue({
+          expr: undefined,
+          value: "bar",
+          inputs: {},
+        }),
       })
-
-      const references = referenceRecorder.getReferences()
-
-      const expectedRef: __ResolveReferences = {}
-      expect(references).to.eql(expectedRef)
     })
 
     it("records template references (simple, 1 reference)", () => {
@@ -2593,30 +2532,22 @@ describe.only("input tracking", () => {
         },
       }
 
-      const referenceRecorder = new ReferenceRecorder()
-      const res = resolveTemplateStrings({ source: undefined, value: obj, context, contextOpts: { referenceRecorder } })
+      const res = resolveTemplateStrings({ source: undefined, value: obj, context })
       expect(res).to.eql({
         spec: {
-          password: "secure",
+          password: new TemplateValue({
+            expr: "${secrets.password}",
+            value: "secure",
+            inputs: {
+              "secrets.password": {
+                expr: undefined,
+                inputs: {},
+                value: "secure",
+              },
+            },
+          }),
         },
       })
-
-      const references = referenceRecorder.getReferences()
-
-      const expectedRef: __ResolveReferences = {
-        "spec.password": {
-          expr: "${secrets.password}",
-          value: "secure",
-          inputs: {
-            "secrets.password": {
-              expr: undefined,
-              inputs: {},
-              value: "secure",
-            },
-          },
-        },
-      }
-      expect(references).to.eql(expectedRef)
     })
 
     it("records template references (deep, 1 reference)", () => {
@@ -2633,30 +2564,22 @@ describe.only("input tracking", () => {
         },
       }
 
-      const referenceRecorder = new ReferenceRecorder()
-      const res = resolveTemplateStrings({ source: undefined, value: obj, context, contextOpts: { referenceRecorder } })
+      const res = resolveTemplateStringsWithInputs({ source: undefined, value: obj, context })
       expect(res).to.eql({
         spec: {
-          image: "image:latest",
+          image: new TemplateValue({
+            expr: "${local.env.IMAGE}",
+            value: "image:latest",
+            inputs: {
+              "local.env.IMAGE": {
+                expr: undefined,
+                inputs: {},
+                value: "image:latest",
+              },
+            },
+          }),
         },
       })
-
-      const references = referenceRecorder.getReferences()
-
-      const expectedRef: __ResolveReferences = {
-        "spec.image": {
-          expr: "${local.env.IMAGE}",
-          value: "image:latest",
-          inputs: {
-            "local.env.IMAGE": {
-              expr: undefined,
-              inputs: {},
-              value: "image:latest",
-            },
-          },
-        },
-      }
-      expect(references).to.eql(expectedRef)
     })
 
     it("records template references (array, 1 reference)", () => {
@@ -2673,30 +2596,24 @@ describe.only("input tracking", () => {
         },
       }
 
-      const referenceRecorder = new ReferenceRecorder()
-      const res = resolveTemplateStrings({ source: undefined, value: obj, context, contextOpts: { referenceRecorder } })
+      const res = resolveTemplateStringsWithInputs({ source: undefined, value: obj, context })
       expect(res).to.eql({
         foo: {
-          bar: ["baz"],
+          bar: [
+            new TemplateValue({
+              expr: "${var.foo.bar}",
+              value: "baz",
+              inputs: {
+                "var.foo.bar": {
+                  expr: undefined,
+                  inputs: {},
+                  value: "baz",
+                },
+              },
+            }),
+          ],
         },
       })
-
-      const references = referenceRecorder.getReferences()
-
-      const expectedRef: __ResolveReferences = {
-        "foo.bar.0": {
-          expr: "${var.foo.bar}",
-          value: "baz",
-          inputs: {
-            "var.foo.bar": {
-              expr: undefined,
-              inputs: {},
-              value: "baz",
-            },
-          },
-        },
-      }
-      expect(references).to.eql(expectedRef)
     })
 
     // a:
@@ -2748,54 +2665,67 @@ describe.only("input tracking", () => {
         },
       }
 
-      const referenceRecorder = new ReferenceRecorder()
-      const res = resolveTemplateStrings({ source: undefined, value: obj, context, contextOpts: { referenceRecorder } })
+      const res = resolveTemplateStrings({ source: undefined, value: obj, context })
       expect(res).to.eql({
         a: {
           b: {
             c: {
-              bar: "baz",
-              fruit: "banana",
+              bar: new TemplateValue({
+                expr: undefined,
+                value: "baz",
+                inputs: {},
+              }),
+              fruit: new TemplateValue({
+                expr: undefined,
+                value: "banana",
+                inputs: {
+                  "local.env.fruit": new TemplateValue({
+                    expr: "${local.env.FRUIT}",
+                    value: "banana",
+                    inputs: {},
+                  }),
+                },
+              }),
             },
           },
         },
       })
 
-      const references = referenceRecorder.getReferences()
+      // const references = referenceRecorder.getReferences()
 
       // The template reference map should only contain the leaves
       // Or with other words, every key path is the longest possible / full path
-      const expectedRef: __ResolveReferences = {
-        "a.b.c.bar": {
-          expr: "${var.foo}",
-          value: "baz",
-          inputs: {
-            "var.foo.bar": {
-              expr: undefined,
-              inputs: {},
-              value: "baz",
-            },
-          },
-        },
-        "a.b.c.fruit": {
-          expr: "${var.foo}",
-          value: "banana",
-          inputs: {
-            "var.foo.fruit": {
-              value: "banana",
-              expr: "${local.env.FRUIT}",
-              inputs: {
-                "local.env.FRUIT": {
-                  value: "banana",
-                  expr: undefined,
-                  inputs: {},
-                },
-              },
-            },
-          },
-        },
-      }
-      expect(references).to.eql(expectedRef)
+      // const expectedRef: __ResolveReferences = {
+      //   "a.b.c.bar": {
+      //     expr: "${var.foo}",
+      //     value: "baz",
+      //     inputs: {
+      //       "var.foo.bar": {
+      //         expr: undefined,
+      //         inputs: {},
+      //         value: "baz",
+      //       },
+      //     },
+      //   },
+      //   "a.b.c.fruit": {
+      //     expr: "${var.foo}",
+      //     value: "banana",
+      //     inputs: {
+      //       "var.foo.fruit": {
+      //         value: "banana",
+      //         expr: "${local.env.FRUIT}",
+      //         inputs: {
+      //           "local.env.FRUIT": {
+      //             value: "banana",
+      //             expr: undefined,
+      //             inputs: {},
+      //           },
+      //         },
+      //       },
+      //     },
+      //   },
+      // }
+      // expect(references).to.eql(expectedRef)
     })
   })
 })

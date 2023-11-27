@@ -19,13 +19,8 @@ import { isPrimitive, joi, joiIdentifier } from "../common.js"
 import { KeyedSet } from "../../util/keyed-set.js"
 import { naturalList } from "../../util/string.js"
 import { styles } from "../../logger/styles.js"
-import {
-  ReferenceRecorder,
-  __ResolveReferences,
-  TemplateCollectionOrValue,
-  TemplateValue,
-  isTemplatePrimitive,
-} from "../../template-string/inputs.js"
+import type { CollectionOrValue } from "../../template-string/inputs.js"
+import { TemplateValue, isTemplatePrimitive } from "../../template-string/inputs.js"
 import { deepMap } from "../../util/objects.js"
 
 export type ContextKeySegment = string | number
@@ -40,8 +35,6 @@ export interface ContextResolveOpts {
   stack?: string[]
   // Unescape escaped template strings
   unescape?: boolean
-
-  referenceRecorder?: ReferenceRecorder
 
   /**
    * The real YAML path after parsing YAML, e.g. ["spec", "foobar", 0, "$merge"]
@@ -67,7 +60,7 @@ export interface ContextResolveParams {
 export interface ContextResolveOutput {
   message?: string
   partial?: boolean
-  result: TemplateCollectionOrValue
+  result: CollectionOrValue
   cached: boolean
   // for input tracking
   // ResolvedResult: ResolvedResult
@@ -88,8 +81,7 @@ export interface ConfigContextType {
 // TODO-steffen&thor: Make all instance variables of all config context classes read-only.
 export abstract class ConfigContext {
   private readonly _rootContext: ConfigContext
-  private readonly _resolvedValues: { [path: string]: TemplateCollectionOrValue }
-  private readonly _resolveReferences: __ResolveReferences
+  private readonly _resolvedValues: { [path: string]: CollectionOrValue }
 
   // This is used for special-casing e.g. runtime.* resolution
   protected _alwaysAllowPartial: boolean
@@ -97,7 +89,6 @@ export abstract class ConfigContext {
   constructor(rootContext?: ConfigContext) {
     this._rootContext = rootContext || this
     this._resolvedValues = {}
-    this._resolveReferences = {}
     this._alwaysAllowPartial = false
   }
 
@@ -112,21 +103,6 @@ export abstract class ConfigContext {
    */
   getMissingKeyErrorFooter(_key: ContextKeySegment, _path: ContextKeySegment[]): string {
     return ""
-  }
-
-  // TODO: remove this
-  addResolvedValue(name: string, value: any, path: ObjectPath, references: __ResolveReferences) {
-    const pathString = path.join(".")
-    for (const [referenceKey, reference] of Object.entries(references)) {
-      if (!referenceKey.startsWith(pathString) && referenceKey !== pathString) {
-        continue
-      }
-
-      const transformedPath = referenceKey.split(".").slice(path.length).join(".")
-      this._resolveReferences[transformedPath] = reference
-    }
-
-    Object.assign(this, { [name]: value })
   }
 
   resolve({ key, nodePath, opts }: ContextResolveParams): ContextResolveOutput {
@@ -260,7 +236,7 @@ export abstract class ConfigContext {
       }
     }
 
-    let result: TemplateCollectionOrValue
+    let result: CollectionOrValue
 
     // Wrap normal data using deepMap; TODO: Handle resolve results here.
     if (isTemplatePrimitive(value)) {

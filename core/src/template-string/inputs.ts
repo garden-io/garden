@@ -7,7 +7,7 @@
  */
 
 import { Primitive, isPrimitive } from "utility-types"
-import { ContextResolveOpts, ObjectPath } from "../config/template-contexts/base.js"
+import { ObjectPath } from "../config/template-contexts/base.js"
 import { InternalError } from "../exceptions.js"
 import { isArray, isPlainObject, mapValues } from "lodash-es"
 
@@ -17,6 +17,14 @@ export function isTemplatePrimitive(value: unknown): value is TemplatePrimitive 
     (isPlainObject(value) && Object.keys(<object>value).length === 0) ||
     (Array.isArray(value) && value.length === 0)
   )
+}
+
+export function templateIsArray<P extends (TemplatePrimitive | TemplateValue)>(value: CollectionOrValue<P>): value is (CollectionOrValue<P>)[] {
+  return Array.isArray(value)
+}
+
+export function templateIsObject<P extends (TemplatePrimitive | TemplateValue)>(value: CollectionOrValue<P>): value is ({ [key: string]: CollectionOrValue<P> }) {
+  return isPlainObject(value)
 }
 
 type EmptyArray = never[]
@@ -49,20 +57,21 @@ export class TemplateValue<T extends TemplatePrimitive = TemplatePrimitive> {
   }
 }
 
-export type TemplateCollectionOrValue<P extends (TemplatePrimitive | TemplateValue) = TemplateValue> =
+export type CollectionOrValue<P extends TemplatePrimitive | TemplateValue = TemplateValue> =
   | P
-  | Iterable<TemplateCollectionOrValue<P>>
-  | { [key: string]: TemplateCollectionOrValue<P> }
+  | Iterable<CollectionOrValue<P>>
+  | { [key: string]: CollectionOrValue<P> }
 
 // helpers
 
 // Similar to deepMap, but treats empty collections as leaves, because they are template primitives.
-export function templatePrimitiveDeepMap<P extends TemplatePrimitive, R extends (TemplatePrimitive | TemplateValue)>(
-  value: TemplateCollectionOrValue<P>,
-  fn: (value: TemplatePrimitive, keyPath: ObjectPath) => TemplateCollectionOrValue<R>,
+export function templatePrimitiveDeepMap<P extends TemplatePrimitive, R extends TemplatePrimitive | TemplateValue>(
+  value: CollectionOrValue<P>,
+  fn: (value: TemplatePrimitive, keyPath: ObjectPath) => CollectionOrValue<R>,
   keyPath: ObjectPath = []
-): TemplateCollectionOrValue<R> {
-  if (isTemplatePrimitive(value)) { // This also handles empty collections
+): CollectionOrValue<R> {
+  if (isTemplatePrimitive(value)) {
+    // This also handles empty collections
     return fn(value, keyPath)
   } else if (isArray(value)) {
     return value.map((v, k) => templatePrimitiveDeepMap(v, fn, [...keyPath, k]))
@@ -72,38 +81,4 @@ export function templatePrimitiveDeepMap<P extends TemplatePrimitive, R extends 
   } else {
     throw new InternalError({ message: `Unexpected value type: ${typeof value}` })
   }
-}
-
-// TODO: Remove the recorder
-export class ReferenceRecorder {
-  private references?: __ResolveReferences = {}
-
-  record(contextOpts: ContextResolveOpts, result: TemplateValue) {
-    if (!this.references) {
-      throw new InternalError({ message: "Already collected references" })
-    }
-
-    if (!contextOpts.resultPath) {
-      throw new InternalError({ message: "Missing resultPath" })
-    }
-
-    const key = contextOpts.resultPath.join(".")
-    if (!this.references.hasOwnProperty(key)) {
-      this.references[key] = result
-    }
-  }
-
-  getReferences(): __ResolveReferences {
-    if (!this.references) {
-      throw new InternalError({ message: "Already collected references" })
-    }
-    const refs = this.references
-    delete this.references
-    return refs
-  }
-}
-
-export type __ResolveReferences = {
-  // key is the resolve result key path, e.g. "spec.files[0].path"
-  [resultKeyPath: string]: TemplateValue
 }
