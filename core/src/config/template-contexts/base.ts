@@ -20,7 +20,7 @@ import { KeyedSet } from "../../util/keyed-set.js"
 import { naturalList } from "../../util/string.js"
 import { styles } from "../../logger/styles.js"
 import type { CollectionOrValue } from "../../template-string/inputs.js"
-import { TemplateValue, isTemplatePrimitive } from "../../template-string/inputs.js"
+import { TemplateValue, isTemplatePrimitive, isTemplateValue } from "../../template-string/inputs.js"
 import { deepMap } from "../../util/objects.js"
 
 export type ContextKeySegment = string | number
@@ -176,6 +176,11 @@ export abstract class ConfigContext {
           value = res.result
           message = res.message
           partial = !!res.partial
+        } else {
+          // TODO: improve error message
+          throw new ConfigurationError({
+            message: `Resolving to a context is not allowed.`,
+          })
         }
         break
       }
@@ -184,6 +189,10 @@ export abstract class ConfigContext {
       if (isString(value)) {
         opts.stack.push(stackEntry)
         value = resolveTemplateString({ string: value, context: this._rootContext, contextOpts: opts })
+      }
+
+      if (isTemplateValue(value)) {
+        break
       }
 
       if (value === undefined) {
@@ -238,8 +247,11 @@ export abstract class ConfigContext {
 
     let result: CollectionOrValue
 
-    // Wrap normal data using deepMap; TODO: Handle resolve results here.
-    if (isTemplatePrimitive(value)) {
+    if (isTemplateValue(value)) {
+      result = value
+    }
+    // Wrap normal data using deepMap
+    else if (isTemplatePrimitive(value)) {
       result = new TemplateValue({
         expr: undefined,
         value,
@@ -248,6 +260,9 @@ export abstract class ConfigContext {
     } else {
       // value is a collection
       result = deepMap(value, (v) => {
+        if (isTemplateValue(v)) {
+          return v
+        }
         return new TemplateValue({
           expr: undefined,
           value: v,

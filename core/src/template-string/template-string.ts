@@ -392,7 +392,7 @@ export function resolveTemplateStringsWithInputs({
   }
 
   if (typeof value === "string") {
-    return resolveTemplateString({ string: value, context, contextOpts })
+    return resolveTemplateStringWithInputs({ string: value, context, contextOpts })
   } else if (isTemplatePrimitive(value)) {
     // here we handle things static numbers, empty array etc
     // we also handle null and undefined

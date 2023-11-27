@@ -2280,7 +2280,7 @@ describe.only("input tracking", () => {
       ])
     })
 
-    it("records template references (forEach, 2 reference)", () => {
+    it("tracks inputs correctly in foreach when using secrets.db_password instead of item.value", () => {
       const context = new TestContext({
         var: {
           array: ["element"],
@@ -2322,7 +2322,7 @@ describe.only("input tracking", () => {
       })
     })
 
-    it("records template references (forEach, item.value)", () => {
+    it("tracks inputs correctly with forEach item.value", () => {
       const context = new TestContext({
         var: {
           array: ["element"],
@@ -2345,7 +2345,7 @@ describe.only("input tracking", () => {
               value: "element",
               inputs: {
                 "item.value": {
-                  expr: undefined,
+                  expr: "${var.array}",
                   value: "element",
                   inputs: {
                     "var.array.0": {
@@ -2362,7 +2362,7 @@ describe.only("input tracking", () => {
       })
     })
 
-    it("records template references (forEach, item.value.xyz)", () => {
+    it("tracks inputs correctly with forEach item.value.xyz", () => {
       const context = new TestContext({
         var: {
           foo: [
@@ -2391,7 +2391,7 @@ describe.only("input tracking", () => {
             value: "xyz_value_0",
             inputs: {
               "item.value.xyz": {
-                expr: "${item.value.xyz}",
+                expr: "${var.foo}",
                 value: "xyz_value_0",
                 inputs: {
                   "var.foo.0.xyz": {
@@ -2409,7 +2409,7 @@ describe.only("input tracking", () => {
             inputs: {
               "item.value.xyz": {
                 value: "xyz_value_1",
-                expr: "${item.value.xyz}",
+                expr: "${var.foo}",
                 inputs: {
                   "var.foo.1.xyz": {
                     expr: undefined,
@@ -2424,10 +2424,10 @@ describe.only("input tracking", () => {
       })
     })
 
-    it("records template references (forEach, item.value.xyz with a helper call in collection expression)", () => {
+    it("tracks input when using concat", () => {
       const context = new TestContext({
         var: {
-          foo: [
+          left: [
             {
               xyz: "xyz_value_0",
               abc: "abc_value_0",
@@ -2437,11 +2437,12 @@ describe.only("input tracking", () => {
               abc: "abc_value_1",
             },
           ],
+          right: [{ xyz: "xyz_value_concatenated" }],
         },
       })
       const obj = {
         foo: {
-          $forEach: "${concat(var.foo, [{ xyz: 'xyz_value_concatenated' }])}",
+          $forEach: "${concat(var.left, var.right)}",
           $return: "${item.value.xyz}",
         },
       }
@@ -2504,7 +2505,7 @@ describe.only("input tracking", () => {
       })
     })
 
-    it("records template references (simple, 0 reference)", () => {
+    it("correctly evaluates static template expressions", () => {
       const context = new TestContext({})
       const obj = {
         foo: "bar",
@@ -2520,29 +2521,48 @@ describe.only("input tracking", () => {
       })
     })
 
-    it("records template references (simple, 1 reference)", () => {
+    it("correctly evaluates previously resolved TemplateValues in Context with secrets.PASSWORD", () => {
       const context = new TestContext({
-        secrets: {
-          password: "secure",
+        var: {
+          sharedPassword: new TemplateValue({
+            expr: "${secrets.PASSWORD}",
+            value: "secure",
+            inputs: {
+              "secrets.PASSWORD": new TemplateValue({
+                expr: undefined,
+                value: "secure",
+                inputs: {},
+              }),
+            },
+          }),
         },
       })
-      const obj = {
-        spec: {
-          password: "${secrets.password}",
-        },
-      }
 
-      const res = resolveTemplateStrings({ source: undefined, value: obj, context })
+      const res = resolveTemplateStringsWithInputs({
+        source: undefined,
+        value: {
+          spec: {
+            password: "${var.sharedPassword}",
+          },
+        },
+        context,
+      })
       expect(res).to.eql({
         spec: {
           password: new TemplateValue({
-            expr: "${secrets.password}",
+            expr: "${var.sharedPassword}",
             value: "secure",
             inputs: {
-              "secrets.password": {
-                expr: undefined,
-                inputs: {},
+              "var.sharedPassword": {
+                expr: "${secrets.PASSWORD}",
                 value: "secure",
+                inputs: {
+                  "secrets.PASSWORD": {
+                    expr: undefined,
+                    value: "secure",
+                    inputs: {},
+                  },
+                },
               },
             },
           }),
@@ -2550,7 +2570,7 @@ describe.only("input tracking", () => {
       })
     })
 
-    it("records template references (deep, 1 reference)", () => {
+    it("correctly resolves local.env.IMAGE", () => {
       const context = new TestContext({
         local: {
           env: {
@@ -2558,13 +2578,16 @@ describe.only("input tracking", () => {
           },
         },
       })
-      const obj = {
-        spec: {
-          image: "${local.env.IMAGE}",
-        },
-      }
 
-      const res = resolveTemplateStringsWithInputs({ source: undefined, value: obj, context })
+      const res = resolveTemplateStringsWithInputs({
+        source: undefined,
+        value: {
+          spec: {
+            image: "${local.env.IMAGE}",
+          },
+        },
+        context,
+      })
       expect(res).to.eql({
         spec: {
           image: new TemplateValue({
@@ -2582,7 +2605,7 @@ describe.only("input tracking", () => {
       })
     })
 
-    it("records template references (array, 1 reference)", () => {
+    it("correctly evaluates array with 1 reference", () => {
       const context = new TestContext({
         var: {
           foo: {
@@ -2590,13 +2613,16 @@ describe.only("input tracking", () => {
           },
         },
       })
-      const obj = {
-        foo: {
-          bar: ["${var.foo.bar}"],
-        },
-      }
 
-      const res = resolveTemplateStringsWithInputs({ source: undefined, value: obj, context })
+      const res = resolveTemplateStringsWithInputs({
+        source: undefined,
+        value: {
+          foo: {
+            bar: ["${var.foo.bar}"],
+          },
+        },
+        context,
+      })
       expect(res).to.eql({
         foo: {
           bar: [
@@ -2616,73 +2642,69 @@ describe.only("input tracking", () => {
       })
     })
 
-    // a:
-    //   b:
-    //     c:
-    //       $merge: ${var.foo}
-    //
-    // a:
-    //   b:
-    //     c:
-    //       bar: baz
-    //       fruit: banana
-    //
-    // var.something: ${var.a.b.c.fruit}
-    //
-    // // templatereferencemap
-    // "var.a.b.c.fruit" => var.foo.fruit
-
-    it("records template references (simple, dottis merge)", () => {
-      const context = new TestContext(
-        {
-          var: {
-            foo: {
-              bar: "baz",
-              fruit: "banana",
-            },
+    it("correctly evaluates abc-$merge", () => {
+      const context = new TestContext({
+        var: {
+          foo: {
+            bar: "baz",
+            fruit: new TemplateValue({
+              expr: "${local.env.FRUIT}",
+              value: "banana",
+              inputs: {
+                "local.env.FRUIT": {
+                  expr: undefined,
+                  value: "banana",
+                  inputs: {},
+                },
+              },
+            }),
           },
-        }
-        // TODO: add the template reference map
-        // {
-        //   "var.foo.fruit": {
-        //     rawExpressions: ["${local.env.FRUIT}"],
-        //     resolvedValue: "banana",
-        //     inputs: {
-        //       "local.env.FRUIT": {
-        //         resolvedValue: "banana",
-        //       }
-        //     }
-        //   }
-        // }
-      )
-      const obj = {
-        a: {
-          b: {
-            c: {
-              $merge: "${var.foo}",
+        },
+      })
+
+      const res = resolveTemplateStringsWithInputs({
+        source: undefined,
+        value: {
+          a: {
+            b: {
+              c: {
+                $merge: "${var.foo}",
+              },
             },
           },
         },
-      }
+        context,
+      })
 
-      const res = resolveTemplateStrings({ source: undefined, value: obj, context })
       expect(res).to.eql({
         a: {
           b: {
             c: {
               bar: new TemplateValue({
-                expr: undefined,
+                expr: "${var.foo}",
                 value: "baz",
-                inputs: {},
+                inputs: {
+                  "var.foo.bar": new TemplateValue({
+                    expr: undefined,
+                    value: "baz",
+                    inputs: {},
+                  }),
+                },
               }),
               fruit: new TemplateValue({
-                expr: undefined,
+                expr: "${var.foo}",
                 value: "banana",
                 inputs: {
-                  "local.env.fruit": new TemplateValue({
+                  "var.foo.fruit": new TemplateValue({
                     expr: "${local.env.FRUIT}",
                     value: "banana",
-                    inputs: {},
+                    inputs: {
+                      "local.env.FRUIT": new TemplateValue({
+                        expr: undefined,
+                        value: "banana",
+                        inputs: {},
+                      }),
+                    },
                   }),
                 },
               }),
@@ -2690,42 +2712,6 @@ describe.only("input tracking", () => {
           },
         },
       })
-
-      // const references = referenceRecorder.getReferences()
-
-      // The template reference map should only contain the leaves
-      // Or with other words, every key path is the longest possible / full path
-      // const expectedRef: __ResolveReferences = {
-      //   "a.b.c.bar": {
-      //     expr: "${var.foo}",
-      //     value: "baz",
-      //     inputs: {
-      //       "var.foo.bar": {
-      //         expr: undefined,
-      //         inputs: {},
-      //         value: "baz",
-      //       },
-      //     },
-      //   },
-      //   "a.b.c.fruit": {
-      //     expr: "${var.foo}",
-      //     value: "banana",
-      //     inputs: {
-      //       "var.foo.fruit": {
-      //         value: "banana",
-      //         expr: "${local.env.FRUIT}",
-      //         inputs: {
-      //           "local.env.FRUIT": {
-      //             value: "banana",
-      //             expr: undefined,
-      //             inputs: {},
-      //           },
-      //         },
-      //       },
-      //     },
-      //   },
-      // }
-      // expect(references).to.eql(expectedRef)
     })
   })
 })
