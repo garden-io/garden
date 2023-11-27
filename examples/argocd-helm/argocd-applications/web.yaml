@@ -22,9 +22,9 @@ spec:
     server: https://kubernetes.default.svc
   project: default
   source:
-    repoURL: https://github.com/garden-io-testing/gitops-demo.git
+    repoURL: https://github.com/garden-io/garden.git
     targetRevision: HEAD
-    path: web/chart
+    path: examples/argocd-helm/web/chart
     helm:
       version: v3
       valueFiles:

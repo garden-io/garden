@@ -12,8 +12,8 @@ spec:
     server: https://kubernetes.default.svc
   project: default
   source:
-    path: argocd-applications
-    repoURL: https://github.com/garden-io-testing/gitops-demo.git
+    path: examples/argocd-helm/argocd-applications
+    repoURL: https://github.com/garden-io/garden.git 
     targetRevision: HEAD
     directory:
       recurse: true
