@@ -7,9 +7,9 @@
  */
 
 import { Primitive, isPrimitive } from "utility-types"
-import { ContextResolveOpts } from "../config/template-contexts/base.js"
+import { ContextResolveOpts, ObjectPath } from "../config/template-contexts/base.js"
 import { InternalError } from "../exceptions.js"
-import { isPlainObject } from "lodash-es"
+import { isArray, isPlainObject, mapValues } from "lodash-es"
 
 export function isTemplatePrimitive(value: unknown): value is TemplatePrimitive {
   return (
@@ -49,10 +49,30 @@ export class TemplateValue<T extends TemplatePrimitive = TemplatePrimitive> {
   }
 }
 
-export type TemplateCollectionOrValue =
-  | TemplateValue
-  | Iterable<TemplateCollectionOrValue>
-  | { [key: string]: TemplateCollectionOrValue }
+export type TemplateCollectionOrValue<P extends (TemplatePrimitive | TemplateValue) = TemplateValue> =
+  | P
+  | Iterable<TemplateCollectionOrValue<P>>
+  | { [key: string]: TemplateCollectionOrValue<P> }
+
+// helpers
+
+// Similar to deepMap, but treats empty collections as leaves, because they are template primitives.
+export function templatePrimitiveDeepMap<P extends TemplatePrimitive, R extends (TemplatePrimitive | TemplateValue)>(
+  value: TemplateCollectionOrValue<P>,
+  fn: (value: TemplatePrimitive, keyPath: ObjectPath) => TemplateCollectionOrValue<R>,
+  keyPath: ObjectPath = []
+): TemplateCollectionOrValue<R> {
+  if (isTemplatePrimitive(value)) { // This also handles empty collections
+    return fn(value, keyPath)
+  } else if (isArray(value)) {
+    return value.map((v, k) => templatePrimitiveDeepMap(v, fn, [...keyPath, k]))
+  } else if (isPlainObject(value)) {
+    // we know we can use mapValues, as this was a plain object
+    return mapValues(value as any, (v, k) => templatePrimitiveDeepMap(v, fn, [...keyPath, k]))
+  } else {
+    throw new InternalError({ message: `Unexpected value type: ${typeof value}` })
+  }
+}
 
 // TODO: Remove the recorder
 export class ReferenceRecorder {

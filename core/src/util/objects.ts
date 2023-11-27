@@ -7,6 +7,7 @@
  */
 
 import { isArray, isPlainObject, mapValues, pickBy } from "lodash-es"
+import { ObjectPath } from "../config/template-contexts/base.js"
 
 /**
  * Recursively process all values in the given input,
@@ -14,15 +15,15 @@ import { isArray, isPlainObject, mapValues, pickBy } from "lodash-es"
  */
 export function deepMap<T extends object, U extends object = T>(
   value: T | Iterable<T>,
-  fn: (value: any, key: string | number) => any,
-  key?: number | string
+  fn: (value: any, key: string | number, keyPath: ObjectPath) => any,
+  keyPath: ObjectPath = []
 ): U | Iterable<U> {
   if (isArray(value)) {
-    return value.map((v, k) => <U>deepMap(v, fn, k))
+    return value.map((v, k) => <U>deepMap(v, fn, [...keyPath, k]))
   } else if (isPlainObject(value)) {
-    return <U>mapValues(value, (v, k) => deepMap(<T>(<unknown>v), fn, k))
+    return <U>mapValues(value, (v, k) => deepMap(<T>(<unknown>v), fn, [...keyPath, k]))
   } else {
-    return <U>fn(value, key || 0)
+    return <U>fn(value, keyPath[-1] || 0, keyPath)
   }
 }
 

@@ -13,6 +13,7 @@ import {
   collectTemplateReferences,
   throwOnMissingSecretKeys,
   getActionTemplateReferences,
+  resolveTemplateStringWithInputs,
 } from "../../../src/template-string/template-string.js"
 import { ConfigContext } from "../../../src/config/template-contexts/base.js"
 import type { TestGarden } from "../../helpers.js"
@@ -20,7 +21,7 @@ import { expectError, getDataDir, makeTestGarden } from "../../helpers.js"
 import { dedent } from "../../../src/util/string.js"
 import stripAnsi from "strip-ansi"
 import { TemplateStringError } from "../../../src/exceptions.js"
-import { ReferenceRecorder } from "../../../src/template-string/inputs.js"
+import { ReferenceRecorder, TemplateValue } from "../../../src/template-string/inputs.js"
 import type { __ResolveReferences } from "../../../src/template-string/inputs.js"
 
 class TestContext extends ConfigContext {
@@ -2019,18 +2020,29 @@ describe("resolveTemplateStrings", () => {
   })
 })
 
+// ${concat(var.someArray, var.someOtherArray)}
+//    V
+// ${concat([1,2,3], [4,5])}
+//    V
+//  [1,2,3,4,5]
+
+// ${jsonEncode(concat([1,2,3], [4,5]))}
+// => Result()
+
+// ${hash(var.someString)}
+//
 describe.only("input tracking", () => {
   describe.only("resolveTemplateString", () => {
     it("records references for every collection item in the result of the template expression, array", () => {
       const context = new TestContext({
         var: {
-          array: ["element"],
+          elements: ["hydrogen", "caesium"],
         },
       })
 
       const referenceRecorder = new ReferenceRecorder()
       const res = resolveTemplateString({
-        string: "${var.array}",
+        string: "${var.elements}",
         context,
         contextOpts: { referenceRecorder, resultPath: ["result"] },
       })
@@ -2039,9 +2051,20 @@ describe.only("input tracking", () => {
       const references = referenceRecorder.getReferences()
       const expectedReferences: __ResolveReferences = {
         "result.0": {
-          expr: "${var.array}",
+          expr: "${var.elements}",
           inputs: {
-            "var.array.0": {
+            "var.elements.0": {
+              expr: undefined,
+              inputs: {},
+              value: "element",
+            },
+          },
+          value: "element",
+        },
+        "result.1": {
+          expr: "${var.elements}",
+          inputs: {
+            "var.elements.1": {
               expr: undefined,
               inputs: {},
               value: "element",
@@ -2051,6 +2074,76 @@ describe.only("input tracking", () => {
         },
       }
       expect(references).to.eql(expectedReferences)
+    })
+
+    it.only("records references for every collection item in the result of the template expression, array with ternary expression", () => {
+      const context = new TestContext({
+        var: {
+          elements: ["hydrogen", "caesium"],
+          fruits: ["banana", "apple"],
+          colors: ["red", "green"],
+        },
+      })
+
+      const res = resolveTemplateStringWithInputs({
+        string: "${ var.elements ? var.fruits : var.colors }",
+        context,
+        contextOpts: { resultPath: ["result"] },
+      })
+
+      // TODO: finalize expectations for this test case
+      expect(res).to.eql([
+        new TemplateValue({
+          value: "banana",
+          expr: "${ var.elements ? var.fruits : var.colors }",
+          inputs: {
+            "var.fruits.0": new TemplateValue({
+              expr: undefined,
+              inputs: {},
+              value: "banana",
+            }),
+            // Possible optimization?
+            // "var.elements.length": new TemplateValue({
+            //   expr: undefined,
+            //   inputs: {},
+            //   value: 2,
+            // }),
+            // These are are added due to the ternary expression
+            "var.elements.0": new TemplateValue({
+              expr: undefined,
+              inputs: {},
+              value: "hydrogen",
+            }),
+            "var.elements.1": new TemplateValue({
+              expr: undefined,
+              inputs: {},
+              value: "caesium",
+            }),
+          },
+        }),
+        new TemplateValue({
+          value: "apple",
+          expr: "${ var.elements ? var.fruits : var.colors }",
+          inputs: {
+            "var.fruits.1": new TemplateValue({
+              expr: undefined,
+              inputs: {},
+              value: "apple",
+            }),
+            // These are are added due to the ternary expression
+            "var.elements.0": new TemplateValue({
+              expr: undefined,
+              inputs: {},
+              value: "hydrogen",
+            }),
+            "var.elements.1": new TemplateValue({
+              expr: undefined,
+              inputs: {},
+              value: "caesium",
+            }),
+          },
+        }),
+      ])
     })
 
     it("records references for every collection item in the result of the template expression, array", () => {

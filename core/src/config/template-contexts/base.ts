@@ -19,7 +19,13 @@ import { isPrimitive, joi, joiIdentifier } from "../common.js"
 import { KeyedSet } from "../../util/keyed-set.js"
 import { naturalList } from "../../util/string.js"
 import { styles } from "../../logger/styles.js"
-import { ReferenceRecorder, __ResolveReferences, TemplateCollectionOrValue, TemplateValue, isTemplatePrimitive } from "../../template-string/inputs.js"
+import {
+  ReferenceRecorder,
+  __ResolveReferences,
+  TemplateCollectionOrValue,
+  TemplateValue,
+  isTemplatePrimitive,
+} from "../../template-string/inputs.js"
 import { deepMap } from "../../util/objects.js"
 
 export type ContextKeySegment = string | number

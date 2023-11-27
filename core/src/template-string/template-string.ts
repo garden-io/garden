@@ -8,14 +8,14 @@
 
 import type { GardenErrorParams } from "../exceptions.js"
 import { ConfigurationError, GardenError, InternalError, TemplateStringError } from "../exceptions.js"
-import {
+import type {
   ConfigContext,
   ContextKeySegment,
   ContextResolveOpts,
   ContextResolveOutput,
   ObjectPath,
-  renderKeyPath,
 } from "../config/template-contexts/base.js"
+import { renderKeyPath } from "../config/template-contexts/base.js"
 import { GenericContext, ScanContext } from "../config/template-contexts/base.js"
 import cloneDeep from "fast-copy"
 import { difference, isNumber, isPlainObject, isString, uniq } from "lodash-es"
@@ -43,7 +43,8 @@ import { deepMap } from "../util/objects.js"
 import type { ConfigSource } from "../config/validation.js"
 import * as parser from "./parser.js"
 import { styles } from "../logger/styles.js"
-import { ReferenceRecorder, TemplateCollectionOrValue, TemplateValue, isTemplateValue } from "./inputs.js"
+import { ReferenceRecorder, TemplateValue, isTemplatePrimitive, isTemplateValue } from "./inputs.js"
+import type { TemplateCollectionOrValue, TemplatePrimitive } from "./inputs.js"
 
 const missingKeyExceptionType = "template-string-missing-key"
 const passthroughExceptionType = "template-string-passthrough"
@@ -125,7 +126,7 @@ export function resolveTemplateStringWithInputs({
   string: string
   context: ConfigContext
   contextOpts?: ContextResolveOpts
-}): TemplateCollectionOrValue {
+}): TemplateCollectionOrValue<TemplateValue> {
   // Just return immediately if this is definitely not a template string
   if (!maybeTemplateString(string)) {
     return new TemplateValue({
@@ -135,33 +136,56 @@ export function resolveTemplateStringWithInputs({
     })
   }
 
+  const inputs: Record<string, TemplateValue> = {}
+
   try {
     const parsed = parser.parse(string, {
-      getKey: (key: string[], resolveOpts?: ContextResolveOpts) => {
+      getKey: (key: string[], resolveOpts?: ContextResolveOpts): ContextResolveOutput & { result: unknown } => {
         const value = context.resolve({
-          // rawExpression: string,
           key,
           nodePath: [],
           opts: { ...contextOpts, ...(resolveOpts || {}) },
         })
 
-        const addTemplateReferenceInformation = (v: TemplateValue) => {
+        const addTemplateReferenceInformation = (v: TemplateValue, keyPath: ObjectPath) => {
           return new TemplateValue({
             expr: string,
             value: v.value,
             inputs: {
               // key might be something like ["var", "foo", "bar"]
-              // TODO: We need the keypath from deepmap, and add it to the key as well
-              [renderKeyPath(key)]: v,
+              // We also add the keypath to get separate keys for ever
+              [renderKeyPath([...key, ...keyPath])]: v,
             },
           })
         }
 
         const enriched = isTemplateValue(value.result)
-          ? addTemplateReferenceInformation(value.result)
-          : deepMap(value.result, addTemplateReferenceInformation)
+          ? addTemplateReferenceInformation(value.result, [])
+          : deepMap(value.result, (v, _key, keyPath) => addTemplateReferenceInformation(v, keyPath))
 
-        return enriched
+        // return enriched
+        // TODO: fix the parser instead of the following code
+
+        let resolvedValue: any
+        if (enriched instanceof TemplateValue) {
+          for (const [k, v] of Object.entries(enriched.inputs)) {
+            inputs[k] = v
+          }
+          resolvedValue = enriched.value
+        } else {
+          resolvedValue = deepMap(enriched, (e: TemplateValue) => {
+            for (const [k, v] of Object.entries(e.inputs)) {
+              inputs[k] = v
+            }
+
+            return e.value
+          })
+        }
+
+        return {
+          ...value,
+          result: resolvedValue,
+        }
       },
       getValue,
       resolveNested: (nested: string) => {
@@ -270,7 +294,24 @@ export function resolveTemplateStringWithInputs({
     }
 
     // TODO: Change parser to return ResolvedResult
-    return resolved as TemplateCollectionOrValue
+    // return resolved as TemplateCollectionOrValue
+
+    if (isTemplatePrimitive(resolved)) {
+      return new TemplateValue({
+        expr: string,
+        value: resolved,
+        inputs,
+      })
+    } else {
+      // TODO: Deepmap doesn't handle empty collections correctly for us; We need another version of deepmap tbhat calls the callback for empty collections, as they are considered primitives.
+      return deepMap(resolved as any, (v: TemplatePrimitive) => {
+        return new TemplateValue({
+          expr: string,
+          value: v,
+          inputs,
+        })
+      })
+    }
   } catch (err) {
     if (!(err instanceof GardenError)) {
       throw err
@@ -554,7 +595,6 @@ function handleForEachObject({
     }
   }
 
-
   const filterExpression = value[arrayForEachFilterKey]
 
   // TODO: maybe there's a more efficient way to do the cloning/extending?
@@ -564,7 +604,6 @@ function handleForEachObject({
   const output: unknown[] = []
 
   for (const i of Object.keys(resolvedInput)) {
-
     const contextForIndex = new GenericContext({ key: i })
     const itemValue = resolvedInput[i]
     contextForIndex.addResolvedValue("value", itemValue, [i], references)
