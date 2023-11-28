@@ -345,7 +345,7 @@ export class Garden {
 
     this.asyncLock = new AsyncLock()
 
-    const gitMode = gardenEnv.GARDEN_GIT_SCAN_MODE || params.projectConfig.scan?.git?.mode
+    const gitMode = params.projectConfig.scan?.git?.mode || gardenEnv.GARDEN_GIT_SCAN_MODE
     const handlerCls = gitMode === "repo" ? GitRepoHandler : GitHandler
 
     this.vcs = new handlerCls({

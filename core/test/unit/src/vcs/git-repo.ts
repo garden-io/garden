@@ -10,5 +10,5 @@ import { GitRepoHandler } from "../../../../src/vcs/git-repo.js"
 import { commonGitHandlerTests } from "./git.js"
 
 describe("GitRepoHandler", () => {
-  describe("getFiles", () => commonGitHandlerTests(GitRepoHandler))
+  commonGitHandlerTests(GitRepoHandler)
 })
