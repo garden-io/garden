@@ -61,7 +61,7 @@
     "npm-license-crawler": "^0.2.1",
     "prettier": "3.0.0",
     "replace-in-file": "^6.0.0",
-    "rollup": "^4.0.2",
+    "rollup": "^4.6.0",
     "semver": "^7.5.4",
     "shx": "^0.3.2",
     "split2": "^4.1.0",
