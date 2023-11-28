@@ -115,11 +115,6 @@ export default {
       // for .node native modules and eventually, in the future, possibly external plugins
       ignoreDynamicRequires: true,
       ignore: (id) => {
-        // https://github.com/open-telemetry/opentelemetry-js/issues/3759
-        if (id === "@opentelemetry/exporter-jaeger") {
-          return true
-        }
-
         if (id.endsWith(".node")) {
           return true
         }
