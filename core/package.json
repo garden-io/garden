@@ -186,7 +186,7 @@
     "@types/is-git-url": "^1.0.2",
     "@types/is-glob": "^4.0.2",
     "@types/is-url": "^1.2.30",
-    "@types/js-yaml": "^4.0.5",
+    "@types/js-yaml": "^4.0.9",
     "@types/json-merge-patch": "0.0.8",
     "@types/json-stringify-safe": "^5.0.0",
     "@types/klaw": "^3.0.3",
