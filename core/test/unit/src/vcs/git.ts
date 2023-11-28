@@ -88,6 +88,17 @@ export const commonGitHandlerTests = (handlerCls: new (params: VcsHandlerParams)
       ignoreFile: defaultIgnoreFilename,
       cache: garden.treeCache,
     })
+    /*
+     It is critical to override the handler here. Otherwise, the garden instance will always use a handler
+     that depends on the env variable `GARDEN_GIT_SCAN_MODE`.
+     That can cause inconsistent behaviour is some test scenarios.
+
+     This is a quickfix.
+
+     TODO: consider passing in the necessary Garden params to create the vcs handler of a proper type
+           inside Garden constructor. After that, the handler can be retrieved from `garden.vcs`.
+     */
+    garden.vcs = handler
     git = handler.gitCli(log, tmpPath)
   })
 
