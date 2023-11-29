@@ -232,84 +232,90 @@ export const commonGitHandlerTests = (handlerCls: new (params: VcsHandlerParams)
       })
     })
 
-    context("include and exclude", () => {
-      it("should return nothing if include: []", async () => {
-        const path = resolve(tmpPath, "foo.txt")
-        await createFile(path)
+    context("include/exclude filters", () => {
+      context("when only include filter is specified", () => {
+        it("should return nothing if include: []", async () => {
+          const path = resolve(tmpPath, "foo.txt")
+          await createFile(path)
 
-        expect(await handler.getFiles({ path: tmpPath, scanRoot: undefined, include: [], log })).to.eql([])
+          expect(await handler.getFiles({ path: tmpPath, scanRoot: undefined, include: [], log })).to.eql([])
+        })
+
+        it("should filter out files that don't match the include filter", async () => {
+          const path = resolve(tmpPath, "foo.txt")
+          await createFile(path)
+
+          expect(await handler.getFiles({ path: tmpPath, scanRoot: undefined, include: ["bar.*"], log })).to.eql([])
+        })
+
+        it("should include files that match the include filter", async () => {
+          const path = resolve(tmpPath, "foo.txt")
+          await createFile(path)
+          const hash = await getGitHash(git, path)
+
+          expect(
+            await handler.getFiles({ path: tmpPath, scanRoot: undefined, include: ["foo.*"], exclude: [], log })
+          ).to.eql([{ path, hash }])
+        })
+
+        it("should include a directory that's explicitly included by exact name", async () => {
+          const subdirName = "subdir"
+          const subdir = resolve(tmpPath, subdirName)
+          await mkdir(subdir)
+          const path = resolve(tmpPath, subdirName, "foo.txt")
+          await createFile(path)
+          const hash = await getGitHash(git, path)
+
+          expect(
+            await handler.getFiles({ path: tmpPath, scanRoot: undefined, include: [subdirName], exclude: [], log })
+          ).to.eql([{ path, hash }])
+        })
+
+        it("should include hidden files that match the include filter", async () => {
+          const path = resolve(tmpPath, ".foo")
+          await createFile(path)
+          const hash = await getGitHash(git, path)
+
+          expect(
+            await handler.getFiles({ path: tmpPath, scanRoot: undefined, include: ["*"], exclude: [], log })
+          ).to.eql([{ path, hash }])
+        })
       })
 
-      it("should filter out files that don't match the include filter, if specified", async () => {
-        const path = resolve(tmpPath, "foo.txt")
-        await createFile(path)
+      context("when only exclude filter is specified", () => {
+        it("should filter out files that match the exclude filter", async () => {
+          const path = resolve(tmpPath, "foo.txt")
+          await createFile(path)
 
-        expect(await handler.getFiles({ path: tmpPath, scanRoot: undefined, include: ["bar.*"], log })).to.eql([])
+          expect(
+            await handler.getFiles({ path: tmpPath, scanRoot: undefined, include: [], exclude: ["foo.*"], log })
+          ).to.eql([])
+        })
       })
 
-      it("should include files that match the include filter, if specified", async () => {
-        const path = resolve(tmpPath, "foo.txt")
-        await createFile(path)
-        const hash = await getGitHash(git, path)
+      context("when both include and exclude filters are specified", () => {
+        it("should respect include and exclude filters", async () => {
+          const moduleDir = resolve(tmpPath, "module-a")
+          const pathA = resolve(moduleDir, "yes.txt")
+          const pathB = resolve(tmpPath, "no.txt")
+          const pathC = resolve(moduleDir, "yes.pass")
+          await mkdir(moduleDir)
+          await createFile(pathA)
+          await createFile(pathB)
+          await createFile(pathC)
 
-        expect(
-          await handler.getFiles({ path: tmpPath, scanRoot: undefined, include: ["foo.*"], exclude: [], log })
-        ).to.eql([{ path, hash }])
-      })
+          const files = (
+            await handler.getFiles({
+              path: tmpPath,
+              include: ["module-a/**/*"],
+              exclude: ["**/*.txt"],
+              log,
+              scanRoot: undefined,
+            })
+          ).map((f) => f.path)
 
-      it("should include a directory that's explicitly included by exact name", async () => {
-        const subdirName = "subdir"
-        const subdir = resolve(tmpPath, subdirName)
-        await mkdir(subdir)
-        const path = resolve(tmpPath, subdirName, "foo.txt")
-        await createFile(path)
-        const hash = await getGitHash(git, path)
-
-        expect(
-          await handler.getFiles({ path: tmpPath, scanRoot: undefined, include: [subdirName], exclude: [], log })
-        ).to.eql([{ path, hash }])
-      })
-
-      it("should include hidden files that match the include filter, if specified", async () => {
-        const path = resolve(tmpPath, ".foo")
-        await createFile(path)
-        const hash = await getGitHash(git, path)
-
-        expect(await handler.getFiles({ path: tmpPath, scanRoot: undefined, include: ["*"], exclude: [], log })).to.eql(
-          [{ path, hash }]
-        )
-      })
-
-      it("should filter out files that match the exclude filter, if specified", async () => {
-        const path = resolve(tmpPath, "foo.txt")
-        await createFile(path)
-
-        expect(
-          await handler.getFiles({ path: tmpPath, scanRoot: undefined, include: [], exclude: ["foo.*"], log })
-        ).to.eql([])
-      })
-
-      it("should respect include and exclude filters, if both are specified", async () => {
-        const moduleDir = resolve(tmpPath, "module-a")
-        const pathA = resolve(moduleDir, "yes.txt")
-        const pathB = resolve(tmpPath, "no.txt")
-        const pathC = resolve(moduleDir, "yes.pass")
-        await mkdir(moduleDir)
-        await createFile(pathA)
-        await createFile(pathB)
-        await createFile(pathC)
-
-        const files = (
-          await handler.getFiles({
-            path: tmpPath,
-            include: ["module-a/**/*"],
-            exclude: ["**/*.txt"],
-            log,
-            scanRoot: undefined,
-          })
-        ).map((f) => f.path)
-
-        expect(files).to.eql([pathC])
+          expect(files).to.eql([pathC])
+        })
       })
     })
 
