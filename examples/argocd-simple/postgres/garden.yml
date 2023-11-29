@@ -1,0 +1,34 @@
+kind: Module
+description: Postgres Helm chart for storing voting results
+type: helm
+name: postgres
+repo: https://charts.bitnami.com/bitnami
+chart: postgresql
+version: 12.1.2
+
+serviceResource:
+  kind: StatefulSet
+  name: postgres
+
+values:
+  # This is a more digestible name than the default one in the template
+  fullnameOverride: postgres
+  auth:
+    # This should, of course, not be used in production
+    postgresPassword: postgres
+
+tasks:
+  - name: db-init
+    command: [/bin/sh, -c]
+    args: [
+      "psql -w -U postgres --host=postgres --port=5432 -d postgres -c 'CREATE TABLE IF NOT EXISTS votes (id VARCHAR(255) NOT NULL UNIQUE, vote VARCHAR(255) NOT NULL, created_at timestamp default NULL)'"
+    ]
+    dependencies: [postgres]
+    env:
+      PGPASSWORD: postgres
+  - name: db-clear
+    command: [/bin/sh, -c]
+    args: ["psql -w -U postgres --host=postgres --port=5432 -d postgres -c 'TRUNCATE votes'"]
+    dependencies: [postgres]
+    env:
+      PGPASSWORD: postgres

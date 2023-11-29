@@ -1,0 +1,19 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: applications
+  namespace: argocd
+spec:
+  syncPolicy:
+    automated: {}
+  destination:
+    namespace: argocd
+    server: https://kubernetes.default.svc
+  project: default
+  source:
+    path: examples/argocd-simple/argocd-applications
+    repoURL: https://github.com/garden-io/garden.git 
+    targetRevision: argocd-examples
+    directory:
+      recurse: true

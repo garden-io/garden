@@ -1,0 +1,19 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: web
+  namespace: argocd
+spec:
+  syncPolicy:
+    automated: {}
+    syncOptions:
+    - CreateNamespace=true
+  destination:
+    namespace: vote-default
+    server: https://kubernetes.default.svc
+  project: default
+  source:
+    repoURL: https://github.com/garden-io/garden.git
+    targetRevision: argocd-examples
+    path: examples/argocd-simple/web/manifests
