@@ -107,323 +107,334 @@ export const commonGitHandlerTests = (handlerCls: new (params: VcsHandlerParams)
   })
 
   describe("getFiles", () => {
-    it("should work with no commits in repo", async () => {
-      expect(await handler.getFiles({ path: tmpPath, scanRoot: undefined, log })).to.eql([])
-    })
-
-    it("should return tracked files as absolute paths with hash", async () => {
-      const path = resolve(tmpPath, "foo.txt")
-
-      await createFile(path)
-      await writeFile(path, "my change")
-      await git("add", ".")
-      await git("commit", "-m", "foo")
-
-      const hash = await getGitHash(git, path)
-
-      expect(await handler.getFiles({ path: tmpPath, scanRoot: undefined, log })).to.eql([{ path, hash }])
-    })
-
-    it("should return the correct hash on a modified file", async () => {
-      const path = resolve(tmpPath, "foo.txt")
-
-      await createFile(path)
-      await git("add", ".")
-      await git("commit", "-m", "foo")
-
-      await writeFile(path, "my change")
-
-      const hash = await getGitHash(git, path)
-
-      expect(await handler.getFiles({ path: tmpPath, scanRoot: undefined, log })).to.eql([{ path, hash }])
-    })
-
-    const dirContexts = [
-      { ctx: "when called from repo root", pathFn: (tp) => tp },
-      { ctx: "when called from project root", pathFn: (tp) => resolve(tp, "somedir") },
-    ]
-
-    for (const { ctx, pathFn } of dirContexts) {
-      context(ctx, () => {
-        it("should return different hashes before and after a file is modified", async () => {
-          const dirPath = pathFn(tmpPath)
-          const filePath = resolve(tmpPath, "somedir", "foo.txt")
-
-          await createFile(filePath)
-          await writeFile(filePath, "original content")
-          await git("add", ".")
-          await git("commit", "-m", "foo")
-
-          await handler.writeFile(log, filePath, "my change")
-          const beforeHash = (await handler.getFiles({ path: dirPath, scanRoot: undefined, log }))[0].hash
-
-          await handler.writeFile(log, filePath, "ch-ch-ch-ch-changes")
-          const afterHash = (await handler.getFiles({ path: dirPath, scanRoot: undefined, log }))[0].hash
-
-          expect(beforeHash).to.not.eql(afterHash)
-        })
-
-        it("should return untracked files as absolute paths with hash", async () => {
-          const dirPath = pathFn(tmpPath)
-          const path = join(dirPath, "foo.txt")
-          await createFile(path)
-
-          const hash = await getGitHash(git, path)
-
-          expect(await handler.getFiles({ path: dirPath, scanRoot: undefined, log })).to.eql([{ path, hash }])
-        })
-      })
-    }
-
-    it("should return untracked files in untracked directory", async () => {
-      const dirPath = join(tmpPath, "dir")
-      const path = join(dirPath, "file.txt")
-      await mkdir(dirPath)
-      await createFile(path)
-
-      const hash = await getGitHash(git, path)
-
-      expect(await handler.getFiles({ path: dirPath, scanRoot: undefined, log })).to.eql([{ path, hash }])
-    })
-
-    it("should work with tracked files with spaces in the name", async () => {
-      const path = join(tmpPath, "my file.txt")
-      await createFile(path)
-      await git("add", path)
-      await git("commit", "-m", "foo")
-
-      const hash = await getGitHash(git, path)
-
-      expect(await handler.getFiles({ path: tmpPath, scanRoot: undefined, log })).to.eql([{ path, hash }])
-    })
-
-    it("should work with tracked+modified files with spaces in the name", async () => {
-      const path = join(tmpPath, "my file.txt")
-      await createFile(path)
-      await git("add", path)
-      await git("commit", "-m", "foo")
-
-      await writeFile(path, "fooooo")
-
-      const hash = await getGitHash(git, path)
-
-      expect(await handler.getFiles({ path: tmpPath, scanRoot: undefined, log })).to.eql([{ path, hash }])
-    })
-
-    it("should gracefully skip files that are deleted after having been committed", async () => {
-      const filePath = join(tmpPath, "my file.txt")
-      await createFile(filePath)
-      await git("add", filePath)
-      await git("commit", "-m", "foo")
-
-      await remove(filePath)
-
-      expect(await handler.getFiles({ path: tmpPath, scanRoot: undefined, log })).to.eql([])
-    })
-
-    it("should work with untracked files with spaces in the name", async () => {
-      const path = join(tmpPath, "my file.txt")
-      await createFile(path)
-
-      const hash = await getGitHash(git, path)
-
-      expect(await handler.getFiles({ path: tmpPath, scanRoot: undefined, log })).to.eql([{ path, hash }])
-    })
-
-    it("should return nothing if include: []", async () => {
-      const path = resolve(tmpPath, "foo.txt")
-      await createFile(path)
-
-      expect(await handler.getFiles({ path: tmpPath, scanRoot: undefined, include: [], log })).to.eql([])
-    })
-
-    it("should filter out files that don't match the include filter, if specified", async () => {
-      const path = resolve(tmpPath, "foo.txt")
-      await createFile(path)
-
-      expect(await handler.getFiles({ path: tmpPath, scanRoot: undefined, include: ["bar.*"], log })).to.eql([])
-    })
-
-    it("should include files that match the include filter, if specified", async () => {
-      const path = resolve(tmpPath, "foo.txt")
-      await createFile(path)
-      const hash = await getGitHash(git, path)
-
-      expect(
-        await handler.getFiles({ path: tmpPath, scanRoot: undefined, include: ["foo.*"], exclude: [], log })
-      ).to.eql([{ path, hash }])
-    })
-
-    it("should include a directory that's explicitly included by exact name", async () => {
-      const subdirName = "subdir"
-      const subdir = resolve(tmpPath, subdirName)
-      await mkdir(subdir)
-      const path = resolve(tmpPath, subdirName, "foo.txt")
-      await createFile(path)
-      const hash = await getGitHash(git, path)
-
-      expect(
-        await handler.getFiles({ path: tmpPath, scanRoot: undefined, include: [subdirName], exclude: [], log })
-      ).to.eql([{ path, hash }])
-    })
-
-    it("should include hidden files that match the include filter, if specified", async () => {
-      const path = resolve(tmpPath, ".foo")
-      await createFile(path)
-      const hash = await getGitHash(git, path)
-
-      expect(await handler.getFiles({ path: tmpPath, scanRoot: undefined, include: ["*"], exclude: [], log })).to.eql([
-        { path, hash },
-      ])
-    })
-
-    it("should filter out files that match the exclude filter, if specified", async () => {
-      const path = resolve(tmpPath, "foo.txt")
-      await createFile(path)
-
-      expect(
-        await handler.getFiles({ path: tmpPath, scanRoot: undefined, include: [], exclude: ["foo.*"], log })
-      ).to.eql([])
-    })
-
-    it("should respect include and exclude filters, if both are specified", async () => {
-      const moduleDir = resolve(tmpPath, "module-a")
-      const pathA = resolve(moduleDir, "yes.txt")
-      const pathB = resolve(tmpPath, "no.txt")
-      const pathC = resolve(moduleDir, "yes.pass")
-      await mkdir(moduleDir)
-      await createFile(pathA)
-      await createFile(pathB)
-      await createFile(pathC)
-
-      const files = (
-        await handler.getFiles({
-          path: tmpPath,
-          include: ["module-a/**/*"],
-          exclude: ["**/*.txt"],
-          log,
-          scanRoot: undefined,
-        })
-      ).map((f) => f.path)
-
-      expect(files).to.eql([pathC])
-    })
-
-    it("should exclude untracked files that are listed in ignore file", async () => {
-      const name = "foo.txt"
-      const path = resolve(tmpPath, name)
-      await createFile(path)
-      await addToIgnore(tmpPath, name)
-
-      const files = (await handler.getFiles({ path: tmpPath, scanRoot: undefined, exclude: [], log })).filter(
-        (f) => !f.path.includes(defaultIgnoreFilename)
-      )
-
-      expect(files).to.eql([])
-    })
-
-    it("should exclude tracked files that are listed in ignore file", async () => {
-      const name = "foo.txt"
-      const path = resolve(tmpPath, name)
-      await createFile(path)
-      await addToIgnore(tmpPath, name)
-
-      await git("add", path)
-      await git("commit", "-m", "foo")
-
-      const files = (await handler.getFiles({ path: tmpPath, scanRoot: undefined, exclude: [], log })).filter(
-        (f) => !f.path.includes(defaultIgnoreFilename)
-      )
-
-      expect(files).to.eql([])
-    })
-
-    it("should work without ignore files", async () => {
-      const path = resolve(tmpPath, "foo.txt")
-
-      await createFile(path)
-      await writeFile(path, "my change")
-      await git("add", ".")
-      await git("commit", "-m", "foo")
-
-      const hash = await getGitHash(git, path)
-
-      const _handler = new GitHandler({
-        garden,
-        projectRoot: tmpPath,
-        gardenDirPath: join(tmpPath, ".garden"),
-        ignoreFile: "",
-        cache: garden.treeCache,
+    context("git working tree", () => {
+      it("should work with no commits in repo", async () => {
+        expect(await handler.getFiles({ path: tmpPath, scanRoot: undefined, log })).to.eql([])
       })
 
-      expect(await _handler.getFiles({ path: tmpPath, scanRoot: undefined, log })).to.eql([{ path, hash }])
+      it("should return tracked files as absolute paths with hash", async () => {
+        const path = resolve(tmpPath, "foo.txt")
+
+        await createFile(path)
+        await writeFile(path, "my change")
+        await git("add", ".")
+        await git("commit", "-m", "foo")
+
+        const hash = await getGitHash(git, path)
+
+        expect(await handler.getFiles({ path: tmpPath, scanRoot: undefined, log })).to.eql([{ path, hash }])
+      })
+
+      it("should return the correct hash on a modified file", async () => {
+        const path = resolve(tmpPath, "foo.txt")
+
+        await createFile(path)
+        await git("add", ".")
+        await git("commit", "-m", "foo")
+
+        await writeFile(path, "my change")
+
+        const hash = await getGitHash(git, path)
+
+        expect(await handler.getFiles({ path: tmpPath, scanRoot: undefined, log })).to.eql([{ path, hash }])
+      })
+
+      const dirContexts = [
+        { ctx: "when called from repo root", pathFn: (tp) => tp },
+        { ctx: "when called from project root", pathFn: (tp) => resolve(tp, "somedir") },
+      ]
+
+      for (const { ctx, pathFn } of dirContexts) {
+        context(ctx, () => {
+          it("should return different hashes before and after a file is modified", async () => {
+            const dirPath = pathFn(tmpPath)
+            const filePath = resolve(tmpPath, "somedir", "foo.txt")
+
+            await createFile(filePath)
+            await writeFile(filePath, "original content")
+            await git("add", ".")
+            await git("commit", "-m", "foo")
+
+            await handler.writeFile(log, filePath, "my change")
+            const beforeHash = (await handler.getFiles({ path: dirPath, scanRoot: undefined, log }))[0].hash
+
+            await handler.writeFile(log, filePath, "ch-ch-ch-ch-changes")
+            const afterHash = (await handler.getFiles({ path: dirPath, scanRoot: undefined, log }))[0].hash
+
+            expect(beforeHash).to.not.eql(afterHash)
+          })
+
+          it("should return untracked files as absolute paths with hash", async () => {
+            const dirPath = pathFn(tmpPath)
+            const path = join(dirPath, "foo.txt")
+            await createFile(path)
+
+            const hash = await getGitHash(git, path)
+
+            expect(await handler.getFiles({ path: dirPath, scanRoot: undefined, log })).to.eql([{ path, hash }])
+          })
+        })
+      }
+
+      it("should return untracked files in untracked directory", async () => {
+        const dirPath = join(tmpPath, "dir")
+        const path = join(dirPath, "file.txt")
+        await mkdir(dirPath)
+        await createFile(path)
+
+        const hash = await getGitHash(git, path)
+
+        expect(await handler.getFiles({ path: dirPath, scanRoot: undefined, log })).to.eql([{ path, hash }])
+      })
+
+      it("should work with tracked files with spaces in the name", async () => {
+        const path = join(tmpPath, "my file.txt")
+        await createFile(path)
+        await git("add", path)
+        await git("commit", "-m", "foo")
+
+        const hash = await getGitHash(git, path)
+
+        expect(await handler.getFiles({ path: tmpPath, scanRoot: undefined, log })).to.eql([{ path, hash }])
+      })
+
+      it("should work with tracked+modified files with spaces in the name", async () => {
+        const path = join(tmpPath, "my file.txt")
+        await createFile(path)
+        await git("add", path)
+        await git("commit", "-m", "foo")
+
+        await writeFile(path, "fooooo")
+
+        const hash = await getGitHash(git, path)
+
+        expect(await handler.getFiles({ path: tmpPath, scanRoot: undefined, log })).to.eql([{ path, hash }])
+      })
+
+      it("should gracefully skip files that are deleted after having been committed", async () => {
+        const filePath = join(tmpPath, "my file.txt")
+        await createFile(filePath)
+        await git("add", filePath)
+        await git("commit", "-m", "foo")
+
+        await remove(filePath)
+
+        expect(await handler.getFiles({ path: tmpPath, scanRoot: undefined, log })).to.eql([])
+      })
+
+      it("should work with untracked files with spaces in the name", async () => {
+        const path = join(tmpPath, "my file.txt")
+        await createFile(path)
+
+        const hash = await getGitHash(git, path)
+
+        expect(await handler.getFiles({ path: tmpPath, scanRoot: undefined, log })).to.eql([{ path, hash }])
+      })
     })
 
-    it("should include a relative symlink within the path", async () => {
-      const fileName = "foo"
-      const filePath = resolve(tmpPath, fileName)
-      const symlinkPath = resolve(tmpPath, "symlink")
+    context("include and exclude", () => {
+      it("should return nothing if include: []", async () => {
+        const path = resolve(tmpPath, "foo.txt")
+        await createFile(path)
 
-      await createFile(filePath)
-      await symlink(fileName, symlinkPath)
+        expect(await handler.getFiles({ path: tmpPath, scanRoot: undefined, include: [], log })).to.eql([])
+      })
 
-      const files = (await handler.getFiles({ path: tmpPath, scanRoot: undefined, exclude: [], log })).map(
-        (f) => f.path
-      )
+      it("should filter out files that don't match the include filter, if specified", async () => {
+        const path = resolve(tmpPath, "foo.txt")
+        await createFile(path)
 
-      expect(files.sort()).to.eql([filePath, symlinkPath])
+        expect(await handler.getFiles({ path: tmpPath, scanRoot: undefined, include: ["bar.*"], log })).to.eql([])
+      })
+
+      it("should include files that match the include filter, if specified", async () => {
+        const path = resolve(tmpPath, "foo.txt")
+        await createFile(path)
+        const hash = await getGitHash(git, path)
+
+        expect(
+          await handler.getFiles({ path: tmpPath, scanRoot: undefined, include: ["foo.*"], exclude: [], log })
+        ).to.eql([{ path, hash }])
+      })
+
+      it("should include a directory that's explicitly included by exact name", async () => {
+        const subdirName = "subdir"
+        const subdir = resolve(tmpPath, subdirName)
+        await mkdir(subdir)
+        const path = resolve(tmpPath, subdirName, "foo.txt")
+        await createFile(path)
+        const hash = await getGitHash(git, path)
+
+        expect(
+          await handler.getFiles({ path: tmpPath, scanRoot: undefined, include: [subdirName], exclude: [], log })
+        ).to.eql([{ path, hash }])
+      })
+
+      it("should include hidden files that match the include filter, if specified", async () => {
+        const path = resolve(tmpPath, ".foo")
+        await createFile(path)
+        const hash = await getGitHash(git, path)
+
+        expect(await handler.getFiles({ path: tmpPath, scanRoot: undefined, include: ["*"], exclude: [], log })).to.eql(
+          [{ path, hash }]
+        )
+      })
+
+      it("should filter out files that match the exclude filter, if specified", async () => {
+        const path = resolve(tmpPath, "foo.txt")
+        await createFile(path)
+
+        expect(
+          await handler.getFiles({ path: tmpPath, scanRoot: undefined, include: [], exclude: ["foo.*"], log })
+        ).to.eql([])
+      })
+
+      it("should respect include and exclude filters, if both are specified", async () => {
+        const moduleDir = resolve(tmpPath, "module-a")
+        const pathA = resolve(moduleDir, "yes.txt")
+        const pathB = resolve(tmpPath, "no.txt")
+        const pathC = resolve(moduleDir, "yes.pass")
+        await mkdir(moduleDir)
+        await createFile(pathA)
+        await createFile(pathB)
+        await createFile(pathC)
+
+        const files = (
+          await handler.getFiles({
+            path: tmpPath,
+            include: ["module-a/**/*"],
+            exclude: ["**/*.txt"],
+            log,
+            scanRoot: undefined,
+          })
+        ).map((f) => f.path)
+
+        expect(files).to.eql([pathC])
+      })
     })
 
-    it("should exclude a relative symlink that points outside repo root", async () => {
-      const subPath = resolve(tmpPath, "subdir")
-      await mkdirp(subPath)
+    context("ignore file", () => {
+      it("should exclude untracked files that are listed in ignore file", async () => {
+        const name = "foo.txt"
+        const path = resolve(tmpPath, name)
+        await createFile(path)
+        await addToIgnore(tmpPath, name)
 
-      const _git = handler.gitCli(log, subPath)
-      await _git("init")
+        const files = (await handler.getFiles({ path: tmpPath, scanRoot: undefined, exclude: [], log })).filter(
+          (f) => !f.path.includes(defaultIgnoreFilename)
+        )
 
-      const fileName = "foo"
-      const filePath = resolve(tmpPath, fileName)
-      const symlinkPath = resolve(subPath, "symlink")
+        expect(files).to.eql([])
+      })
 
-      await createFile(filePath)
-      await ensureSymlink(join("..", fileName), symlinkPath)
+      it("should exclude tracked files that are listed in ignore file", async () => {
+        const name = "foo.txt"
+        const path = resolve(tmpPath, name)
+        await createFile(path)
+        await addToIgnore(tmpPath, name)
 
-      const files = (await handler.getFiles({ path: subPath, scanRoot: undefined, exclude: [], log })).map(
-        (f) => f.path
-      )
-      expect(files).to.eql([])
+        await git("add", path)
+        await git("commit", "-m", "foo")
+
+        const files = (await handler.getFiles({ path: tmpPath, scanRoot: undefined, exclude: [], log })).filter(
+          (f) => !f.path.includes(defaultIgnoreFilename)
+        )
+
+        expect(files).to.eql([])
+      })
+
+      it("should work without ignore files", async () => {
+        const path = resolve(tmpPath, "foo.txt")
+
+        await createFile(path)
+        await writeFile(path, "my change")
+        await git("add", ".")
+        await git("commit", "-m", "foo")
+
+        const hash = await getGitHash(git, path)
+
+        const _handler = new GitHandler({
+          garden,
+          projectRoot: tmpPath,
+          gardenDirPath: join(tmpPath, ".garden"),
+          ignoreFile: "",
+          cache: garden.treeCache,
+        })
+
+        expect(await _handler.getFiles({ path: tmpPath, scanRoot: undefined, log })).to.eql([{ path, hash }])
+      })
     })
 
-    it("should exclude an absolute symlink that points inside the path", async () => {
-      const fileName = "foo"
-      const filePath = resolve(tmpPath, fileName)
-      const symlinkPath = resolve(tmpPath, "symlink")
+    context("symlinks", () => {
+      it("should include a relative symlink within the path", async () => {
+        const fileName = "foo"
+        const filePath = resolve(tmpPath, fileName)
+        const symlinkPath = resolve(tmpPath, "symlink")
 
-      await createFile(filePath)
-      await symlink(filePath, symlinkPath)
+        await createFile(filePath)
+        await symlink(fileName, symlinkPath)
 
-      const files = (await handler.getFiles({ path: tmpPath, scanRoot: undefined, exclude: [], log })).map(
-        (f) => f.path
-      )
-      expect(files).to.eql([filePath])
+        const files = (await handler.getFiles({ path: tmpPath, scanRoot: undefined, exclude: [], log })).map(
+          (f) => f.path
+        )
+
+        expect(files.sort()).to.eql([filePath, symlinkPath])
+      })
+
+      it("should exclude a relative symlink that points outside repo root", async () => {
+        const subPath = resolve(tmpPath, "subdir")
+        await mkdirp(subPath)
+
+        const _git = handler.gitCli(log, subPath)
+        await _git("init")
+
+        const fileName = "foo"
+        const filePath = resolve(tmpPath, fileName)
+        const symlinkPath = resolve(subPath, "symlink")
+
+        await createFile(filePath)
+        await ensureSymlink(join("..", fileName), symlinkPath)
+
+        const files = (await handler.getFiles({ path: subPath, scanRoot: undefined, exclude: [], log })).map(
+          (f) => f.path
+        )
+        expect(files).to.eql([])
+      })
+
+      it("should exclude an absolute symlink that points inside the path", async () => {
+        const fileName = "foo"
+        const filePath = resolve(tmpPath, fileName)
+        const symlinkPath = resolve(tmpPath, "symlink")
+
+        await createFile(filePath)
+        await symlink(filePath, symlinkPath)
+
+        const files = (await handler.getFiles({ path: tmpPath, scanRoot: undefined, exclude: [], log })).map(
+          (f) => f.path
+        )
+        expect(files).to.eql([filePath])
+      })
     })
 
-    it("gracefully aborts if given path doesn't exist", async () => {
-      const path = resolve(tmpPath, "foo")
+    context("gracefully aborts", () => {
+      it("if given path doesn't exist", async () => {
+        const path = resolve(tmpPath, "foo")
 
-      const files = (await handler.getFiles({ path, scanRoot: undefined, exclude: [], log })).map((f) => f.path)
-      expect(files).to.eql([])
-    })
+        const files = (await handler.getFiles({ path, scanRoot: undefined, exclude: [], log })).map((f) => f.path)
+        expect(files).to.eql([])
+      })
 
-    it("gracefully aborts if given path is not a directory", async () => {
-      const path = resolve(tmpPath, "foo")
-      await createFile(path)
+      it("if given path is not a directory", async () => {
+        const path = resolve(tmpPath, "foo")
+        await createFile(path)
 
-      const files = (await handler.getFiles({ path, scanRoot: undefined, exclude: [], log })).map((f) => f.path)
-      expect(files).to.eql([])
+        const files = (await handler.getFiles({ path, scanRoot: undefined, exclude: [], log })).map((f) => f.path)
+        expect(files).to.eql([])
+      })
     })
 
     context("large repo", () => {
+      // TODO: should we track and anyhow validate the execution time here?
       it("does its thing in a reasonable amount of time", async () => {
         const scanRoot = join(repoRoot, "examples")
         const path = join(scanRoot, "demo-project")
