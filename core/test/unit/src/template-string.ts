@@ -22,7 +22,7 @@ import { expectError, getDataDir, makeTestGarden } from "../../helpers.js"
 import { dedent } from "../../../src/util/string.js"
 import stripAnsi from "strip-ansi"
 import { TemplateStringError } from "../../../src/exceptions.js"
-import { TemplateValue } from "../../../src/template-string/inputs.js"
+import { TemplateLeaf } from "../../../src/template-string/inputs.js"
 
 class TestContext extends ConfigContext {
   constructor(context) {
@@ -58,15 +58,6 @@ describe("resolveTemplateString", () => {
   it("should allow undefined values if ? suffix is present", () => {
     const res = resolveTemplateString({ string: "${foo}?", context: new TestContext({}) })
     expect(res).to.equal(undefined)
-  })
-
-  it("should pass optional string through if allowPartial=true", () => {
-    const res = resolveTemplateString({
-      string: "${foo}?",
-      context: new TestContext({}),
-      contextOpts: { allowPartial: true },
-    })
-    expect(res).to.equal("${foo}?")
   })
 
   it("should support a string literal in a template string as a means to escape it", () => {
@@ -232,9 +223,17 @@ describe("resolveTemplateString", () => {
     expect(res).to.equal(null)
   })
 
-  it("should handle a numeric literal in a logical OR and return it directly", () => {
-    const res = resolveTemplateString({ string: "${a || 123}", context: new TestContext({}) })
-    expect(res).to.equal(123)
+  it("should handle a numeric literal in a logical OR and return it directly and still track a as input", () => {
+    const res = resolveTemplateStringWithInputs({ string: "${a || 123}", context: new TestContext({}) })
+    expect(res).to.deep.equal(
+      new TemplateLeaf({
+        expr: "${a || 123}",
+        value: 123,
+        inputs: {
+          a: new TemplateLeaf({ expr: undefined, value: undefined, inputs: {} }),
+        },
+      })
+    )
   })
 
   it("should handle a boolean true literal in a logical OR and return it directly", () => {
@@ -2031,7 +2030,7 @@ describe("resolveTemplateStrings", () => {
 
 // ${hash(var.someString)}
 //
-describe.only("input tracking", () => {
+describe("input tracking", () => {
   describe("resolveTemplateString", () => {
     it("records references for every collection item in the result of the template expression, array", () => {
       const context = new TestContext({
@@ -2046,7 +2045,7 @@ describe.only("input tracking", () => {
         contextOpts: { resultPath: ["result"] },
       })
       expect(res).to.eql([
-        new TemplateValue({
+        new TemplateLeaf({
           value: "element",
           expr: "${var.elements}",
           inputs: {
@@ -2082,11 +2081,11 @@ describe.only("input tracking", () => {
 
       // TODO: finalize expectations for this test case
       expect(res).to.eql([
-        new TemplateValue({
+        new TemplateLeaf({
           value: "banana",
           expr: "${ var.elements ? var.fruits : var.colors }",
           inputs: {
-            "var.fruits.0": new TemplateValue({
+            "var.fruits.0": new TemplateLeaf({
               expr: undefined,
               inputs: {},
               value: "banana",
@@ -2098,34 +2097,34 @@ describe.only("input tracking", () => {
             //   value: 2,
             // }),
             // These are are added due to the ternary expression
-            "var.elements.0": new TemplateValue({
+            "var.elements.0": new TemplateLeaf({
               expr: undefined,
               inputs: {},
               value: "hydrogen",
             }),
-            "var.elements.1": new TemplateValue({
+            "var.elements.1": new TemplateLeaf({
               expr: undefined,
               inputs: {},
               value: "caesium",
             }),
           },
         }),
-        new TemplateValue({
+        new TemplateLeaf({
           value: "apple",
           expr: "${ var.elements ? var.fruits : var.colors }",
           inputs: {
-            "var.fruits.1": new TemplateValue({
+            "var.fruits.1": new TemplateLeaf({
               expr: undefined,
               inputs: {},
               value: "apple",
             }),
             // These are are added due to the ternary expression
-            "var.elements.0": new TemplateValue({
+            "var.elements.0": new TemplateLeaf({
               expr: undefined,
               inputs: {},
               value: "hydrogen",
             }),
-            "var.elements.1": new TemplateValue({
+            "var.elements.1": new TemplateLeaf({
               expr: undefined,
               inputs: {},
               value: "caesium",
@@ -2149,7 +2148,7 @@ describe.only("input tracking", () => {
       })
 
       expect(res).to.eql([
-        new TemplateValue({
+        new TemplateLeaf({
           expr: "${var.array ? 'foo' : 'bar'}",
           value: "foo",
           inputs: {
@@ -2180,16 +2179,16 @@ describe.only("input tracking", () => {
       })
       expect(res).to.eql({
         foo: {
-          bar: new TemplateValue({
+          bar: new TemplateLeaf({
             value: 1,
             expr: undefined,
             inputs: {},
           }),
-          baz: new TemplateValue({
+          baz: new TemplateLeaf({
             value: "banana",
             expr: "${local.env.fruit}",
             inputs: {
-              "local.env.fruit": new TemplateValue({
+              "local.env.fruit": new TemplateLeaf({
                 value: "banana",
                 expr: undefined,
                 inputs: {},
@@ -2217,7 +2216,7 @@ describe.only("input tracking", () => {
       expect(res).to.eql({
         spec: {
           elements: [
-            new TemplateValue({
+            new TemplateLeaf({
               expr: "${var.array}",
               inputs: {
                 "var.array.0": {
@@ -2266,7 +2265,7 @@ describe.only("input tracking", () => {
       const res = resolveTemplateStringsWithInputs({ source: undefined, value: obj, context })
 
       expect(res).to.eql([
-        new TemplateValue({
+        new TemplateLeaf({
           expr: undefined,
           value: "some-constant",
           inputs: {
@@ -2301,7 +2300,7 @@ describe.only("input tracking", () => {
       expect(res).to.eql({
         spec: {
           passwords: [
-            new TemplateValue({
+            new TemplateLeaf({
               expr: "${secrets.db_password}",
               value: "secure",
               inputs: {
@@ -2340,7 +2339,7 @@ describe.only("input tracking", () => {
       expect(res).to.eql({
         spec: {
           elements: [
-            new TemplateValue({
+            new TemplateLeaf({
               expr: "${item.value}",
               value: "element",
               inputs: {
@@ -2386,7 +2385,7 @@ describe.only("input tracking", () => {
       const res = resolveTemplateStringsWithInputs({ source: undefined, value: obj, context })
       expect(res).to.eql({
         foo: [
-          new TemplateValue({
+          new TemplateLeaf({
             expr: "${item.value.xyz}",
             value: "xyz_value_0",
             inputs: {
@@ -2403,7 +2402,7 @@ describe.only("input tracking", () => {
               },
             },
           }),
-          new TemplateValue({
+          new TemplateLeaf({
             expr: "${item.value.xyz}",
             value: "xyz_value_1",
             inputs: {
@@ -2450,7 +2449,7 @@ describe.only("input tracking", () => {
       const res = resolveTemplateStringsWithInputs({ source: undefined, value: obj, context })
       expect(res).to.eql({
         foo: [
-          new TemplateValue({
+          new TemplateLeaf({
             expr: "${item.value.xyz}",
             value: "xyz_value_0",
             inputs: {
@@ -2467,7 +2466,7 @@ describe.only("input tracking", () => {
               },
             },
           }),
-          new TemplateValue({
+          new TemplateLeaf({
             expr: "${item.value.xyz}",
             value: "xyz_value_1",
             inputs: {
@@ -2484,7 +2483,7 @@ describe.only("input tracking", () => {
               },
             },
           }),
-          new TemplateValue({
+          new TemplateLeaf({
             expr: "${item.value.xyz}",
             value: "xyz_value_concatenated",
             inputs: {
@@ -2513,7 +2512,7 @@ describe.only("input tracking", () => {
 
       const res = resolveTemplateStringsWithInputs({ source: undefined, value: obj, context })
       expect(res).to.eql({
-        foo: new TemplateValue({
+        foo: new TemplateLeaf({
           expr: undefined,
           value: "bar",
           inputs: {},
@@ -2524,11 +2523,11 @@ describe.only("input tracking", () => {
     it("correctly evaluates previously resolved TemplateValues in Context with secrets.PASSWORD", () => {
       const context = new TestContext({
         var: {
-          sharedPassword: new TemplateValue({
+          sharedPassword: new TemplateLeaf({
             expr: "${secrets.PASSWORD}",
             value: "secure",
             inputs: {
-              "secrets.PASSWORD": new TemplateValue({
+              "secrets.PASSWORD": new TemplateLeaf({
                 expr: undefined,
                 value: "secure",
                 inputs: {},
@@ -2549,7 +2548,7 @@ describe.only("input tracking", () => {
       })
       expect(res).to.eql({
         spec: {
-          password: new TemplateValue({
+          password: new TemplateLeaf({
             expr: "${var.sharedPassword}",
             value: "secure",
             inputs: {
@@ -2590,7 +2589,7 @@ describe.only("input tracking", () => {
       })
       expect(res).to.eql({
         spec: {
-          image: new TemplateValue({
+          image: new TemplateLeaf({
             expr: "${local.env.IMAGE}",
             value: "image:latest",
             inputs: {
@@ -2626,7 +2625,7 @@ describe.only("input tracking", () => {
       expect(res).to.eql({
         foo: {
           bar: [
-            new TemplateValue({
+            new TemplateLeaf({
               expr: "${var.foo.bar}",
               value: "baz",
               inputs: {
@@ -2647,7 +2646,7 @@ describe.only("input tracking", () => {
         var: {
           foo: {
             bar: "baz",
-            fruit: new TemplateValue({
+            fruit: new TemplateLeaf({
               expr: "${local.env.FRUIT}",
               value: "banana",
               inputs: {
@@ -2680,26 +2679,26 @@ describe.only("input tracking", () => {
         a: {
           b: {
             c: {
-              bar: new TemplateValue({
+              bar: new TemplateLeaf({
                 expr: "${var.foo}",
                 value: "baz",
                 inputs: {
-                  "var.foo.bar": new TemplateValue({
+                  "var.foo.bar": new TemplateLeaf({
                     expr: undefined,
                     value: "baz",
                     inputs: {},
                   }),
                 },
               }),
-              fruit: new TemplateValue({
+              fruit: new TemplateLeaf({
                 expr: "${var.foo}",
                 value: "banana",
                 inputs: {
-                  "var.foo.fruit": new TemplateValue({
+                  "var.foo.fruit": new TemplateLeaf({
                     expr: "${local.env.FRUIT}",
                     value: "banana",
                     inputs: {
-                      "local.env.FRUIT": new TemplateValue({
+                      "local.env.FRUIT": new TemplateLeaf({
                         expr: undefined,
                         value: "banana",
                         inputs: {},

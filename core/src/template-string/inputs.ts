@@ -10,8 +10,9 @@ import { Primitive, isPrimitive } from "utility-types"
 import { ObjectPath } from "../config/template-contexts/base.js"
 import { InternalError } from "../exceptions.js"
 import { isArray, isPlainObject, mapValues } from "lodash-es"
+import { deepMap } from "../util/objects.js"
 
-export function isTemplatePrimitive(value: unknown): value is TemplatePrimitive {
+export function isTemplateLeafValue(value: unknown): value is TemplateLeafValue {
   return (
     isPrimitive(value) ||
     (isPlainObject(value) && Object.keys(<object>value).length === 0) ||
@@ -19,34 +20,44 @@ export function isTemplatePrimitive(value: unknown): value is TemplatePrimitive 
   )
 }
 
-export function templateIsArray<P extends (TemplatePrimitive | TemplateValue)>(value: CollectionOrValue<P>): value is (CollectionOrValue<P>)[] {
+export function isTemplatePrimitive(value: unknown): value is TemplatePrimitive {
+  return isPrimitive(value) && typeof value !== "symbol"
+}
+
+export function templateIsArray<P extends TemplateLeafValue | TemplateLeaf>(
+  value: CollectionOrValue<P>
+): value is CollectionOrValue<P>[] {
   return Array.isArray(value)
 }
 
-export function templateIsObject<P extends (TemplatePrimitive | TemplateValue)>(value: CollectionOrValue<P>): value is ({ [key: string]: CollectionOrValue<P> }) {
+export function templateIsObject<P extends TemplateLeafValue | TemplateLeaf>(
+  value: CollectionOrValue<P>
+): value is { [key: string]: CollectionOrValue<P> } {
   return isPlainObject(value)
 }
 
 type EmptyArray = never[]
 type EmptyObject = { [key: string]: never }
 
-export type TemplatePrimitive =
-  | Primitive
+export type TemplatePrimitive = Exclude<Primitive, symbol>
+
+export type TemplateLeafValue =
+  | TemplatePrimitive
   // We need an instance of TemplateValue to wrap /empty/ Arrays and /empty/ Objects, so we can track their inputs.
   // If the array/object has elements, those will be wrapped in TemplateValue instances.
   | EmptyArray
   | EmptyObject
 
-export function isTemplateValue(value: unknown): value is TemplateValue {
-  return value instanceof TemplateValue
+export function isTemplateLeaf(value: unknown): value is TemplateLeaf {
+  return value instanceof TemplateLeaf
 }
 
 type TemplateInputs = {
   // key is the input variable name, e.g. secrets.someSecret, local.env.SOME_VARIABLE, etc
-  [contextKeyPath: string]: TemplateValue
+  [contextKeyPath: string]: TemplateLeaf
 }
 
-export class TemplateValue<T extends TemplatePrimitive = TemplatePrimitive> {
+export class TemplateLeaf<T extends TemplateLeafValue = TemplateLeafValue> {
   public readonly expr: string | undefined
   public readonly value: T
   public readonly inputs: TemplateInputs
@@ -57,20 +68,21 @@ export class TemplateValue<T extends TemplatePrimitive = TemplatePrimitive> {
   }
 }
 
-export type CollectionOrValue<P extends TemplatePrimitive | TemplateValue = TemplateValue> =
-  | P
+export type Collection<P extends TemplateLeafValue | TemplateLeaf = TemplateLeaf> =
   | Iterable<CollectionOrValue<P>>
   | { [key: string]: CollectionOrValue<P> }
+
+export type CollectionOrValue<P extends TemplateLeafValue | TemplateLeaf = TemplateLeaf> = P | Collection<P>
 
 // helpers
 
 // Similar to deepMap, but treats empty collections as leaves, because they are template primitives.
-export function templatePrimitiveDeepMap<P extends TemplatePrimitive, R extends TemplatePrimitive | TemplateValue>(
+export function templatePrimitiveDeepMap<P extends TemplateLeafValue, R extends TemplateLeafValue | TemplateLeaf>(
   value: CollectionOrValue<P>,
-  fn: (value: TemplatePrimitive, keyPath: ObjectPath) => CollectionOrValue<R>,
+  fn: (value: TemplateLeafValue, keyPath: ObjectPath) => CollectionOrValue<R>,
   keyPath: ObjectPath = []
 ): CollectionOrValue<R> {
-  if (isTemplatePrimitive(value)) {
+  if (isTemplateLeafValue(value)) {
     // This also handles empty collections
     return fn(value, keyPath)
   } else if (isArray(value)) {
@@ -81,4 +93,43 @@ export function templatePrimitiveDeepMap<P extends TemplatePrimitive, R extends 
   } else {
     throw new InternalError({ message: `Unexpected value type: ${typeof value}` })
   }
+}
+
+export function mergeInputs(
+  result: CollectionOrValue<TemplateLeaf>,
+  ...relevantValues: CollectionOrValue<TemplateLeaf>[]
+): CollectionOrValue<TemplateLeaf> {
+  let additionalInputs: TemplateLeaf["inputs"] = {}
+
+  const accumulate = (inputs: TemplateLeaf["inputs"]) => {
+    additionalInputs = {
+      ...additionalInputs,
+      ...inputs,
+    }
+  }
+
+  relevantValues.forEach((r) => {
+    if (isTemplateLeaf(r)) {
+      accumulate(r.inputs)
+    } else {
+      deepMap(r, (v: TemplateLeaf, _key, keyPath) => {
+        accumulate(v.inputs)
+      })
+    }
+  })
+
+  const makeTemplateValue = (v: TemplateLeaf) => {
+    return new TemplateLeaf({
+      expr: v.expr,
+      value: v.value,
+      inputs: {
+        ...v.inputs,
+        ...additionalInputs,
+      },
+    })
+  }
+
+  return isTemplateLeaf(result)
+    ? makeTemplateValue(result)
+    : deepMap(result, (v) => makeTemplateValue(v))
 }

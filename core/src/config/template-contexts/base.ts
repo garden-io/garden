@@ -9,18 +9,14 @@
 import type Joi from "@hapi/joi"
 import { isString } from "lodash-es"
 import { ConfigurationError } from "../../exceptions.js"
-import {
-  resolveTemplateString,
-  TemplateStringMissingKeyException,
-  TemplateStringPassthroughException,
-} from "../../template-string/template-string.js"
+import { resolveTemplateString } from "../../template-string/template-string.js"
 import type { CustomObjectSchema } from "../common.js"
 import { isPrimitive, joi, joiIdentifier } from "../common.js"
 import { KeyedSet } from "../../util/keyed-set.js"
 import { naturalList } from "../../util/string.js"
 import { styles } from "../../logger/styles.js"
 import type { CollectionOrValue } from "../../template-string/inputs.js"
-import { TemplateValue, isTemplatePrimitive, isTemplateValue } from "../../template-string/inputs.js"
+import { TemplateLeaf, isTemplateLeafValue, isTemplateLeaf } from "../../template-string/inputs.js"
 import { deepMap } from "../../util/objects.js"
 
 export type ContextKeySegment = string | number
@@ -191,7 +187,7 @@ export abstract class ConfigContext {
         value = resolveTemplateString({ string: value, context: this._rootContext, contextOpts: opts })
       }
 
-      if (isTemplateValue(value)) {
+      if (isTemplateLeaf(value)) {
         break
       }
 
@@ -223,20 +219,20 @@ export abstract class ConfigContext {
       if (this._alwaysAllowPartial) {
         // We use a separate exception type when contexts are specifically indicating that unresolvable keys should
         // be passed through. This is caught in the template parser code.
-        throw new TemplateStringPassthroughException({
-          message,
-        })
+        // throw new TemplateStringPassthroughException({
+        //   message,
+        // })
       } else if (opts.allowPartial) {
-        throw new TemplateStringMissingKeyException({
-          message,
-        })
+        // throw new TemplateStringMissingKeyException({
+        //   message,
+        // })
       } else {
         // Otherwise we return the undefined value, so that any logical expressions can be evaluated appropriately.
         // The template resolver will throw the error later if appropriate.
         return {
           message,
           cached: false,
-          result: new TemplateValue({
+          result: new TemplateLeaf({
             expr: undefined,
             value: undefined,
             inputs: {},
@@ -247,12 +243,12 @@ export abstract class ConfigContext {
 
     let result: CollectionOrValue
 
-    if (isTemplateValue(value)) {
+    if (isTemplateLeaf(value)) {
       result = value
     }
     // Wrap normal data using deepMap
-    else if (isTemplatePrimitive(value)) {
-      result = new TemplateValue({
+    else if (isTemplateLeafValue(value)) {
+      result = new TemplateLeaf({
         expr: undefined,
         value,
         inputs: {},
@@ -260,10 +256,10 @@ export abstract class ConfigContext {
     } else {
       // value is a collection
       result = deepMap(value, (v) => {
-        if (isTemplateValue(v)) {
+        if (isTemplateLeaf(v)) {
           return v
         }
-        return new TemplateValue({
+        return new TemplateLeaf({
           expr: undefined,
           value: v,
           inputs: {},

@@ -13,6 +13,8 @@ import { getDefaultProfiler } from "../src/util/profiling.js"
 import { gardenEnv } from "../src/constants.js"
 import { testFlags } from "../src/util/util.js"
 import { initTestLogger, testProjectTempDirs } from "./helpers.js"
+import chai from "chai"
+chai.config.truncateThreshold = 0
 
 import sourceMapSupport from "source-map-support"
 sourceMapSupport.install()

@@ -12,13 +12,11 @@ import type {
   ConfigContext,
   ContextKeySegment,
   ContextResolveOpts,
-  ContextResolveOutput,
   ObjectPath,
 } from "../config/template-contexts/base.js"
-import { renderKeyPath } from "../config/template-contexts/base.js"
 import { GenericContext, ScanContext } from "../config/template-contexts/base.js"
 import cloneDeep from "fast-copy"
-import { difference, isBoolean, isNumber, isPlainObject, isString, uniq } from "lodash-es"
+import { difference, isBoolean, isPlainObject, isString, uniq } from "lodash-es"
 import type { ActionReference, Primitive, StringMap } from "../config/common.js"
 import {
   arrayConcatKey,
@@ -36,44 +34,17 @@ import { dedent, deline, naturalList, titleize, truncate } from "../util/string.
 import type { ObjectWithName } from "../util/util.js"
 import type { Log } from "../logger/log-entry.js"
 import type { ModuleConfigContext } from "../config/template-contexts/module.js"
-import { callHelperFunction } from "./functions.js"
 import type { ActionKind } from "../actions/types.js"
 import { actionKindsLower } from "../actions/types.js"
 import { deepMap } from "../util/objects.js"
 import type { ConfigSource } from "../config/validation.js"
 import * as parser from "./parser.js"
+import * as ast from "./ast.js"
 import { styles } from "../logger/styles.js"
-import { TemplateValue, isTemplatePrimitive, isTemplateValue, templateIsArray, templateIsObject } from "./inputs.js"
-import type { CollectionOrValue, TemplatePrimitive } from "./inputs.js"
+import { TemplateLeaf, isTemplateLeafValue, isTemplateLeaf, templateIsArray, templateIsObject } from "./inputs.js"
+import type { CollectionOrValue, TemplateLeafValue } from "./inputs.js"
 
-const missingKeyExceptionType = "template-string-missing-key"
-const passthroughExceptionType = "template-string-passthrough"
 const escapePrefix = "$${"
-
-export class TemplateStringMissingKeyException extends GardenError {
-  type = missingKeyExceptionType
-}
-
-export class TemplateStringPassthroughException extends GardenError {
-  type = passthroughExceptionType
-}
-
-interface ResolvedClause extends ContextResolveOutput {
-  block?: "if" | "else" | "else if" | "endif"
-  _error?: Error
-}
-
-interface ConditionalTree {
-  type: "root" | "if" | "else" | "value"
-  value?: any
-  children: ConditionalTree[]
-  parent?: ConditionalTree
-}
-
-function getValue(v: TemplateValue | ResolvedClause) {
-  return isTemplateValue(v) ? v.value : (<ResolvedClause>v).result
-  // return isPlainObject(v) ? (<ResolvedClause>v).result : v
-}
 
 export class TemplateError extends GardenError {
   type = "template"
@@ -100,12 +71,32 @@ export function resolveTemplateString({
   contextOpts?: ContextResolveOpts
 }): any {
   const result = resolveTemplateStringWithInputs({ string, context, contextOpts })
-  return deepMap(result, (v: TemplateValue) => {
-    if (!(v instanceof TemplateValue)) {
+  if (isTemplateLeaf(result)) {
+    return result.value
+  }
+  return deepMap(result, (v: TemplateLeaf) => {
+    if (!(v instanceof TemplateLeaf)) {
       throw new InternalError({ message: `Expected TemplateValue; actually got: ${typeof v}` })
     }
     return v.value
   })
+}
+
+function parseTemplateString(string: string, unescape: boolean = false) {
+  const parsed: ast.TemplateExpression = parser.parse(string, {
+    ast,
+    TemplateStringError,
+    // TODO: What is unescape?
+    unescape,
+    escapePrefix,
+    optionalSuffix: "}?",
+    // TODO: This should not be done via recursion, but should be handled in the pegjs grammar.
+    resolveNested: (nested: string) => {
+      return parseTemplateString(nested, unescape)
+    },
+  })
+
+  return parsed
 }
 
 /**
@@ -126,192 +117,20 @@ export function resolveTemplateStringWithInputs({
   string: string
   context: ConfigContext
   contextOpts?: ContextResolveOpts
-}): CollectionOrValue<TemplateValue> {
+}): CollectionOrValue<TemplateLeaf> {
   // Just return immediately if this is definitely not a template string
   if (!maybeTemplateString(string)) {
-    return new TemplateValue({
+    return new TemplateLeaf({
       expr: undefined,
       value: string,
       inputs: {},
     })
   }
 
-  const inputs: Record<string, TemplateValue> = {}
-
   try {
-    const parsed = parser.parse(string, {
-      getKey: (key: string[], resolveOpts?: ContextResolveOpts): ContextResolveOutput & { result: unknown } => {
-        const value = context.resolve({
-          key,
-          nodePath: [],
-          opts: { ...contextOpts, ...(resolveOpts || {}) },
-        })
+    const parsed = parseTemplateString(string, contextOpts?.unescape || false)
 
-        const addTemplateReferenceInformation = (v: TemplateValue, keyPath: ObjectPath) => {
-          return new TemplateValue({
-            expr: string,
-            value: v.value,
-            inputs: {
-              // key might be something like ["var", "foo", "bar"]
-              // We also add the keypath to get separate keys for ever
-              [renderKeyPath([...key, ...keyPath])]: v,
-            },
-          })
-        }
-
-        const enriched = isTemplateValue(value.result)
-          ? addTemplateReferenceInformation(value.result, [])
-          : deepMap(value.result, (v, _key, keyPath) => addTemplateReferenceInformation(v, keyPath))
-
-        // return enriched
-        // TODO: fix the parser instead of the following code
-
-        let resolvedValue: any
-        if (enriched instanceof TemplateValue) {
-          for (const [k, v] of Object.entries(enriched.inputs)) {
-            inputs[k] = v
-          }
-          resolvedValue = enriched.value
-        } else {
-          resolvedValue = deepMap(enriched, (e: TemplateValue) => {
-            for (const [k, v] of Object.entries(e.inputs)) {
-              inputs[k] = v
-            }
-
-            return e.value
-          })
-        }
-
-        return {
-          ...value,
-          result: resolvedValue,
-        }
-      },
-      getValue,
-      resolveNested: (nested: string) => {
-        return resolveTemplateString({ string: nested, context, contextOpts })
-      },
-      buildBinaryExpression,
-      buildLogicalExpression,
-      isArray: Array.isArray,
-      ConfigurationError,
-      TemplateStringError,
-      missingKeyExceptionType,
-      passthroughExceptionType,
-      allowPartial: !!contextOpts.allowPartial,
-      unescape: !!contextOpts.unescape,
-      escapePrefix,
-      optionalSuffix: "}?",
-      isPlainObject,
-      isPrimitive,
-      callHelperFunction,
-    })
-
-    const outputs: ResolvedClause[] = parsed.map((p: any) => {
-      return isPlainObject(p) ? p : { resolved: getValue(p) }
-    })
-
-    // We need to manually propagate errors in the parser, so we catch them here
-    for (const r of outputs) {
-      if (r && r["_error"]) {
-        throw r["_error"]
-      }
-    }
-
-    // Use value directly if there is only one (or no) value in the output.
-    // TODO: Should this be ResolvedResult?
-    let resolved: unknown = outputs[0]?.result
-
-    if (outputs.length > 1) {
-      // Assemble the parts into a conditional tree
-      const tree: ConditionalTree = {
-        type: "root",
-        children: [],
-      }
-      let currentNode = tree
-
-      for (const part of outputs) {
-        if (part.block === "if") {
-          const node: ConditionalTree = {
-            type: "if",
-            value: !!part.result,
-            children: [],
-            parent: currentNode,
-          }
-          currentNode.children.push(node)
-          currentNode = node
-        } else if (part.block === "else") {
-          if (currentNode.type !== "if") {
-            throw new TemplateStringError({
-              message: "Found ${else} block without a preceding ${if...} block.",
-            })
-          }
-          const node: ConditionalTree = {
-            type: "else",
-            value: !currentNode.value,
-            children: [],
-            parent: currentNode.parent,
-          }
-          currentNode.parent!.children.push(node)
-          currentNode = node
-        } else if (part.block === "endif") {
-          if (currentNode.type === "if" || currentNode.type === "else") {
-            currentNode = currentNode.parent!
-          } else {
-            throw new TemplateStringError({
-              message: "Found ${endif} block without a preceding ${if...} block.",
-            })
-          }
-        } else {
-          const v = getValue(part)
-
-          currentNode.children.push({
-            type: "value",
-            value: v === null ? "null" : v,
-            children: [],
-          })
-        }
-      }
-
-      if (currentNode.type === "if" || currentNode.type === "else") {
-        throw new TemplateStringError({ message: "Missing ${endif} after ${if ...} block." })
-      }
-
-      // Walk down tree and resolve the output string
-      resolved = ""
-
-      function resolveTree(node: ConditionalTree) {
-        if (node.type === "value" && node.value !== undefined) {
-          resolved += node.value
-        } else if (node.type === "root" || ((node.type === "if" || node.type === "else") && !!node.value)) {
-          for (const child of node.children) {
-            resolveTree(child)
-          }
-        }
-      }
-
-      resolveTree(tree)
-    }
-
-    // TODO: Change parser to return ResolvedResult
-    // return resolved as TemplateCollectionOrValue
-
-    if (isTemplatePrimitive(resolved)) {
-      return new TemplateValue({
-        expr: string,
-        value: resolved,
-        inputs,
-      })
-    } else {
-      // TODO: Deepmap doesn't handle empty collections correctly for us; We need another version of deepmap tbhat calls the callback for empty collections, as they are considered primitives.
-      return deepMap(resolved as any, (v: TemplatePrimitive) => {
-        return new TemplateValue({
-          expr: string,
-          value: v,
-          inputs,
-        })
-      })
-    }
+    return parsed.evaluate({ context, opts: contextOpts, rawTemplateString: string })
   } catch (err) {
     if (!(err instanceof GardenError)) {
       throw err
@@ -377,11 +196,11 @@ export function resolveTemplateStringsWithInputs({
   contextOpts = {},
   source,
 }: {
-  value: CollectionOrValue<TemplatePrimitive>
+  value: CollectionOrValue<TemplateLeafValue>
   context: ConfigContext
   contextOpts?: ContextResolveOpts
   source: ConfigSource | undefined
-}): CollectionOrValue<TemplateValue> {
+}): CollectionOrValue<TemplateLeaf> {
   if (!contextOpts.yamlPath) {
     contextOpts.yamlPath = []
   }
@@ -393,10 +212,10 @@ export function resolveTemplateStringsWithInputs({
 
   if (typeof value === "string") {
     return resolveTemplateStringWithInputs({ string: value, context, contextOpts })
-  } else if (isTemplatePrimitive(value)) {
+  } else if (isTemplateLeafValue(value)) {
     // here we handle things static numbers, empty array etc
     // we also handle null and undefined
-    return new TemplateValue({
+    return new TemplateLeaf({
       expr: undefined,
       value,
       inputs: {},
@@ -404,7 +223,7 @@ export function resolveTemplateStringsWithInputs({
   } else if (templateIsArray(value)) {
     // we know that this is not handling an empty array, as that would have been a TemplatePrimitive.
 
-    const output: CollectionOrValue<TemplateValue>[] = []
+    const output: CollectionOrValue<TemplateLeaf>[] = []
 
     value.forEach((v, i) => {
       if (templateIsObject(v) && v[arrayConcatKey] !== undefined) {
@@ -519,8 +338,8 @@ export function resolveTemplateStrings<T = any>({
   source: ConfigSource | undefined
 }): T {
   const resolved = resolveTemplateStringsWithInputs({ value: value as any, context, contextOpts, source })
-  return deepMap(resolved, (v: TemplateValue) => {
-    if (!(v instanceof TemplateValue)) {
+  return deepMap(resolved, (v: TemplateLeaf) => {
+    if (!(v instanceof TemplateLeaf)) {
       throw new InternalError({ message: `Expected TemplateValue; actually got: ${typeof v}` })
     }
     return v.value
@@ -539,11 +358,11 @@ function handleForEachObject({
   contextOpts,
   source,
 }: {
-  value: { [key: string]: CollectionOrValue<TemplatePrimitive> }
+  value: { [key: string]: CollectionOrValue<TemplateLeafValue> }
   context: ConfigContext
   contextOpts: ContextResolveOpts
   source: ConfigSource | undefined
-}): CollectionOrValue<TemplateValue>[] {
+}): CollectionOrValue<TemplateLeaf>[] {
   // Validate input object
   if (value[arrayForEachReturnKey] === undefined) {
     throw new TemplateError({
@@ -628,7 +447,7 @@ function handleForEachObject({
   // TODO: maybe there's a more efficient way to do the cloning/extending?
   const loopContext = cloneDeep(context)
 
-  const output: CollectionOrValue<TemplateValue>[] = []
+  const output: CollectionOrValue<TemplateLeaf>[] = []
 
   for (const i of Object.keys(resolvedInput)) {
     const contextForIndex = new GenericContext({ key: i, value: resolvedInput[i] })
@@ -651,7 +470,7 @@ function handleForEachObject({
         source,
       })
 
-      if (isTemplateValue(filterResult) && isBoolean(filterResult.value)) {
+      if (isTemplateLeaf(filterResult) && isBoolean(filterResult.value)) {
         if (filterResult.value === false) {
           continue
         }
@@ -987,136 +806,4 @@ export function detectMissingSecretKeys<T extends object>(obj: T, secrets: Strin
     .map(([key, _value]) => key)
   const missingKeys = difference(referencedKeys, keysWithValues)
   return missingKeys.sort()
-}
-
-function buildBinaryExpression(head: any, tail: any) {
-  return tail.reduce((result: any, element: any) => {
-    const operator = element[1]
-    const leftRes = result
-    const rightRes = element[3]
-
-    // We need to manually handle and propagate errors because the parser doesn't support promises
-    if (leftRes && leftRes._error) {
-      return leftRes
-    }
-    if (rightRes && rightRes._error) {
-      return rightRes
-    }
-
-    const left = getValue(leftRes)
-    const right = getValue(rightRes)
-
-    // Disallow undefined values for comparisons
-    if (left === undefined || right === undefined) {
-      const message = [leftRes, rightRes]
-        .map((res) => res.message)
-        .filter(Boolean)
-        .join(" ")
-      const err = new TemplateStringError({
-        message: message || "Could not resolve one or more keys.",
-      })
-      return { _error: err }
-    }
-
-    if (operator === "==") {
-      return left === right
-    }
-    if (operator === "!=") {
-      return left !== right
-    }
-
-    if (operator === "+") {
-      if (isNumber(left) && isNumber(right)) {
-        return left + right
-      } else if (isString(left) && isString(right)) {
-        return left + right
-      } else if (Array.isArray(left) && Array.isArray(right)) {
-        return left.concat(right)
-      } else {
-        const err = new TemplateStringError({
-          message: `Both terms need to be either arrays or strings or numbers for + operator (got ${typeof left} and ${typeof right}).`,
-        })
-        return { _error: err }
-      }
-    }
-
-    // All other operators require numbers to make sense (we're not gonna allow random JS weirdness)
-    if (!isNumber(left) || !isNumber(right)) {
-      const err = new TemplateStringError({
-        message: `Both terms need to be numbers for ${operator} operator (got ${typeof left} and ${typeof right}).`,
-      })
-      return { _error: err }
-    }
-
-    switch (operator) {
-      case "*":
-        return left * right
-      case "/":
-        return left / right
-      case "%":
-        return left % right
-      case "-":
-        return left - right
-      case "<=":
-        return left <= right
-      case ">=":
-        return left >= right
-      case "<":
-        return left < right
-      case ">":
-        return left > right
-      default:
-        const err = new TemplateStringError({ message: "Unrecognized operator: " + operator })
-        return { _error: err }
-    }
-  }, head)
-}
-
-function buildLogicalExpression(head: any, tail: any, opts: ContextResolveOpts) {
-  return tail.reduce((result: any, element: any) => {
-    const operator = element[1]
-    const leftRes = result
-    const rightRes = element[3]
-
-    switch (operator) {
-      case "&&":
-        if (leftRes && leftRes._error) {
-          if (!opts.allowPartial && leftRes._error.type === missingKeyExceptionType) {
-            return false
-          }
-          return leftRes
-        }
-
-        const leftValue = getValue(leftRes)
-
-        if (leftValue === undefined) {
-          return { resolved: false }
-        } else if (!leftValue) {
-          return { resolved: leftValue }
-        } else {
-          if (rightRes && rightRes._error) {
-            if (!opts.allowPartial && rightRes._error.type === missingKeyExceptionType) {
-              return false
-            }
-            return rightRes
-          }
-
-          const rightValue = getValue(rightRes)
-
-          if (rightValue === undefined) {
-            return { resolved: false }
-          } else {
-            return rightRes
-          }
-        }
-      case "||":
-        if (leftRes && leftRes._error) {
-          return leftRes
-        }
-        return getValue(leftRes) ? leftRes : rightRes
-      default:
-        const err = new TemplateStringError({ message: "Unrecognized operator: " + operator })
-        return { _error: err }
-    }
-  }, head)
 }

@@ -8,21 +8,17 @@
 
 {
   const {
-    buildBinaryExpression,
-    buildLogicalExpression,
-    callHelperFunction,
+    ast,
     escapePrefix,
-    getKey,
-    getValue,
-    isArray,
-    isPlainObject,
-    isPrimitive,
     optionalSuffix,
-    missingKeyExceptionType,
-    passthroughExceptionType,
     resolveNested,
     TemplateStringError,
   } = options
+
+  function filledArray(count, value) {
+    return Array.apply(null, new Array(count))
+      .map(function() { return value; });
+  }
 
   function extractOptional(optional, index) {
     return optional ? optional[index] : null;
@@ -36,99 +32,86 @@
     return [head].concat(extractList(tail, index));
   }
 
-  function optionalList(value) {
-    return value !== null ? value : [];
+  function buildBinaryExpression(head, tail) {
+    return tail.reduce(function(result, element) {
+      const operator = element[1]
+      const left = result
+      const right = element[3]
+
+      if (operator === undefined && right === undefined) {
+        return left
+      }
+
+      return new ast.BinaryExpression(location(), operator, left, right);
+    }, head);
   }
 
-  function resolveList(items) {
-    for (const part of items) {
-      if (part._error) {
-        return part
+  function buildLogicalExpression(head, tail) {
+    return tail.reduce(function(result, element) {
+      const operator = element[1]
+      const left = result
+      const right = element[3]
+
+      if (operator === undefined && right === undefined) {
+        return left
       }
-    }
-    return items.map((part) => part.resolved || part)
+
+      return new ast.LogicalExpression(location(), operator, left, right);
+    }, head);
+  }
+
+  function optionalList(value) {
+    return value !== null ? value : [];
   }
 }
 
 TemplateString
-  = a:(FormatString)+ b:TemplateString? { return [...a, ...(b || [])] }
-  / a:Prefix b:(FormatString)+ c:TemplateString? { return [a, ...b, ...(c || [])] }
-  / InvalidFormatString
-  / $(.*) { return text() === "" ? [] : [{ resolved: text() }] }
+  = head:(FormatString)+ tail:TemplateString? {
+    // If there is only one format string, return it's result
+    if (head.length === 1 && !tail) {
+      return head[0]
+    }
+
+    // Otherwise we concatenate strings
+    return new ast.StringConcatExpression(location(), ...head, ...(tail ? [tail] : []))
+  }
+  / a:Prefix b:(FormatString)+ c:TemplateString? {
+    return new ast.StringConcatExpression(location(), a, ...b, ...(c ? [c] : []))
+  }
+  / UnclosedFormatString
+  / $(.+) { return new ast.LiteralExpression(location(), text()) }
 
 FormatString
   = EscapeStart SourceCharacter* FormatEndWithOptional {
     if (options.unescape) {
-      return text().slice(1)
+      return new ast.LiteralExpression(location(), text().slice(1))
     } else {
-      return text()
+      return new ast.LiteralExpression(location(), text())
     }
   }
   / FormatStart op:BlockOperator FormatEnd {
-    return { block: op }
+    throw new TemplateStringError({ message: `Block operator not yet implemented. Cannot parse: ${text()}`})
   }
   / pre:FormatStartWithEscape blockOperator:(ExpressionBlockOperator __)* e:Expression end:FormatEndWithOptional {
       if (pre[0] === escapePrefix) {
         if (options.unescape) {
-          return text().slice(1)
+          return new ast.LiteralExpression(location(), text().slice(1))
         } else {
-          return text()
+          return new ast.LiteralExpression(location(), text())
         }
       }
 
-      // Any unexpected error is returned immediately. Certain exceptions have special semantics that are caught below.
-      if (e && e._error && e._error.type !== missingKeyExceptionType && e._error.type !== passthroughExceptionType) {
-        return e
+      if (blockOperator && blockOperator.length > 0) {
+        throw new TemplateStringError({ message: `Block operator not yet implemented. Cannot parse: ${text()}`})
       }
 
-      // Need to provide the optional suffix as a variable because of a parsing bug in pegjs
-      const allowUndefined = end[1] === optionalSuffix
-
-      if (!isPlainObject(e)) {
-        e = { resolved: e }
-      }
-
-      if (e && blockOperator[0] && blockOperator[0][0]) {
-        e.block = blockOperator[0][0]
-      }
-
-      if (e && e.block && allowUndefined) {
-        const _error = new TemplateStringError({ message: "Cannot specify optional suffix in if-block.", detail: {
-          text: text(),
-        }})
-        return { _error }
-      }
-
-      if (getValue(e) === undefined) {
-        if (e && e._error && e._error.type === passthroughExceptionType) {
-          // We allow certain configuration contexts (e.g. placeholders for runtime.*) to indicate that a template
-          // string should be returned partially resolved even if allowPartial=false.
-          return text()
-        } else if (options.allowPartial) {
-          return text()
-        } else if (allowUndefined) {
-          if (e && e._error) {
-            return { ...e, _error: undefined }
-          } else {
-            return e
-          }
-        } else if (e && e._error) {
-          return e
-        } else {
-          console.log("e._error:", e._error)
-          console.log("e:", e)
-          const _error = new TemplateStringError({ message: e.message || "Unable to resolve one or more keys.", detail: {
-            text: text(),
-          }})
-          return { _error }
-        }
-      }
-      return e
+      const isOptional = end[1] === optionalSuffix
+      return new ast.FormatStringExpression(location(), e, isOptional)
   }
 
-InvalidFormatString
+UnclosedFormatString
   = Prefix? FormatStart .* {
-      throw new TemplateStringError({ message: "Unable to parse as valid template string.", detail: {}})
+      throw new TemplateStringError({ message: "Unable to parse as valid template string." })
   }
 
 EscapeStart
@@ -159,10 +142,10 @@ ExpressionBlockOperator
   = "if"
 
 Prefix
-  = !FormatStartWithEscape (. ! FormatStartWithEscape)* . { return text() }
+  = !FormatStartWithEscape (. ! FormatStartWithEscape)* . { return new ast.LiteralExpression(location(), text()) }
 
 Suffix
-  = !FormatEnd (. ! FormatEnd)* . { return text() }
+  = !FormatEnd (. ! FormatEnd)* . { return new ast.LiteralExpression(location(), text()) }
 
 // ---- expressions -----
 // Reduced and adapted from: https://github.com/pegjs/pegjs/blob/master/examples/javascript.pegjs
@@ -171,10 +154,9 @@ MemberExpression
     tail:(
         "[" __ e:Expression __ "]" {
           if (e.resolved && !isPrimitive(e.resolved)) {
-            const _error = new TemplateStringError(
-              { message: `Expression in bracket must resolve to a primitive (got ${typeof e}).`,
-              detail: { text: e.resolved }}
-            )
+            const _error = new TemplateStringError({
+              message: `Expression in bracket must resolve to a primitive (got ${typeof e}).`,
+            })
             return { _error }
           }
           return e
@@ -188,22 +170,21 @@ MemberExpression
     }
 
 CallExpression
-  = callee:Identifier __ args:Arguments {
-      // Workaround for parser issue (calling text() before referencing other values)
-      const functionName = callee
-      const _args = args
-
-      return callHelperFunction({ functionName, args: _args, text: text(), allowPartial: options.allowPartial })
+  = functionName:Identifier __ args:Arguments {
+      return new ast.FunctionCallExpression(location(), functionName, args)
     }
 
 Arguments
-  = "(" __ args:(ArgumentList __)? ")" {
-      return optionalList(extractOptional(args, 0));
+  = "(" __ args:ArgumentList? __ ")" {
+      return args || [];
     }
-
 ArgumentList
-  = head:Expression tail:(__ "," __ Expression)* {
-      return buildList(head, tail, 3);
+  = head:Expression tail:ArgumentListTail* {
+      return [head, ...(tail || [])];
+    }
+ArgumentListTail
+  = tail:(__ "," __ Expression) {
+      return tail[3]
     }
 
 ArrayLiteral
@@ -235,7 +216,7 @@ Elision
 
 PrimaryExpression
   = v:NonStringLiteral {
-    return v
+    return new ast.LiteralExpression(location(), v)
   }
   / v:StringLiteral {
     // Allow nested template strings in literals
@@ -244,15 +225,7 @@ PrimaryExpression
   / ArrayLiteral
   / CallExpression
   / key:MemberExpression {
-    key = resolveList(key)
-    if (key._error) {
-      return key
-    }
-    try {
-      return getKey(key, { allowPartial: options.allowPartial })
-    } catch (err) {
-      return { _error: err }
-    }
+    return new ast.ContextLookupExpression(location(), key)
   }
   / "(" __ e:Expression __ ")" {
     return e
@@ -366,7 +339,7 @@ EqualityOperator
 LogicalANDExpression
   = head:EqualityExpression
     tail:(__ LogicalANDOperator __ EqualityExpression)*
-    { return buildLogicalExpression(head, tail, options); }
+    { return buildLogicalExpression(head, tail); }
 
 LogicalANDOperator
   = "&&"
@@ -374,7 +347,7 @@ LogicalANDOperator
 LogicalORExpression
   = head:LogicalANDExpression
     tail:(__ LogicalOROperator __ LogicalANDExpression)*
-    { return buildLogicalExpression(head, tail, options); }
+    { return buildLogicalExpression(head, tail); }
 
 LogicalOROperator
   = "||"
@@ -384,10 +357,7 @@ ConditionalExpression
     "?" __ consequent:Expression __
     ":" __ alternate:Expression
     {
-      if (test && test._error) {
-        return test
-      }
-      return getValue(test) ? consequent : alternate
+      return new ast.TernaryExpression(location(), test, consequent, alternate)
     }
   / LogicalORExpression
 

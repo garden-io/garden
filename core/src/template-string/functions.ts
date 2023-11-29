@@ -8,8 +8,8 @@
 
 import { v4 as uuidv4 } from "uuid"
 import { createHash } from "node:crypto"
-import { TemplateStringError } from "../exceptions.js"
-import { camelCase, escapeRegExp, isArrayLike, isEmpty, isString, kebabCase, keyBy, mapValues, trim } from "lodash-es"
+import { InternalError, TemplateStringError } from "../exceptions.js"
+import { camelCase, isArrayLike, isEmpty, isString, kebabCase, keyBy, mapValues, trim } from "lodash-es"
 import type { JoiDescription, Primitive } from "../config/common.js"
 import { joi, joiPrimitive } from "../config/common.js"
 import type Joi from "@hapi/joi"
@@ -17,7 +17,9 @@ import { validateSchema } from "../config/validation.js"
 import { load, loadAll } from "js-yaml"
 import { safeDumpYaml } from "../util/serialization.js"
 import indentString from "indent-string"
-import { maybeTemplateString } from "./template-string.js"
+import type { CollectionOrValue, TemplateLeafValue } from "./inputs.js"
+import { TemplateLeaf, isTemplateLeafValue, isTemplateLeaf, mergeInputs, templatePrimitiveDeepMap } from "./inputs.js"
+import { deepMap } from "../util/objects.js"
 
 interface ExampleArgument {
   input: any[]
@@ -32,6 +34,15 @@ interface TemplateHelperFunction {
   outputSchema: Joi.Schema
   exampleArguments: ExampleArgument[]
   fn: Function
+
+  /**
+   * If the function does input tracking on its own for collection arguments, it can set this to true to avoid the default input tracking.
+   *
+   * This is useful in case the function concatenates arrays or objects, or filters arrays or objects.
+   *
+   * @default false
+   */
+  skipInputTrackingForCollectionValues?: boolean
 }
 
 const helperFunctionSpecs: TemplateHelperFunction[] = [
@@ -85,7 +96,7 @@ const helperFunctionSpecs: TemplateHelperFunction[] = [
         .required()
         .description("The array or string to append."),
     },
-    outputSchema: joi.string(),
+    outputSchema: joi.alternatives(joi.string(), joi.array()),
     exampleArguments: [
       {
         input: [
@@ -103,7 +114,10 @@ const helperFunctionSpecs: TemplateHelperFunction[] = [
       },
       { input: ["string1", "string2"], output: "string1string2" },
     ],
-    fn: (arg1: any, arg2: any) => {
+
+    // If we receive an array, it will be raw collection values for correct input tracking when merely concatenating arrays.
+    skipInputTrackingForCollectionValues: true,
+    fn: (arg1: string | CollectionOrValue<TemplateLeaf>[], arg2: string | CollectionOrValue<TemplateLeaf>[]) => {
       if (isString(arg1) && isString(arg2)) {
         return arg1 + arg2
       } else if (Array.isArray(arg1) && Array.isArray(arg2)) {
@@ -148,7 +162,7 @@ const helperFunctionSpecs: TemplateHelperFunction[] = [
       { input: ["not empty"], output: false },
       { input: [null], output: true },
     ],
-    fn: (value: any) => value === undefined || isEmpty(value),
+    fn: (value: unknown) => value === undefined || isEmpty(value),
   },
   {
     name: "join",
@@ -190,7 +204,7 @@ const helperFunctionSpecs: TemplateHelperFunction[] = [
       { input: [["some", "array"]], output: '["some","array"]' },
       { input: [{ some: "object" }], output: '{"some":"object"}' },
     ],
-    fn: (value: any) => JSON.stringify(value),
+    fn: (value: unknown) => JSON.stringify(value),
   },
   {
     name: "kebabCase",
@@ -234,8 +248,7 @@ const helperFunctionSpecs: TemplateHelperFunction[] = [
       { input: ["string_with_underscores", "_", "-"], output: "string-with-underscores" },
       { input: ["remove.these.dots", ".", ""], output: "removethesedots" },
     ],
-    fn: (str: string, substring: string, replacement: string) =>
-      str.replace(new RegExp(escapeRegExp(substring), "g"), replacement),
+    fn: (str: string, substring: string, replacement: string) => str.replaceAll(substring, replacement),
   },
   {
     name: "sha256",
@@ -270,7 +283,9 @@ const helperFunctionSpecs: TemplateHelperFunction[] = [
       { input: ["ThisIsALongStringThatINeedAPartOf", 11, -7], output: "StringThatINeed" },
       { input: [".foo", 1], output: "foo" },
     ],
-    fn: (stringOrArray: string | any[], start: number | string, end?: number | string) => {
+    // If we receive an array, it will be raw template values for correct input tracking when merely slicing arrays.
+    skipInputTrackingForCollectionValues: true,
+    fn: (stringOrArray: string | CollectionOrValue<TemplateLeaf>[], start: number | string, end?: number | string) => {
       const parseInt = (value: number | string, name: string): number => {
         if (typeof value === "number") {
           return value
@@ -340,10 +355,11 @@ const helperFunctionSpecs: TemplateHelperFunction[] = [
       { input: [1], output: "1" },
       { input: [true], output: "true" },
     ],
-    fn: (val: any) => {
+    fn: (val: unknown) => {
       return String(val)
     },
   },
+  // TODO: What are the implications of `uuidv4` on input tracking?
   {
     name: "uuidv4",
     description: "Generates a random v4 UUID.",
@@ -454,90 +470,124 @@ export function callHelperFunction({
   functionName,
   args,
   text,
-  allowPartial,
 }: {
   functionName: string
-  args: any[]
+  args: CollectionOrValue<TemplateLeaf>[]
   text: string
-  allowPartial: boolean
-}) {
+}): CollectionOrValue<TemplateLeaf> {
   const helperFunctions = getHelperFunctions()
   const spec = helperFunctions[functionName]
 
   if (!spec) {
     const availableFns = Object.keys(helperFunctions).join(", ")
-    const _error = new TemplateStringError({
+    throw new TemplateStringError({
       message: `Could not find helper function '${functionName}'. Available helper functions: ${availableFns}`,
     })
-    return { _error }
   }
 
-  const resolvedArgs: any[] = []
+  const resolvedArgs: unknown[] = []
 
   for (const arg of args) {
-    // arg can be null here because some helpers allow nulls as valid args
-    if (arg && arg._error) {
-      return arg
-    }
-
-    // allow nulls as valid arg values
-    if (arg && arg.resolved !== undefined) {
-      resolvedArgs.push(arg.resolved)
-    } else {
+    // Note: At the moment, we always transform template values to raw values and perform the default input tracking for them;
+    // We might have to reconsider this once we need template helpers that perform input tracking on its own for non-collection arguments.
+    if (isTemplateLeaf(arg)) {
+      resolvedArgs.push(arg.value)
+    } else if (spec.skipInputTrackingForCollectionValues) {
+      // This template helper is aware of TemplateValue instances, and will perform input tracking on its own.
       resolvedArgs.push(arg)
+    } else {
+      // This argument is a collection, and the template helper cannot deal with TemplateValue instances.
+      // We will unwrap this collection and resolve all values, and then perform default input tracking.
+      resolvedArgs.push(deepMap(arg, (v: TemplateLeaf) => v.value))
     }
   }
 
   // Validate args
   let i = 0
-
   for (const [argName, schema] of Object.entries(spec.arguments)) {
     const value = resolvedArgs[i]
     const schemaDescription = spec.argumentDescriptions[argName]
 
     if (value === undefined && schemaDescription.flags?.presence === "required") {
-      return {
-        _error: new TemplateStringError({
-          message: `Missing argument '${argName}' (at index ${i}) for ${functionName} helper function.`,
-        }),
-      }
-    }
-
-    try {
-      resolvedArgs[i] = validateSchema(value, schema, {
-        context: `argument '${argName}' for ${functionName} helper function`,
-        ErrorClass: TemplateStringError,
+      throw new TemplateStringError({
+        message: `Missing argument '${argName}' (at index ${i}) for ${functionName} helper function.`,
       })
-
-      // do not apply helper function for an unresolved template string
-      if (maybeTemplateString(value)) {
-        if (allowPartial) {
-          return { resolved: "${" + text + "}" }
-        } else {
-          const _error = new TemplateStringError({
-            message: `Function '${functionName}' cannot be applied on unresolved string`,
-          })
-          return { _error }
-        }
-      }
-    } catch (_error) {
-      if (allowPartial) {
-        return { resolved: text }
-      } else {
-        return { _error }
-      }
     }
 
+    resolvedArgs[i] = validateSchema(value, schema, {
+      context: `argument '${argName}' for ${functionName} helper function`,
+      ErrorClass: TemplateStringError,
+    })
     i++
   }
 
+  let result: TemplateLeafValue | TemplateLeaf | CollectionOrValue<TemplateLeafValue> | CollectionOrValue<TemplateLeaf>
+
   try {
-    const resolved = spec.fn(...resolvedArgs)
-    return { resolved }
+    result = spec.fn(...resolvedArgs)
   } catch (error) {
-    const _error = new TemplateStringError({
+    throw new TemplateStringError({
       message: `Error from helper function ${functionName}: ${error}`,
     })
-    return { _error }
+  }
+
+  // We only need to augment inputs for primitive args in case skipInputTrackingForCollectionValues is true.
+  const trackedArgs = args.filter((arg) => {
+    if (isTemplateLeaf(arg)) {
+      return true
+    }
+
+    // This argument is a collection; We only apply the default input tracking algorithm for primitive args if skipInputTrackingForCollectionValues is NOT true.
+    return spec.skipInputTrackingForCollectionValues !== true
+  })
+
+  // e.g. result of join() is a string, so we need to wrap it in a TemplateValue instance and merge inputs
+  // even though slice() returns an array, if the resulting array is empty, it's a template primitive and thus we need to wrap it in a TemplateValue instance
+  if (isTemplateLeafValue(result)) {
+    return mergeInputs(
+      new TemplateLeaf({
+        expr: text,
+        value: result,
+        // inputs will be augmented by mergeInputs
+        inputs: {},
+      }),
+      ...trackedArgs
+    )
+  } else if (isTemplateLeaf(result)) {
+    if (!spec.skipInputTrackingForCollectionValues) {
+      throw new InternalError({
+        message: `Helper function ${functionName} returned a TemplateValue instance, but skipInputTrackingForCollectionValues is not true`,
+      })
+    }
+    return mergeInputs(result, ...trackedArgs)
+  } else {
+    // Result is a collection;
+
+    // if skipInputTrackingForCollectionValues is true, the function handles input tracking, so leafs are TemplateValue instances.
+    if (spec.skipInputTrackingForCollectionValues) {
+      return deepMap(result, (v: TemplateLeaf) => {
+        if (!isTemplateLeaf(v)) {
+          throw new InternalError({
+            message: `Helper function ${functionName} returned a collection, skipInputTrackingForCollectionValues is true and a leaf is not a TemplateValue instance`,
+          })
+        }
+        return mergeInputs(v, ...trackedArgs)
+      })
+    } else {
+      // if skipInputTrackingForCollectionValues is false; Now the values are TemplatePrimitives.
+      // E.g. this would be the case for split() which turns a string input into a primitive string array.
+      // templatePrimitiveDeepMap will crash if the function misbehaved and returned TemplateValue
+      return templatePrimitiveDeepMap(result as CollectionOrValue<TemplateLeafValue>, (v) => {
+        return mergeInputs(
+          new TemplateLeaf({
+            expr: text,
+            value: v,
+            // inputs will be augmented by mergeInputs
+            inputs: {},
+          }),
+          ...trackedArgs
+        )
+      })
+    }
   }
 }
