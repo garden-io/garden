@@ -291,14 +291,35 @@ export const commonGitHandlerTests = (handlerCls: new (params: VcsHandlerParams)
               })
             })
 
-            it("should include files that match the include filter", async () => {
-              const path = resolve(tmpPath, "foo.txt")
-              await createFile(path)
-              const hash = await getGitHash(git, path)
+            context("should include files that match the include filter", () => {
+              it("when filename matches the include filter", async () => {
+                const path = resolve(tmpPath, "foo.txt")
+                await createFile(path)
+                const hash = await getGitHash(git, path)
 
-              expect(
-                await handler.getFiles({ path: tmpPath, scanRoot: undefined, include: ["foo.*"], exclude, log })
-              ).to.eql([{ path, hash }])
+                expect(
+                  await handler.getFiles({ path: tmpPath, scanRoot: undefined, include: ["foo.*"], exclude, log })
+                ).to.eql([{ path, hash }])
+              })
+
+              it("when file is in a sub-directory matches the include filter with globs", async () => {
+                const subdirName = "subdir"
+                const subdir = resolve(tmpPath, subdirName)
+                await mkdir(subdir)
+                const path = resolve(subdir, "foo.txt")
+                await createFile(path)
+                const hash = await getGitHash(git, path)
+
+                expect(
+                  await handler.getFiles({
+                    path: tmpPath,
+                    scanRoot: undefined,
+                    include: ["**/foo.*"],
+                    exclude,
+                    log,
+                  })
+                ).to.eql([{ path, hash }])
+              })
             })
 
             it("should include a directory that's explicitly included by exact name", async () => {
