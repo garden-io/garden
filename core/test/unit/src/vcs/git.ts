@@ -322,17 +322,42 @@ export const commonGitHandlerTests = (handlerCls: new (params: VcsHandlerParams)
               })
             })
 
-            it("should include a directory that's explicitly included by exact name", async () => {
-              const subdirName = "subdir"
-              const subdir = resolve(tmpPath, subdirName)
-              await mkdir(subdir)
-              const path = resolve(tmpPath, subdirName, "foo.txt")
-              await createFile(path)
-              const hash = await getGitHash(git, path)
+            context("should include a directory that match the include filter", () => {
+              it("when directory is explicitly included by exact name", async () => {
+                const subdirName = "subdir"
+                const subdir = resolve(tmpPath, subdirName)
+                await mkdir(subdir)
+                const path = resolve(subdir, "foo.txt")
+                await createFile(path)
+                const hash = await getGitHash(git, path)
 
-              expect(
-                await handler.getFiles({ path: tmpPath, scanRoot: undefined, include: [subdirName], exclude, log })
-              ).to.eql([{ path, hash }])
+                expect(
+                  await handler.getFiles({ path: tmpPath, scanRoot: undefined, include: [subdirName], exclude, log })
+                ).to.eql([{ path, hash }])
+              })
+
+              it("when directory is in a sub-directory and matches the include filter with globs", async () => {
+                const subdirName = "subdir"
+                const subdir = resolve(tmpPath, subdirName)
+                await mkdir(subdir)
+                const deepDirName = "deepdir"
+                const deepDir = resolve(subdir, deepDirName)
+                await mkdir(deepDir)
+                const path = resolve(deepDir, "foo.txt")
+                await createFile(path)
+                const hash = await getGitHash(git, path)
+
+                expect(
+                  await handler.getFiles({
+                    path: tmpPath,
+                    scanRoot: undefined,
+                    // FIXME: shouldn't just '**/dir' work well too?
+                    include: [`**/${deepDirName}/**/*`],
+                    exclude,
+                    log,
+                  })
+                ).to.eql([{ path, hash }])
+              })
             })
 
             it("should include hidden files that match the include filter", async () => {
