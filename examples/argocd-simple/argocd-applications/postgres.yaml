@@ -10,7 +10,7 @@ spec:
     syncOptions:
     - CreateNamespace=true
   destination:
-    namespace: vote-helm-default
+    namespace: vote-default
     server: https://kubernetes.default.svc
   project: default
   source:
