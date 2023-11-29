@@ -256,19 +256,39 @@ export const commonGitHandlerTests = (handlerCls: new (params: VcsHandlerParams)
               )
             })
 
-            it("should filter out files that don't match the include filter", async () => {
-              const path = resolve(tmpPath, "foo.txt")
-              await createFile(path)
+            context("should filter out files that don't match the include filter", () => {
+              it("when filename doesn't match the include filter", async () => {
+                const path = resolve(tmpPath, "foo.txt")
+                await createFile(path)
 
-              expect(
-                await handler.getFiles({
-                  path: tmpPath,
-                  scanRoot: undefined,
-                  include: ["bar.*"],
-                  exclude,
-                  log,
-                })
-              ).to.eql([])
+                expect(
+                  await handler.getFiles({
+                    path: tmpPath,
+                    scanRoot: undefined,
+                    include: ["bar.*"],
+                    exclude,
+                    log,
+                  })
+                ).to.eql([])
+              })
+
+              it("when file is in a sub-directory and filename matches the include filter", async () => {
+                const subdirName = "subdir"
+                const subdir = resolve(tmpPath, subdirName)
+                await mkdir(subdir)
+                const path = resolve(subdir, "foo.txt")
+                await createFile(path)
+
+                expect(
+                  await handler.getFiles({
+                    path: tmpPath,
+                    scanRoot: undefined,
+                    include: ["foo.*"],
+                    exclude,
+                    log,
+                  })
+                ).to.eql([])
+              })
             })
 
             it("should include files that match the include filter", async () => {
