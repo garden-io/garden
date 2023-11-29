@@ -234,52 +234,77 @@ export const commonGitHandlerTests = (handlerCls: new (params: VcsHandlerParams)
 
     context("include/exclude filters", () => {
       context("when only include filter is specified", () => {
-        it("should return nothing if include: []", async () => {
-          const path = resolve(tmpPath, "foo.txt")
-          await createFile(path)
+        const excludeEmptyValues: [undefined, string[]] = [undefined, []]
 
-          expect(await handler.getFiles({ path: tmpPath, scanRoot: undefined, include: [], log })).to.eql([])
-        })
+        function renderExcludeEmptyValue(v: (typeof excludeEmptyValues)[number]): string {
+          if (v === undefined) {
+            return "undefined"
+          }
+          expect(v).to.eql([])
+          return "an empty list"
+        }
 
-        it("should filter out files that don't match the include filter", async () => {
-          const path = resolve(tmpPath, "foo.txt")
-          await createFile(path)
+        // Include filter must behave equally when exclude is empty and undefined
+        for (const exclude of excludeEmptyValues) {
+          context(`when exclude is ${renderExcludeEmptyValue(exclude)}`, () => {
+            it("should return nothing if include: []", async () => {
+              const path = resolve(tmpPath, "foo.txt")
+              await createFile(path)
 
-          expect(await handler.getFiles({ path: tmpPath, scanRoot: undefined, include: ["bar.*"], log })).to.eql([])
-        })
+              expect(await handler.getFiles({ path: tmpPath, scanRoot: undefined, include: [], exclude, log })).to.eql(
+                []
+              )
+            })
 
-        it("should include files that match the include filter", async () => {
-          const path = resolve(tmpPath, "foo.txt")
-          await createFile(path)
-          const hash = await getGitHash(git, path)
+            it("should filter out files that don't match the include filter", async () => {
+              const path = resolve(tmpPath, "foo.txt")
+              await createFile(path)
 
-          expect(
-            await handler.getFiles({ path: tmpPath, scanRoot: undefined, include: ["foo.*"], exclude: [], log })
-          ).to.eql([{ path, hash }])
-        })
+              expect(
+                await handler.getFiles({
+                  path: tmpPath,
+                  scanRoot: undefined,
+                  include: ["bar.*"],
+                  exclude,
+                  log,
+                })
+              ).to.eql([])
+            })
 
-        it("should include a directory that's explicitly included by exact name", async () => {
-          const subdirName = "subdir"
-          const subdir = resolve(tmpPath, subdirName)
-          await mkdir(subdir)
-          const path = resolve(tmpPath, subdirName, "foo.txt")
-          await createFile(path)
-          const hash = await getGitHash(git, path)
+            it("should include files that match the include filter", async () => {
+              const path = resolve(tmpPath, "foo.txt")
+              await createFile(path)
+              const hash = await getGitHash(git, path)
 
-          expect(
-            await handler.getFiles({ path: tmpPath, scanRoot: undefined, include: [subdirName], exclude: [], log })
-          ).to.eql([{ path, hash }])
-        })
+              expect(
+                await handler.getFiles({ path: tmpPath, scanRoot: undefined, include: ["foo.*"], exclude, log })
+              ).to.eql([{ path, hash }])
+            })
 
-        it("should include hidden files that match the include filter", async () => {
-          const path = resolve(tmpPath, ".foo")
-          await createFile(path)
-          const hash = await getGitHash(git, path)
+            it("should include a directory that's explicitly included by exact name", async () => {
+              const subdirName = "subdir"
+              const subdir = resolve(tmpPath, subdirName)
+              await mkdir(subdir)
+              const path = resolve(tmpPath, subdirName, "foo.txt")
+              await createFile(path)
+              const hash = await getGitHash(git, path)
 
-          expect(
-            await handler.getFiles({ path: tmpPath, scanRoot: undefined, include: ["*"], exclude: [], log })
-          ).to.eql([{ path, hash }])
-        })
+              expect(
+                await handler.getFiles({ path: tmpPath, scanRoot: undefined, include: [subdirName], exclude, log })
+              ).to.eql([{ path, hash }])
+            })
+
+            it("should include hidden files that match the include filter", async () => {
+              const path = resolve(tmpPath, ".foo")
+              await createFile(path)
+              const hash = await getGitHash(git, path)
+
+              expect(
+                await handler.getFiles({ path: tmpPath, scanRoot: undefined, include: ["*"], exclude, log })
+              ).to.eql([{ path, hash }])
+            })
+          })
+        }
       })
 
       context("when only exclude filter is specified", () => {
