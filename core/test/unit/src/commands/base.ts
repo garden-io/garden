@@ -226,6 +226,9 @@ describe("Command", () => {
 
       it("passes on changed configs and templates to the parent and subsequent child instances", async () => {
         const garden = await makeTestGarden(projectRoot)
+        // Here, we're testing the config clearing logic, so we turn this behavior on (which is off by default for
+        // TestGarden instances).
+        garden.clearConfigsOnScan = true
         // `makeTestGarden` does some trickery to copy the project root into a temp directory and work from there
         // (which is nice, since it avoids the need for cleanup).
         // Therefore, we need to make our find & replace substitutions inside the temp dir here.

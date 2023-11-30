@@ -165,6 +165,7 @@ export type TestGardenOpts = Partial<GardenOpts> & {
   noTempDir?: boolean
   onlySpecifiedPlugins?: boolean
   remoteContainerAuth?: boolean
+  clearConfigsOnScan?: boolean
 }
 
 export class TestGarden extends Garden {
@@ -179,6 +180,7 @@ export class TestGarden extends Garden {
   public declare variables: DeepPrimitiveMap
   private repoRoot!: string
   public cacheKey!: string
+  public clearConfigsOnScan = false
 
   constructor(params: GardenParams) {
     super(params)
@@ -226,6 +228,14 @@ export class TestGarden extends Garden {
     garden["globalConfigStore"] = new GlobalConfigStore(globalDir)
 
     return garden
+  }
+
+  protected override clearConfigs() {
+    if (this.clearConfigsOnScan) {
+      super.clearConfigs()
+    } else {
+      // No-op: We need to disable this method, because it breaks test cases that manually set configs.
+    }
   }
 
   override async processTasks(params: Omit<SolveParams, "log"> & { log?: Log }) {

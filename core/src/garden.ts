@@ -1287,7 +1287,7 @@ export class Garden {
    * We need to clear before rescanning to make sure old/outdated configs are cleared away, and to avoid duplicate
    * key errors when adding the newly scanned ones (and those generated from newly scanned config templates).
    */
-  private clearConfigs() {
+  protected clearConfigs() {
     for (const kind of Object.getOwnPropertyNames(this.actionConfigs)) {
       clearObject(this.actionConfigs[kind])
     }
