@@ -6,22 +6,18 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { isEmpty, isNumber, isString } from "lodash-es"
+import { isArray, isEmpty, isNumber, isString } from "lodash-es"
 import {
   renderKeyPath,
   type ConfigContext,
   type ContextResolveOpts,
   type ObjectPath,
 } from "../config/template-contexts/base.js"
-import { GardenError, NotImplementedError, TemplateStringError } from "../exceptions.js"
+import { TemplateStringError } from "../exceptions.js"
 import { deepMap } from "../util/objects.js"
 import { callHelperFunction } from "./functions.js"
 import { TemplateLeaf, isTemplateLeaf, isTemplatePrimitive, mergeInputs } from "./inputs.js"
-import type { CollectionOrValue, TemplatePrimitive } from "./inputs.js"
-
-export class ContextResolveError extends GardenError {
-  type = "context-resolve"
-}
+import type { Collection, CollectionOrValue, TemplatePrimitive } from "./inputs.js"
 
 type EvaluateArgs = {
   context: ConfigContext
@@ -57,6 +53,23 @@ export abstract class TemplateExpression {
   abstract evaluate(args: EvaluateArgs): CollectionOrValue<TemplateLeaf>
 }
 
+export class IdentifierExpression extends TemplateExpression {
+  constructor(
+    loc: Location,
+    public readonly name: string
+  ) {
+    super(loc)
+  }
+
+  override evaluate({ rawTemplateString }): TemplateLeaf<string> {
+    return new TemplateLeaf({
+      expr: rawTemplateString,
+      value: this.name,
+      inputs: {},
+    })
+  }
+}
+
 export class LiteralExpression extends TemplateExpression {
   constructor(
     loc: Location,
@@ -74,7 +87,45 @@ export class LiteralExpression extends TemplateExpression {
   }
 }
 
-export class LogicalExpression extends TemplateExpression {
+export abstract class UnaryExpression extends TemplateExpression {
+  constructor(
+    loc: Location,
+    public readonly innerExpression: TemplateExpression
+  ) {
+    super(loc)
+  }
+
+  evaluate(args: EvaluateArgs): CollectionOrValue<TemplateLeaf> {
+    const inner = this.innerExpression.evaluate(args)
+
+    const innerValue = isTemplateLeaf(inner) ? inner.value : inner
+
+    return mergeInputs(
+      new TemplateLeaf({
+        expr: args.rawTemplateString,
+        value: this.transform(innerValue),
+        inputs: {},
+      }),
+      inner
+    )
+  }
+
+  abstract transform(value: TemplatePrimitive | Collection<TemplateLeaf>): TemplatePrimitive
+}
+
+export class TypeofExpression extends UnaryExpression {
+  transform(value: TemplatePrimitive | Collection<TemplateLeaf>): string {
+    return typeof value
+  }
+}
+
+export class NotExpression extends UnaryExpression {
+  transform(value: TemplatePrimitive | Collection<TemplateLeaf>): boolean {
+    return !value
+  }
+}
+
+export abstract class LogicalExpression extends TemplateExpression {
   constructor(
     loc: Location,
     public readonly operator: string,
@@ -83,49 +134,91 @@ export class LogicalExpression extends TemplateExpression {
   ) {
     super(loc)
   }
+}
 
+function isTruthy(v: CollectionOrValue<TemplateLeaf>): boolean {
+  if (isTemplateLeaf(v)) {
+    return !!v.value
+  } else {
+    return !isEmpty(v)
+  }
+}
+
+export class LogicalOrExpression extends LogicalExpression {
   override evaluate(args: EvaluateArgs): CollectionOrValue<TemplateLeaf> {
-    const isTruthy = (v: CollectionOrValue<TemplateLeaf>) => {
-      if (isTemplateLeaf(v)) {
-        return v.value
-      } else {
-        return !isEmpty(v)
-      }
+    const left = this.left.evaluate({
+      ...args,
+      optional: true,
+    })
+
+    if (isTruthy(left)) {
+      return left
     }
 
-    switch (this.operator) {
-      case "||":
-        const left = this.left.evaluate({
-          ...args,
-          optional: true,
-        })
+    const right = this.right.evaluate(args)
+    return mergeInputs(right, left)
+  }
+}
 
-        if (isTruthy(left)) {
-          return left
-        } else {
-          const right = this.right.evaluate(args)
-          return mergeInputs(right, left)
-        }
+export class LogicalAndExpression extends LogicalExpression {
+  override evaluate(args: EvaluateArgs): CollectionOrValue<TemplateLeaf> {
+    const left = this.left.evaluate({
+      ...args,
+      // TODO: Why optional for &&?
+      optional: true,
+    })
 
-      case "&&":
-        const leftRes = this.left.evaluate(args)
-        const rightRes = this.right.evaluate(args)
+    // NOTE(steffen): I find this logic extremely weird.
+    //
+    // I would have expected the following:
+    // "value" && missing => error
+    // missing && "value" => error
+    // false && missing => false
+    //
+    // and similarly for ||:
+    // missing || "value" => "value"
+    // "value" || missing => "value"
+    // missing || missing => error
+    // false || missing => error
 
-        if (isTruthy(leftRes) && isTruthy(rightRes)) {
-          return mergeInputs(rightRes, leftRes)
-        } else {
-          return mergeInputs(leftRes, rightRes)
-        }
-
-      default:
-        throw new NotImplementedError({
-          message: `Logical operator ${this.operator} not implemented`,
-        })
+    if (!isTruthy(left)) {
+      // Javascript would return the value on the left; we return false in case the value is undefined. This is a quirk of Garden's template languate that we want to keep for backwards compatibility.
+      if (isTemplateLeaf(left) && left.value === undefined) {
+        return mergeInputs(
+          new TemplateLeaf({
+            expr: args.rawTemplateString,
+            value: false,
+            inputs: {},
+          }),
+          left
+        )
+      } else {
+        return left
+      }
+    } else {
+      const right = this.right.evaluate({
+        ...args,
+        // TODO: is this right?
+        optional: true,
+      })
+      if (isTemplateLeaf(right) && right.value === undefined) {
+        return mergeInputs(
+          new TemplateLeaf({
+            expr: args.rawTemplateString,
+            value: false,
+            inputs: {},
+          }),
+          right,
+          left
+        )
+      } else {
+        return mergeInputs(right, left)
+      }
     }
   }
 }
 
-export class BinaryExpression extends TemplateExpression {
+export abstract class BinaryExpression extends TemplateExpression {
   constructor(
     loc: Location,
     public readonly operator: string,
@@ -142,69 +235,162 @@ export class BinaryExpression extends TemplateExpression {
     const leftValue = isTemplateLeaf(left) ? left.value : left
     const rightValue = isTemplateLeaf(right) ? right.value : right
 
-    const primitiveLeaf = (primitive: TemplatePrimitive) =>
-      mergeInputs(
+    const transformed = this.transform(leftValue, rightValue)
+
+    if (isTemplatePrimitive(transformed)) {
+      return mergeInputs(
         new TemplateLeaf({
           expr: args.rawTemplateString,
-          value: primitive,
+          value: transformed,
           inputs: {},
         }),
         left,
         right
       )
-
-    switch (this.operator) {
-      case "==":
-        return primitiveLeaf(leftValue === rightValue)
-      case "!=":
-        return primitiveLeaf(leftValue !== rightValue)
-      case "+":
-        if (isNumber(leftValue) && isNumber(rightValue)) {
-          return primitiveLeaf(leftValue + rightValue)
-        } else if (isString(leftValue) && isString(leftValue)) {
-          return primitiveLeaf(leftValue + rightValue)
-        } else if (Array.isArray(leftValue) && Array.isArray(rightValue)) {
-          // In this special case, simply return the concatenated arrays.
-          // Input tracking has been taken care of already in this case, as leaf objects are preserved.
-          return leftValue.concat(rightValue)
-        } else {
-          throw new TemplateStringError({
-            message: `Both terms need to be either arrays or strings or numbers for + operator (got ${typeof leftValue} and ${typeof rightValue}).`,
-          })
-        }
     }
 
-    // All other operators require numbers to make sense (we're not gonna allow random JS weirdness)
-    if (!isNumber(leftValue) || !isNumber(rightValue)) {
+    return mergeInputs(transformed, left, right)
+  }
+
+  abstract transform(
+    left: TemplatePrimitive | Collection<TemplateLeaf>,
+    right: TemplatePrimitive | Collection<TemplateLeaf>
+  ): TemplatePrimitive | Collection<TemplateLeaf>
+}
+
+export class EqualExpression extends BinaryExpression {
+  transform(
+    left: TemplatePrimitive | Collection<TemplateLeaf>,
+    right: TemplatePrimitive | Collection<TemplateLeaf>
+  ): boolean {
+    return left === right
+  }
+}
+
+export class NotEqualExpression extends BinaryExpression {
+  transform(
+    left: TemplatePrimitive | Collection<TemplateLeaf>,
+    right: TemplatePrimitive | Collection<TemplateLeaf>
+  ): boolean {
+    return left !== right
+  }
+}
+
+export class AddExpression extends BinaryExpression {
+  transform(
+    left: TemplatePrimitive | Collection<TemplateLeaf>,
+    right: TemplatePrimitive | Collection<TemplateLeaf>
+  ): TemplatePrimitive | Collection<TemplateLeaf> {
+    if (isNumber(left) && isNumber(right)) {
+      return left + right
+    } else if (isString(left) && isString(left)) {
+      return left + right
+    } else if (Array.isArray(left) && Array.isArray(right)) {
+      // In this special case, simply return the concatenated arrays.
+      // Input tracking has been taken care of already in this case, as leaf objects are preserved.
+      return left.concat(right)
+    } else {
       throw new TemplateStringError({
-        message: `Both terms need to be numbers for ${
-          this.operator
-        } operator (got ${typeof leftValue} and ${typeof rightValue}).`,
+        message: `Both terms need to be either arrays or strings or numbers for + operator (got ${typeof left} and ${typeof right}).`,
+      })
+    }
+  }
+}
+
+export class ContainsExpression extends BinaryExpression {
+  transform(
+    collection: TemplatePrimitive | Collection<TemplateLeaf>,
+    element: TemplatePrimitive | Collection<TemplateLeaf>
+  ): boolean {
+    if (!isTemplatePrimitive(element)) {
+      throw new TemplateStringError({
+        message: `The right-hand side of a 'contains' operator must be a string, number, boolean or null (got ${typeof element}).`,
       })
     }
 
-    switch (this.operator) {
-      case "*":
-        return primitiveLeaf(leftValue * rightValue)
-      case "/":
-        return primitiveLeaf(leftValue / rightValue)
-      case "%":
-        return primitiveLeaf(leftValue % rightValue)
-      case "-":
-        return primitiveLeaf(leftValue - rightValue)
-      case "<=":
-        return primitiveLeaf(leftValue <= rightValue)
-      case ">=":
-        return primitiveLeaf(leftValue >= rightValue)
-      case "<":
-        return primitiveLeaf(leftValue < rightValue)
-      case ">":
-        return primitiveLeaf(leftValue > rightValue)
-      default:
-        throw new NotImplementedError({
-          message: `Logical operator ${this.operator} not implemented`,
-        })
+    if (typeof collection === "object" && collection !== null) {
+      if (isArray(collection)) {
+        return collection.some((v) => isTemplateLeaf(v) && v.value === element)
+      }
+
+      return collection.hasOwnProperty(String(element))
     }
+
+    if (typeof collection === "string") {
+      return collection.includes(String(element))
+    }
+
+    throw new TemplateStringError({
+      message: `The left-hand side of a 'contains' operator must be a string, array or object (got ${collection}).`,
+    })
+  }
+}
+
+export abstract class BinaryExpressionOnNumbers extends BinaryExpression {
+  override transform(
+    left: TemplatePrimitive | Collection<TemplateLeaf>,
+    right: TemplatePrimitive | Collection<TemplateLeaf>
+  ): TemplatePrimitive | Collection<TemplateLeaf> {
+    // All other operators require numbers to make sense (we're not gonna allow random JS weirdness)
+    if (!isNumber(left) || !isNumber(right)) {
+      throw new TemplateStringError({
+        message: `Both terms need to be numbers for ${
+          this.operator
+        } operator (got ${typeof left} and ${typeof right}).`,
+      })
+    }
+
+    return this.calculate(left, right)
+  }
+
+  abstract calculate(left: number, right: number): number | boolean
+}
+
+export class MultiplyExpression extends BinaryExpressionOnNumbers {
+  calculate(left: number, right: number): number {
+    return left * right
+  }
+}
+
+export class DivideExpression extends BinaryExpressionOnNumbers {
+  calculate(left: number, right: number): number {
+    return left / right
+  }
+}
+
+export class ModuloExpression extends BinaryExpressionOnNumbers {
+  calculate(left: number, right: number): number {
+    return left % right
+  }
+}
+
+export class SubtractExpression extends BinaryExpressionOnNumbers {
+  calculate(left: number, right: number): number {
+    return left - right
+  }
+}
+
+export class LessThanEqualExpression extends BinaryExpressionOnNumbers {
+  calculate(left: number, right: number): boolean {
+    return left <= right
+  }
+}
+
+export class GreaterThanEqualExpression extends BinaryExpressionOnNumbers {
+  calculate(left: number, right: number): boolean {
+    return left >= right
+  }
+}
+
+export class LessThanExpression extends BinaryExpressionOnNumbers {
+  calculate(left: number, right: number): boolean {
+    return left < right
+  }
+}
+
+export class GreaterThanExpression extends BinaryExpressionOnNumbers {
+  calculate(left: number, right: number): boolean {
+    return left > right
   }
 }
 
@@ -220,7 +406,10 @@ export class FormatStringExpression extends TemplateExpression {
   override evaluate(args: EvaluateArgs): CollectionOrValue<TemplateLeaf> {
     const optional = args.optional !== undefined ? args.optional : this.isOptional
 
-    return this.innerExpression.evaluate({ ...args, optional })
+    return this.innerExpression.evaluate({
+      ...args,
+      optional,
+    })
   }
 }
 
@@ -262,54 +451,79 @@ export class StringConcatExpression extends TemplateExpression {
   }
 }
 
+export class MemberExpression extends TemplateExpression {
+  constructor(
+    loc: Location,
+    public readonly innerExpression: TemplateExpression
+  ) {
+    super(loc)
+  }
+
+  override evaluate(args: EvaluateArgs): TemplateLeaf<string | number> {
+    const inner = this.innerExpression.evaluate(args)
+    const innerValue = isTemplateLeaf(inner) ? inner.value : inner
+
+    if (typeof innerValue !== "string" && typeof innerValue !== "number") {
+      throw new TemplateStringError({
+        message: `Expression in bracket must resolve to a string or number (got ${typeof innerValue}).`,
+      })
+    }
+
+    return new TemplateLeaf({
+      expr: args.rawTemplateString,
+      value: innerValue,
+      inputs: {},
+    })
+  }
+}
+
 export class ContextLookupExpression extends TemplateExpression {
   constructor(
     loc: Location,
-    public readonly key: ObjectPath
+    public readonly keyPath: (IdentifierExpression | MemberExpression)[]
   ) {
     super(loc)
   }
 
   override evaluate({ context, opts, optional, rawTemplateString }: EvaluateArgs): CollectionOrValue<TemplateLeaf> {
-    const { result, message } = context.resolve({
-      key: this.key,
+    const evaluatedKeyPath = this.keyPath.map((k) => k.evaluate({ context, opts, optional, rawTemplateString }))
+    const keyPath = evaluatedKeyPath.map((k) => k.value)
+
+    const { result } = context.resolve({
+      key: keyPath,
       nodePath: [],
-      opts,
+      opts: {
+        // TODO: either decouple allowPartial and optional, or remove allowPartial.
+        allowPartial: optional || opts.allowPartial,
+        ...opts,
+      },
     })
 
-    if (isTemplateLeaf(result) && result.value === undefined) {
-      if (!optional) {
-        // The interface is super awkward. Why does context.resolve return a message and not just throw?
-        throw new TemplateStringError({
-          message: message || "resolve returned undefined and no message",
-        })
-      }
-    }
-
-    const addTemplateReferenceInformation = (v: TemplateLeaf, keyPath: ObjectPath) => {
+    const addTemplateReferenceInformation = (v: TemplateLeaf, collectionKeyPath: ObjectPath) => {
       return new TemplateLeaf({
         expr: rawTemplateString,
         value: v.value,
         inputs: {
           // key might be something like ["var", "foo", "bar"]
           // We also add the keypath to get separate keys for ever
-          [renderKeyPath([...this.key, ...keyPath])]: v,
+          [renderKeyPath([...keyPath, ...collectionKeyPath])]: v,
         },
       })
     }
 
     const enriched = isTemplateLeaf(result)
       ? addTemplateReferenceInformation(result, [])
-      : deepMap(result, (v, _key, keyPath) => addTemplateReferenceInformation(v, keyPath))
+      : deepMap(result, (v, _key, collectionKeyPath) => addTemplateReferenceInformation(v, collectionKeyPath))
 
-    return enriched
+    // Add inputs from the keyPath expressions as well.
+    return mergeInputs(enriched, ...evaluatedKeyPath)
   }
 }
 
 export class FunctionCallExpression extends TemplateExpression {
   constructor(
     loc: Location,
-    public readonly functionName: string,
+    public readonly functionName: IdentifierExpression,
     public readonly args: TemplateExpression[]
   ) {
     super(loc)
@@ -317,14 +531,15 @@ export class FunctionCallExpression extends TemplateExpression {
 
   override evaluate(evaluateArgs: EvaluateArgs): CollectionOrValue<TemplateLeaf> {
     const args = this.args.map((arg) => arg.evaluate(evaluateArgs))
+    const functionName = this.functionName.evaluate(evaluateArgs)
     // TODO: handle inputs correctly
     const result = callHelperFunction({
-      functionName: this.functionName,
+      functionName: functionName.value,
       args,
       text: evaluateArgs.rawTemplateString,
     })
 
-    return result
+    return mergeInputs(result, functionName)
   }
 }
 
@@ -339,7 +554,10 @@ export class TernaryExpression extends TemplateExpression {
   }
 
   evaluate(args: EvaluateArgs): CollectionOrValue<TemplateLeaf> {
-    const conditionResult = this.condition.evaluate(args)
+    const conditionResult = this.condition.evaluate({
+      ...args,
+      optional: true,
+    })
 
     // Get value for left hand side if it's a TemplateValue
     const conditionalValue = isTemplateLeaf(conditionResult) ? conditionResult.value : conditionResult

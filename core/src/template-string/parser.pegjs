@@ -11,7 +11,7 @@
     ast,
     escapePrefix,
     optionalSuffix,
-    resolveNested,
+    parseNested,
     TemplateStringError,
   } = options
 
@@ -42,7 +42,32 @@
         return left
       }
 
-      return new ast.BinaryExpression(location(), operator, left, right);
+      switch (operator) {
+        case "==":
+          return new ast.EqualExpression(location(), operator, left, right)
+        case "!=":
+          return new ast.NotEqualExpression(location(), operator, left, right)
+        case "<=":
+          return new ast.LessThanEqualExpression(location(), operator, left, right)
+        case ">=":
+          return new ast.GreaterThanEqualExpression(location(), operator, left, right)
+        case "<":
+          return new ast.LessThanExpression(location(), operator, left, right)
+        case ">":
+          return new ast.GreaterThanExpression(location(), operator, left, right)
+        case "+":
+          return new ast.AddExpression(location(), operator, left, right)
+        case "-":
+          return new ast.SubtractExpression(location(), operator, left, right)
+        case "*":
+          return new ast.MultiplyExpression(location(), operator, left, right)
+        case "/":
+          return new ast.DivideExpression(location(), operator, left, right)
+        case "%":
+          return new ast.ModuloExpression(location(), operator, left, right)
+        default:
+          throw new TemplateStringError({ message: `Unrecognized logical operator: ${operator}` })
+      }
     }, head);
   }
 
@@ -56,7 +81,14 @@
         return left
       }
 
-      return new ast.LogicalExpression(location(), operator, left, right);
+      switch (operator) {
+        case "&&":
+          return new ast.LogicalAndExpression(location(), operator, left, right)
+        case "||":
+          return new ast.LogicalOrExpression(location(), operator, left, right)
+        default:
+          throw new TemplateStringError({ message: `Unrecognized logical operator: ${operator}`})
+      }
     }, head);
   }
 
@@ -79,7 +111,9 @@ TemplateString
     return new ast.StringConcatExpression(location(), a, ...b, ...(c ? [c] : []))
   }
   / UnclosedFormatString
-  / $(.+) { return new ast.LiteralExpression(location(), text()) }
+  / $(.+) {
+    return new ast.LiteralExpression(location(), text())
+  }
 
 FormatString
   = EscapeStart SourceCharacter* FormatEndWithOptional {
@@ -153,13 +187,7 @@ MemberExpression
   = head:Identifier
     tail:(
         "[" __ e:Expression __ "]" {
-          if (e.resolved && !isPrimitive(e.resolved)) {
-            const _error = new TemplateStringError({
-              message: `Expression in bracket must resolve to a primitive (got ${typeof e}).`,
-            })
-            return { _error }
-          }
-          return e
+          return new ast.MemberExpression(location(), e)
         }
       / "." e:Identifier {
           return e
@@ -219,8 +247,12 @@ PrimaryExpression
     return new ast.LiteralExpression(location(), v)
   }
   / v:StringLiteral {
+    // Do not parse empty strings.
+    if (v === "") {
+      return new ast.LiteralExpression(location(), "")
+    }
     // Allow nested template strings in literals
-    return resolveNested(v)
+    return parseNested(v)
   }
   / ArrayLiteral
   / CallExpression
@@ -234,16 +266,13 @@ PrimaryExpression
 UnaryExpression
   = PrimaryExpression
   / operator:UnaryOperator __ argument:UnaryExpression {
-      const v = argument
-
-      if (v && v._error) {
-        return v
-      }
-
-      if (operator === "typeof") {
-        return typeof getValue(v)
-      } else if (operator === "!") {
-        return !getValue(v)
+      switch (operator) {
+        case "typeof":
+          return new ast.TypeofExpression(location(), argument)
+        case "!":
+          return new ast.NotExpression(location(), argument)
+        default:
+          throw new TemplateStringError({ message: `Unrecognized unary operator: ${operator}`})
       }
     }
 
@@ -252,44 +281,8 @@ UnaryOperator
   / "!"
 
 ContainsExpression
-  = head:UnaryExpression __ ContainsOperator __ tail:UnaryExpression {
-      if (head && head._error) {
-        return head
-      }
-      if (tail && tail._error) {
-        return tail
-      }
-
-      head = getValue(head)
-      tail = getValue(tail)
-
-      if (!isPrimitive(tail)) {
-        return {
-          _error: new TemplateStringError({
-            message:`The right-hand side of a 'contains' operator must be a string, number, boolean or null (got ${typeof tail}).`,
-            detail: {}
-          })
-        }
-      }
-
-      const headType = head === null ? "null" : typeof head
-
-      if (headType === "object") {
-        if (isArray(head)) {
-          return head.includes(tail)
-        } else {
-          return head.hasOwnProperty(tail)
-        }
-      } else if (headType === "string") {
-        return head.includes(tail.toString())
-      } else {
-        return {
-          _error: new TemplateStringError({
-            message: `The left-hand side of a 'contains' operator must be a string, array or object (got ${headType}).`,
-            detail: {}
-          })
-        }
-      }
+  = iterable:UnaryExpression __ ContainsOperator __ element:UnaryExpression {
+      return new ast.ContainsExpression(location(), "contains", iterable, element)
     }
   / UnaryExpression
 
@@ -402,7 +395,7 @@ SingleLineComment
   = "//" (!LineTerminator SourceCharacter)*
 
 Identifier
-  = !ReservedWord name:IdentifierName { return name; }
+  = !ReservedWord name:IdentifierName { return new ast.IdentifierExpression(location(), name); }
 
 IdentifierName "identifier"
   = head:IdentifierStart tail:IdentifierPart* {

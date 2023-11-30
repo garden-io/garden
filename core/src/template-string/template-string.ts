@@ -91,7 +91,7 @@ function parseTemplateString(string: string, unescape: boolean = false) {
     escapePrefix,
     optionalSuffix: "}?",
     // TODO: This should not be done via recursion, but should be handled in the pegjs grammar.
-    resolveNested: (nested: string) => {
+    parseNested: (nested: string) => {
       return parseTemplateString(nested, unescape)
     },
   })

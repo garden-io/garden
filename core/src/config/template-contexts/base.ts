@@ -8,7 +8,7 @@
 
 import type Joi from "@hapi/joi"
 import { isString } from "lodash-es"
-import { ConfigurationError } from "../../exceptions.js"
+import { ConfigurationError, NotFoundError } from "../../exceptions.js"
 import { resolveTemplateString } from "../../template-string/template-string.js"
 import type { CustomObjectSchema } from "../common.js"
 import { isPrimitive, joi, joiIdentifier } from "../common.js"
@@ -26,6 +26,7 @@ export type ObjectPath = (string | number)[]
 
 export interface ContextResolveOpts {
   // Allow templates to be partially resolved (used to defer runtime template resolution, for example)
+  // TODO: rename to optional
   allowPartial?: boolean
   // a list of previously resolved paths, used to detect circular references
   stack?: string[]
@@ -214,21 +215,9 @@ export abstract class ConfigContext {
         }
       }
 
-      // If we're allowing partial strings, we throw the error immediately to end the resolution flow. The error
-      // is caught in the surrounding template resolution code.
-      if (this._alwaysAllowPartial) {
-        // We use a separate exception type when contexts are specifically indicating that unresolvable keys should
-        // be passed through. This is caught in the template parser code.
-        // throw new TemplateStringPassthroughException({
-        //   message,
-        // })
-      } else if (opts.allowPartial) {
-        // throw new TemplateStringMissingKeyException({
-        //   message,
-        // })
+      if (!opts.allowPartial && !this._alwaysAllowPartial) {
+        throw new NotFoundError({ message })
       } else {
-        // Otherwise we return the undefined value, so that any logical expressions can be evaluated appropriately.
-        // The template resolver will throw the error later if appropriate.
         return {
           message,
           cached: false,
