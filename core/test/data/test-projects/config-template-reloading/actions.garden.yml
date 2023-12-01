@@ -1,0 +1,9 @@
+kind: RenderTemplate
+template: combo
+name: foo
+inputs:
+  name: test
+  # Resolvable at parse time
+  envName: ${environment.name}
+  # Resolvable later
+  providerKey: ${providers.test-plugin.outputs.testKey}
