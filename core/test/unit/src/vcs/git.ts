@@ -337,27 +337,48 @@ export const commonGitHandlerTests = (handlerCls: new (params: VcsHandlerParams)
                 ).to.eql([{ path, hash }])
               })
 
-              it("when directory is in a sub-directory and matches the include filter with globs", async () => {
-                const subdirName = "subdir"
-                const subdir = resolve(tmpPath, subdirName)
-                await mkdir(subdir)
-                const deepDirName = "deepdir"
-                const deepDir = resolve(subdir, deepDirName)
-                await mkdir(deepDir)
-                const path = resolve(deepDir, "foo.txt")
-                await createFile(path)
-                const hash = await getGitHash(git, path)
+              context("when included directory is in a sub-directory", () => {
+                // Here we  include the deepdir located at ./subdir/deepdir
+                const testParams = [
+                  {
+                    name: "when directory is included by exact relative path",
+                    pathBuilder: (subDirName: string, deepDirName) => join(subDirName, deepDirName),
+                  },
+                  {
+                    name: "when directory is included by relative path with globs",
+                    pathBuilder: (subDirName: string, deepDirName) => join(subDirName, deepDirName, "**", "*"),
+                  },
+                  {
+                    name: "when directory is included by name with globs",
+                    // FIXME: shouldn't just '**/deepdir' work well too?
+                    pathBuilder: (_subDirName: string, deepDirName) => join("**", deepDirName, "**", "*"),
+                  },
+                ]
 
-                expect(
-                  await handler.getFiles({
-                    path: tmpPath,
-                    scanRoot: undefined,
-                    // FIXME: shouldn't just '**/dir' work well too?
-                    include: [`**/${deepDirName}/**/*`],
-                    exclude,
-                    log,
+                for (const testParam of testParams) {
+                  it(testParam.name, async () => {
+                    const subdirName = "subdir"
+                    const subdir = resolve(tmpPath, subdirName)
+                    await mkdir(subdir)
+                    const deepDirName = "deepdir"
+                    const deepDir = resolve(subdir, deepDirName)
+                    await mkdir(deepDir)
+                    const path = resolve(deepDir, "foo.txt")
+                    await createFile(path)
+                    const hash = await getGitHash(git, path)
+
+                    const include = [testParam.pathBuilder(subdirName, deepDirName)]
+                    expect(
+                      await handler.getFiles({
+                        path: tmpPath,
+                        scanRoot: undefined,
+                        include,
+                        exclude,
+                        log,
+                      })
+                    ).to.eql([{ path, hash }])
                   })
-                ).to.eql([{ path, hash }])
+                }
               })
             })
 
