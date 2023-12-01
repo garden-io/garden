@@ -143,8 +143,8 @@ describe("VcsHandler", () => {
         })
 
         const version = await handler.getTreeVersion({
-          log: gardenA.log,
-          projectName: gardenA.projectName,
+          log: garden.log,
+          projectName: garden.projectName,
           config: moduleConfig,
         })
 
