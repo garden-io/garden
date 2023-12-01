@@ -23,6 +23,8 @@ import { uuidv4 } from "../../../../src/util/random.js"
 import type { VcsHandlerParams } from "../../../../src/vcs/vcs.js"
 import { repoRoot } from "../../../../src/util/testing.js"
 import { ChildProcessError, GardenError, RuntimeError } from "../../../../src/exceptions.js"
+import type { GitScanMode } from "../../../../src/constants.js"
+import { GitRepoHandler } from "../../../../src/vcs/git-repo.js"
 
 const { createFile, ensureSymlink, lstat, mkdir, mkdirp, realpath, remove, symlink, writeFile } = fsExtra
 
@@ -68,7 +70,20 @@ async function getGitHash(git: GitCli, path: string) {
   return (await git("hash-object", path))[0]
 }
 
-export const commonGitHandlerTests = (handlerCls: new (params: VcsHandlerParams) => GitHandler) => {
+type GitHandlerCls = new (params: VcsHandlerParams) => GitHandler
+
+function getGitHandlerCls(gitScanMode: GitScanMode): GitHandlerCls {
+  switch (gitScanMode) {
+    case "repo":
+      return GitRepoHandler
+    case "subtree":
+      return GitHandler
+    default:
+      return gitScanMode satisfies never
+  }
+}
+
+export const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
   let garden: TestGarden
   let tmpDir: tmp.DirectoryResult
   let tmpPath: string
@@ -76,29 +91,20 @@ export const commonGitHandlerTests = (handlerCls: new (params: VcsHandlerParams)
   let handler: GitHandler
   let log: Log
 
+  const gitHandlerCls = getGitHandlerCls(gitScanMode)
+
   beforeEach(async () => {
-    garden = await makeTestGardenA()
+    garden = await makeTestGardenA([], { gitScanMode })
     log = garden.log
     tmpDir = await makeTempGitRepo()
     tmpPath = await realpath(tmpDir.path)
-    handler = new handlerCls({
+    handler = new gitHandlerCls({
       garden,
       projectRoot: tmpPath,
       gardenDirPath: join(tmpPath, ".garden"),
       ignoreFile: defaultIgnoreFilename,
       cache: garden.treeCache,
     })
-    /*
-     It is critical to override the handler here. Otherwise, the garden instance will always use a handler
-     that depends on the env variable `GARDEN_GIT_SCAN_MODE`.
-     That can cause inconsistent behaviour is some test scenarios.
-
-     This is a quickfix.
-
-     TODO: consider passing in the necessary Garden params to create the vcs handler of a proper type
-           inside Garden constructor. After that, the handler can be retrieved from `garden.vcs`.
-     */
-    garden.vcs = handler
     git = handler.gitCli(log, tmpPath)
   })
 
@@ -1278,14 +1284,15 @@ export const commonGitHandlerTests = (handlerCls: new (params: VcsHandlerParams)
   })
 }
 
-export const getTreeVersionTests = (handlerCls: new (params: VcsHandlerParams) => GitHandler) => {
+export const getTreeVersionTests = (gitScanMode: GitScanMode) => {
+  const gitHandlerCls = getGitHandlerCls(gitScanMode)
   describe("getTreeVersion", () => {
     context("include and exclude filters", () => {
       it("should respect the include field, if specified", async () => {
         const projectRoot = getDataDir("test-projects", "include-exclude")
-        const garden = await makeTestGarden(projectRoot)
+        const garden = await makeTestGarden(projectRoot, { gitScanMode })
         const moduleConfig = await garden.resolveModule("module-a")
-        const handler = new GitHandler({
+        const handler = new gitHandlerCls({
           garden,
           projectRoot: garden.projectRoot,
           gardenDirPath: garden.gardenDirPath,
@@ -1307,9 +1314,9 @@ export const getTreeVersionTests = (handlerCls: new (params: VcsHandlerParams) =
 
       it("should respect the exclude field, if specified", async () => {
         const projectRoot = getDataDir("test-projects", "include-exclude")
-        const garden = await makeTestGarden(projectRoot)
+        const garden = await makeTestGarden(projectRoot, { gitScanMode })
         const moduleConfig = await garden.resolveModule("module-b")
-        const handler = new GitHandler({
+        const handler = new gitHandlerCls({
           garden,
           projectRoot: garden.projectRoot,
           gardenDirPath: garden.gardenDirPath,
@@ -1328,10 +1335,10 @@ export const getTreeVersionTests = (handlerCls: new (params: VcsHandlerParams) =
 
       it("should respect both include and exclude fields, if specified", async () => {
         const projectRoot = getDataDir("test-projects", "include-exclude")
-        const garden = await makeTestGarden(projectRoot)
+        const garden = await makeTestGarden(projectRoot, { gitScanMode })
         const moduleConfig = await garden.resolveModule("module-c")
 
-        const handler = new GitHandler({
+        const handler = new gitHandlerCls({
           garden,
           projectRoot: garden.projectRoot,
           gardenDirPath: garden.gardenDirPath,
@@ -1352,8 +1359,8 @@ export const getTreeVersionTests = (handlerCls: new (params: VcsHandlerParams) =
 }
 
 describe("GitHandler", () => {
-  commonGitHandlerTests(GitHandler)
-  getTreeVersionTests(GitHandler)
+  commonGitHandlerTests("subtree")
+  getTreeVersionTests("subtree")
 })
 
 describe("git", () => {

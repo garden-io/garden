@@ -6,10 +6,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { GitRepoHandler } from "../../../../src/vcs/git-repo.js"
 import { commonGitHandlerTests, getTreeVersionTests } from "./git.js"
 
 describe("GitRepoHandler", () => {
-  commonGitHandlerTests(GitRepoHandler)
-  getTreeVersionTests(GitRepoHandler)
+  commonGitHandlerTests("repo")
+  getTreeVersionTests("repo")
 })
