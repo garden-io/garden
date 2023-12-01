@@ -16,8 +16,7 @@
   } = options
 
   function filledArray(count, value) {
-    return Array.apply(null, new Array(count))
-      .map(function() { return value; });
+    return Array.from({ length: count }, () => value);
   }
 
   function extractOptional(optional, index) {
@@ -92,27 +91,115 @@
     }, head);
   }
 
+  /**
+   * Transforms a flat list of expressions with block operators in between to the proper ast structure, nesting expressions within blocks in the respective conditionals.
+   *
+   * @arg {(ast.TemplateExpression | Symbol)[]} elements - List of block operators and ast.TemplateExpression instances
+   **/
+  function buildConditionalTree(...elements) {
+    // root level expressions
+    let rootExpressions = []
+
+    let currentCondition = undefined
+    let ifTrue = []
+    let ifFalse = []
+    let nestingLevel = 0
+    let encounteredElse = false
+    const pushElement = (e) => {
+      if (!currentCondition) {
+        return rootExpressions.push(e)
+      }
+      if (encounteredElse) {
+        ifFalse.push(e)
+      } else {
+        ifTrue.push(e)
+      }
+    }
+    for (const e of elements) {
+      if (e instanceof ast.IfBlockExpression) {
+        if (currentCondition) {
+          pushElement(e)
+          nestingLevel++
+        } else {
+          currentCondition = e
+        }
+      } else if (e instanceof ast.ElseBlockExpression) {
+        if (currentCondition === undefined) {
+          throw new TemplateStringError({ message: "Found ${else} block without a preceding ${if...} block." })
+        }
+        if (encounteredElse && nestingLevel === 0) {
+          throw new TemplateStringError({ message: "Encountered multiple ${else} blocks on the same ${if...} block nesting level." })
+        }
+
+        if (currentCondition && nestingLevel === 0) {
+          encounteredElse = true
+        } else {
+          pushElement(e)
+        }
+      } else if (e instanceof ast.EndIfBlockExpression) {
+        if (currentCondition === undefined) {
+          throw new TemplateStringError({ message: "Found ${endif} block without a preceding ${if...} block." })
+        }
+        if (nestingLevel === 0) {
+          currentCondition.ifTrue = buildConditionalTree(...ifTrue)
+          currentCondition.ifFalse = buildConditionalTree(...ifFalse)
+          currentCondition.loc.end = e.loc.end
+          rootExpressions.push(currentCondition)
+          currentCondition = undefined
+        } else {
+          nestingLevel--
+          pushElement(e)
+        }
+      } else {
+        pushElement(e)
+      }
+    }
+
+    if (currentCondition) {
+      throw new TemplateStringError({ message: "Missing ${endif} after ${if ...} block." })
+    }
+
+    if (rootExpressions.length === 0) {
+      return undefined
+    }
+    if (rootExpressions.length === 1) {
+      return rootExpressions[0]
+    }
+
+    return new ast.StringConcatExpression(location(), ...rootExpressions)
+  }
+
+  function isBlockExpression(e) {
+    return e instanceof ast.IfBlockExpression || e instanceof ast.ElseBlockExpression || e instanceof ast.EndIfBlockExpression
+  }
+
   function optionalList(value) {
     return value !== null ? value : [];
   }
 }
 
-TemplateString
-  = head:(FormatString)+ tail:TemplateString? {
-    // If there is only one format string, return it's result
-    if (head.length === 1 && !tail) {
-      return head[0]
+Start
+  = elements:TemplateStrings {
+    // If there is only one format string, return it's result directly without wrapping in StringConcatExpression
+    if (elements.length === 1 && !(isBlockExpression(elements[0]))) {
+      return elements[0]
     }
 
-    // Otherwise we concatenate strings
-    return new ast.StringConcatExpression(location(), ...head, ...(tail ? [tail] : []))
+    return buildConditionalTree(...elements)
   }
-  / a:Prefix b:(FormatString)+ c:TemplateString? {
-    return new ast.StringConcatExpression(location(), a, ...b, ...(c ? [c] : []))
+
+TemplateStrings
+  = head:(FormatString)+ tail:TemplateStrings? {
+    // This means we are concatenating strings, and there may be conditional block statements
+    return [...head, ...(tail ? tail : [])]
+  }
+  / a:Prefix b:(FormatString)+ c:TemplateStrings? {
+    // This means we are concatenating strings, and there may be conditional block statements
+    return [a, ...b, ...(c ? c : [])]
   }
   / UnclosedFormatString
   / $(.+) {
-    return new ast.LiteralExpression(location(), text())
+    return [new ast.LiteralExpression(location(), text())]
   }
 
 FormatString
@@ -124,7 +211,16 @@ FormatString
     }
   }
   / FormatStart op:BlockOperator FormatEnd {
-    throw new TemplateStringError({ message: `Block operator not yet implemented. Cannot parse: ${text()}`})
+    // These expressions will not show up in the final AST, but will be used to build the conditional tree
+    // We instantiate expressions here to get the correct locations for constructng good error messages
+    switch (op) {
+      case "else":
+        return new ast.ElseBlockExpression(location())
+      case "endif":
+        return new ast.EndIfBlockExpression(location())
+      default:
+        throw new TemplateStringError({ message: `Unrecognized block operator: ${op}`})
+    }
   }
   / pre:FormatStartWithEscape blockOperator:(ExpressionBlockOperator __)* e:Expression end:FormatEndWithOptional {
       if (pre[0] === escapePrefix) {
@@ -135,12 +231,21 @@ FormatString
         }
       }
 
+      const isOptional = end[1] === optionalSuffix
+      const expression = new ast.FormatStringExpression(location(), e, isOptional)
+
       if (blockOperator && blockOperator.length > 0) {
-        throw new TemplateStringError({ message: `Block operator not yet implemented. Cannot parse: ${text()}`})
+        if (isOptional) {
+          throw new TemplateStringError({ message: "Cannot specify optional suffix in if-block." })
+        }
+
+        // ifTrue and ifFalse will be filled in by `buildConditionalTree`
+        const ifTrue = undefined
+        const ifFalse = undefined
+        return new ast.IfBlockExpression(location(), expression, ifTrue, ifFalse, isOptional)
       }
 
-      const isOptional = end[1] === optionalSuffix
-      return new ast.FormatStringExpression(location(), e, isOptional)
+      return expression
   }
 
 UnclosedFormatString
@@ -216,14 +321,18 @@ ArgumentListTail
     }
 
 ArrayLiteral
+  = v:_ArrayLiteral {
+      return new ast.ArrayLiteralExpression(location(), v)
+  }
+_ArrayLiteral
   = "[" __ elision:(Elision __)? "]" {
-      return resolveList(optionalList(extractOptional(elision, 0)));
+      return optionalList(extractOptional(elision, 0));
     }
   / "[" __ elements:ElementList __ "]" {
-      return resolveList(elements);
+      return elements;
     }
   / "[" __ elements:ElementList __ "," __ elision:(Elision __)? "]" {
-      return resolveList(elements.concat(optionalList(extractOptional(elision, 0))));
+      return elements.concat(optionalList(extractOptional(elision, 0)));
     }
 
 ElementList

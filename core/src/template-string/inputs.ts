@@ -95,7 +95,7 @@ export function templatePrimitiveDeepMap<P extends TemplateLeafValue, R extends 
   }
 }
 
-export function mergeInputs(
+export function mergeInputs<R extends TemplateLeafValue>(
   result: CollectionOrValue<TemplateLeaf>,
   ...relevantValues: CollectionOrValue<TemplateLeaf>[]
 ): CollectionOrValue<TemplateLeaf> {
@@ -118,7 +118,7 @@ export function mergeInputs(
     }
   })
 
-  const makeTemplateValue = (v: TemplateLeaf) => {
+  const updateLeaf = (v: TemplateLeaf<TemplateLeafValue>) => {
     return new TemplateLeaf({
       expr: v.expr,
       value: v.value,
@@ -130,6 +130,6 @@ export function mergeInputs(
   }
 
   return isTemplateLeaf(result)
-    ? makeTemplateValue(result)
-    : deepMap(result, (v) => makeTemplateValue(v))
+    ? updateLeaf(result)
+    : deepMap(result, (v) => updateLeaf(v))
 }

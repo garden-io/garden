@@ -13,11 +13,11 @@ import {
   type ContextResolveOpts,
   type ObjectPath,
 } from "../config/template-contexts/base.js"
-import { TemplateStringError } from "../exceptions.js"
+import { InternalError, NotImplementedError, TemplateStringError } from "../exceptions.js"
 import { deepMap } from "../util/objects.js"
 import { callHelperFunction } from "./functions.js"
-import { TemplateLeaf, isTemplateLeaf, isTemplatePrimitive, mergeInputs } from "./inputs.js"
-import type { Collection, CollectionOrValue, TemplatePrimitive } from "./inputs.js"
+import { TemplateLeaf, isTemplateLeaf, isTemplateLeafValue, isTemplatePrimitive, mergeInputs } from "./inputs.js"
+import type { Collection, CollectionOrValue, TemplateLeafValue, TemplatePrimitive } from "./inputs.js"
 
 type EvaluateArgs = {
   context: ConfigContext
@@ -84,6 +84,30 @@ export class LiteralExpression extends TemplateExpression {
       value: this.literal,
       inputs: {},
     })
+  }
+}
+
+export class ArrayLiteralExpression extends TemplateExpression {
+  constructor(
+    loc: Location,
+    // an ArrayLiteralExpression consists of several template expressions,
+    // for example other literal expressions and context lookup expressions.
+    public readonly literal: TemplateExpression[]
+  ) {
+    super(loc)
+  }
+
+  override evaluate(args: EvaluateArgs): CollectionOrValue<TemplateLeaf> {
+    // Handle the special case of an empty array, which is a valid template leaf value.
+    if (isTemplateLeafValue(this.literal)) {
+      return new TemplateLeaf({
+        expr: args.rawTemplateString,
+        value: this.literal,
+        inputs: {},
+      })
+    }
+
+    return this.literal.map((expr) => expr.evaluate(args))
   }
 }
 
@@ -413,6 +437,51 @@ export class FormatStringExpression extends TemplateExpression {
   }
 }
 
+export class ElseBlockExpression extends TemplateExpression {
+  override evaluate(): never {
+    // See also `buildConditionalTree` in `parser.pegjs`
+    throw new InternalError({
+      message: `{else} block expression should not end up in the final AST`,
+    })
+  }
+}
+
+export class EndIfBlockExpression extends TemplateExpression {
+  override evaluate(): never {
+    // See also `buildConditionalTree` in `parser.pegjs`
+    throw new InternalError({
+      message: `{endif} block expression should not end up in the final AST`,
+    })
+  }
+}
+
+export class IfBlockExpression extends TemplateExpression {
+  constructor(
+    loc: Location,
+    public readonly condition: TemplateExpression,
+    public ifTrue: TemplateExpression,
+    public ifFalse: TemplateExpression | undefined
+  ) {
+    super(loc)
+  }
+
+  override evaluate(args: EvaluateArgs): CollectionOrValue<TemplateLeaf> {
+    const condition = this.condition.evaluate(args)
+
+    const evaluated = isTruthy(condition) ? this.ifTrue.evaluate(args) : this.ifFalse?.evaluate(args)
+
+    return mergeInputs(
+      evaluated ||
+        new TemplateLeaf({
+          expr: args.rawTemplateString,
+          value: "",
+          inputs: {},
+        }),
+      condition
+    )
+  }
+}
+
 export class StringConcatExpression extends TemplateExpression {
   public readonly expressions: TemplateExpression[]
   constructor(loc: Location, ...expressions: TemplateExpression[]) {
@@ -420,7 +489,7 @@ export class StringConcatExpression extends TemplateExpression {
     this.expressions = expressions
   }
 
-  override evaluate(args: EvaluateArgs): CollectionOrValue<TemplateLeaf> {
+  override evaluate(args: EvaluateArgs): TemplateLeaf<string> {
     const evaluatedExpressions: TemplateLeaf<TemplatePrimitive>[] = this.expressions.map((expr) => {
       const r = expr.evaluate(args)
 
@@ -447,7 +516,7 @@ export class StringConcatExpression extends TemplateExpression {
         inputs: {},
       }),
       ...evaluatedExpressions
-    )
+    ) as TemplateLeaf<string> // TODO: fix mergeInputs return type
   }
 }
 
