@@ -3,7 +3,7 @@ title: PersistentVolumeClaim
 order: 5
 ---
 
-## PersistentVolumeClaim
+# PersistentVolumeClaim
 
 Creates a [PersistentVolumeClaim](https://kubernetes.io/docs/concepts/storage/persistent-volumes/#persistentvolumeclaims) in your namespace
 that can be referenced and mounted by other resources and [`container` actions](./container.md).

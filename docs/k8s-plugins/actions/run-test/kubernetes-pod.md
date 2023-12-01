@@ -1,9 +1,9 @@
 ---
-title: Kubernetes-pod
-order: 7
+title: Kubernetes Pod
+order: 1
 ---
 
-# `kubernetes-pod`
+# Kubernetes Pod
 
 For Run and Test actions, either the `kubernetes-pod` or [`kubernetes-exec`](./kubernetes-exec.md) action types can be used.
 

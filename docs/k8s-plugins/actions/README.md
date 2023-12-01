@@ -1,9 +1,9 @@
 ---
-title: Action Configuration
+title: Actions
 order: 5
 ---
 
-# Action Configuration
+# Actions
 
 Each Garden plugins defines different "action types" that you can use with it. For example, the Kubernetes plugins support `kubernetes` and `helm` action types (among others) that you can pick, depending on your use case.
 

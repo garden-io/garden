@@ -44,7 +44,7 @@ providers:
 
 The log output of the `initScript` can be accessed via `"${providers.exec.outputs.initScript.log}"` template string.
 
-## Action Configuration
+## Actions
 
 ### Build
 
@@ -66,8 +66,6 @@ For example:
 kind: Build
 name: lib-local
 type: exec
-source:
-  target: ../lib
 buildAtSource: true # <--- Here we want execute the build in the ./lib dir directly
 spec:
   command: [npm, run, build]
@@ -76,7 +74,7 @@ spec:
 kind: Deploy
 name: web-local
 type: exec
-dependencies: [build.lib-local] # <-- Build lib before starting local dev server
+dependencies: [build.lib-local] # <--- Build lib before starting local dev server
 persistent: true
 spec:
   deployCommand: [npm, run, dev]
@@ -99,7 +97,7 @@ spec:
 kind: Deploy
 name: api
 type: kubernetes
-build: prepare-manifests # <-- This tells Garden to use the build directory for the 'prepare-manifests' action as the source for this action.
+build: prepare-manifests # <--- This tells Garden to use the build directory for the 'prepare-manifests' action as the source for this action.
 dependencies: [build.prepare-manifests]
 ```
 
@@ -130,11 +128,11 @@ type: exec
 spec:
   persistent: true
   deployCommand: [npm, run, dev]
-  statusCommand: [./is-ready.sh] # <-- Garden check the status at an interval until the command returns 0 or timesout
+  statusCommand: [./is-ready.sh] # <--- Garden checks the status at an interval until the command returns 0 or times out
   cleanupCommand: [npm, run, clean]
 ```
 
-Also check out the [local-service project](../../examples/local-service) for a full example.
+You'll find a complete example of this in our [local-service example project](../../examples/local-service).
 
 {% hint style="info" %}
 If you need your local service to _receive_ traffic from the remote parts of your system
@@ -151,7 +149,6 @@ Following are some example `exec` Run actions for executing various scripts:
 kind: Run
 name: auth
 type: exec
-include: [] # <--- No source files are needed
 spec:
   command: ["sh", "-c", "./scripts/auth.sh"]
 
@@ -159,7 +156,6 @@ spec:
 kind: Run
 name: prepare-data
 type: exec
-include: []
 spec:
   command: ["sh", "-c", "./scripts/prepare-data-locally.sh"]
 ```

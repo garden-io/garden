@@ -1,9 +1,9 @@
 ---
 title: Container
-order: 1
+order: 3
 ---
 
-# TODO @eysi: Update
+# Container
 
 {% hint style="info" %}
 The `container` action type is an abstraction that can be used with multiple plugins. [See here](../../../other-plugins/container.md) for an in-depth guide on the action type itself. Continue reading for more information on the container deploy action type that can be used with the Kubernetes plugin.
@@ -13,18 +13,19 @@ The Kubernetes plugins can deploy `container` deploy actions.
 
 Garden will take the simplified `container` deploy specification and convert it to Kubernetes manifests, i.e. Deployment, Service and (if applicable) Ingress resources.
 
-Here, for example, is the spec for the `frontend` service in our example [demo project](../../../../examples/demo-project/README.md):
+For example:
 
 ```yaml
+kind: Build
+name: frontend
+type: container
+---
 kind: Deploy
 name: frontend
 type: container
-
-build: frontend
-dependencies:
-  - deploy.backend
-
+dependencies: [build.frontend] # <--- Need to specify the build as a dependency
 spec:
+  image: ${actions.build.outputs.frontend.deploymentImageId} # <--- The output from the Build action defined above
   ports:
     - name: http
       containerPort: 8080
@@ -40,7 +41,9 @@ spec:
 ...
 ```
 
-The `build` field is used to specify a build action that builds the container that's used for the deploy. We also configure a health check, a couple of ingress endpoints, and specify that this deploy depends on the `backend` deploy. There is a number of other options, which you can find in the `container` action [reference](../../../reference/action-types/Deploy/container.md).
+To make sure Garden deploys the frontend with the right image version, we need to reference the output from the container build in the `spec.image` field.
+
+We also configure a health check, a couple of ingress endpoints, and specify that this deploy depends on the `backend` deploy. There is a number of other options, which you can find in the `container` action [reference](../../../reference/action-types/Deploy/container.md).
 
 If you need to use advanced (or otherwise very specific) features of the underlying platform, you may need to use more platform-specific action types (e.g. `kubernetes` or `helm`). The `container` action type is not intended to capture all those features.
 

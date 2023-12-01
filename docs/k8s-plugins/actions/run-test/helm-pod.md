@@ -1,9 +1,9 @@
 ---
-title: Helm-pod
-order: 8
+title: Helm Pod
+order: 2
 ---
 
-# `helm-pod`
+# Helm Pod
 
 This action type can be used for Run and Test actions where you already have the corresponding Helm charts. It's similar to the
 [`kubernetes-pod` action type](./kubernetes-pod.md).

@@ -64,7 +64,7 @@ providers:
     # ...
 ```
 
-We also recommend taking a look at our [in-depth guide on build modes](../advanced/in-cluster-building.md) which explains the pros and cons of different modes and how to configure them.
+We also recommend taking a look at our [in-depth guide on build modes](../guides/in-cluster-building.md) which explains the pros and cons of different modes and how to configure them.
 
 ### 3. Initialize the plugin
 
@@ -78,4 +78,4 @@ And that's it! Your Kubernetes plugin is now configured
 and you can proceed to deploying your project to
 Kubernetes with Garden.
 
-Next, we recommend learning more about configuring [Kubernetes actions](../action-types/README.md).
+Next, we recommend learning more about configuring [Kubernetes actions](../actions/README.md).

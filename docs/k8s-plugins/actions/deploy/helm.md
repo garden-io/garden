@@ -1,6 +1,6 @@
 ---
 title: Helm
-order: 3
+order: 2
 ---
 
 # Helm
@@ -212,7 +212,7 @@ want to repeat those configurations all over the place.
 
 ## Production environments
 
-You can define a remote environment as a `production` environment by setting the [production flag](../../../reference/project-config.md#environmentsproduction) to `true`. This affects some default behavior when working with `helm` actions. See the [Deploying to production](../../advanced/deploying-to-production.md) guide for details.
+You can define a remote environment as a `production` environment by setting the [production flag](../../../reference/project-config.md#environmentsproduction) to `true`. This affects some default behavior when working with `helm` actions. See the [Deploying to production](../../guides/deploying-to-production.md) guide for details.
 
 ## Next steps
 

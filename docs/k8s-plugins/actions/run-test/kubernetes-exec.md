@@ -1,9 +1,9 @@
 ---
-title: Kubernetes-exec
-order: 7
+title: Kubernetes Exec
+order: 3
 ---
 
-# `kubernetes-exec`
+# Kubernetse Exec
 
 [`kubernetes-exec` Run](../../../reference/action-types/Run/kubernetes-exec.md) and
 [`kubernetes-exec` Test](../../../reference/action-types/Test/kubernetes-exec.md) actions are used to execute a command in an already deployed

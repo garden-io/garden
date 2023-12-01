@@ -3,94 +3,56 @@ title: Container
 order: 1
 ---
 
-# TODO @eysi: Update
+# Container
 
 {% hint style="info" %}
 The `container` action type is an abstraction that can be used with multiple plugins. [See here](../../../other-plugins/container.md) for an in-depth guide on the action type itself. Continue reading for more information on the container deploy action type that can be used with the Kubernetes plugin.
 {% endhint %}
 
-The Kubernetes plugins can deploy `container` deploy actions.
+You can define a `container` Build action with the following config:
 
-Garden will take the simplified `container` deploy specification and convert it to Kubernetes manifests, i.e. Deployment, Service and (if applicable) Ingress resources.
+```yaml
+kind: Build
+name: api
+type: container
+```
 
-Here, for example, is the spec for the `frontend` service in our example [demo project](../../../../examples/demo-project/README.md):
+Most commonly you'll then want to deploy this image or use it in Test or Run actions. You can do that by
+referencing the output from the build in your Deploy actions via the `${actions.build.outputs.api.<output-name>}` template string.
+
+For example, to deploy this image with Helm you can use the following config:
 
 ```yaml
 kind: Deploy
-name: frontend
-type: container
-
-build: frontend
-dependencies:
-  - deploy.backend
-
+name: api
+type: helm
+dependencies: [build.api] # <--- We need to specify the dependency here
 spec:
-  ports:
-    - name: http
-      containerPort: 8080
-  healthCheck:
-    httpGet:
-      path: /hello-frontend
-      port: http
-  ingresses:
-    - path: /hello-frontend
-      port: http
-    - path: /call-backend
-      port: http
-...
+  values:
+    repository: ${actions.build.api.outputs.deploymentImageName}
+    tag: ${actions.build.api.version}
 ```
 
-The `build` field is used to specify a build action that builds the container that's used for the deploy. We also configure a health check, a couple of ingress endpoints, and specify that this deploy depends on the `backend` deploy. There is a number of other options, which you can find in the `container` action [reference](../../../reference/action-types/Deploy/container.md).
-
-If you need to use advanced (or otherwise very specific) features of the underlying platform, you may need to use more platform-specific action types (e.g. `kubernetes` or `helm`). The `container` action type is not intended to capture all those features.
-
-## Environment variables
-
-Container services can specify environment variables, using the `services[].env` field:
+Or you can set it in your Kubernetes manifests with the `patchResources` field:
 
 ```yaml
+
 kind: Deploy
-name: frontend
-type: container
+type: kubernetes
+name: api
+dependencies: [build.api] # <--- We need to specify the dependency here
 spec:
-  env:
-    MY_ENV_VAR: foo
-    MY_TEMPLATED_ENV_VAR: ${var.some-project-variable}
-...
+  files: [my-manifests.yml]
+  patchResources:
+    - name: api # <--- The name of the resource to patch, should match the name in the K8s manifest
+      kind: Deployment # <--- The kind of the resource to patch
+      patch:
+        spec:
+          template:
+            spec:
+              containers:
+                - name: api # <--- Should match the container name from the K8s manifest
+                  image: ${actions.build.api.outputs.deployment-image-id} # <--- The output from the Build action
 ```
 
-`env` is a simple mapping of "name: value". [Template strings](../../../using-garden/variables-and-templating.md#template-string-overview) can also be used to interpolate values.
-
-### Secrets
-
-You can reference secrets in environment variables. For Kubernetes, this translates to `valueFrom.secretKeyRef` fields in the Pod specs, which direct Kubernetes to mount values from `Secret` resources that you have created in the application namespace, as environment variables in the Pod.
-
-For example:
-
-```yaml
-kind: Deploy
-name: frontend
-type: container
-spec:
-  env:
-    MY_SECRET_VAR:
-      secretRef:
-        name: my-secret
-        key: some-key-in-secret
-...
-```
-
-This will pull the `some-key-in-secret` key from the `my-secret` Secret resource in the application namespace, and make it available as an environment variable.
-
-_Note that you must create the Secret manually for the Pod to be able to reference it._
-
-For Kubernetes, this is commonly done using `kubectl`. For example, to create a basic generic secret you could use:
-
-```sh
-kubectl --namespace <my-app-namespace> create secret generic --from-literal=some-key-in-secret=foo
-```
-
-Where `<my-app-namespace>` is your project namespace (which is either set with `namespace` in your provider config, or defaults to your project name). There are notably other, more secure ways to create secrets via `kubectl`. Please refer to the official [Kubernetes Secrets docs](https://kubernetes.io/docs/concepts/configuration/secret/#creating-a-secret-using-kubectl-create-secret) for details.
-
-Also check out the [Kubernetes Secrets example project](../../../../examples/kubernetes-secrets/README.md) for a working example.
-
+You can learn more in the individual guides for the Kubernetes [Deploy](../deploy/README.md) and [Run and Test](../run-test/README.md) actions.
