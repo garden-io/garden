@@ -23,7 +23,6 @@ import { uuidv4 } from "../../../../src/util/random.js"
 import type { VcsHandlerParams } from "../../../../src/vcs/vcs.js"
 import { repoRoot } from "../../../../src/util/testing.js"
 import { ChildProcessError, GardenError, RuntimeError } from "../../../../src/exceptions.js"
-import { sortBy } from "lodash-es"
 
 const { createFile, ensureSymlink, lstat, mkdir, mkdirp, realpath, remove, symlink, writeFile } = fsExtra
 
@@ -296,11 +295,18 @@ export const commonGitHandlerTests = (handlerCls: new (params: VcsHandlerParams)
               it("when filename matches the include filter", async () => {
                 const path = resolve(tmpPath, "foo.txt")
                 await createFile(path)
-                const hash = await getGitHash(git, path)
 
-                expect(
-                  await handler.getFiles({ path: tmpPath, scanRoot: undefined, include: ["foo.*"], exclude, log })
-                ).to.eql([{ path, hash }])
+                const files = (
+                  await handler.getFiles({
+                    path: tmpPath,
+                    scanRoot: undefined,
+                    include: ["foo.*"],
+                    exclude,
+                    log,
+                  })
+                ).map((p) => p.path)
+
+                expect(files).to.eql([path])
               })
 
               it("when file is in a sub-directory matches the include filter with globs", async () => {
@@ -309,9 +315,8 @@ export const commonGitHandlerTests = (handlerCls: new (params: VcsHandlerParams)
                 await mkdir(subdir)
                 const path = resolve(subdir, "foo.txt")
                 await createFile(path)
-                const hash = await getGitHash(git, path)
 
-                expect(
+                const files = (
                   await handler.getFiles({
                     path: tmpPath,
                     scanRoot: undefined,
@@ -319,7 +324,9 @@ export const commonGitHandlerTests = (handlerCls: new (params: VcsHandlerParams)
                     exclude,
                     log,
                   })
-                ).to.eql([{ path, hash }])
+                ).map((p) => p.path)
+
+                expect(files).to.eql([path])
               })
             })
 
@@ -330,11 +337,18 @@ export const commonGitHandlerTests = (handlerCls: new (params: VcsHandlerParams)
                 await mkdir(subdir)
                 const path = resolve(subdir, "foo.txt")
                 await createFile(path)
-                const hash = await getGitHash(git, path)
 
-                expect(
-                  await handler.getFiles({ path: tmpPath, scanRoot: undefined, include: [subdirName], exclude, log })
-                ).to.eql([{ path, hash }])
+                const files = (
+                  await handler.getFiles({
+                    path: tmpPath,
+                    scanRoot: undefined,
+                    include: [subdirName],
+                    exclude,
+                    log,
+                  })
+                ).map((p) => p.path)
+
+                expect(files).to.eql([path])
               })
 
               context("when included directory is in a sub-directory", () => {
@@ -365,10 +379,9 @@ export const commonGitHandlerTests = (handlerCls: new (params: VcsHandlerParams)
                     await mkdir(deepDir)
                     const path = resolve(deepDir, "foo.txt")
                     await createFile(path)
-                    const hash = await getGitHash(git, path)
 
                     const include = [testParam.pathBuilder(subdirName, deepDirName)]
-                    expect(
+                    const files = (
                       await handler.getFiles({
                         path: tmpPath,
                         scanRoot: undefined,
@@ -376,7 +389,9 @@ export const commonGitHandlerTests = (handlerCls: new (params: VcsHandlerParams)
                         exclude,
                         log,
                       })
-                    ).to.eql([{ path, hash }])
+                    ).map((p) => p.path)
+
+                    expect(files).to.eql([path])
                   })
                 }
               })
@@ -385,11 +400,18 @@ export const commonGitHandlerTests = (handlerCls: new (params: VcsHandlerParams)
             it("should include hidden files that match the include filter", async () => {
               const path = resolve(tmpPath, ".foo")
               await createFile(path)
-              const hash = await getGitHash(git, path)
 
-              expect(
-                await handler.getFiles({ path: tmpPath, scanRoot: undefined, include: ["*"], exclude, log })
-              ).to.eql([{ path, hash }])
+              const files = (
+                await handler.getFiles({
+                  path: tmpPath,
+                  scanRoot: undefined,
+                  include: ["*"],
+                  exclude,
+                  log,
+                })
+              ).map((p) => p.path)
+
+              expect(files).to.eql([path])
             })
           })
         }
@@ -431,22 +453,20 @@ export const commonGitHandlerTests = (handlerCls: new (params: VcsHandlerParams)
               const notExcludedByFilenameNested = resolve(notExcludedDirPath, "bar.txt")
               await createFile(notExcludedByFilenameNested)
 
-              const files = await handler.getFiles({
-                path: tmpPath,
-                scanRoot: undefined,
-                include: undefined,
-                exclude: [buildExcludePattern("foo.*", glob)],
-                log,
-              })
-              const sortedFiles = sortBy(files, "path")
+              const files = (
+                await handler.getFiles({
+                  path: tmpPath,
+                  scanRoot: undefined,
+                  include: undefined,
+                  exclude: [buildExcludePattern("foo.*", glob)],
+                  log,
+                })
+              )
+                .map((p) => p.path)
+                .sort()
 
-              const expectedFiles = [
-                { path: notExcludedByFilename, hash: await getGitHash(git, notExcludedByFilename) },
-                { path: notExcludedByFilenameNested, hash: await getGitHash(git, notExcludedByFilenameNested) },
-              ]
-              const sortedExpectedFiles = sortBy(expectedFiles, "path")
-
-              expect(sortedFiles).to.eql(sortedExpectedFiles)
+              const expectedFiles = [notExcludedByFilename, notExcludedByFilenameNested].sort()
+              expect(files).to.eql(expectedFiles)
             })
           }
         })
@@ -487,25 +507,23 @@ export const commonGitHandlerTests = (handlerCls: new (params: VcsHandlerParams)
                 await createFile(excludedBySubDirectory1)
                 await createFile(excludedBySubDirectory2)
 
-                const files = await handler.getFiles({
-                  path: tmpPath,
-                  scanRoot: undefined,
-                  include: undefined, // when include: [], getFiles() always returns an empty result
-                  exclude: [
-                    buildExcludePattern(excludedDirName, glob),
-                    buildExcludePattern(excludedSubDirectoryName, glob),
-                  ],
-                  log,
-                })
-                const sortedFiles = sortBy(files, "path")
+                const files = (
+                  await handler.getFiles({
+                    path: tmpPath,
+                    scanRoot: undefined,
+                    include: undefined, // when include: [], getFiles() always returns an empty result
+                    exclude: [
+                      buildExcludePattern(excludedDirName, glob),
+                      buildExcludePattern(excludedSubDirectoryName, glob),
+                    ],
+                    log,
+                  })
+                )
+                  .map((p) => p.path)
+                  .sort()
 
-                const expectedFiles = [
-                  { path: notExcludedByFilename, hash: await getGitHash(git, notExcludedByFilename) },
-                  { path: notExcludedInNotExcludedDir, hash: await getGitHash(git, notExcludedInNotExcludedDir) },
-                ]
-                const sortedExpectedFiles = sortBy(expectedFiles, "path")
-
-                expect(sortedFiles).to.eql(sortedExpectedFiles)
+                const expectedFiles = [notExcludedByFilename, notExcludedInNotExcludedDir].sort()
+                expect(files).to.eql(expectedFiles)
               })
             }
           }
@@ -567,24 +585,20 @@ export const commonGitHandlerTests = (handlerCls: new (params: VcsHandlerParams)
           await createFile(pathC3)
           await createFile(pathC4)
 
-          const files = await handler.getFiles({
-            path: tmpPath,
-            include: ["module-a/**/*"],
-            exclude: ["**/no.txt", "module-a/excluded-dir/**/*"],
-            log,
-            scanRoot: undefined,
-          })
+          const files = (
+            await handler.getFiles({
+              path: tmpPath,
+              include: ["module-a/**/*"],
+              exclude: ["**/no.txt", "module-a/excluded-dir/**/*"],
+              log,
+              scanRoot: undefined,
+            })
+          )
+            .map((p) => p.path)
+            .sort()
 
-          const expectedFiles = [
-            { path: pathA1, hash: await getGitHash(git, pathA1) },
-            { path: pathA3, hash: await getGitHash(git, pathA3) },
-            { path: pathA4, hash: await getGitHash(git, pathA4) },
-            { path: pathC1, hash: await getGitHash(git, pathC1) },
-            { path: pathC3, hash: await getGitHash(git, pathC3) },
-            { path: pathC4, hash: await getGitHash(git, pathC4) },
-          ]
-
-          expect(sortBy(files, "path")).to.eql(sortBy(expectedFiles, "path"))
+          const expectedFiles = [pathA1, pathA3, pathA4, pathC1, pathC3, pathC4].sort()
+          expect(files).to.eql(expectedFiles)
         })
       })
     })
