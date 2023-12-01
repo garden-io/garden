@@ -535,6 +535,57 @@ export const commonGitHandlerTests = (handlerCls: new (params: VcsHandlerParams)
 
           expect(files).to.eql([pathC])
         })
+
+        it("should respect include and exclude filters with sub-directories", async () => {
+          const moduleDir = resolve(tmpPath, "module-a")
+          const pathA2 = resolve(moduleDir, "no.txt") // should be excluded
+          const pathA3 = resolve(moduleDir, "yes.pass") // should be included
+          const pathA1 = resolve(moduleDir, "foo.txt") // should be included
+          const pathA4 = resolve(moduleDir, "yes.txt") // should pass
+
+          const pathB1 = resolve(moduleDir, "excluded-dir/foo.txt") // should be excluded
+          const pathB2 = resolve(moduleDir, "excluded-dir/no.txt") // should be excluded
+          const pathB3 = resolve(moduleDir, "excluded-dir/yes.pass") // should be excluded
+          const pathB4 = resolve(moduleDir, "excluded-dir/yes.txt") // should be excluded
+
+          const pathC1 = resolve(moduleDir, "included-dir/foo.txt") // should be included
+          const pathC2 = resolve(moduleDir, "included-dir/no.txt") // should be excluded
+          const pathC3 = resolve(moduleDir, "included-dir/yes.pass") // should be included
+          const pathC4 = resolve(moduleDir, "included-dir/yes.txt") // should be included
+
+          await mkdir(moduleDir)
+          await createFile(pathA1)
+          await createFile(pathA2)
+          await createFile(pathA3)
+          await createFile(pathA4)
+          await createFile(pathB1)
+          await createFile(pathB2)
+          await createFile(pathB3)
+          await createFile(pathB4)
+          await createFile(pathC1)
+          await createFile(pathC2)
+          await createFile(pathC3)
+          await createFile(pathC4)
+
+          const files = await handler.getFiles({
+            path: tmpPath,
+            include: ["module-a/**/*"],
+            exclude: ["**/no.txt", "module-a/excluded-dir/**/*"],
+            log,
+            scanRoot: undefined,
+          })
+
+          const expectedFiles = [
+            { path: pathA1, hash: await getGitHash(git, pathA1) },
+            { path: pathA3, hash: await getGitHash(git, pathA3) },
+            { path: pathA4, hash: await getGitHash(git, pathA4) },
+            { path: pathC1, hash: await getGitHash(git, pathC1) },
+            { path: pathC3, hash: await getGitHash(git, pathC3) },
+            { path: pathC4, hash: await getGitHash(git, pathC4) },
+          ]
+
+          expect(sortBy(files, "path")).to.eql(sortBy(expectedFiles, "path"))
+        })
       })
     })
 
