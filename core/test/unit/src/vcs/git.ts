@@ -83,7 +83,7 @@ function getGitHandlerCls(gitScanMode: GitScanMode): GitHandlerCls {
   }
 }
 
-export const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
+const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
   let garden: TestGarden
   let tmpDir: tmp.DirectoryResult
   let tmpPath: string
@@ -1284,7 +1284,7 @@ export const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
   })
 }
 
-export const getTreeVersionTests = (gitScanMode: GitScanMode) => {
+const getTreeVersionTests = (gitScanMode: GitScanMode) => {
   const gitHandlerCls = getGitHandlerCls(gitScanMode)
   describe("getTreeVersion", () => {
     context("include and exclude filters", () => {
@@ -1358,9 +1358,13 @@ export const getTreeVersionTests = (gitScanMode: GitScanMode) => {
   })
 }
 
+export function runGitHandlerTests(gitScanMode: GitScanMode) {
+  commonGitHandlerTests(gitScanMode)
+  getTreeVersionTests(gitScanMode)
+}
+
 describe("GitHandler", () => {
-  commonGitHandlerTests("subtree")
-  getTreeVersionTests("subtree")
+  runGitHandlerTests("subtree")
 })
 
 describe("git", () => {
