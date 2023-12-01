@@ -13,7 +13,7 @@ import fsExtra from "fs-extra"
 import { basename, join, relative, resolve } from "path"
 
 import type { TestGarden } from "../../../helpers.js"
-import { expectError, makeTestGardenA } from "../../../helpers.js"
+import { expectError, getDataDir, makeTestGarden, makeTestGardenA } from "../../../helpers.js"
 import type { GitCli } from "../../../../src/vcs/git.js"
 import { explainGitError, getCommitIdFromRefList, GitHandler, parseGitUrl } from "../../../../src/vcs/git.js"
 import type { Log } from "../../../../src/logger/log-entry.js"
@@ -1278,8 +1278,82 @@ export const commonGitHandlerTests = (handlerCls: new (params: VcsHandlerParams)
   })
 }
 
+export const getTreeVersionTests = (handlerCls: new (params: VcsHandlerParams) => GitHandler) => {
+  describe("getTreeVersion", () => {
+    context("include and exclude filters", () => {
+      it("should respect the include field, if specified", async () => {
+        const projectRoot = getDataDir("test-projects", "include-exclude")
+        const garden = await makeTestGarden(projectRoot)
+        const moduleConfig = await garden.resolveModule("module-a")
+        const handler = new GitHandler({
+          garden,
+          projectRoot: garden.projectRoot,
+          gardenDirPath: garden.gardenDirPath,
+          ignoreFile: garden.dotIgnoreFile,
+          cache: garden.treeCache,
+        })
+
+        const version = await handler.getTreeVersion({
+          log: garden.log,
+          projectName: garden.projectName,
+          config: moduleConfig,
+        })
+
+        expect(version.files).to.eql([
+          resolve(moduleConfig.path, "somedir/yes.txt"),
+          resolve(moduleConfig.path, "yes.txt"),
+        ])
+      })
+
+      it("should respect the exclude field, if specified", async () => {
+        const projectRoot = getDataDir("test-projects", "include-exclude")
+        const garden = await makeTestGarden(projectRoot)
+        const moduleConfig = await garden.resolveModule("module-b")
+        const handler = new GitHandler({
+          garden,
+          projectRoot: garden.projectRoot,
+          gardenDirPath: garden.gardenDirPath,
+          ignoreFile: garden.dotIgnoreFile,
+          cache: garden.treeCache,
+        })
+
+        const version = await handler.getTreeVersion({
+          log: garden.log,
+          projectName: garden.projectName,
+          config: moduleConfig,
+        })
+
+        expect(version.files).to.eql([resolve(moduleConfig.path, "yes.txt")])
+      })
+
+      it("should respect both include and exclude fields, if specified", async () => {
+        const projectRoot = getDataDir("test-projects", "include-exclude")
+        const garden = await makeTestGarden(projectRoot)
+        const moduleConfig = await garden.resolveModule("module-c")
+
+        const handler = new GitHandler({
+          garden,
+          projectRoot: garden.projectRoot,
+          gardenDirPath: garden.gardenDirPath,
+          ignoreFile: garden.dotIgnoreFile,
+          cache: garden.treeCache,
+        })
+
+        const version = await handler.getTreeVersion({
+          log: garden.log,
+          projectName: garden.projectName,
+          config: moduleConfig,
+        })
+
+        expect(version.files).to.eql([resolve(moduleConfig.path, "yes.txt")])
+      })
+    })
+  })
+}
+
 describe("GitHandler", () => {
   commonGitHandlerTests(GitHandler)
+  getTreeVersionTests(GitHandler)
 })
 
 describe("git", () => {

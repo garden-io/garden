@@ -7,8 +7,9 @@
  */
 
 import { GitRepoHandler } from "../../../../src/vcs/git-repo.js"
-import { commonGitHandlerTests } from "./git.js"
+import { commonGitHandlerTests, getTreeVersionTests } from "./git.js"
 
 describe("GitRepoHandler", () => {
   commonGitHandlerTests(GitRepoHandler)
+  getTreeVersionTests(GitRepoHandler)
 })
