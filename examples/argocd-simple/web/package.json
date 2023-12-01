@@ -1,34 +1,20 @@
 {
-  "name": "vote",
-  "version": "0.1.0",
-  "private": true,
+  "name": "frontend",
+  "version": "1.0.0",
+  "description": "Simple Node.js docker service",
+  "main": "main.js",
   "scripts": {
-    "serve": "VUE_APP_HOSTNAME=$GARDEN_VARIABLES_BASE_HOSTNAME vue-cli-service serve --dashboard",
-    "build": "vue-cli-service build",
-    "lint": "vue-cli-service lint",
-    "test:unit": "vue-cli-service test:unit",
-    "test:integ": "node_modules/mocha/bin/mocha tests/integ/test.js",
-    "test:e2e": "node_modules/mocha/bin/mocha tests/integ/test.js"
+    "start": "node main.js",
+    "test": "echo OK",
+    "integ": "mocha test/integ.js"
   },
+  "author": "garden.io <info@garden.io>",
+  "license": "ISC",
   "dependencies": {
-    "axios": "^0.21.2",
-    "chai": "^4.1.2",
-    "socket.io-client": "^4.3.2",
-    "vue": "^2.5.17",
-    "vue-router": "^3.0.1",
-    "vuex": "^3.0.1"
+    "express": "^4.18.2"
   },
   "devDependencies": {
-    "@vue/cli-plugin-babel": "^3.2.0",
-    "@vue/cli-plugin-eslint": "^5.0.8",
-    "@vue/cli-plugin-unit-mocha": "^5.0.8",
-    "@vue/cli-service": "^5.0.8",
-    "@vue/eslint-config-airbnb": "^4.0.0",
-    "@vue/test-utils": "^1.0.0-beta.20",
-    "babel-eslint": "^10.0.1",
-    "eslint": "^5.8.0",
-    "eslint-plugin-vue": "^5.0.0-0",
-    "mocha": "^5.1.1",
-    "vue-template-compiler": "^2.5.17"
+    "mocha": "^10.2.0",
+    "supertest": "^6.3.3"
   }
 }

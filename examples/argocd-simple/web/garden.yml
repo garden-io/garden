@@ -1,37 +1,76 @@
-kind: Module
+kind: Build
 description: The voting UI
 name: web-image
 type: container
 include: [.]
 
-tests:
-  - name: unit
-    args: [npm, run, test:unit]
-
 ---
-kind: Module
-description: The voting web UI
-type: helm
+kind: Deploy
+description: Frontend service container
+type: kubernetes 
 name: web
-chartPath: "./chart"
-serviceResource:
-  containerModule: web-image
-values:
-  name: web
-  image:
-    repository: ${modules.web-image.outputs.deployment-image-name}
-    tag: ${modules.web-image.version}
-  healthCheckPath: /
+dependencies: [build.web-image]
+spec:
+  files: 
+    - manifests/deployment.yaml
+    - manifests/service.yaml
+    - manifests/ingress.yaml
+  namespace: ${environment.namespace}
+  patchResources:
+  - name: web
+    kind: Deployment
+    patch:
+      spec:
+        replicas: 1
+        template:
+          spec:
+            containers:
+              - name: web
+                image: ${actions.build.web-image.outputs.deploymentImageId}
+                env:
+                  - name: HOSTNAME
+                    value: web.${var.baseHostname || providers.ephemeral-kubernetes.outputs.default-hostname}
+  - name: web
+    kind: Ingress
+    patch:
+      spec:
+        rules:
+          - host: "web.${var.baseHostname || providers.ephemeral-kubernetes.outputs.default-hostname}"
+            http:
+              paths:
+                - path: /hello-frontend
+                  pathType: Prefix
+                  backend:
+                    service:
+                      name: web
+                      port:
+                        number: 80
+                - path: /call-backend
+                  pathType: Prefix
+                  backend:
+                    service:
+                      name: web
+                      port:
+                        number: 80
+
+
 
 ---
-kind: Module
+kind: Test
 type: container
-name: e2e-runner
-image: ${modules.web-image.outputs.deployment-image-id}
-disabled: true
-include: []
-tests:
-  - name: e2e
-    args: [npm, run, test:e2e]
-    dependencies:
-      - web
+name: web-integ
+dependencies: [deploy.web]
+spec:
+  image: ${actions.build.web-image.outputs.deploymentImageId}
+  command: [npm, run, integ]
+---
+kind: Test
+type: kubernetes-exec
+name: web-unit
+dependencies: [deploy.web]
+spec:
+  command: [npm, test]
+  resource:
+    kind: Deployment
+    name: web
+    namespace: {environment.defaultNamespace}

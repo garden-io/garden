@@ -6,7 +6,6 @@ metadata:
   namespace: argocd
 spec:
   syncPolicy:
-    automated: {}
     syncOptions:
     - CreateNamespace=true
   destination:

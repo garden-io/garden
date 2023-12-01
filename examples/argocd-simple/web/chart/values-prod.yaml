@@ -1,6 +1,0 @@
-image:
-  repository: gardendev/web-image # update according to your registry-namespace/image
-  tag: v-260c4e3d8d
-env:
-  - name: HOSTNAME
-    value: web

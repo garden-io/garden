@@ -1,20 +1,11 @@
-# Using official python runtime base image
-FROM python:3.9-alpine
+FROM golang:1.18.3-alpine3.16
 
-# Set the application directory
+ENV PORT=8080
+EXPOSE ${PORT}
 WORKDIR /app
 
-RUN apk add --no-cache entr postgresql-dev musl-dev gcc
+COPY main.go .
 
-# Install our requirements.txt
-COPY requirements.txt /app/requirements.txt
-RUN pip install -r requirements.txt
+RUN go mod init main && go build -o main .
 
-# Copy our code from the current folder to /app inside the container
-COPY . /app
-
-# Make port 80 available for links and/or publish
-EXPOSE 80
-
-# Define our command to be run when launching the container
-CMD ["gunicorn", "app:app", "-b", "0.0.0.0:80", "--log-file", "-", "--access-logfile", "-", "--workers", "4", "--keep-alive", "0"]
+ENTRYPOINT ["./main"]

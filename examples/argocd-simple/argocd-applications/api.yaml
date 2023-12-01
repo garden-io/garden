@@ -6,7 +6,6 @@ metadata:
   namespace: argocd
 spec:
   syncPolicy:
-    automated: {}
     syncOptions:
     - CreateNamespace=true
   destination:
@@ -15,5 +14,5 @@ spec:
   project: default
   source:
     repoURL: https://github.com/garden-io/garden.git
-    targetRevision: argocd-examples
+    targetRevision: HEAD
     path: examples/argocd-simple/api/manifests

@@ -1,8 +1,0 @@
-helm:
-  parameters:
-  - name: image.repository
-    value: gardendev/api-image
-    forcestring: true
-  - name: image.tag
-    value: main-27
-    forcestring: true

@@ -1,0 +1,18 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: api
+  labels:
+    app.kubernetes.io/name: api
+spec:
+  rules:
+    - host: api.myproductioncluster.com
+      http:
+        paths:
+          - path: /hello-backend
+            pathType: Prefix
+            backend:
+              service:
+                name: api
+                port:
+                  number: 80

@@ -1,5 +1,0 @@
-name: api
-image:
-  repository: gardendev/api-image # update according to your registry-namespace/image
-  tag: v-699f6a8488
-healthCheckPath: /api

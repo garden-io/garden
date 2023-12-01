@@ -1,20 +1,43 @@
-kind: Module
+kind: Build
 type: container
 description: Image for the API backend for the voting UI
 name: api-image
 include: ["."]
 
 ---
-kind: Module
-description: The API backend for the voting UI
-type: helm
+kind: Deploy
+description: the api backend for the voting ui
+type: kubernetes
 name: api
-chartPath: "./chart"
-serviceResource:
-  containerModule: api-image
-values:
-  name: api
-  image:
-    repository: ${modules.api-image.outputs.deployment-image-name}
-    tag: ${modules.api-image.version}
-  healthCheckPath: /api
+dependencies: [build.api-image]
+spec:
+  files: 
+    - manifests/deployment.yaml
+    - manifests/service.yaml
+    - manifests/ingress.yaml
+  namespace: ${environment.namespace}
+  patchResources:
+  - name: api
+    kind: Deployment
+    patch:
+      spec:
+        replicas: 1
+        template:
+          spec:
+            containers:
+              - name: api
+                image: ${actions.build.api-image.outputs.deploymentImageId}
+  - name: api
+    kind: Ingress
+    patch:
+      spec:
+        rules:
+          - host: "api.${var.baseHostname || providers.ephemeral-kubernetes.outputs.default-hostname}"
+
+---
+kind: Run
+name: api-run-task
+type: container
+build: api-image
+spec:
+  command: ["sh", "-c", "echo task output"]

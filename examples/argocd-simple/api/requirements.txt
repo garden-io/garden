@@ -1,6 +1,0 @@
-Flask
-Redis
-gunicorn
-flask-cors
-requests
-psycopg2
