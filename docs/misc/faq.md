@@ -231,6 +231,17 @@ Garden interfaces with your cluster via `kubectl` and by using the Kubernetes AP
 
 No, you have to use the [`kubernetes`](../k8s-plugins/action-types/deploy/kubernetes.md) action type for that.
 
+## Local scripts
+
+### How do I execute long running local scripts?
+
+By setting `persistent: true` on `exec` Deploy actions. [See
+here](../other-plugins/exec.md#deploy) for more.
+
+### Can I _receive_ traffic to local service Telepresence style?
+
+Yes, by using the `localMode`  field on the relevant Deploy action. [See here](https://docs.garden.io/v/docs-edge-2/guides/running-service-in-local-mode) for details.
+
 ## Misc
 
 ### When are you releasing the Plugin SDK?
