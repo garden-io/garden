@@ -16,7 +16,7 @@ import { shutdown, getPackageVersion } from "../util/util.js"
 import type { Command, CommandResult, BuiltinArgs } from "../commands/base.js"
 import { CommandGroup } from "../commands/base.js"
 import type { GardenError } from "../exceptions.js"
-import { PluginError, toGardenError } from "../exceptions.js"
+import { PluginError, RuntimeError, toGardenError } from "../exceptions.js"
 import type { GardenOpts } from "../garden.js"
 import { Garden, makeDummyGarden } from "../garden.js"
 import { getRootLogger, getTerminalWriterType, LogLevel, parseLogLevel, RootLogger } from "../logger/logger.js"
@@ -274,6 +274,29 @@ ${renderCommands(commands)}
             // unhandled error when creating the cloud api
             throw err
           }
+        }
+
+        // If there is an ID in the project config and the user is not logged in (no cloudApi)
+        // 0.13 => check if login is required based on the `requireLogin` config value
+        if (!cloudApi && config && config.id) {
+          log.info("")
+
+          // fallback to false if no variables are set
+          // TODO-0.14: requireLogin should default to true
+          const isLoginRequired = (gardenEnv.GARDEN_REQUIRE_LOGIN_OVERRIDE ?? config.requireLogin) || false
+          if (isLoginRequired) {
+            log.warn(dedent`
+            You are running this in a project with a Garden Cloud ID and logging in is required.
+            Please log in via the ${styles.command("garden login")} command.`)
+            throw new RuntimeError({ message: "" })
+          } else {
+            log.warn(
+              `Warning: You are not logged in into Garden Cloud. Please log in via the ${styles.command(
+                "garden login"
+              )} command.`
+            )
+          }
+          log.info("")
         }
       }
 
