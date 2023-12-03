@@ -15,7 +15,7 @@ In the sections below we'll explain how to:
 - Set the deployment target so Garden can stream logs and sync code changes
 - Configure hot reloading
 
-The `kubernetes` Deploy action type works very similar to the [`helm`](./helm.md) Deploy action, and you'll find a lot common between the two guides.
+The `kubernetes` Deploy action type works very similarly to the [`helm`](./helm.md) Deploy action, and you'll find a lot common between the two guides.
 
 See the full spec for the `kubernetes` deploy action in our [reference docs](../../../reference/action-types/Deploy/kubernetes.md).
 
