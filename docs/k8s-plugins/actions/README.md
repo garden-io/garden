@@ -64,7 +64,7 @@ Choose this action type for Test and Run actions if you already have the corresp
 
 Choose this action type for Test and Run actions if you already have Kubernetes manifests and want to run the test/run command
 in an already deployed Kubernetes Pod. This is faster than (potentially) waiting for an image build and for a new Pod being created
-and is a good choice for e.g. running tests during inner loop development.
+and is a good choice for e.g. running tests while iterating during development.
 
 [See here](./run-test/kubernetes-exec.md) for how to configure it.
 
