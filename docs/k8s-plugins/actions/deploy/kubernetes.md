@@ -23,7 +23,7 @@ See the full spec for the `kubernetes` deploy action in our [reference docs](../
 
 When configuring a `kubernetes` Deploy action, you point Garden to the manifest files via the `spec.files` directive.
 
-You can also specify them inline in your Garden config via the `spec.manifests` directive but we recommend the former approach since that allows you to re-use them with other tools.
+You can also specify them inline in your Garden config via the `spec.manifests` field but we recommend the former approach since that allows you to re-use them with other tools.
 
 ### Option 1: Manifest files (recommended)
 
