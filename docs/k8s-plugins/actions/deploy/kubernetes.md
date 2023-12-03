@@ -13,7 +13,7 @@ In the sections below we'll explain how to:
 - Deploy a container image that's been built by Garden
 - Overwrite values in your manifests to suit your environment
 - Set the deployment target so Garden can stream logs and sync code changes
-- Configure hot reloading
+- Configure code syncing for rapid development
 
 The `kubernetes` Deploy action type works very similarly to the [`helm`](./helm.md) Deploy action, and you'll find a lot common between the two guides.
 
