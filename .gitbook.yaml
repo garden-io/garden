@@ -36,10 +36,11 @@ redirects:
   module-types/terraform: reference/module-types/terraform.md
   reference/module-template-config: reference/config-template-config.md
   using-garden/module-templates: using-garden/config-templates.md
+
   # Redirects after docs restructure (https://github.com/garden-io/garden/pull/3467)
   advanced/terraform: terraform-plugin/about.md
   advanced/pulumi: pulumi-plugin/about.md
-  advanced/rbac-config: k8s-plugins/advanced/rbac-config.md
+  advanced/rbac-config: k8s-plugins/guides/rbac-config.md
   getting-started: tutorials/your-first-project.md
   getting-started/0-introduction: overview/quickstart
   getting-started/1-installation: getting-started/installation.md
@@ -47,9 +48,23 @@ redirects:
   basics/5-min-quickstart: getting-started/quickstart.md
   other-plugins/container: other-plugins/container
   guides/remote-kubernetes: k8s-plugins/about.md
-  guides/in-cluster-building: k8s-plugins/advanced/in-cluster-building.md
-  guides/using-helm-charts: k8s-plugins/module-types/helm.md
-  guides/using-remote-sources: k8s-plugins/advanced/using-remote-sources.md
+  guides/in-cluster-building: k8s-plugins/guides/in-cluster-building.md
+  guides/using-helm-charts: k8s-plugins/action-types/deploy/helm.md
+  guides/using-remote-sources: advanced/using-remote-sources.md
+
   # Redirects set after 2023–09–22
   tutorials/migrating-to-bonsai: guides/migrating-to-bonsai.md
+
+  # Redirects set after 2023–12–01 when re-structuring plugins action configuration (https://github.com/garden-io/garden/pull/5216)
+  k8s-plugins/action-types/container.md: k8s-plugins/action/build/container.md
+  k8s-plugins/action-types/configmap.md: k8s-plugins/action/deploy/configmap.md
+  k8s-plugins/action-types/helm.md: k8s-plugins/action/deploy/helm.md
+  k8s-plugins/action-types/kubernetes.md: k8s-plugins/action/deploy/kubernetes.md
+  k8s-plugins/action-types/persistentvolumeclaim.md: k8s-plugins/action/deploy/persistentvolumeclaim.md
+  k8s-plugins/action-types/helm-pod.md: k8s-plugins/action/run-test/helm-pod.md
+  k8s-plugins/action-types/kubernetes-exec.md: k8s-plugins/action/run-test/kubernetes-exec.md
+  k8s-plugins/action-types/kubernetes-pod.md: k8s-plugins/action/run-test/kubernetes-pod.md
+  k8s-plugins/advanced/in-cluster-building:  k8s-plugins/guides/in-cluster-building.md
+  k8s-plugins/advanced/rbac-config:  k8s-plugins/guides/rbac-config.md
+  k8s-plugins/advanced/deploying-to-production:  k8s-plugins/guides/in-cluster-building.md
 

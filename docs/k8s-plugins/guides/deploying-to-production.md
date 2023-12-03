@@ -11,9 +11,9 @@ This will protect against accidentally messing with your production environments
 
 The flag is also given to each provider, which may modify behavior accordingly. In particular, when used with the `kubernetes` provider, it will do the following:
 
-1. Set the default number of replicas for `container` services to 3 (unless specified by the user).
-2. Set a soft AntiAffinity setting on `container` deployments to try to schedule Pods in a single Deployment across many nodes.
-3. Set a restricted `securityContext` for Pods (runAsUser: 1000, runAsGroup: 3000, fsGroup: 2000).
+1. Set the default number of replicas for `container` Deploy actions to 3 (unless specified by the user).
+2. Set a soft AntiAffinity setting for `container` Deploy actions to try to schedule Pods in a single Deployment across many nodes.
+3. Set a restricted `securityContext` for Pods (runAsUser: 1000, runAsGroup: 3000, fsGroup: 2000) for `container` Deploy actions.
 4. Increase the `RevisionHistoryLimit` on workloads to 10.
 5. By default, running `garden deploy --force` will propagate the `--force` flag to `helm upgrade`, and set the `--replace` flag on `helm install` when deploying `helm` actions. This may be okay while developing but risky in production, so the `production` flag prevents both of those.
 

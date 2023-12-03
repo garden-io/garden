@@ -86,7 +86,7 @@ for further information. For remote clusters, take a look at the [Remote Kuberne
 
 You can run Garden on Windows 10 Home, Pro or Enterprise editions.
 
-_Note: The Home edition doesn't support virtualization, but you can still use Garden if you're working with [remote Kubernetes](../k8s-plugins/remote-k8s/README.md) and [in-cluster building](../k8s-plugins/advanced/in-cluster-building.md)._
+_Note: The Home edition doesn't support virtualization, but you can still use Garden if you're working with [remote Kubernetes](../k8s-plugins/remote-k8s/README.md) and [in-cluster building](../k8s-plugins/guides/in-cluster-building.md)._
 
 To install the Garden CLI and its dependencies, please use our installation script. To run the script, open PowerShell as an administrator and run:
 

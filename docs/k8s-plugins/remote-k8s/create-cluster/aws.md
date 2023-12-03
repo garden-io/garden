@@ -44,4 +44,4 @@ You can select these when creating the policy through the UI, or with this JSON 
 }
 ```
 
-You will also need a Kubernetes role and service account in the EKS cluster. This can be achieved with the aws-auth configmap. The [instructions are documented here](https://docs.aws.amazon.com/eks/latest/userguide/add-user-role.html). If you are interested in minimizing the permissions in the cluster, please take a look at our [Kubernetes RBAC guide](../../advanced/rbac-config.md).
+You will also need a Kubernetes role and service account in the EKS cluster. This can be achieved with the aws-auth configmap. The [instructions are documented here](https://docs.aws.amazon.com/eks/latest/userguide/add-user-role.html). If you are interested in minimizing the permissions in the cluster, please take a look at our [Kubernetes RBAC guide](../../guides/rbac-config.md).
