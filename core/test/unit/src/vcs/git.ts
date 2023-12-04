@@ -485,24 +485,32 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
           }
         })
 
-        context(
-          "should filter out all files from directories (including their sub-directories) that match the exclude filter",
-          () => {
+        context("should filter directories that match the exclude filter", () => {
+          context("should filter out all files from direct sub-directories that match the exclude filter", () => {
             const testParams = [
               {
                 name: "without globs",
-                pathBuilder: (path: string) => path,
+                pathBuilder: (subDirName: string) => subDirName,
               },
               {
                 name: "with prefix globs",
-                pathBuilder: (path: string) => join("**", path),
+                pathBuilder: (subDirName: string) => join("**", subDirName),
               },
               {
                 name: "with full globs",
-                pathBuilder: (path: string) => join("**", path, "**", "*"),
+                pathBuilder: (subDirName: string) => join("**", subDirName, "**", "*"),
               },
             ]
 
+            /*
+              Dir structure:
+              |- bar.txt // included
+              |- dir // included
+              |--- bar.txt
+              |- excluded-dir // excluded direct sub-directory
+              |-- foo.txt
+              |-- bar.txt
+              */
             for (const testParam of testParams) {
               it(testParam.name, async () => {
                 // FIXME
@@ -527,26 +535,17 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
                 const excludedByDirectory1 = resolve(excludedDirPath, "foo.txt")
                 const excludedByDirectory2 = resolve(excludedDirPath, "bar.txt")
 
-                // both match directory exclusion pattern -> should be excluded despite the file exclusion pattern matching
-                const excludedSubDirectoryName = "excluded-subdir"
-                const excludedSubDirectoryPath = resolve(notExcludedDirPath, excludedSubDirectoryName)
-                await mkdir(excludedSubDirectoryPath)
-                const excludedBySubDirectory1 = resolve(excludedSubDirectoryPath, "foo.txt")
-                const excludedBySubDirectory2 = resolve(excludedSubDirectoryPath, "bar.txt")
-
                 await createFile(notExcludedByFilename)
                 await createFile(notExcludedInNotExcludedDir)
                 await createFile(excludedByDirectory1)
                 await createFile(excludedByDirectory2)
-                await createFile(excludedBySubDirectory1)
-                await createFile(excludedBySubDirectory2)
 
                 const files = (
                   await handler.getFiles({
                     path: tmpPath,
                     scanRoot: undefined,
                     include: undefined, // when include: [], getFiles() always returns an empty result
-                    exclude: [testParam.pathBuilder(excludedDirName), testParam.pathBuilder(excludedSubDirectoryName)],
+                    exclude: [testParam.pathBuilder(excludedDirName)],
                     log,
                   })
                 )
@@ -557,8 +556,80 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
                 expect(files).to.eql(expectedFiles)
               })
             }
-          }
-        )
+          })
+
+          context("should filter out all files from deep sub-directories that match the exclude filter", () => {
+            const testParams = [
+              {
+                name: "without globs",
+                pathBuilder: (subDirName: string) => subDirName,
+              },
+              {
+                name: "with prefix globs",
+                pathBuilder: (subDirName: string) => join("**", subDirName),
+              },
+              {
+                name: "with full globs",
+                pathBuilder: (subDirName: string) => join("**", subDirName, "**", "*"),
+              },
+            ]
+
+            /*
+              Dir structure:
+              |- bar.txt // included
+              |- dir // included
+              |--- bar.txt
+              |--- excluded-subdir // excluded deep sub-directory
+              |----- foo.txt
+              |----- bar.txt
+              */
+            for (const testParam of testParams) {
+              it(testParam.name, async () => {
+                // FIXME
+                if (handler.name === "git-repo") {
+                  return
+                }
+
+                // doesn't match file exclusion pattern -> should be included
+                const notExcludedByFilename = resolve(tmpPath, "bar.txt")
+
+                const notExcludedDirName = "dir"
+                const notExcludedDirPath = resolve(tmpPath, notExcludedDirName)
+                await mkdir(notExcludedDirPath)
+
+                // doesn't match file exclusion pattern in non-excluded dir -> should be included
+                const notExcludedInNotExcludedDir = resolve(notExcludedDirPath, "bar.txt")
+
+                // both match directory exclusion pattern -> should be excluded despite the file exclusion pattern matching
+                const excludedSubDirectoryName = "excluded-subdir"
+                const excludedSubDirectoryPath = resolve(notExcludedDirPath, excludedSubDirectoryName)
+                await mkdir(excludedSubDirectoryPath)
+                const excludedBySubDirectory1 = resolve(excludedSubDirectoryPath, "foo.txt")
+                const excludedBySubDirectory2 = resolve(excludedSubDirectoryPath, "bar.txt")
+
+                await createFile(notExcludedByFilename)
+                await createFile(notExcludedInNotExcludedDir)
+                await createFile(excludedBySubDirectory1)
+                await createFile(excludedBySubDirectory2)
+
+                const files = (
+                  await handler.getFiles({
+                    path: tmpPath,
+                    scanRoot: undefined,
+                    include: undefined, // when include: [], getFiles() always returns an empty result
+                    exclude: [testParam.pathBuilder(excludedSubDirectoryName)],
+                    log,
+                  })
+                )
+                  .map((p) => p.path)
+                  .sort()
+
+                const expectedFiles = [notExcludedByFilename, notExcludedInNotExcludedDir].sort()
+                expect(files).to.eql(expectedFiles)
+              })
+            }
+          })
+        })
       })
 
       context("when both include and exclude filters are specified", () => {
