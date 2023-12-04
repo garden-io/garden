@@ -204,9 +204,11 @@ export class DeployCommand extends Command<Args, Opts> {
     const disabled = deployActions.filter((s) => s.isDisabled()).map((s) => s.name)
 
     if (disabled.length > 0) {
-      const bold = disabled.map((d) => styles.accent(d))
+      const highlight = disabled.map((d) => styles.highlight(d))
       const msg =
-        disabled.length === 1 ? `Deploy action ${bold} is disabled` : `Deploy actions ${naturalList(bold)} are disabled`
+        disabled.length === 1
+          ? `Deploy action ${highlight} is disabled`
+          : `Deploy actions ${naturalList(highlight)} are disabled`
       commandLog.info(msg)
     }
 

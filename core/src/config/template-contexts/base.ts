@@ -170,14 +170,16 @@ export abstract class ConfigContext {
 
     if (value === undefined) {
       if (message === undefined) {
-        message = styles.error(`Could not find key ${styles.accent(String(nextKey))}`)
+        message = styles.error(`Could not find key ${styles.highlight(String(nextKey))}`)
         if (nestedNodePath.length > 1) {
-          message += styles.error(" under ") + styles.accent(renderKeyPath(nestedNodePath.slice(0, -1)))
+          message += styles.error(" under ") + styles.highlight(renderKeyPath(nestedNodePath.slice(0, -1)))
         }
         message += styles.error(".")
 
         if (available) {
-          const availableStr = available.length ? naturalList(available.sort().map((k) => styles.accent(k))) : "(none)"
+          const availableStr = available.length
+            ? naturalList(available.sort().map((k) => styles.highlight(k)))
+            : "(none)"
           message += styles.error(" Available keys: " + availableStr + ".")
         }
         const messageFooter = this.getMissingKeyErrorFooter(nextKey, nestedNodePath.slice(0, -1))

@@ -54,7 +54,7 @@ import { GitHandler } from "./vcs/git.js"
 import { BuildStaging } from "./build-staging/build-staging.js"
 import type { ConfigGraph } from "./graph/config-graph.js"
 import { ResolvedConfigGraph } from "./graph/config-graph.js"
-import { getRootLogger } from "./logger/logger.js"
+import { LogLevel, getRootLogger } from "./logger/logger.js"
 import type { GardenPluginSpec } from "./plugin/plugin.js"
 import type { GardenResource } from "./config/base.js"
 import { loadConfigResources, findProjectConfig, configTemplateKind, renderTemplateKind } from "./config/base.js"
@@ -1875,7 +1875,9 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
     if (!opts.noEnterprise && cloudApi) {
       const distroName = getCloudDistributionName(cloudApi.domain)
       const isCommunityEdition = !config.domain
-      const cloudLog = log.createLog({ name: getCloudLogSectionName(distroName) })
+      const cloudLogLevel =
+        opts.commandInfo.name === "dev" || opts.commandInfo.name === "serve" ? LogLevel.debug : undefined
+      const cloudLog = log.createLog({ name: getCloudLogSectionName(distroName), fixLevel: cloudLogLevel })
 
       cloudLog.info(`Connecting to ${distroName}...`)
 

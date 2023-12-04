@@ -140,7 +140,7 @@ export function renderSection(entry: LogEntry): string {
   const section = getSection(entry)
 
   if (section && msg) {
-    return `${padSection(styles.section(section))} ${styles.accent.bold("→")} `
+    return `${padSection(styles.section(section))} ${styles.primary.bold("→")} `
   } else if (section) {
     return padSection(styles.section(section))
   }

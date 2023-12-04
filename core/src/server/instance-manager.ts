@@ -243,11 +243,13 @@ export class GardenInstanceManager {
     garden.events.once("configChanged", (_payload) => {
       if (!garden.needsReload()) {
         garden.needsReload(true)
-        garden.log.info(
-          styles.highlightSecondary.bold(
-            `${styles.accent("→")} Config change detected. Project will be reloaded when the next command is run.`
+        garden.log
+          .createLog({ name: "garden" })
+          .info(
+            styles.highlightSecondary.bold(
+              `Config change detected. Project will be reloaded when the next command is run.`
+            )
           )
-        )
       }
     })
 

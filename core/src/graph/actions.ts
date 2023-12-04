@@ -194,7 +194,7 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
         throw new ConfigurationError({
           message:
             styles.error(
-              `\nError processing config for ${styles.accent.bold(config.kind)} action ${styles.accent.bold(
+              `\nError processing config for ${styles.highlight(config.kind)} action ${styles.highlight(
                 config.name
               )}:\n`
             ) + styles.error(error.message),

@@ -241,7 +241,9 @@ ${renderCommands(commands)}
       const gardenLog = log.createLog({ name: "garden", showDuration: true })
       // Log context for printing the start and finish of Garden initialization when not using the dev console
       const gardenInitLog =
-        command.getFullName() !== "dev" ? log.createLog({ name: "garden", showDuration: true }) : null
+        !command.noProject && command.getFullName() !== "dev" && command.getFullName() !== "serve"
+          ? log.createLog({ name: "garden", showDuration: true })
+          : null
 
       // Init Cloud API (if applicable)
       let cloudApi: CloudApi | undefined

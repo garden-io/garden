@@ -302,7 +302,7 @@ export class ActionSpecContext extends OutputConfigContext {
     // Throw specific error when attempting to resolve self
     this.actions[action.kind.toLowerCase()].set(
       name,
-      new ErrorContext(`Action ${styles.accent.bold(action.key())} cannot reference itself.`)
+      new ErrorContext(`Action ${styles.highlight.bold(action.key())} cannot reference itself.`)
     )
 
     if (parentName && templateName) {

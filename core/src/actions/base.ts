@@ -398,10 +398,12 @@ export abstract class BaseAction<
    * Verbose string description of the action. Useful for logging and error messages.
    */
   longDescription(): string {
-    let d = `${styles.accent(this.kind)} type=${styles.accent.bold(this.type)} name=${styles.accent.bold(this.name)}`
+    let d = `${styles.highlight(this.kind)} type=${styles.highlight.bold(this.type)} name=${styles.highlight.bold(
+      this.name
+    )}`
 
     if (this._moduleName) {
-      d += ` (from module ${styles.accent.bold(this._moduleName)})`
+      d += ` (from module ${styles.highlight.bold(this._moduleName)})`
     }
 
     return d

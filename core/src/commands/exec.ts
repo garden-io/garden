@@ -116,9 +116,9 @@ export class ExecCommand extends Command<Args, Opts> {
       case "unhealthy":
       case "unknown":
         log.warn(
-          `The current state of ${action.key()} is ${styles.accent(
+          `The current state of ${action.key()} is ${styles.highlight(
             deployState || "unknown"
-          )}. If this command fails, you may need to re-deploy it with the ${styles.accent("deploy")} command.`
+          )}. If this command fails, you may need to re-deploy it with the ${styles.command("deploy")} command.`
         )
         break
       case "outdated":
@@ -135,9 +135,9 @@ export class ExecCommand extends Command<Args, Opts> {
         // if there is an active sync, the state is likely to be outdated so do not display this warning
         if (!(deploySync?.syncCount && deploySync?.syncCount > 0 && deploySync?.state === "active")) {
           log.warn(
-            `The current state of ${action.key()} is ${styles.accent(
+            `The current state of ${action.key()} is ${styles.highlight(
               deployState
-            )}. If this command fails, you may need to re-deploy it with the ${styles.accent("deploy")} command.`
+            )}. If this command fails, you may need to re-deploy it with the ${styles.command("deploy")} command.`
           )
         }
         break

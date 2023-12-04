@@ -916,17 +916,17 @@ async function isValidLocalPath(syncPoint: string) {
 
 function formatSyncConflict(sourceDescription: string, targetDescription: string, conflict: SyncConflict): string {
   return dedent`
-    Sync conflict detected at path ${styles.accent(
+    Sync conflict detected at path ${styles.highlight(
       conflict.root
     )} in sync from ${sourceDescription} to ${targetDescription}.
 
     Until the conflict is resolved, the conflicting paths will not be synced.
 
-    If conflicts come up regularly at this destination, you may want to use either the ${styles.accent(
+    If conflicts come up regularly at this destination, you may want to use either the ${styles.highlight(
       "one-way-replica"
-    )} or ${styles.accent("one-way-replica-reverse")} sync modes instead.
+    )} or ${styles.highlight("one-way-replica-reverse")} sync modes instead.
 
-    See the code synchronization guide for more details: ${styles.accent(syncGuideLink + "#sync-modes")}`
+    See the code synchronization guide for more details: ${styles.link(syncGuideLink + "#sync-modes")}`
 }
 
 /**
