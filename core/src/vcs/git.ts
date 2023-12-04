@@ -81,13 +81,11 @@ interface GitSubTreeIncludeExcludeFiles extends BaseIncludeExcludeFiles {
 const getIncludeExcludeFiles: IncludeExcludeFilesHandler<GetFilesParams, GitSubTreeIncludeExcludeFiles> = async (
   params: GetFilesParams
 ) => {
-  let { include, exclude } = params
-
-  if (!exclude) {
-    exclude = []
-  }
+  let include = params.include
 
   // Make sure action config is not mutated.
+  let exclude = !params.exclude ? [] : [...params.exclude]
+
   // It looks like paths with redundant '.' and '..' parts
   // do not work well along with --exclude and --glob-pathspecs flags.
   exclude = [...exclude.map(normalize), "**/.garden/**/*"]
