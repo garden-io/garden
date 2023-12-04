@@ -20,9 +20,5 @@ providers:
     setupIngressController: nginx
   - name: local-kubernetes
     environments: [local]
-variables:
-  foobar:
-    bar: asd
-    baz: $(local.env.HELLO)
   timeout: 360
   show-log: false
