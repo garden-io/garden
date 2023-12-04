@@ -12,7 +12,7 @@ import { isDirectory, matchPath } from "../util/fs.js"
 import fsExtra from "fs-extra"
 import { pathToCacheContext } from "../cache.js"
 import { FileTree } from "./file-tree.js"
-import { sep } from "path"
+import { normalize, sep } from "path"
 
 const { pathExists } = fsExtra
 
@@ -36,6 +36,12 @@ const getIncludeExcludeFiles: IncludeExcludeFilesHandler<GitRepoGetFilesParams, 
   if (!exclude) {
     exclude = []
   }
+
+  // Make sure action config is not mutated.
+  // Do the same normalization of the excluded paths like in GitHandler.
+  // This might be redundant because the non-normalized paths will be handled by augmentGlobs below.
+  // But this brings no harm and makes the implementation more clear.
+  exclude = [...exclude.map(normalize)]
 
   // We allow just passing a path like `foo` as include and exclude params
   // Those need to be converted to globs, but we don't want to touch existing globs
