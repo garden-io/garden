@@ -43,6 +43,7 @@ import * as ast from "./ast.js"
 import { styles } from "../logger/styles.js"
 import { TemplateLeaf, isTemplateLeafValue, isTemplateLeaf, templateIsArray, templateIsObject } from "./inputs.js"
 import type { CollectionOrValue, TemplateLeafValue } from "./inputs.js"
+import { LazyValue, TemplateStringLazyValue } from "./lazy.js"
 
 const escapePrefix = "$${"
 
@@ -117,7 +118,7 @@ export function resolveTemplateStringWithInputs({
   string: string
   context: ConfigContext
   contextOpts?: ContextResolveOpts
-}): CollectionOrValue<TemplateLeaf> {
+}): CollectionOrValue<LazyValue | TemplateLeaf> {
   // Just return immediately if this is definitely not a template string
   if (!maybeTemplateString(string)) {
     return new TemplateLeaf({
@@ -130,7 +131,12 @@ export function resolveTemplateStringWithInputs({
   try {
     const parsed = parseTemplateString(string, contextOpts?.unescape || false)
 
-    return parsed.evaluate({ context, opts: contextOpts, rawTemplateString: string })
+    return new TemplateStringLazyValue({
+      astRootNode: parsed,
+      rawTemplateString: string,
+      context,
+      opts: contextOpts,
+    })
   } catch (err) {
     if (!(err instanceof GardenError)) {
       throw err
@@ -200,7 +206,7 @@ export function resolveTemplateStringsWithInputs({
   context: ConfigContext
   contextOpts?: ContextResolveOpts
   source: ConfigSource | undefined
-}): CollectionOrValue<TemplateLeaf> {
+}): CollectionOrValue<TemplateLeaf | LazyValue> {
   if (!contextOpts.yamlPath) {
     contextOpts.yamlPath = []
   }

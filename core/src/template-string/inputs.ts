@@ -11,6 +11,7 @@ import { ObjectPath } from "../config/template-contexts/base.js"
 import { InternalError } from "../exceptions.js"
 import { isArray, isPlainObject, mapValues } from "lodash-es"
 import { deepMap } from "../util/objects.js"
+import { LazyValue } from "./lazy.js"
 
 export function isTemplateLeafValue(value: unknown): value is TemplateLeafValue {
   return (
@@ -68,11 +69,11 @@ export class TemplateLeaf<T extends TemplateLeafValue = TemplateLeafValue> {
   }
 }
 
-export type Collection<P extends TemplateLeafValue | TemplateLeaf = TemplateLeaf> =
+export type Collection<P extends LazyValue | TemplateLeafValue | TemplateLeaf = TemplateLeaf> =
   | Iterable<CollectionOrValue<P>>
   | { [key: string]: CollectionOrValue<P> }
 
-export type CollectionOrValue<P extends TemplateLeafValue | TemplateLeaf = TemplateLeaf> = P | Collection<P>
+export type CollectionOrValue<P extends LazyValue | TemplateLeafValue | TemplateLeaf = TemplateLeaf> = P | Collection<P>
 
 // helpers
 
