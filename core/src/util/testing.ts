@@ -25,6 +25,7 @@ import { dedent, naturalList } from "./string.js"
 import pathIsInside from "path-is-inside"
 import { join, resolve } from "path"
 import { DEFAULT_BUILD_TIMEOUT_SEC, GARDEN_CORE_ROOT, GardenApiVersion } from "../constants.js"
+import type { GitScanMode } from "../constants.js"
 import { getRootLogger } from "../logger/logger.js"
 import stripAnsi from "strip-ansi"
 import type { VcsHandler } from "../vcs/vcs.js"
@@ -44,6 +45,7 @@ import type {
 } from "../commands/base.js"
 import { validateSchema } from "../config/validation.js"
 import fsExtra from "fs-extra"
+
 const { mkdirp, remove } = fsExtra
 import { GlobalConfigStore } from "../config-store/global.js"
 import { isPromise } from "./objects.js"
@@ -166,6 +168,7 @@ export type TestGardenOpts = Partial<GardenOpts> & {
   onlySpecifiedPlugins?: boolean
   remoteContainerAuth?: boolean
   clearConfigsOnScan?: boolean
+  gitScanMode?: GitScanMode
 }
 
 export class TestGarden extends Garden {
@@ -208,6 +211,11 @@ export class TestGarden extends Garden {
       params.plugins = opts?.plugins || []
     } else {
       params = await resolveGardenParams(currentDirectory, { commandInfo: defaultCommandInfo, ...opts })
+      if (opts?.gitScanMode) {
+        params.projectConfig.scan = params.projectConfig.scan ?? { git: { mode: opts.gitScanMode } }
+        params.projectConfig.scan.git = params.projectConfig.scan.git ?? { mode: opts.gitScanMode }
+        params.projectConfig.scan.git.mode = opts.gitScanMode
+      }
       if (cacheKey) {
         paramCache[cacheKey] = cloneDeep({ ...params, log: <any>{}, plugins: [] })
       }
