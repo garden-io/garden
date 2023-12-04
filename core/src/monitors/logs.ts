@@ -233,12 +233,12 @@ export class LogMonitor extends Monitor {
       out += `${sectionStyle(padSection(entry.name, maxDeployName))} → `
     }
     if (timestamp) {
-      out += `${styles.primary(timestamp)} → `
+      out += `${styles.secondary(timestamp)} → `
     }
     if (tags) {
-      out += styles.primary("[" + tags + "] ")
+      out += styles.secondary("[" + tags + "] ")
     }
-    // If the line doesn't have ansi encoding, we color it white to prevent logger from applying styles.
+
     out += hasAnsi(serviceLog) ? serviceLog : styles.primary(serviceLog)
 
     return out

@@ -174,9 +174,10 @@ export class LogsCommand extends Command<Args, Opts> {
       details = ` (from the last '${since}' for each service)`
     }
 
+    const style = styles.accent
     log.info("")
-    log.info(styles.accent.bold("Service logs" + details + ":"))
-    log.info(styles.accent.bold(renderDivider()))
+    log.info(style("Service logs" + details + ":"))
+    log.info(renderDivider({ color: style }))
 
     const resolvedActions = await garden.resolveActions({ actions, graph, log })
 
@@ -217,7 +218,7 @@ export class LogsCommand extends Command<Args, Opts> {
         entry.monitor.logEntry(entry)
       })
 
-      log.info(styles.accent.bold(renderDivider()))
+      log.info(renderDivider({ color: style }))
 
       return {
         result: sorted.map((e) => omit(e, "monitor")),
