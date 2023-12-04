@@ -17,7 +17,7 @@ Garden creates a developer namespace inside a remote Kubernetes cluster that loo
 - **Proxy local services** with [Local Mode](../guides/running-service-in-local-mode.md)
 - **Hot reload** your code to containers running in your local and remote Kubernetes clusters for a smooth inner loop with [Code Synchronization](https://docs.garden.io/guides/code-synchronization).
 - **Run tests as you develop**. Stop waiting for CI/CD to tell you what's broken: run your integration and end-to-end tests as you develop, at any time, with `garden test` or, if you're inside the Garden Web Dashboard, with `test`.
-- **Accelerate build times** with [remote image builds](../k8s-plugins/advanced/in-cluster-building.md) to accelerate your image build times
+- **Accelerate build times** with [remote image builds](../kubernetes-plugins/guides/in-cluster-building.md) to accelerate your image build times
 - **Spin up powerful [ephemeral clusters](../k8s-plugins/ephemeral-k8s/configure-provider.md)** in seconds
 
 If you're already familiar with Garden and just want to get going, click any of the links above to set up your features.
@@ -38,7 +38,7 @@ Setting up a remote Kubernetes environment for local development creates a devel
 
 Now that you've installed Garden and have a cluster configured, you'll progressively add features to make Garden the right fit for you.
 
-- Build inside a powerful Kubernetes cluster with [In-Cluster Building](../k8s-plugins/advanced/in-cluster-building.md)
+- Build inside a powerful Kubernetes cluster with [In-Cluster Building](../kubernetes-plugins/guides/in-cluster-building.md)
 - Set up hot reloading for a frustration-free inner loop with [Code Synchronization](../guides/code-synchronization.md)
 
 ## Troubleshooting
