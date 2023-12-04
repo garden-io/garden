@@ -543,17 +543,18 @@ export abstract class BaseAction<
     return this._treeVersion
   }
 
-  @Memoize()
-  private stringifyConfig() {
-    return stableStringify(omit(this._config, "internal"))
-  }
-
   /**
    * The version of this action's config (not including files or dependencies)
    */
   @Memoize()
   configVersion() {
-    return versionStringPrefix + hashStrings([this.stringifyConfig()])
+    // We omit a few fields here that should not affect versioning directly:
+    // - The internal field (basePath, configFilePath etc.) are not relevant to the config version
+    // - The source, include and exclude stanzas are implicitly factored into the tree version
+    // - The description field is just informational, shouldn't affect execution
+    // - The disabled flag is not relevant to the config version, since it only affects execution
+    const configToHash = omit(this._config, "internal", "source", "include", "exclude", "description", "disabled")
+    return versionStringPrefix + hashStrings([stableStringify(configToHash)])
   }
 
   /**
