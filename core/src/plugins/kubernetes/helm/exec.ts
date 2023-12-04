@@ -27,7 +27,7 @@ export const execInHelmDeploy: DeployActionHandler<"exec", HelmDeployAction> = a
 
   if (!defaultTarget) {
     throw new ConfigurationError({
-      message: `${action.longDescription()} does not specify a defaultTarget. Please configure this in order to be able to use this command with. This is currently necessary for the ${styles.accent(
+      message: `${action.longDescription()} does not specify a defaultTarget. Please configure this in order to be able to use this command with. This is currently necessary for the ${styles.command(
         "exec"
       )} command to work with helm Deploy actions.`,
     })

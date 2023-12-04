@@ -25,7 +25,6 @@ import { testRouter } from "./test.js"
 import type { DeployStatus, DeployStatusMap } from "../plugin/handlers/Deploy/get-status.js"
 import type { GetActionOutputsParams, GetActionOutputsResult } from "../plugin/handlers/base/get-outputs.js"
 import type { ActionKind, BaseActionConfig, ResolvedAction } from "../actions/types.js"
-import { styles } from "../logger/styles.js"
 
 export interface DeployManyParams {
   graph: ConfigGraph
@@ -161,7 +160,7 @@ export class ActionRouter extends BaseRouter {
     dependantsFirst?: boolean
     names?: string[]
   }): Promise<DeployStatusMap> {
-    const servicesLog = log.createLog({}).info(styles.accent("Deleting deployments..."))
+    const servicesLog = log.createLog({}).info("Deleting deployments...")
     const deploys = graph.getDeploys({ names })
 
     const tasks = deploys.map((action) => {

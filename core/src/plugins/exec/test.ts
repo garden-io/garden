@@ -41,7 +41,7 @@ execTest.addHandler("run", async ({ log, action, artifactsPath, ctx }) => {
   await copyArtifacts(log, artifacts, action.getBuildPath(), artifactsPath)
 
   if (result.outputLog) {
-    const prefix = `Finished executing ${styles.accent(action.key())}. Here is the full output:`
+    const prefix = `Finished executing ${styles.highlight(action.key())}. Here is the full output:`
     log.info(
       renderMessageWithDivider({
         prefix,

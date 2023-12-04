@@ -18,6 +18,7 @@ import { checkResourceStatus, waitForResources } from "../status/status.js"
 import { KubeApi } from "../api.js"
 
 import { GardenIngressComponent } from "./ingress-controller-base.js"
+import { styles } from "../../../logger/styles.js"
 
 const HELM_INGRESS_NGINX_REPO = "https://kubernetes.github.io/ingress-nginx"
 const HELM_INGRESS_NGINX_VERSION = "4.0.13"
@@ -64,7 +65,7 @@ export abstract class HelmGardenIngressController extends GardenIngressComponent
       `${valueArgs.join(",")}`,
     ]
 
-    log.info(`Installing nginx in ${namespace} namespace...`)
+    log.info(`Installing ${styles.highlight("nginx")} in ${styles.highlight(namespace)} namespace...`)
     await this.defaultBackend.install(ctx, log)
     await helm({ ctx, namespace, log, args, emitLogEvents: false })
 

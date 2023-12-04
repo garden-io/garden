@@ -271,17 +271,16 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
     if (!installationDirectory) {
       installationDirectory = dirname(processExecPath)
       log.info(
-        styles.accent(
-          "No installation directory specified via --install-dir option. Garden will be re-installed to the current installation directory: "
-        ) + styles.highlight(installationDirectory)
+        "No installation directory specified via --install-dir option. Garden will be re-installed to the current installation directory: " +
+          styles.highlight(installationDirectory)
       )
     } else {
-      log.info(styles.accent("Installation directory: ") + styles.highlight(installationDirectory))
+      log.info("Installation directory: " + styles.highlight(installationDirectory))
     }
 
     installationDirectory = resolve(installationDirectory)
 
-    log.info(styles.accent("Checking for target and latest versions..."))
+    log.info("Checking for target and latest versions...")
     const latestVersion = await getLatestVersion(log)
 
     if (!desiredVersion) {
@@ -289,9 +288,9 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
       desiredVersion = await this.findTargetVersion(currentVersion, versionScope, latestVersion)
     }
 
-    log.info(styles.accent("Current Garden version: ") + styles.highlight(currentVersion))
-    log.info(styles.accent("Target Garden version to be installed: ") + styles.highlight(desiredVersion))
-    log.info(styles.accent("Latest release version: ") + styles.highlight(latestVersion))
+    log.info("Current Garden version: " + styles.highlight(currentVersion))
+    log.info("Target Garden version to be installed: " + styles.highlight(desiredVersion))
+    log.info("Latest release version: " + styles.highlight(latestVersion))
 
     if (!opts.force && !opts["install-dir"] && desiredVersion === currentVersion) {
       log.warn("")
@@ -380,9 +379,7 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
       const { build, filename, extension, url } = this.getReleaseArtifactDetails(platform, architecture, desiredVersion)
 
       log.info("")
-      log.info(
-        styles.accent(`Downloading version ${styles.highlight(desiredVersion)} from ${styles.underline(url)}...`)
-      )
+      log.info(`Downloading version ${styles.highlight(desiredVersion)} from ${styles.underline(url)}...`)
 
       const tempPath = join(tempDir.path, filename)
 
@@ -401,9 +398,7 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
           try {
             const latestVersions = await getLatestVersions(10, log)
 
-            log.info(
-              styles.accent.bold(`Here are the latest available versions: `) + latestVersions.join(styles.accent(", "))
-            )
+            log.info(`Here are the latest available versions: ` + latestVersions.join(styles.highlight(", ")))
           } catch (err) {
             log.debug(`Could not retrieve the latest available versions, ${err}`)
           }
@@ -429,7 +424,7 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
       await remove(backupPath)
       await mkdirp(backupPath)
 
-      log.info(styles.accent(`Backing up prior installation to ${styles.primary(backupPath)}...`))
+      log.info(`Backing up prior installation to ${styles.primary(backupPath)}...`)
 
       for (const path of await readdir(installationDirectory)) {
         if (path === ".backup") {
@@ -440,7 +435,7 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
       }
 
       // Move the extracted files to the install directory
-      log.info(styles.accent(`Extracting to installation directory ${styles.highlight(installationDirectory)}...`))
+      log.info(`Extracting to installation directory ${styles.highlight(installationDirectory)}...`)
 
       if (extension === "zip") {
         // Note: lazy-loading for startup performance

@@ -14,7 +14,7 @@ import chalk from "chalk"
 const theme = {
   primary: chalk.white,
   secondary: chalk.grey,
-  accent: chalk.white,
+  accent: chalk.blueBright,
   highlight: chalk.cyan,
   highlightSecondary: chalk.magenta,
   warning: chalk.yellow,

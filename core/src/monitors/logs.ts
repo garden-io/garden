@@ -239,7 +239,7 @@ export class LogMonitor extends Monitor {
       out += styles.primary("[" + tags + "] ")
     }
     // If the line doesn't have ansi encoding, we color it white to prevent logger from applying styles.
-    out += hasAnsi(serviceLog) ? serviceLog : styles.accent(serviceLog)
+    out += hasAnsi(serviceLog) ? serviceLog : styles.primary(serviceLog)
 
     return out
   }

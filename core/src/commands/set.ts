@@ -64,9 +64,9 @@ export class SetDefaultEnvCommand extends Command<SetDefaultEnvArgs, {}> {
     log.info("")
 
     if (args.env) {
-      log.success(styles.accent(`Set the default environment to ${styles.highlight(args.env)}`))
+      log.success(`Set the default environment to ${styles.highlight(args.env)}`)
     } else {
-      log.success(styles.accent("Cleared the default environment"))
+      log.success("Cleared the default environment")
     }
 
     return {}

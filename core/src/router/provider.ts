@@ -45,7 +45,6 @@ import { Profile } from "../util/profiling.js"
 import type { GetDashboardPageParams, GetDashboardPageResult } from "../plugin/handlers/Provider/getDashboardPage.js"
 import type { CommonParams, BaseRouterParams } from "./base.js"
 import { BaseRouter } from "./base.js"
-import { styles } from "../logger/styles.js"
 
 /**
  * The ProviderRouter takes care of choosing which plugin should be responsible for handling a provider action,
@@ -176,7 +175,7 @@ export class ProviderRouter extends BaseRouter {
    * Runs cleanupEnvironment for all configured providers
    */
   async cleanupAll(log: Log) {
-    log.info(styles.accent("Cleaning up environments..."))
+    log.info("Cleaning up environments...")
     const environmentStatuses: EnvironmentStatusMap = {}
 
     const providers = await this.garden.resolveProviders(log)

@@ -72,7 +72,7 @@ export const execBuildHandler = execBuild.addHandler("build", async ({ action, l
   if (output.detail?.buildLog) {
     output.outputs.log = output.detail?.buildLog
 
-    const prefix = `Finished building ${styles.accent(action.name)}. Here is the full output:`
+    const prefix = `Finished building ${styles.highlight(action.name)}. Here is the full output:`
     log.info(
       renderMessageWithDivider({
         prefix,

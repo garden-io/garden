@@ -53,6 +53,7 @@ import pty from "@homebridge/node-pty-prebuilt-multiarch"
 import { styles } from "../logger/styles.js"
 
 const skipLogsForCommands = ["autocomplete"]
+const serverLogName = "garden-server"
 
 const skipAnalyticsForCommands = ["sync status"]
 
@@ -237,9 +238,7 @@ export class GardenServer extends EventEmitter {
         }
       } while (!serverStarted)
     }
-    this.log.info(
-      styles.accent(`Garden server has successfully started at port ${styles.bold(this.port.toString())}.\n`)
-    )
+    this.log.info(`Garden server has successfully started at port ${styles.highlight(this.port.toString())}.\n`)
 
     const processRecord = await this.globalConfigStore.get("activeProcesses", String(process.pid))
 
@@ -724,11 +723,11 @@ export class GardenServer extends EventEmitter {
         const requestLog = skipLogsForCommands.includes(command.getFullName())
           ? null
           : this.log.createLog({
-              name: "garden-server",
+              name: serverLogName,
               fixLevel: internal ? LogLevel.debug : undefined,
             })
 
-        const cmdNameStr = styles.accent.bold(command.getFullName() + (internal ? ` (internal)` : ""))
+        const cmdNameStr = styles.command(request.command + (internal ? ` (internal)` : ""))
         const commandSessionId = requestId
 
         if (skipAnalyticsForCommands.includes(command.getFullName())) {
@@ -812,14 +811,15 @@ export class GardenServer extends EventEmitter {
               })
             )
 
-            if (errors?.length && requestLog) {
+            if (requestLog && errors?.length) {
               requestLog.error(`Command ${cmdNameStr} failed with errors:`)
               for (const error of errors) {
                 requestLog.error({ error })
               }
-            } else {
-              requestLog?.success(`Command ${cmdNameStr} completed successfully`)
+            } else if (requestLog) {
+              requestLog.success(`Command ${cmdNameStr} completed successfully`)
             }
+
             delete this.activePersistentRequests[requestId]
           })
           .catch((error) => {
@@ -831,7 +831,7 @@ export class GardenServer extends EventEmitter {
             delete this.activePersistentRequests[requestId]
           })
       } catch (error) {
-        this.log.createLog({ name: "garden-server" }).error({
+        this.log.createLog({ name: serverLogName }).error({
           msg: `Unexpected error handling request ID ${requestId}: ${error}`,
           error: toGardenError(error),
         })
@@ -862,7 +862,7 @@ export class GardenServer extends EventEmitter {
       const { log: _log } = resolved
       const log = _log.createLog({ fixLevel: LogLevel.silly })
 
-      const loadConfigLog = this.log.createLog({ name: "garden-server", showDuration: true })
+      const loadConfigLog = this.log.createLog({ name: serverLogName, showDuration: true })
       loadConfigLog.info("Loading config for Live page...")
 
       const cloudApi = await this.manager.getCloudApi({

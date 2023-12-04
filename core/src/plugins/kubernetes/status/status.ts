@@ -277,7 +277,7 @@ export async function waitForResources({
   const startTime = new Date().getTime()
 
   const logEventContext = {
-    origin: "kubernetes-plugin",
+    origin: "kubernetes",
     level: "verbose" as const,
   }
 

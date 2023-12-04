@@ -305,7 +305,7 @@ class PulumiPluginCommandTask extends PluginActionTask<PulumiDeploy, PulumiComma
   }
 
   async process({ dependencyResults }: ActionTaskProcessParams<PulumiDeploy, PulumiCommandResult>) {
-    this.log.info(styles.primary(`Running ${styles.accent(this.commandDescription)}`))
+    this.log.info(`Running ${styles.command(this.commandDescription)}`)
 
     const params = {
       ...this.pulumiParams,

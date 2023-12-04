@@ -16,7 +16,7 @@ export const uninstallGardenServices: PluginCommand = {
   description: "Clean up all installed cluster-wide Garden services.",
 
   title: ({ environmentName }) => {
-    return `Removing cluster-wide services for ${styles.accent(environmentName)} environment`
+    return `Removing cluster-wide services for ${styles.highlight(environmentName)} environment`
   },
 
   handler: async ({ ctx, log }) => {
