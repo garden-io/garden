@@ -426,22 +426,23 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
       // When ONLY exclude filter is defined,
       // the exclusion paths with and without glob prefix **/ works in the same way.
       context("when only exclude filter is specified", () => {
-        const globConfigs = [false, true]
-
-        function renderTestName(glob: boolean): string {
-          return glob ? "with globs" : "without globs"
-        }
-
-        function buildExcludePattern(path: string, glob: boolean): string {
-          return glob ? join("**", path) : path
-        }
+        const testParams = [
+          {
+            name: "without globs",
+            pathBuilder: (path: string) => path,
+          },
+          {
+            name: "with globs",
+            pathBuilder: (path: string) => join("**", path),
+          },
+        ]
 
         context("should filter out files that match the exclude filter", () => {
-          for (const glob of globConfigs) {
-            it(renderTestName(glob), async () => {
+          for (const testParam of testParams) {
+            it(testParam.name, async () => {
               // FIXME
               if (handler.name === "git-repo") {
-                if (!glob) {
+                if (testParam.name === "without globs") {
                   return
                 }
               }
@@ -471,7 +472,7 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
                   path: tmpPath,
                   scanRoot: undefined,
                   include: undefined,
-                  exclude: [buildExcludePattern("foo.*", glob)],
+                  exclude: [testParam.pathBuilder("foo.*")],
                   log,
                 })
               )
@@ -487,8 +488,8 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
         context(
           "should filter out all files from directories (including their sub-directories) that match the exclude filter",
           () => {
-            for (const glob of globConfigs) {
-              it(renderTestName(glob), async () => {
+            for (const testParam of testParams) {
+              it(testParam.name, async () => {
                 // FIXME
                 if (handler.name === "git-repo") {
                   return
@@ -530,10 +531,7 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
                     path: tmpPath,
                     scanRoot: undefined,
                     include: undefined, // when include: [], getFiles() always returns an empty result
-                    exclude: [
-                      buildExcludePattern(excludedDirName, glob),
-                      buildExcludePattern(excludedSubDirectoryName, glob),
-                    ],
+                    exclude: [testParam.pathBuilder(excludedDirName), testParam.pathBuilder(excludedSubDirectoryName)],
                     log,
                   })
                 )
