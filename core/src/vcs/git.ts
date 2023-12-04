@@ -349,7 +349,8 @@ export class GitHandler extends VcsHandler {
         return
       }
 
-      if (hasIncludes && !matchPath(filePath, undefined, exclude)) {
+      const passesExclusionFilter = matchPath(filePath, undefined, exclude)
+      if (hasIncludes && !passesExclusionFilter) {
         return
       }
 
@@ -717,8 +718,9 @@ export async function augmentGlobs(basePath: string, globs?: string[]): Promise<
       }
 
       try {
-        const isDir = (await stat(joinWithPosix(basePath, pattern))).isDirectory()
-        return isDir ? posix.join(pattern, "**", "*") : pattern
+        const path = joinWithPosix(basePath, pattern)
+        const stats = await stat(path)
+        return stats.isDirectory() ? posix.join(pattern, "**", "*") : pattern
       } catch {
         return pattern
       }
