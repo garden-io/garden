@@ -54,6 +54,8 @@ redirects:
 
   # Redirects set after 2023–09–22
   tutorials/migrating-to-bonsai: guides/migrating-to-bonsai.md
+  guides/using-garden-in-ci: use-cases/portable-ci-pipelines.md
+  overview/use-cases: use-cases/portable-pipelines.md
 
   # Redirects set after 2023–12–01 when re-structuring plugins action configuration (https://github.com/garden-io/garden/pull/5216)
   k8s-plugins/action-types/container.md: k8s-plugins/action/build/container.md
