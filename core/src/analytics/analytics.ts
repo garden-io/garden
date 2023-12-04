@@ -305,7 +305,13 @@ export class AnalyticsHandler {
   }) {
     const segmentApiKey = gardenEnv.ANALYTICS_DEV ? SEGMENT_DEV_API_KEY : SEGMENT_PROD_API_KEY
 
-    this.segment = new segmentClient(segmentApiKey, { flushAt: 20, flushInterval: 300 })
+    this.segment = new segmentClient(segmentApiKey, {
+      flushAt: 20,
+      flushInterval: 300,
+      errorHandler: (err) => {
+        log.debug(`Segment client failed sending analytics ${err}`)
+      },
+    })
     this.log = log
     this.isEnabled = isEnabled
     this.garden = garden
