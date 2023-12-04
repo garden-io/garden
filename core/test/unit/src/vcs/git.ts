@@ -494,8 +494,12 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
                 pathBuilder: (path: string) => path,
               },
               {
-                name: "with globs",
+                name: "with prefix globs",
                 pathBuilder: (path: string) => join("**", path),
+              },
+              {
+                name: "with full globs",
+                pathBuilder: (path: string) => join("**", path, "**", "*"),
               },
             ]
 
