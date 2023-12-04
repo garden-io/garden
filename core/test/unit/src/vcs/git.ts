@@ -500,6 +500,10 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
                 name: "with full globs",
                 pathBuilder: (subDirName: string) => join("**", subDirName, "**", "*"),
               },
+              {
+                name: "with redundant relative path",
+                pathBuilder: (subDirName: string) => `./${subDirName}`,
+              },
             ]
 
             /*
@@ -571,6 +575,10 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
               {
                 name: "with full globs",
                 pathBuilder: (...subDirNames: string[]) => join("**", subDirNames.at(-1)!, "**", "*"),
+              },
+              {
+                name: "with redundant relative path",
+                pathBuilder: (...subDirNames: string[]) => `./${subDirNames.join("/")}`,
               },
             ]
 
