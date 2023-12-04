@@ -426,18 +426,18 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
       // When ONLY exclude filter is defined,
       // the exclusion paths with and without glob prefix **/ works in the same way.
       context("when only exclude filter is specified", () => {
-        const testParams = [
-          {
-            name: "without globs",
-            pathBuilder: (path: string) => path,
-          },
-          {
-            name: "with globs",
-            pathBuilder: (path: string) => join("**", path),
-          },
-        ]
-
         context("should filter out files that match the exclude filter", () => {
+          const testParams = [
+            {
+              name: "without globs",
+              pathBuilder: (path: string) => path,
+            },
+            {
+              name: "with globs",
+              pathBuilder: (path: string) => join("**", path),
+            },
+          ]
+
           for (const testParam of testParams) {
             it(testParam.name, async () => {
               // FIXME
@@ -488,6 +488,17 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
         context(
           "should filter out all files from directories (including their sub-directories) that match the exclude filter",
           () => {
+            const testParams = [
+              {
+                name: "without globs",
+                pathBuilder: (path: string) => path,
+              },
+              {
+                name: "with globs",
+                pathBuilder: (path: string) => join("**", path),
+              },
+            ]
+
             for (const testParam of testParams) {
               it(testParam.name, async () => {
                 // FIXME
