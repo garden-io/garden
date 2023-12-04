@@ -86,8 +86,11 @@ const getIncludeExcludeFiles: IncludeExcludeFilesHandler<GetFilesParams, GitSubT
   if (!exclude) {
     exclude = []
   }
-  // Make sure action config is not mutated
-  exclude = [...exclude, "**/.garden/**/*"]
+
+  // Make sure action config is not mutated.
+  // It looks like paths with redundant '.' and '..' parts
+  // do not work well along with --exclude and --glob-pathspecs flags.
+  exclude = [...exclude.map(normalize), "**/.garden/**/*"]
 
   // Apply the include patterns to the ls-files queries. We use the --glob-pathspecs flag
   // to make sure the path handling is consistent with normal POSIX-style globs used generally by Garden.
@@ -241,10 +244,7 @@ export class GitHandler extends VcsHandler {
 
     if (!hasIncludes) {
       for (const p of exclude) {
-        // It looks like paths with redundant '.' and '..' parts
-        // do not work well along with --exclude and --glob-pathspecs flags.
-        const normalizedPath = normalize(p)
-        lsFilesCommonArgs.push("--exclude", normalizedPath)
+        lsFilesCommonArgs.push("--exclude", p)
       }
     }
 
