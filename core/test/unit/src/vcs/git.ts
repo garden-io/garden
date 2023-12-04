@@ -562,15 +562,15 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
             const testParams = [
               {
                 name: "without globs",
-                pathBuilder: (subDirName: string) => subDirName,
+                pathBuilder: (...subDirNames: string[]) => subDirNames.at(-1)!,
               },
               {
                 name: "with prefix globs",
-                pathBuilder: (subDirName: string) => join("**", subDirName),
+                pathBuilder: (...subDirNames: string[]) => join("**", subDirNames.at(-1)!),
               },
               {
                 name: "with full globs",
-                pathBuilder: (subDirName: string) => join("**", subDirName, "**", "*"),
+                pathBuilder: (...subDirNames: string[]) => join("**", subDirNames.at(-1)!, "**", "*"),
               },
             ]
 
@@ -617,7 +617,7 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
                     path: tmpPath,
                     scanRoot: undefined,
                     include: undefined, // when include: [], getFiles() always returns an empty result
-                    exclude: [testParam.pathBuilder(excludedSubDirectoryName)],
+                    exclude: [testParam.pathBuilder(notExcludedDirName, excludedSubDirectoryName)],
                     log,
                   })
                 )
