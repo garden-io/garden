@@ -519,7 +519,9 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
               it(testParam.name, async () => {
                 // FIXME
                 if (handler.name === "git-repo") {
-                  return
+                  if (testParam.name === "with prefix globs") {
+                    return
+                  }
                 }
 
                 // doesn't match file exclusion pattern -> should be included
@@ -595,7 +597,9 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
               it(testParam.name, async () => {
                 // FIXME
                 if (handler.name === "git-repo") {
-                  return
+                  if (testParam.name === "without globs" || testParam.name === "with prefix globs") {
+                    return
+                  }
                 }
 
                 // doesn't match file exclusion pattern -> should be included
