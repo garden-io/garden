@@ -7,7 +7,7 @@
  */
 
 import { performance } from "perf_hooks"
-import { isAbsolute, join, posix, relative, resolve } from "path"
+import { isAbsolute, join, normalize, posix, relative, resolve } from "path"
 import { isString } from "lodash-es"
 import fsExtra from "fs-extra"
 import { PassThrough } from "stream"
@@ -223,7 +223,10 @@ export class GitHandler extends VcsHandler {
 
     if (!hasIncludes) {
       for (const p of exclude) {
-        lsFilesCommonArgs.push("--exclude", p)
+        // It looks like paths with redundant '.' and '..' parts
+        // do not work well along with --exclude and --glob-pathspecs flags.
+        const normalizedPath = normalize(p)
+        lsFilesCommonArgs.push("--exclude", normalizedPath)
       }
     }
 
