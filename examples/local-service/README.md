@@ -43,7 +43,7 @@ build: frontend-local
 
 spec:
   persistent: true # <--- Runs the deployCommand in persistent mode
-  deployCommand: [ "yarn", "run", "dev" ] # <--- This is the command Garden runs to start the process in sync mode
+  deployCommand: [ "npm", "run", "dev" ] # <--- This is the command Garden runs to start the process in sync mode
   statusCommand: [ ./check-local-status.sh ] # <--- Optionally set a status command that checks whether the local service is ready
   env: ${actions.deploy.frontend.var.env} # <--- Reference the env variable defined above
 ```
@@ -57,12 +57,12 @@ control whether the `local-frontend` deploy action should be enabled or create a
 
 ## Usage
 
-If you want to run the frontend service locally you'll need to have yarn installed and also have to install the packages
-for the frontend project
+If you want to run the frontend service locally you'll need to have `npm` installed and also have to install the
+packages for the frontend project
 
 ```console
 cd frontend
-yarn install
+npm install
 cd ..
 ```
 
