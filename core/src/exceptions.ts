@@ -16,6 +16,9 @@ import indentString from "indent-string"
 import { constants } from "os"
 import dns from "node:dns"
 import { styles } from "./logger/styles.js"
+import { Location } from "./template-string/ast.js"
+import { ObjectPath } from "./config/template-contexts/base.js"
+import { ConfigSource } from "./config/validation.js"
 
 // Unfortunately, NodeJS does not provide a list of all error codes, so we have to maintain this list manually.
 // See https://nodejs.org/docs/latest-v18.x/api/dns.html#error-codes
@@ -300,14 +303,28 @@ export class CloudApiError extends GardenError {
   }
 }
 
+export class TemplateFunctionCallError extends GardenError {
+  type = "template-function-call"
+
+  constructor({ message, yamlPath, source }: { message: string; yamlPath?: ObjectPath; source?: ConfigSource }) {
+    super({ message })
+  }
+}
+
+type TemplateStringErrorParams = {
+  message: string
+  rawTemplateString: string
+  loc: Location
+}
 export class TemplateStringError extends GardenError {
   type = "template-string"
 
-  path?: (string | number)[]
-
-  constructor(params: GardenErrorParams & { path?: (string | number)[] }) {
-    super(params)
-    this.path = params.path
+  // TODO: improve error message, using position, yamlPath and source
+  constructor({ message, rawTemplateString, loc }: TemplateStringErrorParams) {
+    const prefix = `Invalid template string (${styles.accent(truncate(rawTemplateString, { length: 35 }).replace(/\n/g, "\\n"))}): `
+    super({
+      message: message.startsWith(prefix) ? message : `${prefix}${message}`,
+    })
   }
 }
 

@@ -23,6 +23,12 @@ import { dedent } from "../../../src/util/string.js"
 import stripAnsi from "strip-ansi"
 import { TemplateStringError } from "../../../src/exceptions.js"
 import { TemplateLeaf } from "../../../src/template-string/inputs.js"
+import {
+  ForEachLazyValue,
+  TemplateStringLazyValue,
+  deepUnwrapLazyValues,
+  unwrapLazyValues,
+} from "../../../src/template-string/lazy.js"
 
 class TestContext extends ConfigContext {
   constructor(context) {
@@ -33,12 +39,18 @@ class TestContext extends ConfigContext {
 
 describe("resolveTemplateString", () => {
   it("should return a non-templated string unchanged", () => {
-    const res = resolveTemplateString({ string: "somestring", context: new TestContext({}) })
+    const res = resolveTemplateString({
+      string: "somestring",
+      context: new TestContext({}),
+    })
     expect(res).to.equal("somestring")
   })
 
   it("should resolve a key with a dash in it", () => {
-    const res = resolveTemplateString({ string: "${some-key}", context: new TestContext({ "some-key": "value" }) })
+    const res = resolveTemplateString({
+      string: "${some-key}",
+      context: new TestContext({ "some-key": "value" }),
+    })
     expect(res).to.equal("value")
   })
 
@@ -51,22 +63,34 @@ describe("resolveTemplateString", () => {
   })
 
   it("should correctly resolve if ? suffix is present but value exists", () => {
-    const res = resolveTemplateString({ string: "${foo}?", context: new TestContext({ foo: "bar" }) })
+    const res = resolveTemplateString({
+      string: "${foo}?",
+      context: new TestContext({ foo: "bar" }),
+    })
     expect(res).to.equal("bar")
   })
 
   it("should allow undefined values if ? suffix is present", () => {
-    const res = resolveTemplateString({ string: "${foo}?", context: new TestContext({}) })
+    const res = resolveTemplateString({
+      string: "${foo}?",
+      context: new TestContext({}),
+    })
     expect(res).to.equal(undefined)
   })
 
   it("should support a string literal in a template string as a means to escape it", () => {
-    const res = resolveTemplateString({ string: "${'$'}{bar}", context: new TestContext({}) })
+    const res = resolveTemplateString({
+      string: "${'$'}{bar}",
+      context: new TestContext({}),
+    })
     expect(res).to.equal("${bar}")
   })
 
   it("should pass through a template string with a double $$ prefix", () => {
-    const res = resolveTemplateString({ string: "$${bar}", context: new TestContext({}) })
+    const res = resolveTemplateString({
+      string: "$${bar}",
+      context: new TestContext({}),
+    })
     expect(res).to.equal("$${bar}")
   })
 
@@ -89,37 +113,58 @@ describe("resolveTemplateString", () => {
   })
 
   it("should interpolate a format string with a prefix", () => {
-    const res = resolveTemplateString({ string: "prefix-${some}", context: new TestContext({ some: "value" }) })
+    const res = resolveTemplateString({
+      string: "prefix-${some}",
+      context: new TestContext({ some: "value" }),
+    })
     expect(res).to.equal("prefix-value")
   })
 
   it("should interpolate a format string with a suffix", () => {
-    const res = resolveTemplateString({ string: "${some}-suffix", context: new TestContext({ some: "value" }) })
+    const res = resolveTemplateString({
+      string: "${some}-suffix",
+      context: new TestContext({ some: "value" }),
+    })
     expect(res).to.equal("value-suffix")
   })
 
   it("should interpolate a format string with a prefix and a suffix", () => {
-    const res = resolveTemplateString({ string: "prefix-${some}-suffix", context: new TestContext({ some: "value" }) })
+    const res = resolveTemplateString({
+      string: "prefix-${some}-suffix",
+      context: new TestContext({ some: "value" }),
+    })
     expect(res).to.equal("prefix-value-suffix")
   })
 
   it("should interpolate an optional format string with a prefix and a suffix", () => {
-    const res = resolveTemplateString({ string: "prefix-${some}?-suffix", context: new TestContext({}) })
+    const res = resolveTemplateString({
+      string: "prefix-${some}?-suffix",
+      context: new TestContext({}),
+    })
     expect(res).to.equal("prefix--suffix")
   })
 
   it("should interpolate a format string with a prefix with whitespace", () => {
-    const res = resolveTemplateString({ string: "prefix ${some}", context: new TestContext({ some: "value" }) })
+    const res = resolveTemplateString({
+      string: "prefix ${some}",
+      context: new TestContext({ some: "value" }),
+    })
     expect(res).to.equal("prefix value")
   })
 
   it("should interpolate a format string with a suffix with whitespace", () => {
-    const res = resolveTemplateString({ string: "${some} suffix", context: new TestContext({ some: "value" }) })
+    const res = resolveTemplateString({
+      string: "${some} suffix",
+      context: new TestContext({ some: "value" }),
+    })
     expect(res).to.equal("value suffix")
   })
 
   it("should correctly interpolate a format string with surrounding whitespace", () => {
-    const res = resolveTemplateString({ string: "prefix ${some} suffix", context: new TestContext({ some: "value" }) })
+    const res = resolveTemplateString({
+      string: "prefix ${some} suffix",
+      context: new TestContext({ some: "value" }),
+    })
     expect(res).to.equal("prefix value suffix")
   })
 
@@ -140,7 +185,10 @@ describe("resolveTemplateString", () => {
   })
 
   it("should handle consecutive format strings", () => {
-    const res = resolveTemplateString({ string: "${a}${b}", context: new TestContext({ a: "value", b: "other" }) })
+    const res = resolveTemplateString({
+      string: "${a}${b}",
+      context: new TestContext({ a: "value", b: "other" }),
+    })
     expect(res).to.equal("valueother")
   })
 
@@ -157,13 +205,17 @@ describe("resolveTemplateString", () => {
           string: "${some} very very very very very long long long long long template string",
           context: new TestContext({}),
         }),
-      { contains: "Invalid template string (${some} very very very very very l…): Could not find key some." }
+      { contains: "Invalid template string (${some} very very very very very...): Could not find key some." }
     )
   })
 
   it("should replace line breaks in template strings in error messages", () => {
     void expectError(
-      () => resolveTemplateString({ string: "${some}\nmulti\nline\nstring", context: new TestContext({}) }),
+      () =>
+        resolveTemplateString({
+          string: "${some}\nmulti\nline\nstring",
+          context: new TestContext({}),
+        }),
       {
         contains: "Invalid template string (${some}\\nmulti\\nline\\nstring): Could not find key some.",
       }
@@ -171,14 +223,24 @@ describe("resolveTemplateString", () => {
   })
 
   it("should throw when a nested key is not found", () => {
-    void expectError(() => resolveTemplateString({ string: "${some.other}", context: new TestContext({ some: {} }) }), {
-      contains: "Invalid template string (${some.other}): Could not find key other under some.",
-    })
+    void expectError(
+      () =>
+        resolveTemplateString({
+          string: "${some.other}",
+          context: new TestContext({ some: {} }),
+        }),
+      {
+        contains: "Invalid template string (${some.other}): Could not find key other under some.",
+      }
+    )
   })
 
   it("should throw with an incomplete template string", () => {
     try {
-      resolveTemplateString({ string: "${some", context: new TestContext({ some: {} }) })
+      resolveTemplateString({
+        string: "${some",
+        context: new TestContext({ some: {} }),
+      })
     } catch (err) {
       if (!(err instanceof TemplateStringError)) {
         expect.fail("Expected TemplateStringError")
@@ -193,38 +255,67 @@ describe("resolveTemplateString", () => {
   })
 
   it("should throw on nested format strings", () => {
-    void expectError(() => resolveTemplateString({ string: "${resol${part}ed}", context: new TestContext({}) }), {
-      contains: "Invalid template string (${resol${part}ed}): Unable to parse as valid template string.",
-    })
+    void expectError(
+      () =>
+        resolveTemplateString({
+          string: "${resol${part}ed}",
+          context: new TestContext({}),
+        }),
+      {
+        contains: "Invalid template string (${resol${part}ed}): Unable to parse as valid template string.",
+      }
+    )
   })
 
   it("should handle a single-quoted string", () => {
-    const res = resolveTemplateString({ string: "${'foo'}", context: new TestContext({}) })
+    const res = resolveTemplateString({
+      string: "${'foo'}",
+      context: new TestContext({}),
+    })
     expect(res).to.equal("foo")
   })
 
   it("should handle a numeric literal and return it directly", () => {
-    const res = resolveTemplateString({ string: "${123}", context: new TestContext({}) })
+    const res = resolveTemplateString({
+      string: "${123}",
+      context: new TestContext({}),
+    })
     expect(res).to.equal(123)
   })
 
   it("should handle a boolean true literal and return it directly", () => {
-    const res = resolveTemplateString({ string: "${true}", context: new TestContext({}) })
+    const res = resolveTemplateString({
+      string: "${true}",
+      context: new TestContext({}),
+    })
     expect(res).to.equal(true)
   })
 
   it("should handle a boolean false literal and return it directly", () => {
-    const res = resolveTemplateString({ string: "${false}", context: new TestContext({}) })
+    const res = resolveTemplateString({
+      string: "${false}",
+      context: new TestContext({}),
+    })
     expect(res).to.equal(false)
   })
 
   it("should handle a null literal and return it directly", () => {
-    const res = resolveTemplateString({ string: "${null}", context: new TestContext({}) })
+    const res = resolveTemplateString({
+      string: "${null}",
+      context: new TestContext({}),
+    })
     expect(res).to.equal(null)
   })
 
   it("should handle a numeric literal in a logical OR and return it directly and still track a as input", () => {
-    const res = resolveTemplateStringWithInputs({ string: "${a || 123}", context: new TestContext({}) })
+    const value = resolveTemplateStringWithInputs({
+      string: "${a || 123}",
+    })
+
+    expect(value).to.be.instanceOf(TemplateStringLazyValue)
+
+    const res = unwrapLazyValues({ value, context: new TestContext({}), opts: {} })
+
     expect(res).to.deep.equal(
       new TemplateLeaf({
         expr: "${a || 123}",
@@ -237,22 +328,34 @@ describe("resolveTemplateString", () => {
   })
 
   it("should handle a boolean true literal in a logical OR and return it directly", () => {
-    const res = resolveTemplateString({ string: "${a || true}", context: new TestContext({}) })
+    const res = resolveTemplateString({
+      string: "${a || true}",
+      context: new TestContext({}),
+    })
     expect(res).to.equal(true)
   })
 
   it("should handle a boolean false literal in a logical OR and return it directly", () => {
-    const res = resolveTemplateString({ string: "${a || false}", context: new TestContext({}) })
+    const res = resolveTemplateString({
+      string: "${a || false}",
+      context: new TestContext({}),
+    })
     expect(res).to.equal(false)
   })
 
   it("should handle a null literal in a logical OR and return it directly", () => {
-    const res = resolveTemplateString({ string: "${a || null}", context: new TestContext({}) })
+    const res = resolveTemplateString({
+      string: "${a || null}",
+      context: new TestContext({}),
+    })
     expect(res).to.equal(null)
   })
 
   it("should handle a double-quoted string", () => {
-    const res = resolveTemplateString({ string: '${"foo"}', context: new TestContext({}) })
+    const res = resolveTemplateString({
+      string: '${"foo"}',
+      context: new TestContext({}),
+    })
     expect(res).to.equal("foo")
   })
 
@@ -269,7 +372,10 @@ describe("resolveTemplateString", () => {
   })
 
   it("should handle a logical OR between two identifiers", () => {
-    const res = resolveTemplateString({ string: "${a || b}", context: new TestContext({ a: undefined, b: "abc" }) })
+    const res = resolveTemplateString({
+      string: "${a || b}",
+      context: new TestContext({ a: undefined, b: "abc" }),
+    })
     expect(res).to.equal("abc")
   })
 
@@ -296,17 +402,26 @@ describe("resolveTemplateString", () => {
   })
 
   it("should handle a logical OR between two identifiers without spaces with first value undefined", () => {
-    const res = resolveTemplateString({ string: "${a||b}", context: new TestContext({ a: undefined, b: "abc" }) })
+    const res = resolveTemplateString({
+      string: "${a||b}",
+      context: new TestContext({ a: undefined, b: "abc" }),
+    })
     expect(res).to.equal("abc")
   })
 
   it("should handle a logical OR between two identifiers with first value undefined and string fallback", () => {
-    const res = resolveTemplateString({ string: '${a || "foo"}', context: new TestContext({ a: undefined }) })
+    const res = resolveTemplateString({
+      string: '${a || "foo"}',
+      context: new TestContext({ a: undefined }),
+    })
     expect(res).to.equal("foo")
   })
 
   it("should handle a logical OR with undefined nested value and string fallback", () => {
-    const res = resolveTemplateString({ string: "${a.b || 'foo'}", context: new TestContext({ a: {} }) })
+    const res = resolveTemplateString({
+      string: "${a.b || 'foo'}",
+      context: new TestContext({ a: {} }),
+    })
     expect(res).to.equal("foo")
   })
 
@@ -319,35 +434,61 @@ describe("resolveTemplateString", () => {
   })
 
   it("should handle a logical OR between two identifiers without spaces with first value set", () => {
-    const res = resolveTemplateString({ string: "${a||b}", context: new TestContext({ a: "abc", b: undefined }) })
+    const res = resolveTemplateString({
+      string: "${a||b}",
+      context: new TestContext({ a: "abc", b: undefined }),
+    })
     expect(res).to.equal("abc")
   })
 
   it("should throw if neither key in logical OR is valid", () => {
-    void expectError(() => resolveTemplateString({ string: "${a || b}", context: new TestContext({}) }), {
-      contains: "Invalid template string (${a || b}): Could not find key b.",
-    })
+    void expectError(
+      () =>
+        resolveTemplateString({
+          string: "${a || b}",
+          context: new TestContext({}),
+        }),
+      {
+        contains: "Invalid template string (${a || b}): Could not find key b.",
+      }
+    )
   })
 
   it("should throw on invalid logical OR string", () => {
-    void expectError(() => resolveTemplateString({ string: "${a || 'b}", context: new TestContext({}) }), {
-      contains: "Invalid template string (${a || 'b}): Unable to parse as valid template string.",
-    })
+    void expectError(
+      () =>
+        resolveTemplateString({
+          string: "${a || 'b}",
+          context: new TestContext({}),
+        }),
+      {
+        contains: "Invalid template string (${a || 'b}): Unable to parse as valid template string.",
+      }
+    )
   })
 
   it("should handle a logical OR between a string and a string", () => {
-    const res = resolveTemplateString({ string: "${'a' || 'b'}", context: new TestContext({ a: undefined }) })
+    const res = resolveTemplateString({
+      string: "${'a' || 'b'}",
+      context: new TestContext({ a: undefined }),
+    })
     expect(res).to.equal("a")
   })
 
   it("should handle a logical OR between an empty string and a string", () => {
-    const res = resolveTemplateString({ string: "${a || 'b'}", context: new TestContext({ a: "" }) })
+    const res = resolveTemplateString({
+      string: "${a || 'b'}",
+      context: new TestContext({ a: "" }),
+    })
     expect(res).to.equal("b")
   })
 
   context("logical AND (&& operator)", () => {
     it("true literal and true variable reference", () => {
-      const res = resolveTemplateString({ string: "${true && a}", context: new TestContext({ a: true }) })
+      const res = resolveTemplateString({
+        string: "${true && a}",
+        context: new TestContext({ a: true }),
+      })
       expect(res).to.equal(true)
     })
 
@@ -361,27 +502,42 @@ describe("resolveTemplateString", () => {
 
     it("first part is false but the second part is not resolvable", () => {
       // i.e. the 2nd clause should not need to be evaluated
-      const res = resolveTemplateString({ string: "${false && a}", context: new TestContext({}) })
+      const res = resolveTemplateString({
+        string: "${false && a}",
+        context: new TestContext({}),
+      })
       expect(res).to.equal(false)
     })
 
     it("an empty string as the first clause", () => {
-      const res = resolveTemplateString({ string: "${'' && true}", context: new TestContext({}) })
+      const res = resolveTemplateString({
+        string: "${'' && true}",
+        context: new TestContext({}),
+      })
       expect(res).to.equal("")
     })
 
     it("an empty string as the second clause", () => {
-      const res = resolveTemplateString({ string: "${true && ''}", context: new TestContext({}) })
+      const res = resolveTemplateString({
+        string: "${true && ''}",
+        context: new TestContext({}),
+      })
       expect(res).to.equal("")
     })
 
     it("a missing reference as the first clause", () => {
-      const res = resolveTemplateString({ string: "${var.foo && 'a'}", context: new TestContext({ var: {} }) })
+      const res = resolveTemplateString({
+        string: "${var.foo && 'a'}",
+        context: new TestContext({ var: {} }),
+      })
       expect(res).to.equal(false)
     })
 
     it("a missing reference as the second clause", () => {
-      const res = resolveTemplateString({ string: "${'a' && foo}", context: new TestContext({ var: {} }) })
+      const res = resolveTemplateString({
+        string: "${'a' && foo}",
+        context: new TestContext({ var: {} }),
+      })
       expect(res).to.equal(false)
     })
 
@@ -407,154 +563,249 @@ describe("resolveTemplateString", () => {
   })
 
   it("should handle a positive equality comparison between equal resolved values", () => {
-    const res = resolveTemplateString({ string: "${a == b}", context: new TestContext({ a: "a", b: "a" }) })
+    const res = resolveTemplateString({
+      string: "${a == b}",
+      context: new TestContext({ a: "a", b: "a" }),
+    })
     expect(res).to.equal(true)
   })
 
   it("should handle a positive equality comparison between equal string literals", () => {
-    const res = resolveTemplateString({ string: "${'a' == 'a'}", context: new TestContext({}) })
+    const res = resolveTemplateString({
+      string: "${'a' == 'a'}",
+      context: new TestContext({}),
+    })
     expect(res).to.equal(true)
   })
 
   it("should handle a positive equality comparison between equal numeric literals", () => {
-    const res = resolveTemplateString({ string: "${123 == 123}", context: new TestContext({}) })
+    const res = resolveTemplateString({
+      string: "${123 == 123}",
+      context: new TestContext({}),
+    })
     expect(res).to.equal(true)
   })
 
   it("should handle a positive equality comparison between equal boolean literals", () => {
-    const res = resolveTemplateString({ string: "${true == true}", context: new TestContext({}) })
+    const res = resolveTemplateString({
+      string: "${true == true}",
+      context: new TestContext({}),
+    })
     expect(res).to.equal(true)
   })
 
   it("should handle a positive equality comparison between different resolved values", () => {
-    const res = resolveTemplateString({ string: "${a == b}", context: new TestContext({ a: "a", b: "b" }) })
+    const res = resolveTemplateString({
+      string: "${a == b}",
+      context: new TestContext({ a: "a", b: "b" }),
+    })
     expect(res).to.equal(false)
   })
 
   it("should handle a positive equality comparison between different string literals", () => {
-    const res = resolveTemplateString({ string: "${'a' == 'b'}", context: new TestContext({}) })
+    const res = resolveTemplateString({
+      string: "${'a' == 'b'}",
+      context: new TestContext({}),
+    })
     expect(res).to.equal(false)
   })
 
   it("should handle a positive equality comparison between different numeric literals", () => {
-    const res = resolveTemplateString({ string: "${123 == 456}", context: new TestContext({}) })
+    const res = resolveTemplateString({
+      string: "${123 == 456}",
+      context: new TestContext({}),
+    })
     expect(res).to.equal(false)
   })
 
   it("should handle a positive equality comparison between different boolean literals", () => {
-    const res = resolveTemplateString({ string: "${true == false}", context: new TestContext({}) })
+    const res = resolveTemplateString({
+      string: "${true == false}",
+      context: new TestContext({}),
+    })
     expect(res).to.equal(false)
   })
 
   it("should handle a negative equality comparison between equal resolved values", () => {
-    const res = resolveTemplateString({ string: "${a != b}", context: new TestContext({ a: "a", b: "a" }) })
+    const res = resolveTemplateString({
+      string: "${a != b}",
+      context: new TestContext({ a: "a", b: "a" }),
+    })
     expect(res).to.equal(false)
   })
 
   it("should handle a negative equality comparison between equal string literals", () => {
-    const res = resolveTemplateString({ string: "${'a' != 'a'}", context: new TestContext({}) })
+    const res = resolveTemplateString({
+      string: "${'a' != 'a'}",
+      context: new TestContext({}),
+    })
     expect(res).to.equal(false)
   })
 
   it("should handle a negative equality comparison between equal numeric literals", () => {
-    const res = resolveTemplateString({ string: "${123 != 123}", context: new TestContext({}) })
+    const res = resolveTemplateString({
+      string: "${123 != 123}",
+      context: new TestContext({}),
+    })
     expect(res).to.equal(false)
   })
 
   it("should handle a negative equality comparison between equal boolean literals", () => {
-    const res = resolveTemplateString({ string: "${false != false}", context: new TestContext({}) })
+    const res = resolveTemplateString({
+      string: "${false != false}",
+      context: new TestContext({}),
+    })
     expect(res).to.equal(false)
   })
 
   it("should handle a negative equality comparison between different resolved values", () => {
-    const res = resolveTemplateString({ string: "${a != b}", context: new TestContext({ a: "a", b: "b" }) })
+    const res = resolveTemplateString({
+      string: "${a != b}",
+      context: new TestContext({ a: "a", b: "b" }),
+    })
     expect(res).to.equal(true)
   })
 
   it("should handle a negative equality comparison between different string literals", () => {
-    const res = resolveTemplateString({ string: "${'a' != 'b'}", context: new TestContext({}) })
+    const res = resolveTemplateString({
+      string: "${'a' != 'b'}",
+      context: new TestContext({}),
+    })
     expect(res).to.equal(true)
   })
 
   it("should handle a negative equality comparison between different numeric literals", () => {
-    const res = resolveTemplateString({ string: "${123 != 456}", context: new TestContext({}) })
+    const res = resolveTemplateString({
+      string: "${123 != 456}",
+      context: new TestContext({}),
+    })
     expect(res).to.equal(true)
   })
 
   it("should handle a negative equality comparison between different boolean literals", () => {
-    const res = resolveTemplateString({ string: "${true != false}", context: new TestContext({}) })
+    const res = resolveTemplateString({
+      string: "${true != false}",
+      context: new TestContext({}),
+    })
     expect(res).to.equal(true)
   })
 
   it("should handle a positive equality comparison between different value types", () => {
-    const res = resolveTemplateString({ string: "${true == 'foo'}", context: new TestContext({}) })
+    const res = resolveTemplateString({
+      string: "${true == 'foo'}",
+      context: new TestContext({}),
+    })
     expect(res).to.equal(false)
   })
 
   it("should handle a negative equality comparison between different value types", () => {
-    const res = resolveTemplateString({ string: "${123 != false}", context: new TestContext({}) })
+    const res = resolveTemplateString({
+      string: "${123 != false}",
+      context: new TestContext({}),
+    })
     expect(res).to.equal(true)
   })
 
   it("should handle negations on booleans", () => {
-    const res = resolveTemplateString({ string: "${!true}", context: new TestContext({}) })
+    const res = resolveTemplateString({
+      string: "${!true}",
+      context: new TestContext({}),
+    })
     expect(res).to.equal(false)
   })
 
   it("should handle negations on nulls", () => {
-    const res = resolveTemplateString({ string: "${!null}", context: new TestContext({}) })
+    const res = resolveTemplateString({
+      string: "${!null}",
+      context: new TestContext({}),
+    })
     expect(res).to.equal(true)
   })
 
   it("should handle negations on empty strings", () => {
-    const res = resolveTemplateString({ string: "${!''}", context: new TestContext({}) })
+    const res = resolveTemplateString({
+      string: "${!''}",
+      context: new TestContext({}),
+    })
     expect(res).to.equal(true)
   })
 
   it("should handle negations on resolved keys", () => {
-    const res = resolveTemplateString({ string: "${!a}", context: new TestContext({ a: false }) })
+    const res = resolveTemplateString({
+      string: "${!a}",
+      context: new TestContext({ a: false }),
+    })
     expect(res).to.equal(true)
   })
 
   it("should handle the typeof operator for resolved booleans", () => {
-    const res = resolveTemplateString({ string: "${typeof a}", context: new TestContext({ a: false }) })
+    const res = resolveTemplateString({
+      string: "${typeof a}",
+      context: new TestContext({ a: false }),
+    })
     expect(res).to.equal("boolean")
   })
 
   it("should handle the typeof operator for resolved numbers", () => {
-    const res = resolveTemplateString({ string: "${typeof foo}", context: new TestContext({ foo: 1234 }) })
+    const res = resolveTemplateString({
+      string: "${typeof foo}",
+      context: new TestContext({ foo: 1234 }),
+    })
     expect(res).to.equal("number")
   })
 
   it("should handle the typeof operator for strings", () => {
-    const res = resolveTemplateString({ string: "${typeof 'foo'}", context: new TestContext({}) })
+    const res = resolveTemplateString({
+      string: "${typeof 'foo'}",
+      context: new TestContext({}),
+    })
     expect(res).to.equal("string")
   })
 
   it("should throw when using comparison operators on missing keys", () => {
-    void expectError(() => resolveTemplateString({ string: "${a >= b}", context: new TestContext({ a: 123 }) }), {
-      contains: "Invalid template string (${a >= b}): Could not find key b. Available keys: a.",
-    })
+    void expectError(
+      () =>
+        resolveTemplateString({
+          string: "${a >= b}",
+          context: new TestContext({ a: 123 }),
+        }),
+      {
+        contains: "Invalid template string (${a >= b}): Could not find key b. Available keys: a.",
+      }
+    )
   })
 
   it("should concatenate two arrays", () => {
-    const res = resolveTemplateString({ string: "${a + b}", context: new TestContext({ a: [1], b: [2, 3] }) })
+    const res = resolveTemplateString({
+      string: "${a + b}",
+      context: new TestContext({ a: [1], b: [2, 3] }),
+    })
     expect(res).to.eql([1, 2, 3])
   })
 
   it("should concatenate two strings", () => {
-    const res = resolveTemplateString({ string: "${a + b}", context: new TestContext({ a: "foo", b: "bar" }) })
+    const res = resolveTemplateString({
+      string: "${a + b}",
+      context: new TestContext({ a: "foo", b: "bar" }),
+    })
     expect(res).to.eql("foobar")
   })
 
   it("should add two numbers together", () => {
-    const res = resolveTemplateString({ string: "${1 + a}", context: new TestContext({ a: 2 }) })
+    const res = resolveTemplateString({
+      string: "${1 + a}",
+      context: new TestContext({ a: 2 }),
+    })
     expect(res).to.equal(3)
   })
 
   it("should throw when using + on number and array", () => {
     void expectError(
-      () => resolveTemplateString({ string: "${a + b}", context: new TestContext({ a: 123, b: ["a"] }) }),
+      () =>
+        resolveTemplateString({
+          string: "${a + b}",
+          context: new TestContext({ a: 123, b: ["a"] }),
+        }),
       {
         contains:
           "Invalid template string (${a + b}): Both terms need to be either arrays or strings or numbers for + operator (got number and object).",
@@ -563,12 +814,18 @@ describe("resolveTemplateString", () => {
   })
 
   it("should correctly evaluate clauses in parentheses", () => {
-    const res = resolveTemplateString({ string: "${(1 + 2) * (3 + 4)}", context: new TestContext({}) })
+    const res = resolveTemplateString({
+      string: "${(1 + 2) * (3 + 4)}",
+      context: new TestContext({}),
+    })
     expect(res).to.equal(21)
   })
 
   it("should handle member lookup with bracket notation", () => {
-    const res = resolveTemplateString({ string: "${foo['bar']}", context: new TestContext({ foo: { bar: true } }) })
+    const res = resolveTemplateString({
+      string: "${foo['bar']}",
+      context: new TestContext({ foo: { bar: true } }),
+    })
     expect(res).to.equal(true)
   })
 
@@ -589,7 +846,10 @@ describe("resolveTemplateString", () => {
   })
 
   it("should handle numeric member lookup with bracket notation", () => {
-    const res = resolveTemplateString({ string: "${foo[1]}", context: new TestContext({ foo: [false, true] }) })
+    const res = resolveTemplateString({
+      string: "${foo[1]}",
+      context: new TestContext({ foo: [false, true] }),
+    })
     expect(res).to.equal(true)
   })
 
@@ -644,7 +904,11 @@ describe("resolveTemplateString", () => {
 
   it("should throw if bracket expression resolves to a non-primitive", () => {
     void expectError(
-      () => resolveTemplateString({ string: "${foo[bar]}", context: new TestContext({ foo: {}, bar: {} }) }),
+      () =>
+        resolveTemplateString({
+          string: "${foo[bar]}",
+          context: new TestContext({ foo: {}, bar: {} }),
+        }),
       {
         contains:
           "Invalid template string (${foo[bar]}): Expression in bracket must resolve to a string or number (got object).",
@@ -654,7 +918,11 @@ describe("resolveTemplateString", () => {
 
   it("should throw if attempting to index a primitive with brackets", () => {
     void expectError(
-      () => resolveTemplateString({ string: "${foo[bar]}", context: new TestContext({ foo: 123, bar: "baz" }) }),
+      () =>
+        resolveTemplateString({
+          string: "${foo[bar]}",
+          context: new TestContext({ foo: 123, bar: "baz" }),
+        }),
       {
         contains: 'Invalid template string (${foo[bar]}): Attempted to look up key "baz" on a number.',
       }
@@ -663,7 +931,11 @@ describe("resolveTemplateString", () => {
 
   it("should throw when using >= on non-numeric terms", () => {
     void expectError(
-      () => resolveTemplateString({ string: "${a >= b}", context: new TestContext({ a: 123, b: "foo" }) }),
+      () =>
+        resolveTemplateString({
+          string: "${a >= b}",
+          context: new TestContext({ a: 123, b: "foo" }),
+        }),
       {
         contains:
           "Invalid template string (${a >= b}): Both terms need to be numbers for >= operator (got number and string).",
@@ -672,12 +944,18 @@ describe("resolveTemplateString", () => {
   })
 
   it("should handle a positive ternary expression", () => {
-    const res = resolveTemplateString({ string: "${foo ? true : false}", context: new TestContext({ foo: true }) })
+    const res = resolveTemplateString({
+      string: "${foo ? true : false}",
+      context: new TestContext({ foo: true }),
+    })
     expect(res).to.equal(true)
   })
 
   it("should handle a negative ternary expression", () => {
-    const res = resolveTemplateString({ string: "${foo ? true : false}", context: new TestContext({ foo: false }) })
+    const res = resolveTemplateString({
+      string: "${foo ? true : false}",
+      context: new TestContext({ foo: false }),
+    })
     expect(res).to.equal(false)
   })
 
@@ -714,12 +992,18 @@ describe("resolveTemplateString", () => {
   })
 
   it("should handle an expression in parentheses", () => {
-    const res = resolveTemplateString({ string: "${foo || (a > 5)}", context: new TestContext({ foo: false, a: 10 }) })
+    const res = resolveTemplateString({
+      string: "${foo || (a > 5)}",
+      context: new TestContext({ foo: false, a: 10 }),
+    })
     expect(res).to.equal(true)
   })
 
   it("should handle numeric indices on arrays", () => {
-    const res = resolveTemplateString({ string: "${foo.1}", context: new TestContext({ foo: [false, true] }) })
+    const res = resolveTemplateString({
+      string: "${foo.1}",
+      context: new TestContext({ foo: [false, true] }),
+    })
     expect(res).to.equal(true)
   })
 
@@ -806,54 +1090,84 @@ describe("resolveTemplateString", () => {
 
   context("when the template string is the full input string", () => {
     it("should return a resolved number directly", () => {
-      const res = resolveTemplateString({ string: "${a}", context: new TestContext({ a: 100 }) })
+      const res = resolveTemplateString({
+        string: "${a}",
+        context: new TestContext({ a: 100 }),
+      })
       expect(res).to.equal(100)
     })
 
     it("should return a resolved boolean true directly", () => {
-      const res = resolveTemplateString({ string: "${a}", context: new TestContext({ a: true }) })
+      const res = resolveTemplateString({
+        string: "${a}",
+        context: new TestContext({ a: true }),
+      })
       expect(res).to.equal(true)
     })
 
     it("should return a resolved boolean false directly", () => {
-      const res = resolveTemplateString({ string: "${a}", context: new TestContext({ a: false }) })
+      const res = resolveTemplateString({
+        string: "${a}",
+        context: new TestContext({ a: false }),
+      })
       expect(res).to.equal(false)
     })
 
     it("should return a resolved null directly", () => {
-      const res = resolveTemplateString({ string: "${a}", context: new TestContext({ a: null }) })
+      const res = resolveTemplateString({
+        string: "${a}",
+        context: new TestContext({ a: null }),
+      })
       expect(res).to.equal(null)
     })
 
     it("should return a resolved object directly", () => {
-      const res = resolveTemplateString({ string: "${a}", context: new TestContext({ a: { b: 123 } }) })
+      const res = resolveTemplateString({
+        string: "${a}",
+        context: new TestContext({ a: { b: 123 } }),
+      })
       expect(res).to.eql({ b: 123 })
     })
 
     it("should return a resolved array directly", () => {
-      const res = resolveTemplateString({ string: "${a}", context: new TestContext({ a: [123] }) })
+      const res = resolveTemplateString({
+        string: "${a}",
+        context: new TestContext({ a: [123] }),
+      })
       expect(res).to.eql([123])
     })
   })
 
   context("when the template string is a part of a string", () => {
     it("should format a resolved number into the string", () => {
-      const res = resolveTemplateString({ string: "foo-${a}", context: new TestContext({ a: 100 }) })
+      const res = resolveTemplateString({
+        string: "foo-${a}",
+        context: new TestContext({ a: 100 }),
+      })
       expect(res).to.equal("foo-100")
     })
 
     it("should format a resolved boolean true into the string", () => {
-      const res = resolveTemplateString({ string: "foo-${a}", context: new TestContext({ a: true }) })
+      const res = resolveTemplateString({
+        string: "foo-${a}",
+        context: new TestContext({ a: true }),
+      })
       expect(res).to.equal("foo-true")
     })
 
     it("should format a resolved boolean false into the string", () => {
-      const res = resolveTemplateString({ string: "foo-${a}", context: new TestContext({ a: false }) })
+      const res = resolveTemplateString({
+        string: "foo-${a}",
+        context: new TestContext({ a: false }),
+      })
       expect(res).to.equal("foo-false")
     })
 
     it("should format a resolved null into the string", () => {
-      const res = resolveTemplateString({ string: "foo-${a}", context: new TestContext({ a: null }) })
+      const res = resolveTemplateString({
+        string: "foo-${a}",
+        context: new TestContext({ a: null }),
+      })
       expect(res).to.equal("foo-null")
     })
 
@@ -900,27 +1214,42 @@ describe("resolveTemplateString", () => {
     })
 
     it("positive string literal contains string literal", () => {
-      const res = resolveTemplateString({ string: "${'foobar' contains 'foo'}", context: new TestContext({}) })
+      const res = resolveTemplateString({
+        string: "${'foobar' contains 'foo'}",
+        context: new TestContext({}),
+      })
       expect(res).to.equal(true)
     })
 
     it("string literal contains string literal (negative)", () => {
-      const res = resolveTemplateString({ string: "${'blorg' contains 'blarg'}", context: new TestContext({}) })
+      const res = resolveTemplateString({
+        string: "${'blorg' contains 'blarg'}",
+        context: new TestContext({}),
+      })
       expect(res).to.equal(false)
     })
 
     it("string literal contains string reference", () => {
-      const res = resolveTemplateString({ string: "${a contains 'foo'}", context: new TestContext({ a: "foobar" }) })
+      const res = resolveTemplateString({
+        string: "${a contains 'foo'}",
+        context: new TestContext({ a: "foobar" }),
+      })
       expect(res).to.equal(true)
     })
 
     it("string reference contains string literal (negative)", () => {
-      const res = resolveTemplateString({ string: "${a contains 'blarg'}", context: new TestContext({ a: "foobar" }) })
+      const res = resolveTemplateString({
+        string: "${a contains 'blarg'}",
+        context: new TestContext({ a: "foobar" }),
+      })
       expect(res).to.equal(false)
     })
 
     it("string contains number", () => {
-      const res = resolveTemplateString({ string: "${a contains 0}", context: new TestContext({ a: "hmm-0" }) })
+      const res = resolveTemplateString({
+        string: "${a contains 0}",
+        context: new TestContext({ a: "hmm-0" }),
+      })
       expect(res).to.equal(true)
     })
 
@@ -957,7 +1286,10 @@ describe("resolveTemplateString", () => {
     })
 
     it("object contains number literal", () => {
-      const res = resolveTemplateString({ string: "${a contains 123}", context: new TestContext({ a: { 123: 456 } }) })
+      const res = resolveTemplateString({
+        string: "${a contains 123}",
+        context: new TestContext({ a: { 123: 456 } }),
+      })
       expect(res).to.equal(true)
     })
 
@@ -978,17 +1310,26 @@ describe("resolveTemplateString", () => {
     })
 
     it("array contains string literal", () => {
-      const res = resolveTemplateString({ string: "${a contains 'foo'}", context: new TestContext({ a: ["foo"] }) })
+      const res = resolveTemplateString({
+        string: "${a contains 'foo'}",
+        context: new TestContext({ a: ["foo"] }),
+      })
       expect(res).to.equal(true)
     })
 
     it("array contains number", () => {
-      const res = resolveTemplateString({ string: "${a contains 1}", context: new TestContext({ a: [0, 1] }) })
+      const res = resolveTemplateString({
+        string: "${a contains 1}",
+        context: new TestContext({ a: [0, 1] }),
+      })
       expect(res).to.equal(true)
     })
 
     it("array contains numeric index (negative)", () => {
-      const res = resolveTemplateString({ string: "${a contains 1}", context: new TestContext({ a: [0] }) })
+      const res = resolveTemplateString({
+        string: "${a contains 1}",
+        context: new TestContext({ a: [0] }),
+      })
       expect(res).to.equal(false)
     })
   })
@@ -1113,7 +1454,10 @@ describe("resolveTemplateString", () => {
     it("throws if an if block has an optional suffix", () => {
       void expectError(
         () =>
-          resolveTemplateString({ string: "prefix ${if a}?content ${endif}", context: new TestContext({ a: true }) }),
+          resolveTemplateString({
+            string: "prefix ${if a}?content ${endif}",
+            context: new TestContext({ a: true }),
+          }),
         {
           contains:
             "Invalid template string (prefix ${if a}?content ${endif}): Cannot specify optional suffix in if-block.",
@@ -1123,7 +1467,11 @@ describe("resolveTemplateString", () => {
 
     it("throws if an if block doesn't have a matching endif", () => {
       void expectError(
-        () => resolveTemplateString({ string: "prefix ${if a}content", context: new TestContext({ a: true }) }),
+        () =>
+          resolveTemplateString({
+            string: "prefix ${if a}content",
+            context: new TestContext({ a: true }),
+          }),
         {
           contains: "Invalid template string (prefix ${if a}content): Missing ${endif} after ${if ...} block.",
         }
@@ -1132,7 +1480,11 @@ describe("resolveTemplateString", () => {
 
     it("throws if an endif block doesn't have a matching if", () => {
       void expectError(
-        () => resolveTemplateString({ string: "prefix content ${endif}", context: new TestContext({ a: true }) }),
+        () =>
+          resolveTemplateString({
+            string: "prefix content ${endif}",
+            context: new TestContext({ a: true }),
+          }),
         {
           contains:
             "Invalid template string (prefix content ${endif}): Found ${endif} block without a preceding ${if...} block.",
@@ -1143,40 +1495,66 @@ describe("resolveTemplateString", () => {
 
   context("helper functions", () => {
     it("resolves a helper function with a string literal", () => {
-      const res = resolveTemplateString({ string: "${base64Encode('foo')}", context: new TestContext({}) })
+      const res = resolveTemplateString({
+        string: "${base64Encode('foo')}",
+        context: new TestContext({}),
+      })
       expect(res).to.equal("Zm9v")
     })
 
     it("resolves a template string in a helper argument", () => {
-      const res = resolveTemplateString({ string: "${base64Encode('${a}')}", context: new TestContext({ a: "foo" }) })
+      const res = resolveTemplateString({
+        string: "${base64Encode('${a}')}",
+        context: new TestContext({ a: "foo" }),
+      })
       expect(res).to.equal("Zm9v")
     })
 
     it("resolves a helper function with multiple arguments", () => {
-      const res = resolveTemplateString({ string: "${split('a,b,c', ',')}", context: new TestContext({}) })
+      const res = resolveTemplateString({
+        string: "${split('a,b,c', ',')}",
+        context: new TestContext({}),
+      })
       expect(res).to.eql(["a", "b", "c"])
     })
 
     it("resolves a helper function with a template key reference", () => {
-      const res = resolveTemplateString({ string: "${base64Encode(a)}", context: new TestContext({ a: "foo" }) })
+      const res = resolveTemplateString({
+        string: "${base64Encode(a)}",
+        context: new TestContext({ a: "foo" }),
+      })
       expect(res).to.equal("Zm9v")
     })
 
     it("generates a correct hash with a string literal from the sha256 helper function", () => {
-      const res = resolveTemplateString({ string: "${sha256('This Is A Test String')}", context: new TestContext({}) })
+      const res = resolveTemplateString({
+        string: "${sha256('This Is A Test String')}",
+        context: new TestContext({}),
+      })
       expect(res).to.equal("9a058284378d1cc6b4348aacb6ba847918376054b094bbe06eb5302defc52685")
     })
 
     it("throws if an argument is missing", () => {
-      void expectError(() => resolveTemplateString({ string: "${base64Decode()}", context: new TestContext({}) }), {
-        contains:
-          "Invalid template string (${base64Decode()}): Missing argument 'string' (at index 0) for base64Decode helper function.",
-      })
+      void expectError(
+        () =>
+          resolveTemplateString({
+            string: "${base64Decode()}",
+            context: new TestContext({}),
+          }),
+        {
+          contains:
+            "Invalid template string (${base64Decode()}): Missing argument 'string' (at index 0) for base64Decode helper function.",
+        }
+      )
     })
 
     it("throws if a wrong argument type is passed", () => {
       void expectError(
-        () => resolveTemplateString({ string: "${base64Decode(a)}", context: new TestContext({ a: 1234 }) }),
+        () =>
+          resolveTemplateString({
+            string: "${base64Decode(a)}",
+            context: new TestContext({ a: 1234 }),
+          }),
         {
           contains:
             "Invalid template string (${base64Decode(a)}): Error validating argument 'string' for base64Decode helper function:\nvalue must be a string",
@@ -1185,17 +1563,31 @@ describe("resolveTemplateString", () => {
     })
 
     it("throws if the function can't be found", () => {
-      void expectError(() => resolveTemplateString({ string: "${floop('blop')}", context: new TestContext({}) }), {
-        contains:
-          "Invalid template string (${floop('blop')}): Could not find helper function 'floop'. Available helper functions:",
-      })
+      void expectError(
+        () =>
+          resolveTemplateString({
+            string: "${floop('blop')}",
+            context: new TestContext({}),
+          }),
+        {
+          contains:
+            "Invalid template string (${floop('blop')}): Could not find helper function 'floop'. Available helper functions:",
+        }
+      )
     })
 
     it("throws if the function fails", () => {
-      void expectError(() => resolveTemplateString({ string: "${jsonDecode('{]}')}", context: new TestContext({}) }), {
-        contains:
-          "Invalid template string (${jsonDecode('{]}')}): Error from helper function jsonDecode: SyntaxError: Expected property name or '}' in JSON at position 1 (line 1 column 2)",
-      })
+      void expectError(
+        () =>
+          resolveTemplateString({
+            string: "${jsonDecode('{]}')}",
+            context: new TestContext({}),
+          }),
+        {
+          contains:
+            "Invalid template string (${jsonDecode('{]}')}): Error from helper function jsonDecode: SyntaxError: Expected property name or '}' in JSON at position 1 (line 1 column 2)",
+        }
+      )
     })
 
     it.skip("does not apply helper function on unresolved template string and returns string as-is, when allowPartial=true", () => {
@@ -1211,7 +1603,10 @@ describe("resolveTemplateString", () => {
 
     context("concat", () => {
       it("allows empty strings", () => {
-        const res = resolveTemplateString({ string: "${concat('', '')}", context: new TestContext({}) })
+        const res = resolveTemplateString({
+          string: "${concat('', '')}",
+          context: new TestContext({}),
+        })
         expect(res).to.equal("")
       })
 
@@ -1226,7 +1621,11 @@ describe("resolveTemplateString", () => {
           errorMessage: string
         }) {
           void expectError(
-            () => resolveTemplateString({ string: template, context: new TestContext(testContextVars) }),
+            () =>
+              resolveTemplateString({
+                string: template,
+                context: new TestContext(testContextVars),
+              }),
             {
               contains: `Invalid template string (\${concat(a, b)}): ${errorMessage}`,
             }
@@ -1262,24 +1661,36 @@ describe("resolveTemplateString", () => {
     context("isEmpty", () => {
       context("allows nulls", () => {
         it("resolves null as 'true'", () => {
-          const res = resolveTemplateString({ string: "${isEmpty(null)}", context: new TestContext({}) })
+          const res = resolveTemplateString({
+            string: "${isEmpty(null)}",
+            context: new TestContext({}),
+          })
           expect(res).to.be.true
         })
 
         it("resolves references to null as 'true'", () => {
-          const res = resolveTemplateString({ string: "${isEmpty(a)}", context: new TestContext({ a: null }) })
+          const res = resolveTemplateString({
+            string: "${isEmpty(a)}",
+            context: new TestContext({ a: null }),
+          })
           expect(res).to.be.true
         })
       })
 
       context("allows empty strings", () => {
         it("resolves an empty string as 'true'", () => {
-          const res = resolveTemplateString({ string: "${isEmpty('')}", context: new TestContext({}) })
+          const res = resolveTemplateString({
+            string: "${isEmpty('')}",
+            context: new TestContext({}),
+          })
           expect(res).to.be.true
         })
 
         it("resolves a reference to an empty string as 'true'", () => {
-          const res = resolveTemplateString({ string: "${isEmpty(a)}", context: new TestContext({ a: "" }) })
+          const res = resolveTemplateString({
+            string: "${isEmpty(a)}",
+            context: new TestContext({ a: "" }),
+          })
           expect(res).to.be.true
         })
       })
@@ -1304,7 +1715,11 @@ describe("resolveTemplateString", () => {
 
       it("throws on invalid string in the start index", () => {
         void expectError(
-          () => resolveTemplateString({ string: "${slice(foo, 'a', 3)}", context: new TestContext({ foo: "abcdef" }) }),
+          () =>
+            resolveTemplateString({
+              string: "${slice(foo, 'a', 3)}",
+              context: new TestContext({ foo: "abcdef" }),
+            }),
           {
             contains: `Invalid template string (\${slice(foo, 'a', 3)}): Error from helper function slice: Error: start index must be a number or a numeric string (got "a")`,
           }
@@ -1313,7 +1728,11 @@ describe("resolveTemplateString", () => {
 
       it("throws on invalid string in the end index", () => {
         void expectError(
-          () => resolveTemplateString({ string: "${slice(foo, 0, 'b')}", context: new TestContext({ foo: "abcdef" }) }),
+          () =>
+            resolveTemplateString({
+              string: "${slice(foo, 0, 'b')}",
+              context: new TestContext({ foo: "abcdef" }),
+            }),
           {
             contains: `Invalid template string (\${slice(foo, 0, 'b')}): Error from helper function slice: Error: end index must be a number or a numeric string (got "b")`,
           }
@@ -1324,7 +1743,10 @@ describe("resolveTemplateString", () => {
 
   context("array literals", () => {
     it("returns an empty array literal back", () => {
-      const res = resolveTemplateString({ string: "${[]}", context: new TestContext({}) })
+      const res = resolveTemplateString({
+        string: "${[]}",
+        context: new TestContext({}),
+      })
       expect(res).to.eql([])
     })
 
@@ -1337,12 +1759,18 @@ describe("resolveTemplateString", () => {
     })
 
     it("resolves a key in an array literal", () => {
-      const res = resolveTemplateString({ string: "${[foo]}", context: new TestContext({ foo: "bar" }) })
+      const res = resolveTemplateString({
+        string: "${[foo]}",
+        context: new TestContext({ foo: "bar" }),
+      })
       expect(res).to.eql(["bar"])
     })
 
     it("resolves a nested key in an array literal", () => {
-      const res = resolveTemplateString({ string: "${[foo.bar]}", context: new TestContext({ foo: { bar: "baz" } }) })
+      const res = resolveTemplateString({
+        string: "${[foo.bar]}",
+        context: new TestContext({ foo: { bar: "baz" } }),
+      })
       expect(res).to.eql(["baz"])
     })
 
@@ -1355,12 +1783,18 @@ describe("resolveTemplateString", () => {
     })
 
     it("calls a helper with an array literal argument", () => {
-      const res = resolveTemplateString({ string: "${join(['foo', 'bar'], ',')}", context: new TestContext({}) })
+      const res = resolveTemplateString({
+        string: "${join(['foo', 'bar'], ',')}",
+        context: new TestContext({}),
+      })
       expect(res).to.eql("foo,bar")
     })
 
     it("allows empty string separator in join helper function", () => {
-      const res = resolveTemplateString({ string: "${join(['foo', 'bar'], '')}", context: new TestContext({}) })
+      const res = resolveTemplateString({
+        string: "${join(['foo', 'bar'], '')}",
+        context: new TestContext({}),
+      })
       expect(res).to.eql("foobar")
     })
   })
@@ -1380,7 +1814,7 @@ describe("resolveTemplateStrings", () => {
       something: "else",
     })
 
-    const result = resolveTemplateStrings({ source: undefined, value: obj, context: templateContext })
+    const result = resolveTemplateStrings({ value: obj, context: templateContext })
 
     expect(result).to.eql({
       some: "value",
@@ -1400,7 +1834,7 @@ describe("resolveTemplateStrings", () => {
       key: "value",
     })
 
-    const result = resolveTemplateStrings({ source: undefined, value: obj, context: templateContext })
+    const result = resolveTemplateStrings({ value: obj, context: templateContext })
 
     expect(result).to.eql({
       some: "value",
@@ -1416,7 +1850,7 @@ describe("resolveTemplateStrings", () => {
     }
     const templateContext = new TestContext({})
 
-    const result = resolveTemplateStrings({ source: undefined, value: obj, context: templateContext })
+    const result = resolveTemplateStrings({ value: obj, context: templateContext })
 
     expect(result).to.eql({
       a: "a",
@@ -1433,7 +1867,7 @@ describe("resolveTemplateStrings", () => {
     }
     const templateContext = new TestContext({})
 
-    const result = resolveTemplateStrings({ source: undefined, value: obj, context: templateContext })
+    const result = resolveTemplateStrings({ value: obj, context: templateContext })
 
     expect(result).to.eql({
       a: "a",
@@ -1450,7 +1884,7 @@ describe("resolveTemplateStrings", () => {
     }
     const templateContext = new TestContext({ obj: { a: "a", b: "b" } })
 
-    const result = resolveTemplateStrings({ source: undefined, value: obj, context: templateContext })
+    const result = resolveTemplateStrings({ value: obj, context: templateContext })
 
     expect(result).to.eql({
       a: "a",
@@ -1470,7 +1904,7 @@ describe("resolveTemplateStrings", () => {
     }
     const templateContext = new TestContext({ obj: { b: "b" } })
 
-    const result = resolveTemplateStrings({ source: undefined, value: obj, context: templateContext })
+    const result = resolveTemplateStrings({ value: obj, context: templateContext })
 
     expect(result).to.eql({
       a: "a",
@@ -1486,7 +1920,7 @@ describe("resolveTemplateStrings", () => {
     }
     const templateContext = new TestContext({ var: { obj: { a: "a", b: "b" } } })
 
-    const result = resolveTemplateStrings({ value: obj, context: templateContext, source: undefined })
+    const result = resolveTemplateStrings({ value: obj, context: templateContext })
 
     expect(result).to.eql({
       a: "a",
@@ -1523,7 +1957,6 @@ describe("resolveTemplateStrings", () => {
       value: obj,
       context: templateContext,
       contextOpts: { allowPartial: true },
-      source: undefined,
     })
 
     expect(result).to.eql({
@@ -1561,7 +1994,7 @@ describe("resolveTemplateStrings", () => {
       },
     })
 
-    const result = resolveTemplateStrings({ value: obj, context: templateContext, source: undefined })
+    const result = resolveTemplateStrings({ value: obj, context: templateContext })
 
     expect(result).to.eql({
       "key-value-array": [
@@ -1578,9 +2011,7 @@ describe("resolveTemplateStrings", () => {
     }
     const templateContext = new TestContext({ var: { obj: { a: "a", b: "b" } } })
 
-    expect(() => resolveTemplateStrings({ value: obj, context: templateContext, source: undefined })).to.throw(
-      "Invalid template string"
-    )
+    expect(() => resolveTemplateStrings({ value: obj, context: templateContext })).to.throw("Invalid template string")
   })
 
   context("$concat", () => {
@@ -1588,7 +2019,10 @@ describe("resolveTemplateStrings", () => {
       const obj = {
         foo: ["a", { $concat: ["b", "c"] }, "d"],
       }
-      const res = resolveTemplateStrings({ source: undefined, value: obj, context: new TestContext({}) })
+      const res = resolveTemplateStrings({
+        value: obj,
+        context: new TestContext({}),
+      })
       expect(res).to.eql({
         foo: ["a", "b", "c", "d"],
       })
@@ -1599,7 +2033,6 @@ describe("resolveTemplateStrings", () => {
         foo: ["a", { $concat: "${foo}" }, "d"],
       }
       const res = resolveTemplateStrings({
-        source: undefined,
         value: obj,
         context: new TestContext({ foo: ["b", "c"] }),
       })
@@ -1613,7 +2046,6 @@ describe("resolveTemplateStrings", () => {
         foo: ["a", { $concat: { $forEach: ["B", "C"], $return: "${lower(item.value)}" } }, "d"],
       }
       const res = resolveTemplateStrings({
-        source: undefined,
         value: obj,
         context: new TestContext({ foo: ["b", "c"] }),
       })
@@ -1627,7 +2059,7 @@ describe("resolveTemplateStrings", () => {
         foo: ["a", { $concat: "b" }, "d"],
       }
 
-      void expectError(() => resolveTemplateStrings({ source: undefined, value: obj, context: new TestContext({}) }), {
+      void expectError(() => resolveTemplateStrings({ value: obj, context: new TestContext({}) }), {
         contains: "Value of $concat key must be (or resolve to) an array (got string)",
       })
     })
@@ -1637,7 +2069,7 @@ describe("resolveTemplateStrings", () => {
         foo: ["a", { $concat: "b", nope: "nay", oops: "derp" }, "d"],
       }
 
-      void expectError(() => resolveTemplateStrings({ source: undefined, value: obj, context: new TestContext({}) }), {
+      void expectError(() => resolveTemplateStrings({ value: obj, context: new TestContext({}) }), {
         contains: 'A list item with a $concat key cannot have any other keys (found "nope" and "oops")',
       })
     })
@@ -1647,7 +2079,6 @@ describe("resolveTemplateStrings", () => {
         foo: ["a", { $concat: "${foo}" }, "d"],
       }
       const res = resolveTemplateStrings({
-        source: undefined,
         value: obj,
         context: new TestContext({}),
         contextOpts: { allowPartial: true },
@@ -1667,7 +2098,10 @@ describe("resolveTemplateStrings", () => {
           $else: 456,
         },
       }
-      const res = resolveTemplateStrings({ source: undefined, value: obj, context: new TestContext({ foo: 1 }) })
+      const res = resolveTemplateStrings({
+        value: obj,
+        context: new TestContext({ foo: 1 }),
+      })
       expect(res).to.eql({ bar: 123 })
     })
 
@@ -1679,7 +2113,10 @@ describe("resolveTemplateStrings", () => {
           $else: 456,
         },
       }
-      const res = resolveTemplateStrings({ source: undefined, value: obj, context: new TestContext({ foo: 2 }) })
+      const res = resolveTemplateStrings({
+        value: obj,
+        context: new TestContext({ foo: 2 }),
+      })
       expect(res).to.eql({ bar: 456 })
     })
 
@@ -1690,7 +2127,10 @@ describe("resolveTemplateStrings", () => {
           $then: 123,
         },
       }
-      const res = resolveTemplateStrings({ source: undefined, value: obj, context: new TestContext({ foo: 2 }) })
+      const res = resolveTemplateStrings({
+        value: obj,
+        context: new TestContext({ foo: 2 }),
+      })
       expect(res).to.eql({ bar: undefined })
     })
 
@@ -1703,7 +2143,6 @@ describe("resolveTemplateStrings", () => {
         },
       }
       const res = resolveTemplateStrings({
-        source: undefined,
         value: obj,
         context: new TestContext({ foo: 2 }),
         contextOpts: { allowPartial: true },
@@ -1720,7 +2159,11 @@ describe("resolveTemplateStrings", () => {
       }
 
       void expectError(
-        () => resolveTemplateStrings({ source: undefined, value: obj, context: new TestContext({ foo: "bla" }) }),
+        () =>
+          resolveTemplateStrings({
+            value: obj,
+            context: new TestContext({ foo: "bla" }),
+          }),
         {
           contains: "Value of $if key must be (or resolve to) a boolean (got string)",
         }
@@ -1735,7 +2178,11 @@ describe("resolveTemplateStrings", () => {
       }
 
       void expectError(
-        () => resolveTemplateStrings({ source: undefined, value: obj, context: new TestContext({ foo: 1 }) }),
+        () =>
+          resolveTemplateStrings({
+            value: obj,
+            context: new TestContext({ foo: 1 }),
+          }),
         {
           contains: "Missing $then field next to $if field",
         }
@@ -1752,7 +2199,11 @@ describe("resolveTemplateStrings", () => {
       }
 
       void expectError(
-        () => resolveTemplateStrings({ source: undefined, value: obj, context: new TestContext({ foo: 1 }) }),
+        () =>
+          resolveTemplateStrings({
+            value: obj,
+            context: new TestContext({ foo: 1 }),
+          }),
         {
           contains: 'Found one or more unexpected keys on $if object: "foo"',
         }
@@ -1768,7 +2219,10 @@ describe("resolveTemplateStrings", () => {
           $return: "foo",
         },
       }
-      const res = resolveTemplateStrings({ source: undefined, value: obj, context: new TestContext({}) })
+      const res = resolveTemplateStrings({
+        value: obj,
+        context: new TestContext({}),
+      })
       expect(res).to.eql({
         foo: ["foo", "foo", "foo"],
       })
@@ -1785,7 +2239,10 @@ describe("resolveTemplateStrings", () => {
           $return: "${item.key}: ${item.value}",
         },
       }
-      const res = resolveTemplateStrings({ source: undefined, value: obj, context: new TestContext({}) })
+      const res = resolveTemplateStrings({
+        value: obj,
+        context: new TestContext({}),
+      })
       expect(res).to.eql({
         foo: ["a: 1", "b: 2", "c: 3"],
       })
@@ -1799,7 +2256,7 @@ describe("resolveTemplateStrings", () => {
         },
       }
 
-      void expectError(() => resolveTemplateStrings({ source: undefined, value: obj, context: new TestContext({}) }), {
+      void expectError(() => resolveTemplateStrings({ value: obj, context: new TestContext({}) }), {
         contains: "Value of $forEach key must be (or resolve to) an array or mapping object (got string)",
       })
     })
@@ -1812,7 +2269,6 @@ describe("resolveTemplateStrings", () => {
         },
       }
       const res = resolveTemplateStrings({
-        source: undefined,
         value: obj,
         context: new TestContext({}),
         contextOpts: { allowPartial: true },
@@ -1827,7 +2283,7 @@ describe("resolveTemplateStrings", () => {
         },
       }
 
-      void expectError(() => resolveTemplateStrings({ source: undefined, value: obj, context: new TestContext({}) }), {
+      void expectError(() => resolveTemplateStrings({ value: obj, context: new TestContext({}) }), {
         contains: "Missing $return field next to $forEach field.",
       })
     })
@@ -1842,7 +2298,7 @@ describe("resolveTemplateStrings", () => {
         },
       }
 
-      void expectError(() => resolveTemplateStrings({ source: undefined, value: obj, context: new TestContext({}) }), {
+      void expectError(() => resolveTemplateStrings({ value: obj, context: new TestContext({}) }), {
         contains: 'Found one or more unexpected keys on $forEach object: "$concat" and "foo"',
       })
     })
@@ -1855,7 +2311,6 @@ describe("resolveTemplateStrings", () => {
         },
       }
       const res = resolveTemplateStrings({
-        source: undefined,
         value: obj,
         context: new TestContext({ foo: ["a", "b", "c"] }),
       })
@@ -1872,7 +2327,6 @@ describe("resolveTemplateStrings", () => {
         },
       }
       const res = resolveTemplateStrings({
-        source: undefined,
         value: obj,
         context: new TestContext({ foo: ["a", "b", "c"] }),
       })
@@ -1890,7 +2344,6 @@ describe("resolveTemplateStrings", () => {
         },
       }
       const res = resolveTemplateStrings({
-        source: undefined,
         value: obj,
         context: new TestContext({ foo: ["a", "b", "c"] }),
       })
@@ -1908,7 +2361,7 @@ describe("resolveTemplateStrings", () => {
         },
       }
 
-      void expectError(() => resolveTemplateStrings({ source: undefined, value: obj, context: new TestContext({}) }), {
+      void expectError(() => resolveTemplateStrings({ value: obj, context: new TestContext({}) }), {
         contains: "$filter clause in $forEach loop must resolve to a boolean value (got object)",
       })
     })
@@ -1922,7 +2375,10 @@ describe("resolveTemplateStrings", () => {
           },
         },
       }
-      const res = resolveTemplateStrings({ source: undefined, value: obj, context: new TestContext({}) })
+      const res = resolveTemplateStrings({
+        value: obj,
+        context: new TestContext({}),
+      })
       expect(res).to.eql({
         foo: ["a-1", "a-2", "b-1", "b-2", "c-1", "c-2"],
       })
@@ -1941,7 +2397,10 @@ describe("resolveTemplateStrings", () => {
           },
         },
       }
-      const res = resolveTemplateStrings({ source: undefined, value: obj, context: new TestContext({}) })
+      const res = resolveTemplateStrings({
+        value: obj,
+        context: new TestContext({}),
+      })
       expect(res).to.eql({
         foo: [
           ["A1", "A2"],
@@ -1957,7 +2416,10 @@ describe("resolveTemplateStrings", () => {
           $return: "foo",
         },
       }
-      const res = resolveTemplateStrings({ source: undefined, value: obj, context: new TestContext({}) })
+      const res = resolveTemplateStrings({
+        value: obj,
+        context: new TestContext({}),
+      })
       expect(res).to.eql({
         foo: [],
       })
@@ -1995,7 +2457,10 @@ describe("resolveTemplateStrings", () => {
         },
       }
 
-      const res = resolveTemplateStrings({ source: undefined, value: obj, context: new TestContext({ services }) })
+      const res = resolveTemplateStrings({
+        value: obj,
+        context: new TestContext({ services }),
+      })
       expect(res).to.eql({
         services: [
           {
@@ -2039,11 +2504,12 @@ describe("input tracking", () => {
         },
       })
 
-      const res = resolveTemplateStringWithInputs({
+      const value = resolveTemplateStringWithInputs({
         string: "${var.elements}",
-        context,
-        contextOpts: { resultPath: ["result"] },
       })
+
+      const res = unwrapLazyValues({ value, context, opts: {} })
+
       expect(res).to.eql([
         new TemplateLeaf({
           value: "element",
@@ -2073,11 +2539,11 @@ describe("input tracking", () => {
         },
       })
 
-      const res = resolveTemplateStringWithInputs({
+      const value = resolveTemplateStringWithInputs({
         string: "${ var.elements ? var.fruits : var.colors }",
-        context,
-        contextOpts: { resultPath: ["result"] },
       })
+
+      const res = unwrapLazyValues({ value, context, opts: {} })
 
       // TODO: finalize expectations for this test case
       expect(res).to.eql([
@@ -2141,11 +2607,11 @@ describe("input tracking", () => {
         },
       })
 
-      const res = resolveTemplateStringWithInputs({
+      const value = resolveTemplateStringWithInputs({
         string: "${var.array ? 'foo' : 'bar' }",
-        context,
-        contextOpts: { resultPath: ["result"] },
       })
+
+      const res = unwrapLazyValues({ value, context, opts: {} })
 
       expect(res).to.eql([
         new TemplateLeaf({
@@ -2172,11 +2638,12 @@ describe("input tracking", () => {
         },
       })
 
-      const res = resolveTemplateStringWithInputs({
+      const value = resolveTemplateStringWithInputs({
         string: "${var.foo}",
-        context,
-        contextOpts: { resultPath: ["result"] },
       })
+
+      const res = unwrapLazyValues({ value, context, opts: {} })
+
       expect(res).to.eql({
         foo: {
           bar: new TemplateLeaf({
@@ -2212,7 +2679,10 @@ describe("input tracking", () => {
         },
       }
 
-      const res = resolveTemplateStringsWithInputs({ source: undefined, value: obj, context })
+      const value = resolveTemplateStringsWithInputs({ value: obj, source: { source: undefined } })
+
+      const res = unwrapLazyValues({ value, context, opts: {} })
+
       expect(res).to.eql({
         spec: {
           elements: [
@@ -2241,7 +2711,7 @@ describe("input tracking", () => {
         },
       }
 
-      const res = resolveTemplateStrings({ source: undefined, value: obj, context })
+      const res = resolveTemplateStrings({ value: obj, context })
       expect(res).to.eql({
         foo: [],
       })
@@ -2262,7 +2732,9 @@ describe("input tracking", () => {
         },
       }
 
-      const res = resolveTemplateStringsWithInputs({ source: undefined, value: obj, context })
+      const value = resolveTemplateStringsWithInputs({ value: obj, source: { source: undefined } })
+
+      const res = unwrapLazyValues({ value, context, opts: {} })
 
       expect(res).to.eql([
         new TemplateLeaf({
@@ -2296,7 +2768,8 @@ describe("input tracking", () => {
           },
         },
       }
-      const res = resolveTemplateStringsWithInputs({ source: undefined, value: obj, context })
+      const value = resolveTemplateStringsWithInputs({ value: obj, source: { source: undefined } })
+      const res = unwrapLazyValues({ value, context, opts: {} })
       expect(res).to.eql({
         spec: {
           passwords: [
@@ -2335,7 +2808,10 @@ describe("input tracking", () => {
           },
         },
       }
-      const res = resolveTemplateStringsWithInputs({ source: undefined, value: obj, context })
+      const value = resolveTemplateStringsWithInputs({ value: obj, source: { source: undefined } })
+
+      const res = unwrapLazyValues({ value, context, opts: {} })
+
       expect(res).to.eql({
         spec: {
           elements: [
@@ -2382,8 +2858,14 @@ describe("input tracking", () => {
           $return: "${item.value.xyz}",
         },
       }
-      const res = resolveTemplateStringsWithInputs({ source: undefined, value: obj, context })
-      expect(res).to.eql({
+      const value = resolveTemplateStringsWithInputs({ value: obj, source: { source: undefined } })
+
+      const res = unwrapLazyValues({ value, context, opts: {} })
+
+      expect(res["foo"]).to.be.instanceOf(ForEachLazyValue)
+
+      // TODO: Source should not be on context opts
+      expect(deepUnwrapLazyValues({ value: res, context, opts: {} })).to.deep.include({
         foo: [
           new TemplateLeaf({
             expr: "${item.value.xyz}",
@@ -2446,7 +2928,9 @@ describe("input tracking", () => {
         },
       }
 
-      const res = resolveTemplateStringsWithInputs({ source: undefined, value: obj, context })
+      const value = resolveTemplateStringsWithInputs({ value: obj, source: { source: undefined } })
+      const res = unwrapLazyValues({ value, context, opts: {} })
+
       expect(res).to.eql({
         foo: [
           new TemplateLeaf({
@@ -2510,7 +2994,9 @@ describe("input tracking", () => {
         foo: "bar",
       }
 
-      const res = resolveTemplateStringsWithInputs({ source: undefined, value: obj, context })
+      const value = resolveTemplateStringsWithInputs({ value: obj, source: { source: undefined } })
+      const res = unwrapLazyValues({ value, context, opts: {} })
+
       expect(res).to.eql({
         foo: new TemplateLeaf({
           expr: undefined,
@@ -2537,15 +3023,17 @@ describe("input tracking", () => {
         },
       })
 
-      const res = resolveTemplateStringsWithInputs({
-        source: undefined,
+      const value = resolveTemplateStringsWithInputs({
         value: {
           spec: {
             password: "${var.sharedPassword}",
           },
         },
-        context,
+        source: { source: undefined },
       })
+
+      const res = unwrapLazyValues({ value, context, opts: {} })
+
       expect(res).to.eql({
         spec: {
           password: new TemplateLeaf({
@@ -2578,15 +3066,17 @@ describe("input tracking", () => {
         },
       })
 
-      const res = resolveTemplateStringsWithInputs({
-        source: undefined,
+      const value = resolveTemplateStringsWithInputs({
         value: {
           spec: {
             image: "${local.env.IMAGE}",
           },
         },
-        context,
+        source: { source: undefined },
       })
+
+      const res = unwrapLazyValues({ value, context, opts: {} })
+
       expect(res).to.eql({
         spec: {
           image: new TemplateLeaf({
@@ -2613,15 +3103,17 @@ describe("input tracking", () => {
         },
       })
 
-      const res = resolveTemplateStringsWithInputs({
-        source: undefined,
+      const value = resolveTemplateStringsWithInputs({
         value: {
           foo: {
             bar: ["${var.foo.bar}"],
           },
         },
-        context,
+        source: { source: undefined },
       })
+
+      const res = unwrapLazyValues({ value, context, opts: {} })
+
       expect(res).to.eql({
         foo: {
           bar: [
@@ -2661,8 +3153,7 @@ describe("input tracking", () => {
         },
       })
 
-      const res = resolveTemplateStringsWithInputs({
-        source: undefined,
+      const value = resolveTemplateStringsWithInputs({
         value: {
           a: {
             b: {
@@ -2672,8 +3163,10 @@ describe("input tracking", () => {
             },
           },
         },
-        context,
+        source: { source: undefined },
       })
+
+      const res = unwrapLazyValues({ value, context, opts: {} })
 
       expect(res).to.eql({
         a: {

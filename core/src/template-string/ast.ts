@@ -8,12 +8,21 @@
 
 import { isArray, isEmpty, isNumber, isString } from "lodash-es"
 import { type ConfigContext, type ContextResolveOpts } from "../config/template-contexts/base.js"
-import { InternalError, TemplateStringError } from "../exceptions.js"
-import { callHelperFunction } from "./functions.js"
-import { TemplateLeaf, isTemplateLeaf, isTemplatePrimitive, mergeInputs } from "./inputs.js"
-import type { TemplatePrimitive, TemplateValue } from "./inputs.js"
-import { WrapContextLookupInputsLazily, unwrap, unwrapLazyValues } from "./lazy.js"
-import { Collection, CollectionOrValue } from "../util/objects.js"
+import { InternalError, NotFoundError, TemplateFunctionCallError, TemplateStringError } from "../exceptions.js"
+import { getHelperFunctions } from "./functions.js"
+import {
+  TemplateLeaf,
+  isTemplateLeaf,
+  isTemplateLeafValue,
+  isTemplatePrimitive,
+  mergeInputs,
+  templatePrimitiveDeepMap,
+} from "./inputs.js"
+import type { TemplateLeafValue, TemplatePrimitive, TemplateValue } from "./inputs.js"
+import { WrapContextLookupInputsLazily, deepUnwrapLazyValues, unwrap, unwrapLazyValues } from "./lazy.js"
+import { Collection, CollectionOrValue, deepMap } from "../util/objects.js"
+import { TemplateProvenance } from "./template-string.js"
+import { validateSchema } from "../config/validation.js"
 
 type EvaluateArgs = {
   context: ConfigContext
@@ -30,7 +39,7 @@ type EvaluateArgs = {
 /**
  * Returned by the `location()` helper in PEG.js.
  */
-type Location = {
+export type Location = {
   start: {
     offset: number
     line: number
@@ -41,6 +50,7 @@ type Location = {
     line: number
     column: number
   }
+  source: TemplateProvenance
 }
 
 export abstract class TemplateExpression {
@@ -115,12 +125,13 @@ export abstract class UnaryExpression extends TemplateExpression {
     super(loc)
   }
 
-  evaluate(args: EvaluateArgs): CollectionOrValue<TemplateValue> {
+  override evaluate(args: EvaluateArgs): CollectionOrValue<TemplateValue> {
     const inner = this.innerExpression.evaluate(args)
 
     const innerValue = unwrap({ value: inner, context: args.context, opts: args.opts })
 
     return mergeInputs(
+      this.loc.source,
       new TemplateLeaf({
         expr: args.rawTemplateString,
         value: this.transform(innerValue),
@@ -134,13 +145,13 @@ export abstract class UnaryExpression extends TemplateExpression {
 }
 
 export class TypeofExpression extends UnaryExpression {
-  transform(value: TemplatePrimitive | Collection<TemplateValue>): string {
+  override transform(value: TemplatePrimitive | Collection<TemplateValue>): string {
     return typeof value
   }
 }
 
 export class NotExpression extends UnaryExpression {
-  transform(value: TemplatePrimitive | Collection<TemplateValue>): boolean {
+  override transform(value: TemplatePrimitive | Collection<TemplateValue>): boolean {
     return !value
   }
 }
@@ -157,7 +168,7 @@ export abstract class LogicalExpression extends TemplateExpression {
 }
 
 // you need to call with unwrap: isTruthy(unwrap(value))
-function isTruthy(v: TemplatePrimitive | Collection<TemplateValue>): boolean {
+export function isTruthy(v: TemplatePrimitive | Collection<TemplateValue>): boolean {
   if (isTemplatePrimitive(v)) {
     return !!v
   } else {
@@ -178,7 +189,7 @@ export class LogicalOrExpression extends LogicalExpression {
     }
 
     const right = this.right.evaluate(args)
-    return mergeInputs(right, left)
+    return mergeInputs(this.loc.source, right, left)
   }
 }
 
@@ -208,6 +219,7 @@ export class LogicalAndExpression extends LogicalExpression {
       // Javascript would return the value on the left; we return false in case the value is undefined. This is a quirk of Garden's template languate that we want to keep for backwards compatibility.
       if (leftValue === undefined) {
         return mergeInputs(
+          this.loc.source,
           new TemplateLeaf({
             expr: args.rawTemplateString,
             value: false,
@@ -227,6 +239,7 @@ export class LogicalAndExpression extends LogicalExpression {
       const rightValue = unwrap({ value: right, context: args.context, opts: args.opts })
       if (rightValue === undefined) {
         return mergeInputs(
+          this.loc.source,
           new TemplateLeaf({
             expr: args.rawTemplateString,
             value: false,
@@ -236,7 +249,7 @@ export class LogicalAndExpression extends LogicalExpression {
           left
         )
       } else {
-        return mergeInputs(right, left)
+        return mergeInputs(this.loc.source, right, left)
       }
     }
   }
@@ -263,6 +276,7 @@ export abstract class BinaryExpression extends TemplateExpression {
 
     if (isTemplatePrimitive(transformed)) {
       return mergeInputs(
+        this.loc.source,
         new TemplateLeaf({
           expr: args.rawTemplateString,
           value: transformed,
@@ -286,7 +300,7 @@ export abstract class BinaryExpression extends TemplateExpression {
 }
 
 export class EqualExpression extends BinaryExpression {
-  transform(
+  override transform(
     left: TemplatePrimitive | Collection<TemplateValue>,
     right: TemplatePrimitive | Collection<TemplateValue>
   ): boolean {
@@ -295,7 +309,7 @@ export class EqualExpression extends BinaryExpression {
 }
 
 export class NotEqualExpression extends BinaryExpression {
-  transform(
+  override transform(
     left: TemplatePrimitive | Collection<TemplateValue>,
     right: TemplatePrimitive | Collection<TemplateValue>
   ): boolean {
@@ -304,9 +318,10 @@ export class NotEqualExpression extends BinaryExpression {
 }
 
 export class AddExpression extends BinaryExpression {
-  transform(
+  override transform(
     left: TemplatePrimitive | Collection<TemplateValue>,
-    right: TemplatePrimitive | Collection<TemplateValue>
+    right: TemplatePrimitive | Collection<TemplateValue>,
+    args: EvaluateArgs
   ): TemplatePrimitive | Collection<TemplateValue> {
     if (isNumber(left) && isNumber(right)) {
       return left + right
@@ -319,13 +334,15 @@ export class AddExpression extends BinaryExpression {
     } else {
       throw new TemplateStringError({
         message: `Both terms need to be either arrays or strings or numbers for + operator (got ${typeof left} and ${typeof right}).`,
+        rawTemplateString: args.rawTemplateString,
+        loc: this.loc,
       })
     }
   }
 }
 
 export class ContainsExpression extends BinaryExpression {
-  transform(
+  override transform(
     collection: TemplatePrimitive | Collection<TemplateValue>,
     element: TemplatePrimitive | Collection<TemplateValue>,
     args: EvaluateArgs
@@ -333,6 +350,8 @@ export class ContainsExpression extends BinaryExpression {
     if (!isTemplatePrimitive(element)) {
       throw new TemplateStringError({
         message: `The right-hand side of a 'contains' operator must be a string, number, boolean or null (got ${typeof element}).`,
+        rawTemplateString: args.rawTemplateString,
+        loc: this.loc,
       })
     }
 
@@ -350,6 +369,8 @@ export class ContainsExpression extends BinaryExpression {
 
     throw new TemplateStringError({
       message: `The left-hand side of a 'contains' operator must be a string, array or object (got ${collection}).`,
+      rawTemplateString: args.rawTemplateString,
+      loc: this.loc,
     })
   }
 }
@@ -357,7 +378,8 @@ export class ContainsExpression extends BinaryExpression {
 export abstract class BinaryExpressionOnNumbers extends BinaryExpression {
   override transform(
     left: TemplatePrimitive | Collection<TemplateValue>,
-    right: TemplatePrimitive | Collection<TemplateValue>
+    right: TemplatePrimitive | Collection<TemplateValue>,
+    args: EvaluateArgs
   ): TemplatePrimitive | Collection<TemplateValue> {
     // All other operators require numbers to make sense (we're not gonna allow random JS weirdness)
     if (!isNumber(left) || !isNumber(right)) {
@@ -365,6 +387,8 @@ export abstract class BinaryExpressionOnNumbers extends BinaryExpression {
         message: `Both terms need to be numbers for ${
           this.operator
         } operator (got ${typeof left} and ${typeof right}).`,
+        rawTemplateString: args.rawTemplateString,
+        loc: this.loc,
       })
     }
 
@@ -375,49 +399,49 @@ export abstract class BinaryExpressionOnNumbers extends BinaryExpression {
 }
 
 export class MultiplyExpression extends BinaryExpressionOnNumbers {
-  calculate(left: number, right: number): number {
+  override calculate(left: number, right: number): number {
     return left * right
   }
 }
 
 export class DivideExpression extends BinaryExpressionOnNumbers {
-  calculate(left: number, right: number): number {
+  override calculate(left: number, right: number): number {
     return left / right
   }
 }
 
 export class ModuloExpression extends BinaryExpressionOnNumbers {
-  calculate(left: number, right: number): number {
+  override calculate(left: number, right: number): number {
     return left % right
   }
 }
 
 export class SubtractExpression extends BinaryExpressionOnNumbers {
-  calculate(left: number, right: number): number {
+  override calculate(left: number, right: number): number {
     return left - right
   }
 }
 
 export class LessThanEqualExpression extends BinaryExpressionOnNumbers {
-  calculate(left: number, right: number): boolean {
+  override calculate(left: number, right: number): boolean {
     return left <= right
   }
 }
 
 export class GreaterThanEqualExpression extends BinaryExpressionOnNumbers {
-  calculate(left: number, right: number): boolean {
+  override calculate(left: number, right: number): boolean {
     return left >= right
   }
 }
 
 export class LessThanExpression extends BinaryExpressionOnNumbers {
-  calculate(left: number, right: number): boolean {
+  override calculate(left: number, right: number): boolean {
     return left < right
   }
 }
 
 export class GreaterThanExpression extends BinaryExpressionOnNumbers {
-  calculate(left: number, right: number): boolean {
+  override calculate(left: number, right: number): boolean {
     return left > right
   }
 }
@@ -477,6 +501,7 @@ export class IfBlockExpression extends TemplateExpression {
       : this.ifFalse?.evaluate(args)
 
     return mergeInputs(
+      this.loc.source,
       evaluated ||
         new TemplateLeaf({
           expr: args.rawTemplateString,
@@ -504,6 +529,8 @@ export class StringConcatExpression extends TemplateExpression {
           message: `Cannot concatenate: expected primitive, but expression resolved to ${
             isTemplateLeaf(r) ? typeof r.value : typeof r
           }`,
+          rawTemplateString: args.rawTemplateString,
+          loc: this.loc,
         })
       }
 
@@ -516,6 +543,7 @@ export class StringConcatExpression extends TemplateExpression {
     }, "")
 
     return mergeInputs(
+      this.loc.source,
       new TemplateLeaf({
         expr: args.rawTemplateString,
         value: result,
@@ -541,6 +569,8 @@ export class MemberExpression extends TemplateExpression {
     if (typeof innerValue !== "string" && typeof innerValue !== "number") {
       throw new TemplateStringError({
         message: `Expression in bracket must resolve to a string or number (got ${typeof innerValue}).`,
+        rawTemplateString: args.rawTemplateString,
+        loc: this.loc,
       })
     }
 
@@ -564,18 +594,35 @@ export class ContextLookupExpression extends TemplateExpression {
     const evaluatedKeyPath = this.keyPath.map((k) => k.evaluate({ context, opts, optional, rawTemplateString }))
     const keyPath = evaluatedKeyPath.map((k) => k.value)
 
-    const { result } = context.resolve({
-      key: keyPath,
-      nodePath: [],
-      opts: {
-        // TODO: either decouple allowPartial and optional, or remove allowPartial.
-        allowPartial: optional || opts.allowPartial,
-        ...opts,
-      },
-    })
-
+    let result: CollectionOrValue<TemplateValue>
+    try {
+      const r = context.resolve({
+        key: keyPath,
+        nodePath: [],
+        opts: {
+          // TODO: either decouple allowPartial and optional, or remove allowPartial.
+          allowPartial: optional || opts.allowPartial,
+          ...opts,
+        },
+      })
+      result = r.result
+    } catch (e) {
+      // TODO: Maybe context.resolve should never throw, for increased performance.
+      if (e instanceof NotFoundError) {
+        throw new TemplateStringError({
+          message: e.message,
+          rawTemplateString,
+          loc: this.loc,
+        })
+      }
+      throw e
+    }
     // Add inputs from the keyPath expressions as well.
-    return mergeInputs(new WrapContextLookupInputsLazily(result, keyPath, rawTemplateString), ...evaluatedKeyPath)
+    return mergeInputs(
+      this.loc.source,
+      new WrapContextLookupInputsLazily(this.loc.source, result, keyPath, rawTemplateString),
+      ...evaluatedKeyPath
+    )
   }
 }
 
@@ -594,15 +641,162 @@ export class FunctionCallExpression extends TemplateExpression {
     )
     const functionName = this.functionName.evaluate(args)
 
-    const result = callHelperFunction({
-      functionName: functionName.value,
-      args: functionArgs,
-      text: args.rawTemplateString,
-      context: args.context,
-      opts: args.opts,
+    let result: CollectionOrValue<TemplateValue>
+
+    try {
+      result = this.callHelperFunction({
+        functionName: functionName.value,
+        args: functionArgs,
+        text: args.rawTemplateString,
+        context: args.context,
+        opts: args.opts,
+      })
+    } catch (e) {
+      if (e instanceof TemplateFunctionCallError) {
+        throw new TemplateStringError({
+          message: e.message,
+          rawTemplateString: args.rawTemplateString,
+          loc: this.loc,
+        })
+      }
+
+      // throw other errors, e.g. InternalError
+      throw e
+    }
+
+    return mergeInputs(this.loc.source, result, functionName)
+  }
+
+  callHelperFunction({
+    functionName,
+    args,
+    text,
+    context,
+    opts,
+  }: {
+    functionName: string
+    args: CollectionOrValue<TemplateValue>[]
+    text: string
+    context: ConfigContext
+    opts: ContextResolveOpts
+  }): CollectionOrValue<TemplateValue> {
+    const helperFunctions = getHelperFunctions()
+    const spec = helperFunctions[functionName]
+
+    if (!spec) {
+      const availableFns = Object.keys(helperFunctions).join(", ")
+      throw new TemplateFunctionCallError({
+        message: `Could not find helper function '${functionName}'. Available helper functions: ${availableFns}`,
+      })
+    }
+
+    const resolvedArgs: unknown[] = []
+
+    for (const arg of args) {
+      // Note: At the moment, we always transform template values to raw values and perform the default input tracking for them;
+      // We might have to reconsider this once we need template helpers that perform input tracking on its own for non-collection arguments.
+      if (isTemplateLeaf(arg)) {
+        resolvedArgs.push(arg.value)
+      } else if (spec.skipInputTrackingForCollectionValues) {
+        // This template helper is aware of TemplateValue instances, and will perform input tracking on its own.
+        resolvedArgs.push(arg)
+      } else {
+        // This argument is a collection, and the template helper cannot deal with TemplateValue instances.
+        // We will unwrap this collection and resolve all values, and then perform default input tracking.
+        resolvedArgs.push(deepUnwrapLazyValues({ value: arg, context, opts }))
+      }
+    }
+
+    // Validate args
+    let i = 0
+    for (const [argName, schema] of Object.entries(spec.arguments)) {
+      const value = resolvedArgs[i]
+      const schemaDescription = spec.argumentDescriptions[argName]
+
+      if (value === undefined && schemaDescription.flags?.presence === "required") {
+        throw new TemplateFunctionCallError({
+          message: `Missing argument '${argName}' (at index ${i}) for ${functionName} helper function.`,
+        })
+      }
+
+      resolvedArgs[i] = validateSchema(value, schema, {
+        context: `argument '${argName}' for ${functionName} helper function`,
+        ErrorClass: TemplateFunctionCallError,
+      })
+      i++
+    }
+
+    let result: CollectionOrValue<TemplateLeafValue | TemplateValue>
+
+    try {
+      result = spec.fn(...resolvedArgs)
+    } catch (error) {
+      throw new TemplateFunctionCallError({
+        message: `Error from helper function ${functionName}: ${error}`,
+      })
+    }
+
+    // We only need to augment inputs for primitive args in case skipInputTrackingForCollectionValues is true.
+    const trackedArgs = args.filter((arg) => {
+      if (isTemplateLeaf(arg)) {
+        return true
+      }
+
+      // This argument is a collection; We only apply the default input tracking algorithm for primitive args if skipInputTrackingForCollectionValues is NOT true.
+      return spec.skipInputTrackingForCollectionValues !== true
     })
 
-    return mergeInputs(result, functionName)
+    // e.g. result of join() is a string, so we need to wrap it in a TemplateValue instance and merge inputs
+    // even though slice() returns an array, if the resulting array is empty, it's a template primitive and thus we need to wrap it in a TemplateValue instance
+    if (isTemplateLeafValue(result)) {
+      return mergeInputs(
+        this.loc.source,
+        new TemplateLeaf({
+          expr: text,
+          value: result,
+          // inputs will be augmented by mergeInputs
+          inputs: {},
+        }),
+        ...trackedArgs
+      )
+    } else if (isTemplateLeaf(result)) {
+      if (!spec.skipInputTrackingForCollectionValues) {
+        throw new InternalError({
+          message: `Helper function ${functionName} returned a TemplateValue instance, but skipInputTrackingForCollectionValues is not true`,
+        })
+      }
+      return mergeInputs(this.loc.source, result, ...trackedArgs)
+    } else {
+      // Result is a collection;
+
+      // if skipInputTrackingForCollectionValues is true, the function handles input tracking, so leafs are TemplateValue instances.
+      if (spec.skipInputTrackingForCollectionValues) {
+        return deepMap(result, (v) => {
+          if (isTemplatePrimitive(v)) {
+            throw new InternalError({
+              message: `Helper function ${functionName} returned a collection, skipInputTrackingForCollectionValues is true and collection values are not TemplateValue instances`,
+            })
+          }
+          return mergeInputs(this.loc.source, v, ...trackedArgs)
+        })
+      } else {
+        // if skipInputTrackingForCollectionValues is false; Now the values are TemplatePrimitives.
+        // E.g. this would be the case for split() which turns a string input into a primitive string array.
+        // templatePrimitiveDeepMap will crash if the function misbehaved and returned TemplateValue
+        return templatePrimitiveDeepMap(result as CollectionOrValue<TemplateLeafValue>, (v) => {
+          return mergeInputs(
+            this.loc.source,
+            new TemplateLeaf({
+              expr: text,
+              value: v,
+              // inputs will be augmented by mergeInputs
+              inputs: {},
+            }),
+            ...trackedArgs
+          )
+        })
+      }
+    }
   }
 }
 
@@ -616,7 +810,7 @@ export class TernaryExpression extends TemplateExpression {
     super(loc)
   }
 
-  evaluate(args: EvaluateArgs): CollectionOrValue<TemplateValue> {
+  override evaluate(args: EvaluateArgs): CollectionOrValue<TemplateValue> {
     const conditionResult = this.condition.evaluate({
       ...args,
       optional: true,
@@ -628,6 +822,6 @@ export class TernaryExpression extends TemplateExpression {
       : this.ifFalse.evaluate(args)
 
     // merge inputs from the condition and the side that was evaluated
-    return mergeInputs(evaluationResult, conditionResult)
+    return mergeInputs(this.loc.source, evaluationResult, conditionResult)
   }
 }

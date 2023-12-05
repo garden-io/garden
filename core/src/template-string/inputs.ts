@@ -12,6 +12,8 @@ import { InternalError } from "../exceptions.js"
 import { isArray, isPlainObject, mapValues } from "lodash-es"
 import { CollectionOrValue, deepMap } from "../util/objects.js"
 import { LazyValue, MergeInputsLazily, deepUnwrapLazyValues, unwrap, unwrapLazyValues } from "./lazy.js"
+import { Location } from "./ast.js"
+import { TemplateProvenance } from "./template-string.js"
 
 export function isTemplateLeafValue(value: unknown): value is TemplateLeafValue {
   return (
@@ -93,6 +95,7 @@ export function templatePrimitiveDeepMap<P extends TemplateLeafValue, R extends 
 }
 
 export function mergeInputs(
+  source: TemplateProvenance,
   result: CollectionOrValue<TemplateValue>,
   ...relevantValues: CollectionOrValue<TemplateValue>[]
 ): CollectionOrValue<TemplateValue> {
@@ -117,7 +120,7 @@ export function mergeInputs(
     })
 
     if (hasLazyValues) {
-      return new MergeInputsLazily(result, relevantValues)
+      return new MergeInputsLazily(source, result, relevantValues)
     }
   }
 

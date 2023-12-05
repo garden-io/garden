@@ -8,20 +8,16 @@
 
 import { v4 as uuidv4 } from "uuid"
 import { createHash } from "node:crypto"
-import { InternalError, TemplateStringError } from "../exceptions.js"
+import { TemplateFunctionCallError } from "../exceptions.js"
 import { camelCase, isArrayLike, isEmpty, isString, kebabCase, keyBy, mapValues, trim } from "lodash-es"
 import type { JoiDescription, Primitive } from "../config/common.js"
 import { joi, joiPrimitive } from "../config/common.js"
 import type Joi from "@hapi/joi"
-import { validateSchema } from "../config/validation.js"
 import { load, loadAll } from "js-yaml"
 import { safeDumpYaml } from "../util/serialization.js"
 import indentString from "indent-string"
-import type { TemplateLeafValue, TemplateValue } from "./inputs.js"
-import { TemplateLeaf, isTemplateLeafValue, isTemplateLeaf, mergeInputs, templatePrimitiveDeepMap, isTemplatePrimitive } from "./inputs.js"
-import { Collection, CollectionOrValue, deepMap } from "../util/objects.js"
-import { deepUnwrapLazyValues, unwrap } from "./lazy.js"
-import { ConfigContext, ContextResolveOpts } from "../config/template-contexts/base.js"
+import type { TemplateValue } from "./inputs.js"
+import type { CollectionOrValue } from "../util/objects.js"
 
 interface ExampleArgument {
   input: any[]
@@ -125,7 +121,7 @@ const helperFunctionSpecs: TemplateHelperFunction[] = [
       } else if (Array.isArray(arg1) && Array.isArray(arg2)) {
         return [...arg1, ...arg2]
       } else {
-        throw new TemplateStringError({
+        throw new TemplateFunctionCallError({
           message: `Both terms need to be either arrays or strings (got ${typeof arg1} and ${typeof arg2}).`,
         })
       }
@@ -295,7 +291,7 @@ const helperFunctionSpecs: TemplateHelperFunction[] = [
 
         const result = Number.parseInt(value, 10)
         if (Number.isNaN(result)) {
-          throw new TemplateStringError({
+          throw new TemplateFunctionCallError({
             message: `${name} index must be a number or a numeric string (got "${value}")`,
           })
         }
@@ -415,7 +411,7 @@ const helperFunctionSpecs: TemplateHelperFunction[] = [
     fn: (value: any, multiDocument?: boolean) => {
       if (multiDocument) {
         if (!isArrayLike(value)) {
-          throw new TemplateStringError({
+          throw new TemplateFunctionCallError({
             message: `yamlEncode: Set multiDocument=true but value is not an array (got ${typeof value})`,
           })
         }
@@ -466,134 +462,4 @@ export function getHelperFunctions(): HelperFunctions {
   )
 
   return _helperFunctions
-}
-
-export function callHelperFunction({
-  functionName,
-  args,
-  text,
-  context,
-  opts,
-}: {
-  functionName: string
-  args: (TemplateLeaf | Collection<TemplateValue>)[]
-  text: string
-  opts: ContextResolveOpts
-  context: ConfigContext
-}): CollectionOrValue<TemplateValue> {
-  const helperFunctions = getHelperFunctions()
-  const spec = helperFunctions[functionName]
-
-  if (!spec) {
-    const availableFns = Object.keys(helperFunctions).join(", ")
-    throw new TemplateStringError({
-      message: `Could not find helper function '${functionName}'. Available helper functions: ${availableFns}`,
-    })
-  }
-
-  const resolvedArgs: unknown[] = []
-
-  for (const arg of args) {
-    // Note: At the moment, we always transform template values to raw values and perform the default input tracking for them;
-    // We might have to reconsider this once we need template helpers that perform input tracking on its own for non-collection arguments.
-    if (isTemplateLeaf(arg)) {
-      resolvedArgs.push(arg.value)
-    } else if (spec.skipInputTrackingForCollectionValues) {
-      // This template helper is aware of TemplateValue instances, and will perform input tracking on its own.
-      resolvedArgs.push(arg)
-    } else {
-      // This argument is a collection, and the template helper cannot deal with TemplateValue instances.
-      // We will unwrap this collection and resolve all values, and then perform default input tracking.
-      resolvedArgs.push(deepUnwrapLazyValues({ value: arg, context, opts }))
-    }
-  }
-
-  // Validate args
-  let i = 0
-  for (const [argName, schema] of Object.entries(spec.arguments)) {
-    const value = resolvedArgs[i]
-    const schemaDescription = spec.argumentDescriptions[argName]
-
-    if (value === undefined && schemaDescription.flags?.presence === "required") {
-      throw new TemplateStringError({
-        message: `Missing argument '${argName}' (at index ${i}) for ${functionName} helper function.`,
-      })
-    }
-
-    resolvedArgs[i] = validateSchema(value, schema, {
-      context: `argument '${argName}' for ${functionName} helper function`,
-      ErrorClass: TemplateStringError,
-    })
-    i++
-  }
-
-  let result: CollectionOrValue<TemplateLeafValue | TemplateValue>
-
-  try {
-    result = spec.fn(...resolvedArgs)
-  } catch (error) {
-    throw new TemplateStringError({
-      message: `Error from helper function ${functionName}: ${error}`,
-    })
-  }
-
-  // We only need to augment inputs for primitive args in case skipInputTrackingForCollectionValues is true.
-  const trackedArgs = args.filter((arg) => {
-    if (isTemplateLeaf(arg)) {
-      return true
-    }
-
-    // This argument is a collection; We only apply the default input tracking algorithm for primitive args if skipInputTrackingForCollectionValues is NOT true.
-    return spec.skipInputTrackingForCollectionValues !== true
-  })
-
-  // e.g. result of join() is a string, so we need to wrap it in a TemplateValue instance and merge inputs
-  // even though slice() returns an array, if the resulting array is empty, it's a template primitive and thus we need to wrap it in a TemplateValue instance
-  if (isTemplateLeafValue(result)) {
-    return mergeInputs(
-      new TemplateLeaf({
-        expr: text,
-        value: result,
-        // inputs will be augmented by mergeInputs
-        inputs: {},
-      }),
-      ...trackedArgs
-    )
-  } else if (isTemplateLeaf(result)) {
-    if (!spec.skipInputTrackingForCollectionValues) {
-      throw new InternalError({
-        message: `Helper function ${functionName} returned a TemplateValue instance, but skipInputTrackingForCollectionValues is not true`,
-      })
-    }
-    return mergeInputs(result, ...trackedArgs)
-  } else {
-    // Result is a collection;
-
-    // if skipInputTrackingForCollectionValues is true, the function handles input tracking, so leafs are TemplateValue instances.
-    if (spec.skipInputTrackingForCollectionValues) {
-      return deepMap(result, (v) => {
-        if (isTemplatePrimitive(v)) {
-          throw new InternalError({
-            message: `Helper function ${functionName} returned a collection, skipInputTrackingForCollectionValues is true and collection values are not TemplateValue instances`,
-          })
-        }
-        return mergeInputs(v, ...trackedArgs)
-      })
-    } else {
-      // if skipInputTrackingForCollectionValues is false; Now the values are TemplatePrimitives.
-      // E.g. this would be the case for split() which turns a string input into a primitive string array.
-      // templatePrimitiveDeepMap will crash if the function misbehaved and returned TemplateValue
-      return templatePrimitiveDeepMap(result as CollectionOrValue<TemplateLeafValue>, (v) => {
-        return mergeInputs(
-          new TemplateLeaf({
-            expr: text,
-            value: v,
-            // inputs will be augmented by mergeInputs
-            inputs: {},
-          }),
-          ...trackedArgs
-        )
-      })
-    }
-  }
 }

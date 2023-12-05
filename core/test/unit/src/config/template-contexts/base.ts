@@ -8,7 +8,11 @@
 
 import { expect } from "chai"
 import stripAnsi from "strip-ansi"
-import type { ContextKey, ContextResolveParams } from "../../../../../src/config/template-contexts/base.js"
+import type {
+  ContextKey,
+  ContextResolveOpts,
+  ContextResolveParams,
+} from "../../../../../src/config/template-contexts/base.js"
 import { ConfigContext, schema, ScanContext } from "../../../../../src/config/template-contexts/base.js"
 import { expectError } from "../../../../helpers.js"
 import { joi } from "../../../../../src/config/common.js"
@@ -35,7 +39,7 @@ describe("ConfigContext", () => {
 
   describe("resolve", () => {
     // just a shorthand to aid in testing
-    function resolveKey(c: ConfigContext, key: ContextKey, opts = {}) {
+    function resolveKey(c: ConfigContext, key: ContextKey, opts: ContextResolveOpts = {}) {
       return c.resolve({ key, nodePath: [], opts })
     }
 

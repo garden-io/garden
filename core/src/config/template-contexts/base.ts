@@ -15,8 +15,10 @@ import { isPrimitive, joi, joiIdentifier } from "../common.js"
 import { KeyedSet } from "../../util/keyed-set.js"
 import { naturalList } from "../../util/string.js"
 import { styles } from "../../logger/styles.js"
-import { TemplateLeaf, isTemplateLeafValue, isTemplateLeaf, TemplateValue } from "../../template-string/inputs.js"
-import { CollectionOrValue, deepMap } from "../../util/objects.js"
+import type { TemplateValue } from "../../template-string/inputs.js"
+import { TemplateLeaf, isTemplateLeafValue, isTemplateLeaf } from "../../template-string/inputs.js"
+import type { CollectionOrValue } from "../../util/objects.js"
+import { deepMap } from "../../util/objects.js"
 
 export type ContextKeySegment = string | number
 export type ContextKey = ContextKeySegment[]
@@ -31,20 +33,6 @@ export interface ContextResolveOpts {
   stack?: string[]
   // Unescape escaped template strings
   unescape?: boolean
-
-  /**
-   * The real YAML path after parsing YAML, e.g. ["spec", "foobar", 0, "$merge"]
-   */
-  yamlPath?: ObjectPath
-  /**
-   * The actualy key path is different than the result key path; So in case we are evaluating expression objects we also track the result path.
-   *
-   * Example: ["spec", "foobar", 0] (Can't contain specialy keys like $merge etc)
-   *
-   * This option is used when recording references to template variables while evaluating expression objects like $if, $merge, $forEach.
-   *
-   */
-  resultPath?: ObjectPath
 }
 
 export interface ContextResolveParams {
