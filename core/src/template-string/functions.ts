@@ -17,9 +17,11 @@ import { validateSchema } from "../config/validation.js"
 import { load, loadAll } from "js-yaml"
 import { safeDumpYaml } from "../util/serialization.js"
 import indentString from "indent-string"
-import type { CollectionOrValue, TemplateLeafValue } from "./inputs.js"
-import { TemplateLeaf, isTemplateLeafValue, isTemplateLeaf, mergeInputs, templatePrimitiveDeepMap } from "./inputs.js"
-import { deepMap } from "../util/objects.js"
+import type { TemplateLeafValue, TemplateValue } from "./inputs.js"
+import { TemplateLeaf, isTemplateLeafValue, isTemplateLeaf, mergeInputs, templatePrimitiveDeepMap, isTemplatePrimitive } from "./inputs.js"
+import { Collection, CollectionOrValue, deepMap } from "../util/objects.js"
+import { deepUnwrapLazyValues, unwrap } from "./lazy.js"
+import { ConfigContext, ContextResolveOpts } from "../config/template-contexts/base.js"
 
 interface ExampleArgument {
   input: any[]
@@ -117,7 +119,7 @@ const helperFunctionSpecs: TemplateHelperFunction[] = [
 
     // If we receive an array, it will be raw collection values for correct input tracking when merely concatenating arrays.
     skipInputTrackingForCollectionValues: true,
-    fn: (arg1: string | CollectionOrValue<TemplateLeaf>[], arg2: string | CollectionOrValue<TemplateLeaf>[]) => {
+    fn: (arg1: string | CollectionOrValue<TemplateValue>[], arg2: string | CollectionOrValue<TemplateValue>[]) => {
       if (isString(arg1) && isString(arg2)) {
         return arg1 + arg2
       } else if (Array.isArray(arg1) && Array.isArray(arg2)) {
@@ -285,7 +287,7 @@ const helperFunctionSpecs: TemplateHelperFunction[] = [
     ],
     // If we receive an array, it will be raw template values for correct input tracking when merely slicing arrays.
     skipInputTrackingForCollectionValues: true,
-    fn: (stringOrArray: string | CollectionOrValue<TemplateLeaf>[], start: number | string, end?: number | string) => {
+    fn: (stringOrArray: string | CollectionOrValue<TemplateValue>[], start: number | string, end?: number | string) => {
       const parseInt = (value: number | string, name: string): number => {
         if (typeof value === "number") {
           return value
@@ -470,11 +472,15 @@ export function callHelperFunction({
   functionName,
   args,
   text,
+  context,
+  opts,
 }: {
   functionName: string
-  args: CollectionOrValue<TemplateLeaf>[]
+  args: (TemplateLeaf | Collection<TemplateValue>)[]
   text: string
-}): CollectionOrValue<TemplateLeaf> {
+  opts: ContextResolveOpts
+  context: ConfigContext
+}): CollectionOrValue<TemplateValue> {
   const helperFunctions = getHelperFunctions()
   const spec = helperFunctions[functionName]
 
@@ -498,7 +504,7 @@ export function callHelperFunction({
     } else {
       // This argument is a collection, and the template helper cannot deal with TemplateValue instances.
       // We will unwrap this collection and resolve all values, and then perform default input tracking.
-      resolvedArgs.push(deepMap(arg, (v: TemplateLeaf) => v.value))
+      resolvedArgs.push(deepUnwrapLazyValues({ value: arg, context, opts }))
     }
   }
 
@@ -521,7 +527,7 @@ export function callHelperFunction({
     i++
   }
 
-  let result: TemplateLeafValue | TemplateLeaf | CollectionOrValue<TemplateLeafValue> | CollectionOrValue<TemplateLeaf>
+  let result: CollectionOrValue<TemplateLeafValue | TemplateValue>
 
   try {
     result = spec.fn(...resolvedArgs)
@@ -565,10 +571,10 @@ export function callHelperFunction({
 
     // if skipInputTrackingForCollectionValues is true, the function handles input tracking, so leafs are TemplateValue instances.
     if (spec.skipInputTrackingForCollectionValues) {
-      return deepMap(result, (v: TemplateLeaf) => {
-        if (!isTemplateLeaf(v)) {
+      return deepMap(result, (v) => {
+        if (isTemplatePrimitive(v)) {
           throw new InternalError({
-            message: `Helper function ${functionName} returned a collection, skipInputTrackingForCollectionValues is true and a leaf is not a TemplateValue instance`,
+            message: `Helper function ${functionName} returned a collection, skipInputTrackingForCollectionValues is true and collection values are not TemplateValue instances`,
           })
         }
         return mergeInputs(v, ...trackedArgs)

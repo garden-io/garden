@@ -2049,16 +2049,16 @@ describe("input tracking", () => {
           value: "element",
           expr: "${var.elements}",
           inputs: {
-            "var.elements.0": {
+            "var.elements.0": new TemplateLeaf({
               expr: undefined,
               inputs: {},
               value: "hydrogen",
-            },
-            "var.elements.1": {
+            }),
+            "var.elements.1": new TemplateLeaf({
               expr: undefined,
               inputs: {},
               value: "caesium",
-            },
+            }),
           },
         }),
       ])
@@ -2152,11 +2152,11 @@ describe("input tracking", () => {
           expr: "${var.array ? 'foo' : 'bar'}",
           value: "foo",
           inputs: {
-            "var.array": {
+            "var.array": new TemplateLeaf({
               expr: undefined,
               inputs: {},
               value: [],
-            },
+            }),
           },
         }),
       ])
@@ -2219,11 +2219,11 @@ describe("input tracking", () => {
             new TemplateLeaf({
               expr: "${var.array}",
               inputs: {
-                "var.array.0": {
+                "var.array.0": new TemplateLeaf({
                   expr: undefined,
                   inputs: {},
                   value: "element",
-                },
+                }),
               },
               value: "element",
             }),
@@ -2269,11 +2269,11 @@ describe("input tracking", () => {
           expr: undefined,
           value: "some-constant",
           inputs: {
-            "var.array.0": {
+            "var.array.0": new TemplateLeaf({
               expr: undefined,
               value: "element",
               inputs: {},
-            },
+            }),
           },
         }),
       ])
@@ -2304,16 +2304,16 @@ describe("input tracking", () => {
               expr: "${secrets.db_password}",
               value: "secure",
               inputs: {
-                "secrets.db_password": {
+                "secrets.db_password": new TemplateLeaf({
                   value: "secure",
                   expr: undefined,
                   inputs: {},
-                },
-                "var.array.0": {
+                }),
+                "var.array.0": new TemplateLeaf({
                   value: "element",
                   expr: undefined,
                   inputs: {},
-                },
+                }),
               },
             }),
           ],
@@ -2343,17 +2343,17 @@ describe("input tracking", () => {
               expr: "${item.value}",
               value: "element",
               inputs: {
-                "item.value": {
+                "item.value": new TemplateLeaf({
                   expr: "${var.array}",
                   value: "element",
                   inputs: {
-                    "var.array.0": {
+                    "var.array.0": new TemplateLeaf({
                       expr: undefined,
                       value: "element",
                       inputs: {},
-                    },
+                    }),
                   },
-                },
+                }),
               },
             }),
           ],
@@ -2389,34 +2389,34 @@ describe("input tracking", () => {
             expr: "${item.value.xyz}",
             value: "xyz_value_0",
             inputs: {
-              "item.value.xyz": {
+              "item.value.xyz": new TemplateLeaf({
                 expr: "${var.foo}",
                 value: "xyz_value_0",
                 inputs: {
-                  "var.foo.0.xyz": {
+                  "var.foo.0.xyz": new TemplateLeaf({
                     expr: undefined,
                     inputs: {},
                     value: "xyz_value_0",
-                  },
+                  }),
                 },
-              },
+              }),
             },
           }),
           new TemplateLeaf({
             expr: "${item.value.xyz}",
             value: "xyz_value_1",
             inputs: {
-              "item.value.xyz": {
+              "item.value.xyz": new TemplateLeaf({
                 value: "xyz_value_1",
                 expr: "${var.foo}",
                 inputs: {
-                  "var.foo.1.xyz": {
+                  "var.foo.1.xyz": new TemplateLeaf({
                     expr: undefined,
                     inputs: {},
                     value: "xyz_value_1",
-                  },
+                  }),
                 },
-              },
+              }),
             },
           }),
         ],
@@ -2453,51 +2453,51 @@ describe("input tracking", () => {
             expr: "${item.value.xyz}",
             value: "xyz_value_0",
             inputs: {
-              "item.value.xyz": {
+              "item.value.xyz": new TemplateLeaf({
                 expr: "${item.value.xyz}",
                 value: "xyz_value_0",
                 inputs: {
-                  "var.foo.0.xyz": {
+                  "var.foo.0.xyz": new TemplateLeaf({
                     expr: undefined,
                     inputs: {},
                     value: "xyz_value_0",
-                  },
+                  }),
                 },
-              },
+              }),
             },
           }),
           new TemplateLeaf({
             expr: "${item.value.xyz}",
             value: "xyz_value_1",
             inputs: {
-              "item.value.xyz": {
+              "item.value.xyz": new TemplateLeaf({
                 value: "xyz_value_1",
                 expr: "${item.value.xyz}",
                 inputs: {
-                  "var.foo.1.xyz": {
+                  "var.foo.1.xyz": new TemplateLeaf({
                     expr: undefined,
                     value: "xyz_value_1",
                     inputs: {},
-                  },
+                  }),
                 },
-              },
+              }),
             },
           }),
           new TemplateLeaf({
             expr: "${item.value.xyz}",
             value: "xyz_value_concatenated",
             inputs: {
-              "item.value.xyz": {
+              "item.value.xyz": new TemplateLeaf({
                 value: "xyz_value_concatenated",
                 expr: "${item.value.xyz}",
                 inputs: {
-                  "var.foo.1.xyz": {
+                  "var.foo.1.xyz": new TemplateLeaf({
                     value: "xyz_value_concatenated",
                     expr: undefined,
                     inputs: {},
-                  },
+                  }),
                 },
-              },
+              }),
             },
           }),
         ],
@@ -2552,17 +2552,17 @@ describe("input tracking", () => {
             expr: "${var.sharedPassword}",
             value: "secure",
             inputs: {
-              "var.sharedPassword": {
+              "var.sharedPassword": new TemplateLeaf({
                 expr: "${secrets.PASSWORD}",
                 value: "secure",
                 inputs: {
-                  "secrets.PASSWORD": {
+                  "secrets.PASSWORD": new TemplateLeaf({
                     expr: undefined,
                     value: "secure",
                     inputs: {},
-                  },
+                  }),
                 },
-              },
+              }),
             },
           }),
         },
@@ -2593,11 +2593,11 @@ describe("input tracking", () => {
             expr: "${local.env.IMAGE}",
             value: "image:latest",
             inputs: {
-              "local.env.IMAGE": {
+              "local.env.IMAGE": new TemplateLeaf({
                 expr: undefined,
                 inputs: {},
                 value: "image:latest",
-              },
+              }),
             },
           }),
         },
@@ -2629,11 +2629,11 @@ describe("input tracking", () => {
               expr: "${var.foo.bar}",
               value: "baz",
               inputs: {
-                "var.foo.bar": {
+                "var.foo.bar": new TemplateLeaf({
                   expr: undefined,
                   inputs: {},
                   value: "baz",
-                },
+                }),
               },
             }),
           ],
@@ -2650,11 +2650,11 @@ describe("input tracking", () => {
               expr: "${local.env.FRUIT}",
               value: "banana",
               inputs: {
-                "local.env.FRUIT": {
+                "local.env.FRUIT": new TemplateLeaf({
                   expr: undefined,
                   value: "banana",
                   inputs: {},
-                },
+                }),
               },
             }),
           },

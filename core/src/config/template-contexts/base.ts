@@ -15,9 +15,8 @@ import { isPrimitive, joi, joiIdentifier } from "../common.js"
 import { KeyedSet } from "../../util/keyed-set.js"
 import { naturalList } from "../../util/string.js"
 import { styles } from "../../logger/styles.js"
-import type { CollectionOrValue } from "../../template-string/inputs.js"
-import { TemplateLeaf, isTemplateLeafValue, isTemplateLeaf } from "../../template-string/inputs.js"
-import { deepMap } from "../../util/objects.js"
+import { TemplateLeaf, isTemplateLeafValue, isTemplateLeaf, TemplateValue } from "../../template-string/inputs.js"
+import { CollectionOrValue, deepMap } from "../../util/objects.js"
 
 export type ContextKeySegment = string | number
 export type ContextKey = ContextKeySegment[]
@@ -57,7 +56,7 @@ export interface ContextResolveParams {
 export interface ContextResolveOutput {
   message?: string
   partial?: boolean
-  result: CollectionOrValue
+  result: CollectionOrValue<TemplateValue>
   cached: boolean
   // for input tracking
   // ResolvedResult: ResolvedResult
@@ -78,7 +77,7 @@ export interface ConfigContextType {
 // TODO-steffen&thor: Make all instance variables of all config context classes read-only.
 export abstract class ConfigContext {
   private readonly _rootContext: ConfigContext
-  private readonly _resolvedValues: { [path: string]: CollectionOrValue }
+  private readonly _resolvedValues: { [path: string]: CollectionOrValue<TemplateValue> }
 
   // This is used for special-casing e.g. runtime.* resolution
   protected _alwaysAllowPartial: boolean
@@ -230,7 +229,7 @@ export abstract class ConfigContext {
       }
     }
 
-    let result: CollectionOrValue
+    let result: CollectionOrValue<TemplateValue>
 
     if (isTemplateLeaf(value)) {
       result = value
@@ -296,7 +295,7 @@ export class ScanContext extends ConfigContext {
     return {
       partial: true,
       cached: false,
-      result: { value: renderTemplateString(fullKey), expr: undefined, inputs: {} },
+      result: new TemplateLeaf({ value: renderTemplateString(fullKey), expr: undefined, inputs: {} }),
     }
   }
 }

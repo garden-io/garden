@@ -11,7 +11,7 @@ import { Command } from "../base.js"
 import { StringsParameter, BooleanParameter } from "../../cli/params.js"
 import type { GardenModule } from "../../types/module.js"
 import { moduleSchema } from "../../types/module.js"
-import { keyBy, omit, sortBy } from "lodash-es"
+import { isString, keyBy, omit, sortBy } from "lodash-es"
 import type { StringMap } from "../../config/common.js"
 import { joiIdentifierMap, createSchema } from "../../config/common.js"
 import { printEmoji, printHeader, renderDivider } from "../../logger/util.js"
@@ -21,8 +21,9 @@ import { relative, sep } from "path"
 import type { Garden } from "../../index.js"
 import type { Log } from "../../logger/log-entry.js"
 import { highlightYaml, safeDumpYaml } from "../../util/serialization.js"
-import { deepMap } from "../../util/objects.js"
+import { CollectionOrValue, deepMap } from "../../util/objects.js"
 import { styles } from "../../logger/styles.js"
+import { TemplatePrimitive } from "../../template-string/inputs.js"
 
 const getModulesArgs = {
   modules: new StringsParameter({
@@ -158,11 +159,11 @@ function getRelativeModulePath(projectRoot: string, modulePath: string): string 
  *
  * Used for sanitizing output that may contain secret values.
  */
-function filterSecrets<T extends object>(object: T, secrets: StringMap): T {
+function filterSecrets<T extends CollectionOrValue<TemplatePrimitive>>(object: T, secrets: StringMap): T {
   const secretValues = new Set(Object.values(secrets))
   const secretNames = Object.keys(secrets)
   const sanitized = <T>deepMap(object, (value) => {
-    if (secretValues.has(value)) {
+    if (isString(value) && secretValues.has(value)) {
       const name = secretNames.find((n) => secrets[n] === value)!
       return `[filtered secret: ${name}]`
     } else {

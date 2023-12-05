@@ -10,8 +10,8 @@ import { Primitive, isPrimitive } from "utility-types"
 import { ObjectPath } from "../config/template-contexts/base.js"
 import { InternalError } from "../exceptions.js"
 import { isArray, isPlainObject, mapValues } from "lodash-es"
-import { deepMap } from "../util/objects.js"
-import { LazyValue } from "./lazy.js"
+import { CollectionOrValue, deepMap } from "../util/objects.js"
+import { LazyValue, MergeInputsLazily, deepUnwrapLazyValues, unwrap, unwrapLazyValues } from "./lazy.js"
 
 export function isTemplateLeafValue(value: unknown): value is TemplateLeafValue {
   return (
@@ -23,18 +23,6 @@ export function isTemplateLeafValue(value: unknown): value is TemplateLeafValue 
 
 export function isTemplatePrimitive(value: unknown): value is TemplatePrimitive {
   return isPrimitive(value) && typeof value !== "symbol"
-}
-
-export function templateIsArray<P extends TemplateLeafValue | TemplateLeaf>(
-  value: CollectionOrValue<P>
-): value is CollectionOrValue<P>[] {
-  return Array.isArray(value)
-}
-
-export function templateIsObject<P extends TemplateLeafValue | TemplateLeaf>(
-  value: CollectionOrValue<P>
-): value is { [key: string]: CollectionOrValue<P> } {
-  return isPlainObject(value)
 }
 
 type EmptyArray = never[]
@@ -53,7 +41,7 @@ export function isTemplateLeaf(value: unknown): value is TemplateLeaf {
   return value instanceof TemplateLeaf
 }
 
-type TemplateInputs = {
+export type TemplateInputs = {
   // key is the input variable name, e.g. secrets.someSecret, local.env.SOME_VARIABLE, etc
   [contextKeyPath: string]: TemplateLeaf
 }
@@ -61,24 +49,32 @@ type TemplateInputs = {
 export class TemplateLeaf<T extends TemplateLeafValue = TemplateLeafValue> {
   public readonly expr: string | undefined
   public readonly value: T
-  public readonly inputs: TemplateInputs
+  private _inputs: TemplateInputs
+
   constructor({ expr, value, inputs }: { expr: string | undefined; value: T; inputs: TemplateInputs }) {
     this.expr = expr
     this.value = value
-    this.inputs = inputs
+    this._inputs = inputs
+  }
+
+  public get inputs(): TemplateInputs {
+    return this._inputs
+  }
+
+  public addInputs(additionalInputs: TemplateLeaf["inputs"]) {
+    this._inputs = {
+      ...this.inputs,
+      ...additionalInputs,
+    }
   }
 }
 
-export type Collection<P extends LazyValue | TemplateLeafValue | TemplateLeaf = TemplateLeaf> =
-  | Iterable<CollectionOrValue<P>>
-  | { [key: string]: CollectionOrValue<P> }
-
-export type CollectionOrValue<P extends LazyValue | TemplateLeafValue | TemplateLeaf = TemplateLeaf> = P | Collection<P>
+export type TemplateValue = TemplateLeaf | LazyValue
 
 // helpers
 
 // Similar to deepMap, but treats empty collections as leaves, because they are template primitives.
-export function templatePrimitiveDeepMap<P extends TemplateLeafValue, R extends TemplateLeafValue | TemplateLeaf>(
+export function templatePrimitiveDeepMap<P extends TemplateLeafValue, R extends TemplateLeafValue | TemplateValue>(
   value: CollectionOrValue<P>,
   fn: (value: TemplateLeafValue, keyPath: ObjectPath) => CollectionOrValue<R>,
   keyPath: ObjectPath = []
@@ -96,10 +92,10 @@ export function templatePrimitiveDeepMap<P extends TemplateLeafValue, R extends 
   }
 }
 
-export function mergeInputs<R extends TemplateLeafValue>(
-  result: CollectionOrValue<TemplateLeaf>,
-  ...relevantValues: CollectionOrValue<TemplateLeaf>[]
-): CollectionOrValue<TemplateLeaf> {
+export function mergeInputs(
+  result: CollectionOrValue<TemplateValue>,
+  ...relevantValues: CollectionOrValue<TemplateValue>[]
+): CollectionOrValue<TemplateValue> {
   let additionalInputs: TemplateLeaf["inputs"] = {}
 
   const accumulate = (inputs: TemplateLeaf["inputs"]) => {
@@ -109,28 +105,24 @@ export function mergeInputs<R extends TemplateLeafValue>(
     }
   }
 
-  relevantValues.forEach((r) => {
-    if (isTemplateLeaf(r)) {
-      accumulate(r.inputs)
-    } else {
-      deepMap(r, (v: TemplateLeaf, _key, keyPath) => {
-        accumulate(v.inputs)
-      })
-    }
-  })
+  for (const v of relevantValues) {
+    let hasLazyValues = false
 
-  const updateLeaf = (v: TemplateLeaf<TemplateLeafValue>) => {
-    return new TemplateLeaf({
-      expr: v.expr,
-      value: v.value,
-      inputs: {
-        ...v.inputs,
-        ...additionalInputs,
-      },
+    deepMap(v, (leaf) => {
+      if (leaf instanceof LazyValue) {
+        hasLazyValues = true
+      } else {
+        accumulate(leaf.inputs)
+      }
     })
+
+    if (hasLazyValues) {
+      return new MergeInputsLazily(result, relevantValues)
+    }
   }
 
-  return isTemplateLeaf(result)
-    ? updateLeaf(result)
-    : deepMap(result, (v) => updateLeaf(v))
+  return deepMap(result, (v) => {
+    v.addInputs(additionalInputs)
+    return v
+  })
 }
