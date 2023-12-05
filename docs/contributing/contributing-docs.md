@@ -32,7 +32,7 @@ There's a few things you'll need to make your first contribution to the docs:
 Create a branch to hold your work, change any files you wish to change, save them, then commit them to your branch. Try and keep your branches focused around a specific theme. Your commits will need to be prepended with a *keyword* that follows the Conventional Commits specification, e.g. `docs: added docs contributor page`. See our documentation for [a list of Conventional Commit keywords](./README.md#commit-messages).
 
 {% hint style="warning" %}
-*Before pushing your changes*, run `yarn; yarn build; yarn generate-docs` to refresh the Table of Contents contained at `../docs/README.md` with any additions or changes you've made.
+*Before pushing your changes*, run `npm run build` to refresh the Table of Contents contained at `../docs/README.md` with any additions or changes you've made.
 
 If you've moved or renamed files, refer to [Moving or renaming files](#moving-or-renaming-files).
 {% endhint %}
@@ -65,7 +65,7 @@ You'll also need to find and replace all instances of links within the `garden` 
 Instead, change all the relative URLs inside `docs/`, [submit your PR](./README.md#contributing-guidelines), then make a new PR to update these absolute URLs. This is to avoid broken links.
 {% endhint %}
 
-Finally, run `yarn; yarn build; yarn generate-docs` to regenerate the Table of Contents.
+Finally, run `npm run build` to regenerate the Table of Contents.
 
 ### Absolute URLs vs relative URLs and when to use them
 
