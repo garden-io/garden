@@ -362,16 +362,16 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
                 const testParams = [
                   {
                     name: "when directory is included by exact relative path",
-                    pathBuilder: (subDirName: string, deepDirName) => join(subDirName, deepDirName),
+                    pathBuilder: (subDirName: string, deepDirName: string) => join(subDirName, deepDirName),
                   },
                   {
                     name: "when directory is included by relative path with globs",
-                    pathBuilder: (subDirName: string, deepDirName) => join(subDirName, deepDirName, "**", "*"),
+                    pathBuilder: (subDirName: string, deepDirName: string) => join(subDirName, deepDirName, "**", "*"),
                   },
                   {
                     name: "when directory is included by name with globs",
                     // FIXME: shouldn't just '**/deepdir' work well too?
-                    pathBuilder: (_subDirName: string, deepDirName) => join("**", deepDirName, "**", "*"),
+                    pathBuilder: (_subDirName: string, deepDirName: string) => join("**", deepDirName, "**", "*"),
                   },
                 ]
 
