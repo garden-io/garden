@@ -27,12 +27,12 @@ import { LogLevel } from "../../../../src/logger/logger.js"
 import type { DeployLogEntry } from "../../../../src/types/service.js"
 import type { GetDeployLogs } from "../../../../src/plugin/handlers/Deploy/get-logs.js"
 import type { BaseActionConfig } from "../../../../src/actions/types.js"
-import { LogMonitor } from "../../../../src/monitors/logs.js"
-import stripAnsi from "strip-ansi"
+import { LogMonitor, logMonitorColors } from "../../../../src/monitors/logs.js"
 import { execDeploySpecSchema } from "../../../../src/plugins/exec/deploy.js"
 import { joi } from "../../../../src/config/common.js"
 import type { ActionTypeHandlerParamsType } from "../../../../src/plugin/handlers/base/base.js"
 import { styles } from "../../../../src/logger/styles.js"
+import chalk from "chalk"
 
 // TODO-G2: rename test cases to match the new graph model semantics
 
@@ -97,6 +97,8 @@ describe("LogsCommand", () => {
   const msgColor = styles.error
   const logMsg = "Yes, this is log"
   const logMsgWithColor = msgColor(logMsg)
+  const sectionStyle = chalk[logMonitorColors[0]].bold
+  const arrow = " → "
 
   type GetDeployLogsParams = ActionTypeHandlerParamsType<GetDeployLogs>
 
@@ -250,7 +252,7 @@ describe("LogsCommand", () => {
 
       const out = getLogOutput(garden, logMsg)
 
-      expect(stripAnsi(out[0])).to.eql(`test-service-a → Yes, this is log`)
+      expect(out[0]).to.eql(styles.primary(sectionStyle("test-service-a") + arrow + msgColor("Yes, this is log")))
     })
     it("should optionally skip rendering the service name", async () => {
       const garden = await makeGarden({ tmpDir, plugin: makeTestPlugin() })
@@ -259,7 +261,7 @@ describe("LogsCommand", () => {
 
       const out = getLogOutput(garden, logMsg)
 
-      expect(stripAnsi(out[0])).to.eql("Yes, this is log")
+      expect(out[0]).to.eql(styles.primary(msgColor("Yes, this is log")))
     })
     it("should optionally show timestamps", async () => {
       const garden = await makeGarden({ tmpDir, plugin: makeTestPlugin() })
@@ -268,7 +270,15 @@ describe("LogsCommand", () => {
 
       const out = getLogOutput(garden, logMsg)
 
-      expect(stripAnsi(out[0])).to.eql(`test-service-a → ${timestamp.toISOString()} → Yes, this is log`)
+      expect(out[0]).to.eql(
+        styles.primary(
+          sectionStyle("test-service-a") +
+            arrow +
+            sectionStyle(timestamp.toISOString()) +
+            arrow +
+            msgColor("Yes, this is log")
+        )
+      )
     })
     it("should set the '--tail' and since flag", async () => {
       const garden = await makeGarden({ tmpDir, plugin: makeTestPlugin() })
@@ -370,12 +380,34 @@ describe("LogsCommand", () => {
         await command.action(makeCommandParams({ garden, opts: { "show-tags": true } }))
 
         const out = getLogOutput(garden, logMsg, (entry) => entry.level === LogLevel.info)
+        const sectionStyleA = chalk.green.bold
+        const sectionStyleB = chalk.cyan.bold
+        // Note that we hop over C since that entry has a higher level
+        const sectionStyleD = chalk.yellow.bold
 
-        expect(stripAnsi(out[0])).to.eql(`a-short → [container=short] ${logMsg}`)
-        expect(stripAnsi(out[1])).to.eql(`b-not-short → [container=not-short] ${logMsg}`)
-        expect(stripAnsi(out[2])).to.eql(`a-short     → [container=short] ${logMsg}`)
-        expect(stripAnsi(out[3])).to.eql(`d-very-very-long → [container=very-very-long] ${logMsg}`)
-        expect(stripAnsi(out[4])).to.eql(`a-short          → [container=short] ${logMsg}`)
+        expect(out[0]).to.eql(
+          styles.primary(`${sectionStyleA("a-short")} → ${sectionStyleA("[container=short] ")}${logMsgWithColor}`)
+        )
+        expect(out[1]).to.eql(
+          styles.primary(
+            `${sectionStyleB("b-not-short")} → ${sectionStyleB("[container=not-short] ")}${logMsgWithColor}`
+          )
+        )
+        // Same name as first entry so same section style
+        expect(out[2]).to.eql(
+          styles.primary(`${sectionStyleA("a-short    ")} → ${sectionStyleA("[container=short] ")}${logMsgWithColor}`)
+        )
+        expect(out[3]).to.eql(
+          styles.primary(
+            `${sectionStyleD("d-very-very-long")} → ${sectionStyleD("[container=very-very-long] ")}${logMsgWithColor}`
+          )
+        )
+        // Same name as first entry so same section style
+        expect(out[4]).to.eql(
+          styles.primary(
+            `${sectionStyleA("a-short         ")} → ${sectionStyleA("[container=short] ")}${logMsgWithColor}`
+          )
+        )
       })
     })
 
@@ -401,7 +433,9 @@ describe("LogsCommand", () => {
       await command.action(makeCommandParams({ garden, opts: { "show-tags": true } }))
       const out = getLogOutput(garden, logMsg)
 
-      expect(stripAnsi(out[0])).to.include("[container=api]")
+      expect(out[0]).to.eql(
+        styles.primary(sectionStyle("api") + arrow + sectionStyle("[container=api] ") + logMsgWithColor)
+      )
     })
 
     // These tests use tags as emitted by `container`/`kubernetes`/`helm` services, which use the `container` tag.

@@ -8,7 +8,7 @@
 
 import chalk from "chalk"
 import hasAnsi from "has-ansi"
-import { every, some } from "lodash-es"
+import { every, repeat, some } from "lodash-es"
 import { Stream } from "ts-stream"
 import type { DeployAction } from "../actions/deploy.js"
 import type { Resolved } from "../actions/types.js"
@@ -31,6 +31,7 @@ let colorMap: { [name: string]: string } = {}
 let colorIndex = -1
 // If the container name should be displayed, we align the output wrt to the longest container name
 let maxDeployName = 1
+const isoStringLength = new Date().toISOString().length
 
 interface LogMonitorParams extends MonitorBaseParams {
   action: Resolved<DeployAction>
@@ -200,8 +201,7 @@ export class LogMonitor extends Monitor {
   }
 
   private formatLogMonitorEntry(entry: DeployLogEntry) {
-    const style = chalk[LogMonitor.getColorForName(entry.name)]
-    const sectionStyle = style.bold
+    const sectionStyle = chalk[LogMonitor.getColorForName(entry.name)].bold
     const serviceLog = entry.msg
     const entryLevel = entry.level || LogLevel.info
 
@@ -209,7 +209,7 @@ export class LogMonitor extends Monitor {
     let tags: string | undefined
 
     if (this.showTimestamps && entry.timestamp) {
-      timestamp = "                        "
+      timestamp = repeat(" ", isoStringLength)
       try {
         timestamp = entry.timestamp.toISOString()
       } catch {}
@@ -233,10 +233,10 @@ export class LogMonitor extends Monitor {
       out += `${sectionStyle(padSection(entry.name, maxDeployName))} → `
     }
     if (timestamp) {
-      out += `${styles.secondary(timestamp)} → `
+      out += `${sectionStyle(timestamp)} → `
     }
     if (tags) {
-      out += styles.secondary("[" + tags + "] ")
+      out += sectionStyle("[" + tags + "] ")
     }
 
     out += hasAnsi(serviceLog) ? serviceLog : styles.primary(serviceLog)
