@@ -23,11 +23,16 @@ import type { DeployLogEntry } from "../types/service.js"
 import type { MonitorBaseParams } from "./base.js"
 import { Monitor } from "./base.js"
 import { styles } from "../logger/styles.js"
+import type { PickFromUnion } from "../util/util.js"
 
-export const logMonitorColors = ["green", "cyan", "magenta", "yellow", "blueBright", "blue"]
+export const validMonitorColors = ["green", "cyan", "magenta", "yellow", "blueBright", "blue"] as const
+
+type LogMonitorColor = PickFromUnion<keyof typeof chalk, (typeof validMonitorColors)[number]>
+
+export const logMonitorColors: LogMonitorColor[] = [...validMonitorColors]
 
 // Track these globally, across many monitors
-let colorMap: { [name: string]: string } = {}
+let colorMap: { [name: string]: LogMonitorColor } = {}
 let colorIndex = -1
 // If the container name should be displayed, we align the output wrt to the longest container name
 let maxDeployName = 1
@@ -201,7 +206,8 @@ export class LogMonitor extends Monitor {
   }
 
   private formatLogMonitorEntry(entry: DeployLogEntry) {
-    const sectionStyle = chalk[LogMonitor.getColorForName(entry.name)].bold
+    const sectionColor = chalk[LogMonitor.getColorForName(entry.name)]
+    const sectionStyle = (sectionColor || styles.primary).bold
     const serviceLog = entry.msg
     const entryLevel = entry.level || LogLevel.info
 
