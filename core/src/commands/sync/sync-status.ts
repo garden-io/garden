@@ -128,6 +128,16 @@ function stateStyle(state: SyncState, msg: string) {
   return styleFn(msg)
 }
 
+const verbMap: { [key in SyncState]: string } = {
+  "active": "is",
+  "failed": "has",
+  "not-active": "is",
+  "not-deployed": "is",
+  "unknown": "is",
+  "not-configured": "is",
+  "outdated": "is",
+}
+
 function describeState(state: SyncState) {
   return state.replace("-", " ")
 }
@@ -187,13 +197,6 @@ export async function getSyncStatuses({
         return keyA > keyB ? 1 : -1
       })
       syncStatus["syncs"] = sorted
-
-      const verbMap = {
-        "active": "is",
-        "failed": "has",
-        "not-active": "is",
-        "not-deployed": "is",
-      }
 
       const syncCount = syncStatus.syncs.length
       const pluralizedSyncs = syncCount === 1 ? "sync" : "syncs"
