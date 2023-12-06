@@ -8,7 +8,7 @@
 
 import { isArray, isEmpty, isNumber, isString } from "lodash-es"
 import { type ConfigContext, type ContextResolveOpts } from "../config/template-contexts/base.js"
-import { InternalError, NotFoundError, TemplateFunctionCallError, TemplateStringError } from "../exceptions.js"
+import { GardenError, InternalError, TemplateStringError } from "../exceptions.js"
 import { getHelperFunctions } from "./functions.js"
 import {
   TemplateLeaf,
@@ -19,10 +19,11 @@ import {
   templatePrimitiveDeepMap,
 } from "./inputs.js"
 import type { TemplateLeafValue, TemplatePrimitive, TemplateValue } from "./inputs.js"
-import { WrapContextLookupInputsLazily, deepUnwrapLazyValues, unwrap, unwrapLazyValues } from "./lazy.js"
+import { WrapContextLookupInputsLazily, deepUnwrap, unwrap, unwrapLazyValues } from "./lazy.js"
 import { Collection, CollectionOrValue, deepMap } from "../util/objects.js"
 import { TemplateProvenance } from "./template-string.js"
 import { validateSchema } from "../config/validation.js"
+import { Visitor } from "./static-analysis.js"
 
 type EvaluateArgs = {
   context: ConfigContext
@@ -56,6 +57,34 @@ export type Location = {
 export abstract class TemplateExpression {
   constructor(public readonly loc: Location) {}
 
+  visitAll(visitor: Visitor): boolean {
+    for (const k of Object.keys(this)) {
+      if (this[k] instanceof TemplateExpression) {
+        if (!visitor(this[k])) {
+          return false
+        }
+        if (!this[k].visitAll(visitor)) {
+          return false
+        }
+      }
+
+      if (Array.isArray(this[k])) {
+        for (const item of this[k]) {
+          if (item instanceof TemplateExpression) {
+            if (!visitor(item)) {
+              return false
+            }
+            if (!item.visitAll(visitor)) {
+              return false
+            }
+          }
+        }
+      }
+    }
+
+    return true
+  }
+
   abstract evaluate(args: EvaluateArgs): CollectionOrValue<TemplateValue>
 }
 
@@ -64,6 +93,11 @@ export class IdentifierExpression extends TemplateExpression {
     loc: Location,
     public readonly name: string
   ) {
+    if (!isString(name)) {
+      throw new InternalError({
+        message: `IdentifierExpression name must be a string. Got: ${typeof name}`
+      })
+    }
     super(loc)
   }
 
@@ -607,8 +641,11 @@ export class ContextLookupExpression extends TemplateExpression {
       })
       result = r.result
     } catch (e) {
+      if (e instanceof InternalError) {
+        throw e
+      }
       // TODO: Maybe context.resolve should never throw, for increased performance.
-      if (e instanceof NotFoundError) {
+      if (e instanceof GardenError) {
         throw new TemplateStringError({
           message: e.message,
           rawTemplateString,
@@ -643,26 +680,13 @@ export class FunctionCallExpression extends TemplateExpression {
 
     let result: CollectionOrValue<TemplateValue>
 
-    try {
-      result = this.callHelperFunction({
-        functionName: functionName.value,
-        args: functionArgs,
-        text: args.rawTemplateString,
-        context: args.context,
-        opts: args.opts,
-      })
-    } catch (e) {
-      if (e instanceof TemplateFunctionCallError) {
-        throw new TemplateStringError({
-          message: e.message,
-          rawTemplateString: args.rawTemplateString,
-          loc: this.loc,
-        })
-      }
-
-      // throw other errors, e.g. InternalError
-      throw e
-    }
+    result = this.callHelperFunction({
+      functionName: functionName.value,
+      args: functionArgs,
+      text: args.rawTemplateString,
+      context: args.context,
+      opts: args.opts,
+    })
 
     return mergeInputs(this.loc.source, result, functionName)
   }
@@ -685,25 +709,29 @@ export class FunctionCallExpression extends TemplateExpression {
 
     if (!spec) {
       const availableFns = Object.keys(helperFunctions).join(", ")
-      throw new TemplateFunctionCallError({
+      throw new TemplateStringError({
         message: `Could not find helper function '${functionName}'. Available helper functions: ${availableFns}`,
+        rawTemplateString: text,
+        loc: this.loc,
       })
     }
 
     const resolvedArgs: unknown[] = []
 
     for (const arg of args) {
+      const value = unwrap({ value: arg, context, opts })
+
       // Note: At the moment, we always transform template values to raw values and perform the default input tracking for them;
       // We might have to reconsider this once we need template helpers that perform input tracking on its own for non-collection arguments.
-      if (isTemplateLeaf(arg)) {
-        resolvedArgs.push(arg.value)
+      if (isTemplateLeafValue(value)) {
+        resolvedArgs.push(value)
       } else if (spec.skipInputTrackingForCollectionValues) {
         // This template helper is aware of TemplateValue instances, and will perform input tracking on its own.
-        resolvedArgs.push(arg)
+        resolvedArgs.push(value)
       } else {
         // This argument is a collection, and the template helper cannot deal with TemplateValue instances.
         // We will unwrap this collection and resolve all values, and then perform default input tracking.
-        resolvedArgs.push(deepUnwrapLazyValues({ value: arg, context, opts }))
+        resolvedArgs.push(deepUnwrap({ value: value, context, opts }))
       }
     }
 
@@ -714,14 +742,27 @@ export class FunctionCallExpression extends TemplateExpression {
       const schemaDescription = spec.argumentDescriptions[argName]
 
       if (value === undefined && schemaDescription.flags?.presence === "required") {
-        throw new TemplateFunctionCallError({
+        throw new TemplateStringError({
           message: `Missing argument '${argName}' (at index ${i}) for ${functionName} helper function.`,
+          rawTemplateString: text,
+          loc: this.loc,
         })
+      }
+
+      const loc = this.loc
+      class FunctionCallValidationError extends TemplateStringError {
+        constructor({ message }: { message: string }) {
+          super({
+            message: message,
+            rawTemplateString: text,
+            loc: loc,
+          })
+        }
       }
 
       resolvedArgs[i] = validateSchema(value, schema, {
         context: `argument '${argName}' for ${functionName} helper function`,
-        ErrorClass: TemplateFunctionCallError,
+        ErrorClass: FunctionCallValidationError,
       })
       i++
     }
@@ -731,8 +772,10 @@ export class FunctionCallExpression extends TemplateExpression {
     try {
       result = spec.fn(...resolvedArgs)
     } catch (error) {
-      throw new TemplateFunctionCallError({
+      throw new TemplateStringError({
         message: `Error from helper function ${functionName}: ${error}`,
+        rawTemplateString: text,
+        loc: this.loc,
       })
     }
 

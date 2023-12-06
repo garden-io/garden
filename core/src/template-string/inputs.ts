@@ -11,8 +11,7 @@ import { ObjectPath } from "../config/template-contexts/base.js"
 import { InternalError } from "../exceptions.js"
 import { isArray, isPlainObject, mapValues } from "lodash-es"
 import { CollectionOrValue, deepMap } from "../util/objects.js"
-import { LazyValue, MergeInputsLazily, deepUnwrapLazyValues, unwrap, unwrapLazyValues } from "./lazy.js"
-import { Location } from "./ast.js"
+import { LazyValue, MergeInputsLazily } from "./lazy.js"
 import { TemplateProvenance } from "./template-string.js"
 
 export function isTemplateLeafValue(value: unknown): value is TemplateLeafValue {
@@ -54,6 +53,9 @@ export class TemplateLeaf<T extends TemplateLeafValue = TemplateLeafValue> {
   private _inputs: TemplateInputs
 
   constructor({ expr, value, inputs }: { expr: string | undefined; value: T; inputs: TemplateInputs }) {
+    if (!isTemplateLeafValue(value)) {
+      throw new InternalError({ message: `Invalid template leaf value type: ${typeof value}` })
+    }
     this.expr = expr
     this.value = value
     this._inputs = inputs
@@ -119,6 +121,7 @@ export function mergeInputs(
       }
     })
 
+    // If it has lazy values, we can't merge right now so let's do it later
     if (hasLazyValues) {
       return new MergeInputsLazily(source, result, relevantValues)
     }

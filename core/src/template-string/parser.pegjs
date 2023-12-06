@@ -505,13 +505,15 @@ SingleLineComment
   = "//" (!LineTerminator SourceCharacter)*
 
 Identifier
-  = !ReservedWord name:IdentifierName { return new ast.IdentifierExpression(location(), name); }
+  = !ReservedWord name:IdentifierName { return new ast.IdentifierExpression(location(), name) }
 
 IdentifierName "identifier"
   = head:IdentifierStart tail:IdentifierPart* {
       return head + tail.join("")
     }
-  / Integer
+  / Integer {
+      return text();
+    }
 
 IdentifierStart
   = UnicodeLetter

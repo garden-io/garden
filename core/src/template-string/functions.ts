@@ -8,7 +8,6 @@
 
 import { v4 as uuidv4 } from "uuid"
 import { createHash } from "node:crypto"
-import { TemplateFunctionCallError } from "../exceptions.js"
 import { camelCase, isArrayLike, isEmpty, isString, kebabCase, keyBy, mapValues, trim } from "lodash-es"
 import type { JoiDescription, Primitive } from "../config/common.js"
 import { joi, joiPrimitive } from "../config/common.js"
@@ -18,6 +17,7 @@ import { safeDumpYaml } from "../util/serialization.js"
 import indentString from "indent-string"
 import type { TemplateValue } from "./inputs.js"
 import type { CollectionOrValue } from "../util/objects.js"
+import { TemplateFunctionCallError } from "../exceptions.js"
 
 interface ExampleArgument {
   input: any[]

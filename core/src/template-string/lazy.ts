@@ -20,19 +20,36 @@ import {
 import type { ConfigContext, ContextResolveOpts, ObjectPath } from "../config/template-contexts/base.js"
 import { GenericContext, renderKeyPath } from "../config/template-contexts/base.js"
 import type { Collection, CollectionOrValue } from "../util/objects.js"
-import { deepMap, isArray, isPlainObject } from "../util/objects.js"
+import { isPlainObject, isArray, deepMap } from "../util/objects.js"
 import { naturalList } from "../util/string.js"
 import type { TemplateExpression } from "./ast.js"
 import { isTruthy } from "./ast.js"
 import type { TemplateLeafValue, TemplatePrimitive, TemplateValue } from "./inputs.js"
-import { TemplateLeaf, isTemplateLeaf, mergeInputs } from "./inputs.js"
+import { TemplateLeaf, isTemplateLeaf, isTemplatePrimitive, mergeInputs } from "./inputs.js"
 import type { TemplateProvenance } from "./template-string.js"
 import { TemplateError, pushYamlPath } from "./template-string.js"
+import { type Visitor, visitAll, getContextLookupReferences } from "./static-analysis.js"
 
 type UnwrapParams = {
   value: CollectionOrValue<TemplateValue>
   context: ConfigContext
   opts: ContextResolveOpts
+}
+
+type UnwrapPredicate = (value: LazyValue) => boolean
+type ConditionalUnwrapLazyValuesParams = UnwrapParams & {
+  predicate: UnwrapPredicate
+}
+export function conditionalDeepUnwrapLazyValues(
+  params: ConditionalUnwrapLazyValuesParams
+): CollectionOrValue<TemplateValue> {
+  return deepMap(params.value, (v) => {
+    if (v instanceof LazyValue && params.predicate(v)) {
+      return conditionalDeepUnwrapLazyValues({ ...params, value: v.evaluate(params.context, params.opts) })
+    }
+
+    return v
+  })
 }
 
 export function deepUnwrap({ value, context, opts }: UnwrapParams): CollectionOrValue<TemplatePrimitive> {
@@ -99,6 +116,7 @@ export abstract class LazyValue<R extends CollectionOrValue<TemplateValue> = Col
   constructor(public readonly source: TemplateProvenance) {}
 
   abstract evaluate(context: ConfigContext, opts: ContextResolveOpts): R
+  abstract visitAll(visitor: Visitor): boolean
 }
 
 export class MergeInputsLazily extends LazyValue {
@@ -110,13 +128,18 @@ export class MergeInputsLazily extends LazyValue {
     super(source)
   }
 
+  override visitAll(visitor: Visitor): boolean {
+    return visitAll(this.relevantValues, visitor) && visitAll(this.value, visitor)
+  }
+
   override evaluate(context: ConfigContext, opts: ContextResolveOpts): CollectionOrValue<TemplateValue> {
     const unwrapped = unwrapLazyValues({ value: this.value, context, opts })
+    const unwrappedRelevantValues = this.relevantValues.map((v) => unwrapLazyValues({ value: v, context, opts }))
     return deepMap(unwrapped, (v) => {
       if (v instanceof LazyValue) {
-        return new MergeInputsLazily(this.source, v, this.relevantValues)
+        return new MergeInputsLazily(this.source, v, unwrappedRelevantValues)
       }
-      return mergeInputs(this.source, v satisfies TemplateLeaf<TemplateLeafValue>, ...this.relevantValues)
+      return mergeInputs(this.source, v satisfies TemplateLeaf<TemplateLeafValue>, ...unwrappedRelevantValues)
     })
   }
 }
@@ -129,6 +152,10 @@ export class WrapContextLookupInputsLazily extends LazyValue {
     private readonly expr: string
   ) {
     super(source)
+  }
+
+  override visitAll(visitor: Visitor): boolean {
+    return visitAll(this.value, visitor)
   }
 
   override evaluate(context: ConfigContext, opts: ContextResolveOpts): CollectionOrValue<TemplateValue> {
@@ -144,7 +171,7 @@ export class WrapContextLookupInputsLazily extends LazyValue {
         value: v.value,
         inputs: {
           // key might be something like ["var", "foo", "bar"]
-          // We also add the keypath to get separate keys for ever
+          // We also add the keypath to get separate keys for every level of the keypath
           [renderKeyPath([...this.contextKeyPath, ...collectionKeyPath])]: v,
         },
       })
@@ -167,12 +194,17 @@ export class TemplateStringLazyValue extends LazyValue {
     this.astRootNode = astRootNode
   }
 
+  override visitAll(visitor: Visitor): boolean {
+    return this.astRootNode.visitAll(visitor)
+  }
+
   override evaluate(context: ConfigContext, opts: ContextResolveOpts): CollectionOrValue<TemplateValue> {
     return this.astRootNode.evaluate({ rawTemplateString: this.expr, context, opts })
   }
 }
 
 type ConcatOperator = { [arrayConcatKey]: CollectionOrValue<TemplateValue> }
+
 export class ConcatLazyValue extends LazyValue<CollectionOrValue<TemplateValue>[]> {
   constructor(
     source: TemplateProvenance,
@@ -181,28 +213,20 @@ export class ConcatLazyValue extends LazyValue<CollectionOrValue<TemplateValue>[
     super(source)
   }
 
+  override visitAll(visitor: Visitor): boolean {
+    return visitAll(this.yaml, visitor)
+  }
+
   override evaluate(context: ConfigContext, opts: ContextResolveOpts): CollectionOrValue<TemplateValue>[] {
     const output: CollectionOrValue<TemplateValue>[] = []
 
     for (const v of this.yaml) {
       // handle concat operator
-      if (isPlainObject(v) && v[arrayConcatKey] !== undefined) {
-        if (Object.keys(v).length > 1) {
-          const extraKeys = naturalList(
-            Object.keys(v)
-              .filter((k) => k !== arrayConcatKey)
-              .map((k) => JSON.stringify(k))
-          )
-          throw new TemplateError({
-            message: `A list item with a ${arrayConcatKey} key cannot have any other keys (found ${extraKeys})`,
-            source: pushYamlPath(arrayConcatKey, this.source),
-          })
-        }
+      if (this.isConcatOperator(v)) {
+        const unwrapped = unwrap({ value: v[arrayConcatKey], context, opts })
 
-        const unwrapped = unwrap({ value: v, context, opts })
-
-        if (isArray(v)) {
-          output.push(...v)
+        if (!isTemplatePrimitive(unwrapped) && isArray(unwrapped)) {
+          output.push(...unwrapped)
         } else {
           throw new TemplateError({
             message: `Value of ${arrayConcatKey} key must be (or resolve to) an array (got ${typeof unwrapped})`,
@@ -217,6 +241,23 @@ export class ConcatLazyValue extends LazyValue<CollectionOrValue<TemplateValue>[
 
     // input tracking is already being taken care of as we just concatenate arrays
     return output
+  }
+
+  isConcatOperator(v: ConcatOperator | CollectionOrValue<TemplateValue>): v is ConcatOperator {
+    if (isPlainObject(v) && v[arrayConcatKey] !== undefined) {
+      if (Object.keys(v).length > 1) {
+        const extraKeys = naturalList(
+          Object.keys(v)
+            .filter((k) => k !== arrayConcatKey)
+            .map((k) => JSON.stringify(k))
+        )
+        throw new TemplateError({
+          message: `A list item with a ${arrayConcatKey} key cannot have any other keys (found ${extraKeys})`,
+          source: pushYamlPath(arrayConcatKey, this.source),
+        })
+      }
+    }
+    return true
   }
 }
 
@@ -235,6 +276,10 @@ export class ForEachLazyValue extends LazyValue<CollectionOrValue<TemplateValue>
     super(source)
   }
 
+  override visitAll(visitor: Visitor): boolean {
+    return visitAll(this.yaml as CollectionOrValue<TemplateValue>, visitor)
+  }
+
   override evaluate(context: ConfigContext, opts: ContextResolveOpts): CollectionOrValue<TemplateValue> {
     // Validate input object
     if (this.yaml[arrayForEachReturnKey] === undefined) {
@@ -246,11 +291,11 @@ export class ForEachLazyValue extends LazyValue<CollectionOrValue<TemplateValue>
       })
     }
 
-    const collectionExpressionValue = unwrapLazyValues({ value: this.yaml[arrayForEachKey], context, opts })
+    const collectionExpressionValue = unwrap({ value: this.yaml[arrayForEachKey], context, opts })
 
-    const isObject = isPlainObject(collectionExpressionValue)
-
-    if (!isArray(collectionExpressionValue) && !isObject) {
+    const isObj = !isTemplatePrimitive(collectionExpressionValue) && isPlainObject(collectionExpressionValue)
+    const isArr = !isTemplatePrimitive(collectionExpressionValue) && isArray(collectionExpressionValue)
+    if (!isArr && !isObj) {
       throw new TemplateError({
         message: `Value of ${arrayForEachKey} key must be (or resolve to) an array or mapping object (got ${typeof collectionExpressionValue})`,
         source: pushYamlPath(arrayForEachKey, this.source),
@@ -265,12 +310,14 @@ export class ForEachLazyValue extends LazyValue<CollectionOrValue<TemplateValue>
     const output: CollectionOrValue<TemplateValue>[] = []
 
     for (const i of Object.keys(collectionExpressionValue)) {
+      // FIXME: Do we need to do something special, so we have input tracking on the key?
       const contextForIndex = new GenericContext({ key: i, value: collectionExpressionValue[i] })
       loopContext["item"] = contextForIndex
 
       // Have to override the cache in the parent context here
       // TODO: make this a little less hacky :P
       const resolvedValues = loopContext["_resolvedValues"]
+      // FIXME: what happens when you accessed items.value.something?
       delete resolvedValues["item.key"]
       delete resolvedValues["item.value"]
       const subValues = Object.keys(resolvedValues).filter((k) => k.match(/item\.value\.*/))
@@ -293,7 +340,22 @@ export class ForEachLazyValue extends LazyValue<CollectionOrValue<TemplateValue>
 
       const returnExpression = this.yaml[arrayForEachReturnKey]
 
-      output.push(unwrapLazyValues({ value: returnExpression, context: loopContext, opts }))
+      // we have to eagerly resolve everything that references item, because the variable will not be available in the future anymore.
+      const returnResult = conditionalDeepUnwrapLazyValues({
+        value: returnExpression,
+        context: loopContext,
+        opts,
+        predicate: (v) => {
+          // only unwrap lazy values if they reference item
+          const refs = getContextLookupReferences(v)
+          if (refs.some((r) => r[0] === "item")) {
+            return true
+          }
+          return false
+        },
+      })
+
+      output.push(returnResult)
     }
 
     return output
@@ -310,6 +372,10 @@ export class ObjectSpreadLazyValue extends LazyValue<Record<string, CollectionOr
     private readonly yaml: ObjectSpreadOperation
   ) {
     super(source)
+  }
+
+  override visitAll(visitor: Visitor): boolean {
+    return visitAll(this.yaml as CollectionOrValue<TemplateValue>, visitor)
   }
 
   override evaluate(
@@ -356,6 +422,10 @@ export class ConditionalLazyValue extends LazyValue {
     private readonly yaml: ConditionalClause
   ) {
     super(source)
+  }
+
+  override visitAll(visitor: Visitor): boolean {
+    return visitAll(this.yaml as CollectionOrValue<TemplateValue>, visitor)
   }
 
   override evaluate(context: ConfigContext, opts: ContextResolveOpts): CollectionOrValue<TemplateValue> {

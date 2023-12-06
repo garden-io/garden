@@ -19,6 +19,7 @@ import type { TemplateValue } from "../../template-string/inputs.js"
 import { TemplateLeaf, isTemplateLeafValue, isTemplateLeaf } from "../../template-string/inputs.js"
 import type { CollectionOrValue } from "../../util/objects.js"
 import { deepMap } from "../../util/objects.js"
+import { LazyValue } from "../../template-string/lazy.js"
 
 export type ContextKeySegment = string | number
 export type ContextKey = ContextKeySegment[]
@@ -175,7 +176,7 @@ export abstract class ConfigContext {
         value = resolveTemplateString({ string: value, context: this._rootContext, contextOpts: opts })
       }
 
-      if (isTemplateLeaf(value)) {
+      if (isTemplateLeaf(value) || value instanceof LazyValue) {
         break
       }
 
@@ -219,7 +220,9 @@ export abstract class ConfigContext {
 
     let result: CollectionOrValue<TemplateValue>
 
-    if (isTemplateLeaf(value)) {
+    if (value instanceof LazyValue) {
+      result = value
+    } else if (isTemplateLeaf(value)) {
       result = value
     }
     // Wrap normal data using deepMap

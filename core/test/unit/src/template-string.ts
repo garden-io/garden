@@ -1981,12 +1981,17 @@ describe("resolveTemplateStrings", () => {
       },
     }
     const templateContext = new TestContext({
-      inputs: {
-        "merged-object": {
-          $merge: "${var.empty || var.input-object}",
-          INTERNAL_VAR_1: "INTERNAL_VAR_1",
+      inputs: resolveTemplateStringsWithInputs({
+        value: {
+          "merged-object": {
+            $merge: "${var.empty || var.input-object}",
+            INTERNAL_VAR_1: "INTERNAL_VAR_1",
+          },
         },
-      },
+        source: {
+          source: undefined,
+        },
+      }),
       var: {
         "input-object": {
           EXTERNAL_VAR_1: "EXTERNAL_VAR_1",
