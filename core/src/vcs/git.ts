@@ -83,6 +83,18 @@ const getIncludeExcludeFiles: IncludeExcludeFilesHandler<GetFilesParams, GitSubT
 ) => {
   let include = params.include
 
+  // We apply the include patterns to the `ls-files` queries. We use the `--glob-pathspecs` flag
+  // to make sure the path handling is consistent with normal POSIX-style globs used generally by Garden.
+
+  // Due to an issue in git, we can unfortunately only use _either_ include or exclude patterns in the
+  // `ls-files` commands, but not both. Trying both just ignores the exclude patterns.
+  if (include?.includes("**/*")) {
+    // This is redundant
+    include = undefined
+  }
+
+  const hasIncludes = !!include?.length
+
   // Make sure action config is not mutated.
   let exclude = !params.exclude ? [] : [...params.exclude]
 
@@ -91,19 +103,6 @@ const getIncludeExcludeFiles: IncludeExcludeFilesHandler<GetFilesParams, GitSubT
   // So, we need to normalize paths like './dir' to be just 'dir',
   // otherwise such dirs won't be excluded by `--exclude` flag applied with `--glob-pathspecs`.
   exclude = [...exclude.map(normalize), "**/.garden/**/*"]
-
-  // Apply the include patterns to the ls-files queries. We use the --glob-pathspecs flag
-  // to make sure the path handling is consistent with normal POSIX-style globs used generally by Garden.
-
-  // Due to an issue in git, we can unfortunately only use _either_ include or exclude patterns in the
-  // ls-files commands, but not both. Trying both just ignores the exclude patterns.
-
-  if (include?.includes("**/*")) {
-    // This is redundant
-    include = undefined
-  }
-
-  const hasIncludes = !!include?.length
 
   return { include, exclude, hasIncludes }
 }
