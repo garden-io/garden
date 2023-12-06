@@ -35,8 +35,8 @@ const getIncludeExcludeFiles: IncludeExcludeFilesHandler<GitRepoGetFilesParams, 
   // Make sure action config is not mutated.
   let exclude = !params.exclude ? [] : [...params.exclude]
 
-  // Do the same normalization of the excluded paths like in GitHandler.
-  // This might be redundant because the non-normalized paths will be handled by augmentGlobs below.
+  // Do the same normalization of the excluded paths like in `GitHandler`.
+  // This might be redundant because the non-normalized paths will be handled by `augmentGlobs` below.
   // But this brings no harm and makes the implementation more clear.
   exclude = exclude.map(normalize)
 
