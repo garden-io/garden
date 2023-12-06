@@ -2,7 +2,7 @@
 name: 0.13 issue template
 about: Template for issues related with the 0.13 release
 title: '0.13: [Bug]: Describe here'
-labels: '0.13'
+labels: '0.13,bug'
 assignees: ''
 
 ---
@@ -38,7 +38,7 @@ assignees: ''
 
 <!-- PLEASE FILL THIS OUT -->
 * **OS:** <!-- which macOS, linux distro, Windows, etc. -->
-* **How I'm running Kubernetes:** <!-- e.g. minikube, GKE, EKS, other --> 
+* **How I'm running Kubernetes:** <!-- e.g. minikube, GKE, EKS, other -->
 
 <!-- Please run and copy and paste the results  -->
 `garden version`
