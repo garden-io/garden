@@ -235,7 +235,7 @@ export abstract class ConfigContext {
     } else {
       // value is a collection
       result = deepMap(value, (v) => {
-        if (isTemplateLeaf(v)) {
+        if (isTemplateLeaf(v) || v instanceof LazyValue) {
           return v
         }
         return new TemplateLeaf({

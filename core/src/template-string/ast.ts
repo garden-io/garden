@@ -23,7 +23,7 @@ import { WrapContextLookupInputsLazily, deepUnwrap, unwrap, unwrapLazyValues } f
 import { Collection, CollectionOrValue, deepMap } from "../util/objects.js"
 import { TemplateProvenance } from "./template-string.js"
 import { validateSchema } from "../config/validation.js"
-import { Visitor } from "./static-analysis.js"
+import { TemplateExpressionGenerator, containsLazyValues } from "./static-analysis.js"
 
 type EvaluateArgs = {
   context: ConfigContext
@@ -54,35 +54,27 @@ export type Location = {
   source: TemplateProvenance
 }
 
-export abstract class TemplateExpression {
-  constructor(public readonly loc: Location) {}
-
-  visitAll(visitor: Visitor): boolean {
-    for (const k of Object.keys(this)) {
-      if (this[k] instanceof TemplateExpression) {
-        if (!visitor(this[k])) {
-          return false
-        }
-        if (!this[k].visitAll(visitor)) {
-          return false
-        }
-      }
-
-      if (Array.isArray(this[k])) {
-        for (const item of this[k]) {
-          if (item instanceof TemplateExpression) {
-            if (!visitor(item)) {
-              return false
-            }
-            if (!item.visitAll(visitor)) {
-              return false
-            }
-          }
+function* astVisitAll(e: TemplateExpression): TemplateExpressionGenerator {
+  for (const propertyValue of Object.values(e)) {
+    if (propertyValue instanceof TemplateExpression) {
+      yield propertyValue
+      yield* astVisitAll(propertyValue)
+    } else if (Array.isArray(propertyValue)) {
+      for (const item of propertyValue) {
+        if (item instanceof TemplateExpression) {
+          yield item
+          yield* astVisitAll(item)
         }
       }
     }
+  }
+}
 
-    return true
+export abstract class TemplateExpression {
+  constructor(public readonly loc: Location) {}
+
+  *visitAll(): TemplateExpressionGenerator {
+    yield* astVisitAll(this)
   }
 
   abstract evaluate(args: EvaluateArgs): CollectionOrValue<TemplateValue>
@@ -95,7 +87,7 @@ export class IdentifierExpression extends TemplateExpression {
   ) {
     if (!isString(name)) {
       throw new InternalError({
-        message: `IdentifierExpression name must be a string. Got: ${typeof name}`
+        message: `IdentifierExpression name must be a string. Got: ${typeof name}`,
       })
     }
     super(loc)
@@ -206,8 +198,9 @@ export function isTruthy(v: TemplatePrimitive | Collection<TemplateValue>): bool
   if (isTemplatePrimitive(v)) {
     return !!v
   } else {
-    // it's a collection
-    return !isEmpty(v)
+    // collections are truthy, regardless wether they are empty or not.
+    v satisfies Collection<TemplateValue>
+    return true
   }
 }
 
@@ -654,12 +647,22 @@ export class ContextLookupExpression extends TemplateExpression {
       }
       throw e
     }
-    // Add inputs from the keyPath expressions as well.
-    return mergeInputs(
+
+    let wrappedResult: CollectionOrValue<TemplateValue> = new WrapContextLookupInputsLazily(
       this.loc.source,
-      new WrapContextLookupInputsLazily(this.loc.source, result, keyPath, rawTemplateString),
-      ...evaluatedKeyPath
+      result,
+      keyPath,
+      rawTemplateString
     )
+
+    // eagerly wrap values if result doesn't contain lazy values anyway.
+    // otherwise we wrap the values at a later time, when actually necessary.
+    if (!containsLazyValues(result)) {
+      wrappedResult = unwrapLazyValues({ value: wrappedResult, context, opts })
+    }
+
+    // Add inputs from the keyPath expressions as well.
+    return mergeInputs(this.loc.source, wrappedResult, ...evaluatedKeyPath)
   }
 }
 

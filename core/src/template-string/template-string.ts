@@ -225,14 +225,26 @@ export function resolveTemplateStringsWithInputs({
         })
       }
 
+      if (value[arrayForEachReturnKey] === undefined) {
+        throw new TemplateError({
+          message: `Missing ${arrayForEachReturnKey} field next to ${arrayForEachKey} field. Got ${naturalList(
+            Object.keys(value)
+          )}`,
+          source: pushYamlPath(arrayForEachReturnKey, source),
+        })
+      }
+
       const resolvedCollectionExpression = resolveTemplateStringsWithInputs({
         value: value[arrayForEachKey],
         source: pushYamlPath(arrayForEachKey, source),
       })
+
       const resolvedReturnExpression = resolveTemplateStringsWithInputs({
         value: value[arrayForEachReturnKey],
         source: pushYamlPath(arrayForEachReturnKey, source),
       })
+
+
       const resolvedFilterExpression =
         value[arrayForEachFilterKey] === undefined
           ? undefined
@@ -241,11 +253,19 @@ export function resolveTemplateStringsWithInputs({
               source: pushYamlPath(arrayForEachFilterKey, source),
             })
 
-      return new ForEachLazyValue(source, {
+      const forEach = new ForEachLazyValue(source, {
         [arrayForEachKey]: resolvedCollectionExpression,
         [arrayForEachReturnKey]: resolvedReturnExpression,
         [arrayForEachFilterKey]: resolvedFilterExpression,
       })
+
+      // This ensures that we only handle $concat operators that literally are hardcoded in the yaml,
+      // and not ones that are results of other expressions.
+      if (resolvedReturnExpression[arrayConcatKey] !== undefined) {
+        return new ConcatLazyValue(source, forEach)
+      } else {
+        return forEach
+      }
     } else if (value[conditionalKey] !== undefined) {
       const ifExpression = value[conditionalKey]
       const thenExpression = value[conditionalThenKey]

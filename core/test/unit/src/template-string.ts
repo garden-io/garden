@@ -2367,7 +2367,7 @@ describe("resolveTemplateStrings", () => {
       }
 
       void expectError(() => resolveTemplateStrings({ value: obj, context: new TestContext({}) }), {
-        contains: "$filter clause in $forEach loop must resolve to a boolean value (got object)",
+        contains: "$filter clause in $forEach loop must resolve to a boolean value (got string)",
       })
     })
 
@@ -2515,23 +2515,29 @@ describe("input tracking", () => {
 
       const res = unwrapLazyValues({ value, context, opts: {} })
 
-      expect(res).to.eql([
-        new TemplateLeaf({
-          value: "element",
+      expect(res).to.deep.equal([
+        {
+          value: "hydrogen",
           expr: "${var.elements}",
           inputs: {
-            "var.elements.0": new TemplateLeaf({
+            "var.elements.0": {
               expr: undefined,
               inputs: {},
               value: "hydrogen",
-            }),
-            "var.elements.1": new TemplateLeaf({
+            },
+          },
+        },
+        {
+          value: "caesium",
+          expr: "${var.elements}",
+          inputs: {
+            "var.elements.1": {
               expr: undefined,
               inputs: {},
               value: "caesium",
-            }),
+            },
           },
-        }),
+        },
       ])
     })
 
@@ -2550,7 +2556,6 @@ describe("input tracking", () => {
 
       const res = unwrapLazyValues({ value, context, opts: {} })
 
-      // TODO: finalize expectations for this test case
       expect(res).to.eql([
         new TemplateLeaf({
           value: "banana",
@@ -2561,13 +2566,6 @@ describe("input tracking", () => {
               inputs: {},
               value: "banana",
             }),
-            // Possible optimization?
-            // "var.elements.length": new TemplateValue({
-            //   expr: undefined,
-            //   inputs: {},
-            //   value: 2,
-            // }),
-            // These are are added due to the ternary expression
             "var.elements.0": new TemplateLeaf({
               expr: undefined,
               inputs: {},
@@ -2589,7 +2587,6 @@ describe("input tracking", () => {
               inputs: {},
               value: "apple",
             }),
-            // These are are added due to the ternary expression
             "var.elements.0": new TemplateLeaf({
               expr: undefined,
               inputs: {},
@@ -2605,7 +2602,7 @@ describe("input tracking", () => {
       ])
     })
 
-    it("records references for every collection item in the result of the template expression, array", () => {
+    it("records references for every collection item in the result of the template expression, foo bar ternary", () => {
       const context = new TestContext({
         var: {
           array: [],
@@ -2613,24 +2610,23 @@ describe("input tracking", () => {
       })
 
       const value = resolveTemplateStringWithInputs({
-        string: "${var.array ? 'foo' : 'bar' }",
+        string: "${ var.array ? 'foo' : 'bar' }",
       })
 
       const res = unwrapLazyValues({ value, context, opts: {} })
 
-      expect(res).to.eql([
-        new TemplateLeaf({
-          expr: "${var.array ? 'foo' : 'bar'}",
-          value: "foo",
-          inputs: {
-            "var.array": new TemplateLeaf({
-              expr: undefined,
-              inputs: {},
-              value: [],
-            }),
+      // empty arrays are truthy
+      expect(res).to.deep.include({
+        expr: "${ var.array ? 'foo' : 'bar' }",
+        value: "foo",
+        inputs: {
+          "var.array": {
+            expr: undefined,
+            inputs: {},
+            value: [],
           },
-        }),
-      ])
+        },
+      })
     })
 
     it("records references for every collection item in the result of the template expression, object", () => {
@@ -2638,7 +2634,12 @@ describe("input tracking", () => {
         var: {
           foo: {
             bar: 1,
-            baz: "${local.env.FRUIT}",
+            baz: resolveTemplateStringWithInputs({ string: "${local.env.FRUIT}" }),
+          },
+        },
+        local: {
+          env: {
+            FRUIT: "banana",
           },
         },
       })
@@ -2647,27 +2648,37 @@ describe("input tracking", () => {
         string: "${var.foo}",
       })
 
-      const res = unwrapLazyValues({ value, context, opts: {} })
+      const res = deepUnwrapLazyValues({ value, context, opts: {} })
 
       expect(res).to.eql({
-        foo: {
-          bar: new TemplateLeaf({
-            value: 1,
-            expr: undefined,
-            inputs: {},
-          }),
-          baz: new TemplateLeaf({
-            value: "banana",
-            expr: "${local.env.fruit}",
-            inputs: {
-              "local.env.fruit": new TemplateLeaf({
-                value: "banana",
-                expr: undefined,
-                inputs: {},
-              }),
-            },
-          }),
-        },
+        bar: new TemplateLeaf({
+          value: 1,
+          expr: "${var.foo}",
+          inputs: {
+            "var.foo.bar": new TemplateLeaf({
+              value: 1,
+              expr: undefined,
+              inputs: {},
+            }),
+          },
+        }),
+        baz: new TemplateLeaf({
+          value: "banana",
+          expr: "${var.foo}",
+          inputs: {
+            "var.foo.baz": new TemplateLeaf({
+              value: "banana",
+              expr: "${local.env.FRUIT}",
+              inputs: {
+                "local.env.FRUIT": new TemplateLeaf({
+                  value: "banana",
+                  expr: undefined,
+                  inputs: {},
+                }),
+              },
+            }),
+          },
+        }),
       })
     })
   })
@@ -2686,7 +2697,7 @@ describe("input tracking", () => {
 
       const value = resolveTemplateStringsWithInputs({ value: obj, source: { source: undefined } })
 
-      const res = unwrapLazyValues({ value, context, opts: {} })
+      const res = deepUnwrapLazyValues({ value, context, opts: {} })
 
       expect(res).to.eql({
         spec: {
@@ -2722,38 +2733,64 @@ describe("input tracking", () => {
       })
     })
 
-    it("records template references (forEach, 1 reference)", () => {
+    it("merges input for every single item of the foreach separately", () => {
       const context = new TestContext({
         var: {
-          array: ["element"],
+          colors: ["red", "green", "blue"],
         },
       })
       const obj = {
-        spec: {
-          services: {
-            $forEach: "${var.array}",
-            $return: "some-constant",
+        hello: {
+          world: {
+            $forEach: "${var.colors}",
+            $return: "My favourite color!",
           },
         },
       }
 
       const value = resolveTemplateStringsWithInputs({ value: obj, source: { source: undefined } })
 
-      const res = unwrapLazyValues({ value, context, opts: {} })
+      const res = deepUnwrapLazyValues({ value, context, opts: {} })
 
-      expect(res).to.eql([
-        new TemplateLeaf({
-          expr: undefined,
-          value: "some-constant",
-          inputs: {
-            "var.array.0": new TemplateLeaf({
+      expect(res).to.deep.equal({
+        hello: {
+          world: [
+            {
               expr: undefined,
-              value: "element",
-              inputs: {},
-            }),
-          },
-        }),
-      ])
+              value: "My favourite color!",
+              inputs: {
+                "var.colors.0": {
+                  expr: undefined,
+                  value: "red",
+                  inputs: {},
+                },
+              },
+            },
+            {
+              expr: undefined,
+              value: "My favourite color!",
+              inputs: {
+                "var.colors.1": {
+                  expr: undefined,
+                  value: "green",
+                  inputs: {},
+                },
+              },
+            },
+            {
+              expr: undefined,
+              value: "My favourite color!",
+              inputs: {
+                "var.colors.2": {
+                  expr: undefined,
+                  value: "blue",
+                  inputs: {},
+                },
+              },
+            },
+          ],
+        },
+      })
     })
 
     it("tracks inputs correctly in foreach when using secrets.db_password instead of item.value", () => {
@@ -2774,26 +2811,26 @@ describe("input tracking", () => {
         },
       }
       const value = resolveTemplateStringsWithInputs({ value: obj, source: { source: undefined } })
-      const res = unwrapLazyValues({ value, context, opts: {} })
-      expect(res).to.eql({
+      const res = deepUnwrapLazyValues({ value, context, opts: {} })
+      expect(res).to.deep.equal({
         spec: {
           passwords: [
-            new TemplateLeaf({
+            {
               expr: "${secrets.db_password}",
               value: "secure",
               inputs: {
-                "secrets.db_password": new TemplateLeaf({
+                "secrets.db_password": {
                   value: "secure",
                   expr: undefined,
                   inputs: {},
-                }),
-                "var.array.0": new TemplateLeaf({
+                },
+                "var.array.0": {
                   value: "element",
                   expr: undefined,
                   inputs: {},
-                }),
+                },
               },
-            }),
+            },
           ],
         },
       })
@@ -2815,7 +2852,7 @@ describe("input tracking", () => {
       }
       const value = resolveTemplateStringsWithInputs({ value: obj, source: { source: undefined } })
 
-      const res = unwrapLazyValues({ value, context, opts: {} })
+      const res = deepUnwrapLazyValues({ value, context, opts: {} })
 
       expect(res).to.eql({
         spec: {
@@ -2934,7 +2971,7 @@ describe("input tracking", () => {
       }
 
       const value = resolveTemplateStringsWithInputs({ value: obj, source: { source: undefined } })
-      const res = unwrapLazyValues({ value, context, opts: {} })
+      const res = deepUnwrapLazyValues({ value, context, opts: {} })
 
       expect(res).to.eql({
         foo: [
@@ -2943,10 +2980,10 @@ describe("input tracking", () => {
             value: "xyz_value_0",
             inputs: {
               "item.value.xyz": new TemplateLeaf({
-                expr: "${item.value.xyz}",
+                expr: "${concat(var.left, var.right)}",
                 value: "xyz_value_0",
                 inputs: {
-                  "var.foo.0.xyz": new TemplateLeaf({
+                  "var.left.0.xyz": new TemplateLeaf({
                     expr: undefined,
                     inputs: {},
                     value: "xyz_value_0",
@@ -2961,9 +2998,9 @@ describe("input tracking", () => {
             inputs: {
               "item.value.xyz": new TemplateLeaf({
                 value: "xyz_value_1",
-                expr: "${item.value.xyz}",
+                expr: "${concat(var.left, var.right)}",
                 inputs: {
-                  "var.foo.1.xyz": new TemplateLeaf({
+                  "var.left.1.xyz": new TemplateLeaf({
                     expr: undefined,
                     value: "xyz_value_1",
                     inputs: {},
@@ -2978,9 +3015,9 @@ describe("input tracking", () => {
             inputs: {
               "item.value.xyz": new TemplateLeaf({
                 value: "xyz_value_concatenated",
-                expr: "${item.value.xyz}",
+                expr: "${concat(var.left, var.right)}",
                 inputs: {
-                  "var.foo.1.xyz": new TemplateLeaf({
+                  "var.right.0.xyz": new TemplateLeaf({
                     value: "xyz_value_concatenated",
                     expr: undefined,
                     inputs: {},
@@ -3037,7 +3074,7 @@ describe("input tracking", () => {
         source: { source: undefined },
       })
 
-      const res = unwrapLazyValues({ value, context, opts: {} })
+      const res = deepUnwrapLazyValues({ value, context, opts: {} })
 
       expect(res).to.eql({
         spec: {
@@ -3080,7 +3117,7 @@ describe("input tracking", () => {
         source: { source: undefined },
       })
 
-      const res = unwrapLazyValues({ value, context, opts: {} })
+      const res = deepUnwrapLazyValues({ value, context, opts: {} })
 
       expect(res).to.eql({
         spec: {
@@ -3117,7 +3154,7 @@ describe("input tracking", () => {
         source: { source: undefined },
       })
 
-      const res = unwrapLazyValues({ value, context, opts: {} })
+      const res = deepUnwrapLazyValues({ value, context, opts: {} })
 
       expect(res).to.eql({
         foo: {
@@ -3171,7 +3208,7 @@ describe("input tracking", () => {
         source: { source: undefined },
       })
 
-      const res = unwrapLazyValues({ value, context, opts: {} })
+      const res = deepUnwrapLazyValues({ value, context, opts: {} })
 
       expect(res).to.eql({
         a: {

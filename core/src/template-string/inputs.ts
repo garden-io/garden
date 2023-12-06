@@ -9,10 +9,11 @@
 import { Primitive, isPrimitive } from "utility-types"
 import { ObjectPath } from "../config/template-contexts/base.js"
 import { InternalError } from "../exceptions.js"
-import { isArray, isPlainObject, mapValues } from "lodash-es"
+import { clone, isArray, isPlainObject, mapValues } from "lodash-es"
 import { CollectionOrValue, deepMap } from "../util/objects.js"
 import { LazyValue, MergeInputsLazily } from "./lazy.js"
 import { TemplateProvenance } from "./template-string.js"
+import { containsLazyValues } from "./static-analysis.js"
 
 export function isTemplateLeafValue(value: unknown): value is TemplateLeafValue {
   return (
@@ -50,7 +51,7 @@ export type TemplateInputs = {
 export class TemplateLeaf<T extends TemplateLeafValue = TemplateLeafValue> {
   public readonly expr: string | undefined
   public readonly value: T
-  private _inputs: TemplateInputs
+  public inputs: TemplateInputs
 
   constructor({ expr, value, inputs }: { expr: string | undefined; value: T; inputs: TemplateInputs }) {
     if (!isTemplateLeafValue(value)) {
@@ -58,18 +59,16 @@ export class TemplateLeaf<T extends TemplateLeafValue = TemplateLeafValue> {
     }
     this.expr = expr
     this.value = value
-    this._inputs = inputs
+    this.inputs = inputs
   }
 
-  public get inputs(): TemplateInputs {
-    return this._inputs
-  }
-
-  public addInputs(additionalInputs: TemplateLeaf["inputs"]) {
-    this._inputs = {
-      ...this.inputs,
+  public addInputs(additionalInputs: TemplateLeaf["inputs"]): TemplateLeaf {
+    const newLeaf = clone(this)
+    newLeaf["inputs"] = {
+      ...newLeaf.inputs,
       ...additionalInputs,
     }
+    return newLeaf
   }
 }
 
@@ -103,32 +102,24 @@ export function mergeInputs(
 ): CollectionOrValue<TemplateValue> {
   let additionalInputs: TemplateLeaf["inputs"] = {}
 
-  const accumulate = (inputs: TemplateLeaf["inputs"]) => {
-    additionalInputs = {
-      ...additionalInputs,
-      ...inputs,
-    }
+  if (containsLazyValues(relevantValues)) {
+    return new MergeInputsLazily(source, result, relevantValues)
   }
 
-  for (const v of relevantValues) {
-    let hasLazyValues = false
-
+  for (const v of relevantValues as CollectionOrValue<TemplateLeaf>[]) {
     deepMap(v, (leaf) => {
-      if (leaf instanceof LazyValue) {
-        hasLazyValues = true
-      } else {
-        accumulate(leaf.inputs)
+      for (const [k, v] of Object.entries(leaf.inputs)) {
+        additionalInputs[k] = v
       }
     })
+  }
 
-    // If it has lazy values, we can't merge right now so let's do it later
-    if (hasLazyValues) {
-      return new MergeInputsLazily(source, result, relevantValues)
-    }
+  if (Object.keys(additionalInputs).length === 0) {
+    return result
   }
 
   return deepMap(result, (v) => {
-    v.addInputs(additionalInputs)
-    return v
+    // we can't mutate here, otherwise we'll mix up inputs. addInputs clones the value and returns a new instance with additional inputs.
+    return v.addInputs(additionalInputs)
   })
 }

@@ -6,55 +6,58 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { isNumber, isString } from "lodash-es"
+import { isNumber, isString, startsWith } from "lodash-es"
 import { CollectionOrValue, isArray, isPlainObject } from "../util/objects.js"
 import { ContextLookupExpression, IdentifierExpression, LiteralExpression, MemberExpression, TemplateExpression } from "./ast.js"
 import { TemplateValue } from "./inputs.js"
 import { LazyValue } from "./lazy.js"
 import { ObjectPath } from "../config/template-contexts/base.js"
 
-
-export type Visitor = (value: (TemplateValue | TemplateExpression)) => boolean
-
-export function visitAll(
-  value: CollectionOrValue<TemplateValue>,
-  visitor: Visitor
-): boolean {
+export type TemplateExpressionGenerator = Generator<TemplateValue | TemplateExpression, void, undefined>
+export function* visitAll(value: CollectionOrValue<TemplateValue>): TemplateExpressionGenerator {
   if (isArray(value)) {
     for (const [k, v] of value.entries()) {
-      if (!visitAll(v, visitor)) {
-        return false
-      }
+      yield* visitAll(v)
     }
   } else if (isPlainObject(value)) {
     for (const k of Object.keys(value)) {
-      if (!visitAll(value[k], visitor)) {
-        return false
-      }
+      yield* visitAll(value[k])
     }
   } else {
-    if (!visitor(value)) {
-      return false
-    }
+    yield value
 
     if (value instanceof LazyValue) {
-      if (!value.visitAll(visitor)) {
-        return false
-      }
+      yield* value.visitAll()
+    }
+  }
+}
+
+export function containsLazyValues(value: CollectionOrValue<TemplateValue>): boolean {
+  for (const node of visitAll(value)) {
+    if (node instanceof LazyValue) {
+      return true
     }
   }
 
-  return true
+  return false
 }
 
-export function getContextLookupReferences(
-  value: CollectionOrValue<TemplateValue>
-): ObjectPath[] {
-  const refs: ObjectPath[] = []
+export function containsContextLookupReferences(value: CollectionOrValue<TemplateValue>, path: ObjectPath): boolean {
+  for (const keyPath of getContextLookupReferences(value)) {
+    if (startsWith(`${keyPath.join(".")}.`, `${path.join(".")}.`)) {
+      return true
+    }
+  }
 
-  visitAll(value, (expression) => {
+  return false
+}
+
+export function* getContextLookupReferences(
+  value: CollectionOrValue<TemplateValue>
+): Generator<ObjectPath, void, undefined> {
+  for (const expression of visitAll(value)) {
     if (expression instanceof ContextLookupExpression) {
-      const keyPath: (string|number)[] = []
+      const keyPath: (string | number)[] = []
 
       for (const v of expression.keyPath.values()) {
         if (v instanceof IdentifierExpression) {
@@ -77,12 +80,8 @@ export function getContextLookupReferences(
       }
 
       if (keyPath.length > 0) {
-        refs.push(keyPath)
+        yield keyPath
       }
     }
-
-    return true
-  })
-
-  return refs
+  }
 }
