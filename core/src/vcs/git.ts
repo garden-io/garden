@@ -86,8 +86,10 @@ const getIncludeExcludeFiles: IncludeExcludeFilesHandler<GetFilesParams, GitSubT
   // Make sure action config is not mutated.
   let exclude = !params.exclude ? [] : [...params.exclude]
 
-  // It looks like paths with redundant '.' and '..' parts
-  // do not work well along with --exclude and --glob-pathspecs flags.
+  // It looks like relative paths with redundant '.' and '..' parts
+  // do not work well along with `--exclude` and `--glob-pathspecs` flags.
+  // So, we need to normalize paths like './dir' to be just 'dir',
+  // otherwise such dirs won't be excluded by `--exclude` flag applied with `--glob-pathspecs`.
   exclude = [...exclude.map(normalize), "**/.garden/**/*"]
 
   // Apply the include patterns to the ls-files queries. We use the --glob-pathspecs flag
