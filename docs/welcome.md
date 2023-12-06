@@ -36,6 +36,11 @@ If there's something you can't find in our docs, we happily encourage you to [jo
       <td>The cloud native tooling space is complex—learn where Garden fits in</td>
       <td><a href="./overview/garden-vs-other-tools.md">Garden vs Other Tools</a></td>
     </tr>
+    <tr>
+      <td><strong>Adopting Garden</strong></td>
+      <td>A high level overview of how teams typically adopt and roll out Garden</td>
+      <td><a href="./overview/adopting-garden.md">Adopting Garden</a></td>
+    </tr>
   </tbody>
 </table>
 
@@ -56,14 +61,14 @@ If there's something you can't find in our docs, we happily encourage you to [jo
       <td><a href="./getting-started/quickstart.md">Quickstart Guide</a></td>
     </tr>
     <tr>
-      <td><strong>Adopting Garden</strong></td>
-      <td>Once you've kicked the tires with our quickstart example, come here to learn how to adopt Garden for your own project</td>
-      <td><a href="./overview/adopting-garden.md">Adopting Garden</a></td>
-    </tr>
-    <tr>
       <td>"<strong>First Project" Tutorial</strong></td>
       <td>This tutorial walks through the step-by-step process of configuring your first Garden project</td>
       <td><a href="./tutorials/your-first-project/README.md">Your First Project</a></td>
+    </tr>
+    <tr>
+      <td><strong>Next Steps</strong></td>
+      <td>Once you've kicked the tires with our quickstart example, come here to learn how to add Garden to your own project</td>
+      <td><a href="./getting-started/next-steps.md">Next Steps</a></td>
     </tr>
   </tbody>
 </table>

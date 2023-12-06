@@ -13,6 +13,10 @@ This guide describes the main steps involved. It's meant as a roadmap for the co
 
 For a more high level guide of adopting Garden in your organization, check out our [Adopting Garden guide](../overview/adopting-garden.md).
 
+For those that prefer something more visual, we recommend checking out this video which goes step-by-step through the process of adding Garden to a project. Otherwise, continue reading below.
+
+{% embed url="https://youtu.be/0y5E8K-8kr4" %}
+
 ## Step 1 — Create a project
 
 The first thing you need to do is to create a project level Garden config file at the root of your project, typically called `garden.yml` or `project.garden.yml`.
