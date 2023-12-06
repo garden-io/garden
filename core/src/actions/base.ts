@@ -895,10 +895,12 @@ export function actionIsDisabled(config: ActionConfig, _environmentName: string)
 
 /**
  * We omit a few fields here that should not affect versioning directly:
- * - The internal field (basePath, configFilePath etc.) are not relevant to the config version
- * - The source, include and exclude stanzas are implicitly factored into the tree version
- * - The description field is just informational, shouldn't affect execution
- * - The disabled flag is not relevant to the config version, since it only affects execution
+ * - The internal field (basePath, configFilePath etc.) are not relevant to the config version.
+ * - The source, include and exclude stanzas are implicitly factored into the tree version.
+ *   Those are handled separately in {@link VcsHandler},
+ *   see {@link VcsHandler.getTreeVersion} and {@link VcsHandler.getFiles}.
+ * - The description field is just informational, shouldn't affect execution.
+ * - The disabled flag is not relevant to the config version, since it only affects execution.
  */
 const nonVersionedActionConfigKeys = ["internal", "source", "include", "exclude", "description", "disabled"] as const
 export type NonVersionedActionConfigKey = keyof Pick<BaseActionConfig, (typeof nonVersionedActionConfigKeys)[number]>
