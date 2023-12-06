@@ -441,11 +441,11 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
           for (const testParam of testParams) {
             it(testParam.name, async () => {
               // FIXME
-              if (handler.name === "git-repo") {
-                if (testParam.name === "without globs") {
-                  return
-                }
-              }
+              // if (handler.name === "git-repo") {
+              //   if (testParam.name === "without globs") {
+              //     return
+              //   }
+              // }
 
               // matches file exclusion pattern -> should be excluded
               const excludedByFilename = resolve(tmpPath, "foo.txt")
@@ -518,11 +518,11 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
             for (const testParam of testParams) {
               it(testParam.name, async () => {
                 // FIXME
-                if (handler.name === "git-repo") {
-                  if (testParam.name === "with prefix globs") {
-                    return
-                  }
-                }
+                // if (handler.name === "git-repo") {
+                //   if (testParam.name === "with prefix globs") {
+                //     return
+                //   }
+                // }
 
                 // doesn't match file exclusion pattern -> should be included
                 const notExcludedByFilename = resolve(tmpPath, "bar.txt")
@@ -596,11 +596,11 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
             for (const testParam of testParams) {
               it(testParam.name, async () => {
                 // FIXME
-                if (handler.name === "git-repo") {
-                  if (testParam.name === "without globs" || testParam.name === "with prefix globs") {
-                    return
-                  }
-                }
+                // if (handler.name === "git-repo") {
+                //   if (testParam.name === "without globs" || testParam.name === "with prefix globs") {
+                //     return
+                //   }
+                // }
 
                 // doesn't match file exclusion pattern -> should be included
                 const notExcludedByFilename = resolve(tmpPath, "bar.txt")
