@@ -543,17 +543,12 @@ export abstract class BaseAction<
     return this._treeVersion
   }
 
-  @Memoize()
-  private stringifyConfig() {
-    return stableStringify(omit(this._config, "internal"))
-  }
-
   /**
    * The version of this action's config (not including files or dependencies)
    */
   @Memoize()
   configVersion() {
-    return versionStringPrefix + hashStrings([this.stringifyConfig()])
+    return getActionConfigVersion(this._config)
   }
 
   /**
@@ -787,6 +782,7 @@ export interface ExecutedActionExtension<
   getOutput<K extends keyof (StaticOutputs & RuntimeOutputs)>(
     key: K
   ): GetOutputValueType<K, StaticOutputs, RuntimeOutputs>
+
   getOutputs(): StaticOutputs & RuntimeOutputs
 }
 
@@ -895,4 +891,21 @@ export function addActionDependency(dep: ActionDependency, dependencies: ActionD
 export function actionIsDisabled(config: ActionConfig, _environmentName: string): boolean {
   // TODO: implement environment fields and check if environment is disabled
   return config.disabled === true
+}
+
+/**
+ * We omit a few fields here that should not affect versioning directly:
+ * - The internal field (basePath, configFilePath etc.) are not relevant to the config version.
+ * - The source, include and exclude stanzas are implicitly factored into the tree version.
+ *   Those are handled separately in {@link VcsHandler},
+ *   see {@link VcsHandler.getTreeVersion} and {@link VcsHandler.getFiles}.
+ * - The description field is just informational, shouldn't affect execution.
+ * - The disabled flag is not relevant to the config version, since it only affects execution.
+ */
+const nonVersionedActionConfigKeys = ["internal", "source", "include", "exclude", "description", "disabled"] as const
+export type NonVersionedActionConfigKey = keyof Pick<BaseActionConfig, (typeof nonVersionedActionConfigKeys)[number]>
+
+export function getActionConfigVersion<C extends BaseActionConfig>(config: C) {
+  const configToHash = omit(config, ...nonVersionedActionConfigKeys)
+  return versionStringPrefix + hashStrings([stableStringify(configToHash)])
 }
