@@ -192,6 +192,7 @@ export async function getSyncStatuses({
         "active": "is",
         "failed": "has",
         "not-active": "is",
+        "not-deployed": "is",
       }
 
       const syncCount = syncStatus.syncs.length
