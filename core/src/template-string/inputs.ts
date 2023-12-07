@@ -43,6 +43,14 @@ export function isTemplateLeaf(value: unknown): value is TemplateLeaf {
   return value instanceof TemplateLeaf
 }
 
+export function isTemplateValue(value: unknown): value is TemplateValue {
+  return isTemplateLeaf(value) || isLazyValue(value)
+}
+
+export function isLazyValue(value: unknown): value is LazyValue {
+  return value instanceof LazyValue
+}
+
 export type TemplateInputs = {
   // key is the input variable name, e.g. secrets.someSecret, local.env.SOME_VARIABLE, etc
   [contextKeyPath: string]: TemplateLeaf

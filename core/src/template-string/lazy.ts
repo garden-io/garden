@@ -92,7 +92,7 @@ export function unwrapLazyValues({ value, context, opts }: UnwrapParams): Templa
  *
  * This is helpful for making decisions about how to proceed in when evaluating template expressions or block operators.
  */
-export function unwrap(params: UnwrapParams): TemplatePrimitive | Collection<TemplateValue> {
+export function unwrap(params: UnwrapParams): TemplateLeafValue | Collection<TemplateValue> {
   const unwrapped = unwrapLazyValues(params)
 
   if (unwrapped instanceof TemplateLeaf) {
@@ -323,14 +323,13 @@ export class ForEachLazyValue extends LazyValue<CollectionOrValue<TemplateValue>
     const output: CollectionOrValue<TemplateValue>[] = []
 
     for (const i of Object.keys(collectionExpressionValue)) {
-      // put the result in the context, not the value, so we have input tracking
+      // put the TemplateValue in the context, not the primitive value, so we have input tracking
       const contextForIndex = new GenericContext({ key: i, value: collectionExpressionResult[i] })
       loopContext["item"] = contextForIndex
 
       // Have to override the cache in the parent context here
       // TODO: make this a little less hacky :P
       const resolvedValues = loopContext["_resolvedValues"]
-      // FIXME: what happens when you accessed items.value.something?
       delete resolvedValues["item.key"]
       delete resolvedValues["item.value"]
       const subValues = Object.keys(resolvedValues).filter((k) => k.match(/item\.value\.*/))

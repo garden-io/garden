@@ -2906,7 +2906,6 @@ describe("input tracking", () => {
 
       expect(res["foo"]).to.be.instanceOf(ForEachLazyValue)
 
-      // TODO: Source should not be on context opts
       expect(deepUnwrapLazyValues({ value: res, context, opts: {} })).to.deep.include({
         foo: [
           new TemplateLeaf({
