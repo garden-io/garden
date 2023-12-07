@@ -25,10 +25,12 @@
 ## 💐 Tutorials
 
 * [Your First Project](./tutorials/your-first-project/README.md)
-  * [1. Initialize a Project](./tutorials/your-first-project/1-initialize-a-project.md)
-  * [2. Connect to a Cluster](./tutorials/your-first-project/2-connect-to-a-cluster.md)
-  * [3. Deploy and Test](./tutorials/your-first-project/3-deploy-and-test.md)
-  * [4. Configure Your Project](./tutorials/your-first-project/4-configure-your-project.md)
+  * [1. Create a Garden Project](./tutorials/your-first-project/1-initialize-a-project.md)
+  * [2. Pick a Kubernetes Plugin](./tutorials/your-first-project/2-connect-to-a-cluster.md)
+  * [3. Add Actions](./tutorials/your-first-project/3-add-actions.md)
+  * [4. Add Tests](./tutorials/your-first-project/4-testing.md)
+  * [5. Code Syncing (Hot Reload)](./tutorials/your-first-project/5-code-syncing.md)
+  * [6. Next Steps](./tutorials/your-first-project/6-configure-your-project.md)
 
 ## 🌿 Using Garden
 

@@ -67,43 +67,62 @@ Set the log-level to `verbose` or higher. For example:
 garden build --log-level verbose
 ```
 
-### Can I use a Dockerfile that lives outside the action root?
+### Can I use a Dockerfile that lives outside the action directory?
 
-Dockerfiles need to be at the same level as the `garden.yml` file for the respective action, or in a child directory.
+Yes. Generally Dockerfiles need to be in the same directory or a child directory relative to your Garden action but you can always set the source path for the action with the `source.path` field.
 
-You can always hoist the `garden.yml` file to the same level as the Dockerfile and use the `include` directive to tell Garden what other files belong to the Build. For example, if you have the following directory structure:
+
+For example, let's say you have the following project structure:
 
 ```console
 .
 ├── api
-├── dockerfiles
-│   ├── api.Dockerfile
-│   └── frontend.Dockerfile
-└── frontend
+│   ├── garden.yml
+│   ├── manifests
+│   └── src
+└── dockerfiles
+    └── api.dockerfile
 ```
 
-You can set your `garden.yml` file at the root and define your actions likes so:
+In this case the recommended approach is to set the `source.path` field like so:
 
 ```yaml
+# In ./api/garden.yml
 kind: Build
 name: api
 type: container
-include: [api/**/*]
+source:
+  path: ../ # <--- Set the action source to the project root
+include: [./api/**/*, ./dockerfiles/api.dockerfile] # <--- We need to specify includes since we told Garden the action source is at the root. The includes are relative to the source path we set.
 spec:
-  dockerfile: dockerfiles/api.Dockerfile
-
+  dockerfile: api.dockerfile # <--- If our Dockerfile isn't called 'Dockerfile' we need to specify the name here
 ---
-kind: Build
-name: frontend
-include: [frontend/**/*]
-type: container
+kind: Deploy
+name: api
+type: kubernetes
 spec:
-  dockerfile: dockerfiles/frontend.Dockerfile
+  files: [./manifests/*] # <--- The Deploy action source path is still the ./api directory and specify the manifests with relative to it
 ```
 
-Note that you can put multiple Garden configuration files in the same directory, e.g. `project.garden.yml`, `api.garden.yml` and `frontend.garden.yml`.
+Alternatively you can hoist the `garden.yml` for the `api` to the root of the project and e.g. call it `api.garden.yml`. In that case your config will look like this:
 
-If you need the Dockerfile outside of the Build root because you want to share it with other Build actions, you should consider having a single base image instead and then let each action have its own Dockerfile that's built on the base image. See the [base image example project](../../examples/base-image/README.md) for an example of this.
+```yaml
+# In api.garden.yml
+kind: Build
+name: api
+type: container
+include: [./api/**/*, ./dockerfiles/api.dockerfile] # <--- We need to specify includes because the action is at the root of the project.
+spec:
+  dockerfile: api.dockerfile # <--- If our Dockerfile isn't called 'Dockerfile' we need to specify the name here
+---
+kind: Deploy
+name: api
+type: kubernetes
+spec:
+  files: [./api/manifests/*] # <--- The action config is at the root so we need to include the `./api` dir here
+```
+
+If you need the Dockerfile outside of the Build root because you want to share it with other Build actions, you could also consider having a single base image instead and then let each action have its own Dockerfile that's built on the base image. See the [base image example project](../../examples/base-image/README.md) for an example of this.
 
 ### How do I include files/dirs (e.g. shared libraries) from outside the action root with the build context?
 
