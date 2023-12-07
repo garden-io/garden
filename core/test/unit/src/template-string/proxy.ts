@@ -211,10 +211,8 @@ describe("getDeepUnwrapProxy", () => {
       proxy["cannotResolveYet"]
     }).to.throw()
 
-    context["var"] = {
-      willExistLater: {
-        foo: "bar",
-      },
+    context["var"]["willExistLater"] = {
+      foo: "bar",
     }
 
     expect(proxy["cannotResolveYet"]).to.deep.equal({ foo: "bar" })
@@ -237,10 +235,10 @@ describe("getDeepUnwrapProxy", () => {
       },
     })
 
-    const hypotheticActionConfig = resolveTemplateStringsWithInputs({
+    const actionConfig = resolveTemplateStringsWithInputs({
       value: {
         kind: "Build",
-        name: "hypothetic-action-build",
+        name: "my-action",
         spec: {
           image: "${var.variable_one}",
         },
@@ -249,15 +247,46 @@ describe("getDeepUnwrapProxy", () => {
     })
 
     const proxy = getDeepUnwrapProxy({
-      parsedConfig: hypotheticActionConfig,
+      parsedConfig: actionConfig,
       context,
       opts: {},
     })
 
     expect(proxy).to.deep.equal({
+      kind: "Build",
+      name: "my-action",
       spec: {
         image: "Hello",
       },
     })
+  })
+
+  it("allows optional proxies, that do not throw but return undefined, if something can't be resolved", () => {
+    const context = new GenericContext({})
+    const parsedConfig = resolveTemplateStringsWithInputs({
+      value: {
+        myOptionalValue: "${var.willExistLater}",
+      },
+      source: { source: undefined },
+    })
+
+    const proxy = getDeepUnwrapProxy({
+      parsedConfig,
+      context,
+      opts: {
+        // TODO: rename this to optional
+        allowPartial: true,
+      },
+    })
+
+    expect(proxy).to.equal(undefined)
+
+    context["var"] = {
+      willExistLater: {
+        foo: "bar",
+      },
+    }
+
+    expect(proxy).to.deep.equal({ foo: "bar" })
   })
 })

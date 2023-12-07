@@ -19,19 +19,19 @@ export function getDeepUnwrapProxy({ parsedConfig, expectedCollectionType = "obj
 
     if (isTemplateLeaf(collection)) {
       throw new InternalError({
-        message: "Expected a collection, got a leaf value",
+        message: "getDeepUnwrapProxy: Expected a collection, got a leaf value",
       })
     }
 
     if (expectedCollectionType === "object" && !isPlainObject(collection)) {
       throw new InternalError({
-        message: `Expected an object, got array`,
+        message: `getDeepUnwrapProxy: Expected an object, got array`,
       })
     }
 
     if (expectedCollectionType === "array" && !isArray(collection)) {
       throw new InternalError({
-        message: `Expected an array, got object`,
+        message: `getDeepUnwrapProxy: Expected an array, got object`,
       })
     }
 
