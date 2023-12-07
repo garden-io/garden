@@ -279,7 +279,7 @@ describe("getDeepUnwrapProxy", () => {
       },
     })
 
-    expect(proxy).to.equal(undefined)
+    expect(proxy["myOptionalValue"]).to.equal(undefined)
 
     context["var"] = {
       willExistLater: {
@@ -287,6 +287,49 @@ describe("getDeepUnwrapProxy", () => {
       },
     }
 
-    expect(proxy).to.deep.equal({ foo: "bar" })
+    expect(proxy).to.deep.equal({ myOptionalValue: { foo: "bar" } })
+  })
+
+  it("partial returns undefined even for && and || clauses", () => {
+    const context = new GenericContext({})
+    const parsedConfig = resolveTemplateStringsWithInputs({
+      value: {
+        orClause: "${var.willExistLater || 'defaultValue'}",
+        andClause: "${var.willExistLater && 'conclusionValue'}",
+      },
+      source: { source: undefined },
+    })
+
+    const partialProxy = getDeepUnwrapProxy({
+      parsedConfig,
+      context,
+      opts: {
+        // TODO: rename this to optional
+        allowPartial: true,
+      },
+    })
+
+    const strictProxy = getDeepUnwrapProxy({
+      parsedConfig,
+      context,
+      opts: {},
+    })
+
+    expect(partialProxy["orClause"]).to.equal(undefined)
+    expect(partialProxy["andClause"]).to.equal(undefined)
+
+    expect(strictProxy["orClause"]).to.equal("defaultValue")
+    expect(strictProxy["andClause"]).to.equal(false)
+
+    context["var"] = {
+      willExistLater: {
+        foo: "bar",
+      },
+    }
+
+    expect(partialProxy["orClause"]).to.deep.equal({ foo: "bar" })
+    expect(strictProxy["orClause"]).to.deep.equal({ foo: "bar" })
+    expect(partialProxy["andClause"]).to.deep.equal("conclusionValue")
+    expect(strictProxy["andClause"]).to.deep.equal("conclusionValue")
   })
 })

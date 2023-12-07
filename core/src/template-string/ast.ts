@@ -215,6 +215,16 @@ export class LogicalOrExpression extends LogicalExpression {
       return left
     }
 
+    if (args.opts.allowPartial) {
+      // it might be that the left side will become resolvable later.
+      // TODO: should we maybe explicitly return a symbol, when we couldn't resolve something?
+      return mergeInputs(this.loc.source, new TemplateLeaf({
+        expr: args.rawTemplateString,
+        value: undefined,
+        inputs: {},
+      }), left)
+    }
+
     const right = this.right.evaluate(args)
     return mergeInputs(this.loc.source, right, left)
   }
@@ -249,7 +259,7 @@ export class LogicalAndExpression extends LogicalExpression {
           this.loc.source,
           new TemplateLeaf({
             expr: args.rawTemplateString,
-            value: false,
+            value: args.opts.allowPartial ? undefined : false,
             inputs: {},
           }),
           left
@@ -269,7 +279,7 @@ export class LogicalAndExpression extends LogicalExpression {
           this.loc.source,
           new TemplateLeaf({
             expr: args.rawTemplateString,
-            value: false,
+            value: args.opts.allowPartial ? undefined : false,
             inputs: {},
           }),
           right,
