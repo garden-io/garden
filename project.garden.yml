@@ -20,5 +20,6 @@ providers:
     setupIngressController: nginx
   - name: local-kubernetes
     environments: [local]
+variables:
   timeout: 360
   show-log: false

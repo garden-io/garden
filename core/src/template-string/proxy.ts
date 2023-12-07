@@ -43,13 +43,6 @@ export function getDeepUnwrapProxy({ parsedConfig, expectedCollectionType = "obj
       const collection = getCollection()
       const value = collection[prop];
 
-      if (isArray(collection)) {
-        // makes iterators work
-        if (typeof prop === "symbol") {
-          return value
-        }
-      }
-
       if (!isTemplateValue(value) && !isArray(value) && !isPlainObject(value)) {
         return value
       }
