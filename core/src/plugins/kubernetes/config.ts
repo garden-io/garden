@@ -341,6 +341,7 @@ const tlsCertificateSchema = () =>
       )
       .example(["www.mydomain.com"]),
     secretRef: secretRef
+      .required()
       .description("A reference to the Kubernetes secret that contains the TLS certificate and key for the domain.")
       .example({ name: "my-tls-secret", namespace: "default" }),
   })
