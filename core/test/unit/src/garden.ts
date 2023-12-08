@@ -2903,7 +2903,7 @@ describe("Garden", () => {
       expect(test).to.exist
 
       expect(build.type).to.equal("test")
-      expect(build.spec.command).to.eql(["${inputs.value}"]) // <- resolved later
+      expect(build.spec.command).to.include("${inputs.name}") // <- resolved later
       expect(omit(build.internal, "yamlDoc")).to.eql(internal)
 
       expect(deploy["build"]).to.equal("${parent.name}-${inputs.name}") // <- resolved later

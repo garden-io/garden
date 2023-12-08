@@ -1,5 +1,5 @@
 ---
-order: 15
+order: 1
 title: Configuration Overview
 ---
 

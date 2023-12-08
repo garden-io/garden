@@ -482,6 +482,17 @@ export function getEnvVarName(identifier: string) {
 }
 
 /**
+ * Removes all keys from `obj` (except those inherited from the object's prototype).
+ *
+ * Essentially a vanilla object analog of `map.clear()` for ES5 Maps.
+ */
+export function clearObject<T extends object>(obj: T) {
+  for (const key of Object.getOwnPropertyNames(obj)) {
+    delete obj[key]
+  }
+}
+
+/**
  * Picks the specified keys from the given object, and throws an error if one or more keys are not found.
  */
 export function pickKeys<T extends object, U extends keyof T>(obj: T, keys: U[], description = "key"): Pick<T, U> {

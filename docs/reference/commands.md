@@ -1850,13 +1850,13 @@ actionConfigs:
       #
       # You _can_ override this by setting `buildAtSource: true`, which basically sets the build root for this action
       # at the location of the Build action config in the source tree. This means e.g. that the build command in
-      # `exec` Builds runs at the source, and for `docker-image` builds the build is initiated from the source
+      # `exec` Builds runs at the source, and for Docker image builds the build is initiated from the source
       # directory.
       #
       # An important implication is that `include` and `exclude` directives for the action, as well as `.gardenignore`
       # files, only affect version hash computation but are otherwise not effective in controlling the build context.
       # This may lead to unexpected variation in builds with the same version hash. **This may also slow down code
-      # synchronization to remote destinations, e.g. when performing remote `docker-image` builds.**
+      # synchronization to remote destinations, e.g. when performing remote Docker image builds.**
       #
       # Additionally, any `exec` runtime actions (and potentially others) that reference this Build with the `build`
       # field, will run from the source directory of this action.

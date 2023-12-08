@@ -11,8 +11,9 @@ const { ensureDir } = fsExtra
 import { platform, arch } from "os"
 import { relative, resolve } from "path"
 import cloneDeep from "fast-copy"
-import { flatten, sortBy, keyBy, mapValues, groupBy, set } from "lodash-es"
 import AsyncLock from "async-lock"
+import { flatten, groupBy, keyBy, mapValues, set, sortBy } from "lodash-es"
+import { username } from "username"
 
 import { TreeCache } from "./cache.js"
 import { getBuiltinPlugins } from "./plugins/plugins.js"
@@ -28,8 +29,15 @@ import {
   defaultNamespace,
   defaultEnvironment,
 } from "./config/project.js"
-import { getCloudDistributionName, getCloudLogSectionName } from "./util/cloud.js"
-import { findByName, pickKeys, getPackageVersion, getNames, findByNames, duplicatesByKey } from "./util/util.js"
+import {
+  findByName,
+  pickKeys,
+  getPackageVersion,
+  getNames,
+  findByNames,
+  duplicatesByKey,
+  clearObject,
+} from "./util/util.js"
 import type { GardenError } from "./exceptions.js"
 import {
   ConfigurationError,
@@ -46,7 +54,7 @@ import { GitHandler } from "./vcs/git.js"
 import { BuildStaging } from "./build-staging/build-staging.js"
 import type { ConfigGraph } from "./graph/config-graph.js"
 import { ResolvedConfigGraph } from "./graph/config-graph.js"
-import { getRootLogger } from "./logger/logger.js"
+import { LogLevel, getRootLogger } from "./logger/logger.js"
 import type { GardenPluginSpec } from "./plugin/plugin.js"
 import type { GardenResource } from "./config/base.js"
 import { loadConfigResources, findProjectConfig, configTemplateKind, renderTemplateKind } from "./config/base.js"
@@ -96,7 +104,6 @@ import {
 import { dedent, deline, naturalList, wordWrap } from "./util/string.js"
 import { DependencyGraph } from "./graph/common.js"
 import { Profile, profileAsync } from "./util/profiling.js"
-import { username } from "username"
 import {
   throwOnMissingSecretKeys,
   resolveTemplateString,
@@ -160,6 +167,7 @@ import { detectModuleOverlap, makeOverlapErrors } from "./util/module-overlap.js
 import { GotHttpError } from "./util/http.js"
 import { styles } from "./logger/styles.js"
 import { renderDuration } from "./logger/util.js"
+import { getCloudDistributionName, getCloudLogSectionName } from "./util/cloud.js"
 
 const defaultLocalAddress = "localhost"
 
@@ -235,9 +243,9 @@ export class Garden {
   public log: Log
   private gardenInitLog?: Log
   private loadedPlugins?: GardenPluginSpec[]
-  protected actionConfigs: ActionConfigMap
-  protected moduleConfigs: ModuleConfigMap
-  protected workflowConfigs: WorkflowConfigMap
+  protected readonly actionConfigs: ActionConfigMap
+  protected readonly moduleConfigs: ModuleConfigMap
+  protected readonly workflowConfigs: WorkflowConfigMap
   protected configPaths: Set<string>
   private resolvedProviders: { [key: string]: Provider }
   protected readonly state: GardenInstanceState
@@ -253,7 +261,7 @@ export class Garden {
   public readonly treeCache: TreeCache
   public events: EventBus
   private tools?: { [key: string]: PluginTool }
-  public configTemplates: { [name: string]: ConfigTemplateConfig }
+  public readonly configTemplates: { [name: string]: ConfigTemplateConfig }
   private actionTypeBases: ActionTypeMap<ActionTypeDefinition<any>[]>
   private emittedWarnings: Set<string>
   public cloudApi: CloudApi | null
@@ -345,7 +353,7 @@ export class Garden {
 
     this.asyncLock = new AsyncLock()
 
-    const gitMode = gardenEnv.GARDEN_GIT_SCAN_MODE || params.projectConfig.scan?.git?.mode
+    const gitMode = params.projectConfig.scan?.git?.mode || gardenEnv.GARDEN_GIT_SCAN_MODE
     const handlerCls = gitMode === "repo" ? GitRepoHandler : GitHandler
 
     this.vcs = new handlerCls({
@@ -491,6 +499,7 @@ export class Garden {
   needsReload(v?: true) {
     if (v) {
       this.state.needsReload = true
+      this.state.configsScanned = false
     }
     return this.state.needsReload
   }
@@ -1271,6 +1280,23 @@ export class Garden {
   }
 
   /**
+   * We clear these objects without reassigning them. If this Garden instance was cloned from a parent Garden instance,
+   * this will also clear the configs of the parent instance (which is what we want e.g. when rescanning configs during
+   * a subcommand after a reload is necessary during a dev command session).
+   *
+   * We need to clear before rescanning to make sure old/outdated configs are cleared away, and to avoid duplicate
+   * key errors when adding the newly scanned ones (and those generated from newly scanned config templates).
+   */
+  protected clearConfigs() {
+    for (const kind of Object.getOwnPropertyNames(this.actionConfigs)) {
+      clearObject(this.actionConfigs[kind])
+    }
+    clearObject(this.moduleConfigs)
+    clearObject(this.workflowConfigs)
+    clearObject(this.configTemplates)
+  }
+
+  /**
    * Scans the specified directories for Garden config files and returns a list of paths.
    */
   @OtelTraced({
@@ -1305,6 +1331,7 @@ export class Garden {
       }
 
       this.log.silly(() => `Scanning for configs (force=${force})`)
+      this.clearConfigs()
 
       // Add external sources that are defined at the project level. External sources are either kept in
       // the .garden/sources dir (and cloned there if needed), or they're linked to a local path via the link command.
@@ -1425,7 +1452,10 @@ export class Garden {
       )
 
       this.state.configsScanned = true
-      this.configTemplates = { ...this.configTemplates, ...keyBy(configTemplates, "name") }
+
+      for (const template of configTemplates) {
+        this.configTemplates[template.name] = template
+      }
 
       this.events.emit("configsScanned", {})
     })
@@ -1845,7 +1875,9 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
     if (!opts.noEnterprise && cloudApi) {
       const distroName = getCloudDistributionName(cloudApi.domain)
       const isCommunityEdition = !config.domain
-      const cloudLog = log.createLog({ name: getCloudLogSectionName(distroName) })
+      const cloudLogLevel =
+        opts.commandInfo.name === "dev" || opts.commandInfo.name === "serve" ? LogLevel.debug : undefined
+      const cloudLog = log.createLog({ name: getCloudLogSectionName(distroName), fixLevel: cloudLogLevel })
 
       cloudLog.info(`Connecting to ${distroName}...`)
 

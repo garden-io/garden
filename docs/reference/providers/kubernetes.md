@@ -7,9 +7,9 @@ tocTitle: "`kubernetes`"
 
 ## Description
 
-The `kubernetes` provider allows you to deploy [`container` actions](../../k8s-plugins/action-types/container.md) to
-Kubernetes clusters, and adds the [`helm`](../../k8s-plugins/action-types/helm.md) and
-[`kubernetes`](../../k8s-plugins/action-types/kubernetes.md) action types.
+The `kubernetes` provider allows you to deploy [`container` actions](../../k8s-plugins/actions/deploy/container.md) to
+Kubernetes clusters, and adds the [`helm`](../../k8s-plugins/actions/deploy/helm.md) and
+[`kubernetes`](../../k8s-plugins/actions/deploy/kubernetes.md) action types.
 
 For usage information, please refer to the [guides section](../../guides). A good place to start is
 the [Remote Kubernetes guide](../../k8s-plugins/remote-k8s/README.md) guide if you're connecting to remote clusters.
@@ -40,7 +40,7 @@ providers:
     # between multiple developers, as well as between your development and CI workflows.
     #
     # For more details on all the different options and what makes sense to use for your setup, please check out the
-    # [in-cluster building guide](https://docs.garden.io/kubernetes-plugins/advanced/in-cluster-building).
+    # [in-cluster building guide](https://docs.garden.io/kubernetes-plugins/guides/in-cluster-building).
     buildMode: local-docker
 
     # Configuration options for the `cluster-buildkit` build mode.
@@ -575,7 +575,7 @@ providers:
 
 Choose the mechanism for building container images before deploying. By default your local Docker daemon is used, but you can set it to `cluster-buildkit` or `kaniko` to sync files to the cluster, and build container images there. This removes the need to run Docker locally, and allows you to share layer and image caches between multiple developers, as well as between your development and CI workflows.
 
-For more details on all the different options and what makes sense to use for your setup, please check out the [in-cluster building guide](https://docs.garden.io/kubernetes-plugins/advanced/in-cluster-building).
+For more details on all the different options and what makes sense to use for your setup, please check out the [in-cluster building guide](https://docs.garden.io/kubernetes-plugins/guides/in-cluster-building).
 
 | Type     | Allowed Values                               | Default          | Required |
 | -------- | -------------------------------------------- | ---------------- | -------- |

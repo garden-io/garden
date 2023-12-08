@@ -8,7 +8,7 @@
 
 import chalk from "chalk"
 import hasAnsi from "has-ansi"
-import { every, some } from "lodash-es"
+import { every, repeat, some } from "lodash-es"
 import { Stream } from "ts-stream"
 import type { DeployAction } from "../actions/deploy.js"
 import type { Resolved } from "../actions/types.js"
@@ -23,14 +23,20 @@ import type { DeployLogEntry } from "../types/service.js"
 import type { MonitorBaseParams } from "./base.js"
 import { Monitor } from "./base.js"
 import { styles } from "../logger/styles.js"
+import type { PickFromUnion } from "../util/util.js"
 
-export const logMonitorColors = ["green", "cyan", "magenta", "yellow", "blueBright", "blue"]
+export const validMonitorColors = ["green", "cyan", "magenta", "yellow", "blueBright", "blue"] as const
+
+type LogMonitorColor = PickFromUnion<keyof typeof chalk, (typeof validMonitorColors)[number]>
+
+export const logMonitorColors: LogMonitorColor[] = [...validMonitorColors]
 
 // Track these globally, across many monitors
-let colorMap: { [name: string]: string } = {}
+let colorMap: { [name: string]: LogMonitorColor } = {}
 let colorIndex = -1
 // If the container name should be displayed, we align the output wrt to the longest container name
 let maxDeployName = 1
+const isoStringLength = new Date().toISOString().length
 
 interface LogMonitorParams extends MonitorBaseParams {
   action: Resolved<DeployAction>
@@ -200,8 +206,8 @@ export class LogMonitor extends Monitor {
   }
 
   private formatLogMonitorEntry(entry: DeployLogEntry) {
-    const style = chalk[LogMonitor.getColorForName(entry.name)]
-    const sectionStyle = style.bold
+    const sectionColor = chalk[LogMonitor.getColorForName(entry.name)]
+    const sectionStyle = (sectionColor || styles.primary).bold
     const serviceLog = entry.msg
     const entryLevel = entry.level || LogLevel.info
 
@@ -209,7 +215,7 @@ export class LogMonitor extends Monitor {
     let tags: string | undefined
 
     if (this.showTimestamps && entry.timestamp) {
-      timestamp = "                        "
+      timestamp = repeat(" ", isoStringLength)
       try {
         timestamp = entry.timestamp.toISOString()
       } catch {}
@@ -233,13 +239,13 @@ export class LogMonitor extends Monitor {
       out += `${sectionStyle(padSection(entry.name, maxDeployName))} → `
     }
     if (timestamp) {
-      out += `${styles.primary(timestamp)} → `
+      out += `${sectionStyle(timestamp)} → `
     }
     if (tags) {
-      out += styles.primary("[" + tags + "] ")
+      out += sectionStyle("[" + tags + "] ")
     }
-    // If the line doesn't have ansi encoding, we color it white to prevent logger from applying styles.
-    out += hasAnsi(serviceLog) ? serviceLog : styles.accent(serviceLog)
+
+    out += hasAnsi(serviceLog) ? serviceLog : styles.primary(serviceLog)
 
     return out
   }

@@ -1,30 +1,13 @@
 ---
-title: Using Garden in CI
+title: Using Garden in CircleCI
 order: 7
 ---
 
-# Using Garden in CI
-
-In this guide we'll demonstrate how Garden can fit into your continuous integration (CI) pipeline. Simply by adding extra environments to the project configuration, you can use Garden for local development _and_ for testing and deploying your project in CI. This approach has several benefits:
-
-- Use the same tool and the same set of commands for the entire development cycle, from source to finish.
-- No need to change your CI configuration when you change your stack since Garden holds the entire stack graph.
-- The only thing you need to install in CI is the Garden CLI and its dependencies (or use a ready-made Garden container image).
-- When using [in-cluster building](../k8s-plugins/advanced/in-cluster-building.md) your CI also uses the same build and test result cache as you and your team, which makes for a much faster pipeline.
-
-To use Garden in your CI pipeline you need the following:
-
-1. A Garden project, [configured to deploy to a remote cluster](#configure-remote-environments).
-2. A [Kubectl context](#configure-the-kubectl-context) on the CI agent that's configured for the remote cluster.
-
-For the purposes of this example we'll be using [CircleCI](https://circleci.com) and deploying to a Google Kubernetes Engine (GKE) cluster. However, the instructions below can easily be applied to other CI platforms and cloud providers.
-
-The guide uses the [Remote Kubernetes plugin](../k8s-plugins/remote-k8s/README.md) example. In what follows we assume that you've read that guide and that you have a running Kubernetes cluster to work with.
-
 ## Prerequisites
 
-- A [CircleCI account](https://circleci.com/)
-- A running Kubernetes cluster that you have API access to
+In addition to the prerequisites in the [Portable CI Pipelines that Run Anywhere](../use-cases/portable-ci-pipelines.md) doc.
+
+For the purposes of this example we'll be using [CircleCI](https://circleci.com) and deploying to a Google Kubernetes Engine (GKE) cluster.
 
 ## Project overview
 
@@ -36,7 +19,7 @@ To see it in action, you can fork the repository and follow the set-up steps bel
 
 ## Configure remote environments
 
-Configuring Garden to work against a remote Kubernetes cluster is explained step by step in our [Remote Kubernetes guide](../k8s-plugins/remote-k8s/README.md). For this example, we also use [in-cluster building](../k8s-plugins/advanced/in-cluster-building.md).
+Configuring Garden to work against a remote Kubernetes cluster is explained step by step in our [Remote Kubernetes guide](../k8s-plugins/remote-k8s/README.md). For this example, we also use [in-cluster building](../k8s-plugins/guides/in-cluster-building.md).
 
 For this project we're using three environments: `local`, `preview` and `staging`. The `local` environment is the default and is configured for a local Kubernetes cluster that runs on the user's machine. The other two run on remote clusters.
 

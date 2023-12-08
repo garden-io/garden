@@ -483,7 +483,7 @@ export function logAndEmitGetStatusEvents<
         log.info(`${styledName} is already ${styles.highlight(logStrings.ready)}, ${logStrings.force}`)
       } else {
         const stateStr = styles.highlight(result.detail?.state || displayState(result.state))
-        log.info(`Status is '${stateStr}', ${styledName} ${logStrings.notReady}`)
+        log.info(`Status is ${stateStr}, ${styledName} ${logStrings.notReady}`)
       }
 
       // Then an event with the results if the status was successfully retrieved...

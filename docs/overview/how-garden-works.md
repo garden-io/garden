@@ -105,7 +105,6 @@ There are also a handful of utility commands for getting logs, exec-ing into ser
 
 Thanks to the Stack Graph, these workflows stay consistent no matter how big your stack grows.
 
-
 ![Garden scales with your stack](../how-to-garden-scales.png)
 
 ## **Plugins**

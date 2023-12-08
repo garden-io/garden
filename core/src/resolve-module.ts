@@ -208,7 +208,7 @@ export class ModuleResolver {
     const processLeaves = async () => {
       if (Object.keys(errors).length > 0) {
         const errorStr = Object.entries(errors)
-          .map(([name, err]) => `${styles.accent.bold(name)}: ${err.message}`)
+          .map(([name, err]) => `${styles.highlight.bold(name)}: ${err.message}`)
           .join("\n")
         const msg = `Failed resolving one or more modules:\n\n${errorStr}`
 
@@ -922,7 +922,7 @@ function inheritModuleToAction(module: GardenModule, action: ActionConfig) {
 function missingBuildDependency(moduleName: string, dependencyName: string) {
   return new ConfigurationError({
     message:
-      `Could not find build dependency ${styles.accent(dependencyName)}, ` +
-      `configured in module ${styles.accent(moduleName)}`,
+      `Could not find build dependency ${styles.highlight(dependencyName)}, ` +
+      `configured in module ${styles.highlight(moduleName)}`,
   })
 }

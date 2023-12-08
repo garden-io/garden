@@ -49,7 +49,7 @@ execRun.addHandler("run", async ({ artifactsPath, log, action, ctx }) => {
   }
 
   if (outputLog) {
-    const prefix = `Finished running ${styles.accent(action.name)}. Here is the full output:`
+    const prefix = `Finished running ${styles.highlight(action.name)}. Here is the full output:`
     log.info(
       renderMessageWithDivider({
         prefix,

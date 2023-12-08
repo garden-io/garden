@@ -861,8 +861,8 @@ async function prepareSync(params: PrepareSyncParams) {
 
   const key = getSyncKey(params, target)
 
-  const localPathDescription = styles.accent(spec.sourcePath)
-  const remoteDestinationDescription = `${styles.accent(spec.containerPath)} in ${styles.accent(resourceName)}`
+  const localPathDescription = styles.highlight(spec.sourcePath)
+  const remoteDestinationDescription = `${styles.highlight(spec.containerPath)} in ${styles.highlight(resourceName)}`
 
   const {
     source: orientedSource,

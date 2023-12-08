@@ -284,7 +284,7 @@ export abstract class Command<
         const log = overrideLogLevel ? garden.log.createLog({ fixLevel: overrideLogLevel }) : garden.log
 
         let cloudSession: CloudSession | undefined
-        let cloudLinkMsg: string | undefined
+        let commandResultUrl: string | undefined
 
         // Session registration for the `dev` and `serve` commands is handled in the `serve` command's `action` method,
         // so we skip registering here to avoid duplication.
@@ -312,16 +312,13 @@ export abstract class Command<
 
         if (cloudSession) {
           const distroName = getCloudDistributionName(cloudSession.api.domain)
-          const commandResultUrl = cloudSession.api.getCommandResultUrl({
+          commandResultUrl = cloudSession.api.getCommandResultUrl({
             sessionId: garden.sessionId,
             projectId: cloudSession.projectId,
             shortId: cloudSession.shortId,
           }).href
           const cloudLog = log.createLog({ name: getCloudLogSectionName(distroName) })
-          cloudLinkMsg = `View command results at: \n\n${printEmoji("👉", log)}${styles.link(
-            commandResultUrl
-          )} ${printEmoji("👈", log)} \n`
-          cloudLog.info(cloudLinkMsg)
+          cloudLog.info(`View command results at: ${styles.link(commandResultUrl)}`)
         }
 
         let analytics: AnalyticsHandler | undefined
@@ -433,8 +430,11 @@ export abstract class Command<
         // fire, which may be needed to e.g. capture monitors added in event handlers
         await waitForOutputFlush()
 
-        if (cloudLinkMsg) {
-          log.info("\n" + cloudLinkMsg)
+        if (commandResultUrl) {
+          const msg = `View command results at: \n\n${printEmoji("👉", log)}${styles.link(
+            commandResultUrl
+          )} ${printEmoji("👈", log)}\n`
+          log.info("\n" + msg)
         }
 
         return result

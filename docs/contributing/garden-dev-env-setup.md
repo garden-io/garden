@@ -40,17 +40,8 @@ If you are an [asdf](https://asdf-vm.com/) user, running [install-asdf-dependenc
 Install Node modules for the root package, and `core` package:
 
 ```sh
-yarn install # To install root dependencies
-yarn run bootstrap # To bootstrap packages
-```
-
-from the root directory
-
-You may need to install the Node modules in the core package manually due to [lerna/lerna#1457](https://github.com/lerna/lerna/issues/1457).
-
-```sh
-cd core
-yarn
+npm install # To install root dependencies
+npm run bootstrap # To bootstrap packages
 ```
 
 ## Developing Garden
@@ -60,7 +51,7 @@ yarn
 Before running Garden for the first time, you need to do an initial build by running
 
 ```sh
-yarn build
+npm run build
 ```
 
 from the root directory.
@@ -70,7 +61,7 @@ from the root directory.
 To develop the CLI, run the `dev` command in your console:
 
 ```sh
-yarn dev
+npm run dev
 ```
 
 This will link it to your global `node_modules` folder, and then watch for

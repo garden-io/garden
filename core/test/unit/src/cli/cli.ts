@@ -1066,7 +1066,6 @@ describe("cli", () => {
         const output = stripAnsi(hook.captured())
         expect(code).to.equal(1)
         expect(output).to.eql(dedent`
-          ℹ garden                    → Initializing...
           Error message
 
           See .garden/error.log for detailed error message\n`)
@@ -1093,9 +1092,8 @@ describe("cli", () => {
         expect(code).to.equal(1)
         const outputLines = stripAnsi(hook.captured()).split("\n")
 
-        const firstEightLines = outputLines.slice(0, 8).join("\n")
+        const firstEightLines = outputLines.slice(0, 7).join("\n")
         expect(firstEightLines).to.eql(dedent`
-          ℹ garden                    → Initializing...
           Encountered an unexpected Garden error. This is likely a bug 🍂
 
           You can help by reporting this on GitHub: https://github.com/garden-io/garden/issues/new?labels=bug,crash&template=CRASH.md&title=Crash%3A%20Cannot%20read%20property%20foo%20of%20undefined.
@@ -1105,7 +1103,7 @@ describe("cli", () => {
           TypeError: Cannot read property foo of undefined.
         `)
 
-        const firstStackTraceLine = outputLines[8]
+        const firstStackTraceLine = outputLines[7]
         expect(firstStackTraceLine).to.contain("at TestCommand.action (")
 
         const lastLine = outputLines[outputLines.length - 2] // the last line is empty due to trailing newline

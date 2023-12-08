@@ -289,7 +289,7 @@ export class ModuleConfigContext extends OutputConfigContext {
     const { name, path, inputs, parentName, templateName, buildPath } = params
 
     // Throw specific error when attempting to resolve self
-    this.modules.set(name, new ErrorContext(`Config ${styles.accent.bold(name)} cannot reference itself.`))
+    this.modules.set(name, new ErrorContext(`Config ${styles.highlight.bold(name)} cannot reference itself.`))
 
     if (parentName && templateName) {
       this.parent = new ParentContext(this, parentName)

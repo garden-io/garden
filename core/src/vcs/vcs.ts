@@ -34,6 +34,7 @@ import type { Garden } from "../garden.js"
 import { Profile } from "../util/profiling.js"
 
 import AsyncLock from "async-lock"
+
 const scanLock = new AsyncLock()
 
 export const versionStringPrefix = "v-"
@@ -121,6 +122,15 @@ export interface GetFilesParams {
   scanRoot: string | undefined
 }
 
+export interface BaseIncludeExcludeFiles {
+  include?: string[]
+  exclude: string[]
+}
+
+export type IncludeExcludeFilesHandler<T extends GetFilesParams, R extends BaseIncludeExcludeFiles> = (
+  params: T
+) => Promise<R>
+
 export interface GetTreeVersionParams {
   log: Log
   projectName: string
@@ -169,6 +179,12 @@ export abstract class VcsHandler {
 
   abstract getRepoRoot(log: Log, path: string): Promise<string>
 
+  /**
+   * Scans the repository returns the list of the tracked files.
+   * Applies Garden's exclude/include filters and .dotignore files.
+   *
+   * Does NOT sort the results by paths and filenames.
+   */
   abstract getFiles(params: GetFilesParams): Promise<VcsFile[]>
 
   abstract ensureRemoteSource(params: RemoteSourceParams): Promise<string>

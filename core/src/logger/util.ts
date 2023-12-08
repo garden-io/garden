@@ -63,7 +63,7 @@ export function printHeader(log: any, command: string, emoji: string): void {
 
 export function printFooter(log: any) {
   log.info("") // Print new line before footer
-  return log.info(styles.command("Done!") + " " + printEmoji("✔️", log))
+  return log.info(styles.success(`Done! ${printEmoji("✔️", log)}`))
 }
 
 export function printWarningMessage(log: any, text: string) {

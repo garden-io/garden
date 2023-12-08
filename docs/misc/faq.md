@@ -67,43 +67,62 @@ Set the log-level to `verbose` or higher. For example:
 garden build --log-level verbose
 ```
 
-### Can I use a Dockerfile that lives outside the action root?
+### Can I use a Dockerfile that lives outside the action directory?
 
-Dockerfiles need to be at the same level as the `garden.yml` file for the respective action, or in a child directory.
+Yes. Generally Dockerfiles need to be in the same directory or a child directory relative to your Garden action but you can always set the source path for the action with the `source.path` field.
 
-You can always hoist the `garden.yml` file to the same level as the Dockerfile and use the `include` directive to tell Garden what other files belong to the Build. For example, if you have the following directory structure:
+
+For example, let's say you have the following project structure:
 
 ```console
 .
 ├── api
-├── dockerfiles
-│   ├── api.Dockerfile
-│   └── frontend.Dockerfile
-└── frontend
+│   ├── garden.yml
+│   ├── manifests
+│   └── src
+└── dockerfiles
+    └── api.dockerfile
 ```
 
-You can set your `garden.yml` file at the root and define your actions likes so:
+In this case the recommended approach is to set the `source.path` field like so:
 
 ```yaml
+# In ./api/garden.yml
 kind: Build
 name: api
 type: container
-include: [api/**/*]
+source:
+  path: ../ # <--- Set the action source to the project root
+include: [./api/**/*, ./dockerfiles/api.dockerfile] # <--- We need to specify includes since we told Garden the action source is at the root. The includes are relative to the source path we set.
 spec:
-  dockerfile: dockerfiles/api.Dockerfile
-
+  dockerfile: api.dockerfile # <--- If our Dockerfile isn't called 'Dockerfile' we need to specify the name here
 ---
-kind: Build
-name: frontend
-include: [frontend/**/*]
-type: container
+kind: Deploy
+name: api
+type: kubernetes
 spec:
-  dockerfile: dockerfiles/frontend.Dockerfile
+  files: [./manifests/*] # <--- The Deploy action source path is still the ./api directory and specify the manifests with relative to it
 ```
 
-Note that you can put multiple Garden configuration files in the same directory, e.g. `project.garden.yml`, `api.garden.yml` and `frontend.garden.yml`.
+Alternatively you can hoist the `garden.yml` for the `api` to the root of the project and e.g. call it `api.garden.yml`. In that case your config will look like this:
 
-If you need the Dockerfile outside of the Build root because you want to share it with other Build actions, you should consider having a single base image instead and then let each action have its own Dockerfile that's built on the base image. See the [base image example project](../../examples/base-image/README.md) for an example of this.
+```yaml
+# In api.garden.yml
+kind: Build
+name: api
+type: container
+include: [./api/**/*, ./dockerfiles/api.dockerfile] # <--- We need to specify includes because the action is at the root of the project.
+spec:
+  dockerfile: api.dockerfile # <--- If our Dockerfile isn't called 'Dockerfile' we need to specify the name here
+---
+kind: Deploy
+name: api
+type: kubernetes
+spec:
+  files: [./api/manifests/*] # <--- The action config is at the root so we need to include the `./api` dir here
+```
+
+If you need the Dockerfile outside of the Build root because you want to share it with other Build actions, you could also consider having a single base image instead and then let each action have its own Dockerfile that's built on the base image. See the [base image example project](../../examples/base-image/README.md) for an example of this.
 
 ### How do I include files/dirs (e.g. shared libraries) from outside the action root with the build context?
 
@@ -138,11 +157,11 @@ It removes all cluster-wide Garden services.
 
 ### How do I pull a base image (using the FROM directive) from a private registry in in-cluster build mode?
 
-See [this section](../k8s-plugins/advanced/in-cluster-building.md#pulling-base-images-from-private-registries) of our docs.
+See [this section](../k8s-plugins/guides/in-cluster-building.md#pulling-base-images-from-private-registries) of our docs.
 
 ### How do I use my own private registry in in-cluster build mode?
 
-See [this section](../k8s-plugins/advanced/in-cluster-building.md#configuring-a-deployment-registry) of our docs.
+See [this section](../k8s-plugins/guides/in-cluster-building.md#configuring-a-deployment-registry) of our docs.
 
 ## Tests and Runs
 
@@ -188,16 +207,16 @@ This will run the Run even if the result is cached.
 
 ### How do I pass secrets to container actions?
 
-See [this section](../k8s-plugins/action-types/container.md#secrets) of our docs.
+See [this section](../k8s-plugins/actions/deploy/container.md#secrets) of our docs.
 
 ### How do I mount secrets as volumes?
 
-You'll need to use the [`kubernetes`](../k8s-plugins/action-types/kubernetes.md) or [`helm`](../k8s-plugins/action-types/helm.md) action types for that. Here's the official [Kubernetes guide](https://kubernetes.io/docs/concepts/configuration/secret/#using-secrets-as-files-from-a-pod) for mounting secrets as files.
+You'll need to use the [`kubernetes`](../k8s-plugins/actions/deploy/kubernetes.md) or [`helm`](../k8s-plugins/actions/deploy/helm.md) action types for that. Here's the official [Kubernetes guide](https://kubernetes.io/docs/concepts/configuration/secret/#using-secrets-as-files-from-a-pod) for mounting secrets as files.
 
 ### Can I use Kubernetes secrets as `buildArgs` for docker Builds?
 
 No, Kubernetes secrets can only be used at runtime, by referencing them in the `spec.env` field of Run, Deploy and Test Actions.
-See [the secrets section](../k8s-plugins/action-types/container.md#secrets) of our docs for more.
+See [the secrets section](../k8s-plugins/actions/deploy/container.md#secrets) of our docs for more.
 
 Also note that secrets as `buildArgs` are considered a bad practice and a security risk.
 
@@ -209,13 +228,13 @@ No, secrets have to be in the same namespace as the project. This is how Kuberne
 
 ### How do I mount persistent volumes?
 
-See [this section](../k8s-plugins/action-types/container.md#mounting-volumes) of our docs.
+See [this section](../k8s-plugins/actions/deploy/container.md#mounting-volumes) of our docs.
 
 ### How do I access files that are generated at runtime (e.g. migration files that are checked into version control)?
 
 You can generate the files via a Run, store them as artifacts, and copy them from the local artifacts directory. [Here's an example](../using-garden/tests.md#test-artifacts) of this.
 
-You can also use the [`persistentvolumeclaim`](../reference/action-types/Deploy/persistentvolumeclaim.md) action type to store data and share it across actions. See [this section](../k8s-plugins/action-types/persistentvolumeclaim.md) of our docs for more.
+You can also use the [`persistentvolumeclaim`](../reference/action-types/Deploy/persistentvolumeclaim.md) action type to store data and share it across actions. See [this section](../k8s-plugins/actions/deploy/persistentvolumeclaim.md) of our docs for more.
 
 ## Kubernetes
 
@@ -229,7 +248,18 @@ Garden interfaces with your cluster via `kubectl` and by using the Kubernetes AP
 
 ### Can I add Kubernetes-specific fields to `container` actions (e.g. annotations and labels)?
 
-No, you have to use the [`kubernetes`](../k8s-plugins/action-types/kubernetes.md) action type for that.
+No, you have to use the [`kubernetes`](../k8s-plugins/actions/deploy/kubernetes.md) action type for that.
+
+## Local scripts
+
+### How do I execute long running local scripts?
+
+By setting `persistent: true` on `exec` Deploy actions. [See
+here](../other-plugins/exec.md#deploy) for more.
+
+### Can I _receive_ traffic to local service Telepresence style?
+
+Yes, by using the `localMode`  field on the relevant Deploy action. [See here](https://docs.garden.io/v/docs-edge-2/guides/running-service-in-local-mode) for details.
 
 ## Misc
 

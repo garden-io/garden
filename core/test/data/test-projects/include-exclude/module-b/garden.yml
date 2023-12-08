@@ -1,4 +1,5 @@
 kind: Module
 name: module-b
 type: test
-exclude: ["nope.*"]
+# test both dir name and relative path
+exclude: ["nope.*", "./dir1", "dir2"]

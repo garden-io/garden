@@ -115,7 +115,7 @@ We use [Circle CI](https://circleci.com) for integration and end-to-end testing.
 ## License/copyright headers
 
 Every source file must include the contents of `support/license-header.txt` at the top. This is
-automatically checked during CI. You can run the check with `npm run check-licenses`.
+automatically checked during CI. Since it's defined as an eslint rule, you can run the check with `npm run lint`.
 
 ## Release process
 

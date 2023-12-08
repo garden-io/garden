@@ -24,6 +24,7 @@ import type { Log } from "../logger/log-entry.js"
 import { bindActiveContext } from "../util/open-telemetry/context.js"
 import Divider from "../util/ink-divider.js"
 import { styles } from "../logger/styles.js"
+import chalk from "chalk"
 
 const devCommandArgs = {
   ...serveArgs,
@@ -58,16 +59,16 @@ export class DevCommand extends ServeCommand<DevCommandArgs, DevCommandOpts> {
     console.clear()
 
     log.info(
-      styles.highlightSecondary(`
+      chalk.blueBright(`
 ${renderDivider({ color: styles.success, title: styles.success.bold("🌳  garden dev 🌳 "), width })}
 
 ${styles.bold(`Good ${getGreetingTime()}! Welcome to the Garden interactive development console.`)}
 
-Here, you can ${styles.accent("build")}, ${styles.accent("deploy")}, ${styles.accent("test")} and ${styles.accent(
+Here you can ${styles.command("build")}, ${styles.command("deploy")}, ${styles.command("test")} and ${styles.command(
         "run"
       )} anything in your project, start code syncing, stream live logs and more.
 
-Use the command line below to enter Garden commands. Type ${styles.accent("help")} to get a full list of commands.
+Use the command line below to enter Garden commands. Type ${styles.command("help")} to get a full list of commands.
 Use ${styles.bold("up/down")} arrow keys to scroll through your command history.
     `)
     )
@@ -100,7 +101,7 @@ Use ${styles.bold("up/down")} arrow keys to scroll through your command history.
 
     const commandLine = await this.initCommandHandler(params)
 
-    const Dev: FC<{}> = ({}) => {
+    const Dev: FC<{}> = ({ }) => {
       // Stream log output directly to stdout, on top of the Ink components below
       const { stdout, write } = useStdout()
       inkWriter.setWriteCallback(write)
@@ -180,7 +181,7 @@ Use ${styles.bold("up/down")} arrow keys to scroll through your command history.
       log.error(`Failed loading the project: ${error}`)
       log.error({ error: toGardenError(error) })
       this.commandLine?.flashError(
-        `Failed loading the project. See above logs for details. Type ${styles.accent("reload")} to try again.`
+        `Failed loading the project. See above logs for details. Type ${styles.command("reload")} to try again.`
       )
     } finally {
       this.commandLine?.enable()
@@ -219,13 +220,13 @@ Use ${styles.bold("up/down")} arrow keys to scroll through your command history.
         .emitWarning({
           log,
           key: "dev-syncs-active",
-          message: `Syncs started during this session may still be active when this command terminates. You can run ${styles.accent(
+          message: `Syncs started during this session may still be active when this command terminates. You can run ${styles.command(
             "garden sync stop '*'"
-          )} to stop all code syncs. Hint: To stop code syncing when exiting ${styles.accent(
+          )} to stop all code syncs. Hint: To stop code syncing when exiting ${styles.command(
             "garden dev"
-          )}, use ${styles.accent("Ctrl-D")} or the ${styles.accent(`exit`)} command.`,
+          )}, use ${styles.command("Ctrl-D")} or the ${styles.command(`exit`)} command.`,
         })
-        .catch(() => {})
+        .catch(() => { })
         .finally(() => quit())
     }
 

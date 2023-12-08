@@ -6,29 +6,37 @@
 
 * [How Garden Works](./overview/how-garden-works.md)
 * [Core Concepts](./overview/core-concepts.md)
-* [Use Cases](./overview/use-cases.md)
 * [Adopting Garden](./overview/adopting-garden.md)
 * [Garden vs Other Tools](./overview/garden-vs-other-tools.md)
 
-## 🌳 Getting Started
+## 🌳 Use Cases
+
+* [Local Development With Remote Clusters](./use-cases/local-development-remote-clusters.md)
+* [Portable CI Pipelines that Run Anywhere](./use-cases/portable-ci-pipelines.md)
+* [Jumpstart your Internal Developer Platform](./use-cases/jumpstart-idp.md)
+
+## 🌻 Getting Started
 
 * [Quickstart Guide](./getting-started/quickstart.md)
 * [Interactive Playgrounds](./getting-started/interactive-playgrounds.md)
 * [Installing Garden](./getting-started/installation.md)
 * [Next Steps](./getting-started/next-steps.md)
 
-## 🌻 Tutorials
+## 💐 Tutorials
 
 * [Your First Project](./tutorials/your-first-project/README.md)
-  * [1. Initialize a Project](./tutorials/your-first-project/1-initialize-a-project.md)
-  * [2. Connect to a Cluster](./tutorials/your-first-project/2-connect-to-a-cluster.md)
-  * [3. Deploy and Test](./tutorials/your-first-project/3-deploy-and-test.md)
-  * [4. Configure Your Project](./tutorials/your-first-project/4-configure-your-project.md)
+  * [1. Create a Garden Project](./tutorials/your-first-project/1-initialize-a-project.md)
+  * [2. Pick a Kubernetes Plugin](./tutorials/your-first-project/2-connect-to-a-cluster.md)
+  * [3. Add Actions](./tutorials/your-first-project/3-add-actions.md)
+  * [4. Add Tests](./tutorials/your-first-project/4-testing.md)
+  * [5. Code Syncing (Hot Reload)](./tutorials/your-first-project/5-code-syncing.md)
+  * [6. Next Steps](./tutorials/your-first-project/6-configure-your-project.md)
 
-## 💐 Using Garden
+## 🌿 Using Garden
 
 * [Configuration Overview](./using-garden/configuration-overview.md)
 * [Projects](./using-garden/projects.md)
+* [Web Dashboard](./using-garden/web-dashboard.md)
 * [Actions](./using-garden/actions.md)
 * [Tests](./using-garden/tests.md)
 * [Runs](./using-garden/runs.md)
@@ -38,7 +46,7 @@
 * [Using the CLI](./using-garden/using-the-cli.md)
 * [Modules](./using-garden/modules.md)
 
-## 🌿 Kubernetes Plugins
+## 🌺 Kubernetes Plugins
 
 * [About](./k8s-plugins/about.md)
 * [Remote K8s Plugin Configuration](./k8s-plugins/remote-k8s/README.md)
@@ -60,50 +68,57 @@
   * [2. Login to the Garden Web Dashboard](./k8s-plugins/ephemeral-k8s/login-web-dashboard.md)
   * [3. Configure Ingress (optional)](./k8s-plugins/ephemeral-k8s/ingress.md)
   * [4. Retrieve Kubeconfig (optional)](./k8s-plugins/ephemeral-k8s/retrieve-kubeconfig.md)
-* [Action Configuration](./k8s-plugins/action-types/README.md)
-  * [Container](./k8s-plugins/action-types/container.md)
-  * [Kubernetes](./k8s-plugins/action-types/kubernetes.md)
-  * [Helm](./k8s-plugins/action-types/helm.md)
-  * [PersistentVolumeClaim](./k8s-plugins/action-types/persistentvolumeclaim.md)
-  * [ConfigMap](./k8s-plugins/action-types/configmap.md)
-  * [Kubernetes-exec](./k8s-plugins/action-types/kubernetes-exec.md)
-* [Advanced](./k8s-plugins/advanced/README.md)
-  * [In-Cluster Building](./k8s-plugins/advanced/in-cluster-building.md)
-  * [Minimal RBAC Configuration for Development Clusters](./k8s-plugins/advanced/rbac-config.md)
-  * [Deploying to Production](./k8s-plugins/advanced/deploying-to-production.md)
+* [Actions](./k8s-plugins/actions/README.md)
+  * [Build](./k8s-plugins/actions/build/README.md)
+    * [Container](./k8s-plugins/actions/build/container.md)
+  * [Deploy](./k8s-plugins/actions/deploy/README.md)
+    * [Kubernetes](./k8s-plugins/actions/deploy/kubernetes.md)
+    * [Helm](./k8s-plugins/actions/deploy/helm.md)
+    * [Container](./k8s-plugins/actions/deploy/container.md)
+    * [PersistentVolumeClaim](./k8s-plugins/actions/deploy/persistentvolumeclaim.md)
+    * [ConfigMap](./k8s-plugins/actions/deploy/configmap.md)
+  * [Run and Test](./k8s-plugins/actions/run-test/README.md)
+    * [Kubernetes Pod](./k8s-plugins/actions/run-test/kubernetes-pod.md)
+    * [Helm Pod](./k8s-plugins/actions/run-test/helm-pod.md)
+    * [Kubernetes Exec](./k8s-plugins/actions/run-test/kubernetes-exec.md)
+    * [Container](./k8s-plugins/actions/run-test/container.md)
+* [Guides](./k8s-plugins/guides/README.md)
+  * [In-Cluster Building](./k8s-plugins/guides/in-cluster-building.md)
+  * [Minimal RBAC Configuration for Development Clusters](./k8s-plugins/guides/rbac-config.md)
+  * [Deploying to Production](./k8s-plugins/guides/deploying-to-production.md)
 
-## 🌺 Terraform Plugin
+## ☘️ Terraform Plugin
 
 * [About](./terraform-plugin/about.md)
 * [Plugin Configuration](./terraform-plugin/configure-provider.md)
 * [Action Configuration](./terraform-plugin/action-configuration.md)
 
-## ☘️ Pulumi Plugin
+## 🌹 Pulumi Plugin
 
 * [About](./pulumi-plugin/about.md)
 * [Plugin Configuration](./pulumi-plugin/configure-provider.md)
 * [Action Configuration](./pulumi-plugin/action-configuration.md)
 
-## 🌹 Other Plugins
+## 🌼 Other Plugins
 
 * [Container](./other-plugins/container.md)
 * [Exec (local scripts)](./other-plugins/exec.md)
 
-## 🌼 Guides
+## 🌷 Guides
 
 * [Migrating to Bonsai](./guides/migrating-to-bonsai.md)
 * [Connecting a local application to a Kubernetes cluster (Local Mode)](./guides/running-service-in-local-mode.md)
 * [Environments and namespaces](./guides/namespaces.md)
 * [Migrating from Docker Compose to Garden](./guides/migrating-from-docker-compose.md)
 * [Code Synchronization](./guides/code-synchronization.md)
-* [Using Garden in CI](./guides/using-garden-in-ci.md)
+* [Using Garden in CircleCI](./guides/using-garden-in-circleci.md)
 
-## 🌷 Advanced
+## 🪷 Advanced
 
 * [Using Remote Sources](./advanced/using-remote-sources.md)
 * [Custom Commands](./advanced/custom-commands.md)
 
-## 🪷 Reference
+## 🎋 Reference
 
 * [Providers](./reference/providers/README.md)
   * [`conftest-container`](./reference/providers/conftest-container.md)
@@ -182,19 +197,19 @@
   * [`templated`](./reference/module-types/templated.md)
   * [`terraform`](./reference/module-types/terraform.md)
 
-## 🎋 Garden Seeds
+## 🌸 Garden Seeds
 
 * [About](./garden-seeds/about.md)
 * [Languages](./garden-seeds/languages/README.md)
   * [Go 🌸](./garden-seeds/languages/go.md)
 
-## 🌸 Misc
+## 🌳 Misc
 
 * [FAQ](./misc/faq.md)
 * [Troubleshooting](./misc/troubleshooting.md)
 * [Telemetry](./misc/telemetry.md)
 
-## 🌳 Contributing to Garden
+## 🌻 Contributing to Garden
 
 * [Contributor Covenant Code of Conduct](./contributing/CODE_OF_CONDUCT.md)
 * [Contributing to the Docs](./contributing/contributing-docs.md)

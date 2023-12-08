@@ -14,9 +14,9 @@ import type { GardenOpts, GardenParams, GetConfigGraphParams } from "../garden.j
 import { Garden, resolveGardenParams } from "../garden.js"
 import type { DeepPrimitiveMap, StringMap } from "../config/common.js"
 import type { ModuleConfig } from "../config/module.js"
-import type { WorkflowConfig } from "../config/workflow.js"
+import type { WorkflowConfig, WorkflowConfigMap } from "../config/workflow.js"
 import { resolveMsg, type Log, type LogEntry } from "../logger/log-entry.js"
-import type { GardenModule } from "../types/module.js"
+import type { GardenModule, ModuleConfigMap } from "../types/module.js"
 import { findByName, getNames } from "./util.js"
 import { GardenError, InternalError } from "../exceptions.js"
 import type { EventName, Events } from "../events/events.js"
@@ -25,6 +25,7 @@ import { dedent, naturalList } from "./string.js"
 import pathIsInside from "path-is-inside"
 import { join, resolve } from "path"
 import { DEFAULT_BUILD_TIMEOUT_SEC, GARDEN_CORE_ROOT, GardenApiVersion } from "../constants.js"
+import type { GitScanMode } from "../constants.js"
 import { getRootLogger } from "../logger/logger.js"
 import stripAnsi from "strip-ansi"
 import type { VcsHandler } from "../vcs/vcs.js"
@@ -32,7 +33,7 @@ import type { ConfigGraph } from "../graph/config-graph.js"
 import type { SolveParams } from "../graph/solver.js"
 import type { GraphResults } from "../graph/results.js"
 import { expect } from "chai"
-import type { ActionConfig, ActionKind, ActionStatus } from "../actions/types.js"
+import type { ActionConfig, ActionConfigMap, ActionKind, ActionStatus } from "../actions/types.js"
 import type { WrappedActionRouterHandlers } from "../router/base.js"
 import type {
   BuiltinArgs,
@@ -44,10 +45,12 @@ import type {
 } from "../commands/base.js"
 import { validateSchema } from "../config/validation.js"
 import fsExtra from "fs-extra"
+
 const { mkdirp, remove } = fsExtra
 import { GlobalConfigStore } from "../config-store/global.js"
 import { isPromise } from "./objects.js"
 import { styles } from "../logger/styles.js"
+import type { ConfigTemplateConfig } from "../config/config-template.js"
 
 export class TestError extends GardenError {
   type = "_test"
@@ -164,15 +167,23 @@ export type TestGardenOpts = Partial<GardenOpts> & {
   noTempDir?: boolean
   onlySpecifiedPlugins?: boolean
   remoteContainerAuth?: boolean
+  clearConfigsOnScan?: boolean
+  gitScanMode?: GitScanMode
 }
 
 export class TestGarden extends Garden {
   override events: TestEventBus
-  public declare vcs: VcsHandler // Not readonly, to allow overriding with a mocked handler in tests
-  public declare secrets: StringMap // Not readonly, to allow setting secrets in tests
-  public declare variables: DeepPrimitiveMap // Not readonly, to allow setting variables in tests
+  // Overriding the type declarations of a few instance variables to allow reassignment in test code.
+  public declare actionConfigs: ActionConfigMap
+  public declare moduleConfigs: ModuleConfigMap
+  public declare workflowConfigs: WorkflowConfigMap
+  public declare configTemplates: { [name: string]: ConfigTemplateConfig }
+  public declare vcs: VcsHandler
+  public declare secrets: StringMap
+  public declare variables: DeepPrimitiveMap
   private repoRoot!: string
   public cacheKey!: string
+  public clearConfigsOnScan = false
 
   constructor(params: GardenParams) {
     super(params)
@@ -200,6 +211,11 @@ export class TestGarden extends Garden {
       params.plugins = opts?.plugins || []
     } else {
       params = await resolveGardenParams(currentDirectory, { commandInfo: defaultCommandInfo, ...opts })
+      if (opts?.gitScanMode) {
+        params.projectConfig.scan = params.projectConfig.scan ?? { git: { mode: opts.gitScanMode } }
+        params.projectConfig.scan.git = params.projectConfig.scan.git ?? { mode: opts.gitScanMode }
+        params.projectConfig.scan.git.mode = opts.gitScanMode
+      }
       if (cacheKey) {
         paramCache[cacheKey] = cloneDeep({ ...params, log: <any>{}, plugins: [] })
       }
@@ -220,6 +236,14 @@ export class TestGarden extends Garden {
     garden["globalConfigStore"] = new GlobalConfigStore(globalDir)
 
     return garden
+  }
+
+  protected override clearConfigs() {
+    if (this.clearConfigsOnScan) {
+      super.clearConfigs()
+    } else {
+      // No-op: We need to disable this method, because it breaks test cases that manually set configs.
+    }
   }
 
   override async processTasks(params: Omit<SolveParams, "log"> & { log?: Log }) {

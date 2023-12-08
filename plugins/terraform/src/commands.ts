@@ -30,7 +30,7 @@ function makeRootCommand(commandName: string): PluginCommand {
   return {
     name: commandName + "-root",
     description: `Runs ${terraformCommand} for the provider root stack, with the provider variables automatically configured as inputs. Positional arguments are passed to the command. If necessary, ${initCommand} is run first.`,
-    title: styles.command(`Running ${styles.accent.bold(terraformCommand)} for project root stack`),
+    title: styles.command(`Running ${styles.command(terraformCommand)} for project root stack`),
     async handler({ ctx, args, log }: PluginCommandParams) {
       const provider = ctx.provider as TerraformProvider
 
@@ -81,7 +81,7 @@ function makeActionCommand(commandName: string): PluginCommand {
 
     title: ({ args }) =>
       styles.command(
-        `Running ${styles.accent.bold(terraformCommand)} for the Deploy action ${styles.accent.bold(args[0] || "")}`
+        `Running ${styles.command(terraformCommand)} for the Deploy action ${styles.accent.bold(args[0] || "")}`
       ),
 
     async handler({ garden, ctx, args, log, graph }) {

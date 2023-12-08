@@ -1,5 +1,5 @@
 ---
-order: 100
+order: 11
 title: Modules
 ---
 

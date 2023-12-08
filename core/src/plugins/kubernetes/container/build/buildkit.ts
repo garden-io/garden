@@ -107,7 +107,7 @@ export const buildkitBuildHandler: BuildHandler = async (params) => {
     deploymentName: buildkitDeploymentName,
   })
 
-  log.info(`Buildkit Building image ${localId}...`)
+  log.createLog({ origin: "buildkit" }).info(`Building image ${styles.highlight(localId)}...`)
 
   const logEventContext = {
     origin: "buildkit",
@@ -237,7 +237,7 @@ export async function ensureBuildkit({
 
     // Deploy the buildkit daemon
     deployLog.info(
-      styles.primary(`-> Deploying ${buildkitDeploymentName} daemon in ${namespace} namespace (was ${status.state})`)
+      `Deploying ${buildkitDeploymentName} daemon in ${styles.highlight(namespace)} namespace (was ${status.state})`
     )
 
     await api.upsert({ kind: "Deployment", namespace, log: deployLog, obj: manifest })

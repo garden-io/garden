@@ -1,5 +1,5 @@
 ---
-order: 95
+order: 10
 title: Using the CLI
 ---
 

@@ -200,7 +200,7 @@ execDeploy.addHandler("deploy", async (params) => {
     })
 
     if (result.outputLog) {
-      const prefix = `Finished deploying ${styles.accent(action.name)}. Here is the output:`
+      const prefix = `Finished deploying ${styles.highlight(action.name)}. Here is the output:`
       log.info(
         renderMessageWithDivider({
           prefix,

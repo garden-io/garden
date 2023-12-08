@@ -649,7 +649,7 @@ export function configureVolumes(
       } else {
         throw new ConfigurationError({
           message: deline`${action.longDescription()} specifies a unsupported config
-          ${styles.accent(volumeAction.name)} for volume mount ${styles.accent(
+          ${styles.highlight(volumeAction.name)} for volume mount ${styles.highlight(
             volumeName
           )}. Only \`persistentvolumeclaim\`
           and \`configmap\` action are supported at this time.
@@ -711,14 +711,14 @@ export async function handleChangedSelector({
   production: boolean
   force: boolean
 }) {
-  const msgPrefix = `Deploy ${styles.accent(action.name)} was deployed with a different ${styles.accent(
+  const msgPrefix = `Deploy ${styles.highlight(action.name)} was deployed with a different ${styles.accent(
     "spec.selector"
   )} and needs to be deleted before redeploying.`
   if (production && !force) {
     throw new DeploymentError({
-      message: `${msgPrefix} Since this environment has production = true, Garden won't automatically delete this resource. To do so, use the ${styles.accent(
+      message: `${msgPrefix} Since this environment has production = true, Garden won't automatically delete this resource. To do so, use the ${styles.command(
         "--force"
-      )} flag when deploying e.g. with the ${styles.accent(
+      )} flag when deploying e.g. with the ${styles.command(
         "garden deploy"
       )} command. You can also delete the resource from your cluster manually and try again.`,
     })

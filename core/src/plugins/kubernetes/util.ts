@@ -631,7 +631,7 @@ export async function getTargetResource({
       if (!target) {
         throw new ConfigurationError({
           message: dedent`
-            ${action.longDescription()} does not contain specified ${targetKind} ${styles.accent(targetName)}
+            ${action.longDescription()} does not contain specified ${targetKind} ${styles.highlight(targetName)}
 
             The chart does declare the following resources: ${naturalList(chartResourceNames)}
             `,
@@ -795,7 +795,11 @@ export function renderPodEvents(events: CoreV1Event[]): string {
     const name = styles.highlight(`${obj.kind} ${obj.name}:`)
     const msg = `${event.reason} - ${event.message}`
     const colored =
-      event.type === "Error" ? styles.error(msg) : event.type === "Warning" ? styles.warning(msg) : styles.accent(msg)
+      event.type === "Error"
+        ? styles.error(msg)
+        : event.type === "Warning"
+        ? styles.warning(msg)
+        : styles.highlight(msg)
     text += `${name} ${colored}\n`
   }
 

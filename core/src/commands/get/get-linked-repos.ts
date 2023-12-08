@@ -37,7 +37,7 @@ export class GetLinkedReposCommand extends Command {
     log.info("")
 
     if (linkedSources.length === 0) {
-      log.info(styles.accent("No linked sources, actions or modules found for this project."))
+      log.info("No linked sources, actions or modules found for this project.")
     } else {
       const linkedSourcesWithType = [
         ...linkedProjectSources.map((s) => ({ ...s, type: "source" })),

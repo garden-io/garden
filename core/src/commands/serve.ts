@@ -197,7 +197,7 @@ export class ServeCommand<
                 "👇",
                 log
               )} \n\n${styles.highlight(livePageUrl)}\n`
-            log.info(styles.accent(msg))
+            log.info(msg)
           }
         }
       }

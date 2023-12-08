@@ -51,7 +51,7 @@ export const pullImage: PluginCommand = {
       const valid = b.isCompatible("container")
       if (!valid && args.includes(b.name)) {
         throw new ParameterError({
-          message: `Build ${styles.accent(b.name)} is not a container build.`,
+          message: `Build ${styles.highlight(b.name)} is not a container build.`,
         })
       }
       return valid

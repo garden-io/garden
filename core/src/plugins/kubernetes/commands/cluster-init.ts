@@ -17,7 +17,7 @@ export const clusterInit: PluginCommand = {
   description: "[DEPRECATED] Initialize or update cluster-wide Garden services.",
 
   title: ({ environmentName }) => {
-    return `Initializing/updating cluster-wide services for ${styles.accent(environmentName)} environment`
+    return `Initializing/updating cluster-wide services for ${styles.highlight(environmentName)} environment`
   },
 
   handler: async ({ ctx, log }) => {
