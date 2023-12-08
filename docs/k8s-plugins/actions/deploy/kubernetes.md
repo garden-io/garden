@@ -67,7 +67,7 @@ type: kubernetes
 name: api
 spec:
   files:
-    - ./manifests/*.yaml
+    - ./manifests/*
 ```
 
 You can also use templating to reference different manifests based on environment.
