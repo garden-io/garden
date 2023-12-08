@@ -1997,7 +1997,7 @@ A reference to the Kubernetes secret that contains the TLS certificate and key f
 
 | Type     | Required |
 | -------- | -------- |
-| `object` | No       |
+| `object` | Yes      |
 
 Example:
 
