@@ -19,7 +19,7 @@ import {
   templatePrimitiveDeepMap,
 } from "./inputs.js"
 import type { TemplateLeafValue, TemplatePrimitive, TemplateValue } from "./inputs.js"
-import { WrapContextLookupInputsLazily, deepUnwrap, unwrap, unwrapLazyValues } from "./lazy.js"
+import { WrapContextLookupInputsLazily, deepEvaluateAndUnwrap, evaluateAndUnwrap, evaluate } from "./lazy.js"
 import { Collection, CollectionOrValue, deepMap } from "../util/objects.js"
 import { TemplateProvenance } from "./template-string.js"
 import { validateSchema } from "../config/validation.js"
@@ -154,7 +154,7 @@ export abstract class UnaryExpression extends TemplateExpression {
   override evaluate(args: EvaluateArgs): CollectionOrValue<TemplateValue> {
     const inner = this.innerExpression.evaluate(args)
 
-    const innerValue = unwrap({ value: inner, context: args.context, opts: args.opts })
+    const innerValue = evaluateAndUnwrap({ value: inner, context: args.context, opts: args.opts })
 
     return mergeInputs(
       this.loc.source,
@@ -211,7 +211,7 @@ export class LogicalOrExpression extends LogicalExpression {
       optional: true,
     })
 
-    if (isTruthy(unwrap({ value: left, context: args.context, opts: args.opts }))) {
+    if (isTruthy(evaluateAndUnwrap({ value: left, context: args.context, opts: args.opts }))) {
       return left
     }
 
@@ -251,7 +251,7 @@ export class LogicalAndExpression extends LogicalExpression {
     // missing || missing => error
     // false || missing => error
 
-    const leftValue = unwrap({ value: left, context: args.context, opts: args.opts })
+    const leftValue = evaluateAndUnwrap({ value: left, context: args.context, opts: args.opts })
     if (!isTruthy(leftValue)) {
       // Javascript would return the value on the left; we return false in case the value is undefined. This is a quirk of Garden's template languate that we want to keep for backwards compatibility.
       if (leftValue === undefined) {
@@ -273,7 +273,7 @@ export class LogicalAndExpression extends LogicalExpression {
         // TODO: is this right?
         optional: true,
       })
-      const rightValue = unwrap({ value: right, context: args.context, opts: args.opts })
+      const rightValue = evaluateAndUnwrap({ value: right, context: args.context, opts: args.opts })
       if (rightValue === undefined) {
         return mergeInputs(
           this.loc.source,
@@ -306,8 +306,8 @@ export abstract class BinaryExpression extends TemplateExpression {
     const left = this.left.evaluate(args)
     const right = this.right.evaluate(args)
 
-    const leftValue = unwrap({ value: left, context: args.context, opts: args.opts })
-    const rightValue = unwrap({ value: right, context: args.context, opts: args.opts })
+    const leftValue = evaluateAndUnwrap({ value: left, context: args.context, opts: args.opts })
+    const rightValue = evaluateAndUnwrap({ value: right, context: args.context, opts: args.opts })
 
     const transformed = this.transform(leftValue, rightValue, args)
 
@@ -394,7 +394,7 @@ export class ContainsExpression extends BinaryExpression {
 
     if (typeof collection === "object" && collection !== null) {
       if (isArray(collection)) {
-        return collection.some((v) => element === unwrap({ value: v, context: args.context, opts: args.opts }))
+        return collection.some((v) => element === evaluateAndUnwrap({ value: v, context: args.context, opts: args.opts }))
       }
 
       return collection.hasOwnProperty(String(element))
@@ -533,7 +533,7 @@ export class IfBlockExpression extends TemplateExpression {
   override evaluate(args: EvaluateArgs): CollectionOrValue<TemplateValue> {
     const condition = this.condition.evaluate(args)
 
-    const evaluated = isTruthy(unwrap({ value: condition, context: args.context, opts: args.opts }))
+    const evaluated = isTruthy(evaluateAndUnwrap({ value: condition, context: args.context, opts: args.opts }))
       ? this.ifTrue?.evaluate(args)
       : this.ifFalse?.evaluate(args)
 
@@ -559,7 +559,7 @@ export class StringConcatExpression extends TemplateExpression {
 
   override evaluate(args: EvaluateArgs): TemplateLeaf<string> {
     const evaluatedExpressions: TemplateLeaf<TemplatePrimitive>[] = this.expressions.map((expr) => {
-      const r = unwrapLazyValues({ value: expr.evaluate(args), context: args.context, opts: args.opts })
+      const r = evaluate({ value: expr.evaluate(args), context: args.context, opts: args.opts })
 
       if (!isTemplateLeaf(r) || !isTemplatePrimitive(r.value)) {
         throw new TemplateStringError({
@@ -601,7 +601,7 @@ export class MemberExpression extends TemplateExpression {
 
   override evaluate(args: EvaluateArgs): TemplateLeaf<string | number> {
     const inner = this.innerExpression.evaluate(args)
-    const innerValue = unwrap({ value: inner, context: args.context, opts: args.opts })
+    const innerValue = evaluateAndUnwrap({ value: inner, context: args.context, opts: args.opts })
 
     if (typeof innerValue !== "string" && typeof innerValue !== "number") {
       throw new TemplateStringError({
@@ -668,7 +668,7 @@ export class ContextLookupExpression extends TemplateExpression {
     // eagerly wrap values if result doesn't contain lazy values anyway.
     // otherwise we wrap the values at a later time, when actually necessary.
     if (!containsLazyValues(result)) {
-      wrappedResult = unwrapLazyValues({ value: wrappedResult, context, opts })
+      wrappedResult = evaluate({ value: wrappedResult, context, opts })
     }
 
     // Add inputs from the keyPath expressions as well.
@@ -687,7 +687,7 @@ export class FunctionCallExpression extends TemplateExpression {
 
   override evaluate(args: EvaluateArgs): CollectionOrValue<TemplateValue> {
     const functionArgs = this.args.map((arg) =>
-      unwrapLazyValues({ value: arg.evaluate(args), context: args.context, opts: args.opts })
+      evaluate({ value: arg.evaluate(args), context: args.context, opts: args.opts })
     )
     const functionName = this.functionName.evaluate(args)
 
@@ -732,7 +732,7 @@ export class FunctionCallExpression extends TemplateExpression {
     const resolvedArgs: unknown[] = []
 
     for (const arg of args) {
-      const value = unwrap({ value: arg, context, opts })
+      const value = evaluateAndUnwrap({ value: arg, context, opts })
 
       // Note: At the moment, we always transform template values to raw values and perform the default input tracking for them;
       // We might have to reconsider this once we need template helpers that perform input tracking on its own for non-collection arguments.
@@ -744,7 +744,7 @@ export class FunctionCallExpression extends TemplateExpression {
       } else {
         // This argument is a collection, and the template helper cannot deal with TemplateValue instances.
         // We will unwrap this collection and resolve all values, and then perform default input tracking.
-        resolvedArgs.push(deepUnwrap({ value: value, context, opts }))
+        resolvedArgs.push(deepEvaluateAndUnwrap({ value: value, context, opts }))
       }
     }
 
@@ -873,7 +873,7 @@ export class TernaryExpression extends TemplateExpression {
     })
 
     // evaluate ternary expression
-    const evaluationResult = isTruthy(unwrap({ value: conditionResult, context: args.context, opts: args.opts }))
+    const evaluationResult = isTruthy(evaluateAndUnwrap({ value: conditionResult, context: args.context, opts: args.opts }))
       ? this.ifTrue.evaluate(args)
       : this.ifFalse.evaluate(args)
 

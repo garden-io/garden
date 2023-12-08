@@ -8,13 +8,28 @@
 
 import { expect } from "chai"
 import { GenericContext } from "../../../../src/config/template-contexts/base.js"
-import { getLazyConfigProxy } from "../../../../src/template-string/proxy.js"
+import { getCollectionSymbol, getLazyConfigProxy } from "../../../../src/template-string/proxy.js"
 import { parseTemplateString, parseTemplateCollection } from "../../../../src/template-string/template-string.js"
 import type { CollectionOrValue } from "../../../../src/util/objects.js"
 import { isArray } from "../../../../src/util/objects.js"
-import type { TemplatePrimitive } from "../../../../src/template-string/inputs.js"
+import { TemplateLeaf, type TemplatePrimitive } from "../../../../src/template-string/inputs.js"
 
 describe("getLazyConfigProxy", () => {
+  it("makes it easier to access template values", () => {
+    const obj = {
+      fruits: ["apple", "banana"],
+    }
+
+    const proxy = getLazyConfigProxy({
+      parsedConfig: parseTemplateCollection({ value: obj, source: { source: undefined } }),
+      context: new GenericContext({}),
+      opts: {},
+    })
+
+    expect(proxy["fruits"][0]).to.equal("apple")
+    expect(proxy["fruits"][1]).to.equal("banana")
+  })
+
   it("only supports instantiating the proxy with collection values, not primitives, even if they are hidden behind lazy values", () => {
     const proxy = getLazyConfigProxy({
       parsedConfig: parseTemplateString({ string: "${1234}" }),
@@ -360,5 +375,76 @@ describe("getLazyConfigProxy", () => {
     expect(strictProxy["orClause"]).to.deep.equal({ foo: "bar" })
     expect(partialProxy["andClause"]).to.deep.equal("conclusionValue")
     expect(strictProxy["andClause"]).to.deep.equal("conclusionValue")
+  })
+
+  it("allows getting the underlying collection back", () => {
+    const context = new GenericContext({})
+    const parsedConfig = parseTemplateCollection({
+      value: {
+        myOptionalValue: "${var.willExistLater}",
+      },
+      source: { source: undefined },
+    })
+
+    const proxy = getLazyConfigProxy({
+      parsedConfig,
+      context,
+      opts: {},
+    })
+
+    const underlyingConfig = proxy[getCollectionSymbol]
+
+    expect(underlyingConfig).to.deep.equal(parsedConfig)
+  })
+
+  it("allows getting the underlying collection back for arrays", () => {
+    const context = new GenericContext({})
+    const parsedConfig = parseTemplateCollection({
+      value: ["Hello 1", "Hello 2", "Hello 3"],
+      source: { source: undefined },
+    })
+
+    const proxy = getLazyConfigProxy({
+      parsedConfig,
+      expectedCollectionType: "array",
+      context,
+      opts: {},
+    })
+
+    const underlyingConfig = proxy[getCollectionSymbol]
+
+    expect(underlyingConfig).to.deep.equal(parsedConfig)
+  })
+
+  it("allows mutating the proxy", () => {
+    const context = new GenericContext({})
+    const parsedConfig = parseTemplateCollection({
+      value: {
+        myOptionalValue: "${var.willExistLater}",
+      },
+      source: { source: undefined },
+    })
+
+    const proxy = getLazyConfigProxy({
+      parsedConfig,
+      context,
+      opts: {},
+    })
+
+    proxy["myOptionalValue"] = "foo"
+
+    const updatedCollection = proxy[getCollectionSymbol]
+
+    expect(updatedCollection).to.deep.equal({
+      myOptionalValue: new TemplateLeaf({
+        value: "foo",
+        expr: undefined,
+        inputs: {},
+      }),
+    })
+
+    expect(proxy).to.deep.equal({
+      myOptionalValue: "foo",
+    })
   })
 })

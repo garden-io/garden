@@ -16,7 +16,7 @@ import {
   parseTemplateString,
   parseTemplateCollection,
 } from "../../../src/template-string/template-string.js"
-import { ConfigContext } from "../../../src/config/template-contexts/base.js"
+import { ConfigContext, GenericContext } from "../../../src/config/template-contexts/base.js"
 import type { TestGarden } from "../../helpers.js"
 import { expectError, getDataDir, makeTestGarden } from "../../helpers.js"
 import { dedent } from "../../../src/util/string.js"
@@ -25,9 +25,11 @@ import { TemplateStringError } from "../../../src/exceptions.js"
 import { TemplateLeaf } from "../../../src/template-string/inputs.js"
 import {
   ForEachLazyValue,
+  OverrideKeyPathLazily,
   TemplateStringLazyValue,
-  deepUnwrapLazyValues,
-  unwrapLazyValues,
+  deepEvaluate,
+  deepEvaluateAndUnwrap,
+  evaluate,
 } from "../../../src/template-string/lazy.js"
 
 class TestContext extends ConfigContext {
@@ -314,7 +316,7 @@ describe("resolveTemplateString", () => {
 
     expect(value).to.be.instanceOf(TemplateStringLazyValue)
 
-    const res = unwrapLazyValues({ value, context: new TestContext({}), opts: {} })
+    const res = evaluate({ value, context: new TestContext({}), opts: {} })
 
     expect(res).to.deep.equal(
       new TemplateLeaf({
@@ -2489,6 +2491,56 @@ describe("resolveTemplateStrings", () => {
   })
 })
 
+describe("lazy override", () => {
+  it("allows wrapping a lazy value to override something deeply", () => {
+    const context = new GenericContext({
+      var: {
+        world: {
+          one: "one",
+          two: "two",
+        },
+      },
+    })
+
+    const obj = {
+      hello: "${var.world}",
+    }
+
+    const parsed = parseTemplateCollection({ value: obj, source: { source: undefined } })
+
+    const overridden = new OverrideKeyPathLazily(
+      { yamlPath: [], source: undefined },
+      parsed,
+      ["hello", "three"],
+      new TemplateLeaf({
+        value: "three",
+        expr: undefined,
+        inputs: {},
+      })
+    )
+
+    const evaluatedOriginal = deepEvaluateAndUnwrap({ value: parsed, context, opts: {} })
+
+    expect(evaluatedOriginal).to.eql({
+      hello: {
+        one: "one",
+        two: "two",
+      },
+    })
+
+    const evaluatedWithOverride = deepEvaluateAndUnwrap({ value: overridden, context, opts: {} })
+
+    expect(evaluatedWithOverride).to.eql({
+      hello: {
+        one: "one",
+        two: "two",
+        three: "three",
+      },
+    })
+
+  })
+})
+
 describe("input tracking", () => {
   describe("resolveTemplateString", () => {
     it("records references for every collection item in the result of the template expression, array", () => {
@@ -2502,7 +2554,7 @@ describe("input tracking", () => {
         string: "${var.elements}",
       })
 
-      const res = unwrapLazyValues({ value, context, opts: {} })
+      const res = evaluate({ value, context, opts: {} })
 
       expect(res).to.deep.equal([
         {
@@ -2543,7 +2595,7 @@ describe("input tracking", () => {
         string: "${ var.elements ? var.fruits : var.colors }",
       })
 
-      const res = unwrapLazyValues({ value, context, opts: {} })
+      const res = evaluate({ value, context, opts: {} })
 
       expect(res).to.eql([
         new TemplateLeaf({
@@ -2602,7 +2654,7 @@ describe("input tracking", () => {
         string: "${ var.array ? 'foo' : 'bar' }",
       })
 
-      const res = unwrapLazyValues({ value, context, opts: {} })
+      const res = evaluate({ value, context, opts: {} })
 
       // empty arrays are truthy
       expect(res).to.deep.include({
@@ -2637,7 +2689,7 @@ describe("input tracking", () => {
         string: "${var.foo}",
       })
 
-      const res = deepUnwrapLazyValues({ value, context, opts: {} })
+      const res = deepEvaluate({ value, context, opts: {} })
 
       expect(res).to.eql({
         bar: new TemplateLeaf({
@@ -2686,7 +2738,7 @@ describe("input tracking", () => {
 
       const value = parseTemplateCollection({ value: obj, source: { source: undefined } })
 
-      const res = deepUnwrapLazyValues({ value, context, opts: {} })
+      const res = deepEvaluate({ value, context, opts: {} })
 
       expect(res).to.eql({
         spec: {
@@ -2739,7 +2791,7 @@ describe("input tracking", () => {
 
       const value = parseTemplateCollection({ value: obj, source: { source: undefined } })
 
-      const res = deepUnwrapLazyValues({ value, context, opts: {} })
+      const res = deepEvaluate({ value, context, opts: {} })
 
       expect(res).to.deep.equal({
         hello: {
@@ -2800,7 +2852,7 @@ describe("input tracking", () => {
         },
       }
       const value = parseTemplateCollection({ value: obj, source: { source: undefined } })
-      const res = deepUnwrapLazyValues({ value, context, opts: {} })
+      const res = deepEvaluate({ value, context, opts: {} })
       expect(res).to.deep.equal({
         spec: {
           passwords: [
@@ -2841,7 +2893,7 @@ describe("input tracking", () => {
       }
       const value = parseTemplateCollection({ value: obj, source: { source: undefined } })
 
-      const res = deepUnwrapLazyValues({ value, context, opts: {} })
+      const res = deepEvaluate({ value, context, opts: {} })
 
       expect(res).to.eql({
         spec: {
@@ -2891,11 +2943,11 @@ describe("input tracking", () => {
       }
       const value = parseTemplateCollection({ value: obj, source: { source: undefined } })
 
-      const res = unwrapLazyValues({ value, context, opts: {} })
+      const res = evaluate({ value, context, opts: {} })
 
       expect(res["foo"]).to.be.instanceOf(ForEachLazyValue)
 
-      expect(deepUnwrapLazyValues({ value: res, context, opts: {} })).to.deep.include({
+      expect(deepEvaluate({ value: res, context, opts: {} })).to.deep.include({
         foo: [
           new TemplateLeaf({
             expr: "${item.value.xyz}",
@@ -2959,7 +3011,7 @@ describe("input tracking", () => {
       }
 
       const value = parseTemplateCollection({ value: obj, source: { source: undefined } })
-      const res = deepUnwrapLazyValues({ value, context, opts: {} })
+      const res = deepEvaluate({ value, context, opts: {} })
 
       expect(res).to.eql({
         foo: [
@@ -3025,7 +3077,7 @@ describe("input tracking", () => {
       }
 
       const value = parseTemplateCollection({ value: obj, source: { source: undefined } })
-      const res = unwrapLazyValues({ value, context, opts: {} })
+      const res = evaluate({ value, context, opts: {} })
 
       expect(res).to.eql({
         foo: new TemplateLeaf({
@@ -3062,7 +3114,7 @@ describe("input tracking", () => {
         source: { source: undefined },
       })
 
-      const res = deepUnwrapLazyValues({ value, context, opts: {} })
+      const res = deepEvaluate({ value, context, opts: {} })
 
       expect(res).to.eql({
         spec: {
@@ -3105,7 +3157,7 @@ describe("input tracking", () => {
         source: { source: undefined },
       })
 
-      const res = deepUnwrapLazyValues({ value, context, opts: {} })
+      const res = deepEvaluate({ value, context, opts: {} })
 
       expect(res).to.eql({
         spec: {
@@ -3142,7 +3194,7 @@ describe("input tracking", () => {
         source: { source: undefined },
       })
 
-      const res = deepUnwrapLazyValues({ value, context, opts: {} })
+      const res = deepEvaluate({ value, context, opts: {} })
 
       expect(res).to.eql({
         foo: {
@@ -3196,7 +3248,7 @@ describe("input tracking", () => {
         source: { source: undefined },
       })
 
-      const res = deepUnwrapLazyValues({ value, context, opts: {} })
+      const res = deepEvaluate({ value, context, opts: {} })
 
       expect(res).to.eql({
         a: {

@@ -52,7 +52,7 @@ import {
   ObjectSpreadLazyValue,
   ObjectSpreadOperation,
   TemplateStringLazyValue,
-  deepUnwrap,
+  deepEvaluateAndUnwrap,
 } from "./lazy.js"
 import { ConfigSource } from "../config/validation.js"
 import { Optional } from "utility-types"
@@ -90,7 +90,7 @@ export function resolveTemplateString({
   source?: TemplateProvenance
 }): any {
   const result = parseTemplateString({ string, source, unescape: contextOpts?.unescape })
-  return deepUnwrap({ value: result, context, opts: contextOpts || {} })
+  return deepEvaluateAndUnwrap({ value: result, context, opts: contextOpts || {} })
 }
 
 /**
@@ -348,7 +348,7 @@ export function resolveTemplateStrings<T = any>({
   }
   const resolved = parseTemplateCollection({ value: value as any, source })
   // First evaluate lazy values deeply, then remove the leaves
-  return deepUnwrap({ value: resolved, context, opts: contextOpts || {} }) as any // TODO: The type is a lie!
+  return deepEvaluateAndUnwrap({ value: resolved, context, opts: contextOpts || {} }) as any // TODO: The type is a lie!
 }
 
 /**
