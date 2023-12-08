@@ -10,10 +10,10 @@ The [Garden Web Dashboard](https://app.garden.io) is a free web app that's part 
 Key features include:
 
 - [Garden managed ephemeral clusters](../k8s-plugins/ephemeral-k8s/README.md) that you can spin up on demand
-- An interactive graph that shows you the dependencies between your actions and lets you execute them
-- Command results from historic command runs across all your projects
+- An interactive dependency graph
+- Command history across all your projects
 - Action log viewer (e.g. for viewing build logs)
-- Command palette for running any Garden command directly from the dasboard
+- Command palette for running any Garden command directly from the dashboard
 - "Live" logs viewer that lets you stream and interleave logs from both the Garden CLI and your runtime services
 
 The dashboard is under heavy development and we're constantly improving it. Any and all feedback is greatly appreciated via [GitHub issues](https://github.com/garden-io/garden/issues/new?assignees=&labels=cloud+%F0%9F%8C%A9&projects=&template=DASHBOARD_FEEDBACK.md&title=).
@@ -38,6 +38,8 @@ If you're new to Garden, you can also follow the in-app onboarding guide.
 
 From the Live page you can view your project graph, stream logs in real time, and run any Garden command from the command palette.
 
+![Connect to live page, enable syncs, open ingress URL, and stream logs](https://github.com/garden-io/garden/assets/5373776/971369f8-3172-43c5-8c0d-5840867782fa)
+
 The Live page is only available when Garden is running in dev mode. To get started, run the following from your terminal:
 
 ```
@@ -52,16 +54,18 @@ You can view the statuses of your Deploy actions and syncs by expanding the comm
 
 This is e.g. useful if you're hopping between branches with a lot of changes and want to disable syncing while you do so.
 
-### Streaming logs
+### Stream logs
 
 The Logs view streams all logs from the CLI by default. Here you can also change the log level on demand and filter on log lines.
 
-You can also use the "Log sources" dropdown to stream logs from your actual services at runtime. That is, the logs your applications write to stdout.
+You can also use the "Log sources" dropdown to stream logs from your actual services at runtime (i.e. the logs your applications write to stdout).
 
 ### Graph View
 
 The Graph view shows you the graph of all your actions and their statuses. To load the latest statuses you can click the "refresh" button on the left control panel. You
 can also run individual actions or view their logs by clicking on the nodes.
+
+![Refresh action graph statuses, filter graph, and run an action](https://github.com/garden-io/garden/assets/5373776/e1642d8c-f869-4ba7-b8fe-1761c53a6923)
 
 ### Action Results
 
@@ -71,11 +75,14 @@ You can also see what actions are cached and the time you've saved by using Gard
 
 ### Command Palette
 
-You can use the command palette at the bottom of the page or by pressing `cmd+k` on macOS or `ctrl+k` on Windows/Linux. It allows you to run any Garden command from the
-dashboard itself which is e.g. useful if you want to trigger commands while looking at logs. The command is then executed by the Garden CLI process running your machine.
+You can open the command palette by pressing `cmd+k` on macOS or `ctrl+k` on Windows/Linux. It allows you to run any Garden command from the dashboard itself which is e.g. useful if you want to trigger commands while looking at logs. The command is then executed by the Garden CLI process running your machine.
+
+![View action results, use the command palette, and view build logs](https://github.com/garden-io/garden/assets/5373776/a20f925c-bafb-478d-85a0-62d58847fd2f)
 
 {% hint style="warning" %}
-Currently the Live page will only work on Chromium based browsers (e.g. Chrome, Brave, Ark) because of how it connects to the Garden CLI over a local websocket connection between the browser and the CLI process. This is embarrassing and we're working hard to fix it :)
+Currently the Live page will only work on Chromium based browsers (e.g. Chrome, Brave, Ark) because of how it connects to the Garden CLI over a local websocket connection between the browser and the CLI process.
+
+This is a bit embarrassing and we're working hard to fix it :)
 
 Other pages will work as expected.
 {% endhint %}
@@ -86,14 +93,15 @@ The Garden ephemeral clusters are managed via the web dashboard. To get started,
 
 ## Commands
 
-The Commands page shows you a list of historic commands. Both those you've run with the Garden CLI directly (e.g. `garden deploy`) and those you've run from within the dev
-console.
+The Commands page shows you a list of historic commands. Both those you've run with the Garden CLI directly (e.g. `garden deploy`) and those you've run from within the dev console. You can click the commands to get a detail view of the command results.
 
 ## User Settings
 
 ### Dark Mode
 
 You can toggle dark/light mode via the user settings which you can access by clicking the Garden logo at the top left.
+
+![The graph in dark mode](../dashboard-live-page-darkmode.png)
 
 ### Auth tokens
 
@@ -116,4 +124,4 @@ The community web dashboard contains a subset of the Garden Enterprise feature s
 - [Automatic environment cleanup](https://cloud.docs.garden.io/features/automatic-environment-cleanup)
 - [User managment and access control](https://cloud.docs.garden.io/features/roles-and-permissions)
 
-...and a lot more, then checkout out our [different plans](https://garden.io/plans) or [book a demo](https://garden.io/contact)!
+...and a lot more—then checkout out our [different plans](https://garden.io/plans) or [book a demo](https://garden.io/contact)!
