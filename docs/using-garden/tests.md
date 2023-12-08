@@ -1,5 +1,5 @@
 ---
-order: 50
+order: 5
 title: Tests
 ---
 
@@ -19,11 +19,11 @@ spec:
   args: [npm, run, integ]
 ```
 
-Garden caches Test results and only re-runs the Tests if the Test version changes. For remote environments, the test results are stored at the cluster level so that the entire team can share the cached results. 
+Garden caches Test results and only re-runs the Tests if the Test version changes. For remote environments, the test results are stored at the cluster level so that the entire team can share the cached results.
 
 You use the `command` and `args` directives to specify how the Test is run. If the execution exits with 0, the Test is considered to have passed, otherwise failed.
 
-You can run a Test manually with the `garden test <test-name>` command. Append the `--force` flag to rerun the Test even if it has previously passed. 
+You can run a Test manually with the `garden test <test-name>` command. Append the `--force` flag to rerun the Test even if it has previously passed.
 
 You can view Test results by running `garden get test-result <test-name>`.
 

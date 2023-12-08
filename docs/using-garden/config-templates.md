@@ -1,5 +1,5 @@
 ---
-order: 90
+order: 9
 title: Config Templates
 ---
 
