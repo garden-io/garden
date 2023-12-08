@@ -36,6 +36,7 @@
 
 * [Configuration Overview](./using-garden/configuration-overview.md)
 * [Projects](./using-garden/projects.md)
+* [Web Dashboard](./using-garden/web-dashboard.md)
 * [Actions](./using-garden/actions.md)
 * [Tests](./using-garden/tests.md)
 * [Runs](./using-garden/runs.md)
