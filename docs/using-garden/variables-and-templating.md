@@ -1,5 +1,5 @@
 ---
-order: 80
+order: 8
 title: Variables and templating
 ---
 
