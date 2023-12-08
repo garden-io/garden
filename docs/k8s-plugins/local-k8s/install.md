@@ -41,26 +41,50 @@ sudo usermod -a -G microk8s $USER   # or replace $USER with the desired user, if
 
 Note that in-cluster building is currently not supported with microk8s clusters.
 
-## Minikube
+## minikube
 
-For Minikube installation instructions, please see the [official guide](https://github.com/kubernetes/minikube#installation).
+minikube is a tool that makes it easy to run Kubernetes locally for local development. Garden supports running minikube on macOS, Linux, and Windows via the Windows Subsystem for Linux.
 
-You may also want to install a driver to run the Minikube VM. Please follow the
-[instructions here](https://minikube.sigs.k8s.io/docs/drivers/)
-and note the name of the driver you use. The driver you choose will likely vary depending on your
-OS/platform. We recommend [hyperkit](https://minikube.sigs.k8s.io/docs/drivers/hyperkit/)
-for macOS and [kvm2](https://minikube.sigs.k8s.io/docs/drivers/kvm2/) on most Linux
-distributions.
+If you wish to use minikube with Garden's image building capabilities, be sure to configure Garden appropriately before running `garden deploy` or `garden build`. See the following sections for more information.
 
-Once Minikube and the appropriate driver for your OS are installed, you can start Minikube by running:
+### Expose minikube's Docker daemon for local image building
+
+minikube runs its own Docker daemon. Practically speaking, this has the effect of isolating images from `garden` when using `garden deploy` or `garden build`. If you receive an error like `Error deploying deploy.backend2: ImagePullBackOff - Back-off pulling image "backend2:v-aa19766a21"`, you'll need to expose minikube's Docker daemon, run the following command:
+
+{% tabs %}
+{% tab title="macOS" %}
 
 ```sh
-minikube start --vm-driver=<your vm driver>  # e.g. hyperkit on macOS
+eval $(minikube docker-env)
 ```
 
-If you are working in a team and need to use an external registry, you can [configure Garden with an external image registry](https://docs.garden.io/kubernetes-plugins/remote-k8s/configure-registry) such as ECR. Alternatively, you can enable Minikube's `registry-creds` addon, by following these steps:
+{% endtab %}
 
-1.Make sure Minikube is running by typing `minikube start`
+{% tab title="Linux" %}
+
+```sh
+eval $(minikube docker-env)
+```
+
+{% endtab %}
+
+{% tab title="Windows" %}
+
+```powershell
+& minikube -p minikube docker-env --shell powershell | Invoke-Expression
+```
+
+{% endtab %}
+
+{% endtabs %}
+
+If you're using an external image registry, see the following section.
+
+### minikube and external registries
+
+If you are working in a team and need to use an external registry, you can [configure Garden with an external image registry](https://docs.garden.io/kubernetes-plugins/remote-k8s/configure-registry) such as ECR. Alternatively, you can enable minikube's `registry-creds` addon, by following these steps:
+
+1.Make sure minikube is running by typing `minikube start`
 
 2.Then run minikube `addons configure registry-creds`
 
@@ -70,7 +94,7 @@ If you are working in a team and need to use an external registry, you can [conf
 
 5.Make sure you run minikube `addons enable registry-creds`
 
-Minikube should now be able to authenticate with your chosen cloud provider.
+minikube should now be able to authenticate with your chosen cloud provider.
 
 ## kind
 
