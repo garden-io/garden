@@ -12,26 +12,26 @@ import { TemplatePrimitive, TemplateValue, isTemplateLeaf, isTemplateLeafValue, 
 import { unwrap, unwrapLazyValues } from "./lazy.js"
 import { InternalError } from "../exceptions.js"
 
-type DeepUnwrapProxyParams = { parsedConfig: CollectionOrValue<TemplateValue>, expectedCollectionType?: "object" | "array", context: ConfigContext, opts: ContextResolveOpts }
-export function getDeepUnwrapProxy({ parsedConfig, expectedCollectionType = "object", context, opts }: DeepUnwrapProxyParams): Collection<TemplatePrimitive> {
+type LazyConfigProxyParams = { parsedConfig: CollectionOrValue<TemplateValue>, expectedCollectionType?: "object" | "array", context: ConfigContext, opts: ContextResolveOpts }
+export function getLazyConfigProxy({ parsedConfig, expectedCollectionType = "object", context, opts }: LazyConfigProxyParams): Collection<TemplatePrimitive> {
   const getCollection = memoize(() => {
     const collection = unwrapLazyValues({ value: parsedConfig, context, opts });
 
     if (isTemplateLeaf(collection)) {
       throw new InternalError({
-        message: "getDeepUnwrapProxy: Expected a collection, got a leaf value",
+        message: "getLazyConfigProxy: Expected a collection, got a leaf value",
       })
     }
 
     if (expectedCollectionType === "object" && !isPlainObject(collection)) {
       throw new InternalError({
-        message: `getDeepUnwrapProxy: Expected an object, got array`,
+        message: `getLazyConfigProxy: Expected an object, got array`,
       })
     }
 
     if (expectedCollectionType === "array" && !isArray(collection)) {
       throw new InternalError({
-        message: `getDeepUnwrapProxy: Expected an array, got object`,
+        message: `getLazyConfigProxy: Expected an array, got object`,
       })
     }
 
@@ -54,10 +54,10 @@ export function getDeepUnwrapProxy({ parsedConfig, expectedCollectionType = "obj
       }
 
       if (isArray(evaluated)) {
-        return getDeepUnwrapProxy({ parsedConfig: evaluated satisfies Collection<TemplateValue>, expectedCollectionType: "array", context, opts })
+        return getLazyConfigProxy({ parsedConfig: evaluated satisfies Collection<TemplateValue>, expectedCollectionType: "array", context, opts })
       }
 
-      return getDeepUnwrapProxy({ parsedConfig: evaluated, context, opts });
+      return getLazyConfigProxy({ parsedConfig: evaluated, context, opts });
     },
     ownKeys() {
       return Object.keys(getCollection())

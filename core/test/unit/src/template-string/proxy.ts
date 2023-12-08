@@ -8,28 +8,27 @@
 
 import { expect } from "chai"
 import { GenericContext } from "../../../../src/config/template-contexts/base.js"
-import { getDeepUnwrapProxy } from "../../../../src/template-string/proxy.js"
-import {
-  resolveTemplateStringWithInputs,
-  resolveTemplateStringsWithInputs,
-} from "../../../../src/template-string/template-string.js"
+import { getLazyConfigProxy } from "../../../../src/template-string/proxy.js"
+import { parseTemplateString, parseTemplateCollection } from "../../../../src/template-string/template-string.js"
 import type { CollectionOrValue } from "../../../../src/util/objects.js"
 import { isArray } from "../../../../src/util/objects.js"
 import type { TemplatePrimitive } from "../../../../src/template-string/inputs.js"
 
-describe("getDeepUnwrapProxy", () => {
-  it("should throw an error if you instantiate it with a lazy value", () => {
-    const proxy = getDeepUnwrapProxy({
-      parsedConfig: resolveTemplateStringWithInputs({ string: "${1234}" }),
+describe("getLazyConfigProxy", () => {
+  it("only supports instantiating the proxy with collection values, not primitives, even if they are hidden behind lazy values", () => {
+    const proxy = getLazyConfigProxy({
+      parsedConfig: parseTemplateString({ string: "${1234}" }),
       context: new GenericContext({}),
       opts: {},
     })
 
-    expect(() => proxy["foo"]).to.throw()
+    expect(() => {
+      proxy["foo"]
+    }).to.throw()
   })
 
   it("should unwrap a leaf value", () => {
-    const parsedConfig = resolveTemplateStringsWithInputs({
+    const parsedConfig = parseTemplateCollection({
       value: {
         my: {
           deep: {
@@ -42,7 +41,7 @@ describe("getDeepUnwrapProxy", () => {
       source: { source: undefined },
     })
 
-    const proxy = getDeepUnwrapProxy({
+    const proxy = getLazyConfigProxy({
       parsedConfig,
       context: new GenericContext({}),
       opts: {},
@@ -60,7 +59,7 @@ describe("getDeepUnwrapProxy", () => {
   })
 
   it("should have array methods and properties", () => {
-    const parsedConfig = resolveTemplateStringsWithInputs({
+    const parsedConfig = parseTemplateCollection({
       value: {
         myArray: [1, 2, 3],
         myDeeperArray: [{ foo: "${[10,9,8,7]}" }, { foo: "baz" }],
@@ -68,7 +67,7 @@ describe("getDeepUnwrapProxy", () => {
       source: { source: undefined },
     })
 
-    const proxy = getDeepUnwrapProxy({
+    const proxy = getLazyConfigProxy({
       parsedConfig,
       context: new GenericContext({}),
       opts: {},
@@ -83,15 +82,15 @@ describe("getDeepUnwrapProxy", () => {
   })
 
   it("should support iteration over proxied array values", () => {
-    const parsedConfig = resolveTemplateStringsWithInputs({
+    const parsedConfig = parseTemplateCollection({
       value: ["Hello 1", "Hello 2", "Hello 3"],
       source: { source: undefined },
     })
 
-    const proxy = getDeepUnwrapProxy({
+    const proxy = getLazyConfigProxy({
       parsedConfig,
-      context: new GenericContext({}),
       expectedCollectionType: "array",
+      context: new GenericContext({}),
       opts: {},
     }) as string[]
 
@@ -111,7 +110,7 @@ describe("getDeepUnwrapProxy", () => {
   })
 
   it("should support iteration over proxied Object.entries", () => {
-    const parsedConfig = resolveTemplateStringsWithInputs({
+    const parsedConfig = parseTemplateCollection({
       value: {
         foo: "bar",
         baz: "qux",
@@ -119,7 +118,7 @@ describe("getDeepUnwrapProxy", () => {
       source: { source: undefined },
     })
 
-    const proxy = getDeepUnwrapProxy({
+    const proxy = getLazyConfigProxy({
       parsedConfig,
       context: new GenericContext({}),
       opts: {},
@@ -139,7 +138,7 @@ describe("getDeepUnwrapProxy", () => {
   })
 
   it("should work with forEach", () => {
-    const parsedConfig = resolveTemplateStringsWithInputs({
+    const parsedConfig = parseTemplateCollection({
       value: {
         $forEach: "${[1,2,3]}",
         $return: "Hello ${item.value}",
@@ -147,7 +146,7 @@ describe("getDeepUnwrapProxy", () => {
       source: { source: undefined },
     })
 
-    const proxy = getDeepUnwrapProxy({
+    const proxy = getLazyConfigProxy({
       parsedConfig,
       context: new GenericContext({}),
       expectedCollectionType: "array",
@@ -159,15 +158,18 @@ describe("getDeepUnwrapProxy", () => {
     expect(proxy.length).to.equal(3)
   })
 
-  it("evaluates lazily when values are accessed", () => {
+  it("it only lazily evaluates even the outermost lazy value", () => {
     const context = new GenericContext({})
-    const parsedConfig = resolveTemplateStringWithInputs({
-      string: "${var.willExistLater}",
+    const parsedConfig = parseTemplateCollection({
+      value: {
+        $merge: "${var.willExistLater}",
+      },
+      source: { source: undefined },
     })
 
     let proxy: CollectionOrValue<TemplatePrimitive>
     expect(() => {
-      proxy = getDeepUnwrapProxy({
+      proxy = getLazyConfigProxy({
         parsedConfig,
         context,
         opts: {},
@@ -184,12 +186,39 @@ describe("getDeepUnwrapProxy", () => {
   })
 
   it("evaluates lazily when values are accessed", () => {
+    const context = new GenericContext({})
+    const parsedConfig = parseTemplateCollection({
+      value: {
+        spec: "${var.willExistLater}",
+      },
+      source: { source: undefined },
+    })
+
+    let proxy: CollectionOrValue<TemplatePrimitive>
+    expect(() => {
+      proxy = getLazyConfigProxy({
+        parsedConfig,
+        context,
+        opts: {},
+      })
+    }).to.not.throw()
+
+    context["var"] = {
+      willExistLater: {
+        foo: "bar",
+      },
+    }
+
+    expect(proxy).to.deep.equal({ spec: { foo: "bar" } })
+  })
+
+  it("evaluates lazily when values are accessed", () => {
     const context = new GenericContext({
       var: {
         alreadyExists: "I am here",
       },
     })
-    const parsedConfig = resolveTemplateStringsWithInputs({
+    const parsedConfig = parseTemplateCollection({
       value: {
         cannotResolveYet: "${var.willExistLater}",
         alreadyResolvable: "${var.alreadyExists}",
@@ -197,7 +226,7 @@ describe("getDeepUnwrapProxy", () => {
       source: { source: undefined },
     })
 
-    const proxy = getDeepUnwrapProxy({
+    const proxy = getLazyConfigProxy({
       parsedConfig,
       context,
       opts: {},
@@ -219,7 +248,7 @@ describe("getDeepUnwrapProxy", () => {
   })
 
   it("allows variables referencing other variables even when they are declared together in the same scope", () => {
-    const projectConfig = resolveTemplateStringsWithInputs({
+    const projectConfig = parseTemplateCollection({
       value: {
         variables: {
           variable_one: "${var.variable_two}",
@@ -235,7 +264,7 @@ describe("getDeepUnwrapProxy", () => {
       },
     })
 
-    const actionConfig = resolveTemplateStringsWithInputs({
+    const actionConfig = parseTemplateCollection({
       value: {
         kind: "Build",
         name: "my-action",
@@ -246,7 +275,7 @@ describe("getDeepUnwrapProxy", () => {
       source: { source: undefined },
     })
 
-    const proxy = getDeepUnwrapProxy({
+    const proxy = getLazyConfigProxy({
       parsedConfig: actionConfig,
       context,
       opts: {},
@@ -263,14 +292,14 @@ describe("getDeepUnwrapProxy", () => {
 
   it("allows optional proxies, that do not throw but return undefined, if something can't be resolved", () => {
     const context = new GenericContext({})
-    const parsedConfig = resolveTemplateStringsWithInputs({
+    const parsedConfig = parseTemplateCollection({
       value: {
         myOptionalValue: "${var.willExistLater}",
       },
       source: { source: undefined },
     })
 
-    const proxy = getDeepUnwrapProxy({
+    const proxy = getLazyConfigProxy({
       parsedConfig,
       context,
       opts: {
@@ -292,7 +321,7 @@ describe("getDeepUnwrapProxy", () => {
 
   it("partial returns undefined even for && and || clauses", () => {
     const context = new GenericContext({})
-    const parsedConfig = resolveTemplateStringsWithInputs({
+    const parsedConfig = parseTemplateCollection({
       value: {
         orClause: "${var.willExistLater || 'defaultValue'}",
         andClause: "${var.willExistLater && 'conclusionValue'}",
@@ -300,7 +329,7 @@ describe("getDeepUnwrapProxy", () => {
       source: { source: undefined },
     })
 
-    const partialProxy = getDeepUnwrapProxy({
+    const partialProxy = getLazyConfigProxy({
       parsedConfig,
       context,
       opts: {
@@ -309,7 +338,7 @@ describe("getDeepUnwrapProxy", () => {
       },
     })
 
-    const strictProxy = getDeepUnwrapProxy({
+    const strictProxy = getLazyConfigProxy({
       parsedConfig,
       context,
       opts: {},

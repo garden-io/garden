@@ -13,8 +13,8 @@ import {
   collectTemplateReferences,
   throwOnMissingSecretKeys,
   getActionTemplateReferences,
-  resolveTemplateStringWithInputs,
-  resolveTemplateStringsWithInputs,
+  parseTemplateString,
+  parseTemplateCollection,
 } from "../../../src/template-string/template-string.js"
 import { ConfigContext } from "../../../src/config/template-contexts/base.js"
 import type { TestGarden } from "../../helpers.js"
@@ -308,7 +308,7 @@ describe("resolveTemplateString", () => {
   })
 
   it("should handle a numeric literal in a logical OR and return it directly and still track a as input", () => {
-    const value = resolveTemplateStringWithInputs({
+    const value = parseTemplateString({
       string: "${a || 123}",
     })
 
@@ -1981,7 +1981,7 @@ describe("resolveTemplateStrings", () => {
       },
     }
     const templateContext = new TestContext({
-      inputs: resolveTemplateStringsWithInputs({
+      inputs: parseTemplateCollection({
         value: {
           "merged-object": {
             $merge: "${var.empty || var.input-object}",
@@ -2489,17 +2489,6 @@ describe("resolveTemplateStrings", () => {
   })
 })
 
-// ${concat(var.someArray, var.someOtherArray)}
-//    V
-// ${concat([1,2,3], [4,5])}
-//    V
-//  [1,2,3,4,5]
-
-// ${jsonEncode(concat([1,2,3], [4,5]))}
-// => Result()
-
-// ${hash(var.someString)}
-//
 describe("input tracking", () => {
   describe("resolveTemplateString", () => {
     it("records references for every collection item in the result of the template expression, array", () => {
@@ -2509,7 +2498,7 @@ describe("input tracking", () => {
         },
       })
 
-      const value = resolveTemplateStringWithInputs({
+      const value = parseTemplateString({
         string: "${var.elements}",
       })
 
@@ -2550,7 +2539,7 @@ describe("input tracking", () => {
         },
       })
 
-      const value = resolveTemplateStringWithInputs({
+      const value = parseTemplateString({
         string: "${ var.elements ? var.fruits : var.colors }",
       })
 
@@ -2609,7 +2598,7 @@ describe("input tracking", () => {
         },
       })
 
-      const value = resolveTemplateStringWithInputs({
+      const value = parseTemplateString({
         string: "${ var.array ? 'foo' : 'bar' }",
       })
 
@@ -2634,7 +2623,7 @@ describe("input tracking", () => {
         var: {
           foo: {
             bar: 1,
-            baz: resolveTemplateStringWithInputs({ string: "${local.env.FRUIT}" }),
+            baz: parseTemplateString({ string: "${local.env.FRUIT}" }),
           },
         },
         local: {
@@ -2644,7 +2633,7 @@ describe("input tracking", () => {
         },
       })
 
-      const value = resolveTemplateStringWithInputs({
+      const value = parseTemplateString({
         string: "${var.foo}",
       })
 
@@ -2695,7 +2684,7 @@ describe("input tracking", () => {
         },
       }
 
-      const value = resolveTemplateStringsWithInputs({ value: obj, source: { source: undefined } })
+      const value = parseTemplateCollection({ value: obj, source: { source: undefined } })
 
       const res = deepUnwrapLazyValues({ value, context, opts: {} })
 
@@ -2748,7 +2737,7 @@ describe("input tracking", () => {
         },
       }
 
-      const value = resolveTemplateStringsWithInputs({ value: obj, source: { source: undefined } })
+      const value = parseTemplateCollection({ value: obj, source: { source: undefined } })
 
       const res = deepUnwrapLazyValues({ value, context, opts: {} })
 
@@ -2810,7 +2799,7 @@ describe("input tracking", () => {
           },
         },
       }
-      const value = resolveTemplateStringsWithInputs({ value: obj, source: { source: undefined } })
+      const value = parseTemplateCollection({ value: obj, source: { source: undefined } })
       const res = deepUnwrapLazyValues({ value, context, opts: {} })
       expect(res).to.deep.equal({
         spec: {
@@ -2850,7 +2839,7 @@ describe("input tracking", () => {
           },
         },
       }
-      const value = resolveTemplateStringsWithInputs({ value: obj, source: { source: undefined } })
+      const value = parseTemplateCollection({ value: obj, source: { source: undefined } })
 
       const res = deepUnwrapLazyValues({ value, context, opts: {} })
 
@@ -2900,7 +2889,7 @@ describe("input tracking", () => {
           $return: "${item.value.xyz}",
         },
       }
-      const value = resolveTemplateStringsWithInputs({ value: obj, source: { source: undefined } })
+      const value = parseTemplateCollection({ value: obj, source: { source: undefined } })
 
       const res = unwrapLazyValues({ value, context, opts: {} })
 
@@ -2969,7 +2958,7 @@ describe("input tracking", () => {
         },
       }
 
-      const value = resolveTemplateStringsWithInputs({ value: obj, source: { source: undefined } })
+      const value = parseTemplateCollection({ value: obj, source: { source: undefined } })
       const res = deepUnwrapLazyValues({ value, context, opts: {} })
 
       expect(res).to.eql({
@@ -3035,7 +3024,7 @@ describe("input tracking", () => {
         foo: "bar",
       }
 
-      const value = resolveTemplateStringsWithInputs({ value: obj, source: { source: undefined } })
+      const value = parseTemplateCollection({ value: obj, source: { source: undefined } })
       const res = unwrapLazyValues({ value, context, opts: {} })
 
       expect(res).to.eql({
@@ -3064,7 +3053,7 @@ describe("input tracking", () => {
         },
       })
 
-      const value = resolveTemplateStringsWithInputs({
+      const value = parseTemplateCollection({
         value: {
           spec: {
             password: "${var.sharedPassword}",
@@ -3107,7 +3096,7 @@ describe("input tracking", () => {
         },
       })
 
-      const value = resolveTemplateStringsWithInputs({
+      const value = parseTemplateCollection({
         value: {
           spec: {
             image: "${local.env.IMAGE}",
@@ -3144,7 +3133,7 @@ describe("input tracking", () => {
         },
       })
 
-      const value = resolveTemplateStringsWithInputs({
+      const value = parseTemplateCollection({
         value: {
           foo: {
             bar: ["${var.foo.bar}"],
@@ -3194,7 +3183,7 @@ describe("input tracking", () => {
         },
       })
 
-      const value = resolveTemplateStringsWithInputs({
+      const value = parseTemplateCollection({
         value: {
           a: {
             b: {

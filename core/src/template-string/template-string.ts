@@ -89,27 +89,8 @@ export function resolveTemplateString({
   contextOpts?: ContextResolveOpts
   source?: TemplateProvenance
 }): any {
-  const result = resolveTemplateStringWithInputs({ string, source, unescape: contextOpts?.unescape })
+  const result = parseTemplateString({ string, source, unescape: contextOpts?.unescape })
   return deepUnwrap({ value: result, context, opts: contextOpts || {} })
-}
-
-function parseTemplateString(string: string, unescape: boolean, source: TemplateProvenance) {
-  const parsed: ast.TemplateExpression = parser.parse(string, {
-    grammarSource: source,
-    rawTemplateString: string,
-    ast,
-    TemplateStringError,
-    // TODO: What is unescape?
-    unescape,
-    escapePrefix,
-    optionalSuffix: "}?",
-    // TODO: This should not be done via recursion, but should be handled in the pegjs grammar.
-    parseNested: (nested: string) => {
-      return parseTemplateString(nested, unescape, source)
-    },
-  })
-
-  return parsed
 }
 
 /**
@@ -122,7 +103,7 @@ function parseTemplateString(string: string, unescape: boolean, source: Template
  *
  * TODO: Update docstring to also talk about resolved reference tracking.
  */
-export function resolveTemplateStringWithInputs({
+export function parseTemplateString({
   string,
   source,
   // TODO: remove unescape
@@ -148,7 +129,27 @@ export function resolveTemplateStringWithInputs({
     })
   }
 
-  const parsed = parseTemplateString(string, unescape, source)
+  const parse = (str: string) => {
+    const parsed: ast.TemplateExpression = parser.parse(str, {
+      grammarSource: source,
+      rawTemplateString: string,
+      ast,
+      TemplateStringError,
+      // TODO: What is unescape?
+      unescape,
+      escapePrefix,
+      optionalSuffix: "}?",
+      // TODO: This should not be done via recursion, but should be handled in the pegjs grammar.
+      parseNested: (nested: string) => {
+        return parse(nested)
+      },
+    })
+
+    return parsed
+  }
+
+
+  const parsed = parse(string)
 
   return new TemplateStringLazyValue({
     source,
@@ -178,7 +179,7 @@ export function pushYamlPath<T extends { yamlPath?: ObjectPath }>(
  * Recursively parses and resolves all templated strings in the given object.
  */
 
-export function resolveTemplateStringsWithInputs({
+export function parseTemplateCollection({
   value,
   source: _source,
 }: {
@@ -191,7 +192,7 @@ export function resolveTemplateStringsWithInputs({
   }
 
   if (typeof value === "string") {
-    return resolveTemplateStringWithInputs({ string: value, source })
+    return parseTemplateString({ string: value, source })
   } else if (isTemplateLeafValue(value)) {
     // here we handle things static numbers, empty array etc
     // we also handle null and undefined
@@ -202,7 +203,7 @@ export function resolveTemplateStringsWithInputs({
     })
   } else if (isArray(value)) {
     const resolvedValues = value.map((v, i) =>
-      resolveTemplateStringsWithInputs({ value: v, source: pushYamlPath(i, source) })
+      parseTemplateCollection({ value: v, source: pushYamlPath(i, source) })
     )
     // we know that this is not handling an empty array, as that would have been a TemplatePrimitive.
     if (value.some((v) => v?.[arrayConcatKey] !== undefined)) {
@@ -234,12 +235,12 @@ export function resolveTemplateStringsWithInputs({
         })
       }
 
-      const resolvedCollectionExpression = resolveTemplateStringsWithInputs({
+      const resolvedCollectionExpression = parseTemplateCollection({
         value: value[arrayForEachKey],
         source: pushYamlPath(arrayForEachKey, source),
       })
 
-      const resolvedReturnExpression = resolveTemplateStringsWithInputs({
+      const resolvedReturnExpression = parseTemplateCollection({
         value: value[arrayForEachReturnKey],
         source: pushYamlPath(arrayForEachReturnKey, source),
       })
@@ -248,7 +249,7 @@ export function resolveTemplateStringsWithInputs({
       const resolvedFilterExpression =
         value[arrayForEachFilterKey] === undefined
           ? undefined
-          : resolveTemplateStringsWithInputs({
+          : parseTemplateCollection({
               value: value[arrayForEachFilterKey],
               source: pushYamlPath(arrayForEachFilterKey, source),
             })
@@ -294,25 +295,25 @@ export function resolveTemplateStringsWithInputs({
       }
 
       return new ConditionalLazyValue(source, {
-        [conditionalKey]: resolveTemplateStringsWithInputs({
+        [conditionalKey]: parseTemplateCollection({
           value: ifExpression,
           source: pushYamlPath(conditionalKey, source),
         }),
-        [conditionalThenKey]: resolveTemplateStringsWithInputs({
+        [conditionalThenKey]: parseTemplateCollection({
           value: thenExpression,
           source: pushYamlPath(conditionalThenKey, source),
         }),
         [conditionalElseKey]:
           elseExpression === undefined
             ? undefined
-            : resolveTemplateStringsWithInputs({
+            : parseTemplateCollection({
                 value: elseExpression,
                 source: pushYamlPath(conditionalElseKey, source),
               }),
       })
     } else {
       const resolved = mapValues(value, (v, k) =>
-        resolveTemplateStringsWithInputs({ value: v, source: pushYamlPath(k, source) })
+        parseTemplateCollection({ value: v, source: pushYamlPath(k, source) })
       )
       if (Object.keys(value).some((k) => k === objectSpreadKey)) {
         return new ObjectSpreadLazyValue(source, resolved as ObjectSpreadOperation)
@@ -345,7 +346,7 @@ export function resolveTemplateStrings<T = any>({
     yamlPath: [],
     source: _source,
   }
-  const resolved = resolveTemplateStringsWithInputs({ value: value as any, source })
+  const resolved = parseTemplateCollection({ value: value as any, source })
   // First evaluate lazy values deeply, then remove the leaves
   return deepUnwrap({ value: resolved, context, opts: contextOpts || {} }) as any // TODO: The type is a lie!
 }

@@ -27,8 +27,8 @@ export function isTemplatePrimitive(value: unknown): value is TemplatePrimitive 
   return isPrimitive(value) && typeof value !== "symbol"
 }
 
-type EmptyArray = never[]
-type EmptyObject = { [key: string]: never }
+export type EmptyArray = never[]
+export type EmptyObject = { [key: string]: never }
 
 export type TemplatePrimitive = Exclude<Primitive, symbol>
 
