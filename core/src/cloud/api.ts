@@ -167,6 +167,8 @@ export interface CloudApiFactoryParams {
   cloudDomain: string
   globalConfigStore: GlobalConfigStore
   skipLogging?: boolean
+  projectId?: string
+  requireLogin?: boolean
 }
 
 export type CloudApiFactory = (params: CloudApiFactoryParams) => Promise<CloudApi | undefined>
@@ -210,51 +212,96 @@ export class CloudApi {
    * Optionally skip logging during initialization. Useful for noProject commands that need to use the class
    * without all the "flair".
    */
-  static async factory({ log, cloudDomain, globalConfigStore, skipLogging = false }: CloudApiFactoryParams) {
+  static async factory({
+    log,
+    cloudDomain,
+    globalConfigStore,
+    skipLogging = false,
+    projectId = undefined,
+    requireLogin = false,
+  }: CloudApiFactoryParams) {
     const distroName = getCloudDistributionName(cloudDomain)
     const fixLevel = skipLogging ? LogLevel.silly : undefined
     const cloudFactoryLog = log.createLog({ fixLevel, name: getCloudLogSectionName(distroName), showDuration: true })
 
-    cloudFactoryLog.debug("Initializing Garden Cloud API client.")
+    cloudFactoryLog.debug(`Initializing ${distroName} API client.`)
 
     const token = await CloudApi.getStoredAuthToken(log, globalConfigStore, cloudDomain)
 
-    if (!token && !gardenEnv.GARDEN_AUTH_TOKEN) {
-      log.debug(
+    const hasNoToken = !token && !gardenEnv.GARDEN_AUTH_TOKEN
+
+    // fallback to false if no variables are set
+    // TODO-0.14: requireLogin should default to true
+    const isLoginRequired: boolean =
+      gardenEnv.GARDEN_REQUIRE_LOGIN_OVERRIDE !== undefined
+        ? gardenEnv.GARDEN_REQUIRE_LOGIN_OVERRIDE
+        : projectId !== undefined && requireLogin
+
+    // Base case when the user is not logged in to cloud and the
+    // criteria for cloud login is not required:
+    // - The config parameter requiredLogin is false
+    // - The user is not running a project scoped command (no projectId)
+    if (hasNoToken && !isLoginRequired) {
+      cloudFactoryLog.debug(
         `No auth token found, proceeding without access to ${distroName}. Command results for this command run will not be available in ${distroName}.`
       )
       return
     }
 
-    const api = new CloudApi({ log, domain: cloudDomain, globalConfigStore })
-    const tokenIsValid = await api.checkClientAuthToken()
+    // Try to auth towards cloud
+    try {
+      const api = new CloudApi({ log, domain: cloudDomain, globalConfigStore })
+      const tokenIsValid = await api.checkClientAuthToken()
 
-    cloudFactoryLog.debug("Authorizing...")
+      cloudFactoryLog.debug("Authorizing...")
 
-    if (gardenEnv.GARDEN_AUTH_TOKEN) {
-      // Throw if using an invalid "CI" access token
-      if (!tokenIsValid) {
-        throw new CloudApiError({
-          message: deline`
-            The provided access token is expired or has been revoked, please create a new
-            one from the ${distroName} UI.`,
-        })
+      if (gardenEnv.GARDEN_AUTH_TOKEN) {
+        // Throw if using an invalid "CI" access token
+        if (!tokenIsValid) {
+          throw new CloudApiError({
+            message: deline`
+              The provided access token is expired or has been revoked, please create a new
+              one from the ${distroName} UI.`,
+          })
+        }
+      } else {
+        // Refresh the token if it's invalid.
+        if (!tokenIsValid) {
+          cloudFactoryLog.debug({ msg: `Current auth token is invalid, refreshing` })
+
+          // We can assert the token exists since we're not using GARDEN_AUTH_TOKEN
+          await api.refreshToken(token!)
+        }
+
+        // Start refresh interval if using JWT
+        cloudFactoryLog.debug({ msg: `Starting refresh interval.` })
+        api.startInterval()
       }
-    } else {
-      // Refresh the token if it's invalid.
-      if (!tokenIsValid) {
-        cloudFactoryLog.debug({ msg: `Current auth token is invalid, refreshing` })
 
-        // We can assert the token exists since we're not using GARDEN_AUTH_TOKEN
-        await api.refreshToken(token!)
+      return api
+    } catch (err) {
+      if (err instanceof CloudApiError) {
+        // If there is an ID in the project config and the user is not logged in (no cloudApi)
+        // 0.13 => check if login is required based on the `requireLogin` config value
+        if (projectId && isLoginRequired) {
+          const message = dedent`
+            You are running this in a project with a Garden ID and logging in is required.
+            Please log in via the ${styles.command("garden login")} command.`
+
+          throw new CloudApiError({ message })
+        } else {
+          cloudFactoryLog.warn(
+            `Warning: You are not logged in into Garden Cloud. Please log in via the ${styles.command(
+              "garden login"
+            )} command.`
+          )
+
+          return
+        }
       }
 
-      // Start refresh interval if using JWT
-      cloudFactoryLog.debug({ msg: `Starting refresh interval.` })
-      api.startInterval()
+      throw err
     }
-
-    return api
   }
 
   static async saveAuthToken(
