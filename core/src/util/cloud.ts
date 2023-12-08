@@ -7,7 +7,7 @@
  */
 import { DEFAULT_GARDEN_CLOUD_DOMAIN } from "../constants.js"
 
-export type CloudDistroName = "Cloud Dashboard" | "Garden Enterprise" | "Garden Cloud"
+export type CloudDistroName = "Garden Dashboard" | "Garden Enterprise" | "Garden Cloud"
 
 /**
  * Returns "Garden Cloud" if domain matches https://<some-subdomain>.app.garden,
@@ -17,7 +17,7 @@ export type CloudDistroName = "Cloud Dashboard" | "Garden Enterprise" | "Garden 
  */
 export function getCloudDistributionName(domain: string): CloudDistroName {
   if (domain === DEFAULT_GARDEN_CLOUD_DOMAIN) {
-    return "Cloud Dashboard"
+    return "Garden Dashboard"
   }
 
   // TODO: consider using URL object instead.
@@ -28,11 +28,11 @@ export function getCloudDistributionName(domain: string): CloudDistroName {
   return "Garden Cloud"
 }
 
-export type CloudLogSectionName = "cloud-dashboard" | "garden-cloud" | "garden-enterprise"
+export type CloudLogSectionName = "garden-dashboard" | "garden-cloud" | "garden-enterprise"
 
 export function getCloudLogSectionName(distroName: CloudDistroName): CloudLogSectionName {
-  if (distroName === "Cloud Dashboard") {
-    return "cloud-dashboard"
+  if (distroName === "Garden Dashboard") {
+    return "garden-dashboard"
   } else if (distroName === "Garden Cloud") {
     return "garden-cloud"
   } else if (distroName === "Garden Enterprise") {

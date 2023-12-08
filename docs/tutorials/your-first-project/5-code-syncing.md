@@ -75,7 +75,7 @@ garden deploy --sync
 
 Finally, let's verify that syncing works as expected.
 
-Go to the Live page in the [web dashboard](https://app.garden.io), make sure the Logs view is selected and click the "Logs sources" drop down. From there, select the `api` and `web` actions.
+Go to the Live page in the [dashboard](https://app.garden.io), make sure the Logs view is selected and click the "Logs sources" drop down. From there, select the `api` and `web` actions.
 
 Now open the `api/app.py` file in your IDE and try changing the string in the `print("Starting API")` statement near the start of the file. You should see in the logs that the API server restarts and that the new log line is printed.
 

@@ -18,7 +18,7 @@ Simply by adding extra environments to your [Garden project](../using-garden/pro
 - **Cached builds and tests**: Garden caches your tests and builds so you **only run what has changed**. The result is dramatic reductions for CI run-times, typically *twenty minutes* to an *hour*.
 - **Automatic environment cleanup**, **deep Insights into CI test, builds and deploys**, and **triggered CI runs** with [Garden Enterprise](https://garden.io/plans)
 - **Encode once, run anywhere**: [Garden's Workflows](../using-garden/workflows.md) can be run from any environment, including local machines, CI servers, and cloud environments.
-- **Visualize your CI/CD flow**: Use the [Garden Web Dashboard](https://app.garden.io) to visualize your CI/CD pipeline, view logs, and track command history.
+- **Visualize your CI/CD flow**: Use the [Garden dashboard](https://app.garden.io) to visualize your CI/CD pipeline, view logs, and track command history.
 - **Accelerate build times**: With [remote image builds](../k8s-plugins/guides/in-cluster-building.md), you can speed up your image build times significantly.
 - **Test in ephemeral environments**: Use [ephemeral clusters](../k8s-plugins/ephemeral-k8s/configure-provider.md) to test changes or run services in CI.
 

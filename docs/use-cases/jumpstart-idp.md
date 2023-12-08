@@ -11,7 +11,7 @@ The stack might contain a pre-configured Helm chart for a database, Terraform mo
 
 ## Key features
 
-- **Visualize your microservice stack**, centralize logs, and view command history with the [Garden Web Dashboard](https://app.garden.io)
+- **Visualize your microservice stack**, centralize logs, and view command history with the [Garden dashboard](https://app.garden.io)
 - **Pluggable repositories** with [remote sources](../advanced/using-remote-sources.md)
 - **Create re-usable templates** with [Config Templates](../using-garden/config-templates.md)
 

@@ -6,10 +6,10 @@ order: 1
 # Quickstart Guide
 
 {% hint style="info" %}
-An interactive quickstart is also available by logging in to the Garden Web Dashboard. With the dashboard you can access command history, stream logs in real-time, view the status of your builds, tests, and deploys, visualize your dependency graph, and manage your free ephemeral clusters. To get started, [launch the Garden Web Dashboard](https://app.garden.io).
+An interactive quickstart is also available by logging in to the Garden dashboard. With the dashboard you can access command history, stream logs in real-time, view the status of your builds, tests, and deploys, visualize your dependency graph, and manage your free ephemeral clusters. To get started, [launch the Garden Web Dashboard](https://app.garden.io).
 {% endhint %}
 
-![Short tour of the features of the Garden Web Dashboard including command history, visualized dependency graph, and the Garden dev console](https://ce-content.s3.fr-par.scw.cloud/web-dashboard-gif.gif)
+![Short tour of the features of the Garden dashboard including command history, visualized dependency graph, and the Garden dev console](https://ce-content.s3.fr-par.scw.cloud/web-dashboard-gif.gif)
 
 ## Quickstart
 
@@ -80,7 +80,7 @@ cd quickstart-example
 
 Now we can deploy the example project to an [ephemeral Kubernetes cluster](../k8s-plugins/ephemeral-k8s/README.md) provided by Garden.
 
-From inside the project directory, log in to the Garden web dashboard by running the log in command from the dev console:
+From inside the project directory, log in to the Garden dashboard by running the log in command from the dev console:
 
 ```sh
 garden login

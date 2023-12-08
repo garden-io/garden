@@ -36,7 +36,7 @@
 
 * [Configuration Overview](./using-garden/configuration-overview.md)
 * [Projects](./using-garden/projects.md)
-* [Web Dashboard](./using-garden/web-dashboard.md)
+* [Dashboard](./using-garden/dashboard.md)
 * [Actions](./using-garden/actions.md)
 * [Tests](./using-garden/tests.md)
 * [Runs](./using-garden/runs.md)
@@ -65,7 +65,7 @@
   * [2. Configure the Provider](./k8s-plugins/local-k8s/configure-provider.md)
 * [Ephemeral K8s Plugin Configuration](./k8s-plugins/ephemeral-k8s/README.md)
   * [1. Configure the Provider](./k8s-plugins/ephemeral-k8s/configure-provider.md)
-  * [2. Login to the Garden Web Dashboard](./k8s-plugins/ephemeral-k8s/login-web-dashboard.md)
+  * [2. Login to the Garden dashboard](./k8s-plugins/ephemeral-k8s/login-web-dashboard.md)
   * [3. Configure Ingress (optional)](./k8s-plugins/ephemeral-k8s/ingress.md)
   * [4. Retrieve Kubeconfig (optional)](./k8s-plugins/ephemeral-k8s/retrieve-kubeconfig.md)
 * [Actions](./k8s-plugins/actions/README.md)

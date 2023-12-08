@@ -158,7 +158,7 @@ export interface LogEntry<C extends BaseContext = LogContext>
   msg?: Msg
   /**
    * A "raw" version of the log line. This field is preferred over 'msg' if set when rendering
-   * log entries in the web dashboard.
+   * log entries in the dashboard.
    *
    * Use this if the entry has a msg that doesn't render well in the UI. In that case you
    * can set terminal log line via the 'msg' field and a web friendly version via this field.

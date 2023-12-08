@@ -9,7 +9,7 @@ With our Kubernetes environment set up, we can start adding Garden actions for b
 
 ## Step 1 — Log in and start the dev console
 
-First, log in to the web dashboard by running:
+First, log in to the dashboard by running:
 
 ```
 garden login
@@ -112,7 +112,7 @@ Now, try building the API by running the following from the interactive dev cons
 build
 ```
 
-You can view the results and the logs in the [web dashboard](https://app.garden.io).
+You can view the results and the logs in the [dashboard](https://app.garden.io).
 
 {% hint style="info" %}
 If you're using the `ephemeral-kubernetes` or `kubernetes` plugins, Garden will build the action _inside_ the cluster by default. This means you won't need Docker running on your laptop and you can share build caches with your team if you're using your own K8s environment. You can learn about different build modes [here](../../k8s-plugins/guides/in-cluster-building.md#build-modes).
@@ -167,7 +167,7 @@ There are a few ways to overwrite manifest values with Garden but this is the re
 
 Next, lets deploy the API.
 
-This time, try opening the Live page of [the web dashboard](https://app.garden.io) and selecting the Graph view.
+This time, try opening the Live page in the [dashboard](https://app.garden.io) and selecting the Graph view.
 
 You should see all your actions and their dependencies. Click the button on the API deploy action to "execute" the action and deploy the API. Notice how Garden will first install the database, then seed it, and then deploy the API.
 
