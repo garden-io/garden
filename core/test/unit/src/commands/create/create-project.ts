@@ -64,17 +64,34 @@ describe("CreateProjectCommand", () => {
         apiVersion: GardenApiVersion.v1,
         kind: "Project",
         name,
-        defaultEnvironment: "local",
+        defaultEnvironment: "ephemeral",
         environments: [
-          { name: "local", defaultNamespace: "garden-local" },
-          { name: "remote", defaultNamespace: "garden-remote-${local.username}" },
-          { name: "staging", production: true, defaultNamespace: "staging" },
+          { name: "ephemeral", defaultNamespace: "${var.userNamespace}" },
+          {
+            name: "local",
+            defaultNamespace: "${var.userNamespace}",
+            variables: {
+              hostname: "local.app.garden",
+            },
+          },
+          {
+            name: "remote-dev",
+            defaultNamespace: "${var.userNamespace}",
+            variables: {
+              hostname: "<add-cluster-hostname-here>",
+            },
+          },
+          { name: "staging", production: true, defaultNamespace: `${name}-${"${git.branch}"}` },
         ],
         providers: [
+          { name: "ephemeral-kubernetes", environments: ["ephemeral"] },
           { name: "local-kubernetes", environments: ["local"] },
-          { name: "kubernetes", environments: ["remote"], context: null },
-          { name: "kubernetes", environments: ["staging"], context: null },
+          { name: "kubernetes", environments: ["remote-dev"] },
+          { name: "kubernetes", environments: ["staging"] },
         ],
+        variables: {
+          userNamespace: `${name}-${"${kebabCase(local.username)}"}`,
+        },
       },
     ])
   })
@@ -144,17 +161,34 @@ describe("CreateProjectCommand", () => {
         apiVersion: GardenApiVersion.v1,
         kind: "Project",
         name: "foo",
-        defaultEnvironment: "local",
+        defaultEnvironment: "ephemeral",
         environments: [
-          { name: "local", defaultNamespace: "garden-local" },
-          { name: "remote", defaultNamespace: "garden-remote-${local.username}" },
-          { name: "staging", production: true, defaultNamespace: "staging" },
+          { name: "ephemeral", defaultNamespace: "${var.userNamespace}" },
+          {
+            name: "local",
+            defaultNamespace: "${var.userNamespace}",
+            variables: {
+              hostname: "local.app.garden",
+            },
+          },
+          {
+            name: "remote-dev",
+            defaultNamespace: "${var.userNamespace}",
+            variables: {
+              hostname: "<add-cluster-hostname-here>",
+            },
+          },
+          { name: "staging", production: true, defaultNamespace: `foo-${"${git.branch}"}` },
         ],
         providers: [
+          { name: "ephemeral-kubernetes", environments: ["ephemeral"] },
           { name: "local-kubernetes", environments: ["local"] },
-          { name: "kubernetes", environments: ["remote"], context: null },
-          { name: "kubernetes", environments: ["staging"], context: null },
+          { name: "kubernetes", environments: ["remote-dev"] },
+          { name: "kubernetes", environments: ["staging"] },
         ],
+        variables: {
+          userNamespace: `foo-${"${kebabCase(local.username)}"}`,
+        },
       },
     ])
   })
@@ -187,17 +221,34 @@ describe("CreateProjectCommand", () => {
         apiVersion: GardenApiVersion.v1,
         kind: "Project",
         name,
-        defaultEnvironment: "local",
+        defaultEnvironment: "ephemeral",
         environments: [
-          { name: "local", defaultNamespace: "garden-local" },
-          { name: "remote", defaultNamespace: "garden-remote-${local.username}" },
-          { name: "staging", production: true, defaultNamespace: "staging" },
+          { name: "ephemeral", defaultNamespace: "${var.userNamespace}" },
+          {
+            name: "local",
+            defaultNamespace: "${var.userNamespace}",
+            variables: {
+              hostname: "local.app.garden",
+            },
+          },
+          {
+            name: "remote-dev",
+            defaultNamespace: "${var.userNamespace}",
+            variables: {
+              hostname: "<add-cluster-hostname-here>",
+            },
+          },
+          { name: "staging", production: true, defaultNamespace: `${name}-${"${git.branch}"}` },
         ],
         providers: [
+          { name: "ephemeral-kubernetes", environments: ["ephemeral"] },
           { name: "local-kubernetes", environments: ["local"] },
-          { name: "kubernetes", environments: ["remote"], context: null },
-          { name: "kubernetes", environments: ["staging"], context: null },
+          { name: "kubernetes", environments: ["remote-dev"] },
+          { name: "kubernetes", environments: ["staging"] },
         ],
+        variables: {
+          userNamespace: `${name}-${"${kebabCase(local.username)}"}`,
+        },
       },
     ])
   })
