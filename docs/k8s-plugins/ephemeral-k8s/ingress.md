@@ -54,7 +54,7 @@ Ingress URLs are not shareable at the moment however we are planning to support 
 
 ## DNS
 
-Each cluster has it's own wildcard DNS entry, which ends in `preview.garden`. Your ingress links will be printed out for you by Garden and in the [web dashboard](https://app.garden.io).
+Each cluster has it's own wildcard DNS entry, which ends in `preview.garden`. Your ingress links will be printed out for you by Garden and in the [dashboard](https://app.garden.io).
 
 ## Using your own ingress controller
 

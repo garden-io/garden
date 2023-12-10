@@ -162,7 +162,7 @@ export class ServeCommand<
           key: "web-app",
           log,
           message: styles.success(
-            `🌿 Explore logs, past commands, and your dependency graph in the Garden web App. Log in with ${styles.highlight(
+            `🌿 Explore logs, past commands, and your dependency graph in the Garden dashboard. Log in with ${styles.command(
               "garden login"
             )}.`
           ),
@@ -193,7 +193,7 @@ export class ServeCommand<
             const distroName = getCloudDistributionName(cloudDomain)
             const livePageUrl = cloudApi.getLivePageUrl({ shortId: session.shortId }).toString()
             const msg = dedent`${printEmoji("🌸", log)}Connected to ${distroName} ${printEmoji("🌸", log)}
-              Follow the link below to stream logs, run commands, and more from your web dashboard ${printEmoji(
+              Follow the link below to stream logs, run commands, and more from the Garden dashboard ${printEmoji(
                 "👇",
                 log
               )} \n\n${styles.highlight(livePageUrl)}\n`

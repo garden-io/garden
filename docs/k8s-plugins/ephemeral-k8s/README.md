@@ -14,7 +14,7 @@ Your ephemeral cluster is not shared with other Garden users, but due to its eph
 To use the ephemeral Kubernetes plugin, you'll need the following:
 
 - Use Garden `>=0.13.14`
-- Log in to the Garden Web Dashboard at https://app.garden.io.
+- Log in to the Garden dashboard at https://app.garden.io.
 - Configure Ingress (optional)
 - Retrieve Kubeconfig (optional). This is only relevant if you want to access the cluster with other tools than Garden e.g. kubectl.
 
@@ -22,7 +22,7 @@ To use the ephemeral Kubernetes plugin, you'll need the following:
 
 Each user is granted a maximum of **20 hours per month** of ephemeral cluster usage where each cluster has a maximum lifetime of **4 hours**. After this period, the cluster is automatically destroyed.
 
-If you need to destroy the cluster before its maximum lifetime of 4 hours expires, you can do so by visiting your [web dashboard](https://app.garden.io) and selecting the option to destroy the ephemeral cluster from there. This allows you to release resources and terminate the cluster when it's no longer needed.
+If you need to destroy the cluster before its maximum lifetime of 4 hours expires, you can do so by visiting your [dashboard](https://app.garden.io) and selecting the option to destroy the ephemeral cluster from there. This allows you to release resources and terminate the cluster when it's no longer needed.
 
 ## Limitations
 
