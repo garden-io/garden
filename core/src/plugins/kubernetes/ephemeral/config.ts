@@ -49,7 +49,9 @@ export async function configureProvider(params: ConfigureProviderParams<Kubernet
 
   if (!ctx.cloudApi) {
     throw new ConfigurationError({
-      message: `You are not logged in. You must be logged into Garden Cloud in order to use ${EPHEMERAL_KUBERNETES_PROVIDER_NAME} provider.`,
+      message: `You are not logged in. You must log in with the ${styles.command(
+        "garden login"
+      )} command to use the ${EPHEMERAL_KUBERNETES_PROVIDER_NAME} plugin`,
     })
   }
   if (ctx.cloudApi && ctx.cloudApi?.domain !== DEFAULT_GARDEN_CLOUD_DOMAIN) {
