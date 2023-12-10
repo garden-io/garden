@@ -9,8 +9,6 @@ order: 1
 An interactive quickstart is also available by logging in to the Garden dashboard. With the dashboard you can access command history, stream logs in real-time, view the status of your builds, tests, and deploys, visualize your dependency graph, and manage your free ephemeral clusters. To get started, [launch the Garden Web Dashboard](https://app.garden.io).
 {% endhint %}
 
-![Short tour of the features of the Garden dashboard including command history, visualized dependency graph, and the Garden dev console](https://ce-content.s3.fr-par.scw.cloud/web-dashboard-gif.gif)
-
 ## Quickstart
 
 Garden is an all-in-one DevOps automation platform that enables you to build, test, and deploy your applications and infrastructure in a single, unified workflow.
@@ -92,13 +90,13 @@ Next, start the **dev console** by running:
 garden dev
 ```
 
-Now you are ready to deploy, run:
+Finally, let's deploy the project in sync mode which enables live code reloading:
 
 ```sh
-deploy
+deploy --sync
 ```
 
-You should now be able to visit the example project at the link output by Garden.
+You can now visit the example project via the link output by Garden.
 
 The quickstart also comes with some tests of the unit and end-to-end variety. To run your unit test, just run `test unit`. To run your end-to-end test, run `test e2e`. Easy!
 
@@ -106,7 +104,7 @@ The project itself doubles as an interactive guide that walks you through some c
 
 {% hint style="info" %}
 You can run all the same commands with the CLI directly without starting the dev console. Simply run `garden login` or `garden
-deploy` from your terminal. This is e.g. how you'd use Garden in CI.
+deploy --sync` from your terminal. This is e.g. how you'd use Garden in CI.
 {% endhint %}
 
 ## Next Steps
