@@ -371,7 +371,7 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
                   },
                   {
                     name: "when directory is included by name with globs",
-                    // FIXME: shouldn't just '**/deepdir' work well too?
+                    // FIXME-GITREPOHANDLER: shouldn't just '**/deepdir' work well too?
                     inclusionBuilder: (_subDirName: string, deepDirName: string) => join("**", deepDirName, "**", "*"),
                   },
                 ]
@@ -452,13 +452,6 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
 
           for (const testParam of testParams) {
             it(testParam.name, async () => {
-              // FIXME
-              // if (handler.name === "git-repo") {
-              //   if (testParam.name === "without globs") {
-              //     return
-              //   }
-              // }
-
               // matches file exclusion pattern -> should be excluded
               const excludedByFilename = resolve(tmpPath, "foo.txt")
               await createFile(excludedByFilename)
@@ -529,13 +522,6 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
               */
             for (const testParam of testParams) {
               it(testParam.name, async () => {
-                // FIXME
-                // if (handler.name === "git-repo") {
-                //   if (testParam.name === "with prefix globs") {
-                //     return
-                //   }
-                // }
-
                 // doesn't match file exclusion pattern -> should be included
                 const notExcludedByFilename = resolve(tmpPath, "bar.txt")
 
@@ -607,13 +593,6 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
               */
             for (const testParam of testParams) {
               it(testParam.name, async () => {
-                // FIXME
-                // if (handler.name === "git-repo") {
-                //   if (testParam.name === "without globs" || testParam.name === "with prefix globs") {
-                //     return
-                //   }
-                // }
-
                 // doesn't match file exclusion pattern -> should be included
                 const notExcludedByFilename = resolve(tmpPath, "bar.txt")
 
@@ -1392,6 +1371,8 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
   })
 }
 
+// FIXME-GITREPOHANDLER: revisit these tests and disk-based configs,
+//  inspect the scenarios when both include and exclude filters are defined.s
 const getTreeVersionTests = (gitScanMode: GitScanMode) => {
   const gitHandlerCls = getGitHandlerCls(gitScanMode)
   describe("getTreeVersion", () => {
