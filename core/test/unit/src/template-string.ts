@@ -2509,7 +2509,6 @@ describe("lazy override", () => {
     const parsed = parseTemplateCollection({ value: obj, source: { source: undefined } })
 
     const overridden = new OverrideKeyPathLazily(
-      { yamlPath: [], source: undefined },
       parsed,
       ["hello", "three"],
       new TemplateLeaf({

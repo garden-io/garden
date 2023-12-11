@@ -130,35 +130,13 @@ export abstract class LazyValue<R extends CollectionOrValue<TemplateValue> = Col
   abstract visitAll(): TemplateExpressionGenerator
 }
 
-export class MutableOverlayLazyValue extends LazyValue {
-  constructor(
-    source: TemplateProvenance,
-    private backingCollection: CollectionOrValue<TemplateValue>
-  ) {
-    super(source)
-  }
-
-  public overrideKeyPath(keyPath: ObjectPath, override: CollectionOrValue<TemplateLeaf>): void {
-    this.backingCollection = new OverrideKeyPathLazily(this.source, this.backingCollection, keyPath, override)
-  }
-
-  override evaluateImpl(context: ConfigContext, opts: ContextResolveOpts): CollectionOrValue<TemplateValue> {
-    return evaluate({ value: this.backingCollection, context, opts })
-  }
-
-  override *visitAll(): TemplateExpressionGenerator {
-    yield* visitAll(this.backingCollection)
-  }
-}
-
 export class OverrideKeyPathLazily extends LazyValue {
   constructor(
-    source: TemplateProvenance,
     private readonly backingCollection: CollectionOrValue<TemplateValue>,
     private readonly keyPath: ObjectPath,
     private readonly override: CollectionOrValue<TemplateLeaf>
   ) {
-    super(source)
+    super({ yamlPath: [], source: undefined })
   }
 
   override *visitAll(): TemplateExpressionGenerator {
@@ -182,12 +160,7 @@ export class OverrideKeyPathLazily extends LazyValue {
       }
 
       if (currentValue[key] instanceof LazyValue) {
-        currentValue[key] = new OverrideKeyPathLazily(
-          this.source,
-          currentValue[key],
-          [...remainingKeys, targetKey],
-          this.override
-        )
+        currentValue[key] = new OverrideKeyPathLazily(currentValue[key], [...remainingKeys, targetKey], this.override)
 
         // we don't want to override here, our child instance will do that for us
         return evaluated

@@ -12,7 +12,7 @@ import { CollectionOrValue, isArray, isPlainObject } from "../util/objects.js"
 import { TemplateLeaf, TemplatePrimitive, TemplateValue, templatePrimitiveDeepMap } from "./inputs.js"
 import { getLazyConfigProxy } from "./proxy.js"
 import { PartialDeep } from "type-fest"
-import { MutableOverlayLazyValue } from "./lazy.js"
+import { OverrideKeyPathLazily } from "./lazy.js"
 
 type Change = { path: (string | number)[]; value: CollectionOrValue<TemplatePrimitive> }
 function getChangeset<T extends CollectionOrValue<TemplatePrimitive>>(
@@ -58,19 +58,19 @@ export class GardenConfig<TConfig = unknown> {
   public refine<Validator extends z.ZodTypeAny>(validator: Validator): GardenConfig<inferZodType<Validator>> {
     const rawConfig = this.getProxy()
 
+    // validate config and extract changes
     const validated = validator.parse(rawConfig)
-
     const changes = getChangeset(rawConfig, validated)
 
-    const overlay = new MutableOverlayLazyValue({ yamlPath: [], source: undefined }, this.parsedConfig)
-
+    // Add changes on top of parsed config
+    let overlay = this.parsedConfig
     for (const change of changes) {
       // wrap override value in TemplateLeaf instances
       const wrapped = templatePrimitiveDeepMap(change.value, (value) => {
         return new TemplateLeaf({ expr: undefined, value, inputs: {} })
       })
 
-      overlay.overrideKeyPath(change.path, wrapped)
+      overlay = new OverrideKeyPathLazily(overlay, change.path, wrapped)
     }
 
     return new GardenConfig({
