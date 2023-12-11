@@ -470,7 +470,8 @@ You need to replace the following placeholders:
 - `<ecr-repository>` name of the ECR repositories ([matching multiple names using wildcards](https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_elements_resource.html#reference_policies_elements_resource_wildcards) is allowed)
 - `<oidc-provider-id>` Part of the OpenID Connect provider URL
 
-If you've configured IRSA with `eksctl`, fetch the service account Amazon Resource Name (ARN) with `kubectl describe sa -n $yourusernamespace`.
+If you've configured IRSA with `eksctl`, fetch the IAM role Amazon Resource Name (ARN) associated with your Kubernetes service account by running `kubectl describe sa -n $eksctlNamespace`, where ` eksctlNamespace` refers to the namespace you used for creating the iamserviceaccount in. See also [here](https://eksctl.io/usage/iamserviceaccounts/) for more info.
+You can find this value in the service account's annotation with the key `eks.amazonaws.com/role-arn`.
 {% endhint %}
 
 Add the IRSA `serviceAccountAnnotations` to your `project.garden.yml`:
