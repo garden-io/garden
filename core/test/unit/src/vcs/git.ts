@@ -362,16 +362,17 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
                 const testParams = [
                   {
                     name: "when directory is included by exact relative path",
-                    pathBuilder: (subDirName: string, deepDirName: string) => join(subDirName, deepDirName),
+                    inclusionBuilder: (subDirName: string, deepDirName: string) => join(subDirName, deepDirName),
                   },
                   {
                     name: "when directory is included by relative path with globs",
-                    pathBuilder: (subDirName: string, deepDirName: string) => join(subDirName, deepDirName, "**", "*"),
+                    inclusionBuilder: (subDirName: string, deepDirName: string) =>
+                      join(subDirName, deepDirName, "**", "*"),
                   },
                   {
                     name: "when directory is included by name with globs",
                     // FIXME: shouldn't just '**/deepdir' work well too?
-                    pathBuilder: (_subDirName: string, deepDirName: string) => join("**", deepDirName, "**", "*"),
+                    inclusionBuilder: (_subDirName: string, deepDirName: string) => join("**", deepDirName, "**", "*"),
                   },
                 ]
 
@@ -386,7 +387,7 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
                     const path = resolve(deepDir, "foo.txt")
                     await createFile(path)
 
-                    const include = [testParam.pathBuilder(subdirName, deepDirName)]
+                    const include = [testParam.inclusionBuilder(subdirName, deepDirName)]
                     const files = (
                       await handler.getFiles({
                         path: tmpPath,
@@ -433,19 +434,19 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
           const testParams = [
             {
               name: "by exact filename without globs",
-              pathBuilder: () => excludedFilenameTxt,
+              exclusionBuilder: () => excludedFilenameTxt,
             },
             {
               name: "by exact filename with prefix globs",
-              pathBuilder: () => join("**", excludedFilenameTxt),
+              exclusionBuilder: () => join("**", excludedFilenameTxt),
             },
             {
               name: "by filename with wildcard extension without prefix globs",
-              pathBuilder: () => excludedFilenameWildcard,
+              exclusionBuilder: () => excludedFilenameWildcard,
             },
             {
               name: "by filename with wildcard extension with prefix globs",
-              pathBuilder: () => join("**", excludedFilenameWildcard),
+              exclusionBuilder: () => join("**", excludedFilenameWildcard),
             },
           ]
 
@@ -483,7 +484,7 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
                   path: tmpPath,
                   scanRoot: undefined,
                   include: undefined,
-                  exclude: [testParam.pathBuilder()],
+                  exclude: [testParam.exclusionBuilder()],
                   log,
                 })
               )
@@ -501,19 +502,19 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
             const testParams = [
               {
                 name: "without globs",
-                pathBuilder: (subDirName: string) => subDirName,
+                exclusionBuilder: (subDirName: string) => subDirName,
               },
               {
                 name: "with prefix globs",
-                pathBuilder: (subDirName: string) => join("**", subDirName),
+                exclusionBuilder: (subDirName: string) => join("**", subDirName),
               },
               {
                 name: "with full globs",
-                pathBuilder: (subDirName: string) => join("**", subDirName, "**", "*"),
+                exclusionBuilder: (subDirName: string) => join("**", subDirName, "**", "*"),
               },
               {
                 name: "with redundant relative path",
-                pathBuilder: (subDirName: string) => `./${subDirName}`,
+                exclusionBuilder: (subDirName: string) => `./${subDirName}`,
               },
             ]
 
@@ -562,7 +563,7 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
                     path: tmpPath,
                     scanRoot: undefined,
                     include: undefined, // when include: [], getFiles() always returns an empty result
-                    exclude: [testParam.pathBuilder(excludedDirName)],
+                    exclude: [testParam.exclusionBuilder(excludedDirName)],
                     log,
                   })
                 )
@@ -579,19 +580,19 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
             const testParams = [
               {
                 name: "without globs",
-                pathBuilder: (...subDirNames: string[]) => subDirNames.at(-1)!,
+                exclusionBuilder: (...subDirNames: string[]) => subDirNames.at(-1)!,
               },
               {
                 name: "with prefix globs",
-                pathBuilder: (...subDirNames: string[]) => join("**", subDirNames.at(-1)!),
+                exclusionBuilder: (...subDirNames: string[]) => join("**", subDirNames.at(-1)!),
               },
               {
                 name: "with full globs",
-                pathBuilder: (...subDirNames: string[]) => join("**", subDirNames.at(-1)!, "**", "*"),
+                exclusionBuilder: (...subDirNames: string[]) => join("**", subDirNames.at(-1)!, "**", "*"),
               },
               {
                 name: "with redundant relative path",
-                pathBuilder: (...subDirNames: string[]) => `./${subDirNames.join("/")}`,
+                exclusionBuilder: (...subDirNames: string[]) => `./${subDirNames.join("/")}`,
               },
             ]
 
@@ -640,7 +641,7 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
                     path: tmpPath,
                     scanRoot: undefined,
                     include: undefined, // when include: [], getFiles() always returns an empty result
-                    exclude: [testParam.pathBuilder(notExcludedDirName, excludedSubDirectoryName)],
+                    exclude: [testParam.exclusionBuilder(notExcludedDirName, excludedSubDirectoryName)],
                     log,
                   })
                 )
