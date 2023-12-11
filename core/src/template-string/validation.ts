@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { z, infer as inferZodType } from "zod"
+import { z, infer as inferZodType, ZodIntersection } from "zod"
 import { ConfigContext, ContextResolveOpts } from "../config/template-contexts/base.js"
 import { Collection, CollectionOrValue, isArray, isPlainObject } from "../util/objects.js"
 import { TemplateLeaf, TemplatePrimitive, TemplateValue, templatePrimitiveDeepMap } from "./inputs.js"
@@ -44,6 +44,7 @@ function getChangeset<T extends CollectionOrValue<TemplatePrimitive>>(
   return changeset
 }
 
+// For overlaying the changesets
 function getOverlayProxy(targetObject: Collection<TemplatePrimitive>, changes: Change[], currentPath: (string | number)[] = []): Collection<TemplatePrimitive> {
   // TODO: This needs performance optimization and a proper abstraction to maintain the overlays
   const currentPathChanges = changes.filter((change) => change.path.slice(0, -1).join(".") === currentPath.join("."))
@@ -87,57 +88,66 @@ function getOverlayProxy(targetObject: Collection<TemplatePrimitive>, changes: C
   return proxy
 }
 
-export type GardenConfigParams = {
+export type GardenConfigParams<ZodType extends z.AnyZodObject> = {
   parsedConfig: CollectionOrValue<TemplateValue>
   context: ConfigContext
   opts: ContextResolveOpts
   overlays?: Change[]
+  validator?: ZodType
 }
-export class GardenConfig<TConfig extends Collection<TemplatePrimitive>> {
+
+export class GardenConfig<ZodType extends z.AnyZodObject = z.ZodObject<{}>> {
   private parsedConfig: CollectionOrValue<TemplateValue>
   private context: ConfigContext
   private opts: ContextResolveOpts
-  private overlays: Change[] = []
+  private validator: ZodType
+  private overlays: Change[]
 
-  constructor({ parsedConfig, context, opts, overlays = [] }: GardenConfigParams) {
+  constructor({ parsedConfig, context, opts, validator = z.object({}) as ZodType, overlays = [] }: GardenConfigParams<ZodType>) {
     this.parsedConfig = parsedConfig
     this.context = context
     this.opts = opts
+    this.validator = validator
     this.overlays = overlays
   }
 
-  public withContext(context: ConfigContext): GardenConfig<Collection<TemplatePrimitive>> {
+  public withContext(context: ConfigContext): GardenConfig<z.ZodObject<{}>> {
     return new GardenConfig({
       parsedConfig: this.parsedConfig,
       context,
       opts: this.opts,
       overlays: [],
+      validator: z.object({}),
     })
   }
 
-  public refine<Validator extends z.ZodTypeAny>(validator: Validator): GardenConfig<inferZodType<Validator>> {
+  public refine<Incoming extends z.AnyZodObject, Augmentation extends Incoming["shape"]>(incoming: Incoming): GardenConfig<z.ZodObject<z.objectUtil.extendShape<ZodType, Augmentation>, Incoming["_def"]["unknownKeys"], Incoming["_def"]["catchall"]>> {
+    // merge the schemas
+    const newValidator = this.validator.merge(incoming)
+
     const rawConfig = this.getProxy()
 
     // validate config and extract changes
-    const validated = validator.parse(rawConfig)
-    const changes = getChangeset(rawConfig, validated)
+    const validated = newValidator.parse(rawConfig)
+    const changes = getChangeset(rawConfig as any, validated)
 
     return new GardenConfig({
       parsedConfig: this.parsedConfig,
       context: this.context,
       opts: this.opts,
       overlays: [...this.overlays, ...changes],
+      validator: newValidator,
     })
   }
 
-  public getProxy(): TConfig {
+  public getProxy(): inferZodType<ZodType> {
     return getOverlayProxy(
       getLazyConfigProxy({
         parsedConfig: this.parsedConfig,
         context: this.context,
         opts: this.opts,
-      }) as TConfig,
+      }) as inferZodType<ZodType>,
       this.overlays
-    ) as TConfig
+    ) as inferZodType<ZodType>
   }
 }

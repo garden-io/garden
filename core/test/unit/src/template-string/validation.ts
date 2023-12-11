@@ -70,17 +70,15 @@ describe("GardenConfig", () => {
       opts: {},
     })
 
-    const config = unrefinedConfig.refine(
-      z.object({
-        kind: z.literal("Deployment"),
-        type: z.literal("kubernetes"),
-        spec: z.object({
-          // replicas defaults to 1
-          replicas: z.number().default(1),
-          files: z.array(z.string()),
-        }),
-      })
-    )
+    const config = unrefinedConfig.refine({
+      kind: z.literal("Deployment"),
+      type: z.literal("kubernetes"),
+      spec: z.object({
+        // replicas defaults to 1
+        replicas: z.number().default(1),
+        files: z.array(z.string()),
+      }),
+    })
 
     const proxy = config.getProxy()
 
