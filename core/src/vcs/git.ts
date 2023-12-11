@@ -367,9 +367,11 @@ export class GitHandler extends VcsHandler {
         return
       }
 
-      const passesExclusionFilter = matchPath(filePath, undefined, exclude)
-      if (hasIncludes && !passesExclusionFilter) {
-        return
+      if (hasIncludes) {
+        const passesExclusionFilter = matchPath(filePath, undefined, exclude)
+        if (!passesExclusionFilter) {
+          return
+        }
       }
 
       // We push to the output array if it passes through the exclude filters.
