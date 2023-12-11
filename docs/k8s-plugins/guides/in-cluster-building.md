@@ -370,7 +370,7 @@ If you need more fine grained control, please use IRSA (see the next section).
 
 Using IRSA we can reduce the ECR access from the worker nodes (and subsequently all pods running on these worker nodes) to readonly, and only provide push access to the in-cluster builder Pods.
 
-Depending on how you deployed your EKS cluster you already might have a policy attached to your worker nodes by default that allows read access to all ECR repositories. For more info please check [the ECR on EKS user guide of the AWS docs](https://docs.aws.amazon.com/AmazonECR/latest/userguide/ECR_on_EKS.html).
+Depending on how you deployed your EKS cluster you already might have a policy attached to your worker nodes by default that allows read access to all ECR repositories. If you've used `eksctl` to deploy your cluster with [Garden's recommended EKS configuration](../remote-k8s/create-cluster/aws.md#tl;dr), you already have IRSA set up with the correct container registry policy to build, push and pull your ECR images. In that case, skip to the [service account annotation section](#add-irsa-service-account-annotation-to-your-garden-project) of this guide to configure your Garden project. For more info please check [the ECR on EKS user guide of the AWS docs](https://docs.aws.amazon.com/AmazonECR/latest/userguide/ECR_on_EKS.html).
 
 If it does not exist yet, first create an IAM policy to allow the Kubernetes nodes to pull images from your ECR repositories:
 
@@ -460,12 +460,18 @@ Configure the following IAM policy with the web identity role:
 }
 ```
 
-NOTE: You need to replace the following placeholders:
+##### Add IRSA service account annotation to your Garden project
+
+{% hint style="info" %}
+You need to replace the following placeholders:
 - `<account-id>` is your AWS Account ID
 - `<k8s-worker-iam-role>` is the Node IAM role name (You can find it in your EKS node group)
 - `<region>` AWS region
 - `<ecr-repository>` name of the ECR repositories ([matching multiple names using wildcards](https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_elements_resource.html#reference_policies_elements_resource_wildcards) is allowed)
 - `<oidc-provider-id>` Part of the OpenID Connect provider URL
+
+If you've configured IRSA with `eksctl`, fetch the service account Amazon Resource Name (ARN) with `kubectl describe sa -n $yourusernamespace`.
+{% endhint %}
 
 Add the IRSA `serviceAccountAnnotations` to your `project.garden.yml`:
 

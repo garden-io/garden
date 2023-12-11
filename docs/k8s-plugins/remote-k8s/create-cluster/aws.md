@@ -7,19 +7,43 @@ order: 2
 
 ## AWS (EKS)
 
-Follow [these instructions](https://docs.aws.amazon.com/eks/latest/userguide/create-cluster.html) to create an EKS cluster on AWS.
+The official [AWS EKS user guide](https://docs.aws.amazon.com/eks/latest/userguide/create-cluster.html) guides users to create their cluster using the official `eksctl` tool.
 
-## AWS (kops)
+If you wish to make use of Garden's [In-Cluster Building](../../guides/in-cluster-building.md) feature that leverages more-powerful remote Kubernetes clusters for image building, you'll need to pass a few additional flags to `eksctl`.
 
-[kops](https://github.com/kubernetes/kops) is a handy tool for creating Kubernetes clusters on AWS. Follow [these instructions](https://github.com/kubernetes/kops/blob/master/docs/getting_started/aws.md) to create your cluster.
+### tl;dr
 
-After creating the cluster, kops will create a new `kubectl` context and set it as the active context. Note the name of the context as you will need it when configuring the Garden's Kubernetes plugin.
+The following command will create an EKS cluster with a managed node group using any AWS instances that meet the criteria of 4 vCPUs and 16 GiB of memory. It uses IAM Roles for Service Accounts (IRSA) to attach a policy to the cluster allowing power user access to AWS' Elastic Container Registry. Visit the docs for more details on the [AmazonEC2ContainerRegistryPowerUser policy](https://docs.aws.amazon.com/AmazonECR/latest/userguide/security-iam-awsmanpol.html#security-iam-awsmanpol-AmazonEC2ContainerRegistryPowerUser).
 
-You can check that your cluster is ready by running:
+```bash
+eksctl create cluster -f - <<EOF
+---
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
 
+metadata:
+  name: $USER-cluster
+  region: $AWS_REGION
+
+managedNodeGroups:
+- name: mng
+  instanceSelector:
+    vCPUs: 4
+    memory: 16
+
+iam:
+  withOIDC: true
+  serviceAccounts:
+  - metadata:
+      name: ecr-poweruser
+      # set namespace to your developer namespace
+      namespace: $USER-dev
+    attachPolicyARNs:
+    - "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryPowerUser"
+EOF
 ```
-kops validate cluster
-```
+
+Finally, configure Garden to annotate your in-cluster pods with the correct Amazon Resource Name by following Garden's [In-Cluster Building](../../guides/in-cluster-building.md#using-in-cluster-building-with-irsa-iam-roles-for-service-accounts) guide. 
 
 ## Permissions
 
