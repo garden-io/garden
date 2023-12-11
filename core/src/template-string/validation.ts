@@ -15,6 +15,14 @@ import { PartialDeep } from "type-fest"
 import { OverrideKeyPathLazily } from "./lazy.js"
 
 type Change = { path: (string | number)[]; value: CollectionOrValue<TemplatePrimitive> }
+
+// This function gets us all changes and additions from one object to another
+// It is not a general purpose method for diffing any two objects.
+// We make use of the knowledge that a validated object will only make changes
+// by either adding or changing a property on an object, never deleting properties.
+// We also know that the object now has been validated so we know that the object will
+// afterwards be conforming to the type given during validation, deriving from the base object.
+// Thus we only need to track additions or changes, never deletions.
 function getChangeset<T extends CollectionOrValue<TemplatePrimitive>>(
   base: PartialDeep<T>,
   compare: T,
