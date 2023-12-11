@@ -427,14 +427,25 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
       // the exclusion paths with and without glob prefix **/ works in the same way.
       context("when only exclude filter is specified", () => {
         context("should filter out files that match the exclude filter", () => {
+          const excludedFilenameNoExt = "foo"
+          const excludedFilenameTxt = `${excludedFilenameNoExt}.txt`
+          const excludedFilenameWildcard = `${excludedFilenameNoExt}.*`
           const testParams = [
             {
-              name: "without globs",
-              pathBuilder: (path: string) => path,
+              name: "by exact filename without globs",
+              pathBuilder: () => excludedFilenameTxt,
             },
             {
-              name: "with globs",
-              pathBuilder: (path: string) => join("**", path),
+              name: "by exact filename with prefix globs",
+              pathBuilder: () => join("**", excludedFilenameTxt),
+            },
+            {
+              name: "by filename with wildcard extension without prefix globs",
+              pathBuilder: () => excludedFilenameWildcard,
+            },
+            {
+              name: "by filename with wildcard extension with prefix globs",
+              pathBuilder: () => join("**", excludedFilenameWildcard),
             },
           ]
 
@@ -472,7 +483,7 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
                   path: tmpPath,
                   scanRoot: undefined,
                   include: undefined,
-                  exclude: [testParam.pathBuilder("foo.*")],
+                  exclude: [testParam.pathBuilder()],
                   log,
                 })
               )
