@@ -8,7 +8,7 @@
 
 import { z, infer as inferZodType } from "zod"
 import { ConfigContext, ContextResolveOpts } from "../config/template-contexts/base.js"
-import { CollectionOrValue, isArray, isPlainObject } from "../util/objects.js"
+import { Collection, CollectionOrValue, isArray, isPlainObject } from "../util/objects.js"
 import { TemplateLeaf, TemplatePrimitive, TemplateValue, templatePrimitiveDeepMap } from "./inputs.js"
 import { getLazyConfigProxy } from "./proxy.js"
 import { PartialDeep } from "type-fest"
@@ -44,22 +44,74 @@ function getChangeset<T extends CollectionOrValue<TemplatePrimitive>>(
   return changeset
 }
 
-export class GardenConfig<TConfig = unknown> {
+function getOverlayProxy(targetObject: Collection<TemplatePrimitive>, changes: Change[], currentPath: (string | number)[] = []): Collection<TemplatePrimitive> {
+  // TODO: This needs performance optimization and a proper abstraction to maintain the overlays
+  const currentPathChanges = changes.filter((change) => change.path.slice(0, -1).join(".") === currentPath.join("."))
+  const nextKeys = currentPathChanges
+    .map((change) => change.path[currentPath.length])
+    .filter((key) => typeof key === "string") as string[]
+
+  const proxy = new Proxy(targetObject, {
+    get(target, prop) {
+      if (typeof prop === "symbol") {
+        return target[prop]
+      }
+
+      const override = changes.find((change) => change.path.join(".") === [...currentPath, prop].join("."))
+
+      if (override) {
+        return override.value
+      }
+
+      if (isArray(target[prop]) || isPlainObject(target[prop])) {
+        return getOverlayProxy(target[prop], changes, [...currentPath, prop])
+      }
+
+      return target[prop]
+    },
+    ownKeys() {
+      return [...Reflect.ownKeys(targetObject), ...nextKeys]
+    },
+    has(target, key) {
+      return Reflect.has(target, key) || nextKeys.includes(key as string)
+    },
+    getOwnPropertyDescriptor(target, key) {
+      return Reflect.getOwnPropertyDescriptor(target, key) || {
+        configurable: true,
+        enumerable: true,
+        writable: false
+      }
+    }
+  })
+
+  return proxy
+}
+
+export type GardenConfigParams = {
+  parsedConfig: CollectionOrValue<TemplateValue>
+  context: ConfigContext
+  opts: ContextResolveOpts
+  overlays?: Change[]
+}
+export class GardenConfig<TConfig extends Collection<TemplatePrimitive>> {
   private parsedConfig: CollectionOrValue<TemplateValue>
   private context: ConfigContext
   private opts: ContextResolveOpts
+  private overlays: Change[] = []
 
-  constructor({ parsedConfig, context, opts }) {
+  constructor({ parsedConfig, context, opts, overlays = [] }: GardenConfigParams) {
     this.parsedConfig = parsedConfig
     this.context = context
     this.opts = opts
+    this.overlays = overlays
   }
 
-  public withContext(context: ConfigContext): GardenConfig<TConfig> {
+  public withContext(context: ConfigContext): GardenConfig<Collection<TemplatePrimitive>> {
     return new GardenConfig({
       parsedConfig: this.parsedConfig,
       context,
       opts: this.opts,
+      overlays: [],
     })
   }
 
@@ -70,29 +122,22 @@ export class GardenConfig<TConfig = unknown> {
     const validated = validator.parse(rawConfig)
     const changes = getChangeset(rawConfig, validated)
 
-    // Add changes on top of parsed config
-    let overlay = this.parsedConfig
-    for (const change of changes) {
-      // wrap override value in TemplateLeaf instances
-      const wrapped = templatePrimitiveDeepMap(change.value, (value) => {
-        return new TemplateLeaf({ expr: undefined, value, inputs: {} })
-      })
-
-      overlay = new OverrideKeyPathLazily(overlay, change.path, wrapped)
-    }
-
     return new GardenConfig({
-      parsedConfig: overlay,
+      parsedConfig: this.parsedConfig,
       context: this.context,
       opts: this.opts,
+      overlays: [...this.overlays, ...changes],
     })
   }
 
   public getProxy(): TConfig {
-    return getLazyConfigProxy({
-      parsedConfig: this.parsedConfig,
-      context: this.context,
-      opts: this.opts,
-    }) as TConfig
+    return getOverlayProxy(
+      getLazyConfigProxy({
+        parsedConfig: this.parsedConfig,
+        context: this.context,
+        opts: this.opts,
+      }) as TConfig,
+      this.overlays
+    ) as TConfig
   }
 }

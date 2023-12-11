@@ -118,7 +118,7 @@ describe("GardenConfig", () => {
     const parsedConfig = parseTemplateCollection({
       value: {
         spec: {
-          replics: "${var.replicas}",
+          replicas: "${var.replicas}",
         },
       },
       source: { source: undefined },
@@ -143,7 +143,14 @@ describe("GardenConfig", () => {
     expect(proxy1.spec.replicas).to.equal(1)
 
     // Now var.replicas is defined and the default from spec.replicas should not be used anymore.
-    const config2 = config1.withContext(new GenericContext({ var: { replicas: 7 } }))
+    const config2 = config1.withContext(new GenericContext({ var: { replicas: 7 } })).refine(
+      z.object({
+        spec: z.object({
+          // if replicas is not specified, it defaults to 1
+          replicas: z.number().default(1),
+        }),
+      })
+    )
 
     const proxy2 = config2.getProxy()
     expect(proxy2.spec.replicas).to.equal(7)
