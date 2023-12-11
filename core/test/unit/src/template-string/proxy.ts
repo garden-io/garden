@@ -12,7 +12,7 @@ import { getCollectionSymbol, getLazyConfigProxy } from "../../../../src/templat
 import { parseTemplateString, parseTemplateCollection } from "../../../../src/template-string/template-string.js"
 import type { CollectionOrValue } from "../../../../src/util/objects.js"
 import { isArray } from "../../../../src/util/objects.js"
-import { TemplateLeaf, type TemplatePrimitive } from "../../../../src/template-string/inputs.js"
+import { type TemplatePrimitive } from "../../../../src/template-string/inputs.js"
 
 describe("getLazyConfigProxy", () => {
   it("makes it easier to access template values", () => {
@@ -416,11 +416,11 @@ describe("getLazyConfigProxy", () => {
     expect(underlyingConfig).to.deep.equal(parsedConfig)
   })
 
-  it("allows mutating the proxy", () => {
+  it("forbids mutating the proxy", () => {
     const context = new GenericContext({})
     const parsedConfig = parseTemplateCollection({
       value: {
-        myOptionalValue: "${var.willExistLater}",
+        luckyNumber: "${3}",
       },
       source: { source: undefined },
     })
@@ -431,20 +431,10 @@ describe("getLazyConfigProxy", () => {
       opts: {},
     })
 
-    proxy["myOptionalValue"] = "foo"
+    expect(() => {
+      proxy["luckyNumber"] = 13
+    }).to.throw()
 
-    const updatedCollection = proxy[getCollectionSymbol]
-
-    expect(updatedCollection).to.deep.equal({
-      myOptionalValue: new TemplateLeaf({
-        value: "foo",
-        expr: undefined,
-        inputs: {},
-      }),
-    })
-
-    expect(proxy).to.deep.equal({
-      myOptionalValue: "foo",
-    })
+    expect(proxy["luckyNumber"]).to.equal(3)
   })
 })

@@ -10,14 +10,8 @@ import type { ConfigContext, ContextResolveOpts } from "../config/template-conte
 import type { Collection, CollectionOrValue } from "../util/objects.js"
 import { isArray, isPlainObject } from "../util/objects.js"
 import type { TemplatePrimitive, TemplateValue } from "./inputs.js"
-import {
-  TemplateLeaf,
-  isTemplateLeaf,
-  isTemplatePrimitive,
-  isTemplateValue,
-  templatePrimitiveDeepMap,
-} from "./inputs.js"
-import { evaluate, MutableOverlayLazyValue } from "./lazy.js"
+import { isTemplateLeaf, isTemplateValue } from "./inputs.js"
+import { evaluate } from "./lazy.js"
 import { InternalError } from "../exceptions.js"
 
 export const getCollectionSymbol = Symbol("GetCollection")
@@ -27,20 +21,14 @@ type LazyConfigProxyParams = {
   expectedCollectionType?: "object" | "array"
   context: ConfigContext
   opts: ContextResolveOpts
-  currentPath?: (string | number)[]
 }
 export function getLazyConfigProxy({
   parsedConfig,
   expectedCollectionType = "object",
   context,
   opts,
-  currentPath = [],
 }: LazyConfigProxyParams): Collection<TemplatePrimitive> {
-  const getOverlay = memoize(() => {
-    if (parsedConfig instanceof MutableOverlayLazyValue) {
-      return parsedConfig
-    }
-
+  const getCollection = memoize(() => {
     const collection = evaluate({ value: parsedConfig, context, opts })
 
     if (isTemplateLeaf(collection)) {
@@ -61,20 +49,8 @@ export function getLazyConfigProxy({
       })
     }
 
-    return new MutableOverlayLazyValue({ source: undefined, yamlPath: [] }, collection)
+    return collection
   })
-
-  const getCollection = () => {
-    const overlay = getOverlay()
-
-    let currentValue = evaluate({ value: overlay, context, opts })
-
-    for (const key of currentPath) {
-      currentValue = evaluate({ value: currentValue, context, opts })[key]
-    }
-
-    return evaluate({ value: currentValue, context, opts })
-  }
 
   const proxy = new Proxy(expectedCollectionType === "array" ? [] : {}, {
     get(_, prop) {
@@ -102,15 +78,14 @@ export function getLazyConfigProxy({
 
       if (isArray(evaluated)) {
         return getLazyConfigProxy({
-          parsedConfig: getOverlay(),
+          parsedConfig: evaluated,
           expectedCollectionType: "array",
           context,
           opts,
-          currentPath: [...currentPath, prop],
         })
       }
 
-      return getLazyConfigProxy({ parsedConfig: getOverlay(), context, opts, currentPath: [...currentPath, prop] })
+      return getLazyConfigProxy({ parsedConfig: evaluated, context, opts })
     },
     ownKeys() {
       return Object.keys(getCollection())
@@ -118,30 +93,13 @@ export function getLazyConfigProxy({
     has(_, key) {
       return key in getCollection() || Object.hasOwn(getCollection(), key)
     },
-    set(_, key, value) {
-      if (typeof key === "symbol") {
-        throw new InternalError({
-          message: `getLazyConfigProxy: Attempted to set a symbol key`,
-        })
-      }
-
-      const wrapped = templatePrimitiveDeepMap(value, (v) => {
-        if (!isTemplatePrimitive(v)) {
-          throw new InternalError({
-            message: `getLazyConfigProxy: Attempted to set non-template value`,
-          })
-        }
-
-        return new TemplateLeaf({ value, expr: undefined, inputs: {} })
-      })
-
-      const overlay = getOverlay()
-      overlay.overrideKeyPath([...currentPath, key], wrapped)
-
-      return true
-    },
     getOwnPropertyDescriptor(_, key) {
       return Object.getOwnPropertyDescriptor(getCollection(), key)
+    },
+    set(_, _key, _value) {
+      throw new InternalError({
+        message: `getLazyConfigProxy: Attempted to set a value on a config proxy`,
+      })
     },
   }) as Collection<TemplatePrimitive>
 

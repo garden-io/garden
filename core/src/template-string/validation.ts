@@ -7,10 +7,34 @@
  */
 
 import { z, infer as inferZodType } from "zod"
-import { ConfigContext, ContextResolveOpts } from "../config/template-contexts/base.js";
-import { CollectionOrValue } from "../util/objects.js";
-import { TemplateValue } from "./inputs.js";
-import { getCollectionSymbol, getLazyConfigProxy } from "./proxy.js";
+import { ConfigContext, ContextResolveOpts } from "../config/template-contexts/base.js"
+import { CollectionOrValue, isArray, isPlainObject } from "../util/objects.js"
+import { TemplateLeaf, TemplatePrimitive, TemplateValue, templatePrimitiveDeepMap } from "./inputs.js"
+import { getLazyConfigProxy } from "./proxy.js"
+import { PartialDeep } from "type-fest"
+import { MutableOverlayLazyValue } from "./lazy.js"
+
+type Change = { path: (string | number)[]; value: CollectionOrValue<TemplatePrimitive> }
+function getChangeset<T extends CollectionOrValue<TemplatePrimitive>>(
+  base: PartialDeep<T>,
+  compare: T,
+  path: (string | number)[] = [],
+  changeset: Change[] = []
+): Change[] {
+  if (isArray(base) && isArray(compare)) {
+    for (let i = 0; i < compare.length; i++) {
+      getChangeset(base[i], compare[i], [...path, i], changeset)
+    }
+  } else if (isPlainObject(base) && isPlainObject(compare)) {
+    for (const key of Object.keys(compare)) {
+      getChangeset(base[key], compare[key], [...path, key], changeset)
+    }
+  } else if (base !== compare) {
+    changeset.push({ path, value: compare })
+  }
+
+  return changeset
+}
 
 export class GardenConfig<TConfig = unknown> {
   private parsedConfig: CollectionOrValue<TemplateValue>
@@ -18,9 +42,9 @@ export class GardenConfig<TConfig = unknown> {
   private opts: ContextResolveOpts
 
   constructor({ parsedConfig, context, opts }) {
-    this.parsedConfig = parsedConfig;
-    this.context = context;
-    this.opts = opts;
+    this.parsedConfig = parsedConfig
+    this.context = context
+    this.opts = opts
   }
 
   public withContext(context: ConfigContext): GardenConfig<TConfig> {
@@ -32,15 +56,25 @@ export class GardenConfig<TConfig = unknown> {
   }
 
   public refine<Validator extends z.ZodTypeAny>(validator: Validator): GardenConfig<inferZodType<Validator>> {
-    const proxy = this.getProxy()
+    const rawConfig = this.getProxy()
 
-    // throws on validation error, and mutates the proxy
-    const updated = validator.parse(proxy)
+    const validated = validator.parse(rawConfig)
 
-    const updatedConfig = updated[getCollectionSymbol]
+    const changes = getChangeset(rawConfig, validated)
+
+    const overlay = new MutableOverlayLazyValue({ yamlPath: [], source: undefined }, this.parsedConfig)
+
+    for (const change of changes) {
+      // wrap override value in TemplateLeaf instances
+      const wrapped = templatePrimitiveDeepMap(change.value, (value) => {
+        return new TemplateLeaf({ expr: undefined, value, inputs: {} })
+      })
+
+      overlay.overrideKeyPath(change.path, wrapped)
+    }
 
     return new GardenConfig({
-      parsedConfig: updatedConfig,
+      parsedConfig: overlay,
       context: this.context,
       opts: this.opts,
     })

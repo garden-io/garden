@@ -138,7 +138,7 @@ export class MutableOverlayLazyValue extends LazyValue {
     super(source)
   }
 
-  public overrideKeyPath(keyPath: ObjectPath, override: CollectionOrValue<TemplateValue>): void {
+  public overrideKeyPath(keyPath: ObjectPath, override: CollectionOrValue<TemplateLeaf>): void {
     this.backingCollection = new OverrideKeyPathLazily(this.source, this.backingCollection, keyPath, override)
   }
 
@@ -156,7 +156,7 @@ export class OverrideKeyPathLazily extends LazyValue {
     source: TemplateProvenance,
     private readonly backingCollection: CollectionOrValue<TemplateValue>,
     private readonly keyPath: ObjectPath,
-    private readonly override: CollectionOrValue<TemplateValue>
+    private readonly override: CollectionOrValue<TemplateLeaf>
   ) {
     super(source)
   }

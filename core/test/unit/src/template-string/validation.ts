@@ -93,8 +93,19 @@ describe("GardenConfig", () => {
     // proxy has type hints, no need to use bracket notation
     expect(proxy.spec.replicas).to.equal(1)
 
+    expect(proxy).to.deep.equal({
+      kind: "Deployment",
+      type: "kubernetes",
+      spec: {
+        files: ["manifests/deployment.yaml"],
+        replicas: 1,
+      },
+    })
+
+    const unrefinedProxy = unrefinedConfig.getProxy()
+
     // the unrefined config has not been mutated
-    expect(unrefinedConfig.getProxy()).to.deep.equal({
+    expect(unrefinedProxy).to.deep.equal({
       kind: "Deployment",
       type: "kubernetes",
       spec: {

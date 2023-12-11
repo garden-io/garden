@@ -43,7 +43,7 @@ export function deepMap<V, R>(
   } else if (isPlainObject(value)) {
     return mapValues(value, (v, k) => deepMap(v, fn, [...keyPath, k]))
   } else {
-    return fn(value as Exclude<V, Collection<V>>, keyPath[-1] || 0, keyPath)
+    return fn(value as Exclude<V, Collection<V>>, keyPath[keyPath.length-1] || 0, keyPath)
   }
 }
 

@@ -2537,7 +2537,6 @@ describe("lazy override", () => {
         three: "three",
       },
     })
-
   })
 })
 
