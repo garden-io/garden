@@ -24,6 +24,8 @@ import type { Garden } from "../garden.js"
 import type { GardenPluginReference } from "../plugin/plugin.js"
 import { CommandError, ParameterError, isEAddrInUseException, isErrnoException } from "../exceptions.js"
 import { styles } from "../logger/styles.js"
+import { getDashboardInfoMsg } from "../cli/helpers.js"
+import { DEFAULT_GARDEN_CLOUD_DOMAIN } from "../constants.js"
 
 export const defaultServerPort = 9777
 
@@ -156,16 +158,14 @@ export class ServeCommand<
 
     try {
       const cloudApi = await manager.getCloudApi({ log, cloudDomain, globalConfigStore: garden.globalConfigStore })
+      const isLoggedIn = !!cloudApi
+      const isCommunityEdition = cloudDomain === DEFAULT_GARDEN_CLOUD_DOMAIN
 
-      if (!cloudApi) {
+      if (!isLoggedIn && isCommunityEdition) {
         await garden.emitWarning({
           key: "web-app",
           log,
-          message: styles.success(
-            `🌿 Explore logs, past commands, and your dependency graph in the Garden dashboard. Log in with ${styles.command(
-              "garden login"
-            )}.`
-          ),
+          message: getDashboardInfoMsg(),
         })
       }
 
@@ -192,7 +192,7 @@ export class ServeCommand<
           if (session?.shortId) {
             const distroName = getCloudDistributionName(cloudDomain)
             const livePageUrl = cloudApi.getLivePageUrl({ shortId: session.shortId }).toString()
-            const msg = dedent`${printEmoji("🌸", log)}Connected to ${distroName} ${printEmoji("🌸", log)}
+            const msg = dedent`\n${printEmoji("🌸", log)}Connected to ${distroName} ${printEmoji("🌸", log)}
               Follow the link below to stream logs, run commands, and more from the Garden dashboard ${printEmoji(
                 "👇",
                 log

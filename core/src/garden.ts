@@ -77,6 +77,7 @@ import {
   SUPPORTED_ARCHITECTURES,
   GardenApiVersion,
   DOCS_BASE_URL,
+  DEFAULT_GARDEN_CLOUD_DOMAIN,
 } from "./constants.js"
 import type { Log } from "./logger/log-entry.js"
 import { EventBus } from "./events/events.js"
@@ -186,7 +187,7 @@ export interface GardenOpts {
    */
   gardenInitLog?: Log
   monitors?: MonitorManager
-  noEnterprise?: boolean
+  skipCloudConnect?: boolean
   persistent?: boolean
   plugins?: RegisterPluginParam[]
   sessionId?: string
@@ -562,7 +563,7 @@ export class Garden {
 
       if (!existing || !existing.hidden) {
         this.emittedWarnings.add(key)
-        log.warn(message + `\n→ Run ${styles.underline(`garden util hide-warning ${key}`)} to disable this warning.`)
+        log.warn(message + `\n→ Run ${styles.underline(`garden util hide-warning ${key}`)} to disable this message.`)
       }
     })
   }
@@ -1868,18 +1869,17 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
     const projectApiVersion = config.apiVersion
     const sessionId = opts.sessionId || uuidv4()
     const cloudApi = opts.cloudApi || null
+    const isCommunityEdition = !config.domain
+    const distroName = getCloudDistributionName(cloudApi?.domain || DEFAULT_GARDEN_CLOUD_DOMAIN)
+    const debugLevelCommands = ["dev", "serve", "exit", "quit"]
+    const cloudLogLevel = debugLevelCommands.includes(opts.commandInfo.name) ? LogLevel.debug : undefined
+    const cloudLog = log.createLog({ name: getCloudLogSectionName(distroName), fixLevel: cloudLogLevel })
 
     let secrets: StringMap = {}
     let cloudProject: CloudProject | null = null
     // If true, then user is logged in and we fetch the remote project and secrets (if applicable)
-    if (!opts.noEnterprise && cloudApi) {
-      const distroName = getCloudDistributionName(cloudApi.domain)
-      const isCommunityEdition = !config.domain
-      const cloudLogLevel =
-        opts.commandInfo.name === "dev" || opts.commandInfo.name === "serve" ? LogLevel.debug : undefined
-      const cloudLog = log.createLog({ name: getCloudLogSectionName(distroName), fixLevel: cloudLogLevel })
-
-      cloudLog.info(`Connecting to ${distroName}...`)
+    if (!opts.skipCloudConnect && cloudApi) {
+      cloudLog.info(`Connecting project...`)
 
       cloudProject = await getCloudProject({
         cloudApi,
@@ -1909,6 +1909,10 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
       }
 
       cloudLog.success("Ready")
+    } else if (!opts.skipCloudConnect) {
+      cloudLog.warn(
+        `You are not logged in. To use ${distroName}, log in with the ${styles.command("garden login")} command.`
+      )
     }
 
     const loggedIn = !!cloudApi
@@ -2176,7 +2180,7 @@ export async function makeDummyGarden(root: string, gardenOpts: GardenOpts) {
   }
   gardenOpts.config = config
 
-  return DummyGarden.factory(root, { noEnterprise: true, ...gardenOpts })
+  return DummyGarden.factory(root, { skipCloudConnect: true, ...gardenOpts })
 }
 
 export interface ConfigDump {

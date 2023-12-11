@@ -71,10 +71,12 @@ import stripAnsi from "strip-ansi"
 import type { CloudProject } from "../../../src/cloud/api.js"
 import { CloudApi } from "../../../src/cloud/api.js"
 import { GlobalConfigStore } from "../../../src/config-store/global.js"
-import { getRootLogger } from "../../../src/logger/logger.js"
+import { LogLevel, getRootLogger } from "../../../src/logger/logger.js"
 import { uuidv4 } from "../../../src/util/random.js"
 import { fileURLToPath } from "node:url"
 import { resolveMsg } from "../../../src/logger/log-entry.js"
+import { getCloudDistributionName } from "../../../src/util/cloud.js"
+import { styles } from "../../../src/logger/styles.js"
 
 const moduleDirName = dirname(fileURLToPath(import.meta.url))
 
@@ -596,6 +598,8 @@ describe("Garden", () => {
       }
     })
     context("user is NOT logged in", () => {
+      const log = getRootLogger().createLog()
+
       it("should have domain and id if set in project config", async () => {
         const projectId = uuidv4()
         const projectName = "test"
@@ -630,6 +634,64 @@ describe("Garden", () => {
 
         expect(garden.cloudDomain).to.eql(DEFAULT_GARDEN_CLOUD_DOMAIN)
         expect(garden.projectId).to.eql(undefined)
+      })
+      it("should log a warning by default", async () => {
+        log.root["entries"] = []
+        const projectName = "test"
+        const envName = "default"
+        const config: ProjectConfig = createProjectConfig({
+          name: projectName,
+          path: pathFoo,
+        })
+
+        const garden = await TestGarden.factory(pathFoo, {
+          config,
+          environmentString: envName,
+          log,
+        })
+        const distroName = getCloudDistributionName(garden.cloudDomain || DEFAULT_GARDEN_CLOUD_DOMAIN)
+
+        const expectedLog = log.root.getLogEntries().filter((l) => resolveMsg(l)?.includes(`You are not logged in`))
+
+        expect(expectedLog.length).to.eql(1)
+        expect(expectedLog[0].level).to.eql(LogLevel.warn)
+        expect(expectedLog[0].msg).to.eql(
+          `You are not logged in. To use ${distroName}, log in with the ${styles.command("garden login")} command.`
+        )
+      })
+      context("commands with verbose cloud logs", () => {
+        const commands = ["dev", "serve", "exit", "quit"]
+        for (const command of commands) {
+          it(`should log a warning message at a debug level for command ${command}`, async () => {
+            log.root["entries"] = []
+            const projectName = "test"
+            const envName = "default"
+            const config: ProjectConfig = createProjectConfig({
+              name: projectName,
+              path: pathFoo,
+            })
+
+            const garden = await TestGarden.factory(pathFoo, {
+              config,
+              environmentString: envName,
+              log,
+              commandInfo: {
+                name: command,
+                args: {},
+                opts: {},
+              },
+            })
+            const distroName = getCloudDistributionName(garden.cloudDomain || DEFAULT_GARDEN_CLOUD_DOMAIN)
+
+            const expectedLog = log.root.getLogEntries().filter((l) => resolveMsg(l)?.includes(`You are not logged in`))
+
+            expect(expectedLog.length).to.eql(1)
+            expect(expectedLog[0].level).to.eql(LogLevel.debug)
+            expect(expectedLog[0].msg).to.eql(
+              `You are not logged in. To use ${distroName}, log in with the ${styles.command("garden login")} command.`
+            )
+          })
+        }
       })
     })
     context("user is logged in", () => {
@@ -5262,7 +5324,7 @@ describe("Garden", () => {
         await garden.emitWarning({ key, log, message })
         const logs = getLogMessages(log)
         expect(logs.length).to.equal(1)
-        expect(logs[0]).to.equal(message + `\n→ Run garden util hide-warning ${key} to disable this warning.`)
+        expect(logs[0]).to.equal(message + `\n→ Run garden util hide-warning ${key} to disable this message.`)
       })
 
       it("should not log a warning if the key has been hidden", async () => {
