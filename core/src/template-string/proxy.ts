@@ -88,7 +88,7 @@ export function getLazyConfigProxy({
       return getLazyConfigProxy({ parsedConfig: evaluated, context, opts })
     },
     ownKeys() {
-      return Object.keys(getCollection())
+      return Object.getOwnPropertyNames(getCollection())
     },
     has(_, key) {
       return key in getCollection() || Object.hasOwn(getCollection(), key)
@@ -96,9 +96,11 @@ export function getLazyConfigProxy({
     getOwnPropertyDescriptor(_, key) {
       return Object.getOwnPropertyDescriptor(getCollection(), key)
     },
-    set(_, _key, _value) {
+    set(_, key, value) {
       throw new InternalError({
-        message: `getLazyConfigProxy: Attempted to set a value on a config proxy`,
+        message: `getLazyConfigProxy: Attempted to set key ${String(key)} to value ${JSON.stringify(
+          value
+        )} on lazy config proxy`,
       })
     },
   }) as Collection<TemplatePrimitive>
