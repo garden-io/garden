@@ -35,15 +35,13 @@ describe("GardenConfig", () => {
       opts: {},
     })
 
-    const config = unrefinedConfig.refine(
-      z.object({
-        kind: z.literal("Deployment"),
-        type: z.literal("kubernetes"),
-        spec: z.object({
-          files: z.array(z.string()),
-        }),
-      })
-    )
+    const config = unrefinedConfig.refine({
+      kind: z.literal("Deployment"),
+      type: z.literal("kubernetes"),
+      spec: z.object({
+        files: z.array(z.string()),
+      }),
+    })
 
     const proxy = config.getProxy()
 
@@ -115,9 +113,7 @@ describe("GardenConfig", () => {
   it("does not keep overrides when the context changes", () => {
     const parsedConfig = parseTemplateCollection({
       value: {
-        spec: {
-          replicas: "${var.replicas}",
-        },
+        replicas: "${var.replicas}",
       },
       source: { source: undefined },
     })
@@ -128,29 +124,31 @@ describe("GardenConfig", () => {
       opts: {
         allowPartial: true,
       },
-    }).refine(
-      z.object({
-        spec: z.object({
-          // if replicas is not specified, it defaults to 1
-          replicas: z.number().default(1),
-        }),
-      })
-    )
+    }).refine({
+      // if replicas is not specified, it defaults to 1
+      replicas: z.number().default(1),
+    })
 
     const proxy1 = config1.getProxy()
-    expect(proxy1.spec.replicas).to.equal(1)
+
+    // replicas is specified, but it's using a variable that's not defined yet and the proxy is in `allowPartial` mode
+    expect(proxy1.replicas).to.equal(1)
 
     // Now var.replicas is defined and the default from spec.replicas should not be used anymore.
-    const config2 = config1.withContext(new GenericContext({ var: { replicas: 7 } })).refine(
-      z.object({
-        spec: z.object({
-          // if replicas is not specified, it defaults to 1
-          replicas: z.number().default(1),
-        }),
+    const config2 = config1
+      .withContext(new GenericContext({ var: { replicas: 7 } }))
+      .refine({
+        // if replicas is not specified, it defaults to 1
+        replicas: z.number().default(1),
       })
-    )
+
+      // You can even refine multiple times, and the types will be merged together.
+      .refine({
+        foobar: z.string().default("foobar"),
+      })
 
     const proxy2 = config2.getProxy()
-    expect(proxy2.spec.replicas).to.equal(7)
+    expect(proxy2.replicas).to.equal(7)
+    expect(proxy2.foobar).to.equal("foobar")
   })
 })
