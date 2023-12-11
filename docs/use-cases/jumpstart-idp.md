@@ -19,32 +19,26 @@ If you're already familiar with Garden and just want to get going, click any of 
 
 Navigate to [Examples](#examples) for a selection of pre-configured stacks you can use to quickly explore relevant features.
 
-## Prerequisites
+## Requirements
 
-Before you proceed, make sure you have gone through the following steps:
-
-- [Installing Garden](../getting-started/installation.md)
-- [Set up a local Kubernetes cluster](../k8s-plugins/local-k8s/configure-provider.md) _or_ use our [Ephemeral Clusters](../k8s-plugins/ephemeral-k8s/configure-provider.md)
-- If you're coming from Docker Compose, visit our [Migrating From Docker Compose](../guides/migrating-from-docker-compose.md) guide
+- [Garden installed](../getting-started/installation.md)
+- [A local Kubernetes cluster](../k8s-plugins/local-k8s/configure-provider.md), [remote](../k8s-plugins/remote-k8s/configure-provider.md), _or_ [Ephemeral Cluster](../k8s-plugins/ephemeral-k8s/configure-provider.md) set up
 
 Setting up a remote Kubernetes environment for local development creates a developer namespace in a remote cluster. This namespace acts as a sandbox for your application, allowing you to test and develop without affecting other applications or services in the cluster.
 
-## Next steps
+## Resources
 
 Now that you've installed Garden and have a cluster configured, you'll progressively add features to make Garden the right fit for you.
 
 - Pull in any number of remote repositories to collaborate across teams by setting up [Remote Sources](../advanced/using-remote-sources.md)
 - Use [Config Templates](../using-garden/config-templates.md) to vend development environments to all your developers
-
-## Troubleshooting
-
-- Visit [Troubleshooting](../misc/troubleshooting.md)
+- If you're coming from Docker Compose, visit our [Migrating From Docker Compose](../guides/migrating-from-docker-compose.md) guide
 
 {% hint style="info" %}
-If you encounter any issues or bugs 🐛 in this seed, don't hesitate to join our [Discord community](https://go.garden.io/discord) 🌸 for access to Garden's dedicated Community Engineers and our AI chatbot 🤖  trained on our docs.
+If you encounter any issues or bugs 🐛, don't hesitate to join our [Discord community](https://go.garden.io/discord) 🌸 for access to Garden's dedicated Community Engineers and our AI chatbot 🤖  trained on our docs.
 {% endhint %}
 
-## Additional resources
+## Further Reading
 
 - [How Garden Works](../overview/how-garden-works.md)
 - [Configuration Overview](../using-garden/configuration-overview.md)

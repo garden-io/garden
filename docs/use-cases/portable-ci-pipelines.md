@@ -24,15 +24,20 @@ Simply by adding extra environments to your [Garden project](../using-garden/pro
 
 If you're already familiar with Garden and just want to get going, click any of the links above to set up your features.
 
-## Next Steps
+## Requirements
 
-- Visit our [quickstart](../getting-started/quickstart.md)
+- Your CI provider should be configured to run Garden. If you're using GitHub, you may be interested in our [Garden GitHub Action](https://github.com/marketplace/actions/garden-action).
+
+## Resources
+
+- Garden's [Quickstart](../getting-started/quickstart.md)
+- [Using Garden in CircleCI](../guides/using-garden-in-circleci.md)
 
 {% hint style="info" %}
-If you encounter any issues or bugs 🐛 in this seed, don't hesitate to join our [Discord community](https://go.garden.io/discord) 🌸 for access to Garden's dedicated Community Engineers and our AI chatbot 🤖  trained on our docs.
+If you encounter any issues or bugs 🐛, don't hesitate to join our [Discord community](https://go.garden.io/discord) 🌸 for access to Garden's dedicated Community Engineers and our AI chatbot 🤖  trained on our docs.
 {% endhint %}
 
-## Additional resources
+## Further Reading
 
 - [How Garden Works](../overview/how-garden-works.md)
 - [Configuration Overview](../using-garden/configuration-overview.md)

@@ -24,32 +24,27 @@ If you're already familiar with Garden and just want to get going, click any of 
 
 Navigate to [Examples](#examples) for a selection of pre-configured stacks you can use to quickly explore relevant features.
 
-## Prerequisites
+## Requirements
 
-Before you proceed, make sure you have gone through the following steps:
-
-- [Installing Garden](../getting-started/installation.md)
-- [Set up a local Kubernetes cluster](../k8s-plugins/local-k8s/configure-provider.md) _or_ use our [Ephemeral Clusters](../k8s-plugins/ephemeral-k8s/configure-provider.md)
-- If you're coming from Docker Compose, visit our [Migrating From Docker Compose](../guides/migrating-from-docker-compose.md) guide
+- [Garden installed](../getting-started/installation.md)
+- [Remote Kubernetes cluster configured](../k8s-plugins/remote-k8s/configure-provider.md) _or_ use our [Ephemeral Clusters](../k8s-plugins/ephemeral-k8s/configure-provider.md)
 
 Setting up a remote Kubernetes environment for local development creates a developer namespace in a remote cluster. This namespace acts as a sandbox for your application, allowing you to test and develop without affecting other applications or services in the cluster.
 
-## Next steps
+## Resources
 
 Now that you've installed Garden and have a cluster configured, you'll progressively add features to make Garden the right fit for you.
 
 - Build inside a powerful Kubernetes cluster with [In-Cluster Building](../k8s-plugins/guides/in-cluster-building.md)
 - Set up hot reloading for a frustration-free inner loop with [Code Synchronization](../guides/code-synchronization.md)
-
-## Troubleshooting
-
-- Visit [Troubleshooting](../misc/troubleshooting.md)
+- If you're coming from Docker Compose, visit our [Migrating From Docker Compose](../guides/migrating-from-docker-compose.md) guide
+- Go developers may be interested in our [pre-configured template](https://docs.garden.io/garden-seeds/languages/go) that makes use of the Helm package manager and Garden's Code  to spawn a ready-to-code environment
 
 {% hint style="info" %}
-If you encounter any issues or bugs 🐛 in this seed, don't hesitate to join our [Discord community](https://go.garden.io/discord) 🌸 for access to Garden's dedicated Community Engineers and our AI chatbot 🤖  trained on our docs.
+If you encounter any issues or bugs 🐛, don't hesitate to join our [Discord community](https://go.garden.io/discord) 🌸 for access to Garden's dedicated Community Engineers and our AI chatbot 🤖  trained on our docs.
 {% endhint %}
 
-## Additional resources
+## Further Reading
 
 - [How Garden Works](../overview/how-garden-works.md)
 - [Configuration Overview](../using-garden/configuration-overview.md)
