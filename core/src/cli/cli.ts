@@ -279,7 +279,7 @@ ${renderCommands(commands)}
             }
           } else {
             // unhandled error when creating the cloud api
-            log.info("")
+            gardenInitLog?.info("")
 
             throw err
           }
