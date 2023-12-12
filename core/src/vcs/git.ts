@@ -38,7 +38,7 @@ import { isSha1 } from "../util/hashing.js"
 import split2 from "split2"
 import type { ExecaError } from "execa"
 import { execa } from "execa"
-import hasha from "hasha"
+import { hashingStream } from "hasha"
 import { styles } from "../logger/styles.js"
 
 const { createReadStream, ensureDir, lstat, pathExists, readlink, realpath, stat } = fsExtra
@@ -604,7 +604,7 @@ export class GitHandler extends VcsHandler {
    */
   async hashObject(stats: fsExtra.Stats, path: string): Promise<string> {
     const start = performance.now()
-    const hash = hasha.stream({ algorithm: "sha1" })
+    const hash = hashingStream({ algorithm: "sha1" })
 
     if (stats.isSymbolicLink()) {
       // For symlinks, we follow git's behavior, which is to hash the link itself (i.e. the path it contains) as

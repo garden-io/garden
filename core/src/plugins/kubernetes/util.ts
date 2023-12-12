@@ -9,7 +9,7 @@
 import { get, flatten, sortBy, omit, sample, isEmpty, find, cloneDeep, uniqBy } from "lodash-es"
 import type { V1Pod, V1EnvVar, V1Container, V1PodSpec, CoreV1Event } from "@kubernetes/client-node"
 import { apply as jsonMerge } from "json-merge-patch"
-import hasha from "hasha"
+import { hashSync } from "hasha"
 
 import type {
   KubernetesResource,
@@ -68,7 +68,7 @@ export function getResourceKey(resource: KubernetesResource) {
  * "manifest-hash" annotation. This prevents "Too long annotation" errors for long manifests.
  */
 export async function hashManifest(manifest: KubernetesResource) {
-  return hasha(stableStringify(manifest), { algorithm: "sha256" })
+  return hashSync(stableStringify(manifest), { algorithm: "sha256" })
 }
 
 /**
@@ -755,12 +755,12 @@ const maxPodNamePrefixLength = maxPodNameLength - podNameHashLength - 1
  * maximum length).
  *
  * @param type the type of Pod, e.g. `task` or `test`
- * @param ...parts the name of the module associated with the Pod
+ * @param parts the name of the module associated with the Pod
  * @param key the specific key of the task, test etc.
  */
 export function makePodName(type: string, ...parts: string[]) {
   const id = `${type.toLowerCase()}-${parts.join("-")}`
-  const hash = hasha(`${id}-${Math.round(new Date().getTime())}`, { algorithm: "sha1" })
+  const hash = hashSync(`${id}-${Math.round(new Date().getTime())}`, { algorithm: "sha1" })
   return id.slice(0, maxPodNamePrefixLength) + "-" + hash.slice(0, podNameHashLength)
 }
 
