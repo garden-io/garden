@@ -366,6 +366,8 @@ export class GardenInstanceManager {
         log,
         cloudDomain: getGardenCloudDomain(projectConfig.domain),
         globalConfigStore,
+        projectId: projectConfig.id,
+        requireLogin: projectConfig.requireLogin,
       })
     }
 

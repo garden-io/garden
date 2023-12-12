@@ -157,7 +157,13 @@ export class ServeCommand<
     }
 
     try {
-      const cloudApi = await manager.getCloudApi({ log, cloudDomain, globalConfigStore: garden.globalConfigStore })
+      const cloudApi = await manager.getCloudApi({
+        log,
+        cloudDomain,
+        globalConfigStore: garden.globalConfigStore,
+        projectId: projectConfig?.id,
+        requireLogin: projectConfig?.requireLogin,
+      })
       const isLoggedIn = !!cloudApi
       const isCommunityEdition = cloudDomain === DEFAULT_GARDEN_CLOUD_DOMAIN
 

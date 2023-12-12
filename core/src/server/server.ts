@@ -871,6 +871,8 @@ export class GardenServer extends EventEmitter {
         log,
         cloudDomain: getGardenCloudDomain(garden.cloudDomain),
         globalConfigStore: garden.globalConfigStore,
+        projectId: garden.projectId,
+        requireLogin: undefined, // the user should be logged in for this
       })
 
       // Use the server session ID. That is, the "main" session ID that belongs to the parent serve command.

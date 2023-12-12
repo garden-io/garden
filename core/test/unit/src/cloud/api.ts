@@ -97,7 +97,13 @@ describe("CloudApi", () => {
 
       scope.get("/api/token/verify").reply(404)
 
-      const api = await CloudApi.factory({ log, globalConfigStore, cloudDomain })
+      const api = await CloudApi.factory({
+        log,
+        globalConfigStore,
+        cloudDomain,
+        projectId: undefined,
+        requireLogin: undefined,
+      })
 
       // we don't expect a request to verify the token
       expect(scope.isDone()).to.be.false
@@ -116,6 +122,8 @@ describe("CloudApi", () => {
         log,
         globalConfigStore,
         cloudDomain,
+        projectId: undefined,
+        requireLogin: undefined,
       })
 
       expect(scope.isDone()).to.be.true

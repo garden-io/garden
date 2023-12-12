@@ -743,7 +743,13 @@ describe("Garden", () => {
           refreshToken: "fake-refresh-token",
           validity: add(new Date(), { seconds: validityMs / 1000 }),
         })
-        return CloudApi.factory({ log, cloudDomain: domain, globalConfigStore })
+        return CloudApi.factory({
+          log,
+          cloudDomain: domain,
+          globalConfigStore,
+          projectId: undefined,
+          requireLogin: undefined,
+        })
       }
 
       before(async () => {

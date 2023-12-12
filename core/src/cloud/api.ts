@@ -167,8 +167,8 @@ export interface CloudApiFactoryParams {
   cloudDomain: string
   globalConfigStore: GlobalConfigStore
   skipLogging?: boolean
-  projectId?: string
-  requireLogin?: boolean
+  projectId: string | undefined
+  requireLogin: boolean | undefined
 }
 
 export type CloudApiFactory = (params: CloudApiFactoryParams) => Promise<CloudApi | undefined>
@@ -285,13 +285,13 @@ export class CloudApi {
         // 0.13 => check if login is required based on the `requireLogin` config value
         if (projectId && isLoginRequired) {
           const message = dedent`
-            You are running this in a project with a Garden ID and logging in is required.
+            You are running this in a project with a Garden Cloud ID and logging in is required.
             Please log in via the ${styles.command("garden login")} command.`
 
           throw new CloudApiError({ message })
         } else {
           cloudFactoryLog.warn(
-            `Warning: You are not logged in into Garden Cloud. Please log in via the ${styles.command(
+            `Warning: You are not logged in to Garden Cloud. Please log in via the ${styles.command(
               "garden login"
             )} command.`
           )

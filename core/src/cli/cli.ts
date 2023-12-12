@@ -256,7 +256,13 @@ ${renderCommands(commands)}
         const distroName = getCloudDistributionName(cloudDomain)
 
         try {
-          cloudApi = await this.cloudApiFactory({ log, cloudDomain, globalConfigStore })
+          cloudApi = await this.cloudApiFactory({
+            log,
+            cloudDomain,
+            globalConfigStore,
+            projectId: config?.id,
+            requireLogin: config?.requireLogin,
+          })
         } catch (err) {
           if (err instanceof CloudApiTokenRefreshError) {
             log.warn(dedent`

@@ -89,7 +89,14 @@ export class LoginCommand extends Command<{}, Opts> {
     const distroName = getCloudDistributionName(cloudDomain)
 
     try {
-      const cloudApi = await CloudApi.factory({ log, cloudDomain, skipLogging: true, globalConfigStore })
+      const cloudApi = await CloudApi.factory({
+        log,
+        cloudDomain,
+        skipLogging: true,
+        globalConfigStore,
+        projectId: undefined,
+        requireLogin: undefined,
+      })
 
       if (cloudApi) {
         log.success({ msg: `You're already logged in to ${cloudDomain}.` })
