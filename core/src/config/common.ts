@@ -44,15 +44,16 @@ addFormats(ajv)
 
 export type Primitive = string | number | boolean | null
 
-export interface StringMap {
+export type StringMap = {
   [key: string]: string
 }
 
-export interface PrimitiveMap {
+export type PrimitiveMap = {
   [key: string]: Primitive
 }
 
-export interface DeepPrimitiveMap {
+// TODO: Replace with the new `Collection` type.
+export type DeepPrimitiveMap = {
   [key: string]: Primitive | DeepPrimitiveMap | Primitive[] | DeepPrimitiveMap[]
 }
 
@@ -654,6 +655,10 @@ export function removeSchema(name: string) {
   if (schemaRegistry[name]) {
     delete schemaRegistry[name]
   }
+}
+
+export function omitFromSchema(s: Joi.ObjectSchema, ...keys: string[]) {
+  return s.extract(Object.keys(s.describe().keys).filter((k) => !keys.includes(k)))
 }
 
 /**

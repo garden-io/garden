@@ -19,6 +19,8 @@ import type { VcsInfo } from "../../vcs/vcs.js"
 import type { ActionConfig } from "../../actions/types.js"
 import type { WorkflowConfig } from "../workflow.js"
 import { styles } from "../../logger/styles.js"
+import { CollectionOrValue } from "../../util/objects.js"
+import { TemplatePrimitive, TemplateValue } from "../../template-string/inputs.js"
 
 class LocalContext extends ConfigContext {
   @schema(
@@ -346,7 +348,7 @@ export class ProjectConfigContext extends DefaultEnvironmentContext {
 }
 
 interface EnvironmentConfigContextParams extends ProjectConfigContextParams {
-  variables: DeepPrimitiveMap
+  variables: CollectionOrValue<TemplateValue>
 }
 
 /**
@@ -358,10 +360,10 @@ export class EnvironmentConfigContext extends ProjectConfigContext {
       .description("A map of all variables defined in the project configuration.")
       .meta({ keyPlaceholder: "<variable-name>" })
   )
-  public variables: DeepPrimitiveMap
+  public variables: CollectionOrValue<TemplateValue>
 
   @schema(joiIdentifierMap(joiPrimitive()).description("Alias for the variables field."))
-  public var: DeepPrimitiveMap
+  public var: CollectionOrValue<TemplateValue>
 
   @schema(
     joiStringMap(joi.string().description("The secret's value."))
@@ -394,9 +396,9 @@ export class RemoteSourceConfigContext extends EnvironmentConfigContext {
       )
       .meta({ keyPlaceholder: "<variable-name>" })
   )
-  public override variables: DeepPrimitiveMap
+  public override variables: CollectionOrValue<TemplateValue>
 
-  constructor(garden: Garden, variables: DeepPrimitiveMap) {
+  constructor(garden: Garden, variables: CollectionOrValue<TemplateValue>) {
     super({
       projectName: garden.projectName,
       projectRoot: garden.projectRoot,

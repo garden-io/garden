@@ -20,14 +20,15 @@ import {
   joiUserIdentifier,
   joiVariables,
   joiVariablesDescription,
+  omitFromSchema,
 } from "./common.js"
 import { validateConfig, validateWithPath } from "./validation.js"
 import { resolveTemplateStrings } from "../template-string/template-string.js"
 import { EnvironmentConfigContext, ProjectConfigContext } from "./template-contexts/project.js"
 import { findByName, getNames } from "../util/util.js"
-import { ConfigurationError, ParameterError, ValidationError } from "../exceptions.js"
+import { ConfigurationError, InternalError, ParameterError, ValidationError } from "../exceptions.js"
 import cloneDeep from "fast-copy"
-import { memoize } from "lodash-es"
+import { memoize, omit, pick } from "lodash-es"
 import type { GenericProviderConfig } from "./provider.js"
 import { providerConfigBaseSchema } from "./provider.js"
 import type { GitScanMode } from "../constants.js"
@@ -36,11 +37,15 @@ import { defaultDotIgnoreFile } from "../util/fs.js"
 import type { CommandInfo } from "../plugin-context.js"
 import type { VcsInfo } from "../vcs/vcs.js"
 import { profileAsync } from "../util/profiling.js"
-import type { BaseGardenResource } from "./base.js"
+import type { BaseGardenResource, UnrefinedProjectConfig } from "./base.js"
 import { baseInternalFieldsSchema, loadVarfile, varfileDescription } from "./base.js"
 import type { Log } from "../logger/log-entry.js"
 import { renderDivider } from "../logger/util.js"
 import { styles } from "../logger/styles.js"
+import { GardenConfig } from "../template-string/validation.js"
+import { s } from "./zod.js"
+import { getCollectionSymbol } from "../template-string/proxy.js"
+import { Garden } from "../index.js"
 
 export const defaultVarfilePath = "garden.env"
 export const defaultEnvVarfilePath = (environmentName: string) => `garden.${environmentName}.env`
@@ -55,7 +60,7 @@ export interface ParsedEnvironment {
   namespace?: string
 }
 
-export interface EnvironmentConfig {
+export type EnvironmentConfig = {
   name: string
   defaultNamespace: string | null
   varfile?: string
@@ -125,7 +130,7 @@ export const environmentsSchema = memoize(() =>
   joiSparseArray(environmentSchema()).unique("name").description("A list of environments to configure for the project.")
 )
 
-export interface SourceConfig {
+export type SourceConfig = {
   name: string
   repositoryUrl: string
 }
@@ -182,27 +187,25 @@ export const linkedModuleSchema = createSchema({
   }),
 })
 
-export interface OutputSpec {
+export type OutputSpec = {
   name: string
   value: Primitive
 }
 
-export interface ProxyConfig {
+export type ProxyConfig = {
   hostname: string
 }
 
-interface GitConfig {
+type GitConfig = {
   mode: GitScanMode
 }
 
-export interface ProjectConfig extends BaseGardenResource {
+export type ProjectConfig = BaseGardenResource & {
   apiVersion: GardenApiVersion
   kind: "Project"
   name: string
-  path: string
   id?: string
   domain?: string
-  configPath?: string
   proxy?: ProxyConfig
   defaultEnvironment: string
   dotIgnoreFile: string
@@ -309,8 +312,6 @@ export const projectSchema = createSchema({
       with Garden Acorn (0.12).
     `),
     kind: joi.string().default("Project").valid("Project").description("Indicate what kind of config this is."),
-    path: projectRootSchema().meta({ internal: true }),
-    configPath: joi.string().meta({ internal: true }).description("The path to the project config file."),
     internal: baseInternalFieldsSchema(),
     name: projectNameSchema(),
     // TODO: Refer to enterprise documentation for more details.
@@ -335,8 +336,7 @@ export const projectSchema = createSchema({
     ),
     defaultEnvironment: joi
       .environment()
-      .allow("")
-      .default("")
+      .default((parent) => parent.environments[0].name)
       .description(
         deline`
           The default environment to use when calling commands without the \`--env\` parameter.
@@ -427,7 +427,8 @@ export const projectSchema = createSchema({
   rename: [["modules", "scan"]],
 })
 
-export function getDefaultEnvironmentName(defaultName: string, config: ProjectConfig): string {
+type ProjectConfigWithEnvironments = { environments: { name: string }[]; defaultEnvironment: string }
+export function getDefaultEnvironmentName(defaultName: string, config: ProjectConfigWithEnvironments): string {
   const environments = config.environments
 
   // the default environment is the first specified environment in the config, unless specified
@@ -446,6 +447,9 @@ export function getDefaultEnvironmentName(defaultName: string, config: ProjectCo
   }
 }
 
+type ProjectConfigWithoutEnvironmentsSourcesAndProviders = GardenConfig<
+  Omit<ProjectConfig, "environments" | "sources" | "providers">
+>
 /**
  * Resolves and validates the given raw project configuration, and returns it in a canonical form.
  *
@@ -454,8 +458,6 @@ export function getDefaultEnvironmentName(defaultName: string, config: ProjectCo
  * @param config raw project configuration
  */
 export function resolveProjectConfig({
-  log,
-  defaultEnvironmentName,
   config,
   artifactsPath,
   vcsInfo,
@@ -467,7 +469,7 @@ export function resolveProjectConfig({
 }: {
   log: Log
   defaultEnvironmentName: string
-  config: ProjectConfig
+  config: GardenConfig<BaseGardenResource & Pick<ProjectConfig, "kind">>
   artifactsPath: string
   vcsInfo: VcsInfo
   username: string
@@ -475,71 +477,32 @@ export function resolveProjectConfig({
   enterpriseDomain: string | undefined
   secrets: PrimitiveMap
   commandInfo: CommandInfo
-}): ProjectConfig {
-  // Resolve template strings for non-environment-specific fields (apart from `sources`).
-  const { environments = [], name, sources = [] } = config
-
-  let globalConfig: any
-  try {
-    globalConfig = resolveTemplateStrings({
-      value: {
-        apiVersion: config.apiVersion,
-        varfile: config.varfile,
-        variables: config.variables,
-        environments: [],
-        sources: [],
-      },
-      context: new ProjectConfigContext({
-        projectName: name,
-        projectRoot: config.path,
-        artifactsPath,
-        vcsInfo,
-        username,
-        loggedIn,
-        enterpriseDomain,
-        secrets,
-        commandInfo,
-      }),
-      source: { yamlDoc: config.internal.yamlDoc, basePath: [] },
+}): GardenConfig<Omit<ProjectConfig, "environments" | "sources" | "providers">> {
+  if (!config.configFileDirname) {
+    throw new InternalError({
+      message: "Could not determine project root",
     })
-  } catch (err) {
-    log.error("Failed to resolve project configuration.")
-    log.error(styles.bold(renderDivider()))
-    throw err
   }
 
-  // Validate after resolving global fields
-  config = validateConfig({
-    config: {
-      ...config,
-      ...globalConfig,
-      name,
-      defaultEnvironment: defaultEnvironmentName,
-      // environments are validated later
-      environments: [{ defaultNamespace: null, name: "fake-env-only-here-for-inital-load", variables: {} }],
-      sources: [],
-    },
-    schema: projectSchema(),
-    projectRoot: config.path,
-    yamlDocBasePath: [],
+  const context = new ProjectConfigContext({
+    projectName: config.config.name,
+    projectRoot: config.configFileDirname,
+    artifactsPath,
+    vcsInfo,
+    username,
+    loggedIn,
+    enterpriseDomain,
+    secrets,
+    commandInfo,
   })
 
-  const providers = config.providers
+  const partialSchema = omitFromSchema(projectSchema(), "environments", "sources")
+  type PartialProjectConfig = Omit<ProjectConfig, "environments" | "sources" | "providers">
 
-  // This will be validated separately, after resolving templates
-  config.environments = environments
-
-  config = {
-    ...config,
-    environments: config.environments,
-    providers,
-    sources,
-  }
-
-  config.defaultEnvironment = getDefaultEnvironmentName(defaultEnvironmentName, config)
-
-  return config
+  return config.withContext(context).refineWithJoi<PartialProjectConfig>(partialSchema)
 }
+
+type ProjectConfigWithoutSourcesAndProviders = GardenConfig<Omit<ProjectConfig, "sources" | "providers">>
 
 /**
  * Given an environment name, pulls the relevant environment-specific configuration from the specified project
@@ -578,7 +541,7 @@ export const pickEnvironment = profileAsync(async function _pickEnvironment({
   secrets,
   commandInfo,
 }: {
-  projectConfig: ProjectConfig
+  projectConfig: ProjectConfigWithoutEnvironmentsSourcesAndProviders
   envString: string
   artifactsPath: string
   vcsInfo: VcsInfo
@@ -588,7 +551,52 @@ export const pickEnvironment = profileAsync(async function _pickEnvironment({
   secrets: PrimitiveMap
   commandInfo: CommandInfo
 }) {
-  const { environments, name: projectName, path: projectRoot } = projectConfig
+  const projectRoot = projectConfig.configFileDirname
+
+  if (!projectRoot) {
+    throw new InternalError({
+      message: "Could not determine project root",
+    })
+  }
+
+  const { name: projectName, variables } = projectConfig.config
+
+  const projectVarfileVars = await loadVarfile({
+    configRoot: projectRoot,
+    path: projectConfig.config.varfile,
+    defaultPath: defaultVarfilePath,
+  })
+
+  // Overrides should be lazy merged and need an abstraction for that.
+  // const projectVariables: DeepPrimitiveMap = <any>merge(variables, projectVarfileVars)
+  const projectVariables = GardenConfig.getTemplateValueTree(variables)
+
+  const context = new EnvironmentConfigContext({
+    projectName,
+    projectRoot,
+    artifactsPath,
+    vcsInfo,
+    username,
+    variables: projectVariables,
+    loggedIn,
+    enterpriseDomain,
+    secrets,
+    commandInfo,
+  })
+
+  const partialSchema = omitFromSchema(projectSchema(), "sources", "providers")
+  type PartialProjectConfig = Omit<ProjectConfig, "sources" | "providers">
+  const refined = projectConfig
+    .withContext(context)
+    .refineWithJoi<PartialProjectConfig>(partialSchema)
+    .refineWithZod(
+      s.object({
+        providers: s.object({
+          environments: s.array(s.string()).optional(),
+        }),
+      })
+    )
+
   const parsed = parseEnvironment(envString)
   const { environment } = parsed
   let { namespace } = parsed
@@ -596,7 +604,7 @@ export const pickEnvironment = profileAsync(async function _pickEnvironment({
   let environmentConfig: EnvironmentConfig | undefined
   let index = -1
 
-  for (const env of environments) {
+  for (const env of refined.config.environments) {
     index++
     if (env.name === environment) {
       environmentConfig = env
@@ -605,7 +613,7 @@ export const pickEnvironment = profileAsync(async function _pickEnvironment({
   }
 
   if (!environmentConfig) {
-    const definedEnvironments = getNames(environments)
+    const definedEnvironments = getNames(refined.config.environments)
 
     throw new ParameterError({
       message: `Project ${projectName} does not specify environment ${environment} (Available environments: ${naturalList(
@@ -614,48 +622,12 @@ export const pickEnvironment = profileAsync(async function _pickEnvironment({
     })
   }
 
-  const projectVarfileVars = await loadVarfile({
-    configRoot: projectConfig.path,
-    path: projectConfig.varfile,
-    defaultPath: defaultVarfilePath,
-  })
-  const projectVariables: DeepPrimitiveMap = <any>merge(projectConfig.variables, projectVarfileVars)
-
-  const source = { yamlDoc: projectConfig.internal.yamlDoc, basePath: ["environments", index] }
-
-  // Resolve template strings in the environment config, except providers
-  environmentConfig = resolveTemplateStrings({
-    value: { ...environmentConfig },
-    context: new EnvironmentConfigContext({
-      projectName,
-      projectRoot,
-      artifactsPath,
-      vcsInfo,
-      username,
-      variables: projectVariables,
-      loggedIn,
-      enterpriseDomain,
-      secrets,
-      commandInfo,
-    }),
-    source,
-  })
-
-  environmentConfig = validateWithPath({
-    config: environmentConfig,
-    schema: environmentSchema(),
-    configType: `environment ${environment}`,
-    path: projectConfig.path,
-    projectRoot: projectConfig.path,
-    source,
-  })
-
   namespace = getNamespace(environmentConfig, namespace)
 
   const fixedProviders = fixedPlugins.map((name) => ({ name }))
   const allProviders = [
     ...fixedProviders,
-    ...projectConfig.providers.filter((p) => !p.environments || p.environments.includes(environment)),
+    ...projectConfig.config.providers.filter((p) => !p.environments || p.environments.includes(environment)),
   ]
 
   const mergedProviders: { [name: string]: GenericProviderConfig } = {}
@@ -669,13 +641,13 @@ export const pickEnvironment = profileAsync(async function _pickEnvironment({
     }
   }
 
-  const envVarfileVars = await loadVarfile({
-    configRoot: projectConfig.path,
-    path: environmentConfig.varfile,
-    defaultPath: defaultEnvVarfilePath(environment),
-  })
-
-  const variables: DeepPrimitiveMap = <any>merge(projectVariables, merge(environmentConfig.variables, envVarfileVars))
+  // Overrides should be lazy merged and need an abstraction for that.
+  // const projectVariables: DeepPrimitiveMap = <any>merge(variables, projectVarfileVars)
+  // const envVarfileVars = await loadVarfile({
+  //   configRoot: projectConfig.path,
+  //   path: environmentConfig.varfile,
+  //   defaultPath: defaultEnvVarfilePath(environment),
+  // })
 
   return {
     environmentName: environment,
@@ -683,7 +655,8 @@ export const pickEnvironment = profileAsync(async function _pickEnvironment({
     defaultNamespace: environmentConfig.defaultNamespace,
     production: !!environmentConfig.production,
     providers: Object.values(mergedProviders),
-    variables,
+    // TODO: retain the lazy values in variables, so that input tracking works.
+    variables: <any>merge(projectVariables, merge(environmentConfig.variables, envVarfileVars)),
   }
 })
 

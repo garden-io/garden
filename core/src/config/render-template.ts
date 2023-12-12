@@ -38,6 +38,7 @@ import type { DeepPrimitiveMap } from "@garden-io/platform-api-types"
 import { RenderTemplateConfigContext } from "./template-contexts/render.js"
 import type { Log } from "../logger/log-entry.js"
 import { GardenApiVersion } from "../constants.js"
+import { GardenConfig } from "../template-string/validation.js"
 
 export const renderTemplateConfigSchema = createSchema({
   name: renderTemplateKind,
@@ -307,10 +308,10 @@ async function renderConfigs({
       const spec = { ...m, name: resolvedName }
       const renderConfigPath = renderConfig.internal.configFilePath || renderConfig.internal.basePath
 
-      let resource: TemplatableConfig
+      let resource: GardenConfig<BaseGardenResource>
 
       try {
-        resource = <TemplatableConfig>prepareResource({
+        resource = prepareResource({
           log,
           doc: new Document(spec) as YamlDocumentWithSource,
           configFilePath: renderConfigPath,

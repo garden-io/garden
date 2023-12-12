@@ -28,11 +28,21 @@ import { createSchema, joi } from "./common.js"
 import { emitNonRepeatableWarning } from "../warnings.js"
 import type { ActionKind } from "../actions/types.js"
 import { actionKinds } from "../actions/types.js"
-import { mayContainTemplateString } from "../template-string/template-string.js"
+import {
+  TemplateProvenance,
+  mayContainTemplateString,
+  parseTemplateCollection,
+} from "../template-string/template-string.js"
 import type { Log } from "../logger/log-entry.js"
 import type { Document, DocumentOptions } from "yaml"
 import { parseAllDocuments } from "yaml"
 import { dedent, deline } from "../util/string.js"
+import { GardenConfig } from "../template-string/validation.js"
+import { GenericContext } from "./template-contexts/base.js"
+import { CollectionOrValue } from "../util/objects.js"
+import { Template } from "handlebars"
+import { TemplatePrimitive } from "../template-string/inputs.js"
+import { inferType, s } from "./zod.js"
 
 export const configTemplateKind = "ConfigTemplate"
 export const renderTemplateKind = "RenderTemplate"
@@ -52,37 +62,19 @@ export interface YamlDocumentWithSource extends Document {
   source: string
 }
 
-export interface GardenResourceInternalFields {
-  /**
-   * The path/working directory where commands and operations relating to the config should be executed. This is
-   * most commonly the directory containing the config file.
-   *
-   * Note: WHen possible, use `action.getSourcePath()` instead, since it factors in remote source paths and source
-   * overrides (i.e. `BaseActionConfig.source.path`). This is a lower-level field that doesn't contain template strings,
-   * and can thus be used early in the resolution flow.
-   */
-  basePath: string
-  /**
-   * The path to the resource's config file, if any.
-   *
-   * Configs that are read from a file should always have this set, but generated configs (e.g. from templates
-   * or `augmentGraph` handlers) don't necessarily have a path on disk.
-   */
-  configFilePath?: string
-  // -> set by templates
-  inputs?: DeepPrimitiveMap
-  parentName?: string
-  templateName?: string
-  // Used to map fields to specific doc and location
-  yamlDoc?: YamlDocumentWithSource
-}
-
-export interface BaseGardenResource {
-  apiVersion?: GardenApiVersion
-  kind: string
-  name: string
-  internal: GardenResourceInternalFields
-}
+export const baseGardenResourceSchema = s.object({
+  apiVersion: s.string().optional(),
+  kind: s.string(),
+  name: s.string(),
+  internal: s
+    .object({
+      inputs: s.any().optional(),
+      parentName: s.string().optional(),
+      templateName: s.string().optional(),
+    })
+    .default({}),
+})
+export type BaseGardenResource = inferType<typeof baseGardenResourceSchema>
 
 export const baseInternalFieldsSchema = createSchema({
   name: "base-internal-fields",
@@ -160,7 +152,7 @@ export async function loadConfigResources(
   projectRoot: string,
   configPath: string,
   allowInvalid = false
-): Promise<GardenResource[]> {
+): Promise<GardenConfig<BaseGardenResource>[]> {
   const fileData = await readConfigFile(configPath, projectRoot)
 
   const resources = await validateRawConfig({
@@ -186,7 +178,7 @@ export async function validateRawConfig({
   configPath: string
   projectRoot: string
   allowInvalid?: boolean
-}) {
+}): Promise<GardenConfig<BaseGardenResource>[]> {
   let rawSpecs = await loadAndValidateYaml(rawConfig, `${basename(configPath)} in directory ${dirname(configPath)}`)
 
   // Ignore empty resources
@@ -226,10 +218,10 @@ export function prepareResource({
   projectRoot: string
   description: string
   allowInvalid?: boolean
-}): GardenResource | ModuleConfig | null {
+}): GardenConfig<BaseGardenResource> | null {
   const relPath = relative(projectRoot, configFilePath)
 
-  const spec = doc.toJS()
+  let spec = doc.toJS()
 
   if (spec === null) {
     return null
@@ -242,8 +234,6 @@ export function prepareResource({
   }
 
   let kind = spec.kind
-
-  const basePath = dirname(configFilePath)
 
   if (!allowInvalid) {
     for (const field of noTemplateFields) {
@@ -266,13 +256,7 @@ export function prepareResource({
   }
 
   if (kind === "Project") {
-    spec.path = basePath
-    spec.configPath = configFilePath
-    spec.internal = {
-      basePath,
-      yamlDoc: doc,
-    }
-    return prepareProjectResource(log, spec)
+    spec = prepareProjectResource(log, spec)
   } else if (
     actionKinds.includes(kind) ||
     kind === "Command" ||
@@ -280,28 +264,32 @@ export function prepareResource({
     kind === configTemplateKind ||
     kind === renderTemplateKind
   ) {
-    spec.internal = {
-      basePath,
-      configFilePath,
-      yamlDoc: doc,
-    }
-    return spec
+    // these are allowed
   } else if (kind === "Module") {
-    spec.path = basePath
     spec.configPath = configFilePath
     delete spec.internal
-    return prepareModuleResource(spec, configFilePath, projectRoot)
+    spec = prepareModuleResource(spec, configFilePath, projectRoot)
   } else if (allowInvalid) {
-    return spec
+    // we shouldn't throw
   } else if (!kind) {
     throw new ConfigurationError({
       message: `Missing \`kind\` field in ${description}`,
     })
   } else {
     throw new ConfigurationError({
-      message: `Unknown kind ${kind} in ${description}`,
+      message: `Unknown \`kind\` ${kind} in ${description}`,
     })
   }
+
+  return new GardenConfig({
+    unparsedConfig: spec,
+    context: new GenericContext({}),
+    opts: {
+      // TODO reconsider the interface to enable / disable partial
+      allowPartial: true,
+    },
+    source: { yamlDoc: doc, basePath: [] },
+  }).refineWithZod(baseGardenResourceSchema)
 }
 
 // TODO-0.14: remove these deprecation handlers in 0.14
@@ -384,8 +372,8 @@ const bonsaiDeprecatedConfigHandlers: DeprecatedConfigHandler[] = [
   handleProjectModules,
 ]
 
-export function prepareProjectResource(log: Log, spec: any): ProjectConfig {
-  let projectSpec = <ProjectConfig>spec
+export function prepareProjectResource(log: Log, spec: any): CollectionOrValue<TemplatePrimitive> {
+  let projectSpec = spec
   for (const handler of bonsaiDeprecatedConfigHandlers) {
     projectSpec = handler(log, projectSpec)
   }
@@ -475,6 +463,8 @@ export function prepareBuildDependencies(buildDependencies: any[]): BuildDepende
     .filter(isTruthy)
 }
 
+export type UnrefinedProjectConfig = GardenConfig<BaseGardenResource & Pick<ProjectConfig, "kind" | "domain" | "id">>
+
 export async function findProjectConfig({
   log,
   path,
@@ -485,10 +475,10 @@ export async function findProjectConfig({
   path: string
   allowInvalid?: boolean
   scan?: boolean
-}): Promise<ProjectConfig | undefined> {
+}): Promise<UnrefinedProjectConfig | undefined> {
   const sepCount = path.split(sep).length - 1
 
-  let allProjectSpecs: GardenResource[] = []
+  let allProjectSpecs: GardenConfig<BaseGardenResource>[] = []
 
   for (let i = 0; i < sepCount; i++) {
     const configFiles = (await listDirectory(path, { recursive: false })).filter(isConfigFilename)
@@ -496,7 +486,7 @@ export async function findProjectConfig({
     for (const configFile of configFiles) {
       const resources = await loadConfigResources(log, path, join(path, configFile), allowInvalid)
 
-      const projectSpecs = resources.filter((s) => s.kind === "Project")
+      const projectSpecs = resources.filter((s) => s.config.kind === "Project")
 
       if (projectSpecs.length > 1 && !allowInvalid) {
         throw new ConfigurationError({
@@ -508,12 +498,18 @@ export async function findProjectConfig({
     }
 
     if (allProjectSpecs.length > 1 && !allowInvalid) {
-      const configPaths = allProjectSpecs.map((c) => `- ${(c as ProjectConfig).configPath}`)
+      const configPaths = allProjectSpecs.map((c) => `- ${c.configFilePath}`)
       throw new ConfigurationError({
         message: `Multiple project declarations found at paths:\n${configPaths.join("\n")}`,
       })
     } else if (allProjectSpecs.length === 1) {
-      return <ProjectConfig>allProjectSpecs[0]
+      const source: TemplateProvenance = {
+        yamlPath: [],
+        source: {},
+      }
+      return allProjectSpecs[0].refineWithZod(
+        s.object({ kind: s.literal("Project"), domain: s.string().optional(), id: s.string().optional() })
+      )
     }
 
     if (!scan) {

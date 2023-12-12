@@ -10,8 +10,15 @@ import { z, infer as inferZodType } from "zod"
 import { ConfigContext, ContextResolveOpts } from "../config/template-contexts/base.js"
 import { Collection, CollectionOrValue, isArray, isPlainObject } from "../util/objects.js"
 import { TemplatePrimitive, TemplateValue } from "./inputs.js"
-import { getLazyConfigProxy } from "./proxy.js"
+import { getCollectionSymbol, getLazyConfigProxy } from "./proxy.js"
 import Joi from "@hapi/joi"
+import { TemplateProvenance, parseTemplateCollection } from "./template-string.js"
+import { ConfigSource } from "../config/validation.js"
+import { omit } from "lodash-es"
+import { CreateSchemaOutput } from "../config/common.js"
+import { AnySchema } from "ajv"
+import { InternalError } from "../exceptions.js"
+import { dirname } from "path"
 
 type Change = { path: (string | number)[]; value: CollectionOrValue<TemplatePrimitive> }
 
@@ -88,10 +95,14 @@ function getOverlayProxy(targetObject: Collection<TemplatePrimitive>, changes: C
 }
 
 export type GardenConfigParams = {
-  parsedConfig: CollectionOrValue<TemplateValue>
+  unparsedConfig?: CollectionOrValue<TemplatePrimitive>
+  parsedConfig?: CollectionOrValue<TemplateValue>
   context: ConfigContext
   opts: ContextResolveOpts
   overlays?: Change[]
+  source: ConfigSource
+
+  configFilePath?: string
 }
 
 type TypeAssertion<T> = (object: any) => object is T
@@ -101,20 +112,50 @@ export class GardenConfig<ConfigType extends Collection<TemplatePrimitive> = Col
   private opts: ContextResolveOpts
   private overlays: Change[]
 
-  constructor({ parsedConfig, context, opts, overlays = [] }: GardenConfigParams) {
-    this.parsedConfig = parsedConfig
+  public source: ConfigSource
+
+  /**
+   * The path to the resource's config file, if any.
+   *
+   * Configs that are read from a file should always have this set, but generated configs (e.g. from templates
+   * or `augmentGraph` handlers) don't necessarily have a path on disk.
+   */
+  public configFilePath?: string
+
+  /**
+   * The path/working directory where commands and operations relating to the config should be executed. This is
+   * most commonly the directory containing the config file.
+   *
+   * Note: WHen possible, use `action.getSourcePath()` instead, since it factors in remote source paths and source
+   * overrides (i.e. `BaseActionConfig.source.path`). This is a lower-level field that doesn't contain template strings,
+   * and can thus be used early in the resolution flow.
+   */
+  public get configFileDirname(): string | undefined {
+    if (this.configFilePath !== undefined) {
+      return dirname(this.configFilePath)
+    }
+
+    return undefined
+  }
+
+  constructor({ unparsedConfig, parsedConfig, context, opts, source, configFilePath, overlays = [] }: GardenConfigParams) {
+    this.parsedConfig = parsedConfig || parseTemplateCollection({ value: unparsedConfig, source: { source } })
     this.context = context
     this.opts = opts
     this.overlays = overlays
+    this.source = source
+    this.configFilePath = configFilePath
   }
 
-  public withContext(context: ConfigContext): GardenConfig {
+  public withContext(context: ConfigContext, opts: ContextResolveOpts = {}): GardenConfig {
     // we wipe the types, because a new context can result in different results when evaluating template strings
     return new GardenConfig({
       parsedConfig: this.parsedConfig,
       context,
-      opts: this.opts,
+      opts,
       overlays: [],
+      source: this.source,
+      configFilePath: this.configFilePath,
     })
   }
 
@@ -128,6 +169,8 @@ export class GardenConfig<ConfigType extends Collection<TemplatePrimitive> = Col
         context: this.context,
         opts: this.opts,
         overlays: this.overlays,
+        source: this.source,
+        configFilePath: this.configFilePath,
       })
     } else {
       // TODO: Write a better error message
@@ -143,18 +186,20 @@ export class GardenConfig<ConfigType extends Collection<TemplatePrimitive> = Col
 
     // validate config and extract changes
     const validated = validator.parse(rawConfig)
-    const changes = getChangeset(rawConfig, validated)
+    const changes = getChangeset(rawConfig as any, validated)
 
     return new GardenConfig({
       parsedConfig: this.parsedConfig,
       context: this.context,
       opts: this.opts,
       overlays: [...changes],
+      source: this.source,
+      configFilePath: this.configFilePath,
     })
   }
 
   // With joi we can't infer the type from the schema
-  public refineWithJoi<JoiType extends Collection<TemplatePrimitive>>(validator: Joi.SchemaLike): GardenConfig<ConfigType & JoiType> {
+  public refineWithJoi<JoiType extends Collection<TemplatePrimitive> >(validator: Joi.SchemaLike ): GardenConfig<ConfigType & JoiType> {
     // instantiate proxy without overlays
     const rawConfig = this.getConfig([])
 
@@ -167,10 +212,16 @@ export class GardenConfig<ConfigType extends Collection<TemplatePrimitive> = Col
       context: this.context,
       opts: this.opts,
       overlays: [...changes],
+      source: this.source,
+      configFilePath: this.configFilePath,
     })
   }
 
-  public getConfig(overlays?: Change[]): ConfigType {
+  public get config(): Readonly<ConfigType> {
+    return this.getConfig()
+  }
+
+  private getConfig(overlays?: Change[]): Readonly<ConfigType> {
     const configProxy = getLazyConfigProxy({
       parsedConfig: this.parsedConfig,
       context: this.context,
@@ -183,5 +234,17 @@ export class GardenConfig<ConfigType extends Collection<TemplatePrimitive> = Col
     }
 
     return configProxy
+  }
+
+  static getTemplateValueTree(proxy: CollectionOrValue<TemplatePrimitive>): CollectionOrValue<TemplateValue> {
+    const underlyingTemplateValueTree = proxy?.[getCollectionSymbol]
+
+    if (underlyingTemplateValueTree) {
+      return underlyingTemplateValueTree as CollectionOrValue<TemplateValue>
+    }
+
+    throw new InternalError({
+      message: "Expected a config proxy",
+    })
   }
 }

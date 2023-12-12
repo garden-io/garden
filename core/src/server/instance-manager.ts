@@ -40,6 +40,8 @@ import {
 import type { GardenInstanceKeyParams } from "./helpers.js"
 import { getGardenInstanceKey } from "./helpers.js"
 import { styles } from "../logger/styles.js"
+import { UnrefinedProjectConfig } from "../config/base.js"
+import { InternalError } from "../exceptions.js"
 
 interface InstanceContext {
   garden: Garden
@@ -349,7 +351,7 @@ export class GardenInstanceManager {
     sessionId,
   }: {
     command?: Command
-    projectConfig: ProjectConfig
+    projectConfig: UnrefinedProjectConfig
     globalConfigStore: GlobalConfigStore
     log: Log
     args: ParameterValues<ParameterObject>
@@ -362,7 +364,7 @@ export class GardenInstanceManager {
     if (!command?.noProject) {
       cloudApi = await this.getCloudApi({
         log,
-        cloudDomain: getGardenCloudDomain(projectConfig.domain),
+        cloudDomain: getGardenCloudDomain(projectConfig.config.domain),
         globalConfigStore,
       })
     }
@@ -379,7 +381,13 @@ export class GardenInstanceManager {
       sessionId,
     }
 
-    const projectRoot = projectConfig.path
+    const projectRoot = projectConfig.configFileDirname
+
+    if (!projectRoot) {
+      throw new InternalError({
+        message: "Unable to determine project root",
+      })
+    }
 
     if (command && command.noProject) {
       return makeDummyGarden(projectRoot, gardenOpts)

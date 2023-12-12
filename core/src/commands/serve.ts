@@ -102,7 +102,7 @@ export class ServeCommand<
 
     const manager = this.getManager(log, undefined)
 
-    manager.defaultProjectRoot = projectConfig?.path || process.cwd()
+    manager.defaultProjectRoot = projectConfig?.configFilePath || process.cwd()
     manager.defaultEnv = opts.env
 
     if (projectConfig) {
@@ -121,11 +121,11 @@ export class ServeCommand<
           this.commandLine.cwd = defaultGarden.projectRoot
         }
       } catch (error) {
-        log.warn(`Unable to load Garden project found at ${projectConfig.path}: ${error}`)
+        log.warn(`Unable to load Garden project found at ${projectConfig.configFileDirname}: ${error}`)
       }
     }
 
-    const cloudDomain = getGardenCloudDomain(projectConfig?.domain)
+    const cloudDomain = getGardenCloudDomain(projectConfig?.config.domain)
 
     try {
       this.server = await startServer({
@@ -169,10 +169,10 @@ export class ServeCommand<
       }
 
       if (projectConfig && cloudApi && defaultGarden) {
-        let projectId = projectConfig?.id
+        let projectId = projectConfig?.config.id
 
         if (!projectId) {
-          const cloudProject = await cloudApi.getProjectByName(projectConfig.name)
+          const cloudProject = await cloudApi.getProjectByName(projectConfig.config.name)
           projectId = cloudProject?.id
         }
 

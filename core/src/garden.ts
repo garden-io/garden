@@ -56,7 +56,7 @@ import type { ConfigGraph } from "./graph/config-graph.js"
 import { ResolvedConfigGraph } from "./graph/config-graph.js"
 import { getRootLogger } from "./logger/logger.js"
 import type { GardenPluginSpec } from "./plugin/plugin.js"
-import type { GardenResource } from "./config/base.js"
+import type { GardenResource, UnrefinedProjectConfig } from "./config/base.js"
 import { loadConfigResources, findProjectConfig, configTemplateKind, renderTemplateKind } from "./config/base.js"
 import type { DeepPrimitiveMap, StringMap, PrimitiveMap } from "./config/common.js"
 import { treeVersionSchema, joi, allowUnknown } from "./config/common.js"
@@ -167,12 +167,15 @@ import { configureNoOpExporter } from "./util/open-telemetry/tracing.js"
 import { detectModuleOverlap, makeOverlapErrors } from "./util/module-overlap.js"
 import { GotHttpError } from "./util/http.js"
 import { styles } from "./logger/styles.js"
+import { s } from "./config/zod.js"
+import { CollectionOrValue } from "./util/objects.js"
+import { TemplateValue } from "./template-string/inputs.js"
 
 const defaultLocalAddress = "localhost"
 
 export interface GardenOpts {
   commandInfo: CommandInfo
-  config?: ProjectConfig
+  config?: UnrefinedProjectConfig
   environmentString?: string // Note: This is the string, as e.g. passed with the --env flag
   forceRefresh?: boolean
   gardenDirPath?: string
@@ -272,7 +275,7 @@ export class Garden {
    * for the current environment but can be overwritten with the `--env` flag.
    */
   public readonly namespace: string
-  public readonly variables: DeepPrimitiveMap
+  public readonly variables: CollectionOrValue<TemplateValue>
   // Any variables passed via the `--var` CLI option (maintained here so that they can be used during module resolution
   // to override module variables and module varfiles).
   public readonly variableOverrides: DeepPrimitiveMap
@@ -1715,12 +1718,19 @@ export async function resolveGardenParamsPartial(currentDirectory: string, opts:
     }
   }
 
-  gardenDirPath = resolve(config.path, gardenDirPath || DEFAULT_GARDEN_DIR_NAME)
+  const projectRoot = config.configFileDirname
+
+  if (!projectRoot) {
+    throw new InternalError({
+      message: `Could not determine project root`,
+    })
+  }
+
+  gardenDirPath = resolve(projectRoot, gardenDirPath || DEFAULT_GARDEN_DIR_NAME)
   const artifactsPath = resolve(gardenDirPath, "artifacts")
 
   const _username = (await username()) || ""
-  const projectName = config.name
-  const { path: projectRoot } = config
+  const projectName = config.config.name
   const commandInfo = opts.commandInfo
 
   const treeCache = new TreeCache()
@@ -1734,29 +1744,31 @@ export async function resolveGardenParamsPartial(currentDirectory: string, opts:
   })
   const vcsInfo = await gitHandler.getPathInfo(log, projectRoot)
 
-  // Since we iterate/traverse them before fully validating them (which we do after resolving template strings), we
-  // validate that `config.environments` and `config.providers` are both arrays.
-  // This prevents cryptic type errors when the user mistakenly writes down e.g. a map instead of an array.
-  validateWithPath({
-    config: config.environments,
-    schema: joi.array().items(joi.object()).min(1).required(),
-    configType: "project environments",
-    path: config.path,
-    projectRoot: config.path,
-    source: { yamlDoc: config.internal.yamlDoc, basePath: ["environments"] },
-  })
+  const withEnvironment = config
+    .withContext(
+      new DefaultEnvironmentContext({
+        projectName,
+        projectRoot,
+        artifactsPath,
+        vcsInfo,
+        username: _username,
+        commandInfo,
+      })
+    )
+    .refineWithZod(
+      s.object({
+        environments: s
+          .array(
+            s.object({
+              name: s.string(),
+            })
+          )
+          .min(1),
+        defaultEnvironment: s.string().optional().default(""),
+      })
+    )
 
-  const configDefaultEnvironment = resolveTemplateString({
-    string: config.defaultEnvironment || "",
-    context: new DefaultEnvironmentContext({
-      projectName,
-      projectRoot,
-      artifactsPath,
-      vcsInfo,
-      username: _username,
-      commandInfo,
-    }),
-  }) as string
+  const configDefaultEnvironment = withEnvironment.config.defaultEnvironment
 
   const localConfigStore = new LocalConfigStore(gardenDirPath)
 
@@ -1767,7 +1779,10 @@ export async function resolveGardenParamsPartial(currentDirectory: string, opts:
       log.info(`Using environment ${localConfigDefaultEnv}, set with the \`set default-env\` command`)
     }
 
-    environmentStr = getDefaultEnvironmentName(localConfigDefaultEnv || configDefaultEnvironment, config)
+    environmentStr = getDefaultEnvironmentName(
+      localConfigDefaultEnv || configDefaultEnvironment,
+      withEnvironment.config
+    )
   }
 
   const { environment: environmentName, namespace } = parseEnvironment(environmentStr)
@@ -1819,7 +1834,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
     await ensureDir(gardenDirPath)
     await ensureDir(artifactsPath)
 
-    const projectApiVersion = config.apiVersion
+    const projectApiVersion = config.config.apiVersion
     const sessionId = opts.sessionId || uuidv4()
     const cloudApi = opts.cloudApi || null
 
@@ -1828,7 +1843,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
     // If true, then user is logged in and we fetch the remote project and secrets (if applicable)
     if (!opts.noEnterprise && cloudApi) {
       const distroName = getCloudDistributionName(cloudApi.domain)
-      const isCommunityEdition = !config.domain
+      const isCommunityEdition = !config.config.domain
       const cloudLog = log.createLog({ name: getCloudLogSectionName(distroName) })
 
       cloudLog.info(`Connecting to ${distroName}...`)
@@ -1868,10 +1883,10 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
     // If the user is logged in and a cloud project exists we use that ID
     // but fallback to the one set in the config (even if the user isn't logged in).
     // Same applies for domains.
-    const projectId = cloudProject?.id || config.id
-    const cloudDomain = cloudApi?.domain || getGardenCloudDomain(config.domain)
+    const projectId = cloudProject?.id || config.config.id
+    const cloudDomain = cloudApi?.domain || getGardenCloudDomain(config.config.domain)
 
-    config = resolveProjectConfig({
+    const resolvedConfig = resolveProjectConfig({
       log,
       defaultEnvironmentName: configDefaultEnvironment,
       config,
@@ -1879,19 +1894,19 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
       vcsInfo,
       username: _username,
       loggedIn,
-      enterpriseDomain: config.domain,
+      enterpriseDomain: config.config.domain,
       secrets,
       commandInfo,
     })
 
     const pickedEnv = await pickEnvironment({
-      projectConfig: config,
+      projectConfig: resolvedConfig,
       envString: environmentStr,
       artifactsPath,
       vcsInfo,
       username: _username,
       loggedIn,
-      enterpriseDomain: config.domain,
+      enterpriseDomain: config.config.domain,
       secrets,
       commandInfo,
     })
@@ -1978,21 +1993,21 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
  */
 async function getCloudProject({
   cloudApi,
-  config,
+  config: projectConfig,
   log,
   isCommunityEdition,
   projectRoot,
   projectName,
 }: {
   cloudApi: CloudApi
-  config: ProjectConfig
+  config: UnrefinedProjectConfig
   log: Log
   isCommunityEdition: boolean
   projectRoot: string
   projectName: string
 }) {
   const distroName = getCloudDistributionName(cloudApi.domain)
-  const projectIdFromConfig = config.id
+  const projectIdFromConfig = projectConfig.config.id
 
   // If logged into community edition, throw if ID is set
   if (projectIdFromConfig && isCommunityEdition) {

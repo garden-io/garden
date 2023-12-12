@@ -22,8 +22,7 @@ import type { GardenInstanceManager } from "./instance-manager.js"
 import { isDirectory } from "../util/fs.js"
 import fsExtra from "fs-extra"
 const { pathExists } = fsExtra
-import type { ProjectConfig } from "../config/project.js"
-import { findProjectConfig } from "../config/base.js"
+import { findProjectConfig, type UnrefinedProjectConfig } from "../config/base.js"
 import type { GlobalConfigStore } from "../config-store/global.js"
 import type { ParsedArgs } from "minimist"
 import type { ServeCommand } from "../commands/serve.js"
@@ -44,6 +43,7 @@ import { z } from "zod"
 import { exec } from "../util/util.js"
 import split2 from "split2"
 import pProps from "p-props"
+import { InternalError } from "../exceptions.js"
 
 const autocompleteArguments = {
   input: new StringParameter({
@@ -400,7 +400,7 @@ export async function resolveRequest({
     return { error: { code, message, detail } }
   }
 
-  let projectConfig: ProjectConfig | undefined
+  let projectConfig: UnrefinedProjectConfig | undefined
 
   // TODO: support --root option flag
 
@@ -427,7 +427,13 @@ export async function resolveRequest({
     }
   }
 
-  const projectRoot = projectConfig.path
+  const projectRoot = projectConfig.configFileDirname
+
+  if (!projectRoot) {
+    throw new InternalError({
+      message: `Could not determine project root for project config ${projectConfig.config.name}`,
+    })
+  }
 
   const internal = request.internal
 

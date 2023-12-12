@@ -37,14 +37,13 @@ import {
 } from "./helpers.js"
 import type { ParameterObject, GlobalOptions, ParameterValues } from "./params.js"
 import { globalOptions, OUTPUT_RENDERERS } from "./params.js"
-import type { ProjectConfig } from "../config/project.js"
 import { ERROR_LOG_FILENAME, DEFAULT_GARDEN_DIR_NAME, LOGS_DIR_NAME, gardenEnv } from "../constants.js"
 import { generateBasicDebugInfoReport } from "../commands/get/get-debug-info.js"
 import type { AnalyticsHandler } from "../analytics/analytics.js"
 import type { GardenPluginReference } from "../plugin/plugin.js"
 import type { CloudApiFactory } from "../cloud/api.js"
 import { CloudApi, CloudApiTokenRefreshError, getGardenCloudDomain } from "../cloud/api.js"
-import { findProjectConfig } from "../config/base.js"
+import { type UnrefinedProjectConfig, findProjectConfig } from "../config/base.js"
 import { pMemoizeDecorator } from "../lib/p-memoize.js"
 import { getCustomCommands } from "../commands/custom.js"
 import { Profile } from "../util/profiling.js"
@@ -242,8 +241,8 @@ ${renderCommands(commands)}
       let cloudApi: CloudApi | undefined
 
       if (!command.noProject) {
-        const config = await this.getProjectConfig(log, workingDir)
-        const cloudDomain = getGardenCloudDomain(config?.domain)
+        const projectConfig = await this.getProjectConfig(log, workingDir)
+        const cloudDomain = getGardenCloudDomain(projectConfig?.config.domain)
         const distroName = getCloudDistributionName(cloudDomain)
 
         try {
@@ -258,7 +257,7 @@ ${renderCommands(commands)}
             `)
 
             // Project is configured for cloud usage => fail early to force re-auth
-            if (config && config.id) {
+            if (projectConfig && projectConfig.config.id) {
               throw err
             }
           } else {
@@ -446,7 +445,7 @@ ${renderCommands(commands)}
       return done(1, styles.error(`Could not find specified root path (${argv.root})`))
     }
 
-    let projectConfig: ProjectConfig | undefined
+    let projectConfig: UnrefinedProjectConfig | undefined
 
     // First look for native Garden commands
     const picked = pickCommand(Object.values(this.commands), argv._)
@@ -648,14 +647,14 @@ ${renderCommands(commands)}
   }
 
   @pMemoizeDecorator()
-  async getProjectConfig(log: Log, workingDir: string): Promise<ProjectConfig | undefined> {
+  async getProjectConfig(log: Log, workingDir: string): Promise<UnrefinedProjectConfig | undefined> {
     return findProjectConfig({ log, path: workingDir })
   }
 
   @pMemoizeDecorator()
   private async getCustomCommands(log: Log, workingDir: string): Promise<Command[]> {
     const projectConfig = await this.getProjectConfig(log, workingDir)
-    const projectRoot = projectConfig?.path
+    const projectRoot = projectConfig?.configFileDirname
 
     if (!projectRoot) {
       return []
