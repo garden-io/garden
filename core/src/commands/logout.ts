@@ -78,6 +78,8 @@ export class LogOutCommand extends Command<{}, Opts> {
         cloudDomain,
         skipLogging: true,
         globalConfigStore: garden.globalConfigStore,
+        projectId: undefined,
+        requireLogin: undefined,
       })
 
       if (!cloudApi) {
