@@ -11,6 +11,7 @@ import { parseTemplateCollection } from "../../../../src/template-string/templat
 import { expect } from "chai"
 import { GenericContext } from "../../../../src/config/template-contexts/base.js"
 import { GardenConfig } from "../../../../src/template-string/validation.js"
+import Joi from "@hapi/joi"
 
 // In the future we might
 // const varsFromFirstConfig = firstConfig.atPath("var") // can contain lazy values
@@ -35,15 +36,17 @@ describe("GardenConfig", () => {
       opts: {},
     })
 
-    const config = unrefinedConfig.refine({
-      kind: z.literal("Deployment"),
-      type: z.literal("kubernetes"),
-      spec: z.object({
-        files: z.array(z.string()),
-      }),
-    })
+    const config = unrefinedConfig.refineWithZod(
+      z.object({
+        kind: z.literal("Deployment"),
+        type: z.literal("kubernetes"),
+        spec: z.object({
+          files: z.array(z.string()),
+        }),
+      })
+    )
 
-    const proxy = config.getProxy()
+    const proxy = config.getConfig()
 
     // proxy has type hints, no need to use bracket notation
     expect(proxy.spec.files[0]).to.equal("manifests/deployment.yaml")
@@ -68,17 +71,19 @@ describe("GardenConfig", () => {
       opts: {},
     })
 
-    const config = unrefinedConfig.refine({
-      kind: z.literal("Deployment"),
-      type: z.literal("kubernetes"),
-      spec: z.object({
-        // replicas defaults to 1
-        replicas: z.number().default(1),
-        files: z.array(z.string()),
-      }),
-    })
+    const config = unrefinedConfig.refineWithZod(
+      z.object({
+        kind: z.literal("Deployment"),
+        type: z.literal("kubernetes"),
+        spec: z.object({
+          // replicas defaults to 1
+          replicas: z.number().default(1),
+          files: z.array(z.string()),
+        }),
+      })
+    )
 
-    const proxy = config.getProxy()
+    const proxy = config.getConfig()
 
     // const spec = proxy.spec
 
@@ -98,7 +103,7 @@ describe("GardenConfig", () => {
       },
     })
 
-    const unrefinedProxy = unrefinedConfig.getProxy()
+    const unrefinedProxy = unrefinedConfig.getConfig()
 
     // the unrefined config has not been mutated
     expect(unrefinedProxy).to.deep.equal({
@@ -124,12 +129,14 @@ describe("GardenConfig", () => {
       opts: {
         allowPartial: true,
       },
-    }).refine({
-      // if replicas is not specified, it defaults to 1
-      replicas: z.number().default(1),
-    })
+    }).refineWithZod(
+      z.object({
+        // if replicas is not specified, it defaults to 1
+        replicas: z.number().default(1),
+      })
+    )
 
-    const proxy1 = config1.getProxy()
+    const proxy1 = config1.getConfig()
 
     // replicas is specified, but it's using a variable that's not defined yet and the proxy is in `allowPartial` mode
     expect(proxy1.replicas).to.equal(1)
@@ -137,18 +144,89 @@ describe("GardenConfig", () => {
     // Now var.replicas is defined and the default from spec.replicas should not be used anymore.
     const config2 = config1
       .withContext(new GenericContext({ var: { replicas: 7 } }))
-      .refine({
-        // if replicas is not specified, it defaults to 1
-        replicas: z.number().default(1),
-      })
+      .refineWithZod(
+        z.object({
+          // if replicas is not specified, it defaults to 1
+          replicas: z.number().default(1),
+        })
+      )
 
       // You can even refine multiple times, and the types will be merged together.
-      .refine({
-        foobar: z.string().default("foobar"),
-      })
+      .refineWithZod(
+        z.object({
+          foobar: z.string().default("foobar"),
+        })
+      )
 
-    const proxy2 = config2.getProxy()
+    const proxy2 = config2.getConfig()
+
+    proxy2 satisfies { replicas: number; foobar: string }
+
     expect(proxy2.replicas).to.equal(7)
     expect(proxy2.foobar).to.equal("foobar")
+  })
+
+  it("can be used with any type assertion", () => {
+    const context = new GenericContext({ var: { fruits: ["apple", "banana"] } })
+
+    const isFruits = (value: any): value is { fruits: string[] } => {
+      if (Array.isArray(value.fruits)) {
+        return value.fruits.every((item) => {
+          return typeof item === "string"
+        })
+      }
+      return false
+    }
+
+    const parsedConfig = parseTemplateCollection({
+      value: {
+        fruits: "${var.fruits}",
+      },
+      source: { source: undefined },
+    })
+
+    const config = new GardenConfig({
+      parsedConfig,
+      context,
+      opts: {
+        allowPartial: true,
+      },
+    }).assertType(isFruits)
+
+    const proxy = config.getConfig()
+
+    proxy satisfies { fruits: string[] }
+
+    expect(proxy.fruits).to.deep.equal(["apple", "banana"])
+  })
+
+  it("can be used with joi validators", () => {
+    const fruitsSchema = Joi.object({ fruits: Joi.array().items(Joi.string()) })
+    type Fruits = {
+      fruits: string[]
+    }
+
+    const context = new GenericContext({ var: { fruits: ["apple", "banana"] } })
+
+    const parsedConfig = parseTemplateCollection({
+      value: {
+        fruits: "${var.fruits}",
+      },
+      source: { source: undefined },
+    })
+
+    const config = new GardenConfig({
+      parsedConfig,
+      context,
+      opts: {
+        allowPartial: true,
+      },
+    }).refineWithJoi<Fruits>(fruitsSchema)
+
+    const proxy = config.getConfig()
+
+    proxy satisfies Fruits
+
+    expect(proxy.fruits).to.deep.equal(["apple", "banana"])
   })
 })

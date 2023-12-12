@@ -6,13 +6,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { z, infer as inferZodType, ZodIntersection, ZodObject } from "zod"
+import { z, infer as inferZodType } from "zod"
 import { ConfigContext, ContextResolveOpts } from "../config/template-contexts/base.js"
 import { Collection, CollectionOrValue, isArray, isPlainObject } from "../util/objects.js"
-import { TemplateLeaf, TemplatePrimitive, TemplateValue, templatePrimitiveDeepMap } from "./inputs.js"
+import { TemplatePrimitive, TemplateValue } from "./inputs.js"
 import { getLazyConfigProxy } from "./proxy.js"
-import { PartialDeep } from "type-fest"
-import { OverrideKeyPathLazily } from "./lazy.js"
+import Joi from "@hapi/joi"
 
 type Change = { path: (string | number)[]; value: CollectionOrValue<TemplatePrimitive> }
 
@@ -23,9 +22,9 @@ type Change = { path: (string | number)[]; value: CollectionOrValue<TemplatePrim
 // We also know that the object now has been validated so we know that the object will
 // afterwards be conforming to the type given during validation, deriving from the base object.
 // Thus we only need to track additions or changes, never deletions.
-function getChangeset<T extends CollectionOrValue<TemplatePrimitive>>(
-  base: PartialDeep<T>,
-  compare: T,
+function getChangeset(
+  base: CollectionOrValue<TemplatePrimitive>,
+  compare: CollectionOrValue<TemplatePrimitive>,
   path: (string | number)[] = [],
   changeset: Change[] = []
 ): Change[] {
@@ -88,48 +87,79 @@ function getOverlayProxy(targetObject: Collection<TemplatePrimitive>, changes: C
   return proxy
 }
 
-export type GardenConfigParams<ZodShape extends z.ZodRawShape> = {
+export type GardenConfigParams = {
   parsedConfig: CollectionOrValue<TemplateValue>
   context: ConfigContext
   opts: ContextResolveOpts
   overlays?: Change[]
-  validator?: z.ZodObject<ZodShape>
 }
 
-export class GardenConfig<ZodShape extends z.ZodRawShape = {}> {
+type TypeAssertion<T> = (object: any) => object is T
+export class GardenConfig<ConfigType extends Collection<TemplatePrimitive> = Collection<TemplatePrimitive>> {
   private parsedConfig: CollectionOrValue<TemplateValue>
   private context: ConfigContext
   private opts: ContextResolveOpts
-  private validator: z.ZodObject<ZodShape>
   private overlays: Change[]
 
-  constructor({ parsedConfig, context, opts, validator = z.object({}) as z.ZodObject<ZodShape>, overlays = [] }: GardenConfigParams<ZodShape>) {
+  constructor({ parsedConfig, context, opts, overlays = [] }: GardenConfigParams) {
     this.parsedConfig = parsedConfig
     this.context = context
     this.opts = opts
-    this.validator = validator
     this.overlays = overlays
   }
 
-  public withContext(context: ConfigContext): GardenConfig<{}> {
+  public withContext(context: ConfigContext): GardenConfig {
+    // we wipe the types, because a new context can result in different results when evaluating template strings
     return new GardenConfig({
       parsedConfig: this.parsedConfig,
       context,
       opts: this.opts,
       overlays: [],
-      validator: z.object({}),
     })
   }
 
-  public refine<Augmentation extends z.ZodRawShape>(incoming: Augmentation): GardenConfig<z.objectUtil.extendShape<ZodShape, Augmentation>> {
+  public assertType<Type extends CollectionOrValue<TemplatePrimitive>>(assertion: TypeAssertion<Type>): GardenConfig<ConfigType & Type> {
+    const rawConfig = this.getConfig()
+    const configIsOfType = assertion(rawConfig)
+
+    if (configIsOfType) {
+      return new GardenConfig<ConfigType & Type>({
+        parsedConfig: this.parsedConfig,
+        context: this.context,
+        opts: this.opts,
+        overlays: this.overlays,
+      })
+    } else {
+      // TODO: Write a better error message
+      throw new Error("Config is not of the expected type")
+    }
+  }
+
+  public refineWithZod<Validator extends z.AnyZodObject>(validator: Validator): GardenConfig<ConfigType & inferZodType<Validator>> {
     // merge the schemas
-    const newValidator = this.validator.extend(incoming)
 
     // instantiate proxy without overlays
-    const rawConfig = this.getProxy([])
+    const rawConfig = this.getConfig([])
 
     // validate config and extract changes
-    const validated = newValidator.parse(rawConfig)
+    const validated = validator.parse(rawConfig)
+    const changes = getChangeset(rawConfig, validated)
+
+    return new GardenConfig({
+      parsedConfig: this.parsedConfig,
+      context: this.context,
+      opts: this.opts,
+      overlays: [...changes],
+    })
+  }
+
+  // With joi we can't infer the type from the schema
+  public refineWithJoi<JoiType extends Collection<TemplatePrimitive>>(validator: Joi.SchemaLike): GardenConfig<ConfigType & JoiType> {
+    // instantiate proxy without overlays
+    const rawConfig = this.getConfig([])
+
+    // validate config and extract changes
+    const validated = Joi.attempt(rawConfig, validator)
     const changes = getChangeset(rawConfig as any, validated)
 
     return new GardenConfig({
@@ -137,18 +167,21 @@ export class GardenConfig<ZodShape extends z.ZodRawShape = {}> {
       context: this.context,
       opts: this.opts,
       overlays: [...changes],
-      validator: newValidator,
     })
   }
 
-  public getProxy(overlays?: Change[]): inferZodType<z.ZodObject<ZodShape>> {
-    return getOverlayProxy(
-      getLazyConfigProxy({
-        parsedConfig: this.parsedConfig,
-        context: this.context,
-        opts: this.opts,
-      }) as inferZodType<z.ZodObject<ZodShape>>,
-      overlays || this.overlays
-    ) as inferZodType<z.ZodObject<ZodShape>>
+  public getConfig(overlays?: Change[]): ConfigType {
+    const configProxy = getLazyConfigProxy({
+      parsedConfig: this.parsedConfig,
+      context: this.context,
+      opts: this.opts,
+    }) as ConfigType
+
+    const changes = overlays || this.overlays
+    if (changes.length > 0) {
+      return getOverlayProxy(configProxy, changes) as ConfigType
+    }
+
+    return configProxy
   }
 }
