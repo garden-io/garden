@@ -23,7 +23,7 @@ import { globalDisplayOptions } from "./params.js"
 import { GardenError, ParameterError, RuntimeError, toGardenError } from "../exceptions.js"
 import { getPackageVersion, removeSlice } from "../util/util.js"
 import type { Log } from "../logger/log-entry.js"
-import { STATIC_DIR, gardenEnv, ERROR_LOG_FILENAME } from "../constants.js"
+import { STATIC_DIR, gardenEnv, ERROR_LOG_FILENAME, DOCS_BASE_URL } from "../constants.js"
 import { printWarningMessage } from "../logger/util.js"
 import type { GlobalConfigStore } from "../config-store/global.js"
 import { got } from "../util/http.js"
@@ -562,4 +562,14 @@ export function renderCommandErrors(logger: Logger, errors: Error[], log?: Log) 
   if (logger.getWriters().file.length > 0) {
     errorLog.info(`\nSee .garden/${ERROR_LOG_FILENAME} for detailed error message`)
   }
+}
+
+export function getDashboardInfoMsg() {
+  return styles.success(deline`
+    🌿 Log in with ${styles.command(
+      "garden login"
+    )} to explore logs, past commands, and your dependency graph in the Garden dashboard.
+
+    Learn more at: ${styles.underline(`${DOCS_BASE_URL}/using-garden/dashboard`)}\n
+  `)
 }

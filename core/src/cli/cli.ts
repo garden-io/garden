@@ -35,11 +35,18 @@ import {
   checkRequirements,
   renderCommandErrors,
   cliStyles,
+  getDashboardInfoMsg,
 } from "./helpers.js"
 import type { ParameterObject, GlobalOptions, ParameterValues } from "./params.js"
 import { globalOptions, OUTPUT_RENDERERS } from "./params.js"
 import type { ProjectConfig } from "../config/project.js"
-import { ERROR_LOG_FILENAME, DEFAULT_GARDEN_DIR_NAME, LOGS_DIR_NAME, gardenEnv } from "../constants.js"
+import {
+  ERROR_LOG_FILENAME,
+  DEFAULT_GARDEN_DIR_NAME,
+  LOGS_DIR_NAME,
+  gardenEnv,
+  DEFAULT_GARDEN_CLOUD_DOMAIN,
+} from "../constants.js"
 import { generateBasicDebugInfoReport } from "../commands/get/get-debug-info.js"
 import type { AnalyticsHandler } from "../analytics/analytics.js"
 import type { GardenPluginReference } from "../plugin/plugin.js"
@@ -244,13 +251,10 @@ ${renderCommands(commands)}
         !command.noProject && command.getFullName() !== "dev" && command.getFullName() !== "serve"
           ? log.createLog({ name: "garden", showDuration: true })
           : null
+      gardenInitLog?.info("Initializing...")
 
       // Init Cloud API (if applicable)
       let cloudApi: CloudApi | undefined
-
-      if (gardenInitLog) {
-        gardenInitLog.info("Initializing...")
-      }
       if (!command.noProject) {
         const config = await this.getProjectConfig(log, workingDir)
         const cloudDomain = getGardenCloudDomain(config?.domain)
@@ -319,6 +323,16 @@ ${renderCommands(commands)}
           garden = await makeDummyGarden(workingDir, contextOpts)
         } else {
           garden = await wrapActiveSpan("initializeGarden", () => this.getGarden(workingDir, contextOpts))
+          const isLoggedIn = !!cloudApi
+          const isCommunityEdition = garden.cloudDomain === DEFAULT_GARDEN_CLOUD_DOMAIN
+
+          if (!isLoggedIn && isCommunityEdition) {
+            await garden.emitWarning({
+              key: "web-app",
+              log,
+              message: "\n" + getDashboardInfoMsg(),
+            })
+          }
 
           if (!gardenEnv.GARDEN_DISABLE_VERSION_CHECK) {
             await garden.emitWarning({
@@ -332,16 +346,6 @@ ${renderCommands(commands)}
           }
 
           gardenLog.info(`Running in environment ${styles.highlight(`${garden.environmentName}.${garden.namespace}`)}`)
-
-          if (!cloudApi && garden.projectId) {
-            log.info("")
-            log.warn(
-              `Warning: You are not logged in into Garden Cloud. Please log in via the ${styles.command(
-                "garden login"
-              )} command.`
-            )
-            log.info("")
-          }
 
           if (processRecord) {
             // Update the db record for the process

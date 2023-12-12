@@ -14,8 +14,8 @@ import { expect } from "chai"
 describe("garden-cloud", () => {
   describe("getCloudDistributionName", () => {
     context(`when domain name is ${DEFAULT_GARDEN_CLOUD_DOMAIN}`, () => {
-      it(`returns "Garden Dashboard" for ${DEFAULT_GARDEN_CLOUD_DOMAIN}`, () => {
-        expect(getCloudDistributionName(DEFAULT_GARDEN_CLOUD_DOMAIN)).to.eql("Garden Dashboard")
+      it(`returns "the Garden dashboard" for ${DEFAULT_GARDEN_CLOUD_DOMAIN}`, () => {
+        expect(getCloudDistributionName(DEFAULT_GARDEN_CLOUD_DOMAIN)).to.eql("the Garden dashboard")
       })
     })
 
@@ -41,8 +41,8 @@ describe("garden-cloud", () => {
   })
 
   describe("getCloudLogSectionName", () => {
-    it(`returns "garden-dashboard" for "Garden Dashboard"`, () => {
-      expect(getCloudLogSectionName("Garden Dashboard")).to.eql("garden-dashboard")
+    it(`returns "garden-dashboard" for "the Garden dashboard"`, () => {
+      expect(getCloudLogSectionName("the Garden dashboard")).to.eql("garden-dashboard")
     })
 
     it(`returns "garden-cloud" for "Garden Cloud"`, () => {

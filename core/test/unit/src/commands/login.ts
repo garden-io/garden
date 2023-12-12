@@ -62,7 +62,7 @@ describe("LoginCommand", () => {
     }
     const command = new LoginCommand()
     const garden = await makeTestGarden(getDataDir("test-projects", "login", "has-domain"), {
-      noEnterprise: false,
+      skipCloudConnect: false,
       commandInfo: { name: "foo", args: {}, opts: {} },
       globalConfigStore,
     })
@@ -88,7 +88,7 @@ describe("LoginCommand", () => {
     }
     const command = new LoginCommand()
     const garden = await makeTestGarden(getDataDir("test-projects", "login", "has-domain-and-id"), {
-      noEnterprise: false,
+      skipCloudConnect: false,
       commandInfo: { name: "foo", args: {}, opts: {} },
       globalConfigStore,
     })
@@ -115,7 +115,7 @@ describe("LoginCommand", () => {
 
     const command = new LoginCommand()
     const garden = await makeTestGarden(getDataDir("test-projects", "login", "has-domain-and-id"), {
-      noEnterprise: false,
+      skipCloudConnect: false,
       commandInfo: { name: "foo", args: {}, opts: {} },
       globalConfigStore,
     })
@@ -146,7 +146,7 @@ describe("LoginCommand", () => {
     // NOTE: if we don't use makeDummyGarden it would try to fully resolve the
     // secrets which are not available unless we mock the cloud API instance.
     const garden = await makeDummyGarden(getDataDir("test-projects", "login", "secret-in-project-variables"), {
-      noEnterprise: false,
+      skipCloudConnect: false,
       commandInfo: { name: "foo", args: {}, opts: {} },
       globalConfigStore,
     })
@@ -205,7 +205,7 @@ describe("LoginCommand", () => {
 
     const command = new LoginCommand()
     const garden = await makeTestGarden(getDataDir("test-projects", "login", "has-domain-and-id"), {
-      noEnterprise: false,
+      skipCloudConnect: false,
       commandInfo: { name: "foo", args: {}, opts: {} },
       globalConfigStore,
     })
@@ -236,7 +236,7 @@ describe("LoginCommand", () => {
 
     const command = new LoginCommand()
     const garden = await makeTestGarden(getDataDir("test-projects", "login", "has-domain-and-id"), {
-      noEnterprise: false,
+      skipCloudConnect: false,
       commandInfo: { name: "foo", args: {}, opts: {} },
       globalConfigStore,
     })
@@ -301,7 +301,7 @@ describe("LoginCommand", () => {
 
     // this is a bit of a workaround to run outside of the garden root dir
     const garden = await makeDummyGarden(getDataDir("..", "..", "..", ".."), {
-      noEnterprise: false,
+      skipCloudConnect: false,
       commandInfo: { name: "foo", args: {}, opts: {} },
       globalConfigStore,
     })
@@ -338,7 +338,7 @@ describe("LoginCommand", () => {
     it("should be a no-op if the user has a valid auth token in the environment", async () => {
       const command = new LoginCommand()
       const garden = await makeTestGarden(getDataDir("test-projects", "login", "has-domain-and-id"), {
-        noEnterprise: false,
+        skipCloudConnect: false,
         commandInfo: { name: "foo", args: {}, opts: {} },
         globalConfigStore,
       })
@@ -355,7 +355,7 @@ describe("LoginCommand", () => {
     it("should throw if the user has an invalid auth token in the environment", async () => {
       const command = new LoginCommand()
       const garden = await makeTestGarden(getDataDir("test-projects", "login", "has-domain-and-id"), {
-        noEnterprise: false,
+        skipCloudConnect: false,
         commandInfo: { name: "foo", args: {}, opts: {} },
         globalConfigStore,
       })
@@ -388,7 +388,7 @@ describe("LoginCommand", () => {
       }
       const command = new LoginCommand()
       const garden = await makeTestGarden(getDataDir("test-projects", "login", "missing-domain"), {
-        noEnterprise: false,
+        skipCloudConnect: false,
         commandInfo: { name: "foo", args: {}, opts: {} },
         globalConfigStore,
       })
@@ -418,7 +418,7 @@ describe("LoginCommand", () => {
       }
       const command = new LoginCommand()
       const garden = await makeTestGarden(getDataDir("test-projects", "login", "has-domain"), {
-        noEnterprise: false,
+        skipCloudConnect: false,
         commandInfo: { name: "foo", args: {}, opts: {} },
         globalConfigStore,
       })
