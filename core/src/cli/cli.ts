@@ -279,6 +279,8 @@ ${renderCommands(commands)}
             }
           } else {
             // unhandled error when creating the cloud api
+            log.info("")
+
             throw err
           }
         }
