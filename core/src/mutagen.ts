@@ -213,6 +213,7 @@ class _MutagenMonitor extends TypedEventEmitter<MonitorEvents> {
       const proc = respawn(mutagenOpts, {
         cwd: dataDir,
         name: "mutagen",
+        // TODO: Add MUTAGEN_SSH_PATH with Garden-provided faux SSH
         env: getMutagenEnv({ dataDir, logLevel: "debug" }),
         maxRestarts,
         sleep: 3000,
@@ -872,8 +873,8 @@ export const mutagenCliSpec: PluginToolSpec = {
     {
       platform: "darwin",
       architecture: "amd64",
-      url: `https://github.com/garden-io/mutagen/releases/download/v${mutagenVersion}-garden-1/mutagen_darwin_amd64_v${mutagenVersion}.tar.gz`,
-      sha256: "370bf71e28f94002453921fda83282280162df7192bd07042bf622bf54507e3f",
+      url: `https://github.com/mutagen-io/mutagen/releases/download/v${mutagenVersion}/mutagen_darwin_amd64_v${mutagenVersion}.tar.gz`,
+      sha256: "7ff3fae37c90f050db283f557d4370546691e4d5ec2f6dd10fbcbe6a20ba0154",
       extract: {
         format: "tar",
         targetPath: "mutagen",
@@ -882,8 +883,8 @@ export const mutagenCliSpec: PluginToolSpec = {
     {
       platform: "darwin",
       architecture: "arm64",
-      url: `https://github.com/garden-io/mutagen/releases/download/v${mutagenVersion}-garden-1/mutagen_darwin_arm64_v${mutagenVersion}.tar.gz`,
-      sha256: "a0a7be8bb37266ea184cb580004e1741a17c8165b2032ce4b191f23fead821a0",
+      url: `https://github.com/mutagen-io/mutagen/releases/download/v${mutagenVersion}/mutagen_darwin_arm64_v${mutagenVersion}.tar.gz`,
+      sha256: "2ab938830c9a1a7d5b3289826f9765654ca465b7a089b74df407071bc5f8b7b0",
       extract: {
         format: "tar",
         targetPath: "mutagen",
@@ -892,8 +893,8 @@ export const mutagenCliSpec: PluginToolSpec = {
     {
       platform: "linux",
       architecture: "amd64",
-      url: `https://github.com/garden-io/mutagen/releases/download/v${mutagenVersion}-garden-1/mutagen_linux_amd64_v${mutagenVersion}.tar.gz`,
-      sha256: "e8c0708258ddd6d574f1b8f514fb214f9ab5d82aed38dd8db49ec10956e5063a",
+      url: `https://github.com/mutagen-io/mutagen/releases/download/v${mutagenVersion}/mutagen_linux_amd64_v${mutagenVersion}.tar.gz`,
+      sha256: "dd4a0b6fa8b36232108075d2c740d563ec945d8e872c749ad027fa1b241a8b07",
       extract: {
         format: "tar",
         targetPath: "mutagen",
@@ -902,8 +903,8 @@ export const mutagenCliSpec: PluginToolSpec = {
     {
       platform: "linux",
       architecture: "arm64",
-      url: `https://github.com/garden-io/mutagen/releases/download/v${mutagenVersion}-garden-1/mutagen_linux_arm64_v${mutagenVersion}.tar.gz`,
-      sha256: "80f108fc316223d8c3d1a48def18192e666b33a334b75aa3ebcc95938b774e64",
+      url: `https://github.com/mutagen-io/mutagen/releases/download/v${mutagenVersion}/mutagen_linux_arm64_v${mutagenVersion}.tar.gz`,
+      sha256: "137274f443aaf6bfb9c9170cdfa91d9ea88c5903e8c79b445870881ef678b4e8",
       extract: {
         format: "tar",
         targetPath: "mutagen",
@@ -912,8 +913,8 @@ export const mutagenCliSpec: PluginToolSpec = {
     {
       platform: "windows",
       architecture: "amd64",
-      url: `https://github.com/garden-io/mutagen/releases/download/v${mutagenVersion}-garden-1/mutagen_windows_amd64_v${mutagenVersion}.zip`,
-      sha256: "fdae26b43cc418b2525a937a1613bba36e74ea3dde4dbec3512a9abd004def95",
+      url: `https://github.com/mutagen-io/mutagen/releases/download/v${mutagenVersion}/mutagen_windows_amd64_v${mutagenVersion}.zip`,
+      sha256: "8b502693add563a7dd7973f043301b25ef34bd3846619dffce3ba47f64c15a0a",
       extract: {
         format: "zip",
         targetPath: "mutagen.exe",

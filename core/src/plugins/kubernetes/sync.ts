@@ -989,20 +989,27 @@ export async function getKubectlExecDestination({
     namespace,
   })
 
-  const command = [
+  const parameters = {
     kubectlPath,
-    "exec",
-    "-i",
-    ...connectionOpts,
-    "--container",
-    containerName,
-    resourceName,
-    "--",
-    mutagenAgentPath,
-    "synchronizer",
-  ]
+    kubectlArgs: [
+      "exec",
+      "-i",
+      ...connectionOpts,
+      "--container",
+      containerName,
+      resourceName,
+      "--",
+      mutagenAgentPath,
+      "synchronizer",
+    ],
+  }
 
-  return `exec:'${command.join(" ")}':${targetPath}`
+  // We replace the standard Base64 '/' character with '_' in this encoding
+  // because the presence of a forward slash will cause Mutagen to treat this as
+  // a local path, in which case it won't be dispatched to our faux SSH command.
+  const hostname = Buffer.from(JSON.stringify(parameters)).toString("base64").replace(/\//g, "_")
+
+  return `${hostname}:${targetPath}`
 }
 
 const isReverseMode = (mode: string) => mode === "one-way-reverse" || mode === "one-way-replica-reverse"
