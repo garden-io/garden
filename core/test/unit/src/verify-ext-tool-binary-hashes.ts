@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { mutagenCliSpec } from "../../../src/mutagen.js"
+import { mutagenCliSpecLegacy, mutagenCliSpecNative } from "../../../src/mutagen.js"
 import { kubectlSpec } from "../../../src/plugins/kubernetes/kubectl.js"
 import { kustomizeSpec } from "../../../src/plugins/kubernetes/kubernetes-type/kustomize.js"
 import { helm3Spec } from "../../../src/plugins/kubernetes/helm/helm-cli.js"
@@ -18,7 +18,7 @@ describe("Docker binaries", () => {
 })
 
 describe("Mutagen binaries", () => {
-  downloadBinariesAndVerifyHashes([mutagenCliSpec])
+  downloadBinariesAndVerifyHashes([mutagenCliSpecNative(), mutagenCliSpecLegacy()])
 })
 
 describe("Kubectl binaries", () => {

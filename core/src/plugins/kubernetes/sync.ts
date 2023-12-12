@@ -69,7 +69,7 @@ import { convertServiceResource } from "./kubernetes-type/common.js"
 import { prepareConnectionOpts } from "./kubectl.js"
 import type { GetSyncStatusResult, SyncState, SyncStatus } from "../../plugin/handlers/Deploy/get-sync-status.js"
 import { ConfigurationError } from "../../exceptions.js"
-import { DOCS_BASE_URL } from "../../constants.js"
+import { DOCS_BASE_URL, gardenEnv } from "../../constants.js"
 import { styles } from "../../logger/styles.js"
 
 export const builtInExcludes = ["/**/*.git", "**/*.garden"]
@@ -966,7 +966,48 @@ export function makeSyncConfig({
   }
 }
 
-export async function getKubectlExecDestination({
+async function getKubectlExecDestinationLegacy({
+  ctx,
+  log,
+  namespace,
+  containerName,
+  resourceName,
+  targetPath,
+}: {
+  ctx: KubernetesPluginContext
+  log: Log
+  namespace: string
+  containerName: string
+  resourceName: string
+  targetPath: string
+}) {
+  const kubectl = ctx.tools["kubernetes.kubectl"]
+  const kubectlPath = await kubectl.ensurePath(log)
+
+  const connectionOpts = prepareConnectionOpts({
+    provider: ctx.provider,
+    namespace,
+  })
+
+  const command = [
+    kubectlPath,
+    "exec",
+    "-i",
+    ...connectionOpts,
+    "--container",
+    containerName,
+    resourceName,
+    "--",
+    mutagenAgentPath,
+    "synchronizer",
+  ]
+
+  log.debug("Using legacy Mutagen (Garden fork)")
+
+  return `exec:'${command.join(" ")}':${targetPath}`
+}
+
+async function getKubectlExecDestinationNative({
   ctx,
   log,
   namespace,
@@ -1009,7 +1050,13 @@ export async function getKubectlExecDestination({
   // a local path, in which case it won't be dispatched to our faux SSH command.
   const hostname = Buffer.from(JSON.stringify(parameters)).toString("base64").replace(/\//g, "_")
 
+  log.debug("Using native Mutagen with faux SSH transport")
+
   return `${hostname}:${targetPath}`
 }
+
+export const getKubectlExecDestination = !!gardenEnv.MUTAGEN_SSH_PATH
+  ? getKubectlExecDestinationNative
+  : getKubectlExecDestinationLegacy
 
 const isReverseMode = (mode: string) => mode === "one-way-reverse" || mode === "one-way-replica-reverse"
