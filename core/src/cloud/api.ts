@@ -218,7 +218,7 @@ export class CloudApi {
     globalConfigStore,
     skipLogging = false,
     projectId = undefined,
-    requireLogin = false,
+    requireLogin = undefined,
   }: CloudApiFactoryParams) {
     const distroName = getCloudDistributionName(cloudDomain)
     const fixLevel = skipLogging ? LogLevel.silly : undefined
@@ -235,7 +235,7 @@ export class CloudApi {
     const isLoginRequired: boolean =
       gardenEnv.GARDEN_REQUIRE_LOGIN_OVERRIDE !== undefined
         ? gardenEnv.GARDEN_REQUIRE_LOGIN_OVERRIDE
-        : projectId !== undefined && requireLogin
+        : projectId !== undefined && requireLogin === true
 
     // Base case when the user is not logged in to cloud and the
     // criteria for cloud login is not required:
