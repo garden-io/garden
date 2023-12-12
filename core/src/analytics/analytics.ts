@@ -14,7 +14,7 @@ import type { AnalyticsGlobalConfig } from "../config-store/global.js"
 import { getPackageVersion, sleep, getDurationMsec } from "../util/util.js"
 import { SEGMENT_PROD_API_KEY, SEGMENT_DEV_API_KEY, gardenEnv } from "../constants.js"
 import type { Log } from "../logger/log-entry.js"
-import hasha from "hasha"
+import { hashSync } from "hasha"
 import type { Garden } from "../garden.js"
 import type { AnalyticsCommandResult, AnalyticsEventType } from "./analytics-types.js"
 import dedent from "dedent"
@@ -526,7 +526,7 @@ export class AnalyticsHandler {
   }
 
   static hash(val: string) {
-    return hasha(val, { algorithm: "sha512" })
+    return hashSync(val, { algorithm: "sha512" })
   }
 
   static async refreshGarden(garden: Garden) {
@@ -704,8 +704,8 @@ export class AnalyticsHandler {
         ...this.getBasicAnalyticsProperties(),
         kind,
         moduleType: type,
-        name: hasha(name, { algorithm: "sha256" }),
-        moduleName: hasha(moduleName, { algorithm: "sha256" }),
+        name: hashSync(name, { algorithm: "sha256" }),
+        moduleName: hashSync(moduleName, { algorithm: "sha256" }),
       },
     })
   }
@@ -719,7 +719,7 @@ export class AnalyticsHandler {
    * Tracks a Garden Module configuration error
    */
   trackModuleConfigError(name: string, moduleType: string) {
-    const moduleName = hasha(name, { algorithm: "sha256" })
+    const moduleName = hashSync(name, { algorithm: "sha256" })
     return this.track({
       type: "Module Configuration Error",
       properties: {

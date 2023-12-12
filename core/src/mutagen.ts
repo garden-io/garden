@@ -13,7 +13,7 @@ import type { ExecaReturnValue } from "execa"
 import fsExtra from "fs-extra"
 
 const { mkdirp, pathExists } = fsExtra
-import hasha from "hasha"
+import { hashSync } from "hasha"
 import pRetry from "p-retry"
 import { join } from "path"
 import respawn from "respawn"
@@ -800,7 +800,7 @@ export interface SyncSession {
  * </ul>
  */
 export function getMutagenDataDir(path: string, log: Log) {
-  const hash = hasha(path, { algorithm: "sha256" }).slice(0, 9)
+  const hash = hashSync(path, { algorithm: "sha256" }).slice(0, 9)
   const shortPath = join(GARDEN_GLOBAL_PATH, MUTAGEN_DIR_NAME, hash)
   log.verbose(
     `Your Garden project path looks too long, that might cause errors while starting the syncs. Garden will create a new directory to manage syncs at path: ${shortPath}.`
