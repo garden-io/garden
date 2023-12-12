@@ -213,10 +213,7 @@ class _MutagenMonitor extends TypedEventEmitter<MonitorEvents> {
       const proc = respawn(mutagenOpts, {
         cwd: dataDir,
         name: "mutagen",
-        env: {
-          MUTAGEN_DATA_DIRECTORY: dataDir,
-          MUTAGEN_LOG_LEVEL: "debug",
-        },
+        env: getMutagenEnv(dataDir, "debug"),
         maxRestarts,
         sleep: 3000,
         kill: 500,
@@ -808,9 +805,13 @@ export function getMutagenDataDir(path: string, log: Log) {
   return shortPath
 }
 
-export function getMutagenEnv(dataDir: string) {
-  return {
-    MUTAGEN_DATA_DIRECTORY: dataDir,
+export function getMutagenEnv(dataDir: string, logLevel?: string) {
+  const env = { MUTAGEN_DATA_DIRECTORY: dataDir }
+
+  if (!!logLevel) {
+    return { ...env, MUTAGEN_LOG_LEVEL: logLevel }
+  } else {
+    return env
   }
 }
 
