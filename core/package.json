@@ -243,7 +243,7 @@
     "serve-static": "^1.15.0",
     "shx": "^0.3.4",
     "sinon": "^17.0.1",
-    "testdouble": "^3.17.2",
+    "testdouble": "^3.20.1",
     "timekeeper": "^2.2.0",
     "type-fest": "^4.6.0",
     "typescript": "^5.1.3",
