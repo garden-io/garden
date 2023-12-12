@@ -1869,59 +1869,28 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
     const projectApiVersion = config.apiVersion
     const sessionId = opts.sessionId || uuidv4()
     const cloudApi = opts.cloudApi || null
-    const isCommunityEdition = !config.domain
-    const distroName = getCloudDistributionName(cloudApi?.domain || DEFAULT_GARDEN_CLOUD_DOMAIN)
-    const debugLevelCommands = ["dev", "serve", "exit", "quit"]
-    const cloudLogLevel = debugLevelCommands.includes(opts.commandInfo.name) ? LogLevel.debug : undefined
-    const cloudLog = log.createLog({ name: getCloudLogSectionName(distroName), fixLevel: cloudLogLevel })
-
-    let secrets: StringMap = {}
-    let cloudProject: CloudProject | null = null
-    // If true, then user is logged in and we fetch the remote project and secrets (if applicable)
-    if (!opts.skipCloudConnect && cloudApi) {
-      cloudLog.info(`Connecting project...`)
-
-      cloudProject = await getCloudProject({
-        cloudApi,
-        config,
-        log: cloudLog,
-        projectName,
-        projectRoot,
-        isCommunityEdition,
-      })
-
-      // Fetch Secrets. Not supported on the community edition.
-      if (cloudProject && !isCommunityEdition) {
-        try {
-          secrets = await wrapActiveSpan(
-            "getSecrets",
-            async () =>
-              await cloudApi.getSecrets({
-                log: cloudLog,
-                projectId: cloudProject!.id,
-                environmentName,
-              })
-          )
-          cloudLog.debug(`Fetched ${Object.keys(secrets).length} secrets from ${cloudApi.domain}`)
-        } catch (err) {
-          cloudLog.error(`Fetching secrets failed with error: ${err}`)
-        }
-      }
-
-      cloudLog.success("Ready")
-    } else if (!opts.skipCloudConnect) {
-      cloudLog.warn(
-        `You are not logged in. To use ${distroName}, log in with the ${styles.command("garden login")} command.`
-      )
-    }
-
+    const cloudDomain = cloudApi?.domain || getGardenCloudDomain(config.domain)
     const loggedIn = !!cloudApi
+
+    const { secrets, cloudProject } = opts.skipCloudConnect
+      ? {
+          secrets: {},
+          cloudProject: null,
+        }
+      : await prepareCloud({
+          cloudApi,
+          config,
+          log,
+          projectRoot,
+          projectName,
+          environmentName,
+          commandName: opts.commandInfo.name,
+        })
 
     // If the user is logged in and a cloud project exists we use that ID
     // but fallback to the one set in the config (even if the user isn't logged in).
     // Same applies for domains.
     const projectId = cloudProject?.id || config.id
-    const cloudDomain = cloudApi?.domain || getGardenCloudDomain(config.domain)
 
     config = resolveProjectConfig({
       log,
@@ -2025,6 +1994,85 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
     }
   })
 })
+
+/**
+ * Helper function for getting the cloud project and its secrets.
+ *
+ * It's arguably a bit awkward that the function does both but this makes it easier
+ * to group together the relevant logs.
+ */
+async function prepareCloud({
+  cloudApi,
+  config,
+  log,
+  projectRoot,
+  projectName,
+  environmentName,
+  commandName,
+}: {
+  cloudApi: CloudApi | null
+  config: ProjectConfig
+  log: Log
+  projectRoot: string
+  projectName: string
+  environmentName: string
+  commandName: string
+}) {
+  const cloudDomain = cloudApi?.domain || getGardenCloudDomain(config.domain)
+  const isCommunityEdition = cloudDomain === DEFAULT_GARDEN_CLOUD_DOMAIN
+  const distroName = getCloudDistributionName(cloudDomain)
+  const debugLevelCommands = ["dev", "serve", "exit", "quit"]
+  const cloudLogLevel = debugLevelCommands.includes(commandName) ? LogLevel.debug : undefined
+  const cloudLog = log.createLog({ name: getCloudLogSectionName(distroName), fixLevel: cloudLogLevel })
+
+  let secrets: StringMap = {}
+  let cloudProject: CloudProject | null = null
+  // If true, then user is logged in and we fetch the remote project and secrets (if applicable)
+  if (cloudApi) {
+    cloudLog.info(`Connecting project...`)
+
+    cloudProject = await getCloudProject({
+      cloudApi,
+      config,
+      log: cloudLog,
+      projectName,
+      projectRoot,
+      isCommunityEdition,
+    })
+
+    // Fetch Secrets. Not supported on the community edition.
+    if (cloudProject && !isCommunityEdition) {
+      try {
+        secrets = await wrapActiveSpan(
+          "getSecrets",
+          async () =>
+            await cloudApi.getSecrets({
+              log: cloudLog,
+              projectId: cloudProject!.id,
+              environmentName,
+            })
+        )
+        cloudLog.debug(`Fetched ${Object.keys(secrets).length} secrets from ${cloudApi.domain}`)
+      } catch (err) {
+        cloudLog.error(`Fetching secrets failed with error: ${err}`)
+      }
+    }
+
+    cloudLog.success("Ready")
+  } else {
+    const msg = `You are not logged in. To use ${distroName}, log in with the ${styles.command(
+      "garden login"
+    )} command.`
+    if (isCommunityEdition) {
+      cloudLog.info(msg)
+      cloudLog.info(`Learn more at: ${styles.underline(`${DOCS_BASE_URL}/using-garden/dashboard`)}`)
+    } else {
+      cloudLog.warn(msg)
+    }
+  }
+
+  return { cloudProject, secrets }
+}
 
 /**
  * Returns the cloud project for the respective cloud edition (i.e. community or commercial).
