@@ -14,10 +14,9 @@ import { AuthRedirectServer } from "../../../../src/cloud/auth.js"
 
 import { LoginCommand } from "../../../../src/commands/login.js"
 import { dedent, randomString } from "../../../../src/util/string.js"
-import { CloudApi } from "../../../../src/cloud/api.js"
+import { CloudApi, CloudApiTokenRefreshError } from "../../../../src/cloud/api.js"
 import { LogLevel } from "../../../../src/logger/logger.js"
 import { DEFAULT_GARDEN_CLOUD_DOMAIN, gardenEnv } from "../../../../src/constants.js"
-import { CloudApiError } from "../../../../src/exceptions.js"
 import { getLogMessages } from "../../../../src/util/testing.js"
 import { GlobalConfigStore } from "../../../../src/config-store/global.js"
 import { makeDummyGarden } from "../../../../src/garden.js"
@@ -244,7 +243,7 @@ describe("LoginCommand", () => {
     await CloudApi.saveAuthToken(garden.log, garden.globalConfigStore, testToken, garden.cloudDomain!)
     td.replace(CloudApi.prototype, "checkClientAuthToken", async () => false)
     td.replace(CloudApi.prototype, "refreshToken", async () => {
-      throw new CloudApiError({ message: "bummer", responseStatusCode: 401 })
+      throw new CloudApiTokenRefreshError({ message: "bummer" })
     })
 
     const savedToken = await CloudApi.getStoredAuthToken(garden.log, garden.globalConfigStore, garden.cloudDomain!)
@@ -259,8 +258,8 @@ describe("LoginCommand", () => {
     const logOutput = getLogMessages(garden.log, (entry) => entry.level <= LogLevel.info).join("\n")
 
     expect(logOutput).to.include(dedent`
-      Looks like your session token is invalid. If you were previously logged into a different instance
-      of Garden Enterprise, log out first before logging in.
+    Your login token for https://example.invalid has expired and could not be refreshed.
+    Try to log out first before logging in.
     `)
   })
 

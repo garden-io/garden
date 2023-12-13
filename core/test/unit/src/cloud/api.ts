@@ -97,18 +97,23 @@ describe("CloudApi", () => {
 
       scope.get("/api/token/verify").reply(404)
 
-      const api = await CloudApi.factory({
-        log,
-        globalConfigStore,
-        cloudDomain,
-        projectId: undefined,
-        requireLogin: undefined,
-      })
+      await expectError(
+        async () =>
+          await CloudApi.factory({
+            log,
+            globalConfigStore,
+            cloudDomain,
+            projectId: undefined,
+            requireLogin: undefined,
+          }),
+        {
+          type: "cloud-api",
+          contains: "No auth token available for",
+        }
+      )
 
       // we don't expect a request to verify the token
       expect(scope.isDone()).to.be.false
-
-      expect(api).to.be.undefined
     })
 
     it("should return a CloudApi instance if there is a valid token", async () => {
@@ -136,17 +141,22 @@ describe("CloudApi", () => {
 
       scope.get("/api/token/verify").reply(200, {})
 
-      const api = await CloudApi.factory({
-        log,
-        globalConfigStore,
-        cloudDomain,
-        projectId: "test",
-        requireLogin: false,
-      })
+      await expectError(
+        async () =>
+          await CloudApi.factory({
+            log,
+            globalConfigStore,
+            cloudDomain,
+            projectId: "test",
+            requireLogin: false,
+          }),
+        {
+          type: "cloud-api",
+          contains: "No auth token available for",
+        }
+      )
 
       expect(scope.isDone()).to.be.false
-
-      expect(api).to.be.undefined
     })
 
     it("should not return a CloudApi instance with an invalid token when require login is false", async () => {
@@ -157,17 +167,22 @@ describe("CloudApi", () => {
       scope.get("/api/token/verify").reply(401, {})
       scope.get("/api/token/refresh").reply(401, {})
 
-      const api = await CloudApi.factory({
-        log,
-        globalConfigStore,
-        cloudDomain,
-        projectId: "test",
-        requireLogin: false,
-      })
+      await expectError(
+        async () =>
+          await CloudApi.factory({
+            log,
+            globalConfigStore,
+            cloudDomain,
+            projectId: "test",
+            requireLogin: false,
+          }),
+        {
+          type: "cloud-api",
+          contains: "The auth token could not be refreshed for",
+        }
+      )
 
       expect(scope.isDone()).to.be.true
-
-      expect(api).to.be.undefined
     })
 
     it("should throw an error when the token is invalid and require login is true", async () => {
@@ -187,7 +202,10 @@ describe("CloudApi", () => {
             projectId: "test",
             requireLogin: true,
           }),
-        "cloud-api"
+        {
+          type: "cloud-api",
+          contains: "You are running this in a project with a Garden Cloud ID and logging in is required.",
+        }
       )
 
       expect(scope.isDone()).to.be.true
@@ -206,16 +224,22 @@ describe("CloudApi", () => {
       gardenEnv.GARDEN_REQUIRE_LOGIN_OVERRIDE = false
 
       try {
-        const api = await CloudApi.factory({
-          log,
-          globalConfigStore,
-          cloudDomain,
-          projectId: "test",
-          requireLogin: true,
-        })
+        await expectError(
+          async () =>
+            await CloudApi.factory({
+              log,
+              globalConfigStore,
+              cloudDomain,
+              projectId: "test",
+              requireLogin: true,
+            }),
+          {
+            type: "cloud-api",
+            contains: "The auth token could not be refreshed for",
+          }
+        )
 
         expect(scope.isDone()).to.be.true
-        expect(api).to.be.undefined
       } finally {
         gardenEnv.GARDEN_REQUIRE_LOGIN_OVERRIDE = overrideEnvBackup
       }
@@ -243,7 +267,10 @@ describe("CloudApi", () => {
               projectId: "test",
               requireLogin: true,
             }),
-          "cloud-api"
+          {
+            type: "cloud-api",
+            contains: "You are running this in a project with a Garden Cloud ID and logging in is required.",
+          }
         )
 
         expect(scope.isDone()).to.be.true

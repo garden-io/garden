@@ -40,9 +40,20 @@ import { RequestError } from "got"
 const gardenClientName = "garden-core"
 const gardenClientVersion = getPackageVersion()
 
+// Thrown when trying to create a project with a name that already exists
 export class CloudApiDuplicateProjectsError extends CloudApiError {}
 
+// A user token can be refreshed, thrown when the refresh fails
 export class CloudApiTokenRefreshError extends CloudApiError {}
+
+// The access token passed via GARDEN_AUTH_TOKEN was not valid
+export class CloudApiAccessTokenInvalidError extends CloudApiError {}
+
+// Thrown when the user is not logged in with a cloud connected project
+export class CloudApiLoginRequiredError extends CloudApiError {}
+
+// Thrown there is no auth or access token
+export class CloudApiNoTokenError extends CloudApiError {}
 
 function extractErrorMessageBodyFromGotError(error: any): error is GotHttpError {
   return error?.response?.body?.message
@@ -245,7 +256,7 @@ export class CloudApi {
       cloudFactoryLog.debug(
         `No auth token found, proceeding without access to ${distroName}. Command results for this command run will not be available in ${distroName}.`
       )
-      return
+      throw new CloudApiNoTokenError({ message: `No auth token available for ${distroName} at ${cloudDomain}` })
     }
 
     // Try to auth towards cloud
@@ -255,28 +266,25 @@ export class CloudApi {
 
       cloudFactoryLog.debug("Authorizing...")
 
-      if (gardenEnv.GARDEN_AUTH_TOKEN) {
-        // Throw if using an invalid "CI" access token
-        if (!tokenIsValid) {
-          throw new CloudApiError({
-            message: deline`
+      if (gardenEnv.GARDEN_AUTH_TOKEN && !tokenIsValid) {
+        throw new CloudApiAccessTokenInvalidError({
+          message: deline`
               The provided access token is expired or has been revoked, please create a new
               one from the ${distroName} UI.`,
-          })
-        }
-      } else {
-        // Refresh the token if it's invalid.
-        if (!tokenIsValid) {
-          cloudFactoryLog.debug({ msg: `Current auth token is invalid, refreshing` })
-
-          // We can assert the token exists since we're not using GARDEN_AUTH_TOKEN
-          await api.refreshToken(token!)
-        }
-
-        // Start refresh interval if using JWT
-        cloudFactoryLog.debug({ msg: `Starting refresh interval.` })
-        api.startInterval()
+        })
       }
+
+      // Try to refresh the token if it's invalid.
+      if (!tokenIsValid) {
+        cloudFactoryLog.debug({ msg: `Current auth token is invalid, refreshing` })
+
+        // We can assert the token exists since we're not using GARDEN_AUTH_TOKEN
+        await api.refreshToken(token!)
+      }
+
+      // Start refresh interval if using JWT
+      cloudFactoryLog.debug({ msg: `Starting refresh interval.` })
+      api.startInterval()
 
       return api
     } catch (err) {
@@ -288,15 +296,7 @@ export class CloudApi {
             You are running this in a project with a Garden Cloud ID and logging in is required.
             Please log in via the ${styles.command("garden login")} command.`
 
-          throw new CloudApiError({ message })
-        } else {
-          cloudFactoryLog.warn(
-            `Warning: You are not logged in to Garden Cloud. Please log in via the ${styles.command(
-              "garden login"
-            )} command.`
-          )
-
-          return
+          throw new CloudApiLoginRequiredError({ message })
         }
       }
 
@@ -518,8 +518,17 @@ export class CloudApi {
         throw err
       }
 
-      this.log.debug({ msg: `Failed to refresh the token.` })
-      throw new CloudApiTokenRefreshError({
+      this.log.debug({ msg: `Failed to refresh the auth token, response status code: ${err.response.statusCode}` })
+
+      // The token was invalid and could not be refreshed
+      if (err.response.statusCode === 401) {
+        throw new CloudApiTokenRefreshError({
+          message: `The auth token could not be refreshed for ${getCloudDistributionName(this.domain)}`,
+        })
+      }
+
+      // Unhandled cloud api error
+      throw new CloudApiError({
         message: `An error occurred while verifying client auth token with ${getCloudDistributionName(this.domain)}: ${
           err.message
         }. Response status code: ${err.response.statusCode}`,
