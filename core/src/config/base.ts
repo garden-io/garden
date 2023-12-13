@@ -39,14 +39,17 @@ import { dedent, deline } from "../util/string.js"
 import { GardenConfig } from "../template-string/validation.js"
 import { ConfigContext, GenericContext } from "./template-contexts/base.js"
 import { Collection, CollectionOrValue } from "../util/objects.js"
-import { Template } from "handlebars"
-import { TemplateLeaf, TemplatePrimitive, templatePrimitiveDeepMap } from "../template-string/inputs.js"
+import { TemplatePrimitive } from "../template-string/inputs.js"
 import { inferType, s } from "./zod.js"
-import { Primitive } from "utility-types"
 
 export const configTemplateKind = "ConfigTemplate"
 export const renderTemplateKind = "RenderTemplate"
 export const noTemplateFields = ["apiVersion", "kind", "type", "name", "internal"]
+const untemplatableKeys: Record<string, string[]> = {
+  "Workflow": ["name", "triggers"],
+
+}
+
 
 export const varfileDescription = `
 The format of the files is determined by the configured file's extension:
@@ -66,13 +69,13 @@ export const baseGardenResourceSchema = s.object({
   apiVersion: s.string().optional(),
   kind: s.string(),
   name: s.string(),
-  internal: s
-    .object({
-      inputs: s.any().optional(),
-      parentName: s.string().optional(),
-      templateName: s.string().optional(),
-    })
-    .default({}),
+  // internal: s
+  //   .object({
+  //     inputs: s.map(s.string(), s.union([s.string(), s.number()]).nullable()).optional(),
+  //     parentName: s.string().optional(),
+  //     templateName: s.string().optional(),
+  //   })
+  //   .default({}),
 })
 export type BaseGardenResource = inferType<typeof baseGardenResourceSchema>
 
@@ -283,6 +286,8 @@ export function prepareResource({
 
   return new GardenConfig({
     unparsedConfig: spec,
+    untemplatableKeys: noTemplateFields.concat(untemplatableKeys[kind] || []),
+    configFilePath,
     context: new GenericContext({}),
     opts: {
       // TODO reconsider the interface to enable / disable partial

@@ -97,12 +97,12 @@ export interface ServiceHealthCheckSpec {
 /**
  * DEPRECATED: Use {@link ContainerResourcesSpec} instead.
  */
-export interface ServiceLimitSpec {
+export type ServiceLimitSpec = {
   cpu: number
   memory: number
 }
 
-export interface ContainerResourcesSpec {
+export type ContainerResourcesSpec = {
   cpu: {
     min: number
     max: number | null

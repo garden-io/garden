@@ -32,6 +32,7 @@ describe("GardenConfig", () => {
 
     const unrefinedConfig = new GardenConfig({
       parsedConfig,
+      source: undefined,
       context: new GenericContext({}),
       opts: {},
     })
@@ -46,7 +47,7 @@ describe("GardenConfig", () => {
       })
     )
 
-    const proxy = config.getConfig()
+    const proxy = config.config
 
     // proxy has type hints, no need to use bracket notation
     expect(proxy.spec.files[0]).to.equal("manifests/deployment.yaml")
@@ -68,6 +69,7 @@ describe("GardenConfig", () => {
     const unrefinedConfig = new GardenConfig({
       parsedConfig,
       context: new GenericContext({}),
+      source: undefined,
       opts: {},
     })
 
@@ -83,7 +85,7 @@ describe("GardenConfig", () => {
       })
     )
 
-    const proxy = config.getConfig()
+    const proxy = config.config
 
     // const spec = proxy.spec
 
@@ -103,7 +105,7 @@ describe("GardenConfig", () => {
       },
     })
 
-    const unrefinedProxy = unrefinedConfig.getConfig()
+    const unrefinedProxy = unrefinedConfig.config
 
     // the unrefined config has not been mutated
     expect(unrefinedProxy).to.deep.equal({
@@ -126,6 +128,7 @@ describe("GardenConfig", () => {
     const config1 = new GardenConfig({
       parsedConfig,
       context: new GenericContext({}),
+      source: undefined,
       opts: {
         allowPartial: true,
       },
@@ -136,7 +139,7 @@ describe("GardenConfig", () => {
       })
     )
 
-    const proxy1 = config1.getConfig()
+    const proxy1 = config1.config
 
     // replicas is specified, but it's using a variable that's not defined yet and the proxy is in `allowPartial` mode
     expect(proxy1.replicas).to.equal(1)
@@ -158,7 +161,7 @@ describe("GardenConfig", () => {
         })
       )
 
-    const proxy2 = config2.getConfig()
+    const proxy2 = config2.config
 
     proxy2 satisfies { replicas: number; foobar: string }
 
@@ -188,12 +191,13 @@ describe("GardenConfig", () => {
     const config = new GardenConfig({
       parsedConfig,
       context,
+      source: undefined,
       opts: {
         allowPartial: true,
       },
     }).assertType(isFruits)
 
-    const proxy = config.getConfig()
+    const proxy = config.config
 
     proxy satisfies { fruits: string[] }
 
@@ -218,12 +222,13 @@ describe("GardenConfig", () => {
     const config = new GardenConfig({
       parsedConfig,
       context,
+      source: undefined,
       opts: {
         allowPartial: true,
       },
     }).refineWithJoi<Fruits>(fruitsSchema)
 
-    const proxy = config.getConfig()
+    const proxy = config.config
 
     proxy satisfies Fruits
 

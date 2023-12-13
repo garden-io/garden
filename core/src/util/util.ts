@@ -46,6 +46,8 @@ import split2 from "split2"
 import type { ExecaError, Options as ExecaOptions } from "execa"
 import { execa } from "execa"
 import corePackageJson from "../../package.json" assert { type: "json" }
+import { Collection } from "./objects.js"
+import { Primitive } from "utility-types"
 
 export { apply as jsonMerge } from "json-merge-patch"
 
@@ -695,12 +697,15 @@ export function toEnvVars(vars: PrimitiveMap): { [key: string]: string | undefin
  * // returns [{ value: 2, duplicateItems: [{ a: 1, b: 2 }, { a: 2, b: 2 }] }]
  * duplicateKeys(items, "b")
  */
-export function duplicatesByKey(items: any[], key: string) {
-  const grouped = groupBy(items, key)
+export function duplicatesBy<TObject extends Collection<unknown>, GroupIdentifier extends Primitive>(
+  items: TObject[],
+  valueGetter: (item: TObject) => GroupIdentifier
+): { value: GroupIdentifier; duplicateItems: TObject[] }[] {
+  const grouped = groupBy(items, valueGetter)
 
   return Object.entries(grouped)
     .map(([value, duplicateItems]) => ({ value, duplicateItems }))
-    .filter(({ duplicateItems }) => duplicateItems.length > 1)
+    .filter(({ duplicateItems }) => duplicateItems.length > 1) as { value: GroupIdentifier; duplicateItems: TObject[] }[]
 }
 
 export function isNotNull<T>(v: T | null): v is T {

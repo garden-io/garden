@@ -32,14 +32,13 @@ import { createBuildTask } from "../tasks/build.js"
 import type { BaseActionTaskParams, ExecuteTask } from "../tasks/base.js"
 import { ResolveActionTask } from "../tasks/resolve-action.js"
 
-export interface BuildCopyFrom {
+export type BuildCopyFrom = {
   build: string
   sourcePath: string
   targetPath: string
 }
 
-export interface BuildActionConfig<T extends string = string, S extends object = any>
-  extends BaseActionConfig<"Build", T, S> {
+export type BuildActionConfig<T extends string = string, S extends object = any> = BaseActionConfig<"Build", T, S> & {
   type: T
   allowPublish?: boolean
   buildAtSource?: boolean

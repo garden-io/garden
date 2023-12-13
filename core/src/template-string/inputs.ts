@@ -78,6 +78,14 @@ export class TemplateLeaf<T extends TemplateLeafValue = TemplateLeafValue> {
     }
     return newLeaf
   }
+
+  static from(staticValue: TemplateLeafValue): TemplateLeaf {
+    return new TemplateLeaf({
+      expr: undefined,
+      value: staticValue,
+      inputs: {},
+    })
+  }
 }
 
 export type TemplateValue = TemplateLeaf | LazyValue
@@ -85,7 +93,8 @@ export type TemplateValue = TemplateLeaf | LazyValue
 // helpers
 
 // Similar to deepMap, but treats empty collections as leaves, because they are template primitives.
-export function templatePrimitiveDeepMap<P extends TemplateLeafValue, R extends TemplateLeafValue | TemplateValue>(
+// The main difference to deepMap is that it calls the callback for empty arrays and objects, so we can wrap them in TemplateLeaf
+export function templateLeafValueDeepMap<P extends TemplateLeafValue, R extends TemplateLeafValue | TemplateValue>(
   value: CollectionOrValue<P>,
   fn: (value: TemplateLeafValue, keyPath: ObjectPath) => CollectionOrValue<R>,
   keyPath: ObjectPath = []
@@ -94,10 +103,10 @@ export function templatePrimitiveDeepMap<P extends TemplateLeafValue, R extends 
     // This also handles empty collections
     return fn(value, keyPath)
   } else if (isArray(value)) {
-    return value.map((v, k) => templatePrimitiveDeepMap(v, fn, [...keyPath, k]))
+    return value.map((v, k) => templateLeafValueDeepMap(v, fn, [...keyPath, k]))
   } else if (isPlainObject(value)) {
     // we know we can use mapValues, as this was a plain object
-    return mapValues(value as any, (v, k) => templatePrimitiveDeepMap(v, fn, [...keyPath, k]))
+    return mapValues(value as any, (v, k) => templateLeafValueDeepMap(v, fn, [...keyPath, k]))
   } else {
     throw new InternalError({ message: `Unexpected value type: ${typeof value}` })
   }

@@ -27,11 +27,12 @@ import { testConfigSchema } from "./test.js"
 import type { TaskConfig } from "./task.js"
 import { taskConfigSchema } from "./task.js"
 import { dedent, stableStringify } from "../util/string.js"
-import { configTemplateKind, varfileDescription } from "./base.js"
+import { BaseGardenResource, configTemplateKind, varfileDescription } from "./base.js"
 import type { GardenApiVersion } from "../constants.js"
 import { DEFAULT_BUILD_TIMEOUT_SEC } from "../constants.js"
+import { GardenConfig } from "../template-string/validation.js"
 
-interface BuildCopySpec {
+type BuildCopySpec = {
   source: string
   target: string
 }
@@ -58,7 +59,7 @@ const copySchema = createSchema({
   }),
 })
 
-export interface BuildDependencyConfig {
+export type BuildDependencyConfig = {
   name: string
   copy: BuildCopySpec[]
 }
@@ -74,12 +75,12 @@ export const buildDependencySchema = createSchema({
   }),
 })
 
-export interface BaseBuildSpec {
+export type BaseBuildSpec = {
   dependencies: BuildDependencyConfig[]
   timeout: number
 }
 
-export interface GenerateFileSpec {
+export type GenerateFileSpec = {
   sourcePath?: string
   targetPath: string
   resolveTemplates: boolean
@@ -88,7 +89,7 @@ export interface GenerateFileSpec {
 
 export type ModuleSpec = object
 
-interface ModuleSpecCommon {
+type ModuleSpecCommon = {
   apiVersion?: string
   allowPublish?: boolean
   build?: BaseBuildSpec
@@ -105,7 +106,7 @@ interface ModuleSpecCommon {
   varfile?: string
 }
 
-export interface BaseModuleSpec extends ModuleSpecCommon {
+export type BaseModuleSpec = ModuleSpecCommon & {
   /**
    * the apiVersion field is unused in all Modules at the moment and hidden in the reference docs.
    */
@@ -264,8 +265,13 @@ export const baseModuleSpecSchema = createSchema({
   keys: baseModuleSpecKeys,
 })
 
-export interface ModuleConfig<M extends {} = any, S extends {} = any, T extends {} = any, W extends {} = any>
-  extends BaseModuleSpec {
+export type UnrefinedModuleConfig = GardenConfig<BaseGardenResource & Pick<ModuleConfig, "kind">>
+export type ModuleConfig<
+  M extends {} = any,
+  S extends {} = any,
+  T extends {} = any,
+  W extends {} = any,
+> = BaseModuleSpec & {
   path: string
   configPath?: string
   basePath?: string // The directory of the config. Disambiguates `path` when the module has a remote source.

@@ -16,7 +16,7 @@ import {
   isTemplateLeafValue,
   isTemplatePrimitive,
   mergeInputs,
-  templatePrimitiveDeepMap,
+  templateLeafValueDeepMap,
 } from "./inputs.js"
 import type { TemplateLeafValue, TemplatePrimitive, TemplateValue } from "./inputs.js"
 import { WrapContextLookupInputsLazily, deepEvaluateAndUnwrap, evaluateAndUnwrap, evaluate } from "./lazy.js"
@@ -834,7 +834,7 @@ export class FunctionCallExpression extends TemplateExpression {
         // if skipInputTrackingForCollectionValues is false; Now the values are TemplatePrimitives.
         // E.g. this would be the case for split() which turns a string input into a primitive string array.
         // templatePrimitiveDeepMap will crash if the function misbehaved and returned TemplateValue
-        return templatePrimitiveDeepMap(result as CollectionOrValue<TemplateLeafValue>, (v) => {
+        return templateLeafValueDeepMap(result as CollectionOrValue<TemplateLeafValue>, (v) => {
           return mergeInputs(
             this.loc.source,
             new TemplateLeaf({

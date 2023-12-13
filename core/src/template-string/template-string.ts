@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import type { GardenErrorParams } from "../exceptions.js"
 import {
   ConfigurationError,
   GardenError,
@@ -20,8 +19,7 @@ import type {
   ContextResolveOpts,
   ObjectPath,
 } from "../config/template-contexts/base.js"
-import { ScanContext } from "../config/template-contexts/base.js"
-import { difference, isPlainObject, isString, mapValues, uniq } from "lodash-es"
+import { difference, isPlainObject, isString, mapValues } from "lodash-es"
 import type { ActionReference, Primitive, StringMap } from "../config/common.js"
 import {
   arrayConcatKey,
@@ -34,16 +32,14 @@ import {
   isPrimitive,
   objectSpreadKey,
 } from "../config/common.js"
-import { dedent, deline, naturalList, titleize } from "../util/string.js"
-import type { ObjectWithName } from "../util/util.js"
-import type { Log } from "../logger/log-entry.js"
+import { naturalList, titleize } from "../util/string.js"
 import type { ModuleConfigContext } from "../config/template-contexts/module.js"
 import type { ActionKind } from "../actions/types.js"
 import { actionKindsLower } from "../actions/types.js"
 import { type CollectionOrValue, deepMap, isArray } from "../util/objects.js"
 import * as parser from "./parser.js"
 import * as ast from "./ast.js"
-import { TemplateLeaf, isTemplateLeafValue } from "./inputs.js"
+import { TemplateLeaf, isTemplateLeafValue, templateLeafValueDeepMap } from "./inputs.js"
 import type { TemplateLeafValue, TemplateValue } from "./inputs.js"
 import {
   ConcatLazyValue,
@@ -178,13 +174,14 @@ export function pushYamlPath<T extends { yamlPath?: ObjectPath }>(
 /**
  * Recursively parses and resolves all templated strings in the given object.
  */
-
 export function parseTemplateCollection({
   value,
   source: _source,
+  untemplatableKeys = [],
 }: {
   value: CollectionOrValue<TemplateLeafValue>
   source: Optional<TemplateProvenance, "yamlPath">
+  untemplatableKeys?: string[]
 }): CollectionOrValue<TemplateValue> {
   let source: TemplateProvenance = {
     ..._source,
@@ -312,9 +309,20 @@ export function parseTemplateCollection({
               }),
       })
     } else {
-      const resolved = mapValues(value, (v, k) =>
-        parseTemplateCollection({ value: v, source: pushYamlPath(k, source) })
-      )
+      const resolved = mapValues(value, (v, k) => {
+        // if this key is untemplatable, skip parsing this branch of the template tree.
+        if (untemplatableKeys.includes(k)) {
+          return templateLeafValueDeepMap(v, (v) => {
+            return new TemplateLeaf({
+              expr: undefined,
+              value: v,
+              inputs: {},
+            })
+          })
+        }
+
+        return parseTemplateCollection({ value: v, source: pushYamlPath(k, source) })
+      })
       if (Object.keys(value).some((k) => k === objectSpreadKey)) {
         return new ObjectSpreadLazyValue(source, resolved as ObjectSpreadOperation)
       } else {

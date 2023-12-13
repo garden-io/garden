@@ -521,7 +521,7 @@ joi = joi.extend({
   },
 })
 
-export interface ActionReference<K extends ActionKind = ActionKind> {
+export type ActionReference<K extends ActionKind = ActionKind> = {
   kind: K
   name: string
 }

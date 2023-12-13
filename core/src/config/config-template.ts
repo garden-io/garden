@@ -13,17 +13,16 @@ import { baseModuleSpecSchema } from "./module.js"
 import { dedent, naturalList } from "../util/string.js"
 import type { BaseGardenResource } from "./base.js"
 import { configTemplateKind, renderTemplateKind, baseInternalFieldsSchema } from "./base.js"
-import { resolveTemplateStrings } from "../template-string/template-string.js"
-import { validateConfig } from "./validation.js"
 import type { Garden } from "../garden.js"
 import { ConfigurationError } from "../exceptions.js"
-import { resolve, posix, dirname } from "path"
+import { resolve, posix } from "path"
 import fsExtra from "fs-extra"
 const { readFile } = fsExtra
 import { ProjectConfigContext } from "./template-contexts/project.js"
 import type { ActionConfig } from "../actions/types.js"
 import { actionKinds } from "../actions/types.js"
 import type { WorkflowConfig } from "./workflow.js"
+import { GardenConfig } from "../template-string/validation.js"
 
 const inputTemplatePattern = "${inputs.*}"
 const parentNameTemplate = "${parent.name}"
@@ -40,24 +39,26 @@ export type TemplatableConfigWithPath = TemplatableConfig & { path?: string }
 
 export type ConfigTemplateKind = typeof configTemplateKind
 
-interface TemplatedModuleSpec extends Partial<BaseModuleSpec> {
+type TemplatedModuleSpec = Partial<BaseModuleSpec> & {
   type: string
 }
 
-export interface ConfigTemplateResource extends BaseGardenResource {
+export type UnrefinedConfigTemplateResource = GardenConfig<BaseGardenResource & Pick<ConfigTemplateResource, "kind">>
+export type ConfigTemplateResource = BaseGardenResource & {
+  kind: ConfigTemplateKind
   inputsSchemaPath?: string
   modules?: TemplatedModuleSpec[]
   configs?: TemplatableConfigWithPath[]
 }
 
-export interface ConfigTemplateConfig extends ConfigTemplateResource {
+export type ResolveConfigTemplateResult = {
+  refinedTemplate: GardenConfig<ConfigTemplateResource>
   inputsSchema: CustomObjectSchema
 }
-
 export async function resolveConfigTemplate(
   garden: Garden,
-  resource: ConfigTemplateResource
-): Promise<ConfigTemplateConfig> {
+  resource: UnrefinedConfigTemplateResource
+): Promise<ResolveConfigTemplateResult> {
   // Resolve template strings, minus module templates and files
   const partial = {
     ...resource,
@@ -67,16 +68,8 @@ export async function resolveConfigTemplate(
   const loggedIn = garden.isLoggedIn()
   const enterpriseDomain = garden.cloudApi?.domain
   const context = new ProjectConfigContext({ ...garden, loggedIn, enterpriseDomain })
-  const resolved = resolveTemplateStrings({ value: partial, context, source: { yamlDoc: resource.internal.yamlDoc } })
-  const configPath = resource.internal.configFilePath
 
-  // Validate the partial config
-  const validated = validateConfig({
-    config: resolved,
-    schema: configTemplateSchema(),
-    projectRoot: garden.projectRoot,
-    yamlDocBasePath: [],
-  })
+  const refined = resource.refineWithJoi<ConfigTemplateResource>(configTemplateSchema())
 
   // Read and validate the JSON schema, if specified
   // -> default to any object
@@ -85,15 +78,15 @@ export async function resolveConfigTemplate(
     additionalProperties: true,
   }
 
-  const configDir = configPath ? dirname(configPath) : resource.internal.basePath
+  const configDir = refined.configFileDirname!
 
-  if (validated.inputsSchemaPath) {
-    const path = resolve(configDir, ...validated.inputsSchemaPath.split(posix.sep))
+  if (refined.config.inputsSchemaPath) {
+    const path = resolve(configDir, ...refined.config.inputsSchemaPath.split(posix.sep))
     try {
       inputsJsonSchema = JSON.parse((await readFile(path)).toString())
     } catch (error) {
       throw new ConfigurationError({
-        message: `Unable to read inputs schema at '${validated.inputsSchemaPath}' for ${configTemplateKind} ${validated.name}: ${error}`,
+        message: `Unable to read inputs schema at '${refined.config.inputsSchemaPath}' for ${configTemplateKind} ${refined.config.name}: ${error}`,
       })
     }
 
@@ -101,17 +94,15 @@ export async function resolveConfigTemplate(
 
     if (type !== "object") {
       throw new ConfigurationError({
-        message: `Inputs schema at '${validated.inputsSchemaPath}' for ${configTemplateKind} ${validated.name} has type ${type}, but should be "object".`,
+        message: `Inputs schema at '${refined.config.inputsSchemaPath}' for ${configTemplateKind} ${refined.config.name} has type ${type}, but should be "object".`,
       })
     }
   }
 
   // Add the module templates back and return
   return {
-    ...validated,
+    refinedTemplate: refined,
     inputsSchema: joi.object().jsonSchema(inputsJsonSchema),
-    modules: resource.modules,
-    configs: resource.configs,
   }
 }
 

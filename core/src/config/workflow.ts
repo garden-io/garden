@@ -17,6 +17,7 @@ import {
   joiSparseArray,
   createSchema,
   unusedApiVersionSchema,
+  omitFromSchema,
 } from "./common.js"
 import { deline, dedent } from "../util/string.js"
 import type { ServiceLimitSpec } from "../plugins/container/moduleConfig.js"
@@ -31,6 +32,7 @@ import { omitUndefined } from "../util/objects.js"
 import type { BaseGardenResource, GardenResource } from "./base.js"
 import type { GardenApiVersion } from "../constants.js"
 import { DOCS_BASE_URL } from "../constants.js"
+import { GardenConfig } from "../template-string/validation.js"
 
 export const minimumWorkflowRequests = {
   cpu: 50, // 50 millicpu
@@ -54,11 +56,12 @@ export const defaultWorkflowResources = {
   limits: defaultWorkflowLimits,
 }
 
-export interface WorkflowConfig extends BaseGardenResource {
+export type UnrefinedWorkflowConfig = GardenConfig<BaseGardenResource & Pick<WorkflowConfig, "kind">>
+export type WorkflowConfig = BaseGardenResource & {
+  kind: "Workflow"
   apiVersion: GardenApiVersion
   description?: string
   envVars: PrimitiveMap
-  kind: "Workflow"
   resources: {
     requests: ServiceLimitSpec
     limits: ServiceLimitSpec
@@ -137,10 +140,14 @@ export const workflowConfigSchema = createSchema({
       .object()
       .keys({
         requests: workflowResourceRequestsSchema().default(defaultWorkflowRequests),
-        limits: workflowResourceLimitsSchema().default(defaultWorkflowLimits),
+        limits: workflowResourceLimitsSchema().default((parent) => {
+          return parent.parent.limits || defaultWorkflowLimits
+        }),
       })
       // .default(() => ({}))
       .meta({ enterprise: true }),
+
+    // TODO: Remove this in a future release with breaking changes
     limits: workflowResourceLimitsSchema().meta({
       enterprise: true,
       deprecated: "Please use the `resources.limits` field instead.",
@@ -160,7 +167,7 @@ export const workflowConfigSchema = createSchema({
   allowUnknown: true,
 })
 
-export interface WorkflowFileSpec {
+export type WorkflowFileSpec = {
   path: string
   data?: string
   secretName?: string
@@ -192,7 +199,7 @@ export const workflowFileSchema = createSchema({
   xor: [["data", "secretName"]],
 })
 
-export interface WorkflowStepSpec {
+export type WorkflowStepSpec = {
   name?: string
   command?: string[]
   description?: string
@@ -281,7 +288,7 @@ export const triggerEvents = [
   "pull-request-merged",
 ]
 
-export interface TriggerSpec {
+export type TriggerSpec = {
   environment: string
   namespace?: string
   events?: string[]
@@ -341,92 +348,35 @@ export const triggerSchema = memoize(() => {
 })
 
 export interface WorkflowConfigMap {
-  [key: string]: WorkflowConfig
+  [key: string]: UnrefinedWorkflowConfig
 }
 
-export function resolveWorkflowConfig(garden: Garden, config: WorkflowConfig) {
+export type RefinedWorkflow = Omit<WorkflowConfig, "internal" | "steps">
+
+export function resolveWorkflowConfig(garden: Garden, config: UnrefinedWorkflowConfig): GardenConfig<RefinedWorkflow> {
   const log = garden.log
   const context = new WorkflowConfigContext(garden, garden.variables)
 
-  log.silly(() => `Resolving template strings for workflow ${config.name}`)
+  log.silly(() => `Validating config for workflow ${refined.config.name}`)
 
-  const partialConfig = {
-    // Don't allow templating in names and triggers
-    ...omit(config, "name", "triggers"),
-    // Inputs can be partially resolved
-    internal: omit(config.internal, "inputs"),
-    // Defer resolution of step commands and scripts (the dummy script will be overwritten again below)
-    steps: config.steps.map((s) => ({ ...s, command: undefined, script: "echo" })),
-  }
+  const partialSchema = omitFromSchema(workflowConfigSchema(), "internal", "steps")
+  const refined = config.withContext(context).refineWithJoi<RefinedWorkflow>(partialSchema)
 
-  let resolvedPartialConfig: WorkflowConfig = {
-    ...resolveTemplateStrings({ value: partialConfig, context, source: { yamlDoc: config.internal.yamlDoc } }),
-    name: config.name,
-  }
+  const environmentConfigs = garden.getProjectConfig().config.environments
 
-  if (config.triggers) {
-    resolvedPartialConfig.triggers = config.triggers
-  }
+  validateTriggers(refined, environmentConfigs)
+  populateNamespaceForTriggers(refined, environmentConfigs)
 
-  if (config.internal.inputs) {
-    resolvedPartialConfig.internal.inputs = resolveTemplateStrings({
-      value: config.internal.inputs,
-      context,
-      contextOpts: {
-        allowPartial: true,
-      },
-      // TODO: Map inputs to their original YAML sources
-      source: undefined,
-    })
-  }
-
-  log.silly(() => `Validating config for workflow ${config.name}`)
-
-  resolvedPartialConfig = validateConfig({
-    config: resolvedPartialConfig,
-    schema: workflowConfigSchema(),
-    projectRoot: garden.projectRoot,
-    yamlDocBasePath: [],
-  })
-
-  // Re-add the deferred step commands and scripts
-  const resolvedConfig = {
-    ...resolvedPartialConfig,
-    steps: resolvedPartialConfig.steps.map((s, i) =>
-      omitUndefined({
-        ...omit(s, "command", "script"),
-        command: config.steps[i].command,
-        script: config.steps[i].script,
-      })
-    ),
-  }
-
-  /**
-   * TODO: Remove support for workflow.limits the next time we make a release with breaking changes.
-   *
-   * workflow.limits is deprecated, so we copy its values into workflow.resources.limits if workflow.limits
-   * is specified.
-   */
-
-  if (resolvedConfig.limits) {
-    resolvedConfig.resources.limits = resolvedConfig.limits
-  }
-
-  const environmentConfigs = garden.getProjectConfig().environments
-
-  validateTriggers(resolvedConfig, environmentConfigs)
-  populateNamespaceForTriggers(resolvedConfig, environmentConfigs)
-
-  return resolvedConfig
+  return refined
 }
 
 /**
  * Throws if one or more triggers uses an environment that isn't defined in the project's config.
  */
-function validateTriggers(config: WorkflowConfig, environmentConfigs: EnvironmentConfig[]) {
+function validateTriggers(workflow: GardenConfig<RefinedWorkflow>, environmentConfigs: EnvironmentConfig[]) {
   const invalidTriggers: TriggerSpec[] = []
   const environmentNames = environmentConfigs.map((c) => c.name)
-  for (const trigger of config.triggers || []) {
+  for (const trigger of workflow.config.triggers || []) {
     if (!environmentNames.includes(trigger.environment)) {
       invalidTriggers.push(trigger)
     }
@@ -435,8 +385,8 @@ function validateTriggers(config: WorkflowConfig, environmentConfigs: Environmen
   if (invalidTriggers.length > 0) {
     const msgPrefix =
       invalidTriggers.length === 1
-        ? `Invalid environment in trigger for workflow ${config.name}:`
-        : `Invalid environments in triggers for workflow ${config.name}:`
+        ? `Invalid environment in trigger for workflow ${workflow.config.name}:`
+        : `Invalid environments in triggers for workflow ${workflow.config.name}:`
 
     const msg = dedent`
       ${msgPrefix}
@@ -452,9 +402,9 @@ function validateTriggers(config: WorkflowConfig, environmentConfigs: Environmen
   }
 }
 
-export function populateNamespaceForTriggers(config: WorkflowConfig, environmentConfigs: EnvironmentConfig[]) {
+export function populateNamespaceForTriggers(workflow: GardenConfig<RefinedWorkflow>, environmentConfigs: EnvironmentConfig[]) {
   try {
-    for (const trigger of config.triggers || []) {
+    for (const trigger of workflow.config.triggers || []) {
       const environmentConfigForTrigger = environmentConfigs.find((c) => c.name === trigger.environment)
       trigger.namespace = getNamespace(environmentConfigForTrigger!, trigger.namespace)
     }
@@ -464,7 +414,7 @@ export function populateNamespaceForTriggers(config: WorkflowConfig, environment
     }
 
     throw new ConfigurationError({
-      message: `Invalid namespace in trigger for workflow ${config.name}: ${err.message}`,
+      message: `Invalid namespace in trigger for workflow ${workflow.config.name}: ${err.message}`,
       wrappedErrors: [err],
     })
   }

@@ -15,7 +15,7 @@ import type {
   GardenPluginReference,
 } from "./plugin/plugin.js"
 import { pluginSchema, pluginNodeModuleSchema } from "./plugin/plugin.js"
-import type { GenericProviderConfig } from "./config/provider.js"
+import type { BaseProviderConfig, GenericProviderConfig } from "./config/provider.js"
 import { CircularDependenciesError, ConfigurationError, PluginError, RuntimeError } from "./exceptions.js"
 import { uniq, mapValues, fromPairs, flatten, keyBy, some, isString, sortBy } from "lodash-es"
 import type { Dictionary, MaybeUndefined } from "./util/util.js"
@@ -43,7 +43,7 @@ export async function loadAndResolvePlugins(
   log: Log,
   projectRoot: string,
   registeredPlugins: RegisterPluginParam[],
-  configs: GenericProviderConfig[]
+  configs: BaseProviderConfig[]
 ) {
   const loadedPlugins = await Promise.all(registeredPlugins.map((p) => loadPlugin(log, projectRoot, p)))
   const pluginsByName = keyBy(loadedPlugins, "name")
@@ -54,7 +54,7 @@ export async function loadAndResolvePlugins(
 export function resolvePlugins(
   log: Log,
   loadedPlugins: Dictionary<GardenPluginSpec>,
-  configs: GenericProviderConfig[]
+  configs: BaseProviderConfig[]
 ): GardenPluginSpec[] {
   const initializedPlugins: PluginMap = {}
   const validatePlugin = (name: string) => {

@@ -242,8 +242,11 @@ export const baseActionConfigSchema = createSchema({
   }),
 })
 
-export interface BaseRuntimeActionConfig<K extends ActionKind = ActionKind, N = string, S = any>
-  extends BaseActionConfig<K, N, S> {
+export type BaseRuntimeActionConfig<K extends ActionKind = ActionKind, N = string, S = any> = BaseActionConfig<
+  K,
+  N,
+  S
+> & {
   build?: string
 }
 

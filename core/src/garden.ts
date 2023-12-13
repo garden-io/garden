@@ -35,7 +35,7 @@ import {
   getPackageVersion,
   getNames,
   findByNames,
-  duplicatesByKey,
+  duplicatesBy,
   getCloudDistributionName,
   getCloudLogSectionName,
 } from "./util/util.js"
@@ -57,7 +57,7 @@ import type { ConfigGraph } from "./graph/config-graph.js"
 import { ResolvedConfigGraph } from "./graph/config-graph.js"
 import { getRootLogger } from "./logger/logger.js"
 import type { GardenPluginSpec } from "./plugin/plugin.js"
-import type { GardenResource, UnrefinedProjectConfig } from "./config/base.js"
+import type { BaseGardenResource, UnrefinedProjectConfig } from "./config/base.js"
 import { loadConfigResources, findProjectConfig, configTemplateKind, renderTemplateKind } from "./config/base.js"
 import type { DeepPrimitiveMap, StringMap } from "./config/common.js"
 import { treeVersionSchema, allowUnknown } from "./config/common.js"
@@ -66,7 +66,7 @@ import type { LinkedSource } from "./config-store/local.js"
 import { LocalConfigStore } from "./config-store/local.js"
 import type { ExternalSourceType } from "./util/ext-source-util.js"
 import { getLinkedSources } from "./util/ext-source-util.js"
-import type { ModuleConfig } from "./config/module.js"
+import type { ModuleConfig, UnrefinedModuleConfig } from "./config/module.js"
 import { convertModules, ModuleResolver } from "./resolve-module.js"
 import type { CommandInfo, PluginEventBroker } from "./plugin-context.js"
 import { createPluginContext } from "./plugin-context.js"
@@ -107,13 +107,12 @@ import { DependencyGraph } from "./graph/common.js"
 import { Profile, profileAsync } from "./util/profiling.js"
 import { username } from "username"
 import { resolveTemplateStrings } from "./template-string/template-string.js"
-import type { WorkflowConfig, WorkflowConfigMap } from "./config/workflow.js"
+import type { RefinedWorkflow, UnrefinedWorkflowConfig, WorkflowConfig, WorkflowConfigMap } from "./config/workflow.js"
 import { resolveWorkflowConfig, isWorkflowConfig } from "./config/workflow.js"
 import type { PluginTools } from "./util/ext-tools.js"
 import { PluginTool } from "./util/ext-tools.js"
-import type { ConfigTemplateResource, ConfigTemplateConfig } from "./config/config-template.js"
+import type { ResolveConfigTemplateResult, UnrefinedConfigTemplateResource } from "./config/config-template.js"
 import { resolveConfigTemplate } from "./config/config-template.js"
-import type { TemplatedModuleConfig } from "./plugins/templated.js"
 import { BuildStagingRsync } from "./build-staging/rsync.js"
 import {
   DefaultEnvironmentContext,
@@ -165,6 +164,7 @@ import { detectModuleOverlap, makeOverlapErrors } from "./util/module-overlap.js
 import { GotHttpError } from "./util/http.js"
 import { styles } from "./logger/styles.js"
 import { s } from "./config/zod.js"
+import { GardenConfig } from "./template-string/validation.js"
 
 const defaultLocalAddress = "localhost"
 
@@ -249,7 +249,7 @@ export class Garden {
   public readonly treeCache: TreeCache
   public events: EventBus
   private tools?: { [key: string]: PluginTool }
-  public configTemplates: { [name: string]: ConfigTemplateConfig }
+  public configTemplates: { [name: string]: ResolveConfigTemplateResult }
   private actionTypeBases: ActionTypeMap<ActionTypeDefinition<any>[]>
   private emittedWarnings: Set<string>
   public cloudApi: CloudApi | null
@@ -898,15 +898,15 @@ export class Garden {
   /**
    * When running workflows via the `workflow` command, we only resolve the workflow being executed.
    */
-  async getWorkflowConfig(name: string): Promise<WorkflowConfig> {
+  async getWorkflowConfig(name: string): Promise<GardenConfig<RefinedWorkflow>> {
     return resolveWorkflowConfig(this, await this.getRawWorkflowConfig(name))
   }
 
-  async getRawWorkflowConfig(name: string): Promise<WorkflowConfig> {
+  async getRawWorkflowConfig(name: string): Promise<UnrefinedWorkflowConfig> {
     return (await this.getRawWorkflowConfigs([name]))[0]
   }
 
-  async getRawWorkflowConfigs(names?: string[]): Promise<WorkflowConfig[]> {
+  async getRawWorkflowConfigs(names?: string[]): Promise<UnrefinedWorkflowConfig[]> {
     if (!this.state.configsScanned) {
       await this.scanAndAddConfigs()
     }
@@ -1333,17 +1333,22 @@ export class Garden {
       const allResources = flatten(
         await Promise.all(configPaths.map(async (path) => (await this.loadResources(path)) || []))
       )
-      const groupedResources = groupBy(allResources, "kind")
+      const groupedResources = groupBy(allResources, (r) => r.config.kind)
 
-      let rawModuleConfigs = [...((groupedResources.Module as ModuleConfig[]) || [])]
-      const rawWorkflowConfigs = (groupedResources.Workflow as WorkflowConfig[]) || []
-      const rawConfigTemplateResources = (groupedResources[configTemplateKind] as ConfigTemplateResource[]) || []
+      let rawModuleConfigs = [...((groupedResources.Module as UnrefinedModuleConfig[]) || [])].map((c) => {
+        return c.refineWithZod(s.object({
+          type: s.string(),
+        }))
+      })
+
+      const rawWorkflowConfigs = (groupedResources.Workflow as UnrefinedWorkflowConfig[]) || []
+      const rawConfigTemplateResources = (groupedResources[configTemplateKind] as UnrefinedConfigTemplateResource[]) || []
 
       // Resolve config templates
       const configTemplates = await Promise.all(rawConfigTemplateResources.map((r) => resolveConfigTemplate(this, r)))
-      const templatesByName = keyBy(configTemplates, "name")
+      const templatesByName = keyBy(configTemplates, (t) => t.refinedTemplate.config.name)
       // -> detect duplicate templates
-      const duplicateTemplates = duplicatesByKey(configTemplates, "name")
+      const duplicateTemplates = duplicatesBy(configTemplates, (t) => t.refinedTemplate.config.name)
 
       if (duplicateTemplates.length > 0) {
         const messages = duplicateTemplates
@@ -1351,7 +1356,7 @@ export class Garden {
             (d) =>
               `Name ${d.value} is used at ${naturalList(
                 d.duplicateItems.map((i) =>
-                  relative(this.projectRoot, i.internal.configFilePath || i.internal.basePath)
+                  relative(this.projectRoot, i.refinedTemplate.configFileDirname!)
                 )
               )}`
           )
@@ -1361,16 +1366,17 @@ export class Garden {
         })
       }
 
+
       // Convert type:templated modules to Render configs
       // TODO: remove in 0.14
-      const rawTemplatedModules = rawModuleConfigs.filter((m) => m.type === "templated") as TemplatedModuleConfig[]
+      const rawTemplatedModules = rawModuleConfigs.filter((m) => m.config.type === "templated")
       // -> removed templated modules from the module config list
-      rawModuleConfigs = rawModuleConfigs.filter((m) => m.type !== "templated")
+      rawModuleConfigs = rawModuleConfigs.filter((m) => m.config.type !== "templated")
 
       const renderConfigs = [
         ...(groupedResources[renderTemplateKind] || []),
         ...rawTemplatedModules.map(convertTemplatedModuleToRender),
-      ] as RenderTemplateConfig[]
+      ] as GardenConfig<RenderTemplateConfig>[]
 
       // Resolve Render configs
       const renderResults = await Promise.all(
@@ -1485,15 +1491,15 @@ export class Garden {
    * added workflows, and partially resolving it (i.e. without fully resolving step configs, which
    * is done just-in-time before a given step is run).
    */
-  private addWorkflow(config: WorkflowConfig) {
-    const key = config.name
+  private addWorkflow(config: UnrefinedWorkflowConfig) {
+    const key = config.config.name
     this.log.silly(() => `Adding workflow ${key}`)
 
     const existing = this.workflowConfigs[key]
 
     if (existing) {
-      const paths = [existing.internal.configFilePath || existing.internal.basePath, config.internal.basePath]
-      const [pathA, pathB] = paths.map((path) => relative(this.projectRoot, path)).sort()
+      const paths = [existing.configFileDirname, config.configFileDirname]
+      const [pathA, pathB] = paths.map((path) => relative(this.projectRoot, path || this.projectRoot)).sort()
 
       throw new ConfigurationError({
         message: `Workflow ${key} is declared multiple times (in '${pathA}' and '${pathB}')`,
@@ -1511,12 +1517,12 @@ export class Garden {
   @OtelTraced({
     name: "loadResources",
   })
-  private async loadResources(configPath: string): Promise<(GardenResource | ModuleConfig)[]> {
+  private async loadResources(configPath: string): Promise<GardenConfig<BaseGardenResource>[]> {
     configPath = resolve(this.projectRoot, configPath)
     this.log.silly(() => `Load configs from ${configPath}`)
     const resources = await loadConfigResources(this.log, this.projectRoot, configPath)
     this.log.silly(() => `Loaded configs from ${configPath}`)
-    return resources.filter((r) => r.kind && r.kind !== "Project")
+    return resources.filter((r) => r.config.kind && r.config.kind !== "Project")
   }
 
   //===========================================================================

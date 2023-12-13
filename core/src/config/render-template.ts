@@ -7,7 +7,7 @@
  */
 
 import { Document } from "yaml"
-import type { ModuleConfig } from "./module.js"
+import type { ModuleConfig, UnrefinedModuleConfig } from "./module.js"
 import { dedent, deline, naturalList } from "../util/string.js"
 import type { BaseGardenResource, RenderTemplateKind, YamlDocumentWithSource } from "./base.js"
 import {
@@ -24,21 +24,22 @@ import {
 } from "../template-string/template-string.js"
 import { validateWithPath } from "./validation.js"
 import type { Garden } from "../garden.js"
-import { ConfigurationError, GardenError } from "../exceptions.js"
+import { ConfigurationError, GardenError, InternalError } from "../exceptions.js"
 import { resolve, posix } from "path"
 import fsExtra from "fs-extra"
 const { ensureDir } = fsExtra
-import type { TemplatedModuleConfig } from "../plugins/templated.js"
 import { omit } from "lodash-es"
 import { EnvironmentConfigContext } from "./template-contexts/project.js"
-import type { ConfigTemplateConfig, TemplatableConfig } from "./config-template.js"
+import type { TemplatableConfig } from "./config-template.js"
 import { templatableKinds, templateNoTemplateFields } from "./config-template.js"
 import { createSchema, joi, joiIdentifier, joiUserIdentifier, unusedApiVersionSchema } from "./common.js"
 import type { DeepPrimitiveMap } from "@garden-io/platform-api-types"
 import { RenderTemplateConfigContext } from "./template-contexts/render.js"
 import type { Log } from "../logger/log-entry.js"
-import { GardenApiVersion } from "../constants.js"
 import { GardenConfig } from "../template-string/validation.js"
+import { evaluate } from "../template-string/lazy.js"
+import { isPlainObject } from "../util/objects.js"
+import { TemplateLeaf } from "../template-string/inputs.js"
 
 export const renderTemplateConfigSchema = createSchema({
   name: renderTemplateKind,
@@ -61,7 +62,7 @@ export const renderTemplateConfigSchema = createSchema({
   }),
 })
 
-export interface RenderTemplateConfig extends BaseGardenResource {
+export type RenderTemplateConfig = BaseGardenResource & {
   kind: RenderTemplateKind
   disabled?: boolean
   template: string
@@ -86,21 +87,34 @@ export const templatedModuleSpecSchema = createSchema({
   }),
 })
 
-export function convertTemplatedModuleToRender(config: TemplatedModuleConfig): RenderTemplateConfig {
-  return {
-    apiVersion: config.apiVersion || GardenApiVersion.v0,
-    kind: renderTemplateKind,
-    name: config.name,
-    disabled: config.disabled,
+export function convertTemplatedModuleToRender(config: UnrefinedModuleConfig): GardenConfig<RenderTemplateConfig> {
+  return config.transformParsedConfig((config, context, opts) => {
+    const evaluated = evaluate({ value: config, context, opts })
 
-    internal: {
-      basePath: config.path,
-      configFilePath: config.configPath,
-    },
+    if (!isPlainObject(evaluated)) {
+      throw new InternalError({
+        message: `Expected a plain object`,
+      })
+    }
 
-    template: config.spec.template,
-    inputs: config.spec.inputs,
-  }
+    const spec = evaluate({ value: evaluated.spec, context, opts })
+
+    if (!isPlainObject(spec)) {
+      throw new InternalError({
+        message: `Expected a plain object`,
+      })
+    }
+
+    return {
+      apiVersion: evaluated.apiVersion || TemplateLeaf.from(undefined),
+      kind: TemplateLeaf.from(renderTemplateKind),
+      name: evaluated.name || TemplateLeaf.from(undefined),
+      disabled: evaluated.disabled || TemplateLeaf.from(undefined),
+
+      template: spec.template || TemplateLeaf.from(undefined),
+      inputs: spec.inputs || TemplateLeaf.from(undefined),
+    }
+  }).refineWithJoi<RenderTemplateConfig>(renderTemplateConfigSchema())
 }
 
 export interface RenderConfigTemplateResult {

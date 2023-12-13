@@ -18,7 +18,7 @@ import type { ActionKind } from "../plugin/action-types.js"
 import type { GraphResults } from "../graph/results.js"
 import type { BaseAction } from "./base.js"
 import type { ValidResultType } from "../tasks/base.js"
-import type { BaseGardenResource, GardenResourceInternalFields } from "../config/base.js"
+import type { BaseGardenResource } from "../config/base.js"
 import type { LinkedSource } from "../config-store/local.js"
 import type { GardenApiVersion } from "../constants.js"
 
@@ -29,13 +29,13 @@ export type { ActionKind } from "../plugin/action-types.js"
 export const actionKinds: ActionKind[] = ["Build", "Deploy", "Run", "Test"]
 export const actionKindsLower = actionKinds.map((k) => k.toLowerCase())
 
-interface SourceRepositorySpec {
+type SourceRepositorySpec = {
   url: string
   // TODO: subPath?: string
   // TODO: commitHash?: string
 }
 
-export interface ActionSourceSpec {
+export type ActionSourceSpec = {
   path?: string
   repository?: SourceRepositorySpec
 }
@@ -45,8 +45,7 @@ export interface ActionSourceSpec {
  *
  * See inline comments below for information on what templating is allowed on different fields.
  */
-export interface BaseActionConfig<K extends ActionKind = ActionKind, T = string, Spec = any>
-  extends BaseGardenResource {
+export type BaseActionConfig<K extends ActionKind = ActionKind, T = string, Spec = any> = BaseGardenResource & {
   // Basics
   // -> No templating is allowed on these.
   apiVersion?: GardenApiVersion
@@ -61,15 +60,15 @@ export interface BaseActionConfig<K extends ActionKind = ActionKind, T = string,
 
   // Internal metadata
   // -> No templating is allowed on these.
-  internal: GardenResourceInternalFields & {
-    groupName?: string
-    resolved?: boolean // Set to true if no resolution is required, e.g. set for actions converted from modules
-    treeVersion?: TreeVersion // Set during module resolution to avoid duplicate scanning for Build actions
-    // For forwards-compatibility, applied on actions returned from module conversion handlers
-    remoteClonePath?: string
-    moduleName?: string
-    moduleVersion?: ModuleVersion
-  }
+  // internal: GardenResourceInternalFields & {
+  //   groupName?: string
+  //   resolved?: boolean // Set to true if no resolution is required, e.g. set for actions converted from modules
+  //   treeVersion?: TreeVersion // Set during module resolution to avoid duplicate scanning for Build actions
+  //   // For forwards-compatibility, applied on actions returned from module conversion handlers
+  //   remoteClonePath?: string
+  //   moduleName?: string
+  //   moduleVersion?: ModuleVersion
+  // }
 
   // Flow/execution control
   // -> Templating with ActionConfigContext allowed
@@ -93,7 +92,7 @@ export interface BaseActionConfig<K extends ActionKind = ActionKind, T = string,
   spec: Spec
 }
 
-export interface ActionConfigTypes {
+export type ActionConfigTypes = {
   Build: BuildActionConfig<string, any>
   Deploy: DeployActionConfig<string, any>
   Run: RunActionConfig<string, any>
@@ -110,21 +109,21 @@ export interface ActionConfigTypes {
 export const actionStateTypes = ["ready", "not-ready", "processing", "failed", "unknown"] as const
 export type ActionState = (typeof actionStateTypes)[number]
 
-export interface ActionStatus<
+export type ActionStatus<
   T extends BaseAction = BaseAction,
   D extends {} = any,
   O extends {} = GetActionOutputType<T>,
-> extends ValidResultType {
+> = ValidResultType & {
   state: ActionState
   detail: D | null
   outputs: O
 }
 
-export interface ActionStatusMap<T extends BaseAction = BaseAction> {
+export type ActionStatusMap<T extends BaseAction = BaseAction> = {
   [key: string]: ActionStatus<T>
 }
 
-export interface ActionDependencyAttributes {
+export type ActionDependencyAttributes = {
   explicit: boolean // Set to true if action config explicitly states the dependency
   needsStaticOutputs: boolean // Set to true if action cannot be resolved without resolving the dependency
   needsExecutedOutputs: boolean // Set to true if action cannot be resolved without the dependency executed
@@ -132,7 +131,7 @@ export interface ActionDependencyAttributes {
 
 export type ActionDependency = ActionReference & ActionDependencyAttributes
 
-export interface ActionModes {
+export type ActionModes = {
   sync?: boolean
   local?: boolean
 }
@@ -143,7 +142,7 @@ export type ActionModeMap = {
   [mode in ActionMode]?: string[]
 }
 
-export interface ActionWrapperParams<C extends BaseActionConfig> {
+export type ActionWrapperParams<C extends BaseActionConfig> = {
   baseBuildDirectory: string // <project>/.garden/build by default
   compatibleTypes: string[]
   config: C
@@ -164,7 +163,7 @@ export interface ActionWrapperParams<C extends BaseActionConfig> {
   variables: DeepPrimitiveMap
 }
 
-export interface ResolveActionParams<C extends BaseActionConfig, StaticOutputs extends {} = any> {
+export type ResolveActionParams<C extends BaseActionConfig, StaticOutputs extends {} = any> = {
   resolvedGraph: ResolvedConfigGraph
   dependencyResults: GraphResults
   executedDependencies: ExecutedAction[]
@@ -180,11 +179,11 @@ export type ResolvedActionWrapperParams<
   StaticOutputs extends {} = any,
 > = ActionWrapperParams<C> & ResolveActionParams<C, StaticOutputs>
 
-export interface ExecuteActionParams<
+export type ExecuteActionParams<
   C extends BaseActionConfig = BaseActionConfig,
   StaticOutputs extends {} = any,
   RuntimeOutputs extends {} = any,
-> {
+> = {
   status: ActionStatus<BaseAction<C, StaticOutputs>, any, RuntimeOutputs>
 }
 
@@ -231,7 +230,7 @@ export type ActionConfigMap = {
   }
 }
 
-export interface ActionConfigsByKey {
+export type ActionConfigsByKey = {
   [key: string]: ActionConfig
 }
 

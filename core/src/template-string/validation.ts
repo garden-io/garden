@@ -12,12 +12,8 @@ import { Collection, CollectionOrValue, isArray, isPlainObject } from "../util/o
 import { TemplatePrimitive, TemplateValue } from "./inputs.js"
 import { getCollectionSymbol, getLazyConfigProxy } from "./proxy.js"
 import Joi from "@hapi/joi"
-import { TemplateProvenance, parseTemplateCollection } from "./template-string.js"
+import { parseTemplateCollection } from "./template-string.js"
 import { ConfigSource } from "../config/validation.js"
-import { omit } from "lodash-es"
-import { CreateSchemaOutput } from "../config/common.js"
-import { AnySchema } from "ajv"
-import { InternalError } from "../exceptions.js"
 import { dirname } from "path"
 
 type Change = { path: (string | number)[]; value: CollectionOrValue<TemplatePrimitive> }
@@ -96,11 +92,12 @@ function getOverlayProxy(targetObject: Collection<TemplatePrimitive>, changes: C
 
 export type GardenConfigParams = {
   unparsedConfig?: CollectionOrValue<TemplatePrimitive>
+  untemplatableKeys?: string[]
   parsedConfig?: CollectionOrValue<TemplateValue>
   context: ConfigContext
   opts: ContextResolveOpts
   overlays?: Change[]
-  source: ConfigSource
+  source: ConfigSource | undefined
 
   configFilePath?: string
 }
@@ -112,7 +109,7 @@ export class GardenConfig<ConfigType extends Collection<TemplatePrimitive> = Col
   private opts: ContextResolveOpts
   private overlays: Change[]
 
-  public source: ConfigSource
+  public source: ConfigSource | undefined
 
   /**
    * The path to the resource's config file, if any.
@@ -126,7 +123,7 @@ export class GardenConfig<ConfigType extends Collection<TemplatePrimitive> = Col
    * The path/working directory where commands and operations relating to the config should be executed. This is
    * most commonly the directory containing the config file.
    *
-   * Note: WHen possible, use `action.getSourcePath()` instead, since it factors in remote source paths and source
+   * Note: When possible, use `action.getSourcePath()` instead, since it factors in remote source paths and source
    * overrides (i.e. `BaseActionConfig.source.path`). This is a lower-level field that doesn't contain template strings,
    * and can thus be used early in the resolution flow.
    */
@@ -138,13 +135,24 @@ export class GardenConfig<ConfigType extends Collection<TemplatePrimitive> = Col
     return undefined
   }
 
-  constructor({ unparsedConfig, parsedConfig, context, opts, source, configFilePath, overlays = [] }: GardenConfigParams) {
-    this.parsedConfig = parsedConfig || parseTemplateCollection({ value: unparsedConfig, source: { source } })
+  constructor({ unparsedConfig, untemplatableKeys = [], parsedConfig, context, opts, source, configFilePath, overlays = [] }: GardenConfigParams) {
+    this.parsedConfig = parsedConfig || parseTemplateCollection({ value: unparsedConfig, source: { source }, untemplatableKeys })
     this.context = context
     this.opts = opts
     this.overlays = overlays
     this.source = source
     this.configFilePath = configFilePath
+  }
+
+  public transformParsedConfig(transform: (parsedConfig: CollectionOrValue<TemplateValue>, context: ConfigContext, opts: ContextResolveOpts) => CollectionOrValue<TemplateValue>): GardenConfig {
+    return new GardenConfig({
+      parsedConfig: transform(this.parsedConfig, this.context, this.opts),
+      context: this.context,
+      opts: this.opts,
+      overlays: [],
+      source: this.source,
+      configFilePath: this.configFilePath,
+    })
   }
 
   public withContext(context: ConfigContext, opts: ContextResolveOpts = {}): GardenConfig {
