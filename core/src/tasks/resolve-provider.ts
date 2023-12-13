@@ -101,7 +101,7 @@ export class ResolveProviderTask extends BaseTask<Provider> {
     const implicitDeps = getProviderTemplateReferences(this.config).map((name) => ({ name }))
     const allDeps = uniq([...pluginDeps, ...explicitDeps, ...implicitDeps])
 
-    const rawProviderConfigs = this.garden.getRawProviderConfigs()
+    const rawProviderConfigs = this.garden.getConfiguredProviders()
     const plugins = keyBy(this.allPlugins, "name")
 
     const matchDependencies = (depName: string) => {

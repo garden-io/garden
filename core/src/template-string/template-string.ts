@@ -502,60 +502,6 @@ export function getModuleTemplateReferences<T extends object>(obj: T, context: M
 }
 
 /**
- * Gathers secret references in configs and throws an error if one or more referenced secrets isn't present (or has
- * blank values) in the provided secrets map.
- *
- * Prefix should be e.g. "Module" or "Provider" (used when generating error messages).
- *
- * TODO: We've disabled this for now. Re-introduce once we've removed get config command call from GE!
- */
-export function throwOnMissingSecretKeys(configs: ObjectWithName[], secrets: StringMap, prefix: string, log?: Log) {
-  const allMissing: [string, ContextKeySegment[]][] = [] // [[key, missing keys]]
-  for (const config of configs) {
-    const missing = detectMissingSecretKeys(config, secrets)
-    if (missing.length > 0) {
-      allMissing.push([config.name, missing])
-    }
-  }
-
-  if (allMissing.length === 0) {
-    return
-  }
-
-  const descriptions = allMissing.map(([key, missing]) => `${prefix} ${key}: ${missing.join(", ")}`)
-  /**
-   * Secret keys with empty values should have resulted in an error by this point, but we filter on keys with
-   * values for good measure.
-   */
-  const loadedKeys = Object.entries(secrets)
-    .filter(([_key, value]) => value)
-    .map(([key, _value]) => key)
-  let footer: string
-  if (loadedKeys.length === 0) {
-    footer = deline`
-      Note: No secrets have been loaded. If you have defined secrets for the current project and environment in Garden
-      Cloud, this may indicate a problem with your configuration.
-    `
-  } else {
-    footer = `Secret keys with loaded values: ${loadedKeys.join(", ")}`
-  }
-  const errMsg = dedent`
-    The following secret names were referenced in configuration, but are missing from the secrets loaded remotely:
-
-    ${descriptions.join("\n\n")}
-
-    ${footer}
-  `
-  if (log) {
-    log.silly(() => errMsg)
-  }
-  // throw new ConfigurationError(errMsg, {
-  //   loadedSecretKeys: loadedKeys,
-  //   missingSecretKeys: uniq(flatten(allMissing.map(([_key, missing]) => missing))),
-  // })
-}
-
-/**
  * Collects template references to secrets in obj, and returns an array of any secret keys referenced in it that
  * aren't present (or have blank values) in the provided secrets map.
  */

@@ -7,8 +7,8 @@
  */
 
 import { isArray, isEmpty, isNumber, isString } from "lodash-es"
-import { type ConfigContext, type ContextResolveOpts } from "../config/template-contexts/base.js"
-import { GardenError, InternalError, TemplateStringError } from "../exceptions.js"
+import { CONTEXT_RESOLVE_KEY_NOT_FOUND, renderKeyPath, type ConfigContext, type ContextResolveOpts } from "../config/template-contexts/base.js"
+import { InternalError, TemplateStringError } from "../exceptions.js"
 import { getHelperFunctions } from "./functions.js"
 import {
   TemplateLeaf,
@@ -631,31 +631,26 @@ export class ContextLookupExpression extends TemplateExpression {
     const evaluatedKeyPath = this.keyPath.map((k) => k.evaluate({ context, opts, optional, rawTemplateString }))
     const keyPath = evaluatedKeyPath.map((k) => k.value)
 
-    let result: CollectionOrValue<TemplateValue>
-    try {
-      const r = context.resolve({
-        key: keyPath,
-        nodePath: [],
-        opts: {
-          // TODO: either decouple allowPartial and optional, or remove allowPartial.
-          allowPartial: optional || opts.allowPartial,
-          ...opts,
-        },
-      })
-      result = r.result
-    } catch (e) {
-      if (e instanceof InternalError) {
-        throw e
-      }
-      // TODO: Maybe context.resolve should never throw, for increased performance.
-      if (e instanceof GardenError) {
-        throw new TemplateStringError({
-          message: e.message,
-          rawTemplateString,
-          loc: this.loc,
+    const { result } = context.resolve({
+      key: keyPath,
+      nodePath: [],
+      opts,
+    })
+
+    if (result === CONTEXT_RESOLVE_KEY_NOT_FOUND) {
+      if (optional) {
+        return new TemplateLeaf({
+          expr: rawTemplateString,
+          value: undefined,
+          inputs: {},
         })
       }
-      throw e
+
+      throw new TemplateStringError({
+        message: `Could not resolve key ${renderKeyPath(keyPath)}`,
+        rawTemplateString,
+        loc: this.loc,
+      })
     }
 
     let wrappedResult: CollectionOrValue<TemplateValue> = new WrapContextLookupInputsLazily(

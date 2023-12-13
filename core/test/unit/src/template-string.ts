@@ -11,7 +11,6 @@ import {
   resolveTemplateString,
   resolveTemplateStrings,
   collectTemplateReferences,
-  throwOnMissingSecretKeys,
   getActionTemplateReferences,
   parseTemplateString,
   parseTemplateCollection,
@@ -3466,55 +3465,6 @@ describe("getActionTemplateReferences", () => {
         contains: "Found invalid runtime reference (name is not a string)",
       })
     })
-  })
-})
-
-describe.skip("throwOnMissingSecretKeys", () => {
-  it("should not throw an error if no secrets are referenced", () => {
-    const configs = [
-      {
-        name: "foo",
-        foo: "${banana.llama}",
-        nested: { boo: "${moo}" },
-      },
-    ]
-
-    throwOnMissingSecretKeys(configs, {}, "Module")
-    throwOnMissingSecretKeys(configs, { someSecret: "123" }, "Module")
-  })
-
-  it("should throw an error if one or more secrets is missing", () => {
-    const configs = [
-      {
-        name: "moduleA",
-        foo: "${secrets.a}",
-        nested: { boo: "${secrets.b}" },
-      },
-      {
-        name: "moduleB",
-        bar: "${secrets.a}",
-        nested: { boo: "${secrets.b}" },
-        baz: "${secrets.c}",
-      },
-    ]
-
-    void expectError(
-      () => throwOnMissingSecretKeys(configs, { b: "123" }, "Module"),
-      (err) => {
-        expect(err.message).to.match(/Module moduleA: a/)
-        expect(err.message).to.match(/Module moduleB: a, c/)
-        expect(err.message).to.match(/Secret keys with loaded values: b/)
-      }
-    )
-
-    void expectError(
-      () => throwOnMissingSecretKeys(configs, {}, "Module"),
-      (err) => {
-        expect(err.message).to.match(/Module moduleA: a, b/)
-        expect(err.message).to.match(/Module moduleB: a, b, c/)
-        expect(err.message).to.match(/Note: No secrets have been loaded./)
-      }
-    )
   })
 })
 

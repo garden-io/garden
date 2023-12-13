@@ -348,7 +348,7 @@ export class ProjectConfigContext extends DefaultEnvironmentContext {
 }
 
 interface EnvironmentConfigContextParams extends ProjectConfigContextParams {
-  variables: CollectionOrValue<TemplateValue>
+  variables: ConfigContext
 }
 
 /**
@@ -360,10 +360,10 @@ export class EnvironmentConfigContext extends ProjectConfigContext {
       .description("A map of all variables defined in the project configuration.")
       .meta({ keyPlaceholder: "<variable-name>" })
   )
-  public variables: CollectionOrValue<TemplateValue>
+  public variables: ConfigContext
 
   @schema(joiIdentifierMap(joiPrimitive()).description("Alias for the variables field."))
-  public var: CollectionOrValue<TemplateValue>
+  public var: ConfigContext
 
   @schema(
     joiStringMap(joi.string().description("The secret's value."))
@@ -396,9 +396,9 @@ export class RemoteSourceConfigContext extends EnvironmentConfigContext {
       )
       .meta({ keyPlaceholder: "<variable-name>" })
   )
-  public override variables: CollectionOrValue<TemplateValue>
+  public override variables: ConfigContext
 
-  constructor(garden: Garden, variables: CollectionOrValue<TemplateValue>) {
+  constructor(garden: Garden, variables: ConfigContext) {
     super({
       projectName: garden.projectName,
       projectRoot: garden.projectRoot,

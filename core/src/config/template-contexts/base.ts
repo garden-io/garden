@@ -7,9 +7,7 @@
  */
 
 import type Joi from "@hapi/joi"
-import { isString } from "lodash-es"
-import { ConfigurationError, NotFoundError } from "../../exceptions.js"
-import { resolveTemplateString } from "../../template-string/template-string.js"
+import { ConfigurationError } from "../../exceptions.js"
 import type { CustomObjectSchema } from "../common.js"
 import { isPrimitive, joi, joiIdentifier } from "../common.js"
 import { KeyedSet } from "../../util/keyed-set.js"
@@ -20,6 +18,7 @@ import { TemplateLeaf, isTemplateLeafValue, isTemplateLeaf } from "../../templat
 import type { CollectionOrValue } from "../../util/objects.js"
 import { deepMap } from "../../util/objects.js"
 import { LazyValue } from "../../template-string/lazy.js"
+import { GardenConfig } from "../../template-string/validation.js"
 
 export type ContextKeySegment = string | number
 export type ContextKey = ContextKeySegment[]
@@ -28,7 +27,7 @@ export type ObjectPath = (string | number)[]
 
 export interface ContextResolveOpts {
   // Allow templates to be partially resolved (used to defer runtime template resolution, for example)
-  // TODO: rename to optional
+  // TODO: Remove this from context resolve opts: The context does not care if we resolve template strings partially.
   allowPartial?: boolean
   // a list of previously resolved paths, used to detect circular references
   stack?: string[]
@@ -45,7 +44,7 @@ export interface ContextResolveParams {
 export interface ContextResolveOutput {
   message?: string
   partial?: boolean
-  result: CollectionOrValue<TemplateValue>
+  result: CollectionOrValue<TemplateValue> | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND
   cached: boolean
   // for input tracking
   // ResolvedResult: ResolvedResult
@@ -62,19 +61,18 @@ export interface ConfigContextType {
   getSchema(): CustomObjectSchema
 }
 
+export const CONTEXT_RESOLVE_KEY_NOT_FOUND = Symbol.for("ContextResolveKeyNotFound")
+
 // Note: we're using classes here to be able to use decorators to describe each context node and key
 // TODO-steffen&thor: Make all instance variables of all config context classes read-only.
 export abstract class ConfigContext {
   private readonly _rootContext: ConfigContext
   private readonly _resolvedValues: { [path: string]: CollectionOrValue<TemplateValue> }
 
-  // This is used for special-casing e.g. runtime.* resolution
-  protected _alwaysAllowPartial: boolean
 
   constructor(rootContext?: ConfigContext) {
     this._rootContext = rootContext || this
     this._resolvedValues = {}
-    this._alwaysAllowPartial = false
   }
 
   static getSchema() {
@@ -170,12 +168,6 @@ export abstract class ConfigContext {
         break
       }
 
-      // handle templated strings in context variables
-      if (isString(value)) {
-        opts.stack.push(stackEntry)
-        value = resolveTemplateString({ string: value, context: this._rootContext, contextOpts: opts })
-      }
-
       if (isTemplateLeaf(value) || value instanceof LazyValue) {
         break
       }
@@ -203,18 +195,10 @@ export abstract class ConfigContext {
         }
       }
 
-      if (!opts.allowPartial && !this._alwaysAllowPartial) {
-        throw new NotFoundError({ message })
-      } else {
-        return {
-          message,
-          cached: false,
-          result: new TemplateLeaf({
-            expr: undefined,
-            value: undefined,
-            inputs: {},
-          }),
-        }
+      return {
+        message,
+        cached: false,
+        result: CONTEXT_RESOLVE_KEY_NOT_FOUND,
       }
     }
 
@@ -256,12 +240,60 @@ export abstract class ConfigContext {
 }
 
 /**
+ * LayeredContext takes a list of contexts, and tries to resolve a key in each of them, in order.
+ *
+ * It returns the first value that successfully resolved.
+ */
+export class LayeredContext extends ConfigContext {
+  private readonly _layers: ConfigContext[]
+
+  constructor(...layers: ConfigContext[]) {
+    super()
+    this._layers = layers
+  }
+
+  override resolve({ key, nodePath, opts }: ContextResolveParams): ContextResolveOutput {
+    let res: ContextResolveOutput = { cached: false, result: CONTEXT_RESOLVE_KEY_NOT_FOUND }
+
+    for (const [index, layer] of this._layers.entries()) {
+      const isLastLayer = index === this._layers.length - 1
+
+      res = layer.resolve({
+        key,
+        nodePath,
+        opts: {
+          ...opts,
+          // Throw an error if we can't find the value in the last layer, unless allowPartial is set
+          allowPartial: isLastLayer ? opts.allowPartial : false,
+        },
+      })
+
+      // break if we successfully resolved something
+      if (res.result !== CONTEXT_RESOLVE_KEY_NOT_FOUND) {
+        break
+      }
+    }
+
+    return res
+  }
+}
+
+/**
  * A generic context that just wraps an object.
  */
 export class GenericContext extends ConfigContext {
   constructor(obj: any) {
     super()
-    Object.assign(this, obj)
+
+    // If we pass in template variables, we want to store the underlying template value tree
+    // Otherwise we lose input tracking information
+    const templateValueTree = GardenConfig.getTemplateValueTree(obj)
+
+    if (templateValueTree) {
+      Object.assign(this, templateValueTree)
+    } else {
+      Object.assign(this, obj)
+    }
   }
 
   static override getSchema() {

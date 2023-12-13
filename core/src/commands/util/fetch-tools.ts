@@ -93,7 +93,7 @@ export class FetchToolsCommand extends Command<{}, FetchToolsOpts> {
     // No need to fetch the same tools multiple times, if they're used in multiple providers
     const deduplicated = uniqBy(tools, ({ tool }) => tool["versionPath"])
 
-    const versionedConfigs = garden.getRawProviderConfigs({ names: ["pulumi", "terraform"], allowMissing: true })
+    const versionedConfigs = garden.getConfiguredProviders({ names: ["pulumi", "terraform"], allowMissing: true })
 
     // If the version of the tool is configured on the provider,
     // download only that version of the tool.

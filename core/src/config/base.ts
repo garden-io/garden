@@ -23,7 +23,7 @@ import { defaultDotIgnoreFile, listDirectory } from "../util/fs.js"
 import { isConfigFilename } from "../util/fs.js"
 import type { ConfigTemplateKind } from "./config-template.js"
 import { isNotNull, isTruthy } from "../util/util.js"
-import type { DeepPrimitiveMap, PrimitiveMap } from "./common.js"
+import type { PrimitiveMap } from "./common.js"
 import { createSchema, joi } from "./common.js"
 import { emitNonRepeatableWarning } from "../warnings.js"
 import type { ActionKind } from "../actions/types.js"
@@ -31,18 +31,18 @@ import { actionKinds } from "../actions/types.js"
 import {
   TemplateProvenance,
   mayContainTemplateString,
-  parseTemplateCollection,
 } from "../template-string/template-string.js"
 import type { Log } from "../logger/log-entry.js"
 import type { Document, DocumentOptions } from "yaml"
 import { parseAllDocuments } from "yaml"
 import { dedent, deline } from "../util/string.js"
 import { GardenConfig } from "../template-string/validation.js"
-import { GenericContext } from "./template-contexts/base.js"
-import { CollectionOrValue } from "../util/objects.js"
+import { ConfigContext, GenericContext } from "./template-contexts/base.js"
+import { Collection, CollectionOrValue } from "../util/objects.js"
 import { Template } from "handlebars"
-import { TemplatePrimitive } from "../template-string/inputs.js"
+import { TemplateLeaf, TemplatePrimitive, templatePrimitiveDeepMap } from "../template-string/inputs.js"
 import { inferType, s } from "./zod.js"
+import { Primitive } from "utility-types"
 
 export const configTemplateKind = "ConfigTemplate"
 export const renderTemplateKind = "RenderTemplate"
@@ -293,16 +293,16 @@ export function prepareResource({
 }
 
 // TODO-0.14: remove these deprecation handlers in 0.14
-type DeprecatedConfigHandler = (log: Log, spec: ProjectConfig) => ProjectConfig
+type DeprecatedConfigHandler = (log: Log, spec: Collection<TemplatePrimitive>) => Collection<TemplatePrimitive>
 
-function handleDotIgnoreFiles(log: Log, projectSpec: ProjectConfig) {
+function handleDotIgnoreFiles(log: Log, projectSpec: Collection<TemplatePrimitive>) {
   // If the project config has an explicitly defined `dotIgnoreFile` field,
   // it means the config has already been updated to 0.13 format.
-  if (!!projectSpec.dotIgnoreFile) {
+  if (!!projectSpec["dotIgnoreFile"]) {
     return projectSpec
   }
 
-  const dotIgnoreFiles = projectSpec.dotIgnoreFiles
+  const dotIgnoreFiles = projectSpec["dotIgnoreFiles"]
   // If the project config has neither new `dotIgnoreFile` nor old `dotIgnoreFiles` fields
   // then there is nothing to do.
   if (!dotIgnoreFiles) {
@@ -328,8 +328,8 @@ function handleDotIgnoreFiles(log: Log, projectSpec: ProjectConfig) {
   })
 }
 
-function handleProjectModules(log: Log, projectSpec: ProjectConfig): ProjectConfig {
-  // Field 'modules' was intentionally removed from the internal interface `ProjectConfig`,
+function handleProjectModules(log: Log, projectSpec: Collection<TemplatePrimitive>): Collection<TemplatePrimitive> {
+  // Field 'modules' was intentionally removed from the internal interface `Collection<TemplatePrimitive>`,
   // but it still can be presented in the runtime if the old config format is used.
   if (projectSpec["modules"]) {
     emitNonRepeatableWarning(
@@ -341,7 +341,7 @@ function handleProjectModules(log: Log, projectSpec: ProjectConfig): ProjectConf
   return projectSpec
 }
 
-function handleMissingApiVersion(log: Log, projectSpec: ProjectConfig): ProjectConfig {
+function handleMissingApiVersion(log: Log, projectSpec: Collection<TemplatePrimitive>): Collection<TemplatePrimitive> {
   // We conservatively set the apiVersion to be compatible with 0.12.
   if (projectSpec["apiVersion"] === undefined) {
     emitNonRepeatableWarning(
@@ -531,7 +531,7 @@ export async function loadVarfile({
   configRoot: string
   path: string | undefined
   defaultPath: string | undefined
-}): Promise<PrimitiveMap> {
+}): Promise<ConfigContext> {
   if (!path && !defaultPath) {
     throw new ParameterError({
       message: `Neither a path nor a defaultPath was provided. Config root: ${configRoot}`,
@@ -547,38 +547,39 @@ export async function loadVarfile({
   }
 
   if (!exists) {
-    return {}
+    return new GenericContext({})
   }
 
+  let parsed: PrimitiveMap
   try {
     const data = await readFile(resolvedPath)
     const relPath = relative(configRoot, resolvedPath)
     const filename = basename(resolvedPath.toLowerCase())
 
     if (filename.endsWith(".json")) {
-      const parsed = JSON.parse(data.toString())
+      parsed = JSON.parse(data.toString())
       if (!isPlainObject(parsed)) {
         throw new ConfigurationError({
           message: `Configured variable file ${relPath} must be a valid plain JSON object. Got: ${typeof parsed}`,
         })
       }
-      return parsed
     } else if (filename.endsWith(".yml") || filename.endsWith(".yaml")) {
-      const parsed = load(data.toString())
+      parsed = load(data.toString()) as PrimitiveMap
       if (!isPlainObject(parsed)) {
         throw new ConfigurationError({
           message: `Configured variable file ${relPath} must be a single plain YAML mapping. Got: ${typeof parsed}`,
         })
       }
-      return parsed as PrimitiveMap
     } else {
       // Note: For backwards-compatibility we fall back on using .env as a default format, and don't specifically
       // validate the extension for that.
-      return dotenv.parse(await readFile(resolvedPath))
+      parsed = dotenv.parse(await readFile(resolvedPath))
     }
   } catch (error) {
     throw new ConfigurationError({
       message: `Unable to load varfile at '${path}': ${error}`,
     })
   }
+
+  return new GenericContext(parsed)
 }

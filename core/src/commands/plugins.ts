@@ -65,7 +65,7 @@ export class PluginsCommand extends Command<Args> {
   }
 
   async action({ garden, log, args }: CommandParams<Args>): Promise<CommandResult> {
-    const providerConfigs = garden.getRawProviderConfigs()
+    const providerConfigs = garden.getConfiguredProviders()
     const configuredPlugins = providerConfigs.map((p) => p.name)
 
     if (!args.command || !args.plugin) {

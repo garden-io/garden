@@ -187,17 +187,13 @@ class RuntimeConfigContext extends ConfigContext {
         }
       }
     }
-
-    // This ensures that any template string containing runtime.* references is returned unchanged when
-    // there is no or limited runtime context available.
-    this._alwaysAllowPartial = allowPartial
   }
 }
 
 export interface OutputConfigContextParams {
   garden: Garden
   resolvedProviders: ProviderMap
-  variables: DeepPrimitiveMap
+  variables: ConfigContext
   modules: GardenModule[]
   // We only supply this when resolving configuration in dependency order.
   // Otherwise we pass `${runtime.*} template strings through for later resolution.

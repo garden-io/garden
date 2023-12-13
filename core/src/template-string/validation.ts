@@ -236,15 +236,13 @@ export class GardenConfig<ConfigType extends Collection<TemplatePrimitive> = Col
     return configProxy
   }
 
-  static getTemplateValueTree(proxy: CollectionOrValue<TemplatePrimitive>): CollectionOrValue<TemplateValue> {
+  static getTemplateValueTree(proxy: CollectionOrValue<TemplatePrimitive>): Collection<TemplateValue> | undefined {
     const underlyingTemplateValueTree = proxy?.[getCollectionSymbol]
 
     if (underlyingTemplateValueTree) {
-      return underlyingTemplateValueTree as CollectionOrValue<TemplateValue>
+      return underlyingTemplateValueTree as Collection<TemplateValue>
     }
 
-    throw new InternalError({
-      message: "Expected a config proxy",
-    })
+    return undefined
   }
 }

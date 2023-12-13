@@ -3047,11 +3047,6 @@ describe("Garden", () => {
       })
     })
 
-    it.skip("should throw an error if references to missing secrets are present in a module config", async () => {
-      const garden = await makeTestGarden(getDataDir("missing-secrets", "module"))
-      await expectError(() => garden.scanAndAddConfigs(), { contains: "Module module-a: missing" })
-    })
-
     it("should throw when apiVersion v0 is set in a project with action configs", async () => {
       const garden = await makeTestGarden(getDataDir("test-projects", "config-action-kind-v0"))
 

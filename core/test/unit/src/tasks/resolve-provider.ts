@@ -45,7 +45,7 @@ describe("ResolveProviderTask", () => {
     })
 
     const plugin = await garden.getPlugin("test-plugin")
-    const config = garden.getRawProviderConfigs({ names: ["test-plugin"] })[0]
+    const config = garden.getConfiguredProviders({ names: ["test-plugin"] })[0]
 
     task = new ResolveProviderTask({
       garden,

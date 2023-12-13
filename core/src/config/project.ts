@@ -22,30 +22,25 @@ import {
   joiVariablesDescription,
   omitFromSchema,
 } from "./common.js"
-import { validateConfig, validateWithPath } from "./validation.js"
-import { resolveTemplateStrings } from "../template-string/template-string.js"
 import { EnvironmentConfigContext, ProjectConfigContext } from "./template-contexts/project.js"
 import { findByName, getNames } from "../util/util.js"
 import { ConfigurationError, InternalError, ParameterError, ValidationError } from "../exceptions.js"
-import cloneDeep from "fast-copy"
-import { memoize, omit, pick } from "lodash-es"
+import { memoize } from "lodash-es"
 import type { GenericProviderConfig } from "./provider.js"
-import { providerConfigBaseSchema } from "./provider.js"
+import { baseProviderConfigSchemaZod, providerConfigBaseSchema } from "./provider.js"
 import type { GitScanMode } from "../constants.js"
 import { DOCS_BASE_URL, GardenApiVersion, gitScanModes } from "../constants.js"
 import { defaultDotIgnoreFile } from "../util/fs.js"
 import type { CommandInfo } from "../plugin-context.js"
 import type { VcsInfo } from "../vcs/vcs.js"
 import { profileAsync } from "../util/profiling.js"
-import type { BaseGardenResource, UnrefinedProjectConfig } from "./base.js"
+import type { BaseGardenResource } from "./base.js"
 import { baseInternalFieldsSchema, loadVarfile, varfileDescription } from "./base.js"
 import type { Log } from "../logger/log-entry.js"
-import { renderDivider } from "../logger/util.js"
 import { styles } from "../logger/styles.js"
 import { GardenConfig } from "../template-string/validation.js"
 import { s } from "./zod.js"
-import { getCollectionSymbol } from "../template-string/proxy.js"
-import { Garden } from "../index.js"
+import { ConfigContext, GenericContext, LayeredContext } from "./template-contexts/base.js"
 
 export const defaultVarfilePath = "garden.env"
 export const defaultEnvVarfilePath = (environmentName: string) => `garden.${environmentName}.env`
@@ -200,7 +195,7 @@ type GitConfig = {
   mode: GitScanMode
 }
 
-export type ProjectConfig = BaseGardenResource & {
+export type ProjectConfig = Readonly<BaseGardenResource & {
   apiVersion: GardenApiVersion
   kind: "Project"
   name: string
@@ -221,7 +216,7 @@ export type ProjectConfig = BaseGardenResource & {
   sources?: SourceConfig[]
   varfile?: string
   variables: DeepPrimitiveMap
-}
+}>
 
 export const projectNameSchema = memoize(() =>
   joiIdentifier().required().description("The name of the project.").example("my-sweet-project")
@@ -310,7 +305,7 @@ export const projectSchema = createSchema({
 
       Note that the value ${GardenApiVersion.v1} will break compatibility of your project
       with Garden Acorn (0.12).
-    `),
+    `).required(), // We set the default before validation in `handleMissingApiVersion`
     kind: joi.string().default("Project").valid("Project").description("Indicate what kind of config this is."),
     internal: baseInternalFieldsSchema(),
     name: projectNameSchema(),
@@ -502,7 +497,7 @@ export function resolveProjectConfig({
   return config.withContext(context).refineWithJoi<PartialProjectConfig>(partialSchema)
 }
 
-type ProjectConfigWithoutSourcesAndProviders = GardenConfig<Omit<ProjectConfig, "sources" | "providers">>
+export type ProjectConfigWithoutSources = GardenConfig<Omit<ProjectConfig, "sources">>
 
 /**
  * Given an environment name, pulls the relevant environment-specific configuration from the specified project
@@ -550,7 +545,14 @@ export const pickEnvironment = profileAsync(async function _pickEnvironment({
   enterpriseDomain: string | undefined
   secrets: PrimitiveMap
   commandInfo: CommandInfo
-}) {
+}): Promise<{
+  environmentName: string
+  namespace: string
+  defaultNamespace: string | null
+  production: boolean
+  variables: ConfigContext
+  refinedConfig: ProjectConfigWithoutSources,
+}> {
   const projectRoot = projectConfig.configFileDirname
 
   if (!projectRoot) {
@@ -567,9 +569,11 @@ export const pickEnvironment = profileAsync(async function _pickEnvironment({
     defaultPath: defaultVarfilePath,
   })
 
-  // Overrides should be lazy merged and need an abstraction for that.
-  // const projectVariables: DeepPrimitiveMap = <any>merge(variables, projectVarfileVars)
-  const projectVariables = GardenConfig.getTemplateValueTree(variables)
+  const environmentConfigContextVariables = new LayeredContext(
+    // projectVarfileVars has precendence over the variables declared in project.garden.yml
+    projectVarfileVars,
+    new GenericContext(variables)
+  )
 
   const context = new EnvironmentConfigContext({
     projectName,
@@ -577,23 +581,21 @@ export const pickEnvironment = profileAsync(async function _pickEnvironment({
     artifactsPath,
     vcsInfo,
     username,
-    variables: projectVariables,
+    variables: environmentConfigContextVariables,
     loggedIn,
     enterpriseDomain,
     secrets,
     commandInfo,
   })
 
-  const partialSchema = omitFromSchema(projectSchema(), "sources", "providers")
-  type PartialProjectConfig = Omit<ProjectConfig, "sources" | "providers">
+  const partialSchema = omitFromSchema(projectSchema(), "sources")
+  type PartialProjectConfig = Omit<ProjectConfig, "sources">
   const refined = projectConfig
     .withContext(context)
     .refineWithJoi<PartialProjectConfig>(partialSchema)
     .refineWithZod(
       s.object({
-        providers: s.object({
-          environments: s.array(s.string()).optional(),
-        }),
+        providers: s.array(baseProviderConfigSchemaZod).optional(),
       })
     )
 
@@ -602,10 +604,8 @@ export const pickEnvironment = profileAsync(async function _pickEnvironment({
   let { namespace } = parsed
 
   let environmentConfig: EnvironmentConfig | undefined
-  let index = -1
 
   for (const env of refined.config.environments) {
-    index++
     if (env.name === environment) {
       environmentConfig = env
       break
@@ -624,39 +624,23 @@ export const pickEnvironment = profileAsync(async function _pickEnvironment({
 
   namespace = getNamespace(environmentConfig, namespace)
 
-  const fixedProviders = fixedPlugins.map((name) => ({ name }))
-  const allProviders = [
-    ...fixedProviders,
-    ...projectConfig.config.providers.filter((p) => !p.environments || p.environments.includes(environment)),
-  ]
-
-  const mergedProviders: { [name: string]: GenericProviderConfig } = {}
-
-  for (const provider of allProviders) {
-    if (!!mergedProviders[provider.name]) {
-      // Merge using a JSON Merge Patch (see https://tools.ietf.org/html/rfc7396)
-      apply(mergedProviders[provider.name], provider)
-    } else {
-      mergedProviders[provider.name] = cloneDeep(provider)
-    }
-  }
-
-  // Overrides should be lazy merged and need an abstraction for that.
-  // const projectVariables: DeepPrimitiveMap = <any>merge(variables, projectVarfileVars)
-  // const envVarfileVars = await loadVarfile({
-  //   configRoot: projectConfig.path,
-  //   path: environmentConfig.varfile,
-  //   defaultPath: defaultEnvVarfilePath(environment),
-  // })
+  const envVarfileVars = await loadVarfile({
+    configRoot: projectConfig.configFileDirname,
+    path: environmentConfig.varfile,
+    defaultPath: defaultEnvVarfilePath(environment),
+  })
 
   return {
     environmentName: environment,
     namespace,
     defaultNamespace: environmentConfig.defaultNamespace,
     production: !!environmentConfig.production,
-    providers: Object.values(mergedProviders),
-    // TODO: retain the lazy values in variables, so that input tracking works.
-    variables: <any>merge(projectVariables, merge(environmentConfig.variables, envVarfileVars)),
+    variables: new LayeredContext(
+      envVarfileVars,
+      new GenericContext(environmentConfig.variables),
+      environmentConfigContextVariables
+    ),
+    refinedConfig: refined,
   }
 })
 

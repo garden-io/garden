@@ -451,7 +451,7 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
       if (filtered.length > 1) {
         // If we still end up with multiple handlers with no obvious best candidate, we use the order of configuration
         // as a tie-breaker.
-        const configs = this.garden.getRawProviderConfigs()
+        const configs = this.garden.getConfiguredProviders()
 
         for (const config of configs.reverse()) {
           for (const handler of filtered) {

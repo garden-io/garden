@@ -29,7 +29,7 @@ import { dashboardPagesSchema } from "../plugin/handlers/Provider/getDashboardPa
 import type { ActionState } from "../actions/types.js"
 import type { ValidResultType } from "../tasks/base.js"
 import { uuidv4 } from "../util/random.js"
-import { s } from "./zod.js"
+import { type inferType, s } from "./zod.js"
 
 // TODO: dedupe from the joi schema below
 export const baseProviderConfigSchemaZod = s.object({
@@ -51,12 +51,7 @@ export const baseProviderConfigSchemaZod = s.object({
     .example(["dev", "stage"]),
 })
 
-export interface BaseProviderConfig {
-  name: string
-  dependencies?: string[]
-  environments?: string[]
-}
-
+export type BaseProviderConfig = inferType<typeof baseProviderConfigSchemaZod>
 export interface GenericProviderConfig extends BaseProviderConfig {
   [key: string]: any
 }

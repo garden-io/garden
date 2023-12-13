@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { clone, cloneDeep, isBoolean, isEmpty } from "lodash-es"
+import { clone, isBoolean, isEmpty } from "lodash-es"
 import {
   arrayConcatKey,
   arrayForEachFilterKey,
@@ -18,7 +18,7 @@ import {
   objectSpreadKey,
 } from "../config/constants.js"
 import type { ConfigContext, ContextResolveOpts, ObjectPath } from "../config/template-contexts/base.js"
-import { GenericContext, renderKeyPath } from "../config/template-contexts/base.js"
+import { GenericContext, LayeredContext, renderKeyPath } from "../config/template-contexts/base.js"
 import type { Collection, CollectionOrValue } from "../util/objects.js"
 import { isPlainObject, isArray, deepMap } from "../util/objects.js"
 import { naturalList } from "../util/string.js"
@@ -372,23 +372,14 @@ export class ForEachLazyValue extends LazyValue<CollectionOrValue<TemplateValue>
 
     const filterExpression = this.yaml[arrayForEachFilterKey]
 
-    // TODO: maybe there's a more efficient way to do the cloning/extending?
-    const loopContext = cloneDeep(context)
-
     const output: CollectionOrValue<TemplateValue>[] = []
 
     for (const i of Object.keys(collectionExpressionValue)) {
       // put the TemplateValue in the context, not the primitive value, so we have input tracking
-      const contextForIndex = new GenericContext({ key: i, value: collectionExpressionResult[i] })
-      loopContext["item"] = contextForIndex
-
-      // Have to override the cache in the parent context here
-      // TODO: make this a little less hacky :P
-      const resolvedValues = loopContext["_resolvedValues"]
-      delete resolvedValues["item.key"]
-      delete resolvedValues["item.value"]
-      const subValues = Object.keys(resolvedValues).filter((k) => k.match(/item\.value\.*/))
-      subValues.forEach((v) => delete resolvedValues[v])
+      const contextForIndex = new GenericContext({
+        item: { key: i, value: collectionExpressionResult[i] },
+      })
+      const loopContext = new LayeredContext(contextForIndex, context)
 
       let filterResult: CollectionOrValue<TemplateValue> | undefined
       // Check $filter clause output, if applicable
@@ -411,6 +402,7 @@ export class ForEachLazyValue extends LazyValue<CollectionOrValue<TemplateValue>
       const returnExpression = this.yaml[arrayForEachReturnKey]
 
       // we have to eagerly resolve everything that references item, because the variable will not be available in the future anymore.
+      // TODO: Instead of evaluating item eagerly, we should implement a CaptureLazyValue, that uses LayeredContext to capture contexts for later.
       const returnResult = conditionallyEvaluate({
         value: returnExpression,
         context: loopContext,
