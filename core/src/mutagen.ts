@@ -805,14 +805,25 @@ export function getMutagenDataDir(path: string, log: Log) {
   return shortPath
 }
 
-export function getMutagenEnv(dataDir: string, logLevel?: string) {
-  const env = { MUTAGEN_DATA_DIRECTORY: dataDir }
+const mutagenRequiredEnvVars = ["MUTAGEN_DATA_DIRECTORY"] as const
+type MutagenRequiredEnvVar = (typeof mutagenRequiredEnvVars)[number]
+type MutagenRequiredEnv = {
+  [k in MutagenRequiredEnvVar]: string
+}
 
-  if (!!logLevel) {
-    return { ...env, MUTAGEN_LOG_LEVEL: logLevel }
-  } else {
-    return env
-  }
+const mutagenOptionalEnvVars = ["MUTAGEN_LOG_LEVEL"] as const
+type MutagenOptionalEnvVar = (typeof mutagenOptionalEnvVars)[number]
+type MutagenOptionalEnv = {
+  [k in MutagenOptionalEnvVar]?: string
+}
+
+type MutagenEnv = MutagenRequiredEnv & MutagenOptionalEnv
+
+export function getMutagenEnv(dataDir: string, logLevel?: string): MutagenEnv {
+  const requiredEnv: MutagenRequiredEnv = { MUTAGEN_DATA_DIRECTORY: dataDir }
+  const optionalEnv: MutagenOptionalEnv = !!logLevel ? { MUTAGEN_LOG_LEVEL: logLevel } : {}
+
+  return { ...requiredEnv, ...optionalEnv }
 }
 
 export function parseSyncListResult(res: ExecaReturnValue): SyncSession[] {
