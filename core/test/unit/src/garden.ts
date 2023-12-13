@@ -635,7 +635,7 @@ describe("Garden", () => {
         expect(garden.cloudDomain).to.eql(DEFAULT_GARDEN_CLOUD_DOMAIN)
         expect(garden.projectId).to.eql(undefined)
       })
-      it("should log a warning by default", async () => {
+      it("should log an informational message about not being logged in for community edition", async () => {
         log.root["entries"] = []
         const projectName = "test"
         const envName = "default"
@@ -650,6 +650,32 @@ describe("Garden", () => {
           log,
         })
         const distroName = getCloudDistributionName(garden.cloudDomain || DEFAULT_GARDEN_CLOUD_DOMAIN)
+
+        const expectedLog = log.root.getLogEntries().filter((l) => resolveMsg(l)?.includes(`You are not logged in`))
+
+        expect(expectedLog.length).to.eql(1)
+        expect(expectedLog[0].level).to.eql(LogLevel.info)
+        expect(expectedLog[0].msg).to.eql(
+          `You are not logged in. To use ${distroName}, log in with the ${styles.command("garden login")} command.`
+        )
+      })
+      it("should log a warning message about not being logged in for commercial edition", async () => {
+        log.root["entries"] = []
+        const fakeCloudDomain = "https://example.com"
+        const projectName = "test"
+        const envName = "default"
+        const config: ProjectConfig = createProjectConfig({
+          name: projectName,
+          path: pathFoo,
+          domain: fakeCloudDomain,
+        })
+
+        await TestGarden.factory(pathFoo, {
+          config,
+          environmentString: envName,
+          log,
+        })
+        const distroName = getCloudDistributionName(fakeCloudDomain)
 
         const expectedLog = log.root.getLogEntries().filter((l) => resolveMsg(l)?.includes(`You are not logged in`))
 
