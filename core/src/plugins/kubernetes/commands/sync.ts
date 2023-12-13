@@ -8,6 +8,7 @@
 
 import { getMutagenDataDir, getMutagenEnv, mutagenCliSpec, parseSyncListResult } from "../../../mutagen.js"
 import fsExtra from "fs-extra"
+
 const { pathExists } = fsExtra
 import { dedent } from "../../../util/string.js"
 import type { Log } from "../../../logger/log-entry.js"
@@ -86,7 +87,7 @@ export const syncPause: PluginCommand = {
         await mutagen.exec({
           cwd: dataDir,
           log,
-          env: getMutagenEnv(dataDir),
+          env: getMutagenEnv({ dataDir }),
           args: ["sync", "pause", sessionName],
         })
       }
@@ -132,7 +133,7 @@ export const syncResume: PluginCommand = {
         await mutagen.exec({
           cwd: dataDir,
           log,
-          env: getMutagenEnv(dataDir),
+          env: getMutagenEnv({ dataDir }),
           args: ["sync", "resume", sessionName],
         })
       }
@@ -147,7 +148,7 @@ async function getMutagenSyncSessions({ mutagen, dataDir, log }: { mutagen: Plug
   const res = await mutagen.exec({
     cwd: dataDir,
     log,
-    env: getMutagenEnv(dataDir),
+    env: getMutagenEnv({ dataDir }),
     args: ["sync", "list", "--template={{ json . }}"],
   })
   return parseSyncListResult(res)
