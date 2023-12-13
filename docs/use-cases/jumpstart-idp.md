@@ -54,6 +54,6 @@ If you encounter any issues or bugs 🐛 in this seed, don't hesitate to join ou
 
 ## Examples
 
-- [Remote sources example project](https://github.com/garden-io/garden/tree/main/examples/remote-sources)
+- [Remote sources example project](https://github.com/garden-io/garden/tree/0.13.22/examples/remote-sources)
 
-- [kubernetes Deploy action type example with config templates](https://github.com/garden-io/garden/tree/main/examples/k8s-deploy-config-templates)
+- [kubernetes Deploy action type example with config templates](https://github.com/garden-io/garden/tree/0.13.22/examples/k8s-deploy-config-templates)
