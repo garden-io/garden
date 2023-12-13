@@ -4,7 +4,7 @@
 
 ### Bug Fixes
 
-* if using tlsCertificates make the secretRef mandatory ([#5533](https://github.com/garden-io/garden/issues/5533)) ([02b809f7c](https://github.com/garden-io/garden/commit/02b809f7c))
+* if using `tlsCertificates` make the `secretRef` mandatory ([#5533](https://github.com/garden-io/garden/issues/5533)) ([02b809f7c](https://github.com/garden-io/garden/commit/02b809f7c))
 * adding an error handler to the segment client ([#5505](https://github.com/garden-io/garden/issues/5505)) ([540498c2f](https://github.com/garden-io/garden/commit/540498c2f))
 * **commands:** print section and tags in color ([#5525](https://github.com/garden-io/garden/issues/5525)) ([5e93e0785](https://github.com/garden-io/garden/commit/5e93e0785))
 * **commands:** print log command metadata in secondary color ([#5509](https://github.com/garden-io/garden/issues/5509)) ([8141e90cd](https://github.com/garden-io/garden/commit/8141e90cd))
@@ -35,7 +35,7 @@
 
 ### Features
 
-* respect NO_COLOR env var ([#5451](https://github.com/garden-io/garden/issues/5451)) ([889552f87](https://github.com/garden-io/garden/commit/889552f87))
+* respect `NO_COLOR` env var ([#5451](https://github.com/garden-io/garden/issues/5451)) ([889552f87](https://github.com/garden-io/garden/commit/889552f87))
 
 ### Improvements
 
@@ -50,7 +50,7 @@
 
 ### Bug Fixes
 
-* windows file tree ([#5364](https://github.com/garden-io/garden/issues/5364)) ([c5c3c66f4](https://github.com/garden-io/garden/commit/c5c3c66f4))
+* fix Windows file tree ([#5364](https://github.com/garden-io/garden/issues/5364)) ([c5c3c66f4](https://github.com/garden-io/garden/commit/c5c3c66f4))
 * always resolve symlinks for the executable path in the self-updater ([#5352](https://github.com/garden-io/garden/issues/5352)) ([7ee19dd72](https://github.com/garden-io/garden/commit/7ee19dd72))
 * **examples:** fix typo in k8s example + fix comment ([#5337](https://github.com/garden-io/garden/issues/5337)) ([098d59ea4](https://github.com/garden-io/garden/commit/098d59ea4))
 * **garden-sea:** resolve symlinks for GARDEN_SEA_EXECUTABLE_PATH ([#5353](https://github.com/garden-io/garden/issues/5353)) ([aba79f50d](https://github.com/garden-io/garden/commit/aba79f50d))
@@ -60,7 +60,7 @@
 ### Features
 
 * change default git scan mode to `repo` ([#5399](https://github.com/garden-io/garden/issues/5399)) ([da3f68fcb](https://github.com/garden-io/garden/commit/da3f68fcb))
-* **k8s:** add service account and irsa support for in-cluster-builder ([#3384](https://github.com/garden-io/garden/issues/3384)) ([9f6b137d6](https://github.com/garden-io/garden/commit/9f6b137d6))
+* **k8s:** add service account and IRSA support for in-cluster-builder ([#3384](https://github.com/garden-io/garden/issues/3384)) ([9f6b137d6](https://github.com/garden-io/garden/commit/9f6b137d6))
 
 ### Improvements
 
