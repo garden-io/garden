@@ -1,4 +1,11 @@
 
+<a name="0.12.67"></a>
+## [0.12.67](https://github.com/garden-io/garden/compare/0.12.66...0.12.67) (2023-12-12)
+
+### Improvements
+
+* update helm to `3.12.0` ([64de8054f](https://github.com/garden-io/garden/commit/64de8054f))
+
 <a name="0.12.66"></a>
 ## [0.12.66](https://github.com/garden-io/garden/compare/0.12.65...0.12.66) (2023-10-16)
 
