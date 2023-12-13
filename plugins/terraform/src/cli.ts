@@ -67,9 +67,13 @@ const TERRAFORM_VERSION_1_2_9 = TERRAFORM_SEM_VER_1_2_9.version
 const TERRAFORM_SEM_VER_1_4_6 = new SemVer("1.4.6")
 const TERRAFORM_VERSION_1_4_6 = TERRAFORM_SEM_VER_1_4_6.version
 
+function getTerraformToolName(semVer: SemVer) {
+  return `terraform-${semVer.major}-${semVer.minor}-${semVer.patch}`
+}
+
 export const terraformCliSpecs: PluginToolSpec[] = [
   {
-    name: `terraform-${TERRAFORM_SEM_VER_0_12_26.major}-${TERRAFORM_SEM_VER_0_12_26.minor}-${TERRAFORM_SEM_VER_0_12_26.patch}`,
+    name: getTerraformToolName(TERRAFORM_SEM_VER_0_12_26),
     version: TERRAFORM_VERSION_0_12_26,
     description: `The terraform CLI, v${TERRAFORM_VERSION_0_12_26}`,
     type: "binary",
@@ -107,7 +111,7 @@ export const terraformCliSpecs: PluginToolSpec[] = [
     ],
   },
   {
-    name: `terraform-${TERRAFORM_SEM_VER_0_13_3.major}-${TERRAFORM_SEM_VER_0_13_3.minor}-${TERRAFORM_SEM_VER_0_13_3.patch}`,
+    name: getTerraformToolName(TERRAFORM_SEM_VER_0_13_3),
     version: TERRAFORM_VERSION_0_13_3,
     description: `The terraform CLI, v${TERRAFORM_VERSION_0_13_3}`,
     type: "binary",
@@ -145,7 +149,7 @@ export const terraformCliSpecs: PluginToolSpec[] = [
     ],
   },
   {
-    name: `terraform-${TERRAFORM_SEM_VER_0_14_7.major}-${TERRAFORM_SEM_VER_0_14_7.minor}-${TERRAFORM_SEM_VER_0_14_7.patch}`,
+    name: getTerraformToolName(TERRAFORM_SEM_VER_0_14_7),
     version: TERRAFORM_VERSION_0_14_7,
     description: `The terraform CLI, v${TERRAFORM_VERSION_0_14_7}`,
     type: "binary",
@@ -193,7 +197,7 @@ export const terraformCliSpecs: PluginToolSpec[] = [
     ],
   },
   {
-    name: `terraform-${TERRAFORM_SEM_VER_1_0_5.major}-${TERRAFORM_SEM_VER_1_0_5.minor}-${TERRAFORM_SEM_VER_1_0_5.patch}`,
+    name: getTerraformToolName(TERRAFORM_SEM_VER_1_0_5),
     version: TERRAFORM_VERSION_1_0_5,
     description: `The terraform CLI, v${TERRAFORM_VERSION_1_0_5}`,
     type: "binary",
@@ -251,7 +255,7 @@ export const terraformCliSpecs: PluginToolSpec[] = [
     ],
   },
   {
-    name: `terraform-${TERRAFORM_SEM_VER_1_2_9.major}-${TERRAFORM_SEM_VER_1_2_9.minor}-${TERRAFORM_SEM_VER_1_2_9.patch}`,
+    name: getTerraformToolName(TERRAFORM_SEM_VER_1_2_9),
     version: TERRAFORM_VERSION_1_2_9,
     description: `The terraform CLI, v${TERRAFORM_VERSION_1_2_9}`,
     type: "binary",
@@ -309,7 +313,7 @@ export const terraformCliSpecs: PluginToolSpec[] = [
     ],
   },
   {
-    name: `terraform-${TERRAFORM_SEM_VER_1_4_6.major}-${TERRAFORM_SEM_VER_1_4_6.minor}-${TERRAFORM_SEM_VER_1_4_6.patch}`,
+    name: getTerraformToolName(TERRAFORM_SEM_VER_1_4_6),
     version: TERRAFORM_VERSION_1_4_6,
     description: `The terraform CLI, v${TERRAFORM_VERSION_1_4_6}`,
     type: "binary",
