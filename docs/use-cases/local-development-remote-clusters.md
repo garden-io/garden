@@ -59,6 +59,6 @@ If you encounter any issues or bugs 🐛 in this seed, don't hesitate to join ou
 
 ## Examples
 
-- [Code Synchronization example project](https://github.com/garden-io/garden/tree/main/examples/code-synchronization)
-- [Simple demo project using Ephemeral Cluster](https://github.com/garden-io/garden/tree/main/examples/ephemeral-cluster-demo)
-- [Local mode for kubernetes action type](https://github.com/garden-io/garden/tree/main/examples/local-mode-k8s)
+- [Code Synchronization example project](https://github.com/garden-io/garden/tree/0.13.22/examples/code-synchronization)
+- [Simple demo project using Ephemeral Cluster](https://github.com/garden-io/garden/tree/0.13.22/examples/ephemeral-cluster-demo)
+- [Local mode for kubernetes action type](https://github.com/garden-io/garden/tree/0.13.22/examples/local-mode-k8s)

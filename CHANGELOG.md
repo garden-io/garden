@@ -1,4 +1,27 @@
 
+<a name="0.13.22"></a>
+## [0.13.22](https://github.com/garden-io/garden/compare/0.13.21...0.13.22) (2023-12-13)
+
+### Bug Fixes
+
+* if using `tlsCertificates` make the `secretRef` mandatory ([#5533](https://github.com/garden-io/garden/issues/5533)) ([02b809f7c](https://github.com/garden-io/garden/commit/02b809f7c))
+* adding an error handler to the segment client ([#5505](https://github.com/garden-io/garden/issues/5505)) ([540498c2f](https://github.com/garden-io/garden/commit/540498c2f))
+* **commands:** print section and tags in color ([#5525](https://github.com/garden-io/garden/issues/5525)) ([5e93e0785](https://github.com/garden-io/garden/commit/5e93e0785))
+* **commands:** print log command metadata in secondary color ([#5509](https://github.com/garden-io/garden/issues/5509)) ([8141e90cd](https://github.com/garden-io/garden/commit/8141e90cd))
+* **core:** avoid unnecessary config version changes ([#5508](https://github.com/garden-io/garden/issues/5508)) ([61eac7601](https://github.com/garden-io/garden/commit/61eac7601))
+* **dev:** fix reload error when using templates ([#5329](https://github.com/garden-io/garden/issues/5329)) ([975231032](https://github.com/garden-io/garden/commit/975231032))
+* **git:** fix `exclude` files handling in `subtree` Git repo scan mode ([#5504](https://github.com/garden-io/garden/issues/5504)) ([358aeabb9](https://github.com/garden-io/garden/commit/358aeabb9))
+* **git:** prefer project-level repo scan mode over env variable ([#5493](https://github.com/garden-io/garden/issues/5493)) ([3c081762b](https://github.com/garden-io/garden/commit/3c081762b))
+* **sync-mode:** showing undefined when sync status is not-deployed ([#5522](https://github.com/garden-io/garden/issues/5522)) ([9f967688f](https://github.com/garden-io/garden/commit/9f967688f))
+
+### Improvements
+
+* **cloud:** log 'not logged in' msg at info level for community ([#5553](https://github.com/garden-io/garden/issues/5553)) ([cad50600a](https://github.com/garden-io/garden/commit/cad50600a))
+* **dashboard:** better warning logs ([#5538](https://github.com/garden-io/garden/issues/5538)) ([c1d200794](https://github.com/garden-io/garden/commit/c1d200794))
+* **ephemeral-kubernetes:** tweak text in error message ([#5535](https://github.com/garden-io/garden/issues/5535)) ([e5a7d2972](https://github.com/garden-io/garden/commit/e5a7d2972))
+* **helm:** update helm to `3.12.2` ([#5497](https://github.com/garden-io/garden/issues/5497)) ([56c9b4ff6](https://github.com/garden-io/garden/commit/56c9b4ff6))
+* **logger:** update some log lines after style changes ([#5507](https://github.com/garden-io/garden/issues/5507)) ([035bd9e93](https://github.com/garden-io/garden/commit/035bd9e93))
+
 <a name="0.13.21"></a>
 ## [0.13.21](https://github.com/garden-io/garden/compare/0.13.20...0.13.21) (2023-11-24)
 
@@ -12,7 +35,7 @@
 
 ### Features
 
-* respect NO_COLOR env var ([#5451](https://github.com/garden-io/garden/issues/5451)) ([889552f87](https://github.com/garden-io/garden/commit/889552f87))
+* respect `NO_COLOR` env var ([#5451](https://github.com/garden-io/garden/issues/5451)) ([889552f87](https://github.com/garden-io/garden/commit/889552f87))
 
 ### Improvements
 
@@ -27,7 +50,7 @@
 
 ### Bug Fixes
 
-* windows file tree ([#5364](https://github.com/garden-io/garden/issues/5364)) ([c5c3c66f4](https://github.com/garden-io/garden/commit/c5c3c66f4))
+* fix Windows file tree ([#5364](https://github.com/garden-io/garden/issues/5364)) ([c5c3c66f4](https://github.com/garden-io/garden/commit/c5c3c66f4))
 * always resolve symlinks for the executable path in the self-updater ([#5352](https://github.com/garden-io/garden/issues/5352)) ([7ee19dd72](https://github.com/garden-io/garden/commit/7ee19dd72))
 * **examples:** fix typo in k8s example + fix comment ([#5337](https://github.com/garden-io/garden/issues/5337)) ([098d59ea4](https://github.com/garden-io/garden/commit/098d59ea4))
 * **garden-sea:** resolve symlinks for GARDEN_SEA_EXECUTABLE_PATH ([#5353](https://github.com/garden-io/garden/issues/5353)) ([aba79f50d](https://github.com/garden-io/garden/commit/aba79f50d))
@@ -37,7 +60,7 @@
 ### Features
 
 * change default git scan mode to `repo` ([#5399](https://github.com/garden-io/garden/issues/5399)) ([da3f68fcb](https://github.com/garden-io/garden/commit/da3f68fcb))
-* **k8s:** add service account and irsa support for in-cluster-builder ([#3384](https://github.com/garden-io/garden/issues/3384)) ([9f6b137d6](https://github.com/garden-io/garden/commit/9f6b137d6))
+* **k8s:** add service account and IRSA support for in-cluster-builder ([#3384](https://github.com/garden-io/garden/issues/3384)) ([9f6b137d6](https://github.com/garden-io/garden/commit/9f6b137d6))
 
 ### Improvements
 
