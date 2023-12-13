@@ -11,8 +11,6 @@ import dedent from "dedent"
 import type EventEmitter from "events"
 import type { ExecaReturnValue } from "execa"
 import fsExtra from "fs-extra"
-
-const { mkdirp, pathExists } = fsExtra
 import { hashSync } from "hasha"
 import pRetry from "p-retry"
 import { join } from "path"
@@ -31,6 +29,8 @@ import { deline } from "./util/string.js"
 import { registerCleanupFunction, sleep } from "./util/util.js"
 import type { OctalPermissionMask } from "./plugins/kubernetes/types.js"
 import { styles } from "./logger/styles.js"
+
+const { mkdirp, pathExists } = fsExtra
 
 const maxRestarts = 10
 const mutagenLogSection = "<mutagen>"
@@ -213,10 +213,7 @@ class _MutagenMonitor extends TypedEventEmitter<MonitorEvents> {
       const proc = respawn(mutagenOpts, {
         cwd: dataDir,
         name: "mutagen",
-        env: {
-          MUTAGEN_DATA_DIRECTORY: dataDir,
-          MUTAGEN_LOG_LEVEL: "debug",
-        },
+        env: getMutagenEnv({ dataDir, logLevel: "debug" }),
         maxRestarts,
         sleep: 3000,
         kill: 500,
@@ -640,7 +637,7 @@ export class Mutagen {
           cwd: this.dataDir,
           args,
           log: this.log,
-          env: getMutagenEnv(this.dataDir),
+          env: getMutagenEnv({ dataDir: this.dataDir }),
         })
       } catch (err) {
         if (!(err instanceof ChildProcessError)) {
@@ -808,10 +805,28 @@ export function getMutagenDataDir(path: string, log: Log) {
   return shortPath
 }
 
-export function getMutagenEnv(dataDir: string) {
-  return {
-    MUTAGEN_DATA_DIRECTORY: dataDir,
-  }
+/**
+ * This type declares the Mutagen env variable name in a single place,
+ * instead of declaring them across the code.
+ *
+ * Some env vars are required to use Mutagen in Garden, and some are optional.
+ * This type shapes the set of the Mutagen env vars that are used by Garden.
+ */
+type MutagenEnv = {
+  MUTAGEN_DATA_DIRECTORY: string
+  MUTAGEN_LOG_LEVEL?: string
+}
+
+type MutagenEnvValues = {
+  dataDir: string
+  logLevel?: string
+}
+
+export function getMutagenEnv({ dataDir, logLevel }: MutagenEnvValues): MutagenEnv {
+  const requiredEnv = { MUTAGEN_DATA_DIRECTORY: dataDir }
+  const optionalEnv = !!logLevel ? { MUTAGEN_LOG_LEVEL: logLevel } : {}
+
+  return { ...requiredEnv, ...optionalEnv }
 }
 
 export function parseSyncListResult(res: ExecaReturnValue): SyncSession[] {
