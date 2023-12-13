@@ -66,11 +66,15 @@ function getPulumiToolName(semVer: SemVer) {
   return `pulumi-${semVer.major}-${semVer.minor}-${semVer.patch}`
 }
 
+function getPulumiToolDescription(semVer: SemVer) {
+  return `The pulumi CLI, v${semVer}`
+}
+
 export const pulumiCliSPecs: PluginToolSpec[] = [
   {
     version: PULUMI_VERSION_3_70_0,
     name: getPulumiToolName(PULUMI_SEM_VER_3_70_0),
-    description: `The pulumi CLI, v${PULUMI_VERSION_3_70_0}`,
+    description: getPulumiToolDescription(PULUMI_SEM_VER_3_70_0),
     type: "binary",
     _includeInGardenImage: true,
     builds: [
@@ -129,7 +133,7 @@ export const pulumiCliSPecs: PluginToolSpec[] = [
   {
     version: PULUMI_VERSION_3_64_0,
     name: getPulumiToolName(PULUMI_SEM_VER_3_64_0),
-    description: `The pulumi CLI, v${PULUMI_VERSION_3_64_0}`,
+    description: getPulumiToolDescription(PULUMI_SEM_VER_3_64_0),
     type: "binary",
     _includeInGardenImage: false,
     builds: [
