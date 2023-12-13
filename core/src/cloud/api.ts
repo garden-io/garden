@@ -230,7 +230,7 @@ export class CloudApi {
     skipLogging = false,
     projectId = undefined,
     requireLogin = undefined,
-  }: CloudApiFactoryParams) {
+  }: CloudApiFactoryParams): Promise<CloudApi> {
     const distroName = getCloudDistributionName(cloudDomain)
     const fixLevel = skipLogging ? LogLevel.silly : undefined
     const cloudFactoryLog = log.createLog({ fixLevel, name: getCloudLogSectionName(distroName), showDuration: true })

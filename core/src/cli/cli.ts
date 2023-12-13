@@ -50,7 +50,7 @@ import { generateBasicDebugInfoReport } from "../commands/get/get-debug-info.js"
 import type { AnalyticsHandler } from "../analytics/analytics.js"
 import type { GardenPluginReference } from "../plugin/plugin.js"
 import type { CloudApiFactory } from "../cloud/api.js"
-import { CloudApi, CloudApiTokenRefreshError, getGardenCloudDomain } from "../cloud/api.js"
+import { CloudApi, CloudApiNoTokenError, CloudApiTokenRefreshError, getGardenCloudDomain } from "../cloud/api.js"
 import { findProjectConfig } from "../config/base.js"
 import { pMemoizeDecorator } from "../lib/p-memoize.js"
 import { getCustomCommands } from "../commands/custom.js"
@@ -264,7 +264,11 @@ ${renderCommands(commands)}
             requireLogin: config?.requireLogin,
           })
         } catch (err) {
-          if (err instanceof CloudApiTokenRefreshError) {
+          if (err instanceof CloudApiNoTokenError) {
+            // this means the user has no token stored for the domain and we should just continue
+            // without a cloud api instance
+            gardenInitLog?.debug(`Cloud not configured since no token found for ${distroName} at ${cloudDomain}`)
+          } else if (err instanceof CloudApiTokenRefreshError) {
             log.warn(dedent`
               Unable to authenticate against ${distroName} with the current session token.
               Command results for this command run will not be available in ${distroName}. If this not a
