@@ -71,11 +71,15 @@ function getTerraformToolName(semVer: SemVer) {
   return `terraform-${semVer.major}-${semVer.minor}-${semVer.patch}`
 }
 
+function getTerraformToolDescription(semVer: SemVer) {
+  return `The terraform CLI, v${semVer}`
+}
+
 export const terraformCliSpecs: PluginToolSpec[] = [
   {
     name: getTerraformToolName(TERRAFORM_SEM_VER_0_12_26),
     version: TERRAFORM_VERSION_0_12_26,
-    description: `The terraform CLI, v${TERRAFORM_VERSION_0_12_26}`,
+    description: getTerraformToolDescription(TERRAFORM_SEM_VER_0_12_26),
     type: "binary",
     builds: [
       {
@@ -113,7 +117,7 @@ export const terraformCliSpecs: PluginToolSpec[] = [
   {
     name: getTerraformToolName(TERRAFORM_SEM_VER_0_13_3),
     version: TERRAFORM_VERSION_0_13_3,
-    description: `The terraform CLI, v${TERRAFORM_VERSION_0_13_3}`,
+    description: getTerraformToolDescription(TERRAFORM_SEM_VER_0_13_3),
     type: "binary",
     builds: [
       {
@@ -151,7 +155,7 @@ export const terraformCliSpecs: PluginToolSpec[] = [
   {
     name: getTerraformToolName(TERRAFORM_SEM_VER_0_14_7),
     version: TERRAFORM_VERSION_0_14_7,
-    description: `The terraform CLI, v${TERRAFORM_VERSION_0_14_7}`,
+    description: getTerraformToolDescription(TERRAFORM_SEM_VER_0_14_7),
     type: "binary",
     builds: [
       {
@@ -199,7 +203,7 @@ export const terraformCliSpecs: PluginToolSpec[] = [
   {
     name: getTerraformToolName(TERRAFORM_SEM_VER_1_0_5),
     version: TERRAFORM_VERSION_1_0_5,
-    description: `The terraform CLI, v${TERRAFORM_VERSION_1_0_5}`,
+    description: getTerraformToolDescription(TERRAFORM_SEM_VER_1_0_5),
     type: "binary",
     builds: [
       {
@@ -257,7 +261,7 @@ export const terraformCliSpecs: PluginToolSpec[] = [
   {
     name: getTerraformToolName(TERRAFORM_SEM_VER_1_2_9),
     version: TERRAFORM_VERSION_1_2_9,
-    description: `The terraform CLI, v${TERRAFORM_VERSION_1_2_9}`,
+    description: getTerraformToolDescription(TERRAFORM_SEM_VER_1_2_9),
     type: "binary",
     builds: [
       {
@@ -315,7 +319,7 @@ export const terraformCliSpecs: PluginToolSpec[] = [
   {
     name: getTerraformToolName(TERRAFORM_SEM_VER_1_4_6),
     version: TERRAFORM_VERSION_1_4_6,
-    description: `The terraform CLI, v${TERRAFORM_VERSION_1_4_6}`,
+    description: getTerraformToolDescription(TERRAFORM_SEM_VER_1_4_6),
     type: "binary",
     _includeInGardenImage: true,
     builds: [
