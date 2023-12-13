@@ -325,7 +325,6 @@ export const projectSchema = createSchema({
     // TODO: Refer to enterprise documentation for more details.
     requireLogin: joi
       .boolean()
-      .default(false)
       .meta({ internal: true })
       .description("Whether the project requires login to Garden Cloud."),
 
