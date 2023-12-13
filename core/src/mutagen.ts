@@ -11,8 +11,6 @@ import dedent from "dedent"
 import type EventEmitter from "events"
 import type { ExecaReturnValue } from "execa"
 import fsExtra from "fs-extra"
-
-const { mkdirp, pathExists } = fsExtra
 import { hashSync } from "hasha"
 import pRetry from "p-retry"
 import { join } from "path"
@@ -31,6 +29,8 @@ import { deline } from "./util/string.js"
 import { registerCleanupFunction, sleep } from "./util/util.js"
 import type { OctalPermissionMask } from "./plugins/kubernetes/types.js"
 import { styles } from "./logger/styles.js"
+
+const { mkdirp, pathExists } = fsExtra
 
 const maxRestarts = 10
 const mutagenLogSection = "<mutagen>"
@@ -805,19 +805,17 @@ export function getMutagenDataDir(path: string, log: Log) {
   return shortPath
 }
 
-const mutagenRequiredEnvVars = ["MUTAGEN_DATA_DIRECTORY"] as const
-type MutagenRequiredEnvVar = (typeof mutagenRequiredEnvVars)[number]
-type MutagenRequiredEnv = {
-  [k in MutagenRequiredEnvVar]: string
+/**
+ * This type declares the Mutagen env variable name in a single place,
+ * instead of declaring them across the code.
+ *
+ * Some env vars are required to use Mutagen in Garden, and some are optional.
+ * This type shapes the set of the Mutagen env vars that are used by Garden.
+ */
+type MutagenEnv = {
+  MUTAGEN_DATA_DIRECTORY: string
+  MUTAGEN_LOG_LEVEL?: string
 }
-
-const mutagenOptionalEnvVars = ["MUTAGEN_LOG_LEVEL"] as const
-type MutagenOptionalEnvVar = (typeof mutagenOptionalEnvVars)[number]
-type MutagenOptionalEnv = {
-  [k in MutagenOptionalEnvVar]?: string
-}
-
-type MutagenEnv = MutagenRequiredEnv & MutagenOptionalEnv
 
 type MutagenEnvValues = {
   dataDir: string
@@ -825,8 +823,8 @@ type MutagenEnvValues = {
 }
 
 export function getMutagenEnv({ dataDir, logLevel }: MutagenEnvValues): MutagenEnv {
-  const requiredEnv: MutagenRequiredEnv = { MUTAGEN_DATA_DIRECTORY: dataDir }
-  const optionalEnv: MutagenOptionalEnv = !!logLevel ? { MUTAGEN_LOG_LEVEL: logLevel } : {}
+  const requiredEnv = { MUTAGEN_DATA_DIRECTORY: dataDir }
+  const optionalEnv = !!logLevel ? { MUTAGEN_LOG_LEVEL: logLevel } : {}
 
   return { ...requiredEnv, ...optionalEnv }
 }
