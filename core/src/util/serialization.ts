@@ -35,14 +35,21 @@ export function encodeYamlMulti(objects: object[]) {
 }
 
 export function highlightYaml(s: string) {
-  return highlight(s, {
-    language: "yaml",
-    theme: {
-      keyword: styles.accent.italic,
-      literal: styles.accent.italic,
-      string: styles.accent,
-    },
-  })
+  try {
+    return highlight(s, {
+      language: "yaml",
+      theme: {
+        keyword: styles.accent.italic,
+        literal: styles.accent.italic,
+        string: styles.accent,
+      },
+    })
+  } catch (err) {
+    // FIXME: this is a quickfix for https://github.com/garden-io/garden/issues/5442
+    //  The issue needs to be fixed properly, by fixing Garden single app binary construction.
+    // Fallback to non-highlighted yaml if an error occurs.
+    return s
+  }
 }
 
 /**
