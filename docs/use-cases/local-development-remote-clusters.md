@@ -7,7 +7,7 @@ order: 1
 
 With other tools the complexity of replicating a production-like environment on your local machine is a developer experience that suffers from compromise. Setting up a remote Kubernetes cluster has meant a tangle of scripts, tools, and proxies that mock out the pains of running a remote cluster to make it feel like home.
 
-Garden's first-class support for remote clusters eliminates the setup cost of manually setting up remote image builders, developer namespaces, and hot reload with short stanzas of YAML you can reuse and share among teammates. Garden supports complex topologies across any number of local or remote Kubernetes clusters or environments. With Garden for local development you can:
+Garden's first-class support for remote clusters eliminates the setup cost of manually setting up remote image builders, developer namespaces, and hot reload with short stanzas of YAML you can reuse and share among teammates. Garden supports complex topologies across any number of local or remote Kubernetes clusters or environments.
 
 Garden creates a developer namespace inside a remote Kubernetes cluster that looks and feels just as if it was a local cluster. This means you can develop and test your applications in an environment that closely mimics your production environment, leading to fewer surprises when you deploy your application.
 
@@ -24,24 +24,14 @@ If you're already familiar with Garden and just want to get going, click any of 
 
 Navigate to [Examples](#examples) for a selection of pre-configured stacks you can use to quickly explore relevant features.
 
-## Requirements
-
-- [Garden installed](../getting-started/installation.md)
-- [Remote Kubernetes cluster configured](../k8s-plugins/remote-k8s/configure-provider.md) _or_ use our [Ephemeral Clusters](../k8s-plugins/ephemeral-k8s/configure-provider.md)
-
-Setting up a remote Kubernetes environment for local development creates a developer namespace in a remote cluster. This namespace acts as a sandbox for your application, allowing you to test and develop without affecting other applications or services in the cluster.
-
 ## Resources
-
-Now that you've installed Garden and have a cluster configured, you'll progressively add features to make Garden the right fit for you.
 
 - Build inside a powerful Kubernetes cluster with [In-Cluster Building](../k8s-plugins/guides/in-cluster-building.md)
 - Set up hot reloading for a frustration-free inner loop with [Code Synchronization](../guides/code-synchronization.md)
 - If you're coming from Docker Compose, visit our [Migrating From Docker Compose](../guides/migrating-from-docker-compose.md) guide
-- Go developers may be interested in our [pre-configured template](https://docs.garden.io/garden-seeds/languages/go) that makes use of the Helm package manager and Garden's Code  to spawn a ready-to-code environment
 
 {% hint style="info" %}
-If you encounter any issues or bugs 🐛, don't hesitate to join our [Discord community](https://go.garden.io/discord) 🌸 for access to Garden's dedicated Community Engineers and our AI chatbot 🤖  trained on our docs.
+Join our [Discord community](https://go.garden.io/discord) 🌸 for access to Garden's dedicated Community Engineers and our AI chatbot 🤖  trained on our docs.
 {% endhint %}
 
 ## Further Reading
