@@ -6,12 +6,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import type { DeepPrimitiveMap } from "../common.js"
 import { variableNameRegex, joiPrimitive, joiArray, joiVariables, joiIdentifierMap } from "../common.js"
 import { joi } from "../common.js"
 import type { DefaultEnvironmentContextParams } from "./project.js"
 import { DefaultEnvironmentContext } from "./project.js"
-import { schema } from "./base.js"
+import { type ConfigContext, schema } from "./base.js"
 
 interface ArgsSchema {
   [name: string]: string | number | string[]
@@ -30,10 +29,10 @@ export class CustomCommandContext extends DefaultEnvironmentContext {
       .description("A map of all variables defined in the command configuration.")
       .meta({ keyPlaceholder: "<variable-name>" })
   )
-  public variables: DeepPrimitiveMap
+  public variables: ConfigContext
 
   @schema(joiIdentifierMap(joiPrimitive()).description("Alias for the variables field."))
-  public var: DeepPrimitiveMap
+  public var: ConfigContext
 
   @schema(
     joi
@@ -70,7 +69,7 @@ export class CustomCommandContext extends DefaultEnvironmentContext {
     params: DefaultEnvironmentContextParams & {
       args: ArgsSchema
       opts: OptsSchema
-      variables: DeepPrimitiveMap
+      variables: ConfigContext
       rest: string[]
     }
   ) {

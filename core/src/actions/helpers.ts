@@ -13,9 +13,21 @@ import type { Log } from "../logger/log-entry.js"
 import { createActionLog } from "../logger/log-entry.js"
 import { renderDivider } from "../logger/util.js"
 import { getLinkedSources } from "../util/ext-source-util.js"
-import { buildActionConfigSchema, ExecutedBuildAction, isBuildAction, ResolvedBuildAction } from "./build.js"
-import { deployActionConfigSchema, ExecutedDeployAction, isDeployAction, ResolvedDeployAction } from "./deploy.js"
-import { ExecutedRunAction, isRunAction, ResolvedRunAction, runActionConfigSchema } from "./run.js"
+import {
+  buildActionConfigSchema,
+  ExecutedBuildAction,
+  isBuildAction,
+  isResolvedBuildAction,
+  ResolvedBuildAction,
+} from "./build.js"
+import {
+  deployActionConfigSchema,
+  ExecutedDeployAction,
+  isDeployAction,
+  isResolvedDeployAction,
+  ResolvedDeployAction,
+} from "./deploy.js"
+import { ExecutedRunAction, isResolvedRunAction, isRunAction, ResolvedRunAction, runActionConfigSchema } from "./run.js"
 import { ExecutedTestAction, isTestAction, ResolvedTestAction, testActionConfigSchema } from "./test.js"
 import type {
   Action,
@@ -38,7 +50,7 @@ import { styles } from "../logger/styles.js"
 /**
  * Creates a corresponding Resolved version of the given Action, given the additional parameters needed.
  */
-export function actionToResolved<T extends Action>(action: T, params: ResolveActionParams<T["_config"]>) {
+export function actionToResolved<T extends Action>(action: T, params: ResolveActionParams<T["_config"]["config"]>) {
   if (isBuildAction(action)) {
     return new ResolvedBuildAction({ ...action["params"], ...params })
   } else if (isDeployAction(action)) {
@@ -57,13 +69,13 @@ export function actionToResolved<T extends Action>(action: T, params: ResolveAct
  */
 export function resolvedActionToExecuted<T extends ResolvedAction>(
   action: T,
-  params: ExecuteActionParams<T["_config"]>
+  params: ExecuteActionParams<T["_config"]["config"]>
 ): Executed<T> {
-  if (isBuildAction(action)) {
+  if (isResolvedBuildAction(action)) {
     return new ExecutedBuildAction({ ...action["params"], ...params }) as Executed<T>
-  } else if (isDeployAction(action)) {
+  } else if (isResolvedDeployAction(action)) {
     return new ExecutedDeployAction({ ...action["params"], ...params }) as Executed<T>
-  } else if (isRunAction(action)) {
+  } else if (isResolvedRunAction(action)) {
     return new ExecutedRunAction({ ...action["params"], ...params }) as Executed<T>
   } else if (isTestAction(action)) {
     return new ExecutedTestAction({ ...action["params"], ...params }) as Executed<T>

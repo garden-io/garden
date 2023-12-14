@@ -46,8 +46,8 @@ export const configTemplateKind = "ConfigTemplate"
 export const renderTemplateKind = "RenderTemplate"
 export const noTemplateFields = ["apiVersion", "kind", "type", "name", "internal"]
 const untemplatableKeys: Record<string, string[]> = {
-  "Workflow": ["name", "triggers"],
-
+  "Workflow": ["triggers"],
+  "Command": ["args", "opts"],
 }
 
 

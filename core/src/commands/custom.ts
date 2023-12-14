@@ -15,8 +15,8 @@ import type { Parameter, ParameterObject } from "../cli/params.js"
 import { BooleanParameter, globalOptions, IntegerParameter, StringParameter } from "../cli/params.js"
 import { loadConfigResources } from "../config/base.js"
 import type { CommandResource, CustomCommandOption } from "../config/command.js"
-import { customCommandExecSchema, customCommandGardenCommandSchema, customCommandSchema } from "../config/command.js"
-import { joi } from "../config/common.js"
+import { customCommandSchema } from "../config/command.js"
+import { omitFromSchema } from "../config/common.js"
 import { CustomCommandContext } from "../config/template-contexts/custom-command.js"
 import { validateWithPath } from "../config/validation.js"
 import type { GardenError } from "../exceptions.js"
@@ -32,6 +32,8 @@ import { getBuiltinCommands } from "./commands.js"
 import type { Log } from "../logger/log-entry.js"
 import { getTracePropagationEnvVars } from "../util/open-telemetry/propagation.js"
 import { styles } from "../logger/styles.js"
+import { GardenConfig } from "../template-string/validation.js"
+import { GenericContext, LayeredContext } from "../config/template-contexts/base.js"
 
 function convertArgSpec(spec: CustomCommandOption) {
   const params = {
@@ -77,15 +79,15 @@ export class CustomCommandWrapper extends Command {
 
   override allowUndefinedArguments = true
 
-  constructor(public spec: CommandResource) {
-    super(spec)
-    this.name = spec.name
-    this.help = spec.description?.short
-    this.description = spec.description?.long
+  constructor(public config: GardenConfig<Omit<CommandResource, "exec" | "gardenCommand">, BaseGardenResourceMetadata>) {
+    super(config)
+    this.name = config.config.name
+    this.help = config.config.description?.short
+    this.description = config.config.description?.long
 
     // Convert argument specs, so they'll be validated
-    this.arguments = spec.args ? mapValues(keyBy(spec.args, "name"), convertArgSpec) : {}
-    this.options = mapValues(keyBy(spec.opts, "name"), convertArgSpec)
+    this.arguments = config.config.args ? mapValues(keyBy(config.config.args, "name"), convertArgSpec) : {}
+    this.options = mapValues(keyBy(config.config.opts, "name"), convertArgSpec)
   }
 
   override printHeader({ log }: PrintHeaderParams) {
@@ -112,41 +114,25 @@ export class CustomCommandWrapper extends Command {
     // Strip the command name and any specified arguments off the $rest variable
     const rest = removeSlice(parsed._unknown, this.getPath()).slice(Object.keys(this.arguments || {}).length)
 
-    const yamlDoc = this.spec.internal.yamlDoc
+    // command variables are lazy and have precendence over garden variables
+    const commandVariables = new GenericContext(this.config.config.variables)
+    const variables = new LayeredContext(commandVariables, garden.variables)
 
-    // Render the command variables
-    const variablesContext = new CustomCommandContext({ ...garden, args, opts, rest })
-    const commandVariables = resolveTemplateStrings({
-      value: this.spec.variables,
-      context: variablesContext,
-      source: { yamlDoc, basePath: ["variables"] },
-    })
-    const variables: any = jsonMerge(cloneDeep(garden.variables), commandVariables)
-
-    // Make a new template context with the resolved variables
+    // Make a new template context with the lazy variables
     const commandContext = new CustomCommandContext({ ...garden, args, opts, variables, rest })
 
     const result: CustomCommandResult = {}
     const errors: GardenError[] = []
 
+    const refined = this.config
+      .withContext(commandContext)
+      .refineWithJoi<CommandResource>(customCommandSchema())
+
     // Run exec command
-    if (this.spec.exec) {
+    if (refined.config.exec) {
       const startedAt = new Date()
 
-      const exec = validateWithPath({
-        config: resolveTemplateStrings({
-          value: this.spec.exec,
-          context: commandContext,
-          source: { yamlDoc, basePath: ["exec"] },
-        }),
-        schema: customCommandExecSchema(),
-        path: this.spec.internal.basePath,
-        projectRoot: garden.projectRoot,
-        configType: `exec field in custom Command '${this.name}'`,
-        source: undefined,
-      })
-
-      const command = exec.command
+      const command = refined.config.exec.command
       log.debug(`Running exec command: ${command.join(" ")}`)
 
       const res = await execa(command[0], command.slice(1), {
@@ -154,7 +140,7 @@ export class CustomCommandWrapper extends Command {
         buffer: true,
         env: {
           ...process.env,
-          ...(exec.env || {}),
+          ...(refined.config.exec.env || {}),
           ...getTracePropagationEnvVars(),
         },
         cwd: garden.projectRoot,
@@ -182,23 +168,10 @@ export class CustomCommandWrapper extends Command {
     }
 
     // Run Garden command
-    if (this.spec.gardenCommand) {
+    if (refined.config.gardenCommand) {
       const startedAt = new Date()
 
-      let gardenCommand = validateWithPath({
-        config: resolveTemplateStrings({
-          value: this.spec.gardenCommand,
-          context: commandContext,
-          source: { yamlDoc, basePath: ["gardenCommand"] },
-        }),
-        schema: customCommandGardenCommandSchema(),
-        path: this.spec.internal.basePath,
-        projectRoot: garden.projectRoot,
-        configType: `gardenCommand field in custom Command '${this.name}'`,
-        source: undefined,
-      })
-
-      log.debug(`Running Garden command: ${gardenCommand.join(" ")}`)
+      log.debug(`Running Garden command: ${refined.config.gardenCommand.join(" ")}`)
 
       // Doing runtime check to avoid updating hundreds of test invocations with a new required param, sorry. - JE
       if (!cli) {
@@ -206,7 +179,7 @@ export class CustomCommandWrapper extends Command {
       }
 
       // Pass explicitly set global opts with the command, if they're not set in the command itself.
-      const parsedCommand = parseCliArgs({ stringArgs: gardenCommand, command: this, cli: false })
+      const parsedCommand = parseCliArgs({ stringArgs: refined.config.gardenCommand, command: this, cli: false })
 
       const globalFlags = Object.entries(opts)
         .filter(([flag, value]) => {
@@ -220,7 +193,7 @@ export class CustomCommandWrapper extends Command {
         })
         .flatMap(([flag, value]) => ["--" + flag, value + ""])
 
-      gardenCommand = [...globalFlags, ...gardenCommand]
+      const gardenCommand = [...globalFlags, ...refined.config.gardenCommand]
 
       const res = await cli.run({
         args: gardenCommand,
@@ -263,17 +236,16 @@ export async function getCustomCommands(log: Log, projectRoot: string) {
   const builtinNames = getBuiltinCommands().flatMap((c) => c.getPaths().map((p) => p.join(" ")))
 
   // Filter and validate the resources
-  const commandResources = <CommandResource[]>resources
-    .filter((r) => {
-      if (r.kind !== "Command") {
+  const commandResources = resources.filter((r) => {
+      if (r.config.kind !== "Command") {
         return false
       }
 
-      if (builtinNames.includes(r.name)) {
+      if (builtinNames.includes(r.config.name)) {
         // eslint-disable-next-line no-console
         console.log(
           styles.warning(
-            `Ignoring custom command ${r.name} because it conflicts with a built-in command with the same name`
+            `Ignoring custom command ${r.config.name} because it conflicts with a built-in command with the same name`
           )
         )
         return false
@@ -281,20 +253,11 @@ export async function getCustomCommands(log: Log, projectRoot: string) {
 
       return true
     })
-    .map((config) =>
-      validateWithPath({
-        config,
-        schema: customCommandSchema().keys({
-          // Allowing any values here because they're fully resolved later
-          exec: joi.any(),
-          gardenCommand: joi.any(),
-        }),
-        path: (<CommandResource>config).internal.basePath,
-        projectRoot,
-        configType: `custom Command '${config.name}'`,
-        source: { yamlDoc: (<CommandResource>config).internal.yamlDoc },
-      })
-    )
+    .map((config) => {
+      return config.refineWithJoi<Omit<CommandResource, "exec" | "gardenCommand">>(
+        omitFromSchema(customCommandSchema(), "exec", "gardenCommand")
+      )
+    })
 
   return commandResources.map((spec) => new CustomCommandWrapper(spec))
 }

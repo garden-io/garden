@@ -21,21 +21,21 @@ import {
   unusedApiVersionSchema,
 } from "./common.js"
 
-interface BaseParameter {
+type BaseParameter = {
   name: string
   description: string
   required?: boolean
 }
 
-export interface CustomCommandArgument extends BaseParameter {
+export type CustomCommandArgument = BaseParameter & {
   type: "string" | "integer"
 }
 
-export interface CustomCommandOption extends BaseParameter {
+export type CustomCommandOption = BaseParameter & {
   type: CustomCommandArgument["type"] | "boolean"
 }
 
-export interface CommandResource extends BaseGardenResource {
+export type CommandResource = BaseGardenResource & {
   description: {
     short: string
     long?: string

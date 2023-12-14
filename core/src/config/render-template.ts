@@ -131,7 +131,7 @@ export async function renderConfigTemplate({
 }: {
   garden: Garden
   log: Log
-  config: RenderTemplateConfig
+  config: GardenConfig<RenderTemplateConfig>
   templates: { [name: string]: ConfigTemplateConfig }
 }): Promise<RenderConfigTemplateResult> {
   // Resolve template strings for fields. Note that inputs are partially resolved, and will be fully resolved later

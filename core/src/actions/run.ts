@@ -10,7 +10,7 @@ import { memoize } from "lodash-es"
 import { joi } from "../config/common.js"
 import type { BaseRuntimeActionConfig } from "./base.js"
 import { baseRuntimeActionConfigSchema, ExecutedRuntimeAction, ResolvedRuntimeAction, RuntimeAction } from "./base.js"
-import type { Action, BaseActionConfig } from "./types.js"
+import type { Action, BaseActionConfig, ResolvedAction } from "./types.js"
 import { DEFAULT_RUN_TIMEOUT_SEC } from "../constants.js"
 import { createRunTask } from "../tasks/run.js"
 import type { BaseActionTaskParams, ExecuteTask } from "../tasks/base.js"
@@ -80,6 +80,10 @@ export class ExecutedRunAction<
 }
 
 export function isRunAction(action: Action): action is RunAction {
+  return action.kind === "Run"
+}
+
+export function isResolvedRunAction(action: ResolvedAction): action is ResolvedRunAction {
   return action.kind === "Run"
 }
 

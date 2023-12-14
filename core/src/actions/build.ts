@@ -140,7 +140,7 @@ export const buildActionConfigSchema = createSchema({
 })
 
 export class BuildAction<
-  C extends BuildActionConfig<any, any> = BuildActionConfig<any, any>,
+  C extends BuildActionConfig = BuildActionConfig,
   StaticOutputs extends {} = any,
   RuntimeOutputs extends {} = any,
 > extends BaseAction<C, StaticOutputs, RuntimeOutputs> {
@@ -174,7 +174,7 @@ export class BuildAction<
    * If `buildAtSource: true` is set on the config, the path is the base path of the action.
    */
   getBuildPath() {
-    if (this._config.buildAtSource) {
+    if (this._config.metadata.buildAtSource) {
       return this.sourcePath()
     } else {
       return join(this.baseBuildDirectory, this.name)
@@ -216,8 +216,7 @@ export class ResolvedBuildAction<
     this.resolvedDependencies = params.resolvedDependencies
     this.resolved = true
     this._staticOutputs = params.staticOutputs
-    this._config.spec = params.spec
-    this._config.internal.inputs = params.inputs
+    this._config = params.config
   }
 
   getExecutedDependencies() {
@@ -236,7 +235,7 @@ export class ResolvedBuildAction<
   getSpec(): C["spec"]
   getSpec<K extends keyof C["spec"]>(key: K): C["spec"][K]
   getSpec(key?: keyof C["spec"]) {
-    return key ? this._config.spec[key] : this._config.spec
+    return key ? this._config.config.spec[key] : this._config.config.spec
   }
 
   getOutput<K extends keyof StaticOutputs>(key: K): GetOutputValueType<K, StaticOutputs, RuntimeOutputs> {
@@ -278,6 +277,10 @@ export class ExecutedBuildAction<
 }
 
 export function isBuildAction(action: Action): action is BuildAction {
+  return action.kind === "Build"
+}
+
+export function isResolvedBuildAction(action: ResolvedAction): action is ResolvedBuildAction {
   return action.kind === "Build"
 }
 

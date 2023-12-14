@@ -21,6 +21,8 @@ import type { ValidResultType } from "../tasks/base.js"
 import type { BaseGardenResource } from "../config/base.js"
 import type { LinkedSource } from "../config-store/local.js"
 import type { GardenApiVersion } from "../constants.js"
+import { GardenConfig } from "../template-string/validation.js"
+import { ConfigContext } from "../config/template-contexts/base.js"
 
 // TODO: split this file
 
@@ -38,6 +40,16 @@ type SourceRepositorySpec = {
 export type ActionSourceSpec = {
   path?: string
   repository?: SourceRepositorySpec
+}
+
+type BaseActionConfigMetadata = BaseGardenResourceMetadata & {
+  groupName?: string
+  resolved?: boolean // Set to true if no resolution is required, e.g. set for actions converted from modules
+  treeVersion?: TreeVersion // Set during module resolution to avoid duplicate scanning for Build actions
+  // For forwards-compatibility, applied on actions returned from module conversion handlers
+  remoteClonePath?: string
+  moduleName?: string
+  moduleVersion?: ModuleVersion
 }
 
 /**
@@ -60,15 +72,7 @@ export type BaseActionConfig<K extends ActionKind = ActionKind, T = string, Spec
 
   // Internal metadata
   // -> No templating is allowed on these.
-  // internal: GardenResourceInternalFields & {
-  //   groupName?: string
-  //   resolved?: boolean // Set to true if no resolution is required, e.g. set for actions converted from modules
-  //   treeVersion?: TreeVersion // Set during module resolution to avoid duplicate scanning for Build actions
-  //   // For forwards-compatibility, applied on actions returned from module conversion handlers
-  //   remoteClonePath?: string
-  //   moduleName?: string
-  //   moduleVersion?: ModuleVersion
-  // }
+  // internal:
 
   // Flow/execution control
   // -> Templating with ActionConfigContext allowed
@@ -145,7 +149,7 @@ export type ActionModeMap = {
 export type ActionWrapperParams<C extends BaseActionConfig> = {
   baseBuildDirectory: string // <project>/.garden/build by default
   compatibleTypes: string[]
-  config: C
+  config: GardenConfig<C, BaseActionConfigMetadata>
   // It's not ideal that we're passing this here, but since we reuse the params of the base action in
   // `actionToResolved` and `resolvedActionToExecuted`, it's probably clearest and least magical to pass it in
   // explicitly at action creation time (which only happens in a very few places in the code base anyway).
@@ -160,7 +164,7 @@ export type ActionWrapperParams<C extends BaseActionConfig> = {
   remoteSourcePath: string | null
   supportedModes: ActionModes
   treeVersion: TreeVersion
-  variables: DeepPrimitiveMap
+  variables: ConfigContext
 }
 
 export type ResolveActionParams<C extends BaseActionConfig, StaticOutputs extends {} = any> = {
@@ -168,10 +172,9 @@ export type ResolveActionParams<C extends BaseActionConfig, StaticOutputs extend
   dependencyResults: GraphResults
   executedDependencies: ExecutedAction[]
   resolvedDependencies: ResolvedAction[]
-  spec: C["spec"]
   staticOutputs: StaticOutputs
-  inputs: DeepPrimitiveMap
-  variables: DeepPrimitiveMap
+  config: GardenConfig<C, BaseActionConfigMetadata>
+  variables: ConfigContext
 }
 
 export type ResolvedActionWrapperParams<
@@ -200,24 +203,26 @@ export type Action = BuildAction | DeployAction | RunAction | TestAction
 export type ResolvedAction = ResolvedBuildAction | ResolvedDeployAction | ResolvedRunAction | ResolvedTestAction
 export type ExecutedAction = ExecutedBuildAction | ExecutedDeployAction | ExecutedRunAction | ExecutedTestAction
 
-export type Resolved<T extends BaseAction> = T extends BuildAction
-  ? ResolvedBuildAction<T["_config"], T["_staticOutputs"], T["_runtimeOutputs"]>
-  : T extends DeployAction
-  ? ResolvedDeployAction<T["_config"], T["_staticOutputs"], T["_runtimeOutputs"]>
-  : T extends RunAction
-  ? ResolvedRunAction<T["_config"], T["_staticOutputs"], T["_runtimeOutputs"]>
-  : T extends TestAction
-  ? ResolvedTestAction<T["_config"], T["_staticOutputs"], T["_runtimeOutputs"]>
+// TODO: use `infer` for StaticOutputs and RuntimeOutputs, as we do for Config
+export type Resolved<T extends BaseAction> = T extends BuildAction<infer Config>
+  ? ResolvedBuildAction<Config, T["_staticOutputs"], T["_runtimeOutputs"]>
+  : T extends DeployAction<infer Config>
+  ? ResolvedDeployAction<Config, T["_staticOutputs"], T["_runtimeOutputs"]>
+  : T extends RunAction<infer Config>
+  ? ResolvedRunAction<Config, T["_staticOutputs"], T["_runtimeOutputs"]>
+  : T extends TestAction<infer Config>
+  ? ResolvedTestAction<Config, T["_staticOutputs"], T["_runtimeOutputs"]>
   : T
 
-export type Executed<T extends BaseAction> = T extends BuildAction
-  ? ExecutedBuildAction<T["_config"], T["_staticOutputs"], T["_runtimeOutputs"]>
-  : T extends DeployAction
-  ? ExecutedDeployAction<T["_config"], T["_staticOutputs"], T["_runtimeOutputs"]>
-  : T extends RunAction
-  ? ExecutedRunAction<T["_config"], T["_staticOutputs"], T["_runtimeOutputs"]>
-  : T extends TestAction
-  ? ExecutedTestAction<T["_config"], T["_staticOutputs"], T["_runtimeOutputs"]>
+// TODO: use `infer` for StaticOutputs and RuntimeOutputs, as we do for Config
+export type Executed<T extends BaseAction> = T extends BuildAction<infer Config>
+  ? ExecutedBuildAction<Config, T["_staticOutputs"], T["_runtimeOutputs"]>
+  : T extends DeployAction<infer Config>
+  ? ExecutedDeployAction<Config, T["_staticOutputs"], T["_runtimeOutputs"]>
+  : T extends RunAction<infer Config>
+  ? ExecutedRunAction<Config, T["_staticOutputs"], T["_runtimeOutputs"]>
+  : T extends TestAction<infer Config>
+  ? ExecutedTestAction<Config, T["_staticOutputs"], T["_runtimeOutputs"]>
   : T
 
 export type ActionReferenceMap = {

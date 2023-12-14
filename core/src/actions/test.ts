@@ -10,7 +10,7 @@ import { memoize } from "lodash-es"
 import { joi } from "../config/common.js"
 import type { BaseRuntimeActionConfig } from "./base.js"
 import { baseRuntimeActionConfigSchema, ExecutedRuntimeAction, ResolvedRuntimeAction, RuntimeAction } from "./base.js"
-import type { Action, BaseActionConfig } from "./types.js"
+import type { Action, BaseActionConfig, ResolvedAction } from "./types.js"
 import { DEFAULT_TEST_TIMEOUT_SEC } from "../constants.js"
 import type { BaseActionTaskParams, ExecuteTask } from "../tasks/base.js"
 import { createTestTask } from "../tasks/test.js"
@@ -48,7 +48,7 @@ export class TestAction<
 }
 
 export class ResolvedTestAction<
-  C extends TestActionConfig = any,
+  C extends TestActionConfig = TestActionConfig,
   StaticOutputs extends {} = any,
   RuntimeOutputs extends {} = any,
 > extends ResolvedRuntimeAction<C, StaticOutputs, RuntimeOutputs> {
@@ -80,6 +80,10 @@ export class ExecutedTestAction<
 }
 
 export function isTestAction(action: Action): action is TestAction {
+  return action.kind === "Test"
+}
+
+export function isResolvedTestAction(action: ResolvedAction): action is ResolvedTestAction {
   return action.kind === "Test"
 }
 

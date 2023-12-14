@@ -65,6 +65,8 @@ import { joinWithPosix } from "../util/fs.js"
 import type { LinkedSource } from "../config-store/local.js"
 import type { BaseActionTaskParams, ExecuteTask } from "../tasks/base.js"
 import { styles } from "../logger/styles.js"
+import { GardenConfig } from "../template-string/validation.js"
+import { ConfigContext } from "../config/template-contexts/base.js"
 
 // TODO: split this file
 
@@ -333,7 +335,7 @@ export abstract class BaseAction<
 
   // Note: These need to be public because we need to reference the types (a current TS limitation)
   // We do however also use `_staticOutputs` so that one isn't just for types
-  _config: C
+  _config: GardenConfig<C, BaseActionConfigMetadata>
   abstract _staticOutputs: StaticOutputs
   // This property is only used for types.
   // In theory it would be easy to replace it with a type that uses `infer` on BaseAction to grab the correct type
@@ -354,12 +356,12 @@ export abstract class BaseAction<
   protected readonly projectRoot: string
   protected readonly _supportedModes: ActionModes
   protected readonly _treeVersion: TreeVersion
-  protected readonly variables: DeepPrimitiveMap
+  protected readonly variables: ConfigContext
 
   constructor(protected readonly params: ActionWrapperParams<C>) {
-    this.kind = params.config.kind
-    this.type = params.config.type
-    this.name = params.config.name
+    this.kind = params.config.config.kind
+    this.type = params.config.config.type
+    this.name = params.config.config.name
     this.uid = params.uid
     this.baseBuildDirectory = params.baseBuildDirectory
     this.compatibleTypes = params.compatibleTypes
@@ -413,7 +415,7 @@ export abstract class BaseAction<
   isDisabled(): boolean {
     // TODO: return true if group is disabled
     // TODO: implement environments field on action config
-    return actionIsDisabled(this._config, "TODO")
+    return actionIsDisabled(this._config.config, "TODO")
   }
 
   /**
@@ -438,17 +440,16 @@ export abstract class BaseAction<
   }
 
   hasRemoteSource() {
-    return !!this._config.source?.repository?.url
+    return !!this._config.config.source?.repository?.url
   }
 
   groupName() {
-    const internal = this.getConfig("internal")
-    return internal?.groupName
+    return this.getInternal().groupName
   }
 
   sourcePath(): string {
-    const basePath = this.remoteSourcePath || this._config.internal.basePath
-    const sourceRelPath = this._config.source?.path
+    const basePath = this.remoteSourcePath || this._config.configFileDirname || this.projectRoot
+    const sourceRelPath = this._config.config.source?.path
 
     if (sourceRelPath) {
       // TODO: validate that this is a directory here?
@@ -459,7 +460,7 @@ export abstract class BaseAction<
   }
 
   configPath() {
-    return this._config.internal.configFilePath
+    return this._config.configFilePath
   }
 
   moduleName(): string | null {
@@ -571,7 +572,7 @@ export abstract class BaseAction<
     }
   }
 
-  getVariables(): DeepPrimitiveMap {
+  getVariables(): ConfigContext {
     return this.variables
   }
 
@@ -579,14 +580,14 @@ export abstract class BaseAction<
     return this.getFullVersion().versionString
   }
 
-  getInternal(): BaseActionConfig["internal"] {
-    return { ...this.getConfig("internal") }
+  getInternal(): BaseActionConfigMetadata {
+    return { ...this._config.metadata }
   }
 
   getConfig(): C
   getConfig<K extends keyof C>(key: K): C[K]
   getConfig(key?: keyof C["spec"]) {
-    return cloneDeep(key ? this._config[key] : this._config)
+    return key ? this._config.config[key] : this._config.config
   }
 
   /**
@@ -697,7 +698,7 @@ export interface ResolvedActionExtension<
 
   getOutputs(): StaticOutputs
 
-  getVariables(): DeepPrimitiveMap
+  getVariables(): ConfigContext
 }
 
 // TODO: see if we can avoid the duplication here with ResolvedBuildAction
@@ -728,8 +729,6 @@ export abstract class ResolvedRuntimeAction<
     this.executedDependencies = params.executedDependencies
     this.resolvedDependencies = params.resolvedDependencies
     this._staticOutputs = params.staticOutputs
-    this._config.spec = params.spec
-    this._config.internal.inputs = params.inputs
   }
 
   /**
@@ -768,7 +767,7 @@ export abstract class ResolvedRuntimeAction<
   getSpec(): Config["spec"]
   getSpec<K extends keyof Config["spec"]>(key: K): Config["spec"][K]
   getSpec(key?: keyof Config["spec"]) {
-    return cloneDeep(key ? this._config.spec[key] : this._config.spec)
+    return key ? this._config.config.spec[key] : this._config.config.spec
   }
 
   getOutput<K extends keyof StaticOutputs>(key: K): GetOutputValueType<K, StaticOutputs, RuntimeOutputs> {
@@ -859,20 +858,20 @@ export function getSourceAbsPath(basePath: string, sourceRelPath: string) {
   return joinWithPosix(basePath, sourceRelPath)
 }
 
-export function describeActionConfig(config: ActionConfig) {
-  const d = `${config.type} ${config.kind} ${config.name}`
-  if (config.internal?.moduleName) {
-    return d + ` (from module ${config.internal?.moduleName})`
-  } else if (config.internal?.groupName) {
-    return d + ` (from group ${config.internal?.groupName})`
+export function describeActionConfig(c: GardenConfig<ActionConfig, BaseActionConfigMetadata>) {
+  const d = `${c.config.type} ${c.config.kind} ${c.config.name}`
+  if (c.metadata.moduleName) {
+    return d + ` (from module ${c.metadata.moduleName})`
+  } else if (c.metadata.groupName) {
+    return d + ` (from group ${c.metadata.groupName})`
   } else {
     return d
   }
 }
 
-export function describeActionConfigWithPath(config: ActionConfig, rootPath: string) {
-  const path = relative(rootPath, config.internal.configFilePath || config.internal.basePath)
-  return `${describeActionConfig(config)} in ${path}`
+export function describeActionConfigWithPath(c: GardenConfig<ActionConfig, BaseActionConfigMetadata>, rootPath: string) {
+  const path = relative(rootPath, c.metadata.configFilePath || c.metadata.basePath)
+  return `${describeActionConfig(c)} in ${path}`
 }
 
 /**

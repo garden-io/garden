@@ -69,7 +69,6 @@ export abstract class ConfigContext {
   private readonly _rootContext: ConfigContext
   private readonly _resolvedValues: { [path: string]: CollectionOrValue<TemplateValue> }
 
-
   constructor(rootContext?: ConfigContext) {
     this._rootContext = rootContext || this
     this._resolvedValues = {}
