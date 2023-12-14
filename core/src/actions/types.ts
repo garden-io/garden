@@ -18,12 +18,11 @@ import type { ActionKind } from "../plugin/action-types.js"
 import type { GraphResults } from "../graph/results.js"
 import type { BaseAction } from "./base.js"
 import type { ValidResultType } from "../tasks/base.js"
-import type { BaseGardenResource } from "../config/base.js"
+import type { BaseGardenResource, BaseGardenResourceMetadata } from "../config/base.js"
 import type { LinkedSource } from "../config-store/local.js"
 import type { GardenApiVersion } from "../constants.js"
 import { GardenConfig } from "../template-string/validation.js"
 import { ConfigContext } from "../config/template-contexts/base.js"
-
 // TODO: split this file
 
 export type { ActionKind } from "../plugin/action-types.js"
@@ -42,7 +41,7 @@ export type ActionSourceSpec = {
   repository?: SourceRepositorySpec
 }
 
-type BaseActionConfigMetadata = BaseGardenResourceMetadata & {
+export type BaseActionConfigMetadata = BaseGardenResourceMetadata & {
   groupName?: string
   resolved?: boolean // Set to true if no resolution is required, e.g. set for actions converted from modules
   treeVersion?: TreeVersion // Set during module resolution to avoid duplicate scanning for Build actions

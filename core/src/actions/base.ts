@@ -47,6 +47,7 @@ import type {
   ActionStatus,
   ActionWrapperParams,
   BaseActionConfig,
+  BaseActionConfigMetadata,
   ExecutedAction,
   ExecutedActionWrapperParams,
   GetOutputValueType,

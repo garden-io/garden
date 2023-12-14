@@ -7,7 +7,7 @@
  */
 
 import type Joi from "@hapi/joi"
-import { ConfigurationError } from "../../exceptions.js"
+import { ConfigurationError, InternalError } from "../../exceptions.js"
 import type { CustomObjectSchema } from "../common.js"
 import { isPrimitive, joi, joiIdentifier } from "../common.js"
 import { KeyedSet } from "../../util/keyed-set.js"
@@ -16,7 +16,7 @@ import { styles } from "../../logger/styles.js"
 import type { TemplateValue } from "../../template-string/inputs.js"
 import { TemplateLeaf, isTemplateLeafValue, isTemplateLeaf } from "../../template-string/inputs.js"
 import type { CollectionOrValue } from "../../util/objects.js"
-import { deepMap } from "../../util/objects.js"
+import { deepMap, isPlainObject } from "../../util/objects.js"
 import { LazyValue } from "../../template-string/lazy.js"
 import { GardenConfig } from "../../template-string/validation.js"
 
@@ -289,6 +289,10 @@ export class GenericContext extends ConfigContext {
     const templateValueTree = GardenConfig.getTemplateValueTree(obj)
 
     if (templateValueTree) {
+      // Lazy variables must be in a plain object.
+      if (!isPlainObject(templateValueTree)) {
+        throw new InternalError({ message: "Expected template value tree to be a plain object" })
+      }
       Object.assign(this, templateValueTree)
     } else {
       Object.assign(this, obj)

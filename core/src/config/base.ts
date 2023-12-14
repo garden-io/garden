@@ -65,6 +65,13 @@ export interface YamlDocumentWithSource extends Document {
   source: string
 }
 
+export type BaseGardenResourceMetadata = {
+  // -> set by templates
+  inputs?: ConfigContext
+  parentName?: string
+  templateName?: string
+}
+
 export const baseGardenResourceSchema = s.object({
   apiVersion: s.string().optional(),
   kind: s.string(),
@@ -221,7 +228,7 @@ export function prepareResource({
   projectRoot: string
   description: string
   allowInvalid?: boolean
-}): GardenConfig<BaseGardenResource> | null {
+}): GardenConfig<BaseGardenResource, BaseGardenResourceMetadata> | null {
   const relPath = relative(projectRoot, configFilePath)
 
   let spec = doc.toJS()
@@ -289,6 +296,9 @@ export function prepareResource({
     untemplatableKeys: noTemplateFields.concat(untemplatableKeys[kind] || []),
     configFilePath,
     context: new GenericContext({}),
+    metadata: {
+      // TODO
+    },
     opts: {
       // TODO reconsider the interface to enable / disable partial
       allowPartial: true,

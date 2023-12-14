@@ -11,7 +11,7 @@ import { joi, joiUserIdentifier, createSchema, unusedApiVersionSchema } from "./
 import type { BaseModuleSpec } from "./module.js"
 import { baseModuleSpecSchema } from "./module.js"
 import { dedent, naturalList } from "../util/string.js"
-import type { BaseGardenResource } from "./base.js"
+import type { BaseGardenResource, BaseGardenResourceMetadata } from "./base.js"
 import { configTemplateKind, renderTemplateKind, baseInternalFieldsSchema } from "./base.js"
 import type { Garden } from "../garden.js"
 import { ConfigurationError } from "../exceptions.js"
@@ -43,7 +43,7 @@ type TemplatedModuleSpec = Partial<BaseModuleSpec> & {
   type: string
 }
 
-export type UnrefinedConfigTemplateResource = GardenConfig<BaseGardenResource & Pick<ConfigTemplateResource, "kind">>
+export type UnrefinedConfigTemplateResource = GardenConfig<BaseGardenResource & Pick<ConfigTemplateResource, "kind">, BaseGardenResourceMetadata>
 export type ConfigTemplateResource = BaseGardenResource & {
   kind: ConfigTemplateKind
   inputsSchemaPath?: string
@@ -52,9 +52,10 @@ export type ConfigTemplateResource = BaseGardenResource & {
 }
 
 export type ResolveConfigTemplateResult = {
-  refinedTemplate: GardenConfig<ConfigTemplateResource>
+  refined: GardenConfig<ConfigTemplateResource, BaseGardenResourceMetadata>
   inputsSchema: CustomObjectSchema
 }
+
 export async function resolveConfigTemplate(
   garden: Garden,
   resource: UnrefinedConfigTemplateResource
@@ -69,7 +70,9 @@ export async function resolveConfigTemplate(
   const enterpriseDomain = garden.cloudApi?.domain
   const context = new ProjectConfigContext({ ...garden, loggedIn, enterpriseDomain })
 
-  const refined = resource.refineWithJoi<ConfigTemplateResource>(configTemplateSchema())
+  const refined = resource.withContext(context).refineWithJoi<ConfigTemplateResource>(
+    configTemplateSchema()
+  )
 
   // Read and validate the JSON schema, if specified
   // -> default to any object
@@ -101,7 +104,7 @@ export async function resolveConfigTemplate(
 
   // Add the module templates back and return
   return {
-    refinedTemplate: refined,
+    refined,
     inputsSchema: joi.object().jsonSchema(inputsJsonSchema),
   }
 }

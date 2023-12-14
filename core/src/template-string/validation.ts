@@ -47,7 +47,11 @@ function getChangeset(
 }
 
 // For overlaying the changesets
-function getOverlayProxy(targetObject: Collection<TemplatePrimitive>, changes: Change[], currentPath: (string | number)[] = []): Collection<TemplatePrimitive> {
+function getOverlayProxy(
+  targetObject: Collection<TemplatePrimitive>,
+  changes: Change[],
+  currentPath: (string | number)[] = []
+): Collection<TemplatePrimitive> {
   // TODO: This needs performance optimization and a proper abstraction to maintain the overlays
   const currentPathChanges = changes.filter((change) => change.path.slice(0, -1).join(".") === currentPath.join("."))
   const nextKeys = currentPathChanges
@@ -79,18 +83,20 @@ function getOverlayProxy(targetObject: Collection<TemplatePrimitive>, changes: C
       return Reflect.has(target, key) || nextKeys.includes(key as string)
     },
     getOwnPropertyDescriptor(target, key) {
-      return Reflect.getOwnPropertyDescriptor(target, key) || {
-        configurable: true,
-        enumerable: true,
-        writable: false
-      }
-    }
+      return (
+        Reflect.getOwnPropertyDescriptor(target, key) || {
+          configurable: true,
+          enumerable: true,
+          writable: false,
+        }
+      )
+    },
   })
 
   return proxy
 }
 
-type BaseGardenConfigParams<Metadata> = {
+type GardenConfigParams<Metadata> = {
   untemplatableKeys?: string[]
   context: ConfigContext
   opts: ContextResolveOpts
@@ -98,25 +104,17 @@ type BaseGardenConfigParams<Metadata> = {
   configFilePath: string | undefined
   metadata: Metadata
   overlays?: Change[]
-}
-
-type GardenConfigParamsWithUnparsedConfig<Metadata> = BaseGardenConfigParams<Metadata> & {
   unparsedConfig: CollectionOrValue<TemplatePrimitive>
+  parsedConfig?: CollectionOrValue<TemplateValue>
 }
-
-type GardenConfigParamsWithParsedConfig<Metadata> = BaseGardenConfigParams<Metadata> & {
-  parsedConfig: CollectionOrValue<TemplateValue>
-}
-
-function isParamsWithUnparsedConfig<Metadata>(params: any): params is GardenConfigParamsWithUnparsedConfig<Metadata> {
-  return params.unparsedConfig !== undefined
-}
-
-export type GardenConfigParams<Metadata> = GardenConfigParamsWithParsedConfig<Metadata> | GardenConfigParamsWithUnparsedConfig<Metadata>
 
 type TypeAssertion<T> = (object: any) => object is T
-export class GardenConfig<ConfigType extends Collection<TemplatePrimitive> = Collection<TemplatePrimitive>, Metadata = unknown> {
+export class GardenConfig<
+  ConfigType extends Collection<TemplatePrimitive> = Collection<TemplatePrimitive>,
+  Metadata = unknown,
+> {
   private parsedConfig: CollectionOrValue<TemplateValue>
+  private unparsedConfig: CollectionOrValue<TemplatePrimitive>
   private context: ConfigContext
   private opts: ContextResolveOpts
   private overlays: Change[]
@@ -148,26 +146,37 @@ export class GardenConfig<ConfigType extends Collection<TemplatePrimitive> = Col
     return undefined
   }
 
-  constructor(params: GardenConfigParams<Metadata>) {
-      const { untemplatableKeys = [], overlays = [], context, opts, source, configFilePath, metadata } = params
-      this.metadata = metadata
-
-      if (isParamsWithUnparsedConfig(params)) {
-        this.parsedConfig = parseTemplateCollection({ value: params.unparsedConfig, source: { source }, untemplatableKeys })
-      } else {
-        this.parsedConfig = params.parsedConfig
-      }
-
-      this.context = context
-      this.opts = opts
-      this.overlays = overlays
-      this.source = source
-      this.configFilePath = configFilePath
+  constructor({
+    parsedConfig,
+    unparsedConfig,
+    untemplatableKeys = [],
+    overlays = [],
+    context,
+    opts,
+    source,
+    configFilePath,
+    metadata,
+  }: GardenConfigParams<Metadata>) {
+    this.metadata = metadata
+    this.unparsedConfig = unparsedConfig
+    this.parsedConfig =
+      parsedConfig || parseTemplateCollection({ value: unparsedConfig, source: { source }, untemplatableKeys })
+    this.context = context
+    this.opts = opts
+    this.overlays = overlays
+    this.source = source
+    this.configFilePath = configFilePath
   }
 
-  public transformParsedConfig(transform: (parsedConfig: CollectionOrValue<TemplateValue>, context: ConfigContext, opts: ContextResolveOpts) => CollectionOrValue<TemplateValue>): GardenConfig<Collection<TemplatePrimitive>, Metadata> {
+  public transformUnparsedConfig(
+    transform: (
+      unparsedConfig: CollectionOrValue<TemplatePrimitive>,
+      context: ConfigContext,
+      opts: ContextResolveOpts
+    ) => Collection<TemplatePrimitive>
+    ): GardenConfig<Collection<TemplatePrimitive>, Metadata> {
     return new GardenConfig({
-      parsedConfig: transform(this.parsedConfig, this.context, this.opts),
+      unparsedConfig: transform(this.unparsedConfig, this.context, this.opts),
       context: this.context,
       opts: this.opts,
       overlays: [],
@@ -177,25 +186,52 @@ export class GardenConfig<ConfigType extends Collection<TemplatePrimitive> = Col
     })
   }
 
-  public withContext(context: ConfigContext, opts: ContextResolveOpts = {}): GardenConfig<Collection<TemplatePrimitive>, Metadata> {
+  public transformParsedConfig(
+    transform: (
+      parsedConfig: CollectionOrValue<TemplateValue>,
+      context: ConfigContext,
+      opts: ContextResolveOpts
+    ) => CollectionOrValue<TemplateValue>
+  ): GardenConfig<Collection<TemplatePrimitive>, Metadata> {
+    return new GardenConfig({
+      parsedConfig: transform(this.parsedConfig, this.context, this.opts),
+      unparsedConfig: this.unparsedConfig,
+      context: this.context,
+      opts: this.opts,
+      overlays: [],
+      source: this.source,
+      configFilePath: this.configFilePath,
+      metadata: this.metadata,
+    })
+  }
+
+  public withContext(
+    context: ConfigContext,
+    opts: ContextResolveOpts = {}
+  ): GardenConfig<Collection<TemplatePrimitive>, Metadata> {
     // we wipe the types, because a new context can result in different results when evaluating template strings
     return new GardenConfig({
       parsedConfig: this.parsedConfig,
+      unparsedConfig: this.unparsedConfig,
       context,
       opts,
       overlays: [],
       source: this.source,
       configFilePath: this.configFilePath,
       metadata: this.metadata,
-    })  }
+    })
+  }
 
-  public assertType<Type extends CollectionOrValue<TemplatePrimitive>>(assertion: TypeAssertion<Type>): GardenConfig<ConfigType & Type, Metadata> {
+  public assertType<Type extends CollectionOrValue<TemplatePrimitive>>(
+    assertion: TypeAssertion<Type>
+  ): GardenConfig<ConfigType & Type, Metadata> {
     const rawConfig = this.getConfig()
     const configIsOfType = assertion(rawConfig)
 
     if (configIsOfType) {
       return new GardenConfig<ConfigType & Type, Metadata>({
         parsedConfig: this.parsedConfig,
+        unparsedConfig: this.unparsedConfig,
         context: this.context,
         opts: this.opts,
         overlays: this.overlays,
@@ -209,7 +245,9 @@ export class GardenConfig<ConfigType extends Collection<TemplatePrimitive> = Col
     }
   }
 
-  public refineWithZod<Validator extends z.AnyZodObject>(validator: Validator): GardenConfig<ConfigType & inferZodType<Validator>, Metadata> {
+  public refineWithZod<Validator extends z.AnyZodObject>(
+    validator: Validator
+  ): GardenConfig<ConfigType & inferZodType<Validator>, Metadata> {
     // merge the schemas
 
     // instantiate proxy without overlays
@@ -221,16 +259,20 @@ export class GardenConfig<ConfigType extends Collection<TemplatePrimitive> = Col
 
     return new GardenConfig({
       parsedConfig: this.parsedConfig,
+      unparsedConfig: this.unparsedConfig,
       context: this.context,
       opts: this.opts,
       overlays: [...changes],
       source: this.source,
       configFilePath: this.configFilePath,
       metadata: this.metadata,
-    })  }
+    })
+  }
 
   // With joi we can't infer the type from the schema
-  public refineWithJoi<JoiType extends Collection<TemplatePrimitive> >(validator: Joi.SchemaLike ): GardenConfig<ConfigType & JoiType, Metadata> {
+  public refineWithJoi<JoiType extends Collection<TemplatePrimitive>>(
+    validator: Joi.SchemaLike
+  ): GardenConfig<ConfigType & JoiType, Metadata> {
     // instantiate proxy without overlays
     const rawConfig = this.getConfig([])
 
@@ -240,6 +282,7 @@ export class GardenConfig<ConfigType extends Collection<TemplatePrimitive> = Col
 
     return new GardenConfig({
       parsedConfig: this.parsedConfig,
+      unparsedConfig: this.unparsedConfig,
       context: this.context,
       opts: this.opts,
       overlays: [...changes],

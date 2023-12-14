@@ -7,9 +7,9 @@
  */
 
 import { Document } from "yaml"
-import type { ModuleConfig, UnrefinedModuleConfig } from "./module.js"
+import { type UnrefinedModuleConfig, coreModuleSpecSchema, BaseModuleSpec } from "./module.js"
 import { dedent, deline, naturalList } from "../util/string.js"
-import type { BaseGardenResource, RenderTemplateKind, YamlDocumentWithSource } from "./base.js"
+import type { BaseGardenResource, BaseGardenResourceMetadata, RenderTemplateKind, YamlDocumentWithSource } from "./base.js"
 import {
   baseInternalFieldsSchema,
   configTemplateKind,
@@ -20,19 +20,16 @@ import {
 import {
   maybeTemplateString,
   resolveTemplateString,
-  resolveTemplateStrings,
 } from "../template-string/template-string.js"
-import { validateWithPath } from "./validation.js"
 import type { Garden } from "../garden.js"
 import { ConfigurationError, GardenError, InternalError } from "../exceptions.js"
 import { resolve, posix } from "path"
-import fsExtra from "fs-extra"
+import fsExtra, { ensureDirSync } from "fs-extra"
 const { ensureDir } = fsExtra
-import { omit } from "lodash-es"
 import { EnvironmentConfigContext } from "./template-contexts/project.js"
-import type { TemplatableConfig } from "./config-template.js"
+import type { ResolveConfigTemplateResult, TemplatableConfig } from "./config-template.js"
 import { templatableKinds, templateNoTemplateFields } from "./config-template.js"
-import { createSchema, joi, joiIdentifier, joiUserIdentifier, unusedApiVersionSchema } from "./common.js"
+import { createSchema, joi, joiIdentifier, joiUserIdentifier, omitFromSchema, unusedApiVersionSchema } from "./common.js"
 import type { DeepPrimitiveMap } from "@garden-io/platform-api-types"
 import { RenderTemplateConfigContext } from "./template-contexts/render.js"
 import type { Log } from "../logger/log-entry.js"
@@ -40,6 +37,9 @@ import { GardenConfig } from "../template-string/validation.js"
 import { evaluate } from "../template-string/lazy.js"
 import { isPlainObject } from "../util/objects.js"
 import { TemplateLeaf } from "../template-string/inputs.js"
+import { GenericContext } from "./template-contexts/base.js"
+import { BaseActionConfigMetadata } from "../actions/types.js"
+import { s } from "./zod.js"
 
 export const renderTemplateConfigSchema = createSchema({
   name: renderTemplateKind,
@@ -117,9 +117,11 @@ export function convertTemplatedModuleToRender(config: UnrefinedModuleConfig): G
   }).refineWithJoi<RenderTemplateConfig>(renderTemplateConfigSchema())
 }
 
-export interface RenderConfigTemplateResult {
-  resolved: RenderTemplateConfig
-  modules: ModuleConfig[]
+export type RefinedRenderTemplateConfig = GardenConfig<Omit<RenderTemplateConfig, "inputs">, BaseActionConfigMetadata>
+
+export type RenderConfigTemplateResult = {
+  refined: RefinedRenderTemplateConfig
+  modules: GardenConfig<BaseModuleSpec, BaseActionConfigMetadata>[]
   configs: TemplatableConfig[]
 }
 
@@ -131,8 +133,8 @@ export async function renderConfigTemplate({
 }: {
   garden: Garden
   log: Log
-  config: GardenConfig<RenderTemplateConfig>
-  templates: { [name: string]: ConfigTemplateConfig }
+  config: GardenConfig<BaseGardenResource & Pick<RenderTemplateConfig, "kind">, BaseActionConfigMetadata>
+  templates: { [name: string]: ResolveConfigTemplateResult }
 }): Promise<RenderConfigTemplateResult> {
   // Resolve template strings for fields. Note that inputs are partially resolved, and will be fully resolved later
   // when resolving the resulting modules. Inputs that are used in module names must however be resolvable
@@ -141,50 +143,31 @@ export async function renderConfigTemplate({
   const enterpriseDomain = garden.cloudApi?.domain
   const templateContext = new EnvironmentConfigContext({ ...garden, loggedIn, enterpriseDomain })
 
-  const yamlDoc = config.internal.yamlDoc
+  const withInputs = config.withContext(templateContext).refineWithZod(s.object({
+    inputs: s.map(s.string(), s.any()),
+  }))
 
-  const resolvedWithoutInputs = resolveTemplateStrings({
-    value: { ...omit(config, "inputs") },
-    context: templateContext,
-    source: { yamlDoc },
-  })
-  const partiallyResolvedInputs = resolveTemplateStrings({
-    value: config.inputs || {},
-    context: templateContext,
-    contextOpts: {
-      allowPartial: true,
-    },
-    source: { yamlDoc, basePath: ["inputs"] },
-  })
-  let resolved: RenderTemplateConfig = {
-    ...resolvedWithoutInputs,
-    inputs: partiallyResolvedInputs,
-  }
+  // inputs are needed to continue to resolve the actions that result from this template config
+  // in later stages, the inputs need to be added to the respective resolve contexts.
+  const inputs = new GenericContext(withInputs.config.inputs)
+  config.metadata.inputs = inputs
 
-  const configType = "Render " + resolved.name
+  const refined = config.withContext(templateContext).refineWithJoi<Omit<RenderTemplateConfig, "inputs">>(
+    omitFromSchema(renderTemplateConfigSchema(), "inputs")
+  )
 
   // Return immediately if config is disabled
-  if (resolved.disabled) {
-    return { resolved, modules: [], configs: [] }
+  if (refined.config.disabled) {
+    return { refined, modules: [], configs: [] }
   }
 
-  // Validate the module spec
-  resolved = validateWithPath({
-    config: resolved,
-    configType,
-    path: resolved.internal.configFilePath || resolved.internal.basePath,
-    schema: renderTemplateConfigSchema(),
-    projectRoot: garden.projectRoot,
-    source: undefined,
-  })
-
-  const template = templates[resolved.template]
+  const template = templates[refined.config.template]
 
   if (!template) {
     const availableTemplates = Object.keys(templates)
     throw new ConfigurationError({
       message: deline`
-        Render ${resolved.name} references template ${resolved.template} which cannot be found.
+        Render ${refined.config.name} references template ${refined.config.template} which cannot be found.
         Available templates: ${naturalList(availableTemplates)}
       `,
     })
@@ -195,17 +178,17 @@ export async function renderConfigTemplate({
     ...garden,
     loggedIn: garden.isLoggedIn(),
     enterpriseDomain,
-    parentName: resolved.name,
-    templateName: template.name,
-    inputs: partiallyResolvedInputs,
+    parentName: refined.config.name,
+    templateName: template.refined.config.name,
+    inputs,
   })
 
   // TODO: remove in 0.14
-  const modules = await renderModules({ garden, template, context, renderConfig: resolved })
+  const modules = await renderModules({ garden, template, context, renderConfig: refined  })
 
-  const configs = await renderConfigs({ garden, log, template, context, renderConfig: resolved })
+  const configs = await renderConfigs({ garden, log, template, context, renderConfig: refined })
 
-  return { resolved, modules, configs }
+  return { refined, modules, configs }
 }
 
 async function renderModules({
@@ -215,61 +198,80 @@ async function renderModules({
   renderConfig,
 }: {
   garden: Garden
-  template: ConfigTemplateConfig
+  template: ResolveConfigTemplateResult
   context: RenderTemplateConfigContext
-  renderConfig: RenderTemplateConfig
-}): Promise<ModuleConfig[]> {
-  const yamlDoc = template.internal.yamlDoc
-
+  renderConfig: RefinedRenderTemplateConfig
+}): Promise<GardenConfig<BaseModuleSpec, BaseGardenResourceMetadata>[]> {
   return Promise.all(
-    (template.modules || []).map(async (m, i) => {
+    (template.refined.config.modules || []).map(async (m, i) => {
+      // TODO: capture the context instead of partial resolution, if needed.
       // Run a partial template resolution with the parent+template info
-      const spec = resolveTemplateStrings({
-        value: m,
-        context,
-        contextOpts: { allowPartial: true },
-        source: { yamlDoc, basePath: ["modules", i] },
+      // const spec = resolveTemplateStrings({
+      //   value: m,
+      //   context,
+      //   contextOpts: { allowPartial: true },
+      //   source: { yamlDoc, basePath: ["modules", i] },
+      // })
+
+      // TODO: what about basePath?
+      const renderConfigPath = renderConfig.configFileDirname! //|| renderConfig.metadata.basePath
+
+      // TODO: Perform transformation on a different level of abstraction for improved safety.
+      const moduleResource = template.refined.transformUnparsedConfig((config, _context, _opts) => {
+        if (!isPlainObject(config)) {
+          throw new InternalError({
+            message: `Expected a plain object`,
+          })
+        }
+
+        const spec = config["modules"]?.[i]
+
+        if (!isPlainObject(spec)) {
+          throw new InternalError({
+            message: `Expected a plain object`,
+          })
+        }
+
+        let moduleConfig: BaseModuleSpec
+
+        try {
+          moduleConfig = prepareModuleResource(spec, renderConfigPath, garden.projectRoot)
+        } catch (error) {
+          if (!(error instanceof GardenError)) {
+            throw error
+          }
+          let msg = error.message
+
+          if (spec.name && spec.name.includes && spec.name.includes("${")) {
+            msg +=
+              ". Note that if a template string is used in the name of a module in a template, then the template string must be fully resolvable at the time of module scanning. This means that e.g. references to other modules or runtime outputs cannot be used."
+          }
+
+          throw new ConfigurationError({
+            message: `${configTemplateKind} ${template.refined.config.name} returned an invalid module (named ${spec.name}) for templated module ${renderConfig.config.name}: ${msg}`,
+          })
+        }
+
+        // Resolve the file source path to an absolute path, so that it can be used during module resolution
+        moduleConfig.generateFiles = (moduleConfig.generateFiles || []).map((f) => ({
+          ...f,
+          sourcePath: f.sourcePath && resolve(template.refined.metadata.basePath, ...f.sourcePath.split(posix.sep)),
+        }))
+
+        // If a path is set, resolve the path and ensure that directory exists
+        if (spec.path) {
+          moduleConfig.path = resolve(template.refined.metadata.basePath, ...spec.path.split(posix.sep))
+          ensureDirSync(moduleConfig.path)
+        }
+
+        return moduleConfig
       })
-      const renderConfigPath = renderConfig.internal.configFilePath || renderConfig.internal.basePath
 
-      let moduleConfig: ModuleConfig
+      moduleResource.metadata.parentName = renderConfig.config.name
+      moduleResource.metadata.templateName = template.refined.config.name
+      moduleResource.metadata.inputs = renderConfig.metadata.inputs
 
-      try {
-        moduleConfig = prepareModuleResource(spec, renderConfigPath, garden.projectRoot)
-      } catch (error) {
-        if (!(error instanceof GardenError)) {
-          throw error
-        }
-        let msg = error.message
-
-        if (spec.name && spec.name.includes && spec.name.includes("${")) {
-          msg +=
-            ". Note that if a template string is used in the name of a module in a template, then the template string must be fully resolvable at the time of module scanning. This means that e.g. references to other modules or runtime outputs cannot be used."
-        }
-
-        throw new ConfigurationError({
-          message: `${configTemplateKind} ${template.name} returned an invalid module (named ${spec.name}) for templated module ${renderConfig.name}: ${msg}`,
-        })
-      }
-
-      // Resolve the file source path to an absolute path, so that it can be used during module resolution
-      moduleConfig.generateFiles = (moduleConfig.generateFiles || []).map((f) => ({
-        ...f,
-        sourcePath: f.sourcePath && resolve(template.internal.basePath, ...f.sourcePath.split(posix.sep)),
-      }))
-
-      // If a path is set, resolve the path and ensure that directory exists
-      if (spec.path) {
-        moduleConfig.path = resolve(renderConfig.internal.basePath, ...spec.path.split(posix.sep))
-        await ensureDir(moduleConfig.path)
-      }
-
-      // Attach metadata
-      moduleConfig.parentName = renderConfig.name
-      moduleConfig.templateName = template.name
-      moduleConfig.inputs = renderConfig.inputs
-
-      return moduleConfig
+      return moduleResource.refineWithJoi<BaseModuleSpec>(coreModuleSpecSchema())
     })
   )
 }
@@ -283,9 +285,9 @@ async function renderConfigs({
 }: {
   garden: Garden
   log: Log
-  template: ConfigTemplateConfig
+  template: ResolveConfigTemplateResult
   context: RenderTemplateConfigContext
-  renderConfig: RenderTemplateConfig
+  renderConfig: RefinedRenderTemplateConfig
 }): Promise<TemplatableConfig[]> {
   const templateDescription = `${configTemplateKind} '${template.name}'`
 

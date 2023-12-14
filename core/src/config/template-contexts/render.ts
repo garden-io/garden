@@ -6,9 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import type { DeepPrimitiveMap } from "../common.js"
 import { joiVariables } from "../common.js"
-import { ParentContext, schema, TemplateContext } from "./base.js"
+import { type ConfigContext, ParentContext, schema, TemplateContext } from "./base.js"
 import type { ProjectConfigContextParams } from "./project.js"
 import { ProjectConfigContext } from "./project.js"
 
@@ -24,10 +23,10 @@ export class RenderTemplateConfigContext extends ProjectConfigContext {
       keyPlaceholder: "<input-key>",
     })
   )
-  public inputs: DeepPrimitiveMap
+  public inputs: ConfigContext
 
   constructor(
-    params: { parentName: string; templateName: string; inputs: DeepPrimitiveMap } & ProjectConfigContextParams
+    params: { parentName: string; templateName: string; inputs: ConfigContext } & ProjectConfigContextParams
   ) {
     super(params)
     this.parent = new ParentContext(this, params.parentName)
