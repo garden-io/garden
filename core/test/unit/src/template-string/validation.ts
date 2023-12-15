@@ -7,11 +7,13 @@
  */
 
 import { z } from "zod"
-import { parseTemplateCollection } from "../../../../src/template-string/template-string.js"
+import { parseTemplateCollection, parseTemplateString } from "../../../../src/template-string/template-string.js"
 import { expect } from "chai"
 import { GenericContext } from "../../../../src/config/template-contexts/base.js"
 import { GardenConfig } from "../../../../src/template-string/validation.js"
 import Joi from "@hapi/joi"
+import { serialize } from "node:v8"
+import { language } from "gray-matter"
 
 // In the future we might
 // const varsFromFirstConfig = firstConfig.atPath("var") // can contain lazy values
@@ -166,6 +168,38 @@ describe("GardenConfig", () => {
     expect(proxy2.foobar).to.equal("foobar")
   })
 
+  it("allows specifying the full destination type at the beginning", () => {
+    type DestinationType = {
+      replicas: number
+      enabled: boolean
+    }
+
+    const parsedConfig = parseTemplateCollection({
+      value: {
+        replicas: "${var.replicas}",
+      },
+      source: { source: undefined },
+    })
+
+    const config1 = new GardenConfig<DestinationType>({
+      parsedConfig,
+      context: new GenericContext({}),
+      opts: {},
+    })
+
+    // not refined yet
+    config1.value satisfies never
+
+    config1.refineWithZod(
+      z.object({
+        replicas: z.number(),
+      })
+    )
+
+    config1.value.replicas satisfies number
+    config1.value.enabled satisfies never
+  })
+
   it("can be used with any type assertion", () => {
     const context = new GenericContext({ var: { fruits: ["apple", "banana"] } })
 
@@ -228,5 +262,72 @@ describe("GardenConfig", () => {
     proxy satisfies Fruits
 
     expect(proxy.fruits).to.deep.equal(["apple", "banana"])
+  })
+
+  describe("transformations", () => {
+    it("allows arbitrary lazy transformations on the expected type. The actual values can only be accessed after refinement.", () => {
+      type Landscape = {
+        region: string
+        trees: number
+        water: boolean
+        animals: { species: string }[]
+      }
+
+      const landscape = new GardenConfig<Landscape>({
+        parsedConfig: parseTemplateCollection({
+          value: {
+            region: "Alps",
+            defaultAnimalName: "${var.DEFAULT_NAME}",
+            trees: 5,
+            water: true,
+            animals: [
+              { species: "gazelle", id: "${uuid()}" },
+              { species: "cow", id: "${uuid()}" },
+            ],
+          },
+          source: { source: undefined },
+        }),
+        context: new GenericContext({}),
+        opts: {},
+      })
+
+      const hasWater = landscape.atPath("water")
+
+      hasWater satisfies GardenConfig<boolean>
+
+      // The value has not been refined yet, so we must validate it before accessing
+      // This is only a limitation imposed by the type system and can be circumvented by casting to any, if the programmer wishes.
+      // If the value can't be resolved that would then result in a runtime error.
+      hasWater.value satisfies never
+
+      hasWater.refineWithZod(z.boolean())
+
+      expect(hasWater.value).to.equal(true)
+
+      const waterColor = hasWater.value ? "blue" : "transparent"
+      expect(waterColor).to.equal("blue")
+
+      const isAlps = landscape.atPath("country").transform((country) => country.value === "Alps")
+      isAlps satisfies GardenConfig<boolean>
+
+      const defaultedAnimalsAndRegion = landscape.transform((landscape) => ({
+        region: landscape.atPath("region"),
+        animals: landscape.atPath("animals").transform((animals) =>
+          animals.map((animal) => ({
+            species: animal.atPath("species"),
+            name: animal.atPath("name").or(landscape.atPath("defaultAnimalName")),
+          }))
+        ),
+      }))
+
+      defaultedAnimalsAndRegion satisfies GardenConfig<{
+        region: string
+        animals: { species: string; name: string }[]
+      }>
+
+      expect(() => {
+        landscape.transform((l) => ({ circular: l }))
+      }).to.throw("Detected circular transformation")
+    })
   })
 })

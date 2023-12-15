@@ -44,7 +44,11 @@ function getChangeset(
 }
 
 // For overlaying the changesets
-function getOverlayProxy(targetObject: Collection<TemplatePrimitive>, changes: Change[], currentPath: (string | number)[] = []): Collection<TemplatePrimitive> {
+function getOverlayProxy(
+  targetObject: Collection<TemplatePrimitive>,
+  changes: Change[],
+  currentPath: (string | number)[] = []
+): Collection<TemplatePrimitive> {
   // TODO: This needs performance optimization and a proper abstraction to maintain the overlays
   const currentPathChanges = changes.filter((change) => change.path.slice(0, -1).join(".") === currentPath.join("."))
   const nextKeys = currentPathChanges
@@ -76,12 +80,14 @@ function getOverlayProxy(targetObject: Collection<TemplatePrimitive>, changes: C
       return Reflect.has(target, key) || nextKeys.includes(key as string)
     },
     getOwnPropertyDescriptor(target, key) {
-      return Reflect.getOwnPropertyDescriptor(target, key) || {
-        configurable: true,
-        enumerable: true,
-        writable: false
-      }
-    }
+      return (
+        Reflect.getOwnPropertyDescriptor(target, key) || {
+          configurable: true,
+          enumerable: true,
+          writable: false,
+        }
+      )
+    },
   })
 
   return proxy
@@ -95,7 +101,13 @@ export type GardenConfigParams = {
 }
 
 type TypeAssertion<T> = (object: any) => object is T
-export class GardenConfig<ConfigType extends Collection<TemplatePrimitive> = Collection<TemplatePrimitive>> {
+
+type SubValidator<Validator extends z.ZodObject<any>, TargetType> = inferZodType<Validator> extends TargetType ? Validator : never
+
+export class GardenConfig<
+  TargetType extends Collection<TemplatePrimitive> = Collection<TemplatePrimitive>,
+  RefinedType extends Partial<TargetType> = Pick<TargetType, never>,
+> {
   private parsedConfig: CollectionOrValue<TemplateValue>
   private context: ConfigContext
   private opts: ContextResolveOpts
@@ -118,12 +130,14 @@ export class GardenConfig<ConfigType extends Collection<TemplatePrimitive> = Col
     })
   }
 
-  public assertType<Type extends CollectionOrValue<TemplatePrimitive>>(assertion: TypeAssertion<Type>): GardenConfig<ConfigType & Type> {
+  public assertType<Type extends Partial<TargetType>>(
+    assertion: TypeAssertion<Type>
+  ): GardenConfig<TargetType, RefinedType & Type> {
     const rawConfig = this.getConfig()
     const configIsOfType = assertion(rawConfig)
 
     if (configIsOfType) {
-      return new GardenConfig<ConfigType & Type>({
+      return new GardenConfig<TargetType, RefinedType & Type>({
         parsedConfig: this.parsedConfig,
         context: this.context,
         opts: this.opts,
@@ -135,7 +149,9 @@ export class GardenConfig<ConfigType extends Collection<TemplatePrimitive> = Col
     }
   }
 
-  public refineWithZod<Validator extends z.AnyZodObject>(validator: Validator): GardenConfig<ConfigType & inferZodType<Validator>> {
+  public refineWithZod<Validator extends z.ZodObject<any>>(
+    validator: SubValidator<Validator, Partial<TargetType>>
+  ): GardenConfig<TargetType, RefinedType & inferZodType<Validator>> {
     // merge the schemas
 
     // instantiate proxy without overlays
@@ -143,7 +159,7 @@ export class GardenConfig<ConfigType extends Collection<TemplatePrimitive> = Col
 
     // validate config and extract changes
     const validated = validator.parse(rawConfig)
-    const changes = getChangeset(rawConfig, validated)
+    const changes = getChangeset(rawConfig as any, validated)
 
     return new GardenConfig({
       parsedConfig: this.parsedConfig,
@@ -154,7 +170,9 @@ export class GardenConfig<ConfigType extends Collection<TemplatePrimitive> = Col
   }
 
   // With joi we can't infer the type from the schema
-  public refineWithJoi<JoiType extends Collection<TemplatePrimitive>>(validator: Joi.SchemaLike): GardenConfig<ConfigType & JoiType> {
+  public refineWithJoi<JoiType extends Partial<TargetType>>(
+    validator: Joi.SchemaLike
+  ): GardenConfig<TargetType, RefinedType & JoiType> {
     // instantiate proxy without overlays
     const rawConfig = this.getConfig([])
 
@@ -170,16 +188,16 @@ export class GardenConfig<ConfigType extends Collection<TemplatePrimitive> = Col
     })
   }
 
-  public getConfig(overlays?: Change[]): ConfigType {
+  public getConfig(overlays?: Change[]): RefinedType {
     const configProxy = getLazyConfigProxy({
       parsedConfig: this.parsedConfig,
       context: this.context,
       opts: this.opts,
-    }) as ConfigType
+    }) as RefinedType
 
     const changes = overlays || this.overlays
     if (changes.length > 0) {
-      return getOverlayProxy(configProxy, changes) as ConfigType
+      return getOverlayProxy(configProxy as any, changes) as RefinedType
     }
 
     return configProxy

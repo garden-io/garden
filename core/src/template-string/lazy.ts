@@ -130,57 +130,44 @@ export abstract class LazyValue<R extends CollectionOrValue<TemplateValue> = Col
   abstract visitAll(): TemplateExpressionGenerator
 }
 
-export class OverrideKeyPathLazily extends LazyValue {
+export class ReferenceLazyValue extends LazyValue {
   constructor(
-    private readonly backingCollection: CollectionOrValue<TemplateValue>,
     private readonly keyPath: ObjectPath,
-    private readonly override: CollectionOrValue<TemplateLeaf>
+    private readonly target: CollectionOrValue<TemplateValue>
   ) {
+    // TODO: associate template provenance with arrays and objects too, e.g. by using a symbol property
+    // super(underlyingValue.source)
     super({ yamlPath: [], source: undefined })
   }
 
   override *visitAll(): TemplateExpressionGenerator {
-    // ???
-    yield* visitAll(this.backingCollection)
-    yield* visitAll(this.override)
+    yield this
   }
 
   override evaluateImpl(context: ConfigContext, opts: ContextResolveOpts): CollectionOrValue<TemplateValue> {
-    const evaluated = evaluate({ value: this.backingCollection, context, opts })
+    let evaluated = evaluate({ value: this.target, context, opts })
 
-    let currentValue = evaluated
-    const remainingKeys = clone(this.keyPath.slice(0, -1))
-    const targetKey = this.keyPath[this.keyPath.length - 1]
+    for (const [i, part] of this.keyPath.entries()) {
+      const lookupResult = evaluated[part]
 
-    do {
-      const key = remainingKeys.shift()
-
-      if (key === undefined) {
-        break
-      }
-
-      if (currentValue[key] instanceof LazyValue) {
-        currentValue[key] = new OverrideKeyPathLazily(currentValue[key], [...remainingKeys, targetKey], this.override)
-
-        // we don't want to override here, our child instance will do that for us
-        return evaluated
-      }
-
-      currentValue = currentValue[key]
-
-      if (isTemplateLeaf(currentValue)) {
-        if (isArray(currentValue.value) || isPlainObject(currentValue.value)) {
-          currentValue = currentValue.value
+      if (lookupResult === undefined) {
+        if (i === this.keyPath.length - 1) {
+          return new TemplateLeaf({
+            expr: undefined,
+            value: undefined,
+            inputs: {},
+          })
         } else {
-          throw new InternalError({
-            message: `Expected a collection or array, got ${typeof currentValue.value}`,
+          throw new TemplateError({
+            message: "Expected an array or object, bot got undefined",
+            // TODO: associate template provenance with arrays and objects too, e.g. by using a symbol property
+            source: { yamlPath: [], source: undefined },
           })
         }
       }
-    } while (remainingKeys.length > 0)
 
-    // We arrived at the destination. Override!
-    currentValue[targetKey] = this.override
+      evaluated = evaluate({ value: lookupResult, context, opts })
+    }
 
     return evaluated
   }
