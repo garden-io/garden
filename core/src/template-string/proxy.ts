@@ -5,7 +5,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-import { memoize } from "lodash-es"
 import type { ConfigContext, ContextResolveOpts } from "../config/template-contexts/base.js"
 import type { Collection, CollectionOrValue } from "../util/objects.js"
 import { isArray, isPlainObject } from "../util/objects.js"
@@ -18,47 +17,25 @@ export const getCollectionSymbol = Symbol("GetCollection")
 
 type LazyConfigProxyParams = {
   parsedConfig: CollectionOrValue<TemplateValue>
-  expectedCollectionType?: "object" | "array"
   context: ConfigContext
   opts: ContextResolveOpts
 }
 export function getLazyConfigProxy({
   parsedConfig,
-  expectedCollectionType = "object",
   context,
   opts,
-}: LazyConfigProxyParams): Collection<TemplatePrimitive> {
-  const getCollection = memoize(() => {
-    const collection = evaluate({ value: parsedConfig, context, opts })
+}: LazyConfigProxyParams): CollectionOrValue<TemplatePrimitive> {
+  const collection = evaluate({ value: parsedConfig, context, opts })
 
-    if (isTemplateLeaf(collection)) {
-      throw new InternalError({
-        message: "getLazyConfigProxy: Expected a collection, got a leaf value",
-      })
-    }
+  if (isTemplateLeaf(collection)) {
+    return collection.value
+  }
 
-    if (expectedCollectionType === "object" && !isPlainObject(collection)) {
-      throw new InternalError({
-        message: `getLazyConfigProxy: Expected an object, got array`,
-      })
-    }
-
-    if (expectedCollectionType === "array" && !isArray(collection)) {
-      throw new InternalError({
-        message: `getLazyConfigProxy: Expected an array, got object`,
-      })
-    }
-
-    return collection
-  })
-
-  const proxy = new Proxy(expectedCollectionType === "array" ? [] : {}, {
+  const proxy = new Proxy(collection, {
     get(_, prop) {
       if (prop === getCollectionSymbol) {
-        return getCollection()
+        return collection
       }
-
-      const collection = getCollection()
 
       const value = collection[prop]
 
@@ -76,25 +53,16 @@ export function getLazyConfigProxy({
         return evaluated.value
       }
 
-      if (isArray(evaluated)) {
-        return getLazyConfigProxy({
-          parsedConfig: evaluated,
-          expectedCollectionType: "array",
-          context,
-          opts,
-        })
-      }
-
       return getLazyConfigProxy({ parsedConfig: evaluated, context, opts })
     },
     ownKeys() {
-      return Object.getOwnPropertyNames(getCollection())
+      return Object.getOwnPropertyNames(collection)
     },
     has(_, key) {
-      return key in getCollection() || Object.hasOwn(getCollection(), key)
+      return key in collection || Object.hasOwn(collection, key)
     },
     getOwnPropertyDescriptor(_, key) {
-      return Object.getOwnPropertyDescriptor(getCollection(), key)
+      return Object.getOwnPropertyDescriptor(collection, key)
     },
     set(_, key, value) {
       throw new InternalError({

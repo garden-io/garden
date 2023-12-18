@@ -141,7 +141,7 @@ export class ReferenceLazyValue extends LazyValue {
   }
 
   override *visitAll(): TemplateExpressionGenerator {
-    yield this
+    yield* visitAll(this.target)
   }
 
   override evaluateImpl(context: ConfigContext, opts: ContextResolveOpts): CollectionOrValue<TemplateValue> {

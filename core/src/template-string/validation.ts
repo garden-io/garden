@@ -7,11 +7,21 @@
  */
 
 import { z, infer as inferZodType } from "zod"
-import { ConfigContext, ContextResolveOpts } from "../config/template-contexts/base.js"
-import { Collection, CollectionOrValue, isArray, isPlainObject } from "../util/objects.js"
-import { TemplatePrimitive, TemplateValue } from "./inputs.js"
+import { ConfigContext, ContextResolveOpts, ObjectPath } from "../config/template-contexts/base.js"
+import { Collection, CollectionOrValue, deepMap, isArray, isPlainObject } from "../util/objects.js"
+import {
+  TemplateLeaf,
+  TemplatePrimitive,
+  TemplateValue,
+  isTemplateLeafValue,
+  templatePrimitiveDeepMap,
+} from "./inputs.js"
 import { getLazyConfigProxy } from "./proxy.js"
 import Joi from "@hapi/joi"
+import { InternalError, NotImplementedError } from "../exceptions.js"
+import { MergeDeep, PartialDeep } from "type-fest"
+import { ForEachLazyValue, ReferenceLazyValue } from "./lazy.js"
+import { parseTemplateCollection, parseTemplateString } from "./template-string.js"
 
 type Change = { path: (string | number)[]; value: CollectionOrValue<TemplatePrimitive> }
 
@@ -102,11 +112,22 @@ export type GardenConfigParams = {
 
 type TypeAssertion<T> = (object: any) => object is T
 
-type SubValidator<Validator extends z.ZodObject<any>, TargetType> = inferZodType<Validator> extends TargetType ? Validator : never
+type MergeZodValidatorCollectionOrPrimitiveTypes<
+  Target,
+  ToMerge extends z.ZodTypeAny,
+> = MergeCollectionOrPrimitiveTypes<Target, inferZodType<ToMerge>>
+type MergeCollectionOrPrimitiveTypes<Target, ToMerge> = [Target] extends [never]
+  ? ToMerge
+  : ToMerge extends TemplatePrimitive
+  ? ToMerge
+  : MergeDeep<Target, ToMerge>
+type CompatibleWithTargetType<TargetType, MergeResult> = MergeResult extends PartialDeep<TargetType>
+  ? MergeResult
+  : never
 
 export class GardenConfig<
-  TargetType extends Collection<TemplatePrimitive> = Collection<TemplatePrimitive>,
-  RefinedType extends Partial<TargetType> = Pick<TargetType, never>,
+  TargetType extends CollectionOrValue<TemplatePrimitive>,
+  RefinedType extends PartialDeep<TargetType> = never,
 > {
   private parsedConfig: CollectionOrValue<TemplateValue>
   private context: ConfigContext
@@ -120,7 +141,7 @@ export class GardenConfig<
     this.overlays = overlays
   }
 
-  public withContext(context: ConfigContext): GardenConfig {
+  public withContext(context: ConfigContext): GardenConfig<TargetType> {
     // we wipe the types, because a new context can result in different results when evaluating template strings
     return new GardenConfig({
       parsedConfig: this.parsedConfig,
@@ -130,14 +151,17 @@ export class GardenConfig<
     })
   }
 
-  public assertType<Type extends Partial<TargetType>>(
+  public assertType<Type extends PartialDeep<TargetType>>(
     assertion: TypeAssertion<Type>
-  ): GardenConfig<TargetType, RefinedType & Type> {
+  ): GardenConfig<
+    TargetType,
+    CompatibleWithTargetType<TargetType, MergeCollectionOrPrimitiveTypes<RefinedType, Type>>
+  > {
     const rawConfig = this.getConfig()
     const configIsOfType = assertion(rawConfig)
 
     if (configIsOfType) {
-      return new GardenConfig<TargetType, RefinedType & Type>({
+      return new GardenConfig({
         parsedConfig: this.parsedConfig,
         context: this.context,
         opts: this.opts,
@@ -149,11 +173,13 @@ export class GardenConfig<
     }
   }
 
-  public refineWithZod<Validator extends z.ZodObject<any>>(
-    validator: SubValidator<Validator, Partial<TargetType>>
-  ): GardenConfig<TargetType, RefinedType & inferZodType<Validator>> {
+  public refineWithZod<Validator extends z.ZodTypeAny>(
+    validator: Validator
     // merge the schemas
-
+  ): GardenConfig<
+    TargetType,
+    CompatibleWithTargetType<TargetType, MergeZodValidatorCollectionOrPrimitiveTypes<RefinedType, Validator>>
+  > {
     // instantiate proxy without overlays
     const rawConfig = this.getConfig([])
 
@@ -170,9 +196,12 @@ export class GardenConfig<
   }
 
   // With joi we can't infer the type from the schema
-  public refineWithJoi<JoiType extends Partial<TargetType>>(
+  public refineWithJoi<JoiType extends PartialDeep<TargetType>>(
     validator: Joi.SchemaLike
-  ): GardenConfig<TargetType, RefinedType & JoiType> {
+  ): GardenConfig<
+    TargetType,
+    CompatibleWithTargetType<TargetType, MergeCollectionOrPrimitiveTypes<RefinedType, JoiType>>
+  > {
     // instantiate proxy without overlays
     const rawConfig = this.getConfig([])
 
@@ -188,7 +217,11 @@ export class GardenConfig<
     })
   }
 
-  public getConfig(overlays?: Change[]): RefinedType {
+  public get value(): RefinedType {
+    return this.getConfig()
+  }
+
+  private getConfig(overlays?: Change[]): RefinedType {
     const configProxy = getLazyConfigProxy({
       parsedConfig: this.parsedConfig,
       context: this.context,
@@ -202,4 +235,128 @@ export class GardenConfig<
 
     return configProxy
   }
+
+  //////////////////////////////////////////////////////
+  // Lazy transformations
+  //////////////////////////////////////////////////////
+
+  public atPath<KeyPath extends ObjectPath>(...keyPath: KeyPath): GardenConfig<Traverse<TargetType, KeyPath>> {
+    return new GardenConfig({
+      parsedConfig: new ReferenceLazyValue(keyPath, this.parsedConfig),
+      context: this.context,
+      opts: this.opts,
+      // TODO: if we can transform the overlays somehow, we can add Traverse<RefinedType, KeyPath> to the refined type.
+      overlays: [],
+    })
+  }
+
+  private processTransform(
+    transformer: () => TransformResult
+  ): CollectionOrValue<TemplateValue> {
+    const transformedValueWithConfigsAndPrimitives = transformer()
+
+    const transformedValueWithPrimitives = deepMap(transformedValueWithConfigsAndPrimitives, (v) => {
+      if (v instanceof GardenConfig) {
+        if (v === this) {
+          throw new InternalError({
+            message: "Detected circular transformation",
+          })
+        }
+        return v.parsedConfig
+      } else {
+        return v
+      }
+    })
+
+    const transformedConfig = templatePrimitiveDeepMap(transformedValueWithPrimitives, (v) =>
+      isTemplateLeafValue(v)
+        ? new TemplateLeaf({
+            expr: undefined,
+            value: v,
+            inputs: {},
+          })
+        : v
+    )
+
+    return transformedConfig
+  }
+
+  public transform<ReturnType extends TransformResult>(
+    transformer: (t: GardenConfig<TargetType, RefinedType>) => ReturnType
+  ): GardenConfig<Unwrap<ReturnType>> {
+
+    return new GardenConfig({
+      parsedConfig: this.processTransform(() => transformer(this)),
+      context: this.context,
+      opts: this.opts,
+      overlays: [],
+    })
+  }
+
+  public map<ReturnType extends TransformResult, Element extends TargetType extends Array<infer T> ? T : never>(
+    transformer: (t: GardenConfig<Element>) => ReturnType
+  ): GardenConfig<Unwrap<ReturnType>> {
+    const item = new GardenConfig<Element>({
+      parsedConfig: parseTemplateString({ string: "${item.value}" }),
+      context: this.context,
+      opts: this.opts,
+      overlays: [],
+    })
+
+    const transformed = this.processTransform(() => transformer(item))
+
+    return new GardenConfig({
+      parsedConfig: new ForEachLazyValue(
+        { source: undefined, yamlPath: [] },
+        {
+          $forEach: this.parsedConfig,
+          $return: transformed,
+          $filter: undefined,
+        }
+      ),
+      context: this.context,
+      opts: this.opts,
+      overlays: [],
+    })
+  }
 }
+
+type AnyGardenConfig = GardenConfig<CollectionOrValue<TemplatePrimitive>, CollectionOrValue<TemplatePrimitive>>
+type TransformResult = CollectionOrValue<TemplatePrimitive | AnyGardenConfig>
+
+type Unwrap<Type> = Type extends TemplatePrimitive
+  ? Type
+  : Type extends GardenConfig<infer T>
+  ? T
+  : Type extends Array<infer U>
+  ? Unwrap<U>[]
+  : Type extends { [key: string]: any }
+  ? { [Key in keyof Type]: Unwrap<Type[Key]> }
+  : never
+
+type Traverse<Type, KeyPath extends any[]> = KeyPath extends [infer Key, ...infer RemainingKeyPath]
+  ? Key extends keyof Type
+    ? RemainingKeyPath extends []
+      ? Type[Key]
+      : Traverse<Type[Key], RemainingKeyPath>
+    : never
+  : never
+
+type UnwrapBoolean = Unwrap<boolean>
+type UnwrapConfigBoolean = Unwrap<GardenConfig<boolean>>
+type UnwrapBooleanArray = Unwrap<boolean[]>
+type UnwrapStaticBooleanArray = Unwrap<readonly [true, false, true]>
+type UnwrapMixedArray = Unwrap<readonly [true, 2, "foo"]>
+type UnwrapObject = Unwrap<{
+  foo: boolean
+  bar: {
+    baz: [1, 2, 3]
+  }
+}>
+
+type MergeResult = MergeDeep<never, { foo: boolean }>
+
+type nevernever = never & { foo: boolean }
+
+type Mergey = MergeCollectionOrPrimitiveTypes<never, { foo: boolean }>
+type Mergey2 = MergeCollectionOrPrimitiveTypes<{ bar: never }, { foo: boolean }>

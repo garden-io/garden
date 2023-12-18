@@ -10,7 +10,7 @@ import { expect } from "chai"
 import { GenericContext } from "../../../../src/config/template-contexts/base.js"
 import { getCollectionSymbol, getLazyConfigProxy } from "../../../../src/template-string/proxy.js"
 import { parseTemplateString, parseTemplateCollection } from "../../../../src/template-string/template-string.js"
-import type { CollectionOrValue } from "../../../../src/util/objects.js"
+import type { Collection, CollectionOrValue } from "../../../../src/util/objects.js"
 import { isArray } from "../../../../src/util/objects.js"
 import { type TemplatePrimitive } from "../../../../src/template-string/inputs.js"
 
@@ -24,7 +24,7 @@ describe("getLazyConfigProxy", () => {
       parsedConfig: parseTemplateCollection({ value: obj, source: { source: undefined } }),
       context: new GenericContext({}),
       opts: {},
-    })
+    }) as Collection<TemplatePrimitive>
 
     expect(proxy["fruits"][0]).to.equal("apple")
     expect(proxy["fruits"][1]).to.equal("banana")
@@ -35,7 +35,7 @@ describe("getLazyConfigProxy", () => {
       parsedConfig: parseTemplateString({ string: "${1234}" }),
       context: new GenericContext({}),
       opts: {},
-    })
+    }) as Collection<TemplatePrimitive>
 
     expect(() => {
       proxy["foo"]
@@ -86,7 +86,7 @@ describe("getLazyConfigProxy", () => {
       parsedConfig,
       context: new GenericContext({}),
       opts: {},
-    })
+    }) as Collection<TemplatePrimitive>
 
     expect(proxy["myArray"].length).to.equal(3)
     expect(proxy["myDeeperArray"].length).to.equal(2)
@@ -104,7 +104,6 @@ describe("getLazyConfigProxy", () => {
 
     const proxy = getLazyConfigProxy({
       parsedConfig,
-      expectedCollectionType: "array",
       context: new GenericContext({}),
       opts: {},
     }) as string[]
@@ -137,7 +136,7 @@ describe("getLazyConfigProxy", () => {
       parsedConfig,
       context: new GenericContext({}),
       opts: {},
-    })
+    }) as Collection<TemplatePrimitive>
 
     const iterated1: string[] = []
     for (const [k, v] of Object.entries(proxy)) {
@@ -164,9 +163,8 @@ describe("getLazyConfigProxy", () => {
     const proxy = getLazyConfigProxy({
       parsedConfig,
       context: new GenericContext({}),
-      expectedCollectionType: "array",
       opts: {},
-    })
+    }) as string[]
 
     expect(proxy).to.deep.equal(["Hello 1", "Hello 2", "Hello 3"])
     expect(proxy).to.be.an("array")
@@ -245,7 +243,7 @@ describe("getLazyConfigProxy", () => {
       parsedConfig,
       context,
       opts: {},
-    })
+    }) as Collection<TemplatePrimitive>
 
     expect(Object.keys(proxy)).to.eql(["cannotResolveYet", "alreadyResolvable"])
 
@@ -321,7 +319,7 @@ describe("getLazyConfigProxy", () => {
         // TODO: rename this to optional
         allowPartial: true,
       },
-    })
+    }) as Collection<TemplatePrimitive>
 
     expect(proxy["myOptionalValue"]).to.equal(undefined)
 
@@ -351,13 +349,13 @@ describe("getLazyConfigProxy", () => {
         // TODO: rename this to optional
         allowPartial: true,
       },
-    })
+    }) as Collection<TemplatePrimitive>
 
     const strictProxy = getLazyConfigProxy({
       parsedConfig,
       context,
       opts: {},
-    })
+    }) as Collection<TemplatePrimitive>
 
     expect(partialProxy["orClause"]).to.equal(undefined)
     expect(partialProxy["andClause"]).to.equal(undefined)
@@ -390,7 +388,7 @@ describe("getLazyConfigProxy", () => {
       parsedConfig,
       context,
       opts: {},
-    })
+    }) as Collection<TemplatePrimitive>
 
     const underlyingConfig = proxy[getCollectionSymbol]
 
@@ -406,10 +404,9 @@ describe("getLazyConfigProxy", () => {
 
     const proxy = getLazyConfigProxy({
       parsedConfig,
-      expectedCollectionType: "array",
       context,
       opts: {},
-    })
+    }) as Collection<TemplatePrimitive>
 
     const underlyingConfig = proxy[getCollectionSymbol]
 
@@ -429,7 +426,7 @@ describe("getLazyConfigProxy", () => {
       parsedConfig,
       context,
       opts: {},
-    })
+    }) as Collection<TemplatePrimitive>
 
     expect(() => {
       proxy["luckyNumber"] = 13

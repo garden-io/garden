@@ -7,13 +7,11 @@
  */
 
 import { z } from "zod"
-import { parseTemplateCollection, parseTemplateString } from "../../../../src/template-string/template-string.js"
+import { parseTemplateCollection } from "../../../../src/template-string/template-string.js"
 import { expect } from "chai"
 import { GenericContext } from "../../../../src/config/template-contexts/base.js"
 import { GardenConfig } from "../../../../src/template-string/validation.js"
 import Joi from "@hapi/joi"
-import { serialize } from "node:v8"
-import { language } from "gray-matter"
 
 // In the future we might
 // const varsFromFirstConfig = firstConfig.atPath("var") // can contain lazy values
@@ -21,6 +19,14 @@ import { language } from "gray-matter"
 
 describe("GardenConfig", () => {
   it("takes parsed config collection, and offers a validate() method that returns a lazy config proxy with the correct type information", () => {
+    const zodSchema = z.object({
+      kind: z.literal("Deployment"),
+      type: z.literal("kubernetes"),
+      spec: z.object({
+        files: z.array(z.string()),
+      }),
+    })
+
     const parsedConfig = parseTemplateCollection({
       value: {
         kind: "Deployment",
@@ -32,23 +38,15 @@ describe("GardenConfig", () => {
       source: { source: undefined },
     })
 
-    const unrefinedConfig = new GardenConfig({
+    const unrefinedConfig = new GardenConfig<z.infer<typeof zodSchema>>({
       parsedConfig,
       context: new GenericContext({}),
       opts: {},
     })
 
-    const config = unrefinedConfig.refineWithZod(
-      z.object({
-        kind: z.literal("Deployment"),
-        type: z.literal("kubernetes"),
-        spec: z.object({
-          files: z.array(z.string()),
-        }),
-      })
-    )
+    const config = unrefinedConfig.refineWithZod(zodSchema)
 
-    const proxy = config.getConfig()
+    const proxy = config.value
 
     // proxy has type hints, no need to use bracket notation
     expect(proxy.spec.files[0]).to.equal("manifests/deployment.yaml")
@@ -85,7 +83,7 @@ describe("GardenConfig", () => {
       })
     )
 
-    const proxy = config.getConfig()
+    const proxy = config.value
 
     // const spec = proxy.spec
 
@@ -105,7 +103,7 @@ describe("GardenConfig", () => {
       },
     })
 
-    const unrefinedProxy = unrefinedConfig.getConfig()
+    const unrefinedProxy = unrefinedConfig.value
 
     // the unrefined config has not been mutated
     expect(unrefinedProxy).to.deep.equal({
@@ -138,7 +136,7 @@ describe("GardenConfig", () => {
       })
     )
 
-    const proxy1 = config1.getConfig()
+    const proxy1 = config1.value
 
     // replicas is specified, but it's using a variable that's not defined yet and the proxy is in `allowPartial` mode
     expect(proxy1.replicas).to.equal(1)
@@ -160,7 +158,7 @@ describe("GardenConfig", () => {
         })
       )
 
-    const proxy2 = config2.getConfig()
+    const proxy2 = config2.value
 
     proxy2 satisfies { replicas: number; foobar: string }
 
@@ -183,21 +181,25 @@ describe("GardenConfig", () => {
 
     const config1 = new GardenConfig<DestinationType>({
       parsedConfig,
-      context: new GenericContext({}),
+      context: new GenericContext({
+        var: {
+          replicas: 3,
+        },
+      }),
       opts: {},
     })
 
     // not refined yet
     config1.value satisfies never
 
-    config1.refineWithZod(
+    const refined = config1.refineWithZod(
       z.object({
         replicas: z.number(),
       })
     )
 
-    config1.value.replicas satisfies number
-    config1.value.enabled satisfies never
+    refined.value satisfies { replicas: number }
+    expect(refined.value.replicas).to.equal(3)
   })
 
   it("can be used with any type assertion", () => {
@@ -227,7 +229,7 @@ describe("GardenConfig", () => {
       },
     }).assertType(isFruits)
 
-    const proxy = config.getConfig()
+    const proxy = config.value
 
     proxy satisfies { fruits: string[] }
 
@@ -257,7 +259,7 @@ describe("GardenConfig", () => {
       },
     }).refineWithJoi<Fruits>(fruitsSchema)
 
-    const proxy = config.getConfig()
+    const proxy = config.value
 
     proxy satisfies Fruits
 
@@ -271,6 +273,7 @@ describe("GardenConfig", () => {
         trees: number
         water: boolean
         animals: { species: string }[]
+        defaultAnimalName: string
       }
 
       const landscape = new GardenConfig<Landscape>({
@@ -287,7 +290,11 @@ describe("GardenConfig", () => {
           },
           source: { source: undefined },
         }),
-        context: new GenericContext({}),
+        context: new GenericContext({
+          var: {
+            DEFAULT_NAME: "Unnamed",
+          },
+        }),
         opts: {},
       })
 
@@ -300,22 +307,26 @@ describe("GardenConfig", () => {
       // If the value can't be resolved that would then result in a runtime error.
       hasWater.value satisfies never
 
-      hasWater.refineWithZod(z.boolean())
+      const refinedWater = hasWater.refineWithZod(z.boolean())
 
-      expect(hasWater.value).to.equal(true)
+      expect(refinedWater.value).to.equal(true)
 
-      const waterColor = hasWater.value ? "blue" : "transparent"
+      const waterColor = refinedWater.value ? "blue" : "transparent"
       expect(waterColor).to.equal("blue")
 
-      const isAlps = landscape.atPath("country").transform((country) => country.value === "Alps")
+      const isAlps = landscape.atPath("region").transform((region) => region.value === "Alps")
       isAlps satisfies GardenConfig<boolean>
 
-      const defaultedAnimalsAndRegion = landscape.transform((landscape) => ({
+      const defaultedAnimalsAndRegion = landscape.transform(() => ({
         region: landscape.atPath("region"),
         animals: landscape.atPath("animals").transform((animals) =>
           animals.map((animal) => ({
             species: animal.atPath("species"),
-            name: animal.atPath("name").or(landscape.atPath("defaultAnimalName")),
+            name: landscape.atPath("defaultAnimalName"),
+            // TODO: make it possible to transform values
+            // name: animal
+            //   .atPath("species")
+            //   .transform((s) => (s.value === "giraffe" ? "Tom" : landscape.atPath("defaultAnimalName"))),
           }))
         ),
       }))
@@ -324,6 +335,14 @@ describe("GardenConfig", () => {
         region: string
         animals: { species: string; name: string }[]
       }>
+
+      expect(defaultedAnimalsAndRegion.value).to.deep.equal({
+        region: "Alps",
+        animals: [
+          { species: "gazelle", name: "Unnamed" },
+          { species: "cow", name: "Unnamed" },
+        ],
+      })
 
       expect(() => {
         landscape.transform((l) => ({ circular: l }))

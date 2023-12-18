@@ -85,13 +85,18 @@ export type TemplateValue = TemplateLeaf | LazyValue
 // helpers
 
 // Similar to deepMap, but treats empty collections as leaves, because they are template primitives.
-export function templatePrimitiveDeepMap<P extends TemplateLeafValue, R extends TemplateLeafValue | TemplateValue>(
+export function templatePrimitiveDeepMap<
+  P extends TemplateLeafValue | TemplateValue,
+  R extends TemplateLeafValue | TemplateValue,
+>(
   value: CollectionOrValue<P>,
-  fn: (value: TemplateLeafValue, keyPath: ObjectPath) => CollectionOrValue<R>,
+  fn: (value: P, keyPath: ObjectPath) => CollectionOrValue<R>,
   keyPath: ObjectPath = []
 ): CollectionOrValue<R> {
   if (isTemplateLeafValue(value)) {
     // This also handles empty collections
+    return fn(value as P, keyPath)
+  } else if (isTemplateValue(value)) {
     return fn(value, keyPath)
   } else if (isArray(value)) {
     return value.map((v, k) => templatePrimitiveDeepMap(v, fn, [...keyPath, k]))

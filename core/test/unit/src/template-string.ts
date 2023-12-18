@@ -25,7 +25,6 @@ import { TemplateStringError } from "../../../src/exceptions.js"
 import { TemplateLeaf } from "../../../src/template-string/inputs.js"
 import {
   ForEachLazyValue,
-  OverrideKeyPathLazily,
   TemplateStringLazyValue,
   deepEvaluate,
   deepEvaluateAndUnwrap,
@@ -2487,54 +2486,6 @@ describe("resolveTemplateStrings", () => {
           },
         ],
       })
-    })
-  })
-})
-
-describe("lazy override", () => {
-  it("allows wrapping a lazy value to override something deeply", () => {
-    const context = new GenericContext({
-      var: {
-        world: {
-          one: "one",
-          two: "two",
-        },
-      },
-    })
-
-    const obj = {
-      hello: "${var.world}",
-    }
-
-    const parsed = parseTemplateCollection({ value: obj, source: { source: undefined } })
-
-    const overridden = new OverrideKeyPathLazily(
-      parsed,
-      ["hello", "three"],
-      new TemplateLeaf({
-        value: "three",
-        expr: undefined,
-        inputs: {},
-      })
-    )
-
-    const evaluatedOriginal = deepEvaluateAndUnwrap({ value: parsed, context, opts: {} })
-
-    expect(evaluatedOriginal).to.eql({
-      hello: {
-        one: "one",
-        two: "two",
-      },
-    })
-
-    const evaluatedWithOverride = deepEvaluateAndUnwrap({ value: overridden, context, opts: {} })
-
-    expect(evaluatedWithOverride).to.eql({
-      hello: {
-        one: "one",
-        two: "two",
-        three: "three",
-      },
     })
   })
 })
