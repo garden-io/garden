@@ -130,7 +130,7 @@ Note that in-cluster building is currently not supported with kind clusters.
 
 ## k3s
 
-Use this command to install k3s so it is compatible with Garden. This command tells k3s to use the docker, disables the traefik ingress controller, takes care to make the kubeconfig user-accessible and sets the kubernetes context as the current one via the `KUBECONFIG` variable.
+Use this command to install k3s so it is compatible with Garden. This command configures k3s to use docker as the container runtime and disables the traefik ingress controller. It also makes the kubeconfig user-accessible and sets the kubernetes context as the current one via the `KUBECONFIG` variable.
 
 ```bash
 curl -sfL https://get.k3s.io | sh -s - --docker --disable=traefik --write-kubeconfig-mode=644
@@ -205,7 +205,16 @@ See also Rancher Desktop's [Setup NGINX Ingress Controller](https://docs.rancher
 
 ### Using an alternative ingress controller
 
-If you prefer to use the Traefik ingress controller included with k3s distributions, you must modify the installation instructions for [Rancher Desktop](#rancher-desktop) and [k3d](#k3d) by removing any parts where Traefik is disabled. In your Garden project configuration file, set `setupIngressController: false``. Additionally, apply one of the two methods described above, specifying Traefik's service in the second approach.
+If you prefer to use the Traefik ingress controller included with k3s distributions, you must modify the installation instructions for [Rancher Desktop](#rancher-desktop) and [k3d](#k3d) by removing any parts where Traefik is disabled. In your Garden project configuration file, set `setupIngressController: false`. Additionally, apply one of the two methods described above, specifying Traefik's service in the second approach.
+
+## Updating or removing the Garden installed Nginx ingress controller
+
+Garden will not automatically try to update the nginx ingress controller. To update it you must remove it first and then run a Garden command against that cluster again. Garden will then deploy the version of the ingress controller shipped with that specific Garden version. If you want to remove it alltogether, set `setupIngressController: false` in your Garden project's provider configuration.
+To remove the ingress controller run this command:
+
+```
+garden plugins kubernetes uninstall-garden-services
+```
 
 ## Moving between Rancher Desktop and Docker Desktop
 
