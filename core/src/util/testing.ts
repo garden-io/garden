@@ -6,6 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import env from "env-var"
 import type { GlobalOptions, ParameterValues } from "../cli/params.js"
 import { globalOptions } from "../cli/params.js"
 import cloneDeep from "fast-copy"
@@ -613,6 +614,15 @@ export async function downloadAndVerifyHash(
   console.log(`Spec hash: ${sha256}`)
 
   expect(downloadedSha256).to.eql(sha256)
+}
+
+/**
+ * This function is used to skip some tests and modify some expectations in CircleCI pipeline.
+ */
+export function isCiEnv() {
+  const ciEnv = env.get("CI").required(false).asBool()
+  const circleCiEnv = env.get("CIRCLECI").required(false).asBool()
+  return ciEnv || circleCiEnv
 }
 
 export const downloadBinariesAndVerifyHashes = (toolSpecs: PluginToolSpec[]) => {
