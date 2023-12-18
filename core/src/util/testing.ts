@@ -641,7 +641,12 @@ export const downloadBinariesAndVerifyHashes = (toolSpecs: PluginToolSpec[]) => 
 
   for (const toolSpec of toolSpecs) {
     for (const build of toolSpec.builds) {
-      it(`${toolSpec.name} ${toolSpec.version} ${build.platform}-${build.architecture}`, async () => {
+      it(`${toolSpec.name} ${toolSpec.version} ${build.platform}-${build.architecture}`, async function () {
+        // Skip these tests in CI. These tests are slow and need to be run only when the binary hashes are changed.
+        if (isCiEnv()) {
+          // eslint-disable-next-line no-invalid-this
+          this.skip()
+        }
         await downloadAndVerifyHash(build, tmpDir.path)
       })
     }
