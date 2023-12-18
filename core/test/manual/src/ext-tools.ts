@@ -58,7 +58,7 @@ export async function downloadAndVerifyHash(
   expect(downloadedSha256).to.eql(sha256)
 }
 
-const downloadBinariesAndVerifyHashes = (toolSpec: PluginToolSpec) => {
+const downloadBinariesAndVerifyHashes = (toolSpecs: PluginToolSpec[]) => {
   let tmpDir: tmp.DirectoryResult
 
   beforeEach(async () => {
@@ -72,25 +72,27 @@ const downloadBinariesAndVerifyHashes = (toolSpec: PluginToolSpec) => {
     await tmpDir.cleanup()
   })
 
-  for (const build of toolSpec.builds) {
-    it(`${build.platform}-${build.architecture}`, async () => {
-      await downloadAndVerifyHash(build, tmpDir.path)
-    })
+  for (const toolSpec of toolSpecs) {
+    for (const build of toolSpec.builds) {
+      it(`${toolSpec.name} ${toolSpec.version} ${build.platform}-${build.architecture}`, async () => {
+        await downloadAndVerifyHash(build, tmpDir.path)
+      })
+    }
   }
 }
 
 describe("Mutagen binaries", () => {
-  downloadBinariesAndVerifyHashes(mutagenCliSpec)
+  downloadBinariesAndVerifyHashes([mutagenCliSpec])
 })
 
 describe("Kubectl binaries", () => {
-  downloadBinariesAndVerifyHashes(kubectlSpec)
+  downloadBinariesAndVerifyHashes([kubectlSpec])
 })
 
 describe("Kustomize binaries", () => {
-  downloadBinariesAndVerifyHashes(kustomizeSpec)
+  downloadBinariesAndVerifyHashes([kustomizeSpec])
 })
 
 describe("Helm binaries", () => {
-  downloadBinariesAndVerifyHashes(helm3Spec)
+  downloadBinariesAndVerifyHashes([helm3Spec])
 })
