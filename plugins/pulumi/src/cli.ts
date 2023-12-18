@@ -70,7 +70,7 @@ function getPulumiToolDescription(semVer: SemVer) {
   return `The pulumi CLI, v${semVer}`
 }
 
-export const pulumiCliSPecs: PluginToolSpec[] = [
+export const pulumiCliSpecs: PluginToolSpec[] = [
   {
     version: PULUMI_VERSION_3_70_0,
     name: getPulumiToolName(PULUMI_SEM_VER_3_70_0),
@@ -191,7 +191,7 @@ export const pulumiCliSPecs: PluginToolSpec[] = [
   },
 ]
 
-export const supportedVersions = pulumiCliSPecs.map((s) => s.version)
+export const supportedVersions = pulumiCliSpecs.map((s) => s.version)
 
 // Default to latest pulumi version
 export const defaultPulumiVersion = PULUMI_VERSION_3_70_0
