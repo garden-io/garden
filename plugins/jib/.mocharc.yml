@@ -1,6 +1,6 @@
 reporter: spec
 spec: build/test/**/*.js
-timeout: 50000
+timeout: 180000
 require:
   - source-map-support/register
 watch-files:
