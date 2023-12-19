@@ -36,7 +36,7 @@ const mvndSpec = {
   },
   windows: {
     filename: `maven-mvnd-${mvndVersion}-windows-amd64.zip`,
-    sha256: "7ddf8204f39ba72e55618cac31cae2ac917ea4f9b74ee3bc808bf5d210139420",
+    sha256: "07205da7f84db53fdffc55079b817789267b661f39978a2b2ad4f2584dc812ba",
     targetPath: `maven-mvnd-${mvndVersion}-windows-amd64/bin/mvnd.cmd`,
   },
 }
