@@ -30,7 +30,7 @@
     "@types/prettier": "2.7.3",
     "@types/semver": "^7.5.0",
     "@types/treeify": "^1.0.3",
-    "@types/yargs": "^17.0.28",
+    "@types/yargs": "^17.0.32",
     "@typescript-eslint/eslint-plugin": "^6.11.0",
     "@typescript-eslint/parser": "^6.10.0",
     "chalk": "^4.1.0",
