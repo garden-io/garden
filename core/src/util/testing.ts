@@ -18,13 +18,13 @@ import type { ModuleConfig } from "../config/module.js"
 import type { WorkflowConfig, WorkflowConfigMap } from "../config/workflow.js"
 import { resolveMsg, type Log, type LogEntry } from "../logger/log-entry.js"
 import type { GardenModule, ModuleConfigMap } from "../types/module.js"
-import { findByName, getNames } from "./util.js"
+import { findByName, getNames, hashString } from "./util.js"
 import { GardenError, InternalError } from "../exceptions.js"
 import type { EventName, Events } from "../events/events.js"
 import { EventBus } from "../events/events.js"
 import { dedent, naturalList } from "./string.js"
 import pathIsInside from "path-is-inside"
-import { basename, join, resolve } from "path"
+import { basename, dirname, join, resolve } from "path"
 import { DEFAULT_BUILD_TIMEOUT_SEC, GARDEN_CORE_ROOT, GardenApiVersion } from "../constants.js"
 import type { GitScanMode } from "../constants.js"
 import { getRootLogger } from "../logger/logger.js"
@@ -45,7 +45,7 @@ import type {
   CommandResultType,
 } from "../commands/base.js"
 import { validateSchema } from "../config/validation.js"
-import fsExtra from "fs-extra"
+import fsExtra, { exists } from "fs-extra"
 
 const { mkdirp, remove } = fsExtra
 import { GlobalConfigStore } from "../config-store/global.js"
@@ -53,13 +53,11 @@ import { isPromise } from "./objects.js"
 import { styles } from "../logger/styles.js"
 import type { ConfigTemplateConfig } from "../config/config-template.js"
 import type { PluginToolSpec, ToolBuildSpec } from "../plugin/tools.js"
-import { parse } from "url"
+import { fileURLToPath, parse } from "url"
 import { createReadStream, createWriteStream } from "fs"
 import got from "got"
 import { createHash } from "node:crypto"
 import { pipeline } from "node:stream/promises"
-import tmp from "tmp-promise"
-import { realpath } from "fs/promises"
 
 export class TestError extends GardenError {
   type = "_test"
@@ -579,10 +577,34 @@ export function equalWithPrecision(a: number, b: number, precision: number): boo
   return diff <= eps
 }
 
-export async function downloadAndVerifyHash(
-  { architecture, platform, sha256, url }: ToolBuildSpec,
-  downloadDir: string
-) {
+export async function downloadAndVerifyHash({ architecture, platform, sha256, url }: ToolBuildSpec) {
+  // This is an ESM module, so we need to use fileurltopath
+  const downloadDir = join(
+    dirname(fileURLToPath(import.meta.url)),
+    "..",
+    "..",
+    "..",
+    "..",
+    ".test-tools-verification-cache"
+  )
+
+  await mkdirp(downloadDir)
+
+  const artifactName = `${platform}-${architecture}-${hashString(url, 5)}-${basename(url)}`
+  const targetExecutable = join(downloadDir, artifactName)
+
+  if (await exists(targetExecutable)) {
+    const existingHash = createHash("sha256")
+    await pipeline(createReadStream(targetExecutable), existingHash)
+
+    const existingSha256 = existingHash.digest("hex")
+    if (existingSha256 === sha256) {
+      // eslint-disable-next-line no-console
+      console.log(`Cached test result for ${platform}-${architecture} from ${url}`)
+      return
+    }
+  }
+
   // eslint-disable-next-line no-console
   console.log(`Downloading ${platform}-${architecture} from ${url}`)
   const parsed = parse(url)
@@ -597,8 +619,6 @@ export async function downloadAndVerifyHash(
         })
   const downloadedHash = response.pipe(createHash("sha256"))
 
-  const artifactName = basename(url)
-  const targetExecutable = join(downloadDir, artifactName)
   const writeStream = createWriteStream(targetExecutable)
   await pipeline(response, writeStream)
   // eslint-disable-next-line no-console
@@ -606,6 +626,10 @@ export async function downloadAndVerifyHash(
 
   // eslint-disable-next-line no-console
   console.log(`Verifying hash for ${artifactName}`)
+
+  // Wait until the hash is available, as it's not part of the pipeline
+  await new Promise((r) => downloadedHash.once("readable", r))
+
   const downloadedSha256 = downloadedHash.digest("hex")
 
   // eslint-disable-next-line no-console
@@ -626,29 +650,11 @@ export function isCiEnv() {
 }
 
 export const downloadBinariesAndVerifyHashes = (toolSpecs: PluginToolSpec[]) => {
-  let tmpDir: tmp.DirectoryResult
-
-  beforeEach(async () => {
-    const dir = await tmp.dir({ unsafeCleanup: true })
-    // Fully resolve path so that we don't get path mismatches in tests
-    dir.path = await realpath(dir.path)
-    tmpDir = dir
-  })
-
-  afterEach(async () => {
-    await tmpDir.cleanup()
-  })
-
   for (const toolSpec of toolSpecs) {
     describe(`${toolSpec.name} ${toolSpec.version}`, () => {
       for (const build of toolSpec.builds) {
         it(`${toolSpec.name} ${toolSpec.version} ${build.platform}-${build.architecture}`, async function () {
-          // Skip these tests in CI. These tests are slow and need to be run only when the binary hashes are changed.
-          if (isCiEnv()) {
-            // eslint-disable-next-line no-invalid-this
-            this.skip()
-          }
-          await downloadAndVerifyHash(build, tmpDir.path)
+          await downloadAndVerifyHash(build)
         })
       }
     })
