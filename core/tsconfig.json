@@ -9,6 +9,8 @@
     "test/helpers/**/*.ts",
     "test/integ/*.ts",
     "test/integ/src/**/*.ts",
+    "test/manual/*.ts",
+    "test/manual/src/**/*.ts",
     "test/unit/*.ts",
     "test/unit/src/**/*.ts",
     "src/commands/dev.tsx",

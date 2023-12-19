@@ -19,6 +19,7 @@ import type { PluginContext } from "../../plugin-context.js"
 import { KubeApi } from "./api.js"
 import { KUBECTL_RETRY_OPTS, KubernetesError } from "./api.js"
 import fsExtra from "fs-extra"
+
 const { pathExists } = fsExtra
 import { ChildProcessError, ConfigurationError } from "../../exceptions.js"
 import type { RetryOpts } from "./retry.js"
@@ -357,9 +358,10 @@ export function prepareConnectionOpts({
   return opts
 }
 
+export const kubectlVersion = "1.23.3"
 export const kubectlSpec: PluginToolSpec = {
   name: "kubectl",
-  version: "1.23.3",
+  version: kubectlVersion,
   description: "The official Kubernetes CLI.",
   type: "binary",
   _includeInGardenImage: true,
@@ -367,31 +369,31 @@ export const kubectlSpec: PluginToolSpec = {
     {
       platform: "darwin",
       architecture: "amd64",
-      url: "https://storage.googleapis.com/kubernetes-release/release/v1.23.3/bin/darwin/amd64/kubectl",
+      url: `https://storage.googleapis.com/kubernetes-release/release/v${kubectlVersion}/bin/darwin/amd64/kubectl`,
       sha256: "ecc91cd2f92184630912f9dcd8c47443b50ebfa4b1da431fb28fa7b462dd70ab",
     },
     {
       platform: "darwin",
       architecture: "arm64",
-      url: "https://storage.googleapis.com/kubernetes-release/release/v1.23.3/bin/darwin/arm64/kubectl",
+      url: `https://storage.googleapis.com/kubernetes-release/release/v${kubectlVersion}/bin/darwin/arm64/kubectl`,
       sha256: "e43303daa6e99de6e182f0c3b3113e45ea0015bc84abd2485f0dde5770163f63",
     },
     {
       platform: "linux",
       architecture: "amd64",
-      url: "https://storage.googleapis.com/kubernetes-release/release/v1.23.3/bin/linux/amd64/kubectl",
+      url: `https://storage.googleapis.com/kubernetes-release/release/v${kubectlVersion}/bin/linux/amd64/kubectl`,
       sha256: "d7da739e4977657a3b3c84962df49493e36b09cc66381a5e36029206dd1e01d0",
     },
     {
       platform: "linux",
       architecture: "arm64",
-      url: "https://storage.googleapis.com/kubernetes-release/release/v1.23.3/bin/linux/arm64/kubectl",
+      url: `https://storage.googleapis.com/kubernetes-release/release/v${kubectlVersion}/bin/linux/arm64/kubectl`,
       sha256: "6708d7a701b3d9ab3b359c6be27a3012b1c486fa1e81f79e5bdc71ffca2c38f9",
     },
     {
       platform: "windows",
       architecture: "amd64",
-      url: "https://storage.googleapis.com/kubernetes-release/release/v1.23.3/bin/windows/amd64/kubectl.exe",
+      url: `https://storage.googleapis.com/kubernetes-release/release/v${kubectlVersion}/bin/windows/amd64/kubectl.exe`,
       sha256: "5cd17bfb33c73f1c9ae757e97bf12e686ff3a7707faed6fdc7de2c538429debd",
     },
   ],

@@ -6,6 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import env from "env-var"
 import type { GlobalOptions, ParameterValues } from "../cli/params.js"
 import { globalOptions } from "../cli/params.js"
 import cloneDeep from "fast-copy"
@@ -23,7 +24,7 @@ import type { EventName, Events } from "../events/events.js"
 import { EventBus } from "../events/events.js"
 import { dedent, naturalList } from "./string.js"
 import pathIsInside from "path-is-inside"
-import { join, resolve } from "path"
+import { basename, join, resolve } from "path"
 import { DEFAULT_BUILD_TIMEOUT_SEC, GARDEN_CORE_ROOT, GardenApiVersion } from "../constants.js"
 import type { GitScanMode } from "../constants.js"
 import { getRootLogger } from "../logger/logger.js"
@@ -51,6 +52,14 @@ import { GlobalConfigStore } from "../config-store/global.js"
 import { isPromise } from "./objects.js"
 import { styles } from "../logger/styles.js"
 import type { ConfigTemplateConfig } from "../config/config-template.js"
+import type { PluginToolSpec, ToolBuildSpec } from "../plugin/tools.js"
+import { parse } from "url"
+import { createReadStream, createWriteStream } from "fs"
+import got from "got"
+import { createHash } from "node:crypto"
+import { pipeline } from "node:stream/promises"
+import tmp from "tmp-promise"
+import { realpath } from "fs/promises"
 
 export class TestError extends GardenError {
   type = "_test"
@@ -568,4 +577,80 @@ export function equalWithPrecision(a: number, b: number, precision: number): boo
   const diff = round(rawDiff, precision)
   const eps = Math.pow(10, -precision)
   return diff <= eps
+}
+
+export async function downloadAndVerifyHash(
+  { architecture, platform, sha256, url }: ToolBuildSpec,
+  downloadDir: string
+) {
+  // eslint-disable-next-line no-console
+  console.log(`Downloading ${platform}-${architecture} from ${url}`)
+  const parsed = parse(url)
+  const protocol = parsed.protocol
+
+  const response =
+    protocol === "file:"
+      ? createReadStream(parsed.path!)
+      : got.stream({
+          method: "GET",
+          url,
+        })
+  const downloadedHash = response.pipe(createHash("sha256"))
+
+  const artifactName = basename(url)
+  const targetExecutable = join(downloadDir, artifactName)
+  const writeStream = createWriteStream(targetExecutable)
+  await pipeline(response, writeStream)
+  // eslint-disable-next-line no-console
+  console.log(`Download completed`)
+
+  // eslint-disable-next-line no-console
+  console.log(`Verifying hash for ${artifactName}`)
+  const downloadedSha256 = downloadedHash.digest("hex")
+
+  // eslint-disable-next-line no-console
+  console.log(`Downloaded hash: ${downloadedSha256}`)
+  // eslint-disable-next-line no-console
+  console.log(`Spec hash: ${sha256}`)
+
+  expect(downloadedSha256).to.eql(sha256)
+}
+
+/**
+ * This function is used to skip some tests and modify some expectations in CircleCI pipeline.
+ */
+export function isCiEnv() {
+  const ciEnv = env.get("CI").required(false).asBool()
+  const circleCiEnv = env.get("CIRCLECI").required(false).asBool()
+  return ciEnv || circleCiEnv
+}
+
+export const downloadBinariesAndVerifyHashes = (toolSpecs: PluginToolSpec[]) => {
+  let tmpDir: tmp.DirectoryResult
+
+  beforeEach(async () => {
+    const dir = await tmp.dir({ unsafeCleanup: true })
+    // Fully resolve path so that we don't get path mismatches in tests
+    dir.path = await realpath(dir.path)
+    tmpDir = dir
+  })
+
+  afterEach(async () => {
+    await tmpDir.cleanup()
+  })
+
+  for (const toolSpec of toolSpecs) {
+    describe(`${toolSpec.name} ${toolSpec.version}`, () => {
+      for (const build of toolSpec.builds) {
+        it(`${toolSpec.name} ${toolSpec.version} ${build.platform}-${build.architecture}`, async function () {
+          // Skip these tests in CI. These tests are slow and need to be run only when the binary hashes are changed.
+          if (isCiEnv()) {
+            // eslint-disable-next-line no-invalid-this
+            this.skip()
+          }
+          await downloadAndVerifyHash(build, tmpDir.path)
+        })
+      }
+    })
+  }
 }

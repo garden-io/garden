@@ -14,19 +14,19 @@ import type { Dictionary } from "../../../util/util.js"
 import split2 from "split2"
 import { pickBy } from "lodash-es"
 
-export const HELM_VERSION = "3.12.2"
+export const helmVersion = "3.12.2"
 
 export const helm3Spec: PluginToolSpec = {
   name: "helm",
-  description: `The Helm CLI (version ${HELM_VERSION}).`,
-  version: HELM_VERSION,
+  description: `The Helm CLI (version ${helmVersion}).`,
+  version: helmVersion,
   type: "binary",
   _includeInGardenImage: true,
   builds: [
     {
       platform: "darwin",
       architecture: "amd64",
-      url: `https://get.helm.sh/helm-v${HELM_VERSION}-darwin-amd64.tar.gz`,
+      url: `https://get.helm.sh/helm-v${helmVersion}-darwin-amd64.tar.gz`,
       sha256: "6e8bfc84a640e0dc47cc49cfc2d0a482f011f4249e2dff2a7e23c7ef2df1b64e",
       extract: {
         format: "tar",
@@ -36,7 +36,7 @@ export const helm3Spec: PluginToolSpec = {
     {
       platform: "darwin",
       architecture: "arm64",
-      url: `https://get.helm.sh/helm-v${HELM_VERSION}-darwin-arm64.tar.gz`,
+      url: `https://get.helm.sh/helm-v${helmVersion}-darwin-arm64.tar.gz`,
       sha256: "b60ee16847e28879ae298a20ba4672fc84f741410f438e645277205824ddbf55",
       extract: {
         format: "tar",
@@ -46,7 +46,7 @@ export const helm3Spec: PluginToolSpec = {
     {
       platform: "linux",
       architecture: "amd64",
-      url: `https://get.helm.sh/helm-v${HELM_VERSION}-linux-amd64.tar.gz`,
+      url: `https://get.helm.sh/helm-v${helmVersion}-linux-amd64.tar.gz`,
       sha256: "2b6efaa009891d3703869f4be80ab86faa33fa83d9d5ff2f6492a8aebe97b219",
       extract: {
         format: "tar",
@@ -56,7 +56,7 @@ export const helm3Spec: PluginToolSpec = {
     {
       platform: "linux",
       architecture: "arm64",
-      url: `https://get.helm.sh/helm-v${HELM_VERSION}-linux-arm64.tar.gz`,
+      url: `https://get.helm.sh/helm-v${helmVersion}-linux-arm64.tar.gz`,
       sha256: "cfafbae85c31afde88c69f0e5053610c8c455826081c1b2d665d9b44c31b3759",
       extract: {
         format: "tar",
@@ -66,7 +66,7 @@ export const helm3Spec: PluginToolSpec = {
     {
       platform: "windows",
       architecture: "amd64",
-      url: `https://get.helm.sh/helm-v${HELM_VERSION}-windows-amd64.zip`,
+      url: `https://get.helm.sh/helm-v${helmVersion}-windows-amd64.zip`,
       sha256: "35dc439baad85728dafd2be0edd4721ae5b770c5cf72c3adf9558b1415a9cae6",
       extract: {
         format: "zip",

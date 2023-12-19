@@ -7,14 +7,14 @@
   "dependencies": {
     "@garden-io/core": "*",
     "@garden-io/sdk": "*",
-    "js-yaml": "^4.1.0",
     "chalk": "^4.1.0",
     "execa": "^8.0.1",
     "fs-extra": "^11.2.0",
+    "js-yaml": "^4.1.0",
+    "json-merge-patch": "^1.0.2",
     "lodash-es": "^4.17.21",
     "slash": "^5.1.0",
-    "which": "^4.0.0",
-    "json-merge-patch": "^1.0.2"
+    "which": "^4.0.0"
   },
   "devDependencies": {
     "@types/chai": "^4.3.4",
