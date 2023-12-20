@@ -13,7 +13,7 @@ import { withDefaultGlobalOpts, makeTestGarden, getAllTaskResults, getDataDir } 
 import { taskResultOutputs } from "../../../helpers.js"
 import cloneDeep from "fast-copy"
 
-import type { PublishActionResult, PublishBuildAction } from "../../../../src/plugin/handlers/Build/publish.js"
+import type { PublishBuildAction } from "../../../../src/plugin/handlers/Build/publish.js"
 import type { GardenPluginSpec } from "../../../../src/plugin/plugin.js"
 import { createGardenPlugin } from "../../../../src/plugin/plugin.js"
 import type { ConvertModuleParams } from "../../../../src/plugin/handlers/Module/convert.js"
@@ -26,7 +26,6 @@ import { styles } from "../../../../src/logger/styles.js"
 const projectRootB = getDataDir("test-project-b")
 
 type PublishActionParams = ActionTypeHandlerParamsType<PublishBuildAction>
-type PublishActionResultDetail = PublishActionResult["detail"]
 
 const testProvider = createGardenPlugin({
   name: "test-plugin",

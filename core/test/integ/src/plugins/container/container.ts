@@ -71,7 +71,7 @@ describe("plugins.container", () => {
   async function getTestBuild(cfg: BuildActionConfig): Promise<Executed<ContainerBuildAction>> {
     sinon.replace(containerHelpers, "actionHasDockerfile", async () => true)
 
-    dockerCli = dockerCli = sinon.stub(containerHelpers, "dockerCli")
+    dockerCli = sinon.stub(containerHelpers, "dockerCli")
     dockerCli.returns(
       Promise.resolve({
         all: "test log",
