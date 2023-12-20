@@ -11,8 +11,10 @@
 
 ## 🌳 Use Cases
 
+* [Isolated On-Demand Preview Environments](./use-cases/on-demand-preview-envs.md)
+* [Fast, Portable CI Pipelines that Run Anywhere](./use-cases/portable-ci-pipelines.md)
+* [Shift Testing Left](./use-cases/shift-testing-left.md)
 * [Local Development With Remote Clusters](./use-cases/local-development-remote-clusters.md)
-* [Portable CI Pipelines that Run Anywhere](./use-cases/portable-ci-pipelines.md)
 * [Jumpstart your Internal Developer Platform](./use-cases/jumpstart-idp.md)
 
 ## 🌻 Getting Started

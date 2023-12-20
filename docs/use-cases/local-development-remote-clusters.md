@@ -1,34 +1,52 @@
 ---
 title: Local Development With Remote Clusters
-order: 1
+order: 4
 ---
 
 ## Why develop with remote clusters?
 
-With other tools the complexity of replicating a production-like environment on your local machine is a developer experience that suffers from compromise. Setting up a remote Kubernetes cluster has meant a tangle of scripts, tools, and proxies that mock out the pains of running a remote cluster to make it feel like home.
+Most teams using Garden use Kubernetes for production. This means they already have their Dockerfiles, manifests and/or Helm charts.
 
-Garden's first-class support for remote clusters eliminates the setup cost of manually setting up remote image builders, developer namespaces, and hot reload with short stanzas of YAML you can reuse and share among teammates. Garden supports complex topologies across any number of local or remote Kubernetes clusters or environments.
+Garden lets them shift these resources left, without introducing friction or cognitive overload to developers, so that they can:
 
-Garden creates a developer namespace inside a remote Kubernetes cluster that looks and feels just as if it was a local cluster. This means you can develop and test your applications in an environment that closely mimics your production environment, leading to fewer surprises when you deploy your application.
+- Run their entire project in the cloud _as they develop_, irrespective of its size
+- Share build caches with their team so that no two developers have to wait for the same build
+- Easily write and maintain integration and end-to-end tests
+- Developers barely need any dependencies on their local machines and new developers can be on-boarded in minutes
+- Catch "production" bugs before they end up in production
+
+If you worry your laptop may catch fire next time you run docker compose up, remote environments might be for you.
+
+{% hint style="info" %}
+Check out [how Open Energy Market use Garden](https://garden.io/blog/kubernetes-automation) to empower developers on K8s and reduce onboarding time by a whopping 500%.
+{% endhint %}
+
+## How does it work?
+
+![Start the dev console, deploy in sync mode, and view progress in the dashboard](https://github.com/garden-io/garden/assets/5373776/914a7695-6453-4b34-becf-eab387e478a0)
+
+Developers start their day by running `garden dev` and deploy their project into an isolated namespace in the team's Kubernetes development cluster, re-using existing config and manifests but overwriting values as needed with Garden’s template syntax.
+
+Teams then use Garden’s sync functionality to live reload changes into running Pods in the remote cluster, without needing a full re-build or re-deploy on every code change. There’s typically a trade of between how realistic your environment is and the speed of the feedback but with Garden you can get both.
 
 ## Key features
 
-- **Visualize your dependency graph**, centralize logs, and view command history with the [Garden dashboard](https://app.garden.io)
-- **Proxy local services** with [Local Mode](../guides/running-service-in-local-mode.md)
+- **Visualize your dependency graph**, streams logs, and view command history with the [Garden dashboard](https://app.garden.io)
+- **Accelerate build times** with [remote image builds](../k8s-plugins/guides/in-cluster-building.md) and smart caching
 - **Hot reload** your code to containers running in your local and remote Kubernetes clusters for a smooth inner loop with [Code Synchronization](https://docs.garden.io/guides/code-synchronization).
-- **Run tests as you develop**. Stop waiting for CI/CD to tell you what's broken: run your integration and end-to-end tests as you develop, at any time, with `garden test` or, if you're inside the Garden dashboard, with `test`.
-- **Accelerate build times** with [remote image builds](../k8s-plugins/guides/in-cluster-building.md) to accelerate your image build times
-- **Spin up powerful [ephemeral clusters](../k8s-plugins/ephemeral-k8s/configure-provider.md)** in seconds
+- **Proxy local services** with [Local Mode](../guides/running-service-in-local-mode.md)
 
-If you're already familiar with Garden and just want to get going, click any of the links above to set up your features.
+## How can my team develop against remote clusters?
 
-Navigate to [Examples](#examples) for a selection of pre-configured stacks you can use to quickly explore relevant features.
+Teams typically [adopt Garden in a few phases](../overview/adopting-garden.md) and using remote clusters for inner loop development tends to be one of the last ones. Each phase solves a unique problem though so its well worth the journey.
 
-## Resources
+So with that in mind, here are the recommended next steps:
 
-- Build inside a powerful Kubernetes cluster with [In-Cluster Building](../k8s-plugins/guides/in-cluster-building.md)
-- Set up hot reloading for a frustration-free inner loop with [Code Synchronization](../guides/code-synchronization.md)
-- If you're coming from Docker Compose, visit our [Migrating From Docker Compose](../guides/migrating-from-docker-compose.md) guide
+- Go through our [Quickstart guide](../getting-started/quickstart.md)
+- Check out the [First Project tutorial](../tutorials/README.md) and/or [accompanying video](https://youtu.be/0y5E8K-8kr4)
+- [Set up your remote cluster](../k8s-plugins/remote-k8s/README.md)
+- [Add actions](../k8s-plugins/actions/README.md) to build and deploy your project
+- [Configure code syncing](../guides/code-synchronization.md) so you can live reload changes to the remote cluster
 
 {% hint style="info" %}
 Join our [Discord community](https://go.garden.io/discord) 🌸 for access to Garden's dedicated Community Engineers and our AI chatbot 🤖  trained on our docs.
@@ -37,13 +55,11 @@ Join our [Discord community](https://go.garden.io/discord) 🌸 for access to Ga
 ## Further Reading
 
 - [How Garden Works](../overview/how-garden-works.md)
-- [Configuration Overview](../using-garden/configuration-overview.md)
-- [Using the CLI](../using-garden/using-the-cli.md)
-- [Variables and Templating](../using-garden/variables-and-templating.md)
 - [Adopting Garden](../overview/adopting-garden.md)
+- [Configuration Overview](../using-garden/configuration-overview.md)
+- [Variables and Templating](../using-garden/variables-and-templating.md)
 
 ## Examples
 
-- [Code Synchronization example project](https://github.com/garden-io/garden/tree/0.13.22/examples/code-synchronization)
-- [Simple demo project using Ephemeral Cluster](https://github.com/garden-io/garden/tree/0.13.22/examples/ephemeral-cluster-demo)
-- [Local mode for kubernetes action type](https://github.com/garden-io/garden/tree/0.13.22/examples/local-mode-k8s)
+- [Kubernetes Deploy action example project](https://github.com/garden-io/garden/tree/main/examples/k8s-deploy-patch-resources)
+- [Local mode for `kubernetes` action type](https://github.com/garden-io/garden/tree/main/examples/local-mode-k8s)
