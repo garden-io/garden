@@ -14,10 +14,10 @@ export const publishContainerBuild: BuildActionHandler<"publish", ContainerBuild
   ctx,
   action,
   log,
-  tag,
+  tagOverride,
 }) => {
   const localId = action.getOutput("localImageId")
-  const remoteId = containerHelpers.getPublicImageId(action, tag)
+  const remoteId = containerHelpers.getPublicImageId(action, tagOverride)
 
   if (localId !== remoteId) {
     log.info({ msg: `Tagging image with ${localId} and ${remoteId}` })

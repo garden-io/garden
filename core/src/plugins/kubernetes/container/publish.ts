@@ -13,7 +13,7 @@ import type { BuildActionHandler } from "../../../plugin/action-types.js"
 import { containerHelpers } from "../../container/helpers.js"
 
 export const k8sPublishContainerBuild: BuildActionHandler<"publish", ContainerBuildAction> = async (params) => {
-  const { ctx, action, log, tag } = params
+  const { ctx, action, log, tagOverride } = params
   const k8sCtx = ctx as KubernetesPluginContext
   const provider = k8sCtx.provider
 
@@ -36,7 +36,7 @@ export const k8sPublishContainerBuild: BuildActionHandler<"publish", ContainerBu
   // optionally use the tag instead of the garden version, this requires that we tag the image locally
   // before publishing to the remote registry
 
-  const remotePublishId = tag ? `${action.getOutput("deploymentImageName")}:${tag}` : remoteId
+  const remotePublishId = tagOverride ? `${action.getOutput("deploymentImageName")}:${tagOverride}` : remoteId
 
   await containerHelpers.dockerCli({ cwd: action.getBuildPath(), args: ["tag", localId, remotePublishId], log, ctx })
 

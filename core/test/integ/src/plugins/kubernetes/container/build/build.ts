@@ -182,7 +182,7 @@ describe.skip("Kubernetes Container Build Extension", () => {
           ctx,
           action,
           log,
-          tag: "foo",
+          tagOverride: "foo",
         })
 
         expect(result.detail?.message).to.eql(`Published ${remoteImageName}:foo`)
@@ -287,7 +287,7 @@ describe.skip("Kubernetes Container Build Extension", () => {
         ctx,
         action,
         log,
-        tag: "0.1.0",
+        tagOverride: "0.1.0",
       })
 
       await executeBuild("private-base")
@@ -337,7 +337,7 @@ describe.skip("Kubernetes Container Build Extension", () => {
           ctx,
           action,
           log,
-          tag: "foo",
+          tagOverride: "foo",
         })
 
         expect(result.detail?.message).to.eql(
@@ -427,7 +427,7 @@ describe.skip("Kubernetes Container Build Extension", () => {
         ctx,
         action,
         log,
-        tag: "0.1.0",
+        tagOverride: "0.1.0",
       })
 
       await executeBuild("private-base")
@@ -487,7 +487,7 @@ describe.skip("Kubernetes Container Build Extension", () => {
           ctx,
           action,
           log,
-          tag: "foo",
+          tagOverride: "foo",
         })
 
         expect(result.detail?.message).to.eql(
@@ -554,7 +554,7 @@ describe.skip("Kubernetes Container Build Extension", () => {
         ctx,
         action,
         log,
-        tag: "0.1.0",
+        tagOverride: "0.1.0",
       })
 
       await executeBuild("private-base")
