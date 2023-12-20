@@ -57,11 +57,16 @@ import { targetResourceSpecSchema } from "./config.js"
 import { isConfiguredForSyncMode } from "./status/status.js"
 import type { PluginContext } from "../../plugin-context.js"
 import type { SyncConfig, SyncSession } from "../../mutagen.js"
-import { mutagenAgentPath, Mutagen, haltedStatuses, mutagenStatusDescriptions } from "../../mutagen.js"
+import {
+  haltedStatuses,
+  isNativeMutagenEnabled,
+  Mutagen,
+  mutagenAgentPath,
+  mutagenStatusDescriptions,
+} from "../../mutagen.js"
 import { k8sSyncUtilImageName } from "./constants.js"
-import { relative, resolve } from "path"
+import { isAbsolute, relative, resolve } from "path"
 import type { Resolved } from "../../actions/types.js"
-import { isAbsolute } from "path"
 import { joinWithPosix } from "../../util/fs.js"
 import type { KubernetesModule, KubernetesService } from "./kubernetes-type/module-config.js"
 import type { HelmModule, HelmService } from "./helm/module-config.js"
@@ -69,7 +74,7 @@ import { convertServiceResource } from "./kubernetes-type/common.js"
 import { prepareConnectionOpts } from "./kubectl.js"
 import type { GetSyncStatusResult, SyncState, SyncStatus } from "../../plugin/handlers/Deploy/get-sync-status.js"
 import { ConfigurationError } from "../../exceptions.js"
-import { DOCS_BASE_URL, gardenEnv } from "../../constants.js"
+import { DOCS_BASE_URL } from "../../constants.js"
 import { styles } from "../../logger/styles.js"
 
 export const builtInExcludes = ["/**/*.git", "**/*.garden"]
@@ -1055,7 +1060,7 @@ async function getKubectlExecDestinationNative({
   return `${hostname}:${targetPath}`
 }
 
-export const getKubectlExecDestination = !!gardenEnv.MUTAGEN_SSH_PATH
+export const getKubectlExecDestination = isNativeMutagenEnabled()
   ? getKubectlExecDestinationNative
   : getKubectlExecDestinationLegacy
 
