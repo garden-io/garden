@@ -28,8 +28,8 @@ const projectRootB = getDataDir("test-project-b")
 type PublishActionParams = ActionTypeHandlerParamsType<PublishBuildAction>
 type PublishActionResultDetail = PublishActionResult["detail"]
 
-const publishAction = async ({ tag }: PublishActionParams): Promise<PublishActionResultDetail> => {
-  return { published: true, identifier: tag }
+const publishAction = async ({ tagOverride }: PublishActionParams): Promise<PublishActionResultDetail> => {
+  return { published: true, identifier: tagOverride }
 }
 
 const testProvider = createGardenPlugin({

@@ -8,6 +8,7 @@
 
 import { join, posix } from "path"
 import fsExtra from "fs-extra"
+
 const { readFile, pathExists, lstat } = fsExtra
 import semver from "semver"
 import type { CommandEntry } from "docker-file-parser"
@@ -84,30 +85,36 @@ const helpers = {
    * (not to be confused with the ID used when pushing to private deployment registries).
    *
    * The tag on the identifier will be set as one of (in order of precedence):
-   * - The `tag` variable explicitly set (e.g. set on the garden publish command).
-   * - The tag  part of the `image` field, if one is set and it includes a tag part.
+   * - The `tagOverride` argument explicitly set (e.g. --tag option provided to the garden publish command).
+   * - The tag  part of the `spec.publishId` from the action configuration, if one is set, and it includes a tag part.
    * - The Garden version of the module.
    */
-  getPublicImageId(action: Resolved<ContainerBuildAction>, tag?: string) {
+  getPublicImageId(action: Resolved<ContainerBuildAction>, tagOverride?: string) {
     // TODO: allow setting a default user/org prefix in the project/plugin config
-    const explicitImage = action.getSpec("publishId")
+    const explicitPublishId = action.getSpec("publishId")
 
-    if (explicitImage) {
+    let parsedImage: ParsedImageId
+    let publishTag = tagOverride
+
+    if (explicitPublishId) {
       // Getting the tag like this because it's otherwise defaulted to "latest"
-      const imageTag = splitFirst(explicitImage, ":")[1]
-      const parsedImage = helpers.parseImageId(explicitImage)
-      if (!tag) {
-        tag = imageTag || action.versionString()
+      const imageTag = splitFirst(explicitPublishId, ":")[1]
+      if (!publishTag) {
+        publishTag = imageTag
       }
-      return helpers.unparseImageId({ ...parsedImage, tag })
+
+      parsedImage = helpers.parseImageId(explicitPublishId)
     } else {
-      const localImageName = action.name
-      const parsedImage = helpers.parseImageId(localImageName)
-      if (!tag) {
-        tag = action.versionString()
-      }
-      return helpers.unparseImageId({ ...parsedImage, tag })
+      const explicitImage = action.getSpec("localId")
+      const localImageName = this.getLocalImageName(action.name, explicitImage)
+
+      parsedImage = helpers.parseImageId(localImageName)
     }
+
+    if (!publishTag) {
+      publishTag = action.versionString()
+    }
+    return helpers.unparseImageId({ ...parsedImage, tag: publishTag })
   },
 
   /**

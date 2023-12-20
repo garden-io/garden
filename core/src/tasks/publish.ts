@@ -89,7 +89,8 @@ export class PublishTask extends BaseActionTask<BuildAction, PublishActionResult
     const action = this.getExecutedAction(this.action, dependencyResults)
     const version = action.versionString()
 
-    let tag = version
+    // This is only defined when a user defines --tag option
+    let tagOverride: string | undefined = undefined
 
     if (this.tagTemplate) {
       const resolvedProviders = await this.garden.resolveProviders(this.log)
@@ -107,18 +108,20 @@ export class PublishTask extends BaseActionTask<BuildAction, PublishActionResult
       })
 
       // Resolve template string and make sure the result is a string
-      tag = "" + resolveTemplateString({ string: this.tagTemplate, context: templateContext })
+      tagOverride = "" + resolveTemplateString({ string: this.tagTemplate, context: templateContext })
 
       // TODO: validate the tag?
     }
 
-    this.log.info("Publishing with tag " + tag)
+    if (tagOverride) {
+      this.log.info(`Publish tag has been overridden with the --tag command line option: ${tagOverride}`)
+    }
 
     const router = await this.garden.getActionRouter()
 
     let result: PublishActionResult
     try {
-      const output = await router.build.publish({ action, log: this.log, graph: this.graph, tag })
+      const output = await router.build.publish({ action, log: this.log, graph: this.graph, tagOverride })
       result = output.result
     } catch (err) {
       this.log.error(`Failed publishing build ${action.name}`)

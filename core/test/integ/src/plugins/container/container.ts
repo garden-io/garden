@@ -152,7 +152,7 @@ describe("plugins.container", () => {
 
       const dockerCli = sinon.stub(containerHelpers, "dockerCli")
 
-      const result = await publishContainerBuild({ ctx, log, action, tag: "custom-tag" })
+      const result = await publishContainerBuild({ ctx, log, action, tagOverride: "custom-tag" })
       expect(result.detail).to.eql({ message: "Published test:custom-tag", published: true })
 
       sinon.assert.calledWith(
