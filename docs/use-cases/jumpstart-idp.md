@@ -1,6 +1,6 @@
 ---
 title: Jumpstart your Internal Developer Platform
-order: 3
+order: 5
 ---
 
 ## Why use Garden to build your Internal Developer Platform (IDP)?

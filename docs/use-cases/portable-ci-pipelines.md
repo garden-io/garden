@@ -1,5 +1,5 @@
 ---
-title: Portable CI Pipelines that Run Anywhere
+title: Fast, Portable CI Pipelines that Run Anywhere
 order: 2
 ---
 
