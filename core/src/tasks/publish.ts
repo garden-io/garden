@@ -20,22 +20,28 @@ import { ActionSpecContext } from "../config/template-contexts/actions.js"
 import { OtelTraced } from "../util/open-telemetry/decorators.js"
 
 export interface PublishTaskParams extends BaseActionTaskParams<BuildAction> {
-  tagTemplate?: string
+  /**
+   * Only defined if --tag option is used in the garden publish command.
+   */
+  tagOverrideTemplate?: string
 }
 
 export class PublishTask extends BaseActionTask<BuildAction, PublishActionResult> {
   type = "publish"
   override concurrencyLimit = 5
 
-  tagTemplate?: string
+  /**
+   * Only defined if --tag option is used in the garden publish command.
+   */
+  tagOverrideTemplate?: string
 
   constructor(params: PublishTaskParams) {
     super(params)
-    this.tagTemplate = params.tagTemplate
+    this.tagOverrideTemplate = params.tagOverrideTemplate
   }
 
   protected override getDependencyParams(): PublishTaskParams {
-    return { ...super.getDependencyParams(), tagTemplate: this.tagTemplate }
+    return { ...super.getDependencyParams(), tagOverrideTemplate: this.tagOverrideTemplate }
   }
 
   override resolveStatusDependencies() {
@@ -92,7 +98,7 @@ export class PublishTask extends BaseActionTask<BuildAction, PublishActionResult
     // This is only defined when a user defines --tag option
     let tagOverride: string | undefined = undefined
 
-    if (this.tagTemplate) {
+    if (this.tagOverrideTemplate) {
       const resolvedProviders = await this.garden.resolveProviders(this.log)
 
       const templateContext = new BuildTagContext({
@@ -108,7 +114,7 @@ export class PublishTask extends BaseActionTask<BuildAction, PublishActionResult
       })
 
       // Resolve template string and make sure the result is a string
-      tagOverride = "" + resolveTemplateString({ string: this.tagTemplate, context: templateContext })
+      tagOverride = "" + resolveTemplateString({ string: this.tagOverrideTemplate, context: templateContext })
 
       // TODO: validate the tag?
     }

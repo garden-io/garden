@@ -28,10 +28,6 @@ const projectRootB = getDataDir("test-project-b")
 type PublishActionParams = ActionTypeHandlerParamsType<PublishBuildAction>
 type PublishActionResultDetail = PublishActionResult["detail"]
 
-const publishAction = async ({ tagOverride }: PublishActionParams): Promise<PublishActionResultDetail> => {
-  return { published: true, identifier: tagOverride }
-}
-
 const testProvider = createGardenPlugin({
   name: "test-plugin",
   createModuleTypes: [
@@ -72,10 +68,10 @@ const testProvider = createGardenPlugin({
         docs: "Test plugin",
         schema: joi.object().zodSchema(execBuildSpecSchema),
         handlers: {
-          publish: async (params: PublishActionParams) => {
+          publish: async ({ tagOverride }: PublishActionParams) => {
             return {
               state: "ready",
-              detail: await publishAction(params),
+              detail: { published: true, identifier: tagOverride },
               outputs: {},
             }
           },
@@ -124,6 +120,7 @@ describe("PublishCommand", () => {
     const versionB = graph.getBuild("module-b").versionString()
     const versionC = graph.getBuild("module-c").versionString()
 
+    // detail.identifier is undefined because --tag option was not specified; The plugin needs to calculate the tag itself, the test plugin will just return the tagOverride value.
     expect(taskResultOutputs(result!)).to.eql({
       "publish.module-a": {
         outputs: {},
@@ -236,7 +233,6 @@ describe("PublishTask", () => {
   it("should apply the specified tag to the published build", async () => {
     const garden = await getTestGarden()
     const log = garden.log
-    const tag = "foo"
     const graph = await garden.getConfigGraph({ log, emit: true })
     const builds = graph.getBuilds()
 
@@ -247,7 +243,7 @@ describe("PublishTask", () => {
         log,
         action,
         forceBuild: false,
-        tagTemplate: tag,
+        tagOverrideTemplate: "foo",
         force: false,
       })
     })
@@ -255,15 +251,14 @@ describe("PublishTask", () => {
     const processed = await garden.processTasks({ tasks, log, throwOnError: true })
     const graphResultsMap = processed.results.getMap()
     expect(graphResultsMap["publish.module-a"]!.result.detail.published).to.be.true
-    expect(graphResultsMap["publish.module-a"]!.result.detail.identifier).to.equal(tag)
+    expect(graphResultsMap["publish.module-a"]!.result.detail.identifier).to.equal("foo")
     expect(graphResultsMap["publish.module-b"]!.result.detail.published).to.be.true
-    expect(graphResultsMap["publish.module-b"]!.result.detail.identifier).to.equal(tag)
+    expect(graphResultsMap["publish.module-b"]!.result.detail.identifier).to.equal("foo")
   })
 
   it("should resolve a templated tag and apply to the builds", async () => {
     const garden = await getTestGarden()
     const log = garden.log
-    const tag = "v1.0-${module.name}-${module.version}"
 
     const graph = await garden.getConfigGraph({ log, emit: true })
     const builds = graph.getBuilds()
@@ -275,7 +270,7 @@ describe("PublishTask", () => {
         log,
         action,
         forceBuild: false,
-        tagTemplate: tag,
+        tagOverrideTemplate: "v1.0-${module.name}-${module.version}",
         force: false,
       })
     })
@@ -289,5 +284,31 @@ describe("PublishTask", () => {
     expect(graphResultsMap["publish.module-a"]!.result.detail.identifier).to.equal(`v1.0-module-a-${verA}`)
     expect(graphResultsMap["publish.module-b"]!.result.detail.published).to.be.true
     expect(graphResultsMap["publish.module-b"]!.result.detail.identifier).to.equal(`v1.0-module-b-${verB}`)
+  })
+
+  it("should pass tagOverride=undefined to plugin handler if tagOverride was undefined", async () => {
+    const garden = await getTestGarden()
+    const log = garden.log
+    const graph = await garden.getConfigGraph({ log, emit: true })
+    const builds = graph.getBuilds()
+
+    const tasks = builds.map((action) => {
+      return new PublishTask({
+        garden,
+        graph,
+        log,
+        action,
+        forceBuild: false,
+        tagOverrideTemplate: undefined,
+        force: false,
+      })
+    })
+
+    const processed = await garden.processTasks({ tasks, log, throwOnError: true })
+    const graphResultsMap = processed.results.getMap()
+    expect(graphResultsMap["publish.module-a"]!.result.detail.published).to.be.true
+    expect(graphResultsMap["publish.module-a"]!.result.detail.identifier).to.equal(undefined)
+    expect(graphResultsMap["publish.module-b"]!.result.detail.published).to.be.true
+    expect(graphResultsMap["publish.module-b"]!.result.detail.identifier).to.equal(undefined)
   })
 })
