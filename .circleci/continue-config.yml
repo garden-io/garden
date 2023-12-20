@@ -502,6 +502,9 @@ jobs:
           context: docker
       - *attach-workspace
       - configure_git
+      - restore_cache:
+          keys:
+            - test-framework-tool-cache-v1
       - run:
           name: Unit test framework components
           command: |
@@ -509,6 +512,13 @@ jobs:
           environment:
             CHOKIDAR_USEPOLLING: "1"
             NODE_OPTIONS: --max_old_space_size=4096
+      # We add the package.json to ensure that we invalidate the cache from time to time.
+      # This is to ensure that we pick up newly added tools in the test directory.
+      # It would be better to generate a checksum for all the files containing tool specs, but this is a good enough approximation for now.
+      - save_cache:
+          key: test-framework-tool-cache-v1-{{ checksum "package.json" }}
+          paths:
+            - .test-tools-verification-cache
       - fail_fast
 
   e2e-project:
@@ -750,10 +760,25 @@ jobs:
       - restore_cache:
           keys:
             - m2-v1
+
+      # Restore plugins tool cache
+      - restore_cache:
+          keys:
+            - test-plugins-tool-cache-v1
+
       # Run tests
       - run:
           name: Plugin tests
           command: npm run test:plugins
+
+      # We add the package.json to ensure that we invalidate the cache from time to time.
+      # This is to ensure that we pick up newly added tools in the test directory.
+      # It would be better to generate a checksum for all the files containing tool specs, but this is a good enough approximation for now.
+      - save_cache:
+          key: test-plugins-tool-cache-v1-{{ checksum "package.json" }}
+          paths:
+            - .test-tools-verification-cache
+
       # Persist Maven cache
       - save_cache:
           key: m2-v1
