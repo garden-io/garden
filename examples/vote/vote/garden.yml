@@ -1,6 +1,21 @@
 kind: Build
 name: vote
 type: container
+spec:
+  targetStage:
+    $if: "${this.mode == 'sync'}"
+    $then: sync
+    $else: default
+
+
+---
+kind: Run
+name: prepare-db
+build: vote
+type: container
+spec:
+  args: ["cat", "/.mode"]
+
 
 ---
 kind: Deploy
@@ -10,6 +25,7 @@ name: vote
 type: container
 build: vote
 dependencies:
+  - run.prepare-db
   - deploy.api
 spec:
   args: [npm, run, serve]
@@ -50,3 +66,16 @@ dependencies:
 timeout: 60
 spec:
   args: [npm, run, test:integ]
+
+---
+kind: Run
+type: exec
+name: echo-vars
+spec:
+  command:
+    - /bin/sh
+    - "-c"
+    - |
+      echo "actions.build.vote.mode: ${actions.build.vote.mode}"
+      echo "actions.deploy.vote.mode: ${actions.deploy.vote.mode}"
+      echo "actions.test.vote-unit.mode: ${actions.test.vote-unit.mode}"
