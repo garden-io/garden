@@ -212,9 +212,6 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
   const allPaths = preprocessedConfigs.map((c) => getSourcePath(c))
   const minimalRoots = await garden.vcs.getMinimalRoots(log, allPaths)
 
-  // If a Build uses this.mode and is used as a build or dependency of a Deploy action that has a non-default mode,
-  // inject a build with the mode set to that non-default mode to the graph (and re-resolve it).
-
   // TODO: Maybe we could optimize resolving tree versions, avoid parallel scanning of the same directory etc.
   const graph = new MutableConfigGraph({ actions: [], moduleGraph, groups: groupConfigs })
 

@@ -840,7 +840,7 @@ describe("actionConfigsToGraph", () => {
     expect(action.mode()).to.equal("local")
   })
 
-  it("deploy action mode overrides the build action mode, if deploy action depends on build action", async () => {
+  it("deploy action mode overrides the mode of a dependency build action", async () => {
     const graph = await actionConfigsToGraph({
       garden,
       log,
