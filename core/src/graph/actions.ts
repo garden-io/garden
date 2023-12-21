@@ -295,6 +295,10 @@ export const actionFromConfig = profileAsync(async function actionFromConfig({
   })
 })
 
+function getConfigPath(projectRoot: string, config: ActionConfig) {
+  return relative(projectRoot, config.internal.configFilePath || config.internal.basePath)
+}
+
 async function processActionConfig({
   garden,
   graph,
@@ -346,7 +350,7 @@ async function processActionConfig({
     }
   }
 
-  const configPath = relative(garden.projectRoot, config.internal.configFilePath || config.internal.basePath)
+  const configPath = getConfigPath(garden.projectRoot, config)
 
   if (!actionTypes[config.kind][config.type]) {
     const availableKinds: ActionKind[] = []
@@ -373,33 +377,6 @@ async function processActionConfig({
 
         Currently available action types: ${Object.keys(actionTypes).join(", ")}`,
     })
-  }
-
-  // Currently, this.mode is only meaningful for Deploy actions.
-  if (config.kind !== "Deploy") {
-    const referencesThisMode = collectTemplateReferences(config).some((ref) => {
-      return ref[0] === "this" && ref[1] === "mode"
-    })
-
-    if (referencesThisMode) {
-      let footer = ""
-
-      if (config.kind === "Build") {
-        footer = `If your Build needs to know wether or not the Deploy action is running in sync mode, please use xxxxxx`
-      }
-
-      log.warn(
-        dedent`
-          ${config.type} action of kind ${config.kind} (defined at ${configPath}) references \${this.mode}.
-
-          \${this.mode} is meaningless for  ${config.kind} actions at the moment, as it always resolves to 'default'.
-
-          ${footer}
-
-          See also link-to-docs
-        `
-      )
-    }
   }
 
   const dependencies = dependenciesFromActionConfig(log, config, configsByKey, definition, templateContext, actionTypes)
@@ -632,6 +609,12 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
     variables: config.variables,
     varfiles: resolvedVarFiles,
   })
+
+  // Currently, this.mode is only meaningful for Deploy actions.
+  if (config.kind !== "Deploy") {
+    warnOnThisReferences(garden.projectRoot, { ...config, variables }, log)
+  }
+
   const resolvedVariables = resolveTemplateStrings({
     value: variables,
     context: new ActionConfigContext({
@@ -793,6 +776,38 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
 
   return { config, supportedModes, templateContext: builtinFieldContext }
 })
+
+function warnOnThisReferences(projectRoot: string, config: ActionConfig, log: Log) {
+  const referencesThisMode = collectTemplateReferences(config).some((ref) => {
+    return ref[0] === "this" && ref[1] === "mode"
+  })
+
+  if (referencesThisMode) {
+    let footer = ""
+
+    if (config.kind === "Build") {
+      footer = deline`
+        If your Build needs to know whether or not a given Deploy action is in sync mode, please use
+        ${styles.highlight("${actions.deploy.<your-deploy-name>.mode == 'sync'}")} instead.
+      `
+    }
+    const configPath = getConfigPath(projectRoot, config)
+
+    log.warn(
+      dedent`
+        ${config.type} action of kind ${config.kind} (defined at ${styles.highlight(configPath)}) references \
+        ${styles.highlight("${this.mode}")}.
+
+        ${styles.highlight("${this.mode}")} has no effect for ${"${config.kind}"} actions at the moment, as it always \
+        resolves to 'default'.
+
+        ${footer}
+
+        See also link-to-docs
+      `
+    )
+  }
+}
 
 function dependenciesFromActionConfig(
   log: Log,
