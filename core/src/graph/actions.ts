@@ -49,6 +49,7 @@ import { getActionTypeBases } from "../plugins.js"
 import type { ActionRouter } from "../router/router.js"
 import { ResolveActionTask } from "../tasks/resolve-action.js"
 import {
+  collectTemplateReferences,
   getActionTemplateReferences,
   maybeTemplateString,
   resolveTemplateString,
@@ -372,6 +373,33 @@ async function processActionConfig({
 
         Currently available action types: ${Object.keys(actionTypes).join(", ")}`,
     })
+  }
+
+  // Currently, this.mode is only meaningful for Deploy actions.
+  if (config.kind !== "Deploy") {
+    const referencesThisMode = collectTemplateReferences(config).some((ref) => {
+      return ref[0] === "this" && ref[1] === "mode"
+    })
+
+    if (referencesThisMode) {
+      let footer = ""
+
+      if (config.kind === "Build") {
+        footer = `If your Build needs to know wether or not the Deploy action is running in sync mode, please use xxxxxx`
+      }
+
+      log.warn(
+        dedent`
+          ${config.type} action of kind ${config.kind} (defined at ${configPath}) references \${this.mode}.
+
+          \${this.mode} is meaningless for  ${config.kind} actions at the moment, as it always resolves to 'default'.
+
+          ${footer}
+
+          See also link-to-docs
+        `
+      )
+    }
   }
 
   const dependencies = dependenciesFromActionConfig(log, config, configsByKey, definition, templateContext, actionTypes)
