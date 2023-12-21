@@ -22,7 +22,7 @@ import type {
   Executed,
   Resolved,
 } from "../actions/types.js"
-import { actionKinds } from "../actions/types.js"
+import { ALL_ACTION_MODES_SUPPORTED, actionKinds } from "../actions/types.js"
 import {
   actionReferenceToString,
   addActionDependency,
@@ -772,7 +772,13 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
 
   resolveTemplates()
 
-  const { config: updatedConfig, supportedModes } = await router.configureAction({ config, log })
+  const configureActionResult = await router.configureAction({ config, log })
+
+  const { config: updatedConfig } = configureActionResult
+
+  // NOTE: Build actions inherit the supported modes of the Deploy actions that use them
+  const supportedModes: ActionModes =
+    config.kind === "Build" ? ALL_ACTION_MODES_SUPPORTED : configureActionResult.supportedModes
 
   // -> Throw if trying to modify no-template fields
   for (const field of noTemplateFields) {

@@ -840,6 +840,51 @@ describe("actionConfigsToGraph", () => {
     expect(action.mode()).to.equal("local")
   })
 
+  it("deploy action mode overrides the build action mode, if deploy action depends on build action", async () => {
+    const graph = await actionConfigsToGraph({
+      garden,
+      log,
+      groupConfigs: [],
+      configs: [
+        {
+          kind: "Deploy",
+          type: "test",
+          name: "foo",
+          timeout: DEFAULT_DEPLOY_TIMEOUT_SEC,
+          variables: {},
+          dependencies: [{ kind: "Build", name: "foo" }],
+          internal: {
+            basePath: tmpDir.path,
+          },
+          spec: {},
+        },
+        {
+          kind: "Build",
+          type: "test",
+          name: "foo",
+          timeout: DEFAULT_DEPLOY_TIMEOUT_SEC,
+          variables: {},
+          internal: {
+            basePath: tmpDir.path,
+          },
+          spec: {},
+        },
+      ],
+      moduleGraph: new ModuleGraph([], {}),
+      linkedSources: {},
+      actionModes: {
+        local: ["deploy.*"],
+      },
+      environmentName: garden.environmentName,
+    })
+
+    const deploy = graph.getDeploy("foo")
+    expect(deploy.mode()).to.equal("local")
+
+    const build = graph.getBuild("foo")
+    expect(build.mode()).to.equal("local")
+  })
+
   it("throws if an unknown action kind is given", async () => {
     await expectError(
       () =>
