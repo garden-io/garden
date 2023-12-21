@@ -211,6 +211,12 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
 
 function getActionMode(config: ActionConfig, actionModes: ActionModeMap, log: Log) {
   let mode: ActionMode = "default"
+
+  // Currently, the only actions that supports modes are Deploys.
+  if (config.kind !== "Deploy") {
+    return { mode, explicitMode: false }
+  }
+
   const key = actionReferenceToString(config)
   let explicitMode = false // set if a key is explicitly set (as opposed to a wildcard match)
 
