@@ -194,8 +194,8 @@ export class DeployCommand extends Command<Args, Opts> {
 
     const actionModes: ActionModeMap = {
       // Support a single empty value (which comes across as an empty list) as equivalent to '*'
-      local: opts["local-mode"]?.length === 0 ? ["*"] : opts["local-mode"]?.map((s) => "deploy." + s),
-      sync: opts.sync?.length === 0 ? ["*"] : opts.sync?.map((s) => "deploy." + s),
+      local: opts["local-mode"]?.length === 0 ? ["deploy.*"] : opts["local-mode"]?.map((s) => "deploy." + s),
+      sync: opts.sync?.length === 0 ? ["deploy.*"] : opts.sync?.map((s) => "deploy." + s),
     }
 
     const graph = await garden.getConfigGraph({ log, emit: true, actionModes })
