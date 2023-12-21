@@ -581,6 +581,8 @@ my-variable: ${runtime.build.<action-name>.sourcePath}
 
 The mode that the action should be executed in (e.g. 'sync' or 'local' for Deploy actions). Set to 'default' if no special mode is being used.
 
+Build actions inherit the mode from Deploy actions that depend on them. E.g. If a Deploy action is in 'sync' mode and depends on a Build action, the Build action will inherit the 'sync' mode setting from the Deploy action. This enables installing different tools that may be necessary for different development modes.
+
 | Type     | Default     |
 | -------- | ----------- |
 | `string` | `"default"` |
@@ -696,6 +698,8 @@ my-variable: ${runtime.deploy.<action-name>.sourcePath}
 ### `${runtime.deploy.<action-name>.mode}`
 
 The mode that the action should be executed in (e.g. 'sync' or 'local' for Deploy actions). Set to 'default' if no special mode is being used.
+
+Build actions inherit the mode from Deploy actions that depend on them. E.g. If a Deploy action is in 'sync' mode and depends on a Build action, the Build action will inherit the 'sync' mode setting from the Deploy action. This enables installing different tools that may be necessary for different development modes.
 
 | Type     | Default     |
 | -------- | ----------- |
@@ -813,6 +817,8 @@ my-variable: ${runtime.run.<action-name>.sourcePath}
 
 The mode that the action should be executed in (e.g. 'sync' or 'local' for Deploy actions). Set to 'default' if no special mode is being used.
 
+Build actions inherit the mode from Deploy actions that depend on them. E.g. If a Deploy action is in 'sync' mode and depends on a Build action, the Build action will inherit the 'sync' mode setting from the Deploy action. This enables installing different tools that may be necessary for different development modes.
+
 | Type     | Default     |
 | -------- | ----------- |
 | `string` | `"default"` |
@@ -928,6 +934,8 @@ my-variable: ${runtime.test.<action-name>.sourcePath}
 ### `${runtime.test.<action-name>.mode}`
 
 The mode that the action should be executed in (e.g. 'sync' or 'local' for Deploy actions). Set to 'default' if no special mode is being used.
+
+Build actions inherit the mode from Deploy actions that depend on them. E.g. If a Deploy action is in 'sync' mode and depends on a Build action, the Build action will inherit the 'sync' mode setting from the Deploy action. This enables installing different tools that may be necessary for different development modes.
 
 | Type     | Default     |
 | -------- | ----------- |
@@ -1045,6 +1053,8 @@ my-variable: ${runtime.services.<action-name>.sourcePath}
 
 The mode that the action should be executed in (e.g. 'sync' or 'local' for Deploy actions). Set to 'default' if no special mode is being used.
 
+Build actions inherit the mode from Deploy actions that depend on them. E.g. If a Deploy action is in 'sync' mode and depends on a Build action, the Build action will inherit the 'sync' mode setting from the Deploy action. This enables installing different tools that may be necessary for different development modes.
+
 | Type     | Default     |
 | -------- | ----------- |
 | `string` | `"default"` |
@@ -1160,6 +1170,8 @@ my-variable: ${runtime.tasks.<action-name>.sourcePath}
 ### `${runtime.tasks.<action-name>.mode}`
 
 The mode that the action should be executed in (e.g. 'sync' or 'local' for Deploy actions). Set to 'default' if no special mode is being used.
+
+Build actions inherit the mode from Deploy actions that depend on them. E.g. If a Deploy action is in 'sync' mode and depends on a Build action, the Build action will inherit the 'sync' mode setting from the Deploy action. This enables installing different tools that may be necessary for different development modes.
 
 | Type     | Default     |
 | -------- | ----------- |
@@ -1285,6 +1297,8 @@ my-variable: ${actions.build.<action-name>.sourcePath}
 
 The mode that the action should be executed in (e.g. 'sync' or 'local' for Deploy actions). Set to 'default' if no special mode is being used.
 
+Build actions inherit the mode from Deploy actions that depend on them. E.g. If a Deploy action is in 'sync' mode and depends on a Build action, the Build action will inherit the 'sync' mode setting from the Deploy action. This enables installing different tools that may be necessary for different development modes.
+
 | Type     | Default     |
 | -------- | ----------- |
 | `string` | `"default"` |
@@ -1400,6 +1414,8 @@ my-variable: ${actions.deploy.<action-name>.sourcePath}
 ### `${actions.deploy.<action-name>.mode}`
 
 The mode that the action should be executed in (e.g. 'sync' or 'local' for Deploy actions). Set to 'default' if no special mode is being used.
+
+Build actions inherit the mode from Deploy actions that depend on them. E.g. If a Deploy action is in 'sync' mode and depends on a Build action, the Build action will inherit the 'sync' mode setting from the Deploy action. This enables installing different tools that may be necessary for different development modes.
 
 | Type     | Default     |
 | -------- | ----------- |
@@ -1517,6 +1533,8 @@ my-variable: ${actions.run.<action-name>.sourcePath}
 
 The mode that the action should be executed in (e.g. 'sync' or 'local' for Deploy actions). Set to 'default' if no special mode is being used.
 
+Build actions inherit the mode from Deploy actions that depend on them. E.g. If a Deploy action is in 'sync' mode and depends on a Build action, the Build action will inherit the 'sync' mode setting from the Deploy action. This enables installing different tools that may be necessary for different development modes.
+
 | Type     | Default     |
 | -------- | ----------- |
 | `string` | `"default"` |
@@ -1632,6 +1650,8 @@ my-variable: ${actions.test.<action-name>.sourcePath}
 ### `${actions.test.<action-name>.mode}`
 
 The mode that the action should be executed in (e.g. 'sync' or 'local' for Deploy actions). Set to 'default' if no special mode is being used.
+
+Build actions inherit the mode from Deploy actions that depend on them. E.g. If a Deploy action is in 'sync' mode and depends on a Build action, the Build action will inherit the 'sync' mode setting from the Deploy action. This enables installing different tools that may be necessary for different development modes.
 
 | Type     | Default     |
 | -------- | ----------- |
@@ -1749,6 +1769,8 @@ my-variable: ${actions.services.<action-name>.sourcePath}
 
 The mode that the action should be executed in (e.g. 'sync' or 'local' for Deploy actions). Set to 'default' if no special mode is being used.
 
+Build actions inherit the mode from Deploy actions that depend on them. E.g. If a Deploy action is in 'sync' mode and depends on a Build action, the Build action will inherit the 'sync' mode setting from the Deploy action. This enables installing different tools that may be necessary for different development modes.
+
 | Type     | Default     |
 | -------- | ----------- |
 | `string` | `"default"` |
@@ -1864,6 +1886,8 @@ my-variable: ${actions.tasks.<action-name>.sourcePath}
 ### `${actions.tasks.<action-name>.mode}`
 
 The mode that the action should be executed in (e.g. 'sync' or 'local' for Deploy actions). Set to 'default' if no special mode is being used.
+
+Build actions inherit the mode from Deploy actions that depend on them. E.g. If a Deploy action is in 'sync' mode and depends on a Build action, the Build action will inherit the 'sync' mode setting from the Deploy action. This enables installing different tools that may be necessary for different development modes.
 
 | Type     | Default     |
 | -------- | ----------- |
@@ -2026,6 +2050,8 @@ my-variable: ${this.sourcePath}
 ### `${this.mode}`
 
 The mode that the action should be executed in (e.g. 'sync' or 'local' for Deploy actions). Set to 'default' if no special mode is being used.
+
+Build actions inherit the mode from Deploy actions that depend on them. E.g. If a Deploy action is in 'sync' mode and depends on a Build action, the Build action will inherit the 'sync' mode setting from the Deploy action. This enables installing different tools that may be necessary for different development modes.
 
 | Type     | Default     |
 | -------- | ----------- |

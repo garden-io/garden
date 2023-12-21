@@ -707,6 +707,8 @@ my-variable: ${actions.test.my-test.sourcePath}
 
 The mode that the action should be executed in (e.g. 'sync' or 'local' for Deploy actions). Set to 'default' if no special mode is being used.
 
+Build actions inherit the mode from Deploy actions that depend on them. E.g. If a Deploy action is in 'sync' mode and depends on a Build action, the Build action will inherit the 'sync' mode setting from the Deploy action. This enables installing different tools that may be necessary for different development modes.
+
 | Type     | Default     |
 | -------- | ----------- |
 | `string` | `"default"` |
