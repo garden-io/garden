@@ -16,7 +16,7 @@ import { normalize, sep } from "path"
 
 const { pathExists } = fsExtra
 
-type ScanRepoParams = Pick<GetFilesParams, "log" | "path" | "pathDescription" | "failOnPrompt">
+type ScanRepoParams = Pick<GetFilesParams, "log" | "path" | "pathDescription" | "failOnPrompt" | "exclude">
 
 interface GitRepoGetFilesParams extends GetFilesParams {
   scanFromProjectRoot: boolean
@@ -88,6 +88,15 @@ export class GitRepoHandler extends GitHandler {
       path: scanRoot,
       pathDescription: pathDescription || "repository",
       failOnPrompt,
+      // This method delegates to the old "subtree" Git scan mode that use `--exclude` and `--glob-pathspecs`.
+      // We need to pass the exclude-filter to ensure that all excluded files and dirs are excluded properly,
+      // i.e. with the properly expanded globs.
+      // Otherwise, the "repo" Git scan mode may return some excluded files
+      // which should be skipped by design and are skipped by the "subtree" mode.
+      // Thus, some excluded files can appear in the resulting fileTree.
+      // It happens because the new "repo" mode does not use `--glob-pathspecs` flag
+      // and does some explicit glob patterns augmentation that misses some edge-cases.
+      exclude: params.exclude,
     })
 
     const moduleFiles = fileTree.getFilesAtPath(path)
@@ -124,6 +133,8 @@ export class GitRepoHandler extends GitHandler {
   /**
    * Scans the given repo root and caches the list of files in the tree cache.
    * Uses an async lock to ensure a repo root is only scanned once.
+   *
+   * Delegates to {@link GitHandler.getFiles}.
    */
   async scanRepo(params: ScanRepoParams): Promise<FileTree> {
     const { log, path } = params

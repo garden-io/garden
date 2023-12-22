@@ -40,9 +40,9 @@ import {
   DEFAULT_TEST_TIMEOUT_SEC,
   GardenApiVersion,
 } from "../../../../../src/constants.js"
-import { resolve } from "path"
+import { join, resolve } from "path"
 import type { ConvertModuleParams } from "../../../../../src/plugin/handlers/Module/convert.js"
-import { omit } from "lodash-es"
+import { omit, remove } from "lodash-es"
 import type { GardenTask } from "../../../../../src/types/task.js"
 import { taskFromConfig } from "../../../../../src/types/task.js"
 import type { GardenService } from "../../../../../src/types/service.js"
@@ -151,7 +151,11 @@ describe("plugins.container", () => {
 
     it("returns the dummy Build action if no Dockerfile and an exec Build is needed", async () => {
       const module = graph.getModule("module-a") as ContainerModule
-      module.version.files.pop() // remove automatically picked up Dockerfile
+
+      // remove automatically picked up Dockerfile
+      const defaultDockerfilePath = join(module.path, defaultDockerfileName)
+      remove(module.version.files, (f) => f === defaultDockerfilePath)
+
       const dummyBuild: ExecBuildConfig = {
         internal: {
           basePath: ".",
