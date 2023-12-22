@@ -1,4 +1,18 @@
 
+<a name="0.13.23"></a>
+## [0.13.23](https://github.com/garden-io/garden/compare/0.13.22...0.13.23) (2023-12-22)
+
+### Bug Fixes
+
+* **cli:** fallback to non-highlighted yaml if error occurs ([#5560](https://github.com/garden-io/garden/issues/5560)) ([63eff7db2](https://github.com/garden-io/garden/commit/63eff7db2))
+* **core:** inherit Build action mode from dependant Deploy action ([#5589](https://github.com/garden-io/garden/issues/5589)) ([e0505642e](https://github.com/garden-io/garden/commit/e0505642e))
+* **git:** fix `exclude` filter in `repo` Git scan mode ([#5526](https://github.com/garden-io/garden/issues/5526)) ([5ef9998a9](https://github.com/garden-io/garden/commit/5ef9998a9))
+* **helm:** fix `sha256` hash for `linux-arm64` binary ([#5563](https://github.com/garden-io/garden/issues/5563)) ([ca0d9de97](https://github.com/garden-io/garden/commit/ca0d9de97))
+* **jib:** fix OpenJDK `sha256` hashes for `linux-arm64` binaries ([#5566](https://github.com/garden-io/garden/issues/5566)) ([d37e44d73](https://github.com/garden-io/garden/commit/d37e44d73))
+* **mavend:** fix Mavend `sha256` hash for `windows-amd64` binary ([#5565](https://github.com/garden-io/garden/issues/5565)) ([85e57e5a4](https://github.com/garden-io/garden/commit/85e57e5a4))
+* **publish:** respect the `spec.publishId` in build action config ([#5585](https://github.com/garden-io/garden/issues/5585)) ([f60cde74c](https://github.com/garden-io/garden/commit/f60cde74c))
+* **terraform:** fix `sha256` hashes for some old terraform binaries ([#5564](https://github.com/garden-io/garden/issues/5564)) ([f418f65c0](https://github.com/garden-io/garden/commit/f418f65c0))
+
 <a name="0.13.22"></a>
 ## [0.13.22](https://github.com/garden-io/garden/compare/0.13.21...0.13.22) (2023-12-13)
 
