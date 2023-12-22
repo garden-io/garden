@@ -22,7 +22,7 @@ import type {
   Executed,
   Resolved,
 } from "../actions/types.js"
-import { actionKinds } from "../actions/types.js"
+import { ALL_ACTION_MODES_SUPPORTED, actionKinds } from "../actions/types.js"
 import {
   actionReferenceToString,
   addActionDependency,
@@ -59,7 +59,7 @@ import { mergeVariables } from "./common.js"
 import type { ConfigGraph } from "./config-graph.js"
 import { MutableConfigGraph } from "./config-graph.js"
 import type { ModuleGraph } from "./modules.js"
-import type { MaybeUndefined } from "../util/util.js"
+import { isTruthy, type MaybeUndefined } from "../util/util.js"
 import minimatch from "minimatch"
 import type { ConfigContext } from "../config/template-contexts/base.js"
 import type { LinkedSource, LinkedSourceMap } from "../config-store/local.js"
@@ -138,19 +138,74 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
   // Doing this in two steps makes the code a bit less readable, but it's worth it for the performance boost.
   const preprocessResults: { [key: string]: PreprocessActionResult } = {}
   const computedActionModes: { [key: string]: { mode: ActionMode; explicitMode: boolean } } = {}
-  await Promise.all(
-    Object.entries(configsByKey).map(async ([key, config]) => {
-      const { mode, explicitMode } = getActionMode(config, actionModes, log)
-      computedActionModes[key] = { mode, explicitMode }
-      preprocessResults[key] = await preprocessActionConfig({
-        garden,
-        config,
-        router,
-        log,
-        mode,
+
+  const preprocessActions = async (predicate: (config: ActionConfig) => boolean = () => true) => {
+    return await Promise.all(
+      Object.entries(configsByKey).map(async ([key, config]) => {
+        if (!predicate(config)) {
+          return
+        }
+
+        const { mode, explicitMode } = getActionMode(config, actionModes, log)
+        computedActionModes[key] = { mode, explicitMode }
+        preprocessResults[key] = await preprocessActionConfig({
+          garden,
+          config,
+          router,
+          log,
+          mode,
+        })
       })
-    })
-  )
+    )
+  }
+
+  // First preprocess only the Deploy actions, so we can infer the mode of Build actions that are used by them.
+  await preprocessActions((config) => config.kind === "Deploy")
+
+  // This enables users to use `this.mode` in Build action configs, such that `this.mode == "sync"`
+  // when a Deploy action that uses the Build action is in sync mode.
+  //
+  // The proper solution to this would involve e.g. parametrized actions, or injecting a separate Build action
+  // with `this.mode` set to the Deploy action's mode before resolution (both would need to be thought out carefully).
+  const actionTypes = await garden.getActionTypes()
+  const buildModeOverrides: Record<string, { mode: ActionMode; overriddenByDeploy: string }> = {}
+  for (const [key, res] of Object.entries(preprocessResults)) {
+    const config = res.config
+    const { mode } = computedActionModes[key]
+    if (config.kind === "Deploy" && mode !== "default") {
+      const definition = actionTypes[config.kind][config.type]?.spec
+      const buildDeps = dependenciesFromActionConfig(
+        log,
+        config,
+        configsByKey,
+        definition,
+        res.templateContext,
+        actionTypes
+      )
+      const referencedBuildNames = [config.build, ...buildDeps.map((d) => d.name)].filter(isTruthy)
+      for (const buildName of referencedBuildNames) {
+        const buildKey = actionReferenceToString({ kind: "Build", name: buildName })
+        if (buildModeOverrides[buildKey]) {
+          const prev = buildModeOverrides[buildKey]
+          log.warn(dedent`
+            Using mode ${styles.highlight(prev.mode)} for Build ${styles.highlight(buildName)} as requested by\
+            the Deploy ${styles.highlight(prev.overriddenByDeploy)}.
+
+            Ignoring request by Deploy ${styles.highlight(config.name)} to use mode ${styles.highlight(mode)}.
+          `)
+        }
+        actionModes[mode] = [buildKey, ...(actionModes[mode] || [])]
+        buildModeOverrides[buildKey] = {
+          mode,
+          overriddenByDeploy: config.name,
+        }
+      }
+    }
+  }
+
+  // Preprocess all remaining actions (Deploy actions are preprocessed above)
+  // We are preprocessing actions in two batches so we can infer the mode of Build actions that are used by Deploy actions. See the comments above.
+  await preprocessActions((config) => config.kind !== "Deploy")
 
   // Optimize file scanning by avoiding unnecessarily broad scans when project is not in repo root.
   const preprocessedConfigs = Object.values(preprocessResults).map((r) => r.config)
@@ -714,7 +769,13 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
 
   resolveTemplates()
 
-  const { config: updatedConfig, supportedModes } = await router.configureAction({ config, log })
+  const configureActionResult = await router.configureAction({ config, log })
+
+  const { config: updatedConfig } = configureActionResult
+
+  // NOTE: Build actions inherit the supported modes of the Deploy actions that use them
+  const supportedModes: ActionModes =
+    config.kind === "Build" ? ALL_ACTION_MODES_SUPPORTED : configureActionResult.supportedModes
 
   // -> Throw if trying to modify no-template fields
   for (const field of noTemplateFields) {
