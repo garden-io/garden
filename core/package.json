@@ -223,7 +223,7 @@
     "@types/wrap-ansi": "^3.0.0",
     "@types/write-file-atomic": "^4.0.3",
     "@typescript-eslint/eslint-plugin": "^6.11.0",
-    "@typescript-eslint/parser": "^6.10.0",
+    "@typescript-eslint/parser": "^6.16.0",
     "chai": "^4.3.7",
     "eslint": "^8.55.0",
     "eslint-config-prettier": "^9.0.0",
