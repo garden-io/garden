@@ -1,4 +1,4 @@
-# `kubernetes` Deploy action type example with shared manifests
+# `kubernetes` Deploy action type example using `patchResources`
 
 This example project demonstrates how to patch Kubernetes manifests. This can be used to e.g. overwrite the container image in a Kubernetes Pod spec without modifying the manifest itself.
 
