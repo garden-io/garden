@@ -195,6 +195,11 @@ interface GitConfig {
   mode: GitScanMode
 }
 
+interface CloudConfig {
+  id?: string
+  domain?: string
+}
+
 export interface ProjectConfig extends BaseGardenResource {
   apiVersion: GardenApiVersion
   kind: "Project"
@@ -202,6 +207,7 @@ export interface ProjectConfig extends BaseGardenResource {
   path: string
   id?: string
   domain?: string
+  cloud?: CloudConfig
   configPath?: string
   proxy?: ProxyConfig
   defaultEnvironment: string
@@ -290,6 +296,14 @@ const projectOutputSchema = createSchema({
   }),
 })
 
+const cloudConfigurationSchema = createSchema({
+  name: "cloud-configuration",
+  keys: () => ({
+    id: joi.string().meta({ internal: true }).description("The project's ID in Garden Cloud."),
+    domain: joi.string().uri().meta({ internal: true }).description("A custom domain to use Garden Cloud."),
+  }),
+})
+
 export const projectSchema = createSchema({
   name: "Project",
   description:
@@ -314,13 +328,20 @@ export const projectSchema = createSchema({
     internal: baseInternalFieldsSchema(),
     name: projectNameSchema(),
     // TODO: Refer to enterprise documentation for more details.
-    id: joi.string().meta({ internal: true }).description("The project's ID in Garden Cloud."),
+    id: joi
+      .string()
+      .meta({ internal: true })
+      .description("DEPRECATED: Use cloud.id instead, The project's ID in Garden Cloud."),
     // TODO: Refer to enterprise documentation for more details.
     domain: joi
       .string()
       .uri()
       .meta({ internal: true })
-      .description("The domain to use for cloud features. Should be the full API/backend URL."),
+      .description(
+        "DEPRECATED: Use cloud.domain instead. The domain to use for cloud features. Should be the full API/backend URL."
+      ),
+    cloud: cloudConfigurationSchema().description("Configuration for Garden Cloud and Garden Enterprise."),
+
     // Note: We provide a different schema below for actual validation, but need to define it this way for docs
     // because joi.alternatives() isn't handled well in the doc generation.
     environments: joi

@@ -84,7 +84,7 @@ export class LoginCommand extends Command<{}, Opts> {
     //
     // If the fallback was used, we rely on the token to decide if the Cloud API instance
     // should use the default domain or not. The token lifecycle ends on logout.
-    const cloudDomain: string = getGardenCloudDomain(projectConfig?.domain)
+    const cloudDomain: string = getGardenCloudDomain(projectConfig?.cloud?.domain || projectConfig?.domain)
 
     const distroName = getCloudDistributionName(cloudDomain)
 

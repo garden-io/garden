@@ -9,6 +9,7 @@
 import { dedent } from "../../util/string.js"
 import { CommandGroup } from "../base.js"
 import { GroupsCommand } from "./groups/groups.js"
+import { CloudInitCommand } from "./init.js"
 import { SecretsCommand } from "./secrets/secrets.js"
 import { UsersCommand } from "./users/users.js"
 
@@ -19,5 +20,5 @@ export class CloudCommand extends CommandGroup {
     Manage Garden Cloud/Enterprise resources such as users, groups and secrets.
   `
 
-  subCommands = [SecretsCommand, UsersCommand, GroupsCommand]
+  subCommands = [SecretsCommand, UsersCommand, GroupsCommand, CloudInitCommand]
 }

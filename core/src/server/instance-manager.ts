@@ -364,7 +364,7 @@ export class GardenInstanceManager {
     if (!command?.noProject) {
       cloudApi = await this.getCloudApi({
         log,
-        cloudDomain: getGardenCloudDomain(projectConfig.domain),
+        cloudDomain: getGardenCloudDomain(projectConfig.cloud?.domain || projectConfig.domain),
         globalConfigStore,
       })
     }

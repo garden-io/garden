@@ -257,7 +257,7 @@ ${renderCommands(commands)}
       let cloudApi: CloudApi | undefined
       if (!command.noProject) {
         const config = await this.getProjectConfig(log, workingDir)
-        const cloudDomain = getGardenCloudDomain(config?.domain)
+        const cloudDomain = getGardenCloudDomain(config?.cloud?.domain || config?.domain)
         const distroName = getCloudDistributionName(cloudDomain)
 
         try {
@@ -272,7 +272,7 @@ ${renderCommands(commands)}
             `)
 
             // Project is configured for cloud usage => fail early to force re-auth
-            if (config && config.id) {
+            if (config?.cloud?.id || (config && config.id)) {
               throw err
             }
           } else {

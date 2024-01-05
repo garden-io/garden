@@ -1869,7 +1869,9 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
     const projectApiVersion = config.apiVersion
     const sessionId = opts.sessionId || uuidv4()
     const cloudApi = opts.cloudApi || null
-    const cloudDomain = cloudApi?.domain || getGardenCloudDomain(config.domain)
+    // TODO-0.14: remove the option to use config.domain from the schema
+    const cloudConfigDomain = config.cloud?.domain || config.domain
+    const cloudDomain = cloudApi?.domain || getGardenCloudDomain(cloudConfigDomain)
     const loggedIn = !!cloudApi
 
     const { secrets, cloudProject } = opts.skipCloudConnect
@@ -1890,7 +1892,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
     // If the user is logged in and a cloud project exists we use that ID
     // but fallback to the one set in the config (even if the user isn't logged in).
     // Same applies for domains.
-    const projectId = cloudProject?.id || config.id
+    const projectId = cloudProject?.id || config.cloud?.id || config.id
 
     config = resolveProjectConfig({
       log,
@@ -1900,7 +1902,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
       vcsInfo,
       username: _username,
       loggedIn,
-      enterpriseDomain: config.domain,
+      enterpriseDomain: cloudConfigDomain,
       secrets,
       commandInfo,
     })
@@ -1912,7 +1914,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
       vcsInfo,
       username: _username,
       loggedIn,
-      enterpriseDomain: config.domain,
+      enterpriseDomain: cloudConfigDomain,
       secrets,
       commandInfo,
     })
@@ -2018,7 +2020,8 @@ async function prepareCloud({
   environmentName: string
   commandName: string
 }) {
-  const cloudDomain = cloudApi?.domain || getGardenCloudDomain(config.domain)
+  const cloudConfigDomain = config.cloud?.domain || config.domain
+  const cloudDomain = cloudApi?.domain || getGardenCloudDomain(cloudConfigDomain)
   const isCommunityEdition = cloudDomain === DEFAULT_GARDEN_CLOUD_DOMAIN
   const distroName = getCloudDistributionName(cloudDomain)
   const debugLevelCommands = ["dev", "serve", "exit", "quit"]
@@ -2093,7 +2096,7 @@ async function getCloudProject({
   projectName: string
 }) {
   const distroName = getCloudDistributionName(cloudApi.domain)
-  const projectIdFromConfig = config.id
+  const projectIdFromConfig = config.cloud?.id || config.id
 
   // If logged into community edition, throw if ID is set
   if (projectIdFromConfig && isCommunityEdition) {

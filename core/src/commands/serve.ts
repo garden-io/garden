@@ -128,7 +128,7 @@ export class ServeCommand<
       }
     }
 
-    const cloudDomain = getGardenCloudDomain(projectConfig?.domain)
+    const cloudDomain = getGardenCloudDomain(projectConfig?.cloud?.domain || projectConfig?.domain)
 
     try {
       this.server = await startServer({
@@ -170,7 +170,7 @@ export class ServeCommand<
       }
 
       if (projectConfig && cloudApi && defaultGarden) {
-        let projectId = projectConfig?.id
+        let projectId = projectConfig?.cloud?.id || projectConfig?.id
 
         if (!projectId) {
           const cloudProject = await cloudApi.getProjectByName(projectConfig.name)
