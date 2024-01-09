@@ -172,7 +172,7 @@
     "@types/async-lock": "^1.4.0",
     "@types/chai": "^4.3.4",
     "@types/circular-json": "^0.4.0",
-    "@types/cross-spawn": "^6.0.2",
+    "@types/cross-spawn": "^6.0.6",
     "@types/dedent": "^0.7.0",
     "@types/fs-extra": "^11.0.4",
     "@types/glob": "^7.2.0",
