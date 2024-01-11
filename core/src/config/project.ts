@@ -31,7 +31,7 @@ import { memoize } from "lodash-es"
 import type { GenericProviderConfig } from "./provider.js"
 import { providerConfigBaseSchema } from "./provider.js"
 import type { GitScanMode } from "../constants.js"
-import { DOCS_BASE_URL, GardenApiVersion, gitScanModes } from "../constants.js"
+import { DOCS_BASE_URL, GardenApiVersion, defaultGitScanMode, gitScanModes } from "../constants.js"
 import { defaultDotIgnoreFile } from "../util/fs.js"
 import type { CommandInfo } from "../plugin-context.js"
 import type { VcsInfo } from "../vcs/vcs.js"
@@ -267,7 +267,7 @@ const projectScanSchema = createSchema({
         .string()
         .allow(...gitScanModes)
         .only()
-        .default("subtree")
+        .default(defaultGitScanMode)
         .description(
           "Choose how to perform scans of git repositories. The default (`subtree`) runs individual git scans on each action/module path. The `repo` mode scans entire repositories and then filters down to files matching the paths, includes and excludes for each action/module. This can be considerably more efficient for large projects with many actions/modules."
         ),
@@ -424,7 +424,6 @@ export const projectSchema = createSchema({
       "Key/value map of variables to configure for all environments. " + joiVariablesDescription
     ),
   }),
-  rename: [["modules", "scan"]],
 })
 
 export function getDefaultEnvironmentName(defaultName: string, config: ProjectConfig): string {
