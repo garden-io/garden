@@ -185,15 +185,6 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
       const referencedBuildNames = [config.build, ...buildDeps.map((d) => d.name)].filter(isTruthy)
       for (const buildName of referencedBuildNames) {
         const buildKey = actionReferenceToString({ kind: "Build", name: buildName })
-        if (buildModeOverrides[buildKey]) {
-          const prev = buildModeOverrides[buildKey]
-          log.warn(dedent`
-            Using mode ${styles.highlight(prev.mode)} for Build ${styles.highlight(buildName)} as requested by\
-            the Deploy ${styles.highlight(prev.overriddenByDeploy)}.
-
-            Ignoring request by Deploy ${styles.highlight(config.name)} to use mode ${styles.highlight(mode)}.
-          `)
-        }
         actionModes[mode] = [buildKey, ...(actionModes[mode] || [])]
         buildModeOverrides[buildKey] = {
           mode,
