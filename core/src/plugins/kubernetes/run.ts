@@ -34,6 +34,7 @@ import { waitForResources, DeploymentResourceStatusError } from "./status/status
 import { getResourceRequirements, getSecurityContext } from "./container/util.js"
 import { KUBECTL_DEFAULT_TIMEOUT } from "./kubectl.js"
 import fsExtra from "fs-extra"
+
 const { copy } = fsExtra
 import type { PodLogEntryConverter, PodLogEntryConverterParams } from "./logs.js"
 import { K8sLogFollower } from "./logs.js"
@@ -137,7 +138,7 @@ export async function runAndCopy({
   podName?: string
   podSpec?: V1PodSpec
   artifacts?: ArtifactSpec[]
-  artifactsPath?: string
+  artifactsPath: string
   envVars?: ContainerEnvVars
   resources?: ContainerResourcesSpec
   description?: string
@@ -150,7 +151,7 @@ export async function runAndCopy({
   const provider = <KubernetesProvider>ctx.provider
   const api = await KubeApi.factory(log, ctx, provider)
 
-  const getArtifacts = !!(artifacts && artifacts.length > 0 && artifactsPath)
+  const getArtifacts = artifacts.length > 0
   const mainContainerName = "main"
 
   if (!description) {
@@ -223,7 +224,7 @@ export async function runAndCopy({
       ...runParams,
       mainContainerName,
       artifacts,
-      artifactsPath: artifactsPath!,
+      artifactsPath,
       description,
       stdout: outputStream,
       stderr: outputStream,
