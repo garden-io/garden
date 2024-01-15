@@ -269,7 +269,7 @@ const projectScanSchema = createSchema({
         .only()
         .default(defaultGitScanMode)
         .description(
-          "Choose how to perform scans of git repositories. The default (`subtree`) runs individual git scans on each action/module path. The `repo` mode scans entire repositories and then filters down to files matching the paths, includes and excludes for each action/module. This can be considerably more efficient for large projects with many actions/modules."
+          `Choose how to perform scans of git repositories. Defaults to \`${defaultGitScanMode}\`. The \`subtree\` runs individual git scans on each action/module path. The \`repo\` mode scans entire repositories and then filters down to files matching the paths, includes and excludes for each action/module. This can be considerably more efficient for large projects with many actions/modules.`
         ),
     }),
   }),
