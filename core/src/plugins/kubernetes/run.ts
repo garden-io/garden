@@ -150,7 +150,7 @@ export async function runAndCopy({
   const provider = <KubernetesProvider>ctx.provider
   const api = await KubeApi.factory(log, ctx, provider)
 
-  const getArtifacts = !!(!interactive && artifacts && artifacts.length > 0 && artifactsPath)
+  const getArtifacts = !!(artifacts && artifacts.length > 0 && artifactsPath)
   const mainContainerName = "main"
 
   if (!description) {
