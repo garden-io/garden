@@ -105,7 +105,7 @@ export const makeRunLogEntry: PodLogEntryConverter<RunLogEntry> = ({ timestamp, 
 
 export const runContainerExcludeFields: (keyof V1Container)[] = ["readinessProbe", "livenessProbe", "startupProbe"]
 
-interface BaseRunParams {
+interface BaseRunAndCopyParams {
   command?: string[]
   args: string[]
   interactive: boolean
@@ -135,7 +135,7 @@ export async function runAndCopy({
   privileged,
   addCapabilities,
   dropCapabilities,
-}: BaseRunParams & {
+}: BaseRunAndCopyParams & {
   ctx: PluginContext
   log: Log
   action: SupportedRuntimeAction
@@ -401,7 +401,7 @@ async function runWithoutArtifacts({
   api: KubeApi
   provider: KubernetesProvider
   podData: PodData
-  run: BaseRunParams
+  run: BaseRunAndCopyParams
 }): Promise<RunResult> {
   const { timeout: timeoutSec, interactive } = run
 
@@ -506,7 +506,7 @@ async function runWithArtifacts({
   stdout: Writable
   stderr: Writable
   podData: PodData
-  run: BaseRunParams
+  run: BaseRunAndCopyParams
 }): Promise<RunResult> {
   const { args, command, timeout: timeoutSec } = run
 
