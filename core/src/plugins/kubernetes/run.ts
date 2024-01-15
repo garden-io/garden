@@ -39,7 +39,6 @@ const { copy } = fsExtra
 import type { PodLogEntryConverter, PodLogEntryConverterParams } from "./logs.js"
 import { K8sLogFollower } from "./logs.js"
 import { Stream } from "ts-stream"
-import type { BaseRunParams } from "../../plugin/handlers/base/base.js"
 import type { V1PodSpec, V1Container, V1Pod, V1ContainerStatus, V1PodStatus } from "@kubernetes/client-node"
 import type { RunResult } from "../../plugin/base.js"
 import { LogLevel } from "../../logger/logger.js"
@@ -105,6 +104,13 @@ export const makeRunLogEntry: PodLogEntryConverter<RunLogEntry> = ({ timestamp, 
 }
 
 export const runContainerExcludeFields: (keyof V1Container)[] = ["readinessProbe", "livenessProbe", "startupProbe"]
+
+interface BaseRunParams {
+  command?: string[]
+  args: string[]
+  interactive: boolean
+  timeout: number
+}
 
 // TODO: jfc this function signature stinks like all hell - JE
 export async function runAndCopy({

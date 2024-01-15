@@ -16,6 +16,7 @@ export type ParamsBase<_ = any> = {}
 export type ActionTypeHandlerParamsType<Handler> = Handler extends ActionTypeHandlerSpec<any, infer Params, any>
   ? Params
   : never
+
 export abstract class ActionTypeHandlerSpec<
   Kind extends ActionKind,
   Params extends ParamsBase,
@@ -63,10 +64,3 @@ export const actionOutputsSchema = memoize(() =>
     "Structured outputs from the execution, as defined by individual action/module types, to be made available for dependencies and in templating."
   )
 )
-
-export interface BaseRunParams {
-  command?: string[]
-  args: string[]
-  interactive: boolean
-  timeout: number
-}
