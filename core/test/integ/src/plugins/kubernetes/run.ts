@@ -10,6 +10,7 @@ import * as td from "testdouble"
 import tmp from "tmp-promise"
 import { expectError, pruneEmpty } from "../../../../helpers.js"
 import fsExtra from "fs-extra"
+
 const { pathExists } = fsExtra
 import { expect } from "chai"
 import { join } from "path"
@@ -1110,228 +1111,236 @@ describe("kubernetes Pod runner functions", () => {
     })
 
     context("artifacts are specified", () => {
-      it("should copy artifacts out of the container", async () => {
-        const action = await garden.resolveAction({ action: graph.getRun("artifacts-task"), log, graph })
-        const spec = action.getSpec() as KubernetesPodRunActionSpec
+      const interactiveModeContexts = [{ interactive: false }, { interactive: true }]
 
-        const result = await runAndCopy({
-          ctx: await garden.getPluginContext({ provider, templateContext: undefined, events: undefined }),
-          log: garden.log,
-          command: spec.command,
-          args: [],
-          interactive: false,
-          namespace,
-          artifacts: spec.artifacts,
-          artifactsPath: tmpDir.path,
-          image,
-          action,
-          timeout: DEFAULT_RUN_TIMEOUT_SEC,
-        })
+      for (const interactiveModeContext of interactiveModeContexts) {
+        const interactive = interactiveModeContext.interactive
 
-        expect(result.log.trim()).to.equal("ok")
-        expect(await pathExists(join(tmpDir.path, "task.txt"))).to.be.true
-        expect(await pathExists(join(tmpDir.path, "subdir", "task.txt"))).to.be.true
-      })
+        context(`when --interactive=${interactive}`, () => {
+          it("should copy artifacts out of the container", async () => {
+            const action = await garden.resolveAction({ action: graph.getRun("artifacts-task"), log, graph })
+            const spec = action.getSpec() as KubernetesPodRunActionSpec
 
-      it("should clean up the created Pod", async () => {
-        const action = await garden.resolveAction({ action: graph.getRun("artifacts-task"), log, graph })
-        const spec = action.getSpec() as KubernetesPodRunActionSpec
-        const podName = makePodName("test", action.name)
-
-        await runAndCopy({
-          ctx: await garden.getPluginContext({ provider, templateContext: undefined, events: undefined }),
-          log: garden.log,
-          command: spec.command,
-          args: [],
-          interactive: false,
-          namespace,
-          podName,
-          action,
-          artifacts: spec.artifacts,
-          artifactsPath: tmpDir.path,
-          image,
-          timeout: DEFAULT_RUN_TIMEOUT_SEC,
-        })
-
-        await expectError(
-          () => api.core.readNamespacedPod({ name: podName, namespace }),
-          (err) => {
-            expect(err).to.be.instanceOf(KubernetesError)
-            expect(err.responseStatusCode).to.equal(404)
-          }
-        )
-      })
-
-      it("should handle globs when copying artifacts out of the container", async () => {
-        const action = await garden.resolveAction({ action: graph.getRun("globs-task"), log, graph })
-        const spec = action.getSpec() as KubernetesPodRunActionSpec
-
-        await runAndCopy({
-          ctx: await garden.getPluginContext({ provider, templateContext: undefined, events: undefined }),
-          log: garden.log,
-          command: spec.command,
-          args: [],
-          interactive: false,
-          namespace,
-          action,
-          artifacts: spec.artifacts,
-          artifactsPath: tmpDir.path,
-          image,
-          timeout: DEFAULT_RUN_TIMEOUT_SEC,
-        })
-
-        expect(await pathExists(join(tmpDir.path, "subdir", "task.txt"))).to.be.true
-        expect(await pathExists(join(tmpDir.path, "output.txt"))).to.be.true
-      })
-
-      it("should not throw when an artifact is missing", async () => {
-        const action = await garden.resolveAction({ action: graph.getRun("artifacts-task"), log, graph })
-        const spec = action.getSpec() as KubernetesPodRunActionSpec
-
-        await runAndCopy({
-          ctx: await garden.getPluginContext({ provider, templateContext: undefined, events: undefined }),
-          log: garden.log,
-          command: ["sh", "-c", "echo ok"],
-          args: [],
-          interactive: false,
-          action,
-          namespace,
-          artifacts: spec.artifacts,
-          artifactsPath: tmpDir.path,
-          image,
-          timeout: DEFAULT_RUN_TIMEOUT_SEC,
-        })
-      })
-
-      it("should correctly copy a whole directory", async () => {
-        const action = await garden.resolveAction({ action: graph.getRun("artifacts-task"), log, graph })
-
-        await runAndCopy({
-          ctx: await garden.getPluginContext({ provider, templateContext: undefined, events: undefined }),
-          log: garden.log,
-          command: ["sh", "-c", "mkdir -p /report && touch /report/output.txt && echo ok"],
-          args: [],
-          interactive: false,
-          action,
-          namespace,
-          artifacts: [
-            {
-              source: "/report/*",
-              target: "my-task-report",
-            },
-          ],
-          artifactsPath: tmpDir.path,
-          image,
-          timeout: DEFAULT_RUN_TIMEOUT_SEC,
-        })
-
-        expect(await pathExists(join(tmpDir.path, "my-task-report"))).to.be.true
-        expect(await pathExists(join(tmpDir.path, "my-task-report", "output.txt"))).to.be.true
-      })
-
-      it("should correctly copy a whole directory without setting a wildcard or target", async () => {
-        const action = await garden.resolveAction({ action: graph.getRun("artifacts-task"), log, graph })
-
-        await runAndCopy({
-          ctx: await garden.getPluginContext({ provider, templateContext: undefined, events: undefined }),
-          log: garden.log,
-          command: ["sh", "-c", "mkdir -p /report && touch /report/output.txt && echo ok"],
-          args: [],
-          interactive: false,
-          action,
-          namespace,
-          artifacts: [
-            {
-              source: "/report",
-              target: ".",
-            },
-          ],
-          artifactsPath: tmpDir.path,
-          image,
-          timeout: DEFAULT_RUN_TIMEOUT_SEC,
-        })
-
-        expect(await pathExists(join(tmpDir.path, "report"))).to.be.true
-        expect(await pathExists(join(tmpDir.path, "report", "output.txt"))).to.be.true
-      })
-
-      it("should return with logs and success=false when command exceeds timeout", async () => {
-        const action = await garden.resolveAction({ action: graph.getRun("artifacts-task"), log, graph })
-        const spec = action.getSpec() as KubernetesPodRunActionSpec
-
-        const timeout = 3
-        const result = await runAndCopy({
-          ctx: await garden.getPluginContext({ provider, templateContext: undefined, events: undefined }),
-          log: garden.log,
-          command: ["sh", "-c", "echo banana && sleep 10"],
-          args: [],
-          interactive: false,
-          action,
-          namespace,
-          artifacts: spec.artifacts,
-          artifactsPath: tmpDir.path,
-          image,
-          timeout,
-        })
-
-        expect(result.log.trim()).to.equal(
-          `Command timed out after ${timeout} seconds. Here are the logs until the timeout occurred:\n\nbanana`
-        )
-        expect(result.success).to.be.false
-      })
-
-      it("should copy artifacts out of the container even when task times out", async () => {
-        const action = await garden.resolveAction({ action: graph.getRun("artifacts-task"), log, graph })
-        const spec = action.getSpec() as KubernetesPodRunActionSpec
-
-        const timeout = 3
-        const result = await runAndCopy({
-          ctx: await garden.getPluginContext({ provider, templateContext: undefined, events: undefined }),
-          log: garden.log,
-          command: ["sh", "-c", "touch /task.txt && sleep 10"],
-          args: [],
-          interactive: false,
-          action,
-          namespace,
-          artifacts: spec.artifacts,
-          artifactsPath: tmpDir.path,
-          image,
-          timeout,
-        })
-
-        expect(result.log.trim()).to.equal(`Command timed out after ${timeout} seconds.`)
-        expect(await pathExists(join(tmpDir.path, "task.txt"))).to.be.true
-        expect(result.success).to.be.false
-      })
-
-      it("should throw when no command is specified", async () => {
-        const action = await garden.resolveAction({ action: graph.getRun("missing-tar-task"), log, graph })
-        const spec = action.getSpec() as KubernetesPodRunActionSpec
-
-        await expectError(
-          async () =>
-            runAndCopy({
+            const result = await runAndCopy({
               ctx: await garden.getPluginContext({ provider, templateContext: undefined, events: undefined }),
               log: garden.log,
+              command: spec.command,
               args: [],
-              interactive: false,
+              interactive,
+              namespace,
+              artifacts: spec.artifacts,
+              artifactsPath: tmpDir.path,
+              image,
+              action,
+              timeout: DEFAULT_RUN_TIMEOUT_SEC,
+            })
+
+            expect(result.log.trim()).to.equal("ok")
+            expect(await pathExists(join(tmpDir.path, "task.txt"))).to.be.true
+            expect(await pathExists(join(tmpDir.path, "subdir", "task.txt"))).to.be.true
+          })
+
+          it("should clean up the created Pod", async () => {
+            const action = await garden.resolveAction({ action: graph.getRun("artifacts-task"), log, graph })
+            const spec = action.getSpec() as KubernetesPodRunActionSpec
+            const podName = makePodName("test", action.name)
+
+            await runAndCopy({
+              ctx: await garden.getPluginContext({ provider, templateContext: undefined, events: undefined }),
+              log: garden.log,
+              command: spec.command,
+              args: [],
+              interactive,
+              namespace,
+              podName,
+              action,
+              artifacts: spec.artifacts,
+              artifactsPath: tmpDir.path,
+              image,
+              timeout: DEFAULT_RUN_TIMEOUT_SEC,
+            })
+
+            await expectError(
+              () => api.core.readNamespacedPod({ name: podName, namespace }),
+              (err) => {
+                expect(err).to.be.instanceOf(KubernetesError)
+                expect(err.responseStatusCode).to.equal(404)
+              }
+            )
+          })
+
+          it("should handle globs when copying artifacts out of the container", async () => {
+            const action = await garden.resolveAction({ action: graph.getRun("globs-task"), log, graph })
+            const spec = action.getSpec() as KubernetesPodRunActionSpec
+
+            await runAndCopy({
+              ctx: await garden.getPluginContext({ provider, templateContext: undefined, events: undefined }),
+              log: garden.log,
+              command: spec.command,
+              args: [],
+              interactive,
+              namespace,
+              action,
+              artifacts: spec.artifacts,
+              artifactsPath: tmpDir.path,
+              image,
+              timeout: DEFAULT_RUN_TIMEOUT_SEC,
+            })
+
+            expect(await pathExists(join(tmpDir.path, "subdir", "task.txt"))).to.be.true
+            expect(await pathExists(join(tmpDir.path, "output.txt"))).to.be.true
+          })
+
+          it("should not throw when an artifact is missing", async () => {
+            const action = await garden.resolveAction({ action: graph.getRun("artifacts-task"), log, graph })
+            const spec = action.getSpec() as KubernetesPodRunActionSpec
+
+            await runAndCopy({
+              ctx: await garden.getPluginContext({ provider, templateContext: undefined, events: undefined }),
+              log: garden.log,
+              command: ["sh", "-c", "echo ok"],
+              args: [],
+              interactive,
               action,
               namespace,
               artifacts: spec.artifacts,
               artifactsPath: tmpDir.path,
-              description: "Foo",
               image,
               timeout: DEFAULT_RUN_TIMEOUT_SEC,
-            }),
-          (err) =>
-            expect(err.message).to.include(deline`
+            })
+          })
+
+          it("should correctly copy a whole directory", async () => {
+            const action = await garden.resolveAction({ action: graph.getRun("artifacts-task"), log, graph })
+
+            await runAndCopy({
+              ctx: await garden.getPluginContext({ provider, templateContext: undefined, events: undefined }),
+              log: garden.log,
+              command: ["sh", "-c", "mkdir -p /report && touch /report/output.txt && echo ok"],
+              args: [],
+              interactive,
+              action,
+              namespace,
+              artifacts: [
+                {
+                  source: "/report/*",
+                  target: "my-task-report",
+                },
+              ],
+              artifactsPath: tmpDir.path,
+              image,
+              timeout: DEFAULT_RUN_TIMEOUT_SEC,
+            })
+
+            expect(await pathExists(join(tmpDir.path, "my-task-report"))).to.be.true
+            expect(await pathExists(join(tmpDir.path, "my-task-report", "output.txt"))).to.be.true
+          })
+
+          it("should correctly copy a whole directory without setting a wildcard or target", async () => {
+            const action = await garden.resolveAction({ action: graph.getRun("artifacts-task"), log, graph })
+
+            await runAndCopy({
+              ctx: await garden.getPluginContext({ provider, templateContext: undefined, events: undefined }),
+              log: garden.log,
+              command: ["sh", "-c", "mkdir -p /report && touch /report/output.txt && echo ok"],
+              args: [],
+              interactive,
+              action,
+              namespace,
+              artifacts: [
+                {
+                  source: "/report",
+                  target: ".",
+                },
+              ],
+              artifactsPath: tmpDir.path,
+              image,
+              timeout: DEFAULT_RUN_TIMEOUT_SEC,
+            })
+
+            expect(await pathExists(join(tmpDir.path, "report"))).to.be.true
+            expect(await pathExists(join(tmpDir.path, "report", "output.txt"))).to.be.true
+          })
+
+          it("should return with logs and success=false when command exceeds timeout", async () => {
+            const action = await garden.resolveAction({ action: graph.getRun("artifacts-task"), log, graph })
+            const spec = action.getSpec() as KubernetesPodRunActionSpec
+
+            const timeout = 3
+            const result = await runAndCopy({
+              ctx: await garden.getPluginContext({ provider, templateContext: undefined, events: undefined }),
+              log: garden.log,
+              command: ["sh", "-c", "echo banana && sleep 10"],
+              args: [],
+              interactive,
+              action,
+              namespace,
+              artifacts: spec.artifacts,
+              artifactsPath: tmpDir.path,
+              image,
+              timeout,
+            })
+
+            expect(result.log.trim()).to.equal(
+              `Command timed out after ${timeout} seconds. Here are the logs until the timeout occurred:\n\nbanana`
+            )
+            expect(result.success).to.be.false
+          })
+
+          it("should copy artifacts out of the container even when task times out", async () => {
+            const action = await garden.resolveAction({ action: graph.getRun("artifacts-task"), log, graph })
+            const spec = action.getSpec() as KubernetesPodRunActionSpec
+
+            const timeout = 3
+            const result = await runAndCopy({
+              ctx: await garden.getPluginContext({ provider, templateContext: undefined, events: undefined }),
+              log: garden.log,
+              command: ["sh", "-c", "touch /task.txt && sleep 10"],
+              args: [],
+              interactive,
+              action,
+              namespace,
+              artifacts: spec.artifacts,
+              artifactsPath: tmpDir.path,
+              image,
+              timeout,
+            })
+
+            expect(result.log.trim()).to.equal(`Command timed out after ${timeout} seconds.`)
+            expect(await pathExists(join(tmpDir.path, "task.txt"))).to.be.true
+            expect(result.success).to.be.false
+          })
+
+          it("should throw when no command is specified", async () => {
+            const action = await garden.resolveAction({ action: graph.getRun("missing-tar-task"), log, graph })
+            const spec = action.getSpec() as KubernetesPodRunActionSpec
+
+            await expectError(
+              async () =>
+                runAndCopy({
+                  ctx: await garden.getPluginContext({ provider, templateContext: undefined, events: undefined }),
+                  log: garden.log,
+                  args: [],
+                  interactive,
+                  action,
+                  namespace,
+                  artifacts: spec.artifacts,
+                  artifactsPath: tmpDir.path,
+                  description: "Foo",
+                  image,
+                  timeout: DEFAULT_RUN_TIMEOUT_SEC,
+                }),
+              (err) =>
+                expect(err.message).to.include(deline`
               Foo specifies artifacts to export, but doesn't explicitly set a \`command\`.
               The kubernetes provider currently requires an explicit command to be set for tests and tasks that
               export artifacts, because the image's entrypoint cannot be inferred in that execution mode.
               Please set the \`command\` field and try again.
             `)
-        )
-      })
+            )
+          })
+        })
+      }
     })
   })
 })
