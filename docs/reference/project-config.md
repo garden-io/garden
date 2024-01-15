@@ -155,11 +155,11 @@ scan:
   exclude:
 
   git:
-    # Choose how to perform scans of git repositories. The default (`subtree`) runs individual git scans on each
-    # action/module path. The `repo` mode scans entire repositories and then filters down to files matching the paths,
-    # includes and excludes for each action/module. This can be considerably more efficient for large projects with
-    # many actions/modules.
-    mode: repo
+    # Choose how to perform scans of git repositories. Defaults to `subtree`. The `subtree` runs individual git scans
+    # on each action/module path. The `repo` mode scans entire repositories and then filters down to files matching
+    # the paths, includes and excludes for each action/module. This can be considerably more efficient for large
+    # projects with many actions/modules.
+    mode: subtree
 
 # A list of output values that the project should export. These are exported by the `garden get outputs` command, as
 # well as when referencing a project as a sub-project within another project.
@@ -576,11 +576,11 @@ scan:
 
 [scan](#scan) > [git](#scangit) > mode
 
-Choose how to perform scans of git repositories. The default (`subtree`) runs individual git scans on each action/module path. The `repo` mode scans entire repositories and then filters down to files matching the paths, includes and excludes for each action/module. This can be considerably more efficient for large projects with many actions/modules.
+Choose how to perform scans of git repositories. Defaults to `subtree`. The `subtree` runs individual git scans on each action/module path. The `repo` mode scans entire repositories and then filters down to files matching the paths, includes and excludes for each action/module. This can be considerably more efficient for large projects with many actions/modules.
 
-| Type     | Allowed Values    | Default  | Required |
-| -------- | ----------------- | -------- | -------- |
-| `string` | "repo", "subtree" | `"repo"` | Yes      |
+| Type     | Allowed Values    | Default     | Required |
+| -------- | ----------------- | ----------- | -------- |
+| `string` | "repo", "subtree" | `"subtree"` | Yes      |
 
 ### `outputs[]`
 
