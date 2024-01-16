@@ -168,7 +168,7 @@
     "@google-cloud/artifact-registry": "^3.0.1",
     "@types/analytics-node": "^3.1.14",
     "@types/archiver": "^6.0.2",
-    "@types/async": "^3.2.23",
+    "@types/async": "^3.2.24",
     "@types/async-lock": "^1.4.0",
     "@types/chai": "^4.3.4",
     "@types/circular-json": "^0.4.0",
