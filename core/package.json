@@ -184,7 +184,7 @@
     "@types/inquirer": "7.3.3",
     "@types/ip": "^1.1.0",
     "@types/is-git-url": "^1.0.2",
-    "@types/is-glob": "^4.0.2",
+    "@types/is-glob": "^4.0.4",
     "@types/is-url": "^1.2.32",
     "@types/js-yaml": "^4.0.9",
     "@types/json-merge-patch": "0.0.8",
