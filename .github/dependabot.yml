@@ -6,7 +6,7 @@
 version: 2
 updates:
   ### main branch
-  
+
   # Automatically update GitHub Actions
   - package-ecosystem: "github-actions"
     directory: "/"
@@ -25,21 +25,3 @@ updates:
     open-pull-requests-limit: 5
     schedule:
       interval: "weekly"
-
-  ### 0.12 branch
-  
-  # Automatically update GitHub Actions
-  - package-ecosystem: "github-actions"
-    target-branch: "0.12"
-    directory: "/"
-    open-pull-requests-limit: 5
-    schedule:
-      interval: "weekly"
-  # Automatically update Dockerfile FROM images
-  - package-ecosystem: "docker"
-    target-branch: "0.12"
-    directory: "/support/"
-    open-pull-requests-limit: 5
-    schedule:
-      interval: "weekly"
-
