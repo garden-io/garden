@@ -1,6 +1,9 @@
 apiVersion: garden.io/v1
 kind: Project
 name: remote-sources
+scan:
+  git:
+    mode: repo
 sources:
   - name: web-services
     # use #your-branch to specify a branch, #v0.3.0 for a tag or a full length commit SHA1

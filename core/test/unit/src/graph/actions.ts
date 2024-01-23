@@ -48,6 +48,7 @@ describe("preprocessActionConfig", () => {
           garden,
           config,
           router,
+          linkedSources: {},
           mode: "default",
           log: garden.log,
         })
@@ -73,6 +74,7 @@ describe("preprocessActionConfig", () => {
           garden,
           config,
           router,
+          linkedSources: {},
           mode: "default",
           log: garden.log,
         })

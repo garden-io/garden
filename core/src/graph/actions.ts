@@ -152,6 +152,7 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
           garden,
           config,
           router,
+          linkedSources,
           log,
           mode,
         })
@@ -208,7 +209,7 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
 
   await Promise.all(
     Object.entries(preprocessResults).map(async ([key, res]) => {
-      const { config, supportedModes, templateContext } = res
+      const { config, linkedSource, remoteSourcePath, supportedModes, templateContext } = res
       const { mode, explicitMode } = computedActionModes[key]
 
       try {
@@ -219,7 +220,8 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
           log,
           configsByKey,
           mode,
-          linkedSources,
+          linkedSource,
+          remoteSourcePath,
           templateContext,
           supportedModes,
           scanRoot: minimalRoots[getSourcePath(config)],
@@ -312,11 +314,12 @@ export const actionFromConfig = profileAsync(async function actionFromConfig({
   scanRoot?: string
 }) {
   // Call configure handler and validate
-  const { config, supportedModes, templateContext } = await preprocessActionConfig({
+  const { config, supportedModes, linkedSource, remoteSourcePath, templateContext } = await preprocessActionConfig({
     garden,
     config: inputConfig,
     router,
     mode,
+    linkedSources,
     log,
   })
 
@@ -327,7 +330,8 @@ export const actionFromConfig = profileAsync(async function actionFromConfig({
     log,
     configsByKey,
     mode,
-    linkedSources,
+    linkedSource,
+    remoteSourcePath,
     templateContext,
     supportedModes,
     scanRoot,
@@ -341,7 +345,8 @@ async function processActionConfig({
   log,
   configsByKey,
   mode,
-  linkedSources,
+  linkedSource,
+  remoteSourcePath,
   templateContext,
   supportedModes,
   scanRoot,
@@ -352,7 +357,8 @@ async function processActionConfig({
   log: Log
   configsByKey: ActionConfigsByKey
   mode: ActionMode
-  linkedSources: LinkedSourceMap
+  linkedSource: LinkedSource | null
+  remoteSourcePath: string | null
   templateContext: ActionConfigContext
   supportedModes: ActionModes
   scanRoot?: string
@@ -360,30 +366,6 @@ async function processActionConfig({
   const actionTypes = await garden.getActionTypes()
   const definition = actionTypes[config.kind][config.type]?.spec
   const compatibleTypes = [config.type, ...getActionTypeBases(definition, actionTypes[config.kind]).map((t) => t.name)]
-  const repositoryUrl = config.source?.repository?.url
-  const key = actionReferenceToString(config)
-
-  let linked: LinkedSource | null = null
-  let remoteSourcePath: string | null = null
-  if (repositoryUrl) {
-    if (config.internal.remoteClonePath) {
-      // Carry over clone path from converted module
-      remoteSourcePath = config.internal.remoteClonePath
-    } else {
-      remoteSourcePath = await garden.resolveExtSourcePath({
-        name: key,
-        sourceType: "action",
-        repositoryUrl,
-        linkedSources: Object.values(linkedSources),
-      })
-
-      config.internal.basePath = remoteSourcePath
-    }
-
-    if (linkedSources[key]) {
-      linked = linkedSources[key]
-    }
-  }
 
   const configPath = relative(garden.projectRoot, config.internal.configFilePath || config.internal.basePath)
 
@@ -453,7 +435,7 @@ async function processActionConfig({
     projectRoot: garden.projectRoot,
     treeVersion,
     variables,
-    linkedSource: linked,
+    linkedSource,
     remoteSourcePath,
     moduleName: config.internal.moduleName,
     moduleVersion: config.internal.moduleVersion,
@@ -618,20 +600,24 @@ function getActionSchema(kind: ActionKind) {
 interface PreprocessActionResult {
   config: ActionConfig
   supportedModes: ActionModes
+  remoteSourcePath: string | null
+  linkedSource: LinkedSource | null
   templateContext: ActionConfigContext
 }
 
 export const preprocessActionConfig = profileAsync(async function preprocessActionConfig({
   garden,
   config,
-  mode,
   router,
+  mode,
+  linkedSources,
   log,
 }: {
   garden: Garden
   config: ActionConfig
   router: ActionRouter
   mode: ActionMode
+  linkedSources: LinkedSourceMap
   log: Log
 }): Promise<PreprocessActionResult> {
   const description = describeActionConfig(config)
@@ -809,7 +795,38 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
     })
   }
 
-  return { config, supportedModes, templateContext: builtinFieldContext }
+  const repositoryUrl = config.source?.repository?.url
+  const key = actionReferenceToString(config)
+
+  let linkedSource: LinkedSource | null = null
+  let remoteSourcePath: string | null = null
+  if (repositoryUrl) {
+    if (config.internal.remoteClonePath) {
+      // Carry over clone path from converted module
+      remoteSourcePath = config.internal.remoteClonePath
+    } else {
+      remoteSourcePath = await garden.resolveExtSourcePath({
+        name: key,
+        sourceType: "action",
+        repositoryUrl,
+        linkedSources: Object.values(linkedSources),
+      })
+
+      config.internal.basePath = remoteSourcePath
+    }
+
+    if (linkedSources[key]) {
+      linkedSource = linkedSources[key]
+    }
+  }
+
+  return {
+    config,
+    supportedModes,
+    remoteSourcePath,
+    linkedSource,
+    templateContext: builtinFieldContext,
+  }
 })
 
 function dependenciesFromActionConfig(
