@@ -1341,7 +1341,7 @@ workflows:
       - test-plugins:
           <<: *only-internal-prs
           requires: [build]
-          kindNodeImage: kindest/node:v1.21.14@sha256:27ef72ea623ee879a25fe6f9982690a3e370c68286f4356bf643467c552a3888
+          kindNodeImage: kindest/node:1.29.0@sha256:54a50c9354f11ce0aa56a85d2cacb1b950f85eab3fe1caf988826d1f89bf37eb
 
       # This is only for edge release (Overrides version to edge-bonsai)
       - build:
