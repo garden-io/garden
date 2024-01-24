@@ -1324,14 +1324,6 @@ workflows:
           name: vm-1.26-microk8s
           requires: [build]
           kubernetesVersion: "1.26"
-      - test-kind:
-          name: vm-1.24-kind
-          requires: [build]
-          kindNodeImage: kindest/node:v1.24.12@sha256:1e12918b8bc3d4253bc08f640a231bb0d3b2c5a9b28aa3f2ca1aee93e1e8db16
-      - test-kind:
-          name: vm-1.26-kind
-          requires: [build]
-          kindNodeImage: kindest/node:v1.26.3@sha256:61b92f38dff6ccc29969e7aa154d34e38b89443af1a2c14e6cfbd2df6419c66f
       - test-k3s:
           name: vm-1.27-k3s
           requires: [build]
