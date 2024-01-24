@@ -1333,22 +1333,10 @@ workflows:
           name: vm-1.21-kind
           requires: [build]
           kindNodeImage: kindest/node:v1.21.14@sha256:27ef72ea623ee879a25fe6f9982690a3e370c68286f4356bf643467c552a3888
-      # - test-kind:
-      #     name: vm-1.22-kind
-      #     requires: [build]
-      #     kindNodeImage: kindest/node:v1.22.17@sha256:c8a828709a53c25cbdc0790c8afe12f25538617c7be879083248981945c38693
-      # - test-kind:
-      #     name: vm-1.23-kind
-      #     requires: [build]
-      #     kindNodeImage: kindest/node:v1.23.17@sha256:e5fd1d9cd7a9a50939f9c005684df5a6d145e8d695e78463637b79464292e66c
       - test-kind:
           name: vm-1.24-kind
           requires: [build]
           kindNodeImage: kindest/node:v1.24.12@sha256:1e12918b8bc3d4253bc08f640a231bb0d3b2c5a9b28aa3f2ca1aee93e1e8db16
-      # - test-kind:
-      #     name: vm-1.25-kind
-      #     requires: [build]
-      #     kindNodeImage: kindest/node:v1.25.8@sha256:00d3f5314cc35327706776e95b2f8e504198ce59ac545d0200a89e69fce10b7f
       - test-kind:
           name: vm-1.26-kind
           requires: [build]
