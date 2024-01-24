@@ -1573,7 +1573,7 @@ export class Garden {
   }
 
   /**
-   * Clones the project/module source if needed and returns the path (either from .garden/sources or from a local path)
+   * Clones the project/action/module source if needed and returns the path (either from .garden/sources or from a local path)
    */
   public async resolveExtSourcePath({
     name,

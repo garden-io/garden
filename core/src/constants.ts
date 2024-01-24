@@ -18,7 +18,7 @@ const extractedRoot = process.env.GARDEN_SEA_EXTRACTED_ROOT
 
 export const gitScanModes = ["repo", "subtree"] as const
 export type GitScanMode = (typeof gitScanModes)[number]
-export const defaultGitScanMode: GitScanMode = "subtree"
+export const defaultGitScanMode: GitScanMode = "repo"
 
 export const GARDEN_CORE_ROOT = !!extractedRoot
   ? resolve(extractedRoot, "src", "core")

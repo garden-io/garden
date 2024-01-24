@@ -20,6 +20,7 @@ import {
   DEFAULT_RUN_TIMEOUT_SEC,
   DEFAULT_TEST_TIMEOUT_SEC,
 } from "../../../../src/constants.js"
+import { getRemoteSourceLocalPath } from "../../../../src/util/ext-source-util.js"
 
 describe("actionConfigsToGraph", () => {
   let tmpDir: TempDirectory
@@ -1027,6 +1028,45 @@ describe("actionConfigsToGraph", () => {
 
     const action = graph.getBuild("foo")
     expect(action.getConfig("timeout")).to.equal(123)
+  })
+
+  describe("action with source.repository.url set", () => {
+    it("sets the base path to the local cloned path when a repositoryUrl is specified", async () => {
+      const repoUrl = "https://github.com/garden-io/garden-example-remote-module-jworker.git#main"
+      const graph = await actionConfigsToGraph({
+        garden,
+        log,
+        groupConfigs: [],
+        configs: [
+          {
+            kind: "Build",
+            type: "test",
+            name: "foo",
+            timeout: DEFAULT_BUILD_TIMEOUT_SEC,
+            internal: {
+              basePath: tmpDir.path,
+            },
+            spec: {},
+            source: {
+              repository: { url: repoUrl },
+            },
+          },
+        ],
+        moduleGraph: new ModuleGraph([], {}),
+        actionModes: {},
+        linkedSources: {},
+        environmentName: garden.environmentName,
+      })
+      const action = graph.getBuild("foo")
+
+      const clonePath = getRemoteSourceLocalPath({
+        name: action.key(),
+        url: repoUrl,
+        type: "action",
+        gardenDirPath: garden.gardenDirPath,
+      })
+      expect(action._config.internal.basePath.startsWith(clonePath)).to.be.true
+    })
   })
 
   describe("file inclusion-exclusion", () => {
