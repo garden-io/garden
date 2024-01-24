@@ -1358,6 +1358,14 @@ workflows:
           requires: [build]
           # version v1.27.4+k3s1 fails with this issue https://github.com/moby/moby/issues/45935
           k3sVersion: v1.27.2+k3s1
+      - test-kind:
+          name: vm-1.28-kind
+          requires: [build]
+          kindNodeImage: kindest/node:v1.28.0@sha256:9f3ff58f19dcf1a0611d11e8ac989fdb30a28f40f236f59f0bea31fb956ccf5c
+      - test-kind:
+          name: vm-1.29-kind
+          requires: [build]
+          kindNodeImage: kindest/node:v1.29.0@sha256:54a50c9354f11ce0aa56a85d2cacb1b950f85eab3fe1caf988826d1f89bf37eb
 
       - test-plugins:
           <<: *only-internal-prs
