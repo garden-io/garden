@@ -34,11 +34,11 @@ import { waitForResources, DeploymentResourceStatusError } from "./status/status
 import { getResourceRequirements, getSecurityContext } from "./container/util.js"
 import { KUBECTL_DEFAULT_TIMEOUT } from "./kubectl.js"
 import fsExtra from "fs-extra"
+
 const { copy } = fsExtra
 import type { PodLogEntryConverter, PodLogEntryConverterParams } from "./logs.js"
 import { K8sLogFollower } from "./logs.js"
 import { Stream } from "ts-stream"
-import type { BaseRunParams } from "../../plugin/handlers/base/base.js"
 import type { V1PodSpec, V1Container, V1Pod, V1ContainerStatus, V1PodStatus } from "@kubernetes/client-node"
 import type { RunResult } from "../../plugin/base.js"
 import { LogLevel } from "../../logger/logger.js"
@@ -105,6 +105,13 @@ export const makeRunLogEntry: PodLogEntryConverter<RunLogEntry> = ({ timestamp, 
 
 export const runContainerExcludeFields: (keyof V1Container)[] = ["readinessProbe", "livenessProbe", "startupProbe"]
 
+interface BaseRunAndCopyParams {
+  command?: string[]
+  args: string[]
+  interactive: boolean
+  timeout: number
+}
+
 // TODO: jfc this function signature stinks like all hell - JE
 export async function runAndCopy({
   ctx,
@@ -128,7 +135,7 @@ export async function runAndCopy({
   privileged,
   addCapabilities,
   dropCapabilities,
-}: BaseRunParams & {
+}: BaseRunAndCopyParams & {
   ctx: PluginContext
   log: Log
   action: SupportedRuntimeAction
@@ -137,7 +144,7 @@ export async function runAndCopy({
   podName?: string
   podSpec?: V1PodSpec
   artifacts?: ArtifactSpec[]
-  artifactsPath?: string
+  artifactsPath: string
   envVars?: ContainerEnvVars
   resources?: ContainerResourcesSpec
   description?: string
@@ -150,7 +157,7 @@ export async function runAndCopy({
   const provider = <KubernetesProvider>ctx.provider
   const api = await KubeApi.factory(log, ctx, provider)
 
-  const getArtifacts = !!(!interactive && artifacts && artifacts.length > 0 && artifactsPath)
+  const getArtifacts = artifacts.length > 0
   const mainContainerName = "main"
 
   if (!description) {
@@ -223,7 +230,7 @@ export async function runAndCopy({
       ...runParams,
       mainContainerName,
       artifacts,
-      artifactsPath: artifactsPath!,
+      artifactsPath,
       description,
       stdout: outputStream,
       stderr: outputStream,
@@ -394,7 +401,7 @@ async function runWithoutArtifacts({
   api: KubeApi
   provider: KubernetesProvider
   podData: PodData
-  run: BaseRunParams
+  run: BaseRunAndCopyParams
 }): Promise<RunResult> {
   const { timeout: timeoutSec, interactive } = run
 
@@ -499,7 +506,7 @@ async function runWithArtifacts({
   stdout: Writable
   stderr: Writable
   podData: PodData
-  run: BaseRunParams
+  run: BaseRunAndCopyParams
 }): Promise<RunResult> {
   const { args, command, timeout: timeoutSec } = run
 
