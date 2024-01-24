@@ -1308,11 +1308,6 @@ workflows:
       # tested, and that the most recent versions are broadly tested. The kind tests are the cheapest to run so we use many
       # of those, but they currently don't test in-cluster building, so we do need a range of versions on minikube as well.
       - test-minikube:
-          name: vm-1.22-minikube
-          requires: [build]
-          kubernetesVersion: "1.22.2"
-          minikubeVersion: "v1.25.2"
-      - test-minikube:
           name: vm-1.23-minikube
           requires: [build]
           kubernetesVersion: "1.23.3"
@@ -1329,10 +1324,6 @@ workflows:
           name: vm-1.26-microk8s
           requires: [build]
           kubernetesVersion: "1.26"
-      - test-kind:
-          name: vm-1.21-kind
-          requires: [build]
-          kindNodeImage: kindest/node:v1.21.14@sha256:27ef72ea623ee879a25fe6f9982690a3e370c68286f4356bf643467c552a3888
       - test-kind:
           name: vm-1.24-kind
           requires: [build]
