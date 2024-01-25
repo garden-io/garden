@@ -118,9 +118,6 @@ export async function apply({
 
   const input = Buffer.from(encodeYamlMulti(manifests))
 
-  const manifestLogLevel = "debug" as const
-  log[manifestLogLevel](`Applying Kubernetes manifests:\n${input.toString()}`)
-
   const args = ["apply"]
   dryRun && args.push("--dry-run")
   args.push("--output=json", "-f", "-")
@@ -146,10 +143,7 @@ export async function apply({
         message: dedent`
           Failed to apply Kubernetes manifests. This is the output of the kubectl command:
 
-          ${e.details.output}
-
-          Use the option "--log-level ${manifestLogLevel}" to see the kubernetes manifests that we attempted to apply through "kubectl apply".
-          `,
+          ${e.details.output}`,
       })
     }
     throw e
