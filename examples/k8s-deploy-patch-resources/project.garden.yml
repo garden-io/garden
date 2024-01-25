@@ -10,7 +10,7 @@ variables:
   postgresPassword: postgres # <-- Don't do this in production!
   # postgresPassword: ${secrets.POSTGRES_PASSWORD} # <-- It's recommended to store secrets in Garden Enterprise
 
-  remoteEnvName: k8s-deploy-shared-${kebabCase(local.username)}
+  remoteEnvName: k8s-deploy-patch-${kebabCase(local.username)}
 
 environments:
   - name: local

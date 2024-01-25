@@ -1,22 +1,16 @@
 module.exports = {
   devServer: {
-    disableHostCheck: true,
-    public: process.env.HOSTNAME ? `http://${process.env.HOSTNAME}` : undefined,
-    progress: false,
+    allowedHosts: "all",
+    client: {
+      webSocketURL: process.env.HOSTNAME ? "http://" + process.env.HOSTNAME : undefined,
+    },
     proxy: {
-      '^/api': {
-        target: 'http://api',
+      "^/api": {
+        target: "http://api",
         changeOrigin: true,
         secure: false,
-        logLevel: 'debug',
-      },
-      '^/socket.io': {
-        target: 'http://result',
-        changeOrigin: true,
-        secure: false,
-        ws: true,
-        logLevel: 'debug',
+        logLevel: "debug",
       },
     },
   },
-};
+}

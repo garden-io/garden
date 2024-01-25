@@ -2065,7 +2065,7 @@ async function prepareCloud({
     )} command.`
     if (isCommunityEdition) {
       cloudLog.info(msg)
-      cloudLog.info(`Learn more at: ${styles.underline(`${DOCS_BASE_URL}/using-garden/dashboard`)}`)
+      cloudLog.info(`Learn more at: ${styles.link(`${DOCS_BASE_URL}/using-garden/dashboard`)}`)
     } else {
       cloudLog.warn(msg)
     }

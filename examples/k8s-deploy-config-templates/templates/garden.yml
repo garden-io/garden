@@ -19,7 +19,7 @@ configs:
 
     dependencies:
       - build.${parent.name}
-      - $concat: "${input.dependencies ? input.dependencies : []}"
+      - $concat: "${inputs.dependencies || []}"
 
     spec:
       files: ${inputs.manifests}
