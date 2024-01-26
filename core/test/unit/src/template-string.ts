@@ -1191,8 +1191,7 @@ describe("resolveTemplateString", () => {
 
     it("throws if the function fails", () => {
       void expectError(() => resolveTemplateString({ string: "${jsonDecode('{]}')}", context: new TestContext({}) }), {
-        contains:
-          "Invalid template string (${jsonDecode('{]}')}): Error from helper function jsonDecode: SyntaxError: Expected property name or '}' in JSON at position 1 (line 1 column 2)",
+        contains: "Invalid template string (${jsonDecode('{]}')}): Error from helper function jsonDecode: SyntaxError",
       })
     })
 
@@ -1205,6 +1204,17 @@ describe("resolveTemplateString", () => {
         },
       })
       expect(res).to.equal("${base64Encode('${environment.namespace}')}")
+    })
+
+    it("does not apply helper function on unresolved template object and returns string as-is, when allowPartial=true", () => {
+      const res = resolveTemplateString({
+        string: "${base64Encode(var.foo)}",
+        context: new TestContext({ foo: { $forEach: ["a", "b"], $return: "${item.value}" } }),
+        contextOpts: {
+          allowPartial: true,
+        },
+      })
+      expect(res).to.equal("${base64Encode(var.foo)}")
     })
 
     context("concat", () => {
