@@ -1,6 +1,6 @@
 apiVersion: "garden.io/v1"
 kind: Project
-name: kubernetes-deploy-shared-manifests
+name: k8s-deploy-config-templates
 defaultEnvironment: local
 dotIgnoreFile: .gitignore
 
@@ -10,7 +10,7 @@ variables:
   postgresPassword: postgres # <-- Don't do this in production!
   # postgresPassword: ${secrets.POSTGRES_PASSWORD} # <-- It's recommended to store secrets in Garden Enterprise
 
-  remoteEnvName: k8s-deploy-shared-${kebabCase(local.username)}
+  remoteEnvName: k8s-deploy-config-templates-${kebabCase(local.username)}
 
 environments:
   - name: local
