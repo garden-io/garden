@@ -93,7 +93,6 @@ export async function configureContainerModule({ log, moduleConfig }: ConfigureM
 
     for (const volume of spec.volumes) {
       if (volume.module) {
-        moduleConfig.build.dependencies.push({ name: volume.module, copy: [] })
         spec.dependencies.push(volume.module)
       }
     }
@@ -328,7 +327,7 @@ export async function convertContainerModule(params: ConvertModuleParams<Contain
   )
   actions.push(...runtimeActions)
   if (buildAction) {
-    buildAction.dependencies = buildAction?.dependencies?.filter((d) => !volumeModulesReferenced.includes(d.name))
+    buildAction.dependencies = buildAction.dependencies?.filter((d) => !volumeModulesReferenced.includes(d.name))
   }
 
   return {

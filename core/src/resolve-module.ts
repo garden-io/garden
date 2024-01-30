@@ -796,9 +796,14 @@ export const convertModules = profileAsync(async function convertModules(
         },
 
         convertRuntimeDependencies,
+        // Note: We include any build dependencies from the module, since not all conversions generate a non-dummy
+        // build action (and we need to make sure build dependencies from the module are processed before the generated
+        // Deploy/Test/Run is).
         prepareRuntimeDependencies(deps: string[], build?: BuildActionConfig<string, any>) {
-          const resolved: ActionReference[] = convertRuntimeDependencies(deps)
-          if (build) {
+          const buildDeps: ActionReference[] = module.build.dependencies.map(convertBuildDependency)
+          const resolved: ActionReference[] = [...buildDeps, ...convertRuntimeDependencies(deps)]
+          if (build && !buildDeps.find((d) => d.name === build.name && d.kind === "Build")) {
+            // We make sure not to add the same dependency twice here.
             resolved.push({ kind: "Build", name: build.name })
           }
           return resolved

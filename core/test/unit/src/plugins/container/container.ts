@@ -604,7 +604,7 @@ describe("plugins.container", () => {
       })
     })
 
-    it("should add service volume modules as build and runtime dependencies", async () => {
+    it("should add service volume modules as runtime dependencies and not as build ones", async () => {
       const moduleConfig: ContainerModuleConfig = {
         allowPublish: false,
         build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
@@ -660,7 +660,7 @@ describe("plugins.container", () => {
 
       const result = await configureContainerModule({ ctx, moduleConfig, log })
 
-      expect(result.moduleConfig.build.dependencies).to.eql([{ name: "volume-module", copy: [] }])
+      expect(result.moduleConfig.build.dependencies).to.eql([])
       expect(result.moduleConfig.serviceConfigs[0].dependencies).to.eql(["volume-module"])
     })
 
