@@ -712,7 +712,7 @@ describe("plugins.container", () => {
 
       const result = await configureContainerModule({ ctx, moduleConfig, log })
 
-      expect(result.moduleConfig.build.dependencies).to.eql([{ name: "volume-module", copy: [] }])
+      expect(result.moduleConfig.build.dependencies).to.eql([])
       expect(result.moduleConfig.taskConfigs[0].dependencies).to.eql(["volume-module"])
     })
 
@@ -763,7 +763,7 @@ describe("plugins.container", () => {
 
       const result = await configureContainerModule({ ctx, moduleConfig, log })
 
-      expect(result.moduleConfig.build.dependencies).to.eql([{ name: "volume-module", copy: [] }])
+      expect(result.moduleConfig.build.dependencies).to.eql([])
       expect(result.moduleConfig.testConfigs[0].dependencies).to.eql(["volume-module"])
     })
 
