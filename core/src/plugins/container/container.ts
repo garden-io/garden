@@ -328,7 +328,7 @@ export async function convertContainerModule(params: ConvertModuleParams<Contain
   )
   actions.push(...runtimeActions)
   if (buildAction) {
-    buildAction.dependencies = buildAction?.dependencies?.filter((d) => !volumeModulesReferenced.includes(d.name))
+    buildAction.dependencies = buildAction.dependencies?.filter((d) => !volumeModulesReferenced.includes(d.name))
   }
 
   return {
