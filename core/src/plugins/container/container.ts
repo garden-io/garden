@@ -108,7 +108,6 @@ export async function configureContainerModule({ log, moduleConfig }: ConfigureM
   moduleConfig.testConfigs = moduleConfig.spec.tests.map((t) => {
     for (const volume of t.volumes) {
       if (volume.module) {
-        moduleConfig.build.dependencies.push({ name: volume.module, copy: [] })
         t.dependencies.push(volume.module)
       }
     }
@@ -125,7 +124,6 @@ export async function configureContainerModule({ log, moduleConfig }: ConfigureM
   moduleConfig.taskConfigs = moduleConfig.spec.tasks.map((t) => {
     for (const volume of t.volumes) {
       if (volume.module) {
-        moduleConfig.build.dependencies.push({ name: volume.module, copy: [] })
         t.dependencies.push(volume.module)
       }
     }
