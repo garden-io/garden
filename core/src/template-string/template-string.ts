@@ -135,7 +135,7 @@ export const resolveTemplateString = profile(function resolveTemplateString({
       missingKeyExceptionType,
       passthroughExceptionType,
       allowPartial: !!contextOpts.allowPartial,
-      unescape: !!contextOpts.unescape,
+      unescape: !!contextOpts.unescape || !contextOpts.allowPartial,
       escapePrefix,
       optionalSuffix: "}?",
       isPlainObject,

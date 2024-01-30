@@ -72,8 +72,12 @@ describe("resolveTemplateString", () => {
     expect(res).to.equal("${bar}")
   })
 
-  it("should pass through a template string with a double $$ prefix", () => {
-    const res = resolveTemplateString({ string: "$${bar}", context: new TestContext({}) })
+  it("should pass through a template string with a double $$ prefix if allowPartial=true", () => {
+    const res = resolveTemplateString({
+      string: "$${bar}",
+      context: new TestContext({}),
+      contextOpts: { allowPartial: true },
+    })
     expect(res).to.equal("$${bar}")
   })
 
@@ -82,6 +86,15 @@ describe("resolveTemplateString", () => {
       string: "$${bar}",
       context: new TestContext({}),
       contextOpts: { unescape: true },
+    })
+    expect(res).to.equal("${bar}")
+  })
+
+  it("should unescape a template string with a double $$ prefix if allowPartial=false", () => {
+    const res = resolveTemplateString({
+      string: "$${bar}",
+      context: new TestContext({}),
+      contextOpts: { allowPartial: false },
     })
     expect(res).to.equal("${bar}")
   })
