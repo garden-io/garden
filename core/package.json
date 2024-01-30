@@ -47,7 +47,7 @@
     "async-lock": "^1.4.0",
     "chalk": "^4.1.2",
     "chokidar": "^3.5.3",
-    "ci-info": "^3.8.0",
+    "ci-info": "^4.0.0",
     "circular-json": "^0.5.9",
     "cli-highlight": "^2.1.11",
     "cli-table3": "^0.6.3",
