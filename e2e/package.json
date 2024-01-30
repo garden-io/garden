@@ -28,7 +28,7 @@
     "@types/chai": "^4.3.6",
     "@types/lodash-es": "^4.17.9",
     "@types/minimist": "^1.2.2",
-    "@types/mocha": "^10.0.1",
+    "@types/mocha": "^10.0.6",
     "@types/node": "^20",
     "chai": "^4.3.7",
     "chalk": "^4.1.2",
