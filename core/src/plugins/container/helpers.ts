@@ -393,7 +393,8 @@ const helpers = {
     // If we explicitly set a Dockerfile, we take that to mean you want it to be built.
     // If the file turns out to be missing, this will come up in the build handler.
 
-    if (!!config.spec.dockerfile) {
+    const dockerfile = config.spec.dockerfile
+    if (!!dockerfile) {
       return true
     }
 
@@ -402,8 +403,9 @@ const helpers = {
     // That's because the `image` field has the following two meanings:
     // 1. Build an image with this name, if a Dockerfile exists
     // 2. Deploy this image from the registry, if no Dockerfile exists
-    // This means we need to know if the Dockerfile exists before we know wether or not the Dockerfile will be present at runtime.
-    return version.files.includes(getDockerfilePath(config.path, config.spec.dockerfile))
+    // This means we need to know if the Dockerfile exists before we know whether the Dockerfile will be present at runtime.
+    const dockerfilePath = getDockerfilePath(config.path, dockerfile)
+    return version.files.includes(dockerfilePath)
   },
 
   async actionHasDockerfile(action: Resolved<ContainerBuildAction>): Promise<boolean> {
