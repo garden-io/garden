@@ -201,6 +201,7 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
 
     // Resolve action without outputs
     const resolvedGraph = new ResolvedConfigGraph({
+      environmentName: this.graph.environmentName,
       actions: [...resolvedDependencies, ...executedDependencies],
       moduleGraph: this.graph.moduleGraph,
       groups: this.graph.getGroups(),

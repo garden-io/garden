@@ -4358,6 +4358,18 @@ describe("Garden", () => {
         ],
       })
     })
+
+    it("correctly picks up and handles the environments field on actions", async () => {
+      const projectRoot = getDataDir("test-projects", "config-action-environments")
+      const garden = await makeTestGarden(projectRoot, { environmentString: "remote" })
+
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+      const a = graph.getBuild("a", { includeDisabled: true })
+      const b = graph.getBuild("b", { includeDisabled: true })
+
+      expect(a.isDisabled()).to.be.false
+      expect(b.isDisabled()).to.be.true
+    })
   })
 
   context("module type has a base", () => {

@@ -78,7 +78,6 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
   moduleGraph,
   actionModes,
   linkedSources,
-  environmentName,
 }: {
   garden: Garden
   log: Log
@@ -87,7 +86,6 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
   moduleGraph: ModuleGraph
   actionModes: ActionModeMap
   linkedSources: LinkedSourceMap
-  environmentName: string
 }): Promise<MutableConfigGraph> {
   const configsByKey: ActionConfigsByKey = {}
 
@@ -100,10 +98,10 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
     const existing = configsByKey[key]
 
     if (existing) {
-      if (actionIsDisabled(config, environmentName)) {
+      if (actionIsDisabled(config, garden.environmentName)) {
         log.silly(() => `Skipping disabled action ${key} in favor of other action with same key`)
         return
-      } else if (actionIsDisabled(existing, environmentName)) {
+      } else if (actionIsDisabled(existing, garden.environmentName)) {
         log.silly(() => `Skipping disabled action ${key} in favor of other action with same key`)
         configsByKey[key] = config
         return
@@ -205,7 +203,12 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
   const minimalRoots = await garden.vcs.getMinimalRoots(log, allPaths)
 
   // TODO: Maybe we could optimize resolving tree versions, avoid parallel scanning of the same directory etc.
-  const graph = new MutableConfigGraph({ actions: [], moduleGraph, groups: groupConfigs })
+  const graph = new MutableConfigGraph({
+    environmentName: garden.environmentName,
+    actions: [],
+    moduleGraph,
+    groups: groupConfigs,
+  })
 
   await Promise.all(
     Object.entries(preprocessResults).map(async ([key, res]) => {

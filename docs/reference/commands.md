@@ -1803,6 +1803,11 @@ actionConfigs:
       # conditional expressions.
       disabled:
 
+      # If set, the action is only enabled for the listed environment types. This is effectively a cleaner shorthand
+      # for the `disabled` field with an expression for environments. For example, `environments: ["prod"]` is
+      # equivalent to `disabled: ${environment.name != "prod"}`.
+      environments:
+
       # A map of variables scoped to this particular action. These are resolved before any other parts of the action
       # configuration and take precedence over group-scoped variables (if applicable) and project-scoped variables, in
       # that order. They may reference group-scoped and project-scoped variables, and generally can use any template
@@ -1973,6 +1978,11 @@ actionConfigs:
       # conditional expressions.
       disabled:
 
+      # If set, the action is only enabled for the listed environment types. This is effectively a cleaner shorthand
+      # for the `disabled` field with an expression for environments. For example, `environments: ["prod"]` is
+      # equivalent to `disabled: ${environment.name != "prod"}`.
+      environments:
+
       # Specify a list of POSIX-style paths or globs that should be regarded as source files for this action, and thus
       # will affect the computed _version_ of the action.
       #
@@ -2113,6 +2123,11 @@ actionConfigs:
       # conditional expressions.
       disabled:
 
+      # If set, the action is only enabled for the listed environment types. This is effectively a cleaner shorthand
+      # for the `disabled` field with an expression for environments. For example, `environments: ["prod"]` is
+      # equivalent to `disabled: ${environment.name != "prod"}`.
+      environments:
+
       # Specify a list of POSIX-style paths or globs that should be regarded as source files for this action, and thus
       # will affect the computed _version_ of the action.
       #
@@ -2252,6 +2267,11 @@ actionConfigs:
       # action is disabled, so you need to make sure to provide alternate values for those if you're using them, using
       # conditional expressions.
       disabled:
+
+      # If set, the action is only enabled for the listed environment types. This is effectively a cleaner shorthand
+      # for the `disabled` field with an expression for environments. For example, `environments: ["prod"]` is
+      # equivalent to `disabled: ${environment.name != "prod"}`.
+      environments:
 
       # Specify a list of POSIX-style paths or globs that should be regarded as source files for this action, and thus
       # will affect the computed _version_ of the action.

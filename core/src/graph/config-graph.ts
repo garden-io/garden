@@ -91,16 +91,20 @@ export abstract class BaseConfigGraph<
   }
 
   readonly moduleGraph: ModuleGraph
+  readonly environmentName: string
 
   constructor({
+    environmentName,
     actions,
     moduleGraph,
     groups,
   }: {
+    environmentName: string
     actions: Action[]
     moduleGraph: ModuleGraph
     groups: GroupConfig[]
   }) {
+    this.environmentName = environmentName
     this.dependencyGraph = {}
     this.actions = {
       Build: {},
@@ -132,7 +136,12 @@ export abstract class BaseConfigGraph<
   }
 
   clone() {
-    const clone = new ConfigGraph({ actions: [], moduleGraph: this.moduleGraph, groups: Object.values(this.groups) })
+    const clone = new ConfigGraph({
+      environmentName: this.environmentName,
+      actions: [],
+      moduleGraph: this.moduleGraph,
+      groups: Object.values(this.groups),
+    })
     for (const key of Object.getOwnPropertyNames(this)) {
       clone[key] = cloneDeep(this[key])
     }
@@ -455,6 +464,7 @@ export abstract class BaseConfigGraph<
 
   toMutableGraph() {
     return new MutableConfigGraph({
+      environmentName: this.environmentName,
       actions: this.getActions(),
       moduleGraph: this.moduleGraph,
       groups: Object.values(this.groups),

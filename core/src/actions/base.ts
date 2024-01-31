@@ -174,6 +174,14 @@ export const baseActionConfigSchema = createSchema({
       `
       )
       .meta({ templateContext: ActionConfigContext }),
+    environments: joi
+      .sparseArray()
+      .items(joi.string())
+      .description(
+        dedent`
+        If set, the action is only enabled for the listed environment types. This is effectively a cleaner shorthand for the \`disabled\` field with an expression for environments. For example, \`environments: ["prod"]\` is equivalent to \`disabled: \${environment.name != "prod"}\`.
+        `
+      ),
 
     // Version/file handling (Note: Descriptions and behaviors are different on Build actions!)
     include: includeExcludeSchema()
@@ -411,8 +419,7 @@ export abstract class BaseAction<
 
   isDisabled(): boolean {
     // TODO: return true if group is disabled
-    // TODO: implement environments field on action config
-    return actionIsDisabled(this._config, "TODO")
+    return actionIsDisabled(this._config, this.graph.environmentName)
   }
 
   /**
@@ -888,9 +895,8 @@ export function addActionDependency(dep: ActionDependency, dependencies: ActionD
   dependencies.push(dep)
 }
 
-export function actionIsDisabled(config: ActionConfig, _environmentName: string): boolean {
-  // TODO: implement environment fields and check if environment is disabled
-  return config.disabled === true
+export function actionIsDisabled(config: ActionConfig, environmentName: string): boolean {
+  return config.disabled === true || (!!config.environments && !config.environments.includes(environmentName))
 }
 
 /**

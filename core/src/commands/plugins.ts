@@ -106,7 +106,12 @@ export class PluginsCommand extends Command<Args> {
     const provider = await garden.resolveProvider(log, args.plugin)
     const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
 
-    let graph = new ConfigGraph({ actions: [], moduleGraph: new ModuleGraph([], {}), groups: [] })
+    let graph = new ConfigGraph({
+      environmentName: garden.environmentName,
+      actions: [],
+      moduleGraph: new ModuleGraph([], {}),
+      groups: [],
+    })
 
     // Commands can optionally ask for all the modules in the project/environment
     if (command.resolveGraph) {
