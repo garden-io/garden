@@ -1,4 +1,21 @@
 
+<a name="0.13.24"></a>
+## [0.13.24](https://github.com/garden-io/garden/compare/0.13.23...0.13.24) (2024-01-30)
+
+### Bug Fixes
+
+* copy test artifacts in interactive mode ([#5630](https://github.com/garden-io/garden/issues/5630)) ([e0a3671f5](https://github.com/garden-io/garden/commit/e0a3671f5))
+* remove confusing warning message ([#5628](https://github.com/garden-io/garden/issues/5628)) ([68ad7630f](https://github.com/garden-io/garden/commit/68ad7630f))
+* **core:** fix "repo" scan mode for remote actions ([#5660](https://github.com/garden-io/garden/issues/5660)) ([d38f1c5fb](https://github.com/garden-io/garden/commit/d38f1c5fb))
+* **core:** fix config error when using project.modules ([#5626](https://github.com/garden-io/garden/issues/5626)) ([4d017e4ee](https://github.com/garden-io/garden/commit/4d017e4ee))
+* **examples:** ensure Vue web servers start correctly ([#5668](https://github.com/garden-io/garden/issues/5668)) ([1979e0e85](https://github.com/garden-io/garden/commit/1979e0e85))
+* **examples:** set correct header for patch resources example ([#5604](https://github.com/garden-io/garden/issues/5604)) ([89d5396a6](https://github.com/garden-io/garden/commit/89d5396a6))
+* **git:** revert default Git scan mode to `subtree` ([#5631](https://github.com/garden-io/garden/issues/5631)) ([4f2aad7d8](https://github.com/garden-io/garden/commit/4f2aad7d8))
+* **k8s:** remove k8s manifest logs on apply ([#5665](https://github.com/garden-io/garden/issues/5665)) ([466ac8c14](https://github.com/garden-io/garden/commit/466ac8c14))
+* **module-conversion:** more fixes to PVC type ([#5681](https://github.com/garden-io/garden/issues/5681)) ([96059408c](https://github.com/garden-io/garden/commit/96059408c))
+* **module-conversion:** always include build deps ([#5671](https://github.com/garden-io/garden/issues/5671)) ([47c24d54d](https://github.com/garden-io/garden/commit/47c24d54d))
+* **template:** do not partially resolve function arg objects with special keys ([#5670](https://github.com/garden-io/garden/issues/5670)) ([5b7aea4d8](https://github.com/garden-io/garden/commit/5b7aea4d8))
+
 <a name="0.13.23"></a>
 ## [0.13.23](https://github.com/garden-io/garden/compare/0.13.22...0.13.23) (2023-12-22)
 
