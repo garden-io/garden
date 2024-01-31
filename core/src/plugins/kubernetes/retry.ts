@@ -123,7 +123,7 @@ export function toKubernetesError(err: unknown, context: string): KubernetesErro
     // The ErrorEvent does not expose the status code other than as part of the error.message
   } else {
     // In all other cases, we don't know what this is, so let's just throw an InternalError
-    throw InternalError.wrapError(err, `toKubernetesError encountered an unknown error unexpectedly during ${context}`)
+    throw InternalError.wrapError(err, `toKubernetesError encountered an unknown error during ${context}`)
   }
 
   let message = `Error while performing Kubernetes API operation ${context}: ${errorType}\n`
