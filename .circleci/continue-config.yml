@@ -1168,7 +1168,7 @@ workflows:
           <<: *only-prs
           requires: [build-dist-linux-windows]
       - test-windows:
-          <<: *only-internal-prs
+          <<: *only-main
           requires: [build-dist-linux-windows]
 
       # - e2e-project:
@@ -1201,7 +1201,7 @@ workflows:
           environment: gke-buildkit
           requires: [build]
       - e2e-project:
-          <<: *only-internal-prs
+          <<: *only-main
           name: e2e-hadolint
           project: hadolint
           requires: [build]
@@ -1313,27 +1313,33 @@ workflows:
           kubernetesVersion: "1.23.3"
           minikubeVersion: "v1.25.2"
       - test-microk8s:
+          <<: *only-main
           name: vm-1.24-microk8s
           requires: [build]
           kubernetesVersion: "1.24"
       - test-microk8s:
+          <<: *only-main
           name: vm-1.25-microk8s
           requires: [build]
           kubernetesVersion: "1.25"
       - test-microk8s:
+          <<: *only-main
           name: vm-1.26-microk8s
           requires: [build]
           kubernetesVersion: "1.26"
       - test-k3s:
+          <<: *only-main
           name: vm-1.27-k3s
           requires: [build]
           # version v1.27.4+k3s1 fails with this issue https://github.com/moby/moby/issues/45935
           k3sVersion: v1.27.2+k3s1
       - test-kind:
+          <<: *only-main
           name: vm-1.28-kind
           requires: [build]
           kindNodeImage: kindest/node:v1.28.0@sha256:9f3ff58f19dcf1a0611d11e8ac989fdb30a28f40f236f59f0bea31fb956ccf5c
       - test-kind:
+          <<: *only-main
           name: vm-1.29-kind
           requires: [build]
           kindNodeImage: kindest/node:v1.29.0@sha256:54a50c9354f11ce0aa56a85d2cacb1b950f85eab3fe1caf988826d1f89bf37eb
