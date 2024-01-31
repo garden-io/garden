@@ -77,24 +77,21 @@ export function logLevelToString(level: LogLevel): StringLogLevel {
 export const eventLogLevel = LogLevel.debug
 
 /**
- * Return the logger type, depending on what command line args have been set
- * and whether the command specifies a logger type.
+ * Return the logger type, depending on what command line args are used.
  */
 export function getTerminalWriterType({
   silent,
   output,
-  loggerTypeOpt,
-  commandLoggerType,
+  loggerType,
 }: {
   silent: boolean
   output: boolean
-  loggerTypeOpt: LoggerType | null
-  commandLoggerType: LoggerType | null
+  loggerType: LoggerType | null
 }) {
   if (silent || output) {
     return "quiet"
   }
-  return loggerTypeOpt || commandLoggerType || "default"
+  return loggerType || "default"
 }
 
 export function getTerminalWriterInstance(loggerType: LoggerType, level: LogLevel): Writer {
