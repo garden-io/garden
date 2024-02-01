@@ -224,7 +224,10 @@ export function resolveTemplateString({
     if (!(err instanceof GardenError)) {
       throw err
     }
-    const prefix = `Invalid template string (${styles.accent(truncate(string, 35).replace(/\n/g, "\\n"))}): `
+    const pathDescription = path ? ` at path ${styles.accent(path.join("."))}` : ""
+    const prefix = `Invalid template string (${styles.accent(
+      truncate(string, 200).replace(/\n/g, "\\n")
+    )})${pathDescription}: `
     const message = err.message.startsWith(prefix) ? err.message : prefix + err.message
 
     throw new TemplateStringError({ message, path })

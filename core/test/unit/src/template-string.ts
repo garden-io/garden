@@ -20,6 +20,7 @@ import { expectError, getDataDir, makeTestGarden } from "../../helpers.js"
 import { dedent } from "../../../src/util/string.js"
 import stripAnsi from "strip-ansi"
 import { TemplateStringError } from "../../../src/exceptions.js"
+import repeat from "lodash-es/repeat.js"
 
 class TestContext extends ConfigContext {
   constructor(context) {
@@ -157,13 +158,14 @@ describe("resolveTemplateString", () => {
   })
 
   it("should trim long template string in error messages", () => {
+    const veryLongString = repeat("very ", 100)
     void expectError(
       () =>
         resolveTemplateString({
-          string: "${some} very very very very very long long long long long template string",
+          string: `\${some} ${veryLongString} template string`,
           context: new TestContext({}),
         }),
-      { contains: "Invalid template string (${some} very very very very very l…): Could not find key some." }
+      (err) => expect(err.message.length).to.be.lessThan(350)
     )
   })
 
