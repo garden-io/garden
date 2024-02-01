@@ -263,6 +263,16 @@ Yes, by using the `localMode`  field on the relevant Deploy action. [See here](h
 
 ## Misc
 
+### How do I install the edge release of Garden
+
+You can install the edge release of Garden by using the Garden `self-update` command like so:
+
+```console
+garden self-update edge-bonsai
+```
+
+You can learn more about [updating Garden here](../getting-started/installation.md#updating-garden).
+
 ### When are you releasing the Plugin SDK?
 
 We're exploring how we can release it incrementally. Please let us know if this is something you're interested in.

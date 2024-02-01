@@ -157,3 +157,29 @@ export NO_PROXY=local.demo.garden,localhost,127.0.0.1  # <- This is important! S
 
 The `NO_PROXY` variable should include any other hostnames you might use for local development, since you likely
 don't want to route local traffic through the proxy.
+
+## Updating Garden
+
+Once you've installed Garden, you can update it with the Garden `self-update` command like so:
+
+```console
+garden self-update
+```
+
+To install Garden at a specific version, say 0.13.22, you can run:
+
+```
+garden self-update 0.13.22
+```
+
+To install the latest edge release of Garden you can run:
+
+```
+garden self-update edge-bonsai
+```
+
+You can learn more about the different options by running:
+
+```
+garden self-update --help
+```
