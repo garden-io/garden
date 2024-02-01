@@ -218,6 +218,12 @@ async function buildBinaries(args: string[]) {
     versionInFilename = versionInBinary
   }
 
+  let cargoCommand = "cargo"
+
+  if (argv.cargocommand) {
+    cargoCommand = argv.cargocommand
+  }
+
   const selected = argv._.length > 0 ? pick(targets, argv._) : targets
 
   if (Object.keys(selected).length === 0) {
@@ -427,10 +433,10 @@ async function buildBinaries(args: string[]) {
     const rustTarget = getRustTarget(target.spec)
 
     // Run Garden SEA smoke tests. Windows tests run in a wine environment.
-    await exec("cross", ["test", "--target", rustTarget], { cwd: gardenSeaDir, stdio: "inherit" })
+    await exec(cargoCommand, ["test", "--target", rustTarget], { cwd: gardenSeaDir, stdio: "inherit" })
 
     // Build the release binary
-    await exec("cross", ["build", "--target", rustTarget, "--release"], { cwd: gardenSeaDir, stdio: "inherit" })
+    await exec(cargoCommand, ["build", "--target", rustTarget, "--release"], { cwd: gardenSeaDir, stdio: "inherit" })
 
     const executableFilename = target.spec.os === "win" ? "garden.exe" : "garden"
     const executablePath = resolve(distTargetDir, executableFilename)
