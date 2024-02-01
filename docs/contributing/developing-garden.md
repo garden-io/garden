@@ -38,8 +38,9 @@ You can build the release binaries using the command
 
 ```shell
 npm run dist [target] # Valid targets are currently `windows-amd64`, `linux-arm64`, `linux-amd64`, `macos-arm64` and `macos-amd64`.
-
 ```
+
+Use the option ` --cargocommand=cross` for cross-platform builds, otherwise cargo build will be the default.
 
 You can then find the release binaries and archives under `dist/`.
 
