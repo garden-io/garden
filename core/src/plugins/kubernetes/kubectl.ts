@@ -352,7 +352,7 @@ export function prepareConnectionOpts({
   return opts
 }
 
-export const kubectlVersion = "1.26.13"
+export const kubectlVersion = "1.27.10"
 export const kubectlSpec: PluginToolSpec = {
   name: "kubectl",
   version: kubectlVersion,
@@ -364,31 +364,31 @@ export const kubectlSpec: PluginToolSpec = {
       platform: "darwin",
       architecture: "amd64",
       url: `https://storage.googleapis.com/kubernetes-release/release/v${kubectlVersion}/bin/darwin/amd64/kubectl`,
-      sha256: "5aef895b5d0934b8c36eeebbb7d8f50cb519885752457bf8cfe9ce0afbed7f4f",
+      sha256: "1931d0b610b4e6e7e876d57868fb62545972326ebf8280f9a755176a748c45f3",
     },
     {
       platform: "darwin",
       architecture: "arm64",
       url: `https://storage.googleapis.com/kubernetes-release/release/v${kubectlVersion}/bin/darwin/arm64/kubectl`,
-      sha256: "25f2ca372e85f373ea8a4bc520c91faa0d187d9f6c68d2ba6787a04c8b14de1f",
+      sha256: "096c58d0859ba043739a5545670032de2a8f22571f12771d316dd1d3f40f1014",
     },
     {
       platform: "linux",
       architecture: "amd64",
       url: `https://storage.googleapis.com/kubernetes-release/release/v${kubectlVersion}/bin/linux/amd64/kubectl`,
-      sha256: "e4bad4273431f9f5f05f27f5c2054cbbad6d9ee00b85e0810cb4ef0489b02571",
+      sha256: "bfb219643c28d9842fceae51590776f06987835d93fc3cb9b0149c9111c741ac",
     },
     {
       platform: "linux",
       architecture: "arm64",
       url: `https://storage.googleapis.com/kubernetes-release/release/v${kubectlVersion}/bin/linux/arm64/kubectl`,
-      sha256: "4abebc34c114111b81bbf5222f0810e6899937d04bc453d9ccd77046643bbcda",
+      sha256: "2e1996379d5a8b132e0606fcd3df3c8689e11882630b75cca3b7135126847871",
     },
     {
       platform: "windows",
       architecture: "amd64",
       url: `https://storage.googleapis.com/kubernetes-release/release/v${kubectlVersion}/bin/windows/amd64/kubectl.exe`,
-      sha256: "4934465af5702e3dbdaf0d33506532c40f2f0ba1376a1479bf3512b89995e00a",
+      sha256: "d3659d2605a51378e19d4ecf32da15e242681d7309d9f0bd100c6bf5ca648d4b",
     },
   ],
 }
