@@ -925,17 +925,39 @@ jobs:
           name: Install system dependencies
           command: |
             sudo apt-get update
+            # Install conntrack
             sudo apt install nfs-common conntrack
+            # Install crictl
             CRICTL_VERSION="v1.29.0" # check latest version in /releases page
             distr_name="crictl-${CRICTL_VERSION}-linux-amd64.tar.gz"
             curl -L https://github.com/kubernetes-sigs/cri-tools/releases/download/${CRICTL_VERSION}/${distr_name} --output ${distr_name}
             sudo tar -zxvf ${distr_name} -C /usr/local/bin
             rm -f ${distr_name}
-            CRI_DOCKERD_VERSION="0.3.9"
-            cri_dockerd_distr_name="cri-dockerd-${CRI_DOCKERD_VERSION}.amd64.tgz"
+            # Install Docker CRI
+            CRI_DOCKERD_VERSION="0.3.10"
+            cri_dockerd_dirname="cri-dockerd"
+            cri_dockerd_distr_name="${cri_dockerd_dirname}-${CRI_DOCKERD_VERSION}.amd64.tgz"
             curl -L https://github.com/Mirantis/cri-dockerd/releases/download/v${CRI_DOCKERD_VERSION}/${cri_dockerd_distr_name} --output ${cri_dockerd_distr_name}
-            sudo tar -zxvf ${cri_dockerd_distr_name} -C /usr/local/bin --strip-components=1
-            rm -f ${cri_dockerd_distr_name}
+            sudo tar -zxvf ${cri_dockerd_distr_name}
+            cd ${cri_dockerd_dirname}
+            sudo install -o root -g root -m 0755 cri-dockerd /usr/local/bin/cri-dockerd
+            cd ..
+            sudo rm -f ${cri_dockerd_distr_name}
+            sudo rm -rf ${cri_dockerd_dirname}
+            # Need to download the sources to install `cri-docker.service` file
+            cri_sources_dirname="cri-dockerd-${CRI_DOCKERD_VERSION}"
+            cri_sources_distr_name="${cri_sources_dirname}.tar.gz"
+            curl -L https://github.com/Mirantis/cri-dockerd/archive/refs/tags/v${CRI_DOCKERD_VERSION}.tar.gz --output ${cri_sources_distr_name}
+            sudo tar -zxf ${cri_sources_distr_name}
+            cd ${cri_sources_dirname}
+            sudo install packaging/systemd/* /etc/systemd/system
+            cd ..
+            sudo rm -f ${cri_sources_distr_name}
+            sudo rm -rf ${cri_sources_dirname}
+            sudo sed -i -e 's,/usr/bin/cri-dockerd,/usr/local/bin/cri-dockerd,' /etc/systemd/system/cri-docker.service
+            sudo systemctl daemon-reload
+            sudo systemctl enable --now cri-docker.socket
+            # Install CNI plugin
             CNI_PLUGIN_VERSION="v1.4.0"
             CNI_PLUGIN_TAR="cni-plugins-linux-amd64-$CNI_PLUGIN_VERSION.tgz" # change arch if not on amd64
             CNI_PLUGIN_INSTALL_DIR="/opt/cni/bin"
