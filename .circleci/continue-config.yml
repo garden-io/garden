@@ -313,6 +313,11 @@ commands:
           e.g. when creating unstable releases. The script defaults to using the version from core/package.json.
         type: string
         default: ""
+      cargocommand:
+        description: |
+          Use Cross for cross-platform builds, or Cargo directly. Useful for macos which is not supported by cross.
+        type: string
+        default: "cross"
       context:
         description: Set this to the operating system, to avoid conflicting caches with the docker runs
         type: string
@@ -331,7 +336,7 @@ commands:
       - run:
           name: Run dist script
           command: |
-            npm run dist -- --version "<<parameters.version>>" <<parameters.targets>>
+            npm run dist -- --version "<<parameters.version>>" --cargocommand "<<parameters.cargocommand>>" <<parameters.targets>>
 
       # We cache the node archives because the NodeJS download mirror is unreliable
       - save_cache:
@@ -429,6 +434,7 @@ jobs:
       - run_npm_dist:
           version: <<parameters.version>>
           targets: "macos-amd64 macos-arm64"
+          cargocommand: cargo
           context: vm-macos
       - fail_fast
 
@@ -450,6 +456,7 @@ jobs:
       - run_npm_dist:
           version: <<parameters.version>>
           targets: "linux-amd64 linux-arm64 alpine-amd64 windows-amd64"
+          cargocommand: cross
           context: vm-ubuntu
       - fail_fast
 
