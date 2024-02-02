@@ -1323,19 +1323,6 @@ workflows:
       # variant and k8s version would be quite expensive, so we try and make sure each of the latest 6-7 k8s versions is
       # tested, and that the most recent versions are broadly tested. The kind tests are the cheapest to run so we use many
       # of those, but they currently don't test in-cluster building, so we do need a range of versions on minikube as well.
-      - test-minikube:
-          name: vm-1.23-minikube
-          requires: [build]
-          kubernetesVersion: "1.23.3"
-          minikubeVersion: "v1.25.2"
-      - test-microk8s:
-          name: vm-1.24-microk8s
-          requires: [build]
-          kubernetesVersion: "1.24"
-      - test-microk8s:
-          name: vm-1.25-microk8s
-          requires: [build]
-          kubernetesVersion: "1.25"
       - test-microk8s:
           name: vm-1.26-microk8s
           requires: [build]
@@ -1345,10 +1332,11 @@ workflows:
           requires: [build]
           # version v1.27.4+k3s1 fails with this issue https://github.com/moby/moby/issues/45935
           k3sVersion: v1.27.2+k3s1
-      - test-kind:
-          name: vm-1.28-kind
-          requires: [build]
-          kindNodeImage: kindest/node:v1.28.0@sha256:9f3ff58f19dcf1a0611d11e8ac989fdb30a28f40f236f59f0bea31fb956ccf5c
+      - test-minikube:
+          name: vm-1.28-minikube
+          requires: [ build ]
+          kubernetesVersion: "v1.28.3"
+          minikubeVersion: "v1.32.0"
       - test-kind:
           name: vm-1.29-kind
           requires: [build]
