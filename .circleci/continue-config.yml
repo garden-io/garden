@@ -931,6 +931,11 @@ jobs:
             curl -L https://github.com/kubernetes-sigs/cri-tools/releases/download/${CRICTL_VERSION}/${distr_name} --output ${distr_name}
             sudo tar -zxvf ${distr_name} -C /usr/local/bin
             rm -f ${distr_name}
+            CRI_DOCKERD_VERSION="0.3.9"
+            cri_dockerd_distr_name="cri-dockerd-${CRI_DOCKERD_VERSION}.amd64.tgz"
+            curl -L https://github.com/Mirantis/cri-dockerd/releases/download/v${CRI_DOCKERD_VERSION}/${cri_dockerd_distr_name} --output ${cri_dockerd_distr_name}
+            sudo tar -zxvf ${cri_dockerd_distr_name} -C /usr/local/bin --strip-components=1
+            rm -f ${cri_dockerd_distr_name}
       - docker_login
       - configure_git
       - npm_install:
