@@ -962,6 +962,7 @@ jobs:
               --extra-config=kubeadm.ignore-preflight-errors=RSRC_INSUFFICIENT_CORES \
               --kubernetes-version=$K8S_VERSION \
               --driver=none \
+              --container-runtime=docker \
               --cpus 3 \
               --memory 4096
             sudo chown -R circleci:circleci /home/circleci/.kube /home/circleci/.minikube /etc/kubernetes
