@@ -15,6 +15,7 @@ import type { ValidResultType } from "../../../../src/tasks/base.js"
 import { BaseActionTask } from "../../../../src/tasks/base.js"
 import type { TestAction } from "../../../../src/actions/test.js"
 import { DEFAULT_TEST_TIMEOUT_SEC } from "../../../../src/constants.js"
+import { DeployTask } from "../../../../src/tasks/deploy.js"
 
 describe("BaseActionTask", () => {
   let garden: TestGarden
@@ -126,6 +127,74 @@ describe("BaseActionTask", () => {
         "resolve-action.test.test-b",
         "run.task-a",
         "test.module-a-integ",
+      ])
+    })
+
+    it("omits disabled runtime dependencies, but includes disabled builds", async () => {
+      garden.addAction({
+        kind: "Run",
+        name: "disabled-run",
+        type: "test",
+        disabled: true,
+        timeout: DEFAULT_TEST_TIMEOUT_SEC,
+        dependencies: [{ kind: "Run", name: "task-a" }],
+        internal: {
+          basePath: projectRoot,
+        },
+        spec: {
+          command: ["echo", "foo"],
+        },
+      })
+      garden.addAction({
+        kind: "Build",
+        name: "disabled-build",
+        type: "test",
+        disabled: true,
+        timeout: DEFAULT_TEST_TIMEOUT_SEC,
+        dependencies: [],
+        internal: {
+          basePath: projectRoot,
+        },
+        spec: {
+          command: ["echo", "foo"],
+        },
+      })
+      garden.addAction({
+        kind: "Deploy",
+        name: "with-disabled-deps",
+        type: "test",
+        timeout: DEFAULT_TEST_TIMEOUT_SEC,
+        dependencies: [
+          { kind: "Run", name: "disabled-run" },
+          { kind: "Build", name: "disabled-build" },
+          { kind: "Build", name: "module-a" },
+        ],
+        internal: {
+          basePath: projectRoot,
+        },
+        spec: {
+          command: ["echo", "foo"],
+        },
+      })
+      graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+
+      const action = graph.getDeploy("with-disabled-deps")
+
+      const task = new DeployTask({
+        garden,
+        log,
+        graph,
+        action,
+        force: false,
+        forceBuild: false,
+      })
+
+      const deps = task.resolveProcessDependencies({ status: null })
+      expect(deps.map((d) => d.getBaseKey())).to.eql([
+        "resolve-action.deploy.with-disabled-deps",
+        // "run.disabled-run", // <-----
+        "build.disabled-build",
+        "build.module-a",
       ])
     })
 

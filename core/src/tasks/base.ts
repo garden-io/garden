@@ -275,7 +275,7 @@ export abstract class BaseActionTask<T extends Action, O extends ValidResultType
         }
         return [this.getExecuteTask(action)]
       } else if (dep.explicit) {
-        if (this.skipRuntimeDependencies && dep.kind !== "Build") {
+        if ((this.skipRuntimeDependencies || disabled) && dep.kind !== "Build") {
           if (dep.needsStaticOutputs) {
             return [this.getResolveTask(action)]
           } else {
