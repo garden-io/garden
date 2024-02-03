@@ -7,8 +7,8 @@ kind: Deploy
 description: Results UI service
 type: container
 name: result
-build: result
 dependencies:
+  - build.result
   - run.db-init
 spec:
   args: [nodemon, server.js]
@@ -24,12 +24,15 @@ spec:
     PGDATABASE: ${var.postgres-database}
     PGUSER: ${var.postgres-username}
     PGPASSWORD: ${var.postgres-password}
+  image: ${actions.build.result.outputs.deploymentImageId}
 
 ---
 kind: Test
 name: results-integ
 type: container
-build: result
-dependencies: [run.db-init]
+dependencies:
+  - build.result
+  - run.db-init
 spec:
   args: [echo, ok]
+  image: ${actions.build.result.outputs.deploymentImageId}

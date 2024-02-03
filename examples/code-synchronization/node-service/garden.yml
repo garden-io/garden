@@ -7,8 +7,10 @@ kind: Deploy
 description: Node greeting service
 name: node-service
 type: container
-build: node-service
+dependencies:
+  - build.node-service
 spec:
+  image: ${actions.build.node-service.outputs.deploymentImageId}
   args: [npm, start]
   sync:
     command: [npm, run, dev] # Overrides the container's default when the service is deployed in dev mode

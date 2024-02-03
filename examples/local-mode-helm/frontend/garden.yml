@@ -4,17 +4,15 @@ description: Frontend service container image
 type: container
 
 ---
-
 kind: Deploy
 name: frontend
 description: Frontend service container
 type: container
-
-build: frontend
 dependencies:
+  - build.frontend
   - deploy.backend
-
 spec:
+  image: ${actions.build.frontend.outputs.deploymentImageId}
   ports:
     - name: http
       containerPort: 8080
@@ -33,8 +31,9 @@ spec:
 kind: Test
 name: frontend-integ
 type: container
-build: frontend
 dependencies:
-  - deploy.frontend # <- we want the frontend service to be running and up-to-date for this test
+  - build.frontend
+  - deploy.frontend
 spec:
-  args: [ npm, run, integ ]
+  args: [npm, run, integ]
+  image: ${actions.build.frontend.outputs.deploymentImageId}

@@ -10,9 +10,8 @@ kind: Deploy
 name: backend
 description: Backend service
 type: container
-
-build: backend
-
+dependencies:
+  - build.backend
 spec:
   sync:
     paths:
@@ -32,3 +31,4 @@ spec:
     - path: /
       port: http
       hostname: backend.${var.base-hostname}
+  image: ${actions.build.backend.outputs.deploymentImageId}

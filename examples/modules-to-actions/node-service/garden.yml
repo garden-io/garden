@@ -8,10 +8,12 @@ spec:
 ---
 kind: Deploy
 name: a
-build: a
 description: Node service A
 type: container
+dependencies:
+  - build.a
 spec:
+  image: ${actions.build.a.outputs.deploymentImageId}
   command: [npm, start]
   ports:
     - name: http
@@ -23,10 +25,12 @@ spec:
 ---
 kind: Test
 name: a-unit
-build: a
 type: container
+dependencies:
+  - build.a
 spec:
   args: [npm, test]
+  image: ${actions.build.a.outputs.deploymentImageId}
 
 ---
 kind: Build
@@ -39,10 +43,12 @@ spec:
 ---
 kind: Deploy
 name: b
-build: b
 description: Node service B
 type: container
+dependencies:
+  - build.b
 spec:
+  image: ${actions.build.b.outputs.deploymentImageId}
   command: [npm, start]
   ports:
     - name: http
@@ -54,7 +60,9 @@ spec:
 ---
 kind: Test
 name: b-unit
-build: b
 type: container
+dependencies:
+  - build.b
 spec:
   args: [npm, test]
+  image: ${actions.build.b.outputs.deploymentImageId}

@@ -10,14 +10,14 @@ name: backend-1
 description: Backend 1 service container
 type: container
 
-build: backend-1
-dependencies: "${this.mode == 'local' ? ['run.build-backend-local-1'] : []}"
+dependencies: "${this.mode == 'local' ? ['run.build-backend-local-1'] : ['build.backend-1']}"
 
 # You can specify variables here at the action level
 variables:
   ingressPath: /hello-backend-1
 
 spec:
+  image: ${actions.build.backend-1.outputs.deploymentImageId}
   localMode:
     ports:
       - remote: 8080

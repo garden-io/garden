@@ -12,15 +12,14 @@ spec:
     BASE_IMAGE_VERSION: ${actions.build.base-image.version}
 
 ---
-
 kind: Deploy
 name: backend
 description: Backend service
 type: container
-
-build: backend
-
+dependencies:
+  - build.backend
 spec:
+  image: ${actions.build.backend.outputs.deploymentImageId}
   ports:
     - name: http
       containerPort: 8080

@@ -7,8 +7,8 @@ kind: Deploy
 name: hello
 description: Greeting service
 type: container
-build: hello
 dependencies:
+  - build.hello
   - run.node-migration
 spec:
   args: [npm, start]
@@ -18,25 +18,26 @@ spec:
   ingresses:
     - path: /hello
       port: http
+  image: ${actions.build.hello.outputs.deploymentImageId}
 
 ---
 kind: Test
 name: hello-unit
 type: container
-build: hello
+dependencies:
+  - build.hello
 spec:
   args: [npm, test]
+  image: ${actions.build.hello.outputs.deploymentImageId}
 
 ---
 kind: Run
 name: node-migration
 type: container
-build: hello
-description: Creates the users table.
 dependencies:
+  - build.hello
   - deploy.postgres
+description: Creates the users table.
 spec:
-  # The postgres health check appears to go through before the server accepts remote connections,
-  # so we set a long initial delay.
-  # https://github.com/CrunchyData/crunchy-containers/issues/653
   args: [/bin/sh, -c, "sleep 15 && knex migrate:latest"]
+  image: ${actions.build.hello.outputs.deploymentImageId}

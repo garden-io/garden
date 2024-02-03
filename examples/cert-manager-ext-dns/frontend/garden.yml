@@ -4,13 +4,14 @@ type: container
 name: frontend
 description: React App Build for TLS and DNS example
 ---
-# Deploys the frontend React App
 kind: Deploy
 type: container
 name: frontend
 description: React App Deploy for TLS and DNS example
-build: frontend
+dependencies:
+  - build.frontend
 spec:
+  image: ${actions.build.frontend.outputs.deploymentImageId}
   ports:
     - name: http
       protocol: TCP
@@ -19,13 +20,14 @@ spec:
     - path: /
       hostname: "react.${var.base-hostname}"
       port: http
+
 ---
-# Setup tests for the frontend React App
 kind: Test
 name: react-unit
 type: container
-build: frontend
+dependencies:
+  - build.frontend
+  - deploy.frontend
 spec:
   args: [npm, test]
-dependencies:
-  - deploy.frontend
+  image: ${actions.build.frontend.outputs.deploymentImageId}
