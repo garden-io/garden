@@ -39,6 +39,40 @@ import { TestGardenCli } from "../../../helpers/cli.js"
 import { NotImplementedError } from "../../../../src/exceptions.js"
 import dedent from "dedent"
 
+/**
+ * Helper functions for removing/resetting the global logger config which is set when
+ * the test runner is initialized.
+ *
+ * By default the logger is set to `quiet` during test runs to hide log output but this
+ * can be used to explicitly test the logger config without the test config getting in the way.
+ *
+ * The `removeGlobalLoggerConfig` function should be used in a `before` hook and the
+ * `resetGlobalLoggerConfig` function should be used in the corresponding `after` hook.
+ */
+function getLoggerConfigSetters() {
+  const envLoggerType = process.env.GARDEN_LOGGER_TYPE
+  const envLogLevel = process.env.GARDEN_LOG_LEVEL
+
+  const removeGlobalLoggerConfig = () => {
+    delete process.env.GARDEN_LOGGER_TYPE
+    delete process.env.GARDEN_LOG_LEVEL
+    gardenEnv.GARDEN_LOGGER_TYPE = ""
+    gardenEnv.GARDEN_LOG_LEVEL = ""
+    RootLogger.clearInstance()
+  }
+
+  const resetGlobalLoggerConfig = () => {
+    process.env.GARDEN_LOGGER_TYPE = envLoggerType
+    process.env.GARDEN_LOG_LEVEL = envLogLevel
+    gardenEnv.GARDEN_LOGGER_TYPE = envLoggerType || ""
+    gardenEnv.GARDEN_LOG_LEVEL = envLogLevel || ""
+    RootLogger.clearInstance()
+    initTestLogger()
+  }
+
+  return { removeGlobalLoggerConfig, resetGlobalLoggerConfig }
+}
+
 describe("cli", () => {
   let cli: GardenCli
   const globalConfigStore = new GlobalConfigStore()
@@ -311,26 +345,16 @@ describe("cli", () => {
     })
 
     context("test logger initialization", () => {
-      const envLoggerType = process.env.GARDEN_LOGGER_TYPE
-      const envLogLevel = process.env.GARDEN_LOG_LEVEL
+      const { removeGlobalLoggerConfig, resetGlobalLoggerConfig } = getLoggerConfigSetters()
 
       // Logger is a singleton and we need to reset it between these tests as we're testing
       // that it's initialised correctly in this block.
       beforeEach(() => {
-        delete process.env.GARDEN_LOGGER_TYPE
-        delete process.env.GARDEN_LOG_LEVEL
-        gardenEnv.GARDEN_LOGGER_TYPE = ""
-        gardenEnv.GARDEN_LOG_LEVEL = ""
-        RootLogger.clearInstance()
+        removeGlobalLoggerConfig()
       })
       // Re-initialise the test logger
       after(() => {
-        process.env.GARDEN_LOGGER_TYPE = envLoggerType
-        process.env.GARDEN_LOG_LEVEL = envLogLevel
-        gardenEnv.GARDEN_LOGGER_TYPE = envLoggerType || ""
-        gardenEnv.GARDEN_LOG_LEVEL = envLogLevel || ""
-        RootLogger.clearInstance()
-        initTestLogger()
+        resetGlobalLoggerConfig()
       })
 
       it("uses the 'TerminalWriter' by default", async () => {
@@ -351,7 +375,7 @@ describe("cli", () => {
 
         await cli.run({ args: ["test-command"], exitOnError: false })
 
-        const logger = log.root
+        const logger = getRootLogger()
         const writers = logger.getWriters()
         expect(writers.display.type).to.equal("default")
       })
@@ -1038,11 +1062,14 @@ describe("cli", () => {
 
     describe("Command error handling", async () => {
       let hook: ReturnType<typeof captureStream>
+      const { removeGlobalLoggerConfig, resetGlobalLoggerConfig } = getLoggerConfigSetters()
 
       beforeEach(() => {
+        removeGlobalLoggerConfig()
         hook = captureStream(process.stdout)
       })
       afterEach(() => {
+        resetGlobalLoggerConfig()
         hook.unhook()
       })
       it("handles GardenError on the command level correctly", async () => {
