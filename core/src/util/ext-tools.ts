@@ -28,9 +28,9 @@ import { LogLevel } from "../logger/logger.js"
 import { uuidv4 } from "./random.js"
 import { streamLogs, waitForProcess } from "./process.js"
 import { pipeline } from "node:stream/promises"
-import chalk from "chalk/index.js"
 import hasAnsi from "has-ansi"
 import split2 from "split2"
+import { styles } from "../logger/styles.js"
 
 const toolsPath = join(GARDEN_GLOBAL_PATH, "tools")
 const lock = new AsyncLock()
@@ -102,7 +102,7 @@ export class CliWrapper {
         const msg = data.toString()
 
         if (streamLogs.print && msg && msg.length > 0) {
-          logEventContext.log.info(hasAnsi(msg) ? msg : chalk.white(msg))
+          logEventContext.log.info(hasAnsi(msg) ? msg : styles.primary(msg))
         }
 
         if (emitEvent) {

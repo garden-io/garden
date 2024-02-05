@@ -9,7 +9,7 @@
 import chalk from "chalk"
 import AsyncLock from "async-lock"
 import { sdk } from "@garden-io/sdk"
-import {
+import type {
   DockerComposeActionSpec,
   DockerComposeBuildSpec,
   DockerComposeDeploySpec,
@@ -20,13 +20,13 @@ import {
   ResolvedComposeTestAction,
   ResolvedDockerRunAction,
   ResolvedDockerTestAction,
-} from "./schemas"
-import { range } from "lodash"
-import type { DockerComposeProviderConfig } from "."
-import { compose } from "./tools"
-import { ExecParams, PluginTool } from "@garden-io/core/src/util/ext-tools"
-import { ActionState } from "@garden-io/core/build/src/actions/types"
-import { DeepPrimitiveMap, PrimitiveMap } from "@garden-io/core/build/src/config/common"
+} from "./schemas.js"
+import { range } from "lodash-es"
+import type { DockerComposeProviderConfig } from "./index.js"
+import { compose } from "./tools.js"
+import type { ExecParams, PluginTool } from "@garden-io/core/src/util/ext-tools.js"
+import type { ActionState } from "@garden-io/core/build/src/actions/types.js"
+import type { DeepPrimitiveMap, PrimitiveMap } from "@garden-io/core/build/src/config/common.js"
 
 type DockerComposeDependencySpec = {
   [name: string]: {

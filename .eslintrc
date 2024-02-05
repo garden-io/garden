@@ -43,7 +43,6 @@
     "mocha/no-skipped-tests": "warn",
     "mocha/no-exclusive-tests": "error",
     "unused-imports/no-unused-imports": "error",
-<<<<<<< HEAD
     "header/header": [2, "block", [
       "",
       " * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>",
@@ -56,20 +55,5 @@
     "@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_", "destructuredArrayIgnorePattern": "^_" }],
     "@typescript-eslint/consistent-type-imports": "error",
     "@typescript-eslint/no-explicit-any": "warn",
-=======
-    "header/header": [
-      2,
-      "block",
-      [
-        "",
-        " * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>",
-        " *",
-        " * This Source Code Form is subject to the terms of the Mozilla Public",
-        " * License, v. 2.0. If a copy of the MPL was not distributed with this",
-        " * file, You can obtain one at http://mozilla.org/MPL/2.0/.",
-        " "
-      ]
-    ]
->>>>>>> cc31175b9 (feat: docker compose integration (WIP))
   }
 }

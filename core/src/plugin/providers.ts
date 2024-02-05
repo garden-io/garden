@@ -24,7 +24,8 @@ import type { GetDashboardPageParams, GetDashboardPageResult } from "./handlers/
 import { getDashboardPage } from "./handlers/Provider/getDashboardPage.js"
 import { baseHandlerSchema } from "./handlers/base/base.js"
 import type { BaseProviderConfig } from "../config/provider.js"
-import { SuggestCommandsParams, SuggestCommandsResult, suggestCommands } from "./handlers/Provider/suggestCommands.js"
+import type { SuggestCommandsParams, SuggestCommandsResult } from "./handlers/Provider/suggestCommands.js"
+import { suggestCommands } from "./handlers/Provider/suggestCommands.js"
 
 export type ProviderHandlers<C extends BaseProviderConfig = any, O extends object = any> = {
   [P in keyof ProviderActionParams]: ActionHandler<ProviderActionParams<C>[P], ProviderActionOutputs<C, O>[P]>

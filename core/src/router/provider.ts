@@ -10,7 +10,8 @@ import { fromPairs, mapValues, omit } from "lodash-es"
 import pProps from "p-props"
 
 import { validateSchema } from "../config/validation.js"
-import { Provider, defaultProvider } from "../config/provider.js"
+import type { Provider } from "../config/provider.js"
+import { defaultProvider } from "../config/provider.js"
 import { ParameterError, PluginError } from "../exceptions.js"
 import type { Log } from "../logger/log-entry.js"
 import type { PluginActionParamsBase } from "../plugin/base.js"
@@ -45,7 +46,7 @@ import { Profile } from "../util/profiling.js"
 import type { GetDashboardPageParams, GetDashboardPageResult } from "../plugin/handlers/Provider/getDashboardPage.js"
 import type { CommonParams, BaseRouterParams } from "./base.js"
 import { BaseRouter } from "./base.js"
-import { SuggestCommandsParams, SuggestCommandsResult } from "../plugin/handlers/Provider/suggestCommands.js"
+import type { SuggestCommandsParams, SuggestCommandsResult } from "../plugin/handlers/Provider/suggestCommands.js"
 
 /**
  * The ProviderRouter takes care of choosing which plugin should be responsible for handling a provider action,

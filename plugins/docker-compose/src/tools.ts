@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { sdk } from "@garden-io/sdk"
+import type { sdk } from "@garden-io/sdk"
 
 export const dockerComposeSpec: sdk.types.PluginToolSpec = {
   name: "docker-compose",

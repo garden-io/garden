@@ -159,7 +159,6 @@ import { convertTemplatedModuleToRender, renderConfigTemplate } from "./config/r
 import { MonitorManager } from "./monitors/manager.js"
 import { AnalyticsHandler } from "./analytics/analytics.js"
 import { getGardenInstanceKey } from "./server/helpers.js"
-import type { SuggestedCommand } from "./commands/base.js"
 import { OtelTraced } from "./util/open-telemetry/decorators.js"
 import { wrapActiveSpan } from "./util/open-telemetry/spans.js"
 import { GitRepoHandler } from "./vcs/git-repo.js"
@@ -169,6 +168,7 @@ import { GotHttpError } from "./util/http.js"
 import { styles } from "./logger/styles.js"
 import { renderDuration } from "./logger/util.js"
 import { getCloudDistributionName, getCloudLogSectionName } from "./util/cloud.js"
+import type { SuggestedCommand } from "./plugin/handlers/Provider/suggestCommands.js"
 
 const defaultLocalAddress = "localhost"
 
@@ -865,8 +865,8 @@ export class Garden {
 
       providers = providerResults.map((result) => result!.result)
 
-      const allCached = providers.every((p) => p.status.cached)
-      const someCached = providers.some((p) => p.status.cached)
+      const allCached = providers.every((p) => p.status?.cached)
+      const someCached = providers.some((p) => p.status?.cached)
 
       await Promise.all(
         providers.flatMap((provider) =>
@@ -1501,10 +1501,14 @@ export class Garden {
       const existingDisabled = actionIsDisabled(existing, this.environmentName)
 
       if (disabled) {
-        this.log.silly(() => `Skipping action ${key} because it is disabled and another action with the same key exists`)
+        this.log.silly(
+          () => `Skipping action ${key} because it is disabled and another action with the same key exists`
+        )
         return
       } else if (existingDisabled) {
-        this.log.silly(() => `Overriding disabled action ${key} because another enabled action with the same key exists`)
+        this.log.silly(
+          () => `Overriding disabled action ${key} because another enabled action with the same key exists`
+        )
       } else if (!existingDisabled) {
         const paths = [
           existing.internal.configFilePath || existing.internal.basePath,
@@ -1692,9 +1696,9 @@ export class Garden {
   }): Promise<ConfigDump> {
     let providers: ConfigDump["providers"] = []
     let suggestedCommands: SuggestedCommand[] = []
-    let moduleConfigs: ModuleConfig[]
+    let moduleConfigs: ModuleConfig[] = []
     let workflowConfigs: WorkflowConfig[]
-    let actionConfigs: ActionConfigMap = {
+    const actionConfigs: ActionConfigMap = {
       Build: {},
       Deploy: {},
       Run: {},

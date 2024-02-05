@@ -1,7 +1,8 @@
 {
   "name": "@garden-io/garden-docker-compose",
-  "version": "0.12.51",
+  "version": "0.13.24",
   "description": "Docker Compose plugin for Garden",
+  "type": "module",
   "main": "build/src/index.js",
   "dependencies": {
     "@garden-io/core": "*",
@@ -10,10 +11,11 @@
     "bluebird": "^3.7.2",
     "execa": "^5.1.1",
     "fs-extra": "^11.1.0",
-    "lodash": "^4.17.21"
+    "lodash-es": "^4.17.21"
   },
   "devDependencies": {
     "@types/async-lock": "^1.4.0",
+    "@types/bluebird": "^3.5.42",
     "@types/chai": "^4.3.4",
     "@types/fs-extra": "^11.0.1",
     "@types/lodash": "^4.14.191",

@@ -7,8 +7,14 @@
  */
 
 import type { infer as inferZodType, ZodType } from "zod"
-import z, { Schema } from "zod"
+import z, { Schema, ZodArray } from "zod"
 import { envVarRegex, identifierRegex, joiIdentifierDescription, userIdentifierRegex } from "./constants.js"
+import { filter, includes } from "lodash-es"
+
+// Add additional helpers and methods. See https://github.com/colinhacks/zod/issues/273#issuecomment-1434077058
+// - metadata support for all schemas
+// - unique() method for array schemas
+type UniquenessComparator<T extends z.ZodTypeAny> = keyof any | ((v: T) => keyof any)
 
 // Add metadata support to schemas. See https://github.com/colinhacks/zod/issues/273#issuecomment-1434077058
 declare module "zod" {
@@ -18,7 +24,13 @@ declare module "zod" {
     getExample(): any
     example(value: any): this
   }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  interface ZodArray<T extends z.ZodTypeAny, Cardinality extends z.ArrayCardinality = "many"> {
+    unique(comparator: UniquenessComparator<T>): z.ZodEffects<z.ZodArray<T, "many">, T["_output"][], T["_input"][]>
+  }
 }
+
 Schema.prototype.getMetadata = function () {
   return this._def.meta
 }
@@ -51,6 +63,26 @@ Schema.prototype.describe = function (description: string) {
     this.example(example)
   }
   return this
+}
+
+ZodArray.prototype.unique = function (comparator: UniquenessComparator<any>) {
+  return this.superRefine((value, ctx) => {
+    const values =
+      comparator === undefined
+        ? value
+        : typeof comparator === "function"
+        ? value.map(comparator)
+        : value.map((v) => v[comparator])
+
+    const duplicates = filter(values, (val, i, iteratee) => includes(iteratee, val, i + 1))
+
+    if (duplicates.length > 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Found duplicate values in array: " + duplicates.join(","),
+      })
+    }
+  })
 }
 
 // Add custom methods

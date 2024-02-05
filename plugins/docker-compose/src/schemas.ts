@@ -6,8 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ResolvedRunAction, RunActionConfig } from "@garden-io/core/build/src/actions/run"
-import { ResolvedTestAction, TestActionConfig } from "@garden-io/core/src/actions/test"
+import type { ResolvedRunAction, RunActionConfig } from "@garden-io/core/build/src/actions/run.js"
+import type { ResolvedTestAction, TestActionConfig } from "@garden-io/core/src/actions/test.js"
 import { sdk } from "@garden-io/sdk"
 
 const s = sdk.schema
@@ -19,7 +19,8 @@ const dockerComposeProjectSchema = s.object({
     .default(null)
     .describe("The name of the project. You must specify this and make it unique if you have multiple projects."),
   path: s
-    .posixPath()
+    // TODO @eysi: Check we're using the right options here
+    .posixPath({ relativeOnly: true, subPathOnly: true })
     .describe("The path to the Compose project directory. Important: This must be within a git repository!"),
 })
 

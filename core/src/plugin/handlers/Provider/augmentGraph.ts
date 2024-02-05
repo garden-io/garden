@@ -12,7 +12,6 @@ import { dedent } from "../../../util/string.js"
 import { joi, joiArray, joiIdentifierMap } from "../../../config/common.js"
 import type { ProviderMap, BaseProviderConfig } from "../../../config/provider.js"
 import { providerSchema } from "../../../config/provider.js"
-import type { BaseAction } from "../../../actions/base.js"
 import { baseActionConfigSchema } from "../../../actions/base.js"
 import type { Action, ActionKind, BaseActionConfig } from "../../../actions/types.js"
 

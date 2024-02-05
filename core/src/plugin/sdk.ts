@@ -9,8 +9,11 @@
 import type { z } from "zod"
 import type { BaseAction } from "../actions/base.js"
 import type { BuildAction, BuildActionConfig } from "../actions/build.js"
+import type { PluginContext as _PluginContext } from "../plugin-context.js"
+import type { ServiceIngress as _ServiceIngress } from "../types/service.js"
 import type { DeployAction, DeployActionConfig } from "../actions/deploy.js"
 import type { RunAction, RunActionConfig } from "../actions/run.js"
+import type { TestGarden as _TestGarden } from "../util/testing.js"
 import type { TestAction, TestActionConfig } from "../actions/test.js"
 import { joi, zodObjectToJoi } from "../config/common.js"
 import type { BaseProviderConfig, GenericProviderConfig, Provider } from "../config/provider.js"
@@ -41,10 +44,11 @@ import type {
   ProviderActionParams,
   ProviderHandlers,
 } from "./plugin.js"
-import type { PluginToolSpec } from "./tools.js"
+import type { PluginToolSpec as _PluginToolSpec } from "./tools.js"
 import { dedent, deline, splitLast } from "../util/string.js"
 import type { BuildStatus as _BuildStatus } from "./handlers/Build/get-status.js"
 import { LogLevel } from "../logger/logger.js"
+import type { Log as _Log } from "../logger/log-entry.js"
 import { BuildTask } from "../tasks/build.js"
 import { DeployTask } from "../tasks/deploy.js"
 import { RunTask } from "../tasks/run.js"
@@ -157,10 +161,6 @@ export class GardenSdkPlugin {
     this.spec.dashboardPages.push(spec)
   }
 }
-
-type GardenSdkProdiverConfigType<T> = T extends GardenSdkProvider<any, infer ProviderConfigType, any>
-  ? ProviderConfigType
-  : never
 
 export class GardenSdkProvider<
   Base extends GardenSdkProvider<any, any, any> | undefined,

@@ -8,10 +8,10 @@
 
 import { join } from "path"
 import { expect } from "chai"
-import { DockerComposeProvider, gardenPlugin as dockerComposePlugin } from "../src"
-import { ActionRouter } from "@garden-io/core/build/src/router/router"
-import { ResolvedConfigGraph } from "@garden-io/core/src/graph/config-graph"
-import { makeTestGarden } from "@garden-io/core/build/test/helpers"
+import { gardenPlugin as dockerComposePlugin } from "../src/index.js"
+import type { ActionRouter } from "@garden-io/core/build/src/router/router.js"
+import type { ResolvedConfigGraph } from "@garden-io/core/src/graph/config-graph.js"
+import { makeTestGarden } from "@garden-io/core/build/test/helpers.js"
 import { sdk } from "@garden-io/sdk"
 
 const testRoot = join(__dirname, "test-project")
@@ -19,8 +19,6 @@ const testRoot = join(__dirname, "test-project")
 describe("Docker Compose plugin handlers", () => {
   let garden: sdk.testing.TestGarden
   let log: sdk.types.Log
-  let ctx: sdk.types.PluginContext
-  let provider: DockerComposeProvider
   let resolvedGraph: ResolvedConfigGraph
   let router: ActionRouter
 
@@ -32,8 +30,6 @@ describe("Docker Compose plugin handlers", () => {
     log = garden.log
     resolvedGraph = await garden.getResolvedConfigGraph({ log, emit: false })
     router = await garden.getActionRouter()
-    provider = (await garden.resolveProvider(log, "docker-compose")) as DockerComposeProvider
-    ctx = await garden.getPluginContext({ provider, events: undefined, templateContext: undefined })
   })
 
   describe("augmentGraph", async () => {
@@ -71,7 +67,7 @@ describe("Docker Compose plugin handlers", () => {
       })
       const res = await garden.processTasks({ tasks: [deployTask], throwOnError: true })
       const deployResult = res.results.getResult(deployTask)
-      expect(deployResult?.result?.state === "ready").to.be.true
+      expect(deployResult?.result?.state).to.equal("ready")
     })
   })
 

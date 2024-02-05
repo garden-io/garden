@@ -7,7 +7,7 @@
  */
 
 import { sdk } from "@garden-io/sdk"
-import { docsBaseUrl } from "@garden-io/sdk/build/src/constants"
+import { docsBaseUrl } from "@garden-io/sdk/build/src/constants.js"
 
 import {
   providerSchema,
@@ -17,15 +17,16 @@ import {
   dockerComposeExecSchema,
   dockerComposeRunSchema,
   dockerRunSchema,
-  ResolvedComposeRunAction,
-  ResolvedComposeTestAction,
-  ResolvedDockerRunAction,
-  ResolvedDockerTestAction,
-} from "./schemas"
-import { dockerComposeSpec, compose, dockerSpec, docker } from "./tools"
+  type ResolvedComposeRunAction,
+  type ResolvedComposeTestAction,
+  type ResolvedDockerRunAction,
+  type ResolvedDockerTestAction,
+} from "./schemas.js"
+import { dockerComposeSpec, compose, dockerSpec, docker } from "./tools.js"
 import Bluebird from "bluebird"
-import { flatten, fromPairs, isArray } from "lodash"
+import { flatten, fromPairs, isArray } from "lodash-es"
 import {
+  type DockerComposeProjectInfo,
   getCommonArgs,
   getComposeActionName,
   getComposeBuildOutputs,
@@ -40,12 +41,12 @@ import {
   getRunOpts,
   runToolWithArgs,
   withLockOnNetworkCreation,
-} from "./common"
-import { ActionState } from "@garden-io/core/build/src/actions/types"
-import { DeployState } from "@garden-io/core/build/src/types/service"
-import { isTruthy } from "@garden-io/core/build/src/util/util"
-import { DeepPrimitiveMap } from "@garden-io/core/build/src/config/common"
-import { actionReferenceToString } from "@garden-io/core/build/src/actions/base"
+} from "./common.js"
+import type { ActionState } from "@garden-io/core/build/src/actions/types.js"
+import type { DeployState } from "@garden-io/core/build/src/types/service.js"
+import { isTruthy } from "@garden-io/core/build/src/util/util.js"
+import type { DeepPrimitiveMap } from "@garden-io/core/build/src/config/common.js"
+import { actionReferenceToString } from "@garden-io/core/build/src/actions/base.js"
 
 const s = sdk.schema
 
@@ -153,7 +154,7 @@ composeProvider.addHandler("augmentGraph", async ({ ctx, log, actions }) => {
   const existingActionKeys = actions.filter((a) => !a.isDisabled()).map((a) => a.key())
 
   const generated = flatten(
-    await Bluebird.map(getProjects(ctx), async (projectSpec) => {
+    await Bluebird.map(getProjects(ctx), async (projectSpec: DockerComposeProjectInfo) => {
       const cwd = projectSpec.cwd
       const config = await getComposeConfig({
         ctx,
@@ -251,7 +252,7 @@ const composeBuild = composeProvider.createActionType({
 
 composeBuild.addHandler("getOutputs", async ({ ctx, log, action }) => {
   const spec = action.getSpec()
-  const projectName = await getProjectName({ ctx, log, cwd: action.basePath(), spec })
+  const projectName = await getProjectName({ ctx, log, cwd: action.sourcePath(), spec })
   return {
     outputs: getComposeBuildOutputs(spec, projectName) as DeepPrimitiveMap,
   }
@@ -259,7 +260,8 @@ composeBuild.addHandler("getOutputs", async ({ ctx, log, action }) => {
 
 composeBuild.addHandler("getStatus", async ({ ctx, log, action }) => {
   const spec = action.getSpec()
-  const projectName = await getProjectName({ ctx, log, cwd: action.basePath(), spec })
+  // TODO @eysi: Double check whether we should be using sourcePath here (was basePath)
+  const projectName = await getProjectName({ ctx, log, cwd: action.sourcePath(), spec })
   return {
     state: "not-ready",
     detail: {},
@@ -269,12 +271,12 @@ composeBuild.addHandler("getStatus", async ({ ctx, log, action }) => {
 
 composeBuild.addHandler("build", async ({ ctx, log, action }) => {
   const spec = action.getSpec()
-  const projectName = await getProjectName({ ctx, log, cwd: action.basePath(), spec })
+  const projectName = await getProjectName({ ctx, log, cwd: action.sourcePath(), spec })
 
   const args = [...getCommonArgs(spec), "build", "--progress=plain", spec.service]
 
   const result = await compose(ctx).exec({
-    cwd: action.basePath(),
+    cwd: action.sourcePath(),
     args,
     log,
     timeoutSec: action.getConfig().timeout,
@@ -321,7 +323,7 @@ composeDeploy.addHandler("deploy", async ({ ctx, log, action, force }) => {
     args.push("--force-recreate")
   }
 
-  const cwd = action.basePath()
+  const cwd = action.sourcePath()
 
   const config = await getComposeConfig({ ctx, log, cwd, cache: true })
   const qualifiedNetworkNames = getNetworkNamesFromConfig(config, spec.service)
@@ -356,7 +358,7 @@ composeDeploy.addHandler("deploy", async ({ ctx, log, action, force }) => {
 })
 
 composeDeploy.addHandler("getStatus", async ({ ctx, log, action }) => {
-  const cwd = action.basePath()
+  const cwd = action.sourcePath()
   const spec = action.getSpec()
   const running = await getComposeContainers(ctx, log, getProjectInfo(spec.projectName, cwd))
   // Our generated Compose Deploys have the same name as the services in the Compose project.
@@ -384,7 +386,7 @@ composeDeploy.addHandler("delete", async ({ ctx, log, action }) => {
   const args = [...getCommonArgs(spec), "rm", "--force", "--stop", spec.service]
 
   await compose(ctx).exec({
-    cwd: action.basePath(),
+    cwd: action.sourcePath(),
     args,
     log,
     timeoutSec: action.getConfig().timeout,
@@ -412,7 +414,7 @@ composeDeploy.addHandler("getLogs", async ({ ctx, log, action, since, follow, ta
   follow && args.push("--follow")
 
   await compose(ctx).exec({
-    cwd: action.basePath(),
+    cwd: action.sourcePath(),
     args,
     log,
     streamLogs: { ctx, print: true, emitEvent: false, logLevel: sdk.LogLevel.info },
@@ -514,7 +516,7 @@ const makeDockerFreshHandler = () => {
     // TODO: support interactive flag
 
     const { state, success, startedAt, completedAt, output } = await runToolWithArgs(docker(ctx), {
-      cwd: action.basePath(),
+      cwd: action.sourcePath(),
       args,
       log,
       env: spec.env,
@@ -577,7 +579,7 @@ const makeDockerComposeFreshHandler = () => {
 
     // TODO: support interactive flag
     const { state, success, startedAt, completedAt, output } = await runToolWithArgs(compose(ctx), {
-      cwd: action.basePath(),
+      cwd: action.sourcePath(),
       args,
       log,
       env: spec.env,

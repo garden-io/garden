@@ -7,7 +7,7 @@
  */
 
 import type { CommandResult, CommandParams } from "../base.js"
-import { Command, suggestedCommandSchema } from "../base.js"
+import { Command } from "../base.js"
 import type { ConfigDump } from "../../garden.js"
 import { environmentNameSchema, projectSourceSchema } from "../../config/project.js"
 import { joiIdentifier, joiVariables, joiArray, joi, joiStringMap } from "../../config/common.js"
@@ -20,6 +20,7 @@ import { buildActionConfigSchema } from "../../actions/build.js"
 import { deployActionConfigSchema } from "../../actions/deploy.js"
 import { runActionConfigSchema } from "../../actions/run.js"
 import { testActionConfigSchema } from "../../actions/test.js"
+import { suggestedCommandSchema } from "../../plugin/handlers/Provider/suggestCommands.js"
 
 export const getConfigOptions = {
   "exclude-disabled": new BooleanParameter({

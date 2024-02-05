@@ -14,6 +14,7 @@ import { ActionTypeHandlerSpec } from "../base/base.js"
 import type { Resolved } from "../../../actions/types.js"
 import type { BuildStatus } from "./get-status.js"
 import { getBuildStatusSchema } from "./get-status.js"
+import { joi } from "../../../config/common.js"
 
 export interface DoBuildActionParams<T extends BuildAction> extends PluginBuildActionParamsBase<T> {
   force?: boolean

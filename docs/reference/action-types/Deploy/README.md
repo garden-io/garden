@@ -11,5 +11,6 @@ title: Deploy
   * [`configmap`](./configmap.md)
   * [`persistentvolumeclaim`](./persistentvolumeclaim.md)
   * [`exec`](./exec.md)
+  * [`docker-compose-service`](./docker-compose-service.md)
   * [`terraform`](./terraform.md)
   * [`pulumi`](./pulumi.md)
