@@ -112,7 +112,7 @@
     "p-filter": "^3.0.0",
     "p-map": "^6.0.0",
     "p-props": "^6.0.0",
-    "p-queue": "^7.4.1",
+    "p-queue": "^8.0.1",
     "p-retry": "^6.1.0",
     "parse-duration": "^1.0.2",
     "parse-git-config": "^3.0.0",
