@@ -25,6 +25,7 @@ import { getFormattedPodLogs, POD_LOG_LINES } from "./pod.js"
 import type { ResourceStatus, StatusHandlerParams } from "./status.js"
 import { getResourceEvents } from "./events.js"
 import { styles } from "../../../logger/styles.js"
+import { KubernetesError } from "../api.js"
 
 const containerStatusFailures = ["CrashLoopBackOff", "CreateContainerConfigError", "ImagePullBackOff"]
 
@@ -76,7 +77,19 @@ export async function checkWorkloadStatus({ api, namespace, resource }: StatusHa
 
     // Attach pod logs for debug output
     const pods = await getPods()
-    const podLogs = (await getFormattedPodLogs(api, namespace, pods)) || undefined
+    let podLogs: string | undefined
+    try {
+      podLogs = await getFormattedPodLogs(api, namespace, pods)
+    } catch (err) {
+      const podNames = pods.map((pod) => styles.highlight(pod.metadata.name)).join(", ")
+      logs += styles.secondary(`Warning: Could not retrieve logs for one or more of the following pods: ${podNames}`)
+      if (err instanceof KubernetesError) {
+        if (err.message && err.message.length > 0) {
+          logs += styles.secondary(`Error message: ${err.message}`)
+        }
+      }
+      podLogs = undefined
+    }
 
     if (podLogs) {
       logs += styles.accent("\n\n━━━ Pod logs ━━━\n")
