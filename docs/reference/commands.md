@@ -1534,7 +1534,7 @@ providers:
         # garden.yml file.
         repositoryUrl:
 
-        # When false, disables pushing this module to remote registries.
+        # When false, disables pushing this module to remote registries via the publish command.
         allowPublish:
 
         # A map of variables scoped to this particular module. These are resolved before any other parts of the module
@@ -2413,7 +2413,7 @@ moduleConfigs:
     # garden.yml file.
     repositoryUrl:
 
-    # When false, disables pushing this module to remote registries.
+    # When false, disables pushing this module to remote registries via the publish command.
     allowPublish:
 
     # A map of variables scoped to this particular module. These are resolved before any other parts of the module
@@ -2971,7 +2971,7 @@ modules:
     # garden.yml file.
     repositoryUrl:
 
-    # When false, disables pushing this module to remote registries.
+    # When false, disables pushing this module to remote registries via the publish command.
     allowPublish:
 
     # A map of variables scoped to this particular module. These are resolved before any other parts of the module
