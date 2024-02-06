@@ -190,6 +190,31 @@ is to help users steer away from subtle bugs that can occur when actions uninten
 actions. See the next section for details on including and excluding files.
 {% endhint %}
 
+### Differences in exclude behavior between the `repo` and `subtree` Git scan modes when no include is configured
+
+This section is only relevant for users who have set `scan.git.mode` to `subtree` in their project config.
+
+Garden supports two modes for scanning Git repositories (and any submodules) for files:
+* `repo` (the default): Scans entire repositories and then filters down to files matching the paths, includes and
+excludes for each action/module. This can be considerably more efficient than the `subtree` mode for large projects
+with many actions/modules.
+* `subtree` (legacy): This was Garden's scan algoithm before the `repo` scan mode was introduced. This method runs
+individual `git` scans on each action/module path.
+
+When no includes are configured in the module/action config but there are one or more excludes in the config,
+the `subtree` mode will interpret all exclude paths as globs. For example, excluding `foo.txt` would also exclude
+`dir/foo.txt` (and any path that contains the string `foo.txt`).
+
+This is because the `subtree` scan mode uses the `--exclude` flag of `git ls-files` under the hood for perfomance
+reasons. Note that this only happens when no includes are specified, and only when using the `subtree` scan mode
+(which needs to be explicitly set in the project config).
+
+We're leaving this inconsistency with the older `subtree` mode in place to avoid breaking changes to the Garden configs
+of users with older projects whose include/exclude configs rely on the exclude semantics of the `subtree` mode as is.
+
+The newer `repo` mode doesn't have this inconsistency, since it uses a different method to compute the file list for
+an action/module.
+
 ## Actions in the Stack Graph
 
 The key concept and the main benefit of having _actions_ instead of modules is that **anything can depend on anything**.
