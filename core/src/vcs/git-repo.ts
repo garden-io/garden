@@ -13,6 +13,8 @@ import fsExtra from "fs-extra"
 import { pathToCacheContext } from "../cache.js"
 import { FileTree } from "./file-tree.js"
 import { normalize, sep } from "path"
+import { stableStringify } from "../util/string.js"
+import { hashString } from "../util/util.js"
 
 const { pathExists } = fsExtra
 
@@ -62,10 +64,7 @@ export class GitRepoHandler extends GitHandler {
   override async getFiles(params: GetFilesParams): Promise<VcsFile[]> {
     const { log, path, pathDescription, filter, failOnPrompt = false } = params
 
-    if (params.include && params.include.length === 0) {
-      // No need to proceed, nothing should be included
-      return []
-    }
+    let scanRoot = params.scanRoot || path
 
     if (!(await pathExists(path))) {
       log.warn(`${pathDescription} ${path} could not be found.`)
@@ -77,10 +76,30 @@ export class GitRepoHandler extends GitHandler {
       return []
     }
 
-    let scanRoot = params.scanRoot || path
-
     if (!params.scanRoot && params.pathDescription !== "submodule") {
       scanRoot = await this.getRepoRoot(log, path, failOnPrompt)
+    }
+
+    const scanFromProjectRoot = scanRoot === this.garden?.projectRoot
+    const { augmentedExcludes, augmentedIncludes } = await getIncludeExcludeFiles({ ...params, scanFromProjectRoot })
+
+    const hashedFilterParams = hashString(
+      stableStringify({
+        filter: filter ? filter.toString() : undefined, // We hash the source code of the filter function if provided.
+        augmentedIncludes,
+        augmentedExcludes,
+      })
+    )
+    const filteredFilesCacheKey = ["git-repo-files", path, hashedFilterParams]
+
+    const cached = this.cache.get(log, filteredFilesCacheKey) as VcsFile[] | undefined
+    if (cached) {
+      return cached
+    }
+
+    if (params.include && params.include.length === 0) {
+      // No need to proceed, nothing should be included
+      return []
     }
 
     const fileTree = await this.scanRepo({
@@ -88,31 +107,19 @@ export class GitRepoHandler extends GitHandler {
       path: scanRoot,
       pathDescription: pathDescription || "repository",
       failOnPrompt,
-      // This method delegates to the old "subtree" Git scan mode that use `--exclude` and `--glob-pathspecs`.
-      // We need to pass the exclude-filter to ensure that all excluded files and dirs are excluded properly,
-      // i.e. with the properly expanded globs.
-      // Otherwise, the "repo" Git scan mode may return some excluded files
-      // which should be skipped by design and are skipped by the "subtree" mode.
-      // Thus, some excluded files can appear in the resulting fileTree.
-      // It happens because the new "repo" mode does not use `--glob-pathspecs` flag
-      // and does some explicit glob patterns augmentation that misses some edge-cases.
-      exclude: params.exclude,
     })
 
-    const moduleFiles = fileTree.getFilesAtPath(path)
-
-    const scanFromProjectRoot = scanRoot === this.garden?.projectRoot
-    const { augmentedExcludes, augmentedIncludes } = await getIncludeExcludeFiles({ ...params, scanFromProjectRoot })
+    const filesAtPath = fileTree.getFilesAtPath(path)
 
     log.debug(
-      `Found ${moduleFiles.length} files in module path, filtering by ${augmentedIncludes.length} include and ${augmentedExcludes.length} exclude globs`
+      `Found ${filesAtPath.length} files in path, filtering by ${augmentedIncludes.length} include and ${augmentedExcludes.length} exclude globs`
     )
     log.silly(() => `Include globs: ${augmentedIncludes.join(", ")}`)
     log.silly(() =>
       augmentedExcludes.length > 0 ? `Exclude globs: ${augmentedExcludes.join(", ")}` : "No exclude globs"
     )
 
-    const filtered = moduleFiles.filter(({ path: p }) => {
+    const filtered = filesAtPath.filter(({ path: p }) => {
       if (filter && !filter(p)) {
         return false
       }
@@ -127,6 +134,8 @@ export class GitRepoHandler extends GitHandler {
 
     log.debug(`Found ${filtered.length} files in module path after glob matching`)
 
+    this.cache.set(log, filteredFilesCacheKey, filtered, pathToCacheContext(path))
+
     return filtered
   }
 
@@ -140,7 +149,7 @@ export class GitRepoHandler extends GitHandler {
     const { log, path } = params
 
     const key = ["git-repo-files", path]
-    let existing = this.cache.get(log, key) as FileTree
+    let existing = this.cache.get(log, key) as FileTree | undefined
 
     if (existing) {
       params.log.silly(() => `Found cached repository match at ${path}`)
