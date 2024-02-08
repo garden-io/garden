@@ -132,6 +132,14 @@ For other action kinds, the action is skipped in all scenarios, and dependency d
 | --------- | ------- | -------- |
 | `boolean` | `false` | No       |
 
+### `environments[]`
+
+If set, the action is only enabled for the listed environment types. This is effectively a cleaner shorthand for the `disabled` field with an expression for environments. For example, `environments: ["prod"]` is equivalent to `disabled: ${environment.name != "prod"}`.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
+
 ### `include[]`
 
 Specify a list of POSIX-style paths or globs that should be regarded as source files for this action, and thus will affect the computed _version_ of the action.

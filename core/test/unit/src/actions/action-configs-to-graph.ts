@@ -54,7 +54,6 @@ describe("actionConfigsToGraph", () => {
       moduleGraph: new ModuleGraph([], {}),
       actionModes: {},
       linkedSources: {},
-      environmentName: garden.environmentName,
     })
 
     const actions = graph.getActions()
@@ -86,7 +85,6 @@ describe("actionConfigsToGraph", () => {
       moduleGraph: new ModuleGraph([], {}),
       actionModes: {},
       linkedSources: {},
-      environmentName: garden.environmentName,
     })
 
     const actions = graph.getActions()
@@ -118,7 +116,6 @@ describe("actionConfigsToGraph", () => {
       moduleGraph: new ModuleGraph([], {}),
       actionModes: {},
       linkedSources: {},
-      environmentName: garden.environmentName,
     })
 
     const actions = graph.getActions()
@@ -150,7 +147,6 @@ describe("actionConfigsToGraph", () => {
       moduleGraph: new ModuleGraph([], {}),
       actionModes: {},
       linkedSources: {},
-      environmentName: garden.environmentName,
     })
 
     const actions = graph.getActions()
@@ -189,7 +185,6 @@ describe("actionConfigsToGraph", () => {
       moduleGraph: new ModuleGraph([], {}),
       actionModes: {},
       linkedSources: {},
-      environmentName: garden.environmentName,
     })
 
     const actions = graph.getActions()
@@ -232,7 +227,6 @@ describe("actionConfigsToGraph", () => {
       moduleGraph: new ModuleGraph([], {}),
       actionModes: {},
       linkedSources: {},
-      environmentName: garden.environmentName,
     })
 
     const action = graph.getBuild("bar")
@@ -280,7 +274,6 @@ describe("actionConfigsToGraph", () => {
       moduleGraph: new ModuleGraph([], {}),
       actionModes: {},
       linkedSources: {},
-      environmentName: garden.environmentName,
     })
 
     const action = graph.getDeploy("bar")
@@ -329,7 +322,6 @@ describe("actionConfigsToGraph", () => {
       moduleGraph: new ModuleGraph([], {}),
       actionModes: {},
       linkedSources: {},
-      environmentName: garden.environmentName,
     })
 
     const action = graph.getBuild("bar")
@@ -379,7 +371,6 @@ describe("actionConfigsToGraph", () => {
       moduleGraph: new ModuleGraph([], {}),
       actionModes: {},
       linkedSources: {},
-      environmentName: garden.environmentName,
     })
 
     const action = graph.getBuild("bar")
@@ -429,7 +420,6 @@ describe("actionConfigsToGraph", () => {
       moduleGraph: new ModuleGraph([], {}),
       actionModes: {},
       linkedSources: {},
-      environmentName: garden.environmentName,
     })
 
     const action = graph.getDeploy("bar")
@@ -467,7 +457,6 @@ describe("actionConfigsToGraph", () => {
       moduleGraph: new ModuleGraph([], {}),
       actionModes: {},
       linkedSources: {},
-      environmentName: garden.environmentName,
     })
 
     const action = graph.getBuild("foo")
@@ -496,7 +485,6 @@ describe("actionConfigsToGraph", () => {
       moduleGraph: new ModuleGraph([], {}),
       actionModes: {},
       linkedSources: {},
-      environmentName: garden.environmentName,
     })
 
     const action = graph.getBuild("bar")
@@ -527,7 +515,6 @@ describe("actionConfigsToGraph", () => {
       moduleGraph: new ModuleGraph([], {}),
       actionModes: {},
       linkedSources: {},
-      environmentName: garden.environmentName,
     })
 
     const action = graph.getBuild("foo")
@@ -562,7 +549,6 @@ describe("actionConfigsToGraph", () => {
       moduleGraph: new ModuleGraph([], {}),
       actionModes: {},
       linkedSources: {},
-      environmentName: garden.environmentName,
     })
 
     const action = graph.getBuild("foo")
@@ -602,7 +588,6 @@ describe("actionConfigsToGraph", () => {
       moduleGraph: new ModuleGraph([], {}),
       actionModes: {},
       linkedSources: {},
-      environmentName: garden.environmentName,
     })
 
     const action = graph.getBuild("foo")
@@ -658,7 +643,6 @@ describe("actionConfigsToGraph", () => {
         moduleGraph: new ModuleGraph([], {}),
         actionModes: {},
         linkedSources: {},
-        environmentName: garden.environmentName,
       })
 
       const action = graph.getBuild("foo")
@@ -703,7 +687,6 @@ describe("actionConfigsToGraph", () => {
       actionModes: {
         sync: ["deploy.foo"],
       },
-      environmentName: garden.environmentName,
     })
 
     const action = graph.getDeploy("foo")
@@ -734,7 +717,6 @@ describe("actionConfigsToGraph", () => {
       actionModes: {
         local: ["deploy.foo"],
       },
-      environmentName: garden.environmentName,
     })
 
     const action = graph.getDeploy("foo")
@@ -771,7 +753,6 @@ describe("actionConfigsToGraph", () => {
         local: ["deploy.foo"],
         sync: ["deploy.foo"],
       },
-      environmentName: garden.environmentName,
     })
 
     const action = graph.getDeploy("foo")
@@ -802,7 +783,6 @@ describe("actionConfigsToGraph", () => {
       actionModes: {
         local: ["*"],
       },
-      environmentName: garden.environmentName,
     })
 
     const action = graph.getDeploy("foo")
@@ -833,7 +813,6 @@ describe("actionConfigsToGraph", () => {
       actionModes: {
         local: ["deploy.f*"],
       },
-      environmentName: garden.environmentName,
     })
 
     const action = graph.getDeploy("foo")
@@ -876,7 +855,6 @@ describe("actionConfigsToGraph", () => {
       actionModes: {
         local: ["deploy.*"],
       },
-      environmentName: garden.environmentName,
     })
 
     const deploy = graph.getDeploy("foo")
@@ -908,7 +886,6 @@ describe("actionConfigsToGraph", () => {
           moduleGraph: new ModuleGraph([], {}),
           actionModes: {},
           linkedSources: {},
-          environmentName: garden.environmentName,
         }),
       (err) => expect(err.message).to.equal("Unknown action kind: Boop")
     )
@@ -946,7 +923,6 @@ describe("actionConfigsToGraph", () => {
           moduleGraph: new ModuleGraph([], {}),
           actionModes: {},
           linkedSources: {},
-          environmentName: garden.environmentName,
         }),
       {
         contains: ["Found two actions of the same name and kind"],
@@ -985,7 +961,6 @@ describe("actionConfigsToGraph", () => {
       moduleGraph: new ModuleGraph([], {}),
       actionModes: {},
       linkedSources: {},
-      environmentName: garden.environmentName,
     })
 
     const action = graph.getBuild("foo")
@@ -1023,7 +998,6 @@ describe("actionConfigsToGraph", () => {
       moduleGraph: new ModuleGraph([], {}),
       actionModes: {},
       linkedSources: {},
-      environmentName: garden.environmentName,
     })
 
     const action = graph.getBuild("foo")
@@ -1055,7 +1029,6 @@ describe("actionConfigsToGraph", () => {
         moduleGraph: new ModuleGraph([], {}),
         actionModes: {},
         linkedSources: {},
-        environmentName: garden.environmentName,
       })
       const action = graph.getBuild("foo")
 
@@ -1092,7 +1065,6 @@ describe("actionConfigsToGraph", () => {
       moduleGraph: new ModuleGraph([], {}),
       actionModes: {},
       linkedSources: {},
-      environmentName: garden.environmentName,
     })
 
     it("sets include and exclude", async () => {

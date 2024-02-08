@@ -75,6 +75,7 @@ export interface BaseActionConfig<K extends ActionKind = ActionKind, T = string,
   // -> Templating with ActionConfigContext allowed
   dependencies?: ActionReference[]
   disabled?: boolean
+  environments?: string[]
 
   // Version/file handling
   // -> Templating with ActionConfigContext allowed

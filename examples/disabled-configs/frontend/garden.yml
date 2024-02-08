@@ -45,7 +45,7 @@ type: container
 dependencies:
   - build.frontend
   - deploy.frontend
-disabled: ${environment.name == "local"}
+environments: [remote] # <- enabling only for the "remote" environment
 spec:
   command: [npm, run, integ]
   image: ${actions.build.frontend.outputs.deploymentImageId}
