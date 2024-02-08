@@ -46,6 +46,7 @@ import { defaultDockerfileName } from "../../../container/config.js"
 import { k8sGetContainerBuildActionOutputs } from "../handlers.js"
 import { stringifyResources } from "../util.js"
 import { styles } from "../../../../logger/styles.js"
+import type { ResolvedBuildAction } from "../../../../actions/build.js"
 
 const deployLock = new AsyncLock()
 
@@ -120,23 +121,7 @@ export const buildkitBuildHandler: BuildHandler = async (params) => {
     ctx.events.emit("log", { timestamp: new Date().toISOString(), msg: line.toString(), ...logEventContext })
   })
 
-  const command = [
-    "buildctl",
-    "build",
-    "--frontend=dockerfile.v0",
-    "--local",
-    "context=" + contextPath,
-    "--local",
-    "dockerfile=" + contextPath,
-    "--opt",
-    "filename=" + dockerfile,
-    ...getBuildkitImageFlags(
-      provider.config.clusterBuildkit!.cache,
-      outputs,
-      provider.config.deploymentRegistry!.insecure
-    ),
-    ...getBuildkitFlags(action),
-  ]
+  const command = makeBuildkitBuildCommand({ provider, outputs, action, contextPath, dockerfile })
 
   // Execute the build
   const buildTimeout = action.getConfig("timeout")
@@ -258,6 +243,47 @@ export async function ensureBuildkit({
   })
 }
 
+/**
+ * Returns the full build command which first changes into the build context directory
+ * and then runs the `buildctl` command.
+ *
+ * We change into to build context directory to e.g. ensure that secret files that are
+ * passed as extra flags will have the correct path when the command is executed.
+ */
+export function makeBuildkitBuildCommand({
+  provider,
+  outputs,
+  action,
+  contextPath,
+  dockerfile,
+}: {
+  provider: KubernetesProvider
+  outputs: ContainerModuleOutputs
+  action: ResolvedBuildAction
+  contextPath: string
+  dockerfile: string
+}): string[] {
+  const buildctlCommand = [
+    "buildctl",
+    "build",
+    "--frontend=dockerfile.v0",
+    "--local",
+    "context=" + contextPath,
+    "--local",
+    "dockerfile=" + contextPath,
+    "--opt",
+    "filename=" + dockerfile,
+    ...getBuildkitImageFlags(
+      provider.config.clusterBuildkit!.cache,
+      outputs,
+      provider.config.deploymentRegistry!.insecure
+    ),
+    ...getBuildkitFlags(action),
+  ]
+
+  return ["sh", "-c", `cd ${contextPath} && ${buildctlCommand.join(" ")}`]
+}
+
 export function getBuildkitFlags(action: Resolved<ContainerBuildAction>) {
   const args: string[] = []
 
@@ -302,7 +328,7 @@ export function getBuildkitImageFlags(
     deploymentRegistryExtraSpec = ",registry.insecure=true"
   }
 
-  args.push("--output", `type=image,"name=${imageNames.join(",")}",push=true${deploymentRegistryExtraSpec}`)
+  args.push("--output", `type=image,\\"name=${imageNames.join(",")}\\",push=true${deploymentRegistryExtraSpec}`)
 
   for (const cache of cacheConfig) {
     const cacheImageName = getCacheImageName(moduleOutputs, cache)
