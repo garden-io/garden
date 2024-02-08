@@ -29,7 +29,7 @@ import type { Resolved } from "../../../../actions/types.js"
 import { stringifyResources } from "../util.js"
 import { getKubectlExecDestination } from "../../sync.js"
 import { getRunningDeploymentPod } from "../../util.js"
-import { buildSyncVolumeName, dockerAuthSecretKey, k8sUtilImageName, rsyncPortName } from "../../constants.js"
+import { buildSyncVolumeName, dockerAuthSecretKey, getK8sUtilImageName, rsyncPortName } from "../../constants.js"
 import { styles } from "../../../../logger/styles.js"
 import type { StringMap } from "../../../../config/common.js"
 import { LogLevel } from "../../../../logger/logger.js"
@@ -517,7 +517,7 @@ export function getBuilderServiceAccountSpec(namespace: string, annotations?: St
 export function getUtilContainer(authSecretName: string, provider: KubernetesProvider): V1Container {
   return {
     name: utilContainerName,
-    image: k8sUtilImageName,
+    image: getK8sUtilImageName(),
     imagePullPolicy: "IfNotPresent",
     command: ["/rsync-server.sh"],
     env: [

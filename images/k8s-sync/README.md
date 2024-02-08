@@ -12,7 +12,7 @@ To update the mutagen version:
 
 ### Publish new Docker images
 
-1. Update the [Dockerfile](./Dockerfile) to use the new mutagen binaries and update the image name.
+1. Update the [Dockerfile](./Dockerfile) to use the new mutagen binaries and update the image name
    in [garden.yml](./garden.yml).
 2. Build and publish the new `k8s-sync` image.
 3. Increment the version of [k8s-util](../k8s-util) image by updating its [Dockerfile](../k8s-util/Dockerfile)

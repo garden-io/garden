@@ -16,7 +16,7 @@ import { expect } from "chai"
 import type { KubernetesProvider } from "../../../../../../../src/plugins/kubernetes/config.js"
 import { defaultResources } from "../../../../../../../src/plugins/kubernetes/config.js"
 import type { DeepPartial } from "../../../../../../../src/util/util.js"
-import { k8sUtilImageName } from "../../../../../../../src/plugins/kubernetes/constants.js"
+import { getK8sUtilImageName } from "../../../../../../../src/plugins/kubernetes/constants.js"
 
 describe("common build", () => {
   describe("manifest error", () => {
@@ -102,7 +102,7 @@ describe("common build", () => {
                 containers: [
                   {
                     name: "util",
-                    image: k8sUtilImageName,
+                    image: getK8sUtilImageName(),
                     imagePullPolicy: "IfNotPresent",
                     command: ["/rsync-server.sh"],
                     env: [

@@ -10,8 +10,8 @@ import type { V1PodSpec } from "@kubernetes/client-node"
 import {
   skopeoDaemonContainerName,
   dockerAuthSecretKey,
-  k8sUtilImageName,
   defaultKanikoImageName,
+  getK8sUtilImageName,
 } from "../../constants.js"
 import { KubeApi } from "../../api.js"
 import type { Log } from "../../../../logger/log-entry.js"
@@ -288,7 +288,7 @@ export function getKanikoBuilderPodManifest({
     initContainers: [
       {
         name: "init",
-        image: k8sUtilImageName,
+        image: getK8sUtilImageName(),
         command: [
           "/bin/sh",
           "-c",
