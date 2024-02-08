@@ -8,12 +8,11 @@ kind: Deploy
 name: frontend
 description: Frontend service container
 type: container
-
-build: frontend
 dependencies:
+  - build.frontend
   - deploy.backend
-
 spec:
+  image: ${actions.build.frontend.outputs.deploymentImageId}
   ports:
     - name: http
       containerPort: 8080
@@ -32,22 +31,21 @@ kind: Test
 name: frontend-unit
 description: Frontend service unit tests
 type: container
-
-build: frontend
-
+dependencies:
+  - build.frontend
 spec:
-  command: [ npm, test ]
+  command: [npm, test]
+  image: ${actions.build.frontend.outputs.deploymentImageId}
 
 ---
 kind: Test
 name: frontend-integ
 description: Frontend service integration tests
 type: container
-
-build: frontend
 dependencies:
+  - build.frontend
   - deploy.frontend
 disabled: ${environment.name == "local"}
-
 spec:
-  command: [ npm, run, integ ]
+  command: [npm, run, integ]
+  image: ${actions.build.frontend.outputs.deploymentImageId}

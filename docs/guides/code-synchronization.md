@@ -27,8 +27,10 @@ To configure a service for sync mode, add `sync` to your Deploy configuration to
 kind: Deploy
 name: node-service
 type: container
-build: node-service-build
+dependencies:
+  - build.node-service-build
 spec:
+  image: ${actions.build.node-service-build.outputs.deploymentImageId}
   args: [npm, run, serve]
   sync:
     paths:
@@ -146,8 +148,10 @@ Exclusion rules can be specified on individual sync configs:
 kind: Deploy
 name: node-service
 type: container
-build: node-service-build
+dependencies:
+  - build.node-service-build
 spec:
+  image: ${actions.build.node-service-build.outputs.deploymentImageId}
   args: [npm, run, serve]
   sync:
     paths:
@@ -189,8 +193,10 @@ To do this, you can set a few options on each sync:
 kind: Deploy
 name: node-service
 type: container
-build: node-service-build
+dependencies:
+  - build.node-service-build
 spec:
+  image: ${actions.build.node-service-build.outputs.deploymentImageId}
   sync:
     paths:
       - target: /app/src
@@ -236,8 +242,10 @@ type: container
 description: |
   Here, we sync source code into the remote, and sync back the `test-artifacts` directory
   (populated when we run tests) back to the local machine.
-build: node-service-build
+dependencies:
+  - build.node-service-build
 spec:
+  image: ${actions.build.node-service-build.outputs.deploymentImageId}
   args: [npm, start]
   sync:
     # Overrides the container's default when the service is deployed in sync mode.

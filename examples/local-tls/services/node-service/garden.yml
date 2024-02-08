@@ -9,11 +9,12 @@ name: node-service
 description: Node service container
 type: container
 
-build: node-service
 dependencies:
+  - build.node-service
   - deploy.go-service
 
 spec:
+  image: ${actions.build.node-service.outputs.deploymentImageId}
   args: [ npm, start ]
   ports:
     - name: http
@@ -30,9 +31,11 @@ name: node-service-unit
 description: Node service container unit tests
 type: container
 
-build: node-service
+dependencies:
+  - build.node-service
 
 spec:
+  image: ${actions.build.node-service.outputs.deploymentImageId}
   command: [ npm, test ]
 
 ---
@@ -41,10 +44,11 @@ name: node-service-integ
 description: Node service container integration tests
 type: container
 
-build: node-service
 dependencies:
+  - build.node-service
   - deploy.go-service
 
 spec:
+  image: ${actions.build.node-service.outputs.deploymentImageId}
   command: [ npm, run, integ ]
 

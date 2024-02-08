@@ -7,9 +7,10 @@ type: container
 kind: Deploy
 name: otlp-http
 description: OTLP HTTP service container
+dependencies: [build.otlp-http]
 type: container
-build: otlp-http
 spec:
+  image: ${actions.build.otlp-http.outputs.deploymentImageId}
   ports:
     - name: http-otlp
       containerPort: 8080

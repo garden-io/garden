@@ -29,10 +29,12 @@ kind: Deploy
 name: frontend
 description: Frontend service container
 type: container
-build: frontend
+dependencies:
+ - build.frontend
 variables:
   base-hostname: "${environment.name == 'ephemeral' ? providers.ephemeral-kubernetes.outputs.default-hostname : local.demo.garden}"
 spec:
+  image: ${actions.build.frontend.outputs.deploymentImageId}
   ports:
     - name: http
       containerPort: 8080

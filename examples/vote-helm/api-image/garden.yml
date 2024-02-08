@@ -7,9 +7,10 @@ name: api-image
 kind: Test
 name: api-integ
 type: container
-build: api-image
 timeout: 60
 dependencies:
+  - build.api-image
   - deploy.api
 spec:
+  image: ${actions.build.api-image.outputs.deploymentImageId}
   args: [python, /app/test.py]

@@ -55,15 +55,19 @@ spec:
 kind: Test
 name: web-unit
 type: container
-build: web
+dependencies:
+  - build.web
 spec:
   args: [npm, run, test:unit]
+  image: ${actions.build.web.outputs.deploymentImageId}
 
 ---
 kind: Test
 name: e2e-runner
 type: container
-build: web
-dependencies: [deploy.api]
+dependencies:
+  - build.web
+  - deploy.api
 spec:
   args: [npm, run, test:integ]
+  image: ${actions.build.web.outputs.deploymentImageId}

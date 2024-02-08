@@ -16,13 +16,13 @@ kind: Deploy
 description: Minimal Gatsby example
 name: website
 type: container
-build: website
+dependencies:
+  - build.website
 spec:
   sync:
     paths:
       - source: src
         target: /app/src
-        # Make sure to specify any paths that should not be synced!
         exclude: [node_modules]
         mode: one-way
   args: [npm, run, dev]
@@ -34,3 +34,4 @@ spec:
   ingresses:
     - path: /
       port: http
+  image: ${actions.build.website.outputs.deploymentImageId}

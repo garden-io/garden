@@ -8,8 +8,8 @@ name: frontend
 description: Frontend service container
 type: container
 dependencies:
+  - build.frontend
   - deploy.backend
-build: frontend
 spec:
   ports:
     - name: http
@@ -23,21 +23,25 @@ spec:
       port: http
     - path: /call-backend
       port: http
+  image: ${actions.build.frontend.outputs.deploymentImageId}
 
 ---
 kind: Test
 type: container
-build: frontend
+dependencies:
+  - build.frontend
 name: frontend-unit
 spec:
   command: [npm, test]
+  image: ${actions.build.frontend.outputs.deploymentImageId}
 
 ---
 kind: Test
 type: container
-build: frontend
-name: frontend-integ
 dependencies:
+  - build.frontend
   - deploy.frontend
+name: frontend-integ
 spec:
   command: [npm, run, integ]
+  image: ${actions.build.frontend.outputs.deploymentImageId}
