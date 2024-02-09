@@ -269,7 +269,7 @@ export class PluginTool extends CliWrapper {
       const tmpPath = join(this.toolPath, this.versionDirname + "." + uuidv4().substr(0, 8))
       const targetAbsPath = join(tmpPath, ...this.targetSubpath.split(posix.sep))
 
-      const downloadLog = log.createLog().info(`Fetching ${this.name}...`)
+      const downloadLog = log.createLog().info(`Fetching ${this.name} ${this.spec.version}...`)
       const debug = downloadLog
         .createLog({
           fixLevel: LogLevel.debug,
