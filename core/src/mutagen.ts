@@ -29,6 +29,7 @@ import { deline } from "./util/string.js"
 import { registerCleanupFunction, sleep } from "./util/util.js"
 import type { OctalPermissionMask } from "./plugins/kubernetes/types.js"
 import { styles } from "./logger/styles.js"
+import { dirname } from "node:path"
 
 const { mkdirp, pathExists } = fsExtra
 
@@ -210,10 +211,14 @@ class _MutagenMonitor extends TypedEventEmitter<MonitorEvents> {
       const mutagenOpts = [mutagenPath, "sync", "monitor", "--template", "{{ json . }}", "--long"]
       log.silly(() => `Spawning mutagen using respawn: "${mutagenOpts.join(" ")}"`)
 
+      const sshPath = await getMutagenSshPath(log)
+      if (sshPath) {
+        log.debug(`Mutagen will be used with the faux SSH transport located in ${sshPath}`)
+      }
       const proc = respawn(mutagenOpts, {
         cwd: dataDir,
         name: "mutagen",
-        env: getMutagenEnv({ dataDir, logLevel: "debug", sshPath: gardenEnv.MUTAGEN_SSH_PATH }),
+        env: getMutagenEnv({ dataDir, logLevel: "debug", sshPath }),
         maxRestarts,
         sleep: 3000,
         kill: 500,
@@ -866,7 +871,7 @@ export function parseSyncListResult(res: ExecaReturnValue): SyncSession[] {
   return parsed
 }
 
-export const isNativeMutagenEnabled = () => !!gardenEnv.MUTAGEN_SSH_PATH
+export const isNativeMutagenEnabled = () => !gardenEnv.GARDEN_ENABLE_LEGACY_SYNC
 
 const mutagenVersionLegacy = "0.15.0"
 const mutagenVersionNative = "0.15.0"
@@ -1062,6 +1067,19 @@ export const mutagenFauxSshSpec: PluginToolSpec = {
       },
     },
   ],
+}
+
+export const mutagenFauxSsh = new PluginTool(mutagenFauxSshSpec)
+
+async function getMutagenSshPath(log: Log): Promise<string | undefined> {
+  if (!isNativeMutagenEnabled()) {
+    return undefined
+  }
+
+  const fauxSshToolPath = await mutagenFauxSsh.ensurePath(log)
+  // This must be the dir containing the faux SSH binary,
+  // not the full path that includes the binary name
+  return dirname(fauxSshToolPath)
 }
 
 /**

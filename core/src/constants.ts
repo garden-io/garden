@@ -100,5 +100,5 @@ export const gardenEnv = {
     .required(false)
     .default("https://get.garden.io/releases")
     .asUrlString(),
-  MUTAGEN_SSH_PATH: env.get("MUTAGEN_SSH_PATH").required(false).asString(),
+  GARDEN_ENABLE_LEGACY_SYNC: env.get("GARDEN_ENABLE_LEGACY_SYNC").required(false).default("true").asBool(),
 }
