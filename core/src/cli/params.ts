@@ -377,12 +377,10 @@ export const globalDisplayOptions = {
     choices: [...LOGGER_TYPES],
     help: deline`
       Set logger type.
-      ${styles.bold("default")} The default Garden logger,
-      ${styles.bold(
-        "basic"
-      )} [DEPRECATED] Sames as the default Garden logger. This option will be removed in a future release,
-      ${styles.bold("json")} same as default, but renders log lines as JSON,
-      ${styles.bold("quiet")} suppresses all log output, same as --silent.
+      ${styles.highlight("default")} The default Garden logger,
+      ${styles.highlight("basic")}: [DEPRECATED] An alias for "default".
+      ${styles.highlight("json")}: Renders log lines as JSON.
+      ${styles.highlight("quiet")}: Suppresses all log output, same as --silent.
     `,
     cliOnly: true,
   }),
@@ -391,7 +389,9 @@ export const globalDisplayOptions = {
     choices: getLogLevelChoices(),
     help: deline`
       Set logger level. Values can be either string or numeric and are prioritized from 0 to 5
-      (highest to lowest) as follows: error: 0, warn: 1, info: 2, verbose: 3, debug: 4, silly: 5.
+      (highest to lowest) as follows: ${styles.highlight("error: 0")}, ${styles.highlight("warn: 1")},
+      ${styles.highlight("info: 2")}, ${styles.highlight("verbose: 3")}, ${styles.highlight("debug: 4")},
+      ${styles.highlight("silly: 5")}.
       From the verbose log level onward action execution logs are also printed (e.g. test or run live log outputs).`,
     hints: "[choice] [default: info] [error || 0, warn || 1, info || 2, verbose || 3, debug || 4, silly || 5]",
     defaultValue: LogLevel[LogLevel.info],
