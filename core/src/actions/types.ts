@@ -237,6 +237,12 @@ export type ActionConfigMap = {
   }
 }
 
+export type ActionConfigMapForDump = {
+  [K in ActionKind]: {
+    [name: string]: Omit<BaseActionConfig<K>, "internal">
+  }
+}
+
 export interface ActionConfigsByKey {
   [key: string]: ActionConfig
 }

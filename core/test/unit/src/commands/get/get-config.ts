@@ -7,7 +7,7 @@
  */
 
 import { expect } from "chai"
-import { pick } from "lodash-es"
+import { omit, pick } from "lodash-es"
 import { getDataDir, makeTestGarden, makeTestGardenA, withDefaultGlobalOpts } from "../../../../helpers.js"
 import { GetConfigCommand } from "../../../../../src/commands/get/get-config.js"
 import { sortBy } from "lodash-es"
@@ -38,7 +38,7 @@ describe("GetConfigCommand", () => {
     const actions = graph.getActions()
 
     for (const action of actions) {
-      const config = action.getConfig()
+      const config = omit(action.getConfig(), "internal")
       expect(result!.actionConfigs[action.kind][action.name]).to.eql(config)
     }
   })
