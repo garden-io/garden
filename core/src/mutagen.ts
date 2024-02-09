@@ -1001,6 +1001,69 @@ export const mutagenCliSpec = isNativeMutagenEnabled() ? mutagenCliSpecNative() 
 
 export const mutagenCli = new PluginTool(mutagenCliSpec)
 
+const mutagenFauxSshVersion = "v0.0.1"
+const mutagenFauxSshReleaseBaseUrl = "https://github.com/garden-io/mutagen-faux-ssh/releases/download/"
+
+export const mutagenFauxSshSpec: PluginToolSpec = {
+  name: "mutagen-faux-ssh",
+  version: mutagenFauxSshVersion,
+  description: "The faux SSH implementation to be used as SSH transport for Mutagen.",
+  type: "binary",
+  _includeInGardenImage: false,
+  builds: [
+    {
+      platform: "darwin",
+      architecture: "amd64",
+      url: `${mutagenFauxSshReleaseBaseUrl}/${mutagenFauxSshVersion}/mutagen-faux-ssh-${mutagenFauxSshVersion}-darwin-amd64.tar.gz`,
+      sha256: "2613c82c843ac5123c0fe380422781db9306862341ba94b76aa3c5c6268acf50",
+      extract: {
+        format: "tar",
+        targetPath: "ssh",
+      },
+    },
+    {
+      platform: "darwin",
+      architecture: "arm64",
+      url: `${mutagenFauxSshReleaseBaseUrl}/${mutagenFauxSshVersion}/mutagen-faux-ssh-${mutagenFauxSshVersion}-darwin-arm64.tar.gz`,
+      sha256: "914db58ebaf093e7494c83ea0c21156a23216c1ce08ccab27f9973f6aa4d5c4d",
+      extract: {
+        format: "tar",
+        targetPath: "ssh",
+      },
+    },
+    {
+      platform: "linux",
+      architecture: "amd64",
+      url: `${mutagenFauxSshReleaseBaseUrl}/${mutagenFauxSshVersion}/mutagen-faux-ssh-${mutagenFauxSshVersion}-linux-amd64.tar.gz`,
+      sha256: "16588f55e614d9ccb77c933463207cd023101bd7234b5d0eecff0e57a98dd7b0",
+      extract: {
+        format: "tar",
+        targetPath: "ssh",
+      },
+    },
+    {
+      platform: "linux",
+      architecture: "arm64",
+      url: `${mutagenFauxSshReleaseBaseUrl}/${mutagenFauxSshVersion}/mutagen-faux-ssh-${mutagenFauxSshVersion}-linux-arm64.tar.gz`,
+      sha256: "c7645e615efc9e5139f8a281abb9acae61ea2ce2084ea25aa438438da3481167",
+      extract: {
+        format: "tar",
+        targetPath: "mutagen",
+      },
+    },
+    {
+      platform: "windows",
+      architecture: "amd64",
+      url: `${mutagenFauxSshReleaseBaseUrl}/${mutagenFauxSshVersion}/mutagen-faux-ssh-${mutagenFauxSshVersion}-windows-amd64.zip`,
+      sha256: "f548d81eea994c0b21dbcfa77b671ea8cc897b66598303396a214ef0b0c53f08",
+      extract: {
+        format: "zip",
+        targetPath: "ssh.exe",
+      },
+    },
+  ],
+}
+
 /**
  * Returns true if the given sync point is a filesystem path that exists.
  */
