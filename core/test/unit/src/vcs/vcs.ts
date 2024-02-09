@@ -199,7 +199,7 @@ describe("VcsHandler", () => {
       expect(result.files).to.eql(["foo"])
     })
 
-    it("should not call getFiles is include: [] is set on the module", async () => {
+    it("should not call getFiles if include: [] is set on the module", async () => {
       td.replace(handlerA, "getFiles", async () => {
         throw new Error("Nope!")
       })

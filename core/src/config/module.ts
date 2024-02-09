@@ -234,7 +234,7 @@ export const baseModuleSpecKeys = memoize(() => ({
   allowPublish: joi
     .boolean()
     .default(true)
-    .description("When false, disables pushing this module to remote registries."),
+    .description("When false, disables pushing this module to remote registries via the publish command."),
   generateFiles: joiSparseArray(generatedFileSchema()).description(dedent`
     A list of files to write to the module directory when resolving this module. This is useful to automatically generate (and template) any supporting files needed for the module.
   `),

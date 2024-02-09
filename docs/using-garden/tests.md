@@ -12,10 +12,11 @@ You add Tests when you want Garden to run your test suites for you. A minimalist
 kind: Test
 name: frontend-integ
 type: container
-build: frontend
 dependencies:
+  - build.frontend # <- we depend on the build because the image is used when running the test
   - deploy.frontend # <- we want the frontend service to be running and up-to-date for this test
 spec:
+  image: ${actions.build.frontend.outputs.deploymentImageId} # <- use the output from the corresponding image build
   args: [npm, run, integ]
 ```
 
@@ -40,10 +41,11 @@ Below is an example of a `frontend-integ` Test that checks whether the frontend 
 kind: Test
 name: frontend-integ
 type: container
-build: frontend
 dependencies:
+  - build.frontend # <- we depend on the build because the image is used when running the test
   - deploy.frontend # <- we want the frontend service to be running and up-to-date for this test
 spec:
+  image: ${actions.build.frontend.outputs.deploymentImageId} # <- use the output from the corresponding image build
   args: [npm, run, integ]
 ```
 

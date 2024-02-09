@@ -174,8 +174,10 @@ kind: Test
 name: api-integ
 type: container
 description: A Test action for integration testing the api after its been deployed
-build: api # <--- Use the api image to run the test
-dependencies: [deploy.api]
+dependencies: [build.api, deploy.api]
+spec:
+  image: ${actions.build.api.outputs.deploymentImageId}
+  command: [./integ-tests.sh]
 ```
 
 Depending on the size of your project, you may want to add a handful of actions to get started and then gradually add more as needed.

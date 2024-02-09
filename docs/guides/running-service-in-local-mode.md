@@ -161,9 +161,11 @@ type: container
 kind: Deploy
 name: node-app
 type: container
-build: node-app
+dependencies:
+  - build.node-app
 ...
 spec:
+  image: ${actions.build.node-app.outputs.deploymentImageId}
   localMode:
     ports:
       - local: 8090 # The port of the local app, will be used for port-forward setup.
@@ -195,6 +197,8 @@ kind: Deploy
 name: backend
 type: kubernetes # this example looks the same for helm actions (i.e. with `type: helm`)
 build: backend
+dependencies:
+  - build.backend
 localMode:
   ports:
     - local: 8090

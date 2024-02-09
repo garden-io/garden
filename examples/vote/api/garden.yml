@@ -7,8 +7,8 @@ kind: Deploy
 description: The backend for the voting UI
 name: api
 type: container
-build: api
 dependencies:
+  - build.api
   - deploy.redis
 spec:
   args: [python, app.py]
@@ -24,14 +24,16 @@ spec:
     - path: /
       hostname: "api.${var.baseHostname}"
       port: http
+  image: ${actions.build.api.outputs.deploymentImageId}
 
 ---
 kind: Test
 name: api-integ
 type: container
-build: api
 dependencies:
+  - build.api
   - deploy.api
 timeout: 200
 spec:
   args: [python, /app/test.py]
+  image: ${actions.build.api.outputs.deploymentImageId}

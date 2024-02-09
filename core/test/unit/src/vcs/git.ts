@@ -428,86 +428,106 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
       // the exclusion paths with and without glob prefix **/ works in the same way.
       context("when only exclude filter is specified", () => {
         context("should filter out files that match the exclude filter", () => {
-          const excludedFilenameNoExt = "foo"
-          const excludedFilenameTxt = `${excludedFilenameNoExt}.txt`
-          const excludedFilenameWildcard = `${excludedFilenameNoExt}.*`
+          const fooTxt = `foo.txt`
+          const fooWildcard = `foo.*`
+
+          let fooPath: string
+          let barPath: string
+          let dirPath: string
+          let dirFooPath: string
+          let dirBarPath: string
+
           const testParams = [
             {
               name: "by exact filename without globs",
-              exclusionBuilder: () => excludedFilenameTxt,
+              exclude: () => fooTxt,
+              expectedFiles: () => (gitScanMode === "repo" ? [barPath, dirBarPath, dirFooPath] : [barPath, dirBarPath]),
             },
             {
               name: "by exact filename with prefix globs",
-              exclusionBuilder: () => join("**", excludedFilenameTxt),
+              exclude: () => join("**", fooTxt),
+              expectedFiles: () => [barPath, dirBarPath],
             },
             {
               name: "by filename with wildcard extension without prefix globs",
-              exclusionBuilder: () => excludedFilenameWildcard,
+              exclude: () => fooWildcard,
+              expectedFiles: () => (gitScanMode === "repo" ? [barPath, dirBarPath, dirFooPath] : [barPath, dirBarPath]),
             },
             {
               name: "by filename with wildcard extension with prefix globs",
-              exclusionBuilder: () => join("**", excludedFilenameWildcard),
+              exclude: () => join("**", fooWildcard),
+              expectedFiles: () => [barPath, dirBarPath],
             },
           ]
 
           for (const testParam of testParams) {
             it(testParam.name, async () => {
+              fooPath = resolve(tmpPath, "foo.txt")
+              barPath = resolve(tmpPath, "bar.txt")
+              // const notExcludedDirName = "dir"
+              dirPath = resolve(tmpPath, "dir")
+              dirFooPath = resolve(dirPath, "foo.txt")
+              dirBarPath = resolve(dirPath, "bar.txt")
+
               // matches file exclusion pattern -> should be excluded
-              const excludedByFilename = resolve(tmpPath, "foo.txt")
-              await createFile(excludedByFilename)
+              await createFile(fooPath)
 
               // doesn't match file exclusion pattern -> should be included
-              const notExcludedByFilename = resolve(tmpPath, "bar.txt")
-              await createFile(notExcludedByFilename)
-
-              const notExcludedDirName = "dir"
-              const notExcludedDirPath = resolve(tmpPath, notExcludedDirName)
-              await mkdir(notExcludedDirPath)
+              await createFile(barPath)
+              await mkdir(dirPath)
 
               // matches exclusion pattern filename and located in non-excluded dir -> should be excluded
-              const excludedByFilenameNested = resolve(notExcludedDirPath, "foo.txt")
-              await createFile(excludedByFilenameNested)
+              await createFile(dirFooPath)
 
               // doesn't match file exclusion pattern -> should be included
-              const notExcludedByFilenameNested = resolve(notExcludedDirPath, "bar.txt")
-              await createFile(notExcludedByFilenameNested)
+              await createFile(dirBarPath)
 
               const files = (
                 await handler.getFiles({
                   path: tmpPath,
                   scanRoot: undefined,
                   include: undefined,
-                  exclude: [testParam.exclusionBuilder()],
+                  exclude: [testParam.exclude()],
                   log,
                 })
               )
                 .map((p) => p.path)
                 .sort()
 
-              const expectedFiles = [notExcludedByFilename, notExcludedByFilenameNested].sort()
-              expect(files).to.eql(expectedFiles)
+              expect(files).to.eql(testParam.expectedFiles())
             })
           }
         })
 
         context("should filter directories that match the exclude filter", () => {
-          context("should filter out all files from direct sub-directories that match the exclude filter", () => {
+          context("should filter out any files from direct sub-directories that match the exclude filter", () => {
+            let barPath: string
+            let dirBarPath: string
+            let excludedDirFooPath: string
+            let excludedDirBarPath: string
             const testParams = [
               {
                 name: "without globs",
                 exclusionBuilder: (subDirName: string) => subDirName,
+                expectedFiles: () => [barPath, dirBarPath],
               },
               {
                 name: "with prefix globs",
                 exclusionBuilder: (subDirName: string) => join("**", subDirName),
+                expectedFiles: () =>
+                  gitScanMode === "repo"
+                    ? [barPath, dirBarPath, excludedDirBarPath, excludedDirFooPath]
+                    : [barPath, dirBarPath],
               },
               {
                 name: "with full globs",
                 exclusionBuilder: (subDirName: string) => join("**", subDirName, "**", "*"),
+                expectedFiles: () => [barPath, dirBarPath],
               },
               {
                 name: "with redundant relative path",
                 exclusionBuilder: (subDirName: string) => `./${subDirName}`,
+                expectedFiles: () => [barPath, dirBarPath],
               },
             ]
 
@@ -523,26 +543,25 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
             for (const testParam of testParams) {
               it(testParam.name, async () => {
                 // doesn't match file exclusion pattern -> should be included
-                const notExcludedByFilename = resolve(tmpPath, "bar.txt")
+                barPath = resolve(tmpPath, "bar.txt")
 
-                const notExcludedDirName = "dir"
-                const notExcludedDirPath = resolve(tmpPath, notExcludedDirName)
-                await mkdir(notExcludedDirPath)
+                const dirPath = resolve(tmpPath, "dir")
+                await mkdir(dirPath)
 
                 // doesn't match file exclusion pattern in non-excluded dir -> should be included
-                const notExcludedInNotExcludedDir = resolve(notExcludedDirPath, "bar.txt")
+                dirBarPath = resolve(dirPath, "bar.txt")
 
                 // both match directory exclusion pattern -> should be excluded despite the file exclusion pattern matching
                 const excludedDirName = "excluded-dir"
                 const excludedDirPath = resolve(tmpPath, excludedDirName)
                 await mkdir(excludedDirPath)
-                const excludedByDirectory1 = resolve(excludedDirPath, "foo.txt")
-                const excludedByDirectory2 = resolve(excludedDirPath, "bar.txt")
+                excludedDirFooPath = resolve(excludedDirPath, "foo.txt")
+                excludedDirBarPath = resolve(excludedDirPath, "bar.txt")
 
-                await createFile(notExcludedByFilename)
-                await createFile(notExcludedInNotExcludedDir)
-                await createFile(excludedByDirectory1)
-                await createFile(excludedByDirectory2)
+                await createFile(barPath)
+                await createFile(dirBarPath)
+                await createFile(excludedDirFooPath)
+                await createFile(excludedDirBarPath)
 
                 const files = (
                   await handler.getFiles({
@@ -556,29 +575,43 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
                   .map((p) => p.path)
                   .sort()
 
-                const expectedFiles = [notExcludedByFilename, notExcludedInNotExcludedDir].sort()
-                expect(files).to.eql(expectedFiles)
+                expect(files).to.eql(testParam.expectedFiles())
               })
             }
           })
 
           context("should filter out all files from deep sub-directories that match the exclude filter", () => {
+            let barPath: string
+            let dirBarPath: string
+            let excludedSubdirFooPath: string
+            let excludedSubdirBarPath: string
+
             const testParams = [
               {
                 name: "without globs",
                 exclusionBuilder: (...subDirNames: string[]) => subDirNames.at(-1)!,
+                expectedFiles: () =>
+                  gitScanMode === "repo"
+                    ? [barPath, dirBarPath, excludedSubdirBarPath, excludedSubdirFooPath]
+                    : [barPath, dirBarPath],
               },
               {
                 name: "with prefix globs",
                 exclusionBuilder: (...subDirNames: string[]) => join("**", subDirNames.at(-1)!),
+                expectedFiles: () =>
+                  gitScanMode === "repo"
+                    ? [barPath, dirBarPath, excludedSubdirBarPath, excludedSubdirFooPath]
+                    : [barPath, dirBarPath],
               },
               {
                 name: "with full globs",
                 exclusionBuilder: (...subDirNames: string[]) => join("**", subDirNames.at(-1)!, "**", "*"),
+                expectedFiles: () => [barPath, dirBarPath],
               },
               {
                 name: "with redundant relative path",
                 exclusionBuilder: (...subDirNames: string[]) => `./${subDirNames.join("/")}`,
+                expectedFiles: () => [barPath, dirBarPath],
               },
             ]
 
@@ -594,41 +627,38 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
             for (const testParam of testParams) {
               it(testParam.name, async () => {
                 // doesn't match file exclusion pattern -> should be included
-                const notExcludedByFilename = resolve(tmpPath, "bar.txt")
+                barPath = resolve(tmpPath, "bar.txt")
 
-                const notExcludedDirName = "dir"
-                const notExcludedDirPath = resolve(tmpPath, notExcludedDirName)
-                await mkdir(notExcludedDirPath)
+                const dirPath = resolve(tmpPath, "dir")
+                await mkdir(dirPath)
 
                 // doesn't match file exclusion pattern in non-excluded dir -> should be included
-                const notExcludedInNotExcludedDir = resolve(notExcludedDirPath, "bar.txt")
+                dirBarPath = resolve(dirPath, "bar.txt")
 
                 // both match directory exclusion pattern -> should be excluded despite the file exclusion pattern matching
-                const excludedSubDirectoryName = "excluded-subdir"
-                const excludedSubDirectoryPath = resolve(notExcludedDirPath, excludedSubDirectoryName)
+                const excludedSubDirectoryPath = resolve(dirPath, "excluded-subdir")
                 await mkdir(excludedSubDirectoryPath)
-                const excludedBySubDirectory1 = resolve(excludedSubDirectoryPath, "foo.txt")
-                const excludedBySubDirectory2 = resolve(excludedSubDirectoryPath, "bar.txt")
+                excludedSubdirFooPath = resolve(excludedSubDirectoryPath, "foo.txt")
+                excludedSubdirBarPath = resolve(excludedSubDirectoryPath, "bar.txt")
 
-                await createFile(notExcludedByFilename)
-                await createFile(notExcludedInNotExcludedDir)
-                await createFile(excludedBySubDirectory1)
-                await createFile(excludedBySubDirectory2)
+                await createFile(barPath)
+                await createFile(dirBarPath)
+                await createFile(excludedSubdirFooPath)
+                await createFile(excludedSubdirBarPath)
 
                 const files = (
                   await handler.getFiles({
                     path: tmpPath,
                     scanRoot: undefined,
                     include: undefined, // when include: [], getFiles() always returns an empty result
-                    exclude: [testParam.exclusionBuilder(notExcludedDirName, excludedSubDirectoryName)],
+                    exclude: [testParam.exclusionBuilder("dir", "excluded-subdir")],
                     log,
                   })
                 )
                   .map((p) => p.path)
                   .sort()
 
-                const expectedFiles = [notExcludedByFilename, notExcludedInNotExcludedDir].sort()
-                expect(files).to.eql(expectedFiles)
+                expect(files).to.eql(testParam.expectedFiles())
               })
             }
           })
@@ -827,6 +857,63 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
         expect(files).to.eql([])
       })
     })
+
+    if (gitScanMode === "repo") {
+      context("action at project root that ignores a subdir containing another action", () => {
+        let fooPath: string
+        let ignoredFilePath: string
+        let barPath: string
+        let dirFooPath: string
+        let dirSubdirFooPath: string
+        let dirBarPath: string
+        let dirIgnoredFilePath: string
+        it("should respect includes/excludes for both the root-level and nested actions", async () => {
+          // We don't actually need action configs to test this, but we do need to use the same VCS handler instance
+          // for both `getFiles` calls to test the caching behavior of the `repo` scan mode.
+          await mkdir(resolve(tmpPath, "dir"))
+          fooPath = resolve(tmpPath, "foo.txt")
+          ignoredFilePath = resolve(tmpPath, "ignored.txt")
+          barPath = resolve(tmpPath, "bar.txt")
+          dirFooPath = resolve(tmpPath, "dir", "foo.txt")
+          dirSubdirFooPath = resolve(tmpPath, "dir", "subdir", "foo.txt")
+          dirBarPath = resolve(tmpPath, "dir", "bar.txt")
+          dirIgnoredFilePath = resolve(tmpPath, "dir", "ignored.txt")
+
+          await createFile(fooPath)
+          await createFile(ignoredFilePath)
+          await createFile(barPath)
+          await createFile(dirFooPath)
+          await createFile(dirSubdirFooPath)
+          await createFile(dirBarPath)
+          await createFile(dirIgnoredFilePath)
+
+          const rootFiles = (
+            await handler.getFiles({
+              path: tmpPath,
+              scanRoot: undefined,
+              exclude: ["dir", "ignored.txt"],
+              log,
+            })
+          )
+            .map((f) => f.path)
+            .sort()
+
+          const dirFiles = (
+            await handler.getFiles({
+              path: resolve(tmpPath, "dir"),
+              scanRoot: undefined,
+              exclude: ["ignored.txt"],
+              log,
+            })
+          )
+            .map((f) => f.path)
+            .sort()
+
+          expect(rootFiles).to.eql([barPath, fooPath])
+          expect(dirFiles).to.eql([dirBarPath, dirFooPath, dirSubdirFooPath])
+        })
+      })
+    }
 
     context("large repo", () => {
       // TODO: should we track and anyhow validate the execution time here?
@@ -1372,7 +1459,7 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
 }
 
 // FIXME-GITREPOHANDLER: revisit these tests and disk-based configs,
-//  inspect the scenarios when both include and exclude filters are defined.s
+//  inspect the scenarios when both include and exclude filters are defined.
 const getTreeVersionTests = (gitScanMode: GitScanMode) => {
   const gitHandlerCls = getGitHandlerCls(gitScanMode)
   describe("getTreeVersion", () => {

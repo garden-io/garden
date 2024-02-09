@@ -1,0 +1,17 @@
+kind: Project
+apiVersion: garden.io/v1
+name: config-action-environments
+environments:
+  - name: local
+  - name: remote
+providers:
+  - name: test-plugin
+---
+kind: Build
+type: test
+name: a
+---
+kind: Build
+type: test
+name: b
+environments: [local]

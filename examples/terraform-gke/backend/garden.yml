@@ -3,12 +3,12 @@ name: backend
 type: container
 
 ---
-
 kind: Deploy
 name: backend
-build: backend
 description: Backend service container
 type: container
+dependencies:
+  - build.backend
 spec:
   ports:
     - name: http
@@ -17,3 +17,4 @@ spec:
   ingresses:
     - path: /hello-backend
       port: http
+  image: ${actions.build.backend.outputs.deploymentImageId}

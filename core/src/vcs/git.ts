@@ -200,13 +200,12 @@ export class GitHandler extends VcsHandler {
     }
 
     const { log, path, pathDescription = "directory", filter, failOnPrompt = false } = params
-    const { exclude, hasIncludes, include } = await getIncludeExcludeFiles(params)
 
     const gitLog = log
       .createLog({ name: "git" })
       .debug(
-        `Scanning ${pathDescription} at ${path}\n  → Includes: ${include || "(none)"}\n  → Excludes: ${
-          exclude || "(none)"
+        `Scanning ${pathDescription} at ${path}\n  → Includes: ${params.include || "(none)"}\n  → Excludes: ${
+          params.exclude || "(none)"
         }`
       )
 
@@ -225,6 +224,7 @@ export class GitHandler extends VcsHandler {
         throw err
       }
     }
+    const { exclude, hasIncludes, include } = await getIncludeExcludeFiles(params)
 
     let files: VcsFile[] = []
 

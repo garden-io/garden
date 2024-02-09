@@ -29,14 +29,13 @@ copyFrom:
     targetPath: .
 
 ---
-# This action's Dockerfile expects the Go binary to already be built
 kind: Deploy
 type: container
 name: backend
-
-build: backend
-
+dependencies:
+  - build.backend
 spec:
+  image: ${actions.build.backend.outputs.deploymentImageId}
   ports:
     - name: http
       containerPort: 8080

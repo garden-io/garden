@@ -154,8 +154,10 @@ Here is a configuration example for two different test suites:
 kind: Test
 name: my-app-unit
 type: container
-build: my-app
+dependencies:
+  - build.my-app
 spec:
+  image: ${actions.build.my-app.outputs.deploymentImageId}
   args: [ npm, test ]
 
 ---
@@ -163,10 +165,11 @@ spec:
 kind: Test
 name: my-app-integ
 type: container
-build: my-app
 dependencies:
+  - build.my-app
   - deploy.my-app
 spec:
+  image: ${actions.build.my-app.outputs.deploymentImageId}
   args: [ npm, run, integ ]
 
 ```

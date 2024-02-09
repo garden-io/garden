@@ -10,7 +10,7 @@ import { expect } from "chai"
 import { DEFAULT_BUILD_TIMEOUT_SEC } from "../../../../src/constants.js"
 import type { ActionConfig, BaseActionConfig } from "../../../../src/actions/types.js"
 import type { NonVersionedActionConfigKey } from "../../../../src/actions/base.js"
-import { getActionConfigVersion } from "../../../../src/actions/base.js"
+import { actionIsDisabled, getActionConfigVersion } from "../../../../src/actions/base.js"
 
 describe("getActionConfigVersion", () => {
   function minimalActionConfig(): ActionConfig {
@@ -56,5 +56,85 @@ describe("getActionConfigVersion", () => {
         expect(version1).to.eql(version2)
       })
     }
+  })
+})
+
+describe("actionIsDisabled", () => {
+  it("returns true if the action is disabled", () => {
+    const config: ActionConfig = {
+      kind: "Build",
+      type: "test",
+      name: "foo",
+      timeout: DEFAULT_BUILD_TIMEOUT_SEC,
+      internal: {
+        basePath: ".",
+      },
+      spec: {},
+      disabled: true,
+    }
+    expect(actionIsDisabled(config, "foo")).to.eql(true)
+  })
+
+  it("returns false if the action is not disabled", () => {
+    const config: ActionConfig = {
+      kind: "Build",
+      type: "test",
+      name: "foo",
+      timeout: DEFAULT_BUILD_TIMEOUT_SEC,
+      internal: {
+        basePath: ".",
+      },
+      disabled: false,
+      spec: {},
+    }
+    expect(actionIsDisabled(config, "foo")).to.eql(false)
+  })
+
+  it("returns false if action environments field is undefined", () => {
+    const config: ActionConfig = {
+      kind: "Build",
+      type: "test",
+      name: "foo",
+      timeout: DEFAULT_BUILD_TIMEOUT_SEC,
+      internal: {
+        basePath: ".",
+      },
+      disabled: false,
+      environments: undefined,
+      spec: {},
+    }
+    expect(actionIsDisabled(config, "foo")).to.eql(false)
+  })
+
+  it("returns false if action environments field is set and contains the environment", () => {
+    const config: ActionConfig = {
+      kind: "Build",
+      type: "test",
+      name: "foo",
+      timeout: DEFAULT_BUILD_TIMEOUT_SEC,
+      internal: {
+        basePath: ".",
+      },
+      disabled: false,
+      environments: ["yes"],
+      spec: {},
+    }
+    expect(actionIsDisabled(config, "yes")).to.eql(false)
+  })
+
+  it("returns true if action environments field is set and does not contain the environment", () => {
+    const config: ActionConfig = {
+      kind: "Build",
+      type: "test",
+      name: "foo",
+      timeout: DEFAULT_BUILD_TIMEOUT_SEC,
+      internal: {
+        basePath: ".",
+      },
+      disabled: false,
+      environments: ["yes"],
+      spec: {},
+    }
+    expect(actionIsDisabled(config, "no")).to.eql(true)
   })
 })

@@ -1063,7 +1063,6 @@ export class Garden {
       moduleGraph,
       actionModes,
       linkedSources,
-      environmentName: this.environmentName,
     })
 
     // TODO-0.13.1: detect overlap on Build actions
@@ -1190,6 +1189,7 @@ export class Garden {
     const graph = await this.getConfigGraph(params)
     const resolved = await this.resolveActions({ graph, actions: graph.getActions(), log: params.log })
     return new ResolvedConfigGraph({
+      environmentName: this.environmentName,
       actions: Object.values(resolved),
       moduleGraph: graph.moduleGraph,
       // TODO: perhaps groups should be resolved here

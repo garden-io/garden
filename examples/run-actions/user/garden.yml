@@ -7,10 +7,11 @@ kind: Deploy
 name: user
 description: User-listing service written in Ruby
 type: container
-build: user
 dependencies:
+  - build.user
   - run.ruby-migration
 spec:
+  image: ${actions.build.user.outputs.deploymentImageId}
   args: [ruby, app.rb]
   ports:
     - name: http
@@ -20,22 +21,24 @@ spec:
 kind: Run
 name: ruby-migration
 type: container
-build: user
 description: Populates the users table with a few records.
 dependencies:
+  - build.user
   # node-migration creates the users table, which has to exist before we use
   # ruby-migration to insert records into it.
   - run.node-migration
 spec:
+  image: ${actions.build.user.outputs.deploymentImageId}
   args: [rake, db:migrate]
 
 ---
 kind: Run
 name: db-clear
 type: container
-build: user
 description: Deletes all records from the users table.
 dependencies:
+  - build.user
   - run.node-migration
 spec:
+  image: ${actions.build.user.outputs.deploymentImageId}
   args: [rake, db:rollback]

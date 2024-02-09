@@ -70,10 +70,11 @@ apiVersion: garden.io/v1
 name: backend
 description: The backend server container
 type: container
-build: backend
 dependencies:
+  - build.backend
   - deploy.mongo
 spec:
+  image: ${actions.build.backend.outputs.deploymentImageId}
   sync:
     paths:
       - source: ./
@@ -124,10 +125,11 @@ apiVersion: garden.io/v1
 name: frontend
 description: The frontend server and UI components container
 type: container
-build: frontend
 dependencies:
+  - build.frontend
   - deploy.backend
 spec:
+  image: ${actions.build.frontend.outputs.deploymentImageId}
   env:
     DANGEROUSLY_DISABLE_HOST_CHECK: true
   sync:
