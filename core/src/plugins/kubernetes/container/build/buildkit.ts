@@ -247,7 +247,7 @@ export async function ensureBuildkit({
  * Returns the full build command which first changes into the build context directory
  * and then runs the `buildctl` command.
  *
- * We change into to build context directory to e.g. ensure that secret files that are
+ * We change into the build context directory to e.g. ensure that secret files that are
  * passed as extra flags will have the correct path when the command is executed.
  */
 export function makeBuildkitBuildCommand({
