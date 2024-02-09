@@ -30,6 +30,7 @@ import { registerCleanupFunction, sleep } from "./util/util.js"
 import type { OctalPermissionMask } from "./plugins/kubernetes/types.js"
 import { styles } from "./logger/styles.js"
 import { dirname } from "node:path"
+import { emitNonRepeatableWarning } from "./warnings.js"
 
 const { mkdirp, pathExists } = fsExtra
 
@@ -1076,6 +1077,12 @@ async function getMutagenSshPath(log: Log): Promise<string | undefined> {
     return undefined
   }
 
+  const warnMessage = `This version of Garden uses a new file syncing machinery.
+  All running Mutagen processes (syncs, Garden sync monitors and Mutagen daemon) must be stopped before using the new machinery!!!
+  Please, stop all the Mutagen processes and try again if you get any issues.
+  In case of other issues, use GARDEN_ENABLE_LEGACY_SYNC=true env variable to fallback to the old machinery.`
+
+  emitNonRepeatableWarning(log, warnMessage)
   const fauxSshToolPath = await mutagenFauxSsh.ensurePath(log)
   // This must be the dir containing the faux SSH binary,
   // not the full path that includes the binary name
