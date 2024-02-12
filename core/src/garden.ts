@@ -12,7 +12,7 @@ import { platform, arch } from "os"
 import { relative, resolve } from "path"
 import cloneDeep from "fast-copy"
 import AsyncLock from "async-lock"
-import { flatten, groupBy, keyBy, mapValues, set, sortBy } from "lodash-es"
+import { flatten, groupBy, keyBy, mapValues, omit, set, sortBy } from "lodash-es"
 import { username } from "username"
 
 import { TreeCache } from "./cache.js"
@@ -139,6 +139,8 @@ import {
   type ActionKind,
   type ActionModeMap,
   type BaseActionConfig,
+  type ActionConfigMapForDump,
+  type OmitInternalConfig,
 } from "./actions/types.js"
 import { actionIsDisabled, actionReferenceToString, isActionConfig } from "./actions/base.js"
 import type { SolveOpts, SolveParams, SolveResult } from "./graph/solver.js"
@@ -1661,7 +1663,7 @@ export class Garden {
     resolveProviders?: boolean
     resolveWorkflows?: boolean
   }): Promise<ConfigDump> {
-    let providers: ConfigDump["providers"] = []
+    let providers: (Provider | GenericProviderConfig)[] = []
     let moduleConfigs: ModuleConfig[]
     let workflowConfigs: WorkflowConfig[]
     let actionConfigs: ActionConfigMap = {
@@ -1706,14 +1708,18 @@ export class Garden {
 
     const allEnvironmentNames = this.projectConfig.environments.map((c) => c.name)
 
+    const filteredActionConfigs = <ActionConfigMapForDump>(
+      mapValues(actionConfigs, (configsForKind) => mapValues(configsForKind, omitInternal))
+    )
+
     return {
       environmentName: this.environmentName,
       allEnvironmentNames,
       namespace: this.namespace,
-      providers,
+      providers: providers.map(omitInternal),
       variables: this.variables,
-      actionConfigs,
-      moduleConfigs,
+      actionConfigs: filteredActionConfigs,
+      moduleConfigs: moduleConfigs.map(omitInternal),
       workflowConfigs: sortBy(workflowConfigs, "name"),
       projectName: this.projectName,
       projectRoot: this.projectRoot,
@@ -1742,6 +1748,10 @@ export class Garden {
   public isLoggedIn(): boolean {
     return !!this.cloudApi
   }
+}
+
+function omitInternal<T extends object>(obj: T): OmitInternalConfig<T> {
+  return omit(obj, "internal")
 }
 
 /**
@@ -2235,10 +2245,10 @@ export interface ConfigDump {
   environmentName: string // TODO: Remove this?
   allEnvironmentNames: string[]
   namespace: string
-  providers: (Provider | GenericProviderConfig)[]
+  providers: OmitInternalConfig<Provider | GenericProviderConfig>[]
   variables: DeepPrimitiveMap
-  actionConfigs: ActionConfigMap
-  moduleConfigs: ModuleConfig[]
+  actionConfigs: ActionConfigMapForDump
+  moduleConfigs: OmitInternalConfig<ModuleConfig>[]
   workflowConfigs: WorkflowConfig[]
   projectName: string
   projectRoot: string
