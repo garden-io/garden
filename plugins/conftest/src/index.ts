@@ -11,7 +11,7 @@ import { styles } from "@garden-io/core/build/src/logger/styles.js"
 import slash from "slash"
 import type { ExecaReturnValue } from "execa"
 import { createGardenPlugin } from "@garden-io/sdk"
-import type { PluginContext, Log } from "@garden-io/sdk/build/src/types.js"
+import type { PluginContext, Log, PluginToolSpec } from "@garden-io/sdk/build/src/types.js"
 import { dedent, naturalList } from "@garden-io/sdk/build/src/util/string.js"
 import { matchGlobs, listDirectory } from "@garden-io/sdk/build/src/util/fs.js"
 
@@ -39,6 +39,68 @@ export interface ConftestProviderConfig extends GenericProviderConfig {
 }
 
 export type ConftestProvider = Provider<ConftestProviderConfig>
+
+export const conftestVersion = "0.45.0"
+export const conftestSpec: PluginToolSpec = {
+  name: "conftest",
+  version: conftestVersion,
+  description: `A rego-based configuration validator, v${conftestVersion}`,
+  type: "binary",
+  _includeInGardenImage: true,
+  builds: [
+    {
+      platform: "darwin",
+      architecture: "amd64",
+      url: `https://github.com/open-policy-agent/conftest/releases/download/v${conftestVersion}/conftest_${conftestVersion}_Darwin_x86_64.tar.gz`,
+      sha256: "cd199c00fb634242e9062fb6b68692040198b1a2fee88537add7a719485a9839",
+      extract: {
+        format: "tar",
+        targetPath: "conftest",
+      },
+    },
+    {
+      platform: "darwin",
+      architecture: "arm64",
+      url: `https://github.com/open-policy-agent/conftest/releases/download/v${conftestVersion}/conftest_${conftestVersion}_Darwin_arm64.tar.gz`,
+      sha256: "3c4e2d7fd01e7a2a17558e4e5f8086bc92312a8e8773747e2d4a067ca20127b4",
+      extract: {
+        format: "tar",
+        targetPath: "conftest",
+      },
+    },
+    {
+      platform: "linux",
+      architecture: "amd64",
+      url: `https://github.com/open-policy-agent/conftest/releases/download/v${conftestVersion}/conftest_${conftestVersion}_Linux_x86_64.tar.gz`,
+      sha256: "65edcf630f5cd2142138555542f10f8cbc99588e5dfcefbfa1e8074c7cc82c23",
+      extract: {
+        format: "tar",
+        targetPath: "conftest",
+      },
+    },
+    {
+      platform: "linux",
+      architecture: "arm64",
+      url: `https://github.com/open-policy-agent/conftest/releases/download/v${conftestVersion}/conftest_${conftestVersion}_Linux_arm64.tar.gz`,
+      sha256: "9851d4c2a6488fbaab6af34223ed77425bc6fb5a4b349a53e6e1410cdf4798f0",
+      extract: {
+        format: "tar",
+        targetPath: "conftest",
+      },
+    },
+
+    {
+      platform: "windows",
+      architecture: "amd64",
+      url: `https://github.com/open-policy-agent/conftest/releases/download/v${conftestVersion}/conftest_${conftestVersion}_Windows_x86_64.zip`,
+      sha256: "376135229a8ee5e4a1e77d10dad00dc907b04c4efb7d3857e542371902e309ce",
+      extract: {
+        format: "zip",
+        targetPath: "conftest.exe",
+      },
+    },
+  ],
+}
 
 export const configSchema = () =>
   providerConfigBaseSchema()
@@ -398,70 +460,7 @@ export const gardenPlugin = () =>
         },
       },
     ],
-    tools: [
-      {
-        name: "conftest",
-        version: "0.45.0",
-        description: "A rego-based configuration validator, v0.45.0",
-        type: "binary",
-        _includeInGardenImage: true,
-        builds: [
-          {
-            platform: "darwin",
-            architecture: "amd64",
-            url: "https://github.com/open-policy-agent/conftest/releases/download/v0.45.0/conftest_0.45.0_Darwin_x86_64.tar.gz",
-            sha256: "cd199c00fb634242e9062fb6b68692040198b1a2fee88537add7a719485a9839",
-            extract: {
-              format: "tar",
-              targetPath: "conftest",
-            },
-          },
-          {
-            platform: "darwin",
-            architecture: "arm64",
-            url: "https://github.com/open-policy-agent/conftest/releases/download/v0.45.0/conftest_0.45.0_Darwin_arm64.tar.gz",
-            sha256: "3c4e2d7fd01e7a2a17558e4e5f8086bc92312a8e8773747e2d4a067ca20127b4",
-            extract: {
-              format: "tar",
-              targetPath: "conftest",
-            },
-          },
-          {
-            platform: "linux",
-            architecture: "amd64",
-            url: "https://github.com/open-policy-agent/conftest/releases/download/v0.45.0/conftest_0.45.0_Linux_x86_64.tar.gz",
-            sha256: "65edcf630f5cd2142138555542f10f8cbc99588e5dfcefbfa1e8074c7cc82c23",
-            extract: {
-              format: "tar",
-              targetPath: "conftest",
-            },
-          },
-          {
-            platform: "linux",
-            architecture: "arm64",
-            url: "https://github.com/open-policy-agent/conftest/releases/download/v0.45.0/conftest_0.45.0_Linux_arm64.tar.gz",
-            sha256: "9851d4c2a6488fbaab6af34223ed77425bc6fb5a4b349a53e6e1410cdf4798f0",
-            extract: {
-              format: "tar",
-              targetPath: "conftest",
-            },
-          },
-
-          {
-            platform: "windows",
-            architecture: "amd64",
-            url:
-              "https://github.com/open-policy-agent/conftest/releases/download/v0.45.0/" +
-              "conftest_0.45.0_Windows_x86_64.zip",
-            sha256: "376135229a8ee5e4a1e77d10dad00dc907b04c4efb7d3857e542371902e309ce",
-            extract: {
-              format: "zip",
-              targetPath: "conftest.exe",
-            },
-          },
-        ],
-      },
-    ],
+    tools: [conftestSpec],
   })
 
 function prepareArgs(ctx: PluginContext, provider: ConftestProvider, path: string, spec: ConftestTestSpec) {
