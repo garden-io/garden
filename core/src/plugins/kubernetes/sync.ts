@@ -57,13 +57,7 @@ import { targetResourceSpecSchema } from "./config.js"
 import { isConfiguredForSyncMode } from "./status/status.js"
 import type { PluginContext } from "../../plugin-context.js"
 import type { SyncConfig, SyncSession } from "../../mutagen.js"
-import {
-  haltedStatuses,
-  isNativeMutagenEnabled,
-  Mutagen,
-  mutagenAgentPath,
-  mutagenStatusDescriptions,
-} from "../../mutagen.js"
+import { haltedStatuses, Mutagen, mutagenAgentPath, mutagenStatusDescriptions } from "../../mutagen.js"
 import { k8sSyncUtilImageName } from "./constants.js"
 import { isAbsolute, relative, resolve } from "path"
 import type { Resolved } from "../../actions/types.js"
@@ -74,7 +68,7 @@ import { convertServiceResource } from "./kubernetes-type/common.js"
 import { prepareConnectionOpts } from "./kubectl.js"
 import type { GetSyncStatusResult, SyncState, SyncStatus } from "../../plugin/handlers/Deploy/get-sync-status.js"
 import { ConfigurationError } from "../../exceptions.js"
-import { DOCS_BASE_URL } from "../../constants.js"
+import { DOCS_BASE_URL, gardenEnv } from "../../constants.js"
 import { styles } from "../../logger/styles.js"
 
 export const builtInExcludes = ["/**/*.git", "**/*.garden"]
@@ -1060,8 +1054,8 @@ async function getKubectlExecDestinationNative({
   return `${hostname}:${targetPath}`
 }
 
-export const getKubectlExecDestination = isNativeMutagenEnabled()
-  ? getKubectlExecDestinationNative
-  : getKubectlExecDestinationLegacy
+export const getKubectlExecDestination = gardenEnv.GARDEN_ENABLE_LEGACY_SYNC
+  ? getKubectlExecDestinationLegacy
+  : getKubectlExecDestinationNative
 
 const isReverseMode = (mode: string) => mode === "one-way-reverse" || mode === "one-way-replica-reverse"

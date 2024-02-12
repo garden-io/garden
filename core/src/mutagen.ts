@@ -872,12 +872,10 @@ export function parseSyncListResult(res: ExecaReturnValue): SyncSession[] {
   return parsed
 }
 
-export const isNativeMutagenEnabled = () => !gardenEnv.GARDEN_ENABLE_LEGACY_SYNC
-
 const mutagenVersionLegacy = "0.15.0"
 const mutagenVersionNative = "0.15.0"
 
-export const mutagenVersion = isNativeMutagenEnabled() ? mutagenVersionNative : mutagenVersionLegacy
+export const mutagenVersion = gardenEnv.GARDEN_ENABLE_LEGACY_SYNC ? mutagenVersionLegacy : mutagenVersionNative
 
 export function mutagenCliSpecLegacy(): PluginToolSpec {
   return {
@@ -1003,7 +1001,7 @@ export function mutagenCliSpecNative(): PluginToolSpec {
   }
 }
 
-export const mutagenCliSpec = isNativeMutagenEnabled() ? mutagenCliSpecNative() : mutagenCliSpecLegacy()
+export const mutagenCliSpec = gardenEnv.GARDEN_ENABLE_LEGACY_SYNC ? mutagenCliSpecLegacy() : mutagenCliSpecNative()
 
 export const mutagenCli = new PluginTool(mutagenCliSpec)
 
@@ -1077,7 +1075,7 @@ export const mutagenFauxSsh = new PluginTool(mutagenFauxSshSpec)
  * (i.e. if {@code GARDEN_ENABLE_LEGACY_SYNC=true}) or {@code undefined} otherwise.
  */
 async function getMutagenSshPath(log: Log): Promise<string | undefined> {
-  if (!isNativeMutagenEnabled()) {
+  if (gardenEnv.GARDEN_ENABLE_LEGACY_SYNC) {
     return undefined
   }
 
