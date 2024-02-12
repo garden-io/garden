@@ -1079,8 +1079,9 @@ async function getMutagenSshPath(log: Log): Promise<string | undefined> {
     return undefined
   }
 
-  const warnMessage = `This version of Garden uses a new file syncing machinery.
-  All running syncs must be stopped before using the new machinery.
+  const warnMessage = `Starting from version 0.13.25, Garden uses a new file syncing machinery.
+  A reboot is required to make the syncing work properly.
+  Please, reboot you machine if you have updated from version 0.13.24 or earlier.
   Use GARDEN_ENABLE_LEGACY_SYNC=true env variable to fallback to the old machinery.`
 
   emitNonRepeatableWarning(log, warnMessage)
