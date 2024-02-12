@@ -1072,6 +1072,10 @@ export const mutagenFauxSshSpec: PluginToolSpec = {
 
 export const mutagenFauxSsh = new PluginTool(mutagenFauxSshSpec)
 
+/**
+ * Returns the path to the location of the faux SSH Mutagen transport if the original Mutagen is used
+ * (i.e. if {@code GARDEN_ENABLE_LEGACY_SYNC=true}) or {@code undefined} otherwise.
+ */
 async function getMutagenSshPath(log: Log): Promise<string | undefined> {
   if (!isNativeMutagenEnabled()) {
     return undefined
@@ -1084,7 +1088,7 @@ async function getMutagenSshPath(log: Log): Promise<string | undefined> {
   emitNonRepeatableWarning(log, warnMessage)
   const fauxSshToolPath = await mutagenFauxSsh.ensurePath(log)
   // This must be the dir containing the faux SSH binary,
-  // not the full path that includes the binary name
+  // not the full path that includes the binary name.
   return dirname(fauxSshToolPath)
 }
 
