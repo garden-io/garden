@@ -140,6 +140,7 @@ import {
   type ActionModeMap,
   type BaseActionConfig,
   type ActionConfigMapForDump,
+  type OmitInternalConfig,
 } from "./actions/types.js"
 import { actionIsDisabled, actionReferenceToString, isActionConfig } from "./actions/base.js"
 import type { SolveOpts, SolveParams, SolveResult } from "./graph/solver.js"
@@ -1749,7 +1750,7 @@ export class Garden {
   }
 }
 
-function omitInternal<T extends object>(obj: T): Omit<T, "internal"> {
+function omitInternal<T extends object>(obj: T): OmitInternalConfig<T> {
   return omit(obj, "internal")
 }
 
@@ -2244,10 +2245,10 @@ export interface ConfigDump {
   environmentName: string // TODO: Remove this?
   allEnvironmentNames: string[]
   namespace: string
-  providers: Omit<Provider | GenericProviderConfig, "internal">[]
+  providers: OmitInternalConfig<Provider | GenericProviderConfig>[]
   variables: DeepPrimitiveMap
   actionConfigs: ActionConfigMapForDump
-  moduleConfigs: Omit<ModuleConfig, "internal">[]
+  moduleConfigs: OmitInternalConfig<ModuleConfig>[]
   workflowConfigs: WorkflowConfig[]
   projectName: string
   projectRoot: string
