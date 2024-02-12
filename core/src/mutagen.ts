@@ -12,11 +12,16 @@ import type EventEmitter from "events"
 import type { ExecaReturnValue } from "execa"
 import fsExtra from "fs-extra"
 import { hashSync } from "hasha"
-import pRetry from "p-retry"
+import pRetry, { type FailedAttemptError } from "p-retry"
 import { join } from "path"
 import respawn from "respawn"
 import split2 from "split2"
-import { GARDEN_GLOBAL_PATH, gardenEnv, MUTAGEN_DIR_NAME } from "./constants.js"
+import {
+  GARDEN_ENABLE_NEW_SYNC_FEATURE_FLAG_NAME,
+  GARDEN_GLOBAL_PATH,
+  gardenEnv,
+  MUTAGEN_DIR_NAME,
+} from "./constants.js"
 import { ChildProcessError, GardenError } from "./exceptions.js"
 import pMemoize from "./lib/p-memoize.js"
 import type { Log } from "./logger/log-entry.js"
@@ -518,6 +523,27 @@ export class Mutagen {
           log.warn(
             `Failed to start sync from ${sourceDescription} to ${targetDescription}. ${err.retriesLeft} attempts left.`
           )
+
+          // print this only after the first failure
+          if (err.attemptNumber === 1) {
+            const isMutagenForkError = (error: FailedAttemptError) => {
+              const msg = error.message.toLowerCase()
+              return (
+                // this happens when switching from the old sync to the new
+                msg.includes("ssh: could not resolve hostname") ||
+                // this happens in the opposite scenario
+                msg.includes("unknown or unsupported protocol")
+              )
+            }
+
+            if (isMutagenForkError(err)) {
+              log.warn(
+                `It looks like the syncing machinery was switched via the ${GARDEN_ENABLE_NEW_SYNC_FEATURE_FLAG_NAME} env variable. Please stop the currently running Mutagen daemons. Use this command to find the daemons: ${styles.command(
+                  "ps -ef | grep 'mutagen daemon run'"
+                )}`
+              )
+            }
+          }
         },
       })
 
