@@ -282,12 +282,11 @@ function getRouterUnitTestPlugins() {
             const actions: (BuildActionConfig | BaseRuntimeActionConfig)[] = []
 
             const buildAction: BuildActionConfig = {
+              ...params.baseFields,
+              ...dummyBuild,
               kind: "Build",
               type: "test",
               name: module.name,
-
-              ...params.baseFields,
-              ...dummyBuild,
 
               dependencies: module.build.dependencies.map(convertBuildDependency),
 

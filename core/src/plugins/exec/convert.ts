@@ -6,63 +6,39 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import type { ActionReference, StringMap } from "../../config/common.js"
+import type { StringMap } from "../../config/common.js"
 import type { ConvertModuleParams } from "../../plugin/handlers/Module/convert.js"
 import type { ExecBuildConfig } from "./build.js"
 import type { ExecActionConfig } from "./config.js"
 import { defaultStatusTimeout } from "./config.js"
 import type { ExecModule } from "./moduleConfig.js"
 
-export function prepareExecBuildAction(params: ConvertModuleParams<ExecModule>): ExecBuildConfig | undefined {
+export function prepareExecBuildAction(params: ConvertModuleParams<ExecModule>): ExecBuildConfig {
   const { module, convertBuildDependency, dummyBuild } = params
 
-  const needsBuild =
-    !!dummyBuild ||
-    !!module.spec.build?.command ||
-    // We create a single Build action if there are no other entities
-    // (otherwise nothing is created, which would be unexpected for users).
-    module.serviceConfigs.length + module.taskConfigs.length + module.testConfigs.length === 0
+  return {
+    ...params.baseFields,
+    ...dummyBuild,
 
-  if (needsBuild) {
-    return {
-      kind: "Build",
-      type: "exec",
-      name: module.name,
+    buildAtSource: module.spec.local,
+    dependencies: module.build.dependencies.map(convertBuildDependency),
 
-      ...params.baseFields,
-      ...dummyBuild,
-
-      buildAtSource: module.spec.local,
-      dependencies: module.build.dependencies.map(convertBuildDependency),
-
-      timeout: module.build.timeout,
-      spec: {
-        shell: true, // This keeps the old pre-0.13 behavior
-        command: module.spec.build?.command,
-        env: module.spec.env,
-      },
-    }
+    timeout: module.build.timeout,
+    spec: {
+      shell: true, // This keeps the old pre-0.13 behavior
+      command: module.spec.build?.command,
+      env: module.spec.env,
+    },
   }
-
-  return
 }
 
 export async function convertExecModule(params: ConvertModuleParams<ExecModule>) {
-  const { module, services, tasks, tests, convertBuildDependency, convertRuntimeDependencies } = params
+  const { module, services, tasks, tests, convertRuntimeDependencies } = params
 
   const actions: ExecActionConfig[] = []
 
   const buildAction = prepareExecBuildAction(params)
-  buildAction && actions.push(buildAction)
-
-  function prepRuntimeDeps(deps: string[]): ActionReference[] {
-    if (buildAction) {
-      return convertRuntimeDependencies(deps)
-    } else {
-      // If we don't return a Build action, we must still include any declared build dependencies
-      return [...module.build.dependencies.map(convertBuildDependency), ...convertRuntimeDependencies(deps)]
-    }
-  }
+  actions.push(buildAction)
 
   // Instead of doing this at runtime, we fold together env vars from the module top-level and the individual
   // runtime actions at conversion time.
@@ -103,7 +79,7 @@ export async function convertExecModule(params: ConvertModuleParams<ExecModule>)
 
       disabled: service.disabled,
       build: buildAction ? buildAction.name : undefined,
-      dependencies: prepRuntimeDeps(service.spec.dependencies),
+      dependencies: convertRuntimeDependencies(service.spec.dependencies),
       timeout: service.spec.timeout,
 
       spec: {
@@ -128,7 +104,7 @@ export async function convertExecModule(params: ConvertModuleParams<ExecModule>)
 
       disabled: task.disabled,
       build: buildAction ? buildAction.name : undefined,
-      dependencies: prepRuntimeDeps(task.spec.dependencies),
+      dependencies: convertRuntimeDependencies(task.spec.dependencies),
       timeout: task.spec.timeout,
 
       spec: {
@@ -149,7 +125,7 @@ export async function convertExecModule(params: ConvertModuleParams<ExecModule>)
 
       disabled: test.disabled,
       build: buildAction ? buildAction.name : undefined,
-      dependencies: prepRuntimeDeps(test.spec.dependencies),
+      dependencies: convertRuntimeDependencies(test.spec.dependencies),
       timeout: test.spec.timeout,
 
       spec: {

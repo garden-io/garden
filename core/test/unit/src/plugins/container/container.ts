@@ -49,6 +49,7 @@ import type { GardenService } from "../../../../../src/types/service.js"
 import { serviceFromConfig } from "../../../../../src/types/service.js"
 import type { GardenTest } from "../../../../../src/types/test.js"
 import { testFromConfig } from "../../../../../src/types/test.js"
+import { makeDummyBuild } from "../../../../../src/resolve-module.js"
 
 describe("plugins.container", () => {
   const projectRoot = getDataDir("test-project-container")
@@ -122,7 +123,11 @@ describe("plugins.container", () => {
       convertRuntimeDependencies: () => [{ kind: "Deploy", name: "runtimeDep" }],
       convertTestName: () => "testName",
       ctx,
-      dummyBuild: undefined,
+      dummyBuild: makeDummyBuild({
+        module,
+        copyFrom: [],
+        dependencies: [],
+      }),
       log,
       module,
       prepareRuntimeDependencies: prepareRuntimeDependencies

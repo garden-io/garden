@@ -761,15 +761,13 @@ export const convertModules = profileAsync(async function convertModules(
         return resolved
       }
 
-      let dummyBuild: ExecBuildConfig | undefined = undefined
-
-      if (copyFrom.length > 0) {
-        dummyBuild = makeDummyBuild({
-          module,
-          copyFrom,
-          dependencies: module.build.dependencies.map(convertBuildDependency),
-        })
-      }
+      // We always include a dummy build, since not all conversions generate a build action but other modules
+      // may still depend on it.
+      const dummyBuild = makeDummyBuild({
+        module,
+        copyFrom: copyFrom.length > 0 ? copyFrom : undefined,
+        dependencies: module.build.dependencies.map(convertBuildDependency),
+      })
 
       log.debug(`Converting ${module.type} module ${module.name} to actions`)
 

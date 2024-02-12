@@ -38,7 +38,7 @@ export interface ConvertModuleParams<T extends GardenModule = GardenModule> exte
   services: GardenService<T>[]
   tasks: GardenTask<T>[]
   tests: GardenTest<T>[]
-  dummyBuild: ExecBuildConfig | undefined
+  dummyBuild: ExecBuildConfig
   baseFields: {
     copyFrom: BuildCopyFrom[]
     disabled: boolean

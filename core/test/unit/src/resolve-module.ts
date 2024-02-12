@@ -9,10 +9,12 @@
 import { expect } from "chai"
 import { join, dirname } from "path"
 import type { TestGarden } from "../../helpers.js"
-import { getDataDir, makeTestGarden, makeTestGardenA } from "../../helpers.js"
+import { customizedTestPlugin, getDataDir, makeTestGarden, makeTestGardenA, projectRootA } from "../../helpers.js"
 import { DEFAULT_BUILD_TIMEOUT_SEC } from "../../../src/constants.js"
 import type { ConfigGraph } from "../../../src/graph/config-graph.js"
 import { loadYamlFile } from "../../../src/util/serialization.js"
+import type { DeployActionConfig } from "../../../src/actions/deploy.js"
+import type { BaseActionConfig } from "../../../src/actions/types.js"
 
 describe("ModuleResolver", () => {
   // Note: We test the ModuleResolver via the TestGarden.resolveModule method, for convenience.
@@ -158,5 +160,100 @@ describe("ModuleResolver", () => {
         })
       })
     })
+  })
+})
+
+describe("convertModules", () => {
+  it("should always include a dummy build, even when the convert handler doesn't doesn't return a build", async () => {
+    const testPlugin = customizedTestPlugin({
+      name: "test-plugin",
+      createModuleTypes: [
+        {
+          name: "test",
+          docs: "I are documentation, yes",
+          needsBuild: false,
+          handlers: {
+            convert: async (params) => {
+              const { module, services, dummyBuild } = params
+              const actions: BaseActionConfig[] = []
+              for (const service of services) {
+                const deployAction: DeployActionConfig = {
+                  kind: "Deploy",
+                  type: "test",
+                  name: service.name,
+                  ...params.baseFields,
+
+                  dependencies: params.prepareRuntimeDependencies(service.spec.dependencies, dummyBuild),
+                  timeout: service.spec.timeout,
+
+                  spec: {},
+                }
+                actions.push(deployAction)
+              }
+              dummyBuild && actions.push(dummyBuild)
+              return {
+                group: {
+                  kind: <const>"Group",
+                  name: module.name,
+                  path: module.path,
+                  actions,
+                },
+              }
+            },
+          },
+        },
+      ],
+    })
+    const garden = await makeTestGarden(projectRootA, { plugins: [testPlugin] })
+    const log = garden.log
+
+    garden.setModuleConfigs([
+      {
+        name: "module-a",
+        type: "test",
+        path: join(garden.projectRoot, "module-a"),
+        spec: {
+          services: [{ name: "service-a", deployCommand: ["echo", "ok"], dependencies: [] }],
+          tests: [],
+          tasks: [],
+          build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
+        },
+        build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
+      },
+      {
+        name: "module-b",
+        type: "test",
+        path: join(garden.projectRoot, "module-b"),
+        spec: {
+          services: [{ name: "service-b", deployCommand: ["echo", "ok"], dependencies: ["service-a"] }],
+          tests: [],
+          tasks: [],
+          build: { dependencies: ["module-a"], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
+        },
+        build: { dependencies: [{ name: "module-a", copy: [] }], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
+      },
+    ])
+
+    const graph = await garden.getConfigGraph({ log, emit: false })
+
+    const dummyBuildA = graph.getBuild("module-a")
+    const dummyBuildB = graph.getBuild("module-b")
+
+    const buildActionDeps = graph
+      .getBuild("module-b")
+      .getDependencies()
+      .map((dep) => dep.key())
+      .sort()
+
+    const deployActionDeps = graph
+      .getDeploy("service-b")
+      .getDependencies()
+      .map((dep) => dep.key())
+      .sort()
+
+    expect(dummyBuildA).to.exist
+    expect(dummyBuildB).to.exist
+    expect(buildActionDeps).to.eql(["build.module-a"])
+    expect(deployActionDeps).to.eql(["build.module-a", "build.module-b", "deploy.service-a"])
   })
 })
