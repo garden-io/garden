@@ -100,5 +100,5 @@ export const gardenEnv = {
     .required(false)
     .default("https://get.garden.io/releases")
     .asUrlString(),
-  GARDEN_ENABLE_LEGACY_SYNC: env.get("GARDEN_ENABLE_LEGACY_SYNC").required(false).default("false").asBool(),
+  GARDEN_ENABLE_NEW_SYNC: env.get("GARDEN_ENABLE_NEW_SYNC").required(false).default("false").asBool(),
 }

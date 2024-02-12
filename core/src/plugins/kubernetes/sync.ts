@@ -1054,8 +1054,8 @@ async function getKubectlExecDestinationNative({
   return `${hostname}:${targetPath}`
 }
 
-export const getKubectlExecDestination = gardenEnv.GARDEN_ENABLE_LEGACY_SYNC
-  ? getKubectlExecDestinationLegacy
-  : getKubectlExecDestinationNative
+export const getKubectlExecDestination = gardenEnv.GARDEN_ENABLE_NEW_SYNC
+  ? getKubectlExecDestinationNative
+  : getKubectlExecDestinationLegacy
 
 const isReverseMode = (mode: string) => mode === "one-way-reverse" || mode === "one-way-replica-reverse"

@@ -30,7 +30,6 @@ import { registerCleanupFunction, sleep } from "./util/util.js"
 import type { OctalPermissionMask } from "./plugins/kubernetes/types.js"
 import { styles } from "./logger/styles.js"
 import { dirname } from "node:path"
-import { emitNonRepeatableWarning } from "./warnings.js"
 
 const { mkdirp, pathExists } = fsExtra
 
@@ -875,7 +874,7 @@ export function parseSyncListResult(res: ExecaReturnValue): SyncSession[] {
 const mutagenVersionLegacy = "0.15.0"
 const mutagenVersionNative = "0.15.0"
 
-export const mutagenVersion = gardenEnv.GARDEN_ENABLE_LEGACY_SYNC ? mutagenVersionLegacy : mutagenVersionNative
+export const mutagenVersion = gardenEnv.GARDEN_ENABLE_NEW_SYNC ? mutagenVersionNative : mutagenVersionLegacy
 
 export function mutagenCliSpecLegacy(): PluginToolSpec {
   return {
@@ -1001,7 +1000,7 @@ export function mutagenCliSpecNative(): PluginToolSpec {
   }
 }
 
-export const mutagenCliSpec = gardenEnv.GARDEN_ENABLE_LEGACY_SYNC ? mutagenCliSpecLegacy() : mutagenCliSpecNative()
+export const mutagenCliSpec = gardenEnv.GARDEN_ENABLE_NEW_SYNC ? mutagenCliSpecNative() : mutagenCliSpecLegacy()
 
 export const mutagenCli = new PluginTool(mutagenCliSpec)
 
@@ -1072,19 +1071,13 @@ export const mutagenFauxSsh = new PluginTool(mutagenFauxSshSpec)
 
 /**
  * Returns the path to the location of the faux SSH Mutagen transport if the original Mutagen is used
- * (i.e. if {@code GARDEN_ENABLE_LEGACY_SYNC=true}) or {@code undefined} otherwise.
+ * (i.e. if {@code GARDEN_ENABLE_NEW_SYNC=true}) or {@code undefined} otherwise.
  */
 async function getMutagenSshPath(log: Log): Promise<string | undefined> {
-  if (gardenEnv.GARDEN_ENABLE_LEGACY_SYNC) {
+  if (!gardenEnv.GARDEN_ENABLE_NEW_SYNC) {
     return undefined
   }
 
-  const warnMessage = `Starting from version 0.13.25, Garden uses a new file syncing machinery.
-  A reboot is required to make the syncing work properly.
-  Please, reboot you machine if you have updated from version 0.13.24 or earlier.
-  Use GARDEN_ENABLE_LEGACY_SYNC=true env variable to fallback to the old machinery.`
-
-  emitNonRepeatableWarning(log, warnMessage)
   const fauxSshToolPath = await mutagenFauxSsh.ensurePath(log)
   // This must be the dir containing the faux SSH binary,
   // not the full path that includes the binary name.
