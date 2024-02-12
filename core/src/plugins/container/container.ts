@@ -509,7 +509,7 @@ export const gardenPlugin = () =>
       {
         name: "docker",
         version: "24.0.4",
-        description: "The official Docker CLI.",
+        description: "The official Docker CLI, v24.0.4",
         type: "binary",
         _includeInGardenImage: true,
         builds: [

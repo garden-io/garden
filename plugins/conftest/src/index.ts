@@ -402,7 +402,7 @@ export const gardenPlugin = () =>
       {
         name: "conftest",
         version: "0.45.0",
-        description: "A rego-based configuration validator.",
+        description: "A rego-based configuration validator, v0.45.0",
         type: "binary",
         _includeInGardenImage: true,
         builds: [

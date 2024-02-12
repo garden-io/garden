@@ -87,7 +87,7 @@ export const gardenPlugin = () =>
       {
         name: "octant",
         version: "0.25.1",
-        description: "A web admin UI for Kubernetes.",
+        description: "[DEPRECATED] A web admin UI for Kubernetes, v0.25.1",
         type: "binary",
         _includeInGardenImage: false,
         builds: [

@@ -29,7 +29,7 @@ const spec = {
 export const mavenSpec: PluginToolSpec = {
   name: "maven",
   version: mvnVersion,
-  description: "The Maven CLI.",
+  description: `The Maven CLI, v${mvnVersion}`,
   type: "binary",
   builds: [
     {

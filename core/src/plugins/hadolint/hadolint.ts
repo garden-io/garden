@@ -114,7 +114,7 @@ const s = sdk.schema
 gardenPlugin.addTool({
   name: "hadolint",
   version: "2.12.0",
-  description: "A Dockerfile linter.",
+  description: "A Dockerfile linter, v2.12.0",
   type: "binary",
   _includeInGardenImage: false,
   builds: [

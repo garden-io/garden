@@ -865,7 +865,7 @@ export const mutagenVersion = "0.15.0"
 export const mutagenCliSpec: PluginToolSpec = {
   name: "mutagen",
   version: mutagenVersion,
-  description: "The mutagen synchronization tool.",
+  description: `The mutagen synchronization tool, v${mutagenVersion}`,
   type: "binary",
   _includeInGardenImage: false,
   builds: [

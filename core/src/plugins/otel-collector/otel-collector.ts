@@ -53,7 +53,7 @@ const s = sdk.schema
 gardenPlugin.addTool({
   name: "otel-collector",
   version: "v0.80.0",
-  description: "Otel collector service",
+  description: "Otel collector service, v0.80.0",
   type: "binary",
   _includeInGardenImage: false,
   builds: [

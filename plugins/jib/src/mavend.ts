@@ -18,7 +18,6 @@ const buildLock = new AsyncLock()
 export const mvndVersion = "0.9.0"
 
 const mvndSpec = {
-  description: "The Maven Daemon CLI.",
   baseUrl: `https://github.com/apache/maven-mvnd/releases/download/${mvndVersion}/`,
   // 0.9.0 has no ARM64 build for linux yet
   // Should be fixed once 1.0.0 is released
@@ -47,7 +46,7 @@ const mvndSpec = {
 export const mavendSpec: PluginToolSpec = {
   name: "mavend",
   version: mvndVersion,
-  description: "The Maven Daemon CLI.",
+  description: `The Maven Daemon CLI, v${mvndVersion}`,
   type: "binary",
   builds: [
     {
