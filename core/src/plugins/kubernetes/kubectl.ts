@@ -356,7 +356,7 @@ export const kubectlVersion = "1.29.1"
 export const kubectlSpec: PluginToolSpec = {
   name: "kubectl",
   version: kubectlVersion,
-  description: "The official Kubernetes CLI.",
+  description: `The official Kubernetes CLI, v${kubectlVersion}`,
   type: "binary",
   _includeInGardenImage: true,
   builds: [

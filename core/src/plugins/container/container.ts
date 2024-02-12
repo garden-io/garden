@@ -44,10 +44,72 @@ import { getDeployedImageId } from "../kubernetes/container/util.js"
 import type { DeepPrimitiveMap } from "../../config/common.js"
 import { DEFAULT_DEPLOY_TIMEOUT_SEC } from "../../constants.js"
 import type { ExecBuildConfig } from "../exec/build.js"
+import type { PluginToolSpec } from "../../plugin/tools.js"
 
 export type ContainerProviderConfig = GenericProviderConfig
 
 export type ContainerProvider = Provider<ContainerProviderConfig>
+
+export const dockerVersion = "24.0.4"
+export const dockerSpec: PluginToolSpec = {
+  name: "docker",
+  version: dockerVersion,
+  description: `The official Docker CLI, v${dockerVersion}`,
+  type: "binary",
+  _includeInGardenImage: true,
+  builds: [
+    {
+      platform: "darwin",
+      architecture: "amd64",
+      url: `https://download.docker.com/mac/static/stable/x86_64/docker-${dockerVersion}.tgz`,
+      sha256: "a1016b319d8fb5b92e6a4f9ae4082b0fe934bcec4a18f4ddba9b6a5778af230c",
+      extract: {
+        format: "tar",
+        targetPath: "docker/docker",
+      },
+    },
+    {
+      platform: "darwin",
+      architecture: "arm64",
+      url: `https://download.docker.com/mac/static/stable/aarch64/docker-${dockerVersion}.tgz`,
+      sha256: "d99ce023f984b07a57621d804f226bfeedea513ce708aba480a62f5b63631367",
+      extract: {
+        format: "tar",
+        targetPath: "docker/docker",
+      },
+    },
+    {
+      platform: "linux",
+      architecture: "amd64",
+      url: `https://download.docker.com/linux/static/stable/x86_64/docker-${dockerVersion}.tgz`,
+      sha256: "0ab79ae5f19e2ef5bdc3c3009c8b770dea6189e0f1e0ef4935d78fd30519b11d",
+      extract: {
+        format: "tar",
+        targetPath: "docker/docker",
+      },
+    },
+    {
+      platform: "linux",
+      architecture: "arm64",
+      url: `https://download.docker.com/linux/static/stable/aarch64/docker-${dockerVersion}.tgz`,
+      sha256: "193a8e1f051adce6a30a4c8486ce9b39929b9633a0da8c96444c9239859f4354",
+      extract: {
+        format: "tar",
+        targetPath: "docker/docker",
+      },
+    },
+    {
+      platform: "windows",
+      architecture: "amd64",
+      url: `https://github.com/rgl/docker-ce-windows-binaries-vagrant/releases/download/v${dockerVersion}/docker-${dockerVersion}.zip`,
+      sha256: "1ffb063724147d871ec01824ee458b66a85191a8ecd943ae77775b5352db12ff",
+      extract: {
+        format: "zip",
+        targetPath: "docker/docker.exe",
+      },
+    },
+  ],
+}
 
 // TODO: remove in 0.14. validation should be in the action validation handler.
 export async function configureContainerModule({ log, moduleConfig }: ConfigureModuleParams<ContainerModule>) {
@@ -195,6 +257,7 @@ function convertContainerModuleRuntimeActions(
   }
 
   const volumeModulesReferenced: string[] = []
+
   function configureActionVolumes(action: ContainerRuntimeActionConfig, volumeSpec: ContainerModuleVolumeSpec[]) {
     volumeSpec.forEach((v) => {
       const referencedPvcAction = v.module ? { kind: <const>"Deploy", name: v.module } : undefined
@@ -505,67 +568,7 @@ export const gardenPlugin = () =>
       },
     ],
 
-    tools: [
-      {
-        name: "docker",
-        version: "24.0.4",
-        description: "The official Docker CLI.",
-        type: "binary",
-        _includeInGardenImage: true,
-        builds: [
-          {
-            platform: "darwin",
-            architecture: "amd64",
-            url: "https://download.docker.com/mac/static/stable/x86_64/docker-24.0.4.tgz",
-            sha256: "a1016b319d8fb5b92e6a4f9ae4082b0fe934bcec4a18f4ddba9b6a5778af230c",
-            extract: {
-              format: "tar",
-              targetPath: "docker/docker",
-            },
-          },
-          {
-            platform: "darwin",
-            architecture: "arm64",
-            url: "https://download.docker.com/mac/static/stable/aarch64/docker-24.0.4.tgz",
-            sha256: "d99ce023f984b07a57621d804f226bfeedea513ce708aba480a62f5b63631367",
-            extract: {
-              format: "tar",
-              targetPath: "docker/docker",
-            },
-          },
-          {
-            platform: "linux",
-            architecture: "amd64",
-            url: "https://download.docker.com/linux/static/stable/x86_64/docker-24.0.4.tgz",
-            sha256: "0ab79ae5f19e2ef5bdc3c3009c8b770dea6189e0f1e0ef4935d78fd30519b11d",
-            extract: {
-              format: "tar",
-              targetPath: "docker/docker",
-            },
-          },
-          {
-            platform: "linux",
-            architecture: "arm64",
-            url: "https://download.docker.com/linux/static/stable/aarch64/docker-24.0.4.tgz",
-            sha256: "193a8e1f051adce6a30a4c8486ce9b39929b9633a0da8c96444c9239859f4354",
-            extract: {
-              format: "tar",
-              targetPath: "docker/docker",
-            },
-          },
-          {
-            platform: "windows",
-            architecture: "amd64",
-            url: "https://github.com/rgl/docker-ce-windows-binaries-vagrant/releases/download/v24.0.4/docker-24.0.4.zip",
-            sha256: "1ffb063724147d871ec01824ee458b66a85191a8ecd943ae77775b5352db12ff",
-            extract: {
-              format: "zip",
-              targetPath: "docker/docker.exe",
-            },
-          },
-        ],
-      },
-    ],
+    tools: [dockerSpec],
   })
 
 function validateRuntimeCommon(action: Resolved<ContainerRuntimeAction>) {

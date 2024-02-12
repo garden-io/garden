@@ -111,10 +111,11 @@ export const gardenPlugin = sdk.createGardenPlugin({
 
 const s = sdk.schema
 
+const hadolintVersion = "2.12.0"
 gardenPlugin.addTool({
   name: "hadolint",
-  version: "2.12.0",
-  description: "A Dockerfile linter.",
+  version: hadolintVersion,
+  description: `A Dockerfile linter, v${hadolintVersion}`,
   type: "binary",
   _includeInGardenImage: false,
   builds: [
@@ -122,25 +123,25 @@ gardenPlugin.addTool({
     {
       platform: "darwin",
       architecture: "amd64",
-      url: "https://github.com/hadolint/hadolint/releases/download/v2.12.0/hadolint-Darwin-x86_64",
+      url: `https://github.com/hadolint/hadolint/releases/download/v${hadolintVersion}/hadolint-Darwin-x86_64`,
       sha256: "2a5b7afcab91645c39a7cebefcd835b865f7488e69be24567f433dfc3d41cd27",
     },
     {
       platform: "linux",
       architecture: "amd64",
-      url: "https://github.com/hadolint/hadolint/releases/download/v2.12.0/hadolint-Linux-x86_64",
+      url: `https://github.com/hadolint/hadolint/releases/download/v${hadolintVersion}/hadolint-Linux-x86_64`,
       sha256: "56de6d5e5ec427e17b74fa48d51271c7fc0d61244bf5c90e828aab8362d55010",
     },
     {
       platform: "linux",
       architecture: "arm64",
-      url: "https://github.com/hadolint/hadolint/releases/download/v2.12.0/hadolint-Linux-arm64",
+      url: `https://github.com/hadolint/hadolint/releases/download/v${hadolintVersion}/hadolint-Linux-arm64`,
       sha256: "5798551bf19f33951881f15eb238f90aef023f11e7ec7e9f4c37961cb87c5df6",
     },
     {
       platform: "windows",
       architecture: "amd64",
-      url: "https://github.com/hadolint/hadolint/releases/download/v2.12.0/hadolint-Windows-x86_64.exe",
+      url: `https://github.com/hadolint/hadolint/releases/download/v${hadolintVersion}/hadolint-Windows-x86_64.exe`,
       sha256: "ed89a156290e15452276b2b4c84efa688a5183d3b578bfaec7cfdf986f0632a8",
     },
   ],

@@ -17,6 +17,7 @@ import { getOtelCollectorConfigFile } from "./config.js"
 import YAML from "yaml"
 import { makeTempDir } from "../../util/fs.js"
 import fsExtra from "fs-extra"
+
 const { writeFile } = fsExtra
 import { streamLogs, waitForLogLine, waitForProcessExit } from "../../util/process.js"
 import getPort from "get-port"
@@ -50,17 +51,18 @@ export const gardenPlugin = sdk.createGardenPlugin({
 
 const s = sdk.schema
 
+const otelCollectorVersion = "0.80.0"
 gardenPlugin.addTool({
   name: "otel-collector",
-  version: "v0.80.0",
-  description: "Otel collector service",
+  version: `v${otelCollectorVersion}`,
+  description: `Otel collector service, v${otelCollectorVersion}`,
   type: "binary",
   _includeInGardenImage: false,
   builds: [
     {
       platform: "darwin",
       architecture: "amd64",
-      url: "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v0.80.0/otelcol-contrib_0.80.0_darwin_amd64.tar.gz",
+      url: `https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${otelCollectorVersion}/otelcol-contrib_${otelCollectorVersion}_darwin_amd64.tar.gz`,
       sha256: "2769c382a8296c73f57c0cfece4337599473b9bc7752e22ee4fcd8e4f1e549ce",
       extract: {
         format: "tar",
@@ -70,7 +72,7 @@ gardenPlugin.addTool({
     {
       platform: "darwin",
       architecture: "arm64",
-      url: "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v0.80.0/otelcol-contrib_0.80.0_darwin_arm64.tar.gz",
+      url: `https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${otelCollectorVersion}/otelcol-contrib_${otelCollectorVersion}_darwin_arm64.tar.gz`,
       sha256: "93149de30b8a47f7c7412a3cf2b5395662c56a5198ab5e942c320216d9a2fd80",
       extract: {
         format: "tar",
@@ -80,7 +82,7 @@ gardenPlugin.addTool({
     {
       platform: "linux",
       architecture: "amd64",
-      url: "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v0.80.0/otelcol-contrib_0.80.0_linux_amd64.tar.gz",
+      url: `https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${otelCollectorVersion}/otelcol-contrib_${otelCollectorVersion}_linux_amd64.tar.gz`,
       sha256: "6196e2ec1f8e632abb3c98505c5e111aec47ca86a6f25d9ef5afe538a7b445f0",
       extract: {
         format: "tar",
@@ -90,7 +92,7 @@ gardenPlugin.addTool({
     {
       platform: "linux",
       architecture: "arm64",
-      url: "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v0.80.0/otelcol-contrib_0.80.0_linux_arm64.tar.gz",
+      url: `https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${otelCollectorVersion}/otelcol-contrib_${otelCollectorVersion}_linux_arm64.tar.gz`,
       sha256: "19d878166dbc39821f11b6a7c2ed896726c8d5ac6c15108b66d8e874efa8db85",
       extract: {
         format: "tar",
@@ -100,7 +102,7 @@ gardenPlugin.addTool({
     {
       platform: "windows",
       architecture: "amd64",
-      url: "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v0.80.0/otelcol-contrib_0.80.0_windows_amd64.tar.gz",
+      url: `https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${otelCollectorVersion}/otelcol-contrib_${otelCollectorVersion}_windows_amd64.tar.gz`,
       sha256: "b1a971a468da6d73926b9362029fde8f9142578d69179370ffb57ea35693452b",
       extract: {
         format: "tar",

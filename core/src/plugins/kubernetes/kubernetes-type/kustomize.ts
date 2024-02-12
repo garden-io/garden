@@ -38,7 +38,7 @@ export const kustomizeVersion = "4.5.2"
 export const kustomizeSpec: PluginToolSpec = {
   name: "kustomize",
   version: kustomizeVersion,
-  description: "The kustomize config management CLI.",
+  description: `The kustomize config management CLI, v${kustomizeVersion}`,
   type: "binary",
   _includeInGardenImage: true,
   builds: [
