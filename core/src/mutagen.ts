@@ -542,6 +542,7 @@ export class Mutagen {
                   "ps -ef | grep 'mutagen daemon run'"
                 )}`
               )
+              throw err
             }
           }
         },
