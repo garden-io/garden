@@ -24,7 +24,6 @@ import { PluginEventBroker } from "../plugin-context.js"
 import { HandlerMonitor } from "../monitors/handler.js"
 import { PortForwardMonitor } from "../monitors/port-forward.js"
 import { LogMonitor } from "../monitors/logs.js"
-import type { LoggerType } from "../logger/logger.js"
 import { parseLogLevel } from "../logger/logger.js"
 import { serveOpts } from "./serve.js"
 import { gardenEnv } from "../constants.js"
@@ -161,8 +160,8 @@ export class DeployCommand extends Command<Args, Opts> {
     printHeader(log, "Deploy", "🚀")
   }
 
-  override getTerminalWriterType(params): LoggerType {
-    return this.maybePersistent(params) ? "ink" : "default"
+  override useInkTerminalWriter(params) {
+    return this.maybePersistent(params) ? true : false
   }
 
   override terminate() {

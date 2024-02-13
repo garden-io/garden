@@ -74,8 +74,8 @@ Use ${styles.bold("up/down")} arrow keys to scroll through your command history.
     )
   }
 
-  override getTerminalWriterType(): LoggerType {
-    return "ink"
+  override useInkTerminalWriter() {
+    return true
   }
 
   override allowInDevCommand() {

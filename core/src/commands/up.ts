@@ -11,7 +11,6 @@ import { Command } from "./base.js"
 import { dedent } from "../util/string.js"
 import type { deployArgs, deployOpts } from "./deploy.js"
 import type { serveOpts } from "./serve.js"
-import type { LoggerType } from "../logger/logger.js"
 import { styles } from "../logger/styles.js"
 
 type UpArgs = typeof deployArgs
@@ -30,8 +29,8 @@ export class UpCommand extends Command<UpArgs, UpOpts> {
     )}, but you can add any arguments and flags supported by the ${styles.highlight("deploy")} command as well.
   `
 
-  override getTerminalWriterType(): LoggerType {
-    return "ink"
+  override useInkTerminalWriter() {
+    return true
   }
 
   async action(params: CommandParams<UpArgs, UpOpts>): Promise<CommandResult> {

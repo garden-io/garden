@@ -16,7 +16,7 @@ import type { GardenError } from "../exceptions.js"
 import { RuntimeError, InternalError, toGardenError } from "../exceptions.js"
 import type { Garden } from "../garden.js"
 import type { Log } from "../logger/log-entry.js"
-import type { LoggerType, LoggerBase, LoggerConfigBase, LogLevel } from "../logger/logger.js"
+import type { LoggerBase, LoggerConfigBase, LogLevel } from "../logger/logger.js"
 import { eventLogLevel } from "../logger/logger.js"
 import { printEmoji, printFooter } from "../logger/util.js"
 import { getCloudDistributionName, getCloudLogSectionName } from "../util/cloud.js"
@@ -472,8 +472,8 @@ export abstract class Command<
     }
   }
 
-  getTerminalWriterType(_: CommandParamsBase<A, O>): LoggerType {
-    return "default"
+  useInkTerminalWriter(_: CommandParamsBase<A, O>): boolean {
+    return false
   }
 
   describe() {

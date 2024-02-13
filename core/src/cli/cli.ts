@@ -222,20 +222,16 @@ ${renderCommands(commands)}
     workingDir: string
     log: Log
   }) {
-    const {
-      "env": environmentName,
-      silent,
-      output,
-      "logger-type": loggerTypeOpt,
-      "force-refresh": forceRefresh,
-      "var": cliVars,
-    } = parsedOpts
+    const { "env": environmentName, silent, output, "force-refresh": forceRefresh, "var": cliVars } = parsedOpts
 
     const parsedCliVars = parseCliVarFlags(cliVars)
     // Some commands may set their own logger type so we update the logger config here,
     // once we've resolved the command.
-    const commandLoggerType = command.getTerminalWriterType({ opts: parsedOpts, args: parsedArgs })
-    getRootLogger().setTerminalWriter(getTerminalWriterType({ silent, output, loggerTypeOpt, commandLoggerType }))
+
+    // For commands that use Ink we overwrite the terminal writer configuration (unless silent/output flags are set)
+    if (command.useInkTerminalWriter({ opts: parsedOpts, args: parsedArgs })) {
+      getRootLogger().setTerminalWriter(getTerminalWriterType({ silent, output, loggerType: "ink" }))
+    }
 
     const globalConfigStore = new GlobalConfigStore()
 
@@ -474,7 +470,7 @@ ${renderCommands(commands)}
       silent,
       output,
       "show-timestamps": showTimestamps,
-      "logger-type": loggerTypeOpt,
+      "logger-type": loggerType,
       "log-level": logLevelStr,
     } = argv
     let logger: RootLogger
@@ -482,7 +478,7 @@ ${renderCommands(commands)}
       logger = RootLogger.initialize({
         level: parseLogLevel(logLevelStr),
         storeEntries: false,
-        displayWriterType: getTerminalWriterType({ silent, output, loggerTypeOpt, commandLoggerType: null }),
+        displayWriterType: getTerminalWriterType({ silent, output, loggerType }),
         useEmoji: emoji,
         showTimestamps,
         force: this.initLogger,
