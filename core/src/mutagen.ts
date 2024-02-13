@@ -35,6 +35,7 @@ import { registerCleanupFunction, sleep } from "./util/util.js"
 import type { OctalPermissionMask } from "./plugins/kubernetes/types.js"
 import { styles } from "./logger/styles.js"
 import { dirname } from "node:path"
+import { makeDocsLink } from "./docs/common.js"
 
 const { mkdirp, pathExists } = fsExtra
 
@@ -538,9 +539,11 @@ export class Mutagen {
 
             if (isMutagenForkError(err)) {
               log.warn(
-                `It looks like the syncing machinery was switched via the ${GARDEN_ENABLE_NEW_SYNC_FEATURE_FLAG_NAME} env variable. Please stop the currently running Mutagen daemons. Use this command to find the daemons: ${styles.command(
-                  "ps -ef | grep 'mutagen daemon run'"
-                )}`
+                dedent`
+                It looks like the underlying syncing machinery was switched via the ${GARDEN_ENABLE_NEW_SYNC_FEATURE_FLAG_NAME} env variable and the sync daemon needs to be restarted.
+                Please see our Troubleshooting docs for instructions on how to restart the daemon for your platform: ${styles.link(
+                  makeDocsLink("misc/troubleshooting#restarting-sync-daemon")
+                )}}`
               )
               throw err
             }
