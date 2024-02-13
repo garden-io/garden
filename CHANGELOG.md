@@ -1,4 +1,28 @@
 
+<a name="0.13.25"></a>
+## [0.13.25](https://github.com/garden-io/garden/compare/0.13.24...0.13.25) (2024-02-13)
+
+### Bug Fixes
+
+* **buildkit:** run command from context dir ([#5712](https://github.com/garden-io/garden/issues/5712)) ([f93ecc6e7](https://github.com/garden-io/garden/commit/f93ecc6e7))
+* **ci:** macos cross build error ([#5694](https://github.com/garden-io/garden/issues/5694)) ([4de3cc27c](https://github.com/garden-io/garden/commit/4de3cc27c))
+* **cli:** only overwrite terminal writer if using Ink ([#5688](https://github.com/garden-io/garden/issues/5688)) ([171912919](https://github.com/garden-io/garden/commit/171912919))
+* **core:** don't execute disabled dependencies ([#5697](https://github.com/garden-io/garden/issues/5697)) ([5bcb0960b](https://github.com/garden-io/garden/commit/5bcb0960b))
+* **get-config:** omit internal field from output ([#5716](https://github.com/garden-io/garden/issues/5716)) ([3b6579bac](https://github.com/garden-io/garden/commit/3b6579bac))
+* **git:** fix file list caching bug for repo mode ([#5710](https://github.com/garden-io/garden/issues/5710)) ([ca7f997f4](https://github.com/garden-io/garden/commit/ca7f997f4))
+* **k8s:** don't throw when log fetching fails ([#5690](https://github.com/garden-io/garden/issues/5690)) ([993431923](https://github.com/garden-io/garden/commit/993431923))
+
+### Features
+
+* **config:** add environments field on actions ([#5686](https://github.com/garden-io/garden/issues/5686)) ([a7bcf8c6b](https://github.com/garden-io/garden/commit/a7bcf8c6b))
+
+### Improvements
+
+* update `kubectl` version to `1.29.1` ([#5693](https://github.com/garden-io/garden/issues/5693)) ([d8fc63fad](https://github.com/garden-io/garden/commit/d8fc63fad))
+* **core:** include path in template errors ([#5692](https://github.com/garden-io/garden/issues/5692)) ([5dfb0f7cb](https://github.com/garden-io/garden/commit/5dfb0f7cb))
+* **ext-tools:** always print versions in `garden tools` output ([#5718](https://github.com/garden-io/garden/issues/5718)) ([e88bb86bc](https://github.com/garden-io/garden/commit/e88bb86bc))
+* **helm:** update helm to 3.14.0 ([#5698](https://github.com/garden-io/garden/issues/5698)) ([115d85cae](https://github.com/garden-io/garden/commit/115d85cae))
+
 <a name="0.13.24"></a>
 ## [0.13.24](https://github.com/garden-io/garden/compare/0.13.23...0.13.24) (2024-01-30)
 
