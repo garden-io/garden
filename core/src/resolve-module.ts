@@ -860,11 +860,15 @@ export const convertModules = profileAsync(async function convertModules(
     const [missingBuilds, existingBuilds] = partition(action.dependencies || [], isMissingBuildDependency)
     action.dependencies = existingBuilds
 
+    const moduleName = action.internal.moduleName
+    if (!moduleName) {
+      continue
+    }
+
     for (const missingBuild of missingBuilds) {
-      const moduleName = action.internal.moduleName
       const depName = missingBuild.name
       const depType = graph.getModule(depName)?.type
-      if (moduleName && depType) {
+      if (depType) {
         log.warn(
           deline`
             Action ${styles.highlight(actionReferenceToString(action))} depends on
