@@ -7,7 +7,7 @@
  */
 
 import cloneDeep from "fast-copy"
-import { isArray, isString, keyBy, keys, pick, union } from "lodash-es"
+import { isArray, isString, keyBy, keys, partition, pick, union } from "lodash-es"
 import { validateWithPath } from "./config/validation.js"
 import {
   getModuleTemplateReferences,
@@ -38,6 +38,7 @@ import { allowUnknown } from "./config/common.js"
 import type { ProviderMap } from "./config/provider.js"
 import { DependencyGraph } from "./graph/common.js"
 import fsExtra from "fs-extra"
+
 const { mkdirp, readFile } = fsExtra
 import type { Log } from "./logger/log-entry.js"
 import type { ModuleConfigContextParams } from "./config/template-contexts/module.js"
@@ -852,32 +853,34 @@ export const convertModules = profileAsync(async function convertModules(
       .filter((name) => !convertedBuildNames.has(name))
   )
 
+  const isMissingBuildDependency = (d: ActionReference<ActionKind>) =>
+    d.kind === "Build" && missingBuildNames.has(d.name)
+
   for (const action of allActions) {
-    action.dependencies = (action.dependencies || []).filter((dep) => {
-      let keep = true
-      if (dep.kind === "Build" && missingBuildNames.has(dep.name)) {
-        keep = false
-        const moduleName = action.internal.moduleName
-        const depType = graph.getModule(dep.name)?.type
-        if (moduleName && depType) {
-          log.warn(
-            deline`
+    const [missingBuilds, existingBuilds] = partition(action.dependencies || [], isMissingBuildDependency)
+    action.dependencies = existingBuilds
+
+    for (const missingBuild of missingBuilds) {
+      const moduleName = action.internal.moduleName
+      const depName = missingBuild.name
+      const depType = graph.getModule(depName)?.type
+      if (moduleName && depType) {
+        log.warn(
+          deline`
             Action ${styles.highlight(actionReferenceToString(action))} depends on
-            ${styles.highlight("build." + dep.name)} (from module ${styles.highlight(dep.name)} of type ${depType}),
+            ${styles.highlight("build." + depName)} (from module ${styles.highlight(depName)} of type ${depType}),
             which doesn't exist. This is probably because there's no need for a Build action when converting modules
             of type ${depType} to actions. Skipping this dependency.
           `
-          )
-          log.warn(
-            deline`
-            Please remove the build dependency on ${styles.highlight(dep.name)} from the module
+        )
+        log.warn(
+          deline`
+            Please remove the build dependency on ${styles.highlight(depName)} from the module
             ${styles.highlight(moduleName)}'s configuration.
           `
-          )
-        }
+        )
       }
-      return keep
-    })
+    }
   }
 
   return { groups, actions }
