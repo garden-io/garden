@@ -5080,7 +5080,8 @@ Examples:
 | -------- | ----- | ---- | ----------- |
   | `--deploy` |  | boolean | Deploy the specified actions, if they&#x27;re out of date and/or not deployed in sync mode.
   | `--with-dependencies` |  | boolean | When deploying actions, also include any runtime dependencies. Ignored if --deploy is not set.
-  | `--monitor` |  | boolean | Keep the process running and print sync status logs after starting them.
+  | `--monitor` |  | boolean | [REMOVED] Keep the process running and print sync status logs after starting them.
+  | `--port` |  | number | The port number for the server to listen on (defaults to 9777 if available).
 
 
 ### garden sync stop
