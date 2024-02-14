@@ -13,6 +13,7 @@ import { dedent, naturalList } from "../../util/string.js"
 import type { CommandParams, CommandResult } from "../base.js"
 import { Command } from "../base.js"
 import { createActionLog } from "../../logger/log-entry.js"
+import { styles } from "../../logger/styles.js"
 
 const syncStopArgs = {
   names: new StringsParameter({
@@ -57,8 +58,27 @@ export class SyncStopCommand extends Command<Args, Opts> {
     printHeader(log, "Stopping sync(s)", "🔁")
   }
 
+  override maybePersistent() {
+    return true
+  }
+
+  override useInkTerminalWriter() {
+    return true
+  }
+
   async action(params: CommandParams<Args, Opts>): Promise<CommandResult<{}>> {
     const { garden, log, args } = params
+
+    if (!params.parentCommand) {
+      log.warn(
+        `Command ${styles.command(
+          "sync stop"
+        )} can only be executed in the dev console. Please, use start the dev console with ${styles.command(
+          "garden dev"
+        )}. Aborting.`
+      )
+      return {}
+    }
 
     // We default to stopping all syncs.
     const names = args.names || ["*"]
