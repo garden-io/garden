@@ -21,7 +21,7 @@ import type { DeployAction } from "../../actions/deploy.js"
 import type { ConfigGraph } from "../../graph/config-graph.js"
 import type { Garden } from "../../index.js"
 import { runAsDevCommand } from "../helpers.js"
-import { serveOpts } from "../serve.js"
+import { serveOpts } from "../shared-constants.js"
 
 const syncStartArgs = {
   names: new StringsParameter({

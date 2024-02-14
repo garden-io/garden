@@ -21,8 +21,8 @@ import {
 import { getRootLogger } from "../../../../src/logger/logger.js"
 import type { ActionStatus } from "../../../../src/actions/types.js"
 import type { DeployStatus } from "../../../../src/plugin/handlers/Deploy/get-status.js"
-import { defaultServerPort } from "../../../../src/commands/serve.js"
 import { zodObjectToJoi } from "../../../../src/config/common.js"
+import { defaultServerPort } from "../../../../src/commands/shared-constants.js"
 
 // TODO-G2: rename test cases to match the new graph model semantics
 const placeholderTimestamp = new Date()
