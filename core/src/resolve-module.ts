@@ -868,22 +868,24 @@ export const convertModules = profileAsync(async function convertModules(
     for (const missingBuild of missingBuilds) {
       const depName = missingBuild.name
       const depType = graph.getModule(depName)?.type
-      if (depType) {
-        log.warn(
-          deline`
-            Action ${styles.highlight(actionReferenceToString(action))} depends on
-            ${styles.highlight("build." + depName)} (from module ${styles.highlight(depName)} of type ${depType}),
-            which doesn't exist. This is probably because there's no need for a Build action when converting modules
-            of type ${depType} to actions. Skipping this dependency.
-          `
-        )
-        log.warn(
-          deline`
-            Please remove the build dependency on ${styles.highlight(depName)} from the module
-            ${styles.highlight(moduleName)}'s configuration.
-          `
-        )
+      if (!depType) {
+        continue
       }
+
+      log.warn(
+        deline`
+          Action ${styles.highlight(actionReferenceToString(action))} depends on
+          ${styles.highlight("build." + depName)} (from module ${styles.highlight(depName)} of type ${depType}),
+          which doesn't exist. This is probably because there's no need for a Build action when converting modules
+          of type ${depType} to actions. Skipping this dependency.
+        `
+      )
+      log.warn(
+        deline`
+          Please remove the build dependency on ${styles.highlight(depName)} from the module
+          ${styles.highlight(moduleName)}'s configuration.
+        `
+      )
     }
   }
 
