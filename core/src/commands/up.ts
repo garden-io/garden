@@ -10,8 +10,8 @@ import type { CommandParams, CommandResult } from "./base.js"
 import { Command } from "./base.js"
 import { dedent } from "../util/string.js"
 import type { deployArgs, deployOpts } from "./deploy.js"
-import type { serveOpts } from "./serve.js"
 import { styles } from "../logger/styles.js"
+import type { serveOpts } from "./shared-constants.js"
 
 type UpArgs = typeof deployArgs
 type UpOpts = typeof deployOpts & typeof serveOpts

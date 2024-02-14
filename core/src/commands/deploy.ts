@@ -25,11 +25,11 @@ import { HandlerMonitor } from "../monitors/handler.js"
 import { PortForwardMonitor } from "../monitors/port-forward.js"
 import { LogMonitor } from "../monitors/logs.js"
 import { parseLogLevel } from "../logger/logger.js"
-import { serveOpts } from "./serve.js"
 import { gardenEnv } from "../constants.js"
 import type { DeployAction } from "../actions/deploy.js"
 import { watchParameter, watchRemovedWarning } from "./util/watch-parameter.js"
 import { styles } from "../logger/styles.js"
+import { serveOpts } from "./shared-constants.js"
 
 export const deployArgs = {
   names: new StringsParameter({

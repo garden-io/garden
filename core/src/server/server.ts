@@ -31,6 +31,7 @@ import { authTokenHeader } from "../cloud/auth.js"
 import type { ApiEventBatch, LogEntryEventPayload } from "../cloud/buffered-event-stream.js"
 import { BufferedEventStream } from "../cloud/buffered-event-stream.js"
 import { eventLogLevel, LogLevel } from "../logger/logger.js"
+import { styles } from "../logger/styles.js"
 import { EventEmitter } from "eventemitter3"
 import { sanitizeValue } from "../util/logging.js"
 import { uuidv4 } from "../util/random.js"
@@ -44,9 +45,7 @@ import { getGardenCloudDomain } from "../cloud/api.js"
 import type { ServeCommand } from "../commands/serve.js"
 import type { AutocompleteSuggestion } from "../cli/autocomplete.js"
 import { createServer } from "http"
-import { defaultServerPort } from "../commands/serve.js"
-
-import { styles } from "../logger/styles.js"
+import { defaultServerPort } from "../commands/shared-constants.js"
 
 const skipLogsForCommands = ["autocomplete"]
 const serverLogName = "garden-server"

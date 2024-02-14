@@ -6,10 +6,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import type { CommandResult, CommandParams } from "./base.js"
+import type { CommandParams, CommandResult } from "./base.js"
 import { Command } from "./base.js"
 import { startServer } from "../server/server.js"
-import { IntegerParameter, StringsParameter } from "../cli/params.js"
 import { printEmoji, printHeader } from "../logger/util.js"
 import { dedent } from "../util/string.js"
 import type { CommandLine } from "../cli/command-line.js"
@@ -22,21 +21,11 @@ import { CloudApiTokenRefreshError, getGardenCloudDomain } from "../cloud/api.js
 import { uuidv4 } from "../util/random.js"
 import type { Garden } from "../garden.js"
 import type { GardenPluginReference } from "../plugin/plugin.js"
-import { CommandError, ParameterError, isEAddrInUseException, isErrnoException } from "../exceptions.js"
+import { CommandError, isEAddrInUseException, isErrnoException, ParameterError } from "../exceptions.js"
 import { styles } from "../logger/styles.js"
 import { getDashboardInfoMsg } from "../cli/helpers.js"
 import { DEFAULT_GARDEN_CLOUD_DOMAIN } from "../constants.js"
-
-export const defaultServerPort = 9777
-
-export const serveArgs = {}
-
-export const serveOpts = {
-  port: new IntegerParameter({
-    help: `The port number for the server to listen on (defaults to ${defaultServerPort} if available).`,
-  }),
-  cmd: new StringsParameter({ help: "(Only used by dev command for now)", hidden: true }),
-}
+import { serveArgs, serveOpts } from "./shared-constants.js"
 
 export type ServeCommandArgs = typeof serveArgs
 export type ServeCommandOpts = typeof serveOpts
