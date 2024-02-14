@@ -18,7 +18,9 @@ export interface TaskEventBase {
   description: string
   key: string
   name: string
-  inputVersion: string
+  // The input version is only null if an error occurred when calculating it (e.g. the action referenced a missing
+  // dependency).
+  inputVersion: string | null
 }
 
 export interface GraphResult<R extends ValidResultType = ValidResultType> extends TaskEventBase {
