@@ -26,7 +26,7 @@ import {
   PluginError,
   toGardenError,
 } from "./exceptions.js"
-import { dedent } from "./util/string.js"
+import { dedent, deline } from "./util/string.js"
 import type { GardenModule, ModuleConfigMap, ModuleMap, ModuleTypeMap } from "./types/module.js"
 import { getModuleTypeBases, moduleFromConfig } from "./types/module.js"
 import type { BuildDependencyConfig, ModuleConfig } from "./config/module.js"
@@ -58,6 +58,7 @@ import type { GraphResults } from "./graph/results.js"
 import type { ExecBuildConfig } from "./plugins/exec/build.js"
 import { pMemoizeDecorator } from "./lib/p-memoize.js"
 import { styles } from "./logger/styles.js"
+import { actionReferenceToString } from "./actions/base.js"
 
 // This limit is fairly arbitrary, but we need to have some cap on concurrent processing.
 export const moduleResolutionConcurrencyLimit = 50
@@ -837,6 +838,47 @@ export const convertModules = profileAsync(async function convertModules(
       }
     })
   )
+
+  const allActions = [...actions, ...groups.flatMap((g) => g.actions)]
+  // Not all conversion handlers return a Build action for the module, so we need to check for references to
+  // build steps for modules that aren't represented by a Build in the post-conversion set of actions.
+  // We warn the user to remove the dangling references, but don't throw an exception and instead simply remove
+  // the dependencies from the relevant actions.
+  const convertedBuildNames = new Set(allActions.filter((a) => isBuildActionConfig(a)).map((a) => a.name))
+  const missingBuildNames = new Set(
+    graph
+      .getModules()
+      .map((m) => m.name)
+      .filter((name) => !convertedBuildNames.has(name))
+  )
+
+  for (const action of allActions) {
+    action.dependencies = (action.dependencies || []).filter((dep) => {
+      let keep = true
+      if (dep.kind === "Build" && missingBuildNames.has(dep.name)) {
+        keep = false
+        const moduleName = action.internal.moduleName
+        const depType = graph.getModule(dep.name)?.type
+        if (moduleName && depType) {
+          log.warn(
+            deline`
+            Action ${styles.highlight(actionReferenceToString(action))} depends on
+            ${styles.highlight("build." + dep.name)} (from module ${styles.highlight(dep.name)} of type ${depType}),
+            which doesn't exist. This is probably because there's no need for a Build action when converting modules
+            of type ${depType} to actions. Skipping this dependency.
+          `
+          )
+          log.warn(
+            deline`
+            Please remove the build dependency on ${styles.highlight(dep.name)} from the module
+            ${styles.highlight(moduleName)}'s configuration.
+          `
+          )
+        }
+      }
+      return keep
+    })
+  }
 
   return { groups, actions }
 })
