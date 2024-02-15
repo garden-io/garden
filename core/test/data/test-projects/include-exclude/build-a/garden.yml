@@ -1,5 +1,5 @@
-kind: Module
-name: module-a
+kind: Build
+name: a
 type: test
 include: ["yes.txt", "somedir/*"]
 exclude: ["somedir/nope.txt"]
