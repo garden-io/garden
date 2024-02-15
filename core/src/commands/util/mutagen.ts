@@ -41,9 +41,9 @@ export class MutagenCommand extends Command<{}, {}> {
   override printHeader() {}
 
   async action({ garden, log, args }: CommandParams<{}, {}>) {
-    const projectRoot = await findProjectConfig({ log, path: garden.projectRoot })
+    const projectConfig = await findProjectConfig({ log, path: garden.projectRoot })
 
-    if (!projectRoot) {
+    if (!projectConfig) {
       throw new RuntimeError({
         message: dedent`
           Could not find project config in the current directory, or anywhere above.
@@ -52,7 +52,7 @@ export class MutagenCommand extends Command<{}, {}> {
       })
     }
 
-    const gardenDirPath = join(projectRoot.path, DEFAULT_GARDEN_DIR_NAME)
+    const gardenDirPath = join(projectConfig.path, DEFAULT_GARDEN_DIR_NAME)
     const mutagenDir = getMutagenDataDir(gardenDirPath, log)
     const mutagenPath = await mutagenCli.ensurePath(log)
 
