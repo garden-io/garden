@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import httpStatusCodes from "http-status-codes"
+import { StatusCodes } from "http-status-codes"
 import { ApiException as KubernetesApiException } from "@kubernetes/client-node"
 import { sleep } from "../../util/util.js"
 import type { Log } from "../../logger/log-entry.js"
@@ -170,13 +170,14 @@ export function shouldRetry(error: unknown, context: string): boolean {
 }
 
 export const statusCodesForRetry: number[] = [
-  httpStatusCodes.REQUEST_TIMEOUT,
-  httpStatusCodes.TOO_MANY_REQUESTS,
+  StatusCodes.REQUEST_TIMEOUT,
+  StatusCodes.TOO_MANY_REQUESTS,
 
-  httpStatusCodes.INTERNAL_SERVER_ERROR,
-  httpStatusCodes.BAD_GATEWAY,
-  httpStatusCodes.SERVICE_UNAVAILABLE,
-  httpStatusCodes.GATEWAY_TIMEOUT,
+  StatusCodes.INTERNAL_SERVER_ERROR,
+  StatusCodes.BAD_GATEWAY,
+  StatusCodes.SERVICE_UNAVAILABLE,
+  StatusCodes.GATEWAY_TIMEOUT,
+  StatusCodes.INTERNAL_SERVER_ERROR,
 
   // Cloudflare-specific status codes
   521, // Web Server Is Down
