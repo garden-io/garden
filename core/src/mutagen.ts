@@ -331,10 +331,10 @@ export class Mutagen {
   private configLock: AsyncLock
   private monitoring: boolean
 
-  constructor({ ctx, log }: MutagenDaemonParams) {
-    this.log = log
+  constructor(params: MutagenDaemonParams) {
+    this.log = params.log
     this.configLock = new AsyncLock()
-    this.dataDir = getMutagenDataDir({ ctx, log })
+    this.dataDir = getMutagenDataDir(params)
     this.activeSyncs = {}
     this.monitoring = false
 
