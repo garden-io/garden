@@ -10,7 +10,7 @@ import { execa } from "execa"
 import { expect } from "chai"
 import tmp from "tmp-promise"
 import fsExtra from "fs-extra"
-import { basename, join, relative, resolve } from "path"
+import { basename, dirname, join, relative, resolve } from "path"
 
 import type { TestGarden } from "../../../helpers.js"
 import { expectError, getDataDir, makeTestGarden, makeTestGardenA } from "../../../helpers.js"
@@ -1467,7 +1467,10 @@ const getTreeVersionTests = (gitScanMode: GitScanMode) => {
       it("should respect the include field, if specified", async () => {
         const projectRoot = getDataDir("test-projects", "include-exclude")
         const garden = await makeTestGarden(projectRoot, { gitScanMode })
-        const moduleConfig = await garden.resolveModule("module-a")
+        const log = garden.log
+        const graph = await garden.getConfigGraph({ log, emit: false })
+        const build = graph.getBuild("a")
+        const buildConfig = build.getConfig()
         const handler = new gitHandlerCls({
           garden,
           projectRoot: garden.projectRoot,
@@ -1479,19 +1482,22 @@ const getTreeVersionTests = (gitScanMode: GitScanMode) => {
         const version = await handler.getTreeVersion({
           log: garden.log,
           projectName: garden.projectName,
-          config: moduleConfig,
+          config: buildConfig,
         })
 
         expect(version.files).to.eql([
-          resolve(moduleConfig.path, "somedir/yes.txt"),
-          resolve(moduleConfig.path, "yes.txt"),
+          resolve(dirname(build.configPath()!), "somedir/yes.txt"),
+          resolve(dirname(build.configPath()!), "yes.txt"),
         ])
       })
 
       it("should respect the exclude field, if specified", async () => {
         const projectRoot = getDataDir("test-projects", "include-exclude")
         const garden = await makeTestGarden(projectRoot, { gitScanMode })
-        const moduleConfig = await garden.resolveModule("module-b")
+        const log = garden.log
+        const graph = await garden.getConfigGraph({ log, emit: false })
+        const build = graph.getBuild("b")
+        const buildConfig = build.getConfig()
         const handler = new gitHandlerCls({
           garden,
           projectRoot: garden.projectRoot,
@@ -1503,16 +1509,19 @@ const getTreeVersionTests = (gitScanMode: GitScanMode) => {
         const version = await handler.getTreeVersion({
           log: garden.log,
           projectName: garden.projectName,
-          config: moduleConfig,
+          config: buildConfig,
         })
 
-        expect(version.files).to.eql([resolve(moduleConfig.path, "yes.txt")])
+        expect(version.files).to.eql([resolve(dirname(build.configPath()!), "yes.txt")])
       })
 
       it("should respect both include and exclude fields, if specified", async () => {
         const projectRoot = getDataDir("test-projects", "include-exclude")
         const garden = await makeTestGarden(projectRoot, { gitScanMode })
-        const moduleConfig = await garden.resolveModule("module-c")
+        const log = garden.log
+        const graph = await garden.getConfigGraph({ log, emit: false })
+        const build = graph.getBuild("b")
+        const buildConfig = build.getConfig()
 
         const handler = new gitHandlerCls({
           garden,
@@ -1525,10 +1534,10 @@ const getTreeVersionTests = (gitScanMode: GitScanMode) => {
         const version = await handler.getTreeVersion({
           log: garden.log,
           projectName: garden.projectName,
-          config: moduleConfig,
+          config: buildConfig,
         })
 
-        expect(version.files).to.eql([resolve(moduleConfig.path, "yes.txt")])
+        expect(version.files).to.eql([resolve(dirname(build.configPath()!), "yes.txt")])
       })
     })
   })

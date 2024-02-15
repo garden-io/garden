@@ -237,27 +237,29 @@ describe("VcsHandler", () => {
       expect(result).to.eql(cachedResult)
     })
 
-    it("should update content hash when include is set and there's a change in included files of module", async () => {
+    it("should update content hash when include is set and there's a change in the included files of an action", async () => {
       const projectRoot = getDataDir("test-projects", "include-exclude")
       const garden = await makeTestGarden(projectRoot)
-      const moduleConfigA1 = await garden.resolveModule("module-a")
-      const newFilePathModuleA = join(garden.projectRoot, "module-a", "somedir", "foo")
+      const log = garden.log
+      const graph = await garden.getConfigGraph({ emit: false, log })
+      const buildConfig = graph.getBuild("a").getConfig()
+      const newFilePathBuildA = join(garden.projectRoot, "build-a", "somedir", "foo")
       try {
         const version1 = await garden.vcs.getTreeVersion({
           log: garden.log,
           projectName: garden.projectName,
-          config: moduleConfigA1,
+          config: buildConfig,
         })
-        await writeFile(newFilePathModuleA, "abcd")
+        await writeFile(newFilePathBuildA, "abcd")
         const version2 = await garden.vcs.getTreeVersion({
           log: garden.log,
           projectName: garden.projectName,
-          config: moduleConfigA1,
+          config: buildConfig,
           force: true,
         })
         expect(version1).to.not.eql(version2)
       } finally {
-        await rm(newFilePathModuleA)
+        await rm(newFilePathBuildA)
       }
     })
 
@@ -305,30 +307,61 @@ describe("VcsHandler", () => {
       }
     })
 
-    it("should update content hash, when a file is renamed", async () => {
+    it("should update content hash when a file is renamed", async () => {
       const projectRoot = getDataDir("test-projects", "include-exclude")
       const garden = await makeTestGarden(projectRoot)
-      const newFilePathModuleA = join(garden.projectRoot, "module-a", "somedir", "foo")
-      const renamedFilePathModuleA = join(garden.projectRoot, "module-a", "somedir", "bar")
+      const log = garden.log
+      const newFilePathBuildA = join(garden.projectRoot, "build-a", "somedir", "foo")
+      const renamedFilePathBuildA = join(garden.projectRoot, "build-a", "somedir", "bar")
       try {
-        await writeFile(newFilePathModuleA, "abcd")
-        const moduleConfigA1 = await garden.resolveModule("module-a")
+        await writeFile(newFilePathBuildA, "abcd")
+        const graph = await garden.getConfigGraph({ emit: false, log })
+        const buildConfig = graph.getBuild("a").getConfig()
         const version1 = await garden.vcs.getTreeVersion({
           log: garden.log,
           projectName: garden.projectName,
-          config: moduleConfigA1,
+          config: buildConfig,
         })
         // rename file foo to bar
-        await rename(newFilePathModuleA, renamedFilePathModuleA)
+        await rename(newFilePathBuildA, renamedFilePathBuildA)
         const version2 = await garden.vcs.getTreeVersion({
           log: garden.log,
           projectName: garden.projectName,
-          config: moduleConfigA1,
+          config: buildConfig,
           force: true,
         })
         expect(version1).to.not.eql(version2)
       } finally {
-        await rm(renamedFilePathModuleA)
+        await rm(renamedFilePathBuildA)
+      }
+    })
+
+    it("should not update content hash when the parent config's enclosing directory is renamed", async () => {
+      const projectRoot = getDataDir("test-projects", "include-exclude")
+      const garden = await makeTestGarden(projectRoot)
+      const log = garden.log
+      const newFilePathBuildA = join(garden.projectRoot, "build-a", "somedir", "foo")
+      const renamedFilePathBuildA = join(garden.projectRoot, "build-a", "somedir", "bar")
+      try {
+        await writeFile(newFilePathBuildA, "abcd")
+        const graph = await garden.getConfigGraph({ emit: false, log })
+        const buildConfig = graph.getBuild("a").getConfig()
+        const version1 = await garden.vcs.getTreeVersion({
+          log: garden.log,
+          projectName: garden.projectName,
+          config: buildConfig,
+        })
+        // rename file foo to bar
+        await rename(newFilePathBuildA, renamedFilePathBuildA)
+        const version2 = await garden.vcs.getTreeVersion({
+          log: garden.log,
+          projectName: garden.projectName,
+          config: buildConfig,
+          force: true,
+        })
+        expect(version1).to.not.eql(version2)
+      } finally {
+        await rm(renamedFilePathBuildA)
       }
     })
   })
@@ -422,7 +455,7 @@ describe("getModuleVersionString", () => {
     const garden = await makeTestGarden(projectRoot, { noCache: true })
     const module = await garden.resolveModule("module-a")
 
-    const fixedVersionString = "v-e3eed855ed"
+    const fixedVersionString = "v-55de0aac5c"
     expect(module.version.versionString).to.eql(fixedVersionString)
 
     delete process.env.TEST_ENV_VAR

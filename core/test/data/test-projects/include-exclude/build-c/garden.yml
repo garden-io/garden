@@ -1,5 +1,5 @@
-kind: Module
-name: module-c
+kind: Build
+name: c
 type: test
 include: ["*.txt"]
 exclude: ["nope.*"]

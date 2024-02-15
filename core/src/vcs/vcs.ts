@@ -11,6 +11,7 @@ import { createHash } from "node:crypto"
 import { relative, sep } from "path"
 import { DOCS_BASE_URL } from "../constants.js"
 import fsExtra from "fs-extra"
+import { dirname } from "node:path"
 
 const { writeFile } = fsExtra
 import type { ExternalSourceType } from "../util/ext-source-util.js"
@@ -271,8 +272,16 @@ export abstract class VcsHandler {
           // Don't include the config file in the file list
           .filter((f) => !configPath || f.path !== configPath)
 
-        // compute hash using <file-relative-path>-<file-hash> to cater for path changes (e.g. renaming)
-        result.contentHash = hashStrings(files.map((f) => `${relative(this.projectRoot, f.path)}-${f.hash}`))
+        let stringsForContenthash: string[]
+        if (configPath) {
+          // Include the relative path to the file to account for the file being renamed or moved around within the
+          // config path (e.g. renaming).
+          const configDir = dirname(configPath)
+          stringsForContenthash = files.map((f) => `${relative(configDir, f.path)}-${f.hash}`)
+        } else {
+          stringsForContenthash = files.map((f) => f.hash)
+        }
+        result.contentHash = hashStrings(stringsForContenthash)
         result.files = files.map((f) => f.path)
       }
 
