@@ -50,7 +50,7 @@ export class MutagenCommand extends Command<{}, {}> {
       })
     }
 
-    const mutagenDir = getMutagenDataDir(garden, log)
+    const mutagenDir = getMutagenDataDir({ ctx: garden, log })
     const mutagenPath = await mutagenCli.ensurePath(log)
 
     await mkdirp(mutagenDir)

@@ -24,7 +24,7 @@ export const syncStatus: PluginCommand = {
   title: "Get the current sync status",
 
   handler: async ({ ctx, log }) => {
-    const dataDir = getMutagenDataDir(ctx, log)
+    const dataDir = getMutagenDataDir({ ctx, log })
     const mutagen = new PluginTool(mutagenCliSpec)
 
     if (!(await pathExists(dataDir))) {
@@ -58,7 +58,7 @@ export const syncPause: PluginCommand = {
   title: "Pause sync",
 
   handler: async ({ ctx, log }) => {
-    const dataDir = getMutagenDataDir(ctx, log)
+    const dataDir = getMutagenDataDir({ ctx, log })
     const mutagen = new PluginTool(mutagenCliSpec)
 
     if (!(await pathExists(dataDir))) {
@@ -104,7 +104,7 @@ export const syncResume: PluginCommand = {
   title: "Resume sync",
 
   handler: async ({ ctx, log }) => {
-    const dataDir = getMutagenDataDir(ctx, log)
+    const dataDir = getMutagenDataDir({ ctx, log })
     const mutagen = new PluginTool(mutagenCliSpec)
 
     if (!(await pathExists(dataDir))) {

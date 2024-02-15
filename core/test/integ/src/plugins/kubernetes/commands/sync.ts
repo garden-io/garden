@@ -33,7 +33,7 @@ describe("sync plugin commands", () => {
   after(async () => {
     if (cleanup) {
       cleanup()
-      const dataDir = getMutagenDataDir(garden, garden.log)
+      const dataDir = getMutagenDataDir({ctx : garden, log : garden.log})
       await getMutagenMonitor({ log, dataDir }).stop()
       await cleanProject(garden.gardenDirPath)
     }

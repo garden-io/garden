@@ -137,6 +137,12 @@ interface MutagenDaemonParams {
   log: Log
 }
 
+interface MutagenDataDirParams {
+  ctx: WrappedFromGarden
+  log: Log
+}
+
+
 interface MutagenMonitorParams {
   log: Log
   dataDir: string
@@ -334,7 +340,7 @@ export class Mutagen {
   constructor({ ctx, log }: MutagenDaemonParams) {
     this.log = log
     this.configLock = new AsyncLock()
-    this.dataDir = getMutagenDataDir(ctx, log)
+    this.dataDir = getMutagenDataDir({ctx, log })
     this.activeSyncs = {}
     this.monitoring = false
 
@@ -796,7 +802,7 @@ export interface SyncSession {
  *   <li>https://unix.stackexchange.com/questions/367008/why-is-socket-path-length-limited-to-a-hundred-chars/367012#367012</li>
  * </ul>
  */
-export function getMutagenDataDir(ctx: WrappedFromGarden, log: Log) {
+export function getMutagenDataDir({ ctx, log }: MutagenDataDirParams) {
   const rawSyncPath = ctx.gardenDirPath
   const hash = hashSync(rawSyncPath, { algorithm: "sha256" }).slice(0, 9)
   const shortPath = join(GARDEN_GLOBAL_PATH, MUTAGEN_DIR_NAME, hash)
