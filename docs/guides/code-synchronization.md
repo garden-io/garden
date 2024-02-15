@@ -278,5 +278,5 @@ Because Garden creates a temporary data directory for Mutagen for every Garden C
 To, for example, get the current list of active syncs in an active Garden process, you could run the following from the project root directory:
 
 ```sh
-.garden/mutagen/latest/mutagen.sh sync list
+garden util mutagen sync list
 ```
