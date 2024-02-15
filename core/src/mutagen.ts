@@ -799,9 +799,8 @@ export interface SyncSession {
 export function getMutagenDataDir(path: string, log: Log) {
   const hash = hashSync(path, { algorithm: "sha256" }).slice(0, 9)
   const shortPath = join(GARDEN_GLOBAL_PATH, MUTAGEN_DIR_NAME, hash)
-  log.verbose(
-    `Your Garden project path looks too long, that might cause errors while starting the syncs. Garden will create a new directory to manage syncs at path: ${shortPath}.`
-  )
+  log.debug(`The syncs will be managed from ${shortPath}.`)
+
   return shortPath
 }
 
