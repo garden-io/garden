@@ -20,7 +20,7 @@ import { GARDEN_GLOBAL_PATH, MUTAGEN_DIR_NAME } from "./constants.js"
 import { ChildProcessError, GardenError } from "./exceptions.js"
 import pMemoize from "./lib/p-memoize.js"
 import type { Log } from "./logger/log-entry.js"
-import type { PluginContext } from "./plugin-context.js"
+import type { WrappedFromGarden } from "./plugin-context.js"
 import type { PluginToolSpec } from "./plugin/tools.js"
 import { syncGuideLink } from "./plugins/kubernetes/sync.js"
 import { TypedEventEmitter } from "./util/events.js"
@@ -133,7 +133,7 @@ export class MutagenError extends GardenError {
 }
 
 interface MutagenDaemonParams {
-  ctx: PluginContext
+  ctx: WrappedFromGarden
   log: Log
 }
 
@@ -331,10 +331,10 @@ export class Mutagen {
   private configLock: AsyncLock
   private monitoring: boolean
 
-  constructor({ ctx, log }: MutagenDaemonParams) {
-    this.log = log
+  constructor(params: MutagenDaemonParams) {
+    this.log = params.log
     this.configLock = new AsyncLock()
-    this.dataDir = getMutagenDataDir(ctx.gardenDirPath, log)
+    this.dataDir = getMutagenDataDir(params)
     this.activeSyncs = {}
     this.monitoring = false
 
@@ -796,12 +796,12 @@ export interface SyncSession {
  *   <li>https://unix.stackexchange.com/questions/367008/why-is-socket-path-length-limited-to-a-hundred-chars/367012#367012</li>
  * </ul>
  */
-export function getMutagenDataDir(path: string, log: Log) {
-  const hash = hashSync(path, { algorithm: "sha256" }).slice(0, 9)
+export function getMutagenDataDir({ ctx, log }: MutagenDaemonParams) {
+  const rawSyncPath = ctx.gardenDirPath
+  const hash = hashSync(rawSyncPath, { algorithm: "sha256" }).slice(0, 9)
   const shortPath = join(GARDEN_GLOBAL_PATH, MUTAGEN_DIR_NAME, hash)
-  log.verbose(
-    `Your Garden project path looks too long, that might cause errors while starting the syncs. Garden will create a new directory to manage syncs at path: ${shortPath}.`
-  )
+  log.debug(`The syncs will be managed from ${shortPath}.`)
+
   return shortPath
 }
 

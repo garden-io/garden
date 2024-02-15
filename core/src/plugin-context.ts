@@ -25,7 +25,7 @@ import { Memoize } from "typescript-memoize"
 import type { ParameterObject, ParameterValues } from "./cli/params.js"
 import type { NamespaceStatus } from "./types/namespace.js"
 
-type WrappedFromGarden = Pick<
+export type WrappedFromGarden = Pick<
   Garden,
   | "projectName"
   | "projectRoot"
