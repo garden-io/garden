@@ -437,7 +437,7 @@ export class Mutagen {
     }
   }
 
-  async ensureDaemon() {
+  async ensureDaemonProc() {
     await this.execCommand(["daemon", "start"])
   }
 
@@ -684,7 +684,7 @@ export class Mutagen {
           this.log.warn(
             styles.primary(`Could not connect to sync daemon, retrying (attempt ${loops}/${maxRetries})...`)
           )
-          await this.ensureDaemon()
+          await this.ensureDaemonProc()
           await sleep(2000 + loops * 500)
         } else {
           throw err
@@ -704,7 +704,7 @@ export class Mutagen {
 
   async restartDaemonProc() {
     await this.stopDaemonProc()
-    await this.ensureDaemon()
+    await this.ensureDaemonProc()
   }
 
   async startMonitoring() {
