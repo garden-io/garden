@@ -275,8 +275,31 @@ Every so often something comes up in the underlying Mutagen synchronization proc
 
 Because Garden creates a temporary data directory for Mutagen for every Garden CLI instance, you can't use the `mutagen` CLI without additional context. However, to make this easier, a symlink to the temporary directory is automatically created under `<project root>/.garden/mutagen/<random ID>`, as well as a `mutagen.sh` helper script within that directory that sets the appropriate context and links to the automatically installed Mutagen CLI. We also create a `<project root>/.garden/mutagen/latest` symlink for convenience.
 
-To, for example, get the current list of active syncs in an active Garden process, you could run the following from the project root directory:
+### Get list of active syncs
+
+To get the current list of active syncs in an active Garden process, you could run the following from the project root directory:
 
 ```sh
 garden util mutagen sync list
 ```
+
+### Restarting sync daemon
+
+Starting from the version `0.13.26`, Garden offer a new file synchronization machinery.
+It is available via the environment variable `GARDEN_ENABLE_NEW_SYNC` and it disabled by default.
+
+It is important to stop all syncs and the sync daemon before changing the value of `GARDEN_ENABLE_NEW_SYNC`.
+Otherwise, the syncs will fail. In order to do that, just run the following commands from the project root directory:
+```
+garden util mutagen daemon stop
+GARDEN_ENABLE_NEW_SYNC=true garden util mutagen daemon stop
+```
+
+It will stop both old and new sync daemons.
+If one of the daemons is not running, then the command will report an error message like this:
+```
+Error: unable to connect to daemon: connection timed out (is the daemon running?)
+```
+That is fine, please ignore it.
+
+Once you have stopped the sync daemons, please try again to start the syncs.
