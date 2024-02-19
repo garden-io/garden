@@ -1092,6 +1092,14 @@ jobs:
       - checkout
       - *attach-workspace
       - run:
+          # Print PowerShell version for diagnostics
+          name: Print PowerShell versions
+          command: $PSVersionTable
+      - run:
+          # Print Chocolatey version for diagnostics
+          name: Print Chocolatey versions
+          command: choco --version
+      - run:
           name: Install Deps
           command: |
             Import-Module "$Env:ChocolateyInstall\helpers\chocolateyProfile.psm1"
