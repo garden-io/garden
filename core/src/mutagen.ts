@@ -922,7 +922,7 @@ export function mutagenCliSpecLegacy(): PluginToolSpec {
       {
         platform: "darwin",
         architecture: "amd64",
-        url: `https://github.com/garden-io/mutagen/releases/download/v${mutagenVersionLegacy}-garden-1/mutagen_darwin_amd64_v${mutagenVersion}.tar.gz`,
+        url: `https://github.com/garden-io/mutagen/releases/download/v${mutagenVersionLegacy}-garden-1/mutagen_darwin_amd64_v${mutagenVersionLegacy}.tar.gz`,
         sha256: "370bf71e28f94002453921fda83282280162df7192bd07042bf622bf54507e3f",
         extract: {
           format: "tar",
