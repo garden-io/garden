@@ -322,6 +322,16 @@ class _MutagenMonitor extends TypedEventEmitter<MonitorEvents> {
   }
 }
 
+function logMutagenDaemonWarning(log: Log) {
+  log.warn(
+    dedent`
+    It looks like you've changed to a different version of the sync daemon and therefore the sync daemon needs to be restarted.
+    Please see our Troubleshooting docs for instructions on how to restart the daemon for your platform: ${styles.link(
+      makeDocsLink("guides/code-synchronization", "#restarting-sync-daemon")
+    )}}`
+  )
+}
+
 /**
  * A class for managing the Mutagen daemon process and its syncs.
  *
@@ -533,13 +543,7 @@ export class Mutagen {
             }
 
             if (isMutagenForkError(err)) {
-              log.warn(
-                dedent`
-                It looks like you've changed to a different version of the sync daemon and therefore the sync daemon needs to be restarted.
-                Please see our Troubleshooting docs for instructions on how to restart the daemon for your platform: ${styles.link(
-                  makeDocsLink("guides/code-synchronization", "#restarting-sync-daemon")
-                )}}`
-              )
+              logMutagenDaemonWarning(log)
               throw err
             }
           }
