@@ -16,6 +16,7 @@ import indentString from "indent-string"
 import { constants } from "os"
 import dns from "node:dns"
 import { styles } from "./logger/styles.js"
+import type { ObjectPath } from "./config/base.js"
 
 // Unfortunately, NodeJS does not provide a list of all error codes, so we have to maintain this list manually.
 // See https://nodejs.org/docs/latest-v18.x/api/dns.html#error-codes
@@ -303,9 +304,9 @@ export class CloudApiError extends GardenError {
 export class TemplateStringError extends GardenError {
   type = "template-string"
 
-  path?: (string | number)[]
+  path?: ObjectPath
 
-  constructor(params: GardenErrorParams & { path?: (string | number)[] }) {
+  constructor(params: GardenErrorParams & { path?: ObjectPath }) {
     super(params)
     this.path = params.path
   }

@@ -35,6 +35,7 @@ import {
   variableNameRegex,
   envVarRegex,
 } from "./constants.js"
+import { renderZodError } from "./zod.js"
 
 // Avoid chasing moved references
 export * from "./constants.js"
@@ -465,9 +466,8 @@ joi = joi.extend({
           if (!(error instanceof z.ZodError)) {
             throw error
           }
-          // TODO: customize the error output here to make it a bit nicer
-          const outputError = helpers.error("validation")
-          outputError.message = error.message
+          const outputError = helpers.error("zodValidation")
+          outputError.message = renderZodError(error)
           outputError.zodError = error
 
           if (error instanceof z.ZodError && error.issues.length > 0) {

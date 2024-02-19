@@ -11,7 +11,7 @@ import { ConfigurationError } from "../exceptions.js"
 import { relative } from "path"
 import { uuidv4 } from "../util/random.js"
 import { profile } from "../util/profiling.js"
-import type { BaseGardenResource, YamlDocumentWithSource } from "./base.js"
+import type { BaseGardenResource, ObjectPath, YamlDocumentWithSource } from "./base.js"
 import type { ParsedNode, Range } from "yaml"
 import { padEnd } from "lodash-es"
 import { styles } from "../logger/styles.js"
@@ -29,6 +29,7 @@ const joiOptions: Joi.ValidationOptions = {
   // Overriding some error messages to make them friendlier
   messages: {
     "any.unknown": `{{#label}} is not allowed at path ${joiPathPlaceholder}`,
+    "any.required": `{{#label}} is required at path ${joiPathPlaceholder}`,
     "object.missing": `object at ${joiPathPlaceholder} must contain at least one of {{#peersWithLabels}}`,
     "object.nand": `{{#mainWithLabel}} can\'t be specified simultaneously with {{#peersWithLabels}}`,
     "object.unknown": `key "{{#child}}" is not allowed at path ${joiPathPlaceholder}`,
@@ -41,7 +42,7 @@ const joiOptions: Joi.ValidationOptions = {
 
 export interface ConfigSource {
   yamlDoc?: YamlDocumentWithSource
-  basePath?: (string | number)[]
+  basePath?: ObjectPath
 }
 
 export interface ValidateOptions {
@@ -97,7 +98,7 @@ export interface ValidateConfigParams<T extends BaseGardenResource> {
   config: T
   schema: Joi.Schema
   projectRoot: string
-  yamlDocBasePath: (string | number)[]
+  yamlDocBasePath: ObjectPath
   ErrorClass?: typeof ConfigurationError
 }
 
@@ -130,45 +131,15 @@ export const validateSchema = profile(function $validateSchema<T>(
     return result.value
   }
 
-  const description = schema.describe()
-
   const yamlDoc = source?.yamlDoc
   const rawYaml = yamlDoc?.source
   const yamlBasePath = source?.basePath || []
 
   const errorDetails = error.details.map((e) => {
-    // render the key path in a much nicer way
-    let renderedPath = yamlBasePath.join(".")
-
-    if (e.path.length) {
-      let d = description
-
-      for (const part of e.path) {
-        if (d.keys && d.keys[part]) {
-          renderedPath = renderedPath ? renderedPath + "." + part : part.toString()
-          d = d.keys[part]
-        } else if (d.patterns) {
-          for (const p of d.patterns) {
-            if (part.toString().match(new RegExp(p.regex.slice(1, -1)))) {
-              renderedPath += `[${part}]`
-              d = p.rule
-              break
-            }
-          }
-        } else {
-          renderedPath += `[${part}]`
-        }
-      }
-    }
-
-    // a little hack to always use full key paths instead of just the label
-    e.message = e.message.replace(
-      joiLabelPlaceholderRegex,
-      renderedPath ? styles.bold.underline(renderedPath) : "value"
-    )
-    e.message = e.message.replace(joiPathPlaceholderRegex, styles.bold.underline(renderedPath || "."))
-    // FIXME: remove once we've customized the error output from AJV in customObject.jsonSchema()
-    e.message = e.message.replace(/should NOT have/g, "should not have")
+    e.message =
+      e.type === "zodValidation"
+        ? improveZodValidationErrorMessage(e, yamlBasePath)
+        : improveJoiValidationErrorMessage(e, schema, yamlBasePath)
 
     const node = yamlDoc?.getIn([...yamlBasePath, ...e.path], true) as ParsedNode | undefined
     const range = node?.range
@@ -195,13 +166,57 @@ export const validateSchema = profile(function $validateSchema<T>(
   }
 
   throw new ErrorClass({
-    message: `${msgPrefix}:\n${errorDescription}`,
+    message: `${msgPrefix}:\n\n${errorDescription}`,
   })
 })
 
 export interface ArtifactSpec {
   source: string
   target: string
+}
+
+function improveJoiValidationErrorMessage(item: Joi.ValidationErrorItem, schema: Joi.Schema, yamlBasePath: ObjectPath) {
+  // render the key path in a much nicer way
+  const description = schema.describe()
+  let renderedPath = yamlBasePath.join(".")
+  let msg = item.message
+  if (item.path.length) {
+    let d = description
+
+    for (const part of item.path) {
+      if (d.keys && d.keys[part]) {
+        renderedPath = renderedPath ? renderedPath + "." + part : part.toString()
+        d = d.keys[part]
+      } else if (d.patterns) {
+        for (const p of d.patterns) {
+          if (part.toString().match(new RegExp(p.regex.slice(1, -1)))) {
+            renderedPath += `[${part}]`
+            d = p.rule
+            break
+          }
+        }
+      } else {
+        renderedPath += `[${part}]`
+      }
+    }
+  }
+
+  // a little hack to always use full key paths instead of just the label
+  msg = msg.replace(joiLabelPlaceholderRegex, renderedPath ? styles.bold.underline(renderedPath) : "value")
+  msg = msg.replace(joiPathPlaceholderRegex, styles.bold.underline(renderedPath || "."))
+  // FIXME: remove once we've customized the error output from AJV in customObject.jsonSchema()
+  msg = msg.replace(/should NOT have/g, "should not have")
+
+  return msg
+}
+
+function improveZodValidationErrorMessage(item: Joi.ValidationErrorItem, yamlBasePath: ObjectPath) {
+  const path = [...yamlBasePath, ...item.path].join(".")
+  if (path.length > 0) {
+    return `At path ${styles.primary(path)}: ${item.message}`
+  } else {
+    return item.message
+  }
 }
 
 function addYamlContext({ rawYaml, range, message }: { rawYaml: string; range: Range; message: string }): string {
@@ -242,5 +257,5 @@ function addYamlContext({ rawYaml, range, message }: { rawYaml: string; range: R
   const errorLineOffset = range[0] - errorLineStart + linePrefixLength + 2
   const marker = styles.error("-".repeat(errorLineOffset)) + styles.error.bold("^")
 
-  return `\n${snippet}\n${marker}\n${styles.error.bold(message)}`
+  return `${snippet}\n${marker}\n${styles.error.bold(message)}`
 }

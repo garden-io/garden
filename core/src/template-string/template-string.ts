@@ -41,6 +41,7 @@ import { deepMap } from "../util/objects.js"
 import type { ConfigSource } from "../config/validation.js"
 import * as parser from "./parser.js"
 import { styles } from "../logger/styles.js"
+import type { ObjectPath } from "../config/base.js"
 
 const missingKeyExceptionType = "template-string-missing-key"
 const passthroughExceptionType = "template-string-passthrough"
@@ -69,8 +70,6 @@ interface ConditionalTree {
 function getValue(v: Primitive | undefined | ResolvedClause) {
   return isPlainObject(v) ? (<ResolvedClause>v).resolved : v
 }
-
-type ObjectPath = (string | number)[]
 
 export class TemplateError extends GardenError {
   type = "template"

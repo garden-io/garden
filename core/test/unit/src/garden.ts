@@ -4190,7 +4190,7 @@ describe("Garden", () => {
       await expectError(() => garden.resolveModules({ log: garden.log }), {
         contains: [
           "Failed resolving one or more modules:",
-          "foo: Error validating outputs for module 'foo':\nfoo must be a string",
+          "foo: Error validating outputs for module 'foo':\n\nfoo must be a string",
         ],
       })
     })
@@ -4438,7 +4438,7 @@ describe("Garden", () => {
       await expectError(() => garden.resolveModules({ log: garden.log }), {
         contains: [
           "Failed resolving one or more modules:",
-          "foo: Error validating configuration for module 'foo' (base schema from 'base' plugin):\nbase is required",
+          "foo: Error validating configuration for module 'foo' (base schema from 'base' plugin):\n\nbase is required",
         ],
       })
     })
@@ -4503,7 +4503,7 @@ describe("Garden", () => {
       await expectError(() => garden.resolveModules({ log: garden.log }), {
         contains: [
           "Failed resolving one or more modules:",
-          "foo: Error validating outputs for module 'foo' (base schema from 'base' plugin):\nfoo must be a string",
+          "foo: Error validating outputs for module 'foo' (base schema from 'base' plugin):\n\nfoo must be a string",
         ],
       })
     })
@@ -4588,7 +4588,7 @@ describe("Garden", () => {
         await expectError(() => garden.resolveModules({ log: garden.log }), {
           contains: [
             "Failed resolving one or more modules:",
-            "foo: Error validating configuration for module 'foo' (base schema from 'base-a' plugin):\nbase is required",
+            "foo: Error validating configuration for module 'foo' (base schema from 'base-a' plugin):\n\nbase is required",
           ],
         })
       })
@@ -4666,7 +4666,7 @@ describe("Garden", () => {
         await expectError(() => garden.resolveModules({ log: garden.log }), {
           contains: [
             "Failed resolving one or more modules:",
-            "foo: Error validating outputs for module 'foo' (base schema from 'base-a' plugin):\nfoo must be a string",
+            "foo: Error validating outputs for module 'foo' (base schema from 'base-a' plugin):\n\nfoo must be a string",
           ],
         })
       })

@@ -1179,7 +1179,7 @@ describe("resolveTemplateString", () => {
         () => resolveTemplateString({ string: "${base64Decode(a)}", context: new TestContext({ a: 1234 }) }),
         {
           contains:
-            "Invalid template string (${base64Decode(a)}): Error validating argument 'string' for base64Decode helper function:\nvalue must be a string",
+            "Invalid template string (${base64Decode(a)}): Error validating argument 'string' for base64Decode helper function:\n\nvalue must be a string",
         }
       )
     })
@@ -1243,7 +1243,7 @@ describe("resolveTemplateString", () => {
           )
         }
 
-        it("using on incompatible argument types (string and object)", () => {
+        it("using an incompatible argument types (string and object)", () => {
           return expectArgTypeError({
             template: "${concat(a, b)}",
             testContextVars: {
@@ -1255,7 +1255,7 @@ describe("resolveTemplateString", () => {
           })
         })
 
-        it("using on unsupported argument types (number and object)", () => {
+        it("using an unsupported argument types (number and object)", () => {
           return expectArgTypeError({
             template: "${concat(a, b)}",
             testContextVars: {
@@ -1263,7 +1263,7 @@ describe("resolveTemplateString", () => {
               b: ["a"],
             },
             errorMessage:
-              "Error validating argument 'arg1' for concat helper function:\nvalue must be one of [array, string]",
+              "Error validating argument 'arg1' for concat helper function:\n\nvalue must be one of [array, string]",
           })
         })
       })
