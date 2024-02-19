@@ -192,7 +192,7 @@
     "@types/klaw": "^3.0.6",
     "@types/koa": "^2.13.12",
     "@types/koa-bodyparser": "^4.3.12",
-    "@types/koa-router": "^7.4.4",
+    "@types/koa-router": "^7.4.8",
     "@types/koa-websocket": "^5.0.7",
     "@types/lodash": "^4.14.202",
     "@types/lodash-es": "^4.17.9",
