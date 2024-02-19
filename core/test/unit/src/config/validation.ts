@@ -268,7 +268,6 @@ describe("validateSchema", () => {
         1  | apiVersion: 123
         -----------------^
         apiVersion must be a string
-
         ...
         3  | spec:
         4  |   foo: 123

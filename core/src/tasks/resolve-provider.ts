@@ -34,6 +34,7 @@ import { OtelTraced } from "../util/open-telemetry/decorators.js"
 import { LogLevel } from "../logger/logger.js"
 import type { Log } from "../logger/log-entry.js"
 import { styles } from "../logger/styles.js"
+import type { ObjectPath } from "../config/base.js"
 
 /**
  * Returns a provider log context with the provider name set.
@@ -189,7 +190,7 @@ export class ResolveProviderTask extends BaseTask<Provider> {
 
     const projectConfig = this.garden.getProjectConfig()
     const yamlDoc = projectConfig.internal.yamlDoc
-    let yamlDocBasePath: (string | number)[] = []
+    let yamlDocBasePath: ObjectPath = []
 
     if (yamlDoc) {
       projectConfig.providers.forEach((p, i) => {
