@@ -233,9 +233,14 @@ class _MutagenMonitor extends TypedEventEmitter<MonitorEvents> {
         log.warn(crashMessage)
       })
 
+      let monitorFailureLogged = false
       proc.on("exit", (code: number) => {
         if (code && code !== 0) {
           log.warn(`Synchronization monitor exited with code ${code}.`)
+          if (!monitorFailureLogged) {
+            logMutagenDaemonWarning(log)
+            monitorFailureLogged = true
+          }
         }
       })
 
