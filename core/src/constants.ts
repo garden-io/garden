@@ -55,8 +55,6 @@ export const DEFAULT_GARDEN_CLOUD_DOMAIN = "https://app.garden.io"
 
 export const DEFAULT_BROWSER_DIVIDER_WIDTH = 80
 
-export const GARDEN_ENABLE_NEW_SYNC_FEATURE_FLAG_NAME = "GARDEN_ENABLE_NEW_SYNC"
-
 /**
  * Environment variables, with defaults where appropriate.
  *
@@ -102,5 +100,5 @@ export const gardenEnv = {
     .required(false)
     .default("https://get.garden.io/releases")
     .asUrlString(),
-  GARDEN_ENABLE_NEW_SYNC: env.get(GARDEN_ENABLE_NEW_SYNC_FEATURE_FLAG_NAME).required(false).default("false").asBool(),
+  GARDEN_ENABLE_NEW_SYNC: env.get("GARDEN_ENABLE_NEW_SYNC").required(false).default("false").asBool(),
 }

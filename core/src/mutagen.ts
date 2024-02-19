@@ -16,12 +16,7 @@ import pRetry, { type FailedAttemptError } from "p-retry"
 import { join } from "path"
 import respawn from "respawn"
 import split2 from "split2"
-import {
-  GARDEN_ENABLE_NEW_SYNC_FEATURE_FLAG_NAME,
-  GARDEN_GLOBAL_PATH,
-  gardenEnv,
-  MUTAGEN_DIR_NAME,
-} from "./constants.js"
+import { GARDEN_GLOBAL_PATH, gardenEnv, MUTAGEN_DIR_NAME } from "./constants.js"
 import { ChildProcessError, GardenError } from "./exceptions.js"
 import pMemoize from "./lib/p-memoize.js"
 import type { Log } from "./logger/log-entry.js"
@@ -540,9 +535,9 @@ export class Mutagen {
             if (isMutagenForkError(err)) {
               log.warn(
                 dedent`
-                It looks like the underlying syncing machinery was switched via the ${GARDEN_ENABLE_NEW_SYNC_FEATURE_FLAG_NAME} env variable and the sync daemon needs to be restarted.
+                It looks like you've changed to a different version of the sync daemon and therefore the sync daemon needs to be restarted.
                 Please see our Troubleshooting docs for instructions on how to restart the daemon for your platform: ${styles.link(
-                  makeDocsLink("misc/troubleshooting#restarting-sync-daemon")
+                  makeDocsLink("guides/code-synchronization#restarting-sync-daemon")
                 )}}`
               )
               throw err
