@@ -57,11 +57,10 @@ import { targetResourceSpecSchema } from "./config.js"
 import { isConfiguredForSyncMode } from "./status/status.js"
 import type { PluginContext } from "../../plugin-context.js"
 import type { SyncConfig, SyncSession } from "../../mutagen.js"
-import { mutagenAgentPath, Mutagen, haltedStatuses, mutagenStatusDescriptions } from "../../mutagen.js"
+import { haltedStatuses, Mutagen, mutagenAgentPath, mutagenStatusDescriptions } from "../../mutagen.js"
 import { k8sSyncUtilImageName } from "./constants.js"
-import { relative, resolve } from "path"
+import { isAbsolute, relative, resolve } from "path"
 import type { Resolved } from "../../actions/types.js"
-import { isAbsolute } from "path"
 import { joinWithPosix } from "../../util/fs.js"
 import type { KubernetesModule, KubernetesService } from "./kubernetes-type/module-config.js"
 import type { HelmModule, HelmService } from "./helm/module-config.js"
@@ -69,7 +68,7 @@ import { convertServiceResource } from "./kubernetes-type/common.js"
 import { prepareConnectionOpts } from "./kubectl.js"
 import type { GetSyncStatusResult, SyncState, SyncStatus } from "../../plugin/handlers/Deploy/get-sync-status.js"
 import { ConfigurationError } from "../../exceptions.js"
-import { DOCS_BASE_URL } from "../../constants.js"
+import { DOCS_BASE_URL, gardenEnv } from "../../constants.js"
 import { styles } from "../../logger/styles.js"
 
 export const builtInExcludes = ["/**/*.git", "**/*.garden"]
@@ -966,7 +965,7 @@ export function makeSyncConfig({
   }
 }
 
-export async function getKubectlExecDestination({
+async function getKubectlExecDestinationLegacy({
   ctx,
   log,
   namespace,
@@ -1002,7 +1001,61 @@ export async function getKubectlExecDestination({
     "synchronizer",
   ]
 
+  log.debug("Using legacy Mutagen (Garden fork)")
+
   return `exec:'${command.join(" ")}':${targetPath}`
 }
+
+async function getKubectlExecDestinationNative({
+  ctx,
+  log,
+  namespace,
+  containerName,
+  resourceName,
+  targetPath,
+}: {
+  ctx: KubernetesPluginContext
+  log: Log
+  namespace: string
+  containerName: string
+  resourceName: string
+  targetPath: string
+}) {
+  const kubectl = ctx.tools["kubernetes.kubectl"]
+  const kubectlPath = await kubectl.ensurePath(log)
+
+  const connectionOpts = prepareConnectionOpts({
+    provider: ctx.provider,
+    namespace,
+  })
+
+  const parameters = {
+    kubectlPath,
+    kubectlArgs: [
+      "exec",
+      "-i",
+      ...connectionOpts,
+      "--container",
+      containerName,
+      resourceName,
+      "--",
+      mutagenAgentPath,
+      "synchronizer",
+    ],
+  }
+
+  // We replace the standard Base64 '/' character with '_' in this encoding
+  // because the presence of a forward slash will cause Mutagen to treat this as
+  // a local path, in which case it won't be dispatched to our faux SSH command.
+  const hostname = Buffer.from(JSON.stringify(parameters)).toString("base64").replace(/\//g, "_")
+
+  log.debug("Using native Mutagen with faux SSH transport")
+
+  return `${hostname}:${targetPath}`
+}
+
+export const getKubectlExecDestination = gardenEnv.GARDEN_ENABLE_NEW_SYNC
+  ? getKubectlExecDestinationNative
+  : getKubectlExecDestinationLegacy
 
 const isReverseMode = (mode: string) => mode === "one-way-reverse" || mode === "one-way-replica-reverse"

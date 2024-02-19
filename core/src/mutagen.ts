@@ -12,11 +12,11 @@ import type EventEmitter from "events"
 import type { ExecaReturnValue } from "execa"
 import fsExtra from "fs-extra"
 import { hashSync } from "hasha"
-import pRetry from "p-retry"
+import pRetry, { type FailedAttemptError } from "p-retry"
 import { join } from "path"
 import respawn from "respawn"
 import split2 from "split2"
-import { GARDEN_GLOBAL_PATH, MUTAGEN_DIR_NAME } from "./constants.js"
+import { GARDEN_GLOBAL_PATH, gardenEnv, MUTAGEN_DIR_NAME } from "./constants.js"
 import { ChildProcessError, GardenError } from "./exceptions.js"
 import pMemoize from "./lib/p-memoize.js"
 import type { Log } from "./logger/log-entry.js"
@@ -29,6 +29,8 @@ import { deline } from "./util/string.js"
 import { registerCleanupFunction, sleep } from "./util/util.js"
 import type { OctalPermissionMask } from "./plugins/kubernetes/types.js"
 import { styles } from "./logger/styles.js"
+import { dirname } from "node:path"
+import { makeDocsLink } from "./docs/common.js"
 
 const { mkdirp, pathExists } = fsExtra
 
@@ -210,10 +212,14 @@ class _MutagenMonitor extends TypedEventEmitter<MonitorEvents> {
       const mutagenOpts = [mutagenPath, "sync", "monitor", "--template", "{{ json . }}", "--long"]
       log.silly(() => `Spawning mutagen using respawn: "${mutagenOpts.join(" ")}"`)
 
+      const sshPath = await getMutagenSshPath(log)
+      if (sshPath) {
+        log.debug(`Mutagen will be used with the faux SSH transport located in ${sshPath}`)
+      }
       const proc = respawn(mutagenOpts, {
         cwd: dataDir,
         name: "mutagen",
-        env: getMutagenEnv({ dataDir, logLevel: "debug" }),
+        env: getMutagenEnv({ dataDir, logLevel: "debug", sshPath }),
         maxRestarts,
         sleep: 3000,
         kill: 500,
@@ -426,7 +432,7 @@ export class Mutagen {
     }
   }
 
-  async ensureDaemon() {
+  async ensureDaemonProc() {
     await this.execCommand(["daemon", "start"])
   }
 
@@ -513,6 +519,30 @@ export class Mutagen {
           log.warn(
             `Failed to start sync from ${sourceDescription} to ${targetDescription}. ${err.retriesLeft} attempts left.`
           )
+
+          // print this only after the first failure
+          if (err.attemptNumber === 1) {
+            const isMutagenForkError = (error: FailedAttemptError) => {
+              const msg = error.message.toLowerCase()
+              return (
+                // this happens when switching from the old sync to the new
+                msg.includes("ssh: could not resolve hostname") ||
+                // this happens in the opposite scenario
+                msg.includes("unknown or unsupported protocol")
+              )
+            }
+
+            if (isMutagenForkError(err)) {
+              log.warn(
+                dedent`
+                It looks like you've changed to a different version of the sync daemon and therefore the sync daemon needs to be restarted.
+                Please see our Troubleshooting docs for instructions on how to restart the daemon for your platform: ${styles.link(
+                  makeDocsLink("guides/code-synchronization#restarting-sync-daemon")
+                )}}`
+              )
+              throw err
+            }
+          }
         },
       })
 
@@ -649,7 +679,7 @@ export class Mutagen {
           this.log.warn(
             styles.primary(`Could not connect to sync daemon, retrying (attempt ${loops}/${maxRetries})...`)
           )
-          await this.ensureDaemon()
+          await this.ensureDaemonProc()
           await sleep(2000 + loops * 500)
         } else {
           throw err
@@ -669,7 +699,7 @@ export class Mutagen {
 
   async restartDaemonProc() {
     await this.stopDaemonProc()
-    await this.ensureDaemon()
+    await this.ensureDaemonProc()
   }
 
   async startMonitoring() {
@@ -815,18 +845,24 @@ export function getMutagenDataDir({ ctx, log }: MutagenDaemonParams) {
 type MutagenEnv = {
   MUTAGEN_DATA_DIRECTORY: string
   MUTAGEN_LOG_LEVEL?: string
+  MUTAGEN_SSH_PATH?: string
 }
 
 type MutagenEnvValues = {
   dataDir: string
   logLevel?: string
+  sshPath?: string
 }
 
-export function getMutagenEnv({ dataDir, logLevel }: MutagenEnvValues): MutagenEnv {
-  const requiredEnv = { MUTAGEN_DATA_DIRECTORY: dataDir }
-  const optionalEnv = !!logLevel ? { MUTAGEN_LOG_LEVEL: logLevel } : {}
-
-  return { ...requiredEnv, ...optionalEnv }
+export function getMutagenEnv({ dataDir, logLevel, sshPath }: MutagenEnvValues): MutagenEnv {
+  const env: MutagenEnv = { MUTAGEN_DATA_DIRECTORY: dataDir }
+  if (!!logLevel) {
+    env.MUTAGEN_LOG_LEVEL = logLevel
+  }
+  if (!!sshPath) {
+    env.MUTAGEN_SSH_PATH = sshPath
+  }
+  return env
 }
 
 export function parseSyncListResult(res: ExecaReturnValue): SyncSession[] {
@@ -860,50 +896,184 @@ export function parseSyncListResult(res: ExecaReturnValue): SyncSession[] {
   return parsed
 }
 
-export const mutagenVersion = "0.15.0"
+const mutagenVersionLegacy = "0.15.0"
+const mutagenVersionNative = "0.15.0"
 
-export const mutagenCliSpec: PluginToolSpec = {
-  name: "mutagen",
-  version: mutagenVersion,
-  description: `The mutagen synchronization tool, v${mutagenVersion}`,
+export const mutagenVersion = gardenEnv.GARDEN_ENABLE_NEW_SYNC ? mutagenVersionNative : mutagenVersionLegacy
+
+export function mutagenCliSpecLegacy(): PluginToolSpec {
+  return {
+    name: "mutagen",
+    version: mutagenVersionLegacy,
+    description: `The mutagen synchronization tool, v${mutagenVersionLegacy}`,
+    type: "binary",
+    _includeInGardenImage: false,
+    builds: [
+      {
+        platform: "darwin",
+        architecture: "amd64",
+        url: `https://github.com/garden-io/mutagen/releases/download/v${mutagenVersionLegacy}-garden-1/mutagen_darwin_amd64_v${mutagenVersion}.tar.gz`,
+        sha256: "370bf71e28f94002453921fda83282280162df7192bd07042bf622bf54507e3f",
+        extract: {
+          format: "tar",
+          targetPath: "mutagen",
+        },
+      },
+      {
+        platform: "darwin",
+        architecture: "arm64",
+        url: `https://github.com/garden-io/mutagen/releases/download/v${mutagenVersionLegacy}-garden-1/mutagen_darwin_arm64_v${mutagenVersionLegacy}.tar.gz`,
+        sha256: "a0a7be8bb37266ea184cb580004e1741a17c8165b2032ce4b191f23fead821a0",
+        extract: {
+          format: "tar",
+          targetPath: "mutagen",
+        },
+      },
+      {
+        platform: "linux",
+        architecture: "amd64",
+        url: `https://github.com/garden-io/mutagen/releases/download/v${mutagenVersionLegacy}-garden-1/mutagen_linux_amd64_v${mutagenVersionLegacy}.tar.gz`,
+        sha256: "e8c0708258ddd6d574f1b8f514fb214f9ab5d82aed38dd8db49ec10956e5063a",
+        extract: {
+          format: "tar",
+          targetPath: "mutagen",
+        },
+      },
+      {
+        platform: "linux",
+        architecture: "arm64",
+        url: `https://github.com/garden-io/mutagen/releases/download/v${mutagenVersionLegacy}-garden-1/mutagen_linux_arm64_v${mutagenVersionLegacy}.tar.gz`,
+        sha256: "80f108fc316223d8c3d1a48def18192e666b33a334b75aa3ebcc95938b774e64",
+        extract: {
+          format: "tar",
+          targetPath: "mutagen",
+        },
+      },
+      {
+        platform: "windows",
+        architecture: "amd64",
+        url: `https://github.com/garden-io/mutagen/releases/download/v${mutagenVersionLegacy}-garden-1/mutagen_windows_amd64_v${mutagenVersionLegacy}.zip`,
+        sha256: "fdae26b43cc418b2525a937a1613bba36e74ea3dde4dbec3512a9abd004def95",
+        extract: {
+          format: "zip",
+          targetPath: "mutagen.exe",
+        },
+      },
+    ],
+  }
+}
+
+export function mutagenCliSpecNative(): PluginToolSpec {
+  return {
+    name: "mutagen",
+    version: mutagenVersionNative,
+    description: `The mutagen synchronization tool, v${mutagenVersionNative}`,
+    type: "binary",
+    _includeInGardenImage: false,
+    builds: [
+      {
+        platform: "darwin",
+        architecture: "amd64",
+        url: `https://github.com/mutagen-io/mutagen/releases/download/v${mutagenVersionNative}/mutagen_darwin_amd64_v${mutagenVersionNative}.tar.gz`,
+        sha256: "7ff3fae37c90f050db283f557d4370546691e4d5ec2f6dd10fbcbe6a20ba0154",
+        extract: {
+          format: "tar",
+          targetPath: "mutagen",
+        },
+      },
+      {
+        platform: "darwin",
+        architecture: "arm64",
+        url: `https://github.com/mutagen-io/mutagen/releases/download/v${mutagenVersionNative}/mutagen_darwin_arm64_v${mutagenVersionNative}.tar.gz`,
+        sha256: "2ab938830c9a1a7d5b3289826f9765654ca465b7a089b74df407071bc5f8b7b0",
+        extract: {
+          format: "tar",
+          targetPath: "mutagen",
+        },
+      },
+      {
+        platform: "linux",
+        architecture: "amd64",
+        url: `https://github.com/mutagen-io/mutagen/releases/download/v${mutagenVersionNative}/mutagen_linux_amd64_v${mutagenVersionNative}.tar.gz`,
+        sha256: "dd4a0b6fa8b36232108075d2c740d563ec945d8e872c749ad027fa1b241a8b07",
+        extract: {
+          format: "tar",
+          targetPath: "mutagen",
+        },
+      },
+      {
+        platform: "linux",
+        architecture: "arm64",
+        url: `https://github.com/mutagen-io/mutagen/releases/download/v${mutagenVersionNative}/mutagen_linux_arm64_v${mutagenVersionNative}.tar.gz`,
+        sha256: "137274f443aaf6bfb9c9170cdfa91d9ea88c5903e8c79b445870881ef678b4e8",
+        extract: {
+          format: "tar",
+          targetPath: "mutagen",
+        },
+      },
+      {
+        platform: "windows",
+        architecture: "amd64",
+        url: `https://github.com/mutagen-io/mutagen/releases/download/v${mutagenVersionNative}/mutagen_windows_amd64_v${mutagenVersionNative}.zip`,
+        sha256: "8b502693add563a7dd7973f043301b25ef34bd3846619dffce3ba47f64c15a0a",
+        extract: {
+          format: "zip",
+          targetPath: "mutagen.exe",
+        },
+      },
+    ],
+  }
+}
+
+export const mutagenCliSpec = gardenEnv.GARDEN_ENABLE_NEW_SYNC ? mutagenCliSpecNative() : mutagenCliSpecLegacy()
+
+export const mutagenCli = new PluginTool(mutagenCliSpec)
+
+const mutagenFauxSshVersion = "v0.0.1"
+const mutagenFauxSshReleaseBaseUrl = "https://github.com/garden-io/mutagen-faux-ssh/releases/download/"
+
+export const mutagenFauxSshSpec: PluginToolSpec = {
+  name: "mutagen-faux-ssh",
+  version: mutagenFauxSshVersion,
+  description: "The faux SSH implementation to be used as SSH transport for Mutagen.",
   type: "binary",
   _includeInGardenImage: false,
   builds: [
     {
       platform: "darwin",
       architecture: "amd64",
-      url: `https://github.com/garden-io/mutagen/releases/download/v${mutagenVersion}-garden-1/mutagen_darwin_amd64_v${mutagenVersion}.tar.gz`,
-      sha256: "370bf71e28f94002453921fda83282280162df7192bd07042bf622bf54507e3f",
+      url: `${mutagenFauxSshReleaseBaseUrl}/${mutagenFauxSshVersion}/mutagen-faux-ssh-${mutagenFauxSshVersion}-darwin-amd64.tar.gz`,
+      sha256: "2613c82c843ac5123c0fe380422781db9306862341ba94b76aa3c5c6268acf50",
       extract: {
         format: "tar",
-        targetPath: "mutagen",
+        targetPath: "ssh",
       },
     },
     {
       platform: "darwin",
       architecture: "arm64",
-      url: `https://github.com/garden-io/mutagen/releases/download/v${mutagenVersion}-garden-1/mutagen_darwin_arm64_v${mutagenVersion}.tar.gz`,
-      sha256: "a0a7be8bb37266ea184cb580004e1741a17c8165b2032ce4b191f23fead821a0",
+      url: `${mutagenFauxSshReleaseBaseUrl}/${mutagenFauxSshVersion}/mutagen-faux-ssh-${mutagenFauxSshVersion}-darwin-arm64.tar.gz`,
+      sha256: "914db58ebaf093e7494c83ea0c21156a23216c1ce08ccab27f9973f6aa4d5c4d",
       extract: {
         format: "tar",
-        targetPath: "mutagen",
+        targetPath: "ssh",
       },
     },
     {
       platform: "linux",
       architecture: "amd64",
-      url: `https://github.com/garden-io/mutagen/releases/download/v${mutagenVersion}-garden-1/mutagen_linux_amd64_v${mutagenVersion}.tar.gz`,
-      sha256: "e8c0708258ddd6d574f1b8f514fb214f9ab5d82aed38dd8db49ec10956e5063a",
+      url: `${mutagenFauxSshReleaseBaseUrl}/${mutagenFauxSshVersion}/mutagen-faux-ssh-${mutagenFauxSshVersion}-linux-amd64.tar.gz`,
+      sha256: "16588f55e614d9ccb77c933463207cd023101bd7234b5d0eecff0e57a98dd7b0",
       extract: {
         format: "tar",
-        targetPath: "mutagen",
+        targetPath: "ssh",
       },
     },
     {
       platform: "linux",
       architecture: "arm64",
-      url: `https://github.com/garden-io/mutagen/releases/download/v${mutagenVersion}-garden-1/mutagen_linux_arm64_v${mutagenVersion}.tar.gz`,
-      sha256: "80f108fc316223d8c3d1a48def18192e666b33a334b75aa3ebcc95938b774e64",
+      url: `${mutagenFauxSshReleaseBaseUrl}/${mutagenFauxSshVersion}/mutagen-faux-ssh-${mutagenFauxSshVersion}-linux-arm64.tar.gz`,
+      sha256: "c7645e615efc9e5139f8a281abb9acae61ea2ce2084ea25aa438438da3481167",
       extract: {
         format: "tar",
         targetPath: "mutagen",
@@ -912,17 +1082,32 @@ export const mutagenCliSpec: PluginToolSpec = {
     {
       platform: "windows",
       architecture: "amd64",
-      url: `https://github.com/garden-io/mutagen/releases/download/v${mutagenVersion}-garden-1/mutagen_windows_amd64_v${mutagenVersion}.zip`,
-      sha256: "fdae26b43cc418b2525a937a1613bba36e74ea3dde4dbec3512a9abd004def95",
+      url: `${mutagenFauxSshReleaseBaseUrl}/${mutagenFauxSshVersion}/mutagen-faux-ssh-${mutagenFauxSshVersion}-windows-amd64.zip`,
+      sha256: "f548d81eea994c0b21dbcfa77b671ea8cc897b66598303396a214ef0b0c53f08",
       extract: {
         format: "zip",
-        targetPath: "mutagen.exe",
+        targetPath: "ssh.exe",
       },
     },
   ],
 }
 
-export const mutagenCli = new PluginTool(mutagenCliSpec)
+export const mutagenFauxSsh = new PluginTool(mutagenFauxSshSpec)
+
+/**
+ * Returns the path to the location of the faux SSH Mutagen transport if the original Mutagen is used
+ * (i.e. if {@code GARDEN_ENABLE_NEW_SYNC=true}) or {@code undefined} otherwise.
+ */
+async function getMutagenSshPath(log: Log): Promise<string | undefined> {
+  if (!gardenEnv.GARDEN_ENABLE_NEW_SYNC) {
+    return undefined
+  }
+
+  const fauxSshToolPath = await mutagenFauxSsh.ensurePath(log)
+  // This must be the dir containing the faux SSH binary,
+  // not the full path that includes the binary name.
+  return dirname(fauxSshToolPath)
+}
 
 /**
  * Returns true if the given sync point is a filesystem path that exists.
