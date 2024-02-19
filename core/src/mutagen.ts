@@ -906,7 +906,6 @@ export function parseSyncListResult(res: ExecaReturnValue): SyncSession[] {
 }
 
 const mutagenVersionLegacy = "0.15.0"
-// TODO: bump `images/k8s-sync` and `images/k8s-util` versions and use them
 const mutagenVersionNative = "0.17.5"
 
 export const mutagenVersion = gardenEnv.GARDEN_ENABLE_NEW_SYNC ? mutagenVersionNative : mutagenVersionLegacy
