@@ -1439,7 +1439,7 @@ export class Garden {
           throw new ConfigurationError({
             message: `Action kinds are only supported in project configurations with "apiVersion: ${
               GardenApiVersion.v1
-            }". A detailed migration guide is available at ${makeDocsLink("guides/migrating-to-bonsai")}`,
+            }". A detailed migration guide is available at ${styles.link(makeDocsLink("guides/migrating-to-bonsai"))}`,
           })
         }
 

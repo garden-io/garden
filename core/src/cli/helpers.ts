@@ -572,6 +572,6 @@ export function getDashboardInfoMsg() {
       "garden login"
     )} to explore logs, past commands, and your dependency graph in the Garden dashboard.
 
-    Learn more at: ${styles.underline(`${makeDocsLink("using-garden/dashboard")}`)}\n
+    Learn more at: ${styles.link(`${makeDocsLink("using-garden/dashboard")}`)}\n
   `)
 }

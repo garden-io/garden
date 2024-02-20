@@ -113,7 +113,7 @@ export class SyncStatusCommand extends Command<Args, Opts> {
         Follow the link below to learn how to enable live code syncing with Garden:
       `)
       log.info("")
-      log.info(styles.highlight.underline(`${makeDocsLink(syncGuideRelPath)}`))
+      log.info(styles.link(`${makeDocsLink(syncGuideRelPath)}`))
     }
 
     return { result: { actions: syncStatuses } }

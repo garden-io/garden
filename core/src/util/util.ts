@@ -47,6 +47,7 @@ import type { ExecaError, Options as ExecaOptions } from "execa"
 import { execa } from "execa"
 import corePackageJson from "../../package.json" assert { type: "json" }
 import { makeDocsLink } from "../docs/common.js"
+import { styles } from "../logger/styles.js"
 
 export { apply as jsonMerge } from "json-merge-patch"
 
@@ -196,9 +197,8 @@ export async function exec(cmd: string, args: string[], opts: ExecOpts = {}) {
         message: dedent`
         Received EMFILE (Too many open files) error when running ${cmd}.
 
-        This may mean there are too many files in the project, and that you need to exclude large dependency directories. Please see ${makeDocsLink(
-          "using-garden/configuration-overview",
-          "#including-excluding-files-and-directories"
+        This may mean there are too many files in the project, and that you need to exclude large dependency directories. Please see ${styles.link(
+          makeDocsLink("using-garden/configuration-overview", "#including-excluding-files-and-directories")
         )} for information on how to do that.
 
         This can also be due to limits on open file descriptors being too low. Here is one guide on how to configure those limits for different platforms: https://docs.riak.com/riak/kv/latest/using/performance/open-files-limit/index.html

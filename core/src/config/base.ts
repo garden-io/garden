@@ -35,6 +35,7 @@ import type { Document, DocumentOptions } from "yaml"
 import { parseAllDocuments } from "yaml"
 import { dedent, deline } from "../util/string.js"
 import { makeDocsLink } from "../docs/common.js"
+import { styles } from "../logger/styles.js"
 
 export const configTemplateKind = "ConfigTemplate"
 export const renderTemplateKind = "RenderTemplate"
@@ -378,8 +379,8 @@ function handleMissingApiVersion(log: Log, projectSpec: ProjectConfig): ProjectC
       log,
       `"apiVersion" is missing in the Project config. Assuming "${
         GardenApiVersion.v0
-      }" for backwards compatibility with 0.12. The "apiVersion"-field is mandatory when using the new action Kind-configs. A detailed migration guide is available at ${makeDocsLink(
-        "guides/migrating-to-bonsai"
+      }" for backwards compatibility with 0.12. The "apiVersion"-field is mandatory when using the new action Kind-configs. A detailed migration guide is available at ${styles.link(
+        makeDocsLink("guides/migrating-to-bonsai")
       )}`
     )
 
