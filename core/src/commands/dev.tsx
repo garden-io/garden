@@ -6,14 +6,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { CommandResult, CommandParams, ConsoleCommand } from "./base.js"
+import type { CommandResult, CommandParams } from "./base.js"
+import { ConsoleCommand } from "./base.js"
 import { renderDivider } from "../logger/util.js"
-import React, { FC, useState } from "react"
+import type { FC } from "react"
+import React, { useState } from "react"
 import { Box, render, Text, useInput, useStdout } from "ink"
 import { serveArgs, ServeCommand, serveOpts } from "./serve.js"
-import { LoggerType } from "../logger/logger.js"
 import { ParameterError, toGardenError } from "../exceptions.js"
-import { InkTerminalWriter } from "../logger/writers/ink-terminal-writer.js"
+import type { InkTerminalWriter } from "../logger/writers/ink-terminal-writer.js"
 import { CommandLine } from "../cli/command-line.js"
 import { globalOptions, StringsParameter } from "../cli/params.js"
 import { pick } from "lodash-es"
@@ -101,7 +102,7 @@ Use ${styles.bold("up/down")} arrow keys to scroll through your command history.
 
     const commandLine = await this.initCommandHandler(params)
 
-    const Dev: FC<{}> = ({ }) => {
+    const Dev: FC<{}> = ({}) => {
       // Stream log output directly to stdout, on top of the Ink components below
       const { stdout, write } = useStdout()
       inkWriter.setWriteCallback(write)
@@ -226,7 +227,7 @@ Use ${styles.bold("up/down")} arrow keys to scroll through your command history.
             "garden dev"
           )}, use ${styles.command("Ctrl-D")} or the ${styles.command(`exit`)} command.`,
         })
-        .catch(() => { })
+        .catch(() => {})
         .finally(() => quit())
     }
 
