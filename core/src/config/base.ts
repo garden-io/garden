@@ -587,7 +587,7 @@ export async function loadVarfile({
       }
       return parsed as PrimitiveMap
     } else if (filename.endsWith(".yml") || filename.endsWith(".yaml")) {
-      // YAML parser returns `undefined` for empty files, we interpret that as empty object
+      // YAML parser returns `undefined` for empty files, we interpret that as an empty object.
       const parsed = load(data.toString()) || {}
       if (!isPlainObject(parsed)) {
         throw new ConfigurationError({
