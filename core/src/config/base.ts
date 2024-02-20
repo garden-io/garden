@@ -595,7 +595,7 @@ export async function loadVarfile({
     } else {
       // Note: For backwards-compatibility we fall back on using .env as a default format, and don't specifically
       // validate the extension for that.
-      return dotenv.parse(await readFile(resolvedPath))
+      return dotenv.parse(data)
     }
   } catch (error) {
     throw new ConfigurationError({
