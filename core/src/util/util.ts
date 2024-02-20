@@ -67,16 +67,16 @@ export type DeepPartial<T> = {
   [P in keyof T]?: T[P] extends Array<infer U>
     ? Array<DeepPartial<U>>
     : T[P] extends ReadonlyArray<infer V>
-    ? ReadonlyArray<DeepPartial<V>>
-    : DeepPartial<T[P]>
+      ? ReadonlyArray<DeepPartial<V>>
+      : DeepPartial<T[P]>
 }
 export type Unpacked<T> = T extends (infer U)[]
   ? U
   : T extends (...args: any[]) => infer V
-  ? V
-  : T extends Promise<infer W>
-  ? W
-  : T
+    ? V
+    : T extends Promise<infer W>
+      ? W
+      : T
 export type ExcludesFalsy = <T>(x: T | false | null | undefined) => x is T
 export type MakeOptional<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>
 

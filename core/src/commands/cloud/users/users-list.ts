@@ -75,8 +75,8 @@ export class UsersListCommand extends Command<{}, Opts> {
     const vcsProviderTitle = project.repositoryUrl.includes("github.com")
       ? "GitHub"
       : project.repositoryUrl.includes("gitlab.com")
-      ? "GitLab"
-      : "VCS"
+        ? "GitLab"
+        : "VCS"
 
     let page = 0
     const users: UserResult[] = []

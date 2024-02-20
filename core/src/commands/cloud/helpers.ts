@@ -129,8 +129,8 @@ export function handleBulkOperationResult<T>({
         const identifier = Number.isInteger(e.identifier)
           ? `with ID ${e.identifier} `
           : e.identifier === ""
-          ? ""
-          : `"${e.identifier} "`
+            ? ""
+            : `"${e.identifier} "`
         return `→ ${capitalize(actionVerb)} ${resource} ${identifier}failed with error: ${e.message}`
       })
       .join("\n")

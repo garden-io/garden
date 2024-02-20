@@ -798,8 +798,8 @@ export function renderPodEvents(events: CoreV1Event[]): string {
       event.type === "Error"
         ? styles.error(msg)
         : event.type === "Warning"
-        ? styles.warning(msg)
-        : styles.highlight(msg)
+          ? styles.warning(msg)
+          : styles.highlight(msg)
     text += `${name} ${colored}\n`
   }
 

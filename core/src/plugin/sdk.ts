@@ -152,9 +152,8 @@ export class GardenSdkPlugin {
   }
 }
 
-type GardenSdkProdiverConfigType<T> = T extends GardenSdkProvider<any, infer ProviderConfigType, any>
-  ? ProviderConfigType
-  : never
+type GardenSdkProdiverConfigType<T> =
+  T extends GardenSdkProvider<any, infer ProviderConfigType, any> ? ProviderConfigType : never
 
 export class GardenSdkProvider<
   Base extends GardenSdkProvider<any, any, any> | undefined,
@@ -232,46 +231,41 @@ type GetActionType<
 > = K extends "Build"
   ? BuildAction<BuildActionConfig<any, SpecType>, StaticOutputsType, RuntimeOutputsType>
   : K extends "Deploy"
-  ? DeployAction<DeployActionConfig<any, SpecType>, StaticOutputsType, RuntimeOutputsType>
-  : K extends "Run"
-  ? RunAction<RunActionConfig<any, SpecType>, StaticOutputsType, RuntimeOutputsType>
-  : K extends "Test"
-  ? TestAction<TestActionConfig<any, SpecType>, StaticOutputsType, RuntimeOutputsType>
-  : never
+    ? DeployAction<DeployActionConfig<any, SpecType>, StaticOutputsType, RuntimeOutputsType>
+    : K extends "Run"
+      ? RunAction<RunActionConfig<any, SpecType>, StaticOutputsType, RuntimeOutputsType>
+      : K extends "Test"
+        ? TestAction<TestActionConfig<any, SpecType>, StaticOutputsType, RuntimeOutputsType>
+        : never
 
 type GetActionTypeDescriptions<A extends BaseAction> = A extends BuildAction
   ? BuildActionDescriptions<A>
   : A extends DeployAction
-  ? DeployActionDescriptions<A>
-  : A extends RunAction
-  ? RunActionDescriptions<A>
-  : A extends TestAction
-  ? TestActionDescriptions<A>
-  : never
+    ? DeployActionDescriptions<A>
+    : A extends RunAction
+      ? RunActionDescriptions<A>
+      : A extends TestAction
+        ? TestActionDescriptions<A>
+        : never
 
-export type GardenSdkActionDefinitionActionType<T> = T extends GardenSdkActionDefinition<
-  any,
-  infer Kind,
-  infer SpecType,
-  infer StaticOutputsType,
-  infer RuntimeOutputsType
->
-  ? GetActionType<Kind, SpecType, StaticOutputsType, RuntimeOutputsType>
-  : never
+export type GardenSdkActionDefinitionActionType<T> =
+  T extends GardenSdkActionDefinition<
+    any,
+    infer Kind,
+    infer SpecType,
+    infer StaticOutputsType,
+    infer RuntimeOutputsType
+  >
+    ? GetActionType<Kind, SpecType, StaticOutputsType, RuntimeOutputsType>
+    : never
 
-export type GardenSdkActionDefinitionConfigType<T> = T extends GardenSdkActionDefinition<any, any, any, any, any>
-  ? GardenSdkActionDefinitionActionType<T>["_config"]
-  : never
+export type GardenSdkActionDefinitionConfigType<T> =
+  T extends GardenSdkActionDefinition<any, any, any, any, any>
+    ? GardenSdkActionDefinitionActionType<T>["_config"]
+    : never
 
-export type GardenSdkActionDefinitionSpecType<T> = T extends GardenSdkActionDefinition<
-  any,
-  any,
-  infer SpecType,
-  any,
-  any
->
-  ? SpecType
-  : never
+export type GardenSdkActionDefinitionSpecType<T> =
+  T extends GardenSdkActionDefinition<any, any, infer SpecType, any, any> ? SpecType : never
 export class GardenSdkActionDefinition<
   P extends GardenSdkProvider<any, any, any>,
   Kind extends ActionKind,
