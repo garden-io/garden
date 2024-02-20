@@ -584,7 +584,8 @@ export async function loadVarfile({
       }
       return parsed
     } else if (filename.endsWith(".yml") || filename.endsWith(".yaml")) {
-      const parsed = load(data.toString())
+      // YAML parser returns `undefined` for empty files, we interpret that as empty object
+      const parsed = load(data.toString()) || {}
       if (!isPlainObject(parsed)) {
         throw new ConfigurationError({
           message: `Configured variable file ${relPath} must be a single plain YAML mapping. Got: ${typeof parsed}`,
