@@ -48,6 +48,17 @@ import { stringifyResources } from "../util.js"
 import { styles } from "../../../../logger/styles.js"
 import type { ResolvedBuildAction } from "../../../../actions/build.js"
 
+const AWS_ECR_REGEX = /^([^/]+\.)?dkr.ecr.([^/]+\.).amazonaws.com\//i // AWS Elastic Container Registry
+
+// NOTE: If you change this, please make sure to also change the table in our documentation in config.ts
+const MODE_MAX_ALLOWED_REGISTRIES = [
+  AWS_ECR_REGEX,
+  /^([^/]+\.)?pkg\.dev\//i, // Google Package Registry
+  /^([^/]+\.)?azurecr\.io\//i, // Azure Container registry
+  /^hub\.docker\.com\//i, // DockerHub
+  /^ghcr\.io\//i, // GitHub Container registry
+]
+
 const deployLock = new AsyncLock()
 
 export const getBuildkitBuildStatus: BuildStatusHandler = async (params) => {
@@ -355,9 +366,16 @@ export function getBuildkitImageFlags(
       continue
     }
 
+    // AWS ECR needs extra flag image-manifest=true with mode=max
+    // See also https://aws.amazon.com/blogs/containers/announcing-remote-cache-support-in-amazon-ecr-for-buildkit-clients/
+    let imageManifestFlag = ""
+    if (cacheMode === "max" && AWS_ECR_REGEX.test(cacheImageName)) {
+      imageManifestFlag = "image-manifest=true,"
+    }
+
     args.push(
       "--export-cache",
-      `type=registry,ref=${cacheImageName}:${cache.tag},mode=${cacheMode}${registryExtraSpec}`
+      `${imageManifestFlag}type=registry,ref=${cacheImageName}:${cache.tag},mode=${cacheMode}${registryExtraSpec}`
     )
   }
 
@@ -382,16 +400,8 @@ export const getSupportedCacheMode = (
     return cache.mode
   }
 
-  // NOTE: If you change this, please make sure to also change the table in our documentation in config.ts
-  const allowList = [
-    /^([^/]+\.)?pkg\.dev\//i, // Google Package Registry
-    /^([^/]+\.)?azurecr\.io\//i, // Azure Container registry
-    /^hub\.docker\.com\//i, // DockerHub
-    /^ghcr\.io\//i, // GitHub Container registry
-  ]
-
   // use mode=max for all registries that are known to support it
-  for (const allowed of allowList) {
+  for (const allowed of MODE_MAX_ALLOWED_REGISTRIES) {
     if (allowed.test(deploymentImageName)) {
       return "max"
     }
