@@ -17,6 +17,9 @@ The [Quickstart guide](../../getting-started/quickstart.md) guide is also helpfu
 
 Note that if you're using a local Kubernetes cluster (e.g. minikube or Docker Desktop), the [local-kubernetes provider](./local-kubernetes.md) simplifies (and automates) the configuration and setup quite a bit.
 
+Please note that Garden is committed to supporting [the _latest officially supported_ versions](https://kubernetes.io/releases/).
+The information on the Kubernetes support and EOL timelines can be found [here](https://endoflife.date/kubernetes).
+
 Below is the full schema reference for the provider configuration. For an introduction to configuring a Garden project with providers, please look at our [configuration guide](../../using-garden/configuration-overview.md).
 
 The reference is divided into two sections. The [first section](#complete-yaml-schema) contains the complete YAML schema, and the [second section](#configuration-keys) describes each schema key.
