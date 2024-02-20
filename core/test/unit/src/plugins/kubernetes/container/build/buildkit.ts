@@ -277,8 +277,6 @@ describe("buildkit build", () => {
       // The following registries are actually known NOT to support mode=max
       "eu.gcr.io",
       "gcr.io",
-      "aws_account_id.dkr.ecr.region.amazonaws.com",
-      "keks.dkr.ecr.bla.amazonaws.com",
       // Most self-hosted registries actually support mode=max, but because
       // Harbor actually doesn't, we need to default to inline.
       "anyOtherRegistry",
@@ -306,6 +304,33 @@ describe("buildkit build", () => {
       })
     }
 
+    // AWS ECR supports mode=max with image-manifest=true option
+    const expectedMaxWithImageManifest = [
+      "aws_account_id.dkr.ecr.region.amazonaws.com",
+      "keks.dkr.ecr.bla.amazonaws.com",
+    ]
+    for (const registry of expectedMaxWithImageManifest) {
+      it(`returns mode=max cache flags with image-manifest=true for registry ${registry}`, async () => {
+        const moduleOutputs = {
+          "local-image-id": "name:v-xxxxxx",
+          "local-image-name": "name",
+          "deployment-image-id": `${registry}/namespace/name:v-xxxxxx`,
+          "deployment-image-name": `${registry}/namespace/name`,
+        }
+
+        const flags = getBuildkitImageFlags(defaultConfig, moduleOutputs, false)
+
+        expect(flags).to.eql([
+          "--output",
+          `type=image,\\"name=${registry}/namespace/name:v-xxxxxx\\",push=true`,
+          "--import-cache",
+          `type=registry,ref=${registry}/namespace/name:_buildcache`,
+          "--export-cache",
+          `image-manifest=true,type=registry,ref=${registry}/namespace/name:_buildcache,mode=max`,
+        ])
+      })
+    }
+
     // test autodetection for mode=max
     const expectedMax = [
       // The following registries are known to actually support mode=max
@@ -317,6 +342,7 @@ describe("buildkit build", () => {
       "azurecr.io",
       "some.subdomain.azurecr.io",
     ]
+
     for (const registry of expectedMax) {
       it(`returns mode=max cache flags with default config with registry ${registry}`, async () => {
         const moduleOutputs = {

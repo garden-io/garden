@@ -449,13 +449,14 @@ export const kubernetesConfigBase = () =>
 
             See the following table for details on our detection mechanism:
 
-            | Registry Name                   | Registry Domain         | Assumed \`mode=max\` support |
-            |---------------------------------|-------------------------|------------------------------|
-            | Google Cloud Artifact Registry  | \`pkg.dev\`             | Yes                          |
-            | Azure Container Registry        | \`azurecr.io\`          | Yes                          |
-            | GitHub Container Registry       | \`ghcr.io\`             | Yes                          |
-            | DockerHub                       | \`hub.docker.com\`     | Yes                          |
-            | Any other registry              |                         | No                           |
+            | Registry Name                   | Registry Domain                    | Assumed \`mode=max\` support |
+            |---------------------------------|------------------------------------|------------------------------|
+            | AWS Elastic Container Registry  | \`dkr.ecr.<region>.amazonaws.com\` | Yes (with \`image-manifest=true\`) |
+            | Google Cloud Artifact Registry  | \`pkg.dev\`                        | Yes                          |
+            | Azure Container Registry        | \`azurecr.io\`                     | Yes                          |
+            | GitHub Container Registry       | \`ghcr.io\`                        | Yes                          |
+            | DockerHub                       | \`hub.docker.com\`                 | Yes                          |
+            | Any other registry              |                                    | No                           |
 
             In case you need to override the defaults for your registry, you can do it like so:
 

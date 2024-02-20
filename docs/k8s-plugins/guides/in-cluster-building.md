@@ -202,10 +202,11 @@ Please keep in mind that you should also configure a garbage collection policy i
 
 #### Multi-stage caching
 
-If your `Dockerfile` has multiple stages, you can benefit from `mode=max` caching. It is automatically enabled, if your registry is not in our list of unsupported registries.
-Currently, those are AWS ECR and Google GCR. If you are using GCR, you can switch to the Google Artifact Registry, which supports `mode=max`.
+If your `Dockerfile` has multiple stages, you can benefit from `mode=max` caching. It is automatically enabled, if your registry is in our list of supported registries.
 
-You can also configure a different cache registry for your images. That way you can keep using ECR or GCR, while having better cache hit rate with `mode=max`:
+You can find the list of supported registries in [Kubernetes provider configuration guide](../../reference/providers/kubernetes.md#providersclusterbuildkitcache).
+
+You can also configure a different cache registry for your images. That way you can use `mode=max` to achieve a better cache hit rate, even if your registry does not support `mode=max`.
 
 ```yaml
 clusterBuildkit:
@@ -217,6 +218,19 @@ clusterBuildkit:
 ```
 
 For this mode of operation you need secrets for all the registries configured in your `imagePullSecrets`.
+
+Please note that most registries do support `mode=max`. If you are using a self-hosted registry, we do not use `mode=max` by default out of caution. You can force to enable it to achieve a better cache-hit rate with self-hosted registries:
+
+```
+clusterBuildkit:
+  cache:
+      - type: registry
+        mode: max # Force mode=max as our self-hosted registry is not in the list of supported registries
+        registry:
+          hostname: company-registry.example.com
+          namespace: my-team-cache
+
+```
 
 ### Local Docker
 
