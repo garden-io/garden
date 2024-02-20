@@ -582,7 +582,7 @@ export async function loadVarfile({
           message: `Configured variable file ${relPath} must be a valid plain JSON object. Got: ${typeof parsed}`,
         })
       }
-      return parsed
+      return parsed as PrimitiveMap
     } else if (filename.endsWith(".yml") || filename.endsWith(".yaml")) {
       // YAML parser returns `undefined` for empty files, we interpret that as empty object
       const parsed = load(data.toString()) || {}
@@ -595,7 +595,8 @@ export async function loadVarfile({
     } else {
       // Note: For backwards-compatibility we fall back on using .env as a default format, and don't specifically
       // validate the extension for that.
-      return dotenv.parse(data)
+      const parsed = dotenv.parse(data)
+      return parsed as PrimitiveMap
     }
   } catch (error) {
     throw new ConfigurationError({
