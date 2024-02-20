@@ -11,6 +11,7 @@ import { sep, resolve, relative, basename, dirname, join } from "path"
 import { load } from "js-yaml"
 import { lint } from "yaml-lint"
 import fsExtra from "fs-extra"
+
 const { pathExists, readFile } = fsExtra
 import { omit, isPlainObject, isArray } from "lodash-es"
 import type { BuildDependencyConfig, ModuleConfig } from "./module.js"
@@ -576,6 +577,8 @@ export async function loadVarfile({
     const filename = basename(resolvedPath.toLowerCase())
 
     if (filename.endsWith(".json")) {
+      // JSON parser throws a JSON syntax error on completely empty input file,
+      // and returns an empty object for an empty JSON.
       const parsed = JSON.parse(data.toString())
       if (!isPlainObject(parsed)) {
         throw new ConfigurationError({
