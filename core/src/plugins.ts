@@ -304,7 +304,9 @@ function resolvePlugin(
   for (const [name, handler] of Object.entries(base.handlers || {})) {
     if (!handler) {
       continue
-    } else if (resolved.handlers[name]) {
+    }
+
+    if (resolved.handlers[name]) {
       // Attach the overridden handler as a base, and attach metadata
       resolved.handlers[name].base = Object.assign(handler, { handlerType: name, pluginName: base.name })
     } else {
