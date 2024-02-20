@@ -9,13 +9,14 @@ providers:
 
 ---
 
-kind: Module
-name: module-a
+kind: Run
+name: run-a
 type: test
-varfile: "garden.module-a.${environment.name}.env"
+varfiles: ["garden.run-a.${environment.name}.env"]
 variables:
-  b: from-module-vars
-  c: from-module-vars # should be overridden by module-level varfile
-  d: from-module-vars # should be overridden by var passed as a CLI option
-build:
+  b: from-action-vars
+  c: from-action-vars # should be overridden by action-level varfile
+  d: from-action-vars # should be overridden by var passed as a CLI option
+
+spec:
   command: [echo, A]
