@@ -593,8 +593,9 @@ export async function loadVarfile({
       }
       return parsed as PrimitiveMap
     } else {
-      // Note: For backwards-compatibility we fall back on using .env as a default format, and don't specifically
-      // validate the extension for that.
+      // Note: For backwards-compatibility we fall back on using .env as a default format,
+      // and don't specifically validate the extension for that.
+      // The dotenv parser returns an empty object for invalid or empty input file.
       const parsed = dotenv.parse(data)
       return parsed as PrimitiveMap
     }
