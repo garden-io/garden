@@ -401,6 +401,15 @@ describe("Garden", () => {
       })
     })
 
+    it("should allow empty varfiles", async () => {
+      const projectRoot = getDataDir("test-projects", "empty-varfiles")
+
+      const garden = await makeTestGarden(projectRoot)
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+      const runAction = graph.getRun("run-a")
+      expect(runAction.getVariables()).to.eql({})
+    })
+
     it("should throw if project root is not in a git repo root", async () => {
       const dir = await tmp.dir({ unsafeCleanup: true })
 
