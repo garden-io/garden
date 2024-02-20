@@ -48,7 +48,7 @@ import { stringifyResources } from "../util.js"
 import { styles } from "../../../../logger/styles.js"
 import type { ResolvedBuildAction } from "../../../../actions/build.js"
 
-const AWS_ECR_REGEX = /^([^/]+\.)?dkr.ecr.([^/]+\.).amazonaws.com\//i // AWS Elastic Container Registry
+const AWS_ECR_REGEX = /^([^\.]+\.)?dkr\.ecr\.([^\.]+\.)amazonaws\.com\//i // AWS Elastic Container Registry
 
 // NOTE: If you change this, please make sure to also change the table in our documentation in config.ts
 const MODE_MAX_ALLOWED_REGISTRIES = [
