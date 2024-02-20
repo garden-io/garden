@@ -190,6 +190,7 @@ Use ${styles.bold("up/down")} arrow keys to scroll through your command history.
   }
 
   private async initCommandHandler(params: ActionParams) {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
     const _this = this
     const { garden, log, opts } = params
 
