@@ -201,8 +201,10 @@ const errorMessageRegexesForRetry = [
   // (rpc error: code = ResourceExhausted desc = etcdserver: throttle: too many requests)
   /too many requests/,
   /Unable to connect to the server/,
-  /WebsocketError: Unexpected server response/,
   // We often flaked with this error on microk8s in the CI:
   // > pods "api-test-xxxx" is forbidden: error looking up service account container-default/default: serviceaccount "default" not found
   /forbidden: error looking up service account/,
+
+  // We get WebsocketError without HTTP status code on some API operations, e.g. exec in a pod
+  /WebsocketError/,
 ]
