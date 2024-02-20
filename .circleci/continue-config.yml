@@ -925,7 +925,46 @@ jobs:
           name: Install system dependencies
           command: |
             sudo apt-get update
+            # Install conntrack
             sudo apt install nfs-common conntrack
+            # Install crictl
+            CRICTL_VERSION="v1.29.0" # check latest version in /releases page
+            distr_name="crictl-${CRICTL_VERSION}-linux-amd64.tar.gz"
+            curl -L https://github.com/kubernetes-sigs/cri-tools/releases/download/${CRICTL_VERSION}/${distr_name} --output ${distr_name}
+            sudo tar -zxvf ${distr_name} -C /usr/local/bin
+            rm -f ${distr_name}
+            # Install Docker CRI
+            CRI_DOCKERD_VERSION="0.3.10"
+            cri_dockerd_dirname="cri-dockerd"
+            cri_dockerd_distr_name="${cri_dockerd_dirname}-${CRI_DOCKERD_VERSION}.amd64.tgz"
+            curl -L https://github.com/Mirantis/cri-dockerd/releases/download/v${CRI_DOCKERD_VERSION}/${cri_dockerd_distr_name} --output ${cri_dockerd_distr_name}
+            sudo tar -zxvf ${cri_dockerd_distr_name}
+            cd ${cri_dockerd_dirname}
+            sudo install -o root -g root -m 0755 cri-dockerd /usr/local/bin/cri-dockerd
+            cd ..
+            sudo rm -f ${cri_dockerd_distr_name}
+            sudo rm -rf ${cri_dockerd_dirname}
+            # Need to download the sources to install `cri-docker.service` file
+            cri_sources_dirname="cri-dockerd-${CRI_DOCKERD_VERSION}"
+            cri_sources_distr_name="${cri_sources_dirname}.tar.gz"
+            curl -L https://github.com/Mirantis/cri-dockerd/archive/refs/tags/v${CRI_DOCKERD_VERSION}.tar.gz --output ${cri_sources_distr_name}
+            sudo tar -zxf ${cri_sources_distr_name}
+            cd ${cri_sources_dirname}
+            sudo install packaging/systemd/* /etc/systemd/system
+            cd ..
+            sudo rm -f ${cri_sources_distr_name}
+            sudo rm -rf ${cri_sources_dirname}
+            sudo sed -i -e 's,/usr/bin/cri-dockerd,/usr/local/bin/cri-dockerd,' /etc/systemd/system/cri-docker.service
+            sudo systemctl daemon-reload
+            sudo systemctl enable --now cri-docker.socket
+            # Install CNI plugin
+            CNI_PLUGIN_VERSION="v1.4.0"
+            CNI_PLUGIN_TAR="cni-plugins-linux-amd64-$CNI_PLUGIN_VERSION.tgz" # change arch if not on amd64
+            CNI_PLUGIN_INSTALL_DIR="/opt/cni/bin"
+            curl -LO "https://github.com/containernetworking/plugins/releases/download/$CNI_PLUGIN_VERSION/$CNI_PLUGIN_TAR"
+            sudo mkdir -p "$CNI_PLUGIN_INSTALL_DIR"
+            sudo tar -xf "$CNI_PLUGIN_TAR" -C "$CNI_PLUGIN_INSTALL_DIR"
+            rm "$CNI_PLUGIN_TAR"
       - docker_login
       - configure_git
       - npm_install:
@@ -944,7 +983,8 @@ jobs:
               --extra-config=kubeadm.ignore-preflight-errors=NumCPU \
               --extra-config=kubeadm.ignore-preflight-errors=RSRC_INSUFFICIENT_CORES \
               --kubernetes-version=$K8S_VERSION \
-              --vm-driver=none \
+              --driver=none \
+              --container-runtime=docker \
               --cpus 3 \
               --memory 4096
             sudo chown -R circleci:circleci /home/circleci/.kube /home/circleci/.minikube /etc/kubernetes
@@ -1312,8 +1352,8 @@ workflows:
           <<: *only-internal-prs
           name: test-remote
           requires: [build]
-          kubernetesVersion: "1.23.3"
-          minikubeVersion: "v1.25.2"
+          kubernetesVersion: "v1.28.3"
+          minikubeVersion: "v1.32.0"
           skipTests: "local-only"
           remoteCluster: true
 
@@ -1323,19 +1363,6 @@ workflows:
       # variant and k8s version would be quite expensive, so we try and make sure each of the latest 6-7 k8s versions is
       # tested, and that the most recent versions are broadly tested. The kind tests are the cheapest to run so we use many
       # of those, but they currently don't test in-cluster building, so we do need a range of versions on minikube as well.
-      - test-minikube:
-          name: vm-1.23-minikube
-          requires: [build]
-          kubernetesVersion: "1.23.3"
-          minikubeVersion: "v1.25.2"
-      - test-microk8s:
-          name: vm-1.24-microk8s
-          requires: [build]
-          kubernetesVersion: "1.24"
-      - test-microk8s:
-          name: vm-1.25-microk8s
-          requires: [build]
-          kubernetesVersion: "1.25"
       - test-microk8s:
           name: vm-1.26-microk8s
           requires: [build]
@@ -1345,10 +1372,11 @@ workflows:
           requires: [build]
           # version v1.27.4+k3s1 fails with this issue https://github.com/moby/moby/issues/45935
           k3sVersion: v1.27.2+k3s1
-      - test-kind:
-          name: vm-1.28-kind
-          requires: [build]
-          kindNodeImage: kindest/node:v1.28.0@sha256:9f3ff58f19dcf1a0611d11e8ac989fdb30a28f40f236f59f0bea31fb956ccf5c
+      - test-minikube:
+          name: vm-1.28-minikube
+          requires: [ build ]
+          kubernetesVersion: "v1.28.3"
+          minikubeVersion: "v1.32.0"
       - test-kind:
           name: vm-1.29-kind
           requires: [build]
