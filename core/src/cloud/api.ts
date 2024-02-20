@@ -580,7 +580,7 @@ export class CloudApi {
     return this.apiFetch<T>(path, {
       method: "GET",
       headers: headers || {},
-      retry: retry === false ? false : true, // defaults to true unless false is explicitly passed
+      retry: retry !== false, // defaults to true unless false is explicitly passed
       retryDescription,
       maxRetries,
     })
@@ -591,7 +591,7 @@ export class CloudApi {
     return await this.apiFetch<T>(path, {
       method: "DELETE",
       headers: headers || {},
-      retry: retry === false ? false : true, // defaults to true unless false is explicitly passed
+      retry: retry !== false, // defaults to true unless false is explicitly passed
       retryDescription,
       maxRetries,
     })

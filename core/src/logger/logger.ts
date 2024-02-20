@@ -220,7 +220,7 @@ export abstract class LoggerBase implements Logger {
   constructor(config: LoggerConfigBase) {
     this.level = config.level
     this.entries = []
-    this.useEmoji = config.useEmoji === false ? false : true
+    this.useEmoji = config.useEmoji !== false
     this.showTimestamps = !!config.showTimestamps
     this.events = new EventBus()
     this.storeEntries = config.storeEntries || false
