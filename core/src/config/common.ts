@@ -64,10 +64,10 @@ export interface DeepPrimitiveMap {
 //   spec: Omit<T, keyof S> & Partial<S>
 // }
 
-export const includeGuideLink = `${makeDocsLink(
+export const includeGuideLink = makeDocsLink(
   "using-garden/configuration-overview",
   "#including-excluding-files-and-directories"
-)}`
+)
 
 export const enumToArray = (Enum: any) => Object.values(Enum).filter((k) => typeof k === "string") as string[]
 
