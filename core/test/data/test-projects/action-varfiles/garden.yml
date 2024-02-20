@@ -1,6 +1,6 @@
 apiVersion: garden.io/v1
 kind: Project
-name: module-varfiles
+name: action-varfiles
 varfile: garden.project.env
 environments:
   - name: default

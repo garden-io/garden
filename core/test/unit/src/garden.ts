@@ -386,7 +386,7 @@ describe("Garden", () => {
     })
 
     it("should respect the action variables < action varfile < CLI var precedence order", async () => {
-      const projectRoot = getDataDir("test-projects", "module-varfiles")
+      const projectRoot = getDataDir("test-projects", "action-varfiles")
 
       const garden = await makeTestGarden(projectRoot)
       // In the normal flow, `garden.variableOverrides` is populated with variables passed via the `--var` CLI option.
