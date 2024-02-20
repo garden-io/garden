@@ -9,14 +9,16 @@
 import type { SchemaLike } from "@hapi/joi"
 import Joi from "@hapi/joi"
 import ajvPackage from "ajv"
+
 const Ajv = ajvPackage.default
 import addFormatsPackage from "ajv-formats"
+
 const addFormats = addFormatsPackage.default
 import { splitLast, deline, dedent, naturalList, titleize } from "../util/string.js"
 import cloneDeep from "fast-copy"
 import { isArray, isPlainObject, isString, mapValues, memoize } from "lodash-es"
 import { joiPathPlaceholder } from "./validation.js"
-import { DOCS_BASE_URL, GardenApiVersion } from "../constants.js"
+import { GardenApiVersion } from "../constants.js"
 import type { ActionKind } from "../actions/types.js"
 import { actionKinds, actionKindsLower } from "../actions/types.js"
 import { ConfigurationError, InternalError } from "../exceptions.js"
@@ -36,6 +38,7 @@ import {
   envVarRegex,
 } from "./constants.js"
 import { renderZodError } from "./zod.js"
+import { makeDocsLink } from "../docs/common.js"
 
 // Avoid chasing moved references
 export * from "./constants.js"
@@ -61,7 +64,10 @@ export interface DeepPrimitiveMap {
 //   spec: Omit<T, keyof S> & Partial<S>
 // }
 
-export const includeGuideLink = `${DOCS_BASE_URL}/using-garden/configuration-overview#including-excluding-files-and-directories`
+export const includeGuideLink = `${makeDocsLink(
+  "using-garden/configuration-overview",
+  "#including-excluding-files-and-directories"
+)}`
 
 export const enumToArray = (Enum: any) => Object.values(Enum).filter((k) => typeof k === "string") as string[]
 
@@ -159,6 +165,7 @@ export interface CustomObjectSchema extends Joi.ObjectSchema {
   concat(schema: object): this
 
   jsonSchema(schema: object): this
+
   zodSchema(schema: z.ZodObject<any>): this
 }
 

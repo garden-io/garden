@@ -29,6 +29,7 @@ import { rmSync } from "fs"
 import { execSync } from "child_process"
 import { isAbsolute, join } from "path"
 import fsExtra from "fs-extra"
+
 const { ensureDir, readFile } = fsExtra
 import type { PluginContext } from "../../plugin-context.js"
 import { kubectl } from "./kubectl.js"
@@ -39,11 +40,11 @@ import { exec, registerCleanupFunction, shutdown } from "../../util/util.js"
 import getPort from "get-port"
 import touch from "touch"
 import type { Resolved } from "../../actions/types.js"
-import { DOCS_BASE_URL } from "../../constants.js"
 import AsyncLock from "async-lock"
 import { styles } from "../../logger/styles.js"
+import { makeDocsLink } from "../../docs/common.js"
 
-export const localModeGuideLink = `${DOCS_BASE_URL}/guides/running-service-in-local-mode`
+export const localModeGuideLink = `${makeDocsLink("guides/running-service-in-local-mode")}`
 
 const localhost = "127.0.0.1"
 

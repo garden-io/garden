@@ -9,6 +9,7 @@
 import ci from "ci-info"
 import dotenv from "dotenv"
 import fsExtra from "fs-extra"
+
 const { pathExists } = fsExtra
 import { range, sortBy, max, isEqual, mapValues, pickBy, memoize, indexOf } from "lodash-es"
 import moment from "moment"
@@ -23,7 +24,7 @@ import { globalDisplayOptions } from "./params.js"
 import { GardenError, ParameterError, RuntimeError, toGardenError } from "../exceptions.js"
 import { getPackageVersion, removeSlice } from "../util/util.js"
 import type { Log } from "../logger/log-entry.js"
-import { STATIC_DIR, gardenEnv, ERROR_LOG_FILENAME, DOCS_BASE_URL } from "../constants.js"
+import { STATIC_DIR, gardenEnv, ERROR_LOG_FILENAME } from "../constants.js"
 import { printWarningMessage } from "../logger/util.js"
 import type { GlobalConfigStore } from "../config-store/global.js"
 import { got } from "../util/http.js"
@@ -35,6 +36,7 @@ import type { BuiltinArgs, Command, CommandGroup } from "../commands/base.js"
 import type { DeepPrimitiveMap } from "../config/common.js"
 import { validateGitInstall } from "../vcs/vcs.js"
 import { styles } from "../logger/styles.js"
+import { makeDocsLink } from "../docs/common.js"
 
 export const cliStyles = {
   heading: (str: string) => styles.accent.bold(str),
@@ -570,6 +572,6 @@ export function getDashboardInfoMsg() {
       "garden login"
     )} to explore logs, past commands, and your dependency graph in the Garden dashboard.
 
-    Learn more at: ${styles.underline(`${DOCS_BASE_URL}/using-garden/dashboard`)}\n
+    Learn more at: ${styles.underline(`${makeDocsLink("using-garden/dashboard")}`)}\n
   `)
 }

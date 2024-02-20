@@ -7,6 +7,7 @@
  */
 
 import fsExtra from "fs-extra"
+
 const { ensureDir } = fsExtra
 import { platform, arch } from "os"
 import { relative, resolve } from "path"
@@ -76,7 +77,6 @@ import {
   gardenEnv,
   SUPPORTED_ARCHITECTURES,
   GardenApiVersion,
-  DOCS_BASE_URL,
   DEFAULT_GARDEN_CLOUD_DOMAIN,
 } from "./constants.js"
 import type { Log } from "./logger/log-entry.js"
@@ -171,6 +171,7 @@ import { GotHttpError } from "./util/http.js"
 import { styles } from "./logger/styles.js"
 import { renderDuration } from "./logger/util.js"
 import { getCloudDistributionName, getCloudLogSectionName } from "./util/cloud.js"
+import { makeDocsLink } from "./docs/common.js"
 
 const defaultLocalAddress = "localhost"
 
@@ -1436,7 +1437,9 @@ export class Garden {
         // This is only available with apiVersion `garden.io/v1` or newer.
         if (actionConfigs.length && this.projectApiVersion !== GardenApiVersion.v1) {
           throw new ConfigurationError({
-            message: `Action kinds are only supported in project configurations with "apiVersion: ${GardenApiVersion.v1}". A detailed migration guide is available at ${DOCS_BASE_URL}/guides/migrating-to-bonsai`,
+            message: `Action kinds are only supported in project configurations with "apiVersion: ${
+              GardenApiVersion.v1
+            }". A detailed migration guide is available at ${makeDocsLink("guides/migrating-to-bonsai")}`,
           })
         }
 
@@ -2075,7 +2078,7 @@ async function prepareCloud({
     )} command.`
     if (isCommunityEdition) {
       cloudLog.info(msg)
-      cloudLog.info(`Learn more at: ${styles.link(`${DOCS_BASE_URL}/using-garden/dashboard`)}`)
+      cloudLog.info(`Learn more at: ${styles.link(`${makeDocsLink("using-garden/dashboard")}`)}`)
     } else {
       cloudLog.warn(msg)
     }

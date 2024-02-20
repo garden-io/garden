@@ -9,7 +9,6 @@
 import { sortBy, pick } from "lodash-es"
 import { createHash } from "node:crypto"
 import { relative, sep } from "path"
-import { DOCS_BASE_URL } from "../constants.js"
 import fsExtra from "fs-extra"
 import { dirname } from "node:path"
 
@@ -35,6 +34,7 @@ import type { Garden } from "../garden.js"
 import { Profile } from "../util/profiling.js"
 
 import AsyncLock from "async-lock"
+import { makeDocsLink } from "../docs/common.js"
 
 const scanLock = new AsyncLock()
 
@@ -262,8 +262,13 @@ export abstract class VcsHandler {
             key: `${projectName}-filecount-${config.name}`,
             log,
             message: dedent`
-              Large number of files (${files.length}) found in ${description}. You may need to configure file exclusions.
-              See ${DOCS_BASE_URL}/using-garden/configuration-overview#including-excluding-files-and-directories for details.
+              Large number of files (${
+                files.length
+              }) found in ${description}. You may need to configure file exclusions.
+              See ${makeDocsLink(
+                "using-garden/configuration-overview",
+                "#including-excluding-files-and-directories"
+              )} for details.
             `,
           })
         }
