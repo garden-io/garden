@@ -68,12 +68,14 @@ import { convertServiceResource } from "./kubernetes-type/common.js"
 import { prepareConnectionOpts } from "./kubectl.js"
 import type { GetSyncStatusResult, SyncState, SyncStatus } from "../../plugin/handlers/Deploy/get-sync-status.js"
 import { ConfigurationError } from "../../exceptions.js"
-import { DOCS_BASE_URL, gardenEnv } from "../../constants.js"
+import { gardenEnv } from "../../constants.js"
 import { styles } from "../../logger/styles.js"
+import { makeDocsLink } from "../../docs/common.js"
 
 export const builtInExcludes = ["/**/*.git", "**/*.garden"]
 
-export const syncGuideLink = `${DOCS_BASE_URL}/guides/code-synchronization`
+export const syncGuideRelPath = "guides/code-synchronization"
+export const syncGuideLink = makeDocsLink(syncGuideRelPath)
 
 export interface KubernetesModuleDevModeSpec extends ContainerSyncSpec {
   containerName?: string

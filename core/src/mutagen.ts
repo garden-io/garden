@@ -22,7 +22,7 @@ import pMemoize from "./lib/p-memoize.js"
 import type { Log } from "./logger/log-entry.js"
 import type { WrappedFromGarden } from "./plugin-context.js"
 import type { PluginToolSpec } from "./plugin/tools.js"
-import { syncGuideLink } from "./plugins/kubernetes/sync.js"
+import { syncGuideRelPath } from "./plugins/kubernetes/sync.js"
 import { TypedEventEmitter } from "./util/events.js"
 import { PluginTool } from "./util/ext-tools.js"
 import { deline } from "./util/string.js"
@@ -1128,7 +1128,7 @@ function formatSyncConflict(sourceDescription: string, targetDescription: string
       "one-way-replica"
     )} or ${styles.highlight("one-way-replica-reverse")} sync modes instead.
 
-    See the code synchronization guide for more details: ${styles.link(syncGuideLink + "#sync-modes")}`
+    See the code synchronization guide for more details: ${styles.link(makeDocsLink(syncGuideRelPath, "#sync-modes"))}`
 }
 
 /**
