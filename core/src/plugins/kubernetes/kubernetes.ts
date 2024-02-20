@@ -146,6 +146,9 @@ export const gardenPlugin = () => {
     The [Quickstart guide](${makeDocsLink`getting-started/quickstart`}) guide is also helpful as an introduction.
 
     Note that if you're using a local Kubernetes cluster (e.g. minikube or Docker Desktop), the [local-kubernetes provider](./local-kubernetes.md) simplifies (and automates) the configuration and setup quite a bit.
+
+    Please note that Garden is committed to supporting [the _latest officially supported_ versions](https://kubernetes.io/releases/).
+    The information on the Kubernetes support and EOL timelines can be found [here](https://endoflife.date/kubernetes).
   `,
     configSchema: configSchema(),
     outputsSchema,
