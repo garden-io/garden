@@ -58,7 +58,7 @@ import { isConfiguredForSyncMode } from "./status/status.js"
 import type { PluginContext } from "../../plugin-context.js"
 import type { SyncConfig, SyncSession } from "../../mutagen.js"
 import { haltedStatuses, Mutagen, mutagenAgentPath, mutagenStatusDescriptions } from "../../mutagen.js"
-import { k8sSyncUtilImageName } from "./constants.js"
+import { k8sSyncUtilImageName, syncGuideLink } from "./constants.js"
 import { isAbsolute, relative, resolve } from "path"
 import type { Resolved } from "../../actions/types.js"
 import { joinWithPosix } from "../../util/fs.js"
@@ -70,12 +70,8 @@ import type { GetSyncStatusResult, SyncState, SyncStatus } from "../../plugin/ha
 import { ConfigurationError } from "../../exceptions.js"
 import { gardenEnv } from "../../constants.js"
 import { styles } from "../../logger/styles.js"
-import { makeDocsLink } from "../../docs/common.js"
 
 export const builtInExcludes = ["/**/*.git", "**/*.garden"]
-
-export const syncGuideRelPath = "guides/code-synchronization"
-export const syncGuideLink = makeDocsLink(syncGuideRelPath)
 
 export interface KubernetesModuleDevModeSpec extends ContainerSyncSpec {
   containerName?: string

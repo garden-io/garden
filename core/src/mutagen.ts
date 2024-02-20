@@ -22,7 +22,6 @@ import pMemoize from "./lib/p-memoize.js"
 import type { Log } from "./logger/log-entry.js"
 import type { WrappedFromGarden } from "./plugin-context.js"
 import type { PluginToolSpec } from "./plugin/tools.js"
-import { syncGuideRelPath } from "./plugins/kubernetes/sync.js"
 import { TypedEventEmitter } from "./util/events.js"
 import { PluginTool } from "./util/ext-tools.js"
 import { deline } from "./util/string.js"
@@ -31,6 +30,7 @@ import type { OctalPermissionMask } from "./plugins/kubernetes/types.js"
 import { styles } from "./logger/styles.js"
 import { dirname } from "node:path"
 import { makeDocsLink } from "./docs/common.js"
+import { syncGuideRelPath } from "./plugins/kubernetes/constants.js"
 
 const { mkdirp, pathExists } = fsExtra
 

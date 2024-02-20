@@ -24,7 +24,8 @@ import type { ResolvedConfigGraph } from "../../graph/config-graph.js"
 import pMap from "p-map"
 import { styles } from "../../logger/styles.js"
 import { makeDocsLink } from "../../docs/common.js"
-import { syncGuideRelPath } from "../../plugins/kubernetes/sync.js"
+
+import { syncGuideRelPath } from "../../plugins/kubernetes/constants.js"
 
 const syncStatusArgs = {
   names: new StringsParameter({
