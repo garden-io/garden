@@ -94,7 +94,7 @@ describe("getWorkingCopyId", () => {
     return withDir(
       async (dir) => {
         const id = await getWorkingCopyId(dir.path)
-        expect(id).to.be.string
+        expect(id).to.be.a("string")
       },
       { unsafeCleanup: true }
     )

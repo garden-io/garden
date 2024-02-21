@@ -33,7 +33,7 @@ describe("kubernetes container module conversion", () => {
   })
 
   after(async () => {
-    tmpDir.cleanup()
+    await tmpDir.cleanup()
   })
 
   it("should include build dependencies among converted runtime actions' dependencies", async () => {

@@ -139,7 +139,7 @@ describe("GardenServer", () => {
         serveCommand,
       })
 
-      expectError(() => gardenServer2.start(), {
+      await expectError(() => gardenServer2.start(), {
         contains: `Port ${serverPort} is already in use, possibly by another Garden server process`,
       })
 

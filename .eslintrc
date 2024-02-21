@@ -4,7 +4,7 @@
   "plugins": ["unused-imports", "mocha", "header", "chai-expect"],
   "ignorePatterns": ["*.d.ts*", "garden-sea/tmp/**/*"],
   "rules": {
-    "@typescript-eslint/no-floating-promises": "warn",
+    "@typescript-eslint/no-floating-promises": "error",
     "@typescript-eslint/no-shadow": [
       "warn",
       {
@@ -29,6 +29,7 @@
     "jsdoc/check-indentation": "off",
     "jsdoc/newline-after-description": "off",
     "no-console": "error",
+    "no-unneeded-ternary": "error",
     "max-len": [
       "warn",
       {

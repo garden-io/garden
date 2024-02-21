@@ -233,7 +233,7 @@ describe("CoreLog", () => {
       })
       const entry = testLog.info("hello").getLatestEntry()
 
-      expect(entry.key).to.be.a.string
+      expect(entry.key).to.be.a("string")
       expect(entry).to.eql({
         key: entry.key,
         level: LogLevel.info,
@@ -405,7 +405,7 @@ describe("ActionLog", () => {
       })
       const entry = testLog.info("hello").getLatestEntry()
 
-      expect(entry.key).to.be.a.string
+      expect(entry.key).to.be.a("string")
       expect(entry).to.eql({
         key: entry.key,
         level: LogLevel.info,
