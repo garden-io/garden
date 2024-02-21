@@ -29,6 +29,7 @@
     "jsdoc/check-indentation": "off",
     "jsdoc/newline-after-description": "off",
     "no-console": "error",
+    "no-unneeded-ternary": "error",
     "max-len": [
       "warn",
       {
