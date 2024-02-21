@@ -160,8 +160,8 @@ export class GardenInstanceManager {
         const reason = !garden
           ? "none found for key"
           : garden.needsReload()
-          ? "flagged for reload"
-          : "forceRefresh=true"
+            ? "flagged for reload"
+            : "forceRefresh=true"
 
         log.verbose(`Initializing Garden context for ${envStr} (${reason})`)
         log.debug(`Instance key: ${key}`)

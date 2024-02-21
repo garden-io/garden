@@ -169,9 +169,10 @@ interface List {
   items?: Array<any>
 }
 
-type WrappedList<T extends List> = T["items"] extends Array<infer V extends BaseResource | KubernetesObject>
-  ? KubernetesServerList<V>
-  : KubernetesServerList
+type WrappedList<T extends List> =
+  T["items"] extends Array<infer V extends BaseResource | KubernetesObject>
+    ? KubernetesServerList<V>
+    : KubernetesServerList
 
 // This describes the API classes on KubeApi after they've been wrapped with KubeApi.wrapApi()
 // prettier-ignore

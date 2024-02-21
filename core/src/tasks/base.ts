@@ -631,11 +631,9 @@ export abstract class ExecuteActionTask<
   abstract override process(params: ActionTaskProcessParams<T, O>): Promise<O & ExecuteActionOutputs<T>>
 }
 
-export type TaskResultType<T extends BaseTask<ValidResultType>> = T extends ExecuteActionTask<
-  infer ActionType,
-  infer ResultType
->
-  ? ResultType & ExecuteActionOutputs<ActionType>
-  : T extends BaseTask<infer ResultType>
-  ? ResultType & BaseTaskOutputs
-  : never
+export type TaskResultType<T extends BaseTask<ValidResultType>> =
+  T extends ExecuteActionTask<infer ActionType, infer ResultType>
+    ? ResultType & ExecuteActionOutputs<ActionType>
+    : T extends BaseTask<infer ResultType>
+      ? ResultType & BaseTaskOutputs
+      : never

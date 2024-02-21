@@ -210,22 +210,22 @@ export type ExecutedAction = ExecutedBuildAction | ExecutedDeployAction | Execut
 export type Resolved<T extends BaseAction> = T extends BuildAction
   ? ResolvedBuildAction<T["_config"], T["_staticOutputs"], T["_runtimeOutputs"]>
   : T extends DeployAction
-  ? ResolvedDeployAction<T["_config"], T["_staticOutputs"], T["_runtimeOutputs"]>
-  : T extends RunAction
-  ? ResolvedRunAction<T["_config"], T["_staticOutputs"], T["_runtimeOutputs"]>
-  : T extends TestAction
-  ? ResolvedTestAction<T["_config"], T["_staticOutputs"], T["_runtimeOutputs"]>
-  : T
+    ? ResolvedDeployAction<T["_config"], T["_staticOutputs"], T["_runtimeOutputs"]>
+    : T extends RunAction
+      ? ResolvedRunAction<T["_config"], T["_staticOutputs"], T["_runtimeOutputs"]>
+      : T extends TestAction
+        ? ResolvedTestAction<T["_config"], T["_staticOutputs"], T["_runtimeOutputs"]>
+        : T
 
 export type Executed<T extends BaseAction> = T extends BuildAction
   ? ExecutedBuildAction<T["_config"], T["_staticOutputs"], T["_runtimeOutputs"]>
   : T extends DeployAction
-  ? ExecutedDeployAction<T["_config"], T["_staticOutputs"], T["_runtimeOutputs"]>
-  : T extends RunAction
-  ? ExecutedRunAction<T["_config"], T["_staticOutputs"], T["_runtimeOutputs"]>
-  : T extends TestAction
-  ? ExecutedTestAction<T["_config"], T["_staticOutputs"], T["_runtimeOutputs"]>
-  : T
+    ? ExecutedDeployAction<T["_config"], T["_staticOutputs"], T["_runtimeOutputs"]>
+    : T extends RunAction
+      ? ExecutedRunAction<T["_config"], T["_staticOutputs"], T["_runtimeOutputs"]>
+      : T extends TestAction
+        ? ExecutedTestAction<T["_config"], T["_staticOutputs"], T["_runtimeOutputs"]>
+        : T
 
 export type ActionReferenceMap = {
   [K in ActionKind]: string[]
@@ -252,5 +252,5 @@ export interface ActionConfigsByKey {
 export type GetOutputValueType<K, StaticOutputs, RuntimeOutputs> = K extends keyof StaticOutputs
   ? StaticOutputs[K]
   : K extends keyof RuntimeOutputs
-  ? RuntimeOutputs[K] | undefined
-  : never
+    ? RuntimeOutputs[K] | undefined
+    : never

@@ -13,9 +13,8 @@ import { joi, joiVariables } from "../../../config/common.js"
 
 export type ParamsBase<_ = any> = {}
 
-export type ActionTypeHandlerParamsType<Handler> = Handler extends ActionTypeHandlerSpec<any, infer Params, any>
-  ? Params
-  : never
+export type ActionTypeHandlerParamsType<Handler> =
+  Handler extends ActionTypeHandlerSpec<any, infer Params, any> ? Params : never
 
 export abstract class ActionTypeHandlerSpec<
   Kind extends ActionKind,
