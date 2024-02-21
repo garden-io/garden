@@ -248,8 +248,8 @@ describe("convertModules", () => {
 
       const graph = await garden.getConfigGraph({ log, emit: false })
 
-      expectError(() => graph.getBuild("module-a"), { contains: "Could not find Build action module-a" })
-      expectError(() => graph.getBuild("module-b"), { contains: "Could not find Build action module-b" })
+      await expectError(() => graph.getBuild("module-a"), { contains: "Could not find Build action module-a" })
+      await expectError(() => graph.getBuild("module-b"), { contains: "Could not find Build action module-b" })
 
       const deployActionDeps = graph
         .getDeploy("service-b")

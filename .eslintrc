@@ -4,7 +4,7 @@
   "plugins": ["unused-imports", "mocha", "header", "chai-expect"],
   "ignorePatterns": ["*.d.ts*", "garden-sea/tmp/**/*"],
   "rules": {
-    "@typescript-eslint/no-floating-promises": "warn",
+    "@typescript-eslint/no-floating-promises": "error",
     "@typescript-eslint/no-shadow": [
       "warn",
       {
