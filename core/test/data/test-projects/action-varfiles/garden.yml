@@ -1,0 +1,22 @@
+apiVersion: garden.io/v1
+kind: Project
+name: action-varfiles
+varfile: garden.project.env
+environments:
+  - name: default
+providers:
+  - name: test-plugin
+
+---
+
+kind: Run
+name: run-a
+type: test
+varfiles: ["garden.run-a.${environment.name}.env"]
+variables:
+  b: from-action-vars
+  c: from-action-vars # should be overridden by action-level varfile
+  d: from-action-vars # should be overridden by var passed as a CLI option
+
+spec:
+  command: [echo, A]

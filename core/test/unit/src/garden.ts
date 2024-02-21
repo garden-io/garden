@@ -56,6 +56,7 @@ import { keyBy, set, mapValues, omit, cloneDeep } from "lodash-es"
 import { joi } from "../../../src/config/common.js"
 import { defaultDotIgnoreFile, makeTempDir } from "../../../src/util/fs.js"
 import fsExtra from "fs-extra"
+
 const { realpath, writeFile, readFile, remove, pathExists, mkdirp, copy } = fsExtra
 import { dedent, deline, randomString, wordWrap } from "../../../src/util/string.js"
 import { getLinkedSources, addLinkedSources } from "../../../src/util/ext-source-util.js"
@@ -384,20 +385,29 @@ describe("Garden", () => {
       })
     })
 
-    it("should respect the module variables < module varfile < CLI var precedence order", async () => {
-      const projectRoot = getDataDir("test-projects", "module-varfiles")
+    it("should respect the action variables < action varfile < CLI var precedence order", async () => {
+      const projectRoot = getDataDir("test-projects", "action-varfiles")
 
       const garden = await makeTestGarden(projectRoot)
       // In the normal flow, `garden.variableOverrides` is populated with variables passed via the `--var` CLI option.
       garden.variableOverrides["d"] = "from-cli-var"
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      const module = graph.getModule("module-a")
-      expect({ ...garden.variables, ...module.variables }).to.eql({
+      const runAction = graph.getRun("run-a")
+      expect({ ...garden.variables, ...runAction.getVariables() }).to.eql({
         a: "from-project-varfile",
-        b: "from-module-vars",
-        c: "from-module-varfile",
+        b: "from-action-vars",
+        c: "from-action-varfile",
         d: "from-cli-var",
       })
+    })
+
+    it("should allow empty varfiles", async () => {
+      const projectRoot = getDataDir("test-projects", "empty-varfiles")
+
+      const garden = await makeTestGarden(projectRoot)
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+      const runAction = graph.getRun("run-a")
+      expect(runAction.getVariables()).to.eql({})
     })
 
     it("should throw if project root is not in a git repo root", async () => {

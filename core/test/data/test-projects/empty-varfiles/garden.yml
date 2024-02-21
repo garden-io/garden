@@ -1,0 +1,20 @@
+apiVersion: garden.io/v1
+kind: Project
+name: empty-varfiles
+environments:
+  - name: default
+providers:
+  - name: test-plugin
+
+---
+
+kind: Run
+name: run-a
+type: test
+varfiles:
+  - "empty-varfile.env"
+  - "empty-varfile.json"
+  - "empty-varfile.yml"
+
+spec:
+  command: [echo, A]

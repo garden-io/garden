@@ -583,15 +583,18 @@ export async function loadVarfile({
     const filename = basename(resolvedPath.toLowerCase())
 
     if (filename.endsWith(".json")) {
+      // JSON parser throws a JSON syntax error on completely empty input file,
+      // and returns an empty object for an empty JSON.
       const parsed = JSON.parse(data.toString())
       if (!isPlainObject(parsed)) {
         throw new ConfigurationError({
           message: `Configured variable file ${relPath} must be a valid plain JSON object. Got: ${typeof parsed}`,
         })
       }
-      return parsed
+      return parsed as PrimitiveMap
     } else if (filename.endsWith(".yml") || filename.endsWith(".yaml")) {
-      const parsed = load(data.toString())
+      // YAML parser returns `undefined` for empty files, we interpret that as an empty object.
+      const parsed = load(data.toString()) || {}
       if (!isPlainObject(parsed)) {
         throw new ConfigurationError({
           message: `Configured variable file ${relPath} must be a single plain YAML mapping. Got: ${typeof parsed}`,
@@ -599,9 +602,11 @@ export async function loadVarfile({
       }
       return parsed as PrimitiveMap
     } else {
-      // Note: For backwards-compatibility we fall back on using .env as a default format, and don't specifically
-      // validate the extension for that.
-      return dotenv.parse(await readFile(resolvedPath))
+      // Note: For backwards-compatibility we fall back on using .env as a default format,
+      // and don't specifically validate the extension for that.
+      // The dotenv parser returns an empty object for invalid or empty input file.
+      const parsed = dotenv.parse(data)
+      return parsed as PrimitiveMap
     }
   } catch (error) {
     throw new ConfigurationError({
