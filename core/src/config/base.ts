@@ -11,12 +11,13 @@ import { sep, resolve, relative, basename, dirname, join } from "path"
 import { load } from "js-yaml"
 import { lint } from "yaml-lint"
 import fsExtra from "fs-extra"
+
 const { pathExists, readFile } = fsExtra
 import { omit, isPlainObject, isArray } from "lodash-es"
 import type { BuildDependencyConfig, ModuleConfig } from "./module.js"
 import { coreModuleSpecSchema, baseModuleSchemaKeys } from "./module.js"
 import { ConfigurationError, FilesystemError, ParameterError } from "../exceptions.js"
-import { DEFAULT_BUILD_TIMEOUT_SEC, DOCS_BASE_URL, GardenApiVersion } from "../constants.js"
+import { DEFAULT_BUILD_TIMEOUT_SEC, GardenApiVersion } from "../constants.js"
 import type { ProjectConfig } from "../config/project.js"
 import { validateWithPath } from "./validation.js"
 import { defaultDotIgnoreFile, listDirectory } from "../util/fs.js"
@@ -33,6 +34,8 @@ import type { Log } from "../logger/log-entry.js"
 import type { Document, DocumentOptions } from "yaml"
 import { parseAllDocuments } from "yaml"
 import { dedent, deline } from "../util/string.js"
+import { makeDocsLink } from "../docs/common.js"
+import { styles } from "../logger/styles.js"
 
 export const configTemplateKind = "ConfigTemplate"
 export const renderTemplateKind = "RenderTemplate"
@@ -374,7 +377,11 @@ function handleMissingApiVersion(log: Log, projectSpec: ProjectConfig): ProjectC
   if (projectSpec["apiVersion"] === undefined) {
     emitNonRepeatableWarning(
       log,
-      `"apiVersion" is missing in the Project config. Assuming "${GardenApiVersion.v0}" for backwards compatibility with 0.12. The "apiVersion"-field is mandatory when using the new action Kind-configs. A detailed migration guide is available at ${DOCS_BASE_URL}/guides/migrating-to-bonsai`
+      `"apiVersion" is missing in the Project config. Assuming "${
+        GardenApiVersion.v0
+      }" for backwards compatibility with 0.12. The "apiVersion"-field is mandatory when using the new action Kind-configs. A detailed migration guide is available at ${styles.link(
+        makeDocsLink("guides/migrating-to-bonsai")
+      )}`
     )
 
     return { ...projectSpec, apiVersion: GardenApiVersion.v0 }

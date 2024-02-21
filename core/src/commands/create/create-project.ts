@@ -22,12 +22,16 @@ import { PathParameter, StringParameter, BooleanParameter, StringOption } from "
 import { userPrompt } from "../../util/util.js"
 import { DOCS_BASE_URL, GardenApiVersion } from "../../constants.js"
 import { styles } from "../../logger/styles.js"
+import { makeDocsLink } from "../../docs/common.js"
 
 const ignorefileName = ".gardenignore"
 const defaultIgnorefile = dedent`
 # Add paths here that you would like Garden to ignore when building modules and computing versions,
 # using the same syntax as .gitignore files.
-# For more info, see ${DOCS_BASE_URL}/using-garden/configuration-overview#including-excluding-files-and-directories
+# For more info, see ${makeDocsLink(
+  "using-garden/configuration-overview",
+  "#including-excluding-files-and-directories"
+)}
 `
 
 export const defaultProjectConfigFilename = "project.garden.yml"

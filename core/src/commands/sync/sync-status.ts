@@ -21,9 +21,11 @@ import { isEmpty, omit } from "lodash-es"
 import type { Garden } from "../../index.js"
 import type { ResolvedDeployAction } from "../../actions/deploy.js"
 import type { ResolvedConfigGraph } from "../../graph/config-graph.js"
-import { DOCS_BASE_URL } from "../../constants.js"
 import pMap from "p-map"
 import { styles } from "../../logger/styles.js"
+import { makeDocsLink } from "../../docs/common.js"
+
+import { syncGuideRelPath } from "../../plugins/kubernetes/constants.js"
 
 const syncStatusArgs = {
   names: new StringsParameter({
@@ -111,7 +113,7 @@ export class SyncStatusCommand extends Command<Args, Opts> {
         Follow the link below to learn how to enable live code syncing with Garden:
       `)
       log.info("")
-      log.info(styles.highlight.underline(`${DOCS_BASE_URL}/guides/code-synchronization`))
+      log.info(styles.link(`${makeDocsLink(syncGuideRelPath)}`))
     }
 
     return { result: { actions: syncStatuses } }

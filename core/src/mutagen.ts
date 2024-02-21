@@ -22,7 +22,6 @@ import pMemoize from "./lib/p-memoize.js"
 import type { Log } from "./logger/log-entry.js"
 import type { WrappedFromGarden } from "./plugin-context.js"
 import type { PluginToolSpec } from "./plugin/tools.js"
-import { syncGuideLink } from "./plugins/kubernetes/sync.js"
 import { TypedEventEmitter } from "./util/events.js"
 import { PluginTool } from "./util/ext-tools.js"
 import { deline } from "./util/string.js"
@@ -31,6 +30,7 @@ import type { OctalPermissionMask } from "./plugins/kubernetes/types.js"
 import { styles } from "./logger/styles.js"
 import { dirname } from "node:path"
 import { makeDocsLink } from "./docs/common.js"
+import { syncGuideRelPath } from "./plugins/kubernetes/constants.js"
 
 const { mkdirp, pathExists } = fsExtra
 
@@ -537,7 +537,7 @@ export class Mutagen {
                 dedent`
                 It looks like you've changed to a different version of the sync daemon and therefore the sync daemon needs to be restarted.
                 Please see our Troubleshooting docs for instructions on how to restart the daemon for your platform: ${styles.link(
-                  makeDocsLink("guides/code-synchronization#restarting-sync-daemon")
+                  makeDocsLink("guides/code-synchronization", "#restarting-sync-daemon")
                 )}}`
               )
               throw err
@@ -1128,7 +1128,7 @@ function formatSyncConflict(sourceDescription: string, targetDescription: string
       "one-way-replica"
     )} or ${styles.highlight("one-way-replica-reverse")} sync modes instead.
 
-    See the code synchronization guide for more details: ${styles.link(syncGuideLink + "#sync-modes")}`
+    See the code synchronization guide for more details: ${styles.link(makeDocsLink(syncGuideRelPath, "#sync-modes"))}`
 }
 
 /**
