@@ -6,13 +6,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { CommandResult, CommandParams, ConsoleCommand } from "./base.js"
+import type { CommandResult, CommandParams } from "./base.js"
+import { ConsoleCommand } from "./base.js"
 import { renderDivider } from "../logger/util.js"
-import React, { FC, useState } from "react"
+import type { FC } from "react"
+import React, { useState } from "react"
 import { Box, render, Text, useInput, useStdout } from "ink"
 import { serveArgs, ServeCommand, serveOpts } from "./serve.js"
 import { ParameterError, toGardenError } from "../exceptions.js"
-import { InkTerminalWriter } from "../logger/writers/ink-terminal-writer.js"
+import type { InkTerminalWriter } from "../logger/writers/ink-terminal-writer.js"
 import { CommandLine } from "../cli/command-line.js"
 import { globalOptions, StringsParameter } from "../cli/params.js"
 import { pick } from "lodash-es"
@@ -100,7 +102,7 @@ Use ${styles.bold("up/down")} arrow keys to scroll through your command history.
 
     const commandLine = await this.initCommandHandler(params)
 
-    const Dev: FC<{}> = ({ }) => {
+    const Dev: FC<{}> = ({}) => {
       // Stream log output directly to stdout, on top of the Ink components below
       const { stdout, write } = useStdout()
       inkWriter.setWriteCallback(write)
@@ -188,12 +190,16 @@ Use ${styles.bold("up/down")} arrow keys to scroll through your command history.
   }
 
   private async initCommandHandler(params: ActionParams) {
-    const _this = this
     const { garden, log, opts } = params
 
     // override the session for this manager to ensure we inherit from
     // the initial garden dummy instance
     const manager = this.getManager(log, garden.sessionId)
+
+    const quit = () => {
+      this.commandLine?.disable("🌷  Thanks for stopping by, love you! ❤️")
+      this.terminate()
+    }
 
     const cl = new CommandLine({
       log,
@@ -225,13 +231,8 @@ Use ${styles.bold("up/down")} arrow keys to scroll through your command history.
             "garden dev"
           )}, use ${styles.command("Ctrl-D")} or the ${styles.command(`exit`)} command.`,
         })
-        .catch(() => { })
+        .catch(() => {})
         .finally(() => quit())
-    }
-
-    function quit() {
-      cl?.disable("🌷  Thanks for stopping by, love you! ❤️")
-      _this.terminate()
     }
 
     process.on("SIGINT", quitWithWarning)
