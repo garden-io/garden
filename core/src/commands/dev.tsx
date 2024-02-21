@@ -190,13 +190,16 @@ Use ${styles.bold("up/down")} arrow keys to scroll through your command history.
   }
 
   private async initCommandHandler(params: ActionParams) {
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
-    const _this = this
     const { garden, log, opts } = params
 
     // override the session for this manager to ensure we inherit from
     // the initial garden dummy instance
     const manager = this.getManager(log, garden.sessionId)
+
+    const quit = () => {
+      this.commandLine?.disable("🌷  Thanks for stopping by, love you! ❤️")
+      this.terminate()
+    }
 
     const cl = new CommandLine({
       log,
@@ -230,11 +233,6 @@ Use ${styles.bold("up/down")} arrow keys to scroll through your command history.
         })
         .catch(() => {})
         .finally(() => quit())
-    }
-
-    function quit() {
-      cl?.disable("🌷  Thanks for stopping by, love you! ❤️")
-      _this.terminate()
     }
 
     process.on("SIGINT", quitWithWarning)
