@@ -16,7 +16,7 @@ import type { Log } from "../../../logger/log-entry.js"
 import { containerHelpers } from "../../container/helpers.js"
 import { RuntimeError } from "../../../exceptions.js"
 import { PodRunner } from "../run.js"
-import { dockerAuthSecretKey, systemDockerAuthSecretName, k8sUtilImageName } from "../constants.js"
+import { dockerAuthSecretKey, getK8sUtilImageName, systemDockerAuthSecretName } from "../constants.js"
 import { getAppNamespace, getSystemNamespace } from "../namespace.js"
 import { randomString } from "../../../util/string.js"
 import type { PluginContext } from "../../../plugin-context.js"
@@ -144,7 +144,7 @@ async function pullFromExternalRegistry({ ctx, log, localId, remoteId }: PullPar
         containers: [
           {
             name: "main",
-            image: k8sUtilImageName,
+            image: getK8sUtilImageName(),
             command: ["sleep", "" + (imagePullTimeoutSeconds + 10)],
             volumeMounts: [
               {

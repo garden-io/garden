@@ -2,6 +2,6 @@ kind: Module
 type: container
 name: k8s-sync
 description: Used by the kubernetes provider for sync setup
-image: gardendev/k8s-sync:0.1.5
+image: gardendev/k8s-sync:0.2.0 # Starting from version 0.2.0 Garden uses original Mutagen binaries instead of own fork.
 dockerfile: Dockerfile
 extraFlags: [ "--platform", "linux/amd64" ]

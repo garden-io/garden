@@ -14,7 +14,7 @@ import type {
   KubernetesProvider,
 } from "../../../../../../../src/plugins/kubernetes/config.js"
 import { defaultResources } from "../../../../../../../src/plugins/kubernetes/config.js"
-import { buildkitImageName, k8sUtilImageName } from "../../../../../../../src/plugins/kubernetes/constants.js"
+import { buildkitImageName, getK8sUtilImageName } from "../../../../../../../src/plugins/kubernetes/constants.js"
 import {
   getBuildkitDeployment,
   getBuildkitFlags,
@@ -121,7 +121,7 @@ describe("buildkit build", () => {
             value: "8730",
           },
         ],
-        image: k8sUtilImageName,
+        image: getK8sUtilImageName(),
         imagePullPolicy: "IfNotPresent",
         lifecycle: {
           preStop: {
