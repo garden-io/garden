@@ -1,4 +1,27 @@
 
+<a name="0.13.26"></a>
+## [0.13.26](https://github.com/garden-io/garden/compare/0.13.25...0.13.26) (2024-02-22)
+
+### Bug Fixes
+
+* do not fail on empty YAML varfiles ([#5759](https://github.com/garden-io/garden/issues/5759)) ([e5732aa5f](https://github.com/garden-io/garden/commit/e5732aa5f))
+* **core:** better Zod validation error messages ([#5745](https://github.com/garden-io/garden/issues/5745)) ([dc49f10d4](https://github.com/garden-io/garden/commit/dc49f10d4))
+* **core:** versioning fix for remote sources ([#5735](https://github.com/garden-io/garden/issues/5735)) ([91bfd4816](https://github.com/garden-io/garden/commit/91bfd4816))
+* **k8s:** retry websocket errors ([#5755](https://github.com/garden-io/garden/issues/5755)) ([c8b88c4bd](https://github.com/garden-io/garden/commit/c8b88c4bd))
+* **module-conversion:** skip omitted build deps ([#5727](https://github.com/garden-io/garden/issues/5727)) ([c734d0f38](https://github.com/garden-io/garden/commit/c734d0f38))
+* **mutagen:** call mutagen commands from the right cwd ([#5734](https://github.com/garden-io/garden/issues/5734)) ([98a650db7](https://github.com/garden-io/garden/commit/98a650db7))
+
+### Features
+
+* **k8s:** support mode=max for AWS ECR with cluster-buildkit build mode ([#5758](https://github.com/garden-io/garden/issues/5758)) ([6a94cec3b](https://github.com/garden-io/garden/commit/6a94cec3b))
+
+### Improvements
+
+* **core:** less noisy missing dep errors ([#5732](https://github.com/garden-io/garden/issues/5732)) ([91d25bcae](https://github.com/garden-io/garden/commit/91d25bcae))
+* **k8s:** update `kubectl` version to `1.29.2` ([#5756](https://github.com/garden-io/garden/issues/5756)) ([1f12b3fe0](https://github.com/garden-io/garden/commit/1f12b3fe0))
+* **mutagen:** use faux SSH command to use original Mutagen ([#5551](https://github.com/garden-io/garden/issues/5551)) ([e778e9750](https://github.com/garden-io/garden/commit/e778e9750))
+* **sync:** update Mutagen to 0.17.5 ([#5744](https://github.com/garden-io/garden/issues/5744)) ([eec7832b7](https://github.com/garden-io/garden/commit/eec7832b7))
+
 <a name="0.13.25"></a>
 ## [0.13.25](https://github.com/garden-io/garden/compare/0.13.24...0.13.25) (2024-02-13)
 
