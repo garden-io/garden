@@ -61,5 +61,5 @@ Join our [Discord community](https://go.garden.io/discord) 🌸 for access to Ga
 
 ## Examples
 
-- [Kubernetes Deploy action example project](https://github.com/garden-io/garden/tree/0.13.25/examples/k8s-deploy-patch-resources)
-- [Local mode for `kubernetes` action type](https://github.com/garden-io/garden/tree/0.13.25/examples/local-mode-k8s)
+- [Kubernetes Deploy action example project](https://github.com/garden-io/garden/tree/0.13.26/examples/k8s-deploy-patch-resources)
+- [Local mode for `kubernetes` action type](https://github.com/garden-io/garden/tree/0.13.26/examples/local-mode-k8s)
