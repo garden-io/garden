@@ -463,13 +463,6 @@ export function getBuildkitDeployment(
                 initialDelaySeconds: 3,
                 periodSeconds: 5,
               },
-              livenessProbe: {
-                exec: {
-                  command: ["buildctl", "debug", "workers"],
-                },
-                initialDelaySeconds: 5,
-                periodSeconds: 30,
-              },
               securityContext: {
                 privileged: true,
               },

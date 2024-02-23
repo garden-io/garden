@@ -68,13 +68,6 @@ describe("buildkit build", () => {
           },
         ],
         image: buildkitImageName,
-        livenessProbe: {
-          exec: {
-            command: ["buildctl", "debug", "workers"],
-          },
-          initialDelaySeconds: 5,
-          periodSeconds: 30,
-        },
         name: "buildkitd",
         readinessProbe: {
           exec: {
