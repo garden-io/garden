@@ -19,7 +19,6 @@ For your convenience, we build and publish Docker containers that contain the Ga
 | [`gardendev/garden-gcloud`](https://hub.docker.com/r/gardendev/garden-gcloud) | Contains the Garden CLI, and the Google Cloud CLI                |
 | [`gardendev/garden-aws-gcloud`](https://hub.docker.com/r/gardendev/garden-aws-gcloud) | Contains the Garden CLI, the Google Cloud CLI and the AWS CLI v2 |
 | [`gardendev/garden-aws-gcloud-azure`](https://hub.docker.com/r/gardendev/garden-aws-gcloud-azure) | Contains the Garden CLI, the Google Cloud CLI, the AWS CLI v2, and the Azure CLI |
-| [`gardendev/garden-full`](https://hub.docker.com/r/gardendev/garden-full) | DEPRECATED: This container image is not being maintained anymore and will be removed in the future. |
 
 ### Tags
 
