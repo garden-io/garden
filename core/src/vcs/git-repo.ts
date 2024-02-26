@@ -53,6 +53,7 @@ const getIncludeExcludeFiles: IncludeExcludeFilesHandler<GitRepoGetFilesParams, 
   return { include, exclude, augmentedIncludes, augmentedExcludes }
 }
 
+// @Profile()
 export class GitRepoHandler extends GitHandler {
   override name = "git-repo"
 
@@ -112,14 +113,36 @@ export class GitRepoHandler extends GitHandler {
     const filesAtPath = fileTree.getFilesAtPath(path)
 
     log.debug(
-      `Found ${filesAtPath.length} files in path, filtering by ${augmentedIncludes.length} include and ${augmentedExcludes.length} exclude globs`
+      `Found ${filesAtPath.length} files in path ${path}, filtering by ${augmentedIncludes.length} include and ${augmentedExcludes.length} exclude globs`
     )
-    log.silly(() => `Include globs: ${augmentedIncludes.join(", ")}`)
-    log.silly(() =>
+    log.debug(() => `Include globs: ${augmentedIncludes.join(", ")}`)
+    log.debug(() =>
       augmentedExcludes.length > 0 ? `Exclude globs: ${augmentedExcludes.join(", ")}` : "No exclude globs"
     )
 
-    const filtered = filesAtPath.filter(({ path: p }) => {
+    const filtered = this.filterPaths({ files: filesAtPath, log, path, augmentedIncludes, augmentedExcludes, filter })
+    log.debug(`Found ${filtered.length} files in path ${path} after glob matching`)
+    this.cache.set(log, filteredFilesCacheKey, filtered, pathToCacheContext(path))
+
+    return filtered
+  }
+
+  filterPaths({
+    log,
+    files,
+    path,
+    augmentedIncludes,
+    augmentedExcludes,
+    filter,
+  }: {
+    log: GetFilesParams["log"]
+    files: VcsFile[]
+    path: string
+    augmentedIncludes: string[]
+    augmentedExcludes: string[]
+    filter: GetFilesParams["filter"]
+  }): VcsFile[] {
+    return files.filter(({ path: p }) => {
       if (filter && !filter(p)) {
         return false
       }
@@ -131,12 +154,6 @@ export class GitRepoHandler extends GitHandler {
       log.silly(() => `Checking if ${relativePath} matches include/exclude globs`)
       return matchPath(relativePath, augmentedIncludes, augmentedExcludes)
     })
-
-    log.debug(`Found ${filtered.length} files in module path after glob matching`)
-
-    this.cache.set(log, filteredFilesCacheKey, filtered, pathToCacheContext(path))
-
-    return filtered
   }
 
   /**

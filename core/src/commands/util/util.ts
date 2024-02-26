@@ -10,10 +10,11 @@ import { CommandGroup } from "../base.js"
 import { FetchToolsCommand } from "./fetch-tools.js"
 import { HideWarningCommand } from "./hide-warning.js"
 import { MutagenCommand } from "./mutagen.js"
+import { ProfileProjectCommand } from "./profile-project.js"
 
 export class UtilCommand extends CommandGroup {
   name = "util"
   help = "Misc utility commands."
 
-  subCommands = [FetchToolsCommand, HideWarningCommand, MutagenCommand]
+  subCommands = [FetchToolsCommand, HideWarningCommand, MutagenCommand, ProfileProjectCommand]
 }
