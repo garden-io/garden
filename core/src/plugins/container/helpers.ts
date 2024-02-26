@@ -8,6 +8,7 @@
 
 import { join, posix } from "path"
 import fsExtra from "fs-extra"
+
 const { readFile, pathExists, lstat } = fsExtra
 import semver from "semver"
 import type { CommandEntry } from "docker-file-parser"
@@ -22,7 +23,6 @@ import type { Writable } from "stream"
 import { flatten, uniq, fromPairs, reduce } from "lodash-es"
 import type { ActionLog, Log } from "../../logger/log-entry.js"
 
-import chalk from "chalk"
 import isUrl from "is-url"
 import titleize from "titleize"
 import { deline, stripQuotes, splitLast, splitFirst } from "../../util/string.js"
@@ -34,6 +34,7 @@ import { defaultDockerfileName } from "./config.js"
 import { joinWithPosix } from "../../util/fs.js"
 import type { Resolved } from "../../actions/types.js"
 import pMemoize from "../../lib/p-memoize.js"
+import { styles } from "../../logger/styles.js"
 
 interface DockerVersion {
   client?: string
@@ -84,30 +85,36 @@ const helpers = {
    * (not to be confused with the ID used when pushing to private deployment registries).
    *
    * The tag on the identifier will be set as one of (in order of precedence):
-   * - The `tag` variable explicitly set (e.g. set on the garden publish command).
-   * - The tag  part of the `image` field, if one is set and it includes a tag part.
+   * - The `tagOverride` argument explicitly set (e.g. --tag option provided to the garden publish command).
+   * - The tag  part of the `spec.publishId` from the action configuration, if one is set, and it includes a tag part.
    * - The Garden version of the module.
    */
-  getPublicImageId(action: Resolved<ContainerBuildAction>, tag?: string) {
+  getPublicImageId(action: Resolved<ContainerBuildAction>, tagOverride?: string) {
     // TODO: allow setting a default user/org prefix in the project/plugin config
-    const explicitImage = action.getSpec("publishId")
+    const explicitPublishId = action.getSpec("publishId")
 
-    if (explicitImage) {
+    let parsedImage: ParsedImageId
+    let publishTag = tagOverride
+
+    if (explicitPublishId) {
       // Getting the tag like this because it's otherwise defaulted to "latest"
-      const imageTag = splitFirst(explicitImage, ":")[1]
-      const parsedImage = helpers.parseImageId(explicitImage)
-      if (!tag) {
-        tag = imageTag || action.versionString()
+      const imageTag = splitFirst(explicitPublishId, ":")[1]
+      if (!publishTag) {
+        publishTag = imageTag
       }
-      return helpers.unparseImageId({ ...parsedImage, tag })
+
+      parsedImage = helpers.parseImageId(explicitPublishId)
     } else {
-      const localImageName = action.name
-      const parsedImage = helpers.parseImageId(localImageName)
-      if (!tag) {
-        tag = action.versionString()
-      }
-      return helpers.unparseImageId({ ...parsedImage, tag })
+      const explicitImage = action.getSpec("localId")
+      const localImageName = this.getLocalImageName(action.name, explicitImage)
+
+      parsedImage = helpers.parseImageId(localImageName)
     }
+
+    if (!publishTag) {
+      publishTag = action.versionString()
+    }
+    return helpers.unparseImageId({ ...parsedImage, tag: publishTag })
   },
 
   /**
@@ -386,7 +393,8 @@ const helpers = {
     // If we explicitly set a Dockerfile, we take that to mean you want it to be built.
     // If the file turns out to be missing, this will come up in the build handler.
 
-    if (!!config.spec.dockerfile) {
+    const dockerfile = config.spec.dockerfile
+    if (!!dockerfile) {
       return true
     }
 
@@ -395,8 +403,9 @@ const helpers = {
     // That's because the `image` field has the following two meanings:
     // 1. Build an image with this name, if a Dockerfile exists
     // 2. Deploy this image from the registry, if no Dockerfile exists
-    // This means we need to know if the Dockerfile exists before we know wether or not the Dockerfile will be present at runtime.
-    return version.files.includes(getDockerfilePath(config.path, config.spec.dockerfile))
+    // This means we need to know if the Dockerfile exists before we know whether the Dockerfile will be present at runtime.
+    const dockerfilePath = getDockerfilePath(config.path, dockerfile)
+    return version.files.includes(dockerfilePath)
   },
 
   async actionHasDockerfile(action: Resolved<ContainerBuildAction>): Promise<boolean> {
@@ -427,7 +436,7 @@ const helpers = {
         (cmd) => (cmd.name === "ADD" || cmd.name === "COPY") && cmd.args && Number(cmd.args.length) > 0
       )
     } catch (err) {
-      log.warn(chalk.yellow(`Unable to parse Dockerfile ${dockerfilePath}: ${err}`))
+      log.warn(`Unable to parse Dockerfile ${dockerfilePath}: ${err}`)
       return undefined
     }
 
@@ -473,12 +482,10 @@ const helpers = {
       } else if (path.match(/(?<!\\)(?:\\\\)*\$[{\w]/)) {
         // If the path contains a template string we can't currently reason about it
         // TODO: interpolate args into paths
-        log.warn(
-          chalk.yellow(deline`
+        log.warn(deline`
           Resolving include paths from Dockerfile ARG and ENV variables is not supported yet. Please specify
-          required path in Dockerfile explicitly or use ${chalk.bold("include")} for path assigned to ARG or ENV.
-          `)
-        )
+          required path in Dockerfile explicitly or use ${styles.bold("include")} for path assigned to ARG or ENV.
+        `)
         return undefined
       }
     }

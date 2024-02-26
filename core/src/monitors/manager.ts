@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import chalk from "chalk"
 import type { Command } from "../commands/base.js"
 import type { EventBus } from "../events/events.js"
 import type { Log } from "../logger/log-entry.js"
@@ -113,7 +112,7 @@ export class MonitorManager extends TypedEventEmitter<MonitorEvents> {
     const status = this.getStatus(monitor)
 
     if (status !== "stopped" && status !== "stopping") {
-      this.log.silly(`${monitor.description()} already ${status}.`)
+      this.log.silly(() => `${monitor.description()} already ${status}.`)
       return
     }
 
@@ -128,7 +127,7 @@ export class MonitorManager extends TypedEventEmitter<MonitorEvents> {
         // NOTE: Consider calling this.stop() in that case to guarantee the actual monitors stops (would assume stopping is idempotent).
         const currentStatus = this.getStatus(monitor)
         if (currentStatus === "starting") {
-          this.log.silly(`${monitor.description} started successfully`)
+          this.log.silly(() => `${monitor.description} started successfully`)
           this.setStatus(monitor, "started")
         } else {
           this.log.silly(
@@ -137,7 +136,7 @@ export class MonitorManager extends TypedEventEmitter<MonitorEvents> {
         }
       })
       .catch((error) => {
-        this.log.error({ msg: chalk.red(`${monitor.description()} failed: ${error}`), error })
+        this.log.error({ msg: `${monitor.description()} failed: ${error}`, error })
         this.setStatus(monitor, "stopped")
         // TODO: should we retry up to some limit?
       })
@@ -160,7 +159,7 @@ export class MonitorManager extends TypedEventEmitter<MonitorEvents> {
         if (currentStatus === "stopping") {
           this.setStatus(monitor, "stopped")
           this.removeAllListeners()
-          log.silly(`${monitor.description()} stopped.`)
+          log.silly(() => `${monitor.description()} stopped.`)
         } else {
           this.log.silly(
             `${monitor.description} status changed from 'stopping' to ${currentStatus} while being stopped. Will not set status to 'stopped'.`
@@ -168,7 +167,7 @@ export class MonitorManager extends TypedEventEmitter<MonitorEvents> {
         }
       })
       .catch((error) => {
-        log.error(chalk.red(`Error when stopping ${monitor.description()}: ${error}`))
+        log.error(`Error when stopping ${monitor.description()}: ${error}`)
         this.setStatus(monitor, "stopped")
       })
   }

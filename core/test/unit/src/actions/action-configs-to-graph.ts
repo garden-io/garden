@@ -20,6 +20,7 @@ import {
   DEFAULT_RUN_TIMEOUT_SEC,
   DEFAULT_TEST_TIMEOUT_SEC,
 } from "../../../../src/constants.js"
+import { getRemoteSourceLocalPath } from "../../../../src/util/ext-source-util.js"
 
 describe("actionConfigsToGraph", () => {
   let tmpDir: TempDirectory
@@ -53,7 +54,6 @@ describe("actionConfigsToGraph", () => {
       moduleGraph: new ModuleGraph([], {}),
       actionModes: {},
       linkedSources: {},
-      environmentName: garden.environmentName,
     })
 
     const actions = graph.getActions()
@@ -85,7 +85,6 @@ describe("actionConfigsToGraph", () => {
       moduleGraph: new ModuleGraph([], {}),
       actionModes: {},
       linkedSources: {},
-      environmentName: garden.environmentName,
     })
 
     const actions = graph.getActions()
@@ -117,7 +116,6 @@ describe("actionConfigsToGraph", () => {
       moduleGraph: new ModuleGraph([], {}),
       actionModes: {},
       linkedSources: {},
-      environmentName: garden.environmentName,
     })
 
     const actions = graph.getActions()
@@ -149,7 +147,6 @@ describe("actionConfigsToGraph", () => {
       moduleGraph: new ModuleGraph([], {}),
       actionModes: {},
       linkedSources: {},
-      environmentName: garden.environmentName,
     })
 
     const actions = graph.getActions()
@@ -188,7 +185,6 @@ describe("actionConfigsToGraph", () => {
       moduleGraph: new ModuleGraph([], {}),
       actionModes: {},
       linkedSources: {},
-      environmentName: garden.environmentName,
     })
 
     const actions = graph.getActions()
@@ -231,7 +227,6 @@ describe("actionConfigsToGraph", () => {
       moduleGraph: new ModuleGraph([], {}),
       actionModes: {},
       linkedSources: {},
-      environmentName: garden.environmentName,
     })
 
     const action = graph.getBuild("bar")
@@ -279,7 +274,6 @@ describe("actionConfigsToGraph", () => {
       moduleGraph: new ModuleGraph([], {}),
       actionModes: {},
       linkedSources: {},
-      environmentName: garden.environmentName,
     })
 
     const action = graph.getDeploy("bar")
@@ -328,7 +322,6 @@ describe("actionConfigsToGraph", () => {
       moduleGraph: new ModuleGraph([], {}),
       actionModes: {},
       linkedSources: {},
-      environmentName: garden.environmentName,
     })
 
     const action = graph.getBuild("bar")
@@ -378,7 +371,6 @@ describe("actionConfigsToGraph", () => {
       moduleGraph: new ModuleGraph([], {}),
       actionModes: {},
       linkedSources: {},
-      environmentName: garden.environmentName,
     })
 
     const action = graph.getBuild("bar")
@@ -428,7 +420,6 @@ describe("actionConfigsToGraph", () => {
       moduleGraph: new ModuleGraph([], {}),
       actionModes: {},
       linkedSources: {},
-      environmentName: garden.environmentName,
     })
 
     const action = graph.getDeploy("bar")
@@ -466,7 +457,6 @@ describe("actionConfigsToGraph", () => {
       moduleGraph: new ModuleGraph([], {}),
       actionModes: {},
       linkedSources: {},
-      environmentName: garden.environmentName,
     })
 
     const action = graph.getBuild("foo")
@@ -495,7 +485,6 @@ describe("actionConfigsToGraph", () => {
       moduleGraph: new ModuleGraph([], {}),
       actionModes: {},
       linkedSources: {},
-      environmentName: garden.environmentName,
     })
 
     const action = graph.getBuild("bar")
@@ -526,7 +515,6 @@ describe("actionConfigsToGraph", () => {
       moduleGraph: new ModuleGraph([], {}),
       actionModes: {},
       linkedSources: {},
-      environmentName: garden.environmentName,
     })
 
     const action = graph.getBuild("foo")
@@ -561,7 +549,6 @@ describe("actionConfigsToGraph", () => {
       moduleGraph: new ModuleGraph([], {}),
       actionModes: {},
       linkedSources: {},
-      environmentName: garden.environmentName,
     })
 
     const action = graph.getBuild("foo")
@@ -601,7 +588,6 @@ describe("actionConfigsToGraph", () => {
       moduleGraph: new ModuleGraph([], {}),
       actionModes: {},
       linkedSources: {},
-      environmentName: garden.environmentName,
     })
 
     const action = graph.getBuild("foo")
@@ -657,7 +643,6 @@ describe("actionConfigsToGraph", () => {
         moduleGraph: new ModuleGraph([], {}),
         actionModes: {},
         linkedSources: {},
-        environmentName: garden.environmentName,
       })
 
       const action = graph.getBuild("foo")
@@ -702,7 +687,6 @@ describe("actionConfigsToGraph", () => {
       actionModes: {
         sync: ["deploy.foo"],
       },
-      environmentName: garden.environmentName,
     })
 
     const action = graph.getDeploy("foo")
@@ -733,7 +717,6 @@ describe("actionConfigsToGraph", () => {
       actionModes: {
         local: ["deploy.foo"],
       },
-      environmentName: garden.environmentName,
     })
 
     const action = graph.getDeploy("foo")
@@ -770,7 +753,6 @@ describe("actionConfigsToGraph", () => {
         local: ["deploy.foo"],
         sync: ["deploy.foo"],
       },
-      environmentName: garden.environmentName,
     })
 
     const action = graph.getDeploy("foo")
@@ -801,7 +783,6 @@ describe("actionConfigsToGraph", () => {
       actionModes: {
         local: ["*"],
       },
-      environmentName: garden.environmentName,
     })
 
     const action = graph.getDeploy("foo")
@@ -832,12 +813,55 @@ describe("actionConfigsToGraph", () => {
       actionModes: {
         local: ["deploy.f*"],
       },
-      environmentName: garden.environmentName,
     })
 
     const action = graph.getDeploy("foo")
 
     expect(action.mode()).to.equal("local")
+  })
+
+  it("deploy action mode overrides the mode of a dependency build action", async () => {
+    const graph = await actionConfigsToGraph({
+      garden,
+      log,
+      groupConfigs: [],
+      configs: [
+        {
+          kind: "Deploy",
+          type: "test",
+          name: "foo",
+          timeout: DEFAULT_DEPLOY_TIMEOUT_SEC,
+          variables: {},
+          dependencies: [{ kind: "Build", name: "foo" }],
+          internal: {
+            basePath: tmpDir.path,
+          },
+          spec: {},
+        },
+        {
+          kind: "Build",
+          type: "test",
+          name: "foo",
+          timeout: DEFAULT_DEPLOY_TIMEOUT_SEC,
+          variables: {},
+          internal: {
+            basePath: tmpDir.path,
+          },
+          spec: {},
+        },
+      ],
+      moduleGraph: new ModuleGraph([], {}),
+      linkedSources: {},
+      actionModes: {
+        local: ["deploy.*"],
+      },
+    })
+
+    const deploy = graph.getDeploy("foo")
+    expect(deploy.mode()).to.equal("local")
+
+    const build = graph.getBuild("foo")
+    expect(build.mode()).to.equal("local")
   })
 
   it("throws if an unknown action kind is given", async () => {
@@ -862,7 +886,6 @@ describe("actionConfigsToGraph", () => {
           moduleGraph: new ModuleGraph([], {}),
           actionModes: {},
           linkedSources: {},
-          environmentName: garden.environmentName,
         }),
       (err) => expect(err.message).to.equal("Unknown action kind: Boop")
     )
@@ -900,7 +923,6 @@ describe("actionConfigsToGraph", () => {
           moduleGraph: new ModuleGraph([], {}),
           actionModes: {},
           linkedSources: {},
-          environmentName: garden.environmentName,
         }),
       {
         contains: ["Found two actions of the same name and kind"],
@@ -939,7 +961,6 @@ describe("actionConfigsToGraph", () => {
       moduleGraph: new ModuleGraph([], {}),
       actionModes: {},
       linkedSources: {},
-      environmentName: garden.environmentName,
     })
 
     const action = graph.getBuild("foo")
@@ -977,11 +998,48 @@ describe("actionConfigsToGraph", () => {
       moduleGraph: new ModuleGraph([], {}),
       actionModes: {},
       linkedSources: {},
-      environmentName: garden.environmentName,
     })
 
     const action = graph.getBuild("foo")
     expect(action.getConfig("timeout")).to.equal(123)
+  })
+
+  describe("action with source.repository.url set", () => {
+    it("sets the base path to the local cloned path when a repositoryUrl is specified", async () => {
+      const repoUrl = "https://github.com/garden-io/garden-example-remote-module-jworker.git#main"
+      const graph = await actionConfigsToGraph({
+        garden,
+        log,
+        groupConfigs: [],
+        configs: [
+          {
+            kind: "Build",
+            type: "test",
+            name: "foo",
+            timeout: DEFAULT_BUILD_TIMEOUT_SEC,
+            internal: {
+              basePath: tmpDir.path,
+            },
+            spec: {},
+            source: {
+              repository: { url: repoUrl },
+            },
+          },
+        ],
+        moduleGraph: new ModuleGraph([], {}),
+        actionModes: {},
+        linkedSources: {},
+      })
+      const action = graph.getBuild("foo")
+
+      const clonePath = getRemoteSourceLocalPath({
+        name: action.key(),
+        url: repoUrl,
+        type: "action",
+        gardenDirPath: garden.gardenDirPath,
+      })
+      expect(action._config.internal.basePath.startsWith(clonePath)).to.be.true
+    })
   })
 
   describe("file inclusion-exclusion", () => {
@@ -1007,7 +1065,6 @@ describe("actionConfigsToGraph", () => {
       moduleGraph: new ModuleGraph([], {}),
       actionModes: {},
       linkedSources: {},
-      environmentName: garden.environmentName,
     })
 
     it("sets include and exclude", async () => {

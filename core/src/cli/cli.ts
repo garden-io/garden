@@ -8,11 +8,11 @@
 
 import { intersection, mapValues, sortBy } from "lodash-es"
 import { resolve, join } from "path"
-import chalk from "chalk"
 import fsExtra from "fs-extra"
 const { pathExists } = fsExtra
 import { getBuiltinCommands } from "../commands/commands.js"
-import { shutdown, getPackageVersion, getCloudDistributionName } from "../util/util.js"
+import { getCloudDistributionName } from "../util/cloud.js"
+import { shutdown, getPackageVersion } from "../util/util.js"
 import type { Command, CommandResult, BuiltinArgs } from "../commands/base.js"
 import { CommandGroup } from "../commands/base.js"
 import type { GardenError } from "../exceptions.js"
@@ -35,11 +35,18 @@ import {
   checkRequirements,
   renderCommandErrors,
   cliStyles,
+  getDashboardInfoMsg,
 } from "./helpers.js"
 import type { ParameterObject, GlobalOptions, ParameterValues } from "./params.js"
 import { globalOptions, OUTPUT_RENDERERS } from "./params.js"
 import type { ProjectConfig } from "../config/project.js"
-import { ERROR_LOG_FILENAME, DEFAULT_GARDEN_DIR_NAME, LOGS_DIR_NAME, gardenEnv } from "../constants.js"
+import {
+  ERROR_LOG_FILENAME,
+  DEFAULT_GARDEN_DIR_NAME,
+  LOGS_DIR_NAME,
+  gardenEnv,
+  DEFAULT_GARDEN_CLOUD_DOMAIN,
+} from "../constants.js"
 import { generateBasicDebugInfoReport } from "../commands/get/get-debug-info.js"
 import type { AnalyticsHandler } from "../analytics/analytics.js"
 import type { GardenPluginReference } from "../plugin/plugin.js"
@@ -60,6 +67,7 @@ import { withSessionContext } from "../util/open-telemetry/context.js"
 import { wrapActiveSpan } from "../util/open-telemetry/spans.js"
 import { JsonFileWriter } from "../logger/writers/json-file-writer.js"
 import type minimist from "minimist"
+import { styles } from "../logger/styles.js"
 
 export interface RunOutput {
   argv: any
@@ -109,7 +117,7 @@ export class GardenCli {
     // Thus we have to dedent like this.
     let msg = `
 ${cliStyles.heading("USAGE")}
-  garden ${cliStyles.commandPlaceholder()} ${cliStyles.optionsPlaceholder()}
+  garden ${cliStyles.commandPlaceholder()} ${cliStyles.argumentsPlaceholder()} ${cliStyles.optionsPlaceholder()}
 
 ${cliStyles.heading("COMMANDS")}
 ${renderCommands(commands)}
@@ -214,21 +222,16 @@ ${renderCommands(commands)}
     workingDir: string
     log: Log
   }) {
-    const {
-      "env": environmentName,
-      silent,
-      output,
-      "logger-type": loggerTypeOpt,
-      "force-refresh": forceRefresh,
-      "var": cliVars,
-    } = parsedOpts
+    const { "env": environmentName, silent, output, "force-refresh": forceRefresh, "var": cliVars } = parsedOpts
 
     const parsedCliVars = parseCliVarFlags(cliVars)
-
     // Some commands may set their own logger type so we update the logger config here,
     // once we've resolved the command.
-    const commandLoggerType = command.getTerminalWriterType({ opts: parsedOpts, args: parsedArgs })
-    getRootLogger().setTerminalWriter(getTerminalWriterType({ silent, output, loggerTypeOpt, commandLoggerType }))
+
+    // For commands that use Ink we overwrite the terminal writer configuration (unless silent/output flags are set)
+    if (command.useInkTerminalWriter({ opts: parsedOpts, args: parsedArgs })) {
+      getRootLogger().setTerminalWriter(getTerminalWriterType({ silent, output, loggerType: "ink" }))
+    }
 
     const globalConfigStore = new GlobalConfigStore()
 
@@ -238,9 +241,16 @@ ${renderCommands(commands)}
     const sessionId = uuidv4()
 
     return withSessionContext({ sessionId }, async () => {
+      const gardenLog = log.createLog({ name: "garden", showDuration: true })
+      // Log context for printing the start and finish of Garden initialization when not using the dev console
+      const gardenInitLog =
+        !command.noProject && command.getFullName() !== "dev" && command.getFullName() !== "serve"
+          ? log.createLog({ name: "garden", showDuration: true })
+          : null
+      gardenInitLog?.info("Initializing...")
+
       // Init Cloud API (if applicable)
       let cloudApi: CloudApi | undefined
-
       if (!command.noProject) {
         const config = await this.getProjectConfig(log, workingDir)
         const cloudDomain = getGardenCloudDomain(config?.domain)
@@ -251,7 +261,7 @@ ${renderCommands(commands)}
         } catch (err) {
           if (err instanceof CloudApiTokenRefreshError) {
             log.warn(dedent`
-              ${chalk.yellow(`Unable to authenticate against ${distroName} with the current session token.`)}
+              Unable to authenticate against ${distroName} with the current session token.
               Command results for this command run will not be available in ${distroName}. If this not a
               ${distroName} project you can ignore this warning. Otherwise, please try logging out with
               \`garden logout\` and back in again with \`garden login\`.
@@ -278,6 +288,7 @@ ${renderCommands(commands)}
         commandInfo,
         environmentString: environmentName,
         log,
+        gardenInitLog: gardenInitLog || undefined,
         forceRefresh,
         variableOverrides: parsedCliVars,
         plugins: this.plugins,
@@ -302,33 +313,35 @@ ${renderCommands(commands)}
 
       contextOpts.persistent = persistent
       // TODO: Link to Cloud namespace page here.
-      const nsLog = log.createLog({ name: "garden" })
 
       try {
         if (command.noProject) {
           garden = await makeDummyGarden(workingDir, contextOpts)
         } else {
           garden = await wrapActiveSpan("initializeGarden", () => this.getGarden(workingDir, contextOpts))
+          const isLoggedIn = !!cloudApi
+          const isCommunityEdition = garden.cloudDomain === DEFAULT_GARDEN_CLOUD_DOMAIN
+
+          if (!isLoggedIn && isCommunityEdition) {
+            await garden.emitWarning({
+              key: "web-app",
+              log,
+              message: "\n" + getDashboardInfoMsg(),
+            })
+          }
 
           if (!gardenEnv.GARDEN_DISABLE_VERSION_CHECK) {
             await garden.emitWarning({
               key: "0.13-bonsai",
               log,
-              message: chalk.yellow(dedent`
+              message: dedent`
                 Garden v0.13 (Bonsai) is a major release with significant changes. Please help us improve it by reporting any issues/bugs here:
                 https://go.garden.io/report-bonsai
-              `),
+              `,
             })
           }
 
-          nsLog.info(`Running in Garden environment ${chalk.cyan(`${garden.environmentName}.${garden.namespace}`)}`)
-
-          if (!cloudApi && garden.projectId) {
-            log.warn(
-              `You are not logged in into Garden Cloud. Please log in via the ${chalk.green("garden login")} command.`
-            )
-            log.info("")
-          }
+          gardenLog.info(`Running in environment ${styles.highlight(`${garden.environmentName}.${garden.namespace}`)}`)
 
           if (processRecord) {
             // Update the db record for the process
@@ -376,7 +389,7 @@ ${renderCommands(commands)}
 
         if (garden.monitors.anyMonitorsActive()) {
           // Wait for monitors to exit
-          log.debug(chalk.gray("One or more monitors active, waiting until all exit."))
+          log.debug(styles.primary("One or more monitors active, waiting until all exit."))
           await garden.monitors.waitUntilStopped()
         }
 
@@ -438,7 +451,7 @@ ${renderCommands(commands)}
     const workingDir = resolve(cwd || process.cwd(), argv.root || "")
 
     if (!(await pathExists(workingDir))) {
-      return done(1, chalk.red(`Could not find specified root path (${argv.root})`))
+      return done(1, styles.error(`Could not find specified root path (${argv.root})`))
     }
 
     let projectConfig: ProjectConfig | undefined
@@ -457,7 +470,7 @@ ${renderCommands(commands)}
       silent,
       output,
       "show-timestamps": showTimestamps,
-      "logger-type": loggerTypeOpt,
+      "logger-type": loggerType,
       "log-level": logLevelStr,
     } = argv
     let logger: RootLogger
@@ -465,7 +478,7 @@ ${renderCommands(commands)}
       logger = RootLogger.initialize({
         level: parseLogLevel(logLevelStr),
         storeEntries: false,
-        displayWriterType: getTerminalWriterType({ silent, output, loggerTypeOpt, commandLoggerType: null }),
+        displayWriterType: getTerminalWriterType({ silent, output, loggerType }),
         useEmoji: emoji,
         showTimestamps,
         force: this.initLogger,

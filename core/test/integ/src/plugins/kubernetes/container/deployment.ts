@@ -36,8 +36,8 @@ import { apply } from "../../../../../../src/plugins/kubernetes/kubectl.js"
 import { getAppNamespace } from "../../../../../../src/plugins/kubernetes/namespace.js"
 import { gardenAnnotationKey } from "../../../../../../src/util/string.js"
 import {
+  getK8sSyncUtilImageName,
   k8sReverseProxyImageName,
-  k8sSyncUtilImageName,
   PROXY_CONTAINER_SSH_TUNNEL_PORT,
   PROXY_CONTAINER_SSH_TUNNEL_PORT_NAME,
   PROXY_CONTAINER_USER_NAME,
@@ -451,7 +451,7 @@ describe("kubernetes container deployment handlers", () => {
       expect(resource.spec.template?.spec?.initContainers).to.eql([
         {
           name: "garden-dev-init",
-          image: k8sSyncUtilImageName,
+          image: getK8sSyncUtilImageName(),
           command: ["/bin/sh", "-c", "cp /usr/local/bin/mutagen-agent /.garden/mutagen-agent"],
           imagePullPolicy: "IfNotPresent",
           volumeMounts: [
@@ -800,7 +800,7 @@ describe("kubernetes container deployment handlers", () => {
         const status = statuses[action.name]
         const resources = keyBy(status.detail?.detail["remoteResources"], "kind")
 
-        expect(status.state === "ready")
+        expect(status.state).eql("ready")
         expect(resources.Deployment.spec.template.spec.volumes).to.eql([
           { name: "test", persistentVolumeClaim: { claimName: "volume-module" } },
         ])

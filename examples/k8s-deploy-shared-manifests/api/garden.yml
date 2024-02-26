@@ -76,11 +76,10 @@ variables:
 kind: Test
 name: api-unit
 type: container
-build: api
-timeout: 200
-
 dependencies:
+  - build.api
   - deploy.api
-
+timeout: 200
 spec:
   args: [echo, ok]
+  image: ${actions.build.api.outputs.deploymentImageId}

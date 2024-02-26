@@ -11,12 +11,13 @@ import { sep, resolve, relative, basename, dirname, join } from "path"
 import { load } from "js-yaml"
 import { lint } from "yaml-lint"
 import fsExtra from "fs-extra"
+
 const { pathExists, readFile } = fsExtra
 import { omit, isPlainObject, isArray } from "lodash-es"
 import type { BuildDependencyConfig, ModuleConfig } from "./module.js"
 import { coreModuleSpecSchema, baseModuleSchemaKeys } from "./module.js"
 import { ConfigurationError, FilesystemError, ParameterError } from "../exceptions.js"
-import { DEFAULT_BUILD_TIMEOUT_SEC, DOCS_BASE_URL, GardenApiVersion } from "../constants.js"
+import { DEFAULT_BUILD_TIMEOUT_SEC, GardenApiVersion } from "../constants.js"
 import type { ProjectConfig } from "../config/project.js"
 import { validateWithPath } from "./validation.js"
 import { defaultDotIgnoreFile, listDirectory } from "../util/fs.js"
@@ -33,6 +34,8 @@ import type { Log } from "../logger/log-entry.js"
 import type { Document, DocumentOptions } from "yaml"
 import { parseAllDocuments } from "yaml"
 import { dedent, deline } from "../util/string.js"
+import { makeDocsLink } from "../docs/common.js"
+import { styles } from "../logger/styles.js"
 
 export const configTemplateKind = "ConfigTemplate"
 export const renderTemplateKind = "RenderTemplate"
@@ -47,6 +50,8 @@ The format of the files is determined by the configured file's extension:
 
 _NOTE: The default varfile format will change to YAML in Garden v0.13, since YAML allows for definition of nested objects and arrays._
 `.trim()
+
+export type ObjectPath = (string | number)[]
 
 export interface YamlDocumentWithSource extends Document {
   source: string
@@ -348,6 +353,20 @@ function handleProjectModules(log: Log, projectSpec: ProjectConfig): ProjectConf
       log,
       "Project configuration field `modules` is deprecated in 0.13 and will be removed in 0.14. Please use the `scan` field instead."
     )
+    const scanConfig = projectSpec.scan || {}
+    for (const key of ["include", "exclude"]) {
+      if (projectSpec["modules"][key]) {
+        if (!scanConfig[key]) {
+          scanConfig[key] = projectSpec["modules"][key]
+        } else {
+          log.warn(
+            `Project-level \`${key}\` is set both in \`modules.${key}\` and \`scan.${key}\`. The value from \`scan.${key}\` will be used (and the value from \`modules.${key}\` will not have any effect).`
+          )
+        }
+      }
+    }
+    projectSpec.scan = scanConfig
+    delete projectSpec["modules"]
   }
 
   return projectSpec
@@ -358,7 +377,11 @@ function handleMissingApiVersion(log: Log, projectSpec: ProjectConfig): ProjectC
   if (projectSpec["apiVersion"] === undefined) {
     emitNonRepeatableWarning(
       log,
-      `"apiVersion" is missing in the Project config. Assuming "${GardenApiVersion.v0}" for backwards compatibility with 0.12. The "apiVersion"-field is mandatory when using the new action Kind-configs. A detailed migration guide is available at ${DOCS_BASE_URL}/guides/migrating-to-bonsai`
+      `"apiVersion" is missing in the Project config. Assuming "${
+        GardenApiVersion.v0
+      }" for backwards compatibility with 0.12. The "apiVersion"-field is mandatory when using the new action Kind-configs. A detailed migration guide is available at ${styles.link(
+        makeDocsLink("guides/migrating-to-bonsai")
+      )}`
     )
 
     return { ...projectSpec, apiVersion: GardenApiVersion.v0 }
@@ -560,15 +583,18 @@ export async function loadVarfile({
     const filename = basename(resolvedPath.toLowerCase())
 
     if (filename.endsWith(".json")) {
+      // JSON parser throws a JSON syntax error on completely empty input file,
+      // and returns an empty object for an empty JSON.
       const parsed = JSON.parse(data.toString())
       if (!isPlainObject(parsed)) {
         throw new ConfigurationError({
           message: `Configured variable file ${relPath} must be a valid plain JSON object. Got: ${typeof parsed}`,
         })
       }
-      return parsed
+      return parsed as PrimitiveMap
     } else if (filename.endsWith(".yml") || filename.endsWith(".yaml")) {
-      const parsed = load(data.toString())
+      // YAML parser returns `undefined` for empty files, we interpret that as an empty object.
+      const parsed = load(data.toString()) || {}
       if (!isPlainObject(parsed)) {
         throw new ConfigurationError({
           message: `Configured variable file ${relPath} must be a single plain YAML mapping. Got: ${typeof parsed}`,
@@ -576,9 +602,11 @@ export async function loadVarfile({
       }
       return parsed as PrimitiveMap
     } else {
-      // Note: For backwards-compatibility we fall back on using .env as a default format, and don't specifically
-      // validate the extension for that.
-      return dotenv.parse(await readFile(resolvedPath))
+      // Note: For backwards-compatibility we fall back on using .env as a default format,
+      // and don't specifically validate the extension for that.
+      // The dotenv parser returns an empty object for invalid or empty input file.
+      const parsed = dotenv.parse(data)
+      return parsed as PrimitiveMap
     }
   } catch (error) {
     throw new ConfigurationError({

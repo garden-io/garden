@@ -6,13 +6,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import chalk from "chalk"
 import { merge } from "lodash-es"
 import type { ActionConfig, Action, ExecutedAction, ResolvedAction } from "../../actions/types.js"
 import type { ActionMode } from "../../actions/types.js"
 import type { Garden } from "../../garden.js"
 import type { GardenModule } from "../../types/module.js"
-import { deline } from "../../util/string.js"
+import { dedent, deline } from "../../util/string.js"
 import type { DeepPrimitiveMap, PrimitiveMap } from "../common.js"
 import { joi, joiIdentifier, joiIdentifierMap, joiPrimitive, joiVariables } from "../common.js"
 import type { ProviderMap } from "../provider.js"
@@ -21,6 +20,7 @@ import { exampleVersion, OutputConfigContext } from "./module.js"
 import { TemplatableConfigContext } from "./project.js"
 import { DOCS_BASE_URL } from "../../constants.js"
 import type { WorkflowConfig } from "../workflow.js"
+import { styles } from "../../logger/styles.js"
 
 function mergeVariables({ garden, variables }: { garden: Garden; variables: DeepPrimitiveMap }): DeepPrimitiveMap {
   const mergedVariables: DeepPrimitiveMap = {}
@@ -40,7 +40,11 @@ const actionModeSchema = joi
   .default("default")
   .allow("default", "sync", "local")
   .description(
-    "The mode that the action should be executed in (e.g. 'sync' or 'local' for Deploy actions). Set to 'default' if no special mode is being used."
+    dedent`
+      The mode that the action should be executed in (e.g. 'sync' or 'local' for Deploy actions). Set to 'default' if no special mode is being used.
+
+      Build actions inherit the mode from Deploy actions that depend on them. E.g. If a Deploy action is in 'sync' mode and depends on a Build action, the Build action will inherit the 'sync' mode setting from the Deploy action. This enables installing different tools that may be necessary for different development modes.
+    `
   )
   .example("sync")
 
@@ -302,7 +306,7 @@ export class ActionSpecContext extends OutputConfigContext {
     // Throw specific error when attempting to resolve self
     this.actions[action.kind.toLowerCase()].set(
       name,
-      new ErrorContext(`Action ${chalk.white.bold(action.key())} cannot reference itself.`)
+      new ErrorContext(`Action ${styles.highlight.bold(action.key())} cannot reference itself.`)
     )
 
     if (parentName && templateName) {

@@ -1,5 +1,5 @@
 ---
-order: 95
+order: 10
 title: Using the CLI
 ---
 
@@ -72,7 +72,7 @@ garden deploy my-deploy --sync=*
 ### Executing a command in a running `Deploy` container
 
 ```sh
-garden exec my-deploy <command>
+garden exec my-deploy -- <command>
 ```
 
 ### Executing an interactive shell in a running `Deploy` container
@@ -80,7 +80,7 @@ garden exec my-deploy <command>
 _Note: This assumes that `sh` is available in the container._
 
 ```sh
-garden exec my-deploy sh
+garden exec my-deploy -- sh
 ```
 
 ### Getting the status of your `Deploy`s

@@ -8,11 +8,12 @@ description: The voting UI
 name: vote
 # repositoryUrl: http://github.com/garden-io/garden...
 type: container
-build: vote
 dependencies:
+  - build.vote
   - deploy.api
 spec:
   args: [npm, run, serve]
+  image: ${actions.build.vote.outputs.deploymentImageId}
   sync:
     paths:
       - target: /app/src
@@ -36,17 +37,20 @@ spec:
 kind: Test
 name: vote-unit
 type: container
-build: vote
+dependencies:
+  - build.vote
 spec:
   args: [npm, run, test:unit]
+  image: ${actions.build.vote.outputs.deploymentImageId}
 
 ---
 kind: Test
 name: vote-integ
 type: container
-build: vote
 dependencies:
+  - build.vote
   - deploy.vote
 timeout: 60
 spec:
   args: [npm, run, test:integ]
+  image: ${actions.build.vote.outputs.deploymentImageId}

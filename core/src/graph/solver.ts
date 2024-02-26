@@ -21,12 +21,12 @@ import { gardenEnv } from "../constants.js"
 import type { Garden } from "../garden.js"
 import type { GraphResultEventPayload } from "../events/events.js"
 import { renderDivider, renderDuration, renderMessageWithDivider } from "../logger/util.js"
-import chalk from "chalk"
 import type { CompleteTaskParams, InternalNodeTypes, TaskNode, TaskRequestParams } from "./nodes.js"
 import { getNodeKey, ProcessTaskNode, RequestTaskNode, StatusTaskNode } from "./nodes.js"
 import AsyncLock from "async-lock"
+import { styles } from "../logger/styles.js"
 
-const taskStyle = chalk.cyan.bold
+const taskStyle = styles.highlight.bold
 
 export interface SolveOpts {
   statusOnly?: boolean
@@ -370,6 +370,16 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
    * Processes a single task to completion, handling errors and providing its result to in-progress task batches.
    */
   private async processNode(node: TaskNode, startedAt: Date) {
+    // Check for missing dependencies by calculating the input version so we can handle the exception
+    // as a user error before getting deeper into the control flow (where it would result in an internal
+    // error with a noisy stack trace).
+    try {
+      node.getInputVersion()
+    } catch (error: any) {
+      node.complete({ startedAt, error, aborted: true, result: null })
+      return
+    }
+
     this.logTask(node)
 
     try {
@@ -406,28 +416,28 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
 
         if (status?.aborted || status?.error) {
           // Status is either aborted or failed
-          this.log.silly(`Request ${request.getKey()} status: ${resultToString(status)}`)
+          this.log.silly(() => `Request ${request.getKey()} status: ${resultToString(status)}`)
           this.completeTask({ ...status, node: request })
         } else if (request.statusOnly && status !== undefined) {
           // Status is resolved, and that's all we need
-          this.log.silly(`Request ${request.getKey()} is statusOnly and the status is available. Completing.`)
+          this.log.silly(() => `Request ${request.getKey()} is statusOnly and the status is available. Completing.`)
           this.completeTask({ ...status, node: request })
         } else if (status === undefined) {
           // We're not forcing, and we don't have the status yet, so we ensure that's pending
-          this.log.silly(`Request ${request.getKey()} is missing its status.`)
+          this.log.silly(() => `Request ${request.getKey()} is missing its status.`)
           this.ensurePendingNode(statusNode, request)
         } else if (status.result?.state === "ready" && !task.force) {
-          this.log.silly(`Request ${request.getKey()} has ready status and force=false, no need to process.`)
+          this.log.silly(() => `Request ${request.getKey()} has ready status and force=false, no need to process.`)
           this.completeTask({ ...status, node: request })
         } else {
           const processNode = this.getNode({ type: "process", task, statusOnly: request.statusOnly })
           const result = this.getPendingResult(processNode)
 
           if (result) {
-            this.log.silly(`Request ${request.getKey()} has been processed.`)
+            this.log.silly(() => `Request ${request.getKey()} has been processed.`)
             this.completeTask({ ...result, node: request })
           } else {
-            this.log.silly(`Request ${request.getKey()} should be processed. Status: ${resultToString(status)}`)
+            this.log.silly(() => `Request ${request.getKey()} should be processed. Status: ${resultToString(status)}`)
             this.ensurePendingNode(processNode, request)
           }
         }
@@ -481,7 +491,11 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
     const taskLog = node.task.log.root.createLog({ name: "graph-solver" })
     taskLog.silly({
       msg: `Processing node ${taskStyle(node.getKey())}`,
-      metadata: metadataForLog(node.task, "active"),
+      metadata: metadataForLog({
+        task: node.task,
+        inputVersion: node.getInputVersion(),
+        status: "active",
+      }),
     })
   }
 
@@ -506,7 +520,7 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
     log.error({ msg, rawMsg, error, showDuration: false })
     const divider = renderDivider()
     log.silly(
-      chalk.gray(`Full error with stack trace and wrapped errors:\n${divider}\n${error.toString(true)}\n${divider}`)
+      styles.primary(`Full error with stack trace and wrapped errors:\n${divider}\n${error.toString(true)}\n${divider}`)
     )
   }
 }

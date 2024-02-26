@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import chalk from "chalk"
 import dedent from "dedent"
 import fsExtra from "fs-extra"
 const { pathExists, writeFile, copyFile } = fsExtra
@@ -22,12 +21,17 @@ import { wordWrap } from "../../util/string.js"
 import { PathParameter, StringParameter, BooleanParameter, StringOption } from "../../cli/params.js"
 import { userPrompt } from "../../util/util.js"
 import { DOCS_BASE_URL, GardenApiVersion } from "../../constants.js"
+import { styles } from "../../logger/styles.js"
+import { makeDocsLink } from "../../docs/common.js"
 
 const ignorefileName = ".gardenignore"
 const defaultIgnorefile = dedent`
 # Add paths here that you would like Garden to ignore when building modules and computing versions,
 # using the same syntax as .gitignore files.
-# For more info, see ${DOCS_BASE_URL}/using-garden/configuration-overview#including-excluding-files-and-directories
+# For more info, see ${makeDocsLink(
+  "using-garden/configuration-overview",
+  "#including-excluding-files-and-directories"
+)}
 `
 
 export const defaultProjectConfigFilename = "project.garden.yml"
@@ -138,65 +142,90 @@ export class CreateProjectCommand extends Command<CreateProjectArgs, CreateProje
 
       log.info("")
     }
-    const projectDocURL = `${DOCS_BASE_URL}/using-garden/projects`
-    const projectReferenceURL = `${DOCS_BASE_URL}/reference/project-config`
-    const providersReferenceURL = `${DOCS_BASE_URL}/reference/providers`
-    const remoteK8sReferenceURL = `${DOCS_BASE_URL}/kubernetes-plugins/remote-k8s`
-    const actionsGettingStartedURL = `${DOCS_BASE_URL}/using-garden/actions`
-    const localKubernetesInstallationURL = `${DOCS_BASE_URL}/kubernetes-plugins/local-k8s/install`
+    const projectDocUrl = `${DOCS_BASE_URL}/using-garden/projects`
+    const projectReferenceUrl = `${DOCS_BASE_URL}/reference/project-config`
+    const providersReferenceUrl = `${DOCS_BASE_URL}/reference/providers`
+    const remoteK8sReferenceUrl = `${DOCS_BASE_URL}/kubernetes-plugins/remote-k8s`
+    const actionsGettingStartedUrl = `${DOCS_BASE_URL}/using-garden/actions`
+    const localKubernetesInstallationUrl = `${DOCS_BASE_URL}/kubernetes-plugins/local-k8s/install`
+    const ephemeralKubernetesUrl = `${DOCS_BASE_URL}/kubernetes-plugins/ephemeral-k8s`
+    const variablesAndTemplateStringsUrl = `${DOCS_BASE_URL}/using-garden/variables-and-templating`
+    const firstProjectTutorialUrl = `${DOCS_BASE_URL}/tutorials/your-first-project`
+
     const yaml = dedent`
-    # Documentation about Garden projects can be found at ${projectDocURL}
-    # Reference for Garden projects can be found at ${projectReferenceURL}
+    # Documentation about Garden projects can be found at ${projectDocUrl}
+    # Reference for Garden projects can be found at ${projectReferenceUrl}
 
     apiVersion: ${GardenApiVersion.v1}
     kind: Project
     name: ${name}
 
-    defaultEnvironment: local
+    defaultEnvironment: ephemeral
+
+    variables:
+      # use garden template strings to create a unique namespace for each user.
+      # you can learn more about template strings here: ${variablesAndTemplateStringsUrl}
+      userNamespace: ${name}-${"${kebabCase(local.username)}"}
 
     # Environments typically represent different stages of your development and deployment process.
     environments:
-      # Use this environment to develop in your local Kubernetes solution of choice.
-      # Installation instructions and list of supported local Kubernetes environments: ${localKubernetesInstallationURL}
+      # Use this environment to build, develop, and test in a temporary, remote Kubernetes cluster that's managed by Garden.
+      # Learn more about Garden managed ephemeral clusters here: ${ephemeralKubernetesUrl}
+      - name: ephemeral
+        defaultNamespace: ${"${var.userNamespace}"}
+
+      # Use this environment to build, develop, and test in your local Kubernetes solution of choice.
+      # Installation instructions and list of supported local Kubernetes environments: ${localKubernetesInstallationUrl}
       - name: local
-        defaultNamespace: garden-local
+        defaultNamespace: ${"${var.userNamespace}"}
+        # Set the hostname as a variable so it can be referenced by actions
+        variables:
+          hostname: local.app.garden
 
-      # Use this environment to develop in remote, production-like environments that scale with your stack.
-      # This means you don't need any dependencies on your local machine, even the builds can be performed remotely.
+      # Use this environment to build, develop, and test in remote, production-like environments that scale with your stack.
       # It enables sharing build and test caches with your entire team, which can significantly speed up pipelines and development.
-      - name: remote
-        defaultNamespace: garden-remote-${"${local.username}"}
+      - name: remote-dev
+        defaultNamespace: ${"${var.userNamespace}"}
+        # Set the hostname as a variable so it can be referenced by actions
+        variables:
+          hostname: <add-cluster-hostname-here>
 
+      # Similar to the remote-dev environment but meant for staging environments. Use this to e.g. deploy preview
+      # environments during code review.
       - name: staging
         # Ask before performing potentially destructive commands like "deploy".
         production: true
-        defaultNamespace: staging
+        # Isolate namespaces by git branch namespace in the staging environment
+        defaultNamespace: ${name}-${"${git.branch}"}
 
     # Providers make action types available in your Garden configuration and tell Garden how to connect with your infrastructure.
     # For example the kubernetes and local-kubernetes providers allow you to use the container, helm and kubernetes action types.
-    # All available providers and their configuration options are listed in the reference docs: ${providersReferenceURL}
+    # All available providers and their configuration options are listed in the reference docs: ${providersReferenceUrl}
     providers:
+      - name: ephemeral-kubernetes
+        environments: [ephemeral]
       - name: local-kubernetes
-        environments:
-          - local
+        environments: [local]
 
-      # To configure the remote kubernetes providers, follow the steps at ${remoteK8sReferenceURL}
+      # To configure the remote kubernetes providers, follow the steps at ${remoteK8sReferenceUrl}
       - name: kubernetes
-        environments:
-          - remote
-        context: # ... your remote development kubecontext here
+        environments: [remote-dev]
+        # context: ...
       - name: kubernetes
-        environments:
-          - staging
-        context: # ... your staging kubecontext here
+        environments: [staging]
+        # context:
 
     # Next step: Define actions to tell Garden how to build, test and deploy your code.
-    # You can find out more here: ${actionsGettingStartedURL}
+    # You can learn more by going through our 'First Project' tutorial at: ${firstProjectTutorialUrl}
+    # Or dive right in the action guide: ${actionsGettingStartedUrl}
     `
 
     await addConfig(configPath, yaml)
 
-    log.info(chalk.green(`-> Created new project config in ${chalk.bold.white(relative(process.cwd(), configPath))}`))
+    log.success({
+      msg: `-> Created new project config in ${styles.highlight(relative(process.cwd(), configPath))}`,
+      showDuration: false,
+    })
 
     const ignoreFilePath = resolve(configDir, ignorefileName)
     let ignoreFileCreated = false
@@ -206,20 +235,19 @@ export class CreateProjectCommand extends Command<CreateProjectArgs, CreateProje
 
       if (await pathExists(gitIgnorePath)) {
         await copyFile(gitIgnorePath, ignoreFilePath)
-        const gitIgnoreRelPath = chalk.bold.white(relative(process.cwd(), ignoreFilePath))
-        log.info(
-          chalk.green(
+        const gitIgnoreRelPath = styles.accent.bold(relative(process.cwd(), ignoreFilePath))
+        log.success(
+          styles.success(
             `-> Copied the .gitignore file at ${gitIgnoreRelPath} to a new .gardenignore in the same directory. Please edit the .gardenignore file if you'd like Garden to include or ignore different files.`
           )
         )
       } else {
         await writeFile(ignoreFilePath, defaultIgnorefile + "\n")
-        const gardenIgnoreRelPath = chalk.bold.white(relative(process.cwd(), ignoreFilePath))
-        log.info(
-          chalk.green(
-            `-> Created default .gardenignore file at ${gardenIgnoreRelPath}. Please edit the .gardenignore file to add files or patterns that Garden should ignore when scanning and building.`
-          )
-        )
+        const gardenIgnoreRelPath = styles.highlight(relative(process.cwd(), ignoreFilePath))
+        log.info({
+          msg: `-> Created default .gardenignore file at ${gardenIgnoreRelPath}. Please edit the .gardenignore file to add files or patterns that Garden should ignore when scanning and building.`,
+          showDuration: false,
+        })
       }
 
       ignoreFileCreated = true
@@ -228,8 +256,8 @@ export class CreateProjectCommand extends Command<CreateProjectArgs, CreateProje
     log.info("")
 
     // This is to avoid `prettier` messing with the string formatting...
-    const configFilesUrl = chalk.cyan.underline(`${DOCS_BASE_URL}/using-garden/configuration-overview`)
-    const referenceUrl = chalk.cyan.underline(projectReferenceURL)
+    const configFilesUrl = styles.highlight.underline(`${DOCS_BASE_URL}/using-garden/configuration-overview`)
+    const referenceUrl = styles.highlight.underline(projectReferenceUrl)
 
     log.info(
       wordWrap(

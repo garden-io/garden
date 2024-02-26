@@ -10,8 +10,8 @@ import { performance } from "perf_hooks"
 import { sum, sortBy } from "lodash-es"
 import { gardenEnv } from "../constants.js"
 import { renderTable, tablePresets } from "./string.js"
-import chalk from "chalk"
 import { isPromise } from "./objects.js"
+import { styles } from "../logger/styles.js"
 
 const skipProfiling = process.env.GARDEN_SKIP_TEST_PROFILING
 
@@ -52,20 +52,20 @@ export class Profiler {
       const split = key.split("#")
 
       if (split.length === 1) {
-        return chalk.greenBright(key)
+        return styles.success(key)
       } else {
-        return chalk.cyan(split[0]) + "#" + chalk.greenBright(split[1])
+        return styles.highlight(split[0]) + "#" + styles.success(split[1])
       }
     }
 
     function formatDuration(duration: number) {
-      return duration.toFixed(2) + chalk.gray(" ms")
+      return duration.toFixed(2) + styles.primary(" ms")
     }
 
     const keys = Object.keys(this.data)
 
     const heading = ["Function/method", "# Invocations", "Total ms", "Avg. ms", "First ms"].map((h) =>
-      chalk.white.underline(h)
+      styles.accent.underline(h)
     )
     const tableData = sortBy(
       keys.map((key) => {
@@ -90,13 +90,13 @@ export class Profiler {
     const totalRows = keys.length
 
     if (totalRows > maxReportRows) {
-      tableData.push([chalk.gray("...")])
+      tableData.push([styles.primary("...")])
     }
 
     const table = renderTable([heading, [], ...tableData], tablePresets["no-borders"])
 
     return `
- ${chalk.white.bold("Profiling data:")}
+ ${styles.accent.bold("Profiling data:")}
  ─────────────────────────────────────────────────────────────────────────────────────────
 ${table}
  ─────────────────────────────────────────────────────────────────────────────────────────

@@ -9,9 +9,7 @@ description: >-
 
 Garden lets you spin up **production-like environments** for development, testing, and CI **on demand**. It enables teams to use the **same configuration** and workflows for **every stage of software delivery**—and dramatically **speeds up builds and test runs** via smart caching.
 
-You can get started in minutes with the new [Garden Web Dashboard](https://app.garden.io)! Just click the link and follow the interactive guide to deploy your first example project with Garden.
-
-![Short tour of the features of the Garden Web Dashboard including command history, visualized dependency graph, and the Garden dev console](https://ce-content.s3.fr-par.scw.cloud/web-dashboard-gif.gif)
+You can get started in minutes with the new [Garden dashboard](https://app.garden.io)! Just click the link and follow the interactive guide to deploy your first example project with Garden.
 
 If there's something you can't find in our docs, we happily encourage you to [join our Discord community](https://discord.gg/FrmhuUjFs6) and/or file an issue on [our GitHub repo](https://github.com/garden-io/garden). We're more than happy to help!
 
@@ -34,14 +32,14 @@ If there's something you can't find in our docs, we happily encourage you to [jo
       <td><a href="./overview/how-garden-works.md">How Garden Works</a></td>
     </tr>
     <tr>
-      <td><strong>Use Cases</strong></td>
-      <td>Learn how teams use Garden in the real world to deliver cloud native apps faster</td>
-      <td><a href="./overview/use-cases.md">Use Cases</a></td>
-    </tr>
-    <tr>
       <td><strong>Garden vs Other Tools</strong></td>
       <td>The cloud native tooling space is complex—learn where Garden fits in</td>
       <td><a href="./overview/garden-vs-other-tools.md">Garden vs Other Tools</a></td>
+    </tr>
+    <tr>
+      <td><strong>Adopting Garden</strong></td>
+      <td>A high level overview of how teams typically adopt and roll out Garden</td>
+      <td><a href="./overview/adopting-garden.md">Adopting Garden</a></td>
     </tr>
   </tbody>
 </table>
@@ -63,14 +61,14 @@ If there's something you can't find in our docs, we happily encourage you to [jo
       <td><a href="./getting-started/quickstart.md">Quickstart Guide</a></td>
     </tr>
     <tr>
-      <td><strong>Adopting Garden</strong></td>
-      <td>Once you've kicked the tires with our quickstart example, come here to learn how to adopt Garden for your own project</td>
-      <td><a href="./overview/adopting-garden.md">Adopting Garden</a></td>
-    </tr>
-    <tr>
       <td>"<strong>First Project" Tutorial</strong></td>
       <td>This tutorial walks through the step-by-step process of configuring your first Garden project</td>
       <td><a href="./tutorials/your-first-project/README.md">Your First Project</a></td>
+    </tr>
+    <tr>
+      <td><strong>Next Steps</strong></td>
+      <td>Once you've kicked the tires with our quickstart example, come here to learn how to add Garden to your own project</td>
+      <td><a href="./getting-started/next-steps.md">Next Steps</a></td>
     </tr>
   </tbody>
 </table>

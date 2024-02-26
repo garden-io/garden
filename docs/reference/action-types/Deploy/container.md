@@ -130,6 +130,14 @@ For other action kinds, the action is skipped in all scenarios, and dependency d
 | --------- | ------- | -------- |
 | `boolean` | `false` | No       |
 
+### `environments[]`
+
+If set, the action is only enabled for the listed environment types. This is effectively a cleaner shorthand for the `disabled` field with an expression for environments. For example, `environments: ["prod"]` is equivalent to `disabled: ${environment.name != "prod"}`.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
+
 ### `include[]`
 
 Specify a list of POSIX-style paths or globs that should be regarded as source files for this action, and thus will affect the computed _version_ of the action.
@@ -556,7 +564,10 @@ Specify one or more source files or directories to automatically sync with the r
 
 [spec](#spec) > [sync](#specsync) > [paths](#specsyncpaths) > source
 
-POSIX-style or Windows path of the directory to sync to the target. Defaults to the config's directory if no value is provided.
+Path to a local directory to be synchronized with the target.
+This should generally be a templated path to another action's source path (e.g. `${actions.build.my-container-image.sourcePath}`), or a relative path.
+If a path is hard-coded, we recommend sticking with relative paths here, and using forward slashes (`/`) as a delimiter, as Windows-style paths with back slashes (`\`) and absolute paths will work on some platforms, but they are not portable and will not work for users on other platforms.
+Defaults to the Deploy action's config's directory if no value is provided.
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |
@@ -1187,6 +1198,8 @@ my-variable: ${actions.deploy.my-deploy.sourcePath}
 ### `${actions.deploy.<name>.mode}`
 
 The mode that the action should be executed in (e.g. 'sync' or 'local' for Deploy actions). Set to 'default' if no special mode is being used.
+
+Build actions inherit the mode from Deploy actions that depend on them. E.g. If a Deploy action is in 'sync' mode and depends on a Build action, the Build action will inherit the 'sync' mode setting from the Deploy action. This enables installing different tools that may be necessary for different development modes.
 
 | Type     | Default     |
 | -------- | ----------- |

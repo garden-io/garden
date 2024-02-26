@@ -29,7 +29,7 @@ const spec = {
 export const gradleSpec: PluginToolSpec = {
   name: "gradle",
   version: gradleVersion,
-  description: "The gradle CLI.",
+  description: `The gradle CLI, v${gradleVersion}`,
   type: "binary",
   builds: [
     {

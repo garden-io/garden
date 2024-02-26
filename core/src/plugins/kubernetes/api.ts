@@ -31,6 +31,7 @@ import {
   V1Deployment,
   V1Secret,
   V1Service,
+  V1ServiceAccount,
   ServerConfiguration,
   createConfiguration,
 } from "@kubernetes/client-node"
@@ -129,6 +130,15 @@ const crudMap = {
     delete: "deleteNamespacedService",
     patch: "patchNamespacedService",
   },
+  ServiceAccount: {
+    cls: new V1ServiceAccount(),
+    group: "core",
+    read: "readNamespacedServiceAccount",
+    create: "createNamespacedServiceAccount",
+    replace: "replaceNamespacedServiceAccount",
+    delete: "deleteNamespacedServiceAccount",
+    patch: "patchNamespacedServiceAccount",
+  },
 }
 
 type CrudMap = typeof crudMap
@@ -159,9 +169,10 @@ interface List {
   items?: Array<any>
 }
 
-type WrappedList<T extends List> = T["items"] extends Array<infer V extends BaseResource | KubernetesObject>
-  ? KubernetesServerList<V>
-  : KubernetesServerList
+type WrappedList<T extends List> =
+  T["items"] extends Array<infer V extends BaseResource | KubernetesObject>
+    ? KubernetesServerList<V>
+    : KubernetesServerList
 
 // This describes the API classes on KubeApi after they've been wrapped with KubeApi.wrapApi()
 // prettier-ignore
@@ -418,7 +429,17 @@ export class KubeApi {
     retryOpts?: RetryOpts
   }): Promise<Response> {
     const baseUrl = this.config.getCurrentCluster()!.server
-    const url = new URL(path, baseUrl)
+
+    // When using URL with a base path, the merging of the paths doesn't work as you are used to from most node request libraries.
+    // It uses the semantics of browser URLs where a path starting with `/` is seen as absolute and thus it does not get merged with the base path.
+    // See: https://developer.mozilla.org/en-US/docs/Learn/Common_questions/Web_mechanics/What_is_a_URL#absolute_urls_vs._relative_urls
+    // Similarly, when the base path does not ends with a `/`, the last path segment is seen as a resource and also removed from the joined path.
+    // That's why we need to remove the leading `/` from the path and ensure that the base path ends with a `/`.
+
+    const relativePath = path.replace(/^\//, "")
+    const absoluteBaseUrl = baseUrl.endsWith("/") ? baseUrl : baseUrl + "/"
+
+    const url = new URL(relativePath, absoluteBaseUrl)
 
     for (const [key, value] of Object.entries(opts.query ?? {})) {
       url.searchParams.set(key, value)
@@ -451,7 +472,7 @@ export class KubeApi {
         fetchOptions.agent = await createProxyAgent(fetchOptions.agent)
 
         try {
-          log.silly(`${requestOptions.method.toUpperCase()} ${url}`)
+          log.silly(() => `${requestOptions.method.toUpperCase()} ${url}`)
           const response = await fetch(url, fetchOptions)
 
           if (response.status >= 400) {
@@ -499,7 +520,7 @@ export class KubeApi {
    * Fetch the specified resource from the cluster.
    */
   async read({ log, namespace, apiVersion, kind, name }: ReadParams): Promise<KubernetesResource> {
-    log.silly(`Fetching Kubernetes resource ${apiVersion}/${kind}/${name}`)
+    log.silly(() => `Fetching Kubernetes resource ${apiVersion}/${kind}/${name}`)
 
     const typePath = await this.getResourceTypeApiPath({
       log,
@@ -523,7 +544,7 @@ export class KubeApi {
    * Given a manifest, attempt to read the matching resource from the cluster.
    */
   async readBySpec({ log, namespace, manifest }: ReadBySpecParams): Promise<KubernetesResource> {
-    log.silly(`Fetching Kubernetes resource ${manifest.apiVersion}/${manifest.kind}/${manifest.metadata.name}`)
+    log.silly(() => `Fetching Kubernetes resource ${manifest.apiVersion}/${manifest.kind}/${manifest.metadata.name}`)
 
     const apiPath = await this.getResourceApiPathFromManifest({ manifest, log, namespace })
 
@@ -625,7 +646,7 @@ export class KubeApi {
   }
 
   async replace({ log, resource, namespace }: { log: Log; resource: KubernetesServerResource; namespace?: string }) {
-    log.silly(`Replacing Kubernetes resource ${resource.apiVersion}/${resource.kind}/${resource.metadata.name}`)
+    log.silly(() => `Replacing Kubernetes resource ${resource.apiVersion}/${resource.kind}/${resource.metadata.name}`)
 
     const apiPath = await this.getResourceApiPathFromManifest({ manifest: resource, log, namespace })
 
@@ -653,7 +674,7 @@ export class KubeApi {
   }
 
   async deleteBySpec({ namespace, manifest, log }: { namespace: string; manifest: KubernetesResource; log: Log }) {
-    log.silly(`Deleting Kubernetes resource ${manifest.apiVersion}/${manifest.kind}/${manifest.metadata.name}`)
+    log.silly(() => `Deleting Kubernetes resource ${manifest.apiVersion}/${manifest.kind}/${manifest.metadata.name}`)
 
     const apiPath = await this.getResourceApiPathFromManifest({ manifest, log, namespace })
 

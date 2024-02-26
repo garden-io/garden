@@ -13,7 +13,9 @@ Modules are deprecated and will be removed in version `0.14`. Please use [action
 
 Specify a Helm chart (either in your repository or remote from a registry) to deploy.
 
-Refer to the [Helm guide](../../k8s-plugins/action-types/helm.md) for usage instructions.
+Refer to the [Helm guide](../../k8s-plugins/actions/deploy/helm.md) for usage instructions.
+
+Garden uses Helm 3.14.0.
 
 Below is the full schema reference. For an introduction to configuring Garden modules, please look at our [Configuration
 guide](../../using-garden/configuration-overview.md).
@@ -110,7 +112,7 @@ exclude:
 # garden.yml file.
 repositoryUrl:
 
-# When false, disables pushing this module to remote registries.
+# When false, disables pushing this module to remote registries via the publish command.
 allowPublish: true
 
 # A list of files to write to the module directory when resolving this module. This is useful to automatically
@@ -243,8 +245,13 @@ sync:
 
   # Specify one or more source files or directories to automatically sync with the running container.
   paths:
-    - # POSIX-style or Windows path of the directory to sync to the target. Defaults to the config's directory if no
-      # value is provided.
+    - # Path to a local directory to be synchronized with the target.
+      # This should generally be a templated path to another action's source path (e.g.
+      # `${actions.build.my-container-image.sourcePath}`), or a relative path.
+      # If a path is hard-coded, we recommend sticking with relative paths here, and using forward slashes (`/`) as a
+      # delimiter, as Windows-style paths with back slashes (`\`) and absolute paths will work on some platforms, but
+      # they are not portable and will not work for users on other platforms.
+      # Defaults to the Deploy action's config's directory if no value is provided.
       source: .
 
       # POSIX-style absolute path to sync to inside the container. The root path (i.e. "/") is not allowed.
@@ -809,7 +816,7 @@ repositoryUrl: "git+https://github.com/org/repo.git#v2.0"
 
 ### `allowPublish`
 
-When false, disables pushing this module to remote registries.
+When false, disables pushing this module to remote registries via the publish command.
 
 | Type      | Default | Required |
 | --------- | ------- | -------- |
@@ -1099,7 +1106,10 @@ Specify one or more source files or directories to automatically sync with the r
 
 [sync](#sync) > [paths](#syncpaths) > source
 
-POSIX-style or Windows path of the directory to sync to the target. Defaults to the config's directory if no value is provided.
+Path to a local directory to be synchronized with the target.
+This should generally be a templated path to another action's source path (e.g. `${actions.build.my-container-image.sourcePath}`), or a relative path.
+If a path is hard-coded, we recommend sticking with relative paths here, and using forward slashes (`/`) as a delimiter, as Windows-style paths with back slashes (`\`) and absolute paths will work on some platforms, but they are not portable and will not work for users on other platforms.
+Defaults to the Deploy action's config's directory if no value is provided.
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |

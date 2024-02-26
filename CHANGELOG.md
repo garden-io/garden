@@ -1,4 +1,155 @@
 
+<a name="0.13.26"></a>
+## [0.13.26](https://github.com/garden-io/garden/compare/0.13.25...0.13.26) (2024-02-22)
+
+### Bug Fixes
+
+* do not fail on empty YAML varfiles ([#5759](https://github.com/garden-io/garden/issues/5759)) ([e5732aa5f](https://github.com/garden-io/garden/commit/e5732aa5f))
+* **core:** better Zod validation error messages ([#5745](https://github.com/garden-io/garden/issues/5745)) ([dc49f10d4](https://github.com/garden-io/garden/commit/dc49f10d4))
+* **core:** versioning fix for remote sources ([#5735](https://github.com/garden-io/garden/issues/5735)) ([91bfd4816](https://github.com/garden-io/garden/commit/91bfd4816))
+* **k8s:** retry websocket errors ([#5755](https://github.com/garden-io/garden/issues/5755)) ([c8b88c4bd](https://github.com/garden-io/garden/commit/c8b88c4bd))
+* **module-conversion:** skip omitted build deps ([#5727](https://github.com/garden-io/garden/issues/5727)) ([c734d0f38](https://github.com/garden-io/garden/commit/c734d0f38))
+* **mutagen:** call mutagen commands from the right cwd ([#5734](https://github.com/garden-io/garden/issues/5734)) ([98a650db7](https://github.com/garden-io/garden/commit/98a650db7))
+
+### Features
+
+* **k8s:** support mode=max for AWS ECR with cluster-buildkit build mode ([#5758](https://github.com/garden-io/garden/issues/5758)) ([6a94cec3b](https://github.com/garden-io/garden/commit/6a94cec3b))
+
+### Improvements
+
+* **core:** less noisy missing dep errors ([#5732](https://github.com/garden-io/garden/issues/5732)) ([91d25bcae](https://github.com/garden-io/garden/commit/91d25bcae))
+* **k8s:** update `kubectl` version to `1.29.2` ([#5756](https://github.com/garden-io/garden/issues/5756)) ([1f12b3fe0](https://github.com/garden-io/garden/commit/1f12b3fe0))
+* **mutagen:** use faux SSH command to use original Mutagen ([#5551](https://github.com/garden-io/garden/issues/5551)) ([e778e9750](https://github.com/garden-io/garden/commit/e778e9750))
+* **sync:** update Mutagen to 0.17.5 ([#5744](https://github.com/garden-io/garden/issues/5744)) ([eec7832b7](https://github.com/garden-io/garden/commit/eec7832b7))
+
+<a name="0.13.25"></a>
+## [0.13.25](https://github.com/garden-io/garden/compare/0.13.24...0.13.25) (2024-02-13)
+
+### Bug Fixes
+
+* **buildkit:** run command from context dir ([#5712](https://github.com/garden-io/garden/issues/5712)) ([f93ecc6e7](https://github.com/garden-io/garden/commit/f93ecc6e7))
+* **ci:** macos cross build error ([#5694](https://github.com/garden-io/garden/issues/5694)) ([4de3cc27c](https://github.com/garden-io/garden/commit/4de3cc27c))
+* **cli:** only overwrite terminal writer if using Ink ([#5688](https://github.com/garden-io/garden/issues/5688)) ([171912919](https://github.com/garden-io/garden/commit/171912919))
+* **core:** don't execute disabled dependencies ([#5697](https://github.com/garden-io/garden/issues/5697)) ([5bcb0960b](https://github.com/garden-io/garden/commit/5bcb0960b))
+* **get-config:** omit internal field from output ([#5716](https://github.com/garden-io/garden/issues/5716)) ([3b6579bac](https://github.com/garden-io/garden/commit/3b6579bac))
+* **git:** fix file list caching bug for repo mode ([#5710](https://github.com/garden-io/garden/issues/5710)) ([ca7f997f4](https://github.com/garden-io/garden/commit/ca7f997f4))
+* **k8s:** don't throw when log fetching fails ([#5690](https://github.com/garden-io/garden/issues/5690)) ([993431923](https://github.com/garden-io/garden/commit/993431923))
+
+### Features
+
+* **config:** add environments field on actions ([#5686](https://github.com/garden-io/garden/issues/5686)) ([a7bcf8c6b](https://github.com/garden-io/garden/commit/a7bcf8c6b))
+
+### Improvements
+
+* update `kubectl` version to `1.29.1` ([#5693](https://github.com/garden-io/garden/issues/5693)) ([d8fc63fad](https://github.com/garden-io/garden/commit/d8fc63fad))
+* **core:** include path in template errors ([#5692](https://github.com/garden-io/garden/issues/5692)) ([5dfb0f7cb](https://github.com/garden-io/garden/commit/5dfb0f7cb))
+* **ext-tools:** always print versions in `garden tools` output ([#5718](https://github.com/garden-io/garden/issues/5718)) ([e88bb86bc](https://github.com/garden-io/garden/commit/e88bb86bc))
+* **helm:** update helm to `3.14.0` ([#5698](https://github.com/garden-io/garden/issues/5698)) ([115d85cae](https://github.com/garden-io/garden/commit/115d85cae))
+
+<a name="0.13.24"></a>
+## [0.13.24](https://github.com/garden-io/garden/compare/0.13.23...0.13.24) (2024-01-30)
+
+### Bug Fixes
+
+* copy test artifacts in interactive mode ([#5630](https://github.com/garden-io/garden/issues/5630)) ([e0a3671f5](https://github.com/garden-io/garden/commit/e0a3671f5))
+* remove confusing warning message ([#5628](https://github.com/garden-io/garden/issues/5628)) ([68ad7630f](https://github.com/garden-io/garden/commit/68ad7630f))
+* **core:** fix "repo" scan mode for remote actions ([#5660](https://github.com/garden-io/garden/issues/5660)) ([d38f1c5fb](https://github.com/garden-io/garden/commit/d38f1c5fb))
+* **core:** fix config error when using project.modules ([#5626](https://github.com/garden-io/garden/issues/5626)) ([4d017e4ee](https://github.com/garden-io/garden/commit/4d017e4ee))
+* **examples:** ensure Vue web servers start correctly ([#5668](https://github.com/garden-io/garden/issues/5668)) ([1979e0e85](https://github.com/garden-io/garden/commit/1979e0e85))
+* **examples:** set correct header for patch resources example ([#5604](https://github.com/garden-io/garden/issues/5604)) ([89d5396a6](https://github.com/garden-io/garden/commit/89d5396a6))
+* **k8s:** remove k8s manifest logs on apply ([#5665](https://github.com/garden-io/garden/issues/5665)) ([466ac8c14](https://github.com/garden-io/garden/commit/466ac8c14))
+* **module-conversion:** more fixes to PVC type ([#5681](https://github.com/garden-io/garden/issues/5681)) ([96059408c](https://github.com/garden-io/garden/commit/96059408c))
+* **module-conversion:** always include build deps ([#5671](https://github.com/garden-io/garden/issues/5671)) ([47c24d54d](https://github.com/garden-io/garden/commit/47c24d54d))
+* **template:** do not partially resolve function arg objects with special keys ([#5670](https://github.com/garden-io/garden/issues/5670)) ([5b7aea4d8](https://github.com/garden-io/garden/commit/5b7aea4d8))
+
+<a name="0.13.23"></a>
+## [0.13.23](https://github.com/garden-io/garden/compare/0.13.22...0.13.23) (2023-12-22)
+
+### Bug Fixes
+
+* **cli:** fallback to non-highlighted yaml if error occurs ([#5560](https://github.com/garden-io/garden/issues/5560)) ([63eff7db2](https://github.com/garden-io/garden/commit/63eff7db2))
+* **core:** inherit Build action mode from dependant Deploy action ([#5589](https://github.com/garden-io/garden/issues/5589)) ([e0505642e](https://github.com/garden-io/garden/commit/e0505642e))
+* **git:** fix `exclude` filter in `repo` Git scan mode ([#5526](https://github.com/garden-io/garden/issues/5526)) ([5ef9998a9](https://github.com/garden-io/garden/commit/5ef9998a9))
+* **helm:** fix `sha256` hash for `linux-arm64` binary ([#5563](https://github.com/garden-io/garden/issues/5563)) ([ca0d9de97](https://github.com/garden-io/garden/commit/ca0d9de97))
+* **jib:** fix OpenJDK `sha256` hashes for `linux-arm64` binaries ([#5566](https://github.com/garden-io/garden/issues/5566)) ([d37e44d73](https://github.com/garden-io/garden/commit/d37e44d73))
+* **mavend:** fix Mavend `sha256` hash for `windows-amd64` binary ([#5565](https://github.com/garden-io/garden/issues/5565)) ([85e57e5a4](https://github.com/garden-io/garden/commit/85e57e5a4))
+* **publish:** respect the `spec.publishId` in build action config ([#5585](https://github.com/garden-io/garden/issues/5585)) ([f60cde74c](https://github.com/garden-io/garden/commit/f60cde74c))
+* **terraform:** fix `sha256` hashes for some old terraform binaries ([#5564](https://github.com/garden-io/garden/issues/5564)) ([f418f65c0](https://github.com/garden-io/garden/commit/f418f65c0))
+
+<a name="0.13.22"></a>
+## [0.13.22](https://github.com/garden-io/garden/compare/0.13.21...0.13.22) (2023-12-13)
+
+### Bug Fixes
+
+* if using `tlsCertificates` make the `secretRef` mandatory ([#5533](https://github.com/garden-io/garden/issues/5533)) ([02b809f7c](https://github.com/garden-io/garden/commit/02b809f7c))
+* adding an error handler to the segment client ([#5505](https://github.com/garden-io/garden/issues/5505)) ([540498c2f](https://github.com/garden-io/garden/commit/540498c2f))
+* **commands:** print section and tags in color ([#5525](https://github.com/garden-io/garden/issues/5525)) ([5e93e0785](https://github.com/garden-io/garden/commit/5e93e0785))
+* **commands:** print log command metadata in secondary color ([#5509](https://github.com/garden-io/garden/issues/5509)) ([8141e90cd](https://github.com/garden-io/garden/commit/8141e90cd))
+* **core:** avoid unnecessary config version changes ([#5508](https://github.com/garden-io/garden/issues/5508)) ([61eac7601](https://github.com/garden-io/garden/commit/61eac7601))
+* **dev:** fix reload error when using templates ([#5329](https://github.com/garden-io/garden/issues/5329)) ([975231032](https://github.com/garden-io/garden/commit/975231032))
+* **git:** fix `exclude` files handling in `subtree` Git repo scan mode ([#5504](https://github.com/garden-io/garden/issues/5504)) ([358aeabb9](https://github.com/garden-io/garden/commit/358aeabb9))
+* **git:** prefer project-level repo scan mode over env variable ([#5493](https://github.com/garden-io/garden/issues/5493)) ([3c081762b](https://github.com/garden-io/garden/commit/3c081762b))
+* **sync-mode:** showing undefined when sync status is not-deployed ([#5522](https://github.com/garden-io/garden/issues/5522)) ([9f967688f](https://github.com/garden-io/garden/commit/9f967688f))
+
+### Improvements
+
+* **cloud:** log 'not logged in' msg at info level for community ([#5553](https://github.com/garden-io/garden/issues/5553)) ([cad50600a](https://github.com/garden-io/garden/commit/cad50600a))
+* **dashboard:** better warning logs ([#5538](https://github.com/garden-io/garden/issues/5538)) ([c1d200794](https://github.com/garden-io/garden/commit/c1d200794))
+* **ephemeral-kubernetes:** tweak text in error message ([#5535](https://github.com/garden-io/garden/issues/5535)) ([e5a7d2972](https://github.com/garden-io/garden/commit/e5a7d2972))
+* **helm:** update helm to `3.12.2` ([#5497](https://github.com/garden-io/garden/issues/5497)) ([56c9b4ff6](https://github.com/garden-io/garden/commit/56c9b4ff6))
+* **logger:** update some log lines after style changes ([#5507](https://github.com/garden-io/garden/issues/5507)) ([035bd9e93](https://github.com/garden-io/garden/commit/035bd9e93))
+
+<a name="0.13.21"></a>
+## [0.13.21](https://github.com/garden-io/garden/compare/0.13.20...0.13.21) (2023-11-24)
+
+### Bug Fixes
+
+* **exec:** don't split quoted arguments in `exec` plugin's command (#5470) ([34b07feb3](https://github.com/garden-io/garden/commit/34b07feb3))
+* **core:** log exec provider resolution at info level ([#5469](https://github.com/garden-io/garden/issues/5469)) ([539abf905](https://github.com/garden-io/garden/commit/539abf905))
+* **git:** fix confusing error messages on exit code 128 ([#5439](https://github.com/garden-io/garden/issues/5439)) ([2779705b6](https://github.com/garden-io/garden/commit/2779705b6))
+* **k8s:** fix paths in requests to kubernetes api ([#5476](https://github.com/garden-io/garden/issues/5476)) ([783cc66a9](https://github.com/garden-io/garden/commit/783cc66a9))
+* **k8s:** read tls-server-name correctly from kubeconfig ([#5466](https://github.com/garden-io/garden/issues/5466)) ([554d964ff](https://github.com/garden-io/garden/commit/554d964ff))
+
+### Features
+
+* respect `NO_COLOR` env var ([#5451](https://github.com/garden-io/garden/issues/5451)) ([889552f87](https://github.com/garden-io/garden/commit/889552f87))
+
+### Improvements
+
+* **core:** better action lifecycle logs ([#5428](https://github.com/garden-io/garden/issues/5428)) ([65653b92e](https://github.com/garden-io/garden/commit/65653b92e))
+* **logger:** some minor fixes ([#5475](https://github.com/garden-io/garden/issues/5475)) ([b1288039f](https://github.com/garden-io/garden/commit/b1288039f))
+* **logger:** use 'white' as primary color ([#5465](https://github.com/garden-io/garden/issues/5465)) ([b8e232cd9](https://github.com/garden-io/garden/commit/b8e232cd9))
+* **logger:** better provider resolution lifecycle logs ([#5464](https://github.com/garden-io/garden/issues/5464)) ([7d5557fc3](https://github.com/garden-io/garden/commit/7d5557fc3))
+* **logger:** various tweaks to log lines ([#5452](https://github.com/garden-io/garden/issues/5452)) ([11f76148b](https://github.com/garden-io/garden/commit/11f76148b))
+
+<a name="0.13.20"></a>
+## [0.13.20](https://github.com/garden-io/garden/compare/0.13.19...0.13.20) (2023-11-16)
+
+### Bug Fixes
+
+* fix Windows file tree ([#5364](https://github.com/garden-io/garden/issues/5364)) ([c5c3c66f4](https://github.com/garden-io/garden/commit/c5c3c66f4))
+* always resolve symlinks for the executable path in the self-updater ([#5352](https://github.com/garden-io/garden/issues/5352)) ([7ee19dd72](https://github.com/garden-io/garden/commit/7ee19dd72))
+* **examples:** fix typo in k8s example + fix comment ([#5337](https://github.com/garden-io/garden/issues/5337)) ([098d59ea4](https://github.com/garden-io/garden/commit/098d59ea4))
+* **garden-sea:** resolve symlinks for GARDEN_SEA_EXECUTABLE_PATH ([#5353](https://github.com/garden-io/garden/issues/5353)) ([aba79f50d](https://github.com/garden-io/garden/commit/aba79f50d))
+* **sync-mode:** avoid collisions in sync key prefixes ([#5409](https://github.com/garden-io/garden/issues/5409)) ([9edc9ac78](https://github.com/garden-io/garden/commit/9edc9ac78))
+* **sync-mode:** use the same source path schemas for all action types ([#5363](https://github.com/garden-io/garden/issues/5363)) ([71b3781cb](https://github.com/garden-io/garden/commit/71b3781cb))
+
+### Features
+
+* change default git scan mode to `repo` ([#5399](https://github.com/garden-io/garden/issues/5399)) ([da3f68fcb](https://github.com/garden-io/garden/commit/da3f68fcb))
+* **k8s:** add service account and IRSA support for in-cluster-builder ([#3384](https://github.com/garden-io/garden/issues/3384)) ([9f6b137d6](https://github.com/garden-io/garden/commit/9f6b137d6))
+
+### Improvements
+
+* **core:** log aborted nodes on dep error ([#5360](https://github.com/garden-io/garden/issues/5360)) ([ce1995bc8](https://github.com/garden-io/garden/commit/ce1995bc8))
+* **git:** don't require Garden `static` dir to be a Git repo ([#5120](https://github.com/garden-io/garden/issues/5120)) ([dc8ba20ac](https://github.com/garden-io/garden/commit/dc8ba20ac))
+* **k8s:** remove old system garden and improve local-k8s startup time ([#5136](https://github.com/garden-io/garden/issues/5136)) ([875cacb1f](https://github.com/garden-io/garden/commit/875cacb1f))
+* **sync:** always use short hash-based tmp dirs paths ([#5413](https://github.com/garden-io/garden/issues/5413)) ([453ed6a30](https://github.com/garden-io/garden/commit/453ed6a30))
+
+### Performance Improvements
+
+* do not compute log message until required ([#5410](https://github.com/garden-io/garden/issues/5410)) ([14e713bff](https://github.com/garden-io/garden/commit/14e713bff))
+
 <a name="0.13.19"></a>
 ## [0.13.19](https://github.com/garden-io/garden/compare/0.13.18...0.13.19) (2023-11-04)
 

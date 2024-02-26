@@ -20,7 +20,7 @@ And the `frontend` config like this:
 kind: Test
 name: frontend-integ
 type: container
-disabled: ${environment.name == local}
+environments: [remote] # <- Here we use the environments field instead of the expression above
 # ...
 spec:
   command: [npm, run, integ]

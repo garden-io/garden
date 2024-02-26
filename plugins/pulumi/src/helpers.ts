@@ -9,7 +9,7 @@
 import { countBy, flatten, isEmpty, uniq } from "lodash-es"
 import { load } from "js-yaml"
 import stripAnsi from "strip-ansi"
-import chalk from "chalk"
+import { styles } from "@garden-io/core/build/src/logger/styles.js"
 import { merge } from "json-merge-patch"
 import { basename, dirname, extname, join, resolve } from "path"
 import fsExtra from "fs-extra"
@@ -142,7 +142,7 @@ export async function previewStack(
       previewUrl = urlMatch ? urlMatch[1] : null
       log.info(res.stdout)
     } else {
-      log.info(`No resources were changed in the generated plan for ${chalk.cyan(action.key())}.`)
+      log.info(`No resources were changed in the generated plan for ${styles.highlight(action.key())}.`)
     }
   } else {
     log.verbose(res.stdout)
@@ -169,7 +169,7 @@ export async function getDeployment({ log, ctx, provider, action }: PulumiParams
     env: ensureEnv({ log, ctx, provider, action }),
     cwd: getActionStackRoot(action),
   })
-  log.silly(`stack export for ${action.name}: ${JSON.stringify(res, null, 2)}`)
+  log.silly(() => `stack export for ${action.name}: ${JSON.stringify(res, null, 2)}`)
 
   return res
 }
@@ -387,7 +387,7 @@ export async function cancelUpdate({ action, ctx, provider, log }: PulumiParams)
   log.info(res.stdout)
 
   if (res.exitCode !== 0) {
-    log.warn(chalk.yellow(`pulumi cancel failed:\n${res.stderr}`))
+    log.warn(`pulumi cancel failed:\n${res.stderr}`)
     return {
       state: "failed",
       outputs: {},

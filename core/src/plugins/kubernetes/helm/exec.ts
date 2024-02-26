@@ -15,7 +15,7 @@ import { getHelmDeployStatus } from "./status.js"
 import { getChartResources } from "./common.js"
 import type { DeployActionHandler } from "../../../plugin/action-types.js"
 import type { HelmDeployAction } from "./config.js"
-import chalk from "chalk"
+import { styles } from "../../../logger/styles.js"
 
 export const execInHelmDeploy: DeployActionHandler<"exec", HelmDeployAction> = async (params) => {
   const { ctx, log, action, command, interactive } = params
@@ -27,7 +27,7 @@ export const execInHelmDeploy: DeployActionHandler<"exec", HelmDeployAction> = a
 
   if (!defaultTarget) {
     throw new ConfigurationError({
-      message: `${action.longDescription()} does not specify a defaultTarget. Please configure this in order to be able to use this command with. This is currently necessary for the ${chalk.white(
+      message: `${action.longDescription()} does not specify a defaultTarget. Please configure this in order to be able to use this command with. This is currently necessary for the ${styles.command(
         "exec"
       )} command to work with helm Deploy actions.`,
     })

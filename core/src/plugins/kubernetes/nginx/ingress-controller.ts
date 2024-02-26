@@ -37,24 +37,23 @@ class NoOpGardenIngressController extends GardenIngressComponent {
 
 export function getGardenIngressController(ctx: KubernetesPluginContext): GardenIngressComponent {
   const clusterType = ctx.provider.config.clusterType
-  if (clusterType === undefined) {
-    return new NoOpGardenIngressController()
-  }
-
-  if (clusterType === "kind") {
-    return new KindGardenIngressController()
-  } else if (clusterType === "microk8s") {
-    return new Microk8sGardenIngressController()
-  } else if (clusterType === "minikube") {
-    return new MinikubeGardenIngressController()
-  } else if (clusterType === "k3s") {
-    return new K3sHelmGardenIngressController()
-  } else if (clusterType === "generic") {
-    return new GenericHelmGardenIngressController()
-  } else if (clusterType === "ephemeral") {
-    return new EphemeralHelmGardenIngressController()
-  } else {
-    return clusterType satisfies never
+  switch (clusterType) {
+    case undefined:
+      return new NoOpGardenIngressController()
+    case "kind":
+      return new KindGardenIngressController()
+    case "microk8s":
+      return new Microk8sGardenIngressController()
+    case "minikube":
+      return new MinikubeGardenIngressController()
+    case "k3s":
+      return new K3sHelmGardenIngressController()
+    case "generic":
+      return new GenericHelmGardenIngressController()
+    case "ephemeral":
+      return new EphemeralHelmGardenIngressController()
+    default:
+      return clusterType satisfies never
   }
 }
 

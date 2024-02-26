@@ -9,7 +9,7 @@
 import { createGardenPlugin } from "../../plugin/plugin.js"
 import { helmModuleHandlers } from "./helm/handlers.js"
 import { getAppNamespace, getSystemNamespace } from "./namespace.js"
-import { getEnvironmentStatus, prepareEnvironment, cleanupEnvironment } from "./init.js"
+import { cleanupEnvironment, getEnvironmentStatus, prepareEnvironment } from "./init.js"
 import { containerHandlers } from "./container/handlers.js"
 import { kubernetesHandlers } from "./kubernetes-type/handlers.js"
 import type { ConfigureProviderParams } from "../../plugin/handlers/Provider/configureProvider.js"
@@ -26,21 +26,21 @@ import { joi, joiIdentifier } from "../../config/common.js"
 import { resolve } from "path"
 import { dedent } from "../../util/string.js"
 import { kubernetesModuleSpecSchema } from "./kubernetes-type/module-config.js"
-import { helmModuleSpecSchema, helmModuleOutputsSchema } from "./helm/module-config.js"
+import { helmModuleOutputsSchema, helmModuleSpecSchema } from "./helm/module-config.js"
 import { defaultIngressClass } from "./constants.js"
-import { pvcModuleDefinition, persistentvolumeclaimDeployDefinition } from "./volumes/persistentvolumeclaim.js"
+import { persistentvolumeclaimDeployDefinition, pvcModuleDefinition } from "./volumes/persistentvolumeclaim.js"
 import { helm3Spec } from "./helm/helm-cli.js"
 import { isString } from "lodash-es"
 import { mutagenCliSpec } from "../../mutagen.js"
-import { configMapModuleDefinition, configmapDeployDefinition } from "./volumes/configmap.js"
+import { configmapDeployDefinition, configMapModuleDefinition } from "./volumes/configmap.js"
 import {
   k8sContainerBuildExtension,
   k8sContainerDeployExtension,
   k8sContainerRunExtension,
   k8sContainerTestExtension,
 } from "./container/extensions.js"
-import { helmDeployDefinition, getHelmDeployDocs } from "./helm/action.js"
-import { k8sJibContainerBuildExtension, jibContainerHandlers } from "./jib-container.js"
+import { getHelmDeployDocs, helmDeployDefinition } from "./helm/action.js"
+import { jibContainerHandlers, k8sJibContainerBuildExtension } from "./jib-container.js"
 import { kubernetesDeployDefinition, kubernetesDeployDocs } from "./kubernetes-type/deploy.js"
 import { kustomizeSpec } from "./kubernetes-type/kustomize.js"
 import { syncPause, syncResume, syncStatus } from "./commands/sync.js"
@@ -48,7 +48,7 @@ import { helmPodRunDefinition, helmPodTestDefinition } from "./helm/helm-pod.js"
 import { kubernetesPodRunDefinition, kubernetesPodTestDefinition } from "./kubernetes-type/kubernetes-pod.js"
 import { kubernetesExecRunDefinition, kubernetesExecTestDefinition } from "./kubernetes-type/kubernetes-exec.js"
 import { makeDocsLink } from "../../docs/common.js"
-import { DOCS_BASE_URL } from "../../constants.js"
+import { styles } from "../../logger/styles.js"
 
 export async function configureProvider({
   namespace,
@@ -72,12 +72,11 @@ export async function configureProvider({
   }
 
   if (config.name !== "local-kubernetes" && !config.deploymentRegistry) {
-    const remoteK8sDocs = `${DOCS_BASE_URL}/kubernetes-plugins/remote-k8s`
     throw new ConfigurationError({
       message: dedent`
         Configuring a 'deploymentRegistry' in the kubernetes provider section of the project configuration is required when working with remote Kubernetes clusters.
 
-        See also ${remoteK8sDocs}`,
+        See also ${styles.link(makeDocsLink("kubernetes-plugins/remote-k8s"))}`,
     })
   }
 
@@ -136,16 +135,19 @@ export const gardenPlugin = () => {
     dependencies: [{ name: "container" }, { name: "jib", optional: true }],
     docs: dedent`
     The \`kubernetes\` provider allows you to deploy [\`container\` actions](${makeDocsLink(
-      "k8s-plugins/action-types/container"
+      "k8s-plugins/actions/deploy/container"
     )}) to
-    Kubernetes clusters, and adds the [\`helm\`](${makeDocsLink`k8s-plugins/action-types/helm`}) and
-    [\`kubernetes\`](${makeDocsLink("k8s-plugins/action-types/kubernetes")}) action types.
+    Kubernetes clusters, and adds the [\`helm\`](${makeDocsLink`k8s-plugins/actions/deploy/helm`}) and
+    [\`kubernetes\`](${makeDocsLink("k8s-plugins/actions/deploy/kubernetes")}) action types.
 
     For usage information, please refer to the [guides section](../../guides). A good place to start is
     the [Remote Kubernetes guide](${makeDocsLink`k8s-plugins/remote-k8s/README`}) guide if you're connecting to remote clusters.
     The [Quickstart guide](${makeDocsLink`getting-started/quickstart`}) guide is also helpful as an introduction.
 
     Note that if you're using a local Kubernetes cluster (e.g. minikube or Docker Desktop), the [local-kubernetes provider](./local-kubernetes.md) simplifies (and automates) the configuration and setup quite a bit.
+
+    Please note that Garden is committed to supporting [the _latest officially supported_ versions](https://kubernetes.io/releases/).
+    The information on the Kubernetes support and EOL timelines can be found [here](https://endoflife.date/kubernetes).
   `,
     configSchema: configSchema(),
     outputsSchema,

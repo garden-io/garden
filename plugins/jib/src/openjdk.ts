@@ -27,11 +27,12 @@ interface JdkVersion {
   windows: JdkBinary
 }
 
+const jdk8VersionName = "jdk8u292-b10"
 const jdk8Version: JdkVersion = {
   lookupName: "openjdk-8",
-  description: "The OpenJDK 8 library.",
+  description: `The OpenJDK 8 library, ${jdk8VersionName}`,
   baseUrl: "https://github.com/AdoptOpenJDK/openjdk8-binaries/releases/download/jdk8u292-b10/",
-  versionName: "jdk8u292-b10",
+  versionName: jdk8VersionName,
   mac_amd64: {
     filename: "OpenJDK8U-jdk_x64_mac_hotspot_8u292b10.tar.gz",
     sha256: "5646fbe9e4138c902c910bb7014d41463976598097ad03919e4848634c7e8007",
@@ -50,11 +51,12 @@ const jdk8Version: JdkVersion = {
   },
 }
 
+const jdk11VersionName = "jdk-11.0.9.1+1"
 const jdk11Version: JdkVersion = {
   lookupName: "openjdk-11",
-  description: "The OpenJDK 11 library.",
+  description: `The OpenJDK 11 library, ${jdk11VersionName}`,
   baseUrl: "https://github.com/AdoptOpenJDK/openjdk11-binaries/releases/download/jdk-11.0.9.1%2B1/",
-  versionName: "jdk-11.0.9.1+1",
+  versionName: jdk11VersionName,
   mac_amd64: {
     filename: "OpenJDK11U-jdk_x64_mac_hotspot_11.0.9.1_1.tar.gz",
     sha256: "96bc469f9b02a3b84382a0685b0bd7935e1ad1bd82a0aab9befb5b42a17cbd77",
@@ -65,7 +67,7 @@ const jdk11Version: JdkVersion = {
   },
   linux_arm64: {
     filename: "OpenJDK11U-jdk_aarch64_linux_hotspot_11.0.9.1_1.tar.gz",
-    sha256: "e96d665a39800b160f8ed4de03eada2969c650752faaf7cc83fa643e28dce337",
+    sha256: "e9cea040cdf5d9b0a2986feaf87662e1aef68e876f4d66664cb2be36e26db412",
   },
   windows: {
     filename: "OpenJDK11U-jdk_x64_windows_hotspot_11.0.9.1_1.zip",
@@ -73,11 +75,12 @@ const jdk11Version: JdkVersion = {
   },
 }
 
+const jdk13VersionName = "jdk-13+33"
 const jdk13Version: JdkVersion = {
   lookupName: "openjdk-13",
-  description: "The OpenJDK 13 library.",
+  description: `[DEPRECATED] The OpenJDK 13 library, ${jdk13VersionName}`,
   baseUrl: "https://github.com/AdoptOpenJDK/openjdk13-binaries/releases/download/jdk-13%2B33/",
-  versionName: "jdk-13+33",
+  versionName: jdk13VersionName,
   mac_amd64: {
     filename: "OpenJDK13U-jdk_x64_mac_hotspot_13_33.tar.gz",
     sha256: "f948be96daba250b6695e22cb51372d2ba3060e4d778dd09c89548889783099f",
@@ -88,7 +91,7 @@ const jdk13Version: JdkVersion = {
   },
   linux_arm64: {
     filename: "OpenJDK13U-jdk_aarch64_linux_hotspot_13_33.tar.gz",
-    sha256: "2365b7fbba8d9125fb091933aad9f38f8cc1fbb0217cdec9ec75d2000f6d451a",
+    sha256: "74f4110333ac4239564ed864b1d7d69b7af32af39efcfbde9816e1486cb5ae07",
   },
   windows: {
     filename: "OpenJDK13U-jdk_x64_windows_hotspot_13_33.zip",
@@ -96,11 +99,12 @@ const jdk13Version: JdkVersion = {
   },
 }
 
+const jdk17VersionName = "jdk-17.0.4.1+1"
 const jdk17Version: JdkVersion = {
   lookupName: "openjdk-17",
-  description: "The OpenJDK 17 library.",
+  description: `The OpenJDK 17 library, ${jdk17VersionName}`,
   baseUrl: "https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.4.1%2B1/",
-  versionName: "jdk-17.0.4.1+1",
+  versionName: jdk17VersionName,
   mac_amd64: {
     filename: "OpenJDK17U-jdk_x64_mac_hotspot_17.0.4.1_1.tar.gz",
     sha256: "ac21a5a87f7cfa00212ab7c41f7eb80ca33640d83b63ad850be811c24095d61a",
@@ -115,7 +119,7 @@ const jdk17Version: JdkVersion = {
   },
   linux_arm64: {
     filename: "OpenJDK17U-jdk_aarch64_linux_hotspot_17.0.4.1_1.tar.gz",
-    sha256: "2e4137529319cd7935f74e1289025b7b4c794c0fb47a3d138adffbd1bbc0ea58",
+    sha256: "3c7460de77421284b38b4e57cb1bd584a6cef55c34fc51a12270620544de2b8a",
   },
   windows: {
     filename: "OpenJDK17U-jdk_x64_windows_hotspot_17.0.4.1_1.zip",
@@ -123,11 +127,12 @@ const jdk17Version: JdkVersion = {
   },
 }
 
+const jdk21VersionName = "jdk-21.0.1+12"
 const jdk21Version: JdkVersion = {
   lookupName: "openjdk-21",
-  description: "The OpenJDK 21 library.",
+  description: `The OpenJDK 21 library, ${jdk21VersionName}`,
   baseUrl: "https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.1%2B12/",
-  versionName: "jdk-21.0.1+12",
+  versionName: jdk21VersionName,
   mac_amd64: {
     filename: "OpenJDK21U-jdk_x64_mac_hotspot_21.0.1_12.tar.gz",
     sha256: "35f3cbc86d7ff0a01facefd741d5cfb675867e0a5ec137f62ba071d2511a45c9",

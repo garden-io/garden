@@ -31,16 +31,16 @@ import { memoize } from "lodash-es"
 import type { GenericProviderConfig } from "./provider.js"
 import { providerConfigBaseSchema } from "./provider.js"
 import type { GitScanMode } from "../constants.js"
-import { DOCS_BASE_URL, GardenApiVersion, gitScanModes } from "../constants.js"
+import { DOCS_BASE_URL, GardenApiVersion, defaultGitScanMode, gitScanModes } from "../constants.js"
 import { defaultDotIgnoreFile } from "../util/fs.js"
 import type { CommandInfo } from "../plugin-context.js"
 import type { VcsInfo } from "../vcs/vcs.js"
 import { profileAsync } from "../util/profiling.js"
 import type { BaseGardenResource } from "./base.js"
 import { baseInternalFieldsSchema, loadVarfile, varfileDescription } from "./base.js"
-import chalk from "chalk"
 import type { Log } from "../logger/log-entry.js"
 import { renderDivider } from "../logger/util.js"
+import { styles } from "../logger/styles.js"
 
 export const defaultVarfilePath = "garden.env"
 export const defaultEnvVarfilePath = (environmentName: string) => `garden.${environmentName}.env`
@@ -267,9 +267,9 @@ const projectScanSchema = createSchema({
         .string()
         .allow(...gitScanModes)
         .only()
-        .default("subtree")
+        .default(defaultGitScanMode)
         .description(
-          "Choose how to perform scans of git repositories. The default (`subtree`) runs individual git scans on each action/module path. The `repo` mode scans entire repositories and then filters down to files matching the paths, includes and excludes for each action/module. This can be considerably more efficient for large projects with many actions/modules."
+          `Choose how to perform scans of git repositories. Defaults to \`${defaultGitScanMode}\`. The \`subtree\` runs individual git scans on each action/module path. The \`repo\` mode scans entire repositories and then filters down to files matching the paths, includes and excludes for each action/module. This can be considerably more efficient for large projects with many actions/modules.`
         ),
     }),
   }),
@@ -424,7 +424,6 @@ export const projectSchema = createSchema({
       "Key/value map of variables to configure for all environments. " + joiVariablesDescription
     ),
   }),
-  rename: [["modules", "scan"]],
 })
 
 export function getDefaultEnvironmentName(defaultName: string, config: ProjectConfig): string {
@@ -504,7 +503,7 @@ export function resolveProjectConfig({
     })
   } catch (err) {
     log.error("Failed to resolve project configuration.")
-    log.error(chalk.red.bold(renderDivider()))
+    log.error(styles.bold(renderDivider()))
     throw err
   }
 
@@ -699,10 +698,10 @@ export function getNamespace(environmentConfig: EnvironmentConfig, namespace: st
   }
 
   if (!namespace) {
-    const exampleFlag = chalk.white(`--env=${chalk.bold("some-namespace.")}${envName}`)
+    const exampleFlag = styles.accent(`--env=${styles.bold("some-namespace.")}${envName}`)
 
     throw new ParameterError({
-      message: `Environment ${chalk.white.bold(
+      message: `Environment ${styles.accent.bold(
         envName
       )} has defaultNamespace set to null in the project configuration, and no explicit namespace was specified. Please either set a defaultNamespace or explicitly set a namespace at runtime (e.g. ${exampleFlag}).`,
     })

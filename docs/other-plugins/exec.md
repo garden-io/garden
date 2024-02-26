@@ -25,9 +25,6 @@ Usually you don't need to configure the `exec` plugin because it's built-in and 
 However, it can be used to run init scripts ahead of other Garden execution. This is useful if you need to
 authenticate against a remote environment before Garden initializes other plugins.
 
-Another set of popular use-cases are local build flows for shared libraries ahead of Docker builds, along with any
-sort of glue script you may need between steps.
-
 Here's an example where we run a script to authenticate against a Kubernetes cluster before initializing the Kubernetes
 plugin:
 
@@ -41,15 +38,110 @@ providers:
   - name: exec
     initScript: "sh -c ./scripts/auth.sh"
   - name: kubernetes
-    dependencies: [ exec ] # <--- This ensures the init script runs before the K8s plugin is initialized.
+    dependencies: [exec] # <--- This ensures the init script runs before the K8s plugin is initialized.
     # ...
 ```
 
 The log output of the `initScript` can be accessed via `"${providers.exec.outputs.initScript.log}"` template string.
 
-## Action Configuration
+## Actions
 
-### Exec Runs
+### Build
+
+A Build action which executes a build command "locally" on the host.
+
+This is commonly used together with exec Deploy actions when a local build step needs
+to be executed first.
+
+{% hint style="info" %}
+Note that by default, Garden will "stage" the build to the `./garden` directory and execute the
+build there. This is to ensure that the command doesn't mess with your local project
+files. You can disable that by setting `buildAtSource: true`.
+{% endhint %}
+
+For example:
+
+```yaml
+# In ./lib
+kind: Build
+name: lib-local
+type: exec
+buildAtSource: true # <--- Here we want execute the build in the ./lib dir directly
+spec:
+  command: [npm, run, build]
+---
+# In ./web
+kind: Deploy
+name: web-local
+type: exec
+dependencies: [build.lib-local] # <--- Build lib before starting local dev server
+persistent: true
+spec:
+  deployCommand: [npm, run, dev]
+```
+
+Another common use case is to prepare a set of files, say, manifests ahead of a deployment. In
+this case we choose to execute the script in the `./garden` directory so that it doesn't affect
+our version controlled source code.
+
+That's why we also need to set the `build` field on the Deploy action.
+
+```yaml
+# In ./manifests dir
+kind: Build
+name: prepare-manifests
+type: exec
+spec:
+  command: [./prepare-manifests.sh]
+---
+kind: Deploy
+name: api
+type: kubernetes
+build: prepare-manifests # <--- This tells Garden to use the build directory for the 'prepare-manifests' action as the source for this action.
+dependencies: [build.prepare-manifests]
+```
+
+### Deploy
+
+A Deploy action which executes a deploy command "locally" on the host.
+
+This is commonly used for hybrid environments where you e.g. deploy your backend services
+to a remote Kubernetes cluster but run your web service locally.
+
+If you're starting a long running local process, you need to set `persistent: true`. Note
+that you can also specify a `statusCommand` that tells Garden when the command should
+be considered ready and a `cleanupCommand` that's executed when running the Garden `cleanup`
+command.
+
+For example:
+
+```yaml
+# In ./api
+kind: Deploy
+name: api
+type: kubernetes
+# ...
+# In ./web
+kind: Deploy
+name: web
+type: exec
+spec:
+  persistent: true
+  deployCommand: [npm, run, dev]
+  statusCommand: [./is-ready.sh] # <--- Garden checks the status at an interval until the command returns 0 or times out
+  cleanupCommand: [npm, run, clean]
+```
+
+You'll find a complete example of this in our [local-service example project](../../examples/local-service).
+
+{% hint style="info" %}
+If you need your local service to _receive_ traffic from the remote parts of your system
+you can use [Garden's local mode functionality](https://docs.garden.io/v/docs-edge-2/guides/running-service-in-local-mode).
+{% endhint %}
+
+### Run and Test
+
+Similar to the Build action, the Run and Test actions can also be used to run one-off local commands.
 
 Following are some example `exec` Run actions for executing various scripts:
 
@@ -57,17 +149,15 @@ Following are some example `exec` Run actions for executing various scripts:
 kind: Run
 name: auth
 type: exec
-include: [ ] # <--- No source files are needed
 spec:
-  command: [ "sh", "-c", "./scripts/auth.sh" ]
+  command: ["sh", "-c", "./scripts/auth.sh"]
 
 ---
 kind: Run
 name: prepare-data
 type: exec
-include: [ ]
 spec:
-  command: [ "sh", "-c", "./scripts/prepare-data-locally.sh" ]
+  command: ["sh", "-c", "./scripts/prepare-data-locally.sh"]
 ```
 
 Other actions can depend on these Runs:
@@ -76,9 +166,9 @@ Other actions can depend on these Runs:
 kind: Run
 name: db-init
 type: exec
-dependencies: [ run.auth, run.prepare-data ]
+dependencies: [run.auth, run.prepare-data]
 spec:
-  command: [ npm, run, db-init ]
+  command: [npm, run, db-init]
 ```
 
 It's also possible to reference the output from `exec` actions:
@@ -98,29 +188,7 @@ spec:
     POSTGRES_PASSWORD: ${actions.run.auth.outputs.log}
 ```
 
-### Local services
-
-The `exec Deploy` action type can also be used to start long-running processes:
-
-```yaml
-kind: Deploy
-name: web-local
-type: exec
-spec:
-  persistent: true
-  deployCommand: [ "npm", "run", "dev" ] # <--- This is the command Garden runs to start the process in persistent mode.
-```
-
-Set `spec.persistent: true` if the `spec.deployCommand` is not expected to return, and should run until the Garden
-command is manually terminated. The `spec.persistent` flag replaces the previously supported `devMode` from [`exec`
-_modules_](../reference/module-types/exec.md).
-
-See the [reference guide](../reference/action-types/Deploy/exec.md) for more details on the `exec Deploy` action
-configuration.
-
-Also check out the [local-service example project](../../examples/local-service).
-
 ## Next Steps
 
-For some advanced `exec` _module_ use cases, check out [this recording](https://www.youtube.com/watch?v=npE0FWJwcno) of
+For some advanced `exec` use cases, check out [this recording](https://www.youtube.com/watch?v=npE0FWJwcno) of
 our community office hours on the topic.

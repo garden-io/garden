@@ -10,8 +10,8 @@ import type { V1PodSpec } from "@kubernetes/client-node"
 import {
   skopeoDaemonContainerName,
   dockerAuthSecretKey,
-  k8sUtilImageName,
   defaultKanikoImageName,
+  getK8sUtilImageName,
 } from "../../constants.js"
 import { KubeApi } from "../../api.js"
 import type { Log } from "../../../../logger/log-entry.js"
@@ -34,15 +34,17 @@ import {
   builderToleration,
   ensureUtilDeployment,
   utilDeploymentName,
+  inClusterBuilderServiceAccount,
+  ensureServiceAccount,
 } from "./common.js"
 import { differenceBy, isEmpty } from "lodash-es"
-import chalk from "chalk"
 import { getDockerBuildFlags } from "../../../container/build.js"
 import { k8sGetContainerBuildActionOutputs } from "../handlers.js"
 import { stringifyResources } from "../util.js"
 import { makePodName } from "../../util.js"
 import type { ContainerBuildAction } from "../../../container/config.js"
 import { defaultDockerfileName } from "../../../container/config.js"
+import { styles } from "../../../../logger/styles.js"
 
 export const DEFAULT_KANIKO_FLAGS = ["--cache=true"]
 
@@ -118,6 +120,8 @@ export const kanikoBuild: BuildHandler = async (params) => {
     kanikoNamespace = await getSystemNamespace(k8sCtx, provider, log)
   }
 
+  await ensureNamespace(api, k8sCtx, { name: kanikoNamespace }, log)
+
   if (kanikoNamespace !== projectNamespace) {
     // Make sure the Kaniko Pod namespace has the auth secret ready
     const secretRes = await ensureBuilderSecret({
@@ -128,9 +132,16 @@ export const kanikoBuild: BuildHandler = async (params) => {
     })
 
     authSecret = secretRes.authSecret
-  }
 
-  await ensureNamespace(api, k8sCtx, { name: kanikoNamespace }, log)
+    // Make sure the Kaniko Pod namespace has the garden-in-cluster-builder service account
+    await ensureServiceAccount({
+      ctx,
+      log,
+      api,
+      namespace: kanikoNamespace,
+      annotations: provider.config.kaniko?.serviceAccountAnnotations,
+    })
+  }
 
   // Execute the build
   const args = [
@@ -174,11 +185,11 @@ export const kanikoBuild: BuildHandler = async (params) => {
 
   if (kanikoBuildFailed(buildRes)) {
     throw new BuildError({
-      message: `Failed building ${chalk.bold(action.name)}:\n\n${buildLog}`,
+      message: `Failed building ${styles.bold(action.name)}:\n\n${buildLog}`,
     })
   }
 
-  log.silly(buildLog)
+  log.silly(() => buildLog)
 
   return {
     state: "ready",
@@ -277,7 +288,7 @@ export function getKanikoBuilderPodManifest({
     initContainers: [
       {
         name: "init",
-        image: k8sUtilImageName,
+        image: getK8sUtilImageName(),
         command: [
           "/bin/sh",
           "-c",
@@ -323,6 +334,7 @@ export function getKanikoBuilderPodManifest({
       },
     ],
     tolerations: kanikoTolerations,
+    serviceAccountName: inClusterBuilderServiceAccount,
   }
 
   const pod: KubernetesPod = {

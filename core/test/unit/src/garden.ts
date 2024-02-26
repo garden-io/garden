@@ -56,6 +56,7 @@ import { keyBy, set, mapValues, omit, cloneDeep } from "lodash-es"
 import { joi } from "../../../src/config/common.js"
 import { defaultDotIgnoreFile, makeTempDir } from "../../../src/util/fs.js"
 import fsExtra from "fs-extra"
+
 const { realpath, writeFile, readFile, remove, pathExists, mkdirp, copy } = fsExtra
 import { dedent, deline, randomString, wordWrap } from "../../../src/util/string.js"
 import { getLinkedSources, addLinkedSources } from "../../../src/util/ext-source-util.js"
@@ -71,9 +72,12 @@ import stripAnsi from "strip-ansi"
 import type { CloudProject } from "../../../src/cloud/api.js"
 import { CloudApi } from "../../../src/cloud/api.js"
 import { GlobalConfigStore } from "../../../src/config-store/global.js"
-import { getRootLogger } from "../../../src/logger/logger.js"
+import { LogLevel, getRootLogger } from "../../../src/logger/logger.js"
 import { uuidv4 } from "../../../src/util/random.js"
 import { fileURLToPath } from "node:url"
+import { resolveMsg } from "../../../src/logger/log-entry.js"
+import { getCloudDistributionName } from "../../../src/util/cloud.js"
+import { styles } from "../../../src/logger/styles.js"
 
 const moduleDirName = dirname(fileURLToPath(import.meta.url))
 
@@ -381,20 +385,29 @@ describe("Garden", () => {
       })
     })
 
-    it("should respect the module variables < module varfile < CLI var precedence order", async () => {
-      const projectRoot = getDataDir("test-projects", "module-varfiles")
+    it("should respect the action variables < action varfile < CLI var precedence order", async () => {
+      const projectRoot = getDataDir("test-projects", "action-varfiles")
 
       const garden = await makeTestGarden(projectRoot)
       // In the normal flow, `garden.variableOverrides` is populated with variables passed via the `--var` CLI option.
       garden.variableOverrides["d"] = "from-cli-var"
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      const module = graph.getModule("module-a")
-      expect({ ...garden.variables, ...module.variables }).to.eql({
+      const runAction = graph.getRun("run-a")
+      expect({ ...garden.variables, ...runAction.getVariables() }).to.eql({
         a: "from-project-varfile",
-        b: "from-module-vars",
-        c: "from-module-varfile",
+        b: "from-action-vars",
+        c: "from-action-varfile",
         d: "from-cli-var",
       })
+    })
+
+    it("should allow empty varfiles", async () => {
+      const projectRoot = getDataDir("test-projects", "empty-varfiles")
+
+      const garden = await makeTestGarden(projectRoot)
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+      const runAction = graph.getRun("run-a")
+      expect(runAction.getVariables()).to.eql({})
     })
 
     it("should throw if project root is not in a git repo root", async () => {
@@ -595,6 +608,8 @@ describe("Garden", () => {
       }
     })
     context("user is NOT logged in", () => {
+      const log = getRootLogger().createLog()
+
       it("should have domain and id if set in project config", async () => {
         const projectId = uuidv4()
         const projectName = "test"
@@ -629,6 +644,90 @@ describe("Garden", () => {
 
         expect(garden.cloudDomain).to.eql(DEFAULT_GARDEN_CLOUD_DOMAIN)
         expect(garden.projectId).to.eql(undefined)
+      })
+      it("should log an informational message about not being logged in for community edition", async () => {
+        log.root["entries"] = []
+        const projectName = "test"
+        const envName = "default"
+        const config: ProjectConfig = createProjectConfig({
+          name: projectName,
+          path: pathFoo,
+        })
+
+        const garden = await TestGarden.factory(pathFoo, {
+          config,
+          environmentString: envName,
+          log,
+        })
+        const distroName = getCloudDistributionName(garden.cloudDomain || DEFAULT_GARDEN_CLOUD_DOMAIN)
+
+        const expectedLog = log.root.getLogEntries().filter((l) => resolveMsg(l)?.includes(`You are not logged in`))
+
+        expect(expectedLog.length).to.eql(1)
+        expect(expectedLog[0].level).to.eql(LogLevel.info)
+        expect(expectedLog[0].msg).to.eql(
+          `You are not logged in. To use ${distroName}, log in with the ${styles.command("garden login")} command.`
+        )
+      })
+      it("should log a warning message about not being logged in for commercial edition", async () => {
+        log.root["entries"] = []
+        const fakeCloudDomain = "https://example.com"
+        const projectName = "test"
+        const envName = "default"
+        const config: ProjectConfig = createProjectConfig({
+          name: projectName,
+          path: pathFoo,
+          domain: fakeCloudDomain,
+        })
+
+        await TestGarden.factory(pathFoo, {
+          config,
+          environmentString: envName,
+          log,
+        })
+        const distroName = getCloudDistributionName(fakeCloudDomain)
+
+        const expectedLog = log.root.getLogEntries().filter((l) => resolveMsg(l)?.includes(`You are not logged in`))
+
+        expect(expectedLog.length).to.eql(1)
+        expect(expectedLog[0].level).to.eql(LogLevel.warn)
+        expect(expectedLog[0].msg).to.eql(
+          `You are not logged in. To use ${distroName}, log in with the ${styles.command("garden login")} command.`
+        )
+      })
+      context("commands with verbose cloud logs", () => {
+        const commands = ["dev", "serve", "exit", "quit"]
+        for (const command of commands) {
+          it(`should log a warning message at a debug level for command ${command}`, async () => {
+            log.root["entries"] = []
+            const projectName = "test"
+            const envName = "default"
+            const config: ProjectConfig = createProjectConfig({
+              name: projectName,
+              path: pathFoo,
+            })
+
+            const garden = await TestGarden.factory(pathFoo, {
+              config,
+              environmentString: envName,
+              log,
+              commandInfo: {
+                name: command,
+                args: {},
+                opts: {},
+              },
+            })
+            const distroName = getCloudDistributionName(garden.cloudDomain || DEFAULT_GARDEN_CLOUD_DOMAIN)
+
+            const expectedLog = log.root.getLogEntries().filter((l) => resolveMsg(l)?.includes(`You are not logged in`))
+
+            expect(expectedLog.length).to.eql(1)
+            expect(expectedLog[0].level).to.eql(LogLevel.debug)
+            expect(expectedLog[0].msg).to.eql(
+              `You are not logged in. To use ${distroName}, log in with the ${styles.command("garden login")} command.`
+            )
+          })
+        }
       })
     })
     context("user is logged in", () => {
@@ -730,11 +829,13 @@ describe("Garden", () => {
             cloudApi,
           })
 
-          const expectedLog = log.root.getLogEntries().filter((l) => l.msg?.includes(`Logged in to ${fakeCloudDomain}`))
+          const expectedLog = log.root
+            .getLogEntries()
+            .filter((l) => resolveMsg(l)?.includes(`Logged in to ${fakeCloudDomain}`))
 
           expect(expectedLog.length).to.eql(1)
           expect(expectedLog[0].level).to.eql(1)
-          const cleanMsg = stripAnsi(expectedLog[0].msg || "").replace("\n", " ")
+          const cleanMsg = stripAnsi(resolveMsg(expectedLog[0]) || "").replace("\n", " ")
           const expected = `Logged in to ${fakeCloudDomain}, but could not find remote project '${projectName}'. Command results for this command run will not be available in Garden Enterprise.`
           expect(cleanMsg).to.eql(expected)
           expect(garden.cloudDomain).to.eql(fakeCloudDomain)
@@ -762,11 +863,13 @@ describe("Garden", () => {
             }
           }
 
-          const expectedLog = log.root.getLogEntries().filter((l) => l.msg?.includes(`Fetching project with ID=`))
+          const expectedLog = log.root
+            .getLogEntries()
+            .filter((l) => resolveMsg(l)?.includes(`Fetching project with ID=`))
 
           expect(expectedLog.length).to.eql(1)
           expect(expectedLog[0].level).to.eql(0)
-          const cleanMsg = stripAnsi(expectedLog[0].msg || "").replace("\n", " ")
+          const cleanMsg = stripAnsi(resolveMsg(expectedLog[0]) || "").replace("\n", " ")
           expect(cleanMsg).to.eql(
             `Fetching project with ID=${projectId} failed with error: HTTPError: Response code 500 (Internal Server Error)`
           )
@@ -795,11 +898,11 @@ describe("Garden", () => {
             }
           }
 
-          const expectedLog = log.root.getLogEntries().filter((l) => l.msg?.includes(`Project with ID=`))
+          const expectedLog = log.root.getLogEntries().filter((l) => resolveMsg(l)?.includes(`Project with ID=`))
 
           expect(expectedLog.length).to.eql(1)
           expect(expectedLog[0].level).to.eql(0)
-          const cleanMsg = stripAnsi(expectedLog[0].msg || "")
+          const cleanMsg = stripAnsi(resolveMsg(expectedLog[0]) || "")
           expect(cleanMsg).to.eql(dedent`
             Project with ID=${projectId} was not found in Garden Enterprise
 
@@ -908,11 +1011,11 @@ describe("Garden", () => {
             }
           }
 
-          const expectedLog = log.root.getLogEntries().filter((l) => l.msg?.includes(`failed with error`))
+          const expectedLog = log.root.getLogEntries().filter((l) => resolveMsg(l)?.includes(`failed with error`))
 
           expect(expectedLog.length).to.eql(1)
           expect(expectedLog[0].level).to.eql(0)
-          const cleanMsg = stripAnsi(expectedLog[0].msg || "").replace("\n", " ")
+          const cleanMsg = stripAnsi(resolveMsg(expectedLog[0]) || "").replace("\n", " ")
           expect(cleanMsg).to.eql(
             `Fetching or creating project ${projectName} from ${DEFAULT_GARDEN_CLOUD_DOMAIN} failed with error: HTTPError: Response code 500 (Internal Server Error)`
           )
@@ -2898,7 +3001,7 @@ describe("Garden", () => {
       expect(test).to.exist
 
       expect(build.type).to.equal("test")
-      expect(build.spec.command).to.eql(["${inputs.value}"]) // <- resolved later
+      expect(build.spec.command).to.include("${inputs.name}") // <- resolved later
       expect(omit(build.internal, "yamlDoc")).to.eql(internal)
 
       expect(deploy["build"]).to.equal("${parent.name}-${inputs.name}") // <- resolved later
@@ -3073,7 +3176,7 @@ describe("Garden", () => {
       await expectError(() => garden.resolveModules({ log: garden.log }), {
         contains: [
           "Failed resolving one or more modules:",
-          `module-a: Invalid template string (${key}): config module-a cannot reference itself.`,
+          `module-a: Invalid template string (${key}) at path spec.build.command.0: config module-a cannot reference itself.`,
         ],
       })
     })
@@ -4097,7 +4200,7 @@ describe("Garden", () => {
       await expectError(() => garden.resolveModules({ log: garden.log }), {
         contains: [
           "Failed resolving one or more modules:",
-          "foo: Error validating outputs for module 'foo':\nfoo must be a string",
+          "foo: Error validating outputs for module 'foo':\n\nfoo must be a string",
         ],
       })
     })
@@ -4265,6 +4368,18 @@ describe("Garden", () => {
         ],
       })
     })
+
+    it("correctly picks up and handles the environments field on actions", async () => {
+      const projectRoot = getDataDir("test-projects", "config-action-environments")
+      const garden = await makeTestGarden(projectRoot, { environmentString: "remote" })
+
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+      const a = graph.getBuild("a", { includeDisabled: true })
+      const b = graph.getBuild("b", { includeDisabled: true })
+
+      expect(a.isDisabled()).to.be.false
+      expect(b.isDisabled()).to.be.true
+    })
   })
 
   context("module type has a base", () => {
@@ -4333,7 +4448,7 @@ describe("Garden", () => {
       await expectError(() => garden.resolveModules({ log: garden.log }), {
         contains: [
           "Failed resolving one or more modules:",
-          "foo: Error validating configuration for module 'foo' (base schema from 'base' plugin):\nbase is required",
+          "foo: Error validating configuration for module 'foo' (base schema from 'base' plugin):\n\nbase is required",
         ],
       })
     })
@@ -4398,7 +4513,7 @@ describe("Garden", () => {
       await expectError(() => garden.resolveModules({ log: garden.log }), {
         contains: [
           "Failed resolving one or more modules:",
-          "foo: Error validating outputs for module 'foo' (base schema from 'base' plugin):\nfoo must be a string",
+          "foo: Error validating outputs for module 'foo' (base schema from 'base' plugin):\n\nfoo must be a string",
         ],
       })
     })
@@ -4483,7 +4598,7 @@ describe("Garden", () => {
         await expectError(() => garden.resolveModules({ log: garden.log }), {
           contains: [
             "Failed resolving one or more modules:",
-            "foo: Error validating configuration for module 'foo' (base schema from 'base-a' plugin):\nbase is required",
+            "foo: Error validating configuration for module 'foo' (base schema from 'base-a' plugin):\n\nbase is required",
           ],
         })
       })
@@ -4561,7 +4676,7 @@ describe("Garden", () => {
         await expectError(() => garden.resolveModules({ log: garden.log }), {
           contains: [
             "Failed resolving one or more modules:",
-            "foo: Error validating outputs for module 'foo' (base schema from 'base-a' plugin):\nfoo must be a string",
+            "foo: Error validating outputs for module 'foo' (base schema from 'base-a' plugin):\n\nfoo must be a string",
           ],
         })
       })
@@ -5086,9 +5201,9 @@ describe("Garden", () => {
     })
 
     context("test against fixed version hashes", async () => {
-      const moduleAVersionString = "v-e3eed855ed"
-      const moduleBVersionString = "v-cdfff6b4f2"
-      const moduleCVersionString = "v-9d2afce9e4"
+      const moduleAVersionString = "v-55de0aac5c"
+      const moduleBVersionString = "v-daeabf68fe"
+      const moduleCVersionString = "v-5e9ddea45e"
 
       it("should return the same module versions between runtimes", async () => {
         const projectRoot = getDataDir("test-projects", "fixed-version-hashes-1")
@@ -5257,7 +5372,7 @@ describe("Garden", () => {
         await garden.emitWarning({ key, log, message })
         const logs = getLogMessages(log)
         expect(logs.length).to.equal(1)
-        expect(logs[0]).to.equal(message + `\n→ Run garden util hide-warning ${key} to disable this warning.`)
+        expect(logs[0]).to.equal(message + `\n→ Run garden util hide-warning ${key} to disable this message.`)
       })
 
       it("should not log a warning if the key has been hidden", async () => {

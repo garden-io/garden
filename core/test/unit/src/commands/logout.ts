@@ -56,7 +56,7 @@ describe("LogoutCommand", () => {
 
     const command = new LogOutCommand()
     const garden = await makeTestGarden(getDataDir("test-projects", "login", "has-domain-and-id"), {
-      noEnterprise: false,
+      skipCloudConnect: false,
       commandInfo: { name: "foo", args: {}, opts: {} },
       globalConfigStore,
     })
@@ -95,7 +95,7 @@ describe("LogoutCommand", () => {
 
     const command = new LogOutCommand()
     const garden = await makeTestGarden(getDataDir("test-projects", "login", "missing-domain"), {
-      noEnterprise: false,
+      skipCloudConnect: false,
       commandInfo: { name: "foo", args: {}, opts: {} },
     })
 
@@ -126,7 +126,7 @@ describe("LogoutCommand", () => {
   it("should be a no-op if the user is already logged out", async () => {
     const command = new LogOutCommand()
     const garden = await makeTestGarden(getDataDir("test-projects", "login", "has-domain-and-id"), {
-      noEnterprise: false,
+      skipCloudConnect: false,
       commandInfo: { name: "foo", args: {}, opts: {} },
       globalConfigStore,
     })
@@ -147,7 +147,7 @@ describe("LogoutCommand", () => {
 
     const command = new LogOutCommand()
     const garden = await makeTestGarden(getDataDir("test-projects", "login", "has-domain-and-id"), {
-      noEnterprise: false,
+      skipCloudConnect: false,
       commandInfo: { name: "foo", args: {}, opts: {} },
       globalConfigStore,
     })
@@ -187,7 +187,7 @@ describe("LogoutCommand", () => {
 
     const command = new LogOutCommand()
     const garden = await makeTestGarden(getDataDir("test-projects", "login", "has-domain-and-id"), {
-      noEnterprise: false,
+      skipCloudConnect: false,
       commandInfo: { name: "foo", args: {}, opts: {} },
       globalConfigStore,
     })
@@ -245,7 +245,7 @@ describe("LogoutCommand", () => {
 
     // this is a bit of a workaround to run outside of the garden root dir
     const garden = await makeDummyGarden(getDataDir("..", "..", "..", ".."), {
-      noEnterprise: false,
+      skipCloudConnect: false,
       commandInfo: { name: "foo", args: {}, opts: {} },
       globalConfigStore,
     })

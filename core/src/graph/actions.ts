@@ -22,7 +22,7 @@ import type {
   Executed,
   Resolved,
 } from "../actions/types.js"
-import { actionKinds } from "../actions/types.js"
+import { ALL_ACTION_MODES_SUPPORTED, actionKinds } from "../actions/types.js"
 import {
   actionReferenceToString,
   addActionDependency,
@@ -59,8 +59,7 @@ import { mergeVariables } from "./common.js"
 import type { ConfigGraph } from "./config-graph.js"
 import { MutableConfigGraph } from "./config-graph.js"
 import type { ModuleGraph } from "./modules.js"
-import chalk from "chalk"
-import type { MaybeUndefined } from "../util/util.js"
+import { isTruthy, type MaybeUndefined } from "../util/util.js"
 import minimatch from "minimatch"
 import type { ConfigContext } from "../config/template-contexts/base.js"
 import type { LinkedSource, LinkedSourceMap } from "../config-store/local.js"
@@ -69,6 +68,7 @@ import { profileAsync } from "../util/profiling.js"
 import { uuidv4 } from "../util/random.js"
 import { getSourcePath } from "../vcs/vcs.js"
 import { actionIsDisabled } from "../actions/base.js"
+import { styles } from "../logger/styles.js"
 
 export const actionConfigsToGraph = profileAsync(async function actionConfigsToGraph({
   garden,
@@ -78,7 +78,6 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
   moduleGraph,
   actionModes,
   linkedSources,
-  environmentName,
 }: {
   garden: Garden
   log: Log
@@ -87,7 +86,6 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
   moduleGraph: ModuleGraph
   actionModes: ActionModeMap
   linkedSources: LinkedSourceMap
-  environmentName: string
 }): Promise<MutableConfigGraph> {
   const configsByKey: ActionConfigsByKey = {}
 
@@ -100,11 +98,11 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
     const existing = configsByKey[key]
 
     if (existing) {
-      if (actionIsDisabled(config, environmentName)) {
-        log.silly(`Skipping disabled action ${key} in favor of other action with same key`)
+      if (actionIsDisabled(config, garden.environmentName)) {
+        log.silly(() => `Skipping disabled action ${key} in favor of other action with same key`)
         return
-      } else if (actionIsDisabled(existing, environmentName)) {
-        log.silly(`Skipping disabled action ${key} in favor of other action with same key`)
+      } else if (actionIsDisabled(existing, garden.environmentName)) {
+        log.silly(() => `Skipping disabled action ${key} in favor of other action with same key`)
         configsByKey[key] = config
         return
       } else {
@@ -138,19 +136,66 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
   // Doing this in two steps makes the code a bit less readable, but it's worth it for the performance boost.
   const preprocessResults: { [key: string]: PreprocessActionResult } = {}
   const computedActionModes: { [key: string]: { mode: ActionMode; explicitMode: boolean } } = {}
-  await Promise.all(
-    Object.entries(configsByKey).map(async ([key, config]) => {
-      const { mode, explicitMode } = getActionMode(config, actionModes, log)
-      computedActionModes[key] = { mode, explicitMode }
-      preprocessResults[key] = await preprocessActionConfig({
-        garden,
-        config,
-        router,
-        log,
-        mode,
+
+  const preprocessActions = async (predicate: (config: ActionConfig) => boolean = () => true) => {
+    return await Promise.all(
+      Object.entries(configsByKey).map(async ([key, config]) => {
+        if (!predicate(config)) {
+          return
+        }
+
+        const { mode, explicitMode } = getActionMode(config, actionModes, log)
+        computedActionModes[key] = { mode, explicitMode }
+        preprocessResults[key] = await preprocessActionConfig({
+          garden,
+          config,
+          router,
+          linkedSources,
+          log,
+          mode,
+        })
       })
-    })
-  )
+    )
+  }
+
+  // First preprocess only the Deploy actions, so we can infer the mode of Build actions that are used by them.
+  await preprocessActions((config) => config.kind === "Deploy")
+
+  // This enables users to use `this.mode` in Build action configs, such that `this.mode == "sync"`
+  // when a Deploy action that uses the Build action is in sync mode.
+  //
+  // The proper solution to this would involve e.g. parametrized actions, or injecting a separate Build action
+  // with `this.mode` set to the Deploy action's mode before resolution (both would need to be thought out carefully).
+  const actionTypes = await garden.getActionTypes()
+  const buildModeOverrides: Record<string, { mode: ActionMode; overriddenByDeploy: string }> = {}
+  for (const [key, res] of Object.entries(preprocessResults)) {
+    const config = res.config
+    const { mode } = computedActionModes[key]
+    if (config.kind === "Deploy" && mode !== "default") {
+      const definition = actionTypes[config.kind][config.type]?.spec
+      const buildDeps = dependenciesFromActionConfig(
+        log,
+        config,
+        configsByKey,
+        definition,
+        res.templateContext,
+        actionTypes
+      )
+      const referencedBuildNames = [config.build, ...buildDeps.map((d) => d.name)].filter(isTruthy)
+      for (const buildName of referencedBuildNames) {
+        const buildKey = actionReferenceToString({ kind: "Build", name: buildName })
+        actionModes[mode] = [buildKey, ...(actionModes[mode] || [])]
+        buildModeOverrides[buildKey] = {
+          mode,
+          overriddenByDeploy: config.name,
+        }
+      }
+    }
+  }
+
+  // Preprocess all remaining actions (Deploy actions are preprocessed above)
+  // We are preprocessing actions in two batches so we can infer the mode of Build actions that are used by Deploy actions. See the comments above.
+  await preprocessActions((config) => config.kind !== "Deploy")
 
   // Optimize file scanning by avoiding unnecessarily broad scans when project is not in repo root.
   const preprocessedConfigs = Object.values(preprocessResults).map((r) => r.config)
@@ -158,11 +203,16 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
   const minimalRoots = await garden.vcs.getMinimalRoots(log, allPaths)
 
   // TODO: Maybe we could optimize resolving tree versions, avoid parallel scanning of the same directory etc.
-  const graph = new MutableConfigGraph({ actions: [], moduleGraph, groups: groupConfigs })
+  const graph = new MutableConfigGraph({
+    environmentName: garden.environmentName,
+    actions: [],
+    moduleGraph,
+    groups: groupConfigs,
+  })
 
   await Promise.all(
     Object.entries(preprocessResults).map(async ([key, res]) => {
-      const { config, supportedModes, templateContext } = res
+      const { config, linkedSource, remoteSourcePath, supportedModes, templateContext } = res
       const { mode, explicitMode } = computedActionModes[key]
 
       try {
@@ -173,7 +223,8 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
           log,
           configsByKey,
           mode,
-          linkedSources,
+          linkedSource,
+          remoteSourcePath,
           templateContext,
           supportedModes,
           scanRoot: minimalRoots[getSourcePath(config)],
@@ -181,7 +232,7 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
 
         if (!action.supportsMode(mode)) {
           if (explicitMode) {
-            log.warn(chalk.yellow(`${action.longDescription()} is not configured for or does not support ${mode} mode`))
+            log.warn(`${action.longDescription()} is not configured for or does not support ${mode} mode`)
           }
         }
 
@@ -193,11 +244,11 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
 
         throw new ConfigurationError({
           message:
-            chalk.redBright(
-              `\nError processing config for ${chalk.white.bold(config.kind)} action ${chalk.white.bold(
+            styles.error(
+              `\nError processing config for ${styles.highlight(config.kind)} action ${styles.highlight(
                 config.name
               )}:\n`
-            ) + chalk.red(error.message),
+            ) + styles.error(error.message),
           wrappedErrors: [error],
         })
       }
@@ -218,11 +269,11 @@ function getActionMode(config: ActionConfig, actionModes: ActionModeMap, log: Lo
     if (key === pattern) {
       explicitMode = true
       mode = "sync"
-      log.silly(`Action ${key} set to ${mode} mode, matched on exact key`)
+      log.silly(() => `Action ${key} set to ${mode} mode, matched on exact key`)
       break
     } else if (minimatch(key, pattern)) {
       mode = "sync"
-      log.silly(`Action ${key} set to ${mode} mode, matched with pattern '${pattern}'`)
+      log.silly(() => `Action ${key} set to ${mode} mode, matched with pattern '${pattern}'`)
       break
     }
   }
@@ -233,11 +284,11 @@ function getActionMode(config: ActionConfig, actionModes: ActionModeMap, log: Lo
     if (key === pattern) {
       explicitMode = true
       mode = "local"
-      log.silly(`Action ${key} set to ${mode} mode, matched on exact key`)
+      log.silly(() => `Action ${key} set to ${mode} mode, matched on exact key`)
       break
     } else if (minimatch(key, pattern)) {
       mode = "local"
-      log.silly(`Action ${key} set to ${mode} mode, matched with pattern '${pattern}'`)
+      log.silly(() => `Action ${key} set to ${mode} mode, matched with pattern '${pattern}'`)
       break
     }
   }
@@ -266,11 +317,12 @@ export const actionFromConfig = profileAsync(async function actionFromConfig({
   scanRoot?: string
 }) {
   // Call configure handler and validate
-  const { config, supportedModes, templateContext } = await preprocessActionConfig({
+  const { config, supportedModes, linkedSource, remoteSourcePath, templateContext } = await preprocessActionConfig({
     garden,
     config: inputConfig,
     router,
     mode,
+    linkedSources,
     log,
   })
 
@@ -281,7 +333,8 @@ export const actionFromConfig = profileAsync(async function actionFromConfig({
     log,
     configsByKey,
     mode,
-    linkedSources,
+    linkedSource,
+    remoteSourcePath,
     templateContext,
     supportedModes,
     scanRoot,
@@ -295,7 +348,8 @@ async function processActionConfig({
   log,
   configsByKey,
   mode,
-  linkedSources,
+  linkedSource,
+  remoteSourcePath,
   templateContext,
   supportedModes,
   scanRoot,
@@ -306,7 +360,8 @@ async function processActionConfig({
   log: Log
   configsByKey: ActionConfigsByKey
   mode: ActionMode
-  linkedSources: LinkedSourceMap
+  linkedSource: LinkedSource | null
+  remoteSourcePath: string | null
   templateContext: ActionConfigContext
   supportedModes: ActionModes
   scanRoot?: string
@@ -314,30 +369,6 @@ async function processActionConfig({
   const actionTypes = await garden.getActionTypes()
   const definition = actionTypes[config.kind][config.type]?.spec
   const compatibleTypes = [config.type, ...getActionTypeBases(definition, actionTypes[config.kind]).map((t) => t.name)]
-  const repositoryUrl = config.source?.repository?.url
-  const key = actionReferenceToString(config)
-
-  let linked: LinkedSource | null = null
-  let remoteSourcePath: string | null = null
-  if (repositoryUrl) {
-    if (config.internal.remoteClonePath) {
-      // Carry over clone path from converted module
-      remoteSourcePath = config.internal.remoteClonePath
-    } else {
-      remoteSourcePath = await garden.resolveExtSourcePath({
-        name: key,
-        sourceType: "action",
-        repositoryUrl,
-        linkedSources: Object.values(linkedSources),
-      })
-
-      config.internal.basePath = remoteSourcePath
-    }
-
-    if (linkedSources[key]) {
-      linked = linkedSources[key]
-    }
-  }
 
   const configPath = relative(garden.projectRoot, config.internal.configFilePath || config.internal.basePath)
 
@@ -407,7 +438,7 @@ async function processActionConfig({
     projectRoot: garden.projectRoot,
     treeVersion,
     variables,
-    linkedSource: linked,
+    linkedSource,
     remoteSourcePath,
     moduleName: config.internal.moduleName,
     moduleVersion: config.internal.moduleVersion,
@@ -467,7 +498,7 @@ export async function resolveAction<T extends Action>({
 
   const results = await garden.processTasks({ tasks: [task], log, throwOnError: true })
 
-  log.info(`Done!`)
+  log.success({ msg: `Done`, showDuration: false })
 
   return <Resolved<T>>(<unknown>results.results.getResult(task)!.result!.outputs.resolvedAction)
 }
@@ -572,20 +603,24 @@ function getActionSchema(kind: ActionKind) {
 interface PreprocessActionResult {
   config: ActionConfig
   supportedModes: ActionModes
+  remoteSourcePath: string | null
+  linkedSource: LinkedSource | null
   templateContext: ActionConfigContext
 }
 
 export const preprocessActionConfig = profileAsync(async function preprocessActionConfig({
   garden,
   config,
-  mode,
   router,
+  mode,
+  linkedSources,
   log,
 }: {
   garden: Garden
   config: ActionConfig
   router: ActionRouter
   mode: ActionMode
+  linkedSources: LinkedSourceMap
   log: Log
 }): Promise<PreprocessActionResult> {
   const description = describeActionConfig(config)
@@ -714,7 +749,13 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
 
   resolveTemplates()
 
-  const { config: updatedConfig, supportedModes } = await router.configureAction({ config, log })
+  const configureActionResult = await router.configureAction({ config, log })
+
+  const { config: updatedConfig } = configureActionResult
+
+  // NOTE: Build actions inherit the supported modes of the Deploy actions that use them
+  const supportedModes: ActionModes =
+    config.kind === "Build" ? ALL_ACTION_MODES_SUPPORTED : configureActionResult.supportedModes
 
   // -> Throw if trying to modify no-template fields
   for (const field of noTemplateFields) {
@@ -757,7 +798,38 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
     })
   }
 
-  return { config, supportedModes, templateContext: builtinFieldContext }
+  const repositoryUrl = config.source?.repository?.url
+  const key = actionReferenceToString(config)
+
+  let linkedSource: LinkedSource | null = null
+  let remoteSourcePath: string | null = null
+  if (repositoryUrl) {
+    if (config.internal.remoteClonePath) {
+      // Carry over clone path from converted module
+      remoteSourcePath = config.internal.remoteClonePath
+    } else {
+      remoteSourcePath = await garden.resolveExtSourcePath({
+        name: key,
+        sourceType: "action",
+        repositoryUrl,
+        linkedSources: Object.values(linkedSources),
+      })
+
+      config.internal.basePath = remoteSourcePath
+    }
+
+    if (linkedSources[key]) {
+      linkedSource = linkedSources[key]
+    }
+  }
+
+  return {
+    config,
+    supportedModes,
+    remoteSourcePath,
+    linkedSource,
+    templateContext: builtinFieldContext,
+  }
 })
 
 function dependenciesFromActionConfig(

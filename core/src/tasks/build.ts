@@ -6,9 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import chalk from "chalk"
 import type { BaseActionTaskParams, ActionTaskProcessParams, ActionTaskStatusParams } from "../tasks/base.js"
-import { ExecuteActionTask, emitGetStatusEvents, emitProcessingEvents } from "../tasks/base.js"
+import { ExecuteActionTask, logAndEmitGetStatusEvents, logAndEmitProcessingEvents } from "../tasks/base.js"
 import { Profile } from "../util/profiling.js"
 import type { BuildAction, BuildActionConfig, ResolvedBuildAction } from "../actions/build.js"
 import pluralize from "pluralize"
@@ -39,7 +38,7 @@ export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {
       }
     },
   })
-  @(emitGetStatusEvents<BuildAction>)
+  @(logAndEmitGetStatusEvents<BuildAction>)
   async getStatus({ statusOnly, dependencyResults }: ActionTaskStatusParams<BuildAction>) {
     const router = await this.garden.getActionRouter()
     const action = this.getResolvedAction(this.action, dependencyResults)
@@ -48,7 +47,6 @@ export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {
     const status = output.result
 
     if (status.state === "ready" && !statusOnly && !this.force) {
-      this.log.info(`Already built`)
       await this.ensureBuildContext(action)
     }
 
@@ -66,7 +64,7 @@ export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {
       }
     },
   })
-  @(emitProcessingEvents<BuildAction>)
+  @(logAndEmitProcessingEvents<BuildAction>)
   async process({ dependencyResults }: ActionTaskProcessParams<BuildAction, BuildStatus>) {
     const router = await this.garden.getActionRouter()
     const action = this.getResolvedAction(this.action, dependencyResults)
@@ -88,7 +86,6 @@ export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {
           log,
         })
       )
-      log.success(`Done`)
 
       return {
         ...result,
@@ -96,8 +93,6 @@ export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {
         executedAction: resolvedActionToExecuted(action, { status: result }),
       }
     } catch (err) {
-      log.error(`Build failed`)
-
       throw err
     }
   }
@@ -127,7 +122,7 @@ export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {
       })
     })
 
-    log.verbose(chalk.green(`Done syncing sources ${renderDuration(log.getDuration(1))}`))
+    log.verbose(`Done syncing sources ${renderDuration(log.getDuration(1))}`)
 
     await wrapActiveSpan("syncDependencyProducts", async () => {
       await this.garden.buildStaging.syncDependencyProducts(action, log)

@@ -19,7 +19,6 @@ type: kubernetes
 name: api
 source:
   path: ../ # <--- We set the source path of the action to the root so that we can reference the manifest files
-
 spec:
   files:
     - manifests/deployment.yaml
@@ -29,6 +28,8 @@ spec:
 kind: Deploy
 type: kubernetes
 name: web
+source:
+  path: ../ # <--- We set the source path of the action to the root so that we can reference the manifest files
 spec:
   files:
     - manifests/deployment.yaml
@@ -119,4 +120,4 @@ spec:
 - When referencing non-primitive values in K8s manifests (e.g. objects and arrays) you need to use the `jsonEncode` template function. This issue is [tracked here](https://github.com/garden-io/garden/issues/3899) but it's a breaking change and will need to be part of our next breaking release.
 - The K8s manifest for the Deployment object needs to specify what container image to pull. The image is built by the respective Build action which exposes the image ID as an "output". You can reference the action output in the manifest like so: `image:
 ${actions.build.<action-name>}.outputs.deploy-image-id`. In this specific example we also template the action name to make the manifest re-usable so the final field becomes: `image: "${actions.build[var.appName].outputs.deployment-image-id}"`
-- Manifests with Garden template strings are not valid Kubernetes manifests and you e.g. can't use them with `kubectl apply`. If you need valid manifests which work with other tools but still want to share them we recommend using either the [Helm Deploy action](https://docs.garden.io/kubernetes-plugins/action-types/helm) or [Kustomize overlays](https://github.com/garden-io/garden/tree/main/examples/kustomize)) which Garden also supports.
+- Manifests with Garden template strings are not valid Kubernetes manifests and you e.g. can't use them with `kubectl apply`. If you need valid manifests which work with other tools but still want to share them we recommend using either the [Helm Deploy action](https://docs.garden.io/kubernetes-plugins/actions/deploy/helm) or [Kustomize overlays](https://github.com/garden-io/garden/tree/main/examples/kustomize)) which Garden also supports.

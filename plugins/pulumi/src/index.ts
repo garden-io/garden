@@ -10,7 +10,7 @@ import { createGardenPlugin } from "@garden-io/sdk"
 import { dedent } from "@garden-io/sdk/build/src/util/string.js"
 import { deletePulumiDeploy, deployPulumi, getPulumiDeployStatus } from "./handlers.js"
 import { getPulumiCommands } from "./commands.js"
-import { pulumiCliSPecs } from "./cli.js"
+import { pulumiCliSpecs } from "./cli.js"
 import type { PulumiDeployConfig } from "./action.js"
 import { pulumiDeployOutputsSchema, pulumiDeploySchema } from "./action.js"
 import { pulumiProviderConfigSchema } from "./provider.js"
@@ -143,5 +143,5 @@ export const gardenPlugin = () =>
         },
       },
     ],
-    tools: Object.values(pulumiCliSPecs),
+    tools: Object.values(pulumiCliSpecs),
   })

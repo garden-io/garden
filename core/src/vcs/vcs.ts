@@ -9,8 +9,8 @@
 import { sortBy, pick } from "lodash-es"
 import { createHash } from "node:crypto"
 import { relative, sep } from "path"
-import { DOCS_BASE_URL } from "../constants.js"
 import fsExtra from "fs-extra"
+import { dirname } from "node:path"
 
 const { writeFile } = fsExtra
 import type { ExternalSourceType } from "../util/ext-source-util.js"
@@ -25,15 +25,17 @@ import { pathToCacheContext } from "../cache.js"
 import type { ServiceConfig } from "../config/service.js"
 import type { TaskConfig } from "../config/task.js"
 import type { TestConfig } from "../config/test.js"
+import type { ActionKind } from "../plugin/action-types.js"
 import type { GardenModule } from "../types/module.js"
 import { validateInstall } from "../util/validateInstall.js"
 import { isActionConfig, getSourceAbsPath } from "../actions/base.js"
 import type { BaseActionConfig } from "../actions/types.js"
 import type { Garden } from "../garden.js"
-import chalk from "chalk"
 import { Profile } from "../util/profiling.js"
 
 import AsyncLock from "async-lock"
+import { makeDocsLink } from "../docs/common.js"
+import { styles } from "../logger/styles.js"
 
 const scanLock = new AsyncLock()
 
@@ -103,16 +105,33 @@ export interface VcsInfo {
   originUrl: string
 }
 
+export type ActionDescription = `${ActionKind} action ${string}`
+export type ActionRoot = `${ActionDescription} root`
+
+export type ModuleDescription = `module ${string}`
+export type ModuleRoot = `${ModuleDescription} root`
+
+export type RepoPathDescription = "directory" | "repository" | "submodule" | "project root" | ActionRoot | ModuleRoot
+
 export interface GetFilesParams {
   log: Log
   path: string
-  pathDescription?: string
+  pathDescription?: RepoPathDescription
   include?: string[]
   exclude?: string[]
   filter?: (path: string) => boolean
   failOnPrompt?: boolean
   scanRoot: string | undefined
 }
+
+export interface BaseIncludeExcludeFiles {
+  include?: string[]
+  exclude: string[]
+}
+
+export type IncludeExcludeFilesHandler<T extends GetFilesParams, R extends BaseIncludeExcludeFiles> = (
+  params: T
+) => Promise<R>
 
 export interface GetTreeVersionParams {
   log: Log
@@ -162,6 +181,12 @@ export abstract class VcsHandler {
 
   abstract getRepoRoot(log: Log, path: string): Promise<string>
 
+  /**
+   * Scans the repository returns the list of the tracked files.
+   * Applies Garden's exclude/include filters and .dotignore files.
+   *
+   * Does NOT sort the results by paths and filenames.
+   */
   abstract getFiles(params: GetFilesParams): Promise<VcsFile[]>
 
   abstract ensureRemoteSource(params: RemoteSourceParams): Promise<string>
@@ -194,7 +219,7 @@ export abstract class VcsHandler {
     if (!force) {
       const cached = this.cache.get(log, cacheKey)
       if (cached) {
-        log.silly(`Got cached tree version for ${description} (key ${cacheKey})`)
+        log.silly(() => `Got cached tree version for ${description} (key ${cacheKey})`)
         return cached
       }
     }
@@ -209,7 +234,7 @@ export abstract class VcsHandler {
       if (!force) {
         const cached = this.cache.get(log, cacheKey)
         if (cached) {
-          log.silly(`Got cached tree version for ${description} (key ${cacheKey})`)
+          log.silly(() => `Got cached tree version for ${description} (key ${cacheKey})`)
           result = cached
           return
         }
@@ -226,7 +251,7 @@ export abstract class VcsHandler {
         let files = await this.getFiles({
           log,
           path,
-          pathDescription: description + " root",
+          pathDescription: `${description} root`,
           include: config.include,
           exclude,
           scanRoot,
@@ -237,10 +262,14 @@ export abstract class VcsHandler {
           await this.garden?.emitWarning({
             key: `${projectName}-filecount-${config.name}`,
             log,
-            message: chalk.yellow(dedent`
-              Large number of files (${files.length}) found in ${description}. You may need to configure file exclusions.
-              See ${DOCS_BASE_URL}/using-garden/configuration-overview#including-excluding-files-and-directories for details.
-            `),
+            message: dedent`
+              Large number of files (${
+                files.length
+              }) found in ${description}. You may need to configure file exclusions.
+              See ${styles.link(
+                makeDocsLink("using-garden/configuration-overview", "#including-excluding-files-and-directories")
+              )} for details.
+            `,
           })
         }
 
@@ -248,8 +277,16 @@ export abstract class VcsHandler {
           // Don't include the config file in the file list
           .filter((f) => !configPath || f.path !== configPath)
 
-        // compute hash using <file-relative-path>-<file-hash> to cater for path changes (e.g. renaming)
-        result.contentHash = hashStrings(files.map((f) => `${relative(this.projectRoot, f.path)}-${f.hash}`))
+        let stringsForContenthash: string[]
+        if (configPath) {
+          // Include the relative path to the file to account for the file being renamed or moved around within the
+          // config path (e.g. renaming).
+          const configDir = dirname(configPath)
+          stringsForContenthash = files.map((f) => `${relative(configDir, f.path)}-${f.hash}`)
+        } else {
+          stringsForContenthash = files.map((f) => f.hash)
+        }
+        result.contentHash = hashStrings(stringsForContenthash)
         result.files = files.map((f) => f.path)
       }
 
@@ -425,6 +462,6 @@ export function getSourcePath(config: ModuleConfig | BaseActionConfig) {
   }
 }
 
-export function describeConfig(config: ModuleConfig | BaseActionConfig) {
+export function describeConfig(config: ModuleConfig | BaseActionConfig): ActionDescription | ModuleDescription {
   return isActionConfig(config) ? `${config.kind} action ${config.name}` : `module ${config.name}`
 }

@@ -10,8 +10,8 @@ kind: Deploy
 description: The worker that collects votes and stores results in a postgres table
 type: container
 name: worker
-build: worker
 dependencies:
+  - build.worker
   - deploy.redis
   - run.db-init
 spec:
@@ -19,3 +19,4 @@ spec:
     PGDATABASE: ${var.postgres-database}
     PGUSER: ${var.postgres-username}
     PGPASSWORD: ${var.postgres-password}
+  image: ${actions.build.worker.outputs.deploymentImageId}

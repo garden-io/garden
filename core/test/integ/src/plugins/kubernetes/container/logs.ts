@@ -80,7 +80,8 @@ describe("kubernetes", () => {
         follow: false,
       })
 
-      expect(entries[0].msg).to.include("Server running...")
+      const deployLog = entries.find((e) => e.msg.includes("Server running..."))
+      expect(deployLog).to.exist
     })
     describe("K8sLogsFollower", () => {
       let logsFollower: K8sLogFollower<DeployLogEntry>

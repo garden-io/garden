@@ -6,8 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import chalk from "chalk"
-
 import { BooleanParameter, StringsParameter } from "../../cli/params.js"
 import { joi } from "../../config/common.js"
 import { printHeader } from "../../logger/util.js"
@@ -23,8 +21,11 @@ import { isEmpty, omit } from "lodash-es"
 import type { Garden } from "../../index.js"
 import type { ResolvedDeployAction } from "../../actions/deploy.js"
 import type { ResolvedConfigGraph } from "../../graph/config-graph.js"
-import { DOCS_BASE_URL } from "../../constants.js"
 import pMap from "p-map"
+import { styles } from "../../logger/styles.js"
+import { makeDocsLink } from "../../docs/common.js"
+
+import { syncGuideRelPath } from "../../plugins/kubernetes/constants.js"
 
 const syncStatusArgs = {
   names: new StringsParameter({
@@ -112,7 +113,7 @@ export class SyncStatusCommand extends Command<Args, Opts> {
         Follow the link below to learn how to enable live code syncing with Garden:
       `)
       log.info("")
-      log.info(chalk.cyan.underline(`${DOCS_BASE_URL}/guides/code-synchronization`))
+      log.info(styles.link(`${makeDocsLink(syncGuideRelPath)}`))
     }
 
     return { result: { actions: syncStatuses } }
@@ -122,11 +123,21 @@ export class SyncStatusCommand extends Command<Args, Opts> {
 function stateStyle(state: SyncState, msg: string) {
   const styleFn =
     {
-      "active": chalk.green,
-      "failed": chalk.red,
-      "not-active": chalk.yellow,
-    }[state] || chalk.bold.dim
+      "active": styles.success,
+      "failed": styles.error,
+      "not-active": styles.warning,
+    }[state] || styles.primary.bold
   return styleFn(msg)
+}
+
+const verbMap: { [key in SyncState]: string } = {
+  "active": "is",
+  "failed": "has",
+  "not-active": "is",
+  "not-deployed": "is",
+  "unknown": "is",
+  "not-configured": "is",
+  "outdated": "is",
 }
 
 function describeState(state: SyncState) {
@@ -189,30 +200,25 @@ export async function getSyncStatuses({
       })
       syncStatus["syncs"] = sorted
 
-      const verbMap = {
-        "active": "is",
-        "failed": "has",
-        "not-active": "is",
-      }
-
       const syncCount = syncStatus.syncs.length
       const pluralizedSyncs = syncCount === 1 ? "sync" : "syncs"
       log.info(
-        `The ${chalk.cyan(action.name)} Deploy action has ${chalk.cyan(syncCount)} ${pluralizedSyncs} configured:`
+        `The ${styles.highlight(action.name)} Deploy action has ${styles.highlight(
+          syncCount.toString()
+        )} ${pluralizedSyncs} configured:`
       )
       const leftPad = "  →"
       syncs.forEach((sync, idx) => {
         const state = sync.state
         log.info(
-          `${leftPad} Sync from ${chalk.cyan(sync.source)} to ${chalk.cyan(sync.target)} ${verbMap[state]} ${stateStyle(
-            state,
-            describeState(state)
-          )}`
+          `${leftPad} Sync from ${styles.highlight(sync.source)} to ${styles.highlight(sync.target)} ${
+            verbMap[state]
+          } ${stateStyle(state, describeState(state))}`
         )
-        sync.mode && log.info(chalk.bold(`${leftPad} Mode: ${sync.mode}`))
-        sync.syncCount && log.info(chalk.bold(`${leftPad} Number of completed syncs: ${sync.syncCount}`))
+        sync.mode && log.info(styles.bold(`${leftPad} Mode: ${sync.mode}`))
+        sync.syncCount && log.info(styles.bold(`${leftPad} Number of completed syncs: ${sync.syncCount}`))
         if (state === "failed" && sync.message) {
-          log.info(`${chalk.bold(leftPad)} ${chalk.yellow(sync.message)}`)
+          log.info(`${styles.bold(leftPad)} ${styles.warning(sync.message)}`)
         }
         idx !== syncs.length - 1 && log.info("")
       })

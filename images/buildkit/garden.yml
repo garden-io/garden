@@ -2,7 +2,7 @@ kind: Module
 type: container
 name: buildkit
 description: Used for the cluster-buildkit build mode in the kubernetes provider
-image: gardendev/buildkit:v0.12.2
+image: gardendev/buildkit:v0.12.2-1
 dockerfile: Dockerfile
 build:
   targetImage: buildkit
@@ -14,7 +14,7 @@ kind: Module
 type: container
 name: buildkit-rootless
 description: Used for the cluster-buildkit build mode in the kubernetes provider, rootless variant
-image: gardendev/buildkit:v0.12.2-rootless
+image: gardendev/buildkit:v0.12.2-1-rootless
 dockerfile: Dockerfile
 build:
   dependencies:

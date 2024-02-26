@@ -8,13 +8,13 @@
 
 import { mapValues } from "lodash-es"
 import fsExtra from "fs-extra"
-const { writeFile } = fsExtra
 import type { DumpOptions } from "js-yaml"
-import { dump } from "js-yaml"
+import { dump, load } from "js-yaml"
 import highlightModule from "cli-highlight"
-const highlight = highlightModule.default
+import { styles } from "../logger/styles.js"
 
-import chalk from "chalk"
+const { readFile, writeFile } = fsExtra
+const highlight = highlightModule.default
 
 export async function dumpYaml(yamlPath: string, data: any) {
   return writeFile(yamlPath, safeDumpYaml(data, { noRefs: true }))
@@ -35,14 +35,21 @@ export function encodeYamlMulti(objects: object[]) {
 }
 
 export function highlightYaml(s: string) {
-  return highlight(s, {
-    language: "yaml",
-    theme: {
-      keyword: chalk.white.italic,
-      literal: chalk.white.italic,
-      string: chalk.white,
-    },
-  })
+  try {
+    return highlight(s, {
+      language: "yaml",
+      theme: {
+        keyword: styles.accent.italic,
+        literal: styles.accent.italic,
+        string: styles.accent,
+      },
+    })
+  } catch (err) {
+    // FIXME: this is a quickfix for https://github.com/garden-io/garden/issues/5442
+    //  The issue needs to be fixed properly, by fixing Garden single app binary construction.
+    // Fallback to non-highlighted yaml if an error occurs.
+    return s
+  }
 }
 
 /**
@@ -50,6 +57,11 @@ export function highlightYaml(s: string) {
  */
 export async function dumpYamlMulti(yamlPath: string, objects: object[]) {
   return writeFile(yamlPath, encodeYamlMulti(objects))
+}
+
+export async function loadYamlFile(path: string): Promise<any> {
+  const fileData = await readFile(path)
+  return load(fileData.toString())
 }
 
 export function serializeObject(o: any): string {

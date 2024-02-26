@@ -6,9 +6,9 @@ RUN cd /usr/local/bin && \
   echo "af805202cb5d627dde2e6d4be1f519b195fd5a3a35ddc88d5010b4a4e5a98dd8  docker-credential-ecr-login" | sha256sum -c && \
   chmod +x docker-credential-ecr-login
 
-RUN wget "https://github.com/GoogleCloudPlatform/docker-credential-gcr/releases/download/v2.0.1/docker-credential-gcr_linux_amd64-2.0.1.tar.gz" && \
-  echo "90837d1d9cf16809a60d5c7891d7d0b8445b1978ad43187032a0ca93bda49ed5  docker-credential-gcr_linux_amd64-2.0.1.tar.gz" | sha256sum -c && \
-  tar xzf docker-credential-gcr_linux_amd64-2.0.1.tar.gz --to-stdout ./docker-credential-gcr \
-  > /usr/local/bin/docker-credential-gcr && \
-  chmod +x /usr/local/bin/docker-credential-gcr && \
-  rm docker-credential-gcr_linux_amd64-2.0.1.tar.gz
+RUN cd /usr/local/bin && \
+  wget "https://github.com/GoogleCloudPlatform/docker-credential-gcr/releases/download/v2.1.14/docker-credential-gcr_linux_amd64-2.1.14.tar.gz" && \
+  echo "81f2d215466ab5bf6a350aadab42b42ad29590d16eab39f28014e4a6563c848a  docker-credential-gcr_linux_amd64-2.1.14.tar.gz" | sha256sum -c && \
+  tar xzf docker-credential-gcr_linux_amd64-2.1.14.tar.gz && \
+  rm docker-credential-gcr_linux_amd64-2.1.14.tar.gz && \
+  chmod +x docker-credential-gcr

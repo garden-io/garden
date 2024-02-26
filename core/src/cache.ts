@@ -91,7 +91,7 @@ export class TreeCache {
 
     const stringKey = stringifyKey(key)
 
-    log.silly(`TreeCache: Setting value for key ${stringKey}`)
+    log.silly(() => `TreeCache: Setting value for key ${stringKey}`)
 
     let entry = this.cache.get(stringKey)
 
@@ -137,10 +137,10 @@ export class TreeCache {
     const entry = this.cache.get(stringKey)
 
     if (entry) {
-      log.silly(`TreeCache: Found cached value for key ${stringKey}`)
+      log.silly(() => `TreeCache: Found cached value for key ${stringKey}`)
       return entry.value
     } else {
-      log.silly(`TreeCache: No cached value for key ${stringKey}`)
+      log.silly(() => `TreeCache: No cached value for key ${stringKey}`)
       return
     }
   }
@@ -177,7 +177,7 @@ export class TreeCache {
    * Delete a specific entry from the cache.
    */
   delete(log: Log, key: CacheKey) {
-    log.silly(`TreeCache: Deleting key ${stringifyKey(key)}`)
+    log.silly(() => `TreeCache: Deleting key ${stringifyKey(key)}`)
 
     const stringKey = stringifyKey(key)
     const entry = this.cache.get(stringKey)
@@ -199,7 +199,7 @@ export class TreeCache {
    * Invalidates all cache entries whose context equals `context`
    */
   invalidate(log: Log, context: CacheContext) {
-    log.silly(`TreeCache: Invalidating all caches for context ${stringifyKey(context)}`)
+    log.silly(() => `TreeCache: Invalidating all caches for context ${stringifyKey(context)}`)
 
     const node = this.getNode(context)
 
@@ -214,7 +214,7 @@ export class TreeCache {
    * (i.e. the whole path from the tree root down to the context leaf)
    */
   invalidateUp(log: Log, context: CacheContext) {
-    log.silly(`TreeCache: Invalidating caches up from context ${stringifyKey(context)}`)
+    log.silly(() => `TreeCache: Invalidating caches up from context ${stringifyKey(context)}`)
 
     let node = this.contextTree
 
@@ -232,7 +232,7 @@ export class TreeCache {
    * (i.e. the context node and the whole tree below it)
    */
   invalidateDown(log: Log, context: CacheContext) {
-    log.silly(`TreeCache: Invalidating caches down from context ${stringifyKey(context)}`)
+    log.silly(() => `TreeCache: Invalidating caches down from context ${stringifyKey(context)}`)
 
     const node = this.getNode(context)
 

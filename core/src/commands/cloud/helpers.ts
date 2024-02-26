@@ -13,10 +13,10 @@ import type { Log } from "../../logger/log-entry.js"
 import { capitalize } from "lodash-es"
 import minimatch from "minimatch"
 import pluralize from "pluralize"
-import chalk from "chalk"
 import { CommandError, toGardenError } from "../../exceptions.js"
 import type { CommandResult } from "../base.js"
 import { userPrompt } from "../../util/util.js"
+import { styles } from "../../logger/styles.js"
 
 export interface DeleteResult {
   id: string | number
@@ -129,8 +129,8 @@ export function handleBulkOperationResult<T>({
         const identifier = Number.isInteger(e.identifier)
           ? `with ID ${e.identifier} `
           : e.identifier === ""
-          ? ""
-          : `"${e.identifier} "`
+            ? ""
+            : `"${e.identifier} "`
         return `→ ${capitalize(actionVerb)} ${resource} ${identifier}failed with error: ${e.message}`
       })
       .join("\n")
@@ -176,7 +176,7 @@ export function applyFilter(filter: string[], val?: string | string[]) {
 }
 
 export async function confirmDelete(resource: string, count: number) {
-  const msg = chalk.yellow(dedent`
+  const msg = styles.warning(dedent`
     Warning: you are about to delete ${count} ${
       count === 1 ? resource : pluralize(resource)
     }. This operation cannot be undone.

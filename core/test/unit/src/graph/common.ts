@@ -138,7 +138,7 @@ describe("graph common", () => {
           spec: {},
         },
       ]
-      expect(() => detectMissingDependencies(moduleConfigs))
+      expect(() => detectMissingDependencies(moduleConfigs)).to.not.throw
     })
   })
 

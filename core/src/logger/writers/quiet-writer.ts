@@ -16,8 +16,7 @@ import { Writer } from "./base.js"
 export class QuietWriter extends Writer {
   type = "quiet"
 
-  // no-op
   write() {
-    this.level
+    // no-op
   }
 }

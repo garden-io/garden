@@ -21,7 +21,7 @@ import { createWriteStream } from "fs"
  */
 export async function zipFolder(src: string, dest: string, log: Log) {
   const { default: archiver } = await import("archiver")
-  return new Promise<void>((resolve, reject) => {
+  return new Promise<void>(async (resolve, reject) => {
     const output = createWriteStream(dest)
     const archiveOpts = {
       zlib: {
@@ -52,6 +52,6 @@ export async function zipFolder(src: string, dest: string, log: Log) {
 
     archive.pipe(output)
     archive.directory(src, false)
-    archive.finalize()
+    await archive.finalize()
   })
 }

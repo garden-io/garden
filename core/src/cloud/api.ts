@@ -26,14 +26,15 @@ import type {
   GetProjectResponse,
   ListProjectsResponse,
 } from "@garden-io/platform-api-types"
-import { getCloudDistributionName, getCloudLogSectionName, getPackageVersion } from "../util/util.js"
+import { getCloudDistributionName, getCloudLogSectionName } from "../util/cloud.js"
+import { getPackageVersion } from "../util/util.js"
 import type { CommandInfo } from "../plugin-context.js"
 import type { ClientAuthToken, GlobalConfigStore } from "../config-store/global.js"
 import { add } from "date-fns"
 import { LogLevel } from "../logger/logger.js"
 import { makeAuthHeader } from "./auth.js"
 import type { StringMap } from "../config/common.js"
-import chalk from "chalk"
+import { styles } from "../logger/styles.js"
 
 const gardenClientName = "garden-core"
 const gardenClientVersion = getPackageVersion()
@@ -201,7 +202,8 @@ export class CloudApi {
   /**
    * Initialize the Cloud API.
    *
-   * Returns null if the project is not configured for Garden Cloud or if the user is not logged in.
+   * Returns null if the user is not logged in.
+   *
    * Throws if the user is logged in but the token is invalid and can't be refreshed.
    *
    * Optionally skip logging during initialization. Useful for noProject commands that need to use the class
@@ -304,7 +306,7 @@ export class CloudApi {
    * token and deletes all others.
    */
   static async getStoredAuthToken(log: Log, globalConfigStore: GlobalConfigStore, domain: string) {
-    log.silly(`Retrieving client auth token from config store`)
+    log.silly(() => `Retrieving client auth token from config store`)
     return globalConfigStore.get("clientAuthTokens", domain)
   }
 
@@ -322,7 +324,7 @@ export class CloudApi {
   ): Promise<string | undefined> {
     const tokenFromEnv = gardenEnv.GARDEN_AUTH_TOKEN
     if (tokenFromEnv) {
-      log.silly("Read client auth token from env")
+      log.silly(() => "Read client auth token from env")
       return tokenFromEnv
     }
     return (await CloudApi.getStoredAuthToken(log, globalConfigStore, domain))?.token
@@ -479,7 +481,7 @@ export class CloudApi {
 
   private async apiFetch<T>(path: string, params: ApiFetchParams): Promise<ApiFetchResponse<T>> {
     const { method, headers, retry, retryDescription } = params
-    this.log.silly({ msg: `Calling Cloud API with ${method} ${path}` })
+    this.log.silly(() => `Calling Cloud API with ${method} ${path}`)
     const token = await CloudApi.getAuthToken(this.log, this.globalConfigStore, this.domain)
     // TODO add more logging details
     const requestObj = {
@@ -578,7 +580,7 @@ export class CloudApi {
     return this.apiFetch<T>(path, {
       method: "GET",
       headers: headers || {},
-      retry: retry === false ? false : true, // defaults to true unless false is explicitly passed
+      retry: retry !== false, // defaults to true unless false is explicitly passed
       retryDescription,
       maxRetries,
     })
@@ -589,7 +591,7 @@ export class CloudApi {
     return await this.apiFetch<T>(path, {
       method: "DELETE",
       headers: headers || {},
-      retry: retry === false ? false : true, // defaults to true unless false is explicitly passed
+      retry: retry !== false, // defaults to true unless false is explicitly passed
       retryDescription,
       maxRetries,
     })
@@ -777,26 +779,24 @@ export class CloudApi {
       }
       // This happens if an environment or project does not exist
       if (err.response.statusCode === 404) {
-        const errorHeaderMsg = chalk.red(`Unable to read secrets from ${distroName}.`)
-        const errorDetailMsg = chalk.white(dedent`
-          Either the environment ${chalk.bold.whiteBright(environmentName)} does not exist in ${distroName},
-          or no project matches the project ID ${chalk.bold.whiteBright(
-            projectId
-          )} in your project level garden.yml file.
+        const errorHeaderMsg = styles.error(`Unable to read secrets from ${distroName}.`)
+        const errorDetailMsg = styles.accent(dedent`
+          Either the environment ${styles.accent.bold(environmentName)} does not exist in ${distroName},
+          or no project matches the project ID ${styles.accent.bold(projectId)} in your project level garden.yml file.
 
           💡Suggestion:
 
-          Visit ${chalk.underline(this.domain)} to review existing environments and projects.
+          Visit ${styles.link(this.domain)} to review existing environments and projects.
 
           First check whether an environment with name ${environmentName} exists for this project. You
           can view the list of environments and the project ID on the project's Settings page.
 
-          ${chalk.bold.whiteBright(
+          ${styles.accent.bold(
             "If the environment does not exist"
           )}, you can either create one from the Settings page or update
           the environments in your project level garden.yml config to match one that already exists.
 
-          ${chalk.bold.whiteBright(
+          ${styles.accent.bold(
             "If a project with this ID does not exist"
           )}, it's likely because the ID has been changed in the
           project level garden.yml config file or the project has been deleted from ${distroName}.

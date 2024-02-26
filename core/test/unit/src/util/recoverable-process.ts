@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import env from "env-var"
 import { expect } from "chai"
 import type { RecoverableProcessState } from "../../../../src/util/recoverable-process.js"
 import { RecoverableProcess, validateRetryConfig } from "../../../../src/util/recoverable-process.js"
@@ -15,6 +14,7 @@ import { sleep } from "../../../../src/util/util.js"
 import type { TestGarden } from "../../../helpers.js"
 import { initTestLogger, makeTempGarden } from "../../../helpers.js"
 import { PluginEventBroker } from "../../../../src/plugin-context.js"
+import { isCiEnv } from "../../../../src/util/testing.js"
 
 describe("validateRetryConfig", () => {
   it("must fail on negative minTimeoutMs", () => {
@@ -72,6 +72,7 @@ describe("validateRetryConfig", () => {
   })
 })
 
+// FIXME: some tests are skipped because child-processes are not getting killed in CircleCI pipeline for some reason.
 describe("RecoverableProcess", async () => {
   initTestLogger()
   const log = getRootLogger().createLog()
@@ -89,16 +90,6 @@ describe("RecoverableProcess", async () => {
     garden = (await makeTempGarden()).garden
     events = new PluginEventBroker(garden)
   })
-
-  /**
-   * FIXME: some tests are skipped because child-processes are not getting killed in CircleCI pipeline for some reason.
-   * This function is used to skip some tests and modify some expectations in CircleCI pipeline.
-   */
-  function isCiEnv() {
-    const ciEnv = env.get("CI").required(false).asBool()
-    const circleCiEnv = env.get("CIRCLECI").required(false).asBool()
-    return ciEnv || circleCiEnv
-  }
 
   function killNode(node: RecoverableProcess) {
     const untypedNode: any = <any>node
@@ -326,9 +317,10 @@ describe("RecoverableProcess", async () => {
     expectStopped(rightChild2)
   })
 
-  it("process subtree restarts on its root failure", async () => {
+  it("process subtree restarts on its root failure", async function () {
     if (isCiEnv()) {
-      return
+      // eslint-disable-next-line no-invalid-this
+      this.skip()
     }
 
     const maxRetries = 5
@@ -375,9 +367,10 @@ describe("RecoverableProcess", async () => {
     expectStopped(rightChild2)
   })
 
-  it("entire process tree restarts on root process failure", async () => {
+  it("entire process tree restarts on root process failure", async function () {
     if (isCiEnv()) {
-      return
+      // eslint-disable-next-line no-invalid-this
+      this.skip()
     }
 
     const maxRetries = 5
@@ -431,9 +424,10 @@ describe("RecoverableProcess", async () => {
     expectStopped(rightChild2)
   })
 
-  it("entire process tree restarts when all processes are killed (root-to-leaf)", async () => {
+  it("entire process tree restarts when all processes are killed (root-to-leaf)", async function () {
     if (isCiEnv()) {
-      return
+      // eslint-disable-next-line no-invalid-this
+      this.skip()
     }
 
     const maxRetries = 5
@@ -484,9 +478,10 @@ describe("RecoverableProcess", async () => {
     expectStopped(rightChild2)
   })
 
-  it("entire process tree restarts when all processes are killed (leaf-to-root)", async () => {
+  it("entire process tree restarts when all processes are killed (leaf-to-root)", async function () {
     if (isCiEnv()) {
-      return
+      // eslint-disable-next-line no-invalid-this
+      this.skip()
     }
 
     const maxRetries = 5

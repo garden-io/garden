@@ -16,12 +16,12 @@ import type { CommandParams, CommandResult } from "../../base.js"
 import { Command } from "../../base.js"
 import type { SecretResult } from "../helpers.js"
 import { applyFilter, makeSecretFromResponse, noApiMsg } from "../helpers.js"
-import chalk from "chalk"
 import { sortBy } from "lodash-es"
 import { StringsParameter } from "../../../cli/params.js"
-import { getCloudDistributionName } from "../../../util/util.js"
+import { getCloudDistributionName } from "../../../util/cloud.js"
 import type { CloudApi, CloudProject } from "../../../cloud/api.js"
 import type { Log } from "../../../logger/log-entry.js"
+import { styles } from "../../../logger/styles.js"
 
 export const fetchAllSecrets = async (api: CloudApi, projectId: string, log: Log): Promise<SecretResult[]> => {
   let page = 0
@@ -118,10 +118,10 @@ export class SecretsListCommand extends Command<{}, Opts> {
 
     log.debug(`Found ${filtered.length} secrets that match filters`)
 
-    const heading = ["Name", "ID", "Environment", "User", "Created At"].map((s) => chalk.bold(s))
+    const heading = ["Name", "ID", "Environment", "User", "Created At"].map((s) => styles.bold(s))
     const rows: string[][] = filtered.map((s) => {
       return [
-        chalk.cyan.bold(s.name),
+        styles.highlight.bold(s.name),
         String(s.id),
         s.environment?.name || "[none]",
         s.user?.name || "[none]",

@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import chalk from "chalk"
 import httpStatusCodes from "http-status-codes"
 import { ApiException as KubernetesApiException } from "@kubernetes/client-node"
 import { sleep } from "../../util/util.js"
@@ -62,7 +61,7 @@ export async function requestWithRetry<R>(
           return await retry(usedRetries + 1)
         } else {
           if (usedRetries === maxRetries) {
-            retryLog.info(chalk.red(`Kubernetes API: Maximum retry count exceeded`))
+            retryLog.error(`Kubernetes API: Maximum retry count exceeded`)
           }
           throw err
         }
@@ -124,7 +123,7 @@ export function toKubernetesError(err: unknown, context: string): KubernetesErro
     // The ErrorEvent does not expose the status code other than as part of the error.message
   } else {
     // In all other cases, we don't know what this is, so let's just throw an InternalError
-    throw InternalError.wrapError(err, `toKubernetesError encountered an unknown error unexpectedly during ${context}`)
+    throw InternalError.wrapError(err, `toKubernetesError encountered an unknown error during ${context}`)
   }
 
   let message = `Error while performing Kubernetes API operation ${context}: ${errorType}\n`
@@ -202,8 +201,10 @@ const errorMessageRegexesForRetry = [
   // (rpc error: code = ResourceExhausted desc = etcdserver: throttle: too many requests)
   /too many requests/,
   /Unable to connect to the server/,
-  /WebsocketError: Unexpected server response/,
   // We often flaked with this error on microk8s in the CI:
   // > pods "api-test-xxxx" is forbidden: error looking up service account container-default/default: serviceaccount "default" not found
   /forbidden: error looking up service account/,
+
+  // We get WebsocketError without HTTP status code on some API operations, e.g. exec in a pod
+  /WebsocketError/,
 ]

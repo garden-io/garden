@@ -10,6 +10,7 @@ import type {
   KubernetesObject,
   V1DaemonSet,
   V1Deployment,
+  V1ServiceAccount,
   V1ObjectMeta,
   V1ReplicaSet,
   V1StatefulSet,
@@ -92,6 +93,7 @@ export type KubernetesReplicaSet = KubernetesResource<V1ReplicaSet>
 export type KubernetesStatefulSet = KubernetesResource<V1StatefulSet>
 export type KubernetesPod = KubernetesResource<V1Pod>
 export type KubernetesService = KubernetesResource<V1Service>
+export type KubernetesServiceAccount = KubernetesResource<V1ServiceAccount>
 
 export type KubernetesWorkload = KubernetesResource<V1DaemonSet | V1Deployment | V1ReplicaSet | V1StatefulSet>
 export type KubernetesIngress = KubernetesResource<V1Ingress>

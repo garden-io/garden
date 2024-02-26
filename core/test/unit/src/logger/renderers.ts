@@ -12,16 +12,12 @@ import type { Logger } from "../../../../src/logger/logger.js"
 import { getRootLogger } from "../../../../src/logger/logger.js"
 import {
   renderMsg,
-  msgStyle,
-  errorStyle,
   formatForTerminal,
   renderError,
   formatForJson,
   SECTION_PADDING,
   renderData,
-  padSection,
   renderSection,
-  warningStyle,
 } from "../../../../src/logger/renderers.js"
 import { GenericGardenError } from "../../../../src/exceptions.js"
 
@@ -31,8 +27,9 @@ import logSymbols from "log-symbols"
 import stripAnsi from "strip-ansi"
 import { highlightYaml, safeDumpYaml } from "../../../../src/util/serialization.js"
 import { freezeTime } from "../../../helpers.js"
-import chalk from "chalk"
 import format from "date-fns/format/index.js"
+import { styles } from "../../../../src/logger/styles.js"
+import { gardenEnv } from "../../../../src/constants.js"
 
 const logger: Logger = getRootLogger()
 
@@ -44,15 +41,15 @@ describe("renderers", () => {
   describe("renderMsg", () => {
     it("should render the message with the message style", () => {
       const log = logger.createLog().info("hello message")
-      expect(renderMsg(log.entries[0])).to.equal(msgStyle("hello message"))
+      expect(renderMsg(log.entries[0])).to.equal(styles.primary("hello message"))
     })
     it("should render the message with the error style if the entry has error level", () => {
       const log = logger.createLog().error({ msg: "hello error" })
-      expect(renderMsg(log.entries[0])).to.equal(errorStyle("hello error"))
+      expect(renderMsg(log.entries[0])).to.equal(styles.error("hello error"))
     })
     it("should render the message with the warning style if the entry has warning level", () => {
       const log = logger.createLog().warn({ msg: "hello error" })
-      expect(renderMsg(log.entries[0])).to.equal(warningStyle("hello error"))
+      expect(renderMsg(log.entries[0])).to.equal(styles.warning("hello error"))
     })
   })
   describe("renderError", () => {
@@ -118,21 +115,27 @@ describe("renderers", () => {
       const entry = logger.createLog({ name: "foo" }).info("hello world").getLatestEntry()
 
       expect(formatForTerminal(entry, logger)).to.equal(
-        `${logSymbols["info"]} ${renderSection(entry)}${msgStyle("hello world")}\n`
+        `${logSymbols["info"]} ${renderSection(entry)}${styles.primary("hello world")}\n`
       )
     })
     it("should print the log level if it's higher then 'info'", () => {
       const entry = logger.createLog().debug({ msg: "hello world" }).getLatestEntry()
 
-      expect(formatForTerminal(entry, logger)).to.equal(`${chalk.gray("[debug]")} ${msgStyle("hello world")}\n`)
+      expect(formatForTerminal(entry, logger)).to.equal(`${styles.secondary("[debug] hello world")}\n`)
     })
-    it("should print the log level if it's higher then 'info' after the section if there is one", () => {
-      const entry = logger.createLog({ name: "foo" }).debug("hello world").getLatestEntry()
+    context("NO_COLOR=true", () => {
+      before(() => {
+        gardenEnv.NO_COLOR = true
+      })
+      after(() => {
+        gardenEnv.NO_COLOR = false
+      })
+      it("should not use ANSI terminal colors", () => {
+        const entry = logger.createLog({ name: "test-log" }).info({ msg: "hello world" }).getLatestEntry()
 
-      const section = `foo ${chalk.gray("[debug]")}`
-      expect(formatForTerminal(entry, logger)).to.equal(
-        `${logSymbols["info"]} ${chalk.cyan.italic(padSection(section))} → ${msgStyle("hello world")}\n`
-      )
+        const sectionWithPadding = "test-log".padEnd(SECTION_PADDING, " ")
+        expect(formatForTerminal(entry, logger)).to.equal(`ℹ ${sectionWithPadding} → hello world\n`)
+      })
     })
     context("basic", () => {
       before(() => {
@@ -143,7 +146,7 @@ describe("renderers", () => {
         const entry = logger.createLog().info("hello world").getLatestEntry()
 
         expect(formatForTerminal(entry, logger)).to.equal(
-          `${chalk.gray(format(now, "HH:mm:ss"))} ${msgStyle("hello world")}\n`
+          `${styles.secondary(format(now, "HH:mm:ss"))} ${styles.primary("hello world")}\n`
         )
       })
       after(() => {

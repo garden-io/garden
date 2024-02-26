@@ -16,13 +16,13 @@ import { ParameterError } from "../exceptions.js"
 import { parseEnvironment } from "../config/project.js"
 import { getLogLevelChoices, LOGGER_TYPES, LogLevel } from "../logger/logger.js"
 import { dedent, deline } from "../util/string.js"
-import chalk from "chalk"
 import { safeDumpYaml } from "../util/serialization.js"
 import { resolve } from "path"
 import { isArray } from "lodash-es"
 import { gardenEnv } from "../constants.js"
 import { envSupportsEmoji } from "../logger/util.js"
 import type { ConfigDump } from "../garden.js"
+import { styles } from "../logger/styles.js"
 
 export const OUTPUT_RENDERERS = {
   json: (data: DeepPrimitiveMap) => {
@@ -377,12 +377,10 @@ export const globalDisplayOptions = {
     choices: [...LOGGER_TYPES],
     help: deline`
       Set logger type.
-      ${chalk.bold("default")} The default Garden logger,
-      ${chalk.bold(
-        "basic"
-      )} [DEPRECATED] Sames as the default Garden logger. This option will be removed in a future release,
-      ${chalk.bold("json")} same as default, but renders log lines as JSON,
-      ${chalk.bold("quiet")} suppresses all log output, same as --silent.
+      ${styles.highlight("default")} The default Garden logger,
+      ${styles.highlight("basic")}: [DEPRECATED] An alias for "default".
+      ${styles.highlight("json")}: Renders log lines as JSON.
+      ${styles.highlight("quiet")}: Suppresses all log output, same as --silent.
     `,
     cliOnly: true,
   }),
@@ -391,7 +389,9 @@ export const globalDisplayOptions = {
     choices: getLogLevelChoices(),
     help: deline`
       Set logger level. Values can be either string or numeric and are prioritized from 0 to 5
-      (highest to lowest) as follows: error: 0, warn: 1, info: 2, verbose: 3, debug: 4, silly: 5.
+      (highest to lowest) as follows: ${styles.highlight("error: 0")}, ${styles.highlight("warn: 1")},
+      ${styles.highlight("info: 2")}, ${styles.highlight("verbose: 3")}, ${styles.highlight("debug: 4")},
+      ${styles.highlight("silly: 5")}.
       From the verbose log level onward action execution logs are also printed (e.g. test or run live log outputs).`,
     hints: "[choice] [default: info] [error || 0, warn || 1, info || 2, verbose || 3, debug || 4, silly || 5]",
     defaultValue: LogLevel[LogLevel.info],
@@ -407,7 +407,7 @@ export const globalDisplayOptions = {
   }),
   "show-timestamps": new BooleanParameter({
     help: deline`
-      Show timestamps with log output. When enabled, Garden will use the ${chalk.bold(
+      Show timestamps with log output. When enabled, Garden will use the ${styles.bold(
         "basic"
       )} logger. I.e., log status changes are rendered as new lines instead of being updated in-place.`,
     defaultValue: false,

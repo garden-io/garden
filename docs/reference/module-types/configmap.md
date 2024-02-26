@@ -13,7 +13,7 @@ Modules are deprecated and will be removed in version `0.14`. Please use [action
 
 Creates a [ConfigMap](https://kubernetes.io/docs/concepts/configuration/configmap/) in your namespace, that can be referenced and mounted by other resources and [container actions](./container.md).
 
-See the [Mounting Kubernetes ConfigMaps](../../k8s-plugins/action-types/configmap.md) guide for more info and usage examples.
+See the [Mounting Kubernetes ConfigMaps](../../k8s-plugins/actions/deploy/configmap.md) guide for more info and usage examples.
 
 Below is the full schema reference. For an introduction to configuring Garden modules, please look at our [Configuration
 guide](../../using-garden/configuration-overview.md).
@@ -104,7 +104,7 @@ exclude:
 # garden.yml file.
 repositoryUrl:
 
-# When false, disables pushing this module to remote registries.
+# When false, disables pushing this module to remote registries via the publish command.
 allowPublish: true
 
 # A list of files to write to the module directory when resolving this module. This is useful to automatically
@@ -357,7 +357,7 @@ repositoryUrl: "git+https://github.com/org/repo.git#v2.0"
 
 ### `allowPublish`
 
-When false, disables pushing this module to remote registries.
+When false, disables pushing this module to remote registries via the publish command.
 
 | Type      | Default | Required |
 | --------- | ------- | -------- |

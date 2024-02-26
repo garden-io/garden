@@ -7,7 +7,6 @@
  */
 
 import type Joi from "@hapi/joi"
-import chalk from "chalk"
 import { isString } from "lodash-es"
 import { ConfigurationError } from "../../exceptions.js"
 import {
@@ -19,6 +18,7 @@ import type { CustomObjectSchema } from "../common.js"
 import { isPrimitive, joi, joiIdentifier } from "../common.js"
 import { KeyedSet } from "../../util/keyed-set.js"
 import { naturalList } from "../../util/string.js"
+import { styles } from "../../logger/styles.js"
 
 export type ContextKeySegment = string | number
 export type ContextKey = ContextKeySegment[]
@@ -170,15 +170,17 @@ export abstract class ConfigContext {
 
     if (value === undefined) {
       if (message === undefined) {
-        message = chalk.red(`Could not find key ${chalk.white(nextKey)}`)
+        message = styles.error(`Could not find key ${styles.highlight(String(nextKey))}`)
         if (nestedNodePath.length > 1) {
-          message += chalk.red(" under ") + chalk.white(renderKeyPath(nestedNodePath.slice(0, -1)))
+          message += styles.error(" under ") + styles.highlight(renderKeyPath(nestedNodePath.slice(0, -1)))
         }
-        message += chalk.red(".")
+        message += styles.error(".")
 
         if (available) {
-          const availableStr = available.length ? naturalList(available.sort().map((k) => chalk.white(k))) : "(none)"
-          message += chalk.red(" Available keys: " + availableStr + ".")
+          const availableStr = available.length
+            ? naturalList(available.sort().map((k) => styles.highlight(k)))
+            : "(none)"
+          message += styles.error(" Available keys: " + availableStr + ".")
         }
         const messageFooter = this.getMissingKeyErrorFooter(nextKey, nestedNodePath.slice(0, -1))
         if (messageFooter) {

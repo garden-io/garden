@@ -15,7 +15,7 @@ import type { MonitorBaseParams } from "./base.js"
 import { Monitor } from "./base.js"
 import type { PortProxy } from "../proxy.js"
 import { startPortProxies, stopPortProxy } from "../proxy.js"
-import chalk from "chalk"
+import { styles } from "../logger/styles.js"
 
 interface PortForwardMonitorParams extends MonitorBaseParams {
   action: Executed<DeployAction>
@@ -84,9 +84,9 @@ export class PortForwardMonitor extends Monitor {
       const targetHost = proxy.spec.targetName || this.action.name
 
       this.log.info(
-        chalk.gray(
+        styles.primary(
           `Port forward: ` +
-            chalk.underline(proxy.localUrl) +
+            styles.link(proxy.localUrl) +
             ` → ${targetHost}:${proxy.spec.targetPort}` +
             (proxy.spec.name ? ` (${proxy.spec.name})` : "")
         )

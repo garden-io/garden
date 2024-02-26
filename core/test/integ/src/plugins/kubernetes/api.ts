@@ -299,6 +299,7 @@ describe("KubeApi", () => {
     let server: Server<typeof IncomingMessage, typeof ServerResponse>
     let wasRetried: boolean
     let reqCount: number
+    let requestUrl: string | undefined
     let statusCodeHandler: () => number
 
     before(async () => {
@@ -306,7 +307,7 @@ describe("KubeApi", () => {
         override getCurrentCluster() {
           return {
             name: "test-cluster",
-            server: `http://${hostname}:${port}/`,
+            server: `http://${hostname}:${port}/clusters/test`,
             skipTLSVerify: true,
           }
         }
@@ -315,6 +316,7 @@ describe("KubeApi", () => {
       api = new KubeApi(log, "test-context", config)
 
       server = createServer((req, res) => {
+        requestUrl = req.url
         let bodyRaw = ""
         reqCount++
         wasRetried = reqCount > 1
@@ -335,6 +337,7 @@ describe("KubeApi", () => {
     beforeEach(() => {
       reqCount = 0
       wasRetried = false
+      requestUrl = ""
       statusCodeHandler = () => {
         throw "implement in test case"
       }
@@ -342,6 +345,28 @@ describe("KubeApi", () => {
 
     after(() => {
       server.close()
+    })
+
+    it("should correctly merge the paths together when absolute paths are used", async () => {
+      statusCodeHandler = () => 200
+      await api.request({
+        log,
+        path: "version",
+        opts: { method: "GET" },
+      })
+
+      expect(requestUrl).to.eql(`/clusters/test/version`)
+    })
+
+    it("should correctly merge the paths together when relative paths are used", async () => {
+      statusCodeHandler = () => 200
+      await api.request({
+        log,
+        path: "/version",
+        opts: { method: "GET" },
+      })
+
+      expect(requestUrl).to.eql(`/clusters/test/version`)
     })
 
     it("should do a basic request without failure", async () => {
@@ -366,7 +391,7 @@ describe("KubeApi", () => {
             retryOpts: { maxRetries: 0, minTimeoutMs: 0 },
           }),
         (err) => {
-          expect(err instanceof KubernetesError)
+          expect(err).to.be.instanceOf(KubernetesError)
         }
       )
     })

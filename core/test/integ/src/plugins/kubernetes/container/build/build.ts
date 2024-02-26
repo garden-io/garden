@@ -10,7 +10,11 @@ import { expectError, grouped } from "../../../../../../helpers.js"
 import type { Garden } from "../../../../../../../src/garden.js"
 import type { ConfigGraph } from "../../../../../../../src/graph/config-graph.js"
 import type { PluginContext } from "../../../../../../../src/plugin-context.js"
-import type { KubernetesProvider } from "../../../../../../../src/plugins/kubernetes/config.js"
+import type {
+  ClusterBuildkitCacheConfig,
+  KubernetesPluginContext,
+  KubernetesProvider,
+} from "../../../../../../../src/plugins/kubernetes/config.js"
 import { expect } from "chai"
 import { getContainerTestGarden } from "../container.js"
 import { containerHelpers } from "../../../../../../../src/plugins/container/helpers.js"
@@ -21,6 +25,14 @@ import type { ContainerBuildAction } from "../../../../../../../src/plugins/cont
 import { BuildTask } from "../../../../../../../src/tasks/build.js"
 import { k8sContainerBuildExtension } from "../../../../../../../src/plugins/kubernetes/container/extensions.js"
 import { deleteGoogleArtifactImage, listGoogleArtifactImageTags } from "../../../../../helpers.js"
+import {
+  ensureServiceAccount,
+  ensureUtilDeployment,
+  getBuilderServiceAccountSpec,
+} from "../../../../../../../src/plugins/kubernetes/container/build/common.js"
+import { compareDeployedResources } from "../../../../../../../src/plugins/kubernetes/status/status.js"
+import { KubeApi } from "../../../../../../../src/plugins/kubernetes/api.js"
+import { ensureBuildkit } from "../../../../../../../src/plugins/kubernetes/container/build/buildkit.js"
 
 describe.skip("Kubernetes Container Build Extension", () => {
   const builder = k8sContainerBuildExtension()
@@ -170,7 +182,7 @@ describe.skip("Kubernetes Container Build Extension", () => {
           ctx,
           action,
           log,
-          tag: "foo",
+          tagOverride: "foo",
         })
 
         expect(result.detail?.message).to.eql(`Published ${remoteImageName}:foo`)
@@ -275,7 +287,7 @@ describe.skip("Kubernetes Container Build Extension", () => {
         ctx,
         action,
         log,
-        tag: "0.1.0",
+        tagOverride: "0.1.0",
       })
 
       await executeBuild("private-base")
@@ -325,7 +337,7 @@ describe.skip("Kubernetes Container Build Extension", () => {
           ctx,
           action,
           log,
-          tag: "foo",
+          tagOverride: "foo",
         })
 
         expect(result.detail?.message).to.eql(
@@ -415,7 +427,7 @@ describe.skip("Kubernetes Container Build Extension", () => {
         ctx,
         action,
         log,
-        tag: "0.1.0",
+        tagOverride: "0.1.0",
       })
 
       await executeBuild("private-base")
@@ -475,7 +487,7 @@ describe.skip("Kubernetes Container Build Extension", () => {
           ctx,
           action,
           log,
-          tag: "foo",
+          tagOverride: "foo",
         })
 
         expect(result.detail?.message).to.eql(
@@ -542,7 +554,7 @@ describe.skip("Kubernetes Container Build Extension", () => {
         ctx,
         action,
         log,
-        tag: "0.1.0",
+        tagOverride: "0.1.0",
       })
 
       await executeBuild("private-base")
@@ -563,6 +575,173 @@ describe.skip("Kubernetes Container Build Extension", () => {
           expect(err.message).to.include("authorization failed")
         }
       )
+    })
+  })
+})
+
+describe("Ensure serviceAccount annotations for in-cluster building", () => {
+  let garden: Garden
+  let cleanup: (() => void) | undefined
+  let log: ActionLog
+  let provider: KubernetesProvider
+  let ctx: PluginContext
+  let api: KubeApi
+  after(async () => {
+    if (garden) {
+      garden.close()
+    }
+  })
+
+  const init = async (environmentName: string, remoteContainerAuth = false) => {
+    ;({ garden, cleanup } = await getContainerTestGarden(environmentName, { remoteContainerAuth }))
+    log = createActionLog({ log: garden.log, actionName: "", actionKind: "" })
+    provider = <KubernetesProvider>await garden.resolveProvider(garden.log, "local-kubernetes")
+    ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
+    api = await KubeApi.factory(log, ctx, provider)
+  }
+  grouped("kaniko").context("kaniko service account annotations", () => {
+    beforeEach(async () => {
+      await init("kaniko")
+    })
+    it("should deploy a garden builder serviceAccount with specified annotations in the project namespace", async () => {
+      const annotations = {
+        "iam.gke.io/gcp-service-account": "workload-identity-gar@garden-ci.iam.gserviceaccount.com",
+      }
+      const projectNamespace = ctx.namespace
+      provider.config.kaniko = { serviceAccountAnnotations: annotations }
+      const serviceAccount = getBuilderServiceAccountSpec(projectNamespace, annotations)
+
+      await ensureServiceAccount({ ctx, log, api, namespace: projectNamespace, annotations })
+
+      const status = await compareDeployedResources({
+        ctx: ctx as KubernetesPluginContext,
+        api,
+        namespace: projectNamespace,
+        manifests: [serviceAccount],
+        log,
+      })
+      expect(status.state).to.equal("ready")
+    })
+    it("should remove annotations from the garden builder serviceAccount", async () => {
+      const projectNamespace = ctx.namespace
+      const originalAnnotations = {
+        "iam.gke.io/gcp-service-account": "workload-identity-gar@garden-ci.iam.gserviceaccount.com",
+        "foo": "bar",
+      }
+      provider.config.kaniko = { serviceAccountAnnotations: originalAnnotations }
+      const originalServiceAccount = getBuilderServiceAccountSpec(projectNamespace, originalAnnotations)
+
+      await ensureServiceAccount({ ctx, log, api, namespace: projectNamespace, annotations: originalAnnotations })
+
+      const status = await compareDeployedResources({
+        ctx: ctx as KubernetesPluginContext,
+        api,
+        namespace: projectNamespace,
+        manifests: [originalServiceAccount],
+        log,
+      })
+      // Both annotations should be present
+      expect(originalServiceAccount.metadata.annotations).to.deep.equal(status.remoteResources[0].metadata.annotations)
+
+      const reducedAnnotations = {
+        "iam.gke.io/gcp-service-account": "workload-identity-gar@garden-ci.iam.gserviceaccount.com",
+      }
+      provider.config.kaniko = { serviceAccountAnnotations: reducedAnnotations }
+      const updatedServiceAccount = getBuilderServiceAccountSpec(projectNamespace, reducedAnnotations)
+
+      await ensureServiceAccount({ ctx, log, api, namespace: projectNamespace, annotations: reducedAnnotations })
+
+      const updatedStatus = await compareDeployedResources({
+        ctx: ctx as KubernetesPluginContext,
+        api,
+        namespace: projectNamespace,
+        manifests: [updatedServiceAccount],
+        log,
+      })
+      // Only reduced annotations should be present
+      expect(updatedServiceAccount.metadata.annotations).to.deep.equal(
+        updatedStatus.remoteResources[0].metadata.annotations
+      )
+    })
+    it("should cycle the util deployment when the serviceAccount annotations changed", async () => {
+      const originalAnnotations = {
+        "iam.gke.io/gcp-service-account": "workload-identity-gar@garden-ci.iam.gserviceaccount.com",
+      }
+      const projectNamespace = ctx.namespace
+      provider.config.buildMode = "kaniko"
+      provider.config.kaniko = { serviceAccountAnnotations: originalAnnotations }
+
+      await ensureUtilDeployment({ ctx, provider, log, api, namespace: projectNamespace })
+
+      const updatedAnnotations = {
+        "iam.gke.io/gcp-service-account": "a-different-service-account@garden-ci.iam.gserviceaccount.com",
+      }
+      provider.config.kaniko = { serviceAccountAnnotations: updatedAnnotations }
+      const { updated } = await ensureUtilDeployment({ ctx, provider, log, api, namespace: projectNamespace })
+
+      expect(updated).to.be.true
+    })
+  })
+
+  grouped("cluster-buildkit").context("cluster-buildkit service account annotations", () => {
+    beforeEach(async () => {
+      await init("cluster-buildkit")
+    })
+
+    afterEach(async () => {
+      if (cleanup) {
+        cleanup()
+      }
+    })
+
+    const defaultCacheConfig: ClusterBuildkitCacheConfig[] = [
+      {
+        type: "registry",
+        mode: "auto",
+        tag: "_buildcache",
+        export: true,
+      },
+    ]
+
+    it("should deploy a garden builder serviceAccount with specified annotations in the project namespace", async () => {
+      const annotations = {
+        "iam.gke.io/gcp-service-account": "workload-identity-gar@garden-ci.iam.gserviceaccount.com",
+      }
+      const projectNamespace = ctx.namespace
+
+      provider.config.clusterBuildkit = { serviceAccountAnnotations: annotations, cache: defaultCacheConfig }
+      const serviceAccount = getBuilderServiceAccountSpec(projectNamespace, annotations)
+
+      await ensureServiceAccount({ ctx, log, api, namespace: projectNamespace, annotations })
+
+      const status = await compareDeployedResources({
+        ctx: ctx as KubernetesPluginContext,
+        api,
+        namespace: projectNamespace,
+        manifests: [serviceAccount],
+        log: garden.log,
+      })
+
+      expect(status.state).to.equal("ready")
+    })
+
+    it("should cycle the buildkit deployment when the serviceAccount annotations changed", async () => {
+      const originalAnnotations = {
+        "iam.gke.io/gcp-service-account": "workload-identity-gar@garden-ci.iam.gserviceaccount.com",
+      }
+      const projectNamespace = ctx.namespace
+      provider.config.buildMode = "cluster-buildkit"
+      provider.config.clusterBuildkit = { serviceAccountAnnotations: originalAnnotations, cache: defaultCacheConfig }
+
+      await ensureBuildkit({ ctx, provider, log, api, namespace: projectNamespace })
+
+      const updatedAnnotations = {
+        "iam.gke.io/gcp-service-account": "a-different-service-account@garden-ci.iam.gserviceaccount.com",
+      }
+      provider.config.clusterBuildkit = { serviceAccountAnnotations: updatedAnnotations, cache: defaultCacheConfig }
+      const { updated } = await ensureBuildkit({ ctx, provider, log: garden.log, api, namespace: projectNamespace })
+
+      expect(updated).to.be.true
     })
   })
 })

@@ -99,8 +99,7 @@ export class PublishCommand extends Command<Args, Opts, ProcessCommandResult> {
         log,
         action,
         forceBuild: opts["force-build"],
-        tagTemplate: opts.tag,
-
+        tagOverrideTemplate: opts.tag,
         force: false,
       })
     })

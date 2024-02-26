@@ -33,17 +33,19 @@ export const kustomizeSpecSchema = () =>
       "Resolve the specified kustomization and include the resulting resources. Note that if you specify `files` or `manifests` as well, these are also included."
     )
 
+export const kustomizeVersion = "4.5.2"
+
 export const kustomizeSpec: PluginToolSpec = {
   name: "kustomize",
-  version: "4.5.2",
-  description: "The kustomize config management CLI.",
+  version: kustomizeVersion,
+  description: `The kustomize config management CLI, v${kustomizeVersion}`,
   type: "binary",
   _includeInGardenImage: true,
   builds: [
     {
       platform: "darwin",
       architecture: "amd64",
-      url: "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv4.5.2/kustomize_v4.5.2_darwin_amd64.tar.gz",
+      url: `https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv${kustomizeVersion}/kustomize_v${kustomizeVersion}_darwin_amd64.tar.gz`,
       sha256: "4b7dac92c8f2dd383651276c78d9e6d28031f50f3711cd987347a08edf0c8335",
       extract: {
         format: "tar",
@@ -53,7 +55,7 @@ export const kustomizeSpec: PluginToolSpec = {
     {
       platform: "darwin",
       architecture: "arm64",
-      url: "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv4.5.2/kustomize_v4.5.2_darwin_arm64.tar.gz",
+      url: `https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv${kustomizeVersion}/kustomize_v${kustomizeVersion}_darwin_arm64.tar.gz`,
       sha256: "4ee7ef099b8f59d65cb393d9c1b8fa49a392529dbefcd469359cc51094dad517",
       extract: {
         format: "tar",
@@ -63,7 +65,7 @@ export const kustomizeSpec: PluginToolSpec = {
     {
       platform: "linux",
       architecture: "amd64",
-      url: "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv4.5.2/kustomize_v4.5.2_linux_amd64.tar.gz",
+      url: `https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv${kustomizeVersion}/kustomize_v${kustomizeVersion}_linux_amd64.tar.gz`,
       sha256: "c4215332da8da16ddeb88e218d8dceb76c85b366a5c58d012bc5ece904bf2fd0",
       extract: {
         format: "tar",
@@ -73,7 +75,7 @@ export const kustomizeSpec: PluginToolSpec = {
     {
       platform: "linux",
       architecture: "arm64",
-      url: "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv4.5.2/kustomize_v4.5.2_linux_arm64.tar.gz",
+      url: `https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv${kustomizeVersion}/kustomize_v${kustomizeVersion}_linux_arm64.tar.gz`,
       sha256: "7924d2c1c41976859558c7a1b8009c0d8cc63ebce242b8d4314d332236966481",
       extract: {
         format: "tar",
@@ -83,7 +85,7 @@ export const kustomizeSpec: PluginToolSpec = {
     {
       platform: "windows",
       architecture: "amd64",
-      url: "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv4.5.2/kustomize_v4.5.2_windows_amd64.tar.gz",
+      url: `https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv${kustomizeVersion}/kustomize_v${kustomizeVersion}_windows_amd64.tar.gz`,
       sha256: "3c6310caa6a23d17711a312f1a33690365ba6be9a806752aac215613fdf7c605",
       extract: {
         format: "tar",

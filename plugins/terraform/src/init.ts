@@ -8,10 +8,10 @@
 
 import type { TerraformProvider } from "./provider.js"
 import { applyStack, getRoot, getStackStatus, getTfOutputs, prepareVariables, setWorkspace } from "./helpers.js"
-import chalk from "chalk"
 import { deline } from "@garden-io/sdk/build/src/util/string.js"
 import type { ProviderHandlers } from "@garden-io/sdk/build/src/types.js"
 import { terraform } from "./cli.js"
+import { styles } from "@garden-io/core/build/src/logger/styles.js"
 
 export const getEnvironmentStatus: ProviderHandlers["getEnvironmentStatus"] = async ({ ctx, log }) => {
   const provider = ctx.provider as TerraformProvider
@@ -36,8 +36,8 @@ export const getEnvironmentStatus: ProviderHandlers["getEnvironmentStatus"] = as
       return { ready: false, outputs: {} }
     } else {
       log.warn(deline`
-        Terraform stack is not up-to-date and ${chalk.underline("autoApply")} is not enabled. Please run
-        ${chalk.white.bold("garden plugins terraform apply-root")} to make sure the stack is in the intended state.
+        Terraform stack is not up-to-date and ${styles.underline("autoApply")} is not enabled. Please run
+        ${styles.accent.bold("garden plugins terraform apply-root")} to make sure the stack is in the intended state.
       `)
       const outputs = await getTfOutputs({ log, ctx, provider, root })
       // Make sure the status is not cached when the stack is not up-to-date
@@ -76,7 +76,6 @@ export const prepareEnvironment: ProviderHandlers["prepareEnvironment"] = async 
 
 export const cleanupEnvironment: ProviderHandlers["cleanupEnvironment"] = async ({ ctx, log }) => {
   const provider = ctx.provider as TerraformProvider
-  const providerLog = log.createLog({ name: provider.name })
 
   if (!provider.config.initRoot) {
     // Nothing to do!
@@ -84,7 +83,7 @@ export const cleanupEnvironment: ProviderHandlers["cleanupEnvironment"] = async 
   }
 
   if (!provider.config.allowDestroy) {
-    providerLog.warn("allowDestroy is set to false. Not calling terraform destroy for root stack.")
+    log.warn("allowDestroy is set to false. Not calling terraform destroy for root stack.")
     return {}
   }
 
@@ -92,10 +91,10 @@ export const cleanupEnvironment: ProviderHandlers["cleanupEnvironment"] = async 
   const variables = provider.config.variables
   const workspace = provider.config.workspace || null
 
-  await setWorkspace({ ctx, provider, root, log: providerLog, workspace })
+  await setWorkspace({ ctx, provider, root, log, workspace })
 
   const args = ["destroy", "-auto-approve", "-input=false", ...(await prepareVariables(root, variables))]
-  await terraform(ctx, provider).exec({ log: providerLog, args, cwd: root })
+  await terraform(ctx, provider).exec({ log, args, cwd: root })
 
   return {}
 }

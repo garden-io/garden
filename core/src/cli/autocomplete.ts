@@ -113,7 +113,7 @@ export class Autocompleter {
   }
 
   private debug(msg: any) {
-    this.enableDebug && this.log.silly(typeof msg === "string" ? msg : stringify(msg))
+    this.enableDebug && this.log.silly(() => (typeof msg === "string" ? msg : stringify(msg)))
   }
 
   private matchCommandNames(commands: Command[], input: string) {

@@ -17,7 +17,8 @@ describe("ExecCommand", () => {
     const garden = await makeTestGardenA()
     const log = garden.log
 
-    const args = { deploy: "service-a", command: ["echo", "ok"] }
+    const args = { deploy: "service-a", command: "" }
+    args["--"] = ["echo", "ok"]
 
     command.printHeader({ log, args })
 

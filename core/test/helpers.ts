@@ -40,7 +40,7 @@ import type { SuiteFunction, TestFunction } from "mocha"
 import type { AnalyticsGlobalConfig } from "../src/config-store/global.js"
 import type { EventLogEntry, TestGardenOpts } from "../src/util/testing.js"
 import { TestGarden } from "../src/util/testing.js"
-import { LogLevel, RootLogger } from "../src/logger/logger.js"
+import { LogLevel, RootLogger, parseLogLevel } from "../src/logger/logger.js"
 import type { GardenCli } from "../src/cli/cli.js"
 import { profileAsync } from "../src/util/profiling.js"
 import { defaultDotIgnoreFile, makeTempDir } from "../src/util/fs.js"
@@ -523,11 +523,15 @@ export function findNamespaceStatusEvent(eventLog: EventLogEntry[], namespaceNam
  */
 export function initTestLogger() {
   // make sure logger is initialized
+  // Set GARDEN_TEST_SHOW_LOGS=true to see logger output when running tests.
+  const displayWriterType = process.env.GARDEN_TESTS_SHOW_LOGS ? "basic" : "quiet"
+  const logLevelFromEnv = process.env.GARDEN_TESTS_LOG_LEVEL
+  const logLevel = logLevelFromEnv ? parseLogLevel(logLevelFromEnv) : LogLevel.info
   try {
     RootLogger.initialize({
-      level: LogLevel.info,
+      level: <LogLevel>logLevel,
       storeEntries: true,
-      displayWriterType: "quiet",
+      displayWriterType,
       force: true,
     })
   } catch (_) {}

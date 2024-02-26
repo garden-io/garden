@@ -10,6 +10,7 @@ import { runResultToActionState } from "../../actions/base.js"
 import { renderMessageWithDivider } from "../../logger/util.js"
 import type { GardenSdkActionDefinitionActionType, GardenSdkActionDefinitionConfigType } from "../../plugin/sdk.js"
 import { sdk } from "../../plugin/sdk.js"
+import { styles } from "../../logger/styles.js"
 import { copyArtifacts, execRunCommand } from "./common.js"
 import { execRunSpecSchema, execRuntimeOutputsSchema, execStaticOutputsSchema } from "./config.js"
 import { execProvider } from "./exec.js"
@@ -47,16 +48,14 @@ execRun.addHandler("run", async ({ artifactsPath, log, action, ctx }) => {
     outputLog = ""
   }
 
-  const { chalk } = sdk.util
-
   if (outputLog) {
-    const prefix = `Finished running ${chalk.white(action.name)}. Here is the full output:`
+    const prefix = `Finished running ${styles.highlight(action.name)}. Here is the full output:`
     log.info(
       renderMessageWithDivider({
         prefix,
         msg: outputLog,
         isError: !success,
-        color: chalk.gray,
+        color: styles.primary,
       })
     )
   }

@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import chalk from "chalk"
 import titleize from "titleize"
 import type { ConfigGraph, GetActionOpts, ResolvedConfigGraph } from "../graph/config-graph.js"
 import type { ActionReference, DeepPrimitiveMap } from "../config/common.js"
@@ -65,6 +64,7 @@ import { createActionLog } from "../logger/log-entry.js"
 import { joinWithPosix } from "../util/fs.js"
 import type { LinkedSource } from "../config-store/local.js"
 import type { BaseActionTaskParams, ExecuteTask } from "../tasks/base.js"
+import { styles } from "../logger/styles.js"
 
 // TODO: split this file
 
@@ -174,6 +174,14 @@ export const baseActionConfigSchema = createSchema({
       `
       )
       .meta({ templateContext: ActionConfigContext }),
+    environments: joi
+      .sparseArray()
+      .items(joi.string())
+      .description(
+        dedent`
+        If set, the action is only enabled for the listed environment types. This is effectively a cleaner shorthand for the \`disabled\` field with an expression for environments. For example, \`environments: ["prod"]\` is equivalent to \`disabled: \${environment.name != "prod"}\`.
+        `
+      ),
 
     // Version/file handling (Note: Descriptions and behaviors are different on Build actions!)
     include: includeExcludeSchema()
@@ -398,10 +406,12 @@ export abstract class BaseAction<
    * Verbose string description of the action. Useful for logging and error messages.
    */
   longDescription(): string {
-    let d = `${chalk.white(this.kind)} type=${chalk.bold.white(this.type)} name=${chalk.bold.white(this.name)}`
+    let d = `${styles.highlight(this.kind)} type=${styles.highlight.bold(this.type)} name=${styles.highlight.bold(
+      this.name
+    )}`
 
     if (this._moduleName) {
-      d += ` (from module ${chalk.bold.white(this._moduleName)})`
+      d += ` (from module ${styles.highlight.bold(this._moduleName)})`
     }
 
     return d
@@ -409,8 +419,7 @@ export abstract class BaseAction<
 
   isDisabled(): boolean {
     // TODO: return true if group is disabled
-    // TODO: implement environments field on action config
-    return actionIsDisabled(this._config, "TODO")
+    return actionIsDisabled(this._config, this.graph.environmentName)
   }
 
   /**
@@ -541,17 +550,12 @@ export abstract class BaseAction<
     return this._treeVersion
   }
 
-  @Memoize()
-  private stringifyConfig() {
-    return stableStringify(omit(this._config, "internal"))
-  }
-
   /**
    * The version of this action's config (not including files or dependencies)
    */
   @Memoize()
   configVersion() {
-    return versionStringPrefix + hashStrings([this.stringifyConfig()])
+    return getActionConfigVersion(this._config)
   }
 
   /**
@@ -785,6 +789,7 @@ export interface ExecutedActionExtension<
   getOutput<K extends keyof (StaticOutputs & RuntimeOutputs)>(
     key: K
   ): GetOutputValueType<K, StaticOutputs, RuntimeOutputs>
+
   getOutputs(): StaticOutputs & RuntimeOutputs
 }
 
@@ -890,7 +895,23 @@ export function addActionDependency(dep: ActionDependency, dependencies: ActionD
   dependencies.push(dep)
 }
 
-export function actionIsDisabled(config: ActionConfig, _environmentName: string): boolean {
-  // TODO: implement environment fields and check if environment is disabled
-  return config.disabled === true
+export function actionIsDisabled(config: ActionConfig, environmentName: string): boolean {
+  return config.disabled === true || (!!config.environments && !config.environments.includes(environmentName))
+}
+
+/**
+ * We omit a few fields here that should not affect versioning directly:
+ * - The internal field (basePath, configFilePath etc.) are not relevant to the config version.
+ * - The source, include and exclude stanzas are implicitly factored into the tree version.
+ *   Those are handled separately in {@link VcsHandler},
+ *   see {@link VcsHandler.getTreeVersion} and {@link VcsHandler.getFiles}.
+ * - The description field is just informational, shouldn't affect execution.
+ * - The disabled flag is not relevant to the config version, since it only affects execution.
+ */
+const nonVersionedActionConfigKeys = ["internal", "source", "include", "exclude", "description", "disabled"] as const
+export type NonVersionedActionConfigKey = keyof Pick<BaseActionConfig, (typeof nonVersionedActionConfigKeys)[number]>
+
+export function getActionConfigVersion<C extends BaseActionConfig>(config: C) {
+  const configToHash = omit(config, ...nonVersionedActionConfigKeys)
+  return versionStringPrefix + hashStrings([stableStringify(configToHash)])
 }

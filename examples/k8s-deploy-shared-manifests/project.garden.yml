@@ -1,6 +1,6 @@
 apiVersion: "garden.io/v1"
 kind: Project
-name: kubernetes-deploy-shared-manifests
+name: k8s-deploy-shared-manifests
 defaultEnvironment: local
 dotIgnoreFile: .gitignore
 
@@ -15,7 +15,7 @@ variables:
 environments:
   - name: local
     variables:
-      imagePullSecretName: "" # <--- Not needed for local dev
+      imagePullSecretName: "fake-secret" # <--- Not needed for local dev
       baseHostname: local.demo.garden
   - name: remote
     defaultNamespace: ${var.remoteEnvName}

@@ -6,13 +6,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import chalk from "chalk"
 import type { CommandParams, CommandResult } from "./base.js"
 import { Command } from "./base.js"
 import { dedent } from "../util/string.js"
 import type { deployArgs, deployOpts } from "./deploy.js"
 import type { serveOpts } from "./serve.js"
-import type { LoggerType } from "../logger/logger.js"
+import { styles } from "../logger/styles.js"
 
 type UpArgs = typeof deployArgs
 type UpOpts = typeof deployOpts & typeof serveOpts
@@ -25,13 +24,13 @@ export class UpCommand extends Command<UpArgs, UpOpts> {
   override description = dedent`
     Spin up your stack with the dev console and streaming logs.
 
-    This is basically an alias for ${chalk.cyanBright(
+    This is basically an alias for ${styles.highlight(
       "garden dev --cmd 'deploy --logs'"
-    )}, but you can add any arguments and flags supported by the ${chalk.cyanBright("deploy")} command as well.
+    )}, but you can add any arguments and flags supported by the ${styles.highlight("deploy")} command as well.
   `
 
-  override getTerminalWriterType(): LoggerType {
-    return "ink"
+  override useInkTerminalWriter() {
+    return true
   }
 
   async action(params: CommandParams<UpArgs, UpOpts>): Promise<CommandResult> {

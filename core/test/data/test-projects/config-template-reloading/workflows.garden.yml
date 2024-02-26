@@ -1,0 +1,6 @@
+kind: RenderTemplate
+template: workflows
+name: foo
+inputs:
+  name: test
+  envName: ${environment.name}

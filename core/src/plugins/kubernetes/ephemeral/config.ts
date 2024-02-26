@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import chalk from "chalk"
 import fsExtra from "fs-extra"
 const { mkdirp, writeFile } = fsExtra
 import { load } from "js-yaml"
@@ -23,6 +22,7 @@ import { namespaceSchema } from "../config.js"
 import { EPHEMERAL_KUBERNETES_PROVIDER_NAME } from "./ephemeral.js"
 import { DEFAULT_GARDEN_CLOUD_DOMAIN } from "../../../constants.js"
 import { defaultSystemNamespace } from "../constants.js"
+import { styles } from "../../../logger/styles.js"
 
 export type EphemeralKubernetesClusterType = "ephemeral"
 
@@ -45,12 +45,13 @@ export const configSchema = () =>
     .description(`The provider configuration for the ${EPHEMERAL_KUBERNETES_PROVIDER_NAME} plugin.`)
 
 export async function configureProvider(params: ConfigureProviderParams<KubernetesConfig>) {
-  const { base, log, projectName, ctx, config: baseConfig } = params
+  const { base, log, ctx, config: baseConfig } = params
 
-  log.info(`Configuring ${EPHEMERAL_KUBERNETES_PROVIDER_NAME} provider for project ${projectName}`)
   if (!ctx.cloudApi) {
     throw new ConfigurationError({
-      message: `You are not logged in. You must be logged into Garden Cloud in order to use ${EPHEMERAL_KUBERNETES_PROVIDER_NAME} provider.`,
+      message: `You are not logged in. You must log in with the ${styles.command(
+        "garden login"
+      )} command to use the ${EPHEMERAL_KUBERNETES_PROVIDER_NAME} plugin`,
     })
   }
   if (ctx.cloudApi && ctx.cloudApi?.domain !== DEFAULT_GARDEN_CLOUD_DOMAIN) {
@@ -63,27 +64,24 @@ export async function configureProvider(params: ConfigureProviderParams<Kubernet
   const ephemeralClusterDirPath = join(ctx.gardenDirPath, "ephemeral-kubernetes")
   await mkdirp(ephemeralClusterDirPath)
 
-  log.info("Retrieving ephemeral Kubernetes cluster")
+  log.info("Getting cluster info...")
   const createEphemeralClusterResponse = await ctx.cloudApi.createEphemeralCluster()
   const clusterId = createEphemeralClusterResponse.instanceMetadata.instanceId
-  log.info(`Ephemeral Kubernetes cluster retrieved successfully`)
 
   const deadlineDateTime = moment(createEphemeralClusterResponse.instanceMetadata.deadline)
   const diffInNowAndDeadline = moment.duration(deadlineDateTime.diff(moment())).asMinutes().toFixed(1)
   log.info(
-    chalk.white(
-      `Ephemeral cluster will be destroyed in ${diffInNowAndDeadline} minutes, at ${deadlineDateTime.format(
-        "YYYY-MM-DD HH:mm:ss"
-      )}`
-    )
+    `Cluster will be destroyed in ${styles.highlight(diffInNowAndDeadline)} minutes (at ${deadlineDateTime.format(
+      "YYYY-MM-DD HH:mm:ss"
+    )})`
   )
 
-  log.info("Fetching kubeconfig for the ephemeral cluster")
+  log.info("Getting kubeconfig...")
   const kubeConfig = await ctx.cloudApi.getKubeConfigForCluster(clusterId)
   const kubeconfigFileName = `${clusterId}-kubeconfig.yaml`
   const kubeConfigPath = join(ctx.gardenDirPath, "ephemeral-kubernetes", kubeconfigFileName)
   await writeFile(kubeConfigPath, kubeConfig)
-  log.info(`Kubeconfig for ephemeral cluster saved at path: ${chalk.underline(kubeConfigPath)}`)
+  log.info(`Kubeconfig saved at local path: ${styles.highlight(kubeConfigPath)}`)
 
   const parsedKubeConfig: any = load(kubeConfig)
   baseConfig.context = parsedKubeConfig["current-context"]

@@ -8,8 +8,10 @@ kind: Deploy
 name: go-service
 type: container
 description: Go service container
-build: go-service
+dependencies:
+  - build.go-service
 spec:
+  image: ${actions.build.go-service.outputs.deploymentImageId}
   ports:
     - name: http
       containerPort: 80

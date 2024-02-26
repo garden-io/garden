@@ -1,4 +1,4 @@
-require: 
+require:
   - build/test/setup.js
 watch-files:
   - build/**/*

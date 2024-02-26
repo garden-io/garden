@@ -27,6 +27,7 @@ import type { AnalyticsGlobalConfig } from "../../../../src/config-store/global.
 import { QuietWriter } from "../../../../src/logger/writers/quiet-writer.js"
 import timekeeper from "timekeeper"
 import { ConfigurationError, DeploymentError, RuntimeError } from "../../../../src/exceptions.js"
+import { resolveMsg } from "../../../../src/logger/log-entry.js"
 
 const host = "https://api.segment.io"
 // The codenamize version + the sha512 hash of "test-project-a"
@@ -134,7 +135,7 @@ describe("AnalyticsHandler", () => {
     it("should print an info message if first Garden run", async () => {
       await garden.globalConfigStore.set("analytics", {})
       analytics = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo })
-      const msgs = garden.log.root.getLogEntries().map((l) => l.msg)
+      const msgs = garden.log.root.getLogEntries().map((l) => resolveMsg(l))
       const infoMsg = msgs.find((msg) => msg?.includes("Thanks for installing Garden!"))
 
       expect(infoMsg).to.exist
@@ -143,7 +144,7 @@ describe("AnalyticsHandler", () => {
       // The existens of base config suggests it's not the first run
       await garden.globalConfigStore.set("analytics", basicConfig)
       analytics = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo })
-      const msgs = garden.log.root.getLogEntries().map((l) => l.msg)
+      const msgs = garden.log.root.getLogEntries().map((l) => resolveMsg(l))
       const infoMsg = msgs.find((msg) => msg?.includes("Thanks for installing Garden!"))
 
       expect(infoMsg).not.to.exist

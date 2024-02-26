@@ -9,7 +9,6 @@
 import type { CommandParams } from "../base.js"
 import { Command } from "../base.js"
 import { printHeader } from "../../logger/util.js"
-import chalk from "chalk"
 import { getArtifactFileList, getArtifactKey } from "../../util/artifacts.js"
 import { joi, joiArray } from "../../config/common.js"
 import type { GetTestResult } from "../../plugin/handlers/Test/get-result.js"
@@ -24,6 +23,7 @@ import { findByName, getNames } from "../../util/util.js"
 import { createActionLog } from "../../logger/log-entry.js"
 import dedent from "dedent"
 import { naturalList } from "../../util/string.js"
+import { styles } from "../../logger/styles.js"
 
 const getTestResultArgs = {
   name: new StringParameter({
@@ -69,7 +69,11 @@ export class GetTestResultCommand extends Command<Args, {}, GetTestResultCommand
     const testName = args.name
     const moduleName = args.module
 
-    printHeader(log, `Test result for test ${chalk.cyan(testName)} in module ${chalk.cyan(moduleName)}`, "✔️")
+    printHeader(
+      log,
+      `Test result for test ${styles.highlight(testName)} in module ${styles.highlight(moduleName)}`,
+      "✔️"
+    )
   }
 
   async action({ garden, log, args }: CommandParams<Args>) {

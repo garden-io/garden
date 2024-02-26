@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import chalk from "chalk"
 import { fromPairs, mapValues, omit } from "lodash-es"
 import pProps from "p-props"
 
@@ -82,7 +81,7 @@ export class ProviderRouter extends BaseRouter {
   async configureProvider(params: ConfigureProviderParams & { pluginName: string }): Promise<ConfigureProviderResult> {
     const pluginName = params.pluginName
 
-    this.garden.log.silly(`Calling 'configureProvider' handler on '${pluginName}'`)
+    this.garden.log.silly(() => `Calling 'configureProvider' handler on '${pluginName}'`)
 
     const handler = await this.getPluginHandler({
       handlerType: "configureProvider",
@@ -97,7 +96,7 @@ export class ProviderRouter extends BaseRouter {
 
     const result = await (<Function>handler)(handlerParams)
 
-    this.garden.log.silly(`Called 'configureProvider' handler on '${pluginName}'`)
+    this.garden.log.silly(() => `Called 'configureProvider' handler on '${pluginName}'`)
 
     return result
   }
@@ -176,7 +175,7 @@ export class ProviderRouter extends BaseRouter {
    * Runs cleanupEnvironment for all configured providers
    */
   async cleanupAll(log: Log) {
-    log.info(chalk.white("Cleaning up environments..."))
+    log.info("Cleaning up environments...")
     const environmentStatuses: EnvironmentStatusMap = {}
 
     const providers = await this.garden.resolveProviders(log)
@@ -216,7 +215,7 @@ export class ProviderRouter extends BaseRouter {
     pluginName: string
     defaultHandler?: ProviderHandlers[T]
   }): Promise<ProviderActionOutputs[T]> {
-    this.garden.log.silly(`Calling ${handlerType} handler on plugin '${pluginName}'`)
+    this.garden.log.silly(() => `Calling ${handlerType} handler on plugin '${pluginName}'`)
 
     const handler = await this.getPluginHandler({
       handlerType,
@@ -231,7 +230,7 @@ export class ProviderRouter extends BaseRouter {
 
     const result = await (<Function>handler)(handlerParams)
 
-    this.garden.log.silly(`Called ${handlerType} handler on plugin '${pluginName}'`)
+    this.garden.log.silly(() => `Called ${handlerType} handler on plugin '${pluginName}'`)
 
     return result
   }
@@ -296,10 +295,10 @@ export class ProviderRouter extends BaseRouter {
 
     // Since we only allow retrieving by plugin name, the length is always either 0 or 1
     if (handlers.length) {
-      this.garden.log.silly(`Found '${handlerType}' handler on '${pluginName}'`)
+      this.garden.log.silly(() => `Found '${handlerType}' handler on '${pluginName}'`)
       return handlers[handlers.length - 1]
     } else if (defaultHandler) {
-      this.garden.log.silly(`Returned default '${handlerType}' handler for '${pluginName}'`)
+      this.garden.log.silly(() => `Returned default '${handlerType}' handler for '${pluginName}'`)
       return Object.assign(
         // TODO: figure out why we need the cast here
         <WrappedPluginHandlers[T]>defaultHandler,

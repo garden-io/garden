@@ -20,22 +20,28 @@ import { ActionSpecContext } from "../config/template-contexts/actions.js"
 import { OtelTraced } from "../util/open-telemetry/decorators.js"
 
 export interface PublishTaskParams extends BaseActionTaskParams<BuildAction> {
-  tagTemplate?: string
+  /**
+   * Only defined if --tag option is used in the garden publish command.
+   */
+  tagOverrideTemplate?: string
 }
 
 export class PublishTask extends BaseActionTask<BuildAction, PublishActionResult> {
   type = "publish"
   override concurrencyLimit = 5
 
-  tagTemplate?: string
+  /**
+   * Only defined if --tag option is used in the garden publish command.
+   */
+  tagOverrideTemplate?: string
 
   constructor(params: PublishTaskParams) {
     super(params)
-    this.tagTemplate = params.tagTemplate
+    this.tagOverrideTemplate = params.tagOverrideTemplate
   }
 
   protected override getDependencyParams(): PublishTaskParams {
-    return { ...super.getDependencyParams(), tagTemplate: this.tagTemplate }
+    return { ...super.getDependencyParams(), tagOverrideTemplate: this.tagOverrideTemplate }
   }
 
   override resolveStatusDependencies() {
@@ -89,9 +95,10 @@ export class PublishTask extends BaseActionTask<BuildAction, PublishActionResult
     const action = this.getExecutedAction(this.action, dependencyResults)
     const version = action.versionString()
 
-    let tag = version
+    // This is only defined when a user defines --tag option
+    let tagOverride: string | undefined = undefined
 
-    if (this.tagTemplate) {
+    if (this.tagOverrideTemplate) {
       const resolvedProviders = await this.garden.resolveProviders(this.log)
 
       const templateContext = new BuildTagContext({
@@ -107,18 +114,20 @@ export class PublishTask extends BaseActionTask<BuildAction, PublishActionResult
       })
 
       // Resolve template string and make sure the result is a string
-      tag = "" + resolveTemplateString({ string: this.tagTemplate, context: templateContext })
+      tagOverride = "" + resolveTemplateString({ string: this.tagOverrideTemplate, context: templateContext })
 
       // TODO: validate the tag?
     }
 
-    this.log.info("Publishing with tag " + tag)
+    if (tagOverride) {
+      this.log.info(`Publish tag has been overridden with the --tag command line option: ${tagOverride}`)
+    }
 
     const router = await this.garden.getActionRouter()
 
     let result: PublishActionResult
     try {
-      const output = await router.build.publish({ action, log: this.log, graph: this.graph, tag })
+      const output = await router.build.publish({ action, log: this.log, graph: this.graph, tagOverride })
       result = output.result
     } catch (err) {
       this.log.error(`Failed publishing build ${action.name}`)

@@ -7,35 +7,36 @@
  */
 
 import AsyncLock from "async-lock"
-import chalk from "chalk"
 import dedent from "dedent"
 import type EventEmitter from "events"
 import type { ExecaReturnValue } from "execa"
 import fsExtra from "fs-extra"
-const { mkdirp, pathExists } = fsExtra
-import hasha from "hasha"
-import pRetry from "p-retry"
+import { hashSync } from "hasha"
+import pRetry, { type FailedAttemptError } from "p-retry"
 import { join } from "path"
 import respawn from "respawn"
 import split2 from "split2"
-import { GARDEN_GLOBAL_PATH, MUTAGEN_DIR_NAME } from "./constants.js"
+import { GARDEN_GLOBAL_PATH, gardenEnv, MUTAGEN_DIR_NAME } from "./constants.js"
 import { ChildProcessError, GardenError } from "./exceptions.js"
 import pMemoize from "./lib/p-memoize.js"
 import type { Log } from "./logger/log-entry.js"
-import type { PluginContext } from "./plugin-context.js"
+import type { WrappedFromGarden } from "./plugin-context.js"
 import type { PluginToolSpec } from "./plugin/tools.js"
-import { syncGuideLink } from "./plugins/kubernetes/sync.js"
 import { TypedEventEmitter } from "./util/events.js"
 import { PluginTool } from "./util/ext-tools.js"
 import { deline } from "./util/string.js"
 import { registerCleanupFunction, sleep } from "./util/util.js"
-import { emitNonRepeatableWarning } from "./warnings.js"
 import type { OctalPermissionMask } from "./plugins/kubernetes/types.js"
+import { styles } from "./logger/styles.js"
+import { dirname } from "node:path"
+import { makeDocsLink } from "./docs/common.js"
+import { syncGuideRelPath } from "./plugins/kubernetes/constants.js"
+
+const { mkdirp, pathExists } = fsExtra
 
 const maxRestarts = 10
 const mutagenLogSection = "<mutagen>"
 const crashMessage = `Synchronization monitor has crashed ${maxRestarts} times. Aborting.`
-const syncLogPrefix = "[sync]:"
 
 export const mutagenAgentPath = "/.garden/mutagen-agent"
 
@@ -134,7 +135,7 @@ export class MutagenError extends GardenError {
 }
 
 interface MutagenDaemonParams {
-  ctx: PluginContext
+  ctx: WrappedFromGarden
   log: Log
 }
 
@@ -209,15 +210,16 @@ class _MutagenMonitor extends TypedEventEmitter<MonitorEvents> {
       await ensureDataDir(dataDir)
 
       const mutagenOpts = [mutagenPath, "sync", "monitor", "--template", "{{ json . }}", "--long"]
-      log.silly(`Spawning mutagen using respawn: "${mutagenOpts.join(" ")}"`)
+      log.silly(() => `Spawning mutagen using respawn: "${mutagenOpts.join(" ")}"`)
 
+      const sshPath = await getMutagenSshPath(log)
+      if (sshPath) {
+        log.debug(`Mutagen will be used with the faux SSH transport located in ${sshPath}`)
+      }
       const proc = respawn(mutagenOpts, {
         cwd: dataDir,
         name: "mutagen",
-        env: {
-          MUTAGEN_DATA_DIRECTORY: dataDir,
-          MUTAGEN_LOG_LEVEL: "debug",
-        },
+        env: getMutagenEnv({ dataDir, logLevel: "debug", sshPath }),
         maxRestarts,
         sleep: 3000,
         kill: 500,
@@ -228,12 +230,17 @@ class _MutagenMonitor extends TypedEventEmitter<MonitorEvents> {
       this.proc = proc
 
       proc.on("crash", () => {
-        log.warn(chalk.yellow(crashMessage))
+        log.warn(crashMessage)
       })
 
+      let monitorFailureLogged = false
       proc.on("exit", (code: number) => {
         if (code && code !== 0) {
           log.warn(`Synchronization monitor exited with code ${code}.`)
+          if (!monitorFailureLogged) {
+            logMutagenDaemonWarning(log)
+            monitorFailureLogged = true
+          }
         }
       })
 
@@ -241,13 +248,16 @@ class _MutagenMonitor extends TypedEventEmitter<MonitorEvents> {
         const str = data.toString().trim()
         // This is a little dumb, to detect if the log line starts with a timestamp, but ya know...
         // it'll basically work for the next 979 years :P.
-        const msg = chalk.gray(str.startsWith("2") ? str.split(" ").slice(3).join(" ") : str)
+        const msg = styles.primary(str.startsWith("2") ? str.split(" ").slice(3).join(" ") : str)
         if (msg.includes("Unable") && lastDaemonError !== msg) {
           log.warn(msg)
           // Make sure we don't spam with repeated messages
           lastDaemonError = msg
         } else {
-          log.silly({ symbol: "empty", msg })
+          log.silly({
+            symbol: "empty",
+            msg,
+          })
         }
       }
 
@@ -280,7 +290,7 @@ class _MutagenMonitor extends TypedEventEmitter<MonitorEvents> {
           if (resolved) {
             log.debug({
               symbol: "empty",
-              msg: chalk.green("Mutagen monitor re-started"),
+              msg: "Mutagen monitor re-started",
             })
           }
         })
@@ -317,6 +327,16 @@ class _MutagenMonitor extends TypedEventEmitter<MonitorEvents> {
   }
 }
 
+function logMutagenDaemonWarning(log: Log) {
+  log.warn(
+    dedent`
+    It looks like you've changed to a different version of the sync daemon and therefore the sync daemon needs to be restarted.
+    Please see our Troubleshooting docs for instructions on how to restart the daemon for your platform: ${styles.link(
+      makeDocsLink("guides/code-synchronization", "#restarting-sync-daemon")
+    )}}`
+  )
+}
+
 /**
  * A class for managing the Mutagen daemon process and its syncs.
  *
@@ -332,10 +352,10 @@ export class Mutagen {
   private configLock: AsyncLock
   private monitoring: boolean
 
-  constructor({ ctx, log }: MutagenDaemonParams) {
-    this.log = log
+  constructor(params: MutagenDaemonParams) {
+    this.log = params.log
     this.configLock = new AsyncLock()
-    this.dataDir = getMutagenDataDir(ctx.gardenDirPath, log)
+    this.dataDir = getMutagenDataDir(params)
     this.activeSyncs = {}
     this.monitoring = false
 
@@ -364,7 +384,7 @@ export class Mutagen {
       ]
 
       const { logSection: section } = activeSync
-      const syncLog = this.log.createLog({ name: section })
+      const syncLog = this.log.createLog({ name: section, origin: "sync" })
 
       for (const problem of problems) {
         if (!activeSync.lastProblems.includes(problem)) {
@@ -386,7 +406,7 @@ export class Mutagen {
       }
 
       const syncCount = session.successfulCycles || 0
-      const description = `from ${sourceDescription} to ${targetDescription}`
+      const description = `from ${styles.highlight(sourceDescription)} to ${styles.highlight(targetDescription)}`
       const isInitialSync = activeSync.lastSyncCount === 0
 
       // Mutagen resets the sync count to zero after resuming from a sync paused
@@ -395,7 +415,7 @@ export class Mutagen {
       if (syncCount > activeSync.lastSyncCount && !activeSync.initialSyncComplete) {
         syncLog.info({
           symbol: "success",
-          msg: chalk.white(`${syncLogPrefix} Completed initial sync ${description}`),
+          msg: `Completed initial sync ${description}`,
         })
         activeSync.initialSyncComplete = true
       }
@@ -416,7 +436,7 @@ export class Mutagen {
       }
 
       if (statusMsg) {
-        syncLog.info(`${syncLogPrefix} ${statusMsg}`)
+        syncLog.info(statusMsg)
         activeSync.lastStatusMsg = statusMsg
       }
 
@@ -427,7 +447,7 @@ export class Mutagen {
     }
   }
 
-  async ensureDaemon() {
+  async ensureDaemonProc() {
     await this.execCommand(["daemon", "start"])
   }
 
@@ -514,6 +534,24 @@ export class Mutagen {
           log.warn(
             `Failed to start sync from ${sourceDescription} to ${targetDescription}. ${err.retriesLeft} attempts left.`
           )
+
+          // print this only after the first failure
+          if (err.attemptNumber === 1) {
+            const isMutagenForkError = (error: FailedAttemptError) => {
+              const msg = error.message.toLowerCase()
+              return (
+                // this happens when switching from the old sync to the new
+                msg.includes("ssh: could not resolve hostname") ||
+                // this happens in the opposite scenario
+                msg.includes("unknown or unsupported protocol")
+              )
+            }
+
+            if (isMutagenForkError(err)) {
+              logMutagenDaemonWarning(log)
+              throw err
+            }
+          }
         },
       })
 
@@ -553,7 +591,7 @@ export class Mutagen {
         const unableToFlush = err.message.match(/unable to flush session/)
         if (unableToFlush) {
           this.log.warn(
-            chalk.gray(
+            styles.primary(
               `Could not flush synchronization changes, retrying (attempt ${err.attemptNumber}/${err.retriesLeft})...`
             )
           )
@@ -576,7 +614,7 @@ export class Mutagen {
         try {
           await this.flushSync(session.name)
         } catch (err) {
-          log.warn(chalk.yellow(`Failed to flush sync '${session.name}: ${err}`))
+          log.warn(`Failed to flush sync '${session.name}: ${err}`)
         }
       })
     )
@@ -638,7 +676,7 @@ export class Mutagen {
           cwd: this.dataDir,
           args,
           log: this.log,
-          env: getMutagenEnv(this.dataDir),
+          env: getMutagenEnv({ dataDir: this.dataDir }),
         })
       } catch (err) {
         if (!(err instanceof ChildProcessError)) {
@@ -647,14 +685,12 @@ export class Mutagen {
         const unableToConnect = err.message.match(/unable to connect to daemon/)
         if (unableToConnect && loops < 10) {
           loops += 1
-          this.log.warn(chalk.gray(`Could not connect to sync daemon, retrying (attempt ${loops}/${maxRetries})...`))
-          await this.ensureDaemon()
+          this.log.warn(
+            styles.primary(`Could not connect to sync daemon, retrying (attempt ${loops}/${maxRetries})...`)
+          )
+          await this.ensureDaemonProc()
           await sleep(2000 + loops * 500)
         } else {
-          emitNonRepeatableWarning(
-            this.log,
-            `Consider making your Garden project path shorter. Syncing could fail because of Unix socket path length limitations. It's recommended that the Garden project path does not exceed ${MUTAGEN_DATA_DIRECTORY_LENGTH_LIMIT} characters. The actual value depends on the platform and the mutagen version.`
-          )
           throw err
         }
       }
@@ -672,7 +708,7 @@ export class Mutagen {
 
   async restartDaemonProc() {
     await this.stopDaemonProc()
-    await this.ensureDaemon()
+    await this.ensureDaemonProc()
   }
 
   async startMonitoring() {
@@ -784,40 +820,58 @@ export interface SyncSession {
 }
 
 /**
- * Exceeding this limit may cause mutagen daemon failures because of the Unix socket path length limitations.
- * See
- * https://github.com/garden-io/garden/issues/4527#issuecomment-1584286590
- * https://github.com/mutagen-io/mutagen/issues/433#issuecomment-1440352501
- * https://unix.stackexchange.com/questions/367008/why-is-socket-path-length-limited-to-a-hundred-chars/367012#367012
- */
-const MUTAGEN_DATA_DIRECTORY_LENGTH_LIMIT = 70
-
-/**
  * Returns mutagen data directory path based on the project dir.
- * If the project path longer than `MUTAGEN_DATA_DIRECTORY_LENGTH_LIMIT`, it computes
- * hash of project dir path, uses first 9 characters of hash as directory name
+ *
+ * It always computes sha256 hash of a project dir path, uses first 9 characters of hash as directory name,
  * and creates a directory in $HOME/.garden/mutagen.
  *
- * However, if the path is not longer than `MUTAGEN_DATA_DIRECTORY_LENGTH_LIMIT`, then
- * it uses the ./project-root/.garden/mutagen directory.
+ * This approach ensures that sync source path is never too long to get into one of the known issues with Mutagen,
+ * the sync tool that we use as a main synchronization machinery.
+ * The Mutagen daemon may fail if the source sync path is too long because of the Unix socket path length limitations.
+ * See:
+ * <ul>
+ *   <li>https://github.com/garden-io/garden/issues/4527#issuecomment-1584286590</li>
+ *   <li>https://github.com/mutagen-io/mutagen/issues/433#issuecomment-1440352501</li>
+ *   <li>https://unix.stackexchange.com/questions/367008/why-is-socket-path-length-limited-to-a-hundred-chars/367012#367012</li>
+ * </ul>
  */
-export function getMutagenDataDir(path: string, log: Log) {
-  if (path.length > MUTAGEN_DATA_DIRECTORY_LENGTH_LIMIT) {
-    const hash = hasha(path, { algorithm: "sha256" }).slice(0, 9)
-    const shortPath = join(GARDEN_GLOBAL_PATH, MUTAGEN_DIR_NAME, hash)
-    log.verbose(
-      `Your Garden project path looks too long, that might cause errors while starting the syncs. Garden will create a new directory to manage syncs at path: ${shortPath}.`
-    )
-    return shortPath
-  }
-  // if path is not too long, then use relative directory to the project
-  return join(path, MUTAGEN_DIR_NAME)
+export function getMutagenDataDir({ ctx, log }: MutagenDaemonParams) {
+  const rawSyncPath = ctx.gardenDirPath
+  const hash = hashSync(rawSyncPath, { algorithm: "sha256" }).slice(0, 9)
+  const shortPath = join(GARDEN_GLOBAL_PATH, MUTAGEN_DIR_NAME, hash)
+  log.debug(`The syncs will be managed from ${shortPath}.`)
+
+  return shortPath
 }
 
-export function getMutagenEnv(dataDir: string) {
-  return {
-    MUTAGEN_DATA_DIRECTORY: dataDir,
+/**
+ * This type declares the Mutagen env variable name in a single place,
+ * instead of declaring them across the code.
+ *
+ * Some env vars are required to use Mutagen in Garden, and some are optional.
+ * This type shapes the set of the Mutagen env vars that are used by Garden.
+ */
+type MutagenEnv = {
+  MUTAGEN_DATA_DIRECTORY: string
+  MUTAGEN_LOG_LEVEL?: string
+  MUTAGEN_SSH_PATH?: string
+}
+
+type MutagenEnvValues = {
+  dataDir: string
+  logLevel?: string
+  sshPath?: string
+}
+
+export function getMutagenEnv({ dataDir, logLevel, sshPath }: MutagenEnvValues): MutagenEnv {
+  const env: MutagenEnv = { MUTAGEN_DATA_DIRECTORY: dataDir }
+  if (!!logLevel) {
+    env.MUTAGEN_LOG_LEVEL = logLevel
   }
+  if (!!sshPath) {
+    env.MUTAGEN_SSH_PATH = sshPath
+  }
+  return env
 }
 
 export function parseSyncListResult(res: ExecaReturnValue): SyncSession[] {
@@ -851,48 +905,184 @@ export function parseSyncListResult(res: ExecaReturnValue): SyncSession[] {
   return parsed
 }
 
-export const mutagenCliSpec: PluginToolSpec = {
-  name: "mutagen",
-  version: "0.15.0",
-  description: "The mutagen synchronization tool.",
+const mutagenVersionLegacy = "0.15.0"
+const mutagenVersionNative = "0.17.5"
+
+export const mutagenVersion = gardenEnv.GARDEN_ENABLE_NEW_SYNC ? mutagenVersionNative : mutagenVersionLegacy
+
+export function mutagenCliSpecLegacy(): PluginToolSpec {
+  return {
+    name: "mutagen",
+    version: mutagenVersionLegacy,
+    description: `The mutagen synchronization tool, v${mutagenVersionLegacy}`,
+    type: "binary",
+    _includeInGardenImage: false,
+    builds: [
+      {
+        platform: "darwin",
+        architecture: "amd64",
+        url: `https://github.com/garden-io/mutagen/releases/download/v${mutagenVersionLegacy}-garden-1/mutagen_darwin_amd64_v${mutagenVersionLegacy}.tar.gz`,
+        sha256: "370bf71e28f94002453921fda83282280162df7192bd07042bf622bf54507e3f",
+        extract: {
+          format: "tar",
+          targetPath: "mutagen",
+        },
+      },
+      {
+        platform: "darwin",
+        architecture: "arm64",
+        url: `https://github.com/garden-io/mutagen/releases/download/v${mutagenVersionLegacy}-garden-1/mutagen_darwin_arm64_v${mutagenVersionLegacy}.tar.gz`,
+        sha256: "a0a7be8bb37266ea184cb580004e1741a17c8165b2032ce4b191f23fead821a0",
+        extract: {
+          format: "tar",
+          targetPath: "mutagen",
+        },
+      },
+      {
+        platform: "linux",
+        architecture: "amd64",
+        url: `https://github.com/garden-io/mutagen/releases/download/v${mutagenVersionLegacy}-garden-1/mutagen_linux_amd64_v${mutagenVersionLegacy}.tar.gz`,
+        sha256: "e8c0708258ddd6d574f1b8f514fb214f9ab5d82aed38dd8db49ec10956e5063a",
+        extract: {
+          format: "tar",
+          targetPath: "mutagen",
+        },
+      },
+      {
+        platform: "linux",
+        architecture: "arm64",
+        url: `https://github.com/garden-io/mutagen/releases/download/v${mutagenVersionLegacy}-garden-1/mutagen_linux_arm64_v${mutagenVersionLegacy}.tar.gz`,
+        sha256: "80f108fc316223d8c3d1a48def18192e666b33a334b75aa3ebcc95938b774e64",
+        extract: {
+          format: "tar",
+          targetPath: "mutagen",
+        },
+      },
+      {
+        platform: "windows",
+        architecture: "amd64",
+        url: `https://github.com/garden-io/mutagen/releases/download/v${mutagenVersionLegacy}-garden-1/mutagen_windows_amd64_v${mutagenVersionLegacy}.zip`,
+        sha256: "fdae26b43cc418b2525a937a1613bba36e74ea3dde4dbec3512a9abd004def95",
+        extract: {
+          format: "zip",
+          targetPath: "mutagen.exe",
+        },
+      },
+    ],
+  }
+}
+
+export function mutagenCliSpecNative(): PluginToolSpec {
+  return {
+    name: "mutagen",
+    version: mutagenVersionNative,
+    description: `The mutagen synchronization tool, v${mutagenVersionNative}`,
+    type: "binary",
+    _includeInGardenImage: false,
+    builds: [
+      {
+        platform: "darwin",
+        architecture: "amd64",
+        url: `https://github.com/mutagen-io/mutagen/releases/download/v${mutagenVersionNative}/mutagen_darwin_amd64_v${mutagenVersionNative}.tar.gz`,
+        sha256: "5b963b3dab36ac8a3d2a87ca162717bf2172fd8ca7410d477a78affd7631a45d",
+        extract: {
+          format: "tar",
+          targetPath: "mutagen",
+        },
+      },
+      {
+        platform: "darwin",
+        architecture: "arm64",
+        url: `https://github.com/mutagen-io/mutagen/releases/download/v${mutagenVersionNative}/mutagen_darwin_arm64_v${mutagenVersionNative}.tar.gz`,
+        sha256: "4dbbbc222a3986705a998343ff23d69e62bfe1c4e341ef9f1cdf39d25a37c324",
+        extract: {
+          format: "tar",
+          targetPath: "mutagen",
+        },
+      },
+      {
+        platform: "linux",
+        architecture: "amd64",
+        url: `https://github.com/mutagen-io/mutagen/releases/download/v${mutagenVersionNative}/mutagen_linux_amd64_v${mutagenVersionNative}.tar.gz`,
+        sha256: "cabee0af590faf822cb5542437e254406b0f037df43781c02bf6eeac267911f6",
+        extract: {
+          format: "tar",
+          targetPath: "mutagen",
+        },
+      },
+      {
+        platform: "linux",
+        architecture: "arm64",
+        url: `https://github.com/mutagen-io/mutagen/releases/download/v${mutagenVersionNative}/mutagen_linux_arm64_v${mutagenVersionNative}.tar.gz`,
+        sha256: "bbe92496c2bad6424a879490ca5b49da36c80e28e7b866201fcaf7a959037237",
+        extract: {
+          format: "tar",
+          targetPath: "mutagen",
+        },
+      },
+      {
+        platform: "windows",
+        architecture: "amd64",
+        url: `https://github.com/mutagen-io/mutagen/releases/download/v${mutagenVersionNative}/mutagen_windows_amd64_v${mutagenVersionNative}.zip`,
+        sha256: "63ed4b217f798f49039cae5db4b63f592217be5685282e3669a9b6a4ae18cb64",
+        extract: {
+          format: "zip",
+          targetPath: "mutagen.exe",
+        },
+      },
+    ],
+  }
+}
+
+export const mutagenCliSpec = gardenEnv.GARDEN_ENABLE_NEW_SYNC ? mutagenCliSpecNative() : mutagenCliSpecLegacy()
+
+export const mutagenCli = new PluginTool(mutagenCliSpec)
+
+const mutagenFauxSshVersion = "v0.0.1"
+const mutagenFauxSshReleaseBaseUrl = "https://github.com/garden-io/mutagen-faux-ssh/releases/download/"
+
+export const mutagenFauxSshSpec: PluginToolSpec = {
+  name: "mutagen-faux-ssh",
+  version: mutagenFauxSshVersion,
+  description: "The faux SSH implementation to be used as SSH transport for Mutagen.",
   type: "binary",
   _includeInGardenImage: false,
   builds: [
     {
       platform: "darwin",
       architecture: "amd64",
-      url: "https://github.com/garden-io/mutagen/releases/download/v0.15.0-garden-1/mutagen_darwin_amd64_v0.15.0.tar.gz",
-      sha256: "370bf71e28f94002453921fda83282280162df7192bd07042bf622bf54507e3f",
+      url: `${mutagenFauxSshReleaseBaseUrl}/${mutagenFauxSshVersion}/mutagen-faux-ssh-${mutagenFauxSshVersion}-darwin-amd64.tar.gz`,
+      sha256: "2613c82c843ac5123c0fe380422781db9306862341ba94b76aa3c5c6268acf50",
       extract: {
         format: "tar",
-        targetPath: "mutagen",
+        targetPath: "ssh",
       },
     },
     {
       platform: "darwin",
       architecture: "arm64",
-      url: "https://github.com/garden-io/mutagen/releases/download/v0.15.0-garden-1/mutagen_darwin_arm64_v0.15.0.tar.gz",
-      sha256: "a0a7be8bb37266ea184cb580004e1741a17c8165b2032ce4b191f23fead821a0",
+      url: `${mutagenFauxSshReleaseBaseUrl}/${mutagenFauxSshVersion}/mutagen-faux-ssh-${mutagenFauxSshVersion}-darwin-arm64.tar.gz`,
+      sha256: "914db58ebaf093e7494c83ea0c21156a23216c1ce08ccab27f9973f6aa4d5c4d",
       extract: {
         format: "tar",
-        targetPath: "mutagen",
+        targetPath: "ssh",
       },
     },
     {
       platform: "linux",
       architecture: "amd64",
-      url: "https://github.com/garden-io/mutagen/releases/download/v0.15.0-garden-1/mutagen_linux_amd64_v0.15.0.tar.gz",
-      sha256: "e8c0708258ddd6d574f1b8f514fb214f9ab5d82aed38dd8db49ec10956e5063a",
+      url: `${mutagenFauxSshReleaseBaseUrl}/${mutagenFauxSshVersion}/mutagen-faux-ssh-${mutagenFauxSshVersion}-linux-amd64.tar.gz`,
+      sha256: "16588f55e614d9ccb77c933463207cd023101bd7234b5d0eecff0e57a98dd7b0",
       extract: {
         format: "tar",
-        targetPath: "mutagen",
+        targetPath: "ssh",
       },
     },
     {
       platform: "linux",
       architecture: "arm64",
-      url: "https://github.com/garden-io/mutagen/releases/download/v0.15.0-garden-1/mutagen_linux_arm64_v0.15.0.tar.gz",
-      sha256: "80f108fc316223d8c3d1a48def18192e666b33a334b75aa3ebcc95938b774e64",
+      url: `${mutagenFauxSshReleaseBaseUrl}/${mutagenFauxSshVersion}/mutagen-faux-ssh-${mutagenFauxSshVersion}-linux-arm64.tar.gz`,
+      sha256: "c7645e615efc9e5139f8a281abb9acae61ea2ce2084ea25aa438438da3481167",
       extract: {
         format: "tar",
         targetPath: "mutagen",
@@ -901,17 +1091,32 @@ export const mutagenCliSpec: PluginToolSpec = {
     {
       platform: "windows",
       architecture: "amd64",
-      url: "https://github.com/garden-io/mutagen/releases/download/v0.15.0-garden-1/mutagen_windows_amd64_v0.15.0.zip",
-      sha256: "fdae26b43cc418b2525a937a1613bba36e74ea3dde4dbec3512a9abd004def95",
+      url: `${mutagenFauxSshReleaseBaseUrl}/${mutagenFauxSshVersion}/mutagen-faux-ssh-${mutagenFauxSshVersion}-windows-amd64.zip`,
+      sha256: "f548d81eea994c0b21dbcfa77b671ea8cc897b66598303396a214ef0b0c53f08",
       extract: {
         format: "zip",
-        targetPath: "mutagen.exe",
+        targetPath: "ssh.exe",
       },
     },
   ],
 }
 
-export const mutagenCli = new PluginTool(mutagenCliSpec)
+export const mutagenFauxSsh = new PluginTool(mutagenFauxSshSpec)
+
+/**
+ * Returns the path to the location of the faux SSH Mutagen transport if the original Mutagen is used
+ * (i.e. if {@code GARDEN_ENABLE_NEW_SYNC=true}) or {@code undefined} otherwise.
+ */
+async function getMutagenSshPath(log: Log): Promise<string | undefined> {
+  if (!gardenEnv.GARDEN_ENABLE_NEW_SYNC) {
+    return undefined
+  }
+
+  const fauxSshToolPath = await mutagenFauxSsh.ensurePath(log)
+  // This must be the dir containing the faux SSH binary,
+  // not the full path that includes the binary name.
+  return dirname(fauxSshToolPath)
+}
 
 /**
  * Returns true if the given sync point is a filesystem path that exists.
@@ -922,17 +1127,17 @@ async function isValidLocalPath(syncPoint: string) {
 
 function formatSyncConflict(sourceDescription: string, targetDescription: string, conflict: SyncConflict): string {
   return dedent`
-    Sync conflict detected at path ${chalk.white(
+    Sync conflict detected at path ${styles.highlight(
       conflict.root
     )} in sync from ${sourceDescription} to ${targetDescription}.
 
     Until the conflict is resolved, the conflicting paths will not be synced.
 
-    If conflicts come up regularly at this destination, you may want to use either the ${chalk.white(
+    If conflicts come up regularly at this destination, you may want to use either the ${styles.highlight(
       "one-way-replica"
-    )} or ${chalk.white("one-way-replica-reverse")} sync modes instead.
+    )} or ${styles.highlight("one-way-replica-reverse")} sync modes instead.
 
-    See the code synchronization guide for more details: ${chalk.white(syncGuideLink + "#sync-modes")}`
+    See the code synchronization guide for more details: ${styles.link(makeDocsLink(syncGuideRelPath, "#sync-modes"))}`
 }
 
 /**

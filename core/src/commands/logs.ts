@@ -9,7 +9,6 @@
 import dotenv from "dotenv"
 import type { CommandResult, CommandParams, PrepareParams } from "./base.js"
 import { Command } from "./base.js"
-import chalk from "chalk"
 import { omit, sortBy } from "lodash-es"
 import type { DeployLogEntry } from "../types/service.js"
 import { LogLevel, parseLogLevel, VoidLogger } from "../logger/logger.js"
@@ -19,6 +18,7 @@ import { dedent, deline, naturalList } from "../util/string.js"
 import { CommandError, ParameterError } from "../exceptions.js"
 import type { LogsTagOrFilter } from "../monitors/logs.js"
 import { LogMonitor } from "../monitors/logs.js"
+import { styles } from "../logger/styles.js"
 
 const logsArgs = {
   names: new StringsParameter({
@@ -174,9 +174,10 @@ export class LogsCommand extends Command<Args, Opts> {
       details = ` (from the last '${since}' for each service)`
     }
 
+    const style = styles.accent
     log.info("")
-    log.info(chalk.white.bold("Service logs" + details + ":"))
-    log.info(chalk.white.bold(renderDivider()))
+    log.info(style("Service logs" + details + ":"))
+    log.info(renderDivider({ color: style }))
 
     const resolvedActions = await garden.resolveActions({ actions, graph, log })
 
@@ -217,7 +218,7 @@ export class LogsCommand extends Command<Args, Opts> {
         entry.monitor.logEntry(entry)
       })
 
-      log.info(chalk.white.bold(renderDivider()))
+      log.info(renderDivider({ color: style }))
 
       return {
         result: sorted.map((e) => omit(e, "monitor")),

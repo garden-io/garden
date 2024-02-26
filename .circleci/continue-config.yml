@@ -2,7 +2,7 @@
 version: 2.1
 
 orbs:
-  win: circleci/windows@2.2.0
+  win: circleci/windows@5.0.0
   rok8s-scripts: fairwinds/rok8s-scripts@11.1.3
   macos: circleci/macos@2.4.0
 
@@ -313,6 +313,11 @@ commands:
           e.g. when creating unstable releases. The script defaults to using the version from core/package.json.
         type: string
         default: ""
+      cargocommand:
+        description: |
+          Use Cross for cross-platform builds, or Cargo directly. Useful for macos which is not supported by cross.
+        type: string
+        default: "cross"
       context:
         description: Set this to the operating system, to avoid conflicting caches with the docker runs
         type: string
@@ -331,7 +336,7 @@ commands:
       - run:
           name: Run dist script
           command: |
-            npm run dist -- --version "<<parameters.version>>" <<parameters.targets>>
+            npm run dist -- --version "<<parameters.version>>" --cargocommand "<<parameters.cargocommand>>" <<parameters.targets>>
 
       # We cache the node archives because the NodeJS download mirror is unreliable
       - save_cache:
@@ -429,6 +434,7 @@ jobs:
       - run_npm_dist:
           version: <<parameters.version>>
           targets: "macos-amd64 macos-arm64"
+          cargocommand: cargo
           context: vm-macos
       - fail_fast
 
@@ -450,6 +456,7 @@ jobs:
       - run_npm_dist:
           version: <<parameters.version>>
           targets: "linux-amd64 linux-arm64 alpine-amd64 windows-amd64"
+          cargocommand: cross
           context: vm-ubuntu
       - fail_fast
 
@@ -502,6 +509,9 @@ jobs:
           context: docker
       - *attach-workspace
       - configure_git
+      - restore_cache:
+          keys:
+            - test-framework-tool-cache-v1
       - run:
           name: Unit test framework components
           command: |
@@ -509,6 +519,13 @@ jobs:
           environment:
             CHOKIDAR_USEPOLLING: "1"
             NODE_OPTIONS: --max_old_space_size=4096
+      # We add the package.json to ensure that we invalidate the cache from time to time.
+      # This is to ensure that we pick up newly added tools in the test directory.
+      # It would be better to generate a checksum for all the files containing tool specs, but this is a good enough approximation for now.
+      - save_cache:
+          key: test-framework-tool-cache-v1-{{ checksum "package.json" }}
+          paths:
+            - .test-tools-verification-cache
       - fail_fast
 
   e2e-project:
@@ -750,10 +767,25 @@ jobs:
       - restore_cache:
           keys:
             - m2-v1
+
+      # Restore plugins tool cache
+      - restore_cache:
+          keys:
+            - test-plugins-tool-cache-v1
+
       # Run tests
       - run:
           name: Plugin tests
           command: npm run test:plugins
+
+      # We add the package.json to ensure that we invalidate the cache from time to time.
+      # This is to ensure that we pick up newly added tools in the test directory.
+      # It would be better to generate a checksum for all the files containing tool specs, but this is a good enough approximation for now.
+      - save_cache:
+          key: test-plugins-tool-cache-v1-{{ checksum "package.json" }}
+          paths:
+            - .test-tools-verification-cache
+
       # Persist Maven cache
       - save_cache:
           key: m2-v1
@@ -893,7 +925,46 @@ jobs:
           name: Install system dependencies
           command: |
             sudo apt-get update
+            # Install conntrack
             sudo apt install nfs-common conntrack
+            # Install crictl
+            CRICTL_VERSION="v1.29.0" # check latest version in /releases page
+            distr_name="crictl-${CRICTL_VERSION}-linux-amd64.tar.gz"
+            curl -L https://github.com/kubernetes-sigs/cri-tools/releases/download/${CRICTL_VERSION}/${distr_name} --output ${distr_name}
+            sudo tar -zxvf ${distr_name} -C /usr/local/bin
+            rm -f ${distr_name}
+            # Install Docker CRI
+            CRI_DOCKERD_VERSION="0.3.10"
+            cri_dockerd_dirname="cri-dockerd"
+            cri_dockerd_distr_name="${cri_dockerd_dirname}-${CRI_DOCKERD_VERSION}.amd64.tgz"
+            curl -L https://github.com/Mirantis/cri-dockerd/releases/download/v${CRI_DOCKERD_VERSION}/${cri_dockerd_distr_name} --output ${cri_dockerd_distr_name}
+            sudo tar -zxvf ${cri_dockerd_distr_name}
+            cd ${cri_dockerd_dirname}
+            sudo install -o root -g root -m 0755 cri-dockerd /usr/local/bin/cri-dockerd
+            cd ..
+            sudo rm -f ${cri_dockerd_distr_name}
+            sudo rm -rf ${cri_dockerd_dirname}
+            # Need to download the sources to install `cri-docker.service` file
+            cri_sources_dirname="cri-dockerd-${CRI_DOCKERD_VERSION}"
+            cri_sources_distr_name="${cri_sources_dirname}.tar.gz"
+            curl -L https://github.com/Mirantis/cri-dockerd/archive/refs/tags/v${CRI_DOCKERD_VERSION}.tar.gz --output ${cri_sources_distr_name}
+            sudo tar -zxf ${cri_sources_distr_name}
+            cd ${cri_sources_dirname}
+            sudo install packaging/systemd/* /etc/systemd/system
+            cd ..
+            sudo rm -f ${cri_sources_distr_name}
+            sudo rm -rf ${cri_sources_dirname}
+            sudo sed -i -e 's,/usr/bin/cri-dockerd,/usr/local/bin/cri-dockerd,' /etc/systemd/system/cri-docker.service
+            sudo systemctl daemon-reload
+            sudo systemctl enable --now cri-docker.socket
+            # Install CNI plugin
+            CNI_PLUGIN_VERSION="v1.4.0"
+            CNI_PLUGIN_TAR="cni-plugins-linux-amd64-$CNI_PLUGIN_VERSION.tgz" # change arch if not on amd64
+            CNI_PLUGIN_INSTALL_DIR="/opt/cni/bin"
+            curl -LO "https://github.com/containernetworking/plugins/releases/download/$CNI_PLUGIN_VERSION/$CNI_PLUGIN_TAR"
+            sudo mkdir -p "$CNI_PLUGIN_INSTALL_DIR"
+            sudo tar -xf "$CNI_PLUGIN_TAR" -C "$CNI_PLUGIN_INSTALL_DIR"
+            rm "$CNI_PLUGIN_TAR"
       - docker_login
       - configure_git
       - npm_install:
@@ -912,7 +983,8 @@ jobs:
               --extra-config=kubeadm.ignore-preflight-errors=NumCPU \
               --extra-config=kubeadm.ignore-preflight-errors=RSRC_INSUFFICIENT_CORES \
               --kubernetes-version=$K8S_VERSION \
-              --vm-driver=none \
+              --driver=none \
+              --container-runtime=docker \
               --cpus 3 \
               --memory 4096
             sudo chown -R circleci:circleci /home/circleci/.kube /home/circleci/.minikube /etc/kubernetes
@@ -1054,14 +1126,23 @@ jobs:
 
   test-windows:
     executor:
-      name: win/default
+      name: win/server-2022
       size: large
     steps:
       - checkout
       - *attach-workspace
       - run:
+          # Print PowerShell version for diagnostics
+          name: Print PowerShell versions
+          command: $PSVersionTable
+      - run:
+          # Print Chocolatey version for diagnostics
+          name: Print Chocolatey versions
+          command: choco --version
+      - run:
           name: Install Deps
           command: |
+            Import-Module "$Env:ChocolateyInstall\helpers\chocolateyProfile.psm1"
             choco install --limit-output --no-progress -y git rsync gcloudsdk kubernetes-cli
             $Env:CLOUDSDK_PYTHON = gcloud components copy-bundled-python
             gcloud components install gke-gcloud-auth-plugin --quiet
@@ -1084,8 +1165,24 @@ jobs:
           command: |
             .\dist\windows-amd64\garden.exe deploy --root .\examples\demo-project\ --logger-type basic --log-level silly --env remote --force-build --var userId=$env:CIRCLE_BUILD_NUM-win
       - run:
-          name: Cleanup
+          name: Cleanup demo-project
           command: (kubectl delete namespace --wait=false demo-project-testing-$env:CIRCLE_BUILD_NUM-win) -or $true
+          when: always
+      - run:
+          name: Validate vote-helm project # to validate the sync mode paths on Windows with action-based configs
+          command: |
+            .\dist\windows-amd64\garden.exe validate --root .\e2e\projects\vote-helm\ --logger-type basic --log-level silly --env testing --var userId=$env:CIRCLE_BUILD_NUM-win
+      - run:
+          name: Cleanup vote-helm project
+          command: (kubectl delete namespace --wait=false vote-helm-testing-$env:CIRCLE_BUILD_NUM-win) -or $true
+          when: always
+      - run:
+          name: Validate vote-helm-modules project # to validate the sync mode paths on Windows with module-based configs
+          command: |
+            .\dist\windows-amd64\garden.exe validate --root .\e2e\projects\vote-helm-modules\ --logger-type basic --log-level silly --env testing --var userId=$env:CIRCLE_BUILD_NUM-win
+      - run:
+          name: Cleanup vote-helm-modules project
+          command: (kubectl delete namespace --wait=false vote-helm-modules-testing-$env:CIRCLE_BUILD_NUM-win) -or $true
           when: always
       - fail_fast
 
@@ -1255,8 +1352,8 @@ workflows:
           <<: *only-internal-prs
           name: test-remote
           requires: [build]
-          kubernetesVersion: "1.23.3"
-          minikubeVersion: "v1.25.2"
+          kubernetesVersion: "v1.28.3"
+          minikubeVersion: "v1.32.0"
           skipTests: "local-only"
           remoteCluster: true
 
@@ -1266,62 +1363,29 @@ workflows:
       # variant and k8s version would be quite expensive, so we try and make sure each of the latest 6-7 k8s versions is
       # tested, and that the most recent versions are broadly tested. The kind tests are the cheapest to run so we use many
       # of those, but they currently don't test in-cluster building, so we do need a range of versions on minikube as well.
-      - test-minikube:
-          name: vm-1.22-minikube
-          requires: [build]
-          kubernetesVersion: "1.22.2"
-          minikubeVersion: "v1.25.2"
-      - test-minikube:
-          name: vm-1.23-minikube
-          requires: [build]
-          kubernetesVersion: "1.23.3"
-          minikubeVersion: "v1.25.2"
-      - test-microk8s:
-          name: vm-1.24-microk8s
-          requires: [build]
-          kubernetesVersion: "1.24"
-      - test-microk8s:
-          name: vm-1.25-microk8s
-          requires: [build]
-          kubernetesVersion: "1.25"
       - test-microk8s:
           name: vm-1.26-microk8s
           requires: [build]
           kubernetesVersion: "1.26"
-      - test-kind:
-          name: vm-1.21-kind
-          requires: [build]
-          kindNodeImage: kindest/node:v1.21.14@sha256:27ef72ea623ee879a25fe6f9982690a3e370c68286f4356bf643467c552a3888
-      # - test-kind:
-      #     name: vm-1.22-kind
-      #     requires: [build]
-      #     kindNodeImage: kindest/node:v1.22.17@sha256:c8a828709a53c25cbdc0790c8afe12f25538617c7be879083248981945c38693
-      # - test-kind:
-      #     name: vm-1.23-kind
-      #     requires: [build]
-      #     kindNodeImage: kindest/node:v1.23.17@sha256:e5fd1d9cd7a9a50939f9c005684df5a6d145e8d695e78463637b79464292e66c
-      - test-kind:
-          name: vm-1.24-kind
-          requires: [build]
-          kindNodeImage: kindest/node:v1.24.12@sha256:1e12918b8bc3d4253bc08f640a231bb0d3b2c5a9b28aa3f2ca1aee93e1e8db16
-      # - test-kind:
-      #     name: vm-1.25-kind
-      #     requires: [build]
-      #     kindNodeImage: kindest/node:v1.25.8@sha256:00d3f5314cc35327706776e95b2f8e504198ce59ac545d0200a89e69fce10b7f
-      - test-kind:
-          name: vm-1.26-kind
-          requires: [build]
-          kindNodeImage: kindest/node:v1.26.3@sha256:61b92f38dff6ccc29969e7aa154d34e38b89443af1a2c14e6cfbd2df6419c66f
       - test-k3s:
           name: vm-1.27-k3s
           requires: [build]
           # version v1.27.4+k3s1 fails with this issue https://github.com/moby/moby/issues/45935
           k3sVersion: v1.27.2+k3s1
+      - test-minikube:
+          name: vm-1.28-minikube
+          requires: [ build ]
+          kubernetesVersion: "v1.28.3"
+          minikubeVersion: "v1.32.0"
+      - test-kind:
+          name: vm-1.29-kind
+          requires: [build]
+          kindNodeImage: kindest/node:v1.29.2@sha256:acc9e82a5a5bd3dfccfd03117e9ef5f96b46108b55cd647fb5e7d0d1a35c9c6f
 
       - test-plugins:
           <<: *only-internal-prs
           requires: [build]
-          kindNodeImage: kindest/node:v1.21.14@sha256:27ef72ea623ee879a25fe6f9982690a3e370c68286f4356bf643467c552a3888
+          kindNodeImage: kindest/node:1.29.2@sha256:acc9e82a5a5bd3dfccfd03117e9ef5f96b46108b55cd647fb5e7d0d1a35c9c6f
 
       # This is only for edge release (Overrides version to edge-bonsai)
       - build:

@@ -11,13 +11,12 @@ import tmp from "tmp-promise"
 import type { KubernetesPluginContext } from "../config.js"
 import { PluginError, ParameterError, GardenError } from "../../../exceptions.js"
 import type { PluginCommand } from "../../../plugin/command.js"
-import chalk from "chalk"
 import { KubeApi } from "../api.js"
 import type { Log } from "../../../logger/log-entry.js"
 import { containerHelpers } from "../../container/helpers.js"
 import { RuntimeError } from "../../../exceptions.js"
 import { PodRunner } from "../run.js"
-import { dockerAuthSecretKey, systemDockerAuthSecretName, k8sUtilImageName } from "../constants.js"
+import { dockerAuthSecretKey, getK8sUtilImageName, systemDockerAuthSecretName } from "../constants.js"
 import { getAppNamespace, getSystemNamespace } from "../namespace.js"
 import { randomString } from "../../../util/string.js"
 import type { PluginContext } from "../../../plugin-context.js"
@@ -26,6 +25,7 @@ import type { ContainerBuildAction } from "../../container/config.js"
 import { k8sGetContainerBuildActionOutputs } from "../container/handlers.js"
 import type { Resolved } from "../../../actions/types.js"
 import { finished } from "node:stream/promises"
+import { styles } from "../../../logger/styles.js"
 
 const tmpTarPath = "/tmp/image.tar"
 const imagePullTimeoutSeconds = 60 * 20
@@ -51,13 +51,13 @@ export const pullImage: PluginCommand = {
       const valid = b.isCompatible("container")
       if (!valid && args.includes(b.name)) {
         throw new ParameterError({
-          message: chalk.red(`Build ${chalk.white(b.name)} is not a container build.`),
+          message: `Build ${styles.highlight(b.name)} is not a container build.`,
         })
       }
       return valid
     })
 
-    log.info({ msg: chalk.cyan(`\nPulling images for ${buildsToPull.length} builds`) })
+    log.info({ msg: styles.highlight(`\nPulling images for ${buildsToPull.length} builds`) })
 
     const resolvedBuilds = await garden.resolveActions({ actions: buildsToPull, graph, log })
 
@@ -75,9 +75,9 @@ async function pullBuilds(ctx: KubernetesPluginContext, builds: Resolved<Contain
       const outputs = k8sGetContainerBuildActionOutputs({ provider: ctx.provider, action })
       const remoteId = action.getSpec("publishId") || outputs.deploymentImageId
       const localId = outputs.localImageId
-      log.info({ msg: chalk.cyan(`Pulling image ${remoteId} to ${localId}`) })
+      log.info({ msg: styles.highlight(`Pulling image ${remoteId} to ${localId}`) })
       await pullBuild({ ctx, action, log, localId, remoteId })
-      log.info({ msg: chalk.green(`\nPulled image: ${remoteId} -> ${localId}`) })
+      log.success({ msg: styles.success(`\nPulled image: ${remoteId} -> ${localId}`), showDuration: false })
     })
   )
 }
@@ -144,7 +144,7 @@ async function pullFromExternalRegistry({ ctx, log, localId, remoteId }: PullPar
         containers: [
           {
             name: "main",
-            image: k8sUtilImageName,
+            image: getK8sUtilImageName(),
             command: ["sleep", "" + (imagePullTimeoutSeconds + 10)],
             volumeMounts: [
               {

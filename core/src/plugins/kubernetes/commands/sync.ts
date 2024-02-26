@@ -6,16 +6,17 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import chalk from "chalk"
 import { getMutagenDataDir, getMutagenEnv, mutagenCliSpec, parseSyncListResult } from "../../../mutagen.js"
 import fsExtra from "fs-extra"
+
 const { pathExists } = fsExtra
 import { dedent } from "../../../util/string.js"
 import type { Log } from "../../../logger/log-entry.js"
 import { PluginTool } from "../../../util/ext-tools.js"
 import type { PluginCommand } from "../../../plugin/command.js"
+import { styles } from "../../../logger/styles.js"
 
-const logSuccess = (log: Log) => log.info({ msg: chalk.green("\nDone!") })
+const logSuccess = (log: Log) => log.info({ msg: styles.success("\nDone!") })
 
 export const syncStatus: PluginCommand = {
   name: "sync-status",
@@ -23,7 +24,7 @@ export const syncStatus: PluginCommand = {
   title: "Get the current sync status",
 
   handler: async ({ ctx, log }) => {
-    const dataDir = getMutagenDataDir(ctx.gardenDirPath, log)
+    const dataDir = getMutagenDataDir({ ctx, log })
     const mutagen = new PluginTool(mutagenCliSpec)
 
     if (!(await pathExists(dataDir))) {
@@ -57,7 +58,7 @@ export const syncPause: PluginCommand = {
   title: "Pause sync",
 
   handler: async ({ ctx, log }) => {
-    const dataDir = getMutagenDataDir(ctx.gardenDirPath, log)
+    const dataDir = getMutagenDataDir({ ctx, log })
     const mutagen = new PluginTool(mutagenCliSpec)
 
     if (!(await pathExists(dataDir))) {
@@ -86,7 +87,7 @@ export const syncPause: PluginCommand = {
         await mutagen.exec({
           cwd: dataDir,
           log,
-          env: getMutagenEnv(dataDir),
+          env: getMutagenEnv({ dataDir }),
           args: ["sync", "pause", sessionName],
         })
       }
@@ -103,7 +104,7 @@ export const syncResume: PluginCommand = {
   title: "Resume sync",
 
   handler: async ({ ctx, log }) => {
-    const dataDir = getMutagenDataDir(ctx.gardenDirPath, log)
+    const dataDir = getMutagenDataDir({ ctx, log })
     const mutagen = new PluginTool(mutagenCliSpec)
 
     if (!(await pathExists(dataDir))) {
@@ -132,7 +133,7 @@ export const syncResume: PluginCommand = {
         await mutagen.exec({
           cwd: dataDir,
           log,
-          env: getMutagenEnv(dataDir),
+          env: getMutagenEnv({ dataDir }),
           args: ["sync", "resume", sessionName],
         })
       }
@@ -147,7 +148,7 @@ async function getMutagenSyncSessions({ mutagen, dataDir, log }: { mutagen: Plug
   const res = await mutagen.exec({
     cwd: dataDir,
     log,
-    env: getMutagenEnv(dataDir),
+    env: getMutagenEnv({ dataDir }),
     args: ["sync", "list", "--template={{ json . }}"],
   })
   return parseSyncListResult(res)

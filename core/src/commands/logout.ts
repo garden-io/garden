@@ -10,8 +10,8 @@ import type { CommandParams, CommandResult } from "./base.js"
 import { Command } from "./base.js"
 import { printHeader } from "../logger/util.js"
 import { CloudApi, getGardenCloudDomain } from "../cloud/api.js"
+import { getCloudDistributionName } from "../util/cloud.js"
 import { dedent, deline } from "../util/string.js"
-import { getCloudDistributionName } from "../util/util.js"
 import { ConfigurationError } from "../exceptions.js"
 import type { ProjectConfig } from "../config/project.js"
 import { findProjectConfig } from "../config/base.js"
@@ -93,7 +93,7 @@ export class LogOutCommand extends Command<{}, Opts> {
       log.warn(msg)
     } finally {
       await CloudApi.clearAuthToken(log, garden.globalConfigStore, cloudDomain)
-      log.info({ msg: `Successfully logged out from ${cloudDomain}.` })
+      log.success(`Successfully logged out from ${cloudDomain}.`)
     }
     return {}
   }

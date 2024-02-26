@@ -7,14 +7,21 @@
  */
 
 import { performance } from "perf_hooks"
-import { isAbsolute, join, posix, relative, resolve } from "path"
+import { isAbsolute, join, normalize, posix, relative, resolve } from "path"
 import { isString } from "lodash-es"
 import fsExtra from "fs-extra"
-
-const { createReadStream, ensureDir, lstat, pathExists, readlink, realpath, stat } = fsExtra
 import { PassThrough } from "stream"
-import type { GetFilesParams, RemoteSourceParams, VcsFile, VcsInfo, VcsHandlerParams } from "./vcs.js"
+import type {
+  BaseIncludeExcludeFiles,
+  GetFilesParams,
+  IncludeExcludeFilesHandler,
+  RemoteSourceParams,
+  VcsFile,
+  VcsHandlerParams,
+  VcsInfo,
+} from "./vcs.js"
 import { VcsHandler } from "./vcs.js"
+import type { GardenError } from "../exceptions.js"
 import { ChildProcessError, ConfigurationError, isErrnoException, RuntimeError } from "../exceptions.js"
 import { getStatsType, joinWithPosix, matchPath } from "../util/fs.js"
 import { dedent, deline, splitLast } from "../util/string.js"
@@ -24,7 +31,6 @@ import parseGitConfig from "parse-git-config"
 import type { Profiler } from "../util/profiling.js"
 import { getDefaultProfiler, Profile } from "../util/profiling.js"
 import isGlob from "is-glob"
-import chalk from "chalk"
 import { pMemoizeDecorator } from "../lib/p-memoize.js"
 import AsyncLock from "async-lock"
 import PQueue from "p-queue"
@@ -32,9 +38,12 @@ import { isSha1 } from "../util/hashing.js"
 import split2 from "split2"
 import type { ExecaError } from "execa"
 import { execa } from "execa"
-import hasha from "hasha"
+import { hashingStream } from "hasha"
+import { styles } from "../logger/styles.js"
 
-const submoduleErrorSuggestion = `Perhaps you need to run ${chalk.underline(`git submodule update --recursive`)}?`
+const { createReadStream, ensureDir, lstat, pathExists, readlink, realpath, stat } = fsExtra
+
+const submoduleErrorSuggestion = `Perhaps you need to run ${styles.underline(`git submodule update --recursive`)}?`
 
 interface GitEntry extends VcsFile {
   mode: string
@@ -63,6 +72,39 @@ export function parseGitUrl(url: string) {
 
 export interface GitCli {
   (...args: (string | undefined)[]): Promise<string[]>
+}
+
+interface GitSubTreeIncludeExcludeFiles extends BaseIncludeExcludeFiles {
+  hasIncludes: boolean
+}
+
+const getIncludeExcludeFiles: IncludeExcludeFilesHandler<GetFilesParams, GitSubTreeIncludeExcludeFiles> = async (
+  params: GetFilesParams
+) => {
+  let include = params.include
+
+  // We apply the include patterns to the `ls-files` queries. We use the `--glob-pathspecs` flag
+  // to make sure the path handling is consistent with normal POSIX-style globs used generally by Garden.
+
+  // Due to an issue in git, we can unfortunately only use _either_ include or exclude patterns in the
+  // `ls-files` commands, but not both. Trying both just ignores the exclude patterns.
+  if (include?.includes("**/*")) {
+    // This is redundant
+    include = undefined
+  }
+
+  const hasIncludes = !!include?.length
+
+  // Make sure action config is not mutated.
+  let exclude = !params.exclude ? [] : [...params.exclude]
+
+  // It looks like relative paths with redundant '.' and '..' parts
+  // do not work well along with `--exclude` and `--glob-pathspecs` flags.
+  // So, we need to normalize paths like './dir' to be just 'dir',
+  // otherwise such dirs won't be excluded by `--exclude` flag applied with `--glob-pathspecs`.
+  exclude = [...exclude.map(normalize), "**/.garden/**/*"]
+
+  return { include, exclude, hasIncludes }
 }
 
 interface Submodule {
@@ -133,21 +175,7 @@ export class GitHandler extends VcsHandler {
         if (!(err instanceof ChildProcessError)) {
           throw err
         }
-        if (err.details.code === 128 && err.details.stderr.toLowerCase().includes("fatal: unsafe repository")) {
-          // Throw nice error when we detect that we're not in a repo root
-          throw new RuntimeError({
-            message:
-              err.details.stderr +
-              `\nIt looks like you're using Git 2.36.0 or newer and the repo directory containing "${path}" is owned by someone else. If this is intentional you can run "git config --global --add safe.directory '<repo root>'" and try again.`,
-          })
-        } else if (err.details.code === 128) {
-          // Throw nice error when we detect that we're not in a repo root
-          throw new RuntimeError({
-            message: notInRepoRootErrorMessage(path),
-          })
-        } else {
-          throw err
-        }
+        throw explainGitError(err, path)
       }
     })
   }
@@ -156,40 +184,28 @@ export class GitHandler extends VcsHandler {
    * Returns a list of files, along with file hashes, under the given path, taking into account the configured
    * .ignore files, and the specified include/exclude filters.
    */
-  async getFiles(params: GetFilesParams): Promise<VcsFile[]> {
+  override async getFiles(params: GetFilesParams): Promise<VcsFile[]> {
     return this._getFiles(params)
   }
 
   /**
-   * In order for `GitRepoHandler` not to enter infinite recursion when scanning submodules,
-   * we need to name the function that recurses in here differently from `getFiles` so that `this.getFiles` won't refer
-   * to the method in the subclass.
+   * In order for {@link GitRepoHandler} not to enter infinite recursion when scanning submodules,
+   * we need to name the function that recurses in here differently from {@link getFiles}
+   * so that {@link getFiles} won't refer to the method in the subclass.
    */
-  async _getFiles({
-    log,
-    path,
-    pathDescription = "directory",
-    include,
-    exclude,
-    filter,
-    failOnPrompt = false,
-  }: GetFilesParams): Promise<VcsFile[]> {
-    if (include && include.length === 0) {
+  async _getFiles(params: GetFilesParams): Promise<VcsFile[]> {
+    if (params.include && params.include.length === 0) {
       // No need to proceed, nothing should be included
       return []
     }
 
-    if (!exclude) {
-      exclude = []
-    }
-    // Make sure action config is not mutated
-    exclude = [...exclude, "**/.garden/**/*"]
+    const { log, path, pathDescription = "directory", filter, failOnPrompt = false } = params
 
     const gitLog = log
       .createLog({ name: "git" })
       .debug(
-        `Scanning ${pathDescription} at ${path}\n  → Includes: ${include || "(none)"}\n  → Excludes: ${
-          exclude || "(none)"
+        `Scanning ${pathDescription} at ${path}\n  → Includes: ${params.include || "(none)"}\n  → Excludes: ${
+          params.exclude || "(none)"
         }`
       )
 
@@ -208,6 +224,7 @@ export class GitHandler extends VcsHandler {
         throw err
       }
     }
+    const { exclude, hasIncludes, include } = await getIncludeExcludeFiles(params)
 
     let files: VcsFile[] = []
 
@@ -220,21 +237,6 @@ export class GitHandler extends VcsHandler {
         // The output here is relative to the git root, and not the directory `path`
         .map((modifiedRelPath) => resolve(gitRoot, modifiedRelPath))
     )
-
-    const absExcludes = exclude.map((p) => resolve(path, p))
-
-    // Apply the include patterns to the ls-files queries. We use the --glob-pathspecs flag
-    // to make sure the path handling is consistent with normal POSIX-style globs used generally by Garden.
-
-    // Due to an issue in git, we can unfortunately only use _either_ include or exclude patterns in the
-    // ls-files commands, but not both. Trying both just ignores the exclude patterns.
-
-    if (include?.includes("**/*")) {
-      // This is redundant
-      include = undefined
-    }
-
-    const hasIncludes = !!include?.length
 
     const globalArgs = ["--glob-pathspecs"]
     const lsFilesCommonArgs = ["--cached", "--exclude", this.gardenDirPath]
@@ -274,11 +276,12 @@ export class GitHandler extends VcsHandler {
       // Need to automatically add `**/*` to directory paths, to match git behavior when filtering.
       const augmentedIncludes = await augmentGlobs(path, include)
       const augmentedExcludes = await augmentGlobs(path, exclude)
+      const absExcludes = exclude.map((p) => resolve(path, p))
 
       // Resolve submodules
       // TODO: see about optimizing this, avoiding scans when we're sure they'll not match includes/excludes etc.
       submoduleFiles = submodulePaths.map(async (submodulePath) => {
-        if (!submodulePath.startsWith(path) || absExcludes?.includes(submodulePath)) {
+        if (!submodulePath.startsWith(path) || absExcludes.includes(submodulePath)) {
           return []
         }
 
@@ -364,8 +367,11 @@ export class GitHandler extends VcsHandler {
         return
       }
 
-      if (hasIncludes && !matchPath(filePath, undefined, exclude)) {
-        return
+      if (hasIncludes) {
+        const passesExclusionFilter = matchPath(filePath, undefined, exclude)
+        if (!passesExclusionFilter) {
+          return
+        }
       }
 
       // We push to the output array if it passes through the exclude filters.
@@ -428,7 +434,7 @@ export class GitHandler extends VcsHandler {
     args.push(...(include || []))
 
     // Start git process
-    gitLog.silly(`Calling git with args '${args.join(" ")}' in ${path}`)
+    gitLog.silly(() => `Calling git with args '${args.join(" ")}' in ${path}`)
     const processEnded = defer<void>()
 
     const proc = execa("git", args, { cwd: path, buffer: false })
@@ -600,7 +606,7 @@ export class GitHandler extends VcsHandler {
    */
   async hashObject(stats: fsExtra.Stats, path: string): Promise<string> {
     const start = performance.now()
-    const hash = hasha.stream({ algorithm: "sha1" })
+    const hash = hashingStream({ algorithm: "sha1" })
 
     if (stats.isSymbolicLink()) {
       // For symlinks, we follow git's behavior, which is to hash the link itself (i.e. the path it contains) as
@@ -690,11 +696,28 @@ export class GitHandler extends VcsHandler {
   }
 }
 
-const notInRepoRootErrorMessage = (path: string) => deline`
+function gitErrorContains(err: ChildProcessError, substring: string): boolean {
+  return err.details.stderr.toLowerCase().includes(substring.toLowerCase())
+}
+
+export function explainGitError(err: ChildProcessError, path: string): GardenError {
+  // handle some errors with exit codes 128 in a specific manner
+  if (err.details.code === 128) {
+    if (gitErrorContains(err, "fatal: not a git repository")) {
+      // Throw nice error when we detect that we're not in a repo root
+      return new RuntimeError({
+        message: deline`
     Path ${path} is not in a git repository root. Garden must be run from within a git repo.
     Please run \`git init\` if you're starting a new project and repository, or move the project to an
     existing repository, and try again.
-  `
+  `,
+      })
+    }
+  }
+
+  // otherwise just re-throw the original error
+  return err
+}
 
 /**
  * Given a list of POSIX-style globs/paths and a `basePath`, find paths that point to a directory and append `**\/*`
@@ -715,8 +738,9 @@ export async function augmentGlobs(basePath: string, globs?: string[]): Promise<
       }
 
       try {
-        const isDir = (await stat(joinWithPosix(basePath, pattern))).isDirectory()
-        return isDir ? posix.join(pattern, "**", "*") : pattern
+        const path = joinWithPosix(basePath, pattern)
+        const stats = await stat(path)
+        return stats.isDirectory() ? posix.join(pattern, "**", "*") : pattern
       } catch {
         return pattern
       }

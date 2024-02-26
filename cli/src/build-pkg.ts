@@ -199,7 +199,31 @@ async function zipAndHash({ targetDir, archiveName, cwd, prefix, fileNames }: Zi
 
 async function buildBinaries(args: string[]) {
   const argv = minimist(args)
-  const version = argv.version || getPackageVersion()
+
+  // The string that the `garden version` command outputs
+  let versionInBinary: string
+
+  // The string in our release tarball/zip filenames
+  let versionInFilename: string
+
+  if (argv.version && (argv.version === "edge" || argv.version.startsWith("edge-"))) {
+    const gitHash = await exec("git", ["rev-parse", "--short", "HEAD"])
+    versionInBinary = `${getPackageVersion()}-${argv.version}-${gitHash.stdout}`
+    versionInFilename = argv.version
+  } else if (argv.version) {
+    console.log(`Cannot set Garden to version ${argv.version}. Please update the package.json files instead.`)
+    process.exit(1)
+  } else {
+    versionInBinary = getPackageVersion()
+    versionInFilename = versionInBinary
+  }
+
+  let cargoCommand = "cargo"
+
+  if (argv.cargocommand) {
+    cargoCommand = argv.cargocommand
+  }
+
   const selected = argv._.length > 0 ? pick(targets, argv._) : targets
 
   if (Object.keys(selected).length === 0) {
@@ -271,11 +295,8 @@ async function buildBinaries(args: string[]) {
         packageJson.dependencies[depName] = "file:" + relPath
       }
 
-      if (version === "edge" || version.startsWith("edge-")) {
-        const gitHash = await exec("git", ["rev-parse", "--short", "HEAD"])
-        packageJson.version = `${packageJson.version}-${version}-${gitHash.stdout}`
-        console.log("Set package version to " + packageJson.version)
-      }
+      packageJson.version = versionInBinary
+      console.log(`Updated version to ${packageJson.version} in ${packageJsonPath}`)
 
       await writeFile(packageJsonPath, JSON.stringify(packageJson, null, 2))
 
@@ -299,7 +320,12 @@ async function buildBinaries(args: string[]) {
   console.log(chalk.cyan("Bundling source code"))
 
   await remove(rollupTmpDir)
-  await exec("npm", ["run", "rollup"], { cwd: repoRoot, stdio: "inherit" })
+  await exec("npm", ["run", "rollup"], {
+    cwd: repoRoot,
+    stdio: "inherit",
+    // We have to pass the garden version explicitly to rollup due to an issue with the json() plugin loading the wrong package.json files
+    env: { GARDEN_CORE_VERSION: versionInBinary },
+  })
 
   await zipAndHash({
     archiveName: "source",
@@ -407,17 +433,17 @@ async function buildBinaries(args: string[]) {
     const rustTarget = getRustTarget(target.spec)
 
     // Run Garden SEA smoke tests. Windows tests run in a wine environment.
-    await exec("cross", ["test", "--target", rustTarget], { cwd: gardenSeaDir, stdio: "inherit" })
+    await exec(cargoCommand, ["test", "--target", rustTarget], { cwd: gardenSeaDir, stdio: "inherit" })
 
     // Build the release binary
-    await exec("cross", ["build", "--target", rustTarget, "--release"], { cwd: gardenSeaDir, stdio: "inherit" })
+    await exec(cargoCommand, ["build", "--target", rustTarget, "--release"], { cwd: gardenSeaDir, stdio: "inherit" })
 
     const executableFilename = target.spec.os === "win" ? "garden.exe" : "garden"
     const executablePath = resolve(distTargetDir, executableFilename)
     await copy(resolve(gardenSeaDir, "target", rustTarget, "release", executableFilename), executablePath)
     console.log(chalk.green(` ✓ Compiled garden binary for ${targetName}`))
 
-    await target.handler({ targetName, spec: target.spec, version })
+    await target.handler({ targetName, spec: target.spec, version: versionInFilename })
     console.log(chalk.green(" ✓ " + targetName))
   }
 

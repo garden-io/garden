@@ -112,7 +112,7 @@ This is a bug in Docker CE (i.e. Docker for Desktop), version `2.4.x.y`. See thi
 
 In some container repositories, you may need to create the cache repo manually.
 
-See [this section](../k8s-plugins/advanced/in-cluster-building.md#kaniko) of our docs and this [GitHub comment](https://github.com/GoogleContainerTools/kaniko/issues/410#issuecomment-433229841) for more details.
+See [this section](../k8s-plugins/guides/in-cluster-building.md#kaniko) of our docs and this [GitHub comment](https://github.com/GoogleContainerTools/kaniko/issues/410#issuecomment-433229841) for more details.
 
 ### Can't reach my services on existing ingress URLs after re-installing Garden system services.
 

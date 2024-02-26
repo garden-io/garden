@@ -14,36 +14,16 @@ import type {
   KubernetesProvider,
 } from "../../../../../../../src/plugins/kubernetes/config.js"
 import { defaultResources } from "../../../../../../../src/plugins/kubernetes/config.js"
-import { buildkitImageName, k8sUtilImageName } from "../../../../../../../src/plugins/kubernetes/constants.js"
+import { buildkitImageName, getK8sUtilImageName } from "../../../../../../../src/plugins/kubernetes/constants.js"
 import {
   getBuildkitDeployment,
   getBuildkitFlags,
   getBuildkitImageFlags,
+  makeBuildkitBuildCommand,
 } from "../../../../../../../src/plugins/kubernetes/container/build/buildkit.js"
 import { getDataDir, makeTestGarden } from "../../../../../../helpers.js"
+import { k8sGetContainerBuildActionOutputs } from "../../../../../../../src/plugins/kubernetes/container/handlers.js"
 
-describe("getBuildkitModuleFlags", () => {
-  it("should correctly format the build target option", async () => {
-    const projectRoot = getDataDir("test-project-container")
-    const garden = await makeTestGarden(projectRoot)
-    const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-    const rawBuild = graph.getBuild("module-a") as ContainerBuildAction
-    const build = await garden.resolveAction({ action: rawBuild, log: garden.log, graph })
-
-    build._config.spec.targetStage = "foo"
-
-    const flags = getBuildkitFlags(build)
-
-    expect(flags).to.eql([
-      "--opt",
-      "build-arg:GARDEN_MODULE_VERSION=" + build.versionString(),
-      "--opt",
-      "build-arg:GARDEN_ACTION_VERSION=" + build.versionString(),
-      "--opt",
-      "target=foo",
-    ])
-  })
-})
 describe("buildkit build", () => {
   describe("getBuildkitDeployment", () => {
     const _provider: DeepPartial<KubernetesProvider> = {
@@ -77,7 +57,7 @@ describe("buildkit build", () => {
         type: "Recreate",
       })
 
-      expect(result.spec.template.spec?.containers.length === 2)
+      expect(result.spec.template.spec?.containers.length).eql(2)
 
       expect(result.spec.template.spec?.containers[0]).eql({
         args: ["--addr", "unix:///run/buildkit/buildkitd.sock"],
@@ -88,13 +68,6 @@ describe("buildkit build", () => {
           },
         ],
         image: buildkitImageName,
-        livenessProbe: {
-          exec: {
-            command: ["buildctl", "debug", "workers"],
-          },
-          initialDelaySeconds: 5,
-          periodSeconds: 30,
-        },
         name: "buildkitd",
         readinessProbe: {
           exec: {
@@ -141,7 +114,7 @@ describe("buildkit build", () => {
             value: "8730",
           },
         ],
-        image: k8sUtilImageName,
+        image: getK8sUtilImageName(),
         imagePullPolicy: "IfNotPresent",
         lifecycle: {
           preStop: {
@@ -213,26 +186,72 @@ describe("buildkit build", () => {
     })
   })
 
-  describe("getBuildkitModuleFlags", () => {
+  describe("getBuildkitFlags", () => {
     it("should correctly format the build target option", async () => {
       const projectRoot = getDataDir("test-project-container")
       const garden = await makeTestGarden(projectRoot)
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      const act = await graph.getBuild("module-a")
-      const module = await garden.resolveAction({ action: act, graph, log: garden.log })
+      const rawBuild = graph.getBuild("module-a") as ContainerBuildAction
+      const build = await garden.resolveAction({ action: rawBuild, log: garden.log, graph })
 
-      module.getSpec().targetStage = "foo"
+      build._config.spec.targetStage = "foo"
 
-      const flags = getBuildkitFlags(module)
+      const flags = getBuildkitFlags(build)
 
       expect(flags).to.eql([
         "--opt",
-        "build-arg:GARDEN_MODULE_VERSION=" + module.getFullVersion().versionString,
+        "build-arg:GARDEN_MODULE_VERSION=" + build.versionString(),
         "--opt",
-        "build-arg:GARDEN_ACTION_VERSION=" + module.getFullVersion().versionString,
+        "build-arg:GARDEN_ACTION_VERSION=" + build.versionString(),
         "--opt",
         "target=foo",
       ])
+    })
+  })
+
+  describe("makeBuildkitBuildCommand", () => {
+    const _provider: DeepPartial<KubernetesProvider> = {
+      config: {
+        resources: defaultResources,
+        clusterBuildkit: {
+          cache: [],
+          annotations: {},
+        },
+        deploymentRegistry: {
+          hostname: "gcr.io/deploymentRegistry",
+          namespace: "namespace",
+          insecure: false,
+        },
+      },
+    }
+    let provider = _provider as KubernetesProvider
+    beforeEach(() => {
+      provider = _provider as KubernetesProvider
+    })
+
+    it("should return the correctly formatted buildkit build command", async () => {
+      const projectRoot = getDataDir("test-project-container")
+      const garden = await makeTestGarden(projectRoot)
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+      const rawBuild = graph.getBuild("module-a") as ContainerBuildAction
+      const action = await garden.resolveAction({ action: rawBuild, log: garden.log, graph })
+      action._config.spec.targetStage = "foo"
+      const contextPath = `/garden-build/some-hash/${action.name}`
+      const outputs = k8sGetContainerBuildActionOutputs({ provider, action })
+
+      const buildCommand = makeBuildkitBuildCommand({
+        provider,
+        outputs,
+        action,
+        contextPath,
+        dockerfile: "dockerfile",
+      })
+      const cdCmd = `cd ${contextPath}`
+      const buildctlCmd = `buildctl build --frontend=dockerfile.v0 --local context=${contextPath} --local dockerfile=${contextPath} --opt filename=dockerfile --output type=image,\\"name=gcr.io/deploymentRegistry/namespace/${
+        action.name
+      }:${action.versionString()}\\",push=true --opt build-arg:GARDEN_MODULE_VERSION=${action.versionString()} --opt build-arg:GARDEN_ACTION_VERSION=${action.versionString()} --opt target=foo`
+
+      expect(buildCommand).to.eql(["sh", "-c", `${cdCmd} && ${buildctlCmd}`])
     })
   })
 
@@ -251,8 +270,6 @@ describe("buildkit build", () => {
       // The following registries are actually known NOT to support mode=max
       "eu.gcr.io",
       "gcr.io",
-      "aws_account_id.dkr.ecr.region.amazonaws.com",
-      "keks.dkr.ecr.bla.amazonaws.com",
       // Most self-hosted registries actually support mode=max, but because
       // Harbor actually doesn't, we need to default to inline.
       "anyOtherRegistry",
@@ -273,9 +290,36 @@ describe("buildkit build", () => {
           "--export-cache",
           "type=inline",
           "--output",
-          `type=image,"name=${registry}/namespace/name:v-xxxxxx,${registry}/namespace/name:_buildcache",push=true`,
+          `type=image,\\"name=${registry}/namespace/name:v-xxxxxx,${registry}/namespace/name:_buildcache\\",push=true`,
           "--import-cache",
           `type=registry,ref=${registry}/namespace/name:_buildcache`,
+        ])
+      })
+    }
+
+    // AWS ECR supports mode=max with image-manifest=true option
+    const expectedMaxWithImageManifest = [
+      "aws_account_id.dkr.ecr.region.amazonaws.com",
+      "keks.dkr.ecr.bla.amazonaws.com",
+    ]
+    for (const registry of expectedMaxWithImageManifest) {
+      it(`returns mode=max cache flags with image-manifest=true for registry ${registry}`, async () => {
+        const moduleOutputs = {
+          "local-image-id": "name:v-xxxxxx",
+          "local-image-name": "name",
+          "deployment-image-id": `${registry}/namespace/name:v-xxxxxx`,
+          "deployment-image-name": `${registry}/namespace/name`,
+        }
+
+        const flags = getBuildkitImageFlags(defaultConfig, moduleOutputs, false)
+
+        expect(flags).to.eql([
+          "--output",
+          `type=image,\\"name=${registry}/namespace/name:v-xxxxxx\\",push=true`,
+          "--import-cache",
+          `type=registry,ref=${registry}/namespace/name:_buildcache`,
+          "--export-cache",
+          `image-manifest=true,type=registry,ref=${registry}/namespace/name:_buildcache,mode=max`,
         ])
       })
     }
@@ -291,6 +335,7 @@ describe("buildkit build", () => {
       "azurecr.io",
       "some.subdomain.azurecr.io",
     ]
+
     for (const registry of expectedMax) {
       it(`returns mode=max cache flags with default config with registry ${registry}`, async () => {
         const moduleOutputs = {
@@ -304,7 +349,7 @@ describe("buildkit build", () => {
 
         expect(flags).to.eql([
           "--output",
-          `type=image,"name=${registry}/namespace/name:v-xxxxxx",push=true`,
+          `type=image,\\"name=${registry}/namespace/name:v-xxxxxx\\",push=true`,
           "--import-cache",
           `type=registry,ref=${registry}/namespace/name:_buildcache`,
           "--export-cache",
@@ -339,7 +384,7 @@ describe("buildkit build", () => {
 
         expect(flags).to.eql([
           "--output",
-          `type=image,"name=${registry}/namespace/name:v-xxxxxx",push=true`,
+          `type=image,\\"name=${registry}/namespace/name:v-xxxxxx\\",push=true`,
           "--import-cache",
           `type=registry,ref=${registry}/namespace/name:_buildcache`,
           "--export-cache",
@@ -374,7 +419,7 @@ describe("buildkit build", () => {
         "--export-cache",
         "type=inline",
         "--output",
-        `type=image,"name=${registry}/namespace/name:v-xxxxxx,${registry}/namespace/name:_buildcache",push=true`,
+        `type=image,\\"name=${registry}/namespace/name:v-xxxxxx,${registry}/namespace/name:_buildcache\\",push=true`,
         "--import-cache",
         `type=registry,ref=${registry}/namespace/name:_buildcache`,
       ])
@@ -410,7 +455,7 @@ describe("buildkit build", () => {
       expect(flags).to.eql([
         // output to deploymentRegistry
         "--output",
-        `type=image,"name=${deploymentRegistry}/namespace/name:v-xxxxxx",push=true`,
+        `type=image,\\"name=${deploymentRegistry}/namespace/name:v-xxxxxx\\",push=true`,
 
         // import and export to cacheRegistry with mode=max
         "--import-cache",
@@ -461,7 +506,7 @@ describe("buildkit build", () => {
       expect(flags).to.eql([
         // output to deploymentRegistry
         "--output",
-        `type=image,"name=${deploymentRegistry}/namespace/name:v-xxxxxx",push=true`,
+        `type=image,\\"name=${deploymentRegistry}/namespace/name:v-xxxxxx\\",push=true`,
         // import and export to cacheRegistry with mode=max
         // import first _buildcache-featureBranch, then _buildcache-main
         "--import-cache",

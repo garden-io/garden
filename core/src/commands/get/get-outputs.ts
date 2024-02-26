@@ -13,8 +13,8 @@ import { fromPairs } from "lodash-es"
 import type { PrimitiveMap } from "../../config/common.js"
 import { joiVariables } from "../../config/common.js"
 import { renderTable, dedent } from "../../util/string.js"
-import chalk from "chalk"
 import { resolveProjectOutputs } from "../../outputs.js"
+import { styles } from "../../logger/styles.js"
 
 export class GetOutputsCommand extends Command {
   name = "outputs"
@@ -41,11 +41,11 @@ export class GetOutputsCommand extends Command {
     const outputs = await resolveProjectOutputs(garden, log)
 
     const rows = [
-      { [chalk.bold("Name:")]: [chalk.bold("Value:")] },
-      ...outputs.map((o) => ({ [chalk.cyan.bold(o.name)]: [o.value?.toString().trim()] })),
+      { [styles.bold("Name:")]: [styles.bold("Value:")] },
+      ...outputs.map((o) => ({ [styles.highlight.bold(o.name)]: [o.value?.toString().trim()] })),
     ]
     log.info("")
-    log.info(chalk.white.bold("Outputs:"))
+    log.info(styles.accent.bold("Outputs:"))
     log.info(renderTable(rows))
 
     return { result: fromPairs(outputs.map((o) => [o.name, o.value])) }

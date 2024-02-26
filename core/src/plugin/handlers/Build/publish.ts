@@ -16,7 +16,10 @@ import type { ActionStatus, Executed } from "../../../actions/types.js"
 import { actionStatusSchema } from "../../../actions/base.js"
 
 interface PublishActionParams<T extends BuildAction = BuildAction> extends PluginBuildActionParamsBase<T> {
-  tag?: string
+  /**
+   * This is only defined when a user defines --tag option.
+   */
+  tagOverride?: string
 }
 
 export interface PublishActionDetail {

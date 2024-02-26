@@ -25,7 +25,8 @@ You need the following dependencies on your local machine to use Garden:
 - Git (v2.14 or newer)
 - _[Windows only]_ rsync (v3.1.0 or newer)
 
-And if you'd like to build and run services locally, you need [a local installation of Kubernetes](https://kubernetes.io/docs/tutorials/hello-minikube/). Garden is committed to supporting [the _latest six_ stable versions (i.e. if the latest stable version is v1.23.x, Garden supports v1.18.x and newer)](https://kubernetes.io/releases/).
+And if you'd like to build and run services locally, you need [a local installation of Kubernetes](https://kubernetes.io/docs/tutorials/hello-minikube/). Garden is committed to supporting [the _latest officially supported_ versions](https://kubernetes.io/releases/).
+The information on the Kubernetes support and EOL timelines can be found [here](https://endoflife.date/kubernetes).
 
 ## macOS
 
@@ -86,7 +87,7 @@ for further information. For remote clusters, take a look at the [Remote Kuberne
 
 You can run Garden on Windows 10 Home, Pro or Enterprise editions.
 
-_Note: The Home edition doesn't support virtualization, but you can still use Garden if you're working with [remote Kubernetes](../k8s-plugins/remote-k8s/README.md) and [in-cluster building](../k8s-plugins/advanced/in-cluster-building.md)._
+_Note: The Home edition doesn't support virtualization, but you can still use Garden if you're working with [remote Kubernetes](../k8s-plugins/remote-k8s/README.md) and [in-cluster building](../k8s-plugins/guides/in-cluster-building.md)._
 
 To install the Garden CLI and its dependencies, please use our installation script. To run the script, open PowerShell as an administrator and run:
 
@@ -157,3 +158,29 @@ export NO_PROXY=local.demo.garden,localhost,127.0.0.1  # <- This is important! S
 
 The `NO_PROXY` variable should include any other hostnames you might use for local development, since you likely
 don't want to route local traffic through the proxy.
+
+## Updating Garden
+
+Once you've installed Garden, you can update it with the Garden `self-update` command like so:
+
+```console
+garden self-update
+```
+
+To install Garden at a specific version, say 0.13.22, you can run:
+
+```
+garden self-update 0.13.22
+```
+
+To install the latest edge release of Garden you can run:
+
+```
+garden self-update edge-bonsai
+```
+
+You can learn more about the different options by running:
+
+```
+garden self-update --help
+```

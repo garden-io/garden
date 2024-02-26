@@ -7,7 +7,6 @@
  */
 
 import AsyncLock from "async-lock"
-import chalk from "chalk"
 import split2 from "split2"
 import { isEmpty } from "lodash-es"
 import {
@@ -31,6 +30,9 @@ import {
   getUtilContainer,
   ensureBuilderSecret,
   builderToleration,
+  inClusterBuilderServiceAccount,
+  ensureServiceAccount,
+  cycleDeployment,
 } from "./common.js"
 import { getNamespaceStatus } from "../../namespace.js"
 import { sleep } from "../../../../util/util.js"
@@ -43,6 +45,19 @@ import { getRunningDeploymentPod } from "../../util.js"
 import { defaultDockerfileName } from "../../../container/config.js"
 import { k8sGetContainerBuildActionOutputs } from "../handlers.js"
 import { stringifyResources } from "../util.js"
+import { styles } from "../../../../logger/styles.js"
+import type { ResolvedBuildAction } from "../../../../actions/build.js"
+
+const AWS_ECR_REGEX = /^([^\.]+\.)?dkr\.ecr\.([^\.]+\.)amazonaws\.com\//i // AWS Elastic Container Registry
+
+// NOTE: If you change this, please make sure to also change the table in our documentation in config.ts
+const MODE_MAX_ALLOWED_REGISTRIES = [
+  AWS_ECR_REGEX,
+  /^([^/]+\.)?pkg\.dev\//i, // Google Package Registry
+  /^([^/]+\.)?azurecr\.io\//i, // Azure Container registry
+  /^hub\.docker\.com\//i, // DockerHub
+  /^ghcr\.io\//i, // GitHub Container registry
+]
 
 const deployLock = new AsyncLock()
 
@@ -104,7 +119,7 @@ export const buildkitBuildHandler: BuildHandler = async (params) => {
     deploymentName: buildkitDeploymentName,
   })
 
-  log.info(`Buildkit Building image ${localId}...`)
+  log.createLog({ origin: "buildkit" }).info(`Building image ${styles.highlight(localId)}...`)
 
   const logEventContext = {
     origin: "buildkit",
@@ -117,23 +132,7 @@ export const buildkitBuildHandler: BuildHandler = async (params) => {
     ctx.events.emit("log", { timestamp: new Date().toISOString(), msg: line.toString(), ...logEventContext })
   })
 
-  const command = [
-    "buildctl",
-    "build",
-    "--frontend=dockerfile.v0",
-    "--local",
-    "context=" + contextPath,
-    "--local",
-    "dockerfile=" + contextPath,
-    "--opt",
-    "filename=" + dockerfile,
-    ...getBuildkitImageFlags(
-      provider.config.clusterBuildkit!.cache,
-      outputs,
-      provider.config.deploymentRegistry!.insecure
-    ),
-    ...getBuildkitFlags(action),
-  ]
+  const command = makeBuildkitBuildCommand({ provider, outputs, action, contextPath, dockerfile })
 
   // Execute the build
   const buildTimeout = action.getConfig("timeout")
@@ -160,7 +159,7 @@ export const buildkitBuildHandler: BuildHandler = async (params) => {
 
   const buildLog = buildRes.log
 
-  log.silly(buildLog)
+  log.silly(() => buildLog)
 
   return {
     state: "ready",
@@ -187,6 +186,14 @@ export async function ensureBuildkit({
   api: KubeApi
   namespace: string
 }) {
+  const serviceAccountChanged = await ensureServiceAccount({
+    ctx,
+    log,
+    api,
+    namespace,
+    annotations: provider.config.clusterBuildkit?.serviceAccountAnnotations,
+  })
+
   return deployLock.acquire(namespace, async () => {
     const deployLog = log.createLog()
 
@@ -210,17 +217,23 @@ export async function ensureBuildkit({
       log: deployLog,
     })
 
+    // if the service account changed, all pods part of the deployment must be restarted
+    // so that they receive new credentials (e.g. for IRSA)
+    if (status.remoteResources.length > 0 && serviceAccountChanged) {
+      await cycleDeployment({ ctx, provider, deployment: manifest, api, namespace, deployLog })
+    }
+
     if (status.state === "ready") {
       // Need to wait a little to ensure the secret is updated in the deployment
       if (secretUpdated) {
         await sleep(1000)
       }
-      return { authSecret, updated: false }
+      return { authSecret, updated: serviceAccountChanged }
     }
 
     // Deploy the buildkit daemon
     deployLog.info(
-      chalk.gray(`-> Deploying ${buildkitDeploymentName} daemon in ${namespace} namespace (was ${status.state})`)
+      `Deploying ${buildkitDeploymentName} daemon in ${styles.highlight(namespace)} namespace (was ${status.state})`
     )
 
     await api.upsert({ kind: "Deployment", namespace, log: deployLog, obj: manifest })
@@ -239,6 +252,47 @@ export async function ensureBuildkit({
 
     return { authSecret, updated: true }
   })
+}
+
+/**
+ * Returns the full build command which first changes into the build context directory
+ * and then runs the `buildctl` command.
+ *
+ * We change into the build context directory to e.g. ensure that secret files that are
+ * passed as extra flags will have the correct path when the command is executed.
+ */
+export function makeBuildkitBuildCommand({
+  provider,
+  outputs,
+  action,
+  contextPath,
+  dockerfile,
+}: {
+  provider: KubernetesProvider
+  outputs: ContainerModuleOutputs
+  action: ResolvedBuildAction
+  contextPath: string
+  dockerfile: string
+}): string[] {
+  const buildctlCommand = [
+    "buildctl",
+    "build",
+    "--frontend=dockerfile.v0",
+    "--local",
+    "context=" + contextPath,
+    "--local",
+    "dockerfile=" + contextPath,
+    "--opt",
+    "filename=" + dockerfile,
+    ...getBuildkitImageFlags(
+      provider.config.clusterBuildkit!.cache,
+      outputs,
+      provider.config.deploymentRegistry!.insecure
+    ),
+    ...getBuildkitFlags(action),
+  ]
+
+  return ["sh", "-c", `cd ${contextPath} && ${buildctlCommand.join(" ")}`]
 }
 
 export function getBuildkitFlags(action: Resolved<ContainerBuildAction>) {
@@ -285,7 +339,7 @@ export function getBuildkitImageFlags(
     deploymentRegistryExtraSpec = ",registry.insecure=true"
   }
 
-  args.push("--output", `type=image,"name=${imageNames.join(",")}",push=true${deploymentRegistryExtraSpec}`)
+  args.push("--output", `type=image,\\"name=${imageNames.join(",")}\\",push=true${deploymentRegistryExtraSpec}`)
 
   for (const cache of cacheConfig) {
     const cacheImageName = getCacheImageName(moduleOutputs, cache)
@@ -312,9 +366,16 @@ export function getBuildkitImageFlags(
       continue
     }
 
+    // AWS ECR needs extra flag image-manifest=true with mode=max
+    // See also https://aws.amazon.com/blogs/containers/announcing-remote-cache-support-in-amazon-ecr-for-buildkit-clients/
+    let imageManifestFlag = ""
+    if (cacheMode === "max" && AWS_ECR_REGEX.test(cacheImageName)) {
+      imageManifestFlag = "image-manifest=true,"
+    }
+
     args.push(
       "--export-cache",
-      `type=registry,ref=${cacheImageName}:${cache.tag},mode=${cacheMode}${registryExtraSpec}`
+      `${imageManifestFlag}type=registry,ref=${cacheImageName}:${cache.tag},mode=${cacheMode}${registryExtraSpec}`
     )
   }
 
@@ -339,16 +400,8 @@ export const getSupportedCacheMode = (
     return cache.mode
   }
 
-  // NOTE: If you change this, please make sure to also change the table in our documentation in config.ts
-  const allowList = [
-    /^([^/]+\.)?pkg\.dev\//i, // Google Package Registry
-    /^([^/]+\.)?azurecr\.io\//i, // Azure Container registry
-    /^hub\.docker\.com\//i, // DockerHub
-    /^ghcr\.io\//i, // GitHub Container registry
-  ]
-
   // use mode=max for all registries that are known to support it
-  for (const allowed of allowList) {
+  for (const allowed of MODE_MAX_ALLOWED_REGISTRIES) {
     if (allowed.test(deploymentImageName)) {
       return "max"
     }
@@ -397,6 +450,7 @@ export function getBuildkitDeployment(
           annotations: provider.config.clusterBuildkit?.annotations,
         },
         spec: {
+          serviceAccountName: inClusterBuilderServiceAccount,
           containers: [
             {
               name: buildkitContainerName,
@@ -408,13 +462,6 @@ export function getBuildkitDeployment(
                 },
                 initialDelaySeconds: 3,
                 periodSeconds: 5,
-              },
-              livenessProbe: {
-                exec: {
-                  command: ["buildctl", "debug", "workers"],
-                },
-                initialDelaySeconds: 5,
-                periodSeconds: 30,
               },
               securityContext: {
                 privileged: true,

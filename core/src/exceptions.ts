@@ -10,12 +10,13 @@ import { isString, trimEnd, truncate } from "lodash-es"
 import type { SpawnOpts } from "./util/util.js"
 import { testFlags } from "./util/util.js"
 import dedent from "dedent"
-import chalk from "chalk"
 import stripAnsi from "strip-ansi"
 import type { Cycle } from "./graph/common.js"
 import indentString from "indent-string"
 import { constants } from "os"
 import dns from "node:dns"
+import { styles } from "./logger/styles.js"
+import type { ObjectPath } from "./config/base.js"
 
 // Unfortunately, NodeJS does not provide a list of all error codes, so we have to maintain this list manually.
 // See https://nodejs.org/docs/latest-v18.x/api/dns.html#error-codes
@@ -167,7 +168,7 @@ export abstract class GardenError extends Error {
    * @returns A string with ANSI-formatting.
    */
   explain(_context?: string): string {
-    return chalk.red(this.message)
+    return styles.error(this.message)
   }
 
   toJSON() {
@@ -303,9 +304,9 @@ export class CloudApiError extends GardenError {
 export class TemplateStringError extends GardenError {
   type = "template-string"
 
-  path?: (string | number)[]
+  path?: ObjectPath
 
-  constructor(params: GardenErrorParams & { path?: (string | number)[] }) {
+  constructor(params: GardenErrorParams & { path?: ObjectPath }) {
     super(params)
     this.path = params.path
   }
@@ -422,7 +423,7 @@ export class InternalError extends GardenError {
       Please attach the following information to the bug report after making sure that the error message does not contain sensitive information:
     `
 
-    return chalk.red(`${chalk.bold(header)}\n\n${body}\n\n${chalk.gray(bugReportInformation)}`)
+    return styles.error(`${styles.bold(header)}\n\n${body}\n\n${styles.primary(bugReportInformation)}`)
   }
 }
 

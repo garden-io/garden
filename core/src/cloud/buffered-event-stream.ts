@@ -181,7 +181,7 @@ export class BufferedEventStream {
     }
     this.garden.events.onAny(this.eventListener)
 
-    this.log.silly("BufferedEventStream: Connected")
+    this.log.silly(() => "BufferedEventStream: Connected")
     this.startInterval()
   }
 
@@ -303,7 +303,7 @@ export class BufferedEventStream {
 
   private async postToTargets(description: string, path: string, data: ApiEventBatch | ApiLogBatch) {
     if (this.getTargets().length === 0) {
-      this.log.silly("No targets to send events to. Dropping them.")
+      this.log.silly(() => "No targets to send events to. Dropping them.")
     }
 
     try {
@@ -321,10 +321,10 @@ export class BufferedEventStream {
             }) as any
           }
           const targetUrl = `${target.host}/${path}`
-          this.log.silly(`Flushing ${description} to ${targetUrl}`)
-          this.log.silly(`--------`)
-          this.log.silly(`data: ${stringify(data)}`)
-          this.log.silly(`--------`)
+          this.log.silly(() => `Flushing ${description} to ${targetUrl}`)
+          this.log.silly(() => `--------`)
+          this.log.silly(() => `data: ${stringify(data)}`)
+          this.log.silly(() => `--------`)
 
           const headers = makeAuthHeader(target.clientAuthToken || "")
           return got.post(`${targetUrl}`, { json: data, headers })
@@ -348,7 +348,7 @@ export class BufferedEventStream {
       return
     }
 
-    this.log.silly(`Flushing all remaining events and log entries`)
+    this.log.silly(() => `Flushing all remaining events and log entries`)
 
     const eventBatches = this.makeBatches(this.bufferedEvents)
     const logBatches = this.makeBatches(this.bufferedLogEntries)
@@ -358,7 +358,7 @@ export class BufferedEventStream {
       ...logBatches.map((batch) => this.flushLogEntries(batch)),
     ])
 
-    this.log.silly(`All events and log entries flushed`)
+    this.log.silly(() => `All events and log entries flushed`)
   }
 
   async flushBuffered() {
@@ -397,7 +397,7 @@ export class BufferedEventStream {
       if (nextRecordBytes > this.maxBatchBytes) {
         this.log.error(`Event or log entry too large to flush (${nextRecordBytes} bytes), dropping it.`)
         // Note: This must be a silly log to avoid recursion
-        this.log.silly(stringify(buffered[0]))
+        this.log.silly(() => stringify(buffered[0]))
         buffered.shift() // Drop first record.
         continue
       }

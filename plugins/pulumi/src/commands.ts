@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import chalk from "chalk"
 import type {
   ConfigGraph,
   Garden,
@@ -44,6 +43,7 @@ import type { ActionLog, Log } from "@garden-io/core/build/src/logger/log-entry.
 import { createActionLog } from "@garden-io/core/build/src/logger/log-entry.js"
 import { ActionSpecContext } from "@garden-io/core/build/src/config/template-contexts/actions.js"
 import type { ProviderMap } from "@garden-io/core/build/src/config/provider.js"
+import { styles } from "@garden-io/core/build/src/logger/styles.js"
 
 type PulumiBaseParams = Omit<PulumiParams, "action">
 
@@ -149,7 +149,7 @@ const pulumiCommandSpecs: PulumiCommandSpec[] = [
     //   const summaryPath = join(previewDirPath, "plan-summary.json")
     //   await writeJSON(summaryPath, totalSummary, { spaces: 2 })
     //   log.info("")
-    //   log.info(chalk.green(`Wrote plan summary to ${chalk.white(summaryPath)}`))
+    //   log.info(styles.success(`Wrote plan summary to ${styles.accent(summaryPath)}`))
     //   return totalSummary
     // },
   },
@@ -305,7 +305,7 @@ class PulumiPluginCommandTask extends PluginActionTask<PulumiDeploy, PulumiComma
   }
 
   async process({ dependencyResults }: ActionTaskProcessParams<PulumiDeploy, PulumiCommandResult>) {
-    this.log.info(chalk.gray(`Running ${chalk.white(this.commandDescription)}`))
+    this.log.info(`Running ${styles.command(this.commandDescription)}`)
 
     const params = {
       ...this.pulumiParams,
@@ -335,7 +335,7 @@ export const getPulumiCommands = (): PluginCommand[] => pulumiCommandSpecs.map(m
 
 function makePulumiCommand({ name, commandDescription, beforeFn, runFn, afterFn }: PulumiCommandSpec) {
   const description = commandDescription || `pulumi ${name}`
-  const pulumiCommand = chalk.bold(description)
+  const pulumiCommand = styles.bold(description)
 
   const pulumiCommandOpts = {
     "skip-dependencies": new BooleanParameter({
@@ -358,7 +358,7 @@ function makePulumiCommand({ name, commandDescription, beforeFn, runFn, afterFn 
     resolveGraph: true,
 
     title: ({ args }) =>
-      chalk.bold.magenta(`Running ${chalk.white.bold(pulumiCommand)} for actions ${chalk.white.bold(args[0] || "")}`),
+      styles.command(`Running ${styles.accent.bold(pulumiCommand)} for actions ${styles.accent.bold(args[0] || "")}`),
 
     async handler({ garden, ctx, args, log, graph }: PluginCommandParams) {
       const parsed = parsePluginCommandArgs({

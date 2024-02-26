@@ -7,7 +7,6 @@
  */
 
 import type Joi from "@hapi/joi"
-import chalk from "chalk"
 import dedent from "dedent"
 import stripAnsi from "strip-ansi"
 import { flatMap, fromPairs, mapValues, pickBy, size } from "lodash-es"
@@ -17,16 +16,11 @@ import type { GardenError } from "../exceptions.js"
 import { RuntimeError, InternalError, toGardenError } from "../exceptions.js"
 import type { Garden } from "../garden.js"
 import type { Log } from "../logger/log-entry.js"
-import type { LoggerType, LoggerBase, LoggerConfigBase, LogLevel } from "../logger/logger.js"
+import type { LoggerBase, LoggerConfigBase, LogLevel } from "../logger/logger.js"
 import { eventLogLevel } from "../logger/logger.js"
-import { printFooter } from "../logger/util.js"
-import {
-  getCloudDistributionName,
-  getCloudLogSectionName,
-  getDurationMsec,
-  getPackageVersion,
-  userPrompt,
-} from "../util/util.js"
+import { printEmoji, printFooter } from "../logger/util.js"
+import { getCloudDistributionName, getCloudLogSectionName } from "../util/cloud.js"
+import { getDurationMsec, getPackageVersion, userPrompt } from "../util/util.js"
 import { renderOptions, renderCommands, renderArguments, cliStyles, optionsWithAliasValues } from "../cli/helpers.js"
 import type { GlobalOptions, ParameterValues, ParameterObject } from "../cli/params.js"
 import { globalOptions } from "../cli/params.js"
@@ -46,6 +40,7 @@ import type { ActionMode } from "../actions/types.js"
 import type { AnalyticsHandler } from "../analytics/analytics.js"
 import { withSessionContext } from "../util/open-telemetry/context.js"
 import { wrapActiveSpan } from "../util/open-telemetry/spans.js"
+import { styles } from "../logger/styles.js"
 
 export interface CommandConstructor {
   new (parent?: CommandGroup): Command
@@ -289,6 +284,7 @@ export abstract class Command<
         const log = overrideLogLevel ? garden.log.createLog({ fixLevel: overrideLogLevel }) : garden.log
 
         let cloudSession: CloudSession | undefined
+        let commandResultUrl: string | undefined
 
         // Session registration for the `dev` and `serve` commands is handled in the `serve` command's `action` method,
         // so we skip registering here to avoid duplication.
@@ -316,14 +312,13 @@ export abstract class Command<
 
         if (cloudSession) {
           const distroName = getCloudDistributionName(cloudSession.api.domain)
-          const commandResultUrl = cloudSession.api.getCommandResultUrl({
+          commandResultUrl = cloudSession.api.getCommandResultUrl({
             sessionId: garden.sessionId,
             projectId: cloudSession.projectId,
             shortId: cloudSession.shortId,
           }).href
           const cloudLog = log.createLog({ name: getCloudLogSectionName(distroName) })
-
-          cloudLog.info(`View command results at: ${chalk.cyan(commandResultUrl)}\n`)
+          cloudLog.info(`View command results at: ${styles.link(commandResultUrl)}`)
         }
 
         let analytics: AnalyticsHandler | undefined
@@ -358,7 +353,7 @@ export abstract class Command<
 
         try {
           if (cloudSession && this.streamEvents) {
-            log.silly(`Connecting Garden instance events to Cloud API`)
+            log.silly(() => `Connecting Garden instance events to Cloud API`)
             garden.events.emit("commandInfo", {
               ...commandInfo,
               environmentName: garden.environmentName,
@@ -381,7 +376,7 @@ export abstract class Command<
             // FIXME: use file watching to be more surgical here, this is suboptimal
             garden.treeCache.invalidateDown(log, ["path"])
 
-            log.silly(`Starting command '${this.getFullName()}' action`)
+            log.silly(() => `Starting command '${this.getFullName()}' action`)
             result = await this.action({
               garden,
               cli,
@@ -391,7 +386,7 @@ export abstract class Command<
               commandLine,
               parentCommand,
             })
-            log.silly(`Completed command '${this.getFullName()}' action successfully`)
+            log.silly(() => `Completed command '${this.getFullName()}' action successfully`)
           } else {
             // The command is protected and the user decided to not continue with the execution.
             log.info("\nCommand aborted.")
@@ -435,6 +430,13 @@ export abstract class Command<
         // fire, which may be needed to e.g. capture monitors added in event handlers
         await waitForOutputFlush()
 
+        if (commandResultUrl) {
+          const msg = `View command results at: \n\n${printEmoji("👉", log)}${styles.link(
+            commandResultUrl
+          )} ${printEmoji("👈", log)}\n`
+          log.info("\n" + msg)
+        }
+
         return result
       })
     )
@@ -470,8 +472,8 @@ export abstract class Command<
     }
   }
 
-  getTerminalWriterType(_: CommandParamsBase<A, O>): LoggerType {
-    return "default"
+  useInkTerminalWriter(_: CommandParamsBase<A, O>): boolean {
+    return false
   }
 
   describe() {
@@ -580,7 +582,7 @@ export abstract class Command<
    */
   async isAllowedToRun(garden: Garden, log: Log, opts: ParameterValues<GlobalOptions>): Promise<boolean> {
     if (!opts.yes && this.protected && garden.production) {
-      const defaultMessage = chalk.yellow(dedent`
+      const defaultMessage = styles.warning(dedent`
         Warning: you are trying to run "garden ${this.getFullName()}" against a production environment ([${
           garden.environmentName
         }])!
@@ -604,10 +606,10 @@ export abstract class Command<
 
   renderHelp() {
     let out = this.description
-      ? `\n${cliStyles.heading("DESCRIPTION")}\n\n${chalk.dim(this.description.trim())}\n\n`
+      ? `\n${cliStyles.heading("DESCRIPTION")}\n\n${styles.secondary(this.description.trim())}\n\n`
       : ""
 
-    out += `${cliStyles.heading("USAGE")}\n  garden ${this.getFullName()} `
+    out += `${cliStyles.heading("USAGE")}\n  garden ${styles.command(this.getFullName())} `
 
     if (this.arguments) {
       out +=
@@ -786,7 +788,7 @@ export type ProcessResultMetadata = {
   durationMsec?: number | null
   success: boolean
   error?: string
-  inputVersion?: string
+  inputVersion: string | null
 }
 
 export interface ProcessCommandResult {

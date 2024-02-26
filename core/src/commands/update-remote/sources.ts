@@ -8,7 +8,6 @@
 
 import { difference } from "lodash-es"
 import dedent from "dedent"
-import chalk from "chalk"
 
 import type { CommandResult, CommandParams } from "../base.js"
 import { Command } from "../base.js"
@@ -23,6 +22,7 @@ import { joiArray, joi } from "../../config/common.js"
 import type { ParameterValues } from "../../cli/params.js"
 import { StringsParameter } from "../../cli/params.js"
 import { naturalList } from "../../util/string.js"
+import { styles } from "../../logger/styles.js"
 
 const updateRemoteSourcesArguments = {
   sources: new StringsParameter({
@@ -99,7 +99,7 @@ export async function updateRemoteSources({
   if (diff.length > 0) {
     throw new ParameterError({
       message: dedent`
-        Expected source(s) ${chalk.underline(diff.join(","))} to be specified in the project garden.yml config.
+        Expected source(s) ${styles.underline(diff.join(","))} to be specified in the project garden.yml config.
         Configured remote sources: ${naturalList(projectSources.map((s) => s.name).sort())}
       `,
     })

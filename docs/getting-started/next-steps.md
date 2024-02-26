@@ -13,6 +13,10 @@ This guide describes the main steps involved. It's meant as a roadmap for the co
 
 For a more high level guide of adopting Garden in your organization, check out our [Adopting Garden guide](../overview/adopting-garden.md).
 
+For those that prefer something more visual, we recommend checking out this video which goes step-by-step through the process of adding Garden to a project. Otherwise, continue reading below.
+
+{% embed url="https://youtu.be/0y5E8K-8kr4" %}
+
 ## Step 1 — Create a project
 
 The first thing you need to do is to create a project level Garden config file at the root of your project, typically called `garden.yml` or `project.garden.yml`.
@@ -170,8 +174,10 @@ kind: Test
 name: api-integ
 type: container
 description: A Test action for integration testing the api after its been deployed
-build: api # <--- Use the api image to run the test
-dependencies: [deploy.api]
+dependencies: [build.api, deploy.api]
+spec:
+  image: ${actions.build.api.outputs.deploymentImageId}
+  command: [./integ-tests.sh]
 ```
 
 Depending on the size of your project, you may want to add a handful of actions to get started and then gradually add more as needed.

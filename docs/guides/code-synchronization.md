@@ -27,8 +27,10 @@ To configure a service for sync mode, add `sync` to your Deploy configuration to
 kind: Deploy
 name: node-service
 type: container
-build: node-service-build
+dependencies:
+  - build.node-service-build
 spec:
+  image: ${actions.build.node-service-build.outputs.deploymentImageId}
   args: [npm, run, serve]
   sync:
     paths:
@@ -146,8 +148,10 @@ Exclusion rules can be specified on individual sync configs:
 kind: Deploy
 name: node-service
 type: container
-build: node-service-build
+dependencies:
+  - build.node-service-build
 spec:
+  image: ${actions.build.node-service-build.outputs.deploymentImageId}
   args: [npm, run, serve]
   sync:
     paths:
@@ -189,8 +193,10 @@ To do this, you can set a few options on each sync:
 kind: Deploy
 name: node-service
 type: container
-build: node-service-build
+dependencies:
+  - build.node-service-build
 spec:
+  image: ${actions.build.node-service-build.outputs.deploymentImageId}
   sync:
     paths:
       - target: /app/src
@@ -236,8 +242,10 @@ type: container
 description: |
   Here, we sync source code into the remote, and sync back the `test-artifacts` directory
   (populated when we run tests) back to the local machine.
-build: node-service-build
+dependencies:
+  - build.node-service-build
 spec:
+  image: ${actions.build.node-service-build.outputs.deploymentImageId}
   args: [npm, start]
   sync:
     # Overrides the container's default when the service is deployed in sync mode.
@@ -267,8 +275,31 @@ Every so often something comes up in the underlying Mutagen synchronization proc
 
 Because Garden creates a temporary data directory for Mutagen for every Garden CLI instance, you can't use the `mutagen` CLI without additional context. However, to make this easier, a symlink to the temporary directory is automatically created under `<project root>/.garden/mutagen/<random ID>`, as well as a `mutagen.sh` helper script within that directory that sets the appropriate context and links to the automatically installed Mutagen CLI. We also create a `<project root>/.garden/mutagen/latest` symlink for convenience.
 
-To, for example, get the current list of active syncs in an active Garden process, you could run the following from the project root directory:
+### Get list of active syncs
+
+To get the current list of active syncs in an active Garden process, you could run the following from the project root directory:
 
 ```sh
-.garden/mutagen/latest/mutagen.sh sync list
+garden util mutagen sync list
 ```
+
+### Restarting sync daemon
+
+Starting from the version `0.13.26`, Garden offer a new file synchronization machinery.
+It is available via the environment variable `GARDEN_ENABLE_NEW_SYNC` and it disabled by default.
+
+It is important to stop all syncs and the sync daemon before changing the value of `GARDEN_ENABLE_NEW_SYNC`.
+Otherwise, the syncs will fail. In order to do that, just run the following commands from the project root directory:
+```
+garden util mutagen daemon stop
+GARDEN_ENABLE_NEW_SYNC=true garden util mutagen daemon stop
+```
+
+It will stop both old and new sync daemons.
+If one of the daemons is not running, then the command will report an error message like this:
+```
+Error: unable to connect to daemon: connection timed out (is the daemon running?)
+```
+That is fine, please ignore it.
+
+Once you have stopped the sync daemons, please try again to start the syncs.

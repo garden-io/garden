@@ -8,7 +8,6 @@
 
 import type { Server } from "http"
 
-import chalk from "chalk"
 import Koa from "koa"
 import Router from "koa-router"
 import websockify from "koa-websocket"
@@ -51,8 +50,10 @@ import { defaultServerPort } from "../commands/serve.js"
 
 import type PTY from "@homebridge/node-pty-prebuilt-multiarch"
 import pty from "@homebridge/node-pty-prebuilt-multiarch"
+import { styles } from "../logger/styles.js"
 
 const skipLogsForCommands = ["autocomplete"]
+const serverLogName = "garden-server"
 
 const skipAnalyticsForCommands = ["sync status"]
 
@@ -237,7 +238,7 @@ export class GardenServer extends EventEmitter {
         }
       } while (!serverStarted)
     }
-    this.log.info(chalk.white(`Garden server has successfully started at port ${chalk.bold(this.port)}.\n`))
+    this.log.info(`Garden server has successfully started at port ${styles.highlight(this.port.toString())}\n`)
 
     const processRecord = await this.globalConfigStore.get("activeProcesses", String(process.pid))
 
@@ -262,7 +263,7 @@ export class GardenServer extends EventEmitter {
 
   showUrl(url?: string) {
     if (this.statusLog) {
-      this.statusLog.info("🌻 " + chalk.cyan("Garden server running at ") + chalk.blueBright(url || this.getUrl()))
+      this.statusLog.info("🌻 " + styles.highlight("Garden server running at ") + styles.link(url || this.getUrl()))
     }
   }
 
@@ -607,7 +608,7 @@ export class GardenServer extends EventEmitter {
             if (exitCode !== 0) {
               websocket.send(msg + "\r\n")
             } else {
-              websocket.send(chalk.green("\r\n\r\nDone!\r\n"))
+              websocket.send(styles.success("\r\n\r\nDone!\r\n"))
             }
             // We use 4700 + exitCode because the websocket close code must be a number between 4000 and 4999
             websocket.close(4700 + exitCode, msg)
@@ -672,7 +673,7 @@ export class GardenServer extends EventEmitter {
   }) {
     let request: any
 
-    this.log.silly("Got request: " + msg)
+    this.log.silly(() => "Got request: " + msg)
 
     try {
       request = JSON.parse(msg.toString())
@@ -722,11 +723,11 @@ export class GardenServer extends EventEmitter {
         const requestLog = skipLogsForCommands.includes(command.getFullName())
           ? null
           : this.log.createLog({
-              name: "garden-server",
+              name: serverLogName,
               fixLevel: internal ? LogLevel.debug : undefined,
             })
 
-        const cmdNameStr = chalk.bold.white(command.getFullName() + (internal ? ` (internal)` : ""))
+        const cmdNameStr = styles.command(request.command + (internal ? ` (internal)` : ""))
         const commandSessionId = requestId
 
         if (skipAnalyticsForCommands.includes(command.getFullName())) {
@@ -810,26 +811,27 @@ export class GardenServer extends EventEmitter {
               })
             )
 
-            if (errors?.length && requestLog) {
-              requestLog.error(chalk.red(`Command ${cmdNameStr} failed with errors:`))
+            if (requestLog && errors?.length) {
+              requestLog.error(`Command ${cmdNameStr} failed with errors:`)
               for (const error of errors) {
                 requestLog.error({ error })
               }
-            } else {
-              requestLog?.success(chalk.green(`Command ${cmdNameStr} completed successfully`))
+            } else if (requestLog) {
+              requestLog.success(`Command ${cmdNameStr} completed successfully`)
             }
+
             delete this.activePersistentRequests[requestId]
           })
           .catch((error) => {
             send("error", { message: error.message, requestId })
             requestLog?.error({
-              msg: chalk.red(`Command ${cmdNameStr} failed with errors:`),
+              msg: `Command ${cmdNameStr} failed with errors:`,
               error: toGardenError(error),
             })
             delete this.activePersistentRequests[requestId]
           })
       } catch (error) {
-        this.log.createLog({ name: "garden-server" }).error({
+        this.log.createLog({ name: serverLogName }).error({
           msg: `Unexpected error handling request ID ${requestId}: ${error}`,
           error: toGardenError(error),
         })
@@ -860,7 +862,7 @@ export class GardenServer extends EventEmitter {
       const { log: _log } = resolved
       const log = _log.createLog({ fixLevel: LogLevel.silly })
 
-      const loadConfigLog = this.log.createLog({ name: "garden-server", showDuration: true })
+      const loadConfigLog = this.log.createLog({ name: serverLogName, showDuration: true })
       loadConfigLog.info("Loading config for Live page...")
 
       const cloudApi = await this.manager.getCloudApi({

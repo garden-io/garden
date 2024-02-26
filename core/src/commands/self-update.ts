@@ -14,9 +14,9 @@ import type { GlobalOptions, ParameterValues } from "../cli/params.js"
 import { BooleanParameter, ChoicesParameter, StringParameter } from "../cli/params.js"
 import { dedent } from "../util/string.js"
 import { basename, dirname, join, resolve } from "path"
-import chalk from "chalk"
-import type { Architecture } from "../util/util.js"
-import { getArchitecture, isDarwinARM, getPackageVersion, getPlatform } from "../util/util.js"
+import type { Architecture } from "../util/arch-platform.js"
+import { getArchitecture, isDarwinARM, getPlatform } from "../util/arch-platform.js"
+import { getPackageVersion } from "../util/util.js"
 import { RuntimeError } from "../exceptions.js"
 import { makeTempDir } from "../util/fs.js"
 import { createReadStream, createWriteStream } from "fs"
@@ -28,6 +28,7 @@ import semver from "semver"
 import type { Log } from "../logger/log-entry.js"
 import { realpath } from "fs/promises"
 import { pipeline } from "node:stream/promises"
+import { styles } from "../logger/styles.js"
 
 const ARM64_INTRODUCTION_VERSION = "0.13.12"
 
@@ -205,11 +206,11 @@ export async function getLatestVersions(numOfStableVersions: number, log: Log) {
   }
 
   return [
-    chalk.cyan("edge-acorn"),
-    chalk.cyan("edge-bonsai"),
+    styles.highlight("edge-acorn"),
+    styles.highlight("edge-bonsai"),
     ...releasesResponse
       .filter((r: any) => !r.prerelease && !r.draft)
-      .map((r: any) => chalk.cyan(r.name))
+      .map((r: any) => styles.highlight(r.name))
       .slice(0, numOfStableVersions),
   ]
 }
@@ -270,17 +271,16 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
     if (!installationDirectory) {
       installationDirectory = dirname(processExecPath)
       log.info(
-        chalk.white(
-          "No installation directory specified via --install-dir option. Garden will be re-installed to the current installation directory: "
-        ) + chalk.cyan(installationDirectory)
+        "No installation directory specified via --install-dir option. Garden will be re-installed to the current installation directory: " +
+          styles.highlight(installationDirectory)
       )
     } else {
-      log.info(chalk.white("Installation directory: ") + chalk.cyan(installationDirectory))
+      log.info("Installation directory: " + styles.highlight(installationDirectory))
     }
 
     installationDirectory = resolve(installationDirectory)
 
-    log.info(chalk.white("Checking for target and latest versions..."))
+    log.info("Checking for target and latest versions...")
     const latestVersion = await getLatestVersion(log)
 
     if (!desiredVersion) {
@@ -288,14 +288,14 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
       desiredVersion = await this.findTargetVersion(currentVersion, versionScope, latestVersion)
     }
 
-    log.info(chalk.white("Current Garden version: ") + chalk.cyan(currentVersion))
-    log.info(chalk.white("Target Garden version to be installed: ") + chalk.cyan(desiredVersion))
-    log.info(chalk.white("Latest release version: ") + chalk.cyan(latestVersion))
+    log.info("Current Garden version: " + styles.highlight(currentVersion))
+    log.info("Target Garden version to be installed: " + styles.highlight(desiredVersion))
+    log.info("Latest release version: " + styles.highlight(latestVersion))
 
     if (!opts.force && !opts["install-dir"] && desiredVersion === currentVersion) {
       log.warn("")
       log.warn(
-        chalk.yellow(
+        styles.warning(
           "The desired version and the current version are the same. Nothing to do. Specify --force if you'd like to re-install the same version."
         )
       )
@@ -315,9 +315,7 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
     const expectedExecutableName = process.platform === "win32" ? "garden.exe" : "garden"
     if (!opts["install-dir"] && basename(processExecPath) !== expectedExecutableName) {
       log.error(
-        chalk.redBright(
-          `The executable path ${processExecPath} doesn't indicate this is a normal binary installation for your platform. Perhaps you're running a local development build?`
-        )
+        `The executable path ${processExecPath} doesn't indicate this is a normal binary installation for your platform. Perhaps you're running a local development build?`
       )
       return {
         result: {
@@ -359,8 +357,8 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
       ) {
         if (platform === "macos") {
           architecture = "amd64"
-          log.info(
-            chalk.yellow.bold(
+          log.warn(
+            styles.bold(
               `No arm64 build available for Garden version ${desiredVersion}. Falling back to amd64 using Rosetta.`
             )
           )
@@ -381,7 +379,7 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
       const { build, filename, extension, url } = this.getReleaseArtifactDetails(platform, architecture, desiredVersion)
 
       log.info("")
-      log.info(chalk.white(`Downloading version ${chalk.cyan(desiredVersion)} from ${chalk.underline(url)}...`))
+      log.info(`Downloading version ${styles.highlight(desiredVersion)} from ${styles.underline(url)}...`)
 
       const tempPath = join(tempDir.path, filename)
 
@@ -394,15 +392,13 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
           err.response?.statusCode === 404
         ) {
           log.info("")
-          log.error(chalk.redBright(`Could not find version ${desiredVersion} for ${build}.`))
+          log.error(styles.error(`Could not find version ${desiredVersion} for ${build}.`))
 
           // Print the latest available stable versions
           try {
             const latestVersions = await getLatestVersions(10, log)
 
-            log.info(
-              chalk.white.bold(`Here are the latest available versions: `) + latestVersions.join(chalk.white(", "))
-            )
+            log.info(`Here are the latest available versions: ` + latestVersions.join(styles.highlight(", ")))
           } catch (err) {
             log.debug(`Could not retrieve the latest available versions, ${err}`)
           }
@@ -428,7 +424,7 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
       await remove(backupPath)
       await mkdirp(backupPath)
 
-      log.info(chalk.white(`Backing up prior installation to ${chalk.gray(backupPath)}...`))
+      log.info(`Backing up prior installation to ${styles.primary(backupPath)}...`)
 
       for (const path of await readdir(installationDirectory)) {
         if (path === ".backup") {
@@ -439,7 +435,7 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
       }
 
       // Move the extracted files to the install directory
-      log.info(chalk.white(`Extracting to installation directory ${chalk.cyan(installationDirectory)}...`))
+      log.info(`Extracting to installation directory ${styles.highlight(installationDirectory)}...`)
 
       if (extension === "zip") {
         // Note: lazy-loading for startup performance
@@ -460,7 +456,7 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
       await copy(join(tempDir.path, build), installationDirectory)
 
       log.info("")
-      log.info(chalk.green("Done!"))
+      log.success({ msg: "Done!", showDuration: false })
 
       return {
         result: {

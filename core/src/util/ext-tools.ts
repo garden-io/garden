@@ -10,7 +10,8 @@ import fsExtra from "fs-extra"
 const { pathExists, createWriteStream, ensureDir, chmod, remove, move, createReadStream } = fsExtra
 import { ConfigurationError, InternalError } from "../exceptions.js"
 import { join, dirname, basename, posix } from "path"
-import { hashString, exec, getPlatform, getArchitecture, isDarwinARM } from "./util.js"
+import { getArchitecture, getPlatform, isDarwinARM } from "./arch-platform.js"
+import { hashString, exec } from "./util.js"
 import tar from "tar"
 import { GARDEN_GLOBAL_PATH } from "../constants.js"
 import type { Log } from "../logger/log-entry.js"
@@ -75,7 +76,7 @@ export class CliWrapper {
       cwd = dirname(path)
     }
 
-    log.silly(`Execing '${path} ${args.join(" ")}' in ${cwd}`)
+    log.silly(() => `Execing '${path} ${args!.join(" ")}' in ${cwd}`)
 
     return exec(path, args, {
       cwd,
@@ -268,7 +269,7 @@ export class PluginTool extends CliWrapper {
       const tmpPath = join(this.toolPath, this.versionDirname + "." + uuidv4().substr(0, 8))
       const targetAbsPath = join(tmpPath, ...this.targetSubpath.split(posix.sep))
 
-      const downloadLog = log.createLog().info(`Fetching ${this.name}...`)
+      const downloadLog = log.createLog().info(`Fetching ${this.name} ${this.spec.version}...`)
       const debug = downloadLog
         .createLog({
           fixLevel: LogLevel.debug,

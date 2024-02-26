@@ -13,6 +13,7 @@ import type {
   BuildStatus,
 } from "../../plugin/sdk.js"
 import { sdk } from "../../plugin/sdk.js"
+import { styles } from "../../logger/styles.js"
 import { execRunCommand } from "./common.js"
 import { execCommonSchema, execEnvVarDoc, execRuntimeOutputsSchema, execStaticOutputsSchema } from "./config.js"
 import { execProvider } from "./exec.js"
@@ -54,7 +55,6 @@ export const execBuildHandler = execBuild.addHandler("build", async ({ action, l
   const output: BuildStatus = { state: "ready", outputs: {}, detail: {} }
   const command = action.getSpec("command")
 
-  const { chalk } = sdk.util
   let success = true
 
   if (command?.length) {
@@ -72,13 +72,13 @@ export const execBuildHandler = execBuild.addHandler("build", async ({ action, l
   if (output.detail?.buildLog) {
     output.outputs.log = output.detail?.buildLog
 
-    const prefix = `Finished building ${chalk.white(action.name)}. Here is the full output:`
+    const prefix = `Finished building ${styles.highlight(action.name)}. Here is the full output:`
     log.info(
       renderMessageWithDivider({
         prefix,
         msg: output.detail?.buildLog,
         isError: !success,
-        color: chalk.gray,
+        color: styles.primary,
       })
     )
   }

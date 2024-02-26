@@ -7,11 +7,11 @@ kind: Deploy
 name: frontend
 description: Frontend service container
 type: container
-build: frontend
 dependencies:
+  - build.frontend
   - deploy.backend
 spec:
-  replicas: ${var.service-replicas} # <- Refers to the variable set in the project config
+  replicas: ${var.service-replicas}
   ports:
     - name: http
       containerPort: 8080
@@ -24,20 +24,25 @@ spec:
       port: http
     - path: /call-backend
       port: http
+  image: ${actions.build.frontend.outputs.deploymentImageId}
 
 ---
 kind: Test
 name: frontend-unit
 type: container
-build: frontend
+dependencies:
+  - build.frontend
 spec:
   args: [npm, test]
+  image: ${actions.build.frontend.outputs.deploymentImageId}
 
 ---
 kind: Test
 name: frontend-integ
 type: container
-build: frontend
-dependencies: [deploy.backend]
+dependencies:
+  - build.frontend
+  - deploy.backend
 spec:
   args: [npm, run, integ]
+  image: ${actions.build.frontend.outputs.deploymentImageId}

@@ -17,7 +17,6 @@ import { TimeoutError } from "../../exceptions.js"
 import type { Log } from "../../logger/log-entry.js"
 import type { ExecaReturnBase } from "execa"
 import { execa } from "execa"
-import chalk from "chalk"
 import { renderMessageWithDivider } from "../../logger/util.js"
 import { LogLevel } from "../../logger/logger.js"
 import { createWriteStream } from "fs"
@@ -43,6 +42,7 @@ import { sdk } from "../../plugin/sdk.js"
 import { execProvider } from "./exec.js"
 import { getTracePropagationEnvVars } from "../../util/open-telemetry/propagation.js"
 import type { DeployState } from "../../types/service.js"
+import { styles } from "../../logger/styles.js"
 
 const persistentLocalProcRetryIntervalMs = 2500
 
@@ -200,13 +200,13 @@ execDeploy.addHandler("deploy", async (params) => {
     })
 
     if (result.outputLog) {
-      const prefix = `Finished deploying ${chalk.white(action.name)}. Here is the output:`
+      const prefix = `Finished deploying ${styles.highlight(action.name)}. Here is the output:`
       log.info(
         renderMessageWithDivider({
           prefix,
           msg: result.outputLog,
           isError: !result.success,
-          color: chalk.gray,
+          color: styles.primary,
         })
       )
     }
@@ -290,14 +290,16 @@ export async function deployPersistentExecService({
         throw new TimeoutError({
           message: dedent`Timed out waiting for local service ${deployName} to be ready.
 
-          Garden timed out waiting for the command ${chalk.gray(spec.statusCommand)} (pid: ${proc.pid})
+          Garden timed out waiting for the command ${styles.primary(spec.statusCommand.join(" "))} (pid: ${proc.pid})
           to return status code 0 (success) after waiting for ${spec.statusTimeout} seconds.
           ${lastResultDescription}
           Possible next steps:
 
           Find out why the configured status command fails.
 
-          In case the service just needs more time to become ready, you can adjust the ${chalk.gray("timeout")} value
+          In case the service just needs more time to become ready, you can adjust the ${styles.primary(
+            "timeout"
+          )} value
           in your service definition to a value that is greater than the time needed for your service to become ready.
           `,
         })

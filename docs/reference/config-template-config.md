@@ -121,7 +121,7 @@ modules:
     # garden.yml file.
     repositoryUrl:
 
-    # When false, disables pushing this module to remote registries.
+    # When false, disables pushing this module to remote registries via the publish command.
     allowPublish: true
 
     # A list of files to write to the module directory when resolving this module. This is useful to automatically
@@ -458,7 +458,7 @@ modules:
 
 [modules](#modules) > allowPublish
 
-When false, disables pushing this module to remote registries.
+When false, disables pushing this module to remote registries via the publish command.
 
 | Type      | Default | Required |
 | --------- | ------- | -------- |

@@ -1,13 +1,15 @@
-FROM alpine:3.15.4@sha256:a777c9c66ba177ccfea23f2a216ff6721e78a662cd17019488c417135299cd89
+FROM alpine:3.19.1@sha256:6457d53fb065d6f250e1504b9bc42d5b6c65941d57532c072d929dd0628977d0
 
 RUN apk add --no-cache wget
 
 # Get mutagen agent
-RUN wget "https://github.com/mutagen-io/mutagen/releases/download/v0.15.0/mutagen_linux_amd64_v0.15.0.tar.gz" && \
-  echo "dd4a0b6fa8b36232108075d2c740d563ec945d8e872c749ad027fa1b241a8b07  mutagen_linux_amd64_v0.15.0.tar.gz" | sha256sum -c && \
-  tar xzf mutagen_linux_amd64_v0.15.0.tar.gz --to-stdout mutagen-agents.tar.gz \
+RUN MUTAGEN_VERSION="0.17.5" && \
+  mutagen_distr_name="mutagen_linux_amd64_v${MUTAGEN_VERSION}.tar.gz" && \
+  wget "https://github.com/mutagen-io/mutagen/releases/download/v${MUTAGEN_VERSION}/${mutagen_distr_name}" && \
+  echo "cabee0af590faf822cb5542437e254406b0f037df43781c02bf6eeac267911f6 ${mutagen_distr_name}" | sha256sum -c && \
+  tar xzf ${mutagen_distr_name} --to-stdout mutagen-agents.tar.gz \
   | tar xz --to-stdout linux_amd64 > /usr/local/bin/mutagen-agent && \
-  rm mutagen_linux_amd64_v0.15.0.tar.gz && \
+  rm ${mutagen_distr_name} && \
   chmod +x /usr/local/bin/mutagen-agent && \
   mkdir -p /.garden && \
   ln -s /usr/local/bin/mutagen-agent /.garden/mutagen-agent

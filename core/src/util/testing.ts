@@ -6,6 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import env from "env-var"
 import type { GlobalOptions, ParameterValues } from "../cli/params.js"
 import { globalOptions } from "../cli/params.js"
 import cloneDeep from "fast-copy"
@@ -14,17 +15,18 @@ import type { GardenOpts, GardenParams, GetConfigGraphParams } from "../garden.j
 import { Garden, resolveGardenParams } from "../garden.js"
 import type { DeepPrimitiveMap, StringMap } from "../config/common.js"
 import type { ModuleConfig } from "../config/module.js"
-import type { WorkflowConfig } from "../config/workflow.js"
-import type { Log, LogEntry } from "../logger/log-entry.js"
-import type { GardenModule } from "../types/module.js"
-import { findByName, getNames } from "./util.js"
+import type { WorkflowConfig, WorkflowConfigMap } from "../config/workflow.js"
+import { resolveMsg, type Log, type LogEntry } from "../logger/log-entry.js"
+import type { GardenModule, ModuleConfigMap } from "../types/module.js"
+import { findByName, getNames, hashString } from "./util.js"
 import { GardenError, InternalError } from "../exceptions.js"
 import type { EventName, Events } from "../events/events.js"
 import { EventBus } from "../events/events.js"
 import { dedent, naturalList } from "./string.js"
 import pathIsInside from "path-is-inside"
-import { join, resolve } from "path"
+import { basename, dirname, join, resolve } from "path"
 import { DEFAULT_BUILD_TIMEOUT_SEC, GARDEN_CORE_ROOT, GardenApiVersion } from "../constants.js"
+import type { GitScanMode } from "../constants.js"
 import { getRootLogger } from "../logger/logger.js"
 import stripAnsi from "strip-ansi"
 import type { VcsHandler } from "../vcs/vcs.js"
@@ -32,7 +34,7 @@ import type { ConfigGraph } from "../graph/config-graph.js"
 import type { SolveParams } from "../graph/solver.js"
 import type { GraphResults } from "../graph/results.js"
 import { expect } from "chai"
-import type { ActionConfig, ActionKind, ActionStatus } from "../actions/types.js"
+import type { ActionConfig, ActionConfigMap, ActionKind, ActionStatus } from "../actions/types.js"
 import type { WrappedActionRouterHandlers } from "../router/base.js"
 import type {
   BuiltinArgs,
@@ -43,11 +45,19 @@ import type {
   CommandResultType,
 } from "../commands/base.js"
 import { validateSchema } from "../config/validation.js"
-import fsExtra from "fs-extra"
+import fsExtra, { exists } from "fs-extra"
+
 const { mkdirp, remove } = fsExtra
 import { GlobalConfigStore } from "../config-store/global.js"
 import { isPromise } from "./objects.js"
-import chalk from "chalk"
+import { styles } from "../logger/styles.js"
+import type { ConfigTemplateConfig } from "../config/config-template.js"
+import type { PluginToolSpec, ToolBuildSpec } from "../plugin/tools.js"
+import { fileURLToPath, parse } from "url"
+import { createReadStream, createWriteStream } from "fs"
+import got from "got"
+import { createHash } from "node:crypto"
+import { pipeline } from "node:stream/promises"
 
 export class TestError extends GardenError {
   type = "_test"
@@ -66,7 +76,7 @@ export function getLogMessages(log: Log, filter?: (log: LogEntry) => boolean) {
   return log
     .getLogEntries()
     .filter((entry) => (filter ? filter(entry) : true))
-    .map((entry) => stripAnsi(entry.msg || ""))
+    .map((entry) => stripAnsi(resolveMsg(entry) || ""))
 }
 
 /**
@@ -77,7 +87,7 @@ export function getRootLogMessages(log: Log, filter?: (log: LogEntry) => boolean
   return log
     .getAllLogEntries()
     .filter((entry) => (filter ? filter(entry) : true))
-    .map((entry) => stripAnsi(entry.msg || ""))
+    .map((entry) => stripAnsi(resolveMsg(entry) || ""))
 }
 
 type PartialActionConfig = Partial<ActionConfig> & { kind: ActionKind; type: string; name: string }
@@ -164,15 +174,23 @@ export type TestGardenOpts = Partial<GardenOpts> & {
   noTempDir?: boolean
   onlySpecifiedPlugins?: boolean
   remoteContainerAuth?: boolean
+  clearConfigsOnScan?: boolean
+  gitScanMode?: GitScanMode
 }
 
 export class TestGarden extends Garden {
   override events: TestEventBus
-  public declare vcs: VcsHandler // Not readonly, to allow overriding with a mocked handler in tests
-  public declare secrets: StringMap // Not readonly, to allow setting secrets in tests
-  public declare variables: DeepPrimitiveMap // Not readonly, to allow setting variables in tests
+  // Overriding the type declarations of a few instance variables to allow reassignment in test code.
+  public declare actionConfigs: ActionConfigMap
+  public declare moduleConfigs: ModuleConfigMap
+  public declare workflowConfigs: WorkflowConfigMap
+  public declare configTemplates: { [name: string]: ConfigTemplateConfig }
+  public declare vcs: VcsHandler
+  public declare secrets: StringMap
+  public declare variables: DeepPrimitiveMap
   private repoRoot!: string
   public cacheKey!: string
+  public clearConfigsOnScan = false
 
   constructor(params: GardenParams) {
     super(params)
@@ -200,6 +218,11 @@ export class TestGarden extends Garden {
       params.plugins = opts?.plugins || []
     } else {
       params = await resolveGardenParams(currentDirectory, { commandInfo: defaultCommandInfo, ...opts })
+      if (opts?.gitScanMode) {
+        params.projectConfig.scan = params.projectConfig.scan ?? { git: { mode: opts.gitScanMode } }
+        params.projectConfig.scan.git = params.projectConfig.scan.git ?? { mode: opts.gitScanMode }
+        params.projectConfig.scan.git.mode = opts.gitScanMode
+      }
       if (cacheKey) {
         paramCache[cacheKey] = cloneDeep({ ...params, log: <any>{}, plugins: [] })
       }
@@ -220,6 +243,14 @@ export class TestGarden extends Garden {
     garden["globalConfigStore"] = new GlobalConfigStore(globalDir)
 
     return garden
+  }
+
+  protected override clearConfigs() {
+    if (this.clearConfigsOnScan) {
+      super.clearConfigs()
+    } else {
+      // No-op: We need to disable this method, because it breaks test cases that manually set configs.
+    }
   }
 
   override async processTasks(params: Omit<SolveParams, "log"> & { log?: Log }) {
@@ -428,7 +459,7 @@ export function expectFuzzyMatch(str: string, sample: string | string[]) {
     samplesNonAnsi.forEach((s) => expect(errorMessageNonAnsi.toLowerCase()).to.contain(s.toLowerCase()))
   } catch (err) {
     // eslint-disable-next-line no-console
-    console.log("Error message:\n", chalk.red(errorMessageNonAnsi), "\n")
+    console.log("Error message:\n", styles.error(errorMessageNonAnsi), "\n")
     throw err
   }
 }
@@ -544,4 +575,88 @@ export function equalWithPrecision(a: number, b: number, precision: number): boo
   const diff = round(rawDiff, precision)
   const eps = Math.pow(10, -precision)
   return diff <= eps
+}
+
+export async function downloadAndVerifyHash({ architecture, platform, sha256, url }: ToolBuildSpec) {
+  // This is an ESM module, so we need to use fileurltopath
+  const downloadDir = join(
+    dirname(fileURLToPath(import.meta.url)),
+    "..",
+    "..",
+    "..",
+    "..",
+    ".test-tools-verification-cache"
+  )
+
+  await mkdirp(downloadDir)
+
+  const artifactName = `${platform}-${architecture}-${hashString(url, 5)}-${basename(url)}`
+  const targetExecutable = join(downloadDir, artifactName)
+
+  if (await exists(targetExecutable)) {
+    const existingHash = createHash("sha256")
+    await pipeline(createReadStream(targetExecutable), existingHash)
+
+    const existingSha256 = existingHash.digest("hex")
+    if (existingSha256 === sha256) {
+      // eslint-disable-next-line no-console
+      console.log(`Cached test result for ${platform}-${architecture} from ${url}`)
+      return
+    }
+  }
+
+  // eslint-disable-next-line no-console
+  console.log(`Downloading ${platform}-${architecture} from ${url}`)
+  const parsed = parse(url)
+  const protocol = parsed.protocol
+
+  const response =
+    protocol === "file:"
+      ? createReadStream(parsed.path!)
+      : got.stream({
+          method: "GET",
+          url,
+        })
+  const downloadedHash = response.pipe(createHash("sha256"))
+
+  const writeStream = createWriteStream(targetExecutable)
+  await pipeline(response, writeStream)
+  // eslint-disable-next-line no-console
+  console.log(`Download completed`)
+
+  // eslint-disable-next-line no-console
+  console.log(`Verifying hash for ${artifactName}`)
+
+  // Wait until the hash is available, as it's not part of the pipeline
+  await new Promise((r) => downloadedHash.once("readable", r))
+
+  const downloadedSha256 = downloadedHash.digest("hex")
+
+  // eslint-disable-next-line no-console
+  console.log(`Downloaded hash: ${downloadedSha256}`)
+  // eslint-disable-next-line no-console
+  console.log(`Spec hash: ${sha256}`)
+
+  expect(downloadedSha256).to.eql(sha256)
+}
+
+/**
+ * This function is used to skip some tests and modify some expectations in CircleCI pipeline.
+ */
+export function isCiEnv() {
+  const ciEnv = env.get("CI").required(false).asBool()
+  const circleCiEnv = env.get("CIRCLECI").required(false).asBool()
+  return ciEnv || circleCiEnv
+}
+
+export const downloadBinariesAndVerifyHashes = (toolSpecs: PluginToolSpec[]) => {
+  for (const toolSpec of toolSpecs) {
+    describe(`${toolSpec.name} ${toolSpec.version}`, () => {
+      for (const build of toolSpec.builds) {
+        it(`${toolSpec.name} ${toolSpec.version} ${build.platform}-${build.architecture}`, async function () {
+          await downloadAndVerifyHash(build)
+        })
+      }
+    })
+  }
 }

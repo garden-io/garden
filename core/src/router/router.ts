@@ -6,8 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import chalk from "chalk"
-
 import type { Garden } from "../garden.js"
 import type { Log } from "../logger/log-entry.js"
 import type { GardenPluginSpec, ModuleTypeDefinition, PluginActionContextParams } from "../plugin/plugin.js"
@@ -68,7 +66,7 @@ export class ActionRouter extends BaseRouter {
     this.run = runRouter(baseParams)
     this.test = testRouter(baseParams)
 
-    garden.log.silly(`Creating ActionRouter with ${configuredPlugins.length} configured providers`)
+    garden.log.silly(() => `Creating ActionRouter with ${configuredPlugins.length} configured providers`)
   }
 
   //===========================================================================
@@ -162,7 +160,7 @@ export class ActionRouter extends BaseRouter {
     dependantsFirst?: boolean
     names?: string[]
   }): Promise<DeployStatusMap> {
-    const servicesLog = log.createLog({}).info(chalk.white("Deleting deployments..."))
+    const servicesLog = log.createLog({}).info("Deleting deployments...")
     const deploys = graph.getDeploys({ names })
 
     const tasks = deploys.map((action) => {

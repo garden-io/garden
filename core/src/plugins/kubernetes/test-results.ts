@@ -13,12 +13,11 @@ import type { PluginContext } from "../../plugin-context.js"
 import type { KubernetesPluginContext } from "./config.js"
 import type { Log } from "../../logger/log-entry.js"
 import type { TestResult } from "../../types/test.js"
-import hasha from "hasha"
+import { hashSync } from "hasha"
 import { gardenAnnotationKey } from "../../util/string.js"
 import { upsertConfigMap } from "./util.js"
 import { trimRunOutput } from "./helm/common.js"
 import { getSystemNamespace } from "./namespace.js"
-import chalk from "chalk"
 import type { TestActionHandler } from "../../plugin/action-types.js"
 import { runResultToActionState } from "../../actions/base.js"
 import type { HelmPodTestAction } from "./helm/config.js"
@@ -60,7 +59,7 @@ export function getTestResultKey(ctx: PluginContext, action: StoreTestResultPara
   // change the result format version if the result format changes breaking backwards-compatibility e.g. serialization format
   const resultFormatVersion = 1
   const key = `${ctx.projectName}--${action.name}--${action.versionString()}--${resultFormatVersion}`
-  const hash = hasha(key, { algorithm: "sha1" })
+  const hash = hashSync(key, { algorithm: "sha1" })
   return `test-result--${hash.slice(0, 32)}`
 }
 
@@ -96,7 +95,7 @@ export async function storeTestResult({ ctx, log, action, result }: StoreTestRes
       data,
     })
   } catch (err) {
-    log.warn(chalk.yellow(`Unable to store test result: ${err}`))
+    log.warn(`Unable to store test result: ${err}`)
   }
 
   return data

@@ -20,6 +20,7 @@ import { expectError, getDataDir, makeTestGarden } from "../../helpers.js"
 import { dedent } from "../../../src/util/string.js"
 import stripAnsi from "strip-ansi"
 import { TemplateStringError } from "../../../src/exceptions.js"
+import repeat from "lodash-es/repeat.js"
 
 class TestContext extends ConfigContext {
   constructor(context) {
@@ -157,13 +158,14 @@ describe("resolveTemplateString", () => {
   })
 
   it("should trim long template string in error messages", () => {
+    const veryLongString = repeat("very ", 100)
     void expectError(
       () =>
         resolveTemplateString({
-          string: "${some} very very very very very long long long long long template string",
+          string: `\${some} ${veryLongString} template string`,
           context: new TestContext({}),
         }),
-      { contains: "Invalid template string (${some} very very very very very l…): Could not find key some." }
+      (err) => expect(err.message.length).to.be.lessThan(350)
     )
   })
 
@@ -1177,7 +1179,7 @@ describe("resolveTemplateString", () => {
         () => resolveTemplateString({ string: "${base64Decode(a)}", context: new TestContext({ a: 1234 }) }),
         {
           contains:
-            "Invalid template string (${base64Decode(a)}): Error validating argument 'string' for base64Decode helper function:\nvalue must be a string",
+            "Invalid template string (${base64Decode(a)}): Error validating argument 'string' for base64Decode helper function:\n\nvalue must be a string",
         }
       )
     })
@@ -1191,8 +1193,7 @@ describe("resolveTemplateString", () => {
 
     it("throws if the function fails", () => {
       void expectError(() => resolveTemplateString({ string: "${jsonDecode('{]}')}", context: new TestContext({}) }), {
-        contains:
-          "Invalid template string (${jsonDecode('{]}')}): Error from helper function jsonDecode: SyntaxError: Expected property name or '}' in JSON at position 1 (line 1 column 2)",
+        contains: "Invalid template string (${jsonDecode('{]}')}): Error from helper function jsonDecode: SyntaxError",
       })
     })
 
@@ -1205,6 +1206,17 @@ describe("resolveTemplateString", () => {
         },
       })
       expect(res).to.equal("${base64Encode('${environment.namespace}')}")
+    })
+
+    it("does not apply helper function on unresolved template object and returns string as-is, when allowPartial=true", () => {
+      const res = resolveTemplateString({
+        string: "${base64Encode(var.foo)}",
+        context: new TestContext({ foo: { $forEach: ["a", "b"], $return: "${item.value}" } }),
+        contextOpts: {
+          allowPartial: true,
+        },
+      })
+      expect(res).to.equal("${base64Encode(var.foo)}")
     })
 
     context("concat", () => {
@@ -1231,7 +1243,7 @@ describe("resolveTemplateString", () => {
           )
         }
 
-        it("using on incompatible argument types (string and object)", () => {
+        it("using an incompatible argument types (string and object)", () => {
           return expectArgTypeError({
             template: "${concat(a, b)}",
             testContextVars: {
@@ -1243,7 +1255,7 @@ describe("resolveTemplateString", () => {
           })
         })
 
-        it("using on unsupported argument types (number and object)", () => {
+        it("using an unsupported argument types (number and object)", () => {
           return expectArgTypeError({
             template: "${concat(a, b)}",
             testContextVars: {
@@ -1251,7 +1263,7 @@ describe("resolveTemplateString", () => {
               b: ["a"],
             },
             errorMessage:
-              "Error validating argument 'arg1' for concat helper function:\nvalue must be one of [array, string]",
+              "Error validating argument 'arg1' for concat helper function:\n\nvalue must be one of [array, string]",
           })
         })
       })

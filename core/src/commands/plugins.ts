@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import chalk from "chalk"
 import { max, fromPairs, zip } from "lodash-es"
 import { findByName, getNames } from "../util/util.js"
 import { dedent, naturalList, renderTable, tablePresets } from "../util/string.js"
@@ -19,6 +18,7 @@ import { printHeader, getTerminalWidth } from "../logger/util.js"
 import { StringOption } from "../cli/params.js"
 import { ConfigGraph } from "../graph/config-graph.js"
 import { ModuleGraph } from "../graph/modules.js"
+import { styles } from "../logger/styles.js"
 
 const pluginArgs = {
   plugin: new StringOption({
@@ -106,7 +106,12 @@ export class PluginsCommand extends Command<Args> {
     const provider = await garden.resolveProvider(log, args.plugin)
     const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
 
-    let graph = new ConfigGraph({ actions: [], moduleGraph: new ModuleGraph([], {}), groups: [] })
+    let graph = new ConfigGraph({
+      environmentName: garden.environmentName,
+      actions: [],
+      moduleGraph: new ModuleGraph([], {}),
+      groups: [],
+    })
 
     // Commands can optionally ask for all the modules in the project/environment
     if (command.resolveGraph) {
@@ -126,11 +131,11 @@ export class PluginsCommand extends Command<Args> {
 
 async function listPlugins(garden: Garden, log: Log, pluginsToList: string[]) {
   log.info(dedent`
-  ${chalk.white.bold("USAGE")}
+  ${styles.accent.bold("USAGE")}
 
-    garden ${chalk.yellow("[global options]")} ${chalk.blueBright("<command>")} -- ${chalk.white("[args ...]")}
+    garden ${styles.warning("[global options]")} ${styles.command("<command>")} -- ${styles.accent("[args ...]")}
 
-  ${chalk.white.bold("PLUGIN COMMANDS")}
+  ${styles.accent.bold("PLUGIN COMMANDS")}
   `)
 
   const plugins = await Promise.all(
@@ -143,7 +148,7 @@ async function listPlugins(garden: Garden, log: Log, pluginsToList: string[]) {
       }
 
       const rows = commands.map((command) => {
-        return [` ${chalk.cyan(pluginName + " " + command.name)}`, command.description]
+        return [` ${styles.highlight(pluginName + " " + command.name)}`, command.description]
       })
 
       const maxCommandLengthAnsi = max(rows.map((r) => r[0].length))!

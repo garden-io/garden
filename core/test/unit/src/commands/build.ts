@@ -78,7 +78,9 @@ describe("BuildCommand", () => {
       const buildActionResults = r!.graphResults
       const key = nodeKey("build", name)
       const buildResult = buildActionResults[key]
-      return buildResult!.inputVersion
+      // Note: We assume the input version exists since we're not currently testing missing dependencies
+      // in this test suite.
+      return buildResult!.inputVersion!
     }
 
     const buildModuleAVersion = getBuildResultVersion(result!, "module-a")

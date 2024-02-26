@@ -36,7 +36,7 @@ providers:
     # between multiple developers, as well as between your development and CI workflows.
     #
     # For more details on all the different options and what makes sense to use for your setup, please check out the
-    # [in-cluster building guide](https://docs.garden.io/kubernetes-plugins/advanced/in-cluster-building).
+    # [in-cluster building guide](https://docs.garden.io/kubernetes-plugins/guides/in-cluster-building).
     buildMode: local-docker
 
     # Configuration options for the `cluster-buildkit` build mode.
@@ -58,13 +58,14 @@ providers:
       #
       # See the following table for details on our detection mechanism:
       #
-      # | Registry Name                   | Registry Domain         | Assumed `mode=max` support |
-      # |---------------------------------|-------------------------|------------------------------|
-      # | Google Cloud Artifact Registry  | `pkg.dev`             | Yes                          |
-      # | Azure Container Registry        | `azurecr.io`          | Yes                          |
-      # | GitHub Container Registry       | `ghcr.io`             | Yes                          |
-      # | DockerHub                       | `hub.docker.com`     | Yes                          |
-      # | Any other registry              |                         | No                           |
+      # | Registry Name                   | Registry Domain                    | Assumed `mode=max` support |
+      # |---------------------------------|------------------------------------|------------------------------|
+      # | AWS Elastic Container Registry  | `dkr.ecr.<region>.amazonaws.com` | Yes (with `image-manifest=true`) |
+      # | Google Cloud Artifact Registry  | `pkg.dev`                        | Yes                          |
+      # | Azure Container Registry        | `azurecr.io`                     | Yes                          |
+      # | GitHub Container Registry       | `ghcr.io`                        | Yes                          |
+      # | DockerHub                       | `hub.docker.com`                 | Yes                          |
+      # | Any other registry              |                                    | No                           |
       #
       # In case you need to override the defaults for your registry, you can do it like so:
       #
@@ -198,6 +199,10 @@ providers:
       # Annotations may have an effect on the behaviour of certain components, for example autoscalers.
       annotations:
 
+      # Specify annotations to apply to the Kubernetes service account used by cluster-buildkit. This can be useful to
+      # set up IRSA with in-cluster building.
+      serviceAccountAnnotations:
+
     # Setting related to Jib image builds.
     jib:
       # In some cases you may need to push images built with Jib to the remote registry via Kubernetes cluster, e.g.
@@ -260,6 +265,10 @@ providers:
       # certain components, for example autoscalers. The same annotations will be used for each util pod unless they
       # are specifically set under `util.annotations`
       annotations:
+
+      # Specify annotations to apply to the Kubernetes service account used by kaniko. This can be useful to set up
+      # IRSA with in-cluster building.
+      serviceAccountAnnotations:
 
       util:
         # Specify tolerations to apply to each garden-util pod.
@@ -515,7 +524,7 @@ providers:
 
 Choose the mechanism for building container images before deploying. By default your local Docker daemon is used, but you can set it to `cluster-buildkit` or `kaniko` to sync files to the cluster, and build container images there. This removes the need to run Docker locally, and allows you to share layer and image caches between multiple developers, as well as between your development and CI workflows.
 
-For more details on all the different options and what makes sense to use for your setup, please check out the [in-cluster building guide](https://docs.garden.io/kubernetes-plugins/advanced/in-cluster-building).
+For more details on all the different options and what makes sense to use for your setup, please check out the [in-cluster building guide](https://docs.garden.io/kubernetes-plugins/guides/in-cluster-building).
 
 | Type     | Allowed Values                               | Default          | Required |
 | -------- | -------------------------------------------- | ---------------- | -------- |
@@ -554,13 +563,14 @@ option.
 
 See the following table for details on our detection mechanism:
 
-| Registry Name                   | Registry Domain         | Assumed `mode=max` support |
-|---------------------------------|-------------------------|------------------------------|
-| Google Cloud Artifact Registry  | `pkg.dev`             | Yes                          |
-| Azure Container Registry        | `azurecr.io`          | Yes                          |
-| GitHub Container Registry       | `ghcr.io`             | Yes                          |
-| DockerHub                       | `hub.docker.com`     | Yes                          |
-| Any other registry              |                         | No                           |
+| Registry Name                   | Registry Domain                    | Assumed `mode=max` support |
+|---------------------------------|------------------------------------|------------------------------|
+| AWS Elastic Container Registry  | `dkr.ecr.<region>.amazonaws.com` | Yes (with `image-manifest=true`) |
+| Google Cloud Artifact Registry  | `pkg.dev`                        | Yes                          |
+| Azure Container Registry        | `azurecr.io`                     | Yes                          |
+| GitHub Container Registry       | `ghcr.io`                        | Yes                          |
+| DockerHub                       | `hub.docker.com`                 | Yes                          |
+| Any other registry              |                                    | No                           |
 
 In case you need to override the defaults for your registry, you can do it like so:
 
@@ -856,6 +866,26 @@ providers:
           cluster-autoscaler.kubernetes.io/safe-to-evict: 'false'
 ```
 
+### `providers[].clusterBuildkit.serviceAccountAnnotations`
+
+[providers](#providers) > [clusterBuildkit](#providersclusterbuildkit) > serviceAccountAnnotations
+
+Specify annotations to apply to the Kubernetes service account used by cluster-buildkit. This can be useful to set up IRSA with in-cluster building.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+Example:
+
+```yaml
+providers:
+  - clusterBuildkit:
+      ...
+      serviceAccountAnnotations:
+          eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/my-role
+```
+
 ### `providers[].jib`
 
 [providers](#providers) > jib
@@ -1014,6 +1044,26 @@ providers:
       ...
       annotations:
           cluster-autoscaler.kubernetes.io/safe-to-evict: 'false'
+```
+
+### `providers[].kaniko.serviceAccountAnnotations`
+
+[providers](#providers) > [kaniko](#providerskaniko) > serviceAccountAnnotations
+
+Specify annotations to apply to the Kubernetes service account used by kaniko. This can be useful to set up IRSA with in-cluster building.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+Example:
+
+```yaml
+providers:
+  - kaniko:
+      ...
+      serviceAccountAnnotations:
+          eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/my-role
 ```
 
 ### `providers[].kaniko.util`
@@ -1949,7 +1999,7 @@ A reference to the Kubernetes secret that contains the TLS certificate and key f
 
 | Type     | Required |
 | -------- | -------- |
-| `object` | No       |
+| `object` | Yes      |
 
 Example:
 

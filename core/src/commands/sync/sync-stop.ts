@@ -12,7 +12,6 @@ import { printHeader } from "../../logger/util.js"
 import { dedent, naturalList } from "../../util/string.js"
 import type { CommandParams, CommandResult } from "../base.js"
 import { Command } from "../base.js"
-import chalk from "chalk"
 import { createActionLog } from "../../logger/log-entry.js"
 
 const syncStopArgs = {
@@ -86,7 +85,7 @@ export class SyncStopCommand extends Command<Args, Opts> {
     actions = actions.filter((action) => {
       if (!action.supportsMode("sync")) {
         if (names.includes(action.name)) {
-          log.warn(chalk.yellow(`${action.longDescription()} does not support syncing.`))
+          log.warn(`${action.longDescription()} does not support syncing.`)
         }
         return false
       }
@@ -94,7 +93,7 @@ export class SyncStopCommand extends Command<Args, Opts> {
     })
 
     if (actions.length === 0) {
-      log.warn(chalk.yellow(`No matched action supports syncing. Aborting.`))
+      log.warn(`No matched action supports syncing. Aborting.`)
       return {}
     }
 
@@ -114,7 +113,7 @@ export class SyncStopCommand extends Command<Args, Opts> {
       })
     )
 
-    log.info(chalk.green("\nDone!"))
+    log.success({ msg: "\nDone!", showDuration: false })
 
     return {}
   }

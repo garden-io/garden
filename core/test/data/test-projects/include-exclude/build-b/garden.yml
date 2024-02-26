@@ -1,0 +1,5 @@
+kind: Build
+name: b
+type: test
+# test both dir name and relative path
+exclude: ["nope.*", "./dir1", "dir2"]

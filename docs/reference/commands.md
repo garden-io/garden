@@ -26,7 +26,7 @@ The following option flags can be used with any of the CLI commands:
   | `--var` |  | array:string | Set a specific variable value, using the format &lt;key&gt;&#x3D;&lt;value&gt;, e.g. &#x60;--var some-key&#x3D;custom-value&#x60;. This will override any value set in your project configuration. You can specify multiple variables by separating with a comma, e.g. &#x60;--var key-a&#x3D;foo,key-b&#x3D;&quot;value with quotes&quot;&#x60;.
   | `--yes` |  | boolean | Automatically approve any yes/no prompts during execution, and allow running protected commands against production environments.
   | `--silent` |  | boolean | Suppress log output. Same as setting --logger-type&#x3D;quiet.
-  | `--logger-type` |  | `quiet` `default` `basic` `json` `ink`  | Set logger type. default The default Garden logger, basic [DEPRECATED] Sames as the default Garden logger. This option will be removed in a future release, json same as default, but renders log lines as JSON, quiet suppresses all log output, same as --silent.
+  | `--logger-type` |  | `quiet` `default` `basic` `json` `ink`  | Set logger type. default The default Garden logger, basic: [DEPRECATED] An alias for &quot;default&quot;. json: Renders log lines as JSON. quiet: Suppresses all log output, same as --silent.
   | `--log-level` |  | `error` `warn` `info` `verbose` `debug` `silly` `0` `1` `2` `3` `4` `5`  | Set logger level. Values can be either string or numeric and are prioritized from 0 to 5 (highest to lowest) as follows: error: 0, warn: 1, info: 2, verbose: 3, debug: 4, silly: 5. From the verbose log level onward action execution logs are also printed (e.g. test or run live log outputs).
   | `--output` |  | `json` `yaml`  | Output command result in specified format (note: disables progress logging and interactive functionality).
   | `--emoji` |  | boolean | Enable emoji in output (defaults to true if the environment supports it).
@@ -1346,23 +1346,27 @@ run:
 
 Finds an active container for a deployed Deploy and executes the given command within the container.
 Supports interactive shells.
+You can specify the command to run as a parameter, or pass it after a `--` separator. For commands
+with arguments or quoted substrings, use the `--` separator.
 
-_NOTE: This command may not be supported for all action types._
+_NOTE: This command may not be supported for all action types. The use of the positional command argument
+is deprecated. Use  `--` followed by your command instead._
 
 Examples:
 
-     garden exec my-service /bin/sh   # runs a shell in the my-service Deploy's container
+     garden exec my-service /bin/sh   # runs an interactive shell in the my-service Deploy's container
+     garden exec my-service -- /bin/sh -c echo "hello world" # prints "hello world" in the my-service Deploy's container and exits
 
 #### Usage
 
-    garden exec <deploy> <command> [options]
+    garden exec <deploy> [command] [options]
 
 #### Arguments
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
   | `deploy` | Yes | The running Deploy action to exec the command in.
-  | `command` | Yes | The command to run.
+  | `command` | No | The use of the positional command argument is deprecated. Use  &#x60;--&#x60; followed by your command instead.
 
 #### Options
 
@@ -1530,7 +1534,7 @@ providers:
         # garden.yml file.
         repositoryUrl:
 
-        # When false, disables pushing this module to remote registries.
+        # When false, disables pushing this module to remote registries via the publish command.
         allowPublish:
 
         # A map of variables scoped to this particular module. These are resolved before any other parts of the module
@@ -1799,6 +1803,11 @@ actionConfigs:
       # conditional expressions.
       disabled:
 
+      # If set, the action is only enabled for the listed environment types. This is effectively a cleaner shorthand
+      # for the `disabled` field with an expression for environments. For example, `environments: ["prod"]` is
+      # equivalent to `disabled: ${environment.name != "prod"}`.
+      environments:
+
       # A map of variables scoped to this particular action. These are resolved before any other parts of the action
       # configuration and take precedence over group-scoped variables (if applicable) and project-scoped variables, in
       # that order. They may reference group-scoped and project-scoped variables, and generally can use any template
@@ -1846,13 +1855,13 @@ actionConfigs:
       #
       # You _can_ override this by setting `buildAtSource: true`, which basically sets the build root for this action
       # at the location of the Build action config in the source tree. This means e.g. that the build command in
-      # `exec` Builds runs at the source, and for `docker-image` builds the build is initiated from the source
+      # `exec` Builds runs at the source, and for Docker image builds the build is initiated from the source
       # directory.
       #
       # An important implication is that `include` and `exclude` directives for the action, as well as `.gardenignore`
       # files, only affect version hash computation but are otherwise not effective in controlling the build context.
       # This may lead to unexpected variation in builds with the same version hash. **This may also slow down code
-      # synchronization to remote destinations, e.g. when performing remote `docker-image` builds.**
+      # synchronization to remote destinations, e.g. when performing remote Docker image builds.**
       #
       # Additionally, any `exec` runtime actions (and potentially others) that reference this Build with the `build`
       # field, will run from the source directory of this action.
@@ -1968,6 +1977,11 @@ actionConfigs:
       # action is disabled, so you need to make sure to provide alternate values for those if you're using them, using
       # conditional expressions.
       disabled:
+
+      # If set, the action is only enabled for the listed environment types. This is effectively a cleaner shorthand
+      # for the `disabled` field with an expression for environments. For example, `environments: ["prod"]` is
+      # equivalent to `disabled: ${environment.name != "prod"}`.
+      environments:
 
       # Specify a list of POSIX-style paths or globs that should be regarded as source files for this action, and thus
       # will affect the computed _version_ of the action.
@@ -2109,6 +2123,11 @@ actionConfigs:
       # conditional expressions.
       disabled:
 
+      # If set, the action is only enabled for the listed environment types. This is effectively a cleaner shorthand
+      # for the `disabled` field with an expression for environments. For example, `environments: ["prod"]` is
+      # equivalent to `disabled: ${environment.name != "prod"}`.
+      environments:
+
       # Specify a list of POSIX-style paths or globs that should be regarded as source files for this action, and thus
       # will affect the computed _version_ of the action.
       #
@@ -2248,6 +2267,11 @@ actionConfigs:
       # action is disabled, so you need to make sure to provide alternate values for those if you're using them, using
       # conditional expressions.
       disabled:
+
+      # If set, the action is only enabled for the listed environment types. This is effectively a cleaner shorthand
+      # for the `disabled` field with an expression for environments. For example, `environments: ["prod"]` is
+      # equivalent to `disabled: ${environment.name != "prod"}`.
+      environments:
 
       # Specify a list of POSIX-style paths or globs that should be regarded as source files for this action, and thus
       # will affect the computed _version_ of the action.
@@ -2409,7 +2433,7 @@ moduleConfigs:
     # garden.yml file.
     repositoryUrl:
 
-    # When false, disables pushing this module to remote registries.
+    # When false, disables pushing this module to remote registries via the publish command.
     allowPublish:
 
     # A map of variables scoped to this particular module. These are resolved before any other parts of the module
@@ -2967,7 +2991,7 @@ modules:
     # garden.yml file.
     repositoryUrl:
 
-    # When false, disables pushing this module to remote registries.
+    # When false, disables pushing this module to remote registries via the publish command.
     allowPublish:
 
     # A map of variables scoped to this particular module. These are resolved before any other parts of the module

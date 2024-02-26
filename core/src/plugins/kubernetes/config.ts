@@ -132,6 +132,7 @@ export interface KubernetesConfig extends BaseProviderConfig {
     nodeSelector?: StringMap
     tolerations?: V1Toleration[]
     annotations?: StringMap
+    serviceAccountAnnotations?: StringMap
   }
   jib?: {
     pushViaCluster?: boolean
@@ -143,6 +144,7 @@ export interface KubernetesConfig extends BaseProviderConfig {
     nodeSelector?: StringMap
     tolerations?: V1Toleration[]
     annotations?: StringMap
+    serviceAccountAnnotations?: StringMap
     util?: {
       tolerations?: V1Toleration[]
       annotations?: StringMap
@@ -339,6 +341,7 @@ const tlsCertificateSchema = () =>
       )
       .example(["www.mydomain.com"]),
     secretRef: secretRef
+      .required()
       .description("A reference to the Kubernetes secret that contains the TLS certificate and key for the domain.")
       .example({ name: "my-tls-secret", namespace: "default" }),
   })
@@ -415,7 +418,7 @@ export const kubernetesConfigBase = () =>
           dedent`
         Choose the mechanism for building container images before deploying. By default your local Docker daemon is used, but you can set it to \`cluster-buildkit\` or \`kaniko\` to sync files to the cluster, and build container images there. This removes the need to run Docker locally, and allows you to share layer and image caches between multiple developers, as well as between your development and CI workflows.
 
-        For more details on all the different options and what makes sense to use for your setup, please check out the [in-cluster building guide](${DOCS_BASE_URL}/kubernetes-plugins/advanced/in-cluster-building).
+        For more details on all the different options and what makes sense to use for your setup, please check out the [in-cluster building guide](${DOCS_BASE_URL}/kubernetes-plugins/guides/in-cluster-building).
         `
         ),
       clusterBuildkit: joi
@@ -446,13 +449,14 @@ export const kubernetesConfigBase = () =>
 
             See the following table for details on our detection mechanism:
 
-            | Registry Name                   | Registry Domain         | Assumed \`mode=max\` support |
-            |---------------------------------|-------------------------|------------------------------|
-            | Google Cloud Artifact Registry  | \`pkg.dev\`             | Yes                          |
-            | Azure Container Registry        | \`azurecr.io\`          | Yes                          |
-            | GitHub Container Registry       | \`ghcr.io\`             | Yes                          |
-            | DockerHub                       | \`hub.docker.com\`     | Yes                          |
-            | Any other registry              |                         | No                           |
+            | Registry Name                   | Registry Domain                    | Assumed \`mode=max\` support |
+            |---------------------------------|------------------------------------|------------------------------|
+            | AWS Elastic Container Registry  | \`dkr.ecr.<region>.amazonaws.com\` | Yes (with \`image-manifest=true\`) |
+            | Google Cloud Artifact Registry  | \`pkg.dev\`                        | Yes                          |
+            | Azure Container Registry        | \`azurecr.io\`                     | Yes                          |
+            | GitHub Container Registry       | \`ghcr.io\`                        | Yes                          |
+            | DockerHub                       | \`hub.docker.com\`                 | Yes                          |
+            | Any other registry              |                                    | No                           |
 
             In case you need to override the defaults for your registry, you can do it like so:
 
@@ -517,6 +521,9 @@ export const kubernetesConfigBase = () =>
           annotations: annotationsSchema().description(
             "Specify annotations to apply to both the Pod and Deployment resources associated with cluster-buildkit. Annotations may have an effect on the behaviour of certain components, for example autoscalers."
           ),
+          serviceAccountAnnotations: serviceAccountAnnotationsSchema().description(
+            "Specify annotations to apply to the Kubernetes service account used by cluster-buildkit. This can be useful to set up IRSA with in-cluster building."
+          ),
         })
         .default(() => ({}))
         .description("Configuration options for the `cluster-buildkit` build mode."),
@@ -566,6 +573,9 @@ export const kubernetesConfigBase = () =>
           annotations: annotationsSchema().description(
             deline`Specify annotations to apply to each Kaniko builder pod. Annotations may have an effect on the behaviour of certain components, for example autoscalers.
           The same annotations will be used for each util pod unless they are specifically set under \`util.annotations\``
+          ),
+          serviceAccountAnnotations: serviceAccountAnnotationsSchema().description(
+            "Specify annotations to apply to the Kubernetes service account used by kaniko. This can be useful to set up IRSA with in-cluster building."
           ),
           util: joi.object().keys({
             tolerations: joiSparseArray(tolerationSchema()).description(
@@ -678,6 +688,13 @@ const annotationsSchema = () =>
   joiStringMap(joi.string())
     .example({
       "cluster-autoscaler.kubernetes.io/safe-to-evict": "false",
+    })
+    .optional()
+
+const serviceAccountAnnotationsSchema = () =>
+  joiStringMap(joi.string())
+    .example({
+      "eks.amazonaws.com/role-arn": "arn:aws:iam::111122223333:role/my-role",
     })
     .optional()
 

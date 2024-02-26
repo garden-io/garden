@@ -6,10 +6,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import chalk from "chalk"
 import ci from "ci-info"
 import dotenv from "dotenv"
 import fsExtra from "fs-extra"
+
 const { pathExists } = fsExtra
 import { range, sortBy, max, isEqual, mapValues, pickBy, memoize, indexOf } from "lodash-es"
 import moment from "moment"
@@ -35,20 +35,23 @@ import { globalOptions } from "./params.js"
 import type { BuiltinArgs, Command, CommandGroup } from "../commands/base.js"
 import type { DeepPrimitiveMap } from "../config/common.js"
 import { validateGitInstall } from "../vcs/vcs.js"
+import { styles } from "../logger/styles.js"
+import { makeDocsLink } from "../docs/common.js"
 
 export const cliStyles = {
-  heading: (str: string) => chalk.white.bold(str),
-  commandPlaceholder: () => chalk.blueBright("<command>"),
-  optionsPlaceholder: () => chalk.yellowBright("[options]"),
-  hints: (str: string) => chalk.gray(str),
+  heading: (str: string) => styles.accent.bold(str),
+  commandPlaceholder: () => styles.command("<command>"),
+  argumentsPlaceholder: () => styles.highlight("[arguments]"),
+  optionsPlaceholder: () => styles.warning("[options]"),
+  hints: (str: string) => styles.primary(str),
   usagePositional: (key: string, required: boolean, spread: boolean) => {
     if (spread) {
       key += " ..."
     }
 
-    return chalk.cyan(required ? `<${key}>` : `[${key}]`)
+    return styles.highlight(required ? `<${key}>` : `[${key}]`)
   },
-  usageOption: (str: string) => chalk.cyan(`<${str}>`),
+  usageOption: (str: string) => styles.highlight(`<${str}>`),
 }
 
 /**
@@ -253,7 +256,7 @@ export function processCliArgs<A extends ParameterObject, O extends ParameterObj
     // Ensure all required positional arguments are present
     if (!argVal) {
       if (spec.required) {
-        errors.push(`Missing required argument ${chalk.white.bold(argKey)}`)
+        errors.push(`Missing required argument ${styles.accent.bold(argKey)}`)
       }
 
       // Commands expect unused arguments to be explicitly set to undefined.
@@ -281,7 +284,8 @@ export function processCliArgs<A extends ParameterObject, O extends ParameterObj
     } else if (command.allowUndefinedArguments) {
       continue
     } else {
-      const expected = argKeys.length > 0 ? "only " + naturalList(argKeys.map((key) => chalk.white.bold(key))) : "none"
+      const expected =
+        argKeys.length > 0 ? "only " + naturalList(argKeys.map((key) => styles.accent.bold(key))) : "none"
 
       throw new ParameterError({
         message: `Unexpected positional argument "${argVal}" (expected ${expected})`,
@@ -301,7 +305,7 @@ export function processCliArgs<A extends ParameterObject, O extends ParameterObj
       }
     } catch (error) {
       throw new ParameterError({
-        message: `Invalid value for argument ${chalk.white.bold(argKey)}: ${error}`,
+        message: `Invalid value for argument ${styles.accent.bold(argKey)}: ${error}`,
       })
     }
   }
@@ -328,7 +332,7 @@ export function processCliArgs<A extends ParameterObject, O extends ParameterObj
     }
 
     const spec = optsWithAliases[key]
-    const flagStr = chalk.white.bold(key.length === 1 ? "-" + key : "--" + key)
+    const flagStr = styles.accent.bold(key.length === 1 ? "-" + key : "--" + key)
 
     if (!spec) {
       if (command.allowUndefinedArguments && value !== undefined) {
@@ -369,7 +373,7 @@ export function processCliArgs<A extends ParameterObject, O extends ParameterObj
 
   if (errors.length > 0) {
     throw new ParameterError({
-      message: chalk.red.bold(errors.join("\n")),
+      message: styles.error.bold(errors.join("\n")),
     })
   }
 
@@ -482,7 +486,7 @@ export function renderCommands(commands: Command[]) {
   }
 
   const rows = commands.map((command) => {
-    return [` ${chalk.cyan(command.getFullName())}`, command.help]
+    return [` ${styles.command(command.getFullName())}`, command.help]
   })
 
   const maxCommandLength = max(rows.map((r) => r[0]!.length))!
@@ -511,7 +515,7 @@ export function renderOptions(params: ParameterObject) {
     // Note: If there is more than one alias we don't actually want to print them all in help texts,
     // since generally they're there for backwards compatibility more than normal usage.
     const renderedAlias = renderAlias(param.aliases?.[0])
-    return chalk.green(` ${renderedAlias}--${name} `)
+    return styles.warning(` ${renderedAlias}--${name} `)
   })
 }
 
@@ -532,7 +536,7 @@ function renderParameters(params: ParameterObject, formatName: (name: string, pa
         hints += ` [default: ${param.defaultValue}]`
       }
     }
-    return out + chalk.gray(hints)
+    return out + styles.primary(hints)
   })
 
   const nameColWidth = stringWidth(maxBy(names, (n) => stringWidth(n)) || "") + 2
@@ -554,10 +558,20 @@ export function renderCommandErrors(logger: Logger, errors: Error[], log?: Log) 
       error,
     })
     // Output error details to console when log level is silly
-    errorLog.silly(error.toString(true))
+    errorLog.silly(() => error.toString(true))
   }
 
   if (logger.getWriters().file.length > 0) {
     errorLog.info(`\nSee .garden/${ERROR_LOG_FILENAME} for detailed error message`)
   }
+}
+
+export function getDashboardInfoMsg() {
+  return styles.success(deline`
+    🌿 Log in with ${styles.command(
+      "garden login"
+    )} to explore logs, past commands, and your dependency graph in the Garden dashboard.
+
+    Learn more at: ${styles.link(`${makeDocsLink("using-garden/dashboard")}`)}\n
+  `)
 }

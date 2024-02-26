@@ -11,11 +11,10 @@ import { Command } from "../base.js"
 import { RuntimeError } from "../../exceptions.js"
 import dedent from "dedent"
 import { findProjectConfig } from "../../config/base.js"
-import { DEFAULT_GARDEN_DIR_NAME, MUTAGEN_DIR_NAME } from "../../constants.js"
-import { join } from "path"
 import { exec } from "../../util/util.js"
-import { mutagenCli } from "../../mutagen.js"
+import { getMutagenDataDir, mutagenCli } from "../../mutagen.js"
 import fsExtra from "fs-extra"
+
 const { mkdirp } = fsExtra
 
 export class MutagenCommand extends Command<{}, {}> {
@@ -40,9 +39,9 @@ export class MutagenCommand extends Command<{}, {}> {
   override printHeader() {}
 
   async action({ garden, log, args }: CommandParams<{}, {}>) {
-    const projectRoot = await findProjectConfig({ log, path: garden.projectRoot })
+    const projectConfig = await findProjectConfig({ log, path: garden.projectRoot })
 
-    if (!projectRoot) {
+    if (!projectConfig) {
       throw new RuntimeError({
         message: dedent`
           Could not find project config in the current directory, or anywhere above.
@@ -51,7 +50,7 @@ export class MutagenCommand extends Command<{}, {}> {
       })
     }
 
-    const mutagenDir = join(projectRoot.path, DEFAULT_GARDEN_DIR_NAME, MUTAGEN_DIR_NAME)
+    const mutagenDir = getMutagenDataDir({ ctx: garden, log })
     const mutagenPath = await mutagenCli.ensurePath(log)
 
     await mkdirp(mutagenDir)

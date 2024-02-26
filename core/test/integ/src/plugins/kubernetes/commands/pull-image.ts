@@ -85,7 +85,7 @@ describe.skip("pull-image plugin command", () => {
         actionKind: resolvedAction.kind,
       })
 
-      builder.handlers.build!({
+      await builder.handlers.build!({
         ctx,
         log: actionLog,
         action: resolvedAction,
@@ -125,7 +125,7 @@ describe.skip("pull-image plugin command", () => {
       await garden.buildStaging.syncFromSrc({ action, log: garden.log })
       const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
 
-      builder.handlers.build!({
+      await builder.handlers.build!({
         ctx,
         log: actionLog,
         action: resolvedAction,

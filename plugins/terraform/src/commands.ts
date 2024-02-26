@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import chalk from "chalk"
 import { terraform } from "./cli.js"
 import type { TerraformProvider } from "./provider.js"
 import { ConfigurationError, ParameterError } from "@garden-io/sdk/build/src/exceptions.js"
@@ -17,26 +16,27 @@ import fsExtra from "fs-extra"
 const { remove } = fsExtra
 import { getProviderStatusCachePath } from "@garden-io/core/build/src/tasks/resolve-provider.js"
 import type { TerraformDeploy } from "./action.js"
+import { styles } from "@garden-io/core/build/src/logger/styles.js"
 
 const commandsToWrap = ["apply", "plan", "destroy"]
-const initCommand = chalk.bold("terraform init")
+const initCommand = styles.bold("terraform init")
 
 export const getTerraformCommands = (): PluginCommand[] =>
   commandsToWrap.flatMap((commandName) => [makeRootCommand(commandName), makeActionCommand(commandName)])
 
 function makeRootCommand(commandName: string): PluginCommand {
-  const terraformCommand = chalk.bold("terraform " + commandName)
+  const terraformCommand = styles.bold("terraform " + commandName)
 
   return {
     name: commandName + "-root",
     description: `Runs ${terraformCommand} for the provider root stack, with the provider variables automatically configured as inputs. Positional arguments are passed to the command. If necessary, ${initCommand} is run first.`,
-    title: chalk.bold.magenta(`Running ${chalk.white.bold(terraformCommand)} for project root stack`),
+    title: styles.command(`Running ${styles.command(terraformCommand)} for project root stack`),
     async handler({ ctx, args, log }: PluginCommandParams) {
       const provider = ctx.provider as TerraformProvider
 
       if (!provider.config.initRoot) {
         throw new ConfigurationError({
-          message: `terraform provider does not have an ${chalk.underline(
+          message: `terraform provider does not have an ${styles.underline(
             "initRoot"
           )} configured in the provider section of the project configuration`,
         })
@@ -72,7 +72,7 @@ function makeRootCommand(commandName: string): PluginCommand {
 }
 
 function makeActionCommand(commandName: string): PluginCommand {
-  const terraformCommand = chalk.bold("terraform " + commandName)
+  const terraformCommand = styles.bold("terraform " + commandName)
 
   return {
     name: commandName + "-action",
@@ -80,8 +80,8 @@ function makeActionCommand(commandName: string): PluginCommand {
     resolveGraph: true,
 
     title: ({ args }) =>
-      chalk.bold.magenta(
-        `Running ${chalk.white.bold(terraformCommand)} for the Deploy action ${chalk.white.bold(args[0] || "")}`
+      styles.command(
+        `Running ${styles.command(terraformCommand)} for the Deploy action ${styles.accent.bold(args[0] || "")}`
       ),
 
     async handler({ garden, ctx, args, log, graph }) {
@@ -122,7 +122,7 @@ function findAction(graph: ConfigGraph, name: string): TerraformDeploy {
 
   if (!action.isCompatible("terraform")) {
     throw new ParameterError({
-      message: chalk.red(`Action ${chalk.white(name)} is not a terraform action (got ${action.type}).`),
+      message: styles.error(`Action ${styles.accent(name)} is not a terraform action (got ${action.type}).`),
     })
   }
 

@@ -7,7 +7,7 @@
  */
 
 import cloneDeep from "fast-copy"
-import { isArray, isString, keyBy, keys, pick, union } from "lodash-es"
+import { isArray, isString, keyBy, keys, partition, pick, union } from "lodash-es"
 import { validateWithPath } from "./config/validation.js"
 import {
   getModuleTemplateReferences,
@@ -26,7 +26,7 @@ import {
   PluginError,
   toGardenError,
 } from "./exceptions.js"
-import { dedent } from "./util/string.js"
+import { dedent, deline } from "./util/string.js"
 import type { GardenModule, ModuleConfigMap, ModuleMap, ModuleTypeMap } from "./types/module.js"
 import { getModuleTypeBases, moduleFromConfig } from "./types/module.js"
 import type { BuildDependencyConfig, ModuleConfig } from "./config/module.js"
@@ -36,9 +36,9 @@ import { getLinkedSources } from "./util/ext-source-util.js"
 import type { ActionReference, DeepPrimitiveMap } from "./config/common.js"
 import { allowUnknown } from "./config/common.js"
 import type { ProviderMap } from "./config/provider.js"
-import chalk from "chalk"
 import { DependencyGraph } from "./graph/common.js"
 import fsExtra from "fs-extra"
+
 const { mkdirp, readFile } = fsExtra
 import type { Log } from "./logger/log-entry.js"
 import type { ModuleConfigContextParams } from "./config/template-contexts/module.js"
@@ -58,6 +58,8 @@ import type { ModuleGraph } from "./graph/modules.js"
 import type { GraphResults } from "./graph/results.js"
 import type { ExecBuildConfig } from "./plugins/exec/build.js"
 import { pMemoizeDecorator } from "./lib/p-memoize.js"
+import { styles } from "./logger/styles.js"
+import { actionReferenceToString } from "./actions/base.js"
 
 // This limit is fairly arbitrary, but we need to have some cap on concurrent processing.
 export const moduleResolutionConcurrencyLimit = 50
@@ -139,7 +141,7 @@ export class ModuleResolver {
         return
       }
 
-      this.log.silly(`ModuleResolver: Process node ${moduleKey}`)
+      this.log.silly(() => `ModuleResolver: Process node ${moduleKey}`)
       inFlight.add(moduleKey)
 
       // Resolve configuration, unless previously resolved.
@@ -153,7 +155,7 @@ export class ModuleResolver {
         if (!resolvedConfig) {
           const rawConfig = this.rawConfigsByKey[moduleKey]
 
-          this.log.silly(`ModuleResolver: Resolve config ${moduleKey}`)
+          this.log.silly(() => `ModuleResolver: Resolve config ${moduleKey}`)
           resolvedConfig = resolvedConfigs[moduleKey] = await this.resolveModuleConfig(rawConfig, resolvedDependencies)
 
           // Check if any new build dependencies were added by the configure handler
@@ -161,7 +163,7 @@ export class ModuleResolver {
             const depKey = dep.name
 
             if (!dependencyNames.includes(depKey)) {
-              this.log.silly(`ModuleResolver: Found new dependency ${depKey} when resolving ${moduleKey}`)
+              this.log.silly(() => `ModuleResolver: Found new dependency ${depKey} when resolving ${moduleKey}`)
 
               // We throw if the build dependency can't be found at all
               if (!fullGraph.hasNode(depKey)) {
@@ -173,7 +175,9 @@ export class ModuleResolver {
 
               // The dependency may already have been processed, we don't want to add it to the graph in that case
               if (processingGraph.hasNode(depKey)) {
-                this.log.silly(`ModuleResolver: Need to re-resolve ${moduleKey} after processing new dependencies`)
+                this.log.silly(
+                  () => `ModuleResolver: Need to re-resolve ${moduleKey} after processing new dependencies`
+                )
                 processingGraph.addDependency(moduleKey, depKey)
               }
             }
@@ -191,11 +195,11 @@ export class ModuleResolver {
             dependencies: resolvedDependencies,
             repoRoot: minimalRoots[resolvedConfig.path],
           })
-          this.log.silly(`ModuleResolver: Module ${moduleKey} resolved`)
+          this.log.silly(() => `ModuleResolver: Module ${moduleKey} resolved`)
           processingGraph.removeNode(moduleKey)
         }
       } catch (err) {
-        this.log.silly(`ModuleResolver: Node ${moduleKey} failed: ${err}`)
+        this.log.silly(() => `ModuleResolver: Node ${moduleKey} failed: ${err}`)
         errors[moduleKey] = toGardenError(err)
       }
 
@@ -206,12 +210,12 @@ export class ModuleResolver {
     const processLeaves = async () => {
       if (Object.keys(errors).length > 0) {
         const errorStr = Object.entries(errors)
-          .map(([name, err]) => `${chalk.white.bold(name)}: ${err.message}`)
+          .map(([name, err]) => `${styles.highlight.bold(name)}: ${err.message}`)
           .join("\n")
         const msg = `Failed resolving one or more modules:\n\n${errorStr}`
 
         const combined = new ConfigurationError({
-          message: chalk.red(msg),
+          message: msg,
           wrappedErrors: Object.values(errors),
         })
         throw combined
@@ -230,7 +234,7 @@ export class ModuleResolver {
         throw err
       }
 
-      this.log.silly(`ModuleResolver: Process ${batch.length} leaves`)
+      this.log.silly(() => `ModuleResolver: Process ${batch.length} leaves`)
 
       if (batch.length === 0) {
         return
@@ -250,7 +254,7 @@ export class ModuleResolver {
     let i = 0
 
     while (processingGraph.size() > 0) {
-      this.log.silly(`ModuleResolver: Loop ${++i}`)
+      this.log.silly(() => `ModuleResolver: Loop ${++i}`)
       await processLeaves()
     }
 
@@ -487,7 +491,7 @@ export class ModuleResolver {
 
     for (const base of bases) {
       if (base.schema) {
-        garden.log.silly(`Validating '${config.name}' config against '${base.name}' schema`)
+        garden.log.silly(() => `Validating '${config.name}' config against '${base.name}' schema`)
 
         config.spec = <ModuleConfig>validateWithPath({
           config: config.spec,
@@ -528,7 +532,7 @@ export class ModuleResolver {
     dependencies: GardenModule[]
     repoRoot: string
   }) {
-    this.log.silly(`Resolving module ${resolvedConfig.name}`)
+    this.log.silly(() => `Resolving module ${resolvedConfig.name}`)
 
     // Write module files
     const configContext = new ModuleConfigContext({
@@ -635,7 +639,7 @@ export class ModuleResolver {
 
     for (const base of bases) {
       if (base.moduleOutputsSchema) {
-        this.log.silly(`Validating '${module.name}' module outputs against '${base.name}' schema`)
+        this.log.silly(() => `Validating '${module.name}' module outputs against '${base.name}' schema`)
 
         module.outputs = validateWithPath({
           config: module.outputs,
@@ -794,9 +798,14 @@ export const convertModules = profileAsync(async function convertModules(
         },
 
         convertRuntimeDependencies,
+        // Note: We include any build dependencies from the module, since not all conversions generate a non-dummy
+        // build action (and we need to make sure build dependencies from the module are processed before the generated
+        // Deploy/Test/Run is).
         prepareRuntimeDependencies(deps: string[], build?: BuildActionConfig<string, any>) {
-          const resolved: ActionReference[] = convertRuntimeDependencies(deps)
-          if (build) {
+          const buildDeps: ActionReference[] = module.build.dependencies.map(convertBuildDependency)
+          const resolved: ActionReference[] = [...buildDeps, ...convertRuntimeDependencies(deps)]
+          if (build && !buildDeps.find((d) => d.name === build.name && d.kind === "Build")) {
+            // We make sure not to add the same dependency twice here.
             resolved.push({ kind: "Build", name: build.name })
           }
           return resolved
@@ -830,6 +839,55 @@ export const convertModules = profileAsync(async function convertModules(
       }
     })
   )
+
+  const allActions = [...actions, ...groups.flatMap((g) => g.actions)]
+  // Not all conversion handlers return a Build action for the module, so we need to check for references to
+  // build steps for modules that aren't represented by a Build in the post-conversion set of actions.
+  // We warn the user to remove the dangling references, but don't throw an exception and instead simply remove
+  // the dependencies from the relevant actions.
+  const convertedBuildNames = new Set(allActions.filter((a) => isBuildActionConfig(a)).map((a) => a.name))
+  const missingBuildNames = new Set(
+    graph
+      .getModules()
+      .map((m) => m.name)
+      .filter((name) => !convertedBuildNames.has(name))
+  )
+
+  const isMissingBuildDependency = (d: ActionReference<ActionKind>) =>
+    d.kind === "Build" && missingBuildNames.has(d.name)
+
+  for (const action of allActions) {
+    const [missingBuilds, existingBuilds] = partition(action.dependencies || [], isMissingBuildDependency)
+    action.dependencies = existingBuilds
+
+    const moduleName = action.internal.moduleName
+    if (!moduleName) {
+      continue
+    }
+
+    for (const missingBuild of missingBuilds) {
+      const depName = missingBuild.name
+      const depType = graph.getModule(depName)?.type
+      if (!depType) {
+        continue
+      }
+
+      log.warn(
+        deline`
+          Action ${styles.highlight(actionReferenceToString(action))} depends on
+          ${styles.highlight("build." + depName)} (from module ${styles.highlight(depName)} of type ${depType}),
+          which doesn't exist. This is probably because there's no need for a Build action when converting modules
+          of type ${depType} to actions. Skipping this dependency.
+        `
+      )
+      log.warn(
+        deline`
+          Please remove the build dependency on ${styles.highlight(depName)} from the module
+          ${styles.highlight(moduleName)}'s configuration.
+        `
+      )
+    }
+  }
 
   return { groups, actions }
 })
@@ -919,9 +977,8 @@ function inheritModuleToAction(module: GardenModule, action: ActionConfig) {
 
 function missingBuildDependency(moduleName: string, dependencyName: string) {
   return new ConfigurationError({
-    message: chalk.red(
-      `Could not find build dependency ${chalk.white(dependencyName)}, ` +
-        `configured in module ${chalk.white(moduleName)}`
-    ),
+    message:
+      `Could not find build dependency ${styles.highlight(dependencyName)}, ` +
+      `configured in module ${styles.highlight(moduleName)}`,
   })
 }

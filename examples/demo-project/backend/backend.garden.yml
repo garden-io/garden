@@ -4,19 +4,16 @@ description: Backend service container image
 type: container
 
 ---
-
 kind: Deploy
 name: backend
 description: Backend service container
 type: container
-
-build: backend
-
-# You can specify variables here at the action level
+dependencies:
+  - build.backend
 variables:
   ingressPath: /hello-backend
-
 spec:
+  image: ${actions.build.backend.outputs.deploymentImageId}
   healthCheck:
     httpGet:
       path: /hello-backend
@@ -35,6 +32,8 @@ spec:
 kind: Run
 name: backend-run-task
 type: container
-build: backend
+dependencies:
+  - build.backend
 spec:
   command: ["sh", "-c", "echo task output"]
+  image: ${actions.build.backend.outputs.deploymentImageId}

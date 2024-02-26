@@ -17,7 +17,7 @@ import { validateSchema } from "../config/validation.js"
 import { load, loadAll } from "js-yaml"
 import { safeDumpYaml } from "../util/serialization.js"
 import indentString from "indent-string"
-import { maybeTemplateString } from "./template-string.js"
+import { mayContainTemplateString } from "./template-string.js"
 
 interface ExampleArgument {
   input: any[]
@@ -510,12 +510,12 @@ export function callHelperFunction({
       })
 
       // do not apply helper function for an unresolved template string
-      if (maybeTemplateString(value)) {
+      if (mayContainTemplateString(value)) {
         if (allowPartial) {
           return { resolved: "${" + text + "}" }
         } else {
           const _error = new TemplateStringError({
-            message: `Function '${functionName}' cannot be applied on unresolved string`,
+            message: `Function '${functionName}' cannot be applied on unresolved value`,
           })
           return { _error }
         }

@@ -277,7 +277,7 @@ export async function waitForResources({
   const startTime = new Date().getTime()
 
   const logEventContext = {
-    origin: "kubernetes-plugin",
+    origin: "kubernetes",
     level: "verbose" as const,
   }
 
@@ -289,6 +289,7 @@ export async function waitForResources({
     .createLog({
       // TODO: Avoid setting fallback, the action name should be known
       name: actionName || "<kubernetes>",
+      origin: "kubernetes",
     })
     .info(waitingMsg)
   emitLog(waitingMsg)
@@ -545,12 +546,8 @@ export async function compareDeployedResources({
     if (!isSubset(deployedResource, manifest)) {
       if (manifest) {
         log.debug(`Resource ${manifest.metadata.name} is not a superset of deployed resource`)
-        log.silly(diffString(deployedResource, manifest))
+        log.silly(() => diffString(deployedResource, manifest))
       }
-      // console.log(JSON.stringify(resource, null, 4))
-      // console.log(JSON.stringify(existingSpec, null, 4))
-      // console.log("----------------------------------------------------")
-      // throw new InternalError("bla")
       result.state = "outdated"
       return result
     }

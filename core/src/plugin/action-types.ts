@@ -58,13 +58,10 @@ export type ActionTypeHandler<
 
 export type GetActionTypeParams<T> = T extends ActionTypeHandlerSpec<any, infer ParamsType, any> ? ParamsType : {}
 export type GetActionTypeResults<T> = T extends ActionTypeHandlerSpec<any, any, infer ResultType> ? ResultType : {}
-export type GetActionTypeHandler<T, N> = T extends ActionTypeHandlerSpec<
-  infer KindType,
-  infer ParamsType,
-  infer ResultType
->
-  ? ActionTypeHandler<KindType, N, ParamsType, ResultType>
-  : ActionTypeHandler<any, N, any, any>
+export type GetActionTypeHandler<T, N> =
+  T extends ActionTypeHandlerSpec<infer KindType, infer ParamsType, infer ResultType>
+    ? ActionTypeHandler<KindType, N, ParamsType, ResultType>
+    : ActionTypeHandler<any, N, any, any>
 export type WrappedActionTypeHandler<T, N> = GetActionTypeHandler<T, N> & {
   handlerType: N
   actionType: string

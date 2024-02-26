@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "serve": "VUE_APP_HOSTNAME=$GARDEN_VARIABLES_BASE_HOSTNAME vue-cli-service serve --dashboard",
+    "serve": "vue-cli-service serve --dashboard",
     "build": "vue-cli-service build",
     "lint": "vue-cli-service lint",
     "test:unit": "vue-cli-service test:unit",
@@ -11,7 +11,7 @@
     "test:e2e": "node_modules/mocha/bin/mocha tests/integ/test.js"
   },
   "dependencies": {
-    "axios": "^0.21.2",
+    "axios": "^0.28.0",
     "chai": "^4.1.2",
     "socket.io-client": "^4.3.2",
     "vue": "^2.5.17",

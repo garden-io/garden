@@ -15,6 +15,7 @@ import { gardenPlugin } from "../../../../../src/plugins/kubernetes/ephemeral/ep
 import type { TempDirectory } from "../../../../helpers.js"
 import { expectError, makeTempDir, makeTestGardenA } from "../../../../helpers.js"
 import { FakeCloudApi } from "../../../../helpers/api.js"
+import { styles } from "../../../../../src/logger/styles.js"
 
 describe("ephemeral-kubernetes configureProvider", () => {
   const basicConfig = {
@@ -65,7 +66,9 @@ describe("ephemeral-kubernetes configureProvider", () => {
         }),
       (err) => {
         expect(err.message).to.contain(
-          "You are not logged in. You must be logged into Garden Cloud in order to use ephemeral-kubernetes provider"
+          `You are not logged in. You must log in with the ${styles.command(
+            "garden login"
+          )} command to use the ephemeral-kubernetes plugin`
         )
       }
     )

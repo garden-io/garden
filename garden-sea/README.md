@@ -14,6 +14,9 @@ You can build the release binaries using the command
 ```shell
 npm run dist [target] # Valid targets are currently `windows-amd64`, `linux-arm64`, `linux-amd64`, `macos-arm64` and `macos-amd64`.
 ```
+
+Use the option ` --cargocommand=cross` for cross-platform builds, otherwise cargo build will be the default.
+
 You can then find the release binaries and archives under `dist/`.
 
 After you ran `npm run dist` for the first time the artifacts we reference using the `include_bytes!` macro in `artifacts.rs` have been generated in the appropriate location. From then on you can also build and test the application using cargo commands, like any other Rust application:

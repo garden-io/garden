@@ -18,7 +18,7 @@ import { pluginSchema, pluginNodeModuleSchema } from "./plugin/plugin.js"
 import type { GenericProviderConfig } from "./config/provider.js"
 import { CircularDependenciesError, ConfigurationError, PluginError, RuntimeError } from "./exceptions.js"
 import { uniq, mapValues, fromPairs, flatten, keyBy, some, isString, sortBy } from "lodash-es"
-import type { MaybeUndefined } from "./util/util.js"
+import type { Dictionary, MaybeUndefined } from "./util/util.js"
 import { findByName, pushToKey, getNames, isNotNull } from "./util/util.js"
 import { dedent, deline, naturalList } from "./util/string.js"
 import { validateSchema } from "./config/validation.js"
@@ -38,10 +38,6 @@ import type {
 } from "./plugin/action-types.js"
 import type { ObjectSchema } from "@hapi/joi"
 import { GardenSdkPlugin } from "./plugin/sdk.js"
-
-interface Dictionary<T> {
-  [index: string]: T
-}
 
 export async function loadAndResolvePlugins(
   log: Log,
@@ -66,7 +62,7 @@ export function resolvePlugins(
       return initializedPlugins[name]
     }
 
-    log.silly(`Validating plugin ${name}`)
+    log.silly(() => `Validating plugin ${name}`)
     let plugin = loadedPlugins[name]
 
     if (!plugin) {
@@ -125,7 +121,7 @@ export function resolvePlugins(
       }
     }
 
-    log.silly(`Done loading plugin ${name}`)
+    log.silly(() => `Done loading plugin ${name}`)
 
     return plugin
   }
@@ -188,7 +184,7 @@ function validateOutputSchemas(
 
 export async function loadPlugin(log: Log, projectRoot: string, nameOrPlugin: RegisterPluginParam) {
   let plugin: GardenPluginSpec
-  log.silly(`Loading plugin ${isString(nameOrPlugin) ? nameOrPlugin : nameOrPlugin.name}`)
+  log.silly(() => `Loading plugin ${isString(nameOrPlugin) ? nameOrPlugin : nameOrPlugin.name}`)
 
   if (isString(nameOrPlugin)) {
     let moduleNameOrLocation = nameOrPlugin
@@ -227,7 +223,7 @@ export async function loadPlugin(log: Log, projectRoot: string, nameOrPlugin: Re
     plugin = <GardenPluginSpec>nameOrPlugin
   }
 
-  log.silly(`Loaded plugin ${plugin.name}`)
+  log.silly(() => `Loaded plugin ${plugin.name}`)
 
   return plugin
 }
@@ -308,7 +304,9 @@ function resolvePlugin(
   for (const [name, handler] of Object.entries(base.handlers || {})) {
     if (!handler) {
       continue
-    } else if (resolved.handlers[name]) {
+    }
+
+    if (resolved.handlers[name]) {
       // Attach the overridden handler as a base, and attach metadata
       resolved.handlers[name].base = Object.assign(handler, { handlerType: name, pluginName: base.name })
     } else {

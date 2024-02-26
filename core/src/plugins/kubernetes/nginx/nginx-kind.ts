@@ -10,7 +10,6 @@ import type { Log } from "../../../logger/log-entry.js"
 import type { KubernetesPluginContext } from "../config.js"
 import { KubeApi } from "../api.js"
 import { checkResourceStatus, waitForResources } from "../status/status.js"
-import chalk from "chalk"
 import { apply, deleteResources } from "../kubectl.js"
 import type { DeployState } from "../../../types/service.js"
 import { kindNginxGetManifests } from "./nginx-kind-manifests.js"
@@ -61,7 +60,7 @@ export class KindGardenIngressController extends GardenIngressComponent {
 
     const deploymentStatus = await checkResourceStatus({ api, namespace, manifest: nginxKindMainResource, log })
 
-    log.debug(chalk.yellow(`Status of ingress controller: ${deploymentStatus.state}`))
+    log.debug(`Status of ingress controller: ${deploymentStatus.state}`)
     return deploymentStatus.state
   }
 

@@ -8,7 +8,6 @@
 
 import deline from "deline"
 import dedent from "dedent"
-import chalk from "chalk"
 
 import type { CommandParams, CommandResult, PrepareParams, ProcessCommandResult } from "./base.js"
 import { Command, handleProcessResults, processCommandResultSchema, emptyActionResults } from "./base.js"
@@ -25,12 +24,12 @@ import { PluginEventBroker } from "../plugin-context.js"
 import { HandlerMonitor } from "../monitors/handler.js"
 import { PortForwardMonitor } from "../monitors/port-forward.js"
 import { LogMonitor } from "../monitors/logs.js"
-import type { LoggerType } from "../logger/logger.js"
 import { parseLogLevel } from "../logger/logger.js"
 import { serveOpts } from "./serve.js"
 import { gardenEnv } from "../constants.js"
 import type { DeployAction } from "../actions/deploy.js"
 import { watchParameter, watchRemovedWarning } from "./util/watch-parameter.js"
+import { styles } from "../logger/styles.js"
 
 export const deployArgs = {
   names: new StringsParameter({
@@ -161,8 +160,8 @@ export class DeployCommand extends Command<Args, Opts> {
     printHeader(log, "Deploy", "🚀")
   }
 
-  override getTerminalWriterType(params): LoggerType {
-    return this.maybePersistent(params) ? "ink" : "default"
+  override useInkTerminalWriter(params) {
+    return !!this.maybePersistent(params)
   }
 
   override terminate() {
@@ -174,6 +173,7 @@ export class DeployCommand extends Command<Args, Opts> {
     const { garden, log, args, opts } = params
 
     this.garden = garden
+    const commandLog = log.createLog({ name: "garden" })
 
     if (opts.watch) {
       await watchRemovedWarning(garden, log)
@@ -193,8 +193,8 @@ export class DeployCommand extends Command<Args, Opts> {
 
     const actionModes: ActionModeMap = {
       // Support a single empty value (which comes across as an empty list) as equivalent to '*'
-      local: opts["local-mode"]?.length === 0 ? ["*"] : opts["local-mode"]?.map((s) => "deploy." + s),
-      sync: opts.sync?.length === 0 ? ["*"] : opts.sync?.map((s) => "deploy." + s),
+      local: opts["local-mode"]?.length === 0 ? ["deploy.*"] : opts["local-mode"]?.map((s) => "deploy." + s),
+      sync: opts.sync?.length === 0 ? ["deploy.*"] : opts.sync?.map((s) => "deploy." + s),
     }
 
     const graph = await garden.getConfigGraph({ log, emit: true, actionModes })
@@ -203,10 +203,12 @@ export class DeployCommand extends Command<Args, Opts> {
     const disabled = deployActions.filter((s) => s.isDisabled()).map((s) => s.name)
 
     if (disabled.length > 0) {
-      const bold = disabled.map((d) => chalk.white(d))
+      const highlight = disabled.map((d) => styles.highlight(d))
       const msg =
-        disabled.length === 1 ? `Deploy action ${bold} is disabled` : `Deploy actions ${naturalList(bold)} are disabled`
-      log.info(chalk.gray(msg))
+        disabled.length === 1
+          ? `Deploy action ${highlight} is disabled`
+          : `Deploy actions ${naturalList(highlight)} are disabled`
+      commandLog.info(msg)
     }
 
     const skipRuntimeDependencies = opts["skip-dependencies"]
@@ -226,7 +228,7 @@ export class DeployCommand extends Command<Args, Opts> {
     deployActions = deployActions.filter((s) => !s.isDisabled() && !skipped.includes(s.name))
 
     if (deployActions.length === 0) {
-      log.error({ msg: "Nothing to deploy. Aborting." })
+      commandLog.error({ msg: "Nothing to deploy. Aborting." })
       return { result: { aborted: true, success: true, ...emptyActionResults } }
     }
 

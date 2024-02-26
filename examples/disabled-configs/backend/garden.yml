@@ -10,11 +10,11 @@ kind: Deploy
 name: backend
 description: Backend service container image
 type: container
-
-build: backend
+dependencies:
+  - build.backend
 disabled: ${environment.name == "local"}
-
 spec:
+  image: ${actions.build.backend.outputs.deploymentImageId}
   ports:
     - name: http
       containerPort: 8080
@@ -28,9 +28,9 @@ spec:
 kind: Run
 name: backend
 type: container
-
-build: backend
+dependencies:
+  - build.backend
 disabled: ${environment.name == "local"}
-
 spec:
-  command: [ "sh", "-c", "echo task output" ]
+  command: ["sh", "-c", "echo task output"]
+  image: ${actions.build.backend.outputs.deploymentImageId}

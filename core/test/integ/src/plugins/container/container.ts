@@ -54,6 +54,8 @@ describe("plugins.container", () => {
   let log: ActionLog
   let containerProvider: ContainerProvider
 
+  let dockerCli: sinon.SinonStub<any, any>
+
   beforeEach(async () => {
     garden = await makeTestGarden(projectRoot, { plugins: [gardenPlugin()] })
     log = createActionLog({ log: garden.log, actionName: "", actionKind: "" })
@@ -62,15 +64,23 @@ describe("plugins.container", () => {
     td.replace(garden.buildStaging, "syncDependencyProducts", () => null)
   })
 
+  afterEach(() => {
+    sinon.restore()
+  })
+
   async function getTestBuild(cfg: BuildActionConfig): Promise<Executed<ContainerBuildAction>> {
     sinon.replace(containerHelpers, "actionHasDockerfile", async () => true)
-    sinon.replace(containerHelpers, "dockerCli", async () => ({
-      all: "test log",
-      stdout: testVersionedId,
-      stderr: "",
-      code: 0,
-      proc: <any>null,
-    }))
+
+    dockerCli = sinon.stub(containerHelpers, "dockerCli")
+    dockerCli.returns(
+      Promise.resolve({
+        all: "test log",
+        stdout: testVersionedId,
+        stderr: "",
+        code: 0,
+        proc: <any>null,
+      })
+    )
 
     garden.setActionConfigs([cfg])
     const graph = await garden.getConfigGraph({ emit: false, log })
@@ -80,34 +90,6 @@ describe("plugins.container", () => {
   }
 
   describe("publishContainerBuild", () => {
-    it("should publish image", async () => {
-      const config = cloneDeep(baseConfig)
-      config.spec.localId = testVersionedId
-
-      sinon.replace(containerHelpers, "getPublicImageId", () => testVersionedId)
-
-      const action = await getTestBuild(config)
-
-      sinon.restore()
-
-      sinon.replace(containerHelpers, "getPublicImageId", () => testVersionedId)
-      sinon.replace(containerHelpers, "actionHasDockerfile", async () => true)
-
-      sinon.replace(containerHelpers, "dockerCli", async ({ cwd, args, ctx: _ctx }) => {
-        const out = { all: "log", stdout: "", stderr: "", code: 0, proc: <any>null }
-        if (args[0] === "tag") {
-          return out
-        }
-        expect(cwd).to.equal(action.getBuildPath())
-        expect(args).to.eql(["push", testVersionedId])
-        expect(_ctx).to.exist
-        return out
-      })
-
-      const result = await publishContainerBuild({ ctx, log, action })
-      expect(result.detail).to.eql({ message: "Published some/image:12345", published: true })
-    })
-
     it("should tag image if remote id differs from local id", async () => {
       const publishId = "some/image:1.1"
 
@@ -152,7 +134,7 @@ describe("plugins.container", () => {
 
       const dockerCli = sinon.stub(containerHelpers, "dockerCli")
 
-      const result = await publishContainerBuild({ ctx, log, action, tag: "custom-tag" })
+      const result = await publishContainerBuild({ ctx, log, action, tagOverride: "custom-tag" })
       expect(result.detail).to.eql({ message: "Published test:custom-tag", published: true })
 
       sinon.assert.calledWith(
@@ -170,6 +152,70 @@ describe("plugins.container", () => {
           args: ["push", "test:custom-tag"],
         })
       )
+    })
+
+    describe("publish image id", () => {
+      let action: Executed<ContainerBuildAction>
+
+      function assertPublishId(publishId: string, detail: { message?: string; published: boolean } | null) {
+        expect(detail).to.eql({ message: `Published ${publishId}`, published: true })
+
+        sinon.assert.calledWith(
+          dockerCli,
+          sinon.match({
+            cwd: action.getBuildPath(),
+            args: ["push", publishId],
+          })
+        )
+      }
+
+      it("should use spec.publishId if defined", async () => {
+        const config = cloneDeep(baseConfig)
+        config.spec.publishId = testVersionedId
+
+        action = await getTestBuild(config)
+
+        const result = await publishContainerBuild({ ctx, log, action })
+        assertPublishId("some/image:12345", result.detail)
+      })
+
+      it("should fall back to spec.localId if spec.publishId is not defined", async () => {
+        const config = cloneDeep(baseConfig)
+        config.spec.localId = "private-registry/foobar"
+
+        action = await getTestBuild(config)
+
+        const result = await publishContainerBuild({ ctx, log, action })
+        assertPublishId(`private-registry/foobar:${action.versionString()}`, result.detail)
+      })
+
+      it("should fall back to action name if spec.localId and spec.publishId are not defined", async () => {
+        const config = cloneDeep(baseConfig)
+
+        action = await getTestBuild(config)
+
+        const result = await publishContainerBuild({ ctx, log, action })
+        assertPublishId(`test:${action.versionString()}`, result.detail)
+      })
+
+      it("should respect tagOverride, which corresponds to garden publish --tag command line option", async () => {
+        const config = cloneDeep(baseConfig)
+
+        action = await getTestBuild(config)
+
+        const result = await publishContainerBuild({ ctx, log, action, tagOverride: "custom-version" })
+        assertPublishId(`test:custom-version`, result.detail)
+      })
+
+      it("tagOverride has precedence over spec.publishId", async () => {
+        const config = cloneDeep(baseConfig)
+        config.spec.publishId = "some/image:1.1"
+
+        action = await getTestBuild(config)
+
+        const result = await publishContainerBuild({ ctx, log, action, tagOverride: "custom-version" })
+        assertPublishId(`some/image:custom-version`, result.detail)
+      })
     })
   })
 

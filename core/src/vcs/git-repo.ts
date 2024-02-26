@@ -6,16 +6,52 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { GitHandler, augmentGlobs } from "./git.js"
-import type { GetFilesParams, VcsFile } from "./vcs.js"
+import { augmentGlobs, GitHandler } from "./git.js"
+import type { BaseIncludeExcludeFiles, GetFilesParams, IncludeExcludeFilesHandler, VcsFile } from "./vcs.js"
 import { isDirectory, matchPath } from "../util/fs.js"
 import fsExtra from "fs-extra"
-const { pathExists } = fsExtra
 import { pathToCacheContext } from "../cache.js"
 import { FileTree } from "./file-tree.js"
-import { sep } from "path"
+import { normalize, sep } from "path"
+import { stableStringify } from "../util/string.js"
+import { hashString } from "../util/util.js"
 
-type ScanRepoParams = Pick<GetFilesParams, "log" | "path" | "pathDescription" | "failOnPrompt">
+const { pathExists } = fsExtra
+
+type ScanRepoParams = Pick<GetFilesParams, "log" | "path" | "pathDescription" | "failOnPrompt" | "exclude">
+
+interface GitRepoGetFilesParams extends GetFilesParams {
+  scanFromProjectRoot: boolean
+}
+
+interface GitRepoIncludeExcludeFiles extends BaseIncludeExcludeFiles {
+  augmentedIncludes: string[]
+  augmentedExcludes: string[]
+}
+
+const getIncludeExcludeFiles: IncludeExcludeFilesHandler<GitRepoGetFilesParams, GitRepoIncludeExcludeFiles> = async (
+  params
+) => {
+  const { include, path, scanFromProjectRoot } = params
+
+  // Make sure action config is not mutated.
+  let exclude = !params.exclude ? [] : [...params.exclude]
+
+  // Do the same normalization of the excluded paths like in `GitHandler`.
+  // This might be redundant because the non-normalized paths will be handled by `augmentGlobs` below.
+  // But this brings no harm and makes the implementation more clear.
+  exclude = exclude.map(normalize)
+
+  // We allow just passing a path like `foo` as include and exclude params
+  // Those need to be converted to globs, but we don't want to touch existing globs
+  const augmentedIncludes = include ? await augmentGlobs(path, include) : ["**/*"]
+  const augmentedExcludes = await augmentGlobs(path, exclude || [])
+  if (scanFromProjectRoot) {
+    augmentedExcludes.push("**/.garden/**/*")
+  }
+
+  return { include, exclude, augmentedIncludes, augmentedExcludes }
+}
 
 export class GitRepoHandler extends GitHandler {
   override name = "git-repo"
@@ -28,10 +64,7 @@ export class GitRepoHandler extends GitHandler {
   override async getFiles(params: GetFilesParams): Promise<VcsFile[]> {
     const { log, path, pathDescription, filter, failOnPrompt = false } = params
 
-    if (params.include && params.include.length === 0) {
-      // No need to proceed, nothing should be included
-      return []
-    }
+    let scanRoot = params.scanRoot || path
 
     if (!(await pathExists(path))) {
       log.warn(`${pathDescription} ${path} could not be found.`)
@@ -43,10 +76,30 @@ export class GitRepoHandler extends GitHandler {
       return []
     }
 
-    let scanRoot = params.scanRoot || path
-
     if (!params.scanRoot && params.pathDescription !== "submodule") {
       scanRoot = await this.getRepoRoot(log, path, failOnPrompt)
+    }
+
+    const scanFromProjectRoot = scanRoot === this.garden?.projectRoot
+    const { augmentedExcludes, augmentedIncludes } = await getIncludeExcludeFiles({ ...params, scanFromProjectRoot })
+
+    const hashedFilterParams = hashString(
+      stableStringify({
+        filter: filter ? filter.toString() : undefined, // We hash the source code of the filter function if provided.
+        augmentedIncludes,
+        augmentedExcludes,
+      })
+    )
+    const filteredFilesCacheKey = ["git-repo-files", path, hashedFilterParams]
+
+    const cached = this.cache.get(log, filteredFilesCacheKey) as VcsFile[] | undefined
+    if (cached) {
+      return cached
+    }
+
+    if (params.include && params.include.length === 0) {
+      // No need to proceed, nothing should be included
+      return []
     }
 
     const fileTree = await this.scanRepo({
@@ -56,24 +109,17 @@ export class GitRepoHandler extends GitHandler {
       failOnPrompt,
     })
 
-    const moduleFiles = fileTree.getFilesAtPath(path)
-
-    // We allow just passing a path like `foo` as include and exclude params
-    // Those need to be converted to globs, but we don't want to touch existing globs
-    const include = params.include ? await augmentGlobs(path, params.include) : ["**/*"]
-    const exclude = await augmentGlobs(path, params.exclude || [])
-
-    if (scanRoot === this.garden?.projectRoot) {
-      exclude.push("**/.garden/**/*")
-    }
+    const filesAtPath = fileTree.getFilesAtPath(path)
 
     log.debug(
-      `Found ${moduleFiles.length} files in module path, filtering by ${include.length} include and ${exclude.length} exclude globs`
+      `Found ${filesAtPath.length} files in path, filtering by ${augmentedIncludes.length} include and ${augmentedExcludes.length} exclude globs`
     )
-    log.silly(`Include globs: ${include.join(", ")}`)
-    log.silly(exclude.length > 0 ? `Exclude globs: ${exclude.join(", ")}` : "No exclude globs")
+    log.silly(() => `Include globs: ${augmentedIncludes.join(", ")}`)
+    log.silly(() =>
+      augmentedExcludes.length > 0 ? `Exclude globs: ${augmentedExcludes.join(", ")}` : "No exclude globs"
+    )
 
-    const filtered = moduleFiles.filter(({ path: p }) => {
+    const filtered = filesAtPath.filter(({ path: p }) => {
       if (filter && !filter(p)) {
         return false
       }
@@ -82,11 +128,13 @@ export class GitRepoHandler extends GitHandler {
       // Previously we prepended the module path to the globs
       // but that caused issues with the glob matching on windows due to backslashes
       const relativePath = p.replace(`${path}${sep}`, "")
-      log.silly(`Checking if ${relativePath} matches include/exclude globs`)
-      return matchPath(relativePath, include, exclude)
+      log.silly(() => `Checking if ${relativePath} matches include/exclude globs`)
+      return matchPath(relativePath, augmentedIncludes, augmentedExcludes)
     })
 
     log.debug(`Found ${filtered.length} files in module path after glob matching`)
+
+    this.cache.set(log, filteredFilesCacheKey, filtered, pathToCacheContext(path))
 
     return filtered
   }
@@ -94,15 +142,17 @@ export class GitRepoHandler extends GitHandler {
   /**
    * Scans the given repo root and caches the list of files in the tree cache.
    * Uses an async lock to ensure a repo root is only scanned once.
+   *
+   * Delegates to {@link GitHandler.getFiles}.
    */
   async scanRepo(params: ScanRepoParams): Promise<FileTree> {
     const { log, path } = params
 
     const key = ["git-repo-files", path]
-    let existing = this.cache.get(log, key) as FileTree
+    let existing = this.cache.get(log, key) as FileTree | undefined
 
     if (existing) {
-      params.log.silly(`Found cached repository match at ${path}`)
+      params.log.silly(() => `Found cached repository match at ${path}`)
       return existing
     }
 
@@ -110,11 +160,11 @@ export class GitRepoHandler extends GitHandler {
       existing = this.cache.get(log, key)
 
       if (existing) {
-        params.log.silly(`Found cached repository match at ${path}`)
+        log.silly(() => `Found cached repository match at ${path}`)
         return existing
       }
 
-      params.log.info(`Scanning repository at ${path}`)
+      log.silly(() => `Scanning repository at ${path}`)
       const files = await super.getFiles({ ...params, scanRoot: undefined })
 
       const fileTree = FileTree.fromFiles(files)

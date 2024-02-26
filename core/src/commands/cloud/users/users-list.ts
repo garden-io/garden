@@ -15,11 +15,11 @@ import type { CommandParams, CommandResult } from "../../base.js"
 import { Command } from "../../base.js"
 import type { UserResult } from "../helpers.js"
 import { applyFilter, makeUserFromResponse, noApiMsg } from "../helpers.js"
-import chalk from "chalk"
 import { sortBy } from "lodash-es"
 import { StringsParameter } from "../../../cli/params.js"
-import { getCloudDistributionName } from "../../../util/util.js"
 import type { CloudProject } from "../../../cloud/api.js"
+import { styles } from "../../../logger/styles.js"
+import { getCloudDistributionName } from "../../../util/cloud.js"
 
 export const usersListOpts = {
   "filter-names": new StringsParameter({
@@ -75,8 +75,8 @@ export class UsersListCommand extends Command<{}, Opts> {
     const vcsProviderTitle = project.repositoryUrl.includes("github.com")
       ? "GitHub"
       : project.repositoryUrl.includes("gitlab.com")
-      ? "GitLab"
-      : "VCS"
+        ? "GitLab"
+        : "VCS"
 
     let page = 0
     const users: UserResult[] = []
@@ -115,10 +115,10 @@ export class UsersListCommand extends Command<{}, Opts> {
 
     log.debug(`Found ${filtered.length} users that match filters`)
 
-    const heading = ["Name", "ID", `${vcsProviderTitle} Username`, "Groups", "Created At"].map((s) => chalk.bold(s))
+    const heading = ["Name", "ID", `${vcsProviderTitle} Username`, "Groups", "Created At"].map((s) => styles.bold(s))
     const rows: string[][] = filtered.map((u) => {
       return [
-        chalk.cyan.bold(u.name),
+        styles.highlight.bold(u.name),
         String(u.id),
         u.vcsUsername || "",
         u.groups.map((g) => g.name).join(", "),

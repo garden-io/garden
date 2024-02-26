@@ -15,8 +15,9 @@ import {
 import { expect } from "chai"
 import type { KubernetesProvider } from "../../../../../../../src/plugins/kubernetes/config.js"
 import { defaultResources } from "../../../../../../../src/plugins/kubernetes/config.js"
-import { defaultKanikoImageName, k8sUtilImageName } from "../../../../../../../src/plugins/kubernetes/constants.js"
+import { defaultKanikoImageName, getK8sUtilImageName } from "../../../../../../../src/plugins/kubernetes/constants.js"
 import type { DeepPartial } from "utility-types"
+import { inClusterBuilderServiceAccount } from "../../../../../../../src/plugins/kubernetes/container/build/common.js"
 
 describe("kaniko build", () => {
   it("should return as successful when immutable tag already exists in destination", () => {
@@ -127,7 +128,7 @@ describe("kaniko build", () => {
                 "-c",
                 'echo "Copying from sourceURL to /.garden/context"\nmkdir -p /.garden/context\nn=0\nuntil [ "$n" -ge 30 ]\ndo\n  rsync arg1 arg2 && break\n  n=$((n+1))\n  sleep 1\ndone\necho "Done!"',
               ],
-              image: k8sUtilImageName,
+              image: getK8sUtilImageName(),
               imagePullPolicy: "IfNotPresent",
               name: "init",
               volumeMounts: [
@@ -139,6 +140,7 @@ describe("kaniko build", () => {
             },
           ],
           shareProcessNamespace: true,
+          serviceAccountName: inClusterBuilderServiceAccount,
           tolerations: [
             {
               effect: "NoSchedule",

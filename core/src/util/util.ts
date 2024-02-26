@@ -7,12 +7,8 @@
  */
 
 import { asyncExitHook, gracefulExit } from "@scg82/exit-hook"
-import { execSync } from "child_process"
 import _spawn from "cross-spawn"
 import { createHash } from "node:crypto"
-import fsExtra from "fs-extra"
-const { readFile } = fsExtra
-import { load } from "js-yaml"
 import {
   difference,
   find,
@@ -21,7 +17,6 @@ import {
   isArray,
   isPlainObject,
   mapValues,
-  memoize,
   omit,
   pick,
   range,
@@ -35,14 +30,14 @@ import { isAbsolute, relative } from "node:path"
 import type { Readable } from "stream"
 import { Writable } from "stream"
 import type { PrimitiveMap } from "../config/common.js"
-import { DEFAULT_GARDEN_CLOUD_DOMAIN, DOCS_BASE_URL, gardenEnv } from "../constants.js"
+import { gardenEnv } from "../constants.js"
 import {
   ChildProcessError,
   InternalError,
+  isErrnoException,
   ParameterError,
   RuntimeError,
   TimeoutError,
-  isErrnoException,
 } from "../exceptions.js"
 import type { Log } from "../logger/log-entry.js"
 import { getDefaultProfiler } from "./profiling.js"
@@ -51,6 +46,8 @@ import split2 from "split2"
 import type { ExecaError, Options as ExecaOptions } from "execa"
 import { execa } from "execa"
 import corePackageJson from "../../package.json" assert { type: "json" }
+import { makeDocsLink } from "../docs/common.js"
+import { styles } from "../logger/styles.js"
 
 export { apply as jsonMerge } from "json-merge-patch"
 
@@ -72,18 +69,22 @@ export type DeepPartial<T> = {
   [P in keyof T]?: T[P] extends Array<infer U>
     ? Array<DeepPartial<U>>
     : T[P] extends ReadonlyArray<infer V>
-    ? ReadonlyArray<DeepPartial<V>>
-    : DeepPartial<T[P]>
+      ? ReadonlyArray<DeepPartial<V>>
+      : DeepPartial<T[P]>
 }
 export type Unpacked<T> = T extends (infer U)[]
   ? U
   : T extends (...args: any[]) => infer V
-  ? V
-  : T extends Promise<infer W>
-  ? W
-  : T
+    ? V
+    : T extends Promise<infer W>
+      ? W
+      : T
 export type ExcludesFalsy = <T>(x: T | false | null | undefined) => x is T
 export type MakeOptional<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>
+
+export interface Dictionary<T> {
+  [index: string]: T
+}
 
 const MAX_BUFFER_SIZE = 1024 * 1024
 
@@ -115,37 +116,9 @@ export function registerCleanupFunction(name: string, func: HookCallback) {
 }
 
 export function getPackageVersion(): string {
+  // This code will be replaced by the version number during the build process in rollup.config.js. Please update the rollup config as well if you change the following line.
   const { version } = corePackageJson as { version: string }
   return version
-}
-
-type CloudDistroName = "Cloud Dashboard" | "Garden Enterprise" | "Garden Cloud"
-
-/**
- * Returns "Garden Cloud" if domain matches https://<some-subdomain>.app.garden,
- * otherwise "Garden Enterprise".
- *
- * TODO: Return the distribution type from the API and store on the CloudApi class.
- */
-export function getCloudDistributionName(domain: string): CloudDistroName {
-  if (domain === DEFAULT_GARDEN_CLOUD_DOMAIN) {
-    return "Cloud Dashboard"
-  }
-
-  if (!domain.match(/^https:\/\/.+\.app\.garden$/i)) {
-    return "Garden Enterprise"
-  }
-  return "Garden Cloud"
-}
-
-export function getCloudLogSectionName(distroName: CloudDistroName): string {
-  if (distroName === "Cloud Dashboard") {
-    return "cloud-dashboard"
-  } else if (distroName === "Garden Cloud") {
-    return "garden-cloud"
-  } else {
-    return "garden-enterprise"
-  }
 }
 
 export async function sleep(msec: number) {
@@ -191,6 +164,7 @@ export function createOutputStream(log: Log, origin?: string) {
 
   return outputStream
 }
+
 export interface ExecOpts extends ExecaOptions {
   stdout?: Writable
   stderr?: Writable
@@ -223,7 +197,9 @@ export async function exec(cmd: string, args: string[], opts: ExecOpts = {}) {
         message: dedent`
         Received EMFILE (Too many open files) error when running ${cmd}.
 
-        This may mean there are too many files in the project, and that you need to exclude large dependency directories. Please see ${DOCS_BASE_URL}/using-garden/configuration-overview#including-excluding-files-and-directories for information on how to do that.
+        This may mean there are too many files in the project, and that you need to exclude large dependency directories. Please see ${styles.link(
+          makeDocsLink("using-garden/configuration-overview", "#including-excluding-files-and-directories")
+        )} for information on how to do that.
 
         This can also be due to limits on open file descriptors being too low. Here is one guide on how to configure those limits for different platforms: https://docs.riak.com/riak/kv/latest/using/performance/open-files-limit/index.html
         `,
@@ -438,11 +414,6 @@ export function getEnumKeys(Enum) {
   return Object.values(Enum).filter((k) => typeof k === "string") as string[]
 }
 
-export async function loadYamlFile(path: string): Promise<any> {
-  const fileData = await readFile(path)
-  return load(fileData.toString())
-}
-
 export interface ObjectWithName {
   name: string
 
@@ -512,6 +483,17 @@ export function relationshipClasses<I>(items: I[], isRelated: (item1: I, item2: 
  */
 export function getEnvVarName(identifier: string) {
   return identifier.replace(/-/g, "_").toUpperCase()
+}
+
+/**
+ * Removes all keys from `obj` (except those inherited from the object's prototype).
+ *
+ * Essentially a vanilla object analog of `map.clear()` for ES5 Maps.
+ */
+export function clearObject<T extends object>(obj: T) {
+  for (const key of Object.getOwnPropertyNames(obj)) {
+    delete obj[key]
+  }
 }
 
 /**
@@ -593,57 +575,6 @@ export function isSubdir(path: string, ofPath: string): boolean {
   const rel = relative(path, ofPath)
   return !!(rel && !rel.startsWith("..") && !isAbsolute(rel))
 }
-
-// Used to make the platforms more consistent with other tools
-const platformMap = {
-  win32: "windows" as const,
-}
-
-const archMap = {
-  x32: "386" as const,
-  x64: "amd64" as const,
-}
-
-export type Architecture = Exclude<NodeJS.Architecture, keyof typeof archMap> | (typeof archMap)[keyof typeof archMap]
-export type Platform =
-  | Exclude<NodeJS.Platform, keyof typeof platformMap>
-  | (typeof platformMap)[keyof typeof platformMap]
-
-export function getPlatform(): Platform {
-  return platformMap[process.platform] || process.platform
-}
-
-export function getArchitecture(): Architecture {
-  // Note: When node is running a x64 build,
-  // process.arch is always x64 even though the underlying CPU architecture may be arm64
-  // To check if we are running under Rosetta,
-  // use the `isDarwinARM` function below
-  const arch = process.arch
-  return archMap[arch] || arch
-}
-
-export const isDarwinARM = memoize(() => {
-  if (process.platform !== "darwin") {
-    return false
-  }
-
-  if (process.arch === "arm64") {
-    return true
-  } else if (process.arch === "x64") {
-    // detect rosetta on Apple M cpu family macs
-    // see also https://developer.apple.com/documentation/apple-silicon/about-the-rosetta-translation-environment
-    // We use execSync here, because this function is called in a constructor
-    // otherwise we'd make the function async and call `spawn`
-    try {
-      execSync("sysctl -n -q sysctl.proc_translated", { encoding: "utf-8" })
-    } catch (err) {
-      return false
-    }
-    return true
-  }
-
-  return false
-})
 
 export function getDurationMsec(start: Date, end: Date): number {
   return Math.round(end.getTime() - start.getTime())
@@ -766,9 +697,6 @@ export function isNotNull<T>(v: T | null): v is T {
  * Find and return the index of the given `slice` within `array`. Returns -1 if the slice is not found.
  *
  * Adapted from https://stackoverflow.com/posts/29426078/revisions
- *
- * @param array
- * @param slice
  */
 export function findSlice(array: any[], slice: any[], fromIndex = 0) {
   let i = fromIndex

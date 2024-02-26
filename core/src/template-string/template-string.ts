@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import chalk from "chalk"
 import type { GardenErrorParams } from "../exceptions.js"
 import { ConfigurationError, GardenError, TemplateStringError } from "../exceptions.js"
 import type {
@@ -41,6 +40,8 @@ import { actionKindsLower } from "../actions/types.js"
 import { deepMap } from "../util/objects.js"
 import type { ConfigSource } from "../config/validation.js"
 import * as parser from "./parser.js"
+import { styles } from "../logger/styles.js"
+import type { ObjectPath } from "../config/base.js"
 
 const missingKeyExceptionType = "template-string-missing-key"
 const passthroughExceptionType = "template-string-passthrough"
@@ -69,8 +70,6 @@ interface ConditionalTree {
 function getValue(v: Primitive | undefined | ResolvedClause) {
   return isPlainObject(v) ? (<ResolvedClause>v).resolved : v
 }
-
-type ObjectPath = (string | number)[]
 
 export class TemplateError extends GardenError {
   type = "template"
@@ -224,7 +223,10 @@ export function resolveTemplateString({
     if (!(err instanceof GardenError)) {
       throw err
     }
-    const prefix = `Invalid template string (${chalk.white(truncate(string, 35).replace(/\n/g, "\\n"))}): `
+    const pathDescription = path ? ` at path ${styles.accent(path.join("."))}` : ""
+    const prefix = `Invalid template string (${styles.accent(
+      truncate(string, 200).replace(/\n/g, "\\n")
+    )})${pathDescription}: `
     const message = err.message.startsWith(prefix) ? err.message : prefix + err.message
 
     throw new TemplateStringError({ message, path })
@@ -780,7 +782,7 @@ export function throwOnMissingSecretKeys(configs: ObjectWithName[], secrets: Str
     ${footer}
   `
   if (log) {
-    log.silly(errMsg)
+    log.silly(() => errMsg)
   }
   // throw new ConfigurationError(errMsg, {
   //   loadedSecretKeys: loadedKeys,

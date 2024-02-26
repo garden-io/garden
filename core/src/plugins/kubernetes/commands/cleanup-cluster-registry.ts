@@ -8,6 +8,7 @@
 
 import type { PluginCommand } from "../../../plugin/command.js"
 
+// TODO: remove in 0.14
 export const cleanupClusterRegistry: PluginCommand = {
   name: "cleanup-cluster-registry",
   description: "[NO LONGER USED]",

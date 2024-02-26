@@ -13,7 +13,6 @@ import { Command } from "../base.js"
 import type { ResolvedConfigGraph } from "../../graph/config-graph.js"
 import type { Log } from "../../logger/log-entry.js"
 import { createActionLog } from "../../logger/log-entry.js"
-import chalk from "chalk"
 import { deline } from "../../util/string.js"
 import type { EnvironmentStatusMap } from "../../plugin/handlers/Provider/getEnvironmentStatus.js"
 import { joi, joiIdentifierMap, joiStringMap } from "../../config/common.js"
@@ -30,6 +29,7 @@ import { getDeployStatusSchema } from "../../plugin/handlers/Deploy/get-status.j
 import type { ActionRouter } from "../../router/router.js"
 import { sanitizeValue } from "../../util/logging.js"
 import { BooleanParameter } from "../../cli/params.js"
+import { styles } from "../../logger/styles.js"
 
 // Value is "completed" if the test/task has been run for the current version.
 export interface StatusCommandResult {
@@ -123,13 +123,11 @@ export class GetStatusCommand extends Command {
     for (const [name, status] of Object.entries(finalDeployStatuses)) {
       if (status.state === "unknown") {
         log.warn(
-          chalk.yellow(
-            deline`
-            Unable to resolve status for Deploy ${chalk.white(name)}. It is likely missing or outdated.
+          deline`
+            Unable to resolve status for Deploy ${styles.highlight(name)}. It is likely missing or outdated.
             This can come up if the deployment has runtime dependencies that are not resolvable, i.e. not deployed or
             invalid.
             `
-          )
         )
       }
     }

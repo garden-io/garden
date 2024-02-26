@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import chalk from "chalk"
 import type { PrimitiveMap, DeepPrimitiveMap } from "../common.js"
 import { joiIdentifierMap, joiPrimitive, joiVariables, joiIdentifier } from "../common.js"
 import type { ProviderMap } from "../provider.js"
@@ -21,6 +20,7 @@ import type { GraphResultFromTask, GraphResults } from "../../graph/results.js"
 import type { DeployTask } from "../../tasks/deploy.js"
 import type { RunTask } from "../../tasks/run.js"
 import { DOCS_BASE_URL } from "../../constants.js"
+import { styles } from "../../logger/styles.js"
 
 export const exampleVersion = "v-17ad4cb3fd"
 
@@ -289,7 +289,7 @@ export class ModuleConfigContext extends OutputConfigContext {
     const { name, path, inputs, parentName, templateName, buildPath } = params
 
     // Throw specific error when attempting to resolve self
-    this.modules.set(name, new ErrorContext(`Config ${chalk.white.bold(name)} cannot reference itself.`))
+    this.modules.set(name, new ErrorContext(`Config ${styles.highlight.bold(name)} cannot reference itself.`))
 
     if (parentName && templateName) {
       this.parent = new ParentContext(this, parentName)

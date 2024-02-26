@@ -84,7 +84,7 @@ export class ModuleRouter extends BaseRouter {
     const { log, moduleConfig: config } = params
     const moduleType = config.type
 
-    this.garden.log.silly(`Calling configure handler for ${moduleType} module '${config.name}'`)
+    this.garden.log.silly(() => `Calling configure handler for ${moduleType} module '${config.name}'`)
 
     const handler = await this.getModuleHandler({
       handlerType: "configure",
@@ -111,7 +111,7 @@ export class ModuleRouter extends BaseRouter {
     }
     result.moduleConfig.build.dependencies = Object.values(buildDeps)
 
-    this.garden.log.silly(`Called configure handler for ${moduleType} module '${config.name}'`)
+    this.garden.log.silly(() => `Called configure handler for ${moduleType} module '${config.name}'`)
 
     return result
   }
@@ -240,7 +240,7 @@ export class ModuleRouter extends BaseRouter {
 
     if (handlers.length === 0 && spec.base && !pluginName) {
       // No handler found but module type has a base. Check if the base type has the handler we're looking for.
-      this.garden.log.silly(`No ${handlerType} handler found for ${moduleType}. Trying ${spec.base} base.`)
+      this.garden.log.silly(() => `No ${handlerType} handler found for ${moduleType}. Trying ${spec.base} base.`)
 
       return this.getModuleHandler({
         handlerType,

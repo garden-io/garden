@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { getPlatform, getArchitecture } from "../../../../src/util/util.js"
+import { getArchitecture, getPlatform } from "../../../../src/util/arch-platform.js"
 import type { TempDirectory } from "../../../helpers.js"
 import {
   makeTempDir,
@@ -221,7 +221,7 @@ describe("ToolsCommand", () => {
 
   it("should run a tool by name when run outside of a project", async () => {
     const _garden: any = await makeDummyGarden(tmpDir.path, {
-      noEnterprise: true,
+      skipCloudConnect: true,
       commandInfo: { name: "foo", args: {}, opts: {} },
     })
     _garden.registeredPlugins = [pluginA, pluginB]

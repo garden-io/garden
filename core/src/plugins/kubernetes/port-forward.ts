@@ -114,7 +114,7 @@ export async function getPortForward({
       log,
     })
 
-    log.silly(`Running 'kubectl ${portForwardArgs.join(" ")}'`)
+    log.silly(() => `Running 'kubectl ${portForwardArgs.join(" ")}'`)
 
     // Need to use execa directly to use its cleanup mechanism, otherwise processes can linger on Windows
     const kubectlPath = await kubectl(k8sCtx, k8sCtx.provider).ensurePath(log)
@@ -153,7 +153,7 @@ export async function getPortForward({
         }
 
         // This is unfortunately the best indication that we have that the connection is up...
-        log.silly(`[${targetResource} port forwarder] ${line}`)
+        log.silly(() => `[${targetResource} port forwarder] ${line}`)
         output += line
 
         if (line.toString().includes("Forwarding from ")) {
@@ -166,7 +166,7 @@ export async function getPortForward({
       })
 
       proc.stderr!.on("data", (line) => {
-        log.silly(`[${targetResource} port forwarder] ${line}`)
+        log.silly(() => `[${targetResource} port forwarder] ${line}`)
         output += line
         // Following this: https://github.com/nkubala/skaffold/blob/0d52436f792b862e06311c42065afd8e2363771c/pkg/skaffold/kubernetes/portforward/kubectl_forwarder.go#L177
         // Note: It'd be much more robust to avoid kubectl here, but it's more work to implement.

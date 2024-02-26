@@ -75,6 +75,7 @@ export interface BaseActionConfig<K extends ActionKind = ActionKind, T = string,
   // -> Templating with ActionConfigContext allowed
   dependencies?: ActionReference[]
   disabled?: boolean
+  environments?: string[]
 
   // Version/file handling
   // -> Templating with ActionConfigContext allowed
@@ -135,6 +136,11 @@ export type ActionDependency = ActionReference & ActionDependencyAttributes
 export interface ActionModes {
   sync?: boolean
   local?: boolean
+}
+
+export const ALL_ACTION_MODES_SUPPORTED: ActionModes = {
+  sync: true,
+  local: true,
 }
 
 export type ActionMode = keyof ActionModes | "default"
@@ -204,22 +210,22 @@ export type ExecutedAction = ExecutedBuildAction | ExecutedDeployAction | Execut
 export type Resolved<T extends BaseAction> = T extends BuildAction
   ? ResolvedBuildAction<T["_config"], T["_staticOutputs"], T["_runtimeOutputs"]>
   : T extends DeployAction
-  ? ResolvedDeployAction<T["_config"], T["_staticOutputs"], T["_runtimeOutputs"]>
-  : T extends RunAction
-  ? ResolvedRunAction<T["_config"], T["_staticOutputs"], T["_runtimeOutputs"]>
-  : T extends TestAction
-  ? ResolvedTestAction<T["_config"], T["_staticOutputs"], T["_runtimeOutputs"]>
-  : T
+    ? ResolvedDeployAction<T["_config"], T["_staticOutputs"], T["_runtimeOutputs"]>
+    : T extends RunAction
+      ? ResolvedRunAction<T["_config"], T["_staticOutputs"], T["_runtimeOutputs"]>
+      : T extends TestAction
+        ? ResolvedTestAction<T["_config"], T["_staticOutputs"], T["_runtimeOutputs"]>
+        : T
 
 export type Executed<T extends BaseAction> = T extends BuildAction
   ? ExecutedBuildAction<T["_config"], T["_staticOutputs"], T["_runtimeOutputs"]>
   : T extends DeployAction
-  ? ExecutedDeployAction<T["_config"], T["_staticOutputs"], T["_runtimeOutputs"]>
-  : T extends RunAction
-  ? ExecutedRunAction<T["_config"], T["_staticOutputs"], T["_runtimeOutputs"]>
-  : T extends TestAction
-  ? ExecutedTestAction<T["_config"], T["_staticOutputs"], T["_runtimeOutputs"]>
-  : T
+    ? ExecutedDeployAction<T["_config"], T["_staticOutputs"], T["_runtimeOutputs"]>
+    : T extends RunAction
+      ? ExecutedRunAction<T["_config"], T["_staticOutputs"], T["_runtimeOutputs"]>
+      : T extends TestAction
+        ? ExecutedTestAction<T["_config"], T["_staticOutputs"], T["_runtimeOutputs"]>
+        : T
 
 export type ActionReferenceMap = {
   [K in ActionKind]: string[]
@@ -231,6 +237,14 @@ export type ActionConfigMap = {
   }
 }
 
+export type OmitInternalConfig<T> = Omit<T, "internal">
+
+export type ActionConfigMapForDump = {
+  [K in ActionKind]: {
+    [name: string]: Omit<BaseActionConfig<K>, "internal">
+  }
+}
+
 export interface ActionConfigsByKey {
   [key: string]: ActionConfig
 }
@@ -238,5 +252,5 @@ export interface ActionConfigsByKey {
 export type GetOutputValueType<K, StaticOutputs, RuntimeOutputs> = K extends keyof StaticOutputs
   ? StaticOutputs[K]
   : K extends keyof RuntimeOutputs
-  ? RuntimeOutputs[K] | undefined
-  : never
+    ? RuntimeOutputs[K] | undefined
+    : never

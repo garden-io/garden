@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import chalk from "chalk"
 import type { Log } from "../../../logger/log-entry.js"
 import type { DeployState } from "../../../types/service.js"
 import type { KubernetesPluginContext } from "../config.js"
@@ -19,6 +18,7 @@ import { checkResourceStatus, waitForResources } from "../status/status.js"
 import { KubeApi } from "../api.js"
 
 import { GardenIngressComponent } from "./ingress-controller-base.js"
+import { styles } from "../../../logger/styles.js"
 
 const HELM_INGRESS_NGINX_REPO = "https://kubernetes.github.io/ingress-nginx"
 const HELM_INGRESS_NGINX_VERSION = "4.0.13"
@@ -65,7 +65,7 @@ export abstract class HelmGardenIngressController extends GardenIngressComponent
       `${valueArgs.join(",")}`,
     ]
 
-    log.info(`Installing nginx in ${namespace} namespace...`)
+    log.info(`Installing ${styles.highlight("nginx")} in ${styles.highlight(namespace)} namespace...`)
     await this.defaultBackend.install(ctx, log)
     await helm({ ctx, namespace, log, args, emitLogEvents: false })
 
@@ -106,7 +106,7 @@ export abstract class HelmGardenIngressController extends GardenIngressComponent
       const releaseStatus = statusRes.info?.status || "unknown"
 
       if (releaseStatus !== "deployed") {
-        log.debug(chalk.yellow(`Helm release status for ${HELM_INGRESS_NGINX_RELEASE_NAME}: ${releaseStatus}`))
+        log.debug(`Helm release status for ${HELM_INGRESS_NGINX_RELEASE_NAME}: ${releaseStatus}`)
         return helmStatusMap[releaseStatus] || "unknown"
       }
 
@@ -116,7 +116,7 @@ export abstract class HelmGardenIngressController extends GardenIngressComponent
       const deploymentStatus = await checkResourceStatus({ api, namespace, manifest: nginxHelmMainResource, log })
       return deploymentStatus.state
     } catch (error) {
-      log.debug(chalk.yellow(`Helm release ${HELM_INGRESS_NGINX_RELEASE_NAME} missing.`))
+      log.debug(`Helm release ${HELM_INGRESS_NGINX_RELEASE_NAME} missing.`)
       return "missing"
     }
   }

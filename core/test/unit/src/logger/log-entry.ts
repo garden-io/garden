@@ -14,7 +14,7 @@ import { freezeTime } from "../../../helpers.js"
 import type { CoreLog, Log, LogMetadata } from "../../../../src/logger/log-entry.js"
 import { createActionLog } from "../../../../src/logger/log-entry.js"
 import { omit } from "lodash-es"
-import chalk from "chalk"
+import { styles } from "../../../../src/logger/styles.js"
 
 const logger: Logger = getRootLogger()
 
@@ -81,11 +81,11 @@ describe("Log", () => {
     it("should log success message in green color by default", () => {
       const entry = log.success("success").getLatestEntry()
       expect(entry.level).to.eql(LogLevel.info)
-      expect(entry.msg).to.eql(chalk.green("success"))
+      expect(entry.msg).to.eql(styles.success("success"))
     })
     it("should log success message in original color if it has ansi", () => {
-      const entry = log.success(`hello ${chalk.cyan("cyan")}`).getLatestEntry()
-      expect(entry.msg).to.eql(`hello ${chalk.cyan("cyan")}`)
+      const entry = log.success(`hello ${styles.highlight("cyan")}`).getLatestEntry()
+      expect(entry.msg).to.eql(`hello ${styles.highlight("cyan")}`)
     })
     it("should set the symbol to success", () => {
       const entry = log.success("success").getLatestEntry()
@@ -233,7 +233,7 @@ describe("CoreLog", () => {
       })
       const entry = testLog.info("hello").getLatestEntry()
 
-      expect(entry.key).to.be.a.string
+      expect(entry.key).to.be.a("string")
       expect(entry).to.eql({
         key: entry.key,
         level: LogLevel.info,
@@ -405,7 +405,7 @@ describe("ActionLog", () => {
       })
       const entry = testLog.info("hello").getLatestEntry()
 
-      expect(entry.key).to.be.a.string
+      expect(entry.key).to.be.a("string")
       expect(entry).to.eql({
         key: entry.key,
         level: LogLevel.info,
