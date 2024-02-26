@@ -788,7 +788,7 @@ export type ProcessResultMetadata = {
   durationMsec?: number | null
   success: boolean
   error?: string
-  inputVersion: string | null
+  inputVersion?: string
 }
 
 export interface ProcessCommandResult {

@@ -220,25 +220,14 @@ export function nodeKey(type: ActionKind | ModuleDependencyGraphNodeKind, name: 
   return `${type}.${name}`
 }
 
-/// make the params an object
-export function metadataForLog({
-  task,
-  status,
-  inputVersion,
-  outputVersion,
-}: {
-  task: Task
-  status: TaskLogStatus
-  inputVersion: string | null
-  outputVersion?: string
-}): LogMetadata {
+export function metadataForLog(task: Task, status: TaskLogStatus, outputVersion?: string): LogMetadata {
   return {
     task: {
       type: task.type,
       key: task.getKey(),
       status,
       uid: task.uid,
-      inputVersion,
+      inputVersion: task.getInputVersion(),
       outputVersion,
     },
   }

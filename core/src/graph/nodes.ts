@@ -117,22 +117,13 @@ export abstract class TaskNode<T extends Task = Task> {
 
     const task = this.task
     const dependencyResults = this.getDependencyResults()
-    let inputVersion: string | null
-    try {
-      inputVersion = task.getInputVersion()
-    } catch (_e) {
-      inputVersion = null
-    }
+    const inputVersion = task.getInputVersion()
 
     task.log.silly({
       msg: `Completing node ${styles.underline(this.getKey())}. aborted=${aborted}, error=${
         error ? error.message : null
       }`,
-      metadata: metadataForLog({
-        task,
-        status: error ? "error" : "success",
-        inputVersion,
-      }),
+      metadata: metadataForLog(task, error ? "error" : "success", inputVersion),
     })
 
     this.result = {
@@ -170,7 +161,7 @@ export abstract class TaskNode<T extends Task = Task> {
           if (!keys.has(depKey)) {
             d.task.log.info({
               msg: `Aborting because upstream dependency failed.`,
-              metadata: metadataForLog({ task: d.task, status: "error", inputVersion: null }),
+              metadata: metadataForLog(d.task, "error", inputVersion),
             })
             keys.add(depKey)
           }

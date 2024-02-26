@@ -34,7 +34,7 @@ export interface TaskMetadata {
   key: string
   status: TaskLogStatus
   uid: string
-  inputVersion: string | null
+  inputVersion: string
   outputVersion?: string
   durationMs?: number
 }

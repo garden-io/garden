@@ -370,16 +370,6 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
    * Processes a single task to completion, handling errors and providing its result to in-progress task batches.
    */
   private async processNode(node: TaskNode, startedAt: Date) {
-    // Check for missing dependencies by calculating the input version so we can handle the exception
-    // as a user error before getting deeper into the control flow (where it would result in an internal
-    // error with a noisy stack trace).
-    try {
-      node.getInputVersion()
-    } catch (error: any) {
-      node.complete({ startedAt, error, aborted: true, result: null })
-      return
-    }
-
     this.logTask(node)
 
     try {
@@ -491,11 +481,7 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
     const taskLog = node.task.log.root.createLog({ name: "graph-solver" })
     taskLog.silly({
       msg: `Processing node ${taskStyle(node.getKey())}`,
-      metadata: metadataForLog({
-        task: node.task,
-        inputVersion: node.getInputVersion(),
-        status: "active",
-      }),
+      metadata: metadataForLog(node.task, "active"),
     })
   }
 
