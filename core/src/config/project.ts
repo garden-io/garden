@@ -202,6 +202,7 @@ export interface ProjectConfig extends BaseGardenResource {
   path: string
   id?: string
   domain?: string
+  requireLogin?: boolean
   configPath?: string
   proxy?: ProxyConfig
   defaultEnvironment: string
@@ -321,6 +322,12 @@ export const projectSchema = createSchema({
       .uri()
       .meta({ internal: true })
       .description("The domain to use for cloud features. Should be the full API/backend URL."),
+    // TODO: Refer to enterprise documentation for more details.
+    requireLogin: joi
+      .boolean()
+      .meta({ internal: true })
+      .description("Whether the project requires login to Garden Cloud."),
+
     // Note: We provide a different schema below for actual validation, but need to define it this way for docs
     // because joi.alternatives() isn't handled well in the doc generation.
     environments: joi

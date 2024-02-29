@@ -11,7 +11,7 @@ import { Command } from "./base.js"
 import { printHeader } from "../logger/util.js"
 import dedent from "dedent"
 import type { AuthTokenResponse } from "../cloud/api.js"
-import { CloudApi, getGardenCloudDomain } from "../cloud/api.js"
+import { CloudApi, CloudApiNoTokenError, CloudApiTokenRefreshError, getGardenCloudDomain } from "../cloud/api.js"
 import type { Log } from "../logger/log-entry.js"
 import { ConfigurationError, TimeoutError, InternalError, CloudApiError } from "../exceptions.js"
 import { AuthRedirectServer } from "../cloud/auth.js"
@@ -86,29 +86,37 @@ export class LoginCommand extends Command<{}, Opts> {
     // should use the default domain or not. The token lifecycle ends on logout.
     const cloudDomain: string = getGardenCloudDomain(projectConfig?.domain)
 
-    const distroName = getCloudDistributionName(cloudDomain)
-
     try {
-      const cloudApi = await CloudApi.factory({ log, cloudDomain, skipLogging: true, globalConfigStore })
+      const cloudApi = await CloudApi.factory({
+        log,
+        cloudDomain,
+        skipLogging: true,
+        globalConfigStore,
+        projectId: undefined,
+        requireLogin: undefined,
+      })
 
-      if (cloudApi) {
-        log.success({ msg: `You're already logged in to ${cloudDomain}.` })
-        cloudApi.close()
-        return {}
-      }
+      log.success({ msg: `You're already logged in to ${cloudDomain}.` })
+      cloudApi.close()
+      return {}
     } catch (err) {
       if (!(err instanceof CloudApiError)) {
         throw err
       }
-      if (err.responseStatusCode === 401) {
+
+      if (err instanceof CloudApiTokenRefreshError) {
         const msg = dedent`
-          Looks like your session token is invalid. If you were previously logged into a different instance
-          of ${distroName}, log out first before logging in.
+          Your login token for ${cloudDomain} has expired and could not be refreshed.
+          Try to log out first before logging in.
         `
         log.warn(msg)
         log.info("")
       }
-      throw err
+
+      // This is expected if the user has not logged in
+      if (!(err instanceof CloudApiNoTokenError)) {
+        throw err
+      }
     }
 
     log.info({ msg: `Logging in to ${cloudDomain}...` })

@@ -101,4 +101,5 @@ export const gardenEnv = {
     .default("https://get.garden.io/releases")
     .asUrlString(),
   GARDEN_ENABLE_NEW_SYNC: env.get("GARDEN_ENABLE_NEW_SYNC").required(false).default("false").asBool(),
+  GARDEN_REQUIRE_LOGIN_OVERRIDE: env.get("GARDEN_REQUIRE_LOGIN_OVERRIDE").required(false).asBool(),
 }

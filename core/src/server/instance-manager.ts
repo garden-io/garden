@@ -12,7 +12,7 @@ import { Autocompleter } from "../cli/autocomplete.js"
 import { parseCliVarFlags } from "../cli/helpers.js"
 import type { ParameterObject, ParameterValues } from "../cli/params.js"
 import type { CloudApiFactory, CloudApiFactoryParams } from "../cloud/api.js"
-import { CloudApi, getGardenCloudDomain } from "../cloud/api.js"
+import { CloudApi, CloudApiNoTokenError, getGardenCloudDomain } from "../cloud/api.js"
 import type { Command } from "../commands/base.js"
 import { getBuiltinCommands, flattenCommands } from "../commands/commands.js"
 import { getCustomCommands } from "../commands/custom.js"
@@ -202,7 +202,16 @@ export class GardenInstanceManager {
     let api = this.cloudApis.get(cloudDomain)
 
     if (!api) {
-      api = await this.cloudApiFactory(params)
+      try {
+        api = await this.cloudApiFactory(params)
+      } catch (err) {
+        // handles the case when the user should not be logged in
+        // otherwise we throw any error that can occure while
+        // authenticating
+        if (!(err instanceof CloudApiNoTokenError)) {
+          throw err
+        }
+      }
       api && this.cloudApis.set(cloudDomain, api)
     }
 
@@ -366,6 +375,8 @@ export class GardenInstanceManager {
         log,
         cloudDomain: getGardenCloudDomain(projectConfig.domain),
         globalConfigStore,
+        projectId: projectConfig.id,
+        requireLogin: projectConfig.requireLogin,
       })
     }
 

@@ -9,7 +9,7 @@
 import type { CommandParams, CommandResult } from "./base.js"
 import { Command } from "./base.js"
 import { printHeader } from "../logger/util.js"
-import { CloudApi, getGardenCloudDomain } from "../cloud/api.js"
+import { CloudApi, CloudApiNoTokenError, getGardenCloudDomain } from "../cloud/api.js"
 import { getCloudDistributionName } from "../util/cloud.js"
 import { dedent, deline } from "../util/string.js"
 import { ConfigurationError } from "../exceptions.js"
@@ -78,19 +78,20 @@ export class LogOutCommand extends Command<{}, Opts> {
         cloudDomain,
         skipLogging: true,
         globalConfigStore: garden.globalConfigStore,
+        projectId: undefined,
+        requireLogin: undefined,
       })
-
-      if (!cloudApi) {
-        return {}
-      }
 
       await cloudApi.post("token/logout", { headers: { Cookie: `rt=${token?.refreshToken}` } })
       cloudApi.close()
     } catch (err) {
-      const msg = dedent`
+      // This is expected if the user never logged in
+      if (!(err instanceof CloudApiNoTokenError)) {
+        const msg = dedent`
       The following issue occurred while logging out from ${distroName} (your session will be cleared regardless): ${err}\n
       `
-      log.warn(msg)
+        log.warn(msg)
+      }
     } finally {
       await CloudApi.clearAuthToken(log, garden.globalConfigStore, cloudDomain)
       log.success(`Successfully logged out from ${cloudDomain}.`)
