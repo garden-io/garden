@@ -186,8 +186,8 @@ async function getRolloutStatus(workload: Workload) {
 
   out.state = "ready"
 
-  // See `https://github.com/kubernetes/kubernetes/blob/master/pkg/kubectl/rollout_status.go` for a reference
-  // for this logic.
+  // See here as a reference for this logic:
+  // `https://github.com/kubernetes/kubernetes/blob/331ced5606fe32d8beb77c974b28dc12f7795012/staging/src/k8s.io/kubectl/pkg/polymorphichelpers/rollout_status.go#L75
   if (workload.metadata.generation! > workload.status!.observedGeneration!) {
     out.lastMessage = `Waiting for spec update to be observed...`
     out.state = "deploying"
@@ -234,7 +234,7 @@ async function getRolloutStatus(workload: Workload) {
 
     const desired = deploymentSpec.replicas === undefined ? 1 : deploymentSpec.replicas
     const updated = status.updatedReplicas || 0
-    const replicas = deploymentSpec.replicas || 0
+    const replicas = status.replicas || 0
     const available = status.availableReplicas || 0
 
     if (updated < desired) {
