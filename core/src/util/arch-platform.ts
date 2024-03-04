@@ -8,21 +8,50 @@
 
 import { memoize } from "lodash-es"
 import { execSync } from "child_process"
+import { InternalError } from "../exceptions.js"
 
-const platformMap = {
-  win32: "windows" as const,
-}
 const archMap = {
   x32: "386" as const,
   x64: "amd64" as const,
-}
-export type Architecture = Exclude<NodeJS.Architecture, keyof typeof archMap> | (typeof archMap)[keyof typeof archMap]
-export type Platform =
-  | Exclude<NodeJS.Platform, keyof typeof platformMap>
-  | (typeof platformMap)[keyof typeof platformMap]
+} as const
+const supportedArchitectures = ["386", "amd64", "arm64"] as const
+const supportedPlatforms = ["darwin", "windows", "linux", "alpine"] as const
+export type Platform = (typeof supportedPlatforms)[number]
+export type Architecture = (typeof supportedArchitectures)[number]
 
 export function getPlatform(): Platform {
-  return platformMap[process.platform] || process.platform
+  const platform = process.platform
+
+  if (platform === "win32") {
+    return "windows"
+  }
+
+  if (platform === "linux") {
+    if (getRustTargetEnv() === "musl") {
+      return "alpine"
+    }
+
+    return "linux"
+  }
+
+  if (platform === "darwin") {
+    return "darwin"
+  }
+
+  throw new InternalError({ message: `Unsupported platform: ${platform}` })
+}
+
+// rust target env
+// The Garden SEA rust wrapper will set an environment variable called GARDEN_SEA_TARGET_ENV on linux so we can download Alpine binaries if needed.
+type RustTargetEnv = undefined | "musl" | "gnu"
+export function getRustTargetEnv(): RustTargetEnv {
+  const targetEnv = process.env.GARDEN_SEA_TARGET_ENV
+
+  if (targetEnv === undefined || targetEnv === "musl" || targetEnv === "gnu") {
+    return targetEnv
+  }
+
+  throw new InternalError({ message: `Invalid value for GARDEN_SEA_TARGET_ENV: ${targetEnv}` })
 }
 
 export function getArchitecture(): Architecture {
@@ -30,8 +59,13 @@ export function getArchitecture(): Architecture {
   // process.arch is always x64 even though the underlying CPU architecture may be arm64
   // To check if we are running under Rosetta,
   // use the `isDarwinARM` function below
-  const arch = process.arch
-  return archMap[arch] || arch
+  const arch = archMap[process.arch] || process.arch
+
+  if (!supportedArchitectures.includes(arch)) {
+    throw new InternalError({ message: `Unsupported architecture: ${arch}` })
+  }
+
+  return arch
 }
 
 export const isDarwinARM = memoize(() => {

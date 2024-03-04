@@ -26,7 +26,7 @@ const toolBuildSchema = createSchema({
   keys: () => ({
     platform: joi
       .string()
-      .allow("darwin", "linux", "windows")
+      .allow("darwin", "linux", "alpine", "windows")
       .required()
       .example("linux")
       .description("The platform this build is for."),
