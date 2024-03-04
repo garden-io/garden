@@ -44,7 +44,7 @@ import AsyncLock from "async-lock"
 import { styles } from "../../logger/styles.js"
 import { makeDocsLink } from "../../docs/common.js"
 
-export const localModeGuideLink = `${makeDocsLink("guides/running-service-in-local-mode")}`
+export const localModeGuideLink = makeDocsLink("guides/running-service-in-local-mode")
 
 const localhost = "127.0.0.1"
 

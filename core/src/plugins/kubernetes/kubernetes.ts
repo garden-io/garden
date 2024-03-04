@@ -47,8 +47,7 @@ import { syncPause, syncResume, syncStatus } from "./commands/sync.js"
 import { helmPodRunDefinition, helmPodTestDefinition } from "./helm/helm-pod.js"
 import { kubernetesPodRunDefinition, kubernetesPodTestDefinition } from "./kubernetes-type/kubernetes-pod.js"
 import { kubernetesExecRunDefinition, kubernetesExecTestDefinition } from "./kubernetes-type/kubernetes-exec.js"
-import { makeDocsLink } from "../../docs/common.js"
-import { styles } from "../../logger/styles.js"
+import { makeDocsLink, makeDocsLinkStyled } from "../../docs/common.js"
 
 export async function configureProvider({
   namespace,
@@ -76,7 +75,7 @@ export async function configureProvider({
       message: dedent`
         Configuring a 'deploymentRegistry' in the kubernetes provider section of the project configuration is required when working with remote Kubernetes clusters.
 
-        See also ${styles.link(makeDocsLink("kubernetes-plugins/remote-k8s"))}`,
+        See also ${makeDocsLinkStyled("kubernetes-plugins/remote-k8s")}`,
     })
   }
 

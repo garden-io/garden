@@ -36,7 +36,7 @@ import type { BuiltinArgs, Command, CommandGroup } from "../commands/base.js"
 import type { DeepPrimitiveMap } from "../config/common.js"
 import { validateGitInstall } from "../vcs/vcs.js"
 import { styles } from "../logger/styles.js"
-import { makeDocsLink } from "../docs/common.js"
+import { makeDocsLinkStyled } from "../docs/common.js"
 
 export const cliStyles = {
   heading: (str: string) => styles.accent.bold(str),
@@ -572,6 +572,6 @@ export function getDashboardInfoMsg() {
       "garden login"
     )} to explore logs, past commands, and your dependency graph in the Garden dashboard.
 
-    Learn more at: ${styles.link(`${makeDocsLink("using-garden/dashboard")}`)}\n
+    Learn more at: ${makeDocsLinkStyled("using-garden/dashboard")}\n
   `)
 }
