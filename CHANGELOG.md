@@ -4,6 +4,7 @@
 
 ### Bug Fixes
 
+* **buildkit:** remove liveness probe to avoid unnecessary restarts of buildkit ([#5779](https://github.com/garden-io/garden/pull/5779))
 * **cloud:** correctly parse user ID when creating cloud secrets ([#5792](https://github.com/garden-io/garden/issues/5792)) ([519c90e93](https://github.com/garden-io/garden/commit/519c90e93))
 * **k8s:** fix kubernetes workload rollout status check ([#5794](https://github.com/garden-io/garden/issues/5794)) ([445d25c23](https://github.com/garden-io/garden/commit/445d25c23))
 * **k8s:** attempt execing on running pod ([#5782](https://github.com/garden-io/garden/issues/5782)) ([8b94e494e](https://github.com/garden-io/garden/commit/8b94e494e))
