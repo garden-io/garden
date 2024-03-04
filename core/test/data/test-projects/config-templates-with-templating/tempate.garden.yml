@@ -1,0 +1,13 @@
+kind: ConfigTemplate
+name: template-runs
+inputsSchemaPath: schema.json
+
+configs:
+  - $concat:
+      $forEach: ${inputs.names}
+      $return:
+        kind: Run
+        type: exec
+        name: "${item.value}"
+        spec:
+          command: ["echo", "${item.value}"]

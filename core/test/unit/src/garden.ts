@@ -78,6 +78,7 @@ import { fileURLToPath } from "node:url"
 import { resolveMsg } from "../../../src/logger/log-entry.js"
 import { getCloudDistributionName } from "../../../src/util/cloud.js"
 import { styles } from "../../../src/logger/styles.js"
+import type { RunActionConfig } from "../../../src/actions/run.js"
 
 const moduleDirName = dirname(fileURLToPath(import.meta.url))
 
@@ -3010,6 +3011,55 @@ describe("Garden", () => {
       expect(test.dependencies).to.eql([`build.${internal.parentName}-${internal.inputs.name}`]) // <- should be resolved
       expect(test.spec.command).to.eql(["echo", internal.inputs.envName, internal.inputs.providerKey]) // <- should be resolved
       expect(omit(test.internal, "yamlDoc")).to.eql(internal)
+    })
+
+    it("should resolve actions from templated config templates", async () => {
+      const garden = await makeTestGarden(getDataDir("test-projects", "config-templates-with-templating"))
+      await garden.scanAndAddConfigs()
+
+      const configs = await garden.getRawActionConfigs()
+      const runs = configs.Run
+      expect(runs).to.be.not.empty
+
+      const runNameA = "run-a"
+      const runA = runs[runNameA] as RunActionConfig
+      expect(runA).to.exist
+
+      const runNameB = "run-b"
+      const runB = runs[runNameB] as RunActionConfig
+      expect(runA).to.exist
+
+      const internal = {
+        basePath: garden.projectRoot,
+        configFilePath: join(garden.projectRoot, "runs.garden.yml"),
+        parentName: "my-runs",
+        templateName: "template-runs",
+        inputs: { names: [runNameA, runNameB] },
+      }
+
+      const expectedRunA: Partial<RunActionConfig> = {
+        kind: "Run",
+        type: "exec",
+        name: runNameA,
+        spec: {
+          command: ["echo", runNameA],
+        },
+        internal,
+      }
+      expect(omit(runA, "internal")).to.eql(omit(expectedRunA, "internal"))
+      expect(omit(runA.internal, "yamlDoc")).to.eql(expectedRunA.internal)
+
+      const expectedRunB: Partial<RunActionConfig> = {
+        kind: "Run",
+        type: "exec",
+        name: runNameB,
+        spec: {
+          command: ["echo", runNameB],
+        },
+        internal,
+      }
+      expect(omit(runB, "internal")).to.eql(omit(expectedRunB, "internal"))
+      expect(omit(runB.internal, "yamlDoc")).to.eql(expectedRunB.internal)
     })
 
     it("should resolve a workflow from a template", async () => {
