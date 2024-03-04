@@ -161,7 +161,7 @@ export class DeployCommand extends Command<Args, Opts> {
   }
 
   override useInkTerminalWriter(params) {
-    return !!this.maybePersistent(params)
+    return this.maybePersistent(params)
   }
 
   override terminate() {
