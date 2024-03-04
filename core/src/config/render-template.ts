@@ -279,7 +279,7 @@ async function renderConfigs({
     value: templateConfigs,
     context,
     contextOpts: { allowPartial: true },
-    source: undefined,
+    source: { yamlDoc: template.internal.yamlDoc, basePath: ["inputs"] },
   })
 
   return Promise.all(
