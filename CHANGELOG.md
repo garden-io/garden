@@ -13,7 +13,7 @@
 
 ### Features
 
-* added profile-project command ([#5780](https://github.com/garden-io/garden/issues/5780)) ([c83f815fe](https://github.com/garden-io/garden/commit/c83f815fe))
+* **util:** added profile-project command ([#5780](https://github.com/garden-io/garden/issues/5780)) ([c83f815fe](https://github.com/garden-io/garden/commit/c83f815fe))
 * **sync:** deprecate non-interactive `sync start` and `stop` commands ([#5747](https://github.com/garden-io/garden/issues/5747)) ([6e1e97939](https://github.com/garden-io/garden/commit/6e1e97939))
 
 <a name="0.13.26"></a>
