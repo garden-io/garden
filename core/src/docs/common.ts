@@ -9,6 +9,7 @@
 import { padEnd, max } from "lodash-es"
 import { DOCS_BASE_URL } from "../constants.js"
 import { getPackageVersion } from "../util/util.js"
+import { styles } from "../logger/styles.js"
 
 export abstract class BaseKeyDescription<T = any> {
   abstract type: string
@@ -143,6 +144,7 @@ export function isArrayType(type: string) {
 export const makeDocsLinkOpts = {
   GARDEN_RELATIVE_DOCS_PATH: "",
 }
+
 /**
  *
  * @param docsPathInput path to the file as from the /docs directory
@@ -151,7 +153,7 @@ export const makeDocsLinkOpts = {
  *
  * @example makeDocsLink("k8s-plugins/actions/deploy/container", "#secrets")
  */
-export function makeDocsLink(docsPathInput: string | TemplateStringsArray, fragment = ""): string {
+export function makeDocsLinkPlain(docsPathInput: string | TemplateStringsArray, fragment = ""): string {
   const docsPath: string = Array.isArray(docsPathInput) ? docsPathInput[0] : docsPathInput
 
   // If this is set it means we're rendering the reference docs
@@ -161,4 +163,8 @@ export function makeDocsLink(docsPathInput: string | TemplateStringsArray, fragm
   }
 
   return `${DOCS_BASE_URL}/${docsPath}${fragment}`
+}
+
+export function makeDocsLinkStyled(docsPathInput: string | TemplateStringsArray, fragment = ""): string {
+  return styles.link(makeDocsLinkPlain(docsPathInput, fragment))
 }
