@@ -27,6 +27,7 @@ import type { Garden } from "../garden.js"
 import { ConfigurationError, GardenError } from "../exceptions.js"
 import { resolve, posix } from "path"
 import fsExtra from "fs-extra"
+
 const { ensureDir } = fsExtra
 import type { TemplatedModuleConfig } from "../plugins/templated.js"
 import { omit } from "lodash-es"
@@ -273,9 +274,16 @@ async function renderConfigs({
   renderConfig: RenderTemplateConfig
 }): Promise<TemplatableConfig[]> {
   const templateDescription = `${configTemplateKind} '${template.name}'`
+  const templateConfigs = template.configs || []
+  const partiallyResolvedTemplateConfigs = resolveTemplateStrings({
+    value: templateConfigs,
+    context,
+    contextOpts: { allowPartial: true },
+    source: { yamlDoc: template.internal.yamlDoc, basePath: ["inputs"] },
+  })
 
   return Promise.all(
-    (template.configs || []).map(async (m) => {
+    partiallyResolvedTemplateConfigs.map(async (m) => {
       // Resolve just the name, which must be immediately resolvable
       let resolvedName = m.name
 

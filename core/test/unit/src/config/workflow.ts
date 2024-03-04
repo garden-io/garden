@@ -269,8 +269,8 @@ describe("resolveWorkflowConfig", () => {
     }
 
     expect(workflow).to.exist
-    expect(workflow.steps[0].script).to.equal('echo "${inputs.envName}"') // <- resolved later
-    expect(omit(workflow.internal, "yamlDoc")).to.eql(internal)
+    expect(workflow.steps[0].script).to.equal('echo "${environment.name}"') // <- resolved later
+    expect(omit(workflow.internal, "yamlDoc")).to.eql(internal) // <- `inputs.envName` should be resolved
   })
 
   describe("populateNamespaceForTriggers", () => {
