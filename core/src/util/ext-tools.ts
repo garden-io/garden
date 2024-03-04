@@ -216,6 +216,8 @@ export class PluginTool extends CliWrapper {
     if (darwinARM) {
       // first look for native arch, if not found, then try (potentially emulated) arch
       buildSpec = findBuildSpec(spec, platform, "arm64") || findBuildSpec(spec, platform, "amd64")
+    } else if (platform === "alpine") {
+      buildSpec = findBuildSpec(spec, "alpine", architecture) || findBuildSpec(spec, "linux", architecture)
     } else {
       buildSpec = findBuildSpec(spec, platform, architecture)!
     }

@@ -332,7 +332,11 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
 
     try {
       if (!platform) {
-        platform = getPlatform() === "darwin" ? "macos" : getPlatform()
+        platform = getPlatform()
+
+        if (platform === "darwin") {
+          platform = "macos"
+        }
       }
 
       let architecture: Architecture = opts.architecture ? (opts.architecture as Architecture) : getArchitecture()

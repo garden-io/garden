@@ -8,6 +8,7 @@
 
 import { memoize } from "lodash-es"
 import { execSync } from "child_process"
+import { InternalError } from "../exceptions.js"
 
 const platformMap = {
   win32: "windows" as const,
@@ -20,9 +21,29 @@ export type Architecture = Exclude<NodeJS.Architecture, keyof typeof archMap> | 
 export type Platform =
   | Exclude<NodeJS.Platform, keyof typeof platformMap>
   | (typeof platformMap)[keyof typeof platformMap]
+  | "alpine" // linux with musl libc, instead of glibc
 
 export function getPlatform(): Platform {
-  return platformMap[process.platform] || process.platform
+  const platform = platformMap[process.platform] || process.platform
+
+  if (platform === "linux" && getRustTargetEnv() === "musl") {
+    return "alpine"
+  }
+
+  return platform
+}
+
+// rust target env
+// The Garden SEA rust wrapper will set an environment variable called GARDEN_SEA_TARGET_ENV on linux so we can download Alpine binaries if needed.
+type RustTargetEnv = undefined | "musl" | "gnu"
+export function getRustTargetEnv(): RustTargetEnv {
+  const targetEnv = process.env.GARDEN_SEA_TARGET_ENV
+
+  if (targetEnv === undefined || targetEnv === "musl" || targetEnv === "gnu") {
+    return targetEnv
+  }
+
+  throw new InternalError({ message: `Invalid value for GARDEN_SEA_TARGET_ENV: ${targetEnv}` })
 }
 
 export function getArchitecture(): Architecture {
