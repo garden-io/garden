@@ -13,9 +13,11 @@ import { InternalError } from "../exceptions.js"
 const archMap = {
   x32: "386" as const,
   x64: "amd64" as const,
-}
-export type Architecture = Exclude<NodeJS.Architecture, keyof typeof archMap> | (typeof archMap)[keyof typeof archMap]
-export type Platform = "darwin" | "windows" | "linux" | "alpine"
+} as const
+const supportedArchitectures = ["386", "amd64", "arm64"] as const
+const supportedPlatforms = ["darwin", "windows", "linux", "alpine"] as const
+export type Platform = (typeof supportedPlatforms)[number]
+export type Architecture = (typeof supportedArchitectures)[number]
 
 export function getPlatform(): Platform {
   const platform = process.platform
@@ -57,8 +59,13 @@ export function getArchitecture(): Architecture {
   // process.arch is always x64 even though the underlying CPU architecture may be arm64
   // To check if we are running under Rosetta,
   // use the `isDarwinARM` function below
-  const arch = process.arch
-  return archMap[arch] || arch
+  const arch = archMap[process.arch] || process.arch
+
+  if (!supportedArchitectures.includes(arch)) {
+    throw new InternalError({ message: `Unsupported architecture: ${arch}` })
+  }
+
+  return arch
 }
 
 export const isDarwinARM = memoize(() => {
