@@ -10,27 +10,33 @@ import { memoize } from "lodash-es"
 import { execSync } from "child_process"
 import { InternalError } from "../exceptions.js"
 
-const platformMap = {
-  win32: "windows" as const,
-}
 const archMap = {
   x32: "386" as const,
   x64: "amd64" as const,
 }
 export type Architecture = Exclude<NodeJS.Architecture, keyof typeof archMap> | (typeof archMap)[keyof typeof archMap]
-export type Platform =
-  | Exclude<NodeJS.Platform, keyof typeof platformMap>
-  | (typeof platformMap)[keyof typeof platformMap]
-  | "alpine" // linux with musl libc, instead of glibc
+export type Platform = "darwin" | "windows" | "linux" | "alpine"
 
 export function getPlatform(): Platform {
-  const platform = platformMap[process.platform] || process.platform
+  const platform = process.platform
 
-  if (platform === "linux" && getRustTargetEnv() === "musl") {
-    return "alpine"
+  if (platform === "win32") {
+    return "windows"
   }
 
-  return platform
+  if (platform === "linux") {
+    if (getRustTargetEnv() === "musl") {
+      return "alpine"
+    }
+
+    return "linux"
+  }
+
+  if (platform === "darwin") {
+    return "darwin"
+  }
+
+  throw new InternalError({ message: `Unsupported platform: ${platform}` })
 }
 
 // rust target env
