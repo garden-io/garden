@@ -54,12 +54,12 @@ Download the Garden binary for your platform from below or simply run \`garden s
 * [Garden v${version} for Windows AMD64 (.zip)](https://download.garden.io/core/${version}/garden-${version}-windows-amd64.zip)
 
 ## Changelog
-[TODO: Remember to put the list of features on top of the list of bug fixes.]
-[TODO: Remove all garbage entries from the changelog below.]
+[TODO: Review the changelog and eemember to put the list of features on top of the list of bug fixes.]
 ${changelog}
 
 ## Fixed Issues
-[TODO: compose the list of the fixed issues here.]
+
+* [TODO: compose the list of the fixed issues here.]
 `)
 
 // todo: for better automation, consider calling this from ./release.ts when RELEASE_TYPE arg is minor|patch
