@@ -153,7 +153,7 @@ export const makeDocsLinkOpts = {
  *
  * @example makeDocsLink("k8s-plugins/actions/deploy/container", "#secrets")
  */
-export function makeDocsLink(docsPathInput: string | TemplateStringsArray, fragment = ""): string {
+export function makeDocsLinkPlain(docsPathInput: string | TemplateStringsArray, fragment = ""): string {
   const docsPath: string = Array.isArray(docsPathInput) ? docsPathInput[0] : docsPathInput
 
   // If this is set it means we're rendering the reference docs
@@ -166,5 +166,5 @@ export function makeDocsLink(docsPathInput: string | TemplateStringsArray, fragm
 }
 
 export function makeDocsLinkStyled(docsPathInput: string | TemplateStringsArray, fragment = ""): string {
-  return styles.link(makeDocsLink(docsPathInput, fragment))
+  return styles.link(makeDocsLinkPlain(docsPathInput, fragment))
 }

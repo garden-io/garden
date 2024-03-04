@@ -47,7 +47,7 @@ import { syncPause, syncResume, syncStatus } from "./commands/sync.js"
 import { helmPodRunDefinition, helmPodTestDefinition } from "./helm/helm-pod.js"
 import { kubernetesPodRunDefinition, kubernetesPodTestDefinition } from "./kubernetes-type/kubernetes-pod.js"
 import { kubernetesExecRunDefinition, kubernetesExecTestDefinition } from "./kubernetes-type/kubernetes-exec.js"
-import { makeDocsLink, makeDocsLinkStyled } from "../../docs/common.js"
+import { makeDocsLinkPlain, makeDocsLinkStyled } from "../../docs/common.js"
 
 export async function configureProvider({
   namespace,
@@ -133,15 +133,15 @@ export const gardenPlugin = () => {
     name: "kubernetes",
     dependencies: [{ name: "container" }, { name: "jib", optional: true }],
     docs: dedent`
-    The \`kubernetes\` provider allows you to deploy [\`container\` actions](${makeDocsLink(
+    The \`kubernetes\` provider allows you to deploy [\`container\` actions](${makeDocsLinkPlain(
       "k8s-plugins/actions/deploy/container"
     )}) to
-    Kubernetes clusters, and adds the [\`helm\`](${makeDocsLink`k8s-plugins/actions/deploy/helm`}) and
-    [\`kubernetes\`](${makeDocsLink("k8s-plugins/actions/deploy/kubernetes")}) action types.
+    Kubernetes clusters, and adds the [\`helm\`](${makeDocsLinkPlain`k8s-plugins/actions/deploy/helm`}) and
+    [\`kubernetes\`](${makeDocsLinkPlain("k8s-plugins/actions/deploy/kubernetes")}) action types.
 
     For usage information, please refer to the [guides section](../../guides). A good place to start is
-    the [Remote Kubernetes guide](${makeDocsLink`k8s-plugins/remote-k8s/README`}) guide if you're connecting to remote clusters.
-    The [Quickstart guide](${makeDocsLink`getting-started/quickstart`}) guide is also helpful as an introduction.
+    the [Remote Kubernetes guide](${makeDocsLinkPlain`k8s-plugins/remote-k8s/README`}) guide if you're connecting to remote clusters.
+    The [Quickstart guide](${makeDocsLinkPlain`getting-started/quickstart`}) guide is also helpful as an introduction.
 
     Note that if you're using a local Kubernetes cluster (e.g. minikube or Docker Desktop), the [local-kubernetes provider](./local-kubernetes.md) simplifies (and automates) the configuration and setup quite a bit.
 

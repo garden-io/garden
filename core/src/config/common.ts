@@ -38,7 +38,7 @@ import {
   envVarRegex,
 } from "./constants.js"
 import { renderZodError } from "./zod.js"
-import { makeDocsLink } from "../docs/common.js"
+import { makeDocsLinkPlain } from "../docs/common.js"
 
 // Avoid chasing moved references
 export * from "./constants.js"
@@ -64,7 +64,7 @@ export interface DeepPrimitiveMap {
 //   spec: Omit<T, keyof S> & Partial<S>
 // }
 
-export const includeGuideLink = makeDocsLink(
+export const includeGuideLink = makeDocsLinkPlain(
   "using-garden/configuration-overview",
   "#including-excluding-files-and-directories"
 )

@@ -20,13 +20,13 @@ import { getHelmDeployStatus } from "./status.js"
 import { posix } from "path"
 import { k8sContainerStopSync } from "../container/sync.js"
 import { helmGetSyncStatus, helmStartSync } from "./sync.js"
-import { makeDocsLink } from "../../../docs/common.js"
+import { makeDocsLinkPlain } from "../../../docs/common.js"
 import { helmVersion } from "./helm-cli.js"
 
 export const getHelmDeployDocs = () => dedent`
   Specify a Helm chart (either in your repository or remote from a registry) to deploy.
 
-  Refer to the [Helm guide](${makeDocsLink`k8s-plugins/actions/deploy/helm`}) for usage instructions.
+  Refer to the [Helm guide](${makeDocsLinkPlain`k8s-plugins/actions/deploy/helm`}) for usage instructions.
 
   Garden uses Helm ${helmVersion}.
 `
