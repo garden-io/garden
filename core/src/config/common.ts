@@ -60,10 +60,6 @@ export interface DeepPrimitiveMap {
   [key: string]: Primitive | DeepPrimitiveMap | Primitive[] | DeepPrimitiveMap[]
 }
 
-// export type ConfigWithSpec<S extends object> = <T extends S>{
-//   spec: Omit<T, keyof S> & Partial<S>
-// }
-
 export const includeGuideLink = makeDocsLinkPlain(
   "using-garden/configuration-overview",
   "#including-excluding-files-and-directories"
