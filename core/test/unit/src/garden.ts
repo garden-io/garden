@@ -2991,8 +2991,8 @@ describe("Garden", () => {
         templateName: "combo",
         inputs: {
           name: "test",
-          envName: "${environment.name}", // <- resolved later
-          providerKey: "${providers.test-plugin.outputs.testKey}", // <- resolved later
+          envName: "${environment.name}", // <- should be resolved to itself
+          providerKey: "${providers.test-plugin.outputs.testKey}", // <- should be resolved to itself
         },
       }
 
@@ -3001,14 +3001,14 @@ describe("Garden", () => {
       expect(test).to.exist
 
       expect(build.type).to.equal("test")
-      expect(build.spec.command).to.include("${inputs.name}") // <- resolved later
+      expect(build.spec.command).to.include(internal.inputs.name) // <- should be resolved
       expect(omit(build.internal, "yamlDoc")).to.eql(internal)
 
-      expect(deploy["build"]).to.equal("${parent.name}-${inputs.name}") // <- resolved later
+      expect(deploy["build"]).to.equal(`${internal.parentName}-${internal.inputs.name}`) // <- should be resolved
       expect(omit(deploy.internal, "yamlDoc")).to.eql(internal)
 
-      expect(test.dependencies).to.eql(["build.${parent.name}-${inputs.name}"]) // <- resolved later
-      expect(test.spec.command).to.eql(["echo", "${inputs.envName}", "${inputs.providerKey}"]) // <- resolved later
+      expect(test.dependencies).to.eql([`build.${internal.parentName}-${internal.inputs.name}`]) // <- should be resolved
+      expect(test.spec.command).to.eql(["echo", internal.inputs.envName, internal.inputs.providerKey]) // <- should be resolved
       expect(omit(test.internal, "yamlDoc")).to.eql(internal)
     })
 
@@ -3025,12 +3025,12 @@ describe("Garden", () => {
         templateName: "workflows",
         inputs: {
           name: "test",
-          envName: "${environment.name}", // <- resolved later
+          envName: "${environment.name}", // <- should be resolved to itself
         },
       }
 
       expect(workflow).to.exist
-      expect(workflow.steps).to.eql([{ script: 'echo "${inputs.envName}"' }]) // <- resolved later
+      expect(workflow.steps).to.eql([{ script: `echo "${internal.inputs.envName}"` }]) // <- should be resolved
       expect(omit(workflow.internal, "yamlDoc")).to.eql(internal)
     })
 
