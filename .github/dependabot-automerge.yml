@@ -24,8 +24,8 @@ jobs:
         # It is possible to scope automatic merges to certain types of updates, or to certain kinds of dependencies.
         # See also https://docs.github.com/en/code-security/dependabot/working-with-dependabot/automating-dependabot-with-github-actions#enable-auto-merge-on-a-pull-request
         # And see also https://github.com/dependabot/fetch-metadata#usage-instructions for available metadata
-        # Automatically merge npm and docker PRs, but ignore anything in /desktop
-        if: ${{ (steps.dependabot-metadata.outputs.package-ecosystem == 'npm_and_yarn' || steps.dependabot-metadata.outputs.package-ecosystem == 'docker') && steps.dependabot-metadata.outputs.directory != '/desktop' }}
+        # Automatically merge npm and docker PRs, but ignore anything in /examples
+        if: ${{ (steps.dependabot-metadata.outputs.package-ecosystem == 'npm_and_yarn' || steps.dependabot-metadata.outputs.package-ecosystem == 'docker') && steps.dependabot-metadata.outputs.directory != '/examples' }}
         run: gh pr merge --auto --squash "$PR_URL"
         env:
           PR_URL: ${{github.event.pull_request.html_url}}
