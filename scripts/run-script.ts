@@ -12,7 +12,7 @@ import { execa } from "execa"
 import { max, padEnd, padStart } from "lodash-es"
 import { DepGraph } from "dependency-graph"
 import split2 from "split2"
-import chalk from "chalk"
+import chalk, { supportsColor } from "chalk"
 import wrapAnsi from "wrap-ansi"
 import stripAnsi from "strip-ansi"
 import { dirname, join, resolve } from "node:path"
@@ -73,7 +73,7 @@ async function runInPackages(args: string[]) {
   )
 
   // Make sure subprocesses inherit color support level
-  process.env.FORCE_COLOR = chalk.supportsColor.toString() || "0"
+  process.env.FORCE_COLOR = supportsColor.toString() || "0"
 
   const maxNameLength = max(packagesWithColor.map((p) => p.shortName.length)) as number
   let lastPackage = ""
