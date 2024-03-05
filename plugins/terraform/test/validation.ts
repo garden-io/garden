@@ -30,7 +30,7 @@ describe("terraform validation", () => {
         garden,
         log: garden.log,
         args: {},
-        opts: withDefaultGlobalOpts({}),
+        opts: withDefaultGlobalOpts({ resolve: undefined }),
       })
     })
   }

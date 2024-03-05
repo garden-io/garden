@@ -5870,6 +5870,14 @@ Useful for diagnosing slow init performance for projects with lots of actions an
 
 Throws an error and exits with code 1 if something's not right in your garden config files.
 
+Examples:
+
+    garden validate                              # validate all configs, but don't fully resolve any actions
+    garden validate --resolve build.my-image     # same as above, but fully resolve the build.my-image action
+    garden validate --resolve deploy.my-service
+    garden validate --resolve '*'                # fully resolve all actions
+    garden validate --resolve                    # fully resolve all actions
+
 #### Usage
 
     garden validate 

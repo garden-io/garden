@@ -238,7 +238,7 @@ describe("configureHelmModule", () => {
       garden: g,
       log: g.log,
       args: {},
-      opts: withDefaultGlobalOpts({}),
+      opts: withDefaultGlobalOpts({ resolve: undefined }),
     })
   })
 })

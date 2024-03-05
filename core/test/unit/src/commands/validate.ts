@@ -6,8 +6,18 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ValidateCommand } from "../../../../src/commands/validate.js"
-import { expectError, withDefaultGlobalOpts, makeTestGardenA, makeTestGarden, getDataDir } from "../../../helpers.js"
+import { expect } from "chai"
+import { ValidateCommand, getActionsToResolve } from "../../../../src/commands/validate.js"
+import {
+  expectError,
+  withDefaultGlobalOpts,
+  makeTestGardenA,
+  makeTestGarden,
+  getDataDir,
+  type TestGarden,
+} from "../../../helpers.js"
+import type { ConfigGraph } from "../../../../src/graph/config-graph.js"
+import type { Log } from "../../../../src/logger/log-entry.js"
 
 describe("commands.validate", () => {
   it(`should successfully validate a test project`, async () => {
@@ -19,7 +29,7 @@ describe("commands.validate", () => {
       garden,
       log,
       args: {},
-      opts: withDefaultGlobalOpts({}),
+      opts: withDefaultGlobalOpts({ resolve: undefined }),
     })
   })
 
@@ -41,7 +51,7 @@ describe("commands.validate", () => {
           garden,
           log,
           args: {},
-          opts: withDefaultGlobalOpts({}),
+          opts: withDefaultGlobalOpts({ resolve: undefined }),
         }),
       "configuration"
     )
@@ -59,9 +69,34 @@ describe("commands.validate", () => {
           garden,
           log,
           args: {},
-          opts: withDefaultGlobalOpts({}),
+          opts: withDefaultGlobalOpts({ resolve: undefined }),
         }),
       "configuration"
     )
+  })
+
+  describe("getActionsToResolve", () => {
+    let garden: TestGarden
+    let log: Log
+    let graph: ConfigGraph
+    before(async () => {
+      garden = await makeTestGardenA()
+      log = garden.log
+      graph = await garden.getConfigGraph({ log, emit: false })
+    })
+
+    it("should return all actions when no action ref list is specified", async () => {
+      expect(getActionsToResolve(undefined, graph).length).to.equal(graph.getActions().length)
+    })
+
+    it("should return all actions when an empty list of action refs or a wildcard is specified", async () => {
+      expect(getActionsToResolve([], graph).length).to.equal(graph.getActions().length)
+      expect(getActionsToResolve(["*"], graph).length).to.equal(graph.getActions().length)
+    })
+
+    it("should return the specified actions when a list of refs is specified", async () => {
+      const toResolve = getActionsToResolve(["deploy.service-a", "run.task-a"], graph)
+      expect(toResolve.map((a) => a.key()).sort()).to.eql(["deploy.service-a", "run.task-a"])
+    })
   })
 })
