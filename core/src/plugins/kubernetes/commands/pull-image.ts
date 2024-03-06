@@ -20,7 +20,7 @@ import { dockerAuthSecretKey, getK8sUtilImageName, systemDockerAuthSecretName } 
 import { getAppNamespace, getSystemNamespace } from "../namespace.js"
 import { randomString } from "../../../util/string.js"
 import type { PluginContext } from "../../../plugin-context.js"
-import { ensureBuilderSecret } from "../container/build/common.js"
+import { ensureBuilderSecret, inClusterBuilderServiceAccount } from "../container/build/common.js"
 import type { ContainerBuildAction } from "../../container/config.js"
 import { k8sGetContainerBuildActionOutputs } from "../container/handlers.js"
 import type { Resolved } from "../../../actions/types.js"
@@ -141,6 +141,7 @@ async function pullFromExternalRegistry({ ctx, log, localId, remoteId }: PullPar
         namespace,
       },
       spec: {
+        serviceAccountName: inClusterBuilderServiceAccount,
         containers: [
           {
             name: "main",
