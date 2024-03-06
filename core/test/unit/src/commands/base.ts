@@ -245,7 +245,7 @@ describe("Command", () => {
         await validateCmd.run({
           log,
           args: {},
-          opts: withDefaultGlobalOpts({}),
+          opts: withDefaultGlobalOpts({ resolve: undefined }),
           garden,
           sessionId: uuidv4(),
           parentSessionId: devCmdSessionId,
@@ -269,7 +269,7 @@ describe("Command", () => {
         await validateCmd.run({
           log,
           args: {},
-          opts: withDefaultGlobalOpts({}),
+          opts: withDefaultGlobalOpts({ resolve: undefined }),
           garden,
           sessionId: uuidv4(),
           parentSessionId: devCmdSessionId,
