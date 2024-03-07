@@ -95,7 +95,7 @@ describe("kaniko build", () => {
           containers: [
             {
               command: [
-                "sh",
+                "/bin/sh",
                 "-c",
                 "'build' 'command';\nexport exitcode=$?;\n'touch' '/.garden/done';\nexit $exitcode;",
               ],

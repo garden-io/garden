@@ -247,7 +247,7 @@ describe("buildkit build", () => {
         dockerfile: "dockerfile",
       })
       const cdCmd = `cd ${contextPath}`
-      const buildctlCmd = `'buildctl' 'build' '--frontend=dockerfile.v0' '--local context=${contextPath}' '--local' 'dockerfile=${contextPath}' '--opt' 'filename=dockerfile' '--output' 'type=image,"name=gcr.io/deploymentRegistry/namespace/${
+      const buildctlCmd = `'buildctl' 'build' '--frontend=dockerfile.v0' '--local' 'context=${contextPath}' '--local' 'dockerfile=${contextPath}' '--opt' 'filename=dockerfile' '--output' 'type=image,"name=gcr.io/deploymentRegistry/namespace/${
         action.name
       }:${action.versionString()}",push=true' '--opt' 'build-arg:GARDEN_MODULE_VERSION=${action.versionString()}' '--opt' 'build-arg:GARDEN_ACTION_VERSION=${action.versionString()}' '--opt' 'target=foo'`
 
