@@ -9,7 +9,7 @@
 import AsyncLock from "async-lock"
 import type { ContainerBuildAction, ContainerRegistryConfig } from "../../../container/moduleConfig.js"
 import type { KubeApi } from "../../api.js"
-import type { KubernetesPluginContext, KubernetesProvider } from "../../config.js"
+import type { KubernetesConfig, KubernetesPluginContext, KubernetesProvider } from "../../config.js"
 import { PodRunner, PodRunnerError } from "../../run.js"
 import type { PluginContext } from "../../../../plugin-context.js"
 import { hashString, sleep } from "../../../../util/util.js"
@@ -267,6 +267,16 @@ export function skopeoManifestUnknown(errMsg: string | null | undefined): boolea
     errMsg.includes("Failed to fetch") ||
     /(artifact|repository) [^ ]+ not found/.test(errMsg)
   )
+}
+
+export function getBuilderServiceAccountAnnotations(config: KubernetesConfig): StringMap | undefined {
+  if (config.buildMode === "kaniko") {
+    return config.kaniko?.serviceAccountAnnotations
+  }
+  if (config.buildMode === "cluster-buildkit") {
+    return config.clusterBuildkit?.serviceAccountAnnotations
+  }
+  return undefined
 }
 
 export async function ensureServiceAccount({
