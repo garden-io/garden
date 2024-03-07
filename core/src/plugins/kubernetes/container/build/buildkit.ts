@@ -340,7 +340,7 @@ export function getBuildkitImageFlags(
     deploymentRegistryExtraSpec = ",registry.insecure=true"
   }
 
-  args.push("--output", `type=image,\\"name=${imageNames.join(",")}\\",push=true${deploymentRegistryExtraSpec}`)
+  args.push("--output", `type=image,"name=${imageNames.join(",")}",push=true${deploymentRegistryExtraSpec}`)
 
   for (const cache of cacheConfig) {
     const cacheImageName = getCacheImageName(moduleOutputs, cache)
