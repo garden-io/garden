@@ -47,6 +47,7 @@ import { k8sGetContainerBuildActionOutputs } from "../handlers.js"
 import { stringifyResources } from "../util.js"
 import { styles } from "../../../../logger/styles.js"
 import type { ResolvedBuildAction } from "../../../../actions/build.js"
+import { commandListToShellScript } from "../../../../util/escape.js"
 
 const AWS_ECR_REGEX = /^([^\.]+\.)?dkr\.ecr\.([^\.]+\.)amazonaws\.com\//i // AWS Elastic Container Registry
 
@@ -292,7 +293,7 @@ export function makeBuildkitBuildCommand({
     ...getBuildkitFlags(action),
   ]
 
-  return ["sh", "-c", `cd ${contextPath} && ${buildctlCommand.join(" ")}`]
+  return ["sh", "-c", `cd ${contextPath} && ${commandListToShellScript(buildctlCommand)}`]
 }
 
 export function getBuildkitFlags(action: Resolved<ContainerBuildAction>) {

@@ -44,6 +44,7 @@ import type { RunResult } from "../../plugin/base.js"
 import { LogLevel } from "../../logger/logger.js"
 import { getResourceEvents } from "./status/events.js"
 import stringify from "json-stringify-safe"
+import { commandListToShellScript } from "../../util/escape.js"
 
 // ref: https://kubernetes.io/docs/reference/labels-annotations-taints/#kubectl-kubernetes-io-default-container
 export const K8_POD_DEFAULT_CONTAINER_ANNOTATION_KEY = "kubectl.kubernetes.io/default-container"
@@ -452,7 +453,7 @@ exec 2<&-
 exec 1<>/tmp/output
 exec 2>&1
 
-${cmd.join(" ")}
+${commandListToShellScript(cmd)}
 `
 }
 
@@ -466,16 +467,23 @@ ${cmd.join(" ")}
  */
 function getArtifactsTarScript(artifacts: ArtifactSpec[]) {
   const directoriesToCreate = artifacts.map((a) => a.target).filter((target) => !!target && target !== ".")
-  const tmpPath = "/tmp/.garden-artifacts-" + randomString(8)
+  const tmpPath = commandListToShellScript(["/tmp/.garden-artifacts-" + randomString(8)])
 
-  // TODO: escape the user paths somehow?
+  const createDirectoriesCommands = directoriesToCreate.map((target) =>
+    commandListToShellScript(["mkdir", "-p", target])
+  )
+
+  const copyArtifactsCommands = artifacts.map(
+    ({ source, target }) => `${commandListToShellScript(["cp", "-r", source, target || "."])} >/dev/null || true`
+  )
+
   return `
 rm -rf ${tmpPath} >/dev/null || true
 mkdir -p ${tmpPath}
 cd ${tmpPath}
 touch .garden-placeholder
-${directoriesToCreate.map((target) => `mkdir -p ${target}`).join("\n")}
-${artifacts.map(({ source, target }) => `cp -r ${source} ${target || "."} >/dev/null || true`).join("\n")}
+${createDirectoriesCommands.join("\n")}
+${copyArtifactsCommands.join("\n")}
 tar -c -z -f - . | cat
 rm -rf ${tmpPath} >/dev/null || true
 `
@@ -556,7 +564,7 @@ async function runWithArtifacts({
 
     try {
       await runner.exec({
-        command: ["sh", "-c", "tar --help"],
+        command: ["tar", "--help"],
         containerName: mainContainerName,
         log,
         stdout,
@@ -570,7 +578,7 @@ async function runWithArtifacts({
       // using that (tar is not statically compiled so we can't copy that directly). Keeping this snippet around
       // for that:
       // await runner.exec({
-      //   command: ["sh", "-c", `sed -n 'w ${arcPath}'; chmod +x ${arcPath}`],
+      //   command: ["sh", "-c", `mkdir -p /.garden/bin/ && sed -n 'w /.garden/bin/arc' && chmod +x /.garden/bin/arc`],
       //   container: containerName,
       //   ignoreError: false,
       //   input: <binary>,
@@ -590,12 +598,10 @@ async function runWithArtifacts({
     const cmd = [...command!, ...(args || [])].map((s) => JSON.stringify(s))
 
     try {
-      const commandScript = getCommandExecutionScript(cmd)
-
       const res = await runner.exec({
         // Pipe the output from the command to the /tmp/output pipe, including stderr. Some shell voodoo happening
         // here, but this was the only working approach I could find after a lot of trial and error.
-        command: ["sh", "-c", commandScript],
+        command: ["sh", "-c", getCommandExecutionScript(cmd)],
         containerName: mainContainerName,
         log,
         stdout,
@@ -616,8 +622,6 @@ async function runWithArtifacts({
         startedAt,
       })
     }
-
-    const tarScript = getArtifactsTarScript(artifacts)
 
     // Copy the artifacts
     const tmpDir = await tmp.dir({ unsafeCleanup: true })
@@ -646,7 +650,7 @@ async function runWithArtifacts({
         // Tarball the requested files and stream to the above extractor.
         runner
           .exec({
-            command: ["sh", "-c", tarScript],
+            command: ["sh", "-c", getArtifactsTarScript(artifacts)],
             containerName: mainContainerName,
             log,
             stdout: extractor,
