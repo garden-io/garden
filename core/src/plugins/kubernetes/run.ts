@@ -594,14 +594,11 @@ async function runWithArtifacts({
       })
     }
 
-    // Escape the command, so that we can safely pass it as a single string
-    const cmd = [...command!, ...(args || [])].map((s) => JSON.stringify(s))
-
     try {
       const res = await runner.exec({
         // Pipe the output from the command to the /tmp/output pipe, including stderr. Some shell voodoo happening
         // here, but this was the only working approach I could find after a lot of trial and error.
-        command: ["/bin/sh", "-c", getCommandExecutionScript(cmd)],
+        command: ["/bin/sh", "-c", getCommandExecutionScript([...command!, ...(args || [])])],
         containerName: mainContainerName,
         log,
         stdout,
