@@ -335,7 +335,7 @@ export async function prepareRunPodSpec({
 
     // We start the container with a named pipe and tail that, to get the logs from the actual command
     // we plan on running. Then we sleep, so that we can copy files out of the container.
-    preparedPodSpec.containers[0].command = ["sh", "-c", "mkfifo /tmp/output && cat /tmp/output && sleep 86400"]
+    preparedPodSpec.containers[0].command = ["/bin/sh", "-c", "mkfifo /tmp/output && cat /tmp/output && sleep 86400"]
   } else {
     if (args) {
       preparedPodSpec.containers[0].args = args
@@ -578,7 +578,7 @@ async function runWithArtifacts({
       // using that (tar is not statically compiled so we can't copy that directly). Keeping this snippet around
       // for that:
       // await runner.exec({
-      //   command: ["sh", "-c", `mkdir -p /.garden/bin/ && sed -n 'w /.garden/bin/arc' && chmod +x /.garden/bin/arc`],
+      //   command: ["/bin/sh", "-c", `mkdir -p /.garden/bin/ && sed -n 'w /.garden/bin/arc' && chmod +x /.garden/bin/arc`],
       //   container: containerName,
       //   ignoreError: false,
       //   input: <binary>,
@@ -601,7 +601,7 @@ async function runWithArtifacts({
       const res = await runner.exec({
         // Pipe the output from the command to the /tmp/output pipe, including stderr. Some shell voodoo happening
         // here, but this was the only working approach I could find after a lot of trial and error.
-        command: ["sh", "-c", getCommandExecutionScript(cmd)],
+        command: ["/bin/sh", "-c", getCommandExecutionScript(cmd)],
         containerName: mainContainerName,
         log,
         stdout,
@@ -650,7 +650,7 @@ async function runWithArtifacts({
         // Tarball the requested files and stream to the above extractor.
         runner
           .exec({
-            command: ["sh", "-c", getArtifactsTarScript(artifacts)],
+            command: ["/bin/sh", "-c", getArtifactsTarScript(artifacts)],
             containerName: mainContainerName,
             log,
             stdout: extractor,
