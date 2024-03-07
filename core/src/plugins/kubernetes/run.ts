@@ -564,7 +564,7 @@ async function runWithArtifacts({
 
     try {
       await runner.exec({
-        command: ["tar", "--help"],
+        command: ["/bin/sh", "tar --help"],
         containerName: mainContainerName,
         log,
         stdout,

@@ -113,7 +113,7 @@ describe("kubernetes Pod runner functions", () => {
 
     describe("start", () => {
       it("creates a Pod and waits for it to start", async () => {
-        const pod = makePod(["sh", "-c", "sleep 600"])
+        const pod = makePod(["/bin/sh", "-c", "sleep 600"])
 
         runner = new PodRunner({
           ctx,
@@ -145,7 +145,7 @@ describe("kubernetes Pod runner functions", () => {
 
     describe("exec", () => {
       it("runs the specified command in the Pod", async () => {
-        const pod = makePod(["sh", "-c", "sleep 600"])
+        const pod = makePod(["/bin/sh", "-c", "sleep 600"])
 
         runner = new PodRunner({
           ctx,
@@ -167,7 +167,7 @@ describe("kubernetes Pod runner functions", () => {
       })
 
       it("throws if execution times out", async () => {
-        const pod = makePod(["sh", "-c", "sleep 600"])
+        const pod = makePod(["/bin/sh", "-c", "sleep 600"])
 
         runner = new PodRunner({
           ctx,
@@ -179,13 +179,13 @@ describe("kubernetes Pod runner functions", () => {
 
         await runner.start({ log })
         await expectError(
-          () => runner.exec({ log, command: ["sh", "-c", "sleep 100"], timeoutSec: 1, buffer: true }),
+          () => runner.exec({ log, command: ["/bin/sh", "-c", "sleep 100"], timeoutSec: 1, buffer: true }),
           (err) => expect(err.message).to.equal("Command timed out after 1 seconds.")
         )
       })
 
       it("throws if command returns non-zero exit code", async () => {
-        const pod = makePod(["sh", "-c", "sleep 600"])
+        const pod = makePod(["/bin/sh", "-c", "sleep 600"])
 
         runner = new PodRunner({
           ctx,
@@ -197,7 +197,7 @@ describe("kubernetes Pod runner functions", () => {
 
         await runner.start({ log })
         await expectError(
-          () => runner.exec({ log, command: ["sh", "-c", "echo foo && exit 2"], buffer: true }),
+          () => runner.exec({ log, command: ["/bin/sh", "-c", "echo foo && exit 2"], buffer: true }),
           (err) => {
             expect(err.message).to.eql(dedent`
               Failed with exit code 2.
@@ -212,7 +212,7 @@ describe("kubernetes Pod runner functions", () => {
 
     describe("getLogs", () => {
       it("retrieves the logs from the Pod", async () => {
-        const pod = makePod(["sh", "-c", "echo foo && sleep 600"])
+        const pod = makePod(["/bin/sh", "-c", "echo foo && sleep 600"])
 
         runner = new PodRunner({
           ctx,
@@ -233,7 +233,7 @@ describe("kubernetes Pod runner functions", () => {
       })
 
       it("retrieves the logs from the Pod after it terminates", async () => {
-        const pod = makePod(["sh", "-c", "echo foo"])
+        const pod = makePod(["/bin/sh", "-c", "echo foo"])
 
         runner = new PodRunner({
           ctx,
@@ -1298,7 +1298,7 @@ describe("kubernetes Pod runner functions", () => {
             const result = await runAndCopy({
               ctx: await garden.getPluginContext({ provider, templateContext: undefined, events: undefined }),
               log: garden.log,
-              command: ["sh", "-c", "touch /task.txt && sleep 10"],
+              command: ["/bin/sh", "-c", "touch /task.txt && sleep 10"],
               args: [],
               interactive,
               action,
