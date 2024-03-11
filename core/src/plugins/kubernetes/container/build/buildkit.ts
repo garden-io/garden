@@ -22,7 +22,6 @@ import type { KubernetesDeployment } from "../../types.js"
 import type { Log } from "../../../../logger/log-entry.js"
 import { waitForResources, compareDeployedResources } from "../../status/status.js"
 import type { KubernetesProvider, KubernetesPluginContext, ClusterBuildkitCacheConfig } from "../../config.js"
-import type { PluginContext } from "../../../../plugin-context.js"
 import type { BuildStatusHandler, BuildHandler } from "./common.js"
 import {
   skopeoBuildStatus,
@@ -180,7 +179,7 @@ export async function ensureBuildkit({
   api,
   namespace,
 }: {
-  ctx: PluginContext
+  ctx: KubernetesPluginContext
   provider: KubernetesProvider
   log: Log
   api: KubeApi
@@ -191,7 +190,6 @@ export async function ensureBuildkit({
     log,
     api,
     namespace,
-    annotations: provider.config.clusterBuildkit?.serviceAccountAnnotations,
   })
 
   return deployLock.acquire(namespace, async () => {

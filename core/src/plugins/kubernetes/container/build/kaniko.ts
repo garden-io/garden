@@ -139,7 +139,6 @@ export const kanikoBuild: BuildHandler = async (params) => {
       log,
       api,
       namespace: kanikoNamespace,
-      annotations: provider.config.kaniko?.serviceAccountAnnotations,
     })
   }
 

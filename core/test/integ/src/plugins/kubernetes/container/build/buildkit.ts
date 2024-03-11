@@ -13,7 +13,6 @@ import type {
   KubernetesProvider,
 } from "../../../../../../../src/plugins/kubernetes/config.js"
 import type { Garden } from "../../../../../../../src/index.js"
-import type { PluginContext } from "../../../../../../../src/plugin-context.js"
 import {
   buildkitBuildHandler,
   ensureBuildkit,
@@ -33,7 +32,7 @@ describe.skip("ensureBuildkit", () => {
   let garden: Garden
   let cleanup: (() => void) | undefined
   let provider: KubernetesProvider
-  let ctx: PluginContext
+  let ctx: KubernetesPluginContext
   let api: KubeApi
   let namespace: string
 
@@ -58,7 +57,11 @@ describe.skip("ensureBuildkit", () => {
 
   beforeEach(async () => {
     provider = <KubernetesProvider>await garden.resolveProvider(garden.log, "local-kubernetes")
-    ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
+    ctx = (await garden.getPluginContext({
+      provider,
+      templateContext: undefined,
+      events: undefined,
+    })) as KubernetesPluginContext
     api = await KubeApi.factory(garden.log, ctx, provider)
     namespace = (
       await getNamespaceStatus({
