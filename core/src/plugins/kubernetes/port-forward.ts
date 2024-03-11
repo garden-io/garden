@@ -80,16 +80,16 @@ export async function getPortForward({
   log,
   namespace,
   targetResource,
-  port,
+  targetPort,
 }: {
   ctx: PluginContext
   log: Log
   namespace: string
   targetResource: string
-  port: number
+  targetPort: number
 }): Promise<PortForward> {
   // Using lock here to avoid concurrency issues (multiple parallel requests for same forward).
-  const key = getPortForwardKey(targetResource, port)
+  const key = getPortForwardKey(targetResource, targetPort)
 
   return portForwardRegistrationLock.acquire<PortForward>("register-port-forward", async () => {
     const registered = registeredPortForwards[key]
@@ -103,9 +103,9 @@ export async function getPortForward({
 
     // Forward random free local port to the remote container.
     const localPort = await getPort()
-    const portMapping = `${localPort}:${port}`
+    const portMapping = `${localPort}:${targetPort}`
 
-    log.debug(`Forwarding local port ${localPort} to ${targetResource} port ${port}`)
+    log.debug(`Forwarding local port ${localPort} to ${targetResource} port ${targetPort}`)
 
     // TODO: use the API directly instead of kubectl (need to reverse-engineer kubectl quite a bit for that)
     const { args: portForwardArgs } = kubectl(k8sCtx, k8sCtx.provider).prepareArgs({
@@ -125,7 +125,7 @@ export async function getPortForward({
     return new Promise((resolve, reject) => {
       let resolved = false
 
-      const portForward = { targetResource, port, proc, localPort }
+      const portForward: PortForward = { targetResource, port: targetPort, proc, localPort }
 
       void proc.on("close", (code) => {
         if (registeredPortForwards[key]) {
@@ -197,7 +197,7 @@ export async function getPortForwardHandler(params: PortForwardHandlerParams): P
   }
 
   const targetResource = getTargetResourceName(action, targetName)
-  const fwd = await getPortForward({ ctx, log, namespace, targetResource, port: targetPort })
+  const fwd = await getPortForward({ ctx, log, namespace, targetResource, targetPort })
 
   return {
     hostname: "localhost",
