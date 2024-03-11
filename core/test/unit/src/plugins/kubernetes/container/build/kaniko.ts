@@ -76,7 +76,7 @@ describe("kaniko build", () => {
         getKanikoBuilderPodManifest({
           provider,
           podName: "builder-pod",
-          commandStr: "build command",
+          kanikoCommand: ["build", "command"],
           kanikoNamespace: "namespace",
           authSecretName: "authSecret",
           syncArgs: ["arg1", "arg2"],
@@ -94,7 +94,11 @@ describe("kaniko build", () => {
         spec: {
           containers: [
             {
-              command: ["sh", "-c", "build command"],
+              command: [
+                "/bin/sh",
+                "-c",
+                "'build' 'command';\nexport exitcode=$?;\n'touch' '/.garden/done';\nexit $exitcode;",
+              ],
               image: defaultKanikoImageName,
               name: "kaniko",
               resources: {
@@ -126,7 +130,7 @@ describe("kaniko build", () => {
               command: [
                 "/bin/sh",
                 "-c",
-                'echo "Copying from sourceURL to /.garden/context"\nmkdir -p /.garden/context\nn=0\nuntil [ "$n" -ge 30 ]\ndo\n  rsync arg1 arg2 && break\n  n=$((n+1))\n  sleep 1\ndone\necho "Done!"',
+                'echo "Copying from $SYNC_SOURCE_URL to $SYNC_CONTEXT_PATH"\nmkdir -p "$SYNC_CONTEXT_PATH"\nn=0\nuntil [ "$n" -ge 30 ]\ndo\n  rsync \'arg1\' \'arg2\' && break\n  n=$((n+1))\n  sleep 1\ndone\necho "Done!"',
               ],
               image: getK8sUtilImageName(),
               imagePullPolicy: "IfNotPresent",
@@ -135,6 +139,16 @@ describe("kaniko build", () => {
                 {
                   mountPath: "/.garden",
                   name: "comms",
+                },
+              ],
+              env: [
+                {
+                  name: "SYNC_SOURCE_URL",
+                  value: "sourceURL",
+                },
+                {
+                  name: "SYNC_CONTEXT_PATH",
+                  value: "/.garden/context",
                 },
               ],
             },
@@ -185,7 +199,7 @@ describe("kaniko build", () => {
       const manifest = getKanikoBuilderPodManifest({
         provider,
         podName: "builder-pod",
-        commandStr: "build command",
+        kanikoCommand: ["build", "command"],
         kanikoNamespace: "namespace",
         authSecretName: "authSecret",
         syncArgs: ["arg1", "arg2"],

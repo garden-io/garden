@@ -46,6 +46,7 @@ import { k8sGetContainerBuildActionOutputs } from "../handlers.js"
 import { stringifyResources } from "../util.js"
 import { styles } from "../../../../logger/styles.js"
 import type { ResolvedBuildAction } from "../../../../actions/build.js"
+import { commandListToShellScript } from "../../../../util/escape.js"
 
 const AWS_ECR_REGEX = /^([^\.]+\.)?dkr\.ecr\.([^\.]+\.)amazonaws\.com\//i // AWS Elastic Container Registry
 
@@ -290,7 +291,7 @@ export function makeBuildkitBuildCommand({
     ...getBuildkitFlags(action),
   ]
 
-  return ["sh", "-c", `cd ${contextPath} && ${buildctlCommand.join(" ")}`]
+  return ["sh", "-c", `cd ${contextPath} && ${commandListToShellScript(buildctlCommand)}`]
 }
 
 export function getBuildkitFlags(action: Resolved<ContainerBuildAction>) {
@@ -337,7 +338,7 @@ export function getBuildkitImageFlags(
     deploymentRegistryExtraSpec = ",registry.insecure=true"
   }
 
-  args.push("--output", `type=image,\\"name=${imageNames.join(",")}\\",push=true${deploymentRegistryExtraSpec}`)
+  args.push("--output", `type=image,"name=${imageNames.join(",")}",push=true${deploymentRegistryExtraSpec}`)
 
   for (const cache of cacheConfig) {
     const cacheImageName = getCacheImageName(moduleOutputs, cache)

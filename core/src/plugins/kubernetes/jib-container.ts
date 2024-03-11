@@ -168,7 +168,7 @@ async function buildAndPushViaRemote(params: BuildActionParams<"build", Containe
 
     const { log: skopeoLog } = await runner.exec({
       log,
-      command: ["sh", "-c", syncCommand.join(" ")],
+      command: syncCommand,
       timeoutSec: pushTimeout + 5,
       containerName: utilContainerName,
       buffer: true,

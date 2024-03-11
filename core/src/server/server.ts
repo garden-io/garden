@@ -51,6 +51,7 @@ import { defaultServerPort } from "../commands/serve.js"
 import type PTY from "@homebridge/node-pty-prebuilt-multiarch"
 import pty from "@homebridge/node-pty-prebuilt-multiarch"
 import { styles } from "../logger/styles.js"
+import { commandListToShellScript } from "../util/escape.js"
 
 const skipLogsForCommands = ["autocomplete"]
 const serverLogName = "garden-server"
@@ -589,7 +590,8 @@ export class GardenServer extends EventEmitter {
       }
 
       try {
-        proc = pty.spawn("sh", ["-c", `sleep 1; ${command} ${args.join(" ")}`], {
+        // FIXME: Why do we need to sleep for 1 second?
+        proc = pty.spawn("sh", ["-c", `sleep 1; ${commandListToShellScript([command, ...args])}`], {
           name: "xterm-256color",
           cols: columns,
           rows,

@@ -45,6 +45,7 @@ import { makePodName } from "../../util.js"
 import type { ContainerBuildAction } from "../../../container/config.js"
 import { defaultDockerfileName } from "../../../container/config.js"
 import { styles } from "../../../../logger/styles.js"
+import { commandListToShellScript } from "../../../../util/escape.js"
 
 export const DEFAULT_KANIKO_FLAGS = ["--cache=true"]
 
@@ -249,7 +250,7 @@ export function getKanikoBuilderPodManifest({
   imagePullSecrets,
   sourceUrl,
   podName,
-  commandStr,
+  kanikoCommand,
 }: {
   provider: KubernetesProvider
   kanikoNamespace: string
@@ -260,7 +261,7 @@ export function getKanikoBuilderPodManifest({
   }[]
   sourceUrl: string
   podName: string
-  commandStr: string
+  kanikoCommand: string[]
 }) {
   const kanikoImage = provider.config.kaniko?.image || defaultKanikoImageName
   const kanikoTolerations = [...(provider.config.kaniko?.tolerations || []), builderToleration]
@@ -292,12 +293,12 @@ export function getKanikoBuilderPodManifest({
           "/bin/sh",
           "-c",
           dedent`
-            echo "Copying from ${sourceUrl} to ${contextPath}"
-            mkdir -p ${contextPath}
+            echo "Copying from $SYNC_SOURCE_URL to $SYNC_CONTEXT_PATH"
+            mkdir -p "$SYNC_CONTEXT_PATH"
             n=0
             until [ "$n" -ge 30 ]
             do
-              rsync ${syncArgs.join(" ")} && break
+              rsync ${commandListToShellScript(syncArgs)} && break
               n=$((n+1))
               sleep 1
             done
@@ -305,6 +306,16 @@ export function getKanikoBuilderPodManifest({
           `,
         ],
         imagePullPolicy: "IfNotPresent",
+        env: [
+          {
+            name: "SYNC_SOURCE_URL",
+            value: sourceUrl,
+          },
+          {
+            name: "SYNC_CONTEXT_PATH",
+            value: contextPath,
+          },
+        ],
         volumeMounts: [
           {
             name: sharedVolumeName,
@@ -317,7 +328,16 @@ export function getKanikoBuilderPodManifest({
       {
         name: "kaniko",
         image: kanikoImage,
-        command: ["sh", "-c", commandStr],
+        command: [
+          "/bin/sh",
+          "-c",
+          dedent`
+            ${commandListToShellScript(kanikoCommand)};
+            export exitcode=$?;
+            ${commandListToShellScript(["touch", `${sharedMountPath}/done`])};
+            exit $exitcode;
+          `,
+        ],
         volumeMounts: [
           {
             name: authSecretName,
@@ -364,15 +384,7 @@ async function runKaniko({
 
   const podName = makePodName("kaniko", action.name)
 
-  // Escape the args so that we can safely interpolate them into the kaniko command
-  const argsStr = args.map((arg) => JSON.stringify(arg)).join(" ")
-
-  const commandStr = dedent`
-    /kaniko/executor ${argsStr};
-    export exitcode=$?;
-    touch ${sharedMountPath}/done;
-    exit $exitcode;
-  `
+  const kanikoCommand = ["/kaniko/executor", ...args]
 
   const utilHostname = `${utilDeploymentName}.${utilNamespace}.svc.cluster.local`
   const sourceUrl = `rsync://${utilHostname}:${utilRsyncPort}/volume/${ctx.workingCopyId}/${action.name}/`
@@ -391,7 +403,7 @@ async function runKaniko({
     sourceUrl,
     syncArgs,
     imagePullSecrets,
-    commandStr,
+    kanikoCommand,
     kanikoNamespace,
     authSecretName,
   })

@@ -452,7 +452,7 @@ describe("kubernetes container deployment handlers", () => {
         {
           name: "garden-dev-init",
           image: getK8sSyncUtilImageName(),
-          command: ["/bin/sh", "-c", "cp /usr/local/bin/mutagen-agent /.garden/mutagen-agent"],
+          command: ["/bin/sh", "-c", "'cp' '/usr/local/bin/mutagen-agent' '/.garden/mutagen-agent'"],
           imagePullPolicy: "IfNotPresent",
           volumeMounts: [
             {

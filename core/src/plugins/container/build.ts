@@ -155,14 +155,21 @@ export function getDockerBuildArgs(version: string, specBuildArgs: PrimitiveMap)
     ...specBuildArgs,
   }
 
-  return Object.entries(buildArgs).map(([key, value]) => {
-    // 0 is falsy
-    if (value || value === 0) {
-      return `${key}=${value}`
-    } else {
-      // If the value of a build-arg is null, Docker pulls it from
-      // the environment: https://docs.docker.com/engine/reference/commandline/build/
-      return key
-    }
-  })
+  return Object.entries(buildArgs)
+    .map(([key, value]) => {
+      // If the value is empty, we simply don't pass it to docker
+      if (value === "") {
+        return undefined
+      }
+
+      // 0 is falsy
+      if (value || value === 0) {
+        return `${key}=${value}`
+      } else {
+        // If the value of a build-arg is null, Docker pulls it from
+        // the environment: https://docs.docker.com/engine/reference/commandline/build/
+        return key
+      }
+    })
+    .filter((x): x is string => !!x)
 }
