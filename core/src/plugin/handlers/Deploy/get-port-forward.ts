@@ -16,7 +16,7 @@ import type { DeployAction } from "../../../actions/deploy.js"
 import { ActionTypeHandlerSpec } from "../base/base.js"
 import type { Executed } from "../../../actions/types.js"
 
-type GetPortForwardParams<T extends DeployAction> = PluginDeployActionParamsBase<T> & ForwardablePort
+export type GetPortForwardParams<T extends DeployAction> = PluginDeployActionParamsBase<T> & ForwardablePort
 
 export interface GetPortForwardResult {
   hostname: string
