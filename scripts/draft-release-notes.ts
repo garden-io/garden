@@ -54,7 +54,7 @@ Download the Garden binary for your platform from below or simply run \`garden s
 * [Garden v${version} for Windows AMD64 (.zip)](https://download.garden.io/core/${version}/garden-${version}-windows-amd64.zip)
 
 ## Changelog
-[TODO: Review the changelog and eemember to put the list of features on top of the list of bug fixes.]
+[TODO: Review the changelog and remember to put the list of features on top of the list of bug fixes.]
 ${changelog}
 
 ## Fixed Issues
