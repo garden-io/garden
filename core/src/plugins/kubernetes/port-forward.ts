@@ -27,7 +27,7 @@ import { execa } from "execa"
 import type { KubernetesDeployAction } from "./kubernetes-type/config.js"
 import type { HelmDeployAction } from "./helm/config.js"
 import type { DeployAction } from "../../actions/deploy.js"
-import type { GetPortForwardResult } from "../../plugin/handlers/Deploy/get-port-forward.js"
+import type { GetPortForwardParams, GetPortForwardResult } from "../../plugin/handlers/Deploy/get-port-forward.js"
 import type { ActionMode, Resolved } from "../../actions/types.js"
 
 // TODO: implement stopPortForward handler
@@ -183,14 +183,9 @@ export async function getPortForward({
   })
 }
 
-export async function getPortForwardHandler(params: {
-  ctx: PluginContext
-  log: Log
-  action: DeployAction
-  namespace: string | undefined
-  targetName?: string
-  targetPort: number
-}): Promise<GetPortForwardResult> {
+type PortForwardHandlerParams = GetPortForwardParams<DeployAction> & { namespace: string | undefined }
+
+export async function getPortForwardHandler(params: PortForwardHandlerParams): Promise<GetPortForwardResult> {
   const { ctx, log, action, targetName, targetPort } = params
 
   const provider = ctx.provider as KubernetesProvider
