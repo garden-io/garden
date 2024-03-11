@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import type { KubernetesResourceConfig, KubernetesPluginContext, KubernetesResourceSpec } from "../config.js"
+import type { KubernetesResourceConfig, KubernetesResourceSpec } from "../config.js"
 import type {
   ContainerBuildAction,
   ContainerResourcesSpec,
