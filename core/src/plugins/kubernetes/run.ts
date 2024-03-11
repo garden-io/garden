@@ -473,9 +473,17 @@ function getArtifactsTarScript(artifacts: ArtifactSpec[]) {
     commandListToShellScript(["mkdir", "-p", target])
   )
 
-  const copyArtifactsCommands = artifacts.map(
-    ({ source, target }) => `${commandListToShellScript(["cp", "-r", source, target || "."])} >/dev/null || true`
-  )
+  const copyArtifactsCommands = artifacts.map(({ source, target }) => {
+    const escapedTarget = commandListToShellScript([target || "."])
+
+    // Allow globs (*) in the source path
+    // Note: This works because `commandListToShellScript` wraps every parameter in single quotes, escaping contained single quotes.
+    // The string `bin/*` will be transformed to `'bin/*'` by `commandListToShellScript`. The shell would treat `*` as literal and not expand it.
+    // `replaceAll` transforms that string then to `'bin/'*''`, which allows the shell to expand the glob, everything else is treated as literal.
+    const escapedSource = commandListToShellScript([source]).replaceAll("*", "'*'")
+
+    return `cp -r ${escapedSource} ${escapedTarget} >/dev/null || true`
+  })
 
   return `
 rm -rf ${tmpPath} >/dev/null || true
