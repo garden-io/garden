@@ -591,7 +591,7 @@ export class GardenServer extends EventEmitter {
 
       try {
         // FIXME: Why do we need to sleep for 1 second?
-        proc = pty.spawn("/bin/sh", ["-c", `sleep 1; ${commandListToShellScript([command, ...args])}`], {
+        proc = pty.spawn("sh", ["-c", `sleep 1; ${commandListToShellScript([command, ...args])}`], {
           name: "xterm-256color",
           cols: columns,
           rows,

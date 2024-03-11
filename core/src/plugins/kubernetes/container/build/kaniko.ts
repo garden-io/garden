@@ -291,7 +291,7 @@ export function getKanikoBuilderPodManifest({
         name: "init",
         image: getK8sUtilImageName(),
         command: [
-          "/bin/sh",
+          "sh",
           "-c",
           dedent`
             echo "Copying from $SYNC_SOURCE_URL to $SYNC_CONTEXT_PATH"
