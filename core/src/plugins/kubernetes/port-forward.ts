@@ -81,12 +81,14 @@ export async function getPortForward({
   namespace,
   targetResource,
   targetPort,
+  preferredLocalPort,
 }: {
   ctx: PluginContext
   log: Log
   namespace: string
   targetResource: string
   targetPort: number
+  preferredLocalPort: number | undefined
 }): Promise<PortForward> {
   // Using lock here to avoid concurrency issues (multiple parallel requests for same forward).
   const key = getPortForwardKey(targetResource, targetPort)
@@ -102,7 +104,7 @@ export async function getPortForward({
     const k8sCtx = <KubernetesPluginContext>ctx
 
     // Forward random free local port to the remote container.
-    const localPort = await getPort()
+    const localPort = await getPort({ port: preferredLocalPort })
     const portMapping = `${localPort}:${targetPort}`
 
     log.debug(`Forwarding local port ${localPort} to ${targetResource} port ${targetPort}`)
@@ -186,7 +188,7 @@ export async function getPortForward({
 type PortForwardHandlerParams = GetPortForwardParams<DeployAction> & { namespace: string | undefined }
 
 export async function getPortForwardHandler(params: PortForwardHandlerParams): Promise<GetPortForwardResult> {
-  const { ctx, log, action, targetName, targetPort } = params
+  const { ctx, log, action, targetName, targetPort, preferredLocalPort } = params
 
   const provider = ctx.provider as KubernetesProvider
 
@@ -197,7 +199,7 @@ export async function getPortForwardHandler(params: PortForwardHandlerParams): P
   }
 
   const targetResource = getTargetResourceName(action, targetName)
-  const fwd = await getPortForward({ ctx, log, namespace, targetResource, targetPort })
+  const fwd = await getPortForward({ ctx, log, namespace, targetResource, targetPort, preferredLocalPort })
 
   return {
     hostname: "localhost",
