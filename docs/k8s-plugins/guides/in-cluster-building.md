@@ -503,7 +503,7 @@ providers:
       serviceAccountAnnotations:
         eks.amazonaws.com/role-arn: arn:aws:iam::<account-id>:role/<web-identity-role-name>
     # If you use the buildkit build mode
-    buildMode: buildkit
+    buildMode: cluster-buildkit
     clusterBuildkit:
       serviceAccountAnnotations:
         eks.amazonaws.com/role-arn: arn:aws:iam::<account-id>:role/<web-identity-role-name>

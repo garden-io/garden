@@ -9,7 +9,6 @@
 import { expectError, grouped } from "../../../../../../helpers.js"
 import type { Garden } from "../../../../../../../src/garden.js"
 import type { ConfigGraph } from "../../../../../../../src/graph/config-graph.js"
-import type { PluginContext } from "../../../../../../../src/plugin-context.js"
 import type {
   ClusterBuildkitCacheConfig,
   KubernetesPluginContext,
@@ -42,7 +41,7 @@ describe.skip("Kubernetes Container Build Extension", () => {
   let log: ActionLog
   let graph: ConfigGraph
   let provider: KubernetesProvider
-  let ctx: PluginContext
+  let ctx: KubernetesPluginContext
 
   after(async () => {
     if (garden) {
@@ -55,7 +54,11 @@ describe.skip("Kubernetes Container Build Extension", () => {
     log = createActionLog({ log: garden.log, actionName: "", actionKind: "" })
     graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     provider = <KubernetesProvider>await garden.resolveProvider(garden.log, "local-kubernetes")
-    ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
+    ctx = (await garden.getPluginContext({
+      provider,
+      templateContext: undefined,
+      events: undefined,
+    })) as KubernetesPluginContext
   }
 
   async function executeBuild(buildActionName: string) {
@@ -584,7 +587,7 @@ describe("Ensure serviceAccount annotations for in-cluster building", () => {
   let cleanup: (() => void) | undefined
   let log: ActionLog
   let provider: KubernetesProvider
-  let ctx: PluginContext
+  let ctx: KubernetesPluginContext
   let api: KubeApi
   after(async () => {
     if (garden) {
@@ -596,7 +599,11 @@ describe("Ensure serviceAccount annotations for in-cluster building", () => {
     ;({ garden, cleanup } = await getContainerTestGarden(environmentName, { remoteContainerAuth }))
     log = createActionLog({ log: garden.log, actionName: "", actionKind: "" })
     provider = <KubernetesProvider>await garden.resolveProvider(garden.log, "local-kubernetes")
-    ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
+    ctx = (await garden.getPluginContext({
+      provider,
+      templateContext: undefined,
+      events: undefined,
+    })) as KubernetesPluginContext
     api = await KubeApi.factory(log, ctx, provider)
   }
   grouped("kaniko").context("kaniko service account annotations", () => {
@@ -611,7 +618,7 @@ describe("Ensure serviceAccount annotations for in-cluster building", () => {
       provider.config.kaniko = { serviceAccountAnnotations: annotations }
       const serviceAccount = getBuilderServiceAccountSpec(projectNamespace, annotations)
 
-      await ensureServiceAccount({ ctx, log, api, namespace: projectNamespace, annotations })
+      await ensureServiceAccount({ ctx, log, api, namespace: projectNamespace })
 
       const status = await compareDeployedResources({
         ctx: ctx as KubernetesPluginContext,
@@ -631,7 +638,7 @@ describe("Ensure serviceAccount annotations for in-cluster building", () => {
       provider.config.kaniko = { serviceAccountAnnotations: originalAnnotations }
       const originalServiceAccount = getBuilderServiceAccountSpec(projectNamespace, originalAnnotations)
 
-      await ensureServiceAccount({ ctx, log, api, namespace: projectNamespace, annotations: originalAnnotations })
+      await ensureServiceAccount({ ctx, log, api, namespace: projectNamespace })
 
       const status = await compareDeployedResources({
         ctx: ctx as KubernetesPluginContext,
@@ -649,7 +656,7 @@ describe("Ensure serviceAccount annotations for in-cluster building", () => {
       provider.config.kaniko = { serviceAccountAnnotations: reducedAnnotations }
       const updatedServiceAccount = getBuilderServiceAccountSpec(projectNamespace, reducedAnnotations)
 
-      await ensureServiceAccount({ ctx, log, api, namespace: projectNamespace, annotations: reducedAnnotations })
+      await ensureServiceAccount({ ctx, log, api, namespace: projectNamespace })
 
       const updatedStatus = await compareDeployedResources({
         ctx: ctx as KubernetesPluginContext,
@@ -712,7 +719,7 @@ describe("Ensure serviceAccount annotations for in-cluster building", () => {
       provider.config.clusterBuildkit = { serviceAccountAnnotations: annotations, cache: defaultCacheConfig }
       const serviceAccount = getBuilderServiceAccountSpec(projectNamespace, annotations)
 
-      await ensureServiceAccount({ ctx, log, api, namespace: projectNamespace, annotations })
+      await ensureServiceAccount({ ctx, log, api, namespace: projectNamespace })
 
       const status = await compareDeployedResources({
         ctx: ctx as KubernetesPluginContext,

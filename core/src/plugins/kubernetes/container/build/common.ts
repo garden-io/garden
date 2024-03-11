@@ -9,7 +9,7 @@
 import AsyncLock from "async-lock"
 import type { ContainerBuildAction, ContainerRegistryConfig } from "../../../container/moduleConfig.js"
 import type { KubeApi } from "../../api.js"
-import type { KubernetesPluginContext, KubernetesProvider } from "../../config.js"
+import type { KubernetesConfig, KubernetesPluginContext, KubernetesProvider } from "../../config.js"
 import { PodRunner, PodRunnerError } from "../../run.js"
 import type { PluginContext } from "../../../../plugin-context.js"
 import { hashString, sleep } from "../../../../util/util.js"
@@ -269,21 +269,32 @@ export function skopeoManifestUnknown(errMsg: string | null | undefined): boolea
   )
 }
 
+export function getBuilderServiceAccountAnnotations(config: KubernetesConfig): StringMap | undefined {
+  if (config.buildMode === "kaniko") {
+    return config.kaniko?.serviceAccountAnnotations
+  }
+  if (config.buildMode === "cluster-buildkit") {
+    return config.clusterBuildkit?.serviceAccountAnnotations
+  }
+  return undefined
+}
+
 export async function ensureServiceAccount({
   ctx,
   log,
   api,
   namespace,
-  annotations,
 }: {
-  ctx: PluginContext
+  ctx: KubernetesPluginContext
   log: Log
   api: KubeApi
   namespace: string
-  annotations?: StringMap
 }): Promise<boolean> {
   return deployLock.acquire(namespace, async () => {
-    const serviceAccount = getBuilderServiceAccountSpec(namespace, annotations)
+    const serviceAccount = getBuilderServiceAccountSpec(
+      namespace,
+      getBuilderServiceAccountAnnotations(ctx.provider.config)
+    )
 
     const status = await compareDeployedResources({
       ctx: ctx as KubernetesPluginContext,
@@ -331,7 +342,7 @@ export async function ensureUtilDeployment({
   api,
   namespace,
 }: {
-  ctx: PluginContext
+  ctx: KubernetesPluginContext
   provider: KubernetesProvider
   log: Log
   api: KubeApi
@@ -342,7 +353,6 @@ export async function ensureUtilDeployment({
     log,
     api,
     namespace,
-    annotations: provider.config.kaniko?.serviceAccountAnnotations,
   })
 
   return deployLock.acquire(namespace, async () => {
