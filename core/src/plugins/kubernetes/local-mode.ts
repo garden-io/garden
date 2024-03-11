@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -42,9 +42,9 @@ import touch from "touch"
 import type { Resolved } from "../../actions/types.js"
 import AsyncLock from "async-lock"
 import { styles } from "../../logger/styles.js"
-import { makeDocsLink } from "../../docs/common.js"
+import { makeDocsLinkPlain } from "../../docs/common.js"
 
-export const localModeGuideLink = `${makeDocsLink("guides/running-service-in-local-mode")}`
+export const localModeGuideLink = makeDocsLinkPlain("guides/running-service-in-local-mode")
 
 const localhost = "127.0.0.1"
 

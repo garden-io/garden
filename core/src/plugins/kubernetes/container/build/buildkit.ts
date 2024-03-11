@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -22,7 +22,6 @@ import type { KubernetesDeployment } from "../../types.js"
 import type { Log } from "../../../../logger/log-entry.js"
 import { waitForResources, compareDeployedResources } from "../../status/status.js"
 import type { KubernetesProvider, KubernetesPluginContext, ClusterBuildkitCacheConfig } from "../../config.js"
-import type { PluginContext } from "../../../../plugin-context.js"
 import type { BuildStatusHandler, BuildHandler } from "./common.js"
 import {
   skopeoBuildStatus,
@@ -47,6 +46,7 @@ import { k8sGetContainerBuildActionOutputs } from "../handlers.js"
 import { stringifyResources } from "../util.js"
 import { styles } from "../../../../logger/styles.js"
 import type { ResolvedBuildAction } from "../../../../actions/build.js"
+import { commandListToShellScript } from "../../../../util/escape.js"
 
 const AWS_ECR_REGEX = /^([^\.]+\.)?dkr\.ecr\.([^\.]+\.)amazonaws\.com\//i // AWS Elastic Container Registry
 
@@ -180,7 +180,7 @@ export async function ensureBuildkit({
   api,
   namespace,
 }: {
-  ctx: PluginContext
+  ctx: KubernetesPluginContext
   provider: KubernetesProvider
   log: Log
   api: KubeApi
@@ -191,7 +191,6 @@ export async function ensureBuildkit({
     log,
     api,
     namespace,
-    annotations: provider.config.clusterBuildkit?.serviceAccountAnnotations,
   })
 
   return deployLock.acquire(namespace, async () => {
@@ -292,7 +291,7 @@ export function makeBuildkitBuildCommand({
     ...getBuildkitFlags(action),
   ]
 
-  return ["sh", "-c", `cd ${contextPath} && ${buildctlCommand.join(" ")}`]
+  return ["sh", "-c", `cd ${contextPath} && ${commandListToShellScript(buildctlCommand)}`]
 }
 
 export function getBuildkitFlags(action: Resolved<ContainerBuildAction>) {
@@ -339,7 +338,7 @@ export function getBuildkitImageFlags(
     deploymentRegistryExtraSpec = ",registry.insecure=true"
   }
 
-  args.push("--output", `type=image,\\"name=${imageNames.join(",")}\\",push=true${deploymentRegistryExtraSpec}`)
+  args.push("--output", `type=image,"name=${imageNames.join(",")}",push=true${deploymentRegistryExtraSpec}`)
 
   for (const cache of cacheConfig) {
     const cacheImageName = getCacheImageName(moduleOutputs, cache)

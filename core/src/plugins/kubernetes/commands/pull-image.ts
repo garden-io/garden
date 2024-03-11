@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -20,7 +20,7 @@ import { dockerAuthSecretKey, getK8sUtilImageName, systemDockerAuthSecretName } 
 import { getAppNamespace, getSystemNamespace } from "../namespace.js"
 import { randomString } from "../../../util/string.js"
 import type { PluginContext } from "../../../plugin-context.js"
-import { ensureBuilderSecret } from "../container/build/common.js"
+import { ensureBuilderSecret, ensureServiceAccount, inClusterBuilderServiceAccount } from "../container/build/common.js"
 import type { ContainerBuildAction } from "../../container/config.js"
 import { k8sGetContainerBuildActionOutputs } from "../container/handlers.js"
 import type { Resolved } from "../../../actions/types.js"
@@ -128,6 +128,13 @@ async function pullFromExternalRegistry({ ctx, log, localId, remoteId }: PullPar
     `docker-archive:${tmpTarPath}:${localId}`,
   ]
 
+  await ensureServiceAccount({
+    ctx,
+    log,
+    api,
+    namespace,
+  })
+
   const runner = new PodRunner({
     api,
     ctx,
@@ -141,6 +148,7 @@ async function pullFromExternalRegistry({ ctx, log, localId, remoteId }: PullPar
         namespace,
       },
       spec: {
+        serviceAccountName: inClusterBuilderServiceAccount,
         containers: [
           {
             name: "main",

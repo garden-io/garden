@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -38,7 +38,7 @@ import {
   envVarRegex,
 } from "./constants.js"
 import { renderZodError } from "./zod.js"
-import { makeDocsLink } from "../docs/common.js"
+import { makeDocsLinkPlain } from "../docs/common.js"
 
 // Avoid chasing moved references
 export * from "./constants.js"
@@ -60,11 +60,7 @@ export interface DeepPrimitiveMap {
   [key: string]: Primitive | DeepPrimitiveMap | Primitive[] | DeepPrimitiveMap[]
 }
 
-// export type ConfigWithSpec<S extends object> = <T extends S>{
-//   spec: Omit<T, keyof S> & Partial<S>
-// }
-
-export const includeGuideLink = makeDocsLink(
+export const includeGuideLink = makeDocsLinkPlain(
   "using-garden/configuration-overview",
   "#including-excluding-files-and-directories"
 )

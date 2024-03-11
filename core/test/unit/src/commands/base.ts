@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -245,7 +245,7 @@ describe("Command", () => {
         await validateCmd.run({
           log,
           args: {},
-          opts: withDefaultGlobalOpts({}),
+          opts: withDefaultGlobalOpts({ resolve: undefined }),
           garden,
           sessionId: uuidv4(),
           parentSessionId: devCmdSessionId,
@@ -269,7 +269,7 @@ describe("Command", () => {
         await validateCmd.run({
           log,
           args: {},
-          opts: withDefaultGlobalOpts({}),
+          opts: withDefaultGlobalOpts({ resolve: undefined }),
           garden,
           sessionId: uuidv4(),
           parentSessionId: devCmdSessionId,

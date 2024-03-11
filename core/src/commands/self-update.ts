@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -47,7 +47,7 @@ const selfUpdateOpts = {
     help: `Specify an installation directory, instead of using the directory of the Garden CLI being used. Implies --force.`,
   }),
   "platform": new ChoicesParameter({
-    choices: ["macos", "linux", "windows"],
+    choices: ["macos", "linux", "alpine", "windows"],
     help: `Override the platform, instead of detecting it automatically.`,
   }),
   "architecture": new ChoicesParameter({
@@ -332,7 +332,11 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
 
     try {
       if (!platform) {
-        platform = getPlatform() === "darwin" ? "macos" : getPlatform()
+        platform = getPlatform()
+
+        if (platform === "darwin") {
+          platform = "macos"
+        }
       }
 
       let architecture: Architecture = opts.architecture ? (opts.architecture as Architecture) : getArchitecture()

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -10,8 +10,7 @@ import semver from "semver"
 import { RuntimeError } from "../exceptions.js"
 import { deline } from "./string.js"
 import { exec } from "./util.js"
-import { makeDocsLink } from "../docs/common.js"
-import { styles } from "../logger/styles.js"
+import { makeDocsLinkStyled } from "../docs/common.js"
 
 type BinaryVersionCheckParams = {
   name: string
@@ -25,9 +24,7 @@ function versionCheckError(params: BinaryVersionCheckParams, msg: string): Runti
     message: deline`
       ${msg}
       Please make sure ${params.name} (version ${params.minVersion} or later) is installed and on your PATH.
-      More about garden installation and requirements can be found in our documentation at ${styles.link(
-        makeDocsLink("getting-started/installation")
-      )}
+      More about garden installation and requirements can be found in our documentation at ${makeDocsLinkStyled("getting-started/installation")}
       `,
   })
 }

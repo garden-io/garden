@@ -1,16 +1,12 @@
 /*
- * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { getPortForward } from "../port-forward.js"
-import { CLUSTER_REGISTRY_DEPLOYMENT_NAME, CLUSTER_REGISTRY_PORT } from "../constants.js"
-import type { Log } from "../../../logger/log-entry.js"
-import type { KubernetesResourceConfig, KubernetesPluginContext, KubernetesResourceSpec } from "../config.js"
-import { getSystemNamespace } from "../namespace.js"
+import type { KubernetesResourceConfig, KubernetesResourceSpec } from "../config.js"
 import type {
   ContainerBuildAction,
   ContainerResourcesSpec,
@@ -36,18 +32,6 @@ export function getDeployedImageId(action: Resolved<ContainerRuntimeAction>): st
       message: `${action.longDescription()} specifies neither a \`build\` nor \`spec.image\``,
     })
   }
-}
-
-export async function getRegistryPortForward(ctx: KubernetesPluginContext, log: Log) {
-  const systemNamespace = await getSystemNamespace(ctx, ctx.provider, log)
-
-  return getPortForward({
-    ctx,
-    log,
-    namespace: systemNamespace,
-    targetResource: `Deployment/${CLUSTER_REGISTRY_DEPLOYMENT_NAME}`,
-    port: CLUSTER_REGISTRY_PORT,
-  })
 }
 
 export function getResourceRequirements(

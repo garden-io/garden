@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -11,7 +11,7 @@ import dedent from "dedent"
 import stringWidth from "string-width"
 import { DEFAULT_BROWSER_DIVIDER_WIDTH } from "../constants.js"
 import { styles } from "./styles.js"
-import type { Chalk } from "chalk"
+import type { ChalkInstance } from "chalk"
 
 // Add platforms/terminals?
 export function envSupportsEmoji() {
@@ -74,7 +74,7 @@ interface DividerOpts {
   width?: number
   char?: string
   titlePadding?: number
-  color?: Chalk
+  color?: ChalkInstance
   title?: string
   padding?: number
 }
@@ -144,7 +144,7 @@ export function renderMessageWithDivider({
   prefix: string
   msg: string
   isError: boolean
-  color?: Chalk
+  color?: ChalkInstance
 }) {
   // Allow overwriting color as an escape hatch. Otherwise defaults to white or red in case of errors.
   const msgColor = color || (isError ? styles.error : styles.accent)

@@ -1,4 +1,21 @@
 
+<a name="0.13.27"></a>
+## [0.13.27](https://github.com/garden-io/garden/compare/0.13.26...0.13.27) (2024-03-04)
+
+### Bug Fixes
+
+* **buildkit:** remove liveness probe to avoid unnecessary restarts of buildkit ([#5779](https://github.com/garden-io/garden/pull/5779))
+* **cloud:** correctly parse user ID when creating cloud secrets ([#5792](https://github.com/garden-io/garden/issues/5792)) ([519c90e93](https://github.com/garden-io/garden/commit/519c90e93))
+* **k8s:** fix kubernetes workload rollout status check ([#5794](https://github.com/garden-io/garden/issues/5794)) ([445d25c23](https://github.com/garden-io/garden/commit/445d25c23))
+* **k8s:** attempt execing on running pod ([#5782](https://github.com/garden-io/garden/issues/5782)) ([8b94e494e](https://github.com/garden-io/garden/commit/8b94e494e))
+* **self-update:** download alpine release artifacts on alpine ([#5798](https://github.com/garden-io/garden/issues/5798)) ([418de1cbb](https://github.com/garden-io/garden/commit/418de1cbb))
+* **template:** support template strings in `ConfigTemplate.configs` ([#5796](https://github.com/garden-io/garden/issues/5796)) ([bf51aa06b](https://github.com/garden-io/garden/commit/bf51aa06b))
+
+### Features
+
+* **util:** added profile-project command ([#5780](https://github.com/garden-io/garden/issues/5780)) ([c83f815fe](https://github.com/garden-io/garden/commit/c83f815fe))
+* **sync:** deprecate non-interactive `sync start` and `stop` commands ([#5747](https://github.com/garden-io/garden/issues/5747)) ([6e1e97939](https://github.com/garden-io/garden/commit/6e1e97939))
+
 <a name="0.13.26"></a>
 ## [0.13.26](https://github.com/garden-io/garden/compare/0.13.25...0.13.26) (2024-02-22)
 

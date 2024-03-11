@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -34,8 +34,7 @@ import type { Log } from "../logger/log-entry.js"
 import type { Document, DocumentOptions } from "yaml"
 import { parseAllDocuments } from "yaml"
 import { dedent, deline } from "../util/string.js"
-import { makeDocsLink } from "../docs/common.js"
-import { styles } from "../logger/styles.js"
+import { makeDocsLinkStyled } from "../docs/common.js"
 
 export const configTemplateKind = "ConfigTemplate"
 export const renderTemplateKind = "RenderTemplate"
@@ -379,9 +378,7 @@ function handleMissingApiVersion(log: Log, projectSpec: ProjectConfig): ProjectC
       log,
       `"apiVersion" is missing in the Project config. Assuming "${
         GardenApiVersion.v0
-      }" for backwards compatibility with 0.12. The "apiVersion"-field is mandatory when using the new action Kind-configs. A detailed migration guide is available at ${styles.link(
-        makeDocsLink("guides/migrating-to-bonsai")
-      )}`
+      }" for backwards compatibility with 0.12. The "apiVersion"-field is mandatory when using the new action Kind-configs. A detailed migration guide is available at ${makeDocsLinkStyled("guides/migrating-to-bonsai")}`
     )
 
     return { ...projectSpec, apiVersion: GardenApiVersion.v0 }

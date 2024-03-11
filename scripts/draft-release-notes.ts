@@ -1,6 +1,6 @@
 #!/usr/bin/env -S node --import ./scripts/register-hook.js
 /*
- * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -54,12 +54,12 @@ Download the Garden binary for your platform from below or simply run \`garden s
 * [Garden v${version} for Windows AMD64 (.zip)](https://download.garden.io/core/${version}/garden-${version}-windows-amd64.zip)
 
 ## Changelog
-[TODO: Remember to put the list of features on top of the list of bug fixes.]
-[TODO: Remove all garbage entries from the changelog below.]
+[TODO: Review the changelog and remember to put the list of features on top of the list of bug fixes.]
 ${changelog}
 
 ## Fixed Issues
-[TODO: compose the list of the fixed issues here.]
+
+* [TODO: compose the list of the fixed issues here.]
 `)
 
 // todo: for better automation, consider calling this from ./release.ts when RELEASE_TYPE arg is minor|patch

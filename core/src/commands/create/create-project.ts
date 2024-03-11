@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -22,13 +22,13 @@ import { PathParameter, StringParameter, BooleanParameter, StringOption } from "
 import { userPrompt } from "../../util/util.js"
 import { DOCS_BASE_URL, GardenApiVersion } from "../../constants.js"
 import { styles } from "../../logger/styles.js"
-import { makeDocsLink } from "../../docs/common.js"
+import { makeDocsLinkPlain } from "../../docs/common.js"
 
 const ignorefileName = ".gardenignore"
 const defaultIgnorefile = dedent`
 # Add paths here that you would like Garden to ignore when building modules and computing versions,
 # using the same syntax as .gitignore files.
-# For more info, see ${makeDocsLink(
+# For more info, see ${makeDocsLinkPlain(
   "using-garden/configuration-overview",
   "#including-excluding-files-and-directories"
 )}

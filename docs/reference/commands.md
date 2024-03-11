@@ -452,7 +452,7 @@ Examples:
 
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
-  | `--scope-to-user-id` |  | number | Scope the secret to a user with the given ID. User scoped secrets must be scoped to an environment as well.
+  | `--scope-to-user-id` |  | string | Scope the secret to a user with the given ID. User scoped secrets must be scoped to an environment as well.
   | `--scope-to-env` |  | string | Scope the secret to an environment. Note that this does not default to the environment that the command runs in (i.e. the one set via the --env flag) and that you need to set this explicitly if you want to create an environment scoped secret.
   | `--from-file` |  | path | Read the secrets from the file at the given path. The file should have standard &quot;dotenv&quot; format, as defined by [dotenv](https://github.com/motdotla/dotenv#rules).
 
@@ -4938,7 +4938,7 @@ Examples:
 | -------- | ----- | ---- | ----------- |
   | `--force` |  | boolean | Install the Garden CLI even if the specified or detected latest version is the same as the current version.
   | `--install-dir` |  | string | Specify an installation directory, instead of using the directory of the Garden CLI being used. Implies --force.
-  | `--platform` |  | `macos` `linux` `windows`  | Override the platform, instead of detecting it automatically.
+  | `--platform` |  | `macos` `linux` `alpine` `windows`  | Override the platform, instead of detecting it automatically.
   | `--architecture` |  | `arm64` `amd64`  | Override the architecture, instead of detecting it automatically.
   | `--major` |  | boolean | Install the latest major version of Garden. Falls back to the current version if the greater major version does not exist.
 
@@ -5852,11 +5852,31 @@ Examples:
 
 
 
+### garden util profile-project
+
+**Renders a high-level sumamry of actions and modules in your project.**
+
+Useful for diagnosing slow init performance for projects with lots of actions and modules and/or lots of files.
+
+#### Usage
+
+    garden util profile-project 
+
+
+
 ### garden validate
 
 **Check your garden configuration for errors.**
 
 Throws an error and exits with code 1 if something's not right in your garden config files.
+
+Examples:
+
+    garden validate                              # validate all configs, but don't fully resolve any actions
+    garden validate --resolve build.my-image     # same as above, but fully resolve the build.my-image action
+    garden validate --resolve deploy.my-service
+    garden validate --resolve '*'                # fully resolve all actions
+    garden validate --resolve                    # fully resolve all actions
 
 #### Usage
 

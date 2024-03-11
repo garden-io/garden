@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -247,9 +247,9 @@ describe("buildkit build", () => {
         dockerfile: "dockerfile",
       })
       const cdCmd = `cd ${contextPath}`
-      const buildctlCmd = `buildctl build --frontend=dockerfile.v0 --local context=${contextPath} --local dockerfile=${contextPath} --opt filename=dockerfile --output type=image,\\"name=gcr.io/deploymentRegistry/namespace/${
+      const buildctlCmd = `'buildctl' 'build' '--frontend=dockerfile.v0' '--local' 'context=${contextPath}' '--local' 'dockerfile=${contextPath}' '--opt' 'filename=dockerfile' '--output' 'type=image,"name=gcr.io/deploymentRegistry/namespace/${
         action.name
-      }:${action.versionString()}\\",push=true --opt build-arg:GARDEN_MODULE_VERSION=${action.versionString()} --opt build-arg:GARDEN_ACTION_VERSION=${action.versionString()} --opt target=foo`
+      }:${action.versionString()}",push=true' '--opt' 'build-arg:GARDEN_MODULE_VERSION=${action.versionString()}' '--opt' 'build-arg:GARDEN_ACTION_VERSION=${action.versionString()}' '--opt' 'target=foo'`
 
       expect(buildCommand).to.eql(["sh", "-c", `${cdCmd} && ${buildctlCmd}`])
     })
@@ -290,7 +290,7 @@ describe("buildkit build", () => {
           "--export-cache",
           "type=inline",
           "--output",
-          `type=image,\\"name=${registry}/namespace/name:v-xxxxxx,${registry}/namespace/name:_buildcache\\",push=true`,
+          `type=image,"name=${registry}/namespace/name:v-xxxxxx,${registry}/namespace/name:_buildcache",push=true`,
           "--import-cache",
           `type=registry,ref=${registry}/namespace/name:_buildcache`,
         ])
@@ -315,7 +315,7 @@ describe("buildkit build", () => {
 
         expect(flags).to.eql([
           "--output",
-          `type=image,\\"name=${registry}/namespace/name:v-xxxxxx\\",push=true`,
+          `type=image,"name=${registry}/namespace/name:v-xxxxxx",push=true`,
           "--import-cache",
           `type=registry,ref=${registry}/namespace/name:_buildcache`,
           "--export-cache",
@@ -349,7 +349,7 @@ describe("buildkit build", () => {
 
         expect(flags).to.eql([
           "--output",
-          `type=image,\\"name=${registry}/namespace/name:v-xxxxxx\\",push=true`,
+          `type=image,"name=${registry}/namespace/name:v-xxxxxx",push=true`,
           "--import-cache",
           `type=registry,ref=${registry}/namespace/name:_buildcache`,
           "--export-cache",
@@ -384,7 +384,7 @@ describe("buildkit build", () => {
 
         expect(flags).to.eql([
           "--output",
-          `type=image,\\"name=${registry}/namespace/name:v-xxxxxx\\",push=true`,
+          `type=image,"name=${registry}/namespace/name:v-xxxxxx",push=true`,
           "--import-cache",
           `type=registry,ref=${registry}/namespace/name:_buildcache`,
           "--export-cache",
@@ -419,7 +419,7 @@ describe("buildkit build", () => {
         "--export-cache",
         "type=inline",
         "--output",
-        `type=image,\\"name=${registry}/namespace/name:v-xxxxxx,${registry}/namespace/name:_buildcache\\",push=true`,
+        `type=image,"name=${registry}/namespace/name:v-xxxxxx,${registry}/namespace/name:_buildcache",push=true`,
         "--import-cache",
         `type=registry,ref=${registry}/namespace/name:_buildcache`,
       ])
@@ -455,7 +455,7 @@ describe("buildkit build", () => {
       expect(flags).to.eql([
         // output to deploymentRegistry
         "--output",
-        `type=image,\\"name=${deploymentRegistry}/namespace/name:v-xxxxxx\\",push=true`,
+        `type=image,"name=${deploymentRegistry}/namespace/name:v-xxxxxx",push=true`,
 
         // import and export to cacheRegistry with mode=max
         "--import-cache",
@@ -506,7 +506,7 @@ describe("buildkit build", () => {
       expect(flags).to.eql([
         // output to deploymentRegistry
         "--output",
-        `type=image,\\"name=${deploymentRegistry}/namespace/name:v-xxxxxx\\",push=true`,
+        `type=image,"name=${deploymentRegistry}/namespace/name:v-xxxxxx",push=true`,
         // import and export to cacheRegistry with mode=max
         // import first _buildcache-featureBranch, then _buildcache-main
         "--import-cache",

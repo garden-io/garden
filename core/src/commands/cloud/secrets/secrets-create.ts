@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -17,7 +17,7 @@ import { Command } from "../../base.js"
 import type { ApiCommandError, SecretResult } from "../helpers.js"
 import { handleBulkOperationResult, makeSecretFromResponse, noApiMsg } from "../helpers.js"
 import { dedent, deline } from "../../../util/string.js"
-import { IntegerParameter, PathParameter, StringParameter, StringsParameter } from "../../../cli/params.js"
+import { PathParameter, StringParameter, StringsParameter } from "../../../cli/params.js"
 import type { StringMap } from "../../../config/common.js"
 import dotenv from "dotenv"
 import type { CloudProject } from "../../../cloud/api.js"
@@ -33,7 +33,7 @@ export const secretsCreateArgs = {
 }
 
 export const secretsCreateOpts = {
-  "scope-to-user-id": new IntegerParameter({
+  "scope-to-user-id": new StringParameter({
     help: deline`Scope the secret to a user with the given ID. User scoped secrets must be scoped to an environment as well.`,
   }),
   "scope-to-env": new StringParameter({
@@ -81,7 +81,7 @@ export class SecretsCreateCommand extends Command<Args, Opts> {
     // Apparently TS thinks that optional params are always defined so we need to cast them to their
     // true type here.
     const envName = opts["scope-to-env"] as string | undefined
-    const userId = opts["scope-to-user-id"] as number | undefined
+    const userId = opts["scope-to-user-id"] as string | undefined
     const fromFile = opts["from-file"] as string | undefined
     let secrets: StringMap
 
