@@ -4836,6 +4836,7 @@ describe("Garden", () => {
         {
           explicit: true,
           kind: "Build",
+          type: "foo",
           name: "foo",
           needsExecutedOutputs: false,
           needsStaticOutputs: false,
@@ -4898,6 +4899,7 @@ describe("Garden", () => {
         {
           explicit: true,
           kind: "Build",
+          type: "test",
           name: "foo",
           needsExecutedOutputs: false,
           needsStaticOutputs: false,
@@ -5027,6 +5029,7 @@ describe("Garden", () => {
         {
           explicit: true,
           kind: "Build",
+          type: "foo",
           name: "foo",
           needsExecutedOutputs: false,
           needsStaticOutputs: false,
