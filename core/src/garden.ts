@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -171,7 +171,7 @@ import { GotHttpError } from "./util/http.js"
 import { styles } from "./logger/styles.js"
 import { renderDuration } from "./logger/util.js"
 import { getCloudDistributionName, getCloudLogSectionName } from "./util/cloud.js"
-import { makeDocsLink } from "./docs/common.js"
+import { makeDocsLinkStyled } from "./docs/common.js"
 
 const defaultLocalAddress = "localhost"
 
@@ -1439,7 +1439,7 @@ export class Garden {
           throw new ConfigurationError({
             message: `Action kinds are only supported in project configurations with "apiVersion: ${
               GardenApiVersion.v1
-            }". A detailed migration guide is available at ${styles.link(makeDocsLink("guides/migrating-to-bonsai"))}`,
+            }". A detailed migration guide is available at ${makeDocsLinkStyled("guides/migrating-to-bonsai")}`,
           })
         }
 
@@ -2078,7 +2078,7 @@ async function prepareCloud({
     )} command.`
     if (isCommunityEdition) {
       cloudLog.info(msg)
-      cloudLog.info(`Learn more at: ${styles.link(`${makeDocsLink("using-garden/dashboard")}`)}`)
+      cloudLog.info(`Learn more at: ${makeDocsLinkStyled("using-garden/dashboard")}`)
     } else {
       cloudLog.warn(msg)
     }

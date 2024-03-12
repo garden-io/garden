@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -19,7 +19,7 @@ import type { Logger } from "./logger.js"
 import { logLevelMap, LogLevel } from "./logger.js"
 import { toGardenError } from "../exceptions.js"
 import { styles } from "./styles.js"
-import type { Chalk } from "chalk"
+import type { ChalkInstance } from "chalk"
 import { gardenEnv } from "../constants.js"
 
 type RenderFn = (entry: LogEntry, logger: Logger) => string
@@ -88,7 +88,7 @@ export function renderTimestamp(entry: LogEntry, logger: Logger): string {
 }
 
 export function getStyle(level: LogLevel) {
-  let style: Chalk
+  let style: ChalkInstance
   if (level === LogLevel.error) {
     style = styles.error
   } else if (level === LogLevel.warn) {

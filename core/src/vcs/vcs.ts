@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -34,8 +34,7 @@ import type { Garden } from "../garden.js"
 import { Profile } from "../util/profiling.js"
 
 import AsyncLock from "async-lock"
-import { makeDocsLink } from "../docs/common.js"
-import { styles } from "../logger/styles.js"
+import { makeDocsLinkStyled } from "../docs/common.js"
 
 const scanLock = new AsyncLock()
 
@@ -266,9 +265,7 @@ export abstract class VcsHandler {
               Large number of files (${
                 files.length
               }) found in ${description}. You may need to configure file exclusions.
-              See ${styles.link(
-                makeDocsLink("using-garden/configuration-overview", "#including-excluding-files-and-directories")
-              )} for details.
+              See ${makeDocsLinkStyled("using-garden/configuration-overview", "#including-excluding-files-and-directories")} for details.
             `,
           })
         }

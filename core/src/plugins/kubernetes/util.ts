@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -262,7 +262,14 @@ export async function execInWorkload({
   const api = await KubeApi.factory(log, ctx, provider)
   const pods = await getCurrentWorkloadPods(api, namespace, workload)
 
-  const pod = pods[0]
+  const runningPods = pods.filter((p) => checkPodStatus(p) === "ready")
+  if (runningPods.length === 0) {
+    throw new DeploymentError({
+      message: `No running pods found for ${getResourceKey(workload)}`,
+    })
+  }
+
+  const pod = sample(runningPods)
 
   if (!pod) {
     // This should not happen because of the prior status check, but checking to be sure

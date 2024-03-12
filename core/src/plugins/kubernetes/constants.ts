@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -8,7 +8,7 @@
 
 import type { DockerImageWithDigest } from "../../util/string.js"
 import { gardenEnv } from "../../constants.js"
-import { makeDocsLink } from "../../docs/common.js"
+import { makeDocsLinkPlain } from "../../docs/common.js"
 
 export const rsyncPortName = "garden-rsync"
 export const buildSyncVolumeName = `garden-sync`
@@ -70,4 +70,4 @@ export const buildkitContainerName = "buildkitd"
 export const defaultSystemNamespace = "garden-system"
 
 export const syncGuideRelPath = "guides/code-synchronization"
-export const syncGuideLink = makeDocsLink(syncGuideRelPath)
+export const syncGuideLink = makeDocsLinkPlain(syncGuideRelPath)

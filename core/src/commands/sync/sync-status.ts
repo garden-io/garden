@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -23,7 +23,7 @@ import type { ResolvedDeployAction } from "../../actions/deploy.js"
 import type { ResolvedConfigGraph } from "../../graph/config-graph.js"
 import pMap from "p-map"
 import { styles } from "../../logger/styles.js"
-import { makeDocsLink } from "../../docs/common.js"
+import { makeDocsLinkStyled } from "../../docs/common.js"
 
 import { syncGuideRelPath } from "../../plugins/kubernetes/constants.js"
 
@@ -113,7 +113,7 @@ export class SyncStatusCommand extends Command<Args, Opts> {
         Follow the link below to learn how to enable live code syncing with Garden:
       `)
       log.info("")
-      log.info(styles.link(`${makeDocsLink(syncGuideRelPath)}`))
+      log.info(makeDocsLinkStyled(syncGuideRelPath))
     }
 
     return { result: { actions: syncStatuses } }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -70,6 +70,7 @@ import type { GetSyncStatusResult, SyncState, SyncStatus } from "../../plugin/ha
 import { ConfigurationError } from "../../exceptions.js"
 import { gardenEnv } from "../../constants.js"
 import { styles } from "../../logger/styles.js"
+import { commandListToShellScript } from "../../util/escape.js"
 
 export const builtInExcludes = ["/**/*.git", "**/*.garden"]
 
@@ -457,7 +458,7 @@ export async function configureSyncMode({
       const initContainer = {
         name: "garden-dev-init",
         image: k8sSyncUtilImageName,
-        command: ["/bin/sh", "-c", "cp /usr/local/bin/mutagen-agent " + mutagenAgentPath],
+        command: ["/bin/sh", "-c", commandListToShellScript(["cp", "/usr/local/bin/mutagen-agent", mutagenAgentPath])],
         imagePullPolicy: "IfNotPresent",
         volumeMounts: [gardenVolumeMount],
       }

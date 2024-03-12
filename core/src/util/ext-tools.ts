@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -216,6 +216,8 @@ export class PluginTool extends CliWrapper {
     if (darwinARM) {
       // first look for native arch, if not found, then try (potentially emulated) arch
       buildSpec = findBuildSpec(spec, platform, "arm64") || findBuildSpec(spec, platform, "amd64")
+    } else if (platform === "alpine") {
+      buildSpec = findBuildSpec(spec, "alpine", architecture) || findBuildSpec(spec, "linux", architecture)
     } else {
       buildSpec = findBuildSpec(spec, platform, architecture)!
     }

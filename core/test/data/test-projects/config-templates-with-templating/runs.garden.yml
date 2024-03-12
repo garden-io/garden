@@ -1,0 +1,5 @@
+kind: RenderTemplate
+template: template-runs
+name: my-runs
+inputs:
+  names: ["run-a", "run-b"]

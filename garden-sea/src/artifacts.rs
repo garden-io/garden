@@ -5,6 +5,13 @@ pub struct GardenArtifact {
     pub sha256: &'static [u8],
 }
 
+// needed to tell the self-updater to download alpine binaries on linux
+#[cfg(all(target_os = "linux", target_env = "musl"))]
+pub static TARGET_ENV: &str = "musl";
+
+#[cfg(all(target_os = "linux", target_env = "gnu"))]
+pub static TARGET_ENV: &str = "gnu";
+
 // source
 
 pub static SOURCE: GardenArtifact = GardenArtifact {
