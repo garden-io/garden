@@ -10,6 +10,7 @@
 ### Improvements
 
 * improvements to validate command ([#5809](https://github.com/garden-io/garden/issues/5809)) ([010730cef](https://github.com/garden-io/garden/commit/010730cef))
+* * **docker:** update Docker shipped with Garden tools to 25.0.2
 
 <a name="0.13.27"></a>
 ## [0.13.27](https://github.com/garden-io/garden/compare/0.13.26...0.13.27) (2024-03-04)
