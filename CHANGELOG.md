@@ -1,4 +1,16 @@
 
+<a name="0.13.28"></a>
+## [0.13.28](https://github.com/garden-io/garden/compare/0.13.27...0.13.28) (2024-03-11)
+
+### Bug Fixes
+
+* **core:** properly escape shell commands ([#5811](https://github.com/garden-io/garden/issues/5811)) ([a6d653404](https://github.com/garden-io/garden/commit/a6d653404))
+* **k8s:** use the same service account for pulling images as building ([#5810](https://github.com/garden-io/garden/issues/5810)) ([dba5b0665](https://github.com/garden-io/garden/commit/dba5b0665))
+
+### Improvements
+
+* improvements to validate command ([#5809](https://github.com/garden-io/garden/issues/5809)) ([010730cef](https://github.com/garden-io/garden/commit/010730cef))
+
 <a name="0.13.27"></a>
 ## [0.13.27](https://github.com/garden-io/garden/compare/0.13.26...0.13.27) (2024-03-04)
 
