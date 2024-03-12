@@ -211,7 +211,6 @@
     "@types/qs": "^6.9.8",
     "@types/react": "^18.2.55",
     "@types/sinon": "^17.0.2",
-    "@types/slice-ansi": "^7.1.0",
     "@types/split2": "^3.2.1",
     "@types/supertest": "^2.0.12",
     "@types/tar": "^6.1.10",
