@@ -8,6 +8,7 @@
 
 import { waitForResources } from "../status/status.js"
 import { helm } from "./helm-cli.js"
+import type { HelmGardenMetadataConfigMapData } from "./common.js"
 import { filterManifests, getReleaseName, getValueArgs, prepareManifests, prepareTemplates } from "./common.js"
 import { gardenCloudAECPauseAnnotation, getPausedResources, getReleaseStatus, getRenderedResources } from "./status.js"
 import { apply, deleteResources } from "../kubectl.js"
@@ -23,6 +24,7 @@ import type { HelmDeployAction } from "./config.js"
 import { isEmpty } from "lodash-es"
 import { getK8sIngresses } from "../status/ingress.js"
 import { toGardenError } from "../../../exceptions.js"
+import { upsertConfigMap } from "../util.js"
 
 export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async (params) => {
   const { ctx, action, log, force } = params
@@ -99,6 +101,22 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
       }
     }
   }
+
+  //create or upsert configmap with garden metadata
+  const gardenMetadata: HelmGardenMetadataConfigMapData = {
+    actionName: action.name,
+    projectName: ctx.projectName,
+    version: action.versionString(),
+    mode: action.mode(),
+  }
+
+  await upsertConfigMap({
+    api,
+    namespace,
+    key: `garden-helm-metadata-${action.name}`,
+    labels: {},
+    data: gardenMetadata,
+  })
 
   const preparedManifests = await prepareManifests({
     ctx: k8sCtx,
@@ -202,7 +220,13 @@ export const deleteHelmDeploy: DeployActionHandler<"delete", HelmDeployAction> =
   const resources = await getRenderedResources({ ctx: k8sCtx, action, releaseName, log })
 
   await helm({ ctx: k8sCtx, log, namespace, args: ["uninstall", releaseName], emitLogEvents: true })
-
+  try {
+    // remove configmap with garden metadata
+    const api = await KubeApi.factory(log, ctx, provider)
+    await api.core.deleteNamespacedConfigMap({ namespace, name: `garden-helm-metadata-${action.name}` })
+  } catch (error) {
+    log.warn(`Failed to remove configmap with garden metadata for deploy: ${action.name}.`)
+  }
   // Wait for resources to terminate
   await deleteResources({ log, ctx, provider, resources, namespace })
 

@@ -9,6 +9,7 @@
 import type { ForwardablePort, ServiceIngress, DeployState, ServiceStatus } from "../../../types/service.js"
 import type { Log } from "../../../logger/log-entry.js"
 import { helm } from "./helm-cli.js"
+import type { HelmGardenMetadataConfigMapData } from "./common.js"
 import { getReleaseName, loadTemplate } from "./common.js"
 import type { KubernetesPluginContext } from "../config.js"
 import { getForwardablePorts } from "../port-forward.js"
@@ -25,6 +26,7 @@ import { deployStateToActionState } from "../../../plugin/handlers/Deploy/get-st
 import { isTruthy } from "../../../util/util.js"
 import { ChildProcessError } from "../../../exceptions.js"
 import { gardenAnnotationKey } from "../../../util/string.js"
+import { deserializeValues } from "../../../util/serialization.js"
 
 export const gardenCloudAECPauseAnnotation = gardenAnnotationKey("aec-status")
 
@@ -178,15 +180,17 @@ export async function getReleaseStatus({
   releaseName: string
   log: Log
 }): Promise<ServiceStatus> {
+  let state: DeployState = "unknown"
+  let gardenMetadata: HelmGardenMetadataConfigMapData
+  const namespace = await getActionNamespace({
+    ctx,
+    log,
+    action,
+    provider: ctx.provider,
+  })
+
   try {
     log.silly(() => `Getting the release status for ${releaseName}`)
-    const namespace = await getActionNamespace({
-      ctx,
-      log,
-      action,
-      provider: ctx.provider,
-    })
-
     const res = JSON.parse(
       await helm({
         ctx,
@@ -197,50 +201,7 @@ export async function getReleaseStatus({
         emitLogEvents: false,
       })
     )
-
-    let state = helmStatusMap[res.info.status] || "unknown"
-    let values = {}
-
-    let deployedMode: ActionMode = "default"
-
-    if (state === "ready") {
-      // Make sure the right version is deployed
-      const helmResponse = await helm({
-        ctx,
-        log,
-        namespace,
-        args: ["get", "values", releaseName, "--output", "json"],
-        // do not send JSON output to Garden Cloud or CLI verbose log
-        emitLogEvents: false,
-      })
-      values = JSON.parse(helmResponse)
-
-      let deployedVersion: string | undefined = undefined
-      // JSON.parse can return null
-      if (values === null) {
-        log.verbose(`No helm values returned for release ${releaseName}. Is this release managed outside of garden?`)
-        state = "outdated"
-      } else {
-        deployedVersion = values[".garden"]?.version
-        deployedMode = values[".garden"]?.mode
-
-        if (action.mode() !== deployedMode || !deployedVersion || deployedVersion !== action.versionString()) {
-          state = "outdated"
-        }
-      }
-
-      // If ctx.cloudApi is defined, the user is logged in and they might be trying to deploy to an environment
-      // that could have been paused by Garden Cloud's AEC functionality. We therefore make sure to check for
-      // the annotations Garden Cloud adds to Helm Deployments and StatefulSets when pausing an environment.
-      if (ctx.cloudApi && (await isPaused({ ctx, namespace, action, releaseName, log }))) {
-        state = "outdated"
-      }
-    }
-
-    return {
-      state,
-      detail: { ...res, values, mode: deployedMode },
-    }
+    state = helmStatusMap[res.info.status] || "unknown"
   } catch (err) {
     if (!(err instanceof ChildProcessError)) {
       throw err
@@ -250,6 +211,35 @@ export async function getReleaseStatus({
     } else {
       throw err
     }
+  }
+  // get garden metadata from configmap in action namespace
+  try {
+    gardenMetadata = await getHelmGardenMetadataConfigMapData({ ctx, action, log, namespace })
+  } catch (err) {
+    log.verbose(`No configmap returned for release ${releaseName}. Is this release managed outside of garden?`)
+    return { state: "outdated", detail: {} }
+  }
+
+  // Make sure the right version is deployed
+  const deployedVersion = gardenMetadata.version
+  const deployedMode = gardenMetadata.mode
+
+  if (state === "ready") {
+    if (action.mode() !== deployedMode || !deployedVersion || deployedVersion !== action.versionString()) {
+      state = "outdated"
+    }
+  }
+
+  // If ctx.cloudApi is defined, the user is logged in and they might be trying to deploy to an environment
+  // that could have been paused by Garden Cloud's AEC functionality. We therefore make sure to check for
+  // the annotations Garden Cloud adds to Helm Deployments and StatefulSets when pausing an environment.
+  if (ctx.cloudApi && (await isPaused({ ctx, namespace, action, releaseName, log }))) {
+    state = "outdated"
+  }
+
+  return {
+    state,
+    detail: { gardenMetadata, mode: deployedMode },
   }
 }
 
@@ -296,4 +286,23 @@ async function isPaused({
   log: Log
 }) {
   return (await getPausedResources({ ctx, action, namespace, releaseName, log })).length > 0
+}
+
+export async function getHelmGardenMetadataConfigMapData({
+  ctx,
+  action,
+  log,
+  namespace,
+}: {
+  ctx: KubernetesPluginContext
+  action: Resolved<HelmDeployAction>
+  log: Log
+  namespace: string
+}): Promise<HelmGardenMetadataConfigMapData> {
+  const api = await KubeApi.factory(log, ctx, ctx.provider)
+  const gardenMetadataConfigMap = await api.core.readNamespacedConfigMap({
+    name: `garden-helm-metadata-${action.name}`,
+    namespace,
+  })
+  return deserializeValues(gardenMetadataConfigMap.data!) as HelmGardenMetadataConfigMapData
 }
