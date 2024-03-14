@@ -29,6 +29,12 @@ providers:
     # If specified, this provider will only be used in the listed environments. Note that an empty array effectively
     # disables the provider. To use a provider in all environments, omit this field.
     environments:
+
+    # **Stability: Experimental**. Subject to breaking changes within minor releases.
+    #
+    # Extra flags to pass to the `docker build` command. Will extend the `spec.extraFlags` specified in each container
+    # Build action.
+    dockerBuildExtraFlags:
 ```
 ## Configuration Keys
 
@@ -91,4 +97,16 @@ providers:
       - dev
       - stage
 ```
+
+### `providers[].dockerBuildExtraFlags[]`
+
+[providers](#providers) > dockerBuildExtraFlags
+
+**Stability: Experimental**. Subject to breaking changes within minor releases.
+
+Extra flags to pass to the `docker build` command. Will extend the `spec.extraFlags` specified in each container Build action.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
 
