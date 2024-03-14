@@ -46,7 +46,7 @@ import type { ContainerBuildAction } from "../../../container/config.js"
 import { defaultDockerfileName } from "../../../container/config.js"
 import { styles } from "../../../../logger/styles.js"
 import { commandListToShellScript } from "../../../../util/escape.js"
-import { ContainerProviderConfig } from "../../../container/container.js"
+import type { ContainerProviderConfig } from "../../../container/container.js"
 
 export const DEFAULT_KANIKO_FLAGS = ["--cache=true"]
 

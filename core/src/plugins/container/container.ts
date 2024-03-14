@@ -423,7 +423,7 @@ export const gardenPlugin = () =>
       Provides the \`container\` actions and module type.
       _Note that this provider is currently automatically included, and you do not need to configure it in your project configuration._
     `,
-    configSchema: providerConfigBaseSchema(),
+    configSchema: configSchema(),
 
     createActionTypes: {
       Build: [
