@@ -24,7 +24,7 @@ import type { HelmDeployAction } from "./config.js"
 import type { ActionMode, Resolved } from "../../../actions/types.js"
 import { deployStateToActionState } from "../../../plugin/handlers/Deploy/get-status.js"
 import { isTruthy } from "../../../util/util.js"
-import { ChildProcessError } from "../../../exceptions.js"
+import { ChildProcessError, RuntimeError } from "../../../exceptions.js"
 import { gardenAnnotationKey } from "../../../util/string.js"
 import { deserializeValues } from "../../../util/serialization.js"
 
@@ -305,7 +305,7 @@ export async function getHelmGardenMetadataConfigMapData({
     namespace,
   })
   if (!gardenMetadataConfigMap.data) {
-    throw new Error(`Configmap with garden metadata for release ${action.name} is empty`)
+    throw new RuntimeError({ message: `Configmap with garden metadata for release ${action.name} is empty` })
   }
   return deserializeValues(gardenMetadataConfigMap.data) as HelmGardenMetadataConfigMapData
 }
