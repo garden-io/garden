@@ -28,9 +28,16 @@ import type { RunResult } from "../../../plugin/base.js"
 import { MAX_RUN_RESULT_LOG_LENGTH } from "../constants.js"
 import { safeDumpYaml } from "../../../util/serialization.js"
 import type { HelmDeployAction } from "./config.js"
-import type { Resolved } from "../../../actions/types.js"
+import type { ActionMode, Resolved } from "../../../actions/types.js"
 
 export const helmChartYamlFilename = "Chart.yaml"
+
+export type HelmGardenMetadataConfigMapData = {
+  mode: ActionMode
+  version: string
+  actionName: string
+  projectName: string
+}
 
 interface Chart {
   apiVersion: string
@@ -93,13 +100,6 @@ export async function prepareTemplates({ ctx, action, log }: PrepareTemplatesPar
   // create the values.yml file (merge the configured parameters into the default values)
   // Merge with the base module's values, if applicable
   const { chart, values } = action.getSpec()
-
-  // Add Garden metadata
-  values[".garden"] = {
-    moduleName: action.name,
-    projectName: ctx.projectName,
-    version: action.versionString(),
-  }
 
   const valuesPath = await temporaryWrite(safeDumpYaml(values))
   log.silly(() => `Wrote chart values to ${valuesPath}`)
@@ -283,8 +283,6 @@ export async function getValueArgs({
     .concat([valuesPath])
 
   const args = flatten(valueFiles.map((f) => ["--values", f]))
-
-  args.push("--set", "\\.garden.mode=" + action.mode())
 
   return args
 }
