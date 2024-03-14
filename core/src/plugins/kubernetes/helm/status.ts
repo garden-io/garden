@@ -304,5 +304,8 @@ export async function getHelmGardenMetadataConfigMapData({
     name: `garden-helm-metadata-${action.name}`,
     namespace,
   })
-  return deserializeValues(gardenMetadataConfigMap.data!) as HelmGardenMetadataConfigMapData
+  if (!gardenMetadataConfigMap.data) {
+    throw new Error(`Configmap with garden metadata for release ${action.name} is empty`)
+  }
+  return deserializeValues(gardenMetadataConfigMap.data) as HelmGardenMetadataConfigMapData
 }

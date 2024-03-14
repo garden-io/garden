@@ -9,7 +9,7 @@
 import { expect } from "chai"
 
 import type { TestGarden } from "../../../../../helpers.js"
-import { getDataDir, makeTestGarden } from "../../../../../helpers.js"
+import { expectError, getDataDir, makeTestGarden } from "../../../../../helpers.js"
 import { deleteHelmDeploy, helmDeploy } from "../../../../../../src/plugins/kubernetes/helm/deployment.js"
 import type { KubernetesPluginContext, KubernetesProvider } from "../../../../../../src/plugins/kubernetes/config.js"
 import {
@@ -366,7 +366,7 @@ describe("helmDeploy", () => {
     expect(releaseStatus.state).to.equal("ready")
 
     await deleteHelmDeploy({ ctx, log: actionLog, action })
-    expect(getHelmGardenMetadataConfigMapData({ ctx, action, log: actionLog, namespace })).to.throw
+    await expectError(async () => await getHelmGardenMetadataConfigMapData({ ctx, action, log: actionLog, namespace }))
   })
 
   it("should mark a chart that has been paused by Garden Cloud AEC as outdated", async () => {
