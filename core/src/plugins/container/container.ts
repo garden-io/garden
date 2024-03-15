@@ -42,11 +42,25 @@ import { publishContainerBuild } from "./publish.js"
 import type { Resolved } from "../../actions/types.js"
 import { getDeployedImageId } from "../kubernetes/container/util.js"
 import type { DeepPrimitiveMap } from "../../config/common.js"
+import { joi } from "../../config/common.js"
 import { DEFAULT_DEPLOY_TIMEOUT_SEC } from "../../constants.js"
 import type { ExecBuildConfig } from "../exec/build.js"
 import type { PluginToolSpec } from "../../plugin/tools.js"
 
-export type ContainerProviderConfig = GenericProviderConfig
+export interface ContainerProviderConfig extends GenericProviderConfig {
+  dockerBuildExtraFlags?: string[]
+}
+
+export const configSchema = () =>
+  providerConfigBaseSchema()
+    .keys({
+      dockerBuildExtraFlags: joi.array().items(joi.string()).description(dedent`
+          **Stability: Experimental**. Subject to breaking changes within minor releases.
+
+          Extra flags to pass to the \`docker build\` command. Will extend the \`spec.extraFlags\` specified in each container Build action.
+          `),
+    })
+    .unknown(false)
 
 export type ContainerProvider = Provider<ContainerProviderConfig>
 
@@ -409,7 +423,7 @@ export const gardenPlugin = () =>
       Provides the \`container\` actions and module type.
       _Note that this provider is currently automatically included, and you do not need to configure it in your project configuration._
     `,
-    configSchema: providerConfigBaseSchema(),
+    configSchema: configSchema(),
 
     createActionTypes: {
       Build: [
