@@ -27,6 +27,7 @@ import { getStatsType, joinWithPosix, matchPath } from "../util/fs.js"
 import { dedent, deline, splitLast } from "../util/string.js"
 import { defer, exec } from "../util/util.js"
 import type { Log } from "../logger/log-entry.js"
+import { renderDuration } from "../logger/util.js"
 import parseGitConfig from "parse-git-config"
 import type { Profiler } from "../util/profiling.js"
 import { getDefaultProfiler, Profile } from "../util/profiling.js"
@@ -476,7 +477,7 @@ export class GitHandler extends VcsHandler {
     await processEnded.promise
     await queue.onIdle()
 
-    gitLog.verbose(`Found ${count} files in ${pathDescription} ${path}`)
+    gitLog.verbose(`Found ${count} files in ${pathDescription} ${path} ${renderDuration(gitLog.getDuration())}`)
 
     // We have done the processing of this level of files
     // So now we just have to wait for all the recursive submodules to resolve as well
