@@ -195,6 +195,12 @@ interface GitConfig {
   mode: GitScanMode
 }
 
+interface ProjectScan {
+  include?: string[]
+  exclude?: string[]
+  git?: GitConfig
+}
+
 export interface ProjectConfig extends BaseGardenResource {
   apiVersion: GardenApiVersion
   kind: "Project"
@@ -208,11 +214,7 @@ export interface ProjectConfig extends BaseGardenResource {
   dotIgnoreFile: string
   dotIgnoreFiles?: string[]
   environments: EnvironmentConfig[]
-  scan?: {
-    include?: string[]
-    exclude?: string[]
-    git?: GitConfig
-  }
+  scan?: ProjectScan
   outputs?: OutputSpec[]
   providers: GenericProviderConfig[]
   sources?: SourceConfig[]
