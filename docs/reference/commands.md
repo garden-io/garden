@@ -5880,8 +5880,13 @@ Examples:
 
 #### Usage
 
-    garden validate 
+    garden validate [options]
 
+#### Options
+
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+  | `--resolve` |  | array:string | Fully resolve a specific action, including references to runtime outputs from other actions. Actions should be specified as &#x60;&lt;kind&gt;.&lt;name&gt;&#x60; (e.g. &#x60;deploy.my-service&#x60; or &#x60;build.my-image&#x60;). This option can be specified multiple times to fully resolve multiple actions. Use * to fully resolve all actions. Note that this may result in actions being executed during validation (e.g. if a runtime output is referenced by another action, it will be executed in order to fully resolve the config). In such cases, we recommend not using this option.
 
 
 ### garden version

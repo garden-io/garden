@@ -47,6 +47,8 @@ export class ValidateCommand extends Command<{}, Opts> {
         garden validate --resolve                    # fully resolve all actions
   `
 
+  override options = validateOpts
+
   override printHeader({ log }) {
     printHeader(log, "Validate", "✔️")
   }
