@@ -205,7 +205,7 @@ export class GitHandler extends VcsHandler {
 
     const gitLog = log
       .createLog({ name: "git" })
-      .debug(
+      .verbose(
         `Scanning ${pathDescription} at ${path}\n  → Includes: ${params.include || "(none)"}\n  → Excludes: ${
           params.exclude || "(none)"
         }`
@@ -478,7 +478,7 @@ export class GitHandler extends VcsHandler {
     await processEnded.promise
     await queue.onIdle()
 
-    gitLog.debug(`Found ${count} files in ${pathDescription} ${path}`)
+    gitLog.verbose(`Found ${count} files in ${pathDescription} ${path}`)
 
     // We have done the processing of this level of files
     // So now we just have to wait for all the recursive submodules to resolve as well
