@@ -23,18 +23,19 @@ import { defaultEnvironmentStatus } from "../plugin/handlers/Provider/getEnviron
 import { getPluginBases, getPluginBaseNames } from "../plugins.js"
 import { Profile } from "../util/profiling.js"
 import { join, dirname } from "path"
-import fsExtra from "fs-extra"
-const { readFile, writeFile, ensureDir } = fsExtra
 import { deserialize, serialize } from "v8"
 import { environmentStatusSchema } from "../config/status.js"
 import { hashString, isNotNull } from "../util/util.js"
-import { gardenEnv } from "../constants.js"
+import { CACHE_DIR_NAME, gardenEnv } from "../constants.js"
 import { stableStringify } from "../util/string.js"
 import { OtelTraced } from "../util/open-telemetry/decorators.js"
 import { LogLevel } from "../logger/logger.js"
 import type { Log } from "../logger/log-entry.js"
 import { styles } from "../logger/styles.js"
 import type { ObjectPath } from "../config/base.js"
+import fsExtra from "fs-extra"
+
+const { readFile, writeFile, ensureDir } = fsExtra
 
 /**
  * Returns a provider log context with the provider name set.
@@ -454,5 +455,5 @@ export function getProviderStatusCachePath({
   gardenDirPath: string
   pluginName: string
 }) {
-  return join(gardenDirPath, "cache", "provider-statuses", `${pluginName}.json`)
+  return join(gardenDirPath, CACHE_DIR_NAME, "provider-statuses", `${pluginName}.json`)
 }
