@@ -358,6 +358,7 @@ export class Garden {
     this.asyncLock = new AsyncLock()
 
     const gitMode = params.projectConfig.scan?.git?.mode || gardenEnv.GARDEN_GIT_SCAN_MODE
+    const cacheFileHashes = params.projectConfig.scan?.cacheFileHashes || gardenEnv.GARDEN_CACHE_FILE_HASHES
     const handlerCls = gitMode === "repo" ? GitRepoHandler : GitHandler
 
     this.vcs = new handlerCls({
@@ -366,6 +367,7 @@ export class Garden {
       gardenDirPath: params.gardenDirPath,
       ignoreFile: params.dotIgnoreFile,
       cache: params.cache,
+      cacheFileHashes,
     })
 
     // Use the legacy build sync mode if
@@ -1791,6 +1793,7 @@ export async function resolveGardenParamsPartial(currentDirectory: string, opts:
     gardenDirPath,
     ignoreFile: defaultConfigFilename,
     cache: treeCache,
+    cacheFileHashes: false,
   })
   const vcsInfo = await gitHandler.getPathInfo(log, projectRoot)
 

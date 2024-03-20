@@ -176,6 +176,7 @@ export type TestGardenOpts = Partial<GardenOpts> & {
   remoteContainerAuth?: boolean
   clearConfigsOnScan?: boolean
   gitScanMode?: GitScanMode
+  cacheFileHashes?: boolean
 }
 
 export class TestGarden extends Garden {

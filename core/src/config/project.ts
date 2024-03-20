@@ -31,6 +31,7 @@ import { memoize } from "lodash-es"
 import type { GenericProviderConfig } from "./provider.js"
 import { providerConfigBaseSchema } from "./provider.js"
 import type { GitScanMode } from "../constants.js"
+import { defaultCacheFileHashes } from "../constants.js"
 import { DOCS_BASE_URL, GardenApiVersion, defaultGitScanMode, gitScanModes } from "../constants.js"
 import { defaultDotIgnoreFile } from "../util/fs.js"
 import type { CommandInfo } from "../plugin-context.js"
@@ -196,6 +197,7 @@ interface GitConfig {
 }
 
 interface ProjectScan {
+  cacheFileHashes?: boolean
   include?: string[]
   exclude?: string[]
   git?: GitConfig
@@ -273,6 +275,12 @@ const projectScanSchema = createSchema({
         .description(
           `Choose how to perform scans of git repositories. Defaults to \`${defaultGitScanMode}\`. The \`subtree\` runs individual git scans on each action/module path. The \`repo\` mode scans entire repositories and then filters down to files matching the paths, includes and excludes for each action/module. This can be considerably more efficient for large projects with many actions/modules.`
         ),
+    }),
+    cacheFileHashes: joi.object().keys({
+      mode: joi
+        .boolean()
+        .default(defaultCacheFileHashes)
+        .description(`Enable to optimize file scanning for big projects. Defaults to \`${defaultCacheFileHashes}\`.`),
     }),
   }),
 })

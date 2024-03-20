@@ -159,6 +159,7 @@ export interface VcsHandlerParams {
   gardenDirPath: string
   ignoreFile: string
   cache: TreeCache
+  cacheFileHashes: boolean
 }
 
 @Profile()
@@ -168,6 +169,8 @@ export abstract class VcsHandler {
   protected gardenDirPath: string
   protected ignoreFile: string
   protected cache: TreeCache
+  // TODO: use this flag to enable/disable file hashes caching when scanning a project
+  protected cacheFileHashes: boolean
 
   constructor(params: VcsHandlerParams) {
     this.garden = params.garden
@@ -175,6 +178,7 @@ export abstract class VcsHandler {
     this.gardenDirPath = params.gardenDirPath
     this.ignoreFile = params.ignoreFile
     this.cache = params.cache
+    this.cacheFileHashes = params.cacheFileHashes
   }
 
   abstract name: string
