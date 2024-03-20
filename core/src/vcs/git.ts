@@ -75,6 +75,21 @@ export interface GitCli {
   (...args: (string | undefined)[]): Promise<string[]>
 }
 
+export function gitCli(log: Log, cwd: string, failOnPrompt = false): GitCli {
+  /**
+   * @throws ChildProcessError
+   */
+  return async (...args: (string | undefined)[]) => {
+    log.silly(`Calling git with args '${args.join(" ")}' in ${cwd}`)
+    const { stdout } = await exec("git", args.filter(isString), {
+      cwd,
+      maxBuffer: 10 * 1024 * 1024,
+      env: failOnPrompt ? { GIT_TERMINAL_PROMPT: "0", GIT_ASKPASS: "true" } : undefined,
+    })
+    return stdout.split("\n").filter((line) => line.length > 0)
+  }
+}
+
 interface GitSubTreeIncludeExcludeFiles extends BaseIncludeExcludeFiles {
   hasIncludes: boolean
 }
@@ -127,21 +142,6 @@ export class GitHandler extends VcsHandler {
     this.lock = new AsyncLock()
   }
 
-  gitCli(log: Log, cwd: string, failOnPrompt = false): GitCli {
-    /**
-     * @throws ChildProcessError
-     */
-    return async (...args: (string | undefined)[]) => {
-      log.silly(`Calling git with args '${args.join(" ")}' in ${cwd}`)
-      const { stdout } = await exec("git", args.filter(isString), {
-        cwd,
-        maxBuffer: 10 * 1024 * 1024,
-        env: failOnPrompt ? { GIT_TERMINAL_PROMPT: "0", GIT_ASKPASS: "true" } : undefined,
-      })
-      return stdout.split("\n").filter((line) => line.length > 0)
-    }
-  }
-
   private async getModifiedFiles(git: GitCli, path: string) {
     try {
       return await git("diff-index", "--name-only", "HEAD", path)
@@ -168,7 +168,7 @@ export class GitHandler extends VcsHandler {
         return repoRoot
       }
 
-      const git = this.gitCli(log, path, failOnPrompt)
+      const git = gitCli(log, path, failOnPrompt)
 
       try {
         const repoRoot = (await git("rev-parse", "--show-toplevel"))[0]
@@ -231,7 +231,7 @@ export class GitHandler extends VcsHandler {
 
     let files: VcsFile[] = []
 
-    const git = this.gitCli(gitLog, path, failOnPrompt)
+    const git = gitCli(gitLog, path, failOnPrompt)
     const gitRoot = await this.getRepoRoot(gitLog, path, failOnPrompt)
 
     // List modified files, so that we can ensure we have the right hash for them later
@@ -499,7 +499,7 @@ export class GitHandler extends VcsHandler {
     failOnPrompt = false
   ) {
     await ensureDir(absPath)
-    const git = this.gitCli(log, absPath, failOnPrompt)
+    const git = gitCli(log, absPath, failOnPrompt)
     // Use `--recursive` to include submodules
     if (!isSha1(hash)) {
       return git(
@@ -564,7 +564,7 @@ export class GitHandler extends VcsHandler {
 
   async updateRemoteSource({ url, name, sourceType, log, failOnPrompt = false }: RemoteSourceParams) {
     const absPath = this.getRemoteSourceLocalPath(name, url, sourceType)
-    const git = this.gitCli(log, absPath, failOnPrompt)
+    const git = gitCli(log, absPath, failOnPrompt)
     const { repositoryUrl, hash } = parseGitUrl(url)
 
     await this.ensureRemoteSource({ url, name, sourceType, log, failOnPrompt })
@@ -671,7 +671,7 @@ export class GitHandler extends VcsHandler {
   }
 
   async getPathInfo(log: Log, path: string, failOnPrompt = false): Promise<VcsInfo> {
-    const git = this.gitCli(log, path, failOnPrompt)
+    const git = gitCli(log, path, failOnPrompt)
 
     const output: VcsInfo = {
       branch: "",
