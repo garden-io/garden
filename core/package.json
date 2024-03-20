@@ -29,7 +29,7 @@
     "@hapi/joi": "git+https://github.com/garden-io/joi.git#master",
     "@homebridge/node-pty-prebuilt-multiarch": "0.11.8",
     "@jsdevtools/readdir-enhanced": "^6.0.4",
-    "@kubernetes/client-node": "github:garden-io/javascript#60f0ea6de09777ceabd5afc3e306801fd0b025cc",
+    "@kubernetes/client-node": "^1.0.0-rc4",
     "@opentelemetry/api": "^1.6.0",
     "@opentelemetry/core": "^1.18.1",
     "@opentelemetry/exporter-trace-otlp-http": "0.46.0",
