@@ -219,8 +219,8 @@ export class TestGarden extends Garden {
     } else {
       params = await resolveGardenParams(currentDirectory, { commandInfo: defaultCommandInfo, ...opts })
       if (opts?.gitScanMode) {
-        params.projectConfig.scan = params.projectConfig.scan ?? { git: { mode: opts.gitScanMode } }
-        params.projectConfig.scan.git = params.projectConfig.scan.git ?? { mode: opts.gitScanMode }
+        params.projectConfig.scan ??= { git: { mode: opts.gitScanMode } }
+        params.projectConfig.scan.git ??= { mode: opts.gitScanMode }
         params.projectConfig.scan.git.mode = opts.gitScanMode
       }
       if (cacheKey) {
