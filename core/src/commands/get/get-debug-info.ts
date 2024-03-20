@@ -10,13 +10,14 @@ import type { CommandParams } from "../base.js"
 import { Command } from "../base.js"
 import { findProjectConfig } from "../../config/base.js"
 import fsExtra from "fs-extra"
+
 const { ensureDir, copy, remove, pathExists, writeFile } = fsExtra
 import { getPackageVersion } from "../../util/util.js"
 import { platform, release } from "os"
 import { join, relative, basename, dirname } from "path"
 import type { Log } from "../../logger/log-entry.js"
 import { findConfigPathsInPath, defaultDotIgnoreFile } from "../../util/fs.js"
-import { ERROR_LOG_FILENAME } from "../../constants.js"
+import { ERROR_LOG_FILENAME, gardenEnv } from "../../constants.js"
 import dedent from "dedent"
 import type { Garden } from "../../garden.js"
 import { zipFolder } from "../../util/archive.js"
@@ -78,6 +79,7 @@ export async function collectBasicDebugInfo(root: string, gardenDirPath: string,
     gardenDirPath,
     ignoreFile: projectConfig.dotIgnoreFile || defaultDotIgnoreFile,
     cache,
+    cacheFileHashes: projectConfig.scan?.cacheFileHashes || gardenEnv.GARDEN_CACHE_FILE_HASHES,
   })
   const include = projectConfig.scan && projectConfig.scan.include
   const exclude = projectConfig.scan && projectConfig.scan.exclude

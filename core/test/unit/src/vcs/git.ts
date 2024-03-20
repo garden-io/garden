@@ -84,7 +84,7 @@ function getGitHandlerCls(gitScanMode: GitScanMode): GitHandlerCls {
   }
 }
 
-const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
+const commonGitHandlerTests = (gitScanMode: GitScanMode, cacheFileHashes: boolean) => {
   let garden: TestGarden
   let tmpDir: tmp.DirectoryResult
   let tmpPath: string
@@ -105,6 +105,7 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
       gardenDirPath: join(tmpPath, ".garden"),
       ignoreFile: defaultIgnoreFilename,
       cache: garden.treeCache,
+      cacheFileHashes,
     })
     git = gitCli(log, tmpPath)
   })
@@ -785,6 +786,7 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
           gardenDirPath: join(tmpPath, ".garden"),
           ignoreFile: "",
           cache: garden.treeCache,
+          cacheFileHashes,
         })
 
         expect(await _handler.getFiles({ path: tmpPath, scanRoot: undefined, log })).to.eql([{ path, hash }])
@@ -1461,13 +1463,13 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
 
 // FIXME-GITREPOHANDLER: revisit these tests and disk-based configs,
 //  inspect the scenarios when both include and exclude filters are defined.
-const getTreeVersionTests = (gitScanMode: GitScanMode) => {
+const getTreeVersionTests = (gitScanMode: GitScanMode, cacheFileHashes: boolean) => {
   const gitHandlerCls = getGitHandlerCls(gitScanMode)
   describe("getTreeVersion", () => {
     context("include and exclude filters", () => {
       it("should respect the include field, if specified", async () => {
         const projectRoot = getDataDir("test-projects", "include-exclude")
-        const garden = await makeTestGarden(projectRoot, { gitScanMode })
+        const garden = await makeTestGarden(projectRoot, { gitScanMode, cacheFileHashes })
         const log = garden.log
         const graph = await garden.getConfigGraph({ log, emit: false })
         const build = graph.getBuild("a")
@@ -1478,6 +1480,7 @@ const getTreeVersionTests = (gitScanMode: GitScanMode) => {
           gardenDirPath: garden.gardenDirPath,
           ignoreFile: garden.dotIgnoreFile,
           cache: garden.treeCache,
+          cacheFileHashes,
         })
 
         const version = await handler.getTreeVersion({
@@ -1505,6 +1508,7 @@ const getTreeVersionTests = (gitScanMode: GitScanMode) => {
           gardenDirPath: garden.gardenDirPath,
           ignoreFile: garden.dotIgnoreFile,
           cache: garden.treeCache,
+          cacheFileHashes,
         })
 
         const version = await handler.getTreeVersion({
@@ -1530,6 +1534,7 @@ const getTreeVersionTests = (gitScanMode: GitScanMode) => {
           gardenDirPath: garden.gardenDirPath,
           ignoreFile: garden.dotIgnoreFile,
           cache: garden.treeCache,
+          cacheFileHashes,
         })
 
         const version = await handler.getTreeVersion({
@@ -1544,9 +1549,10 @@ const getTreeVersionTests = (gitScanMode: GitScanMode) => {
   })
 }
 
-export function runGitHandlerTests(gitScanMode: GitScanMode) {
-  commonGitHandlerTests(gitScanMode)
-  getTreeVersionTests(gitScanMode)
+// TODO: run tests with all combinations of gitScanMode/cacheFileHashes values
+export function runGitHandlerTests(gitScanMode: GitScanMode, cacheFileHashes: boolean = false) {
+  commonGitHandlerTests(gitScanMode, cacheFileHashes)
+  getTreeVersionTests(gitScanMode, cacheFileHashes)
 }
 
 describe("GitHandler", () => {

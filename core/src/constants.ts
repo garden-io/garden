@@ -19,6 +19,7 @@ const extractedRoot = process.env.GARDEN_SEA_EXTRACTED_ROOT
 export const gitScanModes = ["repo", "subtree"] as const
 export type GitScanMode = (typeof gitScanModes)[number]
 export const defaultGitScanMode: GitScanMode = "repo"
+export const defaultCacheFileHashes: boolean = false
 
 export const GARDEN_CORE_ROOT = !!extractedRoot
   ? resolve(extractedRoot, "src", "core")
@@ -67,6 +68,11 @@ export const gardenEnv = {
   NO_COLOR: env.get("NO_COLOR").required(false).default("false").asBool(),
   GARDEN_AUTH_TOKEN: env.get("GARDEN_AUTH_TOKEN").required(false).asString(),
   GARDEN_CACHE_TTL: env.get("GARDEN_CACHE_TTL").required(false).asInt(),
+  GARDEN_CACHE_FILE_HASHES: env
+    .get("GARDEN_CACHE_FILE_HASHES")
+    .required(false)
+    .default(`${defaultCacheFileHashes}`)
+    .asBool(),
   GARDEN_DB_DIR: env.get("GARDEN_DB_DIR").required(false).default(GARDEN_GLOBAL_PATH).asString(),
   GARDEN_DISABLE_ANALYTICS: env.get("GARDEN_DISABLE_ANALYTICS").required(false).asBool(),
   GARDEN_DISABLE_PORT_FORWARDS: env.get("GARDEN_DISABLE_PORT_FORWARDS").required(false).asBool(),
