@@ -46,12 +46,11 @@ import type { AutocompleteSuggestion } from "../cli/autocomplete.js"
 import { z } from "zod"
 import { omitUndefined } from "../util/objects.js"
 import { createServer } from "http"
-import { defaultServerPort } from "../commands/serve.js"
-
 import type PTY from "@homebridge/node-pty-prebuilt-multiarch"
 import pty from "@homebridge/node-pty-prebuilt-multiarch"
 import { styles } from "../logger/styles.js"
 import { commandListToShellScript } from "../util/escape.js"
+import { defaultServerPort } from "../commands/shared-constants.js"
 
 const skipLogsForCommands = ["autocomplete"]
 const serverLogName = "garden-server"

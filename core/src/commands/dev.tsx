@@ -12,7 +12,7 @@ import { renderDivider } from "../logger/util.js"
 import type { FC } from "react"
 import React, { useState } from "react"
 import { Box, render, Text, useInput, useStdout } from "ink"
-import { serveArgs, ServeCommand, serveOpts } from "./serve.js"
+import { ServeCommand } from "./serve.js"
 import { ParameterError, toGardenError } from "../exceptions.js"
 import type { InkTerminalWriter } from "../logger/writers/ink-terminal-writer.js"
 import { CommandLine } from "../cli/command-line.js"
@@ -26,6 +26,7 @@ import { bindActiveContext } from "../util/open-telemetry/context.js"
 import Divider from "../util/ink-divider.js"
 import { styles } from "../logger/styles.js"
 import chalk from "chalk"
+import { serveArgs, serveOpts } from "./shared-constants.js"
 
 const devCommandArgs = {
   ...serveArgs,
