@@ -90,6 +90,19 @@ export function gitCli(log: Log, cwd: string, failOnPrompt = false): GitCli {
   }
 }
 
+async function getModifiedFiles(git: GitCli, path: string) {
+  try {
+    return await git("diff-index", "--name-only", "HEAD", path)
+  } catch (err) {
+    if (err instanceof ChildProcessError && err.details.code === 128) {
+      // no commit in repo
+      return []
+    } else {
+      throw err
+    }
+  }
+}
+
 interface GitSubTreeIncludeExcludeFiles extends BaseIncludeExcludeFiles {
   hasIncludes: boolean
 }
@@ -140,19 +153,6 @@ export class GitHandler extends VcsHandler {
     super(params)
     this.profiler = getDefaultProfiler()
     this.lock = new AsyncLock()
-  }
-
-  private async getModifiedFiles(git: GitCli, path: string) {
-    try {
-      return await git("diff-index", "--name-only", "HEAD", path)
-    } catch (err) {
-      if (err instanceof ChildProcessError && err.details.code === 128) {
-        // no commit in repo
-        return []
-      } else {
-        throw err
-      }
-    }
   }
 
   async getRepoRoot(log: Log, path: string, failOnPrompt = false) {
@@ -234,7 +234,7 @@ export class GitHandler extends VcsHandler {
 
     // List modified files, so that we can ensure we have the right hash for them later
     const modified = new Set(
-      (await this.getModifiedFiles(git, path))
+      (await getModifiedFiles(git, path))
         // The output here is relative to the git root, and not the directory `path`
         .map((modifiedRelPath) => resolve(gitRoot, modifiedRelPath))
     )
