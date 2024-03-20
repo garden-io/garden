@@ -161,6 +161,10 @@ scan:
     # with many actions/modules.
     mode: repo
 
+  cacheFileHashes:
+    # Enable to optimize file scanning for big projects. Defaults to `false`.
+    mode: false
+
 # A list of output values that the project should export. These are exported by the `garden get outputs` command, as
 # well as when referencing a project as a sub-project within another project.
 #
@@ -581,6 +585,24 @@ Choose how to perform scans of git repositories. Defaults to `repo`. The `subtre
 | Type     | Allowed Values    | Default  | Required |
 | -------- | ----------------- | -------- | -------- |
 | `string` | "repo", "subtree" | `"repo"` | Yes      |
+
+### `scan.cacheFileHashes`
+
+[scan](#scan) > cacheFileHashes
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+### `scan.cacheFileHashes.mode`
+
+[scan](#scan) > [cacheFileHashes](#scancachefilehashes) > mode
+
+Enable to optimize file scanning for big projects. Defaults to `false`.
+
+| Type      | Default | Required |
+| --------- | ------- | -------- |
+| `boolean` | `false` | No       |
 
 ### `outputs[]`
 
