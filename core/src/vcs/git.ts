@@ -534,7 +534,7 @@ export class GitHandler extends VcsHandler {
 
   // TODO Better auth handling
   async ensureRemoteSource({ url, name, log, sourceType, failOnPrompt = false }: RemoteSourceParams): Promise<string> {
-    return this.getRemoteSourceLock(sourceType, name, async () => {
+    return this.withRemoteSourceLock(sourceType, name, async () => {
       const remoteSourcesPath = this.getRemoteSourcesLocalPath(sourceType)
       await ensureDir(remoteSourcesPath)
 
@@ -568,7 +568,7 @@ export class GitHandler extends VcsHandler {
 
     await this.ensureRemoteSource({ url, name, sourceType, log, failOnPrompt })
 
-    await this.getRemoteSourceLock(sourceType, name, async () => {
+    await this.withRemoteSourceLock(sourceType, name, async () => {
       const gitLog = log.createLog({ name, showDuration: true }).info("Getting remote state")
       await git("remote", "update")
 
@@ -597,7 +597,7 @@ export class GitHandler extends VcsHandler {
     })
   }
 
-  private getRemoteSourceLock(sourceType: string, name: string, func: () => Promise<any>) {
+  private withRemoteSourceLock(sourceType: string, name: string, func: () => Promise<any>) {
     return this.lock.acquire(`remote-source-${sourceType}-${name}`, func)
   }
 
