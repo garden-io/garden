@@ -3,8 +3,10 @@ type: kubernetes
 name: hello-world
 spec:
   kustomize:
-    # This is actually the default (running `kustomize build` in the module root), just setting it explicitly for clarity.
     path: .
-    extraArgs:
-      # Note: Not actually using this here, just setting as an example
-      - --enable-alpha-plugins
+  patchResources:
+    - kind: Service
+      name: my-service
+      patch:
+        metadata:
+          namespace: preview-${local.env.GITHUB_REF} # <-- Namespace is set to something like preview-my-branch

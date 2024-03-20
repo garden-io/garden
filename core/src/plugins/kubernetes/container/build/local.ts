@@ -83,7 +83,7 @@ export const localBuild: BuildHandler = async (params) => {
   const remoteId = outputs.deploymentImageId
   const buildPath = action.getBuildPath()
 
-  log.info({ msg: `→ Pushing image ${remoteId} to remote...` })
+  log.info({ msg: `Pushing image ${remoteId} to remote...` })
 
   await containerHelpers.dockerCli({ cwd: buildPath, args: ["tag", localId, remoteId], log, ctx })
   await containerHelpers.dockerCli({ cwd: buildPath, args: ["push", remoteId], log, ctx })

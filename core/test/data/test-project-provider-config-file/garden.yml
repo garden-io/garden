@@ -1,0 +1,9 @@
+apiVersion: garden.io/v1
+kind: Project
+name: test-project
+environments:
+  - name: local
+  - name: other
+providers:
+  - name: test-plugin
+    environments: [local]

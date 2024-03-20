@@ -36,6 +36,7 @@ const modulePathAMultiple = resolve(projectPathMultipleModules, "module-a")
 
 const projectPathDuplicateProjects = getDataDir("test-project-duplicate-project-config")
 const projectPathMultipleProjects = getDataDir("test-project-multiple-project-configs")
+const projectPathProviderConfigFile = getDataDir("test-project-provider-config-file")
 const logger = getRootLogger()
 const log = logger.createLog()
 
@@ -556,7 +557,7 @@ describe("prepareModuleResource", () => {
   })
 })
 
-describe("findProjectConfig", async () => {
+describe.only("findProjectConfig", async () => {
   const customConfigPath = getDataDir("test-projects", "custom-config-names")
 
   it("should find the project config when path is projectRoot", async () => {
@@ -591,6 +592,23 @@ describe("findProjectConfig", async () => {
     await expectError(async () => await findProjectConfig({ log, path: projectPathMultipleProjects }), {
       contains: "Multiple project declarations found at paths",
     })
+  })
+
+  it.only("should merge provider specs found in other Garden config files to the 'main' project provider spec", async () => {
+    const project = await findProjectConfig({ log, path: projectPathProviderConfigFile })
+
+    console.log("Project:", JSON.stringify(project, null, 4))
+
+    expect(project?.providers).to.eql([
+      {
+        name: "test-plugin",
+        environments: ["local"],
+      },
+      {
+        name: "test-plugin-a",
+        environments: ["local"],
+      },
+    ])
   })
 })
 

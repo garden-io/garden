@@ -101,7 +101,7 @@ export async function copyArtifacts(
 ) {
   return Promise.all(
     (artifacts || []).map(async (spec) => {
-      log.verbose(`→ Copying artifacts ${spec.source}`)
+      log.verbose(`Copying artifacts ${spec.source}`)
 
       // Note: lazy-loading for startup performance
       const { default: cpy } = await import("cpy")

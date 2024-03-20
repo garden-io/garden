@@ -35,6 +35,7 @@ import type { Document, DocumentOptions } from "yaml"
 import { parseAllDocuments } from "yaml"
 import { dedent, deline } from "../util/string.js"
 import { makeDocsLinkStyled } from "../docs/common.js"
+import type { GenericProviderConfig } from "./provider.js"
 
 export const configTemplateKind = "ConfigTemplate"
 export const renderTemplateKind = "RenderTemplate"
@@ -102,9 +103,16 @@ export const baseInternalFieldsSchema = createSchema({
   meta: { internal: true },
 })
 
-// Note: Avoiding making changes to ModuleConfig and ProjectConfig for now, because of
+/**
+ * For "standalone" plugin configs that can be defined outside of the Project config kind
+ */
+interface PluginConfig extends GenericProviderConfig {
+  kind: "Plugin"
+}
+
+// Note: Avoiding making changes to ModuleConfig and ProjectConfig for now, becauPluginConfigse of
 // the blast radius.
-export type GardenResource = BaseGardenResource | ModuleConfig | ProjectConfig
+export type GardenResource = BaseGardenResource | ModuleConfig | ProjectConfig | PluginConfig
 
 export type RenderTemplateKind = typeof renderTemplateKind
 export type ConfigKind = "Module" | "Workflow" | "Project" | ConfigTemplateKind | RenderTemplateKind | ActionKind
@@ -281,6 +289,7 @@ export function prepareResource({
     actionKinds.includes(kind) ||
     kind === "Command" ||
     kind === "Workflow" ||
+    kind === "Provider" ||
     kind === configTemplateKind ||
     kind === renderTemplateKind
   ) {
@@ -509,6 +518,7 @@ export async function findProjectConfig({
   const sepCount = path.split(sep).length - 1
 
   let allProjectSpecs: GardenResource[] = []
+  const allPluginSpecs: GenericProviderConfig[] = []
 
   for (let i = 0; i < sepCount; i++) {
     const configFiles = (await listDirectory(path, { recursive: false })).filter(isConfigFilename)
@@ -516,7 +526,23 @@ export async function findProjectConfig({
     for (const configFile of configFiles) {
       const resources = await loadConfigResources(log, path, join(path, configFile), allowInvalid)
 
-      const projectSpecs = resources.filter((s) => s.kind === "Project")
+      const pluginSpecs = resources
+        .filter<PluginConfig>((s): s is PluginConfig => s.kind === "Provider")
+        .map((s) => {
+          const providerSpec = omit(s, "kind", "internal") as GenericProviderConfig
+          return providerSpec
+        })
+
+      allPluginSpecs.push(...pluginSpecs)
+
+      const projectSpecs = resources
+        .filter<ProjectConfig>((s): s is ProjectConfig => s.kind === "Project")
+        .map((projectSpec) => {
+          return {
+            ...projectSpec,
+            providers: [...(projectSpec.providers || []), ...pluginSpecs],
+          }
+        })
 
       if (projectSpecs.length > 1 && !allowInvalid) {
         throw new ConfigurationError({
@@ -533,7 +559,11 @@ export async function findProjectConfig({
         message: `Multiple project declarations found at paths:\n${configPaths.join("\n")}`,
       })
     } else if (allProjectSpecs.length === 1) {
-      return <ProjectConfig>allProjectSpecs[0]
+      const projectSpec = allProjectSpecs[0] as ProjectConfig
+      return {
+        ...projectSpec,
+        providers: [...(projectSpec.providers || []), ...allPluginSpecs],
+      }
     }
 
     if (!scan) {

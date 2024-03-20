@@ -96,10 +96,10 @@ export async function copyArtifacts({
       files = files.slice(0, maxArtifactLogLines)
     }
     for (const file of files) {
-      log.info(styles.primary(`→ Artifact: ${relative(garden.projectRoot, file)}`))
+      log.info(styles.primary(`Artifact: ${relative(garden.projectRoot, file)}`))
     }
     if (count > maxArtifactLogLines) {
-      log.info(styles.primary(`→ Artifact: … plus ${count - maxArtifactLogLines} more files`))
+      log.info(styles.primary(`Artifact: … plus ${count - maxArtifactLogLines} more files`))
     }
   }
 

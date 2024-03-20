@@ -131,7 +131,7 @@ export function handleBulkOperationResult<T>({
           : e.identifier === ""
             ? ""
             : `"${e.identifier} "`
-        return `→ ${capitalize(actionVerb)} ${resource} ${identifier}failed with error: ${e.message}`
+        return `${capitalize(actionVerb)} ${resource} ${identifier}failed with error: ${e.message}`
       })
       .join("\n")
     log.error(dedent`
