@@ -27,6 +27,7 @@ import { GetModuleOutputsParams } from "../../types/plugin/module/getModuleOutpu
 import { taskOutputsSchema } from "../kubernetes/task-results"
 
 export interface ContainerProviderConfig extends GenericProviderConfig {}
+
 export type ContainerProvider = Provider<ContainerProviderConfig>
 
 export interface ContainerModuleOutputs {
@@ -342,6 +343,6 @@ export const gardenPlugin = () =>
             },
           },
         ],
-      }
+      },
     ],
   })
