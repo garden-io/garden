@@ -465,23 +465,23 @@ export function describeConfig(config: ModuleConfig | BaseActionConfig): ActionD
 }
 
 /**
- * Checks if the {@code subPathCandidate} is a sub-path of {@code path}.
+ * Checks if the {@code subPathCandidate} is a sub-path of {@code basePath}.
  * Sub-path means that a candidate must be located inside a reference path.
  *
- * Both {@path} and {@ sybPathCandidate} must be absolute paths
+ * Both {@basePath} and {@ subPathCandidate} must be absolute paths
  *
- * @param path the reference path (absolute)
+ * @param basePath the reference path (absolute)
  * @param subPathCandidate the path to be checked (absolute)
  */
-export function isSubPath(path: string, subPathCandidate: string): boolean {
-  if (!isAbsolute(path)) {
-    throw new RuntimeError({ message: `Expected absolute path, but got: ${path}` })
+export function isSubPath(basePath: string, subPathCandidate: string): boolean {
+  if (!isAbsolute(basePath)) {
+    throw new RuntimeError({ message: `Expected absolute path as a base path, but got: ${basePath}` })
   }
   if (!isAbsolute(subPathCandidate)) {
-    throw new RuntimeError({ message: `Expected absolute path, but got ${subPathCandidate}` })
+    throw new RuntimeError({ message: `Expected absolute path as a sub-path candidate, but got ${subPathCandidate}` })
   }
 
-  const pathParts = path.split(sep)
+  const pathParts = basePath.split(sep)
   const subPathCandidateParts = subPathCandidate.split(sep)
 
   if (subPathCandidateParts.length < pathParts.length) {
