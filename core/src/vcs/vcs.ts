@@ -8,7 +8,7 @@
 
 import { sortBy, pick } from "lodash-es"
 import { createHash } from "node:crypto"
-import { relative, sep } from "path"
+import { isAbsolute, relative, sep } from "path"
 import fsExtra from "fs-extra"
 import { dirname } from "node:path"
 
@@ -35,6 +35,7 @@ import { Profile } from "../util/profiling.js"
 
 import AsyncLock from "async-lock"
 import { makeDocsLinkStyled } from "../docs/common.js"
+import { RuntimeError } from "../exceptions.js"
 
 const scanLock = new AsyncLock()
 
@@ -332,7 +333,7 @@ export abstract class VcsHandler {
         if (!outputs[path]) {
           // No path set so far
           outputs[path] = repoPath
-        } else if (outputs[path].startsWith(repoPath)) {
+        } else if (isSubPath(repoPath, outputs[path])) {
           // New path is prefix of prior path
           outputs[path] = repoPath
         } else {
@@ -345,7 +346,7 @@ export abstract class VcsHandler {
               // Don't go past the actual git repo root
               outputs[path] = repoRoot
               break
-            } else if (outputs[path].startsWith(p)) {
+            } else if (isSubPath(p, outputs[path])) {
               // Found a common prefix
               outputs[path] = p
               break
@@ -461,4 +462,37 @@ export function getSourcePath(config: ModuleConfig | BaseActionConfig) {
 
 export function describeConfig(config: ModuleConfig | BaseActionConfig): ActionDescription | ModuleDescription {
   return isActionConfig(config) ? `${config.kind} action ${config.name}` : `module ${config.name}`
+}
+
+/**
+ * Checks if the {@code subPathCandidate} is a sub-path of {@code path}.
+ * Sub-path means that a candidate must be located inside a reference path.
+ *
+ * Both {@path} and {@ sybPathCandidate} must be absolute paths
+ *
+ * @param path the reference path (absolute)
+ * @param subPathCandidate the path to be checked (absolute)
+ */
+export function isSubPath(path: string, subPathCandidate: string): boolean {
+  if (!isAbsolute(path)) {
+    throw new RuntimeError({ message: `Expected absolute path, but got: ${path}` })
+  }
+  if (!isAbsolute(subPathCandidate)) {
+    throw new RuntimeError({ message: `Expected absolute path, but got ${subPathCandidate}` })
+  }
+
+  const pathParts = path.split(sep)
+  const subPathCandidateParts = subPathCandidate.split(sep)
+
+  if (subPathCandidateParts.length < pathParts.length) {
+    return false
+  }
+
+  for (let i = 0; i < pathParts.length; i++) {
+    if (pathParts[i] !== subPathCandidateParts[i]) {
+      return false
+    }
+  }
+
+  return true
 }

@@ -15,6 +15,7 @@ import type {
   NamedTreeVersion,
   GetTreeVersionParams,
 } from "../../../../src/vcs/vcs.js"
+import { isSubPath } from "../../../../src/vcs/vcs.js"
 import {
   VcsHandler,
   getModuleVersionString,
@@ -30,7 +31,7 @@ import { expect } from "chai"
 import cloneDeep from "fast-copy"
 
 import type { ModuleConfig } from "../../../../src/config/module.js"
-import { join } from "path"
+import { join, sep } from "path"
 import * as td from "testdouble"
 import fsExtra from "fs-extra"
 
@@ -621,6 +622,46 @@ describe("helpers", () => {
     it("describeConfig", () => {
       const configDescription = describeConfig(moduleConfig)
       expect(configDescription).to.equal(`module ${moduleConfig.name}`)
+    })
+  })
+
+  describe("isSubPath", () => {
+    it("should throw for non-absolute path", () => {
+      expect(() => isSubPath("dir", join(sep, "dir"))).to.throw()
+    })
+
+    it("should throw for non-absolute path", () => {
+      expect(() => isSubPath(join(sep, "dir"), "dir")).to.throw()
+    })
+
+    it("returns false for different paths", () => {
+      const subPath = isSubPath(join(sep, "volume-1", "dir-1"), join(sep, "volume-2", "dir-2"))
+      expect(subPath).to.be.false
+    })
+
+    it("returns false for a sub-string which is not an actual sub-path", () => {
+      const subPath = isSubPath(join(sep, "volume", "dir"), join(sep, "volume", "dir-2"))
+      expect(subPath).to.be.false
+    })
+
+    it("returns false when path and sub-paths are swapped", () => {
+      const subPath = isSubPath(join(sep, "volume", "dir", "sub-dir"), join(sep, "volume", "dir"))
+      expect(subPath).to.be.false
+    })
+
+    it("returns true for an actual sub-path", () => {
+      const subPath = isSubPath(join(sep, "volume", "dir"), join(sep, "volume", "dir", "sub-dir"))
+      expect(subPath).to.be.true
+    })
+
+    it("returns true for the same path", () => {
+      const subPath = isSubPath(join(sep, "volume", "dir"), join(sep, "volume", "dir"))
+      expect(subPath).to.be.true
+    })
+
+    it("returns true for the same path with tailing file separator", () => {
+      const subPath = isSubPath(join(sep, "volume", "dir"), join(sep, "volume", "dir", sep))
+      expect(subPath).to.be.true
     })
   })
 })
