@@ -116,7 +116,7 @@ interface Submodule {
 @Profile()
 export class GitHandler extends VcsHandler {
   name = "git"
-  repoRoots = new Map()
+  repoRoots = new Map<string, string>()
   profiler: Profiler
   protected lock: AsyncLock
 
@@ -154,15 +154,17 @@ export class GitHandler extends VcsHandler {
     }
   }
 
-  async getRepoRoot(log: Log, path: string, failOnPrompt = false) {
-    if (this.repoRoots.has(path)) {
-      return this.repoRoots.get(path)
+  async getRepoRoot(log: Log, path: string, failOnPrompt = false): Promise<string> {
+    const repoRoot = this.repoRoots.get(path)
+    if (!!repoRoot) {
+      return repoRoot
     }
 
     // Make sure we're not asking concurrently for the same root
     return this.lock.acquire(`repo-root:${path}`, async () => {
-      if (this.repoRoots.has(path)) {
-        return this.repoRoots.get(path)
+      const repoRoot = this.repoRoots.get(path)
+      if (!!repoRoot) {
+        return repoRoot
       }
 
       const git = this.gitCli(log, path, failOnPrompt)
