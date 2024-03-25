@@ -7,7 +7,28 @@
  */
 
 import { expect } from "chai"
-import { tailString, stripQuotes } from "../../../../src/util/string.js"
+import { splitFirst, splitLast, stripQuotes, tailString } from "../../../../src/util/string.js"
+import { describe } from "mocha"
+
+describe("splitFirst", () => {
+  it("should split string on first occurrence of given delimiter", () => {
+    expect(splitFirst("foo:bar:boo", ":")).to.eql(["foo", "bar:boo"])
+  })
+
+  it("should return the whole string as first element when no delimiter is found in string", () => {
+    expect(splitFirst("foo", ":")).to.eql(["foo", ""])
+  })
+})
+
+describe("splitLast", () => {
+  it("should split string on last occurrence of given delimiter", () => {
+    expect(splitLast("foo:bar:boo", ":")).to.eql(["foo:bar", "boo"])
+  })
+
+  it("should return the whole string as last element when no delimiter is found in string", () => {
+    expect(splitLast("foo", ":")).to.eql(["", "foo"])
+  })
+})
 
 describe("tailString", () => {
   it("should return string unchanged if it's shorter than maxLength", () => {

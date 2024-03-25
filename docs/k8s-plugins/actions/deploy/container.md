@@ -25,7 +25,7 @@ name: frontend
 type: container
 dependencies: [build.frontend] # <--- Need to specify the build as a dependency
 spec:
-  image: ${actions.build.outputs.frontend.deploymentImageId} # <--- The output from the Build action defined above
+  image: ${actions.build.frontend.outputs.deploymentImageId} # <--- The output from the Build action defined above
   ports:
     - name: http
       containerPort: 8080

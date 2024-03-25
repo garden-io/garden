@@ -289,7 +289,7 @@ describe("plugins.container", () => {
         graph: await garden.getConfigGraph({ log, emit: false }),
       })
 
-      const args = getDockerBuildFlags(resolvedBuild)
+      const args = getDockerBuildFlags(resolvedBuild, ctx.provider.config)
 
       expect(args.slice(-2)).to.eql(["--cache-from", "some-image:latest"])
     })
@@ -305,7 +305,7 @@ describe("plugins.container", () => {
         graph: await garden.getConfigGraph({ log, emit: false }),
       })
 
-      const args = getDockerBuildFlags(resolvedBuild)
+      const args = getDockerBuildFlags(resolvedBuild, ctx.provider.config)
 
       // Also module version is set for backwards compatability
       expect(args.slice(0, 2)).to.eql(["--build-arg", `GARDEN_MODULE_VERSION=${buildAction.versionString()}`])

@@ -11,7 +11,7 @@
  * Had to do that because it's distributed as an ES module, which we can't support right now.
  */
 
-import mimicFn from "mimic-fn"
+import mimicFn from "mimic-function"
 import type { AsyncReturnType } from "type-fest"
 
 // TODO: Use the one in `type-fest` when it's added there.

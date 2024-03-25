@@ -17,7 +17,6 @@ import type { DebugInfo, GetDebugInfoParams } from "../../plugin/handlers/Provid
 import { kubectl, kubectlSpec } from "./kubectl.js"
 import type { KubernetesConfig, KubernetesPluginContext } from "./config.js"
 import { configSchema } from "./config.js"
-import { ConfigurationError } from "../../exceptions.js"
 import { cleanupClusterRegistry } from "./commands/cleanup-cluster-registry.js"
 import { clusterInit } from "./commands/cluster-init.js"
 import { pullImage } from "./commands/pull-image.js"
@@ -54,6 +53,7 @@ export async function configureProvider({
   projectName,
   projectRoot,
   config,
+  log,
 }: ConfigureProviderParams<KubernetesConfig>) {
   // Convert string shorthand to canonical format
   if (isString(config.namespace)) {
@@ -71,12 +71,11 @@ export async function configureProvider({
   }
 
   if (config.name !== "local-kubernetes" && !config.deploymentRegistry) {
-    throw new ConfigurationError({
-      message: dedent`
-        Configuring a 'deploymentRegistry' in the kubernetes provider section of the project configuration is required when working with remote Kubernetes clusters.
+    log.warn(dedent`
+      You are using a remote Kubernetes cluster and did not configure a 'deploymentRegistry' in the kubernetes provider section of the project configuration.
 
-        See also ${makeDocsLinkStyled("kubernetes-plugins/remote-k8s")}`,
-    })
+      For guidance in setting up remote Kubernetes clusters please refer to ${makeDocsLinkStyled("kubernetes-plugins/remote-k8s")}
+    `)
   }
 
   if (config.kubeconfig) {

@@ -9,11 +9,12 @@
 import { expect } from "chai"
 
 import type { TestGarden } from "../../../../../helpers.js"
-import { getDataDir, makeTestGarden } from "../../../../../helpers.js"
-import { helmDeploy } from "../../../../../../src/plugins/kubernetes/helm/deployment.js"
+import { expectError, getDataDir, makeTestGarden } from "../../../../../helpers.js"
+import { deleteHelmDeploy, helmDeploy } from "../../../../../../src/plugins/kubernetes/helm/deployment.js"
 import type { KubernetesPluginContext, KubernetesProvider } from "../../../../../../src/plugins/kubernetes/config.js"
 import {
   gardenCloudAECPauseAnnotation,
+  getHelmGardenMetadataConfigMapData,
   getReleaseStatus,
   getRenderedResources,
 } from "../../../../../../src/plugins/kubernetes/helm/status.js"
@@ -28,6 +29,7 @@ import type { HelmDeployAction } from "../../../../../../src/plugins/kubernetes/
 import { createActionLog } from "../../../../../../src/logger/log-entry.js"
 import type { NamespaceStatus } from "../../../../../../src/types/namespace.js"
 import { FakeCloudApi } from "../../../../../helpers/api.js"
+import { getActionNamespace } from "../../../../../../src/plugins/kubernetes/namespace.js"
 
 describe("helmDeploy in local-mode", () => {
   let garden: TestGarden
@@ -61,7 +63,7 @@ describe("helmDeploy in local-mode", () => {
   })
 
   // TODO-G2
-  it.skip("should deploy a chart with local mode enabled", async () => {
+  it("should deploy a chart with local mode enabled", async () => {
     graph = await garden.getConfigGraph({
       log: garden.log,
       emit: false,
@@ -90,9 +92,9 @@ describe("helmDeploy in local-mode", () => {
     })
 
     expect(status.state).to.equal("ready")
-    expect(status.mode).to.equal("local")
-    expect(status.detail["values"][".garden"]).to.eql({
-      moduleName: "backend",
+    expect(status.detail.mode).to.equal("local")
+    expect(status.detail.gardenMetadata).to.eql({
+      actionName: "backend",
       projectName: garden.projectName,
       version: action.versionString(),
       mode: "local",
@@ -158,8 +160,11 @@ describe("helmDeploy", () => {
     })
 
     expect(releaseStatus.state).to.equal("ready")
-    expect(releaseStatus.detail["values"][".garden"]).to.eql({
-      moduleName: "api",
+    // getReleaseStatus fetches these details from a configmap in the action namespace.
+    // This means we are testing that the configmap is created correctly every time we
+    // test the gardenMetadata details from getReleaseStatus.
+    expect(releaseStatus.detail.gardenMetadata).to.eql({
+      actionName: "api",
       projectName: garden.projectName,
       version: action.versionString(),
       mode: "default",
@@ -196,8 +201,8 @@ describe("helmDeploy", () => {
     })
 
     expect(releaseStatus.state).to.equal("ready")
-    expect(releaseStatus.detail["values"][".garden"]).to.eql({
-      moduleName: "api-module",
+    expect(releaseStatus.detail.gardenMetadata).to.eql({
+      actionName: "api-module",
       projectName: garden.projectName,
       version: action.versionString(),
       mode: "default",
@@ -234,8 +239,8 @@ describe("helmDeploy", () => {
 
     expect(status.state).to.equal("ready")
     expect(status.detail.mode).to.eql("sync")
-    expect(status.detail["values"][".garden"]).to.eql({
-      moduleName: "api",
+    expect(status.detail.gardenMetadata).to.eql({
+      actionName: "api",
       projectName: garden.projectName,
       version: action.versionString(),
       mode: "sync",
@@ -280,6 +285,90 @@ describe("helmDeploy", () => {
     await api.apps.readNamespacedDeployment({ name: "chart-with-namespace", namespace })
   })
 
+  it("should mark a chart that is deployed but does not have a matching configmap as outdated", async () => {
+    graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+    const action = await garden.resolveAction<HelmDeployAction>({
+      action: graph.getDeploy("api"),
+      log: garden.log,
+      graph,
+    })
+    const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
+    const namespace = await getActionNamespace({
+      ctx,
+      log: garden.log,
+      action,
+      provider: ctx.provider,
+    })
+    // Here, we're not going through a router, so we listen for the `namespaceStatus` event directly.
+    await helmDeploy({
+      ctx,
+      log: actionLog,
+      action,
+      force: false,
+    })
+
+    const releaseName = getReleaseName(action)
+    const releaseStatus = await getReleaseStatus({
+      ctx,
+      action,
+      releaseName,
+      log: garden.log,
+    })
+
+    expect(releaseStatus.state).to.equal("ready")
+    // delete the configmap
+    const api = await KubeApi.factory(actionLog, ctx, ctx.provider)
+    await api.core.deleteNamespacedConfigMap({
+      namespace,
+      name: `garden-helm-metadata-${action.name}`,
+    })
+
+    const releaseStatusAfterDelete = await getReleaseStatus({
+      ctx,
+      action,
+      releaseName,
+      log: garden.log,
+    })
+
+    expect(releaseStatusAfterDelete.state).to.equal("outdated")
+  })
+
+  it("should remove the garden metadata configmap associated with a helm deploy action when the chart is uninstalled", async () => {
+    graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+    const action = await garden.resolveAction<HelmDeployAction>({
+      action: graph.getDeploy("api"),
+      log: garden.log,
+      graph,
+    })
+    const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
+    const namespace = await getActionNamespace({
+      ctx,
+      log: garden.log,
+      action,
+      provider: ctx.provider,
+    })
+    // Here, we're not going through a router, so we listen for the `namespaceStatus` event directly.
+    await helmDeploy({
+      ctx,
+      log: actionLog,
+      action,
+      force: false,
+    })
+
+    const releaseName = getReleaseName(action)
+    const releaseStatus = await getReleaseStatus({
+      ctx,
+      action,
+      releaseName,
+      log: garden.log,
+    })
+
+    expect(releaseStatus.state).to.equal("ready")
+
+    await deleteHelmDeploy({ ctx, log: actionLog, action })
+    await expectError(async () => await getHelmGardenMetadataConfigMapData({ ctx, action, log: actionLog, namespace }))
+  })
+
   it("should mark a chart that has been paused by Garden Cloud AEC as outdated", async () => {
     const log = getRootLogger().createLog()
     const fakeCloudApi = await FakeCloudApi.factory({ log })
@@ -318,8 +407,8 @@ describe("helmDeploy", () => {
     })
 
     expect(releaseStatus.state).to.equal("ready")
-    expect(releaseStatus.detail["values"][".garden"]).to.eql({
-      moduleName: "api",
+    expect(releaseStatus.detail.gardenMetadata).to.eql({
+      actionName: "api",
       projectName: gardenWithCloudApi.projectName,
       version: action.versionString(),
       mode: "default",

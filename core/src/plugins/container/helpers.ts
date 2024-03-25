@@ -35,6 +35,7 @@ import { joinWithPosix } from "../../util/fs.js"
 import type { Resolved } from "../../actions/types.js"
 import pMemoize from "../../lib/p-memoize.js"
 import { styles } from "../../logger/styles.js"
+import type { ContainerProviderConfig } from "./container.js"
 
 interface DockerVersion {
   client?: string
@@ -353,7 +354,7 @@ const helpers = {
     cwd: string
     args: string[]
     log: Log
-    ctx: PluginContext
+    ctx: PluginContext<ContainerProviderConfig>
     ignoreError?: boolean
     stdout?: Writable
     stderr?: Writable

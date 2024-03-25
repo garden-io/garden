@@ -9,7 +9,7 @@
 import type { BaseTask, Task, TaskResultType, ValidResultType } from "../tasks/base.js"
 import { fromPairs, omit, pick } from "lodash-es"
 import { toGraphResultEventPayload } from "../events/events.js"
-import CircularJSON from "circular-json"
+import { stringify } from "flatted"
 import type { GardenError } from "../exceptions.js"
 import { InternalError, toGardenError } from "../exceptions.js"
 
@@ -138,7 +138,7 @@ function mapResults<T extends Task = Task, R extends object = {}>(
  */
 export function resultToString(result: GraphResult) {
   // TODO: improve
-  return CircularJSON.stringify(toGraphResultEventPayload(result))
+  return stringify(toGraphResultEventPayload(result))
 }
 
 /**

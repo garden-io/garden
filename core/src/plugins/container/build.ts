@@ -17,6 +17,7 @@ import { joinWithPosix } from "../../util/fs.js"
 import type { Resolved } from "../../actions/types.js"
 import dedent from "dedent"
 import { splitFirst } from "../../util/string.js"
+import type { ContainerProviderConfig } from "./container.js"
 
 export const getContainerBuildStatus: BuildActionHandler<"getStatus", ContainerBuildAction> = async ({
   ctx,
@@ -61,7 +62,14 @@ export const buildContainer: BuildActionHandler<"build", ContainerBuildAction> =
 
   const dockerfilePath = joinWithPosix(action.getBuildPath(), spec.dockerfile)
 
-  const cmdOpts = ["build", "-t", identifier, ...getDockerBuildFlags(action), "--file", dockerfilePath]
+  const cmdOpts = [
+    "build",
+    "-t",
+    identifier,
+    ...getDockerBuildFlags(action, ctx.provider.config),
+    "--file",
+    dockerfilePath,
+  ]
 
   // if deploymentImageId is different from localImageId, tag the image with deploymentImageId as well.
   if (outputs.deploymentImageId && identifier !== outputs.deploymentImageId) {
@@ -130,7 +138,10 @@ export function getContainerBuildActionOutputs(action: Resolved<ContainerBuildAc
   }
 }
 
-export function getDockerBuildFlags(action: Resolved<ContainerBuildAction>) {
+export function getDockerBuildFlags(
+  action: Resolved<ContainerBuildAction>,
+  containerProviderConfig: ContainerProviderConfig
+) {
   const args: string[] = []
 
   const { targetStage, extraFlags, buildArgs } = action.getSpec()
@@ -144,6 +155,7 @@ export function getDockerBuildFlags(action: Resolved<ContainerBuildAction>) {
   }
 
   args.push(...(extraFlags || []))
+  args.push(...(containerProviderConfig.dockerBuildExtraFlags || []))
 
   return args
 }

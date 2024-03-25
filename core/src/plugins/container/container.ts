@@ -42,15 +42,29 @@ import { publishContainerBuild } from "./publish.js"
 import type { Resolved } from "../../actions/types.js"
 import { getDeployedImageId } from "../kubernetes/container/util.js"
 import type { DeepPrimitiveMap } from "../../config/common.js"
+import { joi } from "../../config/common.js"
 import { DEFAULT_DEPLOY_TIMEOUT_SEC } from "../../constants.js"
 import type { ExecBuildConfig } from "../exec/build.js"
 import type { PluginToolSpec } from "../../plugin/tools.js"
 
-export type ContainerProviderConfig = GenericProviderConfig
+export interface ContainerProviderConfig extends GenericProviderConfig {
+  dockerBuildExtraFlags?: string[]
+}
+
+export const configSchema = () =>
+  providerConfigBaseSchema()
+    .keys({
+      dockerBuildExtraFlags: joi.array().items(joi.string()).description(dedent`
+          **Stability: Experimental**. Subject to breaking changes within minor releases.
+
+          Extra flags to pass to the \`docker build\` command. Will extend the \`spec.extraFlags\` specified in each container Build action.
+          `),
+    })
+    .unknown(false)
 
 export type ContainerProvider = Provider<ContainerProviderConfig>
 
-export const dockerVersion = "24.0.4"
+export const dockerVersion = "25.0.2"
 export const dockerSpec: PluginToolSpec = {
   name: "docker",
   version: dockerVersion,
@@ -62,7 +76,7 @@ export const dockerSpec: PluginToolSpec = {
       platform: "darwin",
       architecture: "amd64",
       url: `https://download.docker.com/mac/static/stable/x86_64/docker-${dockerVersion}.tgz`,
-      sha256: "a1016b319d8fb5b92e6a4f9ae4082b0fe934bcec4a18f4ddba9b6a5778af230c",
+      sha256: "3c7e0d69bd7bc78d39a48d6e2102979efdc128e1ee7e730be93e69ff7e389655",
       extract: {
         format: "tar",
         targetPath: "docker/docker",
@@ -72,7 +86,7 @@ export const dockerSpec: PluginToolSpec = {
       platform: "darwin",
       architecture: "arm64",
       url: `https://download.docker.com/mac/static/stable/aarch64/docker-${dockerVersion}.tgz`,
-      sha256: "d99ce023f984b07a57621d804f226bfeedea513ce708aba480a62f5b63631367",
+      sha256: "6b95f574215fc92608cdef7d83d4ab8ab17107b4eade95b2b915705bfc3260c7",
       extract: {
         format: "tar",
         targetPath: "docker/docker",
@@ -82,7 +96,7 @@ export const dockerSpec: PluginToolSpec = {
       platform: "linux",
       architecture: "amd64",
       url: `https://download.docker.com/linux/static/stable/x86_64/docker-${dockerVersion}.tgz`,
-      sha256: "0ab79ae5f19e2ef5bdc3c3009c8b770dea6189e0f1e0ef4935d78fd30519b11d",
+      sha256: "a83b394570052c12ac5255801b322676092b4985d82f4c1a92253f45de45dc99",
       extract: {
         format: "tar",
         targetPath: "docker/docker",
@@ -92,7 +106,7 @@ export const dockerSpec: PluginToolSpec = {
       platform: "linux",
       architecture: "arm64",
       url: `https://download.docker.com/linux/static/stable/aarch64/docker-${dockerVersion}.tgz`,
-      sha256: "193a8e1f051adce6a30a4c8486ce9b39929b9633a0da8c96444c9239859f4354",
+      sha256: "6a2cb41789469bc6ecddff22be014540f8a92fa0bee9fcf0771e3179ef3fc673",
       extract: {
         format: "tar",
         targetPath: "docker/docker",
@@ -102,7 +116,7 @@ export const dockerSpec: PluginToolSpec = {
       platform: "windows",
       architecture: "amd64",
       url: `https://github.com/rgl/docker-ce-windows-binaries-vagrant/releases/download/v${dockerVersion}/docker-${dockerVersion}.zip`,
-      sha256: "1ffb063724147d871ec01824ee458b66a85191a8ecd943ae77775b5352db12ff",
+      sha256: "25ff5d9dd8ae176dd30fd97b0b99a896d598fa62fca0b7171b45887ad4d3661b",
       extract: {
         format: "zip",
         targetPath: "docker/docker.exe",
@@ -409,7 +423,7 @@ export const gardenPlugin = () =>
       Provides the \`container\` actions and module type.
       _Note that this provider is currently automatically included, and you do not need to configure it in your project configuration._
     `,
-    configSchema: providerConfigBaseSchema(),
+    configSchema: configSchema(),
 
     createActionTypes: {
       Build: [

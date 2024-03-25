@@ -19,7 +19,6 @@ import {
   isValidDateInstance,
 } from "../../../../src/util/util.js"
 import { expectError } from "../../../helpers.js"
-import { splitLast, splitFirst } from "../../../../src/util/string.js"
 import { getRootLogger } from "../../../../src/logger/logger.js"
 import { dedent } from "../../../../src/util/string.js"
 import { safeDumpYaml } from "../../../../src/util/serialization.js"
@@ -166,26 +165,6 @@ describe("util", () => {
       await expectError(() => pickKeys(obj, <any>["a", "foo", "bar"], "banana"), {
         contains: "Could not find banana(s): foo, bar",
       })
-    })
-  })
-
-  describe("splitFirst", () => {
-    it("should split string on first occurrence of given delimiter", () => {
-      expect(splitFirst("foo:bar:boo", ":")).to.eql(["foo", "bar:boo"])
-    })
-
-    it("should return the whole string as first element when no delimiter is found in string", () => {
-      expect(splitFirst("foo", ":")).to.eql(["foo", ""])
-    })
-  })
-
-  describe("splitLast", () => {
-    it("should split string on last occurrence of given delimiter", () => {
-      expect(splitLast("foo:bar:boo", ":")).to.eql(["foo:bar", "boo"])
-    })
-
-    it("should return the whole string as last element when no delimiter is found in string", () => {
-      expect(splitLast("foo", ":")).to.eql(["", "foo"])
     })
   })
 
