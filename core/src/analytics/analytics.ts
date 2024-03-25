@@ -243,6 +243,8 @@ export interface SegmentEvent {
   properties: AnalyticsEvent["properties"]
 }
 
+const SEGMENT_HOST = "https://api.segment.io"
+
 /**
  * A Segment client wrapper with utility functionalities global config and info,
  * prompt for opt-in/opt-out and wrappers for single events.
@@ -293,6 +295,7 @@ export class AnalyticsHandler {
     cloudUser,
     isEnabled,
     ciInfo,
+    host,
   }: {
     garden: Garden
     log: Log
@@ -303,13 +306,17 @@ export class AnalyticsHandler {
     isEnabled: boolean
     cloudUser?: UserResult
     ciInfo: CiInfo
+    host?: string
   }) {
     const segmentApiKey = gardenEnv.ANALYTICS_DEV ? SEGMENT_DEV_API_KEY : SEGMENT_PROD_API_KEY
 
-    this.segment = new Analytics({ writeKey: segmentApiKey, maxEventsInBatch: 20, flushInterval: 300 }).on(
-      "error",
-      (err) => log.debug(`Segment client failed sending analytics ${err}`)
-    )
+    this.segment = new Analytics({
+      // We default to SEGMENT_HOST, but allow overriding for testing
+      host: host || SEGMENT_HOST,
+      writeKey: segmentApiKey,
+      maxEventsInBatch: 20,
+      flushInterval: 300,
+    }).on("error", (err) => log.debug(`Segment client failed sending analytics ${err}`))
 
     this.log = log
     this.isEnabled = isEnabled
@@ -445,7 +452,7 @@ export class AnalyticsHandler {
    *
    * It also initializes the analytics config and updates the analytics data we store in local config.
    */
-  static async factory({ garden, log, ciInfo }: { garden: Garden; log: Log; ciInfo: CiInfo }) {
+  static async factory({ garden, log, ciInfo, host }: { garden: Garden; log: Log; ciInfo: CiInfo; host?: string }) {
     const currentAnalyticsConfig = await garden.globalConfigStore.get("analytics")
     const isFirstRun = !currentAnalyticsConfig.firstRunAt
     const moduleConfigs = await garden.getRawModuleConfigs()
@@ -499,6 +506,7 @@ export class AnalyticsHandler {
     await garden.globalConfigStore.set("analytics", analyticsConfig)
 
     return new AnalyticsHandler({
+      host,
       garden,
       log,
       analyticsConfig,

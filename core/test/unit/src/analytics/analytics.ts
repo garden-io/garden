@@ -7,8 +7,6 @@
  */
 
 import { expect } from "chai"
-import nock from "nock"
-import { isEqual } from "lodash-es"
 import { validate as validateUuid } from "uuid"
 
 import type { TestGarden } from "../../../helpers.js"
@@ -29,13 +27,15 @@ import timekeeper from "timekeeper"
 import { ConfigurationError, DeploymentError, RuntimeError } from "../../../../src/exceptions.js"
 import { resolveMsg } from "../../../../src/logger/log-entry.js"
 
-const host = "https://api.segment.io"
+import { getLocal } from "mockttp"
+import { sleep } from "../../../../src/util/util.js"
+
+const mockServer = getLocal()
+
 // The codenamize version + the sha512 hash of "test-project-a"
 const projectNameV2 = "discreet-sudden-struggle_95048f63dc14db38ed4138ffb6ff8999"
 
 describe("AnalyticsHandler", () => {
-  const scope = nock(host)
-
   const time = new Date()
   const basicConfig: AnalyticsGlobalConfig = {
     anonymousUserId: "6d87dd61-0feb-4373-8c78-41cd010907e7",
@@ -60,9 +60,15 @@ describe("AnalyticsHandler", () => {
 
   after(async () => {
     await resetAnalyticsConfig()
-    nock.cleanAll()
   })
 
+  beforeEach(async () => {
+    await mockServer.start()
+  })
+
+  afterEach(async () => {
+    await mockServer.stop()
+  })
   describe("factory", () => {
     beforeEach(async () => {
       garden = await makeTestGardenA()
@@ -150,70 +156,64 @@ describe("AnalyticsHandler", () => {
       expect(infoMsg).not.to.exist
     })
     it("should identify the user with an anonymous ID", async () => {
-      let payload: any
-      scope
-        .post(`/v1/batch`, (body) => {
-          const events = body.batch.map((event: any) => event.type)
-          payload = body.batch
-          return isEqual(events, ["identify"])
-        })
-        .reply(200)
+      const mockedEndpoint = await mockServer.forPost("/v1/batch").thenReply(200)
 
       const now = freezeTime()
       await garden.globalConfigStore.set("analytics", basicConfig)
-      analytics = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo })
+      analytics = await AnalyticsHandler.factory({ host: mockServer.url, garden, log: garden.log, ciInfo })
 
       await analytics.closeAndFlush()
 
       expect(analytics.isEnabled).to.equal(true)
-      expect(scope.isDone()).to.equal(true)
+
+      const seenRequests = await mockedEndpoint.getSeenRequests()
+
+      expect(seenRequests.length).to.equal(1)
+
+      const requestBody = (await seenRequests[0].body.getJson()) as any
+
       // This is the important part
-      expect(payload.userId).to.be.undefined
-      expect(payload[0].traits.platform).to.be.a("string")
-      expect(payload[0].traits.platformVersion).to.be.a("string")
-      expect(payload[0].traits.gardenVersion).to.be.a("string")
-      expect(payload).to.eql([
+      expect(requestBody.batch[0].userId).to.be.undefined
+      expect(requestBody.batch[0].traits.platform).to.be.a("string")
+      expect(requestBody.batch[0].traits.platformVersion).to.be.a("string")
+      expect(requestBody.batch[0].traits.gardenVersion).to.be.a("string")
+      expect(requestBody.batch).to.eql([
         {
           anonymousId: "6d87dd61-0feb-4373-8c78-41cd010907e7",
           traits: {
             userIdV2: AnalyticsHandler.hashV2("6d87dd61-0feb-4373-8c78-41cd010907e7"),
-            platform: payload[0].traits.platform,
-            platformVersion: payload[0].traits.platformVersion,
-            gardenVersion: payload[0].traits.gardenVersion,
-            isCI: payload[0].traits.isCI,
+            platform: requestBody.batch[0].traits.platform,
+            platformVersion: requestBody.batch[0].traits.platformVersion,
+            gardenVersion: requestBody.batch[0].traits.gardenVersion,
+            isCI: requestBody.batch[0].traits.isCI,
             // While the internal representation in objects is a Date object, API returns strings
             firstRunAt: basicConfig.firstRunAt?.toISOString(),
             latestRunAt: now.toISOString(),
             isRecurringUser: false,
           },
           type: "identify",
-          context: payload[0].context,
-          _metadata: payload[0]._metadata,
-          timestamp: payload[0].timestamp,
-          messageId: payload[0].messageId,
+          integrations: {},
+          context: requestBody.batch[0].context,
+          _metadata: requestBody.batch[0]._metadata,
+          timestamp: requestBody.batch[0].timestamp,
+          messageId: requestBody.batch[0].messageId,
         },
       ])
     })
     it("should not identify the user if analytics is disabled", async () => {
-      let payload: any
-      scope
-        .post(`/v1/batch`, (body) => {
-          const events = body.batch.map((event: any) => event.type)
-          payload = body.batch
-          return isEqual(events, ["identify"])
-        })
-        .reply(200)
+      const mockedEndpoint = await mockServer.forPost("/v1/batch").thenReply(200)
 
       await garden.globalConfigStore.set("analytics", {
         ...basicConfig,
         optedOut: true,
       })
-      analytics = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo })
+      analytics = await AnalyticsHandler.factory({ host: mockServer.url, garden, log: garden.log, ciInfo })
       await analytics.closeAndFlush()
 
       expect(analytics.isEnabled).to.equal(false)
-      expect(scope.isDone()).to.equal(false)
-      expect(payload).to.be.undefined
+
+      const seenRequests = await mockedEndpoint.getSeenRequests()
+      expect(seenRequests.length).to.equal(0)
     })
     it("should be enabled by default", async () => {
       await garden.globalConfigStore.set("analytics", basicConfig)
@@ -293,67 +293,55 @@ describe("AnalyticsHandler", () => {
       expect(isEnabledWhenEnvVar).to.eql(false)
     })
     it("should identify the user with a Cloud ID", async () => {
-      let payload: any
-      scope
-        .post(`/v1/batch`, (body) => {
-          const events = body.batch.map((event: any) => event.type)
-          payload = body.batch
-          return isEqual(events, ["identify"])
-        })
-        .reply(200)
-
+      const mockedEndpoint = await mockServer.forPost("/v1/batch").thenReply(200)
       const now = freezeTime()
       await garden.globalConfigStore.set("analytics", basicConfig)
-      analytics = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo })
+      analytics = await AnalyticsHandler.factory({ host: mockServer.url, garden, log: garden.log, ciInfo })
 
       await analytics.closeAndFlush()
 
       expect(analytics.isEnabled).to.equal(true)
-      expect(scope.isDone()).to.equal(true)
-      expect(payload).to.eql([
+      const seenRequests = await mockedEndpoint.getSeenRequests()
+      expect(seenRequests.length).to.equal(1)
+      const body = (await seenRequests[0].body.getJson()) as any
+      expect(body.batch).to.eql([
         {
           userId: "garden_1", // This is the imporant part
           anonymousId: "6d87dd61-0feb-4373-8c78-41cd010907e7",
           traits: {
             userIdV2: AnalyticsHandler.hashV2("6d87dd61-0feb-4373-8c78-41cd010907e7"),
             customer: "garden",
-            platform: payload[0].traits.platform,
-            platformVersion: payload[0].traits.platformVersion,
-            gardenVersion: payload[0].traits.gardenVersion,
-            isCI: payload[0].traits.isCI,
+            platform: body.batch[0].traits.platform,
+            platformVersion: body.batch[0].traits.platformVersion,
+            gardenVersion: body.batch[0].traits.gardenVersion,
+            isCI: body.batch[0].traits.isCI,
             // While the internal representation in objects is a Date object, API returns strings
             firstRunAt: basicConfig.firstRunAt?.toISOString(),
             latestRunAt: now.toISOString(),
             isRecurringUser: false,
           },
+          integrations: {},
           type: "identify",
-          context: payload[0].context,
-          _metadata: payload[0]._metadata,
-          timestamp: payload[0].timestamp,
-          messageId: payload[0].messageId,
+          context: body.batch[0].context,
+          _metadata: body.batch[0]._metadata,
+          timestamp: body.batch[0].timestamp,
+          messageId: body.batch[0].messageId,
         },
       ])
     })
     it("should not identify the user if analytics is disabled via env var", async () => {
-      let payload: any
-      scope
-        .post(`/v1/batch`, (body) => {
-          const events = body.batch.map((event: any) => event.type)
-          payload = body.batch
-          return isEqual(events, ["identify"])
-        })
-        .reply(200)
+      const mockedEndpoint = await mockServer.forPost("/v1/batch").thenReply(200)
 
       const originalEnvVar = gardenEnv.GARDEN_DISABLE_ANALYTICS
       gardenEnv.GARDEN_DISABLE_ANALYTICS = true
       await garden.globalConfigStore.set("analytics", basicConfig)
-      analytics = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo })
+      analytics = await AnalyticsHandler.factory({ host: mockServer.url, garden, log: garden.log, ciInfo })
       gardenEnv.GARDEN_DISABLE_ANALYTICS = originalEnvVar
       await analytics.closeAndFlush()
 
       expect(analytics.isEnabled).to.equal(false)
-      expect(scope.isDone()).to.equal(false)
-      expect(payload).to.be.undefined
+      const seenRequests = await mockedEndpoint.getSeenRequests()
+      expect(seenRequests.length).to.equal(0)
     })
   })
 
@@ -371,7 +359,7 @@ describe("AnalyticsHandler", () => {
     })
 
     it("should return the event with the correct project metadata", async () => {
-      scope.post(`/v1/batch`).reply(200)
+      await mockServer.forPost("/v1/batch").thenReply(200)
 
       await garden.globalConfigStore.set("analytics", basicConfig)
       const now = freezeTime()
@@ -416,7 +404,7 @@ describe("AnalyticsHandler", () => {
       })
     })
     it("should set the CI info if applicable", async () => {
-      scope.post(`/v1/batch`).reply(200)
+      await mockServer.forPost("/v1/batch").thenReply(200)
 
       await garden.globalConfigStore.set("analytics", basicConfig)
       const now = freezeTime()
@@ -461,7 +449,7 @@ describe("AnalyticsHandler", () => {
       })
     })
     it("should handle projects with no services, tests, or tasks", async () => {
-      scope.post(`/v1/batch`).reply(200)
+      await mockServer.forPost("/v1/batch").thenReply(200)
 
       garden.setModuleConfigs([
         {
@@ -523,7 +511,7 @@ describe("AnalyticsHandler", () => {
       })
     })
     it("should include enterprise metadata", async () => {
-      scope.post(`/v1/batch`).reply(200)
+      await mockServer.forPost("/v1/batch").thenReply(200)
 
       const root = getDataDir("test-projects", "login", "has-domain-and-id")
       garden = await makeTestGarden(root)
@@ -573,7 +561,7 @@ describe("AnalyticsHandler", () => {
       })
     })
     it("should override the parentSessionId", async () => {
-      scope.post(`/v1/batch`).reply(200)
+      await mockServer.forPost("/v1/batch").thenReply(200)
 
       const root = getDataDir("test-projects", "login", "has-domain-and-id")
       garden = await makeTestGarden(root)
@@ -623,7 +611,7 @@ describe("AnalyticsHandler", () => {
       })
     })
     it("should have counts for action kinds", async () => {
-      scope.post(`/v1/batch`).reply(200)
+      await mockServer.forPost("/v1/batch").thenReply(200)
 
       const root = getDataDir("test-projects", "config-templates")
       garden = await makeTestGarden(root)
@@ -688,7 +676,7 @@ describe("AnalyticsHandler", () => {
     })
 
     it("should return the event as a success", async () => {
-      scope.post(`/v1/batch`).reply(200)
+      await mockServer.forPost("/v1/batch").thenReply(200)
 
       await garden.globalConfigStore.set("analytics", basicConfig)
 
@@ -743,7 +731,7 @@ describe("AnalyticsHandler", () => {
       })
     })
     it("should return the event as a failure with nested error metadata", async () => {
-      scope.post(`/v1/batch`).reply(200)
+      await mockServer.forPost("/v1/batch").thenReply(200)
 
       await garden.globalConfigStore.set("analytics", basicConfig)
 
@@ -824,7 +812,7 @@ describe("AnalyticsHandler", () => {
       })
     })
     it("should return the event as a failure with multiple errors", async () => {
-      scope.post(`/v1/batch`).reply(200)
+      await mockServer.forPost("/v1/batch").thenReply(200)
 
       await garden.globalConfigStore.set("analytics", basicConfig)
 
@@ -880,11 +868,13 @@ describe("AnalyticsHandler", () => {
   // That's why there are usually two mock requests per test below.
   describe("flush", () => {
     const getEvents = (body: any) =>
-      body.batch.map((event: any) => ({
-        event: event.event,
-        type: event.type,
-        name: event.properties.name,
-      }))
+      body.batch
+        .filter((event) => !!event.event)
+        .map((event: any) => ({
+          event: event.event,
+          type: event.type,
+          name: event.properties.name,
+        }))
 
     beforeEach(async () => {
       garden = await makeTestGardenA()
@@ -899,28 +889,25 @@ describe("AnalyticsHandler", () => {
     })
 
     it("should wait for pending events on network delays", async () => {
-      scope
-        .post(`/v1/batch`, (body) => {
-          // Assert that the event batch contains a single "track" event
-          return isEqual(getEvents(body), [
-            {
-              event: "Run Command",
-              type: "track",
-              name: "test-command-A",
-            },
-          ])
-        })
-        .delay(1500)
-        .reply(200)
+      const mockedEndpoint = await mockServer.forPost("/v1/batch").thenCallback(async () => {
+        await sleep(1500)
+        return {
+          statusCode: 200,
+        }
+      })
 
       await garden.globalConfigStore.set("analytics", basicConfig)
-      analytics = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo })
+      analytics = await AnalyticsHandler.factory({ host: mockServer.url, garden, log: garden.log, ciInfo })
 
       analytics.trackCommand("test-command-A")
       await analytics.closeAndFlush()
 
       expect(analytics["pendingEvents"].size).to.eql(0)
-      expect(scope.isDone()).to.equal(true)
+      const seenRequests = await mockedEndpoint.getSeenRequests()
+      expect(seenRequests.length).to.equal(1)
+
+      const body = await seenRequests[0].body.getJson()
+      expect(getEvents(body)).to.eql([{ event: "Run Command", type: "track", name: "test-command-A" }])
     })
   })
   describe("getAnonymousUserId", () => {
