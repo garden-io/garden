@@ -214,7 +214,7 @@
     "@types/supertest": "^6.0.2",
     "@types/tar": "^6.1.10",
     "@types/touch": "^3.1.5",
-    "@types/tough-cookie": "^4.0.2",
+    "@types/tough-cookie": "^4.0.5",
     "@types/uniqid": "^5.3.4",
     "@types/unzip-stream": "^0.3.4",
     "@types/uuid": "^9.0.8",
