@@ -15,11 +15,13 @@ import type { TempDirectory, TestGarden } from "../../../helpers.js"
 import { makeTempDir, makeTestGarden, stubProviderAction, createProjectConfig } from "../../../helpers.js"
 import { ResolveProviderTask } from "../../../../src/tasks/resolve-provider.js"
 import fsExtra from "fs-extra"
+
 const { pathExists, writeFile, remove } = fsExtra
 import { join } from "path"
 import { serialize } from "v8"
 import moment from "moment"
 import { GraphResults } from "../../../../src/graph/results.js"
+import { CACHE_DIR_NAME } from "../../../../src/constants.js"
 
 describe("ResolveProviderTask", () => {
   let tmpDir: TempDirectory
@@ -35,7 +37,8 @@ describe("ResolveProviderTask", () => {
   })
 
   beforeEach(async () => {
-    await remove(join(tmpDir.path, "cache"))
+    // TODO: it looks like this path never exists => fix it?
+    await remove(join(tmpDir.path, CACHE_DIR_NAME))
 
     garden = await makeTestGarden(tmpDir.path, {
       config: createProjectConfig({

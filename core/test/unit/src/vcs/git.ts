@@ -15,6 +15,7 @@ import { basename, dirname, join, relative, resolve } from "path"
 import type { TestGarden } from "../../../helpers.js"
 import { expectError, getDataDir, makeTestGarden, makeTestGardenA } from "../../../helpers.js"
 import type { GitCli } from "../../../../src/vcs/git.js"
+import { gitCli } from "../../../../src/vcs/git.js"
 import { explainGitError, getCommitIdFromRefList, GitHandler, parseGitUrl } from "../../../../src/vcs/git.js"
 import type { Log } from "../../../../src/logger/log-entry.js"
 import { hashRepoUrl } from "../../../../src/util/ext-source-util.js"
@@ -105,7 +106,7 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
       ignoreFile: defaultIgnoreFilename,
       cache: garden.treeCache,
     })
-    git = handler.gitCli(log, tmpPath)
+    git = gitCli(log, tmpPath)
   })
 
   afterEach(async () => {
@@ -810,7 +811,7 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
         const subPath = resolve(tmpPath, "subdir")
         await mkdirp(subPath)
 
-        const _git = handler.gitCli(log, subPath)
+        const _git = gitCli(log, subPath)
         await _git("init")
 
         const fileName = "foo"

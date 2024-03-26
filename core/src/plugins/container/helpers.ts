@@ -28,7 +28,6 @@ import titleize from "titleize"
 import { deline, stripQuotes, splitLast, splitFirst } from "../../util/string.js"
 import type { PluginContext } from "../../plugin-context.js"
 import type { ModuleVersion } from "../../vcs/vcs.js"
-import type { SpawnParams } from "../../util/ext-tools.js"
 import type { ContainerBuildAction } from "./config.js"
 import { defaultDockerfileName } from "./config.js"
 import { joinWithPosix } from "../../util/fs.js"
@@ -383,11 +382,6 @@ const helpers = {
         wrappedErrors: [err],
       })
     }
-  },
-
-  spawnDockerCli(params: SpawnParams & { ctx: PluginContext }) {
-    const docker = params.ctx.tools["container.docker"]
-    return docker.spawn(params)
   },
 
   moduleHasDockerfile(config: ContainerModuleConfig, version: ModuleVersion): boolean {
