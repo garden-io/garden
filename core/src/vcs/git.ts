@@ -103,6 +103,11 @@ async function getModifiedFiles(git: GitCli, path: string) {
   }
 }
 
+export async function getLastCommitHash(git: GitCli): Promise<string> {
+  const result = await git("rev-parse", "HEAD")
+  return result[0]
+}
+
 interface GitSubTreeIncludeExcludeFiles extends BaseIncludeExcludeFiles {
   hasIncludes: boolean
 }
@@ -572,7 +577,7 @@ export class GitHandler extends VcsHandler {
       const gitLog = log.createLog({ name, showDuration: true }).info("Getting remote state")
       await git("remote", "update")
 
-      const localCommitId = (await git("rev-parse", "HEAD"))[0]
+      const localCommitId = await getLastCommitHash(git)
       const remoteCommitId = isSha1(hash) ? hash : getCommitIdFromRefList(await git("ls-remote", repositoryUrl, hash))
 
       if (localCommitId !== remoteCommitId) {
@@ -680,7 +685,7 @@ export class GitHandler extends VcsHandler {
 
     try {
       output.branch = (await git("rev-parse", "--abbrev-ref", "HEAD"))[0]
-      output.commitHash = (await git("rev-parse", "HEAD"))[0]
+      output.commitHash = await getLastCommitHash(git)
     } catch (err) {
       if (err instanceof ChildProcessError && err.details.code !== 128) {
         throw err
