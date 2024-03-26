@@ -104,6 +104,30 @@ export async function getModifiedFiles(git: GitCli, path: string): Promise<strin
   }
 }
 
+interface CommitDiff {
+  status: string
+  path: string
+}
+
+// TODO: sanity and type checks
+const parseCommitDiffLine = (line: string): CommitDiff => {
+  const parts = line.trim().split("\t")
+  return { status: parts[0], path: parts[1] }
+}
+
+export async function getCommitDiff(git: GitCli, startCommit: string, endCommit: string): Promise<CommitDiff[]> {
+  try {
+    return (await git("diff", "--name-status", `${startCommit}..${endCommit}`)).map(parseCommitDiffLine)
+  } catch (err) {
+    if (err instanceof ChildProcessError && err.details.code === 128) {
+      // no commit in repo
+      return []
+    } else {
+      throw err
+    }
+  }
+}
+
 export async function getLastCommitHash(git: GitCli): Promise<string> {
   const result = await git("rev-parse", "HEAD")
   return result[0]
