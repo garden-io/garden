@@ -7,7 +7,7 @@
  */
 
 import { performance } from "perf_hooks"
-import { isAbsolute, join, normalize, posix, relative, resolve } from "path"
+import { dirname, isAbsolute, join, normalize, posix, relative, resolve } from "path"
 import fsExtra from "fs-extra"
 import { PassThrough } from "stream"
 import type {
@@ -40,6 +40,9 @@ import type { ExecaError } from "execa"
 import { execa } from "execa"
 import { hashingStream } from "hasha"
 import { styles } from "../logger/styles.js"
+import { CACHE_DIR_NAME } from "../constants.js"
+import { deserialize, serialize } from "v8"
+import { readFile, writeFile } from "fs/promises"
 
 const { createReadStream, ensureDir, lstat, pathExists, readlink, realpath, stat } = fsExtra
 
@@ -131,6 +134,32 @@ export async function getCommitDiff(git: GitCli, startCommit: string, endCommit:
 export async function getLastCommitHash(git: GitCli): Promise<string> {
   const result = await git("rev-parse", "HEAD")
   return result[0]
+}
+
+interface CacheContent {
+  cachedAtCommit: string
+  pathHashes: Map<string, string>
+}
+
+export class PathHashCache {
+  private cacheFilePath: string
+  private cacheContent: CacheContent
+
+  constructor({ cacheFilePath, cacheContent }: { cacheFilePath: string; cacheContent: CacheContent }) {
+    this.cacheFilePath = cacheFilePath
+    this.cacheContent = cacheContent
+  }
+
+  public static async load(gardenDirPath: string): Promise<PathHashCache> {
+    const cacheFilePath = join(gardenDirPath, CACHE_DIR_NAME, "pathHashes.json")
+    const cacheContent: CacheContent = deserialize(await readFile(cacheFilePath))
+    return new PathHashCache({ cacheFilePath, cacheContent })
+  }
+
+  public async store() {
+    await ensureDir(dirname(this.cacheFilePath))
+    await writeFile(this.cacheFilePath, serialize(this.cacheContent))
+  }
 }
 
 interface GitSubTreeIncludeExcludeFiles extends BaseIncludeExcludeFiles {
