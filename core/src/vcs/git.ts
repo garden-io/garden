@@ -72,14 +72,14 @@ export function parseGitUrl(url: string) {
 }
 
 export interface GitCli {
-  (...args: (string | undefined)[]): Promise<string[]>
+  (...args: string[]): Promise<string[]>
 }
 
 export function gitCli(log: Log, cwd: string, failOnPrompt = false): GitCli {
   /**
    * @throws ChildProcessError
    */
-  return async (...args: (string | undefined)[]) => {
+  return async (...args: string[]) => {
     log.silly(`Calling git with args '${args.join(" ")}' in ${cwd}`)
     const { stdout } = await exec("git", args.filter(isString), {
       cwd,
