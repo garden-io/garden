@@ -91,7 +91,7 @@ export function gitCli(log: Log, cwd: string, failOnPrompt = false): GitCli {
   }
 }
 
-async function getModifiedFiles(git: GitCli, path: string) {
+async function getModifiedFiles(git: GitCli, path: string): Promise<string[]> {
   try {
     return await git("diff-index", "--name-only", "HEAD", path)
   } catch (err) {
