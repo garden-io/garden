@@ -71,6 +71,9 @@ export function parseGitUrl(url: string) {
 }
 
 export interface GitCli {
+  /**
+   * @throws ChildProcessError
+   */
   (...args: string[]): Promise<string[]>
 }
 
