@@ -1545,10 +1545,14 @@ const getTreeVersionTests = (gitScanMode: GitScanMode, cacheFileHashes: boolean)
   })
 }
 
-// TODO: run tests with all combinations of gitScanMode/cacheFileHashes values
-export function runGitHandlerTests(gitScanMode: GitScanMode, cacheFileHashes: boolean = false) {
-  commonGitHandlerTests(gitScanMode, cacheFileHashes)
-  getTreeVersionTests(gitScanMode, cacheFileHashes)
+export function runGitHandlerTests(gitScanMode: GitScanMode) {
+  const cacheFileHashesValues = [false, true]
+  for (const cacheFileHashes of cacheFileHashesValues) {
+    context(`with cacheFileHashes=${cacheFileHashes}`, () => {
+      commonGitHandlerTests(gitScanMode, cacheFileHashes)
+      getTreeVersionTests(gitScanMode, cacheFileHashes)
+    })
+  }
 }
 
 describe("GitHandler", () => {
