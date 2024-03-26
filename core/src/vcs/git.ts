@@ -8,7 +8,6 @@
 
 import { performance } from "perf_hooks"
 import { isAbsolute, join, normalize, posix, relative, resolve } from "path"
-import { isString } from "lodash-es"
 import fsExtra from "fs-extra"
 import { PassThrough } from "stream"
 import type {
@@ -81,7 +80,7 @@ export function gitCli(log: Log, cwd: string, failOnPrompt = false): GitCli {
    */
   return async (...args: string[]) => {
     log.silly(`Calling git with args '${args.join(" ")}' in ${cwd}`)
-    const { stdout } = await exec("git", args.filter(isString), {
+    const { stdout } = await exec("git", args, {
       cwd,
       maxBuffer: 10 * 1024 * 1024,
       env: failOnPrompt ? { GIT_TERMINAL_PROMPT: "0", GIT_ASKPASS: "true" } : undefined,
