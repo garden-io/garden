@@ -66,8 +66,7 @@ export function parseGitUrl(url: string) {
         (e.g. https://github.com/org/repo.git#main). Actually got: '${url}'`,
     })
   }
-  const parsed = { repositoryUrl: parts[0], hash: parts[1] }
-  return parsed
+  return { repositoryUrl: parts[0], hash: parts[1] }
 }
 
 export interface GitCli {
