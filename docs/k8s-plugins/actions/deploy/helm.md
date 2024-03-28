@@ -22,7 +22,6 @@ _[kubernetes guide](./kubernetes.md) for more info._
 Using external charts, where the chart sources are not located in your own project, can be quite straightforward. At a
 minimum, you just need to point to the chart, and perhaps provide some values as inputs. There are two options to deploy external Charts, [Helm chart repositories](https://helm.sh/docs/topics/chart_repository/) (Accessible via `https`) or [OCI-based registries](https://helm.sh/docs/topics/registries/).
 
-Adding `deploy.redis` as a dependency of one of your other actions ensures that redis is up and running before the other actions are executed.
 
 ### Example: Redis from Bitnami OCI Repository
 
