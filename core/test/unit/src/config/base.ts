@@ -274,6 +274,7 @@ describe("loadConfigResources", () => {
       repositoryUrl: undefined,
       allowPublish: undefined,
       build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
+      local: undefined,
       path: modulePathA,
       variables: { msg: "OK" },
       varfile: undefined,
@@ -414,6 +415,7 @@ describe("loadConfigResources", () => {
         repositoryUrl: undefined,
         allowPublish: undefined,
         build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
+        local: undefined,
         path: projectPathMultipleModules,
         serviceConfigs: [],
         spec: {
@@ -454,6 +456,7 @@ describe("loadConfigResources", () => {
           dependencies: [{ name: "module-from-project-config", copy: [] }],
           timeout: DEFAULT_BUILD_TIMEOUT_SEC,
         },
+        local: undefined,
         path: modulePathAMultiple,
         serviceConfigs: [],
         spec: {
@@ -484,6 +487,7 @@ describe("loadConfigResources", () => {
         exclude: undefined,
         repositoryUrl: undefined,
         build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
+        local: undefined,
         path: modulePathAMultiple,
         serviceConfigs: [],
         spec: {

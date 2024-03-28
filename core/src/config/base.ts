@@ -446,6 +446,7 @@ export function prepareModuleResource(spec: any, configPath: string, projectRoot
       dependencies,
       timeout: spec.build?.timeout || DEFAULT_BUILD_TIMEOUT_SEC,
     },
+    local: spec.local,
     configPath,
     description: spec.description,
     disabled: spec.disabled,

@@ -17,7 +17,6 @@ import { createActionLog } from "../../../../../src/logger/log-entry.js"
 import { keyBy, omit } from "lodash-es"
 import {
   getDataDir,
-  makeTestModule,
   expectError,
   createProjectConfig,
   TestGarden,
@@ -26,7 +25,6 @@ import {
 } from "../../../../helpers.js"
 import { RunTask } from "../../../../../src/tasks/run.js"
 import { makeTestGarden } from "../../../../helpers.js"
-import type { ModuleConfig } from "../../../../../src/config/module.js"
 import type { ConfigGraph } from "../../../../../src/graph/config-graph.js"
 import fsExtra from "fs-extra"
 const { pathExists, emptyDir, readFile, remove } = fsExtra
@@ -34,7 +32,6 @@ import { TestTask } from "../../../../../src/tasks/test.js"
 import { dedent } from "../../../../../src/util/string.js"
 import { sleep } from "../../../../../src/util/util.js"
 import type { ExecModuleConfig } from "../../../../../src/plugins/exec/moduleConfig.js"
-import { configureExecModule } from "../../../../../src/plugins/exec/moduleConfig.js"
 import { actionFromConfig } from "../../../../../src/graph/actions.js"
 import type { TestAction, TestActionConfig } from "../../../../../src/actions/test.js"
 import type { PluginContext } from "../../../../../src/plugin-context.js"
@@ -226,7 +223,7 @@ describe("exec plugin", () => {
         },
       ])
 
-      expect(moduleLocal.spec.local).to.eql(true)
+      expect(moduleLocal.local).to.eql(true)
       expect(moduleLocal.build.dependencies).to.eql([])
       expect(moduleLocal.spec.build.command).to.eql(["pwd"])
 
@@ -354,28 +351,6 @@ describe("exec plugin", () => {
       await _garden.processTasks({ tasks: [testTask], throwOnError: false })
 
       expect(await pathExists(join(_garden.artifactsPath, "test-outputs", "test-a.txt"))).to.be.true
-    })
-
-    describe("configureExecModule", () => {
-      it("should throw if a local exec module has a build.copy spec", async () => {
-        const moduleConfig = makeTestModule(<Partial<ModuleConfig>>{
-          build: {
-            dependencies: [
-              {
-                name: "foo",
-                copy: [
-                  {
-                    source: ".",
-                    target: ".",
-                  },
-                ],
-              },
-            ],
-          },
-          spec: { local: true },
-        })
-        await expectError(async () => await configureExecModule({ ctx, moduleConfig, log }), "configuration")
-      })
     })
 
     describe("build", () => {
@@ -1122,8 +1097,8 @@ describe("exec plugin", () => {
               makeModuleConfig<ExecModuleConfig>(garden.projectRoot, {
                 name,
                 type: "exec",
+                local, // <---
                 spec: {
-                  local, // <---
                   build: {
                     command: buildCommand,
                   },

@@ -32,7 +32,6 @@ export function prepareExecBuildAction(params: ConvertModuleParams<ExecModule>):
       ...params.baseFields,
       ...dummyBuild,
 
-      buildAtSource: module.spec.local,
       dependencies: module.build.dependencies.map(convertBuildDependency),
 
       timeout: module.build.timeout,
