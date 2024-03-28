@@ -45,7 +45,7 @@ export class EventBus extends EventEmitter2.EventEmitter2 {
     super({
       wildcard: false,
       newListener: false,
-      maxListeners: 5000, // we may need to adjust this
+      maxListeners: 50000, // we may need to adjust this
     })
     this.keyIndex = {}
   }
