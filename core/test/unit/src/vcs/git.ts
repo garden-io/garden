@@ -15,8 +15,7 @@ import { basename, dirname, join, relative, resolve } from "path"
 import type { TestGarden } from "../../../helpers.js"
 import { expectError, getDataDir, makeTestGarden, makeTestGardenA } from "../../../helpers.js"
 import type { GitCli } from "../../../../src/vcs/git.js"
-import { gitCli } from "../../../../src/vcs/git.js"
-import { explainGitError, getCommitIdFromRefList, GitHandler, parseGitUrl } from "../../../../src/vcs/git.js"
+import { explainGitError, getCommitIdFromRefList, gitCli, GitHandler, parseGitUrl } from "../../../../src/vcs/git.js"
 import type { Log } from "../../../../src/logger/log-entry.js"
 import { hashRepoUrl } from "../../../../src/util/ext-source-util.js"
 import { dedent, deline } from "../../../../src/util/string.js"
@@ -84,7 +83,7 @@ function getGitHandlerCls(gitScanMode: GitScanMode): GitHandlerCls {
   }
 }
 
-const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
+const commonGitHandlerTests = (gitScanMode: GitScanMode, cacheFileHashes: boolean) => {
   let garden: TestGarden
   let tmpDir: tmp.DirectoryResult
   let tmpPath: string
@@ -105,6 +104,7 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
       gardenDirPath: join(tmpPath, ".garden"),
       ignoreFile: defaultIgnoreFilename,
       cache: garden.treeCache,
+      cacheFileHashes,
     })
     git = gitCli(log, tmpPath)
   })
@@ -147,8 +147,8 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
       })
 
       const dirContexts = [
-        { ctx: "when called from repo root", pathFn: (tp) => tp },
-        { ctx: "when called from project root", pathFn: (tp) => resolve(tp, "somedir") },
+        { ctx: "when called from repo root", pathFn: (tp: string): string => tp },
+        { ctx: "when called from project root", pathFn: (tp: string): string => resolve(tp, "somedir") },
       ]
 
       for (const { ctx, pathFn } of dirContexts) {
@@ -785,6 +785,7 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
           gardenDirPath: join(tmpPath, ".garden"),
           ignoreFile: "",
           cache: garden.treeCache,
+          cacheFileHashes,
         })
 
         expect(await _handler.getFiles({ path: tmpPath, scanRoot: undefined, log })).to.eql([{ path, hash }])
@@ -1117,8 +1118,7 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
 
   describe("getRepoRoot", () => {
     it("should return the repo root if it is the same as the given path", async () => {
-      const path = tmpPath
-      expect(await handler.getRepoRoot(log, path)).to.equal(tmpPath)
+      expect(await handler.getRepoRoot(log, tmpPath)).to.equal(tmpPath)
     })
 
     it("should return the nearest repo root, given a subpath of that repo", async () => {
@@ -1142,8 +1142,7 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
 
   describe("getPathInfo", () => {
     it("should return empty strings with no commits in repo", async () => {
-      const path = tmpPath
-      const { branch, commitHash } = await handler.getPathInfo(log, path)
+      const { branch, commitHash } = await handler.getPathInfo(log, tmpPath)
       expect(branch).to.equal("")
       expect(commitHash).to.equal("")
     })
@@ -1156,8 +1155,7 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
     })
 
     it("should return empty strings when given a path outside of a repo", async () => {
-      const path = tmpPath
-      const { branch, commitHash, originUrl } = await handler.getPathInfo(log, path)
+      const { branch, commitHash, originUrl } = await handler.getPathInfo(log, tmpPath)
       expect(branch).to.equal("")
       expect(commitHash).to.equal("")
       expect(originUrl).to.equal("")
@@ -1461,13 +1459,13 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
 
 // FIXME-GITREPOHANDLER: revisit these tests and disk-based configs,
 //  inspect the scenarios when both include and exclude filters are defined.
-const getTreeVersionTests = (gitScanMode: GitScanMode) => {
+const getTreeVersionTests = (gitScanMode: GitScanMode, cacheFileHashes: boolean) => {
   const gitHandlerCls = getGitHandlerCls(gitScanMode)
   describe("getTreeVersion", () => {
     context("include and exclude filters", () => {
       it("should respect the include field, if specified", async () => {
         const projectRoot = getDataDir("test-projects", "include-exclude")
-        const garden = await makeTestGarden(projectRoot, { gitScanMode })
+        const garden = await makeTestGarden(projectRoot, { gitScanMode, cacheFileHashes })
         const log = garden.log
         const graph = await garden.getConfigGraph({ log, emit: false })
         const build = graph.getBuild("a")
@@ -1478,6 +1476,7 @@ const getTreeVersionTests = (gitScanMode: GitScanMode) => {
           gardenDirPath: garden.gardenDirPath,
           ignoreFile: garden.dotIgnoreFile,
           cache: garden.treeCache,
+          cacheFileHashes,
         })
 
         const version = await handler.getTreeVersion({
@@ -1505,6 +1504,7 @@ const getTreeVersionTests = (gitScanMode: GitScanMode) => {
           gardenDirPath: garden.gardenDirPath,
           ignoreFile: garden.dotIgnoreFile,
           cache: garden.treeCache,
+          cacheFileHashes,
         })
 
         const version = await handler.getTreeVersion({
@@ -1530,6 +1530,7 @@ const getTreeVersionTests = (gitScanMode: GitScanMode) => {
           gardenDirPath: garden.gardenDirPath,
           ignoreFile: garden.dotIgnoreFile,
           cache: garden.treeCache,
+          cacheFileHashes,
         })
 
         const version = await handler.getTreeVersion({
@@ -1545,8 +1546,13 @@ const getTreeVersionTests = (gitScanMode: GitScanMode) => {
 }
 
 export function runGitHandlerTests(gitScanMode: GitScanMode) {
-  commonGitHandlerTests(gitScanMode)
-  getTreeVersionTests(gitScanMode)
+  const cacheFileHashesValues = [false, true]
+  for (const cacheFileHashes of cacheFileHashesValues) {
+    context(`with cacheFileHashes=${cacheFileHashes}`, () => {
+      commonGitHandlerTests(gitScanMode, cacheFileHashes)
+      getTreeVersionTests(gitScanMode, cacheFileHashes)
+    })
+  }
 }
 
 describe("GitHandler", () => {

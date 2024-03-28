@@ -5135,6 +5135,9 @@ describe("Garden", () => {
           gardenDirPath: join(gardenA.projectRoot, ".garden"),
           ignoreFile: defaultDotIgnoreFile,
           cache: new TreeCache(),
+          // TODO-1: should this also be tested with true
+          // TODO-2: check if these tests overlap with or duplicate the tests from vcs.ts
+          cacheFileHashes: false,
         })
       })
 

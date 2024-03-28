@@ -7,8 +7,7 @@
  */
 
 import { performance } from "perf_hooks"
-import { isAbsolute, join, normalize, posix, relative, resolve } from "path"
-import { isString } from "lodash-es"
+import { dirname, isAbsolute, join, normalize, posix, relative, resolve } from "path"
 import fsExtra from "fs-extra"
 import { PassThrough } from "stream"
 import type {
@@ -41,6 +40,9 @@ import type { ExecaError } from "execa"
 import { execa } from "execa"
 import { hashingStream } from "hasha"
 import { styles } from "../logger/styles.js"
+import { CACHE_DIR_NAME } from "../constants.js"
+import { deserialize, serialize } from "v8"
+import { readFile, writeFile } from "fs/promises"
 
 const { createReadStream, ensureDir, lstat, pathExists, readlink, realpath, stat } = fsExtra
 
@@ -67,21 +69,23 @@ export function parseGitUrl(url: string) {
         (e.g. https://github.com/org/repo.git#main). Actually got: '${url}'`,
     })
   }
-  const parsed = { repositoryUrl: parts[0], hash: parts[1] }
-  return parsed
+  return { repositoryUrl: parts[0], hash: parts[1] }
 }
 
 export interface GitCli {
-  (...args: (string | undefined)[]): Promise<string[]>
+  /**
+   * @throws ChildProcessError
+   */
+  (...args: string[]): Promise<string[]>
 }
 
 export function gitCli(log: Log, cwd: string, failOnPrompt = false): GitCli {
   /**
    * @throws ChildProcessError
    */
-  return async (...args: (string | undefined)[]) => {
+  return async (...args: string[]) => {
     log.silly(`Calling git with args '${args.join(" ")}' in ${cwd}`)
-    const { stdout } = await exec("git", args.filter(isString), {
+    const { stdout } = await exec("git", args, {
       cwd,
       maxBuffer: 10 * 1024 * 1024,
       env: failOnPrompt ? { GIT_TERMINAL_PROMPT: "0", GIT_ASKPASS: "true" } : undefined,
@@ -90,7 +94,7 @@ export function gitCli(log: Log, cwd: string, failOnPrompt = false): GitCli {
   }
 }
 
-async function getModifiedFiles(git: GitCli, path: string) {
+async function getModifiedFiles(git: GitCli, path: string): Promise<string[]> {
   try {
     return await git("diff-index", "--name-only", "HEAD", path)
   } catch (err) {
@@ -100,6 +104,61 @@ async function getModifiedFiles(git: GitCli, path: string) {
     } else {
       throw err
     }
+  }
+}
+
+interface CommitDiff {
+  status: string
+  path: string
+}
+
+// TODO: sanity and type checks
+const parseCommitDiffLine = (line: string): CommitDiff => {
+  const parts = line.trim().split("\t")
+  return { status: parts[0], path: parts[1] }
+}
+
+export async function getCommitDiff(git: GitCli, startCommit: string, endCommit: string): Promise<CommitDiff[]> {
+  try {
+    return (await git("diff", "--name-status", `${startCommit}..${endCommit}`)).map(parseCommitDiffLine)
+  } catch (err) {
+    if (err instanceof ChildProcessError && err.details.code === 128) {
+      // no commit in repo
+      return []
+    } else {
+      throw err
+    }
+  }
+}
+
+export async function getLastCommitHash(git: GitCli): Promise<string> {
+  const result = await git("rev-parse", "HEAD")
+  return result[0]
+}
+
+interface CacheContent {
+  cachedAtCommit: string
+  pathHashes: Map<string, string>
+}
+
+export class PathHashCache {
+  private cacheFilePath: string
+  private cacheContent: CacheContent
+
+  constructor({ cacheFilePath, cacheContent }: { cacheFilePath: string; cacheContent: CacheContent }) {
+    this.cacheFilePath = cacheFilePath
+    this.cacheContent = cacheContent
+  }
+
+  public static async load(gardenDirPath: string): Promise<PathHashCache> {
+    const cacheFilePath = join(gardenDirPath, CACHE_DIR_NAME, "pathHashes.json")
+    const cacheContent: CacheContent = deserialize(await readFile(cacheFilePath))
+    return new PathHashCache({ cacheFilePath, cacheContent })
+  }
+
+  public async store() {
+    await ensureDir(dirname(this.cacheFilePath))
+    await writeFile(this.cacheFilePath, serialize(this.cacheContent))
   }
 }
 
@@ -572,7 +631,7 @@ export class GitHandler extends VcsHandler {
       const gitLog = log.createLog({ name, showDuration: true }).info("Getting remote state")
       await git("remote", "update")
 
-      const localCommitId = (await git("rev-parse", "HEAD"))[0]
+      const localCommitId = await getLastCommitHash(git)
       const remoteCommitId = isSha1(hash) ? hash : getCommitIdFromRefList(await git("ls-remote", repositoryUrl, hash))
 
       if (localCommitId !== remoteCommitId) {
@@ -680,7 +739,7 @@ export class GitHandler extends VcsHandler {
 
     try {
       output.branch = (await git("rev-parse", "--abbrev-ref", "HEAD"))[0]
-      output.commitHash = (await git("rev-parse", "HEAD"))[0]
+      output.commitHash = await getLastCommitHash(git)
     } catch (err) {
       if (err instanceof ChildProcessError && err.details.code !== 128) {
         throw err
