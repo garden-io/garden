@@ -20,8 +20,30 @@ _[kubernetes guide](./kubernetes.md) for more info._
 ## Referencing external charts
 
 Using external charts, where the chart sources are not located in your own project, can be quite straightforward. At a
-minimum, you just need to point to the chart, and perhaps provide some values as inputs. For example here is the `redis` deploy from
-our example project:
+minimum, you just need to point to the chart, and perhaps provide some values as inputs. There are two options to deploy external Charts, [Helm chart repositories](https://helm.sh/docs/topics/chart_repository/) (Accessible via `https`) or [OCI-based registries](https://helm.sh/docs/topics/registries/).
+
+
+### Example: Redis from Bitnami OCI Repository
+
+A specific chart repository can be referenced via the `repo` field. This may be useful if you run your own Helm Chart Repository for your organization, or are referencing an action that isn't contained in the default Helm Repository.
+
+```yaml
+kind: Deploy
+type: helm
+name: redis
+spec:
+  chart:
+    # Chart name is part of the OCI URL
+    url: oci://registry-1.docker.io/bitnamicharts/redis
+    version: "19.0.1"
+  values:
+    auth:
+      enabled: false
+```
+
+### Example: Redis from Bitnami Helm Repository
+
+A specific chart repository can be referenced via the `repo` field. This may be useful if you run your own Helm Chart Repository for your organization, or are referencing an action that isn't contained in the default Helm Repository.
 
 ```yaml
 kind: Deploy
@@ -36,10 +58,6 @@ spec:
     auth:
       enabled: false
 ```
-
-This may be all you need for a chart to be deployed with the rest of your stack. You can also list `deploy.redis` as a dependency of one of your other actions. That will ensure redis being up and running before the other actions are executed.
-
-A specific chart repository can be referenced via the `repo` field. This may be useful if you run your own chart repository for your organization, or are referencing an action that isn't contained in the default Helm repo.
 
 ## Local charts
 
