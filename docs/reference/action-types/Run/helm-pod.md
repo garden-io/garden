@@ -400,9 +400,10 @@ Specify the Helm chart to use.
 
 If the chart is defined in the same directory as the action, you can skip this, and the chart sources will be detected. If the chart is in the source tree but in a sub-directory, you should set `chart.path` to the directory path, relative to the action directory.
 
-If the chart is remote, you can specify `chart.name` and `chart.version\, and optionally `chart.repo` (if the chart is not in the default "stable" repo).
-
-You may also specify an absolute URL to a packaged chart via `chart.url`.
+For remote charts, there are multiple options:
+- **[Helm Chart repository](https://helm.sh/docs/topics/chart_repository/)**: specify `chart.name` and `chart.version\, and optionally `chart.repo` (if the chart is not in the default "stable" repo).
+- **[OCI-Based Registry](https://helm.sh/docs/topics/registries/)**: specify `chart.url` with the `oci://` URL and optionally `chart.version`.
+- **Absolute URL to a packaged chart**: specify `chart.url`.
 
 One of `chart.name`, `chart.path` or `chart.url` must be specified.
 
@@ -454,7 +455,7 @@ The repository URL to fetch the chart from. Defaults to the "stable" helm repo (
 
 [spec](#spec) > [chart](#specchart) > url
 
-An absolute URL to a packaged URL.
+URL to OCI repository, or a URL to a packaged Helm chart archive.
 
 | Type     | Required |
 | -------- | -------- |

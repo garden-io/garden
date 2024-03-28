@@ -144,7 +144,7 @@ const helmChartSpecSchema = () =>
           "The path, relative to the action path, to the chart sources (i.e. where the Chart.yaml file is, if any)."
         ),
       repo: helmChartRepoSchema(),
-      url: joi.string().uri().description("An absolute URL to a packaged URL."),
+      url: joi.string().uri().description("URL to OCI repository, or a URL to a packaged Helm chart archive."),
       version: helmChartVersionSchema(),
     })
     .without("path", ["name", "repo", "version", "url"])
@@ -156,9 +156,10 @@ const helmChartSpecSchema = () =>
 
   If the chart is defined in the same directory as the action, you can skip this, and the chart sources will be detected. If the chart is in the source tree but in a sub-directory, you should set \`chart.path\` to the directory path, relative to the action directory.
 
-  If the chart is remote, you can specify \`chart.name\` and \`chart.version\, and optionally \`chart.repo\` (if the chart is not in the default "stable" repo).
-
-  You may also specify an absolute URL to a packaged chart via \`chart.url\`.
+  For remote charts, there are multiple options:
+  - **[Helm Chart repository](https://helm.sh/docs/topics/chart_repository/)**: specify \`chart.name\` and \`chart.version\, and optionally \`chart.repo\` (if the chart is not in the default "stable" repo).
+  - **[OCI-Based Registry](https://helm.sh/docs/topics/registries/)**: specify \`chart.url\` with the \`oci://\` URL and optionally \`chart.version\`.
+  - **Absolute URL to a packaged chart**: specify \`chart.url\`.
 
   One of \`chart.name\`, \`chart.path\` or \`chart.url\` must be specified.
   `
