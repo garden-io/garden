@@ -104,6 +104,7 @@ describe("configureHelmModule", () => {
         dependencies: [],
         timeout: DEFAULT_BUILD_TIMEOUT_SEC,
       },
+      local: false,
       configPath: resolve(ctx.projectRoot, "api", "garden.yml"),
       description: "The API backend for the voting UI",
       disabled: false,

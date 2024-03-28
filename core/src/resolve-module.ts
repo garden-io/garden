@@ -914,6 +914,7 @@ export function makeDummyBuild({
 
     copyFrom,
     source: module.repositoryUrl ? { repository: { url: module.repositoryUrl } } : undefined,
+    buildAtSource: module.local,
 
     allowPublish: module.allowPublish,
     dependencies,
@@ -941,6 +942,9 @@ function inheritModuleToAction(module: GardenModule, action: ActionConfig) {
     action.disabled = true
   }
   action.internal.basePath = module.path
+  if (isBuildActionConfig(action)) {
+    action.buildAtSource = module.local
+  }
   if (module.configPath) {
     action.internal.configFilePath = module.configPath
   }

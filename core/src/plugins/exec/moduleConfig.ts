@@ -32,7 +32,6 @@ import { baseTaskSpecSchema } from "../../config/task.js"
 import { dedent } from "../../util/string.js"
 import type { ExecSyncModeSpec } from "./config.js"
 import type { ConfigureModuleParams, ConfigureModuleResult } from "../../plugin/handlers/Module/configure.js"
-import { ConfigurationError } from "../../exceptions.js"
 import { memoize, omit } from "lodash-es"
 import { DEFAULT_RUN_TIMEOUT_SEC } from "../../constants.js"
 
@@ -59,21 +58,6 @@ const artifactsSchema = memoize(() => joiSparseArray(artifactSchema()))
 export async function configureExecModule({
   moduleConfig,
 }: ConfigureModuleParams<ExecModule>): Promise<ConfigureModuleResult> {
-  const buildDeps = moduleConfig.build.dependencies
-  if (moduleConfig.spec.local && buildDeps.some((d) => d.copy.length > 0)) {
-    const buildDependenciesWithCopySpec = buildDeps
-      .filter((d) => !!d.copy)
-      .map((d) => d.name)
-      .join(", ")
-    throw new ConfigurationError({
-      message: dedent`
-      Invalid exec module configuration: Module ${moduleConfig.name} copies ${buildDependenciesWithCopySpec}
-
-      A local exec module cannot have a build dependency with a copy spec.
-    `,
-    })
-  }
-
   // All the config keys that affect the build version
   moduleConfig.buildConfig = omit(moduleConfig.spec, ["tasks", "tests", "services"])
 
@@ -257,7 +241,6 @@ export interface ExecModuleSpec extends ModuleSpec {
   services: ExecServiceSpec[]
   tasks: ExecTaskSpec[]
   tests: ExecTestSpec[]
-  local?: boolean
 }
 
 export type ExecModuleConfig = ModuleConfig<ExecModuleSpec>
@@ -282,18 +265,6 @@ export const execModuleSpecSchema = createSchema({
   name: "exec:Module",
   description: "The module specification for an exec module.",
   keys: () => ({
-    local: joi
-      .boolean()
-      .description(
-        dedent`
-        If set to true, Garden will run the build command, services, tests, and tasks in the module source directory,
-        instead of in the Garden build directory (under .garden/build/<module-name>).
-
-        Garden will therefore not stage the build for local exec modules. This means that include/exclude filters
-        and ignore files are not applied to local exec modules.
-        `
-      )
-      .default(false),
     build: execModuleBuildSpecSchema(),
     env: joiEnvVars(),
     services: joiSparseArray(execServiceSchema()).description("A list of services to deploy from this module."),

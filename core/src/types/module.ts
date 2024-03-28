@@ -131,9 +131,8 @@ export async function moduleFromConfig({
   const moduleTypes = await garden.getModuleTypes()
   const compatibleTypes = [config.type, ...getModuleTypeBases(moduleTypes[config.type], moduleTypes).map((t) => t.name)]
 
-  // Special-casing local exec modules, otherwise setting build path as <build dir>/<module name>
-  const buildPath =
-    config.type === "exec" && config.spec.local ? config.path : join(garden.buildStaging.buildDirPath, config.name)
+  // Special-casing local modules, otherwise setting build path as <build dir>/<module name>
+  const buildPath = config.local ? config.path : join(garden.buildStaging.buildDirPath, config.name)
 
   await garden.buildStaging.ensureDir(buildPath)
 

@@ -66,6 +66,19 @@ build:
   # If the top level `local` directive is set to `true`, the command runs in the module source directory instead.
   command: []
 
+# If set to true, Garden will run the build command, services, tests, and tasks in the module source directory,
+# instead of in the Garden build directory (under .garden/build/<module-name>).
+#
+# Garden will therefore not stage the build for local modules. This means that include/exclude filters
+# and ignore files are not applied to local modules, except to calculate the module/action versions.
+#
+# If you use use `build.dependencies[].copy` for one or more build dependencies of this module, the copied files
+# will be copied to the module source directory (instead of the build directory, as is the default case when
+# `local = false`).
+#
+# Note: This maps to the `buildAtSource` option in this module's generated Build action (if any).
+local: false
+
 # A description of the module.
 description:
 
@@ -165,13 +178,6 @@ variables:
 # to the varfile name, e.g. `varfile: "my-module.${environment.name}.env` (this assumes that the corresponding
 # varfiles exist).
 varfile:
-
-# If set to true, Garden will run the build command, services, tests, and tasks in the module source directory,
-# instead of in the Garden build directory (under .garden/build/<module-name>).
-#
-# Garden will therefore not stage the build for local exec modules. This means that include/exclude filters
-# and ignore files are not applied to local exec modules.
-local: false
 
 # Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with
 # `GARDEN`) and values must be primitives.
@@ -476,6 +482,24 @@ build:
     - build
 ```
 
+### `local`
+
+If set to true, Garden will run the build command, services, tests, and tasks in the module source directory,
+instead of in the Garden build directory (under .garden/build/<module-name>).
+
+Garden will therefore not stage the build for local modules. This means that include/exclude filters
+and ignore files are not applied to local modules, except to calculate the module/action versions.
+
+If you use use `build.dependencies[].copy` for one or more build dependencies of this module, the copied files
+will be copied to the module source directory (instead of the build directory, as is the default case when
+`local = false`).
+
+Note: This maps to the `buildAtSource` option in this module's generated Build action (if any).
+
+| Type      | Default | Required |
+| --------- | ------- | -------- |
+| `boolean` | `false` | No       |
+
 ### `description`
 
 A description of the module.
@@ -645,18 +669,6 @@ Example:
 ```yaml
 varfile: "my-module.env"
 ```
-
-### `local`
-
-If set to true, Garden will run the build command, services, tests, and tasks in the module source directory,
-instead of in the Garden build directory (under .garden/build/<module-name>).
-
-Garden will therefore not stage the build for local exec modules. This means that include/exclude filters
-and ignore files are not applied to local exec modules.
-
-| Type      | Default | Required |
-| --------- | ------- | -------- |
-| `boolean` | `false` | No       |
 
 ### `env`
 
