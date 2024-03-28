@@ -1,0 +1,17 @@
+kind: Deploy
+name: oci-url
+description: Deploy a chart from OCI URL
+type: helm
+spec:
+  chart:
+    url: oci://registry-1.docker.io/bitnamicharts/memcached
+
+---
+kind: Deploy
+name: oci-url-with-version
+description: Deploy a chart from OCI URL, with version
+type: helm
+spec:
+  chart:
+    url: oci://registry-1.docker.io/bitnamicharts/memcached
+    version: 7.0.3

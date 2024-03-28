@@ -130,46 +130,48 @@ describe("helmDeploy", () => {
     } catch {}
   })
 
-  it("should deploy a chart", async () => {
-    graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-    const action = await garden.resolveAction<HelmDeployAction>({
-      action: graph.getDeploy("api"),
-      log: garden.log,
-      graph,
-    })
-    const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
+  for (const deployName of ["api", "oci-url", "oci-url-with-version"]) {
+    it(`should deploy chart ${deployName} successfully`, async () => {
+      graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+      const action = await garden.resolveAction<HelmDeployAction>({
+        action: graph.getDeploy(deployName),
+        log: garden.log,
+        graph,
+      })
+      const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
 
-    // Here, we're not going through a router, so we listen for the `namespaceStatus` event directly.
-    let namespaceStatus: NamespaceStatus | null = null
-    ctx.events.once("namespaceStatus", (status) => (namespaceStatus = status))
-    await helmDeploy({
-      ctx,
-      log: actionLog,
-      action,
-      force: false,
-    })
-    expect(namespaceStatus).to.exist
-    expect(namespaceStatus!.namespaceName).to.eql("helm-test-default")
+      // Here, we're not going through a router, so we listen for the `namespaceStatus` event directly.
+      let namespaceStatus: NamespaceStatus | null = null
+      ctx.events.once("namespaceStatus", (status) => (namespaceStatus = status))
+      await helmDeploy({
+        ctx,
+        log: actionLog,
+        action,
+        force: false,
+      })
+      expect(namespaceStatus).to.exist
+      expect(namespaceStatus!.namespaceName).to.eql("helm-test-default")
 
-    const releaseName = getReleaseName(action)
-    const releaseStatus = await getReleaseStatus({
-      ctx,
-      action,
-      releaseName,
-      log: garden.log,
-    })
+      const releaseName = getReleaseName(action)
+      const releaseStatus = await getReleaseStatus({
+        ctx,
+        action,
+        releaseName,
+        log: garden.log,
+      })
 
-    expect(releaseStatus.state).to.equal("ready")
-    // getReleaseStatus fetches these details from a configmap in the action namespace.
-    // This means we are testing that the configmap is created correctly every time we
-    // test the gardenMetadata details from getReleaseStatus.
-    expect(releaseStatus.detail.gardenMetadata).to.eql({
-      actionName: "api",
-      projectName: garden.projectName,
-      version: action.versionString(),
-      mode: "default",
+      expect(releaseStatus.state).to.equal("ready")
+      // getReleaseStatus fetches these details from a configmap in the action namespace.
+      // This means we are testing that the configmap is created correctly every time we
+      // test the gardenMetadata details from getReleaseStatus.
+      expect(releaseStatus.detail.gardenMetadata).to.eql({
+        actionName: deployName,
+        projectName: garden.projectName,
+        version: action.versionString(),
+        mode: "default",
+      })
     })
-  })
+  }
 
   it("should deploy a chart from a converted Helm module referencing a container module version in its image tag", async () => {
     graph = await garden.getConfigGraph({ log: garden.log, emit: false })

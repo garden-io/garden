@@ -148,7 +148,7 @@ const helmChartSpecSchema = () =>
       version: helmChartVersionSchema(),
     })
     .without("path", ["name", "repo", "version", "url"])
-    .without("url", ["name", "repo", "version", "path"])
+    .without("url", ["name", "repo", "path"])
     .xor("name", "path", "url")
     .description(
       dedent`
