@@ -33,7 +33,7 @@
     "@scg82/exit-hook": "^3.4.1",
     "chalk": "^5.3.0",
     "node-abi": "^3.54.0",
-    "tar": "^6.2.0",
+    "tar": "^6.2.1",
     "undici": "^6.6.2",
     "unzipper": "^0.10.14"
   },
@@ -41,7 +41,7 @@
     "@types/chai": "^4.3.4",
     "@types/fs-extra": "^11.0.4",
     "@types/mocha": "^10.0.6",
-    "@types/tar": "^6.1.10",
+    "@types/tar": "^6.1.11",
     "@types/unzipper": "^0.10.9",
     "chai": "^5.0.3",
     "fs-extra": "^11.2.0",
