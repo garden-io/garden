@@ -376,9 +376,13 @@ export class GitHandler extends VcsHandler {
 
     // Make sure we have a fresh hash for each file
     let count = 0
+    let unhashedCount = 0
 
     const ensureHash = async (file: VcsFile, stats: fsExtra.Stats | undefined): Promise<void> => {
       if (file.hash === "" || modified.has(file.path)) {
+        if (file.hash === "") {
+          unhashedCount++
+        }
         // Don't attempt to hash directories. Directories (which will only come up via symlinks btw)
         // will by extension be filtered out of the list.
         if (stats && !stats.isDirectory()) {
@@ -530,7 +534,9 @@ export class GitHandler extends VcsHandler {
     await processEnded.promise
     await queue.onIdle()
 
-    gitLog.verbose(`Found ${count} files in ${pathDescription} ${path} ${renderDuration(gitLog.getDuration())}`)
+    gitLog.verbose(
+      `Found ${count} (${unhashedCount} unhashed) files in ${pathDescription} ${path} ${renderDuration(gitLog.getDuration())}`
+    )
 
     await pathHashCache.store(lastCommitHash)
 
