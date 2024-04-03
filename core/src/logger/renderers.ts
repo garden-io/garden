@@ -11,7 +11,7 @@ import stringify from "json-stringify-safe"
 import stripAnsi from "strip-ansi"
 import { isArray, repeat, trim } from "lodash-es"
 import stringWidth from "string-width"
-import format from "date-fns/format/index.js"
+import { format } from "date-fns"
 import { resolveMsg, type LogEntry } from "./log-entry.js"
 import type { JsonLogEntry } from "./writers/json-terminal-writer.js"
 import { highlightYaml, safeDumpYaml } from "../util/serialization.js"
@@ -101,6 +101,7 @@ export function getStyle(level: LogLevel) {
 
   return style
 }
+
 export function getSection(entry: LogEntry): string | null {
   if (entry.context.type === "actionLog") {
     return `${entry.context.actionKind.toLowerCase()}.${entry.context.actionName}`

@@ -27,7 +27,7 @@ import logSymbols from "log-symbols"
 import stripAnsi from "strip-ansi"
 import { highlightYaml, safeDumpYaml } from "../../../../src/util/serialization.js"
 import { freezeTime } from "../../../helpers.js"
-import format from "date-fns/format/index.js"
+import { format } from "date-fns"
 import { styles } from "../../../../src/logger/styles.js"
 import { gardenEnv } from "../../../../src/constants.js"
 
