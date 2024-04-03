@@ -40,6 +40,7 @@ import type { ExecaError } from "execa"
 import { execa } from "execa"
 import { hashingStream } from "hasha"
 import { styles } from "../logger/styles.js"
+import { PathHashCache } from "./path-hash-cache.js"
 
 const { createReadStream, ensureDir, lstat, pathExists, readlink, realpath, stat } = fsExtra
 
@@ -285,6 +286,11 @@ export class GitHandler extends VcsHandler {
         .map((modifiedRelPath) => resolve(gitRoot, modifiedRelPath))
     )
 
+    const pathHashCache = await PathHashCache.forGardenProject(this.gardenDirPath)
+    const cachedAtCommit = pathHashCache.getCachedAtCommit()
+    const lastCommitHash = await getLastCommitHash(git)
+    const commitDiff = !cachedAtCommit ? undefined : await getCommitDiff(git, cachedAtCommit, lastCommitHash)
+
     const globalArgs = ["--glob-pathspecs"]
     const lsFilesCommonArgs = ["--cached", "--exclude", this.gardenDirPath]
 
@@ -378,6 +384,7 @@ export class GitHandler extends VcsHandler {
         if (stats && !stats.isDirectory()) {
           const hash = await this.hashObject(stats, file.path)
           if (hash !== "") {
+            pathHashCache.setPathHash(file.path, hash)
             file.hash = hash
             count++
             files.push(file)
@@ -524,6 +531,8 @@ export class GitHandler extends VcsHandler {
     await queue.onIdle()
 
     gitLog.verbose(`Found ${count} files in ${pathDescription} ${path} ${renderDuration(gitLog.getDuration())}`)
+
+    await pathHashCache.store(lastCommitHash)
 
     // We have done the processing of this level of files
     // So now we just have to wait for all the recursive submodules to resolve as well
