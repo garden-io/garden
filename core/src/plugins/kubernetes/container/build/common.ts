@@ -239,12 +239,10 @@ export async function skopeoBuildStatus({
         return { state: "not-ready", outputs, detail: {} }
       }
 
-      const output = res?.allLogs || err.message
-
       throw new RuntimeError({
         message: `Unable to query registry for image status: Command "${skopeoCommand.join(
           " "
-        )}" failed. This is the output:\n${output}`,
+        )}" failed: ${err.message}`,
         wrappedErrors: [err],
       })
     }
