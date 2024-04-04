@@ -1,4 +1,24 @@
 
+<a name="0.13.29"></a>
+## [0.13.29](https://github.com/garden-io/garden/compare/0.13.28...0.13.29) (2024-04-04)
+
+### Bug Fixes
+
+* recognize `--resolve` flag in `validate` command ([#5853](https://github.com/garden-io/garden/issues/5853)) ([af514b409](https://github.com/garden-io/garden/commit/af514b409))
+* **core:** increase max event listener count ([#5889](https://github.com/garden-io/garden/issues/5889)) ([d29e11e25](https://github.com/garden-io/garden/commit/d29e11e25))
+* **k8s:** allow specifying version for oci helm charts ([#5892](https://github.com/garden-io/garden/issues/5892)) ([43e7485bb](https://github.com/garden-io/garden/commit/43e7485bb))
+* **vcs:** use structural path comparison to compute minimal repo roots ([#5867](https://github.com/garden-io/garden/issues/5867)) ([189bb2119](https://github.com/garden-io/garden/commit/189bb2119))
+
+### Features
+
+* **container:** allow global extra build flags e.g. for custom remote builders ([#5829](https://github.com/garden-io/garden/issues/5829)) ([7cef7c1b6](https://github.com/garden-io/garden/commit/7cef7c1b6))
+* **helm:** store garden metadata in configmap instead of helm values ([#5827](https://github.com/garden-io/garden/issues/5827)) ([adcf96803](https://github.com/garden-io/garden/commit/adcf96803))
+* **modules:** allow opting out of build staging ([#5890](https://github.com/garden-io/garden/issues/5890)) ([a4fdc3bfb](https://github.com/garden-io/garden/commit/a4fdc3bfb))
+
+### Improvements
+
+* **k8s:** better pod runner error handling ([#5903](https://github.com/garden-io/garden/issues/5903)) ([bb79cd74a](https://github.com/garden-io/garden/commit/bb79cd74a))
+
 <a name="0.13.28"></a>
 ## [0.13.28](https://github.com/garden-io/garden/compare/0.13.27...0.13.28) (2024-03-11)
 
