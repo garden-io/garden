@@ -25,6 +25,7 @@
 ### Bug Fixes
 
 * **core:** properly escape shell commands ([#5811](https://github.com/garden-io/garden/issues/5811)) ([a6d653404](https://github.com/garden-io/garden/commit/a6d653404))
+* **docs:** fix ordering of image reference in actions outputs ([#5828](https://github.com/garden-io/garden/pull/5828)) ([1e7071857](https://github.com/garden-io/garden/commit/1e7071857416e9514646b68d70b8577c47b5ebaa))
 * **k8s:** use the same service account for pulling images as building ([#5810](https://github.com/garden-io/garden/issues/5810)) ([dba5b0665](https://github.com/garden-io/garden/commit/dba5b0665))
 
 ### Improvements
