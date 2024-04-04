@@ -9,7 +9,7 @@
 import tar from "tar"
 import tmp from "tmp-promise"
 import cloneDeep from "fast-copy"
-import { omit, pick, some } from "lodash-es"
+import { max, omit, pick, some } from "lodash-es"
 import type { Log } from "../../logger/log-entry.js"
 import type { CoreV1Event } from "@kubernetes/client-node"
 import type { GardenErrorParams } from "../../exceptions.js"
@@ -1175,8 +1175,10 @@ export class PodRunner {
       }
     }
 
+    const events = await getResourceEvents(this.api, this.pod)
+    const lastEventTime = max(events.map((e) => e.lastTimestamp))
+
     log.debug(`Execing command in ${this.namespace}/Pod/${this.podName}/${containerName}: ${command.join(" ")}`)
-    const startTime = new Date(Date.now())
 
     const result = await this.api.execInPod({
       log,
@@ -1213,7 +1215,7 @@ export class PodRunner {
 
     // the Pod might have been killed – if the process exits with code zero when
     // receiving SIGINT, we might not notice if we don't double check this.
-    await this.throwIfPodKilled(startTime)
+    await this.throwIfPodKilled(lastEventTime)
 
     if (result.exitCode !== 0) {
       const errorDetails: PodErrorDetails = {
@@ -1237,14 +1239,27 @@ export class PodRunner {
   /**
    * Helper to detect pod disruption, and throw NotFoundError in case the Pod has been evicted
    *
+   * @param lastEventTime Don't just use new Date() as the timezone might differ between client and server. Get the max
+   *        lastEventTime from the events returned by `getResourceEvents` and pass that as the parameter here.
    * @throws NotFoundError
    */
-  private async throwIfPodKilled(afterTime: Date): Promise<void> {
-    const events = await getResourceEvents(this.api, this.pod)
-    if (
-      // If reason is killed and lastTimestamp doesn't exist or is greater than afterTime
-      some(events, (event) => event.reason === "Killing" && (!event.lastTimestamp || event.lastTimestamp > afterTime))
-    ) {
+  private async throwIfPodKilled(lastEventTime: Date | undefined): Promise<void> {
+    const events = (await getResourceEvents(this.api, this.pod)).filter((e) => {
+      if (!e.lastTimestamp) {
+        // we ignore all events without lastTimestamp as that could lead to permanently unusable Pods.
+        return false
+      }
+
+      if (lastEventTime) {
+        // only consider events that happened after the last event we've seen
+        return e.lastTimestamp > lastEventTime
+      } else {
+        // we consider all events, as there were no previous events
+        return true
+      }
+    })
+
+    if (some(events, (event) => event.reason === "Killing")) {
       const details: PodErrorDetails = { podEvents: events }
       throw new PodRunnerNotFoundError({ details })
     }
