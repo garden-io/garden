@@ -91,7 +91,7 @@ export function gitCli(log: Log, cwd: string, failOnPrompt = false): GitCli {
   }
 }
 
-async function getModifiedFiles(git: GitCli, path: string): Promise<string[]> {
+export async function getModifiedFiles(git: GitCli, path: string): Promise<string[]> {
   try {
     return await git("diff-index", "--name-only", "HEAD", path)
   } catch (err) {
@@ -106,6 +106,21 @@ async function getModifiedFiles(git: GitCli, path: string): Promise<string[]> {
 
 export async function getLastCommitHash(git: GitCli): Promise<string> {
   const result = await git("rev-parse", "HEAD")
+  return result[0]
+}
+
+export async function getRepositoryRoot(git: GitCli): Promise<string> {
+  const result = await git("rev-parse", "--show-toplevel")
+  return result[0]
+}
+
+export async function getBranchName(git: GitCli): Promise<string> {
+  const result = await git("rev-parse", "--abbrev-ref", "HEAD")
+  return result[0]
+}
+
+export async function getOriginUrl(git: GitCli): Promise<string> {
+  const result = await git("config", "--get", "remote.origin.url")
   return result[0]
 }
 
@@ -176,7 +191,7 @@ export class GitHandler extends VcsHandler {
 
       try {
         const git = gitCli(log, path, failOnPrompt)
-        const repoRoot = (await git("rev-parse", "--show-toplevel"))[0]
+        const repoRoot = await getRepositoryRoot(git)
         this.repoRoots.set(path, repoRoot)
         return repoRoot
       } catch (err) {
@@ -685,7 +700,7 @@ export class GitHandler extends VcsHandler {
     }
 
     try {
-      output.branch = (await git("rev-parse", "--abbrev-ref", "HEAD"))[0]
+      output.branch = await getBranchName(git)
       output.commitHash = await getLastCommitHash(git)
     } catch (err) {
       if (err instanceof ChildProcessError && err.details.code !== 128) {
@@ -694,7 +709,7 @@ export class GitHandler extends VcsHandler {
     }
 
     try {
-      output.originUrl = (await git("config", "--get", "remote.origin.url"))[0]
+      output.originUrl = await getOriginUrl(git)
     } catch (err) {
       // Just ignore if not available
       log.silly(`Tried to retrieve git remote.origin.url but encountered an error: ${err}`)
