@@ -217,7 +217,7 @@ export async function runAndCopy({
     }
 
     const outputStream = new PassThrough()
-    outputStream.on("error", () => { })
+    outputStream.on("error", () => {})
     outputStream.on("data", (data: Buffer) => {
       ctx.events.emit("log", {
         level: "verbose",
@@ -808,7 +808,8 @@ class PodRunnerNotFoundError extends PodRunnerError {
         There are several different possible causes for Pod disruptions.
 
         You can read more about the topic in the Kubernetes documentation:
-        https://kubernetes.io/docs/concepts/workloads/pods/disruptions/${events?.length ? `\n\n${renderPodEvents(events)}` : ""
+        https://kubernetes.io/docs/concepts/workloads/pods/disruptions/${
+          events?.length ? `\n\n${renderPodEvents(events)}` : ""
         }
       `,
       details,
@@ -896,9 +897,9 @@ export class PodRunner {
     const logEventContext = this.logEventContext
       ? this.logEventContext
       : {
-        origin: this.getFullCommand()[0]!,
-        log: log.createLog({ fixLevel: LogLevel.verbose }),
-      }
+          origin: this.getFullCommand()[0]!,
+          log: log.createLog({ fixLevel: LogLevel.verbose }),
+        }
 
     const stream = new Stream<RunLogEntry>()
     void stream.forEach((entry) => {
@@ -1243,10 +1244,20 @@ export class PodRunner {
    * @throws NotFoundError
    */
   private async throwIfPodKilled(lastEventTime: Date | undefined): Promise<void> {
-    const events = await getResourceEvents(this.api, this.pod)
-      // only consider events that happened after the last event we've seen, and if they have a lastTimestamp property.
-      // we ignore all events without lastTimestamp, because that could lead to permanently unusable Pods.
-      .filter((e) => lastEventTime && event.lastTimestamp && event.lastTimestamp > lastEventTime)
+    const events = (await getResourceEvents(this.api, this.pod)).filter((e) => {
+      if (!e.lastTimestamp) {
+        // we ignore all events without lastTimestamp as that could lead to permanently unusable Pods.
+        return false
+      }
+
+      if (lastEventTime) {
+        // only consider events that happened after the last event we've seen
+        return e.lastTimestamp > lastEventTime
+      } else {
+        // we consider all events, as there were no previous events
+        return true
+      }
+    })
 
     if (some(events, (event) => event.reason === "Killing")) {
       const details: PodErrorDetails = { podEvents: events }
