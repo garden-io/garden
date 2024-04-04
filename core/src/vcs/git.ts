@@ -8,7 +8,6 @@
 
 import { performance } from "perf_hooks"
 import { isAbsolute, join, normalize, posix, relative, resolve } from "path"
-import { isString } from "lodash-es"
 import fsExtra from "fs-extra"
 import { PassThrough } from "stream"
 import type {
@@ -67,21 +66,23 @@ export function parseGitUrl(url: string) {
         (e.g. https://github.com/org/repo.git#main). Actually got: '${url}'`,
     })
   }
-  const parsed = { repositoryUrl: parts[0], hash: parts[1] }
-  return parsed
+  return { repositoryUrl: parts[0], hash: parts[1] }
 }
 
 export interface GitCli {
-  (...args: (string | undefined)[]): Promise<string[]>
+  /**
+   * @throws ChildProcessError
+   */
+  (...args: string[]): Promise<string[]>
 }
 
 export function gitCli(log: Log, cwd: string, failOnPrompt = false): GitCli {
   /**
    * @throws ChildProcessError
    */
-  return async (...args: (string | undefined)[]) => {
+  return async (...args: string[]) => {
     log.silly(`Calling git with args '${args.join(" ")}' in ${cwd}`)
-    const { stdout } = await exec("git", args.filter(isString), {
+    const { stdout } = await exec("git", args, {
       cwd,
       maxBuffer: 10 * 1024 * 1024,
       env: failOnPrompt ? { GIT_TERMINAL_PROMPT: "0", GIT_ASKPASS: "true" } : undefined,
@@ -90,7 +91,7 @@ export function gitCli(log: Log, cwd: string, failOnPrompt = false): GitCli {
   }
 }
 
-async function getModifiedFiles(git: GitCli, path: string) {
+export async function getModifiedFiles(git: GitCli, path: string): Promise<string[]> {
   try {
     return await git("diff-index", "--name-only", "HEAD", path)
   } catch (err) {
@@ -101,6 +102,26 @@ async function getModifiedFiles(git: GitCli, path: string) {
       throw err
     }
   }
+}
+
+export async function getLastCommitHash(git: GitCli): Promise<string> {
+  const result = await git("rev-parse", "HEAD")
+  return result[0]
+}
+
+export async function getRepositoryRoot(git: GitCli): Promise<string> {
+  const result = await git("rev-parse", "--show-toplevel")
+  return result[0]
+}
+
+export async function getBranchName(git: GitCli): Promise<string> {
+  const result = await git("rev-parse", "--abbrev-ref", "HEAD")
+  return result[0]
+}
+
+export async function getOriginUrl(git: GitCli): Promise<string> {
+  const result = await git("config", "--get", "remote.origin.url")
+  return result[0]
 }
 
 interface GitSubTreeIncludeExcludeFiles extends BaseIncludeExcludeFiles {
@@ -170,7 +191,7 @@ export class GitHandler extends VcsHandler {
 
       try {
         const git = gitCli(log, path, failOnPrompt)
-        const repoRoot = (await git("rev-parse", "--show-toplevel"))[0]
+        const repoRoot = await getRepositoryRoot(git)
         this.repoRoots.set(path, repoRoot)
         return repoRoot
       } catch (err) {
@@ -572,7 +593,7 @@ export class GitHandler extends VcsHandler {
       const gitLog = log.createLog({ name, showDuration: true }).info("Getting remote state")
       await git("remote", "update")
 
-      const localCommitId = (await git("rev-parse", "HEAD"))[0]
+      const localCommitId = await getLastCommitHash(git)
       const remoteCommitId = isSha1(hash) ? hash : getCommitIdFromRefList(await git("ls-remote", repositoryUrl, hash))
 
       if (localCommitId !== remoteCommitId) {
@@ -679,8 +700,8 @@ export class GitHandler extends VcsHandler {
     }
 
     try {
-      output.branch = (await git("rev-parse", "--abbrev-ref", "HEAD"))[0]
-      output.commitHash = (await git("rev-parse", "HEAD"))[0]
+      output.branch = await getBranchName(git)
+      output.commitHash = await getLastCommitHash(git)
     } catch (err) {
       if (err instanceof ChildProcessError && err.details.code !== 128) {
         throw err
@@ -688,7 +709,7 @@ export class GitHandler extends VcsHandler {
     }
 
     try {
-      output.originUrl = (await git("config", "--get", "remote.origin.url"))[0]
+      output.originUrl = await getOriginUrl(git)
     } catch (err) {
       // Just ignore if not available
       log.silly(`Tried to retrieve git remote.origin.url but encountered an error: ${err}`)

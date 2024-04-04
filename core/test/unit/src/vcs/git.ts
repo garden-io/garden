@@ -15,8 +15,7 @@ import { basename, dirname, join, relative, resolve } from "path"
 import type { TestGarden } from "../../../helpers.js"
 import { expectError, getDataDir, makeTestGarden, makeTestGardenA } from "../../../helpers.js"
 import type { GitCli } from "../../../../src/vcs/git.js"
-import { gitCli } from "../../../../src/vcs/git.js"
-import { explainGitError, getCommitIdFromRefList, GitHandler, parseGitUrl } from "../../../../src/vcs/git.js"
+import { explainGitError, getCommitIdFromRefList, gitCli, GitHandler, parseGitUrl } from "../../../../src/vcs/git.js"
 import type { Log } from "../../../../src/logger/log-entry.js"
 import { hashRepoUrl } from "../../../../src/util/ext-source-util.js"
 import { dedent, deline } from "../../../../src/util/string.js"
@@ -147,8 +146,8 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
       })
 
       const dirContexts = [
-        { ctx: "when called from repo root", pathFn: (tp) => tp },
-        { ctx: "when called from project root", pathFn: (tp) => resolve(tp, "somedir") },
+        { ctx: "when called from repo root", pathFn: (tp: string): string => tp },
+        { ctx: "when called from project root", pathFn: (tp: string): string => resolve(tp, "somedir") },
       ]
 
       for (const { ctx, pathFn } of dirContexts) {
@@ -1117,8 +1116,7 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
 
   describe("getRepoRoot", () => {
     it("should return the repo root if it is the same as the given path", async () => {
-      const path = tmpPath
-      expect(await handler.getRepoRoot(log, path)).to.equal(tmpPath)
+      expect(await handler.getRepoRoot(log, tmpPath)).to.equal(tmpPath)
     })
 
     it("should return the nearest repo root, given a subpath of that repo", async () => {
@@ -1142,8 +1140,7 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
 
   describe("getPathInfo", () => {
     it("should return empty strings with no commits in repo", async () => {
-      const path = tmpPath
-      const { branch, commitHash } = await handler.getPathInfo(log, path)
+      const { branch, commitHash } = await handler.getPathInfo(log, tmpPath)
       expect(branch).to.equal("")
       expect(commitHash).to.equal("")
     })
@@ -1156,8 +1153,7 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
     })
 
     it("should return empty strings when given a path outside of a repo", async () => {
-      const path = tmpPath
-      const { branch, commitHash, originUrl } = await handler.getPathInfo(log, path)
+      const { branch, commitHash, originUrl } = await handler.getPathInfo(log, tmpPath)
       expect(branch).to.equal("")
       expect(commitHash).to.equal("")
       expect(originUrl).to.equal("")
