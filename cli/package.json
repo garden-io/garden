@@ -34,7 +34,7 @@
     "chalk": "^5.3.0",
     "node-abi": "^3.54.0",
     "tar": "^6.2.1",
-    "undici": "^6.6.2",
+    "undici": "^6.11.1",
     "unzipper": "^0.10.14"
   },
   "devDependencies": {
