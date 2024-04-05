@@ -69,7 +69,7 @@ export function parseGitUrl(url: string) {
   return { repositoryUrl: parts[0], hash: parts[1] }
 }
 
-export interface GitCli {
+export interface GitCliExecutor {
   /**
    * @throws ChildProcessError
    */
@@ -78,7 +78,7 @@ export interface GitCli {
 
 type GitCliParams = { log: Log; cwd: string; failOnPrompt?: boolean }
 
-export function gitCli({ log, cwd, failOnPrompt = false }: GitCliParams): GitCli {
+export function gitCliExecutor({ log, cwd, failOnPrompt = false }: GitCliParams): GitCliExecutor {
   /**
    * @throws ChildProcessError
    */
@@ -94,10 +94,10 @@ export function gitCli({ log, cwd, failOnPrompt = false }: GitCliParams): GitCli
 }
 
 export class GitClient {
-  private readonly git: GitCli
+  private readonly git: GitCliExecutor
 
   constructor(params: GitCliParams) {
-    this.git = gitCli(params)
+    this.git = gitCliExecutor(params)
   }
 
   public async getModifiedFiles(path: string): Promise<string[]> {
