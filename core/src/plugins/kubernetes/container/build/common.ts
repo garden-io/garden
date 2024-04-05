@@ -10,7 +10,7 @@ import AsyncLock from "async-lock"
 import type { ContainerBuildAction, ContainerRegistryConfig } from "../../../container/moduleConfig.js"
 import type { KubeApi } from "../../api.js"
 import type { KubernetesConfig, KubernetesPluginContext, KubernetesProvider } from "../../config.js"
-import { PodRunner, PodRunnerError } from "../../run.js"
+import { PodRunner, PodRunnerError, PodRunnerTimeoutError } from "../../run.js"
 import type { PluginContext } from "../../../../plugin-context.js"
 import { hashString, sleep } from "../../../../util/util.js"
 import { InternalError, RuntimeError } from "../../../../exceptions.js"
@@ -18,7 +18,7 @@ import type { Log } from "../../../../logger/log-entry.js"
 import { prepareDockerAuth } from "../../init.js"
 import { prepareSecrets } from "../../secrets.js"
 import { Mutagen } from "../../../../mutagen.js"
-import { randomString } from "../../../../util/string.js"
+import { deline, randomString } from "../../../../util/string.js"
 import type { V1Container, V1Service } from "@kubernetes/client-node"
 import { cloneDeep, isEmpty, isEqual } from "lodash-es"
 import { compareDeployedResources, waitForResources } from "../../status/status.js"
@@ -224,12 +224,36 @@ export async function skopeoBuildStatus({
     await runner.exec({
       log,
       command: podCommand,
-      timeoutSec: 300,
+      timeoutSec: 60,
       containerName,
       buffer: true,
     })
     return { state: "ready", outputs, detail: {} }
   } catch (err) {
+    // NOTE: This is a workaround for a failure mode where we receive valid skopeo JSON output via the websocket connection, which
+    // indicates that the image exists, but we never receive the message that the command has completed, which leads to a timeout.
+    if (err instanceof PodRunnerTimeoutError) {
+      const output = err.details.result?.stdout
+      if (output && skopeoIsManifestJSON(output)) {
+        const warningMessage = deline`
+          Encountered a WebSocket connection issue while getting build status.
+          The skopeo command output indicates that the image exists, but the Kubernetes API did not signal command completion.
+          This might indicate a network problem, e.g. an issue with Path MTU discovery that leads to packets being dropped, or another problem in the client or server implementation.`
+
+        log.warn(
+          `${warningMessage} See a more detailed error message in the debug-level logs in this project's ${styles.highlight(".garden/logs")} directory.`
+        )
+
+        log.debug({
+          msg: warningMessage,
+          error: err,
+        })
+
+        // If the output is valid skopeo Manifest JSON, then the image exists, no matter what kind of errors we got from the Kubernetes API.
+        return { state: "ready", outputs, detail: {} }
+      }
+    }
+
     if (err instanceof PodRunnerError) {
       const res = err.details.result
 
@@ -265,6 +289,15 @@ export function skopeoManifestUnknown(errMsg: string | null | undefined): boolea
     errMsg.includes("Failed to fetch") ||
     /(artifact|repository) [^ ]+ not found/.test(errMsg)
   )
+}
+
+export function skopeoIsManifestJSON(output: string): boolean {
+  try {
+    const result = JSON.parse(output)
+    return typeof result === "object" && "config" in result && "layers" in result
+  } catch (e) {
+    return false
+  }
 }
 
 export function getBuilderServiceAccountAnnotations(config: KubernetesConfig): StringMap | undefined {
