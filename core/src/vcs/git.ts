@@ -100,6 +100,10 @@ export class GitCli {
     this.git = gitCliExecutor(params)
   }
 
+  public async exec(...args: string[]) {
+    return await this.git(...args)
+  }
+
   public async getModifiedFiles(path: string): Promise<string[]> {
     try {
       return await this.git("diff-index", "--name-only", "HEAD", path)
@@ -111,10 +115,6 @@ export class GitCli {
         throw err
       }
     }
-  }
-
-  public async exec(...args: string[]) {
-    return await this.git(...args)
   }
 
   public async getLastCommitHash(): Promise<string> {
