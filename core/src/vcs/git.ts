@@ -69,7 +69,7 @@ export function parseGitUrl(url: string) {
   return { repositoryUrl: parts[0], hash: parts[1] }
 }
 
-export interface GitCliExecutor {
+interface GitCliExecutor {
   /**
    * @throws ChildProcessError
    */
@@ -78,7 +78,7 @@ export interface GitCliExecutor {
 
 type GitCliParams = { log: Log; cwd: string; failOnPrompt?: boolean }
 
-export function gitCliExecutor({ log, cwd, failOnPrompt = false }: GitCliParams): GitCliExecutor {
+function gitCliExecutor({ log, cwd, failOnPrompt = false }: GitCliParams): GitCliExecutor {
   /**
    * @throws ChildProcessError
    */
