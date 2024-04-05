@@ -817,7 +817,7 @@ class PodRunnerNotFoundError extends PodRunnerError {
   }
 }
 
-class PodRunnerTimeoutError extends PodRunnerError {
+export class PodRunnerTimeoutError extends PodRunnerError {
   override type = "pod-runner-timeout"
 
   //
