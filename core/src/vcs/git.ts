@@ -93,7 +93,7 @@ function gitCliExecutor({ log, cwd, failOnPrompt = false }: GitCliParams): GitCl
   }
 }
 
-export class GitClient {
+export class GitCli {
   private readonly git: GitCliExecutor
 
   constructor(params: GitCliParams) {
@@ -204,7 +204,7 @@ export class GitHandler extends VcsHandler {
       }
 
       try {
-        const git = new GitClient({ log, cwd: path, failOnPrompt })
+        const git = new GitCli({ log, cwd: path, failOnPrompt })
         const repoRoot = await git.getRepositoryRoot()
         this.repoRoots.set(path, repoRoot)
         return repoRoot
@@ -265,7 +265,7 @@ export class GitHandler extends VcsHandler {
 
     let files: VcsFile[] = []
 
-    const git = new GitClient({ log: gitLog, cwd: path, failOnPrompt })
+    const git = new GitCli({ log: gitLog, cwd: path, failOnPrompt })
     const gitRoot = await this.getRepoRoot(gitLog, path, failOnPrompt)
 
     // List modified files, so that we can ensure we have the right hash for them later
@@ -533,7 +533,7 @@ export class GitHandler extends VcsHandler {
     failOnPrompt = false
   ) {
     await ensureDir(absPath)
-    const git = new GitClient({ log, cwd: absPath, failOnPrompt })
+    const git = new GitCli({ log, cwd: absPath, failOnPrompt })
     // Use `--recursive` to include submodules
     if (!isSha1(hash)) {
       return git.exec(
@@ -606,7 +606,7 @@ export class GitHandler extends VcsHandler {
 
   async updateRemoteSource({ url, name, sourceType, log, failOnPrompt = false }: RemoteSourceParams) {
     const absPath = this.getRemoteSourceLocalPath(name, url, sourceType)
-    const git = new GitClient({ log, cwd: absPath, failOnPrompt })
+    const git = new GitCli({ log, cwd: absPath, failOnPrompt })
     const { repositoryUrl, hash } = parseGitUrl(url)
 
     await this.ensureRemoteSource({ url, name, sourceType, log, failOnPrompt })
@@ -715,7 +715,7 @@ export class GitHandler extends VcsHandler {
   }
 
   async getPathInfo(log: Log, path: string, failOnPrompt = false): Promise<VcsInfo> {
-    const git = new GitClient({ log, cwd: path, failOnPrompt })
+    const git = new GitCli({ log, cwd: path, failOnPrompt })
 
     const output: VcsInfo = {
       branch: "",

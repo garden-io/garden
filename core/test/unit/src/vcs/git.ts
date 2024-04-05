@@ -14,7 +14,7 @@ import { basename, dirname, join, relative, resolve } from "path"
 
 import type { TestGarden } from "../../../helpers.js"
 import { expectError, getDataDir, makeTestGarden, makeTestGardenA } from "../../../helpers.js"
-import { explainGitError, getCommitIdFromRefList, GitClient, GitHandler, parseGitUrl } from "../../../../src/vcs/git.js"
+import { explainGitError, getCommitIdFromRefList, GitCli, GitHandler, parseGitUrl } from "../../../../src/vcs/git.js"
 import type { Log } from "../../../../src/logger/log-entry.js"
 import { hashRepoUrl } from "../../../../src/util/ext-source-util.js"
 import { dedent, deline } from "../../../../src/util/string.js"
@@ -65,7 +65,7 @@ async function addToIgnore(tmpPath: string, pathToExclude: string, ignoreFilenam
   await writeFile(gardenignorePath, pathToExclude)
 }
 
-async function getGitHash(git: GitClient, path: string) {
+async function getGitHash(git: GitCli, path: string) {
   return (await git.exec("hash-object", path))[0]
 }
 
@@ -86,7 +86,7 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
   let garden: TestGarden
   let tmpDir: tmp.DirectoryResult
   let tmpPath: string
-  let git: GitClient
+  let git: GitCli
   let handler: GitHandler
   let log: Log
 
@@ -104,7 +104,7 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
       ignoreFile: defaultIgnoreFilename,
       cache: garden.treeCache,
     })
-    git = new GitClient({ log, cwd: tmpPath })
+    git = new GitCli({ log, cwd: tmpPath })
   })
 
   afterEach(async () => {
@@ -809,7 +809,7 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
         const subPath = resolve(tmpPath, "subdir")
         await mkdirp(subPath)
 
-        const _git = new GitClient({ log, cwd: subPath })
+        const _git = new GitCli({ log, cwd: subPath })
         await _git.exec("init")
 
         const fileName = "foo"
