@@ -36,7 +36,6 @@ import { LogLevel } from "../../../../logger/logger.js"
 import type { ActionRuntime } from "../../../../plugin/base.js"
 
 export const inClusterBuilderServiceAccount = "garden-in-cluster-builder"
-export const sharedBuildSyncDeploymentName = "garden-build-sync"
 export const utilContainerName = "util"
 export const utilRsyncPort = 8730
 export const utilDeploymentName = "garden-util"
