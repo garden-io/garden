@@ -454,7 +454,7 @@ export async function ensureUtilDeployment({
       namespace,
       ctx,
       provider,
-      actionName: "garden-util",
+      actionName: utilDeploymentName,
       resources: [deployment, service],
       log: buildUtilLog,
       timeoutSec: 600,
