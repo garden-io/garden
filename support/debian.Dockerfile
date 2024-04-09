@@ -4,7 +4,7 @@ ARG VARIANT=root
 
 # NOTE: This is not the node version Garden itself will run in. Garden binaries have node "built in" and the version installed on the system does not matter.
 # The main reason we base these images off of the Node image is for Azure DevOps Support.
-FROM node:20.12.0-buster-slim@sha256:97305db8aca5eaf34a4e6940474bc76b4eb822e402a35fdd2fd4c3e72e4e7eea as garden-buster-base-root
+FROM node:20.12.1-buster-slim@sha256:359a07f95eaf4202268ad33e000425e63d9ce13c5fc93f0fc4b3038f0045f526 as garden-buster-base-root
 
 FROM garden-buster-base-root as garden-base-root
 # system dependencies
