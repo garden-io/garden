@@ -77,7 +77,7 @@ export function isEAddrInUseException(err: any): err is EAddrInUseException {
 }
 
 export function isExecaError(err: any): err is ExecaError {
-  return err.exitCode !== undefined
+  return err.exitCode !== undefined && err.exitCode !== null
 }
 
 export type StackTraceMetadata = {
