@@ -17,7 +17,7 @@ import { constants } from "os"
 import dns from "node:dns"
 import { styles } from "./logger/styles.js"
 import type { ObjectPath } from "./config/base.js"
-import { ExecaError } from "execa"
+import type { ExecaError } from "execa"
 
 // Unfortunately, NodeJS does not provide a list of all error codes, so we have to maintain this list manually.
 // See https://nodejs.org/docs/latest-v18.x/api/dns.html#error-codes
