@@ -35,6 +35,7 @@ import {
   ChildProcessError,
   InternalError,
   isErrnoException,
+  isExecaError,
   ParameterError,
   RuntimeError,
   TimeoutError,
@@ -43,7 +44,7 @@ import type { Log } from "../logger/log-entry.js"
 import { getDefaultProfiler } from "./profiling.js"
 import { dedent, naturalList, tailString } from "./string.js"
 import split2 from "split2"
-import type { ExecaError, Options as ExecaOptions } from "execa"
+import type { Options as ExecaOptions } from "execa"
 import { execa } from "execa"
 import corePackageJson from "../../package.json" assert { type: "json" }
 import { makeDocsLinkStyled } from "../docs/common.js"
@@ -208,15 +209,19 @@ export async function exec(cmd: string, args: string[], opts: ExecOpts = {}) {
       })
     }
 
-    const error = <ExecaError>err
-    throw new ChildProcessError({
-      cmd,
-      args,
-      code: error.exitCode,
-      output: error.all || error.stdout || error.stderr || "",
-      stderr: error.stderr || "",
-      stdout: error.stdout || "",
-    })
+    if (isExecaError(err)) {
+      throw new ChildProcessError({
+        cmd,
+        args,
+        code: err.exitCode,
+        output: err.all || err.stdout || err.stderr || "",
+        stderr: err.stderr || "",
+        stdout: err.stdout || "",
+      })
+    }
+
+    const error = err as Error
+    throw new InternalError({ message: error.message })
   }
 }
 

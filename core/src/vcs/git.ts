@@ -86,7 +86,7 @@ function gitCliExecutor({ log, cwd, failOnPrompt = false }: GitCliParams): GitCl
     log.silly(`Calling git with args '${args.join(" ")}' in ${cwd}`)
     const { stdout } = await exec("git", args, {
       cwd,
-      maxBuffer: 10 * 1024 * 1024,
+      maxBuffer: 100 * 1024 * 1024,
       env: failOnPrompt ? { GIT_TERMINAL_PROMPT: "0", GIT_ASKPASS: "true" } : undefined,
     })
     return stdout.split("\n").filter((line) => line.length > 0)

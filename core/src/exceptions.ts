@@ -17,6 +17,7 @@ import { constants } from "os"
 import dns from "node:dns"
 import { styles } from "./logger/styles.js"
 import type { ObjectPath } from "./config/base.js"
+import type { ExecaError } from "execa"
 
 // Unfortunately, NodeJS does not provide a list of all error codes, so we have to maintain this list manually.
 // See https://nodejs.org/docs/latest-v18.x/api/dns.html#error-codes
@@ -73,6 +74,10 @@ export function isErrnoException(err: any): err is NodeJSErrnoException {
 
 export function isEAddrInUseException(err: any): err is EAddrInUseException {
   return isErrnoException(err) && err.code === "EADDRINUSE"
+}
+
+export function isExecaError(err: any): err is ExecaError {
+  return err.exitCode !== undefined && err.exitCode !== null
 }
 
 export type StackTraceMetadata = {
