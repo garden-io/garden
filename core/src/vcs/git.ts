@@ -69,14 +69,16 @@ export function parseGitUrl(url: string) {
   return { repositoryUrl: parts[0], hash: parts[1] }
 }
 
-export interface GitCli {
+interface GitCliExecutor {
   /**
    * @throws ChildProcessError
    */
   (...args: string[]): Promise<string[]>
 }
 
-export function gitCli(log: Log, cwd: string, failOnPrompt = false): GitCli {
+type GitCliParams = { log: Log; cwd: string; failOnPrompt?: boolean }
+
+function gitCliExecutor({ log, cwd, failOnPrompt = false }: GitCliParams): GitCliExecutor {
   /**
    * @throws ChildProcessError
    */
@@ -91,37 +93,49 @@ export function gitCli(log: Log, cwd: string, failOnPrompt = false): GitCli {
   }
 }
 
-export async function getModifiedFiles(git: GitCli, path: string): Promise<string[]> {
-  try {
-    return await git("diff-index", "--name-only", "HEAD", path)
-  } catch (err) {
-    if (err instanceof ChildProcessError && err.details.code === 128) {
-      // no commit in repo
-      return []
-    } else {
-      throw err
+export class GitCli {
+  private readonly git: GitCliExecutor
+
+  constructor(params: GitCliParams) {
+    this.git = gitCliExecutor(params)
+  }
+
+  public async exec(...args: string[]) {
+    return await this.git(...args)
+  }
+
+  public async getModifiedFiles(path: string): Promise<string[]> {
+    try {
+      return await this.git("diff-index", "--name-only", "HEAD", path)
+    } catch (err) {
+      if (err instanceof ChildProcessError && err.details.code === 128) {
+        // no commit in repo
+        return []
+      } else {
+        throw err
+      }
     }
   }
-}
 
-export async function getLastCommitHash(git: GitCli): Promise<string> {
-  const result = await git("rev-parse", "HEAD")
-  return result[0]
-}
+  public async getLastCommitHash(): Promise<string> {
+    const result = await this.git("rev-parse", "HEAD")
+    return result[0]
+  }
 
-export async function getRepositoryRoot(git: GitCli): Promise<string> {
-  const result = await git("rev-parse", "--show-toplevel")
-  return result[0]
-}
+  public async getRepositoryRoot(): Promise<string> {
+    const result = await this.git("rev-parse", "--show-toplevel")
+    return result[0]
+  }
 
-export async function getBranchName(git: GitCli): Promise<string> {
-  const result = await git("rev-parse", "--abbrev-ref", "HEAD")
-  return result[0]
-}
+  public async getBranchName(): Promise<string> {
+    const result = await this.git("rev-parse", "--abbrev-ref", "HEAD")
+    return result[0]
+  }
 
-export async function getOriginUrl(git: GitCli): Promise<string> {
-  const result = await git("config", "--get", "remote.origin.url")
-  return result[0]
+  public async getOriginUrl(): Promise<string> {
+    const result = await this.git("config", "--get", "remote.origin.url")
+    return result[0]
+  }
 }
 
 interface GitSubTreeIncludeExcludeFiles extends BaseIncludeExcludeFiles {
@@ -190,8 +204,8 @@ export class GitHandler extends VcsHandler {
       }
 
       try {
-        const git = gitCli(log, path, failOnPrompt)
-        const repoRoot = await getRepositoryRoot(git)
+        const git = new GitCli({ log, cwd: path, failOnPrompt })
+        const repoRoot = await git.getRepositoryRoot()
         this.repoRoots.set(path, repoRoot)
         return repoRoot
       } catch (err) {
@@ -251,12 +265,12 @@ export class GitHandler extends VcsHandler {
 
     let files: VcsFile[] = []
 
-    const git = gitCli(gitLog, path, failOnPrompt)
+    const git = new GitCli({ log: gitLog, cwd: path, failOnPrompt })
     const gitRoot = await this.getRepoRoot(gitLog, path, failOnPrompt)
 
     // List modified files, so that we can ensure we have the right hash for them later
     const modified = new Set(
-      (await getModifiedFiles(git, path))
+      (await git.getModifiedFiles(path))
         // The output here is relative to the git root, and not the directory `path`
         .map((modifiedRelPath) => resolve(gitRoot, modifiedRelPath))
     )
@@ -274,7 +288,7 @@ export class GitHandler extends VcsHandler {
     const trackedButIgnored = new Set(
       !this.ignoreFile
         ? []
-        : await git(
+        : await git.exec(
             ...globalArgs,
             "ls-files",
             "--ignored",
@@ -519,10 +533,10 @@ export class GitHandler extends VcsHandler {
     failOnPrompt = false
   ) {
     await ensureDir(absPath)
-    const git = gitCli(log, absPath, failOnPrompt)
+    const git = new GitCli({ log, cwd: absPath, failOnPrompt })
     // Use `--recursive` to include submodules
     if (!isSha1(hash)) {
-      return git(
+      return git.exec(
         "-c",
         "protocol.file.allow=always",
         "clone",
@@ -538,11 +552,19 @@ export class GitHandler extends VcsHandler {
     // If SHA1 is used we need to fetch the changes as git clone doesn't allow to shallow clone
     // a specific hash
     try {
-      await git("init")
-      await git("remote", "add", "origin", repositoryUrl)
-      await git("-c", "protocol.file.allow=always", "fetch", "--depth=1", "--recurse-submodules=yes", "origin", hash)
-      await git("checkout", "FETCH_HEAD")
-      return git("-c", "protocol.file.allow=always", "submodule", "update", "--init", "--recursive")
+      await git.exec("init")
+      await git.exec("remote", "add", "origin", repositoryUrl)
+      await git.exec(
+        "-c",
+        "protocol.file.allow=always",
+        "fetch",
+        "--depth=1",
+        "--recurse-submodules=yes",
+        "origin",
+        hash
+      )
+      await git.exec("checkout", "FETCH_HEAD")
+      return git.exec("-c", "protocol.file.allow=always", "submodule", "update", "--init", "--recursive")
     } catch (err) {
       throw new RuntimeError({
         message: dedent`
@@ -584,26 +606,28 @@ export class GitHandler extends VcsHandler {
 
   async updateRemoteSource({ url, name, sourceType, log, failOnPrompt = false }: RemoteSourceParams) {
     const absPath = this.getRemoteSourceLocalPath(name, url, sourceType)
-    const git = gitCli(log, absPath, failOnPrompt)
+    const git = new GitCli({ log, cwd: absPath, failOnPrompt })
     const { repositoryUrl, hash } = parseGitUrl(url)
 
     await this.ensureRemoteSource({ url, name, sourceType, log, failOnPrompt })
 
     await this.withRemoteSourceLock(sourceType, name, async () => {
       const gitLog = log.createLog({ name, showDuration: true }).info("Getting remote state")
-      await git("remote", "update")
+      await git.exec("remote", "update")
 
-      const localCommitId = await getLastCommitHash(git)
-      const remoteCommitId = isSha1(hash) ? hash : getCommitIdFromRefList(await git("ls-remote", repositoryUrl, hash))
+      const localCommitId = await git.getLastCommitHash()
+      const remoteCommitId = isSha1(hash)
+        ? hash
+        : getCommitIdFromRefList(await git.exec("ls-remote", repositoryUrl, hash))
 
       if (localCommitId !== remoteCommitId) {
         gitLog.info(`Fetching from ${url}`)
 
         try {
-          await git("fetch", "--depth=1", "origin", hash)
-          await git("reset", "--hard", `origin/${hash}`)
+          await git.exec("fetch", "--depth=1", "origin", hash)
+          await git.exec("reset", "--hard", `origin/${hash}`)
           // Update submodules if applicable (no-op if no submodules in repo)
-          await git("-c", "protocol.file.allow=always", "submodule", "update", "--recursive")
+          await git.exec("-c", "protocol.file.allow=always", "submodule", "update", "--recursive")
         } catch (err) {
           gitLog.error(`Failed fetching from ${url}`)
           throw new RuntimeError({
@@ -691,7 +715,7 @@ export class GitHandler extends VcsHandler {
   }
 
   async getPathInfo(log: Log, path: string, failOnPrompt = false): Promise<VcsInfo> {
-    const git = gitCli(log, path, failOnPrompt)
+    const git = new GitCli({ log, cwd: path, failOnPrompt })
 
     const output: VcsInfo = {
       branch: "",
@@ -700,8 +724,8 @@ export class GitHandler extends VcsHandler {
     }
 
     try {
-      output.branch = await getBranchName(git)
-      output.commitHash = await getLastCommitHash(git)
+      output.branch = await git.getBranchName()
+      output.commitHash = await git.getLastCommitHash()
     } catch (err) {
       if (err instanceof ChildProcessError && err.details.code !== 128) {
         throw err
@@ -709,7 +733,7 @@ export class GitHandler extends VcsHandler {
     }
 
     try {
-      output.originUrl = await getOriginUrl(git)
+      output.originUrl = await git.getOriginUrl()
     } catch (err) {
       // Just ignore if not available
       log.silly(`Tried to retrieve git remote.origin.url but encountered an error: ${err}`)

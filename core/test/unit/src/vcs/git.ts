@@ -14,8 +14,7 @@ import { basename, dirname, join, relative, resolve } from "path"
 
 import type { TestGarden } from "../../../helpers.js"
 import { expectError, getDataDir, makeTestGarden, makeTestGardenA } from "../../../helpers.js"
-import type { GitCli } from "../../../../src/vcs/git.js"
-import { explainGitError, getCommitIdFromRefList, gitCli, GitHandler, parseGitUrl } from "../../../../src/vcs/git.js"
+import { explainGitError, getCommitIdFromRefList, GitCli, GitHandler, parseGitUrl } from "../../../../src/vcs/git.js"
 import type { Log } from "../../../../src/logger/log-entry.js"
 import { hashRepoUrl } from "../../../../src/util/ext-source-util.js"
 import { dedent, deline } from "../../../../src/util/string.js"
@@ -67,7 +66,7 @@ async function addToIgnore(tmpPath: string, pathToExclude: string, ignoreFilenam
 }
 
 async function getGitHash(git: GitCli, path: string) {
-  return (await git("hash-object", path))[0]
+  return (await git.exec("hash-object", path))[0]
 }
 
 type GitHandlerCls = new (params: VcsHandlerParams) => GitHandler
@@ -105,7 +104,7 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
       ignoreFile: defaultIgnoreFilename,
       cache: garden.treeCache,
     })
-    git = gitCli(log, tmpPath)
+    git = new GitCli({ log, cwd: tmpPath })
   })
 
   afterEach(async () => {
@@ -123,8 +122,8 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
 
         await createFile(path)
         await writeFile(path, "my change")
-        await git("add", ".")
-        await git("commit", "-m", "foo")
+        await git.exec("add", ".")
+        await git.exec("commit", "-m", "foo")
 
         const hash = await getGitHash(git, path)
 
@@ -135,8 +134,8 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
         const path = resolve(tmpPath, "foo.txt")
 
         await createFile(path)
-        await git("add", ".")
-        await git("commit", "-m", "foo")
+        await git.exec("add", ".")
+        await git.exec("commit", "-m", "foo")
 
         await writeFile(path, "my change")
 
@@ -158,8 +157,8 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
 
             await createFile(filePath)
             await writeFile(filePath, "original content")
-            await git("add", ".")
-            await git("commit", "-m", "foo")
+            await git.exec("add", ".")
+            await git.exec("commit", "-m", "foo")
 
             await handler.writeFile(log, filePath, "my change")
             const beforeHash = (await handler.getFiles({ path: dirPath, scanRoot: undefined, log }))[0].hash
@@ -196,8 +195,8 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
       it("should work with tracked files with spaces in the name", async () => {
         const path = join(tmpPath, "my file.txt")
         await createFile(path)
-        await git("add", path)
-        await git("commit", "-m", "foo")
+        await git.exec("add", path)
+        await git.exec("commit", "-m", "foo")
 
         const hash = await getGitHash(git, path)
 
@@ -207,8 +206,8 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
       it("should work with tracked+modified files with spaces in the name", async () => {
         const path = join(tmpPath, "my file.txt")
         await createFile(path)
-        await git("add", path)
-        await git("commit", "-m", "foo")
+        await git.exec("add", path)
+        await git.exec("commit", "-m", "foo")
 
         await writeFile(path, "fooooo")
 
@@ -220,8 +219,8 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
       it("should gracefully skip files that are deleted after having been committed", async () => {
         const filePath = join(tmpPath, "my file.txt")
         await createFile(filePath)
-        await git("add", filePath)
-        await git("commit", "-m", "foo")
+        await git.exec("add", filePath)
+        await git.exec("commit", "-m", "foo")
 
         await remove(filePath)
 
@@ -758,8 +757,8 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
         await createFile(path)
         await addToIgnore(tmpPath, name)
 
-        await git("add", path)
-        await git("commit", "-m", "foo")
+        await git.exec("add", path)
+        await git.exec("commit", "-m", "foo")
 
         const files = (await handler.getFiles({ path: tmpPath, scanRoot: undefined, exclude: [], log })).filter(
           (f) => !f.path.includes(defaultIgnoreFilename)
@@ -773,8 +772,8 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
 
         await createFile(path)
         await writeFile(path, "my change")
-        await git("add", ".")
-        await git("commit", "-m", "foo")
+        await git.exec("add", ".")
+        await git.exec("commit", "-m", "foo")
 
         const hash = await getGitHash(git, path)
 
@@ -810,8 +809,8 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
         const subPath = resolve(tmpPath, "subdir")
         await mkdirp(subPath)
 
-        const _git = gitCli(log, subPath)
-        await _git("init")
+        const _git = new GitCli({ log, cwd: subPath })
+        await _git.exec("init")
 
         const fileName = "foo"
         const filePath = resolve(tmpPath, fileName)
@@ -1178,9 +1177,9 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
       await createFile(path)
       await writeFile(path, "iogjeiojgeowigjewoijoeiw")
       const stats = await lstat(path)
-      await git("add", path)
+      await git.exec("add", path)
 
-      const files = (await git("ls-files", "-s", path))[0]
+      const files = (await git.exec("ls-files", "-s", path))[0]
       const expected = files.split(" ")[1]
 
       const hash = await handler.hashObject(stats, path)
@@ -1194,11 +1193,11 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
       await writeFile(filePath, "kfgjdslgjaslj")
 
       await symlink("foo", symlinkPath)
-      await git("add", symlinkPath)
+      await git.exec("add", symlinkPath)
 
       const stats = await lstat(symlinkPath)
 
-      const files = (await git("ls-files", "-s", symlinkPath))[0]
+      const files = (await git.exec("ls-files", "-s", symlinkPath))[0]
       const expected = files.split(" ")[1]
 
       const hash = await handler.hashObject(stats, symlinkPath)
