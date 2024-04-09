@@ -138,6 +138,7 @@ export interface GetTreeVersionParams {
   projectName: string
   config: ModuleConfig | BaseActionConfig
   scanRoot?: string // Set the scanning root instead of detecting, in order to optimize the scanning.
+  force?: boolean
 }
 
 export interface RemoteSourceParams {
@@ -205,13 +206,7 @@ export abstract class VcsHandler {
     config,
     force = false,
     scanRoot,
-  }: {
-    log: Log
-    projectName: string
-    config: ModuleConfig | BaseActionConfig
-    force?: boolean
-    scanRoot?: string
-  }): Promise<TreeVersion> {
+  }: GetTreeVersionParams): Promise<TreeVersion> {
     const cacheKey = getResourceTreeCacheKey(config)
     const description = describeConfig(config)
 
