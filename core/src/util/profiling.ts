@@ -24,11 +24,17 @@ interface Profiles {
   [key: string]: Invocation[]
 }
 
+interface Counters {
+  [key: string]: number
+}
+
 export class Profiler {
   private data: Profiles
+  private counters: Counters
 
   constructor(private enabled = true) {
     this.data = {}
+    this.counters = {}
   }
 
   isEnabled() {
@@ -92,6 +98,32 @@ export class Profiler {
     return renderTable([heading, [], ...tableData], tablePresets["no-borders"])
   }
 
+  private renderCounters() {
+    function formatKey(key: string) {
+      return styles.success(key)
+    }
+
+    const keys = Object.keys(this.counters)
+
+    const heading = ["Counter", "Value"].map((h) => styles.accent.underline(h))
+    const tableData = sortBy(
+      keys.map((key) => {
+        const counter = this.counters[key]
+        return [formatKey(key), counter]
+      }),
+      // Sort by total duration
+      (row) => row[1]
+    ).slice(0, maxReportRows)
+
+    const totalRows = keys.length
+
+    if (totalRows > maxReportRows) {
+      tableData.push([styles.primary("...")])
+    }
+
+    return renderTable([heading, [], ...tableData], tablePresets["no-borders"])
+  }
+
   report() {
     if (skipProfiling) {
       return
@@ -104,11 +136,17 @@ export class Profiler {
  ─────────────────────────────────────────────────────────────────────────────────────────
 ${this.renderInvocations()}
  ─────────────────────────────────────────────────────────────────────────────────────────
+
+ COUNTERS:
+ ─────────────────────────────────────────────────────────────────────────────────────────
+${this.renderCounters()}
+ ─────────────────────────────────────────────────────────────────────────────────────────
     `
   }
 
   reset() {
     this.data = {}
+    this.counters = {}
   }
 
   log(key: string, start: number) {
@@ -122,6 +160,19 @@ ${this.renderInvocations()}
     } else {
       this.data[key] = [duration]
     }
+  }
+
+  inc(key: string) {
+    if (!this.enabled) {
+      return
+    }
+
+    let counter = this.counters[key]
+    if (counter === undefined || counter === null) {
+      counter = 0
+    }
+    counter++
+    this.counters[key] = counter
   }
 }
 
