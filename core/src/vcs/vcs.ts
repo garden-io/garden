@@ -31,7 +31,7 @@ import { validateInstall } from "../util/validateInstall.js"
 import { isActionConfig, getSourceAbsPath } from "../actions/base.js"
 import type { BaseActionConfig } from "../actions/types.js"
 import type { Garden } from "../garden.js"
-import { Profile } from "../util/profiling.js"
+import { getDefaultProfiler, Profile, type Profiler } from "../util/profiling.js"
 
 import AsyncLock from "async-lock"
 import { makeDocsLinkStyled } from "../docs/common.js"
@@ -169,6 +169,7 @@ export abstract class VcsHandler {
   protected gardenDirPath: string
   protected ignoreFile: string
   protected cache: TreeCache
+  protected profiler: Profiler
 
   constructor(params: VcsHandlerParams) {
     this.garden = params.garden
@@ -176,6 +177,7 @@ export abstract class VcsHandler {
     this.gardenDirPath = params.gardenDirPath
     this.ignoreFile = params.ignoreFile
     this.cache = params.cache
+    this.profiler = getDefaultProfiler()
   }
 
   abstract name: string
@@ -215,6 +217,7 @@ export abstract class VcsHandler {
       const cached = this.cache.get(log, cacheKey)
       if (cached) {
         log.silly(() => `Got cached tree version for ${description} (key ${cacheKey})`)
+        this.profiler.inc("VcsHandler.TreeCache.hits")
         return cached
       }
     }
@@ -231,6 +234,7 @@ export abstract class VcsHandler {
         if (cached) {
           log.silly(() => `Got cached tree version for ${description} (key ${cacheKey})`)
           result = cached
+          this.profiler.inc("VcsHandler.TreeCache.hits")
           return
         }
       }
@@ -284,6 +288,7 @@ export abstract class VcsHandler {
       }
 
       this.cache.set(log, cacheKey, result, pathToCacheContext(path))
+      this.profiler.inc("VcsHandler.TreeCache.misses")
     })
 
     return result
