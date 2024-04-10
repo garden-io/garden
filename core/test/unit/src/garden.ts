@@ -5092,7 +5092,7 @@ describe("Garden", () => {
 
       expect(result.versionString).not.to.eql(
         config.version.versionString,
-        "should be different from first versionstring as svc returned different version"
+        "should be different from the first versionString as VCS returned different version"
       )
     })
 
