@@ -242,7 +242,7 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
       return { config: params.config, supportedModes: {} }
     }
 
-    const handler = await this.getHandler({
+    const handler = this.getHandler({
       handlerType: "configure",
       actionType: config.type,
       defaultHandler,
@@ -284,7 +284,7 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
       })
     }
 
-    const handler = await this.getHandler({
+    const handler = this.getHandler({
       actionType: action.type,
       handlerType,
       pluginName,
@@ -396,7 +396,7 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
   /**
    * Get the configured handler for the specified action.
    */
-  async getHandler<T extends keyof ActionTypeClasses<K>>({
+  getHandler<T extends keyof ActionTypeClasses<K>>({
     handlerType,
     actionType,
     pluginName,
@@ -406,7 +406,7 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
     actionType: string
     pluginName?: string
     defaultHandler?: GetActionTypeHandler<ActionTypeClasses<K>[T], T>
-  }): Promise<WrappedActionTypeHandler<ActionTypeClasses<K>[T], T>> {
+  }): WrappedActionTypeHandler<ActionTypeClasses<K>[T], T> {
     const handlers: WrappedActionTypeHandler<ActionTypeClasses<K>[T], T>[] = Object.values(
       this.handlers[handlerType][actionType] || {}
     )

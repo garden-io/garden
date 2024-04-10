@@ -76,7 +76,7 @@ describe("BaseActionRouter", () => {
       })
       const { router } = await createTestRouter([plugin])
 
-      const handler = await router.getHandler({
+      const handler = router.getHandler({
         handlerType: "build",
         actionType: "test",
       })
@@ -112,7 +112,7 @@ describe("BaseActionRouter", () => {
         createActionTypes: { Build: [testBuildDefinition] },
       })
       const { router } = await createTestRouter([plugin])
-      const handler = await router.getHandler({
+      const handler = router.getHandler({
         handlerType: "getOutputs", // not specified on the test plugins
         actionType: "test",
         defaultHandler: async () => defaultHandlerOutput,
@@ -156,7 +156,7 @@ describe("BaseActionRouter", () => {
         })
         const { router } = await createTestRouter([basePlugin, extensionPlugin])
 
-        const handler = await router.getHandler({ handlerType: "build", actionType: "test" })
+        const handler = router.getHandler({ handlerType: "build", actionType: "test" })
 
         expect(handler.handlerType).to.equal("build")
         expect(handler.actionType).to.equal("test")
@@ -201,7 +201,7 @@ describe("BaseActionRouter", () => {
         })
         const { router } = await createTestRouter([basePlugin, basePlugin2, extensionPlugin])
 
-        const handler = await router.getHandler({ handlerType: "build", actionType: "test" })
+        const handler = router.getHandler({ handlerType: "build", actionType: "test" })
 
         expect(handler.handlerType).to.equal("build")
         expect(handler.actionType).to.equal("test")
@@ -245,7 +245,7 @@ describe("BaseActionRouter", () => {
           })
           const { router } = await createTestRouter([basePlugin, extensionPlugin1, extensionPlugin2])
 
-          const handler = await router.getHandler({ handlerType: "build", actionType: "test" })
+          const handler = router.getHandler({ handlerType: "build", actionType: "test" })
 
           expect(handler.handlerType).to.equal("build")
           expect(handler.actionType).to.equal("test")
@@ -286,7 +286,7 @@ describe("BaseActionRouter", () => {
 
           const { router } = await createTestRouter([basePlugin, extensionPluginThatHasTheHandler])
 
-          const handler = await router.getHandler({ handlerType: "build", actionType: "test" })
+          const handler = router.getHandler({ handlerType: "build", actionType: "test" })
 
           expect(handler.handlerType).to.equal("build")
           expect(handler.actionType).to.equal("test")
@@ -322,7 +322,7 @@ describe("BaseActionRouter", () => {
 
         const { router } = await createTestRouter([basePlugin, plugin2])
 
-        const handler = await router.getHandler({ handlerType: "build", actionType: "test-action-type-extension" })
+        const handler = router.getHandler({ handlerType: "build", actionType: "test-action-type-extension" })
 
         expect(handler.base).to.exist
       })
@@ -354,7 +354,7 @@ describe("BaseActionRouter", () => {
 
         const { router } = await createTestRouter([basePlugin, plugin2])
 
-        const handler = await router.getHandler({ handlerType: "build", actionType: "test-action-type-extension" })
+        const handler = router.getHandler({ handlerType: "build", actionType: "test-action-type-extension" })
 
         expect(handler.handlerType).to.equal("build")
         expect(handler.actionType).to.equal("test-action-type-extension")
@@ -386,7 +386,7 @@ describe("BaseActionRouter", () => {
 
         const { router } = await createTestRouter([basePlugin, plugin2])
 
-        const handler = await router.getHandler({ handlerType: "build", actionType: "test-action-type-extension" })
+        const handler = router.getHandler({ handlerType: "build", actionType: "test-action-type-extension" })
 
         expect(handler.handlerType).to.equal("build")
         expect(handler.actionType).to.equal("test")
@@ -435,7 +435,7 @@ describe("BaseActionRouter", () => {
 
         const { router } = await createTestRouter([basePlugin, basePlugin2, plugin2])
 
-        const handler = await router.getHandler({ handlerType: "build", actionType: "test-action-type-extension" })
+        const handler = router.getHandler({ handlerType: "build", actionType: "test-action-type-extension" })
 
         expect(handler.handlerType).to.equal("build")
         expect(handler.actionType).to.equal("test")
