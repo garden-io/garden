@@ -194,7 +194,7 @@ Similarly, you can run your integration or end-to-end tests in a production-like
 garden test
 ```
 
-For detailed guides on configuring actions for different plugins, checkout the Action Configuration pages under each plugins section.
+For detailed guides on configuring actions for different plugins, checkout the Actions pages under each plugins section.
 
 ## Step 4 — Add more environments and plugins
 

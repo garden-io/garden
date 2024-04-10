@@ -1,5 +1,5 @@
 ---
-order: 2
+order: 3
 title: Projects
 ---
 
@@ -30,6 +30,7 @@ The top-level `project.garden.yml` file is where project-wide configuration take
 Garden treats the directory containing the project configuration as the project's top-level directory. Garden commands that run in subdirectories of the project root are assumed to apply to that project, and commands above/outside a project root will fail—similarly to how Git uses the location of the repo's `.git` directory as the repo's root directory.
 
 ### Environments and namespaces
+
 
 Every Garden command is run against one of the environments defined in the project-level configuration file. You can specify the environment with the `--env` flag or by setting a `defaultEnvironment`. Alternatively, Garden defaults to the first environment defined in your configuration.
 
@@ -65,6 +66,10 @@ For the other environments we leave `defaultNamespace` set to the default, which
 The `staging` and `prod` environments have an additional flag set, the `production` flag. This flag changes some default behavior and turns on protection for certain Garden commands that might be destructive, e.g. `garden deploy`, requiring you to explicitly confirm that you want to execute them. See more details on that in [the reference](../reference/project-config.md#environmentsproduction).
 
 The current environment and namespace are frequently used in template strings. `${environment.name}` resolves to the environment name (in the above example, `local`, `dev`, `staging` or `prod`), `${environment.namespace}` resolves to the namespace, and `${environment.fullName}` resolves to the two combined with a DNS-style notation, e.g. `my-namespace.dev`.
+
+{% hint style="info" %}
+For more details, see our [opinionated guide](../guides/namespaces.md) on configuring environments and namespaces.
+{% endhint %}
 
 ### Providers
 

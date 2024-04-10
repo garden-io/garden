@@ -1,5 +1,5 @@
 ---
-order: 5
+order: 6
 title: Tests
 ---
 
@@ -29,8 +29,6 @@ You can run a Test manually with the `garden test <test-name>` command. Append t
 You can view Test results by running `garden get test-result <test-name>`.
 
 ## Examples
-
-For full test configuration by module type, please take a look at our [reference docs](../reference/module-types/README.md).
 
 ### Integration Testing
 
