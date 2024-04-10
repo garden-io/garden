@@ -42,6 +42,7 @@ import type { ConfigSource } from "../config/validation.js"
 import * as parser from "./parser.js"
 import { styles } from "../logger/styles.js"
 import type { ObjectPath } from "../config/base.js"
+import { profile } from "../util/profiling.js"
 
 const missingKeyExceptionType = "template-string-missing-key"
 const passthroughExceptionType = "template-string-passthrough"
@@ -94,7 +95,7 @@ export class TemplateError extends GardenError {
  * The context should be a ConfigContext instance. The optional `stack` parameter is used to detect circular
  * dependencies when resolving context variables.
  */
-export function resolveTemplateString({
+export const resolveTemplateString = profile(function ({
   string,
   context,
   contextOpts = {},
@@ -231,7 +232,7 @@ export function resolveTemplateString({
 
     throw new TemplateStringError({ message, path })
   }
-}
+})
 
 /**
  * Recursively parses and resolves all templated strings in the given object.
@@ -239,7 +240,7 @@ export function resolveTemplateString({
 
 // `extends any` here isn't pretty but this function is hard to type correctly
 // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-constraint
-export function resolveTemplateStrings<T extends any>({
+export const resolveTemplateStrings = profile(function resolveTemplateStrings<T extends any>({
   value,
   context,
   contextOpts = {},
@@ -350,7 +351,7 @@ export function resolveTemplateStrings<T extends any>({
   } else {
     return <T>value
   }
-}
+})
 
 const expectedForEachKeys = [arrayForEachKey, arrayForEachReturnKey, arrayForEachFilterKey]
 
