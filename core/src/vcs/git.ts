@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { performance } from "perf_hooks"
 import { isAbsolute, join, normalize, posix, relative, resolve } from "path"
 import fsExtra from "fs-extra"
 import { PassThrough } from "stream"
@@ -28,8 +27,7 @@ import { defer, exec } from "../util/util.js"
 import type { Log } from "../logger/log-entry.js"
 import { renderDuration } from "../logger/util.js"
 import parseGitConfig from "parse-git-config"
-import type { Profiler } from "../util/profiling.js"
-import { getDefaultProfiler, Profile } from "../util/profiling.js"
+import { Profile } from "../util/profiling.js"
 import isGlob from "is-glob"
 import { pMemoizeDecorator } from "../lib/p-memoize.js"
 import AsyncLock from "async-lock"
@@ -181,12 +179,10 @@ interface Submodule {
 export class GitHandler extends VcsHandler {
   name = "git"
   repoRoots = new Map<string, string>()
-  profiler: Profiler
   protected lock: AsyncLock
 
   constructor(params: VcsHandlerParams) {
     super(params)
-    this.profiler = getDefaultProfiler()
     this.lock = new AsyncLock()
   }
 
@@ -652,7 +648,6 @@ export class GitHandler extends VcsHandler {
    * symlink itself. If the symlink cannot be read, we hash the link contents like git normally does.
    */
   async hashObject(stats: fsExtra.Stats, path: string): Promise<string> {
-    const start = performance.now()
     const hash = hashingStream({ algorithm: "sha1" })
 
     if (stats.isSymbolicLink()) {
@@ -663,11 +658,9 @@ export class GitHandler extends VcsHandler {
         hash.update(`blob ${stats.size}\0${linkPath}`)
         hash.end()
         const output = hash.read()
-        this.profiler.log("GitHandler#hashObject", start)
         return output
       } catch (err) {
         // Ignore errors here, just output empty hash
-        this.profiler.log("GitHandler#hashObject", start)
         return ""
       }
     } else {
@@ -678,14 +671,12 @@ export class GitHandler extends VcsHandler {
       stream
         .on("error", () => {
           // Ignore file read error
-          this.profiler.log("GitHandler#hashObject", start)
           result.resolve("")
         })
         .pipe(hash)
         .on("error", (err) => result.reject(err))
         .on("finish", () => {
           const output = hash.read()
-          this.profiler.log("GitHandler#hashObject", start)
           result.resolve(output)
         })
 
