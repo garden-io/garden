@@ -11,7 +11,7 @@ import { flatten, merge, uniq } from "lodash-es"
 import { get, isEqual, join, set, uniqWith } from "lodash-es"
 import { CircularDependenciesError } from "../exceptions.js"
 import type { GraphNodes, ConfigGraphNode } from "./config-graph.js"
-import { Profile } from "../util/profiling.js"
+import { Profile, profileAsync } from "../util/profiling.js"
 import type { ModuleDependencyGraphNode, ModuleDependencyGraphNodeKind, ModuleGraphNodes } from "./modules.js"
 import type { ActionKind } from "../plugin/action-types.js"
 import { loadVarfile } from "../config/base.js"
@@ -121,7 +121,7 @@ interface CycleGraph {
   }
 }
 
-export async function mergeVariables({
+export const mergeVariables = profileAsync(async function mergeVariables({
   basePath,
   variables,
   varfiles,
@@ -153,7 +153,7 @@ export async function mergeVariables({
   }
 
   return output
-}
+})
 
 /**
  * Implements a variation on the Floyd-Warshall algorithm to compute minimal cycles.
