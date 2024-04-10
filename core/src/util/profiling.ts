@@ -43,11 +43,7 @@ export class Profiler {
     return this.data
   }
 
-  report() {
-    if (skipProfiling) {
-      return
-    }
-
+  private renderInvocations() {
     function formatKey(key: string) {
       const split = key.split("#")
 
@@ -93,12 +89,20 @@ export class Profiler {
       tableData.push([styles.primary("...")])
     }
 
-    const table = renderTable([heading, [], ...tableData], tablePresets["no-borders"])
+    return renderTable([heading, [], ...tableData], tablePresets["no-borders"])
+  }
+
+  report() {
+    if (skipProfiling) {
+      return
+    }
 
     return `
  ${styles.accent.bold("Profiling data:")}
+
+ INVOCATIONS:
  ─────────────────────────────────────────────────────────────────────────────────────────
-${table}
+${this.renderInvocations()}
  ─────────────────────────────────────────────────────────────────────────────────────────
     `
   }
