@@ -95,6 +95,7 @@ export class GitRepoHandler extends GitHandler {
 
     const cached = this.cache.get(log, filteredFilesCacheKey) as VcsFile[] | undefined
     if (cached) {
+      this.profiler.inc("VcsHandler.TreeCache.hits")
       return cached
     }
 
@@ -123,6 +124,7 @@ export class GitRepoHandler extends GitHandler {
     const filtered = this.filterPaths({ files: filesAtPath, log, path, augmentedIncludes, augmentedExcludes, filter })
     log.debug(`Found ${filtered.length} files in path ${path} after glob matching`)
     this.cache.set(log, filteredFilesCacheKey, filtered, pathToCacheContext(path))
+    this.profiler.inc("VcsHandler.TreeCache.misses")
 
     return filtered
   }
@@ -170,6 +172,7 @@ export class GitRepoHandler extends GitHandler {
 
     if (existing) {
       params.log.silly(() => `Found cached repository match at ${path}`)
+      this.profiler.inc("VcsHandler.TreeCache.hits")
       return existing
     }
 
@@ -178,6 +181,7 @@ export class GitRepoHandler extends GitHandler {
 
       if (existing) {
         log.silly(() => `Found cached repository match at ${path}`)
+        this.profiler.inc("VcsHandler.TreeCache.hits")
         return existing
       }
 
@@ -187,6 +191,7 @@ export class GitRepoHandler extends GitHandler {
       const fileTree = FileTree.fromFiles(files)
 
       this.cache.set(log, key, fileTree, pathToCacheContext(path))
+      this.profiler.inc("VcsHandler.TreeCache.misses")
 
       return fileTree
     })
