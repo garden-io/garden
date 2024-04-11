@@ -64,19 +64,21 @@ export class Profiler {
       return duration.toFixed(2) + styles.primary(" ms")
     }
 
-    const keys = Object.keys(this.data)
-
     const heading = ["Function/method", "# Invocations", "Total ms", "Avg. ms", "First ms"].map((h) =>
       styles.accent.underline(h)
     )
+
+    const keys = Object.keys(this.data)
+    const rows = keys.map((key) => {
+      const invocations = this.data[key]
+      const numInvocations = invocations.length
+      const first = invocations[0]
+      const total = sum(invocations)
+      const average = total / numInvocations
+      return [formatKey(key), numInvocations, total, average, first]
+    })
     const tableData = sortBy(
-      keys.map((key) => {
-        const invocations = this.data[key].length
-        const total = sum(this.data[key])
-        const average = total / invocations
-        const first = this.data[key][0]
-        return [formatKey(key), invocations, total, average, first]
-      }),
+      rows,
       // Sort by total duration
       (row) => -row[2]
     )
