@@ -23,102 +23,91 @@ _If you love Garden, please ★ star this repository to show your support :green
   <a href="https://go.garden.io/discord">Discord</a>
 </div>
 
-Garden is a tool that combines rapid development, testing, and DevOps automation in one platform. It is designed for teams developing applications that run on Kubernetes and for DevOps Engineers writing infrastructure as code. This repository contains the source of Garden core along with its [documentation](./docs) and [examples](./examples).
+## Welcome to Garden!
 
-You can get started in minutes with the new [Garden Web Dashboard](https://app.garden.io). Just click the link and follow the interactive guide to deploy your first example project with Garden.
+Garden is a DevOps automation tool for developing and testing Kubernetes apps faster.
 
-![Short tour of the features of the Garden Web Dashboard including command history, visualized dependency graph, and the Garden dev console](https://ce-content.s3.fr-par.scw.cloud/web-dashboard-gif.gif)
+- Spin up **production-like environments** for development, testing, and CI **on demand**
+- Use the **same configuration** and workflows for **every stage of software delivery**
+- **Speed up builds and test runs** via smart caching.
 
-With Garden you can:
-
-- Test and develop with **smart caching** and **live reloading**.
-- Build container images and push them to any number of registries, automatically, as you write.
-- Use remote Kubernetes clusters as your development environment with developer namespaces.
-- Declare your entire stack in a single file (or many files), including how it's built, deployed and tested from infrastructure to application code.
-
-## Installation
+## Getting Started
 
 The fastest way to get started with Garden is by following our [quickstart guide](https://docs.garden.io/getting-started/quickstart).
-
-Otherwise:
-
-```sh
-curl -sL https://get.garden.io/install.sh | bash
-```
-
-For more installation options, see the [installation guide](https://docs.garden.io/getting-started/installation).
 
 ## Demo
 
 ![Garden dev deploy](https://raw.githubusercontent.com/ShankyJS/garden-quickstart-content/d8095ad1a8615edf49e721b8afcd901f3056e127/dev-mode.gif)
 
-## Interactive environments
+## Docs
 
-Preview Garden with our new interactive and install-free cloud-based playgrounds ✨.
+For a thorough introduction to Garden and comprehensive documentation, visit our [docs](https://docs.garden.io).
 
-Click a button to start your Killercoda or Google Cloud Shell environment 👇🏼.
+## Usage Overview
 
-<a href="https://go.garden.io/killercoda"><img src="https://raw.githubusercontent.com/garden-io/garden-interactive-environments/main/resources/img/killercoda-logo.png" alt="Killercoda logo in black and white." height="55px"/></a> [![Open in Cloud Shell](https://gstatic.com/cloudssh/images/open-btn.svg)](https://go.garden.io/cloudshell)
+Garden is configured via `garden.yml` files. For large projects you can split the files up and co-locate them with the relevant parts of your stack, even across multiple repositories.
 
-If you find any bugs 🐛 or have suggestions to improve our labs please don't hesitate to reach out by creating an [issue here](https://github.com/garden-io/garden-interactive-environments) or by asking in our [Discord Community](https://go.garden.io/discord)🌸
+A (simplified) Garden configuration for a web app looks like this:
 
-## Usage
-
-> Make sure you have Garden installed and Kubernetes running locally (e.g. with Minikube or Docker for Desktop) before deploying the project.
-
-If you have a `garden.yml` file in your project, you can run `garden` commands from the root of your project. If you don't have a `garden.yml` file, clone the quickstart project:
-
-```sh
-git clone https://github.com/garden-io/garden-quickstart.git
+```yaml
+kind: Deploy
+name: db
+type: helm
+spec:
+  chart:
+    name: postgres
+    repo: https://charts.bitnami.com/bitnami
+---
+kind: Build
+name: api
+type: container
+source:
+  path: ./api
+---
+kind: Deploy
+name: api
+type: kubernetes
+dependencies: [build.api, deploy.postgres]
+spec:
+  files: [./manifests/api/**/*]
+---
+kind: Test
+name: integ
+type: container
+dependencies: [deploy.api]
+spec:
+  args: [npm, run, test:integ]
 ```
 
-Now start the dev console with:
+You can build and deploy this project with:
 
 ```console
-garden dev
+garden deploy
 ```
 
-Build with:
+...and test it with:
 
 ```console
-build
+garden test
 ```
 
-Deploy with:
-
-```console
-deploy
-```
-
-Test with:
-
-```console
-test
-```
-
-Exit with `exit`.
-
-To create a preview environment on every pull request, simply add the following to your CI pipeline:
+To create a preview environment on every pull request, you would add the following to your CI pipeline:
 
 ```console
 garden deploy --env preview
 ```
 
-A developer wants to run an end-to-end test from their laptop as they code. Simple:
-
-```console
-garden test --name my-e2e-test
-```
-
-Garden also has a special mode called "sync mode" which live reloads changes to your running services—ensuring **blazing fast feedback while developing**. To enable it, simply run:
+Garden also has a special mode called "sync mode" which live reloads changes to your running services—ensuring **blazing fast feedback while developing**. To enable it, run:
 
 ```console
 garden deploy --sync
 ```
 
-## Docs
+You can also start an interactive dev console (see screencap above) from which you can build, deploy, and test your project with:
 
-For a more thorough introduction to Garden and comprehensive documentation, visit our [docs](https://docs.garden.io).
+```console
+garden dev
+```
 
 ## How Garden Works
 

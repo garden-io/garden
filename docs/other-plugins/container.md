@@ -215,7 +215,7 @@ performs the relevant checks to decide if it should run (e.g. whether the DB exi
 See the [reference](../reference/action-types/Run/container.md) for all the configurable parameters
 for `Run` actions of `container` type.
 
-## Referencing from other actions
+## Referencing other actions
 
 Since Garden version `0.13` any action (of any `kind` and `type`) can depend on any other action.
 

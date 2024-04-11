@@ -36,6 +36,7 @@
 
 ## 🌿 Using Garden
 
+* [About](./using-garden/about.md)
 * [Configuration Overview](./using-garden/configuration-overview.md)
 * [Projects](./using-garden/projects.md)
 * [Dashboard](./using-garden/dashboard.md)
@@ -93,13 +94,13 @@
 
 * [About](./terraform-plugin/about.md)
 * [Plugin Configuration](./terraform-plugin/configure-provider.md)
-* [Action Configuration](./terraform-plugin/action-configuration.md)
+* [Actions](./terraform-plugin/actions.md)
 
 ## 🌹 Pulumi Plugin
 
 * [About](./pulumi-plugin/about.md)
 * [Plugin Configuration](./pulumi-plugin/configure-provider.md)
-* [Action Configuration](./pulumi-plugin/action-configuration.md)
+* [Actions](./pulumi-plugin/actions.md)
 
 ## 🌼 Other Plugins
 

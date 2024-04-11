@@ -1,9 +1,9 @@
 ---
 order: 3
-title: Action Configuration
+title: Actions
 ---
 
-# Action Configuration
+# Actions
 
 ## Deploy Action
 
