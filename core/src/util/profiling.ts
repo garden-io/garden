@@ -28,6 +28,14 @@ interface Counters {
   [key: string]: number
 }
 
+interface InvocationRow {
+  name: string
+  count: number
+  total: number
+  average: number
+  first: number
+}
+
 export class Profiler {
   private data: Profiles
   private counters: Counters
@@ -69,25 +77,25 @@ export class Profiler {
     )
 
     const keys = Object.keys(this.data)
-    const rows = keys.map((key) => {
+    const rows = keys.map((key): InvocationRow => {
       const invocations = this.data[key]
-      const numInvocations = invocations.length
+      const count = invocations.length
       const first = invocations[0]
       const total = sum(invocations)
-      const average = total / numInvocations
-      return [formatKey(key), numInvocations, total, average, first]
+      const average = total / count
+      return { name: formatKey(key), count, total, average, first }
     })
     const tableData = sortBy(
       rows,
       // Sort by total duration
-      (row) => -row[2]
+      (row) => -row.total
     )
       .map((row) => [
-        row[0],
-        row[1],
-        formatDuration(<number>row[2]),
-        formatDuration(<number>row[3]),
-        formatDuration(<number>row[4]),
+        row.name,
+        row.count,
+        formatDuration(row.total),
+        formatDuration(row.average),
+        formatDuration(row.first),
       ])
       .slice(0, maxReportRows)
 
