@@ -7,7 +7,7 @@
  */
 
 import { performance } from "perf_hooks"
-import { sum, sortBy } from "lodash-es"
+import { sortBy, sum } from "lodash-es"
 import { gardenEnv } from "../constants.js"
 import { renderTable, tablePresets } from "./string.js"
 import { isPromise } from "./objects.js"
@@ -85,11 +85,7 @@ export class Profiler {
       const average = total / count
       return { name: formatKey(key), count, total, average, first }
     })
-    const tableData = sortBy(
-      rows,
-      // Sort by total duration
-      (row) => -row.total
-    )
+    const tableData = sortBy(rows, (row) => -row.total)
       .map((row) => [
         row.name,
         row.count,
