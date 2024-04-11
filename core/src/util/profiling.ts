@@ -7,7 +7,7 @@
  */
 
 import { performance } from "perf_hooks"
-import { sortBy, sum } from "lodash-es"
+import { floor, max, min, sortBy, sum } from "lodash-es"
 import { gardenEnv } from "../constants.js"
 import { renderTable, tablePresets } from "./string.js"
 import { isPromise } from "./objects.js"
@@ -33,7 +33,10 @@ interface InvocationRow {
   count: number
   total: number
   average: number
+  median: number
   first: number
+  minimal: number
+  maximal: number
 }
 
 export class Profiler {
@@ -72,18 +75,29 @@ export class Profiler {
       return duration.toFixed(2) + styles.primary(" ms")
     }
 
-    const heading = ["Function/method", "# Invocations", "Total ms", "Avg. ms", "First ms"].map((h) =>
-      styles.accent.underline(h)
-    )
+    const heading = [
+      "Function/method",
+      "# Invocations",
+      "Total ms",
+      "Avg. ms",
+      "Median ms",
+      "First ms",
+      "Min ms",
+      "Max ms",
+    ].map((h) => styles.accent.underline(h))
 
     const keys = Object.keys(this.data)
     const rows = keys.map((key): InvocationRow => {
       const invocations = this.data[key]
-      const count = invocations.length
       const first = invocations[0]
+      const count = invocations.length
       const total = sum(invocations)
+      const minimal = min(invocations) || NaN
+      const maximal = max(invocations) || NaN
       const average = total / count
-      return { name: formatKey(key), count, total, average, first }
+      const median = invocations.sort()[floor(count / 2)]
+      const name = formatKey(key)
+      return { name, count, total, average, median, first, minimal, maximal }
     })
     const tableData = sortBy(rows, (row) => -row.total)
       .map((row) => [
@@ -91,7 +105,10 @@ export class Profiler {
         row.count,
         formatDuration(row.total),
         formatDuration(row.average),
+        formatDuration(row.median),
         formatDuration(row.first),
+        formatDuration(row.minimal),
+        formatDuration(row.maximal),
       ])
       .slice(0, maxReportRows)
 
