@@ -7,7 +7,7 @@
  */
 
 import { performance } from "perf_hooks"
-import { sum, sortBy } from "lodash-es"
+import { floor, max, min, sortBy, sum } from "lodash-es"
 import { gardenEnv } from "../constants.js"
 import { renderTable, tablePresets } from "./string.js"
 import { isPromise } from "./objects.js"
@@ -26,6 +26,17 @@ interface Profiles {
 
 interface Counters {
   [key: string]: number
+}
+
+interface InvocationRow {
+  name: string
+  count: number
+  total: number
+  average: number
+  median: number
+  first: number
+  minimal: number
+  maximal: number
 }
 
 export class Profiler {
@@ -64,28 +75,40 @@ export class Profiler {
       return duration.toFixed(2) + styles.primary(" ms")
     }
 
-    const keys = Object.keys(this.data)
+    const heading = [
+      "Function/method",
+      "# Invocations",
+      "Total ms",
+      "Avg. ms",
+      "Median ms",
+      "First ms",
+      "Min ms",
+      "Max ms",
+    ].map((h) => styles.accent.underline(h))
 
-    const heading = ["Function/method", "# Invocations", "Total ms", "Avg. ms", "First ms"].map((h) =>
-      styles.accent.underline(h)
-    )
-    const tableData = sortBy(
-      keys.map((key) => {
-        const invocations = this.data[key].length
-        const total = sum(this.data[key])
-        const average = total / invocations
-        const first = this.data[key][0]
-        return [formatKey(key), invocations, total, average, first]
-      }),
-      // Sort by total duration
-      (row) => -row[2]
-    )
+    const keys = Object.keys(this.data)
+    const rows = keys.map((key): InvocationRow => {
+      const invocations = this.data[key]
+      const first = invocations[0]
+      const count = invocations.length
+      const total = sum(invocations)
+      const minimal = min(invocations) || NaN
+      const maximal = max(invocations) || NaN
+      const average = total / count
+      const median = invocations.sort()[floor(count / 2)]
+      const name = formatKey(key)
+      return { name, count, total, average, median, first, minimal, maximal }
+    })
+    const tableData = sortBy(rows, (row) => -row.total)
       .map((row) => [
-        row[0],
-        row[1],
-        formatDuration(<number>row[2]),
-        formatDuration(<number>row[3]),
-        formatDuration(<number>row[4]),
+        row.name,
+        row.count,
+        formatDuration(row.total),
+        formatDuration(row.average),
+        formatDuration(row.median),
+        formatDuration(row.first),
+        formatDuration(row.minimal),
+        formatDuration(row.maximal),
       ])
       .slice(0, maxReportRows)
 
@@ -106,12 +129,13 @@ export class Profiler {
     const keys = Object.keys(this.counters)
 
     const heading = ["Counter", "Value"].map((h) => styles.accent.underline(h))
+    const rows = keys.map((key) => {
+      const counter = this.counters[key]
+      return [formatKey(key), counter]
+    })
     const tableData = sortBy(
-      keys.map((key) => {
-        const counter = this.counters[key]
-        return [formatKey(key), counter]
-      }),
-      // Sort by total duration
+      rows,
+      // Ascending sort by value
       (row) => row[1]
     ).slice(0, maxReportRows)
 
