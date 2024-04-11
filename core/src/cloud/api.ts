@@ -827,6 +827,28 @@ export class CloudApi {
     return secrets
   }
 
+  async registerCloudBuilderBuild(body: {
+    actionName: string
+    actionUid: string
+    coreSessionId: string
+  }): Promise<RegisterCloudBuilderBuildResponse> {
+    try {
+      return await this.post<RegisterCloudBuilderBuildResponse>(`/cloudbuilder/builds/`, {
+        body,
+      })
+    } catch (err) {
+      return {
+        data: {
+          version: "v1",
+          availability: {
+            available: false,
+            reason: `Failed to determine Garden Cloud Builder availability: ${extractErrorMessageBodyFromGotError(err) ?? err}`,
+          },
+        },
+      }
+    }
+  }
+
   async createEphemeralCluster(): Promise<EphemeralClusterWithRegistry> {
     try {
       const response = await this.post<CreateEphemeralClusterResponse>(`/ephemeral-clusters/`)
@@ -851,3 +873,31 @@ export class CloudApi {
     }
   }
 }
+
+// TODO(cloudbuilder): import these from api-types
+type V1RegisterCloudBuilderBuildResponse = {
+  data: {
+    version: "v1"
+    availability: CloudBuilderAvailability
+  }
+}
+type UnsupportedRegisterCloudBuilderBuildResponse = {
+  data: {
+    version: "unsupported" // using unknown here overpowers the compund type
+  }
+}
+type RegisterCloudBuilderBuildResponse =
+  | V1RegisterCloudBuilderBuildResponse
+  | UnsupportedRegisterCloudBuilderBuildResponse
+
+type CloudBuilderAvailable = {
+  available: true
+  builder: string
+  token: string
+  region: "eu" // location of the builder. Currently only eu is supported
+}
+type CloudBuilderNotAvailable = {
+  available: false
+  reason: string
+}
+export type CloudBuilderAvailability = CloudBuilderAvailable | CloudBuilderNotAvailable
