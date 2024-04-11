@@ -112,12 +112,13 @@ export class Profiler {
     const keys = Object.keys(this.counters)
 
     const heading = ["Counter", "Value"].map((h) => styles.accent.underline(h))
+    const rows = keys.map((key) => {
+      const counter = this.counters[key]
+      return [formatKey(key), counter]
+    })
     const tableData = sortBy(
-      keys.map((key) => {
-        const counter = this.counters[key]
-        return [formatKey(key), counter]
-      }),
-      // Sort by total duration
+      rows,
+      // Ascending sort by value
       (row) => row[1]
     ).slice(0, maxReportRows)
 
