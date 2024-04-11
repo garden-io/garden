@@ -95,7 +95,7 @@ export class TemplateError extends GardenError {
  * The context should be a ConfigContext instance. The optional `stack` parameter is used to detect circular
  * dependencies when resolving context variables.
  */
-export const resolveTemplateString = profile(function ({
+export const resolveTemplateString = profile(function resolveTemplateString({
   string,
   context,
   contextOpts = {},
