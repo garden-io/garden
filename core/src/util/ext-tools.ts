@@ -235,7 +235,7 @@ export class PluginTool extends CliWrapper {
   }
 
   /**
-   * The path to the tool binary relative to `rootDir`
+   * The path to the tool binary relative to `versionPath`
    */
   private get targetSubpath() {
     const posixPath = this.buildSpec.extract ? this.buildSpec.extract.targetPath : basename(this.buildSpec.url)
