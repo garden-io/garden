@@ -72,7 +72,7 @@ context("build.ts", () => {
     function getCmdArgs(action: ResolvedBuildAction<BuildActionConfig<any, any>, any>, buildPath: string) {
       return [
         "build",
-        "-t",
+        "--tag",
         "some/image",
         "--build-arg",
         `GARDEN_MODULE_VERSION=${action.versionString()}`,

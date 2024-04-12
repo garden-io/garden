@@ -97,9 +97,9 @@ export const localBuild: BuildHandler = async (params) => {
     const buildPath = action.getBuildPath()
     await containerHelpers.dockerCli({ cwd: buildPath, args: ["tag", localId, remoteId], log, ctx })
     await containerHelpers.dockerCli({ cwd: buildPath, args: ["push", remoteId], log, ctx })
-
-    return buildResult
   }
+
+  return buildResult
 }
 
 /**

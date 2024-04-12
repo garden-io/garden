@@ -164,7 +164,7 @@ function getConfiguration(ctx: PluginContext): CloudBuilderConfiguration {
     })
   }
 
-  let isCloudBuilderEnabled = containerProvider.config.cloudbuilder?.enabled || false
+  let isCloudBuilderEnabled = containerProvider.config.gardenCloudBuilder?.enabled || false
 
   // The env variable GARDEN_CLOUDBUILDER can be used to override the cloudbuilder.enabled config setting.
   const envVarValue = process.env.GARDEN_CLOUDBUILDER

@@ -49,7 +49,7 @@ import type { PluginToolSpec } from "../../plugin/tools.js"
 
 export interface ContainerProviderConfig extends BaseProviderConfig {
   dockerBuildExtraFlags?: string[]
-  cloudbuilder?: {
+  gardenCloudBuilder?: {
     enabled: boolean
   }
 }
@@ -63,7 +63,7 @@ export const configSchema = () =>
           Extra flags to pass to the \`docker build\` command. Will extend the \`spec.extraFlags\` specified in each container Build action.
           `),
       // Cloud builder
-      cloudbuilder: joi
+      gardenCloudBuilder: joi
         .object()
         .optional()
         .keys({
