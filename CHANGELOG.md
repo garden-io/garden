@@ -1,4 +1,13 @@
 
+<a name="0.12.68"></a>
+## [0.12.68](https://github.com/garden-io/garden/compare/0.12.67...0.12.68) (2024-03-25)
+
+### Bug Fixes
+
+* **docker:** update docker shipped with garden tools ([caa83baae](https://github.com/garden-io/garden/commit/caa83baaec7a8b136709cfbb99ec9068a8c2db4d))
+* **mavend:** fix Mavend `sha256` hash for `windows-amd64` binary ([f64ec4e8f](https://github.com/garden-io/garden/commit/f64ec4e8f))
+* **terraform:** fix `sha256` hashes for some old terraform binaries ([9a9df415d](https://github.com/garden-io/garden/commit/9a9df415d))
+
 <a name="0.12.67"></a>
 ## [0.12.67](https://github.com/garden-io/garden/compare/0.12.66...0.12.67) (2023-12-12)
 
