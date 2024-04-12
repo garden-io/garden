@@ -37,7 +37,7 @@ providers:
     dockerBuildExtraFlags:
 
     # **Stability: Experimental**. Subject to breaking changes within minor releases.
-    cloudbuilder:
+    gardenCloudBuilder:
       # **Stability: Experimental**. Subject to breaking changes within minor releases.
       #
       # Enable Garden Cloud Builder, which can speed up builds significantly using fast machines and extremely fast
@@ -133,9 +133,9 @@ Extra flags to pass to the `docker build` command. Will extend the `spec.extraFl
 | --------------- | -------- |
 | `array[string]` | No       |
 
-### `providers[].cloudbuilder`
+### `providers[].gardenCloudBuilder`
 
-[providers](#providers) > cloudbuilder
+[providers](#providers) > gardenCloudBuilder
 
 **Stability: Experimental**. Subject to breaking changes within minor releases.
 
@@ -143,9 +143,9 @@ Extra flags to pass to the `docker build` command. Will extend the `spec.extraFl
 | -------- | -------- |
 | `object` | No       |
 
-### `providers[].cloudbuilder.enabled`
+### `providers[].gardenCloudBuilder.enabled`
 
-[providers](#providers) > [cloudbuilder](#providerscloudbuilder) > enabled
+[providers](#providers) > [gardenCloudBuilder](#providersgardencloudbuilder) > enabled
 
 **Stability: Experimental**. Subject to breaking changes within minor releases.
 
