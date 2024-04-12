@@ -205,7 +205,7 @@ async function getAvailability(
       message: dedent`
       You are not logged in. Run ${styles.command("garden login")} so Garden Cloud Builder can speed up your container builds.
 
-      If you can't log in right now, disable Cloudbuilder using the option ${styles.bold("--cloudbuilder=false")}. ${fallbackDescription}`,
+      If you can't log in right now, disable Garden Cloud Builder using the environment variable ${styles.bold("GARDEN_CLOUDBUILDER=0")}. ${fallbackDescription}`,
     })
   }
 
