@@ -8,7 +8,7 @@
 
 import fsExtra from "fs-extra"
 const { pathExists, createWriteStream, ensureDir, chmod, remove, move, createReadStream } = fsExtra
-import { ConfigurationError, InternalError } from "../exceptions.js"
+import { InternalError } from "../exceptions.js"
 import { join, dirname, basename, posix } from "path"
 import { getArchitecture, getPlatform, isDarwinARM } from "./arch-platform.js"
 import { hashString, exec } from "./util.js"
@@ -49,13 +49,12 @@ export interface SpawnParams extends ExecParams {
   rawMode?: boolean // Only used if tty = true. See also: https://nodejs.org/api/tty.html#tty_readstream_setrawmode_mode
 }
 
-export class CliWrapper {
-  name: string
-  protected toolPath: string
+export abstract class CliWrapper {
+  public name: string
+  protected abstract toolPath: string
 
-  constructor({ name, path }: { name: string; path: string }) {
+  constructor({ name }: { name: string }) {
     this.name = name
-    this.toolPath = path
   }
 
   async getPath(_: Log) {
@@ -195,17 +194,66 @@ export interface PluginTools {
  * Note: The binary or archive currently needs to be self-contained and work without further installation steps.
  */
 export class PluginTool extends CliWrapper {
-  type: string
-  spec: PluginToolSpec
-  buildSpec: ToolBuildSpec
+  public type: string
+  public spec: PluginToolSpec
 
-  private versionDirname: string
-  protected versionPath: string
-  protected targetSubpath: string
   private chmodDone: boolean
+  private rootDir: string
 
   constructor(spec: PluginToolSpec) {
-    super({ name: spec.name, path: "" })
+    super({ name: spec.name })
+
+    this.rootDir = join(toolsPath, spec.name)
+    this.type = spec.type
+    this.spec = spec
+    this.chmodDone = false
+  }
+
+  override async getPath(log: Log) {
+    return this.ensurePath(log)
+  }
+
+  /**
+   * The full path to the executable tool binary itself.
+   */
+  protected override get toolPath() {
+    return join(this.versionPath, this.targetSubpath)
+  }
+
+  /**
+   * The name of the root directory for this tool version
+   */
+  private get versionDirname() {
+    return hashString(this.buildSpec.url, 16)
+  }
+
+  /**
+   * The full path to the root directory for this tool version
+   */
+  protected get versionPath() {
+    return join(this.rootDir, this.versionDirname)
+  }
+
+  /**
+   * The path to the tool binary relative to `rootDir`
+   */
+  private get targetSubpath() {
+    const posixPath = this.buildSpec.extract ? this.buildSpec.extract.targetPath : basename(this.buildSpec.url)
+
+    // return path with platform-specific path separators (i.e. '\' on windows)
+    return join(...posixPath.split(posix.sep))
+  }
+
+  /**
+   * Lazily find build spec; This means that we only throw in case of missing spec for current platform if the tool is actually used.
+   */
+  private _buildSpec: ToolBuildSpec | undefined
+  private get buildSpec(): ToolBuildSpec {
+    if (this._buildSpec) {
+      return this._buildSpec
+    }
+
+    const spec = this.spec
 
     const platform = getPlatform()
     const architecture = getArchitecture()
@@ -223,43 +271,30 @@ export class PluginTool extends CliWrapper {
     }
 
     if (!buildSpec) {
-      throw new ConfigurationError({
+      // if there's no build spec for the platform, that's a bug and the plugin should be aware of that and/or provide tools for all platforms.
+      throw new InternalError({
         message: `Command ${spec.name} doesn't have a spec for this platform/architecture (${platform}-${architecture}${
           darwinARM ? "; without emulation: darwin-arm" : ""
         })`,
       })
     }
 
-    this.buildSpec = buildSpec
+    this._buildSpec = buildSpec
 
-    this.name = spec.name
-    this.type = spec.type
-    this.spec = spec
-    this.toolPath = join(toolsPath, this.name)
-    this.versionDirname = hashString(this.buildSpec.url, 16)
-    this.versionPath = join(this.toolPath, this.versionDirname)
-
-    this.targetSubpath = this.buildSpec.extract ? this.buildSpec.extract.targetPath : basename(this.buildSpec.url)
-    this.chmodDone = false
-  }
-
-  override async getPath(log: Log) {
-    return this.ensurePath(log)
+    return buildSpec
   }
 
   async ensurePath(log: Log) {
     await this.download(log)
-    const path = join(this.versionPath, ...this.targetSubpath.split(posix.sep))
 
     if (this.spec.type === "binary") {
       // Make sure the target path is executable
       if (!this.chmodDone) {
-        await chmod(path, 0o755)
+        await chmod(this.toolPath, 0o755)
         this.chmodDone = true
       }
     }
-    this.toolPath = path
-    return path
+    return this.toolPath
   }
 
   protected async download(log: Log) {
@@ -268,8 +303,8 @@ export class PluginTool extends CliWrapper {
         return
       }
 
-      const tmpPath = join(this.toolPath, this.versionDirname + "." + uuidv4().substr(0, 8))
-      const targetAbsPath = join(tmpPath, ...this.targetSubpath.split(posix.sep))
+      const tmpPath = join(this.versionPath + "." + uuidv4().substr(0, 8))
+      const targetAbsPath = join(tmpPath, this.targetSubpath)
 
       const downloadLog = log.createLog().info(`Fetching ${this.name} ${this.spec.version}...`)
       const debug = downloadLog
@@ -319,7 +354,7 @@ export class PluginTool extends CliWrapper {
     const hash = response.pipe(createHash("sha256"))
 
     if (!this.buildSpec.extract) {
-      const targetExecutable = join(tmpPath, ...this.targetSubpath.split(posix.sep))
+      const targetExecutable = join(tmpPath, this.targetSubpath)
       const writeStream = createWriteStream(targetExecutable)
       await pipeline(response, writeStream)
     } else {

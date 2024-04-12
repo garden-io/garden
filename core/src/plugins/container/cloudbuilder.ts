@@ -21,6 +21,7 @@ import { tmpdir } from "node:os"
 import type { CloudBuilderAvailability } from "../../cloud/api.js"
 import { emitNonRepeatableWarning } from "../../warnings.js"
 import { LRUCache } from "lru-cache"
+import { getPlatform } from "../../util/arch-platform.js"
 
 type CloudBuilderConfiguration = {
   isInClusterBuildingConfigured: boolean
@@ -40,6 +41,17 @@ export const cloudbuilder = {
       return false
     }
 
+    if (getPlatform() === "windows") {
+      emitNonRepeatableWarning(
+        ctx.log,
+        dedent`
+        ${styles.bold("Garden Cloud Builder is not available for Windows at the moment.")}
+
+        Please contact our customer support and tell us more if you're interested in Windows support.`
+      )
+      return false
+    }
+
     const availability = await getAvailability(ctx, action)
 
     return availability.available
@@ -53,7 +65,7 @@ export const cloudbuilder = {
     const cb = await getAvailability(ctx, action)
     if (!cb.available) {
       throw new InternalError({
-        message: `Only allowed to call withBuilder if Cloud Builder is available. Must call isConfiguredAndAvailable before calling withBuilder.`,
+        message: `Must call isConfiguredAndAvailable before calling withBuilder.`,
       })
     }
 
@@ -235,7 +247,6 @@ async function getAvailability(
         ${styles.italic(`Reason: ${availability.reason}`)}`
     )
   }
-
 
   return availability
 }
