@@ -72,12 +72,12 @@ context("build.ts", () => {
     function getCmdArgs(action: ResolvedBuildAction<BuildActionConfig<any, any>, any>, buildPath: string) {
       return [
         "build",
-        "--tag",
-        "some/image",
         "--build-arg",
         `GARDEN_MODULE_VERSION=${action.versionString()}`,
         "--build-arg",
         `GARDEN_ACTION_VERSION=${action.versionString()}`,
+        "--tag",
+        "some/image",
         "--file",
         joinWithPosix(action.getBuildPath(), action.getSpec().dockerfile),
         buildPath,
