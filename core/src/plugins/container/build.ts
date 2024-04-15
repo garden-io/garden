@@ -132,7 +132,7 @@ async function buildContainerLocally({
   const cmdOpts = ["build", ...dockerFlags, "--file", dockerfilePath]
 
   return await containerHelpers.dockerCli({
-    cwd: action.getBuildPath(),
+    cwd: buildPath,
     args: [...cmdOpts, buildPath],
     log,
     stdout: outputStream,

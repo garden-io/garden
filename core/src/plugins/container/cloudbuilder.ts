@@ -28,6 +28,8 @@ type CloudBuilderConfiguration = {
   isInClusterBuildingConfigured: boolean
   isCloudBuilderEnabled: boolean
 }
+
+// TODO: consider if it's useful to make this tunable e.g. via an environment variable.
 const cloudBuilderAvailability = new LRUCache<string, CloudBuilderAvailability>({
   max: 1000,
   // 5 minutes
@@ -167,9 +169,9 @@ function getConfiguration(ctx: PluginContext): CloudBuilderConfiguration {
 
   let isCloudBuilderEnabled = containerProvider.config.gardenCloudBuilder?.enabled || false
 
-  // The env variable GARDEN_CLOUDBUILDER can be used to override the cloudbuilder.enabled config setting.
-  // It will be undefined, if the variable is not set and true/false if GARDEN_CLOUDBUILDER=1 or GARDEN_CLOUDBUILDER=0.
-  const overrideFromEnv = gardenEnv.GARDEN_CLOUDBUILDER
+  // The env variable GARDEN_CLOUD_BUILDER can be used to override the cloudbuilder.enabled config setting.
+  // It will be undefined, if the variable is not set and true/false if GARDEN_CLOUD_BUILDER=1 or GARDEN_CLOUD_BUILDER=0.
+  const overrideFromEnv = gardenEnv.GARDEN_CLOUD_BUILDER
   if (overrideFromEnv !== undefined) {
     isCloudBuilderEnabled = overrideFromEnv
   }
@@ -193,19 +195,15 @@ async function getAvailability(
   }
 
   if (!ctx.cloudApi) {
-    let fallbackDescription: string
-
-    if (isInClusterBuildingConfigured) {
-      fallbackDescription = `This forces Garden to use the fall-back option to build images within your Kubernetes cluster, as in-cluster building is configured in the Kubernetes provider settings.`
-    } else {
-      fallbackDescription = `This forces Garden to use the fall-back option to build images locally.`
-    }
+    const fallbackDescription = isInClusterBuildingConfigured
+      ? `This forces Garden to use the fall-back option to build images within your Kubernetes cluster, as in-cluster building is configured in the Kubernetes provider settings.`
+      : `This forces Garden to use the fall-back option to build images locally.`
 
     throw new ConfigurationError({
       message: dedent`
       You are not logged in. Run ${styles.command("garden login")} so Garden Cloud Builder can speed up your container builds.
 
-      If you can't log in right now, disable Garden Cloud Builder using the environment variable ${styles.bold("GARDEN_CLOUDBUILDER=0")}. ${fallbackDescription}`,
+      If you can't log in right now, disable Garden Cloud Builder using the environment variable ${styles.bold("GARDEN_CLOUD_BUILDER=0")}. ${fallbackDescription}`,
     })
   }
 

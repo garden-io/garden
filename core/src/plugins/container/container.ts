@@ -72,8 +72,8 @@ export const configSchema = () =>
 
             Enable Garden Cloud Builder, which can speed up builds significantly using fast machines and extremely fast caching.
 
-            by running \`GARDEN_CLOUDBUILDER=1 garden build\` you can try Garden Cloud Builder temporarily without any changes to your Garden configuration.
-            The environment variable \`GARDEN_CLOUDBUILDER\` can also be used to override this setting, if enabled in the configuration. Set it to \`false\` or \`0\` to temporarily disable Garden Cloud Builder.
+            by running \`GARDEN_CLOUD_BUILDER=1 garden build\` you can try Garden Cloud Builder temporarily without any changes to your Garden configuration.
+            The environment variable \`GARDEN_CLOUD_BUILDER\` can also be used to override this setting, if enabled in the configuration. Set it to \`false\` or \`0\` to temporarily disable Garden Cloud Builder.
 
             Under the hood, enabling this option means that Garden will install a remote buildx driver on your local Docker daemon, and use that for builds. See also https://docs.docker.com/build/drivers/remote/
 

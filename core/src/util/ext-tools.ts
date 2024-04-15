@@ -50,8 +50,8 @@ export interface SpawnParams extends ExecParams {
 }
 
 export abstract class CliWrapper {
-  public name: string
-  protected abstract toolPath: string
+  public readonly name: string
+  protected abstract readonly toolPath: string
 
   constructor({ name }: { name: string }) {
     this.name = name
@@ -194,11 +194,11 @@ export interface PluginTools {
  * Note: The binary or archive currently needs to be self-contained and work without further installation steps.
  */
 export class PluginTool extends CliWrapper {
-  public type: string
-  public spec: PluginToolSpec
+  public readonly type: string
+  public readonly spec: PluginToolSpec
 
+  private readonly rootDir: string
   private chmodDone: boolean
-  private rootDir: string
 
   constructor(spec: PluginToolSpec) {
     super({ name: spec.name })

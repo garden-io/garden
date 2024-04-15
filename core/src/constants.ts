@@ -102,7 +102,7 @@ export const gardenEnv = {
     .default("https://get.garden.io/releases")
     .asUrlString(),
   GARDEN_ENABLE_NEW_SYNC: env.get("GARDEN_ENABLE_NEW_SYNC").required(false).default("false").asBool(),
-  // GARDEN_CLOUDBUILDER will always override the config; That's why it doesn't have a default.
+  // GARDEN_CLOUD_BUILDER will always override the config; That's why it doesn't have a default.
   // FIXME: If the environment variable is not set, asBool returns undefined, unlike the type suggests. That's why we cast to `boolean | undefined`.
-  GARDEN_CLOUDBUILDER: env.get("GARDEN_CLOUDBUILDER").required(false).asBool() as boolean | undefined,
+  GARDEN_CLOUD_BUILDER: env.get("GARDEN_CLOUD_BUILDER").required(false).asBool() as boolean | undefined,
 }
