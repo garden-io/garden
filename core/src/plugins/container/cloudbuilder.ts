@@ -22,6 +22,7 @@ import type { CloudBuilderAvailability } from "../../cloud/api.js"
 import { emitNonRepeatableWarning } from "../../warnings.js"
 import { LRUCache } from "lru-cache"
 import { getPlatform } from "../../util/arch-platform.js"
+import { gardenEnv } from "../../constants.js"
 
 type CloudBuilderConfiguration = {
   isInClusterBuildingConfigured: boolean
@@ -167,11 +168,10 @@ function getConfiguration(ctx: PluginContext): CloudBuilderConfiguration {
   let isCloudBuilderEnabled = containerProvider.config.gardenCloudBuilder?.enabled || false
 
   // The env variable GARDEN_CLOUDBUILDER can be used to override the cloudbuilder.enabled config setting.
-  const envVarValue = process.env.GARDEN_CLOUDBUILDER
-  if (envVarValue === "true" || envVarValue === "1") {
-    isCloudBuilderEnabled = true
-  } else if (envVarValue === "false" || envVarValue === "0") {
-    isCloudBuilderEnabled = false
+  // It will be undefined, if the variable is not set and true/false if GARDEN_CLOUDBUILDER=1 or GARDEN_CLOUDBUILDER=0.
+  const overrideFromEnv = gardenEnv.GARDEN_CLOUDBUILDER
+  if (overrideFromEnv !== undefined) {
+    isCloudBuilderEnabled = overrideFromEnv
   }
 
   return {
