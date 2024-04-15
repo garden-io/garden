@@ -44,7 +44,6 @@ import {
   ERROR_LOG_FILENAME,
   DEFAULT_GARDEN_DIR_NAME,
   LOGS_DIR_NAME,
-  gardenEnv,
   DEFAULT_GARDEN_CLOUD_DOMAIN,
 } from "../constants.js"
 import { generateBasicDebugInfoReport } from "../commands/get/get-debug-info.js"
