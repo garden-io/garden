@@ -100,7 +100,7 @@ export const cloudbuilder = {
         nscRegion: cb.region,
       })
       ctx.log.debug(`Removing ${stateDir}...`)
-      await rm(stateDir, { recursive: true })
+      await rm(stateDir, { recursive: true, force: true })
     }
   },
 }
@@ -210,6 +210,7 @@ async function getAvailability(
   }
 
   const res = await ctx.cloudApi.registerCloudBuilderBuild({
+    // TODO: send requested platforms and action version
     actionUid: action.uid,
     actionName: action.name,
     coreSessionId: ctx.sessionId,
