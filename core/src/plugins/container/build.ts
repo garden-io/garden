@@ -142,7 +142,7 @@ async function buildContainerLocally({
   })
 }
 
-const BUILDKIT_LAYER_REGEX = /^#[0-9]+ \[[^ ]+ [0-9]+\/[0-9]+\] [^F][^R][^O][^M]/
+const BUILDKIT_LAYER_REGEX = /^#[0-9]+ \[[^ ]+ +[0-9]+\/[0-9]+\] [^F][^R][^O][^M]/
 const BUILDKIT_LAYER_CACHED_REGEX = /^#[0-9]+ CACHED/
 
 async function buildContainerInCloudBuilder(params: {
