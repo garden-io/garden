@@ -359,33 +359,23 @@ export class CloudApi {
     return this.registeredSessions.has(id)
   }
 
-  async getAllProjects(): Promise<CloudProject[]> {
+  async getProjectByName(projectName: string): Promise<CloudProject | undefined> {
     let response: ListProjectsResponse
 
     try {
-      response = await this.get<ListProjectsResponse>(`/projects`)
+      response = await this.get<ListProjectsResponse>(
+        `/projects?name=${encodeURIComponent(projectName)}&exactMatch=true`
+      )
     } catch (err) {
-      this.log.debug(`Attempt to list all projects failed with ${err}`)
-      throw err
+      throw new CloudApiError({
+        message: `Failed to find Garden Cloud project by name: ${err}`,
+      })
     }
 
-    const projectList: ListProjectsResponse["data"] = response.data
-
-    return projectList.map((p) => {
-      const project = toCloudProject(p)
-      // Cache the entry by ID
-      this.projects.set(project.id, project)
-      return project
-    })
-  }
-
-  async getProjectByName(projectName: string): Promise<CloudProject | undefined> {
-    const allProjects = await this.getAllProjects()
-
-    const projects = allProjects.filter((p) => p.name === projectName)
+    const projectList = response.data
 
     // Expect a single project, otherwise we fail with an error
-    if (projects.length > 1) {
+    if (projectList.length > 1) {
       throw new CloudApiDuplicateProjectsError({
         message: deline`Found an unexpected state with multiple projects using the same name, ${projectName}.
         Please make sure there is only one project with the given name.
@@ -393,7 +383,16 @@ export class CloudApi {
       })
     }
 
-    return projects[0]
+    if (projectList.length === 0) {
+      return undefined
+    }
+
+    const project = toCloudProject(projectList[0])
+
+    // Cache the entry by ID
+    this.projects.set(project.id, project)
+
+    return project
   }
 
   async createProject(projectName: string): Promise<CloudProject> {
