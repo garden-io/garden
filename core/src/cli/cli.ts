@@ -330,17 +330,6 @@ ${renderCommands(commands)}
             })
           }
 
-          if (!gardenEnv.GARDEN_DISABLE_VERSION_CHECK) {
-            await garden.emitWarning({
-              key: "0.13-bonsai",
-              log,
-              message: dedent`
-                Garden v0.13 (Bonsai) is a major release with significant changes. Please help us improve it by reporting any issues/bugs here:
-                https://go.garden.io/report-bonsai
-              `,
-            })
-          }
-
           gardenLog.info(`Running in environment ${styles.highlight(`${garden.environmentName}.${garden.namespace}`)}`)
 
           if (processRecord) {
