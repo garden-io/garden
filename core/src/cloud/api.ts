@@ -35,6 +35,7 @@ import { LogLevel } from "../logger/logger.js"
 import { makeAuthHeader } from "./auth.js"
 import type { StringMap } from "../config/common.js"
 import { styles } from "../logger/styles.js"
+import { RequestError } from "got"
 
 const gardenClientName = "garden-core"
 const gardenClientVersion = getPackageVersion()
@@ -554,24 +555,57 @@ export class CloudApi {
       requestOptions.retry = undefined // Disables retry
     }
 
-    const res = await got<T>(url.href, requestOptions)
+    try {
+      const res = await got<T>(url.href, requestOptions)
 
-    if (!isObject(res.body)) {
-      throw new CloudApiError({
-        message: dedent`
-          Unexpected API response: Expected object.
+      if (!isObject(res.body)) {
+        throw new CloudApiError({
+          message: dedent`
+          Unexpected response from Garden Cloud: Expected object.
 
+          Request ID: ${res.headers["x-request-id"]}
           Request url: ${url}
           Response code: ${res?.statusCode}
           Response body: ${JSON.stringify(res?.body)}
         `,
-        responseStatusCode: res?.statusCode,
-      })
-    }
+          responseStatusCode: res?.statusCode,
+        })
+      }
 
-    return {
-      ...res.body,
-      headers: res.headers,
+      return {
+        ...res.body,
+        headers: res.headers,
+      }
+    } catch (e: unknown) {
+      if (!(e instanceof RequestError)) {
+        throw e
+      }
+
+      // The assumption here is that Garden Enterprise is self-hosted.
+      // This error should only be thrown if the Garden Enterprise instance is not hosted by us (i.e. Garden Inc.)
+      if (e.code === "DEPTH_ZERO_SELF_SIGNED_CERT" && getCloudDistributionName(this.domain) === "Garden Enterprise") {
+        throw new CloudApiError({
+          message: dedent`
+          SSL error when communicating to Garden Cloud: ${e}
+
+          If your Garden Cloud instance is self-hosted and you are using a self-signed certificate, Garden will not trust your system's CA certificates.
+
+          In case if you need to trust extra certificate authorities, consider exporting the environment variable NODE_EXTRA_CA_CERTS. See https://nodejs.org/api/cli.html#node_extra_ca_certsfile
+
+          Request url: ${url}
+          Error code: ${e.code}
+        `,
+        })
+      }
+
+      throw new CloudApiError({
+        message: dedent`
+          Unexpected error when communicating to Garden Cloud: ${e}
+
+          Request url: ${url}
+          Error code: ${e.code}
+        `,
+      })
     }
   }
 
