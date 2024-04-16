@@ -17,6 +17,7 @@ import { getManifestInspectArgs } from "./common.js"
 import type { ContainerBuildAction } from "../../../container/moduleConfig.js"
 import type { BuildActionParams } from "../../../../plugin/action-types.js"
 import { k8sGetContainerBuildActionOutputs } from "../handlers.js"
+import { cloudbuilder } from "../../../container/cloudbuilder.js"
 
 export const getLocalBuildStatus: BuildStatusHandler = async (params) => {
   const { ctx, action, log } = params
@@ -67,26 +68,36 @@ export const getLocalBuildStatus: BuildStatusHandler = async (params) => {
 export const localBuild: BuildHandler = async (params) => {
   const { ctx, action, log } = params
   const provider = ctx.provider as KubernetesProvider
-  const containerProvider = provider.dependencies.container as ContainerProvider
   const base = params.base || buildContainer
 
-  const buildResult = await base!({ ...params, ctx: { ...ctx, provider: containerProvider } })
+  const outputs = k8sGetContainerBuildActionOutputs({ provider, action })
+  const localId = outputs.localImageId
+  const remoteId = outputs.deploymentImageId
+
+  const builtByCloudBuilder = await cloudbuilder.isConfiguredAndAvailable(ctx, action)
+
+  // TODO: Kubernetes plugin and container plugin are a little bit twisted; Container plugin has some awareness of Kubernetes, but in this
+  // case it can't detect that the image needs to be pushed when using remote builder, because it can't get the Kubernetes config from ctx.
+  const containerProvider: ContainerProvider =
+    builtByCloudBuilder && provider.config.deploymentRegistry
+      ? containerProviderWithAdditionalDockerArgs(provider, ["--tag", remoteId, "--push"])
+      : // container provider will add --load when using cloud builder automatically, if --push is not present.
+        provider.dependencies.container
+  const buildResult = await base({ ...params, ctx: { ...ctx, provider: containerProvider } })
 
   if (!provider.config.deploymentRegistry) {
     await loadToLocalK8s(params)
     return buildResult
   }
 
-  const outputs = k8sGetContainerBuildActionOutputs({ provider, action })
+  // Cloud Builder already pushes the image.
+  if (!builtByCloudBuilder) {
+    log.info({ msg: `→ Pushing image ${remoteId} to remote...` })
 
-  const localId = outputs.localImageId
-  const remoteId = outputs.deploymentImageId
-  const buildPath = action.getBuildPath()
-
-  log.info({ msg: `→ Pushing image ${remoteId} to remote...` })
-
-  await containerHelpers.dockerCli({ cwd: buildPath, args: ["tag", localId, remoteId], log, ctx })
-  await containerHelpers.dockerCli({ cwd: buildPath, args: ["push", remoteId], log, ctx })
+    const buildPath = action.getBuildPath()
+    await containerHelpers.dockerCli({ cwd: buildPath, args: ["tag", localId, remoteId], log, ctx })
+    await containerHelpers.dockerCli({ cwd: buildPath, args: ["push", remoteId], log, ctx })
+  }
 
   return buildResult
 }
@@ -104,5 +115,19 @@ export async function loadToLocalK8s(params: BuildActionParams<"build", Containe
     await loadImageToKind(localImageId, provider.config, log)
   } else if (provider.config.clusterType === "microk8s") {
     await loadImageToMicrok8s({ action, imageId: localImageId, log, ctx })
+  }
+}
+
+function containerProviderWithAdditionalDockerArgs(
+  provider: KubernetesProvider,
+  additionalDockerArgs: string[]
+): ContainerProvider {
+  const containerProvider = provider.dependencies.container as ContainerProvider
+  return {
+    ...containerProvider,
+    config: {
+      ...containerProvider.config,
+      dockerBuildExtraFlags: [...(containerProvider.config.dockerBuildExtraFlags || []), ...additionalDockerArgs],
+    },
   }
 }

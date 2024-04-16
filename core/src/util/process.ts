@@ -49,7 +49,8 @@ export function waitForProcessExit({ proc }: { proc: ChildProcess }): Promise<vo
   if (proc.exitCode !== null) {
     return Promise.resolve()
   }
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
+    proc.on("error", reject)
     proc.on("exit", () => {
       resolve()
     })

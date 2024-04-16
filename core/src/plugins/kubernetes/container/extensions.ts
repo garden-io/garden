@@ -6,6 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import type { Resolved } from "../../../actions/types.js"
 import type { DeepPrimitiveMap } from "../../../config/common.js"
 import type {
   BuildActionExtension,
@@ -13,13 +14,14 @@ import type {
   RunActionExtension,
   TestActionExtension,
 } from "../../../plugin/action-types.js"
+import { cloudbuilder } from "../../container/cloudbuilder.js"
 import type {
   ContainerBuildAction,
   ContainerDeployAction,
   ContainerRunAction,
   ContainerTestAction,
 } from "../../container/config.js"
-import type { ContainerBuildMode, KubernetesProvider } from "../config.js"
+import type { ContainerBuildMode, KubernetesPluginContext, KubernetesProvider } from "../config.js"
 import { getPortForwardHandler } from "../port-forward.js"
 import { k8sGetRunResult } from "../run-results.js"
 import { k8sGetTestResult } from "../test-results.js"
@@ -37,6 +39,22 @@ import { k8sGetContainerDeployStatus } from "./status.js"
 import { k8sContainerGetSyncStatus, k8sContainerStartSync, k8sContainerStopSync } from "./sync.js"
 import { k8sContainerTest } from "./test.js"
 
+async function getBuildMode({
+  ctx,
+  action,
+}: {
+  ctx: KubernetesPluginContext
+  action: Resolved<ContainerBuildAction>
+}): Promise<ContainerBuildMode> {
+  if (await cloudbuilder.isConfiguredAndAvailable(ctx, action)) {
+    // Local build mode knows how to build using Cloud Builder
+    return "local-docker"
+  } else {
+    const provider = ctx.provider
+    return provider.config.buildMode
+  }
+}
+
 export const k8sContainerBuildExtension = (): BuildActionExtension<ContainerBuildAction> => ({
   name: "container",
   handlers: {
@@ -49,19 +67,26 @@ export const k8sContainerBuildExtension = (): BuildActionExtension<ContainerBuil
     },
 
     build: async (params) => {
-      const { ctx } = params
+      const { ctx, action } = params
 
-      const provider = <KubernetesProvider>ctx.provider
-      const handler = buildHandlers[provider.config.buildMode]
+      const buildMode = await getBuildMode({
+        ctx,
+        action,
+      })
+      const handler = buildHandlers[buildMode]
 
       return handler(params)
     },
 
     getStatus: async (params) => {
-      const { ctx } = params
-      const provider = <KubernetesProvider>ctx.provider
+      const { ctx, action } = params
 
-      const handler = buildStatusHandlers[provider.config.buildMode]
+      const buildMode = await getBuildMode({
+        ctx,
+        action,
+      })
+      const handler = buildStatusHandlers[buildMode]
+
       return handler(params)
     },
 
