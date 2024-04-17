@@ -598,14 +598,7 @@ export class CloudApi {
         })
       }
 
-      throw new CloudApiError({
-        message: dedent`
-          Unexpected error when communicating to Garden Cloud: ${e}
-
-          Request url: ${url}
-          Error code: ${e.code}
-        `,
-      })
+      throw e
     }
   }
 
