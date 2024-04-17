@@ -378,9 +378,9 @@ commands:
             echo "34927047282ef9052f57809fe94783b2dc0ab556fdd60c2c0b7f4e6e5f05a53b  ${HOME}/.docker/cli-plugins/docker-buildx" | sha256sum -c
             chmod +x ~/.docker/cli-plugins/docker-buildx
       - run:
-        name: Install nsc remote builder
-        command: |
-          nsc docker buildx setup --background --use
+          name: Install nsc remote builder
+          command: |
+            nsc docker buildx setup --background --use
 
   fail_fast:
     description: Fail the whole workflow if this job fails in the merge queue
