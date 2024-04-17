@@ -187,7 +187,7 @@
     "@types/is-glob": "^4.0.4",
     "@types/is-url": "^1.2.32",
     "@types/js-yaml": "^4.0.9",
-    "@types/json-merge-patch": "0.0.8",
+    "@types/json-merge-patch": "0.0.10",
     "@types/json-stringify-safe": "^5.0.0",
     "@types/klaw": "^3.0.6",
     "@types/koa": "^2.15.0",
