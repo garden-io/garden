@@ -70,7 +70,7 @@
     "fast-copy": "^3.0.1",
     "flatted": "^3.3.1",
     "fs-extra": "^11.2.0",
-    "get-port": "^7.0.0",
+    "get-port": "^7.1.0",
     "glob": "^10.2.6",
     "global-agent": "^3.0.0",
     "got": "^13.0.0",
