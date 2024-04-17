@@ -28,6 +28,10 @@ parameters:
     UV_USE_IO_URING: "0"
 
 
+  ubuntu-vm-runner-nocache: &ubuntu-vm-runner-nocache
+    image: "ubuntu-2204:2023.10.1"
+    docker_layer_caching: false
+
   ubuntu-vm-runner: &ubuntu-vm-runner
     image: "ubuntu-2204:2023.10.1"
     docker_layer_caching: true
@@ -356,9 +360,16 @@ commands:
           path: dist
           destination: dist
 
-  update_buildx:
-    description: Update buildx to a version that supports syntax in bakefile
+  setup_namespace_builder:
+    description: Setup remote building using Namespace Remote Builder
     steps:
+      - run:
+          name: Install latest nsc and set up access to Namespace
+          command: |
+            curl -H 'CI: true' -fsSL https://get.namespace.so/cloud/install.sh | NS_ROOT=/tmp/nsc sh
+            echo 'export PATH="/tmp/nsc/bin:$PATH"' >> "$BASH_ENV" && source "$BASH_ENV"
+      
+            nsc auth exchange-circleci-token
       - run:
           name: Update buildx
           command: |
@@ -366,6 +377,11 @@ commands:
             wget -O ~/.docker/cli-plugins/docker-buildx https://github.com/docker/buildx/releases/download/v0.11.1/buildx-v0.11.1.linux-amd64
             echo "34927047282ef9052f57809fe94783b2dc0ab556fdd60c2c0b7f4e6e5f05a53b  ${HOME}/.docker/cli-plugins/docker-buildx" | sha256sum -c
             chmod +x ~/.docker/cli-plugins/docker-buildx
+      - run:
+        name: Install nsc remote builder
+        command: |
+          nsc docker buildx setup --background --use
+
   fail_fast:
     description: Fail the whole workflow if this job fails in the merge queue
     steps:
@@ -558,14 +574,14 @@ jobs:
 
   test-dockerhub:
     machine:
-      <<: *ubuntu-vm-runner
+      <<: *ubuntu-vm-runner-nocache
     resource_class: xlarge
     steps:
       # Only run test-dockerhub if path-filter noticed changes in ./support/*
       - when:
           condition: <<pipeline.parameters.run-test-dockerhub>>
           steps:
-            - update_buildx
+            - setup_namespace_builder
             - checkout
             # This is to copy the pre-built code from a previous step
             - *attach-workspace
@@ -581,10 +597,10 @@ jobs:
 
   dockerhub-release:
     machine:
-      <<: *ubuntu-vm-runner
+      <<: *ubuntu-vm-runner-nocache
     resource_class: xlarge
     steps:
-      - update_buildx
+      - setup_namespace_builder
       - checkout
       # This is to copy the pre-built code from a previous step
       - *attach-workspace
