@@ -65,9 +65,11 @@ TEST() {
   before_each
 }
 
+docker_buildx_bake="docker buildx bake --progress=plain -f --set='*.output=type=docker' $(dirname "$0")/docker-bake.hcl"
+
 TEST "test cloud provider tool availability"
   MAJOR_VERSION=0 MINOR_VERSION=13 PATCH_VERSION=0 CODENAME=bonsai \
-    docker buildx bake --progress=plain -f "$(dirname "$0")/docker-bake.hcl" all
+    $docker_buildx_bake all
 
   # aws
   for variant in bonsai{-alpine,-buster}{,-rootless}
@@ -99,7 +101,7 @@ TEST "test cloud provider tool availability"
 
 TEST "run all binaries"
   MAJOR_VERSION=0 MINOR_VERSION=13 PATCH_VERSION=0 CODENAME=bonsai \
-    docker buildx bake --progress=plain -f "$(dirname "$0")/docker-bake.hcl" all
+    $docker_buildx_bake all
 
   for variant in bonsai{-alpine,-buster}{,-rootless}
     do
@@ -131,7 +133,7 @@ TEST "run all binaries"
 
 TEST "edge tags for debian"
   MAJOR_VERSION=0 MINOR_VERSION=13 PRERELEASE=edge CODENAME=bonsai \
-    docker buildx bake --progress=plain -f "$(dirname "$0")/docker-bake.hcl" buster
+    $docker_buildx_bake buster
 
   for image in gardendev/garden{,-aws,-azure,-gcloud,-aws-gcloud,-aws-gcloud-azure}
     do
@@ -146,7 +148,7 @@ TEST "edge tags for debian"
 
 TEST "edge tags for alpine"
   MAJOR_VERSION=0 MINOR_VERSION=13 PRERELEASE=edge CODENAME=bonsai \
-    docker buildx bake --progress=plain -f "$(dirname "$0")/docker-bake.hcl" alpine
+    $docker_buildx_bake alpine
 
   for image in gardendev/garden{,-aws,-azure,-gcloud,-aws-gcloud,-aws-gcloud-azure}
     do
@@ -161,7 +163,7 @@ TEST "edge tags for alpine"
 
 TEST "prerelase tags for debian"
   MAJOR_VERSION=0 MINOR_VERSION=13 PATCH_VERSION=0 PRERELEASE=alpha1 CODENAME=bonsai \
-    docker buildx bake --progress=plain -f "$(dirname "$0")/docker-bake.hcl" buster
+    $docker_buildx_bake buster
 
 
   for image in gardendev/garden{,-aws,-azure,-gcloud,-aws-gcloud,-aws-gcloud-azure}
@@ -179,7 +181,7 @@ TEST "prerelase tags for debian"
 
 TEST "prerelease tags for alpine"
   MAJOR_VERSION=0 MINOR_VERSION=13 PATCH_VERSION=0 PRERELEASE=alpha1 CODENAME=bonsai \
-    docker buildx bake --progress=plain -f "$(dirname "$0")/docker-bake.hcl" alpine
+    $docker_buildx_bake alpine
 
   for image in gardendev/garden{,-aws,-azure,-gcloud,-aws-gcloud,-aws-gcloud-azure}
     do
@@ -196,7 +198,7 @@ TEST "prerelease tags for alpine"
 
 TEST "production release tags for debian"
   MAJOR_VERSION=0 MINOR_VERSION=13 PATCH_VERSION=0 CODENAME=bonsai \
-    docker buildx bake --progress=plain -f "$(dirname "$0")/docker-bake.hcl" buster
+    $docker_buildx_bake buster
 
 
   for image in gardendev/garden{,-aws,-azure,-gcloud,-aws-gcloud,-aws-gcloud-azure}
@@ -216,7 +218,7 @@ TEST "production release tags for debian"
 
 TEST "production release tags for alpine"
   MAJOR_VERSION=0 MINOR_VERSION=13 PATCH_VERSION=0 CODENAME=bonsai \
-    docker buildx bake --progress=plain -f "$(dirname "$0")/docker-bake.hcl" alpine
+    $docker_buildx_bake alpine
 
   for image in gardendev/garden{,-aws,-azure,-gcloud,-aws-gcloud,-aws-gcloud-azure}
     do
