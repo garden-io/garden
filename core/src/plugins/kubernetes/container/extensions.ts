@@ -21,7 +21,16 @@ import type {
   ContainerRunAction,
   ContainerTestAction,
 } from "../../container/config.js"
+import {
+  CONTAINER_BUILD_CONCURRENCY_LIMIT_CLOUD_BUILDER,
+  CONTAINER_BUILD_CONCURRENCY_LIMIT_LOCAL,
+  CONTAINER_STATUS_CONCURRENCY_LIMIT,
+} from "../../container/container.js"
 import type { ContainerBuildMode, KubernetesPluginContext, KubernetesProvider } from "../config.js"
+import {
+  CONTAINER_BUILD_CONCURRENCY_LIMIT_REMOTE_KUBERNETES,
+  CONTAINER_STATUS_CONCURRENCY_LIMIT_REMOTE_KUBERNETES,
+} from "../kubernetes.js"
 import { getPortForwardHandler } from "../port-forward.js"
 import { k8sGetRunResult } from "../run-results.js"
 import { k8sGetTestResult } from "../test-results.js"
@@ -66,6 +75,20 @@ export const k8sContainerBuildExtension = (): BuildActionExtension<ContainerBuil
       }
     },
 
+    validate: async ({ ctx, action }) => {
+      const provider = ctx.provider as KubernetesProvider
+
+      // override build task status concurrency
+      if (provider.config.deploymentRegistry) {
+        action.statusConcurrencyLimit = CONTAINER_STATUS_CONCURRENCY_LIMIT_REMOTE_KUBERNETES
+      } else {
+        // if there's no deployment registry, we are building locally.
+        action.statusConcurrencyLimit = CONTAINER_STATUS_CONCURRENCY_LIMIT
+      }
+
+      return {}
+    },
+
     build: async (params) => {
       const { ctx, action } = params
 
@@ -80,6 +103,17 @@ export const k8sContainerBuildExtension = (): BuildActionExtension<ContainerBuil
 
     getStatus: async (params) => {
       const { ctx, action } = params
+      const provider = ctx.provider as KubernetesProvider
+
+      // override build task execute concurrency
+      if (await cloudbuilder.isConfiguredAndAvailable(ctx, action)) {
+        action.executeConcurrencyLimit = CONTAINER_BUILD_CONCURRENCY_LIMIT_CLOUD_BUILDER
+      } else if (provider.config.buildMode === "local-docker") {
+        action.executeConcurrencyLimit = CONTAINER_BUILD_CONCURRENCY_LIMIT_LOCAL
+      } else {
+        // build mode is remote
+        action.executeConcurrencyLimit = CONTAINER_BUILD_CONCURRENCY_LIMIT_REMOTE_KUBERNETES
+      }
 
       const buildMode = await getBuildMode({
         ctx,

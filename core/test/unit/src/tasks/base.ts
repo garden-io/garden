@@ -25,6 +25,9 @@ describe("BaseActionTask", () => {
   const projectRoot = getDataDir("test-project-test-deps")
 
   class TestTask extends BaseActionTask<TestAction, ValidResultType> {
+    override statusConcurrencyLimit = 10
+    override executeConcurrencyLimit = 10
+
     type = "test"
 
     getDescription() {

@@ -19,7 +19,12 @@ import type {
   ContainerRuntimeActionConfig,
 } from "./moduleConfig.js"
 import { containerModuleOutputsSchema, containerModuleSpecSchema, defaultDockerfileName } from "./moduleConfig.js"
-import { buildContainer, getContainerBuildActionOutputs, getContainerBuildStatus } from "./build.js"
+import {
+  buildContainer,
+  getContainerBuildActionOutputs,
+  getContainerBuildStatus,
+  validateContainerBuild,
+} from "./build.js"
 import type { ConfigureModuleParams } from "../../plugin/handlers/Module/configure.js"
 import { dedent, naturalList } from "../../util/string.js"
 import type { Provider, BaseProviderConfig } from "../../config/provider.js"
@@ -43,9 +48,13 @@ import type { Resolved } from "../../actions/types.js"
 import { getDeployedImageId } from "../kubernetes/container/util.js"
 import type { DeepPrimitiveMap } from "../../config/common.js"
 import { joi } from "../../config/common.js"
-import { DEFAULT_DEPLOY_TIMEOUT_SEC } from "../../constants.js"
+import { DEFAULT_DEPLOY_TIMEOUT_SEC, gardenEnv } from "../../constants.js"
 import type { ExecBuildConfig } from "../exec/build.js"
 import type { PluginToolSpec } from "../../plugin/tools.js"
+
+export const CONTAINER_STATUS_CONCURRENCY_LIMIT = gardenEnv.GARDEN_HARD_CONCURRENCY_LIMIT
+export const CONTAINER_BUILD_CONCURRENCY_LIMIT_LOCAL = 5
+export const CONTAINER_BUILD_CONCURRENCY_LIMIT_CLOUD_BUILDER = 20
 
 export interface ContainerProviderConfig extends BaseProviderConfig {
   dockerBuildExtraFlags?: string[]
@@ -532,6 +541,7 @@ export const gardenPlugin = () =>
             build: buildContainer,
             getStatus: getContainerBuildStatus,
             publish: publishContainerBuild,
+            validate: validateContainerBuild,
           },
         },
       ],
