@@ -32,6 +32,7 @@ import { registerProcess } from "../../../../src/process.js"
 import { ServeCommand } from "../../../../src/commands/serve.js"
 import { GardenInstanceManager } from "../../../../src/server/instance-manager.js"
 import fsExtra from "fs-extra"
+
 const { mkdirp } = fsExtra
 import { uuidv4 } from "../../../../src/util/random.js"
 import { makeDummyGarden } from "../../../../src/garden.js"
@@ -476,7 +477,8 @@ describe("cli", () => {
         override printHeader() {}
 
         async action({ garden }: CommandParams) {
-          const record = await globalConfigStore.get("activeProcesses", String(processRecord.pid))
+          const record = (await globalConfigStore.get("activeProcesses", String(processRecord.pid)))!
+          expect(record).to.exist
 
           expect(record.command).to.equal(this.name)
           expect(record.sessionId).to.exist
@@ -530,7 +532,8 @@ describe("cli", () => {
         override printHeader() {}
 
         async action({ garden }: CommandParams) {
-          const record = await globalConfigStore.get("activeProcesses", String(processRecord.pid))
+          const record = (await globalConfigStore.get("activeProcesses", String(processRecord.pid)))!
+          expect(record).to.exist
 
           expect(record.command).to.equal(this.name)
           expect(record.sessionId).to.exist

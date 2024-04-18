@@ -7,6 +7,7 @@
  */
 
 import fsExtra from "fs-extra"
+
 const { ensureFile, readFile } = fsExtra
 import type { z, ZodType } from "zod"
 import { lock } from "proper-lockfile"
@@ -22,6 +23,7 @@ export abstract class ConfigStore<T extends z.ZodObject<any>> {
   abstract schema: T
 
   abstract getConfigPath(): string
+
   protected abstract initConfig(migrate: boolean): Promise<I<T>>
 
   /**
@@ -29,8 +31,11 @@ export abstract class ConfigStore<T extends z.ZodObject<any>> {
    */
   async get(): Promise<I<T>>
   async get<S extends keyof I<T>>(section: S): Promise<I<T>[S]>
-  async get<S extends keyof I<T>, K extends keyof I<T>[S]>(section: S, key: K): Promise<I<T>[S][K]>
-  async get<S extends keyof I<T>, K extends keyof I<T>[S]>(section?: S, key?: K) {
+  async get<S extends keyof I<T>, K extends keyof I<T>[S]>(section: S, key: K): Promise<I<T>[S][K] | undefined>
+  async get<S extends keyof I<T>, K extends keyof I<T>[S]>(
+    section?: S,
+    key?: K
+  ): Promise<I<T> | I<T>[S] | I<T>[S][K] | undefined> {
     const config = await this.readConfig()
     if (section === undefined) {
       return config
