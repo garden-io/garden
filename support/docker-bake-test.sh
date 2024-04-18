@@ -65,7 +65,7 @@ TEST() {
   before_each
 }
 
-docker_buildx_bake="docker buildx bake --progress=plain --set='*.output=type=docker' -f $(dirname "$0")/docker-bake.hcl"
+docker_buildx_bake="docker buildx bake --progress=plain --set=*.output=type=docker -f $(dirname "$0")/docker-bake.hcl"
 
 TEST "test cloud provider tool availability"
   MAJOR_VERSION=0 MINOR_VERSION=13 PATCH_VERSION=0 CODENAME=bonsai \
