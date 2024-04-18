@@ -32,7 +32,8 @@ function printIngresses(status: DeployStatus, log: ActionLog) {
 @Profile()
 export class DeployTask extends ExecuteActionTask<DeployAction, DeployStatus> {
   type = "deploy" as const
-  override concurrencyLimit = 10
+  override defaultStatusConcurrencyLimit = 10
+  override defaultExecuteConcurrencyLimit = 10
 
   events?: PluginEventBroker
   startSync: boolean

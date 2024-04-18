@@ -17,7 +17,12 @@ import { joinWithPosix } from "../../util/fs.js"
 import type { Resolved } from "../../actions/types.js"
 import dedent from "dedent"
 import { splitFirst } from "../../util/string.js"
-import type { ContainerProviderConfig } from "./container.js"
+import {
+  CONTAINER_BUILD_CONCURRENCY_LIMIT_CLOUD_BUILDER,
+  CONTAINER_BUILD_CONCURRENCY_LIMIT_LOCAL,
+  CONTAINER_STATUS_CONCURRENCY_LIMIT,
+  type ContainerProviderConfig,
+} from "./container.js"
 import type { Writable } from "stream"
 import type { ActionLog } from "../../logger/log-entry.js"
 import type { PluginContext } from "../../plugin-context.js"
@@ -25,11 +30,25 @@ import type { SpawnOutput } from "../../util/util.js"
 import { cloudbuilder } from "./cloudbuilder.js"
 import { styles } from "../../logger/styles.js"
 
+export const validateContainerBuild: BuildActionHandler<"validate", ContainerBuildAction> = async ({ action }) => {
+  // configure concurrency limit for build status task nodes.
+  action.statusConcurrencyLimit = CONTAINER_STATUS_CONCURRENCY_LIMIT
+
+  return {}
+}
+
 export const getContainerBuildStatus: BuildActionHandler<"getStatus", ContainerBuildAction> = async ({
   ctx,
   action,
   log,
 }) => {
+  // configure concurrency limit for build execute task nodes.
+  if (await cloudbuilder.isConfiguredAndAvailable(ctx, action)) {
+    action.executeConcurrencyLimit = CONTAINER_BUILD_CONCURRENCY_LIMIT_CLOUD_BUILDER
+  } else {
+    action.executeConcurrencyLimit = CONTAINER_BUILD_CONCURRENCY_LIMIT_LOCAL
+  }
+
   const outputs = action.getOutputs()
   const { identifier } = (await containerHelpers.getLocalImageInfo(outputs.localImageId, log, ctx)) || {}
 

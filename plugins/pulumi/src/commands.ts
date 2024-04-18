@@ -224,6 +224,9 @@ export type PulumiCommandResult = ValidResultType
 
 @Profile()
 class PulumiPluginCommandTask extends PluginActionTask<PulumiDeploy, PulumiCommandResult> {
+  override statusConcurrencyLimit: number
+  override executeConcurrencyLimit: number
+
   pulumiParams: PulumiBaseParams
   commandName: string
   commandDescription: string
@@ -256,7 +259,7 @@ class PulumiPluginCommandTask extends PluginActionTask<PulumiDeploy, PulumiComma
     this.runFn = runFn
     this.pulumiParams = pulumiParams
     const provider = <PulumiProvider>pulumiParams.ctx.provider
-    this.concurrencyLimit = provider.config.pluginTaskConcurrencyLimit
+    this.statusConcurrencyLimit = this.executeConcurrencyLimit = provider.config.pluginTaskConcurrencyLimit
     this.resolvedProviders = resolvedProviders
   }
 

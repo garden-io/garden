@@ -646,6 +646,31 @@ export abstract class BaseAction<
     })
   }
 
+  get statusConcurrencyLimit(): number | undefined {
+    return this._config.internal.statusConcurrencyLimit
+  }
+
+  /**
+   * Allows plugins to control the concurrency limit of action status task nodes.
+   *
+   * Falls back to default concurrency limit defined in the Task class.
+   */
+  set statusConcurrencyLimit(limit: number | undefined) {
+    this._config.internal.statusConcurrencyLimit = limit
+  }
+
+  /**
+   * Allows plugins to control the concurrency limit of action execution task nodes.
+   *
+   * Falls back to default concurrency limit defined in the Task class.
+   */
+  set executeConcurrencyLimit(limit: number | undefined) {
+    this._config.internal.executeConcurrencyLimit = limit
+  }
+  get executeConcurrencyLimit(): number | undefined {
+    return this._config.internal.executeConcurrencyLimit
+  }
+
   abstract getExecuteTask(baseParams: Omit<BaseActionTaskParams, "action">): ExecuteTask
 }
 

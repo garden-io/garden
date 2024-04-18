@@ -48,6 +48,9 @@ import { kubernetesPodRunDefinition, kubernetesPodTestDefinition } from "./kuber
 import { kubernetesExecRunDefinition, kubernetesExecTestDefinition } from "./kubernetes-type/kubernetes-exec.js"
 import { makeDocsLinkPlain, makeDocsLinkStyled } from "../../docs/common.js"
 
+export const CONTAINER_BUILD_CONCURRENCY_LIMIT_REMOTE_KUBERNETES = 5
+export const CONTAINER_STATUS_CONCURRENCY_LIMIT_REMOTE_KUBERNETES = 20
+
 export async function configureProvider({
   namespace,
   projectName,
