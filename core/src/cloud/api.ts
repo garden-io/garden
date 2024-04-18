@@ -236,7 +236,7 @@ export class CloudApi {
       if (!tokenIsValid) {
         throw new CloudApiError({
           message: deline`
-            The provided access token is expired or has been revoked, please create a new
+            The provided access token is expired or has been revoked for ${cloudDomain}, please create a new
             one from the ${distroName} UI.`,
         })
       }

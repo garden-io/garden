@@ -363,8 +363,7 @@ describe("LoginCommand", () => {
       td.replace(CloudApi.prototype, "checkClientAuthToken", async () => false)
 
       await expectError(async () => await command.action(loginCommandParams({ garden })), {
-        contains:
-          "The provided access token is expired or has been revoked, please create a new one from the Garden Enterprise UI.",
+        contains: `The provided access token is expired or has been revoked for ${garden.cloudDomain}, please create a new one from the Garden Enterprise UI`,
       })
     })
 
