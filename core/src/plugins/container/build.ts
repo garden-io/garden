@@ -17,13 +17,38 @@ import { joinWithPosix } from "../../util/fs.js"
 import type { Resolved } from "../../actions/types.js"
 import dedent from "dedent"
 import { splitFirst } from "../../util/string.js"
-import type { ContainerProviderConfig } from "./container.js"
+import {
+  CONTAINER_BUILD_CONCURRENCY_LIMIT_CLOUD_BUILDER,
+  CONTAINER_BUILD_CONCURRENCY_LIMIT_LOCAL,
+  CONTAINER_STATUS_CONCURRENCY_LIMIT,
+  type ContainerProviderConfig,
+} from "./container.js"
+import type { Writable } from "stream"
+import type { ActionLog } from "../../logger/log-entry.js"
+import type { PluginContext } from "../../plugin-context.js"
+import type { SpawnOutput } from "../../util/util.js"
+import { cloudbuilder } from "./cloudbuilder.js"
+import { styles } from "../../logger/styles.js"
+
+export const validateContainerBuild: BuildActionHandler<"validate", ContainerBuildAction> = async ({ action }) => {
+  // configure concurrency limit for build status task nodes.
+  action.statusConcurrencyLimit = CONTAINER_STATUS_CONCURRENCY_LIMIT
+
+  return {}
+}
 
 export const getContainerBuildStatus: BuildActionHandler<"getStatus", ContainerBuildAction> = async ({
   ctx,
   action,
   log,
 }) => {
+  // configure concurrency limit for build execute task nodes.
+  if (await cloudbuilder.isConfiguredAndAvailable(ctx, action)) {
+    action.executeConcurrencyLimit = CONTAINER_BUILD_CONCURRENCY_LIMIT_CLOUD_BUILDER
+  } else {
+    action.executeConcurrencyLimit = CONTAINER_BUILD_CONCURRENCY_LIMIT_LOCAL
+  }
+
   const outputs = action.getOutputs()
   const { identifier } = (await containerHelpers.getLocalImageInfo(outputs.localImageId, log, ctx)) || {}
 
@@ -39,41 +64,19 @@ export const getContainerBuildStatus: BuildActionHandler<"getStatus", ContainerB
 export const buildContainer: BuildActionHandler<"build", ContainerBuildAction> = async ({ ctx, action, log }) => {
   containerHelpers.checkDockerServerVersion(await containerHelpers.getDockerVersion(), log)
 
-  const buildPath = action.getBuildPath()
-  const spec = action.getSpec()
+  const outputs = action.getOutputs()
+  const identifier = outputs.localImageId
+
   const hasDockerfile = await containerHelpers.actionHasDockerfile(action)
 
   // make sure we can build the thing
   if (!hasDockerfile) {
     throw new ConfigurationError({
       message: dedent`
-      Dockerfile not found at ${spec.dockerfile || defaultDockerfileName} for build ${action.name}.
+      Dockerfile not found at ${action.getSpec().dockerfile || defaultDockerfileName} for build ${action.name}.
       Please make sure the file exists, and is not excluded by include/exclude fields or .gardenignore files.
     `,
     })
-  }
-
-  const outputs = action.getOutputs()
-
-  const identifier = outputs.localImageId
-
-  // build doesn't exist, so we create it
-  log.info(`Building ${identifier}...`)
-
-  const dockerfilePath = joinWithPosix(action.getBuildPath(), spec.dockerfile)
-
-  const cmdOpts = [
-    "build",
-    "-t",
-    identifier,
-    ...getDockerBuildFlags(action, ctx.provider.config),
-    "--file",
-    dockerfilePath,
-  ]
-
-  // if deploymentImageId is different from localImageId, tag the image with deploymentImageId as well.
-  if (outputs.deploymentImageId && identifier !== outputs.deploymentImageId) {
-    cmdOpts.push(...["-t", outputs.deploymentImageId])
   }
 
   const logEventContext = {
@@ -87,8 +90,68 @@ export const buildContainer: BuildActionHandler<"build", ContainerBuildAction> =
     ctx.events.emit("log", { timestamp: new Date().toISOString(), msg: line.toString(), ...logEventContext })
   })
   const timeout = action.getConfig("timeout")
-  const res = await containerHelpers.dockerCli({
-    cwd: action.getBuildPath(),
+
+  let res: SpawnOutput
+  if (await cloudbuilder.isConfiguredAndAvailable(ctx, action)) {
+    res = await buildContainerInCloudBuilder({ action, outputStream, timeout, log, ctx })
+  } else {
+    res = await buildContainerLocally({
+      action,
+      outputStream,
+      timeout,
+      log,
+      ctx,
+    })
+  }
+
+  return {
+    state: "ready",
+    outputs,
+    detail: { fresh: true, buildLog: res.all || "", outputs, details: { identifier } },
+  }
+}
+
+async function buildContainerLocally({
+  action,
+  outputStream,
+  timeout,
+  log,
+  ctx,
+  extraDockerOpts = [],
+}: {
+  action: Resolved<ContainerBuildAction>
+  outputStream: Writable
+  timeout: number
+  log: ActionLog
+  ctx: PluginContext<ContainerProviderConfig>
+  extraDockerOpts?: string[]
+}) {
+  const spec = action.getSpec()
+  const outputs = action.getOutputs()
+  const buildPath = action.getBuildPath()
+
+  log.info(`Building ${outputs.localImageId}...`)
+
+  const dockerfilePath = joinWithPosix(buildPath, spec.dockerfile)
+
+  const dockerFlags = [...getDockerBuildFlags(action, ctx.provider.config), ...extraDockerOpts]
+
+  // If there already is a --tag flag, another plugin like the Kubernetes plugin already decided how to tag the image.
+  // In this case, we don't want to add another local tag.
+  // TODO: it would be nice to find a better way to become aware of the parent plugin's concerns in the container plugin.
+  if (!dockerFlags.includes("--tag")) {
+    dockerFlags.push(...["--tag", outputs.localImageId])
+
+    // if deploymentImageId is different from localImageId, tag the image with deploymentImageId as well.
+    if (outputs.deploymentImageId && outputs.localImageId !== outputs.deploymentImageId) {
+      dockerFlags.push(...["--tag", outputs.deploymentImageId])
+    }
+  }
+
+  const cmdOpts = ["build", ...dockerFlags, "--file", dockerfilePath]
+
+  return await containerHelpers.dockerCli({
+    cwd: buildPath,
     args: [...cmdOpts, buildPath],
     log,
     stdout: outputStream,
@@ -96,12 +159,54 @@ export const buildContainer: BuildActionHandler<"build", ContainerBuildAction> =
     timeout,
     ctx,
   })
+}
 
-  return {
-    state: "ready",
-    outputs,
-    detail: { fresh: true, buildLog: res.all || "", outputs, details: { identifier } },
+const BUILDKIT_LAYER_REGEX = /^#[0-9]+ \[[^ ]+ +[0-9]+\/[0-9]+\] [^F][^R][^O][^M]/
+const BUILDKIT_LAYER_CACHED_REGEX = /^#[0-9]+ CACHED/
+
+async function buildContainerInCloudBuilder(params: {
+  action: Resolved<ContainerBuildAction>
+  outputStream: Writable
+  timeout: number
+  log: ActionLog
+  ctx: PluginContext<ContainerProviderConfig>
+}) {
+  const cloudbuilderStats = {
+    totalLayers: 0,
+    layersCached: 0,
   }
+
+  // get basic buildkit stats
+  params.outputStream.on("data", (line: Buffer) => {
+    const logLine = line.toString()
+    if (BUILDKIT_LAYER_REGEX.test(logLine)) {
+      cloudbuilderStats.totalLayers++
+    } else if (BUILDKIT_LAYER_CACHED_REGEX.test(logLine)) {
+      cloudbuilderStats.layersCached++
+    }
+  })
+
+  const res = await cloudbuilder.withBuilder(params.ctx, params.action, async (builderName) => {
+    const extraDockerOpts = ["--builder", builderName]
+
+    // we add --push in the Kubernetes local-docker handler when using the Kubernetes plugin with a deploymentRegistry setting.
+    // If we have --push, no need to --load.
+    if (!getDockerBuildFlags(params.action, params.ctx.provider.config).includes("--push")) {
+      // This action makes sure to download the image from the cloud builder, and make it available locally.
+      extraDockerOpts.push("--load")
+    }
+
+    return await buildContainerLocally({ ...params, extraDockerOpts })
+  })
+
+  const log = params.ctx.log.createLog({
+    name: `build.${params.action.name}`,
+  })
+  log.success(
+    `${styles.bold("Accelerated by Garden Cloud Builder")} (${cloudbuilderStats.layersCached}/${cloudbuilderStats.totalLayers} layers cached)`
+  )
+
+  return res
 }
 
 export function getContainerBuildActionOutputs(action: Resolved<ContainerBuildAction>): ContainerBuildOutputs {

@@ -27,7 +27,9 @@ export interface DeleteDeployTaskParams extends BaseActionTaskParams<DeployActio
 
 export class DeleteDeployTask extends BaseActionTask<DeployAction, DeployStatus> {
   type = "delete-deploy"
-  override concurrencyLimit = 10
+  override executeConcurrencyLimit = 10
+  override statusConcurrencyLimit = 10
+
   dependantsFirst: boolean
   deleteDeployNames: string[]
 

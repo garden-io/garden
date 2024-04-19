@@ -14,6 +14,7 @@ import type { GraphSolver } from "./solver.js"
 import { metadataForLog } from "./common.js"
 import { Profile } from "../util/profiling.js"
 import { styles } from "../logger/styles.js"
+import { gardenEnv } from "../constants.js"
 
 export interface InternalNodeTypes {
   status: StatusTaskNode
@@ -36,11 +37,13 @@ export interface TaskNodeParams<T extends Task> {
 @Profile()
 export abstract class TaskNode<T extends Task = Task> {
   abstract readonly executionType: NodeType
-
   public readonly type: string
   public startedAt?: Date
   public readonly task: T
   public readonly statusOnly: boolean
+
+  public abstract readonly concurrencyLimit: number
+  public abstract readonly concurrencyGroupKey: string
 
   protected solver: GraphSolver
   protected dependants: { [key: string]: TaskNode }
@@ -212,8 +215,15 @@ export interface TaskRequestParams<T extends Task = Task> extends TaskNodeParams
 
 @Profile()
 export class RequestTaskNode<TaskType extends Task = Task> extends TaskNode<TaskType> {
-  // FIXME: this is a bit of a TS oddity, but it does work...
-  executionType = <NodeType>"request"
+  executionType: NodeType = "request"
+
+  override get concurrencyLimit() {
+    return gardenEnv.GARDEN_HARD_CONCURRENCY_LIMIT
+  }
+
+  override get concurrencyGroupKey() {
+    return this.executionType
+  }
 
   public readonly requestedAt: Date
   public readonly batchId: string
@@ -257,7 +267,20 @@ export class RequestTaskNode<TaskType extends Task = Task> extends TaskNode<Task
 
 @Profile()
 export class ProcessTaskNode<T extends Task = Task> extends TaskNode<T> {
-  executionType = <NodeType>"process"
+  executionType: NodeType = "process"
+
+  override get concurrencyLimit() {
+    return this.task.executeConcurrencyLimit
+  }
+
+  /**
+   * Tasks with different limits will be grouped in separate concurrency groups.
+   *
+   * E.g. if 50 build tasks have limit of 5, and 30 build tasks have limit of 10, then 15 build tasks will execute concurrently.
+   */
+  override get concurrencyGroupKey() {
+    return `${this.executionType}-${this.task.type}-${this.task.executeConcurrencyLimit}`
+  }
 
   describe() {
     return `processing ${this.task.getDescription()}`
@@ -319,7 +342,20 @@ export class ProcessTaskNode<T extends Task = Task> extends TaskNode<T> {
 
 @Profile()
 export class StatusTaskNode<T extends Task = Task> extends TaskNode<T> {
-  executionType = <NodeType>"status"
+  executionType: NodeType = "status"
+
+  override get concurrencyLimit() {
+    return this.task.statusConcurrencyLimit
+  }
+
+  /**
+   * Tasks with different limits will be grouped in separate concurrency groups.
+   *
+   * E.g. if 50 build tasks have limit of 5, and 30 build tasks have limit of 10, then 15 build tasks will execute concurrently.
+   */
+  override get concurrencyGroupKey() {
+    return `${this.executionType}-${this.task.type}-${this.task.executeConcurrencyLimit}`
+  }
 
   describe() {
     return `resolving status for ${this.task.getDescription()}`

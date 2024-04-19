@@ -34,8 +34,9 @@ export function terraform(ctx: PluginContext, provider: TerraformProvider) {
 }
 
 export class GlobalTerraform extends CliWrapper {
+  protected override toolPath = "terraform"
   constructor() {
-    super({ name: "terraform", path: "terraform" })
+    super({ name: "terraform" })
   }
 
   override async getPath(_: Log) {

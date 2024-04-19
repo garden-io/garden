@@ -107,8 +107,19 @@ interface TaskEvents<O extends ValidResultType> {
 export abstract class BaseTask<O extends ValidResultType = ValidResultType> extends TypedEventEmitter<TaskEvents<O>> {
   abstract type: string
 
-  // How many tasks of this exact type are allowed to run concurrently
-  concurrencyLimit = 10
+  /**
+   * How many execute task nodes of this exact type are allowed to run concurrently
+   *
+   * Children can override this to set a custom concurrency limit.
+   */
+  abstract executeConcurrencyLimit: number
+
+  /**
+   * How many get-status task nodes of this exact type are allowed to run concurrently
+   *
+   * Children can override this to set a custom concurrency limit.
+   */
+  abstract statusConcurrencyLimit: number
 
   public readonly garden: Garden
   public readonly log: Log
@@ -624,6 +635,17 @@ export abstract class ExecuteActionTask<
   },
 > extends BaseActionTask<T, O & ExecuteActionOutputs<T>> {
   override executeTask = true
+  protected defaultExecuteConcurrencyLimit = 10
+  protected defaultStatusConcurrencyLimit = 10
+
+  override get executeConcurrencyLimit(): number {
+    return this.action.executeConcurrencyLimit || this.defaultExecuteConcurrencyLimit
+  }
+
+  override get statusConcurrencyLimit(): number {
+    return this.action.statusConcurrencyLimit || this.defaultStatusConcurrencyLimit
+  }
+
   abstract override type: Lowercase<T["kind"]>
 
   abstract override getStatus(params: ActionTaskStatusParams<T>): Promise<O & ExecuteActionOutputs<T>>

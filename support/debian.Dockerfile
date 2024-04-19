@@ -4,7 +4,7 @@ ARG VARIANT=root
 
 # NOTE: This is not the node version Garden itself will run in. Garden binaries have node "built in" and the version installed on the system does not matter.
 # The main reason we base these images off of the Node image is for Azure DevOps Support.
-FROM node:20.12.1-buster-slim@sha256:359a07f95eaf4202268ad33e000425e63d9ce13c5fc93f0fc4b3038f0045f526 as garden-buster-base-root
+FROM node:20.12.2-buster-slim@sha256:1eebe9c64660703835c797f7b62c80f4f0a54bd89d649dd0e2fb2a7d114411bd as garden-buster-base-root
 
 FROM garden-buster-base-root as garden-base-root
 # system dependencies
@@ -32,7 +32,7 @@ RUN apt-get update && \
   "deb [arch="$(dpkg --print-architecture)" signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian \
   "$(. /etc/os-release && echo "$VERSION_CODENAME")" stable" > /etc/apt/sources.list.d/docker.list && \
   apt-get update && \
-  apt-get install docker-ce-cli -y
+  apt-get install docker-ce-cli docker-buildx-plugin -y
 
 ENV USER=root
 ENV HOME=/root

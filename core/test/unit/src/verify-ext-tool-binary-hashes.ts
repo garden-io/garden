@@ -11,10 +11,14 @@ import { kubectlSpec } from "../../../src/plugins/kubernetes/kubectl.js"
 import { kustomizeSpec } from "../../../src/plugins/kubernetes/kubernetes-type/kustomize.js"
 import { helm3Spec } from "../../../src/plugins/kubernetes/helm/helm-cli.js"
 import { downloadBinariesAndVerifyHashes } from "../../../src/util/testing.js"
-import { dockerSpec } from "../../../src/plugins/container/container.js"
+import { dockerSpec, namespaceCliSpec } from "../../../src/plugins/container/container.js"
 
 describe("Docker binaries", () => {
   downloadBinariesAndVerifyHashes([dockerSpec])
+})
+
+describe("NamespaceCLI binaries", () => {
+  downloadBinariesAndVerifyHashes([namespaceCliSpec])
 })
 
 describe("Mutagen binaries", () => {

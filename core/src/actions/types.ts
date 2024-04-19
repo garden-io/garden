@@ -69,6 +69,9 @@ export interface BaseActionConfig<K extends ActionKind = ActionKind, T = string,
     remoteClonePath?: string
     moduleName?: string
     moduleVersion?: ModuleVersion
+
+    statusConcurrencyLimit?: number
+    executeConcurrencyLimit?: number
   }
 
   // Flow/execution control

@@ -312,10 +312,10 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
       const inProgressByGroup = groupBy(inProgressNodes, "type")
 
       // Enforce concurrency limits per task type
-      const grouped = groupBy(pending, (n) => n.task.type)
+      const grouped = groupBy(pending, (n) => n.concurrencyGroupKey)
       const limitedByGroup = Object.values(grouped).flatMap((nodes) => {
         // Note: We can be sure there is at least one node in the array
-        const groupLimit = nodes[0].task.concurrencyLimit
+        const groupLimit = nodes[0].concurrencyLimit
         const inProgress = inProgressByGroup[nodes[0].type] || []
         return nodes.slice(0, groupLimit - inProgress.length)
       })

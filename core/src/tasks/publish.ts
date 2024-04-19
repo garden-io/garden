@@ -28,7 +28,8 @@ export interface PublishTaskParams extends BaseActionTaskParams<BuildAction> {
 
 export class PublishTask extends BaseActionTask<BuildAction, PublishActionResult> {
   type = "publish"
-  override concurrencyLimit = 5
+  override executeConcurrencyLimit = 5
+  override statusConcurrencyLimit = 5
 
   /**
    * Only defined if --tag option is used in the garden publish command.

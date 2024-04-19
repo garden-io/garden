@@ -44,7 +44,6 @@ import {
   ERROR_LOG_FILENAME,
   DEFAULT_GARDEN_DIR_NAME,
   LOGS_DIR_NAME,
-  gardenEnv,
   DEFAULT_GARDEN_CLOUD_DOMAIN,
 } from "../constants.js"
 import { generateBasicDebugInfoReport } from "../commands/get/get-debug-info.js"
@@ -327,17 +326,6 @@ ${renderCommands(commands)}
               key: "web-app",
               log,
               message: "\n" + getDashboardInfoMsg(),
-            })
-          }
-
-          if (!gardenEnv.GARDEN_DISABLE_VERSION_CHECK) {
-            await garden.emitWarning({
-              key: "0.13-bonsai",
-              log,
-              message: dedent`
-                Garden v0.13 (Bonsai) is a major release with significant changes. Please help us improve it by reporting any issues/bugs here:
-                https://go.garden.io/report-bonsai
-              `,
             })
           }
 

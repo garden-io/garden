@@ -5407,7 +5407,8 @@ describe("Garden", () => {
     describe("hideWarning", () => {
       it("should flag a warning key as hidden", async () => {
         await garden.hideWarning(key)
-        const record = await garden.localConfigStore.get("warnings", key)
+        const record = (await garden.localConfigStore.get("warnings", key))!
+        expect(record).to.exist
         expect(record.hidden).to.be.true
       })
 

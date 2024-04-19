@@ -41,8 +41,9 @@ export function pulumi(ctx: PluginContext, provider: PulumiProvider) {
 }
 
 export class GlobalPulumi extends CliWrapper {
+  protected override toolPath = "pulumi"
   constructor() {
-    super({ name: "pulumi", path: "pulumi" })
+    super({ name: "pulumi" })
   }
 
   override async getPath(_: Log) {

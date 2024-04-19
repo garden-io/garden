@@ -19,10 +19,15 @@ import type {
   ContainerRuntimeActionConfig,
 } from "./moduleConfig.js"
 import { containerModuleOutputsSchema, containerModuleSpecSchema, defaultDockerfileName } from "./moduleConfig.js"
-import { buildContainer, getContainerBuildActionOutputs, getContainerBuildStatus } from "./build.js"
+import {
+  buildContainer,
+  getContainerBuildActionOutputs,
+  getContainerBuildStatus,
+  validateContainerBuild,
+} from "./build.js"
 import type { ConfigureModuleParams } from "../../plugin/handlers/Module/configure.js"
 import { dedent, naturalList } from "../../util/string.js"
-import type { Provider, GenericProviderConfig } from "../../config/provider.js"
+import type { Provider, BaseProviderConfig } from "../../config/provider.js"
 import { providerConfigBaseSchema } from "../../config/provider.js"
 import type { GetModuleOutputsParams } from "../../plugin/handlers/Module/get-outputs.js"
 import type { ConvertModuleParams } from "../../plugin/handlers/Module/convert.js"
@@ -43,12 +48,19 @@ import type { Resolved } from "../../actions/types.js"
 import { getDeployedImageId } from "../kubernetes/container/util.js"
 import type { DeepPrimitiveMap } from "../../config/common.js"
 import { joi } from "../../config/common.js"
-import { DEFAULT_DEPLOY_TIMEOUT_SEC } from "../../constants.js"
+import { DEFAULT_DEPLOY_TIMEOUT_SEC, gardenEnv } from "../../constants.js"
 import type { ExecBuildConfig } from "../exec/build.js"
 import type { PluginToolSpec } from "../../plugin/tools.js"
 
-export interface ContainerProviderConfig extends GenericProviderConfig {
+export const CONTAINER_STATUS_CONCURRENCY_LIMIT = gardenEnv.GARDEN_HARD_CONCURRENCY_LIMIT
+export const CONTAINER_BUILD_CONCURRENCY_LIMIT_LOCAL = 5
+export const CONTAINER_BUILD_CONCURRENCY_LIMIT_CLOUD_BUILDER = 20
+
+export interface ContainerProviderConfig extends BaseProviderConfig {
   dockerBuildExtraFlags?: string[]
+  gardenCloudBuilder?: {
+    enabled: boolean
+  }
 }
 
 export const configSchema = () =>
@@ -59,6 +71,28 @@ export const configSchema = () =>
 
           Extra flags to pass to the \`docker build\` command. Will extend the \`spec.extraFlags\` specified in each container Build action.
           `),
+      // Cloud builder
+      gardenCloudBuilder: joi
+        .object()
+        .optional()
+        .keys({
+          enabled: joi.boolean().default(false).description(dedent`
+            **Stability: Experimental**. Subject to breaking changes within minor releases.
+
+            Enable Garden Cloud Builder, which can speed up builds significantly using fast machines and extremely fast caching.
+
+            by running \`GARDEN_CLOUD_BUILDER=1 garden build\` you can try Garden Cloud Builder temporarily without any changes to your Garden configuration.
+            The environment variable \`GARDEN_CLOUD_BUILDER\` can also be used to override this setting, if enabled in the configuration. Set it to \`false\` or \`0\` to temporarily disable Garden Cloud Builder.
+
+            Under the hood, enabling this option means that Garden will install a remote buildx driver on your local Docker daemon, and use that for builds. See also https://docs.docker.com/build/drivers/remote/
+
+            If service limits are reached, or Garden Cloud Builder is not available, Garden will fall back to building images locally, or it falls back to building in your Kubernetes cluster in case in-cluster building is configured in the Kubernetes provider configuration.
+
+            Please note that when enabling Cloud Builder together with in-cluster building, you need to authenticate to your \`deploymentRegistry\` from the local machine (e.g. by running \`docker login\`).
+            `),
+        }).description(dedent`
+        **Stability: Experimental**. Subject to breaking changes within minor releases.
+        `),
     })
     .unknown(false)
 
@@ -122,6 +156,68 @@ export const dockerSpec: PluginToolSpec = {
         targetPath: "docker/docker.exe",
       },
     },
+  ],
+}
+
+export const namespaceCliVersion = "0.0.354"
+export const namespaceCliSpec: PluginToolSpec = {
+  name: "namespace-cli",
+  version: dockerVersion,
+  description: `Namespace.so CLI v${dockerVersion}`,
+  type: "binary",
+  _includeInGardenImage: true,
+  builds: [
+    {
+      platform: "darwin",
+      architecture: "amd64",
+      url: `https://get.namespace.so/packages/nsc/v${namespaceCliVersion}/nsc_${namespaceCliVersion}_darwin_amd64.tar.gz`,
+      sha256: "a091e5f4afeccfffe30231b3528c318bc3201696e09ac3c07adaf283cea42f91",
+      extract: {
+        format: "tar",
+        targetPath: "nsc",
+      },
+    },
+    {
+      platform: "darwin",
+      architecture: "arm64",
+      url: `https://get.namespace.so/packages/nsc/v${namespaceCliVersion}/nsc_${namespaceCliVersion}_darwin_arm64.tar.gz`,
+      sha256: "7641623358ec141c6ab8d243f5f97eab0417338bb1fd490daaf814947c4ed682",
+      extract: {
+        format: "tar",
+        targetPath: "nsc",
+      },
+    },
+    {
+      platform: "linux",
+      architecture: "amd64",
+      url: `https://get.namespace.so/packages/nsc/v${namespaceCliVersion}/nsc_${namespaceCliVersion}_linux_amd64.tar.gz`,
+      sha256: "8d180cf1c3e2f2861c34e89b722d9a5612888e3889d2d7767b02be955e6fc7ef",
+      extract: {
+        format: "tar",
+        targetPath: "nsc",
+      },
+    },
+    {
+      platform: "linux",
+      architecture: "arm64",
+      url: `https://get.namespace.so/packages/nsc/v${namespaceCliVersion}/nsc_${namespaceCliVersion}_linux_arm64.tar.gz`,
+      sha256: "0646fae1d6ca41888cbcac749b04ad303adcb5b2a7eb5260cddad1d7566ba0d6",
+      extract: {
+        format: "tar",
+        targetPath: "nsc",
+      },
+    },
+    // No windows support at the moment, only WSL
+    // {
+    //   platform: "windows",
+    //   architecture: "amd64",
+    //   url: `https://get.namespace.so/packages/nsc/v${namespaceCliVersion}/nsc_${namespaceCliVersion}_${os}_${architecture}.tar.gz`,
+    //   sha256: "25ff5d9dd8ae176dd30fd97b0b99a896d598fa62fca0b7171b45887ad4d3661b",
+    //   extract: {
+    //     format: "zip",
+    //     targetPath: "docker/docker.exe",
+    //   },
+    // },
   ],
 }
 
@@ -445,6 +541,7 @@ export const gardenPlugin = () =>
             build: buildContainer,
             getStatus: getContainerBuildStatus,
             publish: publishContainerBuild,
+            validate: validateContainerBuild,
           },
         },
       ],
@@ -582,7 +679,7 @@ export const gardenPlugin = () =>
       },
     ],
 
-    tools: [dockerSpec],
+    tools: [dockerSpec, namespaceCliSpec],
   })
 
 function validateRuntimeCommon(action: Resolved<ContainerRuntimeAction>) {

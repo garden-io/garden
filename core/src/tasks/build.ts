@@ -20,7 +20,8 @@ import { wrapActiveSpan } from "../util/open-telemetry/spans.js"
 @Profile()
 export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {
   type = "build" as const
-  override concurrencyLimit = 5
+  override defaultStatusConcurrencyLimit = 5
+  override defaultExecuteConcurrencyLimit = 5
   eventName = "buildStatus" as const
 
   getDescription() {
