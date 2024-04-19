@@ -48,10 +48,6 @@ export class FakeCloudApi extends CloudApi {
     }
   }
 
-  override async getAllProjects(): Promise<CloudProject[]> {
-    return [(await this.getProjectById(apiProjectId))!]
-  }
-
   override async createProject(name: string): Promise<CloudProject> {
     return {
       id: apiProjectId,

@@ -944,7 +944,7 @@ describe("Garden", () => {
 
         it("should use the community dashboard domain", async () => {
           scope.get("/api/token/verify").reply(200, {})
-          scope.get(`/api/projects`).reply(200, { data: [cloudProject] })
+          scope.get(`/api/projects?name=test&exactMatch=true`).reply(200, { data: [cloudProject] })
 
           const cloudApi = await makeCloudApi(DEFAULT_GARDEN_CLOUD_DOMAIN)
 
@@ -993,7 +993,7 @@ describe("Garden", () => {
         })
         it("should throw if unable to fetch or create project", async () => {
           scope.get("/api/token/verify").reply(200, {})
-          scope.get(`/api/projects`).reply(500, {})
+          scope.get(`/api/projects?name=test&exactMatch=true`).reply(500, {})
           log.root["entries"] = []
 
           const cloudApi = await makeCloudApi(DEFAULT_GARDEN_CLOUD_DOMAIN)
@@ -1018,15 +1018,17 @@ describe("Garden", () => {
           expect(expectedLog[0].level).to.eql(0)
           const cleanMsg = stripAnsi(resolveMsg(expectedLog[0]) || "").replace("\n", " ")
           expect(cleanMsg).to.eql(
-            `Fetching or creating project ${projectName} from ${DEFAULT_GARDEN_CLOUD_DOMAIN} failed with error: HTTPError: Response code 500 (Internal Server Error)`
+            `Fetching or creating project ${projectName} from ${DEFAULT_GARDEN_CLOUD_DOMAIN} failed with error: Error: Failed to find Garden Cloud project by name: HTTPError: Response code 500 (Internal Server Error)`
           )
           expect(error).to.exist
-          expect(error!.message).to.eql("Response code 500 (Internal Server Error)")
+          expect(error!.message).to.eql(
+            "Failed to find Garden Cloud project by name: HTTPError: Response code 500 (Internal Server Error)"
+          )
           expect(scope.isDone()).to.be.true
         })
         it("should not fetch secrets", async () => {
           scope.get("/api/token/verify").reply(200, {})
-          scope.get(`/api/projects`).reply(200, { data: [cloudProject] })
+          scope.get(`/api/projects?name=test&exactMatch=true`).reply(200, { data: [cloudProject] })
           scope
             .get(`/api/secrets/projectUid/${projectId}/env/${envName}`)
             .reply(200, { data: { SECRET_KEY: "secret-val" } })
