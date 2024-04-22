@@ -14,7 +14,7 @@ import type {
   RunActionExtension,
   TestActionExtension,
 } from "../../../plugin/action-types.js"
-import { cloudbuilder } from "../../container/cloudbuilder.js"
+import { cloudBuilder } from "../../container/cloudbuilder.js"
 import type {
   ContainerBuildAction,
   ContainerDeployAction,
@@ -55,7 +55,7 @@ async function getBuildMode({
   ctx: KubernetesPluginContext
   action: Resolved<ContainerBuildAction>
 }): Promise<ContainerBuildMode> {
-  if (await cloudbuilder.isConfiguredAndAvailable(ctx, action)) {
+  if (await cloudBuilder.isConfiguredAndAvailable(ctx, action)) {
     // Local build mode knows how to build using Cloud Builder
     return "local-docker"
   } else {
@@ -106,7 +106,7 @@ export const k8sContainerBuildExtension = (): BuildActionExtension<ContainerBuil
       const provider = ctx.provider as KubernetesProvider
 
       // override build task execute concurrency
-      if (await cloudbuilder.isConfiguredAndAvailable(ctx, action)) {
+      if (await cloudBuilder.isConfiguredAndAvailable(ctx, action)) {
         action.executeConcurrencyLimit = CONTAINER_BUILD_CONCURRENCY_LIMIT_CLOUD_BUILDER
       } else if (provider.config.buildMode === "local-docker") {
         action.executeConcurrencyLimit = CONTAINER_BUILD_CONCURRENCY_LIMIT_LOCAL

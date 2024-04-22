@@ -27,7 +27,7 @@ import type { Writable } from "stream"
 import type { ActionLog } from "../../logger/log-entry.js"
 import type { PluginContext } from "../../plugin-context.js"
 import type { SpawnOutput } from "../../util/util.js"
-import { cloudbuilder } from "./cloudbuilder.js"
+import { cloudBuilder } from "./cloudbuilder.js"
 import { styles } from "../../logger/styles.js"
 
 export const validateContainerBuild: BuildActionHandler<"validate", ContainerBuildAction> = async ({ action }) => {
@@ -43,7 +43,7 @@ export const getContainerBuildStatus: BuildActionHandler<"getStatus", ContainerB
   log,
 }) => {
   // configure concurrency limit for build execute task nodes.
-  if (await cloudbuilder.isConfiguredAndAvailable(ctx, action)) {
+  if (await cloudBuilder.isConfiguredAndAvailable(ctx, action)) {
     action.executeConcurrencyLimit = CONTAINER_BUILD_CONCURRENCY_LIMIT_CLOUD_BUILDER
   } else {
     action.executeConcurrencyLimit = CONTAINER_BUILD_CONCURRENCY_LIMIT_LOCAL
@@ -92,7 +92,7 @@ export const buildContainer: BuildActionHandler<"build", ContainerBuildAction> =
   const timeout = action.getConfig("timeout")
 
   let res: SpawnOutput
-  if (await cloudbuilder.isConfiguredAndAvailable(ctx, action)) {
+  if (await cloudBuilder.isConfiguredAndAvailable(ctx, action)) {
     res = await buildContainerInCloudBuilder({ action, outputStream, timeout, log, ctx })
   } else {
     res = await buildContainerLocally({
@@ -186,7 +186,7 @@ async function buildContainerInCloudBuilder(params: {
     }
   })
 
-  const res = await cloudbuilder.withBuilder(params.ctx, params.action, async (builderName) => {
+  const res = await cloudBuilder.withBuilder(params.ctx, params.action, async (builderName) => {
     const extraDockerOpts = ["--builder", builderName]
 
     // we add --push in the Kubernetes local-docker handler when using the Kubernetes plugin with a deploymentRegistry setting.

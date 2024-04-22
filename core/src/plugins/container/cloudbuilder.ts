@@ -37,7 +37,7 @@ const cloudBuilderAvailability = new LRUCache<string, CloudBuilderAvailability>(
 })
 
 // public API
-export const cloudbuilder = {
+export const cloudBuilder = {
   isConfigured(ctx: PluginContext): boolean {
     const { isCloudBuilderEnabled } = getConfiguration(ctx)
     if (!isCloudBuilderEnabled) {
@@ -59,7 +59,7 @@ export const cloudbuilder = {
   },
 
   async isConfiguredAndAvailable(ctx: PluginContext, action: Resolved<ContainerBuildAction>) {
-    if (!cloudbuilder.isConfigured(ctx)) {
+    if (!cloudBuilder.isConfigured(ctx)) {
       return false
     }
 

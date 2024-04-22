@@ -17,7 +17,7 @@ import { getManifestInspectArgs } from "./common.js"
 import type { ContainerBuildAction } from "../../../container/moduleConfig.js"
 import type { BuildActionParams } from "../../../../plugin/action-types.js"
 import { k8sGetContainerBuildActionOutputs } from "../handlers.js"
-import { cloudbuilder } from "../../../container/cloudbuilder.js"
+import { cloudBuilder } from "../../../container/cloudbuilder.js"
 
 export const getLocalBuildStatus: BuildStatusHandler = async (params) => {
   const { ctx, action, log } = params
@@ -74,7 +74,7 @@ export const localBuild: BuildHandler = async (params) => {
   const localId = outputs.localImageId
   const remoteId = outputs.deploymentImageId
 
-  const builtByCloudBuilder = await cloudbuilder.isConfiguredAndAvailable(ctx, action)
+  const builtByCloudBuilder = await cloudBuilder.isConfiguredAndAvailable(ctx, action)
 
   // TODO: Kubernetes plugin and container plugin are a little bit twisted; Container plugin has some awareness of Kubernetes, but in this
   // case it can't detect that the image needs to be pushed when using remote builder, because it can't get the Kubernetes config from ctx.
