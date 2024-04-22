@@ -29,7 +29,7 @@ class RunFailedError extends GardenError {
 
 @Profile()
 export class RunTask extends ExecuteActionTask<RunAction, GetRunResult> {
-  type = "run" as const
+  readonly type = "run" as const
 
   getDescription() {
     return this.action.longDescription()

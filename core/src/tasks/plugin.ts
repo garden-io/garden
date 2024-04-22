@@ -21,5 +21,5 @@ export abstract class PluginActionTask<
   T extends Action,
   O extends ValidResultType = ValidResultType,
 > extends BaseActionTask<T, O> {
-  type = "plugin"
+  readonly type = "plugin"
 }

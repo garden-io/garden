@@ -31,7 +31,7 @@ function printIngresses(status: DeployStatus, log: ActionLog) {
 
 @Profile()
 export class DeployTask extends ExecuteActionTask<DeployAction, DeployStatus> {
-  type = "deploy" as const
+  readonly type = "deploy" as const
   override defaultStatusConcurrencyLimit = 10
   override defaultExecuteConcurrencyLimit = 10
 

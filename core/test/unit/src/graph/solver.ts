@@ -43,7 +43,7 @@ export class TestTask extends BaseTask<TestTaskResult> {
   override readonly statusConcurrencyLimit = 10
   override readonly executeConcurrencyLimit = 10
 
-  type = "test"
+  readonly type = "test"
 
   name: string
   state: ActionState

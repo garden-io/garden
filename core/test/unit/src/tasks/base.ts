@@ -28,7 +28,7 @@ describe("BaseActionTask", () => {
     override readonly statusConcurrencyLimit = 10
     override readonly executeConcurrencyLimit = 10
 
-    type = "test"
+    readonly type = "test"
 
     getDescription() {
       return "foo"

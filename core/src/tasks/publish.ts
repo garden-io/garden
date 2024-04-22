@@ -27,7 +27,7 @@ export interface PublishTaskParams extends BaseActionTaskParams<BuildAction> {
 }
 
 export class PublishTask extends BaseActionTask<BuildAction, PublishActionResult> {
-  type = "publish"
+  readonly type = "publish"
   override readonly executeConcurrencyLimit = 5
   override readonly statusConcurrencyLimit = 5
 

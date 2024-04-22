@@ -38,7 +38,7 @@ export interface ResolveActionResults<T extends Action> extends ValidResultType 
 
 @Profile()
 export class ResolveActionTask<T extends Action> extends BaseActionTask<T, ResolveActionResults<T>> {
-  type = "resolve-action"
+  readonly type = "resolve-action"
 
   // TODO: resolving template strings is CPU bound, does single-threaded concurrent execution make it faster or slower?
   override readonly executeConcurrencyLimit = 10
