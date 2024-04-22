@@ -68,7 +68,7 @@
     "strip-ansi": "^7.1.0",
     "treeify": "^1.1.0",
     "ts-node": "^10.9.2",
-    "typescript": "^5.3.3",
+    "typescript": "^5.4.5",
     "wrap-ansi": "^7.0.0",
     "yargs": "^17.7.2"
   },
