@@ -224,8 +224,8 @@ export type PulumiCommandResult = ValidResultType
 
 @Profile()
 class PulumiPluginCommandTask extends PluginActionTask<PulumiDeploy, PulumiCommandResult> {
-  override statusConcurrencyLimit: number
-  override executeConcurrencyLimit: number
+  override readonly statusConcurrencyLimit: number
+  override readonly executeConcurrencyLimit: number
 
   pulumiParams: PulumiBaseParams
   commandName: string

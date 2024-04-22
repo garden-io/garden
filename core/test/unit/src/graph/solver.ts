@@ -40,8 +40,8 @@ interface TestTaskResult extends ValidResultType {
 // TODO-G2: Implement equivalent test cases for the new graph
 
 export class TestTask extends BaseTask<TestTaskResult> {
-  override statusConcurrencyLimit = 10
-  override executeConcurrencyLimit = 10
+  override readonly statusConcurrencyLimit = 10
+  override readonly executeConcurrencyLimit = 10
 
   type = "test"
 

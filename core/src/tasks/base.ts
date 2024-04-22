@@ -112,14 +112,14 @@ export abstract class BaseTask<O extends ValidResultType = ValidResultType> exte
    *
    * Children can override this to set a custom concurrency limit.
    */
-  abstract executeConcurrencyLimit: number
+  abstract readonly executeConcurrencyLimit: number
 
   /**
    * How many get-status task nodes of this exact type are allowed to run concurrently
    *
    * Children can override this to set a custom concurrency limit.
    */
-  abstract statusConcurrencyLimit: number
+  abstract readonly statusConcurrencyLimit: number
 
   public readonly garden: Garden
   public readonly log: Log
