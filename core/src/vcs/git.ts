@@ -174,11 +174,9 @@ interface Submodule {
   url: string
 }
 
-// TODO Consider moving git commands to separate (and testable) functions
 @Profile()
-export class GitSubTreeHandler extends VcsHandler {
-  name = "git"
-  repoRoots = new Map<string, string>()
+export abstract class AbstractGitHandler extends VcsHandler {
+  private readonly repoRoots = new Map<string, string>()
   protected lock: AsyncLock
 
   constructor(params: VcsHandlerParams) {
@@ -211,6 +209,209 @@ export class GitSubTreeHandler extends VcsHandler {
         throw explainGitError(err, path)
       }
     })
+  }
+
+  private async cloneRemoteSource(
+    log: Log,
+    repositoryUrl: string,
+    hash: string,
+    absPath: string,
+    failOnPrompt = false
+  ) {
+    await ensureDir(absPath)
+    const git = new GitCli({ log, cwd: absPath, failOnPrompt })
+    // Use `--recursive` to include submodules
+    if (!isSha1(hash)) {
+      return git.exec(
+        "-c",
+        "protocol.file.allow=always",
+        "clone",
+        "--recursive",
+        "--depth=1",
+        "--shallow-submodules",
+        `--branch=${hash}`,
+        repositoryUrl,
+        "."
+      )
+    }
+
+    // If SHA1 is used we need to fetch the changes as git clone doesn't allow to shallow clone
+    // a specific hash
+    try {
+      await git.exec("init")
+      await git.exec("remote", "add", "origin", repositoryUrl)
+      await git.exec(
+        "-c",
+        "protocol.file.allow=always",
+        "fetch",
+        "--depth=1",
+        "--recurse-submodules=yes",
+        "origin",
+        hash
+      )
+      await git.exec("checkout", "FETCH_HEAD")
+      return git.exec("-c", "protocol.file.allow=always", "submodule", "update", "--init", "--recursive")
+    } catch (err) {
+      throw new RuntimeError({
+        message: dedent`
+          Failed to shallow clone with error: ${err}
+
+          Make sure both git client and server are newer than 2.5.0 and that \`uploadpack.allowReachableSHA1InWant=true\` is set on the server`,
+      })
+    }
+  }
+
+  // TODO Better auth handling
+  async ensureRemoteSource({ url, name, log, sourceType, failOnPrompt = false }: RemoteSourceParams): Promise<string> {
+    return this.withRemoteSourceLock(sourceType, name, async () => {
+      const remoteSourcesPath = this.getRemoteSourcesLocalPath(sourceType)
+      await ensureDir(remoteSourcesPath)
+
+      const absPath = this.getRemoteSourceLocalPath(name, url, sourceType)
+      const isCloned = await pathExists(absPath)
+
+      if (!isCloned) {
+        const gitLog = log.createLog({ name, showDuration: true }).info(`Fetching from ${url}`)
+        const { repositoryUrl, hash } = parseGitUrl(url)
+
+        try {
+          await this.cloneRemoteSource(log, repositoryUrl, hash, absPath, failOnPrompt)
+        } catch (err) {
+          gitLog.error(`Failed fetching from ${url}`)
+          throw new RuntimeError({
+            message: `Downloading remote ${sourceType} (from ${url}) failed with error: \n\n${err}`,
+          })
+        }
+
+        gitLog.success("Done")
+      }
+
+      return absPath
+    })
+  }
+
+  async updateRemoteSource({ url, name, sourceType, log, failOnPrompt = false }: RemoteSourceParams) {
+    const absPath = this.getRemoteSourceLocalPath(name, url, sourceType)
+    const git = new GitCli({ log, cwd: absPath, failOnPrompt })
+    const { repositoryUrl, hash } = parseGitUrl(url)
+
+    await this.ensureRemoteSource({ url, name, sourceType, log, failOnPrompt })
+
+    await this.withRemoteSourceLock(sourceType, name, async () => {
+      const gitLog = log.createLog({ name, showDuration: true }).info("Getting remote state")
+      await git.exec("remote", "update")
+
+      const localCommitId = await git.getLastCommitHash()
+      const remoteCommitId = isSha1(hash)
+        ? hash
+        : getCommitIdFromRefList(await git.exec("ls-remote", repositoryUrl, hash))
+
+      if (localCommitId !== remoteCommitId) {
+        gitLog.info(`Fetching from ${url}`)
+
+        try {
+          await git.exec("fetch", "--depth=1", "origin", hash)
+          await git.exec("reset", "--hard", `origin/${hash}`)
+          // Update submodules if applicable (no-op if no submodules in repo)
+          await git.exec("-c", "protocol.file.allow=always", "submodule", "update", "--recursive")
+        } catch (err) {
+          gitLog.error(`Failed fetching from ${url}`)
+          throw new RuntimeError({
+            message: `Updating remote ${sourceType} (at url: ${url}) failed with error: \n\n${err}`,
+          })
+        }
+
+        gitLog.success("Source updated")
+      } else {
+        gitLog.success("Source already up to date")
+      }
+    })
+  }
+
+  private withRemoteSourceLock(sourceType: string, name: string, func: () => Promise<any>) {
+    return this.lock.acquire(`remote-source-${sourceType}-${name}`, func)
+  }
+
+  /**
+   * Replicates the `git hash-object` behavior. See https://stackoverflow.com/a/5290484/3290965
+   * We deviate from git's behavior when dealing with symlinks, by hashing the target of the symlink and not the
+   * symlink itself. If the symlink cannot be read, we hash the link contents like git normally does.
+   */
+  async hashObject(stats: fsExtra.Stats, path: string): Promise<string> {
+    const hash = hashingStream({ algorithm: "sha1" })
+
+    if (stats.isSymbolicLink()) {
+      // For symlinks, we follow git's behavior, which is to hash the link itself (i.e. the path it contains) as
+      // opposed to the file/directory that it points to.
+      try {
+        const linkPath = await readlink(path)
+        hash.update(`blob ${stats.size}\0${linkPath}`)
+        hash.end()
+        const output = hash.read()
+        return output
+      } catch (err) {
+        // Ignore errors here, just output empty hash
+        return ""
+      }
+    } else {
+      const stream = new PassThrough()
+      stream.push(`blob ${stats.size}\0`)
+
+      const result = defer<string>()
+      stream
+        .on("error", () => {
+          // Ignore file read error
+          result.resolve("")
+        })
+        .pipe(hash)
+        .on("error", (err) => result.reject(err))
+        .on("finish", () => {
+          const output = hash.read()
+          result.resolve(output)
+        })
+
+      createReadStream(path).pipe(stream)
+
+      return result.promise
+    }
+  }
+
+  async getPathInfo(log: Log, path: string, failOnPrompt = false): Promise<VcsInfo> {
+    const git = new GitCli({ log, cwd: path, failOnPrompt })
+
+    const output: VcsInfo = {
+      branch: "",
+      commitHash: "",
+      originUrl: "",
+    }
+
+    try {
+      output.branch = await git.getBranchName()
+      output.commitHash = await git.getLastCommitHash()
+    } catch (err) {
+      if (err instanceof ChildProcessError && err.details.code !== 128) {
+        throw err
+      }
+    }
+
+    try {
+      output.originUrl = await git.getOriginUrl()
+    } catch (err) {
+      // Just ignore if not available
+      log.silly(`Tried to retrieve git remote.origin.url but encountered an error: ${err}`)
+    }
+
+    return output
+  }
+}
+
+// TODO Consider moving git commands to separate (and testable) functions
+@Profile()
+export class GitSubTreeHandler extends AbstractGitHandler {
+  name = "git"
+
+  constructor(params: VcsHandlerParams) {
+    super(params)
   }
 
   /**
@@ -521,171 +722,6 @@ export class GitSubTreeHandler extends VcsHandler {
     return files
   }
 
-  private async cloneRemoteSource(
-    log: Log,
-    repositoryUrl: string,
-    hash: string,
-    absPath: string,
-    failOnPrompt = false
-  ) {
-    await ensureDir(absPath)
-    const git = new GitCli({ log, cwd: absPath, failOnPrompt })
-    // Use `--recursive` to include submodules
-    if (!isSha1(hash)) {
-      return git.exec(
-        "-c",
-        "protocol.file.allow=always",
-        "clone",
-        "--recursive",
-        "--depth=1",
-        "--shallow-submodules",
-        `--branch=${hash}`,
-        repositoryUrl,
-        "."
-      )
-    }
-
-    // If SHA1 is used we need to fetch the changes as git clone doesn't allow to shallow clone
-    // a specific hash
-    try {
-      await git.exec("init")
-      await git.exec("remote", "add", "origin", repositoryUrl)
-      await git.exec(
-        "-c",
-        "protocol.file.allow=always",
-        "fetch",
-        "--depth=1",
-        "--recurse-submodules=yes",
-        "origin",
-        hash
-      )
-      await git.exec("checkout", "FETCH_HEAD")
-      return git.exec("-c", "protocol.file.allow=always", "submodule", "update", "--init", "--recursive")
-    } catch (err) {
-      throw new RuntimeError({
-        message: dedent`
-          Failed to shallow clone with error: ${err}
-
-          Make sure both git client and server are newer than 2.5.0 and that \`uploadpack.allowReachableSHA1InWant=true\` is set on the server`,
-      })
-    }
-  }
-
-  // TODO Better auth handling
-  async ensureRemoteSource({ url, name, log, sourceType, failOnPrompt = false }: RemoteSourceParams): Promise<string> {
-    return this.withRemoteSourceLock(sourceType, name, async () => {
-      const remoteSourcesPath = this.getRemoteSourcesLocalPath(sourceType)
-      await ensureDir(remoteSourcesPath)
-
-      const absPath = this.getRemoteSourceLocalPath(name, url, sourceType)
-      const isCloned = await pathExists(absPath)
-
-      if (!isCloned) {
-        const gitLog = log.createLog({ name, showDuration: true }).info(`Fetching from ${url}`)
-        const { repositoryUrl, hash } = parseGitUrl(url)
-
-        try {
-          await this.cloneRemoteSource(log, repositoryUrl, hash, absPath, failOnPrompt)
-        } catch (err) {
-          gitLog.error(`Failed fetching from ${url}`)
-          throw new RuntimeError({
-            message: `Downloading remote ${sourceType} (from ${url}) failed with error: \n\n${err}`,
-          })
-        }
-
-        gitLog.success("Done")
-      }
-
-      return absPath
-    })
-  }
-
-  async updateRemoteSource({ url, name, sourceType, log, failOnPrompt = false }: RemoteSourceParams) {
-    const absPath = this.getRemoteSourceLocalPath(name, url, sourceType)
-    const git = new GitCli({ log, cwd: absPath, failOnPrompt })
-    const { repositoryUrl, hash } = parseGitUrl(url)
-
-    await this.ensureRemoteSource({ url, name, sourceType, log, failOnPrompt })
-
-    await this.withRemoteSourceLock(sourceType, name, async () => {
-      const gitLog = log.createLog({ name, showDuration: true }).info("Getting remote state")
-      await git.exec("remote", "update")
-
-      const localCommitId = await git.getLastCommitHash()
-      const remoteCommitId = isSha1(hash)
-        ? hash
-        : getCommitIdFromRefList(await git.exec("ls-remote", repositoryUrl, hash))
-
-      if (localCommitId !== remoteCommitId) {
-        gitLog.info(`Fetching from ${url}`)
-
-        try {
-          await git.exec("fetch", "--depth=1", "origin", hash)
-          await git.exec("reset", "--hard", `origin/${hash}`)
-          // Update submodules if applicable (no-op if no submodules in repo)
-          await git.exec("-c", "protocol.file.allow=always", "submodule", "update", "--recursive")
-        } catch (err) {
-          gitLog.error(`Failed fetching from ${url}`)
-          throw new RuntimeError({
-            message: `Updating remote ${sourceType} (at url: ${url}) failed with error: \n\n${err}`,
-          })
-        }
-
-        gitLog.success("Source updated")
-      } else {
-        gitLog.success("Source already up to date")
-      }
-    })
-  }
-
-  private withRemoteSourceLock(sourceType: string, name: string, func: () => Promise<any>) {
-    return this.lock.acquire(`remote-source-${sourceType}-${name}`, func)
-  }
-
-  /**
-   * Replicates the `git hash-object` behavior. See https://stackoverflow.com/a/5290484/3290965
-   * We deviate from git's behavior when dealing with symlinks, by hashing the target of the symlink and not the
-   * symlink itself. If the symlink cannot be read, we hash the link contents like git normally does.
-   */
-  async hashObject(stats: fsExtra.Stats, path: string): Promise<string> {
-    const hash = hashingStream({ algorithm: "sha1" })
-
-    if (stats.isSymbolicLink()) {
-      // For symlinks, we follow git's behavior, which is to hash the link itself (i.e. the path it contains) as
-      // opposed to the file/directory that it points to.
-      try {
-        const linkPath = await readlink(path)
-        hash.update(`blob ${stats.size}\0${linkPath}`)
-        hash.end()
-        const output = hash.read()
-        return output
-      } catch (err) {
-        // Ignore errors here, just output empty hash
-        return ""
-      }
-    } else {
-      const stream = new PassThrough()
-      stream.push(`blob ${stats.size}\0`)
-
-      const result = defer<string>()
-      stream
-        .on("error", () => {
-          // Ignore file read error
-          result.resolve("")
-        })
-        .pipe(hash)
-        .on("error", (err) => result.reject(err))
-        .on("finish", () => {
-          const output = hash.read()
-          result.resolve(output)
-        })
-
-      createReadStream(path).pipe(stream)
-
-      return result.promise
-    }
-  }
-
   @pMemoizeDecorator()
   private async getSubmodules(gitModulesConfigPath: string) {
     const submodules: Submodule[] = []
@@ -703,34 +739,6 @@ export class GitSubTreeHandler extends VcsHandler {
     }
 
     return submodules
-  }
-
-  async getPathInfo(log: Log, path: string, failOnPrompt = false): Promise<VcsInfo> {
-    const git = new GitCli({ log, cwd: path, failOnPrompt })
-
-    const output: VcsInfo = {
-      branch: "",
-      commitHash: "",
-      originUrl: "",
-    }
-
-    try {
-      output.branch = await git.getBranchName()
-      output.commitHash = await git.getLastCommitHash()
-    } catch (err) {
-      if (err instanceof ChildProcessError && err.details.code !== 128) {
-        throw err
-      }
-    }
-
-    try {
-      output.originUrl = await git.getOriginUrl()
-    } catch (err) {
-      // Just ignore if not available
-      log.silly(`Tried to retrieve git remote.origin.url but encountered an error: ${err}`)
-    }
-
-    return output
   }
 }
 

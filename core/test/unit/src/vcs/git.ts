@@ -14,7 +14,14 @@ import { basename, dirname, join, relative, resolve } from "path"
 
 import type { TestGarden } from "../../../helpers.js"
 import { expectError, getDataDir, makeTestGarden, makeTestGardenA } from "../../../helpers.js"
-import { explainGitError, getCommitIdFromRefList, GitCli, GitSubTreeHandler, parseGitUrl } from "../../../../src/vcs/git.js"
+import {
+  AbstractGitHandler,
+  GitSubTreeHandler,
+  explainGitError,
+  getCommitIdFromRefList,
+  GitCli,
+  parseGitUrl,
+} from "../../../../src/vcs/git.js"
 import type { Log } from "../../../../src/logger/log-entry.js"
 import { hashRepoUrl } from "../../../../src/util/ext-source-util.js"
 import { dedent, deline } from "../../../../src/util/string.js"
@@ -69,7 +76,7 @@ async function getGitHash(git: GitCli, path: string) {
   return (await git.exec("hash-object", path))[0]
 }
 
-type GitHandlerCls = new (params: VcsHandlerParams) => GitSubTreeHandler
+type GitHandlerCls = new (params: VcsHandlerParams) => AbstractGitHandler
 
 function getGitHandlerCls(gitScanMode: GitScanMode): GitHandlerCls {
   switch (gitScanMode) {
@@ -87,7 +94,7 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
   let tmpDir: tmp.DirectoryResult
   let tmpPath: string
   let git: GitCli
-  let handler: GitSubTreeHandler
+  let handler: AbstractGitHandler
   let log: Log
 
   const gitHandlerCls = getGitHandlerCls(gitScanMode)
