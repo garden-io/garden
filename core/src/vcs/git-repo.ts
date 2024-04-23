@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { augmentGlobs, GitHandler } from "./git.js"
+import { augmentGlobs, GitSubTreeHandler } from "./git.js"
 import type { BaseIncludeExcludeFiles, GetFilesParams, IncludeExcludeFilesHandler, VcsFile } from "./vcs.js"
 import { isDirectory, matchPath } from "../util/fs.js"
 import fsExtra from "fs-extra"
@@ -54,7 +54,7 @@ const getIncludeExcludeFiles: IncludeExcludeFilesHandler<GitRepoGetFilesParams, 
 }
 
 // @Profile()
-export class GitRepoHandler extends GitHandler {
+export class GitRepoHandler extends GitSubTreeHandler {
   override name = "git-repo"
 
   /**
@@ -162,7 +162,7 @@ export class GitRepoHandler extends GitHandler {
    * Scans the given repo root and caches the list of files in the tree cache.
    * Uses an async lock to ensure a repo root is only scanned once.
    *
-   * Delegates to {@link GitHandler.getFiles}.
+   * Delegates to {@link GitSubTreeHandler.getFiles}.
    */
   private async scanRepo(params: ScanRepoParams): Promise<FileTree> {
     const { log, path } = params

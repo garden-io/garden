@@ -14,7 +14,7 @@ import { basename, dirname, join, relative, resolve } from "path"
 
 import type { TestGarden } from "../../../helpers.js"
 import { expectError, getDataDir, makeTestGarden, makeTestGardenA } from "../../../helpers.js"
-import { explainGitError, getCommitIdFromRefList, GitCli, GitHandler, parseGitUrl } from "../../../../src/vcs/git.js"
+import { explainGitError, getCommitIdFromRefList, GitCli, GitSubTreeHandler, parseGitUrl } from "../../../../src/vcs/git.js"
 import type { Log } from "../../../../src/logger/log-entry.js"
 import { hashRepoUrl } from "../../../../src/util/ext-source-util.js"
 import { dedent, deline } from "../../../../src/util/string.js"
@@ -69,14 +69,14 @@ async function getGitHash(git: GitCli, path: string) {
   return (await git.exec("hash-object", path))[0]
 }
 
-type GitHandlerCls = new (params: VcsHandlerParams) => GitHandler
+type GitHandlerCls = new (params: VcsHandlerParams) => GitSubTreeHandler
 
 function getGitHandlerCls(gitScanMode: GitScanMode): GitHandlerCls {
   switch (gitScanMode) {
     case "repo":
       return GitRepoHandler
     case "subtree":
-      return GitHandler
+      return GitSubTreeHandler
     default:
       return gitScanMode satisfies never
   }
@@ -87,7 +87,7 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
   let tmpDir: tmp.DirectoryResult
   let tmpPath: string
   let git: GitCli
-  let handler: GitHandler
+  let handler: GitSubTreeHandler
   let log: Log
 
   const gitHandlerCls = getGitHandlerCls(gitScanMode)
@@ -777,7 +777,7 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
 
         const hash = await getGitHash(git, path)
 
-        const _handler = new GitHandler({
+        const _handler = new GitSubTreeHandler({
           garden,
           projectRoot: tmpPath,
           gardenDirPath: join(tmpPath, ".garden"),
@@ -1544,7 +1544,7 @@ export function runGitHandlerTests(gitScanMode: GitScanMode) {
   getTreeVersionTests(gitScanMode)
 }
 
-describe("GitHandler", () => {
+describe("GitSubTreeHandler", () => {
   runGitHandlerTests("subtree")
 })
 

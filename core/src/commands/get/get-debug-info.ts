@@ -20,7 +20,7 @@ import { ERROR_LOG_FILENAME } from "../../constants.js"
 import dedent from "dedent"
 import type { Garden } from "../../garden.js"
 import { zipFolder } from "../../util/archive.js"
-import { GitHandler } from "../../vcs/git.js"
+import { GitSubTreeHandler } from "../../vcs/git.js"
 import { ValidationError } from "../../exceptions.js"
 import { ChoicesParameter, BooleanParameter } from "../../cli/params.js"
 import { printHeader } from "../../logger/util.js"
@@ -73,7 +73,7 @@ export async function collectBasicDebugInfo(root: string, gardenDirPath: string,
 
   // Find all services paths
   const cache = new TreeCache()
-  const vcs = new GitHandler({
+  const vcs = new GitSubTreeHandler({
     projectRoot: root,
     gardenDirPath,
     ignoreFile: projectConfig.dotIgnoreFile || defaultDotIgnoreFile,

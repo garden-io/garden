@@ -176,7 +176,7 @@ interface Submodule {
 
 // TODO Consider moving git commands to separate (and testable) functions
 @Profile()
-export class GitHandler extends VcsHandler {
+export class GitSubTreeHandler extends VcsHandler {
   name = "git"
   repoRoots = new Map<string, string>()
   protected lock: AsyncLock
