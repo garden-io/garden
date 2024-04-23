@@ -10,7 +10,7 @@ import { Profile } from "../util/profiling.js"
 import { getStatsType, matchPath } from "../util/fs.js"
 import { isErrnoException } from "../exceptions.js"
 import { isAbsolute, join, relative, resolve } from "path"
-import { lstat, pathExists, readlink, realpath, stat, type Stats } from "fs-extra"
+import fsExtra from "fs-extra"
 import PQueue from "p-queue"
 import { defer } from "../util/util.js"
 import { execa, type ExecaError } from "execa"
@@ -28,6 +28,8 @@ import type {
 } from "./vcs.js"
 import { normalize } from "path"
 import { styles } from "../logger/styles.js"
+
+const { lstat, pathExists, readlink, realpath, stat } = fsExtra
 
 const submoduleErrorSuggestion = `Perhaps you need to run ${styles.underline(`git submodule update --recursive`)}?`
 
@@ -225,7 +227,7 @@ export class GitSubTreeHandler extends AbstractGitHandler {
     // Make sure we have a fresh hash for each file
     let count = 0
 
-    const ensureHash = async (file: VcsFile, stats: Stats | undefined): Promise<void> => {
+    const ensureHash = async (file: VcsFile, stats: fsExtra.Stats | undefined): Promise<void> => {
       if (file.hash === "" || modified.has(file.path)) {
         // Don't attempt to hash directories. Directories (which will only come up via symlinks btw)
         // will by extension be filtered out of the list.

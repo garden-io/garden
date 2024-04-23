@@ -7,7 +7,7 @@
  */
 
 import { posix } from "path"
-import { createReadStream, ensureDir, pathExists, readlink, stat, type Stats } from "fs-extra"
+import fsExtra from "fs-extra"
 import { PassThrough } from "stream"
 import type { RemoteSourceParams, VcsHandlerParams, VcsInfo } from "./vcs.js"
 import { VcsHandler } from "./vcs.js"
@@ -22,6 +22,8 @@ import isGlob from "is-glob"
 import AsyncLock from "async-lock"
 import { isSha1 } from "../util/hashing.js"
 import { hashingStream } from "hasha"
+
+const { createReadStream, ensureDir, pathExists, readlink, stat } = fsExtra
 
 export function getCommitIdFromRefList(refList: string[]): string {
   try {
@@ -275,7 +277,7 @@ export abstract class AbstractGitHandler extends VcsHandler {
    * We deviate from git's behavior when dealing with symlinks, by hashing the target of the symlink and not the
    * symlink itself. If the symlink cannot be read, we hash the link contents like git normally does.
    */
-  async hashObject(stats: Stats, path: string): Promise<string> {
+  async hashObject(stats: fsExtra.Stats, path: string): Promise<string> {
     const hash = hashingStream({ algorithm: "sha1" })
 
     if (stats.isSymbolicLink()) {
