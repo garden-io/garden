@@ -129,7 +129,7 @@ export class GitRepoHandler extends GitHandler {
     return filtered
   }
 
-  filterPaths({
+  private filterPaths({
     log,
     files,
     path,
@@ -164,7 +164,7 @@ export class GitRepoHandler extends GitHandler {
    *
    * Delegates to {@link GitHandler.getFiles}.
    */
-  async scanRepo(params: ScanRepoParams): Promise<FileTree> {
+  private async scanRepo(params: ScanRepoParams): Promise<FileTree> {
     const { log, path } = params
 
     const key = ["git-repo-files", path]
