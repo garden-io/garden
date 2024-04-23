@@ -6,9 +6,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { augmentGlobs } from "./git.js"
+import { AbstractGitHandler, augmentGlobs } from "./git.js"
 import { GitSubTreeHandler } from "./git-sub-tree.js"
-import type { BaseIncludeExcludeFiles, GetFilesParams, IncludeExcludeFilesHandler, VcsFile } from "./vcs.js"
+import type {
+  BaseIncludeExcludeFiles,
+  GetFilesParams,
+  IncludeExcludeFilesHandler,
+  VcsFile,
+  VcsHandlerParams,
+} from "./vcs.js"
 import { isDirectory, matchPath } from "../util/fs.js"
 import fsExtra from "fs-extra"
 import { pathToCacheContext } from "../cache.js"
@@ -55,8 +61,14 @@ const getIncludeExcludeFiles: IncludeExcludeFilesHandler<GitRepoGetFilesParams, 
 }
 
 // @Profile()
-export class GitRepoHandler extends GitSubTreeHandler {
+export class GitRepoHandler extends AbstractGitHandler {
+  private readonly gitHandlerDelegate: GitSubTreeHandler
   override name = "git-repo"
+
+  constructor(params: VcsHandlerParams) {
+    super(params)
+    this.gitHandlerDelegate = new GitSubTreeHandler(params)
+  }
 
   /**
    * This has the same signature as the GitHandler super class method but instead of scanning the individual directory
@@ -187,7 +199,7 @@ export class GitRepoHandler extends GitSubTreeHandler {
       }
 
       log.silly(() => `Scanning repository at ${path}`)
-      const files = await super.getFiles({ ...params, scanRoot: undefined })
+      const files = await this.gitHandlerDelegate.getFiles({ ...params, scanRoot: undefined })
 
       const fileTree = FileTree.fromFiles(files)
 
