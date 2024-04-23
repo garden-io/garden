@@ -6,7 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { augmentGlobs, GitSubTreeHandler } from "./git.js"
+import { augmentGlobs } from "./git.js"
+import { GitSubTreeHandler } from "./git-sub-tree.js"
 import type { BaseIncludeExcludeFiles, GetFilesParams, IncludeExcludeFilesHandler, VcsFile } from "./vcs.js"
 import { isDirectory, matchPath } from "../util/fs.js"
 import fsExtra from "fs-extra"

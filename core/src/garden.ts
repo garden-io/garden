@@ -51,7 +51,7 @@ import {
 } from "./exceptions.js"
 import type { VcsHandler, ModuleVersion, VcsInfo } from "./vcs/vcs.js"
 import { getModuleVersionString } from "./vcs/vcs.js"
-import { GitSubTreeHandler } from "./vcs/git.js"
+import { GitSubTreeHandler } from "./vcs/git-sub-tree.js"
 import { BuildStaging } from "./build-staging/build-staging.js"
 import type { ConfigGraph } from "./graph/config-graph.js"
 import { ResolvedConfigGraph } from "./graph/config-graph.js"

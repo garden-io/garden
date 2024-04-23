@@ -31,6 +31,7 @@ import { repoRoot } from "../../../../src/util/testing.js"
 import { ChildProcessError, GardenError, RuntimeError } from "../../../../src/exceptions.js"
 import type { GitScanMode } from "../../../../src/constants.js"
 import { GitRepoHandler } from "../../../../src/vcs/git-repo.js"
+import {GitSubTreeHandler} from "../../../../src/vcs/git-sub-tree.js";
 
 const { createFile, ensureSymlink, lstat, mkdir, mkdirp, realpath, remove, symlink, writeFile } = fsExtra
 
@@ -1550,10 +1551,6 @@ export function runGitHandlerTests(gitScanMode: GitScanMode) {
   commonGitHandlerTests(gitScanMode)
   getTreeVersionTests(gitScanMode)
 }
-
-describe("GitSubTreeHandler", () => {
-  runGitHandlerTests("subtree")
-})
 
 describe("git", () => {
   describe("getCommitIdFromRefList", () => {
