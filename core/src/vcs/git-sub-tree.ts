@@ -75,7 +75,7 @@ interface Submodule {
 
 @Profile()
 export class GitSubTreeHandler extends AbstractGitHandler {
-  name = "git"
+  override readonly name = "git"
 
   constructor(params: VcsHandlerParams) {
     super(params)

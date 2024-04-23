@@ -63,7 +63,7 @@ const getIncludeExcludeFiles: IncludeExcludeFilesHandler<GitRepoGetFilesParams, 
 // @Profile()
 export class GitRepoHandler extends AbstractGitHandler {
   private readonly gitHandlerDelegate: GitSubTreeHandler
-  override name = "git-repo"
+  override readonly name = "git-repo"
 
   constructor(params: VcsHandlerParams) {
     super(params)
