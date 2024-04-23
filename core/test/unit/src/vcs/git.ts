@@ -15,7 +15,7 @@ import { basename, dirname, join, relative, resolve } from "path"
 import type { TestGarden } from "../../../helpers.js"
 import { expectError, getDataDir, makeTestGarden, makeTestGardenA } from "../../../helpers.js"
 import {
-  AbstractGitHandler,
+  type AbstractGitHandler,
   explainGitError,
   getCommitIdFromRefList,
   GitCli,

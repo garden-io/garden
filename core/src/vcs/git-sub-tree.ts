@@ -26,7 +26,7 @@ import type {
   VcsFile,
   VcsHandlerParams,
 } from "./vcs.js"
-import { normalize, sep } from "path"
+import { normalize } from "path"
 import { styles } from "../logger/styles.js"
 
 const submoduleErrorSuggestion = `Perhaps you need to run ${styles.underline(`git submodule update --recursive`)}?`
