@@ -16,12 +16,13 @@ import type { TestGarden } from "../../../helpers.js"
 import { expectError, getDataDir, makeTestGarden, makeTestGardenA } from "../../../helpers.js"
 import {
   AbstractGitHandler,
-  GitSubTreeHandler,
   explainGitError,
   getCommitIdFromRefList,
   GitCli,
   parseGitUrl,
 } from "../../../../src/vcs/git.js"
+import { GitRepoHandler } from "../../../../src/vcs/git-repo.js"
+import { GitSubTreeHandler } from "../../../../src/vcs/git-sub-tree.js"
 import type { Log } from "../../../../src/logger/log-entry.js"
 import { hashRepoUrl } from "../../../../src/util/ext-source-util.js"
 import { dedent, deline } from "../../../../src/util/string.js"
@@ -30,8 +31,6 @@ import type { VcsHandlerParams } from "../../../../src/vcs/vcs.js"
 import { repoRoot } from "../../../../src/util/testing.js"
 import { ChildProcessError, GardenError, RuntimeError } from "../../../../src/exceptions.js"
 import type { GitScanMode } from "../../../../src/constants.js"
-import { GitRepoHandler } from "../../../../src/vcs/git-repo.js"
-import {GitSubTreeHandler} from "../../../../src/vcs/git-sub-tree.js";
 
 const { createFile, ensureSymlink, lstat, mkdir, mkdirp, realpath, remove, symlink, writeFile } = fsExtra
 
