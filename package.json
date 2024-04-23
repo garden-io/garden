@@ -69,7 +69,7 @@
     "treeify": "^1.1.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.4.5",
-    "wrap-ansi": "^7.0.0",
+    "wrap-ansi": "^9.0.0",
     "yargs": "^17.7.2"
   },
   "scripts": {

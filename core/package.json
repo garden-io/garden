@@ -155,7 +155,7 @@
     "uuid": "^9.0.0",
     "which": "^4.0.0",
     "winston": "^3.8.2",
-    "wrap-ansi": "^7.0.0",
+    "wrap-ansi": "^9.0.0",
     "write-file-atomic": "^5.0.0",
     "ws": "^8.16.0",
     "yaml": "^2.3.2",
