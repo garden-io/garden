@@ -105,6 +105,29 @@ const jdk17Version: JdkVersion = {
   },
 }
 
+const jdk21Version: JdkVersion = {
+  lookupName: "openjdk-21",
+  description: `The OpenJDK 21 library.`,
+  baseUrl: "https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.3%2B9/",
+  versionName: "jdk-21.0.3+9",
+  mac_amd64: {
+    filename: "OpenJDK21U-jdk_x64_mac_hotspot_21.0.3_9.tar.gz",
+    sha256: "f777103aab94330d14a29bd99f3a26d60abbab8e2c375cec9602746096721a7c",
+  },
+  mac_arm64: {
+    filename: "OpenJDK21U-jdk_aarch64_mac_hotspot_21.0.3_9.tar.gz",
+    sha256: "b6be6a9568be83695ec6b7cb977f4902f7be47d74494c290bc2a5c3c951e254f",
+  },
+  linux: {
+    filename: "OpenJDK21U-jdk_x64_linux_hotspot_21.0.3_9.tar.gz",
+    sha256: "fffa52c22d797b715a962e6c8d11ec7d79b90dd819b5bc51d62137ea4b22a340",
+  },
+  windows: {
+    filename: "OpenJDK21U-jdk_x64_windows_hotspot_21.0.3_9.zip",
+    sha256: "c43a66cff7a403d56c5c5e1ff10d3d5f95961abf80f97f0e35380594909f0e4d",
+  },
+}
+
 function openJdkSpec(jdkVersion: JdkVersion): PluginToolSpec {
   const macBuilds = [
     {
@@ -167,4 +190,5 @@ export const openJdkSpecs: PluginToolSpec[] = [
   openJdkSpec(jdk11Version),
   openJdkSpec(jdk13Version),
   openJdkSpec(jdk17Version),
+  openJdkSpec(jdk21Version),
 ]
