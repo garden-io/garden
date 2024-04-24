@@ -88,15 +88,6 @@ export class GitSubTreeHandler extends AbstractGitHandler {
    * .ignore files, and the specified include/exclude filters.
    */
   override async getFiles(params: GetFilesParams): Promise<VcsFile[]> {
-    return this._getFiles(params)
-  }
-
-  /**
-   * In order for {@link GitRepoHandler} not to enter infinite recursion when scanning submodules,
-   * we need to name the function that recurses in here differently from {@link getFiles}
-   * so that {@link getFiles} won't refer to the method in the subclass.
-   */
-  async _getFiles(params: GetFilesParams): Promise<VcsFile[]> {
     if (params.include && params.include.length === 0) {
       // No need to proceed, nothing should be included
       return []
@@ -211,7 +202,7 @@ export class GitSubTreeHandler extends AbstractGitHandler {
           }
         }
 
-        return this._getFiles({
+        return this.getFiles({
           log: gitLog,
           path: submodulePath,
           pathDescription: "submodule",
