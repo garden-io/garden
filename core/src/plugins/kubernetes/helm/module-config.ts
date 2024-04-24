@@ -34,8 +34,16 @@ import { runPodSpecIncludeFields } from "../run.js"
 import { omit } from "lodash-es"
 import type { KubernetesModuleDevModeSpec } from "../sync.js"
 import { kubernetesModuleSyncSchema } from "../sync.js"
-import { helmChartNameSchema, helmChartRepoSchema, helmChartVersionSchema, helmCommonSchemaKeys } from "./config.js"
+import {
+  defaultHelmAtomicFlag,
+  defaultHelmAtomicFlagDesc,
+  helmChartNameSchema,
+  helmChartRepoSchema,
+  helmChartVersionSchema,
+  helmCommonSchemaKeys,
+} from "./config.js"
 import fsExtra from "fs-extra"
+
 const { pathExists } = fsExtra
 import { helmChartYamlFilename } from "./common.js"
 import type { KubernetesLocalModeSpec } from "../local-mode.js"
@@ -128,12 +136,7 @@ export const helmModuleSpecSchema = () =>
     .object()
     .keys({
       ...helmCommonSchemaKeys(),
-      atomicInstall: joi
-        .boolean()
-        .default(true)
-        .description(
-          "Whether to set the --atomic flag during installs and upgrades. Set to false if e.g. you want to see more information about failures and then manually roll back, instead of having Helm do it automatically on failure."
-        ),
+      atomicInstall: joi.boolean().default(defaultHelmAtomicFlag).description(defaultHelmAtomicFlagDesc),
       base: joiUserIdentifier()
         .description(
           deline`The name of another \`helm\` module to use as a base for this one. Use this to re-use a Helm chart across

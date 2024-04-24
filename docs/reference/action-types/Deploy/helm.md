@@ -363,7 +363,7 @@ this action config's directory.
 
 [spec](#spec) > atomic
 
-Whether to set the --atomic flag during installs and upgrades. Set to true if you'd like the changes applied to be reverted on failure.
+Whether to set the --atomic flag during installs and upgrades. Set to true if you'd like the changes applied to be reverted on failure. Set to false if e.g. you want to see more information about failures and then manually roll back, instead of having Helm do it automatically on failure.
 
 | Type      | Default | Required |
 | --------- | ------- | -------- |
