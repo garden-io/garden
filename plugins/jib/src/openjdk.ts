@@ -13,6 +13,7 @@ import { posix } from "path"
 interface JdkBinary {
   filename: string
   sha256: string
+  baseUrlOverride?: string
 }
 
 interface JdkVersion {
@@ -155,12 +156,16 @@ const jdk21Version: JdkVersion = {
   },
 }
 
+function getUrl(jdkVersion: JdkVersion, jdkBinary: JdkBinary): string {
+  return (jdkBinary.baseUrlOverride ?? jdkVersion.baseUrl) + jdkBinary.filename
+}
+
 function openJdkSpec(jdkVersion: JdkVersion): PluginToolSpec {
   const macBuilds: ToolBuildSpec[] = [
     {
       platform: "darwin",
       architecture: "amd64",
-      url: jdkVersion.baseUrl + jdkVersion.mac_amd64.filename,
+      url: getUrl(jdkVersion, jdkVersion.mac_amd64),
       sha256: jdkVersion.mac_amd64.sha256,
       extract: {
         format: "tar",
@@ -173,7 +178,7 @@ function openJdkSpec(jdkVersion: JdkVersion): PluginToolSpec {
     macBuilds.push({
       platform: "darwin",
       architecture: "arm64",
-      url: jdkVersion.baseUrl + jdkVersion.mac_arm64.filename,
+      url: getUrl(jdkVersion, jdkVersion.mac_arm64),
       sha256: jdkVersion.mac_arm64.sha256,
       extract: {
         format: "tar",
@@ -191,7 +196,7 @@ function openJdkSpec(jdkVersion: JdkVersion): PluginToolSpec {
       {
         platform: "linux",
         architecture: "amd64",
-        url: jdkVersion.baseUrl + jdkVersion.linux_amd64.filename,
+        url: getUrl(jdkVersion, jdkVersion.linux_amd64),
         sha256: jdkVersion.linux_amd64.sha256,
         extract: {
           format: "tar",
@@ -201,7 +206,7 @@ function openJdkSpec(jdkVersion: JdkVersion): PluginToolSpec {
       {
         platform: "linux",
         architecture: "arm64",
-        url: jdkVersion.baseUrl + jdkVersion.linux_arm64.filename,
+        url: getUrl(jdkVersion, jdkVersion.linux_arm64),
         sha256: jdkVersion.linux_arm64.sha256,
         extract: {
           format: "tar",
@@ -211,7 +216,7 @@ function openJdkSpec(jdkVersion: JdkVersion): PluginToolSpec {
       {
         platform: "windows",
         architecture: "amd64",
-        url: jdkVersion.baseUrl + jdkVersion.windows.filename,
+        url: getUrl(jdkVersion, jdkVersion.windows),
         sha256: jdkVersion.windows.sha256,
         extract: {
           format: "zip",
