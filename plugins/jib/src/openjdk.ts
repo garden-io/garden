@@ -100,31 +100,32 @@ const jdk13Version: JdkVersion = {
   },
 }
 
-const jdk17VersionName = "jdk-17.0.4.1+1"
+const jdk17VersionName = "jdk-17.0.9+9"
 const jdk17Version: JdkVersion = {
   lookupName: "openjdk-17",
   description: `The OpenJDK 17 library, ${jdk17VersionName}`,
-  baseUrl: "https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.4.1%2B1/",
+  baseUrl: "https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.9%2B9/",
   versionName: jdk17VersionName,
   mac_amd64: {
-    filename: "OpenJDK17U-jdk_x64_mac_hotspot_17.0.4.1_1.tar.gz",
-    sha256: "ac21a5a87f7cfa00212ab7c41f7eb80ca33640d83b63ad850be811c24095d61a",
+    filename: "OpenJDK17U-jdk_x64_mac_hotspot_17.0.9_9.tar.gz",
+    sha256: "c69b37ea72136df49ce54972408803584b49b2c91b0fbc876d7125e963c7db37",
   },
   mac_arm64: {
-    filename: "OpenJDK17U-jdk_aarch64_mac_hotspot_17.0.4.1_1.tar.gz",
-    sha256: "3a976943a9e6a635e68e2b06bd093fc096aad9f5894acda673d3bea0cb3a6f38",
+    filename: "OpenJDK17U-jdk_aarch64_mac_hotspot_17.0.9_9.tar.gz",
+    sha256: "823777266415347983bbd87ccd8136537242ff27e62f307b7e8521494c665f0d",
   },
   linux_amd64: {
-    filename: "OpenJDK17U-jdk_x64_linux_hotspot_17.0.4.1_1.tar.gz",
-    sha256: "5fbf8b62c44f10be2efab97c5f5dbf15b74fae31e451ec10abbc74e54a04ff44",
+    filename: "OpenJDK17U-jdk_x64_linux_hotspot_17.0.9_9.tar.gz",
+    sha256: "7b175dbe0d6e3c9c23b6ed96449b018308d8fc94a5ecd9c0df8b8bc376c3c18a",
   },
   linux_arm64: {
-    filename: "OpenJDK17U-jdk_aarch64_linux_hotspot_17.0.4.1_1.tar.gz",
-    sha256: "3c7460de77421284b38b4e57cb1bd584a6cef55c34fc51a12270620544de2b8a",
+    filename: "OpenJDK17U-jdk_aarch64_linux_hotspot_17.0.9_9.tar.gz",
+    sha256: "e2c5e26f8572544b201bc22a9b28f2b1a3147ab69be111cea07c7f52af252e75",
   },
   windows: {
-    filename: "OpenJDK17U-jdk_x64_windows_hotspot_17.0.4.1_1.zip",
-    sha256: "3860d2ed7405674baeb0f9f4c71377421716759fe4301e92bdd4dd43c0442dc3",
+    baseUrlOverride: "https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.9%2B9.1/",
+    filename: "OpenJDK17U-jdk_x64_windows_hotspot_17.0.9_9.zip",
+    sha256: "d1b2bb5a074ba33a0cf4e84aa558f7a563b827f999a71c8e47bdb0dd02af6b9c",
   },
 }
 
