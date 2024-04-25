@@ -180,7 +180,7 @@ export abstract class VcsHandler {
     this.profiler = getDefaultProfiler()
   }
 
-  abstract name: string
+  abstract readonly name: string
 
   abstract getRepoRoot(log: Log, path: string): Promise<string>
 

@@ -43,7 +43,7 @@ import type { BaseActionConfig } from "../../../../src/actions/types.js"
 import { TreeCache } from "../../../../src/cache.js"
 
 export class TestVcsHandler extends VcsHandler {
-  name = "test"
+  override readonly name = "test"
   private testTreeVersions: TreeVersions = {}
 
   async getRepoRoot() {

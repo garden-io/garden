@@ -51,7 +51,7 @@ import {
 } from "./exceptions.js"
 import type { VcsHandler, ModuleVersion, VcsInfo } from "./vcs/vcs.js"
 import { getModuleVersionString } from "./vcs/vcs.js"
-import { GitHandler } from "./vcs/git.js"
+import { GitSubTreeHandler } from "./vcs/git-sub-tree.js"
 import { BuildStaging } from "./build-staging/build-staging.js"
 import type { ConfigGraph } from "./graph/config-graph.js"
 import { ResolvedConfigGraph } from "./graph/config-graph.js"
@@ -358,7 +358,7 @@ export class Garden {
     this.asyncLock = new AsyncLock()
 
     const gitMode = params.projectConfig.scan?.git?.mode || gardenEnv.GARDEN_GIT_SCAN_MODE
-    const handlerCls = gitMode === "repo" ? GitRepoHandler : GitHandler
+    const handlerCls = gitMode === "repo" ? GitRepoHandler : GitSubTreeHandler
 
     this.vcs = new handlerCls({
       garden: this,
@@ -1786,7 +1786,7 @@ export async function resolveGardenParamsPartial(currentDirectory: string, opts:
   const treeCache = new TreeCache()
 
   // Note: another VcsHandler is created later, this one is temporary
-  const gitHandler = new GitHandler({
+  const gitHandler = new GitSubTreeHandler({
     projectRoot,
     gardenDirPath,
     ignoreFile: defaultConfigFilename,
