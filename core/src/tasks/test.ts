@@ -34,7 +34,7 @@ export interface TestTaskParams extends BaseActionTaskParams<TestAction> {
 
 @Profile()
 export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
-  type = "test" as const
+  readonly type = "test" as const
 
   silent: boolean
 

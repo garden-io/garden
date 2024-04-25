@@ -215,7 +215,7 @@ export interface TaskRequestParams<T extends Task = Task> extends TaskNodeParams
 
 @Profile()
 export class RequestTaskNode<TaskType extends Task = Task> extends TaskNode<TaskType> {
-  executionType: NodeType = "request"
+  readonly executionType: NodeType = "request"
 
   override get concurrencyLimit() {
     return gardenEnv.GARDEN_HARD_CONCURRENCY_LIMIT
@@ -267,7 +267,7 @@ export class RequestTaskNode<TaskType extends Task = Task> extends TaskNode<Task
 
 @Profile()
 export class ProcessTaskNode<T extends Task = Task> extends TaskNode<T> {
-  executionType: NodeType = "process"
+  readonly executionType: NodeType = "process"
 
   override get concurrencyLimit() {
     return this.task.executeConcurrencyLimit
@@ -342,7 +342,7 @@ export class ProcessTaskNode<T extends Task = Task> extends TaskNode<T> {
 
 @Profile()
 export class StatusTaskNode<T extends Task = Task> extends TaskNode<T> {
-  executionType: NodeType = "status"
+  readonly executionType: NodeType = "status"
 
   override get concurrencyLimit() {
     return this.task.statusConcurrencyLimit

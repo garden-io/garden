@@ -105,21 +105,21 @@ interface TaskEvents<O extends ValidResultType> {
 }
 @Profile()
 export abstract class BaseTask<O extends ValidResultType = ValidResultType> extends TypedEventEmitter<TaskEvents<O>> {
-  abstract type: string
+  abstract readonly type: string
 
   /**
    * How many execute task nodes of this exact type are allowed to run concurrently
    *
    * Children can override this to set a custom concurrency limit.
    */
-  abstract executeConcurrencyLimit: number
+  abstract readonly executeConcurrencyLimit: number
 
   /**
    * How many get-status task nodes of this exact type are allowed to run concurrently
    *
    * Children can override this to set a custom concurrency limit.
    */
-  abstract statusConcurrencyLimit: number
+  abstract readonly statusConcurrencyLimit: number
 
   public readonly garden: Garden
   public readonly log: Log
@@ -646,7 +646,7 @@ export abstract class ExecuteActionTask<
     return this.action.statusConcurrencyLimit || this.defaultStatusConcurrencyLimit
   }
 
-  abstract override type: Lowercase<T["kind"]>
+  abstract override readonly type: Lowercase<T["kind"]>
 
   abstract override getStatus(params: ActionTaskStatusParams<T>): Promise<O & ExecuteActionOutputs<T>>
 

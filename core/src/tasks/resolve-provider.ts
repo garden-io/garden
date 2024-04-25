@@ -74,9 +74,9 @@ const defaultCacheTtl = 3600 // 1 hour
  */
 @Profile()
 export class ResolveProviderTask extends BaseTask<Provider> {
-  type = "resolve-provider"
-  override statusConcurrencyLimit = 20
-  override executeConcurrencyLimit = 20
+  readonly type = "resolve-provider"
+  override readonly statusConcurrencyLimit = 20
+  override readonly executeConcurrencyLimit = 20
 
   private config: GenericProviderConfig
   private plugin: GardenPluginSpec
