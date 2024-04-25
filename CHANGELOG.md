@@ -1,4 +1,12 @@
 
+<a name="0.12.69"></a>
+## [0.12.69](https://github.com/garden-io/garden/compare/0.12.68...0.12.69) (2024-04-24)
+
+### Improvements
+
+* **jib:** support JDK 21 LTS version ([e1e175378](https://github.com/garden-io/garden/commit/e1e175378))
+* **jib:** update JDK 17 LTS version to `17.0.9+9` ([3f4a9fcd4](https://github.com/garden-io/garden/commit/3f4a9fcd4))
+
 <a name="0.12.68"></a>
 ## [0.12.68](https://github.com/garden-io/garden/compare/0.12.67...0.12.68) (2024-03-25)
 

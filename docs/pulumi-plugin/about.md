@@ -82,7 +82,7 @@ garden plugins pulumi preview -- my-pulumi-module my-other-pulumi-module
 
 ## Next steps
 
-Check out the [`pulumi` example](https://github.com/garden-io/garden/tree/0.12.68/examples/pulumi) project.
+Check out the [`pulumi` example](https://github.com/garden-io/garden/tree/0.12.69/examples/pulumi) project.
 
 Also take a look at the [pulumi provider reference](https://docs.garden.io/v/acorn-0.12/reference/providers/pulumi) and the [pulumi module type reference](https://docs.garden.io/v/acorn-0.12/reference/module-types/pulumi) for details on all the configuration parameters.
 
