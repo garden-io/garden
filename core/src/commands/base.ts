@@ -605,6 +605,10 @@ export abstract class Command<
   }
 
   renderHelp() {
+    if (this.hidden) {
+      return ""
+    }
+
     let out = this.description
       ? `\n${cliStyles.heading("DESCRIPTION")}\n\n${styles.secondary(this.description.trim())}\n\n`
       : ""
@@ -674,7 +678,11 @@ export abstract class CommandGroup extends Command {
   }
 
   override renderHelp() {
-    const commands = this.getSubCommands()
+    const commands = this.getSubCommands().filter((cmd) => !cmd.hidden)
+
+    if (commands.length === 0) {
+      return ""
+    }
 
     return `
 ${cliStyles.heading("USAGE")}

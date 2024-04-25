@@ -1177,6 +1177,45 @@ describe("cli", () => {
     })
   })
 
+  describe("renderHelp", () => {
+    it("should skip hidden commands", async () => {
+      class TestCommand extends Command {
+        name = "test-command"
+        help = "halp!"
+        override noProject = true
+
+        override printHeader() {}
+
+        async action({ args }) {
+          return { result: { args } }
+        }
+      }
+      class HiddenTestCommand extends Command {
+        name = "hidden-test-command"
+        help = "halp!"
+        override noProject = true
+        override hidden = true
+
+        override printHeader() {}
+
+        async action({ args }) {
+          return { result: { args } }
+        }
+      }
+
+      const cmd = new TestCommand()
+      const hiddenCmd = new HiddenTestCommand()
+      cli.addCommand(cmd)
+      cli.addCommand(hiddenCmd)
+
+      const { code, consoleOutput } = await cli.run({ args: ["--help"], exitOnError: false })
+
+      expect(code).to.equal(0)
+      expect(consoleOutput).to.include("test-command")
+      expect(consoleOutput).to.not.include("hidden-test-command")
+    })
+  })
+
   describe("makeDummyGarden", () => {
     it("should initialise and resolve config graph in a directory with no project", async () => {
       const path = join(GARDEN_CORE_ROOT, "tmp", "foobarbas")

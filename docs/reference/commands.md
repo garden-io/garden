@@ -4986,30 +4986,6 @@ Examples:
 Note! If you use a non-stable version (i.e. pre-release, or draft, or edge), then the latest possible major version will be installed.
 
 
-### garden set default-env
-
-**Locally override the default environment for the project.**
-
-Override the default environment for the project for this working copy.
-
-Examples:
-
-  garden set default-env remote       # Set the default env to remote (with the configured default namespace)
-  garden set default-env dev.my-env   # Set the default env to dev.my-env
-  garden set default-env              # Clear any previously set override
-
-#### Usage
-
-    garden set default-env [env] 
-
-#### Arguments
-
-| Argument | Required | Description |
-| -------- | -------- | ----------- |
-  | `env` | No | The default environment to set for the current project
-
-
-
 ### garden sync start
 
 **Start any configured syncs to the given Deploy action(s).**

@@ -34,6 +34,7 @@ export class SetDefaultEnvCommand extends Command<SetDefaultEnvArgs, {}> {
   name = "default-env"
 
   help = "Locally override the default environment for the project."
+  override hidden = true
 
   override description = dedent`
     Override the default environment for the project for this working copy.
