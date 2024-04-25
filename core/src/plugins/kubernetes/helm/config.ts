@@ -22,7 +22,7 @@ import type { DeployAction, DeployActionConfig } from "../../../actions/deploy.j
 import { dedent, deline } from "../../../util/string.js"
 import type { KubernetesLocalModeSpec } from "../local-mode.js"
 import { kubernetesLocalModeSchema } from "../local-mode.js"
-import type { RunActionConfig, RunAction } from "../../../actions/run.js"
+import type { RunAction, RunActionConfig } from "../../../actions/run.js"
 import type { TestAction, TestActionConfig } from "../../../actions/test.js"
 import type { ObjectSchema } from "@hapi/joi"
 import type { KubernetesRunOutputs } from "../kubernetes-type/config.js"
@@ -165,17 +165,15 @@ const helmChartSpecSchema = () =>
   `
     )
 
+export const defaultHelmAtomicFlag = false
+export const defaultHelmAtomicFlagDesc = `Whether to set the --atomic flag during installs and upgrades. Set to true if you'd like the changes applied to be reverted on failure. Set to false if e.g. you want to see more information about failures and then manually roll back, instead of having Helm do it automatically on failure.`
+
 export const helmDeploySchema = () =>
   joi
     .object()
     .keys({
       ...helmCommonSchemaKeys(),
-      atomic: joi
-        .boolean()
-        .default(false)
-        .description(
-          "Whether to set the --atomic flag during installs and upgrades. Set to true if you'd like the changes applied to be reverted on failure."
-        ),
+      atomic: joi.boolean().default(defaultHelmAtomicFlag).description(defaultHelmAtomicFlagDesc),
       chart: helmChartSpecSchema(),
       defaultTarget: defaultTargetSchema(),
       sync: kubernetesDeploySyncSchema(),

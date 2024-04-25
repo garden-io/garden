@@ -26,6 +26,7 @@ import {
   GardenApiVersion,
 } from "../../../../../../src/constants.js"
 import { ValidateCommand } from "../../../../../../src/commands/validate.js"
+import { defaultHelmAtomicFlag } from "../../../../../../src/plugins/kubernetes/helm/config.js"
 
 describe("configureHelmModule", () => {
   let garden: TestGarden
@@ -52,11 +53,10 @@ describe("configureHelmModule", () => {
     const module = await garden.resolveModule("api-module")
     const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     const imageModule = graph.getModule("api-image")
-
     const imageVersion = imageModule.version.versionString
 
-    const spec = {
-      atomicInstall: true,
+    const expectedSpec = {
+      atomicInstall: defaultHelmAtomicFlag,
       build: {
         dependencies: [],
         timeout: DEFAULT_BUILD_TIMEOUT_SEC,
@@ -115,7 +115,7 @@ describe("configureHelmModule", () => {
       name: "api-module",
       path: resolve(ctx.projectRoot, "api"),
       repositoryUrl: undefined,
-      buildConfig: omit(spec, ["atomicInstall", "serviceResource", "skipDeploy", "tasks", "tests"]),
+      buildConfig: omit(expectedSpec, ["atomicInstall", "serviceResource", "skipDeploy", "tasks", "tests"]),
       serviceConfigs: [
         {
           name: "api-module",
@@ -123,10 +123,10 @@ describe("configureHelmModule", () => {
           disabled: false,
           sourceModuleName: "api-image",
           timeout: DEFAULT_DEPLOY_TIMEOUT_SEC,
-          spec,
+          spec: expectedSpec,
         },
       ],
-      spec,
+      spec: expectedSpec,
       testConfigs: [],
       type: "helm",
       taskConfigs: [],
