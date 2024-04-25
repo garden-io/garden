@@ -67,6 +67,40 @@ describe("Command", () => {
                   [array:string]
       `)
     })
+    it("returns an empty string for hidden commands", async () => {
+      class TestCommand extends Command {
+        name = "test-command"
+        override aliases = ["some-alias"]
+        override hidden = true
+        help = "Hi, how are you?"
+
+        override arguments = {
+          foo: new StringsParameter({
+            help: "Some help text.",
+            required: true,
+          }),
+          bar: new StringsParameter({
+            help: "Another help text.",
+          }),
+        }
+
+        override options = {
+          floop: new StringsParameter({
+            help: "Option help text.",
+          }),
+        }
+
+        override printHeader() {}
+
+        async action() {
+          return {}
+        }
+      }
+
+      const cmd = new TestCommand()
+
+      expect(cmd.renderHelp()).to.equal("")
+    })
   })
 
   describe("getPaths", () => {
@@ -383,6 +417,127 @@ describe("CommandGroup", () => {
       COMMANDS
         test-group test-command  Some help text.
       `)
+    })
+  })
+})
+
+describe("CommandGroup", () => {
+  describe("renderHelp", () => {
+    it("renders the command help text", async () => {
+      class TestSubCommand extends Command {
+        name = "test-command"
+        override aliases = ["some-alias"]
+        help = "Hi, how are you?"
+
+        override arguments = {
+          foo: new StringsParameter({
+            help: "Some help text.",
+            required: true,
+          }),
+          bar: new StringsParameter({
+            help: "Another help text.",
+          }),
+        }
+
+        override options = {
+          floop: new StringsParameter({
+            help: "Option help text.",
+          }),
+        }
+
+        override printHeader() {}
+
+        async action() {
+          return {}
+        }
+      }
+
+      class TestCommandGroup extends CommandGroup {
+        name = "test-command-group"
+        subCommands = [TestSubCommand]
+        help = "Hi, how are you?"
+      }
+
+      const cmdGroup = new TestCommandGroup()
+      const helpTxt = stripAnsi(cmdGroup.renderHelp()).trim()
+
+      expect(helpTxt).to.equal(dedent`
+        USAGE
+          garden test-command-group <command> [options]
+
+        COMMANDS
+          test-command-group test-command  Hi, how are you?
+      `)
+    })
+    it("skips hidden commands", async () => {
+      class TestSubCommand extends Command {
+        name = "test-command"
+        override aliases = ["some-alias"]
+        help = ""
+
+        async action() {
+          return {}
+        }
+      }
+      class HiddenTestSubCommand extends Command {
+        name = "test-command-hidden"
+        override aliases = ["some-alias"]
+        override hidden = true
+        help = "Hi, how are you?"
+
+        async action() {
+          return {}
+        }
+      }
+
+      class TestCommandGroup extends CommandGroup {
+        name = "test-command-group"
+        subCommands = [HiddenTestSubCommand, TestSubCommand]
+        help = "Hi, how are you?"
+      }
+
+      const cmdGroup = new TestCommandGroup()
+      const helpTxt = stripAnsi(cmdGroup.renderHelp()).trim()
+
+      expect(helpTxt).to.equal(dedent`
+        USAGE
+          garden test-command-group <command> [options]
+
+        COMMANDS
+          test-command-group test-command
+      `)
+    })
+    it("returns an empty string if all sub commands are hidden", async () => {
+      class HiddenTestSubCommandA extends Command {
+        name = "test-command-hidden-a"
+        override aliases = ["some-alias"]
+        override hidden = true
+        help = "Hi, how are you?"
+
+        async action() {
+          return {}
+        }
+      }
+      class HiddenTestSubCommandB extends Command {
+        name = "test-command-hidden-b"
+        override aliases = ["some-alias"]
+        override hidden = true
+        help = "Hi, how are you?"
+
+        async action() {
+          return {}
+        }
+      }
+
+      class TestCommandGroup extends CommandGroup {
+        name = "test-command-group"
+        subCommands = [HiddenTestSubCommandA, HiddenTestSubCommandB]
+        help = "Hi, how are you?"
+      }
+
+      const cmdGroup = new TestCommandGroup()
+
+      expect(cmdGroup.renderHelp()).to.equal("")
     })
   })
 })

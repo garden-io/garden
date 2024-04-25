@@ -109,6 +109,7 @@ export class GardenCli {
   async renderHelp(log: Log, workingDir: string) {
     const commands = Object.values(this.commands)
       .sort()
+      .filter((cmd) => !cmd.hidden)
       .filter((cmd) => cmd.getPath().length === 1)
 
     // `dedent` has a bug where it doesn't indent correctly
