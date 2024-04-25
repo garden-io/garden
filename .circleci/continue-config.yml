@@ -1380,12 +1380,12 @@ workflows:
       - test-kind:
           name: vm-1.29-kind
           requires: [build]
-          kindNodeImage: kindest/node:v1.29.2@sha256:acc9e82a5a5bd3dfccfd03117e9ef5f96b46108b55cd647fb5e7d0d1a35c9c6f
+          kindNodeImage: kindest/node:v1.29.2@sha256:51a1434a5397193442f0be2a297b488b6c919ce8a3931be0ce822606ea5ca245
 
       - test-plugins:
           <<: *only-internal-prs
           requires: [build]
-          kindNodeImage: kindest/node:1.29.2@sha256:acc9e82a5a5bd3dfccfd03117e9ef5f96b46108b55cd647fb5e7d0d1a35c9c6f
+          kindNodeImage: kindest/node:1.29.2@sha256:51a1434a5397193442f0be2a297b488b6c919ce8a3931be0ce822606ea5ca245
 
       # This is only for edge release (Overrides version to edge-bonsai)
       - build:
