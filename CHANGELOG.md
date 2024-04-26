@@ -1,4 +1,11 @@
 
+<a name="0.12.70"></a>
+## [0.12.70](https://github.com/garden-io/garden/compare/0.12.69...0.12.70) (2024-04-25)
+
+### Bug Fixes
+
+* **jib:** allow the usage of the JDK 21 ([90e381d3d](https://github.com/garden-io/garden/commit/90e381d3d))
+
 <a name="0.12.69"></a>
 ## [0.12.69](https://github.com/garden-io/garden/compare/0.12.68...0.12.69) (2024-04-24)
 
