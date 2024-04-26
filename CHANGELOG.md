@@ -1,4 +1,42 @@
 
+<a name="0.12.70"></a>
+## [0.12.70](https://github.com/garden-io/garden/compare/0.13.29...0.12.70) (2024-04-25)
+
+### Bug Fixes
+
+* detect overlapping `targetPath` in `generateFiles` ([#4958](https://github.com/garden-io/garden/issues/4958)) ([34eb11a57](https://github.com/garden-io/garden/commit/34eb11a57))
+* escape rsync special characters in filenames on windows ([#4434](https://github.com/garden-io/garden/issues/4434)) ([#4438](https://github.com/garden-io/garden/issues/4438)) ([8247044a6](https://github.com/garden-io/garden/commit/8247044a6))
+* update version hash if a file is renamed ([0c32af3da](https://github.com/garden-io/garden/commit/0c32af3da))
+* **core:** more narrow set of config fields to hash for module versions ([a34bc42f7](https://github.com/garden-io/garden/commit/a34bc42f7))
+* **jib:** fix sha256 hashes for `mvnd` binaries ([4e317efa6](https://github.com/garden-io/garden/commit/4e317efa6))
+* **jib:** allow the usage of the JDK 21 ([90e381d3d](https://github.com/garden-io/garden/commit/90e381d3d))
+* **k8s:** update default Kaniko version ([b0badbdbc](https://github.com/garden-io/garden/commit/b0badbdbc))
+* **k8s:** handle intermittent socket hang up errors ([51458c674](https://github.com/garden-io/garden/commit/51458c674))
+* **mavend:** fix Mavend `sha256` hash for `windows-amd64` binary ([f64ec4e8f](https://github.com/garden-io/garden/commit/f64ec4e8f))
+* **pulumi:** remove PULUMI_EXPERIMENTAL flag due to side effects ([#4617](https://github.com/garden-io/garden/issues/4617)) ([e02f9bf2b](https://github.com/garden-io/garden/commit/e02f9bf2b))
+* **pulumi:** fix pulumi stack tag rm error ([59a054036](https://github.com/garden-io/garden/commit/59a054036))
+* **self-update:** fix target release finding machinery ([9aed119c5](https://github.com/garden-io/garden/commit/9aed119c5))
+* **self-update:** fix list of the latest available versions ([8f4df701b](https://github.com/garden-io/garden/commit/8f4df701b))
+* **template:** allow empty string as a valid arg of `isEmpty` helper ([66458a9e7](https://github.com/garden-io/garden/commit/66458a9e7))
+* **template:** allow `null` as a valid argument in helper functions ([05d1dacc1](https://github.com/garden-io/garden/commit/05d1dacc1))
+* **template-strings:** do not apply helper functions on unresolved string ([#4710](https://github.com/garden-io/garden/issues/4710)) ([8d5180090](https://github.com/garden-io/garden/commit/8d5180090))
+* **terraform:** fix `sha256` hashes for some old terraform binaries ([9a9df415d](https://github.com/garden-io/garden/commit/9a9df415d))
+
+### Features
+
+* update helm to `3.12.0` ([64de8054f](https://github.com/garden-io/garden/commit/64de8054f))
+
+### Improvements
+
+* update docker to v24.0.4 ([13db6076f](https://github.com/garden-io/garden/commit/13db6076f))
+* **helm:** update helm to `3.12.2` ([76b4f70e4](https://github.com/garden-io/garden/commit/76b4f70e4))
+* **jib:** update JDK 17 LTS version to `17.0.9+9` ([3f4a9fcd4](https://github.com/garden-io/garden/commit/3f4a9fcd4))
+* **jib:** support JDK 21 LTS version ([e1e175378](https://github.com/garden-io/garden/commit/e1e175378))
+* **jib:** allow concurrent maven builds ([b34c0fe15](https://github.com/garden-io/garden/commit/b34c0fe15))
+* **jib:** support custom `mvnd` binaries ([00588911a](https://github.com/garden-io/garden/commit/00588911a))
+* **jib:** upgrade Maven Daemon version to `0.9.0` ([45f501b6c](https://github.com/garden-io/garden/commit/45f501b6c))
+* **jib:** upgrade Maven version to `3.8.8` ([ade1e43fa](https://github.com/garden-io/garden/commit/ade1e43fa))
+
 <a name="0.12.69"></a>
 ## [0.12.69](https://github.com/garden-io/garden/compare/0.12.68...0.12.69) (2024-04-24)
 
