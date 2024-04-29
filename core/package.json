@@ -204,7 +204,7 @@
     "@types/normalize-path": "^3.0.2",
     "@types/parse-git-config": "^3.0.1",
     "@types/path-is-inside": "^1.0.0",
-    "@types/pluralize": "0.0.29",
+    "@types/pluralize": "0.0.33",
     "@types/proper-lockfile": "^4.1.4",
     "@types/ps-tree": "^1.1.6",
     "@types/qs": "^6.9.8",
