@@ -195,7 +195,7 @@ export abstract class Command<
   // E.g: const cmd = new Command(); cmd["parent"] = parentCommand.
   // This is so that commands that are initialised via arguments can be cloned which is required
   // for the websocket server to work properly.
-  private parent?: CommandGroup
+  parent?: CommandGroup
 
   // FIXME: This is a little hack so that we can clone commands that are initialised with
   // arbitrary parameters.
@@ -558,7 +558,7 @@ export abstract class Command<
     // See: https://stackoverflow.com/a/64638986
     const clone = new (this.constructor as new (params?: any) => this)(this._params)
     if (this.parent) {
-      clone["parent"] = this.parent
+      clone.parent = this.parent
     }
     return clone
   }
@@ -652,7 +652,7 @@ export abstract class CommandGroup extends Command {
   getSubCommands(): Command[] {
     return this.subCommands.flatMap((cls) => {
       const cmd = new cls()
-      cmd["parent"] = this
+      cmd.parent = this
       if (cmd instanceof CommandGroup) {
         return cmd.getSubCommands()
       } else {
