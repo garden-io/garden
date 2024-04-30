@@ -54,7 +54,7 @@
     "husky": "^4.2.5",
     "inquirer": "^8.2.6",
     "lodash-es": "^4.17.21",
-    "markdown-link-check": "^3.11.2",
+    "markdown-link-check": "^3.12.1",
     "minimatch": "^3.0.4",
     "minimist": "^1.2.6",
     "node-jsonl": "^0.1.0",
