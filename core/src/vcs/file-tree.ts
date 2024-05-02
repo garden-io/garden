@@ -17,14 +17,18 @@ type FileTreeNodeOptions = {
 }
 
 export class FileTreeNode {
-  private pathUtils: PlatformPath
-  public ownPath: string
-  private files: VcsFile[] = []
-  private childrenBySubpath: Map<string, FileTreeNode> = new Map()
+  private readonly ownPath: string
+  private readonly pathUtils: PlatformPath
+  private readonly files: VcsFile[] = []
+  private readonly childrenBySubpath: Map<string, FileTreeNode> = new Map()
 
   constructor({ ownPath, pathUtils }: FileTreeNodeOptions) {
     this.ownPath = ownPath
     this.pathUtils = pathUtils
+  }
+
+  getOwnPath(): string {
+    return this.ownPath
   }
 
   addFile(file: VcsFile): boolean {
@@ -71,8 +75,8 @@ export class FileTreeNode {
 }
 
 export class FileTree {
-  private root: FileTreeNode
-  private pathUtils: PlatformPath
+  private readonly root: FileTreeNode
+  private readonly pathUtils: PlatformPath
 
   constructor(root: FileTreeNode, pathUtils: PlatformPath) {
     this.root = root
@@ -99,7 +103,7 @@ export class FileTree {
   }
 
   getFilesAtPath(filesPath: string): VcsFile[] {
-    if (this.root.ownPath !== this.pathUtils.parse(filesPath).root) {
+    if (this.root.getOwnPath() !== this.pathUtils.parse(filesPath).root) {
       return []
     }
 
@@ -109,8 +113,7 @@ export class FileTree {
       return []
     }
 
-    const filesToReturn = node.getFiles()
-    return filesToReturn
+    return node.getFiles()
   }
 
   isDirectory(filesPath: string): boolean {
