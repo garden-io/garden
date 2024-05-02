@@ -116,11 +116,12 @@ export class GitCli {
 
 @Profile()
 export abstract class AbstractGitHandler extends VcsHandler {
-  private readonly repoRoots = new Map<string, string>()
-  protected lock: AsyncLock
+  private readonly repoRoots: Map<string, string>
+  protected readonly lock: AsyncLock
 
   constructor(params: VcsHandlerParams) {
     super(params)
+    this.repoRoots = new Map<string, string>()
     this.lock = new AsyncLock()
   }
 
