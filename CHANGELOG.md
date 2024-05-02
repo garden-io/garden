@@ -1,4 +1,11 @@
 
+<a name="0.12.71"></a>
+## [0.12.71](https://github.com/garden-io/garden/compare/0.12.70...0.12.71) (2024-05-02)
+
+### Bug Fixes
+
+* **jib:** fix JDK 17 base url ([9461bbd31](https://github.com/garden-io/garden/commit/9461bbd31))
+
 <a name="0.12.70"></a>
 ## [0.12.70](https://github.com/garden-io/garden/compare/0.12.69...0.12.70) (2024-04-25)
 
