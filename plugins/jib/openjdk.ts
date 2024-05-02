@@ -86,7 +86,7 @@ const jdk13Version: JdkVersion = {
 const jdk17Version: JdkVersion = {
   lookupName: "openjdk-17",
   description: "The OpenJDK 17 library.",
-  baseUrl: "https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.4.1%2B1/",
+  baseUrl: "https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.9%2B9/",
   versionName: "jdk-17.0.9+9",
   mac_amd64: {
     filename: "OpenJDK17U-jdk_x64_mac_hotspot_17.0.9_9.tar.gz",
