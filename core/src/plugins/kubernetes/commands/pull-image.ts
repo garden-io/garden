@@ -128,6 +128,13 @@ async function pullFromExternalRegistry({ ctx, log, localId, remoteId }: PullPar
     `docker-archive:${tmpTarPath}:${localId}`,
   ]
 
+  let nodeSelector: Record<string, string> | undefined
+  if (ctx.provider.config.buildMode === "cluster-buildkit" && ctx.provider.config.clusterBuildkit?.nodeSelector) {
+    nodeSelector = ctx.provider.config.clusterBuildkit.nodeSelector
+  } else if (ctx.provider.config.buildMode === "kaniko" && ctx.provider.config.kaniko?.nodeSelector) {
+    nodeSelector = ctx.provider.config.kaniko.nodeSelector
+  }
+
   await ensureServiceAccount({
     ctx,
     log,
@@ -169,6 +176,7 @@ async function pullFromExternalRegistry({ ctx, log, localId, remoteId }: PullPar
             },
           },
         ],
+        nodeSelector,
         volumes: [
           {
             name: authSecretName,
