@@ -557,6 +557,40 @@ describe("actionConfigsToGraph", () => {
     expect(vars).to.eql({ projectName: "${project.name}" })
   })
 
+  it("loads optional varfiles for the action", async () => {
+    const varfilePath = join(tmpDir.path, "varfile.yml")
+    await dumpYaml(varfilePath, {
+      projectName: "${project.name}",
+    })
+
+    const graph = await actionConfigsToGraph({
+      garden,
+      log,
+      groupConfigs: [],
+      configs: [
+        {
+          kind: "Build",
+          type: "test",
+          name: "foo",
+          timeout: DEFAULT_BUILD_TIMEOUT_SEC,
+          varfiles: [{ path: varfilePath, optional: true }],
+          internal: {
+            basePath: tmpDir.path,
+          },
+          spec: {},
+        },
+      ],
+      moduleGraph: new ModuleGraph([], {}),
+      actionModes: {},
+      linkedSources: {},
+    })
+
+    const action = graph.getBuild("foo")
+    const vars = action["variables"]
+
+    expect(vars).to.eql({ projectName: "${project.name}" })
+  })
+
   it("correctly merges varfile with variables", async () => {
     const varfilePath = join(tmpDir.path, "varfile.yml")
     await dumpYaml(varfilePath, {

@@ -1851,8 +1851,18 @@ actionConfigs:
       # name, e.g. `varfile: "my-action.\$\{environment.name\}.env` (this assumes that the corresponding varfiles
       # exist).
       #
-      # If a listed varfile cannot be found, it is ignored.
+      # If a listed varfile cannot be found, throwing an error.
+      # To add optional varfiles, you can use a list item object with a `path` and an optional `optional` boolean
+      # field.
+      # varfiles:
+      #   - path: my-action.env
+      #     optional: true
       varfiles:
+        - # Path to a file containing a path.
+          path:
+
+          # Whether the varfile is optional.
+          optional:
 
       # The spec for the specific action type.
       spec:
@@ -2057,8 +2067,18 @@ actionConfigs:
       # name, e.g. `varfile: "my-action.\$\{environment.name\}.env` (this assumes that the corresponding varfiles
       # exist).
       #
-      # If a listed varfile cannot be found, it is ignored.
+      # If a listed varfile cannot be found, throwing an error.
+      # To add optional varfiles, you can use a list item object with a `path` and an optional `optional` boolean
+      # field.
+      # varfiles:
+      #   - path: my-action.env
+      #     optional: true
       varfiles:
+        - # Path to a file containing a path.
+          path:
+
+          # Whether the varfile is optional.
+          optional:
 
       # The spec for the specific action type.
       spec:
@@ -2202,8 +2222,18 @@ actionConfigs:
       # name, e.g. `varfile: "my-action.\$\{environment.name\}.env` (this assumes that the corresponding varfiles
       # exist).
       #
-      # If a listed varfile cannot be found, it is ignored.
+      # If a listed varfile cannot be found, throwing an error.
+      # To add optional varfiles, you can use a list item object with a `path` and an optional `optional` boolean
+      # field.
+      # varfiles:
+      #   - path: my-action.env
+      #     optional: true
       varfiles:
+        - # Path to a file containing a path.
+          path:
+
+          # Whether the varfile is optional.
+          optional:
 
       # The spec for the specific action type.
       spec:
@@ -2347,8 +2377,18 @@ actionConfigs:
       # name, e.g. `varfile: "my-action.\$\{environment.name\}.env` (this assumes that the corresponding varfiles
       # exist).
       #
-      # If a listed varfile cannot be found, it is ignored.
+      # If a listed varfile cannot be found, throwing an error.
+      # To add optional varfiles, you can use a list item object with a `path` and an optional `optional` boolean
+      # field.
+      # varfiles:
+      #   - path: my-action.env
+      #     optional: true
       varfiles:
+        - # Path to a file containing a path.
+          path:
+
+          # Whether the varfile is optional.
+          optional:
 
       # The spec for the specific action type.
       spec:

@@ -20,6 +20,8 @@ import {
   parseActionReference,
   createSchema,
   unusedApiVersionSchema,
+  joiArray,
+  joiVarfile,
 } from "../config/common.js"
 import { DOCS_BASE_URL } from "../constants.js"
 import { dedent, naturalList, stableStringify } from "../util/string.js"
@@ -225,7 +227,7 @@ export const baseActionConfigSchema = createSchema({
           A map of variables scoped to this particular action. These are resolved before any other parts of the action configuration and take precedence over group-scoped variables (if applicable) and project-scoped variables, in that order. They may reference group-scoped and project-scoped variables, and generally can use any template strings normally allowed when resolving the action.
         `
       ),
-    varfiles: joiSparseArray(joi.posixPath())
+    varfiles: joiArray(joiVarfile())
       .description(
         dedent`
           Specify a list of paths (relative to the directory where the action is defined) to a file containing variables, that we apply on top of the action-level \`variables\` field, and take precedence over group-level variables (if applicable) and project-level variables, in that order.
@@ -236,7 +238,13 @@ export const baseActionConfigSchema = createSchema({
 
           To use different varfiles in different environments, you can template in the environment name to the varfile name, e.g. \`varfile: "my-action.\$\{environment.name\}.env\` (this assumes that the corresponding varfiles exist).
 
-          If a listed varfile cannot be found, it is ignored.
+          If a listed varfile cannot be found, throwing an error.
+          To add optional varfiles, you can use a list item object with a \`path\` and an optional \`optional\` boolean field.
+          \`\`\`yaml
+          varfiles:
+            - path: my-action.env
+              optional: true
+          \`\`\`
         `
       )
       .example("my-action.env")

@@ -456,9 +456,14 @@ name: my-deploy
 # Here, we use per-environment action varfiles as an optional override for variables (these have a higher precedence
 # than those in the `variables` field below).
 #
-# If a varfile is defined but not found, an error is thrown in order to prevent misconfigurations silently passing.
 varfiles:
+  # If a varfile is defined but not found, an error is thrown in order to prevent misconfigurations silently passing.
   - my-service.${environment.name}.yaml
+  # To add an optional varfile, specify an object with the following properties:
+  # - path: The relative path to the varfile from the action root directory.
+  # - optional: A boolean value indicating whether the varfile is optional or required.
+  - path: my-service-2.${environment.name}.yaml
+    optional: true
 variables:
   # This overrides the project-level hostname variable
   hostname: my-service.${var.hostname}
