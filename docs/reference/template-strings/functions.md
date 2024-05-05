@@ -51,6 +51,17 @@ Examples:
 * `${concat([1,2,3], [4,5])}` -> `[1,2,3,4,5]`
 * `${concat("string1", "string2")}` -> `"string1string2"`
 
+## formatDate
+
+Formats the given date using the specified format.
+
+Usage: `formatDate(date, format)`
+
+Examples:
+
+* `${formatDate("2021-01-01T00:00:00Z", "yyyy-MM-dd")}` -> `"2021-01-01"`
+* `${formatDate("2021-01-01T00:00:00Z", "yyyy-MM-dd HH:mm:ss")}` -> `"2021-01-01 00:00:00"`
+
 ## indent
 
 Indents each line in the given string with the specified number of spaces.
@@ -133,6 +144,18 @@ Usage: `lower(string)`
 Examples:
 
 * `${lower("Some String")}` -> `"some string"`
+
+## modifyDate
+
+Modifies or sets a unit of the given date to the specified amount based on the mode.
+
+Usage: `modifyDate(date, amount, unit, [mode])`
+
+Examples:
+
+* `${modifyDate("2021-01-01T00:00:00Z", 1, "days", "add")}` -> `"2021-01-02T00:00:00.000Z"`
+* `${modifyDate("2021-01-01T00:00:00Z", -1, "days", "add")}` -> `"2020-12-31T00:00:00.000Z"`
+* `${modifyDate("2021-01-01T00:00:00Z", 30, "seconds", "set")}` -> `"2021-01-01T00:00:30.000Z"`
 
 ## replace
 
