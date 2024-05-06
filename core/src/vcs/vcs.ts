@@ -164,12 +164,12 @@ export interface VcsHandlerParams {
 
 @Profile()
 export abstract class VcsHandler {
-  protected garden?: Garden
-  protected projectRoot: string
-  protected gardenDirPath: string
-  protected ignoreFile: string
-  protected cache: TreeCache
-  protected profiler: Profiler
+  private readonly projectRoot: string
+  protected readonly garden?: Garden
+  protected readonly gardenDirPath: string
+  protected readonly ignoreFile: string
+  protected readonly cache: TreeCache
+  protected readonly profiler: Profiler
 
   constructor(params: VcsHandlerParams) {
     this.garden = params.garden
