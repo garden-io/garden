@@ -1081,6 +1081,7 @@ export class Garden {
       moduleGraph,
       actionModes,
       linkedSources,
+      actionsFilter,
     })
 
     // Walk through all plugins in dependency order, and allow them to augment the graph
