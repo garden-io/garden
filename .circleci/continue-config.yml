@@ -295,8 +295,16 @@ commands:
             source "$HOME/.cargo/env"
             echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> $BASH_ENV
 
+            # TODO: use the latest stable Rust version and apply the necessary fixes for the Windows build
+            # See the requirements change in https://blog.rust-lang.org/2024/05/02/Rust-1.78.0.html
+            RUST_VERSION="1.77.2"
+            rustup install $RUST_VERSION
+            rustup default $RUST_VERSION
+
             # Cargo builds the other targets in Docker
-            cargo install cross --git https://github.com/cross-rs/cross
+            # Install the latest stable version of Cross
+            # Make sure it's compatible with the Rust version installed above
+            cargo install cross --git https://github.com/cross-rs/cross#v0.2.5
 
   run_npm_dist:
     description: Package built code into executables and persist to dist directory
