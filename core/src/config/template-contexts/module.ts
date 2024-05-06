@@ -214,7 +214,7 @@ export class OutputConfigContext extends ProviderConfigContext {
       .description("Retrieve information about modules that are defined in the project.")
       .meta({ keyPlaceholder: "<module-name>" })
   )
-  public modules: Map<string, ConfigContext>
+  public modules: Map<string, ModuleReferenceContext | ErrorContext>
 
   @schema(
     RuntimeConfigContext.getSchema().description(

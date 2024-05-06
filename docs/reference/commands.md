@@ -3499,12 +3499,13 @@ Outputs all or specified actions. Use with --output=json and jq to extract speci
 
 Examples:
 
-  garden get actions                                         # list all actions in the project
-  garden get actions --include-state                         # list all actions in the project with state in output
-  garden get actions --detail                                # list all actions in project with detailed info
-  garden get actions --kind deploy                           # only list the actions of kind 'Deploy'
-  garden get actions A B --kind build --sort type            # list  actions A and B of kind 'Build' sorted by type
-  garden get actions --include-state -o=json                 # get json output
+  garden get actions                                  # list all actions in the project
+  garden get actions --include-state                  # list all actions in the project with state in output
+  garden get actions --detail                         # list all actions in project with detailed info
+  garden get actions --kind deploy                    # only list the actions of kind 'Deploy'
+  garden get actions a b --kind build --sort type     # list actions 'a' and 'b' of kind 'Build' sorted by type
+  garden get actions build.a deploy.b                 # list actions 'build.a' and 'deploy.b'
+  garden get actions --include-state -o=json          # get json output
 
 #### Usage
 

@@ -984,7 +984,22 @@ export class Garden {
   @OtelTraced({
     name: "getConfigGraph",
   })
-  async getConfigGraph({ log, graphResults, emit, actionModes = {} }: GetConfigGraphParams): Promise<ConfigGraph> {
+  async getConfigGraph({
+    log,
+    graphResults,
+    emit,
+    actionModes = {},
+    /**
+     * If provided, this is used to perform partial module resolution.
+     * TODO: also limit action resolution (less important because it's faster and more done on-demand)
+     */
+    actionsFilter,
+  }: GetConfigGraphParams): Promise<ConfigGraph> {
+    // Feature-flagging this for now
+    if (!gardenEnv.GARDEN_ENABLE_PARTIAL_RESOLUTION) {
+      actionsFilter = undefined
+    }
+
     // TODO: split this out of the Garden class
     await this.scanAndAddConfigs()
 
@@ -1002,12 +1017,12 @@ export class Garden {
       graphResults,
     })
 
-    const resolvedModules = await resolver.resolveAll()
+    const { resolvedModules, skipped } = await resolver.resolve({ actionsFilter })
 
     // Validate the module dependency structure. This will throw on failure.
     const router = await this.getActionRouter()
     const moduleTypes = await this.getModuleTypes()
-    const moduleGraph = new ModuleGraph(resolvedModules, moduleTypes)
+    const moduleGraph = new ModuleGraph({ modules: resolvedModules, moduleTypes, skippedKeys: skipped })
 
     // Require include/exclude on modules if their paths overlap
     const overlaps = detectModuleOverlap({
@@ -1067,8 +1082,6 @@ export class Garden {
       actionModes,
       linkedSources,
     })
-
-    // TODO-0.13.1: detect overlap on Build actions
 
     // Walk through all plugins in dependency order, and allow them to augment the graph
     const plugins = keyBy(await this.getAllPlugins(), "name")
@@ -2266,4 +2279,5 @@ export interface GetConfigGraphParams {
   graphResults?: GraphResults
   emit: boolean
   actionModes?: ActionModeMap
+  actionsFilter?: string[]
 }

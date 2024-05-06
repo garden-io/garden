@@ -9,6 +9,7 @@
 import { BuildCommand } from "../../../../src/commands/build.js"
 import { expect } from "chai"
 import {
+  getAllProcessedTaskNames,
   makeModuleConfig,
   makeTestGarden,
   makeTestGardenA,
@@ -25,6 +26,7 @@ const { writeFile } = fsExtra
 import { join } from "path"
 import type { ProcessCommandResult } from "../../../../src/commands/base.js"
 import { nodeKey } from "../../../../src/graph/modules.js"
+import { gardenEnv } from "../../../../src/constants.js"
 
 describe("BuildCommand", () => {
   it("should build everything in a project and output the results", async () => {
@@ -106,6 +108,68 @@ describe("BuildCommand", () => {
 
     const taskOutputResults = taskResultOutputs(result!)
     expect(taskOutputResults["build.module-b"].state).to.equal("ready")
+  })
+
+  context("GARDEN_ENABLE_PARTIAL_RESOLUTION=true", () => {
+    const originalValue = gardenEnv.GARDEN_ENABLE_PARTIAL_RESOLUTION
+
+    before(() => {
+      gardenEnv.GARDEN_ENABLE_PARTIAL_RESOLUTION = true
+    })
+
+    after(() => {
+      gardenEnv.GARDEN_ENABLE_PARTIAL_RESOLUTION = originalValue
+    })
+
+    it("should optionally build and deploy single service and its dependencies", async () => {
+      const garden = await makeTestGardenA([], { noCache: true })
+      const log = garden.log
+      const command = new BuildCommand()
+
+      const { result, errors } = await command.action({
+        garden,
+        log,
+        args: { names: ["module-b"] },
+        opts: withDefaultGlobalOpts({ "watch": false, "force": true, "with-dependants": false }),
+      })
+
+      if (errors) {
+        throw errors[0]
+      }
+
+      const taskOutputResults = taskResultOutputs(result!)
+      expect(taskOutputResults["build.module-b"].state).to.equal("ready")
+
+      const keys = getAllProcessedTaskNames(result!.graphResults)
+
+      expect(keys).to.not.include("build.module-c")
+      expect(keys).to.not.include("resolve-action.build.module-c")
+    })
+
+    it("works with wildcard name", async () => {
+      const garden = await makeTestGardenA([], { noCache: true })
+      const log = garden.log
+      const command = new BuildCommand()
+
+      const { result, errors } = await command.action({
+        garden,
+        log,
+        args: { names: ["*-b"] },
+        opts: withDefaultGlobalOpts({ "watch": false, "force": true, "with-dependants": false }),
+      })
+
+      if (errors) {
+        throw errors[0]
+      }
+
+      const taskOutputResults = taskResultOutputs(result!)
+      expect(taskOutputResults["build.module-b"].state).to.equal("ready")
+
+      const keys = getAllProcessedTaskNames(result!.graphResults)
+
+      expect(keys).to.not.include("build.module-c")
+      expect(keys).to.not.include("resolve-action.build.module-c")
+    })
   })
 
   it("should be protected", async () => {

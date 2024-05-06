@@ -91,7 +91,15 @@ export class ModuleGraph {
     [key: string]: EntityConfigEntry<"test", TestConfig>
   }
 
-  constructor(modules: GardenModule[], moduleTypes: ModuleTypeMap) {
+  constructor({
+    modules,
+    moduleTypes,
+    skippedKeys,
+  }: {
+    modules: GardenModule[]
+    moduleTypes: ModuleTypeMap
+    skippedKeys?: Set<string>
+  }) {
     this.dependencyGraph = {}
     this.modules = {}
     this.serviceConfigs = {}
@@ -130,6 +138,10 @@ export class ModuleGraph {
           })
         }
 
+        if (skippedKeys?.has(`deploy.${serviceName}`)) {
+          continue
+        }
+
         this.serviceConfigs[serviceName] = { type: "service", moduleKey, config: serviceConfig }
       }
 
@@ -151,11 +163,15 @@ export class ModuleGraph {
           })
         }
 
+        if (skippedKeys?.has(`run.${taskName}`)) {
+          continue
+        }
+
         this.taskConfigs[taskName] = { type: "task", moduleKey, config: taskConfig }
       }
     }
 
-    detectMissingDependencies(Object.values(this.modules))
+    detectMissingDependencies(Object.values(this.modules), skippedKeys)
 
     // Add relations between nodes
     for (const module of modules) {
@@ -183,6 +199,10 @@ export class ModuleGraph {
 
       // Service dependencies
       for (const serviceConfig of module.serviceConfigs) {
+        if (skippedKeys?.has(`deploy.${serviceConfig.name}`)) {
+          continue
+        }
+
         const serviceNode = this.getNode(
           "deploy",
           serviceConfig.name,
@@ -210,6 +230,10 @@ export class ModuleGraph {
 
       // Task dependencies
       for (const taskConfig of module.taskConfigs) {
+        if (skippedKeys?.has(`run.${taskConfig.name}`)) {
+          continue
+        }
+
         const taskNode = this.getNode("run", taskConfig.name, moduleKey, module.disabled || taskConfig.disabled)
 
         if (needsBuild) {
@@ -232,6 +256,10 @@ export class ModuleGraph {
 
       // Test dependencies
       for (const testConfig of module.testConfigs) {
+        if (skippedKeys?.has(`test.${module.name}-${testConfig.name}`)) {
+          continue
+        }
+
         const testConfigName = module.name + "." + testConfig.name
 
         this.testConfigs[testConfigName] = { type: "test", moduleKey, config: testConfig }
@@ -704,7 +732,7 @@ export class ModuleDependencyGraphNode {
  * Looks for dependencies on non-existent modules, services or tasks, and throws a ConfigurationError
  * if any were found.
  */
-export function detectMissingDependencies(moduleConfigs: ModuleConfig[]) {
+export function detectMissingDependencies(moduleConfigs: ModuleConfig[], skippedKeys?: Set<string>) {
   const moduleNames: Set<string> = new Set(moduleConfigs.map((m) => m.name))
   const serviceNames = moduleConfigs.flatMap((m) => m.serviceConfigs.map((s) => s.name))
   const taskNames = moduleConfigs.flatMap((m) => m.taskConfigs.map((t) => t.name))
@@ -729,6 +757,10 @@ export function detectMissingDependencies(moduleConfigs: ModuleConfig[]) {
     for (const [configKey, entityName] of runtimeDepTypes) {
       for (const config of m[configKey]) {
         for (const missingRuntimeDep of config.dependencies.filter((d: string) => !runtimeNames.has(d))) {
+          if (skippedKeys?.has(`deploy.${missingRuntimeDep}`) || skippedKeys?.has(`run.${missingRuntimeDep}`)) {
+            // Don't flag missing dependencies that are explicitly skipped during resolution
+            continue
+          }
           missingDepDescriptions.push(deline`
             ${entityName} '${config.name}' (in module '${m.name}'): Unknown service or task '${missingRuntimeDep}'
             referenced in dependencies.`)

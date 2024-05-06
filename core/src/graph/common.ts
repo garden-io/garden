@@ -69,6 +69,25 @@ export class DependencyGraph<T> extends DepGraph<T> {
     }
   }
 
+  keys() {
+    return Object.keys(this["nodes"])
+  }
+
+  /**
+   * Returns a clone of the graph.
+   * Overriding base implementation to retain the same class type.
+   */
+  override clone() {
+    const result = new DependencyGraph<T>()
+    const keys = Object.keys(this["nodes"])
+    for (const n of keys) {
+      result["nodes"][n] = this["nodes"][n]
+      result["outgoingEdges"][n] = [...this["outgoingEdges"][n]]
+      result["incomingEdges"][n] = [...this["incomingEdges"][n]]
+    }
+    return result
+  }
+
   /**
    * Returns an error if cycles were found.
    */

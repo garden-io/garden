@@ -80,7 +80,13 @@ export class GetModulesCommand extends Command {
   }
 
   async action({ garden, log, args, opts }: CommandParams<Args, Opts>) {
-    const graph = await garden.getConfigGraph({ log, emit: false })
+    let actionsFilter: string[] | undefined = undefined
+
+    if (args.modules) {
+      actionsFilter = args.modules.map((name) => `build.${name}`)
+    }
+
+    const graph = await garden.getConfigGraph({ log, emit: false, actionsFilter })
 
     const modules = sortBy(
       graph.getModules({ names: args.modules, includeDisabled: !opts["exclude-disabled"] }),

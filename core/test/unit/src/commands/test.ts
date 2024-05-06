@@ -19,6 +19,7 @@ import {
 } from "../../../helpers.js"
 import type { ModuleConfig } from "../../../../src/config/module.js"
 import type { Log } from "../../../../src/logger/log-entry.js"
+import { gardenEnv } from "../../../../src/constants.js"
 
 describe("TestCommand", () => {
   const command = new TestCommand()
@@ -100,6 +101,110 @@ describe("TestCommand", () => {
     })
 
     expect(Object.keys(result!.graphResults)).to.eql(["test.module-a-unit"])
+  })
+
+  context("GARDEN_ENABLE_PARTIAL_RESOLUTION=true", () => {
+    const originalValue = gardenEnv.GARDEN_ENABLE_PARTIAL_RESOLUTION
+
+    before(() => {
+      gardenEnv.GARDEN_ENABLE_PARTIAL_RESOLUTION = true
+    })
+
+    after(() => {
+      gardenEnv.GARDEN_ENABLE_PARTIAL_RESOLUTION = originalValue
+    })
+
+    it("should optionally test single module", async () => {
+      const { result } = await command.action({
+        garden,
+        log,
+        args: { names: undefined },
+        opts: withDefaultGlobalOpts({
+          "name": undefined,
+          "force": true,
+          "force-build": true,
+          "watch": false,
+          "skip": [],
+          "skip-dependencies": false,
+          "skip-dependants": false,
+          "interactive": false,
+          "module": ["module-a"], // <---
+        }),
+      })
+
+      const keys = getAllProcessedTaskNames(result!.graphResults)
+
+      expect(keys).to.eql([
+        "build.module-a",
+        "deploy.service-a",
+        "resolve-action.build.module-a",
+        "resolve-action.deploy.service-a",
+        "resolve-action.test.module-a-integration",
+        "resolve-action.test.module-a-unit",
+        "test.module-a-integration",
+        "test.module-a-unit",
+      ])
+    })
+
+    it("should optionally run single test", async () => {
+      const { result } = await command.action({
+        garden,
+        log,
+        args: { names: ["module-a-unit"] }, // <---
+        opts: withDefaultGlobalOpts({
+          "name": undefined,
+          "force": true,
+          "force-build": true,
+          "watch": false,
+          "skip": [],
+          "skip-dependencies": false,
+          "skip-dependants": false,
+          "interactive": false,
+          "module": undefined,
+        }),
+      })
+
+      const keys = getAllProcessedTaskNames(result!.graphResults)
+
+      expect(keys).to.eql([
+        "build.module-a",
+        "resolve-action.build.module-a",
+        "resolve-action.test.module-a-unit",
+        "test.module-a-unit",
+      ])
+    })
+
+    it("works with wildcard name", async () => {
+      const { result } = await command.action({
+        garden,
+        log,
+        args: { names: ["module-a-*"] }, // <---
+        opts: withDefaultGlobalOpts({
+          "name": undefined,
+          "force": true,
+          "force-build": true,
+          "watch": false,
+          "skip": [],
+          "skip-dependencies": false,
+          "skip-dependants": false,
+          "interactive": false,
+          "module": undefined,
+        }),
+      })
+
+      const keys = getAllProcessedTaskNames(result!.graphResults)
+
+      expect(keys).to.eql([
+        "build.module-a",
+        "deploy.service-a",
+        "resolve-action.build.module-a",
+        "resolve-action.deploy.service-a",
+        "resolve-action.test.module-a-integration",
+        "resolve-action.test.module-a-unit",
+        "test.module-a-integration",
+        "test.module-a-unit",
+      ])
+    })
   })
 
   it("should optionally skip tests by name", async () => {

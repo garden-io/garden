@@ -11,6 +11,7 @@ import { keyBy, mapValues } from "lodash-es"
 import { makeTestGardenA, withDefaultGlobalOpts } from "../../../../helpers.js"
 import { GetModulesCommand } from "../../../../../src/commands/get/get-modules.js"
 import { withoutInternalFields } from "../../../../../src/util/logging.js"
+import { gardenEnv } from "../../../../../src/constants.js"
 
 describe("GetModulesCommand", () => {
   const command = new GetModulesCommand()
@@ -72,5 +73,38 @@ describe("GetModulesCommand", () => {
     expect(res.result).to.eql({ modules: { "module-a": withoutInternalFields(moduleA) } })
     expect(res.result.modules["module-a"]["buildDependencies"]).to.be.undefined
     expect(res.result.modules["module-a"].version.dependencyVersions).to.be.undefined
+  })
+
+  context("GARDEN_ENABLE_PARTIAL_RESOLUTION=true", () => {
+    const originalValue = gardenEnv.GARDEN_ENABLE_PARTIAL_RESOLUTION
+
+    before(() => {
+      gardenEnv.GARDEN_ENABLE_PARTIAL_RESOLUTION = true
+    })
+
+    after(() => {
+      gardenEnv.GARDEN_ENABLE_PARTIAL_RESOLUTION = originalValue
+    })
+
+    it("returns specified module in a project", async () => {
+      const garden = await makeTestGardenA()
+      const log = garden.log
+
+      const res = await command.action({
+        garden,
+        log,
+        args: { modules: ["module-a"] },
+        opts: withDefaultGlobalOpts({ "exclude-disabled": false, "full": false }),
+      })
+
+      expect(command.outputsSchema().validate(res.result).error).to.be.undefined
+
+      const graph = await garden.getConfigGraph({ log, emit: false })
+      const moduleA = graph.getModule("module-a")
+
+      expect(res.result).to.eql({ modules: { "module-a": withoutInternalFields(moduleA) } })
+      expect(res.result.modules["module-a"]["buildDependencies"]).to.be.undefined
+      expect(res.result.modules["module-a"].version.dependencyVersions).to.be.undefined
+    })
   })
 })

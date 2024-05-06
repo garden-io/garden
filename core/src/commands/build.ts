@@ -82,8 +82,15 @@ export class BuildCommand extends Command<Args, Opts> {
 
     await garden.clearBuilds()
 
-    const graph = await garden.getConfigGraph({ log, emit: true })
-    let actions = graph.getBuilds({ names: args.names })
+    let actionsFilter: string[] | undefined = undefined
+
+    // TODO: Support partial module resolution with --with-dependants
+    if (args.names && !opts["with-dependants"]) {
+      actionsFilter = args.names.map((name) => `build.${name}`)
+    }
+
+    const graph = await garden.getConfigGraph({ log, emit: true, actionsFilter })
+    let actions = graph.getBuilds({ includeNames: args.names })
 
     if (opts["with-dependants"]) {
       // Then we include build dependants (recursively) in the list of modules to build.
