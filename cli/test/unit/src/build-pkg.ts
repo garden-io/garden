@@ -7,7 +7,8 @@
  */
 
 import { expect } from "chai"
-import { getTarballFilename, getZipFilename } from "../../../src/build-pkg.js"
+import { getTarballFilename, getZipFilename, nodeTargets } from "../../../src/build-pkg.js"
+import { downloadAndVerifyHash } from "@garden-io/core/build/src/util/testing.js"
 
 describe("build-pkg", () => {
   const version = "0.12.44"
@@ -39,5 +40,19 @@ describe("build-pkg", () => {
     it("ensure filename format for alpine package", async () => {
       expectZipFilenameFormat("windows-amd64")
     })
+  })
+
+  context("Node binaries", () => {
+    const nodeTargetEntries = Object.entries(nodeTargets)
+    for (const [key, target] of nodeTargetEntries) {
+      const spec = target.spec
+      it(`${key} ${spec.node}`, async () => {
+        const architecture = spec.arch
+        const platform = spec.nodeBinaryPlatform
+        const url = spec.url
+        const sha256 = spec.checksum
+        await downloadAndVerifyHash({ architecture, platform, sha256, url })
+      })
+    }
   })
 })
