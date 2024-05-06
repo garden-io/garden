@@ -296,7 +296,8 @@ commands:
             echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> $BASH_ENV
 
             # Cargo builds the other targets in Docker
-            cargo install cross --git https://github.com/cross-rs/cross
+            # Install the latest stable version of Cross
+            cargo install cross --git https://github.com/cross-rs/cross#v0.2.5
 
   run_npm_dist:
     description: Package built code into executables and persist to dist directory
