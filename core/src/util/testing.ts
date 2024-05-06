@@ -577,7 +577,16 @@ export function equalWithPrecision(a: number, b: number, precision: number): boo
   return diff <= eps
 }
 
-export async function downloadAndVerifyHash({ architecture, platform, sha256, url }: ToolBuildSpec) {
+interface ToolBuildSpecLike {
+  platform: string
+  architecture: string
+  url: string
+  sha256: string
+}
+
+export async function downloadAndVerifyHash({ architecture, platform, sha256, url }: ToolBuildSpec): Promise<void>
+export async function downloadAndVerifyHash({ architecture, platform, sha256, url }: ToolBuildSpecLike): Promise<void>
+export async function downloadAndVerifyHash({ architecture, platform, sha256, url }: ToolBuildSpecLike): Promise<void> {
   // This is an ESM module, so we need to use fileurltopath
   const downloadDir = join(
     dirname(fileURLToPath(import.meta.url)),
