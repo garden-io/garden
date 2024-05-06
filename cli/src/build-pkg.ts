@@ -73,14 +73,17 @@ function getRustTarget(spec: TargetSpec): string {
   return `${rustArchMap[spec.arch]}-${rustOsMap[spec.os]}`
 }
 
-const targets: { [name: string]: { spec: TargetSpec; handler: (p: TargetHandlerParams) => Promise<void> } } = {
+export const nodeVersion = "21.1.0"
+export const nodeTargets: {
+  [name: string]: { spec: TargetSpec; handler: (p: TargetHandlerParams) => Promise<void> }
+} = {
   "macos-amd64": {
     spec: {
       os: "macos",
       arch: "x64",
-      node: "21.1.0",
+      node: nodeVersion,
       nodeBinaryPlatform: "darwin",
-      url: "https://nodejs.org/dist/v21.1.0/node-v21.1.0-darwin-x64.tar.gz",
+      url: `https://nodejs.org/dist/v${nodeVersion}/node-v${nodeVersion}-darwin-x64.tar.gz`,
       checksum: "6b526c08320fcf41ced0ceee7588828ea2cb07ba826af4ff82b0ec53958fd8a4",
     },
     handler: pkgMacos,
@@ -89,9 +92,9 @@ const targets: { [name: string]: { spec: TargetSpec; handler: (p: TargetHandlerP
     spec: {
       os: "macos",
       arch: "arm64",
-      node: "21.1.0",
+      node: nodeVersion,
       nodeBinaryPlatform: "darwin",
-      url: "https://nodejs.org/dist/v21.1.0/node-v21.1.0-darwin-arm64.tar.gz",
+      url: `https://nodejs.org/dist/v${nodeVersion}/node-v${nodeVersion}-darwin-arm64.tar.gz`,
       checksum: "4872463830381785b91d13a7fbb9b6f4a9c7658e10d964f6c421951cec8833ad",
     },
     handler: pkgMacos,
@@ -100,9 +103,9 @@ const targets: { [name: string]: { spec: TargetSpec; handler: (p: TargetHandlerP
     spec: {
       os: "linux",
       arch: "x64",
-      node: "21.1.0",
+      node: nodeVersion,
       nodeBinaryPlatform: "linux",
-      url: "https://nodejs.org/dist/v21.1.0/node-v21.1.0-linux-x64.tar.gz",
+      url: `https://nodejs.org/dist/v${nodeVersion}/node-v${nodeVersion}-linux-x64.tar.gz`,
       checksum: "b919cad4e8a5abbd7e6a4433c4f8a7cdc1a78c1e526c6c1aa4a5fcf74011ad2b",
     },
     handler: pkgLinux,
@@ -111,9 +114,9 @@ const targets: { [name: string]: { spec: TargetSpec; handler: (p: TargetHandlerP
     spec: {
       os: "linux",
       arch: "arm64",
-      node: "21.1.0",
+      node: nodeVersion,
       nodeBinaryPlatform: "linux",
-      url: "https://nodejs.org/dist/v21.1.0/node-v21.1.0-linux-arm64.tar.gz",
+      url: `https://nodejs.org/dist/v${nodeVersion}/node-v${nodeVersion}-linux-arm64.tar.gz`,
       checksum: "5480f438703049f55f19fc3247f6aa1e8059b2f47cf08e9adfdcb7ce7aedff70",
     },
     handler: pkgLinux,
@@ -122,10 +125,10 @@ const targets: { [name: string]: { spec: TargetSpec; handler: (p: TargetHandlerP
     spec: {
       os: "alpine",
       arch: "x64",
-      node: "21.1.0",
+      node: nodeVersion,
       nodeBinaryPlatform: "linux",
       // Alpine builds live in https://unofficial-builds.nodejs.org/download/release/
-      url: "https://unofficial-builds.nodejs.org/download/release/v21.1.0/node-v21.1.0-linux-x64-musl.tar.gz",
+      url: `https://unofficial-builds.nodejs.org/download/release/v${nodeVersion}/node-v${nodeVersion}-linux-x64-musl.tar.gz`,
       checksum: "a3c838b0d00e7c2a218ceef39b4bf2c6dd6a433eb5970012fe36038904c8feef",
     },
     handler: pkgAlpine,
@@ -134,9 +137,9 @@ const targets: { [name: string]: { spec: TargetSpec; handler: (p: TargetHandlerP
     spec: {
       os: "win",
       arch: "x64",
-      node: "21.1.0",
+      node: nodeVersion,
       nodeBinaryPlatform: "win32",
-      url: "https://nodejs.org/dist/v21.1.0/node-v21.1.0-win-x64.zip",
+      url: `https://nodejs.org/dist/v${nodeVersion}/node-v${nodeVersion}-win-x64.zip`,
       checksum: "6ee3e74ecceb27f388d75a94d6782df670bad37a4d10ff2d28a7c7bcb75bdb49",
     },
     handler: pkgWindows,
@@ -224,11 +227,11 @@ async function buildBinaries(args: string[]) {
     cargoCommand = argv.cargocommand
   }
 
-  const selected = argv._.length > 0 ? pick(targets, argv._) : targets
+  const selected = argv._.length > 0 ? pick(nodeTargets, argv._) : nodeTargets
 
   if (Object.keys(selected).length === 0) {
     console.log(chalk.red("No matching targets."))
-    console.log(`Available targets: ${Object.keys(targets).join(", ")}}`)
+    console.log(`Available targets: ${Object.keys(nodeTargets).join(", ")}}`)
     process.exit(1)
   }
 
