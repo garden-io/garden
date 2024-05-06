@@ -73,8 +73,10 @@ function getRustTarget(spec: TargetSpec): string {
   return `${rustArchMap[spec.arch]}-${rustOsMap[spec.os]}`
 }
 
-const nodeVersion = "21.1.0"
-const targets: { [name: string]: { spec: TargetSpec; handler: (p: TargetHandlerParams) => Promise<void> } } = {
+export const nodeVersion = "21.1.0"
+export const nodeTargets: {
+  [name: string]: { spec: TargetSpec; handler: (p: TargetHandlerParams) => Promise<void> }
+} = {
   "macos-amd64": {
     spec: {
       os: "macos",
@@ -225,11 +227,11 @@ async function buildBinaries(args: string[]) {
     cargoCommand = argv.cargocommand
   }
 
-  const selected = argv._.length > 0 ? pick(targets, argv._) : targets
+  const selected = argv._.length > 0 ? pick(nodeTargets, argv._) : nodeTargets
 
   if (Object.keys(selected).length === 0) {
     console.log(chalk.red("No matching targets."))
-    console.log(`Available targets: ${Object.keys(targets).join(", ")}}`)
+    console.log(`Available targets: ${Object.keys(nodeTargets).join(", ")}}`)
     process.exit(1)
   }
 
