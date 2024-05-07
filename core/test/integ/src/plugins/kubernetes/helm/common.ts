@@ -12,6 +12,7 @@ import { resolve } from "path"
 import { expect } from "chai"
 import { first, uniq } from "lodash-es"
 import {
+  dependencyUpdate,
   getBaseModule,
   getChartPath,
   getChartResources,
@@ -32,6 +33,7 @@ import { getIngressApiVersion } from "../../../../../../src/plugins/kubernetes/c
 import type { HelmDeployAction } from "../../../../../../src/plugins/kubernetes/helm/config.js"
 import { loadAllYaml, loadYaml } from "@kubernetes/client-node"
 import fsExtra from "fs-extra"
+import { getActionNamespace } from "../../../../../../src/plugins/kubernetes/namespace.js"
 const { readdir, readFile } = fsExtra
 
 let helmTestGarden: TestGarden
@@ -258,6 +260,32 @@ ${expectedIngressOutput}
 
       const kinds = uniq(parsed.map((p) => (p as any).kind)).sort()
       expect(kinds).to.eql(["Secret", "Service", "StatefulSet"])
+    })
+  })
+
+  describe("dependencyUpdate", () => {
+    it("should gracefully handle concurrent update requests for the same chart path", async () => {
+      const action = await garden.resolveAction({
+        action: graph.getDeploy("chart-with-dependency-module"),
+        log,
+        graph,
+      })
+      const namespace = await getActionNamespace({
+        ctx,
+        log,
+        action,
+        provider: ctx.provider,
+        skipCreate: true,
+      })
+      const chartPath = await getChartPath(action)
+      if (!chartPath) {
+        throw new Error("chartPath is undefined (this is a problem with the test case / test project")
+      }
+      await Promise.all([
+        dependencyUpdate(ctx, log, namespace, chartPath),
+        dependencyUpdate(ctx, log, namespace, chartPath),
+        dependencyUpdate(ctx, log, namespace, chartPath),
+      ])
     })
   })
 
@@ -650,6 +678,12 @@ ${expectedIngressOutput}
         expect(pathFiles).to.include("Chart.yaml")
       })
 
+      const isDepUpdateLogLine = (actionName: string, msg: string | undefined) => {
+        const updated = msg?.includes("helm") && msg?.includes("dependency update") && msg.includes(actionName)
+        const alreadyUpdated = msg?.includes("have already been updated")
+        return updated || alreadyUpdated
+      }
+
       it("updates dependencies for local charts in build dir for modules", async () => {
         const action = await garden.resolveAction<HelmDeployAction>({
           action: graph.getDeploy("chart-with-dependency-module"),
@@ -664,9 +698,7 @@ ${expectedIngressOutput}
 
         const helmDependencyUpdateLogLine = log.entries.find((entry) => {
           const msg = resolveMsg(entry)
-          return (
-            msg?.includes("helm") && msg?.includes("dependency update") && msg.includes("chart-with-dependency-module")
-          )
+          return isDepUpdateLogLine("chart-with-dependency-module", msg)
         })
         expect(helmDependencyUpdateLogLine).to.exist
       })
@@ -685,9 +717,7 @@ ${expectedIngressOutput}
 
         const helmDependencyUpdateLogLine = log.entries.find((entry) => {
           const msg = resolveMsg(entry)
-          return (
-            msg?.includes("helm") && msg?.includes("dependency update") && msg.includes("chart-with-dependency-action")
-          )
+          return isDepUpdateLogLine("chart-with-dependency-action", msg)
         })
         expect(helmDependencyUpdateLogLine).to.exist
       })

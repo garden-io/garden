@@ -7,6 +7,7 @@
  */
 
 import { flatten, isPlainObject } from "lodash-es"
+import AsyncLock from "async-lock"
 import { join, resolve } from "path"
 import fsExtra from "fs-extra"
 const { pathExists, readFile, remove, writeFile } = fsExtra
@@ -44,13 +45,27 @@ interface Chart {
   dependencies?: { name: string }[]
 }
 
-async function dependencyUpdate(ctx: KubernetesPluginContext, log: Log, namespace: string, chartPath: string) {
-  await helm({
-    ctx,
-    log,
-    namespace,
-    args: ["dependency", "update", chartPath],
-    emitLogEvents: true,
+const depUpdateLock = new AsyncLock()
+const depUpdateTimestamps: Record<string, number> = {}
+const depUpdateTTLMsec = 300 * 1000
+
+export async function dependencyUpdate(ctx: KubernetesPluginContext, log: Log, namespace: string, chartPath: string) {
+  await depUpdateLock.acquire(chartPath, async () => {
+    const now = new Date().getTime()
+    const lastUpdatedAt = depUpdateTimestamps[chartPath]
+    if (lastUpdatedAt && now - lastUpdatedAt < depUpdateTTLMsec) {
+      // Dependencies for this `chartPath` have been updated within the last 5 minutes, no need to update again.
+      log.debug(`Dependencies for ${chartPath} have already been updated in the last 5 minutes, skipping...`)
+      return
+    }
+    await helm({
+      ctx,
+      log,
+      namespace,
+      args: ["dependency", "update", chartPath],
+      emitLogEvents: true,
+    })
+    depUpdateTimestamps[chartPath] = now
   })
 }
 
