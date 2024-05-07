@@ -1,6 +1,6 @@
-#! /bin/sh
+#!/bin/sh
 
-set -e
+set -e -o pipefail
 
 # Print our lovely banner image
 echo "[0;40;36m[48;2;35;163;116m  [48;2;30m[48;2;67;136;127m  [36m[48;2;92;207;254m  [42m[48;2;35;163;116m  [1m[48;2;91;253;255m  [0m[48;2;104;188;83m  [48;2;30m[48;2;63;132;75m  [0;36m[48;2;38;87;111m  [1m[48;2;91;253;255m  [30m[48;2;44;91;85m  [0;36m[48;2;45;161;133m  [48;2;30m[48;2;69;125;127m  [48;2;52;106;90m  [0;34m[48;2;31;69;124m  [48;2;30m[48;2;62;129;73m  [0;36m[48;2;15;91;163m  [48;2;30m[48;2;65;133;125m  [0;36m[48;2;35;163;116m  [48;2;30m[48;2;76;124;98m  [48;2;52;106;90m  [48;2;69;125;127m  [0;36m[48;2;36;78;92m  [48;2;30m[48;2;52;106;90m  [48;2;69;125;127m  [48;2;62;129;73m  [48;2;52;106;90m  [0;32m[48;2;42;184;93m  [0;36m[48;2;15;91;163m  [48;2;34;157;187m  [1m[48;2;116;251;192m  [0;36m[48;2;36;77;91m  [32m[48;2;56;156;96m  [36m[48;2;34;157;187m  [48;2;36;77;91m  [1m[48;2;116;251;192m  [0;32m[48;2;56;156;96m[0m
@@ -27,7 +27,7 @@ else
     num=$2
     awk -F"[,:}]" '{for(i=1;i<=NF;i++){if($i~/'$KEY'\042/){print $(i+1)}}}' | tr -d '"' | sed -n ${num}p
   }
-  GARDEN_VERSION=$(curl -sL https://github.com/garden-io/garden/releases/latest -H "Accept: application/json" | jsonValue tag_name 1)
+  GARDEN_VERSION=$(curl -sSfL https://github.com/garden-io/garden/releases/latest -H "Accept: application/json")
 fi
 
 # Detect OS
@@ -62,9 +62,9 @@ tmp=$(mktemp -d /tmp/garden-install.XXXXXX)
   cd "$tmp"
 
   echo "→ Downloading ${url}..."
-  curl -sLO "${url}"
+  curl -sSfLO "${url}"
 
-  SHA=$(curl -sL "${url}.sha256")
+  SHA=$(curl -sSfL "${url}.sha256")
   echo ""
   echo "Download complete!, validating checksum..."
   checksum=$(openssl dgst -sha256 "${filename}" | awk '{ print $2 }')

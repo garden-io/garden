@@ -73,7 +73,7 @@ function getRustTarget(spec: TargetSpec): string {
   return `${rustArchMap[spec.arch]}-${rustOsMap[spec.os]}`
 }
 
-export const nodeVersion = "21.1.0"
+export const nodeVersion = "21.7.3"
 export const nodeTargets: {
   [name: string]: { spec: TargetSpec; handler: (p: TargetHandlerParams) => Promise<void> }
 } = {
@@ -84,7 +84,7 @@ export const nodeTargets: {
       node: nodeVersion,
       nodeBinaryPlatform: "darwin",
       url: `https://nodejs.org/dist/v${nodeVersion}/node-v${nodeVersion}-darwin-x64.tar.gz`,
-      checksum: "6b526c08320fcf41ced0ceee7588828ea2cb07ba826af4ff82b0ec53958fd8a4",
+      checksum: "58d0212e169764c3424d2d5bec73e8a098d34b4e82fca6e1dd54083ea3049c5f",
     },
     handler: pkgMacos,
   },
@@ -95,7 +95,7 @@ export const nodeTargets: {
       node: nodeVersion,
       nodeBinaryPlatform: "darwin",
       url: `https://nodejs.org/dist/v${nodeVersion}/node-v${nodeVersion}-darwin-arm64.tar.gz`,
-      checksum: "4872463830381785b91d13a7fbb9b6f4a9c7658e10d964f6c421951cec8833ad",
+      checksum: "165d3ba3500cfc8708f85d3815aaaa21ce418164c933d5419c30825ccad3a99c",
     },
     handler: pkgMacos,
   },
@@ -106,7 +106,7 @@ export const nodeTargets: {
       node: nodeVersion,
       nodeBinaryPlatform: "linux",
       url: `https://nodejs.org/dist/v${nodeVersion}/node-v${nodeVersion}-linux-x64.tar.gz`,
-      checksum: "b919cad4e8a5abbd7e6a4433c4f8a7cdc1a78c1e526c6c1aa4a5fcf74011ad2b",
+      checksum: "a64cbb12282cb60d35743ef4f51561f8d89946a5f0a484f99168f4de602d7c3d",
     },
     handler: pkgLinux,
   },
@@ -117,7 +117,7 @@ export const nodeTargets: {
       node: nodeVersion,
       nodeBinaryPlatform: "linux",
       url: `https://nodejs.org/dist/v${nodeVersion}/node-v${nodeVersion}-linux-arm64.tar.gz`,
-      checksum: "5480f438703049f55f19fc3247f6aa1e8059b2f47cf08e9adfdcb7ce7aedff70",
+      checksum: "15390ba8509b71c0051e61f75a6fdb0a2eb38318c03a01bf60c93d33d414d138",
     },
     handler: pkgLinux,
   },
@@ -129,7 +129,7 @@ export const nodeTargets: {
       nodeBinaryPlatform: "linux",
       // Alpine builds live in https://unofficial-builds.nodejs.org/download/release/
       url: `https://unofficial-builds.nodejs.org/download/release/v${nodeVersion}/node-v${nodeVersion}-linux-x64-musl.tar.gz`,
-      checksum: "a3c838b0d00e7c2a218ceef39b4bf2c6dd6a433eb5970012fe36038904c8feef",
+      checksum: "2d285e4c473b31420d9473e4c38a9757cadaef640faebaaa0d13642bac08be4a",
     },
     handler: pkgAlpine,
   },
@@ -140,7 +140,7 @@ export const nodeTargets: {
       node: nodeVersion,
       nodeBinaryPlatform: "win32",
       url: `https://nodejs.org/dist/v${nodeVersion}/node-v${nodeVersion}-win-x64.zip`,
-      checksum: "6ee3e74ecceb27f388d75a94d6782df670bad37a4d10ff2d28a7c7bcb75bdb49",
+      checksum: "d2314f496782b53ad2fe5fa82fca6ff7f39f07fe59dd007116404ad92179c78e",
     },
     handler: pkgWindows,
   },
