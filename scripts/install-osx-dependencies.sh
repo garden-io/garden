@@ -15,18 +15,18 @@ gcloud components update
 gcloud components install beta gke-gcloud-auth-plugin
 
 # install nvm
-curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh | bash
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
 # make nvm command active without terminal reopening
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
 # install node
-nvm install v18
-nvm alias default v18
+nvm install v21
+nvm alias default v21
 nvm use default
 
 # install/update global packages
 npm install -g ts-node typescript
 
 # install npm
-npm install -g npm@9
+npm install -g npm@10
