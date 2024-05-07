@@ -27,7 +27,7 @@ else
     num=$2
     awk -F"[,:}]" '{for(i=1;i<=NF;i++){if($i~/'$KEY'\042/){print $(i+1)}}}' | tr -d '"' | sed -n ${num}p
   }
-  GARDEN_VERSION=$(curl -sSfL https://github.com/garden-io/garden/releases/latest -H "Accept: application/json")
+  GARDEN_VERSION=$(curl -sSfL https://github.com/garden-io/garden/releases/latest -H "Accept: application/json" | jsonValue tag_name 1)
 fi
 
 # Detect OS
