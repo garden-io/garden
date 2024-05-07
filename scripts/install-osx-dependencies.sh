@@ -29,4 +29,4 @@ nvm use default
 npm install -g ts-node typescript
 
 # install npm
-npm install -g npm@9
+npm install -g npm@10
