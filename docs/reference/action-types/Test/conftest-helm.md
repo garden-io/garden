@@ -208,11 +208,17 @@ _NOTE: The default varfile format will change to YAML in Garden v0.13, since YAM
 
 To use different varfiles in different environments, you can template in the environment name to the varfile name, e.g. `varfile: "my-action.\$\{environment.name\}.env` (this assumes that the corresponding varfiles exist).
 
-If a listed varfile cannot be found, it is ignored.
+If a listed varfile cannot be found, throwing an error.
+To add optional varfiles, you can use a list item object with a `path` and an optional `optional` boolean field.
+```yaml
+varfiles:
+  - path: my-action.env
+    optional: true
+```
 
-| Type               | Default | Required |
-| ------------------ | ------- | -------- |
-| `array[posixPath]` | `[]`    | No       |
+| Type                  | Default | Required |
+| --------------------- | ------- | -------- |
+| `array[alternatives]` | `[]`    | No       |
 
 Example:
 
@@ -220,6 +226,26 @@ Example:
 varfiles:
   "my-action.env"
 ```
+
+### `varfiles[].path`
+
+[varfiles](#varfiles) > path
+
+Path to a file containing a path.
+
+| Type        | Required |
+| ----------- | -------- |
+| `posixPath` | Yes      |
+
+### `varfiles[].optional`
+
+[varfiles](#varfiles) > optional
+
+Whether the varfile is optional.
+
+| Type      | Required |
+| --------- | -------- |
+| `boolean` | No       |
 
 ### `build`
 

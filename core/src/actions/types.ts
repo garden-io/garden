@@ -8,7 +8,7 @@
 
 import type { ValuesType } from "utility-types"
 import type { ConfigGraph, ResolvedConfigGraph } from "../graph/config-graph.js"
-import type { ActionReference, DeepPrimitiveMap } from "../config/common.js"
+import type { ActionReference, DeepPrimitiveMap, Varfile } from "../config/common.js"
 import type { ModuleVersion, TreeVersion } from "../vcs/vcs.js"
 import type { BuildAction, BuildActionConfig, ExecutedBuildAction, ResolvedBuildAction } from "./build.js"
 import type { DeployAction, DeployActionConfig, ExecutedDeployAction, ResolvedDeployAction } from "./deploy.js"
@@ -91,7 +91,7 @@ export interface BaseActionConfig<K extends ActionKind = ActionKind, T = string,
   // -> Templating with ActionConfigContext allowed
   variables?: DeepPrimitiveMap
   // -> Templating with ActionConfigContext allowed, including in variables defined in the varfiles
-  varfiles?: string[]
+  varfiles?: Varfile[]
 
   // Type-specific
   spec: Spec

@@ -551,11 +551,13 @@ export async function loadVarfile({
   configRoot,
   path,
   defaultPath,
+  optional = false,
 }: {
   // project root (when resolving project config) or module root (when resolving module config)
   configRoot: string
   path: string | undefined
   defaultPath: string | undefined
+  optional?: boolean
 }): Promise<PrimitiveMap> {
   if (!path && !defaultPath) {
     throw new ParameterError({
@@ -565,7 +567,7 @@ export async function loadVarfile({
   const resolvedPath = resolve(configRoot, <string>(path || defaultPath))
   const exists = await pathExists(resolvedPath)
 
-  if (!exists && path && path !== defaultPath) {
+  if (!exists && path && path !== defaultPath && !optional) {
     throw new ConfigurationError({
       message: `Could not find varfile at path '${path}'. Absolute path: ${resolvedPath}`,
     })

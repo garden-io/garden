@@ -55,7 +55,7 @@ import {
   resolveTemplateStrings,
 } from "../template-string/template-string.js"
 import { dedent, deline, naturalList } from "../util/string.js"
-import { mergeVariables } from "./common.js"
+import { getVarfileData, mergeVariables } from "./common.js"
 import type { ConfigGraph } from "./config-graph.js"
 import { MutableConfigGraph } from "./config-graph.js"
 import type { ModuleGraph } from "./modules.js"
@@ -627,7 +627,7 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
   const templateName = config.internal.templateName
 
   // in pre-processing, only use varfiles that are not template strings
-  const resolvedVarFiles = config.varfiles?.filter((f) => !maybeTemplateString(f))
+  const resolvedVarFiles = config.varfiles?.filter((f) => !maybeTemplateString(getVarfileData(f).path))
   const variables = await mergeVariables({
     basePath: config.internal.basePath,
     variables: config.variables,

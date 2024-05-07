@@ -60,6 +60,13 @@ export interface DeepPrimitiveMap {
   [key: string]: Primitive | DeepPrimitiveMap | Primitive[] | DeepPrimitiveMap[]
 }
 
+export interface VarfileMap {
+  path: string
+  optional?: boolean
+}
+
+export type Varfile = VarfileMap | string
+
 export const includeGuideLink = makeDocsLinkPlain(
   "using-garden/configuration-overview",
   "#including-excluding-files-and-directories"
@@ -843,6 +850,18 @@ export const joiIdentifierMap = memoize((valueSchema: Joi.Schema) =>
     .pattern(identifierRegex, valueSchema)
     .default(() => ({}))
     .description("Key/value map. Keys must be valid identifiers.")
+)
+
+export const joiVarfile = memoize(() =>
+  joi
+    .alternatives(
+      joi.posixPath().description("Path to a file containing a path."),
+      joi.object().keys({
+        path: joi.posixPath().required().description("Path to a file containing a path."),
+        optional: joi.boolean().description("Whether the varfile is optional."),
+      })
+    )
+    .description("A path to a file containing variables, or an object with a path and optional flag.")
 )
 
 export const joiVariablesDescription =

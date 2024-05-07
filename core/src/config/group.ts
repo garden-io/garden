@@ -10,8 +10,17 @@ import dedent from "dedent"
 import type { ActionConfig } from "../actions/types.js"
 import { baseActionConfigSchema } from "../actions/base.js"
 import { templateStringLiteral } from "../docs/common.js"
-import type { DeepPrimitiveMap } from "./common.js"
-import { createSchema, joi, joiSparseArray, joiUserIdentifier, joiVariables, unusedApiVersionSchema } from "./common.js"
+import type { DeepPrimitiveMap, Varfile } from "./common.js"
+import {
+  createSchema,
+  joi,
+  joiArray,
+  joiSparseArray,
+  joiUserIdentifier,
+  joiVarfile,
+  joiVariables,
+  unusedApiVersionSchema,
+} from "./common.js"
 import { varfileDescription } from "./base.js"
 
 export interface GroupConfig {
@@ -29,7 +38,7 @@ export interface GroupConfig {
 
   // Variables
   variables?: DeepPrimitiveMap
-  varfiles?: string[]
+  varfiles?: Varfile[]
 
   // Actions
   actions: ActionConfig[]
@@ -50,7 +59,7 @@ export const groupConfig = createSchema({
     variables: joiVariables().default(() => undefined).description(dedent`
       A map of variables scoped to the actions in this group. These are resolved before the actions and take precedence over project-scoped variables. They may reference project-scoped variables, and generally use any template strings normally allowed when resolving the action.
     `),
-    varfiles: joiSparseArray(joi.posixPath())
+    varfiles: joiArray(joiVarfile())
       .description(
         dedent`
           Specify a list of paths (relative to the directory where the group is defined) to a file containing variables, that we apply on top of the group-level \`variables\` field. If you specify multiple paths, they are merged in the order specified, i.e. the last one takes precedence over the previous ones.
