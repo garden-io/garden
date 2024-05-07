@@ -430,8 +430,10 @@ Create a [web identity role](https://docs.aws.amazon.com/IAM/latest/UserGuide/id
             },
             "Action": "sts:AssumeRoleWithWebIdentity",
             "Condition": {
+                "StringLike": {
+                  "oidc.eks.<region>.amazonaws.com/id/<oidc-provider-id>:sub": "system:serviceaccount:*:garden-in-cluster-builder"
+                },
                 "StringEquals": {
-                    "oidc.eks.<region>.amazonaws.com/id/<oidc-provider-id>:sub": "system:serviceaccount:*:garden-in-cluster-builder",
                     "oidc.eks.<region>.amazonaws.com/id/<oidc-provider-id>:aud": "sts.amazonaws.com"
                 }
             }
