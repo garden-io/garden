@@ -75,6 +75,13 @@ interface Submodule {
   url: string
 }
 
+let cacheUntrackedFiles: boolean = true
+const untrackedPathHashes = new Map<string, string>()
+
+export function setUntrackedFileHashCaching(value: boolean): void {
+  cacheUntrackedFiles = value
+}
+
 @Profile()
 export class GitSubTreeHandler extends AbstractGitHandler {
   override readonly name = "git"
@@ -223,7 +230,17 @@ export class GitSubTreeHandler extends AbstractGitHandler {
         // Don't attempt to hash directories. Directories (which will only come up via symlinks btw)
         // will by extension be filtered out of the list.
         if (stats && !stats.isDirectory()) {
-          const hash = await this.hashObject(stats, file.path)
+          let hash: string | undefined
+          if (cacheUntrackedFiles) {
+            hash = untrackedPathHashes.get(file.path)
+            if (!hash) {
+              hash = await this.hashObject(stats, file.path)
+              untrackedPathHashes.set(file.path, hash)
+            }
+          } else {
+            hash = await this.hashObject(stats, file.path)
+          }
+
           if (hash !== "") {
             file.hash = hash
             count++

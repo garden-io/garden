@@ -41,6 +41,7 @@ import type { AnalyticsHandler } from "../analytics/analytics.js"
 import { withSessionContext } from "../util/open-telemetry/context.js"
 import { wrapActiveSpan } from "../util/open-telemetry/spans.js"
 import { styles } from "../logger/styles.js"
+import { setUntrackedFileHashCaching } from "../vcs/git-sub-tree.js"
 
 export interface CommandConstructor {
   new (parent?: CommandGroup): Command
@@ -158,6 +159,7 @@ type DataCallback = (data: string) => void
 export type CommandArgsType<C extends Command> = C extends Command<infer Args, any> ? Args : never
 export type CommandOptionsType<C extends Command> = C extends Command<any, infer Opts> ? Opts : never
 export type CommandResultType<C extends Command> = C extends Command<any, any, infer R> ? R : never
+
 export abstract class Command<
   A extends ParameterObject = ParameterObject,
   O extends ParameterObject = ParameterObject,
@@ -268,6 +270,10 @@ export abstract class Command<
       parentSessionId,
       overrideLogLevel,
     } = params
+
+    // Do not allow untracked files' hashes caching in dev console and in persistent commands
+    const cacheUntrackedFiles = !this.maybePersistent(params) && !params.parentCommand
+    setUntrackedFileHashCaching(cacheUntrackedFiles)
 
     return withSessionContext({ sessionId, parentSessionId }, () =>
       wrapActiveSpan(this.getFullName(), async () => {
