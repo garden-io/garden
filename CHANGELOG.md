@@ -1,4 +1,33 @@
 
+<a name="0.13.30"></a>
+## [0.13.30](https://github.com/garden-io/garden/compare/0.13.29...0.13.30) (2024-05-07)
+
+### Bug Fixes
+
+* **cli:** do not render hidden commands ([#5975](https://github.com/garden-io/garden/issues/5975)) ([053c78617](https://github.com/garden-io/garden/commit/053c78617))
+* **cloud:** fix unprocessable entity error ([#5931](https://github.com/garden-io/garden/issues/5931)) ([bfcc1fea8](https://github.com/garden-io/garden/commit/bfcc1fea8))
+* **git:** increase max proc buffer size and fix error handling ([#5916](https://github.com/garden-io/garden/issues/5916)) ([30fd9c077](https://github.com/garden-io/garden/commit/30fd9c077))
+* **helm:** fix race condition when updating deps ([#6012](https://github.com/garden-io/garden/issues/6012)) ([dec8d6329](https://github.com/garden-io/garden/commit/dec8d6329))
+* **helm:** disable `--atomic` by default in Helm modules ([#5968](https://github.com/garden-io/garden/issues/5968)) ([5f76a732d](https://github.com/garden-io/garden/commit/5f76a732d))
+* **k8s:** work around a rare websocket connection issue & warn ([#5908](https://github.com/garden-io/garden/issues/5908)) ([d980ea8ee](https://github.com/garden-io/garden/commit/d980ea8ee))
+* **sync:** fix typo in warning message ([#5919](https://github.com/garden-io/garden/issues/5919)) ([4936e33c2](https://github.com/garden-io/garden/commit/4936e33c2))
+
+### Features
+
+* optional varfiles ([#5996](https://github.com/garden-io/garden/issues/5996)) ([ee36cbbfb](https://github.com/garden-io/garden/commit/ee36cbbfb))
+* **container:** experimental cloudbuilder support ([#5928](https://github.com/garden-io/garden/issues/5928)) ([3f288418a](https://github.com/garden-io/garden/commit/3f288418a))
+
+### Improvements
+
+* update bundled NodeJS runtime to `21.7.3` ([#6009](https://github.com/garden-io/garden/issues/6009)) ([bc38bb247](https://github.com/garden-io/garden/commit/bc38bb247))
+* allow for more concurrency when using cloud builder ([#5955](https://github.com/garden-io/garden/issues/5955)) ([4717da8e5](https://github.com/garden-io/garden/commit/4717da8e5))
+* **cloud:** more informative error message on CA cert problems ([#5941](https://github.com/garden-io/garden/issues/5941)) ([1d929625e](https://github.com/garden-io/garden/commit/1d929625e))
+* **git:** avoid duplicate profiling of `GitHandler.hashObject` ([#5918](https://github.com/garden-io/garden/issues/5918)) ([a6554c611](https://github.com/garden-io/garden/commit/a6554c611))
+* **helm:** update helm to `3.14.4` ([#5972](https://github.com/garden-io/garden/issues/5972)) ([456e89e58](https://github.com/garden-io/garden/commit/456e89e58))
+* **jib:** update JDK LTS versions to the latest stable builds ([#5970](https://github.com/garden-io/garden/issues/5970)) ([a333a9e6d](https://github.com/garden-io/garden/commit/a333a9e6d))
+* **k8s:** update `kubectl` version to `1.29.4` ([#5973](https://github.com/garden-io/garden/issues/5973)) ([5fff93d9d](https://github.com/garden-io/garden/commit/5fff93d9d))
+* **support:** install docker-buildx-plugin in garden Docker images ([#5942](https://github.com/garden-io/garden/issues/5942)) ([0a86f6ed6](https://github.com/garden-io/garden/commit/0a86f6ed6))
+
 <a name="0.13.29"></a>
 ## [0.13.29](https://github.com/garden-io/garden/compare/0.13.28...0.13.29) (2024-04-04)
 
