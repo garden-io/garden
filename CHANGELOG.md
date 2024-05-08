@@ -5,7 +5,7 @@
 ### Bug Fixes
 
 * **cli:** do not render hidden commands ([#5975](https://github.com/garden-io/garden/issues/5975)) ([053c78617](https://github.com/garden-io/garden/commit/053c78617))
-* **communityEdition:** fix unprocessable entity error ([#5931](https://github.com/garden-io/garden/issues/5931)) ([bfcc1fea8](https://github.com/garden-io/garden/commit/bfcc1fea8))
+* **cloud:** fix unprocessable entity error ([#5931](https://github.com/garden-io/garden/issues/5931)) ([bfcc1fea8](https://github.com/garden-io/garden/commit/bfcc1fea8))
 * **git:** increase max proc buffer size and fix error handling ([#5916](https://github.com/garden-io/garden/issues/5916)) ([30fd9c077](https://github.com/garden-io/garden/commit/30fd9c077))
 * **helm:** fix race condition when updating deps ([#6012](https://github.com/garden-io/garden/issues/6012)) ([dec8d6329](https://github.com/garden-io/garden/commit/dec8d6329))
 * **helm:** disable `--atomic` by default in Helm modules ([#5968](https://github.com/garden-io/garden/issues/5968)) ([5f76a732d](https://github.com/garden-io/garden/commit/5f76a732d))
@@ -24,7 +24,6 @@
 * **cloud:** more informative error message on CA cert problems ([#5941](https://github.com/garden-io/garden/issues/5941)) ([1d929625e](https://github.com/garden-io/garden/commit/1d929625e))
 * **git:** avoid duplicate profiling of `GitHandler.hashObject` ([#5918](https://github.com/garden-io/garden/issues/5918)) ([a6554c611](https://github.com/garden-io/garden/commit/a6554c611))
 * **helm:** update helm to `3.14.4` ([#5972](https://github.com/garden-io/garden/issues/5972)) ([456e89e58](https://github.com/garden-io/garden/commit/456e89e58))
-* **install.sh:** display curl error messages ([#5956](https://github.com/garden-io/garden/issues/5956)) ([9a1ac0cca](https://github.com/garden-io/garden/commit/9a1ac0cca))
 * **jib:** update JDK LTS versions to the latest stable builds ([#5970](https://github.com/garden-io/garden/issues/5970)) ([a333a9e6d](https://github.com/garden-io/garden/commit/a333a9e6d))
 * **k8s:** update `kubectl` version to `1.29.4` ([#5973](https://github.com/garden-io/garden/issues/5973)) ([5fff93d9d](https://github.com/garden-io/garden/commit/5fff93d9d))
 * **support:** install docker-buildx-plugin in garden Docker images ([#5942](https://github.com/garden-io/garden/issues/5942)) ([0a86f6ed6](https://github.com/garden-io/garden/commit/0a86f6ed6))
