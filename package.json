@@ -60,7 +60,7 @@
     "node-jsonl": "^0.1.0",
     "npm-license-crawler": "^0.2.1",
     "prettier": "3.2.5",
-    "replace-in-file": "^7.0.2",
+    "replace-in-file": "^7.1.0",
     "@rollup/wasm-node": "^4.6.1",
     "semver": "^7.6.0",
     "shx": "^0.3.2",
