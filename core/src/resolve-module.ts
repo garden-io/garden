@@ -254,14 +254,10 @@ export class ModuleResolver {
 
     // Need to make sure we resolve modules that contain runtime dependencies of services, tasks and tests specified
     // in actionsFilter (if any), including transitive dependencies.
-    let mayNeedAdditionalResolution = false
-
-    for (const f of actionsFilter || []) {
+    const mayNeedAdditionalResolution = (actionsFilter || []).some((f) => {
       // Build dependencies, i.e. module-to-module deps, will already be accounted for above.
-      if (!f.startsWith("build.")) {
-        mayNeedAdditionalResolution = true
-      }
-    }
+      return !f.startsWith("build.")
+    })
 
     let runtimeGraph = new DependencyGraph<string>()
 
