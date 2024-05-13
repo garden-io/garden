@@ -908,7 +908,7 @@ jobs:
       minikubeVersion:
         description: The Minikube version to use
         type: string
-        default: v1.11.0
+        default: v1.32.0
       kubernetesVersion:
         description: The Kubernetes version to run
         type: string
