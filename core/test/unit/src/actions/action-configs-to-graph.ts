@@ -580,7 +580,7 @@ describe("actionConfigsToGraph", () => {
           spec: {},
         },
       ],
-      moduleGraph: new ModuleGraph([], {}),
+      moduleGraph: new ModuleGraph({ modules: [], moduleTypes: {} }),
       actionModes: {},
       linkedSources: {},
     })
