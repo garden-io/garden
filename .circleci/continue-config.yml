@@ -908,7 +908,7 @@ jobs:
       minikubeVersion:
         description: The Minikube version to use
         type: string
-        default: v1.11.0
+        default: v1.32.0
       kubernetesVersion:
         description: The Kubernetes version to run
         type: string
@@ -1371,10 +1371,6 @@ workflows:
       # variant and k8s version would be quite expensive, so we try and make sure each of the latest 6-7 k8s versions is
       # tested, and that the most recent versions are broadly tested. The kind tests are the cheapest to run so we use many
       # of those, but they currently don't test in-cluster building, so we do need a range of versions on minikube as well.
-      - test-microk8s:
-          name: vm-1.26-microk8s
-          requires: [build]
-          kubernetesVersion: "1.26"
       - test-k3s:
           name: vm-1.27-k3s
           requires: [build]
@@ -1389,6 +1385,10 @@ workflows:
           name: vm-1.29-kind
           requires: [build]
           kindNodeImage: kindest/node:v1.29.2@sha256:51a1434a5397193442f0be2a297b488b6c919ce8a3931be0ce822606ea5ca245
+      - test-microk8s:
+          name: vm-1.30-microk8s
+          requires: [build]
+          kubernetesVersion: "1.30"
 
       - test-plugins:
           <<: *only-internal-prs
