@@ -716,7 +716,7 @@ export class ModuleResolver {
 
     for (const base of bases) {
       if (base.schema) {
-        garden.log.silly(() => `Validating '${config.name}' config against '${base.name}' schema`)
+        garden.log.silly(() => `ModuleResolver: Validating '${config.name}' config against '${base.name}' schema`)
 
         config.spec = <ModuleConfig>validateWithPath({
           config: config.spec,
@@ -757,7 +757,7 @@ export class ModuleResolver {
     dependencies: GardenModule[]
     repoRoot: string
   }) {
-    this.log.debug(() => `Resolving module ${resolvedConfig.name}`)
+    this.log.debug(() => `ModuleResolver: Resolving module ${resolvedConfig.name}`)
 
     // Write module files
     const configContext = new ModuleConfigContext({
