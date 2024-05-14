@@ -26,6 +26,7 @@ import { resolveAction } from "@garden-io/core/build/src/graph/actions.js"
 import { RunTask } from "@garden-io/core/build/src/tasks/run.js"
 import { defaultTerraformVersion } from "../src/cli.js"
 import { fileURLToPath } from "node:url"
+import { resolveMsg } from "@garden-io/core/build/src/logger/log-entry.js"
 
 const moduleDirName = dirname(fileURLToPath(import.meta.url))
 
@@ -39,6 +40,10 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
     let testFilePath: string
 
     async function reset() {
+      if (garden?.log?.root) {
+        garden.log.root["entries"].length = 0
+      }
+
       if (tfRoot && (await pathExists(testFilePath))) {
         await remove(testFilePath)
       }
@@ -253,6 +258,13 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
 
       it("should apply a stack on init and use configured variables", async () => {
         await garden.resolveProvider(garden.log, "terraform")
+        expect(
+          garden.log.root
+            .getLogEntries()
+            .filter((l) =>
+              resolveMsg(l)?.match(/Apply complete\! Resources: [0-9]+ added, [0-9]+ changed, [0-9]+ destroyed/)
+            ).length
+        ).to.be.greaterThan(0)
         const testFileContent = await readFile(testFilePath)
         expect(testFileContent.toString()).to.equal("default")
       })
@@ -617,6 +629,13 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
     context("autoApply=true", () => {
       it("should apply a stack on init and use configured variables", async () => {
         await runTestTask(true)
+        expect(
+          garden.log.root
+            .getLogEntries()
+            .filter((l) =>
+              resolveMsg(l)?.match(/Apply complete\! Resources: [0-9]+ added, [0-9]+ changed, [0-9]+ destroyed/)
+            ).length
+        ).to.be.greaterThan(0)
         const testFileContent = await readFile(testFilePath)
         expect(testFileContent.toString()).to.equal("default")
       })
@@ -1055,6 +1074,13 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
     context("autoApply=true", () => {
       it("should apply a stack on init and use configured variables", async () => {
         await runTestTask(true)
+        expect(
+          garden.log.root
+            .getLogEntries()
+            .filter((l) =>
+              resolveMsg(l)?.match(/Apply complete\! Resources: [0-9]+ added, [0-9]+ changed, [0-9]+ destroyed/)
+            ).length
+        ).to.be.greaterThan(0)
         const testFileContent = await readFile(testFilePath)
         expect(testFileContent.toString()).to.equal("default")
       })
