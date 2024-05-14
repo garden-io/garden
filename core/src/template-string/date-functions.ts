@@ -10,6 +10,21 @@ import type { TemplateHelperFunction } from "./functions.js"
 import { joi } from "../config/common.js"
 import { format as formatFns, add } from "date-fns"
 
+const validShiftDateTimeUnits = [
+  "years",
+  "months",
+  "weeks",
+  "days",
+  "hours",
+  "minutes",
+  "seconds",
+  "milliseconds",
+] as const
+type ShiftDateTimeUnit = (typeof validShiftDateTimeUnits)[number]
+
+const validModifyDateTimeUnits = ["years", "months", "days", "hours", "minutes", "seconds", "milliseconds"] as const
+type ModifyDateTimeUnit = (typeof validModifyDateTimeUnits)[number]
+
 export const dateHelperFunctionSpecs: TemplateHelperFunction[] = [
   {
     name: "formatDate",
@@ -38,7 +53,7 @@ export const dateHelperFunctionSpecs: TemplateHelperFunction[] = [
       amount: joi.number().required().description("The amount of time units to shift the date by."),
       unit: joi
         .string()
-        .valid("years", "months", "weeks", "days", "hours", "minutes", "seconds", "milliseconds")
+        .valid(...validShiftDateTimeUnits)
         .required()
         .description("The time unit to shift the date by."),
     },
@@ -47,7 +62,7 @@ export const dateHelperFunctionSpecs: TemplateHelperFunction[] = [
       { input: ["2021-01-01T00:00:00Z", 1, "days"], output: "2021-01-02T00:00:00.000Z" },
       { input: ["2021-01-01T00:00:00Z", -1, "days"], output: "2020-12-31T00:00:00.000Z" },
     ],
-    fn: (date: string, amount: number, unit: string) => {
+    fn: (date: string, amount: number, unit: ShiftDateTimeUnit) => {
       const dateClone = new Date(date)
       return add(dateClone, { [unit]: amount }).toISOString()
     },
@@ -60,13 +75,13 @@ export const dateHelperFunctionSpecs: TemplateHelperFunction[] = [
       amount: joi.number().required().description("The amount of time units to set."),
       unit: joi
         .string()
-        .valid("years", "months", "weeks", "days", "hours", "minutes", "seconds", "milliseconds")
+        .valid(...validModifyDateTimeUnits)
         .required()
         .description("The time unit to set."),
     },
     outputSchema: joi.string(),
     exampleArguments: [{ input: ["2021-01-01T00:00:00Z", 30, "seconds"], output: "2021-01-01T00:00:30.000Z" }],
-    fn: (date: string, amount: number, unit: string) => {
+    fn: (date: string, amount: number, unit: ModifyDateTimeUnit) => {
       const dateClone = new Date(date)
       switch (unit) {
         case "years":
@@ -91,7 +106,7 @@ export const dateHelperFunctionSpecs: TemplateHelperFunction[] = [
           dateClone.setMilliseconds(amount)
           break
         default:
-          throw new Error("Invalid unit")
+          return unit satisfies never
       }
       return dateClone.toISOString()
     },
