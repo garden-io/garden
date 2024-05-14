@@ -81,7 +81,7 @@
     "http-status-codes": "^2.2.0",
     "humanize-string": "^3.0.0",
     "indent-string": "^4.0.0",
-    "ink": "^4.4.1",
+    "ink": "^5.0.0",
     "ink-spinner": "^5.0.0",
     "inquirer": "^7.3.3",
     "is-glob": "^4.0.3",
