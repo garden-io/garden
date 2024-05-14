@@ -205,6 +205,10 @@ export async function applyStack(params: TerraformParamsWithVariables) {
     })
   }
 
+  if (proc.stdout) {
+    proc.stdout.pipe(logStream)
+  }
+
   logStream.on("data", (line: Buffer) => {
     statusLine.info(styles.primary("→ " + line.toString()))
   })
