@@ -1,11 +1,15 @@
 # Using official python runtime base image
-FROM python:3.10.5-alpine3.16
+FROM python:3.12-alpine3.19
 
 # Set the application directory
 WORKDIR /app
 
 # Install our requirements.txt
 ADD requirements.txt /app/requirements.txt
+
+RUN python3 -m pip install --upgrade pip
+RUN python3 -m pip install --upgrade setuptools
+
 RUN pip install -r requirements.txt
 
 # Copy our code from the current folder to /app inside the container
