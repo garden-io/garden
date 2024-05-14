@@ -29,7 +29,7 @@ export const dateHelperFunctionSpecs: TemplateHelperFunction[] = [
     },
     outputSchema: joi.string(),
     exampleArguments: [
-      { input: ["2021-01-01T00:00:00Z", "yyyy-MM-dd"], output: "2021-01-01", skipTest: true },
+      { input: ["2021-01-01T00:00:00Z", "yyyy-MM-dd"], output: "2021-01-01" },
       { input: ["2021-01-01T00:00:00Z", "yyyy-MM-dd HH:mm:ss"], output: "2021-01-01 00:00:00", skipTest: true },
     ],
     fn: (date: Date, format: string) => {
