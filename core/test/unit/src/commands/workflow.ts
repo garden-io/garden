@@ -85,7 +85,7 @@ describe("RunWorkflowCommand", () => {
   it("should add workflowStep metadata to log entries provided to steps", async () => {
     const _garden = await makeTestGardenA(undefined)
     // Ensure log entries are empty
-    _garden.log.root["entries"] = []
+    _garden.log.root["entries"].length = 0
     const _log = _garden.log
     const _defaultParams = {
       garden: _garden,

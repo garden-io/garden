@@ -624,7 +624,7 @@ describe("getManifests", () => {
       expect(manifests[0].spec.replicas).to.eql(3)
     })
     it("should log a warning if patches don't match manifests", async () => {
-      garden.log.root["entries"] = []
+      garden.log.root["entries"].length = 0
       const action = cloneDeep(graph.getDeploy("deploy-action"))
       action["_config"]["spec"]["patchResources"] = [
         {
