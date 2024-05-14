@@ -8,19 +8,10 @@
 
 import type { TemplateHelperFunction } from "./functions.js"
 import { joi } from "../config/common.js"
-import { format as formatFns, add } from "date-fns"
+import { format as formatFns, add, type Duration } from "date-fns"
 
-const validShiftDateTimeUnits = [
-  "years",
-  "months",
-  "weeks",
-  "days",
-  "hours",
-  "minutes",
-  "seconds",
-  "milliseconds",
-] as const
-type ShiftDateTimeUnit = (typeof validShiftDateTimeUnits)[number]
+type ShiftDateTimeUnit = keyof Duration
+const validShiftDateTimeUnits: ShiftDateTimeUnit[] = ["years", "months", "weeks", "days", "hours", "minutes", "seconds"]
 
 const validModifyDateTimeUnits = ["years", "months", "days", "hours", "minutes", "seconds", "milliseconds"] as const
 type ModifyDateTimeUnit = (typeof validModifyDateTimeUnits)[number]
