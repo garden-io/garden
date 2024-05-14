@@ -149,12 +149,25 @@ export class TestCommand extends Command<Args, Opts> {
       )
     }
 
-    const graph = await garden.getConfigGraph({ log, emit: true })
+    let actionsFilter: string[] | undefined = undefined
+
+    // TODO: Optimize partial resolution further when --skip-dependencies=true
+    // TODO: Optimize partial resolution further with --skip flag
+    if (args.names) {
+      actionsFilter = args.names.map((name) => `test.${name}`)
+    }
+
+    if (opts.module) {
+      actionsFilter = [...(actionsFilter || []), `test.${opts.module}-*`]
+    }
+
+    const graph = await garden.getConfigGraph({ log, emit: true, actionsFilter })
+
+    const force = opts.force
+    const skipRuntimeDependencies = opts["skip-dependencies"]
 
     let names: string[] | undefined = undefined
     const nameArgs = [...(args.names || []), ...(opts.name || []).map((n) => `*-${n}`)]
-    const force = opts.force
-    const skipRuntimeDependencies = opts["skip-dependencies"]
 
     if (nameArgs.length > 0) {
       names = nameArgs

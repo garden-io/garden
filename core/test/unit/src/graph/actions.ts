@@ -43,10 +43,17 @@ describe("preprocessActionConfig", () => {
           },
           spec: { command: ["echo", "foo"] },
         }
+
         const router = await garden.getActionRouter()
+        const actionTypes = await garden.getActionTypes()
+        const definition = actionTypes[config.kind][config.type]?.spec
+
         const res = await preprocessActionConfig({
           garden,
           config,
+          configsByKey: { "run.run": config },
+          actionTypes,
+          definition,
           router,
           linkedSources: {},
           mode: "default",
@@ -69,10 +76,17 @@ describe("preprocessActionConfig", () => {
           },
           spec: { command: ["echo", "foo"] },
         }
+
         const router = await garden.getActionRouter()
+        const actionTypes = await garden.getActionTypes()
+        const definition = actionTypes[config.kind][config.type]?.spec
+
         const res = await preprocessActionConfig({
           garden,
           config,
+          configsByKey: { "run.run": config },
+          actionTypes,
+          definition,
           router,
           linkedSources: {},
           mode: "default",

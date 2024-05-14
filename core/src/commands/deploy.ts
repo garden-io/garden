@@ -197,8 +197,20 @@ export class DeployCommand extends Command<Args, Opts> {
       sync: opts.sync?.length === 0 ? ["deploy.*"] : opts.sync?.map((s) => "deploy." + s),
     }
 
-    const graph = await garden.getConfigGraph({ log, emit: true, actionModes })
-    let deployActions = graph.getDeploys({ names: args.names, includeDisabled: true })
+    let actionsFilter: string[] | undefined = undefined
+
+    // TODO: Optimize partial module resolution further when --skip-dependencies=true
+    // TODO: Optimize partial resolution further with --skip flag
+    // TODO: Support partial module resolution with --with-dependants
+    if (args.names && !opts["with-dependants"]) {
+      actionsFilter = args.names.map((name) => `deploy.${name}`)
+    }
+
+    const graph = await garden.getConfigGraph({ log, emit: true, actionModes, actionsFilter })
+    const getDeploysParams = gardenEnv.GARDEN_ENABLE_PARTIAL_RESOLUTION
+      ? { includeNames: args.names, includeDisabled: true }
+      : { names: args.names, includeDisabled: true }
+    let deployActions = graph.getDeploys(getDeploysParams)
 
     const disabled = deployActions.filter((s) => s.isDisabled()).map((s) => s.name)
 

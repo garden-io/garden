@@ -111,12 +111,13 @@ export class GetActionsCommand extends Command {
 
     Examples:
 
-      garden get actions                                         # list all actions in the project
-      garden get actions --include-state                         # list all actions in the project with state in output
-      garden get actions --detail                                # list all actions in project with detailed info
-      garden get actions --kind deploy                           # only list the actions of kind 'Deploy'
-      garden get actions A B --kind build --sort type            # list  actions A and B of kind 'Build' sorted by type
-      garden get actions --include-state -o=json                 # get json output
+      garden get actions                                  # list all actions in the project
+      garden get actions --include-state                  # list all actions in the project with state in output
+      garden get actions --detail                         # list all actions in project with detailed info
+      garden get actions --kind deploy                    # only list the actions of kind 'Deploy'
+      garden get actions a b --kind build --sort type     # list actions 'a' and 'b' of kind 'Build' sorted by type
+      garden get actions build.a deploy.b                 # list actions 'build.a' and 'deploy.b'
+      garden get actions --include-state -o=json          # get json output
 `
 
   override arguments = getActionsArgs
@@ -137,30 +138,40 @@ export class GetActionsCommand extends Command {
     args,
     opts,
   }: CommandParams<Args, Opts>): Promise<CommandResult<GetActionsCommandResult>> {
-    const { names: keys } = args
     const includeStateInOutput = opts["include-state"]
     const isOutputDetailed = opts["detail"]
     const router = await garden.getActionRouter()
-    const graph = await garden.getResolvedConfigGraph({ log, emit: false })
+
+    let actionsFilter: string[] | undefined = undefined
+
+    if (args.names && opts.kind) {
+      actionsFilter = args.names.map((name) => `${opts.kind}.${name}`)
+    } else if (args.names) {
+      actionsFilter = args.names
+    } else if (opts.kind) {
+      actionsFilter = [opts.kind + ".*"]
+    }
+
+    const graph = await garden.getResolvedConfigGraph({ log, emit: false, actionsFilter })
 
     const kindOpt = opts["kind"]?.toLowerCase()
     let actions: ResolvedActionWithState[] = []
 
     switch (kindOpt) {
       case "build":
-        actions = graph.getBuilds({ names: keys })
+        actions = graph.getBuilds({ includeNames: args.names })
         break
       case "deploy":
-        actions = graph.getDeploys({ names: keys })
+        actions = graph.getDeploys({ includeNames: args.names })
         break
       case "run":
-        actions = graph.getRuns({ names: keys })
+        actions = graph.getRuns({ includeNames: args.names })
         break
       case "test":
-        actions = graph.getTests({ names: keys })
+        actions = graph.getTests({ includeNames: args.names })
         break
       default:
-        actions = graph.getActions({ refs: keys })
+        actions = graph.getActions({ refs: args.names })
         break
     }
 

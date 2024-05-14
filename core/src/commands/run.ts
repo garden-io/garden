@@ -132,7 +132,15 @@ export class RunCommand extends Command<Args, Opts> {
       await watchRemovedWarning(garden, log)
     }
 
-    const graph = await garden.getConfigGraph({ log, emit: true })
+    let actionsFilter: string[] | undefined = undefined
+
+    // TODO: Optimize partial module resolution further when --skip-dependencies=true
+    // TODO: Optimize partial resolution further with --skip flag
+    if (args.names) {
+      actionsFilter = args.names.map((name) => `run.${name}`)
+    }
+
+    const graph = await garden.getConfigGraph({ log, emit: true, actionsFilter })
 
     const force = opts.force
     const skipRuntimeDependencies = opts["skip-dependencies"]
@@ -202,7 +210,7 @@ export class RunCommand extends Command<Args, Opts> {
 
     const results = await garden.processTasks({ tasks, log })
 
-    return handleProcessResults(garden, log, "test", results)
+    return handleProcessResults(garden, log, "run", results)
   }
 }
 

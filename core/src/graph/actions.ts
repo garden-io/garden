@@ -55,7 +55,7 @@ import {
   resolveTemplateStrings,
 } from "../template-string/template-string.js"
 import { dedent, deline, naturalList } from "../util/string.js"
-import { getVarfileData, mergeVariables } from "./common.js"
+import { getVarfileData, DependencyGraph, mergeVariables } from "./common.js"
 import type { ConfigGraph } from "./config-graph.js"
 import { MutableConfigGraph } from "./config-graph.js"
 import type { ModuleGraph } from "./modules.js"
@@ -78,6 +78,7 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
   moduleGraph,
   actionModes,
   linkedSources,
+  actionsFilter,
 }: {
   garden: Garden
   log: Log
@@ -86,6 +87,7 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
   moduleGraph: ModuleGraph
   actionModes: ActionModeMap
   linkedSources: LinkedSourceMap
+  actionsFilter?: string[]
 }): Promise<MutableConfigGraph> {
   const configsByKey: ActionConfigsByKey = {}
 
@@ -146,9 +148,14 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
 
         const { mode, explicitMode } = getActionMode(config, actionModes, log)
         computedActionModes[key] = { mode, explicitMode }
+        const actionTypes = await garden.getActionTypes()
+        const definition = actionTypes[config.kind][config.type]?.spec
         preprocessResults[key] = await preprocessActionConfig({
           garden,
           config,
+          configsByKey,
+          actionTypes,
+          definition,
           router,
           linkedSources,
           log,
@@ -166,22 +173,16 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
   //
   // The proper solution to this would involve e.g. parametrized actions, or injecting a separate Build action
   // with `this.mode` set to the Deploy action's mode before resolution (both would need to be thought out carefully).
-  const actionTypes = await garden.getActionTypes()
   const buildModeOverrides: Record<string, { mode: ActionMode; overriddenByDeploy: string }> = {}
+
   for (const [key, res] of Object.entries(preprocessResults)) {
     const config = res.config
     const { mode } = computedActionModes[key]
+
     if (config.kind === "Deploy" && mode !== "default") {
-      const definition = actionTypes[config.kind][config.type]?.spec
-      const buildDeps = dependenciesFromActionConfig(
-        log,
-        config,
-        configsByKey,
-        definition,
-        res.templateContext,
-        actionTypes
-      )
+      const buildDeps = res.dependencies.filter((d) => d.kind === "Build")
       const referencedBuildNames = [config.build, ...buildDeps.map((d) => d.name)].filter(isTruthy)
+
       for (const buildName of referencedBuildNames) {
         const buildKey = actionReferenceToString({ kind: "Build", name: buildName })
         actionModes[mode] = [buildKey, ...(actionModes[mode] || [])]
@@ -196,6 +197,45 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
   // Preprocess all remaining actions (Deploy actions are preprocessed above)
   // We are preprocessing actions in two batches so we can infer the mode of Build actions that are used by Deploy actions. See the comments above.
   await preprocessActions((config) => config.kind !== "Deploy")
+
+  // Apply actionsFilter if provided to avoid unnecessary VCS scanning and resolution
+  if (actionsFilter) {
+    const depGraph = new DependencyGraph<string>()
+
+    for (const [key, res] of Object.entries(preprocessResults)) {
+      const { dependencies } = res
+
+      depGraph.addNode(key)
+
+      for (const dep of dependencies) {
+        const depKey = actionReferenceToString(dep)
+        depGraph.addNode(depKey)
+        depGraph.addDependency(key, depKey)
+      }
+    }
+
+    const requiredKeys = new Set<string>()
+
+    const matched = Object.keys(preprocessResults).filter((key) =>
+      actionsFilter.some((pattern) => minimatch(key, pattern))
+    )
+
+    for (const key of matched) {
+      // Matches a filter
+      requiredKeys.add(key)
+
+      // Also keep all dependencies of matched actions, transitively
+      for (const depKey of depGraph.dependenciesOf(key)) {
+        requiredKeys.add(depKey)
+      }
+    }
+
+    for (const key of Object.keys(preprocessResults)) {
+      if (!requiredKeys.has(key)) {
+        delete preprocessResults[key]
+      }
+    }
+  }
 
   // Optimize file scanning by avoiding unnecessarily broad scans when project is not in repo root.
   const preprocessedConfigs = Object.values(preprocessResults).map((r) => r.config)
@@ -212,7 +252,7 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
 
   await Promise.all(
     Object.entries(preprocessResults).map(async ([key, res]) => {
-      const { config, linkedSource, remoteSourcePath, supportedModes, templateContext } = res
+      const { config, linkedSource, remoteSourcePath, supportedModes, dependencies } = res
       const { mode, explicitMode } = computedActionModes[key]
 
       try {
@@ -220,12 +260,11 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
           garden,
           graph,
           config,
+          dependencies,
           log,
-          configsByKey,
           mode,
           linkedSource,
           remoteSourcePath,
-          templateContext,
           supportedModes,
           scanRoot: minimalRoots[getSourcePath(config)],
         })
@@ -317,25 +356,29 @@ export const actionFromConfig = profileAsync(async function actionFromConfig({
   scanRoot?: string
 }) {
   // Call configure handler and validate
-  const { config, supportedModes, linkedSource, remoteSourcePath, templateContext } = await preprocessActionConfig({
+  const actionTypes = await garden.getActionTypes()
+  const definition = actionTypes[inputConfig.kind][inputConfig.type]?.spec
+  const { config, supportedModes, linkedSource, remoteSourcePath, dependencies } = await preprocessActionConfig({
     garden,
     config: inputConfig,
+    actionTypes,
+    definition,
     router,
     mode,
     linkedSources,
     log,
+    configsByKey,
   })
 
   return processActionConfig({
     garden,
     graph,
     config,
+    dependencies,
     log,
-    configsByKey,
     mode,
     linkedSource,
     remoteSourcePath,
-    templateContext,
     supportedModes,
     scanRoot,
   })
@@ -346,23 +389,21 @@ async function processActionConfig({
   graph,
   config,
   log,
-  configsByKey,
+  dependencies,
   mode,
   linkedSource,
   remoteSourcePath,
-  templateContext,
   supportedModes,
   scanRoot,
 }: {
   garden: Garden
   graph: ConfigGraph
   config: ActionConfig
+  dependencies: ActionDependency[]
   log: Log
-  configsByKey: ActionConfigsByKey
   mode: ActionMode
   linkedSource: LinkedSource | null
   remoteSourcePath: string | null
-  templateContext: ActionConfigContext
   supportedModes: ActionModes
   scanRoot?: string
 }) {
@@ -398,8 +439,6 @@ async function processActionConfig({
         Currently available action types: ${Object.keys(actionTypes).join(", ")}`,
     })
   }
-
-  const dependencies = dependenciesFromActionConfig(log, config, configsByKey, definition, templateContext, actionTypes)
 
   if (config.exclude?.includes("**/*")) {
     if (config.include && config.include.length !== 0) {
@@ -602,10 +641,10 @@ function getActionSchema(kind: ActionKind) {
 
 interface PreprocessActionResult {
   config: ActionConfig
+  dependencies: ActionDependency[]
   supportedModes: ActionModes
   remoteSourcePath: string | null
   linkedSource: LinkedSource | null
-  templateContext: ActionConfigContext
 }
 
 export const preprocessActionConfig = profileAsync(async function preprocessActionConfig({
@@ -615,6 +654,9 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
   mode,
   linkedSources,
   log,
+  configsByKey,
+  definition,
+  actionTypes,
 }: {
   garden: Garden
   config: ActionConfig
@@ -622,6 +664,9 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
   mode: ActionMode
   linkedSources: LinkedSourceMap
   log: Log
+  configsByKey: ActionConfigsByKey
+  definition: MaybeUndefined<ActionTypeDefinition<any>>
+  actionTypes: ActionDefinitionMap
 }): Promise<PreprocessActionResult> {
   const description = describeActionConfig(config)
   const templateName = config.internal.templateName
@@ -823,23 +868,39 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
     }
   }
 
+  const dependencies = dependenciesFromActionConfig({
+    log,
+    config,
+    configsByKey,
+    definition,
+    templateContext: builtinFieldContext,
+    actionTypes,
+  })
+
   return {
     config,
+    dependencies,
     supportedModes,
     remoteSourcePath,
     linkedSource,
-    templateContext: builtinFieldContext,
   }
 })
 
-function dependenciesFromActionConfig(
-  log: Log,
-  config: ActionConfig,
-  configsByKey: ActionConfigsByKey,
-  definition: MaybeUndefined<ActionTypeDefinition<any>>,
-  templateContext: ConfigContext,
+function dependenciesFromActionConfig({
+  log,
+  config,
+  configsByKey,
+  definition,
+  templateContext,
+  actionTypes,
+}: {
+  log: Log
+  config: ActionConfig
+  configsByKey: ActionConfigsByKey
+  definition: MaybeUndefined<ActionTypeDefinition<any>>
+  templateContext: ConfigContext
   actionTypes: ActionDefinitionMap
-) {
+}) {
   const description = describeActionConfig(config)
 
   if (!config.dependencies) {

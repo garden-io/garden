@@ -12,7 +12,7 @@ import type { TestGarden } from "../../../helpers.js"
 import { expectError, getAllProcessedTaskNames, makeTestGarden, getDataDir, makeTestGardenA } from "../../../helpers.js"
 import { expectLogsContain, getLogMessages } from "../../../../src/util/testing.js"
 import { LogLevel } from "../../../../src/logger/logger.js"
-import { DEFAULT_RUN_TIMEOUT_SEC } from "../../../../src/constants.js"
+import { DEFAULT_RUN_TIMEOUT_SEC, gardenEnv } from "../../../../src/constants.js"
 
 // TODO-G2: fill in test implementations. use TestCommand tests for reference.
 
@@ -40,6 +40,66 @@ describe("RunCommand", () => {
     })
 
     expect(Object.keys(result!.graphResults).sort()).to.eql(["run.task-a"])
+  })
+
+  context("GARDEN_ENABLE_PARTIAL_RESOLUTION=true", () => {
+    const originalValue = gardenEnv.GARDEN_ENABLE_PARTIAL_RESOLUTION
+
+    before(() => {
+      gardenEnv.GARDEN_ENABLE_PARTIAL_RESOLUTION = true
+    })
+
+    after(() => {
+      gardenEnv.GARDEN_ENABLE_PARTIAL_RESOLUTION = originalValue
+    })
+
+    it("should optionally build and deploy single service and its dependencies", async () => {
+      const { result } = await garden.runCommand({
+        command,
+        args: { names: ["task-a"] },
+        opts: {
+          "force": true,
+          "force-build": true,
+          "watch": false,
+          "skip": [],
+          "skip-dependencies": false,
+          "module": undefined,
+        },
+      })
+
+      const keys = getAllProcessedTaskNames(result!.graphResults)
+
+      expect(keys).to.eql([
+        "build.module-a",
+        "resolve-action.build.module-a",
+        "resolve-action.run.task-a",
+        "run.task-a",
+      ])
+    })
+
+    it("works with wildcard name", async () => {
+      const { result } = await garden.runCommand({
+        command,
+        args: { names: ["*-a"] },
+        opts: {
+          "force": true,
+          "force-build": true,
+          "watch": false,
+          "skip": [],
+          "skip-dependencies": false,
+          "module": undefined,
+        },
+      })
+
+      const keys = getAllProcessedTaskNames(result!.graphResults)
+
+      expect(keys).to.eql([
+        "build.module-a",
+        "resolve-action.build.module-a",
+        "resolve-action.run.task-a",
+        "run.task-a",
+      ])
+    })
   })
 
   it("should optionally skip tests by name", async () => {

@@ -51,7 +51,7 @@ describe("actionConfigsToGraph", () => {
           spec: {},
         },
       ],
-      moduleGraph: new ModuleGraph([], {}),
+      moduleGraph: new ModuleGraph({ modules: [], moduleTypes: {} }),
       actionModes: {},
       linkedSources: {},
     })
@@ -82,7 +82,7 @@ describe("actionConfigsToGraph", () => {
           spec: {},
         },
       ],
-      moduleGraph: new ModuleGraph([], {}),
+      moduleGraph: new ModuleGraph({ modules: [], moduleTypes: {} }),
       actionModes: {},
       linkedSources: {},
     })
@@ -113,7 +113,7 @@ describe("actionConfigsToGraph", () => {
           spec: {},
         },
       ],
-      moduleGraph: new ModuleGraph([], {}),
+      moduleGraph: new ModuleGraph({ modules: [], moduleTypes: {} }),
       actionModes: {},
       linkedSources: {},
     })
@@ -144,7 +144,7 @@ describe("actionConfigsToGraph", () => {
           spec: {},
         },
       ],
-      moduleGraph: new ModuleGraph([], {}),
+      moduleGraph: new ModuleGraph({ modules: [], moduleTypes: {} }),
       actionModes: {},
       linkedSources: {},
     })
@@ -182,7 +182,7 @@ describe("actionConfigsToGraph", () => {
         },
       ],
       configs: [],
-      moduleGraph: new ModuleGraph([], {}),
+      moduleGraph: new ModuleGraph({ modules: [], moduleTypes: {} }),
       actionModes: {},
       linkedSources: {},
     })
@@ -224,7 +224,7 @@ describe("actionConfigsToGraph", () => {
           spec: {},
         },
       ],
-      moduleGraph: new ModuleGraph([], {}),
+      moduleGraph: new ModuleGraph({ modules: [], moduleTypes: {} }),
       actionModes: {},
       linkedSources: {},
     })
@@ -271,7 +271,7 @@ describe("actionConfigsToGraph", () => {
           spec: {},
         },
       ],
-      moduleGraph: new ModuleGraph([], {}),
+      moduleGraph: new ModuleGraph({ modules: [], moduleTypes: {} }),
       actionModes: {},
       linkedSources: {},
     })
@@ -319,7 +319,7 @@ describe("actionConfigsToGraph", () => {
           },
         },
       ],
-      moduleGraph: new ModuleGraph([], {}),
+      moduleGraph: new ModuleGraph({ modules: [], moduleTypes: {} }),
       actionModes: {},
       linkedSources: {},
     })
@@ -368,7 +368,7 @@ describe("actionConfigsToGraph", () => {
           },
         },
       ],
-      moduleGraph: new ModuleGraph([], {}),
+      moduleGraph: new ModuleGraph({ modules: [], moduleTypes: {} }),
       actionModes: {},
       linkedSources: {},
     })
@@ -417,7 +417,7 @@ describe("actionConfigsToGraph", () => {
           },
         },
       ],
-      moduleGraph: new ModuleGraph([], {}),
+      moduleGraph: new ModuleGraph({ modules: [], moduleTypes: {} }),
       actionModes: {},
       linkedSources: {},
     })
@@ -454,7 +454,7 @@ describe("actionConfigsToGraph", () => {
           spec: {},
         },
       ],
-      moduleGraph: new ModuleGraph([], {}),
+      moduleGraph: new ModuleGraph({ modules: [], moduleTypes: {} }),
       actionModes: {},
       linkedSources: {},
     })
@@ -482,7 +482,7 @@ describe("actionConfigsToGraph", () => {
           spec: {},
         },
       ],
-      moduleGraph: new ModuleGraph([], {}),
+      moduleGraph: new ModuleGraph({ modules: [], moduleTypes: {} }),
       actionModes: {},
       linkedSources: {},
     })
@@ -512,7 +512,7 @@ describe("actionConfigsToGraph", () => {
           spec: {},
         },
       ],
-      moduleGraph: new ModuleGraph([], {}),
+      moduleGraph: new ModuleGraph({ modules: [], moduleTypes: {} }),
       actionModes: {},
       linkedSources: {},
     })
@@ -546,7 +546,7 @@ describe("actionConfigsToGraph", () => {
           spec: {},
         },
       ],
-      moduleGraph: new ModuleGraph([], {}),
+      moduleGraph: new ModuleGraph({ modules: [], moduleTypes: {} }),
       actionModes: {},
       linkedSources: {},
     })
@@ -580,7 +580,7 @@ describe("actionConfigsToGraph", () => {
           spec: {},
         },
       ],
-      moduleGraph: new ModuleGraph([], {}),
+      moduleGraph: new ModuleGraph({ modules: [], moduleTypes: {} }),
       actionModes: {},
       linkedSources: {},
     })
@@ -619,7 +619,7 @@ describe("actionConfigsToGraph", () => {
           spec: {},
         },
       ],
-      moduleGraph: new ModuleGraph([], {}),
+      moduleGraph: new ModuleGraph({ modules: [], moduleTypes: {} }),
       actionModes: {},
       linkedSources: {},
     })
@@ -674,7 +674,7 @@ describe("actionConfigsToGraph", () => {
             spec: {},
           },
         ],
-        moduleGraph: new ModuleGraph([], {}),
+        moduleGraph: new ModuleGraph({ modules: [], moduleTypes: {} }),
         actionModes: {},
         linkedSources: {},
       })
@@ -716,7 +716,7 @@ describe("actionConfigsToGraph", () => {
           },
         },
       ],
-      moduleGraph: new ModuleGraph([], {}),
+      moduleGraph: new ModuleGraph({ modules: [], moduleTypes: {} }),
       linkedSources: {},
       actionModes: {
         sync: ["deploy.foo"],
@@ -746,7 +746,7 @@ describe("actionConfigsToGraph", () => {
           spec: {},
         },
       ],
-      moduleGraph: new ModuleGraph([], {}),
+      moduleGraph: new ModuleGraph({ modules: [], moduleTypes: {} }),
       linkedSources: {},
       actionModes: {
         local: ["deploy.foo"],
@@ -781,7 +781,7 @@ describe("actionConfigsToGraph", () => {
           },
         },
       ],
-      moduleGraph: new ModuleGraph([], {}),
+      moduleGraph: new ModuleGraph({ modules: [], moduleTypes: {} }),
       linkedSources: {},
       actionModes: {
         local: ["deploy.foo"],
@@ -812,7 +812,7 @@ describe("actionConfigsToGraph", () => {
           spec: {},
         },
       ],
-      moduleGraph: new ModuleGraph([], {}),
+      moduleGraph: new ModuleGraph({ modules: [], moduleTypes: {} }),
       linkedSources: {},
       actionModes: {
         local: ["*"],
@@ -842,7 +842,7 @@ describe("actionConfigsToGraph", () => {
           spec: {},
         },
       ],
-      moduleGraph: new ModuleGraph([], {}),
+      moduleGraph: new ModuleGraph({ modules: [], moduleTypes: {} }),
       linkedSources: {},
       actionModes: {
         local: ["deploy.f*"],
@@ -884,7 +884,7 @@ describe("actionConfigsToGraph", () => {
           spec: {},
         },
       ],
-      moduleGraph: new ModuleGraph([], {}),
+      moduleGraph: new ModuleGraph({ modules: [], moduleTypes: {} }),
       linkedSources: {},
       actionModes: {
         local: ["deploy.*"],
@@ -917,7 +917,7 @@ describe("actionConfigsToGraph", () => {
               spec: {},
             },
           ],
-          moduleGraph: new ModuleGraph([], {}),
+          moduleGraph: new ModuleGraph({ modules: [], moduleTypes: {} }),
           actionModes: {},
           linkedSources: {},
         }),
@@ -954,7 +954,7 @@ describe("actionConfigsToGraph", () => {
               spec: {},
             },
           ],
-          moduleGraph: new ModuleGraph([], {}),
+          moduleGraph: new ModuleGraph({ modules: [], moduleTypes: {} }),
           actionModes: {},
           linkedSources: {},
         }),
@@ -992,7 +992,7 @@ describe("actionConfigsToGraph", () => {
           spec: {},
         },
       ],
-      moduleGraph: new ModuleGraph([], {}),
+      moduleGraph: new ModuleGraph({ modules: [], moduleTypes: {} }),
       actionModes: {},
       linkedSources: {},
     })
@@ -1029,7 +1029,7 @@ describe("actionConfigsToGraph", () => {
           spec: {},
         },
       ],
-      moduleGraph: new ModuleGraph([], {}),
+      moduleGraph: new ModuleGraph({ modules: [], moduleTypes: {} }),
       actionModes: {},
       linkedSources: {},
     })
@@ -1060,7 +1060,7 @@ describe("actionConfigsToGraph", () => {
             },
           },
         ],
-        moduleGraph: new ModuleGraph([], {}),
+        moduleGraph: new ModuleGraph({ modules: [], moduleTypes: {} }),
         actionModes: {},
         linkedSources: {},
       })
@@ -1096,7 +1096,7 @@ describe("actionConfigsToGraph", () => {
           exclude,
         },
       ],
-      moduleGraph: new ModuleGraph([], {}),
+      moduleGraph: new ModuleGraph({ modules: [], moduleTypes: {} }),
       actionModes: {},
       linkedSources: {},
     })

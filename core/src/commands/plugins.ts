@@ -109,7 +109,7 @@ export class PluginsCommand extends Command<Args> {
     let graph = new ConfigGraph({
       environmentName: garden.environmentName,
       actions: [],
-      moduleGraph: new ModuleGraph([], {}),
+      moduleGraph: new ModuleGraph({ modules: [], moduleTypes: {} }),
       groups: [],
     })
 

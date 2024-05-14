@@ -18,6 +18,7 @@ import { deline } from "../util/string.js"
 import { isBuildAction } from "../actions/build.js"
 import { warnOnLinkedActions } from "../actions/helpers.js"
 import { watchParameter, watchRemovedWarning } from "./util/watch-parameter.js"
+import { gardenEnv } from "../constants.js"
 
 const buildArgs = {
   names: new StringsParameter({
@@ -82,8 +83,18 @@ export class BuildCommand extends Command<Args, Opts> {
 
     await garden.clearBuilds()
 
-    const graph = await garden.getConfigGraph({ log, emit: true })
-    let actions = graph.getBuilds({ names: args.names })
+    let actionsFilter: string[] | undefined = undefined
+
+    // TODO: Support partial module resolution with --with-dependants
+    if (args.names && !opts["with-dependants"]) {
+      actionsFilter = args.names.map((name) => `build.${name}`)
+    }
+
+    const graph = await garden.getConfigGraph({ log, emit: true, actionsFilter })
+    const getBuildsParams = gardenEnv.GARDEN_ENABLE_PARTIAL_RESOLUTION
+      ? { includeNames: args.names }
+      : { names: args.names }
+    let actions = graph.getBuilds(getBuildsParams)
 
     if (opts["with-dependants"]) {
       // Then we include build dependants (recursively) in the list of modules to build.

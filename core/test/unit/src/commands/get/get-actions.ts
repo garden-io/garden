@@ -16,6 +16,7 @@ import type { ActionRouter } from "../../../../../src/router/router.js"
 import type { ResolvedConfigGraph } from "../../../../../src/graph/config-graph.js"
 import type { Log } from "../../../../../src/logger/log-entry.js"
 import { sortBy } from "lodash-es"
+import { gardenEnv } from "../../../../../src/constants.js"
 
 export const getActionsToSimpleOutput = (d) => {
   return { name: d.name, kind: d.kind, type: d.type }
@@ -127,6 +128,35 @@ describe("GetActionsCommand", () => {
 
     const graph = await garden.getResolvedConfigGraph({ log, emit: false })
     const expected = sortBy(graph.getActions().map(getActionsToSimpleOutput), "name")
+
+    expect(command.outputsSchema().validate(result).error).to.be.undefined
+    expect(result?.actions).to.eql(expected)
+  })
+
+  it("should return specific actions by reference in a project", async () => {
+    const garden = await makeTestGarden(projectRoot)
+    const log = garden.log
+    const command = new GetActionsCommand()
+
+    const { result } = await command.action({
+      garden,
+      log,
+      args: { names: ["run.task-a", "build.module-b"] },
+      opts: withDefaultGlobalOpts({ "detail": false, "sort": "name", "include-state": false, "kind": "" }),
+    })
+
+    const expected = [
+      {
+        kind: "Build",
+        name: "module-b",
+        type: "test",
+      },
+      {
+        kind: "Run",
+        name: "task-a",
+        type: "test",
+      },
+    ]
 
     expect(command.outputsSchema().validate(result).error).to.be.undefined
     expect(result?.actions).to.eql(expected)
@@ -272,5 +302,82 @@ describe("GetActionsCommand", () => {
     const expected = sortBy(graph.getActions().map(getActionsToSimpleOutput), ["type", "name"])
     expect(command.outputsSchema().validate(result).error).to.be.undefined
     expect(result).to.eql({ actions: expected })
+  })
+
+  context("GARDEN_ENABLE_PARTIAL_RESOLUTION=true", () => {
+    const originalValue = gardenEnv.GARDEN_ENABLE_PARTIAL_RESOLUTION
+
+    before(() => {
+      gardenEnv.GARDEN_ENABLE_PARTIAL_RESOLUTION = true
+    })
+
+    after(() => {
+      gardenEnv.GARDEN_ENABLE_PARTIAL_RESOLUTION = originalValue
+    })
+
+    it("should return all actions in a project", async () => {
+      const garden = await makeTestGarden(projectRoot)
+      const log = garden.log
+      const command = new GetActionsCommand()
+
+      const { result } = await command.action({
+        garden,
+        log,
+        args: { names: undefined },
+        opts: withDefaultGlobalOpts({ "detail": false, "sort": "name", "include-state": false, "kind": "" }),
+      })
+
+      const graph = await garden.getResolvedConfigGraph({ log, emit: false })
+      const expected = sortBy(graph.getActions().map(getActionsToSimpleOutput), "name")
+
+      expect(command.outputsSchema().validate(result).error).to.be.undefined
+      expect(result?.actions).to.eql(expected)
+    })
+
+    it("should return specific actions by reference in a project", async () => {
+      const garden = await makeTestGarden(projectRoot)
+      const log = garden.log
+      const command = new GetActionsCommand()
+
+      const { result } = await command.action({
+        garden,
+        log,
+        args: { names: ["run.task-a", "build.module-b"] },
+        opts: withDefaultGlobalOpts({ "detail": false, "sort": "name", "include-state": false, "kind": "" }),
+      })
+
+      const expected = [
+        {
+          kind: "Build",
+          name: "module-b",
+          type: "test",
+        },
+        {
+          kind: "Run",
+          name: "task-a",
+          type: "test",
+        },
+      ]
+
+      expect(command.outputsSchema().validate(result).error).to.be.undefined
+      expect(result?.actions).to.eql(expected)
+    })
+
+    it("should return all actions of specific kind in a project when --kind is set", async () => {
+      const garden = await makeTestGarden(projectRoot)
+      const log = garden.log
+      const command = new GetActionsCommand()
+
+      const { result } = await command.action({
+        garden,
+        log,
+        args: { names: undefined },
+        opts: withDefaultGlobalOpts({ "detail": false, "sort": "name", "include-state": false, "kind": "deploy" }),
+      })
+      const graph = await garden.getResolvedConfigGraph({ log, emit: false })
+      const expected = sortBy(graph.getDeploys().map(getActionsToSimpleOutput), "name")
+      expect(command.outputsSchema().validate(result).error).to.be.undefined
+      expect(result).to.eql({ actions: expected })
+    })
   })
 })

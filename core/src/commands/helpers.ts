@@ -18,6 +18,7 @@ import type { CommandParams } from "./base.js"
 import type { ServeCommandOpts } from "./serve.js"
 import { DevCommand } from "./dev.js"
 import { styles } from "../logger/styles.js"
+import { gardenEnv } from "../constants.js"
 
 /**
  * Runs a `dev` command and runs `commandName` with the args & opts provided in `params` as the first
@@ -61,10 +62,17 @@ function printField(name: string, value: string | null) {
   return `${styles.primary(name)}: ${value || ""}`
 }
 
+const renderAvailableActions = (actions: { name: string }[]): string => {
+  if (gardenEnv.GARDEN_ENABLE_PARTIAL_RESOLUTION) {
+    return "<None> (action list is not available while partial graph resolution (i.e. when GARDEN_ENABLE_PARTIAL_RESOLUTION=true))"
+  }
+
+  return naturalList(actions.map((a) => a.name))
+}
+
 /**
  * Throws if an action by name is not found.
  * Logs a warning if no actions are found matching wildcard arguments.
- *
  */
 export const validateActionSearchResults = ({
   log,
@@ -87,9 +95,7 @@ export const validateActionSearchResults = ({
   names?.forEach((n) => {
     if (!isGlob(n) && !actions.find((a) => a.name === n)) {
       throw new ParameterError({
-        message: `${actionKind} action "${n}" was not found. Available actions: ${naturalList(
-          allActions.map((a) => a.name)
-        )}`,
+        message: `${actionKind} action "${n}" was not found. Available actions: ${renderAvailableActions(allActions)}`,
       })
     }
   })

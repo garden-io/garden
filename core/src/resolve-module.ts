@@ -7,7 +7,7 @@
  */
 
 import cloneDeep from "fast-copy"
-import { isArray, isString, keyBy, keys, partition, pick, union } from "lodash-es"
+import { isArray, isString, keyBy, keys, partition, pick, union, uniq } from "lodash-es"
 import { validateWithPath } from "./config/validation.js"
 import {
   getModuleTemplateReferences,
@@ -60,6 +60,8 @@ import type { ExecBuildConfig } from "./plugins/exec/build.js"
 import { pMemoizeDecorator } from "./lib/p-memoize.js"
 import { styles } from "./logger/styles.js"
 import { actionReferenceToString } from "./actions/base.js"
+import type { DepGraph } from "dependency-graph"
+import minimatch from "minimatch"
 
 // This limit is fairly arbitrary, but we need to have some cap on concurrent processing.
 export const moduleResolutionConcurrencyLimit = 50
@@ -101,32 +103,17 @@ export class ModuleResolver {
     this.bases = {}
   }
 
-  async resolveAll() {
+  async resolve({ actionsFilter }: { actionsFilter: string[] | undefined }) {
     // Collect template references for every raw config and work out module references in templates and explicit
     // dependency references. We use two graphs, one will be fully populated as we progress, the other we gradually
     // remove nodes from as we complete the processing.
-    const fullGraph = new DependencyGraph()
-    const processingGraph = new DependencyGraph()
-    const allPaths: string[] = []
+    const fullGraph = new DependencyGraph<string>()
+    const rawConfigs = Object.values(this.rawConfigsByKey)
+    const allPaths: string[] = rawConfigs.map((c) => c.path)
 
-    for (const key of Object.keys(this.rawConfigsByKey)) {
-      for (const graph of [fullGraph, processingGraph]) {
-        graph.addNode(key)
-      }
-    }
+    this.addModulesToGraph(fullGraph, rawConfigs)
 
-    for (const [key, rawConfig] of Object.entries(this.rawConfigsByKey)) {
-      const buildPath = this.garden.buildStaging.getBuildPath(rawConfig)
-      allPaths.push(rawConfig.path)
-      const deps = this.getModuleDependenciesFromConfig(rawConfig, buildPath)
-      for (const graph of [fullGraph, processingGraph]) {
-        for (const dep of deps) {
-          const depKey = dep.name
-          graph.addNode(depKey)
-          graph.addDependency(key, depKey)
-        }
-      }
-    }
+    const processingGraph = fullGraph.clone()
 
     const minimalRoots = await this.garden.vcs.getMinimalRoots(this.log, allPaths)
 
@@ -136,7 +123,7 @@ export class ModuleResolver {
 
     const inFlight = new Set<string>()
 
-    const processNode = async (moduleKey: string) => {
+    const processNode = async (moduleKey: string, forceResolve: boolean) => {
       if (inFlight.has(moduleKey)) {
         return
       }
@@ -149,7 +136,7 @@ export class ModuleResolver {
       let foundNewDependency = false
 
       const dependencyNames = fullGraph.dependenciesOf(moduleKey)
-      const resolvedDependencies = dependencyNames.map((n) => resolvedModules[n])
+      const resolvedDependencies = dependencyNames.map((n) => resolvedModules[n]).filter(Boolean)
 
       try {
         if (!resolvedConfig) {
@@ -188,14 +175,21 @@ export class ModuleResolver {
         // it in the graph and move on to make sure we fully resolve the dependencies and don't run into circular
         // dependencies.
         if (!foundNewDependency) {
-          const buildPath = this.garden.buildStaging.getBuildPath(resolvedConfig)
-          resolvedModules[moduleKey] = await this.resolveModule({
-            resolvedConfig,
-            buildPath,
-            dependencies: resolvedDependencies,
-            repoRoot: minimalRoots[resolvedConfig.path],
-          })
-          this.log.silly(() => `ModuleResolver: Module ${moduleKey} resolved`)
+          const shouldResolve =
+            forceResolve || this.shouldResolveInline({ config: resolvedConfig, actionsFilter, fullGraph })
+
+          if (shouldResolve) {
+            const buildPath = this.garden.buildStaging.getBuildPath(resolvedConfig)
+            resolvedModules[moduleKey] = await this.resolveModule({
+              resolvedConfig,
+              buildPath,
+              dependencies: resolvedDependencies,
+              repoRoot: minimalRoots[resolvedConfig.path],
+            })
+          } else {
+            this.log.debug(() => `ModuleResolver: Module ${moduleKey} skipped`)
+          }
+
           processingGraph.removeNode(moduleKey)
         }
       } catch (err) {
@@ -204,10 +198,10 @@ export class ModuleResolver {
       }
 
       inFlight.delete(moduleKey)
-      return processLeaves()
+      return processLeaves(forceResolve)
     }
 
-    const processLeaves = async () => {
+    const processLeaves = async (forceResolve: boolean) => {
       if (Object.keys(errors).length > 0) {
         const errorStr = Object.entries(errors)
           .map(([name, err]) => `${styles.highlight.bold(name)}: ${err.message}`)
@@ -247,7 +241,7 @@ export class ModuleResolver {
       }
 
       // Process each of the leaf node module configs.
-      await Promise.all(batch.map(processNode))
+      await Promise.all(batch.map((m) => processNode(m, forceResolve)))
     }
 
     // Iterate through dependency graph, a batch of leaves at a time. While there are items remaining:
@@ -255,10 +249,237 @@ export class ModuleResolver {
 
     while (processingGraph.size() > 0) {
       this.log.silly(() => `ModuleResolver: Loop ${++i}`)
-      await processLeaves()
+      await processLeaves(false)
     }
 
-    return Object.values(resolvedModules)
+    // Need to make sure we resolve modules that contain runtime dependencies of services, tasks and tests specified
+    // in actionsFilter (if any), including transitive dependencies.
+    const mayNeedAdditionalResolution = (actionsFilter || []).some((f) => {
+      // Build dependencies, i.e. module-to-module deps, will already be accounted for above.
+      return !f.startsWith("build.")
+    })
+
+    let runtimeGraph = new DependencyGraph<string>()
+
+    if (mayNeedAdditionalResolution) {
+      runtimeGraph = fullGraph.clone()
+      const serviceNames = new Set<string>()
+      const taskNames = new Set<string>()
+
+      // Add runtime dependencies to the module dependency graph
+      for (const config of Object.values(resolvedConfigs)) {
+        for (const service of config.serviceConfigs) {
+          const key = `deploy.${service.name}`
+          runtimeGraph.addNode(key)
+          runtimeGraph.addDependency(key, config.name)
+          serviceNames.add(service.name)
+        }
+        for (const task of config.taskConfigs) {
+          const key = `run.${task.name}`
+          runtimeGraph.addNode(key)
+          runtimeGraph.addDependency(key, config.name)
+          taskNames.add(task.name)
+        }
+        for (const test of config.testConfigs) {
+          const key = `test.${config.name}-${test.name}`
+          runtimeGraph.addNode(key)
+          runtimeGraph.addDependency(key, config.name)
+        }
+      }
+
+      const addRuntimeDep = (key: string, dep: string) => {
+        const depType = serviceNames.has(dep) ? "deploy" : taskNames.has(dep) ? "run" : null
+        if (depType) {
+          const depKey = `${depType}.${dep}`
+          runtimeGraph.addNode(depKey)
+          runtimeGraph.addDependency(key, depKey)
+        }
+      }
+
+      for (const config of Object.values(resolvedConfigs)) {
+        for (const service of config.serviceConfigs) {
+          const key = `deploy.${service.name}`
+          for (const dep of service.dependencies || []) {
+            addRuntimeDep(key, dep)
+          }
+        }
+        for (const task of config.taskConfigs) {
+          const key = `run.${task.name}`
+          for (const dep of task.dependencies || []) {
+            addRuntimeDep(key, dep)
+          }
+        }
+        for (const test of config.testConfigs) {
+          const key = `test.${config.name}-${test.name}`
+          for (const dep of test.dependencies) {
+            addRuntimeDep(key, dep)
+          }
+        }
+      }
+
+      // Collect all modules that still need to be resolved
+      const needResolve: { [key: string]: ModuleConfig } = {}
+
+      for (const pattern of actionsFilter || []) {
+        const deps = this.dependenciesOfWildcard(runtimeGraph, pattern)
+        // Note: Module names in the graph don't have the build. prefix
+        const moduleDepNames = deps.filter((d) => !d.includes("."))
+        for (const name of moduleDepNames) {
+          if (!resolvedModules[name] && resolvedConfigs[name]) {
+            needResolve[name] = resolvedConfigs[name]
+          }
+        }
+      }
+
+      // Populate the processing graph and then resolve the remaining modules
+      this.addModulesToGraph(processingGraph, Object.values(needResolve))
+
+      while (processingGraph.size() > 0) {
+        this.log.silly(() => `ModuleResolver: Loop ${++i}`)
+        await processLeaves(true)
+      }
+    }
+
+    const skipped = new Set<string>()
+
+    if (actionsFilter && mayNeedAdditionalResolution) {
+      for (const config of Object.values(resolvedConfigs)) {
+        if (!resolvedModules[config.name]) {
+          skipped.add(`build.${config.name}`)
+          for (const s of config.serviceConfigs) {
+            skipped.add(`deploy.${s.name}`)
+          }
+          for (const t of config.taskConfigs) {
+            skipped.add(`run.${t.name}`)
+          }
+          for (const t of config.testConfigs) {
+            skipped.add(`test.${config.name}-${t.name}`)
+          }
+        }
+      }
+
+      const maybeSkip = (key: string) => {
+        // Don't skip anything that's requested in the filter
+        if (this.matchFilter(key, actionsFilter)) {
+          return
+        }
+        // Flag as skipped if the module is resolved but the action isn't requested, and it is not depended on by
+        // anything that is requested.
+        for (const f of actionsFilter) {
+          if (this.matchFilter(key, this.dependenciesOfWildcard(runtimeGraph, f))) {
+            return
+          }
+        }
+        skipped.add(key)
+      }
+
+      for (const m of Object.values(resolvedModules)) {
+        for (const s of m.serviceConfigs) {
+          maybeSkip(`deploy.${s.name}`)
+        }
+        for (const t of m.taskConfigs) {
+          maybeSkip(`run.${t.name}`)
+        }
+        for (const t of m.testConfigs) {
+          maybeSkip(`test.${m.name}-${t.name}`)
+        }
+      }
+    }
+
+    return { skipped, resolvedModules: Object.values(resolvedModules), resolvedConfigs: Object.values(resolvedConfigs) }
+  }
+
+  private addModulesToGraph(graph: DepGraph<string>, configs: ModuleConfig[]) {
+    for (const config of configs) {
+      graph.addNode(config.name)
+    }
+
+    for (const config of configs) {
+      const buildPath = this.garden.buildStaging.getBuildPath(config)
+      const deps = this.getModuleDependenciesFromConfig(config, buildPath)
+      for (const dep of deps) {
+        const depKey = dep.name
+        graph.addNode(depKey)
+        graph.addDependency(config.name, depKey)
+      }
+    }
+  }
+
+  /**
+   * Returns true if we know that the module should be resolved during the initial pass in config resolution.
+   * This is the case if no filter is set, the module itself is set in the actions filter, or if it's depended on
+   * by something set in the filter.
+   *
+   * After the first pass of config resolution, we do a separate check to see if an entity (service or task) is
+   * depended upon in any of the resolved modules in the first pass.
+   */
+  private shouldResolveInline({
+    config,
+    actionsFilter,
+    fullGraph,
+  }: {
+    config: ModuleConfig
+    actionsFilter: string[] | undefined
+    fullGraph: DependencyGraph<string>
+  }) {
+    if (!actionsFilter) {
+      return true
+    }
+
+    // Is the module itself set in the filter?
+    if (this.moduleMatchesFilter(config, actionsFilter)) {
+      return true
+    }
+
+    // Is it depended on (at the module level) by something set in the filter?
+    const dependantKeys = fullGraph.dependantsOf(config.name)
+    for (const key of dependantKeys) {
+      if (this.matchFilter(`build.${key}`, actionsFilter)) {
+        return true
+      }
+    }
+
+    return false
+  }
+
+  private matchFilter(key: string, actionsFilter: string[] | undefined) {
+    if (!actionsFilter) {
+      return true
+    }
+    return actionsFilter.some((f: string) => minimatch(key, f))
+  }
+
+  private dependenciesOfWildcard(graph: DependencyGraph<string>, pattern: string) {
+    const matchedKeys = graph.keys().filter((k) => minimatch(k, pattern))
+    return uniq(matchedKeys.flatMap((k) => graph.dependenciesOf(k)))
+  }
+
+  private moduleMatchesFilter(config: ModuleConfig, actionsFilter: string[] | undefined) {
+    if (!actionsFilter) {
+      return true
+    }
+
+    const match = (n: string) => actionsFilter.some((f: string) => minimatch(n, f))
+
+    if (match(`build.${config.name}`)) {
+      return true
+    }
+    for (const s of config.serviceConfigs) {
+      if (match(`deploy.${s}`)) {
+        return true
+      }
+    }
+    for (const t of config.taskConfigs) {
+      if (match(`run.${t}`)) {
+        return true
+      }
+    }
+    for (const t of config.testConfigs) {
+      if (match(`test.${config.name}-${t}`)) {
+        return true
+      }
+    }
+    return false
   }
 
   /**
@@ -491,7 +712,7 @@ export class ModuleResolver {
 
     for (const base of bases) {
       if (base.schema) {
-        garden.log.silly(() => `Validating '${config.name}' config against '${base.name}' schema`)
+        garden.log.silly(() => `ModuleResolver: Validating '${config.name}' config against '${base.name}' schema`)
 
         config.spec = <ModuleConfig>validateWithPath({
           config: config.spec,
@@ -532,7 +753,7 @@ export class ModuleResolver {
     dependencies: GardenModule[]
     repoRoot: string
   }) {
-    this.log.silly(() => `Resolving module ${resolvedConfig.name}`)
+    this.log.debug(() => `ModuleResolver: Resolving module ${resolvedConfig.name}`)
 
     // Write module files
     const configContext = new ModuleConfigContext({
@@ -652,6 +873,9 @@ export class ModuleResolver {
         })
       }
     }
+
+    this.log.debug(() => `ModuleResolver: Module ${resolvedConfig.name} resolved`)
+
     return module
   }
 

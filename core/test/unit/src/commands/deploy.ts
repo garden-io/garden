@@ -23,6 +23,7 @@ import type { ActionStatus } from "../../../../src/actions/types.js"
 import type { DeployStatus } from "../../../../src/plugin/handlers/Deploy/get-status.js"
 import { defaultServerPort } from "../../../../src/commands/serve.js"
 import { zodObjectToJoi } from "../../../../src/config/common.js"
+import { gardenEnv } from "../../../../src/constants.js"
 
 // TODO-G2: rename test cases to match the new graph model semantics
 const placeholderTimestamp = new Date()
@@ -222,6 +223,80 @@ describe("DeployCommand", () => {
       "resolve-action.run.task-c",
       "run.task-b",
     ])
+  })
+
+  context("GARDEN_ENABLE_PARTIAL_RESOLUTION=true", () => {
+    const originalValue = gardenEnv.GARDEN_ENABLE_PARTIAL_RESOLUTION
+
+    before(() => {
+      gardenEnv.GARDEN_ENABLE_PARTIAL_RESOLUTION = true
+    })
+
+    after(() => {
+      gardenEnv.GARDEN_ENABLE_PARTIAL_RESOLUTION = originalValue
+    })
+
+    it("should optionally build and deploy single service and its dependencies", async () => {
+      const garden = await makeTestGarden(projectRootA, { plugins: [testProvider()], noCache: true })
+      const log = garden.log
+
+      const { result, errors } = await command.action({
+        garden,
+        log,
+        args: {
+          names: ["service-b"],
+        },
+        opts: { ...defaultDeployOpts, force: true },
+      })
+
+      if (errors) {
+        throw errors[0]
+      }
+
+      const keys = getAllProcessedTaskNames(result!.graphResults)
+
+      expect(keys).to.eql([
+        "build.module-a",
+        "build.module-b",
+        "deploy.service-a",
+        "deploy.service-b",
+        "resolve-action.build.module-a",
+        "resolve-action.build.module-b",
+        "resolve-action.deploy.service-a",
+        "resolve-action.deploy.service-b",
+      ])
+    })
+
+    it("works with wildcard name", async () => {
+      const garden = await makeTestGarden(projectRootA, { plugins: [testProvider()], noCache: true })
+      const log = garden.log
+
+      const { result, errors } = await command.action({
+        garden,
+        log,
+        args: {
+          names: ["*-b"],
+        },
+        opts: { ...defaultDeployOpts, force: true },
+      })
+
+      if (errors) {
+        throw errors[0]
+      }
+
+      const keys = getAllProcessedTaskNames(result!.graphResults)
+
+      expect(keys).to.eql([
+        "build.module-a",
+        "build.module-b",
+        "deploy.service-a",
+        "deploy.service-b",
+        "resolve-action.build.module-a",
+        "resolve-action.build.module-b",
+        "resolve-action.deploy.service-a",
+        "resolve-action.deploy.service-b",
+      ])
+    })
   })
 
   context("when --skip-dependencies is passed", () => {
