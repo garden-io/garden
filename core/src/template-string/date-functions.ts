@@ -31,59 +31,69 @@ export const dateHelperFunctionSpecs: TemplateHelperFunction[] = [
     },
   },
   {
-    name: "modifyDate",
-    description: "Modifies or sets a unit of the given date to the specified amount based on the mode.",
+    name: "shiftDate",
+    description: "Shifts the date by the specified amount of time units.",
     arguments: {
-      date: joi.string().required().description("The date to modify."),
-      amount: joi.number().required().description("The amount to modify or set the date by."),
+      date: joi.string().required().description("The date to shift."),
+      amount: joi.number().required().description("The amount of time units to shift the date by."),
       unit: joi
         .string()
         .valid("years", "months", "weeks", "days", "hours", "minutes", "seconds", "milliseconds")
         .required()
-        .description("The unit to modify or set."),
-      mode: joi.string().valid("add", "set").description("Mode to either add or set the unit.").default("add"),
+        .description("The time unit to shift the date by."),
     },
     outputSchema: joi.string(),
     exampleArguments: [
-      { input: ["2021-01-01T00:00:00Z", 1, "days", "add"], output: "2021-01-02T00:00:00.000Z" },
-      { input: ["2021-01-01T00:00:00Z", -1, "days", "add"], output: "2020-12-31T00:00:00.000Z" },
-      { input: ["2021-01-01T00:00:00Z", 30, "seconds", "set"], output: "2021-01-01T00:00:30.000Z" },
+      { input: ["2021-01-01T00:00:00Z", 1, "days"], output: "2021-01-02T00:00:00.000Z" },
+      { input: ["2021-01-01T00:00:00Z", -1, "days"], output: "2020-12-31T00:00:00.000Z" },
     ],
-    fn: (date: string, amount: number, unit: string, mode: string) => {
+    fn: (date: string, amount: number, unit: string) => {
       const dateClone = new Date(date)
-      switch (mode) {
-        case "add":
-          return add(dateClone, { [unit]: amount }).toISOString()
-        case "set":
-          switch (unit) {
-            case "years":
-              dateClone.setFullYear(amount)
-              break
-            case "months":
-              dateClone.setMonth(amount)
-              break
-            case "days":
-              dateClone.setDate(amount)
-              break
-            case "hours":
-              dateClone.setHours(amount)
-              break
-            case "minutes":
-              dateClone.setMinutes(amount)
-              break
-            case "seconds":
-              dateClone.setSeconds(amount)
-              break
-            case "milliseconds":
-              dateClone.setMilliseconds(amount)
-              break
-            default:
-              throw new Error("Invalid unit")
-          }
-          return dateClone.toISOString()
+      return add(dateClone, { [unit]: amount }).toISOString()
+    },
+  },
+  {
+    name: "modifyDate",
+    description: "Modifies the date by setting the specified amount of time units.",
+    arguments: {
+      date: joi.string().required().description("The date to modify."),
+      amount: joi.number().required().description("The amount of time units to set."),
+      unit: joi
+        .string()
+        .valid("years", "months", "weeks", "days", "hours", "minutes", "seconds", "milliseconds")
+        .required()
+        .description("The time unit to set."),
+    },
+    outputSchema: joi.string(),
+    exampleArguments: [{ input: ["2021-01-01T00:00:00Z", 30, "seconds"], output: "2021-01-01T00:00:30.000Z" }],
+    fn: (date: string, amount: number, unit: string) => {
+      const dateClone = new Date(date)
+      switch (unit) {
+        case "years":
+          dateClone.setFullYear(amount)
+          break
+        case "months":
+          dateClone.setMonth(amount)
+          break
+        case "days":
+          dateClone.setDate(amount)
+          break
+        case "hours":
+          dateClone.setHours(amount)
+          break
+        case "minutes":
+          dateClone.setMinutes(amount)
+          break
+        case "seconds":
+          dateClone.setSeconds(amount)
+          break
+        case "milliseconds":
+          dateClone.setMilliseconds(amount)
+          break
         default:
-          throw new Error("Invalid mode")
+          throw new Error("Invalid unit")
       }
+      return dateClone.toISOString()
     },
   },
 ]

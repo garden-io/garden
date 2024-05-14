@@ -147,15 +147,13 @@ Examples:
 
 ## modifyDate
 
-Modifies or sets a unit of the given date to the specified amount based on the mode.
+Modifies the date by setting the specified amount of time units.
 
-Usage: `modifyDate(date, amount, unit, [mode])`
+Usage: `modifyDate(date, amount, unit)`
 
 Examples:
 
-* `${modifyDate("2021-01-01T00:00:00Z", 1, "days", "add")}` -> `"2021-01-02T00:00:00.000Z"`
-* `${modifyDate("2021-01-01T00:00:00Z", -1, "days", "add")}` -> `"2020-12-31T00:00:00.000Z"`
-* `${modifyDate("2021-01-01T00:00:00Z", 30, "seconds", "set")}` -> `"2021-01-01T00:00:30.000Z"`
+* `${modifyDate("2021-01-01T00:00:00Z", 30, "seconds")}` -> `"2021-01-01T00:00:30.000Z"`
 
 ## replace
 
@@ -177,6 +175,17 @@ Usage: `sha256(string)`
 Examples:
 
 * `${sha256("Some String")}` -> `"7f0fd64653ba0bb1a579ced2b6bf375e916cc60662109ee0c0b24f0a750c3a6c"`
+
+## shiftDate
+
+Shifts the date by the specified amount of time units.
+
+Usage: `shiftDate(date, amount, unit)`
+
+Examples:
+
+* `${shiftDate("2021-01-01T00:00:00Z", 1, "days")}` -> `"2021-01-02T00:00:00.000Z"`
+* `${shiftDate("2021-01-01T00:00:00Z", -1, "days")}` -> `"2020-12-31T00:00:00.000Z"`
 
 ## slice
 
