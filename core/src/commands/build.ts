@@ -18,6 +18,7 @@ import { deline } from "../util/string.js"
 import { isBuildAction } from "../actions/build.js"
 import { warnOnLinkedActions } from "../actions/helpers.js"
 import { watchParameter, watchRemovedWarning } from "./util/watch-parameter.js"
+import { gardenEnv } from "../constants.js"
 
 const buildArgs = {
   names: new StringsParameter({
@@ -90,7 +91,10 @@ export class BuildCommand extends Command<Args, Opts> {
     }
 
     const graph = await garden.getConfigGraph({ log, emit: true, actionsFilter })
-    let actions = graph.getBuilds({ includeNames: args.names })
+    const getBuildsParams = gardenEnv.GARDEN_ENABLE_PARTIAL_RESOLUTION
+      ? { includeNames: args.names }
+      : { names: args.names }
+    let actions = graph.getBuilds(getBuildsParams)
 
     if (opts["with-dependants"]) {
       // Then we include build dependants (recursively) in the list of modules to build.

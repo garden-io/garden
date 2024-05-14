@@ -207,7 +207,10 @@ export class DeployCommand extends Command<Args, Opts> {
     }
 
     const graph = await garden.getConfigGraph({ log, emit: true, actionModes, actionsFilter })
-    let deployActions = graph.getDeploys({ includeNames: args.names, includeDisabled: true })
+    const getDeploysParams = gardenEnv.GARDEN_ENABLE_PARTIAL_RESOLUTION
+      ? { includeNames: args.names, includeDisabled: true }
+      : { names: args.names, includeDisabled: true }
+    let deployActions = graph.getDeploys(getDeploysParams)
 
     const disabled = deployActions.filter((s) => s.isDisabled()).map((s) => s.name)
 
