@@ -39,6 +39,18 @@ where
     #[cfg(all(target_os = "linux"))]
     command.env("GARDEN_SEA_TARGET_ENV", TARGET_ENV);
 
+    // Experimental compile cache feature. Defaults to false for now, but we can enable it by default later if it works well.
+    // See also https://nodejs.org/api/cli.html#node_compile_cachedir
+    let enable_compile_cache = env::var("GARDEN_COMPILE_CACHE").unwrap_or("false".into());
+    if enable_compile_cache == "true" || enable_compile_cache == "1" {
+        let cache_dir = path.join("v8cache");
+        fs::create_dir(cache_dir.clone())?;
+        command.env(
+            "NODE_COMPILE_CACHE",
+            OsString::from(cache_dir),
+        );
+    }
+
     // Libuv 1.45.0 is affected by a kernel bug on certain kernels (Ubuntu 22)
     // This leads to errors where Garden tool downloading errors with ETXTBSY
     // Apparently file descriptor accounting is broken when using USE_IO_URING on older kernels
