@@ -153,12 +153,15 @@ export abstract class BaseConfigGraph<
   getModule(name: string, includeDisabled?: boolean) {
     return this.moduleGraph.getModule(name, includeDisabled)
   }
+
   getModules(params: GetManyParams = {}) {
     return this.moduleGraph.getModules(params)
   }
+
   withDependantModules(modules: GardenModule[]) {
     return this.moduleGraph.withDependantModules(modules)
   }
+
   // and sanity...
   //////////////////
 
@@ -248,11 +251,21 @@ export abstract class BaseConfigGraph<
       return true
     })
 
-    if (!ignoreMissing && names && names.length > found.length) {
+    if (ignoreMissing) {
+      return found
+    }
+
+    if ((names && names.length) || 0 > found.length) {
       const missing = difference(names, foundNames)
 
       throw new GraphError({
         message: `Could not find one or more ${kind} actions: ${naturalList(missing)}`,
+      })
+    }
+
+    if (includeNames && includeNames.length > 0 && found.length === 0) {
+      throw new GraphError({
+        message: `Could not find one or more ${kind} actions for patterns: ${naturalList(includeNames)}`,
       })
     }
 
