@@ -59,8 +59,18 @@ export const dateHelperFunctionSpecs: TemplateHelperFunction[] = [
     },
     outputSchema: joi.string(),
     exampleArguments: [
+      { input: ["2021-01-01T00:00:00Z", 1, "seconds"], output: "2021-01-01T00:00:01.000Z" },
+      { input: ["2021-01-01T00:00:00Z", -1, "seconds"], output: "2020-12-31T23:59:59.000Z" },
+      { input: ["2021-01-01T00:00:00Z", 1, "minutes"], output: "2021-01-01T00:01:00.000Z" },
+      { input: ["2021-01-01T00:00:00Z", -1, "minutes"], output: "2020-12-31T23:59:00.000Z" },
+      { input: ["2021-01-01T00:00:00Z", 1, "hours"], output: "2021-01-01T01:00:00.000Z" },
+      { input: ["2021-01-01T00:00:00Z", -1, "hours"], output: "2020-12-31T23:00:00.000Z" },
       { input: ["2021-01-01T00:00:00Z", 1, "days"], output: "2021-01-02T00:00:00.000Z" },
       { input: ["2021-01-01T00:00:00Z", -1, "days"], output: "2020-12-31T00:00:00.000Z" },
+      { input: ["2021-01-01T00:00:00Z", 1, "months"], output: "2021-02-01T00:00:00.000Z" },
+      { input: ["2021-01-01T00:00:00Z", -1, "months"], output: "2020-12-01T00:00:00.000Z" },
+      { input: ["2021-01-01T00:00:00Z", 1, "years"], output: "2022-01-01T00:00:00.000Z" },
+      { input: ["2021-01-01T00:00:00Z", -1, "years"], output: "2020-01-01T00:00:00.000Z" },
     ],
     fn: (date: string, amount: number, unit: ShiftDateTimeUnit) => {
       const dateClone = new Date(date)
