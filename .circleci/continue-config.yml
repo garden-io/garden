@@ -124,7 +124,7 @@ commands:
               if which fnm; then
                 echo "Using cached fnm installation"
               else
-                curl -fsSL https://raw.githubusercontent.com/Schniz/fnm/9d0dd1b04521ac4a1c25bb91a65323dbb691e40c/.ci/install.sh | bash -s -- --install-dir "$HOME/.fnm" --force-install
+                curl -fsSL https://raw.githubusercontent.com/Schniz/fnm/9d0dd1b04521ac4a1c25bb91a65323dbb691e40c/.ci/install.sh | bash -s -- --install-dir "$HOME/.fnm" --force-install --skip-shell
               fi
 
               eval "`fnm env --fnm-dir "$HOME/.fnm-cache"`"
