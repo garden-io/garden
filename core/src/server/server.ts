@@ -13,10 +13,10 @@ import Router from "koa-router"
 import websockify from "koa-websocket"
 import bodyParser from "koa-bodyparser"
 import getPort, { portNumbers } from "get-port"
-import { isArray, omit } from "lodash-es"
+import { omit } from "lodash-es"
 
 import type { BaseServerRequest } from "./commands.js"
-import { resolveRequest, serverRequestSchema, shellCommandParamsSchema } from "./commands.js"
+import { resolveRequest, serverRequestSchema } from "./commands.js"
 import { DEFAULT_GARDEN_DIR_NAME, gardenEnv } from "../constants.js"
 import type { Log } from "../logger/log-entry.js"
 import type { Command, CommandResult, PrepareParams } from "../commands/base.js"
@@ -43,15 +43,10 @@ import type { ConfigGraph } from "../graph/config-graph.js"
 import { getGardenCloudDomain } from "../cloud/api.js"
 import type { ServeCommand } from "../commands/serve.js"
 import type { AutocompleteSuggestion } from "../cli/autocomplete.js"
-import { z } from "zod"
-import { omitUndefined } from "../util/objects.js"
 import { createServer } from "http"
 import { defaultServerPort } from "../commands/serve.js"
 
-import type PTY from "@homebridge/node-pty-prebuilt-multiarch"
-import pty from "@homebridge/node-pty-prebuilt-multiarch"
 import { styles } from "../logger/styles.js"
-import { commandListToShellScript } from "../util/escape.js"
 
 const skipLogsForCommands = ["autocomplete"]
 const serverLogName = "garden-server"
@@ -547,97 +542,6 @@ export class GardenServer extends EventEmitter {
       })
     })
 
-    wsRouter.get("/pty", async (ctx) => {
-      const websocket: Koa.Context["websocket"] = ctx["websocket"]
-
-      const connectionId = uuidv4()
-
-      // args may not just be a single value
-      if (ctx.query.args && !isArray(ctx.query.args)) {
-        ctx.query.args = [ctx.query.args]
-      }
-
-      const validation = shellCommandBodySchema.safeParse(ctx.query)
-
-      if (!validation.success) {
-        const event = websocketCloseEvents.badRequest
-        const msg = `${event.message}: ${validation.error.message}`
-        // We need to send line returns as \r\n, otherwise the terminal will not work correctly
-        websocket.send(msg.replace(/\r?\n/g, "\r\n") + "\r\n")
-        websocket.close(event.code, msg)
-        return
-      }
-
-      const { command, args, cwd, key, columns, rows } = validation.data
-
-      // It's crucial to authenticate here because running shell commands locally is sensitive
-      if (key !== this.authKey) {
-        const event = websocketCloseEvents.unauthorized
-        websocket.close(event.code, event.message)
-        return
-      }
-
-      let proc: PTY.IPty
-      let cleanedUp = false
-
-      const cleanup = () => {
-        if (cleanedUp) {
-          return
-        }
-        cleanedUp = true
-        this.log.info(`Connection ${connectionId} terminated, cleaning up.`)
-        proc?.kill()
-      }
-
-      try {
-        // FIXME: Why do we need to sleep for 1 second?
-        proc = pty.spawn("sh", ["-c", `sleep 1; ${commandListToShellScript([command, ...args])}`], {
-          name: "xterm-256color",
-          cols: columns,
-          rows,
-          cwd,
-          env: { ...omitUndefined(process.env) }, // TODO: support this
-        })
-
-        proc.onData((data) => {
-          websocket.OPEN && websocket.send(data)
-        })
-
-        proc.onExit(({ exitCode, signal }) => {
-          const msg = `Command '${command}' exited with code ${exitCode}, signal ${signal}`
-          this.log.info(msg)
-          if (websocket.OPEN) {
-            if (exitCode !== 0) {
-              websocket.send(msg + "\r\n")
-            } else {
-              websocket.send(styles.success("\r\n\r\nDone!\r\n"))
-            }
-            // We use 4700 + exitCode because the websocket close code must be a number between 4000 and 4999
-            websocket.close(4700 + exitCode, msg)
-          }
-        })
-
-        this.setupWsHeartbeat(connectionId, websocket, cleanup)
-
-        // Make sure we clean up listeners when connections end.
-        websocket.on("close", cleanup)
-
-        // Stream stdin
-        websocket.on("message", (stdin: string | Buffer) => {
-          proc.write(stdin.toString())
-        })
-      } catch (err) {
-        const msg = `Could not run command '${command}': ${err}`
-        this.log.error(msg)
-        const event = websocketCloseEvents.ok
-        if (websocket.OPEN) {
-          websocket.send(msg + "\r\n")
-          websocket.close(event.code, msg)
-        }
-        cleanup()
-      }
-    })
-
     app.ws.use(<Koa.Middleware<any>>wsRouter.routes())
     app.ws.use(<Koa.Middleware<any>>wsRouter.allowedMethods())
   }
@@ -991,9 +895,3 @@ type SendWrapper<T extends ServerWebsocketMessageType = ServerWebsocketMessageTy
   type: T,
   payload: ServerWebsocketMessages[T]
 ) => void
-
-const shellCommandBodySchema = shellCommandParamsSchema.extend({
-  key: z.string().describe("The server auth key."),
-  columns: z.coerce.number().default(80).describe("Number of columns in the virtual terminal."),
-  rows: z.coerce.number().default(30).describe("Number of rows in the virtual terminal."),
-})

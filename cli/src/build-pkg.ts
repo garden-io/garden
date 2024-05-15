@@ -7,7 +7,6 @@
  */
 
 import chalk from "chalk"
-import { getAbi } from "node-abi"
 import { resolve, relative, join } from "path"
 import { STATIC_DIR, GARDEN_CLI_ROOT, GARDEN_CORE_ROOT } from "@garden-io/core/build/src/constants.js"
 import { readFile, writeFile } from "fs/promises"
@@ -17,7 +16,6 @@ import { pick } from "lodash-es"
 import minimist from "minimist"
 import { createHash } from "node:crypto"
 import { createReadStream, createWriteStream } from "fs"
-import { makeTempDir } from "@garden-io/core/build/test/helpers.js"
 import * as url from "node:url"
 import { Readable } from "node:stream"
 import { pipeline } from "node:stream/promises"
@@ -482,61 +480,6 @@ async function pkgCommon({ targetName, spec }: { targetName: string; spec: Targe
   const targetPath = resolve(nativeModuleTmpDir, targetName)
   await remove(targetPath)
   await mkdirp(targetPath)
-
-  console.log(` - ${targetName} -> node-pty`)
-  const abi = getAbi(spec.node, "node")
-
-  if (spec.nodeBinaryPlatform === "linux") {
-    const filename = spec.os === "alpine" ? `node.abi${abi}.musl.node` : `node.abi${abi}.node`
-    const abiPath = resolve(
-      GARDEN_CORE_ROOT,
-      "node_modules",
-      "@homebridge",
-      "node-pty-prebuilt-multiarch",
-      "prebuilds",
-      `${spec.nodeBinaryPlatform}-${spec.arch}`,
-      filename
-    )
-    await copy(abiPath, resolve(targetPath, "pty.node"))
-  } else {
-    const tmpDir = await makeTempDir()
-    const ptyArchiveFilename = resolve(tmpDir.path, "pty.tar.gz")
-
-    // See also https://github.com/homebridge/node-pty-prebuilt-multiarch/releases
-    const checksums = {
-      "120-win32-x64": "344921e4036277b1edcbc01d2c7b4a22a3e0a85c911bdf9255fe1168e8e439b6",
-      "120-darwin-x64": "c406d1ba59ffa750c8a456ae22a75a221eaee2579f3b6f54296e72a5d79c6853",
-      "120-darwin-arm64": "2818fd6a31dd5889fa9612ceb7ae5ebe5c2422964a4a908d1f05aec120ebccaf",
-    }
-
-    const key = `${abi}-${spec.nodeBinaryPlatform}-${spec.arch}`
-    const checksum = checksums[key]
-
-    if (!checksum) {
-      throw new Error(
-        `Missing checksum for ${key}. Needs to be updated when changing the NodeJS version or pty version.`
-      )
-    }
-
-    await downloadFromWeb({
-      url: `https://github.com/homebridge/node-pty-prebuilt-multiarch/releases/download/v0.11.8/node-pty-prebuilt-multiarch-v0.11.8-node-v${abi}-${spec.nodeBinaryPlatform}-${spec.arch}.tar.gz`,
-      checksum,
-      targetPath: ptyArchiveFilename,
-    })
-
-    // extract
-    const extractStream = tar.x({
-      C: targetPath,
-      // The stripping removes the outer directories, so we end up with the files directly in the target directory.
-      // Filtering happens first, so it works fine.
-      strip: 2,
-      filter: (path) => {
-        return path.startsWith(`build/Release/`)
-      },
-    })
-    await pipeline(createReadStream(ptyArchiveFilename), extractStream)
-    await tmpDir.cleanup()
-  }
 
   if (spec.os === "macos") {
     await copy(resolve(GARDEN_CORE_ROOT, "lib", "fsevents", "fsevents.node"), resolve(targetPath, "fsevents.node"))
