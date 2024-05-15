@@ -39,18 +39,6 @@ where
     #[cfg(all(target_os = "linux"))]
     command.env("GARDEN_SEA_TARGET_ENV", TARGET_ENV);
 
-    // Experimental compile cache feature. Defaults to false for now, but we can enable it by default later if it works well.
-    // See also https://nodejs.org/api/cli.html#node_compile_cachedir
-    let enable_compile_cache = env::var("GARDEN_COMPILE_CACHE").unwrap_or("false".into());
-    if enable_compile_cache == "true" || enable_compile_cache == "1" {
-        let cache_dir = path.join("v8cache");
-        fs::create_dir(cache_dir.clone())?;
-        command.env(
-            "NODE_COMPILE_CACHE",
-            OsString::from(cache_dir),
-        );
-    }
-
     // Allow users to override the heap size if needed.
     let max_old_space_size = env::var("GARDEN_MAX_OLD_SPACE_SIZE").unwrap_or("4096".into());
     let max_semi_space_size = env::var("GARDEN_MAX_SEMI_SPACE_SIZE").unwrap_or("64".into());
