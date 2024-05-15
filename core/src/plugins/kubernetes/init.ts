@@ -92,7 +92,7 @@ export async function getEnvironmentStatus({
 
   if (provider.config.setupIngressController === "nginx") {
     const ingressControllerReadiness = await ingressControllerReady(ctx, log)
-    result.ready = ingressControllerReadiness
+    result.ready = ingressControllerReadiness && namespace.state === "ready"
     detail.systemReady = ingressControllerReadiness
     log.info(
       `${styles.highlight("nginx")} Ingress Controller ${ingressControllerReadiness ? "is ready" : "is not ready"}`

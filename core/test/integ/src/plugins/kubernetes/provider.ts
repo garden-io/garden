@@ -61,7 +61,8 @@ describe("kubernetes provider handlers", () => {
 
   describe("getEnvironmentStatus", () => {
     it("should only return the environment status and not create any resources with the getEnvironmentStatus handler", async () => {
-      await getEnvironmentStatus({ ctx, log })
+      const envStatus = await getEnvironmentStatus({ ctx, log })
+      expect(envStatus.ready).to.be.false
       const namespaceStatus = await namespaceExists(api, namespaceName)
       expect(namespaceStatus).to.be.false
     })
@@ -74,7 +75,8 @@ describe("kubernetes provider handlers", () => {
         status,
         force: false,
       }
-      await prepareEnvironment(params)
+      const envStatus = await prepareEnvironment(params)
+      expect(envStatus.status.ready).to.be.true
       const namespaceStatus = await namespaceExists(api, namespaceName)
       expect(namespaceStatus).to.be.true
     })
