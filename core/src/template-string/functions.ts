@@ -21,8 +21,8 @@ import { mayContainTemplateString } from "./template-string.js"
 import { dateHelperFunctionSpecs } from "./date-functions.js"
 
 interface ExampleArgument {
-  input: any[]
-  output: any // Used to validate expected output
+  input: unknown[]
+  output: unknown // Used to validate expected output
   skipTest?: boolean
 }
 
