@@ -52,7 +52,9 @@ export const dateHelperFunctionSpecs: TemplateHelperFunction[] = [
     outputSchema: joi.string(),
     exampleArguments: [
       { input: ["2021-01-01T00:00:00Z", "yyyy-MM-dd"], output: "2021-01-01" },
+      { input: ["2021-01-01T00:00:00+0200", "yyyy-MM-dd"], output: "2020-12-31" },
       { input: ["2021-01-01T00:00:00Z", "yyyy-MM-dd HH:mm:ss"], output: "2021-01-01 00:00:00" },
+      { input: ["2021-01-01T00:00:00+0200", "yyyy-MM-dd HH:mm:ss"], output: "2020-12-31 22:00:00" },
     ],
     fn: (date: string, format: string) => {
       const utcDate = new UTCDateMini(date)
@@ -79,6 +81,7 @@ export const dateHelperFunctionSpecs: TemplateHelperFunction[] = [
       { input: ["2021-01-01T00:00:00Z", -1, "minutes"], output: "2020-12-31T23:59:00.000Z" },
       { input: ["2021-01-01T00:00:00Z", 1, "hours"], output: "2021-01-01T01:00:00.000Z" },
       { input: ["2021-01-01T00:00:00Z", -1, "hours"], output: "2020-12-31T23:00:00.000Z" },
+      { input: ["2021-01-01T10:00:00+0200", 1, "hours"], output: "2021-01-01T09:00:00.000Z" },
       { input: ["2021-01-01T00:00:00Z", 1, "days"], output: "2021-01-02T00:00:00.000Z" },
       { input: ["2021-01-01T00:00:00Z", -1, "days"], output: "2020-12-31T00:00:00.000Z" },
       { input: ["2021-01-01T00:00:00Z", 1, "months"], output: "2021-02-01T00:00:00.000Z" },
@@ -109,6 +112,7 @@ export const dateHelperFunctionSpecs: TemplateHelperFunction[] = [
       { input: ["2021-01-01T00:00:05Z", 30, "seconds"], output: "2021-01-01T00:00:30.000Z" },
       { input: ["2021-01-01T00:01:00Z", 15, "minutes"], output: "2021-01-01T00:15:00.000Z" },
       { input: ["2021-01-01T12:00:00Z", 11, "hours"], output: "2021-01-01T11:00:00.000Z" },
+      { input: ["2021-01-01T10:00:00+0200", 11, "hours"], output: "2021-01-01T11:00:00.000Z" },
       { input: ["2021-01-31T00:00:00Z", 1, "days"], output: "2021-01-01T00:00:00.000Z" },
       { input: ["2021-03-01T00:00:00Z", 0, "months"], output: "2021-01-01T00:00:00.000Z" }, // 0 (Jan) - 11 (Dec)
       { input: ["2021-01-01T00:00:00Z", 2024, "years"], output: "2024-01-01T00:00:00.000Z" },
