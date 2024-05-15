@@ -32,7 +32,7 @@ export interface TemplateHelperFunction {
   arguments: { [name: string]: Joi.Schema }
   outputSchema: Joi.Schema
   exampleArguments: ExampleArgument[]
-  fn: Function
+  fn: (...args: any[]) => unknown
 }
 
 const helperFunctionSpecs: TemplateHelperFunction[] = [
