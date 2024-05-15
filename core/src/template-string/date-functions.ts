@@ -25,14 +25,17 @@ const validModifyDateTimeUnits = ["years", "months", "days", "hours", "minutes",
 type ModifyDateTimeUnit = (typeof validModifyDateTimeUnits)[number]
 // This is still type-safe because every entry of ModifyDateTimeUnit must be declared in the index below.
 const modifyDateFunctions: { [k in ModifyDateTimeUnit]: (date: Date, timeUnits: number) => void } = {
-  years: (date, timeUnits) => date.setFullYear(timeUnits),
-  months: (date, timeUnits) => date.setMonth(timeUnits),
-  days: (date, timeUnits) => date.setDate(timeUnits),
-  hours: (date, timeUnits) => date.setHours(timeUnits),
-  minutes: (date, timeUnits) => date.setMinutes(timeUnits),
-  seconds: (date, timeUnits) => date.setSeconds(timeUnits),
-  milliseconds: (date, timeUnits) => date.setMilliseconds(timeUnits),
+  years: (date, timeUnits) => date.setUTCFullYear(timeUnits),
+  months: (date, timeUnits) => date.setUTCMonth(timeUnits),
+  days: (date, timeUnits) => date.setUTCDate(timeUnits),
+  hours: (date, timeUnits) => date.setUTCHours(timeUnits),
+  minutes: (date, timeUnits) => date.setUTCMinutes(timeUnits),
+  seconds: (date, timeUnits) => date.setUTCSeconds(timeUnits),
+  milliseconds: (date, timeUnits) => date.setUTCMilliseconds(timeUnits),
 } as const
+
+const timeZoneComment =
+  "The input date is always converted to the UTC time zone before the modification. If no explicit timezone is specified on the input date, then the system default one will be used. The output date is always returned in the UTC time zone too."
 
 export const dateHelperFunctionSpecs: TemplateHelperFunction[] = [
   {
@@ -55,8 +58,8 @@ export const dateHelperFunctionSpecs: TemplateHelperFunction[] = [
     },
   },
   {
-    name: "shiftDate",
-    description: "Shifts the date by the specified amount of time units.",
+    name: "shiftDateUtc",
+    description: `Shifts the date by the specified amount of time units. ${timeZoneComment}`,
     arguments: {
       date: joi.string().required().description("The date to shift."),
       amount: joi.number().required().description("The amount of time units to shift the date by."),
@@ -87,8 +90,8 @@ export const dateHelperFunctionSpecs: TemplateHelperFunction[] = [
     },
   },
   {
-    name: "modifyDate",
-    description: "Modifies the date by setting the specified amount of time units.",
+    name: "modifyDateUtc",
+    description: `Modifies the date by setting the specified amount of time units. ${timeZoneComment}`,
     arguments: {
       date: joi.string().required().description("The date to modify."),
       amount: joi.number().required().description("The amount of time units to set."),
@@ -103,7 +106,7 @@ export const dateHelperFunctionSpecs: TemplateHelperFunction[] = [
       { input: ["2021-01-01T00:00:00.234Z", 345, "milliseconds"], output: "2021-01-01T00:00:00.345Z" },
       { input: ["2021-01-01T00:00:05Z", 30, "seconds"], output: "2021-01-01T00:00:30.000Z" },
       { input: ["2021-01-01T00:01:00Z", 15, "minutes"], output: "2021-01-01T00:15:00.000Z" },
-      { input: ["2021-01-01T12:00:00Z", 11, "hours"], output: "2021-01-01T11:00:00.000Z", skipTest: true },
+      { input: ["2021-01-01T12:00:00Z", 11, "hours"], output: "2021-01-01T11:00:00.000Z" },
       { input: ["2021-01-31T00:00:00Z", 1, "days"], output: "2021-01-01T00:00:00.000Z" },
       { input: ["2021-03-01T00:00:00Z", 0, "months"], output: "2021-01-01T00:00:00.000Z" }, // 0 (Jan) - 11 (Dec)
       { input: ["2021-01-01T00:00:00Z", 2024, "years"], output: "2024-01-01T00:00:00.000Z" },

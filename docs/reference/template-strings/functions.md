@@ -145,21 +145,21 @@ Examples:
 
 * `${lower("Some String")}` -> `"some string"`
 
-## modifyDate
+## modifyDateUtc
 
-Modifies the date by setting the specified amount of time units.
+Modifies the date by setting the specified amount of time units. The input date is always converted to the UTC time zone before the modification. If no explicit timezone is specified on the input date, then the system default one will be used. The output date is always returned in the UTC time zone too.
 
-Usage: `modifyDate(date, amount, unit)`
+Usage: `modifyDateUtc(date, amount, unit)`
 
 Examples:
 
-* `${modifyDate("2021-01-01T00:00:00.234Z", 345, "milliseconds")}` -> `"2021-01-01T00:00:00.345Z"`
-* `${modifyDate("2021-01-01T00:00:05Z", 30, "seconds")}` -> `"2021-01-01T00:00:30.000Z"`
-* `${modifyDate("2021-01-01T00:01:00Z", 15, "minutes")}` -> `"2021-01-01T00:15:00.000Z"`
-* `${modifyDate("2021-01-01T12:00:00Z", 11, "hours")}` -> `"2021-01-01T11:00:00.000Z"`
-* `${modifyDate("2021-01-31T00:00:00Z", 1, "days")}` -> `"2021-01-01T00:00:00.000Z"`
-* `${modifyDate("2021-03-01T00:00:00Z", 0, "months")}` -> `"2021-01-01T00:00:00.000Z"`
-* `${modifyDate("2021-01-01T00:00:00Z", 2024, "years")}` -> `"2024-01-01T00:00:00.000Z"`
+* `${modifyDateUtc("2021-01-01T00:00:00.234Z", 345, "milliseconds")}` -> `"2021-01-01T00:00:00.345Z"`
+* `${modifyDateUtc("2021-01-01T00:00:05Z", 30, "seconds")}` -> `"2021-01-01T00:00:30.000Z"`
+* `${modifyDateUtc("2021-01-01T00:01:00Z", 15, "minutes")}` -> `"2021-01-01T00:15:00.000Z"`
+* `${modifyDateUtc("2021-01-01T12:00:00Z", 11, "hours")}` -> `"2021-01-01T11:00:00.000Z"`
+* `${modifyDateUtc("2021-01-31T00:00:00Z", 1, "days")}` -> `"2021-01-01T00:00:00.000Z"`
+* `${modifyDateUtc("2021-03-01T00:00:00Z", 0, "months")}` -> `"2021-01-01T00:00:00.000Z"`
+* `${modifyDateUtc("2021-01-01T00:00:00Z", 2024, "years")}` -> `"2024-01-01T00:00:00.000Z"`
 
 ## replace
 
@@ -182,26 +182,26 @@ Examples:
 
 * `${sha256("Some String")}` -> `"7f0fd64653ba0bb1a579ced2b6bf375e916cc60662109ee0c0b24f0a750c3a6c"`
 
-## shiftDate
+## shiftDateUtc
 
-Shifts the date by the specified amount of time units.
+Shifts the date by the specified amount of time units. The input date is always converted to the UTC time zone before the modification. If no explicit timezone is specified on the input date, then the system default one will be used. The output date is always returned in the UTC time zone too.
 
-Usage: `shiftDate(date, amount, unit)`
+Usage: `shiftDateUtc(date, amount, unit)`
 
 Examples:
 
-* `${shiftDate("2021-01-01T00:00:00Z", 1, "seconds")}` -> `"2021-01-01T00:00:01.000Z"`
-* `${shiftDate("2021-01-01T00:00:00Z", -1, "seconds")}` -> `"2020-12-31T23:59:59.000Z"`
-* `${shiftDate("2021-01-01T00:00:00Z", 1, "minutes")}` -> `"2021-01-01T00:01:00.000Z"`
-* `${shiftDate("2021-01-01T00:00:00Z", -1, "minutes")}` -> `"2020-12-31T23:59:00.000Z"`
-* `${shiftDate("2021-01-01T00:00:00Z", 1, "hours")}` -> `"2021-01-01T01:00:00.000Z"`
-* `${shiftDate("2021-01-01T00:00:00Z", -1, "hours")}` -> `"2020-12-31T23:00:00.000Z"`
-* `${shiftDate("2021-01-01T00:00:00Z", 1, "days")}` -> `"2021-01-02T00:00:00.000Z"`
-* `${shiftDate("2021-01-01T00:00:00Z", -1, "days")}` -> `"2020-12-31T00:00:00.000Z"`
-* `${shiftDate("2021-01-01T00:00:00Z", 1, "months")}` -> `"2021-02-01T00:00:00.000Z"`
-* `${shiftDate("2021-01-01T00:00:00Z", -1, "months")}` -> `"2020-12-01T00:00:00.000Z"`
-* `${shiftDate("2021-01-01T00:00:00Z", 1, "years")}` -> `"2022-01-01T00:00:00.000Z"`
-* `${shiftDate("2021-01-01T00:00:00Z", -1, "years")}` -> `"2020-01-01T00:00:00.000Z"`
+* `${shiftDateUtc("2021-01-01T00:00:00Z", 1, "seconds")}` -> `"2021-01-01T00:00:01.000Z"`
+* `${shiftDateUtc("2021-01-01T00:00:00Z", -1, "seconds")}` -> `"2020-12-31T23:59:59.000Z"`
+* `${shiftDateUtc("2021-01-01T00:00:00Z", 1, "minutes")}` -> `"2021-01-01T00:01:00.000Z"`
+* `${shiftDateUtc("2021-01-01T00:00:00Z", -1, "minutes")}` -> `"2020-12-31T23:59:00.000Z"`
+* `${shiftDateUtc("2021-01-01T00:00:00Z", 1, "hours")}` -> `"2021-01-01T01:00:00.000Z"`
+* `${shiftDateUtc("2021-01-01T00:00:00Z", -1, "hours")}` -> `"2020-12-31T23:00:00.000Z"`
+* `${shiftDateUtc("2021-01-01T00:00:00Z", 1, "days")}` -> `"2021-01-02T00:00:00.000Z"`
+* `${shiftDateUtc("2021-01-01T00:00:00Z", -1, "days")}` -> `"2020-12-31T00:00:00.000Z"`
+* `${shiftDateUtc("2021-01-01T00:00:00Z", 1, "months")}` -> `"2021-02-01T00:00:00.000Z"`
+* `${shiftDateUtc("2021-01-01T00:00:00Z", -1, "months")}` -> `"2020-12-01T00:00:00.000Z"`
+* `${shiftDateUtc("2021-01-01T00:00:00Z", 1, "years")}` -> `"2022-01-01T00:00:00.000Z"`
+* `${shiftDateUtc("2021-01-01T00:00:00Z", -1, "years")}` -> `"2020-01-01T00:00:00.000Z"`
 
 ## slice
 
