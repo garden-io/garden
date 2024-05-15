@@ -418,7 +418,7 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
           // Status is either aborted or failed
           this.log.silly(() => `Request ${request.getKey()} status: ${resultToString(status)}`)
           this.completeTask({ ...status, node: request })
-        } else if (request.statusOnly && status !== undefined) {
+        } else if (request.statusOnly && status !== undefined && status.result) {
           // Status is resolved, and that's all we need
           this.log.silly(() => `Request ${request.getKey()} is statusOnly and the status is available. Completing.`)
           this.completeTask({ ...status, node: request })

@@ -36,7 +36,6 @@ import { systemDockerAuthSecretName, dockerAuthSecretKey } from "./constants.js"
 import type { V1IngressClass, V1Secret, V1Toleration } from "@kubernetes/client-node"
 import type { KubernetesResource } from "./types.js"
 import type { PrimitiveMap } from "../../config/common.js"
-import { mapValues } from "lodash-es"
 import { getIngressApiVersion, supportedIngressApiVersions } from "./container/ingress.js"
 import type { Log } from "../../logger/log-entry.js"
 import { ingressControllerInstall, ingressControllerReady } from "./nginx/ingress-controller.js"
@@ -74,7 +73,7 @@ export async function getEnvironmentStatus({
   const provider = k8sCtx.provider
   const api = await KubeApi.factory(log, ctx, provider)
 
-  const namespaces = await prepareNamespaces({ ctx, log })
+  const namespace = await getNamespaceStatus({ ctx: k8sCtx, log, provider: k8sCtx.provider, skipCreate: true })
 
   const detail: KubernetesEnvironmentDetail = {
     systemReady: true,
@@ -82,22 +81,22 @@ export async function getEnvironmentStatus({
     systemManagedCertificatesReady: true,
   }
 
-  const namespaceNames = mapValues(namespaces, (s) => s.namespaceName)
   const result: KubernetesEnvironmentStatus = {
-    ready: true,
+    ready: namespace.state === "ready",
     detail,
     outputs: {
-      ...namespaceNames,
+      "app-namespace": namespace.namespaceName,
       "default-hostname": provider.config.defaultHostname || null,
     },
   }
 
   if (provider.config.setupIngressController === "nginx") {
-    log.info(`Ensuring ${styles.highlight("nginx")} Ingress Controller...`)
     const ingressControllerReadiness = await ingressControllerReady(ctx, log)
     result.ready = ingressControllerReadiness
     detail.systemReady = ingressControllerReadiness
-    log.info(`${styles.highlight("nginx")} Ingress Controller ready`)
+    log.info(
+      `${styles.highlight("nginx")} Ingress Controller ${ingressControllerReadiness ? "is ready" : "is not ready"}`
+    )
   } else {
     // We only need to warn about missing ingress classes if we're not using garden installed nginx
     const ingressApiVersion = await getIngressApiVersion(log, api, supportedIngressApiVersions)
@@ -145,7 +144,7 @@ export async function getIngressMisconfigurationWarnings(
 }
 
 /**
- * Deploys system services (if any).
+ * Deploys system services (if any) and creates the default app namespace.
  */
 export async function prepareEnvironment(
   params: PrepareEnvironmentParams<KubernetesConfig, KubernetesEnvironmentStatus>
@@ -154,7 +153,8 @@ export async function prepareEnvironment(
   const k8sCtx = <KubernetesPluginContext>ctx
   const provider = k8sCtx.provider
   const config = provider.config
-
+  // create default app namespace if it doesn't exist
+  await prepareNamespaces({ ctx, log })
   // make sure that the system namespace exists
   await getSystemNamespace(ctx, ctx.provider, log)
 

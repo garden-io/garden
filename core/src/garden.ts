@@ -712,7 +712,7 @@ export class Garden {
       : this.providerConfigs
   }
 
-  async resolveProvider(log: Log, name: string) {
+  async resolveProvider(log: Log, name: string, statusOnly?: boolean) {
     if (name === "_default") {
       return defaultProvider
     }
@@ -723,7 +723,7 @@ export class Garden {
 
     this.log.silly(() => `Resolving provider ${name}`)
 
-    const providers = await this.resolveProviders(log, false, [name])
+    const providers = await this.resolveProviders(log, false, statusOnly, [name])
     const provider = providers[name]
 
     if (!provider) {
@@ -742,7 +742,7 @@ export class Garden {
   @OtelTraced({
     name: "resolveProviders",
   })
-  async resolveProviders(log: Log, forceInit = false, names?: string[]): Promise<ProviderMap> {
+  async resolveProviders(log: Log, forceInit = false, statusOnly = false, names?: string[]): Promise<ProviderMap> {
     // TODO: split this out of the Garden class
     let providers: Provider[] = []
 
@@ -824,7 +824,7 @@ export class Garden {
       })
 
       // Process as many providers in parallel as possible
-      const taskResults = await this.processTasks({ tasks, log })
+      const taskResults = await this.processTasks({ tasks, log, statusOnly })
 
       const providerResults = Object.values(taskResults.results.getMap())
 
@@ -989,6 +989,7 @@ export class Garden {
     graphResults,
     emit,
     actionModes = {},
+    statusOnly,
     /**
      * If provided, this is used to perform partial module resolution.
      * TODO: also limit action resolution (less important because it's faster and more done on-demand)
@@ -1003,7 +1004,7 @@ export class Garden {
     // TODO: split this out of the Garden class
     await this.scanAndAddConfigs()
 
-    const resolvedProviders = await this.resolveProviders(log)
+    const resolvedProviders = await this.resolveProviders(log, false, statusOnly)
     const rawModuleConfigs = await this.getRawModuleConfigs()
 
     const graphLog = log.createLog({ name: "graph", showDuration: true }).info(`Resolving actions and modules...`)
@@ -2280,5 +2281,6 @@ export interface GetConfigGraphParams {
   graphResults?: GraphResults
   emit: boolean
   actionModes?: ActionModeMap
+  statusOnly?: boolean
   actionsFilter?: string[]
 }
