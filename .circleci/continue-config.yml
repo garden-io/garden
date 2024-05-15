@@ -458,9 +458,6 @@ jobs:
     steps:
       - checkout
       - install_rust
-      - run:
-          name: "Install rollup linux"
-          command: npm install --save-dev @rollup/rollup-linux-x64-gnu
       - run_npm_dist:
           version: <<parameters.version>>
           targets: "linux-amd64 linux-arm64 alpine-amd64 windows-amd64"
