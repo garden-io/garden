@@ -9,6 +9,7 @@
 import type { TemplateHelperFunction } from "./functions.js"
 import { joi } from "../config/common.js"
 import { format as formatFns, add, type Duration } from "date-fns"
+import { UTCDateMini } from "@date-fns/utc"
 
 type ShiftDateTimeUnit = keyof Duration
 const validShiftDateTimeUnits: ShiftDateTimeUnit[] = [
@@ -39,8 +40,8 @@ const timeZoneComment =
 
 export const dateHelperFunctionSpecs: TemplateHelperFunction[] = [
   {
-    name: "formatDate",
-    description: "Formats the given date using the specified format.",
+    name: "formatDateUtc",
+    description: `Formats the given date using the specified format. ${timeZoneComment}`,
     arguments: {
       date: joi.string().required().description("The date to format."),
       format: joi
@@ -51,10 +52,11 @@ export const dateHelperFunctionSpecs: TemplateHelperFunction[] = [
     outputSchema: joi.string(),
     exampleArguments: [
       { input: ["2021-01-01T00:00:00Z", "yyyy-MM-dd"], output: "2021-01-01" },
-      { input: ["2021-01-01T00:00:00Z", "yyyy-MM-dd HH:mm:ss"], output: "2021-01-01 00:00:00", skipTest: true },
+      { input: ["2021-01-01T00:00:00Z", "yyyy-MM-dd HH:mm:ss"], output: "2021-01-01 00:00:00" },
     ],
-    fn: (date: Date, format: string) => {
-      return formatFns(date, format)
+    fn: (date: string, format: string) => {
+      const utcDate = new UTCDateMini(date)
+      return formatFns(utcDate, format)
     },
   },
   {

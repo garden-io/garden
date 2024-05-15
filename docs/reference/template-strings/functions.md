@@ -51,16 +51,16 @@ Examples:
 * `${concat([1,2,3], [4,5])}` -> `[1,2,3,4,5]`
 * `${concat("string1", "string2")}` -> `"string1string2"`
 
-## formatDate
+## formatDateUtc
 
-Formats the given date using the specified format.
+Formats the given date using the specified format. The input date is always converted to the UTC time zone before the modification. If no explicit timezone is specified on the input date, then the system default one will be used. The output date is always returned in the UTC time zone too.
 
-Usage: `formatDate(date, format)`
+Usage: `formatDateUtc(date, format)`
 
 Examples:
 
-* `${formatDate("2021-01-01T00:00:00Z", "yyyy-MM-dd")}` -> `"2021-01-01"`
-* `${formatDate("2021-01-01T00:00:00Z", "yyyy-MM-dd HH:mm:ss")}` -> `"2021-01-01 00:00:00"`
+* `${formatDateUtc("2021-01-01T00:00:00Z", "yyyy-MM-dd")}` -> `"2021-01-01"`
+* `${formatDateUtc("2021-01-01T00:00:00Z", "yyyy-MM-dd HH:mm:ss")}` -> `"2021-01-01 00:00:00"`
 
 ## indent
 
