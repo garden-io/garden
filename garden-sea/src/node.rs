@@ -39,16 +39,6 @@ where
     #[cfg(all(target_os = "linux"))]
     command.env("GARDEN_SEA_TARGET_ENV", TARGET_ENV);
 
-    // Libuv 1.45.0 is affected by a kernel bug on certain kernels (Ubuntu 22)
-    // This leads to errors where Garden tool downloading errors with ETXTBSY
-    // Apparently file descriptor accounting is broken when using USE_IO_URING on older kernels
-    // See also: https://github.com/libuv/libuv/pull/4141/files
-    // TODO: Remove this once libuv 1.47 landed in a future NodeJS version, and we upgraded to it.
-    command.env(
-        "UV_USE_IO_URING",
-        env::var("GARDEN_SEA_UV_USE_IO_URING").unwrap_or("0".into()),
-    );
-
     // Allow users to override the heap size if needed.
     let max_old_space_size = env::var("GARDEN_MAX_OLD_SPACE_SIZE").unwrap_or("4096".into());
     let max_semi_space_size = env::var("GARDEN_MAX_SEMI_SPACE_SIZE").unwrap_or("64".into());

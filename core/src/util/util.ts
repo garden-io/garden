@@ -46,7 +46,7 @@ import { dedent, naturalList, tailString } from "./string.js"
 import split2 from "split2"
 import type { Options as ExecaOptions } from "execa"
 import { execa } from "execa"
-import corePackageJson from "../../package.json" assert { type: "json" }
+import corePackageJson from "../../package.json" with { type: "json" }
 import { makeDocsLinkStyled } from "../docs/common.js"
 
 export { apply as jsonMerge } from "json-merge-patch"

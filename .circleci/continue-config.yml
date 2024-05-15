@@ -20,14 +20,6 @@ parameters:
     GARDEN_DISABLE_ANALYTICS: "true"
     GARDEN_K8S_BUILD_SYNC_MODE: "mutagen"
 
-    # Libuv 1.45.0 is affected by a kernel bug on certain kernels (Ubuntu 22)
-    # This leads to errors where Garden tool downloading errors with ETXTBSY
-    # Apparently file descriptor accounting is broken when using USE_IO_URING on older kernels
-    # See also: https://github.com/libuv/libuv/pull/4141/files
-    # TODO: Remove this once libuv 1.47 landed in a future NodeJS version, and we upgraded to it.
-    UV_USE_IO_URING: "0"
-
-
   ubuntu-vm-runner: &ubuntu-vm-runner
     image: "ubuntu-2204:2023.10.1"
     docker_layer_caching: true
@@ -38,7 +30,7 @@ parameters:
       docker_layer_caching: true
 
   runner-image: &runner-image
-    image: gardendev/circleci-runner:21.7.3-1@sha256:7611893b8f10841017ade7730d22708ed2a08b36bcd86da089c8b7771f0b8db9
+    image: gardendev/circleci-runner:22.1.0-1@sha256:ce3c5de0ce246daaf66b6e2d2a535cd4f32042fdc52a5c693b2220bef11a2d3c
 
   # Configuration for our node jobs
   docker-runner: &docker-runner
@@ -108,7 +100,7 @@ commands:
       node_version:
         description: The node version to use
         type: string
-        default: v21.7.3
+        default: v22.1.0
     steps:
       # See also https://github.com/CircleCI-Public/node-orb/issues/158#issuecomment-1461095390
       - run: rm -rf ~/.npm ~/.fnm
@@ -132,7 +124,7 @@ commands:
               if which fnm; then
                 echo "Using cached fnm installation"
               else
-                curl -fsSL https://raw.githubusercontent.com/Schniz/fnm/9d0dd1b04521ac4a1c25bb91a65323dbb691e40c/.ci/install.sh | bash -s -- --install-dir "$HOME/.fnm" --force-install
+                curl -fsSL https://raw.githubusercontent.com/Schniz/fnm/9d0dd1b04521ac4a1c25bb91a65323dbb691e40c/.ci/install.sh | bash -s -- --install-dir "$HOME/.fnm" --force-install --skip-shell
               fi
 
               eval "`fnm env --fnm-dir "$HOME/.fnm-cache"`"
