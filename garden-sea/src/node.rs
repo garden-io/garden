@@ -39,9 +39,9 @@ where
     #[cfg(all(target_os = "linux"))]
     command.env("GARDEN_SEA_TARGET_ENV", TARGET_ENV);
 
-    // Experimental compile cache feature. Defaults to false for now, but we can enable it by default later if it works well.
+    // Enable v8 compilation cache by default. That saves ~10-30ms on an M2 mac and we've seen 2 seconds startup time shaved off on Windows.
     // See also https://nodejs.org/api/cli.html#node_compile_cachedir
-    let enable_compile_cache = env::var("GARDEN_COMPILE_CACHE").unwrap_or("false".into());
+    let enable_compile_cache = env::var("GARDEN_COMPILE_CACHE").unwrap_or("true".into());
     if enable_compile_cache == "true" || enable_compile_cache == "1" {
         let cache_dir = path.join("v8cache");
         fs::create_dir_all(cache_dir.clone())?;
