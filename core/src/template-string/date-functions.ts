@@ -11,10 +11,28 @@ import { joi } from "../config/common.js"
 import { format as formatFns, add, type Duration } from "date-fns"
 
 type ShiftDateTimeUnit = keyof Duration
-const validShiftDateTimeUnits: ShiftDateTimeUnit[] = ["years", "months", "weeks", "days", "hours", "minutes", "seconds"]
+const validShiftDateTimeUnits: ShiftDateTimeUnit[] = [
+  "years",
+  "months",
+  "weeks",
+  "days",
+  "hours",
+  "minutes",
+  "seconds",
+] as const
 
 const validModifyDateTimeUnits = ["years", "months", "days", "hours", "minutes", "seconds", "milliseconds"] as const
 type ModifyDateTimeUnit = (typeof validModifyDateTimeUnits)[number]
+// This is still type-safe because every entry of ModifyDateTimeUnit must be declared in the index below.
+const modifyDateFunctions: { [k in ModifyDateTimeUnit]: (date: Date, timeUnits: number) => void } = {
+  years: (date, timeUnits) => date.setFullYear(timeUnits),
+  months: (date, timeUnits) => date.setMonth(timeUnits),
+  days: (date, timeUnits) => date.setDate(timeUnits),
+  hours: (date, timeUnits) => date.setHours(timeUnits),
+  minutes: (date, timeUnits) => date.setMinutes(timeUnits),
+  seconds: (date, timeUnits) => date.setSeconds(timeUnits),
+  milliseconds: (date, timeUnits) => date.setMilliseconds(timeUnits),
+} as const
 
 export const dateHelperFunctionSpecs: TemplateHelperFunction[] = [
   {
@@ -92,31 +110,8 @@ export const dateHelperFunctionSpecs: TemplateHelperFunction[] = [
     ],
     fn: (date: string, amount: number, unit: ModifyDateTimeUnit) => {
       const dateClone = new Date(date)
-      switch (unit) {
-        case "years":
-          dateClone.setFullYear(amount)
-          break
-        case "months":
-          dateClone.setMonth(amount)
-          break
-        case "days":
-          dateClone.setDate(amount)
-          break
-        case "hours":
-          dateClone.setHours(amount)
-          break
-        case "minutes":
-          dateClone.setMinutes(amount)
-          break
-        case "seconds":
-          dateClone.setSeconds(amount)
-          break
-        case "milliseconds":
-          dateClone.setMilliseconds(amount)
-          break
-        default:
-          return unit satisfies never
-      }
+      const dateModifier = modifyDateFunctions[unit]
+      dateModifier(dateClone, amount)
       return dateClone.toISOString()
     },
   },
