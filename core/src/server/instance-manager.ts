@@ -35,7 +35,6 @@ import {
   HideCommand,
   _GetDeployStatusCommand,
   _GetActionStatusesCommand,
-  _ShellCommand,
 } from "./commands.js"
 import type { GardenInstanceKeyParams } from "./helpers.js"
 import { getGardenInstanceKey } from "./helpers.js"
@@ -124,7 +123,6 @@ export class GardenInstanceManager {
         new HideCommand(),
         new _GetDeployStatusCommand(),
         new _GetActionStatusesCommand(),
-        new _ShellCommand(),
       ]),
       ...(extraCommands || []),
     ]

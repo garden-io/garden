@@ -40,9 +40,6 @@ import {
   getRunStatusPayloads,
   getTestStatusPayloads,
 } from "../actions/helpers.js"
-import { z } from "zod"
-import { exec } from "../util/util.js"
-import split2 from "split2"
 import pProps from "p-props"
 
 const autocompleteArguments = {
@@ -283,55 +280,6 @@ export class _GetActionStatusesCommand extends ConsoleCommand {
     })
 
     return { result: { actions } }
-  }
-}
-
-export const shellCommandParamsSchema = z.object({
-  command: z.string().describe("The executable path to run."),
-  args: z.array(z.string()).default([]).describe("arguments to pass to the command."),
-  cwd: z.string().describe("The working directory to run the command in."),
-})
-
-const shellCommandArgs = {
-  request: new StringParameter({
-    help: "JSON-encoded request object.",
-    required: true,
-  }),
-}
-
-type ShellCommandArgs = typeof shellCommandArgs
-
-export class _ShellCommand extends ConsoleCommand<ShellCommandArgs> {
-  name = "_shell"
-  help = "[Internal] Runs a shell command (used by Desktop client)."
-  override hidden = true
-
-  override enableAnalytics = false
-  override streamEvents = false
-  override noProject = true
-
-  override arguments = shellCommandArgs
-
-  override outputsSchema = () => joi.object()
-
-  async action({ log, args: _args }: CommandParams<ShellCommandArgs>): Promise<CommandResult<{}>> {
-    const { command, args, cwd } = shellCommandParamsSchema.parse(JSON.parse(_args.request))
-
-    const outputStream = split2()
-    outputStream.on("error", () => {})
-    outputStream.on("data", (line: Buffer) => {
-      log.info(line.toString())
-    })
-
-    await exec(command, args, {
-      cwd,
-      stdout: outputStream,
-      stderr: outputStream,
-      env: { ...process.env },
-      shell: true,
-    })
-
-    return { result: {} }
   }
 }
 
