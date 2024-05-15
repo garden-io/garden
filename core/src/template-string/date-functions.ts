@@ -81,9 +81,9 @@ export const dateHelperFunctionSpecs: TemplateHelperFunction[] = [
       { input: ["2021-01-01T00:00:00Z", 1, "years"], output: "2022-01-01T00:00:00.000Z" },
       { input: ["2021-01-01T00:00:00Z", -1, "years"], output: "2020-01-01T00:00:00.000Z" },
     ],
-    fn: (date: string, amount: number, unit: ShiftDateTimeUnit) => {
+    fn: (date: string, timeUnitAmount: number, unit: ShiftDateTimeUnit) => {
       const dateClone = new Date(date)
-      return add(dateClone, { [unit]: amount }).toISOString()
+      return add(dateClone, { [unit]: timeUnitAmount }).toISOString()
     },
   },
   {
@@ -108,10 +108,10 @@ export const dateHelperFunctionSpecs: TemplateHelperFunction[] = [
       { input: ["2021-03-01T00:00:00Z", 0, "months"], output: "2021-01-01T00:00:00.000Z" }, // 0 (Jan) - 11 (Dec)
       { input: ["2021-01-01T00:00:00Z", 2024, "years"], output: "2024-01-01T00:00:00.000Z" },
     ],
-    fn: (date: string, amount: number, unit: ModifyDateTimeUnit) => {
+    fn: (date: string, timeUnitAmount: number, unit: ModifyDateTimeUnit) => {
       const dateClone = new Date(date)
       const dateModifier = modifyDateFunctions[unit]
-      dateModifier(dateClone, amount)
+      dateModifier(dateClone, timeUnitAmount)
       return dateClone.toISOString()
     },
   },
