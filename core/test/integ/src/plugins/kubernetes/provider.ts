@@ -12,10 +12,10 @@ import { expect } from "chai"
 import { KubeApi } from "../../../../../src/plugins/kubernetes/api.js"
 import type { KubernetesPluginContext, KubernetesProvider } from "../../../../../src/plugins/kubernetes/config.js"
 
-import type { TestGarden } from "../../../../helpers.js"
-import { getKubernetesTestGarden } from "./kubernetes-type/common.js"
+import { getDataDir, makeTestGarden } from "../../../../helpers.js"
 import { getEnvironmentStatus, prepareEnvironment } from "../../../../../src/plugins/kubernetes/init.js"
 import type { PrepareEnvironmentParams } from "../../../../../src/plugin/handlers/Provider/prepareEnvironment.js"
+import type { Garden } from "../../../../../src/index.js"
 
 async function ensureNamespaceDoesNotExist(api: KubeApi, namespaceName: string) {
   try {
@@ -39,14 +39,15 @@ async function namespaceExists(api: KubeApi, namespaceName: string) {
 }
 
 describe("kubernetes provider handlers", () => {
-  let garden: TestGarden
   let log: Log
   let ctx: KubernetesPluginContext
   let api: KubeApi
-  const namespaceName = "kubernetes-type-test-default"
+  let garden: Garden
+  const namespaceName = "kubernetes-provider-handler-test"
 
   before(async () => {
-    garden = await getKubernetesTestGarden()
+    garden = await makeTestGarden(getDataDir("test-projects", "project-with-default-namespace"))
+
     log = garden.log
     const provider = <KubernetesProvider>await garden.resolveProvider(log, "local-kubernetes", false)
     ctx = <KubernetesPluginContext>(
