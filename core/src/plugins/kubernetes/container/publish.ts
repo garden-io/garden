@@ -11,6 +11,7 @@ import type { KubernetesPluginContext } from "../config.js"
 import { pullBuild } from "../commands/pull-image.js"
 import type { BuildActionHandler } from "../../../plugin/action-types.js"
 import { containerHelpers } from "../../container/helpers.js"
+import { naturalList } from "../../../util/string.js"
 
 export const k8sPublishContainerBuild: BuildActionHandler<"publish", ContainerBuildAction> = async (params) => {
   const { ctx, action, log, tagOverride } = params
@@ -37,8 +38,9 @@ export const k8sPublishContainerBuild: BuildActionHandler<"publish", ContainerBu
   // before publishing to the remote registry
 
   const remotePublishId = tagOverride ? `${action.getOutput("deploymentImageName")}:${tagOverride}` : remoteImageId
-
-  await containerHelpers.dockerCli({ cwd: action.getBuildPath(), args: ["tag", localImageId, remotePublishId], log, ctx })
+  const taggedImages = [localImageId, remotePublishId]
+  log.info({ msg: `Tagging images ${naturalList(taggedImages)}` })
+  await containerHelpers.dockerCli({ cwd: action.getBuildPath(), args: ["tag", ...taggedImages], log, ctx })
 
   log.info({ msg: `Publishing image ${remotePublishId}...` })
   // TODO: stream output to log if at debug log level

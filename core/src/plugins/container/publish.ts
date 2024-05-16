@@ -9,6 +9,7 @@
 import type { ContainerBuildAction } from "./moduleConfig.js"
 import { containerHelpers } from "./helpers.js"
 import type { BuildActionHandler } from "../../plugin/action-types.js"
+import { naturalList } from "../../util/string.js"
 
 export const publishContainerBuild: BuildActionHandler<"publish", ContainerBuildAction> = async ({
   ctx,
@@ -20,10 +21,11 @@ export const publishContainerBuild: BuildActionHandler<"publish", ContainerBuild
   const remoteImageId = containerHelpers.getPublicImageId(action, tagOverride)
 
   if (localImageId !== remoteImageId) {
-    log.info({ msg: `Tagging image with ${localImageId} and ${remoteImageId}` })
+    const taggedImages = [localImageId, remoteImageId]
+    log.info({ msg: `Tagging images ${naturalList(taggedImages)}` })
     await containerHelpers.dockerCli({
       cwd: action.getBuildPath(),
-      args: ["tag", localImageId, remoteImageId],
+      args: ["tag", ...taggedImages],
       log,
       ctx,
     })
