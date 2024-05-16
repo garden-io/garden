@@ -210,13 +210,14 @@ async function buildContainerInCloudBuilder(params: {
 
 export function getContainerBuildActionOutputs(action: Resolved<ContainerBuildAction>): ContainerBuildOutputs {
   const localId = action.getSpec("localId")
-  const explicitImage = action.getSpec("publishId")
+  const publishImageId = action.getSpec("publishId")
   let imageId = localId
-  if (explicitImage) {
+  if (publishImageId) {
     // override imageId if publishId is set
-    const parsedImage = containerHelpers.parseImageId(explicitImage)
-    const tag = parsedImage.tag || action.versionString()
-    imageId = containerHelpers.unparseImageId({ ...parsedImage, tag })
+    const parsedPublishImage = containerHelpers.parseImageId(publishImageId)
+    // use internal version tag if publishId doesn't have its own
+    const tag = parsedPublishImage.tag || action.versionString()
+    imageId = containerHelpers.unparseImageId({ ...parsedPublishImage, tag })
   }
 
   const version = action.moduleVersion()

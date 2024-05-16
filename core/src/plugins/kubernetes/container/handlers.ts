@@ -60,14 +60,15 @@ export function k8sGetContainerBuildActionOutputs({
   provider: KubernetesProvider
   action: Resolved<ContainerBuildAction>
 }): ContainerBuildOutputs {
-  const localId = action.getSpec("localId")
-  const explicitImage = action.getSpec("publishId")
-  let imageId = localId
-  if (explicitImage) {
+  const localImageId = action.getSpec("localId")
+  const publishImageId = action.getSpec("publishId")
+  let imageId = localImageId
+  if (publishImageId) {
     // override imageId if publishId is set
-    const parsedImage = containerHelpers.parseImageId(explicitImage)
-    const tag = parsedImage.tag || action.versionString()
-    imageId = containerHelpers.unparseImageId({ ...parsedImage, tag })
+    const parsedPublishImage = containerHelpers.parseImageId(publishImageId)
+    // use internal version tag if publishId doesn't have its own
+    const tag = parsedPublishImage.tag || action.versionString()
+    imageId = containerHelpers.unparseImageId({ ...parsedPublishImage, tag })
   }
 
   const outputs = getContainerBuildActionOutputs(action)
