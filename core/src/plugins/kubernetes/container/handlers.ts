@@ -21,7 +21,6 @@ import { containerHelpers } from "../../container/helpers.js"
 import { getContainerModuleOutputs } from "../../container/container.js"
 import { getContainerBuildActionOutputs } from "../../container/build.js"
 import type { Resolved } from "../../../actions/types.js"
-import { splitFirst } from "../../../util/string.js"
 
 async function configure(params: ConfigureModuleParams<ContainerModule>) {
   const { moduleConfig } = await params.base!(params)
@@ -66,9 +65,8 @@ export function k8sGetContainerBuildActionOutputs({
   let imageId = localId
   if (explicitImage) {
     // override imageId if publishId is set
-    const imageTag = splitFirst(explicitImage, ":")[1]
     const parsedImage = containerHelpers.parseImageId(explicitImage)
-    const tag = imageTag || action.versionString()
+    const tag = parsedImage.tag || action.versionString()
     imageId = containerHelpers.unparseImageId({ ...parsedImage, tag })
   }
 

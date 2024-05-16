@@ -16,7 +16,6 @@ import { defaultDockerfileName } from "./config.js"
 import { joinWithPosix } from "../../util/fs.js"
 import type { Resolved } from "../../actions/types.js"
 import dedent from "dedent"
-import { splitFirst } from "../../util/string.js"
 import {
   CONTAINER_BUILD_CONCURRENCY_LIMIT_CLOUD_BUILDER,
   CONTAINER_BUILD_CONCURRENCY_LIMIT_LOCAL,
@@ -215,9 +214,8 @@ export function getContainerBuildActionOutputs(action: Resolved<ContainerBuildAc
   let imageId = localId
   if (explicitImage) {
     // override imageId if publishId is set
-    const imageTag = splitFirst(explicitImage, ":")[1]
     const parsedImage = containerHelpers.parseImageId(explicitImage)
-    const tag = imageTag || action.versionString()
+    const tag = parsedImage.tag || action.versionString()
     imageId = containerHelpers.unparseImageId({ ...parsedImage, tag })
   }
 
