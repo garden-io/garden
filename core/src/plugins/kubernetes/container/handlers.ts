@@ -62,7 +62,6 @@ export function k8sGetContainerBuildActionOutputs({
   action: Resolved<ContainerBuildAction>
 }): ContainerBuildOutputs {
   const localId = action.getSpec("localId")
-  const outputs = getContainerBuildActionOutputs(action)
   const explicitImage = action.getSpec("publishId")
   let imageId = localId
   if (explicitImage) {
@@ -73,6 +72,7 @@ export function k8sGetContainerBuildActionOutputs({
     imageId = containerHelpers.unparseImageId({ ...parsedImage, tag })
   }
 
+  const outputs = getContainerBuildActionOutputs(action)
   outputs.deploymentImageName = outputs["deployment-image-name"] = containerHelpers.getDeploymentImageName(
     action.name,
     imageId,

@@ -210,7 +210,6 @@ async function buildContainerInCloudBuilder(params: {
 }
 
 export function getContainerBuildActionOutputs(action: Resolved<ContainerBuildAction>): ContainerBuildOutputs {
-  const buildName = action.name
   const localId = action.getSpec("localId")
   const explicitImage = action.getSpec("publishId")
   let imageId = localId
@@ -221,7 +220,9 @@ export function getContainerBuildActionOutputs(action: Resolved<ContainerBuildAc
     const tag = imageTag || action.versionString()
     imageId = containerHelpers.unparseImageId({ ...parsedImage, tag })
   }
+
   const version = action.moduleVersion()
+  const buildName = action.name
 
   const localImageName = containerHelpers.getLocalImageName(buildName, localId)
   const localImageId = containerHelpers.getLocalImageId(buildName, localId, version)
