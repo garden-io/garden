@@ -18,20 +18,21 @@ import { load, loadAll } from "js-yaml"
 import { safeDumpYaml } from "../util/serialization.js"
 import indentString from "indent-string"
 import { mayContainTemplateString } from "./template-string.js"
+import { dateHelperFunctionSpecs } from "./date-functions.js"
 
 interface ExampleArgument {
-  input: any[]
-  output: any // Used to validate expected output
+  input: unknown[]
+  output: unknown // Used to validate expected output
   skipTest?: boolean
 }
 
-interface TemplateHelperFunction {
+export interface TemplateHelperFunction {
   name: string
   description: string
   arguments: { [name: string]: Joi.Schema }
   outputSchema: Joi.Schema
   exampleArguments: ExampleArgument[]
-  fn: Function
+  fn: (...args: any[]) => unknown
 }
 
 const helperFunctionSpecs: TemplateHelperFunction[] = [
@@ -407,6 +408,7 @@ const helperFunctionSpecs: TemplateHelperFunction[] = [
       }
     },
   },
+  ...dateHelperFunctionSpecs,
 ]
 
 interface ResolvedHelperFunction extends TemplateHelperFunction {
