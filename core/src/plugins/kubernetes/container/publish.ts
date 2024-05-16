@@ -17,10 +17,10 @@ export const k8sPublishContainerBuild: BuildActionHandler<"publish", ContainerBu
   const k8sCtx = ctx as KubernetesPluginContext
   const provider = k8sCtx.provider
 
-  const localId = action.getOutput("localImageId")
+  const localImageId = action.getOutput("localImageId")
   // NOTE: this may contain a custom deploymentRegistry, from the kubernetes provider config
   // We cannot combine this publish method with the container plugin's publish method, because it won't have the context
-  const remoteId = action.getOutput("deploymentImageId")
+  const remoteImageId = action.getOutput("deploymentImageId")
 
   if (provider.config.buildMode !== "local-docker") {
     // First pull from the remote registry, then resume standard publish flow.
@@ -30,15 +30,15 @@ export const k8sPublishContainerBuild: BuildActionHandler<"publish", ContainerBu
     // We also generally prefer this because the remote cluster very likely doesn't (and shouldn't) have
     // privileges to push to production registries.
     log.info(`Pulling from remote registry...`)
-    await pullBuild({ ctx: k8sCtx, action, log, localId, remoteId })
+    await pullBuild({ ctx: k8sCtx, action, log, localId: localImageId, remoteId: remoteImageId })
   }
 
   // optionally use the tag instead of the garden version, this requires that we tag the image locally
   // before publishing to the remote registry
 
-  const remotePublishId = tagOverride ? `${action.getOutput("deploymentImageName")}:${tagOverride}` : remoteId
+  const remotePublishId = tagOverride ? `${action.getOutput("deploymentImageName")}:${tagOverride}` : remoteImageId
 
-  await containerHelpers.dockerCli({ cwd: action.getBuildPath(), args: ["tag", localId, remotePublishId], log, ctx })
+  await containerHelpers.dockerCli({ cwd: action.getBuildPath(), args: ["tag", localImageId, remotePublishId], log, ctx })
 
   log.info({ msg: `Publishing image ${remotePublishId}...` })
   // TODO: stream output to log if at debug log level

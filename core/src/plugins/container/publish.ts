@@ -16,26 +16,26 @@ export const publishContainerBuild: BuildActionHandler<"publish", ContainerBuild
   log,
   tagOverride,
 }) => {
-  const localId = action.getOutput("localImageId")
-  const remoteId = containerHelpers.getPublicImageId(action, tagOverride)
+  const localImageId = action.getOutput("localImageId")
+  const remoteImageId = containerHelpers.getPublicImageId(action, tagOverride)
 
-  if (localId !== remoteId) {
-    log.info({ msg: `Tagging image with ${localId} and ${remoteId}` })
+  if (localImageId !== remoteImageId) {
+    log.info({ msg: `Tagging image with ${localImageId} and ${remoteImageId}` })
     await containerHelpers.dockerCli({
       cwd: action.getBuildPath(),
-      args: ["tag", localId, remoteId],
+      args: ["tag", localImageId, remoteImageId],
       log,
       ctx,
     })
   }
 
-  log.info({ msg: `Publishing image ${remoteId}...` })
+  log.info({ msg: `Publishing image ${remoteImageId}...` })
   // TODO: stream output to log if at debug log level
-  await containerHelpers.dockerCli({ cwd: action.getBuildPath(), args: ["push", remoteId], log, ctx })
+  await containerHelpers.dockerCli({ cwd: action.getBuildPath(), args: ["push", remoteImageId], log, ctx })
 
   return {
     state: "ready",
-    detail: { published: true, message: `Published ${remoteId}` },
+    detail: { published: true, message: `Published ${remoteImageId}` },
     // TODO-0.13.1
     outputs: {},
   }
