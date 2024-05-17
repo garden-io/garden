@@ -19,11 +19,11 @@ export const k8sPublishContainerBuild: BuildActionHandler<"publish", ContainerBu
   const provider = k8sCtx.provider
 
   const localImageId = action.getOutput("localImageId")
-  // NOTE: this may contain a custom deploymentRegistry, from the kubernetes provider config
-  // We cannot combine this publish method with the container plugin's publish method, because it won't have the context
-  const deploymentRegistryImageId = action.getOutput("deploymentImageId")
 
   if (provider.config.buildMode !== "local-docker") {
+    // NOTE: this may contain a custom deploymentRegistry, from the kubernetes provider config
+    const deploymentRegistryImageId = action.getOutput("deploymentImageId")
+
     // First pull from the deployment registry, then resume standard publish flow.
     // This does mean we require a local docker as a go-between, but the upside is that we can rely on the user's
     // standard authentication setup, instead of having to re-implement or account for all the different ways the
@@ -36,21 +36,21 @@ export const k8sPublishContainerBuild: BuildActionHandler<"publish", ContainerBu
 
   // Optionally use the tag instead of the garden version.
   // This requires that we tag the image locally before publishing to the remote registry.
-  const remotePublishId = tagOverride
+  const remoteImageId = tagOverride
     ? `${action.getOutput("deploymentImageName")}:${tagOverride}`
-    : deploymentRegistryImageId
+    : action.getOutput("deploymentImageName")
 
-  const taggedImages = [localImageId, remotePublishId]
+  const taggedImages = [localImageId, remoteImageId]
   log.info({ msg: `Tagging images ${naturalList(taggedImages)}` })
   await containerHelpers.dockerCli({ cwd: action.getBuildPath(), args: ["tag", ...taggedImages], log, ctx })
 
-  log.info({ msg: `Publishing image ${remotePublishId}...` })
+  log.info({ msg: `Publishing image ${remoteImageId}...` })
   // TODO: stream output to log if at debug log level
-  await containerHelpers.dockerCli({ cwd: action.getBuildPath(), args: ["push", remotePublishId], log, ctx })
+  await containerHelpers.dockerCli({ cwd: action.getBuildPath(), args: ["push", remoteImageId], log, ctx })
 
   return {
     state: "ready",
-    detail: { published: true, message: `Published ${remotePublishId}` },
+    detail: { published: true, message: `Published ${remoteImageId}` },
     // TODO-0.13.1
     outputs: {},
   }
