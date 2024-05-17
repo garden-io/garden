@@ -8,8 +8,6 @@
 
 import { join, posix } from "path"
 import fsExtra from "fs-extra"
-
-const { readFile, pathExists, lstat } = fsExtra
 import semver from "semver"
 import type { CommandEntry } from "docker-file-parser"
 import { parse } from "docker-file-parser"
@@ -17,15 +15,15 @@ import isGlob from "is-glob"
 import { ConfigurationError, GardenError, RuntimeError } from "../../exceptions.js"
 import type { SpawnOutput } from "../../util/util.js"
 import { spawn } from "../../util/util.js"
-import type { ContainerRegistryConfig, ContainerModuleConfig } from "./moduleConfig.js"
-import { defaultTag as _defaultTag, defaultImageNamespace } from "./moduleConfig.js"
+import type { ContainerBuildOutputs, ContainerModuleConfig, ContainerRegistryConfig } from "./moduleConfig.js"
+import { defaultImageNamespace, defaultTag as _defaultTag } from "./moduleConfig.js"
 import type { Writable } from "stream"
-import { flatten, uniq, fromPairs, reduce } from "lodash-es"
+import { flatten, fromPairs, reduce, uniq } from "lodash-es"
 import type { ActionLog, Log } from "../../logger/log-entry.js"
 
 import isUrl from "is-url"
 import titleize from "titleize"
-import { deline, stripQuotes, splitLast, splitFirst } from "../../util/string.js"
+import { deline, splitFirst, splitLast, stripQuotes } from "../../util/string.js"
 import type { PluginContext } from "../../plugin-context.js"
 import type { ModuleVersion } from "../../vcs/vcs.js"
 import type { ContainerBuildAction } from "./config.js"
@@ -35,6 +33,8 @@ import type { Resolved } from "../../actions/types.js"
 import pMemoize from "../../lib/p-memoize.js"
 import { styles } from "../../logger/styles.js"
 import type { ContainerProviderConfig } from "./container.js"
+
+const { readFile, pathExists, lstat } = fsExtra
 
 interface DockerVersion {
   client?: string
@@ -60,9 +60,9 @@ const helpers = {
    * Returns the image ID used locally, when building and deploying to local environments
    * (when we don't need to push to remote registries).
    */
-  getLocalImageId(buildName: string, explicitImage: string | undefined, version: ModuleVersion): string {
+  getLocalImageId(buildName: string, explicitImageId: string | undefined, version: ModuleVersion): string {
     const { versionString } = version
-    const name = helpers.getLocalImageName(buildName, explicitImage)
+    const name = helpers.getLocalImageName(buildName, explicitImageId)
     const parsedImage = helpers.parseImageId(name)
     return helpers.unparseImageId({ ...parsedImage, tag: versionString })
   },
@@ -71,9 +71,9 @@ const helpers = {
    * Returns the image name used locally (without tag/version), when building and deploying to local environments
    * (when we don't need to push to remote registries).
    */
-  getLocalImageName(buildName: string, explicitImage: string | undefined): string {
-    if (explicitImage) {
-      const parsedImage = helpers.parseImageId(explicitImage)
+  getLocalImageName(buildName: string, explicitImageId: string | undefined): string {
+    if (explicitImageId) {
+      const parsedImage = helpers.parseImageId(explicitImageId)
       return helpers.unparseImageId({ ...parsedImage, tag: undefined })
     } else {
       return buildName
@@ -122,18 +122,17 @@ const helpers = {
    */
   getDeploymentImageName(
     buildName: string,
-    explicitImage: string | undefined,
+    explicitImageId: string | undefined,
     registryConfig: ContainerRegistryConfig | undefined
   ) {
-    const localName = explicitImage || buildName
-    const parsedId = helpers.parseImageId(localName)
-    const withoutVersion = helpers.unparseImageId({
-      ...parsedId,
-      tag: undefined,
-    })
+    const localImageName = explicitImageId || buildName
+    const parsedImageId = helpers.parseImageId(localImageName)
 
     if (!registryConfig) {
-      return withoutVersion
+      return helpers.unparseImageId({
+        ...parsedImageId,
+        tag: undefined,
+      })
     }
 
     const host = registryConfig.port ? `${registryConfig.hostname}:${registryConfig.port}` : registryConfig.hostname
@@ -141,14 +140,15 @@ const helpers = {
     return helpers.unparseImageId({
       host,
       namespace: registryConfig.namespace,
-      repository: parsedId.repository,
+      repository: parsedImageId.repository,
       tag: undefined,
     })
   },
 
   /**
-   * Returns the image ID to be used when pushing to deployment registries. This always has the version
-   * set as the tag.
+   * Returns the image ID to be used when pushing to deployment registries.
+   * This always has the version set as the tag.
+   * Do not confuse this with the publishing image ID used by the `garden publish` command.
    */
   getBuildDeploymentImageId(
     buildName: string,
@@ -171,15 +171,48 @@ const helpers = {
     // Requiring this parameter to avoid accidentally missing it
     registryConfig: ContainerRegistryConfig | undefined
   ): string {
+    // The `dockerfile` configuration always takes precedence over the `image`.
     if (helpers.moduleHasDockerfile(moduleConfig, version)) {
       return helpers.getBuildDeploymentImageId(moduleConfig.name, moduleConfig.spec.image, version, registryConfig)
-    } else if (moduleConfig.spec.image) {
-      // Otherwise, return the configured image ID.
+    }
+
+    // Return the configured image ID if no Dockerfile is defined in the config.
+    if (moduleConfig.spec.image) {
       return moduleConfig.spec.image
-    } else {
-      throw new ConfigurationError({
-        message: `Module ${moduleConfig.name} neither specifies image nor can a Dockerfile be found in the module directory.`,
-      })
+    }
+
+    throw new ConfigurationError({
+      message: `Module ${moduleConfig.name} neither specifies image nor can a Dockerfile be found in the module directory.`,
+    })
+  },
+
+  /**
+   * Serves build action outputs in container and kubernetes plugins.
+   */
+  getBuildActionOutputs(
+    action: Resolved<ContainerBuildAction>,
+    // Requiring this parameter to avoid accidentally missing it
+    registryConfig: ContainerRegistryConfig | undefined
+  ): ContainerBuildOutputs {
+    const localId = action.getSpec("localId")
+    const version = action.moduleVersion()
+    const buildName = action.name
+
+    const localImageName = containerHelpers.getLocalImageName(buildName, localId)
+    const localImageId = containerHelpers.getLocalImageId(buildName, localId, version)
+
+    const deploymentImageName = containerHelpers.getDeploymentImageName(buildName, localId, registryConfig)
+    const deploymentImageId = containerHelpers.getBuildDeploymentImageId(buildName, localId, version, registryConfig)
+
+    return {
+      localImageName,
+      localImageId,
+      deploymentImageName,
+      deploymentImageId,
+      "local-image-name": localImageName,
+      "local-image-id": localImageId,
+      "deployment-image-name": deploymentImageName,
+      "deployment-image-id": deploymentImageId,
     }
   },
 

@@ -18,6 +18,7 @@ import type { ContainerBuildAction } from "../../../container/moduleConfig.js"
 import type { BuildActionParams } from "../../../../plugin/action-types.js"
 import { k8sGetContainerBuildActionOutputs } from "../handlers.js"
 import { cloudBuilder } from "../../../container/cloudbuilder.js"
+import { naturalList } from "../../../../util/string.js"
 
 export const getLocalBuildStatus: BuildStatusHandler = async (params) => {
   const { ctx, action, log } = params
@@ -92,10 +93,13 @@ export const localBuild: BuildHandler = async (params) => {
 
   // Cloud Builder already pushes the image.
   if (!builtByCloudBuilder) {
-    log.info({ msg: `→ Pushing image ${remoteId} to remote...` })
-
     const buildPath = action.getBuildPath()
+    const taggedImages = [localId, remoteId]
+
+    log.info({ msg: `→ Tagging images ${naturalList(taggedImages)}` })
     await containerHelpers.dockerCli({ cwd: buildPath, args: ["tag", localId, remoteId], log, ctx })
+
+    log.info({ msg: `→ Pushing image ${remoteId} to remote...` })
     await containerHelpers.dockerCli({ cwd: buildPath, args: ["push", remoteId], log, ctx })
   }
 

@@ -16,7 +16,6 @@ import { defaultDockerfileName } from "./config.js"
 import { joinWithPosix } from "../../util/fs.js"
 import type { Resolved } from "../../actions/types.js"
 import dedent from "dedent"
-import { splitFirst } from "../../util/string.js"
 import {
   CONTAINER_BUILD_CONCURRENCY_LIMIT_CLOUD_BUILDER,
   CONTAINER_BUILD_CONCURRENCY_LIMIT_LOCAL,
@@ -210,37 +209,7 @@ async function buildContainerInCloudBuilder(params: {
 }
 
 export function getContainerBuildActionOutputs(action: Resolved<ContainerBuildAction>): ContainerBuildOutputs {
-  const buildName = action.name
-  const localId = action.getSpec("localId")
-  const explicitImage = action.getSpec("publishId")
-  let imageId = localId
-  if (explicitImage) {
-    // override imageId if publishId is set
-    const imageTag = splitFirst(explicitImage, ":")[1]
-    const parsedImage = containerHelpers.parseImageId(explicitImage)
-    const tag = imageTag || action.versionString()
-    imageId = containerHelpers.unparseImageId({ ...parsedImage, tag })
-  }
-  const version = action.moduleVersion()
-
-  const localImageName = containerHelpers.getLocalImageName(buildName, localId)
-  const localImageId = containerHelpers.getLocalImageId(buildName, localId, version)
-
-  // Note: The deployment image name/ID outputs are overridden by the kubernetes provider, these defaults are
-  // generally not used.
-  const deploymentImageName = containerHelpers.getDeploymentImageName(buildName, imageId, undefined)
-  const deploymentImageId = containerHelpers.getBuildDeploymentImageId(buildName, imageId, version, undefined)
-
-  return {
-    localImageName,
-    localImageId,
-    deploymentImageName,
-    deploymentImageId,
-    "local-image-name": localImageName,
-    "local-image-id": localImageId,
-    "deployment-image-name": deploymentImageName,
-    "deployment-image-id": deploymentImageId,
-  }
+  return containerHelpers.getBuildActionOutputs(action, undefined)
 }
 
 export function getDockerBuildFlags(

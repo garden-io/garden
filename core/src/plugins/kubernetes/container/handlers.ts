@@ -19,9 +19,7 @@ import type {
 import type { GetModuleOutputsParams } from "../../../plugin/handlers/Module/get-outputs.js"
 import { containerHelpers } from "../../container/helpers.js"
 import { getContainerModuleOutputs } from "../../container/container.js"
-import { getContainerBuildActionOutputs } from "../../container/build.js"
 import type { Resolved } from "../../../actions/types.js"
-import { splitFirst } from "../../../util/string.js"
 
 async function configure(params: ConfigureModuleParams<ContainerModule>) {
   const { moduleConfig } = await params.base!(params)
@@ -61,31 +59,7 @@ export function k8sGetContainerBuildActionOutputs({
   provider: KubernetesProvider
   action: Resolved<ContainerBuildAction>
 }): ContainerBuildOutputs {
-  const localId = action.getSpec("localId")
-  const outputs = getContainerBuildActionOutputs(action)
-  const explicitImage = action.getSpec("publishId")
-  let imageId = localId
-  if (explicitImage) {
-    // override imageId if publishId is set
-    const imageTag = splitFirst(explicitImage, ":")[1]
-    const parsedImage = containerHelpers.parseImageId(explicitImage)
-    const tag = imageTag || action.versionString()
-    imageId = containerHelpers.unparseImageId({ ...parsedImage, tag })
-  }
-
-  outputs.deploymentImageName = outputs["deployment-image-name"] = containerHelpers.getDeploymentImageName(
-    action.name,
-    imageId,
-    provider.config.deploymentRegistry
-  )
-  outputs.deploymentImageId = outputs["deployment-image-id"] = containerHelpers.getBuildDeploymentImageId(
-    action.name,
-    imageId,
-    action.moduleVersion(),
-    provider.config.deploymentRegistry
-  )
-
-  return outputs
+  return containerHelpers.getBuildActionOutputs(action, provider.config.deploymentRegistry)
 }
 
 function validateConfig<T extends ContainerModule>(params: ConfigureModuleParams<T>) {

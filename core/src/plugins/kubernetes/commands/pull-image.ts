@@ -9,12 +9,11 @@
 import fs from "fs"
 import tmp from "tmp-promise"
 import type { KubernetesPluginContext } from "../config.js"
-import { PluginError, ParameterError, GardenError } from "../../../exceptions.js"
+import { GardenError, ParameterError, PluginError, RuntimeError } from "../../../exceptions.js"
 import type { PluginCommand } from "../../../plugin/command.js"
 import { KubeApi } from "../api.js"
 import type { Log } from "../../../logger/log-entry.js"
 import { containerHelpers } from "../../container/helpers.js"
-import { RuntimeError } from "../../../exceptions.js"
 import { PodRunner } from "../run.js"
 import { dockerAuthSecretKey, getK8sUtilImageName, systemDockerAuthSecretName } from "../constants.js"
 import { getAppNamespace, getSystemNamespace } from "../namespace.js"
@@ -91,10 +90,7 @@ interface PullParams {
 }
 
 export async function pullBuild(params: PullParams) {
-  await pullFromExternalRegistry(params)
-}
-
-async function pullFromExternalRegistry({ ctx, log, localId, remoteId }: PullParams) {
+  const { ctx, log, localId, remoteId }: PullParams = params
   const api = await KubeApi.factory(log, ctx, ctx.provider)
   const buildMode = ctx.provider.config.buildMode
 

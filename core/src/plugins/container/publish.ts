@@ -9,6 +9,7 @@
 import type { ContainerBuildAction } from "./moduleConfig.js"
 import { containerHelpers } from "./helpers.js"
 import type { BuildActionHandler } from "../../plugin/action-types.js"
+import { naturalList } from "../../util/string.js"
 
 export const publishContainerBuild: BuildActionHandler<"publish", ContainerBuildAction> = async ({
   ctx,
@@ -16,27 +17,28 @@ export const publishContainerBuild: BuildActionHandler<"publish", ContainerBuild
   log,
   tagOverride,
 }) => {
-  const localId = action.getOutput("localImageId")
-  const remoteId = containerHelpers.getPublicImageId(action, tagOverride)
+  const localImageId = action.getOutput("localImageId")
+  const remoteImageId = containerHelpers.getPublicImageId(action, tagOverride)
 
-  if (localId !== remoteId) {
-    log.info({ msg: `Tagging image with ${localId} and ${remoteId}` })
-    await containerHelpers.dockerCli({
-      cwd: action.getBuildPath(),
-      args: ["tag", localId, remoteId],
-      log,
-      ctx,
-    })
-  }
+  const taggedImages = [localImageId, remoteImageId]
+  log.info({ msg: `Tagging images ${naturalList(taggedImages)}` })
+  await containerHelpers.dockerCli({
+    cwd: action.getBuildPath(),
+    args: ["tag", ...taggedImages],
+    log,
+    ctx,
+  })
 
-  log.info({ msg: `Publishing image ${remoteId}...` })
+  log.info({ msg: `Publishing image ${remoteImageId}...` })
   // TODO: stream output to log if at debug log level
-  await containerHelpers.dockerCli({ cwd: action.getBuildPath(), args: ["push", remoteId], log, ctx })
+  await containerHelpers.dockerCli({ cwd: action.getBuildPath(), args: ["push", remoteImageId], log, ctx })
 
   return {
     state: "ready",
-    detail: { published: true, message: `Published ${remoteId}` },
-    // TODO-0.13.1
-    outputs: {},
+    detail: { published: true, message: `Published ${remoteImageId}` },
+    outputs: {
+      localImageId,
+      remoteImageId,
+    },
   }
 }
