@@ -15,7 +15,7 @@ import isGlob from "is-glob"
 import { ConfigurationError, GardenError, RuntimeError } from "../../exceptions.js"
 import type { SpawnOutput } from "../../util/util.js"
 import { spawn } from "../../util/util.js"
-import type { ContainerModuleConfig, ContainerRegistryConfig } from "./moduleConfig.js"
+import type { ContainerBuildOutputs, ContainerModuleConfig, ContainerRegistryConfig } from "./moduleConfig.js"
 import { defaultImageNamespace, defaultTag as _defaultTag } from "./moduleConfig.js"
 import type { Writable } from "stream"
 import { flatten, fromPairs, reduce, uniq } from "lodash-es"
@@ -179,6 +179,48 @@ const helpers = {
       throw new ConfigurationError({
         message: `Module ${moduleConfig.name} neither specifies image nor can a Dockerfile be found in the module directory.`,
       })
+    }
+  },
+
+  /**
+   * Serves build action outputs in container and kubernetes plugins.
+   */
+  getBuildActionOutputs(
+    action: Resolved<ContainerBuildAction>,
+    // Requiring this parameter to avoid accidentally missing it
+    registryConfig: ContainerRegistryConfig | undefined
+  ): ContainerBuildOutputs {
+    const localId = action.getSpec("localId")
+    const publishImageId = action.getSpec("publishId")
+    let imageId = localId
+    if (publishImageId) {
+      // override imageId if publishId is set
+      const parsedPublishImage = containerHelpers.parseImageId(publishImageId)
+      // use internal version tag if publishId doesn't have its own
+      const tag = parsedPublishImage.tag || action.versionString()
+      imageId = containerHelpers.unparseImageId({ ...parsedPublishImage, tag })
+    }
+
+    const version = action.moduleVersion()
+    const buildName = action.name
+
+    const localImageName = containerHelpers.getLocalImageName(buildName, localId)
+    const localImageId = containerHelpers.getLocalImageId(buildName, localId, version)
+
+    // Note: The deployment image name/ID outputs are overridden by the kubernetes provider, these defaults are
+    // generally not used.
+    const deploymentImageName = containerHelpers.getDeploymentImageName(buildName, imageId, registryConfig)
+    const deploymentImageId = containerHelpers.getBuildDeploymentImageId(buildName, imageId, version, registryConfig)
+
+    return {
+      localImageName,
+      localImageId,
+      deploymentImageName,
+      deploymentImageId,
+      "local-image-name": localImageName,
+      "local-image-id": localImageId,
+      "deployment-image-name": deploymentImageName,
+      "deployment-image-id": deploymentImageId,
     }
   },
 

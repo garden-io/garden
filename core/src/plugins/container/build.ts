@@ -209,38 +209,7 @@ async function buildContainerInCloudBuilder(params: {
 }
 
 export function getContainerBuildActionOutputs(action: Resolved<ContainerBuildAction>): ContainerBuildOutputs {
-  const localId = action.getSpec("localId")
-  const publishImageId = action.getSpec("publishId")
-  let imageId = localId
-  if (publishImageId) {
-    // override imageId if publishId is set
-    const parsedPublishImage = containerHelpers.parseImageId(publishImageId)
-    // use internal version tag if publishId doesn't have its own
-    const tag = parsedPublishImage.tag || action.versionString()
-    imageId = containerHelpers.unparseImageId({ ...parsedPublishImage, tag })
-  }
-
-  const version = action.moduleVersion()
-  const buildName = action.name
-
-  const localImageName = containerHelpers.getLocalImageName(buildName, localId)
-  const localImageId = containerHelpers.getLocalImageId(buildName, localId, version)
-
-  // Note: The deployment image name/ID outputs are overridden by the kubernetes provider, these defaults are
-  // generally not used.
-  const deploymentImageName = containerHelpers.getDeploymentImageName(buildName, imageId, undefined)
-  const deploymentImageId = containerHelpers.getBuildDeploymentImageId(buildName, imageId, version, undefined)
-
-  return {
-    localImageName,
-    localImageId,
-    deploymentImageName,
-    deploymentImageId,
-    "local-image-name": localImageName,
-    "local-image-id": localImageId,
-    "deployment-image-name": deploymentImageName,
-    "deployment-image-id": deploymentImageId,
-  }
+  return containerHelpers.getBuildActionOutputs(action, undefined)
 }
 
 export function getDockerBuildFlags(
