@@ -34,8 +34,6 @@ export const k8sPublishContainerBuild: BuildActionHandler<"publish", ContainerBu
     await pullBuild({ ctx: k8sCtx, action, log, localId: localImageId, remoteId: deploymentRegistryImageId })
   }
 
-  // Optionally use the tag instead of the garden version.
-  // This requires that we tag the image locally before publishing to the remote registry.
   const remoteImageId = containerHelpers.getPublicImageId(action, tagOverride)
 
   const taggedImages = [localImageId, remoteImageId]
