@@ -8,8 +8,6 @@
 
 import { join, posix } from "path"
 import fsExtra from "fs-extra"
-
-const { readFile, pathExists, lstat } = fsExtra
 import semver from "semver"
 import type { CommandEntry } from "docker-file-parser"
 import { parse } from "docker-file-parser"
@@ -17,15 +15,15 @@ import isGlob from "is-glob"
 import { ConfigurationError, GardenError, RuntimeError } from "../../exceptions.js"
 import type { SpawnOutput } from "../../util/util.js"
 import { spawn } from "../../util/util.js"
-import type { ContainerRegistryConfig, ContainerModuleConfig } from "./moduleConfig.js"
-import { defaultTag as _defaultTag, defaultImageNamespace } from "./moduleConfig.js"
+import type { ContainerModuleConfig, ContainerRegistryConfig } from "./moduleConfig.js"
+import { defaultImageNamespace, defaultTag as _defaultTag } from "./moduleConfig.js"
 import type { Writable } from "stream"
-import { flatten, uniq, fromPairs, reduce } from "lodash-es"
+import { flatten, fromPairs, reduce, uniq } from "lodash-es"
 import type { ActionLog, Log } from "../../logger/log-entry.js"
 
 import isUrl from "is-url"
 import titleize from "titleize"
-import { deline, stripQuotes, splitLast, splitFirst } from "../../util/string.js"
+import { deline, splitFirst, splitLast, stripQuotes } from "../../util/string.js"
 import type { PluginContext } from "../../plugin-context.js"
 import type { ModuleVersion } from "../../vcs/vcs.js"
 import type { ContainerBuildAction } from "./config.js"
@@ -35,6 +33,8 @@ import type { Resolved } from "../../actions/types.js"
 import pMemoize from "../../lib/p-memoize.js"
 import { styles } from "../../logger/styles.js"
 import type { ContainerProviderConfig } from "./container.js"
+
+const { readFile, pathExists, lstat } = fsExtra
 
 interface DockerVersion {
   client?: string
