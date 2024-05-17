@@ -7,11 +7,33 @@
  */
 
 import { expect } from "chai"
-import fsExtra from "fs-extra"
+import fsExtra, { pathExists, remove } from "fs-extra"
 const { readFile } = fsExtra
 import { join } from "node:path"
 import type { TestGarden } from "../../../../helpers.js"
 import { getDataDir, makeTestGarden } from "../../../../helpers.js"
+
+describe("exec provider initialization statusOnly", () => {
+  let gardenOne: TestGarden
+  let tmpDir: string
+  let fileLocation: string
+
+  beforeEach(async () => {
+    gardenOne = await makeTestGarden(getDataDir("exec-provider-cache"), { environmentString: "one" })
+
+    tmpDir = join(await gardenOne.getRepoRoot(), "project")
+    fileLocation = join(tmpDir, "theFile")
+    if (await pathExists(fileLocation)) {
+      await remove(fileLocation)
+    }
+  })
+  it("should not execute the initScript when the provider is initialized with statusOnly", async () => {
+    await gardenOne.resolveProvider(gardenOne.log, "exec", true)
+    const fileExists = await pathExists(fileLocation)
+
+    expect(fileExists).to.be.false
+  })
+})
 
 describe("exec provider initialization cache behaviour", () => {
   let gardenOne: TestGarden

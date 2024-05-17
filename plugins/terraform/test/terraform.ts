@@ -239,16 +239,17 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
     })
 
     context("autoApply=true", () => {
-      before(async () => {
+      beforeEach(async () => {
         garden = await makeTestGarden(testRoot, {
           plugins: [gardenPlugin()],
           environmentString: "local",
           forceRefresh: true,
           variableOverrides: { "tf-version": terraformVersion },
         })
-      })
-
-      beforeEach(async () => {
+        tfRoot = join(garden.projectRoot, "tf")
+        stateDirPath = join(tfRoot, "terraform.tfstate")
+        stateDirPathWithWorkspaces = join(tfRoot, "terraform.tfstate.d")
+        testFilePath = join(tfRoot, "test.log")
         await reset()
       })
 
@@ -267,6 +268,17 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
         ).to.be.greaterThan(0)
         const testFileContent = await readFile(testFilePath)
         expect(testFileContent.toString()).to.equal("default")
+      })
+
+      it("should not apply a stack when the provider is resolved with statusOnly=true e.g. while running validate command", async () => {
+        await garden.resolveProvider(garden.log, "terraform", true)
+        expect(
+          garden.log.root
+            .getLogEntries()
+            .filter((l) =>
+              resolveMsg(l)?.match(/Provider not ready. Current command only checks status, not preparing environment/)
+            ).length
+        ).to.be.greaterThan(0)
       })
 
       it("sets the workspace before applying the stack", async () => {
@@ -311,6 +323,8 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
     const testRoot = resolve(moduleDirName, "../../test/", "test-project-action")
     const tfRoot = join(testRoot, "tf")
     const stateDirPath = join(tfRoot, "terraform.tfstate")
+    const backupStateDirPath = join(tfRoot, "terraform.tfstate.backup")
+    const stateDirPathWithWorkspaces = join(tfRoot, "terraform.tfstate.d")
     const testFilePath = join(tfRoot, "test.log")
 
     let garden: TestGarden
@@ -322,6 +336,12 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
       }
       if (stateDirPath && (await pathExists(stateDirPath))) {
         await remove(stateDirPath)
+      }
+      if (stateDirPathWithWorkspaces && (await pathExists(stateDirPathWithWorkspaces))) {
+        await remove(stateDirPathWithWorkspaces)
+      }
+      if (backupStateDirPath && (await pathExists(backupStateDirPath))) {
+        await remove(backupStateDirPath)
       }
     }
 
