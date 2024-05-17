@@ -127,13 +127,12 @@ const helpers = {
   ) {
     const localName = explicitImage || buildName
     const parsedId = helpers.parseImageId(localName)
-    const withoutVersion = helpers.unparseImageId({
-      ...parsedId,
-      tag: undefined,
-    })
 
     if (!registryConfig) {
-      return withoutVersion
+      return helpers.unparseImageId({
+        ...parsedId,
+        tag: undefined,
+      })
     }
 
     const host = registryConfig.port ? `${registryConfig.hostname}:${registryConfig.port}` : registryConfig.hostname
