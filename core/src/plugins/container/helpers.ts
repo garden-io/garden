@@ -207,8 +207,6 @@ const helpers = {
     const localImageName = containerHelpers.getLocalImageName(buildName, localId)
     const localImageId = containerHelpers.getLocalImageId(buildName, localId, version)
 
-    // Note: The deployment image name/ID outputs are overridden by the kubernetes provider, these defaults are
-    // generally not used.
     const deploymentImageName = containerHelpers.getDeploymentImageName(buildName, imageId, registryConfig)
     const deploymentImageId = containerHelpers.getBuildDeploymentImageId(buildName, imageId, version, registryConfig)
 
