@@ -60,9 +60,9 @@ const helpers = {
    * Returns the image ID used locally, when building and deploying to local environments
    * (when we don't need to push to remote registries).
    */
-  getLocalImageId(buildName: string, explicitImage: string | undefined, version: ModuleVersion): string {
+  getLocalImageId(buildName: string, explicitImageId: string | undefined, version: ModuleVersion): string {
     const { versionString } = version
-    const name = helpers.getLocalImageName(buildName, explicitImage)
+    const name = helpers.getLocalImageName(buildName, explicitImageId)
     const parsedImage = helpers.parseImageId(name)
     return helpers.unparseImageId({ ...parsedImage, tag: versionString })
   },
@@ -71,9 +71,9 @@ const helpers = {
    * Returns the image name used locally (without tag/version), when building and deploying to local environments
    * (when we don't need to push to remote registries).
    */
-  getLocalImageName(buildName: string, explicitImage: string | undefined): string {
-    if (explicitImage) {
-      const parsedImage = helpers.parseImageId(explicitImage)
+  getLocalImageName(buildName: string, explicitImageId: string | undefined): string {
+    if (explicitImageId) {
+      const parsedImage = helpers.parseImageId(explicitImageId)
       return helpers.unparseImageId({ ...parsedImage, tag: undefined })
     } else {
       return buildName
@@ -122,10 +122,10 @@ const helpers = {
    */
   getDeploymentImageName(
     buildName: string,
-    explicitImage: string | undefined,
+    explicitImageId: string | undefined,
     registryConfig: ContainerRegistryConfig | undefined
   ) {
-    const localImageName = explicitImage || buildName
+    const localImageName = explicitImageId || buildName
     const parsedImageId = helpers.parseImageId(localImageName)
 
     if (!registryConfig) {
