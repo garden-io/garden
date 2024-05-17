@@ -49,7 +49,9 @@ export const k8sPublishContainerBuild: BuildActionHandler<"publish", ContainerBu
   return {
     state: "ready",
     detail: { published: true, message: `Published ${remoteImageId}` },
-    // TODO-0.13.1
-    outputs: {},
+    outputs: {
+      localImageId,
+      remoteImageId,
+    },
   }
 }
