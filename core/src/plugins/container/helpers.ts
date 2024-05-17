@@ -146,8 +146,9 @@ const helpers = {
   },
 
   /**
-   * Returns the image ID to be used when pushing to deployment registries. This always has the version
-   * set as the tag.
+   * Returns the image ID to be used when pushing to deployment registries.
+   * This always has the version set as the tag.
+   * Do not confuse this with the publishing image ID used by the `garden publish` command.
    */
   getBuildDeploymentImageId(
     buildName: string,
