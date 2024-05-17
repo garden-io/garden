@@ -195,24 +195,14 @@ const helpers = {
     registryConfig: ContainerRegistryConfig | undefined
   ): ContainerBuildOutputs {
     const localId = action.getSpec("localId")
-    const publishImageId = action.getSpec("publishId")
-    let imageId = localId
-    if (publishImageId) {
-      // override imageId if publishId is set
-      const parsedPublishImage = containerHelpers.parseImageId(publishImageId)
-      // use internal version tag if publishId doesn't have its own
-      const tag = parsedPublishImage.tag || action.versionString()
-      imageId = containerHelpers.unparseImageId({ ...parsedPublishImage, tag })
-    }
-
     const version = action.moduleVersion()
     const buildName = action.name
 
     const localImageName = containerHelpers.getLocalImageName(buildName, localId)
     const localImageId = containerHelpers.getLocalImageId(buildName, localId, version)
 
-    const deploymentImageName = containerHelpers.getDeploymentImageName(buildName, imageId, registryConfig)
-    const deploymentImageId = containerHelpers.getBuildDeploymentImageId(buildName, imageId, version, registryConfig)
+    const deploymentImageName = containerHelpers.getDeploymentImageName(buildName, localId, registryConfig)
+    const deploymentImageId = containerHelpers.getBuildDeploymentImageId(buildName, localId, version, registryConfig)
 
     return {
       localImageName,
