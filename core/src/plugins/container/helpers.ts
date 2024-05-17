@@ -171,16 +171,19 @@ const helpers = {
     // Requiring this parameter to avoid accidentally missing it
     registryConfig: ContainerRegistryConfig | undefined
   ): string {
+    // The `dockerfile` configuration always takes precedence over the `image`.
     if (helpers.moduleHasDockerfile(moduleConfig, version)) {
       return helpers.getBuildDeploymentImageId(moduleConfig.name, moduleConfig.spec.image, version, registryConfig)
-    } else if (moduleConfig.spec.image) {
-      // Otherwise, return the configured image ID.
-      return moduleConfig.spec.image
-    } else {
-      throw new ConfigurationError({
-        message: `Module ${moduleConfig.name} neither specifies image nor can a Dockerfile be found in the module directory.`,
-      })
     }
+
+    // Return the configured image ID if no Dockerfile is defined in the config.
+    if (moduleConfig.spec.image) {
+      return moduleConfig.spec.image
+    }
+
+    throw new ConfigurationError({
+      message: `Module ${moduleConfig.name} neither specifies image nor can a Dockerfile be found in the module directory.`,
+    })
   },
 
   /**
