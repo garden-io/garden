@@ -36,9 +36,7 @@ export const k8sPublishContainerBuild: BuildActionHandler<"publish", ContainerBu
 
   // Optionally use the tag instead of the garden version.
   // This requires that we tag the image locally before publishing to the remote registry.
-  const remoteImageId = tagOverride
-    ? `${action.getOutput("deploymentImageName")}:${tagOverride}`
-    : action.getOutput("deploymentImageName")
+  const remoteImageId = containerHelpers.getPublicImageId(action, tagOverride)
 
   const taggedImages = [localImageId, remoteImageId]
   log.info({ msg: `Tagging images ${naturalList(taggedImages)}` })
