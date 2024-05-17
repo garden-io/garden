@@ -125,12 +125,12 @@ const helpers = {
     explicitImage: string | undefined,
     registryConfig: ContainerRegistryConfig | undefined
   ) {
-    const localName = explicitImage || buildName
-    const parsedId = helpers.parseImageId(localName)
+    const localImageName = explicitImage || buildName
+    const parsedImageId = helpers.parseImageId(localImageName)
 
     if (!registryConfig) {
       return helpers.unparseImageId({
-        ...parsedId,
+        ...parsedImageId,
         tag: undefined,
       })
     }
@@ -140,7 +140,7 @@ const helpers = {
     return helpers.unparseImageId({
       host,
       namespace: registryConfig.namespace,
-      repository: parsedId.repository,
+      repository: parsedImageId.repository,
       tag: undefined,
     })
   },
