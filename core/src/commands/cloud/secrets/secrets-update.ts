@@ -167,7 +167,7 @@ export class SecretsUpdateCommand extends Command<Args, Opts> {
         })
       }
     } else if (args.secretNamesOrIds) {
-      secretsToUpdateArgs = args.secretNamesOrIds?.reduce((acc, keyValPair) => {
+      secretsToUpdateArgs = args.secretNamesOrIds.reduce((acc, keyValPair) => {
         try {
           const secret = dotenv.parse(keyValPair)
           Object.assign(acc, secret)
