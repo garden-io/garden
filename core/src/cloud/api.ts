@@ -36,6 +36,7 @@ import { makeAuthHeader } from "./auth.js"
 import type { StringMap } from "../config/common.js"
 import { styles } from "../logger/styles.js"
 import { RequestError } from "got"
+import type { Garden } from "../garden.js"
 
 const gardenClientName = "garden-core"
 const gardenClientVersion = getPackageVersion()
@@ -727,6 +728,22 @@ export class CloudApi {
 
     this.projects.set(projectId, project)
 
+    return project
+  }
+
+  async getProjectByIdOrThrow({
+    projectId,
+    projectName,
+  }: Pick<Garden, "projectId" | "projectName">): Promise<CloudProject> {
+    let project: CloudProject | undefined
+    if (projectId) {
+      project = await this.getProjectById(projectId)
+    }
+    if (!project) {
+      throw new CloudApiError({
+        message: `Project ${projectName} is not a ${getCloudDistributionName(this.domain)} project`,
+      })
+    }
     return project
   }
 

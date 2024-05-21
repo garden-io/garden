@@ -19,7 +19,6 @@ import { sortBy } from "lodash-es"
 import { StringsParameter } from "../../../cli/params.js"
 import type { CloudProject } from "../../../cloud/api.js"
 import { styles } from "../../../logger/styles.js"
-import { getCloudDistributionName } from "../../../util/cloud.js"
 
 export const usersListOpts = {
   "filter-names": new StringsParameter({
@@ -59,17 +58,10 @@ export class UsersListCommand extends Command<{}, Opts> {
       throw new ConfigurationError({ message: noApiMsg("list", "users") })
     }
 
-    let project: CloudProject | undefined
-
-    if (garden.projectId) {
-      project = await api.getProjectById(garden.projectId)
-    }
-
-    if (!project) {
-      throw new CloudApiError({
-        message: `Project ${garden.projectName} is not a ${getCloudDistributionName(api.domain)} project`,
-      })
-    }
+    const project: CloudProject = await api.getProjectByIdOrThrow({
+      projectId: garden.projectId,
+      projectName: garden.projectName,
+    })
 
     // Make a best effort VCS provider guess. We should have an API endpoint for this or return with the response.
     const vcsProviderTitle = project.repositoryUrl.includes("github.com")

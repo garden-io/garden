@@ -9,6 +9,7 @@
 import { CommandError, ConfigurationError, CloudApiError, GardenError } from "../../../exceptions.js"
 import type { CreateSecretResponse } from "@garden-io/platform-api-types"
 import fsExtra from "fs-extra"
+
 const { readFile } = fsExtra
 
 import { printHeader } from "../../../logger/util.js"
@@ -21,7 +22,6 @@ import { PathParameter, StringParameter, StringsParameter } from "../../../cli/p
 import type { StringMap } from "../../../config/common.js"
 import dotenv from "dotenv"
 import type { CloudProject } from "../../../cloud/api.js"
-import { getCloudDistributionName } from "../../../util/cloud.js"
 
 export const secretsCreateArgs = {
   secrets: new StringsParameter({
@@ -124,17 +124,10 @@ export class SecretsCreateCommand extends Command<Args, Opts> {
       throw new ConfigurationError({ message: noApiMsg("create", "secrets") })
     }
 
-    let project: CloudProject | undefined
-
-    if (garden.projectId) {
-      project = await api.getProjectById(garden.projectId)
-    }
-
-    if (!project) {
-      throw new CloudApiError({
-        message: `Project ${garden.projectName} is not a ${getCloudDistributionName(api.domain)} project`,
-      })
-    }
+    const project: CloudProject = await api.getProjectByIdOrThrow({
+      projectId: garden.projectId,
+      projectName: garden.projectName,
+    })
 
     let environmentId: string | undefined
 

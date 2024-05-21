@@ -18,7 +18,6 @@ import type { SecretResult } from "../helpers.js"
 import { applyFilter, makeSecretFromResponse, noApiMsg } from "../helpers.js"
 import { sortBy } from "lodash-es"
 import { StringsParameter } from "../../../cli/params.js"
-import { getCloudDistributionName } from "../../../util/cloud.js"
 import type { CloudApi, CloudProject } from "../../../cloud/api.js"
 import type { Log } from "../../../logger/log-entry.js"
 import { styles } from "../../../logger/styles.js"
@@ -86,17 +85,10 @@ export class SecretsListCommand extends Command<{}, Opts> {
       throw new ConfigurationError({ message: noApiMsg("list", "secrets") })
     }
 
-    let project: CloudProject | undefined
-
-    if (garden.projectId) {
-      project = await api.getProjectById(garden.projectId)
-    }
-
-    if (!project) {
-      throw new CloudApiError({
-        message: `Project ${garden.projectName} is not a ${getCloudDistributionName(api.domain)} project`,
-      })
-    }
+    const project: CloudProject = await api.getProjectByIdOrThrow({
+      projectId: garden.projectId,
+      projectName: garden.projectName
+    })
 
     const secrets: SecretResult[] = await fetchAllSecrets(api, project.id, log)
     log.info("")
