@@ -116,8 +116,12 @@ export class SecretsUpdateCommand extends Command<Args, Opts> {
     if (envName) {
       const environment = project.environments.find((e) => e.name === envName)
       if (!environment) {
+        const availableEnvironmentNames = project.environments.map((e) => e.name)
         throw new CloudApiError({
-          message: `Environment with name ${envName} not found in project`,
+          message: dedent`
+            Environment with name ${envName} not found in project.
+            Available environments: ${availableEnvironmentNames.join(", ")}
+          `,
         })
       }
       environmentId = environment.id
