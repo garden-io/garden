@@ -91,7 +91,7 @@ export async function updateRemoteActions({
   opts: ParameterValues<Opts>
 }) {
   const { actions: keys } = args
-  const graph = await garden.getConfigGraph({ log, emit: false })
+  const graph = await garden.getConfigGraph({ log, emit: false, statusOnly: true })
   const actions = graph.getActions({ refs: keys })
 
   const actionSources = <SourceConfig[]>actions

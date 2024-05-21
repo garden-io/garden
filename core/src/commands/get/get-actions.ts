@@ -152,7 +152,7 @@ export class GetActionsCommand extends Command {
       actionsFilter = [opts.kind + ".*"]
     }
 
-    const graph = await garden.getResolvedConfigGraph({ log, emit: false, actionsFilter })
+    const graph = await garden.getResolvedConfigGraph({ log, emit: false, actionsFilter, statusOnly: true })
 
     const kindOpt = opts["kind"]?.toLowerCase()
     let actions: ResolvedActionWithState[] = []
