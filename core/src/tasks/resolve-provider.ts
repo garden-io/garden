@@ -380,7 +380,7 @@ export class ResolveProviderTask extends BaseTask<Provider> {
     await writeFile(cachePath, serialize(cachedStatus))
   }
 
-  private async ensurePrepared(tmpProvider: Provider, statusOnly?: boolean) {
+  private async ensurePrepared(tmpProvider: Provider, statusOnly: boolean) {
     const pluginName = tmpProvider.name
     const providerLog = getProviderLog(pluginName, this.log)
     const actions = await this.garden.getActionRouter()

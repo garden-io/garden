@@ -53,7 +53,7 @@ describe.skip("Kubernetes Container Build Extension", () => {
     ;({ garden, cleanup } = await getContainerTestGarden(environmentName, { remoteContainerAuth }))
     log = createActionLog({ log: garden.log, actionName: "", actionKind: "" })
     graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-    provider = <KubernetesProvider>await garden.resolveProvider(garden.log, "local-kubernetes")
+    provider = <KubernetesProvider>await garden.resolveProvider({ log: garden.log, name: "local-kubernetes" })
     ctx = (await garden.getPluginContext({
       provider,
       templateContext: undefined,
@@ -598,7 +598,7 @@ describe("Ensure serviceAccount annotations for in-cluster building", () => {
   const init = async (environmentName: string, remoteContainerAuth = false) => {
     ;({ garden, cleanup } = await getContainerTestGarden(environmentName, { remoteContainerAuth }))
     log = createActionLog({ log: garden.log, actionName: "", actionKind: "" })
-    provider = <KubernetesProvider>await garden.resolveProvider(garden.log, "local-kubernetes")
+    provider = <KubernetesProvider>await garden.resolveProvider({ log: garden.log, name: "local-kubernetes" })
     ctx = (await garden.getPluginContext({
       provider,
       templateContext: undefined,

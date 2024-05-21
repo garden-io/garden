@@ -71,7 +71,7 @@ export abstract class BaseRouter {
     templateContext: ConfigContext | undefined,
     events: PluginEventBroker | undefined
   ): Promise<PluginActionParamsBase> {
-    const provider = await this.garden.resolveProvider(log, handler.pluginName)
+    const provider = await this.garden.resolveProvider({ log, name: handler.pluginName })
 
     const ctx = await this.garden.getPluginContext({ provider, templateContext, events })
 
@@ -291,7 +291,7 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
       defaultHandler,
     })
 
-    const providers = await this.garden.resolveProviders(log)
+    const providers = await this.garden.resolveProviders({ log })
 
     const templateContext = action.isResolved()
       ? new ActionSpecContext({

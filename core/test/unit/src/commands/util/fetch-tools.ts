@@ -76,7 +76,7 @@ describe("FetchToolsCommand", () => {
       }),
     })
 
-    await garden.resolveProviders(garden.log)
+    await garden.resolveProviders({ log: garden.log })
 
     const log = garden.log
     const command = new FetchToolsCommand()
@@ -106,7 +106,7 @@ describe("FetchToolsCommand", () => {
       }),
     })
 
-    await garden.resolveProviders(garden.log)
+    await garden.resolveProviders({ log: garden.log })
 
     const log = garden.log
     const command = new FetchToolsCommand()
@@ -133,7 +133,7 @@ describe("FetchToolsCommand", () => {
     garden.providerConfigs = []
     garden.registeredPlugins = [plugin]
 
-    await garden.resolveProviders(garden.log)
+    await garden.resolveProviders({ log: garden.log })
 
     const log = garden.log
     const command = new FetchToolsCommand()
@@ -170,7 +170,7 @@ describe("FetchToolsCommand", () => {
     garden.providerConfigs = []
     garden.registeredPlugins = [plugin]
 
-    await garden.resolveProviders(garden.log)
+    await garden.resolveProviders({ log: garden.log })
 
     const log = garden.log
     const command = new FetchToolsCommand()

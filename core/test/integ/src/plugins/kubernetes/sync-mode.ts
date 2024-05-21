@@ -87,7 +87,7 @@ describe("sync mode deployments and sync behavior", () => {
         sync: ["deploy.sync-mode"],
       },
     })
-    provider = <KubernetesProvider>await garden.resolveProvider(garden.log, "local-kubernetes")
+    provider = <KubernetesProvider>await garden.resolveProvider({ log: garden.log, name: "local-kubernetes" })
     ctx = <KubernetesPluginContext>(
       await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
     )

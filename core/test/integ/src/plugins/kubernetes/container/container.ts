@@ -77,7 +77,9 @@ export async function getContainerTestGarden(
 
   if (needsInit) {
     // Load the test authentication for private registries
-    const localProvider = <KubernetesProvider>await localInstance.resolveProvider(localInstance.log, "local-kubernetes")
+    const localProvider = <KubernetesProvider>(
+      await localInstance.resolveProvider({ log: localInstance.log, name: "local-kubernetes" })
+    )
     const api = await KubeApi.factory(
       garden.log,
       await garden.getPluginContext({ provider: localProvider, templateContext: undefined, events: undefined }),
@@ -130,7 +132,7 @@ export async function getContainerTestGarden(
     await api.upsert({ kind: "Secret", namespace: "default", obj: credentialHelperAuth, log: garden.log })
   }
 
-  const provider = <KubernetesProvider>await garden.resolveProvider(garden.log, "local-kubernetes")
+  const provider = <KubernetesProvider>await garden.resolveProvider({ log: garden.log, name: "local-kubernetes" })
   const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
 
   if (needsInit) {
@@ -155,7 +157,7 @@ describe("kubernetes container module handlers", () => {
 
   before(async () => {
     garden = await makeTestGarden(root)
-    // provider = <KubernetesProvider>await garden.resolveProvider(garden.log, "local-kubernetes")
+    // provider = <KubernetesProvider>await garden.resolveProvider({ log: garden.log, name: "local-kubernetes" })
   })
 
   beforeEach(async () => {

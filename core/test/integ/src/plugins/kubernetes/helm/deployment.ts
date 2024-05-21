@@ -39,7 +39,7 @@ describe("helmDeploy in local-mode", () => {
 
   before(async () => {
     garden = await getHelmLocalModeTestGarden()
-    provider = <KubernetesProvider>await garden.resolveProvider(garden.log, "local-kubernetes")
+    provider = <KubernetesProvider>await garden.resolveProvider({ log: garden.log, name: "local-kubernetes" })
     ctx = <KubernetesPluginContext>(
       await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
     )
@@ -110,7 +110,7 @@ describe("helmDeploy", () => {
 
   before(async () => {
     garden = await getHelmTestGarden()
-    provider = <KubernetesProvider>await garden.resolveProvider(garden.log, "local-kubernetes")
+    provider = <KubernetesProvider>await garden.resolveProvider({ log: garden.log, name: "local-kubernetes" })
     ctx = <KubernetesPluginContext>(
       await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
     )
@@ -379,7 +379,9 @@ describe("helmDeploy", () => {
     const gardenWithCloudApi = await makeTestGarden(projectRoot, { cloudApi: fakeCloudApi, noCache: true })
 
     graph = await gardenWithCloudApi.getConfigGraph({ log: gardenWithCloudApi.log, emit: false })
-    const providerWithApi = <KubernetesProvider>await garden.resolveProvider(gardenWithCloudApi.log, "local-kubernetes")
+    const providerWithApi = <KubernetesProvider>(
+      await garden.resolveProvider({ log: gardenWithCloudApi.log, name: "local-kubernetes" })
+    )
     const ctxWithCloudApi = <KubernetesPluginContext>await gardenWithCloudApi.getPluginContext({
       provider: providerWithApi,
       templateContext: undefined,

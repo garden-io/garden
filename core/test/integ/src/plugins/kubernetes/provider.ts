@@ -18,9 +18,7 @@ import type { PrepareEnvironmentParams } from "../../../../../src/plugin/handler
 import type { Garden } from "../../../../../src/index.js"
 
 async function ensureNamespaceDoesNotExist(api: KubeApi, namespaceName: string) {
-  try {
-    await api.core.readNamespace({ name: namespaceName })
-  } catch (e) {
+  if (!(await namespaceExists(api, namespaceName))) {
     return
   }
   await api.core.deleteNamespace({ name: namespaceName })
@@ -49,7 +47,9 @@ describe("kubernetes provider handlers", () => {
     garden = await makeTestGarden(getDataDir("test-projects", "project-with-default-namespace"))
 
     log = garden.log
-    const provider = <KubernetesProvider>await garden.resolveProvider(log, "local-kubernetes", false)
+    const provider = <KubernetesProvider>(
+      await garden.resolveProvider({ log: garden.log, name: "local-kubernetes", statusOnly: false })
+    )
     ctx = <KubernetesPluginContext>(
       await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
     )

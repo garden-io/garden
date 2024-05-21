@@ -38,7 +38,10 @@ describe("KubeApi", () => {
     before(async () => {
       const root = getDataDir("test-projects", "container")
       garden = await makeTestGarden(root)
-      provider = (await garden.resolveProvider(garden.log, "local-kubernetes")) as Provider<KubernetesConfig>
+      provider = (await garden.resolveProvider({
+        log: garden.log,
+        name: "local-kubernetes",
+      })) as Provider<KubernetesConfig>
       ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
       api = await KubeApi.factory(garden.log, ctx, provider)
       namespace = await getAppNamespace(ctx as KubernetesPluginContext, garden.log, provider)

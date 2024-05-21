@@ -40,7 +40,7 @@ describe("kubernetes-type exec Run", () => {
     })
 
     // Clear any existing Run result
-    const provider = await garden.resolveProvider(garden.log, "local-kubernetes")
+    const provider = await garden.resolveProvider({ log: garden.log, name: "local-kubernetes" })
     const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
     await clearRunResult({ ctx, log: garden.log, action })
 

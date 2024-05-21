@@ -62,7 +62,7 @@ describe("pulumi plugin handlers", () => {
     const plugin = pulumiPlugin()
     garden = await makeTestGarden(projectRoot, { plugins: [plugin] })
     log = garden.log
-    provider = (await garden.resolveProvider(log, "pulumi")) as PulumiProvider
+    provider = (await garden.resolveProvider({ log, name: "pulumi" })) as PulumiProvider
     ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
     graph = await garden.getResolvedConfigGraph({ log, emit: false })
   })

@@ -123,7 +123,7 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
     // Resolve template inputs
     const inputsContext = new ActionSpecContext({
       garden: this.garden,
-      resolvedProviders: await this.garden.resolveProviders(this.log),
+      resolvedProviders: await this.garden.resolveProviders({ log: this.log }),
       action,
       modules: this.graph.getModules(),
       partialRuntimeResolution: false,
@@ -165,7 +165,7 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
       }),
       context: new ActionSpecContext({
         garden: this.garden,
-        resolvedProviders: await this.garden.resolveProviders(this.log),
+        resolvedProviders: await this.garden.resolveProviders({ log: this.log }),
         action,
         modules: this.graph.getModules(),
         partialRuntimeResolution: false,
@@ -188,7 +188,7 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
       value: action.getConfig().spec || {},
       context: new ActionSpecContext({
         garden: this.garden,
-        resolvedProviders: await this.garden.resolveProviders(this.log),
+        resolvedProviders: await this.garden.resolveProviders({ log: this.log }),
         action,
         modules: this.graph.getModules(),
         partialRuntimeResolution: false,

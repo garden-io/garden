@@ -75,7 +75,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
       })
 
       it("should warn if stack is not up-to-date", async () => {
-        const provider = await garden.resolveProvider(garden.log, "terraform")
+        const provider = await garden.resolveProvider({ log: garden.log, name: "terraform" })
         const messages = getRootLogMessages(garden.log, (e) => e.level === LogLevel.warn)
         expect(messages).to.include(
           "Terraform stack is not up-to-date and autoApply is not enabled. Please run garden plugins terraform apply-root to make sure the stack is in the intended state."
@@ -84,7 +84,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
       })
 
       it("should expose outputs to template contexts after applying", async () => {
-        const provider = await garden.resolveProvider(garden.log, "terraform")
+        const provider = await garden.resolveProvider({ log: garden.log, name: "terraform" })
         const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
         const applyRootCommand = findByName(getTerraformCommands(), "apply-root")!
         await applyRootCommand.handler({
@@ -100,7 +100,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
           plugins: [gardenPlugin()],
           variableOverrides: { "tf-version": terraformVersion },
         })
-        const _provider = await _garden.resolveProvider(_garden.log, "terraform")
+        const _provider = await _garden.resolveProvider({ log: _garden.log, name: "terraform" })
 
         expect(_provider.status.outputs).to.eql({
           "my-output": "workspace: default, input: foo",
@@ -110,7 +110,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
 
       describe("apply-root command", () => {
         it("calls terraform apply for the project root", async () => {
-          const provider = (await garden.resolveProvider(garden.log, "terraform")) as TerraformProvider
+          const provider = (await garden.resolveProvider({ log: garden.log, name: "terraform" })) as TerraformProvider
           const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
 
           const command = findByName(getTerraformCommands(), "apply-root")!
@@ -124,7 +124,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
         })
 
         it("sets the workspace before running the command", async () => {
-          const provider = (await garden.resolveProvider(garden.log, "terraform")) as TerraformProvider
+          const provider = (await garden.resolveProvider({ log: garden.log, name: "terraform" })) as TerraformProvider
           provider.config.workspace = "foo"
 
           const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
@@ -145,7 +145,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
 
       describe("plan-root command", () => {
         it("calls terraform plan for the project root", async () => {
-          const provider = (await garden.resolveProvider(garden.log, "terraform")) as TerraformProvider
+          const provider = (await garden.resolveProvider({ log: garden.log, name: "terraform" })) as TerraformProvider
           const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
 
           const command = findByName(getTerraformCommands(), "plan-root")!
@@ -159,7 +159,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
         })
 
         it("sets the workspace before running the command", async () => {
-          const provider = (await garden.resolveProvider(garden.log, "terraform")) as TerraformProvider
+          const provider = (await garden.resolveProvider({ log: garden.log, name: "terraform" })) as TerraformProvider
           provider.config.workspace = "foo"
 
           const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
@@ -180,7 +180,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
 
       describe("destroy-root command", () => {
         it("calls terraform destroy for the project root", async () => {
-          const provider = (await garden.resolveProvider(garden.log, "terraform")) as TerraformProvider
+          const provider = (await garden.resolveProvider({ log: garden.log, name: "terraform" })) as TerraformProvider
           const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
 
           const command = findByName(getTerraformCommands(), "destroy-root")!
@@ -194,7 +194,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
         })
 
         it("sets the workspace before running the command", async () => {
-          const provider = (await garden.resolveProvider(garden.log, "terraform")) as TerraformProvider
+          const provider = (await garden.resolveProvider({ log: garden.log, name: "terraform" })) as TerraformProvider
           provider.config.workspace = "foo"
 
           const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
@@ -215,7 +215,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
 
       context("allowDestroy=false", () => {
         it("doesn't call terraform destroy when calling the delete service handler", async () => {
-          const provider = await garden.resolveProvider(garden.log, "terraform")
+          const provider = await garden.resolveProvider({ log: garden.log, name: "terraform" })
           const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
 
           // This creates the test file
@@ -258,7 +258,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
       })
 
       it("should apply a stack on init and use configured variables", async () => {
-        await garden.resolveProvider(garden.log, "terraform")
+        await garden.resolveProvider({ log: garden.log, name: "terraform" })
         expect(
           garden.log.root
             .getLogEntries()
@@ -271,7 +271,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
       })
 
       it("should not apply a stack when the provider is resolved with statusOnly=true e.g. while running validate command", async () => {
-        await garden.resolveProvider(garden.log, "terraform", true)
+        await garden.resolveProvider({ log: garden.log, name: "terraform", statusOnly: true })
         expect(
           garden.log.root
             .getLogEntries()
@@ -291,13 +291,13 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
           },
           plugins: [gardenPlugin()],
         })
-        await _garden.resolveProvider(garden.log, "terraform")
+        await _garden.resolveProvider({ log: garden.log, name: "terraform" })
         const testFileContent = await readFile(testFilePath)
         expect(testFileContent.toString()).to.equal("foo")
       })
 
       it("should expose outputs to template contexts", async () => {
-        const provider = await garden.resolveProvider(garden.log, "terraform")
+        const provider = await garden.resolveProvider({ log: garden.log, name: "terraform" })
         expect(provider.status.outputs).to.eql({
           "my-output": "workspace: default, input: foo",
           "test-file-path": "./test.log",
@@ -307,7 +307,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
       context("allowDestroy=true", () => {
         it("calls terraform destroy when calling the delete service handler", async () => {
           // This implicitly creates the test file
-          await garden.resolveProvider(garden.log, "terraform")
+          await garden.resolveProvider({ log: garden.log, name: "terraform" })
 
           // This should remove the file
           const actions = await garden.getActionRouter()
@@ -410,7 +410,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
 
     describe("apply-action command", () => {
       it("calls terraform apply for the action", async () => {
-        const provider = (await garden.resolveProvider(garden.log, "terraform")) as TerraformProvider
+        const provider = (await garden.resolveProvider({ log: garden.log, name: "terraform" })) as TerraformProvider
         const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
         graph = await garden.getConfigGraph({ log: garden.log, emit: false })
 
@@ -432,7 +432,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
           plugins: [gardenPlugin()],
         })
 
-        const provider = (await _garden.resolveProvider(garden.log, "terraform")) as TerraformProvider
+        const provider = (await _garden.resolveProvider({ log: garden.log, name: "terraform" })) as TerraformProvider
         const ctx = await _garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
 
         await setWorkspace({ ctx, provider, root: tfRoot, log: _garden.log, workspace: "default" })
@@ -455,7 +455,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
 
     describe("plan-action command", () => {
       it("calls terraform apply for the action root", async () => {
-        const provider = (await garden.resolveProvider(garden.log, "terraform")) as TerraformProvider
+        const provider = (await garden.resolveProvider({ log: garden.log, name: "terraform" })) as TerraformProvider
         const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
         graph = await garden.getConfigGraph({ log: garden.log, emit: false })
 
@@ -477,7 +477,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
           plugins: [gardenPlugin()],
         })
 
-        const provider = (await _garden.resolveProvider(garden.log, "terraform")) as TerraformProvider
+        const provider = (await _garden.resolveProvider({ log: garden.log, name: "terraform" })) as TerraformProvider
         const _ctx = await _garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
 
         await setWorkspace({ ctx: _ctx, provider, root: tfRoot, log: _garden.log, workspace: "default" })
@@ -500,7 +500,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
 
     describe("destroy-action command", () => {
       it("calls terraform destroy for the action root", async () => {
-        const provider = (await garden.resolveProvider(garden.log, "terraform")) as TerraformProvider
+        const provider = (await garden.resolveProvider({ log: garden.log, name: "terraform" })) as TerraformProvider
         const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
         graph = await garden.getConfigGraph({ log: garden.log, emit: false })
 
@@ -522,7 +522,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
           plugins: [gardenPlugin()],
         })
 
-        const provider = (await _garden.resolveProvider(_garden.log, "terraform")) as TerraformProvider
+        const provider = (await _garden.resolveProvider({ log: _garden.log, name: "terraform" })) as TerraformProvider
         const ctx = await _garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
 
         await setWorkspace({ ctx, provider, root: tfRoot, log: _garden.log, workspace: "default" })
@@ -553,7 +553,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
       })
 
       it("should expose runtime outputs to template contexts if stack had already been applied", async () => {
-        const provider = await garden.resolveProvider(garden.log, "terraform")
+        const provider = await garden.resolveProvider({ log: garden.log, name: "terraform" })
         const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
         graph = await garden.getConfigGraph({ log: garden.log, emit: false })
         const applyCommand = findByName(getTerraformCommands(), "apply-action")!
@@ -573,7 +573,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
       })
 
       it("should return outputs with the service status", async () => {
-        const provider = await garden.resolveProvider(garden.log, "terraform")
+        const provider = await garden.resolveProvider({ log: garden.log, name: "terraform" })
         const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
         graph = await garden.getConfigGraph({ log: garden.log, emit: false })
         const applyCommand = findByName(getTerraformCommands(), "apply-action")!
@@ -616,7 +616,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
           plugins: [gardenPlugin()],
         })
 
-        const provider = await _garden.resolveProvider(_garden.log, "terraform")
+        const provider = await _garden.resolveProvider({ log: _garden.log, name: "terraform" })
         const ctx = await _garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
         const _graph = await _garden.getConfigGraph({ log: _garden.log, emit: false })
         const applyCommand = findByName(getTerraformCommands(), "apply-action")!
@@ -751,7 +751,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
           plugins: [gardenPlugin()],
         })
 
-        const provider = (await _garden.resolveProvider(_garden.log, "terraform")) as TerraformProvider
+        const provider = (await _garden.resolveProvider({ log: _garden.log, name: "terraform" })) as TerraformProvider
         const ctx = await _garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
         const actions = await _garden.getActionRouter()
         const _graph = await _garden.getConfigGraph({ log: _garden.log, emit: false })
@@ -855,7 +855,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
 
     describe("apply-action command", () => {
       it("calls terraform apply for the action", async () => {
-        const provider = (await garden.resolveProvider(garden.log, "terraform")) as TerraformProvider
+        const provider = (await garden.resolveProvider({ log: garden.log, name: "terraform" })) as TerraformProvider
         const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
         graph = await garden.getConfigGraph({ log: garden.log, emit: false })
 
@@ -877,7 +877,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
           plugins: [gardenPlugin()],
         })
 
-        const provider = (await _garden.resolveProvider(garden.log, "terraform")) as TerraformProvider
+        const provider = (await _garden.resolveProvider({ log: garden.log, name: "terraform" })) as TerraformProvider
         const ctx = await _garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
 
         await setWorkspace({ ctx, provider, root: tfRoot, log: _garden.log, workspace: "default" })
@@ -900,7 +900,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
 
     describe("plan-action command", () => {
       it("calls terraform apply for the action root", async () => {
-        const provider = (await garden.resolveProvider(garden.log, "terraform")) as TerraformProvider
+        const provider = (await garden.resolveProvider({ log: garden.log, name: "terraform" })) as TerraformProvider
         const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
         graph = await garden.getConfigGraph({ log: garden.log, emit: false })
 
@@ -922,7 +922,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
           plugins: [gardenPlugin()],
         })
 
-        const provider = (await _garden.resolveProvider(garden.log, "terraform")) as TerraformProvider
+        const provider = (await _garden.resolveProvider({ log: garden.log, name: "terraform" })) as TerraformProvider
         const _ctx = await _garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
 
         await setWorkspace({ ctx: _ctx, provider, root: tfRoot, log: _garden.log, workspace: "default" })
@@ -945,7 +945,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
 
     describe("destroy-action command", () => {
       it("calls terraform destroy for the action root", async () => {
-        const provider = (await garden.resolveProvider(garden.log, "terraform")) as TerraformProvider
+        const provider = (await garden.resolveProvider({ log: garden.log, name: "terraform" })) as TerraformProvider
         const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
         graph = await garden.getConfigGraph({ log: garden.log, emit: false })
 
@@ -967,7 +967,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
           plugins: [gardenPlugin()],
         })
 
-        const provider = (await _garden.resolveProvider(_garden.log, "terraform")) as TerraformProvider
+        const provider = (await _garden.resolveProvider({ log: _garden.log, name: "terraform" })) as TerraformProvider
         const ctx = await _garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
 
         await setWorkspace({ ctx, provider, root: tfRoot, log: _garden.log, workspace: "default" })
@@ -998,7 +998,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
       })
 
       it("should expose runtime outputs to template contexts if stack had already been applied", async () => {
-        const provider = await garden.resolveProvider(garden.log, "terraform")
+        const provider = await garden.resolveProvider({ log: garden.log, name: "terraform" })
         const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
         graph = await garden.getConfigGraph({ log: garden.log, emit: false })
         const applyCommand = findByName(getTerraformCommands(), "apply-action")!
@@ -1018,7 +1018,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
       })
 
       it("should return outputs with the service status", async () => {
-        const provider = await garden.resolveProvider(garden.log, "terraform")
+        const provider = await garden.resolveProvider({ log: garden.log, name: "terraform" })
         const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
         graph = await garden.getConfigGraph({ log: garden.log, emit: false })
         const applyCommand = findByName(getTerraformCommands(), "apply-action")!
@@ -1061,7 +1061,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
           plugins: [gardenPlugin()],
         })
 
-        const provider = await _garden.resolveProvider(_garden.log, "terraform")
+        const provider = await _garden.resolveProvider({ log: _garden.log, name: "terraform" })
         const ctx = await _garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
         const _graph = await _garden.getConfigGraph({ log: _garden.log, emit: false })
         const applyCommand = findByName(getTerraformCommands(), "apply-action")!
@@ -1195,7 +1195,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
           plugins: [gardenPlugin()],
         })
 
-        const provider = (await _garden.resolveProvider(_garden.log, "terraform")) as TerraformProvider
+        const provider = (await _garden.resolveProvider({ log: _garden.log, name: "terraform" })) as TerraformProvider
         const ctx = await _garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
         const actions = await _garden.getActionRouter()
         const _graph = await _garden.getConfigGraph({ log: _garden.log, emit: false })

@@ -100,7 +100,7 @@ export class PublishTask extends BaseActionTask<BuildAction, PublishActionResult
     let tagOverride: string | undefined = undefined
 
     if (this.tagOverrideTemplate) {
-      const resolvedProviders = await this.garden.resolveProviders(this.log)
+      const resolvedProviders = await this.garden.resolveProviders({ log: this.log })
 
       const templateContext = new BuildTagContext({
         garden: this.garden,

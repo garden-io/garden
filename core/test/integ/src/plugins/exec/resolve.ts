@@ -28,7 +28,7 @@ describe("exec provider initialization statusOnly", () => {
     }
   })
   it("should not execute the initScript when the provider is initialized with statusOnly", async () => {
-    await gardenOne.resolveProvider(gardenOne.log, "exec", true)
+    await gardenOne.resolveProvider({ log: gardenOne.log, name: "exec", statusOnly: true })
     const fileExists = await pathExists(fileLocation)
 
     expect(fileExists).to.be.false
@@ -46,7 +46,7 @@ describe("exec provider initialization cache behaviour", () => {
     tmpDir = join(await gardenOne.getRepoRoot(), "project")
     fileLocation = join(tmpDir, "theFile")
 
-    await gardenOne.resolveProvider(gardenOne.log, "exec")
+    await gardenOne.resolveProvider({ log: gardenOne.log, name: "exec" })
   })
 
   it("writes the environment name to theFile as configured in the initScript", async () => {
@@ -60,7 +60,7 @@ describe("exec provider initialization cache behaviour", () => {
     expect(contents).equal("one\n")
 
     const gardenTwo = await makeTestGarden(tmpDir, { environmentString: "two", noTempDir: true })
-    await gardenTwo.resolveProvider(gardenTwo.log, "exec")
+    await gardenTwo.resolveProvider({ log: gardenTwo.log, name: "exec" })
 
     contents = await readFile(fileLocation, { encoding: "utf-8" })
     expect(contents).equal("two\n")
@@ -71,13 +71,13 @@ describe("exec provider initialization cache behaviour", () => {
     expect(contents).equal("one\n")
 
     const gardenTwo = await makeTestGarden(tmpDir, { environmentString: "two", noTempDir: true })
-    await gardenTwo.resolveProvider(gardenTwo.log, "exec")
+    await gardenTwo.resolveProvider({ log: gardenTwo.log, name: "exec" })
 
     contents = await readFile(fileLocation, { encoding: "utf-8" })
     expect(contents).equal("two\n")
 
     const gardenOneAgain = await makeTestGarden(tmpDir, { environmentString: "one", noTempDir: true })
-    await gardenOneAgain.resolveProvider(gardenOneAgain.log, "exec")
+    await gardenOneAgain.resolveProvider({ log: gardenOneAgain.log, name: "exec" })
 
     contents = await readFile(fileLocation, { encoding: "utf-8" })
     expect(contents).equal("one\n")

@@ -229,7 +229,7 @@ describe("TestCommand", () => {
   })
 
   it("handles --interactive option if single test name is specified", async () => {
-    const provider = await garden.resolveProvider(garden.log, "test-plugin")
+    const provider = await garden.resolveProvider({ log: garden.log, name: "test-plugin" })
     const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
 
     await garden.stubRouterAction("Test", "run", async ({ interactive }) => {

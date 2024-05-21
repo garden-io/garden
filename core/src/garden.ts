@@ -242,6 +242,19 @@ interface GardenInstanceState {
   needsReload: boolean
 }
 
+interface ResolveProvidersParams {
+  log: Log
+  forceInit?: boolean
+  statusOnly?: boolean
+  names?: string[]
+}
+
+interface ResolveProviderParams {
+  log: Log
+  name: string
+  statusOnly?: boolean
+}
+
 @Profile()
 export class Garden {
   public log: Log
@@ -712,7 +725,8 @@ export class Garden {
       : this.providerConfigs
   }
 
-  async resolveProvider(log: Log, name: string, statusOnly?: boolean) {
+  async resolveProvider(params: ResolveProviderParams): Promise<Provider> {
+    const { name, log, statusOnly } = params
     if (name === "_default") {
       return defaultProvider
     }
@@ -723,7 +737,7 @@ export class Garden {
 
     this.log.silly(() => `Resolving provider ${name}`)
 
-    const providers = await this.resolveProviders(log, false, statusOnly, [name])
+    const providers = await this.resolveProviders({ log, forceInit: false, statusOnly, names: [name] })
     const provider = providers[name]
 
     if (!provider) {
@@ -742,22 +756,23 @@ export class Garden {
   @OtelTraced({
     name: "resolveProviders",
   })
-  async resolveProviders(log: Log, forceInit = false, statusOnly = false, names?: string[]): Promise<ProviderMap> {
+  async resolveProviders(params: ResolveProvidersParams): Promise<ProviderMap> {
+    const { log, forceInit = false, statusOnly = false, names } = params
     // TODO: split this out of the Garden class
     let providers: Provider[] = []
+    let providerNames = names
 
     await this.asyncLock.acquire("resolve-providers", async () => {
       const rawConfigs = this.getRawProviderConfigs({ names })
-
-      if (!names) {
-        names = getNames(rawConfigs)
+      if (!providerNames) {
+        providerNames = getNames(rawConfigs)
       }
 
       throwOnMissingSecretKeys(rawConfigs, this.secrets, "Provider", log)
 
       // As an optimization, we return immediately if all requested providers are already resolved
-      const alreadyResolvedProviders = names.map((name) => this.resolvedProviders[name]).filter(Boolean)
-      if (alreadyResolvedProviders.length === names.length) {
+      const alreadyResolvedProviders = providerNames.map((name) => this.resolvedProviders[name]).filter(Boolean)
+      if (alreadyResolvedProviders.length === providerNames.length) {
         providers = cloneDeep(alreadyResolvedProviders)
         return
       }
@@ -920,7 +935,7 @@ export class Garden {
    * Returns the reported status from all configured providers.
    */
   async getEnvironmentStatus(log: Log) {
-    const providers = await this.resolveProviders(log)
+    const providers = await this.resolveProviders({ log })
     return mapValues(providers, (p) => p.status)
   }
 
@@ -961,7 +976,7 @@ export class Garden {
   }
 
   async getOutputConfigContext(log: Log, modules: GardenModule[], graphResults: GraphResults) {
-    const providers = await this.resolveProviders(log)
+    const providers = await this.resolveProviders({ log })
     return new OutputConfigContext({
       garden: this,
       resolvedProviders: providers,
@@ -1004,7 +1019,7 @@ export class Garden {
     // TODO: split this out of the Garden class
     await this.scanAndAddConfigs()
 
-    const resolvedProviders = await this.resolveProviders(log, false, statusOnly)
+    const resolvedProviders = await this.resolveProviders({ log, forceInit: false, statusOnly })
     const rawModuleConfigs = await this.getRawModuleConfigs()
 
     const graphLog = log.createLog({ name: "graph", showDuration: true }).info(`Resolving actions and modules...`)
@@ -1694,7 +1709,7 @@ export class Garden {
     await this.scanAndAddConfigs()
 
     if (resolveProviders) {
-      providers = Object.values(await this.resolveProviders(log))
+      providers = Object.values(await this.resolveProviders({ log }))
     } else {
       providers = this.getRawProviderConfigs()
     }

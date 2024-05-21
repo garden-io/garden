@@ -61,7 +61,7 @@ describe("local mode deployments and ssh tunneling behavior", () => {
       noCache: true,
       actionModes: { local: ["deploy.local-mode"] },
     })
-    provider = <KubernetesProvider>await garden.resolveProvider(garden.log, "local-kubernetes")
+    provider = <KubernetesProvider>await garden.resolveProvider({ log: garden.log, name: "local-kubernetes" })
     ctx = <KubernetesPluginContext>(
       await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
     )

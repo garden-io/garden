@@ -103,7 +103,7 @@ export class PluginsCommand extends Command<Args> {
       printHeader(log, title, "⚙️")
     }
 
-    const provider = await garden.resolveProvider(log, args.plugin)
+    const provider = await garden.resolveProvider({ log, name: args.plugin })
     const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
 
     let graph = new ConfigGraph({

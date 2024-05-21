@@ -49,7 +49,7 @@ describe("sync plugin commands", () => {
       emit: false,
       actionModes: { sync: ["deploy.sync-mode"] },
     })
-    provider = <KubernetesProvider>await garden.resolveProvider(garden.log, "local-kubernetes")
+    provider = <KubernetesProvider>await garden.resolveProvider({ log: garden.log, name: "local-kubernetes" })
     ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
     log = garden.log
     const action = graph.getDeploy("sync-mode")

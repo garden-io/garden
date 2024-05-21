@@ -26,7 +26,7 @@ describe("Kubernetes Namespace helpers", () => {
   before(async () => {
     const root = getDataDir("test-projects", "container")
     const garden = await makeTestGarden(root)
-    provider = (await garden.resolveProvider(garden.log, "local-kubernetes")) as KubernetesProvider
+    provider = (await garden.resolveProvider({ log: garden.log, name: "local-kubernetes" })) as KubernetesProvider
     ctx = <KubernetesPluginContext>await garden.getPluginContext({
       provider,
       templateContext: undefined,

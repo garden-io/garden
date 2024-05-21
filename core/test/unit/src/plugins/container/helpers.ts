@@ -76,7 +76,7 @@ describe("containerHelpers", () => {
   beforeEach(async () => {
     garden = await makeTestGarden(projectRoot, { plugins: [gardenPlugin()] })
     log = garden.log
-    const provider = await garden.resolveProvider(garden.log, "container")
+    const provider = await garden.resolveProvider({ log: garden.log, name: "container" })
     ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
 
     td.replace(garden.buildStaging, "syncDependencyProducts", () => null)

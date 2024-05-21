@@ -46,7 +46,7 @@ describe("exec plugin", () => {
 
   describe("provider outputs", () => {
     it("the exec provider should have outputs for the initscript log", async () => {
-      const execProvider = await garden.resolveProvider(log, "exec")
+      const execProvider = await garden.resolveProvider({ log, name: "exec" })
       expect((execProvider.outputs as ExecProviderOutputs).initScript.log).to.include(
         "this is a provider output message"
       )

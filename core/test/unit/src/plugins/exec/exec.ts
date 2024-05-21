@@ -64,7 +64,7 @@ describe("exec plugin", () => {
     beforeEach(async () => {
       garden = await makeTestGarden(testProjectRoot, { plugins: [plugin] })
       graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      execProvider = await garden.resolveProvider(garden.log, "exec")
+      execProvider = await garden.resolveProvider({ log: garden.log, name: "exec" })
       ctx = await garden.getPluginContext({ provider: execProvider, templateContext: undefined, events: undefined })
       log = createActionLog({ log: garden.log, actionName: "", actionKind: "" })
       await garden.clearBuilds()
@@ -96,7 +96,7 @@ describe("exec plugin", () => {
         }),
       })
 
-      await expectError(() => _garden.resolveProviders(_garden.log), "plugin")
+      await expectError(() => _garden.resolveProviders({ log: _garden.log }), "plugin")
     })
 
     it("should correctly parse exec modules", async () => {
