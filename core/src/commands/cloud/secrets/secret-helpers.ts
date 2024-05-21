@@ -64,7 +64,8 @@ export async function readInputSecrets({
   let secrets: StringMap
   if (secretsFromFile) {
     try {
-      secrets = dotenv.parse(await readFile(secretsFromFile))
+      const secretsFileContent = await readFile(secretsFromFile);
+      secrets = dotenv.parse(secretsFileContent)
     } catch (err) {
       throw new CommandError({
         message: `Unable to read secrets from file at path ${secretsFromFile}: ${err}`,
