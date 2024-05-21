@@ -84,7 +84,6 @@ export class SecretsCreateCommand extends Command<Args, Opts> {
     const envName = opts["scope-to-env"] as string | undefined
     const userId = opts["scope-to-user-id"] as string | undefined
     const fromFile = opts["from-file"] as string | undefined
-    let secrets: StringMap
 
     if (userId !== undefined && !envName) {
       throw new CommandError({
@@ -92,6 +91,7 @@ export class SecretsCreateCommand extends Command<Args, Opts> {
       })
     }
 
+    let secrets: StringMap
     if (fromFile) {
       try {
         secrets = dotenv.parse(await readFile(fromFile))
