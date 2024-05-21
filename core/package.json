@@ -209,7 +209,7 @@
     "@types/qs": "^6.9.8",
     "@types/react": "^18.2.74",
     "@types/sinon": "^17.0.2",
-    "@types/split2": "^3.2.1",
+    "@types/split2": "^4.2.3",
     "@types/supertest": "^6.0.2",
     "@types/tar": "^6.1.11",
     "@types/touch": "^3.1.5",
