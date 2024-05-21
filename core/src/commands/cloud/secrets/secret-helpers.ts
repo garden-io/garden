@@ -6,9 +6,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import type { SecretResult as SecretResultApi } from "@garden-io/platform-api-types"
+import type { ListSecretsResponse, SecretResult as SecretResultApi } from "@garden-io/platform-api-types"
 import type { StringMap } from "../../../config/common.js"
 import { readInputKeyValueResources } from "../helpers.js"
+import type { CloudApi } from "../../../cloud/api.js"
+import type { Log } from "../../../logger/log-entry.js"
+import queryString from "query-string"
 
 export interface SecretResult {
   id: string
@@ -61,4 +64,24 @@ export async function readInputSecrets({
     resourcesFromArgs: secretsFromArgs,
     resourceName: "secret",
   })
+}
+
+const secretsPageLimit = 100
+
+export async function fetchAllSecrets(api: CloudApi, projectId: string, log: Log): Promise<SecretResult[]> {
+  let page = 0
+  const secrets: SecretResult[] = []
+  let hasMore = true
+  while (hasMore) {
+    log.debug(`Fetching page ${page}`)
+    const q = queryString.stringify({ projectId, offset: page * secretsPageLimit, limit: secretsPageLimit })
+    const res = await api.get<ListSecretsResponse>(`/secrets?${q}`)
+    if (res.data.length === 0) {
+      hasMore = false
+    } else {
+      secrets.push(...res.data.map((secret) => makeSecretFromResponse(secret)))
+      page++
+    }
+  }
+  return secrets
 }
