@@ -56,7 +56,7 @@ export class ValidateCommand extends Command<{}, Opts> {
   async action({ garden, log, opts }: CommandParams<{}, Opts>): Promise<CommandResult> {
     // This implicitly validates modules and actions.
     const { resolve } = opts
-    const graph = await garden.getConfigGraph({ log, emit: false })
+    const graph = await garden.getConfigGraph({ log, emit: false, statusOnly: true })
     if (resolve) {
       const actionsToResolve = getActionsToResolve(resolve, graph)
       await garden.resolveActions({ actions: actionsToResolve, graph, log })

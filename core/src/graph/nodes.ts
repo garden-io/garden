@@ -325,7 +325,7 @@ export class ProcessTaskNode<T extends Task = Task> extends TaskNode<T> {
       const processResult: TaskResultType<T> = await this.task.process({
         status,
         dependencyResults,
-        statusOnly: false,
+        statusOnly: this.statusOnly,
       })
       this.task.emit("processed", { result: processResult })
       if (processResult.state === "ready") {

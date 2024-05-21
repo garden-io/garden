@@ -64,7 +64,7 @@ describe("provider actions", async () => {
   describe("augmentGraph", () => {
     it("should return modules and/or dependency relations to add to the stack graph", async () => {
       graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      const providers = await garden.resolveProviders(garden.log)
+      const providers = await garden.resolveProviders({ log: garden.log })
       const result = await actionRouter.provider.augmentGraph({
         log,
         pluginName: "test-plugin-a",

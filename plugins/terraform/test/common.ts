@@ -55,7 +55,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
         variableOverrides: { "tf-version": terraformVersion },
       })
       log = garden.log
-      provider = (await garden.resolveProvider(log, "terraform")) as TerraformProvider
+      provider = (await garden.resolveProvider({ log, name: "terraform" })) as TerraformProvider
       ctx = await garden.getPluginContext({ provider, events: undefined, templateContext: undefined })
       root = join(garden.projectRoot, "tf")
       terraformDirPath = join(root, ".terraform")

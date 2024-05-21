@@ -170,7 +170,7 @@ describe("Garden", () => {
 
       expect(garden.projectName).to.equal("test-project-a")
 
-      const providers = await garden.resolveProviders(garden.log)
+      const providers = await garden.resolveProviders({ log: garden.log })
       const configs = mapValues(providers, (p) => p.config)
 
       expect(configs).to.eql({
@@ -220,7 +220,7 @@ describe("Garden", () => {
       delete process.env.TEST_PROVIDER_TYPE
       delete process.env.TEST_VARIABLE
 
-      const providers = await garden.resolveProviders(garden.log)
+      const providers = await garden.resolveProviders({ log: garden.log })
       const configs = mapValues(providers, (p) => p.config)
 
       expect(configs).to.eql({
@@ -2109,7 +2109,7 @@ describe("Garden", () => {
         }),
       })
 
-      await expectError(() => garden.resolveProviders(garden.log), {
+      await expectError(() => garden.resolveProviders({ log: garden.log }), {
         contains: "Configured provider 'test-plugin' has not been registered.",
       })
     })
@@ -2133,7 +2133,7 @@ describe("Garden", () => {
         },
       }
 
-      const providers = await garden.resolveProviders(garden.log)
+      const providers = await garden.resolveProviders({ log: garden.log })
       const configs = mapValues(providers, (p) => p.config)
 
       expect(configs["test-plugin"]).to.eql(testPluginProvider.config)
@@ -2172,7 +2172,7 @@ describe("Garden", () => {
         config: projectConfig,
       })
 
-      const provider = await garden.resolveProvider(garden.log, "test")
+      const provider = await garden.resolveProvider({ log: garden.log, name: "test" })
 
       expect(provider.config).to.eql({
         name: "test",
@@ -2195,7 +2195,7 @@ describe("Garden", () => {
 
       const garden = await makeTestGarden(projectRootA, { config: projectConfig, plugins: [test] })
       await expectError(
-        () => garden.resolveProviders(garden.log),
+        () => garden.resolveProviders({ log: garden.log }),
         (err) => {
           expectFuzzyMatch(err.toString(), ["Failed resolving one or more providers:", "- test"])
         }
@@ -2213,7 +2213,7 @@ describe("Garden", () => {
         providers: [{ name: "test", foo: "${providers.foo.config.bla}" }],
       })
       const garden = await makeTestGarden(projectRootA, { config: projectConfig, plugins: [test] })
-      await expectError(() => garden.resolveProviders(garden.log))
+      await expectError(() => garden.resolveProviders({ log: garden.log }))
     })
 
     it("should add plugin modules if returned by the provider", async () => {
@@ -2273,7 +2273,7 @@ describe("Garden", () => {
       const plugins = [testA, testB]
       const garden = await makeTestGarden(projectRootA, { config: projectConfig, plugins })
 
-      await expectError(() => garden.resolveProviders(garden.log), {
+      await expectError(() => garden.resolveProviders({ log: garden.log }), {
         contains: ["Found a circular dependency between registered plugins:", "test-a <- test-b <- test-a"],
       })
     })
@@ -2292,7 +2292,7 @@ describe("Garden", () => {
 
       const garden = await makeTestGarden(projectRootA, { config: projectConfig, plugins: [testA] })
 
-      await expectError(() => garden.resolveProviders(garden.log), {
+      await expectError(() => garden.resolveProviders({ log: garden.log }), {
         contains: ["Found a circular dependency between registered plugins:", "test-a <- test-a"],
       })
     })
@@ -2317,7 +2317,7 @@ describe("Garden", () => {
       const plugins = [testA, testB]
       const garden = await makeTestGarden(projectRootA, { config: projectConfig, plugins })
 
-      await expectError(() => garden.resolveProviders(garden.log), {
+      await expectError(() => garden.resolveProviders({ log: garden.log }), {
         contains: [
           "One or more circular dependencies found between providers or their configurations:",
           "test-a <- test-b <- test-a",
@@ -2346,7 +2346,7 @@ describe("Garden", () => {
       const plugins = [testA, testB]
       const garden = await makeTestGarden(projectRootA, { config: projectConfig, plugins })
 
-      await expectError(() => garden.resolveProviders(garden.log), {
+      await expectError(() => garden.resolveProviders({ log: garden.log }), {
         contains: [
           "One or more circular dependencies found between providers or their",
           "configurations:",
@@ -2374,7 +2374,7 @@ describe("Garden", () => {
       const plugins = [testA, testB]
       const garden = await makeTestGarden(projectRootA, { config: projectConfig, plugins })
 
-      await expectError(() => garden.resolveProviders(garden.log), {
+      await expectError(() => garden.resolveProviders({ log: garden.log }), {
         contains: [
           "One or more circular dependencies found between providers or their",
           "configurations:",
@@ -2398,7 +2398,7 @@ describe("Garden", () => {
       })
 
       const garden = await makeTestGarden(projectRootA, { config: projectConfig, plugins: [test] })
-      const providers = keyBy(await garden.resolveProviders(garden.log), "name")
+      const providers = keyBy(await garden.resolveProviders({ log: garden.log }), "name")
 
       expect(providers.test).to.exist
       expect(providers.test.config["foo"]).to.equal("bar")
@@ -2421,7 +2421,7 @@ describe("Garden", () => {
       const garden = await makeTestGarden(projectRootA, { config: projectConfig, plugins: [test] })
 
       await expectError(
-        () => garden.resolveProviders(garden.log),
+        () => garden.resolveProviders({ log: garden.log }),
         (err) => {
           expectFuzzyMatch(err.toString(true), [
             "Failed resolving one or more providers:",
@@ -2455,7 +2455,7 @@ describe("Garden", () => {
       const garden = await makeTestGarden(projectRootA, { config: projectConfig, plugins: [test] })
 
       await expectError(
-        () => garden.resolveProviders(garden.log),
+        () => garden.resolveProviders({ log: garden.log }),
         (err) => {
           expectFuzzyMatch(err.toString(true), [
             "Failed resolving one or more providers:",
@@ -2493,7 +2493,7 @@ describe("Garden", () => {
       const plugins = [testA, testB]
       const garden = await makeTestGarden(projectRootA, { config: projectConfig, plugins })
 
-      const providerB = await garden.resolveProvider(garden.log, "test-b")
+      const providerB = await garden.resolveProvider({ log: garden.log, name: "test-b" })
 
       expect(providerB.config["foo"]).to.equal("bar")
     })
@@ -2532,7 +2532,7 @@ describe("Garden", () => {
       const plugins = [testA, testB]
       const garden = await makeTestGarden(projectRootA, { config: projectConfig, plugins })
 
-      const providerB = await garden.resolveProvider(garden.log, "test-b")
+      const providerB = await garden.resolveProvider({ log: garden.log, name: "test-b" })
 
       expect(providerB.config["foo"]).to.equal("default")
     })
@@ -2552,7 +2552,7 @@ describe("Garden", () => {
       const plugins = [testA]
       const garden = await makeTestGarden(projectRootA, { config: projectConfig, plugins })
 
-      const providerB = await garden.resolveProvider(garden.log, "test-a")
+      const providerB = await garden.resolveProvider({ log: garden.log, name: "test-a" })
 
       expect(providerB.config["foo"]).to.equal("bar")
     })
@@ -2589,8 +2589,8 @@ describe("Garden", () => {
       const plugins = [baseA, testA, testB]
       const garden = await makeTestGarden(projectRootA, { config: projectConfig, plugins })
 
-      const providerA = await garden.resolveProvider(garden.log, "test-a")
-      const providerB = await garden.resolveProvider(garden.log, "test-b")
+      const providerA = await garden.resolveProvider({ log: garden.log, name: "test-a" })
+      const providerB = await garden.resolveProvider({ log: garden.log, name: "test-b" })
 
       expect(providerB.dependencies).to.eql({ "test-a": providerA })
     })
@@ -2633,9 +2633,9 @@ describe("Garden", () => {
       const plugins = [baseA, testA, testB, testC]
       const garden = await makeTestGarden(projectRootA, { config: projectConfig, plugins })
 
-      const providerA = await garden.resolveProvider(garden.log, "test-a")
-      const providerB = await garden.resolveProvider(garden.log, "test-b")
-      const providerC = await garden.resolveProvider(garden.log, "test-c")
+      const providerA = await garden.resolveProvider({ log: garden.log, name: "test-a" })
+      const providerB = await garden.resolveProvider({ log: garden.log, name: "test-b" })
+      const providerC = await garden.resolveProvider({ log: garden.log, name: "test-c" })
 
       expect(providerC.dependencies).to.eql({ "test-a": providerA, "test-b": providerB })
     })
@@ -2663,7 +2663,7 @@ describe("Garden", () => {
         const garden = await makeTestGarden(projectRootA, { config: projectConfig, plugins: [base, test] })
 
         await expectError(
-          () => garden.resolveProviders(garden.log),
+          () => garden.resolveProviders({ log: garden.log }),
           (err) => {
             expectFuzzyMatch(err.toString(true), [
               "Failed resolving one or more providers:",
@@ -2703,7 +2703,7 @@ describe("Garden", () => {
         const garden = await makeTestGarden(projectRootA, { config: projectConfig, plugins: [base, test] })
 
         await expectError(
-          () => garden.resolveProviders(garden.log),
+          () => garden.resolveProviders({ log: garden.log }),
           (err) => {
             expectFuzzyMatch(err.toString(true), [
               "Failed resolving one or more providers:",

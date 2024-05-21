@@ -37,7 +37,7 @@ context("build.ts", () => {
     garden = await makeTestGarden(projectRoot, { plugins: [gardenPlugin()] })
     log = garden.log
     actionLog = createActionLog({ log, actionName: "", actionKind: "" })
-    containerProvider = await garden.resolveProvider(garden.log, "container")
+    containerProvider = await garden.resolveProvider({ log: garden.log, name: "container" })
     ctx = await garden.getPluginContext({ provider: containerProvider, templateContext: undefined, events: undefined })
     graph = await garden.getConfigGraph({ log, emit: false })
   })

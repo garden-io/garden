@@ -65,7 +65,7 @@ describe("kubernetes Pod runner functions", () => {
 
   before(async () => {
     ;({ garden, cleanup } = await getContainerTestGarden())
-    provider = <KubernetesProvider>await garden.resolveProvider(garden.log, "local-kubernetes")
+    provider = <KubernetesProvider>await garden.resolveProvider({ log: garden.log, name: "local-kubernetes" })
     ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
     namespace = provider.config.namespace!.name!
     api = await KubeApi.factory(garden.log, ctx, provider)
@@ -593,7 +593,9 @@ describe("kubernetes Pod runner functions", () => {
 
     before(async () => {
       helmGarden = await getHelmTestGarden()
-      helmProvider = <KubernetesProvider>await helmGarden.resolveProvider(helmGarden.log, "local-kubernetes")
+      helmProvider = <KubernetesProvider>(
+        await helmGarden.resolveProvider({ log: helmGarden.log, name: "local-kubernetes" })
+      )
       helmCtx = <KubernetesPluginContext>(
         await helmGarden.getPluginContext({ provider: helmProvider, templateContext: undefined, events: undefined })
       )

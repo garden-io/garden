@@ -176,7 +176,7 @@ export class ResolveProviderTask extends BaseTask<Provider> {
       }
     },
   })
-  async process({ dependencyResults }: TaskProcessParams) {
+  async process({ dependencyResults, statusOnly }: TaskProcessParams) {
     const providerResults = dependencyResults.getResultsByType(this).filter(isNotNull)
     const resolvedProviders: ProviderMap = keyBy(providerResults.map((r) => r.result).filter(isNotNull), "name")
 
@@ -303,7 +303,8 @@ export class ResolveProviderTask extends BaseTask<Provider> {
       moduleConfigs,
       status: defaultEnvironmentStatus,
     })
-    const status = await this.ensurePrepared(tmpProvider)
+
+    const status = await this.ensurePrepared(tmpProvider, statusOnly)
 
     return providerFromConfig({
       plugin: this.plugin,
@@ -379,7 +380,7 @@ export class ResolveProviderTask extends BaseTask<Provider> {
     await writeFile(cachePath, serialize(cachedStatus))
   }
 
-  private async ensurePrepared(tmpProvider: Provider) {
+  private async ensurePrepared(tmpProvider: Provider, statusOnly: boolean) {
     const pluginName = tmpProvider.name
     const providerLog = getProviderLog(pluginName, this.log)
     const actions = await this.garden.getActionRouter()
@@ -416,7 +417,7 @@ export class ResolveProviderTask extends BaseTask<Provider> {
 
     let status = await handler!({ ctx, log: providerLog })
 
-    if (this.forceInit || !status.ready) {
+    if (!statusOnly && (this.forceInit || !status.ready)) {
       const statusMsg = status.ready
         ? `${styles.highlight("Ready")}, will ${styles.highlight("force re-initialize")}`
         : `${styles.highlight("Not ready")}, will initialize`
@@ -433,11 +434,16 @@ export class ResolveProviderTask extends BaseTask<Provider> {
       status = result.status
     }
 
-    if (!status.ready) {
+    if (!status.ready && !statusOnly) {
       providerLog.error("Failed initializing provider")
       throw new PluginError({
         message: `Provider ${pluginName} reports status as not ready and could not prepare the configured environment.`,
       })
+    }
+
+    if (!status.ready && statusOnly) {
+      providerLog.success("Provider not ready. Current command only checks status, not preparing environment")
+      return status
     }
     providerLog.success("Provider ready")
 

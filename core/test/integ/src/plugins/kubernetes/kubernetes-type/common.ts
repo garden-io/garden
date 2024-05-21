@@ -49,7 +49,10 @@ describe("getManifests", () => {
 
     before(async () => {
       garden = await getKubernetesTestGarden()
-      const provider = (await garden.resolveProvider(garden.log, "local-kubernetes")) as KubernetesProvider
+      const provider = (await garden.resolveProvider({
+        log: garden.log,
+        name: "local-kubernetes",
+      })) as KubernetesProvider
       ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
       api = await KubeApi.factory(garden.log, ctx, provider)
     })
@@ -158,7 +161,10 @@ describe("getManifests", () => {
 
     before(async () => {
       garden = await makeTestGarden(exampleDir)
-      const provider = (await garden.resolveProvider(garden.log, "local-kubernetes")) as KubernetesProvider
+      const provider = (await garden.resolveProvider({
+        log: garden.log,
+        name: "local-kubernetes",
+      })) as KubernetesProvider
       ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
       api = await KubeApi.factory(garden.log, ctx, provider)
     })
@@ -231,7 +237,10 @@ describe("getManifests", () => {
   context("kubernetes manifest files resolution", () => {
     before(async () => {
       garden = await getKubernetesTestGarden()
-      const provider = (await garden.resolveProvider(garden.log, "local-kubernetes")) as KubernetesProvider
+      const provider = (await garden.resolveProvider({
+        log: garden.log,
+        name: "local-kubernetes",
+      })) as KubernetesProvider
       ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
       api = await KubeApi.factory(garden.log, ctx, provider)
     })
@@ -339,7 +348,10 @@ describe("getManifests", () => {
   context("resource patches", () => {
     before(async () => {
       garden = await getKubernetesTestGarden()
-      const provider = (await garden.resolveProvider(garden.log, "local-kubernetes")) as KubernetesProvider
+      const provider = (await garden.resolveProvider({
+        log: garden.log,
+        name: "local-kubernetes",
+      })) as KubernetesProvider
       ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
       api = await KubeApi.factory(garden.log, ctx, provider)
     })

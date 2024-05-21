@@ -56,7 +56,7 @@ describe.skip("ensureBuildkit", () => {
   })
 
   beforeEach(async () => {
-    provider = <KubernetesProvider>await garden.resolveProvider(garden.log, "local-kubernetes")
+    provider = <KubernetesProvider>await garden.resolveProvider({ log: garden.log, name: "local-kubernetes" })
     ctx = (await garden.getPluginContext({
       provider,
       templateContext: undefined,

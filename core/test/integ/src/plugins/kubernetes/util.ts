@@ -57,7 +57,7 @@ describe("util", () => {
   before(async () => {
     helmGarden = await getHelmTestGarden()
     log = helmGarden.log
-    const provider = await helmGarden.resolveProvider(log, "local-kubernetes")
+    const provider = await helmGarden.resolveProvider({ log, name: "local-kubernetes" })
     ctx = (await helmGarden.getPluginContext({
       provider,
       templateContext: undefined,
@@ -130,7 +130,10 @@ describe("util", () => {
     it("should return workload pods", async () => {
       try {
         const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-        const provider = (await garden.resolveProvider(garden.log, "local-kubernetes")) as Provider<KubernetesConfig>
+        const provider = (await garden.resolveProvider({
+          log: garden.log,
+          name: "local-kubernetes",
+        })) as Provider<KubernetesConfig>
 
         const rawAction = graph.getDeploy("simple-service")
         const action = await garden.resolveAction({
@@ -187,7 +190,10 @@ describe("util", () => {
           action,
         })
 
-        const provider = (await garden.resolveProvider(garden.log, "local-kubernetes")) as Provider<KubernetesConfig>
+        const provider = (await garden.resolveProvider({
+          log: garden.log,
+          name: "local-kubernetes",
+        })) as Provider<KubernetesConfig>
         await garden.processTasks({ tasks: [deployTask], throwOnError: true })
 
         const namespace = await getAppNamespace(ctx, log, provider)

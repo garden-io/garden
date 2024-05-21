@@ -48,7 +48,7 @@ describe("It should manage ingress controller for respective cluster type", () =
 
   const init = async () => {
     ;({ garden } = await getContainerTestGarden())
-    provider = <KubernetesProvider>await garden.resolveProvider(garden.log, "local-kubernetes")
+    provider = <KubernetesProvider>await garden.resolveProvider({ log: garden.log, name: "local-kubernetes" })
     ctx = <KubernetesPluginContext>(
       await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
     )

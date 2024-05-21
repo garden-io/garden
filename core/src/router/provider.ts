@@ -178,7 +178,7 @@ export class ProviderRouter extends BaseRouter {
     log.info("Cleaning up environments...")
     const environmentStatuses: EnvironmentStatusMap = {}
 
-    const providers = await this.garden.resolveProviders(log)
+    const providers = await this.garden.resolveProviders({ log })
     for (const provider of Object.values(providers)) {
       await this.cleanupEnvironment({ pluginName: provider.name, log, events: undefined })
       environmentStatuses[provider.name] = { ready: false, outputs: {} }

@@ -39,7 +39,7 @@ describe("ModuleConfigContext", () => {
 
     c = new ModuleConfigContext({
       garden,
-      resolvedProviders: keyBy(await garden.resolveProviders(garden.log), "name"),
+      resolvedProviders: keyBy(await garden.resolveProviders({ log: garden.log }), "name"),
       variables: garden.variables,
       modules,
       buildPath: module.buildPath,
