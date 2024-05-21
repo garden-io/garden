@@ -89,10 +89,12 @@ export class SecretsUpdateCommand extends Command<Args, Opts> {
   }
 
   async action({ garden, log, opts, args }: CommandParams<Args, Opts>): Promise<CommandResult<SecretResult[]>> {
+    // Apparently TS thinks that optional params are always defined so we need to cast them to their
+    // true type here.
     const envName = opts["scope-to-env"] as string | undefined
     const userId = opts["scope-to-user-id"] as string | undefined
-    const updateById = opts["update-by-id"] as boolean | undefined
     const fromFile = opts["from-file"] as string | undefined
+    const updateById = opts["update-by-id"] as boolean | undefined
     const isUpsert = opts["upsert"] as boolean | undefined
 
     if (!updateById && userId !== undefined && !envName) {
@@ -124,7 +126,9 @@ export class SecretsUpdateCommand extends Command<Args, Opts> {
       }, {})
     } else {
       throw new CommandError({
-        message: `No secret(s) provided. Either provide secrets directly to the command or via a file using the --from-file flag.`,
+        message: dedent`
+        No secrets provided. Either provide secrets directly to the command or via the --from-file flag.
+      `,
       })
     }
 
