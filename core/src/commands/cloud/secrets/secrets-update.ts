@@ -22,7 +22,7 @@ import dotenv from "dotenv"
 import fsExtra from "fs-extra"
 import { fetchAllSecrets } from "./secrets-list.js"
 import type { Log } from "../../../logger/log-entry.js"
-import type { SecretResult } from "./secret-helpers.js"
+import { readInputSecrets, SecretResult } from "./secret-helpers.js"
 import { makeSecretFromResponse } from "./secret-helpers.js"
 
 const { readFile } = fsExtra
@@ -103,34 +103,10 @@ export class SecretsUpdateCommand extends Command<Args, Opts> {
       })
     }
 
-    let secretsToUpdateArgs: StringMap
-    if (fromFile) {
-      try {
-        secretsToUpdateArgs = dotenv.parse(await readFile(fromFile))
-      } catch (err) {
-        throw new CommandError({
-          message: `Unable to read secrets from file at path ${fromFile}: ${err}`,
-        })
-      }
-    } else if (args.secretNamesOrIds) {
-      secretsToUpdateArgs = args.secretNamesOrIds.reduce((acc, keyValPair) => {
-        try {
-          const secret = dotenv.parse(keyValPair)
-          Object.assign(acc, secret)
-          return acc
-        } catch (err) {
-          throw new CommandError({
-            message: `Unable to read secret from argument ${keyValPair}: ${err}`,
-          })
-        }
-      }, {})
-    } else {
-      throw new CommandError({
-        message: dedent`
-        No secrets provided. Either provide secrets directly to the command or via the --from-file flag.
-      `,
-      })
-    }
+    const secretsToUpdateArgs = await readInputSecrets({
+      secretsFromFile: fromFile,
+      secretsFromArgs: args.secretNamesOrIds,
+    })
 
     const api = garden.cloudApi
     if (!api) {

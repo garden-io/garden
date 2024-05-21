@@ -7,6 +7,13 @@
  */
 
 import type { SecretResult as SecretResultApi } from "@garden-io/platform-api-types"
+import type { StringMap } from "../../../config/common.js"
+import dotenv from "dotenv"
+import fsExtra from "fs-extra"
+import { CommandError } from "../../../exceptions.js"
+import { dedent } from "../../../util/string.js"
+
+const { readFile } = fsExtra
 
 export interface SecretResult {
   id: string
@@ -45,4 +52,42 @@ export function makeSecretFromResponse(res: SecretResultApi): SecretResult {
     }
   }
   return secret
+}
+
+export async function readInputSecrets({
+  secretsFromFile,
+  secretsFromArgs,
+}: {
+  secretsFromFile: string | undefined
+  secretsFromArgs: string[] | undefined
+}): Promise<StringMap> {
+  let secrets: StringMap
+  if (secretsFromFile) {
+    try {
+      secrets = dotenv.parse(await readFile(secretsFromFile))
+    } catch (err) {
+      throw new CommandError({
+        message: `Unable to read secrets from file at path ${secretsFromFile}: ${err}`,
+      })
+    }
+  } else if (secretsFromArgs) {
+    secrets = secretsFromArgs.reduce((acc, keyValPair) => {
+      try {
+        const secret = dotenv.parse(keyValPair)
+        Object.assign(acc, secret)
+        return acc
+      } catch (err) {
+        throw new CommandError({
+          message: `Unable to read secret from argument ${keyValPair}: ${err}`,
+        })
+      }
+    }, {})
+  } else {
+    throw new CommandError({
+      message: dedent`
+        No secrets provided. Either provide secrets directly to the command or via the --from-file flag.
+      `,
+    })
+  }
+  return secrets
 }
