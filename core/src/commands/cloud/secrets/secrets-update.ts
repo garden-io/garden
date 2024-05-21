@@ -16,14 +16,16 @@ import { printHeader } from "../../../logger/util.js"
 import { dedent, deline } from "../../../util/string.js"
 import type { CommandParams, CommandResult } from "../../base.js"
 import { Command } from "../../base.js"
-import type { ApiCommandError, SecretResult } from "../helpers.js"
-import { handleBulkOperationResult, makeSecretFromResponse, noApiMsg } from "../helpers.js"
+import type { ApiCommandError } from "../helpers.js"
+import { handleBulkOperationResult, noApiMsg } from "../helpers.js"
 import dotenv from "dotenv"
 import fsExtra from "fs-extra"
-
-const { readFile } = fsExtra
 import { fetchAllSecrets } from "./secrets-list.js"
 import type { Log } from "../../../logger/log-entry.js"
+import type { SecretResult } from "./secret-helpers.js"
+import { makeSecretFromResponse } from "./secret-helpers.js"
+
+const { readFile } = fsExtra
 
 export const secretsUpdateArgs = {
   secretNamesOrIds: new StringsParameter({

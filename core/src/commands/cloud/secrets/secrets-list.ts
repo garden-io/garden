@@ -7,20 +7,20 @@
  */
 
 import queryString from "query-string"
-import { ConfigurationError, CloudApiError } from "../../../exceptions.js"
+import { ConfigurationError } from "../../../exceptions.js"
 import type { ListSecretsResponse } from "@garden-io/platform-api-types"
-
 import { printHeader } from "../../../logger/util.js"
 import { dedent, deline, renderTable } from "../../../util/string.js"
 import type { CommandParams, CommandResult } from "../../base.js"
 import { Command } from "../../base.js"
-import type { SecretResult } from "../helpers.js"
-import { applyFilter, makeSecretFromResponse, noApiMsg } from "../helpers.js"
+import { applyFilter, noApiMsg } from "../helpers.js"
 import { sortBy } from "lodash-es"
 import { StringsParameter } from "../../../cli/params.js"
 import type { CloudApi, CloudProject } from "../../../cloud/api.js"
 import type { Log } from "../../../logger/log-entry.js"
 import { styles } from "../../../logger/styles.js"
+import type { SecretResult } from "./secret-helpers.js"
+import { makeSecretFromResponse } from "./secret-helpers.js"
 
 export const fetchAllSecrets = async (api: CloudApi, projectId: string, log: Log): Promise<SecretResult[]> => {
   let page = 0
@@ -87,7 +87,7 @@ export class SecretsListCommand extends Command<{}, Opts> {
 
     const project: CloudProject = await api.getProjectByIdOrThrow({
       projectId: garden.projectId,
-      projectName: garden.projectName
+      projectName: garden.projectName,
     })
 
     const secrets: SecretResult[] = await fetchAllSecrets(api, project.id, log)

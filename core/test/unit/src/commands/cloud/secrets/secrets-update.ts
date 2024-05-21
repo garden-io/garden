@@ -7,7 +7,6 @@
  */
 
 import { expect } from "chai"
-import type { SecretResult } from "../../../../../../src/commands/cloud/helpers.js"
 import {
   SecretsUpdateCommand,
   getSecretsToCreate,
@@ -16,6 +15,7 @@ import {
 import type { StringMap } from "../../../../../../src/config/common.js"
 import { deline } from "../../../../../../src/util/string.js"
 import { expectError, getDataDir, makeTestGarden } from "../../../../../helpers.js"
+import type { SecretResult } from "../../../../../../src/commands/cloud/secrets/secret-helpers.js"
 
 describe("SecretsUpdateCommand", () => {
   const projectRoot = getDataDir("test-project-b")

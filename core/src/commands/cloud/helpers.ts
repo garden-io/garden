@@ -6,9 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import type { SecretResult as SecretResultApi, UserResult as UserResultApi } from "@garden-io/platform-api-types"
+import type { UserResult as UserResultApi } from "@garden-io/platform-api-types"
 import { dedent } from "../../util/string.js"
-
 import type { Log } from "../../logger/log-entry.js"
 import { capitalize } from "lodash-es"
 import minimatch from "minimatch"
@@ -26,22 +25,6 @@ export interface DeleteResult {
 export interface ApiCommandError {
   identifier: string | number
   message?: string
-}
-
-export interface SecretResult {
-  id: string
-  createdAt: string
-  updatedAt: string
-  name: string
-  environment?: {
-    name: string
-    id: string
-  }
-  user?: {
-    name: string
-    id: string
-    vcsUsername: string
-  }
 }
 
 export interface UserResult {
@@ -69,29 +52,6 @@ export function makeUserFromResponse(user: UserResultApi): UserResult {
     updatedAt: user.updatedAt,
     groups: user.groups.map((g) => ({ id: g.id, name: g.name })),
   }
-}
-
-export function makeSecretFromResponse(res: SecretResultApi): SecretResult {
-  const secret = {
-    name: res.name,
-    id: res.id,
-    updatedAt: res.updatedAt,
-    createdAt: res.createdAt,
-  }
-  if (res.environment) {
-    secret["environment"] = {
-      name: res.environment.name,
-      id: res.environment.id,
-    }
-  }
-  if (res.user) {
-    secret["user"] = {
-      name: res.user.name,
-      id: res.user.id,
-      vcsUsername: res.user.vcsUsername,
-    }
-  }
-  return secret
 }
 
 /**

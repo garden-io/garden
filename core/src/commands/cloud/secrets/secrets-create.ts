@@ -9,19 +9,20 @@
 import { CommandError, ConfigurationError, CloudApiError, GardenError } from "../../../exceptions.js"
 import type { CreateSecretResponse } from "@garden-io/platform-api-types"
 import fsExtra from "fs-extra"
-
-const { readFile } = fsExtra
-
 import { printHeader } from "../../../logger/util.js"
 import type { CommandParams, CommandResult } from "../../base.js"
 import { Command } from "../../base.js"
-import type { ApiCommandError, SecretResult } from "../helpers.js"
-import { handleBulkOperationResult, makeSecretFromResponse, noApiMsg } from "../helpers.js"
+import type { ApiCommandError } from "../helpers.js"
+import { handleBulkOperationResult, noApiMsg } from "../helpers.js"
 import { dedent, deline } from "../../../util/string.js"
 import { PathParameter, StringParameter, StringsParameter } from "../../../cli/params.js"
 import type { StringMap } from "../../../config/common.js"
 import dotenv from "dotenv"
 import type { CloudProject } from "../../../cloud/api.js"
+import type { SecretResult } from "./secret-helpers.js"
+import { makeSecretFromResponse } from "./secret-helpers.js"
+
+const { readFile } = fsExtra
 
 export const secretsCreateArgs = {
   secrets: new StringsParameter({

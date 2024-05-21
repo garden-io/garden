@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ConfigurationError, CloudApiError } from "../../../exceptions.js"
+import { ConfigurationError } from "../../../exceptions.js"
 import type { ListUsersResponse } from "@garden-io/platform-api-types"
 
 import { printHeader } from "../../../logger/util.js"
