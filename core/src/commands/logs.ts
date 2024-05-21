@@ -150,7 +150,7 @@ export class LogsCommand extends Command<Args, Opts> {
       }
     }
 
-    const graph = await garden.getConfigGraph({ log, emit: false })
+    const graph = await garden.getConfigGraph({ log, emit: false, statusOnly: true })
     const allDeploys = graph.getDeploys()
     const actions = args.names ? allDeploys.filter((s) => args.names?.includes(s.name)) : allDeploys
 

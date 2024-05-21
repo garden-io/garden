@@ -29,7 +29,7 @@ export class ProfileProjectCommand extends Command {
   }
 
   async action({ garden, log }: CommandParams): Promise<CommandResult> {
-    const graph = await garden.getConfigGraph({ log, emit: false })
+    const graph = await garden.getConfigGraph({ log, emit: false, statusOnly: true })
     summarizeGraph(log, garden, graph)
 
     log.info(renderDivider())

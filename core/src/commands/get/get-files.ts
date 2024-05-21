@@ -43,7 +43,7 @@ export class GetFilesCommand extends Command<Args, Opts> {
   }
 
   async action({ garden, log, args }: CommandParams<Args, Opts>): Promise<CommandResult<Result>> {
-    const graph = await garden.getConfigGraph({ log, emit: false })
+    const graph = await garden.getConfigGraph({ log, emit: false, statusOnly: true })
     const actions = graph.getActions({ refs: args.keys?.length ? args.keys : undefined })
 
     const result = fromPairs(
