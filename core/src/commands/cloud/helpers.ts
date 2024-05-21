@@ -15,6 +15,11 @@ import { CommandError, toGardenError } from "../../exceptions.js"
 import type { CommandResult } from "../base.js"
 import { userPrompt } from "../../util/util.js"
 import { styles } from "../../logger/styles.js"
+import type { StringMap } from "../../config/common.js"
+import dotenv from "dotenv"
+import fsExtra from "fs-extra"
+
+const { readFile } = fsExtra
 
 export interface DeleteResult {
   id: string | number
@@ -127,4 +132,45 @@ export async function confirmDelete(resource: string, count: number) {
   })
 
   return answer.continue
+}
+
+export async function readInputKeyValueResources({
+  resourceFilePath,
+  resourcesFromArgs,
+  resourceName,
+}: {
+  resourceFilePath: string | undefined
+  resourcesFromArgs: string[] | undefined
+  resourceName: string
+}): Promise<StringMap> {
+  // TODO: --from-file takes implicit precedence over args.
+  //  Document this or allow both, or throw an error if both sources are defined.
+  if (resourceFilePath) {
+    try {
+      const dotEnvFileContent = await readFile(resourceFilePath)
+      return dotenv.parse(dotEnvFileContent)
+    } catch (err) {
+      throw new CommandError({
+        message: `Unable to read ${resourceName}(s) from file at path ${resourceFilePath}: ${err}`,
+      })
+    }
+  } else if (resourcesFromArgs) {
+    return resourcesFromArgs.reduce((acc, keyValPair) => {
+      try {
+        const resourceEntry = dotenv.parse(keyValPair)
+        Object.assign(acc, resourceEntry)
+        return acc
+      } catch (err) {
+        throw new CommandError({
+          message: `Unable to read ${resourceName} from argument ${keyValPair}: ${err}`,
+        })
+      }
+    }, {})
+  }
+
+  throw new CommandError({
+    message: dedent`
+        No ${resourceName}(s) provided. Either provide ${resourceName}(s) directly to the command or via the --from-file flag.
+      `,
+  })
 }

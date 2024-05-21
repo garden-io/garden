@@ -8,12 +8,7 @@
 
 import type { SecretResult as SecretResultApi } from "@garden-io/platform-api-types"
 import type { StringMap } from "../../../config/common.js"
-import dotenv from "dotenv"
-import fsExtra from "fs-extra"
-import { CommandError } from "../../../exceptions.js"
-import { dedent } from "../../../util/string.js"
-
-const { readFile } = fsExtra
+import { readInputKeyValueResources } from "../helpers.js"
 
 export interface SecretResult {
   id: string
@@ -55,40 +50,15 @@ export function makeSecretFromResponse(res: SecretResultApi): SecretResult {
 }
 
 export async function readInputSecrets({
-  secretsFromFile,
+  secretsFilePath,
   secretsFromArgs,
 }: {
-  secretsFromFile: string | undefined
+  secretsFilePath: string | undefined
   secretsFromArgs: string[] | undefined
 }): Promise<StringMap> {
-  // TODO: --from-file takes implicit precedence over args.
-  //  Document this or allow both, or throw an error if both sources are defined.
-  if (secretsFromFile) {
-    try {
-      const secretsFileContent = await readFile(secretsFromFile)
-      return dotenv.parse(secretsFileContent)
-    } catch (err) {
-      throw new CommandError({
-        message: `Unable to read secrets from file at path ${secretsFromFile}: ${err}`,
-      })
-    }
-  } else if (secretsFromArgs) {
-    return secretsFromArgs.reduce((acc, keyValPair) => {
-      try {
-        const secret = dotenv.parse(keyValPair)
-        Object.assign(acc, secret)
-        return acc
-      } catch (err) {
-        throw new CommandError({
-          message: `Unable to read secret from argument ${keyValPair}: ${err}`,
-        })
-      }
-    }, {})
-  }
-
-  throw new CommandError({
-    message: dedent`
-        No secrets provided. Either provide secrets directly to the command or via the --from-file flag.
-      `,
+  return await readInputKeyValueResources({
+    resourceFilePath: secretsFilePath,
+    resourcesFromArgs: secretsFromArgs,
+    resourceName: "secret",
   })
 }

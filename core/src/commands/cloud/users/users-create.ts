@@ -84,7 +84,7 @@ export class UsersCreateCommand extends Command<Args, Opts> {
     const addToGroups: string[] = opts["add-to-groups"] || []
     const fromFile = opts["from-file"] as string | undefined
 
-    const users = await readInputUsers({ usersFromFile: fromFile, usersFromArgs: args.users })
+    const users = await readInputUsers({ usersFilePath: fromFile, usersFromArgs: args.users })
 
     const api = garden.cloudApi
     if (!api) {

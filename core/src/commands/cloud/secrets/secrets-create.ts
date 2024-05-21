@@ -87,7 +87,7 @@ export class SecretsCreateCommand extends Command<Args, Opts> {
       })
     }
 
-    const secrets = await readInputSecrets({ secretsFromFile: fromFile, secretsFromArgs: args.secrets })
+    const secrets = await readInputSecrets({ secretsFilePath: fromFile, secretsFromArgs: args.secrets })
 
     const api = garden.cloudApi
     if (!api) {

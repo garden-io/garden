@@ -101,7 +101,7 @@ export class SecretsUpdateCommand extends Command<Args, Opts> {
     }
 
     const secretsToUpdateArgs = await readInputSecrets({
-      secretsFromFile: fromFile,
+      secretsFilePath: fromFile,
       secretsFromArgs: args.secretNamesOrIds,
     })
 
