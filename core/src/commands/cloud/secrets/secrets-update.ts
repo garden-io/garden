@@ -25,64 +25,6 @@ const { readFile } = fsExtra
 import { fetchAllSecrets } from "./secrets-list.js"
 import type { Log } from "../../../logger/log-entry.js"
 
-export type UpdateSecretBody = SecretResult & { newValue: string }
-
-export async function getSecretsToUpdateByName({
-  allSecrets,
-  envName,
-  userId,
-  secretsToUpdateArgs,
-  log,
-}: {
-  allSecrets: SecretResult[]
-  envName?: string
-  userId?: string
-  secretsToUpdateArgs: StringMap
-  log: Log
-}): Promise<Array<UpdateSecretBody>> {
-  const filteredSecrets = sortBy(allSecrets, "name")
-    .filter((s) => (envName ? s.environment?.name === envName : true))
-    .filter((s) => (userId ? s.user?.id === userId : true))
-    .filter((s) => Object.keys(secretsToUpdateArgs).includes(s.name))
-
-  // check if there are any secret results with duplicate names
-  const hasDuplicateSecretsByName = uniqBy(filteredSecrets, "name").length !== filteredSecrets.length
-  if (hasDuplicateSecretsByName) {
-    const duplicateSecrets = filteredSecrets
-      .reduce((accum: Array<{ count: number; name: string; secrets: SecretResult[] }>, val) => {
-        const dupeIndex = accum.findIndex((arrayItem) => arrayItem.name === val.name)
-        if (dupeIndex === -1) {
-          // Not found, so initialize.
-          accum.push({
-            name: val.name,
-            count: 1,
-            secrets: [val],
-          })
-        } else {
-          accum[dupeIndex].count++
-          accum[dupeIndex].secrets.push(val)
-        }
-        return accum
-      }, [])
-      .filter((a) => a.count > 1)
-    log.verbose(`Multiple secrets with duplicate names found. ${JSON.stringify(duplicateSecrets, null, 2)}`)
-
-    const duplicateSecretNames = duplicateSecrets.map((s) => s.name)?.join(", ")
-    throw new CommandError({
-      message: `Multiple secrets with the name(s) ${duplicateSecretNames} found. Either update the secret(s) by ID or use the --scope-to-env and --scope-to-user-id flags to update the scoped secret(s).`,
-    })
-  }
-  return filteredSecrets.map((secret) => ({ ...secret, newValue: secretsToUpdateArgs[secret.name] }))
-}
-
-export function getSecretsToCreate(secretsToUpdateArgs: StringMap, secretsToUpdate: Array<UpdateSecretBody>) {
-  const diffCreateAndUpdate = pickBy(
-    secretsToUpdateArgs,
-    (_value, key) => !secretsToUpdate.find((secret) => secret.name === key)
-  )
-  return diffCreateAndUpdate ? Object.entries(diffCreateAndUpdate) : []
-}
-
 export const secretsUpdateArgs = {
   secretNamesOrIds: new StringsParameter({
     help: deline`The name(s) or ID(s) of the secrets to update along with the new values, separated by '='.
@@ -303,4 +245,62 @@ export class SecretsUpdateCommand extends Command<Args, Opts> {
       results,
     })
   }
+}
+
+export type UpdateSecretBody = SecretResult & { newValue: string }
+
+export async function getSecretsToUpdateByName({
+  allSecrets,
+  envName,
+  userId,
+  secretsToUpdateArgs,
+  log,
+}: {
+  allSecrets: SecretResult[]
+  envName?: string
+  userId?: string
+  secretsToUpdateArgs: StringMap
+  log: Log
+}): Promise<Array<UpdateSecretBody>> {
+  const filteredSecrets = sortBy(allSecrets, "name")
+    .filter((s) => (envName ? s.environment?.name === envName : true))
+    .filter((s) => (userId ? s.user?.id === userId : true))
+    .filter((s) => Object.keys(secretsToUpdateArgs).includes(s.name))
+
+  // check if there are any secret results with duplicate names
+  const hasDuplicateSecretsByName = uniqBy(filteredSecrets, "name").length !== filteredSecrets.length
+  if (hasDuplicateSecretsByName) {
+    const duplicateSecrets = filteredSecrets
+      .reduce((accum: Array<{ count: number; name: string; secrets: SecretResult[] }>, val) => {
+        const dupeIndex = accum.findIndex((arrayItem) => arrayItem.name === val.name)
+        if (dupeIndex === -1) {
+          // Not found, so initialize.
+          accum.push({
+            name: val.name,
+            count: 1,
+            secrets: [val],
+          })
+        } else {
+          accum[dupeIndex].count++
+          accum[dupeIndex].secrets.push(val)
+        }
+        return accum
+      }, [])
+      .filter((a) => a.count > 1)
+    log.verbose(`Multiple secrets with duplicate names found. ${JSON.stringify(duplicateSecrets, null, 2)}`)
+
+    const duplicateSecretNames = duplicateSecrets.map((s) => s.name)?.join(", ")
+    throw new CommandError({
+      message: `Multiple secrets with the name(s) ${duplicateSecretNames} found. Either update the secret(s) by ID or use the --scope-to-env and --scope-to-user-id flags to update the scoped secret(s).`,
+    })
+  }
+  return filteredSecrets.map((secret) => ({ ...secret, newValue: secretsToUpdateArgs[secret.name] }))
+}
+
+export function getSecretsToCreate(secretsToUpdateArgs: StringMap, secretsToUpdate: Array<UpdateSecretBody>) {
+  const diffCreateAndUpdate = pickBy(
+    secretsToUpdateArgs,
+    (_value, key) => !secretsToUpdate.find((secret) => secret.name === key)
+  )
+  return diffCreateAndUpdate ? Object.entries(diffCreateAndUpdate) : []
 }
