@@ -9,9 +9,11 @@
 import type { ListSecretsResponse, SecretResult as SecretResultApi } from "@garden-io/platform-api-types"
 import type { StringMap } from "../../../config/common.js"
 import { readInputKeyValueResources } from "../helpers.js"
-import type { CloudApi } from "../../../cloud/api.js"
+import type { CloudApi, CloudEnvironment, CloudProject } from "../../../cloud/api.js"
 import type { Log } from "../../../logger/log-entry.js"
 import queryString from "query-string"
+import { CloudApiError } from "../../../exceptions.js"
+import { dedent } from "../../../util/string.js"
 
 export interface SecretResult {
   id: string
@@ -27,6 +29,31 @@ export interface SecretResult {
     id: string
     vcsUsername: string
   }
+}
+
+export function getEnvironmentByNameOrThrow({
+  envName,
+  project,
+}: {
+  envName: string | undefined
+  project: CloudProject
+}): CloudEnvironment | undefined {
+  if (!envName) {
+    return undefined
+  }
+
+  const environment = project.environments.find((e) => e.name === envName)
+  if (environment) {
+    return environment
+  }
+
+  const availableEnvironmentNames = project.environments.map((e) => e.name)
+  throw new CloudApiError({
+    message: dedent`
+            Environment with name ${envName} not found in project.
+            Available environments: ${availableEnvironmentNames.join(", ")}
+          `,
+  })
 }
 
 export function makeSecretFromResponse(res: SecretResultApi): SecretResult {

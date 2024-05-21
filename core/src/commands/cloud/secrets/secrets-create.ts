@@ -17,6 +17,7 @@ import { dedent, deline } from "../../../util/string.js"
 import { PathParameter, StringParameter, StringsParameter } from "../../../cli/params.js"
 import type { CloudProject } from "../../../cloud/api.js"
 import type { SecretResult } from "./secret-helpers.js"
+import { getEnvironmentByNameOrThrow } from "./secret-helpers.js"
 import { readInputSecrets } from "./secret-helpers.js"
 import { makeSecretFromResponse } from "./secret-helpers.js"
 
@@ -99,21 +100,7 @@ export class SecretsCreateCommand extends Command<Args, Opts> {
       projectName: garden.projectName,
     })
 
-    let environmentId: string | undefined
-
-    if (envName) {
-      const environment = project.environments.find((e) => e.name === envName)
-      if (!environment) {
-        const availableEnvironmentNames = project.environments.map((e) => e.name)
-        throw new CloudApiError({
-          message: dedent`
-            Environment with name ${envName} not found in project.
-            Available environments: ${availableEnvironmentNames.join(", ")}
-          `,
-        })
-      }
-      environmentId = environment.id
-    }
+    const environmentId: string | undefined = getEnvironmentByNameOrThrow({ envName, project })?.id
 
     // Validate that a user with this ID exists
     if (userId) {

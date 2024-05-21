@@ -11,7 +11,7 @@ import { pickBy, sortBy, uniqBy } from "lodash-es"
 import { BooleanParameter, PathParameter, StringParameter, StringsParameter } from "../../../cli/params.js"
 import type { CloudProject } from "../../../cloud/api.js"
 import type { StringMap } from "../../../config/common.js"
-import { CloudApiError, CommandError, ConfigurationError, GardenError } from "../../../exceptions.js"
+import { CommandError, ConfigurationError, GardenError } from "../../../exceptions.js"
 import { printHeader } from "../../../logger/util.js"
 import { dedent, deline } from "../../../util/string.js"
 import type { CommandParams, CommandResult } from "../../base.js"
@@ -20,6 +20,7 @@ import type { ApiCommandError } from "../helpers.js"
 import { handleBulkOperationResult, noApiMsg } from "../helpers.js"
 import type { Log } from "../../../logger/log-entry.js"
 import type { SecretResult } from "./secret-helpers.js"
+import { getEnvironmentByNameOrThrow } from "./secret-helpers.js"
 import { fetchAllSecrets } from "./secret-helpers.js"
 import { readInputSecrets } from "./secret-helpers.js"
 import { makeSecretFromResponse } from "./secret-helpers.js"
@@ -112,20 +113,7 @@ export class SecretsUpdateCommand extends Command<Args, Opts> {
       projectName: garden.projectName,
     })
 
-    let environmentId: string | undefined
-    if (envName) {
-      const environment = project.environments.find((e) => e.name === envName)
-      if (!environment) {
-        const availableEnvironmentNames = project.environments.map((e) => e.name)
-        throw new CloudApiError({
-          message: dedent`
-            Environment with name ${envName} not found in project.
-            Available environments: ${availableEnvironmentNames.join(", ")}
-          `,
-        })
-      }
-      environmentId = environment.id
-    }
+    const environmentId: string | undefined = getEnvironmentByNameOrThrow({ envName, project })?.id
 
     const allSecrets: SecretResult[] = await fetchAllSecrets(api, project.id, log)
     let secretsToUpdate: Array<UpdateSecretBody>
