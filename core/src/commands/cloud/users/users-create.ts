@@ -6,16 +6,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { CommandError, ConfigurationError, GardenError } from "../../../exceptions.js"
+import { ConfigurationError, GardenError } from "../../../exceptions.js"
 import type {
   CreateUserBulkRequest,
   CreateUserBulkResponse,
   UserResult as UserResultApi,
 } from "@garden-io/platform-api-types"
-import fsExtra from "fs-extra"
-
-const { readFile } = fsExtra
-
 import { printHeader } from "../../../logger/util.js"
 import type { CommandParams, CommandResult } from "../../base.js"
 import { Command } from "../../base.js"
@@ -23,11 +19,10 @@ import type { ApiCommandError } from "../helpers.js"
 import { handleBulkOperationResult, noApiMsg } from "../helpers.js"
 import { dedent, deline } from "../../../util/string.js"
 import { PathParameter, StringsParameter } from "../../../cli/params.js"
-import type { StringMap } from "../../../config/common.js"
 import { chunk } from "lodash-es"
-import dotenv from "dotenv"
 import pMap from "p-map"
-import { readInputUsers, UserResult } from "./user-helpers.js"
+import type { UserResult } from "./user-helpers.js"
+import { readInputUsers } from "./user-helpers.js"
 import { makeUserFromResponse } from "./user-helpers.js"
 
 // This is the limit set by the API.
