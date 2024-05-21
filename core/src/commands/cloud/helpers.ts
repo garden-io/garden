@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import type { UserResult as UserResultApi } from "@garden-io/platform-api-types"
 import { dedent } from "../../util/string.js"
 import type { Log } from "../../logger/log-entry.js"
 import { capitalize } from "lodash-es"
@@ -27,32 +26,9 @@ export interface ApiCommandError {
   message?: string
 }
 
-export interface UserResult {
-  id: string
-  createdAt: string
-  updatedAt: string
-  name: string
-  vcsUsername: string | null | undefined
-  groups: {
-    id: string
-    name: string
-  }[]
-}
-
 export const noApiMsg = (action: string, resource: string) => dedent`
   Unable to ${action} ${resource}. Make sure the project is configured for Garden Cloud and that you're logged in.
 `
-
-export function makeUserFromResponse(user: UserResultApi): UserResult {
-  return {
-    id: user.id,
-    name: user.name,
-    vcsUsername: user.vcsUsername,
-    createdAt: user.createdAt,
-    updatedAt: user.updatedAt,
-    groups: user.groups.map((g) => ({ id: g.id, name: g.name })),
-  }
-}
 
 /**
  * Helper function for consistently logging outputs for Garden Cloud bulk operation commands.

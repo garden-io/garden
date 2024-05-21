@@ -13,19 +13,22 @@ import type {
   UserResult as UserResultApi,
 } from "@garden-io/platform-api-types"
 import fsExtra from "fs-extra"
+
 const { readFile } = fsExtra
 
 import { printHeader } from "../../../logger/util.js"
 import type { CommandParams, CommandResult } from "../../base.js"
 import { Command } from "../../base.js"
-import type { ApiCommandError, UserResult } from "../helpers.js"
-import { handleBulkOperationResult, makeUserFromResponse, noApiMsg } from "../helpers.js"
+import type { ApiCommandError } from "../helpers.js"
+import { handleBulkOperationResult, noApiMsg } from "../helpers.js"
 import { dedent, deline } from "../../../util/string.js"
 import { PathParameter, StringsParameter } from "../../../cli/params.js"
 import type { StringMap } from "../../../config/common.js"
 import { chunk } from "lodash-es"
 import dotenv from "dotenv"
 import pMap from "p-map"
+import type { UserResult } from "./user-helpers.js"
+import { makeUserFromResponse } from "./user-helpers.js"
 
 // This is the limit set by the API.
 const MAX_USERS_PER_REQUEST = 100

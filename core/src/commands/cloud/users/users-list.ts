@@ -13,12 +13,13 @@ import { printHeader } from "../../../logger/util.js"
 import { dedent, deline, renderTable } from "../../../util/string.js"
 import type { CommandParams, CommandResult } from "../../base.js"
 import { Command } from "../../base.js"
-import type { UserResult } from "../helpers.js"
-import { applyFilter, makeUserFromResponse, noApiMsg } from "../helpers.js"
+import { applyFilter, noApiMsg } from "../helpers.js"
 import { sortBy } from "lodash-es"
 import { StringsParameter } from "../../../cli/params.js"
 import type { CloudProject } from "../../../cloud/api.js"
 import { styles } from "../../../logger/styles.js"
+import type { UserResult } from "./user-helpers.js"
+import { makeUserFromResponse } from "./user-helpers.js"
 
 export const usersListOpts = {
   "filter-names": new StringsParameter({
