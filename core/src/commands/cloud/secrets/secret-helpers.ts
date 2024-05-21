@@ -61,18 +61,19 @@ export async function readInputSecrets({
   secretsFromFile: string | undefined
   secretsFromArgs: string[] | undefined
 }): Promise<StringMap> {
-  let secrets: StringMap
+  // TODO: --from-file takes implicit precedence over args.
+  //  Document this or allow both, or throw an error if both sources are defined.
   if (secretsFromFile) {
     try {
-      const secretsFileContent = await readFile(secretsFromFile);
-      secrets = dotenv.parse(secretsFileContent)
+      const secretsFileContent = await readFile(secretsFromFile)
+      return dotenv.parse(secretsFileContent)
     } catch (err) {
       throw new CommandError({
         message: `Unable to read secrets from file at path ${secretsFromFile}: ${err}`,
       })
     }
   } else if (secretsFromArgs) {
-    secrets = secretsFromArgs.reduce((acc, keyValPair) => {
+    return secretsFromArgs.reduce((acc, keyValPair) => {
       try {
         const secret = dotenv.parse(keyValPair)
         Object.assign(acc, secret)
@@ -83,12 +84,11 @@ export async function readInputSecrets({
         })
       }
     }, {})
-  } else {
-    throw new CommandError({
-      message: dedent`
+  }
+
+  throw new CommandError({
+    message: dedent`
         No secrets provided. Either provide secrets directly to the command or via the --from-file flag.
       `,
-    })
-  }
-  return secrets
+  })
 }
