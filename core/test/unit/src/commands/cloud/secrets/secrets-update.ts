@@ -74,7 +74,7 @@ describe("SecretsUpdateCommand", () => {
         }),
       (err) => {
         expect(err.message).to.equal(
-          "No secret(s) provided. Either provide secrets directly to the command or via a file using the --from-file flag."
+          "No secret(s) provided. Either provide secret(s) directly to the command or via the --from-file flag."
         )
       }
     )
