@@ -119,7 +119,12 @@ export class SecretsUpdateCommand extends Command<Args, Opts> {
     const allSecrets: SecretResult[] = await fetchAllSecrets(api, project.id, log)
 
     let secretsToUpdate: Array<UpdateSecretBody>
-    if (!updateById) {
+    if (updateById) {
+      // update secrets by ids
+      secretsToUpdate = sortBy(allSecrets, "name")
+        .filter((secret) => Object.keys(secretsToUpdateArgs).includes(secret.id))
+        .map((secret) => ({ ...secret, newValue: secretsToUpdateArgs[secret.id] }))
+    } else {
       // update secrets by name
       secretsToUpdate = await getSecretsToUpdateByName({
         allSecrets,
@@ -128,11 +133,6 @@ export class SecretsUpdateCommand extends Command<Args, Opts> {
         secretsToUpdateArgs,
         log,
       })
-    } else {
-      // update secrets by ids
-      secretsToUpdate = sortBy(allSecrets, "name")
-        .filter((secret) => Object.keys(secretsToUpdateArgs).includes(secret.id))
-        .map((secret) => ({ ...secret, newValue: secretsToUpdateArgs[secret.id] }))
     }
 
     let secretsToCreate: [string, string][] = []
