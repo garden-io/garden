@@ -180,22 +180,20 @@ export class SecretsUpdateCommand extends Command<Args, Opts> {
       }
     }
 
-    if (secretsToCreate && secretsToCreate.length > 0) {
-      for (const [counter, [name, value]] of enumerate(secretsToCreate, 1)) {
-        cmdLog.info({ msg: `Creating secrets... → ${counter}/${secretsToCreate.length}` })
-        try {
-          const body = { environmentId, userId, projectId: project.id, name, value }
-          const res = await api.post<CreateSecretResponse>(`/secrets`, { body })
-          results.push(makeSecretFromResponse(res.data))
-        } catch (err) {
-          if (!(err instanceof GardenError)) {
-            throw err
-          }
-          errors.push({
-            identifier: name,
-            message: err.message,
-          })
+    for (const [counter, [name, value]] of enumerate(secretsToCreate, 1)) {
+      cmdLog.info({ msg: `Creating secrets... → ${counter}/${secretsToCreate.length}` })
+      try {
+        const body = { environmentId, userId, projectId: project.id, name, value }
+        const res = await api.post<CreateSecretResponse>(`/secrets`, { body })
+        results.push(makeSecretFromResponse(res.data))
+      } catch (err) {
+        if (!(err instanceof GardenError)) {
+          throw err
         }
+        errors.push({
+          identifier: name,
+          message: err.message,
+        })
       }
     }
 
