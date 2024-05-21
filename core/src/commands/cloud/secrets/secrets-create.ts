@@ -79,7 +79,7 @@ export class SecretsCreateCommand extends Command<Args, Opts> {
     // true type here.
     const envName = opts["scope-to-env"] as string | undefined
     const userId = opts["scope-to-user-id"] as string | undefined
-    const fromFile = opts["from-file"] as string | undefined
+    const secretsFilePath = opts["from-file"] as string | undefined
 
     if (userId !== undefined && !envName) {
       throw new CommandError({
@@ -87,7 +87,7 @@ export class SecretsCreateCommand extends Command<Args, Opts> {
       })
     }
 
-    const secrets = await readInputSecrets({ secretsFilePath: fromFile, secretsFromArgs: args.secrets })
+    const secrets = await readInputSecrets({ secretsFilePath, secretsFromArgs: args.secrets })
 
     const api = garden.cloudApi
     if (!api) {

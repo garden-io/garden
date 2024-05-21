@@ -82,9 +82,9 @@ export class UsersCreateCommand extends Command<Args, Opts> {
 
   async action({ garden, log, opts, args }: CommandParams<Args, Opts>): Promise<CommandResult<UserResult[]>> {
     const addToGroups: string[] = opts["add-to-groups"] || []
-    const fromFile = opts["from-file"] as string | undefined
+    const usersFilePath = opts["from-file"] as string | undefined
 
-    const users = await readInputUsers({ usersFilePath: fromFile, usersFromArgs: args.users })
+    const users = await readInputUsers({ usersFilePath, usersFromArgs: args.users })
 
     const api = garden.cloudApi
     if (!api) {

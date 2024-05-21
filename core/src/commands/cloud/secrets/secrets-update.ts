@@ -90,7 +90,7 @@ export class SecretsUpdateCommand extends Command<Args, Opts> {
     // true type here.
     const envName = opts["scope-to-env"] as string | undefined
     const userId = opts["scope-to-user-id"] as string | undefined
-    const fromFile = opts["from-file"] as string | undefined
+    const secretsFilePath = opts["from-file"] as string | undefined
     const updateById = opts["update-by-id"] as boolean | undefined
     const isUpsert = opts["upsert"] as boolean | undefined
 
@@ -100,10 +100,7 @@ export class SecretsUpdateCommand extends Command<Args, Opts> {
       })
     }
 
-    const secretsToUpdateArgs = await readInputSecrets({
-      secretsFilePath: fromFile,
-      secretsFromArgs: args.secretNamesOrIds,
-    })
+    const secretsToUpdateArgs = await readInputSecrets({ secretsFilePath, secretsFromArgs: args.secretNamesOrIds })
 
     const api = garden.cloudApi
     if (!api) {
