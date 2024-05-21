@@ -23,6 +23,7 @@ import { getEnvironmentByNameOrThrow } from "./secret-helpers.js"
 import { fetchAllSecrets } from "./secret-helpers.js"
 import { readInputSecrets } from "./secret-helpers.js"
 import { makeSecretFromResponse } from "./secret-helpers.js"
+import { enumerate } from "../../../util/enumerate.js"
 
 export const secretsUpdateArgs = {
   secretNamesOrIds: new StringsParameter({
@@ -154,12 +155,10 @@ export class SecretsUpdateCommand extends Command<Args, Opts> {
       cmdLog.info(`${secretsToCreate.length} new secret(s) to be created.`)
     }
 
-    let count = 1
     const errors: ApiCommandError[] = []
     const results: SecretResult[] = []
-    for (const secret of secretsToUpdate) {
-      cmdLog.info({ msg: `Updating secrets... → ${count}/${secretsToUpdate.length}` })
-      count++
+    for (const [counter, secret] of enumerate(secretsToUpdate, 1)) {
+      cmdLog.info({ msg: `Updating secrets... → ${counter}/${secretsToUpdate.length}` })
       try {
         const body = {
           environmentId: secret.environment?.id,
@@ -182,11 +181,8 @@ export class SecretsUpdateCommand extends Command<Args, Opts> {
     }
 
     if (secretsToCreate && secretsToCreate.length > 0) {
-      // reset counter
-      count = 1
-      for (const [name, value] of secretsToCreate) {
-        cmdLog.info({ msg: `Creating secrets... → ${count}/${secretsToCreate.length}` })
-        count++
+      for (const [counter, [name, value]] of enumerate(secretsToCreate, 1)) {
+        cmdLog.info({ msg: `Creating secrets... → ${counter}/${secretsToCreate.length}` })
         try {
           const body = { environmentId, userId, projectId: project.id, name, value }
           const res = await api.post<CreateSecretResponse>(`/secrets`, { body })

@@ -19,6 +19,7 @@ import type { SecretResult } from "./secret-helpers.js"
 import { getEnvironmentByNameOrThrow } from "./secret-helpers.js"
 import { readInputSecrets } from "./secret-helpers.js"
 import { makeSecretFromResponse } from "./secret-helpers.js"
+import { enumerate } from "../../../util/enumerate.js"
 
 export const secretsCreateArgs = {
   secrets: new StringsParameter({
@@ -115,12 +116,10 @@ export class SecretsCreateCommand extends Command<Args, Opts> {
     const cmdLog = log.createLog({ name: "secrets-command" })
     cmdLog.info("Creating secrets...")
 
-    let count = 1
     const errors: ApiCommandError[] = []
     const results: SecretResult[] = []
-    for (const [name, value] of secretsToCreate) {
-      cmdLog.info({ msg: `Creating secrets... → ${count}/${secretsToCreate.length}` })
-      count++
+    for (const [counter, [name, value]] of enumerate(secretsToCreate, 1)) {
+      cmdLog.info({ msg: `Creating secrets... → ${counter}/${secretsToCreate.length}` })
       try {
         const body = { environmentId, userId, projectId: project.id, name, value }
         const res = await api.post<CreateSecretResponse>(`/secrets`, { body })
