@@ -135,12 +135,10 @@ export class SecretsUpdateCommand extends Command<Args, Opts> {
         .map((secret) => ({ ...secret, newValue: secretsToUpdateArgs[secret.id] }))
     }
 
-    if (!updateById) {
-      if (isUpsert) {
-        // if --upsert is set, check the diff between secrets to update and command args to find out
-        // secrets that do not exist yet and can be created
-        secretsToCreate = getSecretsToCreate(secretsToUpdateArgs, secretsToUpdate)
-      }
+    if (!updateById && isUpsert) {
+      // if --upsert is set, check the diff between secrets to update and command args to find out
+      // secrets that do not exist yet and can be created
+      secretsToCreate = getSecretsToCreate(secretsToUpdateArgs, secretsToUpdate)
     }
 
     if (secretsToUpdate.length === 0 && secretsToCreate.length === 0) {
