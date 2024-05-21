@@ -116,9 +116,8 @@ export class SecretsUpdateCommand extends Command<Args, Opts> {
     const environmentId: string | undefined = getEnvironmentByNameOrThrow({ envName, project })?.id
 
     const allSecrets: SecretResult[] = await fetchAllSecrets(api, project.id, log)
-    let secretsToUpdate: Array<UpdateSecretBody>
-    let secretsToCreate: [string, string][] = []
 
+    let secretsToUpdate: Array<UpdateSecretBody>
     if (!updateById) {
       // update secrets by name
       secretsToUpdate = await getSecretsToUpdateByName({
@@ -135,6 +134,7 @@ export class SecretsUpdateCommand extends Command<Args, Opts> {
         .map((secret) => ({ ...secret, newValue: secretsToUpdateArgs[secret.id] }))
     }
 
+    let secretsToCreate: [string, string][] = []
     if (!updateById && isUpsert) {
       // if --upsert is set, check the diff between secrets to update and command args to find out
       // secrets that do not exist yet and can be created
