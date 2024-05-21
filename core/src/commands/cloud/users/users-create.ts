@@ -27,7 +27,7 @@ import type { StringMap } from "../../../config/common.js"
 import { chunk } from "lodash-es"
 import dotenv from "dotenv"
 import pMap from "p-map"
-import type { UserResult } from "./user-helpers.js"
+import { readInputUsers, UserResult } from "./user-helpers.js"
 import { makeUserFromResponse } from "./user-helpers.js"
 
 // This is the limit set by the API.
@@ -88,35 +88,8 @@ export class UsersCreateCommand extends Command<Args, Opts> {
   async action({ garden, log, opts, args }: CommandParams<Args, Opts>): Promise<CommandResult<UserResult[]>> {
     const addToGroups: string[] = opts["add-to-groups"] || []
     const fromFile = opts["from-file"] as string | undefined
-    let users: StringMap
 
-    if (fromFile) {
-      try {
-        users = dotenv.parse(await readFile(fromFile))
-      } catch (err) {
-        throw new CommandError({
-          message: `Unable to read users from file at path ${fromFile}: ${err}`,
-        })
-      }
-    } else if (args.users) {
-      users = args.users.reduce((acc, keyValPair) => {
-        try {
-          const user = dotenv.parse(keyValPair)
-          Object.assign(acc, user)
-          return acc
-        } catch (err) {
-          throw new CommandError({
-            message: `Unable to read user from argument ${keyValPair}: ${err}`,
-          })
-        }
-      }, {})
-    } else {
-      throw new CommandError({
-        message: dedent`
-        No users provided. Either provide users directly to the command or via the --from-file flag.
-      `,
-      })
-    }
+    const users = await readInputUsers({ usersFromFile: fromFile, usersFromArgs: args.users })
 
     const api = garden.cloudApi
     if (!api) {
