@@ -9,7 +9,6 @@
 import type { CreateSecretResponse, UpdateSecretResponse } from "@garden-io/platform-api-types"
 import { pickBy, sortBy, uniqBy } from "lodash-es"
 import { BooleanParameter, PathParameter, StringParameter, StringsParameter } from "../../../cli/params.js"
-import type { CloudProject } from "../../../cloud/api.js"
 import type { StringMap } from "../../../config/common.js"
 import { CommandError, ConfigurationError, GardenError } from "../../../exceptions.js"
 import { printHeader } from "../../../logger/util.js"
@@ -108,7 +107,7 @@ export class SecretsUpdateCommand extends Command<Args, Opts> {
       throw new ConfigurationError({ message: noApiMsg("update", "secrets") })
     }
 
-    const project: CloudProject = await api.getProjectByIdOrThrow({
+    const project = await api.getProjectByIdOrThrow({
       projectId: garden.projectId,
       projectName: garden.projectName,
     })

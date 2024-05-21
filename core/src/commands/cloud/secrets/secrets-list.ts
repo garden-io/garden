@@ -14,7 +14,6 @@ import { Command } from "../../base.js"
 import { applyFilter, noApiMsg } from "../helpers.js"
 import { sortBy } from "lodash-es"
 import { StringsParameter } from "../../../cli/params.js"
-import type { CloudProject } from "../../../cloud/api.js"
 import { styles } from "../../../logger/styles.js"
 import type { SecretResult } from "./secret-helpers.js"
 import { fetchAllSecrets } from "./secret-helpers.js"
@@ -62,7 +61,7 @@ export class SecretsListCommand extends Command<{}, Opts> {
       throw new ConfigurationError({ message: noApiMsg("list", "secrets") })
     }
 
-    const project: CloudProject = await api.getProjectByIdOrThrow({
+    const project = await api.getProjectByIdOrThrow({
       projectId: garden.projectId,
       projectName: garden.projectName,
     })

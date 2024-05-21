@@ -16,7 +16,6 @@ import { Command } from "../../base.js"
 import { applyFilter, noApiMsg } from "../helpers.js"
 import { sortBy } from "lodash-es"
 import { StringsParameter } from "../../../cli/params.js"
-import type { CloudProject } from "../../../cloud/api.js"
 import { styles } from "../../../logger/styles.js"
 import type { UserResult } from "./user-helpers.js"
 import { makeUserFromResponse } from "./user-helpers.js"
@@ -59,7 +58,7 @@ export class UsersListCommand extends Command<{}, Opts> {
       throw new ConfigurationError({ message: noApiMsg("list", "users") })
     }
 
-    const project: CloudProject = await api.getProjectByIdOrThrow({
+    const project = await api.getProjectByIdOrThrow({
       projectId: garden.projectId,
       projectName: garden.projectName,
     })

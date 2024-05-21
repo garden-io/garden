@@ -15,7 +15,6 @@ import type { ApiCommandError } from "../helpers.js"
 import { handleBulkOperationResult, noApiMsg } from "../helpers.js"
 import { dedent, deline } from "../../../util/string.js"
 import { PathParameter, StringParameter, StringsParameter } from "../../../cli/params.js"
-import type { CloudProject } from "../../../cloud/api.js"
 import type { SecretResult } from "./secret-helpers.js"
 import { getEnvironmentByNameOrThrow } from "./secret-helpers.js"
 import { readInputSecrets } from "./secret-helpers.js"
@@ -95,7 +94,7 @@ export class SecretsCreateCommand extends Command<Args, Opts> {
       throw new ConfigurationError({ message: noApiMsg("create", "secrets") })
     }
 
-    const project: CloudProject = await api.getProjectByIdOrThrow({
+    const project = await api.getProjectByIdOrThrow({
       projectId: garden.projectId,
       projectName: garden.projectName,
     })
