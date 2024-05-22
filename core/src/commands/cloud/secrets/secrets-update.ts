@@ -215,6 +215,10 @@ async function splitSecretsByExistence(params: {
   let secretsToCreate: [string, string][]
   let secretsToUpdate: Array<UpdateSecretBody>
   if (updateById) {
+    if (upsert) {
+      log.warn(`Updating secrets by IDs. Flag --upsert has no effect when it's used with --update-by-id.`)
+    }
+
     // update secrets by ids
     secretsToUpdate = sortBy(allSecrets, "name")
       .filter((secret) => Object.keys(inputSecrets).includes(secret.id))
