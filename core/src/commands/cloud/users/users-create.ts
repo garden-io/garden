@@ -83,10 +83,13 @@ export class UsersCreateCommand extends Command<Args, Opts> {
     const addToGroups: string[] = opts["add-to-groups"] || []
     const usersFilePath = opts["from-file"] as string | undefined
 
+    const cmdLog = log.createLog({ name: "users-command" })
+
     const users = await readInputKeyValueResources({
       resourceFilePath: usersFilePath,
       resourcesFromArgs: args.users,
       resourceName: "user",
+      log: cmdLog,
     })
 
     const api = garden.cloudApi
@@ -94,14 +97,13 @@ export class UsersCreateCommand extends Command<Args, Opts> {
       throw new ConfigurationError({ message: noApiMsg("create", "users") })
     }
 
-    const cmdLog = log.createLog({ name: "users-command" })
-    cmdLog.info("Creating users...")
-
     const usersToCreate = Object.entries(users).map(([vcsUsername, name]) => ({
       name,
       vcsUsername,
       serviceAccount: false,
     }))
+    cmdLog.info("Creating users...")
+
     const batches = chunk(usersToCreate, MAX_USERS_PER_REQUEST)
     // This pretty arbitrary, but the bulk action can create 100 users at a time
     // so the queue shouldn't ever get very long.

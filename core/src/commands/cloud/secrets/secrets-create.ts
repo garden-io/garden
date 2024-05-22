@@ -86,10 +86,13 @@ export class SecretsCreateCommand extends Command<Args, Opts> {
       })
     }
 
+    const cmdLog = log.createLog({ name: "secrets-command" })
+
     const secrets = await readInputKeyValueResources({
       resourceFilePath: secretsFilePath,
       resourcesFromArgs: args.secrets,
       resourceName: "secret",
+      log: cmdLog,
     })
 
     const api = garden.cloudApi
@@ -115,7 +118,6 @@ export class SecretsCreateCommand extends Command<Args, Opts> {
     }
 
     const secretsToCreate = Object.entries(secrets)
-    const cmdLog = log.createLog({ name: "secrets-command" })
     cmdLog.info("Creating secrets...")
 
     const errors: ApiCommandError[] = []

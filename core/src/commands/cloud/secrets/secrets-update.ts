@@ -99,10 +99,13 @@ export class SecretsUpdateCommand extends Command<Args, Opts> {
       })
     }
 
+    const cmdLog = log.createLog({ name: "secrets-command" })
+
     const secretsToUpdateArgs = await readInputKeyValueResources({
       resourceFilePath: secretsFilePath,
       resourcesFromArgs: args.secretNamesOrIds,
       resourceName: "secret",
+      log: cmdLog,
     })
 
     const api = garden.cloudApi
@@ -149,7 +152,6 @@ export class SecretsUpdateCommand extends Command<Args, Opts> {
       })
     }
 
-    const cmdLog = log.createLog({ name: "secrets-command" })
     if (secretsToUpdate?.length > 0) {
       cmdLog.info(`${secretsToUpdate.length} existing secret(s) to be updated.`)
     }

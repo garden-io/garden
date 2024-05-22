@@ -138,15 +138,21 @@ export async function readInputKeyValueResources({
   resourceFilePath,
   resourcesFromArgs,
   resourceName,
+  log,
 }: {
   resourceFilePath: string | undefined
   resourcesFromArgs: string[] | undefined
   resourceName: string
+  log: Log
 }): Promise<StringMap> {
-  // TODO: --from-file takes implicit precedence over args.
-  //  Document this or allow both, or throw an error if both sources are defined.
   if (resourceFilePath) {
     try {
+      if (resourcesFromArgs && resourcesFromArgs.length > 0) {
+        log.warn(
+          `Reading ${resourceName}s from file ${resourceFilePath}. Positional arguments will be ignored: ${resourcesFromArgs.join(" ")}.`
+        )
+      }
+
       const dotEnvFileContent = await readFile(resourceFilePath)
       return dotenv.parse(dotEnvFileContent)
     } catch (err) {
