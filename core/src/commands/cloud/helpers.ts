@@ -145,6 +145,8 @@ export async function readInputKeyValueResources({
   resourceName: string
   log: Log
 }): Promise<StringMap> {
+  // File source (by naming convention for args/opts, it's defined via --from-file option)
+  // always takes precedence over the positional arguments.
   if (resourceFilePath) {
     try {
       if (resourcesFromArgs && resourcesFromArgs.length > 0) {
@@ -162,6 +164,7 @@ export async function readInputKeyValueResources({
     }
   }
 
+  // Get input resources from positional arguments in no input file defined.
   if (resourcesFromArgs) {
     return resourcesFromArgs.reduce((acc, keyValPair) => {
       try {
