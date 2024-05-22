@@ -160,7 +160,9 @@ export async function readInputKeyValueResources({
         message: `Unable to read ${resourceName}(s) from file at path ${resourceFilePath}: ${err}`,
       })
     }
-  } else if (resourcesFromArgs) {
+  }
+
+  if (resourcesFromArgs) {
     return resourcesFromArgs.reduce((acc, keyValPair) => {
       try {
         const resourceEntry = dotenv.parse(keyValPair)
