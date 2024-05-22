@@ -7,8 +7,6 @@
  */
 
 import type { ListSecretsResponse, SecretResult as SecretResultApi } from "@garden-io/platform-api-types"
-import type { StringMap } from "../../../config/common.js"
-import { readInputKeyValueResources } from "../helpers.js"
 import type { CloudApi, CloudEnvironment, CloudProject } from "../../../cloud/api.js"
 import type { Log } from "../../../logger/log-entry.js"
 import queryString from "query-string"
@@ -77,20 +75,6 @@ export function makeSecretFromResponse(res: SecretResultApi): SecretResult {
     }
   }
   return secret
-}
-
-export async function readInputSecrets({
-  secretsFilePath,
-  secretsFromArgs,
-}: {
-  secretsFilePath: string | undefined
-  secretsFromArgs: string[] | undefined
-}): Promise<StringMap> {
-  return await readInputKeyValueResources({
-    resourceFilePath: secretsFilePath,
-    resourcesFromArgs: secretsFromArgs,
-    resourceName: "secret",
-  })
 }
 
 const secretsPageLimit = 100

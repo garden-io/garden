@@ -16,14 +16,12 @@ import { dedent, deline } from "../../../util/string.js"
 import type { CommandParams, CommandResult } from "../../base.js"
 import { Command } from "../../base.js"
 import type { ApiCommandError } from "../helpers.js"
-import { handleBulkOperationResult, noApiMsg } from "../helpers.js"
+import { handleBulkOperationResult, noApiMsg, readInputKeyValueResources } from "../helpers.js"
 import type { Log } from "../../../logger/log-entry.js"
 import type { SecretResult } from "./secret-helpers.js"
-import { getEnvironmentByNameOrThrow } from "./secret-helpers.js"
-import { fetchAllSecrets } from "./secret-helpers.js"
-import { readInputSecrets } from "./secret-helpers.js"
-import { makeSecretFromResponse } from "./secret-helpers.js"
+import { fetchAllSecrets, getEnvironmentByNameOrThrow, makeSecretFromResponse } from "./secret-helpers.js"
 import { enumerate } from "../../../util/enumerate.js"
+import type { CloudApi, CloudProject } from "../../../cloud/api.js"
 
 export const secretsUpdateArgs = {
   secretNamesOrIds: new StringsParameter({
@@ -94,7 +92,7 @@ export class SecretsUpdateCommand extends Command<Args, Opts> {
     const userId = opts["scope-to-user-id"] as string | undefined
     const secretsFilePath = opts["from-file"] as string | undefined
     const updateById = opts["update-by-id"] as boolean | undefined
-    const isUpsert = opts["upsert"] as boolean | undefined
+    const upsert = opts["upsert"] as boolean | undefined
 
     if (!updateById && userId !== undefined && !envName) {
       throw new CommandError({
@@ -102,7 +100,14 @@ export class SecretsUpdateCommand extends Command<Args, Opts> {
       })
     }
 
-    const secretsToUpdateArgs = await readInputSecrets({ secretsFilePath, secretsFromArgs: args.secretNamesOrIds })
+    const cmdLog = log.createLog({ name: "secrets-command" })
+
+    const inputSecrets = await readInputKeyValueResources({
+      resourceFilePath: secretsFilePath,
+      resourcesFromArgs: args.secretNamesOrIds,
+      resourceName: "secret",
+      log: cmdLog,
+    })
 
     const api = garden.cloudApi
     if (!api) {
@@ -116,31 +121,16 @@ export class SecretsUpdateCommand extends Command<Args, Opts> {
 
     const environmentId: string | undefined = getEnvironmentByNameOrThrow({ envName, project })?.id
 
-    const allSecrets: SecretResult[] = await fetchAllSecrets(api, project.id, log)
-
-    let secretsToUpdate: Array<UpdateSecretBody>
-    if (updateById) {
-      // update secrets by ids
-      secretsToUpdate = sortBy(allSecrets, "name")
-        .filter((secret) => Object.keys(secretsToUpdateArgs).includes(secret.id))
-        .map((secret) => ({ ...secret, newValue: secretsToUpdateArgs[secret.id] }))
-    } else {
-      // update secrets by name
-      secretsToUpdate = await getSecretsToUpdateByName({
-        allSecrets,
-        envName,
-        userId,
-        secretsToUpdateArgs,
-        log,
-      })
-    }
-
-    let secretsToCreate: [string, string][] = []
-    if (isUpsert && !updateById) {
-      // if --upsert is set, check the diff between secrets to update and command args to find out
-      // secrets that do not exist yet and can be created
-      secretsToCreate = getSecretsToCreate(secretsToUpdateArgs, secretsToUpdate)
-    }
+    const { secretsToCreate, secretsToUpdate } = await splitSecretsByExistence({
+      api,
+      envName,
+      inputSecrets,
+      log,
+      project,
+      updateById,
+      upsert,
+      userId,
+    })
 
     if (secretsToUpdate.length === 0 && secretsToCreate.length === 0) {
       throw new CommandError({
@@ -148,7 +138,6 @@ export class SecretsUpdateCommand extends Command<Args, Opts> {
       })
     }
 
-    const cmdLog = log.createLog({ name: "secrets-command" })
     if (secretsToUpdate?.length > 0) {
       cmdLog.info(`${secretsToUpdate.length} existing secret(s) to be updated.`)
     }
@@ -207,6 +196,53 @@ export class SecretsUpdateCommand extends Command<Args, Opts> {
       results,
     })
   }
+}
+
+async function splitSecretsByExistence(params: {
+  api: CloudApi
+  envName: string | undefined
+  log: Log
+  inputSecrets: StringMap
+  project: CloudProject
+  updateById: boolean | undefined
+  upsert: boolean | undefined
+  userId: string | undefined
+}): Promise<{ secretsToCreate: Array<[string, string]>; secretsToUpdate: Array<UpdateSecretBody> }> {
+  const { api, envName, inputSecrets, log, project, updateById, upsert, userId } = params
+
+  const allSecrets: SecretResult[] = await fetchAllSecrets(api, project.id, log)
+
+  let secretsToCreate: [string, string][]
+  let secretsToUpdate: Array<UpdateSecretBody>
+  if (updateById) {
+    if (upsert) {
+      log.warn(`Updating secrets by IDs. Flag --upsert has no effect when it's used with --update-by-id.`)
+    }
+
+    // update secrets by ids
+    secretsToUpdate = sortBy(allSecrets, "name")
+      .filter((secret) => Object.keys(inputSecrets).includes(secret.id))
+      .map((secret) => ({ ...secret, newValue: inputSecrets[secret.id] }))
+    secretsToCreate = []
+  } else {
+    // update secrets by name
+    secretsToUpdate = await getSecretsToUpdateByName({
+      allSecrets,
+      envName,
+      userId,
+      secretsToUpdateArgs: inputSecrets,
+      log,
+    })
+    if (upsert) {
+      // if --upsert is set, check the diff between secrets to update and command args to find out
+      // secrets that do not exist yet and can be created
+      secretsToCreate = getSecretsToCreate(inputSecrets, secretsToUpdate)
+    } else {
+      secretsToCreate = []
+    }
+  }
+
+  return { secretsToCreate, secretsToUpdate }
 }
 
 export type UpdateSecretBody = SecretResult & { newValue: string }
