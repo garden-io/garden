@@ -7,8 +7,6 @@
  */
 
 import type { UserResult as UserResultApi } from "@garden-io/platform-api-types"
-import type { StringMap } from "../../../config/common.js"
-import { readInputKeyValueResources } from "../helpers.js"
 
 export interface UserResult {
   id: string
@@ -31,18 +29,4 @@ export function makeUserFromResponse(user: UserResultApi): UserResult {
     updatedAt: user.updatedAt,
     groups: user.groups.map((g) => ({ id: g.id, name: g.name })),
   }
-}
-
-export async function readInputUsers({
-  usersFilePath,
-  usersFromArgs,
-}: {
-  usersFilePath: string | undefined
-  usersFromArgs: string[] | undefined
-}): Promise<StringMap> {
-  return await readInputKeyValueResources({
-    resourceFilePath: usersFilePath,
-    resourcesFromArgs: usersFromArgs,
-    resourceName: "user",
-  })
 }

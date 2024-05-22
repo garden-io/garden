@@ -16,13 +16,12 @@ import { printHeader } from "../../../logger/util.js"
 import type { CommandParams, CommandResult } from "../../base.js"
 import { Command } from "../../base.js"
 import type { ApiCommandError } from "../helpers.js"
-import { handleBulkOperationResult, noApiMsg } from "../helpers.js"
+import { handleBulkOperationResult, noApiMsg, readInputKeyValueResources } from "../helpers.js"
 import { dedent, deline } from "../../../util/string.js"
 import { PathParameter, StringsParameter } from "../../../cli/params.js"
 import { chunk } from "lodash-es"
 import pMap from "p-map"
 import type { UserResult } from "./user-helpers.js"
-import { readInputUsers } from "./user-helpers.js"
 import { makeUserFromResponse } from "./user-helpers.js"
 
 // This is the limit set by the API.
@@ -84,7 +83,11 @@ export class UsersCreateCommand extends Command<Args, Opts> {
     const addToGroups: string[] = opts["add-to-groups"] || []
     const usersFilePath = opts["from-file"] as string | undefined
 
-    const users = await readInputUsers({ usersFilePath, usersFromArgs: args.users })
+    const users = await readInputKeyValueResources({
+      resourceFilePath: usersFilePath,
+      resourcesFromArgs: args.users,
+      resourceName: "user",
+    })
 
     const api = garden.cloudApi
     if (!api) {

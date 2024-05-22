@@ -16,13 +16,10 @@ import { dedent, deline } from "../../../util/string.js"
 import type { CommandParams, CommandResult } from "../../base.js"
 import { Command } from "../../base.js"
 import type { ApiCommandError } from "../helpers.js"
-import { handleBulkOperationResult, noApiMsg } from "../helpers.js"
+import { handleBulkOperationResult, noApiMsg, readInputKeyValueResources } from "../helpers.js"
 import type { Log } from "../../../logger/log-entry.js"
 import type { SecretResult } from "./secret-helpers.js"
-import { getEnvironmentByNameOrThrow } from "./secret-helpers.js"
-import { fetchAllSecrets } from "./secret-helpers.js"
-import { readInputSecrets } from "./secret-helpers.js"
-import { makeSecretFromResponse } from "./secret-helpers.js"
+import { fetchAllSecrets, getEnvironmentByNameOrThrow, makeSecretFromResponse } from "./secret-helpers.js"
 import { enumerate } from "../../../util/enumerate.js"
 
 export const secretsUpdateArgs = {
@@ -102,7 +99,11 @@ export class SecretsUpdateCommand extends Command<Args, Opts> {
       })
     }
 
-    const secretsToUpdateArgs = await readInputSecrets({ secretsFilePath, secretsFromArgs: args.secretNamesOrIds })
+    const secretsToUpdateArgs = await readInputKeyValueResources({
+      resourceFilePath: secretsFilePath,
+      resourcesFromArgs: args.secretNamesOrIds,
+      resourceName: "secret",
+    })
 
     const api = garden.cloudApi
     if (!api) {
