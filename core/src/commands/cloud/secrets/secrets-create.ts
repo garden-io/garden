@@ -86,6 +86,11 @@ export class SecretsCreateCommand extends Command<Args, Opts> {
       })
     }
 
+    const api = garden.cloudApi
+    if (!api) {
+      throw new ConfigurationError({ message: noApiMsg("create", "secrets") })
+    }
+
     const cmdLog = log.createLog({ name: "secrets-command" })
 
     const secrets = await readInputKeyValueResources({
@@ -94,11 +99,6 @@ export class SecretsCreateCommand extends Command<Args, Opts> {
       resourceName: "secret",
       log: cmdLog,
     })
-
-    const api = garden.cloudApi
-    if (!api) {
-      throw new ConfigurationError({ message: noApiMsg("create", "secrets") })
-    }
 
     const project = await api.getProjectByIdOrThrow({
       projectId: garden.projectId,

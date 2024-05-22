@@ -83,6 +83,11 @@ export class UsersCreateCommand extends Command<Args, Opts> {
     const addToGroups: string[] = opts["add-to-groups"] || []
     const usersFilePath = opts["from-file"] as string | undefined
 
+    const api = garden.cloudApi
+    if (!api) {
+      throw new ConfigurationError({ message: noApiMsg("create", "users") })
+    }
+
     const cmdLog = log.createLog({ name: "users-command" })
 
     const users = await readInputKeyValueResources({
@@ -91,11 +96,6 @@ export class UsersCreateCommand extends Command<Args, Opts> {
       resourceName: "user",
       log: cmdLog,
     })
-
-    const api = garden.cloudApi
-    if (!api) {
-      throw new ConfigurationError({ message: noApiMsg("create", "users") })
-    }
 
     const usersToCreate = Object.entries(users).map(([vcsUsername, name]) => ({
       name,
