@@ -101,7 +101,7 @@ export class SecretsUpdateCommand extends Command<Args, Opts> {
 
     const cmdLog = log.createLog({ name: "secrets-command" })
 
-    const secretsToUpdateArgs = await readInputKeyValueResources({
+    const inputSecrets = await readInputKeyValueResources({
       resourceFilePath: secretsFilePath,
       resourcesFromArgs: args.secretNamesOrIds,
       resourceName: "secret",
@@ -126,8 +126,8 @@ export class SecretsUpdateCommand extends Command<Args, Opts> {
     if (updateById) {
       // update secrets by ids
       secretsToUpdate = sortBy(allSecrets, "name")
-        .filter((secret) => Object.keys(secretsToUpdateArgs).includes(secret.id))
-        .map((secret) => ({ ...secret, newValue: secretsToUpdateArgs[secret.id] }))
+        .filter((secret) => Object.keys(inputSecrets).includes(secret.id))
+        .map((secret) => ({ ...secret, newValue: inputSecrets[secret.id] }))
        secretsToCreate = []
     } else {
       // update secrets by name
@@ -135,13 +135,13 @@ export class SecretsUpdateCommand extends Command<Args, Opts> {
         allSecrets,
         envName,
         userId,
-        secretsToUpdateArgs,
+        secretsToUpdateArgs: inputSecrets,
         log,
       })
       if (isUpsert) {
         // if --upsert is set, check the diff between secrets to update and command args to find out
         // secrets that do not exist yet and can be created
-        secretsToCreate = getSecretsToCreate(secretsToUpdateArgs, secretsToUpdate)
+        secretsToCreate = getSecretsToCreate(inputSecrets, secretsToUpdate)
       } else {
         secretsToCreate = []
       }
