@@ -8,20 +8,18 @@
 
 import { CommandError, ConfigurationError, CloudApiError, GardenError } from "../../../exceptions.js"
 import type { CreateSecretResponse } from "@garden-io/platform-api-types"
-import fsExtra from "fs-extra"
-const { readFile } = fsExtra
-
 import { printHeader } from "../../../logger/util.js"
 import type { CommandParams, CommandResult } from "../../base.js"
 import { Command } from "../../base.js"
-import type { ApiCommandError, SecretResult } from "../helpers.js"
-import { handleBulkOperationResult, makeSecretFromResponse, noApiMsg } from "../helpers.js"
+import type { ApiCommandError } from "../helpers.js"
+import { handleBulkOperationResult, noApiMsg } from "../helpers.js"
 import { dedent, deline } from "../../../util/string.js"
 import { PathParameter, StringParameter, StringsParameter } from "../../../cli/params.js"
-import type { StringMap } from "../../../config/common.js"
-import dotenv from "dotenv"
-import type { CloudProject } from "../../../cloud/api.js"
-import { getCloudDistributionName } from "../../../util/cloud.js"
+import type { SecretResult } from "./secret-helpers.js"
+import { getEnvironmentByNameOrThrow } from "./secret-helpers.js"
+import { readInputSecrets } from "./secret-helpers.js"
+import { makeSecretFromResponse } from "./secret-helpers.js"
+import { enumerate } from "../../../util/enumerate.js"
 
 export const secretsCreateArgs = {
   secrets: new StringsParameter({
@@ -82,8 +80,7 @@ export class SecretsCreateCommand extends Command<Args, Opts> {
     // true type here.
     const envName = opts["scope-to-env"] as string | undefined
     const userId = opts["scope-to-user-id"] as string | undefined
-    const fromFile = opts["from-file"] as string | undefined
-    let secrets: StringMap
+    const secretsFilePath = opts["from-file"] as string | undefined
 
     if (userId !== undefined && !envName) {
       throw new CommandError({
@@ -91,66 +88,19 @@ export class SecretsCreateCommand extends Command<Args, Opts> {
       })
     }
 
-    if (fromFile) {
-      try {
-        secrets = dotenv.parse(await readFile(fromFile))
-      } catch (err) {
-        throw new CommandError({
-          message: `Unable to read secrets from file at path ${fromFile}: ${err}`,
-        })
-      }
-    } else if (args.secrets) {
-      secrets = args.secrets.reduce((acc, keyValPair) => {
-        try {
-          const secret = dotenv.parse(keyValPair)
-          Object.assign(acc, secret)
-          return acc
-        } catch (err) {
-          throw new CommandError({
-            message: `Unable to read secret from argument ${keyValPair}: ${err}`,
-          })
-        }
-      }, {})
-    } else {
-      throw new CommandError({
-        message: dedent`
-        No secrets provided. Either provide secrets directly to the command or via the --from-file flag.
-      `,
-      })
-    }
+    const secrets = await readInputSecrets({ secretsFilePath, secretsFromArgs: args.secrets })
 
     const api = garden.cloudApi
     if (!api) {
       throw new ConfigurationError({ message: noApiMsg("create", "secrets") })
     }
 
-    let project: CloudProject | undefined
+    const project = await api.getProjectByIdOrThrow({
+      projectId: garden.projectId,
+      projectName: garden.projectName,
+    })
 
-    if (garden.projectId) {
-      project = await api.getProjectById(garden.projectId)
-    }
-
-    if (!project) {
-      throw new CloudApiError({
-        message: `Project ${garden.projectName} is not a ${getCloudDistributionName(api.domain)} project`,
-      })
-    }
-
-    let environmentId: string | undefined
-
-    if (envName) {
-      const environment = project.environments.find((e) => e.name === envName)
-      if (!environment) {
-        const availableEnvironmentNames = project.environments.map((e) => e.name)
-        throw new CloudApiError({
-          message: dedent`
-            Environment with name ${envName} not found in project.
-            Available environments: ${availableEnvironmentNames.join(", ")}
-          `,
-        })
-      }
-      environmentId = environment.id
-    }
+    const environmentId: string | undefined = getEnvironmentByNameOrThrow({ envName, project })?.id
 
     // Validate that a user with this ID exists
     if (userId) {
@@ -166,12 +116,10 @@ export class SecretsCreateCommand extends Command<Args, Opts> {
     const cmdLog = log.createLog({ name: "secrets-command" })
     cmdLog.info("Creating secrets...")
 
-    let count = 1
     const errors: ApiCommandError[] = []
     const results: SecretResult[] = []
-    for (const [name, value] of secretsToCreate) {
-      cmdLog.info({ msg: `Creating secrets... → ${count}/${secretsToCreate.length}` })
-      count++
+    for (const [counter, [name, value]] of enumerate(secretsToCreate, 1)) {
+      cmdLog.info({ msg: `Creating secrets... → ${counter}/${secretsToCreate.length}` })
       try {
         const body = { environmentId, userId, projectId: project.id, name, value }
         const res = await api.post<CreateSecretResponse>(`/secrets`, { body })

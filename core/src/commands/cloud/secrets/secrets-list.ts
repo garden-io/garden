@@ -6,42 +6,17 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import queryString from "query-string"
-import { ConfigurationError, CloudApiError } from "../../../exceptions.js"
-import type { ListSecretsResponse } from "@garden-io/platform-api-types"
-
+import { ConfigurationError } from "../../../exceptions.js"
 import { printHeader } from "../../../logger/util.js"
 import { dedent, deline, renderTable } from "../../../util/string.js"
 import type { CommandParams, CommandResult } from "../../base.js"
 import { Command } from "../../base.js"
-import type { SecretResult } from "../helpers.js"
-import { applyFilter, makeSecretFromResponse, noApiMsg } from "../helpers.js"
+import { applyFilter, noApiMsg } from "../helpers.js"
 import { sortBy } from "lodash-es"
 import { StringsParameter } from "../../../cli/params.js"
-import { getCloudDistributionName } from "../../../util/cloud.js"
-import type { CloudApi, CloudProject } from "../../../cloud/api.js"
-import type { Log } from "../../../logger/log-entry.js"
 import { styles } from "../../../logger/styles.js"
-
-export const fetchAllSecrets = async (api: CloudApi, projectId: string, log: Log): Promise<SecretResult[]> => {
-  let page = 0
-  const secrets: SecretResult[] = []
-  let hasMore = true
-  while (hasMore) {
-    log.debug(`Fetching page ${page}`)
-    const q = queryString.stringify({ projectId, offset: page * pageLimit, limit: pageLimit })
-    const res = await api.get<ListSecretsResponse>(`/secrets?${q}`)
-    if (res.data.length === 0) {
-      hasMore = false
-    } else {
-      secrets.push(...res.data.map((secret) => makeSecretFromResponse(secret)))
-      page++
-    }
-  }
-  return secrets
-}
-
-const pageLimit = 100
+import type { SecretResult } from "./secret-helpers.js"
+import { fetchAllSecrets } from "./secret-helpers.js"
 
 export const secretsListOpts = {
   "filter-envs": new StringsParameter({
@@ -86,17 +61,10 @@ export class SecretsListCommand extends Command<{}, Opts> {
       throw new ConfigurationError({ message: noApiMsg("list", "secrets") })
     }
 
-    let project: CloudProject | undefined
-
-    if (garden.projectId) {
-      project = await api.getProjectById(garden.projectId)
-    }
-
-    if (!project) {
-      throw new CloudApiError({
-        message: `Project ${garden.projectName} is not a ${getCloudDistributionName(api.domain)} project`,
-      })
-    }
+    const project = await api.getProjectByIdOrThrow({
+      projectId: garden.projectId,
+      projectName: garden.projectName,
+    })
 
     const secrets: SecretResult[] = await fetchAllSecrets(api, project.id, log)
     log.info("")

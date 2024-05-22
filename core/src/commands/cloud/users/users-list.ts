@@ -6,20 +6,19 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ConfigurationError, CloudApiError } from "../../../exceptions.js"
+import { ConfigurationError } from "../../../exceptions.js"
 import type { ListUsersResponse } from "@garden-io/platform-api-types"
 
 import { printHeader } from "../../../logger/util.js"
 import { dedent, deline, renderTable } from "../../../util/string.js"
 import type { CommandParams, CommandResult } from "../../base.js"
 import { Command } from "../../base.js"
-import type { UserResult } from "../helpers.js"
-import { applyFilter, makeUserFromResponse, noApiMsg } from "../helpers.js"
+import { applyFilter, noApiMsg } from "../helpers.js"
 import { sortBy } from "lodash-es"
 import { StringsParameter } from "../../../cli/params.js"
-import type { CloudProject } from "../../../cloud/api.js"
 import { styles } from "../../../logger/styles.js"
-import { getCloudDistributionName } from "../../../util/cloud.js"
+import type { UserResult } from "./user-helpers.js"
+import { makeUserFromResponse } from "./user-helpers.js"
 
 export const usersListOpts = {
   "filter-names": new StringsParameter({
@@ -59,17 +58,10 @@ export class UsersListCommand extends Command<{}, Opts> {
       throw new ConfigurationError({ message: noApiMsg("list", "users") })
     }
 
-    let project: CloudProject | undefined
-
-    if (garden.projectId) {
-      project = await api.getProjectById(garden.projectId)
-    }
-
-    if (!project) {
-      throw new CloudApiError({
-        message: `Project ${garden.projectName} is not a ${getCloudDistributionName(api.domain)} project`,
-      })
-    }
+    const project = await api.getProjectByIdOrThrow({
+      projectId: garden.projectId,
+      projectName: garden.projectName,
+    })
 
     // Make a best effort VCS provider guess. We should have an API endpoint for this or return with the response.
     const vcsProviderTitle = project.repositoryUrl.includes("github.com")

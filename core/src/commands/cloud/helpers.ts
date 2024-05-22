@@ -6,9 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import type { SecretResult as SecretResultApi, UserResult as UserResultApi } from "@garden-io/platform-api-types"
 import { dedent } from "../../util/string.js"
-
 import type { Log } from "../../logger/log-entry.js"
 import { capitalize } from "lodash-es"
 import minimatch from "minimatch"
@@ -17,6 +15,11 @@ import { CommandError, toGardenError } from "../../exceptions.js"
 import type { CommandResult } from "../base.js"
 import { userPrompt } from "../../util/util.js"
 import { styles } from "../../logger/styles.js"
+import type { StringMap } from "../../config/common.js"
+import dotenv from "dotenv"
+import fsExtra from "fs-extra"
+
+const { readFile } = fsExtra
 
 export interface DeleteResult {
   id: string | number
@@ -28,71 +31,9 @@ export interface ApiCommandError {
   message?: string
 }
 
-export interface SecretResult {
-  id: string
-  createdAt: string
-  updatedAt: string
-  name: string
-  environment?: {
-    name: string
-    id: string
-  }
-  user?: {
-    name: string
-    id: string
-    vcsUsername: string
-  }
-}
-
-export interface UserResult {
-  id: string
-  createdAt: string
-  updatedAt: string
-  name: string
-  vcsUsername: string | null | undefined
-  groups: {
-    id: string
-    name: string
-  }[]
-}
-
 export const noApiMsg = (action: string, resource: string) => dedent`
   Unable to ${action} ${resource}. Make sure the project is configured for Garden Cloud and that you're logged in.
 `
-
-export function makeUserFromResponse(user: UserResultApi): UserResult {
-  return {
-    id: user.id,
-    name: user.name,
-    vcsUsername: user.vcsUsername,
-    createdAt: user.createdAt,
-    updatedAt: user.updatedAt,
-    groups: user.groups.map((g) => ({ id: g.id, name: g.name })),
-  }
-}
-
-export function makeSecretFromResponse(res: SecretResultApi): SecretResult {
-  const secret = {
-    name: res.name,
-    id: res.id,
-    updatedAt: res.updatedAt,
-    createdAt: res.createdAt,
-  }
-  if (res.environment) {
-    secret["environment"] = {
-      name: res.environment.name,
-      id: res.environment.id,
-    }
-  }
-  if (res.user) {
-    secret["user"] = {
-      name: res.user.name,
-      id: res.user.id,
-      vcsUsername: res.user.vcsUsername,
-    }
-  }
-  return secret
-}
 
 /**
  * Helper function for consistently logging outputs for Garden Cloud bulk operation commands.
@@ -191,4 +132,45 @@ export async function confirmDelete(resource: string, count: number) {
   })
 
   return answer.continue
+}
+
+export async function readInputKeyValueResources({
+  resourceFilePath,
+  resourcesFromArgs,
+  resourceName,
+}: {
+  resourceFilePath: string | undefined
+  resourcesFromArgs: string[] | undefined
+  resourceName: string
+}): Promise<StringMap> {
+  // TODO: --from-file takes implicit precedence over args.
+  //  Document this or allow both, or throw an error if both sources are defined.
+  if (resourceFilePath) {
+    try {
+      const dotEnvFileContent = await readFile(resourceFilePath)
+      return dotenv.parse(dotEnvFileContent)
+    } catch (err) {
+      throw new CommandError({
+        message: `Unable to read ${resourceName}(s) from file at path ${resourceFilePath}: ${err}`,
+      })
+    }
+  } else if (resourcesFromArgs) {
+    return resourcesFromArgs.reduce((acc, keyValPair) => {
+      try {
+        const resourceEntry = dotenv.parse(keyValPair)
+        Object.assign(acc, resourceEntry)
+        return acc
+      } catch (err) {
+        throw new CommandError({
+          message: `Unable to read ${resourceName} from argument ${keyValPair}: ${err}`,
+        })
+      }
+    }, {})
+  }
+
+  throw new CommandError({
+    message: dedent`
+        No ${resourceName}(s) provided. Either provide ${resourceName}(s) directly to the command or via the --from-file flag.
+      `,
+  })
 }

@@ -6,26 +6,24 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { CommandError, ConfigurationError, GardenError } from "../../../exceptions.js"
+import { ConfigurationError, GardenError } from "../../../exceptions.js"
 import type {
   CreateUserBulkRequest,
   CreateUserBulkResponse,
   UserResult as UserResultApi,
 } from "@garden-io/platform-api-types"
-import fsExtra from "fs-extra"
-const { readFile } = fsExtra
-
 import { printHeader } from "../../../logger/util.js"
 import type { CommandParams, CommandResult } from "../../base.js"
 import { Command } from "../../base.js"
-import type { ApiCommandError, UserResult } from "../helpers.js"
-import { handleBulkOperationResult, makeUserFromResponse, noApiMsg } from "../helpers.js"
+import type { ApiCommandError } from "../helpers.js"
+import { handleBulkOperationResult, noApiMsg } from "../helpers.js"
 import { dedent, deline } from "../../../util/string.js"
 import { PathParameter, StringsParameter } from "../../../cli/params.js"
-import type { StringMap } from "../../../config/common.js"
 import { chunk } from "lodash-es"
-import dotenv from "dotenv"
 import pMap from "p-map"
+import type { UserResult } from "./user-helpers.js"
+import { readInputUsers } from "./user-helpers.js"
+import { makeUserFromResponse } from "./user-helpers.js"
 
 // This is the limit set by the API.
 const MAX_USERS_PER_REQUEST = 100
@@ -84,36 +82,9 @@ export class UsersCreateCommand extends Command<Args, Opts> {
 
   async action({ garden, log, opts, args }: CommandParams<Args, Opts>): Promise<CommandResult<UserResult[]>> {
     const addToGroups: string[] = opts["add-to-groups"] || []
-    const fromFile = opts["from-file"] as string | undefined
-    let users: StringMap
+    const usersFilePath = opts["from-file"] as string | undefined
 
-    if (fromFile) {
-      try {
-        users = dotenv.parse(await readFile(fromFile))
-      } catch (err) {
-        throw new CommandError({
-          message: `Unable to read users from file at path ${fromFile}: ${err}`,
-        })
-      }
-    } else if (args.users) {
-      users = args.users.reduce((acc, keyValPair) => {
-        try {
-          const user = dotenv.parse(keyValPair)
-          Object.assign(acc, user)
-          return acc
-        } catch (err) {
-          throw new CommandError({
-            message: `Unable to read user from argument ${keyValPair}: ${err}`,
-          })
-        }
-      }, {})
-    } else {
-      throw new CommandError({
-        message: dedent`
-        No users provided. Either provide users directly to the command or via the --from-file flag.
-      `,
-      })
-    }
+    const users = await readInputUsers({ usersFilePath, usersFromArgs: args.users })
 
     const api = garden.cloudApi
     if (!api) {

@@ -15,6 +15,7 @@ import type { CommandParams, CommandResult } from "../../base.js"
 import { Command } from "../../base.js"
 import type { ApiCommandError, DeleteResult } from "../helpers.js"
 import { confirmDelete, handleBulkOperationResult, noApiMsg } from "../helpers.js"
+import { enumerate } from "../../../util/enumerate.js"
 
 export const secretsDeleteArgs = {
   ids: new StringsParameter({
@@ -62,12 +63,10 @@ export class SecretsDeleteCommand extends Command<Args> {
     const cmdLog = log.createLog({ name: "secrets-command" })
     cmdLog.info("Deleting secrets...")
 
-    let count = 1
     const errors: ApiCommandError[] = []
     const results: DeleteResult[] = []
-    for (const id of secretsToDelete) {
-      cmdLog.info({ msg: `Deleting secrets... → ${count}/${secretsToDelete.length}` })
-      count++
+    for (const [counter, id] of enumerate(secretsToDelete, 1)) {
+      cmdLog.info({ msg: `Deleting secrets... → ${counter}/${secretsToDelete.length}` })
       try {
         const res = await api.delete<BaseResponse>(`/secrets/${id}`)
         results.push({ id, status: res.status })
