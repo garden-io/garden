@@ -989,7 +989,6 @@ function dependenciesFromActionConfig({
 
     if (
       ref.fullRef[3] === "outputs" &&
-      outputKey &&
       !staticOutputKeys.includes(outputKey) &&
       !refStaticOutputKeys.includes(outputKey)
     ) {
