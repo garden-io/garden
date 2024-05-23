@@ -83,7 +83,6 @@ export class SecretsUpdateCommand extends Command<Args, Opts> {
     printHeader(log, "Update secrets", "🔒")
   }
 
-  // TODO: revisit/document/deny simultaneous usage of --update-by-id and --upsert flags
   async action({ garden, log, opts, args }: CommandParams<Args, Opts>): Promise<CommandResult<SecretResult[]>> {
     // Apparently TS thinks that optional params are always defined so we need to cast them to their
     // true type here.
