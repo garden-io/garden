@@ -224,7 +224,7 @@ async function splitSecretsByExistence(params: {
       allSecrets,
       envName,
       userId,
-      secretsToUpdateArgs: inputSecrets,
+      inputSecrets,
       log,
     })
     if (upsert) {
@@ -245,16 +245,16 @@ export async function getSecretsToUpdateByName({
   allSecrets,
   envName,
   userId,
-  secretsToUpdateArgs,
+  inputSecrets,
   log,
 }: {
   allSecrets: SecretResult[]
   envName?: string
   userId?: string
-  secretsToUpdateArgs: Secret[]
+  inputSecrets: Secret[]
   log: Log
 }): Promise<Array<UpdateSecretBody>> {
-  const secretsToUpdateIds = secretsToUpdateArgs.map((secret) => secret.name)
+  const secretsToUpdateIds = inputSecrets.map((secret) => secret.name)
   const filteredSecrets = sortBy(allSecrets, "name")
     .filter((s) => (envName ? s.environment?.name === envName : true))
     .filter((s) => (userId ? s.user?.id === userId : true))
@@ -287,11 +287,9 @@ export async function getSecretsToUpdateByName({
       message: `Multiple secrets with the name(s) ${duplicateSecretNames} found. Either update the secret(s) by ID or use the --scope-to-env and --scope-to-user-id flags to update the scoped secret(s).`,
     })
   }
-  return filteredSecrets.map((secret) => ({ ...secret, newValue: secretsToUpdateArgs[secret.name] }))
+  return filteredSecrets.map((secret) => ({ ...secret, newValue: inputSecrets[secret.name] }))
 }
 
-export function getSecretsToCreate(secretsToUpdateArgs: Secret[], secretsToUpdate: Array<UpdateSecretBody>): Secret[] {
-  return secretsToUpdateArgs.filter(
-    (inputSecret) => !secretsToUpdate.find((secret) => secret.name === inputSecret.name)
-  )
+export function getSecretsToCreate(inputSecrets: Secret[], secretsToUpdate: Array<UpdateSecretBody>): Secret[] {
+  return inputSecrets.filter((inputSecret) => !secretsToUpdate.find((secret) => secret.name === inputSecret.name))
 }
