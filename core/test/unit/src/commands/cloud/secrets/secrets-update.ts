@@ -95,7 +95,7 @@ describe("SecretsUpdateCommand", () => {
     const inputSecrets: Secret[] = [{ name: "secret2", value: "foo" }]
     const actual = await getSecretsToUpdateByName({
       allSecrets,
-      envName: undefined,
+      environmentName: undefined,
       userId: undefined,
       inputSecrets,
       log,
@@ -119,7 +119,7 @@ describe("SecretsUpdateCommand", () => {
       () =>
         getSecretsToUpdateByName({
           allSecrets,
-          envName: undefined,
+          environmentName: undefined,
           userId: undefined,
           inputSecrets,
           log,
@@ -140,7 +140,7 @@ describe("SecretsUpdateCommand", () => {
 
     const actual = await getSecretsToUpdateByName({
       allSecrets,
-      envName: "env1",
+      environmentName: "env1",
       userId: "u1",
       inputSecrets,
       log,
@@ -166,7 +166,7 @@ describe("SecretsUpdateCommand", () => {
 
     const secretsToUpdate = await getSecretsToUpdateByName({
       allSecrets,
-      envName: "env1",
+      environmentName: "env1",
       userId: "u1",
       inputSecrets,
       log,

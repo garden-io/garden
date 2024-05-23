@@ -16,11 +16,11 @@ import type { CommandParams, CommandResult } from "../../base.js"
 import { Command } from "../../base.js"
 import { handleBulkOperationResult, noApiMsg, readInputKeyValueResources } from "../helpers.js"
 import type { Log } from "../../../logger/log-entry.js"
-import type { Secret, SecretResult } from "./secret-helpers.js"
+import type { BulkCreateSecretRequest, BulkUpdateSecretRequest, Secret, SecretResult } from "./secret-helpers.js"
 import { updateSecrets } from "./secret-helpers.js"
 import { createSecrets } from "./secret-helpers.js"
 import { fetchAllSecrets, getEnvironmentByNameOrThrow } from "./secret-helpers.js"
-import type { CloudApi, CloudProject } from "../../../cloud/api.js"
+import type { CloudApi } from "../../../cloud/api.js"
 
 export const secretsUpdateArgs = {
   secretNamesOrIds: new StringsParameter({
@@ -87,13 +87,13 @@ export class SecretsUpdateCommand extends Command<Args, Opts> {
   async action({ garden, log, opts, args }: CommandParams<Args, Opts>): Promise<CommandResult<SecretResult[]>> {
     // Apparently TS thinks that optional params are always defined so we need to cast them to their
     // true type here.
-    const envName = opts["scope-to-env"] as string | undefined
+    const environmentName = opts["scope-to-env"] as string | undefined
     const userId = opts["scope-to-user-id"] as string | undefined
     const secretsFilePath = opts["from-file"] as string | undefined
     const updateById = opts["update-by-id"] as boolean | undefined
     const upsert = opts["upsert"] as boolean | undefined
 
-    if (!updateById && userId !== undefined && !envName) {
+    if (!updateById && userId !== undefined && !environmentName) {
       throw new CommandError({
         message: `Got user ID but not environment name. Secrets scoped to users must be scoped to environments as well.`,
       })
@@ -120,40 +120,41 @@ export class SecretsUpdateCommand extends Command<Args, Opts> {
       projectName: garden.projectName,
     })
 
-    const environmentId: string | undefined = getEnvironmentByNameOrThrow({ envName, project })?.id
+    const environmentId: string | undefined = getEnvironmentByNameOrThrow({ envName: environmentName, project })?.id
 
-    const { secretsToCreate, secretsToUpdate } = await splitSecretsByExistence({
+    const { secretsCreateRequest, secretsUpdateRequest } = await prepareSecretsRequests({
       api,
-      envName,
+      environmentId,
+      environmentName,
       inputSecrets,
       log,
-      project,
+      projectId: project.id,
       updateById,
       upsert,
       userId,
     })
 
-    if (secretsToUpdate.length === 0 && secretsToCreate.length === 0) {
+    if (secretsCreateRequest.secrets.length === 0 && secretsUpdateRequest.secrets.length === 0) {
       throw new CommandError({
         message: `No secrets to be updated or created.`,
       })
     }
 
-    if (secretsToUpdate?.length > 0) {
-      cmdLog.info(`${secretsToUpdate.length} existing secret(s) to be updated.`)
+    if (secretsUpdateRequest.secrets?.length > 0) {
+      cmdLog.info(`${secretsUpdateRequest.secrets.length} existing secret(s) to be updated.`)
     }
-    if (secretsToCreate && secretsToCreate?.length > 0) {
-      cmdLog.info(`${secretsToCreate.length} new secret(s) to be created.`)
+    if (secretsCreateRequest.secrets && secretsCreateRequest.secrets?.length > 0) {
+      cmdLog.info(`${secretsCreateRequest.secrets.length} new secret(s) to be created.`)
     }
 
     const { errors: updateErrors, results: updateResults } = await updateSecrets({
-      request: { secrets: secretsToUpdate },
+      request: secretsUpdateRequest,
       api,
       log,
     })
 
     const { errors: creationErrors, results: creationResults } = await createSecrets({
-      request: { secrets: secretsToCreate, environmentId, userId, projectId: project.id },
+      request: secretsCreateRequest,
       api,
       log,
     })
@@ -169,19 +170,20 @@ export class SecretsUpdateCommand extends Command<Args, Opts> {
   }
 }
 
-async function splitSecretsByExistence(params: {
+async function prepareSecretsRequests(params: {
   api: CloudApi
-  envName: string | undefined
+  environmentId: string | undefined
+  environmentName: string | undefined
   log: Log
   inputSecrets: Secret[]
-  project: CloudProject
+  projectId: string
   updateById: boolean | undefined
   upsert: boolean | undefined
   userId: string | undefined
-}): Promise<{ secretsToCreate: Array<Secret>; secretsToUpdate: Array<UpdateSecretBody> }> {
-  const { api, envName, inputSecrets, log, project, updateById, upsert, userId } = params
+}): Promise<{ secretsCreateRequest: BulkCreateSecretRequest; secretsUpdateRequest: BulkUpdateSecretRequest }> {
+  const { api, environmentId, environmentName, inputSecrets, log, projectId, updateById, upsert, userId } = params
 
-  const allSecrets = await fetchAllSecrets(api, project.id, log)
+  const allSecrets = await fetchAllSecrets(api, projectId, log)
 
   let secretsToCreate: Secret[]
   let secretsToUpdate: Array<UpdateSecretBody>
@@ -200,7 +202,7 @@ async function splitSecretsByExistence(params: {
     // update secrets by name
     secretsToUpdate = await getSecretsToUpdateByName({
       allSecrets,
-      envName,
+      environmentName,
       userId,
       inputSecrets,
       log,
@@ -214,20 +216,28 @@ async function splitSecretsByExistence(params: {
     }
   }
 
-  return { secretsToCreate, secretsToUpdate }
+  return {
+    secretsCreateRequest: {
+      secrets: secretsToCreate,
+      environmentId,
+      projectId,
+      userId,
+    },
+    secretsUpdateRequest: { secrets: secretsToUpdate },
+  }
 }
 
 export type UpdateSecretBody = CloudApiSecretResult & { newValue: string }
 
 export async function getSecretsToUpdateByName({
   allSecrets,
-  envName,
+  environmentName,
   userId,
   inputSecrets,
   log,
 }: {
   allSecrets: CloudApiSecretResult[]
-  envName?: string
+  environmentName?: string
   userId?: string
   inputSecrets: Secret[]
   log: Log
@@ -235,7 +245,7 @@ export async function getSecretsToUpdateByName({
   const inputSecretDict = fromPairs(inputSecrets.map((s) => [s.name, s.value]))
 
   const filteredSecrets = sortBy(allSecrets, "name")
-    .filter((s) => (envName ? s.environment?.name === envName : true))
+    .filter((s) => (environmentName ? s.environment?.name === environmentName : true))
     .filter((s) => (userId ? s.user?.id === userId : true))
     .filter((s) => !!inputSecretDict[s.name])
 
