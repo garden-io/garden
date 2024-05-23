@@ -18,6 +18,7 @@ import type { ApiCommandError } from "../helpers.js"
 import { handleBulkOperationResult, noApiMsg, readInputKeyValueResources } from "../helpers.js"
 import type { Log } from "../../../logger/log-entry.js"
 import type { Secret, SecretResult } from "./secret-helpers.js"
+import { createSecrets } from "./secret-helpers.js"
 import { fetchAllSecrets, getEnvironmentByNameOrThrow, makeSecretFromResponse } from "./secret-helpers.js"
 import { enumerate } from "../../../util/enumerate.js"
 import type { CloudApi, CloudProject } from "../../../cloud/api.js"
@@ -171,22 +172,13 @@ export class SecretsUpdateCommand extends Command<Args, Opts> {
       }
     }
 
-    for (const [counter, { name, value }] of enumerate(secretsToCreate, 1)) {
-      cmdLog.info({ msg: `Creating secrets... → ${counter}/${secretsToCreate.length}` })
-      try {
-        const body = { environmentId, userId, projectId: project.id, name, value }
-        const res = await api.createSecret(body)
-        results.push(makeSecretFromResponse(res.data))
-      } catch (err) {
-        if (!(err instanceof GardenError)) {
-          throw err
-        }
-        errors.push({
-          identifier: name,
-          message: err.message,
-        })
-      }
-    }
+    const { errors: creationErrors, results: creationResults } = await createSecrets({
+      request: { secrets: secretsToCreate, environmentId, userId, projectId: project.id },
+      api,
+      log,
+    })
+    errors.push(...creationErrors)
+    results.push(...creationResults)
 
     return handleBulkOperationResult({
       log,
