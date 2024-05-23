@@ -174,7 +174,7 @@ export class SecretsUpdateCommand extends Command<Args, Opts> {
       cmdLog.info({ msg: `Creating secrets... → ${counter}/${secretsToCreate.length}` })
       try {
         const body = { environmentId, userId, projectId: project.id, name, value }
-        const res = await api.post<CreateSecretResponse>(`/secrets`, { body })
+        const res = await api.createSecret(body)
         results.push(makeSecretFromResponse(res.data))
       } catch (err) {
         if (!(err instanceof GardenError)) {

@@ -7,7 +7,6 @@
  */
 
 import { CloudApiError, CommandError, ConfigurationError, GardenError } from "../../../exceptions.js"
-import type { CreateSecretResponse } from "@garden-io/platform-api-types"
 import { printHeader } from "../../../logger/util.js"
 import type { CommandParams, CommandResult } from "../../base.js"
 import { Command } from "../../base.js"
@@ -126,7 +125,7 @@ export class SecretsCreateCommand extends Command<Args, Opts> {
       cmdLog.info({ msg: `Creating secrets... → ${counter}/${secretsToCreate.length}` })
       try {
         const body = { environmentId, userId, projectId: project.id, name, value }
-        const res = await api.post<CreateSecretResponse>(`/secrets`, { body })
+        const res = await api.createSecret(body)
         results.push(makeSecretFromResponse(res.data))
       } catch (err) {
         if (!(err instanceof GardenError)) {

@@ -20,6 +20,8 @@ import type {
   BaseResponse,
   CreateEphemeralClusterResponse,
   CreateProjectsForRepoResponse,
+  CreateSecretRequest,
+  CreateSecretResponse,
   EphemeralClusterWithRegistry,
   GetKubeconfigResponse,
   GetProfileResponse,
@@ -868,6 +870,10 @@ export class CloudApi {
       log.error(`${prefix}: ${emptyKeys.sort().join(", ")}`)
     }
     return secrets
+  }
+
+  async createSecret(request: CreateSecretRequest): Promise<CreateSecretResponse> {
+    return await this.post<CreateSecretResponse>(`/secrets`, { body: request })
   }
 
   async registerCloudBuilderBuild(body: {
