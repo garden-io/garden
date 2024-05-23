@@ -164,6 +164,6 @@ describe("SecretsUpdateCommand", () => {
 
     const secretsToCreate = getSecretsToCreate(inputSecrets, secretsToUpdate)
 
-    expect(secretsToCreate).to.eql([["secretnew", "bar"]])
+    expect(secretsToCreate).to.eql([{ name: "secretnew", value: "bar" }])
   })
 })
