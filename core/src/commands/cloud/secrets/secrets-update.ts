@@ -7,7 +7,7 @@
  */
 
 import type { UpdateSecretResponse } from "@garden-io/platform-api-types"
-import { sortBy, uniqBy } from "lodash-es"
+import { fromPairs, sortBy, uniqBy } from "lodash-es"
 import { BooleanParameter, PathParameter, StringParameter, StringsParameter } from "../../../cli/params.js"
 import { CommandError, ConfigurationError, GardenError } from "../../../exceptions.js"
 import { printHeader } from "../../../logger/util.js"
@@ -254,11 +254,12 @@ export async function getSecretsToUpdateByName({
   inputSecrets: Secret[]
   log: Log
 }): Promise<Array<UpdateSecretBody>> {
-  const secretsToUpdateIds = new Set(inputSecrets.map((secret) => secret.name))
+  const inputSecretDict = fromPairs(inputSecrets.map((s) => [s.name, s.value]))
+
   const filteredSecrets = sortBy(allSecrets, "name")
     .filter((s) => (envName ? s.environment?.name === envName : true))
     .filter((s) => (userId ? s.user?.id === userId : true))
-    .filter((s) => secretsToUpdateIds.has(s.name))
+    .filter((s) => !!inputSecretDict[s.name])
 
   // check if there are any secret results with duplicate names
   const hasDuplicateSecretsByName = uniqBy(filteredSecrets, "name").length !== filteredSecrets.length
@@ -287,7 +288,8 @@ export async function getSecretsToUpdateByName({
       message: `Multiple secrets with the name(s) ${duplicateSecretNames} found. Either update the secret(s) by ID or use the --scope-to-env and --scope-to-user-id flags to update the scoped secret(s).`,
     })
   }
-  return filteredSecrets.map((secret) => ({ ...secret, newValue: inputSecrets[secret.name] }))
+
+  return filteredSecrets.map((secret) => ({ ...secret, newValue: inputSecretDict[secret.name] }))
 }
 
 export function getSecretsToCreate(inputSecrets: Secret[], secretsToUpdate: Array<UpdateSecretBody>): Secret[] {
