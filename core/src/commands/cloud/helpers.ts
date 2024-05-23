@@ -15,7 +15,6 @@ import { CommandError, toGardenError } from "../../exceptions.js"
 import type { CommandResult } from "../base.js"
 import { userPrompt } from "../../util/util.js"
 import { styles } from "../../logger/styles.js"
-import type { StringMap } from "../../config/common.js"
 import dotenv from "dotenv"
 import fsExtra from "fs-extra"
 
@@ -144,7 +143,7 @@ export async function readInputKeyValueResources({
   resourcesFromArgs: string[] | undefined
   resourceName: string
   log: Log
-}): Promise<StringMap> {
+}): Promise<[key: string, value: string][]> {
   // File source (by naming convention for args/opts, it's defined via --from-file option)
   // always takes precedence over the positional arguments.
   if (resourceFilePath) {
@@ -156,7 +155,8 @@ export async function readInputKeyValueResources({
       }
 
       const dotEnvFileContent = await readFile(resourceFilePath)
-      return dotenv.parse(dotEnvFileContent)
+      const resourceDictionary = dotenv.parse(dotEnvFileContent)
+      return Object.entries(resourceDictionary)
     } catch (err) {
       throw new CommandError({
         message: `Unable to read ${resourceName}(s) from file at path ${resourceFilePath}: ${err}`,
@@ -166,7 +166,7 @@ export async function readInputKeyValueResources({
 
   // Get input resources from positional arguments in no input file defined.
   if (resourcesFromArgs) {
-    return resourcesFromArgs.reduce((acc, keyValPair) => {
+    const resourceDictionary = resourcesFromArgs.reduce((acc, keyValPair) => {
       try {
         const resourceEntry = dotenv.parse(keyValPair)
         Object.assign(acc, resourceEntry)
@@ -177,6 +177,7 @@ export async function readInputKeyValueResources({
         })
       }
     }, {})
+    return Object.entries(resourceDictionary)
   }
 
   throw new CommandError({

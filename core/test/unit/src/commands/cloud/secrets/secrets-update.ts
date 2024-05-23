@@ -12,10 +12,9 @@ import {
   getSecretsToCreate,
   getSecretsToUpdateByName,
 } from "../../../../../../src/commands/cloud/secrets/secrets-update.js"
-import type { StringMap } from "../../../../../../src/config/common.js"
 import { deline } from "../../../../../../src/util/string.js"
 import { expectError, getDataDir, makeTestGarden } from "../../../../../helpers.js"
-import type { SecretResult } from "../../../../../../src/commands/cloud/secrets/secret-helpers.js"
+import type { Secret, SecretResult } from "../../../../../../src/commands/cloud/secrets/secret-helpers.js"
 
 describe("SecretsUpdateCommand", () => {
   const projectRoot = getDataDir("test-project-b")
@@ -83,9 +82,7 @@ describe("SecretsUpdateCommand", () => {
   it("should get correct secrets to update when secret is not scoped to env and user", async () => {
     const garden = await makeTestGarden(projectRoot)
     const log = garden.log
-    const secretsToUpdateArgs: StringMap = {
-      secret2: "foo",
-    }
+    const secretsToUpdateArgs: Secret[] = [{ name: "secret2", value: "foo" }]
     const actual = await getSecretsToUpdateByName({
       allSecrets,
       envName: undefined,
@@ -106,9 +103,7 @@ describe("SecretsUpdateCommand", () => {
   it(`should throw an error when multiple secrets of same name are found, and user and env scopes are not set`, async () => {
     const garden = await makeTestGarden(projectRoot)
     const log = garden.log
-    const secretsToUpdateArgs: StringMap = {
-      secret1: "foo",
-    }
+    const secretsToUpdateArgs: Secret[] = [{ name: "secret1", value: "foo" }]
 
     await expectError(
       () =>
@@ -131,9 +126,7 @@ describe("SecretsUpdateCommand", () => {
   it(`should get correct secrets to update when multiple secrets of same name are found, and user and env scopes are set`, async () => {
     const garden = await makeTestGarden(projectRoot)
     const log = garden.log
-    const secretsToUpdateArgs: StringMap = {
-      secret1: "foo",
-    }
+    const secretsToUpdateArgs: Secret[] = [{ name: "secret1", value: "foo" }]
 
     const actual = await getSecretsToUpdateByName({
       allSecrets,
@@ -156,10 +149,10 @@ describe("SecretsUpdateCommand", () => {
   it(`should get correct difference between new secrets and existing secrets for upsert`, async () => {
     const garden = await makeTestGarden(projectRoot)
     const log = garden.log
-    const secretsToUpdateArgs: StringMap = {
-      secret1: "foo",
-      secretnew: "bar",
-    }
+    const secretsToUpdateArgs: Secret[] = [
+      { name: "secret1", value: "foo" },
+      { name: "secretnew", value: "bar" },
+    ]
 
     const secretsToUpdate = await getSecretsToUpdateByName({
       allSecrets,

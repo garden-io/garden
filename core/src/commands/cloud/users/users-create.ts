@@ -97,7 +97,7 @@ export class UsersCreateCommand extends Command<Args, Opts> {
       throw new ConfigurationError({ message: noApiMsg("create", "users") })
     }
 
-    const usersToCreate = Object.entries(users).map(([vcsUsername, name]) => ({
+    const usersToCreate = users.map(([vcsUsername, name]) => ({
       name,
       vcsUsername,
       serviceAccount: false,

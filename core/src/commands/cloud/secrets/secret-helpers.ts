@@ -18,7 +18,6 @@ import { CloudApiError, GardenError } from "../../../exceptions.js"
 import { dedent } from "../../../util/string.js"
 import type { ApiCommandError } from "../helpers.js"
 import { enumerate } from "../../../util/enumerate.js"
-import type { StringMap } from "../../../config/common.js"
 
 export interface SecretResult {
   id: string
@@ -61,8 +60,13 @@ export function getEnvironmentByNameOrThrow({
   })
 }
 
-interface BulkCreateSecretRequest extends Omit<CreateSecretRequest, "name" | "value"> {
-  secrets: StringMap
+export interface Secret {
+  name: string
+  value: string
+}
+
+export interface BulkCreateSecretRequest extends Omit<CreateSecretRequest, "name" | "value"> {
+  secrets: Secret[]
 }
 
 export async function createSecrets({
@@ -75,14 +79,13 @@ export async function createSecrets({
   log: Log
 }): Promise<{ results: SecretResult[]; errors: ApiCommandError[] }> {
   const { secrets, environmentId, userId, projectId } = request
-  const secretEntries = Object.entries(secrets)
   log.info("Creating secrets...")
 
   const errors: ApiCommandError[] = []
   const results: SecretResult[] = []
 
-  for (const [counter, [name, value]] of enumerate(secretEntries, 1)) {
-    log.info({ msg: `Creating secrets... → ${counter}/${secretEntries.length}` })
+  for (const [counter, { name, value }] of enumerate(secrets, 1)) {
+    log.info({ msg: `Creating secrets... → ${counter}/${secrets.length}` })
     try {
       const body = { environmentId, userId, projectId, name, value }
       const res = await api.createSecret(body)

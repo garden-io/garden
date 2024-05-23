@@ -7,9 +7,8 @@
  */
 
 import type { UpdateSecretResponse } from "@garden-io/platform-api-types"
-import { pickBy, sortBy, uniqBy } from "lodash-es"
+import { sortBy, uniqBy } from "lodash-es"
 import { BooleanParameter, PathParameter, StringParameter, StringsParameter } from "../../../cli/params.js"
-import type { StringMap } from "../../../config/common.js"
 import { CommandError, ConfigurationError, GardenError } from "../../../exceptions.js"
 import { printHeader } from "../../../logger/util.js"
 import { dedent, deline } from "../../../util/string.js"
@@ -18,7 +17,7 @@ import { Command } from "../../base.js"
 import type { ApiCommandError } from "../helpers.js"
 import { handleBulkOperationResult, noApiMsg, readInputKeyValueResources } from "../helpers.js"
 import type { Log } from "../../../logger/log-entry.js"
-import type { SecretResult } from "./secret-helpers.js"
+import type { Secret, SecretResult } from "./secret-helpers.js"
 import { fetchAllSecrets, getEnvironmentByNameOrThrow, makeSecretFromResponse } from "./secret-helpers.js"
 import { enumerate } from "../../../util/enumerate.js"
 import type { CloudApi, CloudProject } from "../../../cloud/api.js"
@@ -102,12 +101,14 @@ export class SecretsUpdateCommand extends Command<Args, Opts> {
 
     const cmdLog = log.createLog({ name: "secrets-command" })
 
-    const inputSecrets = await readInputKeyValueResources({
-      resourceFilePath: secretsFilePath,
-      resourcesFromArgs: args.secretNamesOrIds,
-      resourceName: "secret",
-      log: cmdLog,
-    })
+    const inputSecrets: Secret[] = (
+      await readInputKeyValueResources({
+        resourceFilePath: secretsFilePath,
+        resourcesFromArgs: args.secretNamesOrIds,
+        resourceName: "secret",
+        log: cmdLog,
+      })
+    ).map(([key, value]) => ({ name: key, value }))
 
     const api = garden.cloudApi
     if (!api) {
@@ -170,7 +171,7 @@ export class SecretsUpdateCommand extends Command<Args, Opts> {
       }
     }
 
-    for (const [counter, [name, value]] of enumerate(secretsToCreate, 1)) {
+    for (const [counter, { name, value }] of enumerate(secretsToCreate, 1)) {
       cmdLog.info({ msg: `Creating secrets... → ${counter}/${secretsToCreate.length}` })
       try {
         const body = { environmentId, userId, projectId: project.id, name, value }
@@ -202,26 +203,27 @@ async function splitSecretsByExistence(params: {
   api: CloudApi
   envName: string | undefined
   log: Log
-  inputSecrets: StringMap
+  inputSecrets: Secret[]
   project: CloudProject
   updateById: boolean | undefined
   upsert: boolean | undefined
   userId: string | undefined
-}): Promise<{ secretsToCreate: Array<[string, string]>; secretsToUpdate: Array<UpdateSecretBody> }> {
+}): Promise<{ secretsToCreate: Array<Secret>; secretsToUpdate: Array<UpdateSecretBody> }> {
   const { api, envName, inputSecrets, log, project, updateById, upsert, userId } = params
 
   const allSecrets: SecretResult[] = await fetchAllSecrets(api, project.id, log)
 
-  let secretsToCreate: [string, string][]
+  let secretsToCreate: Secret[]
   let secretsToUpdate: Array<UpdateSecretBody>
   if (updateById) {
     if (upsert) {
       log.warn(`Updating secrets by IDs. Flag --upsert has no effect when it's used with --update-by-id.`)
     }
 
+    const inputSecretIds = inputSecrets.map((secret) => secret.name)
     // update secrets by ids
     secretsToUpdate = sortBy(allSecrets, "name")
-      .filter((secret) => Object.keys(inputSecrets).includes(secret.id))
+      .filter((secret) => inputSecretIds.includes(secret.id))
       .map((secret) => ({ ...secret, newValue: inputSecrets[secret.id] }))
     secretsToCreate = []
   } else {
@@ -257,13 +259,14 @@ export async function getSecretsToUpdateByName({
   allSecrets: SecretResult[]
   envName?: string
   userId?: string
-  secretsToUpdateArgs: StringMap
+  secretsToUpdateArgs: Secret[]
   log: Log
 }): Promise<Array<UpdateSecretBody>> {
+  const secretsToUpdateIds = secretsToUpdateArgs.map((secret) => secret.name)
   const filteredSecrets = sortBy(allSecrets, "name")
     .filter((s) => (envName ? s.environment?.name === envName : true))
     .filter((s) => (userId ? s.user?.id === userId : true))
-    .filter((s) => Object.keys(secretsToUpdateArgs).includes(s.name))
+    .filter((s) => secretsToUpdateIds.includes(s.name))
 
   // check if there are any secret results with duplicate names
   const hasDuplicateSecretsByName = uniqBy(filteredSecrets, "name").length !== filteredSecrets.length
@@ -295,10 +298,8 @@ export async function getSecretsToUpdateByName({
   return filteredSecrets.map((secret) => ({ ...secret, newValue: secretsToUpdateArgs[secret.name] }))
 }
 
-export function getSecretsToCreate(secretsToUpdateArgs: StringMap, secretsToUpdate: Array<UpdateSecretBody>) {
-  const diffCreateAndUpdate = pickBy(
-    secretsToUpdateArgs,
-    (_value, key) => !secretsToUpdate.find((secret) => secret.name === key)
+export function getSecretsToCreate(secretsToUpdateArgs: Secret[], secretsToUpdate: Array<UpdateSecretBody>): Secret[] {
+  return secretsToUpdateArgs.filter(
+    (inputSecret) => !secretsToUpdate.find((secret) => secret.name === inputSecret.name)
   )
-  return diffCreateAndUpdate ? Object.entries(diffCreateAndUpdate) : []
 }

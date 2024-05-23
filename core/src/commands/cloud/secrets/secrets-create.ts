@@ -86,12 +86,14 @@ export class SecretsCreateCommand extends Command<Args, Opts> {
 
     const cmdLog = log.createLog({ name: "secrets-command" })
 
-    const secrets = await readInputKeyValueResources({
-      resourceFilePath: secretsFilePath,
-      resourcesFromArgs: args.secrets,
-      resourceName: "secret",
-      log: cmdLog,
-    })
+    const secrets = (
+      await readInputKeyValueResources({
+        resourceFilePath: secretsFilePath,
+        resourcesFromArgs: args.secrets,
+        resourceName: "secret",
+        log: cmdLog,
+      })
+    ).map(([key, value]) => ({ name: key, value }))
 
     const api = garden.cloudApi
     if (!api) {
