@@ -10,6 +10,7 @@ import type {
   CreateSecretRequest,
   ListSecretsResponse,
   SecretResult as CloudApiSecretResult,
+  UpdateSecretRequest,
 } from "@garden-io/platform-api-types"
 import type { CloudApi, CloudEnvironment, CloudProject } from "../../../cloud/api.js"
 import type { Log } from "../../../logger/log-entry.js"
@@ -18,6 +19,7 @@ import { CloudApiError, GardenError } from "../../../exceptions.js"
 import { dedent } from "../../../util/string.js"
 import type { ApiCommandError } from "../helpers.js"
 import { enumerate } from "../../../util/enumerate.js"
+import { omit } from "lodash-es"
 
 export interface SecretResult {
   id: string
@@ -95,6 +97,44 @@ export async function createSecrets({
       }
       errors.push({
         identifier: name,
+        message: err.message,
+      })
+    }
+  }
+
+  return { results, errors }
+}
+
+export interface BulkUpdateSecretRequest {
+  secrets: (UpdateSecretRequest & { id: string })[]
+}
+
+export async function updateSecrets({
+  request,
+  api,
+  log,
+}: {
+  request: BulkUpdateSecretRequest
+  api: CloudApi
+  log: Log
+}): Promise<{ results: SecretResult[]; errors: ApiCommandError[] }> {
+  const { secrets } = request
+
+  const errors: ApiCommandError[] = []
+  const results: SecretResult[] = []
+
+  for (const [counter, secret] of enumerate(secrets, 1)) {
+    log.info({ msg: `Updating secrets... → ${counter}/${secrets.length}` })
+    try {
+      const body = omit(secret, "id")
+      const res = await api.updateSecret(secret.id, body)
+      results.push(makeSecretFromResponse(res.data))
+    } catch (err) {
+      if (!(err instanceof GardenError)) {
+        throw err
+      }
+      errors.push({
+        identifier: secret.name,
         message: err.message,
       })
     }

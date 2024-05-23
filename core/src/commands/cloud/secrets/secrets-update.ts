@@ -9,18 +9,17 @@
 import type { SecretResult as CloudApiSecretResult } from "@garden-io/platform-api-types"
 import { fromPairs, sortBy, uniqBy } from "lodash-es"
 import { BooleanParameter, PathParameter, StringParameter, StringsParameter } from "../../../cli/params.js"
-import { CommandError, ConfigurationError, GardenError } from "../../../exceptions.js"
+import { CommandError, ConfigurationError } from "../../../exceptions.js"
 import { printHeader } from "../../../logger/util.js"
 import { dedent, deline } from "../../../util/string.js"
 import type { CommandParams, CommandResult } from "../../base.js"
 import { Command } from "../../base.js"
-import type { ApiCommandError } from "../helpers.js"
 import { handleBulkOperationResult, noApiMsg, readInputKeyValueResources } from "../helpers.js"
 import type { Log } from "../../../logger/log-entry.js"
 import type { Secret, SecretResult } from "./secret-helpers.js"
+import { updateSecrets } from "./secret-helpers.js"
 import { createSecrets } from "./secret-helpers.js"
-import { fetchAllSecrets, getEnvironmentByNameOrThrow, makeSecretFromResponse } from "./secret-helpers.js"
-import { enumerate } from "../../../util/enumerate.js"
+import { fetchAllSecrets, getEnvironmentByNameOrThrow } from "./secret-helpers.js"
 import type { CloudApi, CloudProject } from "../../../cloud/api.js"
 
 export const secretsUpdateArgs = {
@@ -147,46 +146,25 @@ export class SecretsUpdateCommand extends Command<Args, Opts> {
       cmdLog.info(`${secretsToCreate.length} new secret(s) to be created.`)
     }
 
-    const errors: ApiCommandError[] = []
-    const results: SecretResult[] = []
-    for (const [counter, secret] of enumerate(secretsToUpdate, 1)) {
-      cmdLog.info({ msg: `Updating secrets... → ${counter}/${secretsToUpdate.length}` })
-      try {
-        const body = {
-          environmentId: secret.environment?.id,
-          userId: secret.user?.id,
-          projectId: project.id,
-          name: secret.name,
-          value: secret.newValue,
-        }
-        const res = await api.updateSecret(secret.id, body)
-        results.push(makeSecretFromResponse(res.data))
-      } catch (err) {
-        if (!(err instanceof GardenError)) {
-          throw err
-        }
-        errors.push({
-          identifier: secret.name,
-          message: err.message,
-        })
-      }
-    }
+    const { errors: updateErrors, results: updateResults } = await updateSecrets({
+      request: { secrets: secretsToUpdate },
+      api,
+      log,
+    })
 
     const { errors: creationErrors, results: creationResults } = await createSecrets({
       request: { secrets: secretsToCreate, environmentId, userId, projectId: project.id },
       api,
       log,
     })
-    errors.push(...creationErrors)
-    results.push(...creationResults)
 
     return handleBulkOperationResult({
       log,
       cmdLog,
       action: "update",
       resource: "secret",
-      errors,
-      results,
+      errors: [...updateErrors, ...creationErrors],
+      results: [...updateResults, ...creationResults],
     })
   }
 }
