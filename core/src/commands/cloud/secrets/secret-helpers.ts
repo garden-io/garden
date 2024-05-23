@@ -6,7 +6,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import type { ListSecretsResponse, SecretResult as SecretResultApi } from "@garden-io/platform-api-types"
+import type {
+  CreateSecretRequest,
+  ListSecretsResponse,
+  SecretResult as SecretResultApi,
+} from "@garden-io/platform-api-types"
 import type { CloudApi, CloudEnvironment, CloudProject } from "../../../cloud/api.js"
 import type { Log } from "../../../logger/log-entry.js"
 import queryString from "query-string"
@@ -57,29 +61,28 @@ export function getEnvironmentByNameOrThrow({
   })
 }
 
+interface BulkCreateSecretRequest extends Omit<CreateSecretRequest, "name" | "value"> {
+  secrets: StringMap
+}
+
 export async function createSecrets({
-  secrets,
-  environmentId,
-  userId,
-  projectId,
+  request,
   api,
   log,
 }: {
-  secrets: StringMap
-  environmentId: string | undefined
-  userId: string | undefined
-  projectId: string
+  request: BulkCreateSecretRequest
   api: CloudApi
   log: Log
 }): Promise<{ results: SecretResult[]; errors: ApiCommandError[] }> {
-  const secretsToCreate = Object.entries(secrets)
+  const { secrets, environmentId, userId, projectId } = request
+  const secretEntries = Object.entries(secrets)
   log.info("Creating secrets...")
 
   const errors: ApiCommandError[] = []
   const results: SecretResult[] = []
 
-  for (const [counter, [name, value]] of enumerate(secretsToCreate, 1)) {
-    log.info({ msg: `Creating secrets... → ${counter}/${secretsToCreate.length}` })
+  for (const [counter, [name, value]] of enumerate(secretEntries, 1)) {
+    log.info({ msg: `Creating secrets... → ${counter}/${secretEntries.length}` })
     try {
       const body = { environmentId, userId, projectId, name, value }
       const res = await api.createSecret(body)

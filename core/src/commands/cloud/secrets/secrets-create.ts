@@ -115,7 +115,11 @@ export class SecretsCreateCommand extends Command<Args, Opts> {
       }
     }
 
-    const { errors, results } = await createSecrets({ secrets, environmentId, userId, projectId: project.id, api, log })
+    const { errors, results } = await createSecrets({
+      request: { secrets, environmentId, userId, projectId: project.id },
+      api,
+      log,
+    })
 
     return handleBulkOperationResult({
       log,
