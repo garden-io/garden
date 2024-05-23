@@ -10,8 +10,11 @@ import type { ListSecretsResponse, SecretResult as SecretResultApi } from "@gard
 import type { CloudApi, CloudEnvironment, CloudProject } from "../../../cloud/api.js"
 import type { Log } from "../../../logger/log-entry.js"
 import queryString from "query-string"
-import { CloudApiError } from "../../../exceptions.js"
+import { CloudApiError, GardenError } from "../../../exceptions.js"
 import { dedent } from "../../../util/string.js"
+import type { ApiCommandError } from "../helpers.js"
+import { enumerate } from "../../../util/enumerate.js"
+import type { StringMap } from "../../../config/common.js"
 
 export interface SecretResult {
   id: string
@@ -54,6 +57,48 @@ export function getEnvironmentByNameOrThrow({
   })
 }
 
+export async function createSecrets({
+  secrets,
+  environmentId,
+  userId,
+  projectId,
+  api,
+  log,
+}: {
+  secrets: StringMap
+  environmentId: string | undefined
+  userId: string | undefined
+  projectId: string
+  api: CloudApi
+  log: Log
+}): Promise<{ results: SecretResult[]; errors: ApiCommandError[] }> {
+  const secretsToCreate = Object.entries(secrets)
+  log.info("Creating secrets...")
+
+  const errors: ApiCommandError[] = []
+  const results: SecretResult[] = []
+
+  for (const [counter, [name, value]] of enumerate(secretsToCreate, 1)) {
+    log.info({ msg: `Creating secrets... → ${counter}/${secretsToCreate.length}` })
+    try {
+      const body = { environmentId, userId, projectId, name, value }
+      const res = await api.createSecret(body)
+      results.push(makeSecretFromResponse(res.data))
+    } catch (err) {
+      if (!(err instanceof GardenError)) {
+        throw err
+      }
+      errors.push({
+        identifier: name,
+        message: err.message,
+      })
+    }
+  }
+
+  return { results, errors }
+}
+
+// TODO: consider moving this to CloudApis
 export function makeSecretFromResponse(res: SecretResultApi): SecretResult {
   const secret = {
     name: res.name,

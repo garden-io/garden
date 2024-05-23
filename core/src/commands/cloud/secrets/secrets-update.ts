@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import type { CreateSecretResponse, UpdateSecretResponse } from "@garden-io/platform-api-types"
+import type { UpdateSecretResponse } from "@garden-io/platform-api-types"
 import { pickBy, sortBy, uniqBy } from "lodash-es"
 import { BooleanParameter, PathParameter, StringParameter, StringsParameter } from "../../../cli/params.js"
 import type { StringMap } from "../../../config/common.js"
