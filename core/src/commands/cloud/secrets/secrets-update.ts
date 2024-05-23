@@ -212,10 +212,10 @@ async function splitSecretsByExistence(params: {
       log.warn(`Updating secrets by IDs. Flag --upsert has no effect when it's used with --update-by-id.`)
     }
 
-    const inputSecretIds = inputSecrets.map((secret) => secret.name)
+    const inputSecretDict = fromPairs(inputSecrets.map((s) => [s.name, s.value]))
     // update secrets by ids
     secretsToUpdate = sortBy(allSecrets, "name")
-      .filter((secret) => inputSecretIds.includes(secret.id))
+      .filter((secret) => !!inputSecretDict[secret.id])
       .map((secret) => ({ ...secret, newValue: inputSecrets[secret.id] }))
     secretsToCreate = []
   } else {
