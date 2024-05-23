@@ -62,6 +62,8 @@ export function getEnvironmentByNameOrThrow({
   })
 }
 
+// TODO: consider moving bulk ops to CloudApi
+
 export interface Secret {
   name: string
   value: string
@@ -143,7 +145,6 @@ export async function updateSecrets({
   return { results, errors }
 }
 
-// TODO: consider moving this to CloudApis
 export function makeSecretFromResponse(res: CloudApiSecretResult): SecretResult {
   const secret = {
     name: res.name,
