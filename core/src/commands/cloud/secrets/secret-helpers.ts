@@ -107,8 +107,12 @@ export async function createSecrets({
   return { results, errors }
 }
 
+export interface SingleUpdateSecretRequest extends UpdateSecretRequest {
+  id: string
+}
+
 export interface BulkUpdateSecretRequest {
-  secrets: (UpdateSecretRequest & { id: string })[]
+  secrets: SingleUpdateSecretRequest[]
 }
 
 export async function updateSecrets({
