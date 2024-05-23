@@ -79,7 +79,6 @@ export async function createSecrets({
   log: Log
 }): Promise<{ results: SecretResult[]; errors: ApiCommandError[] }> {
   const { secrets, environmentId, userId, projectId } = request
-  log.info("Creating secrets...")
 
   const errors: ApiCommandError[] = []
   const results: SecretResult[] = []
