@@ -27,6 +27,8 @@ import type {
   GetProfileResponse,
   GetProjectResponse,
   ListProjectsResponse,
+  UpdateSecretRequest,
+  UpdateSecretResponse,
 } from "@garden-io/platform-api-types"
 import { getCloudDistributionName, getCloudLogSectionName } from "../util/cloud.js"
 import { getPackageVersion } from "../util/util.js"
@@ -874,6 +876,10 @@ export class CloudApi {
 
   async createSecret(request: CreateSecretRequest): Promise<CreateSecretResponse> {
     return await this.post<CreateSecretResponse>(`/secrets`, { body: request })
+  }
+
+  async updateSecret(secretId: string, request: UpdateSecretRequest): Promise<UpdateSecretResponse> {
+    return await this.put<UpdateSecretResponse>(`/secrets/${secretId}`, { body: request })
   }
 
   async registerCloudBuilderBuild(body: {

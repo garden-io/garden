@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import type { UpdateSecretResponse,  SecretResult as CloudApiSecretResult } from "@garden-io/platform-api-types"
+import type { SecretResult as CloudApiSecretResult } from "@garden-io/platform-api-types"
 import { fromPairs, sortBy, uniqBy } from "lodash-es"
 import { BooleanParameter, PathParameter, StringParameter, StringsParameter } from "../../../cli/params.js"
 import { CommandError, ConfigurationError, GardenError } from "../../../exceptions.js"
@@ -159,7 +159,7 @@ export class SecretsUpdateCommand extends Command<Args, Opts> {
           name: secret.name,
           value: secret.newValue,
         }
-        const res = await api.put<UpdateSecretResponse>(`/secrets/${secret.id}`, { body })
+        const res = await api.updateSecret(secret.id, body)
         results.push(makeSecretFromResponse(res.data))
       } catch (err) {
         if (!(err instanceof GardenError)) {
