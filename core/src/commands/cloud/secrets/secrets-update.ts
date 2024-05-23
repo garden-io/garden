@@ -254,11 +254,11 @@ export async function getSecretsToUpdateByName({
   inputSecrets: Secret[]
   log: Log
 }): Promise<Array<UpdateSecretBody>> {
-  const secretsToUpdateIds = inputSecrets.map((secret) => secret.name)
+  const secretsToUpdateIds = new Set(inputSecrets.map((secret) => secret.name))
   const filteredSecrets = sortBy(allSecrets, "name")
     .filter((s) => (envName ? s.environment?.name === envName : true))
     .filter((s) => (userId ? s.user?.id === userId : true))
-    .filter((s) => secretsToUpdateIds.includes(s.name))
+    .filter((s) => secretsToUpdateIds.has(s.name))
 
   // check if there are any secret results with duplicate names
   const hasDuplicateSecretsByName = uniqBy(filteredSecrets, "name").length !== filteredSecrets.length
@@ -291,5 +291,6 @@ export async function getSecretsToUpdateByName({
 }
 
 export function getSecretsToCreate(inputSecrets: Secret[], secretsToUpdate: Array<UpdateSecretBody>): Secret[] {
-  return inputSecrets.filter((inputSecret) => !secretsToUpdate.find((secret) => secret.name === inputSecret.name))
+  const secretToUpdateIds = new Set(secretsToUpdate.map((secret) => secret.name))
+  return inputSecrets.filter((inputSecret) => !secretToUpdateIds.has(inputSecret.name))
 }
