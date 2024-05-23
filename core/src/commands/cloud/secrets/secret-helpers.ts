@@ -129,9 +129,9 @@ export function makeSecretFromResponse(res: CloudApiSecretResult): SecretResult 
 
 const secretsPageLimit = 100
 
-export async function fetchAllSecrets(api: CloudApi, projectId: string, log: Log): Promise<SecretResult[]> {
+export async function fetchAllSecrets(api: CloudApi, projectId: string, log: Log): Promise<CloudApiSecretResult[]> {
   let page = 0
-  const secrets: SecretResult[] = []
+  const secrets: CloudApiSecretResult[] = []
   let hasMore = true
   while (hasMore) {
     log.debug(`Fetching page ${page}`)
@@ -140,7 +140,7 @@ export async function fetchAllSecrets(api: CloudApi, projectId: string, log: Log
     if (res.data.length === 0) {
       hasMore = false
     } else {
-      secrets.push(...res.data.map((secret) => makeSecretFromResponse(secret)))
+      secrets.push(...res.data)
       page++
     }
   }

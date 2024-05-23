@@ -7,6 +7,7 @@
  */
 
 import { expect } from "chai"
+import type { SecretResult as CloudApiSecretResult } from "@garden-io/platform-api-types"
 import {
   SecretsUpdateCommand,
   getSecretsToCreate,
@@ -14,11 +15,11 @@ import {
 } from "../../../../../../src/commands/cloud/secrets/secrets-update.js"
 import { deline } from "../../../../../../src/util/string.js"
 import { expectError, getDataDir, makeTestGarden } from "../../../../../helpers.js"
-import type { Secret, SecretResult } from "../../../../../../src/commands/cloud/secrets/secret-helpers.js"
+import type { Secret } from "../../../../../../src/commands/cloud/secrets/secret-helpers.js"
 
 describe("SecretsUpdateCommand", () => {
   const projectRoot = getDataDir("test-project-b")
-  const allSecrets: SecretResult[] = [
+  const allSecrets: CloudApiSecretResult[] = [
     {
       id: "1",
       createdAt: "",
@@ -39,6 +40,9 @@ describe("SecretsUpdateCommand", () => {
       environment: {
         name: "env1",
         id: "e1",
+        projectId: "projectId",
+        createdAt: "1970-01-01T00:00:00Z",
+        updatedAt: "1970-01-01T00:00:00Z",
       },
     },
     {
@@ -49,11 +53,17 @@ describe("SecretsUpdateCommand", () => {
       environment: {
         name: "env1",
         id: "e1",
+        projectId: "projectId",
+        createdAt: "1970-01-01T00:00:00Z",
+        updatedAt: "1970-01-01T00:00:00Z",
       },
       user: {
         name: "user1",
         id: "u1",
         vcsUsername: "u1",
+        createdAt: "1970-01-01T00:00:00Z",
+        updatedAt: "1970-01-01T00:00:00Z",
+        serviceAccount: false,
       },
     },
   ]

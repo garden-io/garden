@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import type { UpdateSecretResponse } from "@garden-io/platform-api-types"
+import type { UpdateSecretResponse,  SecretResult as CloudApiSecretResult } from "@garden-io/platform-api-types"
 import { fromPairs, sortBy, uniqBy } from "lodash-es"
 import { BooleanParameter, PathParameter, StringParameter, StringsParameter } from "../../../cli/params.js"
 import { CommandError, ConfigurationError, GardenError } from "../../../exceptions.js"
@@ -203,7 +203,7 @@ async function splitSecretsByExistence(params: {
 }): Promise<{ secretsToCreate: Array<Secret>; secretsToUpdate: Array<UpdateSecretBody> }> {
   const { api, envName, inputSecrets, log, project, updateById, upsert, userId } = params
 
-  const allSecrets: SecretResult[] = await fetchAllSecrets(api, project.id, log)
+  const allSecrets = await fetchAllSecrets(api, project.id, log)
 
   let secretsToCreate: Secret[]
   let secretsToUpdate: Array<UpdateSecretBody>
@@ -239,7 +239,7 @@ async function splitSecretsByExistence(params: {
   return { secretsToCreate, secretsToUpdate }
 }
 
-export type UpdateSecretBody = SecretResult & { newValue: string }
+export type UpdateSecretBody = CloudApiSecretResult & { newValue: string }
 
 export async function getSecretsToUpdateByName({
   allSecrets,
@@ -248,7 +248,7 @@ export async function getSecretsToUpdateByName({
   inputSecrets,
   log,
 }: {
-  allSecrets: SecretResult[]
+  allSecrets: CloudApiSecretResult[]
   envName?: string
   userId?: string
   inputSecrets: Secret[]
@@ -265,7 +265,7 @@ export async function getSecretsToUpdateByName({
   const hasDuplicateSecretsByName = uniqBy(filteredSecrets, "name").length !== filteredSecrets.length
   if (hasDuplicateSecretsByName) {
     const duplicateSecrets = filteredSecrets
-      .reduce((accum: Array<{ count: number; name: string; secrets: SecretResult[] }>, val) => {
+      .reduce((accum: Array<{ count: number; name: string; secrets: CloudApiSecretResult[] }>, val) => {
         const dupeIndex = accum.findIndex((arrayItem) => arrayItem.name === val.name)
         if (dupeIndex === -1) {
           // Not found, so initialize.

@@ -16,6 +16,7 @@ import { sortBy } from "lodash-es"
 import { StringsParameter } from "../../../cli/params.js"
 import { styles } from "../../../logger/styles.js"
 import type { SecretResult } from "./secret-helpers.js"
+import { makeSecretFromResponse } from "./secret-helpers.js"
 import { fetchAllSecrets } from "./secret-helpers.js"
 
 export const secretsListOpts = {
@@ -66,7 +67,7 @@ export class SecretsListCommand extends Command<{}, Opts> {
       projectName: garden.projectName,
     })
 
-    const secrets: SecretResult[] = await fetchAllSecrets(api, project.id, log)
+    const secrets = await fetchAllSecrets(api, project.id, log)
     log.info("")
 
     if (secrets.length === 0) {
@@ -99,6 +100,6 @@ export class SecretsListCommand extends Command<{}, Opts> {
 
     log.info(renderTable([heading].concat(rows)))
 
-    return { result: filtered }
+    return { result: filtered.map(makeSecretFromResponse) }
   }
 }
