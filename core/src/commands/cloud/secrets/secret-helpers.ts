@@ -9,7 +9,7 @@
 import type {
   CreateSecretRequest,
   ListSecretsResponse,
-  SecretResult as SecretResultApi,
+  SecretResult as CloudApiSecretResult,
 } from "@garden-io/platform-api-types"
 import type { CloudApi, CloudEnvironment, CloudProject } from "../../../cloud/api.js"
 import type { Log } from "../../../logger/log-entry.js"
@@ -104,7 +104,7 @@ export async function createSecrets({
 }
 
 // TODO: consider moving this to CloudApis
-export function makeSecretFromResponse(res: SecretResultApi): SecretResult {
+export function makeSecretFromResponse(res: CloudApiSecretResult): SecretResult {
   const secret = {
     name: res.name,
     id: res.id,
