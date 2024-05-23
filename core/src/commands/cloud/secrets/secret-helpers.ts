@@ -64,6 +64,11 @@ export function getEnvironmentByNameOrThrow({
 
 // TODO: consider moving bulk ops to CloudApi
 
+interface BulkOperationResult {
+  results: SecretResult[]
+  errors: ApiCommandError[]
+}
+
 export interface Secret {
   name: string
   value: string
@@ -81,7 +86,7 @@ export async function createSecrets({
   request: BulkCreateSecretRequest
   api: CloudApi
   log: Log
-}): Promise<{ results: SecretResult[]; errors: ApiCommandError[] }> {
+}): Promise<BulkOperationResult> {
   const { secrets, environmentId, userId, projectId } = request
 
   const errors: ApiCommandError[] = []
@@ -123,7 +128,7 @@ export async function updateSecrets({
   request: BulkUpdateSecretRequest
   api: CloudApi
   log: Log
-}): Promise<{ results: SecretResult[]; errors: ApiCommandError[] }> {
+}): Promise<BulkOperationResult> {
   const { secrets } = request
 
   const errors: ApiCommandError[] = []
