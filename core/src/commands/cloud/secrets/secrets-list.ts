@@ -17,7 +17,6 @@ import { StringsParameter } from "../../../cli/params.js"
 import { styles } from "../../../logger/styles.js"
 import type { SecretResult } from "./secret-helpers.js"
 import { makeSecretFromResponse } from "./secret-helpers.js"
-import { fetchAllSecrets } from "./secret-helpers.js"
 
 export const secretsListOpts = {
   "filter-envs": new StringsParameter({
@@ -67,7 +66,7 @@ export class SecretsListCommand extends Command<{}, Opts> {
       projectName: garden.projectName,
     })
 
-    const secrets = await fetchAllSecrets(api, project.id, log)
+    const secrets = await api.fetchAllSecrets(project.id, log)
     log.info("")
 
     if (secrets.length === 0) {

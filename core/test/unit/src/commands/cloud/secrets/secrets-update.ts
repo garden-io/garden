@@ -15,7 +15,7 @@ import {
 } from "../../../../../../src/commands/cloud/secrets/secrets-update.js"
 import { deline } from "../../../../../../src/util/string.js"
 import { expectError, getDataDir, makeTestGarden } from "../../../../../helpers.js"
-import type { Secret } from "../../../../../../src/commands/cloud/secrets/secret-helpers.js"
+import type { Secret } from "../../../../../../src/cloud/api.js"
 
 describe("SecretsUpdateCommand", () => {
   const projectRoot = getDataDir("test-project-b")

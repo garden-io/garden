@@ -16,11 +16,10 @@ import type { CommandParams, CommandResult } from "../../base.js"
 import { Command } from "../../base.js"
 import { handleBulkOperationResult, noApiMsg, readInputKeyValueResources } from "../helpers.js"
 import type { Log } from "../../../logger/log-entry.js"
-import type { BulkCreateSecretRequest, BulkUpdateSecretRequest, Secret, SecretResult } from "./secret-helpers.js"
-import { updateSecrets } from "./secret-helpers.js"
-import { createSecrets } from "./secret-helpers.js"
-import { fetchAllSecrets, getEnvironmentByNameOrThrow } from "./secret-helpers.js"
-import type { CloudApi } from "../../../cloud/api.js"
+import type { SecretResult } from "./secret-helpers.js"
+import { makeSecretFromResponse } from "./secret-helpers.js"
+import { getEnvironmentByNameOrThrow } from "./secret-helpers.js"
+import type { BulkCreateSecretRequest, BulkUpdateSecretRequest, CloudApi, Secret } from "../../../cloud/api.js"
 
 export const secretsUpdateArgs = {
   secretNamesOrIds: new StringsParameter({
@@ -146,15 +145,13 @@ export class SecretsUpdateCommand extends Command<Args, Opts> {
       cmdLog.info(`${secretsCreateRequest.secrets.length} new secret(s) to be created.`)
     }
 
-    const { errors: updateErrors, results: updateResults } = await updateSecrets({
+    const { errors: updateErrors, results: updateResults } = await api.updateSecrets({
       request: secretsUpdateRequest,
-      api,
       log,
     })
 
-    const { errors: creationErrors, results: creationResults } = await createSecrets({
+    const { errors: creationErrors, results: creationResults } = await api.createSecrets({
       request: secretsCreateRequest,
-      api,
       log,
     })
 
@@ -164,7 +161,7 @@ export class SecretsUpdateCommand extends Command<Args, Opts> {
       action: "update",
       resource: "secret",
       errors: [...updateErrors, ...creationErrors],
-      results: [...updateResults, ...creationResults],
+      results: [...updateResults, ...creationResults].map(makeSecretFromResponse),
     })
   }
 }
@@ -182,7 +179,7 @@ async function prepareSecretsRequests(params: {
 }): Promise<{ secretsCreateRequest: BulkCreateSecretRequest; secretsUpdateRequest: BulkUpdateSecretRequest }> {
   const { api, environmentId, environmentName, inputSecrets, log, projectId, updateById, upsert, userId } = params
 
-  const allSecrets = await fetchAllSecrets(api, projectId, log)
+  const allSecrets = await api.fetchAllSecrets(projectId, log)
 
   let secretsToCreate: Secret[]
   let secretsToUpdate: Array<UpdateSecretBody>

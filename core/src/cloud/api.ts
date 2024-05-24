@@ -10,11 +10,11 @@ import type { IncomingHttpHeaders } from "http"
 
 import type { GotHeaders, GotJsonOptions, GotResponse } from "../util/http.js"
 import { got, GotHttpError } from "../util/http.js"
-import { CloudApiError, InternalError } from "../exceptions.js"
+import { CloudApiError, GardenError, InternalError } from "../exceptions.js"
 import type { Log } from "../logger/log-entry.js"
 import { DEFAULT_GARDEN_CLOUD_DOMAIN, gardenEnv } from "../constants.js"
 import { Cookie } from "tough-cookie"
-import { cloneDeep, isObject } from "lodash-es"
+import { cloneDeep, isObject, omit } from "lodash-es"
 import { dedent, deline } from "../util/string.js"
 import type {
   BaseResponse,
@@ -27,6 +27,9 @@ import type {
   GetProfileResponse,
   GetProjectResponse,
   ListProjectsResponse,
+  ListSecretsResponse,
+  SecretResult as CloudApiSecretResult,
+  SecretResult,
   UpdateSecretRequest,
   UpdateSecretResponse,
 } from "@garden-io/platform-api-types"
@@ -41,6 +44,9 @@ import type { StringMap } from "../config/common.js"
 import { styles } from "../logger/styles.js"
 import { RequestError } from "got"
 import type { Garden } from "../garden.js"
+import type { ApiCommandError } from "../commands/cloud/helpers.js"
+import { enumerate } from "../util/enumerate.js"
+import queryString from "query-string"
 
 const gardenClientName = "garden-core"
 const gardenClientVersion = getPackageVersion()
@@ -68,6 +74,8 @@ function isGotResponseOk(response: GotResponse) {
 
 const refreshThreshold = 10 // Threshold (in seconds) subtracted to jwt validity when checking if a refresh is needed
 
+const secretsPageLimit = 100
+
 export interface ApiFetchParams {
   headers: GotHeaders
   method: "GET" | "POST" | "PUT" | "PATCH" | "HEAD" | "DELETE"
@@ -75,6 +83,28 @@ export interface ApiFetchParams {
   retryDescription?: string
   maxRetries?: number
   body?: any
+}
+
+interface BulkOperationResult {
+  results: SecretResult[]
+  errors: ApiCommandError[]
+}
+
+export interface Secret {
+  name: string
+  value: string
+}
+
+export interface BulkCreateSecretRequest extends Omit<CreateSecretRequest, "name" | "value"> {
+  secrets: Secret[]
+}
+
+export interface SingleUpdateSecretRequest extends UpdateSecretRequest {
+  id: string
+}
+
+export interface BulkUpdateSecretRequest {
+  secrets: SingleUpdateSecretRequest[]
 }
 
 export interface ApiFetchOptions {
@@ -874,12 +904,82 @@ export class CloudApi {
     return secrets
   }
 
+  async fetchAllSecrets(projectId: string, log: Log): Promise<CloudApiSecretResult[]> {
+    let page = 0
+    const secrets: CloudApiSecretResult[] = []
+    let hasMore = true
+    while (hasMore) {
+      log.debug(`Fetching page ${page}`)
+      const q = queryString.stringify({ projectId, offset: page * secretsPageLimit, limit: secretsPageLimit })
+      const res = await this.get<ListSecretsResponse>(`/secrets?${q}`)
+      if (res.data.length === 0) {
+        hasMore = false
+      } else {
+        secrets.push(...res.data)
+        page++
+      }
+    }
+    return secrets
+  }
+
   async createSecret(request: CreateSecretRequest): Promise<CreateSecretResponse> {
     return await this.post<CreateSecretResponse>(`/secrets`, { body: request })
   }
 
+  async createSecrets({ request, log }: { request: BulkCreateSecretRequest; log: Log }): Promise<BulkOperationResult> {
+    const { secrets, environmentId, userId, projectId } = request
+
+    const errors: ApiCommandError[] = []
+    const results: SecretResult[] = []
+
+    for (const [counter, { name, value }] of enumerate(secrets, 1)) {
+      log.info({ msg: `Creating secrets... → ${counter}/${secrets.length}` })
+      try {
+        const body = { environmentId, userId, projectId, name, value }
+        const res = await this.createSecret(body)
+        results.push(res.data)
+      } catch (err) {
+        if (!(err instanceof GardenError)) {
+          throw err
+        }
+        errors.push({
+          identifier: name,
+          message: err.message,
+        })
+      }
+    }
+
+    return { results, errors }
+  }
+
   async updateSecret(secretId: string, request: UpdateSecretRequest): Promise<UpdateSecretResponse> {
     return await this.put<UpdateSecretResponse>(`/secrets/${secretId}`, { body: request })
+  }
+
+  async updateSecrets({ request, log }: { request: BulkUpdateSecretRequest; log: Log }): Promise<BulkOperationResult> {
+    const { secrets } = request
+
+    const errors: ApiCommandError[] = []
+    const results: SecretResult[] = []
+
+    for (const [counter, secret] of enumerate(secrets, 1)) {
+      log.info({ msg: `Updating secrets... → ${counter}/${secrets.length}` })
+      try {
+        const body = omit(secret, "id")
+        const res = await this.updateSecret(secret.id, body)
+        results.push(res.data)
+      } catch (err) {
+        if (!(err instanceof GardenError)) {
+          throw err
+        }
+        errors.push({
+          identifier: secret.name,
+          message: err.message,
+        })
+      }
+    }
+
+    return { results, errors }
   }
 
   async registerCloudBuilderBuild(body: {
