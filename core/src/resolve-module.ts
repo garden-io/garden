@@ -464,6 +464,12 @@ export class ModuleResolver {
     if (match(`build.${config.name}`)) {
       return true
     }
+
+    // Also need to match on the name of the templated module, if applicable
+    if (config.parentName && match(`build.${config.parentName}`)) {
+      return true
+    }
+
     for (const s of config.serviceConfigs) {
       if (match(`deploy.${s}`)) {
         return true
@@ -487,7 +493,7 @@ export class ModuleResolver {
    * as well as any immediately resolvable declared build dependencies.
    */
   private getModuleDependenciesFromConfig(rawConfig: ModuleConfig, buildPath: string) {
-    const configContext = new ModuleConfigContext({
+    const contextParams = {
       garden: this.garden,
       variables: this.garden.variables,
       resolvedProviders: this.resolvedProviders,
@@ -496,11 +502,16 @@ export class ModuleResolver {
       buildPath,
       parentName: rawConfig.parentName,
       templateName: rawConfig.templateName,
-      inputs: rawConfig.inputs,
+      inputs: {},
       modules: [],
       graphResults: this.graphResults,
       partialRuntimeResolution: true,
-    })
+    }
+
+    // Template inputs are commonly used in module deps, so we need to resolve them first
+    contextParams.inputs = this.resolveInputs(rawConfig, new ModuleConfigContext(contextParams))
+
+    const configContext = new ModuleConfigContext(contextParams)
 
     const templateRefs = getModuleTemplateReferences(rawConfig, configContext)
     const templateDeps = <string[]>templateRefs.filter((d) => d[1] !== rawConfig.name).map((d) => d[1])
@@ -523,7 +534,7 @@ export class ModuleResolver {
         .map((d) => (isString(d) ? d : d.name))
     }
 
-    const deps = [...templateDeps, ...buildDeps]
+    const deps = uniq([...templateDeps, ...buildDeps])
 
     return deps.map((name) => {
       const moduleConfig = this.rawConfigsByKey[name]
@@ -539,6 +550,22 @@ export class ModuleResolver {
   @pMemoizeDecorator()
   private async getLinkedSources() {
     return getLinkedSources(this.garden, "module")
+  }
+
+  private resolveInputs(config: ModuleConfig, configContext: ModuleConfigContext) {
+    const inputs = cloneDeep(config.inputs || {})
+
+    if (!config.templateName) {
+      return inputs
+    }
+
+    return resolveTemplateStrings({
+      value: inputs,
+      context: configContext,
+      contextOpts: { allowPartial: true },
+      // Note: We're not implementing the YAML source mapping for modules
+      source: undefined,
+    })
   }
 
   /**
@@ -574,14 +601,7 @@ export class ModuleResolver {
     if (templateName) {
       const template = this.garden.configTemplates[templateName]
 
-      inputs = resolveTemplateStrings({
-        value: inputs,
-        context: new ModuleConfigContext(templateContextParams),
-        // Not all inputs may need to be resolvable
-        contextOpts: { allowPartial: true },
-        // Note: We're not implementing the YAML source mapping for modules
-        source: undefined,
-      })
+      inputs = this.resolveInputs(config, new ModuleConfigContext(templateContextParams))
 
       inputs = validateWithPath({
         config: inputs,
@@ -655,12 +675,12 @@ export class ModuleResolver {
     //   - name: foo-module // same as the above
     //
     // Empty strings and nulls are omitted from the array.
-    if (config.build && config.build.dependencies) {
+    if (config.build?.dependencies) {
       config.build.dependencies = prepareBuildDependencies(config.build.dependencies).filter((dep) => dep.name)
     }
 
     // We need to refilter the build dependencies on the spec in case one or more dependency names resolved to null.
-    if (config.spec.build && config.spec.build.dependencies) {
+    if (config.spec.build?.dependencies) {
       config.spec.build.dependencies = prepareBuildDependencies(config.spec.build.dependencies)
     }
 
