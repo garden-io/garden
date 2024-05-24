@@ -6,18 +6,16 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { CloudApiError, CommandError, ConfigurationError, GardenError } from "../../../exceptions.js"
-import type { CreateSecretResponse } from "@garden-io/platform-api-types"
+import { CloudApiError, CommandError, ConfigurationError } from "../../../exceptions.js"
 import { printHeader } from "../../../logger/util.js"
 import type { CommandParams, CommandResult } from "../../base.js"
 import { Command } from "../../base.js"
-import type { ApiCommandError } from "../helpers.js"
 import { handleBulkOperationResult, noApiMsg, readInputKeyValueResources } from "../helpers.js"
 import { dedent, deline } from "../../../util/string.js"
 import { PathParameter, StringParameter, StringsParameter } from "../../../cli/params.js"
 import type { SecretResult } from "./secret-helpers.js"
-import { getEnvironmentByNameOrThrow, makeSecretFromResponse } from "./secret-helpers.js"
-import { enumerate } from "../../../util/enumerate.js"
+import { createSecrets } from "./secret-helpers.js"
+import { getEnvironmentByNameOrThrow } from "./secret-helpers.js"
 
 export const secretsCreateArgs = {
   secrets: new StringsParameter({
@@ -88,12 +86,14 @@ export class SecretsCreateCommand extends Command<Args, Opts> {
 
     const cmdLog = log.createLog({ name: "secrets-command" })
 
-    const secrets = await readInputKeyValueResources({
-      resourceFilePath: secretsFilePath,
-      resourcesFromArgs: args.secrets,
-      resourceName: "secret",
-      log: cmdLog,
-    })
+    const secrets = (
+      await readInputKeyValueResources({
+        resourceFilePath: secretsFilePath,
+        resourcesFromArgs: args.secrets,
+        resourceName: "secret",
+        log: cmdLog,
+      })
+    ).map(([key, value]) => ({ name: key, value }))
 
     const api = garden.cloudApi
     if (!api) {
@@ -117,27 +117,11 @@ export class SecretsCreateCommand extends Command<Args, Opts> {
       }
     }
 
-    const secretsToCreate = Object.entries(secrets)
-    cmdLog.info("Creating secrets...")
-
-    const errors: ApiCommandError[] = []
-    const results: SecretResult[] = []
-    for (const [counter, [name, value]] of enumerate(secretsToCreate, 1)) {
-      cmdLog.info({ msg: `Creating secrets... → ${counter}/${secretsToCreate.length}` })
-      try {
-        const body = { environmentId, userId, projectId: project.id, name, value }
-        const res = await api.post<CreateSecretResponse>(`/secrets`, { body })
-        results.push(makeSecretFromResponse(res.data))
-      } catch (err) {
-        if (!(err instanceof GardenError)) {
-          throw err
-        }
-        errors.push({
-          identifier: name,
-          message: err.message,
-        })
-      }
-    }
+    const { errors, results } = await createSecrets({
+      request: { secrets, environmentId, userId, projectId: project.id },
+      api,
+      log,
+    })
 
     return handleBulkOperationResult({
       log,

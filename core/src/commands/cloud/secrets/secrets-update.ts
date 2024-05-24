@@ -6,22 +6,21 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import type { CreateSecretResponse, UpdateSecretResponse } from "@garden-io/platform-api-types"
-import { pickBy, sortBy, uniqBy } from "lodash-es"
+import type { SecretResult as CloudApiSecretResult } from "@garden-io/platform-api-types"
+import { fromPairs, sortBy, uniqBy } from "lodash-es"
 import { BooleanParameter, PathParameter, StringParameter, StringsParameter } from "../../../cli/params.js"
-import type { StringMap } from "../../../config/common.js"
-import { CommandError, ConfigurationError, GardenError } from "../../../exceptions.js"
+import { CommandError, ConfigurationError } from "../../../exceptions.js"
 import { printHeader } from "../../../logger/util.js"
 import { dedent, deline } from "../../../util/string.js"
 import type { CommandParams, CommandResult } from "../../base.js"
 import { Command } from "../../base.js"
-import type { ApiCommandError } from "../helpers.js"
 import { handleBulkOperationResult, noApiMsg, readInputKeyValueResources } from "../helpers.js"
 import type { Log } from "../../../logger/log-entry.js"
-import type { SecretResult } from "./secret-helpers.js"
-import { fetchAllSecrets, getEnvironmentByNameOrThrow, makeSecretFromResponse } from "./secret-helpers.js"
-import { enumerate } from "../../../util/enumerate.js"
-import type { CloudApi, CloudProject } from "../../../cloud/api.js"
+import type { BulkCreateSecretRequest, BulkUpdateSecretRequest, Secret, SecretResult } from "./secret-helpers.js"
+import { updateSecrets } from "./secret-helpers.js"
+import { createSecrets } from "./secret-helpers.js"
+import { fetchAllSecrets, getEnvironmentByNameOrThrow } from "./secret-helpers.js"
+import type { CloudApi } from "../../../cloud/api.js"
 
 export const secretsUpdateArgs = {
   secretNamesOrIds: new StringsParameter({
@@ -84,17 +83,16 @@ export class SecretsUpdateCommand extends Command<Args, Opts> {
     printHeader(log, "Update secrets", "🔒")
   }
 
-  // TODO: revisit/document/deny simultaneous usage of --update-by-id and --upsert flags
   async action({ garden, log, opts, args }: CommandParams<Args, Opts>): Promise<CommandResult<SecretResult[]>> {
     // Apparently TS thinks that optional params are always defined so we need to cast them to their
     // true type here.
-    const envName = opts["scope-to-env"] as string | undefined
+    const environmentName = opts["scope-to-env"] as string | undefined
     const userId = opts["scope-to-user-id"] as string | undefined
     const secretsFilePath = opts["from-file"] as string | undefined
     const updateById = opts["update-by-id"] as boolean | undefined
     const upsert = opts["upsert"] as boolean | undefined
 
-    if (!updateById && userId !== undefined && !envName) {
+    if (!updateById && userId !== undefined && !environmentName) {
       throw new CommandError({
         message: `Got user ID but not environment name. Secrets scoped to users must be scoped to environments as well.`,
       })
@@ -102,12 +100,14 @@ export class SecretsUpdateCommand extends Command<Args, Opts> {
 
     const cmdLog = log.createLog({ name: "secrets-command" })
 
-    const inputSecrets = await readInputKeyValueResources({
-      resourceFilePath: secretsFilePath,
-      resourcesFromArgs: args.secretNamesOrIds,
-      resourceName: "secret",
-      log: cmdLog,
-    })
+    const inputSecrets: Secret[] = (
+      await readInputKeyValueResources({
+        resourceFilePath: secretsFilePath,
+        resourcesFromArgs: args.secretNamesOrIds,
+        resourceName: "secret",
+        log: cmdLog,
+      })
+    ).map(([key, value]) => ({ name: key, value }))
 
     const api = garden.cloudApi
     if (!api) {
@@ -119,118 +119,91 @@ export class SecretsUpdateCommand extends Command<Args, Opts> {
       projectName: garden.projectName,
     })
 
-    const environmentId: string | undefined = getEnvironmentByNameOrThrow({ envName, project })?.id
+    const environmentId: string | undefined = getEnvironmentByNameOrThrow({ envName: environmentName, project })?.id
 
-    const { secretsToCreate, secretsToUpdate } = await splitSecretsByExistence({
+    const { secretsCreateRequest, secretsUpdateRequest } = await prepareSecretsRequests({
       api,
-      envName,
+      environmentId,
+      environmentName,
       inputSecrets,
       log,
-      project,
+      projectId: project.id,
       updateById,
       upsert,
       userId,
     })
 
-    if (secretsToUpdate.length === 0 && secretsToCreate.length === 0) {
+    if (secretsCreateRequest.secrets.length === 0 && secretsUpdateRequest.secrets.length === 0) {
       throw new CommandError({
         message: `No secrets to be updated or created.`,
       })
     }
 
-    if (secretsToUpdate?.length > 0) {
-      cmdLog.info(`${secretsToUpdate.length} existing secret(s) to be updated.`)
+    if (secretsUpdateRequest.secrets?.length > 0) {
+      cmdLog.info(`${secretsUpdateRequest.secrets.length} existing secret(s) to be updated.`)
     }
-    if (secretsToCreate && secretsToCreate?.length > 0) {
-      cmdLog.info(`${secretsToCreate.length} new secret(s) to be created.`)
-    }
-
-    const errors: ApiCommandError[] = []
-    const results: SecretResult[] = []
-    for (const [counter, secret] of enumerate(secretsToUpdate, 1)) {
-      cmdLog.info({ msg: `Updating secrets... → ${counter}/${secretsToUpdate.length}` })
-      try {
-        const body = {
-          environmentId: secret.environment?.id,
-          userId: secret.user?.id,
-          projectId: project.id,
-          name: secret.name,
-          value: secret.newValue,
-        }
-        const res = await api.put<UpdateSecretResponse>(`/secrets/${secret.id}`, { body })
-        results.push(makeSecretFromResponse(res.data))
-      } catch (err) {
-        if (!(err instanceof GardenError)) {
-          throw err
-        }
-        errors.push({
-          identifier: secret.name,
-          message: err.message,
-        })
-      }
+    if (secretsCreateRequest.secrets && secretsCreateRequest.secrets?.length > 0) {
+      cmdLog.info(`${secretsCreateRequest.secrets.length} new secret(s) to be created.`)
     }
 
-    for (const [counter, [name, value]] of enumerate(secretsToCreate, 1)) {
-      cmdLog.info({ msg: `Creating secrets... → ${counter}/${secretsToCreate.length}` })
-      try {
-        const body = { environmentId, userId, projectId: project.id, name, value }
-        const res = await api.post<CreateSecretResponse>(`/secrets`, { body })
-        results.push(makeSecretFromResponse(res.data))
-      } catch (err) {
-        if (!(err instanceof GardenError)) {
-          throw err
-        }
-        errors.push({
-          identifier: name,
-          message: err.message,
-        })
-      }
-    }
+    const { errors: updateErrors, results: updateResults } = await updateSecrets({
+      request: secretsUpdateRequest,
+      api,
+      log,
+    })
+
+    const { errors: creationErrors, results: creationResults } = await createSecrets({
+      request: secretsCreateRequest,
+      api,
+      log,
+    })
 
     return handleBulkOperationResult({
       log,
       cmdLog,
       action: "update",
       resource: "secret",
-      errors,
-      results,
+      errors: [...updateErrors, ...creationErrors],
+      results: [...updateResults, ...creationResults],
     })
   }
 }
 
-async function splitSecretsByExistence(params: {
+async function prepareSecretsRequests(params: {
   api: CloudApi
-  envName: string | undefined
+  environmentId: string | undefined
+  environmentName: string | undefined
   log: Log
-  inputSecrets: StringMap
-  project: CloudProject
+  inputSecrets: Secret[]
+  projectId: string
   updateById: boolean | undefined
   upsert: boolean | undefined
   userId: string | undefined
-}): Promise<{ secretsToCreate: Array<[string, string]>; secretsToUpdate: Array<UpdateSecretBody> }> {
-  const { api, envName, inputSecrets, log, project, updateById, upsert, userId } = params
+}): Promise<{ secretsCreateRequest: BulkCreateSecretRequest; secretsUpdateRequest: BulkUpdateSecretRequest }> {
+  const { api, environmentId, environmentName, inputSecrets, log, projectId, updateById, upsert, userId } = params
 
-  const allSecrets: SecretResult[] = await fetchAllSecrets(api, project.id, log)
+  const allSecrets = await fetchAllSecrets(api, projectId, log)
 
-  let secretsToCreate: [string, string][]
+  let secretsToCreate: Secret[]
   let secretsToUpdate: Array<UpdateSecretBody>
   if (updateById) {
     if (upsert) {
       log.warn(`Updating secrets by IDs. Flag --upsert has no effect when it's used with --update-by-id.`)
     }
 
+    const inputSecretDict = fromPairs(inputSecrets.map((s) => [s.name, s.value]))
     // update secrets by ids
     secretsToUpdate = sortBy(allSecrets, "name")
-      .filter((secret) => Object.keys(inputSecrets).includes(secret.id))
+      .filter((secret) => !!inputSecretDict[secret.id])
       .map((secret) => ({ ...secret, newValue: inputSecrets[secret.id] }))
     secretsToCreate = []
   } else {
     // update secrets by name
     secretsToUpdate = await getSecretsToUpdateByName({
       allSecrets,
-      envName,
+      environmentName,
       userId,
-      secretsToUpdateArgs: inputSecrets,
+      inputSecrets,
       log,
     })
     if (upsert) {
@@ -242,34 +215,44 @@ async function splitSecretsByExistence(params: {
     }
   }
 
-  return { secretsToCreate, secretsToUpdate }
+  return {
+    secretsCreateRequest: {
+      secrets: secretsToCreate,
+      environmentId,
+      projectId,
+      userId,
+    },
+    secretsUpdateRequest: { secrets: secretsToUpdate },
+  }
 }
 
-export type UpdateSecretBody = SecretResult & { newValue: string }
+export type UpdateSecretBody = CloudApiSecretResult & { newValue: string }
 
 export async function getSecretsToUpdateByName({
   allSecrets,
-  envName,
+  environmentName,
   userId,
-  secretsToUpdateArgs,
+  inputSecrets,
   log,
 }: {
-  allSecrets: SecretResult[]
-  envName?: string
+  allSecrets: CloudApiSecretResult[]
+  environmentName?: string
   userId?: string
-  secretsToUpdateArgs: StringMap
+  inputSecrets: Secret[]
   log: Log
 }): Promise<Array<UpdateSecretBody>> {
+  const inputSecretDict = fromPairs(inputSecrets.map((s) => [s.name, s.value]))
+
   const filteredSecrets = sortBy(allSecrets, "name")
-    .filter((s) => (envName ? s.environment?.name === envName : true))
+    .filter((s) => (environmentName ? s.environment?.name === environmentName : true))
     .filter((s) => (userId ? s.user?.id === userId : true))
-    .filter((s) => Object.keys(secretsToUpdateArgs).includes(s.name))
+    .filter((s) => !!inputSecretDict[s.name])
 
   // check if there are any secret results with duplicate names
   const hasDuplicateSecretsByName = uniqBy(filteredSecrets, "name").length !== filteredSecrets.length
   if (hasDuplicateSecretsByName) {
     const duplicateSecrets = filteredSecrets
-      .reduce((accum: Array<{ count: number; name: string; secrets: SecretResult[] }>, val) => {
+      .reduce((accum: Array<{ count: number; name: string; secrets: CloudApiSecretResult[] }>, val) => {
         const dupeIndex = accum.findIndex((arrayItem) => arrayItem.name === val.name)
         if (dupeIndex === -1) {
           // Not found, so initialize.
@@ -292,13 +275,11 @@ export async function getSecretsToUpdateByName({
       message: `Multiple secrets with the name(s) ${duplicateSecretNames} found. Either update the secret(s) by ID or use the --scope-to-env and --scope-to-user-id flags to update the scoped secret(s).`,
     })
   }
-  return filteredSecrets.map((secret) => ({ ...secret, newValue: secretsToUpdateArgs[secret.name] }))
+
+  return filteredSecrets.map((secret) => ({ ...secret, newValue: inputSecretDict[secret.name] }))
 }
 
-export function getSecretsToCreate(secretsToUpdateArgs: StringMap, secretsToUpdate: Array<UpdateSecretBody>) {
-  const diffCreateAndUpdate = pickBy(
-    secretsToUpdateArgs,
-    (_value, key) => !secretsToUpdate.find((secret) => secret.name === key)
-  )
-  return diffCreateAndUpdate ? Object.entries(diffCreateAndUpdate) : []
+export function getSecretsToCreate(inputSecrets: Secret[], secretsToUpdate: Array<UpdateSecretBody>): Secret[] {
+  const secretToUpdateIds = new Set(secretsToUpdate.map((secret) => secret.name))
+  return inputSecrets.filter((inputSecret) => !secretToUpdateIds.has(inputSecret.name))
 }

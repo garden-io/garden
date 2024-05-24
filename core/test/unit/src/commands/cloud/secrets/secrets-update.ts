@@ -7,19 +7,19 @@
  */
 
 import { expect } from "chai"
+import type { SecretResult as CloudApiSecretResult } from "@garden-io/platform-api-types"
 import {
   SecretsUpdateCommand,
   getSecretsToCreate,
   getSecretsToUpdateByName,
 } from "../../../../../../src/commands/cloud/secrets/secrets-update.js"
-import type { StringMap } from "../../../../../../src/config/common.js"
 import { deline } from "../../../../../../src/util/string.js"
 import { expectError, getDataDir, makeTestGarden } from "../../../../../helpers.js"
-import type { SecretResult } from "../../../../../../src/commands/cloud/secrets/secret-helpers.js"
+import type { Secret } from "../../../../../../src/commands/cloud/secrets/secret-helpers.js"
 
 describe("SecretsUpdateCommand", () => {
   const projectRoot = getDataDir("test-project-b")
-  const allSecrets: SecretResult[] = [
+  const allSecrets: CloudApiSecretResult[] = [
     {
       id: "1",
       createdAt: "",
@@ -40,6 +40,9 @@ describe("SecretsUpdateCommand", () => {
       environment: {
         name: "env1",
         id: "e1",
+        projectId: "projectId",
+        createdAt: "1970-01-01T00:00:00Z",
+        updatedAt: "1970-01-01T00:00:00Z",
       },
     },
     {
@@ -50,11 +53,17 @@ describe("SecretsUpdateCommand", () => {
       environment: {
         name: "env1",
         id: "e1",
+        projectId: "projectId",
+        createdAt: "1970-01-01T00:00:00Z",
+        updatedAt: "1970-01-01T00:00:00Z",
       },
       user: {
         name: "user1",
         id: "u1",
         vcsUsername: "u1",
+        createdAt: "1970-01-01T00:00:00Z",
+        updatedAt: "1970-01-01T00:00:00Z",
+        serviceAccount: false,
       },
     },
   ]
@@ -83,14 +92,12 @@ describe("SecretsUpdateCommand", () => {
   it("should get correct secrets to update when secret is not scoped to env and user", async () => {
     const garden = await makeTestGarden(projectRoot)
     const log = garden.log
-    const secretsToUpdateArgs: StringMap = {
-      secret2: "foo",
-    }
+    const inputSecrets: Secret[] = [{ name: "secret2", value: "foo" }]
     const actual = await getSecretsToUpdateByName({
       allSecrets,
-      envName: undefined,
+      environmentName: undefined,
       userId: undefined,
-      secretsToUpdateArgs,
+      inputSecrets,
       log,
     })
 
@@ -106,17 +113,15 @@ describe("SecretsUpdateCommand", () => {
   it(`should throw an error when multiple secrets of same name are found, and user and env scopes are not set`, async () => {
     const garden = await makeTestGarden(projectRoot)
     const log = garden.log
-    const secretsToUpdateArgs: StringMap = {
-      secret1: "foo",
-    }
+    const inputSecrets: Secret[] = [{ name: "secret1", value: "foo" }]
 
     await expectError(
       () =>
         getSecretsToUpdateByName({
           allSecrets,
-          envName: undefined,
+          environmentName: undefined,
           userId: undefined,
-          secretsToUpdateArgs,
+          inputSecrets,
           log,
         }),
       (err) => {
@@ -131,15 +136,13 @@ describe("SecretsUpdateCommand", () => {
   it(`should get correct secrets to update when multiple secrets of same name are found, and user and env scopes are set`, async () => {
     const garden = await makeTestGarden(projectRoot)
     const log = garden.log
-    const secretsToUpdateArgs: StringMap = {
-      secret1: "foo",
-    }
+    const inputSecrets: Secret[] = [{ name: "secret1", value: "foo" }]
 
     const actual = await getSecretsToUpdateByName({
       allSecrets,
-      envName: "env1",
+      environmentName: "env1",
       userId: "u1",
-      secretsToUpdateArgs,
+      inputSecrets,
       log,
     })
 
@@ -156,21 +159,21 @@ describe("SecretsUpdateCommand", () => {
   it(`should get correct difference between new secrets and existing secrets for upsert`, async () => {
     const garden = await makeTestGarden(projectRoot)
     const log = garden.log
-    const secretsToUpdateArgs: StringMap = {
-      secret1: "foo",
-      secretnew: "bar",
-    }
+    const inputSecrets: Secret[] = [
+      { name: "secret1", value: "foo" },
+      { name: "secretnew", value: "bar" },
+    ]
 
     const secretsToUpdate = await getSecretsToUpdateByName({
       allSecrets,
-      envName: "env1",
+      environmentName: "env1",
       userId: "u1",
-      secretsToUpdateArgs,
+      inputSecrets,
       log,
     })
 
-    const secretsToCreate = getSecretsToCreate(secretsToUpdateArgs, secretsToUpdate)
+    const secretsToCreate = getSecretsToCreate(inputSecrets, secretsToUpdate)
 
-    expect(secretsToCreate).to.eql([["secretnew", "bar"]])
+    expect(secretsToCreate).to.eql([{ name: "secretnew", value: "bar" }])
   })
 })
