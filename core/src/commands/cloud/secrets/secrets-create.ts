@@ -15,7 +15,6 @@ import { dedent, deline } from "../../../util/string.js"
 import { PathParameter, StringParameter, StringsParameter } from "../../../cli/params.js"
 import type { SecretResult } from "./secret-helpers.js"
 import { makeSecretFromResponse } from "./secret-helpers.js"
-import { createSecrets } from "./secret-helpers.js"
 import { getEnvironmentByNameOrThrow } from "./secret-helpers.js"
 
 export const secretsCreateArgs = {
@@ -118,9 +117,8 @@ export class SecretsCreateCommand extends Command<Args, Opts> {
       }
     }
 
-    const { errors, results } = await createSecrets({
+    const { errors, results } = await api.createSecrets({
       request: { secrets, environmentId, userId, projectId: project.id },
-      api,
       log,
     })
 
