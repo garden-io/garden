@@ -65,7 +65,7 @@ export function getEnvironmentByNameOrThrow({
 // TODO: consider moving bulk ops to CloudApi
 
 interface BulkOperationResult {
-  results: SecretResult[]
+  results: CloudApiSecretResult[]
   errors: ApiCommandError[]
 }
 
@@ -90,14 +90,14 @@ export async function createSecrets({
   const { secrets, environmentId, userId, projectId } = request
 
   const errors: ApiCommandError[] = []
-  const results: SecretResult[] = []
+  const results: CloudApiSecretResult[] = []
 
   for (const [counter, { name, value }] of enumerate(secrets, 1)) {
     log.info({ msg: `Creating secrets... → ${counter}/${secrets.length}` })
     try {
       const body = { environmentId, userId, projectId, name, value }
       const res = await api.createSecret(body)
-      results.push(makeSecretFromResponse(res.data))
+      results.push(res.data)
     } catch (err) {
       if (!(err instanceof GardenError)) {
         throw err
@@ -132,14 +132,14 @@ export async function updateSecrets({
   const { secrets } = request
 
   const errors: ApiCommandError[] = []
-  const results: SecretResult[] = []
+  const results: CloudApiSecretResult[] = []
 
   for (const [counter, secret] of enumerate(secrets, 1)) {
     log.info({ msg: `Updating secrets... → ${counter}/${secrets.length}` })
     try {
       const body = omit(secret, "id")
       const res = await api.updateSecret(secret.id, body)
-      results.push(makeSecretFromResponse(res.data))
+      results.push(res.data)
     } catch (err) {
       if (!(err instanceof GardenError)) {
         throw err

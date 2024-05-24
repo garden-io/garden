@@ -14,6 +14,7 @@ import { handleBulkOperationResult, noApiMsg, readInputKeyValueResources } from 
 import { dedent, deline } from "../../../util/string.js"
 import { PathParameter, StringParameter, StringsParameter } from "../../../cli/params.js"
 import type { SecretResult } from "./secret-helpers.js"
+import { makeSecretFromResponse } from "./secret-helpers.js"
 import { createSecrets } from "./secret-helpers.js"
 import { getEnvironmentByNameOrThrow } from "./secret-helpers.js"
 
@@ -129,7 +130,7 @@ export class SecretsCreateCommand extends Command<Args, Opts> {
       action: "create",
       resource: "secret",
       errors,
-      results,
+      results: results.map(makeSecretFromResponse),
     })
   }
 }

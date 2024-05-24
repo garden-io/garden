@@ -17,6 +17,7 @@ import { Command } from "../../base.js"
 import { handleBulkOperationResult, noApiMsg, readInputKeyValueResources } from "../helpers.js"
 import type { Log } from "../../../logger/log-entry.js"
 import type { BulkCreateSecretRequest, BulkUpdateSecretRequest, Secret, SecretResult } from "./secret-helpers.js"
+import { makeSecretFromResponse } from "./secret-helpers.js"
 import { updateSecrets } from "./secret-helpers.js"
 import { createSecrets } from "./secret-helpers.js"
 import { fetchAllSecrets, getEnvironmentByNameOrThrow } from "./secret-helpers.js"
@@ -164,7 +165,7 @@ export class SecretsUpdateCommand extends Command<Args, Opts> {
       action: "update",
       resource: "secret",
       errors: [...updateErrors, ...creationErrors],
-      results: [...updateResults, ...creationResults],
+      results: [...updateResults, ...creationResults].map(makeSecretFromResponse),
     })
   }
 }
