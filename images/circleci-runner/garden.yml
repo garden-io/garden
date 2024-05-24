@@ -1,6 +1,12 @@
-kind: Module
+kind: Build
 type: container
 name: circleci-runner
 description: Used for the core pipeline in CircleCI
-image: gardendev/circleci-runner:22.1.0-1
-extraFlags: ["--platform", "linux/amd64"]
+variables:
+  publish: false
+  image_name: gardendev/circleci-runner
+  image_tag: "${var.publish ? var.release_tag : 'dev'}"
+  release_tag: 22.1.0-2
+spec:
+  localId: gardendev/circleci-runner
+  extraFlags: [ "--platform", "linux/amd64", "--tag", "${var.image_name}:${var.image_tag}", "--push" ]

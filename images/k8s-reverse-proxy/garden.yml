@@ -1,7 +1,13 @@
-kind: Module
+kind: Build
 type: container
 name: k8s-reverse-proxy
 description: Used in local deployment mode as a reversed proxy in k8s cluster to replace an actual service and to route its traffic to a local service.
-image: gardendev/k8s-reverse-proxy:0.1.0
-dockerfile: Dockerfile
-extraFlags: [ "--platform", "linux/amd64" ]
+variables:
+  publish: false
+  image_name: gardendev/k8s-reverse-proxy
+  image_tag: "${var.publish ? var.release_tag : 'dev'}"
+  release_tag: 0.1.1
+spec:
+  localId: ${var.image_name}
+  dockerfile: Dockerfile
+  extraFlags: [ "--platform", "linux/amd64,linux/arm64", "--tag", "${var.image_name}:${var.image_tag}", "--push" ]
