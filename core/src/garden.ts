@@ -1022,6 +1022,10 @@ export class Garden {
     const resolvedProviders = await this.resolveProviders({ log, forceInit: false, statusOnly })
     const rawModuleConfigs = await this.getRawModuleConfigs()
 
+    if (actionsFilter) {
+      log.debug(`Partial resolution enabled for actions: ${actionsFilter.join(", ")}`)
+    }
+
     const graphLog = log.createLog({ name: "graph", showDuration: true }).info(`Resolving actions and modules...`)
 
     // Resolve the project module configs
