@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { waitForResources } from "../status/status.js"
+import { checkResourceStatuses, waitForResources } from "../status/status.js"
 import { helm } from "./helm-cli.js"
 import type { HelmGardenMetadataConfigMapData } from "./common.js"
 import { filterManifests, getReleaseName, getValueArgs, prepareManifests, prepareTemplates } from "./common.js"
@@ -17,7 +17,6 @@ import { getForwardablePorts, killPortForwards } from "../port-forward.js"
 import { getActionNamespace, getActionNamespaceStatus } from "../namespace.js"
 import { configureSyncMode } from "../sync.js"
 import { KubeApi } from "../api.js"
-import type { ConfiguredLocalMode } from "../local-mode.js"
 import { configureLocalMode, startServiceInLocalMode } from "../local-mode.js"
 import type { DeployActionHandler } from "../../../plugin/action-types.js"
 import type { HelmDeployAction } from "./config.js"
@@ -25,6 +24,7 @@ import { isEmpty } from "lodash-es"
 import { getK8sIngresses } from "../status/ingress.js"
 import { toGardenError } from "../../../exceptions.js"
 import { upsertConfigMap } from "../util.js"
+import type { SyncableResource } from "../types.js"
 
 export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async (params) => {
   const { ctx, action, log, force } = params
@@ -54,6 +54,7 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
 
   const timeout = action.getConfig("timeout")
   const commonArgs = [
+    "--wait",
     "--namespace",
     namespace,
     "--timeout",
@@ -62,7 +63,7 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
   ]
 
   if (spec.atomic) {
-    // Make sure chart gets purged if it fails to install
+    // Make sure chart gets purged if it fails to install. Note: --atomic implies --wait.
     commonArgs.push("--atomic")
   }
 
@@ -131,41 +132,50 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
   // Because we need to modify the Deployment, and because there is currently no reliable way to do that before
   // installing/upgrading via Helm, we need to separately update the target here for sync-mode/local-mode.
   // Local mode always takes precedence over sync mode.
-  let configuredLocalMode: ConfiguredLocalMode | undefined = undefined
+  let deployedWithLocalMode = false
+  let updatedManifests: SyncableResource[] = []
   if (mode === "local" && spec.localMode && !isEmpty(spec.localMode)) {
-    configuredLocalMode = await configureLocalMode({
-      ctx,
-      spec: spec.localMode,
-      defaultTarget: spec.defaultTarget,
-      manifests,
-      action,
-      log,
-    })
-    await apply({ log, ctx, api, provider, manifests: configuredLocalMode.updated, namespace })
+    updatedManifests = (
+      await configureLocalMode({
+        ctx,
+        spec: spec.localMode,
+        defaultTarget: spec.defaultTarget,
+        manifests,
+        action,
+        log,
+      })
+    ).updated
+    await apply({ log, ctx, api, provider, manifests: updatedManifests, namespace })
+    deployedWithLocalMode = true
   } else if (mode === "sync" && spec.sync && !isEmpty(spec.sync)) {
-    const configured = await configureSyncMode({
-      ctx,
-      log,
-      provider,
-      action,
-      defaultTarget: spec.defaultTarget,
-      manifests,
-      spec: spec.sync,
-    })
-    await apply({ log, ctx, api, provider, manifests: configured.updated, namespace })
+    updatedManifests = (
+      await configureSyncMode({
+        ctx,
+        log,
+        provider,
+        action,
+        defaultTarget: spec.defaultTarget,
+        manifests,
+        spec: spec.sync,
+      })
+    ).updated
+    await apply({ log, ctx, api, provider, manifests: updatedManifests, namespace })
   }
 
-  // FIXME: we should get these objects from the cluster, and not from the local `helm template` command, because
-  // they may be legitimately inconsistent.
-  const statuses = await waitForResources({
-    namespace,
-    ctx,
-    provider,
-    actionName: action.key(),
-    resources: manifests,
-    log,
-    timeoutSec: timeout,
-  })
+  // FIXME: we should get these resources from the cluster, and not use the manifests from the local `helm template`
+  // command, because they may be legitimately inconsistent.
+  if (updatedManifests.length) {
+    await waitForResources({
+      namespace,
+      ctx,
+      provider,
+      actionName: action.key(),
+      resources: updatedManifests, // We only wait for manifests updated for local / sync mode.
+      log,
+      timeoutSec: timeout,
+    })
+  }
+  const statuses = await checkResourceStatuses({ api, namespace, manifests, log })
 
   const forwardablePorts = getForwardablePorts({ resources: manifests, parentAction: action, mode })
 
@@ -173,11 +183,11 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
   killPortForwards(action, forwardablePorts || [], log)
 
   // Local mode always takes precedence over sync mode.
-  if (mode === "local" && spec.localMode && configuredLocalMode && configuredLocalMode.updated?.length) {
+  if (mode === "local" && spec.localMode && deployedWithLocalMode && updatedManifests.length) {
     await startServiceInLocalMode({
       ctx,
       spec: spec.localMode,
-      targetResource: configuredLocalMode.updated[0],
+      targetResource: updatedManifests[0],
       manifests,
       action,
       namespace,
