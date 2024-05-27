@@ -166,13 +166,19 @@ const objHandlers: { [kind: string]: StatusHandler } = {
 /**
  * Check if the specified Kubernetes objects are deployed and fully rolled out
  */
-export async function checkResourceStatuses(
-  api: KubeApi,
-  namespace: string,
-  manifests: KubernetesResource[],
-  log: Log,
+export async function checkResourceStatuses({
+  api,
+  namespace,
+  manifests,
+  log,
+  waitForJobs,
+}: {
+  api: KubeApi
+  namespace: string
+  manifests: KubernetesResource[]
+  log: Log
   waitForJobs?: boolean
-): Promise<ResourceStatus[]> {
+}): Promise<ResourceStatus[]> {
   return Promise.all(
     manifests.map(async (manifest) => {
       return checkResourceStatus({ api, namespace, manifest, log, waitForJobs })
@@ -310,7 +316,13 @@ export async function waitForResources({
     await sleep(2000 + 500 * loops)
     loops += 1
 
-    const statuses = await checkResourceStatuses(api, namespace, Object.values(pendingResources), log, waitForJobs)
+    const statuses = await checkResourceStatuses({
+      api,
+      namespace,
+      manifests: Object.values(pendingResources),
+      log,
+      waitForJobs,
+    })
 
     for (const status of statuses) {
       const key = getResourceKey(status.resource)
