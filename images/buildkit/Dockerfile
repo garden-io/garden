@@ -1,22 +1,32 @@
-FROM moby/buildkit:v0.12.2@sha256:8ea9857f95c2a0402c245bb0e94f36e2b5b4a1cb05e7ed322c213ed50607ce62 as buildkit
+FROM moby/buildkit:v0.13.2@sha256:9194b5ec1be368f41c516df7f93f7f540630ea06136056b2ffebb62226ed4ad6 as buildkit
 
 RUN apk add --no-cache wget
 
+ARG TARGETARCH
 # ECR credential helper
 RUN cd /usr/local/bin && \
-  wget https://amazon-ecr-credential-helper-releases.s3.us-east-2.amazonaws.com/0.6.0/linux-amd64/docker-credential-ecr-login && \
-  echo "af805202cb5d627dde2e6d4be1f519b195fd5a3a35ddc88d5010b4a4e5a98dd8  docker-credential-ecr-login" | sha256sum -c && \
+  wget https://amazon-ecr-credential-helper-releases.s3.us-east-2.amazonaws.com/0.8.0/linux-$TARGETARCH/docker-credential-ecr-login && \
+  if [ "$TARGETARCH" = "amd64" ]; then \
+    echo "dcc7ae9915b5d8fa2d9e2b18fc30bab5bfbbce5b82401c7644e6ab97973ac35c  docker-credential-ecr-login" | sha256sum -c; \
+  elif [ "$TARGETARCH" = "arm64" ]; then \
+    echo "d62badea3153688ec5c24f440df9fb84ff4b02c624dff9288967267e7445daa1  docker-credential-ecr-login" | sha256sum -c; \
+  fi && \
   chmod +x docker-credential-ecr-login
 
+ARG TARGETARCH
 # GCR credential helper
 RUN cd /usr/local/bin && \
-  wget "https://github.com/GoogleCloudPlatform/docker-credential-gcr/releases/download/v2.1.14/docker-credential-gcr_linux_amd64-2.1.14.tar.gz" && \
-  echo "81f2d215466ab5bf6a350aadab42b42ad29590d16eab39f28014e4a6563c848a  docker-credential-gcr_linux_amd64-2.1.14.tar.gz" | sha256sum -c && \
-  tar xzf docker-credential-gcr_linux_amd64-2.1.14.tar.gz && \
-  rm docker-credential-gcr_linux_amd64-2.1.14.tar.gz && \
+  wget https://github.com/GoogleCloudPlatform/docker-credential-gcr/releases/download/v2.1.22/docker-credential-gcr_linux_$TARGETARCH-2.1.22.tar.gz && \
+  if [ "$TARGETARCH" = "amd64" ]; then \
+    echo "443e897dc383d69e55e6dbcb13802f4ec88444848612e83f0381df2ddd721694  docker-credential-gcr_linux_$TARGETARCH-2.1.22.tar.gz" | sha256sum -c; \
+  elif [ "$TARGETARCH" = "arm64" ]; then \
+    echo "b607dfb7516dc1ca6a2a05322d938cea58cc5975e2063efc3695ee6ddb2dccc7  docker-credential-gcr_linux_$TARGETARCH-2.1.22.tar.gz" | sha256sum -c; \
+  fi && \
+  tar xzf docker-credential-gcr_linux_$TARGETARCH-2.1.22.tar.gz && \
+  rm docker-credential-gcr_linux_$TARGETARCH-2.1.22.tar.gz && \
   chmod +x docker-credential-gcr
 
-FROM moby/buildkit:v0.12.2-rootless@sha256:0919807170af622451887366c17408dc9a946d04c6fe4fcca3071f9637f8598f as buildkit-rootless
+FROM moby/buildkit:v0.13.2-rootless@sha256:1fa728c7d7e97630ee551a69c7f8672ebdfc859922822ee249cf80ab3ee2ee4c as buildkit-rootless
 
 COPY --from=buildkit /usr/local/bin/docker-credential-ecr-login /usr/local/bin/docker-credential-ecr-login
 COPY --from=buildkit /usr/local/bin/docker-credential-gcr /usr/local/bin/docker-credential-gcr
