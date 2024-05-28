@@ -51,7 +51,7 @@
     "chokidar": "^3.5.3",
     "ci-info": "^4.0.0",
     "cli-highlight": "^2.1.11",
-    "cli-table3": "^0.6.3",
+    "cli-table3": "^0.6.5",
     "cli-truncate": "^4.0.0",
     "cpy": "^11.0.1",
     "cross-spawn": "^7.0.3",
