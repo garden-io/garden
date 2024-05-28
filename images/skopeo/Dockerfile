@@ -15,12 +15,13 @@ RUN cd /usr/local/bin && \
 ARG TARGETARCH
 # GCR credential helper
 RUN cd /usr/local/bin && \
-  wget https://github.com/GoogleCloudPlatform/docker-credential-gcr/releases/download/v2.1.22/docker-credential-gcr_linux_$TARGETARCH-2.1.22.tar.gz && \
+  GCR_HELPER_VERSION="2.1.22" && \
+  wget https://github.com/GoogleCloudPlatform/docker-credential-gcr/releases/download/v${GCR_HELPER_VERSION}/docker-credential-gcr_linux_$TARGETARCH-${GCR_HELPER_VERSION}.tar.gz && \
   if [ "$TARGETARCH" = "amd64" ]; then \
-    echo "443e897dc383d69e55e6dbcb13802f4ec88444848612e83f0381df2ddd721694  docker-credential-gcr_linux_$TARGETARCH-2.1.22.tar.gz" | sha256sum -c; \
+    echo "443e897dc383d69e55e6dbcb13802f4ec88444848612e83f0381df2ddd721694  docker-credential-gcr_linux_$TARGETARCH-${GCR_HELPER_VERSION}.tar.gz" | sha256sum -c; \
   elif [ "$TARGETARCH" = "arm64" ]; then \
-    echo "b607dfb7516dc1ca6a2a05322d938cea58cc5975e2063efc3695ee6ddb2dccc7  docker-credential-gcr_linux_$TARGETARCH-2.1.22.tar.gz" | sha256sum -c; \
+    echo "b607dfb7516dc1ca6a2a05322d938cea58cc5975e2063efc3695ee6ddb2dccc7  docker-credential-gcr_linux_$TARGETARCH-${GCR_HELPER_VERSION}.tar.gz" | sha256sum -c; \
   fi && \
-  tar xzf docker-credential-gcr_linux_$TARGETARCH-2.1.22.tar.gz && \
-  rm docker-credential-gcr_linux_$TARGETARCH-2.1.22.tar.gz && \
+  tar xzf docker-credential-gcr_linux_$TARGETARCH-${GCR_HELPER_VERSION}.tar.gz && \
+  rm docker-credential-gcr_linux_$TARGETARCH-${GCR_HELPER_VERSION}.tar.gz && \
   chmod +x docker-credential-gcr
