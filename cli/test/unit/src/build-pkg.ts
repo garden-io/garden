@@ -42,7 +42,7 @@ describe("build-pkg", () => {
     })
   })
 
-  context("Node binaries", () => {
+  context("Node binaries", async () => {
     const nodeTargetEntries = Object.entries(nodeTargets)
     for (const [key, target] of nodeTargetEntries) {
       const spec = target.spec

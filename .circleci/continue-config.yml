@@ -100,7 +100,7 @@ commands:
       node_version:
         description: The node version to use
         type: string
-        default: v22.1.0
+        default: v22.2.0
     steps:
       # See also https://github.com/CircleCI-Public/node-orb/issues/158#issuecomment-1461095390
       - run: rm -rf ~/.npm ~/.fnm
