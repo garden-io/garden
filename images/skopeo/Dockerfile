@@ -5,13 +5,14 @@ ARG TARGETARCH
 # ECR credential helper
 RUN cd /usr/local/bin && \
   ECR_HELPER_VERSION="0.8.0" && \
-  wget https://amazon-ecr-credential-helper-releases.s3.us-east-2.amazonaws.com/${ECR_HELPER_VERSION}/linux-$TARGETARCH/docker-credential-ecr-login && \
+  ECR_HELPER_DISTR_NAME="docker-credential-ecr-login" && \
+  wget https://amazon-ecr-credential-helper-releases.s3.us-east-2.amazonaws.com/${ECR_HELPER_VERSION}/linux-$TARGETARCH/${ECR_HELPER_DISTR_NAME} && \
   if [ "$TARGETARCH" = "amd64" ]; then \
-    echo "dcc7ae9915b5d8fa2d9e2b18fc30bab5bfbbce5b82401c7644e6ab97973ac35c  docker-credential-ecr-login" | sha256sum -c; \
+    echo "dcc7ae9915b5d8fa2d9e2b18fc30bab5bfbbce5b82401c7644e6ab97973ac35c  ${ECR_HELPER_DISTR_NAME}" | sha256sum -c; \
   elif [ "$TARGETARCH" = "arm64" ]; then \
-    echo "d62badea3153688ec5c24f440df9fb84ff4b02c624dff9288967267e7445daa1  docker-credential-ecr-login" | sha256sum -c; \
+    echo "d62badea3153688ec5c24f440df9fb84ff4b02c624dff9288967267e7445daa1  ${ECR_HELPER_DISTR_NAME}" | sha256sum -c; \
   fi && \
-  chmod +x docker-credential-ecr-login
+  chmod +x ${ECR_HELPER_DISTR_NAME}
 
 ARG TARGETARCH
 # GCR credential helper
