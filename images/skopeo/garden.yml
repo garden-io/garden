@@ -6,7 +6,7 @@ variables:
   publish: false
   image_name: gardendev/skopeo
   image_tag: "${var.publish ? var.release_tag : 'dev'}"
-  release_tag: 1.41.0-5
+  release_tag: 1.41.0-6
 spec:
   localId: ${var.image_name}
   dockerfile: Dockerfile
