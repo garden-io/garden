@@ -35,7 +35,7 @@ export const defaultIngressClass = "nginx"
 export const k8sUtilImageNameLegacy: DockerImageWithDigest =
   "gardendev/k8s-util:0.5.7@sha256:522da245a5e6ae7c711aa94f84fc83f82a8fdffbf6d8bc48f4d80fee0e0e631b"
 export const k8sUtilImageName: DockerImageWithDigest =
-  "gardendev/k8s-util:0.6.0-2@sha256:86fd657c0c7adf92c70ac356b81fad1ce06eebca8f64c7eb0dd85a5bf67bef09"
+  "gardendev/k8s-util:0.6.0-2@sha256:a1d81c49312166a292a4d5262e6006b28c76923b7d56029316cf52b4695a7e88"
 
 export function getK8sUtilImageName(): DockerImageWithDigest {
   return gardenEnv.GARDEN_ENABLE_NEW_SYNC ? k8sUtilImageName : k8sUtilImageNameLegacy
