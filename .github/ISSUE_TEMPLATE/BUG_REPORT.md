@@ -9,7 +9,7 @@ assignees: ''
 
 ## Bug
 
-### Current Behavior
+### Current behavior
 
 <!-- If applicable, add screenshots to help explain your problem. -->
 

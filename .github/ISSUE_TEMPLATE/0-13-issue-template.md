@@ -9,7 +9,7 @@ assignees: ''
 
 ## Garden Bonsai (0.13) Bug
 
-### Current Behavior
+### Current behavior
 
 <!-- If applicable, add screenshots to help explain your problem. -->
 
