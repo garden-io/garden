@@ -6,7 +6,7 @@ variables:
   publish: false
   image_name: gardendev/k8s-sync
   image_tag: "${var.publish ? var.release_tag : 'dev'}"
-  release_tag: 0.2.0-1 # Starting from version 0.2.0 Garden uses original Mutagen binaries instead of own fork.
+  release_tag: 0.2.0-2 # Starting from version 0.2.0 Garden uses original Mutagen binaries instead of own fork.
 spec:
   localId: ${var.image_name}
   dockerfile: Dockerfile
