@@ -6,7 +6,7 @@ variables:
   publish: false
   image_name: gardendev/circleci-runner
   image_tag: "${var.publish ? var.release_tag : 'dev'}"
-  release_tag: 22.1.0-2
+  release_tag: 22.2.0-0
 spec:
   localId: gardendev/circleci-runner
   extraFlags: [ "--platform", "linux/amd64", "--tag", "${var.image_name}:${var.image_tag}", "--push" ]
