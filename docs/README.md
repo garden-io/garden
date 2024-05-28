@@ -200,19 +200,13 @@
   * [`templated`](./reference/module-types/templated.md)
   * [`terraform`](./reference/module-types/terraform.md)
 
-## 🌸 Garden Seeds
-
-* [About](./garden-seeds/about.md)
-* [Languages](./garden-seeds/languages/README.md)
-  * [Go 🌸](./garden-seeds/languages/go.md)
-
-## 🌳 Misc
+## 🌸 Misc
 
 * [FAQ](./misc/faq.md)
 * [Troubleshooting](./misc/troubleshooting.md)
 * [Telemetry](./misc/telemetry.md)
 
-## 🌻 Contributing to Garden
+## 🌳 Contributing to Garden
 
 * [Contributor Covenant Code of Conduct](./contributing/CODE_OF_CONDUCT.md)
 * [Contributing to the Docs](./contributing/contributing-docs.md)
