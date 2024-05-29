@@ -386,6 +386,11 @@ export class ModuleResolver {
       }
     }
 
+    // Clean up after our little hack
+    for (const config of Object.values(this.rawConfigsByKey)) {
+      delete config["_templateDeps"]
+    }
+
     return { skipped, resolvedModules: Object.values(resolvedModules), resolvedConfigs: Object.values(resolvedConfigs) }
   }
 
@@ -431,10 +436,17 @@ export class ModuleResolver {
       return true
     }
 
-    // Is it depended on (at the module level) by something set in the filter?
+    // Is it depended on (at the module level) by something set in the filter or in a template string?
     const dependantKeys = fullGraph.dependantsOf(config.name)
     for (const key of dependantKeys) {
-      if (this.matchFilter(`build.${key}`, actionsFilter)) {
+      const dep = this.rawConfigsByKey[key]
+      if (!dep) {
+        continue
+      }
+      if (dep["_templateDeps"]?.includes(config.name)) {
+        return true
+      }
+      if (this.moduleMatchesFilter(dep, actionsFilter)) {
         return true
       }
     }
@@ -470,17 +482,17 @@ export class ModuleResolver {
       return true
     }
 
-    for (const s of config.serviceConfigs) {
+    for (const s of getServiceNames(config)) {
       if (match(`deploy.${s}`)) {
         return true
       }
     }
-    for (const t of config.taskConfigs) {
+    for (const t of getTaskNames(config)) {
       if (match(`run.${t}`)) {
         return true
       }
     }
-    for (const t of config.testConfigs) {
+    for (const t of getTestNames(config)) {
       if (match(`test.${config.name}-${t}`)) {
         return true
       }
@@ -515,6 +527,10 @@ export class ModuleResolver {
 
     const templateRefs = getModuleTemplateReferences(rawConfig, configContext)
     const templateDeps = <string[]>templateRefs.filter((d) => d[1] !== rawConfig.name).map((d) => d[1])
+
+    // This is a bit of a hack, but we need to store the template dependencies on the raw config so we can check
+    // them later when deciding whether to resolve a module inline or not.
+    rawConfig["_templateDeps"] = templateDeps
 
     // Try resolving template strings if possible
     let buildDeps: string[] = []
@@ -745,6 +761,8 @@ export class ModuleResolver {
         })
       }
     }
+
+    delete config["_templateDeps"]
 
     return config
   }
@@ -1229,4 +1247,37 @@ function missingBuildDependency(moduleName: string, dependencyName: string) {
       `Could not find build dependency ${styles.highlight(dependencyName)}, ` +
       `configured in module ${styles.highlight(moduleName)}`,
   })
+}
+
+// We're hardcoding the module types here because the schemas are frozen, so it's an okay shortcut to support
+// partial resolution.
+function getServiceNames(config: ModuleConfig) {
+  const names = config.serviceConfigs.map((s) => s.name)
+  // These all have a services list field
+  if (["container", "jib-container", "exec"].includes(config.type)) {
+    names.push(...(config.spec.services || []).map((s) => s.name).filter(Boolean))
+  }
+  // These all map to a single service
+  if (["helm", "kubernetes", "terraform", "pulumi", "configmap", "persistentvolumeclaim"].includes(config.type)) {
+    names.push(config.name)
+  }
+  return names
+}
+
+function getTaskNames(config: ModuleConfig) {
+  const names = config.taskConfigs.map((t) => t.name)
+  // These all have a tasks list field
+  if (["exec", "kubernetes", "helm", "container", "jib-container"].includes(config.type)) {
+    names.push(...(config.spec.tasks || []).map((t) => t.name).filter(Boolean))
+  }
+  return names
+}
+
+function getTestNames(config: ModuleConfig) {
+  const names = config.testConfigs.map((t) => t.name)
+  // These all have a tests list field
+  if (["exec", "kubernetes", "helm", "container", "jib-container"].includes(config.type)) {
+    names.push(...(config.spec.tests || []).map((t) => config.name + "-" + t.name).filter(Boolean))
+  }
+  return names
 }
