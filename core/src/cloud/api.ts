@@ -947,7 +947,7 @@ export class CloudApi {
         if (err.response.statusCode === 409) {
           errors.push({
             identifier: name,
-            message: err.message,
+            message: "Secret already exists",
           })
         } else {
           throw err
