@@ -6,7 +6,7 @@ variables:
   publish: false
   image_name: gardendev/buildkit
   image_tag: "${var.publish ? var.release_tag : 'dev'}"
-  release_tag: v0.12.2-3
+  release_tag: v0.13.2
 spec:
   localId: ${var.image_name}
   dockerfile: Dockerfile
@@ -23,7 +23,7 @@ variables:
   publish: false
   image_name: gardendev/buildkit
   image_tag: "${var.publish ? var.release_tag : 'dev'}"
-  release_tag: v0.12.2-2-rootless
+  release_tag: v0.13.2-rootless
 spec:
   localId: ${var.image_name}
   dockerfile: Dockerfile
