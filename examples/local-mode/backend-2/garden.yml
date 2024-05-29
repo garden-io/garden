@@ -4,21 +4,25 @@ description: Backend 2 service container image
 type: container
 
 ---
+
 kind: Deploy
 name: backend-2
 description: Backend 2 service container
 type: container
-dependencies:
-  - build.backend-2
-  - "${this.mode == 'local' ? ['run.build-backend-local-2'] : []}"
+
+dependencies: "${this.mode == 'local' ? ['run.build-backend-local-2'] : ['build.backend-2']}"
+
 variables:
   ingressPath: /hello-backend-2
+
 spec:
+  image: ${actions.build.backend-2.outputs.deploymentImageId}
   localMode:
     ports:
       - remote: 8081
         local: 8091
-    command: ["../backend-local-2/main"]
+    # starts the local application
+    command: [ "../backend-local-2/main" ]
   healthCheck:
     httpGet:
       path: ${var.ingressPath}
@@ -30,4 +34,3 @@ spec:
   ingresses:
     - path: ${var.ingressPath}
       port: http
-  image: ${actions.build.backend-2.outputs.deploymentImageId}
