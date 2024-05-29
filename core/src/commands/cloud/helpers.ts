@@ -70,7 +70,7 @@ export function handleBulkOperationResult<T>({
           ? `with ID ${e.identifier} `
           : e.identifier === ""
             ? ""
-            : `"${e.identifier} "`
+            : `"${e.identifier}" `
         return `→ ${capitalize(actionVerb)} ${resource} ${identifier}failed with error: ${e.message}`
       })
       .join("\n")

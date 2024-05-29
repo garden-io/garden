@@ -42,7 +42,7 @@ import { LogLevel } from "../logger/logger.js"
 import { makeAuthHeader } from "./auth.js"
 import type { StringMap } from "../config/common.js"
 import { styles } from "../logger/styles.js"
-import { RequestError } from "got"
+import { HTTPError, RequestError } from "got"
 import type { Garden } from "../garden.js"
 import type { ApiCommandError } from "../commands/cloud/helpers.js"
 import { enumerate } from "../util/enumerate.js"
@@ -939,13 +939,19 @@ export class CloudApi {
         const res = await this.createSecret(body)
         results.push(res.data)
       } catch (err) {
-        if (!(err instanceof GardenError)) {
+        if (!(err instanceof HTTPError)) {
           throw err
         }
-        errors.push({
-          identifier: name,
-          message: err.message,
-        })
+
+        // skip already existing secret and continue the loop
+        if (err.response.statusCode === 409) {
+          errors.push({
+            identifier: name,
+            message: "Secret already exists",
+          })
+        } else {
+          throw err
+        }
       }
     }
 
