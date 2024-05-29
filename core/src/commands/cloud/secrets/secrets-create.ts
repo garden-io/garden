@@ -20,8 +20,8 @@ import { getEnvironmentByNameOrThrow } from "./secret-helpers.js"
 export const secretsCreateArgs = {
   secrets: new StringsParameter({
     help: deline`The names and values of the secrets to create, separated by '='.
-      You may specify multiple secret name/value pairs, separated by spaces. Note
-      that you can also leave this empty and have Garden read the secrets from file.`,
+      You may specify multiple secret name/value pairs, separated by spaces.
+      Note that you can also leave this empty and have Garden read the secrets from file.`,
     spread: true,
   }),
 }
