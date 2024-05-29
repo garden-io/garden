@@ -490,14 +490,14 @@ Examples:
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `secretNamesOrIds` | No | The name(s) or ID(s) of the secrets to update along with the new values, separated by &#x27;&#x3D;&#x27;. You may specify multiple secret id/value pairs, separated by spaces.
+  | `secretNamesOrIds` | No | The names and values of the secrets to update, separated by &#x27;&#x3D;&#x27;. You may specify multiple secret name/value pairs, separated by spaces. You can also pass pairs of secret IDs and values if you use &#x60;--update-by-id&#x60; flag. Note that you can also leave this empty and have Garden read the secrets from file.
 
 #### Options
 
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
-  | `--upsert` |  | boolean | Set this flag to upsert secrets instead of only updating them. It means that the existing secrets will be updated while the missing secrets will be created. This flag works only while updating secrets by name, and has no effect with --update-by-id option.
-  | `--update-by-id` |  | boolean | Update secret(s) by secret ID(s). By default, the command args are considered to be secret name(s). The --upsert flag has no effect with this option.
+  | `--upsert` |  | boolean | Set this flag to upsert secrets instead of only updating them. It means that the existing secrets will be updated while the missing secrets will be created. This flag works only while updating secrets by name, and has no effect with &#x60;--update-by-id&#x60; option.
+  | `--update-by-id` |  | boolean | Update secret(s) by secret ID(s). By default, the command args are considered to be secret name(s). The &#x60;--upsert&#x60; flag has no effect with this option.
   | `--from-file` |  | path | Read the secrets from the file at the given path. The file should have standard &quot;dotenv&quot; format, as defined by [dotenv](https://github.com/motdotla/dotenv#rules).
   | `--scope-to-user-id` |  | string | Update the secret(s) in scope of user with the given user ID. This must be specified if you want to update secrets by name instead of secret ID.
   | `--scope-to-env` |  | string | Update the secret(s) in scope of the specified environment. This must be specified if you want to update secrets by name instead of secret ID.

@@ -23,8 +23,10 @@ import type { BulkCreateSecretRequest, BulkUpdateSecretRequest, CloudApi, Secret
 
 export const secretsUpdateArgs = {
   secretNamesOrIds: new StringsParameter({
-    help: deline`The name(s) or ID(s) of the secrets to update along with the new values, separated by '='.
-      You may specify multiple secret id/value pairs, separated by spaces. `,
+    help: deline`The names and values of the secrets to update, separated by '='.
+      You may specify multiple secret name/value pairs, separated by spaces.
+      You can also pass pairs of secret IDs and values if you use \`--update-by-id\` flag.
+      Note that you can also leave this empty and have Garden read the secrets from file.`,
     spread: true,
   }),
 }
@@ -33,14 +35,14 @@ export const secretsUpdateOpts = {
   "upsert": new BooleanParameter({
     help: deline`Set this flag to upsert secrets instead of only updating them.
     It means that the existing secrets will be updated while the missing secrets will be created.
-    This flag works only while updating secrets by name, and has no effect with --update-by-id option.
+    This flag works only while updating secrets by name, and has no effect with \`--update-by-id\` option.
     `,
     defaultValue: false,
   }),
   "update-by-id": new BooleanParameter({
     help: deline`Update secret(s) by secret ID(s).
     By default, the command args are considered to be secret name(s).
-    The --upsert flag has no effect with this option.
+    The \`--upsert\` flag has no effect with this option.
     `,
     defaultValue: false,
   }),
