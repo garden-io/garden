@@ -30,7 +30,7 @@ parameters:
       docker_layer_caching: true
 
   runner-image: &runner-image
-    image: gardendev/circleci-runner:22.1.0-1@sha256:ce3c5de0ce246daaf66b6e2d2a535cd4f32042fdc52a5c693b2220bef11a2d3c
+    image: gardendev/circleci-runner:22.2.0-0@sha256:8f377efddb7352085b1d485743e33b03ef71d90d614e6a3f737dbb4b35023c9f
 
   # Configuration for our node jobs
   docker-runner: &docker-runner

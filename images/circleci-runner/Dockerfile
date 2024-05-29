@@ -1,11 +1,11 @@
 #### gcloud base image ####
-FROM google/cloud-sdk:411.0.0@sha256:b5c292e4cbf1ff57853a5f48bda5bf1f01c4750bc3d44a36a970e31d5a49bec8 as gcloud
+FROM google/cloud-sdk:477.0.0@sha256:01e38cd50099ff39643f56cb625d902a668d97790a872f3f294996e935899edd as gcloud
 
 #### ghr utility ####
-FROM cibuilds/github:0.12.2@sha256:a247975213771f2f4c61b806771ef6c22b225fdc46558738b7c935517c0dcdd4 AS ghr
+FROM cibuilds/github:0.13.0@sha256:a247975213771f2f4c61b806771ef6c22b225fdc46558738b7c935517c0dcdd4 AS ghr
 
 #### ldid utility ####
-FROM cimg/node:22.1.0@sha256:700d5aaaa00ba98937817a0b682049490af8e4bf4645411279f8f78193265072 as ldid
+FROM cimg/node:22.2.0@sha256:3f6ca5a24d32e5bb54b5ac67b84e90c133242c2428c5aed1b1a8f5e8aaca0132 as ldid
 
 RUN sudo apt-get update && sudo apt-get install -qq -y --no-install-recommends \
   git \
@@ -22,7 +22,7 @@ RUN cd /tmp && \
   sudo cp -f ./ldid /usr/local/bin/ldid
 
 #### main ####
-FROM cimg/node:22.1.0@sha256:700d5aaaa00ba98937817a0b682049490af8e4bf4645411279f8f78193265072
+FROM cimg/node:22.2.0@sha256:3f6ca5a24d32e5bb54b5ac67b84e90c133242c2428c5aed1b1a8f5e8aaca0132
 
 # install system deps
 RUN sudo apt-get update && sudo apt-get -y install rsync parallel python3 curl
