@@ -2,16 +2,15 @@ kind: Deploy
 name: backend
 description: Backend service container
 type: kubernetes
-dependencies:
-  - build.backend-image
-  - "${this.mode == 'local' ? ['run.build-backend-local'] : []}"
+
+dependencies: "${this.mode == 'local' ? ['run.build-backend-local'] : ['build.backend-image']}"
+
 spec:
-  image: ${actions.build.backend-image.outputs.deployment-image-id}
   localMode:
     ports:
       - local: 8090
         remote: 8080
-    command: ["../backend-local/main"]
+    command: [ "../backend-local/main" ]
     target:
       kind: Deployment
       name: backend-deployment
