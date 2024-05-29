@@ -6,10 +6,11 @@ variables:
   publish: false
   image_name: gardendev/buildkit
   image_tag: "${var.publish ? var.release_tag : 'dev'}"
-  release_tag: v0.12.2-2
+  release_tag: v0.13.2
 spec:
   localId: ${var.image_name}
   dockerfile: Dockerfile
+  targetStage: buildkit
   extraFlags: [ "--platform", "linux/amd64,linux/arm64", "--tag", "${var.image_name}:${var.image_tag}", "--push" ]
 ---
 
@@ -22,8 +23,8 @@ dependencies:
 variables:
   publish: false
   image_name: gardendev/buildkit
-  image_tag: "${var.publish ? var.release_tag : 'dev'}"
-  release_tag: v0.12.2-2-rootless
+  image_tag: "${var.publish ? var.release_tag : 'dev-rootless'}"
+  release_tag: v0.13.2-rootless
 spec:
   localId: ${var.image_name}
   dockerfile: Dockerfile
