@@ -31,12 +31,16 @@ export const secretsUpdateArgs = {
 
 export const secretsUpdateOpts = {
   "upsert": new BooleanParameter({
-    help: "Set this flag to upsert secrets instead of updating them. I.e., existing secrets will be updated while missing secrets will be created.",
+    help: deline`Set this flag to upsert secrets instead of only updating them.
+    It means that the existing secrets will be updated while the missing secrets will be created.
+    This flag works only while updating secrets by name, and has no effect with --update-by-id option.
+    `,
     defaultValue: false,
   }),
   "update-by-id": new BooleanParameter({
     help: deline`Update secret(s) by secret ID(s).
-      By default, the command args are considered to be secret name(s).
+    By default, the command args are considered to be secret name(s).
+    The --upsert flag has no effect with this option.
     `,
     defaultValue: false,
   }),
@@ -46,12 +50,12 @@ export const secretsUpdateOpts = {
   }),
   "scope-to-user-id": new StringParameter({
     help: deline`Update the secret(s) in scope of user with the given user ID.
-      This must be specified if you want to update secrets by name instead of secret ID.
+    This must be specified if you want to update secrets by name instead of secret ID.
     `,
   }),
   "scope-to-env": new StringParameter({
     help: deline`Update the secret(s) in scope of the specified environment.
-      This must be specified if you want to update secrets by name instead of secret ID.
+    This must be specified if you want to update secrets by name instead of secret ID.
     `,
   }),
 }
@@ -64,14 +68,23 @@ export class SecretsUpdateCommand extends Command<Args, Opts> {
   help = "Update secrets in Garden Cloud"
   override description = dedent`
     Update secrets in Garden Cloud. You can update the secrets by either specifying secret name or secret ID.
-    When updating by name, the behavior is upsert (existing secrets are updated while missing secrets are created).
 
-    If you have multiple secrets with same name across different environments and users, specify the environment and user id using \`--scope-to-env\` and \`--scope-to-user-id\` flags.
+    By default, the secrets are updated by name instead of secret ID.
 
-    When you want to update the secrets by ID, use the \`--update-by-id\` flag. To get the IDs of the secrets you want to update, run the \`garden cloud secrets list\` command.
+    When updating by name, only the existing secrets are updated by default.
+    The missing ones are skipped and reported as errors at the end of the command execution.
+    This behavior can be customized with the \`--upsert\` flag, so the missing secrets will be created.
+
+    If you have multiple secrets with same name across different environments and users, specify the environment and the user id using \`--scope-to-env\` and \`--scope-to-user-id\` flags.
+    Otherwise, the command will fail with an error.
+
+    To update the secrets by their IDs, use the \`--update-by-id\` flag.
+    To get the IDs of the secrets you want to update, run the \`garden cloud secrets list\` command.
+    The \`--upsert\` flag has no effect if it's used along with the \`--update-by-id\` flag.
 
     Examples:
         garden cloud secrets update MY_SECRET=foo MY_SECRET_2=bar # update two secret values with the given names.
+        garden cloud secrets update MY_SECRET=foo MY_SECRET_2=bar --upsert # update two secret values with the given names and create new ones if any are missing
         garden cloud secrets update MY_SECRET=foo MY_SECRET_2=bar --scope-to-env local --scope-to-user-id <user-id> # update two secret values with the given names for the environment local and specified user id.
         garden cloud secrets update <ID 1>=foo <ID 2>=bar --update-by-id # update two secret values with the given IDs.
   `
