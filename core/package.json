@@ -59,7 +59,7 @@
     "date-fns": "^3.6.0",
     "dedent": "^0.7.0",
     "deline": "^1.0.4",
-    "dependency-graph": "^0.11.0",
+    "dependency-graph": "^1.0.0",
     "directory-tree": "^3.5.1",
     "docker-file-parser": "^1.0.7",
     "dotenv": "^16.4.5",
