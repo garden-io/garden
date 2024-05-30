@@ -208,7 +208,6 @@ export const terraformCliSpecs: { [version: string]: PluginToolSpec } = {
     name: "terraform-1-2-9",
     description: "The terraform CLI, v1.2.9",
     type: "binary",
-    _includeInGardenImage: true,
     builds: [
       {
         platform: "darwin",
@@ -252,9 +251,57 @@ export const terraformCliSpecs: { [version: string]: PluginToolSpec } = {
       },
     ],
   },
+  "1.4.6": {
+    name: "terraform-1-4-6",
+    description: "The terraform CLI, v1.4.6",
+    type: "binary",
+    _includeInGardenImage: true,
+    builds: [
+      {
+        platform: "darwin",
+        architecture: "amd64",
+        url: `https://releases.hashicorp.com/terraform/1.4.6/terraform_1.4.6_darwin_amd64.zip`,
+        sha256: "5d8332994b86411b049391d31ad1a0785dfb470db8b9c50617de28ddb5d1f25d",
+        extract: {
+          format: "zip",
+          targetPath: "terraform",
+        },
+      },
+      {
+        platform: "darwin",
+        architecture: "arm64",
+        url: `https://releases.hashicorp.com/terraform/1.4.6/terraform_1.4.6_darwin_arm64.zip`,
+        sha256: "30a2f87298ff9f299452119bd14afaa8d5b000c572f62fa64baf432e35d9dec1",
+        extract: {
+          format: "zip",
+          targetPath: "terraform",
+        },
+      },
+      {
+        platform: "linux",
+        architecture: "amd64",
+        url: `https://releases.hashicorp.com/terraform/1.4.6/terraform_1.4.6_linux_amd64.zip`,
+        sha256: "e079db1a8945e39b1f8ba4e513946b3ab9f32bd5a2bdf19b9b186d22c5a3d53b",
+        extract: {
+          format: "zip",
+          targetPath: "terraform",
+        },
+      },
+      {
+        platform: "windows",
+        architecture: "amd64",
+        url: `https://releases.hashicorp.com/terraform/1.4.6/terraform_1.4.6_windows_amd64.zip`,
+        sha256: "f666aa1388f94c9b86ea01cb884ba53b9132d2cec3d9cac976ad93a2aba901d5",
+        extract: {
+          format: "zip",
+          targetPath: "terraform.exe",
+        },
+      },
+    ],
+  },
 }
 
 export const supportedVersions = Object.keys(terraformCliSpecs)
 
 // Default to latest Terraform version
-export const defaultTerraformVersion = "1.2.9"
+export const defaultTerraformVersion = "1.4.6"
