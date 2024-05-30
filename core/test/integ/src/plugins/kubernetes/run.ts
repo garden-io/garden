@@ -688,12 +688,10 @@ describe("kubernetes Pod runner functions", () => {
                 value: helmAction.versionString(),
               },
             ],
-            volumeMounts: [],
             command: ["echo", "foo"],
           },
         ],
         imagePullSecrets: [],
-        volumes: [],
       })
     })
 
@@ -743,12 +741,10 @@ describe("kubernetes Pod runner functions", () => {
                 value: helmAction.versionString(),
               },
             ],
-            volumeMounts: [],
             command: ["echo", "foo"],
           },
         ],
         imagePullSecrets: [],
-        volumes: [],
       })
     })
 
@@ -799,13 +795,76 @@ describe("kubernetes Pod runner functions", () => {
                 value: helmAction.versionString(),
               },
             ],
-            volumeMounts: [],
             command: ["echo", "foo"],
           },
         ],
         imagePullSecrets: [],
-        volumes: [],
         shareProcessNamespace: true,
+      })
+    })
+
+    it("should include volume mounts for containers in the generated pod spec", async () => {
+      const volumeMounts = [
+        {
+          name: "some-volume",
+          mountPath: "/some-volume",
+        },
+      ]
+      const helmContainerWithVolumeMounts = {
+        ...helmContainer,
+        volumeMounts,
+      }
+      const generatedPodSpec = await prepareRunPodSpec({
+        podSpec: undefined,
+        getArtifacts: false,
+        api: helmApi,
+        provider: helmProvider,
+        log: helmLog,
+        action: helmAction,
+        args: ["sh", "-c"],
+        command: ["echo", "foo"],
+
+        envVars: {},
+        resources,
+        description: "Helm module",
+        mainContainerName: "main",
+        image: "foo",
+        container: helmContainerWithVolumeMounts,
+        namespace: helmNamespace,
+        // Note: We're not passing the `volumes` param here, since that's for `container` Runs/Tests.
+        // This test case is intended for `kubernetes-pod` Runs and Tests.
+      })
+
+      expect(pruneEmpty(generatedPodSpec)).to.eql({
+        containers: [
+          {
+            name: "main",
+            image: "foo",
+            imagePullPolicy: "IfNotPresent",
+            args: ["sh", "-c"],
+            ports: [
+              {
+                name: "http",
+                containerPort: 80,
+                protocol: "TCP",
+              },
+            ],
+            resources: getResourceRequirements(resources),
+            env: [
+              {
+                name: "GARDEN_ACTION_VERSION",
+                value: helmAction.versionString(),
+              },
+              {
+                name: "GARDEN_MODULE_VERSION",
+                value: helmAction.versionString(),
+              },
+            ],
+            volumeMounts, // <------
+            command: ["echo", "foo"],
+          },
+        ],
+        imagePullSecrets: [],
       })
     })
 
@@ -858,7 +917,6 @@ describe("kubernetes Pod runner functions", () => {
                 value: helmAction.versionString(),
               },
             ],
-            volumeMounts: [],
             command: ["echo", "foo"],
             securityContext: {
               privileged: true,
@@ -870,7 +928,6 @@ describe("kubernetes Pod runner functions", () => {
           },
         ],
         imagePullSecrets: [],
-        volumes: [],
       })
     })
 
@@ -944,12 +1001,10 @@ describe("kubernetes Pod runner functions", () => {
                 value: helmAction.versionString(),
               },
             ],
-            volumeMounts: [],
             command: ["echo", "foo"],
           },
         ],
         imagePullSecrets: [],
-        volumes: [],
       })
     })
 
@@ -1024,12 +1079,10 @@ describe("kubernetes Pod runner functions", () => {
                 value: helmAction.versionString(),
               },
             ],
-            volumeMounts: [],
             command: ["echo", "foo"],
           },
         ],
         imagePullSecrets: [],
-        volumes: [],
       })
     })
   })

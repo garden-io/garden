@@ -303,8 +303,6 @@ export async function prepareRunPodSpec({
       name: mainContainerName,
       image,
       env,
-      // TODO: consider supporting volume mounts in ad-hoc runs (would need specific logic and testing)
-      volumeMounts: [],
     },
   ]
 
@@ -317,7 +315,9 @@ export async function prepareRunPodSpec({
     imagePullSecrets,
   }
 
-  if (volumes) {
+  // This logic is only relevant for `container` Runs and Tests, which need to support mounting `persistentvolumeclaim`
+  // and `configmap` actions (which are only supported for `container` actions, and are currently discouraged).
+  if (volumes && volumes.length && action.type === "container") {
     configureVolumes(action, preparedPodSpec, volumes)
   }
 
