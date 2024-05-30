@@ -16,6 +16,7 @@ import { PathParameter, StringParameter, StringsParameter } from "../../../cli/p
 import type { SecretResult } from "./secret-helpers.js"
 import { makeSecretFromResponse } from "./secret-helpers.js"
 import { getEnvironmentByNameOrThrow } from "./secret-helpers.js"
+import type { Secret } from "../../../cloud/api.js"
 
 export const secretsCreateArgs = {
   secrets: new StringsParameter({
@@ -86,19 +87,19 @@ export class SecretsCreateCommand extends Command<Args, Opts> {
 
     const cmdLog = log.createLog({ name: "secrets-command" })
 
-    const secrets = (
-      await readInputKeyValueResources({
-        resourceFilePath: secretsFilePath,
-        resourcesFromArgs: args.secrets,
-        resourceName: "secret",
-        log: cmdLog,
-      })
-    ).map(([key, value]) => ({ name: key, value }))
+    const inputSecrets = await readInputKeyValueResources({
+      resourceFilePath: secretsFilePath,
+      resourcesFromArgs: args.secrets,
+      resourceName: "secret",
+      log: cmdLog,
+    })
 
     const api = garden.cloudApi
     if (!api) {
       throw new ConfigurationError({ message: noApiMsg("create", "secrets") })
     }
+
+    const secretsToCreate: Secret[] = inputSecrets.map(([key, value]): Secret => ({ name: key, value }))
 
     const project = await api.getProjectByIdOrThrow({
       projectId: garden.projectId,
@@ -118,7 +119,7 @@ export class SecretsCreateCommand extends Command<Args, Opts> {
     }
 
     const { errors, results } = await api.createSecrets({
-      request: { secrets, environmentId, userId, projectId: project.id },
+      request: { secrets: secretsToCreate, environmentId, userId, projectId: project.id },
       log,
     })
 
