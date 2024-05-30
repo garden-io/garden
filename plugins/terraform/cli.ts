@@ -46,43 +46,6 @@ export class GlobalTerraform extends CliWrapper {
 }
 
 export const terraformCliSpecs: { [version: string]: PluginToolSpec } = {
-  "0.12.26": {
-    name: "terraform-0-12-26",
-    description: "The terraform CLI, v0.12.26",
-    type: "binary",
-    builds: [
-      {
-        platform: "darwin",
-        architecture: "amd64",
-        url: "https://releases.hashicorp.com/terraform/0.12.26/terraform_0.12.26_darwin_amd64.zip",
-        sha256: "5dd8deea9060d2d90b748425cde9063620131f02922a993e3d925048375d9b29",
-        extract: {
-          format: "zip",
-          targetPath: "terraform",
-        },
-      },
-      {
-        platform: "linux",
-        architecture: "amd64",
-        url: "https://releases.hashicorp.com/terraform/0.12.26/terraform_0.12.26_linux_amd64.zip",
-        sha256: "607bc802b1c6c2a5e62cc48640f38aaa64bef1501b46f0ae4829feb51594b257",
-        extract: {
-          format: "zip",
-          targetPath: "terraform",
-        },
-      },
-      {
-        platform: "windows",
-        architecture: "amd64",
-        url: "https://releases.hashicorp.com/terraform/0.12.26/terraform_0.12.26_windows_amd64.zip",
-        sha256: "f232bf25dc32e618fbb692b98857d10a84e16e531e9ce5e87e060c1369bde092",
-        extract: {
-          format: "zip",
-          targetPath: "terraform.exe",
-        },
-      },
-    ],
-  },
   "0.13.3": {
     name: "terraform-0-13-3",
     description: "The terraform CLI, v0.13.3",
