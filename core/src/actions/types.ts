@@ -244,7 +244,7 @@ export type OmitInternalConfig<T> = Omit<T, "internal">
 
 export type ActionConfigMapForDump = {
   [K in ActionKind]: {
-    [name: string]: Omit<BaseActionConfig<K>, "internal">
+    [name: string]: OmitInternalConfig<BaseActionConfig<K>>
   }
 }
 
