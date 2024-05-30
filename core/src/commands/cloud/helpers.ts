@@ -166,17 +166,20 @@ export async function readInputKeyValueResources({
 
   // Get input resources from positional arguments in no input file defined.
   if (resourcesFromArgs) {
-    const resourceDictionary = resourcesFromArgs.reduce((acc, keyValPair) => {
-      try {
-        const resourceEntry = dotenv.parse(keyValPair)
-        Object.assign(acc, resourceEntry)
-        return acc
-      } catch (err) {
-        throw new CommandError({
-          message: `Unable to read ${resourceName} from argument ${keyValPair}: ${err}`,
-        })
-      }
-    }, {})
+    const resourceDictionary = resourcesFromArgs.reduce(
+      (acc, keyValPair) => {
+        try {
+          const resourceEntry = dotenv.parse(keyValPair)
+          Object.assign(acc, resourceEntry)
+          return acc
+        } catch (err) {
+          throw new CommandError({
+            message: `Unable to read ${resourceName} from argument ${keyValPair}: ${err}`,
+          })
+        }
+      },
+      {} as Record<string, string>
+    )
     return Object.entries(resourceDictionary)
   }
 
