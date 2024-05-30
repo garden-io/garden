@@ -19,7 +19,13 @@ import type { Log } from "../../../logger/log-entry.js"
 import type { SecretResult } from "./secret-helpers.js"
 import { makeSecretFromResponse } from "./secret-helpers.js"
 import { getEnvironmentByNameOrThrow } from "./secret-helpers.js"
-import type { BulkCreateSecretRequest, BulkUpdateSecretRequest, CloudApi, Secret } from "../../../cloud/api.js"
+import type {
+  BulkCreateSecretRequest,
+  BulkUpdateSecretRequest,
+  CloudApi,
+  Secret,
+  SingleUpdateSecretRequest,
+} from "../../../cloud/api.js"
 
 export const secretsUpdateArgs = {
   secretNamesOrIds: new StringsParameter({
@@ -182,7 +188,7 @@ async function prepareSecretsRequests(params: {
   const allSecrets = await api.fetchAllSecrets(projectId, log)
 
   let secretsToCreate: Secret[]
-  let secretsToUpdate: Array<UpdateSecretBody>
+  let secretsToUpdate: SingleUpdateSecretRequest[]
   if (updateById) {
     if (upsert) {
       log.warn(`Updating secrets by IDs. Flag --upsert has no effect when it's used with --update-by-id.`)
@@ -191,8 +197,17 @@ async function prepareSecretsRequests(params: {
     const inputSecretDict = fromPairs(inputSecrets.map((s) => [s.name, s.value]))
     // update secrets by ids
     secretsToUpdate = sortBy(allSecrets, "name")
-      .filter((secret) => !!inputSecretDict[secret.id])
-      .map((secret) => ({ ...secret, newValue: inputSecrets[secret.id] }))
+      .filter((existingSecret) => !!inputSecretDict[existingSecret.id])
+      .map((existingSecret) => {
+        const updateSecretsPayload: SingleUpdateSecretRequest = {
+          id: existingSecret.id,
+          environmentId: existingSecret.environment?.id,
+          userId: existingSecret.user?.id,
+          name: existingSecret.name,
+          value: inputSecretDict[existingSecret.id],
+        }
+        return updateSecretsPayload
+      })
     secretsToCreate = []
   } else {
     // update secrets by name
@@ -223,8 +238,6 @@ async function prepareSecretsRequests(params: {
   }
 }
 
-export type UpdateSecretBody = CloudApiSecretResult & { newValue: string }
-
 export async function getSecretsToUpdateByName({
   allSecrets,
   environmentName,
@@ -237,7 +250,7 @@ export async function getSecretsToUpdateByName({
   userId?: string
   inputSecrets: Secret[]
   log: Log
-}): Promise<Array<UpdateSecretBody>> {
+}): Promise<SingleUpdateSecretRequest[]> {
   const inputSecretDict = fromPairs(inputSecrets.map((s) => [s.name, s.value]))
 
   const filteredSecrets = sortBy(allSecrets, "name")
@@ -273,10 +286,19 @@ export async function getSecretsToUpdateByName({
     })
   }
 
-  return filteredSecrets.map((secret) => ({ ...secret, newValue: inputSecretDict[secret.name] }))
+  return filteredSecrets.map((existingSecret) => {
+    const updateSecretsPayload: SingleUpdateSecretRequest = {
+      id: existingSecret.id,
+      environmentId: existingSecret.environment?.id,
+      userId: existingSecret.user?.id,
+      name: existingSecret.name,
+      value: inputSecretDict[existingSecret.name],
+    }
+    return updateSecretsPayload
+  })
 }
 
-export function getSecretsToCreate(inputSecrets: Secret[], secretsToUpdate: Array<UpdateSecretBody>): Secret[] {
+export function getSecretsToCreate(inputSecrets: Secret[], secretsToUpdate: SingleUpdateSecretRequest[]): Secret[] {
   const secretToUpdateIds = new Set(secretsToUpdate.map((secret) => secret.name))
   return inputSecrets.filter((inputSecret) => !secretToUpdateIds.has(inputSecret.name))
 }
