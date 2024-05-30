@@ -462,14 +462,23 @@ Examples:
 **Update secrets in Garden Cloud**
 
 Update secrets in Garden Cloud. You can update the secrets by either specifying secret name or secret ID.
-When updating by name, the behavior is upsert (existing secrets are updated while missing secrets are created).
 
-If you have multiple secrets with same name across different environments and users, specify the environment and user id using `--scope-to-env` and `--scope-to-user-id` flags.
+By default, the secrets are updated by name instead of secret ID.
 
-When you want to update the secrets by ID, use the `--update-by-id` flag. To get the IDs of the secrets you want to update, run the `garden cloud secrets list` command.
+When updating by name, only the existing secrets are updated by default.
+The missing ones are skipped and reported as errors at the end of the command execution.
+This behavior can be customized with the `--upsert` flag, so the missing secrets will be created.
+
+If you have multiple secrets with same name across different environments and users, specify the environment and the user id using `--scope-to-env` and `--scope-to-user-id` flags.
+Otherwise, the command will fail with an error.
+
+To update the secrets by their IDs, use the `--update-by-id` flag.
+To get the IDs of the secrets you want to update, run the `garden cloud secrets list` command.
+The `--upsert` flag has no effect if it's used along with the `--update-by-id` flag.
 
 Examples:
     garden cloud secrets update MY_SECRET=foo MY_SECRET_2=bar # update two secret values with the given names.
+    garden cloud secrets update MY_SECRET=foo MY_SECRET_2=bar --upsert # update two secret values with the given names and create new ones if any are missing
     garden cloud secrets update MY_SECRET=foo MY_SECRET_2=bar --scope-to-env local --scope-to-user-id <user-id> # update two secret values with the given names for the environment local and specified user id.
     garden cloud secrets update <ID 1>=foo <ID 2>=bar --update-by-id # update two secret values with the given IDs.
 
@@ -481,14 +490,14 @@ Examples:
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `secretNamesOrIds` | No | The name(s) or ID(s) of the secrets to update along with the new values, separated by &#x27;&#x3D;&#x27;. You may specify multiple secret id/value pairs, separated by spaces.
+  | `secretNamesOrIds` | No | The names and values of the secrets to update, separated by &#x27;&#x3D;&#x27;. You may specify multiple secret name/value pairs, separated by spaces. You can also pass pairs of secret IDs and values if you use &#x60;--update-by-id&#x60; flag. Note that you can also leave this empty and have Garden read the secrets from file.
 
 #### Options
 
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
-  | `--upsert` |  | boolean | Set this flag to upsert secrets instead of updating them. I.e., existing secrets will be updated while missing secrets will be created.
-  | `--update-by-id` |  | boolean | Update secret(s) by secret ID(s). By default, the command args are considered to be secret name(s).
+  | `--upsert` |  | boolean | Set this flag to upsert secrets instead of only updating them. It means that the existing secrets will be updated while the missing secrets will be created. This flag works only while updating secrets by name, and has no effect with &#x60;--update-by-id&#x60; option.
+  | `--update-by-id` |  | boolean | Update secret(s) by secret ID(s). By default, the command args are considered to be secret name(s). The &#x60;--upsert&#x60; flag has no effect with this option.
   | `--from-file` |  | path | Read the secrets from the file at the given path. The file should have standard &quot;dotenv&quot; format, as defined by [dotenv](https://github.com/motdotla/dotenv#rules).
   | `--scope-to-user-id` |  | string | Update the secret(s) in scope of user with the given user ID. This must be specified if you want to update secrets by name instead of secret ID.
   | `--scope-to-env` |  | string | Update the secret(s) in scope of the specified environment. This must be specified if you want to update secrets by name instead of secret ID.
