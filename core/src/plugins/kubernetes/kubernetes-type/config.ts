@@ -114,6 +114,9 @@ export const kubernetesPatchResourcesSchema = () =>
     `
   )
 
+export const kubernetesApplyArgsSchema = () =>
+  joi.array().items(joi.string()).description("Additional arguments to pass to `kubectl apply`.")
+
 export const kubernetesCommonDeploySpecKeys = () => ({
   files: kubernetesFilesSchema(),
   kustomize: kustomizeSpecSchema(),
@@ -122,6 +125,7 @@ export const kubernetesCommonDeploySpecKeys = () => ({
   namespace: namespaceNameSchema(),
   portForwards: portForwardsSchema(),
   timeout: k8sDeploymentTimeoutSchema(),
+  applyArgs: kubernetesApplyArgsSchema(),
   // TODO-0.14: flip this to true and change default behavior to
   // wait for the jobs
   waitForJobs: joi
