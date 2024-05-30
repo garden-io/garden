@@ -15,7 +15,7 @@ import {
 } from "../../../../../../src/commands/cloud/secrets/secrets-update.js"
 import { deline } from "../../../../../../src/util/string.js"
 import { expectError, getDataDir, makeTestGarden } from "../../../../../helpers.js"
-import type { Secret } from "../../../../../../src/cloud/api.js"
+import type { Secret, SingleUpdateSecretRequest } from "../../../../../../src/cloud/api.js"
 
 describe("SecretsUpdateCommand", () => {
   const projectRoot = getDataDir("test-project-b")
@@ -93,7 +93,7 @@ describe("SecretsUpdateCommand", () => {
     const garden = await makeTestGarden(projectRoot)
     const log = garden.log
     const inputSecrets: Secret[] = [{ name: "secret2", value: "foo" }]
-    const actual = await getSecretsToUpdateByName({
+    const actualSecret = await getSecretsToUpdateByName({
       allSecrets,
       environmentName: undefined,
       userId: undefined,
@@ -101,13 +101,15 @@ describe("SecretsUpdateCommand", () => {
       log,
     })
 
-    const expectedSecret = allSecrets.find((a) => a.id === "2")
-    expect(actual).to.eql([
-      {
-        ...expectedSecret,
-        newValue: "foo",
-      },
-    ])
+    const matchingSecret = allSecrets.find((a) => a.id === "2")!
+    const expectedSecret: SingleUpdateSecretRequest = {
+      id: matchingSecret.id,
+      environmentId: matchingSecret.environment?.id,
+      userId: matchingSecret.user?.id,
+      name: matchingSecret.name,
+      value: "foo",
+    }
+    expect(actualSecret).to.eql([expectedSecret])
   })
 
   it(`should throw an error when multiple secrets of same name are found, and user and env scopes are not set`, async () => {
@@ -138,7 +140,7 @@ describe("SecretsUpdateCommand", () => {
     const log = garden.log
     const inputSecrets: Secret[] = [{ name: "secret1", value: "foo" }]
 
-    const actual = await getSecretsToUpdateByName({
+    const actualSecret = await getSecretsToUpdateByName({
       allSecrets,
       environmentName: "env1",
       userId: "u1",
@@ -146,14 +148,15 @@ describe("SecretsUpdateCommand", () => {
       log,
     })
 
-    const expectedSecret = allSecrets.find((a) => a.id === "4")
-
-    expect(actual).to.eql([
-      {
-        ...expectedSecret,
-        newValue: "foo",
-      },
-    ])
+    const matchingSecret = allSecrets.find((a) => a.id === "4")!
+    const expectedSecret: SingleUpdateSecretRequest = {
+      id: matchingSecret.id,
+      environmentId: matchingSecret.environment?.id,
+      userId: matchingSecret.user?.id,
+      name: matchingSecret.name,
+      value: "foo",
+    }
+    expect(actualSecret).to.eql([expectedSecret])
   })
 
   it(`should get correct difference between new secrets and existing secrets for upsert`, async () => {
