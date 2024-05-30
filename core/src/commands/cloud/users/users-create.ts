@@ -10,6 +10,7 @@ import { ConfigurationError, GardenError } from "../../../exceptions.js"
 import type {
   CreateUserBulkRequest,
   CreateUserBulkResponse,
+  UserRequestBulk,
   UserResult as UserResultApi,
 } from "@garden-io/platform-api-types"
 import { printHeader } from "../../../logger/util.js"
@@ -97,11 +98,13 @@ export class UsersCreateCommand extends Command<Args, Opts> {
       throw new ConfigurationError({ message: noApiMsg("create", "users") })
     }
 
-    const usersToCreate = users.map(([vcsUsername, name]) => ({
-      name,
-      vcsUsername,
-      serviceAccount: false,
-    }))
+    const usersToCreate: UserRequestBulk[] = users.map(
+      ([vcsUsername, name]): UserRequestBulk => ({
+        name,
+        vcsUsername,
+        serviceAccount: false,
+      })
+    )
     cmdLog.info("Creating users...")
 
     const batches = chunk(usersToCreate, MAX_USERS_PER_REQUEST)

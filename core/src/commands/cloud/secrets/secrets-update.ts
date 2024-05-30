@@ -120,19 +120,19 @@ export class SecretsUpdateCommand extends Command<Args, Opts> {
 
     const cmdLog = log.createLog({ name: "secrets-command" })
 
-    const inputSecrets: Secret[] = (
-      await readInputKeyValueResources({
-        resourceFilePath: secretsFilePath,
-        resourcesFromArgs: args.secretNamesOrIds,
-        resourceName: "secret",
-        log: cmdLog,
-      })
-    ).map(([key, value]) => ({ name: key, value }))
+    const inputSecrets = await readInputKeyValueResources({
+      resourceFilePath: secretsFilePath,
+      resourcesFromArgs: args.secretNamesOrIds,
+      resourceName: "secret",
+      log: cmdLog,
+    })
 
     const api = garden.cloudApi
     if (!api) {
       throw new ConfigurationError({ message: noApiMsg("update", "secrets") })
     }
+
+    const typedInputSecrets: Secret[] = inputSecrets.map(([key, value]): Secret => ({ name: key, value }))
 
     const project = await api.getProjectByIdOrThrow({
       projectId: garden.projectId,
@@ -145,7 +145,7 @@ export class SecretsUpdateCommand extends Command<Args, Opts> {
       api,
       environmentId,
       environmentName,
-      inputSecrets,
+      inputSecrets: typedInputSecrets,
       log,
       projectId: project.id,
       updateById,
