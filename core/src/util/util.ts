@@ -167,13 +167,13 @@ export function createOutputStream(log: Log, origin?: string) {
 }
 
 function prepareEnv(opts: ExecOpts): NodeJS.ProcessEnv {
-  let envOverride = {}
-  if (getPlatform() === "windows") {
-    envOverride = {
-      // Prevent Windows from adding the current directory to the PATH implicitly.
-      NoDefaultCurrentDirectoryInExePath: "TRUE",
-    }
-  }
+  const envOverride =
+    getPlatform() === "windows"
+      ? {
+          // Prevent Windows from adding the current directory to the PATH implicitly.
+          NoDefaultCurrentDirectoryInExePath: "TRUE",
+        }
+      : {}
 
   return {
     ...envOverride,
