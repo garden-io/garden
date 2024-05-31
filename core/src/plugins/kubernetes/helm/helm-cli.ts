@@ -13,6 +13,8 @@ import type { PluginToolSpec } from "../../../plugin/tools.js"
 import type { Dictionary } from "../../../util/util.js"
 import split2 from "split2"
 import { pickBy } from "lodash-es"
+import { resolve } from "path"
+import { naturalList } from "../../../util/string.js"
 
 export const helmVersion = "3.14.4"
 
@@ -124,14 +126,24 @@ export async function helm({
     }
   })
 
-  return cmd.stdout({
-    log,
-    args: [...opts, ...args],
-    env: envVars,
-    // Helm itself will time out pretty reliably, so we shouldn't time out early on our side.
-    timeoutSec: 3600,
-    cwd,
-    stderr: outputStream,
-    stdout: outputStream,
-  })
+  return cmd
+    .stdout({
+      log,
+      args: [...opts, ...args],
+      env: envVars,
+      // Helm itself will time out pretty reliably, so we shouldn't time out early on our side.
+      timeoutSec: 3600,
+      cwd,
+      stderr: outputStream,
+      stdout: outputStream,
+    })
+    .catch((err) => {
+      // handle special case when `helm install` command fails with confusing error message
+      if (err.message.includes("INSTALLATION FAILED: Chart.yaml file is missing")) {
+        log.warn(
+          `It might be that the Helm chart name defined in the arguments list [${naturalList(args)}] conflicts with one of the directory names in the current working directory: ${cwd || resolve(".")}. Consider renaming the directory with the conflicting name.`
+        )
+      }
+      throw err
+    })
 }
