@@ -10,7 +10,7 @@ import fsExtra from "fs-extra"
 
 const { pathExists, createWriteStream, ensureDir, chmod, remove, move, createReadStream } = fsExtra
 import { InternalError } from "../exceptions.js"
-import { join, dirname, basename, posix } from "path"
+import { join, dirname, basename, posix, resolve } from "path"
 import { getArchitecture, getPlatform, isDarwinARM } from "./arch-platform.js"
 import { hashString, exec } from "./util.js"
 import tar from "tar"
@@ -73,7 +73,7 @@ export abstract class CliWrapper {
       args = []
     }
 
-    log.silly(() => `Execing '${path} ${args!.join(" ")}' in ${cwd}`)
+    log.silly(() => `Execing '${path} ${args!.join(" ")}' in ${cwd || resolve(".")}`)
 
     return exec(path, args, {
       cwd,
