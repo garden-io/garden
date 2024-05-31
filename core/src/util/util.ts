@@ -166,6 +166,21 @@ export function createOutputStream(log: Log, origin?: string) {
   return outputStream
 }
 
+function prepareEnv(opts: ExecOpts): NodeJS.ProcessEnv {
+  let envOverride = {}
+  if (getPlatform() === "windows") {
+    envOverride = {
+      // Prevent Windows from adding the current directory to the PATH implicitly.
+      NoDefaultCurrentDirectoryInExePath: "TRUE",
+    }
+  }
+
+  return {
+    ...envOverride,
+    ...(opts.env || process.env),
+  }
+}
+
 export interface ExecOpts extends ExecaOptions {
   stdout?: Writable
   stderr?: Writable
@@ -181,26 +196,15 @@ export interface ExecOpts extends ExecaOptions {
  * @throws ChildProcessError on any other error condition
  */
 export async function exec(cmd: string, args: string[], opts: ExecOpts = {}) {
-  let envOverride = {}
-  if (getPlatform() === "windows") {
-    envOverride = {
-      // Prevent Windows from adding the current directory to the PATH implicitly.
-      NoDefaultCurrentDirectoryInExePath: "TRUE",
-    }
-  }
-
   opts = {
     cwd: process.cwd(),
     windowsHide: true,
     ...opts,
-    env: {
-      ...envOverride,
-      ...opts.env || process.env,
-    },
+    env: prepareEnv(opts),
     // Ensure buffer is always set to true so that we can read the error output
     // Defaulting cwd to process.cwd() to avoid defaulting to a virtual path after packaging with pkg
     buffer: true,
-    all: true
+    all: true,
   }
 
   const proc = execa(cmd, args, omit(opts, ["stdout", "stderr"]))
