@@ -181,16 +181,26 @@ export interface ExecOpts extends ExecaOptions {
  * @throws ChildProcessError on any other error condition
  */
 export async function exec(cmd: string, args: string[], opts: ExecOpts = {}) {
-  // Ensure buffer is always set to true so that we can read the error output
-  // Defaulting cwd to process.cwd() to avoid defaulting to a virtual path after packaging with pkg
-  opts = { cwd: process.cwd(), windowsHide: true, ...opts, buffer: true, all: true }
-
+  let envOverride = {}
   if (getPlatform() === "windows") {
-    opts.env = {
+    envOverride = {
       // Prevent Windows from adding the current directory to the PATH implicitly.
       NoDefaultCurrentDirectoryInExePath: "TRUE",
-      ...opts.env || process.env,
     }
+  }
+
+  opts = {
+    cwd: process.cwd(),
+    windowsHide: true,
+    ...opts,
+    env: {
+      ...envOverride,
+      ...opts.env || process.env,
+    },
+    // Ensure buffer is always set to true so that we can read the error output
+    // Defaulting cwd to process.cwd() to avoid defaulting to a virtual path after packaging with pkg
+    buffer: true,
+    all: true
   }
 
   const proc = execa(cmd, args, omit(opts, ["stdout", "stderr"]))
