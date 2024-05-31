@@ -166,7 +166,7 @@ export function createOutputStream(log: Log, origin?: string) {
   return outputStream
 }
 
-function prepareEnv(opts: ExecOpts): NodeJS.ProcessEnv {
+function prepareEnv(env: NodeJS.ProcessEnv | undefined): NodeJS.ProcessEnv {
   const envOverride =
     getPlatform() === "windows"
       ? {
@@ -176,7 +176,7 @@ function prepareEnv(opts: ExecOpts): NodeJS.ProcessEnv {
       : {}
 
   return {
-    ...(opts.env || process.env),
+    ...(env || process.env),
     ...envOverride,
   }
 }
@@ -200,7 +200,7 @@ export async function exec(cmd: string, args: string[], opts: ExecOpts = {}) {
     cwd: process.cwd(),
     windowsHide: true,
     ...opts,
-    env: prepareEnv(opts),
+    env: prepareEnv(opts.env),
     // Ensure buffer is always set to true so that we can read the error output
     // Defaulting cwd to process.cwd() to avoid defaulting to a virtual path after packaging with pkg
     buffer: true,
