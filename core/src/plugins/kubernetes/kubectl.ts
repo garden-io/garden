@@ -352,11 +352,11 @@ export function prepareConnectionOpts({
   return opts
 }
 
-export const kubectlVersion = "1.29.4"
+export const kubectlVersion = "1.23.3"
 export const kubectlSpec: PluginToolSpec = {
   name: "kubectl",
   version: kubectlVersion,
-  description: `The official Kubernetes CLI, v${kubectlVersion}`,
+  description: "The official Kubernetes CLI.",
   type: "binary",
   _includeInGardenImage: true,
   builds: [
@@ -364,31 +364,31 @@ export const kubectlSpec: PluginToolSpec = {
       platform: "darwin",
       architecture: "amd64",
       url: `https://storage.googleapis.com/kubernetes-release/release/v${kubectlVersion}/bin/darwin/amd64/kubectl`,
-      sha256: "7af9b8a233c49ad5eecb59004719e0bc07972492b674ebbce2919e53326b55b2",
+      sha256: "ecc91cd2f92184630912f9dcd8c47443b50ebfa4b1da431fb28fa7b462dd70ab",
     },
     {
       platform: "darwin",
       architecture: "arm64",
       url: `https://storage.googleapis.com/kubernetes-release/release/v${kubectlVersion}/bin/darwin/arm64/kubectl`,
-      sha256: "b3a881e6208aa41275a97481676a8c8a3c16282f3cd7b441b17f258a054012f1",
+      sha256: "e43303daa6e99de6e182f0c3b3113e45ea0015bc84abd2485f0dde5770163f63",
     },
     {
       platform: "linux",
       architecture: "amd64",
       url: `https://storage.googleapis.com/kubernetes-release/release/v${kubectlVersion}/bin/linux/amd64/kubectl`,
-      sha256: "10e343861c3cb0010161e703307ba907add2aeeeaffc6444779ad915f9889c88",
+      sha256: "d7da739e4977657a3b3c84962df49493e36b09cc66381a5e36029206dd1e01d0",
     },
     {
       platform: "linux",
       architecture: "arm64",
       url: `https://storage.googleapis.com/kubernetes-release/release/v${kubectlVersion}/bin/linux/arm64/kubectl`,
-      sha256: "61537408eedcad064d7334384aed508a8aa1ea786311b87b505456a2e0535d36",
+      sha256: "6708d7a701b3d9ab3b359c6be27a3012b1c486fa1e81f79e5bdc71ffca2c38f9",
     },
     {
       platform: "windows",
       architecture: "amd64",
       url: `https://storage.googleapis.com/kubernetes-release/release/v${kubectlVersion}/bin/windows/amd64/kubectl.exe`,
-      sha256: "23ea3fce3a784b28e9445c1f813bdcdbd1270f92711f44f6e5772fa2ec2ce238",
+      sha256: "5cd17bfb33c73f1c9ae757e97bf12e686ff3a7707faed6fdc7de2c538429debd",
     },
   ],
 }
