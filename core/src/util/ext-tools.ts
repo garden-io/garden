@@ -7,6 +7,7 @@
  */
 
 import fsExtra from "fs-extra"
+
 const { pathExists, createWriteStream, ensureDir, chmod, remove, move, createReadStream } = fsExtra
 import { InternalError } from "../exceptions.js"
 import { join, dirname, basename, posix } from "path"
@@ -70,9 +71,6 @@ export abstract class CliWrapper {
 
     if (!args) {
       args = []
-    }
-    if (!cwd) {
-      cwd = dirname(path)
     }
 
     log.silly(() => `Execing '${path} ${args!.join(" ")}' in ${cwd}`)
