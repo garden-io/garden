@@ -176,8 +176,8 @@ function prepareEnv(opts: ExecOpts): NodeJS.ProcessEnv {
       : {}
 
   return {
-    ...envOverride,
     ...(opts.env || process.env),
+    ...envOverride,
   }
 }
 
