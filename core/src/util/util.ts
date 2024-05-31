@@ -48,6 +48,7 @@ import type { Options as ExecaOptions } from "execa"
 import { execa } from "execa"
 import corePackageJson from "../../package.json" with { type: "json" }
 import { makeDocsLinkStyled } from "../docs/common.js"
+import { getPlatform } from "./arch-platform.js"
 
 export { apply as jsonMerge } from "json-merge-patch"
 
@@ -183,6 +184,15 @@ export async function exec(cmd: string, args: string[], opts: ExecOpts = {}) {
   // Ensure buffer is always set to true so that we can read the error output
   // Defaulting cwd to process.cwd() to avoid defaulting to a virtual path after packaging with pkg
   opts = { cwd: process.cwd(), windowsHide: true, ...opts, buffer: true, all: true }
+
+  if (getPlatform() === "windows") {
+    opts.env = {
+      // Prevent Windows from adding the current directory to the PATH implicitly.
+      NoDefaultCurrentDirectoryInExePath: "TRUE",
+      ...opts.env || process.env,
+    }
+  }
+
   const proc = execa(cmd, args, omit(opts, ["stdout", "stderr"]))
 
   opts.stdout && proc.stdout && proc.stdout.pipe(opts.stdout)
