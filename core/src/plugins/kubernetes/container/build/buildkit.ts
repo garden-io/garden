@@ -39,7 +39,11 @@ import { prepareSecrets } from "../../secrets"
 import { ContainerModuleOutputs } from "../../../container/container"
 import { stringifyResources } from "../util"
 
-export const buildkitImageName = "gardendev/buildkit:v0.10.5-2"
+export const buildkitImageName =
+  "gardendev/buildkit:v0.13.2@sha256:0b00abd320625674ae158d21bc1828bd4cbc5179bdf699a72381707ec791893e"
+export const buildkitRootlessImageName =
+  "gardendev/buildkit:v0.13.2-rootless@sha256:b6b9c4c48bb9645c3bfa6e9241ac3d963ef607dd6c1ce3ebe1ea725cb5138c16"
+
 export const buildkitDeploymentName = "garden-buildkit"
 const buildkitContainerName = "buildkitd"
 
@@ -452,7 +456,7 @@ export function getBuildkitDeployment(
       "container.apparmor.security.beta.kubernetes.io/buildkitd": "unconfined",
       "container.seccomp.security.alpha.kubernetes.io/buildkitd": "unconfined",
     }
-    buildkitContainer.image += "-rootless"
+    buildkitContainer.image = buildkitRootlessImageName
     buildkitContainer.args = [
       "--addr",
       "unix:///run/user/1000/buildkit/buildkitd.sock",
