@@ -11,6 +11,7 @@ options:
         - fix
         - perf
         - improvement
+        - tool
     sort_by: Scope
   commit_groups:
     group_by: Type
@@ -21,6 +22,7 @@ options:
       perf: Performance Improvements
       improvement: Improvements
       refactor: Code Refactoring
+      tool: Bundled Tool Version Updates
   header:
     pattern: "^(\\w*)(?:\\(([\\w\\$\\.\\-\\*\\s]*)\\))?\\:\\s(.*)$"
     pattern_maps:

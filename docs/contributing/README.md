@@ -66,6 +66,7 @@ We follow the [Conventional Commits specification](https://www.conventionalcommi
 * **style**: Changes that do not affect the meaning of the code (white-space, formatting, missing
   semi-colons, etc).
 * **test**: Adding missing or correcting existing tests.
+* **tool**: A version update for a bundled tool version used by Garden.
 
 When generating the changelog, we only include the following types: **feat**, **fix**, **refactor**, **improvement**, and **perf**. This means that any changes that the user should be aware of, should have one of these types.
 
