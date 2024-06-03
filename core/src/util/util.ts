@@ -294,7 +294,7 @@ export function spawn(cmd: string, args: string[], opts: SpawnOpts = {}) {
   } = opts
 
   const stdio = tty ? "inherit" : "pipe"
-  const proc = _spawn(cmd, args, { cwd, env, stdio, windowsHide: true })
+  const proc = _spawn(cmd, args, { cwd, env: prepareEnv(env), stdio, windowsHide: true })
 
   const result: SpawnOutput = {
     code: 0,
