@@ -48,6 +48,7 @@ import type { Options as ExecaOptions } from "execa"
 import { execa } from "execa"
 import corePackageJson from "../../package.json" with { type: "json" }
 import { makeDocsLinkStyled } from "../docs/common.js"
+import { getPlatform } from "./arch-platform.js"
 
 export { apply as jsonMerge } from "json-merge-patch"
 
@@ -165,6 +166,21 @@ export function createOutputStream(log: Log, origin?: string) {
   return outputStream
 }
 
+function prepareEnv(env: NodeJS.ProcessEnv | undefined): NodeJS.ProcessEnv {
+  const envOverride =
+    getPlatform() === "windows"
+      ? {
+          // Prevent Windows from adding the current directory to the PATH implicitly.
+          NoDefaultCurrentDirectoryInExePath: "TRUE",
+        }
+      : {}
+
+  return {
+    ...(env || process.env),
+    ...envOverride,
+  }
+}
+
 export interface ExecOpts extends ExecaOptions {
   stdout?: Writable
   stderr?: Writable
@@ -180,9 +196,17 @@ export interface ExecOpts extends ExecaOptions {
  * @throws ChildProcessError on any other error condition
  */
 export async function exec(cmd: string, args: string[], opts: ExecOpts = {}) {
-  // Ensure buffer is always set to true so that we can read the error output
-  // Defaulting cwd to process.cwd() to avoid defaulting to a virtual path after packaging with pkg
-  opts = { cwd: process.cwd(), windowsHide: true, ...opts, buffer: true, all: true }
+  opts = {
+    cwd: process.cwd(),
+    windowsHide: true,
+    ...opts,
+    env: prepareEnv(opts.env),
+    // Ensure buffer is always set to true so that we can read the error output
+    // Defaulting cwd to process.cwd() to avoid defaulting to a virtual path after packaging with pkg
+    buffer: true,
+    all: true,
+  }
+
   const proc = execa(cmd, args, omit(opts, ["stdout", "stderr"]))
 
   opts.stdout && proc.stdout && proc.stdout.pipe(opts.stdout)
@@ -270,7 +294,7 @@ export function spawn(cmd: string, args: string[], opts: SpawnOpts = {}) {
   } = opts
 
   const stdio = tty ? "inherit" : "pipe"
-  const proc = _spawn(cmd, args, { cwd, env, stdio, windowsHide: true })
+  const proc = _spawn(cmd, args, { cwd, env: prepareEnv(env), stdio, windowsHide: true })
 
   const result: SpawnOutput = {
     code: 0,
