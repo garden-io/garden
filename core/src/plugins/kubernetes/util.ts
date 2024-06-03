@@ -17,7 +17,7 @@ import { KubernetesResource, KubernetesWorkload, KubernetesPod, KubernetesServer
 import { splitLast, serializeValues, findByName, exec } from "../../util/util"
 import { KubeApi, KubernetesError } from "./api"
 import { gardenAnnotationKey, base64, deline, stableStringify } from "../../util/string"
-import { inClusterRegistryHostname, MAX_CONFIGMAP_DATA_SIZE, systemDockerAuthSecretName } from "./constants"
+import { inClusterRegistryHostname, MAX_CONFIGMAP_DATA_SIZE } from "./constants"
 import { ContainerEnvVars } from "../container/config"
 import { ConfigurationError, DeploymentError, PluginError } from "../../exceptions"
 import { ServiceResourceSpec, KubernetesProvider, KubernetesPluginContext } from "./config"
@@ -32,8 +32,6 @@ import { PodRunner } from "./run"
 import { isSubset } from "../../util/is-subset"
 import { checkPodStatus } from "./status/pod"
 import { getModuleNamespace } from "./namespace"
-
-export const skopeoImage = "gardendev/skopeo:1.41.0-3"
 
 const STATIC_LABEL_REGEX = /[0-9]/g
 export const workloadTypes = ["Deployment", "DaemonSet", "ReplicaSet", "StatefulSet"]
@@ -717,27 +715,7 @@ export function makePodName(type: string, ...parts: string[]) {
 }
 
 /**
- * Creates a skopeo container configuration to be execued by a PodRunner.
- *
- * @param command the skopeo command to execute
- */
-export function getSkopeoContainer(command: string) {
-  return {
-    name: "skopeo",
-    image: skopeoImage,
-    command: ["sh", "-c", command],
-    volumeMounts: [
-      {
-        name: systemDockerAuthSecretName,
-        mountPath: "/root/.docker",
-        readOnly: true,
-      },
-    ],
-  }
-}
-
-/**
- * Given a map of providers, find the kuberetes provider, or one based on it.
+ * Given a map of providers, find the kubernetes provider, or one based on it.
  */
 export function getK8sProvider(providers: ProviderMap): KubernetesProvider {
   if (providers.kubernetes) {
