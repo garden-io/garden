@@ -29,7 +29,6 @@
 
 ### Improvements
 
-* improve cli startup performance using v8 cache ([#6049](https://github.com/garden-io/garden/issues/6049)) ([7d8034b3b](https://github.com/garden-io/garden/commit/7d8034b3b))
 * **cli:** more detailed logging in `cloud secret` commands ([#6065](https://github.com/garden-io/garden/issues/6065)) ([20742f4f1](https://github.com/garden-io/garden/commit/20742f4f1))
 * **helm:** use `--wait` when deploying ([#6078](https://github.com/garden-io/garden/issues/6078)) ([7a68373a1](https://github.com/garden-io/garden/commit/7a68373a1))
 * **k8s:** allow volume mounts in runners ([#6112](https://github.com/garden-io/garden/issues/6112)) ([bac234b59](https://github.com/garden-io/garden/commit/bac234b59))
@@ -37,6 +36,7 @@
 ### Performance Improvements
 
 * **cli:** avoid unnecessary module resolution when filtering by name ([#6002](https://github.com/garden-io/garden/issues/6002)) ([86c885f42](https://github.com/garden-io/garden/commit/86c885f42))
+* **cli:** improve cli startup performance using v8 cache ([#6049](https://github.com/garden-io/garden/issues/6049)) ([7d8034b3b](https://github.com/garden-io/garden/commit/7d8034b3b))
 
 <a name="0.13.30"></a>
 ## [0.13.30](https://github.com/garden-io/garden/compare/0.13.29...0.13.30) (2024-05-07)
