@@ -1,4 +1,43 @@
 
+<a name="0.13.31"></a>
+## [0.13.31](https://github.com/garden-io/garden/compare/0.13.30...0.13.31) (2024-06-03)
+
+### Bug Fixes
+
+* `garden publish` command to respect `publishId` ([#6052](https://github.com/garden-io/garden/issues/6052)) ([e30ab0ba5](https://github.com/garden-io/garden/commit/e30ab0ba5))
+* **actions:** return all outputs of an action as a json string ([#6067](https://github.com/garden-io/garden/issues/6067)) ([7c60c6b1b](https://github.com/garden-io/garden/commit/7c60c6b1b))
+* **commands:** use statusOnly provider resolution for several read-only commands ([#6063](https://github.com/garden-io/garden/issues/6063)) ([c6bc3d788](https://github.com/garden-io/garden/commit/c6bc3d788))
+* **core:** issue with partial module resolution and module templates ([#6073](https://github.com/garden-io/garden/issues/6073)) ([78f4d35e1](https://github.com/garden-io/garden/commit/78f4d35e1))
+* **docs:** actualize `cloud secrets update` command description ([#6104](https://github.com/garden-io/garden/issues/6104)) ([daec250b1](https://github.com/garden-io/garden/commit/daec250b1))
+* **images:** download tools with correct `TARGETARCH` for multi-platforom images ([#6079](https://github.com/garden-io/garden/issues/6079)) ([5a216f9ec](https://github.com/garden-io/garden/commit/5a216f9ec))
+* **k8s:** prevent exec auth script errors on Windows ([#6120](https://github.com/garden-io/garden/issues/6120)) ([066798720](https://github.com/garden-io/garden/commit/066798720))
+* **modules:** another fix for the experimental partial module resolution ([#6105](https://github.com/garden-io/garden/issues/6105)) ([974de64be](https://github.com/garden-io/garden/commit/974de64be))
+* **provider:** allow initialising providers without write ops for validation command ([#6051](https://github.com/garden-io/garden/issues/6051)) ([2321ae8d6](https://github.com/garden-io/garden/commit/2321ae8d6))
+* **secrets:** skip already existing secrets while creating ([#6099](https://github.com/garden-io/garden/issues/6099)) ([65ceb7c0d](https://github.com/garden-io/garden/commit/65ceb7c0d))
+* **terraform:** prevent deadlock by consuming stdout ([#6037](https://github.com/garden-io/garden/issues/6037)) ([3640b4edd](https://github.com/garden-io/garden/commit/3640b4edd))
+
+### Bundled Tool Version Updates
+
+* **helm:** update version to `3.15.1` ([#6123](https://github.com/garden-io/garden/issues/6123)) ([17f5e0cb8](https://github.com/garden-io/garden/commit/17f5e0cb8))
+* **kubectl:** update version to `1.30.1` ([#6122](https://github.com/garden-io/garden/issues/6122)) ([2ece3d194](https://github.com/garden-io/garden/commit/2ece3d194))
+
+### Features
+
+* allow custom args in `kubectl apply` for kubernetes deployments ([#6107](https://github.com/garden-io/garden/issues/6107)) ([85ab8e263](https://github.com/garden-io/garden/commit/85ab8e263))
+* **images:** add multi-platform images for garden deployed services ([#6072](https://github.com/garden-io/garden/issues/6072)) ([76fa956d0](https://github.com/garden-io/garden/commit/76fa956d0))
+* **template:** add date template helper functions ([#5997](https://github.com/garden-io/garden/issues/5997)) ([39d239661](https://github.com/garden-io/garden/commit/39d239661))
+
+### Improvements
+
+* **cli:** more detailed logging in `cloud secret` commands ([#6065](https://github.com/garden-io/garden/issues/6065)) ([20742f4f1](https://github.com/garden-io/garden/commit/20742f4f1))
+* **helm:** use `--wait` when deploying ([#6078](https://github.com/garden-io/garden/issues/6078)) ([7a68373a1](https://github.com/garden-io/garden/commit/7a68373a1))
+* **k8s:** allow volume mounts in runners ([#6112](https://github.com/garden-io/garden/issues/6112)) ([bac234b59](https://github.com/garden-io/garden/commit/bac234b59))
+
+### Performance Improvements
+
+* **cli:** avoid unnecessary module resolution when filtering by name ([#6002](https://github.com/garden-io/garden/issues/6002)) ([86c885f42](https://github.com/garden-io/garden/commit/86c885f42))
+* **cli:** improve cli startup performance using v8 cache ([#6049](https://github.com/garden-io/garden/issues/6049)) ([7d8034b3b](https://github.com/garden-io/garden/commit/7d8034b3b))
+
 <a name="0.13.30"></a>
 ## [0.13.30](https://github.com/garden-io/garden/compare/0.13.29...0.13.30) (2024-05-07)
 
