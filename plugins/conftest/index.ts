@@ -270,7 +270,6 @@ export const gardenPlugin = () =>
         name: "conftest",
         description: "A rego-based configuration validator.",
         type: "binary",
-        _includeInGardenImage: true,
         builds: [
           // this version has no arm support yet. If you add a later release, please add the "arm64" architecture.
           {
