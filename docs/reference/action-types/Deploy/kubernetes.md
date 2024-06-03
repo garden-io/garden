@@ -498,6 +498,16 @@ The maximum duration (in seconds) to wait for resources to deploy and become hea
 | -------- | ------- | -------- |
 | `number` | `300`   | No       |
 
+### `spec.applyArgs[]`
+
+[spec](#spec) > applyArgs
+
+Additional arguments to pass to `kubectl apply`.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
+
 ### `spec.waitForJobs`
 
 [spec](#spec) > waitForJobs

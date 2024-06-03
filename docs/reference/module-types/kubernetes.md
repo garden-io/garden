@@ -258,6 +258,9 @@ portForwards:
 # The maximum duration (in seconds) to wait for resources to deploy and become healthy.
 timeout: 300
 
+# Additional arguments to pass to `kubectl apply`.
+applyArgs:
+
 # Wait until the jobs have been completed. Garden will wait for as long as `timeout`.
 waitForJobs: false
 
@@ -1121,6 +1124,14 @@ The maximum duration (in seconds) to wait for resources to deploy and become hea
 | Type     | Default | Required |
 | -------- | ------- | -------- |
 | `number` | `300`   | No       |
+
+### `applyArgs[]`
+
+Additional arguments to pass to `kubectl apply`.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
 
 ### `waitForJobs`
 

@@ -63,6 +63,7 @@ export interface ApplyParams {
   pruneLabels?: { [label: string]: string }
   validate?: boolean
   retryOpts?: RetryOpts
+  applyArgs?: string[]
 }
 
 export const KUBECTL_DEFAULT_TIMEOUT = 300
@@ -77,6 +78,7 @@ export async function apply({
   namespace,
   pruneLabels,
   validate = true,
+  applyArgs,
 }: ApplyParams) {
   // Hash the raw input and add as an annotation on each manifest (this is helpful beyond kubectl's own annotation,
   // because kubectl applies some normalization/transformation that is sometimes difficult to reason about).
@@ -122,6 +124,7 @@ export async function apply({
   dryRun && args.push("--dry-run")
   args.push("--output=json", "-f", "-")
   !validate && args.push("--validate=false")
+  applyArgs && args.push(...applyArgs)
 
   let result: string
   try {
