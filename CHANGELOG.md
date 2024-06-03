@@ -9,7 +9,7 @@
 * **commands:** use statusOnly provider resolution for several read-only commands ([#6063](https://github.com/garden-io/garden/issues/6063)) ([c6bc3d788](https://github.com/garden-io/garden/commit/c6bc3d788))
 * **core:** issue with partial module resolution and module templates ([#6073](https://github.com/garden-io/garden/issues/6073)) ([78f4d35e1](https://github.com/garden-io/garden/commit/78f4d35e1))
 * **docs:** actualize `cloud secrets update` command description ([#6104](https://github.com/garden-io/garden/issues/6104)) ([daec250b1](https://github.com/garden-io/garden/commit/daec250b1))
-* **images:** download tools with correct TARGETARCH for multi-platfor… ([#6079](https://github.com/garden-io/garden/issues/6079)) ([5a216f9ec](https://github.com/garden-io/garden/commit/5a216f9ec))
+* **images:** download tools with correct `TARGETARCH` for multi-platforom images ([#6079](https://github.com/garden-io/garden/issues/6079)) ([5a216f9ec](https://github.com/garden-io/garden/commit/5a216f9ec))
 * **k8s:** prevent exec auth script errors on Windows ([#6120](https://github.com/garden-io/garden/issues/6120)) ([066798720](https://github.com/garden-io/garden/commit/066798720))
 * **modules:** another fix for the experimental partial module resolution ([#6105](https://github.com/garden-io/garden/issues/6105)) ([974de64be](https://github.com/garden-io/garden/commit/974de64be))
 * **provider:** allow initialising providers without write ops for validation command ([#6051](https://github.com/garden-io/garden/issues/6051)) ([2321ae8d6](https://github.com/garden-io/garden/commit/2321ae8d6))
@@ -31,7 +31,7 @@
 
 * improve cli startup performance using v8 cache ([#6049](https://github.com/garden-io/garden/issues/6049)) ([7d8034b3b](https://github.com/garden-io/garden/commit/7d8034b3b))
 * **cli:** more detailed logging in `cloud secret` commands ([#6065](https://github.com/garden-io/garden/issues/6065)) ([20742f4f1](https://github.com/garden-io/garden/commit/20742f4f1))
-* **helm:** use --wait when deploying ([#6078](https://github.com/garden-io/garden/issues/6078)) ([7a68373a1](https://github.com/garden-io/garden/commit/7a68373a1))
+* **helm:** use `--wait` when deploying ([#6078](https://github.com/garden-io/garden/issues/6078)) ([7a68373a1](https://github.com/garden-io/garden/commit/7a68373a1))
 * **k8s:** allow volume mounts in runners ([#6112](https://github.com/garden-io/garden/issues/6112)) ([bac234b59](https://github.com/garden-io/garden/commit/bac234b59))
 
 ### Performance Improvements
