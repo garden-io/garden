@@ -95,7 +95,6 @@ export const kustomize4Spec: PluginToolSpec = {
   ],
 }
 
-
 export const kustomize5Version = "5.4.2"
 
 export const kustomize5Spec: PluginToolSpec = {
