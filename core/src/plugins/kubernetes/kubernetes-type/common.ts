@@ -346,8 +346,8 @@ async function readKustomizeManifests(
     return []
   }
 
-  const kustomizePath = spec.kustomize!.path
-  const kustomize = ctx.tools["kubernetes.kustomize"]
+  const kustomizePath = spec.kustomize.path
+  const kustomize = ctx.tools["kubernetes.kustomize-" + spec.kustomize.version]
 
   const extraArgs = spec.kustomize.extraArgs || []
 

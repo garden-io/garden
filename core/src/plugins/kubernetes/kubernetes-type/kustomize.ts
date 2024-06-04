@@ -11,6 +11,7 @@ import type { PluginToolSpec } from "../../../plugin/tools.js"
 
 export interface KubernetesKustomizeSpec {
   path: string
+  version: number
   extraArgs?: string[]
 }
 
@@ -25,6 +26,7 @@ export const kustomizeSpecSchema = () =>
         .description(
           "The directory path where the desired kustomization.yaml is, or a git repository URL. This could be the path to an overlay directory, for example. If it's a path, must be a relative POSIX-style path and must be within the action root. Defaults to the action root. If you set this to null, kustomize will not be run."
         ),
+      version: joi.number().integer().valid(4, 5).default(4).description("The Kustomize version to use."),
       extraArgs: joiSparseArray(joi.string()).description(
         "A list of additional arguments to pass to the `kustomize build` command. Note that specifying '-o' or '--output' is not allowed."
       ),
@@ -36,7 +38,7 @@ export const kustomizeSpecSchema = () =>
 export const kustomize4Version = "4.5.7"
 
 export const kustomize4Spec: PluginToolSpec = {
-  name: "kustomize",
+  name: "kustomize-4",
   version: kustomize4Version,
   description: `The kustomize config management CLI, v${kustomize4Version}`,
   type: "binary",
@@ -98,7 +100,7 @@ export const kustomize4Spec: PluginToolSpec = {
 export const kustomize5Version = "5.4.2"
 
 export const kustomize5Spec: PluginToolSpec = {
-  name: "kustomize",
+  name: "kustomize-5",
   version: kustomize5Version,
   description: `The kustomize config management CLI, v${kustomize5Version}`,
   type: "binary",
