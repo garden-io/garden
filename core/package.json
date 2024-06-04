@@ -136,7 +136,7 @@
     "split": "^1.0.1",
     "split2": "^4.1.0",
     "string-argv": "^0.3.2",
-    "string-width": "^7.0.0",
+    "string-width": "^7.1.0",
     "strip-ansi": "^7.1.0",
     "supertest": "^7.0.0",
     "tar": "^6.2.1",
