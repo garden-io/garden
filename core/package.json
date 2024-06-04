@@ -245,7 +245,7 @@
     "timekeeper": "^2.2.0",
     "type-fest": "^4.6.0",
     "typescript": "^5.4.5",
-    "utility-types": "^3.10.0"
+    "utility-types": "^3.11.0"
   },
   "scripts": {
     "build": "mkdir -p build/src/template-string && peggy src/template-string/parser.pegjs --output build/src/template-string/parser.js --format es",
