@@ -8,7 +8,7 @@
 
 import { mutagenCliSpecLegacy, mutagenCliSpecNative, mutagenFauxSshSpec } from "../../../src/mutagen.js"
 import { kubectlSpec } from "../../../src/plugins/kubernetes/kubectl.js"
-import { kustomize4Spec } from "../../../src/plugins/kubernetes/kubernetes-type/kustomize.js"
+import { kustomize4Spec, kustomize5Spec } from "../../../src/plugins/kubernetes/kubernetes-type/kustomize.js"
 import { helm3Spec } from "../../../src/plugins/kubernetes/helm/helm-cli.js"
 import { downloadBinariesAndVerifyHashes } from "../../../src/util/testing.js"
 import { dockerSpec, namespaceCliSpec } from "../../../src/plugins/container/container.js"
@@ -34,7 +34,13 @@ describe("Kubectl binaries", () => {
 })
 
 describe("Kustomize binaries", () => {
-  downloadBinariesAndVerifyHashes([kustomize4Spec])
+  describe("Version 4", () => {
+    downloadBinariesAndVerifyHashes([kustomize4Spec])
+  })
+
+  describe("Version 5", () => {
+    downloadBinariesAndVerifyHashes([kustomize5Spec])
+  })
 })
 
 describe("Helm binaries", () => {

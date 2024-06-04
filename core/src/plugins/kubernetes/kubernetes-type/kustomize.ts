@@ -94,3 +94,66 @@ export const kustomize4Spec: PluginToolSpec = {
     },
   ],
 }
+
+
+export const kustomize5Version = "5.4.2"
+
+export const kustomize5Spec: PluginToolSpec = {
+  name: "kustomize",
+  version: kustomize5Version,
+  description: `The kustomize config management CLI, v${kustomize5Version}`,
+  type: "binary",
+  // _includeInGardenImage: true,
+  builds: [
+    {
+      platform: "darwin",
+      architecture: "amd64",
+      url: `https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv${kustomize5Version}/kustomize_v${kustomize5Version}_darwin_amd64.tar.gz`,
+      sha256: "d1dadf6d51058cdda6470344c95767e1c283cc5a36d5019eb32f8e43e63bd0df",
+      extract: {
+        format: "tar",
+        targetPath: "kustomize",
+      },
+    },
+    {
+      platform: "darwin",
+      architecture: "arm64",
+      url: `https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv${kustomize5Version}/kustomize_v${kustomize5Version}_darwin_arm64.tar.gz`,
+      sha256: "9b7da623cb40542f2dd220fa31d906d9254759b4e27583706e4e846fccba9fab",
+      extract: {
+        format: "tar",
+        targetPath: "kustomize",
+      },
+    },
+    {
+      platform: "linux",
+      architecture: "amd64",
+      url: `https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv${kustomize5Version}/kustomize_v${kustomize5Version}_linux_amd64.tar.gz`,
+      sha256: "881c6e9007c7ea2b9ecc214d13f4cdd1f837635dcf4db49ce4479898f7d911a3",
+      extract: {
+        format: "tar",
+        targetPath: "kustomize",
+      },
+    },
+    {
+      platform: "linux",
+      architecture: "arm64",
+      url: `https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv${kustomize5Version}/kustomize_v${kustomize5Version}_linux_arm64.tar.gz`,
+      sha256: "175af88af8a7d8d7d6b1f26659060950f0764d00b9979b4e11b61b8b212b7c22",
+      extract: {
+        format: "tar",
+        targetPath: "kustomize",
+      },
+    },
+    {
+      platform: "windows",
+      architecture: "amd64",
+      url: `https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv${kustomize5Version}/kustomize_v${kustomize5Version}_windows_amd64.zip`,
+      sha256: "56a91ef90f2f3a9625004a053d002e15039dfe3c6222113d97be9568511a6ae4",
+      extract: {
+        format: "zip",
+        targetPath: "kustomize.exe",
+      },
+    },
+  ],
+}
