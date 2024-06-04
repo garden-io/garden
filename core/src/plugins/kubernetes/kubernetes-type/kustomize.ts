@@ -42,7 +42,6 @@ export const kustomize4Spec: PluginToolSpec = {
   version: kustomize4Version,
   description: `The kustomize config management CLI, v${kustomize4Version}`,
   type: "binary",
-  _includeInGardenImage: true,
   builds: [
     {
       platform: "darwin",
@@ -104,7 +103,7 @@ export const kustomize5Spec: PluginToolSpec = {
   version: kustomize5Version,
   description: `The kustomize config management CLI, v${kustomize5Version}`,
   type: "binary",
-  // _includeInGardenImage: true,
+  _includeInGardenImage: true,
   builds: [
     {
       platform: "darwin",
