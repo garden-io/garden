@@ -72,25 +72,25 @@ function "repository" {
 ##
 
 group "all" {
-  targets = ["buster", "alpine"]
+  targets = ["bookworm", "alpine"]
 }
 
-group "buster" {
+group "bookworm" {
   targets = [
-    # Root buster
-    "buster-base",
-    "buster-aws",
-    "buster-azure",
-    "buster-gcloud",
-    "buster-aws-gcloud",
-    "buster-aws-gcloud-azure",
-    # Rootless buster
-    "buster-rootless",
-    "buster-aws-rootless",
-    "buster-azure-rootless",
-    "buster-gcloud-rootless",
-    "buster-aws-gcloud-rootless",
-    "buster-aws-gcloud-azure-rootless",
+    # Root bookworm
+    "bookworm-base",
+    "bookworm-aws",
+    "bookworm-azure",
+    "bookworm-gcloud",
+    "bookworm-aws-gcloud",
+    "bookworm-aws-gcloud-azure",
+    # Rootless bookworm
+    "bookworm-rootless",
+    "bookworm-aws-rootless",
+    "bookworm-azure-rootless",
+    "bookworm-gcloud-rootless",
+    "bookworm-aws-gcloud-rootless",
+    "bookworm-aws-gcloud-azure-rootless",
   ]
 }
 
@@ -117,12 +117,12 @@ group "alpine" {
 ## Images
 ##
 
-target "buster-base" {
+target "bookworm-base" {
   dockerfile = "../../support/debian.Dockerfile"
   target     = "garden-base"
   platforms  = ["linux/amd64"]
   context    = "dist/linux-amd64"
-  tags       = repository("gardendev/garden", tags("buster"))
+  tags       = repository("gardendev/garden", tags("bookworm"))
 }
 
 target "alpine-base" {
@@ -136,7 +136,7 @@ target "alpine-base" {
 target "aws" {
   name = "${distro}-aws"
   matrix = {
-    distro = ["buster", "alpine"]
+    distro = ["bookworm", "alpine"]
   }
   inherits   = ["${distro}-base"]
   target     = "garden-aws"
@@ -146,7 +146,7 @@ target "aws" {
 target "azure" {
   name = "${distro}-azure"
   matrix = {
-    distro = ["buster", "alpine"]
+    distro = ["bookworm", "alpine"]
   }
   inherits   = ["${distro}-base"]
   target     = "garden-azure"
@@ -156,7 +156,7 @@ target "azure" {
 target "gcloud" {
   name = "${distro}-gcloud"
   matrix = {
-    distro = ["buster", "alpine"]
+    distro = ["bookworm", "alpine"]
   }
   inherits   = ["${distro}-base"]
   target     = "garden-gcloud"
@@ -166,7 +166,7 @@ target "gcloud" {
 target "aws-gcloud" {
   name = "${distro}-aws-gcloud"
   matrix = {
-    distro = ["buster", "alpine"]
+    distro = ["bookworm", "alpine"]
   }
   inherits   = ["${distro}-base"]
   target     = "garden-aws-gcloud"
@@ -176,7 +176,7 @@ target "aws-gcloud" {
 target "aws-gcloud-azure" {
   name = "${distro}-aws-gcloud-azure"
   matrix = {
-    distro = ["buster", "alpine"]
+    distro = ["bookworm", "alpine"]
   }
   inherits   = ["${distro}-base"]
   target     = "garden-aws-gcloud-azure"
@@ -190,7 +190,7 @@ target "aws-gcloud-azure" {
 target "rootless" {
   name = "${distro}-rootless"
   matrix = {
-    distro = ["buster", "alpine"]
+    distro = ["bookworm", "alpine"]
   }
   inherits   = ["${distro}-base"]
   tags     = repository("gardendev/garden", tags("${distro}-rootless"))
@@ -202,7 +202,7 @@ target "rootless" {
 target "aws-rootless" {
   name       = "${distro}-aws-rootless"
   matrix = {
-    distro = ["buster", "alpine"]
+    distro = ["bookworm", "alpine"]
   }
   inherits   = ["${distro}-rootless", "${distro}-aws"]
   tags       = repository("gardendev/garden-aws", tags("${distro}-rootless"))
@@ -211,7 +211,7 @@ target "aws-rootless" {
 target "azure-rootless" {
   name       = "${distro}-azure-rootless"
   matrix = {
-    distro = ["buster", "alpine"]
+    distro = ["bookworm", "alpine"]
   }
   inherits   = ["${distro}-rootless", "${distro}-azure"]
   tags       = repository("gardendev/garden-azure", tags("${distro}-rootless"))
@@ -220,7 +220,7 @@ target "azure-rootless" {
 target "gcloud-rootless" {
   name       = "${distro}-gcloud-rootless"
   matrix = {
-    distro = ["buster", "alpine"]
+    distro = ["bookworm", "alpine"]
   }
   inherits   = ["${distro}-rootless", "${distro}-gcloud"]
   tags       = repository("gardendev/garden-gcloud", tags("${distro}-rootless"))
@@ -229,7 +229,7 @@ target "gcloud-rootless" {
 target "aws-gcloud-rootless" {
   name       = "${distro}-aws-gcloud-rootless"
   matrix = {
-    distro = ["buster", "alpine"]
+    distro = ["bookworm", "alpine"]
   }
   inherits   = ["${distro}-rootless", "${distro}-aws-gcloud"]
   tags       = repository("gardendev/garden-aws-gcloud", tags("${distro}-rootless"))
@@ -238,7 +238,7 @@ target "aws-gcloud-rootless" {
 target "aws-gcloud-azure-rootless" {
   name       = "${distro}-aws-gcloud-azure-rootless"
   matrix = {
-    distro = ["buster", "alpine"]
+    distro = ["bookworm", "alpine"]
   }
   inherits   = ["${distro}-rootless", "${distro}-aws-gcloud-azure"]
   tags       = repository("gardendev/garden-aws-gcloud-azure", tags("${distro}-rootless"))

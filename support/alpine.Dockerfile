@@ -63,10 +63,11 @@ RUN GARDEN_DISABLE_ANALYTICS=true GARDEN_DISABLE_VERSION_CHECK=true garden util 
 
 WORKDIR /project
 
-FROM python:3.11-alpine@sha256:e5d592c422d6e527cb946ae6abb1886c511a5e163d3543865f5a5b9b61c01584 AS aws-builder
+# Apline-3.20 seems to have some issues, see https://github.com/aws/aws-cli/issues/8698#issuecomment-2135662844
+FROM python:3.11.9-alpine3.19@sha256:0b5ed25d3cc27cd35c7b0352bac8ef2ebc8dd3da72a0c03caaf4eb15d9ec827a AS aws-builder
 
-ENV AWSCLI_VERSION=2.13.15
-ENV AWSCLI_SHA256="ac63e8f42c7f8775edccdc004921420159420de9185cf011952dba8fda5895ff"
+ENV AWSCLI_VERSION=2.16.0
+ENV AWSCLI_SHA256="f6e15071a4327e57f0aa2b8f52a35b1378528b72cb68a586302ae7ae97087d05"
 
 RUN apk add --no-cache \
   wget \
@@ -113,10 +114,10 @@ RUN rm -rf $(find /google-cloud-sdk/ -regex ".*/__pycache__") && rm -rf /google-
 FROM garden-base-root as garden-azure-base
 
 WORKDIR /
-ENV AZURE_CLI_VERSION=2.53.0
+ENV AZURE_CLI_VERSION=2.61.0
 
 RUN wget -O requirements.txt https://raw.githubusercontent.com/Azure/azure-cli/azure-cli-$AZURE_CLI_VERSION/src/azure-cli/requirements.py3.Linux.txt && \
-  echo "833a12c837df6b9d8b27abf908073eb2da971c8506d2b112946be4a36e1db7af  requirements.txt" | sha256sum -c
+  echo "8ebbef38b1278448666246483721be61320e244ddfc2edb999b475364591f2eb  requirements.txt" | sha256sum -c
 RUN wget -O trim_sdk.py https://raw.githubusercontent.com/Azure/azure-cli/azure-cli-$AZURE_CLI_VERSION/scripts/trim_sdk.py && \
   echo "2e6292f5285b4fcedbe8efd77309fade550667d1c502a6ffa078f1aa97942c64  trim_sdk.py" | sha256sum -c
 
@@ -174,7 +175,6 @@ ENV CLOUDSDK_PYTHON=python3
 
 COPY --chown=$USER:root --from=gcloud-base /google-cloud-sdk /google-cloud-sdk
 ENV PATH /google-cloud-sdk/bin:$PATH
-
 
 #
 # garden-aws-gloud-azure

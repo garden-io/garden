@@ -70,7 +70,7 @@ TEST "test cloud provider tool availability"
     docker buildx bake --progress=plain -f "$(dirname "$0")/docker-bake.hcl" all
 
   # aws
-  for variant in bonsai{-alpine,-buster}{,-rootless}
+  for variant in bonsai{-alpine,-bookworm}{,-rootless}
     do
     echo "gardendev/garden-aws-gcloud-azure:$variant"
     should_succeed aws --version gardendev/garden-aws-gcloud-azure:$variant
@@ -101,7 +101,7 @@ TEST "run all binaries"
   MAJOR_VERSION=0 MINOR_VERSION=13 PATCH_VERSION=0 CODENAME=bonsai \
     docker buildx bake --progress=plain -f "$(dirname "$0")/docker-bake.hcl" all
 
-  for variant in bonsai{-alpine,-buster}{,-rootless}
+  for variant in bonsai{-alpine,-bookworm}{,-rootless}
     do
     # Garden on vanilla images
     should_succeed garden version gardendev/garden:$variant
@@ -131,17 +131,17 @@ TEST "run all binaries"
 
 TEST "edge tags for debian"
   MAJOR_VERSION=0 MINOR_VERSION=13 PRERELEASE=edge CODENAME=bonsai \
-    docker buildx bake --progress=plain -f "$(dirname "$0")/docker-bake.hcl" buster
+    docker buildx bake --progress=plain -f "$(dirname "$0")/docker-bake.hcl" bookworm
 
   for image in gardendev/garden{,-aws,-azure,-gcloud,-aws-gcloud,-aws-gcloud-azure}
     do
     should_not_exist $image latest
-    should_not_exist $image 0.13-buster
-    should_not_exist $image 0.13-buster-rootless
-    should_exist $image 0.13-edge-buster
-    should_exist $image 0.13-edge-buster-rootless
-    should_exist $image bonsai-edge-buster
-    should_exist $image bonsai-edge-buster-rootless
+    should_not_exist $image 0.13-bookworm
+    should_not_exist $image 0.13-bookworm-rootless
+    should_exist $image 0.13-edge-bookworm
+    should_exist $image 0.13-edge-bookworm-rootless
+    should_exist $image bonsai-edge-bookworm
+    should_exist $image bonsai-edge-bookworm-rootless
   done
 
 TEST "edge tags for alpine"
@@ -161,20 +161,20 @@ TEST "edge tags for alpine"
 
 TEST "prerelase tags for debian"
   MAJOR_VERSION=0 MINOR_VERSION=13 PATCH_VERSION=0 PRERELEASE=alpha1 CODENAME=bonsai \
-    docker buildx bake --progress=plain -f "$(dirname "$0")/docker-bake.hcl" buster
+    docker buildx bake --progress=plain -f "$(dirname "$0")/docker-bake.hcl" bookworm
 
 
   for image in gardendev/garden{,-aws,-azure,-gcloud,-aws-gcloud,-aws-gcloud-azure}
     do
     should_not_exist $image latest
-    should_not_exist $image 0.13-buster
-    should_not_exist $image 0.13-buster-rootless
-    should_not_exist $image 0.13-alpha1-buster
-    should_not_exist $image 0.13-alpha1-buster-rootless
-    should_not_exist $image bonsai-alpha1-buster
-    should_not_exist $image bonsai-alpha1-buster-rootless
-    should_exist gardendev/garden 0.13.0-alpha1-buster
-    should_exist gardendev/garden 0.13.0-alpha1-buster-rootless
+    should_not_exist $image 0.13-bookworm
+    should_not_exist $image 0.13-bookworm-rootless
+    should_not_exist $image 0.13-alpha1-bookworm
+    should_not_exist $image 0.13-alpha1-bookworm-rootless
+    should_not_exist $image bonsai-alpha1-bookworm
+    should_not_exist $image bonsai-alpha1-bookworm-rootless
+    should_exist gardendev/garden 0.13.0-alpha1-bookworm
+    should_exist gardendev/garden 0.13.0-alpha1-bookworm-rootless
   done
 
 TEST "prerelease tags for alpine"
@@ -196,22 +196,22 @@ TEST "prerelease tags for alpine"
 
 TEST "production release tags for debian"
   MAJOR_VERSION=0 MINOR_VERSION=13 PATCH_VERSION=0 CODENAME=bonsai \
-    docker buildx bake --progress=plain -f "$(dirname "$0")/docker-bake.hcl" buster
+    docker buildx bake --progress=plain -f "$(dirname "$0")/docker-bake.hcl" bookworm
 
 
   for image in gardendev/garden{,-aws,-azure,-gcloud,-aws-gcloud,-aws-gcloud-azure}
     do
     should_not_exist $image latest
-    should_exist $image 0.13-buster
-    should_exist $image 0.13-buster-rootless
-    should_exist $image 0.13.0-buster
-    should_exist $image 0.13.0-buster-rootless
-    should_exist $image bonsai-buster
-    should_exist $image bonsai-buster-rootless
-    should_not_exist $image 0.13-edge-buster
-    should_not_exist $image 0.13-edge-buster-rootless
-    should_not_exist $image bonsai-edge-buster
-    should_not_exist $image bonsai-edge-buster-rootless
+    should_exist $image 0.13-bookworm
+    should_exist $image 0.13-bookworm-rootless
+    should_exist $image 0.13.0-bookworm
+    should_exist $image 0.13.0-bookworm-rootless
+    should_exist $image bonsai-bookworm
+    should_exist $image bonsai-bookworm-rootless
+    should_not_exist $image 0.13-edge-bookworm
+    should_not_exist $image 0.13-edge-bookworm-rootless
+    should_not_exist $image bonsai-edge-bookworm
+    should_not_exist $image bonsai-edge-bookworm-rootless
   done
 
 TEST "production release tags for alpine"
