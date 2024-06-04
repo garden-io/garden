@@ -26,7 +26,7 @@ export const kustomizeSpecSchema = () =>
         .description(
           "The directory path where the desired kustomization.yaml is, or a git repository URL. This could be the path to an overlay directory, for example. If it's a path, must be a relative POSIX-style path and must be within the action root. Defaults to the action root. If you set this to null, kustomize will not be run."
         ),
-      version: joi.number().integer().valid(4, 5).default(4).description("The Kustomize version to use."),
+      version: joi.number().integer().valid(4, 5).default(5).description("The Kustomize version to use."),
       extraArgs: joiSparseArray(joi.string()).description(
         "A list of additional arguments to pass to the `kustomize build` command. Note that specifying '-o' or '--output' is not allowed."
       ),
