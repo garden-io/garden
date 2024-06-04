@@ -104,7 +104,7 @@ RUN chmod go+r /etc/apt/keyrings/microsoft.gpg
 RUN echo "deb [arch=`dpkg --print-architecture` signed-by=/etc/apt/keyrings/microsoft.gpg] https://packages.microsoft.com/repos/azure-cli/ $(lsb_release -cs) main" | \
     tee /etc/apt/sources.list.d/azure-cli.list
 RUN apt-get update
-RUN apt-get install azure-cli=${AZURE_CLI_VERSION}-1~buster
+RUN apt-get install azure-cli=${AZURE_CLI_VERSION}-1~bookworm
 RUN az aks install-cli
 
 #
