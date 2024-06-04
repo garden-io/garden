@@ -176,7 +176,6 @@ ENV CLOUDSDK_PYTHON=python3
 COPY --chown=$USER:root --from=gcloud-base /google-cloud-sdk /google-cloud-sdk
 ENV PATH /google-cloud-sdk/bin:$PATH
 
-
 #
 # garden-aws-gloud-azure
 #

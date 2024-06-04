@@ -49,7 +49,6 @@ FROM garden-base-root as garden-base-rootless
 ENV USER=gardenuser
 ENV HOME=/home/gardenuser
 RUN useradd -ms /bin/bash $USER
-
 USER $USER
 
 FROM garden-base-$VARIANT as garden-base
