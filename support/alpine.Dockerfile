@@ -63,7 +63,8 @@ RUN GARDEN_DISABLE_ANALYTICS=true GARDEN_DISABLE_VERSION_CHECK=true garden util 
 
 WORKDIR /project
 
-FROM python:3.11-alpine@sha256:e5d592c422d6e527cb946ae6abb1886c511a5e163d3543865f5a5b9b61c01584 AS aws-builder
+# Apline-3.20 seems to have some issues, see https://github.com/aws/aws-cli/issues/8698#issuecomment-2135662844
+FROM python:3.11.9-alpine3.19@sha256:0b5ed25d3cc27cd35c7b0352bac8ef2ebc8dd3da72a0c03caaf4eb15d9ec827a AS aws-builder
 
 ENV AWSCLI_VERSION=2.13.15
 ENV AWSCLI_SHA256="ac63e8f42c7f8775edccdc004921420159420de9185cf011952dba8fda5895ff"
