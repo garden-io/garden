@@ -186,6 +186,9 @@ kustomize:
   # root. Defaults to the action root. If you set this to null, kustomize will not be run.
   path: .
 
+  # The Kustomize version to use.
+  version: 5
+
   # A list of additional arguments to pass to the `kustomize build` command. Note that specifying '-o' or '--output'
   # is not allowed.
   extraArgs: []
@@ -945,6 +948,16 @@ The directory path where the desired kustomization.yaml is, or a git repository 
 | Type                  | Default | Required |
 | --------------------- | ------- | -------- |
 | `posixPath \| string` | `"."`   | No       |
+
+### `kustomize.version`
+
+[kustomize](#kustomize) > version
+
+The Kustomize version to use.
+
+| Type     | Allowed Values | Default | Required |
+| -------- | -------------- | ------- | -------- |
+| `number` | 4, 5           | `5`     | Yes      |
 
 ### `kustomize.extraArgs[]`
 

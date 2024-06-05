@@ -41,7 +41,7 @@ import {
 import { getHelmDeployDocs, helmDeployDefinition } from "./helm/action.js"
 import { jibContainerHandlers, k8sJibContainerBuildExtension } from "./jib-container.js"
 import { kubernetesDeployDefinition, kubernetesDeployDocs } from "./kubernetes-type/deploy.js"
-import { kustomizeSpec } from "./kubernetes-type/kustomize.js"
+import { kustomize4Spec, kustomize5Spec } from "./kubernetes-type/kustomize.js"
 import { syncPause, syncResume, syncStatus } from "./commands/sync.js"
 import { helmPodRunDefinition, helmPodTestDefinition } from "./helm/helm-pod.js"
 import { kubernetesPodRunDefinition, kubernetesPodTestDefinition } from "./kubernetes-type/kubernetes-pod.js"
@@ -221,6 +221,6 @@ export const gardenPlugin = () => {
         needsBuild: true,
       },
     ],
-    tools: [kubectlSpec, kustomizeSpec, helm3Spec, mutagenCliSpec],
+    tools: [kubectlSpec, kustomize4Spec, kustomize5Spec, helm3Spec, mutagenCliSpec],
   })
 }

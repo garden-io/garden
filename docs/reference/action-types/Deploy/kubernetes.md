@@ -309,6 +309,16 @@ The directory path where the desired kustomization.yaml is, or a git repository 
 | --------------------- | ------- | -------- |
 | `posixPath \| string` | `"."`   | No       |
 
+### `spec.kustomize.version`
+
+[spec](#spec) > [kustomize](#speckustomize) > version
+
+The Kustomize version to use.
+
+| Type     | Allowed Values | Default | Required |
+| -------- | -------------- | ------- | -------- |
+| `number` | 4, 5           | `5`     | Yes      |
+
 ### `spec.kustomize.extraArgs[]`
 
 [spec](#spec) > [kustomize](#speckustomize) > extraArgs
