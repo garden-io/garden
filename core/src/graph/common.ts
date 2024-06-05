@@ -150,10 +150,12 @@ export const mergeVariables = profileAsync(async function mergeVariables({
   basePath,
   variables,
   varfiles,
+  configFilePath,
 }: {
   basePath: string
   variables?: DeepPrimitiveMap
   varfiles?: Varfile[]
+  configFilePath?: string
 }) {
   const varsByFile = await Promise.all(
     (varfiles || []).map((varfile) => {
@@ -163,6 +165,7 @@ export const mergeVariables = profileAsync(async function mergeVariables({
         path,
         defaultPath: undefined,
         optional,
+        configFilePath,
       })
     })
   )

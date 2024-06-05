@@ -162,6 +162,7 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
         basePath: action.sourcePath(),
         variables: config.variables,
         varfiles: config.varfiles,
+        configFilePath: action.getConfig().internal.configFilePath,
       }),
       context: new ActionSpecContext({
         garden: this.garden,

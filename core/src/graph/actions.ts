@@ -460,6 +460,7 @@ async function processActionConfig({
     basePath: config.internal.basePath,
     variables: config.variables,
     varfiles: config.varfiles,
+    configFilePath: config.internal.configFilePath,
   })
 
   // override the variables if there's any matching variables in variable overrides
