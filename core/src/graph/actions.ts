@@ -63,7 +63,7 @@ import { isTruthy, type MaybeUndefined } from "../util/util.js"
 import minimatch from "minimatch"
 import type { ConfigContext } from "../config/template-contexts/base.js"
 import type { LinkedSource, LinkedSourceMap } from "../config-store/local.js"
-import { relative } from "path"
+import { dirname, relative } from "path"
 import { profileAsync } from "../util/profiling.js"
 import { uuidv4 } from "../util/random.js"
 import { getSourcePath } from "../vcs/vcs.js"
@@ -456,11 +456,12 @@ async function processActionConfig({
     config.internal.treeVersion ||
     (await garden.vcs.getTreeVersion({ log, projectName: garden.projectName, config, scanRoot }))
 
+  const basePath = config.internal.configFilePath ? dirname(config.internal.configFilePath) : config.internal.basePath
+
   let variables = await mergeVariables({
-    basePath: config.internal.basePath,
+    basePath,
     variables: config.variables,
     varfiles: config.varfiles,
-    configFilePath: config.internal.configFilePath,
   })
 
   // override the variables if there's any matching variables in variable overrides

@@ -552,22 +552,19 @@ export async function loadVarfile({
   path,
   defaultPath,
   optional = false,
-  configFilePath,
 }: {
   // project root (when resolving project config) or module root (when resolving module config)
   configRoot: string
   path: string | undefined
   defaultPath: string | undefined
   optional?: boolean
-  configFilePath?: string
 }): Promise<PrimitiveMap> {
   if (!path && !defaultPath) {
     throw new ParameterError({
       message: `Neither a path nor a defaultPath was provided. Config root: ${configRoot}`,
     })
   }
-  const configFileDir = configFilePath ? dirname(configFilePath) : configRoot
-  const resolvedPath = resolve(configFileDir, <string>(path || defaultPath))
+  const resolvedPath = resolve(configRoot, <string>(path || defaultPath))
   const exists = await pathExists(resolvedPath)
 
   if (!exists && path && path !== defaultPath && !optional) {

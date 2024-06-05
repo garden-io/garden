@@ -27,6 +27,7 @@ import { mergeVariables } from "../graph/common.js"
 import { actionToResolved } from "../actions/helpers.js"
 import { ResolvedConfigGraph } from "../graph/config-graph.js"
 import { OtelTraced } from "../util/open-telemetry/decorators.js"
+import { dirname } from "node:path"
 
 export interface ResolveActionResults<T extends Action> extends ValidResultType {
   state: ActionState
@@ -157,12 +158,15 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
       })
     }
 
+    const basePath = action.getConfig().internal.configFilePath
+      ? dirname(action.getConfig().internal.configFilePath)
+      : action.sourcePath()
+
     const actionVariables = resolveTemplateStrings({
       value: await mergeVariables({
-        basePath: action.sourcePath(),
+        basePath,
         variables: config.variables,
         varfiles: config.varfiles,
-        configFilePath: action.getConfig().internal.configFilePath,
       }),
       context: new ActionSpecContext({
         garden: this.garden,
