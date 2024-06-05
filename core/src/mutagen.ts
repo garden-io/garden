@@ -904,7 +904,7 @@ export function parseSyncListResult(res: ExecaReturnValue): SyncSession[] {
 }
 
 const mutagenVersionLegacy = "0.15.0"
-const mutagenVersionNative = "0.17.5"
+const mutagenVersionNative = "0.17.6"
 
 export const mutagenVersion = gardenEnv.GARDEN_ENABLE_NEW_SYNC ? mutagenVersionNative : mutagenVersionLegacy
 
@@ -982,7 +982,7 @@ export function mutagenCliSpecNative(): PluginToolSpec {
         platform: "darwin",
         architecture: "amd64",
         url: `https://github.com/mutagen-io/mutagen/releases/download/v${mutagenVersionNative}/mutagen_darwin_amd64_v${mutagenVersionNative}.tar.gz`,
-        sha256: "5b963b3dab36ac8a3d2a87ca162717bf2172fd8ca7410d477a78affd7631a45d",
+        sha256: "f082eef2ae405a6bf5effdbcd000bb5fe2bc7b0968f86b2b54d9d3260c48c739",
         extract: {
           format: "tar",
           targetPath: "mutagen",
@@ -992,7 +992,7 @@ export function mutagenCliSpecNative(): PluginToolSpec {
         platform: "darwin",
         architecture: "arm64",
         url: `https://github.com/mutagen-io/mutagen/releases/download/v${mutagenVersionNative}/mutagen_darwin_arm64_v${mutagenVersionNative}.tar.gz`,
-        sha256: "4dbbbc222a3986705a998343ff23d69e62bfe1c4e341ef9f1cdf39d25a37c324",
+        sha256: "b6c35942ca9cbbbf726bfa249da554d829a8a28cad620a55e02d098d692121d1",
         extract: {
           format: "tar",
           targetPath: "mutagen",
@@ -1002,7 +1002,7 @@ export function mutagenCliSpecNative(): PluginToolSpec {
         platform: "linux",
         architecture: "amd64",
         url: `https://github.com/mutagen-io/mutagen/releases/download/v${mutagenVersionNative}/mutagen_linux_amd64_v${mutagenVersionNative}.tar.gz`,
-        sha256: "cabee0af590faf822cb5542437e254406b0f037df43781c02bf6eeac267911f6",
+        sha256: "1b826e121be59506e133d90dc2b8a0c820b92f480d9b2b230d8b389d6178a6cf",
         extract: {
           format: "tar",
           targetPath: "mutagen",
@@ -1012,7 +1012,7 @@ export function mutagenCliSpecNative(): PluginToolSpec {
         platform: "linux",
         architecture: "arm64",
         url: `https://github.com/mutagen-io/mutagen/releases/download/v${mutagenVersionNative}/mutagen_linux_arm64_v${mutagenVersionNative}.tar.gz`,
-        sha256: "bbe92496c2bad6424a879490ca5b49da36c80e28e7b866201fcaf7a959037237",
+        sha256: "2a383cb572a1bdad83f7c4be3cc4a541a58e6c9e11e326ee4cc2d0e14f9d003a",
         extract: {
           format: "tar",
           targetPath: "mutagen",
@@ -1022,7 +1022,7 @@ export function mutagenCliSpecNative(): PluginToolSpec {
         platform: "windows",
         architecture: "amd64",
         url: `https://github.com/mutagen-io/mutagen/releases/download/v${mutagenVersionNative}/mutagen_windows_amd64_v${mutagenVersionNative}.zip`,
-        sha256: "63ed4b217f798f49039cae5db4b63f592217be5685282e3669a9b6a4ae18cb64",
+        sha256: "3019ccb556afb39cf2213adcacab97576c4419f8d08d3a55d063a5c773ec6d35",
         extract: {
           format: "zip",
           targetPath: "mutagen.exe",
