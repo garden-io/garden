@@ -328,10 +328,25 @@ class _MutagenMonitor extends TypedEventEmitter<MonitorEvents> {
 }
 
 function logMutagenDaemonWarning(log: Log) {
+  const daemonStopCommand = `GARDEN_ENABLE_NEW_SYNC=${!gardenEnv.GARDEN_ENABLE_NEW_SYNC} garden util mutagen daemon stop`
+  const redeploySyncCommand = `GARDEN_ENABLE_NEW_SYNC=${gardenEnv.GARDEN_ENABLE_NEW_SYNC} garden deploy --sync`
+
   log.warn(
-    dedent`
-    It looks like you've changed to a different version of the sync daemon and therefore the sync daemon needs to be restarted.
-    Please see our Troubleshooting docs for instructions on how to restart the daemon for your platform: ${makeDocsLinkStyled("guides/code-synchronization", "#restarting-sync-daemon")}`
+    deline`
+    It looks like you've changed to a different version of the sync daemon.\n
+
+    Therefore the sync daemon needs to be restarted, and the affected deploys must be redeployed.\n
+    Please, stop this command and follow the instructions below.\n
+
+    1. Stop the active sync daemon by running this command ${styles.accent(styles.bold("from the project root directory"))}:\n
+
+    ${styles.command(daemonStopCommand)}\n
+
+    2. Redeploy the affected deploys by running this command (specify the action names if necessary):\n
+
+    ${styles.command(redeploySyncCommand)}\n
+
+    Please see our Troubleshooting docs for more details: ${makeDocsLinkStyled("guides/code-synchronization", "#restarting-sync-daemon")}\n`
   )
 }
 
@@ -538,10 +553,17 @@ export class Mutagen {
             const isMutagenForkError = (error: FailedAttemptError) => {
               const msg = error.message.toLowerCase()
               return (
-                // this happens when switching from the old sync to the new
+                // this happens when switching from the old sync machinery to the new one
                 msg.includes("ssh: could not resolve hostname") ||
                 // this happens in the opposite scenario
-                msg.includes("unknown or unsupported protocol")
+                msg.includes("unknown or unsupported protocol") ||
+                // this happens in any way of changing sync modes and when:
+                // 1. the old sync daemon is stopped
+                // 2. the target deploy action is not redeployed with the new sync machinery,
+                //    and `sync start` command is used
+                msg.includes(
+                  "unable to connect to beta: unable to connect to endpoint: unable to dial agent endpoint: version handshake error: version mismatch"
+                )
               )
             }
 
@@ -686,6 +708,13 @@ export class Mutagen {
           this.log.warn(
             styles.primary(`Could not connect to sync daemon, retrying (attempt ${loops}/${maxRetries})...`)
           )
+          if (loops === 1) {
+            // this happens in any way of changing sync modes and when:
+            // 1. the old sync daemon is stopped
+            // 2. the target deploy action is not redeployed with the new sync machinery,
+            //    and `sync stop` command is used
+            logMutagenDaemonWarning(this.log)
+          }
           await this.ensureDaemonProc()
           await sleep(2000 + loops * 500)
         } else {
