@@ -228,6 +228,10 @@ describe("kaniko build", () => {
       expect(getKanikoFlags(["--myToggle"])).to.deep.equal(["--myToggle", "--cache=true"])
     })
 
+    it("should allow options with dashes", () => {
+      expect(getKanikoFlags(["--my-toggle", "--my-name=banana"])).to.deep.equal(["--my-toggle", "my-name=banana", "--cache=true"])
+    })
+
     it("should throw if a flag is malformed", () => {
       expect(() => getKanikoFlags(["--here=first", "-my-flag"])).to.throw(/Invalid format for a kaniko flag/)
     })
