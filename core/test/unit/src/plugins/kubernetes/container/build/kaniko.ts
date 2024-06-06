@@ -229,7 +229,11 @@ describe("kaniko build", () => {
     })
 
     it("should allow options with dashes", () => {
-      expect(getKanikoFlags(["--my-toggle", "--my-name=banana"])).to.deep.equal(["--my-toggle", "--my-name=banana", "--cache=true"])
+      expect(getKanikoFlags(["--my-toggle", "--my-name=banana"])).to.deep.equal([
+        "--my-toggle",
+        "--my-name=banana",
+        "--cache=true"
+      ])
     })
 
     it("should throw if a flag is malformed", () => {
