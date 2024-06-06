@@ -232,7 +232,7 @@ describe("kaniko build", () => {
       expect(getKanikoFlags(["--my-toggle", "--my-name=banana"])).to.deep.equal([
         "--my-toggle",
         "--my-name=banana",
-        "--cache=true"
+        "--cache=true",
       ])
     })
 
