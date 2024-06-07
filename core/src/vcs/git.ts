@@ -119,23 +119,23 @@ export abstract class AbstractGitHandler extends VcsHandler {
   private readonly repoRoots: Map<string, string>
   protected readonly lock: AsyncLock
 
-  constructor(params: VcsHandlerParams) {
+  protected constructor(params: VcsHandlerParams) {
     super(params)
     this.repoRoots = new Map<string, string>()
     this.lock = new AsyncLock()
   }
 
   async getRepoRoot(log: Log, path: string, failOnPrompt = false): Promise<string> {
-    const repoRoot = this.repoRoots.get(path)
-    if (!!repoRoot) {
-      return repoRoot
+    let cachedRepoRoot = this.repoRoots.get(path)
+    if (!!cachedRepoRoot) {
+      return cachedRepoRoot
     }
 
     // Make sure we're not asking concurrently for the same root
     return this.lock.acquire(`repo-root:${path}`, async () => {
-      const repoRoot = this.repoRoots.get(path)
-      if (!!repoRoot) {
-        return repoRoot
+      cachedRepoRoot = this.repoRoots.get(path)
+      if (!!cachedRepoRoot) {
+        return cachedRepoRoot
       }
 
       try {
