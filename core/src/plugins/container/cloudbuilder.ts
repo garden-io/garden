@@ -23,7 +23,7 @@ import { emitNonRepeatableWarning } from "../../warnings.js"
 import { LRUCache } from "lru-cache"
 import { getPlatform } from "../../util/arch-platform.js"
 import { gardenEnv } from "../../constants.js"
-import type { ActionRuntime, ActionRuntimeKind, ActionRuntimeLocal, ActionRuntimeRemote } from "../../plugin/base.js"
+import type { ActionRuntime, ActionRuntimeKind } from "../../plugin/base.js"
 
 type CloudBuilderConfiguration = {
   isInClusterBuildingConfigured: boolean
@@ -71,7 +71,7 @@ export const cloudBuilder = {
   async getActionRuntime(ctx: PluginContext, action: Resolved<ContainerBuildAction>): Promise<ActionRuntime> {
     const config = getConfiguration(ctx)
 
-    const fallback: ActionRuntimeRemote | ActionRuntimeLocal = config.isInClusterBuildingConfigured
+    const fallback: ActionRuntimeKind = config.isInClusterBuildingConfigured
       ? // if in-cluster-building is configured, we are building remotely in the plugin.
         {
           kind: "remote",
@@ -105,6 +105,7 @@ export const cloudBuilder = {
         })
       }
       return {
+        fallback: true,
         actual,
         preferred,
         fallbackReason: unavailable.reason,
