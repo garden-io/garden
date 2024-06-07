@@ -333,7 +333,7 @@ function logMutagenDaemonWarning(log: Log) {
 
   log.warn(
     deline`
-    It looks like you've changed to a different version of the sync daemon.\n
+    It looks like you might have changed to a different version of the sync daemon.\n
 
     Therefore the sync daemon needs to be restarted, and the affected deploys must be redeployed.\n
     Please, stop this command and follow the instructions below.\n
