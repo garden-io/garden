@@ -94,7 +94,7 @@ export class GitRepoHandler extends AbstractGitHandler {
       scanRoot = await this.getRepoRoot(log, path, failOnPrompt)
     }
 
-    const scanFromProjectRoot = scanRoot === this.garden?.projectRoot
+    const scanFromProjectRoot = scanRoot === this.projectRoot
     const { augmentedExcludes, augmentedIncludes } = await getIncludeExcludeFiles({ ...params, scanFromProjectRoot })
 
     const hashedFilterParams = hashString(

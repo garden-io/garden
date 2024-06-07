@@ -164,7 +164,9 @@ export interface VcsHandlerParams {
 
 @Profile()
 export abstract class VcsHandler {
-  private readonly projectRoot: string
+  protected readonly projectRoot: string
+  // TODO: this is used only in 1 place to emit a warning;
+  //  consider moving warning machinery outside Garden class to remove the reference to Garden from here
   protected readonly garden?: Garden
   protected readonly gardenDirPath: string
   protected readonly ignoreFile: string
