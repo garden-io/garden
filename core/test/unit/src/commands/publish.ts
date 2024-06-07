@@ -76,7 +76,13 @@ const testProvider = createGardenPlugin({
           },
           build: async (_params) => ({
             state: "ready",
-            detail: {},
+            detail: {
+              details: {
+                runtime: {
+                  kind: "local",
+                },
+              },
+            },
             outputs: {},
           }),
         },

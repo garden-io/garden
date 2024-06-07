@@ -21,7 +21,17 @@ export const buildRouter = (baseParams: BaseRouterParams) =>
       const statusOutput = await router.callHandler({
         params,
         handlerType: "getStatus",
-        defaultHandler: async () => ({ state: "unknown" as const, detail: {}, outputs: {} }),
+        defaultHandler: async () => ({
+          state: "unknown" as const,
+          detail: {
+            details: {
+              runtime: {
+                kind: "local" as const,
+              },
+            },
+          },
+          outputs: {},
+        }),
       })
       const status = statusOutput.result
 
@@ -57,7 +67,11 @@ export const buildRouter = (baseParams: BaseRouterParams) =>
       const output = await router.callHandler({
         params,
         handlerType: "build",
-        defaultHandler: async () => ({ state: "unknown" as const, outputs: {}, detail: {} }),
+        defaultHandler: async () => ({
+          state: "unknown" as const,
+          outputs: {},
+          detail: { details: { runtime: { kind: "local" as const } } },
+        }),
       })
       const { result } = output
 

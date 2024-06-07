@@ -202,6 +202,13 @@ export const kanikoBuild: BuildHandler = async (params) => {
       fetched: false,
       fresh: true,
       outputs,
+      details: {
+        runtime: {
+          kind: "remote",
+          type: "plugin",
+          pluginName: ctx.provider.name,
+        },
+      },
     },
   }
 }

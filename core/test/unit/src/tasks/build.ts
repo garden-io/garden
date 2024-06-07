@@ -44,12 +44,29 @@ describe("BuildTask", () => {
               getStatus: async (_) => {
                 return {
                   state: "ready",
-                  detail: { state: "ready" },
+                  detail: {
+                    state: "ready",
+                    details: {
+                      runtime: {
+                        kind: "local",
+                      },
+                    },
+                  },
                   outputs: {},
                 }
               },
               build: async (_) => {
-                return { state: "ready", detail: {}, outputs: {} }
+                return {
+                  state: "ready",
+                  detail: {
+                    details: {
+                      runtime: {
+                        kind: "local",
+                      },
+                    },
+                  },
+                  outputs: {},
+                }
               },
             },
           },

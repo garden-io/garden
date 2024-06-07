@@ -132,7 +132,11 @@ function getRouterUnitTestPlugins() {
           name: "base-action-type",
           docs: "asd",
           handlers: {
-            getStatus: async (_) => ({ state: "ready", detail: {}, outputs: { foo: "bar", plugin: "base" } }),
+            getStatus: async (_) => ({
+              state: "ready",
+              detail: { details: { runtime: { kind: "local" } } },
+              outputs: { foo: "bar", plugin: "base" },
+            }),
           },
           schema: joi.object(),
         },
@@ -388,7 +392,13 @@ function getRouterUnitTestPlugins() {
               // This is hacked for the base router tests
               return {
                 state: "ready",
-                detail: {},
+                detail: {
+                  details: {
+                    runtime: {
+                      kind: "local",
+                    },
+                  },
+                },
                 outputs: {
                   foo: "bar",
                   plugin: "test-plugin-a",
@@ -402,7 +412,13 @@ function getRouterUnitTestPlugins() {
             build: async (_params) => {
               return {
                 state: "ready",
-                detail: {},
+                detail: {
+                  details: {
+                    runtime: {
+                      kind: "local" as const,
+                    },
+                  },
+                },
                 // This is hacked for the base router tests
                 outputs: { foo: "bar", isTestPluginABuildActionBuildHandlerReturn: true },
               }

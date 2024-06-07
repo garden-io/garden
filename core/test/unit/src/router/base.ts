@@ -23,7 +23,13 @@ import { getRouterTestData } from "./_helpers.js"
 describe("BaseActionRouter", () => {
   const testHandler = (params: PluginBuildActionParamsBase<any>) => {
     return {
-      detail: {},
+      detail: {
+        details: {
+          runtime: {
+            kind: "local" as const,
+          },
+        },
+      },
       outputs: {
         foo: "bar",
         base: {

@@ -57,7 +57,15 @@ export const getContainerBuildStatus: BuildActionHandler<"getStatus", ContainerB
 
   const state = !!identifier ? "ready" : "not-ready"
 
-  return { state, detail: {}, outputs }
+  return {
+    state,
+    detail: {
+      details: {
+        runtime: await cloudBuilder.getActionRuntime(ctx, action),
+      },
+    },
+    outputs,
+  }
 }
 
 export const buildContainer: BuildActionHandler<"build", ContainerBuildAction> = async ({ ctx, action, log }) => {
@@ -106,7 +114,15 @@ export const buildContainer: BuildActionHandler<"build", ContainerBuildAction> =
   return {
     state: "ready",
     outputs,
-    detail: { fresh: true, buildLog: res.all || "", outputs, details: { identifier } },
+    detail: {
+      fresh: true,
+      buildLog: res.all || "",
+      outputs,
+      details: {
+        identifier,
+        runtime: await cloudBuilder.getActionRuntime(ctx, action),
+      },
+    },
   }
 }
 

@@ -52,7 +52,17 @@ export type ExecBuildConfig = GardenSdkActionDefinitionConfigType<typeof execBui
 export type ExecBuild = GardenSdkActionDefinitionActionType<typeof execBuild>
 
 export const execBuildHandler = execBuild.addHandler("build", async ({ action, log, ctx }) => {
-  const output: BuildStatus = { state: "ready", outputs: {}, detail: {} }
+  const output: BuildStatus = {
+    state: "ready",
+    outputs: {},
+    detail: {
+      details: {
+        runtime: {
+          kind: "local",
+        },
+      },
+    },
+  }
   const command = action.getSpec("command")
 
   let success = true
@@ -61,7 +71,13 @@ export const execBuildHandler = execBuild.addHandler("build", async ({ action, l
     const result = await execRunCommand({ command, action, ctx, log })
 
     if (!output.detail) {
-      output.detail = {}
+      output.detail = {
+        details: {
+          runtime: {
+            kind: "local",
+          },
+        },
+      }
     }
 
     output.detail.fresh = true

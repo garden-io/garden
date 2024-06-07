@@ -113,6 +113,53 @@ export const runBaseParams = () => ({
   artifactsPath: artifactsPathSchema(),
 })
 
+// Action runtime type and schema. Used for the Cloud Builder UI, and maybe in the future Cloud Runner UI, etc.
+export type ActionRuntime = ActionRuntimeLocal | ActionRuntimeRemote | ActionRuntimeFallback
+export type ActionRuntimeLocal = {
+  kind: "local"
+}
+export type ActionRuntimeFallback = {
+  kind: "fallback"
+  preferred: ActionRuntimeLocal | ActionRuntimeRemote
+  actual: ActionRuntimeLocal | ActionRuntimeRemote
+}
+export type ActionRuntimeRemote = ActionRuntimeRemoteGardenCloud | ActionRuntimeRemotePlugin
+export type ActionRuntimeRemoteGardenCloud = {
+  kind: "remote"
+  type: "garden-cloud"
+}
+export type ActionRuntimeRemotePlugin = {
+  kind: "remote"
+  type: "plugin"
+  pluginName: string
+}
+const actionRuntimeLocalSchema = joi.object().keys({
+  kind: joi.string().allow("local"),
+})
+const actionRuntimeRemoteGardenCloudSchema = joi.object().keys({
+  kind: joi.string().allow("remote"),
+  type: joi.string().allow("garden-cloud"),
+})
+const actionRuntimeRemotePluginSchema = joi.object().keys({
+  kind: joi.string().allow("remote"),
+  type: joi.string().allow("plugin"),
+  pluginName: joi.string(),
+})
+const actionRuntimeRemoteSchema = joi.alternatives(
+  actionRuntimeRemoteGardenCloudSchema,
+  actionRuntimeRemotePluginSchema
+)
+const actionRuntimeFallbackSchema = joi.object().keys({
+  kind: joi.string().allow("fallback"),
+  preferred: joi.alternatives(actionRuntimeLocalSchema, actionRuntimeRemoteSchema),
+  actual: joi.alternatives(actionRuntimeLocalSchema, actionRuntimeRemoteSchema),
+})
+export const actionRuntimeSchema = joi.alternatives(
+  actionRuntimeLocalSchema,
+  actionRuntimeFallbackSchema,
+  actionRuntimeRemoteSchema
+)
+
 // TODO-0.13.0: update this schema in 0.13.0
 export interface RunResult {
   success: boolean
