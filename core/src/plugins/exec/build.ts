@@ -17,6 +17,7 @@ import { styles } from "../../logger/styles.js"
 import { execRunCommand } from "./common.js"
 import { execCommonSchema, execEnvVarDoc, execRuntimeOutputsSchema, execStaticOutputsSchema } from "./config.js"
 import { execProvider } from "./exec.js"
+import { ACTION_RUNTIME_LOCAL } from "../../plugin/base.js"
 
 const s = sdk.schema
 
@@ -56,11 +57,7 @@ export const execBuildHandler = execBuild.addHandler("build", async ({ action, l
     state: "ready",
     outputs: {},
     detail: {
-      details: {
-        runtime: {
-          kind: "local",
-        },
-      },
+      runtime: ACTION_RUNTIME_LOCAL,
     },
   }
   const command = action.getSpec("command")
@@ -72,11 +69,7 @@ export const execBuildHandler = execBuild.addHandler("build", async ({ action, l
 
     if (!output.detail) {
       output.detail = {
-        details: {
-          runtime: {
-            kind: "local",
-          },
-        },
+        runtime: ACTION_RUNTIME_LOCAL,
       }
     }
 

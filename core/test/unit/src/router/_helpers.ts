@@ -18,7 +18,7 @@ import { validateSchema } from "../../../../src/config/validation.js"
 import { createActionLog } from "../../../../src/logger/log-entry.js"
 import { getModuleHandlerDescriptions } from "../../../../src/plugin/module-types.js"
 import type { PartialGardenPluginSpec } from "../../../../src/plugin/plugin.js"
-import { createGardenPlugin } from "../../../../src/plugin/plugin.js"
+import { ACTION_RUNTIME_LOCAL, createGardenPlugin } from "../../../../src/plugin/plugin.js"
 import type { ProviderHandlers } from "../../../../src/plugin/providers.js"
 import { getProviderActionDescriptions } from "../../../../src/plugin/providers.js"
 import { createProjectConfig, makeTestGarden, projectRootA } from "../../../helpers.js"
@@ -134,7 +134,7 @@ function getRouterUnitTestPlugins() {
           handlers: {
             getStatus: async (_) => ({
               state: "ready",
-              detail: { details: { runtime: { kind: "local" } } },
+              detail: { runtime: ACTION_RUNTIME_LOCAL },
               outputs: { foo: "bar", plugin: "base" },
             }),
           },
@@ -393,11 +393,7 @@ function getRouterUnitTestPlugins() {
               return {
                 state: "ready",
                 detail: {
-                  details: {
-                    runtime: {
-                      kind: "local",
-                    },
-                  },
+                  runtime: ACTION_RUNTIME_LOCAL,
                 },
                 outputs: {
                   foo: "bar",
@@ -413,11 +409,7 @@ function getRouterUnitTestPlugins() {
               return {
                 state: "ready",
                 detail: {
-                  details: {
-                    runtime: {
-                      kind: "local" as const,
-                    },
-                  },
+                  runtime: ACTION_RUNTIME_LOCAL,
                 },
                 // This is hacked for the base router tests
                 outputs: { foo: "bar", isTestPluginABuildActionBuildHandlerReturn: true },

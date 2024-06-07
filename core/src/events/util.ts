@@ -14,6 +14,7 @@ import type { Events, ActionStatusEventName } from "./events.js"
 import { pick } from "lodash-es"
 import type { BuildState } from "../plugin/handlers/Build/get-status.js"
 import type { ActionStatusDetailedState, ActionCompleteState } from "./action-status-events.js"
+import type { ActionRuntime } from "../plugin/base.js"
 
 type ActionKind = "build" | "deploy" | "run" | "test"
 
@@ -61,12 +62,14 @@ export function makeActionStatusPayloadBase({
   operation,
   startedAt,
   sessionId,
+  runtime,
 }: {
   action: Action
   force: boolean
   operation: "getStatus" | "process"
   startedAt: string
   sessionId: string
+  runtime: ActionRuntime | undefined
 }) {
   return {
     actionName: action.name,
@@ -80,6 +83,7 @@ export function makeActionStatusPayloadBase({
     startedAt,
     operation,
     force,
+    runtime,
   }
 }
 
@@ -94,13 +98,22 @@ export function makeActionGetStatusPayload({
   force,
   startedAt,
   sessionId,
+  runtime,
 }: {
   action: Action
   force: boolean
   startedAt: string
   sessionId: string
+  runtime: ActionRuntime | undefined
 }) {
-  const payloadAttrs = makeActionStatusPayloadBase({ action, force, startedAt, sessionId, operation: "getStatus" })
+  const payloadAttrs = makeActionStatusPayloadBase({
+    action,
+    force,
+    startedAt,
+    sessionId,
+    runtime,
+    operation: "getStatus",
+  })
 
   const payload = {
     ...payloadAttrs,
@@ -121,13 +134,22 @@ export function makeActionProcessingPayload({
   force,
   startedAt,
   sessionId,
+  runtime,
 }: {
   action: Action
   force: boolean
   startedAt: string
   sessionId: string
+  runtime: ActionRuntime | undefined
 }) {
-  const payloadAttrs = makeActionStatusPayloadBase({ action, force, startedAt, sessionId, operation: "process" })
+  const payloadAttrs = makeActionStatusPayloadBase({
+    action,
+    force,
+    startedAt,
+    sessionId,
+    runtime,
+    operation: "process",
+  })
   const actionKind = action.kind.toLowerCase() as Lowercase<Action["kind"]>
 
   const payload = {
@@ -161,6 +183,7 @@ export function makeActionCompletePayload<
   operation,
   startedAt,
   sessionId,
+  runtime,
 }: {
   result: R
   action: Action
@@ -168,8 +191,9 @@ export function makeActionCompletePayload<
   operation: "getStatus" | "process"
   startedAt: string
   sessionId: string
+  runtime: ActionRuntime | undefined
 }) {
-  const payloadAttrs = makeActionStatusPayloadBase({ action, force, operation, startedAt, sessionId })
+  const payloadAttrs = makeActionStatusPayloadBase({ action, force, operation, startedAt, sessionId, runtime })
   const actionKind = action.kind.toLowerCase() as Lowercase<Action["kind"]>
 
   // Map the result state to one of the allowed "complete" states.
@@ -241,14 +265,16 @@ export function makeActionFailedPayload({
   operation,
   startedAt,
   sessionId,
+  runtime,
 }: {
   action: Action
   force: boolean
   operation: "getStatus" | "process"
   startedAt: string
   sessionId: string
+  runtime: ActionRuntime | undefined
 }) {
-  const payloadAttrs = makeActionStatusPayloadBase({ action, force, operation, startedAt, sessionId })
+  const payloadAttrs = makeActionStatusPayloadBase({ action, force, operation, startedAt, sessionId, runtime })
 
   const payload = {
     ...payloadAttrs,

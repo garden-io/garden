@@ -313,7 +313,7 @@ export class ProcessTaskNode<T extends Task = Task> extends TaskNode<T> {
       })
     }
 
-    const status = statusResult?.result
+    const status = statusResult.result
 
     if (!this.task.force && status?.state === "ready") {
       return status

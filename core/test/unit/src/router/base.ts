@@ -14,7 +14,7 @@ import { joi } from "../../../../src/config/common.js"
 import { resolveAction } from "../../../../src/graph/actions.js"
 import type { BuildActionDefinition } from "../../../../src/plugin/action-types.js"
 import type { GardenPluginSpec, PluginBuildActionParamsBase } from "../../../../src/plugin/plugin.js"
-import { createGardenPlugin } from "../../../../src/plugin/plugin.js"
+import { ACTION_RUNTIME_LOCAL, createGardenPlugin } from "../../../../src/plugin/plugin.js"
 import type { ActionKindRouter } from "../../../../src/router/base.js"
 import type { TestGarden } from "../../../helpers.js"
 import { expectError, getDefaultProjectConfig, makeTempGarden } from "../../../helpers.js"
@@ -24,11 +24,7 @@ describe("BaseActionRouter", () => {
   const testHandler = (params: PluginBuildActionParamsBase<any>) => {
     return {
       detail: {
-        details: {
-          runtime: {
-            kind: "local" as const,
-          },
-        },
+        runtime: ACTION_RUNTIME_LOCAL,
       },
       outputs: {
         foo: "bar",

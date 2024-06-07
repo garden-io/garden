@@ -114,16 +114,28 @@ export const runBaseParams = () => ({
 })
 
 // Action runtime type and schema. Used for the Cloud Builder UI, and maybe in the future Cloud Runner UI, etc.
-export type ActionRuntime = ActionRuntimeLocal | ActionRuntimeRemote | ActionRuntimeFallback
+export type ActionRuntime =
+  | {
+      actual: ActionRuntimeKind
+    }
+  | {
+      actual: ActionRuntimeKind
+      preferred: ActionRuntimeKind
+      fallbackReason: string
+    }
+
+export type ActionRuntimeKind = ActionRuntimeLocal | ActionRuntimeRemote
+
 export type ActionRuntimeLocal = {
   kind: "local"
 }
-export type ActionRuntimeFallback = {
-  kind: "fallback"
-  preferred: ActionRuntimeLocal | ActionRuntimeRemote
-  actual: ActionRuntimeLocal | ActionRuntimeRemote
-  reason: string
-}
+// constant for convenience
+export const ACTION_RUNTIME_LOCAL = {
+  actual: {
+    kind: "local",
+  },
+} as const
+
 export type ActionRuntimeRemote = ActionRuntimeRemoteGardenCloud | ActionRuntimeRemotePlugin
 export type ActionRuntimeRemoteGardenCloud = {
   kind: "remote"
@@ -150,17 +162,20 @@ const actionRuntimeRemoteSchema = joi.alternatives(
   actionRuntimeRemoteGardenCloudSchema,
   actionRuntimeRemotePluginSchema
 )
-const actionRuntimeFallbackSchema = joi.object().keys({
-  kind: joi.string().allow("fallback"),
-  preferred: joi.alternatives(actionRuntimeLocalSchema, actionRuntimeRemoteSchema),
-  actual: joi.alternatives(actionRuntimeLocalSchema, actionRuntimeRemoteSchema),
-  reason: joi.string(),
-})
-export const actionRuntimeSchema = joi.alternatives(
-  actionRuntimeLocalSchema,
-  actionRuntimeFallbackSchema,
-  actionRuntimeRemoteSchema
-)
+export const actionRuntimeSchema = joi
+  .alternatives(
+    joi.object().keys({
+      actual: joi.alternatives(actionRuntimeRemoteSchema, actionRuntimeLocalSchema),
+    }),
+    joi.object().keys({
+      actual: joi.alternatives(actionRuntimeRemoteSchema, actionRuntimeLocalSchema),
+      fallback: joi.alternatives(actionRuntimeRemoteSchema, actionRuntimeLocalSchema),
+      fallbackReason: joi.string(),
+    })
+  )
+  .description(
+    "Information about whether the action ran locally, or in a remote runner, and if the plugin decided to fall back to another mode of execution for some reason."
+  )
 
 // TODO-0.13.0: update this schema in 0.13.0
 export interface RunResult {

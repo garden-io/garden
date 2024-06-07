@@ -60,9 +60,7 @@ export const getContainerBuildStatus: BuildActionHandler<"getStatus", ContainerB
   return {
     state,
     detail: {
-      details: {
-        runtime: await cloudBuilder.getActionRuntime(ctx, action),
-      },
+      runtime: await cloudBuilder.getActionRuntime(ctx, action),
     },
     outputs,
   }
@@ -118,9 +116,9 @@ export const buildContainer: BuildActionHandler<"build", ContainerBuildAction> =
       fresh: true,
       buildLog: res.all || "",
       outputs,
+      runtime: await cloudBuilder.getActionRuntime(ctx, action),
       details: {
         identifier,
-        runtime: await cloudBuilder.getActionRuntime(ctx, action),
       },
     },
   }

@@ -11,6 +11,7 @@ import type { BaseRouterParams } from "./base.js"
 import { createActionRouter } from "./base.js"
 import type { PublishActionResult } from "../plugin/handlers/Build/publish.js"
 import { styles } from "../logger/styles.js"
+import { ACTION_RUNTIME_LOCAL } from "../plugin/base.js"
 
 const API_ACTION_TYPE = "build"
 
@@ -24,11 +25,7 @@ export const buildRouter = (baseParams: BaseRouterParams) =>
         defaultHandler: async () => ({
           state: "unknown" as const,
           detail: {
-            details: {
-              runtime: {
-                kind: "local" as const,
-              },
-            },
+            runtime: ACTION_RUNTIME_LOCAL,
           },
           outputs: {},
         }),
@@ -70,7 +67,9 @@ export const buildRouter = (baseParams: BaseRouterParams) =>
         defaultHandler: async () => ({
           state: "unknown" as const,
           outputs: {},
-          detail: { details: { runtime: { kind: "local" as const } } },
+          detail: {
+            runtime: ACTION_RUNTIME_LOCAL,
+          },
         }),
       })
       const { result } = output

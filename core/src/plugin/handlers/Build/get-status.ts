@@ -30,15 +30,12 @@ export interface BuildStatusForEventPayload {
 
 type GetBuildStatusParams<T extends BuildAction = BuildAction> = PluginBuildActionParamsBase<T>
 
-export interface BuildResultDetails {
-  runtime: ActionRuntime
-}
-
 export interface BuildResult {
+  runtime: ActionRuntime
   buildLog?: string
   fetched?: boolean
   fresh?: boolean
-  details: BuildResultDetails
+  details?: any
 }
 
 export const buildResultSchema = createSchema({
@@ -49,13 +46,8 @@ export const buildResultSchema = createSchema({
     fresh: joi
       .boolean()
       .description("Set to true if the build was performed, false if it was already built, or fetched from a registry"),
-    details: joi
-      .object()
-      .keys({
-        runtime: actionRuntimeSchema.optional(),
-      })
-      .unknown(true)
-      .description("Additional information, specific to the provider."),
+    details: joi.object().unknown(true).description("Additional information, specific to the provider."),
+    runtime: actionRuntimeSchema,
   }),
 })
 

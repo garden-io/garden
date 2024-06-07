@@ -33,7 +33,7 @@ import { buildSyncVolumeName, dockerAuthSecretKey, getK8sUtilImageName, rsyncPor
 import { styles } from "../../../../logger/styles.js"
 import type { StringMap } from "../../../../config/common.js"
 import { LogLevel } from "../../../../logger/logger.js"
-import type { ActionRuntimeRemotePlugin } from "../../../../plugin/base.js"
+import type { ActionRuntime } from "../../../../plugin/base.js"
 
 export const inClusterBuilderServiceAccount = "garden-in-cluster-builder"
 export const sharedBuildSyncDeploymentName = "garden-build-sync"
@@ -221,10 +221,12 @@ export async function skopeoBuildStatus({
     pod,
   })
 
-  const runtime: ActionRuntimeRemotePlugin = {
-    kind: "remote",
-    type: "plugin",
-    pluginName: ctx.provider.name,
+  const runtime: ActionRuntime = {
+    actual: {
+      kind: "remote",
+      type: "plugin",
+      pluginName: ctx.provider.name,
+    },
   }
 
   try {
@@ -239,9 +241,7 @@ export async function skopeoBuildStatus({
       state: "ready",
       outputs,
       detail: {
-        details: {
-          runtime,
-        },
+        runtime,
       },
     }
   } catch (err) {
@@ -269,9 +269,7 @@ export async function skopeoBuildStatus({
           state: "ready",
           outputs,
           detail: {
-            details: {
-              runtime,
-            },
+            runtime,
           },
         }
       }
@@ -283,7 +281,7 @@ export async function skopeoBuildStatus({
       // Non-zero exit code can both mean the manifest is not found, and any other unexpected error
       if (res?.exitCode !== 0 && skopeoManifestUnknown(res?.stderr)) {
         // This would happen when the image does not exist, i.e. not ready
-        return { state: "not-ready", outputs, detail: { details: { runtime } } }
+        return { state: "not-ready", outputs, detail: { runtime } }
       }
 
       throw new RuntimeError({

@@ -30,7 +30,9 @@ export const getLocalBuildStatus: BuildStatusHandler = async (params) => {
 
   const result: BuildStatusResult = {
     state: "not-ready",
-    detail: { details: { runtime: await cloudBuilder.getActionRuntime(ctx, action) } },
+    detail: {
+      runtime: await cloudBuilder.getActionRuntime(ctx, action),
+    },
     outputs,
   }
 

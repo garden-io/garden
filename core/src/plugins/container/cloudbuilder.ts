@@ -23,7 +23,7 @@ import { emitNonRepeatableWarning } from "../../warnings.js"
 import { LRUCache } from "lru-cache"
 import { getPlatform } from "../../util/arch-platform.js"
 import { gardenEnv } from "../../constants.js"
-import type { ActionRuntime, ActionRuntimeLocal, ActionRuntimeRemote } from "../../plugin/base.js"
+import type { ActionRuntime, ActionRuntimeKind, ActionRuntimeLocal, ActionRuntimeRemote } from "../../plugin/base.js"
 
 type CloudBuilderConfiguration = {
   isInClusterBuildingConfigured: boolean
@@ -81,7 +81,7 @@ export const cloudBuilder = {
       : // Otherwise we fall back to building locally.
         { kind: "local" }
 
-    const preferred: ActionRuntimeRemote | ActionRuntimeLocal = cloudBuilder.isConfigured(ctx)
+    const preferred: ActionRuntimeKind = cloudBuilder.isConfigured(ctx)
       ? // If cloud builder is configured, we prefer using cloud builder
         {
           kind: "remote",
@@ -94,7 +94,9 @@ export const cloudBuilder = {
     const actual = (await cloudBuilder.isConfiguredAndAvailable(ctx, action)) ? preferred : fallback
 
     if (actual === preferred) {
-      return actual
+      return {
+        actual,
+      }
     } else {
       const unavailable = await getAvailability(ctx, action)
       if (unavailable.available) {
@@ -103,10 +105,9 @@ export const cloudBuilder = {
         })
       }
       return {
-        kind: "fallback",
-        preferred,
         actual,
-        reason: unavailable.reason,
+        preferred,
+        fallbackReason: unavailable.reason,
       }
     }
   },

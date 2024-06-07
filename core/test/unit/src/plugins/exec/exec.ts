@@ -49,6 +49,7 @@ import {
   DEFAULT_TEST_TIMEOUT_SEC,
 } from "../../../../../src/constants.js"
 import { isRunning, killRecursive } from "../../../../../src/process.js"
+import { ACTION_RUNTIME_LOCAL } from "../../../../../src/plugin/base.js"
 
 describe("exec plugin", () => {
   context("test-project based tests", () => {
@@ -364,11 +365,7 @@ describe("exec plugin", () => {
         expect(res.detail).to.eql({
           buildLog: expectedBuildLog,
           fresh: true,
-          details: {
-            runtime: {
-              kind: "local",
-            },
-          },
+          runtime: ACTION_RUNTIME_LOCAL,
         })
       })
 
@@ -385,11 +382,7 @@ describe("exec plugin", () => {
         expect(res.detail).to.eql({
           buildLog: action.versionString(),
           fresh: true,
-          details: {
-            runtime: {
-              kind: "local",
-            },
-          },
+          runtime: ACTION_RUNTIME_LOCAL,
         })
       })
 
@@ -406,11 +399,7 @@ describe("exec plugin", () => {
         expect(res.detail).to.eql({
           buildLog: action.versionString(),
           fresh: true,
-          details: {
-            runtime: {
-              kind: "local",
-            },
-          },
+          runtime: ACTION_RUNTIME_LOCAL,
         })
       })
     })
