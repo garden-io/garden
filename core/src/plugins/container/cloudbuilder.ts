@@ -96,10 +96,17 @@ export const cloudBuilder = {
     if (actual === preferred) {
       return actual
     } else {
+      const unavailable = await getAvailability(ctx, action)
+      if (unavailable.available) {
+        throw new InternalError({
+          message: `Inconsistent state: Should only fall back if Cloud Builder is not available`,
+        })
+      }
       return {
         kind: "fallback",
         preferred,
         actual,
+        reason: unavailable.reason,
       }
     }
   },

@@ -122,6 +122,7 @@ export type ActionRuntimeFallback = {
   kind: "fallback"
   preferred: ActionRuntimeLocal | ActionRuntimeRemote
   actual: ActionRuntimeLocal | ActionRuntimeRemote
+  reason: string
 }
 export type ActionRuntimeRemote = ActionRuntimeRemoteGardenCloud | ActionRuntimeRemotePlugin
 export type ActionRuntimeRemoteGardenCloud = {
@@ -153,6 +154,7 @@ const actionRuntimeFallbackSchema = joi.object().keys({
   kind: joi.string().allow("fallback"),
   preferred: joi.alternatives(actionRuntimeLocalSchema, actionRuntimeRemoteSchema),
   actual: joi.alternatives(actionRuntimeLocalSchema, actionRuntimeRemoteSchema),
+  reason: joi.string(),
 })
 export const actionRuntimeSchema = joi.alternatives(
   actionRuntimeLocalSchema,
