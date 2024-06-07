@@ -45,7 +45,13 @@ describe("build actions", () => {
     it("should correctly call the corresponding plugin handler", async () => {
       const { result } = await actionRouter.build.build({ log, action: resolvedBuildAction, graph })
       expect(result).to.eql({
-        detail: {},
+        detail: {
+          details: {
+            runtime: {
+              kind: "local",
+            },
+          },
+        },
         outputs: {
           foo: "bar",
           isTestPluginABuildActionBuildHandlerReturn: true,

@@ -361,7 +361,15 @@ describe("exec plugin", () => {
         const { result: res } = await actions.build.build({ log, action: resolvedAction, graph })
 
         const expectedBuildLog = join(garden.projectRoot, "module-local")
-        expect(res.detail).to.eql({ buildLog: expectedBuildLog, fresh: true })
+        expect(res.detail).to.eql({
+          buildLog: expectedBuildLog,
+          fresh: true,
+          details: {
+            runtime: {
+              kind: "local",
+            },
+          },
+        })
       })
 
       it("should receive action version as an env var", async () => {
@@ -374,7 +382,15 @@ describe("exec plugin", () => {
         const resolvedAction = await garden.resolveAction({ log, graph, action })
         const { result: res } = await actions.build.build({ log, action: resolvedAction, graph })
 
-        expect(res.detail).to.eql({ buildLog: action.versionString(), fresh: true })
+        expect(res.detail).to.eql({
+          buildLog: action.versionString(),
+          fresh: true,
+          details: {
+            runtime: {
+              kind: "local",
+            },
+          },
+        })
       })
 
       it("should receive module version as an env var", async () => {
@@ -387,7 +403,15 @@ describe("exec plugin", () => {
         const resolvedAction = await garden.resolveAction({ log, graph, action })
         const { result: res } = await actions.build.build({ log, action: resolvedAction, graph })
 
-        expect(res.detail).to.eql({ buildLog: action.versionString(), fresh: true })
+        expect(res.detail).to.eql({
+          buildLog: action.versionString(),
+          fresh: true,
+          details: {
+            runtime: {
+              kind: "local",
+            },
+          },
+        })
       })
     })
 

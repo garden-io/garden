@@ -51,7 +51,13 @@ describe("deploy actions", () => {
         graph,
       })
       expect(result).to.eql({
-        detail: { forwardablePorts: [], state: "ready", outputs: {}, detail: {}, mode: "default" },
+        detail: {
+          forwardablePorts: [],
+          state: "ready",
+          outputs: {},
+          detail: {},
+          mode: "default",
+        },
         outputs: { base: "ok", foo: "ok" },
         state: "ready",
       })
