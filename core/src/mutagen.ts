@@ -31,6 +31,7 @@ import { styles } from "./logger/styles.js"
 import { dirname } from "node:path"
 import { makeDocsLinkStyled } from "./docs/common.js"
 import { syncGuideRelPath } from "./plugins/kubernetes/constants.js"
+import { emitNonRepeatableWarning } from "./warnings.js"
 
 const { mkdirp, pathExists } = fsExtra
 
@@ -346,7 +347,7 @@ function logMutagenDaemonWarning(log: Log) {
 
     ${styles.command(redeploySyncCommand)}\n
 
-    Please see our Troubleshooting docs for more details: ${makeDocsLinkStyled("guides/code-synchronization", "#restarting-sync-daemon")}\n`
+    Please see the Troubleshooting docs for more details: ${makeDocsLinkStyled("guides/code-synchronization", "#restarting-sync-daemon")}\n`
   )
 }
 
@@ -371,6 +372,17 @@ export class Mutagen {
     this.dataDir = getMutagenDataDir(params)
     this.activeSyncs = {}
     this.monitoring = false
+
+    emitNonRepeatableWarning(
+      this.log,
+      deline`
+    Warning!\n
+
+    Garden will use the new sync daemon in the next release (0.13.33).
+    Thus, the default value of the \`GARDEN_ENABLE_NEW_SYNC\` environment variable will be switched to \`true\`.\n
+
+    Please make sure you have tested the new sync daemon. See the troubleshooting docs for more details: ${makeDocsLinkStyled("guides/code-synchronization", "#restarting-sync-daemon")}\n`
+    )
 
     // TODO: This is a little noisy atm. We could be a bit smarter and filter some superfluous messages out.
     this.monitorHandler = (session) => {
