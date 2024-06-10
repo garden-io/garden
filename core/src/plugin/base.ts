@@ -117,10 +117,11 @@ export const runBaseParams = () => ({
 export type ActionRuntime =
   | {
       actual: ActionRuntimeKind
-      fallback?: undefined // type system needs this to distinguish between the types
+      // These are needed to make sure the type system understands that preferred and fallbackReason are required together.
+      preferred?: undefined
+      fallbackReason?: undefined
     }
   | {
-      fallback: true
       actual: ActionRuntimeKind
       preferred: ActionRuntimeKind
       fallbackReason: string

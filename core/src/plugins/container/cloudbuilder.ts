@@ -105,7 +105,6 @@ export const cloudBuilder = {
         })
       }
       return {
-        fallback: true,
         actual,
         preferred,
         fallbackReason: unavailable.reason,
