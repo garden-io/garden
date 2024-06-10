@@ -8,11 +8,18 @@
 
 import { execa } from "execa"
 import { expect } from "chai"
-import tmp from "tmp-promise"
+import type tmp from "tmp-promise"
 import fsExtra from "fs-extra"
 import { basename, dirname, join, relative, resolve } from "path"
 
-import { expectError, getDataDir, makeTempDir, makeTestGarden, makeTestGardenA, TestGarden } from "../../../helpers.js"
+import {
+  expectError,
+  getDataDir,
+  makeTempDir,
+  makeTestGarden,
+  makeTestGardenA,
+  type TestGarden,
+} from "../../../helpers.js"
 import {
   type AbstractGitHandler,
   explainGitError,
