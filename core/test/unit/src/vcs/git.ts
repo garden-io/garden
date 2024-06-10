@@ -12,8 +12,7 @@ import tmp from "tmp-promise"
 import fsExtra from "fs-extra"
 import { basename, dirname, join, relative, resolve } from "path"
 
-import type { TestGarden } from "../../../helpers.js"
-import { expectError, getDataDir, makeTestGarden, makeTestGardenA } from "../../../helpers.js"
+import { expectError, getDataDir, makeTempDir, makeTestGarden, makeTestGardenA, TestGarden } from "../../../helpers.js"
 import {
   type AbstractGitHandler,
   explainGitError,
@@ -57,14 +56,6 @@ async function createGitTag(tag: string, message: string, repoPath: string) {
   await execa("git", ["tag", "-a", tag, "-m", message], { cwd: repoPath })
 }
 
-export async function makeTempGitRepo() {
-  const tmpDir = await tmp.dir({ unsafeCleanup: true })
-  const tmpPath = await realpath(tmpDir.path)
-  await execa("git", ["init", "--initial-branch=main"], { cwd: tmpPath })
-
-  return tmpDir
-}
-
 async function addToIgnore(tmpPath: string, pathToExclude: string, ignoreFilename = defaultIgnoreFilename) {
   const gardenignorePath = resolve(tmpPath, ignoreFilename)
 
@@ -102,7 +93,7 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
   beforeEach(async () => {
     garden = await makeTestGardenA([], { gitScanMode })
     log = garden.log
-    tmpDir = await makeTempGitRepo()
+    tmpDir = await makeTempDir({ git: true, initialCommit: false })
     tmpPath = await realpath(tmpDir.path)
     handler = new gitHandlerCls({
       garden,
@@ -152,7 +143,10 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
       })
 
       const dirContexts = [
-        { ctx: "when called from repo root", pathFn: (tp: string): string => tp },
+        {
+          ctx: "when called from repo root",
+          pathFn: (tp: string): string => tp,
+        },
         { ctx: "when called from project root", pathFn: (tp: string): string => resolve(tp, "somedir") },
       ]
 
@@ -376,8 +370,7 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
                       join(subDirName, deepDirName, "**", "*"),
                   },
                   {
-                    name: "when directory is included by name with globs",
-                    // FIXME-GITREPOHANDLER: shouldn't just '**/deepdir' work well too?
+                    name: "when directory is included by name with globs", // FIXME-GITREPOHANDLER: shouldn't just '**/deepdir' work well too?
                     inclusionBuilder: (_subDirName: string, deepDirName: string) => join("**", deepDirName, "**", "*"),
                   },
                 ]
@@ -751,9 +744,14 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
         await createFile(path)
         await addToIgnore(tmpPath, name)
 
-        const files = (await handler.getFiles({ path: tmpPath, scanRoot: undefined, exclude: [], log })).filter(
-          (f) => !f.path.includes(defaultIgnoreFilename)
-        )
+        const files = (
+          await handler.getFiles({
+            path: tmpPath,
+            scanRoot: undefined,
+            exclude: [],
+            log,
+          })
+        ).filter((f) => !f.path.includes(defaultIgnoreFilename))
 
         expect(files).to.eql([])
       })
@@ -767,9 +765,14 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
         await git.exec("add", path)
         await git.exec("commit", "-m", "foo")
 
-        const files = (await handler.getFiles({ path: tmpPath, scanRoot: undefined, exclude: [], log })).filter(
-          (f) => !f.path.includes(defaultIgnoreFilename)
-        )
+        const files = (
+          await handler.getFiles({
+            path: tmpPath,
+            scanRoot: undefined,
+            exclude: [],
+            log,
+          })
+        ).filter((f) => !f.path.includes(defaultIgnoreFilename))
 
         expect(files).to.eql([])
       })
@@ -805,9 +808,14 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
         await createFile(filePath)
         await symlink(fileName, symlinkPath)
 
-        const files = (await handler.getFiles({ path: tmpPath, scanRoot: undefined, exclude: [], log })).map(
-          (f) => f.path
-        )
+        const files = (
+          await handler.getFiles({
+            path: tmpPath,
+            scanRoot: undefined,
+            exclude: [],
+            log,
+          })
+        ).map((f) => f.path)
 
         expect(files.sort()).to.eql([filePath, symlinkPath])
       })
@@ -826,9 +834,14 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
         await createFile(filePath)
         await ensureSymlink(join("..", fileName), symlinkPath)
 
-        const files = (await handler.getFiles({ path: subPath, scanRoot: undefined, exclude: [], log })).map(
-          (f) => f.path
-        )
+        const files = (
+          await handler.getFiles({
+            path: subPath,
+            scanRoot: undefined,
+            exclude: [],
+            log,
+          })
+        ).map((f) => f.path)
         expect(files).to.eql([])
       })
 
@@ -840,9 +853,14 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
         await createFile(filePath)
         await symlink(filePath, symlinkPath)
 
-        const files = (await handler.getFiles({ path: tmpPath, scanRoot: undefined, exclude: [], log })).map(
-          (f) => f.path
-        )
+        const files = (
+          await handler.getFiles({
+            path: tmpPath,
+            scanRoot: undefined,
+            exclude: [],
+            log,
+          })
+        ).map((f) => f.path)
         expect(files).to.eql([filePath])
       })
     })
@@ -936,7 +954,7 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
       let initFile: string
 
       beforeEach(async () => {
-        submodule = await makeTempGitRepo()
+        submodule = await makeTempDir({ git: true, initialCommit: false })
         submodulePath = await realpath(submodule.path)
         initFile = (await commit("init", submodulePath)).uniqueFilename
 
@@ -1074,7 +1092,7 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
         let initFileB: string
 
         beforeEach(async () => {
-          submoduleB = await makeTempGitRepo()
+          submoduleB = await makeTempDir({ git: true, initialCommit: false })
           submodulePathB = await realpath(submoduleB.path)
           initFileB = (await commit("init", submodulePathB)).uniqueFilename
 
@@ -1230,10 +1248,10 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
     })
 
     async function createRepo(repoUrlMethod: "commit" | "branch" | "tag", withSubmodule = false) {
-      tmpRepoA = await makeTempGitRepo()
+      tmpRepoA = await makeTempDir({ git: true, initialCommit: false })
       tmpRepoPathA = await realpath(tmpRepoA.path)
 
-      tmpRepoB = await makeTempGitRepo()
+      tmpRepoB = await makeTempDir({ git: true, initialCommit: false })
       tmpRepoPathB = await realpath(tmpRepoB.path)
       await commit("test commit B", tmpRepoPathB)
 
