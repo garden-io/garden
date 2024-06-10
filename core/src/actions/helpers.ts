@@ -166,7 +166,7 @@ export async function getDeployStatusPayloads({
           force: false,
           action,
           sessionId,
-          // TODO: add runtime information for deploy action. This can indicate if we're deploying to a local or remote environment.
+          // TODO: Once needed, send ActionRuntime information to Cloud; See getBuildStatusPayloads
           runtime: undefined,
         }) as ActionStatusPayload<DeployStatusForEventPayload>
 
@@ -238,7 +238,7 @@ export async function getTestStatusPayloads({
           force: false,
           action,
           sessionId,
-          // TODO: Send runtime information for Run to Cloud
+          // TODO: Once needed, send ActionRuntime information to Cloud; See getBuildStatusPayloads
           runtime: undefined,
         }) as ActionStatusPayload<RunStatusForEventPayload>
         return [action.name, payload]
@@ -274,7 +274,7 @@ export async function getRunStatusPayloads({
           force: false,
           action,
           sessionId,
-          // TODO: send runtime information to Cloud, to indicate if the command ran locally or in a remote environment.
+          // TODO: Once needed, send ActionRuntime information to Cloud; See getBuildStatusPayloads
           runtime: undefined,
         }) as ActionStatusPayload<RunStatusForEventPayload>
 
