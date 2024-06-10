@@ -148,36 +148,6 @@ export type ActionRuntimeRemotePlugin = {
   type: "plugin"
   pluginName: string
 }
-const actionRuntimeLocalSchema = joi.object().keys({
-  kind: joi.string().allow("local"),
-})
-const actionRuntimeRemoteGardenCloudSchema = joi.object().keys({
-  kind: joi.string().allow("remote"),
-  type: joi.string().allow("garden-cloud"),
-})
-const actionRuntimeRemotePluginSchema = joi.object().keys({
-  kind: joi.string().allow("remote"),
-  type: joi.string().allow("plugin"),
-  pluginName: joi.string(),
-})
-const actionRuntimeRemoteSchema = joi.alternatives(
-  actionRuntimeRemoteGardenCloudSchema,
-  actionRuntimeRemotePluginSchema
-)
-export const actionRuntimeSchema = joi
-  .alternatives(
-    joi.object().keys({
-      actual: joi.alternatives(actionRuntimeRemoteSchema, actionRuntimeLocalSchema),
-    }),
-    joi.object().keys({
-      actual: joi.alternatives(actionRuntimeRemoteSchema, actionRuntimeLocalSchema),
-      fallback: joi.alternatives(actionRuntimeRemoteSchema, actionRuntimeLocalSchema),
-      fallbackReason: joi.string(),
-    })
-  )
-  .description(
-    "Information about whether the action ran locally, or in a remote runner, and if the plugin decided to fall back to another mode of execution for some reason."
-  )
 
 // TODO-0.13.0: update this schema in 0.13.0
 export interface RunResult {
