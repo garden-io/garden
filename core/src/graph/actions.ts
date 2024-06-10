@@ -34,7 +34,7 @@ import { BuildAction, buildActionConfigSchema, isBuildActionConfig } from "../ac
 import { DeployAction, deployActionConfigSchema, isDeployActionConfig } from "../actions/deploy.js"
 import { RunAction, runActionConfigSchema, isRunActionConfig } from "../actions/run.js"
 import { TestAction, testActionConfigSchema, isTestActionConfig } from "../actions/test.js"
-import { noTemplateFields } from "../config/base.js"
+import { getEffectiveConfigFileLocation, noTemplateFields } from "../config/base.js"
 import type { ActionReference, JoiDescription } from "../config/common.js"
 import { describeSchema, parseActionReference } from "../config/common.js"
 import type { GroupConfig } from "../config/group.js"
@@ -63,7 +63,7 @@ import { isTruthy, type MaybeUndefined } from "../util/util.js"
 import minimatch from "minimatch"
 import type { ConfigContext } from "../config/template-contexts/base.js"
 import type { LinkedSource, LinkedSourceMap } from "../config-store/local.js"
-import { dirname, relative } from "path"
+import { relative } from "path"
 import { profileAsync } from "../util/profiling.js"
 import { uuidv4 } from "../util/random.js"
 import { getSourcePath } from "../vcs/vcs.js"
@@ -456,10 +456,10 @@ async function processActionConfig({
     config.internal.treeVersion ||
     (await garden.vcs.getTreeVersion({ log, projectName: garden.projectName, config, scanRoot }))
 
-  const basePath = config.internal.configFilePath ? dirname(config.internal.configFilePath) : config.internal.basePath
+  const effectiveConfigFileLocation = getEffectiveConfigFileLocation(config)
 
   let variables = await mergeVariables({
-    basePath,
+    basePath: effectiveConfigFileLocation,
     variables: config.variables,
     varfiles: config.varfiles,
   })

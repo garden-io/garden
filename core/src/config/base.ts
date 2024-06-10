@@ -27,7 +27,7 @@ import { isNotNull, isTruthy } from "../util/util.js"
 import type { DeepPrimitiveMap, PrimitiveMap } from "./common.js"
 import { createSchema, joi } from "./common.js"
 import { emitNonRepeatableWarning } from "../warnings.js"
-import type { ActionKind } from "../actions/types.js"
+import type { ActionKind, BaseActionConfig } from "../actions/types.js"
 import { actionKinds } from "../actions/types.js"
 import { mayContainTemplateString } from "../template-string/template-string.js"
 import type { Log } from "../logger/log-entry.js"
@@ -54,6 +54,11 @@ export type ObjectPath = (string | number)[]
 
 export interface YamlDocumentWithSource extends Document {
   source: string
+}
+
+export function getEffectiveConfigFileLocation(actionConfig: BaseActionConfig): string {
+  const internal = actionConfig.internal
+  return !!internal.configFilePath ? dirname(internal.configFilePath) : internal.basePath
 }
 
 export interface GardenResourceInternalFields {
