@@ -294,7 +294,7 @@ export async function getValueArgs({
   // so it's added to the end of the list.
   const valueFiles = action
     .getSpec()
-    .valueFiles.map((f) => resolve(action.getBuildPath(), f))
+    .valueFiles.map((f) => resolve(action.effectiveConfigFileLocation(), f))
     .concat([valuesPath])
 
   const args = flatten(valueFiles.map((f) => ["--values", f]))
