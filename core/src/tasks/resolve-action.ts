@@ -157,9 +157,11 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
       })
     }
 
+    const basePath = action.effectiveConfigFileLocation()
+
     const actionVariables = resolveTemplateStrings({
       value: await mergeVariables({
-        basePath: action.sourcePath(),
+        basePath,
         variables: config.variables,
         varfiles: config.varfiles,
       }),

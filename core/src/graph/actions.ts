@@ -34,7 +34,7 @@ import { BuildAction, buildActionConfigSchema, isBuildActionConfig } from "../ac
 import { DeployAction, deployActionConfigSchema, isDeployActionConfig } from "../actions/deploy.js"
 import { RunAction, runActionConfigSchema, isRunActionConfig } from "../actions/run.js"
 import { TestAction, testActionConfigSchema, isTestActionConfig } from "../actions/test.js"
-import { noTemplateFields } from "../config/base.js"
+import { getEffectiveConfigFileLocation, noTemplateFields } from "../config/base.js"
 import type { ActionReference, JoiDescription } from "../config/common.js"
 import { describeSchema, parseActionReference } from "../config/common.js"
 import type { GroupConfig } from "../config/group.js"
@@ -456,8 +456,10 @@ async function processActionConfig({
     config.internal.treeVersion ||
     (await garden.vcs.getTreeVersion({ log, projectName: garden.projectName, config, scanRoot }))
 
+  const effectiveConfigFileLocation = getEffectiveConfigFileLocation(config)
+
   let variables = await mergeVariables({
-    basePath: config.internal.basePath,
+    basePath: effectiveConfigFileLocation,
     variables: config.variables,
     varfiles: config.varfiles,
   })

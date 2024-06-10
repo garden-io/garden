@@ -5,6 +5,10 @@ source:
   repository:
     url: https://github.com/garden-io/garden-example-remote-module-jworker.git#main
 
+# Do not delete, this must be resolved from the current path, not from the cloned sourced path
+varfiles:
+  - ./.env
+
 ---
 kind: Deploy
 description: The worker that collects votes and stores results in a postgres table

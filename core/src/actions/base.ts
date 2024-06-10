@@ -67,6 +67,7 @@ import { joinWithPosix } from "../util/fs.js"
 import type { LinkedSource } from "../config-store/local.js"
 import type { BaseActionTaskParams, ExecuteTask } from "../tasks/base.js"
 import { styles } from "../logger/styles.js"
+import { dirname } from "node:path"
 
 // TODO: split this file
 
@@ -476,6 +477,11 @@ export abstract class BaseAction<
     return this._config.internal.configFilePath
   }
 
+  effectiveConfigFileLocation() {
+    const configPath = this.configPath()
+    return !!configPath ? dirname(configPath) : this.sourcePath()
+  }
+
   moduleName(): string | null {
     return this._moduleName || null
   }
@@ -675,6 +681,7 @@ export abstract class BaseAction<
   set executeConcurrencyLimit(limit: number | undefined) {
     this._config.internal.executeConcurrencyLimit = limit
   }
+
   get executeConcurrencyLimit(): number | undefined {
     return this._config.internal.executeConcurrencyLimit
   }
