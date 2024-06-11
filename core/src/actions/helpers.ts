@@ -166,6 +166,8 @@ export async function getDeployStatusPayloads({
           force: false,
           action,
           sessionId,
+          // TODO: Once needed, send ActionRuntime information to Cloud; See getBuildStatusPayloads
+          runtime: undefined,
         }) as ActionStatusPayload<DeployStatusForEventPayload>
 
         return [action.name, payload]
@@ -201,6 +203,7 @@ export async function getBuildStatusPayloads({
           force: false,
           action,
           sessionId,
+          runtime: (result.detail ?? {}).runtime,
         }) as ActionStatusPayload<BuildStatusForEventPayload>
 
         return [action.name, payload]
@@ -235,6 +238,8 @@ export async function getTestStatusPayloads({
           force: false,
           action,
           sessionId,
+          // TODO: Once needed, send ActionRuntime information to Cloud; See getBuildStatusPayloads
+          runtime: undefined,
         }) as ActionStatusPayload<RunStatusForEventPayload>
         return [action.name, payload]
       })
@@ -269,6 +274,8 @@ export async function getRunStatusPayloads({
           force: false,
           action,
           sessionId,
+          // TODO: Once needed, send ActionRuntime information to Cloud; See getBuildStatusPayloads
+          runtime: undefined,
         }) as ActionStatusPayload<RunStatusForEventPayload>
 
         return [action.name, payload]

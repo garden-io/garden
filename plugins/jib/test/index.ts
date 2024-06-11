@@ -81,7 +81,7 @@ describe("jib-container", function () {
           graph,
         })
 
-        const tarPath = res.detail?.details.tarPath as string
+        const tarPath = res.detail?.details?.["tarPath"] as string
 
         expect(tarPath).to.equal(
           join(action.sourcePath(), "target", `jib-image-foo-${module.version.versionString}.tar`)
@@ -101,7 +101,7 @@ describe("jib-container", function () {
           graph,
         })
 
-        const tarPath = res.detail?.details.tarPath as string
+        const tarPath = res.detail?.details?.["tarPath"] as string
 
         expect(tarPath).to.equal(
           join(action.sourcePath(), "build", `jib-image-foo-${module.version.versionString}.tar`)

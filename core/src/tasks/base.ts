@@ -35,6 +35,7 @@ import {
   makeActionGetStatusPayload,
 } from "../events/util.js"
 import { styles } from "../logger/styles.js"
+import type { ActionRuntime } from "../plugin/base.js"
 
 export function makeBaseKey(type: string, name: string) {
   return `${type}.${name}`
@@ -481,6 +482,7 @@ export function logAndEmitGetStatusEvents<
         force: this.force,
         startedAt,
         sessionId: this.garden.sessionId,
+        runtime: undefined, // Runtime is unknown at this point
       })
     )
 
@@ -505,6 +507,7 @@ export function logAndEmitGetStatusEvents<
         operation: methodName,
         force: this.force,
         sessionId: this.garden.sessionId,
+        runtime: (result.detail ?? {}).runtime,
       }) as Events[typeof eventName]
 
       this.garden.events.emit(eventName, donePayload)
@@ -523,6 +526,7 @@ export function logAndEmitGetStatusEvents<
           force: this.force,
           operation: methodName,
           sessionId: this.garden.sessionId,
+          runtime: undefined, // Runtime is unknown as the getStatus handler failed
         })
       )
 
@@ -574,6 +578,12 @@ export function logAndEmitProcessingEvents<
       )}) at version ${styles.highlight(version)}...`
     )
 
+    // getStatus handler returns planned runtime
+    // status and detail might be null
+    const status = args[0].status ?? undefined
+    const statusDetail = status?.detail ?? undefined
+    const statusRuntime: ActionRuntime | undefined = statusDetail?.runtime
+
     // First we emit the "processing" event
     this.garden.events.emit(
       eventName,
@@ -582,6 +592,7 @@ export function logAndEmitProcessingEvents<
         action: this.action,
         force: this.force,
         sessionId: this.garden.sessionId,
+        runtime: statusRuntime,
       })
     )
 
@@ -596,6 +607,8 @@ export function logAndEmitProcessingEvents<
         force: this.force,
         operation: methodName,
         sessionId: this.garden.sessionId,
+        // process handler returns actual runtime; might fall back to other runtimes, if needed.
+        runtime: result.detail?.runtime,
       }) as Events[typeof eventName]
 
       this.garden.events.emit(eventName, donePayload)
@@ -615,6 +628,7 @@ export function logAndEmitProcessingEvents<
           force: this.force,
           operation: methodName,
           sessionId: this.garden.sessionId,
+          runtime: statusRuntime,
         })
       )
 

@@ -11,7 +11,7 @@ import { expect } from "chai"
 import type { ProjectConfig } from "../../../../src/config/project.js"
 import { freezeTime, createProjectConfig, makeTempDir, TestGarden } from "../../../helpers.js"
 import type { GardenPluginSpec } from "../../../../src/plugin/plugin.js"
-import { createGardenPlugin } from "../../../../src/plugin/plugin.js"
+import { ACTION_RUNTIME_LOCAL, createGardenPlugin } from "../../../../src/plugin/plugin.js"
 import { joi } from "../../../../src/config/common.js"
 import type { ConfigGraph } from "../../../../src/graph/config-graph.js"
 import { BuildTask } from "../../../../src/tasks/build.js"
@@ -44,12 +44,22 @@ describe("BuildTask", () => {
               getStatus: async (_) => {
                 return {
                   state: "ready",
-                  detail: { state: "ready" },
+                  detail: {
+                    state: "ready",
+                    runtime: ACTION_RUNTIME_LOCAL,
+                    details: {},
+                  },
                   outputs: {},
                 }
               },
               build: async (_) => {
-                return { state: "ready", detail: {}, outputs: {} }
+                return {
+                  state: "ready",
+                  detail: {
+                    runtime: ACTION_RUNTIME_LOCAL,
+                  },
+                  outputs: {},
+                }
               },
             },
           },
@@ -118,6 +128,7 @@ describe("BuildTask", () => {
             operation: "getStatus",
             state: "getting-status",
             sessionId: garden.sessionId,
+            runtime: undefined, // runtime unknown at this stage
             status: { state: "unknown" },
           },
         },
@@ -136,6 +147,7 @@ describe("BuildTask", () => {
             operation: "getStatus",
             state: "cached",
             sessionId: garden.sessionId,
+            runtime: { actual: { kind: "local" } },
             status: { state: "fetched" },
           },
         },
@@ -153,6 +165,7 @@ describe("BuildTask", () => {
             operation: "process",
             state: "processing",
             sessionId: garden.sessionId,
+            runtime: { actual: { kind: "local" } },
             status: { state: "building" },
           },
         },
@@ -171,6 +184,7 @@ describe("BuildTask", () => {
             operation: "process",
             state: "ready",
             sessionId: garden.sessionId,
+            runtime: { actual: { kind: "local" } },
             status: { state: "built" },
           },
         },

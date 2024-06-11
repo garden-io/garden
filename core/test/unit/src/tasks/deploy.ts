@@ -11,7 +11,7 @@ import type tmp from "tmp-promise"
 import type { ProjectConfig } from "../../../../src/config/project.js"
 import type { ConfigGraph } from "../../../../src/graph/config-graph.js"
 import type { GardenPluginSpec } from "../../../../src/plugin/plugin.js"
-import { createGardenPlugin } from "../../../../src/plugin/plugin.js"
+import { ACTION_RUNTIME_LOCAL, createGardenPlugin } from "../../../../src/plugin/plugin.js"
 import { DeployTask } from "../../../../src/tasks/deploy.js"
 import { expect } from "chai"
 import { createProjectConfig, freezeTime, makeTempDir, TestGarden } from "../../../helpers.js"
@@ -42,7 +42,13 @@ describe("DeployTask", () => {
             docs: "asd",
             schema: joi.object(),
             handlers: {
-              build: async (_) => ({ state: "ready", detail: {}, outputs: {} }),
+              build: async (_) => ({
+                state: "ready",
+                detail: {
+                  runtime: ACTION_RUNTIME_LOCAL,
+                },
+                outputs: {},
+              }),
             },
           },
         ],
@@ -219,6 +225,7 @@ describe("DeployTask", () => {
             operation: "getStatus",
             state: "getting-status",
             sessionId: garden.sessionId,
+            runtime: undefined,
             status: { state: "unknown" },
           },
         },
@@ -237,6 +244,7 @@ describe("DeployTask", () => {
             operation: "getStatus",
             state: "cached",
             sessionId: garden.sessionId,
+            runtime: undefined,
             status: {
               forwardablePorts: [],
               mode: "default",
@@ -259,6 +267,7 @@ describe("DeployTask", () => {
             startedAt: now,
             state: "processing", // <--- Force is set to true so we deploy even if the previous status is cached
             sessionId: garden.sessionId,
+            runtime: undefined,
             status: { state: "deploying" },
           },
         },
@@ -277,6 +286,7 @@ describe("DeployTask", () => {
             completedAt: now,
             state: "ready",
             sessionId: garden.sessionId,
+            runtime: undefined,
             status: {
               forwardablePorts: [],
               mode: "default",

@@ -23,6 +23,7 @@ import { emitNonRepeatableWarning } from "../../warnings.js"
 import { LRUCache } from "lru-cache"
 import { getPlatform } from "../../util/arch-platform.js"
 import { gardenEnv } from "../../constants.js"
+import type { ActionRuntime, ActionRuntimeKind } from "../../plugin/base.js"
 
 type CloudBuilderConfiguration = {
   isInClusterBuildingConfigured: boolean
@@ -65,6 +66,50 @@ export const cloudBuilder = {
 
     const availability = await getAvailability(ctx, action)
     return availability.available
+  },
+
+  async getActionRuntime(ctx: PluginContext, action: Resolved<ContainerBuildAction>): Promise<ActionRuntime> {
+    const config = getConfiguration(ctx)
+
+    const fallback: ActionRuntimeKind = config.isInClusterBuildingConfigured
+      ? // if in-cluster-building is configured, we are building remotely in the plugin.
+        {
+          kind: "remote",
+          type: "plugin",
+          pluginName: ctx.provider.name,
+        }
+      : // Otherwise we fall back to building locally.
+        { kind: "local" }
+
+    const preferred: ActionRuntimeKind = cloudBuilder.isConfigured(ctx)
+      ? // If cloud builder is configured, we prefer using cloud builder
+        {
+          kind: "remote",
+          type: "garden-cloud",
+        }
+      : // Otherwise we fall back to in-cluster building or building locally, whatever is configured.
+        fallback
+
+    // if cloud builder is configured AND available, that's our actual runtime. Otherwise we fall back to whatever is configured in the plugin.
+    const actual = (await cloudBuilder.isConfiguredAndAvailable(ctx, action)) ? preferred : fallback
+
+    if (actual === preferred) {
+      return {
+        actual,
+      }
+    } else {
+      const unavailable = await getAvailability(ctx, action)
+      if (unavailable.available) {
+        throw new InternalError({
+          message: `Inconsistent state: Should only fall back if Cloud Builder is not available`,
+        })
+      }
+      return {
+        actual,
+        preferred,
+        fallbackReason: unavailable.reason,
+      }
+    }
   },
 
   async withBuilder<T>(

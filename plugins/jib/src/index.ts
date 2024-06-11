@@ -278,6 +278,11 @@ export const gardenPlugin = () =>
                 detail: {
                   fetched: false,
                   buildLog,
+                  runtime: {
+                    actual: {
+                      kind: "local",
+                    },
+                  },
                   details: {
                     tarPath,
                   },

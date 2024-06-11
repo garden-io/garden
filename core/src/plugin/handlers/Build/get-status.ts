@@ -7,13 +7,12 @@
  */
 
 import { dedent } from "../../../util/string.js"
-import type { PluginBuildActionParamsBase } from "../../base.js"
+import type { ActionRuntime, PluginBuildActionParamsBase } from "../../base.js"
 import { actionParamsSchema } from "../../base.js"
 import type { BuildAction } from "../../../actions/build.js"
 import { ActionTypeHandlerSpec } from "../base/base.js"
 import { actionStatusSchema } from "../../../actions/base.js"
 import type { ActionStatus, ActionStatusMap, Resolved } from "../../../actions/types.js"
-import { createSchema, joi } from "../../../config/common.js"
 
 /**
  * - `fetched`: The build was fetched from a repository instead of building.
@@ -31,23 +30,17 @@ export interface BuildStatusForEventPayload {
 type GetBuildStatusParams<T extends BuildAction = BuildAction> = PluginBuildActionParamsBase<T>
 
 export interface BuildResult {
+  // Information about whether the action ran locally, or in a remote runner, and if the plugin decided to fall back to another mode of execution for some reason.
+  runtime: ActionRuntime
+  // The full log from the build.
   buildLog?: string
+  // Set to true if the build was fetched from a remote registry.
   fetched?: boolean
+  // Set to true if the build was performed, false if it was already built, or fetched from a registry
   fresh?: boolean
+  // Additional information, specific to the provider.
   details?: any
 }
-
-export const buildResultSchema = createSchema({
-  name: "build-result",
-  keys: () => ({
-    buildLog: joi.string().allow("").description("The full log from the build."),
-    fetched: joi.boolean().description("Set to true if the build was fetched from a remote registry."),
-    fresh: joi
-      .boolean()
-      .description("Set to true if the build was performed, false if it was already built, or fetched from a registry"),
-    details: joi.object().description("Additional information, specific to the provider."),
-  }),
-})
 
 export type BuildStatus<T extends BuildAction = BuildAction, D extends {} = BuildResult> = ActionStatus<T, D>
 

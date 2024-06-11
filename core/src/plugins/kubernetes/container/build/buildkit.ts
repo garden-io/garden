@@ -169,6 +169,13 @@ export const buildkitBuildHandler: BuildHandler = async (params) => {
       fetched: false,
       fresh: true,
       outputs,
+      runtime: {
+        actual: {
+          kind: "remote",
+          type: "plugin",
+          pluginName: ctx.provider.name,
+        },
+      },
     },
   }
 }

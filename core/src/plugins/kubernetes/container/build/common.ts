@@ -33,6 +33,7 @@ import { buildSyncVolumeName, dockerAuthSecretKey, getK8sUtilImageName, rsyncPor
 import { styles } from "../../../../logger/styles.js"
 import type { StringMap } from "../../../../config/common.js"
 import { LogLevel } from "../../../../logger/logger.js"
+import type { ActionRuntime } from "../../../../plugin/base.js"
 
 export const inClusterBuilderServiceAccount = "garden-in-cluster-builder"
 export const sharedBuildSyncDeploymentName = "garden-build-sync"
@@ -220,6 +221,14 @@ export async function skopeoBuildStatus({
     pod,
   })
 
+  const runtime: ActionRuntime = {
+    actual: {
+      kind: "remote",
+      type: "plugin",
+      pluginName: ctx.provider.name,
+    },
+  }
+
   try {
     await runner.exec({
       log,
@@ -228,7 +237,13 @@ export async function skopeoBuildStatus({
       containerName,
       buffer: true,
     })
-    return { state: "ready", outputs, detail: {} }
+    return {
+      state: "ready",
+      outputs,
+      detail: {
+        runtime,
+      },
+    }
   } catch (err) {
     // NOTE: This is a workaround for a failure mode where we receive valid skopeo JSON output via the websocket connection, which
     // indicates that the image exists, but we never receive the message that the command has completed, which leads to a timeout.
@@ -250,7 +265,13 @@ export async function skopeoBuildStatus({
         })
 
         // If the output is valid skopeo Manifest JSON, then the image exists, no matter what kind of errors we got from the Kubernetes API.
-        return { state: "ready", outputs, detail: {} }
+        return {
+          state: "ready",
+          outputs,
+          detail: {
+            runtime,
+          },
+        }
       }
     }
 
@@ -260,7 +281,7 @@ export async function skopeoBuildStatus({
       // Non-zero exit code can both mean the manifest is not found, and any other unexpected error
       if (res?.exitCode !== 0 && skopeoManifestUnknown(res?.stderr)) {
         // This would happen when the image does not exist, i.e. not ready
-        return { state: "not-ready", outputs, detail: {} }
+        return { state: "not-ready", outputs, detail: { runtime } }
       }
 
       throw new RuntimeError({

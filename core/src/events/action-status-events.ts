@@ -8,7 +8,7 @@
 
 import { actionStateTypes } from "../actions/types.js"
 import type { BuildState } from "../plugin/handlers/Build/get-status.js"
-import type { RunState } from "../plugin/plugin.js"
+import type { ActionRuntime, RunState } from "../plugin/plugin.js"
 import type { DeployState } from "../types/service.js"
 import type { PickFromUnion } from "../util/util.js"
 
@@ -116,6 +116,12 @@ interface ActionStatusPayloadBase {
    * The session ID for the command run the action belongs to.
    */
   sessionId: string
+  /**
+   * Runtime information about the action. It can be undefined in some cases, e.g. if the getting-status handler failed.
+   *
+   * Currently runtime information is only provided for build actions, but feel free to change that if we need runtime information for other action kinds in Cloud.
+   */
+  runtime: ActionRuntime | undefined
 }
 
 type ActionIncompleteState = PickFromUnion<ActionStateForEvent, "getting-status" | "unknown">

@@ -13,6 +13,7 @@ import type { ActionLog } from "../../../../src/logger/log-entry.js"
 import type { ActionRouter } from "../../../../src/router/router.js"
 import type { TestGarden } from "../../../helpers.js"
 import { getRouterTestData } from "./_helpers.js"
+import { ACTION_RUNTIME_LOCAL } from "../../../../src/plugin/base.js"
 
 describe("build actions", () => {
   let garden: TestGarden
@@ -45,7 +46,9 @@ describe("build actions", () => {
     it("should correctly call the corresponding plugin handler", async () => {
       const { result } = await actionRouter.build.build({ log, action: resolvedBuildAction, graph })
       expect(result).to.eql({
-        detail: {},
+        detail: {
+          runtime: ACTION_RUNTIME_LOCAL,
+        },
         outputs: {
           foo: "bar",
           isTestPluginABuildActionBuildHandlerReturn: true,

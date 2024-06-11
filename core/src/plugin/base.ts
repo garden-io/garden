@@ -113,6 +113,43 @@ export const runBaseParams = () => ({
   artifactsPath: artifactsPathSchema(),
 })
 
+// Action runtime type and schema. Used for the Cloud Builder UI, and maybe in the future Cloud Runner UI, etc.
+export type ActionRuntime =
+  | {
+      actual: ActionRuntimeKind
+      // These are needed to make sure the type system understands that preferred and fallbackReason are required together.
+      preferred?: undefined
+      fallbackReason?: undefined
+    }
+  | {
+      actual: ActionRuntimeKind
+      preferred: ActionRuntimeKind
+      fallbackReason: string
+    }
+
+export type ActionRuntimeKind = ActionRuntimeLocal | ActionRuntimeRemote
+
+export type ActionRuntimeLocal = {
+  kind: "local"
+}
+// constant for convenience
+export const ACTION_RUNTIME_LOCAL = {
+  actual: {
+    kind: "local",
+  },
+} as const
+
+export type ActionRuntimeRemote = ActionRuntimeRemoteGardenCloud | ActionRuntimeRemotePlugin
+export type ActionRuntimeRemoteGardenCloud = {
+  kind: "remote"
+  type: "garden-cloud"
+}
+export type ActionRuntimeRemotePlugin = {
+  kind: "remote"
+  type: "plugin"
+  pluginName: string
+}
+
 // TODO-0.13.0: update this schema in 0.13.0
 export interface RunResult {
   success: boolean

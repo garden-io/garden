@@ -17,6 +17,7 @@ import { styles } from "../../logger/styles.js"
 import { execRunCommand } from "./common.js"
 import { execCommonSchema, execEnvVarDoc, execRuntimeOutputsSchema, execStaticOutputsSchema } from "./config.js"
 import { execProvider } from "./exec.js"
+import { ACTION_RUNTIME_LOCAL } from "../../plugin/base.js"
 
 const s = sdk.schema
 
@@ -52,7 +53,13 @@ export type ExecBuildConfig = GardenSdkActionDefinitionConfigType<typeof execBui
 export type ExecBuild = GardenSdkActionDefinitionActionType<typeof execBuild>
 
 export const execBuildHandler = execBuild.addHandler("build", async ({ action, log, ctx }) => {
-  const output: BuildStatus = { state: "ready", outputs: {}, detail: {} }
+  const output: BuildStatus = {
+    state: "ready",
+    outputs: {},
+    detail: {
+      runtime: ACTION_RUNTIME_LOCAL,
+    },
+  }
   const command = action.getSpec("command")
 
   let success = true
@@ -61,7 +68,9 @@ export const execBuildHandler = execBuild.addHandler("build", async ({ action, l
     const result = await execRunCommand({ command, action, ctx, log })
 
     if (!output.detail) {
-      output.detail = {}
+      output.detail = {
+        runtime: ACTION_RUNTIME_LOCAL,
+      }
     }
 
     output.detail.fresh = true

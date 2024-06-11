@@ -15,7 +15,7 @@ import cloneDeep from "fast-copy"
 
 import type { PublishBuildAction } from "../../../../src/plugin/handlers/Build/publish.js"
 import type { GardenPluginSpec } from "../../../../src/plugin/plugin.js"
-import { createGardenPlugin } from "../../../../src/plugin/plugin.js"
+import { ACTION_RUNTIME_LOCAL, createGardenPlugin } from "../../../../src/plugin/plugin.js"
 import type { ConvertModuleParams } from "../../../../src/plugin/handlers/Module/convert.js"
 import { PublishTask } from "../../../../src/tasks/publish.js"
 import { joi } from "../../../../src/config/common.js"
@@ -76,7 +76,9 @@ const testProvider = createGardenPlugin({
           },
           build: async (_params) => ({
             state: "ready",
-            detail: {},
+            detail: {
+              runtime: ACTION_RUNTIME_LOCAL,
+            },
             outputs: {},
           }),
         },

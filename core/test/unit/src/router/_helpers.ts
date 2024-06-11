@@ -18,7 +18,7 @@ import { validateSchema } from "../../../../src/config/validation.js"
 import { createActionLog } from "../../../../src/logger/log-entry.js"
 import { getModuleHandlerDescriptions } from "../../../../src/plugin/module-types.js"
 import type { PartialGardenPluginSpec } from "../../../../src/plugin/plugin.js"
-import { createGardenPlugin } from "../../../../src/plugin/plugin.js"
+import { ACTION_RUNTIME_LOCAL, createGardenPlugin } from "../../../../src/plugin/plugin.js"
 import type { ProviderHandlers } from "../../../../src/plugin/providers.js"
 import { getProviderActionDescriptions } from "../../../../src/plugin/providers.js"
 import { createProjectConfig, makeTestGarden, projectRootA } from "../../../helpers.js"
@@ -132,7 +132,11 @@ function getRouterUnitTestPlugins() {
           name: "base-action-type",
           docs: "asd",
           handlers: {
-            getStatus: async (_) => ({ state: "ready", detail: {}, outputs: { foo: "bar", plugin: "base" } }),
+            getStatus: async (_) => ({
+              state: "ready",
+              detail: { runtime: ACTION_RUNTIME_LOCAL },
+              outputs: { foo: "bar", plugin: "base" },
+            }),
           },
           schema: joi.object(),
         },
@@ -388,7 +392,9 @@ function getRouterUnitTestPlugins() {
               // This is hacked for the base router tests
               return {
                 state: "ready",
-                detail: {},
+                detail: {
+                  runtime: ACTION_RUNTIME_LOCAL,
+                },
                 outputs: {
                   foo: "bar",
                   plugin: "test-plugin-a",
@@ -402,7 +408,9 @@ function getRouterUnitTestPlugins() {
             build: async (_params) => {
               return {
                 state: "ready",
-                detail: {},
+                detail: {
+                  runtime: ACTION_RUNTIME_LOCAL,
+                },
                 // This is hacked for the base router tests
                 outputs: { foo: "bar", isTestPluginABuildActionBuildHandlerReturn: true },
               }

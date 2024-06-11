@@ -11,7 +11,7 @@ import { joi } from "../../../src/config/common.js"
 import { getRootLogger } from "../../../src/logger/logger.js"
 import type { BuildActionDefinition } from "../../../src/plugin/action-types.js"
 import type { PluginBuildActionParamsBase } from "../../../src/plugin/plugin.js"
-import { createGardenPlugin } from "../../../src/plugin/plugin.js"
+import { ACTION_RUNTIME_LOCAL, createGardenPlugin } from "../../../src/plugin/plugin.js"
 import { resolvePlugins } from "../../../src/plugins.js"
 import { findByName } from "../../../src/util/util.js"
 import { expectError } from "../../helpers.js"
@@ -21,7 +21,9 @@ describe("resolvePlugins", () => {
 
   const testHandler = (params: PluginBuildActionParamsBase<any>) => {
     return {
-      detail: {},
+      detail: {
+        runtime: ACTION_RUNTIME_LOCAL,
+      },
       outputs: {
         foo: "bar",
         // Pass through to allow validation of inputs
@@ -93,7 +95,9 @@ describe("resolvePlugins", () => {
         schema: joi.object(),
         handlers: {
           build: async ({}) => ({
-            detail: {},
+            detail: {
+              runtime: ACTION_RUNTIME_LOCAL,
+            },
             outputs: {
               foo: "bar",
             },
@@ -120,7 +124,9 @@ describe("resolvePlugins", () => {
         schema: joi.object(),
         handlers: {
           build: async ({}) => ({
-            detail: {},
+            detail: {
+              runtime: ACTION_RUNTIME_LOCAL,
+            },
             outputs: {
               foo: "bar",
             },
@@ -138,7 +144,9 @@ describe("resolvePlugins", () => {
         schema: joi.object(),
         handlers: {
           build: async ({}) => ({
-            detail: {},
+            detail: {
+              runtime: ACTION_RUNTIME_LOCAL,
+            },
             outputs: {
               foo: "bar",
             },
@@ -205,7 +213,9 @@ describe("resolvePlugins", () => {
               name: "test",
               handlers: {
                 build: async ({}) => ({
-                  detail: {},
+                  detail: {
+                    runtime: ACTION_RUNTIME_LOCAL,
+                  },
                   outputs: {
                     foo: "overridden",
                   },
@@ -248,7 +258,9 @@ describe("resolvePlugins", () => {
               name: "test",
               handlers: {
                 build: async ({}) => ({
-                  detail: {},
+                  detail: {
+                    runtime: ACTION_RUNTIME_LOCAL,
+                  },
                   outputs: {
                     foo: "overridden",
                   },
@@ -296,7 +308,9 @@ describe("resolvePlugins", () => {
               schema: joi.object(),
               handlers: {
                 build: async ({}) => ({
-                  detail: {},
+                  detail: {
+                    runtime: ACTION_RUNTIME_LOCAL,
+                  },
                   outputs: {
                     foo: "overridden",
                   },
@@ -353,7 +367,9 @@ describe("resolvePlugins", () => {
               schema: joi.object(),
               handlers: {
                 build: async ({}) => ({
-                  detail: {},
+                  detail: {
+                    runtime: ACTION_RUNTIME_LOCAL,
+                  },
                   outputs: {
                     foo: "overridden",
                   },
@@ -422,7 +438,9 @@ describe("resolvePlugins", () => {
               name: "test",
               handlers: {
                 build: async ({}) => ({
-                  detail: {},
+                  detail: {
+                    runtime: ACTION_RUNTIME_LOCAL,
+                  },
                   outputs: {
                     foo: "overridden",
                   },
@@ -466,7 +484,9 @@ describe("resolvePlugins", () => {
               name: "test",
               handlers: {
                 build: async ({}) => ({
-                  detail: {},
+                  detail: {
+                    runtime: ACTION_RUNTIME_LOCAL,
+                  },
                   outputs: {
                     foo: "overridden",
                   },
@@ -487,7 +507,9 @@ describe("resolvePlugins", () => {
               name: "test",
               handlers: {
                 getStatus: async ({}) => ({
-                  detail: {},
+                  detail: {
+                    runtime: ACTION_RUNTIME_LOCAL,
+                  },
                   outputs: {
                     foo: "overridden",
                   },

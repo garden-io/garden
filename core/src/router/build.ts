@@ -11,6 +11,7 @@ import type { BaseRouterParams } from "./base.js"
 import { createActionRouter } from "./base.js"
 import type { PublishActionResult } from "../plugin/handlers/Build/publish.js"
 import { styles } from "../logger/styles.js"
+import { ACTION_RUNTIME_LOCAL } from "../plugin/base.js"
 
 const API_ACTION_TYPE = "build"
 
@@ -21,7 +22,13 @@ export const buildRouter = (baseParams: BaseRouterParams) =>
       const statusOutput = await router.callHandler({
         params,
         handlerType: "getStatus",
-        defaultHandler: async () => ({ state: "unknown" as const, detail: {}, outputs: {} }),
+        defaultHandler: async () => ({
+          state: "unknown" as const,
+          detail: {
+            runtime: ACTION_RUNTIME_LOCAL,
+          },
+          outputs: {},
+        }),
       })
       const status = statusOutput.result
 
@@ -57,7 +64,13 @@ export const buildRouter = (baseParams: BaseRouterParams) =>
       const output = await router.callHandler({
         params,
         handlerType: "build",
-        defaultHandler: async () => ({ state: "unknown" as const, outputs: {}, detail: {} }),
+        defaultHandler: async () => ({
+          state: "unknown" as const,
+          outputs: {},
+          detail: {
+            runtime: ACTION_RUNTIME_LOCAL,
+          },
+        }),
       })
       const { result } = output
 
