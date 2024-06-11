@@ -91,6 +91,7 @@ export const gardenEnv = {
   GARDEN_WORKFLOW_RUN_UID: env.get("GARDEN_WORKFLOW_RUN_UID").required(false).asString(),
   GARDEN_CLOUD_DOMAIN: env.get("GARDEN_CLOUD_DOMAIN").required(false).asUrlString(),
   GARDEN_ENABLE_TRACING: env.get("GARDEN_ENABLE_TRACING").required(false).default("true").asBool(),
+  GARDEN_STORE_ACTION_TYPE: env.get("GARDEN_STORE_ACTION_TYPE").required(false).default("false").asBool(),
   GARDEN_VERSION_CHECK_ENDPOINT: env
     .get("GARDEN_VERSION_CHECK_ENDPOINT")
     .required(false)

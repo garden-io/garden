@@ -14,6 +14,7 @@ import type { Events, ActionStatusEventName } from "./events.js"
 import { pick } from "lodash-es"
 import type { BuildState } from "../plugin/handlers/Build/get-status.js"
 import type { ActionStatusDetailedState, ActionCompleteState } from "./action-status-events.js"
+import { gardenEnv } from "../constants.js"
 
 type ActionKind = "build" | "deploy" | "run" | "test"
 
@@ -68,12 +69,18 @@ export function makeActionStatusPayloadBase({
   startedAt: string
   sessionId: string
 }) {
+  // Due to an old bug, we were confusing type and kind in both Core and API.
+  // Latest versions of the API now handle this correctly, across all Core versions
+  // but there are older versions still running that don't but are pending an update.
+  // Until then, this is "feature flagged".
+  // TODO: Remove feature flag and always store action type.
+  const actionType = gardenEnv.GARDEN_STORE_ACTION_TYPE ? action.type : action.kind.toLowerCase()
   return {
     actionName: action.name,
     actionVersion: action.versionString(),
     // NOTE: The type/kind needs to be lower case in the event payload
-    actionType: action.kind.toLowerCase(),
     actionKind: action.kind.toLowerCase(),
+    actionType,
     actionUid: action.uid,
     moduleName: action.moduleName(),
     sessionId,
