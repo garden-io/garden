@@ -298,18 +298,7 @@ export async function getValueArgs({
       const pathViaBuildPath = resolve(action.getBuildPath(), f)
       const pathViaEffectiveConfigFileLocation = resolve(action.effectiveConfigFileLocation(), f)
 
-      const path = pathExistsSync(pathViaBuildPath)
-        ? pathViaBuildPath
-        : pathExistsSync(pathViaEffectiveConfigFileLocation)
-          ? pathViaEffectiveConfigFileLocation
-          : null
-
-      if (!path) {
-        throw new ConfigurationError({
-          message: `${action.longDescription()} specifies a value file '${f}' that does not exist at '${pathViaBuildPath}' or '${pathViaEffectiveConfigFileLocation}'`,
-        })
-      }
-      return path
+      return pathExistsSync(pathViaBuildPath) ? pathViaBuildPath : pathViaEffectiveConfigFileLocation
     })
     .concat([valuesPath])
 
