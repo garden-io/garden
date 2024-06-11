@@ -44,6 +44,8 @@ export interface GroupConfig {
   actions: ActionConfig[]
 }
 
+const varfileName = "my-action.${environment.name}.env"
+
 export const groupConfig = createSchema({
   name: "Group",
   keys: () => ({
@@ -66,7 +68,7 @@ export const groupConfig = createSchema({
 
           ${varfileDescription}
 
-          To use different group-level varfiles in different environments, you can template in the environment name to the varfile name, e.g. \`varfile: "my-action.\$\{environment.name\}.env\` (this assumes that the corresponding varfiles exist).
+          To use different group-level varfiles in different environments, you can template in the environment name to the varfile name, e.g. \`varfile: "${varfileName}"\` (this assumes that the corresponding varfiles exist).
 
           If a listed varfile cannot be found, it is ignored.
         `

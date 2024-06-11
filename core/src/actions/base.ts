@@ -116,6 +116,8 @@ const actionSourceSpecSchema = createSchema({
 
 export const includeExcludeSchema = memoize(() => joi.array().items(joi.posixPath().allowGlobs().subPathOnly()))
 
+const varfileName = "my-action.${environment.name}.env"
+
 export const baseActionConfigSchema = createSchema({
   name: "action-config-base",
   keys: () => ({
@@ -237,7 +239,7 @@ export const baseActionConfigSchema = createSchema({
 
           ${varfileDescription}
 
-          To use different varfiles in different environments, you can template in the environment name to the varfile name, e.g. \`varfile: "my-action.\$\{environment.name\}.env\` (this assumes that the corresponding varfiles exist).
+          To use different varfiles in different environments, you can template in the environment name to the varfile name, e.g. \`varfile: "${varfileName}"\` (this assumes that the corresponding varfiles exist).
 
           If a listed varfile cannot be found, throwing an error.
           To add optional varfiles, you can use a list item object with a \`path\` and an optional \`optional\` boolean field.
