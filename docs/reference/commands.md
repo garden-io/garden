@@ -1857,7 +1857,7 @@ actionConfigs:
       # nested objects and arrays._
       #
       # To use different varfiles in different environments, you can template in the environment name to the varfile
-      # name, e.g. `varfile: "my-action.\$\{environment.name\}.env` (this assumes that the corresponding varfiles
+      # name, e.g. `varfile: "my-action.${environment.name}.env"` (this assumes that the corresponding varfiles
       # exist).
       #
       # If a listed varfile cannot be found, throwing an error.
@@ -2073,7 +2073,7 @@ actionConfigs:
       # nested objects and arrays._
       #
       # To use different varfiles in different environments, you can template in the environment name to the varfile
-      # name, e.g. `varfile: "my-action.\$\{environment.name\}.env` (this assumes that the corresponding varfiles
+      # name, e.g. `varfile: "my-action.${environment.name}.env"` (this assumes that the corresponding varfiles
       # exist).
       #
       # If a listed varfile cannot be found, throwing an error.
@@ -2228,7 +2228,7 @@ actionConfigs:
       # nested objects and arrays._
       #
       # To use different varfiles in different environments, you can template in the environment name to the varfile
-      # name, e.g. `varfile: "my-action.\$\{environment.name\}.env` (this assumes that the corresponding varfiles
+      # name, e.g. `varfile: "my-action.${environment.name}.env"` (this assumes that the corresponding varfiles
       # exist).
       #
       # If a listed varfile cannot be found, throwing an error.
@@ -2383,7 +2383,7 @@ actionConfigs:
       # nested objects and arrays._
       #
       # To use different varfiles in different environments, you can template in the environment name to the varfile
-      # name, e.g. `varfile: "my-action.\$\{environment.name\}.env` (this assumes that the corresponding varfiles
+      # name, e.g. `varfile: "my-action.${environment.name}.env"` (this assumes that the corresponding varfiles
       # exist).
       #
       # If a listed varfile cannot be found, throwing an error.
