@@ -8,6 +8,7 @@
 
 import { execa } from "execa"
 import { expect } from "chai"
+import { afterEach, beforeEach } from "mocha"
 import type tmp from "tmp-promise"
 import fsExtra from "fs-extra"
 import { basename, dirname, join, relative, resolve } from "path"
@@ -37,6 +38,8 @@ import type { VcsHandlerParams } from "../../../../src/vcs/vcs.js"
 import { repoRoot } from "../../../../src/util/testing.js"
 import { ChildProcessError, GardenError, RuntimeError } from "../../../../src/exceptions.js"
 import type { GitScanMode } from "../../../../src/constants.js"
+import type { Garden } from "../../../../src/index.js"
+import type { ConfigGraph } from "../../../../src/graph/config-graph.js"
 
 const { createFile, ensureSymlink, lstat, mkdir, mkdirp, realpath, remove, symlink, writeFile } = fsExtra
 
@@ -1490,22 +1493,32 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
 //  inspect the scenarios when both include and exclude filters are defined.
 const getTreeVersionTests = (gitScanMode: GitScanMode) => {
   const gitHandlerCls = getGitHandlerCls(gitScanMode)
+  const projectRoot = getDataDir("test-projects", "include-exclude")
+
+  let garden: Garden
+  let log: Log
+  let graph: ConfigGraph
+  let handler: AbstractGitHandler
+
+  beforeEach(async () => {
+    garden = await makeTestGarden(projectRoot, { gitScanMode })
+    log = garden.log
+    graph = await garden.getConfigGraph({ log, emit: false })
+
+    handler = new gitHandlerCls({
+      garden,
+      projectRoot: garden.projectRoot,
+      gardenDirPath: garden.gardenDirPath,
+      ignoreFile: garden.dotIgnoreFile,
+      cache: garden.treeCache,
+    })
+  })
+
   describe("getTreeVersion", () => {
     context("include and exclude filters", () => {
       it("should respect the include field, if specified", async () => {
-        const projectRoot = getDataDir("test-projects", "include-exclude")
-        const garden = await makeTestGarden(projectRoot, { gitScanMode })
-        const log = garden.log
-        const graph = await garden.getConfigGraph({ log, emit: false })
         const build = graph.getBuild("a")
         const buildConfig = build.getConfig()
-        const handler = new gitHandlerCls({
-          garden,
-          projectRoot: garden.projectRoot,
-          gardenDirPath: garden.gardenDirPath,
-          ignoreFile: garden.dotIgnoreFile,
-          cache: garden.treeCache,
-        })
 
         const version = await handler.getTreeVersion({
           log: garden.log,
@@ -1520,19 +1533,8 @@ const getTreeVersionTests = (gitScanMode: GitScanMode) => {
       })
 
       it("should respect the exclude field, if specified", async () => {
-        const projectRoot = getDataDir("test-projects", "include-exclude")
-        const garden = await makeTestGarden(projectRoot, { gitScanMode })
-        const log = garden.log
-        const graph = await garden.getConfigGraph({ log, emit: false })
         const build = graph.getBuild("b")
         const buildConfig = build.getConfig()
-        const handler = new gitHandlerCls({
-          garden,
-          projectRoot: garden.projectRoot,
-          gardenDirPath: garden.gardenDirPath,
-          ignoreFile: garden.dotIgnoreFile,
-          cache: garden.treeCache,
-        })
 
         const version = await handler.getTreeVersion({
           log: garden.log,
@@ -1544,20 +1546,8 @@ const getTreeVersionTests = (gitScanMode: GitScanMode) => {
       })
 
       it("should respect both include and exclude fields, if specified", async () => {
-        const projectRoot = getDataDir("test-projects", "include-exclude")
-        const garden = await makeTestGarden(projectRoot, { gitScanMode })
-        const log = garden.log
-        const graph = await garden.getConfigGraph({ log, emit: false })
         const build = graph.getBuild("b")
         const buildConfig = build.getConfig()
-
-        const handler = new gitHandlerCls({
-          garden,
-          projectRoot: garden.projectRoot,
-          gardenDirPath: garden.gardenDirPath,
-          ignoreFile: garden.dotIgnoreFile,
-          cache: garden.treeCache,
-        })
 
         const version = await handler.getTreeVersion({
           log: garden.log,
