@@ -10,7 +10,7 @@ import { flatten, isPlainObject } from "lodash-es"
 import AsyncLock from "async-lock"
 import { join, resolve } from "path"
 import fsExtra from "fs-extra"
-const { pathExists, readFile, remove, writeFile } = fsExtra
+const { pathExists, readFile, remove, writeFile, pathExistsSync } = fsExtra
 import { temporaryWrite } from "tempy"
 import cryptoRandomString from "crypto-random-string"
 
@@ -294,7 +294,23 @@ export async function getValueArgs({
   // so it's added to the end of the list.
   const valueFiles = action
     .getSpec()
-    .valueFiles.map((f) => resolve(action.effectiveConfigFileLocation(), f))
+    .valueFiles.map((f) => {
+      const pathViaBuildPath = resolve(action.getBuildPath(), f)
+      const pathViaEffectiveConfigFileLocation = resolve(action.effectiveConfigFileLocation(), f)
+
+      const path = pathExistsSync(pathViaBuildPath)
+        ? pathViaBuildPath
+        : pathExistsSync(pathViaEffectiveConfigFileLocation)
+          ? pathViaEffectiveConfigFileLocation
+          : null
+
+      if (!path) {
+        throw new ConfigurationError({
+          message: `${action.longDescription()} specifies a value file '${f}' that does not exist at '${pathViaBuildPath}' or '${pathViaEffectiveConfigFileLocation}'`,
+        })
+      }
+      return path
+    })
     .concat([valuesPath])
 
   const args = flatten(valueFiles.map((f) => ["--values", f]))
