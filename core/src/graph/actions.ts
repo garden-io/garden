@@ -408,15 +408,16 @@ async function processActionConfig({
   scanRoot?: string
 }) {
   const actionTypes = await garden.getActionTypes()
-  const definition = actionTypes[config.kind][config.type]?.spec
-  const compatibleTypes = [config.type, ...getActionTypeBases(definition, actionTypes[config.kind]).map((t) => t.name)]
+  const { kind, type } = config
+  const definition = actionTypes[kind][type]?.spec
+  const compatibleTypes = [type, ...getActionTypeBases(definition, actionTypes[kind]).map((t) => t.name)]
 
   const configPath = relative(garden.projectRoot, config.internal.configFilePath || config.internal.basePath)
 
-  if (!actionTypes[config.kind][config.type]) {
+  if (!actionTypes[kind][type]) {
     const availableKinds: ActionKind[] = []
     actionKinds.forEach((actionKind) => {
-      if (actionTypes[actionKind][config.type]) {
+      if (actionTypes[actionKind][type]) {
         availableKinds.push(actionKind)
       }
     })
@@ -424,19 +425,24 @@ async function processActionConfig({
     if (availableKinds.length > 0) {
       throw new ConfigurationError({
         message: deline`
-        Unrecognized ${config.type} action of kind ${config.kind} (defined at ${configPath}).
-        There are no ${config.type} ${config.kind} actions, did you mean to specify a ${naturalList(availableKinds, {
+        Unrecognized ${type} action of kind ${kind} (defined at ${configPath}).
+        There are no ${type} ${kind} actions, did you mean to specify a ${naturalList(availableKinds, {
           trailingWord: "or a",
         })} action(s)?
         `,
       })
     }
 
+    let availableForKind: string = (Object.keys(actionTypes[kind]) || {}).map((t) => `'${t}'`).join(", ")
+    if (availableForKind === "") {
+      availableForKind = "None"
+    }
+
     throw new ConfigurationError({
       message: dedent`
-        Unrecognized action type '${config.type}' (defined at ${configPath}). Are you missing a provider configuration?
+        Unrecognized action type '${type}' (kind '${kind}', defined at ${configPath}). Are you missing a provider configuration?
 
-        Currently available action types: ${Object.keys(actionTypes).join(", ")}`,
+        Currently available '${kind}' action types: ${availableForKind}`,
     })
   }
 
