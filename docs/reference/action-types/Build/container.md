@@ -158,7 +158,7 @@ The format of the files is determined by the configured file's extension:
 
 _NOTE: The default varfile format will change to YAML in Garden v0.13, since YAML allows for definition of nested objects and arrays._
 
-To use different varfiles in different environments, you can template in the environment name to the varfile name, e.g. `varfile: "my-action.\$\{environment.name\}.env` (this assumes that the corresponding varfiles exist).
+To use different varfiles in different environments, you can template in the environment name to the varfile name, e.g. `varfile: "my-action.${environment.name}.env"` (this assumes that the corresponding varfiles exist).
 
 If a listed varfile cannot be found, throwing an error.
 To add optional varfiles, you can use a list item object with a `path` and an optional `optional` boolean field.
