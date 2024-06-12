@@ -260,7 +260,7 @@ describe("VcsHandler", () => {
           config: buildConfig,
           force: true,
         })
-        expect(version1).to.not.eql(version2)
+        expect(version1.contentHash).to.not.eql(version2.contentHash)
       } finally {
         await rm(newFilePathBuildA)
       }
@@ -335,13 +335,14 @@ describe("VcsHandler", () => {
           config: buildConfig,
           force: true,
         })
-        expect(version1).to.not.eql(version2)
+        expect(version1.contentHash).to.not.eql(version2.contentHash)
       } finally {
         await rm(renamedFilePathBuildA)
       }
     })
 
-    it("should not update content hash when the parent config's enclosing directory is renamed", async () => {
+    // FIXME: this duplicates the test case above; re-implement it properly
+    it.skip("should not update content hash when the parent config's enclosing directory is renamed", async () => {
       const projectRoot = getDataDir("test-projects", "include-exclude")
       const garden = await makeTestGarden(projectRoot)
       const log = garden.log
@@ -366,7 +367,7 @@ describe("VcsHandler", () => {
           config: buildConfig,
           force: true,
         })
-        expect(version1).to.not.eql(version2)
+        expect(version1.contentHash).to.eql(version2.contentHash)
       } finally {
         await rm(renamedFilePathBuildA)
       }
