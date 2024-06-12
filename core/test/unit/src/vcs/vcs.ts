@@ -7,26 +7,26 @@
  */
 
 import type {
-  TreeVersions,
-  TreeVersion,
   GetFilesParams,
-  VcsFile,
+  GetTreeVersionParams,
   NamedModuleVersion,
   NamedTreeVersion,
-  GetTreeVersionParams,
+  TreeVersion,
+  TreeVersions,
+  VcsFile,
 } from "../../../../src/vcs/vcs.js"
-import { isSubPath } from "../../../../src/vcs/vcs.js"
 import {
-  VcsHandler,
+  describeConfig,
+  getConfigFilePath,
   getModuleVersionString,
   getResourceTreeCacheKey,
-  hashModuleVersion,
-  describeConfig,
   getSourcePath,
-  getConfigFilePath,
+  hashModuleVersion,
+  isSubPath,
+  VcsHandler,
 } from "../../../../src/vcs/vcs.js"
 import type { TestGarden } from "../../../helpers.js"
-import { makeTestGardenA, makeTestGarden, getDataDir, defaultModuleConfig } from "../../../helpers.js"
+import { defaultModuleConfig, getDataDir, makeTestGarden, makeTestGardenA } from "../../../helpers.js"
 import { expect } from "chai"
 import cloneDeep from "fast-copy"
 
@@ -34,13 +34,12 @@ import type { ModuleConfig } from "../../../../src/config/module.js"
 import { join, sep } from "path"
 import * as td from "testdouble"
 import fsExtra from "fs-extra"
-
-const { readFile, writeFile, rm, rename } = fsExtra
 import { DEFAULT_BUILD_TIMEOUT_SEC, GardenApiVersion } from "../../../../src/constants.js"
 import { defaultDotIgnoreFile, fixedProjectExcludes } from "../../../../src/util/fs.js"
-import { createActionLog } from "../../../../src/logger/log-entry.js"
 import type { BaseActionConfig } from "../../../../src/actions/types.js"
 import { TreeCache } from "../../../../src/cache.js"
+
+const { readFile, writeFile, rm, rename } = fsExtra
 
 export class TestVcsHandler extends VcsHandler {
   override readonly name = "test"
