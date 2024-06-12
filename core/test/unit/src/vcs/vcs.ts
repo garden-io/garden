@@ -267,37 +267,37 @@ describe("VcsHandler", () => {
     it("should not update content hash for Deploy, when there's no change in included files of Build", async () => {
       const projectRoot = getDataDir("test-projects", "config-action-include")
       const garden = await makeTestGarden(projectRoot)
-      const log = createActionLog({ log: garden.log, actionName: "", actionKind: "" })
+      const log = garden.log
       const graph = await garden.getConfigGraph({ emit: false, log })
-      const build = graph.getActionByRef("build.test-build")
-      const deploy = graph.getActionByRef("deploy.test-deploy")
-      const resolvedBuild = await garden.resolveAction({ action: build, graph, log })
-      const resolvedDeploy = await garden.resolveAction({ action: deploy, graph, log })
+      const buildConfig = graph.getBuild("test-build").getConfig()
+      const deployConfig = graph.getDeploy("test-deploy").getConfig()
       const newFilePath = join(garden.projectRoot, "foo")
+
       try {
         const buildVersion1 = await garden.vcs.getTreeVersion({
           log: garden.log,
           projectName: garden.projectName,
-          config: resolvedBuild.getConfig(),
+          config: buildConfig,
         })
 
         const deployVersion1 = await garden.vcs.getTreeVersion({
           log: garden.log,
           projectName: garden.projectName,
-          config: resolvedDeploy.getConfig(),
+          config: deployConfig,
         })
+
         await writeFile(newFilePath, "abcd")
 
         const buildVersion2 = await garden.vcs.getTreeVersion({
           log: garden.log,
           projectName: garden.projectName,
-          config: resolvedBuild.getConfig(),
+          config: buildConfig,
           force: true,
         })
         const deployVersion2 = await garden.vcs.getTreeVersion({
           log: garden.log,
           projectName: garden.projectName,
-          config: resolvedDeploy.getConfig(),
+          config: deployConfig,
           force: true,
         })
 
