@@ -245,13 +245,16 @@ describe("VcsHandler", () => {
       const graph = await garden.getConfigGraph({ emit: false, log })
       const buildConfig = graph.getBuild("a").getConfig()
       const newFilePathBuildA = join(garden.projectRoot, "build-a", "somedir", "foo")
+
       try {
         const version1 = await garden.vcs.getTreeVersion({
           log: garden.log,
           projectName: garden.projectName,
           config: buildConfig,
         })
+
         await writeFile(newFilePathBuildA, "abcd")
+
         const version2 = await garden.vcs.getTreeVersion({
           log: garden.log,
           projectName: garden.projectName,
@@ -312,17 +315,19 @@ describe("VcsHandler", () => {
       const projectRoot = getDataDir("test-projects", "include-exclude")
       const garden = await makeTestGarden(projectRoot)
       const log = garden.log
+      const graph = await garden.getConfigGraph({ emit: false, log })
+      const buildConfig = graph.getBuild("a").getConfig()
       const newFilePathBuildA = join(garden.projectRoot, "build-a", "somedir", "foo")
       const renamedFilePathBuildA = join(garden.projectRoot, "build-a", "somedir", "bar")
+
       try {
         await writeFile(newFilePathBuildA, "abcd")
-        const graph = await garden.getConfigGraph({ emit: false, log })
-        const buildConfig = graph.getBuild("a").getConfig()
         const version1 = await garden.vcs.getTreeVersion({
           log: garden.log,
           projectName: garden.projectName,
           config: buildConfig,
         })
+
         // rename file foo to bar
         await rename(newFilePathBuildA, renamedFilePathBuildA)
         const version2 = await garden.vcs.getTreeVersion({
@@ -341,17 +346,19 @@ describe("VcsHandler", () => {
       const projectRoot = getDataDir("test-projects", "include-exclude")
       const garden = await makeTestGarden(projectRoot)
       const log = garden.log
+      const graph = await garden.getConfigGraph({ emit: false, log })
+      const buildConfig = graph.getBuild("a").getConfig()
       const newFilePathBuildA = join(garden.projectRoot, "build-a", "somedir", "foo")
       const renamedFilePathBuildA = join(garden.projectRoot, "build-a", "somedir", "bar")
+
       try {
         await writeFile(newFilePathBuildA, "abcd")
-        const graph = await garden.getConfigGraph({ emit: false, log })
-        const buildConfig = graph.getBuild("a").getConfig()
         const version1 = await garden.vcs.getTreeVersion({
           log: garden.log,
           projectName: garden.projectName,
           config: buildConfig,
         })
+
         // rename file foo to bar
         await rename(newFilePathBuildA, renamedFilePathBuildA)
         const version2 = await garden.vcs.getTreeVersion({
