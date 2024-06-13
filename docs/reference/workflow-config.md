@@ -129,6 +129,9 @@ steps:
     # and examples.
     when: onSuccess
 
+    # Set to true to continue if the step errors.
+    continueOnError: false
+
 # A list of triggers that determine when the workflow should be run, and which environment should be used (Garden
 # Cloud only).
 triggers:
@@ -483,6 +486,16 @@ and examples.
 | Type     | Default       | Required |
 | -------- | ------------- | -------- |
 | `string` | `"onSuccess"` | No       |
+
+### `steps[].continueOnError`
+
+[steps](#steps) > continueOnError
+
+Set to true to continue if the step errors.
+
+| Type      | Default | Required |
+| --------- | ------- | -------- |
+| `boolean` | `false` | No       |
 
 ### `triggers[]`
 

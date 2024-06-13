@@ -82,6 +82,35 @@ describe("RunWorkflowCommand", () => {
     expect(result.errors || []).to.eql([])
   })
 
+  it("should continue on error if continueOnError = true", async () => {
+    garden.setWorkflowConfigs([
+      {
+        apiVersion: GardenApiVersion.v0,
+        name: "workflow-a",
+        kind: "Workflow",
+        internal: {
+          basePath: garden.projectRoot,
+        },
+        files: [],
+        envVars: {},
+        resources: defaultWorkflowResources,
+        steps: [
+          { script: "echo error!; exit 1", continueOnError: true }, // <-- error thrown here
+          { command: ["echo", "success!"] },
+        ],
+      },
+    ])
+
+    const { result, errors } = await cmd.action({ ...defaultParams, args: { workflow: "workflow-a" } })
+
+    expect(result).to.exist
+    expect(errors).to.not.exist
+    expect(result?.steps).to.have.property("step-1")
+    expect(result?.steps["step-1"].outputs).to.have.property("stderr")
+    expect(result?.steps).to.have.property("step-2")
+    expect(result?.steps["step-2"].outputs).to.not.have.property("stderr")
+  })
+
   it("should add workflowStep metadata to log entries provided to steps", async () => {
     const _garden = await makeTestGardenA(undefined)
     // Ensure log entries are empty

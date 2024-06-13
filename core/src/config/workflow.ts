@@ -200,6 +200,7 @@ export interface WorkflowStepSpec {
   script?: string
   skip?: boolean
   when?: workflowStepModifier
+  continueOnError?: boolean
 }
 
 export const workflowStepSchema = createSchema({
@@ -265,6 +266,7 @@ export const workflowStepSchema = createSchema({
       See the [workflows guide](${DOCS_BASE_URL}/using-garden/workflows#the-skip-and-when-options) for details
       and examples.
       `),
+    continueOnError: joi.boolean().description(`Set to true to continue if the step errors.`).default(false),
   }),
   xor: [["command", "script"]],
 })

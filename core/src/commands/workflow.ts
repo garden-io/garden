@@ -182,6 +182,16 @@ export class WorkflowCommand extends Command<Args, {}> {
         }
       } catch (rawErr) {
         const err = toGardenError(rawErr)
+        if (step.continueOnError) {
+          result.steps[stepName] = {
+            number: index + 1,
+            outputs: {
+              stderr: err.toString(),
+            },
+            log: stepBodyLog.toString((entry) => entry.level <= LogLevel.info),
+          }
+          continue
+        }
         garden.events.emit("workflowStepError", getStepEndEvent(index, stepStartedAt))
         stepErrors[index] = [err]
         printStepDuration({ ...stepParams, success: false })
@@ -201,6 +211,9 @@ export class WorkflowCommand extends Command<Args, {}> {
       stepBodyLog.root.storeEntries = initSaveLogState
 
       if (stepResult.errors && stepResult.errors.length > 0) {
+        if (step.continueOnError) {
+          continue
+        }
         garden.events.emit("workflowStepError", getStepEndEvent(index, stepStartedAt))
         logErrors(outerLog, stepResult.errors, index, steps.length, step.description)
         stepErrors[index] = stepResult.errors

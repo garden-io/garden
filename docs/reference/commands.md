@@ -2794,6 +2794,9 @@ workflowConfigs:
         # and examples.
         when:
 
+        # Set to true to continue if the step errors.
+        continueOnError:
+
     # A list of triggers that determine when the workflow should be run, and which environment should be used (Garden
     # Cloud only).
     triggers:
