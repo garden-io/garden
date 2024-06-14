@@ -239,7 +239,9 @@ describe("VcsHandler", () => {
     })
 
     it("should update content hash when include is set and there's a change in the included files of an action", async () => {
-      const projectRoot = getDataDir("test-projects", "include-exclude")
+      // This test project should not have multiple actions.
+      // It tests the case when some new files are added to an included directory.
+      const projectRoot = getDataDir("test-projects", "include-files")
       const garden = await makeTestGarden(projectRoot)
       const log = garden.log
       const graph = await garden.getConfigGraph({ emit: false, log })
@@ -312,7 +314,7 @@ describe("VcsHandler", () => {
     })
 
     it("should update content hash when a file is renamed", async () => {
-      const projectRoot = getDataDir("test-projects", "include-exclude")
+      const projectRoot = getDataDir("test-projects", "include-files")
       const garden = await makeTestGarden(projectRoot)
       const log = garden.log
       const graph = await garden.getConfigGraph({ emit: false, log })
