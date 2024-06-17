@@ -10,7 +10,8 @@ import { flatten, isPlainObject } from "lodash-es"
 import AsyncLock from "async-lock"
 import { join, resolve } from "path"
 import fsExtra from "fs-extra"
-const { pathExists, readFile, remove, writeFile, pathExistsSync } = fsExtra
+
+const { pathExists, readFile, remove, writeFile } = fsExtra
 import { temporaryWrite } from "tempy"
 import cryptoRandomString from "crypto-random-string"
 
@@ -292,18 +293,17 @@ export async function getValueArgs({
 }) {
   // The garden-values.yml file (which is created from the `values` field in the module config) takes precedence,
   // so it's added to the end of the list.
-  const valueFiles = action
-    .getSpec()
-    .valueFiles.map((f) => {
+  const valueFiles = await Promise.all(
+    action.getSpec().valueFiles.map(async (f) => {
       const pathViaBuildPath = resolve(action.getBuildPath(), f)
       const pathViaEffectiveConfigFileLocation = resolve(action.effectiveConfigFileLocation(), f)
 
-      return pathExistsSync(pathViaBuildPath) ? pathViaBuildPath : pathViaEffectiveConfigFileLocation
+      return (await pathExists(pathViaBuildPath)) ? pathViaBuildPath : pathViaEffectiveConfigFileLocation
     })
-    .concat([valuesPath])
+  )
+  valueFiles.push(valuesPath)
 
   const args = flatten(valueFiles.map((f) => ["--values", f]))
-
   return args
 }
 
