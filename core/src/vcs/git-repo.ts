@@ -22,6 +22,7 @@ import { FileTree } from "./file-tree.js"
 import { normalize, sep } from "path"
 import { stableStringify } from "../util/string.js"
 import { hashString } from "../util/util.js"
+import { Profile } from "../util/profiling.js"
 
 const { pathExists } = fsExtra
 
@@ -78,7 +79,7 @@ export function getHashedFilterParams({
   )
 }
 
-// @Profile()
+@Profile()
 export class GitRepoHandler extends AbstractGitHandler {
   private readonly gitHandlerDelegate: GitSubTreeHandler
   override readonly name = "git-repo"
