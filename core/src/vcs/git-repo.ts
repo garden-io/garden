@@ -60,6 +60,24 @@ const getIncludeExcludeFiles: IncludeExcludeFilesHandler<GitRepoGetFilesParams, 
   return { include, exclude, augmentedIncludes, augmentedExcludes }
 }
 
+function getHashedFilterParams({
+  filter,
+  augmentedIncludes,
+  augmentedExcludes,
+}: {
+  filter: ((path: string) => boolean) | undefined
+  augmentedIncludes: string[]
+  augmentedExcludes: string[]
+}) {
+  return hashString(
+    stableStringify({
+      filter: filter ? filter.toString() : undefined, // We hash the source code of the filter function if provided.
+      augmentedIncludes,
+      augmentedExcludes,
+    })
+  )
+}
+
 // @Profile()
 export class GitRepoHandler extends AbstractGitHandler {
   private readonly gitHandlerDelegate: GitSubTreeHandler
@@ -97,13 +115,11 @@ export class GitRepoHandler extends AbstractGitHandler {
     const scanFromProjectRoot = scanRoot === this.projectRoot
     const { augmentedExcludes, augmentedIncludes } = await getIncludeExcludeFiles({ ...params, scanFromProjectRoot })
 
-    const hashedFilterParams = hashString(
-      stableStringify({
-        filter: filter ? filter.toString() : undefined, // We hash the source code of the filter function if provided.
-        augmentedIncludes,
-        augmentedExcludes,
-      })
-    )
+    const hashedFilterParams = getHashedFilterParams({
+      filter,
+      augmentedIncludes,
+      augmentedExcludes,
+    })
     const filteredFilesCacheKey = ["git-repo-files", path, hashedFilterParams]
 
     const cached = this.cache.get(log, filteredFilesCacheKey) as VcsFile[] | undefined
