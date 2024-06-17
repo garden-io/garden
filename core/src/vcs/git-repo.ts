@@ -72,8 +72,8 @@ export function getHashedFilterParams({
   return hashString(
     stableStringify({
       filter: filter ? filter.toString() : undefined, // We hash the source code of the filter function if provided.
-      augmentedIncludes,
-      augmentedExcludes,
+      augmentedIncludes: augmentedIncludes.sort(),
+      augmentedExcludes: augmentedExcludes.sort(),
     })
   )
 }
