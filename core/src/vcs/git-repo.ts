@@ -25,7 +25,7 @@ import { hashString } from "../util/util.js"
 
 const { pathExists } = fsExtra
 
-type ScanRepoParams = Pick<GetFilesParams, "log" | "path" | "pathDescription" | "failOnPrompt" | "exclude">
+type ScanRepoParams = Pick<GetFilesParams, "log" | "path" | "pathDescription" | "failOnPrompt">
 
 interface GitRepoGetFilesParams extends GetFilesParams {
   scanFromProjectRoot: boolean
