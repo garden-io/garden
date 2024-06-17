@@ -41,6 +41,7 @@ import { defaultDotIgnoreFile, fixedProjectExcludes } from "../../../../src/util
 import { createActionLog } from "../../../../src/logger/log-entry.js"
 import type { BaseActionConfig } from "../../../../src/actions/types.js"
 import { TreeCache } from "../../../../src/cache.js"
+import { getHashedFilterParams } from "../../../../src/vcs/git-repo.js"
 
 export class TestVcsHandler extends VcsHandler {
   override readonly name = "test"
@@ -662,6 +663,46 @@ describe("helpers", () => {
     it("returns true for the same path with tailing file separator", () => {
       const subPath = isSubPath(join(sep, "volume", "dir"), join(sep, "volume", "dir", sep))
       expect(subPath).to.be.true
+    })
+  })
+
+  describe("getHashedFilterParams", () => {
+    it("should return the same hashes for fully equal objects", () => {
+      const params1 = { filter: undefined, augmentedIncludes: ["yes.txt"], augmentedExcludes: ["no.txt"] }
+      const hash1 = getHashedFilterParams(params1)
+
+      const params2 = { filter: undefined, augmentedIncludes: ["yes.txt"], augmentedExcludes: ["no.txt"] }
+      const hash2 = getHashedFilterParams(params2)
+
+      expect(hash1).to.eql(hash2)
+    })
+
+    it("should return the different hashes for non-equal objects", () => {
+      const params1 = { filter: undefined, augmentedIncludes: ["yes1.txt"], augmentedExcludes: ["no1.txt"] }
+      const hash1 = getHashedFilterParams(params1)
+
+      const params2 = { filter: undefined, augmentedIncludes: ["yes2.txt"], augmentedExcludes: ["no2.txt"] }
+      const hash2 = getHashedFilterParams(params2)
+
+      expect(hash1).not.to.eql(hash2)
+    })
+
+    it("should not depend on the order of the include/exclude file lists", () => {
+      const params1 = {
+        filter: undefined,
+        augmentedIncludes: ["yes1.txt", "yes2.txt"],
+        augmentedExcludes: ["no1.txt", "no2.txt"],
+      }
+      const hash1 = getHashedFilterParams(params1)
+
+      const params2 = {
+        filter: undefined,
+        augmentedIncludes: ["yes2.txt", "yes1.txt"],
+        augmentedExcludes: ["no2.txt", "no1.txt"],
+      }
+      const hash2 = getHashedFilterParams(params2)
+
+      expect(hash1).to.eql(hash2)
     })
   })
 })

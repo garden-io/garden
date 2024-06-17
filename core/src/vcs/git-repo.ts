@@ -60,7 +60,7 @@ const getIncludeExcludeFiles: IncludeExcludeFilesHandler<GitRepoGetFilesParams, 
   return { include, exclude, augmentedIncludes, augmentedExcludes }
 }
 
-function getHashedFilterParams({
+export function getHashedFilterParams({
   filter,
   augmentedIncludes,
   augmentedExcludes,
