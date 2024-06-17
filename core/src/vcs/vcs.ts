@@ -470,7 +470,7 @@ export function describeConfig(config: ModuleConfig | BaseActionConfig): ActionD
  * Checks if the {@code subPathCandidate} is a sub-path of {@code basePath}.
  * Sub-path means that a candidate must be located inside a reference path.
  *
- * Both {@basePath} and {@ subPathCandidate} must be absolute paths
+ * Both {@code basePath} and {@code subPathCandidate} must be absolute paths
  *
  * @param basePath the reference path (absolute)
  * @param subPathCandidate the path to be checked (absolute)

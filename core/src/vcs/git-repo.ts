@@ -45,7 +45,7 @@ const getIncludeExcludeFiles: IncludeExcludeFilesHandler<GitRepoGetFilesParams, 
   // Make sure action config is not mutated.
   let exclude = !params.exclude ? [] : [...params.exclude]
 
-  // Do the same normalization of the excluded paths like in `GitHandler`.
+  // Do the same normalization of the excluded paths like in "subtree" scanning mode.
   // This might be redundant because the non-normalized paths will be handled by `augmentGlobs` below.
   // But this brings no harm and makes the implementation more clear.
   exclude = exclude.map(normalize)
@@ -90,7 +90,7 @@ export class GitRepoHandler extends AbstractGitHandler {
   }
 
   /**
-   * This has the same signature as the GitHandler super class method but instead of scanning the individual directory
+   * This has the same signature as the `GitSubTreeHandler` class method but instead of scanning the individual directory
    * path directly, we scan the entire enclosing git repository, cache that file list and then filter down to the
    * sub-path. This results in far fewer git process calls but in turn collects more data in memory.
    */
