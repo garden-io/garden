@@ -445,7 +445,7 @@ The full output log from the step.
 
 ### `${steps.<step-name>.outputs.*}`
 
-The outputs returned by the step, as a mapping. Script steps will always have `stdout` and `stderr` keys.
+The outputs returned by the step, as a mapping. Script steps will always have `stdout`, `stderr` and `exitCode` keys.
 Command steps return different keys, including potentially nested maps and arrays. Please refer to each command
 for its output schema.
 

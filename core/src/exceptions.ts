@@ -287,7 +287,7 @@ export class WorkflowScriptError extends GardenError {
   constructor(details: WorkflowScriptErrorDetails) {
     super({
       message: dedent`
-      Script exited with code ${details.exitCode}. This is the output:
+      Script exited with code ${details.exitCode}. This is the stderr output:
 
       ${details.stderr || details.output}`,
     })

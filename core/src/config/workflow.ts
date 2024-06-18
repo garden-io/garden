@@ -198,8 +198,8 @@ export interface WorkflowStepSpec {
   description?: string
   envVars?: PrimitiveMap
   script?: string
-  skip?: boolean
   when?: workflowStepModifier
+  skip?: boolean
   continueOnError?: boolean
 }
 

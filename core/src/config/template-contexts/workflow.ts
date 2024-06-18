@@ -29,7 +29,7 @@ class WorkflowStepContext extends ConfigContext {
       // TODO: populate and then link to command docs
       .description(
         dedent`
-        The outputs returned by the step, as a mapping. Script steps will always have \`stdout\` and \`stderr\` keys.
+        The outputs returned by the step, as a mapping. Script steps will always have \`stdout\`, \`stderr\` and \`exitCode\` keys.
         Command steps return different keys, including potentially nested maps and arrays. Please refer to each command
         for its output schema.
         `
