@@ -146,8 +146,6 @@ export class WorkflowCommand extends Command<Args, {}> {
         bodyLog: stepBodyLog,
       }
 
-      let stepResult: CommandResult
-
       garden.events.emit("workflowStepProcessing", { index })
       const stepTemplateContext = new WorkflowStepConfigContext({
         allStepNames,
@@ -161,6 +159,17 @@ export class WorkflowCommand extends Command<Args, {}> {
 
       const initSaveLogState = stepBodyLog.root.storeEntries
       stepBodyLog.root.storeEntries = true
+
+      if ((!step.command && !step.script) || (step.command && step.script)) {
+        garden.events.emit("workflowStepError", getStepEndEvent(index, stepStartedAt))
+        // This should be caught by the validation layer
+        throw new InternalError({
+          message: `Workflow steps must specify either a command or a script. Got: ${JSON.stringify(step)}`,
+        })
+      }
+
+      let stepResult: CommandResult | undefined
+
       try {
         if (step.command) {
           step.command = resolveTemplateStrings({
@@ -174,25 +183,31 @@ export class WorkflowCommand extends Command<Args, {}> {
           step.script = resolveTemplateString({ string: step.script, context: stepTemplateContext })
           stepResult = await runStepScript(stepParams)
         } else {
-          garden.events.emit("workflowStepError", getStepEndEvent(index, stepStartedAt))
-          // This should be caught by the validation layer
-          throw new InternalError({
-            message: `Workflow steps must specify either a command or a script. Got: ${JSON.stringify(step)}`,
-          })
+          stepResult = undefined
         }
       } catch (rawErr) {
         const err = toGardenError(rawErr)
+
         garden.events.emit("workflowStepError", getStepEndEvent(index, stepStartedAt))
         stepErrors[index] = [err]
         printStepDuration({ ...stepParams, success: false })
-        logErrors(stepBodyLog, [err], index, steps.length, step.description)
-        // There may be succeeding steps with `when: onError` or `when: always`, so we continue.
-        continue
+        // runStepCommand and runStepScript should not throw. If that happens it's either a bug (e.g. InternalError) or a user-error (e.g. TemplateError)
+        // In these cases we do not continue workflow execution, even when continueOnError is true and even when the following steps declared to run `when: onError` or `when: always`.
+        const continueOnError = false
+        logErrors(stepBodyLog, [err], index, steps.length, continueOnError, step.description)
+        break
+      }
+
+      if (stepResult === undefined) {
+        throw new InternalError({
+          message: `Workflow step did not return stepResult. Step: ${JSON.stringify(step)}`,
+        })
       }
 
       // Extract the text from the body log entry, info-level and higher
       const stepLog = stepBodyLog.toString((entry) => entry.level <= LogLevel.info)
 
+      // TODO: add step conclusion, so following steps can be aware of the error if step.continueOnError is true.
       result.steps[stepName] = {
         number: index + 1,
         outputs: stepResult.result || {},
@@ -201,9 +216,15 @@ export class WorkflowCommand extends Command<Args, {}> {
       stepBodyLog.root.storeEntries = initSaveLogState
 
       if (stepResult.errors && stepResult.errors.length > 0) {
+        logErrors(outerLog, stepResult.errors, index, steps.length, step.continueOnError || false, step.description)
+
+        // If we ignore errors
         garden.events.emit("workflowStepError", getStepEndEvent(index, stepStartedAt))
-        logErrors(outerLog, stepResult.errors, index, steps.length, step.description)
-        stepErrors[index] = stepResult.errors
+
+        if (!step.continueOnError) {
+          stepErrors[index] = stepResult.errors
+        }
+
         // There may be succeeding steps with `when: onError` or `when: always`, so we continue.
         continue
       }
@@ -383,10 +404,22 @@ export async function runStepCommand(params: RunStepCommandParams): Promise<Comm
   return await command.action(commandParams)
 }
 
-export async function runStepScript({ garden, bodyLog, step }: RunStepParams): Promise<CommandResult<any>> {
+export async function runStepScript({
+  garden,
+  bodyLog,
+  step,
+}: RunStepParams): Promise<
+  CommandResult<{ exitCode: number | undefined; stdout: string | undefined; stderr: string | undefined }>
+> {
   try {
-    await runScript({ log: bodyLog, cwd: garden.projectRoot, script: step.script!, envVars: step.envVars })
-    return { result: {} }
+    const res = await runScript({ log: bodyLog, cwd: garden.projectRoot, script: step.script!, envVars: step.envVars })
+    return {
+      result: {
+        exitCode: res.exitCode,
+        stdout: res.stdout,
+        stderr: res.stderr,
+      },
+    }
   } catch (err) {
     // Unexpected error (failed to execute script, as opposed to script returning an error code)
     if (!(err instanceof ChildProcessError)) {
@@ -400,12 +433,15 @@ export async function runStepScript({ garden, bodyLog, step }: RunStepParams): P
       stderr: err.details.stderr,
     })
 
-    bodyLog.error("")
-    bodyLog.error({ msg: `Script failed with the following error:`, error: scriptError })
-    bodyLog.error("")
-    bodyLog.error(err.details.stderr)
-
-    throw scriptError
+    // We return the error here because we want to separately handle unexpected internal errors (like syntax errors) and user error (like script failure).
+    return {
+      result: {
+        exitCode: err.details.code,
+        stdout: err.details.stdout,
+        stderr: err.details.stderr,
+      },
+      errors: [scriptError],
+    }
   }
 }
 
@@ -459,24 +495,31 @@ export function logErrors(
   errors: GardenError[],
   stepIndex: number,
   stepCount: number,
+  continueOnError: boolean,
   stepDescription?: string
 ) {
   const description = formattedStepDescription(stepIndex, stepCount, stepDescription)
-  const errMsg = `An error occurred while running step ${styles.accent(description)}.\n`
-  log.error(errMsg)
-  log.debug("")
+  const allowedToFailMessage = `Because ${styles.bold("continueOnError")} is ${styles.bold(true)}, the workflow will continue as if the step succeeded.`
+  const errMsg = `\nAn error occurred while running step ${styles.accent(description)}.${continueOnError ? ` ${allowedToFailMessage}` : ``}\n`
+
+  const logFn: typeof log.warn | typeof log.error = (...args) =>
+    continueOnError ? log.warn(...args) : log.error(...args)
+
+  logFn(errMsg)
   for (const error of errors) {
     if (error instanceof WorkflowScriptError) {
-      const scriptErrMsg = renderMessageWithDivider({
-        prefix: `Script exited with code ${error.details.exitCode} ${renderDuration(log.getDuration())}`,
-        msg: error.explain(),
-        isError: true,
-      })
-      log.error(scriptErrMsg)
+      logFn(
+        renderMessageWithDivider({
+          prefix: `Script exited with code ${error.details.exitCode} ${renderDuration(log.getDuration())}. This is the stderr output:`,
+          msg: error.details.stderr || error.details.output,
+          isError: !continueOnError,
+        })
+      )
+      logFn("")
     } else {
-      const taskDetailErrMsg = error.toString(true)
+      const taskDetailErrMsg = error.toString(false)
       log.debug(taskDetailErrMsg)
-      log.error(error.explain() + "\n")
+      logFn(error.message + "\n\n")
     }
   }
 }

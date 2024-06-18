@@ -9,7 +9,7 @@
 import { expect } from "chai"
 import type { TestGarden } from "../../../helpers.js"
 import { expectError, getDataDir, makeTestGarden, makeTestGardenA } from "../../../helpers.js"
-import type { WorkflowConfig, TriggerSpec } from "../../../../src/config/workflow.js"
+import type { WorkflowConfig, WorkflowStepSpec, TriggerSpec } from "../../../../src/config/workflow.js"
 import {
   resolveWorkflowConfig,
   populateNamespaceForTriggers,
@@ -39,6 +39,12 @@ describe("resolveWorkflowConfig", () => {
     keepAliveHours: 48,
   }
 
+  const defaultWorkflowStep: WorkflowStepSpec = {
+    skip: false,
+    when: "onSuccess",
+    continueOnError: false,
+  }
+
   before(async () => {
     garden = await makeTestGardenA()
     garden["secrets"] = { foo: "bar", bar: "baz", baz: "banana" }
@@ -55,8 +61,15 @@ describe("resolveWorkflowConfig", () => {
       description: "Sample workflow",
       envVars: {},
       steps: [
-        { description: "Deploy the stack", command: ["deploy"], skip: false, when: "onSuccess", envVars: {} },
-        { command: ["test"], skip: false, when: "onSuccess", envVars: {} },
+        {
+          ...defaultWorkflowStep,
+          description: "Deploy the stack",
+          command: ["deploy"],
+          skip: false,
+          when: "onSuccess",
+          envVars: {},
+        },
+        { ...defaultWorkflowStep, command: ["test"], skip: false, when: "onSuccess", envVars: {} },
       ],
       triggers: [
         {
@@ -85,8 +98,15 @@ describe("resolveWorkflowConfig", () => {
       envVars: {},
       limits: minimumWorkflowLimits, // <----
       steps: [
-        { description: "Deploy the stack", command: ["deploy"], skip: false, when: "onSuccess", envVars: {} },
-        { command: ["test"], skip: false, when: "onSuccess", envVars: {} },
+        {
+          ...defaultWorkflowStep,
+          description: "Deploy the stack",
+          command: ["deploy"],
+          skip: false,
+          when: "onSuccess",
+          envVars: {},
+        },
+        { ...defaultWorkflowStep, command: ["test"], skip: false, when: "onSuccess", envVars: {} },
       ],
       triggers: [
         {
@@ -145,12 +165,13 @@ describe("resolveWorkflowConfig", () => {
       envVars: {},
       steps: [
         {
+          ...defaultWorkflowStep,
           description: "Deploy the stack",
           command: ["deploy", "${var.foo}"],
           skip: false,
           when: "onSuccess",
         },
-        { script: "echo ${var.foo}", skip: false, when: "onSuccess" },
+        { ...defaultWorkflowStep, script: "echo ${var.foo}", skip: false, when: "onSuccess" },
       ],
     }
 
@@ -169,8 +190,14 @@ describe("resolveWorkflowConfig", () => {
 
       envVars: {},
       steps: [
-        { description: "Deploy the stack", command: ["deploy"], skip: false, when: "onSuccess" },
-        { command: ["test"], skip: false, when: "onSuccess" },
+        {
+          ...defaultWorkflowStep,
+          description: "Deploy the stack",
+          command: ["deploy"],
+          skip: false,
+          when: "onSuccess",
+        },
+        { ...defaultWorkflowStep, command: ["test"], skip: false, when: "onSuccess" },
       ],
     }
 
@@ -186,8 +213,14 @@ describe("resolveWorkflowConfig", () => {
 
       envVars: {},
       steps: [
-        { description: "Deploy the stack", command: ["deploy"], skip: false, when: "onSuccess" },
-        { command: ["test"], skip: false, when: "onSuccess" },
+        {
+          ...defaultWorkflowStep,
+          description: "Deploy the stack",
+          command: ["deploy"],
+          skip: false,
+          when: "onSuccess",
+        },
+        { ...defaultWorkflowStep, command: ["test"], skip: false, when: "onSuccess" },
       ],
       triggers: [
         {
@@ -221,8 +254,8 @@ describe("resolveWorkflowConfig", () => {
       ...defaults,
       ...config,
       steps: [
-        { description: "Deploy the stack", command: ["deploy"], skip: false, when: "onSuccess", envVars: {} },
-        { command: ["test"], skip: false, when: "onSuccess", envVars: {} },
+        { ...defaultWorkflowStep, description: "Deploy the stack", command: ["deploy"], envVars: {} },
+        { ...defaultWorkflowStep, command: ["test"], envVars: {} },
       ],
     })
   })

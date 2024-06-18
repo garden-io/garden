@@ -82,6 +82,49 @@ describe("RunWorkflowCommand", () => {
     expect(result.errors || []).to.eql([])
   })
 
+  it("should continue on error if continueOnError = true", async () => {
+    garden.setWorkflowConfigs([
+      {
+        apiVersion: GardenApiVersion.v0,
+        name: "workflow-a",
+        kind: "Workflow",
+        internal: {
+          basePath: garden.projectRoot,
+        },
+        files: [],
+        envVars: {},
+        resources: defaultWorkflowResources,
+        steps: [
+          {
+            script: dedent`
+              echo stdout
+              echo stderr 1>&2
+              exit 1
+            `, // <-- error thrown here
+            continueOnError: true,
+          },
+          { command: ["echo", "success!"] },
+        ],
+      },
+    ])
+
+    const { result, errors } = await cmd.action({ ...defaultParams, args: { workflow: "workflow-a" } })
+
+    expect(result).to.exist
+    expect(errors).to.not.exist
+
+    // step 1 is a script command
+    expect(result?.steps).to.have.property("step-1")
+    expect(result?.steps["step-1"].log).to.equal("stdout\nstderr")
+    expect(result?.steps["step-1"].outputs["stderr"]).to.equal("stderr")
+    expect(result?.steps["step-1"].outputs["stdout"]).to.equal("stdout")
+    expect(result?.steps["step-1"].outputs["exitCode"]).to.equal(1)
+
+    // we should have executed step 2, which is a Garden command, because continueOnError is true in step-1.
+    expect(result?.steps).to.have.property("step-2")
+    expect(result?.steps["step-2"].outputs).to.not.have.property("stderr")
+  })
+
   it("should add workflowStep metadata to log entries provided to steps", async () => {
     const _garden = await makeTestGardenA(undefined)
     // Ensure log entries are empty
@@ -796,6 +839,9 @@ describe("RunWorkflowCommand", () => {
     expect(result).to.exist
     expect(errors).to.not.exist
     expect(result?.steps["step-1"].log).to.equal("stdout\nstderr")
+    expect(result?.steps["step-1"].outputs["stderr"]).to.equal("stderr")
+    expect(result?.steps["step-1"].outputs["stdout"]).to.equal("stdout")
+    expect(result?.steps["step-1"].outputs["exitCode"]).to.equal(0)
   })
 
   it("should throw if a script step fails", async () => {
@@ -845,7 +891,7 @@ describe("RunWorkflowCommand", () => {
     if (!(error instanceof WorkflowScriptError)) {
       expect.fail("Expected error to be a WorkflowScriptError")
     }
-    expect(error.message).to.equal("Script exited with code 1. This is the output:\n\nboo!")
+    expect(error.message).to.equal("Script exited with code 1. This is the stderr output:\n\nboo!")
     expect(error.details.stdout).to.equal("boo!")
   })
 
