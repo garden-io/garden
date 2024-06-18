@@ -4312,7 +4312,11 @@ describe("Garden", () => {
       ])
 
       await expectError(() => garden.resolveModules({ log: garden.log }), {
-        contains: ["Unrecognized action type 'invalidtype'", "Are you missing a provider configuration?"],
+        contains: [
+          "Unrecognized action type 'invalidtype'",
+          "Currently available 'Build' action types: 'container', 'exec', 'test'",
+          "Are you missing a provider configuration?",
+        ],
       })
     })
 
