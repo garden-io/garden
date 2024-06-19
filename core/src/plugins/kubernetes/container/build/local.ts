@@ -31,7 +31,7 @@ export const getLocalBuildStatus: BuildStatusHandler = async (params) => {
   const result: BuildStatusResult = {
     state: "not-ready",
     detail: {
-      runtime: await cloudBuilder.getActionRuntime(ctx, action),
+      runtime: cloudBuilder.getActionRuntime(ctx, await cloudBuilder.getAvailability(ctx, action)),
     },
     outputs,
   }
@@ -81,7 +81,7 @@ export const localBuild: BuildHandler = async (params) => {
   const localId = outputs.localImageId
   const remoteId = outputs.deploymentImageId
 
-  const builtByCloudBuilder = await cloudBuilder.isConfiguredAndAvailable(ctx, action)
+  const builtByCloudBuilder = await cloudBuilder.getAvailability(ctx, action)
 
   // TODO: Kubernetes plugin and container plugin are a little bit twisted; Container plugin has some awareness of Kubernetes, but in this
   // case it can't detect that the image needs to be pushed when using remote builder, because it can't get the Kubernetes config from ctx.
@@ -90,6 +90,10 @@ export const localBuild: BuildHandler = async (params) => {
       ? containerProviderWithAdditionalDockerArgs(provider, ["--tag", remoteId, "--push"])
       : // container provider will add --load when using cloud builder automatically, if --push is not present.
         provider.dependencies.container
+
+  // TODO: How can we pass additional information like Garden Cloud Builder availability to the base handler?
+  // In this particular case the problem is neglegible because we are using an LRU cache and the base handler is will
+  // call cloudBuilder.getAvailability very soon; But that is not a beautiful solution.
   const buildResult = await base({ ...params, ctx: { ...ctx, provider: containerProvider } })
 
   if (!provider.config.deploymentRegistry) {

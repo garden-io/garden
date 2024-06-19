@@ -1051,13 +1051,12 @@ type RegisterCloudBuilderBuildResponse =
   | V1RegisterCloudBuilderBuildResponse
   | UnsupportedRegisterCloudBuilderBuildResponse
 
-type CloudBuilderAvailable = {
+export type CloudBuilderAvailable = {
   available: true
-  builder: string
   token: string
   region: "eu" // location of the builder. Currently only eu is supported
 }
-type CloudBuilderNotAvailable = {
+export type CloudBuilderNotAvailable = {
   available: false
   reason: string
 }
