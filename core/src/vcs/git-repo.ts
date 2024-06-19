@@ -22,10 +22,11 @@ import { FileTree } from "./file-tree.js"
 import { normalize, sep } from "path"
 import { stableStringify } from "../util/string.js"
 import { hashString } from "../util/util.js"
+import { Profile } from "../util/profiling.js"
 
 const { pathExists } = fsExtra
 
-type ScanRepoParams = Pick<GetFilesParams, "log" | "path" | "pathDescription" | "failOnPrompt" | "exclude">
+type ScanRepoParams = Pick<GetFilesParams, "log" | "path" | "pathDescription" | "failOnPrompt">
 
 interface GitRepoGetFilesParams extends GetFilesParams {
   scanFromProjectRoot: boolean
@@ -44,7 +45,7 @@ const getIncludeExcludeFiles: IncludeExcludeFilesHandler<GitRepoGetFilesParams, 
   // Make sure action config is not mutated.
   let exclude = !params.exclude ? [] : [...params.exclude]
 
-  // Do the same normalization of the excluded paths like in `GitHandler`.
+  // Do the same normalization of the excluded paths like in "subtree" scanning mode.
   // This might be redundant because the non-normalized paths will be handled by `augmentGlobs` below.
   // But this brings no harm and makes the implementation more clear.
   exclude = exclude.map(normalize)
@@ -60,7 +61,25 @@ const getIncludeExcludeFiles: IncludeExcludeFilesHandler<GitRepoGetFilesParams, 
   return { include, exclude, augmentedIncludes, augmentedExcludes }
 }
 
-// @Profile()
+export function getHashedFilterParams({
+  filter,
+  augmentedIncludes,
+  augmentedExcludes,
+}: {
+  filter: ((path: string) => boolean) | undefined
+  augmentedIncludes: string[]
+  augmentedExcludes: string[]
+}) {
+  return hashString(
+    stableStringify({
+      filter: filter ? filter.toString() : undefined, // We hash the source code of the filter function if provided.
+      augmentedIncludes: augmentedIncludes.sort(),
+      augmentedExcludes: augmentedExcludes.sort(),
+    })
+  )
+}
+
+@Profile()
 export class GitRepoHandler extends AbstractGitHandler {
   private readonly gitHandlerDelegate: GitSubTreeHandler
   override readonly name = "git-repo"
@@ -71,7 +90,7 @@ export class GitRepoHandler extends AbstractGitHandler {
   }
 
   /**
-   * This has the same signature as the GitHandler super class method but instead of scanning the individual directory
+   * This has the same signature as the `GitSubTreeHandler` class method but instead of scanning the individual directory
    * path directly, we scan the entire enclosing git repository, cache that file list and then filter down to the
    * sub-path. This results in far fewer git process calls but in turn collects more data in memory.
    */
@@ -97,13 +116,11 @@ export class GitRepoHandler extends AbstractGitHandler {
     const scanFromProjectRoot = scanRoot === this.projectRoot
     const { augmentedExcludes, augmentedIncludes } = await getIncludeExcludeFiles({ ...params, scanFromProjectRoot })
 
-    const hashedFilterParams = hashString(
-      stableStringify({
-        filter: filter ? filter.toString() : undefined, // We hash the source code of the filter function if provided.
-        augmentedIncludes,
-        augmentedExcludes,
-      })
-    )
+    const hashedFilterParams = getHashedFilterParams({
+      filter,
+      augmentedIncludes,
+      augmentedExcludes,
+    })
     const filteredFilesCacheKey = ["git-repo-files", path, hashedFilterParams]
 
     const cached = this.cache.get(log, filteredFilesCacheKey) as VcsFile[] | undefined
