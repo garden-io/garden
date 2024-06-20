@@ -28,6 +28,7 @@ import type { PluginContext } from "../../plugin-context.js"
 import type { SpawnOutput } from "../../util/util.js"
 import { cloudBuilder } from "./cloudbuilder.js"
 import { styles } from "../../logger/styles.js"
+import type { CloudBuilderAvailable } from "../../cloud/api.js"
 
 export const validateContainerBuild: BuildActionHandler<"validate", ContainerBuildAction> = async ({ action }) => {
   // configure concurrency limit for build status task nodes.
@@ -42,7 +43,8 @@ export const getContainerBuildStatus: BuildActionHandler<"getStatus", ContainerB
   log,
 }) => {
   // configure concurrency limit for build execute task nodes.
-  if (await cloudBuilder.isConfiguredAndAvailable(ctx, action)) {
+  const availability = await cloudBuilder.getAvailability(ctx, action)
+  if (availability.available) {
     action.executeConcurrencyLimit = CONTAINER_BUILD_CONCURRENCY_LIMIT_CLOUD_BUILDER
   } else {
     action.executeConcurrencyLimit = CONTAINER_BUILD_CONCURRENCY_LIMIT_LOCAL
@@ -60,7 +62,7 @@ export const getContainerBuildStatus: BuildActionHandler<"getStatus", ContainerB
   return {
     state,
     detail: {
-      runtime: await cloudBuilder.getActionRuntime(ctx, action),
+      runtime: cloudBuilder.getActionRuntime(ctx, availability),
     },
     outputs,
   }
@@ -97,8 +99,10 @@ export const buildContainer: BuildActionHandler<"build", ContainerBuildAction> =
   const timeout = action.getConfig("timeout")
 
   let res: SpawnOutput
-  if (await cloudBuilder.isConfiguredAndAvailable(ctx, action)) {
-    res = await buildContainerInCloudBuilder({ action, outputStream, timeout, log, ctx })
+
+  const availability = await cloudBuilder.getAvailability(ctx, action)
+  if (availability.available) {
+    res = await buildContainerInCloudBuilder({ action, availability, outputStream, timeout, log, ctx })
   } else {
     res = await buildContainerLocally({
       action,
@@ -116,7 +120,7 @@ export const buildContainer: BuildActionHandler<"build", ContainerBuildAction> =
       fresh: true,
       buildLog: res.all || "",
       outputs,
-      runtime: await cloudBuilder.getActionRuntime(ctx, action),
+      runtime: cloudBuilder.getActionRuntime(ctx, availability),
       details: {
         identifier,
       },
@@ -179,6 +183,7 @@ const BUILDKIT_LAYER_CACHED_REGEX = /^#[0-9]+ CACHED/
 
 async function buildContainerInCloudBuilder(params: {
   action: Resolved<ContainerBuildAction>
+  availability: CloudBuilderAvailable
   outputStream: Writable
   timeout: number
   log: ActionLog
@@ -199,7 +204,7 @@ async function buildContainerInCloudBuilder(params: {
     }
   })
 
-  const res = await cloudBuilder.withBuilder(params.ctx, params.action, async (builderName) => {
+  const res = await cloudBuilder.withBuilder(params.ctx, params.availability, async (builderName) => {
     const extraDockerOpts = ["--builder", builderName]
 
     // we add --push in the Kubernetes local-docker handler when using the Kubernetes plugin with a deploymentRegistry setting.

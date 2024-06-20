@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import type { Resolved } from "../../../actions/types.js"
+import type { CloudBuilderAvailability } from "../../../cloud/api.js"
 import type { DeepPrimitiveMap } from "../../../config/common.js"
 import type {
   BuildActionExtension,
@@ -50,12 +50,12 @@ import { k8sContainerTest } from "./test.js"
 
 async function getBuildMode({
   ctx,
-  action,
+  availability,
 }: {
   ctx: KubernetesPluginContext
-  action: Resolved<ContainerBuildAction>
+  availability: CloudBuilderAvailability
 }): Promise<ContainerBuildMode> {
-  if (await cloudBuilder.isConfiguredAndAvailable(ctx, action)) {
+  if (availability.available) {
     // Local build mode knows how to build using Cloud Builder
     return "local-docker"
   } else {
@@ -92,9 +92,10 @@ export const k8sContainerBuildExtension = (): BuildActionExtension<ContainerBuil
     build: async (params) => {
       const { ctx, action } = params
 
+      const availability = await cloudBuilder.getAvailability(ctx, action)
       const buildMode = await getBuildMode({
         ctx,
-        action,
+        availability,
       })
       const handler = buildHandlers[buildMode]
 
@@ -106,7 +107,8 @@ export const k8sContainerBuildExtension = (): BuildActionExtension<ContainerBuil
       const provider = ctx.provider as KubernetesProvider
 
       // override build task execute concurrency
-      if (await cloudBuilder.isConfiguredAndAvailable(ctx, action)) {
+      const availability = await cloudBuilder.getAvailability(ctx, action)
+      if (availability.available) {
         action.executeConcurrencyLimit = CONTAINER_BUILD_CONCURRENCY_LIMIT_CLOUD_BUILDER
       } else if (provider.config.buildMode === "local-docker") {
         action.executeConcurrencyLimit = CONTAINER_BUILD_CONCURRENCY_LIMIT_LOCAL
@@ -117,7 +119,7 @@ export const k8sContainerBuildExtension = (): BuildActionExtension<ContainerBuil
 
       const buildMode = await getBuildMode({
         ctx,
-        action,
+        availability,
       })
       const handler = buildStatusHandlers[buildMode]
 
