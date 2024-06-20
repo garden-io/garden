@@ -17,7 +17,7 @@ import type { BaseActionConfig } from "../../actions/types.js"
 
 export class ProfileProjectCommand extends Command {
   name = "profile-project"
-  help = "Renders a high-level sumamry of actions and modules in your project."
+  help = "Renders a high-level summary of actions and modules in your project."
   emoji = "📊"
 
   override description = dedent`
