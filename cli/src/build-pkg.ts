@@ -55,20 +55,24 @@ interface TargetSpec {
   checksum: string
 }
 
-const rustArchMap: Record<TargetSpec["arch"], string> = {
-  x64: "x86_64",
-  arm64: "aarch64",
-}
-
-const rustOsMap: Record<TargetSpec["os"], string> = {
-  win: "pc-windows-gnu",
-  alpine: "unknown-linux-musl",
-  linux: "unknown-linux-gnu",
-  macos: "apple-darwin",
+const rustTargetMap: Record<`${TargetSpec["os"]}/${TargetSpec["arch"]}`, string | undefined> = {
+  "win/arm64": undefined,
+  "win/x64": "x86_64-pc-windows-gnu",
+  "alpine/arm64": "aarch64-unknown-linux-musl",
+  "alpine/x64": "x86_64-unknown-linux-musl",
+  "linux/arm64": "aarch64-unknown-linux-gnu",
+  "linux/x64": "x86_64-unknown-linux-gnu",
+  "macos/arm64": "aarch64-apple-darwin",
+  "macos/x64": "x86_64-apple-darwin",
 }
 
 function getRustTarget(spec: TargetSpec): string {
-  return `${rustArchMap[spec.arch]}-${rustOsMap[spec.os]}`
+  const targetSpec = `${spec.os}/${spec.arch}`
+  const target = rustTargetMap[targetSpec]
+  if (!target) {
+    throw new Error(`Target ${targetSpec} is unsupported / missing rustTargetMap declaration.`)
+  }
+  return target
 }
 
 export const nodeVersion = "22.2.0"
