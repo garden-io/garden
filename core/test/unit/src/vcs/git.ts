@@ -41,7 +41,7 @@ import type { GitScanMode } from "../../../../src/constants.js"
 import type { Garden } from "../../../../src/index.js"
 import type { ConfigGraph } from "../../../../src/graph/config-graph.js"
 
-const { createFile, ensureSymlink, lstat, mkdir, mkdirp, realpath, remove, symlink, writeFile } = fsExtra
+const { createFile, ensureSymlink, lstat, mkdir, mkdirp, realpath, remove, rename, symlink, writeFile } = fsExtra
 
 // Overriding this to make sure any ignorefile name is respected
 export const defaultIgnoreFilename = ".testignore"
@@ -1556,6 +1556,175 @@ const getTreeVersionTests = (gitScanMode: GitScanMode) => {
         })
 
         expect(version.files).to.eql([resolve(dirname(build.configPath()!), "yes.txt")])
+      })
+    })
+
+    // This group of tests requires cache invalidation after the first scan is completed.
+    // Just to be sure that the further local file system modifications will be visible.
+    // In the real-life scenarios, we do not expect any concurrent modifications to the local files
+    // while Garden is not running in the dev console.
+    // In the dev console mode, `GardenInstanceManager` takes responsibility for the cache invalidation.
+    // Here, we imitate the repeated Garden command run with just rerun of the repo scan
+    // instead of re-creating the whole Garden instance.
+    // We just need to reset the caches between the repo scan executions.
+    context("modifications to already scanned directories", () => {
+      it("should update content hash when include is set and there's a change in the included files of an action", async () => {
+        // This test project should not have multiple actions.
+        // It tests the case when some new files are added to an included directory.
+        const projectRoot = getDataDir("test-projects", "include-files")
+        const garden = await makeTestGarden(projectRoot)
+        const log = garden.log
+        const graph = await garden.getConfigGraph({ emit: false, log })
+        const buildConfig = graph.getBuild("a").getConfig()
+        const newFilePathBuildA = join(garden.projectRoot, "build-a", "somedir", "foo")
+
+        try {
+          const version1 = await garden.vcs.getTreeVersion({
+            log: garden.log,
+            projectName: garden.projectName,
+            config: buildConfig,
+          })
+
+          // write new file to the included dir and clear the cache
+          await writeFile(newFilePathBuildA, "abcd")
+          garden.vcs.clearTreeCache()
+
+          const version2 = await garden.vcs.getTreeVersion({
+            log: garden.log,
+            projectName: garden.projectName,
+            config: buildConfig,
+            force: true,
+          })
+          expect(version1.contentHash).to.not.eql(version2.contentHash)
+        } finally {
+          await remove(newFilePathBuildA)
+        }
+      })
+
+      describe("should not update content hash for Deploy, when there's no change in included files of Build", async () => {
+        async function runTest(projectRoot: string) {
+          const garden = await makeTestGarden(projectRoot)
+          const log = garden.log
+          const graph = await garden.getConfigGraph({ emit: false, log })
+          const buildConfig = graph.getBuild("test-build").getConfig()
+          const deployConfig = graph.getDeploy("test-deploy").getConfig()
+          const newFilePath = join(garden.projectRoot, "foo")
+
+          try {
+            const buildVersion1 = await garden.vcs.getTreeVersion({
+              log: garden.log,
+              projectName: garden.projectName,
+              config: buildConfig,
+            })
+
+            const deployVersion1 = await garden.vcs.getTreeVersion({
+              log: garden.log,
+              projectName: garden.projectName,
+              config: deployConfig,
+            })
+
+            // write new file that should not be included and clear the cache
+            await writeFile(newFilePath, "abcd")
+            garden.vcs.clearTreeCache()
+
+            const buildVersion2 = await garden.vcs.getTreeVersion({
+              log: garden.log,
+              projectName: garden.projectName,
+              config: buildConfig,
+              force: true,
+            })
+            const deployVersion2 = await garden.vcs.getTreeVersion({
+              log: garden.log,
+              projectName: garden.projectName,
+              config: deployConfig,
+              force: true,
+            })
+
+            expect(buildVersion1).to.eql(buildVersion2)
+            expect(deployVersion1.contentHash).to.eql(deployVersion2.contentHash)
+          } finally {
+            await remove(newFilePath)
+          }
+        }
+
+        // The different project structure causes different Git repo roots in scanning mode and different caching behavior.
+
+        it("with a flat project/action config", async () => {
+          const projectRoot = getDataDir("test-projects", "config-action-include-flat")
+          await runTest(projectRoot)
+        })
+
+        it("with a structured project/action config", async () => {
+          const projectRoot = getDataDir("test-projects", "config-action-include")
+          await runTest(projectRoot)
+        })
+      })
+
+      it("should update content hash when a file is renamed", async () => {
+        const projectRoot = getDataDir("test-projects", "include-files")
+        const garden = await makeTestGarden(projectRoot)
+        const log = garden.log
+        const graph = await garden.getConfigGraph({ emit: false, log })
+        const buildConfig = graph.getBuild("a").getConfig()
+        const newFilePathBuildA = join(garden.projectRoot, "build-a", "somedir", "foo")
+        const renamedFilePathBuildA = join(garden.projectRoot, "build-a", "somedir", "bar")
+
+        try {
+          await writeFile(newFilePathBuildA, "abcd")
+          const version1 = await garden.vcs.getTreeVersion({
+            log: garden.log,
+            projectName: garden.projectName,
+            config: buildConfig,
+          })
+
+          // rename file foo to bar and clear the cache
+          await rename(newFilePathBuildA, renamedFilePathBuildA)
+          garden.vcs.clearTreeCache()
+
+          const version2 = await garden.vcs.getTreeVersion({
+            log: garden.log,
+            projectName: garden.projectName,
+            config: buildConfig,
+            force: true,
+          })
+          expect(version1.contentHash).to.not.eql(version2.contentHash)
+        } finally {
+          await remove(renamedFilePathBuildA)
+        }
+      })
+
+      // FIXME: this duplicates the test case above; re-implement it properly
+      it.skip("should not update content hash when the parent config's enclosing directory is renamed", async () => {
+        const projectRoot = getDataDir("test-projects", "include-exclude")
+        const garden = await makeTestGarden(projectRoot)
+        const log = garden.log
+        const graph = await garden.getConfigGraph({ emit: false, log })
+        const buildConfig = graph.getBuild("a").getConfig()
+        const newFilePathBuildA = join(garden.projectRoot, "build-a", "somedir", "foo")
+        const renamedFilePathBuildA = join(garden.projectRoot, "build-a", "somedir", "bar")
+
+        try {
+          await writeFile(newFilePathBuildA, "abcd")
+          const version1 = await garden.vcs.getTreeVersion({
+            log: garden.log,
+            projectName: garden.projectName,
+            config: buildConfig,
+          })
+
+          // rename file foo to bar and clear the cache
+          await rename(newFilePathBuildA, renamedFilePathBuildA)
+          garden.vcs.clearTreeCache()
+
+          const version2 = await garden.vcs.getTreeVersion({
+            log: garden.log,
+            projectName: garden.projectName,
+            config: buildConfig,
+            force: true,
+          })
+          expect(version1.contentHash).to.eql(version2.contentHash)
+        } finally {
+          await remove(renamedFilePathBuildA)
+        }
       })
     })
   })

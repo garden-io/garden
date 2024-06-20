@@ -1,8 +1,7 @@
-kind: Project
 apiVersion: garden.io/v1
-name: repro
+kind: Project
+name: include-files
 environments:
   - name: local
 providers:
   - name: test-plugin
-    environments: [local]

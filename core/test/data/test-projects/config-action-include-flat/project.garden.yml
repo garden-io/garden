@@ -6,3 +6,14 @@ environments:
 providers:
   - name: test-plugin
     environments: [local]
+---
+kind: Build
+type: test
+name: test-build
+include:
+  - somefile
+---
+kind: Deploy
+type: test
+name: test-deploy
+build: test-build
