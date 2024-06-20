@@ -5924,7 +5924,7 @@ Examples:
 
 ### garden util profile-project
 
-**Renders a high-level sumamry of actions and modules in your project.**
+**Renders a high-level summary of actions and modules in your project.**
 
 Useful for diagnosing slow init performance for projects with lots of actions and modules and/or lots of files.
 
