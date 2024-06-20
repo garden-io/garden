@@ -1559,6 +1559,14 @@ const getTreeVersionTests = (gitScanMode: GitScanMode) => {
       })
     })
 
+    // This group of tests requires cache invalidation after the first scan is completed.
+    // Just to be sure that the further local file system modifications will be visible.
+    // In the real-life scenarios, we do not expect any concurrent modifications to the local files
+    // while Garden is not running in the dev console.
+    // In the dev console mode, `GardenInstanceManager` takes responsibility for the cache invalidation.
+    // Here, we imitate the repeated Garden command run with just rerun of the repo scan
+    // instead of re-creating the whole Garden instance.
+    // We just need to reset the caches between the repo scan executions.
     context("modifications to already scanned directories", () => {
       it("should update content hash when include is set and there's a change in the included files of an action", async () => {
         // This test project should not have multiple actions.
@@ -1577,7 +1585,9 @@ const getTreeVersionTests = (gitScanMode: GitScanMode) => {
             config: buildConfig,
           })
 
+          // write new file to the included dir and clear the cache
           await writeFile(newFilePathBuildA, "abcd")
+          garden.vcs.clearTreeCache()
 
           const version2 = await garden.vcs.getTreeVersion({
             log: garden.log,
@@ -1613,7 +1623,9 @@ const getTreeVersionTests = (gitScanMode: GitScanMode) => {
               config: deployConfig,
             })
 
+            // write new file that should not be included and clear the cache
             await writeFile(newFilePath, "abcd")
+            garden.vcs.clearTreeCache()
 
             const buildVersion2 = await garden.vcs.getTreeVersion({
               log: garden.log,
@@ -1665,8 +1677,10 @@ const getTreeVersionTests = (gitScanMode: GitScanMode) => {
             config: buildConfig,
           })
 
-          // rename file foo to bar
+          // rename file foo to bar and clear the cache
           await rename(newFilePathBuildA, renamedFilePathBuildA)
+          garden.vcs.clearTreeCache()
+
           const version2 = await garden.vcs.getTreeVersion({
             log: garden.log,
             projectName: garden.projectName,
@@ -1697,9 +1711,10 @@ const getTreeVersionTests = (gitScanMode: GitScanMode) => {
             config: buildConfig,
           })
 
-          // rename file foo to bar
+          // rename file foo to bar and clear the cache
           await rename(newFilePathBuildA, renamedFilePathBuildA)
           garden.vcs.clearTreeCache()
+
           const version2 = await garden.vcs.getTreeVersion({
             log: garden.log,
             projectName: garden.projectName,
