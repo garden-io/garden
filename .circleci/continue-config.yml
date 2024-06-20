@@ -1050,10 +1050,14 @@ jobs:
           command: ./bin/garden deploy --root examples/demo-project
       - fail_fast
 
-  test-macos:
+  test-macos-x86-rosetta:
     macos:
       xcode: "15.0.0"
+    # We are testing x86 binaries under rosetta because CircleCI stopped supporting x86 macs.
+    resource_class: macos.m1.medium.gen1
     steps:
+      # We are testing x86 binaries under rosetta because CircleCI stopped supporting x86 macs.
+      - macos/install-rosetta
       - checkout
       - *attach-workspace
       - run:
@@ -1211,7 +1215,7 @@ workflows:
           # Don't attempt to run dist tests for external PRs (they won't have access to the required keys)
           <<: *only-internal-prs
           requires: [build-dist-macos, build-dist-linux-windows]
-      - test-macos:
+      - test-macos-x86-rosetta:
           <<: *only-internal-prs
           requires: [build-dist-macos]
       - test-macos-arm:
