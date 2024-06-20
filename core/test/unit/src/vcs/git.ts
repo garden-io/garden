@@ -1591,48 +1591,61 @@ const getTreeVersionTests = (gitScanMode: GitScanMode) => {
         }
       })
 
-      it("should not update content hash for Deploy, when there's no change in included files of Build", async () => {
-        const projectRoot = getDataDir("test-projects", "config-action-include")
-        const garden = await makeTestGarden(projectRoot)
-        const log = garden.log
-        const graph = await garden.getConfigGraph({ emit: false, log })
-        const buildConfig = graph.getBuild("test-build").getConfig()
-        const deployConfig = graph.getDeploy("test-deploy").getConfig()
-        const newFilePath = join(garden.projectRoot, "foo")
+      describe("should not update content hash for Deploy, when there's no change in included files of Build", async () => {
+        async function runTest(projectRoot: string) {
+          const garden = await makeTestGarden(projectRoot)
+          const log = garden.log
+          const graph = await garden.getConfigGraph({ emit: false, log })
+          const buildConfig = graph.getBuild("test-build").getConfig()
+          const deployConfig = graph.getDeploy("test-deploy").getConfig()
+          const newFilePath = join(garden.projectRoot, "foo")
 
-        try {
-          const buildVersion1 = await garden.vcs.getTreeVersion({
-            log: garden.log,
-            projectName: garden.projectName,
-            config: buildConfig,
-          })
+          try {
+            const buildVersion1 = await garden.vcs.getTreeVersion({
+              log: garden.log,
+              projectName: garden.projectName,
+              config: buildConfig,
+            })
 
-          const deployVersion1 = await garden.vcs.getTreeVersion({
-            log: garden.log,
-            projectName: garden.projectName,
-            config: deployConfig,
-          })
+            const deployVersion1 = await garden.vcs.getTreeVersion({
+              log: garden.log,
+              projectName: garden.projectName,
+              config: deployConfig,
+            })
 
-          await writeFile(newFilePath, "abcd")
+            await writeFile(newFilePath, "abcd")
 
-          const buildVersion2 = await garden.vcs.getTreeVersion({
-            log: garden.log,
-            projectName: garden.projectName,
-            config: buildConfig,
-            force: true,
-          })
-          const deployVersion2 = await garden.vcs.getTreeVersion({
-            log: garden.log,
-            projectName: garden.projectName,
-            config: deployConfig,
-            force: true,
-          })
+            const buildVersion2 = await garden.vcs.getTreeVersion({
+              log: garden.log,
+              projectName: garden.projectName,
+              config: buildConfig,
+              force: true,
+            })
+            const deployVersion2 = await garden.vcs.getTreeVersion({
+              log: garden.log,
+              projectName: garden.projectName,
+              config: deployConfig,
+              force: true,
+            })
 
-          expect(buildVersion1).to.eql(buildVersion2)
-          expect(deployVersion1.contentHash).to.eql(deployVersion2.contentHash)
-        } finally {
-          await remove(newFilePath)
+            expect(buildVersion1).to.eql(buildVersion2)
+            expect(deployVersion1.contentHash).to.eql(deployVersion2.contentHash)
+          } finally {
+            await remove(newFilePath)
+          }
         }
+
+        // The different project structure causes different Git repo roots in scanning mode and different caching behavior.
+
+        it("with a flat project/action config", async () => {
+          const projectRoot = getDataDir("test-projects", "config-action-include-flat")
+          await runTest(projectRoot)
+        })
+
+        it("with a structured project/action config", async () => {
+          const projectRoot = getDataDir("test-projects", "config-action-include")
+          await runTest(projectRoot)
+        })
       })
 
       it("should update content hash when a file is renamed", async () => {
