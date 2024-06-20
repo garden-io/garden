@@ -15,6 +15,7 @@ import { styles } from "../../logger/styles.js"
 import type { KubernetesPluginContext } from "../kubernetes/config.js"
 import { uuidv4 } from "../../util/random.js"
 import fsExtra from "fs-extra"
+
 const { mkdirp, rm } = fsExtra
 import { join } from "path"
 import { tmpdir } from "node:os"
@@ -41,27 +42,18 @@ const cloudBuilderAvailability = new LRUCache<string, CloudBuilderAvailability>(
 
 // public API
 export const cloudBuilder = {
-  isConfigured(ctx: PluginContext): boolean {
-    const { isCloudBuilderEnabled } = getConfiguration(ctx)
-    if (!isCloudBuilderEnabled) {
-      return false
-    }
-
-    return true
-  },
-
   /**
    * @returns false if Cloud Builder is not configured or not available, otherwise it returns the availability (a required parameter for withBuilder)
    */
   async getAvailability(ctx: PluginContext, action: Resolved<ContainerBuildAction>): Promise<CloudBuilderAvailability> {
-    if (!cloudBuilder.isConfigured(ctx)) {
+    const { isInClusterBuildingConfigured, isCloudBuilderEnabled } = getConfiguration(ctx)
+
+    if (!isCloudBuilderEnabled) {
       return {
         available: false,
-        reason: "Cloud Builder is not configured",
+        reason: "Cloud Builder is not enabled",
       }
     }
-
-    const { isInClusterBuildingConfigured } = getConfiguration(ctx)
 
     // Cache the Cloud Builder availability response from Backend for 5 minutes in LRU cache
     const fromCache = cloudBuilderAvailability.get(action.uid)
@@ -142,9 +134,9 @@ export const cloudBuilder = {
   },
 
   getActionRuntime(ctx: PluginContext, availability: CloudBuilderAvailability): ActionRuntime {
-    const config = getConfiguration(ctx)
+    const { isCloudBuilderEnabled, isInClusterBuildingConfigured } = getConfiguration(ctx)
 
-    const fallback: ActionRuntimeKind = config.isInClusterBuildingConfigured
+    const fallback: ActionRuntimeKind = isInClusterBuildingConfigured
       ? // if in-cluster-building is configured, we are building remotely in the plugin.
         {
           kind: "remote",
@@ -154,7 +146,7 @@ export const cloudBuilder = {
       : // Otherwise we fall back to building locally.
         { kind: "local" }
 
-    const preferred: ActionRuntimeKind = cloudBuilder.isConfigured(ctx)
+    const preferred: ActionRuntimeKind = isCloudBuilderEnabled
       ? // If cloud builder is configured, we prefer using cloud builder
         {
           kind: "remote",
