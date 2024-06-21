@@ -73,6 +73,8 @@ However, there are some caveats:
 - Modules cannot depend on actions
 - Modules cannot reference actions
 - Actions can reference and depend on modules, by referencing the actions that are generated from modules.
+- Deploy actions should explicitly add their corresponding Build action to their `dependency` array (see examples below)
+- Deploy `container` actions should explicitly reference the output of their corresponding Build action in the `spec.image` field (see examples below)
 
 ## Updating the CLI
 
@@ -148,15 +150,18 @@ kind: Deploy
 type: container
 name: api
 description: The backend deployment for the voting UI
-# Uses the container created by the Build action above
-build: api
 # Dependencies has been moved from the services to here,
-# and they can now be much more granular:
-# refer to specific Build, Deploy, Run, and Test actions
-dependencies: [deploy.redis]
+# and they can now be much more granular and
+# refer to specific Build, Deploy, Run, and Test actions.
+# Note that we explicitly add a dependency to the
+# corresponding Build action because we reference its output below.
+dependencies: [build.api, deploy.redis]
 
 # But most of the previous service can be pasted under spec
 spec:
+  # We explicitly set the image by referencing the output
+  # of the corresponding Build action.
+  image: ${actions.build.api.outputs.deploymentImageId}
   args: [python, app.py]
   ports:
     - name: http
@@ -174,19 +179,28 @@ spec:
 ---
 kind: Test
 type: container
+# We explicitly add a dependency to the corresponding Build action
+# because we reference its output below.
+dependencies: [build.api, deploy.redis]
 name: api-unit
-build: api
 spec:
+  # We explicitly set the image by referencing the output
+  # of the corresponding Build action.
+  image: ${actions.build.api.outputs.deploymentImageId}
   args: [echo, ok]
 
 ---
 kind: Test
 type: container
 name: api-integ
-build: api
-dependencies: [deploy.api]
+# We explicitly add a dependency to the corresponding Build action
+# because we reference its output below.
+dependencies: [build.api, deploy.api]
 timeout: 200
 spec:
+  # We explicitly set the image by referencing the output
+  # of the corresponding Build action.
+  image: ${actions.build.api.outputs.deploymentImageId}
   args: [python, /app/test.py]
 ```
 
@@ -331,12 +345,17 @@ kind: Deploy
 type: container
 name: worker
 description: The worker that collects votes and stores results in a postgres table
-build: worker
-# Note the much more granular dependency control!
+# Note that we explicitly add a dependency to the
+# corresponding Build action because we reference its output below.
+# Note also the much more granular dependency control!
 dependencies:
+  - build.worker
   - deploy.redis
   - run.db-init
 spec:
+  # We explicitly set the image by referencing the output
+  # of the corresponding build action.
+  image: ${actions.build.worker.outputs.deploymentImageId}
   env:
     PGDATABASE: ${var.postgres-database}
     PGUSER: ${var.postgres-username}
