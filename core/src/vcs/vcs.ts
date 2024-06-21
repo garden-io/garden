@@ -452,11 +452,23 @@ export function getConfigFilePath(config: ModuleConfig | BaseActionConfig) {
   return isActionConfig(config) ? config.internal?.configFilePath : config.configPath
 }
 
+/**
+ * Get the source path from the action config and the provided base path.
+ * The base path is not always the config file location.
+ * For remote actions it is different, and points to the directory with the cloned sources.
+ *
+ * @param basePath the location of the config file, or location of the cloned remote sources.
+ * @param config the action config
+ */
+export function getActionSourcePath(basePath: string, config: BaseActionConfig): string {
+  const sourceRelPath = config.source?.path
+  return sourceRelPath ? getSourceAbsPath(basePath, sourceRelPath) : basePath
+}
+
 export function getSourcePath(config: ModuleConfig | BaseActionConfig) {
   if (isActionConfig(config)) {
     const basePath = config.internal.basePath
-    const sourceRelPath = config.source?.path
-    return sourceRelPath ? getSourceAbsPath(basePath, sourceRelPath) : basePath
+    return getActionSourcePath(basePath, config)
   } else {
     return config.path
   }
