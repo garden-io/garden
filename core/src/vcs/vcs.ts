@@ -276,16 +276,16 @@ export abstract class VcsHandler {
           // Don't include the config file in the file list
           .filter((f) => !configPath || f.path !== configPath)
 
-        let stringsForContenthash: string[]
+        let stringsForContentHash: string[]
         if (configPath) {
           // Include the relative path to the file to account for the file being renamed or moved around within the
           // config path (e.g. renaming).
           const configDir = dirname(configPath)
-          stringsForContenthash = files.map((f) => `${relative(configDir, f.path)}-${f.hash}`)
+          stringsForContentHash = files.map((f) => `${relative(configDir, f.path)}-${f.hash}`)
         } else {
-          stringsForContenthash = files.map((f) => f.hash)
+          stringsForContentHash = files.map((f) => f.hash)
         }
-        result.contentHash = hashStrings(stringsForContenthash)
+        result.contentHash = hashStrings(stringsForContentHash)
         result.files = files.map((f) => f.path)
       }
 
