@@ -252,7 +252,7 @@ export const regctlCliSpec: PluginToolSpec = {
     {
       platform: "linux",
       architecture: "arm64",
-      url: `https://github.com/regclient/regclient/releases/download/v${regctlCliVersion}/regctl-linux-armd64`,
+      url: `https://github.com/regclient/regclient/releases/download/v${regctlCliVersion}/regctl-linux-arm64`,
       sha256: "7c3d760925052f7dea4aa26b327e9d88f3ae30fadacc110ae03bd06df3fb696f",
     },
     {
