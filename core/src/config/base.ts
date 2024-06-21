@@ -66,8 +66,9 @@ export interface GardenResourceInternalFields {
    * The path/working directory where commands and operations relating to the config should be executed. This is
    * most commonly the directory containing the config file.
    *
-   * Note: WHen possible, use `action.getSourcePath()` instead, since it factors in remote source paths and source
-   * overrides (i.e. `BaseActionConfig.source.path`). This is a lower-level field that doesn't contain template strings,
+   * Note: When possible, use {@link BaseAction.sourcePath()} instead, since it factors in remote source paths
+   * and source  overrides (i.e. {@link BaseActionConfig.source.path}).
+   * This is a lower-level field that doesn't contain template strings,
    * and can thus be used early in the resolution flow.
    */
   basePath: string
