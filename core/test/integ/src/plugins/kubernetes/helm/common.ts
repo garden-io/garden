@@ -637,6 +637,18 @@ ${expectedIngressOutput}
         gardenValuesPath,
       ])
     })
+
+    it("should allow valueFiles relative to action config", async () => {
+      const action = await garden.resolveAction<HelmDeployAction>({ action: graph.getDeploy("api"), log, graph })
+      action["_config"].spec.valueFiles = ["./values.yaml"]
+
+      expect(await getValueArgs({ action, valuesPath: gardenValuesPath })).to.eql([
+        "--values",
+        resolve(action.effectiveConfigFileLocation(), "./values.yaml"),
+        "--values",
+        gardenValuesPath,
+      ])
+    })
   })
 
   describe("getReleaseName", () => {
