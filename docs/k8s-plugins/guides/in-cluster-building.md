@@ -694,6 +694,21 @@ providers:
         iam.gke.io/gcp-service-account: gar-access@${PROJECT_ID}.iam.gserviceaccount.com
 ```
 
+## Multi-Platform builds
+
+Garden supports building container images for multiple platforms and architectures. Use the `platforms` configuration field, to configure the platforms you want to build for e.g.:
+
+```yaml
+# garden.yml
+kind: Build
+type: container
+name: my-container
+spec:
+  platforms: ["linux/amd64", "linux/arm64"]
+```
+
+Multi-platform builds are available for both `cluster-buildkit` and `kaniko`.
+
 ## Publishing images
 
 You can publish images that have been built in your cluster, using the `garden publish` command. See the [Publishing images](../../other-plugins/container.md#publishing-images) section in the [Container Action guide](../../other-plugins/container.md) for details.

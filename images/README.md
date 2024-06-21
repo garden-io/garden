@@ -9,6 +9,4 @@ We are building all images except the circleci image multi-platform for linux/ar
 
 Please note that the images are not available in your local docker images store, because they are build in the docker-container buildx builder. They are always pushed to DockerHub. If you want to inspect and run them locally pull them down.
 
-To build and push to DockerHub with a tag `dev` use `garden build`, and to publish a new image with a version tag specified in the `release_tag` variable run `garden build --var publish=true`.
-
-This is an intermediate step to allow multi platform builds and publish them to DockerHub until multi-platform builds are integrated more natively into garden and work with the publish command.
+To publish an updated version of these images update the `release-tag` in the respective action and run `garden publish`.

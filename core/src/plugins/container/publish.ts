@@ -9,7 +9,9 @@
 import type { ContainerBuildAction } from "./moduleConfig.js"
 import { containerHelpers } from "./helpers.js"
 import type { BuildActionHandler } from "../../plugin/action-types.js"
+import type { ContainerPluginContext } from "./container.js"
 import { naturalList } from "../../util/string.js"
+import { cloudBuilder } from "./cloudbuilder.js"
 
 export const publishContainerBuild: BuildActionHandler<"publish", ContainerBuildAction> = async ({
   ctx,
@@ -17,21 +19,27 @@ export const publishContainerBuild: BuildActionHandler<"publish", ContainerBuild
   log,
   tagOverride,
 }) => {
+  const containerCtx = ctx as ContainerPluginContext
   const localImageId = action.getOutput("localImageId")
   const remoteImageId = containerHelpers.getPublicImageId(action, tagOverride)
+  const cloudBuilderUsed = await cloudBuilder.getAvailability(containerCtx, action)
+  const dockerBuildExtraFlags = action.getSpec("extraFlags")
 
-  const taggedImages = [localImageId, remoteImageId]
-  log.info({ msg: `Tagging images ${naturalList(taggedImages)}` })
-  await containerHelpers.dockerCli({
-    cwd: action.getBuildPath(),
-    args: ["tag", ...taggedImages],
-    log,
-    ctx,
-  })
+  // If cloud builder is used or --push flag is set explicitly, use regctl to copy the image.
+  // This does not require to pull the image locally.
+  if (cloudBuilderUsed.available || dockerBuildExtraFlags?.includes("--push")) {
+    const regctlCopyCommand = ["image", "copy", localImageId, remoteImageId]
+    log.info({ msg: `Publishing image ${remoteImageId}` })
+    await containerHelpers.regctlCli({ cwd: action.getBuildPath(), args: regctlCopyCommand, log, ctx })
+  } else {
+    const taggedImages = [localImageId, remoteImageId]
+    log.info({ msg: `Tagging images ${naturalList(taggedImages)}` })
+    await containerHelpers.dockerCli({ cwd: action.getBuildPath(), args: ["tag", ...taggedImages], log, ctx })
 
-  log.info({ msg: `Publishing image ${remoteImageId}...` })
-  // TODO: stream output to log if at debug log level
-  await containerHelpers.dockerCli({ cwd: action.getBuildPath(), args: ["push", remoteImageId], log, ctx })
+    log.info({ msg: `Publishing image ${remoteImageId}...` })
+    // TODO: stream output to log if at debug log level
+    await containerHelpers.dockerCli({ cwd: action.getBuildPath(), args: ["push", remoteImageId], log, ctx })
+  }
 
   return {
     state: "ready",
