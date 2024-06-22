@@ -276,16 +276,16 @@ export abstract class VcsHandler {
           // Don't include the config file in the file list
           .filter((f) => !configPath || f.path !== configPath)
 
-        let stringsForContenthash: string[]
+        let stringsForContentHash: string[]
         if (configPath) {
           // Include the relative path to the file to account for the file being renamed or moved around within the
           // config path (e.g. renaming).
           const configDir = dirname(configPath)
-          stringsForContenthash = files.map((f) => `${relative(configDir, f.path)}-${f.hash}`)
+          stringsForContentHash = files.map((f) => `${relative(configDir, f.path)}-${f.hash}`)
         } else {
-          stringsForContenthash = files.map((f) => f.hash)
+          stringsForContentHash = files.map((f) => f.hash)
         }
-        result.contentHash = hashStrings(stringsForContenthash)
+        result.contentHash = hashStrings(stringsForContentHash)
         result.files = files.map((f) => f.path)
       }
 
@@ -452,11 +452,23 @@ export function getConfigFilePath(config: ModuleConfig | BaseActionConfig) {
   return isActionConfig(config) ? config.internal?.configFilePath : config.configPath
 }
 
+/**
+ * Get the source path from the action config and the provided base path.
+ * The base path is not always the config file location.
+ * For remote actions it is different, and points to the directory with the cloned sources.
+ *
+ * @param basePath the location of the config file, or location of the cloned remote sources.
+ * @param config the action config
+ */
+export function getActionSourcePath(basePath: string, config: BaseActionConfig): string {
+  const sourceRelPath = config.source?.path
+  return sourceRelPath ? getSourceAbsPath(basePath, sourceRelPath) : basePath
+}
+
 export function getSourcePath(config: ModuleConfig | BaseActionConfig) {
   if (isActionConfig(config)) {
     const basePath = config.internal.basePath
-    const sourceRelPath = config.source?.path
-    return sourceRelPath ? getSourceAbsPath(basePath, sourceRelPath) : basePath
+    return getActionSourcePath(basePath, config)
   } else {
     return config.path
   }

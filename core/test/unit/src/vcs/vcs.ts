@@ -70,10 +70,6 @@ export class TestVcsHandler extends VcsHandler {
     this.testTreeVersions[path] = version
   }
 
-  setTestModuleVersion(path: string, version: TreeVersion) {
-    this.testTreeVersions[path] = version
-  }
-
   async ensureRemoteSource(): Promise<string> {
     return ""
   }

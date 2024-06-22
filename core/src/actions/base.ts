@@ -26,6 +26,7 @@ import {
 import { DOCS_BASE_URL } from "../constants.js"
 import { dedent, naturalList, stableStringify } from "../util/string.js"
 import type { ModuleVersion, TreeVersion, ActionVersion } from "../vcs/vcs.js"
+import { getActionSourcePath } from "../vcs/vcs.js"
 import { hashStrings, versionStringPrefix } from "../vcs/vcs.js"
 import type { BuildAction, ResolvedBuildAction } from "./build.js"
 import type { ActionKind } from "../plugin/action-types.js"
@@ -464,15 +465,10 @@ export abstract class BaseAction<
   }
 
   sourcePath(): string {
-    const basePath = this.remoteSourcePath || this._config.internal.basePath
-    const sourceRelPath = this._config.source?.path
+    const config = this._config
+    const basePath = this.remoteSourcePath || config.internal.basePath
 
-    if (sourceRelPath) {
-      // TODO: validate that this is a directory here?
-      return getSourceAbsPath(basePath, sourceRelPath)
-    } else {
-      return basePath
-    }
+    return getActionSourcePath(basePath, config)
   }
 
   configPath() {
