@@ -95,13 +95,13 @@ npm run integ-local
 End-to-end tests are run with:
 
 ```sh
-npm run run e2e
+npm run e2e
 ```
 
 You can also run the end-to-end tests for a specific example project using:
 
 ```sh
-npm run run e2e-project -- --project=<example project name>
+npm run e2e-project -- --project=<example project name>
 ```
 
 End-to-end tests are run in CI by using Garden itself to test the project defined in `./core/test/e2e/garden.yml`. Cf. the appropriate job in `circleci/config.yml` for details.
