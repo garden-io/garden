@@ -9,9 +9,7 @@
 import type { ContainerBuildAction } from "./moduleConfig.js"
 import { containerHelpers } from "./helpers.js"
 import type { BuildActionHandler } from "../../plugin/action-types.js"
-import type { ContainerPluginContext } from "./container.js"
 import { naturalList } from "../../util/string.js"
-import { cloudBuilder } from "./cloudbuilder.js"
 
 export const publishContainerBuild: BuildActionHandler<"publish", ContainerBuildAction> = async ({
   ctx,
@@ -19,15 +17,13 @@ export const publishContainerBuild: BuildActionHandler<"publish", ContainerBuild
   log,
   tagOverride,
 }) => {
-  const containerCtx = ctx as ContainerPluginContext
   const localImageId = action.getOutput("localImageId")
   const remoteImageId = containerHelpers.getPublicImageId(action, tagOverride)
-  const cloudBuilderConfigured = cloudBuilder.isConfigured(containerCtx)
   const dockerBuildExtraFlags = action.getSpec("extraFlags")
 
-  // If cloud builder is used or --push flag is set explicitly, use regctl to copy the image.
+  // If --push flag is set explicitly, use regctl to copy the image.
   // This does not require to pull the image locally.
-  if (cloudBuilderConfigured || dockerBuildExtraFlags?.includes("--push")) {
+  if (dockerBuildExtraFlags?.includes("--push")) {
     const regctlCopyCommand = ["image", "copy", localImageId, remoteImageId]
     log.info({ msg: `Publishing image ${remoteImageId}` })
     await containerHelpers.regctlCli({ cwd: action.getBuildPath(), args: regctlCopyCommand, log, ctx })
