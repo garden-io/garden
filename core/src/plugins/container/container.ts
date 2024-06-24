@@ -161,68 +161,6 @@ export const dockerSpec: PluginToolSpec = {
   ],
 }
 
-export const namespaceCliVersion = "0.0.354"
-export const namespaceCliSpec: PluginToolSpec = {
-  name: "namespace-cli",
-  version: dockerVersion,
-  description: `Namespace.so CLI v${dockerVersion}`,
-  type: "binary",
-  _includeInGardenImage: true,
-  builds: [
-    {
-      platform: "darwin",
-      architecture: "amd64",
-      url: `https://get.namespace.so/packages/nsc/v${namespaceCliVersion}/nsc_${namespaceCliVersion}_darwin_amd64.tar.gz`,
-      sha256: "a091e5f4afeccfffe30231b3528c318bc3201696e09ac3c07adaf283cea42f91",
-      extract: {
-        format: "tar",
-        targetPath: "nsc",
-      },
-    },
-    {
-      platform: "darwin",
-      architecture: "arm64",
-      url: `https://get.namespace.so/packages/nsc/v${namespaceCliVersion}/nsc_${namespaceCliVersion}_darwin_arm64.tar.gz`,
-      sha256: "7641623358ec141c6ab8d243f5f97eab0417338bb1fd490daaf814947c4ed682",
-      extract: {
-        format: "tar",
-        targetPath: "nsc",
-      },
-    },
-    {
-      platform: "linux",
-      architecture: "amd64",
-      url: `https://get.namespace.so/packages/nsc/v${namespaceCliVersion}/nsc_${namespaceCliVersion}_linux_amd64.tar.gz`,
-      sha256: "8d180cf1c3e2f2861c34e89b722d9a5612888e3889d2d7767b02be955e6fc7ef",
-      extract: {
-        format: "tar",
-        targetPath: "nsc",
-      },
-    },
-    {
-      platform: "linux",
-      architecture: "arm64",
-      url: `https://get.namespace.so/packages/nsc/v${namespaceCliVersion}/nsc_${namespaceCliVersion}_linux_arm64.tar.gz`,
-      sha256: "0646fae1d6ca41888cbcac749b04ad303adcb5b2a7eb5260cddad1d7566ba0d6",
-      extract: {
-        format: "tar",
-        targetPath: "nsc",
-      },
-    },
-    // No windows support at the moment, only WSL
-    // {
-    //   platform: "windows",
-    //   architecture: "amd64",
-    //   url: `https://get.namespace.so/packages/nsc/v${namespaceCliVersion}/nsc_${namespaceCliVersion}_${os}_${architecture}.tar.gz`,
-    //   sha256: "25ff5d9dd8ae176dd30fd97b0b99a896d598fa62fca0b7171b45887ad4d3661b",
-    //   extract: {
-    //     format: "zip",
-    //     targetPath: "docker/docker.exe",
-    //   },
-    // },
-  ],
-}
-
 export const regctlCliVersion = "0.6.1"
 export const regctlCliSpec: PluginToolSpec = {
   name: "regctl",
@@ -722,7 +660,7 @@ export const gardenPlugin = () =>
       },
     ],
 
-    tools: [dockerSpec, namespaceCliSpec, regctlCliSpec],
+    tools: [dockerSpec, regctlCliSpec],
   })
 
 function validateRuntimeCommon(action: Resolved<ContainerRuntimeAction>) {

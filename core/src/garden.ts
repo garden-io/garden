@@ -1934,11 +1934,6 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
           commandName: opts.commandInfo.name,
         })
 
-    // If the user is logged in and a cloud project exists we use that ID
-    // but fallback to the one set in the config (even if the user isn't logged in).
-    // Same applies for domains.
-    const projectId = cloudProject?.id || config.id
-
     config = resolveProjectConfig({
       log,
       defaultEnvironmentName: configDefaultEnvironment,
@@ -2006,7 +2001,10 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
       artifactsPath,
       vcsInfo,
       sessionId,
-      projectId,
+      // If the user is logged in and a cloud project exists we use that ID
+      // but fallback to the one set in the config (even if the user isn't logged in).
+      // Same applies for domains.
+      projectId: cloudProject?.id || config.id,
       cloudDomain,
       projectConfig: config,
       projectRoot,

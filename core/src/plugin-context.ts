@@ -32,6 +32,7 @@ export type WrappedFromGarden = Pick<
   | "gardenDirPath"
   | "workingCopyId"
   | "cloudApi"
+  | "projectId"
   // TODO: remove this from the interface
   | "environmentName"
   | "namespace"
@@ -224,5 +225,6 @@ export async function createPluginContext({
     tools: await garden.getTools(),
     workingCopyId: garden.workingCopyId,
     cloudApi: garden.cloudApi,
+    projectId: garden.projectId,
   }
 }

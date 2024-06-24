@@ -154,6 +154,7 @@ export interface CloudEnvironment {
 export interface CloudProject {
   id: string
   name: string
+  organizationId: string
   repositoryUrl: string
   environments: CloudEnvironment[]
 }
@@ -164,9 +165,7 @@ export interface GetSecretsParams {
   environmentName: string
 }
 
-function toCloudProject(
-  project: GetProjectResponse["data"] | ListProjectsResponse["data"][0] | CreateProjectsForRepoResponse["data"][0]
-): CloudProject {
+function toCloudProject(project: GetProjectResponse["data"] | CreateProjectsForRepoResponse["data"][0]): CloudProject {
   const environments: CloudEnvironment[] = []
 
   for (const environment of project.environments) {
@@ -176,6 +175,7 @@ function toCloudProject(
   return {
     id: project.id,
     name: project.name,
+    organizationId: project.organization.id,
     repositoryUrl: project.repositoryUrl,
     environments,
   }
@@ -423,12 +423,7 @@ export class CloudApi {
       return undefined
     }
 
-    const project = toCloudProject(projectList[0])
-
-    // Cache the entry by ID
-    this.projects.set(project.id, project)
-
-    return project
+    return await this.getProjectById(projectList[0].id)
   }
 
   async createProject(projectName: string): Promise<CloudProject> {
@@ -988,19 +983,29 @@ export class CloudApi {
     return { results, errors }
   }
 
-  async registerCloudBuilderBuild(body: {
+  async registerCloudBuilderBuild({
+    organizationId,
+    ...body
+  }: {
+    organizationId: string
     actionName: string
     actionUid: string
     coreSessionId: string
+    platforms: string[]
+    mtlsClientPublicKeyPEM: string | undefined
   }): Promise<RegisterCloudBuilderBuildResponse> {
     try {
-      return await this.post<RegisterCloudBuilderBuildResponse>(`/cloudbuilder/builds/`, {
-        body,
-      })
+      return await this.post<RegisterCloudBuilderBuildResponse>(
+        `/organizations/${organizationId}/cloudbuilder/builds/`,
+        {
+          body,
+        }
+      )
+      // TODO: error handling
     } catch (err) {
       return {
         data: {
-          version: "v1",
+          version: "v2",
           availability: {
             available: false,
             reason: `Failed to determine Garden Cloud Builder availability: ${extractErrorMessageBodyFromGotError(err) ?? err}`,
@@ -1036,10 +1041,10 @@ export class CloudApi {
 }
 
 // TODO(cloudbuilder): import these from api-types
-type V1RegisterCloudBuilderBuildResponse = {
+type RegisterCloudBuilderBuildResponseV2 = {
   data: {
-    version: "v1"
-    availability: CloudBuilderAvailability
+    version: "v2"
+    availability: CloudBuilderAvailabilityV2
   }
 }
 type UnsupportedRegisterCloudBuilderBuildResponse = {
@@ -1048,16 +1053,25 @@ type UnsupportedRegisterCloudBuilderBuildResponse = {
   }
 }
 type RegisterCloudBuilderBuildResponse =
-  | V1RegisterCloudBuilderBuildResponse
+  | RegisterCloudBuilderBuildResponseV2
   | UnsupportedRegisterCloudBuilderBuildResponse
 
-export type CloudBuilderAvailable = {
+export type CloudBuilderAvailableV2 = {
   available: true
-  token: string
-  region: "eu" // location of the builder. Currently only eu is supported
+
+  buildx: {
+    endpoints: {
+      platform: string
+      mtlsEndpoint: string
+      serverCaPem: string
+    }[]
+    clientCertificatePem: string
+    // only defined if the request did not include a "mtlsClientPublicKeyPEM"
+    privateKeyPem: string | undefined
+  }
 }
-export type CloudBuilderNotAvailable = {
+export type CloudBuilderNotAvailableV2 = {
   available: false
   reason: string
 }
-export type CloudBuilderAvailability = CloudBuilderAvailable | CloudBuilderNotAvailable
+export type CloudBuilderAvailabilityV2 = CloudBuilderAvailableV2 | CloudBuilderNotAvailableV2

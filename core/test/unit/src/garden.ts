@@ -766,6 +766,7 @@ describe("Garden", () => {
           id: projectId,
           name: projectName,
           repositoryUrl: "",
+          organizationId: uuidv4(),
           environments: [
             {
               id: uuidv4(),
@@ -929,6 +930,7 @@ describe("Garden", () => {
         const cloudProject: CloudProject = {
           id: projectId,
           name: projectName,
+          organizationId: uuidv4(),
           repositoryUrl: "",
           environments: [
             {

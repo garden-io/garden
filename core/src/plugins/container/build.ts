@@ -25,10 +25,10 @@ import {
 import type { Writable } from "stream"
 import type { ActionLog } from "../../logger/log-entry.js"
 import type { PluginContext } from "../../plugin-context.js"
-import type { SpawnOutput } from "../../util/util.js"
 import { cloudBuilder } from "./cloudbuilder.js"
 import { styles } from "../../logger/styles.js"
-import type { CloudBuilderAvailable } from "../../cloud/api.js"
+import type { CloudBuilderAvailableV2 } from "../../cloud/api.js"
+import type { SpawnOutput } from "../../util/util.js"
 
 export const validateContainerBuild: BuildActionHandler<"validate", ContainerBuildAction> = async ({ action }) => {
   // configure concurrency limit for build status task nodes.
@@ -206,7 +206,7 @@ const BUILDKIT_LAYER_CACHED_REGEX = /^#[0-9]+ CACHED/
 
 async function buildContainerInCloudBuilder(params: {
   action: Resolved<ContainerBuildAction>
-  availability: CloudBuilderAvailable
+  availability: CloudBuilderAvailableV2
   outputStream: Writable
   timeout: number
   log: ActionLog
