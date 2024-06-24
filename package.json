@@ -16,7 +16,7 @@
   },
   "private": true,
   "devDependencies": {
-    "@commitlint/cli": "^19.2.2",
+    "@commitlint/cli": "^19.3.0",
     "@commitlint/config-conventional": "^17.6.7",
     "@rollup/plugin-commonjs": "^25.0.8",
     "@rollup/plugin-esm-shim": "^0.1.5",
