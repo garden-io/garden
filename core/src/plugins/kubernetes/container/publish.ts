@@ -18,7 +18,7 @@ export const k8sPublishContainerBuild: BuildActionHandler<"publish", ContainerBu
   const k8sCtx = ctx as KubernetesPluginContext
   const provider = k8sCtx.provider
 
-  const cloudBuilderUsed = await cloudBuilder.getAvailability(k8sCtx, action)
+  const cloudBuilderConfigured = cloudBuilder.isConfigured(k8sCtx)
 
   const localImageId = action.getOutput("localImageId")
   const deploymentRegistryImageId = action.getOutput("deploymentImageId")
@@ -26,7 +26,7 @@ export const k8sPublishContainerBuild: BuildActionHandler<"publish", ContainerBu
 
   // For in-cluster building or cloud builder, use regctl to copy the image.
   // This does not require to pull the image locally.
-  if (provider.config.buildMode !== "local-docker" || cloudBuilderUsed.available) {
+  if (provider.config.buildMode !== "local-docker" || cloudBuilderConfigured) {
     const regctlCopyCommand = ["image", "copy", deploymentRegistryImageId, remoteImageId]
     log.info({ msg: `Publishing image ${remoteImageId}` })
     await containerHelpers.regctlCli({ cwd: action.getBuildPath(), args: regctlCopyCommand, log, ctx })

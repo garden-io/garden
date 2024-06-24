@@ -22,12 +22,12 @@ export const publishContainerBuild: BuildActionHandler<"publish", ContainerBuild
   const containerCtx = ctx as ContainerPluginContext
   const localImageId = action.getOutput("localImageId")
   const remoteImageId = containerHelpers.getPublicImageId(action, tagOverride)
-  const cloudBuilderUsed = await cloudBuilder.getAvailability(containerCtx, action)
+  const cloudBuilderConfigured = cloudBuilder.isConfigured(containerCtx)
   const dockerBuildExtraFlags = action.getSpec("extraFlags")
 
   // If cloud builder is used or --push flag is set explicitly, use regctl to copy the image.
   // This does not require to pull the image locally.
-  if (cloudBuilderUsed.available || dockerBuildExtraFlags?.includes("--push")) {
+  if (cloudBuilderConfigured || dockerBuildExtraFlags?.includes("--push")) {
     const regctlCopyCommand = ["image", "copy", localImageId, remoteImageId]
     log.info({ msg: `Publishing image ${remoteImageId}` })
     await containerHelpers.regctlCli({ cwd: action.getBuildPath(), args: regctlCopyCommand, log, ctx })

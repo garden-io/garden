@@ -269,7 +269,6 @@ export function getDockerBuildFlags(
   if (targetStage) {
     args.push("--target", targetStage)
   }
-
   for (const platform of platforms || []) {
     args.push("--platform", platform)
   }

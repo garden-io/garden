@@ -104,7 +104,9 @@ spec:
 ```
 
 Garden interacts with several local and remote builders. Currently support for multi-platform builds varies based on the builder backend.
-The following build backends support multi-platform builds out of the box: `garden-cloudbuilder`, `cluster-buildkit`, `kaniko`.
+The following build backends support multi-platform builds out of the box: `garden-cloudbuilder`, `cluster-buildkit`.
+
+In-cluster building with `kaniko` does *not* support multi-platform builds.
 
 The `local-docker` build backend requires some additional configurations. Docker Desktop users can enable the experimental containerd image store to also store multi-platform images locally. All other local docker solutions e.g. orbstack, podman currently need a custom buildx builder of type `docker-container`. Documemtation for both can be found here https://docs.docker.com/build/building/multi-platform.
 If your local docker image store does not support storing multi-platform images, consider configuring an environment where you only build single platform images when building locally e.g.:

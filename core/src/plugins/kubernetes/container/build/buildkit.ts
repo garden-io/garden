@@ -314,6 +314,10 @@ export function getBuildkitFlags(action: Resolved<ContainerBuildAction>) {
     args.push("--opt", "target=" + spec.targetStage)
   }
 
+  for (const platform of spec.platforms || []) {
+    args.push("--opt", "platform=" + platform)
+  }
+
   args.push(...(spec.extraFlags || []))
 
   return args

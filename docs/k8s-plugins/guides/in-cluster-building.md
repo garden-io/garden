@@ -707,7 +707,7 @@ spec:
   platforms: ["linux/amd64", "linux/arm64"]
 ```
 
-Multi-platform builds are available for both `cluster-buildkit` and `kaniko`.
+Multi-platform builds are available for `cluster-buildkit` only. Note that `kaniko` is *not* supported.
 
 ## Publishing images
 
