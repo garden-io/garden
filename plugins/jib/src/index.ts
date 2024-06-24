@@ -350,6 +350,7 @@ export const gardenPlugin = () =>
                 // base container fields
                 buildArgs: module.spec.buildArgs,
                 extraFlags: module.spec.extraFlags,
+                localId: module.spec.image,
                 publishId: module.spec.image,
                 targetStage: module.spec.build.targetImage,
 
