@@ -7,7 +7,7 @@
  */
 
 import { containerHelpers } from "./helpers.js"
-import { ConfigurationError } from "../../exceptions.js"
+import { ConfigurationError, toGardenError } from "../../exceptions.js"
 import type { PrimitiveMap } from "../../config/common.js"
 import split2 from "split2"
 import type { BuildActionHandler } from "../../plugin/action-types.js"
@@ -166,16 +166,39 @@ async function buildContainerLocally({
   }
 
   const cmdOpts = ["build", ...dockerFlags, "--file", dockerfilePath]
-
-  return await containerHelpers.dockerCli({
-    cwd: buildPath,
-    args: [...cmdOpts, buildPath],
-    log,
-    stdout: outputStream,
-    stderr: outputStream,
-    timeout,
-    ctx,
-  })
+  try {
+    return await containerHelpers.dockerCli({
+      cwd: buildPath,
+      args: [...cmdOpts, buildPath],
+      log,
+      stdout: outputStream,
+      stderr: outputStream,
+      timeout,
+      ctx,
+    })
+  } catch (e) {
+    const error = toGardenError(e)
+    if (error.message.includes("docker exporter does not currently support exporting manifest lists")) {
+      throw new ConfigurationError({
+        message: dedent`
+          Your local docker image store does not support loading multi-platform images.
+          If you are using Docker Desktop, you can turn on the experimental containerd image store.
+          Learn more at https://docs.docker.com/go/build-multi-platform/
+        `,
+      })
+    } else if (error.message.includes("Multi-platform build is not supported for the docker driver")) {
+      throw new ConfigurationError({
+        message: dedent`
+          Your local docker daemon does not support building multi-platform images.
+          If you are using Docker Desktop, you can turn on the experimental containerd image store.
+          To build multi-platform images locally with other local docker platforms,
+          you can add a custom buildx builder of type docker-container.
+          Learn more at https://docs.docker.com/go/build-multi-platform/
+        `,
+      })
+    }
+    throw error
+  }
 }
 
 const BUILDKIT_LAYER_REGEX = /^#[0-9]+ \[[^ ]+ +[0-9]+\/[0-9]+\] [^F][^R][^O][^M]/
@@ -237,7 +260,7 @@ export function getDockerBuildFlags(
 ) {
   const args: string[] = []
 
-  const { targetStage, extraFlags, buildArgs } = action.getSpec()
+  const { targetStage, extraFlags, buildArgs, platforms } = action.getSpec()
 
   for (const arg of getDockerBuildArgs(action.versionString(), buildArgs)) {
     args.push("--build-arg", arg)
@@ -245,6 +268,9 @@ export function getDockerBuildFlags(
 
   if (targetStage) {
     args.push("--target", targetStage)
+  }
+  for (const platform of platforms || []) {
+    args.push("--platform", platform)
   }
 
   args.push(...(extraFlags || []))

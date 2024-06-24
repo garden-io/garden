@@ -260,6 +260,10 @@ buildArgs: {}
 # implementations.
 extraFlags:
 
+# Specify the platforms to build the image for. This is useful when building multi-platform images.
+# The format is `os/arch`, e.g. `linux/amd64`, `linux/arm64`, etc.
+platforms:
+
 # Specify the image name for the container. Should be a valid Docker image identifier. If specified and the module
 # does not contain a Dockerfile, this image will be used to deploy services for this module. If specified and the
 # module does contain a Dockerfile, this identifier is used when pushing the built image.
@@ -1285,6 +1289,15 @@ Note: Garden will always set a `GARDEN_ACTION_VERSION` (alias `GARDEN_MODULE_VER
 ### `extraFlags[]`
 
 Specify extra flags to use when building the container image. Note that arguments may not be portable across implementations.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
+
+### `platforms[]`
+
+Specify the platforms to build the image for. This is useful when building multi-platform images.
+The format is `os/arch`, e.g. `linux/amd64`, `linux/arm64`, etc.
 
 | Type            | Required |
 | --------------- | -------- |

@@ -374,6 +374,17 @@ Specify extra flags to use when building the container image. Note that argument
 | --------------- | -------- |
 | `array[string]` | No       |
 
+### `spec.platforms[]`
+
+[spec](#spec) > platforms
+
+Specify the platforms to build the image for. This is useful when building multi-platform images.
+The format is `os/arch`, e.g. `linux/amd64`, `linux/arm64`, etc.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
+
 ### `spec.dockerfile`
 
 [spec](#spec) > dockerfile

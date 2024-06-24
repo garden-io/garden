@@ -1016,6 +1016,7 @@ export interface ContainerBuildActionSpec {
   localId?: string
   publishId?: string
   targetStage?: string
+  platforms?: string[]
 }
 
 export type ContainerBuildActionConfig = BuildActionConfig<"container", ContainerBuildActionSpec>
@@ -1059,6 +1060,10 @@ export const containerCommonBuildSpecKeys = memoize(() => ({
   extraFlags: joi.sparseArray().items(joi.string()).description(deline`
     Specify extra flags to use when building the container image.
     Note that arguments may not be portable across implementations.`),
+  platforms: joi.sparseArray().items(joi.string()).description(dedent`
+    Specify the platforms to build the image for. This is useful when building multi-platform images.
+    The format is \`os/arch\`, e.g. \`linux/amd64\`, \`linux/arm64\`, etc.
+  `),
 }))
 
 export const containerBuildSpecSchema = createSchema({

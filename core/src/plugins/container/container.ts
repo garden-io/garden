@@ -51,6 +51,7 @@ import { joi } from "../../config/common.js"
 import { DEFAULT_DEPLOY_TIMEOUT_SEC, gardenEnv } from "../../constants.js"
 import type { ExecBuildConfig } from "../exec/build.js"
 import type { PluginToolSpec } from "../../plugin/tools.js"
+import type { PluginContext } from "../../plugin-context.js"
 
 export const CONTAINER_STATUS_CONCURRENCY_LIMIT = gardenEnv.GARDEN_HARD_CONCURRENCY_LIMIT
 export const CONTAINER_BUILD_CONCURRENCY_LIMIT_LOCAL = 5
@@ -97,6 +98,7 @@ export const configSchema = () =>
     .unknown(false)
 
 export type ContainerProvider = Provider<ContainerProviderConfig>
+export type ContainerPluginContext = PluginContext<ContainerProviderConfig>
 
 export const dockerVersion = "25.0.2"
 export const dockerSpec: PluginToolSpec = {
@@ -218,6 +220,47 @@ export const namespaceCliSpec: PluginToolSpec = {
     //     targetPath: "docker/docker.exe",
     //   },
     // },
+  ],
+}
+
+export const regctlCliVersion = "0.6.1"
+export const regctlCliSpec: PluginToolSpec = {
+  name: "regctl",
+  version: regctlCliVersion,
+  description: `Regctl CLI v${regctlCliVersion}`,
+  type: "binary",
+  _includeInGardenImage: true,
+  builds: [
+    {
+      platform: "darwin",
+      architecture: "amd64",
+      url: `https://github.com/regclient/regclient/releases/download/v${regctlCliVersion}/regctl-darwin-amd64`,
+      sha256: "916e17019c36ff537555ad9989eb1fcda07403904bc70f808cee9ed9658d4107",
+    },
+    {
+      platform: "darwin",
+      architecture: "arm64",
+      url: `https://github.com/regclient/regclient/releases/download/v${regctlCliVersion}/regctl-darwin-arm64`,
+      sha256: "28833b2f0b42257e703bf75bfab7dd5baeb52d4a6e3ad8e7d33f754b36b8bb07",
+    },
+    {
+      platform: "linux",
+      architecture: "amd64",
+      url: `https://github.com/regclient/regclient/releases/download/v${regctlCliVersion}/regctl-linux-amd64`,
+      sha256: "e541327d14c8e6d3a2e4b0dfd76046425a1816879d4f5951042791435dec82e3",
+    },
+    {
+      platform: "linux",
+      architecture: "arm64",
+      url: `https://github.com/regclient/regclient/releases/download/v${regctlCliVersion}/regctl-linux-arm64`,
+      sha256: "7c3d760925052f7dea4aa26b327e9d88f3ae30fadacc110ae03bd06df3fb696f",
+    },
+    {
+      platform: "windows",
+      architecture: "amd64",
+      url: `https://github.com/regclient/regclient/releases/download/v${regctlCliVersion}/regctl-windows-amd64.exe`,
+      sha256: "44b2d5e79ef457e575d2b09bc1f27500cf90b733651793f4e76e23c9b8fc1803",
+    },
   ],
 }
 
@@ -679,7 +722,7 @@ export const gardenPlugin = () =>
       },
     ],
 
-    tools: [dockerSpec, namespaceCliSpec],
+    tools: [dockerSpec, namespaceCliSpec, regctlCliSpec],
   })
 
 function validateRuntimeCommon(action: Resolved<ContainerRuntimeAction>) {

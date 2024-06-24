@@ -42,6 +42,10 @@ const cloudBuilderAvailability = new LRUCache<string, CloudBuilderAvailability>(
 
 // public API
 export const cloudBuilder = {
+  isConfigured(ctx: PluginContext) {
+    const { isCloudBuilderEnabled } = getConfiguration(ctx)
+    return isCloudBuilderEnabled
+  },
   /**
    * @returns false if Cloud Builder is not configured or not available, otherwise it returns the availability (a required parameter for withBuilder)
    */

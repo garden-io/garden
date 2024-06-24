@@ -19,19 +19,23 @@ export const publishContainerBuild: BuildActionHandler<"publish", ContainerBuild
 }) => {
   const localImageId = action.getOutput("localImageId")
   const remoteImageId = containerHelpers.getPublicImageId(action, tagOverride)
+  const dockerBuildExtraFlags = action.getSpec("extraFlags")
 
-  const taggedImages = [localImageId, remoteImageId]
-  log.info({ msg: `Tagging images ${naturalList(taggedImages)}` })
-  await containerHelpers.dockerCli({
-    cwd: action.getBuildPath(),
-    args: ["tag", ...taggedImages],
-    log,
-    ctx,
-  })
+  // If --push flag is set explicitly, use regctl to copy the image.
+  // This does not require to pull the image locally.
+  if (dockerBuildExtraFlags?.includes("--push")) {
+    const regctlCopyCommand = ["image", "copy", localImageId, remoteImageId]
+    log.info({ msg: `Publishing image ${remoteImageId}` })
+    await containerHelpers.regctlCli({ cwd: action.getBuildPath(), args: regctlCopyCommand, log, ctx })
+  } else {
+    const taggedImages = [localImageId, remoteImageId]
+    log.info({ msg: `Tagging images ${naturalList(taggedImages)}` })
+    await containerHelpers.dockerCli({ cwd: action.getBuildPath(), args: ["tag", ...taggedImages], log, ctx })
 
-  log.info({ msg: `Publishing image ${remoteImageId}...` })
-  // TODO: stream output to log if at debug log level
-  await containerHelpers.dockerCli({ cwd: action.getBuildPath(), args: ["push", remoteImageId], log, ctx })
+    log.info({ msg: `Publishing image ${remoteImageId}...` })
+    // TODO: stream output to log if at debug log level
+    await containerHelpers.dockerCli({ cwd: action.getBuildPath(), args: ["push", remoteImageId], log, ctx })
+  }
 
   return {
     state: "ready",

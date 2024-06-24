@@ -97,6 +97,16 @@ export const kanikoBuild: BuildHandler = async (params) => {
   const deploymentImageId = outputs.deploymentImageId
   const dockerfile = spec.dockerfile || defaultDockerfileName
 
+  const platforms = action.getSpec().platforms
+  if (platforms && platforms.length > 1) {
+    throw new ConfigurationError({
+      message: dedent`Failed building ${styles.bold(action.name)}.
+          Kaniko does not support multi-platform builds.
+          Please consider a build method that supports multi-platform builds.
+          See: https://docs.garden.io/other-plugins/container#multi-platform-builds`,
+    })
+  }
+
   let { authSecret } = await ensureUtilDeployment({
     ctx,
     provider,

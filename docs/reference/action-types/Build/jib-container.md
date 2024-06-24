@@ -376,6 +376,17 @@ Note: Garden will always set a `GARDEN_ACTION_VERSION` (alias `GARDEN_MODULE_VER
 | -------- | ------- | -------- |
 | `object` | `{}`    | No       |
 
+### `spec.platforms[]`
+
+[spec](#spec) > platforms
+
+Specify the platforms to build the image for. This is useful when building multi-platform images.
+The format is `os/arch`, e.g. `linux/amd64`, `linux/arm64`, etc.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
+
 ### `spec.dockerfile`
 
 [spec](#spec) > dockerfile

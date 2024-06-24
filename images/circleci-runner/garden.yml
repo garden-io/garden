@@ -3,10 +3,11 @@ type: container
 name: circleci-runner
 description: Used for the core pipeline in CircleCI
 variables:
-  publish: false
-  image_name: gardendev/circleci-runner
-  image_tag: "${var.publish ? var.release_tag : 'dev'}"
-  release_tag: 22.2.0-0
+  image-name: gardendev/circleci-runner
+  release-tag: 22.2.0-0
 spec:
-  localId: gardendev/circleci-runner
-  extraFlags: [ "--platform", "linux/amd64", "--tag", "${var.image_name}:${var.image_tag}", "--push" ]
+  publishId: ${var.image-name}:${var.release-tag}
+  localId: ${var.image-name}
+  dockerfile: Dockerfile
+  platforms: [ "linux/amd64" ]
+  extraFlags: [ "--push"]

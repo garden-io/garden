@@ -417,6 +417,49 @@ const helpers = {
     }
   },
 
+  async regctlCli({
+    cwd,
+    args,
+    log,
+    ctx,
+    ignoreError = false,
+    stdout,
+    stderr,
+    timeout,
+  }: {
+    cwd: string
+    args: string[]
+    log: Log
+    ctx: PluginContext<ContainerProviderConfig>
+    ignoreError?: boolean
+    stdout?: Writable
+    stderr?: Writable
+    timeout?: number
+  }) {
+    const regctl = ctx.tools["container.regctl"]
+
+    try {
+      const res = await regctl.spawnAndWait({
+        args,
+        cwd,
+        ignoreError,
+        log,
+        stdout,
+        stderr,
+        timeoutSec: timeout,
+      })
+      return res
+    } catch (err) {
+      if (!(err instanceof GardenError)) {
+        throw err
+      }
+      throw new RuntimeError({
+        message: `Unable to run regctl command "${args.join(" ")}" in ${cwd}: ${err.message}`,
+        wrappedErrors: [err],
+      })
+    }
+  },
+
   moduleHasDockerfile(config: ContainerModuleConfig, version: ModuleVersion): boolean {
     // If we explicitly set a Dockerfile, we take that to mean you want it to be built.
     // If the file turns out to be missing, this will come up in the build handler.

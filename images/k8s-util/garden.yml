@@ -4,13 +4,14 @@ name: k8s-util
 description: Used by the kubernetes provider for build-related activities
 dependencies: [build.k8s-sync]
 variables:
-  publish: false
-  image_name: gardendev/k8s-util
-  image_tag: "${var.publish ? var.release_tag : 'dev'}"
-  release_tag: 0.6.1 # Starting from version 0.6.0 k8s-util uses k8s-sync 0.2.x.
+  image-name: gardendev/k8s-util
+  #release-tag: 0.6.1 # Starting from version 0.6.0 k8s-util uses k8s-sync 0.2.x.
+  release-tag: dev
 spec:
-  localId: ${var.image_name}
+  publishId: ${var.image-name}:${var.release-tag}
+  localId: ${var.image-name}
   dockerfile: Dockerfile
   buildArgs:
-    BASE_IMAGE: ${actions.build.k8s-sync.var.image_name}:${actions.build.k8s-sync.var.image_tag}
-  extraFlags: [ "--platform", "linux/amd64,linux/arm64", "--tag", "${var.image_name}:${var.image_tag}", "--push" ]
+    BASE_IMAGE: ${actions.build.k8s-sync.outputs.deploymentImageId}
+  platforms: [ "linux/amd64", "linux/arm64" ]
+  extraFlags: [ "--push"]

@@ -8,41 +8,37 @@
 
 import type { ContainerBuildAction } from "../../container/moduleConfig.js"
 import type { KubernetesPluginContext } from "../config.js"
-import { pullBuild } from "../commands/pull-image.js"
 import type { BuildActionHandler } from "../../../plugin/action-types.js"
 import { containerHelpers } from "../../container/helpers.js"
 import { naturalList } from "../../../util/string.js"
+import { cloudBuilder } from "../../container/cloudbuilder.js"
 
 export const k8sPublishContainerBuild: BuildActionHandler<"publish", ContainerBuildAction> = async (params) => {
   const { ctx, action, log, tagOverride } = params
   const k8sCtx = ctx as KubernetesPluginContext
   const provider = k8sCtx.provider
 
+  const cloudBuilderConfigured = cloudBuilder.isConfigured(k8sCtx)
+
   const localImageId = action.getOutput("localImageId")
-
-  if (provider.config.buildMode !== "local-docker") {
-    // NOTE: this may contain a custom deploymentRegistry, from the kubernetes provider config
-    const deploymentRegistryImageId = action.getOutput("deploymentImageId")
-
-    // First pull from the deployment registry, then resume standard publish flow.
-    // This does mean we require a local docker as a go-between, but the upside is that we can rely on the user's
-    // standard authentication setup, instead of having to re-implement or account for all the different ways the
-    // user might be authenticating with their registries.
-    // We also generally prefer this because the remote cluster very likely doesn't (and shouldn't) have
-    // privileges to push to production registries.
-    log.info(`Pulling from deployment registry...`)
-    await pullBuild({ ctx: k8sCtx, action, log, localId: localImageId, remoteId: deploymentRegistryImageId })
-  }
-
+  const deploymentRegistryImageId = action.getOutput("deploymentImageId")
   const remoteImageId = containerHelpers.getPublicImageId(action, tagOverride)
 
-  const taggedImages = [localImageId, remoteImageId]
-  log.info({ msg: `Tagging images ${naturalList(taggedImages)}` })
-  await containerHelpers.dockerCli({ cwd: action.getBuildPath(), args: ["tag", ...taggedImages], log, ctx })
+  // For in-cluster building or cloud builder, use regctl to copy the image.
+  // This does not require to pull the image locally.
+  if (provider.config.buildMode !== "local-docker" || cloudBuilderConfigured) {
+    const regctlCopyCommand = ["image", "copy", deploymentRegistryImageId, remoteImageId]
+    log.info({ msg: `Publishing image ${remoteImageId}` })
+    await containerHelpers.regctlCli({ cwd: action.getBuildPath(), args: regctlCopyCommand, log, ctx })
+  } else {
+    const taggedImages = [localImageId, remoteImageId]
+    log.info({ msg: `Tagging images ${naturalList(taggedImages)}` })
+    await containerHelpers.dockerCli({ cwd: action.getBuildPath(), args: ["tag", ...taggedImages], log, ctx })
 
-  log.info({ msg: `Publishing image ${remoteImageId}...` })
-  // TODO: stream output to log if at debug log level
-  await containerHelpers.dockerCli({ cwd: action.getBuildPath(), args: ["push", remoteImageId], log, ctx })
+    log.info({ msg: `Publishing image ${remoteImageId}...` })
+    // TODO: stream output to log if at debug log level
+    await containerHelpers.dockerCli({ cwd: action.getBuildPath(), args: ["push", remoteImageId], log, ctx })
+  }
 
   return {
     state: "ready",

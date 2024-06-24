@@ -90,6 +90,41 @@ spec:
   image: redis:5.0.5-alpine   # <- replace with any docker image ID
 ```
 
+## Multi-Platform builds
+
+Garden supports building container images for multiple platforms and architectures. Use the `platforms` configuration field, to configure the platforms you want to build for e.g.:
+
+```yaml
+# garden.yml
+kind: Build
+type: container
+name: my-container
+spec:
+  platforms: ["linux/amd64", "linux/arm64"]
+```
+
+Garden interacts with several local and remote builders. Currently support for multi-platform builds varies based on the builder backend.
+The following build backends support multi-platform builds out of the box: [Garden Cloud Builder](../reference/providers/container.md), `cluster-buildkit`, `kaniko`.
+
+In-cluster building with `kaniko` does *not* support multi-platform builds.
+
+The `local-docker` build backend requires some additional configurations. Docker Desktop users can enable the experimental containerd image store to also store multi-platform images locally. All other local docker solutions e.g. orbstack, podman currently need a custom buildx builder of type `docker-container`. Documemtation for both can be found here https://docs.docker.com/build/building/multi-platform.
+If your local docker image store does not support storing multi-platform images, consider configuring an environment where you only build single platform images when building locally e.g.:
+
+```yaml
+# garden.yml
+kind: Build
+type: container
+name: my-container
+spec:
+  platforms:
+    $if: ${environment.name == "local"}
+    $then: [ "linux/amd64"]
+    $else: [ "linux/amd64", "linux/arm64" ]
+```
+
+Or you can specifiy to push your locally build images to a remote registry. If you are also using a Kubernetes provider and have a `deploymentRegistry` defined, the image will be pushed to this registry by default. If you are using garden only for building with the container provider, you can achieve the same behavior by specifying `--push` as an extra flag in your container action and setting `localId` to your registry name.
+
 ## Publishing images
 
 You can publish images that have been built in your cluster using the `garden publish` command.
