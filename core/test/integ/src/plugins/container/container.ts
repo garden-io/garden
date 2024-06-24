@@ -312,6 +312,7 @@ describe("plugins.container", () => {
       expect(args.slice(2, 4)).to.eql(["--build-arg", `GARDEN_ACTION_VERSION=${buildAction.versionString()}`])
     })
   })
+
   describe("multiPlatformBuilds", () => {
     it("should include platform flags", async () => {
       const config = cloneDeep(baseConfig)
@@ -326,24 +327,6 @@ describe("plugins.container", () => {
 
       const args = getDockerBuildFlags(resolvedBuild, ctx.provider.config)
       expect(args.slice(-4)).to.eql(["--platform", "linux/amd64", "--platform", "linux/arm64"])
-    })
-
-    it("should set GARDEN_ACTION_VERSION", async () => {
-      const config = cloneDeep(baseConfig)
-
-      const buildAction = await getTestBuild(config)
-
-      const resolvedBuild = await garden.resolveAction({
-        action: buildAction,
-        log,
-        graph: await garden.getConfigGraph({ log, emit: false }),
-      })
-
-      const args = getDockerBuildFlags(resolvedBuild, ctx.provider.config)
-
-      // Also module version is set for backwards compatability
-      expect(args.slice(0, 2)).to.eql(["--build-arg", `GARDEN_MODULE_VERSION=${buildAction.versionString()}`])
-      expect(args.slice(2, 4)).to.eql(["--build-arg", `GARDEN_ACTION_VERSION=${buildAction.versionString()}`])
     })
   })
 })

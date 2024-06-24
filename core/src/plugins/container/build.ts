@@ -192,7 +192,7 @@ async function buildContainerLocally({
           Your local docker daemon does not support building multi-platform images.
           If you are using Docker Desktop, you can turn on the experimental containerd image store.
           To build multi-platform images locally with other local docker platforms,
-          you can add custom docker-container buildx builder.
+          you can add a custom buildx builder of type docker-container.
           Learn more at https://docs.docker.com/go/build-multi-platform/
         `,
       })
