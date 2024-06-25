@@ -33,6 +33,7 @@ import {
 import { dedent, deline } from "@garden-io/sdk/build/src/util/string.js"
 import { BooleanParameter, parsePluginCommandArgs } from "@garden-io/sdk/build/src/util/cli.js"
 import fsExtra from "fs-extra"
+
 const { copy, emptyDir } = fsExtra
 import { join } from "path"
 import { isDeployAction } from "@garden-io/core/build/src/actions/deploy.js"
@@ -271,6 +272,10 @@ class PulumiPluginCommandTask extends PluginActionTask<PulumiDeploy, PulumiComma
    * Override the base method to be sure that `garden plugins pulumi preview` happens in dependency order.
    */
   override resolveProcessDependencies() {
+    if (this.skipRuntimeDependencies) {
+      return []
+    }
+
     const pulumiDeployNames = this.graph
       .getDeploys()
       .filter((d) => d.type === "pulumi")
