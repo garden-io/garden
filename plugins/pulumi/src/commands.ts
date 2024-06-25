@@ -273,7 +273,7 @@ class PulumiPluginCommandTask extends PluginActionTask<PulumiDeploy, PulumiComma
    */
   override resolveProcessDependencies() {
     if (this.skipRuntimeDependencies) {
-      return []
+      return [this.getResolveTask(this.action)]
     }
 
     const pulumiDeployNames = this.graph
@@ -290,7 +290,7 @@ class PulumiPluginCommandTask extends PluginActionTask<PulumiDeploy, PulumiComma
       })
       .filter(isDeployAction)
 
-    const tasks = deps.map((action) => {
+    const depTasks = deps.map((action) => {
       return new PulumiPluginCommandTask({
         garden: this.garden,
         graph: this.graph,
@@ -305,7 +305,7 @@ class PulumiPluginCommandTask extends PluginActionTask<PulumiDeploy, PulumiComma
       })
     })
 
-    return [this.getResolveTask(this.action), ...tasks]
+    return [this.getResolveTask(this.action), ...depTasks]
   }
 
   async getStatus() {
