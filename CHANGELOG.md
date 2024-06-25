@@ -1,4 +1,33 @@
 
+<a name="0.13.32"></a>
+## [0.13.32](https://github.com/garden-io/garden/compare/0.13.31...0.13.32) (2024-06-25)
+
+### Bug Fixes
+
+* 🐛 load valuefiles from config file location ([#6156](https://github.com/garden-io/garden/issues/6156)) ([52dc2b1a0](https://github.com/garden-io/garden/commit/52dc2b1a0))
+* handling varfiles in remote actions ([#6147](https://github.com/garden-io/garden/issues/6147)) ([4d9026f74](https://github.com/garden-io/garden/commit/4d9026f74))
+* allow dashes in kaniko options ([#6149](https://github.com/garden-io/garden/issues/6149)) ([5eaffa312](https://github.com/garden-io/garden/commit/5eaffa312))
+* **git:** fix repo scan result caching ([#6179](https://github.com/garden-io/garden/issues/6179)) ([c276e86c2](https://github.com/garden-io/garden/commit/c276e86c2))
+* **jib:** set `localId` in JIB module-to-action converter ([#6210](https://github.com/garden-io/garden/issues/6210)) ([0eeb4c14d](https://github.com/garden-io/garden/commit/0eeb4c14d))
+
+### Bundled Tool Version Updates
+
+* **kuztomize:** support version `5.4.2` and use it by default ([#6144](https://github.com/garden-io/garden/issues/6144)) ([98a5504c6](https://github.com/garden-io/garden/commit/98a5504c6))
+* **kuztomize:** update version to `4.5.7` ([#6131](https://github.com/garden-io/garden/issues/6131)) ([0a8e39851](https://github.com/garden-io/garden/commit/0a8e39851))
+* **mutagen:** update to version `0.17.6` ([#6145](https://github.com/garden-io/garden/issues/6145)) ([0778c7596](https://github.com/garden-io/garden/commit/0778c7596))
+* **sync:** print warn on upcoming code sync daemon change ([#6155](https://github.com/garden-io/garden/issues/6155)) ([d0a99da88](https://github.com/garden-io/garden/commit/d0a99da88))
+
+### Features
+
+* add building and publishing multi-platform images ([#6208](https://github.com/garden-io/garden/issues/6208)) ([445de8706](https://github.com/garden-io/garden/commit/445de8706))
+* add allowFailure option for workflow steps ([#6114](https://github.com/garden-io/garden/issues/6114)) ([70b8ca870](https://github.com/garden-io/garden/commit/70b8ca870))
+
+### Improvements
+
+* **core:** fix missing action type err msg ([#6176](https://github.com/garden-io/garden/issues/6176)) ([f5c55143e](https://github.com/garden-io/garden/commit/f5c55143e))
+* **docs:** do not use `build` field in migration guide ([#6207](https://github.com/garden-io/garden/issues/6207)) ([491a83073](https://github.com/garden-io/garden/commit/491a83073))
+* **sync:** better error handling with solution suggestion ([#6148](https://github.com/garden-io/garden/issues/6148)) ([da56d45d6](https://github.com/garden-io/garden/commit/da56d45d6))
+
 <a name="0.13.31"></a>
 ## [0.13.31](https://github.com/garden-io/garden/compare/0.13.30...0.13.31) (2024-06-03)
 
