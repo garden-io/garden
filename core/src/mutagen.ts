@@ -378,7 +378,7 @@ export class Mutagen {
       deline`
     Warning!\n
 
-    Garden will use the new sync daemon in the next release (0.13.33).
+    Garden will use the new sync daemon in the next release (0.13.34).
     Thus, the default value of the \`GARDEN_ENABLE_NEW_SYNC\` environment variable will be switched to \`true\`.\n
 
     Please make sure you have tested the new sync daemon. See the troubleshooting docs for more details: ${makeDocsLinkStyled("guides/code-synchronization", "#restarting-sync-daemon")}\n`
