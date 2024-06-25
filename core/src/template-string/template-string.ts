@@ -69,7 +69,16 @@ interface ConditionalTree {
 }
 
 function getValue(v: Primitive | undefined | ResolvedClause) {
-  return isPlainObject(v) ? (<ResolvedClause>v).resolved : v
+  return isPlainObject(v) ? (v as ResolvedClause).resolved : v
+}
+
+function isPartiallyResolved(v: Primitive | undefined | ResolvedClause): boolean {
+  if (!isPlainObject(v)) {
+    return false
+  }
+
+  const clause = v as ResolvedClause
+  return !!clause.partial
 }
 
 export class TemplateError extends GardenError {
@@ -823,9 +832,15 @@ function buildBinaryExpression(head: any, tail: any) {
     if (rightRes && rightRes._error) {
       return rightRes
     }
-
     const left = getValue(leftRes)
     const right = getValue(rightRes)
+
+    // if any operand is partially resolved, preserve the original expression
+    const leftResPartial = isPartiallyResolved(leftRes)
+    const rightResPartial = isPartiallyResolved(rightRes)
+    if (leftResPartial || rightResPartial) {
+      return `${left} ${operator} ${right}`
+    }
 
     // Disallow undefined values for comparisons
     if (left === undefined || right === undefined) {
