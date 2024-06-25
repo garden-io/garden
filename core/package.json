@@ -173,7 +173,7 @@
     "@types/async-lock": "^1.4.2",
     "@types/chai": "^4.3.4",
     "@types/cross-spawn": "^6.0.6",
-    "@types/dedent": "^0.7.0",
+    "@types/dedent": "^0.7.2",
     "@types/fs-extra": "^11.0.4",
     "@types/glob": "^8.1.0",
     "@types/global-agent": "^2.1.3",
