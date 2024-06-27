@@ -1,4 +1,13 @@
 
+<a name="0.13.33"></a>
+## [0.13.33](https://github.com/garden-io/garden/compare/0.13.32...0.13.33) (2024-06-25)
+
+### Bug Fixes
+
+* **pulumi:** fix dependency resolution when `--skip-dependencies` is on ([#6229](https://github.com/garden-io/garden/issues/6229)) ([ece011965](https://github.com/garden-io/garden/commit/ece011965))
+* **pulumi:** respect `--skip-dependencies` flag in `preview` command ([#6226](https://github.com/garden-io/garden/issues/6226)) ([f12c8ab80](https://github.com/garden-io/garden/commit/f12c8ab80))
+* **template:** allow partially resolved vars in arithmetic expressions ([#6228](https://github.com/garden-io/garden/issues/6228)) ([8d85a1a32](https://github.com/garden-io/garden/commit/8d85a1a32))
+
 <a name="0.13.32"></a>
 ## [0.13.32](https://github.com/garden-io/garden/compare/0.13.31...0.13.32) (2024-06-25)
 
