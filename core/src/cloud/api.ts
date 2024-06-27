@@ -990,6 +990,7 @@ export class CloudApi {
     organizationId: string
     actionName: string
     actionUid: string
+    actionVersion: string
     coreSessionId: string
     platforms: string[]
     mtlsClientPublicKeyPEM: string | undefined

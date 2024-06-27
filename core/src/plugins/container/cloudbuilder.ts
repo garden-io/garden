@@ -107,12 +107,12 @@ export const cloudBuilder = {
 
     const res = await ctx.cloudApi.registerCloudBuilderBuild({
       organizationId: (await ctx.cloudApi.getProjectById(ctx.projectId)).organizationId,
-      // TODO: send requested platforms and action version
       actionUid: action.uid,
       actionName: action.name,
+      actionVersion: action.getFullVersion().toString(),
       coreSessionId: ctx.sessionId,
-      // platforms: action.getSpec()["platforms"], // TODO
-      platforms: ["linux/amd64", "linux/arm64"],
+      // if platforms are not set, we default to linux/amd64
+      platforms: action.getSpec()["platforms"] || ["linux/amd64"],
       mtlsClientPublicKeyPEM: publicKeyPem,
     })
 
@@ -473,7 +473,7 @@ class BuildxBuilder {
           "--name",
           this.name,
           "--node",
-          platform.replace("/", "-"),
+          platform.replaceAll("/", "-"),
           "--driver",
           "remote",
           "--driver-opt",
