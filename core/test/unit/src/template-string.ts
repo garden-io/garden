@@ -406,6 +406,58 @@ describe("resolveTemplateString", () => {
     })
   })
 
+  context("partial resolution in binary operators", () => {
+    context("arithmetic operators", () => {
+      const arithmeticOperators = ["-", "*", "/", "%", ">", ">=", "<", "<="]
+      for (const operator of arithmeticOperators) {
+        describe(`with ${operator} operator`, () => {
+          it("a missing reference as the first clause returns the original template", () => {
+            const res = resolveTemplateString({
+              string: `$\{var.foo ${operator} 2}`,
+              context: new TestContext({ var: {} }),
+              contextOpts: { allowPartial: true },
+            })
+            expect(res).to.equal(`$\{var.foo ${operator} 2}`)
+          })
+
+          it("a missing reference as the second clause returns the original template", () => {
+            const res = resolveTemplateString({
+              string: `$\{2 ${operator} var.foo}`,
+              context: new TestContext({ var: {} }),
+              contextOpts: { allowPartial: true },
+            })
+            expect(res).to.equal(`$\{2 ${operator} var.foo}`)
+          })
+        })
+      }
+    })
+
+    context("overloaded operators", () => {
+      const overLoadedOperators = ["+"]
+      for (const operator of overLoadedOperators) {
+        describe(`with ${operator} operator`, () => {
+          it(`a missing reference as the first clause returns the original template`, () => {
+            const res = resolveTemplateString({
+              string: `$\{var.foo ${operator} '2'}`,
+              context: new TestContext({ var: {} }),
+              contextOpts: { allowPartial: true },
+            })
+            expect(res).to.equal(`$\{var.foo ${operator} '2'}`)
+          })
+
+          it("a missing reference as the second clause returns the original template", () => {
+            const res = resolveTemplateString({
+              string: `$\{2 ${operator} var.foo}`,
+              context: new TestContext({ var: {} }),
+              contextOpts: { allowPartial: true },
+            })
+            expect(res).to.equal(`$\{2 ${operator} var.foo}`)
+          })
+        })
+      }
+    })
+  })
+
   it("should handle a positive equality comparison between equal resolved values", () => {
     const res = resolveTemplateString({ string: "${a == b}", context: new TestContext({ a: "a", b: "a" }) })
     expect(res).to.equal(true)

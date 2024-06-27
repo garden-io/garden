@@ -6,7 +6,7 @@
     "type": "git",
     "url": "git+https://github.com/garden-io/garden.git"
   },
-  "version": "0.13.31",
+  "version": "0.13.33",
   "author": "Garden Technologies, Inc. <info@garden.io>",
   "license": "MPL-2.0",
   "homepage": "https://github.com/garden-io/garden",
@@ -16,8 +16,8 @@
   },
   "private": true,
   "devDependencies": {
-    "@commitlint/cli": "^19.2.2",
-    "@commitlint/config-conventional": "^17.6.7",
+    "@commitlint/cli": "^19.3.0",
+    "@commitlint/config-conventional": "^19.2.2",
     "@rollup/plugin-commonjs": "^25.0.8",
     "@rollup/plugin-esm-shim": "^0.1.5",
     "@rollup/plugin-json": "^6.0.1",

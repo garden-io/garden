@@ -4,7 +4,7 @@ ARG VARIANT=root
 
 # NOTE: This is not the node version Garden itself will run in. Garden binaries have node "built in" and the version installed on the system does not matter.
 # The main reason we base these images off of the Node image is for Azure DevOps Support.
-FROM node:22.3.0-bookworm-slim@sha256:295b31cee5e8cddb5c521b8faff5791e47894d0e39e8a4824e77b06cdfccb4a4 as garden-bookworm-base-root
+FROM node:22.3.0-bookworm-slim@sha256:97dfa22028c31cf9d0014f52affc035ad455da76cb1c98e85630b4ab9b1fb738 as garden-bookworm-base-root
 
 FROM garden-bookworm-base-root as garden-base-root
 # system dependencies
@@ -80,8 +80,8 @@ RUN ./aws/install
 # garden-gcloud-base
 #
 FROM garden-base as garden-gcloud-base
-ENV GCLOUD_VERSION=479.0.0
-ENV GCLOUD_SHA256="82b01bc36bd60ea9ce0284de3e424f7b09f54acc9118b353f15951d33c5fe15c"
+ENV GCLOUD_VERSION=481.0.0
+ENV GCLOUD_SHA256="cb74575496ee2a0e9eb6cae67349d07de50662b55ada4ff64fc32268b247882e"
 
 RUN curl -O https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-${GCLOUD_VERSION}-linux-x86_64.tar.gz
 RUN echo "${GCLOUD_SHA256}  google-cloud-cli-${GCLOUD_VERSION}-linux-x86_64.tar.gz" | sha256sum -c

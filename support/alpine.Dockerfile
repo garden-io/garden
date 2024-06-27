@@ -4,7 +4,7 @@ ARG VARIANT=root
 
 # NOTE: This is not the node version Garden itself will run in. Garden binaries have node "built in" and the version installed on the system does not matter.
 # The main reason we base these images off of the Node image is for Azure DevOps Support.
-FROM node:22.3.0-alpine3.19@sha256:075a5cc188c3c9a49acacd481a9e8a3c9abf4223f02c658e37fdb8e9fe2c4664 as garden-base-root
+FROM node:22.3.0-alpine3.19@sha256:9af472b2578996eb3d6affbcb82fdee6f086da2c43121e75038a4a70317f784f as garden-base-root
 
 RUN apk add --no-cache \
   bash \
@@ -64,7 +64,7 @@ RUN GARDEN_DISABLE_ANALYTICS=true GARDEN_DISABLE_VERSION_CHECK=true garden util 
 WORKDIR /project
 
 # Apline-3.20 seems to have some issues, see https://github.com/aws/aws-cli/issues/8698#issuecomment-2135662844
-FROM python:3.11.9-alpine3.19@sha256:2572251c0f77c2d1681e87cbdbb18e93f723eeed57215559cb47e7e15917569a AS aws-builder
+FROM python:3.11.9-alpine3.19@sha256:4e729a46217c3c382c320ecedd9a1d9e1d2e4cc333eaf0bb401f70a1da1b292f AS aws-builder
 
 ENV AWSCLI_VERSION=2.16.0
 ENV AWSCLI_SHA256="f6e15071a4327e57f0aa2b8f52a35b1378528b72cb68a586302ae7ae97087d05"
@@ -101,7 +101,7 @@ COPY --chown=$USER:root --from=aws-builder /usr/bin/aws-iam-authenticator /usr/b
 #
 # gcloud base
 #
-FROM google/cloud-sdk:480.0.0-alpine@sha256:01f32075c106a0916f84bfae39ae6e02f2c04bb9ceef3705bb2e2f5373923622 as gcloud-base
+FROM google/cloud-sdk:481.0.0-alpine@sha256:3f58ce696e80f680c21db21032aaca4b2fa0a10f3b26bc769ad5aecc182259f2 as gcloud-base
 
 RUN gcloud components install kubectl gke-gcloud-auth-plugin --quiet
 
