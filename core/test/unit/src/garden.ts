@@ -69,7 +69,6 @@ import { TreeCache } from "../../../src/cache.js"
 import { omitUndefined } from "../../../src/util/objects.js"
 import { add } from "date-fns"
 import stripAnsi from "strip-ansi"
-import type { CloudProject } from "../../../src/cloud/api.js"
 import { CloudApi } from "../../../src/cloud/api.js"
 import { GlobalConfigStore } from "../../../src/config-store/global.js"
 import { LogLevel, getRootLogger } from "../../../src/logger/logger.js"
@@ -79,6 +78,8 @@ import { resolveMsg } from "../../../src/logger/log-entry.js"
 import { getCloudDistributionName } from "../../../src/util/cloud.js"
 import { styles } from "../../../src/logger/styles.js"
 import type { RunActionConfig } from "../../../src/actions/run.js"
+import type { ProjectResult } from "@garden-io/platform-api-types"
+import { ProjectStatus } from "@garden-io/platform-api-types"
 
 const moduleDirName = dirname(fileURLToPath(import.meta.url))
 
@@ -762,14 +763,26 @@ describe("Garden", () => {
         const projectId = uuidv4()
         const projectName = "test"
         const envName = "default"
-        const cloudProject: CloudProject = {
+
+        const cloudProject: ProjectResult = {
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          relativePathInRepo: "",
+          status: ProjectStatus.Connected,
           id: projectId,
           name: projectName,
           repositoryUrl: "",
+          organization: {
+            id: uuidv4(),
+            name: "test",
+          },
           environments: [
             {
               id: uuidv4(),
               name: envName,
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+              projectId,
             },
           ],
         }
@@ -926,14 +939,25 @@ describe("Garden", () => {
         const projectId = uuidv4()
         const projectName = "test"
         const envName = "default"
-        const cloudProject: CloudProject = {
+        const cloudProject: ProjectResult = {
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          relativePathInRepo: "",
+          status: ProjectStatus.Connected,
           id: projectId,
           name: projectName,
           repositoryUrl: "",
+          organization: {
+            id: uuidv4(),
+            name: "test",
+          },
           environments: [
             {
               id: uuidv4(),
               name: envName,
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+              projectId,
             },
           ],
         }
@@ -945,6 +969,7 @@ describe("Garden", () => {
         it("should use the community dashboard domain", async () => {
           scope.get("/api/token/verify").reply(200, {})
           scope.get(`/api/projects?name=test&exactMatch=true`).reply(200, { data: [cloudProject] })
+          scope.get(`/api/projects/uid/${projectId}`).reply(200, { data: cloudProject })
 
           const cloudApi = await makeCloudApi(DEFAULT_GARDEN_CLOUD_DOMAIN)
 
@@ -1029,6 +1054,7 @@ describe("Garden", () => {
         it("should not fetch secrets", async () => {
           scope.get("/api/token/verify").reply(200, {})
           scope.get(`/api/projects?name=test&exactMatch=true`).reply(200, { data: [cloudProject] })
+          scope.get(`/api/projects/uid/${projectId}`).reply(200, { data: cloudProject })
           scope
             .get(`/api/secrets/projectUid/${projectId}/env/${envName}`)
             .reply(200, { data: { SECRET_KEY: "secret-val" } })

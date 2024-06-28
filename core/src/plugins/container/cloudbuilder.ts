@@ -8,24 +8,38 @@
 import type { PluginContext } from "../../plugin-context.js"
 import type { Resolved } from "../../actions/types.js"
 import type { ContainerBuildAction } from "./config.js"
-import { ChildProcessError, ConfigurationError, InternalError } from "../../exceptions.js"
-import type { ContainerProvider } from "./container.js"
+import { ConfigurationError, InternalError } from "../../exceptions.js"
+import type { ContainerProvider, ContainerProviderConfig } from "./container.js"
 import dedent from "dedent"
 import { styles } from "../../logger/styles.js"
 import type { KubernetesPluginContext } from "../kubernetes/config.js"
-import { uuidv4 } from "../../util/random.js"
 import fsExtra from "fs-extra"
-
-const { mkdirp, rm } = fsExtra
-import { join } from "path"
+const { mkdirp, rm, writeFile, stat } = fsExtra
+import { basename, dirname, join } from "path"
 import { tmpdir } from "node:os"
-import type { CloudBuilderAvailability, CloudBuilderAvailable } from "../../cloud/api.js"
+import type { CloudBuilderAvailabilityV2, CloudBuilderAvailableV2 } from "../../cloud/api.js"
 import { emitNonRepeatableWarning } from "../../warnings.js"
 import { LRUCache } from "lru-cache"
-import { getPlatform } from "../../util/arch-platform.js"
-import { gardenEnv } from "../../constants.js"
+import { DEFAULT_GARDEN_CLOUD_DOMAIN, gardenEnv } from "../../constants.js"
 import type { ActionRuntime, ActionRuntimeKind } from "../../plugin/base.js"
-import { getPackageVersion } from "../../util/util.js"
+import { getCloudDistributionName } from "../../util/cloud.js"
+import crypto from "crypto"
+import { promisify } from "util"
+import AsyncLock from "async-lock"
+import { containerHelpers } from "./helpers.js"
+import { hashString } from "../../util/util.js"
+import { stableStringify } from "../../util/string.js"
+import { homedir } from "os"
+
+const generateKeyPair = promisify(crypto.generateKeyPair)
+
+type MtlsKeyPair = {
+  privateKeyPem: string
+  publicKeyPem: string
+}
+
+let _mtlsKeyPair: MtlsKeyPair | undefined
+const mtlsKeyPairLock = new AsyncLock()
 
 type CloudBuilderConfiguration = {
   isInClusterBuildingConfigured: boolean
@@ -34,7 +48,7 @@ type CloudBuilderConfiguration = {
 
 // This means that Core will ask Cloud for availability every 5 minutes.
 // It might well be that we plan to use Cloud Builder for an action, and then we fall back to building locally.
-const cloudBuilderAvailability = new LRUCache<string, CloudBuilderAvailability>({
+const cloudBuilderAvailability = new LRUCache<string, CloudBuilderAvailabilityV2>({
   max: 1000,
   // 5 minutes
   ttl: 1000 * 60 * 5,
@@ -49,7 +63,10 @@ export const cloudBuilder = {
   /**
    * @returns false if Cloud Builder is not configured or not available, otherwise it returns the availability (a required parameter for withBuilder)
    */
-  async getAvailability(ctx: PluginContext, action: Resolved<ContainerBuildAction>): Promise<CloudBuilderAvailability> {
+  async getAvailability(
+    ctx: PluginContext,
+    action: Resolved<ContainerBuildAction>
+  ): Promise<CloudBuilderAvailabilityV2> {
     const { isInClusterBuildingConfigured, isCloudBuilderEnabled } = getConfiguration(ctx)
 
     if (!isCloudBuilderEnabled) {
@@ -65,22 +82,6 @@ export const cloudBuilder = {
       return fromCache
     }
 
-    if (getPlatform() === "windows") {
-      emitNonRepeatableWarning(
-        ctx.log,
-        dedent`
-        ${styles.bold("Garden Cloud Builder is not available for Windows at the moment.")}
-
-        Please contact our customer support and tell us more if you're interested in Windows support.`
-      )
-      const unsupported: CloudBuilderAvailability = {
-        available: false,
-        reason: `Cloud Builder is not available on Windows with Garden version ${getPackageVersion()}`,
-      }
-      cloudBuilderAvailability.set(action.uid, unsupported)
-      return unsupported
-    }
-
     if (!ctx.cloudApi) {
       const fallbackDescription = isInClusterBuildingConfigured
         ? `This forces Garden to use the fall-back option to build images within your Kubernetes cluster, as in-cluster building is configured in the Kubernetes provider settings.`
@@ -94,14 +95,28 @@ export const cloudBuilder = {
       })
     }
 
+    if (ctx.cloudApi.domain === DEFAULT_GARDEN_CLOUD_DOMAIN && ctx.projectId === undefined) {
+      throw new InternalError({ message: "Authenticated with community tier, but projectId is undefined" })
+    } else if (ctx.projectId === undefined) {
+      throw new ConfigurationError({
+        message: dedent`Please connect your Garden Project with ${getCloudDistributionName(ctx.cloudApi.domain)}. See also ${styles.link("https://cloud.docs.garden.io/getting-started/first-project")}`,
+      })
+    }
+
+    const { publicKeyPem } = await getMtlsKeyPair()
+
     const res = await ctx.cloudApi.registerCloudBuilderBuild({
-      // TODO: send requested platforms and action version
+      organizationId: (await ctx.cloudApi.getProjectById(ctx.projectId)).organizationId,
       actionUid: action.uid,
       actionName: action.name,
+      actionVersion: action.getFullVersion().toString(),
       coreSessionId: ctx.sessionId,
+      // if platforms are not set, we default to linux/amd64
+      platforms: action.getSpec()["platforms"] || ["linux/amd64"],
+      mtlsClientPublicKeyPEM: publicKeyPem,
     })
 
-    if (res.data.version !== "v1") {
+    if (res.data.version !== "v2") {
       emitNonRepeatableWarning(
         ctx.log,
         dedent`
@@ -113,7 +128,7 @@ export const cloudBuilder = {
 
           Run ${styles.command("garden self-update")} to update Garden to the latest version.`
       )
-      const unsupported: CloudBuilderAvailability = { available: false, reason: "Unsupported client version" }
+      const unsupported: CloudBuilderAvailabilityV2 = { available: false, reason: "Unsupported client version" }
       cloudBuilderAvailability.set(action.uid, unsupported)
       return unsupported
     }
@@ -137,7 +152,7 @@ export const cloudBuilder = {
     return availability
   },
 
-  getActionRuntime(ctx: PluginContext, availability: CloudBuilderAvailability): ActionRuntime {
+  getActionRuntime(ctx: PluginContext, availability: CloudBuilderAvailabilityV2): ActionRuntime {
     const { isCloudBuilderEnabled, isInClusterBuildingConfigured } = getConfiguration(ctx)
 
     const fallback: ActionRuntimeKind = isInClusterBuildingConfigured
@@ -182,86 +197,33 @@ export const cloudBuilder = {
 
   async withBuilder<T>(
     ctx: PluginContext,
-    availability: CloudBuilderAvailable,
+    availability: CloudBuilderAvailableV2,
     performBuild: (builder: string) => Promise<T>
   ) {
-    // Docker only accepts builder names that start with a letter
-    const buildxBuilderName = `cb${uuidv4()}-garden-cloud-builder`
+    const { privateKeyPem } = await getMtlsKeyPair()
 
-    // Temp dir needs to be as short as possible, otherwise docker fails to connect
-    // (ERROR: no valid drivers found: unix socket path "..." is too long)
-    const stateDir = join(tmpdir(), buildxBuilderName.substring(0, 8))
-    await mkdirp(stateDir)
+    const builder = new BuildxBuilder({
+      privateKeyPem,
+      clientCertificatePem: availability.buildx.clientCertificatePem,
+      endpoints: availability.buildx.endpoints.map(({ platform, mtlsEndpoint, serverCaPem }) => ({
+        platform,
+        builderUrl: toBuilderUrl(mtlsEndpoint),
+        serverCaPem,
+      })),
+      ctx,
+    })
 
     try {
-      ctx.log.debug(`Spawning buildx proxy ${buildxBuilderName}`)
-      const result = await nscCli({
-        // See https://namespace.so/docs/cli/docker-buildx-setup
-        args: ["docker", "buildx", "setup", "--name", buildxBuilderName, "--state", stateDir, "--background"],
-        ctx,
-        nscAuthToken: availability.token,
-        nscRegion: availability.region,
-      })
-      ctx.log.debug(
-        `buildx proxy setup process for ${buildxBuilderName} exited with code ${result.exitCode}${result.all?.length ? ` (output: ${result.all})` : ""}`
-      )
+      ctx.log.debug(`Installing Buildkit builder ${builder.name}`)
+      await builder.install()
 
-      return await performBuild(buildxBuilderName)
+      return await performBuild(builder.name)
     } finally {
-      ctx.log.debug(`Cleaning up ${buildxBuilderName}`)
-      await nscCli({
-        args: ["docker", "buildx", "cleanup", "--state", stateDir],
-        ctx,
-        nscAuthToken: availability.token,
-        nscRegion: availability.region,
-      })
-      ctx.log.debug(`Removing ${stateDir}...`)
-      await rm(stateDir, { recursive: true, force: true })
+      ctx.log.debug(`Cleaning up ${builder.name}`)
+
+      await builder.clean()
     }
   },
-}
-
-// private helpers
-
-async function nscCli({
-  args,
-  ctx,
-  nscAuthToken,
-  nscRegion,
-}: {
-  args: string[]
-  ctx: PluginContext
-  nscAuthToken: string
-  nscRegion: string
-}) {
-  // env variables for the nsc commands
-  const env = {
-    // skip update check
-    NS_DO_NOT_UPDATE: "true",
-    // this helps avoiding to interfere with user's own nsc authentication, if they happen to use it
-    NSC_TOKEN_SPEC: Buffer.from(
-      JSON.stringify({
-        version: "v1",
-        inline_token: nscAuthToken,
-      })
-    )
-      // nsc uses https://pkg.go.dev/encoding/base64#RawStdEncoding (standard base64 encoding without padding characters)
-      .toString("base64")
-      .replaceAll("=", ""),
-  }
-
-  const nsc = ctx.tools["container.namespace-cli"]
-
-  try {
-    return await nsc.exec({ args: ["--region", nscRegion, ...args], log: ctx.log, env })
-  } catch (e: unknown) {
-    if (e instanceof ChildProcessError) {
-      // if an error happens here, it's likely a bug
-      throw InternalError.wrapError(e, "Failed to set up Garden Cloud Builder")
-    } else {
-      throw e
-    }
-  }
 }
 
 function getConfiguration(ctx: PluginContext): CloudBuilderConfiguration {
@@ -292,5 +254,239 @@ function getConfiguration(ctx: PluginContext): CloudBuilderConfiguration {
   return {
     isInClusterBuildingConfigured,
     isCloudBuilderEnabled,
+  }
+}
+
+async function getMtlsKeyPair(): Promise<MtlsKeyPair> {
+  return mtlsKeyPairLock.acquire("generateKeyPair", async () => {
+    if (_mtlsKeyPair) {
+      return _mtlsKeyPair
+    }
+
+    // Docs: https://nodejs.org/api/crypto.html#cryptogeneratekeypairtype-options-callback
+    const keyPair = await generateKeyPair("ed25519", {})
+
+    const publicKeyPem = keyPair.publicKey.export({ type: "spki", format: "pem" }).toString()
+    const privateKeyPem = keyPair.privateKey.export({ type: "pkcs8", format: "pem" }).toString()
+
+    _mtlsKeyPair = {
+      publicKeyPem,
+      privateKeyPem,
+    }
+
+    return _mtlsKeyPair
+  })
+}
+
+function toBuilderUrl(mtlsEndpoint: string): string {
+  try {
+    const _ = new URL(mtlsEndpoint)
+    // If it successfully parses as a URL, it's a URL
+    return mtlsEndpoint
+  } catch (e) {
+    if (e instanceof TypeError) {
+      // mtlsEndpoint is just the hostname. let's add protocol and port as well.
+      return `tcp://${mtlsEndpoint}:443`
+    } else {
+      throw e
+    }
+  }
+}
+
+type BuildxEndpoint = {
+  platform: string
+  builderUrl: string
+  serverCaPem: string
+}
+
+class BuildxBuilder {
+  private static referenceCounter: Record<string, number | undefined> = {}
+  private static lock = new AsyncLock()
+  private static tmpdir = tmpdir()
+
+  public readonly name: string
+
+  private readonly privateKeyPem: string
+  private readonly clientCertificatePem: string
+  private readonly endpoints: BuildxEndpoint[]
+
+  private readonly ctx: PluginContext<ContainerProviderConfig>
+
+  constructor({
+    ctx,
+    ...identityParams
+  }: {
+    ctx: PluginContext<ContainerProviderConfig>
+    privateKeyPem: string
+    clientCertificatePem: string
+    endpoints: BuildxEndpoint[]
+  }) {
+    this.name = `garden-cloud-builder-${hashString(stableStringify(identityParams)).substring(0, 8)}`
+    this.privateKeyPem = identityParams.privateKeyPem
+    this.clientCertificatePem = identityParams.clientCertificatePem
+    this.endpoints = identityParams.endpoints
+
+    this.ctx = ctx
+  }
+
+  public async clean() {
+    return BuildxBuilder.lock.acquire(this.name, async () => {
+      const refCount = BuildxBuilder.referenceCounter[this.name] || 0
+
+      try {
+        if (refCount === 1) {
+          await this.remove_tmpdir()
+          await this.remove_builder()
+        }
+      } finally {
+        // even decrease refcount if removal failed
+        BuildxBuilder.referenceCounter[this.name] = refCount - 1
+      }
+    })
+  }
+
+  public async install() {
+    return BuildxBuilder.lock.acquire(this.name, async () => {
+      const refCount = BuildxBuilder.referenceCounter[this.name] || 0
+      if (refCount > 0) {
+        BuildxBuilder.referenceCounter[this.name] = refCount + 1
+        return
+      }
+
+      await this.writeCertificates()
+
+      const success = this.installDirectly()
+      if (!success) {
+        await this.installUsingCLI()
+      }
+
+      // Only increase the refCount by 1 if we successfully completed installation
+      BuildxBuilder.referenceCounter[this.name] = 1
+    })
+  }
+
+  // private: clean
+
+  private async remove_tmpdir() {
+    this.ctx.log.debug(`Removing ${this.certDir}...`)
+    await rm(this.certDir, { recursive: true, force: true })
+  }
+
+  private async remove_builder() {
+    try {
+      await rm(this.buildxInstanceJsonPath)
+    } catch (e) {
+      // fall back to docker CLI
+      const result = await containerHelpers.dockerCli({
+        cwd: this.certDir,
+        args: ["buildx", "rm", this.name],
+        ctx: this.ctx,
+        log: this.ctx.log,
+        ignoreError: true,
+      })
+      this.ctx.log.debug(
+        `buildx rm for ${this.name} exited with code ${result.code}${result.all?.length ? ` (output: ${result.all})` : ""}`
+      )
+    }
+  }
+
+  // private: installation
+
+  private get dotDockerDirectory(): string {
+    return join(homedir(), ".docker")
+  }
+
+  private get buildxInstanceJsonPath(): string {
+    return join(this.dotDockerDirectory, `buildx/instances/${this.name}`)
+  }
+
+  private get certDir(): string {
+    return join(BuildxBuilder.tmpdir, this.name)
+  }
+
+  private get clientKeyPath(): string {
+    return join(this.certDir, "client-key.pem")
+  }
+
+  private get clientCertPath(): string {
+    return join(this.certDir, "client-cert.pem")
+  }
+
+  private serverCaPath(platform: string): string {
+    return join(this.certDir, `server-ca-${platform.replaceAll("/", "-")}.pem`)
+  }
+
+  private async writeCertificates() {
+    await mkdirp(this.certDir)
+
+    const writePem = async (pemData: string | undefined, fullPath: string): Promise<void> => {
+      if (pemData === undefined || pemData.length === 0) {
+        throw new InternalError({ message: `Empty pemData for ${basename(fullPath)}` })
+      }
+
+      await writeFile(fullPath, pemData)
+    }
+
+    await writePem(this.privateKeyPem, this.clientKeyPath)
+    await writePem(this.clientCertificatePem, this.clientCertPath)
+    for (const { serverCaPem, platform } of this.endpoints) {
+      await writePem(serverCaPem, this.serverCaPath(platform))
+    }
+  }
+
+  private async installDirectly() {
+    const statResult = await stat(dirname(this.buildxInstanceJsonPath))
+    if (statResult.isDirectory()) {
+      await writeFile(this.buildxInstanceJsonPath, JSON.stringify(this.getBuildxInstanceJson()))
+      return true
+    }
+    return false
+  }
+
+  private getBuildxInstanceJson() {
+    return {
+      Name: this.name,
+      Driver: "remote",
+      Nodes: this.endpoints.map(({ platform, builderUrl }) => ({
+        Name: platform.replaceAll("/", "-"),
+        Endpoint: builderUrl,
+        Platforms: null,
+        DriverOpts: {
+          cacert: this.serverCaPath(platform),
+          cert: this.clientCertPath,
+          key: this.clientKeyPath,
+        },
+        Flags: null,
+        Files: null,
+      })),
+      Dynamic: false,
+    }
+  }
+
+  private async installUsingCLI() {
+    for (const [i, { builderUrl, platform }] of this.endpoints.entries()) {
+      const result = await containerHelpers.dockerCli({
+        cwd: this.certDir,
+        args: [
+          "buildx",
+          "create",
+          "--name",
+          this.name,
+          "--node",
+          platform.replaceAll("/", "-"),
+          "--driver",
+          "remote",
+          "--driver-opt",
+          `cacert=${this.serverCaPath(platform)},cert=${this.clientCertPath},key=${this.clientKeyPath}`,
+          ...(i > 0 ? ["--append"] : []),
+          builderUrl,
+        ],
+        ctx: this.ctx,
+        log: this.ctx.log,
+      })
+      this.ctx.log.debug(
+        `buildx create for ${this.name}/${platform} exited with code ${result.code}${result.all?.length ? ` (output: ${result.all})` : ""}`
+      )
+    }
   }
 }

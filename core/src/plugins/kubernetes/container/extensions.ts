@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import type { CloudBuilderAvailability } from "../../../cloud/api.js"
+import type { CloudBuilderAvailabilityV2 } from "../../../cloud/api.js"
 import type { DeepPrimitiveMap } from "../../../config/common.js"
 import type {
   BuildActionExtension,
@@ -53,7 +53,7 @@ async function getBuildMode({
   availability,
 }: {
   ctx: KubernetesPluginContext
-  availability: CloudBuilderAvailability
+  availability: CloudBuilderAvailabilityV2
 }): Promise<ContainerBuildMode> {
   if (availability.available) {
     // Local build mode knows how to build using Cloud Builder

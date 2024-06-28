@@ -53,6 +53,7 @@ export class FakeCloudApi extends CloudApi {
       id: apiProjectId,
       name,
       repositoryUrl: apiRemoteOriginUrl,
+      organizationId: uuidv4(),
       environments: [],
     }
   }
@@ -62,6 +63,7 @@ export class FakeCloudApi extends CloudApi {
       id: apiProjectId,
       name,
       repositoryUrl: apiRemoteOriginUrl,
+      organizationId: uuidv4(),
       environments: [],
     }
   }
@@ -71,6 +73,7 @@ export class FakeCloudApi extends CloudApi {
       id: apiProjectId,
       name: apiProjectName,
       repositoryUrl: apiRemoteOriginUrl,
+      organizationId: uuidv4(),
       environments: [],
     }
   }
