@@ -334,7 +334,7 @@ function logMutagenDaemonWarning(log: Log) {
 
   log.warn(
     deline`
-    It looks like you might have changed to a different version of the sync daemon.\n
+    It looks like the sync daemon might have been changed to a different version.\n
 
     Therefore the sync daemon needs to be restarted, and the affected deploys must be redeployed.\n
     Please, stop this command and follow the instructions below.\n
@@ -378,8 +378,8 @@ export class Mutagen {
       deline`
     Warning!\n
 
-    Garden will use the new sync daemon in the next release (0.13.34).
-    Thus, the default value of the \`GARDEN_ENABLE_NEW_SYNC\` environment variable will be switched to \`true\`.\n
+    Starting from 0.13.34, Garden uses the new sync daemon.
+    Thus, the default value of the \`GARDEN_ENABLE_NEW_SYNC\` environment variable is \`true\` now.\n
 
     Please make sure you have tested the new sync daemon. See the troubleshooting docs for more details: ${makeDocsLinkStyled("guides/code-synchronization", "#restarting-sync-daemon")}\n`
     )
