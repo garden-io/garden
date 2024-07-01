@@ -11,7 +11,7 @@ import { joi } from "../../config/common.js"
 import { printHeader } from "../../logger/util.js"
 import { DeployTask } from "../../tasks/deploy.js"
 import { dedent, naturalList } from "../../util/string.js"
-import type { CommandParams, CommandResult, PrepareParams } from "../base.js"
+import type { CommandParams, CommandResult } from "../base.js"
 import { Command } from "../base.js"
 import { ParameterError, RuntimeError } from "../../exceptions.js"
 import { SyncMonitor } from "../../monitors/sync.js"
@@ -20,7 +20,8 @@ import { createActionLog } from "../../logger/log-entry.js"
 import type { DeployAction } from "../../actions/deploy.js"
 import type { ConfigGraph } from "../../graph/config-graph.js"
 import type { Garden } from "../../index.js"
-import { styles } from "../../logger/styles.js"
+import { runAsDevCommand } from "../helpers.js"
+import { serveOpts } from "../shared-constants.js"
 
 const syncStartArgs = {
   names: new StringsParameter({
@@ -41,10 +42,12 @@ const syncStartOpts = {
   "with-dependencies": new BooleanParameter({
     help: "When deploying actions, also include any runtime dependencies. Ignored if --deploy is not set.",
   }),
+  // TODO-0.14: remove this opt
   "monitor": new BooleanParameter({
     aliases: ["m"],
-    help: "Keep the process running and print sync status logs after starting them.",
+    help: "[REMOVED] Keep the process running and print sync status logs after starting them.",
   }),
+  ...serveOpts,
 }
 type Opts = typeof syncStartOpts
 
@@ -89,23 +92,20 @@ export class SyncStartCommand extends Command<Args, Opts> {
     printHeader(log, "Starting sync(s)", "🔁")
   }
 
-  override maybePersistent({ opts }: PrepareParams<Args, Opts>) {
-    return !!opts.monitor
+  override maybePersistent() {
+    return true
+  }
+
+  override useInkTerminalWriter() {
+    return true
   }
 
   async action(params: CommandParams<Args, Opts>): Promise<CommandResult<{}>> {
-    const { garden, log, args, opts } = params
-
     if (!params.parentCommand) {
-      log.warn(
-        dedent`Behaviour of ${styles.command(
-          "sync start"
-        )} is now deprecated and will be changed in a future breaking change release.
-        Instead we recommend running ${styles.command("garden deploy --sync")} or starting syncs ${styles.italic(
-          "inside"
-        )} the dev console with either ${styles.command("deploy --sync")} or ${styles.command("sync start")}.`
-      )
+      return runAsDevCommand("sync start", params)
     }
+
+    const { garden, log, args, opts } = params
 
     // We default to starting syncs for all Deploy actions
     const names = args.names || ["*"]
