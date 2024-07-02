@@ -161,6 +161,7 @@ export interface KubernetesDeployOverrideSpec {
   target?: KubernetesTargetResourceSpec
   command?: string[]
   args?: string[]
+  image?: string
 }
 
 export interface KubernetesDeploySyncSpec {
@@ -176,6 +177,7 @@ const syncModeOverrideSpec = () =>
     ),
     command: joi.array().items(joi.string()).description("Override the command/entrypoint in the matched container."),
     args: joi.array().items(joi.string()).description("Override the args in the matched container."),
+    image: joi.string().description("Override the image of the matched container."),
   })
 
 export const kubernetesDeploySyncSchema = () =>
@@ -331,6 +333,7 @@ export async function configureSyncMode({
           Override configuration:
           ${(override.command?.length ?? 0) > 0 ? `Command: ${override.command?.join(" ")}` : ""}
           ${(override.args?.length ?? 0) > 0 ? `Args: ${override.args?.join(" ")}` : ""}
+          ${override.image?.length ?? 0 ? `Image: ${override.image}` : ""}
         `,
       })
     }
@@ -405,6 +408,9 @@ export async function configureSyncMode({
     }
     if (override.args) {
       targetContainer.args = override.args
+    }
+    if (override.image) {
+      targetContainer.image = override.image
     }
 
     updatedTargets[key] = resolved
