@@ -22,7 +22,14 @@ import type { HelmModule } from "../helm/module-config.js"
 import type { KubernetesDeployAction } from "./config.js"
 import type { CommonRunParams } from "../../../plugin/handlers/Run/run.js"
 import { runAndCopy } from "../run.js"
-import { getResourceContainer, getResourceKey, getResourcePodSpec, getTargetResource, makePodName } from "../util.js"
+import {
+  getResourceContainer,
+  getResourceKey,
+  getResourcePodSpec,
+  getTargetResource,
+  makePodName,
+  sanitizeVolumesForPodRunner,
+} from "../util.js"
 import type { ActionMode, Resolved } from "../../../actions/types.js"
 import type { KubernetesPodRunAction, KubernetesPodTestAction } from "./kubernetes-pod.js"
 import type { V1ConfigMap } from "@kubernetes/client-node"
@@ -570,6 +577,8 @@ export async function runOrTestWithPod(
       message: `${action.longDescription()} specified a podSpec without containers. Please make sure there is at least one container in the spec.`,
     })
   }
+
+  sanitizeVolumesForPodRunner(podSpec, container)
 
   return runAndCopy({
     ...params,

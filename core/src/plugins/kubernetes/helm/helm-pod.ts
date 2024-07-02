@@ -16,7 +16,13 @@ import type { CommonRunParams } from "../../../plugin/handlers/Run/run.js"
 import type { KubernetesPluginContext } from "../config.js"
 import { getActionNamespaceStatus } from "../namespace.js"
 import { k8sGetRunResult, storeRunResult } from "../run-results.js"
-import { getResourceContainer, getResourcePodSpec, getTargetResource, makePodName } from "../util.js"
+import {
+  getResourceContainer,
+  getResourcePodSpec,
+  getTargetResource,
+  makePodName,
+  sanitizeVolumesForPodRunner,
+} from "../util.js"
 import type { HelmPodRunAction, HelmPodTestAction } from "./config.js"
 import { helmPodRunSchema } from "./config.js"
 import { runAndCopy } from "../run.js"
@@ -166,6 +172,8 @@ export async function runOrTestWithChart(
   })
   const podSpec = getResourcePodSpec(target)
   const container = getResourceContainer(target, resourceSpec.containerName)
+
+  sanitizeVolumesForPodRunner(podSpec, container)
 
   return runAndCopy({
     ...params,
