@@ -39,7 +39,7 @@
   "devDependencies": {
     "@types/chai": "^4.3.4",
     "@types/fs-extra": "^11.0.4",
-    "@types/mocha": "^10.0.6",
+    "@types/mocha": "^10.0.7",
     "@types/tar": "^6.1.11",
     "@types/unzipper": "^0.10.9",
     "chai": "^5.0.3",
