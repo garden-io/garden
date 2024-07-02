@@ -820,3 +820,22 @@ export function renderPodEvents(events: CoreV1Event[]): string {
 export function summarize(resources: KubernetesResource[]) {
   return resources.map((r) => `${r.kind} ${r.metadata.name}`).join(", ")
 }
+
+// Filter out all volumes and volumemounts that are not a configmap, since they will
+// probably cause issues when creating a pod runner from a chart or larger manifest.
+export function sanitizeVolumesForPodRunner(podSpec: V1PodSpec | undefined, containerSpec: V1Container) {
+  if (podSpec && podSpec.volumes) {
+    podSpec.volumes = podSpec.volumes.filter((volume) => volume.configMap)
+
+    const retainedVolumes = new Set(podSpec?.volumes?.map((volume) => volume.name))
+
+    containerSpec.volumeMounts = containerSpec.volumeMounts?.filter((volumeMount) => {
+      return retainedVolumes.has(volumeMount.name)
+    })
+    // Now only configmap volumes are left in podSpec, we also make sure the defaultMode is an octal number.
+    podSpec.volumes.forEach((volume) => {
+      volume.configMap!.defaultMode = parseInt(`0${volume.configMap?.defaultMode}`, 8)
+    })
+  }
+  return { podSpec, containerSpec }
+}
