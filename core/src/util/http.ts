@@ -6,10 +6,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import type { Response, OptionsOfJSONResponseBody } from "got"
+import type { Headers, Response, OptionsOfJSONResponseBody, OptionsOfTextResponseBody } from "got"
 import _got, { HTTPError as GotHttpError } from "got"
 import { bootstrap } from "global-agent"
-import type { OptionsOfTextResponseBody, Headers } from "got"
 
 // Handle proxy environment settings
 // (see https://github.com/gajus/global-agent#what-is-the-reason-global-agentbootstrap-does-not-use-http_proxy)
