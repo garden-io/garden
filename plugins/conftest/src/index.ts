@@ -46,6 +46,7 @@ export const conftestSpec: PluginToolSpec = {
   version: conftestVersion,
   description: `A rego-based configuration validator, v${conftestVersion}`,
   type: "binary",
+  _includeInGardenImage: false,
   builds: [
     {
       platform: "darwin",
