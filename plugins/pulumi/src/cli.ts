@@ -42,6 +42,7 @@ export function pulumi(ctx: PluginContext, provider: PulumiProvider) {
 
 export class GlobalPulumi extends CliWrapper {
   protected override toolPath = "pulumi"
+
   constructor() {
     super({ name: "pulumi" })
   }
@@ -56,6 +57,9 @@ export class GlobalPulumi extends CliWrapper {
     }
   }
 }
+
+const PULUMI_SEM_VER_3_102_0 = new SemVer("3.102.0")
+const PULUMI_VERSION_3_102_0 = PULUMI_SEM_VER_3_102_0.version
 
 const PULUMI_SEM_VER_3_70_0 = new SemVer("3.70.0")
 const PULUMI_VERSION_3_70_0 = PULUMI_SEM_VER_3_70_0.version
@@ -73,11 +77,70 @@ function getPulumiToolDescription(semVer: SemVer) {
 
 export const pulumiCliSpecs: PluginToolSpec[] = [
   {
+    version: PULUMI_VERSION_3_102_0,
+    name: getPulumiToolName(PULUMI_SEM_VER_3_102_0),
+    description: getPulumiToolDescription(PULUMI_SEM_VER_3_102_0),
+    type: "binary",
+    _includeInGardenImage: true,
+    builds: [
+      {
+        platform: "darwin",
+        architecture: "amd64",
+        url: `https://github.com/pulumi/pulumi/releases/download/v${PULUMI_VERSION_3_102_0}/pulumi-v${PULUMI_VERSION_3_102_0}-darwin-x64.tar.gz`,
+        sha256: "84dbb8d43dab7197bc074a3ff7cb1dfb0b2a65960d5726199d68557491d347ff",
+        extract: {
+          format: "tar",
+          targetPath: "pulumi/pulumi",
+        },
+      },
+      {
+        platform: "darwin",
+        architecture: "arm64",
+        url: `https://github.com/pulumi/pulumi/releases/download/v${PULUMI_VERSION_3_102_0}/pulumi-v${PULUMI_VERSION_3_102_0}-darwin-arm64.tar.gz`,
+        sha256: "988e45d1f48ce521cbb8134583bc5d0c3b9bab7aa9a6b99c60316293fbce18de",
+        extract: {
+          format: "tar",
+          targetPath: "pulumi/pulumi",
+        },
+      },
+      {
+        platform: "linux",
+        architecture: "amd64",
+        url: `https://github.com/pulumi/pulumi/releases/download/v${PULUMI_VERSION_3_102_0}/pulumi-v${PULUMI_VERSION_3_102_0}-linux-x64.tar.gz`,
+        sha256: "b19b562b1d6ca2688bb1f83a037dc62d5283acd1ab1690878fd4d55a34beedb0",
+        extract: {
+          format: "tar",
+          targetPath: "pulumi/pulumi",
+        },
+      },
+      {
+        platform: "linux",
+        architecture: "arm64",
+        url: `https://github.com/pulumi/pulumi/releases/download/v${PULUMI_VERSION_3_102_0}/pulumi-v${PULUMI_VERSION_3_102_0}-linux-arm64.tar.gz`,
+        sha256: "59743eb222d13741f43c774fc1b089416f7457265e05416038e663225e0cb7c9",
+        extract: {
+          format: "tar",
+          targetPath: "pulumi/pulumi",
+        },
+      },
+      {
+        platform: "windows",
+        architecture: "amd64",
+        url: `https://github.com/pulumi/pulumi/releases/download/v${PULUMI_VERSION_3_102_0}/pulumi-v${PULUMI_VERSION_3_102_0}-windows-x64.zip`,
+        sha256: "2cf2ab3f85faeda8c3e69844ec8e395de304db2d72a8c850e7beed336fed46cf",
+        extract: {
+          format: "zip",
+          targetPath: "pulumi/bin/pulumi.exe",
+        },
+      },
+    ],
+  },
+  {
     version: PULUMI_VERSION_3_70_0,
     name: getPulumiToolName(PULUMI_SEM_VER_3_70_0),
     description: getPulumiToolDescription(PULUMI_SEM_VER_3_70_0),
     type: "binary",
-    _includeInGardenImage: true,
+    _includeInGardenImage: false,
     builds: [
       {
         platform: "darwin",
