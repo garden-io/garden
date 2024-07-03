@@ -934,6 +934,16 @@ Override the args in the matched container.
 | --------------- | -------- |
 | `array[string]` | No       |
 
+### `spec.sync.overrides[].image`
+
+[spec](#spec) > [sync](#specsync) > [overrides](#specsyncoverrides) > image
+
+Override the image of the matched container.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
 ### `spec.localMode`
 
 [spec](#spec) > localMode
