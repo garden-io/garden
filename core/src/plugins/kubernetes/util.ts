@@ -51,7 +51,6 @@ import type { Resolved } from "../../actions/types.js"
 import { serializeValues } from "../../util/serialization.js"
 import { PassThrough } from "stream"
 import { styles } from "../../logger/styles.js"
-import { parse } from "path"
 
 const STATIC_LABEL_REGEX = /[0-9]/g
 export const workloadTypes = ["Deployment", "DaemonSet", "ReplicaSet", "StatefulSet"]
