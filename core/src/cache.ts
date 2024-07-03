@@ -131,7 +131,7 @@ export class TreeCache {
         if (child) {
           node = child
         } else {
-          child = makeContextNode(contextKey)
+          child = makeContextNode([...contextKey])
           node.children[part] = child
           node = child
         }
