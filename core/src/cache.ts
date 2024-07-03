@@ -25,6 +25,12 @@ interface CacheEntry {
 
 type CacheEntries = Map<string, CacheEntry>
 
+/**
+ * Represents a node (either a non-leaf or a leaf) node of the context tree.
+ *
+ *  - A non-leaf node can have only children and has no entries.
+ *  - A leaf node has only entries and cannot have any children.
+ */
 interface ContextNode {
   key: CacheContext
   children: { [contextPart: string]: ContextNode }
