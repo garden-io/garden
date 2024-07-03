@@ -14,10 +14,10 @@
   },
   "devDependencies": {
     "@types/chai": "^4.3.4",
-    "@types/mocha": "^10.0.6",
+    "@types/mocha": "^10.0.7",
     "@types/node": "^20",
     "chai": "^5.0.3",
-    "mocha": "^10.2.0",
+    "mocha": "^10.6.0",
     "strip-ansi": "^7.1.0"
   },
   "scripts": {
