@@ -932,7 +932,7 @@ export const runPodSpecSchema = (kind: string) =>
 
     You can find the full Pod spec in the [official Kubernetes documentation](https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#PodSpec)
 
-    The following Pod spec fields from the selected \`resource\` will be used (if present) when executing the ${kind}:
+    The following Pod spec fields from the \`podSpec\` will be used (if present) when executing the ${kind}:
     ${runPodSpecWhitelistDescription()}
   `
     )
@@ -949,6 +949,8 @@ export const kubernetesTaskSchema = () =>
         ${serviceResourceDescription}
 
         The following pod spec fields from the service resource will be used (if present) when executing the task:
+
+        **Warning**: Garden will retain \`configMaps\` and \`secrets\` as volumes, but remove \`persistentVolumeClaim\` volumes from the Pod spec, as they might already be mounted.
         ${runPodSpecWhitelistDescription()}`
       ),
       ...kubernetesCommonRunSchemaKeys(),
@@ -966,6 +968,8 @@ export const kubernetesTestSchema = () =>
         ${serviceResourceDescription}
 
         The following pod spec fields from the service resource will be used (if present) when executing the test suite:
+
+        **Warning**: Garden will retain \`configMaps\` and \`secrets\` as volumes, but remove \`persistentVolumeClaim\` volumes from the Pod spec, as they might already be mounted.
         ${runPodSpecWhitelistDescription()}`
       ),
       command: joi

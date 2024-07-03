@@ -572,13 +572,12 @@ export async function runOrTestWithPod(
     })
     podSpec = getResourcePodSpec(target)
     container = getResourceContainer(target, resourceSpec.containerName)
+    sanitizeVolumesForPodRunner(podSpec, container)
   } else if (!container) {
     throw new ConfigurationError({
       message: `${action.longDescription()} specified a podSpec without containers. Please make sure there is at least one container in the spec.`,
     })
   }
-
-  sanitizeVolumesForPodRunner(podSpec, container)
 
   return runAndCopy({
     ...params,

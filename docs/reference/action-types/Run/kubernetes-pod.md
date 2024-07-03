@@ -657,7 +657,7 @@ Supply a custom Pod specification. This should be a normal Kubernetes Pod manife
 
 You can find the full Pod spec in the [official Kubernetes documentation](https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#PodSpec)
 
-The following Pod spec fields from the selected `resource` will be used (if present) when executing the Run:
+The following Pod spec fields from the `podSpec` will be used (if present) when executing the Run:
 * `affinity`
 * `automountServiceAccountToken`
 * `containers`

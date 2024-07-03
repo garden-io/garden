@@ -30,6 +30,7 @@ import {
   getServiceResourceSpec,
   getResourcePodSpec,
   makePodName,
+  sanitizeVolumesForPodRunner,
 } from "../../../../../src/plugins/kubernetes/util.js"
 import { getContainerTestGarden } from "./container/container.js"
 import type {
@@ -44,7 +45,7 @@ import { buildHelmModules, getHelmTestGarden } from "./helm/common.js"
 import { getBaseModule, getChartResources } from "../../../../../src/plugins/kubernetes/helm/common.js"
 import { getActionNamespace } from "../../../../../src/plugins/kubernetes/namespace.js"
 import type { GardenModule } from "../../../../../src/types/module.js"
-import type { V1Container, V1Pod, V1PodSpec } from "@kubernetes/client-node"
+import type { V1Container, V1Pod, V1PodSpec, V1Volume } from "@kubernetes/client-node"
 import { getResourceRequirements } from "../../../../../src/plugins/kubernetes/container/util.js"
 import type { ContainerBuildAction, ContainerResourcesSpec } from "../../../../../src/plugins/container/moduleConfig.js"
 import type { KubernetesPodRunActionSpec } from "../../../../../src/plugins/kubernetes/kubernetes-type/kubernetes-pod.js"
@@ -803,19 +804,41 @@ describe("kubernetes Pod runner functions", () => {
       })
     })
 
-    it("should include volume mounts for containers in the generated pod spec", async () => {
-      const volumeMounts = [
+    it("should include configMaps and secrets in the generated pod spec", async () => {
+      const podSpec = getResourcePodSpec(helmTarget)
+      const volumes = [
         {
-          name: "some-volume",
-          mountPath: "/some-volume",
+          name: "myconfigmap",
+          configMap: {
+            name: "myconfigmap",
+            defaultMode: 0o755,
+          },
+        },
+        {
+          name: "mysecret",
+          secret: {
+            secretName: "mysecret",
+          },
         },
       ]
+      const volumeMounts = [
+        {
+          name: "myconfigmap",
+          mountPath: "/config",
+        },
+        {
+          name: "mysecret",
+          mountPath: "/secret",
+        },
+      ]
+      podSpec!.volumes = volumes
       const helmContainerWithVolumeMounts = {
         ...helmContainer,
         volumeMounts,
       }
+      sanitizeVolumesForPodRunner(podSpec, helmContainerWithVolumeMounts)
       const generatedPodSpec = await prepareRunPodSpec({
-        podSpec: undefined,
+        podSpec,
         getArtifacts: false,
         api: helmApi,
         provider: helmProvider,
@@ -836,6 +859,7 @@ describe("kubernetes Pod runner functions", () => {
       })
 
       expect(pruneEmpty(generatedPodSpec)).to.eql({
+        volumes, // <------
         containers: [
           {
             name: "main",
@@ -867,7 +891,96 @@ describe("kubernetes Pod runner functions", () => {
         imagePullSecrets: [],
       })
     })
+    it("should not include persistentVolumes in the generated pod spec", async () => {
+      const podSpec = getResourcePodSpec(helmTarget)
+      const volumes: V1Volume[] = [
+        {
+          name: "myvolume",
+          persistentVolumeClaim: {
+            claimName: "myVolumeClaim",
+          },
+        },
+      ]
+      const volumeMounts = [
+        {
+          name: "myvolume",
+          mountPath: "/data",
+        },
+      ]
+      podSpec!.volumes = volumes
+      const helmContainerWithVolumeMounts = {
+        ...helmContainer,
+        volumeMounts,
+      }
+      sanitizeVolumesForPodRunner(podSpec, helmContainerWithVolumeMounts)
+      const generatedPodSpec = await prepareRunPodSpec({
+        podSpec: undefined,
+        getArtifacts: false,
+        api: helmApi,
+        provider: helmProvider,
+        log: helmLog,
+        action: helmAction,
+        args: ["sh", "-c"],
+        command: ["echo", "foo"],
 
+        envVars: {},
+        resources,
+        description: "Helm module",
+        mainContainerName: "main",
+        image: "foo",
+        container: helmContainerWithVolumeMounts,
+        namespace: helmNamespace,
+        // Note: We're not passing the `volumes` param here, since that's for `container` Runs/Tests.
+        // This test case is intended for `kubernetes-pod` Runs and Tests.
+      })
+      expect(generatedPodSpec.volumes).to.eql([])
+      expect(generatedPodSpec.containers[0].volumeMounts).to.eql([])
+    })
+    it("should make sure configMap file permissions are in octal", async () => {
+      const podSpec = getResourcePodSpec(helmTarget)
+      const volumes = [
+        {
+          name: "myconfigmap",
+          configMap: {
+            name: "myconfigmap",
+            defaultMode: 755, // <--- This is not in octal
+          },
+        },
+      ]
+      const volumeMounts = [
+        {
+          name: "myconfigmap",
+          mountPath: "/config",
+        },
+      ]
+      podSpec!.volumes = volumes
+      const helmContainerWithVolumeMounts = {
+        ...helmContainer,
+        volumeMounts,
+      }
+      sanitizeVolumesForPodRunner(podSpec, helmContainerWithVolumeMounts)
+      const generatedPodSpec = await prepareRunPodSpec({
+        podSpec,
+        getArtifacts: false,
+        api: helmApi,
+        provider: helmProvider,
+        log: helmLog,
+        action: helmAction,
+        args: ["sh", "-c"],
+        command: ["echo", "foo"],
+
+        envVars: {},
+        resources,
+        description: "Helm module",
+        mainContainerName: "main",
+        image: "foo",
+        container: helmContainerWithVolumeMounts,
+        namespace: helmNamespace,
+        // Note: We're not passing the `volumes` param here, since that's for `container` Runs/Tests.
+        // This test case is intended for `kubernetes-pod` Runs and Tests.
+      })
+      expect(generatedPodSpec.volumes![0].configMap?.defaultMode).to.eql(0o755)
+    })
     it("should apply security context fields to the main container when provided", async () => {
       const generatedPodSpec = await prepareRunPodSpec({
         podSpec: undefined,
