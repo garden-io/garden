@@ -17,7 +17,7 @@
     "@types/mocha": "^10.0.7",
     "@types/node": "^20",
     "chai": "^5.0.3",
-    "mocha": "^10.5.0",
+    "mocha": "^10.6.0",
     "source-map-support": "^0.5.21",
     "strip-ansi": "^7.1.0"
   },
