@@ -41,6 +41,21 @@ describe("TreeCache", () => {
     expect(cache.get(log, key)).to.equal(value)
   })
 
+  describe("getByContext", () => {
+    it("should NOT return anything for incomplete (partial) context", () => {
+      const key = ["my-key"]
+      const value = "my-value"
+      const parentContext = ["context"]
+      const contextA = [...parentContext, "a"]
+      const contextB = [...parentContext, "b"]
+
+      cache.set(log, key, value, contextA, contextB)
+
+      // parent context references a "non-leaf" node that never contains any entries
+      expect(mapToPairs(cache.getByContext(parentContext))).to.eql([])
+    })
+  })
+
   describe("set", () => {
     it("should accept multiple contexts", () => {
       const key = ["my-key"]
