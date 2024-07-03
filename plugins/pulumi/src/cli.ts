@@ -258,4 +258,4 @@ export const pulumiCliSpecs: PluginToolSpec[] = [
 export const supportedVersions = pulumiCliSpecs.map((s) => s.version)
 
 // Default to latest pulumi version
-export const defaultPulumiVersion = PULUMI_VERSION_3_70_0
+export const defaultPulumiVersion = PULUMI_VERSION_3_102_0
