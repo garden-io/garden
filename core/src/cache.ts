@@ -25,7 +25,13 @@ interface CacheEntry {
 
 type CacheEntries = Map<string, CacheEntry>
 
-interface ContextNode {
+/**
+ * Represents a node (either a non-leaf or a leaf) node of the context tree.
+ *
+ *  - A non-leaf node can have only children and has no entries.
+ *  - A leaf node has only entries and cannot have any children.
+ */
+export interface ContextNode {
   key: CacheContext
   children: { [contextPart: string]: ContextNode }
   entries: Set<string>
@@ -103,7 +109,7 @@ export class TreeCache {
       entry.value = value
     }
 
-    contexts.forEach((c) => (entry!.contexts[stringifyKey(c)] = c))
+    contexts.forEach((c) => (entry.contexts[stringifyKey(c)] = c))
 
     for (const context of Object.values(contexts)) {
       let node = this.contextTree
@@ -121,10 +127,13 @@ export class TreeCache {
       for (const part of context) {
         contextKey.push(part)
 
-        if (node.children[part]) {
-          node = node.children[part]
+        let child = node.children[part]
+        if (child) {
+          node = child
         } else {
-          node = node.children[part] = makeContextNode(contextKey)
+          child = makeContextNode([...contextKey])
+          node.children[part] = child
+          node = child
         }
       }
 

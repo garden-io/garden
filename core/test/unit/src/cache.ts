@@ -6,6 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import type { ContextNode } from "../../../src/cache.js"
 import { BoundedCache, TreeCache } from "../../../src/cache.js"
 import { expect } from "chai"
 import { expectError } from "../../helpers.js"
@@ -39,6 +40,61 @@ describe("TreeCache", () => {
     cache.set(log, key, value, context)
 
     expect(cache.get(log, key)).to.equal(value)
+  })
+
+  it("ContextNode should have consistent node states and hierarchical context keys", () => {
+    const key = ["my-key"]
+    const value = "my-value"
+    const parentContext = ["context"]
+    const contextA = [...parentContext, "a"]
+    const contextB = [...parentContext, "b"]
+
+    cache.set(log, key, value, contextA, contextB)
+
+    const contextTreeRoot = cache["contextTree"] as ContextNode
+    expect(contextTreeRoot.key).to.be.empty
+    // non-leaf nodes contain only children
+    expect(contextTreeRoot.children).to.be.not.empty
+    // non-leaf nodes do not contain any entries
+    expect(contextTreeRoot.entries).to.be.empty
+
+    const parentContextNode = contextTreeRoot.children["context"]
+    expect(parentContextNode.key).to.eql(parentContext)
+    // non-leaf nodes contain only children
+    expect(parentContextNode.children).to.be.not.empty
+    // non-leaf nodes do not contain any entries
+    expect(parentContextNode.entries).to.be.empty
+
+    const expectedEntries = new Set([JSON.stringify(key)])
+
+    const contextNodeA = parentContextNode.children["a"]
+    expect(contextNodeA.key).to.eql(contextA)
+    // leaf nodes do not contain any children
+    expect(contextNodeA.children).to.be.empty
+    // leaf nodes contain only entries
+    expect(contextNodeA.entries).to.eql(expectedEntries)
+
+    const contextNodeB = parentContextNode.children["b"]
+    expect(contextNodeB.key).to.eql(contextB)
+    // leaf nodes do not contain any children
+    expect(contextNodeB.children).to.be.empty
+    // leaf nodes contain only entries
+    expect(contextNodeB.entries).to.eql(expectedEntries)
+  })
+
+  describe("getByContext", () => {
+    it("should NOT return anything for incomplete (partial) context", () => {
+      const key = ["my-key"]
+      const value = "my-value"
+      const parentContext = ["context"]
+      const contextA = [...parentContext, "a"]
+      const contextB = [...parentContext, "b"]
+
+      cache.set(log, key, value, contextA, contextB)
+
+      // parent context references a "non-leaf" node that never contains any entries
+      expect(mapToPairs(cache.getByContext(parentContext))).to.eql([])
+    })
   })
 
   describe("set", () => {
