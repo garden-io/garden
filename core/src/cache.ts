@@ -31,7 +31,7 @@ type CacheEntries = Map<string, CacheEntry>
  *  - A non-leaf node can have only children and has no entries.
  *  - A leaf node has only entries and cannot have any children.
  */
-interface ContextNode {
+export interface ContextNode {
   key: CacheContext
   children: { [contextPart: string]: ContextNode }
   entries: Set<string>
