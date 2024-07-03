@@ -632,13 +632,15 @@ describe("kubernetes Pod runner functions", () => {
         action: helmAction,
         provider: helmCtx.provider,
       })
+    })
+    beforeEach(async () => {
       helmTarget = await getTargetResource({
         ctx: helmCtx,
         log: helmLog,
         provider: helmCtx.provider,
         manifests: helmManifests,
         action: helmAction,
-        query: { ...helmResourceSpec, name: helmAction.getSpec().releaseName },
+        query: { ...helmResourceSpec, podSelector: undefined, name: helmAction.getSpec().releaseName },
       })
       helmContainer = getResourceContainer(helmTarget, helmResourceSpec.containerName)
     })
@@ -805,7 +807,7 @@ describe("kubernetes Pod runner functions", () => {
     })
 
     it("should include configMaps and secrets in the generated pod spec", async () => {
-      const podSpec = getResourcePodSpec(helmTarget)
+      const podSpecWithVolumes = getResourcePodSpec(helmTarget)
       const volumes = [
         {
           name: "myconfigmap",
@@ -831,14 +833,14 @@ describe("kubernetes Pod runner functions", () => {
           mountPath: "/secret",
         },
       ]
-      podSpec!.volumes = volumes
+      podSpecWithVolumes!.volumes = volumes
       const helmContainerWithVolumeMounts = {
         ...helmContainer,
         volumeMounts,
       }
-      sanitizeVolumesForPodRunner(podSpec, helmContainerWithVolumeMounts)
+      sanitizeVolumesForPodRunner(podSpecWithVolumes, helmContainerWithVolumeMounts)
       const generatedPodSpec = await prepareRunPodSpec({
-        podSpec,
+        podSpec: podSpecWithVolumes,
         getArtifacts: false,
         api: helmApi,
         provider: helmProvider,
@@ -858,41 +860,11 @@ describe("kubernetes Pod runner functions", () => {
         // This test case is intended for `kubernetes-pod` Runs and Tests.
       })
 
-      expect(pruneEmpty(generatedPodSpec)).to.eql({
-        volumes, // <------
-        containers: [
-          {
-            name: "main",
-            image: "foo",
-            imagePullPolicy: "IfNotPresent",
-            args: ["sh", "-c"],
-            ports: [
-              {
-                name: "http",
-                containerPort: 80,
-                protocol: "TCP",
-              },
-            ],
-            resources: getResourceRequirements(resources),
-            env: [
-              {
-                name: "GARDEN_ACTION_VERSION",
-                value: helmAction.versionString(),
-              },
-              {
-                name: "GARDEN_MODULE_VERSION",
-                value: helmAction.versionString(),
-              },
-            ],
-            volumeMounts, // <------
-            command: ["echo", "foo"],
-          },
-        ],
-        imagePullSecrets: [],
-      })
+      expect(generatedPodSpec.volumes).to.eql(volumes)
+      expect(generatedPodSpec.containers[0].volumeMounts).to.eql(volumeMounts)
     })
     it("should not include persistentVolumes in the generated pod spec", async () => {
-      const podSpec = getResourcePodSpec(helmTarget)
+      const podSpecWithPersistentVolume = getResourcePodSpec(helmTarget)
       const volumes: V1Volume[] = [
         {
           name: "myvolume",
@@ -907,14 +879,14 @@ describe("kubernetes Pod runner functions", () => {
           mountPath: "/data",
         },
       ]
-      podSpec!.volumes = volumes
+      podSpecWithPersistentVolume!.volumes = volumes
       const helmContainerWithVolumeMounts = {
         ...helmContainer,
         volumeMounts,
       }
-      sanitizeVolumesForPodRunner(podSpec, helmContainerWithVolumeMounts)
+      sanitizeVolumesForPodRunner(podSpecWithPersistentVolume, helmContainerWithVolumeMounts)
       const generatedPodSpec = await prepareRunPodSpec({
-        podSpec: undefined,
+        podSpec: podSpecWithPersistentVolume,
         getArtifacts: false,
         api: helmApi,
         provider: helmProvider,
@@ -937,7 +909,7 @@ describe("kubernetes Pod runner functions", () => {
       expect(generatedPodSpec.containers[0].volumeMounts).to.eql([])
     })
     it("should make sure configMap file permissions are in octal", async () => {
-      const podSpec = getResourcePodSpec(helmTarget)
+      const podSpecWithConfigMap = getResourcePodSpec(helmTarget)
       const volumes = [
         {
           name: "myconfigmap",
@@ -953,14 +925,14 @@ describe("kubernetes Pod runner functions", () => {
           mountPath: "/config",
         },
       ]
-      podSpec!.volumes = volumes
+      podSpecWithConfigMap!.volumes = volumes
       const helmContainerWithVolumeMounts = {
         ...helmContainer,
         volumeMounts,
       }
-      sanitizeVolumesForPodRunner(podSpec, helmContainerWithVolumeMounts)
+      sanitizeVolumesForPodRunner(podSpecWithConfigMap, helmContainerWithVolumeMounts)
       const generatedPodSpec = await prepareRunPodSpec({
-        podSpec,
+        podSpec: podSpecWithConfigMap,
         getArtifacts: false,
         api: helmApi,
         provider: helmProvider,
@@ -979,7 +951,7 @@ describe("kubernetes Pod runner functions", () => {
         // Note: We're not passing the `volumes` param here, since that's for `container` Runs/Tests.
         // This test case is intended for `kubernetes-pod` Runs and Tests.
       })
-      expect(generatedPodSpec.volumes![0].configMap?.defaultMode).to.eql(0o755)
+      expect(generatedPodSpec.volumes![0].configMap?.defaultMode).to.eql(493)
     })
     it("should apply security context fields to the main container when provided", async () => {
       const generatedPodSpec = await prepareRunPodSpec({

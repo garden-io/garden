@@ -834,7 +834,7 @@ export function sanitizeVolumesForPodRunner(podSpec: V1PodSpec | undefined, cont
     })
     // We also make sure the defaultMode of a configMap volume is an octal number.
     podSpec.volumes.forEach((volume) => {
-      if (volume.configMap && volume.configMap.defaultMode && isOctal(volume.configMap.defaultMode.toString())) {
+      if (volume.configMap && volume.configMap.defaultMode && !isOctal(volume.configMap.defaultMode.toString())) {
         volume.configMap!.defaultMode = parseInt(`0${volume.configMap?.defaultMode}`, 8)
       }
     })
