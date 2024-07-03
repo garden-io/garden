@@ -37,7 +37,7 @@
     "fs-extra": "^11.2.0",
     "lodash-es": "^4.17.21",
     "minimist": "^1.2.8",
-    "mocha": "^10.4.0",
+    "mocha": "^10.5.0",
     "prettier": "3.2.5",
     "replace-in-file": "^7.1.0",
     "split2": "^4.1.0",
