@@ -8,7 +8,6 @@
 
 import { basename, dirname, join, resolve } from "path"
 import fsExtra from "fs-extra"
-const { pathExists, readFile } = fsExtra
 import { flatten, isEmpty, keyBy, set } from "lodash-es"
 import type { KubernetesModule } from "./module-config.js"
 import type { KubernetesResource } from "../types.js"
@@ -22,14 +21,7 @@ import type { HelmModule } from "../helm/module-config.js"
 import type { KubernetesDeployAction } from "./config.js"
 import type { CommonRunParams } from "../../../plugin/handlers/Run/run.js"
 import { runAndCopy } from "../run.js"
-import {
-  getResourceContainer,
-  getResourceKey,
-  getResourcePodSpec,
-  getTargetResource,
-  makePodName,
-  sanitizeVolumesForPodRunner,
-} from "../util.js"
+import { getResourceContainer, getResourceKey, getResourcePodSpec, getTargetResource, makePodName } from "../util.js"
 import type { ActionMode, Resolved } from "../../../actions/types.js"
 import type { KubernetesPodRunAction, KubernetesPodTestAction } from "./kubernetes-pod.js"
 import type { V1ConfigMap } from "@kubernetes/client-node"
@@ -38,6 +30,8 @@ import isGlob from "is-glob"
 import pFilter from "p-filter"
 import { kubectl } from "../kubectl.js"
 import { loadAndValidateYaml } from "../../../config/base.js"
+
+const { pathExists, readFile } = fsExtra
 
 /**
  * "DeployFile": Manifest has been read from one of the files declared in Garden Deploy `spec.files`
@@ -572,7 +566,6 @@ export async function runOrTestWithPod(
     })
     podSpec = getResourcePodSpec(target)
     container = getResourceContainer(target, resourceSpec.containerName)
-    sanitizeVolumesForPodRunner(podSpec, container)
   } else if (!container) {
     throw new ConfigurationError({
       message: `${action.longDescription()} specified a podSpec without containers. Please make sure there is at least one container in the spec.`,

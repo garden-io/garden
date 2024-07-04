@@ -30,7 +30,6 @@ import {
   getServiceResourceSpec,
   getResourcePodSpec,
   makePodName,
-  sanitizeVolumesForPodRunner,
 } from "../../../../../src/plugins/kubernetes/util.js"
 import { getContainerTestGarden } from "./container/container.js"
 import type {
@@ -838,8 +837,6 @@ describe("kubernetes Pod runner functions", () => {
         volumeMounts,
       }
 
-      sanitizeVolumesForPodRunner(podSpecWithVolumes, helmContainerWithVolumeMounts)
-
       const generatedPodSpec = await prepareRunPodSpec({
         podSpec: podSpecWithVolumes,
         getArtifacts: false,
@@ -886,8 +883,6 @@ describe("kubernetes Pod runner functions", () => {
         volumeMounts,
       }
 
-      sanitizeVolumesForPodRunner(podSpecWithPersistentVolume, helmContainerWithVolumeMounts)
-
       const generatedPodSpec = await prepareRunPodSpec({
         podSpec: podSpecWithPersistentVolume,
         getArtifacts: false,
@@ -933,8 +928,6 @@ describe("kubernetes Pod runner functions", () => {
         ...helmContainer,
         volumeMounts,
       }
-
-      sanitizeVolumesForPodRunner(podSpecWithConfigMap, helmContainerWithVolumeMounts)
 
       const generatedPodSpec = await prepareRunPodSpec({
         podSpec: podSpecWithConfigMap,
