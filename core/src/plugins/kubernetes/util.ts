@@ -824,6 +824,8 @@ export function summarize(resources: KubernetesResource[]) {
 /**
  * Filter out all volumes and volumemounts that are not a configmaps or secrets,
  * since they will probably cause issues when creating a pod runner from a chart or larger manifest.
+ *
+ * This is not a pure function, i.e. it has side-effects and can mutate the input arguments.
  */
 export function sanitizeVolumesForPodRunner(podSpec: V1PodSpec | undefined, containerSpec: V1Container) {
   if (podSpec && podSpec.volumes) {
@@ -841,7 +843,6 @@ export function sanitizeVolumesForPodRunner(podSpec: V1PodSpec | undefined, cont
       }
     })
   }
-  return { podSpec, containerSpec }
 }
 
 export function isOctal(value: string) {
