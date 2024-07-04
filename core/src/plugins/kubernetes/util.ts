@@ -844,6 +844,6 @@ export function sanitizeVolumesForPodRunner(podSpec: V1PodSpec | undefined, cont
   return { podSpec, containerSpec }
 }
 
-function isOctal(value: string) {
-  return /^(0o)[0-7]+$/i.test(value)
+export function isOctal(value: string) {
+  return /^(0o?)[0-7]+$/i.test(value)
 }

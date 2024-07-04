@@ -17,6 +17,7 @@ import {
   getSelectorString,
   makePodName,
   matchSelector,
+  isOctal,
 } from "../../../../../src/plugins/kubernetes/util.js"
 import type { KubernetesPod, KubernetesServerResource } from "../../../../../src/plugins/kubernetes/types.js"
 import type { V1Pod } from "@kubernetes/client-node"
@@ -360,5 +361,29 @@ describe("matchSelector", () => {
   it("should return true if selector is a subset of labels", () => {
     const matched = matchSelector({ foo: "bar" }, { foo: "bar", something: "else" })
     expect(matched).to.be.true
+  })
+})
+
+describe("isOctal", () => {
+  describe("should recognize octal numbers", () => {
+    it("in YAML <= 1.1", () => {
+      expect(isOctal("0777")).to.true
+    })
+
+    it("in YAML >= 1.2", () => {
+      expect(isOctal("0o777")).to.true
+    })
+  })
+
+  it("should not recognize non-octal numeric strings", () => {
+    expect(isOctal("777")).to.false
+  })
+
+  it("should not recognize hex numbers", () => {
+    expect(isOctal("0xff")).to.false
+  })
+
+  it("should not non-numeric strings", () => {
+    expect(isOctal("qweRTY")).to.false
   })
 })
