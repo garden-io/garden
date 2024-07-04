@@ -821,8 +821,10 @@ export function summarize(resources: KubernetesResource[]) {
   return resources.map((r) => `${r.kind} ${r.metadata.name}`).join(", ")
 }
 
-// Filter out all volumes and volumemounts that are not a configmaps or secrets, since they will
-// probably cause issues when creating a pod runner from a chart or larger manifest.
+/**
+ * Filter out all volumes and volumemounts that are not a configmaps or secrets,
+ * since they will probably cause issues when creating a pod runner from a chart or larger manifest.
+ */
 export function sanitizeVolumesForPodRunner(podSpec: V1PodSpec | undefined, containerSpec: V1Container) {
   if (podSpec && podSpec.volumes) {
     podSpec.volumes = podSpec.volumes.filter((volume) => volume.configMap || volume.secret)
