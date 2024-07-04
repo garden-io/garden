@@ -826,12 +826,18 @@ export function summarize(resources: KubernetesResource[]) {
  * since they will probably cause issues when creating a pod runner from a chart or larger manifest.
  *
  * This is not a pure function, i.e. it has side effects and can mutate the input arguments.
+ *
+ * This sanitization only makes sense when both `podSpec` and `containerSpec` are defined.
+ * It serves helm-pod and kubernetes-pod action types.
  */
-export function sanitizeVolumesForPodRunner(podSpec: V1PodSpec | undefined, containerSpec: V1Container) {
+export function sanitizeVolumesForPodRunner(podSpec: V1PodSpec | undefined, containerSpec: V1Container | undefined) {
   if (!podSpec) {
     return
   }
   if (!podSpec.volumes) {
+    return
+  }
+  if (!containerSpec) {
     return
   }
 
