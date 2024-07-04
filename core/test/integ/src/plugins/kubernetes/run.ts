@@ -633,6 +633,7 @@ describe("kubernetes Pod runner functions", () => {
         provider: helmCtx.provider,
       })
     })
+
     beforeEach(async () => {
       helmTarget = await getTargetResource({
         ctx: helmCtx,
@@ -708,7 +709,6 @@ describe("kubernetes Pod runner functions", () => {
         action: helmAction,
         args: ["sh", "-c"],
         command: ["echo", "foo"],
-
         envVars: {},
         resources, // <---
         description: "Helm module",
@@ -762,7 +762,6 @@ describe("kubernetes Pod runner functions", () => {
         action: helmAction,
         args: ["sh", "-c"],
         command: ["echo", "foo"],
-
         envVars: {},
         resources, // <---
         description: "Helm module",
@@ -838,7 +837,9 @@ describe("kubernetes Pod runner functions", () => {
         ...helmContainer,
         volumeMounts,
       }
+
       sanitizeVolumesForPodRunner(podSpecWithVolumes, helmContainerWithVolumeMounts)
+
       const generatedPodSpec = await prepareRunPodSpec({
         podSpec: podSpecWithVolumes,
         getArtifacts: false,
@@ -848,7 +849,6 @@ describe("kubernetes Pod runner functions", () => {
         action: helmAction,
         args: ["sh", "-c"],
         command: ["echo", "foo"],
-
         envVars: {},
         resources,
         description: "Helm module",
@@ -863,6 +863,7 @@ describe("kubernetes Pod runner functions", () => {
       expect(generatedPodSpec.volumes).to.eql(volumes)
       expect(generatedPodSpec.containers[0].volumeMounts).to.eql(volumeMounts)
     })
+
     it("should not include persistentVolumes in the generated pod spec", async () => {
       const podSpecWithPersistentVolume = getResourcePodSpec(helmTarget)
       const volumes: V1Volume[] = [
@@ -884,7 +885,9 @@ describe("kubernetes Pod runner functions", () => {
         ...helmContainer,
         volumeMounts,
       }
+
       sanitizeVolumesForPodRunner(podSpecWithPersistentVolume, helmContainerWithVolumeMounts)
+
       const generatedPodSpec = await prepareRunPodSpec({
         podSpec: podSpecWithPersistentVolume,
         getArtifacts: false,
@@ -894,7 +897,6 @@ describe("kubernetes Pod runner functions", () => {
         action: helmAction,
         args: ["sh", "-c"],
         command: ["echo", "foo"],
-
         envVars: {},
         resources,
         description: "Helm module",
@@ -908,6 +910,7 @@ describe("kubernetes Pod runner functions", () => {
       expect(generatedPodSpec.volumes).to.eql([])
       expect(generatedPodSpec.containers[0].volumeMounts).to.eql([])
     })
+
     it("should make sure configMap file permissions are in octal", async () => {
       const podSpecWithConfigMap = getResourcePodSpec(helmTarget)
       const volumes = [
@@ -930,7 +933,9 @@ describe("kubernetes Pod runner functions", () => {
         ...helmContainer,
         volumeMounts,
       }
+
       sanitizeVolumesForPodRunner(podSpecWithConfigMap, helmContainerWithVolumeMounts)
+
       const generatedPodSpec = await prepareRunPodSpec({
         podSpec: podSpecWithConfigMap,
         getArtifacts: false,
@@ -940,7 +945,6 @@ describe("kubernetes Pod runner functions", () => {
         action: helmAction,
         args: ["sh", "-c"],
         command: ["echo", "foo"],
-
         envVars: {},
         resources,
         description: "Helm module",
@@ -953,6 +957,7 @@ describe("kubernetes Pod runner functions", () => {
       })
       expect(generatedPodSpec.volumes![0].configMap?.defaultMode).to.eql(493)
     })
+
     it("should apply security context fields to the main container when provided", async () => {
       const generatedPodSpec = await prepareRunPodSpec({
         podSpec: undefined,
@@ -963,7 +968,6 @@ describe("kubernetes Pod runner functions", () => {
         action: helmAction,
         args: ["sh", "-c"],
         command: ["echo", "foo"],
-
         envVars: {},
         resources, // <---
         description: "Helm module",
@@ -1048,7 +1052,6 @@ describe("kubernetes Pod runner functions", () => {
         action: helmAction,
         args: ["sh", "-c"],
         command: ["echo", "foo"],
-
         envVars: {},
         description: "Helm module",
         mainContainerName: "main",
@@ -1125,7 +1128,6 @@ describe("kubernetes Pod runner functions", () => {
         action: helmAction,
         args: ["sh", "-c"],
         command: ["echo", "foo"],
-
         envVars: {},
         description: "Helm module",
         mainContainerName: "main",
