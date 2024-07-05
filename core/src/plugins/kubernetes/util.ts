@@ -850,6 +850,21 @@ export function sanitizeVolumesForPodRunner(podSpec: V1PodSpec | undefined, cont
     return retainedVolumes.has(volumeMount.name)
   })
 
+  /*
+  Here we get the `containerSpec` and the `podSpec` as separate arguments,
+  so we can't be sure that `containerSpec` object   has the same identity as one of the containers defined in `podSpec.containers`.
+
+  The names of these 2 containers can also be different
+  because we always override the container name in the caller function `prepareRunPodSpec()`.
+
+  Thus, we need to sanitize `podSpec.containers` explicitly.
+   */
+  for (const podSpecContainer of podSpec.containers) {
+    podSpecContainer.volumeMounts = podSpecContainer.volumeMounts?.filter((volumeMount) => {
+      return retainedVolumes.has(volumeMount.name)
+    })
+  }
+
   // We also make sure the defaultMode of a configMap volume is an octal number.
   podSpec.volumes.forEach((volume) => {
     if (volume.configMap && volume.configMap.defaultMode && !isOctal(volume.configMap.defaultMode.toString())) {
