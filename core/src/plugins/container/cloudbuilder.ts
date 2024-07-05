@@ -8,7 +8,7 @@
 import type { PluginContext } from "../../plugin-context.js"
 import type { Resolved } from "../../actions/types.js"
 import type { ContainerBuildAction } from "./config.js"
-import { ConfigurationError, InternalError } from "../../exceptions.js"
+import { ConfigurationError, InternalError, isErrnoException } from "../../exceptions.js"
 import type { ContainerProvider, ContainerProviderConfig } from "./container.js"
 import dedent from "dedent"
 import { styles } from "../../logger/styles.js"
@@ -335,8 +335,8 @@ class BuildxBuilder {
 
       try {
         if (refCount === 1) {
-          await this.remove_tmpdir()
-          await this.remove_builder()
+          await this.removeBuilder()
+          await this.removeTmpdir()
         }
       } finally {
         // even decrease refcount if removal failed
@@ -355,7 +355,7 @@ class BuildxBuilder {
 
       await this.writeCertificates()
 
-      const success = this.installDirectly()
+      const success = await this.installDirectly()
       if (!success) {
         await this.installUsingCLI()
       }
@@ -367,18 +367,18 @@ class BuildxBuilder {
 
   // private: clean
 
-  private async remove_tmpdir() {
+  private async removeTmpdir() {
     this.ctx.log.debug(`Removing ${this.certDir}...`)
     await rm(this.certDir, { recursive: true, force: true })
   }
 
-  private async remove_builder() {
+  private async removeBuilder() {
     try {
       await rm(this.buildxInstanceJsonPath)
     } catch (e) {
       // fall back to docker CLI
       const result = await containerHelpers.dockerCli({
-        cwd: this.certDir,
+        cwd: this.ctx.projectRoot,
         args: ["buildx", "rm", this.name],
         ctx: this.ctx,
         log: this.ctx.log,
@@ -435,12 +435,22 @@ class BuildxBuilder {
   }
 
   private async installDirectly() {
-    const statResult = await stat(dirname(this.buildxInstanceJsonPath))
-    if (statResult.isDirectory()) {
-      await writeFile(this.buildxInstanceJsonPath, JSON.stringify(this.getBuildxInstanceJson()))
-      return true
+    try {
+      const statResult = await stat(dirname(this.buildxInstanceJsonPath))
+      if (statResult.isDirectory()) {
+        await writeFile(this.buildxInstanceJsonPath, JSON.stringify(this.getBuildxInstanceJson()))
+        return true
+      }
+      return false
+    } catch (e) {
+      // An error is thrown e.g. if the path does not exist.
+      // We don't need to handle this error, as we will fall back to the CLI installation.
+      if (isErrnoException(e) && e.code === "ENOENT") {
+        this.ctx.log.debug(`Error checking buildx instance path ${this.buildxInstanceJsonPath}: ${e.message}`)
+        return false
+      }
+      throw e
     }
-    return false
   }
 
   private getBuildxInstanceJson() {
