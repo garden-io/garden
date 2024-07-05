@@ -104,6 +104,7 @@ interface TaskEvents<O extends ValidResultType> {
   processed: TaskEventPayload<O>
   ready: { result: O }
 }
+
 @Profile()
 export abstract class BaseTask<O extends ValidResultType = ValidResultType> extends TypedEventEmitter<TaskEvents<O>> {
   abstract readonly type: string
@@ -472,7 +473,9 @@ export function logAndEmitGetStatusEvents<
     const styledName = styles.highlight(this.action.name)
     const logStrings = actionLogStrings[this.action.kind]
 
-    log.info(`Getting status for ${this.action.kind} ${styledName} (type ${styles.highlight(this.action.type)})...`)
+    log.info(
+      `Getting status for ${this.action.kind} ${styledName} (type ${styles.highlight(this.action.type)}) at version ${this.action.versionString()}...`
+    )
 
     // First we emit the "getting-status" event
     this.garden.events.emit(
