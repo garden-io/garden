@@ -52,6 +52,7 @@ import type { Resolved } from "../../../../../src/actions/types.js"
 import type { HelmDeployAction } from "../../../../../src/plugins/kubernetes/helm/config.js"
 import { executeAction } from "../../../../../src/graph/actions.js"
 import { DEFAULT_RUN_TIMEOUT_SEC } from "../../../../../src/constants.js"
+import cloneDeep from "fast-copy"
 
 describe("kubernetes Pod runner functions", () => {
   let garden: Garden
@@ -634,14 +635,16 @@ describe("kubernetes Pod runner functions", () => {
     })
 
     beforeEach(async () => {
-      helmTarget = await getTargetResource({
-        ctx: helmCtx,
-        log: helmLog,
-        provider: helmCtx.provider,
-        manifests: helmManifests,
-        action: helmAction,
-        query: { ...helmResourceSpec, name: helmAction.getSpec().releaseName },
-      })
+      helmTarget = cloneDeep(
+        await getTargetResource({
+          ctx: helmCtx,
+          log: helmLog,
+          provider: helmCtx.provider,
+          manifests: helmManifests,
+          action: helmAction,
+          query: { ...helmResourceSpec, name: helmAction.getSpec().releaseName },
+        })
+      )
       helmContainer = getResourceContainer(helmTarget, helmResourceSpec.containerName)
     })
 
