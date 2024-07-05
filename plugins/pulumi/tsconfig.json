@@ -4,6 +4,7 @@
     "src/*.ts",
     "test/*.ts"
   ],
+
   "compilerOptions": {
     "composite": true,
     "outDir": "build",

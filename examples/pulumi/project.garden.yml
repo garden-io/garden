@@ -2,10 +2,14 @@ apiVersion: garden.io/v1
 kind: Project
 name: pulumi
 variables:
-   pulumiAppOrg: garden # <--- replace with your own org name
+   pulumiAppOrg: thsig
 environments:
   - name: local
 providers:
+  - name: exec
+    # Ensure that the node SDK is installed for the k8s-namespace and k8s-deployment projects before we run pulumi.
+    initScript: "for dir in k8s-namespace k8s-deployment; do [ ! -d $dir/node_modules ] && cd $dir && npm install && cd ..; done"
   - name: pulumi
+    dependencies: [exec]
     environments: [local]
     orgName: ${var.pulumiAppOrg}
