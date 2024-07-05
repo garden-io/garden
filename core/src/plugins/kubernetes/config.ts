@@ -918,6 +918,8 @@ export const runPodResourceSchema = (kind: string) =>
         This resource will be selected from the manifests provided in this ${kind}'s \`files\` or \`manifests\` config field.
 
         The following fields from the Pod will be used (if present) when executing the ${kind}:
+
+        **Warning**: Garden will retain \`configMaps\` and \`secrets\` as volumes, but remove \`persistentVolumeClaim\` volumes from the Pod spec, as they might already be mounted.
         ${runPodSpecWhitelistDescription()}
         `
   )
