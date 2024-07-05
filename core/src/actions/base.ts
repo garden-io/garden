@@ -7,27 +7,26 @@
  */
 
 import titleize from "titleize"
-import type { ConfigGraph, GetActionOpts, ResolvedConfigGraph } from "../graph/config-graph.js"
+import type { ConfigGraph, GetActionOpts, PickTypeByKind, ResolvedConfigGraph } from "../graph/config-graph.js"
 import type { ActionReference, DeepPrimitiveMap } from "../config/common.js"
 import {
+  createSchema,
   includeGuideLink,
   joi,
+  joiArray,
   joiIdentifier,
   joiRepositoryUrl,
   joiSparseArray,
   joiUserIdentifier,
+  joiVarfile,
   joiVariables,
   parseActionReference,
-  createSchema,
   unusedApiVersionSchema,
-  joiArray,
-  joiVarfile,
 } from "../config/common.js"
 import { DOCS_BASE_URL } from "../constants.js"
 import { dedent, naturalList, stableStringify } from "../util/string.js"
-import type { ModuleVersion, TreeVersion, ActionVersion } from "../vcs/vcs.js"
-import { getActionSourcePath } from "../vcs/vcs.js"
-import { hashStrings, versionStringPrefix } from "../vcs/vcs.js"
+import type { ActionVersion, ModuleVersion, TreeVersion } from "../vcs/vcs.js"
+import { getActionSourcePath, hashStrings, versionStringPrefix } from "../vcs/vcs.js"
 import type { BuildAction, ResolvedBuildAction } from "./build.js"
 import type { ActionKind } from "../plugin/action-types.js"
 import pathIsInside from "path-is-inside"
@@ -58,7 +57,6 @@ import type {
 } from "./types.js"
 import { actionKinds, actionStateTypes } from "./types.js"
 import { baseInternalFieldsSchema, varfileDescription } from "../config/base.js"
-import type { PickTypeByKind } from "../graph/config-graph.js"
 import type { DeployAction } from "./deploy.js"
 import type { TestAction } from "./test.js"
 import type { RunAction } from "./run.js"
