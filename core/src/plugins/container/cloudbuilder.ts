@@ -378,7 +378,7 @@ class BuildxBuilder {
     } catch (e) {
       // fall back to docker CLI
       const result = await containerHelpers.dockerCli({
-        cwd: this.certDir,
+        cwd: this.ctx.projectRoot,
         args: ["buildx", "rm", this.name],
         ctx: this.ctx,
         log: this.ctx.log,
@@ -446,6 +446,7 @@ class BuildxBuilder {
       // An error is thrown e.g. if the path does not exist.
       // We don't need to handle this error, as we will fall back to the CLI installation.
       if (isErrnoException(e) && e.code === "ENOENT") {
+        this.ctx.log.debug(`Error checking buildx instance path ${this.buildxInstanceJsonPath}: ${e.message}`)
         return false
       }
       throw e
