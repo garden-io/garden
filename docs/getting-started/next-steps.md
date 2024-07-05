@@ -5,7 +5,7 @@ order: 4
 
 # Next Steps
 
-If you've kicked the tires with the [Quickstart guide](./quickstart.md) or in the [interactive playgrounds](./interactive-playgrounds.md) you've seen how Garden lets you **spin up production-like environments for development, testing, and CI—with blazing fast caching**.
+If you've kicked the tires with the [Quickstart guide](./quickstart.md) you've seen how Garden lets you **spin up production-like environments for development, testing, and CI—with blazing fast caching**.
 
 Now is the time to set up Garden for your own project to get these benefits and more.
 

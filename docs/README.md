@@ -20,7 +20,6 @@
 ## 🌻 Getting Started
 
 * [Quickstart Guide](./getting-started/quickstart.md)
-* [Interactive Playgrounds](./getting-started/interactive-playgrounds.md)
 * [Installing Garden](./getting-started/installation.md)
 * [Next Steps](./getting-started/next-steps.md)
 
