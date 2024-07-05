@@ -113,6 +113,8 @@ const helmTaskSchema = () =>
         ${serviceResourceDescription}
 
         The following pod spec fields from the service resource will be used (if present) when executing the task:
+
+        **Warning**: Garden will retain \`configMaps\` and \`secrets\` as volumes, but remove \`persistentVolumeClaim\` volumes from the Pod spec, as they might already be mounted.
         ${runPodSpecWhitelistDescription}`
     ),
   })
@@ -127,6 +129,8 @@ const helmTestSchema = () =>
         ${serviceResourceDescription}
 
         The following pod spec fields from the service resource will be used (if present) when executing the test suite:
+
+        **Warning**: Garden will retain \`configMaps\` and \`secrets\` as volumes, but remove \`persistentVolumeClaim\` volumes from the Pod spec, as they might already be mounted.
         ${runPodSpecWhitelistDescription}`
     ),
   })

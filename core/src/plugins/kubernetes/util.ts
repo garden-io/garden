@@ -820,3 +820,59 @@ export function renderPodEvents(events: CoreV1Event[]): string {
 export function summarize(resources: KubernetesResource[]) {
   return resources.map((r) => `${r.kind} ${r.metadata.name}`).join(", ")
 }
+
+/**
+ * Filter out all volumes and volumeMounts that are not a ConfigMaps or Secrets,
+ * since they will probably cause issues when creating a pod runner from a chart or larger manifest.
+ *
+ * This is not a pure function, i.e. it has side effects and can mutate the input arguments.
+ *
+ * This sanitization only makes sense when both `podSpec` and `containerSpec` are defined.
+ * It serves helm-pod and kubernetes-pod action types.
+ */
+export function sanitizeVolumesForPodRunner(podSpec: V1PodSpec | undefined, containerSpec: V1Container | undefined) {
+  if (!podSpec) {
+    return
+  }
+  if (!podSpec.volumes) {
+    return
+  }
+  if (!containerSpec) {
+    return
+  }
+
+  // Sanitize volumes
+  podSpec.volumes = podSpec.volumes.filter((volume) => volume.configMap || volume.secret)
+
+  // Sanitize volumeMounts
+  const retainedVolumes = new Set(podSpec?.volumes?.map((volume) => volume.name))
+  containerSpec.volumeMounts = containerSpec.volumeMounts?.filter((volumeMount) => {
+    return retainedVolumes.has(volumeMount.name)
+  })
+
+  /*
+  Here we get the `containerSpec` and the `podSpec` as separate arguments,
+  so we can't be sure that `containerSpec` object   has the same identity as one of the containers defined in `podSpec.containers`.
+
+  The names of these 2 containers can also be different
+  because we always override the container name in the caller function `prepareRunPodSpec()`.
+
+  Thus, we need to sanitize `podSpec.containers` explicitly.
+   */
+  for (const podSpecContainer of podSpec.containers) {
+    podSpecContainer.volumeMounts = podSpecContainer.volumeMounts?.filter((volumeMount) => {
+      return retainedVolumes.has(volumeMount.name)
+    })
+  }
+
+  // We also make sure the defaultMode of a configMap volume is an octal number.
+  podSpec.volumes.forEach((volume) => {
+    if (volume.configMap && volume.configMap.defaultMode && !isOctal(volume.configMap.defaultMode.toString())) {
+      volume.configMap!.defaultMode = parseInt(`0${volume.configMap?.defaultMode}`, 8)
+    }
+  })
+}
+
+export function isOctal(value: string) {
+  return /^(0o?)[0-7]+$/i.test(value)
+}

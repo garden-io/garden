@@ -452,6 +452,9 @@ tasks:
     # fields, or a Pod via the `podSelector` field.
     #
     # The following pod spec fields from the service resource will be used (if present) when executing the task:
+    #
+    # **Warning**: Garden will retain `configMaps` and `secrets` as volumes, but remove `persistentVolumeClaim`
+    # volumes from the Pod spec, as they might already be mounted.
     # * `affinity`
     # * `automountServiceAccountToken`
     # * `containers`
@@ -552,6 +555,9 @@ tests:
     # fields, or a Pod via the `podSelector` field.
     #
     # The following pod spec fields from the service resource will be used (if present) when executing the test suite:
+    #
+    # **Warning**: Garden will retain `configMaps` and `secrets` as volumes, but remove `persistentVolumeClaim`
+    # volumes from the Pod spec, as they might already be mounted.
     # * `affinity`
     # * `automountServiceAccountToken`
     # * `containers`
@@ -1613,6 +1619,8 @@ an error will be thrown.
 This can either reference a workload (i.e. a Deployment, DaemonSet or StatefulSet) via the `kind` and `name` fields, or a Pod via the `podSelector` field.
 
 The following pod spec fields from the service resource will be used (if present) when executing the task:
+
+**Warning**: Garden will retain `configMaps` and `secrets` as volumes, but remove `persistentVolumeClaim` volumes from the Pod spec, as they might already be mounted.
 * `affinity`
 * `automountServiceAccountToken`
 * `containers`
@@ -1874,6 +1882,8 @@ an error will be thrown.
 This can either reference a workload (i.e. a Deployment, DaemonSet or StatefulSet) via the `kind` and `name` fields, or a Pod via the `podSelector` field.
 
 The following pod spec fields from the service resource will be used (if present) when executing the test suite:
+
+**Warning**: Garden will retain `configMaps` and `secrets` as volumes, but remove `persistentVolumeClaim` volumes from the Pod spec, as they might already be mounted.
 * `affinity`
 * `automountServiceAccountToken`
 * `containers`

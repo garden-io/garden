@@ -8,7 +8,6 @@
 
 import { basename, dirname, join, resolve } from "path"
 import fsExtra from "fs-extra"
-const { pathExists, readFile } = fsExtra
 import { flatten, isEmpty, keyBy, set } from "lodash-es"
 import type { KubernetesModule } from "./module-config.js"
 import type { KubernetesResource } from "../types.js"
@@ -31,6 +30,8 @@ import isGlob from "is-glob"
 import pFilter from "p-filter"
 import { kubectl } from "../kubectl.js"
 import { loadAndValidateYaml } from "../../../config/base.js"
+
+const { pathExists, readFile } = fsExtra
 
 /**
  * "DeployFile": Manifest has been read from one of the files declared in Garden Deploy `spec.files`

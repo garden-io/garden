@@ -23,7 +23,7 @@ import { KubeApi, KubernetesError } from "./api.js"
 import { getPodLogs, checkPodStatus } from "./status/pod.js"
 import type { KubernetesResource, KubernetesPod, KubernetesServerResource, SupportedRuntimeAction } from "./types.js"
 import type { ContainerEnvVars, ContainerResourcesSpec, ContainerVolumeSpec } from "../container/config.js"
-import { prepareEnvVars, makePodName, renderPodEvents } from "./util.js"
+import { prepareEnvVars, makePodName, renderPodEvents, sanitizeVolumesForPodRunner } from "./util.js"
 import { dedent, deline, randomString } from "../../util/string.js"
 import type { ArtifactSpec } from "../../config/validation.js"
 import { prepareSecrets } from "./secrets.js"
@@ -319,6 +319,8 @@ export async function prepareRunPodSpec({
   // and `configmap` actions (which are only supported for `container` actions, and are currently discouraged).
   if (volumes && volumes.length && action.type === "container") {
     configureVolumes(action, preparedPodSpec, volumes)
+  } else {
+    sanitizeVolumesForPodRunner(preparedPodSpec, container)
   }
 
   if (getArtifacts) {

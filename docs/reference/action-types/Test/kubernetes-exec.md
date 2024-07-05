@@ -305,6 +305,8 @@ Specify a Kubernetes resource to derive the Pod spec from for the Test.
 This resource will be selected from the manifests provided in this Test's `files` or `manifests` config field.
 
 The following fields from the Pod will be used (if present) when executing the Test:
+
+**Warning**: Garden will retain `configMaps` and `secrets` as volumes, but remove `persistentVolumeClaim` volumes from the Pod spec, as they might already be mounted.
 * `affinity`
 * `automountServiceAccountToken`
 * `containers`
