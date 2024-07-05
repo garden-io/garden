@@ -196,6 +196,14 @@ async function buildContainerLocally({
           Learn more at https://docs.docker.com/go/build-multi-platform/
         `,
       })
+    } else if (error.message.includes("failed to push")) {
+      throw new ConfigurationError({
+        message: dedent`
+          The Docker daemon failed to push the image to the registry.
+          Please make sure that you are logged in and that you
+          have sufficient permissions on this machine to push to the registry.
+        `,
+      })
     }
     throw error
   }
