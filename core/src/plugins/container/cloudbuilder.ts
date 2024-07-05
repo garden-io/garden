@@ -335,8 +335,8 @@ class BuildxBuilder {
 
       try {
         if (refCount === 1) {
-          await this.remove_builder()
-          await this.remove_tmpdir()
+          await this.removeBuilder()
+          await this.removeTmpdir()
         }
       } finally {
         // even decrease refcount if removal failed
@@ -367,12 +367,12 @@ class BuildxBuilder {
 
   // private: clean
 
-  private async remove_tmpdir() {
+  private async removeTmpdir() {
     this.ctx.log.debug(`Removing ${this.certDir}...`)
     await rm(this.certDir, { recursive: true, force: true })
   }
 
-  private async remove_builder() {
+  private async removeBuilder() {
     try {
       await rm(this.buildxInstanceJsonPath)
     } catch (e) {
