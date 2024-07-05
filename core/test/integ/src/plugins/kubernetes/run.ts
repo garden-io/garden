@@ -640,7 +640,7 @@ describe("kubernetes Pod runner functions", () => {
         provider: helmCtx.provider,
         manifests: helmManifests,
         action: helmAction,
-        query: { ...helmResourceSpec, podSelector: undefined, name: helmAction.getSpec().releaseName },
+        query: { ...helmResourceSpec, name: helmAction.getSpec().releaseName },
       })
       helmContainer = getResourceContainer(helmTarget, helmResourceSpec.containerName)
     })
