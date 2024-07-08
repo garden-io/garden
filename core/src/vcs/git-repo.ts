@@ -23,6 +23,7 @@ import { normalize, sep } from "path"
 import { stableStringify } from "../util/string.js"
 import { hashString } from "../util/util.js"
 import { Profile } from "../util/profiling.js"
+import { realpath } from "fs/promises"
 
 const { pathExists } = fsExtra
 
@@ -95,26 +96,48 @@ export class GitRepoHandler extends AbstractGitHandler {
    * sub-path. This results in far fewer git process calls but in turn collects more data in memory.
    */
   override async getFiles(params: GetFilesParams): Promise<VcsFile[]> {
-    const { log, path, pathDescription, filter, failOnPrompt = false } = params
+    const { log, pathDescription, path: rawPath } = params
 
-    let scanRoot = params.scanRoot || path
-
-    if (!(await pathExists(path))) {
-      log.warn(`${pathDescription} ${path} could not be found.`)
+    if (!(await pathExists(rawPath))) {
+      log.warn(`${pathDescription} ${rawPath} could not be found.`)
       return []
     }
 
-    if (!(await isDirectory(path))) {
-      log.warn(`Path ${path} is not a directory.`)
+    if (!(await isDirectory(rawPath))) {
+      log.warn(`Path ${rawPath} is not a directory.`)
       return []
     }
 
-    if (!params.scanRoot && params.pathDescription !== "submodule") {
+    /*
+    Here we need to evaluate real FS paths and use those in the downstream function calls.
+    This is necessary because we use cache that uses paths as parts of the keys.
+
+    If the input path starts with a symlink (e.g. `/var/...` with a symlink `/var -> /private/var`),
+    then the git repo root will be evaluated as a real path in the `getRepoRoot()` method,
+    and the variable `filesAtPath` declared below would be resolved as an empty array.
+
+    So, we rebuild the params to have all paths resolved to their real values,
+    and use these values in all further function calls to ensure cache consistency.
+     */
+    const normalizedParams: GetFilesParams = {
+      ...params,
+      path: await realpath(params.path),
+      scanRoot: params.scanRoot === undefined ? undefined : await realpath(params.scanRoot),
+    }
+
+    const { path, filter, failOnPrompt = false } = normalizedParams
+
+    let scanRoot = normalizedParams.scanRoot || path
+
+    if (!normalizedParams.scanRoot && normalizedParams.pathDescription !== "submodule") {
       scanRoot = await this.getRepoRoot(log, path, failOnPrompt)
     }
 
     const scanFromProjectRoot = scanRoot === this.projectRoot
-    const { augmentedExcludes, augmentedIncludes } = await getIncludeExcludeFiles({ ...params, scanFromProjectRoot })
+    const { augmentedExcludes, augmentedIncludes } = await getIncludeExcludeFiles({
+      ...normalizedParams,
+      scanFromProjectRoot,
+    })
 
     const hashedFilterParams = getHashedFilterParams({
       filter,
@@ -129,7 +152,7 @@ export class GitRepoHandler extends AbstractGitHandler {
       return cached
     }
 
-    if (params.include && params.include.length === 0) {
+    if (normalizedParams.include && normalizedParams.include.length === 0) {
       // No need to proceed, nothing should be included
       return []
     }
@@ -151,7 +174,14 @@ export class GitRepoHandler extends AbstractGitHandler {
       augmentedExcludes.length > 0 ? `Exclude globs: ${augmentedExcludes.join(", ")}` : "No exclude globs"
     )
 
-    const filtered = this.filterPaths({ files: filesAtPath, log, path, augmentedIncludes, augmentedExcludes, filter })
+    const filtered = this.filterPaths({
+      files: filesAtPath,
+      log,
+      path,
+      augmentedIncludes,
+      augmentedExcludes,
+      filter,
+    })
     log.debug(`Found ${filtered.length} files in path ${path} after glob matching`)
     this.cache.set(log, filteredFilesCacheKey, filtered, pathToCacheContext(path))
     this.profiler.inc("VcsHandler.TreeCache.misses")
