@@ -14,12 +14,12 @@ import type {
   PluginCommandParams,
   PluginContext,
 } from "@garden-io/sdk/build/src/types.js"
-import { PluginActionTask } from "@garden-io/sdk/build/src/types.js"
+import { BuildTask, PluginActionTask } from "@garden-io/sdk/build/src/types.js"
 
 import type { PulumiDeploy } from "./action.js"
 import type { PulumiProvider } from "./provider.js"
 import { Profile } from "@garden-io/core/build/src/util/profiling.js"
-import type { PulumiParams } from "./helpers.js"
+import type { OperationCounts, PreviewResult, PulumiParams } from "./helpers.js"
 import {
   cancelUpdate,
   getModifiedPlansDirPath,
@@ -33,18 +33,19 @@ import {
 import { dedent, deline } from "@garden-io/sdk/build/src/util/string.js"
 import { BooleanParameter, parsePluginCommandArgs } from "@garden-io/sdk/build/src/util/cli.js"
 import fsExtra from "fs-extra"
-
-const { copy, emptyDir } = fsExtra
+const { copy, emptyDir, writeJSON } = fsExtra
 import { join } from "path"
+import { isBuildAction } from "@garden-io/core/build/src/actions/build.js"
 import { isDeployAction } from "@garden-io/core/build/src/actions/deploy.js"
 import { TemplatableConfigContext } from "@garden-io/core/build/src/config/template-contexts/project.js"
-import type { ActionTaskProcessParams, ValidResultType } from "@garden-io/core/build/src/tasks/base.js"
+import type { ActionTaskProcessParams, BaseTask, ValidResultType } from "@garden-io/core/build/src/tasks/base.js"
 import { deletePulumiDeploy } from "./handlers.js"
 import type { ActionLog, Log } from "@garden-io/core/build/src/logger/log-entry.js"
 import { createActionLog } from "@garden-io/core/build/src/logger/log-entry.js"
 import { ActionSpecContext } from "@garden-io/core/build/src/config/template-contexts/actions.js"
 import type { ProviderMap } from "@garden-io/core/build/src/config/provider.js"
 import { styles } from "@garden-io/core/build/src/logger/styles.js"
+import { isTruthy } from "@garden-io/core/build/src/util/util.js"
 
 type PulumiBaseParams = Omit<PulumiParams, "action">
 
@@ -68,23 +69,22 @@ interface PulumiCommandSpec {
   }) => Promise<any>
 }
 
-// TODO-G2-thor: Re-enable and test when 0.13 is stable enough to run commands.
-// interface TotalSummary {
-//   /**
-//    * The ISO timestamp of when the plan was completed.
-//    */
-//   completedAt: string
-//   /**
-//    * The total number of operations by step type (excluding `same` steps).
-//    */
-//   totalStepCounts: OperationCounts
-//   /**
-//    * A more detailed summary for each pulumi service affected by the plan.
-//    */
-//   results: {
-//     [serviceName: string]: PreviewResult
-//   }
-// }
+interface TotalSummary {
+  /**
+   * The ISO timestamp of when the plan was completed.
+   */
+  completedAt: string
+  /**
+   * The total number of operations by step type (excluding `same` steps).
+   */
+  totalStepCounts: OperationCounts
+  /**
+   * A more detailed summary for each pulumi service affected by the plan.
+   */
+  results: {
+    [serviceName: string]: PreviewResult
+  }
+}
 
 const pulumiCommandSpecs: PulumiCommandSpec[] = [
   {
@@ -128,31 +128,35 @@ const pulumiCommandSpecs: PulumiCommandSpec[] = [
         }
       }
     },
-    // TODO-G2-thor: Re-enable and test when 0.13 is stable enough to run commands.
-    // afterFn: async ({ ctx, log, results, pulumiTasks }) => {
-    //   // No-op plans (i.e. where no resources were changed) are omitted here.
-    //   const pulumiTaskResults = Object.fromEntries(
-    //     pulumiTasks.map((t) => [t.getName(), results.getResult(t)?.outputs || null])
-    //   )
-    //   const totalStepCounts: OperationCounts = {}
-    //   for (const result of Object.values(pulumiTaskResults)) {
-    //     const opCounts = (<PreviewResult>result).operationCounts
-    //     for (const [stepType, count] of Object.entries(opCounts)) {
-    //       totalStepCounts[stepType] = (totalStepCounts[stepType] || 0) + count
-    //     }
-    //   }
-    //   const totalSummary: TotalSummary = {
-    //     completedAt: new Date().toISOString(),
-    //     totalStepCounts,
-    //     results: pulumiTaskResults,
-    //   }
-    //   const previewDirPath = getPreviewDirPath(ctx)
-    //   const summaryPath = join(previewDirPath, "plan-summary.json")
-    //   await writeJSON(summaryPath, totalSummary, { spaces: 2 })
-    //   log.info("")
-    //   log.info(styles.success(`Wrote plan summary to ${styles.accent(summaryPath)}`))
-    //   return totalSummary
-    // },
+    afterFn: async ({ ctx, log, results, pulumiTasks }) => {
+      // No-op plans (i.e. where no resources were changed) are omitted here.
+      const pulumiTaskResults: { [name: string]: PreviewResult } = Object.fromEntries(
+        pulumiTasks
+          .map((t) => {
+            const outputs = results.getResult(t)?.outputs
+            return outputs && Object.keys(outputs).length > 0 ? [t.getName(), outputs] : null
+          })
+          .filter(isTruthy)
+      )
+      const totalStepCounts: OperationCounts = {}
+      for (const result of Object.values(pulumiTaskResults)) {
+        const opCounts = result.operationCounts
+        for (const [stepType, count] of Object.entries(opCounts)) {
+          totalStepCounts[stepType] = (totalStepCounts[stepType] || 0) + count
+        }
+      }
+      const totalSummary: TotalSummary = {
+        completedAt: new Date().toISOString(),
+        totalStepCounts,
+        results: pulumiTaskResults,
+      }
+      const previewDirPath = getPreviewDirPath(ctx)
+      const summaryPath = join(previewDirPath, "plan-summary.json")
+      await writeJSON(summaryPath, totalSummary, { spaces: 2 })
+      log.info("")
+      log.info(styles.success(`Wrote plan summary to ${styles.accent(summaryPath)}`))
+      return totalSummary
+    },
   },
   {
     name: "cancel",
@@ -272,41 +276,56 @@ class PulumiPluginCommandTask extends PluginActionTask<PulumiDeploy, PulumiComma
    * Override the base method to be sure that `garden plugins pulumi preview` happens in dependency order.
    */
   override resolveProcessDependencies() {
-    const currentTask = this.getResolveTask(this.action)
-    if (this.skipRuntimeDependencies) {
-      return [currentTask]
-    }
+    const buildTasks = this.graph
+      .getDependencies({
+        kind: "Deploy",
+        name: this.getName(),
+        recursive: false,
+      })
+      .filter(isBuildAction)
+      .map((action) => {
+        return new BuildTask({
+          garden: this.garden,
+          log: this.log,
+          action,
+          graph: this.graph,
+          force: false,
+        })
+      })
+    const tasks: BaseTask[] = [this.getResolveTask(this.action), ...buildTasks]
 
     const pulumiDeployNames = this.graph
       .getDeploys()
       .filter((d) => d.type === "pulumi")
       .map((d) => d.name)
 
-    const deps = this.graph
-      .getDependencies({
-        kind: "Deploy",
-        name: this.getName(),
-        recursive: false,
-        filter: (depNode) => pulumiDeployNames.includes(depNode.name),
-      })
-      .filter(isDeployAction)
+    if (!this.skipRuntimeDependencies) {
+      const deployTasks = this.graph
+        .getDependencies({
+          kind: "Deploy",
+          name: this.getName(),
+          recursive: false,
+          filter: (depNode) => pulumiDeployNames.includes(depNode.name),
+        })
+        .filter(isDeployAction)
+        .map((action) => {
+          return new PulumiPluginCommandTask({
+            garden: this.garden,
+            graph: this.graph,
+            log: this.log,
+            action,
+            commandName: this.commandName,
+            commandDescription: this.commandDescription,
+            skipRuntimeDependencies: this.skipRuntimeDependencies,
+            runFn: this.runFn,
+            pulumiParams: this.pulumiParams,
+            resolvedProviders: this.resolvedProviders,
+          })
+        })
+      tasks.push(...deployTasks)
+    }
 
-    const depTasks = deps.map((action) => {
-      return new PulumiPluginCommandTask({
-        garden: this.garden,
-        graph: this.graph,
-        log: this.log,
-        action,
-        commandName: this.commandName,
-        commandDescription: this.commandDescription,
-        skipRuntimeDependencies: this.skipRuntimeDependencies,
-        runFn: this.runFn,
-        pulumiParams: this.pulumiParams,
-        resolvedProviders: this.resolvedProviders,
-      })
-    })
-
-    return [currentTask, ...depTasks]
+    return tasks
   }
 
   async getStatus() {

@@ -1,0 +1,26 @@
+kind: Deploy
+type: pulumi
+name: service-b
+dependencies:
+  - deploy.service-a
+  - build.build-b
+  - run.run-b
+spec:
+  createStack: true
+
+---
+
+kind: Build
+type: exec
+name: build-b
+buildAtSource: true
+spec:
+  command: ["sh", "-c", "echo 'Building build-b' && touch build-b.txt"]
+
+---
+
+kind: Run
+type: exec
+name: run-b
+spec:
+  command: [echo, "Running run-b"]

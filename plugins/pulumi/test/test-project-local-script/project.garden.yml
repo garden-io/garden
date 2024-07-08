@@ -1,0 +1,13 @@
+kind: Project
+name: pulumi-test-local-script
+apiVersion: garden.io/v1
+variables:
+  orgName: gordon-garden-bot # <-- replace with your own org name if running the tests locally
+environments:
+  - name: local
+providers:
+  - name: pulumi
+    # The local script functionality we use in this project's stacks doesn't seem to work on older versions of pulumi.
+    version: "3.122.0"
+    environments: [local]
+    orgName: ${var.orgName}

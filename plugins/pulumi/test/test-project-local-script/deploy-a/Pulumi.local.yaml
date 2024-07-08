@@ -1,0 +1,3 @@
+config: {}
+backend:
+  url: https://api.pulumi.com
