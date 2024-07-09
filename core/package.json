@@ -244,7 +244,7 @@
     "testdouble": "^3.20.1",
     "timekeeper": "^2.2.0",
     "type-fest": "^4.6.0",
-    "typescript": "^5.4.5",
+    "typescript": "^5.5.3",
     "utility-types": "^3.11.0"
   },
   "scripts": {
