@@ -1,7 +1,7 @@
 ---
 name: Bug report
 about: Create a report to help make garden better
-title: ''
+title: '[Bug]: Describe here'
 labels: 'bug'
 assignees: ''
 
