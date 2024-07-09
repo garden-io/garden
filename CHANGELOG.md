@@ -1,4 +1,31 @@
 
+<a name="0.13.34"></a>
+## [0.13.34](https://github.com/garden-io/garden/compare/0.13.33...0.13.34) (2024-07-09)
+
+### Bug Fixes
+
+* print action version in logs while status check ([#6257](https://github.com/garden-io/garden/issues/6257)) ([42e046ba1](https://github.com/garden-io/garden/commit/42e046ba1))
+* **cloudbuilder:** add error handling to fallback to cli install of buildx builder ([#6258](https://github.com/garden-io/garden/issues/6258)) ([6f4b120ce](https://github.com/garden-io/garden/commit/6f4b120ce))
+* **git:** use consistent cache keys for paths with symlinks ([#6262](https://github.com/garden-io/garden/issues/6262)) ([e6112bc4d](https://github.com/garden-io/garden/commit/e6112bc4d))
+* **kubernetes-plugin:** sanitize volumes configuration for helm and kubernetes type pod runners ([#6251](https://github.com/garden-io/garden/issues/6251)) ([0a12df4bb](https://github.com/garden-io/garden/commit/0a12df4bb))
+* **pulumi:** include build deps in plugin commands ([#6260](https://github.com/garden-io/garden/issues/6260)) ([1e5c1df23](https://github.com/garden-io/garden/commit/1e5c1df23))
+
+### Bundled Tool Version Updates
+
+* **conftest:** exclude `conftest` from Docker images ([#6248](https://github.com/garden-io/garden/issues/6248)) ([c04e92c0b](https://github.com/garden-io/garden/commit/c04e92c0b))
+* **helm:** update version to 3.15.2 ([#6245](https://github.com/garden-io/garden/issues/6245)) ([c47fa4cd1](https://github.com/garden-io/garden/commit/c47fa4cd1))
+* **kubectl:** update version to 1.30.2 ([#6255](https://github.com/garden-io/garden/issues/6255)) ([7bc15126e](https://github.com/garden-io/garden/commit/7bc15126e))
+* **pulumi:** switch default version to 3.122.0 ([#6252](https://github.com/garden-io/garden/issues/6252)) ([225bc8943](https://github.com/garden-io/garden/commit/225bc8943))
+* **pulumi:** switch default version to 3.102.0 ([#6246](https://github.com/garden-io/garden/issues/6246)) ([fd7d62a0c](https://github.com/garden-io/garden/commit/fd7d62a0c))
+
+### Features
+
+* Windows support for cloud builder ([#6211](https://github.com/garden-io/garden/issues/6211)) ([14a90ac08](https://github.com/garden-io/garden/commit/14a90ac08))
+
+### Improvements
+
+* **sync:** use native Mutagen daemon by default ([#6227](https://github.com/garden-io/garden/issues/6227)) ([b33d9c8bd](https://github.com/garden-io/garden/commit/b33d9c8bd))
+
 <a name="0.13.33"></a>
 ## [0.13.33](https://github.com/garden-io/garden/compare/0.13.32...0.13.33) (2024-06-25)
 
