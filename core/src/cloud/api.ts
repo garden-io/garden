@@ -7,7 +7,7 @@
  */
 
 import type { IncomingHttpHeaders } from "http"
-
+import ci from "ci-info"
 import type { GotHeaders, GotJsonOptions, GotResponse } from "../util/http.js"
 import { got, GotHttpError } from "../util/http.js"
 import { CloudApiError, GardenError, InternalError } from "../exceptions.js"
@@ -712,6 +712,7 @@ export class CloudApi {
         environment,
         namespace,
         isDevCommand,
+        isCi: ci.isCI,
       }
       this.log.debug(`Registering session with ${this.distroName} for ${projectId} in ${environment}/${namespace}.`)
       const res: CloudSessionResponse = await this.post("sessions", {
