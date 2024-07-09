@@ -33,7 +33,7 @@
     "@scg82/exit-hook": "^3.4.1",
     "chalk": "^5.3.0",
     "tar": "^6.2.1",
-    "undici": "^6.18.0",
+    "undici": "^6.19.2",
     "unzipper": "^0.10.14"
   },
   "devDependencies": {
