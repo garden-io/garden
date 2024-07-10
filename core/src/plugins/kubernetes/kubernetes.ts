@@ -47,6 +47,7 @@ import { helmPodRunDefinition, helmPodTestDefinition } from "./helm/helm-pod.js"
 import { kubernetesPodRunDefinition, kubernetesPodTestDefinition } from "./kubernetes-type/kubernetes-pod.js"
 import { kubernetesExecRunDefinition, kubernetesExecTestDefinition } from "./kubernetes-type/kubernetes-exec.js"
 import { makeDocsLinkPlain, makeDocsLinkStyled } from "../../docs/common.js"
+import { cleanupUtilDeployment } from "./commands/cleanup-garden-util.js"
 
 export const CONTAINER_BUILD_CONCURRENCY_LIMIT_REMOTE_KUBERNETES = 5
 export const CONTAINER_STATUS_CONCURRENCY_LIMIT_REMOTE_KUBERNETES = 20
@@ -154,6 +155,7 @@ export const gardenPlugin = () => {
     outputsSchema,
     commands: [
       cleanupClusterRegistry,
+      cleanupUtilDeployment,
       clusterInit,
       uninstallGardenServices,
       pullImage,
