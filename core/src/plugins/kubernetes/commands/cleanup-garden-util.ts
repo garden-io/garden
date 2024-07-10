@@ -24,11 +24,10 @@ export const cleanupUtilDeployment: PluginCommand = {
     const k8sCtx = ctx as KubernetesPluginContext
     const provider = k8sCtx.provider
 
-    log.info({ msg: styles.highlight(`\nRemoving ${utilDeploymentName} deployment`) })
-
     const namespace = provider.outputs["app-namespace"]
-    const targetKinds = ["Service", "Deployment"]
+    log.info({ msg: styles.highlight(`\nRemoving ${utilDeploymentName} deployment from namespace ${namespace}`) })
 
+    const targetKinds = ["Service", "Deployment"]
     const resources: KubernetesResource[] = targetKinds.map((kind) => {
       return { apiVersion: "v1", kind, metadata: { name: utilDeploymentName } }
     })
