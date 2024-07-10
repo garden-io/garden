@@ -24,6 +24,7 @@ import type { TestAction } from "../actions/test.js"
 import type { GroupConfig } from "../config/group.js"
 import minimatch from "minimatch"
 import { GraphError } from "../exceptions.js"
+import { styles } from "../logger/styles.js"
 
 export type DependencyRelationFilterFn = (node: ConfigGraphNode) => boolean
 
@@ -153,12 +154,15 @@ export abstract class BaseConfigGraph<
   getModule(name: string, includeDisabled?: boolean) {
     return this.moduleGraph.getModule(name, includeDisabled)
   }
+
   getModules(params: GetManyParams = {}) {
     return this.moduleGraph.getModules(params)
   }
+
   withDependantModules(modules: GardenModule[]) {
     return this.moduleGraph.withDependantModules(modules)
   }
+
   // and sanity...
   //////////////////
 
@@ -252,7 +256,11 @@ export abstract class BaseConfigGraph<
       const missing = difference(names, foundNames)
 
       throw new GraphError({
-        message: `Could not find one or more ${kind} actions: ${naturalList(missing)}`,
+        message: dedent`
+        Could not find one or more ${kind} actions: ${naturalList(missing)}.
+        To get the list of the available ${styles.accent(kind)} actions please use ${styles.command(`get ${kind.toLowerCase()}s`)} command.
+        To get the list of all actions please use ${styles.command("get actions")} command.
+        `,
       })
     }
 
