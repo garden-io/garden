@@ -151,7 +151,7 @@
     "uniqid": "^5.4.0",
     "unixify": "^1.0.0",
     "unzip-stream": "^0.3.1",
-    "username": "^6.0.0",
+    "username": "^7.0.0",
     "uuid": "^9.0.0",
     "which": "^4.0.0",
     "winston": "^3.13.0",
