@@ -35,6 +35,8 @@ configs:
   - kind: Deploy
     type: kubernetes
     name: ${parent.name}
+    dependencies:
+      - build.${parent.name} # <--- We need to set an explicit dependency on the build
 
     spec:
       files: ${inputs.manifests} # <--- The "inputs" are defined in the JSON schema referenced in the 'inputsSchemaPath' field
