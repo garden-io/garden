@@ -17,6 +17,7 @@ The API and web components use these manifests by referencing them in their Gard
 kind: Deploy
 type: kubernetes
 name: api
+dependencies: [build.api] # <--- We need to set an explicit dependency on the build
 source:
   path: ../ # <--- We set the source path of the action to the root so that we can reference the manifest files
 spec:
@@ -28,6 +29,7 @@ spec:
 kind: Deploy
 type: kubernetes
 name: web
+dependencies: [build.web] # <--- We need to set an explicit dependency on the build
 source:
   path: ../ # <--- We set the source path of the action to the root so that we can reference the manifest files
 spec:
