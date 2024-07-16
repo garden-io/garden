@@ -61,7 +61,7 @@ import { pMemoizeDecorator } from "./lib/p-memoize.js"
 import { styles } from "./logger/styles.js"
 import { actionReferenceToString } from "./actions/base.js"
 import type { DepGraph } from "dependency-graph"
-import minimatch from "minimatch"
+import { minimatch } from "minimatch"
 
 // This limit is fairly arbitrary, but we need to have some cap on concurrent processing.
 export const moduleResolutionConcurrencyLimit = 50
