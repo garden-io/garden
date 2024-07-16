@@ -63,7 +63,7 @@
     "directory-tree": "^3.5.1",
     "docker-file-parser": "^1.0.7",
     "dotenv": "^16.4.5",
-    "env-var": "^7.3.0",
+    "env-var": "^7.5.0",
     "eventemitter2": "^6.4.9",
     "eventemitter3": "^5.0.0",
     "execa": "^8.0.1",
