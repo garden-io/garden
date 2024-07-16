@@ -261,9 +261,16 @@ export class Garden {
   public log: Log
   private gardenInitLog?: Log
   private loadedPlugins?: GardenPluginSpec[]
+
+  /**
+   * These 3 fields store the raw action configs,
+   * i.e. unresolved action-, module-, and workflow configs detected by {@link #scanAndAddConfigs}
+   * loaded from the disk.
+   */
   protected readonly actionConfigs: ActionConfigMap
   protected readonly moduleConfigs: ModuleConfigMap
   protected readonly workflowConfigs: WorkflowConfigMap
+
   protected configPaths: Set<string>
   private resolvedProviders: { [key: string]: Provider }
   protected readonly state: GardenInstanceState
