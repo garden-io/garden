@@ -36,7 +36,7 @@ import {
 import { getNamespaceStatus } from "../../namespace.js"
 import { sleep } from "../../../../util/util.js"
 import type { ContainerBuildAction, ContainerModuleOutputs } from "../../../container/moduleConfig.js"
-import { getDockerBuildArgs } from "../../../container/build.js"
+import { getDockerBuildArgs, getDockerSecrets } from "../../../container/build.js"
 import type { Resolved } from "../../../../actions/types.js"
 import { PodRunner } from "../../run.js"
 import { prepareSecrets } from "../../secrets.js"
@@ -280,6 +280,8 @@ export function makeBuildkitBuildCommand({
   contextPath: string
   dockerfile: string
 }): string[] {
+  const { secretArgs, secretEnvVars } = getDockerSecrets(action.getSpec())
+
   const buildctlCommand = [
     "buildctl",
     "build",
@@ -290,6 +292,7 @@ export function makeBuildkitBuildCommand({
     "dockerfile=" + contextPath,
     "--opt",
     "filename=" + dockerfile,
+    ...secretArgs,
     ...getBuildkitImageFlags(
       provider.config.clusterBuildkit!.cache,
       outputs,
@@ -298,7 +301,11 @@ export function makeBuildkitBuildCommand({
     ...getBuildkitFlags(action),
   ]
 
-  return ["sh", "-c", `cd ${contextPath} && ${commandListToShellScript(buildctlCommand)}`]
+  return [
+    "sh",
+    "-c",
+    `cd ${contextPath} && ${commandListToShellScript({ command: buildctlCommand, env: secretEnvVars })}`,
+  ]
 }
 
 export function getBuildkitFlags(action: Resolved<ContainerBuildAction>) {

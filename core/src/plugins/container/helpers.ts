@@ -382,6 +382,7 @@ const helpers = {
     stdout,
     stderr,
     timeout,
+    env,
   }: {
     cwd: string
     args: string[]
@@ -391,6 +392,7 @@ const helpers = {
     stdout?: Writable
     stderr?: Writable
     timeout?: number
+    env?: { [key: string]: string }
   }) {
     const docker = ctx.tools["container.docker"]
 
@@ -398,7 +400,7 @@ const helpers = {
       const res = await docker.spawnAndWait({
         args,
         cwd,
-        env: { ...process.env, DOCKER_CLI_EXPERIMENTAL: "enabled" },
+        env,
         ignoreError,
         log,
         stdout,

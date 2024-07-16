@@ -464,7 +464,11 @@ export async function configureSyncMode({
       const initContainer = {
         name: "garden-dev-init",
         image: k8sSyncUtilImageName,
-        command: ["/bin/sh", "-c", commandListToShellScript(["cp", "/usr/local/bin/mutagen-agent", mutagenAgentPath])],
+        command: [
+          "/bin/sh",
+          "-c",
+          commandListToShellScript({ command: ["cp", "/usr/local/bin/mutagen-agent", mutagenAgentPath] }),
+        ],
         imagePullPolicy: "IfNotPresent",
         volumeMounts: [gardenVolumeMount],
       }

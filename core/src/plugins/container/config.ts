@@ -1013,6 +1013,7 @@ export interface ContainerBuildActionSpec {
   buildArgs: PrimitiveMap
   dockerfile: string
   extraFlags: string[]
+  secrets?: Record<string, string>
   localId?: string
   publishId?: string
   targetStage?: string
@@ -1061,9 +1062,30 @@ export const containerCommonBuildSpecKeys = memoize(() => ({
     Specify extra flags to use when building the container image.
     Note that arguments may not be portable across implementations.`),
   platforms: joi.sparseArray().items(joi.string()).description(dedent`
-    Specify the platforms to build the image for. This is useful when building multi-platform images.
-    The format is \`os/arch\`, e.g. \`linux/amd64\`, \`linux/arm64\`, etc.
-  `),
+      Specify the platforms to build the image for. This is useful when building multi-platform images.
+      The format is \`os/arch\`, e.g. \`linux/amd64\`, \`linux/arm64\`, etc.
+    `),
+  secrets: joi
+    .object()
+    .pattern(/.+/, joi.string())
+    .description(
+      dedent`
+      Specify secret values that can be mounted during the build process but become part of the resulting image filesystem or image manifest, for example private registry auth tokens.
+
+      Build arguments and environment variables are inappropriate for secrets, as they persist in the final image.
+
+      The secret can later be consumed in the Dockerfile like so:
+      \`\`\`
+        RUN --mount=type=secret,id=mytoken \
+            TOKEN=$(cat /run/secrets/mytoken) ...
+      \`\`\`
+
+      See also https://docs.docker.com/build/building/secrets/
+    `
+    )
+    .example({
+      mytoken: "supersecret",
+    }),
 }))
 
 export const containerBuildSpecSchema = createSchema({

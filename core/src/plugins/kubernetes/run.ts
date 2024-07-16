@@ -455,7 +455,7 @@ exec 2<&-
 exec 1<>/tmp/output
 exec 2>&1
 
-${commandListToShellScript(cmd)}
+${commandListToShellScript({ command: cmd })}
 `
 }
 
@@ -469,20 +469,20 @@ ${commandListToShellScript(cmd)}
  */
 function getArtifactsTarScript(artifacts: ArtifactSpec[]) {
   const directoriesToCreate = artifacts.map((a) => a.target).filter((target) => !!target && target !== ".")
-  const tmpPath = commandListToShellScript(["/tmp/.garden-artifacts-" + randomString(8)])
+  const tmpPath = commandListToShellScript({ command: ["/tmp/.garden-artifacts-" + randomString(8)] })
 
   const createDirectoriesCommands = directoriesToCreate.map((target) =>
-    commandListToShellScript(["mkdir", "-p", target])
+    commandListToShellScript({ command: ["mkdir", "-p", target] })
   )
 
   const copyArtifactsCommands = artifacts.map(({ source, target }) => {
-    const escapedTarget = commandListToShellScript([target || "."])
+    const escapedTarget = commandListToShellScript({ command: [target || "."] })
 
     // Allow globs (*) in the source path
     // Note: This works because `commandListToShellScript` wraps every parameter in single quotes, escaping contained single quotes.
     // The string `bin/*` will be transformed to `'bin/*'` by `commandListToShellScript`. The shell would treat `*` as literal and not expand it.
     // `replaceAll` transforms that string then to `'bin/'*''`, which allows the shell to expand the glob, everything else is treated as literal.
-    const escapedSource = commandListToShellScript([source]).replaceAll("*", "'*'")
+    const escapedSource = commandListToShellScript({ command: [source] }).replaceAll("*", "'*'")
 
     return `cp -r ${escapedSource} ${escapedTarget} >/dev/null || true`
   })

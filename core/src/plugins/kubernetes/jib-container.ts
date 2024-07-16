@@ -74,6 +74,7 @@ async function buildAndPushViaRemote(params: BuildActionParams<"build", Containe
 
   // Build the tarball with the base handler
   const spec: any = action.getSpec()
+
   spec.tarOnly = true
   spec.tarFormat = "oci"
 
