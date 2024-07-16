@@ -172,6 +172,7 @@ import { styles } from "./logger/styles.js"
 import { renderDuration } from "./logger/util.js"
 import { getCloudDistributionName, getCloudLogSectionName } from "./util/cloud.js"
 import { makeDocsLinkStyled } from "./docs/common.js"
+import { ActionConfigContext } from "./config/template-contexts/actions.js"
 
 const defaultLocalAddress = "localhost"
 
@@ -1501,6 +1502,35 @@ export class Garden {
     })
   }
 
+  private evaluateDisabledFlag(config: BaseActionConfig): boolean {
+    // It can be a template string that must be resolved at this stage
+    const disabledFlag = config.disabled as boolean | string | undefined
+
+    if (disabledFlag === undefined) {
+      return false
+    }
+
+    if (typeof disabledFlag === "boolean") {
+      return disabledFlag
+    }
+
+    const context = new ActionConfigContext({
+      garden: this,
+      config,
+      thisContextParams: {
+        name: config.name,
+        // TODO: resolve this if necessary
+        mode: "default",
+      },
+      variables: this.variables,
+    })
+
+    return resolveTemplateString({
+      string: disabledFlag,
+      context,
+    })
+  }
+
   /**
    * Add an action config to the context, after validating and calling the appropriate configure plugin handler.
    */
@@ -1508,6 +1538,9 @@ export class Garden {
     this.log.silly(() => `Adding ${config.kind} action ${config.name}`)
     const key = actionReferenceToString(config)
     const existing = this.actionConfigs[config.kind][config.name]
+
+    // Resolve the actual values of the `disabled` flag
+    config.disabled = this.evaluateDisabledFlag(config)
 
     if (existing) {
       if (actionIsDisabled(config, this.environmentName)) {
