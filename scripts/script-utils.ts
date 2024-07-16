@@ -7,7 +7,7 @@
  */
 
 import { execa } from "execa"
-import minimatch from "minimatch"
+import { minimatch } from "minimatch"
 import { dirname, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 import { readFile } from "node:fs/promises"

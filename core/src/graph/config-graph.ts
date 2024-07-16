@@ -22,7 +22,7 @@ import type { DeployAction } from "../actions/deploy.js"
 import type { RunAction } from "../actions/run.js"
 import type { TestAction } from "../actions/test.js"
 import type { GroupConfig } from "../config/group.js"
-import minimatch from "minimatch"
+import { minimatch } from "minimatch"
 import { GraphError } from "../exceptions.js"
 import { styles } from "../logger/styles.js"
 

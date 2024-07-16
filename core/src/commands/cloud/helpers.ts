@@ -9,7 +9,7 @@
 import { dedent } from "../../util/string.js"
 import type { Log } from "../../logger/log-entry.js"
 import { capitalize } from "lodash-es"
-import minimatch from "minimatch"
+import { minimatch } from "minimatch"
 import pluralize from "pluralize"
 import { CommandError, toGardenError } from "../../exceptions.js"
 import type { CommandResult } from "../base.js"
