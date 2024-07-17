@@ -55,11 +55,9 @@ export async function execRunCommand({
 
   const outputStream = split2()
   outputStream.on("error", (line: Buffer) => {
-    log.error(line.toString())
     ctx.events.emit("log", { timestamp: new Date().toISOString(), msg: line.toString(), ...logEventContext })
   })
   outputStream.on("data", (line: Buffer) => {
-    log.verbose(line.toString())
     ctx.events.emit("log", { timestamp: new Date().toISOString(), msg: line.toString(), ...logEventContext })
   })
 
