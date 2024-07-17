@@ -47,6 +47,7 @@ import { stringifyResources } from "../util.js"
 import { styles } from "../../../../logger/styles.js"
 import type { ResolvedBuildAction } from "../../../../actions/build.js"
 import { commandListToShellScript } from "../../../../util/escape.js"
+import { type MaybeSecret, maybeSecret } from "../../../../util/secrets.js"
 
 const AWS_ECR_REGEX = /^([^\.]+\.)?dkr\.ecr\.([^\.]+\.)amazonaws\.com\//i // AWS Elastic Container Registry
 
@@ -279,7 +280,7 @@ export function makeBuildkitBuildCommand({
   action: ResolvedBuildAction
   contextPath: string
   dockerfile: string
-}): string[] {
+}): MaybeSecret[] {
   const { secretArgs, secretEnvVars } = getDockerSecrets(action.getSpec())
 
   const buildctlCommand = [
@@ -304,7 +305,7 @@ export function makeBuildkitBuildCommand({
   return [
     "sh",
     "-c",
-    `cd ${contextPath} && ${commandListToShellScript({ command: buildctlCommand, env: secretEnvVars })}`,
+    maybeSecret`cd ${contextPath} && ${commandListToShellScript({ command: buildctlCommand, env: secretEnvVars })}`,
   ]
 }
 

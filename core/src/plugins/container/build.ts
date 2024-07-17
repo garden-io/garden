@@ -7,7 +7,7 @@
  */
 
 import { containerHelpers } from "./helpers.js"
-import { ConfigurationError, toGardenError } from "../../exceptions.js"
+import { ConfigurationError, InternalError, toGardenError } from "../../exceptions.js"
 import type { PrimitiveMap } from "../../config/common.js"
 import split2 from "split2"
 import type { BuildActionHandler } from "../../plugin/action-types.js"
@@ -29,7 +29,7 @@ import { cloudBuilder } from "./cloudbuilder.js"
 import { styles } from "../../logger/styles.js"
 import type { CloudBuilderAvailableV2 } from "../../cloud/api.js"
 import type { SpawnOutput } from "../../util/util.js"
-import { type Secret } from "../../util/secrets.js"
+import { isSecret, type Secret } from "../../util/secrets.js"
 
 export const validateContainerBuild: BuildActionHandler<"validate", ContainerBuildAction> = async ({ action }) => {
   // configure concurrency limit for build status task nodes.
@@ -169,7 +169,7 @@ async function buildContainerLocally({
     }
   }
 
-  const cmdOpts = ["build", ...dockerFlags, "--file", dockerfilePath]
+  const cmdOpts = ["buildx", "build", ...dockerFlags, "--file", dockerfilePath]
   try {
     return await containerHelpers.dockerCli({
       cwd: buildPath,
@@ -278,6 +278,11 @@ export function getDockerSecrets(actionSpec: ContainerBuildActionSpec): {
     if (!secretKey.match(/^[a-zA-Z0-9\._-]+$/)) {
       throw new ConfigurationError({
         message: `Invalid secret ID '${secretKey}'. Only alphanumeric characters (a-z, A-Z, 0-9), underscores (_), dashes (-) and dots (.) are allowed.`,
+      })
+    }
+    if (!isSecret(secretValue)) {
+      throw new InternalError({
+        message: "joi schema did not call makeSecret for every secret value."
       })
     }
 

@@ -1068,7 +1068,7 @@ export const containerCommonBuildSpecKeys = memoize(() => ({
     `),
   secrets: joi
     .object()
-    .pattern(/.+/, joi.string())
+    .pattern(/.+/, joi.string().custom(makeSecret))
     .description(
       dedent`
       Secret values that can be mounted in the Dockerfile, but do not become part of the image filesystem or image manifest. This is useful e.g. for private registry auth tokens.
@@ -1084,7 +1084,6 @@ export const containerCommonBuildSpecKeys = memoize(() => ({
       See also https://docs.docker.com/build/building/secrets/
     `
     )
-    .custom(makeSecret)
     .example({
       mytoken: "supersecret",
     }),
