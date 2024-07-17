@@ -196,8 +196,8 @@ extraFlags:
 # The format is `os/arch`, e.g. `linux/amd64`, `linux/arm64`, etc.
 platforms:
 
-# Specify secret values that can be mounted during the build process but become part of the resulting image filesystem
-# or image manifest, for example private registry auth tokens.
+# Secret values that can be mounted in the Dockerfile, but do not become part of the image filesystem or image
+# manifest. This is useful e.g. for private registry auth tokens.
 #
 # Build arguments and environment variables are inappropriate for secrets, as they persist in the final image.
 #
@@ -1101,7 +1101,7 @@ The format is `os/arch`, e.g. `linux/amd64`, `linux/arm64`, etc.
 
 ### `secrets`
 
-Specify secret values that can be mounted during the build process but become part of the resulting image filesystem or image manifest, for example private registry auth tokens.
+Secret values that can be mounted in the Dockerfile, but do not become part of the image filesystem or image manifest. This is useful e.g. for private registry auth tokens.
 
 Build arguments and environment variables are inappropriate for secrets, as they persist in the final image.
 
