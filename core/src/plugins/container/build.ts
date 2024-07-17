@@ -282,7 +282,7 @@ export function getDockerSecrets(actionSpec: ContainerBuildActionSpec): {
     }
     if (!isSecret(secretValue)) {
       throw new InternalError({
-        message: "joi schema did not call makeSecret for every secret value."
+        message: "joi schema did not call makeSecret for every secret value.",
       })
     }
 

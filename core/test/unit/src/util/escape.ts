@@ -8,7 +8,8 @@
 
 import { expect } from "chai"
 import { commandListToShellScript } from "../../../../src/util/escape.js"
-import { makeSecret, Secret, toClearText } from "../../../../src/util/secrets.js"
+import type { Secret } from "../../../../src/util/secrets.js"
+import { makeSecret, toClearText } from "../../../../src/util/secrets.js"
 
 describe("commandListToShellScript", () => {
   it("transforms a list of command line arguments to a shell script", () => {
