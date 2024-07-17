@@ -5,7 +5,7 @@ title: Action (all fields) template context
 
 # Action (all fields) template context
 
-The below keys are available in template strings for **built-in fields**in action configs, i.e. everything except the `spec` field. Please see [here](./action-specs.md) for all the additional fields available under the `spec` field.
+The below keys are available in template strings for **built-in fields** in action configs, i.e. everything except the `spec` field. Please see [here](./action-specs.md) for all the additional fields available under the `spec` field.
 
 Actions can reference outputs defined by providers, via the `${providers.<provider-name>.outputs}` key. For details on which outputs are available for a given provider, please refer to the [reference](../providers/README.md) docs for the provider in question, and look for the _Outputs_ section.
 
