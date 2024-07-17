@@ -45,6 +45,7 @@ import { LogLevel } from "../../logger/logger.js"
 import { getResourceEvents } from "./status/events.js"
 import stringify from "json-stringify-safe"
 import { commandListToShellScript } from "../../util/escape.js"
+import { maybeSecret, type MaybeSecret, transformSecret } from "../../util/secrets.js"
 
 // ref: https://kubernetes.io/docs/reference/labels-annotations-taints/#kubectl-kubernetes-io-default-container
 export const K8_POD_DEFAULT_CONTAINER_ANNOTATION_KEY = "kubectl.kubernetes.io/default-container"
@@ -448,8 +449,8 @@ async function runWithoutArtifacts({
  * See https://stackoverflow.com/a/20564208
  * @param cmd the command to wrap
  */
-function getCommandExecutionScript(cmd: string[]) {
-  return `
+function getCommandExecutionScript(cmd: MaybeSecret[]) {
+  return maybeSecret`
 exec 1<&-
 exec 2<&-
 exec 1<>/tmp/output
@@ -482,12 +483,14 @@ function getArtifactsTarScript(artifacts: ArtifactSpec[]) {
     // Note: This works because `commandListToShellScript` wraps every parameter in single quotes, escaping contained single quotes.
     // The string `bin/*` will be transformed to `'bin/*'` by `commandListToShellScript`. The shell would treat `*` as literal and not expand it.
     // `replaceAll` transforms that string then to `'bin/'*''`, which allows the shell to expand the glob, everything else is treated as literal.
-    const escapedSource = commandListToShellScript({ command: [source] }).replaceAll("*", "'*'")
+    const escapedSource = transformSecret(commandListToShellScript({ command: [source] }), (s) =>
+      s.replaceAll("*", "'*'")
+    )
 
-    return `cp -r ${escapedSource} ${escapedTarget} >/dev/null || true`
+    return maybeSecret`cp -r ${escapedSource} ${escapedTarget} >/dev/null || true`
   })
 
-  return `
+  return maybeSecret`
 rm -rf ${tmpPath} >/dev/null || true
 mkdir -p ${tmpPath}
 cd ${tmpPath}
@@ -710,7 +713,7 @@ interface StartParams {
 }
 
 export type PodRunnerExecParams = StartParams & {
-  command: string[]
+  command: MaybeSecret[]
   containerName?: string
   stdout?: Writable
   stderr?: Writable

@@ -7,6 +7,7 @@
  */
 
 import { InternalError } from "../exceptions.js"
+import { joinSecrets, maybeSecret, type MaybeSecret, transformSecret } from "./secrets.js"
 
 /**
  * Wraps every parameter in single quotes, escaping contained single quotes (for use in bash scripts). Joins the elements with a space character.
@@ -60,23 +61,33 @@ import { InternalError } from "../exceptions.js"
  * @param command array of command line arguments
  * @returns string to be used as shell script statement to execute the given command.
  */
-export function commandListToShellScript({ command, env }: { command: string[]; env?: Record<string, string> }) {
-  const wrapInSingleQuotes = (s: string) => `'${s.replaceAll("'", `'"'"'`)}'`
+export function commandListToShellScript<C extends MaybeSecret[], E extends Record<string, MaybeSecret>>({
+  command,
+  env,
+}: {
+  command: C
+  env?: E
+}) {
+  const wrapInSingleQuotes = (s: MaybeSecret) =>
+    maybeSecret`'${transformSecret(s, (clearText) => clearText.replaceAll("'", `'"'"'`))}'`
 
-  const escapedCommand = command.map(wrapInSingleQuotes).join(" ")
+  const escapedCommand: MaybeSecret = joinSecrets(command.map(wrapInSingleQuotes), " ")
 
   const envVars = Object.entries(env || {})
   const escapedEnv =
     envVars.length > 0
-      ? envVars.map(([k, v]) => {
-          if (!k.match(/^[0-9a-zA-Z_]+$/)) {
-            throw new InternalError({
-              message: `Invalid environment variable name ${k}. Alphanumeric letters and underscores are allowed.`,
-            })
-          }
-          return `${k}=${wrapInSingleQuotes(v)}`
-        })
+      ? joinSecrets(
+          envVars.map(([k, v]) => {
+            if (!k.match(/^[0-9a-zA-Z_]+$/)) {
+              throw new InternalError({
+                message: `Invalid environment variable name ${k}. Alphanumeric letters and underscores are allowed.`,
+              })
+            }
+            return maybeSecret`${k}=${wrapInSingleQuotes(v)}`
+          }),
+          " "
+        )
       : undefined
 
-  return `${escapedEnv ? `${escapedEnv} ` : ""}${escapedCommand}`
+  return maybeSecret`${escapedEnv ? `${escapedEnv} ` : ""}${escapedCommand}`
 }

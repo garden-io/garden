@@ -29,6 +29,7 @@ import { cloudBuilder } from "./cloudbuilder.js"
 import { styles } from "../../logger/styles.js"
 import type { CloudBuilderAvailableV2 } from "../../cloud/api.js"
 import type { SpawnOutput } from "../../util/util.js"
+import { type Secret } from "../../util/secrets.js"
 
 export const validateContainerBuild: BuildActionHandler<"validate", ContainerBuildAction> = async ({ action }) => {
   // configure concurrency limit for build status task nodes.
@@ -268,10 +269,10 @@ export function getContainerBuildActionOutputs(action: Resolved<ContainerBuildAc
 
 export function getDockerSecrets(actionSpec: ContainerBuildActionSpec): {
   secretArgs: string[]
-  secretEnvVars: Record<string, string>
+  secretEnvVars: Record<string, Secret>
 } {
   const args: string[] = []
-  const env: Record<string, string> = {}
+  const env: Record<string, Secret> = {}
 
   for (const [secretKey, secretValue] of Object.entries(actionSpec.secrets || {})) {
     if (!secretKey.match(/^[a-zA-Z0-9\._-]+$/)) {

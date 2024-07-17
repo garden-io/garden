@@ -33,6 +33,7 @@ import type { Resolved } from "../../actions/types.js"
 import pMemoize from "../../lib/p-memoize.js"
 import { styles } from "../../logger/styles.js"
 import type { ContainerProviderConfig } from "./container.js"
+import { type MaybeSecret } from "../../util/secrets.js"
 
 const { readFile, pathExists, lstat } = fsExtra
 
@@ -392,7 +393,7 @@ const helpers = {
     stdout?: Writable
     stderr?: Writable
     timeout?: number
-    env?: { [key: string]: string }
+    env?: { [key: string]: MaybeSecret }
   }) {
     const docker = ctx.tools["container.docker"]
 

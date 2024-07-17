@@ -28,6 +28,7 @@ import { getDataDir, makeTestGarden } from "../../../../helpers.js"
 import fsExtra from "fs-extra"
 const { createFile } = fsExtra
 import { type ContainerBuildActionSpec } from "../../../../../src/plugins/container/config.js"
+import { makeSecret, toClearText } from "../../../../../src/util/secrets.js"
 
 context("build.ts", () => {
   const projectRoot = getDataDir("test-project-container")
@@ -87,14 +88,14 @@ context("build.ts", () => {
       const { secretArgs, secretEnvVars } = getDockerSecrets({
         ...baseSpec,
         secrets: {
-          "api-key.fruit-ninja.company.com": "banana",
+          "api-key.fruit-ninja.company.com": makeSecret("banana"),
         },
       })
       expect(secretArgs).to.eql([
         "--secret",
         "id=api-key.fruit-ninja.company.com,env=GARDEN_BUILD_SECRET_API_KEY_FRUIT_NINJA_COMPANY_COM",
       ])
-      expect(secretEnvVars).to.eql({
+      expect(toClearText(secretEnvVars)).to.eql({
         GARDEN_BUILD_SECRET_API_KEY_FRUIT_NINJA_COMPANY_COM: "banana",
       })
     })
@@ -103,8 +104,8 @@ context("build.ts", () => {
       const { secretArgs, secretEnvVars } = getDockerSecrets({
         ...baseSpec,
         secrets: {
-          "api-key": "banana",
-          "api_key": "apple",
+          "api-key": makeSecret("banana"),
+          "api_key": makeSecret("apple"),
         },
       })
       expect(secretArgs).to.eql([
@@ -113,7 +114,7 @@ context("build.ts", () => {
         "--secret",
         "id=api_key,env=GARDEN_BUILD_SECRET_API_KEY_2",
       ])
-      expect(secretEnvVars).to.eql({
+      expect(toClearText(secretEnvVars)).to.eql({
         GARDEN_BUILD_SECRET_API_KEY: "banana",
         GARDEN_BUILD_SECRET_API_KEY_2: "apple",
       })
@@ -124,8 +125,8 @@ context("build.ts", () => {
         getDockerSecrets({
           ...baseSpec,
           secrets: {
-            "not allowed": "banana",
-            "not-safe$(exec ls /)": "apple",
+            "not allowed": makeSecret("banana"),
+            "not-safe$(exec ls /)": makeSecret("apple"),
           },
         })
       ).throws(

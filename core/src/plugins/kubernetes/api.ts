@@ -71,6 +71,7 @@ import type { RequestOptions } from "http"
 import https from "node:https"
 import http from "node:http"
 import { ProxyAgent } from "proxy-agent"
+import { type MaybeSecret, toClearText } from "../../util/secrets.js"
 
 interface ApiGroupMap {
   [groupVersion: string]: V1APIGroup
@@ -876,7 +877,7 @@ export class KubeApi {
     namespace: string
     podName: string
     containerName: string
-    command: string[]
+    command: MaybeSecret[]
     stdout?: Writable
     stderr?: Writable
     stdin?: Readable
@@ -956,7 +957,7 @@ export class KubeApi {
               namespace,
               podName,
               containerName,
-              command,
+              command.map(toClearText),
               _stdout,
               _stderr,
               stdin || null,

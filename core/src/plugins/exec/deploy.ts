@@ -440,7 +440,7 @@ function runPersistent({
       ...getDefaultEnvVars(action),
       ...(env ? mapValues(env, (v) => v + "") : {}),
       ...getTracePropagationEnvVars(),
-    },
+    } as Record<string, string>,
     shell,
     cleanup: true,
     ...opts,

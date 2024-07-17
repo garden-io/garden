@@ -49,6 +49,7 @@ import { execa } from "execa"
 import corePackageJson from "../../package.json" with { type: "json" }
 import { makeDocsLinkStyled } from "../docs/common.js"
 import { getPlatform } from "./arch-platform.js"
+import { toClearText, type MaybeSecret } from "./secrets.js"
 
 export { apply as jsonMerge } from "json-merge-patch"
 
@@ -166,7 +167,7 @@ export function createOutputStream(log: Log, origin?: string) {
   return outputStream
 }
 
-function prepareEnv(env: NodeJS.ProcessEnv | undefined): NodeJS.ProcessEnv {
+export function prepareClearTextEnv(env: Record<string, MaybeSecret | undefined> | undefined): NodeJS.ProcessEnv {
   const envOverride =
     getPlatform() === "windows"
       ? {
@@ -175,15 +176,16 @@ function prepareEnv(env: NodeJS.ProcessEnv | undefined): NodeJS.ProcessEnv {
         }
       : {}
 
-  return {
+  return toClearText({
     ...(env || process.env),
     ...envOverride,
-  }
+  })
 }
 
-export interface ExecOpts extends ExecaOptions {
+export type ExecOpts = Omit<ExecaOptions, "env"> & {
   stdout?: Writable
   stderr?: Writable
+  environment?: Record<string, MaybeSecret | undefined>
 }
 
 /**
@@ -195,19 +197,17 @@ export interface ExecOpts extends ExecaOptions {
  * @throws RuntimeError on EMFILE (Too many open files)
  * @throws ChildProcessError on any other error condition
  */
-export async function exec(cmd: string, args: string[], opts: ExecOpts = {}) {
-  opts = {
+export async function exec(cmd: string, args: MaybeSecret[], opts: ExecOpts = {}) {
+  const proc = execa(cmd, args.map(toClearText), {
     cwd: process.cwd(),
     windowsHide: true,
-    ...opts,
-    env: prepareEnv(opts.env),
+    ...omit(opts, "stdout", "stderr"),
+    env: prepareClearTextEnv(opts.environment),
     // Ensure buffer is always set to true so that we can read the error output
     // Defaulting cwd to process.cwd() to avoid defaulting to a virtual path after packaging with pkg
     buffer: true,
     all: true,
-  }
-
-  const proc = execa(cmd, args, omit(opts, ["stdout", "stderr"]))
+  })
 
   opts.stdout && proc.stdout && proc.stdout.pipe(opts.stdout)
   opts.stderr && proc.stderr && proc.stderr.pipe(opts.stderr)
@@ -236,7 +236,8 @@ export async function exec(cmd: string, args: string[], opts: ExecOpts = {}) {
     if (isExecaError(err)) {
       throw new ChildProcessError({
         cmd,
-        args,
+        // toString redacts secret values, if args happens to contain any.
+        args: args.map((a) => a.toString()),
         code: err.exitCode,
         output: err.all || err.stdout || err.stderr || "",
         stderr: err.stderr || "",
@@ -254,7 +255,7 @@ export interface SpawnOpts {
   cwd?: string
   data?: Buffer
   ignoreError?: boolean
-  env?: { [key: string]: string | undefined }
+  env?: { [key: string]: MaybeSecret | undefined }
   rawMode?: boolean // Only used if tty = true. See also: https://nodejs.org/api/tty.html#tty_readstream_setrawmode_mode
   stdout?: Writable
   stderr?: Writable
@@ -294,7 +295,7 @@ export function spawn(cmd: string, args: string[], opts: SpawnOpts = {}) {
   } = opts
 
   const stdio = tty ? "inherit" : "pipe"
-  const proc = _spawn(cmd, args, { cwd, env: prepareEnv(env), stdio, windowsHide: true })
+  const proc = _spawn(cmd, args, { cwd, env: prepareClearTextEnv(env), stdio, windowsHide: true })
 
   const result: SpawnOutput = {
     code: 0,
@@ -644,7 +645,7 @@ export async function runScript({
   const result = await exec(script, [], {
     shell: true,
     cwd,
-    env,
+    environment: env,
     stdout: outputStream,
     stderr: errorStream,
   })

@@ -71,6 +71,7 @@ import { ConfigurationError } from "../../exceptions.js"
 import { gardenEnv } from "../../constants.js"
 import { styles } from "../../logger/styles.js"
 import { commandListToShellScript } from "../../util/escape.js"
+import { toClearText } from "../../util/secrets.js"
 
 export const builtInExcludes = ["/**/*.git", "**/*.garden"]
 
@@ -467,7 +468,8 @@ export async function configureSyncMode({
         command: [
           "/bin/sh",
           "-c",
-          commandListToShellScript({ command: ["cp", "/usr/local/bin/mutagen-agent", mutagenAgentPath] }),
+          // toClearText: The mutagen agent path isn't secret.
+          toClearText(commandListToShellScript({ command: ["cp", "/usr/local/bin/mutagen-agent", mutagenAgentPath] })),
         ],
         imagePullPolicy: "IfNotPresent",
         volumeMounts: [gardenVolumeMount],

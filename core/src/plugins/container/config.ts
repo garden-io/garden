@@ -32,6 +32,7 @@ import type Joi from "@hapi/joi"
 import type { OctalPermissionMask } from "../kubernetes/types.js"
 import { templateStringLiteral } from "../../docs/common.js"
 import { syncGuideLink } from "../kubernetes/constants.js"
+import { makeSecret, type Secret } from "../../util/secrets.js"
 
 export const defaultDockerfileName = "Dockerfile"
 
@@ -1013,7 +1014,7 @@ export interface ContainerBuildActionSpec {
   buildArgs: PrimitiveMap
   dockerfile: string
   extraFlags: string[]
-  secrets?: Record<string, string>
+  secrets?: Record<string, Secret>
   localId?: string
   publishId?: string
   targetStage?: string
@@ -1083,6 +1084,7 @@ export const containerCommonBuildSpecKeys = memoize(() => ({
       See also https://docs.docker.com/build/building/secrets/
     `
     )
+    .custom(makeSecret)
     .example({
       mytoken: "supersecret",
     }),

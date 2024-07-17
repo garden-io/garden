@@ -8,12 +8,20 @@
 
 import { expect } from "chai"
 import { commandListToShellScript } from "../../../../src/util/escape.js"
+import { makeSecret, Secret, toClearText } from "../../../../src/util/secrets.js"
 
 describe("commandListToShellScript", () => {
   it("transforms a list of command line arguments to a shell script", () => {
     const command = ["echo", "hello", "world"]
     const script = commandListToShellScript({ command })
     expect(script).to.equal("'echo' 'hello' 'world'")
+  })
+
+  it("protects secrets", () => {
+    const command = ["echo", "hello", makeSecret("secret")]
+    const script = commandListToShellScript({ command })
+    expect(script.toString()).to.equal("'echo' 'hello' '***'")
+    expect(toClearText(script)).to.equal("'echo' 'hello' 'secret'")
   })
 
   it("allows adding environment variables to shell script", () => {
@@ -66,6 +74,27 @@ describe("commandListToShellScript", () => {
 
     expect(() => commandListToShellScript({ command, env })).throws(
       "Invalid environment variable name INVALID_FRUIT${exec ls /}. Alphanumeric letters and underscores are allowed."
+    )
+  })
+
+  it("it can handle multiple env vars", () => {
+    const command = ["wake", "up", makeSecret("neo")]
+    const script = commandListToShellScript({
+      command,
+      env: {
+        VAR_1: "hello",
+        VAR_2: makeSecret("world"),
+        VAR_3: "where",
+        VAR_4: "am",
+        VAR_5: "I",
+      },
+    })
+    expect(script.toString()).to.equal("VAR_1='hello' VAR_2='***' VAR_3='where' VAR_4='am' VAR_5='I' 'wake' 'up' '***'")
+    expect((<Secret>script).unwrapSecretValue()).to.equal(
+      "VAR_1='hello' VAR_2='world' VAR_3='where' VAR_4='am' VAR_5='I' 'wake' 'up' 'neo'"
+    )
+    expect(toClearText(script)).to.equal(
+      "VAR_1='hello' VAR_2='world' VAR_3='where' VAR_4='am' VAR_5='I' 'wake' 'up' 'neo'"
     )
   })
 
