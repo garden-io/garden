@@ -1017,7 +1017,7 @@ jobs:
       k3sVersion:
         description: The k3s version to use
         type: string
-        default: v1.27.4+k3s1
+        default: v1.28.11-rc1+k3s2
       skipTests:
         description: Integ test groups to skip
         type: string
@@ -1365,10 +1365,9 @@ workflows:
       # tested, and that the most recent versions are broadly tested. The kind tests are the cheapest to run so we use many
       # of those, but they currently don't test in-cluster building, so we do need a range of versions on minikube as well.
       - test-k3s:
-          name: vm-1.27-k3s
+          name: vm-1.28-k3s
           requires: [build]
-          # version v1.27.4+k3s1 fails with this issue https://github.com/moby/moby/issues/45935
-          k3sVersion: v1.27.2+k3s1
+          k3sVersion: v1.28.11-rc1+k3s2
       - test-minikube:
           name: vm-1.28-minikube
           requires: [ build ]
