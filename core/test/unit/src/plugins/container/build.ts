@@ -142,6 +142,7 @@ context("build.ts", () => {
 
     function getCmdArgs(action: ResolvedBuildAction<BuildActionConfig<any, any>, any>, buildPath: string) {
       return [
+        "buildx",
         "build",
         "--build-arg",
         `GARDEN_MODULE_VERSION=${action.versionString()}`,
