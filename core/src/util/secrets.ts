@@ -61,6 +61,7 @@ export interface Secret {
    * Redacts secrets with three asterisks (***)
    */
   toString(): string
+
   /**
    * Gives access to the clear text.
    * Use toClearText if you are dealing with MaybeSecret values.
@@ -72,6 +73,7 @@ export interface Secret {
    */
   transformSecretValue(transformFn: (secretValue: string) => string): Secret
 }
+
 export type MaybeSecret = string | Secret
 
 /**
@@ -99,7 +101,7 @@ export function maybeSecret(
 ): MaybeSecret {
   const components = zip(nonSecrets, maybeSecrets)
     .flat()
-    .filter((s): s is MaybeSecret => s !== undefined)
+    .filter((s): s is MaybeSecret => s !== undefined || s !== "")
 
   if (!maybeSecrets.some((s) => isSecret(s))) {
     // None of the expressions evaluated to secrets. Let's call toString on all the components.
@@ -110,10 +112,17 @@ export function maybeSecret(
   return new CompoundSecret(components)
 }
 
-export function joinSecrets(s: Array<MaybeSecret>, separator: string): MaybeSecret {
-  return s.reduce<undefined | MaybeSecret>((previous, currentValue) => {
-    return maybeSecret`${previous ? maybeSecret`${previous}${separator}${currentValue}` : currentValue}`
-  }, undefined) as MaybeSecret
+export function joinSecrets(s: ReadonlyArray<MaybeSecret>, separator: string): MaybeSecret {
+  const result = s.reduce<undefined | MaybeSecret>((previous, currentValue) => {
+    if (previous !== undefined) {
+      return maybeSecret`${previous}${separator}${currentValue}`
+    } else {
+      return maybeSecret`${currentValue}`
+    }
+  }, undefined) as MaybeSecret | undefined
+
+  // join must return empty string in case of zero elements.
+  return result || ""
 }
 
 /////////// Private implementation details
@@ -175,6 +184,7 @@ class SecretValue extends BaseSecret<string> {
   public toString(): string {
     return "***"
   }
+
   public unwrapSecretValue(): string {
     return this.getSecretValue()
   }

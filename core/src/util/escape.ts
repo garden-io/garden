@@ -89,5 +89,9 @@ export function commandListToShellScript<C extends MaybeSecret[], E extends Reco
         )
       : undefined
 
-  return maybeSecret`${escapedEnv ? `${escapedEnv} ` : ""}${escapedCommand}`
+  if (escapedEnv) {
+    return maybeSecret`${escapedEnv} ${escapedCommand}`
+  } else {
+    return escapedCommand
+  }
 }
