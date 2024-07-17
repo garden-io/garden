@@ -3041,6 +3041,17 @@ describe("Garden", () => {
       expect(omit(test.internal, "yamlDoc")).to.eql(internal)
     })
 
+    it("should resolve disabled flag in actions and allow two actions with same key if one is disabled", async () => {
+      const garden = await makeTestGarden(getDataDir("test-projects", "disabled-action-with-duplicate-name"))
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+
+      // There are 2 'run-script' actions defined in the project, one per environment.
+      // This test uses 'local' environment, so the action for 'remote' environment should be disabled and skipped.
+      const runScript = graph.getRun("run-script")
+      expect(runScript.isDisabled()).to.be.false
+      expect(runScript.getConfig().spec.command).to.eql(["sh", "-c", "echo 'Hello from local'"])
+    })
+
     it("should resolve actions from templated config templates", async () => {
       const garden = await makeTestGarden(getDataDir("test-projects", "config-templates-with-templating"))
       await garden.scanAndAddConfigs()
