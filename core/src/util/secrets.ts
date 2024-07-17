@@ -117,7 +117,7 @@ export function joinSecrets(s: ReadonlyArray<MaybeSecret>, separator: string): M
     if (previous !== undefined) {
       return maybeSecret`${previous}${separator}${currentValue}`
     } else {
-      return maybeSecret`${currentValue}`
+      return currentValue
     }
   }, undefined) as MaybeSecret | undefined
 
