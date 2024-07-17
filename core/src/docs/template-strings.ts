@@ -61,7 +61,7 @@ const contexts: ContextSpec[] = [
     schema: ActionConfigContext.getSchema(),
     shortDescription: "Keys available for built-in fields on action configs.",
     longDescription:
-      "The below keys are available in template strings for **built-in fields**in action configs, i.e. everything except the `spec` field. Please see [here](./action-specs.md) for all the additional fields available under the `spec` field.\n\nActions can reference outputs defined by providers, via the `${providers.<provider-name>.outputs}` key. For details on which outputs are available for a given provider, please refer to the [reference](../providers/README.md) docs for the provider in question, and look for the _Outputs_ section.\n\nNote that the built-in config fields do not allow referencing other actions or modules, whereas it _is_ allowed under the `spec` field (see [here](./action-specs.md) for more details).",
+      "The below keys are available in template strings for **built-in fields** in action configs, i.e. everything except the `spec` field. Please see [here](./action-specs.md) for all the additional fields available under the `spec` field.\n\nActions can reference outputs defined by providers, via the `${providers.<provider-name>.outputs}` key. For details on which outputs are available for a given provider, please refer to the [reference](../providers/README.md) docs for the provider in question, and look for the _Outputs_ section.\n\nNote that the built-in config fields do not allow referencing other actions or modules, whereas it _is_ allowed under the `spec` field (see [here](./action-specs.md) for more details).",
   },
   {
     shortName: "Action spec",
