@@ -122,6 +122,7 @@ import {
   DefaultEnvironmentContext,
   ProjectConfigContext,
   RemoteSourceConfigContext,
+  TemplatableConfigContext,
 } from "./config/template-contexts/project.js"
 import type { CloudApi, CloudProject } from "./cloud/api.js"
 import { getGardenCloudDomain } from "./cloud/api.js"
@@ -172,7 +173,6 @@ import { styles } from "./logger/styles.js"
 import { renderDuration } from "./logger/util.js"
 import { getCloudDistributionName, getCloudLogSectionName } from "./util/cloud.js"
 import { makeDocsLinkStyled } from "./docs/common.js"
-import { ActionConfigContext } from "./config/template-contexts/actions.js"
 
 const defaultLocalAddress = "localhost"
 
@@ -1521,16 +1521,7 @@ export class Garden {
       return disabledFlag
     }
 
-    const context = new ActionConfigContext({
-      garden: this,
-      config,
-      thisContextParams: {
-        name: config.name,
-        // TODO: resolve this if necessary
-        mode: "default",
-      },
-      variables: this.variables,
-    })
+    const context = new TemplatableConfigContext(this, config)
 
     return resolveTemplateString({
       string: disabledFlag,
