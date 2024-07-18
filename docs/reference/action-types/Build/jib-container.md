@@ -387,6 +387,34 @@ The format is `os/arch`, e.g. `linux/amd64`, `linux/arm64`, etc.
 | --------------- | -------- |
 | `array[string]` | No       |
 
+### `spec.secrets`
+
+[spec](#spec) > secrets
+
+Secret values that can be mounted in the Dockerfile, but do not become part of the image filesystem or image manifest. This is useful e.g. for private registry auth tokens.
+
+Build arguments and environment variables are inappropriate for secrets, as they persist in the final image.
+
+The secret can later be consumed in the Dockerfile like so:
+```
+  RUN --mount=type=secret,id=mytoken TOKEN=$(cat /run/secrets/mytoken) ...
+```
+
+See also https://docs.docker.com/build/building/secrets/
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+Example:
+
+```yaml
+spec:
+  ...
+  secrets:
+      mytoken: supersecret
+```
+
 ### `spec.dockerfile`
 
 [spec](#spec) > dockerfile

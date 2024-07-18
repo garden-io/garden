@@ -75,7 +75,7 @@ export async function execRunCommand({
     ...opts,
     shell,
     cwd: action.getBuildPath(),
-    env: envVars,
+    environment: envVars,
     stdout: outputStream,
     stderr: outputStream,
   })

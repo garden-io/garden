@@ -91,6 +91,18 @@ export const kanikoBuild: BuildHandler = async (params) => {
   const projectNamespace = (await getNamespaceStatus({ log, ctx: k8sCtx, provider })).namespaceName
 
   const spec = action.getSpec()
+
+  if (spec.secrets) {
+    throw new ConfigurationError({
+      message: dedent`
+        Unfortunately Kaniko does not support secret build arguments.
+        Garden Cloud Builder and the Kubernetes BuildKit in-cluster builder both support secrets.
+
+        See also https://github.com/GoogleContainerTools/kaniko/issues/3028
+      `,
+    })
+  }
+
   const outputs = k8sGetContainerBuildActionOutputs({ provider, action })
 
   const localId = outputs.localImageId
@@ -318,7 +330,7 @@ export function getKanikoBuilderPodManifest({
             n=0
             until [ "$n" -ge 30 ]
             do
-              rsync ${commandListToShellScript(syncArgs)} && break
+              rsync ${commandListToShellScript({ command: syncArgs })} && break
               n=$((n+1))
               sleep 1
             done
@@ -352,9 +364,9 @@ export function getKanikoBuilderPodManifest({
           "/bin/sh",
           "-c",
           dedent`
-            ${commandListToShellScript(kanikoCommand)};
+            ${commandListToShellScript({ command: kanikoCommand })};
             export exitcode=$?;
-            ${commandListToShellScript(["touch", `${sharedMountPath}/done`])};
+            ${commandListToShellScript({ command: ["touch", `${sharedMountPath}/done`] })};
             exit $exitcode;
           `,
         ],

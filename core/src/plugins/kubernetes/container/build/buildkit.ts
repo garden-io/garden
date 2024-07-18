@@ -36,7 +36,7 @@ import {
 import { getNamespaceStatus } from "../../namespace.js"
 import { sleep } from "../../../../util/util.js"
 import type { ContainerBuildAction, ContainerModuleOutputs } from "../../../container/moduleConfig.js"
-import { getDockerBuildArgs } from "../../../container/build.js"
+import { getDockerBuildArgs, getDockerSecrets } from "../../../container/build.js"
 import type { Resolved } from "../../../../actions/types.js"
 import { PodRunner } from "../../run.js"
 import { prepareSecrets } from "../../secrets.js"
@@ -47,6 +47,7 @@ import { stringifyResources } from "../util.js"
 import { styles } from "../../../../logger/styles.js"
 import type { ResolvedBuildAction } from "../../../../actions/build.js"
 import { commandListToShellScript } from "../../../../util/escape.js"
+import { type MaybeSecret, maybeSecret } from "../../../../util/secrets.js"
 
 const AWS_ECR_REGEX = /^([^\.]+\.)?dkr\.ecr\.([^\.]+\.)amazonaws\.com\//i // AWS Elastic Container Registry
 
@@ -279,7 +280,9 @@ export function makeBuildkitBuildCommand({
   action: ResolvedBuildAction
   contextPath: string
   dockerfile: string
-}): string[] {
+}): MaybeSecret[] {
+  const { secretArgs, secretEnvVars } = getDockerSecrets(action.getSpec())
+
   const buildctlCommand = [
     "buildctl",
     "build",
@@ -290,6 +293,7 @@ export function makeBuildkitBuildCommand({
     "dockerfile=" + contextPath,
     "--opt",
     "filename=" + dockerfile,
+    ...secretArgs,
     ...getBuildkitImageFlags(
       provider.config.clusterBuildkit!.cache,
       outputs,
@@ -298,7 +302,11 @@ export function makeBuildkitBuildCommand({
     ...getBuildkitFlags(action),
   ]
 
-  return ["sh", "-c", `cd ${contextPath} && ${commandListToShellScript(buildctlCommand)}`]
+  return [
+    "sh",
+    "-c",
+    maybeSecret`cd ${contextPath} && ${commandListToShellScript({ command: buildctlCommand, env: secretEnvVars })}`,
+  ]
 }
 
 export function getBuildkitFlags(action: Resolved<ContainerBuildAction>) {

@@ -329,7 +329,7 @@ async function buildBinaries(args: string[]) {
     cwd: repoRoot,
     stdio: "inherit",
     // We have to pass the garden version explicitly to rollup due to an issue with the json() plugin loading the wrong package.json files
-    env: { GARDEN_CORE_VERSION: versionInBinary },
+    environment: { GARDEN_CORE_VERSION: versionInBinary },
   })
 
   await zipAndHash({

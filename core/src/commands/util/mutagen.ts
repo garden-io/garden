@@ -58,7 +58,7 @@ export class MutagenCommand extends Command<{}, {}> {
     const result = await exec(mutagenPath, args["$all"]?.slice(2) || [], {
       cwd: mutagenDir,
       stdio: "inherit",
-      env: {
+      environment: {
         MUTAGEN_DATA_DIRECTORY: mutagenDir,
       },
       reject: false,

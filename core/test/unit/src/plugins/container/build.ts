@@ -14,7 +14,11 @@ import type { ConfigGraph } from "../../../../../src/graph/config-graph.js"
 import type { ActionLog, Log } from "../../../../../src/logger/log-entry.js"
 import { createActionLog } from "../../../../../src/logger/log-entry.js"
 import type { PluginContext } from "../../../../../src/plugin-context.js"
-import { buildContainer, getContainerBuildStatus } from "../../../../../src/plugins/container/build.js"
+import {
+  buildContainer,
+  getContainerBuildStatus,
+  getDockerSecrets,
+} from "../../../../../src/plugins/container/build.js"
 import type { ContainerProvider } from "../../../../../src/plugins/container/container.js"
 import { gardenPlugin } from "../../../../../src/plugins/container/container.js"
 import { containerHelpers } from "../../../../../src/plugins/container/helpers.js"
@@ -23,6 +27,8 @@ import type { TestGarden } from "../../../../helpers.js"
 import { getDataDir, makeTestGarden } from "../../../../helpers.js"
 import fsExtra from "fs-extra"
 const { createFile } = fsExtra
+import { type ContainerBuildActionSpec } from "../../../../../src/plugins/container/config.js"
+import { makeSecret, toClearText } from "../../../../../src/util/secrets.js"
 
 context("build.ts", () => {
   const projectRoot = getDataDir("test-project-container")
@@ -64,6 +70,71 @@ context("build.ts", () => {
     })
   })
 
+  describe("getDockerSecrets", () => {
+    const baseSpec: ContainerBuildActionSpec = {
+      buildArgs: {},
+      extraFlags: [],
+      dockerfile: "Dockerfile",
+      secrets: undefined,
+    }
+
+    it("returns empty list of args when no secrets are declared", () => {
+      const { secretArgs, secretEnvVars } = getDockerSecrets(baseSpec)
+      expect(secretArgs).to.eql([])
+      expect(secretEnvVars).to.eql({})
+    })
+
+    it("returns correct args and env vars when secrets have been declared", () => {
+      const { secretArgs, secretEnvVars } = getDockerSecrets({
+        ...baseSpec,
+        secrets: {
+          "api-key.fruit-ninja.company.com": makeSecret("banana"),
+        },
+      })
+      expect(secretArgs).to.eql([
+        "--secret",
+        "id=api-key.fruit-ninja.company.com,env=GARDEN_BUILD_SECRET_API_KEY_FRUIT_NINJA_COMPANY_COM",
+      ])
+      expect(toClearText(secretEnvVars)).to.eql({
+        GARDEN_BUILD_SECRET_API_KEY_FRUIT_NINJA_COMPANY_COM: "banana",
+      })
+    })
+
+    it("handles ambiguous env var names", () => {
+      const { secretArgs, secretEnvVars } = getDockerSecrets({
+        ...baseSpec,
+        secrets: {
+          "api-key": makeSecret("banana"),
+          "api_key": makeSecret("apple"),
+        },
+      })
+      expect(secretArgs).to.eql([
+        "--secret",
+        "id=api-key,env=GARDEN_BUILD_SECRET_API_KEY",
+        "--secret",
+        "id=api_key,env=GARDEN_BUILD_SECRET_API_KEY_2",
+      ])
+      expect(toClearText(secretEnvVars)).to.eql({
+        GARDEN_BUILD_SECRET_API_KEY: "banana",
+        GARDEN_BUILD_SECRET_API_KEY_2: "apple",
+      })
+    })
+
+    it("validates secret key names", () => {
+      expect(() =>
+        getDockerSecrets({
+          ...baseSpec,
+          secrets: {
+            "not allowed": makeSecret("banana"),
+            "not-safe$(exec ls /)": makeSecret("apple"),
+          },
+        })
+      ).throws(
+        "Invalid secret ID 'not allowed'. Only alphanumeric characters (a-z, A-Z, 0-9), underscores (_), dashes (-) and dots (.) are allowed."
+      )
+    })
+  })
+
   describe("buildContainer", () => {
     beforeEach(() => {
       sinon.replace(containerHelpers, "checkDockerServerVersion", () => null)
@@ -71,6 +142,7 @@ context("build.ts", () => {
 
     function getCmdArgs(action: ResolvedBuildAction<BuildActionConfig<any, any>, any>, buildPath: string) {
       return [
+        "buildx",
         "build",
         "--build-arg",
         `GARDEN_MODULE_VERSION=${action.versionString()}`,

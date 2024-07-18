@@ -7,11 +7,11 @@
  */
 
 import { containerHelpers } from "./helpers.js"
-import { ConfigurationError, toGardenError } from "../../exceptions.js"
+import { ConfigurationError, InternalError, toGardenError } from "../../exceptions.js"
 import type { PrimitiveMap } from "../../config/common.js"
 import split2 from "split2"
 import type { BuildActionHandler } from "../../plugin/action-types.js"
-import type { ContainerBuildAction, ContainerBuildOutputs } from "./config.js"
+import type { ContainerBuildAction, ContainerBuildActionSpec, ContainerBuildOutputs } from "./config.js"
 import { defaultDockerfileName } from "./config.js"
 import { joinWithPosix } from "../../util/fs.js"
 import type { Resolved } from "../../actions/types.js"
@@ -29,6 +29,7 @@ import { cloudBuilder } from "./cloudbuilder.js"
 import { styles } from "../../logger/styles.js"
 import type { CloudBuilderAvailableV2 } from "../../cloud/api.js"
 import type { SpawnOutput } from "../../util/util.js"
+import { isSecret, type Secret } from "../../util/secrets.js"
 
 export const validateContainerBuild: BuildActionHandler<"validate", ContainerBuildAction> = async ({ action }) => {
   // configure concurrency limit for build status task nodes.
@@ -153,6 +154,9 @@ async function buildContainerLocally({
 
   const dockerFlags = [...getDockerBuildFlags(action, ctx.provider.config), ...extraDockerOpts]
 
+  const { secretArgs, secretEnvVars } = getDockerSecrets(action.getSpec())
+  dockerFlags.push(...secretArgs)
+
   // If there already is a --tag flag, another plugin like the Kubernetes plugin already decided how to tag the image.
   // In this case, we don't want to add another local tag.
   // TODO: it would be nice to find a better way to become aware of the parent plugin's concerns in the container plugin.
@@ -165,7 +169,7 @@ async function buildContainerLocally({
     }
   }
 
-  const cmdOpts = ["build", ...dockerFlags, "--file", dockerfilePath]
+  const cmdOpts = ["buildx", "build", ...dockerFlags, "--file", dockerfilePath]
   try {
     return await containerHelpers.dockerCli({
       cwd: buildPath,
@@ -175,6 +179,7 @@ async function buildContainerLocally({
       stderr: outputStream,
       timeout,
       ctx,
+      env: secretEnvVars,
     })
   } catch (e) {
     const error = toGardenError(e)
@@ -260,6 +265,43 @@ async function buildContainerInCloudBuilder(params: {
 
 export function getContainerBuildActionOutputs(action: Resolved<ContainerBuildAction>): ContainerBuildOutputs {
   return containerHelpers.getBuildActionOutputs(action, undefined)
+}
+
+export function getDockerSecrets(actionSpec: ContainerBuildActionSpec): {
+  secretArgs: string[]
+  secretEnvVars: Record<string, Secret>
+} {
+  const args: string[] = []
+  const env: Record<string, Secret> = {}
+
+  for (const [secretKey, secretValue] of Object.entries(actionSpec.secrets || {})) {
+    if (!secretKey.match(/^[a-zA-Z0-9\._-]+$/)) {
+      throw new ConfigurationError({
+        message: `Invalid secret ID '${secretKey}'. Only alphanumeric characters (a-z, A-Z, 0-9), underscores (_), dashes (-) and dots (.) are allowed.`,
+      })
+    }
+    if (!isSecret(secretValue)) {
+      throw new InternalError({
+        message: "joi schema did not call makeSecret for every secret value.",
+      })
+    }
+
+    // determine env var names. There can be name collisions due to the fact that we replace special characters with underscores.
+    let envVarname: string
+    let i = 1
+    do {
+      envVarname = `GARDEN_BUILD_SECRET_${secretKey.toUpperCase().replaceAll(/[-\.]/g, "_")}${i > 1 ? `_${i}` : ""}`
+      i += 1
+    } while (env[envVarname])
+
+    env[envVarname] = secretValue
+    args.push("--secret", `id=${secretKey},env=${envVarname}`)
+  }
+
+  return {
+    secretArgs: args,
+    secretEnvVars: env,
+  }
 }
 
 export function getDockerBuildFlags(

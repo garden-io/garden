@@ -33,6 +33,7 @@ import type { Resolved } from "../../actions/types.js"
 import pMemoize from "../../lib/p-memoize.js"
 import { styles } from "../../logger/styles.js"
 import type { ContainerProviderConfig } from "./container.js"
+import { type MaybeSecret } from "../../util/secrets.js"
 
 const { readFile, pathExists, lstat } = fsExtra
 
@@ -382,6 +383,7 @@ const helpers = {
     stdout,
     stderr,
     timeout,
+    env,
   }: {
     cwd: string
     args: string[]
@@ -391,6 +393,7 @@ const helpers = {
     stdout?: Writable
     stderr?: Writable
     timeout?: number
+    env?: { [key: string]: MaybeSecret }
   }) {
     const docker = ctx.tools["container.docker"]
 
@@ -398,7 +401,7 @@ const helpers = {
       const res = await docker.spawnAndWait({
         args,
         cwd,
-        env: { ...process.env, DOCKER_CLI_EXPERIMENTAL: "enabled" },
+        env,
         ignoreError,
         log,
         stdout,
