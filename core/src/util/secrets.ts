@@ -15,45 +15,16 @@ export function isSecret(s: unknown): s is Secret {
   return s !== null && typeof s === "object" && s["isSecretString"] === true
 }
 
-export type UnwrapSecret<T> =
-  T extends Record<string, infer Value>
-    ? Record<string, UnwrapSecret<Value>>
-    : T extends Array<infer Value>
-      ? UnwrapSecret<Value>
-      : T extends MaybeSecret
-        ? string
-        : T
-
-type OptionalMaybeSecret = MaybeSecret | undefined
-export type DeepMaybeSecret = OptionalMaybeSecret | OptionalMaybeSecret[] | { [key: string]: OptionalMaybeSecret }
-
-export function toClearText<T extends DeepMaybeSecret>(s: T): UnwrapSecret<T> {
-  if (isSecret(s)) {
-    return s.unwrapSecretValue() as UnwrapSecret<T>
-  }
-
-  // lodash isPlainObject implementation causes a type error
-  if (!!s && typeof s === "object" && s.constructor === Object) {
-    return Object.fromEntries(Object.entries(s).map(([k, v]) => [k, toClearText(v)])) as UnwrapSecret<T>
-  }
-
-  if (isArray(s)) {
-    return s.map(toClearText) as UnwrapSecret<T>
-  }
-
-  // it's a string or another type that doesn't need to be unwrapped
-  return s as UnwrapSecret<T>
-}
-
+/**
+ * Create an instance of Secret
+ * @example
+ *
+ * const secret = makeSecret("foo")
+ * console.log(secret) // => ***
+ * toClearText(secret) // => foo
+ */
 export function makeSecret(s: string): Secret {
   return new SecretValue(s)
-}
-
-export function transformSecret<T extends MaybeSecret>(s: T, transformFn: (s: string) => string): T {
-  if (isSecret(s)) {
-    return s.transformSecretValue(transformFn) as T
-  }
-  return transformFn(s) as T
 }
 
 export interface Secret {
@@ -64,7 +35,7 @@ export interface Secret {
 
   /**
    * Gives access to the clear text.
-   * Use toClearText if you are dealing with MaybeSecret values.
+   * Use {@link toClearText} if you are dealing with {@link MaybeSecret} values.
    */
   unwrapSecretValue(): string
 
@@ -77,13 +48,9 @@ export interface Secret {
 export type MaybeSecret = string | Secret
 
 /**
- * To be used as tagged string.
+ * To be used as tagged string, to concatenate secret and non-secret strings, protecting the secrets from leaking them accidentally.
  *
- * If none of the template expressions evaluate to a secret value, calling .toString()
- * will redact secrets to prevent accidentally leaking them e.g. in logs.
- *
- * Otherwise it will return a special instance of Secret that only blanks out the secrets
- * and leaves the rest as clear text; if we blank out too much then it will be harder to make sense of logs.
+ * Returns a {@link Secret} if any of the template expressions evaluate to a secret; Otherwise returns string.
  *
  * @example
  *
@@ -93,7 +60,7 @@ export type MaybeSecret = string | Secret
  * console.log(secretBanana) // => MY_ENV_VAR=***
  * console.log(regularBanana) // => MY_ENV_VAR=banana
  *
- * console.log(secretBanana.unwrapSecretValue()) // => MY_ENV_VAR=banana
+ * console.log(toClearText(secretBanana)) // => MY_ENV_VAR=banana
  */
 export function maybeSecret(
   nonSecrets: ReadonlyArray<string>,
@@ -123,6 +90,43 @@ export function joinSecrets(s: ReadonlyArray<MaybeSecret>, separator: string): M
 
   // join must return empty string in case of zero elements.
   return result || ""
+}
+
+type UnwrapSecret<T> =
+  T extends Record<string, infer Value>
+    ? Record<string, UnwrapSecret<Value>>
+    : T extends Array<infer Value>
+      ? UnwrapSecret<Value>
+      : T extends MaybeSecret
+        ? string
+        : T
+
+type OptionalMaybeSecret = MaybeSecret | undefined
+type DeepOptionalMaybeSecret = OptionalMaybeSecret | OptionalMaybeSecret[] | { [key: string]: OptionalMaybeSecret }
+
+export function toClearText<T extends DeepOptionalMaybeSecret>(s: T): UnwrapSecret<T> {
+  if (isSecret(s)) {
+    return s.unwrapSecretValue() as UnwrapSecret<T>
+  }
+
+  // lodash isPlainObject implementation causes a type error
+  if (!!s && typeof s === "object" && s.constructor === Object) {
+    return Object.fromEntries(Object.entries(s).map(([k, v]) => [k, toClearText(v)])) as UnwrapSecret<T>
+  }
+
+  if (isArray(s)) {
+    return s.map(toClearText) as UnwrapSecret<T>
+  }
+
+  // it's a string or another type that doesn't need to be unwrapped
+  return s as UnwrapSecret<T>
+}
+
+export function transformSecret<T extends MaybeSecret>(s: T, transformFn: (s: string) => string): T {
+  if (isSecret(s)) {
+    return s.transformSecretValue(transformFn) as T
+  }
+  return transformFn(s) as T
 }
 
 /////////// Private implementation details
