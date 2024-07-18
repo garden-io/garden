@@ -26,6 +26,7 @@ import { joinWithPosix } from "../../../../../src/util/fs.js"
 import type { TestGarden } from "../../../../helpers.js"
 import { getDataDir, makeTestGarden } from "../../../../helpers.js"
 import fsExtra from "fs-extra"
+
 const { createFile } = fsExtra
 import { type ContainerBuildActionSpec } from "../../../../../src/plugins/container/config.js"
 import { makeSecret, toClearText } from "../../../../../src/util/secrets.js"
@@ -142,7 +143,6 @@ context("build.ts", () => {
 
     function getCmdArgs(action: ResolvedBuildAction<BuildActionConfig<any, any>, any>, buildPath: string) {
       return [
-        "buildx",
         "build",
         "--build-arg",
         `GARDEN_MODULE_VERSION=${action.versionString()}`,
