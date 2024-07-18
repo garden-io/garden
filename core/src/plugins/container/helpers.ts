@@ -393,7 +393,7 @@ const helpers = {
     stdout?: Writable
     stderr?: Writable
     timeout?: number
-    env?: Record<string, MaybeSecret>
+    env?: Record<string, MaybeSecret | undefined>
   }) {
     const docker = ctx.tools["container.docker"]
 

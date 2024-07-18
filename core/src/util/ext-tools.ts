@@ -36,7 +36,7 @@ const lock = new AsyncLock()
 export interface ExecParams {
   args?: string[]
   cwd?: string
-  env?: Record<string, MaybeSecret>
+  env?: Record<string, MaybeSecret | undefined>
   log: Log
   timeoutSec?: number
   input?: Buffer | string
