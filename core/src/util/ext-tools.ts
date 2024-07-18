@@ -7,17 +7,15 @@
  */
 
 import fsExtra from "fs-extra"
-const { pathExists, createWriteStream, ensureDir, chmod, remove, move, createReadStream } = fsExtra
 import { InternalError } from "../exceptions.js"
-import { join, dirname, basename, posix } from "path"
+import { basename, dirname, join, posix } from "path"
 import { getArchitecture, getPlatform, isDarwinARM } from "./arch-platform.js"
-import { hashString, exec, prepareClearTextEnv } from "./util.js"
+import { exec, hashString, prepareClearTextEnv, spawn } from "./util.js"
 import tar from "tar"
 import { GARDEN_GLOBAL_PATH } from "../constants.js"
 import type { Log } from "../logger/log-entry.js"
 import { createHash } from "node:crypto"
 import crossSpawn from "cross-spawn"
-import { spawn } from "./util.js"
 import type { Writable } from "stream"
 import got from "got"
 import type { PluginToolSpec, ToolBuildSpec } from "../plugin/tools.js"
@@ -28,7 +26,9 @@ import { LogLevel } from "../logger/logger.js"
 import { uuidv4 } from "./random.js"
 import { streamLogs, waitForProcess } from "./process.js"
 import { pipeline } from "node:stream/promises"
-import { type MaybeSecret } from "./secrets.js"
+import type { MaybeSecret } from "./secrets.js"
+
+const { pathExists, createWriteStream, ensureDir, chmod, remove, move, createReadStream } = fsExtra
 
 const toolsPath = join(GARDEN_GLOBAL_PATH, "tools")
 const lock = new AsyncLock()
@@ -36,7 +36,7 @@ const lock = new AsyncLock()
 export interface ExecParams {
   args?: string[]
   cwd?: string
-  env?: { [key: string]: MaybeSecret }
+  env?: Record<string, MaybeSecret | undefined>
   log: Log
   timeoutSec?: number
   input?: Buffer | string
