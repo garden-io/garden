@@ -177,7 +177,8 @@ export function prepareClearTextEnv(env: Record<string, MaybeSecret | undefined>
       : {}
 
   return toClearText({
-    ...(env || process.env),
+    ...process.env,
+    ...(env || {}),
     ...envOverride,
   })
 }
