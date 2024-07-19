@@ -1,4 +1,28 @@
 
+<a name="0.13.35"></a>
+## [0.13.35](https://github.com/garden-io/garden/compare/0.13.34...0.13.35) (2024-07-18)
+
+### Bug Fixes
+
+* retain original process env when call `spawn` helper ([#6301](https://github.com/garden-io/garden/issues/6301)) ([593b3e426](https://github.com/garden-io/garden/commit/593b3e426))
+* resolve `disabled` action flag before duplicate action names validation ([#6293](https://github.com/garden-io/garden/issues/6293)) ([fa3da74b1](https://github.com/garden-io/garden/commit/fa3da74b1))
+* **examples:** mention in READMEs that build deps need to be set ([#6280](https://github.com/garden-io/garden/issues/6280)) ([cdbd6bd46](https://github.com/garden-io/garden/commit/cdbd6bd46))
+* **exec:** remove duplicate logging ([#6298](https://github.com/garden-io/garden/issues/6298)) ([02ef1766f](https://github.com/garden-io/garden/commit/02ef1766f))
+* **template:** use stricter context for `disabled` flag resolution ([#6295](https://github.com/garden-io/garden/issues/6295)) ([e8e0b8638](https://github.com/garden-io/garden/commit/e8e0b8638))
+
+### Bundled Tool Version Updates
+
+* **helm:** update version to 3.15.3 ([#6296](https://github.com/garden-io/garden/issues/6296)) ([d4a6807e6](https://github.com/garden-io/garden/commit/d4a6807e6))
+
+### Features
+
+* **container:** first-class BuildKit secrets support ([#6294](https://github.com/garden-io/garden/issues/6294)) ([9e1ac291b](https://github.com/garden-io/garden/commit/9e1ac291b))
+* **kubernetes:** plugin command to remove `garden-util` resources ([#6278](https://github.com/garden-io/garden/issues/6278)) ([4f8a2d6d2](https://github.com/garden-io/garden/commit/4f8a2d6d2))
+
+### Improvements
+
+* **cli:** display hint on missing action error ([#6279](https://github.com/garden-io/garden/issues/6279)) ([861a7eedd](https://github.com/garden-io/garden/commit/861a7eedd))
+
 <a name="0.13.34"></a>
 ## [0.13.34](https://github.com/garden-io/garden/compare/0.13.33...0.13.34) (2024-07-09)
 
