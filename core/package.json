@@ -42,7 +42,7 @@
     "@scg82/exit-hook": "^3.4.1",
     "@segment/analytics-node": "^2.1.2",
     "@types/ws": "^8.5.10",
-    "ajv": "^8.14.0",
+    "ajv": "^8.17.1",
     "ajv-formats": "^3.0.1",
     "archiver": "^7.0.1",
     "async": "^3.2.5",
