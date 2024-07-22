@@ -100,7 +100,7 @@
     "linewrap": "^0.2.1",
     "lodash-es": "^4.17.21",
     "log-symbols": "^6.0.0",
-    "lru-cache": "^10.2.0",
+    "lru-cache": "^11.0.0",
     "micromatch": "^4.0.7",
     "mimic-function": "^5.0.0",
     "minimatch": "^10.0.1",
