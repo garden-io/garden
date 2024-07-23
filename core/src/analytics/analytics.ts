@@ -389,7 +389,7 @@ export class AnalyticsHandler {
 
     if (cloudUser) {
       this.cloudUserId = AnalyticsHandler.makeCloudUserId(cloudUser)
-      this.cloudCustomerName = cloudUser.organization.name
+      this.cloudCustomerName = cloudUser.organization?.name
     }
 
     this.isRecurringUser = getIsRecurringUser(analyticsConfig.firstRunAt, analyticsConfig.latestRunAt)
@@ -400,7 +400,7 @@ export class AnalyticsHandler {
       anonymousId: anonymousUserId,
       traits: {
         userIdV2,
-        customer: cloudUser?.organization.name,
+        customer: cloudUser?.organization?.name,
         platform: platform(),
         platformVersion: release(),
         gardenVersion: getPackageVersion(),
@@ -544,7 +544,7 @@ export class AnalyticsHandler {
   }
 
   static makeCloudUserId(cloudUser: UserResult) {
-    return `${cloudUser.organization.name}_${cloudUser.id}`
+    return `${cloudUser.organization?.name}_${cloudUser.id}`
   }
 
   /**
