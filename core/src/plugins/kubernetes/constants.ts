@@ -13,8 +13,6 @@ import { makeDocsLinkPlain } from "../../docs/common.js"
 export const rsyncPortName = "garden-rsync"
 export const buildSyncVolumeName = `garden-sync`
 
-export const CLUSTER_REGISTRY_PORT = 5000
-export const CLUSTER_REGISTRY_DEPLOYMENT_NAME = "garden-docker-registry"
 export const MAX_CONFIGMAP_DATA_SIZE = 1024 * 1024 // max ConfigMap data size is 1MB
 // max ConfigMap data size is 1MB but we need to factor in overhead, plus in some cases the log is duplicated in
 // the outputs field, so we cap at 250kB.
@@ -45,6 +43,8 @@ export const k8sSyncUtilImageNameLegacy: DockerImageWithDigest =
   "gardendev/k8s-sync:0.1.5@sha256:28263cee5ac41acebb8c08f852c4496b15e18c0c94797d7a949a4453b5f91578"
 export const k8sSyncUtilImageName: DockerImageWithDigest =
   "gardendev/k8s-sync:0.2.1@sha256:90a583672c63e61031a036900753cb6a8a6b0b7dc20909e2abcc079a1120127b"
+
+export const k8sSyncUtilContainerName = "garden-sync-init"
 
 export function getK8sSyncUtilImageName(): DockerImageWithDigest {
   return gardenEnv.GARDEN_ENABLE_NEW_SYNC ? k8sSyncUtilImageName : k8sSyncUtilImageNameLegacy

@@ -213,14 +213,10 @@ class _MutagenMonitor extends TypedEventEmitter<MonitorEvents> {
       const mutagenOpts = [mutagenPath, "sync", "monitor", "--template", "{{ json . }}", "--long"]
       log.silly(() => `Spawning mutagen using respawn: "${mutagenOpts.join(" ")}"`)
 
-      const sshPath = await getMutagenSshPath(log)
-      if (sshPath) {
-        log.debug(`Mutagen will be used with the faux SSH transport located in ${sshPath}`)
-      }
       const proc = respawn(mutagenOpts, {
         cwd: dataDir,
         name: "mutagen",
-        env: getMutagenEnv({ dataDir, logLevel: "debug", sshPath }),
+        env: getMutagenEnv({ dataDir, logLevel: "debug" }, log),
         maxRestarts,
         sleep: 3000,
         kill: 500,
@@ -708,7 +704,7 @@ export class Mutagen {
           cwd: this.dataDir,
           args,
           log: this.log,
-          env: getMutagenEnv({ dataDir: this.dataDir }),
+          env: await getMutagenEnv({ dataDir: this.dataDir }, this.log),
         })
       } catch (err) {
         if (!(err instanceof ChildProcessError)) {
@@ -892,23 +888,23 @@ export function getMutagenDataDir({ ctx, log }: MutagenDaemonParams) {
  */
 type MutagenEnv = {
   MUTAGEN_DATA_DIRECTORY: string
-  MUTAGEN_LOG_LEVEL?: string
   MUTAGEN_SSH_PATH?: string
+  MUTAGEN_LOG_LEVEL?: string
 }
 
 type MutagenEnvValues = {
   dataDir: string
   logLevel?: string
-  sshPath?: string
 }
 
-export function getMutagenEnv({ dataDir, logLevel, sshPath }: MutagenEnvValues): MutagenEnv {
-  const env: MutagenEnv = { MUTAGEN_DATA_DIRECTORY: dataDir }
+export async function getMutagenEnv({ dataDir, logLevel }: MutagenEnvValues, log: Log): Promise<MutagenEnv> {
+  const sshPath = await getMutagenSshPath(log)
+  if (sshPath) {
+    log.debug(`Mutagen will be used with the faux SSH transport located in ${sshPath}`)
+  }
+  const env: MutagenEnv = { MUTAGEN_DATA_DIRECTORY: dataDir, MUTAGEN_SSH_PATH: sshPath }
   if (!!logLevel) {
     env.MUTAGEN_LOG_LEVEL = logLevel
-  }
-  if (!!sshPath) {
-    env.MUTAGEN_SSH_PATH = sshPath
   }
   return env
 }

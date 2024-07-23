@@ -58,7 +58,7 @@ import { isConfiguredForSyncMode } from "./status/status.js"
 import type { PluginContext } from "../../plugin-context.js"
 import type { SyncConfig, SyncSession } from "../../mutagen.js"
 import { haltedStatuses, Mutagen, mutagenAgentPath, mutagenStatusDescriptions } from "../../mutagen.js"
-import { getK8sSyncUtilImageName, syncGuideLink } from "./constants.js"
+import { getK8sSyncUtilImageName, k8sSyncUtilContainerName, syncGuideLink } from "./constants.js"
 import { isAbsolute, relative, resolve } from "path"
 import type { Resolved } from "../../actions/types.js"
 import { joinWithPosix } from "../../util/fs.js"
@@ -463,7 +463,7 @@ export async function configureSyncMode({
     const k8sSyncUtilImageName = getK8sSyncUtilImageName()
     if (!podSpec.initContainers.find((c) => c.image === k8sSyncUtilImageName)) {
       const initContainer = {
-        name: "garden-dev-init",
+        name: k8sSyncUtilContainerName,
         image: k8sSyncUtilImageName,
         command: [
           "/bin/sh",

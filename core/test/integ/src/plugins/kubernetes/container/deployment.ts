@@ -38,6 +38,7 @@ import { gardenAnnotationKey } from "../../../../../../src/util/string.js"
 import {
   getK8sSyncUtilImageName,
   k8sReverseProxyImageName,
+  k8sSyncUtilContainerName,
   PROXY_CONTAINER_SSH_TUNNEL_PORT,
   PROXY_CONTAINER_SSH_TUNNEL_PORT_NAME,
   PROXY_CONTAINER_USER_NAME,
@@ -444,13 +445,13 @@ describe("kubernetes container deployment handlers", () => {
 
       const initContainer = resource.spec.template?.spec?.initContainers![0]
       expect(initContainer).to.exist
-      expect(initContainer!.name).to.eq("garden-dev-init")
+      expect(initContainer!.name).to.eq(k8sSyncUtilContainerName)
       expect(initContainer!.volumeMounts).to.exist
       expect(initContainer!.volumeMounts![0]).to.eql({ name: "garden", mountPath: "/.garden" })
 
       expect(resource.spec.template?.spec?.initContainers).to.eql([
         {
-          name: "garden-dev-init",
+          name: k8sSyncUtilContainerName,
           image: getK8sSyncUtilImageName(),
           command: ["/bin/sh", "-c", "'cp' '/usr/local/bin/mutagen-agent' '/.garden/mutagen-agent'"],
           imagePullPolicy: "IfNotPresent",
