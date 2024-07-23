@@ -68,8 +68,8 @@ WORKDIR /project
 # garden-aws-base
 #
 FROM garden-base-root as garden-aws-base
-ENV AWSCLI_VERSION=2.16.0
-ENV AWSCLI_SHA256="e44efc8de54156d6d8c1d158c1976992f4045b85e550668ce4c6daf5d8777e2d"
+ENV AWSCLI_VERSION=2.17.15
+ENV AWSCLI_SHA256="422c6015aa372973d2631c561881f55b8dab11bbd3adab5ed179bb96d07f494c"
 
 RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64-${AWSCLI_VERSION}.zip" -o "awscliv2.zip"
 RUN echo "${AWSCLI_SHA256}  awscliv2.zip" | sha256sum -c
@@ -122,7 +122,7 @@ COPY --chown=$USER:root --from=garden-azure-base /usr/local/bin/kubelogin /usr/l
 # garden-aws
 #
 FROM garden-base as garden-aws
-ENV AWSCLI_VERSION=2.16.0
+ENV AWSCLI_VERSION=2.17.15
 # Copy aws cli
 RUN mkdir -p ${HOME}/aws-cli
 COPY --chown=$USER:root --from=garden-aws-base /usr/local/aws-cli ${HOME}/aws-cli
@@ -143,7 +143,7 @@ ENV PATH /google-cloud-sdk/bin:$PATH
 # garden-aws-gloud
 #
 FROM garden-base as garden-aws-gcloud
-ENV AWSCLI_VERSION=2.16.0
+ENV AWSCLI_VERSION=2.17.15
 
 # Copy aws cli
 RUN mkdir -p ${HOME}/aws-cli
@@ -160,7 +160,7 @@ ENV PATH /google-cloud-sdk/bin:$PATH
 # garden-aws-gloud-azure
 #
 FROM garden-base as garden-aws-gcloud-azure
-ENV AWSCLI_VERSION=2.16.0
+ENV AWSCLI_VERSION=2.17.15
 
 # Copy aws cli
 RUN mkdir -p ${HOME}/aws-cli

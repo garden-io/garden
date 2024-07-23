@@ -66,8 +66,8 @@ WORKDIR /project
 # Apline-3.20 seems to have some issues, see https://github.com/aws/aws-cli/issues/8698#issuecomment-2135662844
 FROM python:3.11.9-alpine3.19@sha256:794533313642577455aa046cf831ce6735337773617d3d5da35a54a851bd70c9 AS aws-builder
 
-ENV AWSCLI_VERSION=2.16.0
-ENV AWSCLI_SHA256="f6e15071a4327e57f0aa2b8f52a35b1378528b72cb68a586302ae7ae97087d05"
+ENV AWSCLI_VERSION=2.17.15
+ENV AWSCLI_SHA256="feab2d2afe0047385d5943b6e6dada6dc5304d334d1811528bde60f50e01557f"
 
 RUN apk add --no-cache \
   wget \
