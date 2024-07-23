@@ -12,6 +12,7 @@ import type { Log } from "../../src/logger/log-entry.js"
 import { GlobalConfigStore } from "../../src/config-store/global.js"
 import { uuidv4 } from "../../src/util/random.js"
 import type { StringMap } from "../../src/config/common.js"
+import type { GetProfileResponse } from "@garden-io/platform-api-types"
 
 export const apiProjectId = uuidv4()
 export const apiRemoteOriginUrl = "git@github.com:garden-io/garden.git"
@@ -28,7 +29,7 @@ export class FakeCloudApi extends CloudApi {
     })
   }
 
-  override async getProfile() {
+  override async getProfile(): Promise<GetProfileResponse["data"]> {
     return {
       id: "1",
       createdAt: new Date().toString(),
@@ -45,6 +46,8 @@ export class FakeCloudApi extends CloudApi {
       groups: [],
       meta: {},
       singleProjectId: "",
+      singleProjectOrgId: "",
+      organizations: [],
     }
   }
 
