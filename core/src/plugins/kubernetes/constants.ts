@@ -46,6 +46,8 @@ export const k8sSyncUtilImageNameLegacy: DockerImageWithDigest =
 export const k8sSyncUtilImageName: DockerImageWithDigest =
   "gardendev/k8s-sync:0.2.1@sha256:90a583672c63e61031a036900753cb6a8a6b0b7dc20909e2abcc079a1120127b"
 
+export const k8sSyncUtilContainerName = "garden-dev-init"
+
 export function getK8sSyncUtilImageName(): DockerImageWithDigest {
   return gardenEnv.GARDEN_ENABLE_NEW_SYNC ? k8sSyncUtilImageName : k8sSyncUtilImageNameLegacy
 }
