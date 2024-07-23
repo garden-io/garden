@@ -28,6 +28,7 @@ import type { ActionConfigMap } from "../actions/types.js"
 import { actionKinds } from "../actions/types.js"
 import { getResultErrorProperties } from "./helpers.js"
 import { Analytics } from "@segment/analytics-node"
+import type { CloudProject } from "../cloud/api.js"
 
 const CI_USER = "ci-user"
 
@@ -293,6 +294,7 @@ export class AnalyticsHandler {
     moduleConfigs,
     actionConfigs,
     cloudUser,
+    cloudProject,
     isEnabled,
     ciInfo,
     host,
@@ -305,6 +307,7 @@ export class AnalyticsHandler {
     actionConfigs: ActionConfigMap
     isEnabled: boolean
     cloudUser?: UserResult
+    cloudProject?: CloudProject
     ciInfo: CiInfo
     host?: string
   }) {
@@ -389,7 +392,10 @@ export class AnalyticsHandler {
 
     if (cloudUser) {
       this.cloudUserId = AnalyticsHandler.makeCloudUserId(cloudUser)
-      this.cloudCustomerName = cloudUser.organization.name
+    }
+
+    if (cloudProject) {
+      this.cloudCustomerName = cloudProject.organizationId
     }
 
     this.isRecurringUser = getIsRecurringUser(analyticsConfig.firstRunAt, analyticsConfig.latestRunAt)
@@ -400,7 +406,7 @@ export class AnalyticsHandler {
       anonymousId: anonymousUserId,
       traits: {
         userIdV2,
-        customer: cloudUser?.organization.name,
+        customer: cloudProject?.organizationId,
         platform: platform(),
         platformVersion: release(),
         gardenVersion: getPackageVersion(),
@@ -459,11 +465,18 @@ export class AnalyticsHandler {
     const actionConfigs = await garden.getRawActionConfigs()
 
     let cloudUser: UserResult | undefined
+    let cloudProject: CloudProject | undefined
     if (garden.cloudApi) {
       try {
-        cloudUser = await garden.cloudApi?.getProfile()
+        cloudUser = await garden.cloudApi.getProfile()
       } catch (err) {
         log.debug(`Getting profile from API failed with error: ${err}`)
+      }
+      try {
+        cloudProject =
+          garden.projectId === undefined ? undefined : await garden.cloudApi.getProjectById(garden.projectId)
+      } catch (err) {
+        log.debug(`Getting project from API failed with error: ${err}`)
       }
     }
 
@@ -513,6 +526,7 @@ export class AnalyticsHandler {
       moduleConfigs,
       actionConfigs,
       cloudUser,
+      cloudProject,
       isEnabled,
       ciInfo,
       anonymousUserId,
@@ -544,7 +558,7 @@ export class AnalyticsHandler {
   }
 
   static makeCloudUserId(cloudUser: UserResult) {
-    return `${cloudUser.organization.name}_${cloudUser.id}`
+    return `${cloudUser.organization?.name}_${cloudUser.id}`
   }
 
   /**
