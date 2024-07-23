@@ -13,8 +13,6 @@ import { makeDocsLinkPlain } from "../../docs/common.js"
 export const rsyncPortName = "garden-rsync"
 export const buildSyncVolumeName = `garden-sync`
 
-export const CLUSTER_REGISTRY_PORT = 5000
-export const CLUSTER_REGISTRY_DEPLOYMENT_NAME = "garden-docker-registry"
 export const MAX_CONFIGMAP_DATA_SIZE = 1024 * 1024 // max ConfigMap data size is 1MB
 // max ConfigMap data size is 1MB but we need to factor in overhead, plus in some cases the log is duplicated in
 // the outputs field, so we cap at 250kB.
