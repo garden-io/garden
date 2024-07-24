@@ -153,7 +153,7 @@ describe("AnalyticsHandler", () => {
       expect(infoMsg).to.exist
     })
     it("should NOT print an info message on subsequent runs", async () => {
-      // The existens of base config suggests it's not the first run
+      // The existence of base config suggests it's not the first run
       await garden.globalConfigStore.set("analytics", basicConfig)
       analytics = await AnalyticsHandler.factory({ host: mockServer.url, garden, ciInfo })
       const msgs = garden.log.root.getLogEntries().map((l) => resolveMsg(l))
