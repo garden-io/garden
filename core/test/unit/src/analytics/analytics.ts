@@ -11,7 +11,13 @@ import { validate as validateUuid } from "uuid"
 
 import type { TestGarden } from "../../../helpers.js"
 import { makeTestGardenA, enableAnalytics, getDataDir, makeTestGarden, freezeTime } from "../../../helpers.js"
-import { FakeCloudApi, apiProjectName, apiRemoteOriginUrl } from "../../../helpers/api.js"
+import {
+  FakeCloudApi,
+  apiProjectName,
+  apiRemoteOriginUrl,
+  apiProjectId,
+  fakeOrganizationId,
+} from "../../../helpers/api.js"
 import type { CommandResultEvent } from "../../../../src/analytics/analytics.js"
 import { AnalyticsHandler, getAnonymousUserId } from "../../../../src/analytics/analytics.js"
 import {
@@ -296,6 +302,9 @@ describe("AnalyticsHandler", () => {
       const mockedEndpoint = await mockServer.forPost("/v1/batch").thenReply(200)
       const now = freezeTime()
       await garden.globalConfigStore.set("analytics", basicConfig)
+      // set fake project id
+      garden.projectId = apiProjectId
+
       analytics = await AnalyticsHandler.factory({ host: mockServer.url, garden, ciInfo })
 
       await analytics.closeAndFlush()
@@ -310,7 +319,7 @@ describe("AnalyticsHandler", () => {
           anonymousId: "6d87dd61-0feb-4373-8c78-41cd010907e7",
           traits: {
             userIdV2: AnalyticsHandler.hashV2("6d87dd61-0feb-4373-8c78-41cd010907e7"),
-            customer: "garden",
+            customer: fakeOrganizationId,
             platform: body.batch[0].traits.platform,
             platformVersion: body.batch[0].traits.platformVersion,
             gardenVersion: body.batch[0].traits.gardenVersion,

@@ -14,6 +14,7 @@ import { uuidv4 } from "../../src/util/random.js"
 import type { StringMap } from "../../src/config/common.js"
 import type { GetProfileResponse } from "@garden-io/platform-api-types"
 
+export const fakeOrganizationId = uuidv4()
 export const apiProjectId = uuidv4()
 export const apiRemoteOriginUrl = "git@github.com:garden-io/garden.git"
 // The sha512 hash of "test-project-a"
@@ -56,7 +57,7 @@ export class FakeCloudApi extends CloudApi {
       id: apiProjectId,
       name,
       repositoryUrl: apiRemoteOriginUrl,
-      organizationId: uuidv4(),
+      organizationId: fakeOrganizationId,
       environments: [],
     }
   }
@@ -66,7 +67,7 @@ export class FakeCloudApi extends CloudApi {
       id: apiProjectId,
       name,
       repositoryUrl: apiRemoteOriginUrl,
-      organizationId: uuidv4(),
+      organizationId: fakeOrganizationId,
       environments: [],
     }
   }
@@ -76,7 +77,7 @@ export class FakeCloudApi extends CloudApi {
       id: apiProjectId,
       name: apiProjectName,
       repositoryUrl: apiRemoteOriginUrl,
-      organizationId: uuidv4(),
+      organizationId: fakeOrganizationId,
       environments: [],
     }
   }
