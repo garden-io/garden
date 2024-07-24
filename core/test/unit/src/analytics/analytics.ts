@@ -315,7 +315,7 @@ describe("AnalyticsHandler", () => {
       const body = (await seenRequests[0].body.getJson()) as any
       expect(body.batch).to.eql([
         {
-          userId: "garden_1", // This is the imporant part
+          userId: `${dummyOrganization.name}_1`, // This is the important part
           anonymousId: "6d87dd61-0feb-4373-8c78-41cd010907e7",
           traits: {
             userIdV2: AnalyticsHandler.hashV2("6d87dd61-0feb-4373-8c78-41cd010907e7"),
