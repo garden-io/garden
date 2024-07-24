@@ -150,11 +150,16 @@ export interface CloudEnvironment {
   name: string
 }
 
+export interface CloudOrganization {
+  id: string
+  name: string
+}
+
 // Represents a cloud project
 export interface CloudProject {
   id: string
   name: string
-  organizationId: string
+  organization: CloudOrganization
   repositoryUrl: string
   environments: CloudEnvironment[]
 }
@@ -175,7 +180,7 @@ function toCloudProject(project: GetProjectResponse["data"] | CreateProjectsForR
   return {
     id: project.id,
     name: project.name,
-    organizationId: project.organization.id,
+    organization: { id: project.organization.id, name: project.organization.name },
     repositoryUrl: project.repositoryUrl,
     environments,
   }

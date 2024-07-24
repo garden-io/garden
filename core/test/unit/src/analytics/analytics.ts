@@ -16,7 +16,7 @@ import {
   apiProjectName,
   apiRemoteOriginUrl,
   apiProjectId,
-  fakeOrganizationId,
+  dummyOrganization,
 } from "../../../helpers/api.js"
 import type { CommandResultEvent } from "../../../../src/analytics/analytics.js"
 import { AnalyticsHandler, getAnonymousUserId } from "../../../../src/analytics/analytics.js"
@@ -319,7 +319,7 @@ describe("AnalyticsHandler", () => {
           anonymousId: "6d87dd61-0feb-4373-8c78-41cd010907e7",
           traits: {
             userIdV2: AnalyticsHandler.hashV2("6d87dd61-0feb-4373-8c78-41cd010907e7"),
-            customer: fakeOrganizationId,
+            customer: dummyOrganization.name,
             platform: body.batch[0].traits.platform,
             platformVersion: body.batch[0].traits.platformVersion,
             gardenVersion: body.batch[0].traits.gardenVersion,

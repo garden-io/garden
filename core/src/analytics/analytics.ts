@@ -395,7 +395,7 @@ export class AnalyticsHandler {
     }
 
     if (cloudProject) {
-      this.cloudCustomerName = cloudProject.organizationId
+      this.cloudCustomerName = cloudProject.organization.name
     }
 
     this.isRecurringUser = getIsRecurringUser(analyticsConfig.firstRunAt, analyticsConfig.latestRunAt)
@@ -406,7 +406,7 @@ export class AnalyticsHandler {
       anonymousId: anonymousUserId,
       traits: {
         userIdV2,
-        customer: cloudProject?.organizationId,
+        customer: cloudProject?.organization.name,
         platform: platform(),
         platformVersion: release(),
         gardenVersion: getPackageVersion(),

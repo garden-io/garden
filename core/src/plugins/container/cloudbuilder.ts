@@ -106,7 +106,7 @@ export const cloudBuilder = {
     const { publicKeyPem } = await getMtlsKeyPair()
 
     const res = await ctx.cloudApi.registerCloudBuilderBuild({
-      organizationId: (await ctx.cloudApi.getProjectById(ctx.projectId)).organizationId,
+      organizationId: (await ctx.cloudApi.getProjectById(ctx.projectId)).organization.id,
       actionUid: action.uid,
       actionName: action.name,
       actionVersion: action.getFullVersion().toString(),
