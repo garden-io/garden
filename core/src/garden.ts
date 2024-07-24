@@ -598,7 +598,7 @@ export class Garden {
 
   @pMemoizeDecorator()
   async getAnalyticsHandler() {
-    return AnalyticsHandler.init(this, this.log)
+    return AnalyticsHandler.init(this)
   }
 
   // TODO: would be nice if this returned a type based on the input tasks

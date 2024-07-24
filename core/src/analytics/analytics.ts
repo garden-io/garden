@@ -251,7 +251,7 @@ const SEGMENT_HOST = "https://api.segment.io"
  * prompt for opt-in/opt-out and wrappers for single events.
  *
  * Initalization:
- * const analyticsClient = await AnalyticsHandler.init(garden: Garden, log: LogEntry)
+ * const analyticsClient = await AnalyticsHandler.init(garden: Garden)
  * analyticsClient.trackCommand(commandName)
  *
  * Subsequent usage:
@@ -418,7 +418,7 @@ export class AnalyticsHandler {
     })
   }
 
-  static async init(garden: Garden, log: Log) {
+  static async init(garden: Garden) {
     // Ensure that we re-initialize the analytics metadata when switching projects
     if (!AnalyticsHandler.instance || AnalyticsHandler.instance.garden?.projectName !== garden.projectName) {
       // We're passing this explicitly to that it's easier to overwrite and test
@@ -428,7 +428,7 @@ export class AnalyticsHandler {
         ciName: ci.name,
       }
 
-      AnalyticsHandler.instance = await AnalyticsHandler.factory({ garden, log, ciInfo })
+      AnalyticsHandler.instance = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo })
     } else {
       /**
        * This init is called from within the do while loop in the cli
