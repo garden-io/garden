@@ -11,8 +11,8 @@ import { platform, release } from "os"
 import ci from "ci-info"
 import { uniq } from "lodash-es"
 import type { AnalyticsGlobalConfig } from "../config-store/global.js"
-import { getPackageVersion, getDurationMsec } from "../util/util.js"
-import { SEGMENT_PROD_API_KEY, SEGMENT_DEV_API_KEY, gardenEnv } from "../constants.js"
+import { getDurationMsec, getPackageVersion } from "../util/util.js"
+import { gardenEnv, SEGMENT_DEV_API_KEY, SEGMENT_PROD_API_KEY } from "../constants.js"
 import type { Log } from "../logger/log-entry.js"
 import { hashSync } from "hasha"
 import type { Garden } from "../garden.js"
@@ -390,13 +390,8 @@ export class AnalyticsHandler {
       this.enterpriseDomainV2 = AnalyticsHandler.hashV2(enterpriseDomain)
     }
 
-    if (cloudUser) {
-      this.cloudUserId = AnalyticsHandler.makeCloudUserId(cloudUser)
-    }
-
-    if (cloudProject) {
-      this.cloudCustomerName = cloudProject.organization.name
-    }
+    this.cloudCustomerName = cloudProject?.organization.name || cloudUser?.organization?.name
+    this.cloudUserId = cloudUser ? `${this.cloudCustomerName ?? "[no project]"}_${cloudUser.id}` : undefined
 
     this.isRecurringUser = getIsRecurringUser(analyticsConfig.firstRunAt, analyticsConfig.latestRunAt)
 
@@ -406,7 +401,7 @@ export class AnalyticsHandler {
       anonymousId: anonymousUserId,
       traits: {
         userIdV2,
-        customer: cloudProject?.organization.name,
+        customer: this.cloudCustomerName,
         platform: platform(),
         platformVersion: release(),
         gardenVersion: getPackageVersion(),
@@ -556,10 +551,6 @@ export class AnalyticsHandler {
     if (AnalyticsHandler.instance) {
       AnalyticsHandler.instance.garden = garden
     }
-  }
-
-  static makeCloudUserId(cloudUser: UserResult) {
-    return `${cloudUser.organization?.name}_${cloudUser.id}`
   }
 
   /**
