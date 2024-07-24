@@ -220,13 +220,20 @@ export function Profile(profiler?: Profiler) {
     }
 
     for (const propertyName of Object.getOwnPropertyNames(target.prototype)) {
-      const propertyValue = target.prototype[propertyName]
-      const isMethod = propertyValue instanceof Function
-      if (!isMethod) {
-        continue
+      const propertyDescriptor = Object.getOwnPropertyDescriptor(target.prototype, propertyName)
+      if (propertyDescriptor) {
+        const isGetter = propertyDescriptor.get
+        const isSetter = propertyDescriptor.set
+        if (!isGetter && !isSetter) {
+          const propertyValue = target.prototype[propertyName]
+          const isMethod = propertyValue instanceof Function
+          if (!isMethod) {
+            continue
+          }
+        }
       }
 
-      const descriptor = Object.getOwnPropertyDescriptor(target.prototype, propertyName)!
+      const descriptor = propertyDescriptor!
       const originalMethod = descriptor.get || descriptor.value
 
       const timingKey = `${target.name}#${propertyName}`
