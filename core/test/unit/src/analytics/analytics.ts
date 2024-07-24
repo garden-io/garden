@@ -90,7 +90,7 @@ describe("AnalyticsHandler", () => {
       expect(currentConfig).to.eql({})
 
       const now = freezeTime()
-      analytics = await AnalyticsHandler.factory({ host: mockServer.url, garden, log: garden.log, ciInfo })
+      analytics = await AnalyticsHandler.factory({ host: mockServer.url, garden, ciInfo })
 
       const newConfig = await garden.globalConfigStore.get("analytics")
       expect(newConfig.anonymousUserId).to.be.a("string")
@@ -103,7 +103,7 @@ describe("AnalyticsHandler", () => {
     })
     it("should create a valid anonymous user ID on first run", async () => {
       await garden.globalConfigStore.set("analytics", {})
-      analytics = await AnalyticsHandler.factory({ host: mockServer.url, garden, log: garden.log, ciInfo })
+      analytics = await AnalyticsHandler.factory({ host: mockServer.url, garden, ciInfo })
 
       const config = await garden.globalConfigStore.get("analytics")
 
@@ -111,7 +111,7 @@ describe("AnalyticsHandler", () => {
     })
     it("should set user ID to ci-user if in CI", async () => {
       await garden.globalConfigStore.set("analytics", {})
-      analytics = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo: { isCi: true, ciName: "foo" } })
+      analytics = await AnalyticsHandler.factory({ garden, ciInfo: { isCi: true, ciName: "foo" } })
 
       const config = await garden.globalConfigStore.get("analytics")
 
@@ -119,7 +119,7 @@ describe("AnalyticsHandler", () => {
     })
     it("should not override anonymous user ID on subsequent runs", async () => {
       await garden.globalConfigStore.set("analytics", basicConfig)
-      analytics = await AnalyticsHandler.factory({ host: mockServer.url, garden, log: garden.log, ciInfo })
+      analytics = await AnalyticsHandler.factory({ host: mockServer.url, garden, ciInfo })
 
       const config = await garden.globalConfigStore.get("analytics")
       expect(config.anonymousUserId).to.eql(basicConfig.anonymousUserId)
@@ -127,7 +127,7 @@ describe("AnalyticsHandler", () => {
     it("should update the analytics config if it already exists", async () => {
       await garden.globalConfigStore.set("analytics", basicConfig)
       const now = freezeTime()
-      analytics = await AnalyticsHandler.factory({ host: mockServer.url, garden, log: garden.log, ciInfo })
+      analytics = await AnalyticsHandler.factory({ host: mockServer.url, garden, ciInfo })
 
       const config = await garden.globalConfigStore.get("analytics")
       expect(config).to.eql({
@@ -140,7 +140,7 @@ describe("AnalyticsHandler", () => {
     })
     it("should print an info message if first Garden run", async () => {
       await garden.globalConfigStore.set("analytics", {})
-      analytics = await AnalyticsHandler.factory({ host: mockServer.url, garden, log: garden.log, ciInfo })
+      analytics = await AnalyticsHandler.factory({ host: mockServer.url, garden, ciInfo })
       const msgs = garden.log.root.getLogEntries().map((l) => resolveMsg(l))
       const infoMsg = msgs.find((msg) => msg?.includes("Thanks for installing Garden!"))
 
@@ -149,7 +149,7 @@ describe("AnalyticsHandler", () => {
     it("should NOT print an info message on subsequent runs", async () => {
       // The existens of base config suggests it's not the first run
       await garden.globalConfigStore.set("analytics", basicConfig)
-      analytics = await AnalyticsHandler.factory({ host: mockServer.url, garden, log: garden.log, ciInfo })
+      analytics = await AnalyticsHandler.factory({ host: mockServer.url, garden, ciInfo })
       const msgs = garden.log.root.getLogEntries().map((l) => resolveMsg(l))
       const infoMsg = msgs.find((msg) => msg?.includes("Thanks for installing Garden!"))
 
@@ -160,7 +160,7 @@ describe("AnalyticsHandler", () => {
 
       const now = freezeTime()
       await garden.globalConfigStore.set("analytics", basicConfig)
-      analytics = await AnalyticsHandler.factory({ host: mockServer.url, garden, log: garden.log, ciInfo })
+      analytics = await AnalyticsHandler.factory({ host: mockServer.url, garden, ciInfo })
 
       await analytics.closeAndFlush()
 
@@ -207,7 +207,7 @@ describe("AnalyticsHandler", () => {
         ...basicConfig,
         optedOut: true,
       })
-      analytics = await AnalyticsHandler.factory({ host: mockServer.url, garden, log: garden.log, ciInfo })
+      analytics = await AnalyticsHandler.factory({ host: mockServer.url, garden, ciInfo })
       await analytics.closeAndFlush()
 
       expect(analytics.isEnabled).to.equal(false)
@@ -217,7 +217,7 @@ describe("AnalyticsHandler", () => {
     })
     it("should be enabled by default", async () => {
       await garden.globalConfigStore.set("analytics", basicConfig)
-      analytics = await AnalyticsHandler.factory({ host: mockServer.url, garden, log: garden.log, ciInfo })
+      analytics = await AnalyticsHandler.factory({ host: mockServer.url, garden, ciInfo })
 
       expect(analytics.isEnabled).to.be.true
     })
@@ -225,7 +225,7 @@ describe("AnalyticsHandler", () => {
       const originalEnvVar = gardenEnv.GARDEN_DISABLE_ANALYTICS
       gardenEnv.GARDEN_DISABLE_ANALYTICS = true
       await garden.globalConfigStore.set("analytics", basicConfig)
-      analytics = await AnalyticsHandler.factory({ host: mockServer.url, garden, log: garden.log, ciInfo })
+      analytics = await AnalyticsHandler.factory({ host: mockServer.url, garden, ciInfo })
 
       gardenEnv.GARDEN_DISABLE_ANALYTICS = originalEnvVar
 
@@ -236,7 +236,7 @@ describe("AnalyticsHandler", () => {
         ...basicConfig,
         optedOut: true,
       })
-      analytics = await AnalyticsHandler.factory({ host: mockServer.url, garden, log: garden.log, ciInfo })
+      analytics = await AnalyticsHandler.factory({ host: mockServer.url, garden, ciInfo })
 
       expect(analytics.isEnabled).to.be.false
     })
@@ -264,7 +264,7 @@ describe("AnalyticsHandler", () => {
       await garden.globalConfigStore.set("analytics", basicConfig)
 
       const now = freezeTime()
-      analytics = await AnalyticsHandler.factory({ host: mockServer.url, garden, log: garden.log, ciInfo })
+      analytics = await AnalyticsHandler.factory({ host: mockServer.url, garden, ciInfo })
 
       const newConfig = await garden.globalConfigStore.get("analytics")
       expect(newConfig).to.eql({
@@ -277,14 +277,14 @@ describe("AnalyticsHandler", () => {
     })
     it("should be enabled unless env var for disabling is set", async () => {
       await garden.globalConfigStore.set("analytics", basicConfig)
-      analytics = await AnalyticsHandler.factory({ host: mockServer.url, garden, log: garden.log, ciInfo })
+      analytics = await AnalyticsHandler.factory({ host: mockServer.url, garden, ciInfo })
       const isEnabledWhenNoEnvVar = analytics.isEnabled
 
       const originalEnvVar = gardenEnv.GARDEN_DISABLE_ANALYTICS
       gardenEnv.GARDEN_DISABLE_ANALYTICS = true
       // Create a fresh instance after setting env var
       AnalyticsHandler.clearInstance()
-      analytics = await AnalyticsHandler.factory({ host: mockServer.url, garden, log: garden.log, ciInfo })
+      analytics = await AnalyticsHandler.factory({ host: mockServer.url, garden, ciInfo })
       const isEnabledWhenEnvVar = analytics.isEnabled
 
       gardenEnv.GARDEN_DISABLE_ANALYTICS = originalEnvVar
@@ -296,7 +296,7 @@ describe("AnalyticsHandler", () => {
       const mockedEndpoint = await mockServer.forPost("/v1/batch").thenReply(200)
       const now = freezeTime()
       await garden.globalConfigStore.set("analytics", basicConfig)
-      analytics = await AnalyticsHandler.factory({ host: mockServer.url, garden, log: garden.log, ciInfo })
+      analytics = await AnalyticsHandler.factory({ host: mockServer.url, garden, ciInfo })
 
       await analytics.closeAndFlush()
 
@@ -335,7 +335,7 @@ describe("AnalyticsHandler", () => {
       const originalEnvVar = gardenEnv.GARDEN_DISABLE_ANALYTICS
       gardenEnv.GARDEN_DISABLE_ANALYTICS = true
       await garden.globalConfigStore.set("analytics", basicConfig)
-      analytics = await AnalyticsHandler.factory({ host: mockServer.url, garden, log: garden.log, ciInfo })
+      analytics = await AnalyticsHandler.factory({ host: mockServer.url, garden, ciInfo })
       gardenEnv.GARDEN_DISABLE_ANALYTICS = originalEnvVar
       await analytics.closeAndFlush()
 
@@ -363,7 +363,7 @@ describe("AnalyticsHandler", () => {
 
       await garden.globalConfigStore.set("analytics", basicConfig)
       const now = freezeTime()
-      analytics = await AnalyticsHandler.factory({ host: mockServer.url, garden, log: garden.log, ciInfo })
+      analytics = await AnalyticsHandler.factory({ host: mockServer.url, garden, ciInfo })
       const event = analytics.trackCommand("testCommand")
 
       expect(event).to.eql({
@@ -408,7 +408,7 @@ describe("AnalyticsHandler", () => {
 
       await garden.globalConfigStore.set("analytics", basicConfig)
       const now = freezeTime()
-      analytics = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo: { isCi: true, ciName: "foo" } })
+      analytics = await AnalyticsHandler.factory({ garden, ciInfo: { isCi: true, ciName: "foo" } })
       const event = analytics.trackCommand("testCommand")
 
       expect(event).to.eql({
@@ -469,7 +469,7 @@ describe("AnalyticsHandler", () => {
 
       await garden.globalConfigStore.set("analytics", basicConfig)
       const now = freezeTime()
-      analytics = await AnalyticsHandler.factory({ host: mockServer.url, garden, log: garden.log, ciInfo })
+      analytics = await AnalyticsHandler.factory({ host: mockServer.url, garden, ciInfo })
 
       const event = analytics.trackCommand("testCommand")
 
@@ -519,7 +519,7 @@ describe("AnalyticsHandler", () => {
 
       await garden.globalConfigStore.set("analytics", basicConfig)
       const now = freezeTime()
-      analytics = await AnalyticsHandler.factory({ host: mockServer.url, garden, log: garden.log, ciInfo })
+      analytics = await AnalyticsHandler.factory({ host: mockServer.url, garden, ciInfo })
 
       const event = analytics.trackCommand("testCommand")
 
@@ -569,7 +569,7 @@ describe("AnalyticsHandler", () => {
 
       await garden.globalConfigStore.set("analytics", basicConfig)
       const now = freezeTime()
-      analytics = await AnalyticsHandler.factory({ host: mockServer.url, garden, log: garden.log, ciInfo })
+      analytics = await AnalyticsHandler.factory({ host: mockServer.url, garden, ciInfo })
 
       const event = analytics.trackCommand("testCommand", "test-parent-session")
 
@@ -619,7 +619,7 @@ describe("AnalyticsHandler", () => {
 
       await garden.globalConfigStore.set("analytics", basicConfig)
       const now = freezeTime()
-      analytics = await AnalyticsHandler.factory({ host: mockServer.url, garden, log: garden.log, ciInfo })
+      analytics = await AnalyticsHandler.factory({ host: mockServer.url, garden, ciInfo })
 
       const event = analytics.trackCommand("testCommand")
 
@@ -683,7 +683,7 @@ describe("AnalyticsHandler", () => {
       const startTime = new Date()
       timekeeper.freeze(startTime)
 
-      analytics = await AnalyticsHandler.factory({ host: mockServer.url, garden, log: garden.log, ciInfo })
+      analytics = await AnalyticsHandler.factory({ host: mockServer.url, garden, ciInfo })
 
       timekeeper.travel(startTime.getTime() + 60000)
       const event = analytics.trackCommandResult("testCommand", [], startTime, 0)
@@ -738,7 +738,7 @@ describe("AnalyticsHandler", () => {
       const startTime = new Date()
       timekeeper.freeze(startTime)
 
-      analytics = await AnalyticsHandler.factory({ host: mockServer.url, garden, log: garden.log, ciInfo })
+      analytics = await AnalyticsHandler.factory({ host: mockServer.url, garden, ciInfo })
 
       timekeeper.travel(startTime.getTime() + 60000)
 
@@ -819,7 +819,7 @@ describe("AnalyticsHandler", () => {
       const startTime = new Date()
       timekeeper.freeze(startTime)
 
-      analytics = await AnalyticsHandler.factory({ host: mockServer.url, garden, log: garden.log, ciInfo })
+      analytics = await AnalyticsHandler.factory({ host: mockServer.url, garden, ciInfo })
 
       timekeeper.travel(startTime.getTime() + 60000)
       const errors = [
@@ -897,7 +897,7 @@ describe("AnalyticsHandler", () => {
       })
 
       await garden.globalConfigStore.set("analytics", basicConfig)
-      analytics = await AnalyticsHandler.factory({ host: mockServer.url, garden, log: garden.log, ciInfo })
+      analytics = await AnalyticsHandler.factory({ host: mockServer.url, garden, ciInfo })
 
       analytics.trackCommand("test-command-A")
       await analytics.closeAndFlush()

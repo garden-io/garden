@@ -428,7 +428,7 @@ export class AnalyticsHandler {
         ciName: ci.name,
       }
 
-      AnalyticsHandler.instance = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo })
+      AnalyticsHandler.instance = await AnalyticsHandler.factory({ garden, ciInfo })
     } else {
       /**
        * This init is called from within the do while loop in the cli
@@ -458,11 +458,12 @@ export class AnalyticsHandler {
    *
    * It also initializes the analytics config and updates the analytics data we store in local config.
    */
-  static async factory({ garden, log, ciInfo, host }: { garden: Garden; log: Log; ciInfo: CiInfo; host?: string }) {
+  static async factory({ garden, ciInfo, host }: { garden: Garden; ciInfo: CiInfo; host?: string }) {
     const currentAnalyticsConfig = await garden.globalConfigStore.get("analytics")
     const isFirstRun = !currentAnalyticsConfig.firstRunAt
     const moduleConfigs = await garden.getRawModuleConfigs()
     const actionConfigs = await garden.getRawActionConfigs()
+    const log = garden.log
 
     let cloudUser: UserResult | undefined
     let cloudProject: CloudProject | undefined
