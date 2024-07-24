@@ -6,12 +6,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import type { CloudProject, GetSecretsParams } from "../../src/cloud/api.js"
+import type { CloudOrganization, CloudProject, GetSecretsParams } from "../../src/cloud/api.js"
 import { CloudApi } from "../../src/cloud/api.js"
 import type { Log } from "../../src/logger/log-entry.js"
 import { GlobalConfigStore } from "../../src/config-store/global.js"
 import { uuidv4 } from "../../src/util/random.js"
 import type { StringMap } from "../../src/config/common.js"
+import type { GetProfileResponse } from "@garden-io/platform-api-types"
+
+export const dummyOrganization: CloudOrganization = { id: uuidv4(), name: "test-org" } as const
 
 export const apiProjectId = uuidv4()
 export const apiRemoteOriginUrl = "git@github.com:garden-io/garden.git"
@@ -28,7 +31,7 @@ export class FakeCloudApi extends CloudApi {
     })
   }
 
-  override async getProfile() {
+  override async getProfile(): Promise<GetProfileResponse["data"]> {
     return {
       id: "1",
       createdAt: new Date().toString(),
@@ -45,6 +48,8 @@ export class FakeCloudApi extends CloudApi {
       groups: [],
       meta: {},
       singleProjectId: "",
+      singleProjectOrgId: "",
+      organizations: [],
     }
   }
 
@@ -53,7 +58,7 @@ export class FakeCloudApi extends CloudApi {
       id: apiProjectId,
       name,
       repositoryUrl: apiRemoteOriginUrl,
-      organizationId: uuidv4(),
+      organization: dummyOrganization,
       environments: [],
     }
   }
@@ -63,7 +68,7 @@ export class FakeCloudApi extends CloudApi {
       id: apiProjectId,
       name,
       repositoryUrl: apiRemoteOriginUrl,
-      organizationId: uuidv4(),
+      organization: dummyOrganization,
       environments: [],
     }
   }
@@ -73,7 +78,7 @@ export class FakeCloudApi extends CloudApi {
       id: apiProjectId,
       name: apiProjectName,
       repositoryUrl: apiRemoteOriginUrl,
-      organizationId: uuidv4(),
+      organization: dummyOrganization,
       environments: [],
     }
   }

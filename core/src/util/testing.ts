@@ -181,6 +181,7 @@ export type TestGardenOpts = Partial<GardenOpts> & {
 export class TestGarden extends Garden {
   override events: TestEventBus
   // Overriding the type declarations of a few instance variables to allow reassignment in test code.
+  public declare projectId?: string
   public declare actionConfigs: ActionConfigMap
   public declare moduleConfigs: ModuleConfigMap
   public declare workflowConfigs: WorkflowConfigMap

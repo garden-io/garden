@@ -11,8 +11,8 @@ import { platform, release } from "os"
 import ci from "ci-info"
 import { uniq } from "lodash-es"
 import type { AnalyticsGlobalConfig } from "../config-store/global.js"
-import { getPackageVersion, getDurationMsec } from "../util/util.js"
-import { SEGMENT_PROD_API_KEY, SEGMENT_DEV_API_KEY, gardenEnv } from "../constants.js"
+import { getDurationMsec, getPackageVersion } from "../util/util.js"
+import { gardenEnv, SEGMENT_DEV_API_KEY, SEGMENT_PROD_API_KEY } from "../constants.js"
 import type { Log } from "../logger/log-entry.js"
 import { hashSync } from "hasha"
 import type { Garden } from "../garden.js"
@@ -28,6 +28,7 @@ import type { ActionConfigMap } from "../actions/types.js"
 import { actionKinds } from "../actions/types.js"
 import { getResultErrorProperties } from "./helpers.js"
 import { Analytics } from "@segment/analytics-node"
+import type { CloudProject } from "../cloud/api.js"
 
 const CI_USER = "ci-user"
 
@@ -250,7 +251,7 @@ const SEGMENT_HOST = "https://api.segment.io"
  * prompt for opt-in/opt-out and wrappers for single events.
  *
  * Initalization:
- * const analyticsClient = await AnalyticsHandler.init(garden: Garden, log: LogEntry)
+ * const analyticsClient = await AnalyticsHandler.init(garden: Garden)
  * analyticsClient.trackCommand(commandName)
  *
  * Subsequent usage:
@@ -293,6 +294,7 @@ export class AnalyticsHandler {
     moduleConfigs,
     actionConfigs,
     cloudUser,
+    cloudProject,
     isEnabled,
     ciInfo,
     host,
@@ -305,6 +307,7 @@ export class AnalyticsHandler {
     actionConfigs: ActionConfigMap
     isEnabled: boolean
     cloudUser?: UserResult
+    cloudProject?: CloudProject
     ciInfo: CiInfo
     host?: string
   }) {
@@ -387,10 +390,8 @@ export class AnalyticsHandler {
       this.enterpriseDomainV2 = AnalyticsHandler.hashV2(enterpriseDomain)
     }
 
-    if (cloudUser) {
-      this.cloudUserId = AnalyticsHandler.makeCloudUserId(cloudUser)
-      this.cloudCustomerName = cloudUser.organization.name
-    }
+    this.cloudCustomerName = cloudProject?.organization.name || cloudUser?.organization?.name
+    this.cloudUserId = cloudUser ? `${this.cloudCustomerName ?? "[no project]"}_${cloudUser.id}` : undefined
 
     this.isRecurringUser = getIsRecurringUser(analyticsConfig.firstRunAt, analyticsConfig.latestRunAt)
 
@@ -400,7 +401,7 @@ export class AnalyticsHandler {
       anonymousId: anonymousUserId,
       traits: {
         userIdV2,
-        customer: cloudUser?.organization.name,
+        customer: this.cloudCustomerName,
         platform: platform(),
         platformVersion: release(),
         gardenVersion: getPackageVersion(),
@@ -412,7 +413,7 @@ export class AnalyticsHandler {
     })
   }
 
-  static async init(garden: Garden, log: Log) {
+  static async init(garden: Garden) {
     // Ensure that we re-initialize the analytics metadata when switching projects
     if (!AnalyticsHandler.instance || AnalyticsHandler.instance.garden?.projectName !== garden.projectName) {
       // We're passing this explicitly to that it's easier to overwrite and test
@@ -422,7 +423,7 @@ export class AnalyticsHandler {
         ciName: ci.name,
       }
 
-      AnalyticsHandler.instance = await AnalyticsHandler.factory({ garden, log, ciInfo })
+      AnalyticsHandler.instance = await AnalyticsHandler.factory({ garden, ciInfo })
     } else {
       /**
        * This init is called from within the do while loop in the cli
@@ -452,18 +453,26 @@ export class AnalyticsHandler {
    *
    * It also initializes the analytics config and updates the analytics data we store in local config.
    */
-  static async factory({ garden, log, ciInfo, host }: { garden: Garden; log: Log; ciInfo: CiInfo; host?: string }) {
+  static async factory({ garden, ciInfo, host }: { garden: Garden; ciInfo: CiInfo; host?: string }) {
     const currentAnalyticsConfig = await garden.globalConfigStore.get("analytics")
     const isFirstRun = !currentAnalyticsConfig.firstRunAt
     const moduleConfigs = await garden.getRawModuleConfigs()
     const actionConfigs = await garden.getRawActionConfigs()
+    const log = garden.log
 
     let cloudUser: UserResult | undefined
+    let cloudProject: CloudProject | undefined
     if (garden.cloudApi) {
       try {
-        cloudUser = await garden.cloudApi?.getProfile()
+        cloudUser = await garden.cloudApi.getProfile()
       } catch (err) {
         log.debug(`Getting profile from API failed with error: ${err}`)
+      }
+      try {
+        cloudProject =
+          garden.projectId === undefined ? undefined : await garden.cloudApi.getProjectById(garden.projectId)
+      } catch (err) {
+        log.debug(`Getting project from API failed with error: ${err}`)
       }
     }
 
@@ -513,6 +522,7 @@ export class AnalyticsHandler {
       moduleConfigs,
       actionConfigs,
       cloudUser,
+      cloudProject,
       isEnabled,
       ciInfo,
       anonymousUserId,
@@ -541,10 +551,6 @@ export class AnalyticsHandler {
     if (AnalyticsHandler.instance) {
       AnalyticsHandler.instance.garden = garden
     }
-  }
-
-  static makeCloudUserId(cloudUser: UserResult) {
-    return `${cloudUser.organization.name}_${cloudUser.id}`
   }
 
   /**
