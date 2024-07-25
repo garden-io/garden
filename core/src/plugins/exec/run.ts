@@ -30,31 +30,44 @@ export type ExecRunConfig = GardenSdkActionDefinitionConfigType<typeof execRun>
 export type ExecRun = GardenSdkActionDefinitionActionType<typeof execRun>
 
 execRun.addHandler("run", async ({ artifactsPath, log, action, ctx }) => {
-  const { command, env, artifacts } = action.getSpec()
   const startedAt = new Date()
+  const { command, env, artifacts } = action.getSpec()
 
-  let completedAt: Date
-  let outputLog: string
-  let success = true
+  const commandResult = await execRunCommand({ command, action, ctx, log, env, opts: { reject: false } })
 
-  if (command && command.length) {
-    const commandResult = await execRunCommand({ command, action, ctx, log, env, opts: { reject: false } })
-
-    completedAt = commandResult.completedAt
-    outputLog = commandResult.outputLog
-    success = commandResult.success
-  } else {
-    completedAt = startedAt
-    outputLog = ""
+  const detail = {
+    moduleName: action.moduleName(),
+    taskName: action.name,
+    command,
+    version: action.versionString(),
+    success: commandResult.success,
+    log: commandResult.outputLog,
+    outputs: {
+      log: commandResult.outputLog,
+    },
+    startedAt,
+    completedAt: commandResult.completedAt,
   }
 
-  if (outputLog) {
+  const result = {
+    state: runResultToActionState(detail),
+    detail,
+    outputs: {
+      log: commandResult.outputLog,
+    },
+  } as const
+
+  if (!commandResult.success) {
+    return result
+  }
+
+  if (commandResult.outputLog) {
     const prefix = `Finished running ${styles.highlight(action.name)}. Here is the full output:`
     log.info(
       renderMessageWithDivider({
         prefix,
-        msg: outputLog,
-        isError: !success,
+        msg: commandResult.outputLog,
+        isError: !commandResult.success,
         color: styles.primary,
       })
     )
@@ -62,25 +75,5 @@ execRun.addHandler("run", async ({ artifactsPath, log, action, ctx }) => {
 
   await copyArtifacts(log, artifacts, action.getBuildPath(), artifactsPath)
 
-  const detail = {
-    moduleName: action.moduleName(),
-    taskName: action.name,
-    command,
-    version: action.versionString(),
-    success,
-    log: outputLog,
-    outputs: {
-      log: outputLog,
-    },
-    startedAt,
-    completedAt,
-  }
-
-  return {
-    state: runResultToActionState(detail),
-    detail,
-    outputs: {
-      log: outputLog,
-    },
-  }
+  return result
 })
