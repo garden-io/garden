@@ -48,14 +48,16 @@ execTest.addHandler("run", async ({ log, action, artifactsPath, ctx }) => {
     log: execCommandOutputs.outputLog,
   }
 
+  const result = {
+    state: runResultToActionState(detail),
+    detail,
+    outputs: {
+      log: execCommandOutputs.outputLog,
+    },
+  } as const
+
   if (!execCommandOutputs.success) {
-    return {
-      state: runResultToActionState(detail),
-      detail,
-      outputs: {
-        log: execCommandOutputs.outputLog,
-      },
-    }
+    return result
   }
 
   if (execCommandOutputs.outputLog) {
@@ -73,11 +75,5 @@ execTest.addHandler("run", async ({ log, action, artifactsPath, ctx }) => {
   const artifacts = action.getSpec("artifacts")
   await copyArtifacts(log, artifacts, action.getBuildPath(), artifactsPath)
 
-  return {
-    state: runResultToActionState(detail),
-    detail,
-    outputs: {
-      log: execCommandOutputs.outputLog,
-    },
-  }
+  return result
 })
