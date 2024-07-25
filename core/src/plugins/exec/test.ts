@@ -35,26 +35,26 @@ execTest.addHandler("run", async ({ log, action, artifactsPath, ctx }) => {
   const startedAt = new Date()
   const { command, env } = action.getSpec()
 
-  const result = await execRunCommand({ command, action, ctx, log, env, opts: { reject: false } })
+  const execCommandOutputs = await execRunCommand({ command, action, ctx, log, env, opts: { reject: false } })
 
   const detail = {
     moduleName: action.moduleName(),
     command,
     testName: action.name,
     version: action.versionString(),
-    success: result.success,
+    success: execCommandOutputs.success,
     startedAt,
-    completedAt: result.completedAt,
-    log: result.outputLog,
+    completedAt: execCommandOutputs.completedAt,
+    log: execCommandOutputs.outputLog,
   }
 
-  if (result.outputLog) {
+  if (execCommandOutputs.outputLog) {
     const prefix = `Finished executing ${styles.highlight(action.key())}. Here is the full output:`
     log.info(
       renderMessageWithDivider({
         prefix,
-        msg: result.outputLog,
-        isError: !result.success,
+        msg: execCommandOutputs.outputLog,
+        isError: !execCommandOutputs.success,
         color: styles.primary,
       })
     )
@@ -67,7 +67,7 @@ execTest.addHandler("run", async ({ log, action, artifactsPath, ctx }) => {
     state: runResultToActionState(detail),
     detail,
     outputs: {
-      log: result.outputLog,
+      log: execCommandOutputs.outputLog,
     },
   }
 })
