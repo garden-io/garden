@@ -48,6 +48,16 @@ execTest.addHandler("run", async ({ log, action, artifactsPath, ctx }) => {
     log: execCommandOutputs.outputLog,
   }
 
+  if (!execCommandOutputs.success) {
+    return {
+      state: runResultToActionState(detail),
+      detail,
+      outputs: {
+        log: execCommandOutputs.outputLog,
+      },
+    }
+  }
+
   if (execCommandOutputs.outputLog) {
     const prefix = `Finished executing ${styles.highlight(action.key())}. Here is the full output:`
     log.info(
