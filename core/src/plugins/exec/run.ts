@@ -42,9 +42,6 @@ execRun.addHandler("run", async ({ artifactsPath, log, action, ctx }) => {
     version: action.versionString(),
     success: commandResult.success,
     log: commandResult.outputLog,
-    outputs: {
-      log: commandResult.outputLog,
-    },
     startedAt,
     completedAt: commandResult.completedAt,
   }
