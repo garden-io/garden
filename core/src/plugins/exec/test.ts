@@ -39,13 +39,13 @@ execTest.addHandler("run", async ({ log, action, artifactsPath, ctx }) => {
 
   const detail = {
     moduleName: action.moduleName(),
-    command,
     testName: action.name,
+    command,
     version: action.versionString(),
     success: commandResult.success,
+    log: commandResult.outputLog,
     startedAt,
     completedAt: commandResult.completedAt,
-    log: commandResult.outputLog,
   }
 
   const result = {
