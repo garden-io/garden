@@ -16,7 +16,7 @@ import { exec } from "../../util/util.js"
 import type { Log } from "../../logger/log-entry.js"
 import type { PluginContext } from "../../plugin-context.js"
 import type { ResolvedExecAction } from "./config.js"
-import { RuntimeError, toGardenError } from "../../exceptions.js"
+import { RuntimeError } from "../../exceptions.js"
 
 export function getDefaultEnvVars(action: ResolvedExecAction) {
   return {
