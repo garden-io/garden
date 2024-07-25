@@ -33,41 +33,46 @@ export type ExecTest = GardenSdkActionDefinitionActionType<typeof execTest>
 
 execTest.addHandler("run", async ({ log, action, artifactsPath, ctx }) => {
   const startedAt = new Date()
-  const { command, env } = action.getSpec()
+  const { command, env, artifacts } = action.getSpec()
 
-  const result = await execRunCommand({ command, action, ctx, log, env, opts: { reject: false } })
+  const commandResult = await execRunCommand({ command, action, ctx, log, env, opts: { reject: false } })
 
-  const artifacts = action.getSpec("artifacts")
-  await copyArtifacts(log, artifacts, action.getBuildPath(), artifactsPath)
+  const detail = {
+    moduleName: action.moduleName(),
+    testName: action.name,
+    command,
+    version: action.versionString(),
+    success: commandResult.success,
+    log: commandResult.outputLog,
+    startedAt,
+    completedAt: commandResult.completedAt,
+  }
 
-  if (result.outputLog) {
+  const result = {
+    state: runResultToActionState(detail),
+    detail,
+    outputs: {
+      log: commandResult.outputLog,
+    },
+  } as const
+
+  if (!commandResult.success) {
+    return result
+  }
+
+  if (commandResult.outputLog) {
     const prefix = `Finished executing ${styles.highlight(action.key())}. Here is the full output:`
     log.info(
       renderMessageWithDivider({
         prefix,
-        msg: result.outputLog,
-        isError: !result.success,
+        msg: commandResult.outputLog,
+        isError: !commandResult.success,
         color: styles.primary,
       })
     )
   }
 
-  const detail = {
-    moduleName: action.moduleName(),
-    command,
-    testName: action.name,
-    version: action.versionString(),
-    success: result.success,
-    startedAt,
-    completedAt: result.completedAt,
-    log: result.outputLog,
-  }
+  await copyArtifacts(log, artifacts, action.getBuildPath(), artifactsPath)
 
-  return {
-    state: runResultToActionState(detail),
-    detail,
-    outputs: {
-      log: result.outputLog,
-    },
-  }
+  return result
 })
