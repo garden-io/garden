@@ -9,7 +9,6 @@
 import { intersection, mapValues, sortBy } from "lodash-es"
 import { resolve, join } from "path"
 import fsExtra from "fs-extra"
-const { pathExists } = fsExtra
 import { getBuiltinCommands } from "../commands/commands.js"
 import { getCloudDistributionName } from "../util/cloud.js"
 import { shutdown, getPackageVersion } from "../util/util.js"
@@ -35,7 +34,7 @@ import {
   checkRequirements,
   renderCommandErrors,
   cliStyles,
-  getDashboardInfoMsg,
+  emitLoginWarning,
 } from "./helpers.js"
 import type { ParameterObject, GlobalOptions, ParameterValues } from "./params.js"
 import { globalOptions, OUTPUT_RENDERERS } from "./params.js"
@@ -67,6 +66,8 @@ import { wrapActiveSpan } from "../util/open-telemetry/spans.js"
 import { JsonFileWriter } from "../logger/writers/json-file-writer.js"
 import type minimist from "minimist"
 import { styles } from "../logger/styles.js"
+
+const { pathExists } = fsExtra
 
 export interface RunOutput {
   argv: any
@@ -322,13 +323,7 @@ ${renderCommands(commands)}
           const isLoggedIn = !!cloudApi
           const isCommunityEdition = garden.cloudDomain === DEFAULT_GARDEN_CLOUD_DOMAIN
 
-          if (!isLoggedIn && isCommunityEdition) {
-            await garden.emitWarning({
-              key: "web-app",
-              log,
-              message: "\n" + getDashboardInfoMsg(),
-            })
-          }
+          await emitLoginWarning({ garden, log, isLoggedIn, isCommunityEdition })
 
           gardenLog.info(`Running in environment ${styles.highlight(`${garden.environmentName}.${garden.namespace}`)}`)
 

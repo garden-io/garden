@@ -24,7 +24,7 @@ import type { Garden } from "../garden.js"
 import type { GardenPluginReference } from "../plugin/plugin.js"
 import { CommandError, ParameterError, isEAddrInUseException, isErrnoException } from "../exceptions.js"
 import { styles } from "../logger/styles.js"
-import { getDashboardInfoMsg } from "../cli/helpers.js"
+import { emitLoginWarning } from "../cli/helpers.js"
 import { DEFAULT_GARDEN_CLOUD_DOMAIN } from "../constants.js"
 
 export const defaultServerPort = 9777
@@ -161,13 +161,7 @@ export class ServeCommand<
       const isLoggedIn = !!cloudApi
       const isCommunityEdition = cloudDomain === DEFAULT_GARDEN_CLOUD_DOMAIN
 
-      if (!isLoggedIn && isCommunityEdition) {
-        await garden.emitWarning({
-          key: "web-app",
-          log,
-          message: getDashboardInfoMsg(),
-        })
-      }
+      await emitLoginWarning({ garden, log, isLoggedIn, isCommunityEdition })
 
       if (projectConfig && cloudApi && defaultGarden) {
         let projectId = projectConfig?.id
