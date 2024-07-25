@@ -158,10 +158,13 @@ export class ServeCommand<
 
     try {
       const cloudApi = await manager.getCloudApi({ log, cloudDomain, globalConfigStore: garden.globalConfigStore })
-      const isLoggedIn = !!cloudApi
-      const isCommunityEdition = cloudDomain === DEFAULT_GARDEN_CLOUD_DOMAIN
 
-      await emitLoginWarning({ garden, log, isLoggedIn, isCommunityEdition })
+      await emitLoginWarning({
+        garden,
+        log,
+        isLoggedIn: !!cloudApi,
+        isCommunityEdition: cloudDomain === DEFAULT_GARDEN_CLOUD_DOMAIN,
+      })
 
       if (projectConfig && cloudApi && defaultGarden) {
         let projectId = projectConfig?.id

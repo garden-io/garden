@@ -320,10 +320,13 @@ ${renderCommands(commands)}
           garden = await makeDummyGarden(workingDir, contextOpts)
         } else {
           garden = await wrapActiveSpan("initializeGarden", () => this.getGarden(workingDir, contextOpts))
-          const isLoggedIn = !!cloudApi
-          const isCommunityEdition = garden.cloudDomain === DEFAULT_GARDEN_CLOUD_DOMAIN
 
-          await emitLoginWarning({ garden, log, isLoggedIn, isCommunityEdition })
+          await emitLoginWarning({
+            garden,
+            log,
+            isLoggedIn: !!cloudApi,
+            isCommunityEdition: garden.cloudDomain === DEFAULT_GARDEN_CLOUD_DOMAIN,
+          })
 
           gardenLog.info(`Running in environment ${styles.highlight(`${garden.environmentName}.${garden.namespace}`)}`)
 
