@@ -16,6 +16,7 @@ import { exec } from "../../util/util.js"
 import type { Log } from "../../logger/log-entry.js"
 import type { PluginContext } from "../../plugin-context.js"
 import type { ResolvedExecAction } from "./config.js"
+import { RuntimeError } from "../../exceptions.js"
 
 export function getDefaultEnvVars(action: ResolvedExecAction) {
   return {
@@ -99,12 +100,22 @@ export async function copyArtifacts(
 ) {
   return Promise.all(
     (artifacts || []).map(async (spec) => {
-      log.verbose(`→ Copying artifacts ${spec.source}`)
+      try {
+        log.verbose(`→ Copying artifacts ${spec.source}`)
 
-      // Note: lazy-loading for startup performance
-      const { default: cpy } = await import("cpy")
+        // Note: lazy-loading for startup performance
+        const { default: cpy } = await import("cpy")
 
-      await cpy(`./${spec.source}`, join(artifactsPath, spec.target || "."), { cwd: from })
+        await cpy(`./${spec.source}`, join(artifactsPath, spec.target || "."), { cwd: from })
+      } catch (err: unknown) {
+        if (!(err instanceof Error)) {
+          throw err
+        }
+
+        if (err.name === "CpyError") {
+          throw new RuntimeError({ message: err.message })
+        }
+      }
     })
   )
 }
