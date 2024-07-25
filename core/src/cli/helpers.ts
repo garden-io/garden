@@ -578,6 +578,9 @@ export async function emitLoginWarning({
   isLoggedIn: boolean
   isCommunityEdition: boolean
 }) {
+  if (gardenEnv.GARDEN_DISABLE_WEB_APP_WARN) {
+    return
+  }
   if (isLoggedIn || !isCommunityEdition) {
     return
   }
