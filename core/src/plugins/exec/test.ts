@@ -37,8 +37,16 @@ execTest.addHandler("run", async ({ log, action, artifactsPath, ctx }) => {
 
   const result = await execRunCommand({ command, action, ctx, log, env, opts: { reject: false } })
 
-  const artifacts = action.getSpec("artifacts")
-  await copyArtifacts(log, artifacts, action.getBuildPath(), artifactsPath)
+  const detail = {
+    moduleName: action.moduleName(),
+    command,
+    testName: action.name,
+    version: action.versionString(),
+    success: result.success,
+    startedAt,
+    completedAt: result.completedAt,
+    log: result.outputLog,
+  }
 
   if (result.outputLog) {
     const prefix = `Finished executing ${styles.highlight(action.key())}. Here is the full output:`
@@ -52,16 +60,8 @@ execTest.addHandler("run", async ({ log, action, artifactsPath, ctx }) => {
     )
   }
 
-  const detail = {
-    moduleName: action.moduleName(),
-    command,
-    testName: action.name,
-    version: action.versionString(),
-    success: result.success,
-    startedAt,
-    completedAt: result.completedAt,
-    log: result.outputLog,
-  }
+  const artifacts = action.getSpec("artifacts")
+  await copyArtifacts(log, artifacts, action.getBuildPath(), artifactsPath)
 
   return {
     state: runResultToActionState(detail),
