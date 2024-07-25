@@ -37,6 +37,7 @@ import type { DeepPrimitiveMap } from "../config/common.js"
 import { validateGitInstall } from "../vcs/vcs.js"
 import { styles } from "../logger/styles.js"
 import { makeDocsLinkStyled } from "../docs/common.js"
+import type { Garden } from "../garden.js"
 
 export const cliStyles = {
   heading: (str: string) => styles.accent.bold(str),
@@ -564,6 +565,31 @@ export function renderCommandErrors(logger: Logger, errors: Error[], log?: Log) 
   if (logger.getWriters().file.length > 0) {
     errorLog.info(`\nSee .garden/${ERROR_LOG_FILENAME} for detailed error message`)
   }
+}
+
+export async function emitLoginWarning({
+  garden,
+  log,
+  isLoggedIn,
+  isCommunityEdition,
+}: {
+  garden: Garden
+  log: Log
+  isLoggedIn: boolean
+  isCommunityEdition: boolean
+}) {
+  if (gardenEnv.GARDEN_DISABLE_WEB_APP_WARN) {
+    return
+  }
+  if (isLoggedIn || !isCommunityEdition) {
+    return
+  }
+
+  await garden.emitWarning({
+    key: "web-app",
+    log,
+    message: getDashboardInfoMsg(),
+  })
 }
 
 export function getDashboardInfoMsg() {
