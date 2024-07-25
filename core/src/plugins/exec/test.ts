@@ -33,46 +33,45 @@ export type ExecTest = GardenSdkActionDefinitionActionType<typeof execTest>
 
 execTest.addHandler("run", async ({ log, action, artifactsPath, ctx }) => {
   const startedAt = new Date()
-  const { command, env } = action.getSpec()
+  const { command, env, artifacts } = action.getSpec()
 
-  const execCommandOutputs = await execRunCommand({ command, action, ctx, log, env, opts: { reject: false } })
+  const commandResult = await execRunCommand({ command, action, ctx, log, env, opts: { reject: false } })
 
   const detail = {
     moduleName: action.moduleName(),
     command,
     testName: action.name,
     version: action.versionString(),
-    success: execCommandOutputs.success,
+    success: commandResult.success,
     startedAt,
-    completedAt: execCommandOutputs.completedAt,
-    log: execCommandOutputs.outputLog,
+    completedAt: commandResult.completedAt,
+    log: commandResult.outputLog,
   }
 
   const result = {
     state: runResultToActionState(detail),
     detail,
     outputs: {
-      log: execCommandOutputs.outputLog,
+      log: commandResult.outputLog,
     },
   } as const
 
-  if (!execCommandOutputs.success) {
+  if (!commandResult.success) {
     return result
   }
 
-  if (execCommandOutputs.outputLog) {
+  if (commandResult.outputLog) {
     const prefix = `Finished executing ${styles.highlight(action.key())}. Here is the full output:`
     log.info(
       renderMessageWithDivider({
         prefix,
-        msg: execCommandOutputs.outputLog,
-        isError: !execCommandOutputs.success,
+        msg: commandResult.outputLog,
+        isError: !commandResult.success,
         color: styles.primary,
       })
     )
   }
 
-  const artifacts = action.getSpec("artifacts")
   await copyArtifacts(log, artifacts, action.getBuildPath(), artifactsPath)
 
   return result
