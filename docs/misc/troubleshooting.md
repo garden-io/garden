@@ -122,4 +122,71 @@ When the Ingress Controller gets re-installed, it may be assigned a new IP addre
 
 To fix this, run kubectl get svc -n garden-system and look for the EXTERNAL-IP of the garden-nginx-nginx-ingress-controller service and update your DNS records with this new value.
 
+### Deploy fails with `cannot convert int64 to string`
 
+If a Kubernetes Deploy action fails with with a message like `The request is invalid: patch: Invalid value: [...] spec:map[template:map[spec:map[]]]]": cannot convert int64 to string` it might be because you're passing an integer value to an environment variable field in a Kubernetes manifest.
+
+How the value gets passed depends on your set up but a common scenario would be something like:
+
+```yaml
+# In project.garden.yml
+kind: Project
+name: my-project
+variables:
+  port: 8080 # <--- This needs to be a string if it ends up in a K8s manifest
+
+# In my-deploy-action.garden.yml
+kind: Deploy
+name: my-deploy-action
+type: kubernetes
+spec:
+  # ...
+  patchResources:
+    - kind: Deployment
+      name: my-deploy
+      patch:
+        spec:
+          template:
+            spec:
+              containers:
+                - name: my-deploy
+                  env:
+                    name: PORT
+                    value: ${var.port} # <--- Oh no, this won't work because it's an integer
+
+```
+
+You can fix this by either changing the variable to a string like so:
+
+```yaml
+# In project.garden.yml
+kind: Project
+name: my-project
+variables:
+  port: "8080" # <--- Changed to string
+```
+
+Or by casting it to a string where it's passed to the K8s manifest via the Garden `string` template function like so:
+
+```yaml
+# In my-deploy-action.garden.yml
+kind: Deploy
+name: my-deploy-action
+type: kubernetes
+spec:
+  # ...
+  patchResources:
+    - kind: Deployment
+      name: my-deploy
+      patch:
+        spec:
+          template:
+            spec:
+              containers:
+                - name: my-deploy
+                  env:
+                    name: PORT
+                    value: ${string(var.port)} # <--- Casting to string
+```
+
+You can learn more about Garden [template functions here](../reference/template-strings/functions.md).
