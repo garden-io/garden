@@ -62,10 +62,20 @@ where
         format!("--max-old-space-size={}", max_old_space_size).into(),
         // Disable deprecation warnings; We still see deprecation warnings during development, but in release binaries we want to hide them.
         "--no-deprecation".into(),
-        // execute garden.mjs
-        path.join("rollup").join("garden.mjs").into(),
     ];
 
+
+    // Allow arbitrary NodeJS extra params
+    let node_extra_params: Vec<OsString> = env::var("GARDEN_NODE_EXTRA_PARAMS").map_or(vec![], |value| {
+        return value.split(",").map(|s| s.to_owned().into()).collect()
+    });
+    node_args.extend(node_extra_params);
+
+    // Tell Nodejs to execute garden.mjs
+    node_args.extend(vec![
+        path.join("rollup").join("garden.mjs").into(),
+    ]);
+    // Add Garden parameters at the at the end
     node_args.extend(sea_args.skip(1).map(|s| s.into()));
 
     debug!("Spawning {} with {:?}", node, node_args);
