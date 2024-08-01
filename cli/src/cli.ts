@@ -15,6 +15,9 @@ import { getOtelSDK } from "@garden-io/core/build/src/util/open-telemetry/tracin
 import { withContextFromEnv } from "@garden-io/core/build/src/util/open-telemetry/propagation.js"
 import { wrapActiveSpan } from "@garden-io/core/build/src/util/open-telemetry/spans.js"
 import { InternalError } from "@garden-io/core/build/src/exceptions.js"
+import { styles } from "@garden-io/core/build/src/logger/styles.js"
+import { gardenEnv, IGNORE_UNCAUGHT_EXCEPTION_VARNAME } from "@garden-io/core/build/src/constants.js"
+import { inspect } from "node:util"
 
 // These plugins are always registered
 export const getBundledPlugins = (): GardenPluginReference[] => [
@@ -62,6 +65,23 @@ export const getBundledPlugins = (): GardenPluginReference[] => [
   },
 ]
 
+let ignoredUncaughtExceptions = false
+
+if (gardenEnv.GARDEN_IGNORE_UNCAUGHT_EXCEPTION) {
+  console.warn(
+    styles.warning(
+      `\nWARNING: The environment variable ${IGNORE_UNCAUGHT_EXCEPTION_VARNAME} is set to true. This is not a recommended mode of operation.\n`
+    )
+  )
+
+  process.on("uncaughtException", (e: unknown) => {
+    ignoredUncaughtExceptions = true
+    console.warn(
+      `\n${styles.warning(`WARNING: Ignoring fatal exception because ${IGNORE_UNCAUGHT_EXCEPTION_VARNAME} is set to true`)}: ${inspect(e, { showHidden: true, getters: true })}\n`
+    )
+  })
+}
+
 export async function runCli({
   args,
   cli,
@@ -103,6 +123,15 @@ export async function runCli({
       await Promise.race([getOtelSDK().shutdown(), new Promise((resolve) => setTimeout(resolve, 3000))])
     } catch (err) {
       logUnexpectedError(err, "OTEL shutdown failed")
+    }
+
+    if (ignoredUncaughtExceptions) {
+      console.warn(
+        styles.warning(
+          `\nWARNING: Ignored a fatal exception because ${IGNORE_UNCAUGHT_EXCEPTION_VARNAME} is set to true. Exiting with code 1.\n`
+        )
+      )
+      code = 1
     }
 
     await shutdown(code)

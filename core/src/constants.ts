@@ -56,6 +56,8 @@ export const DEFAULT_GARDEN_CLOUD_DOMAIN = "https://app.garden.io"
 
 export const DEFAULT_BROWSER_DIVIDER_WIDTH = 80
 
+export const IGNORE_UNCAUGHT_EXCEPTION_VARNAME = "GARDEN_IGNORE_UNCAUGHT_EXCEPTION"
+
 /**
  * Environment variables, with defaults where appropriate.
  *
@@ -107,4 +109,9 @@ export const gardenEnv = {
   // FIXME: If the environment variable is not set, asBool returns undefined, unlike the type suggests. That's why we cast to `boolean | undefined`.
   GARDEN_CLOUD_BUILDER: env.get("GARDEN_CLOUD_BUILDER").required(false).asBool() as boolean | undefined,
   GARDEN_ENABLE_PARTIAL_RESOLUTION: env.get("GARDEN_ENABLE_PARTIAL_RESOLUTION").required(false).asBool(),
+  GARDEN_IGNORE_UNCAUGHT_EXCEPTION: env
+    .get(IGNORE_UNCAUGHT_EXCEPTION_VARNAME)
+    .required(false)
+    .default("false")
+    .asBool(),
 }
