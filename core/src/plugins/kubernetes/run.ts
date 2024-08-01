@@ -907,28 +907,35 @@ export class PodRunner {
         }
 
     const stream = new Stream<RunLogEntry>()
-    void stream.forEach((entry) => {
-      const { msg, timestamp } = entry
-      let isoTimestamp: string
-      try {
-        if (timestamp) {
-          isoTimestamp = timestamp.toISOString()
-        } else {
+    void stream.forEach(
+      (entry) => {
+        const { msg, timestamp } = entry
+        let isoTimestamp: string
+        try {
+          if (timestamp) {
+            isoTimestamp = timestamp.toISOString()
+          } else {
+            isoTimestamp = new Date().toISOString()
+          }
+        } catch {
           isoTimestamp = new Date().toISOString()
         }
-      } catch {
-        isoTimestamp = new Date().toISOString()
+        events.emit("log", {
+          level: "verbose",
+          timestamp: isoTimestamp,
+          msg,
+          ...logEventContext,
+        })
+        if (tty) {
+          process.stdout.write(`${entry.msg}\n`)
+        }
+      },
+      (err) => {
+        if (err) {
+          log.error(`Error while following logs: ${err}`)
+        }
       }
-      events.emit("log", {
-        level: "verbose",
-        timestamp: isoTimestamp,
-        msg,
-        ...logEventContext,
-      })
-      if (tty) {
-        process.stdout.write(`${entry.msg}\n`)
-      }
-    })
+    )
     return new K8sLogFollower({
       defaultNamespace: this.namespace,
       // We use 1 second in the PodRunner, because the task / test will only finish once the LogFollower finished.
