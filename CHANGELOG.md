@@ -1,3 +1,17 @@
+<a name="0.13.36"></a>
+## [0.13.36](https://github.com/garden-io/garden/compare/0.13.35...0.13.36) (2024-08-01)
+
+### Bug Fixes
+
+* **exec:** fix error handling in exec run and test actions ([#6319](https://github.com/garden-io/garden/issues/6319)) ([6a0343027](https://github.com/garden-io/garden/commit/6a0343027))
+* **profiler:** handle getters and setters in `[@Profile](https://github.com/Profile)` decorator ([#6318](https://github.com/garden-io/garden/issues/6318)) ([aa3ddcce2](https://github.com/garden-io/garden/commit/aa3ddcce2))
+* **sync:** ensure the sync daemon env is configured correctly ([#6302](https://github.com/garden-io/garden/issues/6302)) ([8e3e02fa8](https://github.com/garden-io/garden/commit/8e3e02fa8))
+
+### Improvements
+
+* **cli:** `GARDEN_DISABLE_WEB_APP_WARN` flag to mute cloud login warn ([#6320](https://github.com/garden-io/garden/issues/6320)) ([41574727a](https://github.com/garden-io/garden/commit/41574727a))
+* **cli:** add GARDEN_IGNORE_UNCAUGHT_EXCEPTION ([#6337](https://github.com/garden-io/garden/issues/6337)) ([0e19c950a](https://github.com/garden-io/garden/commit/0e19c950a))
+* **cli:** node extra params via env ([#6336](https://github.com/garden-io/garden/issues/6336)) ([2545d317d](https://github.com/garden-io/garden/commit/2545d317d))
 
 <a name="0.13.35"></a>
 ## [0.13.35](https://github.com/garden-io/garden/compare/0.13.34...0.13.35) (2024-07-18)
