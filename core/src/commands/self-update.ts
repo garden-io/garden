@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import tar from "tar"
+import { x } from "tar"
 import type { CommandParams, CommandResult } from "./base.js"
 import { Command } from "./base.js"
 import { printHeader } from "../logger/util.js"
@@ -21,7 +21,6 @@ import { RuntimeError } from "../exceptions.js"
 import { makeTempDir } from "../util/fs.js"
 import { createReadStream, createWriteStream } from "fs"
 import fsExtra from "fs-extra"
-const { copy, mkdirp, move, readdir, remove } = fsExtra
 import { GotHttpError, got } from "../util/http.js"
 import { gardenEnv } from "../constants.js"
 import semver from "semver"
@@ -29,6 +28,8 @@ import type { Log } from "../logger/log-entry.js"
 import { realpath } from "fs/promises"
 import { pipeline } from "node:stream/promises"
 import { styles } from "../logger/styles.js"
+
+const { copy, mkdirp, move, readdir, remove } = fsExtra
 
 const ARM64_INTRODUCTION_VERSION = "0.13.12"
 
@@ -450,7 +451,7 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
         const reader = createReadStream(tempPath)
         await pipeline(reader, extractor)
       } else {
-        await tar.x({
+        await x({
           file: tempPath,
           cwd: tempDir.path,
         })
