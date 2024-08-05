@@ -11,7 +11,7 @@ import { InternalError } from "../exceptions.js"
 import { basename, dirname, join, posix } from "path"
 import { getArchitecture, getPlatform, isDarwinARM } from "./arch-platform.js"
 import { exec, hashString, prepareClearTextEnv, spawn } from "./util.js"
-import tar from "tar"
+import { x } from "tar"
 import { GARDEN_GLOBAL_PATH } from "../constants.js"
 import type { Log } from "../logger/log-entry.js"
 import { createHash } from "node:crypto"
@@ -363,7 +363,7 @@ export class PluginTool extends CliWrapper {
       let extractor: NodeJS.WritableStream
 
       if (format === "tar") {
-        extractor = tar.x({
+        extractor = x({
           C: tmpPath,
           strict: true,
         })

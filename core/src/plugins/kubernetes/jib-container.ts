@@ -7,9 +7,8 @@
  */
 
 import fsExtra from "fs-extra"
-const { mkdirp } = fsExtra
 import { resolve } from "path"
-import tar from "tar"
+import { x } from "tar"
 import { ConfigurationError, PluginError } from "../../exceptions.js"
 import type { ModuleActionHandlers } from "../../plugin/plugin.js"
 import { makeTempDir } from "../../util/fs.js"
@@ -31,6 +30,8 @@ import type { BuildActionExtension, BuildActionParams } from "../../plugin/actio
 import type { ContainerBuildAction } from "../container/config.js"
 import { buildkitDeploymentName } from "./constants.js"
 import { naturalList } from "../../util/string.js"
+
+const { mkdirp } = fsExtra
 
 export const jibContainerHandlers: Partial<ModuleActionHandlers> = {
   ...containerHandlers,
@@ -102,7 +103,7 @@ async function buildAndPushViaRemote(params: BuildActionParams<"build", Containe
     await mkdirp(extractPath)
     log.debug(`Extracting built image tarball from ${tarPath} to ${extractPath}`)
 
-    await tar.x({
+    await x({
       cwd: extractPath,
       file: tarPath,
     })
