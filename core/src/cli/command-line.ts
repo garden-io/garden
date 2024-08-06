@@ -40,6 +40,7 @@ import { bindActiveContext, withSessionContext } from "../util/open-telemetry/co
 import { wrapActiveSpan } from "../util/open-telemetry/spans.js"
 import { DEFAULT_BROWSER_DIVIDER_WIDTH } from "../constants.js"
 import { styles } from "../logger/styles.js"
+import type { GardenCli } from "./cli.js"
 
 const defaultMessageDuration = 3000
 const commandLinePrefix = styles.warning("🌼  > ")
@@ -153,11 +154,14 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
   private globalConfigStore: GlobalConfigStore
   private readonly log: Log
   private readonly globalOpts: Partial<ParameterValues<GlobalOptions>>
+  // TODO: Make this required (doing this will unfortunately involve fixing hundreds of unit tests)
+  private readonly cli: GardenCli | undefined
 
   constructor({
     cwd,
     manager,
     log,
+    cli,
     globalOpts,
     serveCommand,
     extraCommands,
@@ -166,6 +170,7 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
     cwd: string
     manager: GardenInstanceManager
     log: Log
+    cli: GardenCli | undefined
     globalOpts: Partial<ParameterValues<GlobalOptions>>
     serveCommand: ServeCommand
     extraCommands: Command[]
@@ -178,6 +183,7 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
     this.cwd = cwd
     this.manager = manager
     this.log = log
+    this.cli = cli
     this.globalOpts = globalOpts
     this.extraCommands = extraCommands
     this.serveCommand = serveCommand
@@ -778,6 +784,7 @@ ${styles.accent.underline("Keys:")}
             .run({
               ...prepareParams,
               garden,
+              cli: this.cli,
               sessionId,
               parentSessionId: this.manager.sessionId,
             })
