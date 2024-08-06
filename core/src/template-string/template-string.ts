@@ -845,7 +845,7 @@ function buildBinaryExpression(head: any, tail: any) {
     // Disallow undefined values for comparisons
     if (left === undefined || right === undefined) {
       const message = [leftRes, rightRes]
-        .map((res) => res.message)
+        .map((res) => res?.message)
         .filter(Boolean)
         .join(" ")
       const err = new TemplateStringError({
