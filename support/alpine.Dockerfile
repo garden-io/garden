@@ -66,8 +66,8 @@ WORKDIR /project
 # Apline-3.20 seems to have some issues, see https://github.com/aws/aws-cli/issues/8698#issuecomment-2135662844
 FROM python:3.11.9-alpine3.19@sha256:afceeee134f2a85dd42b1079b03508e89db42603f5feb0d32a012a03e187a071 AS aws-builder
 
-ENV AWSCLI_VERSION=2.17.15
-ENV AWSCLI_SHA256="feab2d2afe0047385d5943b6e6dada6dc5304d334d1811528bde60f50e01557f"
+ENV AWSCLI_VERSION=2.17.24
+ENV AWSCLI_SHA256="4bac972110f84dd7e7825297cac124a6931ea941893ff004067b467038698dd4"
 
 RUN apk add --no-cache \
   wget \
@@ -78,7 +78,7 @@ RUN apk add --no-cache \
   libc-dev \
   libffi-dev \
   openssl-dev
-RUN wget https://awscli.amazonaws.com/awscli-$AWSCLI_VERSION.tar.gz && \
+RUN wget https://awscli.amazonaws.com/awscli-2.17.24.tar.gz && \
   echo "$AWSCLI_SHA256  awscli-$AWSCLI_VERSION.tar.gz" | sha256sum -c && \
   tar -xzf awscli-$AWSCLI_VERSION.tar.gz
 RUN cd awscli-$AWSCLI_VERSION \
@@ -114,10 +114,10 @@ RUN rm -rf $(find /google-cloud-sdk/ -regex ".*/__pycache__") && rm -rf /google-
 FROM garden-base-root as garden-azure-base
 
 WORKDIR /
-ENV AZURE_CLI_VERSION=2.62.0
+ENV AZURE_CLI_VERSION=2.63.0
 
 RUN wget -O requirements.txt https://raw.githubusercontent.com/Azure/azure-cli/azure-cli-$AZURE_CLI_VERSION/src/azure-cli/requirements.py3.Linux.txt && \
-  echo "a156935b8b7df50b70bd1c0a20e6147a98cdfaac27e791bc46087f8206dde3ef  requirements.txt" | sha256sum -c
+  echo "e60840ad140d70a2bf752e74e83711435181354b82193515833cc0e20c0e6b6c  requirements.txt" | sha256sum -c
 RUN wget -O trim_sdk.py https://raw.githubusercontent.com/Azure/azure-cli/azure-cli-$AZURE_CLI_VERSION/scripts/trim_sdk.py && \
   echo "2e6292f5285b4fcedbe8efd77309fade550667d1c502a6ffa078f1aa97942c64  trim_sdk.py" | sha256sum -c
 
