@@ -7,10 +7,10 @@
  */
 
 import chalk from "chalk"
-import { resolve, relative, join } from "path"
-import { STATIC_DIR, GARDEN_CLI_ROOT, GARDEN_CORE_ROOT } from "@garden-io/core/build/src/constants.js"
+import { join, relative, resolve } from "path"
+import { GARDEN_CLI_ROOT, GARDEN_CORE_ROOT, STATIC_DIR } from "@garden-io/core/build/src/constants.js"
 import { readFile, writeFile } from "fs/promises"
-import { remove, mkdirp, copy, pathExists } from "fs-extra/esm"
+import { copy, mkdirp, pathExists, remove } from "fs-extra/esm"
 import { exec, getPackageVersion } from "@garden-io/core/build/src/util/util.js"
 import { pick } from "lodash-es"
 import minimist from "minimist"
@@ -75,7 +75,7 @@ function getRustTarget(spec: TargetSpec): string {
   return target
 }
 
-export const nodeVersion = "22.5.1"
+export const nodeVersion = "22.6.0"
 export const nodeTargets: {
   [name: string]: { spec: TargetSpec; handler: (p: TargetHandlerParams) => Promise<void> }
 } = {
@@ -86,7 +86,7 @@ export const nodeTargets: {
       node: nodeVersion,
       nodeBinaryPlatform: "darwin",
       url: `https://nodejs.org/dist/v${nodeVersion}/node-v${nodeVersion}-darwin-x64.tar.gz`,
-      checksum: "6acb4533bc0a43a468f90bbd49230aa16c7c57b2a3451efe02175feea346754d",
+      checksum: "8766c5968ca22d20fc6237c54c7c5d12ef12e15940d6119a79144ccb163ea737",
     },
     handler: pkgMacos,
   },
@@ -97,7 +97,7 @@ export const nodeTargets: {
       node: nodeVersion,
       nodeBinaryPlatform: "darwin",
       url: `https://nodejs.org/dist/v${nodeVersion}/node-v${nodeVersion}-darwin-arm64.tar.gz`,
-      checksum: "7602384855f1e169b60e51c360e5a2c672b89a19ccda0199ce4675d68fefaaf2",
+      checksum: "9ea60766807cd3c3a3ad6ad419f98918d634a60fe8dea5b9c07507ed0f176d4c",
     },
     handler: pkgMacos,
   },
@@ -108,7 +108,7 @@ export const nodeTargets: {
       node: nodeVersion,
       nodeBinaryPlatform: "linux",
       url: `https://nodejs.org/dist/v${nodeVersion}/node-v${nodeVersion}-linux-x64.tar.gz`,
-      checksum: "2a7b8b8aa5c739ae55233d59f78736911a8a5da5ea1c63f0e843da270d039499",
+      checksum: "f2f4ccbcbc0a443e5fadebd1149a22f96087ec09cef52ff343a15ee835206d96",
     },
     handler: pkgLinux,
   },
@@ -119,7 +119,7 @@ export const nodeTargets: {
       node: nodeVersion,
       nodeBinaryPlatform: "linux",
       url: `https://nodejs.org/dist/v${nodeVersion}/node-v${nodeVersion}-linux-arm64.tar.gz`,
-      checksum: "8dfaf4b2ce3c639771f6be7001bac81ece0eea3cd6668666c00100bf175a14ee",
+      checksum: "c6c7ee62de3637401c15df9a022afaa248d236d59ceca8c188944cf97d0be372",
     },
     handler: pkgLinux,
   },
@@ -131,7 +131,7 @@ export const nodeTargets: {
       nodeBinaryPlatform: "linux",
       // Alpine builds live in https://unofficial-builds.nodejs.org/download/release/
       url: `https://unofficial-builds.nodejs.org/download/release/v${nodeVersion}/node-v${nodeVersion}-linux-x64-musl.tar.gz`,
-      checksum: "a3555f0412dff33cb0ccd1818d87d5d8fa6fcd1b36a73c5330994561fc392cbc",
+      checksum: "cce2f0b673b55c30693176baa3981d51282c8ae932d8ab61b836a1cd8332423d",
     },
     handler: pkgAlpine,
   },
@@ -142,7 +142,7 @@ export const nodeTargets: {
       node: nodeVersion,
       nodeBinaryPlatform: "win32",
       url: `https://nodejs.org/dist/v${nodeVersion}/node-v${nodeVersion}-win-x64.zip`,
-      checksum: "71b74712aa5c6587c428b39d9ec9aa013bfcfa38a2a0ed8e68b3922dda1b69f4",
+      checksum: "1fdb0b8e59c98157ba927d51ef7eb050f9459beddc64ebc5a8897b90fd1f46f6",
     },
     handler: pkgWindows,
   },
