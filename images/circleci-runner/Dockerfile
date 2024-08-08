@@ -1,5 +1,5 @@
 #### gcloud base image ####
-FROM google/cloud-sdk:477.0.0@sha256:01e38cd50099ff39643f56cb625d902a668d97790a872f3f294996e935899edd as gcloud
+FROM google/cloud-sdk:487.0.0@sha256:3827f5af870bb9aed17b0ab6d841381798df7344c2b1535818a4e731d3daaed5 as gcloud
 
 #### ghr utility ####
 FROM cibuilds/github:0.13.0@sha256:a247975213771f2f4c61b806771ef6c22b225fdc46558738b7c935517c0dcdd4 AS ghr
