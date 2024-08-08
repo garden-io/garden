@@ -5,7 +5,7 @@ FROM google/cloud-sdk:487.0.0@sha256:3827f5af870bb9aed17b0ab6d841381798df7344c2b
 FROM cibuilds/github:0.13.0@sha256:a247975213771f2f4c61b806771ef6c22b225fdc46558738b7c935517c0dcdd4 AS ghr
 
 #### ldid utility ####
-FROM cimg/node:22.2.0@sha256:3f6ca5a24d32e5bb54b5ac67b84e90c133242c2428c5aed1b1a8f5e8aaca0132 as ldid
+FROM cimg/node:22.6.0@sha256:a2353f631cd52030a0de3bc4e59093cf4eaff02ae46bbbb9261581dd3e49d2d2 as ldid
 
 RUN sudo apt-get update && sudo apt-get install -qq -y --no-install-recommends \
   git \
@@ -22,7 +22,7 @@ RUN cd /tmp && \
   sudo cp -f ./ldid /usr/local/bin/ldid
 
 #### main ####
-FROM cimg/node:22.2.0@sha256:3f6ca5a24d32e5bb54b5ac67b84e90c133242c2428c5aed1b1a8f5e8aaca0132
+FROM cimg/node:22.6.0@sha256:a2353f631cd52030a0de3bc4e59093cf4eaff02ae46bbbb9261581dd3e49d2d2
 
 # install system deps
 RUN sudo apt-get update && sudo apt-get -y install rsync parallel python3 curl
@@ -48,8 +48,8 @@ RUN sudo ln -s /usr/lib/google-cloud-sdk/bin/* /usr/local/bin/ \
   && cd / && gcloud version # make sure it works
 
 # install kubectl
-RUN wget -O kubectl https://storage.googleapis.com/kubernetes-release/release/v1.17.0/bin/linux/amd64/kubectl && \
-  echo "6e0aaaffe5507a44ec6b1b8a0fb585285813b78cc045f8804e70a6aac9d1cb4c  kubectl" | sha256sum -c && \
+RUN wget -O kubectl https://storage.googleapis.com/kubernetes-release/release/v1.30.2/bin/linux/amd64/kubectl && \
+  echo "c6e9c45ce3f82c90663e3c30db3b27c167e8b19d83ed4048b61c1013f6a7c66e  kubectl" | sha256sum -c && \
   chmod +x kubectl && \
   sudo mv kubectl /usr/local/bin/ && \
   cd / && kubectl version --client=true # make sure it works
