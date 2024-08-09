@@ -25,12 +25,28 @@ export function streamLogs({
 }): void {
   const logStream = split2()
 
+  let streamClosed = false
+
+  const handleStreamClosed = () => {
+    if (streamClosed) {
+      return
+    }
+    if (!logStream.writableEnded) {
+      logStream.end()
+      streamClosed = true
+    }
+  }
+
   if (proc.stderr) {
     proc.stderr.pipe(logStream)
+    proc.stderr.on("close", handleStreamClosed)
+    proc.stderr.on("end", handleStreamClosed)
   }
 
   if (proc.stdout) {
     proc.stdout.pipe(logStream)
+    proc.stdout.on("close", handleStreamClosed)
+    proc.stdout.on("end", handleStreamClosed)
   }
 
   const logEventContext = {
@@ -38,7 +54,14 @@ export function streamLogs({
     level: level ?? ("verbose" as const),
   }
 
+  proc.on("close", handleStreamClosed)
+  proc.on("exit", handleStreamClosed)
+  logStream.on("close", handleStreamClosed)
+
   logStream.on("data", (line: Buffer) => {
+    if (!logStream.readableEnded) {
+      return
+    }
     const logLine = line.toString()
     ctx.events.emit("log", { timestamp: new Date().toISOString(), msg: logLine, ...logEventContext })
   })
