@@ -1,3 +1,16 @@
+
+<a name="0.13.37"></a>
+## [0.13.37](https://github.com/garden-io/garden/compare/0.13.36...0.13.37) (2024-08-09)
+
+### Bug Fixes
+
+* **dev:** fix custom commands not working in dev console ([#6341](https://github.com/garden-io/garden/issues/6341)) ([6c71c507a](https://github.com/garden-io/garden/commit/6c71c507a))
+* **template:** null-safe error message extraction ([#6358](https://github.com/garden-io/garden/issues/6358)) ([98b50698c](https://github.com/garden-io/garden/commit/98b50698c))
+
+### Improvements
+
+* update kubernetes-client library to version with better auth error handling ([#6343](https://github.com/garden-io/garden/issues/6343)) ([c5f56d9ec](https://github.com/garden-io/garden/commit/c5f56d9ec))
+* add error handler callback to podRunner log streams ([#6339](https://github.com/garden-io/garden/issues/6339)) ([c045254da](https://github.com/garden-io/garden/commit/c045254da))
 <a name="0.13.36"></a>
 ## [0.13.36](https://github.com/garden-io/garden/compare/0.13.35...0.13.36) (2024-08-01)
 
