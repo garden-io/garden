@@ -103,7 +103,7 @@ COPY --chown=$USER:root --from=aws-builder /usr/bin/aws-iam-authenticator /usr/b
 #
 FROM google/cloud-sdk:486.0.0-alpine@sha256:4c437f46e93d26af92e62c8d549c04d6deb15e559363fc8ccc2d1ccbbbbd0431 as gcloud-base
 
-RUN gcloud components install kubectl gke-gcloud-auth-plugin --quiet && gcloud components uninstall gsutil --quiet
+RUN gcloud components install kubectl gke-gcloud-auth-plugin --quiet && gcloud components remove gsutil --quiet
 
 # Clean up bloat that increases layer size unnecessarily
 RUN rm -rf $(find /google-cloud-sdk/ -regex ".*/__pycache__") && rm -rf /google-cloud-sdk/.install/.backup
