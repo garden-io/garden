@@ -25,6 +25,7 @@ import type { PulumiProvider } from "./provider.js"
 import type { DeployActionHandlers } from "@garden-io/core/build/src/plugin/action-types.js"
 import type { DeployState } from "@garden-io/core/build/src/types/service.js"
 import { deployStateToActionState } from "@garden-io/core/build/src/plugin/handlers/Deploy/get-status.js"
+import { isErrnoException, toGardenError } from "@garden-io/core/build/src/exceptions.js"
 
 export const cleanupEnvironment: ProviderHandlers["cleanupEnvironment"] = async (_params) => {
   // To properly implement this handler, we'd need access to the config graph (or at least the list of pulumi services
@@ -51,17 +52,24 @@ export const getPulumiDeployStatus: DeployActionHandlers<PulumiDeploy>["getStatu
   }
 
   await selectStack(pulumiParams)
-  const stackStatus = await getStackStatusFromTag(pulumiParams)
+  try {
+    const stackStatus = await getStackStatusFromTag(pulumiParams)
 
-  const deployState: DeployState = stackStatus === "up-to-date" ? "ready" : "outdated"
+    const deployState: DeployState = stackStatus === "up-to-date" ? "ready" : "outdated"
 
-  return {
-    state: deployStateToActionState(deployState),
-    outputs: await getStackOutputs(pulumiParams),
-    detail: {
-      state: deployState,
-      detail: {},
-    },
+    return {
+      state: deployStateToActionState(deployState),
+      outputs: await getStackOutputs(pulumiParams),
+      detail: {
+        state: deployState,
+        detail: {},
+      },
+    }
+  } catch (e) {
+    if (isErrnoException(e)) {
+      log.error(`NodeJSError occurred while getting status of ${action.key()}: ${e}`)
+    }
+    throw toGardenError(e)
   }
 }
 
@@ -99,25 +107,33 @@ export const deployPulumi: DeployActionHandlers<PulumiDeploy>["deploy"] = async 
   log.verbose(`Applying pulumi stack...`)
   const upArgs = ["up", "--yes", "--color", "always", "--config-file", getStackConfigPath(action, ctx.environmentName)]
   planPath && upArgs.push("--plan", planPath)
-  await pulumi(ctx, provider).spawnAndStreamLogs({
-    args: upArgs,
-    cwd: root,
-    log,
-    env,
-    ctx,
-    errorPrefix: "Error when applying pulumi stack",
-  })
-  if (cacheStatus) {
-    await setStackVersionTag(pulumiParams)
-  }
 
-  return {
-    state: "ready",
-    outputs: await getStackOutputs(pulumiParams),
-    detail: {
+  try {
+    await pulumi(ctx, provider).spawnAndStreamLogs({
+      args: upArgs,
+      cwd: root,
+      log,
+      env,
+      ctx,
+      errorPrefix: "Error when applying pulumi stack",
+    })
+    if (cacheStatus) {
+      await setStackVersionTag(pulumiParams)
+    }
+
+    return {
       state: "ready",
-      detail: {},
-    },
+      outputs: await getStackOutputs(pulumiParams),
+      detail: {
+        state: "ready",
+        detail: {},
+      },
+    }
+  } catch (e) {
+    if (isErrnoException(e)) {
+      log.error(`NodeJSError occurred while deploying ${action.key()}: ${e}`)
+    }
+    throw toGardenError(e)
   }
 }
 
@@ -142,22 +158,29 @@ export const deletePulumiDeploy: DeployActionHandlers<PulumiDeploy>["delete"] = 
   const cli = pulumi(ctx, provider)
   await selectStack(pulumiParams)
   log.verbose(`Destroying pulumi stack...`)
-  await cli.spawnAndStreamLogs({
-    args: ["destroy", "--yes", "--config-file", getStackConfigPath(action, ctx.environmentName)],
-    cwd: root,
-    log,
-    env,
-    ctx,
-    errorPrefix: "Error when destroying pulumi stack",
-  })
-  await clearStackVersionTag(pulumiParams)
+  try {
+    await cli.spawnAndStreamLogs({
+      args: ["destroy", "--yes", "--config-file", getStackConfigPath(action, ctx.environmentName)],
+      cwd: root,
+      log,
+      env,
+      ctx,
+      errorPrefix: "Error when destroying pulumi stack",
+    })
+    await clearStackVersionTag(pulumiParams)
 
-  return {
-    state: deployStateToActionState("missing"),
-    outputs: {},
-    detail: {
-      state: "missing",
-      detail: {},
-    },
+    return {
+      state: deployStateToActionState("missing"),
+      outputs: {},
+      detail: {
+        state: "missing",
+        detail: {},
+      },
+    }
+  } catch (e) {
+    if (isErrnoException(e)) {
+      log.error(`NodeJSError occurred while deleting ${action.key()}: ${e}`)
+    }
+    throw toGardenError(e)
   }
 }

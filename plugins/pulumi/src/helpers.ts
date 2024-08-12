@@ -13,6 +13,7 @@ import { styles } from "@garden-io/core/build/src/logger/styles.js"
 import { merge } from "json-merge-patch"
 import { basename, dirname, extname, join, resolve } from "path"
 import fsExtra from "fs-extra"
+
 const { ensureDir, pathExists, readFile } = fsExtra
 import {
   ChildProcessError,
@@ -33,6 +34,7 @@ import { dedent, deline, naturalList } from "@garden-io/sdk/build/src/util/strin
 import type { Resolved } from "@garden-io/core/build/src/actions/types.js"
 import type { ActionLog } from "@garden-io/core/build/src/logger/log-entry.js"
 import type { PulumiCommandResult } from "./commands.js"
+import { isErrnoException, toGardenError } from "@garden-io/core/build/src/exceptions.js"
 
 export interface PulumiParams {
   ctx: PluginContext
@@ -466,8 +468,15 @@ export async function selectStack({ action, ctx, provider, log }: PulumiParams) 
   const args = ["stack", "select", qualifiedStackName]
   spec.createStack && args.push("--create")
   const env = ensureEnv({ action, ctx, provider, log })
-  await pulumi(ctx, provider).spawnAndWait({ args, cwd: root, log, env })
-  return stackName
+  try {
+    await pulumi(ctx, provider).spawnAndWait({ args, cwd: root, log, env })
+    return stackName
+  } catch (e) {
+    if (isErrnoException(e)) {
+      log.error(`NodeJSError occurred while selecting Pulumi stack for ${action.key()}: ${e}`)
+    }
+    throw toGardenError(e)
+  }
 }
 
 function getOrgName(provider: PulumiProvider, action: Resolved<PulumiDeploy>): string | undefined {
