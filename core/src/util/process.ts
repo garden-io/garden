@@ -58,20 +58,16 @@ export function waitForProcessExit({ proc }: { proc: ChildProcess }): Promise<vo
 }
 
 export function waitForProcess({ proc, errorPrefix }: { proc: ChildProcess; errorPrefix: string }): Promise<void> {
-  const logStream = split2()
-
   let stdout = ""
   let stderr = ""
 
   if (proc.stderr) {
-    proc.stderr.pipe(logStream)
     proc.stderr.on("data", (data) => {
       stderr += data
     })
   }
 
   if (proc.stdout) {
-    proc.stdout.pipe(logStream)
     proc.stdout.on("data", (data) => {
       stdout += data
     })
