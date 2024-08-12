@@ -158,7 +158,7 @@
     "wrap-ansi": "^9.0.0",
     "write-file-atomic": "^5.0.0",
     "ws": "^8.17.1",
-    "yaml": "^2.4.2",
+    "yaml": "^2.5.0",
     "yaml-lint": "^1.2.4",
     "zod": "^3.23.8",
     "zod-to-json-schema": "^3.22.4"
