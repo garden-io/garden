@@ -12,7 +12,7 @@
     "fast-copy": "^3.0.2",
     "fs-extra": "^11.2.0",
     "lodash-es": "^4.17.21",
-    "split2": "^4.1.0"
+    "split2": "^4.2.0"
   },
   "devDependencies": {
     "@types/async-lock": "^1.4.2",
