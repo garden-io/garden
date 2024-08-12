@@ -4,7 +4,7 @@
 #
 # Usage: ./compute-ext-tool-binary-shas.sh <darwin-x64-dl-url> <darwin-arm64-dl-url> <linux-dl-url> <win-dl-url>
 
-platforms=("Darwin-x64" "Darwin-arm64" "Linux-amd64" "Linux-arm64" "Windows")
+platforms=("Darwin-amd64" "Darwin-arm64" "Linux-amd64" "Linux-arm64" "Windows")
 urls=($1 $2 $3 $4 $5)
 
 for i in ${!platforms[@]}; do
