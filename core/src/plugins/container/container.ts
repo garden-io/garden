@@ -100,7 +100,7 @@ export const configSchema = () =>
 export type ContainerProvider = Provider<ContainerProviderConfig>
 export type ContainerPluginContext = PluginContext<ContainerProviderConfig>
 
-export const dockerVersion = "25.0.2"
+export const dockerVersion = "27.1.1"
 export const dockerSpec: PluginToolSpec = {
   name: "docker",
   version: dockerVersion,
@@ -112,7 +112,7 @@ export const dockerSpec: PluginToolSpec = {
       platform: "darwin",
       architecture: "amd64",
       url: `https://download.docker.com/mac/static/stable/x86_64/docker-${dockerVersion}.tgz`,
-      sha256: "3c7e0d69bd7bc78d39a48d6e2102979efdc128e1ee7e730be93e69ff7e389655",
+      sha256: "d2e916f1dfc1a107804d0c1b44242ca2884d5ed07507ec91014648b35459aff4",
       extract: {
         format: "tar",
         targetPath: "docker/docker",
@@ -122,7 +122,7 @@ export const dockerSpec: PluginToolSpec = {
       platform: "darwin",
       architecture: "arm64",
       url: `https://download.docker.com/mac/static/stable/aarch64/docker-${dockerVersion}.tgz`,
-      sha256: "6b95f574215fc92608cdef7d83d4ab8ab17107b4eade95b2b915705bfc3260c7",
+      sha256: "a8d011a64b79957f8abe7e3ff56d852352bf9de529d214eee99d1bb1ce3e3d2d",
       extract: {
         format: "tar",
         targetPath: "docker/docker",
@@ -132,7 +132,7 @@ export const dockerSpec: PluginToolSpec = {
       platform: "linux",
       architecture: "amd64",
       url: `https://download.docker.com/linux/static/stable/x86_64/docker-${dockerVersion}.tgz`,
-      sha256: "a83b394570052c12ac5255801b322676092b4985d82f4c1a92253f45de45dc99",
+      sha256: "118da6b8fc8e8b6c086ab0dd5e64ee549376c3a3f963723bbc9a46db475bf21f",
       extract: {
         format: "tar",
         targetPath: "docker/docker",
@@ -142,7 +142,7 @@ export const dockerSpec: PluginToolSpec = {
       platform: "linux",
       architecture: "arm64",
       url: `https://download.docker.com/linux/static/stable/aarch64/docker-${dockerVersion}.tgz`,
-      sha256: "6a2cb41789469bc6ecddff22be014540f8a92fa0bee9fcf0771e3179ef3fc673",
+      sha256: "86a395f67a5a23d8eb207ab5a9ab32a51f7fccd8b18dae40887e738db95c6bc4",
       extract: {
         format: "tar",
         targetPath: "docker/docker",
@@ -152,7 +152,7 @@ export const dockerSpec: PluginToolSpec = {
       platform: "windows",
       architecture: "amd64",
       url: `https://github.com/rgl/docker-ce-windows-binaries-vagrant/releases/download/v${dockerVersion}/docker-${dockerVersion}.zip`,
-      sha256: "25ff5d9dd8ae176dd30fd97b0b99a896d598fa62fca0b7171b45887ad4d3661b",
+      sha256: "747edbca83e494f160633e07749f4b70ae83c8e81fef36f4b7168048ded64817",
       extract: {
         format: "zip",
         targetPath: "docker/docker.exe",
