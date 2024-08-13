@@ -60,7 +60,7 @@
     "dedent": "^1.5.3",
     "deline": "^1.0.4",
     "dependency-graph": "^0.11.0",
-    "directory-tree": "^3.5.1",
+    "directory-tree": "^3.5.2",
     "docker-file-parser": "^1.0.7",
     "dotenv": "^16.4.5",
     "env-var": "^7.5.0",
