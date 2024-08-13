@@ -150,7 +150,7 @@
     "typescript-memoize": "^1.1.1",
     "uniqid": "^5.4.0",
     "unixify": "^1.0.0",
-    "unzip-stream": "^0.3.1",
+    "unzip-stream": "^0.3.4",
     "username": "^7.0.0",
     "uuid": "^9.0.0",
     "which": "^4.0.0",
