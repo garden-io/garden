@@ -24,7 +24,7 @@ import AsyncLock from "async-lock"
 import type { PluginContext } from "../plugin-context.js"
 import { LogLevel } from "../logger/logger.js"
 import { uuidv4 } from "./random.js"
-import { streamLogs, waitForProcess } from "./process.js"
+// import { streamLogs, waitForProcess } from "./process.js"
 import { pipeline } from "node:stream/promises"
 import type { MaybeSecret } from "./secrets.js"
 
@@ -133,21 +133,22 @@ export abstract class CliWrapper {
     cwd,
     env,
     log,
-    ctx,
-    errorPrefix,
+    // ctx,
+    // errorPrefix,
   }: SpawnParams & { errorPrefix: string; ctx: PluginContext; statusLine?: Log }) {
-    const proc = await this.spawn({ args, cwd, env, log })
+    return this.exec({ args, cwd, env, log, ignoreError: false })
+    // const proc = await this.spawn({ args, cwd, env, log })
 
-    streamLogs({
-      proc,
-      name: this.name,
-      ctx,
-    })
+    // streamLogs({
+    //   proc,
+    //   name: this.name,
+    //   ctx,
+    // })
 
-    await waitForProcess({
-      proc,
-      errorPrefix,
-    })
+    // await waitForProcess({
+    //   proc,
+    //   errorPrefix,
+    // })
   }
 
   /**
