@@ -22,5 +22,7 @@ providers:
       # to authenticate with your registry (if needed)
       - name: gcr-config
         namespace: default
+      - name: dockerhub
+        namespace: default
 variables:
   userId: ${kebabCase(local.username)}

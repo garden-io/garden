@@ -26,5 +26,7 @@ providers:
       # Make sure this matches the name and namespace of the imagePullSecret you've created
       - name: gcr-config
         namespace: default
+      - name: dockerhub
+        namespace: default
 variables:
   userId: ${kebabCase(local.username)}
