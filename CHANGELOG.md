@@ -1,4 +1,17 @@
 
+<a name="0.13.38"></a>
+## [0.13.38](https://github.com/garden-io/garden/compare/0.13.37...0.13.38) (2024-08-15)
+
+### Bug Fixes
+
+* improve error message when k8s token expired ([#6382](https://github.com/garden-io/garden/issues/6382)) ([bd2b94382](https://github.com/garden-io/garden/commit/bd2b94382))
+* **pulumi:** fix process spawn machinery in Pulumi plugin ([#6377](https://github.com/garden-io/garden/issues/6377)) ([76bdbec72](https://github.com/garden-io/garden/commit/76bdbec72))
+* **testResult:** transform undefined to null when serializing test result ([#6380](https://github.com/garden-io/garden/issues/6380)) ([883df510e](https://github.com/garden-io/garden/commit/883df510e))
+
+### Bundled Tool Version Updates
+
+* **docker:** update bundled Docker CLI to 27.1.1 ([#6368](https://github.com/garden-io/garden/issues/6368)) ([2587afdb0](https://github.com/garden-io/garden/commit/2587afdb0))
+
 <a name="0.13.37"></a>
 ## [0.13.37](https://github.com/garden-io/garden/compare/0.13.36...0.13.37) (2024-08-09)
 
