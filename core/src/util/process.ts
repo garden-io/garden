@@ -8,7 +8,6 @@
 
 import type { ChildProcess } from "child_process"
 import split2 from "split2"
-import { RuntimeError } from "../exceptions.js"
 import type { PluginContext } from "../plugin-context.js"
 import type { StringLogLevel } from "../logger/logger.js"
 
@@ -53,45 +52,6 @@ export function waitForProcessExit({ proc }: { proc: ChildProcess }): Promise<vo
     proc.on("error", reject)
     proc.on("exit", () => {
       resolve()
-    })
-  })
-}
-
-export function waitForProcess({ proc, errorPrefix }: { proc: ChildProcess; errorPrefix: string }): Promise<void> {
-  const logStream = split2()
-
-  let stdout = ""
-  let stderr = ""
-
-  if (proc.stderr) {
-    proc.stderr.pipe(logStream)
-    proc.stderr.on("data", (data) => {
-      stderr += data
-    })
-  }
-
-  if (proc.stdout) {
-    proc.stdout.pipe(logStream)
-    proc.stdout.on("data", (data) => {
-      stdout += data
-    })
-  }
-
-  return new Promise<void>((resolve, reject) => {
-    proc.on("error", reject)
-    proc.on("close", (code) => {
-      if (code === 0) {
-        resolve()
-      } else {
-        // Some commands (e.g. the pulumi CLI) don't log anything to stderr when an error occurs. To handle that,
-        // we use `stdout` for the error output instead (in case information relevant to the user is included there).
-        const errOutput = stderr.length > 0 ? stderr : stdout
-        reject(
-          new RuntimeError({
-            message: `${errorPrefix}:\n${errOutput}\n\nExit code: ${code}`,
-          })
-        )
-      }
     })
   })
 }
