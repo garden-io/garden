@@ -17,6 +17,7 @@ import type { NodeJSErrnoException } from "../../exceptions.js"
 import { InternalError, isErrnoException } from "../../exceptions.js"
 import type { ErrorEvent } from "ws"
 import dns from "node:dns"
+import { trim } from "lodash-es"
 
 /**
  * The flag {@code forceRetry} can be used to avoid {@link shouldRetry} helper call in case if the error code
@@ -121,6 +122,12 @@ export function toKubernetesError(err: unknown, context: string): KubernetesErro
     errorType = "WebsocketError"
     originalMessage = err.message
     // The ErrorEvent does not expose the status code other than as part of the error.message
+  } else if (err instanceof Error && err.name === "Error" && err.cause === undefined) {
+    // exec auth getCredential function of kubernetes client throws plain error
+    // see also https://github.com/kubernetes-client/javascript/blob/release-1.x/src/exec_auth.ts
+    // TODO: fix the client to throw a more recognizable error
+    errorType = "Error"
+    originalMessage = trim(err.message)
   } else {
     // In all other cases, we don't know what this is, so let's just throw an InternalError
     throw InternalError.wrapError(err, `toKubernetesError encountered an unknown error during ${context}`)
