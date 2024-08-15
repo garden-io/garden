@@ -141,13 +141,11 @@ export abstract class CliWrapper {
     }
 
     const logStream = split2()
-    // logStream.on("error", () => {})
     logStream.on("data", (line: Buffer) => {
       const logLine = line.toString()
       ctx.events.emit("log", { timestamp: new Date().toISOString(), msg: logLine, ...logEventContext })
     })
 
-    // return this.exec({ args, cwd, env, log, ignoreError: false })
     return await this.spawnAndWait({ args, cwd, env, log, stdout: logStream, stderr: logStream })
   }
 
