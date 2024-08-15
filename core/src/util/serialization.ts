@@ -65,11 +65,12 @@ export async function loadYamlFile(path: string): Promise<any> {
 }
 
 export function serializeObject(o: any): string {
-  return Buffer.from(JSON.stringify(o)).toString("base64")
+  return Buffer.from(JSON.stringify(o === undefined ? null : o)).toString("base64")
 }
 
 export function deserializeObject(s: string) {
-  return JSON.parse(Buffer.from(s, "base64").toString())
+  const parsed = JSON.parse(Buffer.from(s, "base64").toString())
+  return parsed === null ? undefined : parsed
 }
 
 export function serializeValues(o: { [key: string]: any }): { [key: string]: string } {
