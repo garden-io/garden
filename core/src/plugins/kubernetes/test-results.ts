@@ -22,6 +22,7 @@ import type { TestActionHandler } from "../../plugin/action-types.js"
 import { runResultToActionState } from "../../actions/base.js"
 import type { HelmPodTestAction } from "./helm/config.js"
 import type { KubernetesTestAction } from "./kubernetes-type/config.js"
+import { GardenError } from "../../exceptions.js"
 
 // TODO: figure out how to get rid of the any cast
 export const k8sGetTestResult: TestActionHandler<"getResult", any> = async (params) => {
@@ -57,7 +58,7 @@ export const k8sGetTestResult: TestActionHandler<"getResult", any> = async (para
 
 export function getTestResultKey(ctx: PluginContext, action: StoreTestResultParams["action"]) {
   // change the result format version if the result format changes breaking backwards-compatibility e.g. serialization format
-  const resultFormatVersion = 1
+  const resultFormatVersion = 2
   const key = `${ctx.projectName}--${action.name}--${action.versionString()}--${resultFormatVersion}`
   const hash = hashSync(key, { algorithm: "sha1" })
   return `test-result--${hash.slice(0, 32)}`
@@ -95,6 +96,9 @@ export async function storeTestResult({ ctx, log, action, result }: StoreTestRes
       data,
     })
   } catch (err) {
+    if (!(err instanceof GardenError)) {
+      throw err
+    }
     log.warn(`Unable to store test result: ${err}`)
   }
 
