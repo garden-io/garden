@@ -24,9 +24,9 @@ import AsyncLock from "async-lock"
 import type { PluginContext } from "../plugin-context.js"
 import { LogLevel } from "../logger/logger.js"
 import { uuidv4 } from "./random.js"
-import { streamLogs, waitForProcess } from "./process.js"
 import { pipeline } from "node:stream/promises"
 import type { MaybeSecret } from "./secrets.js"
+import split2 from "split2"
 
 const { pathExists, createWriteStream, ensureDir, chmod, remove, move, createReadStream } = fsExtra
 
@@ -122,7 +122,7 @@ export abstract class CliWrapper {
   }
 
   /**
-   * Helper for using spawn with live log streaming. Waits for the command to finish before returning.
+   * Helper for using exec with live log streaming. Waits for the command to finish before returning.
    *
    * If an error occurs and no output has been written to stderr, we use stdout for the error message instead.
    *
@@ -134,20 +134,19 @@ export abstract class CliWrapper {
     env,
     log,
     ctx,
-    errorPrefix,
   }: SpawnParams & { errorPrefix: string; ctx: PluginContext; statusLine?: Log }) {
-    const proc = await this.spawn({ args, cwd, env, log })
+    const logEventContext = {
+      origin: this.name,
+      level: "verbose" as const,
+    }
 
-    streamLogs({
-      proc,
-      name: this.name,
-      ctx,
+    const logStream = split2()
+    logStream.on("data", (line: Buffer) => {
+      const logLine = line.toString()
+      ctx.events.emit("log", { timestamp: new Date().toISOString(), msg: logLine, ...logEventContext })
     })
 
-    await waitForProcess({
-      proc,
-      errorPrefix,
-    })
+    return await this.spawnAndWait({ args, cwd, env, log, stdout: logStream, stderr: logStream })
   }
 
   /**
