@@ -377,7 +377,7 @@ export const kubernetesDeploy: DeployActionHandler<"deploy", KubernetesDeployAct
 
   if (namespaceManifests.length > 0) {
     // Don't prune namespaces
-    await apply({ log, ctx, api, provider, manifests: namespaceManifests })
+    await apply({ log, ctx, api, provider, manifests: namespaceManifests, applyArgs: spec.applyArgs })
     await waitForResources({
       namespace,
       ctx,
@@ -410,7 +410,15 @@ export const kubernetesDeploy: DeployActionHandler<"deploy", KubernetesDeployAct
 
     // TODO: Similarly to `container` deployments, check if immutable fields have changed (and delete before
     // redeploying, unless in a production environment).
-    await apply({ log, ctx, api, provider: k8sCtx.provider, manifests: preparedManifests, pruneLabels })
+    await apply({
+      log,
+      ctx,
+      api,
+      provider: k8sCtx.provider,
+      manifests: preparedManifests,
+      pruneLabels,
+      applyArgs: spec.applyArgs,
+    })
     await waitForResources({
       namespace,
       ctx,
