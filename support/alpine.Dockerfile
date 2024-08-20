@@ -65,8 +65,8 @@ WORKDIR /project
 
 FROM python:3.11.9-alpine@sha256:700b4aa84090748aafb348fc042b5970abb0a73c8f1b4fcfe0f4e3c2a4a9fcca AS aws-builder
 
-ENV AWSCLI_VERSION=2.17.24
-ENV AWSCLI_SHA256="4bac972110f84dd7e7825297cac124a6931ea941893ff004067b467038698dd4"
+ENV AWSCLI_VERSION=2.17.33
+ENV AWSCLI_SHA256="b4695cc8ad9f7c52f2f29308ec75cc5d02a3226565b0ce1e13c37cff64c7e1bc"
 
 RUN apk add --no-cache \
   wget \
@@ -77,7 +77,7 @@ RUN apk add --no-cache \
   libc-dev \
   libffi-dev \
   openssl-dev
-RUN wget https://awscli.amazonaws.com/awscli-2.17.24.tar.gz && \
+RUN wget https://awscli.amazonaws.com/awscli-$AWSCLI_VERSION.tar.gz && \
   echo "$AWSCLI_SHA256  awscli-$AWSCLI_VERSION.tar.gz" | sha256sum -c && \
   tar -xzf awscli-$AWSCLI_VERSION.tar.gz
 RUN cd awscli-$AWSCLI_VERSION \
