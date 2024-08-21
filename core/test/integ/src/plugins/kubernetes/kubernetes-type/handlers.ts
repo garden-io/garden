@@ -490,6 +490,13 @@ describe("kubernetes-type handlers", () => {
       // test successful deploy
       await kubernetesDeploy(configMapList.deployParams)
     })
+
+    it("should successfully deploy with custom applyArgs", async () => {
+      const { deployParams } = await prepareActionDeployParams("apply-args", {})
+
+      const status = await kubernetesDeploy(deployParams)
+      expect(status.state).to.eql("ready")
+    })
   })
 
   describe("deleteKubernetesDeploy", () => {
