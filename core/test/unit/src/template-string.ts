@@ -99,6 +99,60 @@ describe("resolveTemplateString", () => {
     expect(res).to.equal("${bar}")
   })
 
+  it("should allow nesting escaped strings within normal strings", () => {
+    const res = resolveTemplateString({
+      string: "${foo == 'yes' ? '$${bar}' : 'fail' }",
+      context: new TestContext({ foo: "yes" }),
+      contextOpts: { unescape: true },
+    })
+    expect(res).to.equal("${bar}")
+  })
+
+  it("should escape things correctly 1", () => {
+    const res = resolveTemplateString({
+      string: "$${env.TEST_ENV}",
+      context: new TestContext({}),
+      contextOpts: { unescape: true },
+    })
+    expect(res).to.equal("${env.TEST_ENV}")
+  })
+
+  it("should escape things correctly 2", () => {
+    const res = resolveTemplateString({
+      string: "foo $${env.TEST_ENV} bar",
+      context: new TestContext({}),
+      contextOpts: { unescape: true },
+    })
+    expect(res).to.equal("foo ${env.TEST_ENV} bar")
+  })
+
+  it("should escape things correctly 3", () => {
+    const res = resolveTemplateString({
+      string: "$${env:TEST_ENV}",
+      context: new TestContext({}),
+      contextOpts: { unescape: true },
+    })
+    expect(res).to.equal("${env:TEST_ENV}")
+  })
+
+  it("should escape things correctly 4", () => {
+    const res = resolveTemplateString({
+      string: "foo $${env:TEST_ENV} bar",
+      context: new TestContext({}),
+      contextOpts: { unescape: true },
+    })
+    expect(res).to.equal("foo ${env:TEST_ENV} bar")
+  })
+
+  it("should escape things correctly 5", () => {
+    const res = resolveTemplateString({
+      string: "${foo}-$${env:TEST_ENV}",
+      context: new TestContext({ foo: "foo" }),
+      contextOpts: { unescape: true },
+    })
+    expect(res).to.equal("foo-${env:TEST_ENV}")
+  })
+
   it("should allow mixing normal and escaped strings", () => {
     const res = resolveTemplateString({
       string: "${foo}-and-$${var.nope}",
