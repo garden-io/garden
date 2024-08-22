@@ -108,58 +108,42 @@ describe("resolveTemplateString", () => {
     expect(res).to.equal("${bar}")
   })
 
-  it("should escape things correctly 1", () => {
-    const res = resolveTemplateString({
-      string: "$${env.TEST_ENV}",
-      context: new TestContext({}),
-      contextOpts: { unescape: true },
-    })
-    expect(res).to.equal("${env.TEST_ENV}")
-  })
+  describe("should escape env references correctly", () => {
+    const envFormats = [
+      { delimiter: ".", platform: "macos/linux" },
+      { delimiter: ":", platform: "windows" },
+    ]
 
-  it("should escape things correctly 2", () => {
-    const res = resolveTemplateString({
-      string: "foo $${env.TEST_ENV} bar",
-      context: new TestContext({}),
-      contextOpts: { unescape: true },
-    })
-    expect(res).to.equal("foo ${env.TEST_ENV} bar")
-  })
+    for (const envFormat of envFormats) {
+      describe(`on ${envFormat.platform}`, () => {
+        it("for standalone env vars", () => {
+          const res = resolveTemplateString({
+            string: "$${env" + envFormat.delimiter + "TEST_ENV}",
+            context: new TestContext({}),
+            contextOpts: { unescape: true },
+          })
+          expect(res).to.equal("${env" + envFormat.delimiter + "TEST_ENV}")
+        })
 
-  it("should escape things correctly 3", () => {
-    const res = resolveTemplateString({
-      string: "${foo}-$${env.TEST_ENV}",
-      context: new TestContext({ foo: "foo" }),
-      contextOpts: { unescape: true },
-    })
-    expect(res).to.equal("foo-${env.TEST_ENV}")
-  })
+        it("for env vars in argument lists", () => {
+          const res = resolveTemplateString({
+            string: "foo $${env" + envFormat.delimiter + "TEST_ENV} bar",
+            context: new TestContext({}),
+            contextOpts: { unescape: true },
+          })
+          expect(res).to.equal("foo ${env" + envFormat.delimiter + "TEST_ENV} bar")
+        })
 
-  it("should escape things correctly 4", () => {
-    const res = resolveTemplateString({
-      string: "$${env:TEST_ENV}",
-      context: new TestContext({}),
-      contextOpts: { unescape: true },
-    })
-    expect(res).to.equal("${env:TEST_ENV}")
-  })
-
-  it("should escape things correctly 5", () => {
-    const res = resolveTemplateString({
-      string: "foo $${env:TEST_ENV} bar",
-      context: new TestContext({}),
-      contextOpts: { unescape: true },
-    })
-    expect(res).to.equal("foo ${env:TEST_ENV} bar")
-  })
-
-  it("should escape things correctly 6", () => {
-    const res = resolveTemplateString({
-      string: "${foo}-$${env:TEST_ENV}",
-      context: new TestContext({ foo: "foo" }),
-      contextOpts: { unescape: true },
-    })
-    expect(res).to.equal("foo-${env:TEST_ENV}")
+        it("for env vars that are parts of another strings", () => {
+          const res = resolveTemplateString({
+            string: "${foo}-$${env" + envFormat.delimiter + "TEST_ENV}",
+            context: new TestContext({ foo: "foo" }),
+            contextOpts: { unescape: true },
+          })
+          expect(res).to.equal("foo-${env" + envFormat.delimiter + "TEST_ENV}")
+        })
+      })
+    }
   })
 
   it("should allow mixing normal and escaped strings", () => {
