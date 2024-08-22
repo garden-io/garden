@@ -128,6 +128,15 @@ describe("resolveTemplateString", () => {
 
   it("should escape things correctly 3", () => {
     const res = resolveTemplateString({
+      string: "${foo}-$${env.TEST_ENV}",
+      context: new TestContext({ foo: "foo" }),
+      contextOpts: { unescape: true },
+    })
+    expect(res).to.equal("foo-${env.TEST_ENV}")
+  })
+
+  it("should escape things correctly 4", () => {
+    const res = resolveTemplateString({
       string: "$${env:TEST_ENV}",
       context: new TestContext({}),
       contextOpts: { unescape: true },
@@ -135,7 +144,7 @@ describe("resolveTemplateString", () => {
     expect(res).to.equal("${env:TEST_ENV}")
   })
 
-  it("should escape things correctly 4", () => {
+  it("should escape things correctly 5", () => {
     const res = resolveTemplateString({
       string: "foo $${env:TEST_ENV} bar",
       context: new TestContext({}),
@@ -144,7 +153,7 @@ describe("resolveTemplateString", () => {
     expect(res).to.equal("foo ${env:TEST_ENV} bar")
   })
 
-  it("should escape things correctly 5", () => {
+  it("should escape things correctly 6", () => {
     const res = resolveTemplateString({
       string: "${foo}-$${env:TEST_ENV}",
       context: new TestContext({ foo: "foo" }),
