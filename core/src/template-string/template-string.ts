@@ -120,6 +120,15 @@ export const resolveTemplateString = profile(function resolveTemplateString({
     return string
   }
 
+  const shouldUnescape = (ctxOpts: ContextResolveOpts) => {
+    // Explicit non-escaping takes the highest priority.
+    if (ctxOpts.unescape === false) {
+      return false
+    }
+
+    return !!ctxOpts.unescape || !contextOpts.allowPartial
+  }
+
   try {
     const parsed = parser.parse(string, {
       getKey: (key: string[], resolveOpts?: ContextResolveOpts) => {
@@ -135,7 +144,7 @@ export const resolveTemplateString = profile(function resolveTemplateString({
       missingKeyExceptionType,
       passthroughExceptionType,
       allowPartial: !!contextOpts.allowPartial,
-      unescape: !!contextOpts.unescape || !contextOpts.allowPartial,
+      unescape: shouldUnescape(contextOpts),
       escapePrefix,
       optionalSuffix: "}?",
       isPlainObject,
