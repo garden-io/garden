@@ -72,8 +72,12 @@ describe("resolveTemplateString", () => {
     expect(res).to.equal("${bar}")
   })
 
-  it("should pass through a template string with a double $$ prefix", () => {
-    const res = resolveTemplateString({ string: "$${bar}", context: new TestContext({}) })
+  it("should pass through a template string with a double $$ prefix if allowPartial=true", () => {
+    const res = resolveTemplateString({
+      string: "$${bar}",
+      context: new TestContext({}),
+      contextOpts: { allowPartial: true },
+    })
     expect(res).to.equal("$${bar}")
   })
 
@@ -84,6 +88,63 @@ describe("resolveTemplateString", () => {
       contextOpts: { unescape: true },
     })
     expect(res).to.equal("${bar}")
+  })
+
+  it("should unescape a template string with a double $$ prefix if allowPartial=false", () => {
+    const res = resolveTemplateString({
+      string: "$${bar}",
+      context: new TestContext({}),
+      contextOpts: { allowPartial: false },
+    })
+    expect(res).to.equal("${bar}")
+  })
+
+  it("should allow nesting escaped strings within normal strings", () => {
+    const res = resolveTemplateString({
+      string: "${foo == 'yes' ? '$${bar}' : 'fail' }",
+      context: new TestContext({ foo: "yes" }),
+      contextOpts: { unescape: true },
+    })
+    expect(res).to.equal("${bar}")
+  })
+
+  describe("should escape env references correctly", () => {
+    const envFormats = [
+      { delimiter: ".", platform: "macos/linux" },
+      // FIXME: for some reason peggy parser does not process strings with : in the middle
+      // { delimiter: ":", platform: "windows" },
+    ]
+
+    for (const envFormat of envFormats) {
+      describe(`on ${envFormat.platform}`, () => {
+        it("for standalone env vars", () => {
+          const res = resolveTemplateString({
+            string: "$${env" + envFormat.delimiter + "TEST_ENV}",
+            context: new TestContext({}),
+            contextOpts: { unescape: true },
+          })
+          expect(res).to.equal("${env" + envFormat.delimiter + "TEST_ENV}")
+        })
+
+        it("for env vars in argument lists", () => {
+          const res = resolveTemplateString({
+            string: "foo $${env" + envFormat.delimiter + "TEST_ENV} bar",
+            context: new TestContext({}),
+            contextOpts: { unescape: true },
+          })
+          expect(res).to.equal("foo ${env" + envFormat.delimiter + "TEST_ENV} bar")
+        })
+
+        it("for env vars that are parts of another strings", () => {
+          const res = resolveTemplateString({
+            string: "${foo}-$${env" + envFormat.delimiter + "TEST_ENV}",
+            context: new TestContext({ foo: "foo" }),
+            contextOpts: { unescape: true },
+          })
+          expect(res).to.equal("foo-${env" + envFormat.delimiter + "TEST_ENV}")
+        })
+      })
+    }
   })
 
   it("should allow mixing normal and escaped strings", () => {
