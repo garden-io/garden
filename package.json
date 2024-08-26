@@ -62,7 +62,7 @@
     "prettier": "3.2.5",
     "replace-in-file": "^7.1.0",
     "@rollup/wasm-node": "^4.18.0",
-    "semver": "^7.6.0",
+    "semver": "^7.6.3",
     "shx": "^0.3.2",
     "split2": "^4.1.0",
     "strip-ansi": "^7.1.0",
