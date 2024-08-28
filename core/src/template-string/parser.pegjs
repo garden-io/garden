@@ -57,7 +57,7 @@ TemplateString
   / $(.*) { return text() === "" ? [] : [{ resolved: text() }] }
 
 FormatString
-  = EscapeStart SourceCharacter* FormatEndWithOptional {
+  = EscapeStart (!FormatEndWithOptional SourceCharacter)* FormatEndWithOptional {
     if (options.unescape) {
       return text().slice(1)
     } else {

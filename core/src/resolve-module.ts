@@ -932,7 +932,14 @@ export class ModuleResolver {
     templateContextParams: ModuleConfigContextParams
   ): Promise<DeepPrimitiveMap> {
     const moduleConfigContext = new ModuleConfigContext(templateContextParams)
-    const resolveOpts = { allowPartial: false }
+    const resolveOpts = {
+      allowPartial: false,
+      // Modules will be converted to actions later, and the actions will be properly unescaped.
+      // We avoid premature un-escaping here,
+      // because otherwise it will strip the escaped value in the module config
+      // to the normal template string in the converted action config.
+      unescape: false,
+    }
 
     let varfileVars: DeepPrimitiveMap = {}
     if (config.varfile) {
