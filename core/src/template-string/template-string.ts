@@ -96,6 +96,15 @@ export class TemplateError extends GardenError {
   }
 }
 
+const shouldUnescape = (ctxOpts: ContextResolveOpts) => {
+  // Explicit non-escaping takes the highest priority.
+  if (ctxOpts.unescape === false) {
+    return false
+  }
+
+  return !!ctxOpts.unescape || !ctxOpts.allowPartial
+}
+
 /**
  * Parse and resolve a templated string, with the given context. The template format is similar to native JS templated
  * strings but only supports simple lookups from the given context, e.g. "prefix-${nested.key}-suffix", and not
@@ -118,15 +127,6 @@ export const resolveTemplateString = profile(function resolveTemplateString({
   // Just return immediately if this is definitely not a template string
   if (!maybeTemplateString(string)) {
     return string
-  }
-
-  const shouldUnescape = (ctxOpts: ContextResolveOpts) => {
-    // Explicit non-escaping takes the highest priority.
-    if (ctxOpts.unescape === false) {
-      return false
-    }
-
-    return !!ctxOpts.unescape || !ctxOpts.allowPartial
   }
 
   try {
