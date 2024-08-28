@@ -126,7 +126,7 @@ export const resolveTemplateString = profile(function resolveTemplateString({
       return false
     }
 
-    return !!ctxOpts.unescape || !contextOpts.allowPartial
+    return !!ctxOpts.unescape || !ctxOpts.allowPartial
   }
 
   try {
