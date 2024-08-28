@@ -698,6 +698,7 @@ jobs:
             git push origin --tags --force
 
             # Update the release to the now updated tag and target
+            gh auth login
             gh release edit ${VERSION} \
               -R ${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME} \
               --prerelease \
