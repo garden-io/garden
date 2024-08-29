@@ -1,4 +1,14 @@
 
+<a name="0.13.39"></a>
+## [0.13.39](https://github.com/garden-io/garden/compare/0.13.38...0.13.39) (2024-08-29)
+
+### Bug Fixes
+
+* **examples:** remove invalid action dependency from pulumi example ([#6384](https://github.com/garden-io/garden/issues/6384)) ([445d7d377](https://github.com/garden-io/garden/commit/445d7d377))
+* **template:** keep action variables when resolving disabled flag ([#6406](https://github.com/garden-io/garden/issues/6406)) ([0b8b0497b](https://github.com/garden-io/garden/commit/0b8b0497b))
+* **template:** fix template string escaping and resolution in Module configs ([#6408](https://github.com/garden-io/garden/issues/6408)) ([8df80152a](https://github.com/garden-io/garden/commit/8df80152a))
+* **template:** unescape escape templates when not doing partial resolution ([#5680](https://github.com/garden-io/garden/issues/5680)) ([cc6e41c3a](https://github.com/garden-io/garden/commit/cc6e41c3a))
+
 <a name="0.13.38"></a>
 ## [0.13.38](https://github.com/garden-io/garden/compare/0.13.37...0.13.38) (2024-08-15)
 
