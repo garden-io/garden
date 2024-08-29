@@ -1522,10 +1522,16 @@ export class Garden {
     }
 
     const context = new TemplatableConfigContext(this, config)
+    // Inject action's variables
+    context.variables = context.var = {
+      ...context.variables,
+      ...config.variables,
+    }
 
     return resolveTemplateString({
       string: disabledFlag,
       context,
+      contextOpts: { allowPartial: false },
     })
   }
 
