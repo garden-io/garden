@@ -4,6 +4,6 @@ type: kubernetes
 
 spec:
   applyArgs:
-    - --server-side
+    - --unknown-apply-flag
   files:
     - manifests.yaml

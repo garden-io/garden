@@ -13,6 +13,7 @@ import cloneDeep from "fast-copy"
 import tmp from "tmp-promise"
 
 import type { TestGarden } from "../../../../../helpers.js"
+import { expectError } from "../../../../../helpers.js"
 import { getKubernetesTestGarden } from "./common.js"
 import { DeployTask } from "../../../../../../src/tasks/deploy.js"
 import {
@@ -491,11 +492,11 @@ describe("kubernetes-type handlers", () => {
       await kubernetesDeploy(configMapList.deployParams)
     })
 
-    it("should successfully deploy with custom applyArgs", async () => {
+    it("should apply the custom applyArgs to the deployment", async () => {
+      // This example has a bad custom argument - it is `--unknown-apply-flag`.
       const { deployParams } = await prepareActionDeployParams("apply-args", {})
 
-      const status = await kubernetesDeploy(deployParams)
-      expect(status.state).to.eql("ready")
+      await expectError(() => kubernetesDeploy(deployParams), { contains: "error: unknown flag: --unknown-apply-flag" })
     })
   })
 
