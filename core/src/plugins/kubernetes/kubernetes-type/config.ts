@@ -32,6 +32,7 @@ import type {
   KubernetesExecTestActionConfig,
 } from "./kubernetes-exec.js"
 import { dedent } from "../../../util/string.js"
+import type { ApplyParams } from "../kubectl.js"
 
 export interface KubernetesTypeCommonDeploySpec {
   files: string[]
@@ -40,6 +41,7 @@ export interface KubernetesTypeCommonDeploySpec {
   manifests: KubernetesResource[]
   namespace?: string
   portForwards?: PortForwardSpec[]
+  applyArgs?: ApplyParams["applyArgs"]
 }
 
 export interface KubernetesDeployActionSpec extends KubernetesTypeCommonDeploySpec {

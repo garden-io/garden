@@ -1,0 +1,9 @@
+kind: Deploy
+name: apply-args
+type: kubernetes
+
+spec:
+  applyArgs:
+    - --unknown-apply-flag
+  files:
+    - manifests.yaml
