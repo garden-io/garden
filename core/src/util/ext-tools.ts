@@ -321,7 +321,7 @@ export class PluginTool extends CliWrapper {
         if (this.buildSpec.extract && !(await pathExists(targetAbsPath))) {
           // if this happens, it's a bug!
           throw new InternalError({
-            message: `Error while downloading ${this.name}: Archive ${this.buildSpec.url} does not contain a file or directory at ${this.targetSubpath}`,
+            message: `Error while downloading ${this.name}: Archive ${this.buildSpec.url} does not contain a file or directory at ${targetAbsPath}`,
           })
         }
 

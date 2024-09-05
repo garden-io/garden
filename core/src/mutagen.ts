@@ -1120,7 +1120,7 @@ export const mutagenFauxSshSpec: PluginToolSpec = {
       sha256: "c7645e615efc9e5139f8a281abb9acae61ea2ce2084ea25aa438438da3481167",
       extract: {
         format: "tar",
-        targetPath: "mutagen",
+        targetPath: "ssh",
       },
     },
     {
