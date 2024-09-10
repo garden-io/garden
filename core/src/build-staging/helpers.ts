@@ -6,22 +6,27 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { readlink, copyFile, constants, utimes } from "fs"
+import { readlink, copyFile, constants, utimes, symlink } from "fs"
 import readdir from "@jsdevtools/readdir-enhanced"
-import { splitLast } from "../util/string.js"
+import { dedent, splitLast } from "../util/string.js"
 import { Minimatch } from "minimatch"
-import { isAbsolute, parse, basename, resolve } from "path"
+import { isAbsolute, parse, basename, resolve, join, dirname } from "path"
 import fsExtra from "fs-extra"
 const { ensureDir, Stats, lstat, remove } = fsExtra
-import { FilesystemError, InternalError, isErrnoException } from "../exceptions.js"
+import { ConfigurationError, FilesystemError, InternalError, isErrnoException } from "../exceptions.js"
 import type { AsyncResultCallback } from "async"
 import async from "async"
 import { round } from "lodash-es"
 import { promisify } from "util"
+import { styles } from "../logger/styles.js"
+import { emitNonRepeatableWarning } from "../warnings.js"
+import { type Log } from "../logger/log-entry.js"
 
 export type MappedPaths = [string, string][]
 
 export interface CloneFileParams {
+  log: Log
+  root: string
   from: string
   to: string
   allowDelete: boolean
@@ -37,7 +42,7 @@ type SyncCallback = AsyncResultCallback<SyncResult, Error>
 /**
  * Synchronizes (clones) a single file in one direction.
  */
-export function cloneFile({ from, to, allowDelete, statsHelper }: CloneFileParams, done: SyncCallback) {
+export function cloneFile({ log, root, from, to, allowDelete, statsHelper }: CloneFileParams, done: SyncCallback) {
   // Stat the files
   async.parallel<ExtendedStats | null>(
     {
@@ -57,33 +62,60 @@ export function cloneFile({ from, to, allowDelete, statsHelper }: CloneFileParam
         return done(null, { skipped: true })
       }
 
-      // Follow symlink on source, if applicable
       if (sourceStats.isSymbolicLink()) {
-        if (sourceStats.target) {
-          sourceStats = sourceStats.target
-        } else {
-          // Symlink couldn't be resolved, so we ignore it
+        if (!sourceStats.targetPath) {
+          // This symlink failed validation (e.g. it is absolute, when absolute symlinks are not allowed)
           return done(null, { skipped: true })
+        }
+        const resolved = resolve(dirname(sourceStats.path), sourceStats.targetPath)
+        const outOfBounds = !resolved.startsWith(join(root, "/"))
+        if (outOfBounds) {
+          const outOfBoundsMessage = dedent`
+            Encountered a symlink ${sourceStats.path} whose target ${sourceStats.targetPath} is out of bounds (not inside ${root}).
+
+            When using ${styles.highlight("staged builds")} or ${styles.highlight("copyFrom")}. Staged builds must be self-contained.
+
+            Symbolic links to directories or files outside the action's source directory (when ${styles.highlight("builds")}), or build directory (when using ${styles.highlight("copyFrom")}), are not allowed.
+
+            In case this is not acceptable, you can disable build staging by setting ${styles.highlight("buildAtSource: true")} in the action configuration to disable build staging for this action.`
+          if (sourceStats.target?.isFile()) {
+            // For compatibility with older versions of garden that would allow symlink targets outside the root, if the target file existed, we only emit a warning here.
+            // TODO(0.14): Throw an error here
+            emitNonRepeatableWarning(
+              log,
+              outOfBoundsMessage + `\n\nWARNING: This will become an error in an upcoming release of Garden.`
+            )
+            // For compatibility with older versions of Garden, copy the target file instead of reproducing the symlink
+            // TODO(0.14): Only reproduce the symlink. The target file will be copied in another call to `cloneFile`.
+            sourceStats = sourceStats.target
+          } else {
+            // Note: If a symlink pointed to a directory, we threw another error "source is neither a symbolic link, nor a file" in previous versions of garden,
+            // so this is not a breaking change.
+            throw new ConfigurationError({
+              message: outOfBoundsMessage,
+            })
+          }
         }
       }
 
-      if (!sourceStats.isFile()) {
+      if (!sourceStats.isFile() && !sourceStats.isSymbolicLink()) {
         return done(
-          new FilesystemError({
+          // Using internal error here because if this happens, it's a logical error here in this code
+          new InternalError({
             message: `Error while copying from '${from}' to '${to}': Source is neither a symbolic link, nor a file.`,
           })
         )
       }
 
       if (targetStats) {
-        // If target is a directory and deletes are allowed, delete the directory before copying, otherwise throw
-        if (targetStats.isDirectory()) {
+        // If target is a directory or source is a symbolic link and deletes are allowed, delete the target before copying, otherwise throw
+        if (targetStats.isDirectory() || sourceStats.isSymbolicLink()) {
           if (allowDelete) {
             return remove(to, (removeErr) => {
               if (removeErr) {
                 return done(removeErr)
               } else {
-                return doClone({ from, to, sourceStats: sourceStats!, done, statsHelper })
+                return doClone({ from, to, sourceStats: sourceStats!, targetStats, done, statsHelper })
               }
             })
           } else {
@@ -101,7 +133,7 @@ export function cloneFile({ from, to, allowDelete, statsHelper }: CloneFileParam
         }
       }
 
-      return doClone({ from, to, sourceStats, done, statsHelper })
+      return doClone({ from, to, sourceStats, targetStats, done, statsHelper })
     }
   )
 }
@@ -112,14 +144,15 @@ export const cloneFileAsync = promisify(cloneFile) as (params: CloneFileParams) 
 interface CopyParams {
   from: string
   to: string
-  sourceStats: fsExtra.Stats
+  sourceStats: ExtendedStats
+  targetStats: ExtendedStats | null
   done: SyncCallback
   statsHelper: FileStatsHelper
   resolvedSymlinkPaths?: string[]
 }
 
 function doClone(params: CopyParams) {
-  const { from, to, done, sourceStats } = params
+  const { from, to, done, sourceStats, targetStats } = params
   const dir = parse(to).dir
 
   // TODO: take care of this ahead of time to avoid the extra i/o
@@ -128,11 +161,7 @@ function doClone(params: CopyParams) {
       return done(err)
     }
 
-    // COPYFILE_FICLONE instructs the function to use a copy-on-write reflink on platforms/filesystems where available
-    copyFile(from, to, constants.COPYFILE_FICLONE, (copyErr) => {
-      if (copyErr) {
-        return done(copyErr)
-      }
+    const setUtimes = () => {
       // Set the mtime on the cloned file to the same as the source file
       utimes(to, new Date(), sourceStats.mtimeMs / 1000, (utimesErr) => {
         if (utimesErr && (!isErrnoException(utimesErr) || utimesErr.code !== "ENOENT")) {
@@ -140,7 +169,44 @@ function doClone(params: CopyParams) {
         }
         done(null, { skipped: false })
       })
-    })
+    }
+
+    if (sourceStats.isSymbolicLink()) {
+      // reproduce the symbolic link. Validation happens before.
+      if (sourceStats.targetPath) {
+        symlink(
+          sourceStats.targetPath,
+          to,
+          // relevant on windows
+          // nodejs will auto-detect this on windows, but if the symlink is copied before the target then the auto-detection will get it wrong.
+          targetStats?.isDirectory() ? "dir" : "file",
+          (symlinkErr) => {
+            if (symlinkErr) {
+              return done(symlinkErr)
+            }
+
+            setUtimes()
+          }
+        )
+      } else {
+        throw new InternalError({
+          message: "Source is a symbolic link, but targetPath was null or undefined.",
+        })
+      }
+    } else if (sourceStats.isFile()) {
+      // COPYFILE_FICLONE instructs the function to use a copy-on-write reflink on platforms/filesystems where available
+      copyFile(from, to, constants.COPYFILE_FICLONE, (copyErr) => {
+        if (copyErr) {
+          return done(copyErr)
+        }
+
+        setUtimes()
+      })
+    } else {
+      throw new InternalError({
+        message: "Expected doClone source to be a file or a symbolic link.",
+      })
+    }
   })
 }
 
@@ -220,15 +286,18 @@ export async function scanDirectoryForClone(root: string, pattern?: string): Pro
 export class ExtendedStats extends Stats {
   path: string
   target?: ExtendedStats | null
+  // original relative or absolute path the symlink points to. This can be defined when target is null when the target does not exist, for instance.
+  targetPath?: string | null
 
-  constructor(path: string, target?: ExtendedStats | null) {
+  constructor(path: string, target?: ExtendedStats | null, targetPath?: string | null) {
     super()
     this.path = path
     this.target = target
+    this.targetPath = targetPath
   }
 
-  static fromStats(stats: fsExtra.Stats, path: string, target?: ExtendedStats | null) {
-    const o = new ExtendedStats(path, target)
+  static fromStats(stats: fsExtra.Stats, path: string, target?: ExtendedStats | null, targetPath?: string | null) {
+    const o = new ExtendedStats(path, target, targetPath)
     Object.assign(o, stats)
     return o
   }
@@ -312,8 +381,8 @@ export class FileStatsHelper {
         if (lstatErr) {
           cb(lstatErr, null)
         } else if (lstats.isSymbolicLink()) {
-          this.resolveSymlink({ path, allowAbsolute: allowAbsoluteSymlinks }, (symlinkErr, target) => {
-            cb(symlinkErr, ExtendedStats.fromStats(lstats, path, target))
+          this.resolveSymlink({ path, allowAbsolute: allowAbsoluteSymlinks }, (symlinkErr, target, targetPath) => {
+            cb(symlinkErr, ExtendedStats.fromStats(lstats, path, target, targetPath))
           })
         } else {
           cb(null, ExtendedStats.fromStats(lstats, path))
@@ -351,6 +420,9 @@ export class FileStatsHelper {
    * fs.Stats for the resolved target, if one can be resolved. If target cannot be found, the callback is resolved
    * with a null value.
    *
+   * The second callback parameter, `targetPath`, is the unresolved target of the symbolic link. The `targetPath` will be undefined
+   * if the symbolic link is absolute, and absolute symbolic links are not allowed.
+   *
    * `path` must be an absolute path (an error is thrown otherwise).
    *
    * By default, absolute symlinks are ignored, and if one is encountered the method resolves to null. Set
@@ -358,7 +430,7 @@ export class FileStatsHelper {
    */
   resolveSymlink(
     params: ResolveSymlinkParams,
-    cb: (err: NodeJS.ErrnoException | null, target: ExtendedStats | null) => void
+    cb: (err: NodeJS.ErrnoException | null, target: ExtendedStats | null, targetPath: string | null) => void
   ) {
     const { path, allowAbsolute } = params
     const _resolvedPaths = params._resolvedPaths || [path]
@@ -370,15 +442,15 @@ export class FileStatsHelper {
     readlink(path, (readlinkErr, target) => {
       if (readlinkErr?.code === "ENOENT") {
         // Symlink target not found, so we ignore it
-        return cb(null, null)
+        return cb(null, null, null)
       } else if (readlinkErr) {
-        return cb(InternalError.wrapError(readlinkErr, "Error reading symlink"), null)
+        return cb(InternalError.wrapError(readlinkErr, "Error reading symlink"), null, null)
       }
 
       // Ignore absolute symlinks unless specifically allowed
       // TODO: also allow limiting links to a certain absolute path
       if (isAbsolute(target) && !allowAbsolute) {
-        return cb(null, null)
+        return cb(null, null, null)
       }
 
       // Resolve the symlink path
@@ -387,25 +459,33 @@ export class FileStatsHelper {
       // Stat the final path and return
       this.lstat(targetPath, (statErr, targetStats) => {
         if (statErr?.code === "ENOENT") {
-          // Can't find the final target, so we ignore it
-          cb(null, null)
+          // The symlink target does not exist. That's not an error.
+          cb(null, null, target)
         } else if (statErr) {
           // Propagate other errors
-          cb(statErr, null)
+          cb(statErr, null, null)
         } else if (targetStats.isSymbolicLink()) {
           // Keep resolving until we get to a real path
           if (_resolvedPaths.includes(targetPath)) {
             // We've gone into a symlink loop, so we ignore it
-            cb(null, null)
+            cb(null, null, target)
           } else {
             this.resolveSymlink(
               { path: targetPath, allowAbsolute, _resolvedPaths: [..._resolvedPaths, targetPath] },
-              cb
+              (innerResolveErr, innerStats, _innerTarget) => {
+                if (innerResolveErr) {
+                  cb(innerResolveErr, null, null)
+                } else {
+                  // make sure the original symlink target is not overridden by the recursive search here
+                  // TODO(0.14): In a future version of garden it would be better to simply reproduce relative symlinks, instead of resolving them and copying the target directories.
+                  cb(null, innerStats, target)
+                }
+              }
             )
           }
         } else {
           // Return with path and stats for final symlink target
-          cb(null, ExtendedStats.fromStats(targetStats, targetPath))
+          cb(null, ExtendedStats.fromStats(targetStats, targetPath), target)
         }
       })
     })

@@ -18,6 +18,8 @@ import { expectError } from "../../../helpers.js"
 import { sleep } from "../../../../src/util/util.js"
 import { sortBy } from "lodash-es"
 import { equalWithPrecision } from "../../../../src/util/testing.js"
+import { getRootLogger } from "../../../../src/logger/logger.js"
+import { readlink } from "fs/promises"
 
 describe("build staging helpers", () => {
   let statsHelper: FileStatsHelper
@@ -40,11 +42,14 @@ describe("build staging helpers", () => {
   }
 
   describe("cloneFile", () => {
+    const logger = getRootLogger()
+    const log = logger.createLog()
+
     it("clones a file", async () => {
       const a = join(tmpPath, "a")
       const b = join(tmpPath, "b")
       await writeFile(a, "foo")
-      const res = await cloneFileAsync({ from: a, to: b, statsHelper, allowDelete: false })
+      const res = await cloneFileAsync({ log, root: a, from: a, to: b, statsHelper, allowDelete: false })
       const data = await readFileStr(b)
       expect(res.skipped).to.be.false
       expect(data).to.equal("foo")
@@ -55,7 +60,7 @@ describe("build staging helpers", () => {
       const b = join(tmpPath, "b")
       await writeFile(a, "foo")
       await mkdir(b)
-      const res = await cloneFileAsync({ from: a, to: b, statsHelper, allowDelete: true })
+      const res = await cloneFileAsync({ log, root: a, from: a, to: b, statsHelper, allowDelete: true })
       const data = await readFileStr(b)
       expect(res.skipped).to.be.false
       expect(data).to.equal("foo")
@@ -67,7 +72,7 @@ describe("build staging helpers", () => {
       await writeFile(a, "foo")
       await mkdir(b)
 
-      await expectError(() => cloneFileAsync({ from: a, to: b, statsHelper, allowDelete: false }), {
+      await expectError(() => cloneFileAsync({ log, root: a, from: a, to: b, statsHelper, allowDelete: false }), {
         contains: `Build staging: Failed copying file from '${a}' to '${b}' because a directory exists at the target path`,
       })
     })
@@ -78,7 +83,7 @@ describe("build staging helpers", () => {
       await writeFile(a, "foo")
       await sleep(100)
 
-      await cloneFileAsync({ from: a, to: b, statsHelper, allowDelete: false })
+      await cloneFileAsync({ log, root: a, from: a, to: b, statsHelper, allowDelete: false })
 
       const statA = await statsHelper.extendedStat({ path: a })
       const statB = await statsHelper.extendedStat({ path: b })
@@ -91,9 +96,9 @@ describe("build staging helpers", () => {
       const b = join(tmpPath, "b")
       await writeFile(a, "foo")
 
-      await cloneFileAsync({ from: a, to: b, statsHelper, allowDelete: false })
+      await cloneFileAsync({ log, root: a, from: a, to: b, statsHelper, allowDelete: false })
 
-      const res = await cloneFileAsync({ from: a, to: b, statsHelper, allowDelete: false })
+      const res = await cloneFileAsync({ log, root: a, from: a, to: b, statsHelper, allowDelete: false })
       expect(res.skipped).to.be.true
     })
 
@@ -102,7 +107,7 @@ describe("build staging helpers", () => {
       const b = join(tmpPath, "subdir", "b")
       await writeFile(a, "foo")
 
-      await cloneFileAsync({ from: a, to: b, statsHelper, allowDelete: false })
+      await cloneFileAsync({ log, root: a, from: a, to: b, statsHelper, allowDelete: false })
 
       const data = await readFileStr(b)
       expect(data).to.equal("foo")
@@ -114,10 +119,40 @@ describe("build staging helpers", () => {
       const c = join(tmpPath, "c")
       await writeFile(a, "foo")
       await symlink("a", b)
-      const res = await cloneFileAsync({ from: b, to: c, statsHelper, allowDelete: false })
+      const res = await cloneFileAsync({ log, root: b, from: b, to: c, statsHelper, allowDelete: false })
       const data = await readFileStr(c)
       expect(res.skipped).to.be.false
       expect(data).to.equal("foo")
+    })
+
+    it("reproduces the symlink if it points to a directory", async () => {
+      const b = join(tmpPath, "b")
+      const a = join(tmpPath, "a")
+      const syml = "symlink"
+      const symlBroken = "broken"
+      const dir = "dir"
+      const file = join(dir, "fruit")
+      await mkdir(a)
+      await mkdir(join(a, dir))
+      await writeFile(join(a, file), "banana")
+      await symlink("dir", join(a, syml))
+      await symlink("target_does_not_exist", join(a, symlBroken))
+      const filesToClone = [syml, symlBroken, file]
+      for (const f of filesToClone) {
+        const res = await cloneFileAsync({
+          log,
+          root: a,
+          from: join(a, f),
+          to: join(b, f),
+          statsHelper,
+          allowDelete: false,
+        })
+        expect(res.skipped).to.be.false
+      }
+      expect(await readlink(join(b, syml))).to.equal("dir")
+      expect(await readlink(join(b, symlBroken))).to.equal("target_does_not_exist")
+      expect(await readFileStr(join(b, file))).to.equal("banana")
+      expect(await readFileStr(join(b, syml, "fruit"))).to.equal("banana")
     })
 
     it("clones a file that's within a symlinked directory", async () => {
@@ -130,7 +165,7 @@ describe("build staging helpers", () => {
       await symlink("dir", dirLink)
       await writeFile(a, "foo")
 
-      const res = await cloneFileAsync({ from: a, to: b, statsHelper, allowDelete: false })
+      const res = await cloneFileAsync({ log, root: a, from: a, to: b, statsHelper, allowDelete: false })
       const data = await readFileStr(b)
       expect(res.skipped).to.be.false
       expect(data).to.equal("foo")
@@ -141,7 +176,7 @@ describe("build staging helpers", () => {
       const b = join(tmpPath, "b")
       await ensureDir(a)
 
-      await expectError(() => cloneFileAsync({ from: a, to: b, statsHelper, allowDelete: false }), {
+      await expectError(() => cloneFileAsync({ log, root: a, from: a, to: b, statsHelper, allowDelete: false }), {
         contains: `Error while copying from '${a}' to '${b}': Source is neither a symbolic link, nor a file`,
       })
     })
@@ -403,12 +438,18 @@ describe("build staging helpers", () => {
     describe("resolveSymlink", () => {
       // A promisified version to simplify tests
       async function resolveSymlink(params: ResolveSymlinkParams) {
-        return new Promise<ExtendedStats | null>((resolve, reject) => {
-          statsHelper.resolveSymlink(params, (err, target) => {
+        return new Promise<{
+          target: ExtendedStats | null
+          targetPath: string | null
+        }>((resolve, reject) => {
+          statsHelper.resolveSymlink(params, (err, target, targetPath) => {
             if (err) {
               reject(err)
             } else {
-              resolve(target)
+              resolve({
+                target,
+                targetPath,
+              })
             }
           })
         })
@@ -420,7 +461,8 @@ describe("build staging helpers", () => {
         await writeFile(a, "foo")
         await symlink("a", b)
         const res = await resolveSymlink({ path: b })
-        expect(res?.path).to.equal(a)
+        expect(res?.target?.path).to.equal(a)
+        expect(res?.targetPath).to.equal("a")
       })
 
       it("resolves a symlink recursively", async () => {
@@ -431,7 +473,8 @@ describe("build staging helpers", () => {
         await symlink("a", b)
         await symlink("b", c)
         const res = await resolveSymlink({ path: c })
-        expect(res?.path).to.equal(a)
+        expect(res?.target?.path).to.equal(a)
+        expect(res?.targetPath).to.equal("b")
       })
 
       it("returns null for an absolute symlink", async () => {
@@ -440,7 +483,8 @@ describe("build staging helpers", () => {
         await writeFile(a, "foo")
         await symlink(a, b) // <- absolute link
         const res = await resolveSymlink({ path: b })
-        expect(res).to.equal(null)
+        expect(res.target).to.equal(null)
+        expect(res.targetPath).to.equal(null)
       })
 
       it("returns null for a recursive absolute symlink", async () => {
@@ -451,7 +495,9 @@ describe("build staging helpers", () => {
         await symlink(a, b) // <- absolute link
         await symlink("b", c)
         const res = await resolveSymlink({ path: c })
-        expect(res).to.equal(null)
+        expect(res.target).to.equal(null)
+        // target path can be resolved; If the build staging logic were only to reproduce relative symlinks, broken or not, it would all be much easier to understand.
+        expect(res.targetPath).to.equal("b")
       })
 
       it("resolves an absolute symlink if allowAbsolute=true", async () => {
@@ -460,7 +506,8 @@ describe("build staging helpers", () => {
         await writeFile(a, "foo")
         await symlink(a, b) // <- absolute link
         const res = await resolveSymlink({ path: b, allowAbsolute: true })
-        expect(res?.path).to.equal(a)
+        expect(res?.target?.path).to.equal(a)
+        expect(res?.targetPath).to.equal(a)
       })
 
       it("throws if a relative path is given", async () => {
@@ -479,7 +526,8 @@ describe("build staging helpers", () => {
         await symlink("a", b)
         await symlink("b", a)
         const res = await resolveSymlink({ path: b })
-        expect(res).to.equal(null)
+        expect(res.target).to.equal(null)
+        expect(res.targetPath).to.equal("a")
       })
 
       it("returns null if resolving a two-step circular symlink", async () => {
@@ -490,7 +538,8 @@ describe("build staging helpers", () => {
         await symlink("a", b)
         await symlink("b", c)
         const res = await resolveSymlink({ path: c })
-        expect(res).to.equal(null)
+        expect(res.target).to.equal(null)
+        expect(res.targetPath).to.equal("b")
       })
     })
   })

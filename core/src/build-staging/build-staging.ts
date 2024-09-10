@@ -189,7 +189,7 @@ export class BuildStaging {
 
     // Source root must exist and be a directory
     let sourceStat = await statsHelper.extendedStat({ path: sourceRoot })
-    if (!sourceStat || !(sourceStat.isDirectory() || sourceStat.target?.isDirectory())) {
+    if (!sourceStat || !sourceStat.isDirectory()) {
       throw new InternalError({
         message: `Build staging: Source root ${sourceRoot} must exist and be a directory`,
       })
@@ -271,6 +271,8 @@ export class BuildStaging {
       const to = targetShouldBeDirectory || targetStat?.isDirectory() ? join(targetPath, sourceBasename) : targetPath
 
       await syncFileAsync({
+        log,
+        root: sourceRoot,
         from: sourceRoot,
         to,
         allowDelete: withDelete,
@@ -323,7 +325,7 @@ export class BuildStaging {
               ([fromRelative, toRelative], fileCb) => {
                 const from = joinWithPosix(sourceRoot, fromRelative)
                 const to = joinWithPosix(targetPath, toRelative)
-                cloneFile({ from, to, allowDelete: withDelete, statsHelper }, fileCb)
+                cloneFile({ log, root: sourceRoot, from, to, allowDelete: withDelete, statsHelper }, fileCb)
               },
               cb
             )
