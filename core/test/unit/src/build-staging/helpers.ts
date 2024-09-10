@@ -125,6 +125,29 @@ describe("build staging helpers", () => {
       expect(data).to.equal("foo")
     })
 
+    it("throws an error if symlink is out of bounds", async () => {
+      const b = join(tmpPath, "b")
+      const a = join(tmpPath, "a")
+      const symlPath = "symlink"
+      const symlTarget = ".."
+      await mkdir(a)
+      await symlink(symlTarget, join(a, symlPath))
+      await expectError(
+        () =>
+          cloneFileAsync({
+            log,
+            root: a,
+            from: join(a, symlPath),
+            to: join(b, symlPath),
+            statsHelper,
+            allowDelete: false,
+          }),
+        {
+          contains: ["Encountered a symlink", "whose target .. is out of bounds (not inside"],
+        }
+      )
+    })
+
     it("reproduces the symlink if it points to a directory", async () => {
       const b = join(tmpPath, "b")
       const a = join(tmpPath, "a")

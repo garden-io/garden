@@ -71,11 +71,9 @@ export function cloneFile({ log, root, from, to, allowDelete, statsHelper }: Clo
         const outOfBounds = !resolved.startsWith(join(root, "/"))
         if (outOfBounds) {
           const outOfBoundsMessage = dedent`
-            Encountered a symlink ${sourceStats.path} whose target ${sourceStats.targetPath} is out of bounds (not inside ${root}).
+            The action's source directory (when using ${styles.highlight("staged builds")}), or build directory (when using ${styles.highlight("copyFrom")}), must be self-contained.
 
-            When using ${styles.highlight("staged builds")} or ${styles.highlight("copyFrom")}. Staged builds must be self-contained.
-
-            Symbolic links to directories or files outside the action's source directory (when ${styles.highlight("builds")}), or build directory (when using ${styles.highlight("copyFrom")}), are not allowed.
+            Encountered a symlink at ${styles.highlight(sourceStats.path)} whose target ${styles.highlight(sourceStats.targetPath)} is out of bounds (not inside ${root}).
 
             In case this is not acceptable, you can disable build staging by setting ${styles.highlight("buildAtSource: true")} in the action configuration to disable build staging for this action.`
           if (sourceStats.target?.isFile()) {
@@ -91,9 +89,11 @@ export function cloneFile({ log, root, from, to, allowDelete, statsHelper }: Clo
           } else {
             // Note: If a symlink pointed to a directory, we threw another error "source is neither a symbolic link, nor a file" in previous versions of garden,
             // so this is not a breaking change.
-            throw new ConfigurationError({
-              message: outOfBoundsMessage,
-            })
+            return done(
+              new ConfigurationError({
+                message: outOfBoundsMessage,
+              })
+            )
           }
         }
       }
@@ -189,9 +189,11 @@ function doClone(params: CopyParams) {
           }
         )
       } else {
-        throw new InternalError({
-          message: "Source is a symbolic link, but targetPath was null or undefined.",
-        })
+        return done(
+          new InternalError({
+            message: "Source is a symbolic link, but targetPath was null or undefined.",
+          })
+        )
       }
     } else if (sourceStats.isFile()) {
       // COPYFILE_FICLONE instructs the function to use a copy-on-write reflink on platforms/filesystems where available
