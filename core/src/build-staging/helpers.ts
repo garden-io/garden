@@ -341,8 +341,8 @@ type ExtendedStatsCallback = (err: NodeJS.ErrnoException | null, stats: Extended
  * The idea is for an instance to be used for the duration of e.g. one sync flow, but not for longer.
  */
 export class FileStatsHelper {
-  private lstatCache: { [path: string]: fsExtra.Stats }
-  private extendedStatCache: { [path: string]: ExtendedStats | null }
+  private readonly lstatCache: { [path: string]: fsExtra.Stats }
+  private readonly extendedStatCache: { [path: string]: ExtendedStats | null }
 
   constructor() {
     this.lstatCache = {}
