@@ -271,6 +271,8 @@ export class BuildStaging {
       const to = targetShouldBeDirectory || targetStat?.isDirectory() ? join(targetPath, sourceBasename) : targetPath
 
       await syncFileAsync({
+        log,
+        sourceRoot,
         from: sourceRoot,
         to,
         allowDelete: withDelete,
@@ -323,7 +325,7 @@ export class BuildStaging {
               ([fromRelative, toRelative], fileCb) => {
                 const from = joinWithPosix(sourceRoot, fromRelative)
                 const to = joinWithPosix(targetPath, toRelative)
-                cloneFile({ from, to, allowDelete: withDelete, statsHelper }, fileCb)
+                cloneFile({ log, sourceRoot, from, to, allowDelete: withDelete, statsHelper }, fileCb)
               },
               cb
             )
