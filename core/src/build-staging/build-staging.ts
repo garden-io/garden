@@ -189,7 +189,7 @@ export class BuildStaging {
 
     // Source root must exist and be a directory
     let sourceStat = await statsHelper.extendedStat({ path: sourceRoot })
-    if (!sourceStat || !sourceStat.isDirectory()) {
+    if (!sourceStat || !(sourceStat.isDirectory() || sourceStat.target?.isDirectory())) {
       throw new InternalError({
         message: `Build staging: Source root ${sourceRoot} must exist and be a directory`,
       })
