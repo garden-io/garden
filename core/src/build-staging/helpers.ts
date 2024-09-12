@@ -335,11 +335,11 @@ export interface ResolveSymlinkParams {
 
 type StatsCallback = (err: NodeJS.ErrnoException | null, stats: fsExtra.Stats) => void
 type ExtendedStatsCallback = (err: NodeJS.ErrnoException | null, stats: ExtendedStats | null) => void
-type ResolveSymlinkCallback = (
-  err: NodeJS.ErrnoException | null,
-  target: ExtendedStats | null,
+type ResolveSymlinkCallback = (params: {
+  err: NodeJS.ErrnoException | null
+  target: ExtendedStats | null
   targetPath: string | null
-) => void
+}) => void
 
 /**
  * A helper class for getting information about files/dirs, that caches the stats for the lifetime of the class, and
@@ -406,9 +406,12 @@ export class FileStatsHelper {
         if (lstatErr) {
           cb(lstatErr, null)
         } else if (lstats.isSymbolicLink()) {
-          this.resolveSymlink({ path, allowAbsolute: allowAbsoluteSymlinks }, (symlinkErr, target, targetPath) => {
-            cb(symlinkErr, ExtendedStats.fromStats({ stats: lstats, path, target, targetPath }))
-          })
+          this.resolveSymlink(
+            { path, allowAbsolute: allowAbsoluteSymlinks },
+            ({ err: symlinkErr, target, targetPath }) => {
+              cb(symlinkErr, ExtendedStats.fromStats({ stats: lstats, path, target, targetPath }))
+            }
+          )
         } else {
           cb(null, ExtendedStats.fromStats({ stats: lstats, path }))
         }
@@ -464,15 +467,19 @@ export class FileStatsHelper {
     readlink(path, (readlinkErr, target) => {
       if (readlinkErr?.code === "ENOENT") {
         // Symlink target not found, so we ignore it
-        return cb(null, null, null)
+        return cb({ err: null, target: null, targetPath: null })
       } else if (readlinkErr) {
-        return cb(InternalError.wrapError(readlinkErr, "Error reading symlink"), null, null)
+        return cb({
+          err: InternalError.wrapError(readlinkErr, "Error reading symlink"),
+          target: null,
+          targetPath: null,
+        })
       }
 
       // Ignore absolute symlinks unless specifically allowed
       // TODO: also allow limiting links to a certain absolute path
       if (isAbsolute(target) && !allowAbsolute) {
-        return cb(null, null, null)
+        return cb({ err: null, target: null, targetPath: null })
       }
 
       // Resolve the symlink path
@@ -482,32 +489,36 @@ export class FileStatsHelper {
       this.lstat(targetPath, (statErr, targetStats) => {
         if (statErr?.code === "ENOENT") {
           // The symlink target does not exist. That's not an error.
-          cb(null, null, target)
+          cb({ err: null, target: null, targetPath: target })
         } else if (statErr) {
           // Propagate other errors
-          cb(statErr, null, null)
+          cb({ err: statErr, target: null, targetPath: null })
         } else if (targetStats.isSymbolicLink()) {
           // Keep resolving until we get to a real path
           if (_resolvedPaths.includes(targetPath)) {
             // We've gone into a symlink loop, so we ignore it
-            cb(null, null, target)
+            cb({ err: null, target: null, targetPath: target })
           } else {
             this.resolveSymlink(
               { path: targetPath, allowAbsolute, _resolvedPaths: [..._resolvedPaths, targetPath] },
-              (innerResolveErr, innerStats, _innerTarget) => {
+              ({ err: innerResolveErr, target: innerStats, targetPath: _innerTarget }) => {
                 if (innerResolveErr) {
-                  cb(innerResolveErr, null, null)
+                  cb({ err: innerResolveErr, target: null, targetPath: null })
                 } else {
                   // make sure the original symlink target is not overridden by the recursive search here
                   // TODO(0.14): In a future version of garden it would be better to simply reproduce relative symlinks, instead of resolving them and copying the target directories.
-                  cb(null, innerStats, target)
+                  cb({ err: null, target: innerStats, targetPath: target })
                 }
               }
             )
           }
         } else {
           // Return with path and stats for final symlink target
-          cb(null, ExtendedStats.fromStats({ stats: targetStats, path: targetPath }), target)
+          cb({
+            err: null,
+            target: ExtendedStats.fromStats({ stats: targetStats, path: targetPath }),
+            targetPath: target,
+          })
         }
       })
     })

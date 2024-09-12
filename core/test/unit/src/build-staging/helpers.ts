@@ -12,6 +12,7 @@ import { cloneFileAsync, FileStatsHelper, scanDirectoryForClone } from "../../..
 import type { TempDirectory } from "../../../../src/util/fs.js"
 import { makeTempDir } from "../../../../src/util/fs.js"
 import fsExtra from "fs-extra"
+
 const { realpath, symlink, writeFile, readFile, mkdir, ensureFile, ensureDir } = fsExtra
 import { expect } from "chai"
 import { expectError } from "../../../helpers.js"
@@ -465,7 +466,7 @@ describe("build staging helpers", () => {
           target: ExtendedStats | null
           targetPath: string | null
         }>((resolve, reject) => {
-          statsHelper.resolveSymlink(params, (err, target, targetPath) => {
+          statsHelper.resolveSymlink(params, ({ err, target, targetPath }) => {
             if (err) {
               reject(err)
             } else {
