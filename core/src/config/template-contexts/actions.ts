@@ -19,7 +19,6 @@ import { ConfigContext, ErrorContext, ParentContext, schema, TemplateContext } f
 import { exampleVersion, OutputConfigContext } from "./module.js"
 import { TemplatableConfigContext } from "./project.js"
 import { DOCS_BASE_URL } from "../../constants.js"
-import type { WorkflowConfig } from "../workflow.js"
 import { styles } from "../../logger/styles.js"
 
 function mergeVariables({ garden, variables }: { garden: Garden; variables: DeepPrimitiveMap }): DeepPrimitiveMap {
@@ -64,7 +63,7 @@ class ActionConfigThisContext extends ConfigContext {
 
 interface ActionConfigContextParams {
   garden: Garden
-  config: ActionConfig | WorkflowConfig
+  config: ActionConfig
   thisContextParams: ActionConfigThisContextParams
   variables: DeepPrimitiveMap
 }
