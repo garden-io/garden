@@ -12,7 +12,6 @@ import { dedent, splitLast } from "../util/string.js"
 import { Minimatch } from "minimatch"
 import { isAbsolute, parse, basename, resolve, join, dirname } from "path"
 import fsExtra from "fs-extra"
-const { ensureDir, Stats, lstat, remove } = fsExtra
 import { ConfigurationError, FilesystemError, InternalError, isErrnoException } from "../exceptions.js"
 import type { AsyncResultCallback } from "async"
 import async from "async"
@@ -21,6 +20,8 @@ import { promisify } from "util"
 import { styles } from "../logger/styles.js"
 import { emitNonRepeatableWarning } from "../warnings.js"
 import { type Log } from "../logger/log-entry.js"
+
+const { ensureDir, Stats, lstat, remove } = fsExtra
 
 export type MappedPaths = [string, string][]
 
@@ -288,13 +289,19 @@ export async function scanDirectoryForClone(root: string, pattern?: string): Pro
   return mappedPaths
 }
 
+type ExtendedStatsCtorParams = {
+  path: string
+  target?: ExtendedStats | null
+  targetPath?: string | null
+}
+
 export class ExtendedStats extends Stats {
   path: string
   target?: ExtendedStats | null
   // original relative or absolute path the symlink points to. This can be defined when target is null when the target does not exist, for instance.
   targetPath?: string | null
 
-  constructor(path: string, target?: ExtendedStats | null, targetPath?: string | null) {
+  constructor({ path, target, targetPath }: ExtendedStatsCtorParams) {
     super()
     this.path = path
     this.target = target
@@ -302,7 +309,7 @@ export class ExtendedStats extends Stats {
   }
 
   static fromStats(stats: fsExtra.Stats, path: string, target?: ExtendedStats | null, targetPath?: string | null) {
-    const o = new ExtendedStats(path, target, targetPath)
+    const o = new ExtendedStats({ path: path, target: target, targetPath: targetPath })
     Object.assign(o, stats)
     return o
   }
