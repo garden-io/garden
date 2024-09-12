@@ -335,6 +335,11 @@ export interface ResolveSymlinkParams {
 
 type StatsCallback = (err: NodeJS.ErrnoException | null, stats: fsExtra.Stats) => void
 type ExtendedStatsCallback = (err: NodeJS.ErrnoException | null, stats: ExtendedStats | null) => void
+type ResolveSymlinkCallback = (
+  err: NodeJS.ErrnoException | null,
+  target: ExtendedStats | null,
+  targetPath: string | null
+) => void
 
 /**
  * A helper class for getting information about files/dirs, that caches the stats for the lifetime of the class, and
@@ -448,10 +453,7 @@ export class FileStatsHelper {
    * By default, absolute symlinks are ignored, and if one is encountered the method resolves to null. Set
    * `allowAbsolute: true` to allow absolute symlinks.
    */
-  resolveSymlink(
-    params: ResolveSymlinkParams,
-    cb: (err: NodeJS.ErrnoException | null, target: ExtendedStats | null, targetPath: string | null) => void
-  ) {
+  resolveSymlink(params: ResolveSymlinkParams, cb: ResolveSymlinkCallback) {
     const { path, allowAbsolute } = params
     const _resolvedPaths = params._resolvedPaths || [path]
 
