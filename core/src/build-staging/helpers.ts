@@ -333,6 +333,7 @@ export interface ResolveSymlinkParams {
   _resolvedPaths?: string[]
 }
 
+type StatsCallback = (err: NodeJS.ErrnoException | null, stats: fsExtra.Stats) => void
 type ExtendedStatsCallback = (err: NodeJS.ErrnoException | null, stats: ExtendedStats | null) => void
 
 /**
@@ -352,7 +353,7 @@ export class FileStatsHelper {
   /**
    * Calls fs.lstat on the given path, and caches the result.
    */
-  lstat(path: string, cb: (err: NodeJS.ErrnoException | null, stats: fsExtra.Stats) => void) {
+  lstat(path: string, cb: StatsCallback) {
     if (this.lstatCache[path]) {
       cb(null, this.lstatCache[path])
     } else {
