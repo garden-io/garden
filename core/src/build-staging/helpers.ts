@@ -183,7 +183,7 @@ function doClone(params: CopyParams) {
           to,
           // relevant on windows
           // nodejs will auto-detect this on windows, but if the symlink is copied before the target then the auto-detection will get it wrong.
-          targetStats?.isDirectory() ? "dir" : "file",
+          sourceStats.target?.isDirectory() ? "dir" : "file",
           (symlinkErr) => {
             if (symlinkErr) {
               return done(symlinkErr)
