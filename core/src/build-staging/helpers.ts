@@ -26,7 +26,7 @@ export type MappedPaths = [string, string][]
 
 export interface CloneFileParams {
   log: Log
-  root: string
+  sourceRoot: string
   from: string
   to: string
   allowDelete: boolean
@@ -42,7 +42,10 @@ type SyncCallback = AsyncResultCallback<SyncResult, Error>
 /**
  * Synchronizes (clones) a single file in one direction.
  */
-export function cloneFile({ log, root, from, to, allowDelete, statsHelper }: CloneFileParams, done: SyncCallback) {
+export function cloneFile(
+  { log, sourceRoot, from, to, allowDelete, statsHelper }: CloneFileParams,
+  done: SyncCallback
+) {
   // Stat the files
   async.parallel<ExtendedStats | null>(
     {
@@ -68,12 +71,12 @@ export function cloneFile({ log, root, from, to, allowDelete, statsHelper }: Clo
           return done(null, { skipped: true })
         }
         const resolved = resolve(dirname(sourceStats.path), sourceStats.targetPath)
-        const outOfBounds = !resolved.startsWith(join(root, "/"))
+        const outOfBounds = !resolved.startsWith(join(sourceRoot, "/"))
         if (outOfBounds) {
           const outOfBoundsMessage = dedent`
             The action's source directory (when using ${styles.highlight("staged builds")}), or build directory (when using ${styles.highlight("copyFrom")}), must be self-contained.
 
-            Encountered a symlink at ${styles.highlight(sourceStats.path)} whose target ${styles.highlight(sourceStats.targetPath)} is out of bounds (not inside ${root}).
+            Encountered a symlink at ${styles.highlight(sourceStats.path)} whose target ${styles.highlight(sourceStats.targetPath)} is out of bounds (not inside ${sourceRoot}).
 
             In case this is not acceptable, you can disable build staging by setting ${styles.highlight("buildAtSource: true")} in the action configuration to disable build staging for this action.`
           if (sourceStats.target?.isFile()) {

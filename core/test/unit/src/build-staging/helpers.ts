@@ -49,7 +49,7 @@ describe("build staging helpers", () => {
       const a = join(tmpPath, "a")
       const b = join(tmpPath, "b")
       await writeFile(a, "foo")
-      const res = await cloneFileAsync({ log, root: a, from: a, to: b, statsHelper, allowDelete: false })
+      const res = await cloneFileAsync({ log, sourceRoot: a, from: a, to: b, statsHelper, allowDelete: false })
       const data = await readFileStr(b)
       expect(res.skipped).to.be.false
       expect(data).to.equal("foo")
@@ -60,7 +60,7 @@ describe("build staging helpers", () => {
       const b = join(tmpPath, "b")
       await writeFile(a, "foo")
       await mkdir(b)
-      const res = await cloneFileAsync({ log, root: a, from: a, to: b, statsHelper, allowDelete: true })
+      const res = await cloneFileAsync({ log, sourceRoot: a, from: a, to: b, statsHelper, allowDelete: true })
       const data = await readFileStr(b)
       expect(res.skipped).to.be.false
       expect(data).to.equal("foo")
@@ -72,7 +72,7 @@ describe("build staging helpers", () => {
       await writeFile(a, "foo")
       await mkdir(b)
 
-      await expectError(() => cloneFileAsync({ log, root: a, from: a, to: b, statsHelper, allowDelete: false }), {
+      await expectError(() => cloneFileAsync({ log, sourceRoot: a, from: a, to: b, statsHelper, allowDelete: false }), {
         contains: `Build staging: Failed copying file from '${a}' to '${b}' because a directory exists at the target path`,
       })
     })
@@ -83,7 +83,7 @@ describe("build staging helpers", () => {
       await writeFile(a, "foo")
       await sleep(100)
 
-      await cloneFileAsync({ log, root: a, from: a, to: b, statsHelper, allowDelete: false })
+      await cloneFileAsync({ log, sourceRoot: a, from: a, to: b, statsHelper, allowDelete: false })
 
       const statA = await statsHelper.extendedStat({ path: a })
       const statB = await statsHelper.extendedStat({ path: b })
@@ -96,9 +96,9 @@ describe("build staging helpers", () => {
       const b = join(tmpPath, "b")
       await writeFile(a, "foo")
 
-      await cloneFileAsync({ log, root: a, from: a, to: b, statsHelper, allowDelete: false })
+      await cloneFileAsync({ log, sourceRoot: a, from: a, to: b, statsHelper, allowDelete: false })
 
-      const res = await cloneFileAsync({ log, root: a, from: a, to: b, statsHelper, allowDelete: false })
+      const res = await cloneFileAsync({ log, sourceRoot: a, from: a, to: b, statsHelper, allowDelete: false })
       expect(res.skipped).to.be.true
     })
 
@@ -107,7 +107,7 @@ describe("build staging helpers", () => {
       const b = join(tmpPath, "subdir", "b")
       await writeFile(a, "foo")
 
-      await cloneFileAsync({ log, root: a, from: a, to: b, statsHelper, allowDelete: false })
+      await cloneFileAsync({ log, sourceRoot: a, from: a, to: b, statsHelper, allowDelete: false })
 
       const data = await readFileStr(b)
       expect(data).to.equal("foo")
@@ -119,7 +119,7 @@ describe("build staging helpers", () => {
       const c = join(tmpPath, "c")
       await writeFile(a, "foo")
       await symlink("a", b)
-      const res = await cloneFileAsync({ log, root: b, from: b, to: c, statsHelper, allowDelete: false })
+      const res = await cloneFileAsync({ log, sourceRoot: b, from: b, to: c, statsHelper, allowDelete: false })
       const data = await readFileStr(c)
       expect(res.skipped).to.be.false
       expect(data).to.equal("foo")
@@ -136,7 +136,7 @@ describe("build staging helpers", () => {
         () =>
           cloneFileAsync({
             log,
-            root: a,
+            sourceRoot: a,
             from: join(a, symlPath),
             to: join(b, symlPath),
             statsHelper,
@@ -164,7 +164,7 @@ describe("build staging helpers", () => {
       for (const f of filesToClone) {
         const res = await cloneFileAsync({
           log,
-          root: a,
+          sourceRoot: a,
           from: join(a, f),
           to: join(b, f),
           statsHelper,
@@ -188,7 +188,7 @@ describe("build staging helpers", () => {
       await symlink("dir", dirLink)
       await writeFile(a, "foo")
 
-      const res = await cloneFileAsync({ log, root: a, from: a, to: b, statsHelper, allowDelete: false })
+      const res = await cloneFileAsync({ log, sourceRoot: a, from: a, to: b, statsHelper, allowDelete: false })
       const data = await readFileStr(b)
       expect(res.skipped).to.be.false
       expect(data).to.equal("foo")
@@ -199,7 +199,7 @@ describe("build staging helpers", () => {
       const b = join(tmpPath, "b")
       await ensureDir(a)
 
-      await expectError(() => cloneFileAsync({ log, root: a, from: a, to: b, statsHelper, allowDelete: false }), {
+      await expectError(() => cloneFileAsync({ log, sourceRoot: a, from: a, to: b, statsHelper, allowDelete: false }), {
         contains: `Error while copying from '${a}' to '${b}': Source is neither a symbolic link, nor a file`,
       })
     })
