@@ -308,8 +308,15 @@ export class ExtendedStats extends Stats {
     this.targetPath = targetPath
   }
 
-  static fromStats(stats: fsExtra.Stats, path: string, target?: ExtendedStats | null, targetPath?: string | null) {
-    const o = new ExtendedStats({ path: path, target: target, targetPath: targetPath })
+  static fromStats({
+    stats,
+    path,
+    target,
+    targetPath,
+  }: {
+    stats: fsExtra.Stats
+  } & ExtendedStatsCtorParams) {
+    const o = new ExtendedStats({ path, target, targetPath })
     Object.assign(o, stats)
     return o
   }
@@ -394,10 +401,10 @@ export class FileStatsHelper {
           cb(lstatErr, null)
         } else if (lstats.isSymbolicLink()) {
           this.resolveSymlink({ path, allowAbsolute: allowAbsoluteSymlinks }, (symlinkErr, target, targetPath) => {
-            cb(symlinkErr, ExtendedStats.fromStats(lstats, path, target, targetPath))
+            cb(symlinkErr, ExtendedStats.fromStats({ stats: lstats, path, target, targetPath }))
           })
         } else {
-          cb(null, ExtendedStats.fromStats(lstats, path))
+          cb(null, ExtendedStats.fromStats({ stats: lstats, path }))
         }
       })
     }
@@ -497,7 +504,7 @@ export class FileStatsHelper {
           }
         } else {
           // Return with path and stats for final symlink target
-          cb(null, ExtendedStats.fromStats(targetStats, targetPath), target)
+          cb(null, ExtendedStats.fromStats({ stats: targetStats, path: targetPath }), target)
         }
       })
     })
