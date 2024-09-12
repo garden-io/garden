@@ -80,6 +80,25 @@ export class ActionConfigContext extends TemplatableConfigContext {
     const mergedVariables = mergeVariables({ garden, variables })
     super(garden, config)
     this.this = new ActionConfigThisContext(this, thisContextParams)
+    this.this = new ActionConfigThisContext(this, thisContextParams)
+    this.variables = this.var = mergedVariables
+  }
+}
+
+interface DisableFlagActionConfigContextParams {
+  garden: Garden
+  config: ActionConfig
+  variables: DeepPrimitiveMap
+}
+
+/**
+ * Special context to resolve action's {@code disabled} flag.
+ * Very similar to {@link ActionConfigContext} but doesn't have {@code this} context.
+ */
+export class DisableFlagActionConfigContext extends TemplatableConfigContext {
+  constructor({ garden, config, variables }: DisableFlagActionConfigContextParams) {
+    const mergedVariables = mergeVariables({ garden, variables })
+    super(garden, config)
     this.variables = this.var = mergedVariables
   }
 }
