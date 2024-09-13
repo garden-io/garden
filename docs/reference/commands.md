@@ -1825,6 +1825,9 @@ actionConfigs:
       # Note however that template strings referencing outputs (i.e. runtime outputs) will fail to resolve when the
       # action is disabled, so you need to make sure to provide alternate values for those if you're using them, using
       # conditional expressions.
+      #
+      # **Important limitation! The variables imported via `$merge` or `varfiles` will _not_ be taken into account.**
+      # This flag can only use a limited set of template contexts.
       disabled:
 
       # If set, the action is only enabled for the listed environment types. This is effectively a cleaner shorthand
@@ -2010,6 +2013,9 @@ actionConfigs:
       # Note however that template strings referencing outputs (i.e. runtime outputs) will fail to resolve when the
       # action is disabled, so you need to make sure to provide alternate values for those if you're using them, using
       # conditional expressions.
+      #
+      # **Important limitation! The variables imported via `$merge` or `varfiles` will _not_ be taken into account.**
+      # This flag can only use a limited set of template contexts.
       disabled:
 
       # If set, the action is only enabled for the listed environment types. This is effectively a cleaner shorthand
@@ -2165,6 +2171,9 @@ actionConfigs:
       # Note however that template strings referencing outputs (i.e. runtime outputs) will fail to resolve when the
       # action is disabled, so you need to make sure to provide alternate values for those if you're using them, using
       # conditional expressions.
+      #
+      # **Important limitation! The variables imported via `$merge` or `varfiles` will _not_ be taken into account.**
+      # This flag can only use a limited set of template contexts.
       disabled:
 
       # If set, the action is only enabled for the listed environment types. This is effectively a cleaner shorthand
@@ -2320,6 +2329,9 @@ actionConfigs:
       # Note however that template strings referencing outputs (i.e. runtime outputs) will fail to resolve when the
       # action is disabled, so you need to make sure to provide alternate values for those if you're using them, using
       # conditional expressions.
+      #
+      # **Important limitation! The variables imported via `$merge` or `varfiles` will _not_ be taken into account.**
+      # This flag can only use a limited set of template contexts.
       disabled:
 
       # If set, the action is only enabled for the listed environment types. This is effectively a cleaner shorthand

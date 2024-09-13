@@ -126,6 +126,8 @@ For Build actions, this means the build is not performed _unless_ it is declared
 
 For other action kinds, the action is skipped in all scenarios, and dependency declarations to it are ignored. Note however that template strings referencing outputs (i.e. runtime outputs) will fail to resolve when the action is disabled, so you need to make sure to provide alternate values for those if you're using them, using conditional expressions.
 
+**Important limitation! The variables imported via `$merge` or `varfiles` will _not_ be taken into account.** This flag can only use a limited set of template contexts.
+
 | Type      | Default | Required |
 | --------- | ------- | -------- |
 | `boolean` | `false` | No       |
