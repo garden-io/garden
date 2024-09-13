@@ -1552,6 +1552,7 @@ export class Garden {
 
     // Resolve the actual values of the `disabled` flag
     config.disabled = this.evaluateDisabledFlag(config)
+    this.log.silly(() => `Action ${config.kind}.${config.name} is ${config.disabled ? "disabled" : "enabled"}`)
 
     if (existing) {
       if (actionIsDisabled(config, this.environmentName)) {
