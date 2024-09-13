@@ -7,7 +7,7 @@ title: About
 
 Garden includes a Terraform provider that you can use to automatically validate and provision infrastructure as part of your project. This guide walks through how to configure and use the provider.
 
-It's strongly recommended that you [learn about Terraform](https://www.terraform.io/docs/index.html) (if you haven't already) before using it with Garden.
+It's strongly recommended that you [learn about Terraform](https://developer.hashicorp.com/terraform/docs) (if you haven't already) before using it with Garden.
 
 ## How it works
 
@@ -46,7 +46,7 @@ garden --env=<env-name> plugins terraform apply-root -- -auto-approve
 
 ## Injecting Environment Variables Into Backend Manifests
 
-[Terraform does not interpolate named values in backend manifests](https://www.terraform.io/language/settings/backends/configuration). Below is a solution using an `exec` provider.
+[Terraform does not interpolate named values in backend manifests](https://developer.hashicorp.com/terraform/language/backend). Below is a solution using an `exec` provider.
 
 ### Exec Provider
 
@@ -89,4 +89,4 @@ Now when you deploy a new Terraformed environment, the new backend statefile wil
 
 Check out the [terraform-gke example](https://github.com/garden-io/garden/tree/0.13.39/examples/terraform-gke) project. Also take a look at the [Terraform provider reference](../reference/providers/terraform.md) and the [Terraform Deploy action type reference](../reference/action-types/Deploy/terraform.md) for details on all the configuration parameters.
 
-If you're having issues with Terraform itself, please refer to the [official docs](https://www.terraform.io/docs/index.html).
+If you're having issues with Terraform itself, please refer to the [official docs](https://developer.hashicorp.com/terraform/docs).
