@@ -1,13 +1,11 @@
 ---
-order: 11
-title: Workflow template context
+order: 6
+title: Disabled action flag template context
 ---
 
-# Workflow template context
+# Disabled action flag template context
 
-The below keys are available in template strings for [Workflow](../../using-garden/workflows.md) configurations, as well as the commands defined in [Custom Commands](../../advanced/custom-commands.md).
-
-Note that the `{steps.*}` key is only available for the `steps[].command` and `steps[].script` fields in Workflow configs, and may only reference previous steps in the same workflow. See below for more details.
+The below keys are available in template strings for the `disabled` flag in action configs.
 
 ### `${local.*}`
 
@@ -424,38 +422,4 @@ The name of the template.
 | Type     |
 | -------- |
 | `string` |
-
-### `${steps.*}`
-
-Reference previous steps in a workflow. Only available in the `steps[].command` and `steps[].script` fields.
-The name of the step should be the explicitly set `name` of the other step, or if one is not set, use
-`step-<n>`, where <n> is the sequential number of the step (starting from 1).
-
-| Type     | Default |
-| -------- | ------- |
-| `object` | `{}`    |
-
-### `${steps.<step-name>.log}`
-
-The full output log from the step.
-
-| Type     |
-| -------- |
-| `string` |
-
-### `${steps.<step-name>.outputs.*}`
-
-The outputs returned by the step, as a mapping. Script steps will always have `stdout`, `stderr` and `exitCode` keys.
-Command steps return different keys, including potentially nested maps and arrays. Please refer to each command
-for its output schema.
-
-| Type     | Default |
-| -------- | ------- |
-| `object` | `{}`    |
-
-### `${steps.<step-name>.outputs.<output-key>}`
-
-| Type                                                 |
-| ---------------------------------------------------- |
-| `string \| number \| boolean \| link \| array[link]` |
 

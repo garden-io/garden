@@ -23,7 +23,11 @@ import { getHelperFunctions } from "../template-string/functions.js"
 import { isEqual, kebabCase, sortBy } from "lodash-es"
 import { CustomCommandContext } from "../config/template-contexts/custom-command.js"
 import type Joi from "@hapi/joi"
-import { ActionConfigContext, ActionSpecContext } from "../config/template-contexts/actions.js"
+import {
+  ActionConfigContext,
+  ActionSpecContext,
+  DisableFlagActionConfigContext,
+} from "../config/template-contexts/actions.js"
 import { InternalError } from "../exceptions.js"
 import * as url from "node:url"
 
@@ -69,6 +73,12 @@ const contexts: ContextSpec[] = [
     shortDescription: "Keys available for the `spec` field on action configs.",
     longDescription:
       "The below keys are available in template strings for the `spec` field in action configs. Please see [here](./action-all-fields.md) for the fields available for the _built-in_ fields in actions configs, which allow somewhat more limited templating.\n\nActions can reference outputs defined by providers, via the `${providers.<provider-name>.outputs}` key. For details on which outputs are available for a given provider, please refer to the [reference](../providers/README.md) docs for the provider in question, and look for the _Outputs_ section.\n\nAction specs can also reference outputs defined by modules and by other actions, via the `${modules.<module-name>.outputs}` and `${actions.<action-kind>.<action-name>.outputs}` keys.\n\nFor details on which outputs are available for a given action type, please refer to the [reference](../action-types/README.md) docs for the type in question, and look for the _Outputs_ section.",
+  },
+  {
+    shortName: "Disabled action flag",
+    schema: DisableFlagActionConfigContext.getSchema(),
+    shortDescription: "Keys available for the `disabled` flag on action configs.",
+    longDescription: "The below keys are available in template strings for the `disabled` flag in action configs.",
   },
   {
     shortName: "Module",

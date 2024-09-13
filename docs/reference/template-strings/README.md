@@ -15,6 +15,7 @@ Note that there are multiple sections, since different configuration types and f
 * [Providers](./providers.md) — Keys available in the `providers` field in Project configurations.
 * [Action (all fields)](./action-all-fields.md) — Keys available for built-in fields on action configs.
 * [Action specs](./action-specs.md) — Keys available for the `spec` field on action configs.
+* [Disabled action flags](./disabled-action-flags.md) — Keys available for the `disabled` flag on action configs.
 * [Modules](./modules.md) — Keys available for Module configurations.
 * [Remote Sources](./remote-sources.md) — Keys available in the `sources` field in Project configurations.
 * [Project Outputs](./project-outputs.md) — Keys available in the `sources` field in Project configurations.

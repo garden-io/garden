@@ -172,6 +172,7 @@
   * [Provider template context](./reference/template-strings/providers.md)
   * [Action (all fields) template context](./reference/template-strings/action-all-fields.md)
   * [Action spec template context](./reference/template-strings/action-specs.md)
+  * [Disabled action flag template context](./reference/template-strings/disabled-action-flags.md)
   * [Module template context](./reference/template-strings/modules.md)
   * [Remote Source template context](./reference/template-strings/remote-sources.md)
   * [Project Output template context](./reference/template-strings/project-outputs.md)
