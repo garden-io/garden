@@ -60,6 +60,7 @@ import type { GardenPluginSpec } from "./plugin/plugin.js"
 import type { GardenResource } from "./config/base.js"
 import { loadConfigResources, findProjectConfig, configTemplateKind, renderTemplateKind } from "./config/base.js"
 import type { DeepPrimitiveMap, StringMap, PrimitiveMap } from "./config/common.js"
+import { objectSpreadKey } from "./config/common.js"
 import { treeVersionSchema, joi, allowUnknown } from "./config/common.js"
 import { GlobalConfigStore } from "./config-store/global.js"
 import type { LinkedSource } from "./config-store/local.js"
@@ -173,6 +174,7 @@ import { renderDuration } from "./logger/util.js"
 import { getCloudDistributionName, getCloudLogSectionName } from "./util/cloud.js"
 import { makeDocsLinkStyled } from "./docs/common.js"
 import { DisableFlagActionConfigContext } from "./config/template-contexts/actions.js"
+import { emitNonRepeatableWarning } from "./warnings.js"
 
 const defaultLocalAddress = "localhost"
 
@@ -1522,6 +1524,16 @@ export class Garden {
     }
 
     const context = new DisableFlagActionConfigContext({ garden: this, config, variables: config.variables || {} })
+
+    if (objectSpreadKey in context.var || !!config.varfiles) {
+      emitNonRepeatableWarning(
+        this.log,
+        dedent`
+          Some of your actions use template strings in \`disabled\` config flag.
+          Please note, that the variables imported via the ${styles.accent(objectSpreadKey)} operator or defined in ${styles.accent("varfiles")} config field will ${styles.accent("not")} be used to evaluate the value of the flag.
+          `
+      )
+    }
 
     return resolveTemplateString({
       string: disabledFlag,
