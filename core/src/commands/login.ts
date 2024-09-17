@@ -98,15 +98,7 @@ export class LoginCommand extends Command<{}, Opts> {
         return {}
       }
     } catch (err) {
-      if (!(err instanceof CloudApiError)) {
-        throw err
-      }
-      if (err.responseStatusCode === 401 && gardenEnv.GARDEN_AUTH_TOKEN) {
-        const msg = dedent`
-          Looks like your session token is invalid. Please check if your access token is valid for your ${distroName} instance.
-        `
-        log.warn(msg)
-        log.info("")
+      if (!(err instanceof CloudApiError) || (err.responseStatusCode === 401 && gardenEnv.GARDEN_AUTH_TOKEN)) {
         throw err
       }
     }
