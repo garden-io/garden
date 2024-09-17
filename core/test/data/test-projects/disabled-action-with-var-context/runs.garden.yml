@@ -3,7 +3,6 @@ name: run-script
 type: exec
 var:
   foo: bar
-disabled: "${var.foo == 'bar'}"
 spec:
   command: ["sh", "-c", "echo 'Hello from local'"]
 
@@ -13,7 +12,7 @@ kind: Run
 name: run-script
 type: exec
 var:
-  foo: bar
+  $merge: ${actions.run["run-script"].var}
 disabled: "${var.foo != 'bar'}"
 spec:
   command: ["sh", "-c", "echo 'Hello from remote'"]
