@@ -510,6 +510,7 @@ export class CloudApi {
         message: `An error occurred while verifying client auth token with ${getCloudDistributionName(this.domain)}: ${
           err.message
         }. Response status code: ${err.response.statusCode}`,
+        responseStatusCode: err.response.statusCode,
       })
     }
   }
