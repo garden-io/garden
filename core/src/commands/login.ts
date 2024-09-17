@@ -87,8 +87,6 @@ export class LoginCommand extends Command<{}, Opts> {
     // should use the default domain or not. The token lifecycle ends on logout.
     const cloudDomain: string = getGardenCloudDomain(projectConfig?.domain)
 
-    const distroName = getCloudDistributionName(cloudDomain)
-
     try {
       const cloudApi = await CloudApi.factory({ log, cloudDomain, skipLogging: true, globalConfigStore })
 
