@@ -259,8 +259,7 @@ describe("LoginCommand", () => {
     const logOutput = getLogMessages(garden.log, (entry) => entry.level <= LogLevel.info).join("\n")
 
     expect(logOutput).to.include(dedent`
-      Looks like your session token is invalid. If you were previously logged into a different instance
-      of Garden Enterprise, log out first before logging in.
+      Looks like your session token is invalid. Please check if your access token is valid for your Garden Enterprise instance.
     `)
   })
 

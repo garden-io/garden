@@ -21,6 +21,7 @@ import { findProjectConfig } from "../config/base.js"
 import { BooleanParameter } from "../cli/params.js"
 import { getCloudDistributionName } from "../util/cloud.js"
 import { deline } from "../util/string.js"
+import { gardenEnv } from "../constants.js"
 
 const loginTimeoutSec = 60
 
@@ -86,6 +87,8 @@ export class LoginCommand extends Command<{}, Opts> {
     // should use the default domain or not. The token lifecycle ends on logout.
     const cloudDomain: string = getGardenCloudDomain(projectConfig?.domain)
 
+    const distroName = getCloudDistributionName(cloudDomain)
+
     try {
       const cloudApi = await CloudApi.factory({ log, cloudDomain, skipLogging: true, globalConfigStore })
 
@@ -96,6 +99,14 @@ export class LoginCommand extends Command<{}, Opts> {
       }
     } catch (err) {
       if (!(err instanceof CloudApiError)) {
+        throw err
+      }
+      if (err.responseStatusCode === 401 && gardenEnv.GARDEN_AUTH_TOKEN) {
+        const msg = dedent`
+          Looks like your session token is invalid. Please check if your access token is valid for your ${distroName} instance.
+        `
+        log.warn(msg)
+        log.info("")
         throw err
       }
     }
