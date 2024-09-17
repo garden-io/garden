@@ -50,37 +50,37 @@ export function cloneFile(
   // Stat the files
   async.parallel<ExtendedStats | null>(
     {
-      sourceStats: (cb) => statsHelper.extendedStat({ path: from }, cb),
-      targetStats: (cb) => statsHelper.extendedStat({ path: to }, cb),
+      fromStats: (cb) => statsHelper.extendedStat({ path: from }, cb),
+      toStats: (cb) => statsHelper.extendedStat({ path: to }, cb),
     },
     (err, result) => {
       if (err) {
         return done(err)
       }
 
-      let sourceStats = result!.sourceStats || null
-      const targetStats = result!.targetStats || null
+      let fromStats = result!.fromStats || null
+      const toStats = result!.toStats || null
 
       // Skip if source file doesn't exist
-      if (!sourceStats) {
+      if (!fromStats) {
         return done(null, { skipped: true })
       }
 
-      if (sourceStats.isSymbolicLink()) {
-        if (!sourceStats.targetPath) {
+      if (fromStats.isSymbolicLink()) {
+        if (!fromStats.targetPath) {
           // This symlink failed validation (e.g. it is absolute, when absolute symlinks are not allowed)
           return done(null, { skipped: true })
         }
-        const resolved = resolve(dirname(sourceStats.path), sourceStats.targetPath)
+        const resolved = resolve(dirname(fromStats.path), fromStats.targetPath)
         const outOfBounds = !resolved.startsWith(join(sourceRoot, "/"))
         if (outOfBounds) {
           const outOfBoundsMessage = dedent`
             The action's source directory (when using ${styles.highlight("staged builds")}), or build directory (when using ${styles.highlight("copyFrom")}), must be self-contained.
 
-            Encountered a symlink at ${styles.highlight(sourceStats.path)} whose target ${styles.highlight(sourceStats.targetPath)} is out of bounds (not inside ${sourceRoot}).
+            Encountered a symlink at ${styles.highlight(fromStats.path)} whose target ${styles.highlight(fromStats.targetPath)} is out of bounds (not inside ${sourceRoot}).
 
             In case this is not acceptable, you can disable build staging by setting ${styles.highlight("buildAtSource: true")} in the action configuration to disable build staging for this action.`
-          if (sourceStats.target?.isFile()) {
+          if (fromStats.target?.isFile()) {
             // For compatibility with older versions of garden that would allow symlink targets outside the root, if the target file existed, we only emit a warning here.
             // TODO(0.14): Throw an error here
             emitNonRepeatableWarning(
@@ -89,7 +89,7 @@ export function cloneFile(
             )
             // For compatibility with older versions of Garden, copy the target file instead of reproducing the symlink
             // TODO(0.14): Only reproduce the symlink. The target file will be copied in another call to `cloneFile`.
-            sourceStats = sourceStats.target
+            fromStats = fromStats.target
           } else {
             // Note: If a symlink pointed to a directory, we threw another error "source is neither a symbolic link, nor a file" in previous versions of garden,
             // so this is not a breaking change.
@@ -102,7 +102,7 @@ export function cloneFile(
         }
       }
 
-      if (!sourceStats.isFile() && !sourceStats.isSymbolicLink()) {
+      if (!fromStats.isFile() && !fromStats.isSymbolicLink()) {
         return done(
           // Using internal error here because if this happens, it's a logical error here in this code
           new InternalError({
@@ -111,15 +111,15 @@ export function cloneFile(
         )
       }
 
-      if (targetStats) {
+      if (toStats) {
         // If target is a directory or source is a symbolic link and deletes are allowed, delete the target before copying, otherwise throw
-        if (targetStats.isDirectory() || sourceStats.isSymbolicLink()) {
+        if (toStats.isDirectory() || fromStats.isSymbolicLink()) {
           if (allowDelete) {
             return remove(to, (removeErr) => {
               if (removeErr) {
                 return done(removeErr)
               } else {
-                return doClone({ from, to, sourceStats: sourceStats!, targetStats, done, statsHelper })
+                return doClone({ from, to, fromStats: fromStats!, done, statsHelper })
               }
             })
           } else {
@@ -132,12 +132,12 @@ export function cloneFile(
         }
 
         // Skip if both files exist, size and mtime is the same (to a precision of 2 decimal points)
-        if (sourceStats.size === targetStats.size && round(sourceStats.mtimeMs, 2) === round(targetStats.mtimeMs, 2)) {
+        if (fromStats.size === toStats.size && round(fromStats.mtimeMs, 2) === round(toStats.mtimeMs, 2)) {
           return done(null, { skipped: true })
         }
       }
 
-      return doClone({ from, to, sourceStats, targetStats, done, statsHelper })
+      return doClone({ from, to, fromStats, done, statsHelper })
     }
   )
 }
@@ -148,15 +148,14 @@ export const cloneFileAsync = promisify(cloneFile) as (params: CloneFileParams) 
 interface CopyParams {
   from: string
   to: string
-  sourceStats: ExtendedStats
-  targetStats: ExtendedStats | null
+  fromStats: ExtendedStats
   done: SyncCallback
   statsHelper: FileStatsHelper
   resolvedSymlinkPaths?: string[]
 }
 
 function doClone(params: CopyParams) {
-  const { from, to, done, sourceStats, targetStats } = params
+  const { from, to, done, fromStats } = params
   const dir = parse(to).dir
 
   // TODO: take care of this ahead of time to avoid the extra i/o
@@ -167,7 +166,7 @@ function doClone(params: CopyParams) {
 
     const setUtimes = () => {
       // Set the mtime on the cloned file to the same as the source file
-      utimes(to, new Date(), sourceStats.mtimeMs / 1000, (utimesErr) => {
+      utimes(to, new Date(), fromStats.mtimeMs / 1000, (utimesErr) => {
         if (utimesErr && (!isErrnoException(utimesErr) || utimesErr.code !== "ENOENT")) {
           return done(utimesErr)
         }
@@ -175,15 +174,15 @@ function doClone(params: CopyParams) {
       })
     }
 
-    if (sourceStats.isSymbolicLink()) {
+    if (fromStats.isSymbolicLink()) {
       // reproduce the symbolic link. Validation happens before.
-      if (sourceStats.targetPath) {
+      if (fromStats.targetPath) {
         symlink(
-          sourceStats.targetPath,
+          fromStats.targetPath,
           to,
           // relevant on windows
           // nodejs will auto-detect this on windows, but if the symlink is copied before the target then the auto-detection will get it wrong.
-          sourceStats.target?.isDirectory() ? "dir" : "file",
+          fromStats.target?.isDirectory() ? "dir" : "file",
           (symlinkErr) => {
             if (symlinkErr) {
               return done(symlinkErr)
@@ -199,7 +198,7 @@ function doClone(params: CopyParams) {
           })
         )
       }
-    } else if (sourceStats.isFile()) {
+    } else if (fromStats.isFile()) {
       // COPYFILE_FICLONE instructs the function to use a copy-on-write reflink on platforms/filesystems where available
       copyFile(from, to, constants.COPYFILE_FICLONE, (copyErr) => {
         if (copyErr) {
@@ -486,14 +485,14 @@ export class FileStatsHelper {
       const targetPath = resolve(parse(path).dir, target)
 
       // Stat the final path and return
-      this.lstat(targetPath, (statErr, targetStats) => {
+      this.lstat(targetPath, (statErr, toStats) => {
         if (statErr?.code === "ENOENT") {
           // The symlink target does not exist. That's not an error.
           cb({ err: null, target: null, targetPath: target })
         } else if (statErr) {
           // Propagate other errors
           cb({ err: statErr, target: null, targetPath: null })
-        } else if (targetStats.isSymbolicLink()) {
+        } else if (toStats.isSymbolicLink()) {
           // Keep resolving until we get to a real path
           if (_resolvedPaths.includes(targetPath)) {
             // We've gone into a symlink loop, so we ignore it
@@ -516,7 +515,7 @@ export class FileStatsHelper {
           // Return with path and stats for final symlink target
           cb({
             err: null,
-            target: ExtendedStats.fromStats({ stats: targetStats, path: targetPath }),
+            target: ExtendedStats.fromStats({ stats: toStats, path: targetPath }),
             targetPath: target,
           })
         }
