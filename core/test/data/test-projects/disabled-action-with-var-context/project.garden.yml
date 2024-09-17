@@ -1,0 +1,10 @@
+apiVersion: garden.io/v1
+kind: Project
+name: disabled-action-with-var-context
+defaultEnvironment: local
+environments:
+  - name: local
+  - name: remote
+providers:
+  - name: exec
+    environments: [ local, remote ]

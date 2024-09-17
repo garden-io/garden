@@ -1522,10 +1522,16 @@ export class Garden {
     }
 
     const context = new TemplatableConfigContext(this, config)
-    // Inject action's variables
-    context.variables = context.var = {
-      ...context.variables,
-      ...config.variables,
+    // Hack: deny variables contexts here, because those have not been fully resolved yet.
+    const deniedContexts = ["var", "variables"]
+    for (const deniedContext of deniedContexts) {
+      Object.defineProperty(context, deniedContext, {
+        get: () => {
+          throw new ConfigurationError({
+            message: `If you have duplicate action names, the ${styles.accent("`disabled`")} flag cannot depend on the ${styles.accent(`\`${deniedContext}\``)} context.`,
+          })
+        },
+      })
     }
 
     return resolveTemplateString({
@@ -1543,10 +1549,11 @@ export class Garden {
     const key = actionReferenceToString(config)
     const existing = this.actionConfigs[config.kind][config.name]
 
-    // Resolve the actual values of the `disabled` flag
-    config.disabled = this.evaluateDisabledFlag(config)
-
     if (existing) {
+      // Resolve the actual values of the `disabled` flag
+      config.disabled = this.evaluateDisabledFlag(config)
+      existing.disabled = this.evaluateDisabledFlag(existing)
+
       if (actionIsDisabled(config, this.environmentName)) {
         this.log.silly(
           () => `Skipping action ${key} because it is disabled and another action with the same key exists`

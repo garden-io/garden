@@ -3052,6 +3052,22 @@ describe("Garden", () => {
       expect(runScript.getConfig().spec.command).to.eql(["sh", "-c", "echo 'Hello from local'"])
     })
 
+    it("should deny variables context in disabled flag for actions with duplicate names", async () => {
+      const garden = await makeTestGarden(getDataDir("test-projects", "disabled-action-with-var-context"))
+
+      // There are 2 'run-script' actions defined in the project, one per environment.
+      await expectError(() => garden.getConfigGraph({ log: garden.log, emit: false }), {
+        contains: [
+          "If you have duplicate action names",
+          "the",
+          "disabled",
+          "flag cannot depend on the",
+          "var",
+          "context",
+        ],
+      })
+    })
+
     it("should resolve actions from templated config templates", async () => {
       const garden = await makeTestGarden(getDataDir("test-projects", "config-templates-with-templating"))
       await garden.scanAndAddConfigs()
@@ -3080,7 +3096,6 @@ describe("Garden", () => {
         kind: "Run",
         type: "exec",
         name: runNameA,
-        disabled: false,
         spec: {
           command: ["echo", runNameA],
         },
@@ -3093,7 +3108,6 @@ describe("Garden", () => {
         kind: "Run",
         type: "exec",
         name: runNameB,
-        disabled: false,
         spec: {
           command: ["echo", runNameB],
         },
