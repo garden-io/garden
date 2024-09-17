@@ -3096,7 +3096,6 @@ describe("Garden", () => {
         kind: "Run",
         type: "exec",
         name: runNameA,
-        disabled: false,
         spec: {
           command: ["echo", runNameA],
         },
@@ -3109,7 +3108,6 @@ describe("Garden", () => {
         kind: "Run",
         type: "exec",
         name: runNameB,
-        disabled: false,
         spec: {
           command: ["echo", runNameB],
         },
