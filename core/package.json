@@ -239,7 +239,7 @@
     "peggy": "^4.0.3",
     "prettier": "3.2.5",
     "ps-tree": "^1.2.0",
-    "serve-static": "^1.15.0",
+    "serve-static": "^1.16.0",
     "shx": "^0.3.4",
     "sinon": "^18.0.0",
     "testdouble": "^3.20.2",
