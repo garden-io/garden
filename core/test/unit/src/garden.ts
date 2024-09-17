@@ -3062,7 +3062,7 @@ describe("Garden", () => {
           "the",
           "disabled",
           "flag cannot depend on the",
-          "variables",
+          "var",
           "context",
         ],
       })
