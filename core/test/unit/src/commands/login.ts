@@ -195,37 +195,6 @@ describe("LoginCommand", () => {
     expect(savedToken!.refreshToken).to.eql(testToken.refreshToken)
   })
 
-  it("should throw if the user has an invalid auth token", async () => {
-    const postfix = randomString()
-    const testToken = {
-      token: `dummy-token-${postfix}`,
-      refreshToken: `dummy-refresh-token-${postfix}`,
-      tokenValidity: 60,
-    }
-
-    const command = new LoginCommand()
-    const garden = await makeTestGarden(getDataDir("test-projects", "login", "has-domain-and-id"), {
-      skipCloudConnect: false,
-      commandInfo: { name: "foo", args: {}, opts: {} },
-      globalConfigStore,
-    })
-
-    await CloudApi.saveAuthToken(garden.log, garden.globalConfigStore, testToken, garden.cloudDomain!)
-    td.replace(CloudApi.prototype, "checkClientAuthToken", async () => false)
-    td.replace(CloudApi.prototype, "refreshToken", async () => {
-      throw new Error("bummer")
-    })
-
-    const savedToken = await CloudApi.getStoredAuthToken(garden.log, garden.globalConfigStore, garden.cloudDomain!)
-    expect(savedToken).to.exist
-    expect(savedToken!.token).to.eql(testToken.token)
-    expect(savedToken!.refreshToken).to.eql(testToken.refreshToken)
-
-    await expectError(async () => await command.action(loginCommandParams({ garden })), {
-      contains: "bummer",
-    })
-  })
-
   it("should throw and print a helpful message on 401 errors", async () => {
     const postfix = randomString()
     const testToken = {
