@@ -28,6 +28,7 @@ import type {
 } from "./vcs.js"
 import { normalize } from "path"
 import { styles } from "../logger/styles.js"
+import { access } from "node:fs/promises"
 
 const { lstat, pathExists, readlink, realpath, stat } = fsExtra
 
@@ -104,6 +105,20 @@ export class GitSubTreeHandler extends AbstractGitHandler {
           params.exclude || "(none)"
         }`
       )
+
+    if (!this.ignoreFile) {
+      gitLog.warn(
+        `Ignore file is not specified. This can slow down the git scan performance. Consider specifying ${styles.accent("dotIgnoreFile")} field of the project-level Garden configuration file.`
+      )
+    }
+    const ignoreFileExists = await access(this.ignoreFile)
+      .then(() => true)
+      .catch(() => false)
+    if (!ignoreFileExists) {
+      gitLog.warn(
+        `Ignore file ${this.ignoreFile} is specified but does not exists. This can slow down the git scan performance. Consider creating the ignore file and specifying it in the ${styles.accent("dotIgnoreFile")} field of the project-level Garden configuration file.`
+      )
+    }
 
     try {
       const pathStats = await stat(path)
