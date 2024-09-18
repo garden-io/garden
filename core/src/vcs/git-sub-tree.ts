@@ -33,6 +33,8 @@ const { lstat, pathExists, readlink, realpath, stat } = fsExtra
 
 const submoduleErrorSuggestion = `Perhaps you need to run ${styles.underline(`git submodule update --recursive`)}?`
 
+const untrackedFileCountWarningThreshold = 1000
+
 interface GitEntry extends VcsFile {
   mode: string
 }
@@ -217,6 +219,7 @@ export class GitSubTreeHandler extends AbstractGitHandler {
 
     // Make sure we have a fresh hash for each file
     let count = 0
+    let untrackedFileCount = 0
 
     const ensureHash = async (file: VcsFile, stats: fsExtra.Stats | undefined): Promise<void> => {
       if (file.hash === "" || modified.has(file.path)) {
@@ -224,6 +227,7 @@ export class GitSubTreeHandler extends AbstractGitHandler {
         // will by extension be filtered out of the list.
         if (stats && !stats.isDirectory()) {
           const hash = await this.hashObject(stats, file.path)
+          untrackedFileCount++
           if (hash !== "") {
             file.hash = hash
             count++
@@ -370,6 +374,14 @@ export class GitSubTreeHandler extends AbstractGitHandler {
     await processEnded.promise
     await queue.onIdle()
 
+    if (untrackedFileCount > untrackedFileCountWarningThreshold) {
+      gitLog.warn(
+        `Found ${untrackedFileCount} untracked files in ${pathDescription} ${path} ${renderDuration(gitLog.getDuration())}. You may need to configure file exclusions.`
+      )
+    }
+    gitLog.verbose(
+      `Found ${untrackedFileCount} untracked files in ${pathDescription} ${path} ${renderDuration(gitLog.getDuration())}`
+    )
     gitLog.verbose(`Found ${count} files in ${pathDescription} ${path} ${renderDuration(gitLog.getDuration())}`)
 
     // We have done the processing of this level of files
