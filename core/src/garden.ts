@@ -1867,7 +1867,7 @@ export async function resolveGardenParamsPartial(currentDirectory: string, opts:
   const gitHandler = new GitSubTreeHandler({
     projectRoot,
     gardenDirPath,
-    ignoreFile: defaultConfigFilename,
+    ignoreFile: defaultDotIgnoreFile,
     cache: treeCache,
   })
   const vcsInfo = await gitHandler.getPathInfo(log, projectRoot)
