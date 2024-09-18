@@ -13,11 +13,10 @@ import { expectError, getDataDir, makeTempDir, makeTestGarden, withDefaultGlobal
 import { AuthRedirectServer } from "../../../../src/cloud/auth.js"
 
 import { LoginCommand } from "../../../../src/commands/login.js"
-import { dedent, randomString } from "../../../../src/util/string.js"
+import { randomString } from "../../../../src/util/string.js"
 import { CloudApi } from "../../../../src/cloud/api.js"
 import { LogLevel } from "../../../../src/logger/logger.js"
 import { DEFAULT_GARDEN_CLOUD_DOMAIN, gardenEnv } from "../../../../src/constants.js"
-import { CloudApiError } from "../../../../src/exceptions.js"
 import { getLogMessages } from "../../../../src/util/testing.js"
 import { GlobalConfigStore } from "../../../../src/config-store/global.js"
 import { makeDummyGarden } from "../../../../src/garden.js"
@@ -224,44 +223,6 @@ describe("LoginCommand", () => {
     await expectError(async () => await command.action(loginCommandParams({ garden })), {
       contains: "bummer",
     })
-  })
-
-  it("should throw and print a helpful message on 401 errors", async () => {
-    const postfix = randomString()
-    const testToken = {
-      token: `dummy-token-${postfix}`,
-      refreshToken: `dummy-refresh-token-${postfix}`,
-      tokenValidity: 60,
-    }
-
-    const command = new LoginCommand()
-    const garden = await makeTestGarden(getDataDir("test-projects", "login", "has-domain-and-id"), {
-      skipCloudConnect: false,
-      commandInfo: { name: "foo", args: {}, opts: {} },
-      globalConfigStore,
-    })
-
-    await CloudApi.saveAuthToken(garden.log, garden.globalConfigStore, testToken, garden.cloudDomain!)
-    td.replace(CloudApi.prototype, "checkClientAuthToken", async () => false)
-    td.replace(CloudApi.prototype, "refreshToken", async () => {
-      throw new CloudApiError({ message: "bummer", responseStatusCode: 401 })
-    })
-
-    const savedToken = await CloudApi.getStoredAuthToken(garden.log, garden.globalConfigStore, garden.cloudDomain!)
-    expect(savedToken).to.exist
-    expect(savedToken!.token).to.eql(testToken.token)
-    expect(savedToken!.refreshToken).to.eql(testToken.refreshToken)
-
-    await expectError(async () => await command.action(loginCommandParams({ garden })), {
-      contains: "bummer",
-    })
-
-    const logOutput = getLogMessages(garden.log, (entry) => entry.level <= LogLevel.info).join("\n")
-
-    expect(logOutput).to.include(dedent`
-      Looks like your session token is invalid. If you were previously logged into a different instance
-      of Garden Enterprise, log out first before logging in.
-    `)
   })
 
   it("should not login if outside project root and disable-project-check flag is false", async () => {

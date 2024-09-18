@@ -278,6 +278,7 @@ export class CloudApi {
           message: deline`
             The provided access token is expired or has been revoked for ${cloudDomain}, please create a new
             one from the ${distroName} UI.`,
+          responseStatusCode: 401,
         })
       }
     } else {
@@ -510,6 +511,7 @@ export class CloudApi {
         message: `An error occurred while verifying client auth token with ${getCloudDistributionName(this.domain)}: ${
           err.message
         }. Response status code: ${err.response.statusCode}`,
+        responseStatusCode: err.response.statusCode,
       })
     }
   }
