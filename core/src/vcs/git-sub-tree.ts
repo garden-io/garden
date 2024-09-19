@@ -27,6 +27,7 @@ import type {
   VcsHandlerParams,
 } from "./vcs.js"
 import { styles } from "../logger/styles.js"
+import { Log } from "../logger/log-entry.js"
 
 const { lstat, pathExists, readlink, realpath, stat } = fsExtra
 
@@ -162,20 +163,9 @@ export class GitSubTreeHandler extends AbstractGitHandler {
         }`
       )
 
-    try {
-      const pathStats = await stat(path)
-
-      if (!pathStats.isDirectory()) {
-        gitLog.warn(`Expected directory at ${path}, but found ${getStatsType(pathStats)}.`)
-        return []
-      }
-    } catch (err) {
-      if (isErrnoException(err) && err.code === "ENOENT") {
-        gitLog.warn(`Attempted to scan directory at ${path}, but it does not exist.`)
-        return []
-      } else {
-        throw err
-      }
+    const isPathDirectory = await isDirectory(path, gitLog)
+    if (!isPathDirectory) {
+      return []
     }
 
     const git = new GitCli({ log: gitLog, cwd: path, failOnPrompt })
@@ -422,6 +412,25 @@ export class GitSubTreeHandler extends AbstractGitHandler {
 
     return submodules
   }
+}
+
+async function isDirectory(path: string, gitLog: Log): Promise<boolean> {
+  try {
+    const pathStats = await stat(path)
+
+    if (!pathStats.isDirectory()) {
+      gitLog.warn(`Expected directory at ${path}, but found ${getStatsType(pathStats)}.`)
+      return false
+    }
+  } catch (err) {
+    if (isErrnoException(err) && err.code === "ENOENT") {
+      gitLog.warn(`Attempted to scan directory at ${path}, but it does not exist.`)
+      return false
+    } else {
+      throw err
+    }
+  }
+  return true
 }
 
 function parseGitLsFilesOutputLine(data: Buffer): GitEntry | undefined {
