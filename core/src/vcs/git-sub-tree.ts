@@ -27,7 +27,7 @@ import type {
   VcsHandlerParams,
 } from "./vcs.js"
 import { styles } from "../logger/styles.js"
-import { Log } from "../logger/log-entry.js"
+import type { Log } from "../logger/log-entry.js"
 
 const { lstat, pathExists, readlink, realpath, stat } = fsExtra
 
