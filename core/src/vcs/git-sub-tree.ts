@@ -18,7 +18,7 @@ import split2 from "split2"
 import { renderDuration } from "../logger/util.js"
 import { pMemoizeDecorator } from "../lib/p-memoize.js"
 import parseGitConfig from "parse-git-config"
-import { AbstractGitHandler, augmentGlobs, GitCli } from "./git.js"
+import {AbstractGitHandler, augmentGlobs, GitCli, hashObject} from "./git.js"
 import type {
   BaseIncludeExcludeFiles,
   GetFilesParams,
@@ -223,7 +223,7 @@ export class GitSubTreeHandler extends AbstractGitHandler {
         // Don't attempt to hash directories. Directories (which will only come up via symlinks btw)
         // will by extension be filtered out of the list.
         if (stats && !stats.isDirectory()) {
-          const hash = await this.hashObject(stats, file.path)
+          const hash = await hashObject(stats, file.path)
           if (hash !== "") {
             file.hash = hash
             count++

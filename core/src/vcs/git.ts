@@ -273,50 +273,6 @@ export abstract class AbstractGitHandler extends VcsHandler {
     return this.lock.acquire(`remote-source-${sourceType}-${name}`, func)
   }
 
-  /**
-   * Replicates the `git hash-object` behavior. See https://stackoverflow.com/a/5290484/3290965
-   * We deviate from git's behavior when dealing with symlinks, by hashing the target of the symlink and not the
-   * symlink itself. If the symlink cannot be read, we hash the link contents like git normally does.
-   */
-  async hashObject(stats: fsExtra.Stats, path: string): Promise<string> {
-    const hash = hashingStream({ algorithm: "sha1" })
-
-    if (stats.isSymbolicLink()) {
-      // For symlinks, we follow git's behavior, which is to hash the link itself (i.e. the path it contains) as
-      // opposed to the file/directory that it points to.
-      try {
-        const linkPath = await readlink(path)
-        hash.update(`blob ${stats.size}\0${linkPath}`)
-        hash.end()
-        const output = hash.read()
-        return output
-      } catch (err) {
-        // Ignore errors here, just output empty hash
-        return ""
-      }
-    } else {
-      const stream = new PassThrough()
-      stream.push(`blob ${stats.size}\0`)
-
-      const result = defer<string>()
-      stream
-        .on("error", () => {
-          // Ignore file read error
-          result.resolve("")
-        })
-        .pipe(hash)
-        .on("error", (err) => result.reject(err))
-        .on("finish", () => {
-          const output = hash.read()
-          result.resolve(output)
-        })
-
-      createReadStream(path).pipe(stream)
-
-      return result.promise
-    }
-  }
-
   async getPathInfo(log: Log, path: string, failOnPrompt = false): Promise<VcsInfo> {
     const git = new GitCli({ log, cwd: path, failOnPrompt })
 
@@ -343,6 +299,50 @@ export abstract class AbstractGitHandler extends VcsHandler {
     }
 
     return output
+  }
+}
+
+/**
+ * Replicates the `git hash-object` behavior. See https://stackoverflow.com/a/5290484/3290965
+ * We deviate from git's behavior when dealing with symlinks, by hashing the target of the symlink and not the
+ * symlink itself. If the symlink cannot be read, we hash the link contents like git normally does.
+ */
+export async function hashObject(stats: fsExtra.Stats, path: string): Promise<string> {
+  const hash = hashingStream({ algorithm: "sha1" })
+
+  if (stats.isSymbolicLink()) {
+    // For symlinks, we follow git's behavior, which is to hash the link itself (i.e. the path it contains) as
+    // opposed to the file/directory that it points to.
+    try {
+      const linkPath = await readlink(path)
+      hash.update(`blob ${stats.size}\0${linkPath}`)
+      hash.end()
+      const output = hash.read()
+      return output
+    } catch (err) {
+      // Ignore errors here, just output empty hash
+      return ""
+    }
+  } else {
+    const stream = new PassThrough()
+    stream.push(`blob ${stats.size}\0`)
+
+    const result = defer<string>()
+    stream
+      .on("error", () => {
+        // Ignore file read error
+        result.resolve("")
+      })
+      .pipe(hash)
+      .on("error", (err) => result.reject(err))
+      .on("finish", () => {
+        const output = hash.read()
+        result.resolve(output)
+      })
+
+    createReadStream(path).pipe(stream)
+
+    return result.promise
   }
 }
 
