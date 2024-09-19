@@ -178,10 +178,6 @@ export class GitSubTreeHandler extends AbstractGitHandler {
       }
     }
 
-    const includeExcludeParams = await getIncludeExcludeFiles(params)
-
-    const scannedFiles: VcsFile[] = []
-
     const git = new GitCli({ log: gitLog, cwd: path, failOnPrompt })
     const gitRoot = await this.getRepoRoot(gitLog, path, failOnPrompt)
 
@@ -191,6 +187,8 @@ export class GitSubTreeHandler extends AbstractGitHandler {
         // The output here is relative to the git root, and not the directory `path`
         .map((modifiedRelPath) => resolve(gitRoot, modifiedRelPath))
     )
+
+    const includeExcludeParams = await getIncludeExcludeFiles(params)
 
     // List tracked but ignored files (we currently exclude those as well, so we need to query that specially)
     const trackedButIgnored = new Set(
@@ -344,12 +342,13 @@ export class GitSubTreeHandler extends AbstractGitHandler {
     }
 
     const queue = new PQueue()
-    const args = this.getLsFilesUntrackedArgs(includeExcludeParams)
+    const scannedFiles: VcsFile[] = []
 
     // Start git process
+    const args = this.getLsFilesUntrackedArgs(includeExcludeParams)
     gitLog.silly(() => `Calling git with args '${args.join(" ")}' in ${path}`)
-    const processEnded = defer<void>()
 
+    const processEnded = defer<void>()
     const proc = execa("git", args, { cwd: path, buffer: false })
     const splitStream = split2()
 
