@@ -158,7 +158,6 @@ export class GitSubTreeHandler extends AbstractGitHandler {
     }
 
     const includeExcludeParams = await getIncludeExcludeFiles(params)
-    const { exclude, hasIncludes, include } = includeExcludeParams
 
     let files: VcsFile[] = []
 
@@ -189,6 +188,7 @@ export class GitSubTreeHandler extends AbstractGitHandler {
     // We start processing submodule paths in parallel
     // and don't await the results until this level of processing is completed
     if (submodulePaths.length > 0) {
+      const { exclude, include } = includeExcludeParams
       // Need to automatically add `**/*` to directory paths, to match git behavior when filtering.
       const augmentedIncludes = await augmentGlobs(path, include)
       const augmentedExcludes = await augmentGlobs(path, exclude)
@@ -254,7 +254,10 @@ export class GitSubTreeHandler extends AbstractGitHandler {
     }
 
     // This function is called for each line output from the ls-files commands that we run
-    const handleEntry = async (entry: GitEntry | undefined): Promise<VcsFile | undefined> => {
+    const handleEntry = async (
+      entry: GitEntry | undefined,
+      { hasIncludes, exclude }: GitSubTreeIncludeExcludeFiles
+    ): Promise<VcsFile | undefined> => {
       if (!entry) {
         return undefined
       }
@@ -356,7 +359,7 @@ export class GitSubTreeHandler extends AbstractGitHandler {
       try {
         await queue.add(async () => {
           const gitEntry = parseGitLsFilesOutputLine(line)
-          const file = await handleEntry(gitEntry)
+          const file = await handleEntry(gitEntry, includeExcludeParams)
           if (file) {
             files.push(file)
           }
