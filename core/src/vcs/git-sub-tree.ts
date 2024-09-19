@@ -121,6 +121,28 @@ export class GitSubTreeHandler extends AbstractGitHandler {
   }
 
   /**
+   * Make sure we have a fresh hash for each file.
+   */
+  private async ensureHash(
+    file: VcsFile,
+    stats: fsExtra.Stats | undefined,
+    modifiedFiles: Set<string>
+  ): Promise<VcsFile> {
+    if (file.hash === "" || modifiedFiles.has(file.path)) {
+      // Don't attempt to hash directories. Directories (which will only come up via symlinks btw)
+      // will by extension be filtered out of the list.
+      if (stats && !stats.isDirectory()) {
+        const hash = await hashObject(stats, file.path)
+        if (hash !== "") {
+          file.hash = hash
+          return file
+        }
+      }
+    }
+    return file
+  }
+
+  /**
    * Returns a list of files, along with file hashes, under the given path, taking into account the configured
    * .ignore files, and the specified include/exclude filters.
    */
@@ -164,7 +186,7 @@ export class GitSubTreeHandler extends AbstractGitHandler {
     const gitRoot = await this.getRepoRoot(gitLog, path, failOnPrompt)
 
     // List modified files, so that we can ensure we have the right hash for them later
-    const modified = new Set(
+    const modifiedFiles = new Set(
       (await git.getModifiedFiles(path))
         // The output here is relative to the git root, and not the directory `path`
         .map((modifiedRelPath) => resolve(gitRoot, modifiedRelPath))
@@ -236,22 +258,6 @@ export class GitSubTreeHandler extends AbstractGitHandler {
       })
     }
 
-    // Make sure we have a fresh hash for each file
-    const ensureHash = async (file: VcsFile, stats: fsExtra.Stats | undefined): Promise<VcsFile> => {
-      if (file.hash === "" || modified.has(file.path)) {
-        // Don't attempt to hash directories. Directories (which will only come up via symlinks btw)
-        // will by extension be filtered out of the list.
-        if (stats && !stats.isDirectory()) {
-          const hash = await hashObject(stats, file.path)
-          if (hash !== "") {
-            file.hash = hash
-            return file
-          }
-        }
-      }
-      return file
-    }
-
     // This function is called for each line output from the ls-files commands that we run
     const handleEntry = async (
       entry: GitEntry | undefined,
@@ -291,8 +297,8 @@ export class GitSubTreeHandler extends AbstractGitHandler {
 
       // No need to stat unless it has no hash, is a symlink, or is modified
       // Note: git ls-files always returns mode 120000 for symlinks
-      if (hash && entry.mode !== "120000" && !modified.has(resolvedPath)) {
-        return ensureHash(output, undefined)
+      if (hash && entry.mode !== "120000" && !modifiedFiles.has(resolvedPath)) {
+        return this.ensureHash(output, undefined, modifiedFiles)
       }
 
       try {
@@ -315,7 +321,7 @@ export class GitSubTreeHandler extends AbstractGitHandler {
                 gitLog.verbose(`Ignoring symlink pointing outside of ${pathDescription} at ${resolvedPath}`)
                 return
               }
-              return ensureHash(output, stats)
+              return this.ensureHash(output, stats, modifiedFiles)
             } catch (err) {
               if (isErrnoException(err) && err.code === "ENOENT") {
                 gitLog.verbose(`Ignoring dead symlink at ${resolvedPath}`)
@@ -324,10 +330,10 @@ export class GitSubTreeHandler extends AbstractGitHandler {
               throw err
             }
           } else {
-            return ensureHash(output, stats)
+            return this.ensureHash(output, stats, modifiedFiles)
           }
         } else {
-          return ensureHash(output, stats)
+          return this.ensureHash(output, stats, modifiedFiles)
         }
       } catch (err) {
         if (isErrnoException(err) && err.code === "ENOENT") {
