@@ -218,7 +218,7 @@ export class GitSubTreeHandler extends AbstractGitHandler {
     }
 
     // Make sure we have a fresh hash for each file
-    const ensureHash = async (file: VcsFile, stats: fsExtra.Stats | undefined): Promise<void> => {
+    const ensureHash = async (file: VcsFile, stats: fsExtra.Stats | undefined): Promise<VcsFile> => {
       if (file.hash === "" || modified.has(file.path)) {
         // Don't attempt to hash directories. Directories (which will only come up via symlinks btw)
         // will by extension be filtered out of the list.
@@ -226,19 +226,17 @@ export class GitSubTreeHandler extends AbstractGitHandler {
           const hash = await hashObject(stats, file.path)
           if (hash !== "") {
             file.hash = hash
-            files.push(file)
-            return
+            return file
           }
         }
       }
-      files.push(file)
+      return file
     }
 
-    // This function is called for each line output from the ls-files commands that we run, and populates the
-    // `files` array.
-    const handleEntry = async (entry: GitEntry | undefined): Promise<void> => {
+    // This function is called for each line output from the ls-files commands that we run
+    const handleEntry = async (entry: GitEntry | undefined): Promise<VcsFile | undefined> => {
       if (!entry) {
-        return
+        return undefined
       }
 
       const { path: filePath, hash } = entry
@@ -341,9 +339,12 @@ export class GitSubTreeHandler extends AbstractGitHandler {
 
     splitStream.on("data", async (line) => {
       try {
-        await queue.add(() => {
+        await queue.add(async () => {
           const gitEntry = parseGitLsFilesOutputLine(line)
-          return handleEntry(gitEntry)
+          const file = await handleEntry(gitEntry)
+          if (file) {
+            files.push(file)
+          }
         })
       } catch (err) {
         fail(err)
