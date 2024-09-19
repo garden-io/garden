@@ -9,7 +9,7 @@
 import { Profile } from "../util/profiling.js"
 import { getStatsType, matchPath } from "../util/fs.js"
 import { isErrnoException } from "../exceptions.js"
-import { isAbsolute, join, relative, resolve } from "path"
+import { isAbsolute, join, normalize, relative, resolve } from "path"
 import fsExtra from "fs-extra"
 import PQueue from "p-queue"
 import { defer } from "../util/util.js"
@@ -26,7 +26,6 @@ import type {
   VcsFile,
   VcsHandlerParams,
 } from "./vcs.js"
-import { normalize } from "path"
 import { styles } from "../logger/styles.js"
 
 const { lstat, pathExists, readlink, realpath, stat } = fsExtra
@@ -159,7 +158,7 @@ export class GitSubTreeHandler extends AbstractGitHandler {
 
     const includeExcludeParams = await getIncludeExcludeFiles(params)
 
-    let files: VcsFile[] = []
+    const scannedFiles: VcsFile[] = []
 
     const git = new GitCli({ log: gitLog, cwd: path, failOnPrompt })
     const gitRoot = await this.getRepoRoot(gitLog, path, failOnPrompt)
@@ -361,7 +360,7 @@ export class GitSubTreeHandler extends AbstractGitHandler {
           const gitEntry = parseGitLsFilesOutputLine(line)
           const file = await handleEntry(gitEntry, includeExcludeParams)
           if (file) {
-            files.push(file)
+            scannedFiles.push(file)
           }
         })
       } catch (err) {
@@ -388,16 +387,16 @@ export class GitSubTreeHandler extends AbstractGitHandler {
     await processEnded.promise
     await queue.onIdle()
 
-    gitLog.verbose(`Found ${files.length} files in ${pathDescription} ${path} ${renderDuration(gitLog.getDuration())}`)
+    gitLog.verbose(
+      `Found ${scannedFiles.length} files in ${pathDescription} ${path} ${renderDuration(gitLog.getDuration())}`
+    )
 
     // We have done the processing of this level of files
     // So now we just have to wait for all the recursive submodules to resolve as well
     // before we can return
     const resolvedSubmoduleFiles = await Promise.all(submoduleFiles)
 
-    files = [...files, ...resolvedSubmoduleFiles.flat()]
-
-    return files
+    return [...scannedFiles, ...resolvedSubmoduleFiles.flat()]
   }
 
   @pMemoizeDecorator()
