@@ -77,12 +77,48 @@ interface Submodule {
   url: string
 }
 
+const globalArgs = ["--glob-pathspecs"] as const
+
 @Profile()
 export class GitSubTreeHandler extends AbstractGitHandler {
   override readonly name = "git"
 
   constructor(params: VcsHandlerParams) {
     super(params)
+  }
+
+  private getLsFilesCommonArgs({ hasIncludes, exclude }: GitSubTreeIncludeExcludeFiles): readonly string[] {
+    const lsFilesCommonArgs = ["--cached", "--exclude", this.gardenDirPath]
+
+    if (!hasIncludes) {
+      for (const p of exclude) {
+        lsFilesCommonArgs.push("--exclude", p)
+      }
+    }
+    return [...lsFilesCommonArgs] as const
+  }
+
+  private getLsFilesIgnoredArgs(includeExcludeParams: GitSubTreeIncludeExcludeFiles): readonly string[] {
+    const args = [
+      ...globalArgs,
+      "ls-files",
+      "--ignored",
+      ...this.getLsFilesCommonArgs(includeExcludeParams),
+      "--exclude-per-directory",
+      this.ignoreFile,
+    ]
+    return [...args] as const
+  }
+
+  private getLsFilesUntrackedArgs(includeExcludeParams: GitSubTreeIncludeExcludeFiles): readonly string[] {
+    const args = [...globalArgs, "ls-files", "-s", "--others", ...this.getLsFilesCommonArgs(includeExcludeParams)]
+
+    if (this.ignoreFile) {
+      args.push("--exclude-per-directory", this.ignoreFile)
+    }
+    args.push(...(includeExcludeParams.include || []))
+
+    return [...args] as const
   }
 
   /**
@@ -120,7 +156,9 @@ export class GitSubTreeHandler extends AbstractGitHandler {
         throw err
       }
     }
-    const { exclude, hasIncludes, include } = await getIncludeExcludeFiles(params)
+
+    const includeExcludeParams = await getIncludeExcludeFiles(params)
+    const { exclude, hasIncludes, include } = includeExcludeParams
 
     let files: VcsFile[] = []
 
@@ -134,27 +172,9 @@ export class GitSubTreeHandler extends AbstractGitHandler {
         .map((modifiedRelPath) => resolve(gitRoot, modifiedRelPath))
     )
 
-    const globalArgs = ["--glob-pathspecs"]
-    const lsFilesCommonArgs = ["--cached", "--exclude", this.gardenDirPath]
-
-    if (!hasIncludes) {
-      for (const p of exclude) {
-        lsFilesCommonArgs.push("--exclude", p)
-      }
-    }
-
     // List tracked but ignored files (we currently exclude those as well, so we need to query that specially)
     const trackedButIgnored = new Set(
-      !this.ignoreFile
-        ? []
-        : await git.exec(
-            ...globalArgs,
-            "ls-files",
-            "--ignored",
-            ...lsFilesCommonArgs,
-            "--exclude-per-directory",
-            this.ignoreFile
-          )
+      !this.ignoreFile ? [] : await git.exec(...this.getLsFilesIgnoredArgs(includeExcludeParams))
     )
 
     // List all submodule paths in the current path
@@ -316,12 +336,7 @@ export class GitSubTreeHandler extends AbstractGitHandler {
     }
 
     const queue = new PQueue()
-    // Prepare args
-    const args = [...globalArgs, "ls-files", "-s", "--others", ...lsFilesCommonArgs]
-    if (this.ignoreFile) {
-      args.push("--exclude-per-directory", this.ignoreFile)
-    }
-    args.push(...(include || []))
+    const args = this.getLsFilesUntrackedArgs(includeExcludeParams)
 
     // Start git process
     gitLog.silly(() => `Calling git with args '${args.join(" ")}' in ${path}`)
