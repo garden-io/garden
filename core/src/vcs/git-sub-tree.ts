@@ -18,7 +18,7 @@ import split2 from "split2"
 import { renderDuration } from "../logger/util.js"
 import { pMemoizeDecorator } from "../lib/p-memoize.js"
 import parseGitConfig from "parse-git-config"
-import {AbstractGitHandler, augmentGlobs, GitCli, hashObject} from "./git.js"
+import { AbstractGitHandler, augmentGlobs, GitCli, hashObject } from "./git.js"
 import type {
   BaseIncludeExcludeFiles,
   GetFilesParams,
@@ -33,7 +33,9 @@ const { lstat, pathExists, readlink, realpath, stat } = fsExtra
 
 const submoduleErrorSuggestion = `Perhaps you need to run ${styles.underline(`git submodule update --recursive`)}?`
 
-interface GitEntry extends VcsFile {
+interface GitEntry {
+  path: string
+  hash: string
   mode: string
 }
 
