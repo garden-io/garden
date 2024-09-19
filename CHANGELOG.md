@@ -1,4 +1,16 @@
 
+<a name="0.13.40"></a>
+## [0.13.40](https://github.com/garden-io/garden/compare/0.13.39...0.13.40) (2024-09-18)
+
+### Bug Fixes
+
+* avoid throwing 401 when trying to login to cloud ([#6447](https://github.com/garden-io/garden/issues/6447)) ([728077060](https://github.com/garden-io/garden/commit/728077060))
+* reproduce symlinks in build staging correctly on windows ([#6433](https://github.com/garden-io/garden/issues/6433)) ([e4adc6b1c](https://github.com/garden-io/garden/commit/e4adc6b1c))
+* allow relative symlinks to directories when using build staging ([#6430](https://github.com/garden-io/garden/issues/6430)) ([26644fcf5](https://github.com/garden-io/garden/commit/26644fcf5))
+* add applyArgs to kubectl apply function ([#6385](https://github.com/garden-io/garden/issues/6385)) ([f140ab2d7](https://github.com/garden-io/garden/commit/f140ab2d7))
+* **sync:** correct search path for mutagen faux ssh ([#6421](https://github.com/garden-io/garden/issues/6421)) ([74f7ef211](https://github.com/garden-io/garden/commit/74f7ef211))
+* **template:** avoid premature `disabled` flag evaluation on actions ([#6448](https://github.com/garden-io/garden/issues/6448)) ([c0e9065ad](https://github.com/garden-io/garden/commit/c0e9065ad))
+
 <a name="0.13.39"></a>
 ## [0.13.39](https://github.com/garden-io/garden/compare/0.13.38...0.13.39) (2024-08-29)
 
