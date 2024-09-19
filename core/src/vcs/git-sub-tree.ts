@@ -346,7 +346,8 @@ export class GitSubTreeHandler extends AbstractGitHandler {
     splitStream.on("data", async (line) => {
       try {
         await queue.add(() => {
-          return handleEntry(parseLine(line))
+          const gitEntry = parseGitLsFilesOutputLine(line)
+          return handleEntry(gitEntry)
         })
       } catch (err) {
         fail(err)
@@ -404,7 +405,7 @@ export class GitSubTreeHandler extends AbstractGitHandler {
   }
 }
 
-const parseLine = (data: Buffer): GitEntry | undefined => {
+function parseGitLsFilesOutputLine(data: Buffer): GitEntry | undefined {
   const line = data.toString().trim()
   if (!line) {
     return undefined
