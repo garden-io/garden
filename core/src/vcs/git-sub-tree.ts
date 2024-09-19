@@ -121,6 +121,38 @@ export class GitSubTreeHandler extends AbstractGitHandler {
     return [...args] as const
   }
 
+  private async getModifiedFiles({
+    path,
+    gitRoot,
+    git,
+  }: {
+    path: string
+    gitRoot: string
+    git: GitCli
+  }): Promise<Set<string>> {
+    // List modified files, so that we can ensure we have the right hash for them later
+    const modifiedFiles = (await git.getModifiedFiles(path))
+      // The output here is relative to the git root, and not the directory `path`
+      .map((modifiedRelPath) => resolve(gitRoot, modifiedRelPath))
+
+    return new Set(modifiedFiles)
+  }
+
+  private async getTrackedButIgnoredFiles({
+    includeExcludeParams,
+    git,
+  }: {
+    includeExcludeParams: GitSubTreeIncludeExcludeFiles
+    git: GitCli
+  }): Promise<Set<string>> {
+    if (!this.ignoreFile) {
+      return new Set<string>()
+    }
+
+    const trackedButIgnoredFiles = await git.exec(...this.getLsFilesIgnoredArgs(includeExcludeParams))
+    return new Set(trackedButIgnoredFiles)
+  }
+
   /**
    * Make sure we have a fresh hash for each file.
    */
@@ -172,18 +204,12 @@ export class GitSubTreeHandler extends AbstractGitHandler {
     const gitRoot = await this.getRepoRoot(gitLog, path, failOnPrompt)
 
     // List modified files, so that we can ensure we have the right hash for them later
-    const modifiedFiles = new Set(
-      (await git.getModifiedFiles(path))
-        // The output here is relative to the git root, and not the directory `path`
-        .map((modifiedRelPath) => resolve(gitRoot, modifiedRelPath))
-    )
+    const modifiedFiles = await this.getModifiedFiles({ path, gitRoot, git })
 
     const includeExcludeParams = await getIncludeExcludeFiles(params)
 
     // List tracked but ignored files (we currently exclude those as well, so we need to query that specially)
-    const trackedButIgnored = new Set(
-      !this.ignoreFile ? [] : await git.exec(...this.getLsFilesIgnoredArgs(includeExcludeParams))
-    )
+    const trackedButIgnoredFiles = await this.getTrackedButIgnoredFiles({ includeExcludeParams, git })
 
     // List all submodule paths in the current path
     const submodules = await this.getSubmodules(path)
@@ -262,7 +288,7 @@ export class GitSubTreeHandler extends AbstractGitHandler {
         return
       }
       // Ignore files that are tracked but still specified in ignore files
-      if (trackedButIgnored.has(filePath)) {
+      if (trackedButIgnoredFiles.has(filePath)) {
         return
       }
 
