@@ -218,8 +218,6 @@ export class GitSubTreeHandler extends AbstractGitHandler {
     }
 
     // Make sure we have a fresh hash for each file
-    let count = 0
-
     const ensureHash = async (file: VcsFile, stats: fsExtra.Stats | undefined): Promise<void> => {
       if (file.hash === "" || modified.has(file.path)) {
         // Don't attempt to hash directories. Directories (which will only come up via symlinks btw)
@@ -228,13 +226,11 @@ export class GitSubTreeHandler extends AbstractGitHandler {
           const hash = await hashObject(stats, file.path)
           if (hash !== "") {
             file.hash = hash
-            count++
             files.push(file)
             return
           }
         }
       }
-      count++
       files.push(file)
     }
 
@@ -373,7 +369,7 @@ export class GitSubTreeHandler extends AbstractGitHandler {
     await processEnded.promise
     await queue.onIdle()
 
-    gitLog.verbose(`Found ${count} files in ${pathDescription} ${path} ${renderDuration(gitLog.getDuration())}`)
+    gitLog.verbose(`Found ${files.length} files in ${pathDescription} ${path} ${renderDuration(gitLog.getDuration())}`)
 
     // We have done the processing of this level of files
     // So now we just have to wait for all the recursive submodules to resolve as well
