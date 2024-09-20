@@ -9,7 +9,7 @@
 import { Profile } from "../util/profiling.js"
 import { getStatsType, matchPath } from "../util/fs.js"
 import { isErrnoException } from "../exceptions.js"
-import { isAbsolute, join, relative, resolve } from "path"
+import { isAbsolute, join, normalize, relative, resolve } from "path"
 import fsExtra from "fs-extra"
 import PQueue from "p-queue"
 import { defer } from "../util/util.js"
@@ -18,7 +18,7 @@ import split2 from "split2"
 import { renderDuration } from "../logger/util.js"
 import { pMemoizeDecorator } from "../lib/p-memoize.js"
 import parseGitConfig from "parse-git-config"
-import { AbstractGitHandler, augmentGlobs, GitCli } from "./git.js"
+import { AbstractGitHandler, augmentGlobs, GitCli, hashObject } from "./git.js"
 import type {
   BaseIncludeExcludeFiles,
   GetFilesParams,
@@ -26,14 +26,16 @@ import type {
   VcsFile,
   VcsHandlerParams,
 } from "./vcs.js"
-import { normalize } from "path"
 import { styles } from "../logger/styles.js"
+import type { Log } from "../logger/log-entry.js"
 
 const { lstat, pathExists, readlink, realpath, stat } = fsExtra
 
 const submoduleErrorSuggestion = `Perhaps you need to run ${styles.underline(`git submodule update --recursive`)}?`
 
-interface GitEntry extends VcsFile {
+interface GitEntry {
+  path: string
+  hash: string
   mode: string
 }
 
@@ -75,12 +77,80 @@ interface Submodule {
   url: string
 }
 
+const globalArgs = ["--glob-pathspecs"] as const
+
 @Profile()
 export class GitSubTreeHandler extends AbstractGitHandler {
   override readonly name = "git"
 
   constructor(params: VcsHandlerParams) {
     super(params)
+  }
+
+  private getLsFilesCommonArgs({ hasIncludes, exclude }: GitSubTreeIncludeExcludeFiles): readonly string[] {
+    const lsFilesCommonArgs = ["--cached", "--exclude", this.gardenDirPath]
+
+    if (!hasIncludes) {
+      for (const p of exclude) {
+        lsFilesCommonArgs.push("--exclude", p)
+      }
+    }
+    return [...lsFilesCommonArgs] as const
+  }
+
+  private getLsFilesIgnoredArgs(includeExcludeParams: GitSubTreeIncludeExcludeFiles): readonly string[] {
+    const args = [
+      ...globalArgs,
+      "ls-files",
+      "--ignored",
+      ...this.getLsFilesCommonArgs(includeExcludeParams),
+      "--exclude-per-directory",
+      this.ignoreFile,
+    ]
+    return [...args] as const
+  }
+
+  private getLsFilesUntrackedArgs(includeExcludeParams: GitSubTreeIncludeExcludeFiles): readonly string[] {
+    const args = [...globalArgs, "ls-files", "-s", "--others", ...this.getLsFilesCommonArgs(includeExcludeParams)]
+
+    if (this.ignoreFile) {
+      args.push("--exclude-per-directory", this.ignoreFile)
+    }
+    args.push(...(includeExcludeParams.include || []))
+
+    return [...args] as const
+  }
+
+  private async getModifiedFiles({
+    path,
+    gitRoot,
+    git,
+  }: {
+    path: string
+    gitRoot: string
+    git: GitCli
+  }): Promise<Set<string>> {
+    // List modified files, so that we can ensure we have the right hash for them later
+    const modifiedFiles = (await git.getModifiedFiles(path))
+      // The output here is relative to the git root, and not the directory `path`
+      .map((modifiedRelPath) => resolve(gitRoot, modifiedRelPath))
+
+    return new Set(modifiedFiles)
+  }
+
+  private async getTrackedButIgnoredFiles({
+    includeExcludeParams,
+    git,
+  }: {
+    includeExcludeParams: GitSubTreeIncludeExcludeFiles
+    git: GitCli
+  }): Promise<Set<string>> {
+    if (!this.ignoreFile) {
+      return new Set<string>()
+    }
+
+    const trackedButIgnoredFiles = await git.exec(...this.getLsFilesIgnoredArgs(includeExcludeParams))
+    return new Set(trackedButIgnoredFiles)
   }
 
   /**
@@ -103,57 +173,21 @@ export class GitSubTreeHandler extends AbstractGitHandler {
         }`
       )
 
-    try {
-      const pathStats = await stat(path)
-
-      if (!pathStats.isDirectory()) {
-        gitLog.warn(`Expected directory at ${path}, but found ${getStatsType(pathStats)}.`)
-        return []
-      }
-    } catch (err) {
-      if (isErrnoException(err) && err.code === "ENOENT") {
-        gitLog.warn(`Attempted to scan directory at ${path}, but it does not exist.`)
-        return []
-      } else {
-        throw err
-      }
+    const isPathDirectory = await isDirectory(path, gitLog)
+    if (!isPathDirectory) {
+      return []
     }
-    const { exclude, hasIncludes, include } = await getIncludeExcludeFiles(params)
-
-    let files: VcsFile[] = []
 
     const git = new GitCli({ log: gitLog, cwd: path, failOnPrompt })
     const gitRoot = await this.getRepoRoot(gitLog, path, failOnPrompt)
 
     // List modified files, so that we can ensure we have the right hash for them later
-    const modified = new Set(
-      (await git.getModifiedFiles(path))
-        // The output here is relative to the git root, and not the directory `path`
-        .map((modifiedRelPath) => resolve(gitRoot, modifiedRelPath))
-    )
+    const modifiedFiles = await this.getModifiedFiles({ path, gitRoot, git })
 
-    const globalArgs = ["--glob-pathspecs"]
-    const lsFilesCommonArgs = ["--cached", "--exclude", this.gardenDirPath]
-
-    if (!hasIncludes) {
-      for (const p of exclude) {
-        lsFilesCommonArgs.push("--exclude", p)
-      }
-    }
+    const includeExcludeParams = await getIncludeExcludeFiles(params)
 
     // List tracked but ignored files (we currently exclude those as well, so we need to query that specially)
-    const trackedButIgnored = new Set(
-      !this.ignoreFile
-        ? []
-        : await git.exec(
-            ...globalArgs,
-            "ls-files",
-            "--ignored",
-            ...lsFilesCommonArgs,
-            "--exclude-per-directory",
-            this.ignoreFile
-          )
-    )
+    const trackedButIgnoredFiles = await this.getTrackedButIgnoredFiles({ includeExcludeParams, git })
 
     // List all submodule paths in the current path
     const submodules = await this.getSubmodules(path)
@@ -167,6 +201,7 @@ export class GitSubTreeHandler extends AbstractGitHandler {
     // We start processing submodule paths in parallel
     // and don't await the results until this level of processing is completed
     if (submodulePaths.length > 0) {
+      const { exclude, include } = includeExcludeParams
       // Need to automatically add `**/*` to directory paths, to match git behavior when filtering.
       const augmentedIncludes = await augmentGlobs(path, include)
       const augmentedExcludes = await augmentGlobs(path, exclude)
@@ -215,32 +250,13 @@ export class GitSubTreeHandler extends AbstractGitHandler {
       })
     }
 
-    // Make sure we have a fresh hash for each file
-    let count = 0
-
-    const ensureHash = async (file: VcsFile, stats: fsExtra.Stats | undefined): Promise<void> => {
-      if (file.hash === "" || modified.has(file.path)) {
-        // Don't attempt to hash directories. Directories (which will only come up via symlinks btw)
-        // will by extension be filtered out of the list.
-        if (stats && !stats.isDirectory()) {
-          const hash = await this.hashObject(stats, file.path)
-          if (hash !== "") {
-            file.hash = hash
-            count++
-            files.push(file)
-            return
-          }
-        }
-      }
-      count++
-      files.push(file)
-    }
-
-    // This function is called for each line output from the ls-files commands that we run, and populates the
-    // `files` array.
-    const handleEntry = async (entry: GitEntry | undefined): Promise<void> => {
+    // This function is called for each line output from the ls-files commands that we run
+    const handleEntry = async (
+      entry: GitEntry | undefined,
+      { hasIncludes, exclude }: GitSubTreeIncludeExcludeFiles
+    ): Promise<VcsFile | undefined> => {
       if (!entry) {
-        return
+        return undefined
       }
 
       const { path: filePath, hash } = entry
@@ -250,7 +266,7 @@ export class GitSubTreeHandler extends AbstractGitHandler {
         return
       }
       // Ignore files that are tracked but still specified in ignore files
-      if (trackedButIgnored.has(filePath)) {
+      if (trackedButIgnoredFiles.has(filePath)) {
         return
       }
 
@@ -273,8 +289,8 @@ export class GitSubTreeHandler extends AbstractGitHandler {
 
       // No need to stat unless it has no hash, is a symlink, or is modified
       // Note: git ls-files always returns mode 120000 for symlinks
-      if (hash && entry.mode !== "120000" && !modified.has(resolvedPath)) {
-        return ensureHash(output, undefined)
+      if (hash && entry.mode !== "120000" && !modifiedFiles.has(resolvedPath)) {
+        return ensureHash(output, undefined, modifiedFiles)
       }
 
       try {
@@ -297,7 +313,7 @@ export class GitSubTreeHandler extends AbstractGitHandler {
                 gitLog.verbose(`Ignoring symlink pointing outside of ${pathDescription} at ${resolvedPath}`)
                 return
               }
-              return ensureHash(output, stats)
+              return ensureHash(output, stats, modifiedFiles)
             } catch (err) {
               if (isErrnoException(err) && err.code === "ENOENT") {
                 gitLog.verbose(`Ignoring dead symlink at ${resolvedPath}`)
@@ -306,10 +322,10 @@ export class GitSubTreeHandler extends AbstractGitHandler {
               throw err
             }
           } else {
-            return ensureHash(output, stats)
+            return ensureHash(output, stats, modifiedFiles)
           }
         } else {
-          return ensureHash(output, stats)
+          return ensureHash(output, stats, modifiedFiles)
         }
       } catch (err) {
         if (isErrnoException(err) && err.code === "ENOENT") {
@@ -320,17 +336,13 @@ export class GitSubTreeHandler extends AbstractGitHandler {
     }
 
     const queue = new PQueue()
-    // Prepare args
-    const args = [...globalArgs, "ls-files", "-s", "--others", ...lsFilesCommonArgs]
-    if (this.ignoreFile) {
-      args.push("--exclude-per-directory", this.ignoreFile)
-    }
-    args.push(...(include || []))
+    const scannedFiles: VcsFile[] = []
 
     // Start git process
+    const args = this.getLsFilesUntrackedArgs(includeExcludeParams)
     gitLog.silly(() => `Calling git with args '${args.join(" ")}' in ${path}`)
-    const processEnded = defer<void>()
 
+    const processEnded = defer<void>()
     const proc = execa("git", args, { cwd: path, buffer: false })
     const splitStream = split2()
 
@@ -343,8 +355,12 @@ export class GitSubTreeHandler extends AbstractGitHandler {
 
     splitStream.on("data", async (line) => {
       try {
-        await queue.add(() => {
-          return handleEntry(parseLine(line))
+        await queue.add(async () => {
+          const gitEntry = parseGitLsFilesOutputLine(line)
+          const file = await handleEntry(gitEntry, includeExcludeParams)
+          if (file) {
+            scannedFiles.push(file)
+          }
         })
       } catch (err) {
         fail(err)
@@ -370,16 +386,16 @@ export class GitSubTreeHandler extends AbstractGitHandler {
     await processEnded.promise
     await queue.onIdle()
 
-    gitLog.verbose(`Found ${count} files in ${pathDescription} ${path} ${renderDuration(gitLog.getDuration())}`)
+    gitLog.verbose(
+      `Found ${scannedFiles.length} files in ${pathDescription} ${path} ${renderDuration(gitLog.getDuration())}`
+    )
 
     // We have done the processing of this level of files
     // So now we just have to wait for all the recursive submodules to resolve as well
     // before we can return
     const resolvedSubmoduleFiles = await Promise.all(submoduleFiles)
 
-    files = [...files, ...resolvedSubmoduleFiles.flat()]
-
-    return files
+    return [...scannedFiles, ...resolvedSubmoduleFiles.flat()]
   }
 
   @pMemoizeDecorator()
@@ -402,7 +418,26 @@ export class GitSubTreeHandler extends AbstractGitHandler {
   }
 }
 
-const parseLine = (data: Buffer): GitEntry | undefined => {
+async function isDirectory(path: string, gitLog: Log): Promise<boolean> {
+  try {
+    const pathStats = await stat(path)
+
+    if (!pathStats.isDirectory()) {
+      gitLog.warn(`Expected directory at ${path}, but found ${getStatsType(pathStats)}.`)
+      return false
+    }
+  } catch (err) {
+    if (isErrnoException(err) && err.code === "ENOENT") {
+      gitLog.warn(`Attempted to scan directory at ${path}, but it does not exist.`)
+      return false
+    } else {
+      throw err
+    }
+  }
+  return true
+}
+
+function parseGitLsFilesOutputLine(data: Buffer): GitEntry | undefined {
   const line = data.toString().trim()
   if (!line) {
     return undefined
@@ -425,4 +460,26 @@ const parseLine = (data: Buffer): GitEntry | undefined => {
   }
 
   return { path: filePath, hash, mode }
+}
+
+/**
+ * Make sure we have a fresh hash for each file.
+ */
+async function ensureHash(
+  file: VcsFile,
+  stats: fsExtra.Stats | undefined,
+  modifiedFiles: Set<string>
+): Promise<VcsFile> {
+  if (file.hash === "" || modifiedFiles.has(file.path)) {
+    // Don't attempt to hash directories. Directories (which will only come up via symlinks btw)
+    // will by extension be filtered out of the list.
+    if (stats && !stats.isDirectory()) {
+      const hash = await hashObject(stats, file.path)
+      if (hash !== "") {
+        file.hash = hash
+        return file
+      }
+    }
+  }
+  return file
 }

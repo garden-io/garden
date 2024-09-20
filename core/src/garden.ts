@@ -82,13 +82,7 @@ import {
 import type { Log } from "./logger/log-entry.js"
 import { EventBus } from "./events/events.js"
 import { Watcher } from "./watch.js"
-import {
-  findConfigPathsInPath,
-  getWorkingCopyId,
-  fixedProjectExcludes,
-  defaultConfigFilename,
-  defaultDotIgnoreFile,
-} from "./util/fs.js"
+import { findConfigPathsInPath, getWorkingCopyId, fixedProjectExcludes, defaultDotIgnoreFile } from "./util/fs.js"
 import type { Provider, GenericProviderConfig, ProviderMap } from "./config/provider.js"
 import { getAllProviderDependencyNames, defaultProvider } from "./config/provider.js"
 import { ResolveProviderTask } from "./tasks/resolve-provider.js"
@@ -1867,7 +1861,7 @@ export async function resolveGardenParamsPartial(currentDirectory: string, opts:
   const gitHandler = new GitSubTreeHandler({
     projectRoot,
     gardenDirPath,
-    ignoreFile: defaultConfigFilename,
+    ignoreFile: defaultDotIgnoreFile,
     cache: treeCache,
   })
   const vcsInfo = await gitHandler.getPathInfo(log, projectRoot)

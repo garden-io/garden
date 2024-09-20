@@ -26,6 +26,7 @@ import {
   explainGitError,
   getCommitIdFromRefList,
   GitCli,
+  hashObject,
   parseGitUrl,
 } from "../../../../src/vcs/git.js"
 import { GitRepoHandler } from "../../../../src/vcs/git-repo.js"
@@ -1203,7 +1204,7 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
 
       const expected = await getGitHash(git, path)
 
-      const hash = await handler.hashObject(stats, path)
+      const hash = await hashObject(stats, path)
       expect(hash).to.equal(expected)
     })
 
@@ -1217,7 +1218,7 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
       const files = (await git.exec("ls-files", "-s", path))[0]
       const expected = files.split(" ")[1]
 
-      const hash = await handler.hashObject(stats, path)
+      const hash = await hashObject(stats, path)
       expect(hash).to.equal(expected)
     })
 
@@ -1235,7 +1236,7 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
       const files = (await git.exec("ls-files", "-s", symlinkPath))[0]
       const expected = files.split(" ")[1]
 
-      const hash = await handler.hashObject(stats, symlinkPath)
+      const hash = await hashObject(stats, symlinkPath)
       expect(hash).to.equal(expected)
     })
   })
