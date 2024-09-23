@@ -298,7 +298,12 @@ export class GitSubTreeHandler extends AbstractGitHandler {
       // No need to stat unless it has no hash, is a symlink, or is modified
       // Note: git ls-files always returns mode 120000 for symlinks
       if (hash && entry.mode !== "120000" && !modifiedFiles.has(resolvedPath)) {
-        return ensureHash(output, undefined, modifiedFiles, skipHashCalculation)
+        return ensureHash({
+          file: output,
+          stats: undefined,
+          modifiedFiles,
+          skipHashCalculation,
+        })
       }
 
       try {
@@ -321,7 +326,12 @@ export class GitSubTreeHandler extends AbstractGitHandler {
                 gitLog.verbose(`Ignoring symlink pointing outside of ${pathDescription} at ${resolvedPath}`)
                 return
               }
-              return ensureHash(output, stats, modifiedFiles, skipHashCalculation)
+              return ensureHash({
+                file: output,
+                stats,
+                modifiedFiles,
+                skipHashCalculation,
+              })
             } catch (err) {
               if (isErrnoException(err) && err.code === "ENOENT") {
                 gitLog.verbose(`Ignoring dead symlink at ${resolvedPath}`)
@@ -330,10 +340,20 @@ export class GitSubTreeHandler extends AbstractGitHandler {
               throw err
             }
           } else {
-            return ensureHash(output, stats, modifiedFiles, skipHashCalculation)
+            return ensureHash({
+              file: output,
+              stats,
+              modifiedFiles,
+              skipHashCalculation,
+            })
           }
         } else {
-          return ensureHash(output, stats, modifiedFiles, skipHashCalculation)
+          return ensureHash({
+            file: output,
+            stats,
+            modifiedFiles,
+            skipHashCalculation,
+          })
         }
       } catch (err) {
         if (isErrnoException(err) && err.code === "ENOENT") {
@@ -473,12 +493,17 @@ function parseGitLsFilesOutputLine(data: Buffer): GitEntry | undefined {
 /**
  * Make sure we have a fresh hash for each file.
  */
-async function ensureHash(
-  file: VcsFile,
-  stats: fsExtra.Stats | undefined,
-  modifiedFiles: Set<string>,
+async function ensureHash({
+  file,
+  stats,
+  modifiedFiles,
+  skipHashCalculation,
+}: {
+  file: VcsFile
+  stats: fsExtra.Stats | undefined
+  modifiedFiles: Set<string>
   skipHashCalculation: boolean
-): Promise<VcsFile> {
+}): Promise<VcsFile> {
   if (skipHashCalculation) {
     return file
   }

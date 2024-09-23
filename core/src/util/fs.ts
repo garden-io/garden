@@ -135,7 +135,7 @@ export async function findConfigPathsInPath({
     log,
     filter: (f) => isConfigFilename(basename(f)),
     scanRoot: dir,
-    skipHashCalculation: true
+    skipHashCalculation: true,
   })
 
   return paths.map((f) => f.path)
