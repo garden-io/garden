@@ -199,7 +199,6 @@ export interface GardenParams {
   vcsInfo: VcsInfo
   projectId?: string
   cloudDomain?: string
-  cache: TreeCache
   dotIgnoreFile: string
   proxy: ProxyConfig
   environmentName: string
@@ -364,7 +363,6 @@ export class Garden {
     this.forceRefresh = !!params.forceRefresh
     this.cloudApi = params.cloudApi || null
     this.commandInfo = params.opts.commandInfo
-    this.treeCache = params.cache
     this.isGarden = true
     this.configTemplates = {}
     this.emittedWarnings = new Set()
@@ -376,12 +374,14 @@ export class Garden {
     const gitMode = params.projectConfig.scan?.git?.mode || gardenEnv.GARDEN_GIT_SCAN_MODE
     const handlerCls = gitMode === "repo" ? GitRepoHandler : GitSubTreeHandler
 
+    const treeCache = new TreeCache()
+    this.treeCache = treeCache
     this.vcs = new handlerCls({
       garden: this,
       projectRoot: params.projectRoot,
       gardenDirPath: params.gardenDirPath,
       ignoreFile: params.dotIgnoreFile,
-      cache: params.cache,
+      cache: treeCache,
     })
 
     // Use the legacy build sync mode if
