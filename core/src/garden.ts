@@ -373,13 +373,12 @@ export class Garden {
     const gitMode = params.projectConfig.scan?.git?.mode || gardenEnv.GARDEN_GIT_SCAN_MODE
     const handlerCls = gitMode === "repo" ? GitRepoHandler : GitSubTreeHandler
 
-    const treeCache = new TreeCache()
     this.vcs = new handlerCls({
       garden: this,
       projectRoot: params.projectRoot,
       gardenDirPath: params.gardenDirPath,
       ignoreFile: params.dotIgnoreFile,
-      cache: treeCache,
+      cache: new TreeCache(),
     })
 
     // Use the legacy build sync mode if
