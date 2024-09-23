@@ -170,8 +170,8 @@ export abstract class VcsHandler {
   protected readonly garden?: Garden
   protected readonly gardenDirPath: string
   protected readonly ignoreFile: string
-  protected readonly cache: TreeCache
   protected readonly profiler: Profiler
+  public readonly cache: TreeCache
 
   constructor(params: VcsHandlerParams) {
     this.garden = params.garden

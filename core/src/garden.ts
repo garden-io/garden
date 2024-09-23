@@ -277,7 +277,6 @@ export class Garden {
   public readonly localConfigStore: LocalConfigStore
   public globalConfigStore: GlobalConfigStore
   public readonly vcs: VcsHandler
-  public readonly treeCache: TreeCache
   public events: EventBus
   private tools?: { [key: string]: PluginTool }
   public readonly configTemplates: { [name: string]: ConfigTemplateConfig }
@@ -375,7 +374,6 @@ export class Garden {
     const handlerCls = gitMode === "repo" ? GitRepoHandler : GitSubTreeHandler
 
     const treeCache = new TreeCache()
-    this.treeCache = treeCache
     this.vcs = new handlerCls({
       garden: this,
       projectRoot: params.projectRoot,
@@ -460,6 +458,10 @@ export class Garden {
       this.log.silly(() => "No OTEL collector configured, setting no-op exporter")
       configureNoOpExporter()
     }
+  }
+
+  get treeCache(): TreeCache {
+    return this.vcs.cache
   }
 
   static async factory<T extends typeof Garden>(
