@@ -199,7 +199,6 @@ export interface GardenParams {
   vcsInfo: VcsInfo
   projectId?: string
   cloudDomain?: string
-  cache: TreeCache
   dotIgnoreFile: string
   proxy: ProxyConfig
   environmentName: string
@@ -364,7 +363,7 @@ export class Garden {
     this.forceRefresh = !!params.forceRefresh
     this.cloudApi = params.cloudApi || null
     this.commandInfo = params.opts.commandInfo
-    this.treeCache = params.cache
+    this.treeCache = new TreeCache()
     this.isGarden = true
     this.configTemplates = {}
     this.emittedWarnings = new Set()
@@ -381,7 +380,7 @@ export class Garden {
       projectRoot: params.projectRoot,
       gardenDirPath: params.gardenDirPath,
       ignoreFile: params.dotIgnoreFile,
-      cache: params.cache,
+      cache: this.treeCache, // TODO: use own cache and create it in the VCS handler constructor
     })
 
     // Use the legacy build sync mode if
