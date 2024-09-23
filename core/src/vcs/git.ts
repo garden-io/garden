@@ -71,9 +71,11 @@ function gitCliExecutor({ log, cwd, failOnPrompt = false }: GitCliParams): GitCl
 
 export class GitCli {
   private readonly git: GitCliExecutor
+  private readonly log: Log
 
   constructor(params: GitCliParams) {
     this.git = gitCliExecutor(params)
+    this.log = params.log
   }
 
   public async exec(...args: string[]) {
@@ -111,6 +113,32 @@ export class GitCli {
   public async getOriginUrl(): Promise<string> {
     const result = await this.git("config", "--get", "remote.origin.url")
     return result[0]
+  }
+
+  public async getPathInfo() {
+    const output: VcsInfo = {
+      branch: "",
+      commitHash: "",
+      originUrl: "",
+    }
+
+    try {
+      output.branch = await this.getBranchName()
+      output.commitHash = await this.getLastCommitHash()
+    } catch (err) {
+      if (err instanceof ChildProcessError && err.details.code !== 128) {
+        throw err
+      }
+    }
+
+    try {
+      output.originUrl = await this.getOriginUrl()
+    } catch (err) {
+      // Just ignore if not available
+      this.log.silly(`Tried to retrieve git remote.origin.url but encountered an error: ${err}`)
+    }
+
+    return output
   }
 }
 
@@ -376,28 +404,5 @@ export async function augmentGlobs(basePath: string, globs?: string[]): Promise<
 
 export async function getPathInfo(log: Log, path: string, failOnPrompt = false): Promise<VcsInfo> {
   const git = new GitCli({ log, cwd: path, failOnPrompt })
-
-  const output: VcsInfo = {
-    branch: "",
-    commitHash: "",
-    originUrl: "",
-  }
-
-  try {
-    output.branch = await git.getBranchName()
-    output.commitHash = await git.getLastCommitHash()
-  } catch (err) {
-    if (err instanceof ChildProcessError && err.details.code !== 128) {
-      throw err
-    }
-  }
-
-  try {
-    output.originUrl = await git.getOriginUrl()
-  } catch (err) {
-    // Just ignore if not available
-    log.silly(`Tried to retrieve git remote.origin.url but encountered an error: ${err}`)
-  }
-
-  return output
+  return await git.getPathInfo()
 }
