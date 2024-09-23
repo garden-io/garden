@@ -122,6 +122,7 @@ export interface GetFilesParams {
   filter?: (path: string) => boolean
   failOnPrompt?: boolean
   scanRoot: string | undefined
+  skipHashCalculation?: boolean
 }
 
 export interface BaseIncludeExcludeFiles {

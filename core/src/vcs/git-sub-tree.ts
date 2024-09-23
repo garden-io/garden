@@ -163,7 +163,14 @@ export class GitSubTreeHandler extends AbstractGitHandler {
       return []
     }
 
-    const { log, path, pathDescription = "directory", filter, failOnPrompt = false } = params
+    const {
+      log,
+      path,
+      pathDescription = "directory",
+      filter,
+      failOnPrompt = false,
+      skipHashCalculation = false,
+    } = params
 
     const gitLog = log
       .createLog({ name: "git" })
@@ -246,6 +253,7 @@ export class GitSubTreeHandler extends AbstractGitHandler {
             matchPath(join(submoduleRelPath, p), augmentedIncludes, augmentedExcludes) && (!filter || filter(p)),
           scanRoot: submodulePath,
           failOnPrompt,
+          skipHashCalculation,
         })
       })
     }
@@ -290,7 +298,7 @@ export class GitSubTreeHandler extends AbstractGitHandler {
       // No need to stat unless it has no hash, is a symlink, or is modified
       // Note: git ls-files always returns mode 120000 for symlinks
       if (hash && entry.mode !== "120000" && !modifiedFiles.has(resolvedPath)) {
-        return ensureHash(output, undefined, modifiedFiles)
+        return ensureHash(output, undefined, modifiedFiles, skipHashCalculation)
       }
 
       try {
@@ -313,7 +321,7 @@ export class GitSubTreeHandler extends AbstractGitHandler {
                 gitLog.verbose(`Ignoring symlink pointing outside of ${pathDescription} at ${resolvedPath}`)
                 return
               }
-              return ensureHash(output, stats, modifiedFiles)
+              return ensureHash(output, stats, modifiedFiles, skipHashCalculation)
             } catch (err) {
               if (isErrnoException(err) && err.code === "ENOENT") {
                 gitLog.verbose(`Ignoring dead symlink at ${resolvedPath}`)
@@ -322,10 +330,10 @@ export class GitSubTreeHandler extends AbstractGitHandler {
               throw err
             }
           } else {
-            return ensureHash(output, stats, modifiedFiles)
+            return ensureHash(output, stats, modifiedFiles, skipHashCalculation)
           }
         } else {
-          return ensureHash(output, stats, modifiedFiles)
+          return ensureHash(output, stats, modifiedFiles, skipHashCalculation)
         }
       } catch (err) {
         if (isErrnoException(err) && err.code === "ENOENT") {
@@ -468,8 +476,12 @@ function parseGitLsFilesOutputLine(data: Buffer): GitEntry | undefined {
 async function ensureHash(
   file: VcsFile,
   stats: fsExtra.Stats | undefined,
-  modifiedFiles: Set<string>
+  modifiedFiles: Set<string>,
+  skipHashCalculation: boolean
 ): Promise<VcsFile> {
+  if (skipHashCalculation) {
+    return file
+  }
   if (file.hash === "" || modifiedFiles.has(file.path)) {
     // Don't attempt to hash directories. Directories (which will only come up via symlinks btw)
     // will by extension be filtered out of the list.
