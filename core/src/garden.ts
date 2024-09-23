@@ -380,7 +380,7 @@ export class Garden {
       projectRoot: params.projectRoot,
       gardenDirPath: params.gardenDirPath,
       ignoreFile: params.dotIgnoreFile,
-      cache: this.treeCache, // TODO: use own cache and create it in the VCS handler constructor
+      cache: new TreeCache(),
     })
 
     // Use the legacy build sync mode if
@@ -567,6 +567,7 @@ export class Garden {
 
   clearCaches() {
     this.treeCache.clear()
+    this.vcs.clearTreeCache()
     this.solver.clearCache()
   }
 

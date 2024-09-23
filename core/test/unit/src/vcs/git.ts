@@ -41,6 +41,7 @@ import { ChildProcessError, GardenError, RuntimeError } from "../../../../src/ex
 import type { GitScanMode } from "../../../../src/constants.js"
 import type { Garden } from "../../../../src/index.js"
 import type { ConfigGraph } from "../../../../src/graph/config-graph.js"
+import { TreeCache } from "../../../../src/cache.js"
 
 const { createFile, ensureSymlink, lstat, mkdir, mkdirp, realpath, remove, rename, symlink, writeFile } = fsExtra
 
@@ -111,7 +112,7 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
       projectRoot: tmpPath,
       gardenDirPath: join(tmpPath, ".garden"),
       ignoreFile: defaultIgnoreFilename,
-      cache: garden.treeCache,
+      cache: new TreeCache(),
     })
     git = new GitCli({ log, cwd: tmpPath })
   })
@@ -803,7 +804,7 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
           projectRoot: tmpPath,
           gardenDirPath: join(tmpPath, ".garden"),
           ignoreFile: "",
-          cache: garden.treeCache,
+          cache: new TreeCache(),
         })
 
         expect(await _handler.getFiles({ path: tmpPath, scanRoot: undefined, log })).to.eql([{ path, hash }])
@@ -1511,7 +1512,7 @@ const getTreeVersionTests = (gitScanMode: GitScanMode) => {
       projectRoot: garden.projectRoot,
       gardenDirPath: garden.gardenDirPath,
       ignoreFile: garden.dotIgnoreFile,
-      cache: garden.treeCache,
+      cache: new TreeCache(),
     })
   })
 
