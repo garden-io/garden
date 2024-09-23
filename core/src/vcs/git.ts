@@ -274,31 +274,7 @@ export abstract class AbstractGitHandler extends VcsHandler {
   }
 
   async getPathInfo(log: Log, path: string, failOnPrompt = false): Promise<VcsInfo> {
-    const git = new GitCli({ log, cwd: path, failOnPrompt })
-
-    const output: VcsInfo = {
-      branch: "",
-      commitHash: "",
-      originUrl: "",
-    }
-
-    try {
-      output.branch = await git.getBranchName()
-      output.commitHash = await git.getLastCommitHash()
-    } catch (err) {
-      if (err instanceof ChildProcessError && err.details.code !== 128) {
-        throw err
-      }
-    }
-
-    try {
-      output.originUrl = await git.getOriginUrl()
-    } catch (err) {
-      // Just ignore if not available
-      log.silly(`Tried to retrieve git remote.origin.url but encountered an error: ${err}`)
-    }
-
-    return output
+    return await getPathInfo(log, path, failOnPrompt)
   }
 }
 
@@ -396,4 +372,32 @@ export async function augmentGlobs(basePath: string, globs?: string[]): Promise<
       }
     })
   )
+}
+
+export async function getPathInfo(log: Log, path: string, failOnPrompt = false): Promise<VcsInfo> {
+  const git = new GitCli({ log, cwd: path, failOnPrompt })
+
+  const output: VcsInfo = {
+    branch: "",
+    commitHash: "",
+    originUrl: "",
+  }
+
+  try {
+    output.branch = await git.getBranchName()
+    output.commitHash = await git.getLastCommitHash()
+  } catch (err) {
+    if (err instanceof ChildProcessError && err.details.code !== 128) {
+      throw err
+    }
+  }
+
+  try {
+    output.originUrl = await git.getOriginUrl()
+  } catch (err) {
+    // Just ignore if not available
+    log.silly(`Tried to retrieve git remote.origin.url but encountered an error: ${err}`)
+  }
+
+  return output
 }

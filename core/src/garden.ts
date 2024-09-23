@@ -167,6 +167,7 @@ import { styles } from "./logger/styles.js"
 import { renderDuration } from "./logger/util.js"
 import { getCloudDistributionName, getCloudLogSectionName } from "./util/cloud.js"
 import { makeDocsLinkStyled } from "./docs/common.js"
+import { getPathInfo } from "./vcs/git.js"
 
 const defaultLocalAddress = "localhost"
 
@@ -1856,15 +1857,7 @@ export async function resolveGardenParamsPartial(currentDirectory: string, opts:
   const commandInfo = opts.commandInfo
 
   const treeCache = new TreeCache()
-
-  // Note: another VcsHandler is created later, this one is temporary
-  const gitHandler = new GitSubTreeHandler({
-    projectRoot,
-    gardenDirPath,
-    ignoreFile: defaultDotIgnoreFile,
-    cache: treeCache,
-  })
-  const vcsInfo = await gitHandler.getPathInfo(log, projectRoot)
+  const vcsInfo = await getPathInfo(log, projectRoot)
 
   // Since we iterate/traverse them before fully validating them (which we do after resolving template strings), we
   // validate that `config.environments` and `config.providers` are both arrays.
