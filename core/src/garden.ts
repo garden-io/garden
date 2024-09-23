@@ -459,6 +459,10 @@ export class Garden {
     }
   }
 
+  /**
+   * We intentionally share the instance of the tree cache between Garden and VCS handler.
+   * Some code flows and legacy logic rely on that fact.
+   */
   get treeCache(): TreeCache {
     return this.vcs.cache
   }
