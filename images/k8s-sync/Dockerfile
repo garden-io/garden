@@ -13,7 +13,7 @@ RUN MUTAGEN_VERSION="0.17.6" && \
     echo "2a383cb572a1bdad83f7c4be3cc4a541a58e6c9e11e326ee4cc2d0e14f9d003a ${mutagen_distr_name}" | sha256sum -c; \
   fi && \
   tar xzf ${mutagen_distr_name} --to-stdout mutagen-agents.tar.gz \
-  | tar xz --to-stdout linux_amd64 > /usr/local/bin/mutagen-agent && \
+  | tar xz --to-stdout linux_${TARGETARCH} > /usr/local/bin/mutagen-agent && \
   rm ${mutagen_distr_name} && \
   chmod +x /usr/local/bin/mutagen-agent && \
   mkdir -p /.garden && \
