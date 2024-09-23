@@ -199,7 +199,6 @@ export interface GardenParams {
   vcsInfo: VcsInfo
   projectId?: string
   cloudDomain?: string
-  cache: TreeCache
   dotIgnoreFile: string
   proxy: ProxyConfig
   environmentName: string
@@ -278,7 +277,6 @@ export class Garden {
   public readonly localConfigStore: LocalConfigStore
   public globalConfigStore: GlobalConfigStore
   public readonly vcs: VcsHandler
-  public readonly treeCache: TreeCache
   public events: EventBus
   private tools?: { [key: string]: PluginTool }
   public readonly configTemplates: { [name: string]: ConfigTemplateConfig }
@@ -364,7 +362,6 @@ export class Garden {
     this.forceRefresh = !!params.forceRefresh
     this.cloudApi = params.cloudApi || null
     this.commandInfo = params.opts.commandInfo
-    this.treeCache = params.cache
     this.isGarden = true
     this.configTemplates = {}
     this.emittedWarnings = new Set()
@@ -381,7 +378,7 @@ export class Garden {
       projectRoot: params.projectRoot,
       gardenDirPath: params.gardenDirPath,
       ignoreFile: params.dotIgnoreFile,
-      cache: params.cache,
+      cache: new TreeCache(),
     })
 
     // Use the legacy build sync mode if
@@ -460,6 +457,14 @@ export class Garden {
       this.log.silly(() => "No OTEL collector configured, setting no-op exporter")
       configureNoOpExporter()
     }
+  }
+
+  /**
+   * We intentionally share the instance of the tree cache between Garden and VCS handler.
+   * Some code flows and legacy logic rely on that fact.
+   */
+  get treeCache(): TreeCache {
+    return this.vcs.cache
   }
 
   static async factory<T extends typeof Garden>(
