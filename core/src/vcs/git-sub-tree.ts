@@ -163,14 +163,7 @@ export class GitSubTreeHandler extends AbstractGitHandler {
       return []
     }
 
-    const {
-      log,
-      path,
-      pathDescription = "directory",
-      filter,
-      failOnPrompt = false,
-      skipHashCalculation = false,
-    } = params
+    const { log, path, pathDescription = "directory", filter, failOnPrompt = false, hashUntrackedFiles = true } = params
 
     const gitLog = log
       .createLog({ name: "git" })
@@ -253,7 +246,7 @@ export class GitSubTreeHandler extends AbstractGitHandler {
             matchPath(join(submoduleRelPath, p), augmentedIncludes, augmentedExcludes) && (!filter || filter(p)),
           scanRoot: submodulePath,
           failOnPrompt,
-          skipHashCalculation,
+          hashUntrackedFiles,
         })
       })
     }
@@ -302,7 +295,7 @@ export class GitSubTreeHandler extends AbstractGitHandler {
           file: output,
           stats: undefined,
           modifiedFiles,
-          skipHashCalculation,
+          hashUntrackedFiles,
         })
       }
 
@@ -330,7 +323,7 @@ export class GitSubTreeHandler extends AbstractGitHandler {
                 file: output,
                 stats,
                 modifiedFiles,
-                skipHashCalculation,
+                hashUntrackedFiles,
               })
             } catch (err) {
               if (isErrnoException(err) && err.code === "ENOENT") {
@@ -344,7 +337,7 @@ export class GitSubTreeHandler extends AbstractGitHandler {
               file: output,
               stats,
               modifiedFiles,
-              skipHashCalculation,
+              hashUntrackedFiles,
             })
           }
         } else {
@@ -352,7 +345,7 @@ export class GitSubTreeHandler extends AbstractGitHandler {
             file: output,
             stats,
             modifiedFiles,
-            skipHashCalculation,
+            hashUntrackedFiles,
           })
         }
       } catch (err) {
@@ -497,12 +490,12 @@ async function ensureHash({
   file,
   stats,
   modifiedFiles,
-  skipHashCalculation,
+  hashUntrackedFiles,
 }: {
   file: VcsFile
   stats: fsExtra.Stats | undefined
   modifiedFiles: Set<string>
-  skipHashCalculation: boolean
+  hashUntrackedFiles: boolean
 }): Promise<VcsFile> {
   // If the file has not been modified, then it's either committed or untracked.
   if (!modifiedFiles.has(file.path)) {
@@ -512,7 +505,7 @@ async function ensureHash({
     }
 
     // Otherwise, the file is untracked.
-    if (skipHashCalculation) {
+    if (!hashUntrackedFiles) {
       // So we can skip its hash calculation if we don't need the hashes of untracked files.
       // Hashes can be skipped while scanning the FS for Garden config files.
       return file
