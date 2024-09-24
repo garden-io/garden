@@ -514,12 +514,13 @@ async function ensureHash({
 
   // Don't attempt to hash directories. Directories (which will only come up via symlinks btw)
   // will by extension be filtered out of the list.
-  if (stats && !stats.isDirectory()) {
-    const hash = await hashObject(stats, file.path)
-    if (hash !== "") {
-      file.hash = hash
-      return file
-    }
+  if (!stats || stats.isDirectory()) {
+    return file
+  }
+
+  const hash = await hashObject(stats, file.path)
+  if (hash !== "") {
+    file.hash = hash
   }
 
   return file
