@@ -504,19 +504,30 @@ async function ensureHash({
   modifiedFiles: Set<string>
   skipHashCalculation: boolean
 }): Promise<VcsFile> {
-  if (skipHashCalculation) {
-    return file
-  }
-  if (file.hash === "" || modifiedFiles.has(file.path)) {
-    // Don't attempt to hash directories. Directories (which will only come up via symlinks btw)
-    // will by extension be filtered out of the list.
-    if (stats && !stats.isDirectory()) {
-      const hash = await hashObject(stats, file.path)
-      if (hash !== "") {
-        file.hash = hash
-        return file
-      }
+  // If the file has not been modified, then it's either committed or untracked.
+  if (!modifiedFiles.has(file.path)) {
+    // If the hash is already defined, then the file is committed and its hash is up-to-date.
+    if (file.hash !== "") {
+      return file
+    }
+
+    // Otherwise, the file is untracked.
+    if (skipHashCalculation) {
+      // So we can skip its hash calculation if we don't need the hashes of untracked files.
+      // Hashes can be skipped while scanning the FS for Garden config files.
+      return file
     }
   }
+
+  // Don't attempt to hash directories. Directories (which will only come up via symlinks btw)
+  // will by extension be filtered out of the list.
+  if (stats && !stats.isDirectory()) {
+    const hash = await hashObject(stats, file.path)
+    if (hash !== "") {
+      file.hash = hash
+      return file
+    }
+  }
+
   return file
 }
