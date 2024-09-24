@@ -26,7 +26,7 @@
   "types": "build/src/index.d.ts",
   "dependencies": {
     "@codenamize/codenamize": "^1.1.1",
-    "@date-fns/utc": "^1.2.0",
+    "@date-fns/utc": "^2.1.0",
     "@hapi/joi": "git+https://github.com/garden-io/joi.git#master",
     "@jsdevtools/readdir-enhanced": "^6.0.4",
     "@kubernetes/client-node": "git@github.com:kubernetes-client/javascript.git#4f144c0a4acb44ab51d36caedcce57e2759445d0",
