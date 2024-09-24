@@ -87,13 +87,13 @@ RUN curl -O https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cl
 RUN echo "${GCLOUD_SHA256}  google-cloud-cli-${GCLOUD_VERSION}-linux-x86_64.tar.gz" | sha256sum -c
 RUN tar -xf google-cloud-cli-${GCLOUD_VERSION}-linux-x86_64.tar.gz
 RUN ./google-cloud-sdk/install.sh --quiet
-RUN ./google-cloud-sdk/bin/gcloud components install kubectl gke-gcloud-auth-plugin --quiet && ./google-cloud-sdk/bin/gcloud components remove gsutil --quiet
+RUN ./google-cloud-sdk/bin/gcloud compone\nts install kubectl gke-gcloud-auth-plugin --quiet && ./google-cloud-sdk/bin/gcloud components remove gsutil --quiet
 
 #
 # garden-azure-base
 #
 FROM garden-base-root as garden-azure-base
-ENV AZURE_CLI_VERSION=2.63.0
+ENV AZURE_CLI_VERSION=2.64.0
 
 RUN apt-get update
 RUN apt-get install ca-certificates curl apt-transport-https lsb-release gnupg
