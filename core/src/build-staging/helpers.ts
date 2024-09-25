@@ -140,8 +140,10 @@ export function cloneFile(
         }
       }
 
-      // if the target path exists, and it is a symlink, we must remove it first
-      if (toStats?.isSymbolicLink()) {
+      // if we are about to copy a symlink, and the target path exists, we must remove it first
+      // this allows for type changes (e.g. replacing a file with a symlink, then running garden build)
+      // at this point we know the target is a file or a symlink, so we can do this even if allowDelete=false (copy also overwrites the target)
+      if (fromStats.isSymbolicLink()) {
         return remove(to, (removeErr) => {
           if (removeErr) {
             return done(removeErr)

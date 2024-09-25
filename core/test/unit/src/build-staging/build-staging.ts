@@ -24,7 +24,7 @@ import { BuildTask } from "../../../../src/tasks/build.js"
 import type { ConfigGraph } from "../../../../src/graph/config-graph.js"
 import type { BuildAction } from "../../../../src/actions/build.js"
 import { DOCS_BASE_URL } from "../../../../src/constants.js"
-import { lstat, readlink, symlink } from "fs/promises"
+import { lstat, readlink, rm, symlink } from "fs/promises"
 
 // TODO-G2: rename test cases to match the new graph model semantics
 
@@ -187,6 +187,28 @@ describe("BuildStaging", () => {
       // second time
       await sync({ log, sourceRoot, sourceRelPath: "*", targetRoot, withDelete: false })
       await assertIdentical(sourceRoot, targetRoot, expectedFiles)
+    })
+
+    it("should allow type changes between symlink and file", async () => {
+      const sourceRoot = join(tmpPath, "source")
+      const targetRoot = join(tmpPath, "target")
+      const file = "foo"
+
+      // scenario 1: foo is a file
+      await ensureDir(sourceRoot)
+      await populateDirectory(sourceRoot, [file])
+
+      // sync first time
+      await sync({ log, sourceRoot, targetRoot, withDelete: false })
+      await assertIdentical(sourceRoot, targetRoot, [file])
+
+      // scenario 2: foo is a symlink (target does not matter)
+      await rm(join(sourceRoot, file))
+      await symlink("targetDoesNotMatter", join(sourceRoot, file))
+
+      // the target now must be replaced with a symlink
+      await sync({ log, sourceRoot, targetRoot, withDelete: false })
+      await assertIdentical(sourceRoot, targetRoot, [file])
     })
 
     it("throws if source relative path is absolute", async () => {
