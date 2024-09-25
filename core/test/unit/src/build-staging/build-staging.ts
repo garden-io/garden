@@ -24,6 +24,7 @@ import { BuildTask } from "../../../../src/tasks/build.js"
 import type { ConfigGraph } from "../../../../src/graph/config-graph.js"
 import type { BuildAction } from "../../../../src/actions/build.js"
 import { DOCS_BASE_URL } from "../../../../src/constants.js"
+import { lstat, readlink, symlink } from "fs/promises"
 
 // TODO-G2: rename test cases to match the new graph model semantics
 
@@ -66,9 +67,26 @@ async function assertIdentical(sourceRoot: string, targetRoot: string, posixPath
     posixPaths.map(async (path) => {
       const sourcePath = joinWithPosix(sourceRoot, path)
       const targetPath = joinWithPosix(targetRoot, path)
-      const sourceData = (await readFile(sourcePath)).toString()
-      const targetData = (await readFile(targetPath)).toString()
-      expect(sourceData).to.equal(targetData)
+
+      const sourceStat = await lstat(sourcePath)
+      const targetStat = await lstat(targetPath)
+
+      expect(sourceStat.isFile()).to.equal(targetStat.isFile(), `${targetStat} unexpected isFile()`)
+      expect(sourceStat.isDirectory()).to.equal(targetStat.isDirectory(), `${targetStat} unexpected isDirectory()`)
+      expect(sourceStat.isSymbolicLink()).to.equal(
+        targetStat.isSymbolicLink(),
+        `${targetStat} unexpected isSymbolicLink()`
+      )
+
+      if (sourceStat.isSymbolicLink() && targetStat.isSymbolicLink()) {
+        expect(await readlink(sourcePath)).to.equal(await readlink(targetPath), `${targetStat} unexpected readlink()`)
+      }
+
+      if (sourceStat.isFile() && targetStat.isFile()) {
+        const sourceData = (await readFile(sourcePath)).toString()
+        const targetData = (await readFile(targetPath)).toString()
+        expect(sourceData).to.equal(targetData, `${targetStat} unexpected readFile()`)
+      }
     })
   )
 }
@@ -120,6 +138,45 @@ describe("BuildStaging", () => {
 
       await assertIdentical(sourceRoot, targetRoot, ["a", "subdir/c"])
       expect(await listFiles(targetRoot)).to.eql(["a", "subdir/c"])
+    })
+
+    it("reproduces relative symlinks", async () => {
+      const sourceRoot = join(tmpPath, "source")
+
+      // prepare source
+      const files = ["node_modules/foo/bar", "node_modules/bar/baz"]
+      await ensureDir(sourceRoot)
+      await populateDirectory(sourceRoot, files)
+      await ensureDir(join(sourceRoot, "node_modules/.bin"))
+      const barLinkPath = "node_modules/.bin/bar"
+      const bazLinkPath = "node_modules/.bin/baz"
+      const nonExistentLinkPath = "node_modules/.bin/doesnotexist"
+      await symlink("../foo/bar", join(sourceRoot, barLinkPath))
+      await symlink("../bar/baz", join(sourceRoot, bazLinkPath))
+      await symlink("../this/does/not/exist", join(sourceRoot, nonExistentLinkPath))
+
+      // all the files in source
+      const expectedFiles = [...files, barLinkPath, bazLinkPath, nonExistentLinkPath]
+
+      // sync withDelete = true
+      let targetRoot = join(tmpPath, "target1")
+      await ensureDir(targetRoot)
+      // first time
+      await sync({ log, sourceRoot, targetRoot, withDelete: true })
+      await assertIdentical(sourceRoot, targetRoot, expectedFiles)
+      // second time
+      await sync({ log, sourceRoot, targetRoot, withDelete: true })
+      await assertIdentical(sourceRoot, targetRoot, expectedFiles)
+
+      // sync withDelete = false
+      targetRoot = join(tmpPath, "target2")
+      await ensureDir(targetRoot)
+      // first time
+      await sync({ log, sourceRoot, targetRoot, withDelete: false })
+      await assertIdentical(sourceRoot, targetRoot, expectedFiles)
+      // second time
+      await sync({ log, sourceRoot, targetRoot, withDelete: false })
+      await assertIdentical(sourceRoot, targetRoot, expectedFiles)
     })
 
     it("throws if source relative path is absolute", async () => {
