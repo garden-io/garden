@@ -28,6 +28,8 @@ import type {
 } from "./vcs.js"
 import { styles } from "../logger/styles.js"
 import type { Log } from "../logger/log-entry.js"
+import dedent from "dedent"
+import { gardenEnv } from "../constants.js"
 
 const { pathExists, readlink, lstat } = fsExtra
 
@@ -163,7 +165,7 @@ export class GitSubTreeHandler extends AbstractGitHandler {
       return []
     }
 
-    const { log, path, pathDescription = "directory", filter, failOnPrompt = false } = params
+    const { log, path, pathDescription = "directory", filter, failOnPrompt = false, hashUntrackedFiles = true } = params
 
     const gitLog = log
       .createLog({ name: "git" })
@@ -246,9 +248,12 @@ export class GitSubTreeHandler extends AbstractGitHandler {
             matchPath(join(submoduleRelPath, p), augmentedIncludes, augmentedExcludes) && (!filter || filter(p)),
           scanRoot: submodulePath,
           failOnPrompt,
+          hashUntrackedFiles,
         })
       })
     }
+
+    const untrackedHashedFilesCollector: string[] = []
 
     // This function is called for each line output from the ls-files commands that we run
     const handleEntry = async (
@@ -290,7 +295,13 @@ export class GitSubTreeHandler extends AbstractGitHandler {
       // No need to stat unless it has no hash, is a symlink, or is modified
       // Note: git ls-files always returns mode 120000 for symlinks
       if (hash && entry.mode !== "120000" && !modifiedFiles.has(resolvedPath)) {
-        return ensureHash(output, undefined, modifiedFiles)
+        return ensureHash({
+          file: output,
+          stats: undefined,
+          modifiedFiles,
+          hashUntrackedFiles,
+          untrackedHashedFilesCollector,
+        })
       }
 
       try {
@@ -312,10 +323,22 @@ export class GitSubTreeHandler extends AbstractGitHandler {
               gitLog.verbose(`Ignoring symlink pointing outside of ${pathDescription} at ${resolvedPath}`)
               return
             }
-            return ensureHash(output, stats, modifiedFiles)
+            return ensureHash({
+              file: output,
+              stats,
+              modifiedFiles,
+              hashUntrackedFiles,
+              untrackedHashedFilesCollector,
+            })
           }
         } else {
-          return ensureHash(output, stats, modifiedFiles)
+          return ensureHash({
+            file: output,
+            stats,
+            modifiedFiles,
+            hashUntrackedFiles,
+            untrackedHashedFilesCollector,
+          })
         }
       } catch (err) {
         if (isErrnoException(err) && err.code === "ENOENT") {
@@ -379,6 +402,15 @@ export class GitSubTreeHandler extends AbstractGitHandler {
     gitLog.verbose(
       `Found ${scannedFiles.length} files in ${pathDescription} ${path} ${renderDuration(gitLog.getDuration())}`
     )
+
+    if (gardenEnv.GARDEN_GIT_LOG_UNTRACKED_FILES) {
+      gitLog.debug(
+        dedent`
+        Found and hashed ${untrackedHashedFilesCollector.length} files that are not tracked by Git:
+        ${untrackedHashedFilesCollector.join("\n")}
+        `
+      )
+    }
 
     // We have done the processing of this level of files
     // So now we just have to wait for all the recursive submodules to resolve as well
@@ -455,21 +487,47 @@ function parseGitLsFilesOutputLine(data: Buffer): GitEntry | undefined {
 /**
  * Make sure we have a fresh hash for each file.
  */
-async function ensureHash(
-  file: VcsFile,
-  stats: fsExtra.Stats | undefined,
+async function ensureHash({
+  file,
+  stats,
+  modifiedFiles,
+  hashUntrackedFiles,
+  untrackedHashedFilesCollector,
+}: {
+  file: VcsFile
+  stats: fsExtra.Stats | undefined
   modifiedFiles: Set<string>
-): Promise<VcsFile> {
-  if (file.hash === "" || modifiedFiles.has(file.path)) {
-    // Don't attempt to hash directories. Directories (which will only come up via symlinks btw)
-    // will by extension be filtered out of the list.
-    if (stats && !stats.isDirectory()) {
-      const hash = await hashObject(stats, file.path)
-      if (hash !== "") {
-        file.hash = hash
-        return file
-      }
+  hashUntrackedFiles: boolean
+  untrackedHashedFilesCollector: string[]
+}): Promise<VcsFile> {
+  // If the file has not been modified, then it's either committed or untracked.
+  if (!modifiedFiles.has(file.path)) {
+    // If the hash is already defined, then the file is committed and its hash is up-to-date.
+    if (file.hash !== "") {
+      return file
+    }
+
+    // Otherwise, the file is untracked.
+    if (!hashUntrackedFiles) {
+      // So we can skip its hash calculation if we don't need the hashes of untracked files.
+      // Hashes can be skipped while scanning the FS for Garden config files.
+      return file
     }
   }
+
+  // Don't attempt to hash directories. Directories (which will only come up via symlinks btw)
+  // will by extension be filtered out of the list.
+  if (!stats || stats.isDirectory()) {
+    return file
+  }
+
+  const hash = await hashObject(stats, file.path)
+  if (hash !== "") {
+    file.hash = hash
+  }
+  if (gardenEnv.GARDEN_GIT_LOG_UNTRACKED_FILES) {
+    untrackedHashedFilesCollector.push(file.path)
+  }
+
   return file
 }

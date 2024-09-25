@@ -27,7 +27,7 @@ import { realpath } from "fs/promises"
 
 const { pathExists } = fsExtra
 
-type ScanRepoParams = Pick<GetFilesParams, "log" | "path" | "pathDescription" | "failOnPrompt">
+type ScanRepoParams = Pick<GetFilesParams, "log" | "path" | "pathDescription" | "failOnPrompt" | "hashUntrackedFiles">
 
 interface GitRepoGetFilesParams extends GetFilesParams {
   scanFromProjectRoot: boolean
@@ -162,6 +162,7 @@ export class GitRepoHandler extends AbstractGitHandler {
       path: scanRoot,
       pathDescription: pathDescription || "repository",
       failOnPrompt,
+      hashUntrackedFiles: params.hashUntrackedFiles,
     })
 
     const filesAtPath = fileTree.getFilesAtPath(path)

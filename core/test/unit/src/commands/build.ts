@@ -22,6 +22,7 @@ import { taskResultOutputs, getAllTaskResults } from "../../../helpers.js"
 import type { ModuleConfig } from "../../../../src/config/module.js"
 import type { Log } from "../../../../src/logger/log-entry.js"
 import fsExtra from "fs-extra"
+
 const { writeFile } = fsExtra
 import { join } from "path"
 import type { ProcessCommandResult } from "../../../../src/commands/base.js"
@@ -324,10 +325,8 @@ describe("BuildCommand", () => {
     })
 
     it("should rebuild module if a deep dependency has been modified", async () => {
-      let garden = await getFreshTestGarden()
-
       const { result: result1 } = await buildCommand.action({
-        garden,
+        garden: await getFreshTestGarden(),
         ...defaultOpts,
         args: { names: ["aaa-service"] },
         opts: withDefaultGlobalOpts({ "watch": false, "force": true, "with-dependants": false }),
@@ -336,8 +335,6 @@ describe("BuildCommand", () => {
       const allResults1 = getAllTaskResults(result1!.graphResults!)
 
       await writeFile(join(projectPath, "C/file.txt"), "module c has been modified")
-
-      garden = await getFreshTestGarden()
 
       const { result: result2 } = await buildCommand.action({
         garden: await getFreshTestGarden(),
