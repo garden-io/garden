@@ -28,6 +28,8 @@ import type {
 } from "./vcs.js"
 import { styles } from "../logger/styles.js"
 import type { Log } from "../logger/log-entry.js"
+import dedent from "dedent"
+import { gardenEnv } from "../constants.js"
 
 const { lstat, pathExists, readlink, realpath, stat } = fsExtra
 
@@ -251,6 +253,8 @@ export class GitSubTreeHandler extends AbstractGitHandler {
       })
     }
 
+    const untrackedHashedFilesCollector: string[] = []
+
     // This function is called for each line output from the ls-files commands that we run
     const handleEntry = async (
       entry: GitEntry | undefined,
@@ -296,6 +300,7 @@ export class GitSubTreeHandler extends AbstractGitHandler {
           stats: undefined,
           modifiedFiles,
           hashUntrackedFiles,
+          untrackedHashedFilesCollector,
         })
       }
 
@@ -324,6 +329,7 @@ export class GitSubTreeHandler extends AbstractGitHandler {
                 stats,
                 modifiedFiles,
                 hashUntrackedFiles,
+                untrackedHashedFilesCollector,
               })
             } catch (err) {
               if (isErrnoException(err) && err.code === "ENOENT") {
@@ -338,6 +344,7 @@ export class GitSubTreeHandler extends AbstractGitHandler {
               stats,
               modifiedFiles,
               hashUntrackedFiles,
+              untrackedHashedFilesCollector,
             })
           }
         } else {
@@ -346,6 +353,7 @@ export class GitSubTreeHandler extends AbstractGitHandler {
             stats,
             modifiedFiles,
             hashUntrackedFiles,
+            untrackedHashedFilesCollector,
           })
         }
       } catch (err) {
@@ -410,6 +418,15 @@ export class GitSubTreeHandler extends AbstractGitHandler {
     gitLog.verbose(
       `Found ${scannedFiles.length} files in ${pathDescription} ${path} ${renderDuration(gitLog.getDuration())}`
     )
+
+    if (gardenEnv.GARDEN_GIT_LOG_UNTRACKED_FILES) {
+      gitLog.debug(
+        dedent`
+        Found and hashed ${untrackedHashedFilesCollector.length} files that are not tracked by Git:
+        ${untrackedHashedFilesCollector.join("\n")}
+        `
+      )
+    }
 
     // We have done the processing of this level of files
     // So now we just have to wait for all the recursive submodules to resolve as well
@@ -491,11 +508,13 @@ async function ensureHash({
   stats,
   modifiedFiles,
   hashUntrackedFiles,
+  untrackedHashedFilesCollector,
 }: {
   file: VcsFile
   stats: fsExtra.Stats | undefined
   modifiedFiles: Set<string>
   hashUntrackedFiles: boolean
+  untrackedHashedFilesCollector: string[]
 }): Promise<VcsFile> {
   // If the file has not been modified, then it's either committed or untracked.
   if (!modifiedFiles.has(file.path)) {
@@ -521,6 +540,9 @@ async function ensureHash({
   const hash = await hashObject(stats, file.path)
   if (hash !== "") {
     file.hash = hash
+  }
+  if (gardenEnv.GARDEN_GIT_LOG_UNTRACKED_FILES) {
+    untrackedHashedFilesCollector.push(file.path)
   }
 
   return file
