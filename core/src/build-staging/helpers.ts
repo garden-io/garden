@@ -272,7 +272,7 @@ export async function scanDirectoryForClone(root: string, pattern?: string): Pro
     filter: (stats) => {
       // See if this is a file within a previously matched directory
       // Note: `stats.path` is always POSIX formatted, relative to `sourceRoot`
-      if (stats.isFile()) {
+      if (stats.isFile() || stats.isSymbolicLink()) {
         for (const dirPath of matchedDirectories) {
           if (stats.path.startsWith(dirPath + "/")) {
             // The file is in a matched directory. We need to map the target path, such that everything ahead of
@@ -286,7 +286,7 @@ export async function scanDirectoryForClone(root: string, pattern?: string): Pro
       if (mm.match(stats.path)) {
         if (stats.isDirectory()) {
           matchedDirectories.push(stats.path)
-        } else if (stats.isFile()) {
+        } else if (stats.isFile() || stats.isSymbolicLink()) {
           // When we match a file to the glob, we map it from the source path to just its basename under the target
           // directory. Again, this matches rsync behavior.
           mappedPaths.push([stats.path, basename(stats.path)])

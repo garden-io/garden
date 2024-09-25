@@ -177,6 +177,16 @@ describe("BuildStaging", () => {
       // second time
       await sync({ log, sourceRoot, targetRoot, withDelete: false })
       await assertIdentical(sourceRoot, targetRoot, expectedFiles)
+
+      // sync with pattern
+      targetRoot = join(tmpPath, "target3")
+      await ensureDir(targetRoot)
+      // first time
+      await sync({ log, sourceRoot, sourceRelPath: "*", targetRoot, withDelete: false })
+      await assertIdentical(sourceRoot, targetRoot, expectedFiles)
+      // second time
+      await sync({ log, sourceRoot, sourceRelPath: "*", targetRoot, withDelete: false })
+      await assertIdentical(sourceRoot, targetRoot, expectedFiles)
     })
 
     it("throws if source relative path is absolute", async () => {
