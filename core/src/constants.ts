@@ -83,6 +83,7 @@ export const gardenEnv = {
     .required(false)
     .default(defaultGitScanMode)
     .asEnum(gitScanModes),
+  GARDEN_GIT_LOG_UNTRACKED_FILES: env.get("GARDEN_GIT_LOG_UNTRACKED_FILES").required(false).default("false").asBool(),
   GARDEN_LEGACY_BUILD_STAGE: env.get("GARDEN_LEGACY_BUILD_STAGE").required(false).asBool(),
   GARDEN_LOG_LEVEL: env.get("GARDEN_LOG_LEVEL").required(false).asString(),
   GARDEN_LOGGER_TYPE: env.get("GARDEN_LOGGER_TYPE").required(false).asString(),

@@ -29,6 +29,7 @@ import type {
 import { styles } from "../logger/styles.js"
 import type { Log } from "../logger/log-entry.js"
 import dedent from "dedent"
+import { gardenEnv } from "../constants.js"
 
 const { lstat, pathExists, readlink, realpath, stat } = fsExtra
 
@@ -418,12 +419,14 @@ export class GitSubTreeHandler extends AbstractGitHandler {
       `Found ${scannedFiles.length} files in ${pathDescription} ${path} ${renderDuration(gitLog.getDuration())}`
     )
 
-    gitLog.debug(
-      dedent`
-      Found and hashed ${untrackedHashedFilesCollector.length} files that are not tracked by Git:
-      ${untrackedHashedFilesCollector.join("\n")}
-      `
-    )
+    if (gardenEnv.GARDEN_GIT_LOG_UNTRACKED_FILES) {
+      gitLog.debug(
+        dedent`
+        Found and hashed ${untrackedHashedFilesCollector.length} files that are not tracked by Git:
+        ${untrackedHashedFilesCollector.join("\n")}
+        `
+      )
+    }
 
     // We have done the processing of this level of files
     // So now we just have to wait for all the recursive submodules to resolve as well
@@ -538,7 +541,9 @@ async function ensureHash({
   if (hash !== "") {
     file.hash = hash
   }
-  untrackedHashedFilesCollector.push(file.path)
+  if (gardenEnv.GARDEN_GIT_LOG_UNTRACKED_FILES) {
+    untrackedHashedFilesCollector.push(file.path)
+  }
 
   return file
 }
