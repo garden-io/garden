@@ -135,6 +135,7 @@ export async function findConfigPathsInPath({
     log,
     filter: (f) => isConfigFilename(basename(f)),
     scanRoot: dir,
+    hashUntrackedFiles: false,
   })
 
   return paths.map((f) => f.path)
