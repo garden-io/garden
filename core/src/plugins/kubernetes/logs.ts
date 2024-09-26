@@ -337,7 +337,7 @@ export class K8sLogFollower<T extends LogEntryBase> {
       }
     } catch (e) {
       if (e instanceof KubernetesError) {
-        this.log.silly(`<Encountered error while fetching Pod status for ${description}. Reason: ${e.message}>`)
+        this.log.silly(() => `<Encountered error while fetching Pod status for ${description}. Reason: ${e.message}>`)
         // retry once if the pod status query returned 404
         if (e.responseStatusCode === 404 && prevStatus === "error") {
           stopRetrying("The pod or the namespace does not exist")

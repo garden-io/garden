@@ -606,8 +606,8 @@ export class Garden {
     return this.solver.solve(params)
   }
 
-  async processTask<T extends Task>(task: T, log: Log, opts: SolveOpts): Promise<GraphResultFromTask<T> | null> {
-    const { results } = await this.solver.solve({ tasks: [task], log, ...opts })
+  async processTask<T extends Task>(task: T, opts: SolveOpts): Promise<GraphResultFromTask<T> | null> {
+    const { results } = await this.solver.solve({ tasks: [task], ...opts })
     return results.getResult(task)
   }
 
@@ -847,7 +847,7 @@ export class Garden {
       })
 
       // Process as many providers in parallel as possible
-      const taskResults = await this.processTasks({ tasks, log, statusOnly })
+      const taskResults = await this.processTasks({ tasks, statusOnly })
 
       const providerResults = Object.values(taskResults.results.getMap())
 
@@ -1493,6 +1493,7 @@ export class Garden {
 
       for (const config of actionsFromTemplates) {
         this.addActionConfig(config)
+        actionsCount++
       }
 
       this.log.debug(
@@ -1545,7 +1546,7 @@ export class Garden {
    * Add an action config to the context, after validating and calling the appropriate configure plugin handler.
    */
   protected addActionConfig(config: BaseActionConfig) {
-    this.log.silly(() => `Adding ${config.kind} action ${config.name}`)
+    this.log.silly(() => `Adding action config for ${config.kind} ${config.name}`)
     const key = actionReferenceToString(config)
     const existing = this.actionConfigs[config.kind][config.name]
 

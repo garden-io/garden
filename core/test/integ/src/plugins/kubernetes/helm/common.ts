@@ -34,6 +34,7 @@ import type { HelmDeployAction } from "../../../../../../src/plugins/kubernetes/
 import { loadAllYaml, loadYaml } from "@kubernetes/client-node"
 import fsExtra from "fs-extra"
 import { getActionNamespace } from "../../../../../../src/plugins/kubernetes/namespace.js"
+
 const { readdir, readFile } = fsExtra
 
 let helmTestGarden: TestGarden
@@ -78,7 +79,7 @@ export async function buildHelmModules(garden: Garden | TestGarden, graph: Confi
         force: false,
       })
   )
-  const results = await garden.processTasks({ tasks, log: garden.log })
+  const results = await garden.processTasks({ tasks })
 
   const err = first(Object.values(results).map((r) => r && r.error))
 
