@@ -1493,6 +1493,7 @@ export class Garden {
 
       for (const config of actionsFromTemplates) {
         this.addActionConfig(config)
+        actionsCount++
       }
 
       this.log.debug(
