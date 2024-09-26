@@ -104,47 +104,47 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
 
     const log = this.log
     // TODO-0.13.1+: remove this lock and test with concurrent execution
-    return this.lock.acquire("solve", async () => {
-      const output = await new Promise<SolveResult>((resolve, reject) => {
-        const requests = keyBy(
-          tasks.map((t) => {
-            return this.requestTask({ solver: this, task: t, batchId, statusOnly: !!statusOnly, completeHandler })
-          }),
-          (r) => r.task.getKey()
-        )
+    // return this.lock.acquire("solve", async () => {
+    const output = await new Promise<SolveResult>((resolve, reject) => {
+      const requests = keyBy(
+        tasks.map((t) => {
+          return this.requestTask({ solver: this, task: t, batchId, statusOnly: !!statusOnly, completeHandler })
+        }),
+        (r) => r.task.getKey()
+      )
 
         function completeHandler(result: GraphResult) {
           log.silly(() => `Complete handler for batch ${batchId} called with result ${result.key}`)
 
-          if (aborted) {
-            return
-          }
+        if (aborted) {
+          return
+        }
 
-          const request = requests[result.key]
+        const request = requests[result.key]
 
-          // We only collect the requests tasks at the top level of the result object.
-          // The solver cascades errors in dependencies. So if a dependency fails, we should still always get a
-          // "complete" event for each requested task, even if an error occurs before getting to it.
-          if (request === undefined) {
-            return
-          }
+        // We only collect the requests tasks at the top level of the result object.
+        // The solver cascades errors in dependencies. So if a dependency fails, we should still always get a
+        // "complete" event for each requested task, even if an error occurs before getting to it.
+        if (request === undefined) {
+          return
+        }
 
           log.silly(() => `Complete handler for batch ${batchId} matched with request ${request.getKey()}`)
 
-          results.setResult(request.task, result)
+        results.setResult(request.task, result)
 
-          if (throwOnError && result.error) {
-            cleanup({
-              error: new GraphResultError({
-                message: `Failed to ${result.description}: ${result.error}`,
-                results,
-                wrappedErrors: [toGardenError(result.error)],
-              }),
-            })
-            return
-          }
+        if (throwOnError && result.error) {
+          cleanup({
+            error: new GraphResultError({
+              message: `Failed to ${result.description}: ${result.error}`,
+              results,
+              wrappedErrors: [toGardenError(result.error)],
+            }),
+          })
+          return
+        }
 
-          const missing = results.getMissing()
+        const missing = results.getMissing()
 
           if (missing.length > 0) {
             const missingKeys = missing.map((t) => t.getBaseKey())
@@ -153,33 +153,33 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
             return
           }
 
-          // All requested results have been filled (i.e. none are null) so we're done.
-          let error: GraphResultError | null = null
+        // All requested results have been filled (i.e. none are null) so we're done.
+        let error: GraphResultError | null = null
 
-          const failed = Object.entries(results.getMap()).filter(([_, r]) => !!r?.error || !!r?.aborted)
+        const failed = Object.entries(results.getMap()).filter(([_, r]) => !!r?.error || !!r?.aborted)
 
-          if (failed.length > 0) {
-            // TODO-0.13.1: better aggregate error output
-            let msg = `Failed to complete ${failed.length}/${tasks.length} tasks:`
+        if (failed.length > 0) {
+          // TODO-0.13.1: better aggregate error output
+          let msg = `Failed to complete ${failed.length}/${tasks.length} tasks:`
 
-            const wrappedErrors: GardenError[] = []
+          const wrappedErrors: GardenError[] = []
 
-            for (const [_, r] of failed) {
-              if (!r) {
-                continue
-              }
-
-              if (r.error) {
-                wrappedErrors.push(toGardenError(r.error))
-              }
-
-              msg += `\n ↳ ${r.description}: ${r?.error ? r.error.message : "[ABORTED]"}`
+          for (const [_, r] of failed) {
+            if (!r) {
+              continue
             }
 
-            error = new GraphResultError({ message: msg, results, wrappedErrors })
+            if (r.error) {
+              wrappedErrors.push(toGardenError(r.error))
+            }
+
+            msg += `\n ↳ ${r.description}: ${r?.error ? r.error.message : "[ABORTED]"}`
           }
 
-          cleanup({ error: null })
+          error = new GraphResultError({ message: msg, results, wrappedErrors })
+        }
+
+        cleanup({ error: null })
 
           if (error) {
             log.silly(() => `Batch ${batchId} failed: ${error.message}`)
@@ -187,31 +187,31 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
             log.silly(() => `Batch ${batchId} completed`)
           }
 
-          resolve({ error, results })
+        resolve({ error, results })
+      }
+
+      const cleanup = ({ error }: { error: GraphResultError | null }) => {
+        // TODO: abort remaining pending tasks?
+        aborted = true
+        delete this.requestedTasks[batchId]
+        this.off("abort", cleanup)
+        if (error) {
+          reject(error)
         }
+      }
 
-        const cleanup = ({ error }: { error: GraphResultError | null }) => {
-          // TODO: abort remaining pending tasks?
-          aborted = true
-          delete this.requestedTasks[batchId]
-          this.off("abort", cleanup)
-          if (error) {
-            reject(error)
-          }
-        }
+      this.on("abort", cleanup)
 
-        this.on("abort", cleanup)
-
-        this.start()
-      }).finally(() => {
-        // Clean up
-        // TODO-0.13.1: needs revising for concurrency, shortcutting just for now
-        this.nodes = {}
-        this.pendingNodes = {}
-      })
-
-      return output
+      this.start()
+    }).finally(() => {
+      // Clean up
+      // TODO-0.13.1: needs revising for concurrency, shortcutting just for now
+      this.nodes = {}
+      this.pendingNodes = {}
     })
+
+    return output
+    // })
   }
 
   private getPendingGraph() {
