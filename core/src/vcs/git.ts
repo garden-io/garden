@@ -59,7 +59,7 @@ function gitCliExecutor({ log, cwd, failOnPrompt = false }: GitCliParams): GitCl
    * @throws ChildProcessError
    */
   return async (...args: string[]) => {
-    log.silly(`Calling git with args '${args.join(" ")}' in ${cwd}`)
+    log.silly(() => `Calling git with args '${args.join(" ")}' in ${cwd}`)
     const { stdout } = await exec("git", args, {
       cwd,
       maxBuffer: 100 * 1024 * 1024,
@@ -135,7 +135,7 @@ export class GitCli {
       output.originUrl = await this.getOriginUrl()
     } catch (err) {
       // Just ignore if not available
-      this.log.silly(`Tried to retrieve git remote.origin.url but encountered an error: ${err}`)
+      this.log.silly(() => `Tried to retrieve git remote.origin.url but encountered an error: ${err}`)
     }
 
     return output

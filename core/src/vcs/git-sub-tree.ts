@@ -195,7 +195,7 @@ export class GitSubTreeHandler extends AbstractGitHandler {
     const submodules = await this.getSubmodules(path)
     const submodulePaths = submodules.map((s) => join(gitRoot, s.path))
     if (submodules.length > 0) {
-      gitLog.silly(`Submodules listed at ${submodules.map((s) => `${s.path} (${s.url})`).join(", ")}`)
+      gitLog.silly(() => `Submodules listed at ${submodules.map((s) => `${s.path} (${s.url})`).join(", ")}`)
     }
 
     let submoduleFiles: Promise<VcsFile[]>[] = []
