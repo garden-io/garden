@@ -142,7 +142,7 @@ describe("GraphSolver", () => {
   }
 
   async function processTask(task: BaseTask, opts: SolveOpts = {}) {
-    return garden.processTask(task, garden.log, opts)
+    return garden.processTask(task, opts)
   }
 
   it("processes a single task without dependencies", async () => {

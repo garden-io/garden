@@ -164,7 +164,7 @@ describe("ResolveActionTask", () => {
       ])
 
       const task = await getTask("Build", "foo")
-      const result = await garden.processTask(task, log, { throwOnError: true })
+      const result = await garden.processTask(task, { throwOnError: true })
 
       const resolved = result?.outputs.resolvedAction
 
@@ -185,7 +185,7 @@ describe("ResolveActionTask", () => {
       ])
 
       const task = await getTask("Build", "foo")
-      const result = await garden.processTask(task, log, { throwOnError: true })
+      const result = await garden.processTask(task, { throwOnError: true })
 
       const resolved = result!.outputs.resolvedAction
       const variables = resolved.getVariables()
@@ -206,7 +206,7 @@ describe("ResolveActionTask", () => {
       ])
 
       const task = await getTask("Deploy", "foo", { local: ["deploy.foo"] })
-      const result = await garden.processTask(task, log, { throwOnError: true })
+      const result = await garden.processTask(task, { throwOnError: true })
 
       const resolved = result!.outputs.resolvedAction
       const spec = resolved.getSpec()
@@ -233,7 +233,7 @@ describe("ResolveActionTask", () => {
       garden.variableOverrides.b = 2000 // <-- should win
 
       const task = await getTask("Build", "foo")
-      const result = await garden.processTask(task, log, { throwOnError: true })
+      const result = await garden.processTask(task, { throwOnError: true })
 
       const resolved = result!.outputs.resolvedAction
       const variables = resolved.getVariables()
@@ -264,7 +264,7 @@ describe("ResolveActionTask", () => {
       ])
 
       const task = await getTask("Deploy", "foo")
-      const result = await garden.processTask(task, log, { throwOnError: true })
+      const result = await garden.processTask(task, { throwOnError: true })
 
       const all = getAllTaskResults(result?.dependencyResults!)
 
@@ -297,7 +297,7 @@ describe("ResolveActionTask", () => {
 
       const task = await getTask("Deploy", "foo")
 
-      await expectError(() => garden.processTask(task, log, { throwOnError: true }), {
+      await expectError(() => garden.processTask(task, { throwOnError: true }), {
         contains: ["Unrecognized key(s) in object: 'foo'"],
       })
     })
@@ -312,7 +312,7 @@ describe("ResolveActionTask", () => {
       ])
 
       const task = await getTask("Build", "foo")
-      const result = await garden.processTask(task, log, { throwOnError: true })
+      const result = await garden.processTask(task, { throwOnError: true })
 
       const resolved = result!.outputs.resolvedAction
       const outputs = resolved.getOutputs()
@@ -357,7 +357,7 @@ describe("ResolveActionTask", () => {
 
       const task = await getTask("Build", "foo")
 
-      await expectError(() => garden.processTask(task, log, { throwOnError: true }), {
+      await expectError(() => garden.processTask(task, { throwOnError: true }), {
         contains: ["Error validating static action outputs from Build", 'key "blep" is not allowed'],
       })
     })
@@ -398,7 +398,7 @@ describe("ResolveActionTask", () => {
 
       const task = await getTask("Build", "foo")
 
-      const result = await garden.processTask(task, log, { throwOnError: true })
+      const result = await garden.processTask(task, { throwOnError: true })
       const resolved = result!.outputs.resolvedAction
 
       expect(resolved.getSpec()).to.eql({ foo: 123 })
@@ -426,7 +426,7 @@ describe("ResolveActionTask", () => {
 
       const task = await getTask("Deploy", "foo")
 
-      const result = await garden.processTask(task, log, { throwOnError: true })
+      const result = await garden.processTask(task, { throwOnError: true })
       const resolved = result!.outputs.resolvedAction
 
       expect(resolved.getSpec("deployCommand")).to.eql(["echo", "echo foo"])
@@ -454,7 +454,7 @@ describe("ResolveActionTask", () => {
 
       const task = await getTask("Deploy", "foo")
 
-      const result = await garden.processTask(task, log, { throwOnError: true })
+      const result = await garden.processTask(task, { throwOnError: true })
       const resolved = result!.outputs.resolvedAction
 
       expect(resolved.getSpec("deployCommand")).to.eql(["echo", "echo foo"])
@@ -493,7 +493,7 @@ describe("ResolveActionTask", () => {
 
       const task = await getTask("Deploy", "foo")
 
-      const result = await garden.processTask(task, log, { throwOnError: true })
+      const result = await garden.processTask(task, { throwOnError: true })
       const resolved = result!.outputs.resolvedAction
 
       expect(resolved.getSpec("deployCommand")).to.eql(["echo", "parent", "template", "bar"])
