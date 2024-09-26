@@ -9,7 +9,7 @@
 import { Profile } from "../util/profiling.js"
 import { getStatsType, matchPath } from "../util/fs.js"
 import { isErrnoException } from "../exceptions.js"
-import { isAbsolute, join, normalize, relative, resolve } from "path"
+import { dirname, isAbsolute, join, normalize, relative, resolve } from "path"
 import fsExtra from "fs-extra"
 import PQueue from "p-queue"
 import { defer } from "../util/util.js"
@@ -31,7 +31,7 @@ import type { Log } from "../logger/log-entry.js"
 import dedent from "dedent"
 import { gardenEnv } from "../constants.js"
 
-const { lstat, pathExists, readlink, realpath, stat } = fsExtra
+const { pathExists, readlink, lstat } = fsExtra
 
 const submoduleErrorSuggestion = `Perhaps you need to run ${styles.underline(`git submodule update --recursive`)}?`
 
@@ -221,7 +221,7 @@ export class GitSubTreeHandler extends AbstractGitHandler {
 
         // Catch and show helpful message in case the submodule path isn't a valid directory
         try {
-          const pathStats = await stat(path)
+          const pathStats = await lstat(path)
 
           if (!pathStats.isDirectory()) {
             const pathType = getStatsType(pathStats)
@@ -315,30 +315,14 @@ export class GitSubTreeHandler extends AbstractGitHandler {
           if (isAbsolute(target)) {
             gitLog.verbose(`Ignoring symlink with absolute target at ${resolvedPath}`)
             return
-          } else if (target.startsWith("..")) {
-            try {
-              const realTarget = await realpath(resolvedPath)
-              const relPath = relative(path, realTarget)
-
-              if (relPath.startsWith("..")) {
-                gitLog.verbose(`Ignoring symlink pointing outside of ${pathDescription} at ${resolvedPath}`)
-                return
-              }
-              return ensureHash({
-                file: output,
-                stats,
-                modifiedFiles,
-                hashUntrackedFiles,
-                untrackedHashedFilesCollector,
-              })
-            } catch (err) {
-              if (isErrnoException(err) && err.code === "ENOENT") {
-                gitLog.verbose(`Ignoring dead symlink at ${resolvedPath}`)
-                return
-              }
-              throw err
-            }
           } else {
+            const realTarget = resolve(dirname(resolvedPath), target)
+            const relPath = relative(path, realTarget)
+
+            if (relPath.startsWith("..")) {
+              gitLog.verbose(`Ignoring symlink pointing outside of ${pathDescription} at ${resolvedPath}`)
+              return
+            }
             return ensureHash({
               file: output,
               stats,
@@ -458,7 +442,7 @@ export class GitSubTreeHandler extends AbstractGitHandler {
 
 async function isDirectory(path: string, gitLog: Log): Promise<boolean> {
   try {
-    const pathStats = await stat(path)
+    const pathStats = await lstat(path)
 
     if (!pathStats.isDirectory()) {
       gitLog.warn(`Expected directory at ${path}, but found ${getStatsType(pathStats)}.`)

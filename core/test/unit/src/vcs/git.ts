@@ -831,6 +831,24 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
         expect(files.sort()).to.eql([filePath, symlinkPath])
       })
 
+      it("should include a relative symlink within the path even when target does not exist", async () => {
+        const target = "does-not-exist"
+        const symlinkPath = resolve(tmpPath, "symlink")
+
+        await symlink(target, symlinkPath)
+
+        const files = (
+          await handler.getFiles({
+            path: tmpPath,
+            scanRoot: undefined,
+            exclude: [],
+            log,
+          })
+        ).map((f) => f.path)
+
+        expect(files.sort()).to.eql([symlinkPath])
+      })
+
       it("should exclude a relative symlink that points outside repo root", async () => {
         const subPath = resolve(tmpPath, "subdir")
         await mkdirp(subPath)
@@ -844,6 +862,31 @@ const commonGitHandlerTests = (gitScanMode: GitScanMode) => {
 
         await createFile(filePath)
         await ensureSymlink(join("..", fileName), symlinkPath)
+
+        const files = (
+          await handler.getFiles({
+            path: subPath,
+            scanRoot: undefined,
+            exclude: [],
+            log,
+          })
+        ).map((f) => f.path)
+        expect(files).to.eql([])
+      })
+
+      it("should exclude a relative symlink that points outside repo root even if it does not start with ..", async () => {
+        const subPath = resolve(tmpPath, "subdir")
+        await mkdirp(subPath)
+
+        const _git = new GitCli({ log, cwd: subPath })
+        await _git.exec("init")
+
+        const fileName = "foo"
+        const filePath = resolve(tmpPath, fileName)
+        const symlinkPath = resolve(subPath, "symlink")
+
+        await createFile(filePath)
+        await ensureSymlink(join("hello", "..", "..", fileName), symlinkPath)
 
         const files = (
           await handler.getFiles({

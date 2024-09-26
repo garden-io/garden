@@ -23,7 +23,7 @@ import AsyncLock from "async-lock"
 import { isSha1 } from "../util/hashing.js"
 import { hashingStream } from "hasha"
 
-const { createReadStream, ensureDir, pathExists, readlink, stat } = fsExtra
+const { createReadStream, ensureDir, pathExists, readlink, lstat } = fsExtra
 
 export function getCommitIdFromRefList(refList: string[]): string {
   try {
@@ -393,7 +393,7 @@ export async function augmentGlobs(basePath: string, globs?: string[]): Promise<
 
       try {
         const path = joinWithPosix(basePath, pattern)
-        const stats = await stat(path)
+        const stats = await lstat(path)
         return stats.isDirectory() ? posix.join(pattern, "**", "*") : pattern
       } catch {
         return pattern
