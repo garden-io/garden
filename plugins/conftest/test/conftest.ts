@@ -61,7 +61,7 @@ describe("conftest provider", () => {
       })
 
       const key = testTask.getKey()
-      const res = await garden.processTasks({ log: garden.log, tasks: [testTask], throwOnError: true })
+      const res = await garden.processTasks({ tasks: [testTask], throwOnError: true })
       const result = res.results[key]
 
       expect(result).to.exist
@@ -96,7 +96,7 @@ describe("conftest provider", () => {
       })
 
       const key = testTask.getKey()
-      const res = await garden.processTasks({ log: garden.log, tasks: [testTask], throwOnError: true })
+      const res = await garden.processTasks({ tasks: [testTask], throwOnError: true })
       const result = res.results[key]
 
       expect(result).to.exist
@@ -122,7 +122,7 @@ describe("conftest provider", () => {
       })
 
       const key = testTask.getKey()
-      const res = await garden.processTasks({ log: garden.log, tasks: [testTask], throwOnError: true })
+      const res = await garden.processTasks({ tasks: [testTask], throwOnError: true })
       const result = res.results[key]
 
       expect(result).to.exist
@@ -151,7 +151,7 @@ describe("conftest provider", () => {
       })
 
       const key = testTask.getKey()
-      const res = await garden.processTasks({ log: garden.log, tasks: [testTask], throwOnError: true })
+      const res = await garden.processTasks({ tasks: [testTask], throwOnError: true })
       const result = res.results[key]
 
       expect(result).to.exist

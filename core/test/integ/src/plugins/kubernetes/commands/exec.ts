@@ -31,7 +31,7 @@ describe("runExecCommand", () => {
       force: true,
       forceBuild: false,
     })
-    await garden.processTasks({ tasks: [deployTask], log: garden.log, throwOnError: true })
+    await garden.processTasks({ tasks: [deployTask], throwOnError: true })
   })
 
   async function resolveDeployAction(name: string) {

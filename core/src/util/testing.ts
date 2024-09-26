@@ -31,7 +31,6 @@ import { getRootLogger } from "../logger/logger.js"
 import stripAnsi from "strip-ansi"
 import type { VcsHandler } from "../vcs/vcs.js"
 import type { ConfigGraph } from "../graph/config-graph.js"
-import type { SolveParams } from "../graph/solver.js"
 import type { GraphResults } from "../graph/results.js"
 import { expect } from "chai"
 import type { ActionConfig, ActionConfigMap, ActionKind, ActionStatus } from "../actions/types.js"
@@ -252,10 +251,6 @@ export class TestGarden extends Garden {
     } else {
       // No-op: We need to disable this method, because it breaks test cases that manually set configs.
     }
-  }
-
-  override async processTasks(params: Omit<SolveParams, "log"> & { log?: Log }) {
-    return super.processTasks({ ...params, log: params.log || this.log })
   }
 
   /**

@@ -65,7 +65,7 @@ describe("sync plugin commands", () => {
       startSync: true,
     })
 
-    await garden.processTasks({ log, tasks: [deployTask], throwOnError: true })
+    await garden.processTasks({ tasks: [deployTask], throwOnError: true })
   }
 
   describe("sync-status", () => {

@@ -337,7 +337,7 @@ export class DeployCommand extends Command<Args, Opts> {
       return task
     })
 
-    const results = await garden.processTasks({ tasks, log })
+    const results = await garden.processTasks({ tasks })
 
     return handleProcessResults(garden, log, "deploy", results)
   }

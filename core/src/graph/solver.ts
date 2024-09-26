@@ -11,7 +11,7 @@ import type { Log } from "../logger/log-entry.js"
 import type { GardenError, GardenErrorParams } from "../exceptions.js"
 import { GraphError, toGardenError } from "../exceptions.js"
 import { uuidv4 } from "../util/random.js"
-import { DependencyGraph, metadataForLog } from "./common.js"
+import { DependencyGraph } from "./common.js"
 import { Profile } from "../util/profiling.js"
 import { TypedEventEmitter } from "../util/events.js"
 import { groupBy, keyBy } from "lodash-es"
@@ -34,7 +34,6 @@ export interface SolveOpts {
 }
 
 export interface SolveParams<T extends BaseTask = BaseTask> extends SolveOpts {
-  log: Log
   tasks: T[]
 }
 

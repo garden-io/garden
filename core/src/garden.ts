@@ -606,8 +606,8 @@ export class Garden {
     return this.solver.solve(params)
   }
 
-  async processTask<T extends Task>(task: T, log: Log, opts: SolveOpts): Promise<GraphResultFromTask<T> | null> {
-    const { results } = await this.solver.solve({ tasks: [task], log, ...opts })
+  async processTask<T extends Task>(task: T, _log: Log, opts: SolveOpts): Promise<GraphResultFromTask<T> | null> {
+    const { results } = await this.solver.solve({ tasks: [task], ...opts })
     return results.getResult(task)
   }
 
@@ -847,7 +847,7 @@ export class Garden {
       })
 
       // Process as many providers in parallel as possible
-      const taskResults = await this.processTasks({ tasks, log, statusOnly })
+      const taskResults = await this.processTasks({ tasks, statusOnly })
 
       const providerResults = Object.values(taskResults.results.getMap())
 

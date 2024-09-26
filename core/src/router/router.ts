@@ -123,7 +123,7 @@ export class ActionRouter extends BaseRouter {
           forceActions: [],
         })
     )
-    const { results } = await this.garden.processTasks({ tasks, log, throwOnError: true, statusOnly: true })
+    const { results } = await this.garden.processTasks({ tasks, throwOnError: true, statusOnly: true })
 
     return getDeployStatuses(results)
   }
@@ -143,7 +143,7 @@ export class ActionRouter extends BaseRouter {
         })
     )
 
-    return this.garden.processTasks({ tasks, log })
+    return this.garden.processTasks({ tasks })
   }
 
   /**
@@ -176,7 +176,7 @@ export class ActionRouter extends BaseRouter {
       })
     })
 
-    const { results } = await this.garden.processTasks({ tasks, log, throwOnError: true })
+    const { results } = await this.garden.processTasks({ tasks, throwOnError: true })
 
     const serviceStatuses = deletedDeployStatuses(results)
 

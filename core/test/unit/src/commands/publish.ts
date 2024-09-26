@@ -249,7 +249,7 @@ describe("PublishTask", () => {
       })
     })
 
-    const processed = await garden.processTasks({ tasks, log, throwOnError: true })
+    const processed = await garden.processTasks({ tasks, throwOnError: true })
     const graphResultsMap = processed.results.getMap()
     expect(graphResultsMap["publish.module-a"]!.result.detail.published).to.be.true
     expect(graphResultsMap["publish.module-a"]!.result.detail.identifier).to.equal("foo")
@@ -276,7 +276,7 @@ describe("PublishTask", () => {
       })
     })
 
-    const processed = await garden.processTasks({ tasks, log, throwOnError: true })
+    const processed = await garden.processTasks({ tasks, throwOnError: true })
     const graphResultsMap = processed.results.getMap()
     const verA = graph.getBuild("module-a").versionString()
     const verB = graph.getBuild("module-b").versionString()
@@ -305,7 +305,7 @@ describe("PublishTask", () => {
       })
     })
 
-    const processed = await garden.processTasks({ tasks, log, throwOnError: true })
+    const processed = await garden.processTasks({ tasks, throwOnError: true })
     const graphResultsMap = processed.results.getMap()
     expect(graphResultsMap["publish.module-a"]!.result.detail.published).to.be.true
     expect(graphResultsMap["publish.module-a"]!.result.detail.identifier).to.equal(undefined)

@@ -673,7 +673,7 @@ describe("kubernetes container deployment handlers", () => {
         })
 
         garden.events.eventLog = []
-        const results = await garden.processTasks({ tasks: [deployTask], log: garden.log, throwOnError: true })
+        const results = await garden.processTasks({ tasks: [deployTask], throwOnError: true })
         const statuses = getDeployStatuses(results.results)
         const status = statuses[action.name]
         const resources = keyBy(status.detail?.detail["remoteResources"], "kind")
@@ -741,7 +741,7 @@ describe("kubernetes container deployment handlers", () => {
           forceBuild: false,
         })
 
-        await garden.processTasks({ tasks: [deployTask], log: garden.log, throwOnError: true })
+        await garden.processTasks({ tasks: [deployTask], throwOnError: true })
 
         // We expect this `ConfigMap` to still exist.
         await api.core.readNamespacedConfigMap({ name: mapToNotPruneKey, namespace })
@@ -778,7 +778,7 @@ describe("kubernetes container deployment handlers", () => {
           forceBuild: false,
         })
 
-        const results = await garden.processTasks({ tasks: [deployTask], log: garden.log, throwOnError: true })
+        const results = await garden.processTasks({ tasks: [deployTask], throwOnError: true })
         const statuses = getDeployStatuses(results.results)
         const status = statuses[action.name]
         expect(status.state).to.eql("ready")
@@ -796,7 +796,7 @@ describe("kubernetes container deployment handlers", () => {
           forceBuild: false,
         })
 
-        const results = await garden.processTasks({ tasks: [deployTask], log: garden.log, throwOnError: true })
+        const results = await garden.processTasks({ tasks: [deployTask], throwOnError: true })
         const statuses = getDeployStatuses(results.results)
         const status = statuses[action.name]
         const resources = keyBy(status.detail?.detail["remoteResources"], "kind")
@@ -834,7 +834,7 @@ describe("kubernetes container deployment handlers", () => {
           forceBuild: false,
         })
 
-        const results = await garden.processTasks({ tasks: [deployTask], log: garden.log, throwOnError: true })
+        const results = await garden.processTasks({ tasks: [deployTask], throwOnError: true })
         const statuses = getDeployStatuses(results.results)
 
         return statuses[resolvedAction.name]
@@ -928,7 +928,7 @@ describe("kubernetes container deployment handlers", () => {
           forceBuild: false,
         })
 
-        await garden.processTasks({ tasks: [deployTask], log: garden.log, throwOnError: true })
+        await garden.processTasks({ tasks: [deployTask], throwOnError: true })
 
         // Important: This is a fresh config graoh with no action modes set, as would be the case e.g. when
         // calling the `get status` command. This is to test that we're indeed using the action mode written in the

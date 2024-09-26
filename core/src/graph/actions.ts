@@ -543,7 +543,7 @@ export async function resolveAction<T extends Action>({
     force: true,
   })
 
-  const results = await garden.processTasks({ tasks: [task], log, throwOnError: true })
+  const results = await garden.processTasks({ tasks: [task], throwOnError: true })
 
   log.success({ msg: `Done`, showDuration: false })
 
@@ -581,7 +581,7 @@ export async function resolveActions<T extends Action>({
       })
   )
 
-  const results = await garden.processTasks({ tasks, log, throwOnError: true })
+  const results = await garden.processTasks({ tasks, throwOnError: true })
 
   return <ResolvedActions<T>>(<unknown>mapValues(results.results.getMap(), (r) => r!.result!.outputs.resolvedAction))
 }
@@ -611,7 +611,7 @@ export async function executeAction<T extends Action>({
     force: true,
   })
 
-  const results = await garden.processTasks({ tasks: [task], log, throwOnError: true, statusOnly })
+  const results = await garden.processTasks({ tasks: [task], throwOnError: true, statusOnly })
 
   return <Executed<T>>(<unknown>results.results.getResult(task)!.result!.executedAction)
 }

@@ -94,7 +94,7 @@ export async function resolveProjectOutputs(garden: Garden, log: Log): Promise<O
 
   const { results } =
     graphTasks.length > 0
-      ? await garden.processTasks({ tasks: graphTasks, log, throwOnError: true })
+      ? await garden.processTasks({ tasks: graphTasks, throwOnError: true })
       : { results: new GraphResults([]) }
 
   const configContext = await garden.getOutputConfigContext(log, modules, results)
