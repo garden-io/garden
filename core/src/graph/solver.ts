@@ -67,7 +67,7 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
   ) {
     super()
 
-    this.log = garden.log
+    this.log = garden.log.createLog({ name: "graph-solver" })
     this.inLoop = false
     this.requestedTasks = {}
     this.nodes = {}
@@ -91,18 +91,19 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
   }
 
   async solve(params: SolveParams): Promise<SolveResult> {
-    const { statusOnly, tasks, throwOnError, log } = params
+    const { statusOnly, tasks, throwOnError } = params
 
     const batchId = uuidv4()
     const results = new GraphResults(tasks)
     let aborted = false
 
-    log.silly(`GraphSolver: Starting batch ${batchId} (${tasks.length} tasks)`)
+    this.log.silly(() => `Starting batch ${batchId} (${tasks.length} tasks)`)
 
     if (tasks.length === 0) {
       return { results, error: null }
     }
 
+    const log = this.log
     // TODO-0.13.1+: remove this lock and test with concurrent execution
     return this.lock.acquire("solve", async () => {
       const output = await new Promise<SolveResult>((resolve, reject) => {
@@ -114,7 +115,7 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
         )
 
         function completeHandler(result: GraphResult) {
-          log.silly(`GraphSolver: Complete handler for batch ${batchId} called with result ${result.key}`)
+          log.silly(() => `Complete handler for batch ${batchId} called with result ${result.key}`)
 
           if (aborted) {
             return
@@ -129,7 +130,7 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
             return
           }
 
-          log.silly(`GraphSolver: Complete handler for batch ${batchId} matched with request ${request.getKey()}`)
+          log.silly(() => `Complete handler for batch ${batchId} matched with request ${request.getKey()}`)
 
           results.setResult(request.task, result)
 
@@ -148,7 +149,7 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
 
           if (missing.length > 0) {
             const missingKeys = missing.map((t) => t.getBaseKey())
-            log.silly(`Batch ${batchId} has ${missing.length} result(s) still missing: ${missingKeys.join(", ")}`)
+            log.silly(() => `Batch ${batchId} has ${missing.length} result(s) still missing: ${missingKeys.join(", ")}`)
             // Keep going if any of the expected results are pending
             return
           }
@@ -182,9 +183,9 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
           cleanup({ error: null })
 
           if (error) {
-            log.silly(`Batch ${batchId} failed: ${error.message}`)
+            log.silly(() => `Batch ${batchId} failed: ${error.message}`)
           } else {
-            log.silly(`Batch ${batchId} completed`)
+            log.silly(() => `Batch ${batchId} completed`)
           }
 
           resolve({ error, results })
@@ -380,7 +381,7 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
       return
     }
 
-    this.logTask(node)
+    this.log.silly(() => `Processing node ${taskStyle(node.getKey())}`)
 
     try {
       const processResult = await node.execute()
@@ -445,7 +446,10 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
     }
 
     const currentlyActive = Object.values(this.inProgress).map((n) => n.describe())
-    this.log.silly(`Task nodes in progress: ${currentlyActive.length > 0 ? currentlyActive.join(", ") : "(none)"}`)
+    this.log.silly(
+      () =>
+        `Task nodes in progress (${currentlyActive.length}): ${currentlyActive.length > 0 ? currentlyActive.join(", ") : "(none)"}`
+    )
   }
 
   private ensurePendingNode(node: TaskNode, dependant: TaskNode) {
@@ -486,19 +490,6 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
   //
   // Logging
   //
-  private logTask(node: TaskNode) {
-    // The task.log instance is of type ActionLog but we want to use a "CoreLog" here.
-    const taskLog = node.task.log.root.createLog({ name: "graph-solver" })
-    taskLog.silly({
-      msg: `Processing node ${taskStyle(node.getKey())}`,
-      metadata: metadataForLog({
-        task: node.task,
-        inputVersion: node.getInputVersion(),
-        status: "active",
-      }),
-    })
-  }
-
   private logTaskError(node: TaskNode, err: Error) {
     const log = node.task.log
     const prefix = `Failed ${node.describe()} ${renderDuration(log.getDuration())}. This is what happened:`
@@ -506,8 +497,9 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
   }
 
   private logInternalError(node: TaskNode, err: Error) {
-    const prefix = `An internal error occurred while ${node.describe()}. This is what happened:`
-    this.logError(node.task.log, err, prefix)
+    const log = node.task.log
+    const prefix = `An internal error occurred while ${node.describe()} ${renderDuration(log.getDuration())}. This is what happened:`
+    this.logError(log, err, prefix)
   }
 
   private logError(log: Log, err: Error, errMessagePrefix: string) {
@@ -519,7 +511,7 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
     })
     log.error({ msg, rawMsg, error, showDuration: false })
     const divider = renderDivider()
-    log.silly(
+    log.silly(() =>
       styles.primary(`Full error with stack trace and wrapped errors:\n${divider}\n${error.toString(true)}\n${divider}`)
     )
   }
