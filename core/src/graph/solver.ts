@@ -113,8 +113,8 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
         (r) => r.task.getKey()
       )
 
-        function completeHandler(result: GraphResult) {
-          log.silly(() => `Complete handler for batch ${batchId} called with result ${result.key}`)
+      function completeHandler(result: GraphResult) {
+        log.silly(() => `Complete handler for batch ${batchId} called with result ${result.key}`)
 
         if (aborted) {
           return
@@ -129,7 +129,7 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
           return
         }
 
-          log.silly(() => `Complete handler for batch ${batchId} matched with request ${request.getKey()}`)
+        log.silly(() => `Complete handler for batch ${batchId} matched with request ${request.getKey()}`)
 
         results.setResult(request.task, result)
 
@@ -146,12 +146,12 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
 
         const missing = results.getMissing()
 
-          if (missing.length > 0) {
-            const missingKeys = missing.map((t) => t.getBaseKey())
-            log.silly(() => `Batch ${batchId} has ${missing.length} result(s) still missing: ${missingKeys.join(", ")}`)
-            // Keep going if any of the expected results are pending
-            return
-          }
+        if (missing.length > 0) {
+          const missingKeys = missing.map((t) => t.getBaseKey())
+          log.silly(() => `Batch ${batchId} has ${missing.length} result(s) still missing: ${missingKeys.join(", ")}`)
+          // Keep going if any of the expected results are pending
+          return
+        }
 
         // All requested results have been filled (i.e. none are null) so we're done.
         let error: GraphResultError | null = null
@@ -181,11 +181,11 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
 
         cleanup({ error: null })
 
-          if (error) {
-            log.silly(() => `Batch ${batchId} failed: ${error.message}`)
-          } else {
-            log.silly(() => `Batch ${batchId} completed`)
-          }
+        if (error) {
+          log.silly(() => `Batch ${batchId} failed: ${error.message}`)
+        } else {
+          log.silly(() => `Batch ${batchId} completed`)
+        }
 
         resolve({ error, results })
       }
