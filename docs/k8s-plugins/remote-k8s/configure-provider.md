@@ -42,7 +42,7 @@ providers:
     context: <THE KUBE CONTEXT FROM STEP 1>
     defaultHostname: <THE HOSTNAME FROM STEP 3>
 ```
-
+**NOTE:** If you are using `kubernetes deploy` the imagePullSecret won't be automatically propagated to manifests. Make sure to use `imagePullSecrets` in your manifest as specified in kubernetes [docs](https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/#create-a-pod-that-uses-your-secret)
 ### 2. Select build mode
 
 Next, select a "build mode".
