@@ -262,10 +262,10 @@ ${renderCommands(commands)}
         } catch (err) {
           if (err instanceof CloudApiTokenRefreshError) {
             log.warn(dedent`
-              Unable to authenticate against ${distroName} with the current session token.
-              Command results for this command run will not be available in ${distroName}. If this not a
-              ${distroName} project you can ignore this warning. Otherwise, please try logging out with
-              \`garden logout\` and back in again with \`garden login\`.
+              The current ${distroName} session is not valid or it's expired.
+              Command results for this command run will not be available in ${distroName}.
+              To avoid losing command results and logs, please try logging back in by running \`garden login\`.
+              If this not a ${distroName} project you can ignore this warning.
             `)
 
             // Project is configured for cloud usage => fail early to force re-auth
