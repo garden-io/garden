@@ -11,7 +11,7 @@ import { resolve, join } from "path"
 import fsExtra from "fs-extra"
 import { getBuiltinCommands } from "../commands/commands.js"
 import { getCloudDistributionName } from "../util/cloud.js"
-import { shutdown, getPackageVersion } from "../util/util.js"
+import { getPackageVersion } from "../util/util.js"
 import type { Command, CommandResult, BuiltinArgs } from "../commands/base.js"
 import { CommandGroup } from "../commands/base.js"
 import type { GardenError } from "../exceptions.js"
@@ -59,7 +59,7 @@ import type { Log } from "../logger/log-entry.js"
 import { dedent } from "../util/string.js"
 import type { GardenProcess } from "../config-store/global.js"
 import { GlobalConfigStore } from "../config-store/global.js"
-import { registerProcess, waitForOutputFlush } from "../process.js"
+import { registerProcess } from "../process.js"
 import { uuidv4 } from "../util/random.js"
 import { withSessionContext } from "../util/open-telemetry/context.js"
 import { wrapActiveSpan } from "../util/open-telemetry/spans.js"
@@ -426,10 +426,6 @@ ${renderCommands(commands)}
       if (exitOnError) {
         // eslint-disable-next-line no-console
         console.log(consoleOutput)
-        await waitForOutputFlush()
-        await shutdown(abortCode)
-      } else {
-        await waitForOutputFlush()
       }
 
       return { argv, code: abortCode, errors, result, consoleOutput }
@@ -484,9 +480,9 @@ ${renderCommands(commands)}
 
         if (projectConfig) {
           const customCommands = await this.getCustomCommands(log, workingDir)
-          const picked = pickCommand(customCommands, argv._)
-          command = picked.command
-          matchedPath = picked.matchedPath
+          const pickedCommand = pickCommand(customCommands, argv._)
+          command = pickedCommand.command
+          matchedPath = pickedCommand.matchedPath
         }
       } catch (error) {
         return done(1, toGardenError(error).explain("Failed to get custom commands"))
@@ -635,7 +631,6 @@ ${renderCommands(commands)}
     let code = 0
     if (gardenErrors.length > 0) {
       renderCommandErrors(logger, gardenErrors)
-      await waitForOutputFlush()
       code = commandResult.exitCode || 1
     }
 

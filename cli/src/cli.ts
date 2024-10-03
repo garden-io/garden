@@ -18,6 +18,7 @@ import { InternalError } from "@garden-io/core/build/src/exceptions.js"
 import { styles } from "@garden-io/core/build/src/logger/styles.js"
 import { gardenEnv, IGNORE_UNCAUGHT_EXCEPTION_VARNAME } from "@garden-io/core/build/src/constants.js"
 import { inspect } from "node:util"
+import { waitForOutputFlush } from "@garden-io/core/build/src/process.js"
 
 // These plugins are always registered
 export const getBundledPlugins = (): GardenPluginReference[] => [
@@ -134,6 +135,7 @@ export async function runCli({
       code = 1
     }
 
+    await waitForOutputFlush()
     await shutdown(code)
   }
 

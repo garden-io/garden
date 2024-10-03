@@ -103,6 +103,7 @@ export async function shutdown(code?: number) {
       // eslint-disable-next-line no-console
       console.log(getDefaultProfiler().report())
     }
+
     gracefulExit(code)
   }
 }
