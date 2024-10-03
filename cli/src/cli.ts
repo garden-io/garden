@@ -11,7 +11,7 @@ import type { RunOutput } from "@garden-io/core/build/src/cli/cli.js"
 import { GardenCli } from "@garden-io/core/build/src/cli/cli.js"
 import type { GardenPluginReference } from "@garden-io/core/build/src/plugin/plugin.js"
 import { GlobalConfigStore } from "@garden-io/core/build/src/config-store/global.js"
-import { getOtelSDK } from "@garden-io/core/build/src/util/open-telemetry/tracing.js"
+import { getOtelSDK, isOtelExporterConfigured } from "@garden-io/core/build/src/util/open-telemetry/tracing.js"
 import { withContextFromEnv } from "@garden-io/core/build/src/util/open-telemetry/propagation.js"
 import { wrapActiveSpan } from "@garden-io/core/build/src/util/open-telemetry/spans.js"
 import { InternalError } from "@garden-io/core/build/src/exceptions.js"
@@ -119,10 +119,14 @@ export async function runCli({
       await globalConfigStore.delete("activeProcesses", String(cli.processRecord.pid))
     }
 
-    try {
-      await Promise.race([getOtelSDK().shutdown(), new Promise((resolve) => setTimeout(resolve, 3000))])
-    } catch (err) {
-      logUnexpectedError(err, "OTEL shutdown failed")
+    // Calling "shutdown" will hang if the command exits before OTEL is set up. This will happen if an
+    // exporter is NOT set via the OTEL_ env var AND if Garden exits before it sets an exporter.
+    if (isOtelExporterConfigured()) {
+      try {
+        await Promise.race([getOtelSDK().shutdown(), new Promise((resolve) => setTimeout(resolve, 3000))])
+      } catch (err) {
+        logUnexpectedError(err, "OTEL shutdown failed")
+      }
     }
 
     if (ignoredUncaughtExceptions) {
