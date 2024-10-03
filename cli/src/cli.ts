@@ -86,9 +86,8 @@ if (gardenEnv.GARDEN_IGNORE_UNCAUGHT_EXCEPTION) {
 export async function runCli({
   args,
   cli,
-  exitOnError = true,
   initLogger = true,
-}: { args?: string[]; cli?: GardenCli; exitOnError?: boolean; initLogger?: boolean } = {}) {
+}: { args?: string[]; cli?: GardenCli; initLogger?: boolean } = {}) {
   let code = 0
   let result: RunOutput | undefined = undefined
 
@@ -105,7 +104,7 @@ export async function runCli({
         }
 
         // Note: We slice off the binary/script name from argv.
-        const results = await cli.run({ args: args || [], exitOnError })
+        const results = await cli.run({ args: args || [] })
 
         return results
       })

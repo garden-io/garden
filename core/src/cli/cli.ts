@@ -409,12 +409,10 @@ ${renderCommands(commands)}
 
   async run({
     args,
-    exitOnError,
     processRecord,
     cwd,
   }: {
     args: string[]
-    exitOnError: boolean
     processRecord?: GardenProcess
     cwd?: string
   }): Promise<RunOutput> {
@@ -423,10 +421,8 @@ ${renderCommands(commands)}
     const errors: (GardenError | Error)[] = []
 
     async function done(abortCode: number, consoleOutput: string, result: any = {}) {
-      if (exitOnError) {
-        // eslint-disable-next-line no-console
-        console.log(consoleOutput)
-      }
+      // eslint-disable-next-line no-console
+      console.log(consoleOutput)
 
       return { argv, code: abortCode, errors, result, consoleOutput }
     }
