@@ -36,7 +36,7 @@
     "@opentelemetry/instrumentation-http": "^0.52.0",
     "@opentelemetry/otlp-exporter-base": "^0.47.0",
     "@opentelemetry/resources": "^1.26.0",
-    "@opentelemetry/sdk-node": "^0.47.0",
+    "@opentelemetry/sdk-node": "^0.53.0",
     "@opentelemetry/sdk-trace-base": "^1.21.0",
     "@opentelemetry/semantic-conventions": "^1.21.0",
     "@scg82/exit-hook": "^3.4.1",
@@ -275,3 +275,4 @@
   },
   "gitHead": "b0647221a4d2ff06952bae58000b104215aed922"
 }
+

@@ -224,7 +224,6 @@ export class CustomCommandWrapper extends Command {
 
       const res = await cli.run({
         args: gardenCommand,
-        exitOnError: false,
         cwd: garden.projectRoot,
       })
 

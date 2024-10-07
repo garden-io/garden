@@ -92,21 +92,21 @@ describe("cli", () => {
 
   describe("run", () => {
     it("aborts with help text if no positional argument is provided", async () => {
-      const { code, consoleOutput } = await cli.run({ args: [], exitOnError: false })
+      const { code, consoleOutput } = await cli.run({ args: [] })
 
       expect(code).to.equal(1)
       expect(consoleOutput).to.equal(await cli.renderHelp(log, "/"))
     })
 
     it("aborts with default help text if -h option is set and no command", async () => {
-      const { code, consoleOutput } = await cli.run({ args: ["-h"], exitOnError: false })
+      const { code, consoleOutput } = await cli.run({ args: ["-h"] })
 
       expect(code).to.equal(0)
       expect(consoleOutput).to.equal(await cli.renderHelp(log, "/"))
     })
 
     it("aborts with default help text if --help option is set and no command", async () => {
-      const { code, consoleOutput } = await cli.run({ args: ["-h"], exitOnError: false })
+      const { code, consoleOutput } = await cli.run({ args: ["-h"] })
 
       expect(code).to.equal(0)
       expect(consoleOutput).to.equal(await cli.renderHelp(log, "/"))
@@ -128,7 +128,7 @@ describe("cli", () => {
       const cmd = new TestCommand()
       cli.addCommand(cmd)
 
-      const { code, consoleOutput } = await cli.run({ args: ["test-command", "--help"], exitOnError: false })
+      const { code, consoleOutput } = await cli.run({ args: ["test-command", "--help"] })
 
       expect(code).to.equal(0)
       expect(consoleOutput).to.equal(cmd.renderHelp())
@@ -136,7 +136,7 @@ describe("cli", () => {
 
     it("throws if --root is set, pointing to a non-existent path", async () => {
       const path = "/tmp/hauweighaeighuawek"
-      const { code, consoleOutput } = await cli.run({ args: ["--root", path], exitOnError: false })
+      const { code, consoleOutput } = await cli.run({ args: ["--root", path] })
 
       expect(code).to.equal(1)
       expect(stripAnsi(consoleOutput!)).to.equal(`Could not find specified root path (${path})`)
@@ -152,7 +152,7 @@ describe("cli", () => {
       })
 
       it("runs a custom command", async () => {
-        const res = await cli.run({ args: ["echo", "foo"], exitOnError: false, cwd: root })
+        const res = await cli.run({ args: ["echo", "foo"], cwd: root })
 
         expect(res.code).to.equal(0)
       })
@@ -191,7 +191,7 @@ describe("cli", () => {
       })
 
       it("prints help text for a custom command", async () => {
-        const res = await cli.run({ args: ["combo", "--help"], exitOnError: false, cwd: root })
+        const res = await cli.run({ args: ["combo", "--help"], cwd: root })
 
         const commands = await cli["getCustomCommands"](log, root)
         const command = commands.find((c) => c.name === "combo")!
@@ -205,7 +205,6 @@ describe("cli", () => {
         // cli.run should never throw – if it throws, it's a bug
         const res = await cli.run({
           args: ["echo", "foo"],
-          exitOnError: false,
           cwd: getDataDir("test-projects", "custom-commands-invalid"),
         })
         expect(res.code).to.not.equal(0)
@@ -213,13 +212,13 @@ describe("cli", () => {
       })
 
       it("exits with code from exec command if it fails", async () => {
-        const res = await cli.run({ args: ["script", "exit 2"], exitOnError: false, cwd: root })
+        const res = await cli.run({ args: ["script", "exit 2"], cwd: root })
 
         expect(res.code).to.equal(2)
       })
 
       it("exits with code 1 if Garden command fails", async () => {
-        const res = await cli.run({ args: ["run", "fail"], exitOnError: false, cwd: root })
+        const res = await cli.run({ args: ["run", "fail"], cwd: root })
 
         expect(res.code).to.equal(1)
       })
@@ -230,19 +229,19 @@ describe("cli", () => {
 
       context("garden binary", () => {
         it("garden exits with code 1 on no flags", async () => {
-          const res = await cli.run({ args: [], exitOnError: false, cwd })
+          const res = await cli.run({ args: [], cwd })
 
           expect(res.code).to.equal(1)
         })
 
         it("garden exits with code 0 on --help flag", async () => {
-          const res = await cli.run({ args: ["--help"], exitOnError: false, cwd })
+          const res = await cli.run({ args: ["--help"], cwd })
 
           expect(res.code).to.equal(0)
         })
 
         it("garden exits with code 1 on unrecognized flag", async () => {
-          const res = await cli.run({ args: ["--i-am-groot"], exitOnError: false, cwd })
+          const res = await cli.run({ args: ["--i-am-groot"], cwd })
 
           expect(res.code).to.equal(1)
           // TODO: this requires more complicated chnages in the args parsing flow,
@@ -253,38 +252,38 @@ describe("cli", () => {
 
       context("garden command without sub-commands", () => {
         it("garden exits with code 0 on recognized command", async () => {
-          const res = await cli.run({ args: ["validate"], exitOnError: false, cwd })
+          const res = await cli.run({ args: ["validate"], cwd })
 
           expect(res.code).to.equal(0)
         })
 
         it("garden exits with code 0 on recognized command with --help flag", async () => {
-          const res = await cli.run({ args: ["validate", "--help"], exitOnError: false, cwd })
+          const res = await cli.run({ args: ["validate", "--help"], cwd })
 
           expect(res.code).to.equal(0)
         })
 
         it("garden exits with code 1 on recognized command with unrecognized flag", async () => {
-          const res = await cli.run({ args: ["validate", "--i-am-groot"], exitOnError: false, cwd })
+          const res = await cli.run({ args: ["validate", "--i-am-groot"], cwd })
 
           expect(res.code).to.equal(1)
           expect(stripAnsi(res.consoleOutput!).toLowerCase()).to.contain("unrecognized option flag")
         })
 
         it("garden exits with code 1 on unrecognized command", async () => {
-          const res = await cli.run({ args: ["baby-groot"], exitOnError: false, cwd })
+          const res = await cli.run({ args: ["baby-groot"], cwd })
 
           expect(res.code).to.equal(1)
         })
 
         it("garden exits with code 1 on unrecognized command with --help flag", async () => {
-          const res = await cli.run({ args: ["baby-groot", "--help"], exitOnError: false, cwd })
+          const res = await cli.run({ args: ["baby-groot", "--help"], cwd })
 
           expect(res.code).to.equal(1)
         })
 
         it("garden exits with code 1 on unrecognized command with unrecognized flag", async () => {
-          const res = await cli.run({ args: ["baby-groot", "--i-am-groot"], exitOnError: false, cwd })
+          const res = await cli.run({ args: ["baby-groot", "--i-am-groot"], cwd })
 
           expect(res.code).to.equal(1)
         })
@@ -293,13 +292,13 @@ describe("cli", () => {
       // Command with sub-commands is always a recognized command, so here we test only flags.
       context("garden command with sub-commands", () => {
         it("garden exits with code 0 on incomplete sub-command with --help flag", async () => {
-          const res = await cli.run({ args: ["get", "--help"], exitOnError: false, cwd })
+          const res = await cli.run({ args: ["get", "--help"], cwd })
 
           expect(res.code).to.equal(0)
         })
 
         it("garden exits with code 1 on incomplete sub-command with unrecognized flag", async () => {
-          const res = await cli.run({ args: ["get", "--i-am-groot"], exitOnError: false, cwd })
+          const res = await cli.run({ args: ["get", "--i-am-groot"], cwd })
 
           expect(res.code).to.equal(1)
         })
@@ -307,38 +306,38 @@ describe("cli", () => {
 
       context("garden sub-command", () => {
         it("garden exits with code 0 on recognized sub-command", async () => {
-          const res = await cli.run({ args: ["get", "actions"], exitOnError: false, cwd })
+          const res = await cli.run({ args: ["get", "actions"], cwd })
 
           expect(res.code).to.equal(0)
         })
 
         it("garden exits with code 0 on recognized sub-command with --help flag", async () => {
-          const res = await cli.run({ args: ["get", "actions", "--help"], exitOnError: false, cwd })
+          const res = await cli.run({ args: ["get", "actions", "--help"], cwd })
 
           expect(res.code).to.equal(0)
         })
 
         it("garden exits with code 1 on recognized sub-command with unrecognized flag", async () => {
-          const res = await cli.run({ args: ["get", "actions", "--i-am-groot"], exitOnError: false, cwd })
+          const res = await cli.run({ args: ["get", "actions", "--i-am-groot"], cwd })
 
           expect(res.code).to.equal(1)
           expect(stripAnsi(res.consoleOutput!).toLowerCase()).to.contain("unrecognized option flag")
         })
 
         it("garden exits with code 1 on unrecognized sub-command", async () => {
-          const res = await cli.run({ args: ["get", "baby-groot"], exitOnError: false, cwd })
+          const res = await cli.run({ args: ["get", "baby-groot"], cwd })
 
           expect(res.code).to.equal(1)
         })
 
         it("garden exits with code 1 on unrecognized sub-command with --help flag", async () => {
-          const res = await cli.run({ args: ["get", "baby-groot", "--help"], exitOnError: false, cwd })
+          const res = await cli.run({ args: ["get", "baby-groot", "--help"], cwd })
 
           expect(res.code).to.equal(1)
         })
 
         it("garden exits with code 1 on unrecognized sub-command with unrecognized flag", async () => {
-          const res = await cli.run({ args: ["get", "baby-groot", "--i-am-groot"], exitOnError: false, cwd })
+          const res = await cli.run({ args: ["get", "baby-groot", "--i-am-groot"], cwd })
 
           expect(res.code).to.equal(1)
         })
@@ -374,7 +373,7 @@ describe("cli", () => {
         const cmd = new TestCommand()
         cli.addCommand(cmd)
 
-        await cli.run({ args: ["test-command"], exitOnError: false })
+        await cli.run({ args: ["test-command"] })
 
         const logger = getRootLogger()
         const writers = logger.getWriters()
@@ -384,7 +383,7 @@ describe("cli", () => {
 
     it("shows group help text if specified command is a group", async () => {
       const cmd = new UtilCommand()
-      const { code, consoleOutput } = await cli.run({ args: ["util"], exitOnError: false })
+      const { code, consoleOutput } = await cli.run({ args: ["util"] })
 
       expect(code).to.equal(1)
       expect(consoleOutput).to.equal(cmd.renderHelp())
@@ -393,7 +392,7 @@ describe("cli", () => {
     it("shows nested subcommand help text if provided subcommand is a group", async () => {
       const cmd = new CloudCommand()
       const secrets = new cmd.subCommands[0]()
-      const { code, consoleOutput } = await cli.run({ args: ["cloud", "secrets"], exitOnError: false })
+      const { code, consoleOutput } = await cli.run({ args: ["cloud", "secrets"] })
 
       expect(code).to.equal(1)
       expect(consoleOutput).to.equal(secrets.renderHelp())
@@ -402,21 +401,21 @@ describe("cli", () => {
     it("shows nested subcommand help text if requested", async () => {
       const cmd = new CloudCommand()
       const secrets = new cmd.subCommands[0]()
-      const { code, consoleOutput } = await cli.run({ args: ["cloud", "secrets", "--help"], exitOnError: false })
+      const { code, consoleOutput } = await cli.run({ args: ["cloud", "secrets", "--help"] })
 
       expect(code).to.equal(0)
       expect(consoleOutput).to.equal(secrets.renderHelp())
     })
 
     it("errors and shows general help if nonexistent command is given", async () => {
-      const { code, consoleOutput } = await cli.run({ args: ["nonexistent"], exitOnError: false })
+      const { code, consoleOutput } = await cli.run({ args: ["nonexistent"] })
 
       expect(code).to.equal(1)
       expect(consoleOutput).to.equal(await cli.renderHelp(log, "/"))
     })
 
     it("errors and shows general help if nonexistent command is given with --help", async () => {
-      const { code, consoleOutput } = await cli.run({ args: ["nonexistent", "--help"], exitOnError: false })
+      const { code, consoleOutput } = await cli.run({ args: ["nonexistent", "--help"] })
 
       expect(code).to.equal(1)
       expect(consoleOutput).to.equal(await cli.renderHelp(log, "/"))
@@ -438,7 +437,7 @@ describe("cli", () => {
       const cmd = new TestCommand()
       cli.addCommand(cmd)
 
-      const { code, result } = await cli.run({ args: ["test-command"], exitOnError: false })
+      const { code, result } = await cli.run({ args: ["test-command"] })
 
       expect(code).to.equal(0)
       expect(result).to.eql({ something: "important" })
@@ -460,7 +459,7 @@ describe("cli", () => {
       const cmd = new TestCommand()
       cli.addCommand(cmd)
 
-      const { code, result } = await cli.run({ args: ["test-command"], exitOnError: false })
+      const { code, result } = await cli.run({ args: ["test-command"] })
 
       expect(code).to.equal(0)
       expect(result).to.eql({ something: "important" })
@@ -498,7 +497,7 @@ describe("cli", () => {
       cli.addCommand(cmd)
 
       try {
-        const result = await cli.run({ args, exitOnError: false, processRecord })
+        const result = await cli.run({ args, processRecord })
         if (result.errors[0]) {
           throw result.errors[0]
         }
@@ -553,7 +552,7 @@ describe("cli", () => {
       cli.addCommand(cmd)
 
       try {
-        const result = await cli.run({ args, exitOnError: false, processRecord })
+        const result = await cli.run({ args, processRecord })
         if (result.errors[0]) {
           throw result.errors[0]
         }
@@ -592,7 +591,7 @@ describe("cli", () => {
         cli.addCommand(cmd)
       }
 
-      const { code, result } = await cli.run({ args: ["test-group", "test-command"], exitOnError: false })
+      const { code, result } = await cli.run({ args: ["test-group", "test-command"] })
 
       expect(code).to.equal(0)
       expect(result).to.eql({ something: "important" })
@@ -635,7 +634,6 @@ describe("cli", () => {
 
       const { code, result } = await cli.run({
         args: _args,
-        exitOnError: false,
       })
 
       expect(code).to.equal(0)
@@ -683,7 +681,6 @@ describe("cli", () => {
 
         const { code, result } = await cli.run({
           args: ["test-command"],
-          exitOnError: false,
         })
 
         expect(code).to.equal(0)
@@ -717,7 +714,6 @@ describe("cli", () => {
 
         const { code, result } = await cli.run({
           args: ["test-command", "--env", "foo"],
-          exitOnError: false,
         })
 
         expect(code).to.equal(0)
@@ -762,7 +758,6 @@ describe("cli", () => {
 
       const { code, result } = await cli.run({
         args: ["test-command", "foo-arg", "bar-arg", "--floop", "floop-opt", "--", "extra"],
-        exitOnError: false,
       })
 
       expect(code).to.equal(0)
@@ -837,7 +832,6 @@ describe("cli", () => {
 
       const { code, result } = await cli.run({
         args: ["test-group", "test-command", "foo-arg", "bar-arg", "--floop", "floop-opt"],
-        exitOnError: false,
       })
 
       expect(code).to.equal(0)
@@ -869,7 +863,7 @@ describe("cli", () => {
 
     it("aborts with usage information on invalid global options", async () => {
       const cmd = new ToolsCommand()
-      const { code, consoleOutput } = await cli.run({ args: ["tools", "--logger-type", "bla"], exitOnError: false })
+      const { code, consoleOutput } = await cli.run({ args: ["tools", "--logger-type", "bla"] })
 
       const stripped = stripAnsi(consoleOutput!).trim()
 
@@ -904,7 +898,7 @@ describe("cli", () => {
       const cmd = new TestCommand()
       cli.addCommand(cmd)
 
-      const { code, consoleOutput } = await cli.run({ args: ["test-command"], exitOnError: false })
+      const { code, consoleOutput } = await cli.run({ args: ["test-command"] })
 
       const stripped = stripAnsi(consoleOutput!).trim()
 
@@ -929,7 +923,7 @@ describe("cli", () => {
       const command = new TestCommand()
       cli.addCommand(command)
 
-      const { result } = await cli.run({ args: ["test-command", "--", "-v", "--flag", "arg"], exitOnError: false })
+      const { result } = await cli.run({ args: ["test-command", "--", "-v", "--flag", "arg"] })
       expect(result.args.$all).to.eql(["--", "-v", "--flag", "arg"])
     })
 
@@ -949,7 +943,7 @@ describe("cli", () => {
       const command = new TestCommand()
       cli.addCommand(command)
 
-      const { result } = await cli.run({ args: ["test-command", "--", "-v", "--flag", "arg"], exitOnError: false })
+      const { result } = await cli.run({ args: ["test-command", "--", "-v", "--flag", "arg"] })
       expect(result.args["--"]).to.eql(["-v", "--flag", "arg"])
     })
 
@@ -971,7 +965,6 @@ describe("cli", () => {
 
       const { result } = await cli.run({
         args: ["test-command-var", "--var", 'key-a=value-a,key-b="value with quotes",key-c.key-d=nested-value'],
-        exitOnError: false,
       })
       expect(result).to.eql({
         variables: { "key-a": "value-a", "key-b": "value with quotes", "key-c": { "key-d": "nested-value" } },
@@ -994,7 +987,7 @@ describe("cli", () => {
       const command = new TestCommand()
       cli.addCommand(command)
 
-      const { consoleOutput } = await cli.run({ args: ["test-command", "--output=json"], exitOnError: false })
+      const { consoleOutput } = await cli.run({ args: ["test-command", "--output=json"] })
       expect(JSON.parse(consoleOutput!)).to.eql({ result: { some: "output" }, success: true })
     })
 
@@ -1014,7 +1007,7 @@ describe("cli", () => {
       const command = new TestCommand()
       cli.addCommand(command)
 
-      const { consoleOutput } = await cli.run({ args: ["test-command", "--output=yaml"], exitOnError: false })
+      const { consoleOutput } = await cli.run({ args: ["test-command", "--output=yaml"] })
       expect(load(consoleOutput!)).to.eql({ result: { some: "output" }, success: true })
     })
 
@@ -1034,7 +1027,7 @@ describe("cli", () => {
       const command = new TestCommand2()
       cli.addCommand(command)
 
-      const { result, errors } = await cli.run({ args: ["test-command-2", "--env", "missing-env"], exitOnError: false })
+      const { result, errors } = await cli.run({ args: ["test-command-2", "--env", "missing-env"] })
       expect(errors).to.eql([])
       expect(result).to.eql({ environmentName: "missing-env" })
     })
@@ -1055,7 +1048,7 @@ describe("cli", () => {
       const command = new TestCommand3()
       cli.addCommand(command)
 
-      const { errors } = await cli.run({ args: ["test-command-3", "--env", "$.%"], exitOnError: false })
+      const { errors } = await cli.run({ args: ["test-command-3", "--env", "$.%"] })
 
       expect(errors.length).to.equal(1)
       expect(stripAnsi(errors[0].message)).to.equal(
@@ -1091,7 +1084,7 @@ describe("cli", () => {
         const cmd = new TestCommand()
         cli.addCommand(cmd)
 
-        const { code } = await cli.run({ args: ["test-command"], exitOnError: false })
+        const { code } = await cli.run({ args: ["test-command"] })
 
         const output = stripAnsi(hook.captured())
         expect(code).to.equal(1)
@@ -1117,7 +1110,7 @@ describe("cli", () => {
         const cmd = new TestCommand()
         cli.addCommand(cmd)
 
-        const { code } = await cli.run({ args: ["test-command"], exitOnError: false })
+        const { code } = await cli.run({ args: ["test-command"] })
 
         expect(code).to.equal(1)
         const outputLines = stripAnsi(hook.captured()).split("\n")
@@ -1159,7 +1152,7 @@ describe("cli", () => {
         const cmd = new TestCommand()
         cli.addCommand(cmd)
 
-        const { code, consoleOutput } = await cli.run({ args: ["test-command", "-o", "yaml"], exitOnError: false })
+        const { code, consoleOutput } = await cli.run({ args: ["test-command", "-o", "yaml"] })
 
         expect(code).to.equal(1)
         const resultData = load(consoleOutput!) as any
@@ -1208,7 +1201,7 @@ describe("cli", () => {
       cli.addCommand(cmd)
       cli.addCommand(hiddenCmd)
 
-      const { code, consoleOutput } = await cli.run({ args: ["--help"], exitOnError: false })
+      const { code, consoleOutput } = await cli.run({ args: ["--help"] })
 
       expect(code).to.equal(0)
       expect(consoleOutput).to.include("test-command")

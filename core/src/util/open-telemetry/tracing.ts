@@ -17,8 +17,8 @@ import type { OTLPExporterNodeConfigBase } from "@opentelemetry/otlp-exporter-ba
 import { NoOpExporter } from "./exporters/no-op-exporter.js"
 
 export const tracer = opentelemetry.api.trace.getTracer("garden")
-
 export const reconfigurableExporter = new ReconfigurableExporter()
+const hasOtelEnvConfiguration = !!process.env.OTEL_TRACES_EXPORTER
 
 // Singleton we initialize either when we get the SDK the first time
 // or when we call `initTracing` explicitly
@@ -40,6 +40,18 @@ export const getOtelSDK: () => opentelemetry.NodeSDK = () => {
 }
 
 /**
+ * Used to check if OTEL has been properly configured, either via the OTEL_ env vars or by
+ * setting a target exporter for the ReconfigurableExporter.
+ *
+ * This is needed because attempting to shut down OTEL will hang if no target exporter has been set.
+ *
+ * @returns boolean
+ */
+export function isOtelExporterConfigured() {
+  return hasOtelEnvConfiguration || reconfigurableExporter.hasTargetExporter()
+}
+
+/**
  * Initializes the tracing and auto-instrumentations.
  * Should be called as early as possible in the application initialization
  * so that it can inject its instrumentations before other libraries may add their custom wrappers.
@@ -53,8 +65,6 @@ export function initTracing(): opentelemetry.NodeSDK {
   if (!gardenEnv.GARDEN_ENABLE_TRACING) {
     process.env.OTEL_SDK_DISABLED = "true"
   }
-
-  const hasOtelEnvConfiguration = !!process.env.OTEL_TRACES_EXPORTER
 
   otelSDK = new opentelemetry.NodeSDK({
     serviceName: "garden-cli",

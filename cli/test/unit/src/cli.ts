@@ -32,7 +32,6 @@ describe("runCli", () => {
     const projectRoot = resolve(testRoot, "test-projects", "bundled-projects")
     const { cli, result } = await runCli({
       args: ["tools", "--root", projectRoot],
-      exitOnError: false,
       initLogger: false,
     })
 
@@ -67,7 +66,6 @@ describe("runCli", () => {
     const { result } = await runCli({
       args: [cmd.name, "--root", projectRootA],
       cli,
-      exitOnError: false,
       initLogger: false,
     })
 
@@ -89,7 +87,7 @@ describe("runCli", () => {
     const cmd = new TestCommand()
     cli.addCommand(cmd)
 
-    await runCli({ args: [cmd.name, "--root", projectRootA], cli, exitOnError: false, initLogger: false })
+    await runCli({ args: [cmd.name, "--root", projectRootA], cli, initLogger: false })
 
     const allProcesses = Object.values(await globalConfigStore.get("activeProcesses"))
     const record = find(allProcesses, (p) => p.command)

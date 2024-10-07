@@ -59,7 +59,7 @@ describe("cli analytics", () => {
     const command = new TestCommand()
     cli.addCommand(command)
 
-    await cli.run({ args: ["test-command"], exitOnError: false })
+    await cli.run({ args: ["test-command"] })
 
     expect(scope.done()).to.not.throw
   })
@@ -95,7 +95,7 @@ describe("cli analytics", () => {
     const command = new TestCommand()
     cli.addCommand(command)
 
-    await cli.run({ args: ["test-command"], exitOnError: false })
+    await cli.run({ args: ["test-command"] })
 
     expect(scope.done()).to.not.throw
   })
@@ -110,7 +110,7 @@ describe("cli analytics", () => {
 
     cli.addCommand(command)
 
-    await cli.run({ args: ["test-command"], exitOnError: false })
+    await cli.run({ args: ["test-command"] })
 
     expect(scope.isDone()).to.equal(false)
   })
