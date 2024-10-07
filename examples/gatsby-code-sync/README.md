@@ -1,12 +1,6 @@
-<p align="center">
-  <a href="https://next.gatsbyjs.org">
-    <img alt="Gatsby" src="https://www.gatsbyjs.com/Gatsby-Monogram.svg" width="60" />
-  </a>
-</p>
-
 # Code synchronization example project with Gatsby.js
 
-This project shows how you can configure Garden to perform code synchronization. We'll use [Gatsby.js](https://www.gatsbyjs.org/), a static site generator with built-in live reload support to try out the functionality.
+This project shows how you can configure Garden to perform code synchronization. We'll use [Gatsby.js](https://docs.netlify.com/frameworks/gatsby), a static site generator with built-in live reload support to try out the functionality.
 
 ## Usage
 
