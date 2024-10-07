@@ -59,7 +59,7 @@
     "minimist": "^1.2.6",
     "node-jsonl": "^0.1.0",
     "npm-license-crawler": "^0.2.1",
-    "prettier": "3.2.5",
+    "prettier": "3.3.3",
     "replace-in-file": "^7.1.0",
     "@rollup/wasm-node": "^4.18.0",
     "semver": "^7.6.3",
