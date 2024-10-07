@@ -228,7 +228,7 @@
     "eslint-plugin-no-null": "^1.0.2",
     "eslint-plugin-react": "^7.33.2",
     "finalhandler": "^1.2.0",
-    "google-auth-library": "^9.6.3",
+    "google-auth-library": "^9.14.1",
     "md5": "^2.3.0",
     "mocha": "^10.6.0",
     "mockttp": "^3.15.3",
