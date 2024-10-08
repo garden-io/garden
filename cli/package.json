@@ -34,7 +34,7 @@
     "chalk": "^5.3.0",
     "tar": "^6.2.1",
     "undici": "^6.19.8",
-    "unzipper": "^0.10.14"
+    "unzipper": "^0.12.3"
   },
   "devDependencies": {
     "@types/chai": "^4.3.4",
