@@ -30,7 +30,7 @@ parameters:
       docker_layer_caching: true
 
   runner-image: &runner-image
-    image: gardendev/circleci-runner:22.6.0-0@sha256:31ca9ad41fef9c75a128b2e262cc0440aeccbb5649d33e3d7765b942c6734551
+    image: gardendev/circleci-runner:22.9.0-0@sha256:758f4be031cb663fdaa62919972bd34be72781cebb11c37ecff2f13741f87d7f
 
   # Configuration for our node jobs
   docker-runner: &docker-runner
@@ -100,7 +100,7 @@ commands:
       node_version:
         description: The node version to use
         type: string
-        default: v22.6.0
+        default: v22.9.0
     steps:
       # See also https://github.com/CircleCI-Public/node-orb/issues/158#issuecomment-1461095390
       - run: rm -rf ~/.npm ~/.fnm
