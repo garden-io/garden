@@ -9,6 +9,7 @@
 
 ### Bundled Tool Version Updates
 
+* **images:** update `buildkit` image to fix CVE-2023-44487 ([#6522](https://github.com/garden-io/garden/issues/6522)) ([b75370551](https://github.com/garden-io/garden/commit/b75370551))
 * **kubectl:** update version to 1.30.4 ([#6519](https://github.com/garden-io/garden/issues/6519)) ([86a644788](https://github.com/garden-io/garden/commit/86a644788))
 
 <a name="0.13.41"></a>
