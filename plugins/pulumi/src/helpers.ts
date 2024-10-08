@@ -301,9 +301,6 @@ export async function applyConfig(params: PulumiParams & { previewDirPath?: stri
   }
   vars = <DeepPrimitiveMap>merge(vars, pulumiVars || {})
   log.debug(`merged vars: ${JSON.stringify(vars, null, 2)}`)
-  // TODO [!!!] Note the fact that this overwrites any existing pulumi config contents
-  //            instead of merging them in in the PR, since I'm not sure if that
-  //            behaviour is intentional or not.
   stackConfig.config = vars
 
   stackConfig.backend = { url: params.provider.config.backendURL }
