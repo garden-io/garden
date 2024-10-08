@@ -1,4 +1,16 @@
 
+<a name="0.13.42"></a>
+## [0.13.42](https://github.com/garden-io/garden/compare/0.13.41...0.13.42) (2024-10-08)
+
+### Bug Fixes
+
+* misleading warning message when cloud session is expired ([#6503](https://github.com/garden-io/garden/issues/6503)) ([8359ae334](https://github.com/garden-io/garden/commit/8359ae334))
+* **otel:** ensure OTEL sends final span when -o opt is used ([#6505](https://github.com/garden-io/garden/issues/6505)) ([7b96bdb64](https://github.com/garden-io/garden/commit/7b96bdb64))
+
+### Bundled Tool Version Updates
+
+* **kubectl:** update version to 1.30.4 ([#6519](https://github.com/garden-io/garden/issues/6519)) ([86a644788](https://github.com/garden-io/garden/commit/86a644788))
+
 <a name="0.13.41"></a>
 ## [0.13.41](https://github.com/garden-io/garden/compare/0.13.40...0.13.41) (2024-09-26)
 
