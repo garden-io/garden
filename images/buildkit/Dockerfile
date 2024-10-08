@@ -1,4 +1,4 @@
-FROM moby/buildkit:v0.13.2@sha256:9194b5ec1be368f41c516df7f93f7f540630ea06136056b2ffebb62226ed4ad6 as buildkit
+FROM moby/buildkit:v0.16.0@sha256:bc1fe18224dbcb92599139db0c745696c48ba9fd4ac24038d1fa81fdd7dcac27 as buildkit
 
 RUN apk add --no-cache wget
 
