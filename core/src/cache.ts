@@ -148,10 +148,9 @@ export class TreeCache {
     if (entry) {
       log.silly(() => `TreeCache: Found cached value for key ${stringKey}`)
       return entry.value
-    } else {
-      log.silly(() => `TreeCache: No cached value for key ${stringKey}`)
-      return
     }
+
+    return undefined
   }
 
   getOrThrow(log: Log, key: CacheKey): CacheValue {
