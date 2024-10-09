@@ -89,6 +89,8 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
   linkedSources: LinkedSourceMap
   actionsFilter?: string[]
 }): Promise<MutableConfigGraph> {
+  log.debug(`Building graph from ${configs.length} action configs and ${groupConfigs.length} group configs`)
+
   const configsByKey: ActionConfigsByKey = {}
 
   function addConfig(config: ActionConfig) {
@@ -237,8 +239,10 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
     }
   }
 
-  // Optimize file scanning by avoiding unnecessarily broad scans when project is not in repo root.
   const preprocessedConfigs = Object.values(preprocessResults).map((r) => r.config)
+  log.debug(`Got ${preprocessedConfigs.length} action configs ${!!actionsFilter ? "with" : "without"} action filter`)
+
+  // Optimize file scanning by avoiding unnecessarily broad scans when project is not in repo root.
   const allPaths = preprocessedConfigs.map((c) => getSourcePath(c))
   const minimalRoots = await garden.vcs.getMinimalRoots(log, allPaths)
 
