@@ -156,6 +156,7 @@ export abstract class AbstractGitHandler extends VcsHandler {
   async getRepoRoot(log: Log, path: string, failOnPrompt = false): Promise<string> {
     let cachedRepoRoot = this.repoRoots.get(path)
     if (!!cachedRepoRoot) {
+      this.profiler.inc("GitHandler.RepoRoots.hits")
       return cachedRepoRoot
     }
 
@@ -163,6 +164,7 @@ export abstract class AbstractGitHandler extends VcsHandler {
     return this.lock.acquire(`repo-root:${path}`, async () => {
       cachedRepoRoot = this.repoRoots.get(path)
       if (!!cachedRepoRoot) {
+        this.profiler.inc("GitHandler.RepoRoots.hits")
         return cachedRepoRoot
       }
 
@@ -170,6 +172,7 @@ export abstract class AbstractGitHandler extends VcsHandler {
         const git = new GitCli({ log, cwd: path, failOnPrompt })
         const repoRoot = await git.getRepositoryRoot()
         this.repoRoots.set(path, repoRoot)
+        this.profiler.inc("GitHandler.RepoRoots.misses")
         return repoRoot
       } catch (err) {
         if (!(err instanceof ChildProcessError)) {

@@ -70,6 +70,39 @@ import { getSourcePath } from "../vcs/vcs.js"
 import { actionIsDisabled } from "../actions/base.js"
 import { styles } from "../logger/styles.js"
 
+function addActionConfig({
+  garden,
+  log,
+  config,
+  collector,
+}: {
+  garden: Garden
+  log: Log
+  config: ActionConfig
+  collector: ActionConfigsByKey
+}) {
+  if (!actionKinds.includes(config.kind)) {
+    throw new ConfigurationError({ message: `Unknown action kind: ${config.kind}` })
+  }
+
+  const key = actionReferenceToString(config)
+  const existing = collector[key]
+
+  if (existing) {
+    if (actionIsDisabled(config, garden.environmentName)) {
+      log.silly(() => `Skipping disabled action ${key} in favor of other action with same key`)
+      return
+    } else if (actionIsDisabled(existing, garden.environmentName)) {
+      log.silly(() => `Skipping disabled action ${key} in favor of other action with same key`)
+      collector[key] = config
+      return
+    } else {
+      throw actionNameConflictError(existing, config, garden.projectRoot)
+    }
+  }
+  collector[key] = config
+}
+
 export const actionConfigsToGraph = profileAsync(async function actionConfigsToGraph({
   garden,
   log,
@@ -89,32 +122,13 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
   linkedSources: LinkedSourceMap
   actionsFilter?: string[]
 }): Promise<MutableConfigGraph> {
+  log.debug(`Building graph from ${configs.length} action configs and ${groupConfigs.length} group configs`)
+
   const configsByKey: ActionConfigsByKey = {}
 
-  function addConfig(config: ActionConfig) {
-    if (!actionKinds.includes(config.kind)) {
-      throw new ConfigurationError({ message: `Unknown action kind: ${config.kind}` })
-    }
-
-    const key = actionReferenceToString(config)
-    const existing = configsByKey[key]
-
-    if (existing) {
-      if (actionIsDisabled(config, garden.environmentName)) {
-        log.silly(() => `Skipping disabled action ${key} in favor of other action with same key`)
-        return
-      } else if (actionIsDisabled(existing, garden.environmentName)) {
-        log.silly(() => `Skipping disabled action ${key} in favor of other action with same key`)
-        configsByKey[key] = config
-        return
-      } else {
-        throw actionNameConflictError(existing, config, garden.projectRoot)
-      }
-    }
-    configsByKey[key] = config
+  for (const config of configs) {
+    addActionConfig({ garden, log, config, collector: configsByKey })
   }
-
-  configs.forEach(addConfig)
 
   for (const group of groupConfigs) {
     for (const config of group.actions) {
@@ -124,9 +138,11 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
         config.internal.configFilePath = group.internal.configFilePath
       }
 
-      addConfig(config)
+      addActionConfig({ garden, log, config, collector: configsByKey })
     }
   }
+
+  log.debug(`Retained ${Object.keys(configsByKey).length} configs`)
 
   const router = await garden.getActionRouter()
 
@@ -137,7 +153,7 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
   //
   // Doing this in two steps makes the code a bit less readable, but it's worth it for the performance boost.
   const preprocessResults: { [key: string]: PreprocessActionResult } = {}
-  const computedActionModes: { [key: string]: { mode: ActionMode; explicitMode: boolean } } = {}
+  const computedActionModes: { [key: string]: ComputedActionMode } = {}
 
   const preprocessActions = async (predicate: (config: ActionConfig) => boolean = () => true) => {
     return await Promise.all(
@@ -166,7 +182,9 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
   }
 
   // First preprocess only the Deploy actions, so we can infer the mode of Build actions that are used by them.
+  log.debug(`Preprocessing Deploy action configs...`)
   await preprocessActions((config) => config.kind === "Deploy")
+  log.debug(`Preprocessed Deploy action configs`)
 
   // This enables users to use `this.mode` in Build action configs, such that `this.mode == "sync"`
   // when a Deploy action that uses the Build action is in sync mode.
@@ -196,10 +214,13 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
 
   // Preprocess all remaining actions (Deploy actions are preprocessed above)
   // We are preprocessing actions in two batches so we can infer the mode of Build actions that are used by Deploy actions. See the comments above.
+  log.debug(`Preprocessing non-Deploy action configs...`)
   await preprocessActions((config) => config.kind !== "Deploy")
+  log.debug(`Preprocessed non-Deploy action configs`)
 
   // Apply actionsFilter if provided to avoid unnecessary VCS scanning and resolution
   if (actionsFilter) {
+    log.debug(`Applying action filter...`)
     const depGraph = new DependencyGraph<string>()
 
     for (const [key, res] of Object.entries(preprocessResults)) {
@@ -235,12 +256,18 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
         delete preprocessResults[key]
       }
     }
+
+    log.debug(`Applied action filter`)
   }
 
-  // Optimize file scanning by avoiding unnecessarily broad scans when project is not in repo root.
   const preprocessedConfigs = Object.values(preprocessResults).map((r) => r.config)
+  log.debug(`Got ${preprocessedConfigs.length} action configs ${!!actionsFilter ? "with" : "without"} action filter`)
+
+  // Optimize file scanning by avoiding unnecessarily broad scans when project is not in repo root.
   const allPaths = preprocessedConfigs.map((c) => getSourcePath(c))
+  log.debug(`Finding minimal roots for ${allPaths.length} paths`)
   const minimalRoots = await garden.vcs.getMinimalRoots(log, allPaths)
+  log.debug(`Finding minimal roots for ${allPaths.length} paths`)
 
   // TODO: Maybe we could optimize resolving tree versions, avoid parallel scanning of the same directory etc.
   const graph = new MutableConfigGraph({
@@ -250,6 +277,7 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
     groups: groupConfigs,
   })
 
+  log.debug(`Processing ${Object.keys(preprocessResults).length} action configs...`)
   await Promise.all(
     Object.entries(preprocessResults).map(async ([key, res]) => {
       const { config, linkedSource, remoteSourcePath, supportedModes, dependencies } = res
@@ -293,8 +321,11 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
       }
     })
   )
+  log.debug(`Processed ${Object.keys(preprocessResults).length} action configs`)
 
+  log.debug(`Validating the graph`)
   graph.validate()
+  log.debug(`Validation is done.`)
 
   return graph
 })
@@ -384,7 +415,7 @@ export const actionFromConfig = profileAsync(async function actionFromConfig({
   })
 })
 
-async function processActionConfig({
+export const processActionConfig = profileAsync(async function processActionConfig({
   garden,
   graph,
   config,
@@ -504,7 +535,7 @@ async function processActionConfig({
   } else {
     return config satisfies never
   }
-}
+})
 
 export function actionNameConflictError(configA: ActionConfig, configB: ActionConfig, rootPath: string) {
   return new ConfigurationError({
@@ -653,6 +684,11 @@ interface PreprocessActionResult {
   supportedModes: ActionModes
   remoteSourcePath: string | null
   linkedSource: LinkedSource | null
+}
+
+interface ComputedActionMode {
+  mode: ActionMode
+  explicitMode: boolean
 }
 
 export const preprocessActionConfig = profileAsync(async function preprocessActionConfig({

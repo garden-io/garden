@@ -1074,18 +1074,18 @@ export class Garden {
     )
 
     // Get action configs
-    const actionConfigs: ActionConfigsByKey = {}
+    const actionConfigsByKey: ActionConfigsByKey = {}
 
     for (const kind of actionKinds) {
       for (const name in this.actionConfigs[kind]) {
         const key = actionReferenceToString({ kind, name })
-        actionConfigs[key] = this.actionConfigs[kind][name]
+        actionConfigsByKey[key] = this.actionConfigs[kind][name]
       }
     }
 
     for (const config of moduleActionConfigs) {
       const key = actionReferenceToString(config)
-      const existing = actionConfigs[key]
+      const existing = actionConfigsByKey[key]
 
       if (existing) {
         const moduleActionPath = config.internal.configFilePath || config.internal.basePath
@@ -1095,15 +1095,16 @@ export class Garden {
         })
       }
 
-      actionConfigs[key] = config
+      actionConfigsByKey[key] = config
     }
 
     // Resolve configs to Actions
     const linkedSources = keyBy(await getLinkedSources(this, "action"), "name")
 
+    const actionConfigs = Object.values(actionConfigsByKey)
     const graph = await actionConfigsToGraph({
       garden: this,
-      configs: Object.values(actionConfigs),
+      configs: actionConfigs,
       groupConfigs: moduleGroups,
       log: graphLog,
       moduleGraph,
@@ -1161,14 +1162,14 @@ export class Garden {
             config,
             router,
             log: graphLog,
-            configsByKey: actionConfigs,
+            configsByKey: actionConfigsByKey,
             mode: actionModes[key] || "default",
             linkedSources,
             scanRoot: config.internal.basePath,
           })
 
           graph.addAction(action)
-          actionConfigs[key] = config
+          actionConfigsByKey[key] = config
 
           updated = true
         })
