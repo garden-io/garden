@@ -216,7 +216,7 @@ describe("DeployTask", () => {
           payload: {
             actionName: "test-deploy",
             actionVersion,
-            actionType: "deploy",
+            actionType: "test",
             actionKind: "deploy",
             actionUid,
             moduleName: null,
@@ -234,7 +234,7 @@ describe("DeployTask", () => {
           payload: {
             actionName: "test-deploy",
             actionVersion,
-            actionType: "deploy",
+            actionType: "test",
             actionKind: "deploy",
             actionUid,
             moduleName: null,
@@ -258,7 +258,7 @@ describe("DeployTask", () => {
           payload: {
             actionName: "test-deploy",
             actionVersion,
-            actionType: "deploy",
+            actionType: "test",
             actionKind: "deploy",
             actionUid,
             moduleName: null,
@@ -276,7 +276,7 @@ describe("DeployTask", () => {
           payload: {
             actionName: "test-deploy",
             actionVersion,
-            actionType: "deploy",
+            actionType: "test",
             actionKind: "deploy",
             actionUid,
             moduleName: null,

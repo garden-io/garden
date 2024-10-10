@@ -163,7 +163,7 @@ describe("RunTask", () => {
           payload: {
             actionName: "test",
             actionVersion,
-            actionType: "run",
+            actionType: "test",
             actionKind: "run",
             actionUid,
             moduleName: null,
@@ -181,7 +181,7 @@ describe("RunTask", () => {
           payload: {
             actionName: "test",
             actionVersion,
-            actionType: "run",
+            actionType: "test",
             actionKind: "run",
             actionUid,
             moduleName: null,
@@ -200,7 +200,7 @@ describe("RunTask", () => {
           payload: {
             actionName: "test",
             actionVersion,
-            actionType: "run",
+            actionType: "test",
             actionKind: "run",
             actionUid,
             moduleName: null,
@@ -218,7 +218,7 @@ describe("RunTask", () => {
           payload: {
             actionName: "test",
             actionVersion,
-            actionType: "run",
+            actionType: "test",
             actionKind: "run",
             actionUid,
             moduleName: null,

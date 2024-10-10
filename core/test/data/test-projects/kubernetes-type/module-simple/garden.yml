@@ -43,7 +43,6 @@ tasks:
     command: [sh, -c, "echo ok"]
 
 ---
-
 kind: Run
 name: echo-run-exec
 type: kubernetes-exec
@@ -56,7 +55,6 @@ spec:
   command: [echo, ok]
 
 ---
-
 kind: Test
 name: echo-test-exec
 type: kubernetes-exec

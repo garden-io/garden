@@ -134,7 +134,7 @@ export interface ActionDependencyAttributes {
   needsExecutedOutputs: boolean // Set to true if action cannot be resolved without the dependency executed
 }
 
-export type ActionDependency = ActionReference & ActionDependencyAttributes
+export type ActionDependency = ActionReference & ActionDependencyAttributes & { type: string }
 
 export interface ActionModes {
   sync?: boolean
