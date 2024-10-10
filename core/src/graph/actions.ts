@@ -70,6 +70,39 @@ import { getSourcePath } from "../vcs/vcs.js"
 import { actionIsDisabled } from "../actions/base.js"
 import { styles } from "../logger/styles.js"
 
+function addConfig({
+  garden,
+  log,
+  config,
+  collector,
+}: {
+  garden: Garden
+  log: Log
+  config: ActionConfig
+  collector: ActionConfigsByKey
+}) {
+  if (!actionKinds.includes(config.kind)) {
+    throw new ConfigurationError({ message: `Unknown action kind: ${config.kind}` })
+  }
+
+  const key = actionReferenceToString(config)
+  const existing = collector[key]
+
+  if (existing) {
+    if (actionIsDisabled(config, garden.environmentName)) {
+      log.silly(() => `Skipping disabled action ${key} in favor of other action with same key`)
+      return
+    } else if (actionIsDisabled(existing, garden.environmentName)) {
+      log.silly(() => `Skipping disabled action ${key} in favor of other action with same key`)
+      collector[key] = config
+      return
+    } else {
+      throw actionNameConflictError(existing, config, garden.projectRoot)
+    }
+  }
+  collector[key] = config
+}
+
 export const actionConfigsToGraph = profileAsync(async function actionConfigsToGraph({
   garden,
   log,
@@ -93,30 +126,9 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
 
   const configsByKey: ActionConfigsByKey = {}
 
-  function addConfig(config: ActionConfig) {
-    if (!actionKinds.includes(config.kind)) {
-      throw new ConfigurationError({ message: `Unknown action kind: ${config.kind}` })
-    }
-
-    const key = actionReferenceToString(config)
-    const existing = configsByKey[key]
-
-    if (existing) {
-      if (actionIsDisabled(config, garden.environmentName)) {
-        log.silly(() => `Skipping disabled action ${key} in favor of other action with same key`)
-        return
-      } else if (actionIsDisabled(existing, garden.environmentName)) {
-        log.silly(() => `Skipping disabled action ${key} in favor of other action with same key`)
-        configsByKey[key] = config
-        return
-      } else {
-        throw actionNameConflictError(existing, config, garden.projectRoot)
-      }
-    }
-    configsByKey[key] = config
+  for (const config of configs) {
+    addConfig({ garden, log, config, collector: configsByKey })
   }
-
-  configs.forEach(addConfig)
 
   for (const group of groupConfigs) {
     for (const config of group.actions) {
@@ -126,7 +138,7 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
         config.internal.configFilePath = group.internal.configFilePath
       }
 
-      addConfig(config)
+      addConfig({ garden, log, config, collector: configsByKey })
     }
   }
 
