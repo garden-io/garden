@@ -72,6 +72,7 @@ import { gardenEnv } from "../../constants.js"
 import { styles } from "../../logger/styles.js"
 import { commandListToShellScript } from "../../util/escape.js"
 import { toClearText } from "../../util/secrets.js"
+import type { V1Container } from "@kubernetes/client-node"
 
 export const builtInExcludes = ["/**/*.git", "**/*.garden"]
 
@@ -462,7 +463,7 @@ export async function configureSyncMode({
     }
     const k8sSyncUtilImageName = getK8sSyncUtilImageName()
     if (!podSpec.initContainers.find((c) => c.image === k8sSyncUtilImageName)) {
-      const initContainer = {
+      const initContainer: V1Container = {
         name: k8sSyncUtilContainerName,
         image: k8sSyncUtilImageName,
         command: [
@@ -475,6 +476,7 @@ export async function configureSyncMode({
         volumeMounts: [gardenVolumeMount],
       }
       podSpec.initContainers.push(initContainer)
+      podSpec.imagePullSecrets = provider.config.imagePullSecrets
     }
 
     if (!targetContainer.volumeMounts) {
