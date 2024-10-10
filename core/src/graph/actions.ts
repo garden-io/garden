@@ -142,6 +142,8 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
     }
   }
 
+  log.debug(`Retained ${Object.keys(configsByKey).length} configs`)
+
   const router = await garden.getActionRouter()
 
   // We need to preprocess the action configs to make sure any template strings have been resolved on the `source.path`
@@ -180,7 +182,9 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
   }
 
   // First preprocess only the Deploy actions, so we can infer the mode of Build actions that are used by them.
+  log.debug(`Preprocessing Deploy action configs...`)
   await preprocessActions((config) => config.kind === "Deploy")
+  log.debug(`Preprocessed Deploy action configs`)
 
   // This enables users to use `this.mode` in Build action configs, such that `this.mode == "sync"`
   // when a Deploy action that uses the Build action is in sync mode.
@@ -210,10 +214,13 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
 
   // Preprocess all remaining actions (Deploy actions are preprocessed above)
   // We are preprocessing actions in two batches so we can infer the mode of Build actions that are used by Deploy actions. See the comments above.
+  log.debug(`Preprocessing non-Deploy action configs...`)
   await preprocessActions((config) => config.kind !== "Deploy")
+  log.debug(`Preprocessed non-Deploy action configs`)
 
   // Apply actionsFilter if provided to avoid unnecessary VCS scanning and resolution
   if (actionsFilter) {
+    log.debug(`Applying action filter...`)
     const depGraph = new DependencyGraph<string>()
 
     for (const [key, res] of Object.entries(preprocessResults)) {
@@ -249,6 +256,8 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
         delete preprocessResults[key]
       }
     }
+
+    log.debug(`Applied action filter`)
   }
 
   const preprocessedConfigs = Object.values(preprocessResults).map((r) => r.config)
@@ -256,7 +265,9 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
 
   // Optimize file scanning by avoiding unnecessarily broad scans when project is not in repo root.
   const allPaths = preprocessedConfigs.map((c) => getSourcePath(c))
+  log.debug(`Finding minimal roots for ${allPaths.length} paths`)
   const minimalRoots = await garden.vcs.getMinimalRoots(log, allPaths)
+  log.debug(`Finding minimal roots for ${allPaths.length} paths`)
 
   // TODO: Maybe we could optimize resolving tree versions, avoid parallel scanning of the same directory etc.
   const graph = new MutableConfigGraph({
@@ -266,6 +277,7 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
     groups: groupConfigs,
   })
 
+  log.debug(`Processing ${Object.keys(preprocessResults).length} action configs...`)
   await Promise.all(
     Object.entries(preprocessResults).map(async ([key, res]) => {
       const { config, linkedSource, remoteSourcePath, supportedModes, dependencies } = res
@@ -309,8 +321,11 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
       }
     })
   )
+  log.debug(`Processed ${Object.keys(preprocessResults).length} action configs`)
 
+  log.debug(`Validating the graph`)
   graph.validate()
+  log.debug(`Validation is done.`)
 
   return graph
 })
