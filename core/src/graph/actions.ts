@@ -151,7 +151,7 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
   //
   // Doing this in two steps makes the code a bit less readable, but it's worth it for the performance boost.
   const preprocessResults: { [key: string]: PreprocessActionResult } = {}
-  const computedActionModes: { [key: string]: { mode: ActionMode; explicitMode: boolean } } = {}
+  const computedActionModes: { [key: string]: ComputedActionMode } = {}
 
   const preprocessActions = async (predicate: (config: ActionConfig) => boolean = () => true) => {
     return await Promise.all(
@@ -669,6 +669,11 @@ interface PreprocessActionResult {
   supportedModes: ActionModes
   remoteSourcePath: string | null
   linkedSource: LinkedSource | null
+}
+
+interface ComputedActionMode {
+  mode: ActionMode
+  explicitMode: boolean
 }
 
 export const preprocessActionConfig = profileAsync(async function preprocessActionConfig({
