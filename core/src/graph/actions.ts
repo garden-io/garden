@@ -415,7 +415,7 @@ export const actionFromConfig = profileAsync(async function actionFromConfig({
   })
 })
 
-async function processActionConfig({
+export const processActionConfig = profileAsync(async function processActionConfig({
   garden,
   graph,
   config,
@@ -535,7 +535,7 @@ async function processActionConfig({
   } else {
     return config satisfies never
   }
-}
+})
 
 export function actionNameConflictError(configA: ActionConfig, configB: ActionConfig, rootPath: string) {
   return new ConfigurationError({
