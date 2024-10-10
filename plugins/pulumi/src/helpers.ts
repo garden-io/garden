@@ -258,10 +258,11 @@ export async function applyConfig(params: PulumiParams & { previewDirPath?: stri
   let stackConfigFileExists: boolean
   try {
     const fileData = await readFile(stackConfigPath)
-    stackConfig = await loadAndValidateYaml(
+    const stackConfigDocs = await loadAndValidateYaml(
       fileData.toString(),
       `${basename(stackConfigPath)} in directory ${dirname(stackConfigPath)}`
-    )[0].toJS()
+    )
+    stackConfig = stackConfigDocs[0].toJS()
     stackConfigFileExists = true
   } catch (err) {
     log.debug(`No pulumi stack configuration file for action ${action.name} found at ${stackConfigPath}`)
@@ -310,9 +311,8 @@ export async function applyConfig(params: PulumiParams & { previewDirPath?: stri
     `)
   } else {
     log.debug(`merged config (written to ${stackConfigPath}): ${JSON.stringify(stackConfig, null, 2)}`)
+    await dumpYaml(stackConfigPath, stackConfig)
   }
-
-  await dumpYaml(stackConfigPath, stackConfig)
 
   return stackConfigPath
 }
