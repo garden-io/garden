@@ -70,7 +70,7 @@ import { getSourcePath } from "../vcs/vcs.js"
 import { actionIsDisabled } from "../actions/base.js"
 import { styles } from "../logger/styles.js"
 
-function addConfig({
+function addActionConfig({
   garden,
   log,
   config,
@@ -127,7 +127,7 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
   const configsByKey: ActionConfigsByKey = {}
 
   for (const config of configs) {
-    addConfig({ garden, log, config, collector: configsByKey })
+    addActionConfig({ garden, log, config, collector: configsByKey })
   }
 
   for (const group of groupConfigs) {
@@ -138,7 +138,7 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
         config.internal.configFilePath = group.internal.configFilePath
       }
 
-      addConfig({ garden, log, config, collector: configsByKey })
+      addActionConfig({ garden, log, config, collector: configsByKey })
     }
   }
 
