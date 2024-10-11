@@ -303,7 +303,7 @@ export async function configureSyncMode({
   spec,
 }: {
   ctx: PluginContext
-  log: Log
+  log: ActionLog
   provider: KubernetesProvider
   action: Resolved<SyncableRuntimeAction>
   defaultTarget: KubernetesTargetResourceSpec | undefined
@@ -461,10 +461,12 @@ export async function configureSyncMode({
     if (!podSpec.initContainers) {
       podSpec.initContainers = []
     }
+
     if (!podSpec.imagePullSecrets) {
       podSpec.imagePullSecrets = []
     }
     const k8sSyncUtilImageName = getK8sSyncUtilImageName()
+
     if (!podSpec.initContainers.find((c) => c.image === k8sSyncUtilImageName)) {
       const initContainer: V1Container = {
         name: k8sSyncUtilContainerName,
@@ -479,7 +481,8 @@ export async function configureSyncMode({
         volumeMounts: [gardenVolumeMount],
       }
       podSpec.initContainers.push(initContainer)
-      podSpec.imagePullSecrets.push(...provider.config.imagePullSecrets)
+
+      podSpec.imagePullSecrets.push(...provider.config.imagePullSecrets.map((s) => ({ name: s.name })))
     }
 
     if (!targetContainer.volumeMounts) {
