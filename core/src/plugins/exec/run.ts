@@ -47,53 +47,54 @@ execRun.addHandler("run", async ({ artifactsPath, log, action, ctx }) => {
     // Try to fetch artifacts
     await copyArtifacts(log, artifacts, action.getBuildPath(), artifactsPath)
   } catch (error) {
-    if (runCommandErrors.length > 0) {
-      // If the run command has failed and the artifact copy has failed as well, we just log a warning for
+    if (runCommandErrors.length > 0 || !commandResult.success) {
+      // If the run command has failed or thrown an error, and the artifact copy has failed as well, we just log a warning for
       // the artifact copy error since we'll trow the run command error at the end
-      log.warn(`Failed to copy artifacts: ${error}`)
+      log.error(`Failed to copy artifacts: ${error}`)
     } else {
       throw error
     }
   }
+
   if (runCommandErrors.length === 0) {
-    const detail = {
-      moduleName: action.moduleName(),
-      taskName: action.name,
-      command,
-      version: action.versionString(),
-      success: commandResult.success,
-      log: commandResult.outputLog,
-      startedAt,
-      completedAt: commandResult.completedAt,
-    }
-
-    const result = {
-      state: runResultToActionState(detail),
-      detail,
-      outputs: {
-        log: commandResult.outputLog,
-      },
-    } as const
-
-    if (!commandResult.success) {
-      return result
-    }
-
-    if (commandResult.outputLog) {
-      const prefix = `Finished executing ${styles.highlight(action.key())}. Here is the full output:`
-      log.info(
-        renderMessageWithDivider({
-          prefix,
-          msg: commandResult.outputLog,
-          isError: !commandResult.success,
-          color: styles.primary,
-        })
-      )
-    }
-
-    return result
-  } else {
     // The run command failed, so we throw the error
     throw runCommandErrors[0]
   }
+
+  const detail = {
+    moduleName: action.moduleName(),
+    taskName: action.name,
+    command,
+    version: action.versionString(),
+    success: commandResult.success,
+    log: commandResult.outputLog,
+    startedAt,
+    completedAt: commandResult.completedAt,
+  }
+
+  const result = {
+    state: runResultToActionState(detail),
+    detail,
+    outputs: {
+      log: commandResult.outputLog,
+    },
+  } as const
+
+  if (!commandResult.success) {
+    return result
+  }
+
+  if (commandResult.outputLog) {
+    const prefix = `Finished executing ${styles.highlight(action.key())}. Here is the full output:`
+    log.info(
+      renderMessageWithDivider({
+        prefix,
+        msg: commandResult.outputLog,
+        isError: !commandResult.success,
+        color: styles.primary,
+      })
+    )
+  }
+
+  return result
 })
