@@ -267,7 +267,7 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
   const allPaths = preprocessedConfigs.map((c) => getSourcePath(c))
   log.debug(`Finding minimal roots for ${allPaths.length} paths`)
   const minimalRoots = await garden.vcs.getMinimalRoots(log, allPaths)
-  log.debug(`Finding minimal roots for ${allPaths.length} paths`)
+  log.debug(`Found minimal roots for ${allPaths.length} paths`)
 
   // TODO: Maybe we could optimize resolving tree versions, avoid parallel scanning of the same directory etc.
   const graph = new MutableConfigGraph({
@@ -958,7 +958,7 @@ function dependenciesFromActionConfig({
 
     if (!depConfig) {
       throw new ConfigurationError({
-        message: `${description} references depdendency ${depKey}, but no such action could be found`,
+        message: `${description} references dependency ${depKey}, but no such action could be found`,
       })
     }
 
