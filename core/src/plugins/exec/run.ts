@@ -32,45 +32,68 @@ export type ExecRun = GardenSdkActionDefinitionActionType<typeof execRun>
 execRun.addHandler("run", async ({ artifactsPath, log, action, ctx }) => {
   const startedAt = new Date()
   const { command, env, artifacts } = action.getSpec()
+  const runCommandErrors: unknown[] = []
 
-  const commandResult = await execRunCommand({ command, action, ctx, log, env, opts: { reject: false } })
-
-  const detail = {
-    moduleName: action.moduleName(),
-    taskName: action.name,
-    command,
-    version: action.versionString(),
-    success: commandResult.success,
-    log: commandResult.outputLog,
-    startedAt,
-    completedAt: commandResult.completedAt,
+  let commandResult
+  try {
+    // Execute the run command
+    commandResult = await execRunCommand({ command, action, ctx, log, env, opts: { reject: false } })
+  } catch (error) {
+    // Store error to be thrown at the end after trying to fetch artifacts
+    runCommandErrors.push(error)
   }
 
-  const result = {
-    state: runResultToActionState(detail),
-    detail,
-    outputs: {
+  try {
+    // Try to fetch artifacts
+    await copyArtifacts(log, artifacts, action.getBuildPath(), artifactsPath)
+  } catch (error) {
+    if (runCommandErrors.length > 0) {
+      // If the run command has failed and the artifact copy has failed as well, we just log a warning for
+      // the artifact copy error since we'll trow the run command error at the end
+      log.warn(`Failed to copy artifacts: ${error}`)
+    } else {
+      throw error
+    }
+  }
+  if (runCommandErrors.length === 0) {
+    const detail = {
+      moduleName: action.moduleName(),
+      taskName: action.name,
+      command,
+      version: action.versionString(),
+      success: commandResult.success,
       log: commandResult.outputLog,
-    },
-  } as const
+      startedAt,
+      completedAt: commandResult.completedAt,
+    }
 
-  if (!commandResult.success) {
+    const result = {
+      state: runResultToActionState(detail),
+      detail,
+      outputs: {
+        log: commandResult.outputLog,
+      },
+    } as const
+
+    if (!commandResult.success) {
+      return result
+    }
+
+    if (commandResult.outputLog) {
+      const prefix = `Finished executing ${styles.highlight(action.key())}. Here is the full output:`
+      log.info(
+        renderMessageWithDivider({
+          prefix,
+          msg: commandResult.outputLog,
+          isError: !commandResult.success,
+          color: styles.primary,
+        })
+      )
+    }
+
     return result
+  } else {
+    // The run command failed, so we throw the error
+    throw runCommandErrors[0]
   }
-
-  if (commandResult.outputLog) {
-    const prefix = `Finished executing ${styles.highlight(action.key())}. Here is the full output:`
-    log.info(
-      renderMessageWithDivider({
-        prefix,
-        msg: commandResult.outputLog,
-        isError: !commandResult.success,
-        color: styles.primary,
-      })
-    )
-  }
-
-  await copyArtifacts(log, artifacts, action.getBuildPath(), artifactsPath)
-
-  return result
 })
