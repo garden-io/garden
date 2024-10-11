@@ -48,8 +48,8 @@ execRun.addHandler("run", async ({ artifactsPath, log, action, ctx }) => {
     await copyArtifacts(log, artifacts, action.getBuildPath(), artifactsPath)
   } catch (error) {
     if (runCommandErrors.length > 0 || !commandResult.success) {
-      // If the run command has failed or thrown an error, and the artifact copy has failed as well, we just log a warning for
-      // the artifact copy error since we'll trow the run command error at the end
+      // If the run command has failed or thrown an error, and the artifact copy has failed as well, we just log the artifact copy error
+      // since we'll trow the run command error later on.
       log.error(`Failed to copy artifacts: ${error}`)
     } else {
       throw error
