@@ -38,15 +38,20 @@ execTest.addHandler("run", async ({ log, action, artifactsPath, ctx }) => {
 
   let commandResult
   try {
+    // Execute the test command
     commandResult = await execRunCommand({ command, action, ctx, log, env, opts: { reject: false } })
   } catch (error) {
+    // Store error to be thrown at the end after trying to fetch artifacts
     runCommandErrors.push(error)
   }
 
   try {
+    // Try to fetch artifacts
     await copyArtifacts(log, artifacts, action.getBuildPath(), artifactsPath)
   } catch (error) {
     if (runCommandErrors.length > 0) {
+      // If the test command has failed and the artifact copy has failed as well, we just log a warning for
+      // the artifact copy error since we'll trow the test command error at the end
       log.warn(`Failed to copy artifacts: ${error}`)
     } else {
       throw error
@@ -90,6 +95,7 @@ execTest.addHandler("run", async ({ log, action, artifactsPath, ctx }) => {
     }
     return result
   } else {
+    // The test command failed, so we throw the error
     throw runCommandErrors[0]
   }
 })
