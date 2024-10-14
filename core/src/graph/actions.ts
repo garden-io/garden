@@ -282,10 +282,14 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
   log.debug(`Got ${preprocessedConfigs.length} action configs ${!!actionsFilter ? "with" : "without"} action filter`)
 
   // Optimize file scanning by avoiding unnecessarily broad scans when project is not in repo root.
-  const allPaths = preprocessedConfigs.map((c) => getSourcePath(c))
-  log.debug(`Finding minimal roots for ${allPaths.length} paths`)
+  const allPaths = new Set<string>()
+  for (const preprocessedConfig of preprocessedConfigs) {
+    const sourcePath = getSourcePath(preprocessedConfig)
+    allPaths.add(sourcePath)
+  }
+  log.debug(`Finding minimal roots for ${allPaths.size} paths`)
   const minimalRoots = await garden.vcs.getMinimalRoots(log, allPaths)
-  log.debug(`Found minimal roots for ${allPaths.length} paths`)
+  log.debug(`Found minimal roots for ${allPaths.size} paths`)
 
   // TODO: Maybe we could optimize resolving tree versions, avoid parallel scanning of the same directory etc.
   const graph = new MutableConfigGraph({

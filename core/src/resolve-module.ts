@@ -109,7 +109,10 @@ export class ModuleResolver {
     // remove nodes from as we complete the processing.
     const fullGraph = new DependencyGraph<string>()
     const rawConfigs = Object.values(this.rawConfigsByKey)
-    const allPaths: string[] = rawConfigs.map((c) => c.path)
+    const allPaths = new Set<string>()
+    for (const rawConfig of rawConfigs) {
+      allPaths.add(rawConfig.path)
+    }
 
     this.addModulesToGraph(fullGraph, rawConfigs)
 
