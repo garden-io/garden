@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { asyncExitHook, gracefulExit } from "@scg82/exit-hook"
+import { asyncExitHook, gracefulExit } from "exit-hook"
 import _spawn from "cross-spawn"
 import { createHash } from "node:crypto"
 import {
@@ -114,7 +114,7 @@ export function registerCleanupFunction(name: string, func: HookCallback) {
     return Promise.resolve(func(signal))
   }
   asyncExitHook(callbackFunc, {
-    minimumWait: 10000,
+    wait: 10000,
   })
 }
 

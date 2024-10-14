@@ -12,7 +12,7 @@ import { LogLevel, RootLogger } from "@garden-io/core/build/src/logger/logger.js
 import { GARDEN_CLI_ROOT } from "@garden-io/core/build/src/constants.js"
 import { getBundledPlugins } from "./cli.js"
 import { getSupportedPlugins } from "@garden-io/core/build/src/plugins/plugins.js"
-import { gracefulExit } from "@scg82/exit-hook"
+import { gracefulExit } from "exit-hook"
 import * as url from "node:url"
 
 // make sure logger is initialized
