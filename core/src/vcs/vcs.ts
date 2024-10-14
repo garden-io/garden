@@ -311,13 +311,13 @@ export abstract class VcsHandler {
    * reduces duplicate scanning of the same directories (since fewer unique roots mean
    * more tree cache hits).
    */
-  async getMinimalRoots(log: Log, paths: string[]) {
+  async getMinimalRoots(log: Log, paths: Set<string>) {
     const repoRoots: { [path: string]: string } = {}
     const outputs: { [path: string]: string } = {}
     const rootsToPaths: { [repoRoot: string]: string[] } = {}
 
     await Promise.all(
-      paths.map(async (path) => {
+      [...paths].map(async (path) => {
         const repoRoot = await this.getRepoRoot(log, path)
         repoRoots[path] = repoRoot
         if (rootsToPaths[repoRoot]) {
