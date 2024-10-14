@@ -36,6 +36,7 @@ import { getDefaultProfiler, Profile, type Profiler } from "../util/profiling.js
 import AsyncLock from "async-lock"
 import { makeDocsLinkStyled } from "../docs/common.js"
 import { RuntimeError } from "../exceptions.js"
+import { sliceToBatches } from "../util/util.js"
 
 const scanLock = new AsyncLock()
 
@@ -316,17 +317,20 @@ export abstract class VcsHandler {
     const outputs: { [path: string]: string } = {}
     const rootsToPaths: { [repoRoot: string]: string[] } = {}
 
-    await Promise.all(
-      [...paths].map(async (path) => {
-        const repoRoot = await this.getRepoRoot(log, path)
-        repoRoots[path] = repoRoot
-        if (rootsToPaths[repoRoot]) {
-          rootsToPaths[repoRoot].push(path)
-        } else {
-          rootsToPaths[repoRoot] = [path]
-        }
-      })
-    )
+    // Avoid too many concurrent git commands
+    for (const batch of sliceToBatches([...paths], 10)) {
+      await Promise.all(
+        batch.map(async (path) => {
+          const repoRoot = await this.getRepoRoot(log, path)
+          repoRoots[path] = repoRoot
+          if (rootsToPaths[repoRoot]) {
+            rootsToPaths[repoRoot].push(path)
+          } else {
+            rootsToPaths[repoRoot] = [path]
+          }
+        })
+      )
+    }
 
     for (const path of paths) {
       const repoRoot = repoRoots[path]
