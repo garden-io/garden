@@ -113,11 +113,11 @@ RUN rm -rf $(find /google-cloud-sdk/ -regex ".*/__pycache__") && rm -rf /google-
 FROM garden-base-root as garden-azure-base
 
 WORKDIR /
-ENV AZURE_CLI_VERSION=2.64.0
+ENV AZURE_CLI_VERSION=2.65.0
 
-RUN wget -O requirements.txt https://raw.githubusercontent.com/Azure/azure-cli/azure-cli-$AZURE_CLI_VERSION/src/azure-cli/requirements.py3.Linux.txt && \
-  echo "babdcf09668bbbaa4bf9065f4795e80570658d6210f915831764fa38b0773d3d  requirements.txt" | sha256sum -c
-RUN wget -O trim_sdk.py https://raw.githubusercontent.com/Azure/azure-cli/azure-cli-$AZURE_CLI_VERSION/scripts/trim_sdk.py && \
+RUN wget -O requirements.txt https://raw.githubusercontent.com/Azure/azure-cli/azure-cli-${AZURE_CLI_VERSION}/src/azure-cli/requirements.py3.Linux.txt && \
+  echo "939ddd5dc4c4f6f0cf5e140bc8a1178358ccaaafeacfe7ada651bf367bac6635  requirements.txt" | sha256sum -c
+RUN wget -O trim_sdk.py https://raw.githubusercontent.com/Azure/azure-cli/azure-cli-${AZURE_CLI_VERSION}/scripts/trim_sdk.py && \
   echo "2e6292f5285b4fcedbe8efd77309fade550667d1c502a6ffa078f1aa97942c64  trim_sdk.py" | sha256sum -c
 
 RUN apk add py3-virtualenv openssl-dev libffi-dev build-base python3-dev
