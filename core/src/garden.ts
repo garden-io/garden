@@ -1455,7 +1455,7 @@ export class Garden {
       const workflowsFromTemplates = renderResults.flatMap((r) => r.configs.filter(isWorkflowConfig))
 
       if (renderConfigs.length) {
-        this.log.silly(
+        this.log.debug(
           `Rendered ${actionsFromTemplates.length} actions, ${modulesFromTemplates.length} modules, and ${workflowsFromTemplates.length} workflows from templates`
         )
       }
@@ -1543,7 +1543,11 @@ export class Garden {
    * Add an action config to the context, after validating and calling the appropriate configure plugin handler.
    */
   protected addActionConfig(config: BaseActionConfig) {
-    this.log.silly(() => `Adding action config for ${config.kind} ${config.name}`)
+    const parentTemplateName = config.internal.templateName
+    this.log.silly(
+      () =>
+        `Adding action config for ${config.kind} ${styles.highlight(config.name)} ${!!parentTemplateName ? `(from template ${styles.highlight(parentTemplateName)})` : ""}`
+    )
     const key = actionReferenceToString(config)
     const existing = this.actionConfigs[config.kind][config.name]
 
