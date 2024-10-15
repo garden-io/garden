@@ -644,12 +644,12 @@ describe("actionConfigsToGraph", () => {
       variableOverrides: { "foo": "NEW_FOO", "nested.key1": "NEW_KEY_1_VALUE" },
     })
 
-    const tmpDir = dummyGardenInstance.tmpDir
-    const garden = dummyGardenInstance.garden
-    const log = garden.log
+    const _tmpDir = dummyGardenInstance.tmpDir
+    const _garden = dummyGardenInstance.garden
+    const _log = _garden.log
 
     try {
-      const varfilePath = join(tmpDir.path, "varfile.yml")
+      const varfilePath = join(_tmpDir.path, "varfile.yml")
       await dumpYaml(varfilePath, {
         foo: "FOO",
         bar: "BAR",
@@ -659,8 +659,8 @@ describe("actionConfigsToGraph", () => {
       })
 
       const graph = await actionConfigsToGraph({
-        garden,
-        log,
+        garden: _garden,
+        log: _log,
         groupConfigs: [],
         configs: [
           {
@@ -674,7 +674,7 @@ describe("actionConfigsToGraph", () => {
             },
             varfiles: [varfilePath],
             internal: {
-              basePath: tmpDir.path,
+              basePath: _tmpDir.path,
             },
             spec: {},
           },
@@ -696,7 +696,7 @@ describe("actionConfigsToGraph", () => {
         },
       })
     } finally {
-      await tmpDir.cleanup()
+      await _tmpDir.cleanup()
     }
   })
 

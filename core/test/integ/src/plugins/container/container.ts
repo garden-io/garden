@@ -106,17 +106,17 @@ describe("plugins.container", () => {
       )
       sinon.restore()
 
-      const dockerCli = sinon.stub(containerHelpers, "dockerCli")
+      const _dockerCli = sinon.stub(containerHelpers, "dockerCli")
 
       const result = await publishContainerBuild({ ctx, log, action })
       expect(result.detail).to.eql({ message: "Published some/image:1.1", published: true })
 
-      sinon.assert.calledWithMatch(dockerCli.firstCall, {
+      sinon.assert.calledWithMatch(_dockerCli.firstCall, {
         cwd: action.getBuildPath(),
         args: ["tag", action.getOutput("local-image-id"), publishId],
       })
 
-      sinon.assert.calledWithMatch(dockerCli.secondCall, {
+      sinon.assert.calledWithMatch(_dockerCli.secondCall, {
         cwd: action.getBuildPath(),
         args: ["push", publishId],
       })
@@ -135,13 +135,13 @@ describe("plugins.container", () => {
 
       sinon.replace(containerHelpers, "actionHasDockerfile", async () => true)
 
-      const dockerCli = sinon.stub(containerHelpers, "dockerCli")
+      const _dockerCli = sinon.stub(containerHelpers, "dockerCli")
 
       const result = await publishContainerBuild({ ctx, log, action, tagOverride: "custom-tag" })
       expect(result.detail).to.eql({ message: "Published test:custom-tag", published: true })
 
       sinon.assert.calledWith(
-        dockerCli,
+        _dockerCli,
         sinon.match({
           cwd: action.getBuildPath(),
           args: ["tag", testVersionedId, "test:custom-tag"],
@@ -149,7 +149,7 @@ describe("plugins.container", () => {
       )
 
       sinon.assert.calledWith(
-        dockerCli,
+        _dockerCli,
         sinon.match({
           cwd: action.getBuildPath(),
           args: ["push", "test:custom-tag"],
