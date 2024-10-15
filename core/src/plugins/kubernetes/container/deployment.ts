@@ -237,6 +237,7 @@ export async function createWorkloadManifest({
   production,
 }: CreateDeploymentParams): Promise<KubernetesWorkload> {
   const spec = action.getSpec()
+
   const mode = action.mode()
 
   let configuredReplicas = spec.replicas || DEFAULT_MINIMUM_REPLICAS
