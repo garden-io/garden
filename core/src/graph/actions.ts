@@ -996,7 +996,7 @@ function dependenciesFromActionConfig({
         if (weirdActionNames.has(name)) {
           const highlightedWeirdName = styles.highlight(`"${name}"`)
           log.warn(
-            `Found a dependency with suspicious name ${highlightedWeirdName}. It looks like it was rendered as ${highlightedWeirdName} string from the configuration template ${styles.highlight(config.internal.templateName)}`
+            `Found a dependency with suspicious name ${highlightedWeirdName}. It was rendered from the configuration template ${styles.highlight(config.internal.templateName)}. The template expression for this action name may have resolved to null or undefined, which is probably a mistake. Please take a look at the template expression in question.`
           )
           return undefined
         }
