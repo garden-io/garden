@@ -958,13 +958,6 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
   }
 })
 
-/**
- * When an action has one of these names, 99% of the time this indicates a user error in a templated action name
- * from a config template (e.g. an expression evaluating to null or undefined, and this then being interpolated into
- * the string value for the action name).
- */
-const weirdActionNames = new Set(["null", "undefined"])
-
 function dependenciesFromActionConfig({
   log,
   config,
@@ -992,18 +985,20 @@ function dependenciesFromActionConfig({
       const depKey = actionReferenceToString(d)
       const depConfig = configsByKey[depKey]
 
+      // When an action has one of these names, 99% of the time this indicates a user error in a templated action name
+      // from a config template (e.g. an expression evaluating to null or undefined,
+      // and this then being interpolated into the string value for the action name).
       if (!depConfig) {
-        if (weirdActionNames.has(name)) {
-          const highlightedWeirdName = styles.highlight(`"${name}"`)
-          log.warn(
-            `Found a dependency with suspicious name ${highlightedWeirdName}. It was rendered from the configuration template ${styles.highlight(config.internal.templateName)}. The template expression for this action name may have resolved to null or undefined, which is probably a mistake. Please take a look at the template expression in question.`
-          )
-          return undefined
-        }
-
-        throw new ConfigurationError({
-          message: `${description} references dependency ${depKey}, but no such action could be found`,
-        })
+        const highlightedWeirdName = styles.highlight(`"${name}"`)
+        log.warn(
+          deline`
+          Found a dependency with suspicious name ${highlightedWeirdName}.
+          It was rendered from the configuration template ${styles.highlight(config.internal.templateName)}.
+          The template expression for this action name may have resolved to null or undefined, which is probably a mistake.
+          Please take a look at the template expression in question.
+          `
+        )
+        return undefined
       }
 
       return {
