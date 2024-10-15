@@ -22,6 +22,7 @@ import { GlobalConfigStore } from "../../../../src/config-store/global.js"
 import { makeDummyGarden } from "../../../../src/garden.js"
 import type { Garden } from "../../../../src/index.js"
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function loginCommandParams({ garden, opts = { "disable-project-check": false } }: { garden: Garden; opts?: any }) {
   const log = garden.log
   return {

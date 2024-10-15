@@ -317,6 +317,7 @@ describe("loadConfigResources", () => {
   it("should load and parse a module template", async () => {
     const projectPath = getDataDir("test-projects", "module-templates")
     const configFilePath = resolve(projectPath, "templates.garden.yml")
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const parsed: any = await loadConfigResources(log, projectPath, configFilePath)
 
     expect(parsed.length).to.equal(1)
@@ -550,6 +551,7 @@ describe("loadConfigResources", () => {
 describe("prepareModuleResource", () => {
   it("should normalize build dependencies", async () => {
     const moduleConfigPath = resolve(modulePathA, "garden.yml")
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const parsed: any = (await loadConfigResources(log, projectPathA, moduleConfigPath))[0]
     parsed.build!.dependencies = [{ name: "apple" }, "banana", null]
     const prepared = prepareModuleResource(parsed, moduleConfigPath, projectPathA)

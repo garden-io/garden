@@ -912,6 +912,7 @@ describe("actionConfigsToGraph", () => {
           groupConfigs: [],
           configs: [
             {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               kind: <any>"Boop",
               type: "test",
               name: "foo",

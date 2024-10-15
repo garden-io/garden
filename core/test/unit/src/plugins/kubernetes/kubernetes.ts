@@ -93,7 +93,8 @@ describe("kubernetes configureProvider", () => {
     const result = await configure({
       ...basicConfig,
       buildMode: "kaniko",
-      namespace: <any>(<unknown>"foo"),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      namespace: <any>"foo",
     })
 
     expect(result.config.namespace).to.eql({

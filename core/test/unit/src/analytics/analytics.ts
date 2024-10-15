@@ -176,6 +176,7 @@ describe("AnalyticsHandler", () => {
 
       expect(seenRequests.length).to.equal(1)
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const requestBody = (await seenRequests[0].body.getJson()) as any
 
       // This is the important part
@@ -312,6 +313,7 @@ describe("AnalyticsHandler", () => {
       expect(analytics.isEnabled).to.equal(true)
       const seenRequests = await mockedEndpoint.getSeenRequests()
       expect(seenRequests.length).to.equal(1)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const body = (await seenRequests[0].body.getJson()) as any
       expect(body.batch).to.eql([
         {
@@ -876,9 +878,11 @@ describe("AnalyticsHandler", () => {
   // NOTE: Segement always flushes on the first event, then queues and flushes subsequent events.
   // That's why there are usually two mock requests per test below.
   describe("flush", () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const getEvents = (body: any) =>
       body.batch
         .filter((event) => !!event.event)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .map((event: any) => ({
           event: event.event,
           type: event.type,

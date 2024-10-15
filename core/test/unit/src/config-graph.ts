@@ -41,6 +41,7 @@ const makeAction = ({
   basePath: string
   name: string
   kind: ActionKind
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   spec: any
   disabled: boolean
 }): BaseActionConfig => ({

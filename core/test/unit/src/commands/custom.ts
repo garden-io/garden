@@ -390,6 +390,7 @@ describe("CustomCommandWrapper", () => {
           description: {
             short: "Test",
           },
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           args: [<any>{ type: "blorg" }],
           opts: [],
           variables: {},
@@ -415,6 +416,7 @@ describe("CustomCommandWrapper", () => {
             short: "Test",
           },
           args: [],
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           opts: [<any>{ type: "blorg" }],
           variables: {},
           exec: {

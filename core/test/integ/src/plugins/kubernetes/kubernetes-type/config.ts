@@ -28,15 +28,16 @@ describe("configureKubernetesModule", () => {
   before(async () => {
     garden = await getKubernetesTestGarden()
     await garden.resolveModules({ log: garden.log })
-    moduleConfigs = cloneDeep((<any>garden).moduleConfigs)
+    moduleConfigs = cloneDeep(garden.moduleConfigs)
   })
 
   afterEach(() => {
-    garden["moduleConfigs"] = cloneDeep(moduleConfigs)
+    garden.moduleConfigs = cloneDeep(moduleConfigs)
   })
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   function patchModuleConfig(name: string, patch: any) {
-    apply((<any>garden).moduleConfigs[name], patch)
+    apply(garden.moduleConfigs[name], patch)
   }
 
   it("should validate a Kubernetes module", async () => {

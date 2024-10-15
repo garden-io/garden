@@ -151,9 +151,9 @@ describe("util", () => {
     })
 
     it("should throw if one or more keys are missing", async () => {
-      const obj = { a: 1, b: 2, c: 3 }
+      const obj = { a: 1, b: 2, c: 3 } as Record<string, number>
       await expectError(
-        () => pickKeys(obj, <any>["a", "foo", "bar"]),
+        () => pickKeys(obj, ["a", "foo", "bar"]),
         (err) => {
           expect(err.message).to.equal("Could not find key(s): foo, bar. Available: a, b and c")
         }
@@ -161,8 +161,8 @@ describe("util", () => {
     })
 
     it("should use given description in error message", async () => {
-      const obj = { a: 1, b: 2, c: 3 }
-      await expectError(() => pickKeys(obj, <any>["a", "foo", "bar"], "banana"), {
+      const obj = { a: 1, b: 2, c: 3 } as Record<string, number>
+      await expectError(() => pickKeys(obj, ["a", "foo", "bar"], "banana"), {
         contains: "Could not find banana(s): foo, bar",
       })
     })
@@ -224,6 +224,7 @@ describe("util", () => {
 
       // Tricking the compiler. We need to test for this because
       // date strings can be created from runtime values that we don't validate.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const undef = undefined as any
       const invalidA = new Date(undef)
       const invalidB = new Date("foo")

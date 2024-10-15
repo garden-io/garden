@@ -54,7 +54,8 @@ describe("plugins.container", () => {
   let log: ActionLog
   let containerProvider: ContainerProvider
 
-  let dockerCli: sinon.SinonStub<any, any>
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let dockerCli: sinon.SinonStub<any>
 
   beforeEach(async () => {
     garden = await makeTestGarden(projectRoot, { plugins: [gardenPlugin()] })
@@ -78,7 +79,7 @@ describe("plugins.container", () => {
         stdout: testVersionedId,
         stderr: "",
         code: 0,
-        proc: <any>null,
+        proc: null,
       })
     )
 
@@ -100,6 +101,7 @@ describe("plugins.container", () => {
       const action = await getTestBuild(config)
 
       sinon.replace(action, "getOutput", (o: string) =>
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         o === "localImageId" ? testVersionedId : action.getOutput(<any>o)
       )
       sinon.restore()
@@ -127,6 +129,7 @@ describe("plugins.container", () => {
       sinon.restore()
 
       sinon.replace(action, "getOutput", (o: string) =>
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         o === "localImageId" ? testVersionedId : action.getOutput(<any>o)
       )
 

@@ -123,6 +123,7 @@ describe("FetchToolsCommand", () => {
   })
 
   it("should fetch tools for all providers with --all", async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const garden: any = await TestGarden.factory(tmpDir.path, {
       plugins: [plugin],
       config: createProjectConfig({
@@ -160,6 +161,7 @@ describe("FetchToolsCommand", () => {
   })
 
   it("should fetch only tools marked for pre-fetch when --garden-image-build is set", async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const garden: any = await TestGarden.factory(tmpDir.path, {
       plugins: [plugin],
       config: createProjectConfig({

@@ -823,7 +823,7 @@ describe("kubernetes container deployment handlers", () => {
       })
 
       const processDeployAction = async (
-        resolvedAction: ResolvedDeployAction<ContainerDeployActionConfig, ContainerDeployOutputs, any>
+        resolvedAction: ResolvedDeployAction<ContainerDeployActionConfig, ContainerDeployOutputs>
       ) => {
         const deployTask = new DeployTask({
           garden,
