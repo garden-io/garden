@@ -36,7 +36,7 @@ describe("containerHelpers", () => {
   const plugin = gardenPlugin()
   const configure = plugin.createModuleTypes![0].handlers.configure!
 
-  const baseConfig: ModuleConfig<ContainerModuleSpec, any, any> = {
+  const baseConfig: ModuleConfig<ContainerModuleSpec> = {
     allowPublish: false,
     apiVersion: GardenApiVersion.v0,
     build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },

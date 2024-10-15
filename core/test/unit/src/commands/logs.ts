@@ -42,7 +42,9 @@ function makeCommandParams({
   opts = {},
 }: {
   garden: Garden
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   args?: any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   opts?: any
 }) {
   const log = garden.log

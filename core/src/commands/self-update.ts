@@ -403,8 +403,8 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
             const latestVersions = await getLatestVersions(10, log)
 
             log.info(`Here are the latest available versions: ` + latestVersions.join(styles.highlight(", ")))
-          } catch (err) {
-            log.debug(`Could not retrieve the latest available versions, ${err}`)
+          } catch (e) {
+            log.debug(`Could not retrieve the latest available versions, ${e}`)
           }
 
           return {

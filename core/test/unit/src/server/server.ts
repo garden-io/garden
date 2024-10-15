@@ -299,6 +299,7 @@ describe("GardenServer", () => {
 
   describe("/ws", () => {
     let ws: WebSocket
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let messages: any[]
 
     beforeEach((done) => {
@@ -324,6 +325,7 @@ describe("GardenServer", () => {
      * Optionally filter on specific event types to e.g. only collect messages of type "event" or
      * only collect messages of type "logEntry".
      */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     function onMessageAfterReady({ cb, skipType }: { cb: (req: any) => void; skipType?: string }) {
       ws.on("message", (msg) => {
         const parsed = JSON.parse(msg.toString())
@@ -420,6 +422,7 @@ describe("GardenServer", () => {
         .dumpConfig({ log: garden.log })
         .then((config) => {
           onMessageAfterReady({
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             cb: (req: any) => {
               if (req.type !== "commandResult") {
                 return
@@ -453,6 +456,7 @@ describe("GardenServer", () => {
       const gardenKey = garden.getInstanceKey()
 
       onMessageAfterReady({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         cb: (req: any) => {
           if (req.type !== "commandResult") {
             return

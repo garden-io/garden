@@ -148,7 +148,7 @@ export const kubernetesDeploySchema = () =>
     })
     .rename("devMode", "sync")
 
-export interface KubernetesRunOutputs {
+export type KubernetesRunOutputs = {
   log: string
 }
 

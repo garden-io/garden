@@ -32,8 +32,8 @@ export const testActionConfigSchema = memoize(() =>
 
 export class TestAction<
   C extends TestActionConfig = any,
-  StaticOutputs extends {} = any,
-  RuntimeOutputs extends {} = any,
+  StaticOutputs extends Record<string, unknown> = any,
+  RuntimeOutputs extends Record<string, unknown> = any,
 > extends RuntimeAction<C, StaticOutputs, RuntimeOutputs> {
   override kind = "Test" as const
   override _staticOutputs: StaticOutputs = {} as StaticOutputs
@@ -49,8 +49,8 @@ export class TestAction<
 
 export class ResolvedTestAction<
   C extends TestActionConfig = any,
-  StaticOutputs extends {} = any,
-  RuntimeOutputs extends {} = any,
+  StaticOutputs extends Record<string, unknown> = any,
+  RuntimeOutputs extends Record<string, unknown> = any,
 > extends ResolvedRuntimeAction<C, StaticOutputs, RuntimeOutputs> {
   override kind = "Test" as const
 
@@ -65,8 +65,8 @@ export class ResolvedTestAction<
 
 export class ExecutedTestAction<
   C extends TestActionConfig = any,
-  StaticOutputs extends {} = any,
-  RuntimeOutputs extends {} = any,
+  StaticOutputs extends Record<string, unknown> = any,
+  RuntimeOutputs extends Record<string, unknown> = any,
 > extends ExecutedRuntimeAction<C, StaticOutputs, RuntimeOutputs> {
   override kind = "Test" as const
 

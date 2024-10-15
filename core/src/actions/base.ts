@@ -334,8 +334,8 @@ export interface ActionDescription {
 
 export abstract class BaseAction<
   C extends BaseActionConfig = BaseActionConfig,
-  StaticOutputs extends {} = any,
-  RuntimeOutputs extends {} = any,
+  StaticOutputs extends Record<string, unknown> = any,
+  RuntimeOutputs extends Record<string, unknown> = any,
 > {
   // TODO: figure out why kind and type come out as any types on Action type
   public readonly kind: C["kind"]
@@ -687,8 +687,8 @@ export abstract class BaseAction<
 
 export abstract class RuntimeAction<
   C extends BaseRuntimeActionConfig = BaseRuntimeActionConfig,
-  StaticOutputs extends {} = any,
-  RuntimeOutputs extends {} = any,
+  StaticOutputs extends Record<string, unknown> = any,
+  RuntimeOutputs extends Record<string, unknown> = any,
 > extends BaseAction<C, StaticOutputs, RuntimeOutputs> {
   /**
    * Return the Build action specified on the `build` field if defined, otherwise null
@@ -717,8 +717,8 @@ export abstract class RuntimeAction<
 // FIXME: Might be possible to remove in a later TypeScript version or through some hacks.
 export interface ResolvedActionExtension<
   C extends BaseRuntimeActionConfig = BaseRuntimeActionConfig,
-  StaticOutputs extends {} = any,
-  RuntimeOutputs extends {} = any,
+  StaticOutputs extends Record<string, unknown> = any,
+  RuntimeOutputs extends Record<string, unknown> = any,
 > {
   getDependencyResult(ref: ActionReference | Action): GraphResult | null
 
@@ -740,8 +740,8 @@ export interface ResolvedActionExtension<
 // TODO: see if we can avoid the duplication here with ResolvedBuildAction
 export abstract class ResolvedRuntimeAction<
     Config extends BaseRuntimeActionConfig = BaseRuntimeActionConfig,
-    StaticOutputs extends {} = any,
-    RuntimeOutputs extends {} = any,
+    StaticOutputs extends Record<string, unknown> = any,
+    RuntimeOutputs extends Record<string, unknown> = any,
   >
   extends RuntimeAction<Config, StaticOutputs, RuntimeOutputs>
   implements ResolvedActionExtension<Config, StaticOutputs, RuntimeOutputs>
@@ -819,8 +819,8 @@ export abstract class ResolvedRuntimeAction<
 
 export interface ExecutedActionExtension<
   _ extends BaseRuntimeActionConfig = BaseRuntimeActionConfig,
-  StaticOutputs extends {} = any,
-  RuntimeOutputs extends {} = any,
+  StaticOutputs extends Record<string, unknown> = any,
+  RuntimeOutputs extends Record<string, unknown> = any,
 > {
   getOutput<K extends keyof (StaticOutputs & RuntimeOutputs)>(
     key: K
@@ -832,8 +832,8 @@ export interface ExecutedActionExtension<
 // TODO: see if we can avoid the duplication here with ResolvedBuildAction
 export abstract class ExecutedRuntimeAction<
     C extends BaseRuntimeActionConfig = BaseRuntimeActionConfig,
-    StaticOutputs extends {} = any,
-    RuntimeOutputs extends {} = any,
+    StaticOutputs extends Record<string, unknown> = any,
+    RuntimeOutputs extends Record<string, unknown> = any,
   >
   extends ResolvedRuntimeAction<C, StaticOutputs, RuntimeOutputs>
   implements ExecutedActionExtension<C, StaticOutputs, RuntimeOutputs>

@@ -1155,6 +1155,7 @@ describe("cli", () => {
         const { code, consoleOutput } = await cli.run({ args: ["test-command", "-o", "yaml"] })
 
         expect(code).to.equal(1)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const resultData = load(consoleOutput!) as any
         expect(resultData).to.eql({
           success: false,

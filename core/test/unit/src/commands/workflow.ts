@@ -37,6 +37,7 @@ import { WorkflowScriptError } from "../../../../src/exceptions.js"
 describe("RunWorkflowCommand", () => {
   const cmd = new WorkflowCommand()
   let garden: TestGarden
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let defaultParams: any
 
   before(async () => {
@@ -1064,6 +1065,7 @@ describe("RunWorkflowCommand", () => {
 describe("Lazy provider initialization in RunWorkflowCommand", () => {
   const cmd = new WorkflowCommand()
   let garden: TestGarden
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let defaultParams: any
 
   before(async () => {

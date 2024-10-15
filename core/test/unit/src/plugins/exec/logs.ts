@@ -25,7 +25,9 @@ import { sleep } from "../../../../../src/util/util.js"
 const range = (length: number) => [...Array(length).keys()]
 const defaultSleep = 1000
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function getStream(): [Stream<LocalServiceLogEntry>, any[]] {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const logBuffer: any[] = []
   const stream = new Stream<LocalServiceLogEntry>()
 
@@ -194,6 +196,7 @@ describe("ExecLogsFollower", () => {
         logFilePath,
       })
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const entries: any[] = [
         {
           msg: "Invalid - Missing service name",

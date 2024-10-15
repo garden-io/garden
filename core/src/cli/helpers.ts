@@ -116,7 +116,7 @@ export async function checkForUpdates(config: GlobalConfigStore, logger: Log) {
 }
 
 export interface PickCommandResult {
-  command: Command<{}, {}, any> | CommandGroup | undefined
+  command: Command<{}, {}> | CommandGroup | undefined
   rest: string[]
   matchedPath: undefined
 }

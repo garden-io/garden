@@ -82,10 +82,12 @@ export async function getRouterTestData() {
 }
 
 function getRouterUnitTestPlugins() {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   function getTestPluginOutputs(params: any) {
     return { base: "ok", foo: params.action._config[returnWrongOutputsCfgKey] ? 123 : "ok" }
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   function validateParams(params: any, schema: Joi.ObjectSchema) {
     validateSchema(
       params,

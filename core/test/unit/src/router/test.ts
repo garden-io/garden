@@ -24,7 +24,7 @@ describe("test actions", () => {
   let log: ActionLog
   let actionRouter: ActionRouter
 
-  async function getResolvedAction(testConfig: TestActionConfig<string, any>) {
+  async function getResolvedAction(testConfig: TestActionConfig<string>) {
     const action = (await actionFromConfig({
       garden,
       // rebuild config graph because the module config has been changed
