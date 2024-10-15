@@ -870,15 +870,13 @@ export class Garden {
       const allCached = providers.every((p) => p.status.cached)
       const someCached = providers.some((p) => p.status.cached)
 
-      await Promise.all(
-        providers.flatMap((provider) =>
-          provider.moduleConfigs.map(async (moduleConfig) => {
-            // Make sure module and all nested entities are scoped to the plugin
-            moduleConfig.plugin = provider.name
-            return this.addModuleConfig(moduleConfig)
-          })
-        )
-      )
+      for (const provider of providers) {
+        for (const moduleConfig of provider.moduleConfigs) {
+          // Make sure module and all nested entities are scoped to the plugin
+          moduleConfig.plugin = provider.name
+          this.addModuleConfig(moduleConfig)
+        }
+      }
 
       for (const provider of providers) {
         this.resolvedProviders[provider.name] = provider
