@@ -68,8 +68,8 @@ WORKDIR /project
 # garden-aws-base
 #
 FROM garden-base-root as garden-aws-base
-ENV AWSCLI_VERSION=2.17.57
-ENV AWSCLI_SHA256="3caf429486338c7fbfb8bc16365d3b6076190838c7e42e70e8138a14aaaadcdf"
+ENV AWSCLI_VERSION=2.18.6
+ENV AWSCLI_SHA256="c75d1b6d0bec0193fed140736de172faf391a2e36e6da1ecd65ceb940a1a2c09"
 
 RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64-${AWSCLI_VERSION}.zip" -o "awscliv2.zip"
 RUN echo "${AWSCLI_SHA256}  awscliv2.zip" | sha256sum -c
@@ -87,13 +87,13 @@ RUN curl -O https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cl
 RUN echo "${GCLOUD_SHA256}  google-cloud-cli-${GCLOUD_VERSION}-linux-x86_64.tar.gz" | sha256sum -c
 RUN tar -xf google-cloud-cli-${GCLOUD_VERSION}-linux-x86_64.tar.gz
 RUN ./google-cloud-sdk/install.sh --quiet
-RUN ./google-cloud-sdk/bin/gcloud compone\nts install kubectl gke-gcloud-auth-plugin --quiet && ./google-cloud-sdk/bin/gcloud components remove gsutil --quiet
+RUN ./google-cloud-sdk/bin/gcloud components install kubectl gke-gcloud-auth-plugin --quiet && ./google-cloud-sdk/bin/gcloud components remove gsutil --quiet
 
 #
 # garden-azure-base
 #
 FROM garden-base-root as garden-azure-base
-ENV AZURE_CLI_VERSION=2.64.0
+ENV AZURE_CLI_VERSION=2.65.0
 
 RUN apt-get update
 RUN apt-get install ca-certificates curl apt-transport-https lsb-release gnupg
@@ -122,7 +122,7 @@ COPY --chown=$USER:root --from=garden-azure-base /usr/local/bin/kubelogin /usr/l
 # garden-aws
 #
 FROM garden-base as garden-aws
-ENV AWSCLI_VERSION=2.17.57
+ENV AWSCLI_VERSION=2.18.6
 # Copy aws cli
 RUN mkdir -p ${HOME}/aws-cli
 COPY --chown=$USER:root --from=garden-aws-base /usr/local/aws-cli ${HOME}/aws-cli
@@ -143,7 +143,7 @@ ENV PATH /google-cloud-sdk/bin:$PATH
 # garden-aws-gloud
 #
 FROM garden-base as garden-aws-gcloud
-ENV AWSCLI_VERSION=2.17.57
+ENV AWSCLI_VERSION=2.18.6
 
 # Copy aws cli
 RUN mkdir -p ${HOME}/aws-cli
@@ -160,7 +160,7 @@ ENV PATH /google-cloud-sdk/bin:$PATH
 # garden-aws-gloud-azure
 #
 FROM garden-base as garden-aws-gcloud-azure
-ENV AWSCLI_VERSION=2.17.57
+ENV AWSCLI_VERSION=2.18.6
 
 # Copy aws cli
 RUN mkdir -p ${HOME}/aws-cli
