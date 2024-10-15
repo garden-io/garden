@@ -44,7 +44,7 @@ interface JibModuleSpec extends ContainerModuleSpec {
 
 export type JibBuildActionSpec = ContainerBuildActionSpec & JibBuildSpec
 export type JibBuildConfig = BuildActionConfig<"jib-container", JibBuildActionSpec>
-export type JibBuildAction = BuildAction<JibBuildConfig, ContainerBuildOutputs, {}>
+export type JibBuildAction = BuildAction<JibBuildConfig, ContainerBuildOutputs, Record<string, unknown>>
 
 export type JibContainerModule = GardenModule<JibModuleSpec>
 export type JibPluginType = "gradle" | "maven" | "mavend"
