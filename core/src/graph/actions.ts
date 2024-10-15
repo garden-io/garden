@@ -985,17 +985,19 @@ function dependenciesFromActionConfig({
       const depKey = actionReferenceToString(d)
       const depConfig = configsByKey[depKey]
 
-      // When an action has one of these names, 99% of the time this indicates a user error in a templated action name
-      // from a config template (e.g. an expression evaluating to null or undefined,
+      // When a dependency config is missing here, 99% of the time this indicates a user error in a templated action name
+      // from a config template (e.g. an expression or part of an expression evaluating to null or undefined,
       // and this then being interpolated into the string value for the action name).
       if (!depConfig) {
-        const highlightedWeirdName = styles.highlight(`"${name}"`)
+        const highlightedMissingName = styles.highlight(`"${name}"`)
+        const configTemplateName = styles.highlight(config.internal.templateName)
         log.warn(
           deline`
-          Found a dependency with suspicious name ${highlightedWeirdName}.
-          It was rendered from the configuration template ${styles.highlight(config.internal.templateName)}.
-          The template expression for this action name may have resolved to null or undefined, which is probably a mistake.
-          Please take a look at the template expression in question.
+          Found a missing dependency with name ${highlightedMissingName}.
+          It was rendered from the configuration template ${configTemplateName}.
+          The template expression for this action name (or part of it) may have unintentionally resolved to null or
+          undefined. Please take a look at the template expression in question in the configuration
+          for ${configTemplateName}.
           `
         )
         return undefined
