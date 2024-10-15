@@ -797,28 +797,26 @@ export class Garden {
       // Detect circular dependencies here
       const validationGraph = new DependencyGraph()
 
-      await Promise.all(
-        rawConfigs.map(async (config) => {
-          const plugin = plugins[config.name]
+      for (const config of rawConfigs) {
+        const plugin = plugins[config.name]
 
-          if (!plugin) {
-            throw new ConfigurationError({
-              message: dedent`
+        if (!plugin) {
+          throw new ConfigurationError({
+            message: dedent`
                 Configured provider '${config.name}' has not been registered.
 
                 Available plugins: ${Object.keys(plugins).join(", ")}
               `,
-            })
-          }
+          })
+        }
 
-          validationGraph.addNode(plugin.name)
+        validationGraph.addNode(plugin.name)
 
-          for (const dep of await getAllProviderDependencyNames(plugin!, config!)) {
-            validationGraph.addNode(dep)
-            validationGraph.addDependency(plugin.name, dep)
-          }
-        })
-      )
+        for (const dep of getAllProviderDependencyNames(plugin!, config!)) {
+          validationGraph.addNode(dep)
+          validationGraph.addDependency(plugin.name, dep)
+        }
+      }
 
       const cycles = validationGraph.detectCircularDependencies()
 
@@ -872,15 +870,13 @@ export class Garden {
       const allCached = providers.every((p) => p.status.cached)
       const someCached = providers.some((p) => p.status.cached)
 
-      await Promise.all(
-        providers.flatMap((provider) =>
-          provider.moduleConfigs.map(async (moduleConfig) => {
-            // Make sure module and all nested entities are scoped to the plugin
-            moduleConfig.plugin = provider.name
-            return this.addModuleConfig(moduleConfig)
-          })
-        )
-      )
+      for (const provider of providers) {
+        for (const moduleConfig of provider.moduleConfigs) {
+          // Make sure module and all nested entities are scoped to the plugin
+          moduleConfig.plugin = provider.name
+          this.addModuleConfig(moduleConfig)
+        }
+      }
 
       for (const provider of providers) {
         this.resolvedProviders[provider.name] = provider

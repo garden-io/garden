@@ -70,6 +70,19 @@ import { getSourcePath } from "../vcs/vcs.js"
 import { actionIsDisabled } from "../actions/base.js"
 import { styles } from "../logger/styles.js"
 
+function* sliceToBatches<T>(dict: Record<string, T>, batchSize: number) {
+  const entries = Object.entries(dict)
+
+  let position = 0
+
+  while (position < entries.length) {
+    yield entries.slice(position, position + batchSize)
+    position += batchSize
+  }
+}
+
+const processingBatchSize = 100
+
 function addActionConfig({
   garden,
   log,
@@ -156,29 +169,34 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
   const computedActionModes: { [key: string]: ComputedActionMode } = {}
 
   const preprocessActions = async (predicate: (config: ActionConfig) => boolean = () => true) => {
-    return await Promise.all(
-      Object.entries(configsByKey).map(async ([key, config]) => {
-        if (!predicate(config)) {
-          return
-        }
+    let batchNo = 1
+    for (const batch of sliceToBatches(configsByKey, processingBatchSize)) {
+      log.silly(`Preprocessing actions batch #${batchNo} (${batch.length} items)`)
+      await Promise.all(
+        batch.map(async ([key, config]) => {
+          if (!predicate(config)) {
+            return
+          }
 
-        const { mode, explicitMode } = getActionMode(config, actionModes, log)
-        computedActionModes[key] = { mode, explicitMode }
-        const actionTypes = await garden.getActionTypes()
-        const definition = actionTypes[config.kind][config.type]?.spec
-        preprocessResults[key] = await preprocessActionConfig({
-          garden,
-          config,
-          configsByKey,
-          actionTypes,
-          definition,
-          router,
-          linkedSources,
-          log,
-          mode,
+          const { mode, explicitMode } = getActionMode(config, actionModes, log)
+          computedActionModes[key] = { mode, explicitMode }
+          const actionTypes = await garden.getActionTypes()
+          const definition = actionTypes[config.kind][config.type]?.spec
+          preprocessResults[key] = await preprocessActionConfig({
+            garden,
+            config,
+            configsByKey,
+            actionTypes,
+            definition,
+            router,
+            linkedSources,
+            log,
+            mode,
+          })
         })
-      })
-    )
+      )
+      batchNo++
+    }
   }
 
   // First preprocess only the Deploy actions, so we can infer the mode of Build actions that are used by them.
@@ -264,10 +282,14 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
   log.debug(`Got ${preprocessedConfigs.length} action configs ${!!actionsFilter ? "with" : "without"} action filter`)
 
   // Optimize file scanning by avoiding unnecessarily broad scans when project is not in repo root.
-  const allPaths = preprocessedConfigs.map((c) => getSourcePath(c))
-  log.debug(`Finding minimal roots for ${allPaths.length} paths`)
+  const allPaths = new Set<string>()
+  for (const preprocessedConfig of preprocessedConfigs) {
+    const sourcePath = getSourcePath(preprocessedConfig)
+    allPaths.add(sourcePath)
+  }
+  log.debug(`Finding minimal roots for ${allPaths.size} paths`)
   const minimalRoots = await garden.vcs.getMinimalRoots(log, allPaths)
-  log.debug(`Finding minimal roots for ${allPaths.length} paths`)
+  log.debug(`Found minimal roots for ${allPaths.size} paths`)
 
   // TODO: Maybe we could optimize resolving tree versions, avoid parallel scanning of the same directory etc.
   const graph = new MutableConfigGraph({
@@ -277,51 +299,57 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
     groups: groupConfigs,
   })
 
-  log.debug(`Processing ${Object.keys(preprocessResults).length} action configs...`)
-  await Promise.all(
-    Object.entries(preprocessResults).map(async ([key, res]) => {
-      const { config, linkedSource, remoteSourcePath, supportedModes, dependencies } = res
-      const { mode, explicitMode } = computedActionModes[key]
+  const actionConfigCount = Object.keys(preprocessResults).length
+  log.debug(`Processing ${actionConfigCount} action configs...`)
+  let batchNo = 1
+  for (const batch of sliceToBatches(preprocessResults, 100)) {
+    log.silly(`Processing actions batch #${batchNo} (${batch.length} items)`)
+    await Promise.all(
+      batch.map(async ([key, res]) => {
+        const { config, linkedSource, remoteSourcePath, supportedModes, dependencies } = res
+        const { mode, explicitMode } = computedActionModes[key]
 
-      try {
-        const action = await processActionConfig({
-          garden,
-          graph,
-          config,
-          dependencies,
-          log,
-          mode,
-          linkedSource,
-          remoteSourcePath,
-          supportedModes,
-          scanRoot: minimalRoots[getSourcePath(config)],
-        })
+        try {
+          const action = await processActionConfig({
+            garden,
+            graph,
+            config,
+            dependencies,
+            log,
+            mode,
+            linkedSource,
+            remoteSourcePath,
+            supportedModes,
+            scanRoot: minimalRoots[getSourcePath(config)],
+          })
 
-        if (!action.supportsMode(mode)) {
-          if (explicitMode) {
-            log.warn(`${action.longDescription()} is not configured for or does not support ${mode} mode`)
+          if (!action.supportsMode(mode)) {
+            if (explicitMode) {
+              log.warn(`${action.longDescription()} is not configured for or does not support ${mode} mode`)
+            }
           }
-        }
 
-        graph.addAction(action)
-      } catch (error) {
-        if (!(error instanceof GardenError)) {
-          throw error
-        }
+          graph.addAction(action)
+        } catch (error) {
+          if (!(error instanceof GardenError)) {
+            throw error
+          }
 
-        throw new ConfigurationError({
-          message:
-            styles.error(
-              `\nError processing config for ${styles.highlight(config.kind)} action ${styles.highlight(
-                config.name
-              )}:\n`
-            ) + styles.error(error.message),
-          wrappedErrors: [error],
-        })
-      }
-    })
-  )
-  log.debug(`Processed ${Object.keys(preprocessResults).length} action configs`)
+          throw new ConfigurationError({
+            message:
+              styles.error(
+                `\nError processing config for ${styles.highlight(config.kind)} action ${styles.highlight(
+                  config.name
+                )}:\n`
+              ) + styles.error(error.message),
+            wrappedErrors: [error],
+          })
+        }
+      })
+    )
+    batchNo++
+  }
+  log.debug(`Processed ${actionConfigCount} action configs`)
 
   log.debug(`Validating the graph`)
   graph.validate()
@@ -958,7 +986,7 @@ function dependenciesFromActionConfig({
 
     if (!depConfig) {
       throw new ConfigurationError({
-        message: `${description} references depdendency ${depKey}, but no such action could be found`,
+        message: `${description} references dependency ${depKey}, but no such action could be found`,
       })
     }
 
