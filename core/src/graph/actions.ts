@@ -22,8 +22,9 @@ import type {
   Executed,
   Resolved,
 } from "../actions/types.js"
-import { ALL_ACTION_MODES_SUPPORTED, actionKinds } from "../actions/types.js"
+import { actionKinds, ALL_ACTION_MODES_SUPPORTED } from "../actions/types.js"
 import {
+  actionIsDisabled,
   actionReferenceToString,
   addActionDependency,
   baseRuntimeActionConfigSchema,
@@ -32,16 +33,16 @@ import {
 } from "../actions/base.js"
 import { BuildAction, buildActionConfigSchema, isBuildActionConfig } from "../actions/build.js"
 import { DeployAction, deployActionConfigSchema, isDeployActionConfig } from "../actions/deploy.js"
-import { RunAction, runActionConfigSchema, isRunActionConfig } from "../actions/run.js"
-import { TestAction, testActionConfigSchema, isTestActionConfig } from "../actions/test.js"
+import { isRunActionConfig, RunAction, runActionConfigSchema } from "../actions/run.js"
+import { isTestActionConfig, TestAction, testActionConfigSchema } from "../actions/test.js"
 import { getEffectiveConfigFileLocation, noTemplateFields } from "../config/base.js"
 import type { ActionReference, JoiDescription } from "../config/common.js"
 import { describeSchema, parseActionReference } from "../config/common.js"
 import type { GroupConfig } from "../config/group.js"
 import { ActionConfigContext } from "../config/template-contexts/actions.js"
 import { validateWithPath } from "../config/validation.js"
-import { ConfigurationError, PluginError, InternalError, GardenError } from "../exceptions.js"
-import { overrideVariables, type Garden } from "../garden.js"
+import { ConfigurationError, GardenError, InternalError, PluginError } from "../exceptions.js"
+import { type Garden, overrideVariables } from "../garden.js"
 import type { Log } from "../logger/log-entry.js"
 import type { ActionTypeDefinition } from "../plugin/action-types.js"
 import type { ActionDefinitionMap } from "../plugins.js"
@@ -55,7 +56,7 @@ import {
   resolveTemplateStrings,
 } from "../template-string/template-string.js"
 import { dedent, deline, naturalList } from "../util/string.js"
-import { getVarfileData, DependencyGraph, mergeVariables } from "./common.js"
+import { DependencyGraph, getVarfileData, mergeVariables } from "./common.js"
 import type { ConfigGraph } from "./config-graph.js"
 import { MutableConfigGraph } from "./config-graph.js"
 import type { ModuleGraph } from "./modules.js"
@@ -67,7 +68,6 @@ import { relative } from "path"
 import { profileAsync } from "../util/profiling.js"
 import { uuidv4 } from "../util/random.js"
 import { getSourcePath } from "../vcs/vcs.js"
-import { actionIsDisabled } from "../actions/base.js"
 import { styles } from "../logger/styles.js"
 
 function* sliceToBatches<T>(dict: Record<string, T>, batchSize: number) {
@@ -989,15 +989,21 @@ function dependenciesFromActionConfig({
       // from a config template (e.g. an expression or part of an expression evaluating to null or undefined,
       // and this then being interpolated into the string value for the action name).
       if (!depConfig) {
-        const highlightedMissingName = styles.highlight(`"${name}"`)
-        const configTemplateName = styles.highlight(config.internal.templateName)
+        const actionTemplateInfo = () => {
+          const configTemplateName = config.internal.templateName
+          if (!configTemplateName) {
+            return ""
+          }
+          return `The action was rendered from the configuration template ${styles.highlight(configTemplateName)}.`
+        }
+
         log.warn(
           deline`
-          Found a missing dependency with name ${highlightedMissingName}.
-          It was rendered from the configuration template ${configTemplateName}.
+          Found a missing dependency with name ${styles.highlight(`"${name}"`)}.
           The template expression for this action name (or part of it) may have unintentionally resolved to null or
           undefined. Please take a look at the template expression in question in the configuration
-          for ${configTemplateName}.
+          for action ${styles.highlight(depKey)} or in its configuration template if any.
+          ${actionTemplateInfo()}
           `
         )
         return undefined
