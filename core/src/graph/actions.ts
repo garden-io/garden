@@ -22,8 +22,9 @@ import type {
   Executed,
   Resolved,
 } from "../actions/types.js"
-import { ALL_ACTION_MODES_SUPPORTED, actionKinds } from "../actions/types.js"
+import { actionKinds, ALL_ACTION_MODES_SUPPORTED } from "../actions/types.js"
 import {
+  actionIsDisabled,
   actionReferenceToString,
   addActionDependency,
   baseRuntimeActionConfigSchema,
@@ -32,16 +33,16 @@ import {
 } from "../actions/base.js"
 import { BuildAction, buildActionConfigSchema, isBuildActionConfig } from "../actions/build.js"
 import { DeployAction, deployActionConfigSchema, isDeployActionConfig } from "../actions/deploy.js"
-import { RunAction, runActionConfigSchema, isRunActionConfig } from "../actions/run.js"
-import { TestAction, testActionConfigSchema, isTestActionConfig } from "../actions/test.js"
+import { isRunActionConfig, RunAction, runActionConfigSchema } from "../actions/run.js"
+import { isTestActionConfig, TestAction, testActionConfigSchema } from "../actions/test.js"
 import { getEffectiveConfigFileLocation, noTemplateFields } from "../config/base.js"
 import type { ActionReference, JoiDescription } from "../config/common.js"
 import { describeSchema, parseActionReference } from "../config/common.js"
 import type { GroupConfig } from "../config/group.js"
 import { ActionConfigContext } from "../config/template-contexts/actions.js"
 import { validateWithPath } from "../config/validation.js"
-import { ConfigurationError, PluginError, InternalError, GardenError } from "../exceptions.js"
-import { overrideVariables, type Garden } from "../garden.js"
+import { ConfigurationError, GardenError, InternalError, PluginError } from "../exceptions.js"
+import { type Garden, overrideVariables } from "../garden.js"
 import type { Log } from "../logger/log-entry.js"
 import type { ActionTypeDefinition } from "../plugin/action-types.js"
 import type { ActionDefinitionMap } from "../plugins.js"
@@ -55,7 +56,7 @@ import {
   resolveTemplateStrings,
 } from "../template-string/template-string.js"
 import { dedent, deline, naturalList } from "../util/string.js"
-import { getVarfileData, DependencyGraph, mergeVariables } from "./common.js"
+import { DependencyGraph, getVarfileData, mergeVariables } from "./common.js"
 import type { ConfigGraph } from "./config-graph.js"
 import { MutableConfigGraph } from "./config-graph.js"
 import type { ModuleGraph } from "./modules.js"
@@ -67,7 +68,6 @@ import { relative } from "path"
 import { profileAsync } from "../util/profiling.js"
 import { uuidv4 } from "../util/random.js"
 import { getSourcePath } from "../vcs/vcs.js"
-import { actionIsDisabled } from "../actions/base.js"
 import { styles } from "../logger/styles.js"
 
 function* sliceToBatches<T>(dict: Record<string, T>, batchSize: number) {
@@ -171,7 +171,7 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
   const preprocessActions = async (predicate: (config: ActionConfig) => boolean = () => true) => {
     let batchNo = 1
     for (const batch of sliceToBatches(configsByKey, processingBatchSize)) {
-      log.silly(`Preprocessing actions batch #${batchNo} (${batch.length} items)`)
+      log.debug(`Preprocessing actions batch #${batchNo} (${batch.length} items)`)
       await Promise.all(
         batch.map(async ([key, config]) => {
           if (!predicate(config)) {
@@ -303,7 +303,7 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
   log.debug(`Processing ${actionConfigCount} action configs...`)
   let batchNo = 1
   for (const batch of sliceToBatches(preprocessResults, 100)) {
-    log.silly(`Processing actions batch #${batchNo} (${batch.length} items)`)
+    log.debug(`Processing actions batch #${batchNo} (${batch.length} items)`)
     await Promise.all(
       batch.map(async ([key, res]) => {
         const { config, linkedSource, remoteSourcePath, supportedModes, dependencies } = res
@@ -740,16 +740,22 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
   definition: MaybeUndefined<ActionTypeDefinition<any>>
   actionTypes: ActionDefinitionMap
 }): Promise<PreprocessActionResult> {
+  const actionKey = actionReferenceToString(config)
+  log.debug(`Preprocessing action ${actionKey}...`)
+
   const description = describeActionConfig(config)
   const templateName = config.internal.templateName
 
   // in pre-processing, only use varfiles that are not template strings
   const resolvedVarFiles = config.varfiles?.filter((f) => !maybeTemplateString(getVarfileData(f).path))
+  log.debug(`Merging variables...`)
   const variables = await mergeVariables({
     basePath: config.internal.basePath,
     variables: config.variables,
     varfiles: resolvedVarFiles,
   })
+
+  log.debug(`Resolving variables (partially)...`)
   const resolvedVariables = resolveTemplateStrings({
     value: variables,
     context: new ActionConfigContext({
@@ -767,6 +773,7 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
   })
 
   if (templateName) {
+    log.debug(`Resolving inputs (partially)...`)
     // Partially resolve inputs
     const partiallyResolvedInputs = resolveTemplateStrings({
       value: config.internal.inputs || {},
@@ -864,9 +871,12 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
     config = { ...config, ...resolvedOther }
   }
 
+  log.debug(`Resolving templates...`)
   resolveTemplates()
 
+  log.debug(`Configuring action...`)
   const configureActionResult = await router.configureAction({ config, log })
+  log.debug(`Action configured`)
 
   const { config: updatedConfig } = configureActionResult
 
@@ -903,6 +913,7 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
 
   // -> Resolve templates again after configure handler
   // TODO: avoid this if nothing changed in the configure handler
+  log.debug(`Resolving templates again (for configured action)...`)
   try {
     resolveTemplates()
   } catch (error) {
@@ -916,7 +927,6 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
   }
 
   const repositoryUrl = config.source?.repository?.url
-  const key = actionReferenceToString(config)
 
   let linkedSource: LinkedSource | null = null
   let remoteSourcePath: string | null = null
@@ -925,6 +935,8 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
       // Carry over clone path from converted module
       remoteSourcePath = config.internal.remoteClonePath
     } else {
+      const key = actionReferenceToString(config)
+      log.debug(`Resolving external sources...`)
       remoteSourcePath = await garden.resolveExtSourcePath({
         name: key,
         sourceType: "action",
@@ -935,11 +947,12 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
       config.internal.basePath = remoteSourcePath
     }
 
-    if (linkedSources[key]) {
-      linkedSource = linkedSources[key]
+    if (linkedSources[actionKey]) {
+      linkedSource = linkedSources[actionKey]
     }
   }
 
+  log.debug(`Collecting dependencies...`)
   const dependencies = dependenciesFromActionConfig({
     log,
     config,
@@ -949,6 +962,7 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
     actionTypes,
   })
 
+  log.debug(`Preprocessed action ${actionKey}...`)
   return {
     config,
     dependencies,
@@ -989,15 +1003,21 @@ function dependenciesFromActionConfig({
       // from a config template (e.g. an expression or part of an expression evaluating to null or undefined,
       // and this then being interpolated into the string value for the action name).
       if (!depConfig) {
-        const highlightedMissingName = styles.highlight(`"${name}"`)
-        const configTemplateName = styles.highlight(config.internal.templateName)
+        const actionTemplateInfo = () => {
+          const configTemplateName = config.internal.templateName
+          if (!configTemplateName) {
+            return ""
+          }
+          return `The action was rendered from the configuration template ${styles.highlight(configTemplateName)}.`
+        }
+
         log.warn(
           deline`
-          Found a missing dependency with name ${highlightedMissingName}.
-          It was rendered from the configuration template ${configTemplateName}.
+          Found a missing dependency with name ${styles.highlight(`"${name}"`)}.
           The template expression for this action name (or part of it) may have unintentionally resolved to null or
           undefined. Please take a look at the template expression in question in the configuration
-          for ${configTemplateName}.
+          for action ${styles.highlight(depKey)} or in its configuration template if any.
+          ${actionTemplateInfo()}
           `
         )
         return undefined
