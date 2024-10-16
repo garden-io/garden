@@ -11,7 +11,7 @@ import {
   skopeoDaemonContainerName,
   dockerAuthSecretKey,
   defaultKanikoImageName,
-  getK8sUtilImageName,
+  getK8sUtilImagePath,
 } from "../../constants.js"
 import { KubeApi } from "../../api.js"
 import type { Log } from "../../../../logger/log-entry.js"
@@ -320,7 +320,7 @@ export function getKanikoBuilderPodManifest({
     initContainers: [
       {
         name: "init",
-        image: getK8sUtilImageName(),
+        image: getK8sUtilImagePath(provider.config.utilImageRegistryDomain),
         command: [
           "/bin/sh",
           "-c",

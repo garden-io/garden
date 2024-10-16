@@ -11,7 +11,11 @@ import { join } from "path"
 import * as td from "testdouble"
 import type { Garden } from "../../../../../src/garden.js"
 import { prepareDockerAuth, getIngressMisconfigurationWarnings } from "../../../../../src/plugins/kubernetes/init.js"
-import { defaultSystemNamespace, dockerAuthSecretKey } from "../../../../../src/plugins/kubernetes/constants.js"
+import {
+  defaultSystemNamespace,
+  defaultUtilImageRegistryDomain,
+  dockerAuthSecretKey,
+} from "../../../../../src/plugins/kubernetes/constants.js"
 import { ConfigurationError } from "../../../../../src/exceptions.js"
 import type { KubernetesProvider, KubernetesConfig } from "../../../../../src/plugins/kubernetes/config.js"
 import { defaultResources } from "../../../../../src/plugins/kubernetes/config.js"
@@ -27,6 +31,7 @@ import { uuidv4 } from "../../../../../src/util/random.js"
 
 const basicConfig: KubernetesConfig = {
   name: "kubernetes",
+  utilImageRegistryDomain: defaultUtilImageRegistryDomain,
   buildMode: "local-docker",
   context: "my-cluster",
   defaultHostname: "hostname.invalid",

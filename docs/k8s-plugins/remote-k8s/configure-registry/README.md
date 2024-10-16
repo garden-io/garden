@@ -25,6 +25,7 @@ Below you'll find guides for specific cloud providers:
 * [AWS](./aws.md)
 * [GCP](./gcp.md)
 * [Azure](./azure.md)
+* [Docker Hub](./docker-hub.md)
 
 As always, feel free to pick a different approach. The end goal having a container registry that Garden can push to and that your cluster can pull from.
 

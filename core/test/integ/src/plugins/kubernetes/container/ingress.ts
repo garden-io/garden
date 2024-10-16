@@ -27,7 +27,10 @@ import { actionFromConfig } from "../../../../../../src/graph/actions.js"
 import type { DeployAction } from "../../../../../../src/actions/deploy.js"
 import { DEFAULT_DEPLOY_TIMEOUT_SEC } from "../../../../../../src/constants.js"
 import { uuidv4 } from "../../../../../../src/util/random.js"
-import { defaultSystemNamespace } from "../../../../../../src/plugins/kubernetes/constants.js"
+import {
+  defaultSystemNamespace,
+  defaultUtilImageRegistryDomain,
+} from "../../../../../../src/plugins/kubernetes/constants.js"
 
 const namespace = "my-namespace"
 const ports = [
@@ -43,6 +46,7 @@ type PartialConfig = PartialBy<KubernetesConfig, "context">
 
 const basicConfig: PartialConfig = {
   name: "local-kubernetes",
+  utilImageRegistryDomain: defaultUtilImageRegistryDomain,
   buildMode: "local-docker",
   defaultHostname: "hostname.invalid",
   deploymentRegistry: {
