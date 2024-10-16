@@ -153,7 +153,7 @@ export async function previewStack(
 export async function getStackOutputs({ log, ctx, provider, action }: PulumiParams): Promise<any> {
   const res = await pulumi(ctx, provider).json({
     log,
-    args: ["stack", "output", "--json"],
+    args: ["stack", "output", "--json", "--show-secrets"],
     env: ensureEnv({ log, ctx, provider, action }),
     cwd: getActionStackRoot(action),
   })
