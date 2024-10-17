@@ -14,6 +14,7 @@ import { styles } from "../../logger/styles.js"
 import { copyArtifacts, execRunCommand } from "./common.js"
 import { execRunSpecSchema, execRuntimeOutputsSchema, execStaticOutputsSchema } from "./config.js"
 import { execProvider } from "./exec.js"
+import { InternalError } from "../../exceptions.js"
 
 export const execRun = execProvider.createActionType({
   kind: "Run",
@@ -32,8 +33,38 @@ export type ExecRun = GardenSdkActionDefinitionActionType<typeof execRun>
 execRun.addHandler("run", async ({ artifactsPath, log, action, ctx }) => {
   const startedAt = new Date()
   const { command, env, artifacts } = action.getSpec()
+  let runCommandError: unknown | undefined
 
-  const commandResult = await execRunCommand({ command, action, ctx, log, env, opts: { reject: false } })
+  let commandResult: Awaited<ReturnType<typeof execRunCommand>> | undefined
+  try {
+    // Execute the run command
+    commandResult = await execRunCommand({ command, action, ctx, log, env, opts: { reject: false } })
+  } catch (error) {
+    // Store error to be thrown at the end after trying to fetch artifacts
+    runCommandError = error
+  }
+
+  try {
+    // Try to fetch artifacts
+    await copyArtifacts(log, artifacts, action.getBuildPath(), artifactsPath)
+  } catch (error) {
+    if (runCommandError || !commandResult?.success) {
+      // If the run command has failed or thrown an error, and the artifact copy has failed as well, we just log the artifact copy error
+      // since we'll trow the run command error later on.
+      log.error(`Failed to copy artifacts: ${error}`)
+    } else {
+      throw error
+    }
+  }
+
+  if (runCommandError) {
+    // The run command failed, so we throw the error
+    throw runCommandError
+  } else if (!commandResult) {
+    throw new InternalError({
+      message: "CommandResult should not be undefined if there was no error",
+    })
+  }
 
   const detail = {
     moduleName: action.moduleName(),
@@ -69,8 +100,6 @@ execRun.addHandler("run", async ({ artifactsPath, log, action, ctx }) => {
       })
     )
   }
-
-  await copyArtifacts(log, artifacts, action.getBuildPath(), artifactsPath)
 
   return result
 })
