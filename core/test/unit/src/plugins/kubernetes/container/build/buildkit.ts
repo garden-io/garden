@@ -14,7 +14,11 @@ import type {
   KubernetesProvider,
 } from "../../../../../../../src/plugins/kubernetes/config.js"
 import { defaultResources } from "../../../../../../../src/plugins/kubernetes/config.js"
-import { buildkitImageName, getK8sUtilImageName } from "../../../../../../../src/plugins/kubernetes/constants.js"
+import {
+  defaultUtilImageRegistryDomain,
+  getBuildkitImagePath,
+  getK8sUtilImagePath,
+} from "../../../../../../../src/plugins/kubernetes/constants.js"
 import {
   getBuildkitDeployment,
   getBuildkitFlags,
@@ -28,6 +32,7 @@ describe("buildkit build", () => {
   describe("getBuildkitDeployment", () => {
     const _provider: DeepPartial<KubernetesProvider> = {
       config: {
+        utilImageRegistryDomain: defaultUtilImageRegistryDomain,
         resources: defaultResources,
       },
     }
@@ -67,7 +72,7 @@ describe("buildkit build", () => {
             value: "/.docker",
           },
         ],
-        image: buildkitImageName,
+        image: getBuildkitImagePath(provider.config.utilImageRegistryDomain),
         name: "buildkitd",
         readinessProbe: {
           exec: {
@@ -114,7 +119,7 @@ describe("buildkit build", () => {
             value: "8730",
           },
         ],
-        image: getK8sUtilImageName(),
+        image: getK8sUtilImagePath(provider.config.utilImageRegistryDomain),
         imagePullPolicy: "IfNotPresent",
         lifecycle: {
           preStop: {
@@ -184,6 +189,27 @@ describe("buildkit build", () => {
       expect(result.metadata.annotations).eql(provider.config.clusterBuildkit.annotations)
       expect(result.spec.template.metadata?.annotations).eql(provider.config.clusterBuildkit.annotations)
     })
+
+    it("should use a custom container registry if set by user", () => {
+      const providerWithCustomRegistry = {
+        ...provider,
+        config: {
+          ...provider.config,
+          utilImageRegistryDomain: "https://my-custom-registry-mirror.io",
+        },
+      }
+
+      const result = getBuildkitDeployment(providerWithCustomRegistry, "authSecretName", [
+        { name: "imagePullSecretName" },
+      ])
+
+      expect(result.spec.template.spec?.containers[0].image).to.eql(
+        getBuildkitImagePath("https://my-custom-registry-mirror.io")
+      )
+      expect(result.spec.template.spec?.containers[1].image).to.eql(
+        getK8sUtilImagePath("https://my-custom-registry-mirror.io")
+      )
+    })
   })
 
   describe("getBuildkitFlags", () => {
@@ -212,6 +238,7 @@ describe("buildkit build", () => {
   describe("makeBuildkitBuildCommand", () => {
     const _provider: DeepPartial<KubernetesProvider> = {
       config: {
+        utilImageRegistryDomain: defaultUtilImageRegistryDomain,
         resources: defaultResources,
         clusterBuildkit: {
           cache: [],

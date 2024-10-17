@@ -12,7 +12,7 @@ import type { DeployState } from "../../../types/service.js"
 import { KubeApi } from "../api.js"
 import { checkResourceStatus, waitForResources } from "../status/status.js"
 import type { KubernetesDeployment, KubernetesService } from "../types.js"
-import { defaultGardenIngressControllerDefaultBackendImage } from "../constants.js"
+import { getDefaultGardenIngressControllerDefaultBackendImagePath } from "../constants.js"
 import { GardenIngressComponent } from "./ingress-controller-base.js"
 
 export class GardenDefaultBackend extends GardenIngressComponent {
@@ -111,7 +111,7 @@ function defaultBackendGetManifests(ctx: KubernetesPluginContext): {
         spec: {
           containers: [
             {
-              image: defaultGardenIngressControllerDefaultBackendImage,
+              image: getDefaultGardenIngressControllerDefaultBackendImagePath(provider.config.utilImageRegistryDomain),
               imagePullPolicy: "IfNotPresent",
               name: "default-backend",
               ports: [

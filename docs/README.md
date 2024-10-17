@@ -60,6 +60,7 @@
     * [AWS](./k8s-plugins/remote-k8s/configure-registry/aws.md)
     * [GCP](./k8s-plugins/remote-k8s/configure-registry/gcp.md)
     * [Azure](./k8s-plugins/remote-k8s/configure-registry/azure.md)
+    * [Docker Hub](./k8s-plugins/remote-k8s/configure-registry/docker-hub.md)
   * [3. Set Up Ingress, TLS and DNS](./k8s-plugins/remote-k8s/ingress-and-dns.md)
   * [4. Configure the Provider](./k8s-plugins/remote-k8s/configure-provider.md)
 * [Local K8s Plugin Configuration](./k8s-plugins/local-k8s/README.md)
@@ -88,6 +89,7 @@
   * [In-Cluster Building](./k8s-plugins/guides/in-cluster-building.md)
   * [Minimal RBAC Configuration for Development Clusters](./k8s-plugins/guides/rbac-config.md)
   * [Deploying to Production](./k8s-plugins/guides/deploying-to-production.md)
+  * [Using a Registry Mirror](./k8s-plugins/guides/registry-mirror.md)
 
 ## ☘️ Terraform Plugin
 

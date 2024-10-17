@@ -36,8 +36,9 @@ import { apply } from "../../../../../../src/plugins/kubernetes/kubectl.js"
 import { getAppNamespace } from "../../../../../../src/plugins/kubernetes/namespace.js"
 import { gardenAnnotationKey } from "../../../../../../src/util/string.js"
 import {
-  getK8sSyncUtilImageName,
-  k8sReverseProxyImageName,
+  defaultUtilImageRegistryDomain,
+  getK8sReverseProxyImagePath,
+  getK8sSyncUtilImagePath,
   k8sSyncUtilContainerName,
   PROXY_CONTAINER_SSH_TUNNEL_PORT,
   PROXY_CONTAINER_SSH_TUNNEL_PORT_NAME,
@@ -122,7 +123,7 @@ describe("kubernetes container deployment handlers", () => {
 
     function expectProxyContainerImage(workload: KubernetesWorkload) {
       const appContainerSpec = workload.spec.template?.spec?.containers.find((c) => c.name === "local-mode")
-      expect(appContainerSpec!.image).to.eql(k8sReverseProxyImageName)
+      expect(appContainerSpec!.image).to.eql(getK8sReverseProxyImagePath(defaultUtilImageRegistryDomain))
     }
 
     function expectContainerEnvVars(workload: KubernetesWorkload) {
@@ -201,6 +202,53 @@ describe("kubernetes container deployment handlers", () => {
         })
 
         expectNoProbes(workload)
+      })
+    })
+
+    context("localMode with utilImageRegistryDomain set to a custom registry", () => {
+      const environmentName = "local"
+      let gardenCustomDomain: TestGarden
+      let cleanupCustomDomain: (() => void) | undefined
+      let ctxCustomDomain: KubernetesPluginContext
+      let providerCustomDomain: KubernetesProvider
+      let apiCustomDomain: KubeApi
+
+      before(async () => {
+        const res = await getContainerTestGarden(environmentName)
+        gardenCustomDomain = res.garden
+        cleanup = res.cleanup
+        providerCustomDomain = <KubernetesProvider>(
+          await gardenCustomDomain.resolveProvider({ log: garden.log, name: "local-kubernetes" })
+        )
+        providerCustomDomain.config["utilImageRegistryDomain"] = "https://my-custom-registry-mirror.io"
+
+        ctxCustomDomain = <KubernetesPluginContext>await garden.getPluginContext({
+          provider: {
+            ...providerCustomDomain,
+          },
+          templateContext: undefined,
+          events: undefined,
+        })
+        apiCustomDomain = await KubeApi.factory(garden.log, ctx, provider)
+      })
+
+      it("should have proxy container image using custom container registry", async () => {
+        const action = await resolveDeployAction("local-mode", "local") // <----
+
+        const { workload } = await createContainerManifests({
+          ctx: ctxCustomDomain,
+          api: apiCustomDomain,
+          action,
+          log: createActionLog({ log: gardenCustomDomain.log, actionName: action.name, actionKind: action.kind }),
+          imageId: getDeployedImageId(action),
+        })
+
+        const appContainerSpec = workload.spec.template?.spec?.containers.find((c) => c.name === "local-mode")
+        expect(appContainerSpec!.image).to.eql(getK8sReverseProxyImagePath("https://my-custom-registry-mirror.io"))
+      })
+
+      after(() => {
+        cleanupCustomDomain && cleanupCustomDomain()
       })
     })
 
@@ -452,7 +500,7 @@ describe("kubernetes container deployment handlers", () => {
       expect(resource.spec.template?.spec?.initContainers).to.eql([
         {
           name: k8sSyncUtilContainerName,
-          image: getK8sSyncUtilImageName(),
+          image: getK8sSyncUtilImagePath(provider.config.utilImageRegistryDomain),
           command: ["/bin/sh", "-c", "'cp' '/usr/local/bin/mutagen-agent' '/.garden/mutagen-agent'"],
           imagePullPolicy: "IfNotPresent",
           volumeMounts: [

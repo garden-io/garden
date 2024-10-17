@@ -15,7 +15,11 @@ import {
 import { expect } from "chai"
 import type { KubernetesProvider } from "../../../../../../../src/plugins/kubernetes/config.js"
 import { defaultResources } from "../../../../../../../src/plugins/kubernetes/config.js"
-import { defaultKanikoImageName, getK8sUtilImageName } from "../../../../../../../src/plugins/kubernetes/constants.js"
+import {
+  defaultKanikoImageName,
+  defaultUtilImageRegistryDomain,
+  getK8sUtilImagePath,
+} from "../../../../../../../src/plugins/kubernetes/constants.js"
 import type { DeepPartial } from "utility-types"
 import { inClusterBuilderServiceAccount } from "../../../../../../../src/plugins/kubernetes/container/build/common.js"
 
@@ -60,6 +64,7 @@ describe("kaniko build", () => {
   describe("getKanikoBuilderPodManifest", () => {
     const _provider: DeepPartial<KubernetesProvider> = {
       config: {
+        utilImageRegistryDomain: defaultUtilImageRegistryDomain,
         kaniko: {},
         resources: {
           ...defaultResources,
@@ -132,7 +137,7 @@ describe("kaniko build", () => {
                 "-c",
                 'echo "Copying from $SYNC_SOURCE_URL to $SYNC_CONTEXT_PATH"\nmkdir -p "$SYNC_CONTEXT_PATH"\nn=0\nuntil [ "$n" -ge 30 ]\ndo\n  rsync \'arg1\' \'arg2\' && break\n  n=$((n+1))\n  sleep 1\ndone\necho "Done!"',
               ],
-              image: getK8sUtilImageName(),
+              image: getK8sUtilImagePath(provider.config.utilImageRegistryDomain),
               imagePullPolicy: "IfNotPresent",
               name: "init",
               volumeMounts: [
