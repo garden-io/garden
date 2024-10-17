@@ -277,6 +277,7 @@ export class Garden {
   public readonly localConfigStore: LocalConfigStore
   public globalConfigStore: GlobalConfigStore
   public readonly vcs: VcsHandler
+  private readonly configScanVcs: VcsHandler
   public events: EventBus
   private tools?: { [key: string]: PluginTool }
   public readonly configTemplates: { [name: string]: ConfigTemplateConfig }
@@ -373,12 +374,19 @@ export class Garden {
     const gitMode = params.projectConfig.scan?.git?.mode || gardenEnv.GARDEN_GIT_SCAN_MODE
     const handlerCls = gitMode === "repo" ? GitRepoHandler : GitSubTreeHandler
 
+    const vcsCache = new TreeCache()
     this.vcs = new handlerCls({
       garden: this,
       projectRoot: params.projectRoot,
       gardenDirPath: params.gardenDirPath,
       ignoreFile: params.dotIgnoreFile,
-      cache: new TreeCache(),
+      cache: vcsCache,
+    })
+    this.configScanVcs = new GitSubTreeHandler({
+      projectRoot: params.projectRoot,
+      gardenDirPath: params.gardenDirPath,
+      ignoreFile: params.dotIgnoreFile,
+      cache: vcsCache,
     })
 
     // Use the legacy build sync mode if
@@ -1349,7 +1357,7 @@ export class Garden {
     log.silly(() => `Scanning for configs in ${path}`)
 
     return findConfigPathsInPath({
-      vcs: this.vcs,
+      vcs: this.configScanVcs,
       dir: path,
       include: this.moduleIncludePatterns,
       exclude: this.moduleExcludePatterns,
