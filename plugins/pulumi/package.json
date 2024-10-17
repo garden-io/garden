@@ -21,7 +21,7 @@
     "@types/hapi__joi": "^17.1.14",
     "@types/json-merge-patch": "1.0.0",
     "@types/mocha": "^10.0.7",
-    "@types/node": "^20",
+    "@types/node": "^22",
     "chai": "^5.0.3",
     "mocha": "^10.6.0",
     "strip-ansi": "^7.1.0"
