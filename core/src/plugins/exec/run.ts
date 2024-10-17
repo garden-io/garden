@@ -14,6 +14,7 @@ import { styles } from "../../logger/styles.js"
 import { copyArtifacts, execRunCommand } from "./common.js"
 import { execRunSpecSchema, execRuntimeOutputsSchema, execStaticOutputsSchema } from "./config.js"
 import { execProvider } from "./exec.js"
+import { InternalError } from "../../exceptions.js"
 
 export const execRun = execProvider.createActionType({
   kind: "Run",
@@ -32,22 +33,22 @@ export type ExecRun = GardenSdkActionDefinitionActionType<typeof execRun>
 execRun.addHandler("run", async ({ artifactsPath, log, action, ctx }) => {
   const startedAt = new Date()
   const { command, env, artifacts } = action.getSpec()
-  const runCommandErrors: unknown[] = []
+  let runCommandError: unknown | undefined
 
-  let commandResult
+  let commandResult: Awaited<ReturnType<typeof execRunCommand>> | undefined
   try {
     // Execute the run command
     commandResult = await execRunCommand({ command, action, ctx, log, env, opts: { reject: false } })
   } catch (error) {
     // Store error to be thrown at the end after trying to fetch artifacts
-    runCommandErrors.push(error)
+    runCommandError = error
   }
 
   try {
     // Try to fetch artifacts
     await copyArtifacts(log, artifacts, action.getBuildPath(), artifactsPath)
   } catch (error) {
-    if (runCommandErrors.length > 0 || !commandResult.success) {
+    if (runCommandError || !commandResult?.success) {
       // If the run command has failed or thrown an error, and the artifact copy has failed as well, we just log the artifact copy error
       // since we'll trow the run command error later on.
       log.error(`Failed to copy artifacts: ${error}`)
@@ -56,9 +57,13 @@ execRun.addHandler("run", async ({ artifactsPath, log, action, ctx }) => {
     }
   }
 
-  if (runCommandErrors.length) {
+  if (runCommandError) {
     // The run command failed, so we throw the error
-    throw runCommandErrors[0]
+    throw runCommandError
+  } else if (!commandResult) {
+    throw new InternalError({
+      message: "CommandResult should not be undefined if there was no error",
+    })
   }
 
   const detail = {
