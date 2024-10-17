@@ -58,7 +58,7 @@ execTest.addHandler("run", async ({ log, action, artifactsPath, ctx }) => {
     }
   }
 
-  if (runCommandErrors.length === 0) {
+  if (runCommandErrors.length) {
     // The test command failed, so we throw the error
     throw runCommandErrors[0]
   }
