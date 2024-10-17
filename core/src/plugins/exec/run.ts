@@ -56,7 +56,7 @@ execRun.addHandler("run", async ({ artifactsPath, log, action, ctx }) => {
     }
   }
 
-  if (runCommandErrors.length === 0) {
+  if (runCommandErrors.length) {
     // The run command failed, so we throw the error
     throw runCommandErrors[0]
   }
