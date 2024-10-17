@@ -59,6 +59,7 @@ describe("sanitizeValue", () => {
 
   it("replaces nested values on class attributes", () => {
     class Foo {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       b: any
 
       constructor() {
@@ -101,6 +102,7 @@ describe("sanitizeValue", () => {
   })
 
   it("replaces a circular reference", () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const a = { b: <any>{} }
     a.b.a = a
     const res = sanitizeValue(a)
@@ -108,6 +110,7 @@ describe("sanitizeValue", () => {
   })
 
   it("replaces a circular reference nested in an array", () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const a = [{ b: <any>{} }]
     a[0].b.a = a
     const res = sanitizeValue(a)
@@ -116,6 +119,7 @@ describe("sanitizeValue", () => {
 
   it("replaces a circular reference nested under a class attribute", () => {
     class Foo {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       a: any
     }
 

@@ -455,6 +455,7 @@ describe("docs config module", () => {
         override required = false
         override internal = false
         override description?: string
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         override example?: any
         override type = "string"
 

@@ -108,6 +108,7 @@ describe("ConfigContext", () => {
     })
 
     it("should cache resolved values", async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const nested: any = new TestContext({ key: "value" })
       const c = new TestContext({
         nested,
@@ -160,6 +161,7 @@ describe("ConfigContext", () => {
 
     it("should show helpful error when unable to resolve nested key in object", async () => {
       class Context extends ConfigContext {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         nested: any
 
         constructor(parent?: ConfigContext) {
@@ -175,6 +177,7 @@ describe("ConfigContext", () => {
 
     it("should show helpful error when unable to resolve two-level nested key in object", async () => {
       class Context extends ConfigContext {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         nested: any
 
         constructor(parent?: ConfigContext) {
@@ -209,6 +212,7 @@ describe("ConfigContext", () => {
       const c = new TestContext({
         foo: "value",
       })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const nested: any = new TestContext({ key: "${foo}" }, c)
       c.addValues({ nested })
       expect(resolveKey(c, ["nested", "key"])).to.eql({ resolved: "value" })
@@ -218,6 +222,7 @@ describe("ConfigContext", () => {
       const c = new TestContext({
         foo: "bar",
       })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const nested: any = new TestContext({ key: "${nested.foo}", foo: "value" }, c)
       c.addValues({ nested })
       expect(resolveKey(c, ["nested", "key"])).to.eql({ resolved: "value" })
@@ -241,6 +246,7 @@ describe("ConfigContext", () => {
       const c = new TestContext({
         foo: "bar",
       })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const nested: any = new TestContext({ key: "${nested.foo}", foo: "${nested.key}" }, c)
       c.addValues({ nested })
       await expectError(() => resolveKey(c, ["nested", "key"]), "template-string")
@@ -250,6 +256,7 @@ describe("ConfigContext", () => {
       const c = new TestContext({
         foo: "bar",
       })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const nested: any = new TestContext({ key: "${nested.foo}", foo: "${'${nested.key}'}" }, c)
       c.addValues({ nested })
       await expectError(() => resolveKey(c, ["nested", "key"]), "template-string")
@@ -259,6 +266,7 @@ describe("ConfigContext", () => {
       const c = new TestContext({
         foo: "bar",
       })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const nested: any = new TestContext({ key: "${'${nested.key}'}" }, c)
       c.addValues({ nested })
       await expectError(() => resolveKey(c, ["nested", "key"]), {

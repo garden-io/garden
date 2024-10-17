@@ -196,7 +196,7 @@ export const forwardablePortSchema = createSchema({
   keys: forwardablePortKeys,
 })
 
-export interface ServiceStatus<D = any, O = PrimitiveMap> {
+export type ServiceStatus<D = any, O = PrimitiveMap> = {
   createdAt?: string
   detail: D
   mode?: ActionMode

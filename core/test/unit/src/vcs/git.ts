@@ -1615,27 +1615,27 @@ const getTreeVersionTests = (gitScanMode: GitScanMode) => {
       it("should update content hash when include is set and there's a change in the included files of an action", async () => {
         // This test project should not have multiple actions.
         // It tests the case when some new files are added to an included directory.
-        const projectRoot = getDataDir("test-projects", "include-files")
-        const garden = await makeTestGarden(projectRoot)
-        const log = garden.log
-        const graph = await garden.getConfigGraph({ emit: false, log })
-        const buildConfig = graph.getBuild("a").getConfig()
-        const newFilePathBuildA = join(garden.projectRoot, "build-a", "somedir", "foo")
+        const _projectRoot = getDataDir("test-projects", "include-files")
+        const _garden = await makeTestGarden(_projectRoot)
+        const _log = _garden.log
+        const _graph = await _garden.getConfigGraph({ emit: false, log: _log })
+        const buildConfig = _graph.getBuild("a").getConfig()
+        const newFilePathBuildA = join(_garden.projectRoot, "build-a", "somedir", "foo")
 
         try {
-          const version1 = await garden.vcs.getTreeVersion({
-            log: garden.log,
-            projectName: garden.projectName,
+          const version1 = await _garden.vcs.getTreeVersion({
+            log: _garden.log,
+            projectName: _garden.projectName,
             config: buildConfig,
           })
 
           // write new file to the included dir and clear the cache
           await writeFile(newFilePathBuildA, "abcd")
-          garden.vcs.clearTreeCache()
+          _garden.vcs.clearTreeCache()
 
-          const version2 = await garden.vcs.getTreeVersion({
-            log: garden.log,
-            projectName: garden.projectName,
+          const version2 = await _garden.vcs.getTreeVersion({
+            log: _garden.log,
+            projectName: _garden.projectName,
             config: buildConfig,
             force: true,
           })
@@ -1646,40 +1646,40 @@ const getTreeVersionTests = (gitScanMode: GitScanMode) => {
       })
 
       describe("should not update content hash for Deploy, when there's no change in included files of Build", async () => {
-        async function runTest(projectRoot: string) {
-          const garden = await makeTestGarden(projectRoot)
-          const log = garden.log
-          const graph = await garden.getConfigGraph({ emit: false, log })
-          const buildConfig = graph.getBuild("test-build").getConfig()
-          const deployConfig = graph.getDeploy("test-deploy").getConfig()
-          const newFilePath = join(garden.projectRoot, "foo")
+        async function runTest(gardenProjectRoot: string) {
+          const _garden = await makeTestGarden(gardenProjectRoot)
+          const _log = _garden.log
+          const _graph = await _garden.getConfigGraph({ emit: false, log: _log })
+          const buildConfig = _graph.getBuild("test-build").getConfig()
+          const deployConfig = _graph.getDeploy("test-deploy").getConfig()
+          const newFilePath = join(_garden.projectRoot, "foo")
 
           try {
-            const buildVersion1 = await garden.vcs.getTreeVersion({
-              log: garden.log,
-              projectName: garden.projectName,
+            const buildVersion1 = await _garden.vcs.getTreeVersion({
+              log: _garden.log,
+              projectName: _garden.projectName,
               config: buildConfig,
             })
 
-            const deployVersion1 = await garden.vcs.getTreeVersion({
-              log: garden.log,
-              projectName: garden.projectName,
+            const deployVersion1 = await _garden.vcs.getTreeVersion({
+              log: _garden.log,
+              projectName: _garden.projectName,
               config: deployConfig,
             })
 
             // write new file that should not be included and clear the cache
             await writeFile(newFilePath, "abcd")
-            garden.vcs.clearTreeCache()
+            _garden.vcs.clearTreeCache()
 
-            const buildVersion2 = await garden.vcs.getTreeVersion({
-              log: garden.log,
-              projectName: garden.projectName,
+            const buildVersion2 = await _garden.vcs.getTreeVersion({
+              log: _garden.log,
+              projectName: _garden.projectName,
               config: buildConfig,
               force: true,
             })
-            const deployVersion2 = await garden.vcs.getTreeVersion({
-              log: garden.log,
-              projectName: garden.projectName,
+            const deployVersion2 = await _garden.vcs.getTreeVersion({
+              log: _garden.log,
+              projectName: _garden.projectName,
               config: deployConfig,
               force: true,
             })
@@ -1694,40 +1694,40 @@ const getTreeVersionTests = (gitScanMode: GitScanMode) => {
         // The different project structure causes different Git repo roots in scanning mode and different caching behavior.
 
         it("with a flat project/action config", async () => {
-          const projectRoot = getDataDir("test-projects", "config-action-include-flat")
-          await runTest(projectRoot)
+          const _projectRoot = getDataDir("test-projects", "config-action-include-flat")
+          await runTest(_projectRoot)
         })
 
         it("with a structured project/action config", async () => {
-          const projectRoot = getDataDir("test-projects", "config-action-include")
-          await runTest(projectRoot)
+          const _projectRoot = getDataDir("test-projects", "config-action-include")
+          await runTest(_projectRoot)
         })
       })
 
       it("should update content hash when a file is renamed", async () => {
-        const projectRoot = getDataDir("test-projects", "include-files")
-        const garden = await makeTestGarden(projectRoot)
-        const log = garden.log
-        const graph = await garden.getConfigGraph({ emit: false, log })
-        const buildConfig = graph.getBuild("a").getConfig()
-        const newFilePathBuildA = join(garden.projectRoot, "build-a", "somedir", "foo")
-        const renamedFilePathBuildA = join(garden.projectRoot, "build-a", "somedir", "bar")
+        const _projectRoot = getDataDir("test-projects", "include-files")
+        const _garden = await makeTestGarden(_projectRoot)
+        const _log = _garden.log
+        const _graph = await _garden.getConfigGraph({ emit: false, log: _log })
+        const buildConfig = _graph.getBuild("a").getConfig()
+        const newFilePathBuildA = join(_garden.projectRoot, "build-a", "somedir", "foo")
+        const renamedFilePathBuildA = join(_garden.projectRoot, "build-a", "somedir", "bar")
 
         try {
           await writeFile(newFilePathBuildA, "abcd")
-          const version1 = await garden.vcs.getTreeVersion({
-            log: garden.log,
-            projectName: garden.projectName,
+          const version1 = await _garden.vcs.getTreeVersion({
+            log: _garden.log,
+            projectName: _garden.projectName,
             config: buildConfig,
           })
 
           // rename file foo to bar and clear the cache
           await rename(newFilePathBuildA, renamedFilePathBuildA)
-          garden.vcs.clearTreeCache()
+          _garden.vcs.clearTreeCache()
 
-          const version2 = await garden.vcs.getTreeVersion({
-            log: garden.log,
-            projectName: garden.projectName,
+          const version2 = await _garden.vcs.getTreeVersion({
+            log: _garden.log,
+            projectName: _garden.projectName,
             config: buildConfig,
             force: true,
           })
@@ -1739,29 +1739,29 @@ const getTreeVersionTests = (gitScanMode: GitScanMode) => {
 
       // FIXME: this duplicates the test case above; re-implement it properly
       it.skip("should not update content hash when the parent config's enclosing directory is renamed", async () => {
-        const projectRoot = getDataDir("test-projects", "include-exclude")
-        const garden = await makeTestGarden(projectRoot)
-        const log = garden.log
-        const graph = await garden.getConfigGraph({ emit: false, log })
-        const buildConfig = graph.getBuild("a").getConfig()
-        const newFilePathBuildA = join(garden.projectRoot, "build-a", "somedir", "foo")
-        const renamedFilePathBuildA = join(garden.projectRoot, "build-a", "somedir", "bar")
+        const _projectRoot = getDataDir("test-projects", "include-exclude")
+        const _garden = await makeTestGarden(_projectRoot)
+        const _log = _garden.log
+        const _graph = await _garden.getConfigGraph({ emit: false, log: _log })
+        const buildConfig = _graph.getBuild("a").getConfig()
+        const newFilePathBuildA = join(_garden.projectRoot, "build-a", "somedir", "foo")
+        const renamedFilePathBuildA = join(_garden.projectRoot, "build-a", "somedir", "bar")
 
         try {
           await writeFile(newFilePathBuildA, "abcd")
-          const version1 = await garden.vcs.getTreeVersion({
-            log: garden.log,
-            projectName: garden.projectName,
+          const version1 = await _garden.vcs.getTreeVersion({
+            log: _garden.log,
+            projectName: _garden.projectName,
             config: buildConfig,
           })
 
           // rename file foo to bar and clear the cache
           await rename(newFilePathBuildA, renamedFilePathBuildA)
-          garden.vcs.clearTreeCache()
+          _garden.vcs.clearTreeCache()
 
-          const version2 = await garden.vcs.getTreeVersion({
-            log: garden.log,
-            projectName: garden.projectName,
+          const version2 = await _garden.vcs.getTreeVersion({
+            log: _garden.log,
+            projectName: _garden.projectName,
             config: buildConfig,
             force: true,
           })

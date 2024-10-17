@@ -566,7 +566,7 @@ jobs:
             - checkout
             # This is to copy the pre-built code from a previous step
             - *attach-workspace
-            - deploy:
+            - run:
                 name: Build and test docker images
                 command: |
                   bash support/docker-bake-test.sh $CIRCLE_BRANCH
@@ -587,7 +587,7 @@ jobs:
       - *attach-workspace
       - docker_login
       # TODO: use garden publish here
-      - deploy:
+      - run:
           name: Release docker images
           command: |
             # TODO: read minor version from package.json file, instead of hardcoding.

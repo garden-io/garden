@@ -32,8 +32,8 @@ export const deployActionConfigSchema = memoize(() =>
 
 export class DeployAction<
   C extends DeployActionConfig = any,
-  StaticOutputs extends {} = any,
-  RuntimeOutputs extends {} = any,
+  StaticOutputs extends Record<string, unknown> = any,
+  RuntimeOutputs extends Record<string, unknown> = any,
 > extends RuntimeAction<C, StaticOutputs, RuntimeOutputs> {
   override kind = "Deploy" as const
   override _staticOutputs: StaticOutputs = {} as StaticOutputs
@@ -49,8 +49,8 @@ export class DeployAction<
 
 export class ResolvedDeployAction<
   C extends DeployActionConfig = any,
-  StaticOutputs extends {} = any,
-  RuntimeOutputs extends {} = any,
+  StaticOutputs extends Record<string, unknown> = any,
+  RuntimeOutputs extends Record<string, unknown> = any,
 > extends ResolvedRuntimeAction<C, StaticOutputs, RuntimeOutputs> {
   override kind = "Deploy" as const
 
@@ -65,8 +65,8 @@ export class ResolvedDeployAction<
 
 export class ExecutedDeployAction<
   C extends DeployActionConfig = any,
-  StaticOutputs extends {} = any,
-  RuntimeOutputs extends {} = any,
+  StaticOutputs extends Record<string, unknown> = any,
+  RuntimeOutputs extends Record<string, unknown> = any,
 > extends ExecutedRuntimeAction<C, StaticOutputs, RuntimeOutputs> {
   override kind = "Deploy" as const
 

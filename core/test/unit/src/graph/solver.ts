@@ -18,6 +18,7 @@ import { GardenError, GenericGardenError } from "../../../../src/exceptions.js"
 
 const projectRoot = getDataDir("test-project-empty")
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type TestTaskCallback = (params: { task: BaseTask; params: TaskProcessParams }) => Promise<any>
 
 interface TestTaskParams extends CommonTaskParams {
@@ -33,6 +34,7 @@ interface TestTaskResult extends ValidResultType {
   outputs: {
     id: string
     processed: boolean
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     callbackResult: any
   }
 }
@@ -86,6 +88,7 @@ export class TestTask extends BaseTask<TestTaskResult> {
   }
 
   async getStatus(params: TaskProcessParams) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let callbackResult: any = undefined
 
     if (this.statusCallback) {
@@ -104,6 +107,7 @@ export class TestTask extends BaseTask<TestTaskResult> {
   }
 
   async process(params: TaskProcessParams) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let callbackResult: any = undefined
 
     if (this.callback) {

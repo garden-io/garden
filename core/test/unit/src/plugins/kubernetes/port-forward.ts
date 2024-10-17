@@ -45,6 +45,7 @@ describe("getForwardablePorts", () => {
 
   it("returns explicitly configured port forwards if set", () => {
     // This mock only defines the necessary class members, the rest have been omitted by <any> cast hack.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const action: ResolvedDeployAction<KubernetesDeployActionConfig> = <any>{
       kind: "Deploy",
       name: "foo",

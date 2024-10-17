@@ -19,6 +19,7 @@ import { expectError } from "../../helpers.js"
 describe("resolvePlugins", () => {
   const log = getRootLogger().createLog()
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const testHandler = (params: PluginBuildActionParamsBase<any>) => {
     return {
       detail: {

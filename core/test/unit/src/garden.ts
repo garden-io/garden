@@ -290,7 +290,7 @@ describe("Garden", () => {
         providers: [{ name: "foo" }],
       })
       config.environments = [] // this is omitted later to simulate a config where envs are not set
-      config = omit(config, "environments") as any as ProjectConfig
+      config = omit(config, "environments") as ProjectConfig
       await expectError(async () => await TestGarden.factory(pathFoo, { config }), {
         contains: ["Error validating project environments", "environments is required"],
       })
@@ -2913,6 +2913,7 @@ describe("Garden", () => {
 
         garden.variables.sourceBranch = "main"
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const _garden = garden as any
         _garden["projectSources"] = [
           {

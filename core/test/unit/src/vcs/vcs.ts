@@ -298,6 +298,7 @@ describe("getModuleVersionString", () => {
 
   it("is stable with respect to key order in moduleConfig", async () => {
     const originalConfig = defaultModuleConfig
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const stirredConfig: any = cloneDeep(originalConfig)
     delete stirredConfig.name
     stirredConfig.name = originalConfig.name

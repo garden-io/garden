@@ -57,9 +57,8 @@ describe("VersionCommand", () => {
   it("returns version when version command is run", async () => {
     const command = new VersionCommand()
     const garden = await makeDummyGarden(tmpDir.path, { commandInfo: { name: "version", args: {}, opts: {} } })
-    const { result } = await command.action({
-      log: garden.log,
-    } as any)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { result } = await command.action({ log: garden.log } as any)
     expect(result).to.eql({
       version: getPackageVersion(),
     })

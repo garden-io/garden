@@ -22,7 +22,7 @@ interface PublishActionParams<T extends BuildAction = BuildAction> extends Plugi
   tagOverride?: string
 }
 
-export interface PublishActionDetail {
+export type PublishActionDetail = {
   published: boolean
   message?: string
   identifier?: string

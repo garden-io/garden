@@ -598,7 +598,7 @@ async function configureSpecialModesForManifests({
       log,
     })
   } else if (mode === "sync" && spec.sync && !isEmpty(spec.sync)) {
-    // The "sync-mode" annotation is set in `configureDevMode`.
+    // The "sync-mode" annotation is already set.
     return configureSyncMode({
       ctx,
       log,

@@ -35,6 +35,7 @@ describe("getK8sIngresses", () => {
   })
 
   it("picks up extensions/v1beta1 Ingress resource", () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const ingress: KubernetesResource<any> = {
       apiVersion: "extensions/v1beta1",
       kind: "Ingress",
@@ -89,6 +90,7 @@ describe("getK8sIngresses", () => {
   })
 
   it("picks up networking.k8s.io/v1beta1 Ingress resource", () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const ingress: KubernetesResource<any> = {
       apiVersion: "networking.k8s.io/v1beta1",
       kind: "Ingress",

@@ -32,8 +32,8 @@ export const runActionConfigSchema = memoize(() =>
 
 export class RunAction<
   C extends RunActionConfig = RunActionConfig,
-  StaticOutputs extends {} = any,
-  RuntimeOutputs extends {} = any,
+  StaticOutputs extends Record<string, unknown> = any,
+  RuntimeOutputs extends Record<string, unknown> = any,
 > extends RuntimeAction<C, StaticOutputs, RuntimeOutputs> {
   override kind = "Run" as const
   override _staticOutputs: StaticOutputs = {} as StaticOutputs
@@ -49,8 +49,8 @@ export class RunAction<
 
 export class ResolvedRunAction<
   C extends RunActionConfig = RunActionConfig,
-  StaticOutputs extends {} = any,
-  RuntimeOutputs extends {} = any,
+  StaticOutputs extends Record<string, unknown> = any,
+  RuntimeOutputs extends Record<string, unknown> = any,
 > extends ResolvedRuntimeAction<C, StaticOutputs, RuntimeOutputs> {
   override kind = "Run" as const
 
@@ -65,8 +65,8 @@ export class ResolvedRunAction<
 
 export class ExecutedRunAction<
   C extends RunActionConfig = RunActionConfig,
-  StaticOutputs extends {} = any,
-  RuntimeOutputs extends {} = any,
+  StaticOutputs extends Record<string, unknown> = any,
+  RuntimeOutputs extends Record<string, unknown> = any,
 > extends ExecutedRuntimeAction<C, StaticOutputs, RuntimeOutputs> {
   override kind = "Run" as const
 

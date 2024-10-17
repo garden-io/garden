@@ -25,6 +25,7 @@ import type { Garden } from "../../../../src/garden.js"
 import type { Log } from "../../../../src/logger/log-entry.js"
 import { UpdateRemoteActionsCommand } from "../../../../src/commands/update-remote/actions.js"
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function withDefaultOpts(opts: any) {
   return withDefaultGlobalOpts({ parallel: false, ...opts })
 }

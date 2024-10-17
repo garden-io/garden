@@ -259,6 +259,7 @@ ${expectedIngressOutput}
       const parsed = loadAll(templates)
       expect(parsed.length).to.equal(4)
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const kinds = uniq(parsed.map((p) => (p as any).kind)).sort()
       expect(kinds).to.eql(["Secret", "Service", "StatefulSet"])
     })
@@ -302,6 +303,7 @@ ${expectedIngressOutput}
 
       const api = await KubeApi.factory(log, ctx, ctx.provider)
       const ingressApiVersion = await getIngressApiVersion(log, api, ingressApiPreferenceOrder)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       let ingressResource: any
       if (ingressApiVersion === "networking.k8s.io/v1") {
         ingressResource = {
@@ -704,6 +706,7 @@ ${expectedIngressOutput}
           graph,
         })
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const l = log as any
         l.entries = []
 
@@ -723,6 +726,7 @@ ${expectedIngressOutput}
           graph,
         })
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const l = log as any
         l.entries = []
 

@@ -9,7 +9,7 @@
 import { expect } from "chai"
 import { join } from "path"
 import sinon from "sinon"
-import type { ResolvedBuildAction, BuildActionConfig } from "../../../../../src/actions/build.js"
+import type { ResolvedBuildAction } from "../../../../../src/actions/build.js"
 import type { ConfigGraph } from "../../../../../src/graph/config-graph.js"
 import type { ActionLog, Log } from "../../../../../src/logger/log-entry.js"
 import { createActionLog } from "../../../../../src/logger/log-entry.js"
@@ -140,7 +140,7 @@ context("build.ts", () => {
       sinon.replace(containerHelpers, "checkDockerServerVersion", () => null)
     })
 
-    function getCmdArgs(action: ResolvedBuildAction<BuildActionConfig<any, any>, any>, buildPath: string) {
+    function getCmdArgs(action: ResolvedBuildAction, buildPath: string) {
       return [
         "buildx",
         "build",
@@ -169,7 +169,7 @@ context("build.ts", () => {
         expect(cwd).to.equal(buildPath)
         expect(args).to.eql(cmdArgs)
         expect(_ctx).to.exist
-        return { all: "log", stdout: "", stderr: "", code: 0, proc: <any>null }
+        return { all: "log", stdout: "", stderr: "", code: 0, proc: null }
       })
       const result = await buildContainer({ ctx, log: actionLog, action })
       expect(result.state).to.eql("ready")
@@ -194,7 +194,7 @@ context("build.ts", () => {
         expect(cwd).to.equal(buildPath)
         expect(args).to.eql(cmdArgs)
         expect(_ctx).to.exist
-        return { all: "log", stdout: "", stderr: "", code: 0, proc: <any>null }
+        return { all: "log", stdout: "", stderr: "", code: 0, proc: null }
       })
       const result = await buildContainer({ ctx, log: actionLog, action })
       expect(result.state).to.eql("ready")

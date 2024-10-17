@@ -63,10 +63,10 @@ RUN GARDEN_DISABLE_ANALYTICS=true GARDEN_DISABLE_VERSION_CHECK=true garden util 
 
 WORKDIR /project
 
-FROM python:3.11.10-alpine@sha256:004b4029670f2964bb102d076571c9d750c2a43b51c13c768e443c95a71aa9f3 AS aws-builder
+FROM python:3.12.7-alpine@sha256:e75de178bc15e72f3f16bf75a6b484e33d39a456f03fc771a2b3abb9146b75f8 AS aws-builder
 
-ENV AWSCLI_VERSION=2.17.57
-ENV AWSCLI_SHA256="c9eda0acca6b6fdd39009754978534b644c4b89fa1caa19c9e2bf9dbbd15c798"
+ENV AWSCLI_VERSION=2.18.6
+ENV AWSCLI_SHA256="f63e6ca40741d862d0f676e7674dc879cab2f99bd4a4b40ae21dffaef8dfe127"
 
 RUN apk add --no-cache \
   wget \
@@ -100,7 +100,7 @@ COPY --chown=$USER:root --from=aws-builder /usr/bin/aws-iam-authenticator /usr/b
 #
 # gcloud base
 #
-FROM google/cloud-sdk:495.0.0-alpine@sha256:10a93b52fa04f7cbb001ac332628810ed7a5322aadc87ec825c7c48005b0f798 as gcloud-base
+FROM google/cloud-sdk:496.0.0-alpine@sha256:f59b6e6a2ed1b935f810e16c60db066a91a6395dff880052bcd17ece8e798cac as gcloud-base
 
 RUN gcloud components install kubectl gke-gcloud-auth-plugin --quiet && gcloud components remove gsutil --quiet
 
@@ -113,11 +113,11 @@ RUN rm -rf $(find /google-cloud-sdk/ -regex ".*/__pycache__") && rm -rf /google-
 FROM garden-base-root as garden-azure-base
 
 WORKDIR /
-ENV AZURE_CLI_VERSION=2.64.0
+ENV AZURE_CLI_VERSION=2.65.0
 
-RUN wget -O requirements.txt https://raw.githubusercontent.com/Azure/azure-cli/azure-cli-$AZURE_CLI_VERSION/src/azure-cli/requirements.py3.Linux.txt && \
-  echo "babdcf09668bbbaa4bf9065f4795e80570658d6210f915831764fa38b0773d3d  requirements.txt" | sha256sum -c
-RUN wget -O trim_sdk.py https://raw.githubusercontent.com/Azure/azure-cli/azure-cli-$AZURE_CLI_VERSION/scripts/trim_sdk.py && \
+RUN wget -O requirements.txt https://raw.githubusercontent.com/Azure/azure-cli/azure-cli-${AZURE_CLI_VERSION}/src/azure-cli/requirements.py3.Linux.txt && \
+  echo "939ddd5dc4c4f6f0cf5e140bc8a1178358ccaaafeacfe7ada651bf367bac6635  requirements.txt" | sha256sum -c
+RUN wget -O trim_sdk.py https://raw.githubusercontent.com/Azure/azure-cli/azure-cli-${AZURE_CLI_VERSION}/scripts/trim_sdk.py && \
   echo "2e6292f5285b4fcedbe8efd77309fade550667d1c502a6ffa078f1aa97942c64  trim_sdk.py" | sha256sum -c
 
 RUN apk add py3-virtualenv openssl-dev libffi-dev build-base python3-dev

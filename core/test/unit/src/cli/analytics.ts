@@ -71,6 +71,7 @@ describe("cli analytics", () => {
     // 'Run Command' and 'Command Result'
     scope
       .post(`/v1/batch`, (body) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const events = body.batch.map((event: any) => ({
           event: event.event,
           type: event.type,

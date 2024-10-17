@@ -81,6 +81,7 @@ export async function getArtifactRegistryClient() {
   })
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function isGCloudServiceError(err: any): err is GCloudServiceError {
   if (err === undefined) {
     return false
@@ -92,6 +93,7 @@ function isGCloudServiceError(err: any): err is GCloudServiceError {
 interface GCloudServiceError {
   code: number
   details: string
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   metadata: any
 }
 

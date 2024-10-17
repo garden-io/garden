@@ -116,8 +116,8 @@ export type ActionState = (typeof actionStateTypes)[number]
 
 export interface ActionStatus<
   T extends BaseAction = BaseAction,
-  D extends {} = any,
-  O extends {} = GetActionOutputType<T>,
+  D extends Record<string, unknown> = any,
+  O extends Record<string, unknown> = GetActionOutputType<T>,
 > extends ValidResultType {
   state: ActionState
   detail: D | null
@@ -173,7 +173,7 @@ export interface ActionWrapperParams<C extends BaseActionConfig> {
   variables: DeepPrimitiveMap
 }
 
-export interface ResolveActionParams<C extends BaseActionConfig, StaticOutputs extends {} = any> {
+export interface ResolveActionParams<C extends BaseActionConfig, StaticOutputs extends Record<string, unknown> = any> {
   resolvedGraph: ResolvedConfigGraph
   dependencyResults: GraphResults
   executedDependencies: ExecutedAction[]
@@ -186,21 +186,21 @@ export interface ResolveActionParams<C extends BaseActionConfig, StaticOutputs e
 
 export type ResolvedActionWrapperParams<
   C extends BaseActionConfig,
-  StaticOutputs extends {} = any,
+  StaticOutputs extends Record<string, unknown> = any,
 > = ActionWrapperParams<C> & ResolveActionParams<C, StaticOutputs>
 
 export interface ExecuteActionParams<
   C extends BaseActionConfig = BaseActionConfig,
-  StaticOutputs extends {} = any,
-  RuntimeOutputs extends {} = any,
+  StaticOutputs extends Record<string, unknown> = any,
+  RuntimeOutputs extends Record<string, unknown> = any,
 > {
   status: ActionStatus<BaseAction<C, StaticOutputs>, any, RuntimeOutputs>
 }
 
 export type ExecutedActionWrapperParams<
   C extends BaseActionConfig,
-  StaticOutputs extends {} = any,
-  RuntimeOutputs extends {} = any,
+  StaticOutputs extends Record<string, unknown> = any,
+  RuntimeOutputs extends Record<string, unknown> = any,
 > = ResolvedActionWrapperParams<C, StaticOutputs> & ExecuteActionParams<C, StaticOutputs, RuntimeOutputs>
 
 export type GetActionOutputType<T> = T extends BaseAction<any, infer O> ? O : any

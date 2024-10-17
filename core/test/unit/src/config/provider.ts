@@ -23,7 +23,7 @@ describe("getProviderDependencies", () => {
       someKey: "${providers.other-provider.foo}",
       anotherKey: "foo-${providers.another-provider.bar}",
     }
-    expect(await getAllProviderDependencyNames(plugin, config)).to.eql(["another-provider", "other-provider"])
+    expect(getAllProviderDependencyNames(plugin, config)).to.eql(["another-provider", "other-provider"])
   })
 
   it("should ignore template strings that don't reference providers", async () => {
@@ -32,7 +32,7 @@ describe("getProviderDependencies", () => {
       someKey: "${providers.other-provider.foo}",
       anotherKey: "foo-${some.other.ref}",
     }
-    expect(await getAllProviderDependencyNames(plugin, config)).to.eql(["other-provider"])
+    expect(getAllProviderDependencyNames(plugin, config)).to.eql(["other-provider"])
   })
 
   it("should throw on provider-scoped template strings without a provider name", async () => {

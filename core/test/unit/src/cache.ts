@@ -20,6 +20,7 @@ describe("TreeCache", () => {
     cache = new TreeCache()
   })
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const mapToPairs = (m: Map<any, any>) => Array.from(m.entries())
 
   it("should store and retrieve a one-part key", () => {

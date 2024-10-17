@@ -780,3 +780,12 @@ export async function userPrompt(params: {
 export function isValidDateInstance(d: any) {
   return !isNaN(d) && d instanceof Date
 }
+
+export function* sliceToBatches<T>(elements: T[], batchSize: number) {
+  let position = 0
+
+  while (position < elements.length) {
+    yield elements.slice(position, position + batchSize)
+    position += batchSize
+  }
+}
