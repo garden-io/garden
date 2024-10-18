@@ -255,6 +255,12 @@ deployFromPreview: false
 
 # The name of the pulumi stack to use. Defaults to the current environment name.
 stack:
+
+# When set to true, stack outputs which are marked as secrets will be shown in the output.
+#
+# By default, Pulumi will print secret stack outputs as the string '[secret]' instead of
+# the true content of the output.
+showSecretsInOutput: false
 ```
 
 ## Configuration Keys
@@ -706,6 +712,17 @@ The name of the pulumi stack to use. Defaults to the current environment name.
 | Type     | Required |
 | -------- | -------- |
 | `string` | No       |
+
+### `showSecretsInOutput`
+
+When set to true, stack outputs which are marked as secrets will be shown in the output.
+
+By default, Pulumi will print secret stack outputs as the string '[secret]' instead of
+the true content of the output.
+
+| Type      | Default | Required |
+| --------- | ------- | -------- |
+| `boolean` | `false` | No       |
 
 
 ## Outputs
