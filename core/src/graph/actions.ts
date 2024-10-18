@@ -740,6 +740,7 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
   definition: MaybeUndefined<ActionTypeDefinition<any>>
   actionTypes: ActionDefinitionMap
 }): Promise<PreprocessActionResult> {
+  const actionStart = new Date().getTime()
   const actionKey = actionReferenceToString(config)
 
   const description = describeActionConfig(config)
@@ -747,11 +748,16 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
 
   // in pre-processing, only use varfiles that are not template strings
   const resolvedVarFiles = config.varfiles?.filter((f) => !maybeTemplateString(getVarfileData(f).path))
+  const mergeVarsStart = new Date().getTime()
   const variables = await mergeVariables({
     basePath: config.internal.basePath,
     variables: config.variables,
     varfiles: resolvedVarFiles,
   })
+  const mergeVarsEnd = new Date().getTime()
+  const varfilesDesc =
+    resolvedVarFiles && resolvedVarFiles.length > 0 ? `with varfiles: \n${resolvedVarFiles.join("\n")}` : ""
+  log.debug(`Merged variables for action ${actionKey} in ${mergeVarsEnd - mergeVarsStart}ms ${varfilesDesc}`)
 
   const resolvedVariables = resolveTemplateStrings({
     value: variables,
@@ -951,6 +957,9 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
     templateContext: builtinFieldContext,
     actionTypes,
   })
+
+  const actionEnd = new Date().getTime()
+  log.debug(`Preprocessed action ${actionKey} in ${actionEnd - actionStart}ms`)
 
   return {
     config,
