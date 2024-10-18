@@ -172,6 +172,7 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
     let batchNo = 1
     for (const batch of sliceToBatches(configsByKey, processingBatchSize)) {
       log.silly(`Preprocessing actions batch #${batchNo} (${batch.length} items)`)
+      const startTime = new Date().getTime()
       await Promise.all(
         batch.map(async ([key, config]) => {
           if (!predicate(config)) {
@@ -196,6 +197,8 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
         })
       )
       batchNo++
+      const endTime = new Date().getTime()
+      log.silly(`Preprocessed actions batch #${batchNo} (${batch.length} items in ${endTime - startTime}ms`)
     }
   }
 
@@ -303,6 +306,7 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
   let batchNo = 1
   for (const batch of sliceToBatches(preprocessResults, 100)) {
     log.silly(`Processing actions batch #${batchNo} (${batch.length} items)`)
+    const startTime = new Date().getTime()
     await Promise.all(
       batch.map(async ([key, res]) => {
         const { config, linkedSource, remoteSourcePath, supportedModes, dependencies } = res
@@ -347,6 +351,8 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
       })
     )
     batchNo++
+    const endTime = new Date().getTime()
+    log.silly(`Processed actions batch #${batchNo} (${batch.length} items in ${endTime - startTime}ms`)
   }
   log.debug(`Processed ${actionConfigCount} action configs`)
 
