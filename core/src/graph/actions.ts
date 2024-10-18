@@ -291,7 +291,6 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
   const minimalRoots = await garden.vcs.getMinimalRoots(log, allPaths)
   log.debug(`Found minimal roots for ${allPaths.size} paths`)
 
-  // TODO: Maybe we could optimize resolving tree versions, avoid parallel scanning of the same directory etc.
   const graph = new MutableConfigGraph({
     environmentName: garden.environmentName,
     actions: [],
