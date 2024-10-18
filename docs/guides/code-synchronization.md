@@ -340,7 +340,7 @@ GARDEN_ENABLE_NEW_SYNC=false garden util mutagen daemon stop
 GARDEN_ENABLE_NEW_SYNC=true garden deploy --sync
 ```
 
-#### Switching from the old sync machinery to the new one
+#### Switching from the new sync machinery to the old one
 
 To stop the new sync daemon and to deploy with old sync mode, you need to run the following commands from the project
 root directory:
