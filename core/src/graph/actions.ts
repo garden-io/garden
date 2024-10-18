@@ -171,7 +171,7 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
   const preprocessActions = async (predicate: (config: ActionConfig) => boolean = () => true) => {
     let batchNo = 1
     for (const batch of sliceToBatches(configsByKey, processingBatchSize)) {
-      log.debug(`Preprocessing actions batch #${batchNo} (${batch.length} items)`)
+      log.silly(`Preprocessing actions batch #${batchNo} (${batch.length} items)`)
       await Promise.all(
         batch.map(async ([key, config]) => {
           if (!predicate(config)) {
@@ -303,7 +303,7 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
   log.debug(`Processing ${actionConfigCount} action configs...`)
   let batchNo = 1
   for (const batch of sliceToBatches(preprocessResults, 100)) {
-    log.debug(`Processing actions batch #${batchNo} (${batch.length} items)`)
+    log.silly(`Processing actions batch #${batchNo} (${batch.length} items)`)
     await Promise.all(
       batch.map(async ([key, res]) => {
         const { config, linkedSource, remoteSourcePath, supportedModes, dependencies } = res
@@ -757,7 +757,7 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
   const mergeVarsEnd = new Date().getTime()
   const varfilesDesc =
     resolvedVarFiles && resolvedVarFiles.length > 0 ? `with varfiles: \n${resolvedVarFiles.join("\n")}` : ""
-  log.debug(`Merged variables for action ${actionKey} in ${mergeVarsEnd - mergeVarsStart}ms ${varfilesDesc}`)
+  log.silly(`Merged variables for action ${actionKey} in ${mergeVarsEnd - mergeVarsStart}ms ${varfilesDesc}`)
 
   const resolvedVariables = resolveTemplateStrings({
     value: variables,
@@ -959,7 +959,7 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
   })
 
   const actionEnd = new Date().getTime()
-  log.debug(`Preprocessed action ${actionKey} in ${actionEnd - actionStart}ms`)
+  log.silly(`Preprocessed action ${actionKey} in ${actionEnd - actionStart}ms`)
 
   return {
     config,
