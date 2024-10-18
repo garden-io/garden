@@ -23,6 +23,7 @@ export interface PulumiDeploySpec {
   deployFromPreview: boolean
   root: string
   stack?: string
+  showSecretsInOutput: boolean
 }
 
 export type PulumiDeployConfig = DeployActionConfig<"pulumi", PulumiDeploySpec>
@@ -129,6 +130,17 @@ export const pulumiDeploySchemaKeys = () => ({
     .string()
     .allow(null)
     .description("The name of the pulumi stack to use. Defaults to the current environment name."),
+  showSecretsInOutput: joi
+    .boolean()
+    .default(false)
+    .description(
+      dedent`
+      When set to true, stack outputs which are marked as secrets will be shown in the output.
+
+      By default, Pulumi will print secret stack outputs as the string '[secret]' instead of
+      the true content of the output.
+      `
+    ),
 })
 
 export const pulumiDeploySchema = createSchema({
