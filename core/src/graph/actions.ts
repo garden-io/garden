@@ -741,21 +741,18 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
   actionTypes: ActionDefinitionMap
 }): Promise<PreprocessActionResult> {
   const actionKey = actionReferenceToString(config)
-  log.debug(`Preprocessing action ${actionKey}...`)
 
   const description = describeActionConfig(config)
   const templateName = config.internal.templateName
 
   // in pre-processing, only use varfiles that are not template strings
   const resolvedVarFiles = config.varfiles?.filter((f) => !maybeTemplateString(getVarfileData(f).path))
-  log.debug(`Merging variables...`)
   const variables = await mergeVariables({
     basePath: config.internal.basePath,
     variables: config.variables,
     varfiles: resolvedVarFiles,
   })
 
-  log.debug(`Resolving variables (partially)...`)
   const resolvedVariables = resolveTemplateStrings({
     value: variables,
     context: new ActionConfigContext({
@@ -773,7 +770,6 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
   })
 
   if (templateName) {
-    log.debug(`Resolving inputs (partially)...`)
     // Partially resolve inputs
     const partiallyResolvedInputs = resolveTemplateStrings({
       value: config.internal.inputs || {},
@@ -871,12 +867,9 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
     config = { ...config, ...resolvedOther }
   }
 
-  log.debug(`Resolving templates...`)
   resolveTemplates()
 
-  log.debug(`Configuring action...`)
   const configureActionResult = await router.configureAction({ config, log })
-  log.debug(`Action configured`)
 
   const { config: updatedConfig } = configureActionResult
 
@@ -913,7 +906,6 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
 
   // -> Resolve templates again after configure handler
   // TODO: avoid this if nothing changed in the configure handler
-  log.debug(`Resolving templates again (for configured action)...`)
   try {
     resolveTemplates()
   } catch (error) {
@@ -936,7 +928,6 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
       remoteSourcePath = config.internal.remoteClonePath
     } else {
       const key = actionReferenceToString(config)
-      log.debug(`Resolving external sources...`)
       remoteSourcePath = await garden.resolveExtSourcePath({
         name: key,
         sourceType: "action",
@@ -952,7 +943,6 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
     }
   }
 
-  log.debug(`Collecting dependencies...`)
   const dependencies = dependenciesFromActionConfig({
     log,
     config,
@@ -962,7 +952,6 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
     actionTypes,
   })
 
-  log.debug(`Preprocessed action ${actionKey}...`)
   return {
     config,
     dependencies,
