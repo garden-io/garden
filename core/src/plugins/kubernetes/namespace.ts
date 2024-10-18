@@ -287,7 +287,7 @@ export async function prepareNamespaces({ ctx, log }: GetEnvironmentStatusParams
     if (!(err instanceof KubernetesError)) {
       throw err
     }
-    log.silly(`Full Kubernetes connect error: ${err.stack}`)
+    log.silly(() => `Full Kubernetes connect error: ${err.stack}`)
 
     throw new DeploymentError({
       message: dedent`

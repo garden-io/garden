@@ -92,6 +92,7 @@ describe("RecoverableProcess", async () => {
   })
 
   function killNode(node: RecoverableProcess) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const untypedNode: any = <any>node
     untypedNode.proc?.kill()
   }
@@ -611,6 +612,7 @@ describe("RecoverableProcess", async () => {
     const minTimeoutMs = 500
     const root = infiniteProcess(maxRetries, minTimeoutMs)
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const unsafeRoot = <any>root
     unsafeRoot.fail()
 

@@ -23,7 +23,7 @@ import AsyncLock from "async-lock"
 import { isSha1 } from "../util/hashing.js"
 import { hashingStream } from "hasha"
 
-const { createReadStream, ensureDir, pathExists, readlink, stat } = fsExtra
+const { createReadStream, ensureDir, pathExists, readlink, lstat } = fsExtra
 
 export function getCommitIdFromRefList(refList: string[]): string {
   try {
@@ -59,7 +59,7 @@ function gitCliExecutor({ log, cwd, failOnPrompt = false }: GitCliParams): GitCl
    * @throws ChildProcessError
    */
   return async (...args: string[]) => {
-    log.silly(`Calling git with args '${args.join(" ")}' in ${cwd}`)
+    log.silly(() => `Calling git with args '${args.join(" ")}' in ${cwd}`)
     const { stdout } = await exec("git", args, {
       cwd,
       maxBuffer: 100 * 1024 * 1024,
@@ -135,7 +135,7 @@ export class GitCli {
       output.originUrl = await this.getOriginUrl()
     } catch (err) {
       // Just ignore if not available
-      this.log.silly(`Tried to retrieve git remote.origin.url but encountered an error: ${err}`)
+      this.log.silly(() => `Tried to retrieve git remote.origin.url but encountered an error: ${err}`)
     }
 
     return output
@@ -156,6 +156,7 @@ export abstract class AbstractGitHandler extends VcsHandler {
   async getRepoRoot(log: Log, path: string, failOnPrompt = false): Promise<string> {
     let cachedRepoRoot = this.repoRoots.get(path)
     if (!!cachedRepoRoot) {
+      this.profiler.inc("GitHandler.RepoRoots.hits")
       return cachedRepoRoot
     }
 
@@ -163,6 +164,7 @@ export abstract class AbstractGitHandler extends VcsHandler {
     return this.lock.acquire(`repo-root:${path}`, async () => {
       cachedRepoRoot = this.repoRoots.get(path)
       if (!!cachedRepoRoot) {
+        this.profiler.inc("GitHandler.RepoRoots.hits")
         return cachedRepoRoot
       }
 
@@ -170,6 +172,7 @@ export abstract class AbstractGitHandler extends VcsHandler {
         const git = new GitCli({ log, cwd: path, failOnPrompt })
         const repoRoot = await git.getRepositoryRoot()
         this.repoRoots.set(path, repoRoot)
+        this.profiler.inc("GitHandler.RepoRoots.misses")
         return repoRoot
       } catch (err) {
         if (!(err instanceof ChildProcessError)) {
@@ -393,7 +396,7 @@ export async function augmentGlobs(basePath: string, globs?: string[]): Promise<
 
       try {
         const path = joinWithPosix(basePath, pattern)
-        const stats = await stat(path)
+        const stats = await lstat(path)
         return stats.isDirectory() ? posix.join(pattern, "**", "*") : pattern
       } catch {
         return pattern

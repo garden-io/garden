@@ -38,7 +38,7 @@ describe("configureHelmModule", () => {
     const provider = await garden.resolveProvider({ log: garden.log, name: "local-kubernetes" })
     ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
     await garden.resolveModules({ log: garden.log })
-    moduleConfigs = cloneDeep((<any>garden).moduleConfigs)
+    moduleConfigs = cloneDeep(garden.moduleConfigs)
   })
 
   afterEach(() => {
@@ -46,7 +46,7 @@ describe("configureHelmModule", () => {
   })
 
   function patchModuleConfig(name: string, patch: any) {
-    apply((<any>garden).moduleConfigs[name], patch)
+    apply(garden.moduleConfigs[name], patch)
   }
 
   it("should validate a Helm module", async () => {

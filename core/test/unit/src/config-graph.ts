@@ -29,6 +29,7 @@ import { DEFAULT_BUILD_TIMEOUT_SEC, GARDEN_CORE_ROOT, GardenApiVersion } from ".
 import type tmp from "tmp-promise"
 import type { ActionKind, BaseActionConfig } from "../../../src/actions/types.js"
 import { GraphError, ParameterError } from "../../../src/exceptions.js"
+import { sortBy } from "lodash-es"
 
 const makeAction = ({
   basePath,
@@ -40,6 +41,7 @@ const makeAction = ({
   basePath: string
   name: string
   kind: ActionKind
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   spec: any
   disabled: boolean
 }): BaseActionConfig => ({
@@ -1476,90 +1478,112 @@ describe("ConfigGraph (module-based configs)", () => {
   describe("render", () => {
     it("should render config graph nodes with test names", () => {
       const rendered = graphA.render()
-      expect(rendered.nodes).to.include.deep.members([
+      const sortedNodes = sortBy(rendered.nodes, "key")
+      expect(sortedNodes).to.include.deep.members([
         {
           kind: "Build",
           name: "module-a",
           key: "module-a",
           disabled: false,
-        },
-        {
-          kind: "Build",
-          name: "module-b",
-          key: "module-b",
-          disabled: false,
-        },
-        {
-          kind: "Build",
-          name: "module-c",
-          key: "module-c",
-          disabled: false,
-        },
-        {
-          kind: "Test",
-          name: "module-c-unit",
-          key: "module-c-unit",
-          disabled: false,
-        },
-        {
-          kind: "Test",
-          name: "module-c-integ",
-          key: "module-c-integ",
-          disabled: false,
-        },
-        {
-          kind: "Run",
-          name: "task-c",
-          key: "task-c",
-          disabled: false,
-        },
-        {
-          kind: "Deploy",
-          name: "service-c",
-          key: "service-c",
-          disabled: false,
-        },
-        {
-          kind: "Test",
-          name: "module-a-unit",
-          key: "module-a-unit",
-          disabled: false,
+          type: "test",
         },
         {
           kind: "Test",
           name: "module-a-integration",
           key: "module-a-integration",
           disabled: false,
+          type: "test",
         },
         {
-          kind: "Run",
-          name: "task-a",
-          key: "task-a",
+          kind: "Test",
+          name: "module-a-unit",
+          key: "module-a-unit",
           disabled: false,
+          type: "test",
+        },
+        {
+          kind: "Build",
+          name: "module-b",
+          key: "module-b",
+          disabled: false,
+          type: "test",
         },
         {
           kind: "Test",
           name: "module-b-unit",
           key: "module-b-unit",
           disabled: false,
+          type: "test",
         },
         {
-          kind: "Run",
-          name: "task-b",
-          key: "task-b",
+          kind: "Build",
+          name: "module-c",
+          key: "module-c",
           disabled: false,
+          type: "test",
+        },
+        {
+          kind: "Test",
+          name: "module-c-integ",
+          key: "module-c-integ",
+          disabled: false,
+          type: "test",
+        },
+        {
+          kind: "Test",
+          name: "module-c-unit",
+          key: "module-c-unit",
+          disabled: false,
+          type: "test",
         },
         {
           kind: "Deploy",
           name: "service-a",
           key: "service-a",
           disabled: false,
+          type: "test",
         },
         {
           kind: "Deploy",
           name: "service-b",
           key: "service-b",
           disabled: false,
+          type: "test",
+        },
+        {
+          kind: "Deploy",
+          name: "service-c",
+          key: "service-c",
+          disabled: false,
+          type: "test",
+        },
+        {
+          kind: "Run",
+          name: "task-a",
+          key: "task-a",
+          disabled: false,
+          type: "test",
+        },
+        {
+          name: "task-a2",
+          kind: "Run",
+          key: "task-a2",
+          disabled: false,
+          type: "test",
+        },
+        {
+          kind: "Run",
+          name: "task-b",
+          key: "task-b",
+          disabled: false,
+          type: "test",
+        },
+        {
+          kind: "Run",
+          name: "task-c",
+          key: "task-c",
+          disabled: false,
+          type: "test",
         },
       ])
     })
@@ -1569,57 +1593,62 @@ describe("ConfigGraph (module-based configs)", () => {
 describe("ConfigGraphNode", () => {
   describe("render", () => {
     it("should render a build node", () => {
-      const node = new ConfigGraphNode("Build", "module-a", false)
+      const node = new ConfigGraphNode("Build", "container", "module-a", false)
       const res = node.render()
       expect(res).to.eql({
         kind: "Build",
         name: "module-a",
         key: "module-a",
         disabled: false,
+        type: "container",
       })
     })
 
     it("should render a deploy node", () => {
-      const node = new ConfigGraphNode("Deploy", "service-a", false)
+      const node = new ConfigGraphNode("Deploy", "container", "service-a", false)
       const res = node.render()
       expect(res).to.eql({
         kind: "Deploy",
         name: "service-a",
         key: "service-a",
         disabled: false,
+        type: "container",
       })
     })
 
     it("should render a run node", () => {
-      const node = new ConfigGraphNode("Run", "task-a", false)
+      const node = new ConfigGraphNode("Run", "container", "task-a", false)
       const res = node.render()
       expect(res).to.eql({
         kind: "Run",
         name: "task-a",
         key: "task-a",
         disabled: false,
+        type: "container",
       })
     })
 
     it("should render a test node", () => {
-      const node = new ConfigGraphNode("Test", "module-a.test-a", false)
+      const node = new ConfigGraphNode("Test", "container", "module-a.test-a", false)
       const res = node.render()
       expect(res).to.eql({
         kind: "Test",
         name: "module-a.test-a",
         key: "module-a.test-a",
         disabled: false,
+        type: "container",
       })
     })
 
     it("should indicate if the node is disabled", () => {
-      const node = new ConfigGraphNode("Test", "module-a.test-a", true)
+      const node = new ConfigGraphNode("Test", "container", "module-a.test-a", true)
       const res = node.render()
       expect(res).to.eql({
         kind: "Test",
         name: "module-a.test-a",
         key: "module-a.test-a",
         disabled: true,
+        type: "container",
       })
     })
   })

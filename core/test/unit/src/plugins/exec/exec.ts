@@ -885,6 +885,7 @@ describe("exec plugin", () => {
           const rawAction = graph.getDeploy("sync-mode-timeout")
           const router = await garden.getActionRouter()
           const action = await garden.resolveAction({ graph, log, action: rawAction })
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           let error: any
           try {
             await router.deploy.deploy({

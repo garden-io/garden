@@ -1,4 +1,29 @@
 
+<a name="0.13.42"></a>
+## [0.13.42](https://github.com/garden-io/garden/compare/0.13.41...0.13.42) (2024-10-08)
+
+### Bug Fixes
+
+* misleading warning message when cloud session is expired ([#6503](https://github.com/garden-io/garden/issues/6503)) ([8359ae334](https://github.com/garden-io/garden/commit/8359ae334))
+* **otel:** ensure OTEL sends final span when -o opt is used ([#6505](https://github.com/garden-io/garden/issues/6505)) ([7b96bdb64](https://github.com/garden-io/garden/commit/7b96bdb64))
+
+### Bundled Tool Version Updates
+
+* **images:** update `buildkit` image to fix CVE-2023-44487 ([#6522](https://github.com/garden-io/garden/issues/6522)) ([b75370551](https://github.com/garden-io/garden/commit/b75370551))
+* **kubectl:** update version to 1.30.4 ([#6519](https://github.com/garden-io/garden/issues/6519)) ([86a644788](https://github.com/garden-io/garden/commit/86a644788))
+
+<a name="0.13.41"></a>
+## [0.13.41](https://github.com/garden-io/garden/compare/0.13.40...0.13.41) (2024-09-26)
+
+### Bug Fixes
+
+* **core:** avoid crash when using `copyFrom` together with symlinks ([#6485](https://github.com/garden-io/garden/issues/6485)) ([a7f0420ec](https://github.com/garden-io/garden/commit/a7f0420ec))
+* **sync:** use right arch of `mutagen-agent` binary in `k8s-sync` image ([#6465](https://github.com/garden-io/garden/issues/6465)) ([66e5a7530](https://github.com/garden-io/garden/commit/66e5a7530))
+
+### Performance Improvements
+
+* **git:** avoid unnecessary file hashing while config files detection ([#6461](https://github.com/garden-io/garden/issues/6461)) ([a786a5047](https://github.com/garden-io/garden/commit/a786a5047))
+
 <a name="0.13.40"></a>
 ## [0.13.40](https://github.com/garden-io/garden/compare/0.13.39...0.13.40) (2024-09-18)
 

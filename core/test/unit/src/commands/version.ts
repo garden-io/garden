@@ -28,7 +28,7 @@ describe("VersionCommand", () => {
   })
 
   it("aborts with version text if garden version cmd is run", async () => {
-    const { code, result } = await cli.run({ args: ["version"], exitOnError: false })
+    const { code, result } = await cli.run({ args: ["version"] })
 
     expect(code).to.equal(0)
     expect(result).to.eql({
@@ -37,7 +37,7 @@ describe("VersionCommand", () => {
   })
 
   it("aborts with version text if garden V is run", async () => {
-    const { code, result } = await cli.run({ args: ["V"], exitOnError: false })
+    const { code, result } = await cli.run({ args: ["V"] })
 
     expect(code).to.equal(0)
     expect(result).to.eql({
@@ -46,7 +46,7 @@ describe("VersionCommand", () => {
   })
 
   it("aborts with version text if garden v is run", async () => {
-    const { code, result } = await cli.run({ args: ["v"], exitOnError: false })
+    const { code, result } = await cli.run({ args: ["v"] })
 
     expect(code).to.equal(0)
     expect(result).to.eql({
@@ -57,9 +57,8 @@ describe("VersionCommand", () => {
   it("returns version when version command is run", async () => {
     const command = new VersionCommand()
     const garden = await makeDummyGarden(tmpDir.path, { commandInfo: { name: "version", args: {}, opts: {} } })
-    const { result } = await command.action({
-      log: garden.log,
-    } as any)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { result } = await command.action({ log: garden.log } as any)
     expect(result).to.eql({
       version: getPackageVersion(),
     })

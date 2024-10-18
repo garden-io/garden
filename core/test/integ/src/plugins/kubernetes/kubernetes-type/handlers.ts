@@ -115,13 +115,13 @@ describe("kubernetes-type handlers", () => {
   }
 
   async function deployInNamespace({ nsName, deployName }: { nsName: string; deployName: string }) {
-    garden.setModuleConfigs([withNamespace(nsModuleConfig, nsName)])
+    garden.mergeModuleConfigs([withNamespace(nsModuleConfig, nsName)])
     const graph = await garden.getConfigGraph({ log, emit: false })
     const action = graph.getDeploy(deployName)
     const resolvedAction = await garden.resolveAction<KubernetesDeployAction>({ action, log: garden.log, graph })
     const defaultNamespace = await getActionNamespace({ ctx, log, action: resolvedAction, provider: ctx.provider })
     const manifests = await getManifests({ ctx, api, log, action: resolvedAction, defaultNamespace })
-    const manifest = manifests.find((resource) => resource.kind === "Namespace")
+    const manifest = manifests.find((r) => r.kind === "Namespace")
 
     const deployTask = new DeployTask({
       garden,
@@ -358,7 +358,7 @@ describe("kubernetes-type handlers", () => {
 
       // Here, we're not going through a router, so we listen for the `namespaceStatus` event directly.
       let namespaceStatus: NamespaceStatus | null = null
-      ctx.events.once("namespaceStatus", (status) => (namespaceStatus = status))
+      ctx.events.once("namespaceStatus", (s) => (namespaceStatus = s))
       const status = await kubernetesDeploy(deployParams)
       expect(status.state).to.eql("ready")
       expect(namespaceStatus).to.exist

@@ -614,8 +614,8 @@ export class Garden {
     return this.solver.solve(params)
   }
 
-  async processTask<T extends Task>(task: T, log: Log, opts: SolveOpts): Promise<GraphResultFromTask<T> | null> {
-    const { results } = await this.solver.solve({ tasks: [task], log, ...opts })
+  async processTask<T extends Task>(task: T, opts: SolveOpts): Promise<GraphResultFromTask<T> | null> {
+    const { results } = await this.solver.solve({ tasks: [task], ...opts })
     return results.getResult(task)
   }
 
@@ -805,28 +805,26 @@ export class Garden {
       // Detect circular dependencies here
       const validationGraph = new DependencyGraph()
 
-      await Promise.all(
-        rawConfigs.map(async (config) => {
-          const plugin = plugins[config.name]
+      for (const config of rawConfigs) {
+        const plugin = plugins[config.name]
 
-          if (!plugin) {
-            throw new ConfigurationError({
-              message: dedent`
+        if (!plugin) {
+          throw new ConfigurationError({
+            message: dedent`
                 Configured provider '${config.name}' has not been registered.
 
                 Available plugins: ${Object.keys(plugins).join(", ")}
               `,
-            })
-          }
+          })
+        }
 
-          validationGraph.addNode(plugin.name)
+        validationGraph.addNode(plugin.name)
 
-          for (const dep of await getAllProviderDependencyNames(plugin!, config!)) {
-            validationGraph.addNode(dep)
-            validationGraph.addDependency(plugin.name, dep)
-          }
-        })
-      )
+        for (const dep of getAllProviderDependencyNames(plugin!, config!)) {
+          validationGraph.addNode(dep)
+          validationGraph.addDependency(plugin.name, dep)
+        }
+      }
 
       const cycles = validationGraph.detectCircularDependencies()
 
@@ -855,7 +853,7 @@ export class Garden {
       })
 
       // Process as many providers in parallel as possible
-      const taskResults = await this.processTasks({ tasks, log, statusOnly })
+      const taskResults = await this.processTasks({ tasks, statusOnly })
 
       const providerResults = Object.values(taskResults.results.getMap())
 
@@ -880,15 +878,13 @@ export class Garden {
       const allCached = providers.every((p) => p.status.cached)
       const someCached = providers.some((p) => p.status.cached)
 
-      await Promise.all(
-        providers.flatMap((provider) =>
-          provider.moduleConfigs.map(async (moduleConfig) => {
-            // Make sure module and all nested entities are scoped to the plugin
-            moduleConfig.plugin = provider.name
-            return this.addModuleConfig(moduleConfig)
-          })
-        )
-      )
+      for (const provider of providers) {
+        for (const moduleConfig of provider.moduleConfigs) {
+          // Make sure module and all nested entities are scoped to the plugin
+          moduleConfig.plugin = provider.name
+          this.addModuleConfig(moduleConfig)
+        }
+      }
 
       for (const provider of providers) {
         this.resolvedProviders[provider.name] = provider
@@ -1082,18 +1078,18 @@ export class Garden {
     )
 
     // Get action configs
-    const actionConfigs: ActionConfigsByKey = {}
+    const actionConfigsByKey: ActionConfigsByKey = {}
 
     for (const kind of actionKinds) {
       for (const name in this.actionConfigs[kind]) {
         const key = actionReferenceToString({ kind, name })
-        actionConfigs[key] = this.actionConfigs[kind][name]
+        actionConfigsByKey[key] = this.actionConfigs[kind][name]
       }
     }
 
     for (const config of moduleActionConfigs) {
       const key = actionReferenceToString(config)
-      const existing = actionConfigs[key]
+      const existing = actionConfigsByKey[key]
 
       if (existing) {
         const moduleActionPath = config.internal.configFilePath || config.internal.basePath
@@ -1103,15 +1099,16 @@ export class Garden {
         })
       }
 
-      actionConfigs[key] = config
+      actionConfigsByKey[key] = config
     }
 
     // Resolve configs to Actions
     const linkedSources = keyBy(await getLinkedSources(this, "action"), "name")
 
+    const actionConfigs = Object.values(actionConfigsByKey)
     const graph = await actionConfigsToGraph({
       garden: this,
-      configs: Object.values(actionConfigs),
+      configs: actionConfigs,
       groupConfigs: moduleGroups,
       log: graphLog,
       moduleGraph,
@@ -1169,14 +1166,14 @@ export class Garden {
             config,
             router,
             log: graphLog,
-            configsByKey: actionConfigs,
+            configsByKey: actionConfigsByKey,
             mode: actionModes[key] || "default",
             linkedSources,
             scanRoot: config.internal.basePath,
           })
 
           graph.addAction(action)
-          actionConfigs[key] = config
+          actionConfigsByKey[key] = config
 
           updated = true
         })
@@ -1466,7 +1463,7 @@ export class Garden {
       const workflowsFromTemplates = renderResults.flatMap((r) => r.configs.filter(isWorkflowConfig))
 
       if (renderConfigs.length) {
-        this.log.silly(
+        this.log.debug(
           `Rendered ${actionsFromTemplates.length} actions, ${modulesFromTemplates.length} modules, and ${workflowsFromTemplates.length} workflows from templates`
         )
       }
@@ -1501,6 +1498,7 @@ export class Garden {
 
       for (const config of actionsFromTemplates) {
         this.addActionConfig(config)
+        actionsCount++
       }
 
       this.log.debug(
@@ -1553,7 +1551,11 @@ export class Garden {
    * Add an action config to the context, after validating and calling the appropriate configure plugin handler.
    */
   protected addActionConfig(config: BaseActionConfig) {
-    this.log.silly(() => `Adding ${config.kind} action ${config.name}`)
+    const parentTemplateName = config.internal.templateName
+    this.log.silly(
+      () =>
+        `Adding action config for ${config.kind} ${styles.highlight(config.name)} ${!!parentTemplateName ? `(from template ${styles.highlight(parentTemplateName)})` : ""}`
+    )
     const key = actionReferenceToString(config)
     const existing = this.actionConfigs[config.kind][config.name]
 

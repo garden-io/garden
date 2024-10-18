@@ -53,9 +53,9 @@ export function getK8sSyncUtilImageName(): DockerImageWithDigest {
 export const k8sReverseProxyImageName: DockerImageWithDigest =
   "gardendev/k8s-reverse-proxy:0.1.1@sha256:2dff2275fc8c32cc0eba50eebd7ace6fdb007d9b3f4bd48d94355057324b2394"
 export const buildkitImageName: DockerImageWithDigest =
-  "gardendev/buildkit:v0.13.2@sha256:0b00abd320625674ae158d21bc1828bd4cbc5179bdf699a72381707ec791893e"
+  "gardendev/buildkit:v-0.16.0@sha256:ee7aa12e6fdba79ee9838631995fa7c5a12aba9091a0753dedfe891d430c8182"
 export const buildkitRootlessImageName: DockerImageWithDigest =
-  "gardendev/buildkit:v0.13.2-rootless@sha256:b6b9c4c48bb9645c3bfa6e9241ac3d963ef607dd6c1ce3ebe1ea725cb5138c16"
+  "gardendev/buildkit:v-0.16.0-rootless@sha256:634506c016691b079e44614c5de65e0b0d4a98070304f6089e15f0279bfca411"
 export const defaultKanikoImageName: DockerImageWithDigest =
   "gcr.io/kaniko-project/executor:v1.11.0-debug@sha256:32ba2214921892c2fa7b5f9c4ae6f8f026538ce6b2105a93a36a8b5ee50fe517"
 export const defaultGardenIngressControllerDefaultBackendImage: DockerImageWithDigest =

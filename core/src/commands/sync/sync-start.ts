@@ -171,7 +171,7 @@ export class SyncStartCommand extends Command<Args, Opts> {
         }
         return task
       })
-      await garden.processTasks({ tasks, log })
+      await garden.processTasks({ tasks })
       log.success({ msg: "\nDone!", showDuration: false })
       return {}
     } else {
@@ -224,7 +224,7 @@ export async function startSyncWithoutDeploy({
     })
   })
 
-  const statusResult = await garden.processTasks({ log, tasks, statusOnly: true })
+  const statusResult = await garden.processTasks({ tasks, statusOnly: true })
   let someSyncStarted = false
 
   const router = await garden.getActionRouter()

@@ -65,11 +65,12 @@ describe("sync plugin commands", () => {
       startSync: true,
     })
 
-    await garden.processTasks({ log, tasks: [deployTask], throwOnError: true })
+    await garden.processTasks({ tasks: [deployTask], throwOnError: true })
   }
 
   describe("sync-status", () => {
     it("should print the Mutagen sync status", async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const res = (await syncStatus.handler({ ctx, log, garden, graph, args: [] })) as any
 
       expect(res.result.syncSessions.length).to.equal(1)
@@ -83,9 +84,11 @@ describe("sync plugin commands", () => {
   describe("sync-pause and sync-resume", () => {
     it("should pause all Mutagen syncs", async () => {
       await syncPause.handler({ ctx, log, garden, graph, args: [] })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const pausedStatus = (await syncStatus.handler({ ctx, log, garden, graph, args: [] })) as any
 
       await syncResume.handler({ ctx, log, garden, graph, args: [] })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const resumedStatus = (await syncStatus.handler({ ctx, log, garden, graph, args: [] })) as any
 
       expect(pausedStatus.result.syncSessions[0].paused).to.equal(true)

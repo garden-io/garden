@@ -164,7 +164,7 @@ export function providerFromConfig({
  * Given a plugin and its provider config, return a list of dependency names based on declared dependencies,
  * as well as implicit dependencies based on template strings.
  */
-export async function getAllProviderDependencyNames(plugin: GardenPluginSpec, config: GenericProviderConfig) {
+export function getAllProviderDependencyNames(plugin: GardenPluginSpec, config: GenericProviderConfig) {
   return uniq([
     ...(plugin.dependencies || []).map((d) => d.name),
     ...(config.dependencies || []),

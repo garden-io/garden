@@ -237,6 +237,7 @@ describe("actionConfigsToGraph", () => {
         explicit: true,
         kind: "Build",
         name: "foo",
+        type: "test",
         needsExecutedOutputs: false,
         needsStaticOutputs: false,
       },
@@ -283,6 +284,7 @@ describe("actionConfigsToGraph", () => {
       {
         explicit: true,
         kind: "Build",
+        type: "test",
         name: "foo",
         needsExecutedOutputs: false,
         needsStaticOutputs: false,
@@ -331,6 +333,7 @@ describe("actionConfigsToGraph", () => {
       {
         explicit: false,
         kind: "Build",
+        type: "test",
         name: "foo",
         fullRef: ["actions", "build", "foo", "version"],
         needsExecutedOutputs: false,
@@ -380,6 +383,7 @@ describe("actionConfigsToGraph", () => {
       {
         explicit: false,
         kind: "Build",
+        type: "test",
         name: "foo",
         fullRef: ["actions", "build", "foo", "outputs", "bar"],
         needsExecutedOutputs: true,
@@ -429,6 +433,7 @@ describe("actionConfigsToGraph", () => {
       {
         explicit: false,
         kind: "Build",
+        type: "container",
         name: "foo",
         fullRef: ["actions", "build", "foo", "outputs", "deploymentImageName"],
         needsExecutedOutputs: false,
@@ -639,12 +644,12 @@ describe("actionConfigsToGraph", () => {
       variableOverrides: { "foo": "NEW_FOO", "nested.key1": "NEW_KEY_1_VALUE" },
     })
 
-    const tmpDir = dummyGardenInstance.tmpDir
-    const garden = dummyGardenInstance.garden
-    const log = garden.log
+    const _tmpDir = dummyGardenInstance.tmpDir
+    const _garden = dummyGardenInstance.garden
+    const _log = _garden.log
 
     try {
-      const varfilePath = join(tmpDir.path, "varfile.yml")
+      const varfilePath = join(_tmpDir.path, "varfile.yml")
       await dumpYaml(varfilePath, {
         foo: "FOO",
         bar: "BAR",
@@ -654,8 +659,8 @@ describe("actionConfigsToGraph", () => {
       })
 
       const graph = await actionConfigsToGraph({
-        garden,
-        log,
+        garden: _garden,
+        log: _log,
         groupConfigs: [],
         configs: [
           {
@@ -669,7 +674,7 @@ describe("actionConfigsToGraph", () => {
             },
             varfiles: [varfilePath],
             internal: {
-              basePath: tmpDir.path,
+              basePath: _tmpDir.path,
             },
             spec: {},
           },
@@ -691,7 +696,7 @@ describe("actionConfigsToGraph", () => {
         },
       })
     } finally {
-      await tmpDir.cleanup()
+      await _tmpDir.cleanup()
     }
   })
 
@@ -907,6 +912,7 @@ describe("actionConfigsToGraph", () => {
           groupConfigs: [],
           configs: [
             {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               kind: <any>"Boop",
               type: "test",
               name: "foo",

@@ -9,7 +9,7 @@
 import { Profile } from "../util/profiling.js"
 import { getStatsType, matchPath } from "../util/fs.js"
 import { isErrnoException } from "../exceptions.js"
-import { isAbsolute, join, normalize, relative, resolve } from "path"
+import { dirname, isAbsolute, join, normalize, relative, resolve } from "path"
 import fsExtra from "fs-extra"
 import PQueue from "p-queue"
 import { defer } from "../util/util.js"
@@ -28,8 +28,10 @@ import type {
 } from "./vcs.js"
 import { styles } from "../logger/styles.js"
 import type { Log } from "../logger/log-entry.js"
+import dedent from "dedent"
+import { gardenEnv } from "../constants.js"
 
-const { lstat, pathExists, readlink, realpath, stat } = fsExtra
+const { pathExists, readlink, lstat } = fsExtra
 
 const submoduleErrorSuggestion = `Perhaps you need to run ${styles.underline(`git submodule update --recursive`)}?`
 
@@ -193,7 +195,7 @@ export class GitSubTreeHandler extends AbstractGitHandler {
     const submodules = await this.getSubmodules(path)
     const submodulePaths = submodules.map((s) => join(gitRoot, s.path))
     if (submodules.length > 0) {
-      gitLog.silly(`Submodules listed at ${submodules.map((s) => `${s.path} (${s.url})`).join(", ")}`)
+      gitLog.silly(() => `Submodules listed at ${submodules.map((s) => `${s.path} (${s.url})`).join(", ")}`)
     }
 
     let submoduleFiles: Promise<VcsFile[]>[] = []
@@ -219,7 +221,7 @@ export class GitSubTreeHandler extends AbstractGitHandler {
 
         // Catch and show helpful message in case the submodule path isn't a valid directory
         try {
-          const pathStats = await stat(path)
+          const pathStats = await lstat(path)
 
           if (!pathStats.isDirectory()) {
             const pathType = getStatsType(pathStats)
@@ -250,6 +252,8 @@ export class GitSubTreeHandler extends AbstractGitHandler {
         })
       })
     }
+
+    const untrackedHashedFilesCollector: string[] = []
 
     // This function is called for each line output from the ls-files commands that we run
     const handleEntry = async (
@@ -296,6 +300,7 @@ export class GitSubTreeHandler extends AbstractGitHandler {
           stats: undefined,
           modifiedFiles,
           hashUntrackedFiles,
+          untrackedHashedFilesCollector,
         })
       }
 
@@ -310,34 +315,20 @@ export class GitSubTreeHandler extends AbstractGitHandler {
           if (isAbsolute(target)) {
             gitLog.verbose(`Ignoring symlink with absolute target at ${resolvedPath}`)
             return
-          } else if (target.startsWith("..")) {
-            try {
-              const realTarget = await realpath(resolvedPath)
-              const relPath = relative(path, realTarget)
-
-              if (relPath.startsWith("..")) {
-                gitLog.verbose(`Ignoring symlink pointing outside of ${pathDescription} at ${resolvedPath}`)
-                return
-              }
-              return ensureHash({
-                file: output,
-                stats,
-                modifiedFiles,
-                hashUntrackedFiles,
-              })
-            } catch (err) {
-              if (isErrnoException(err) && err.code === "ENOENT") {
-                gitLog.verbose(`Ignoring dead symlink at ${resolvedPath}`)
-                return
-              }
-              throw err
-            }
           } else {
+            const realTarget = resolve(dirname(resolvedPath), target)
+            const relPath = relative(path, realTarget)
+
+            if (relPath.startsWith("..")) {
+              gitLog.verbose(`Ignoring symlink pointing outside of ${pathDescription} at ${resolvedPath}`)
+              return
+            }
             return ensureHash({
               file: output,
               stats,
               modifiedFiles,
               hashUntrackedFiles,
+              untrackedHashedFilesCollector,
             })
           }
         } else {
@@ -346,6 +337,7 @@ export class GitSubTreeHandler extends AbstractGitHandler {
             stats,
             modifiedFiles,
             hashUntrackedFiles,
+            untrackedHashedFilesCollector,
           })
         }
       } catch (err) {
@@ -411,6 +403,15 @@ export class GitSubTreeHandler extends AbstractGitHandler {
       `Found ${scannedFiles.length} files in ${pathDescription} ${path} ${renderDuration(gitLog.getDuration())}`
     )
 
+    if (gardenEnv.GARDEN_GIT_LOG_UNTRACKED_FILES) {
+      gitLog.debug(
+        dedent`
+        Found and hashed ${untrackedHashedFilesCollector.length} files that are not tracked by Git:
+        ${untrackedHashedFilesCollector.join("\n")}
+        `
+      )
+    }
+
     // We have done the processing of this level of files
     // So now we just have to wait for all the recursive submodules to resolve as well
     // before we can return
@@ -441,7 +442,7 @@ export class GitSubTreeHandler extends AbstractGitHandler {
 
 async function isDirectory(path: string, gitLog: Log): Promise<boolean> {
   try {
-    const pathStats = await stat(path)
+    const pathStats = await lstat(path)
 
     if (!pathStats.isDirectory()) {
       gitLog.warn(`Expected directory at ${path}, but found ${getStatsType(pathStats)}.`)
@@ -491,11 +492,13 @@ async function ensureHash({
   stats,
   modifiedFiles,
   hashUntrackedFiles,
+  untrackedHashedFilesCollector,
 }: {
   file: VcsFile
   stats: fsExtra.Stats | undefined
   modifiedFiles: Set<string>
   hashUntrackedFiles: boolean
+  untrackedHashedFilesCollector: string[]
 }): Promise<VcsFile> {
   // If the file has not been modified, then it's either committed or untracked.
   if (!modifiedFiles.has(file.path)) {
@@ -521,6 +524,9 @@ async function ensureHash({
   const hash = await hashObject(stats, file.path)
   if (hash !== "") {
     file.hash = hash
+  }
+  if (gardenEnv.GARDEN_GIT_LOG_UNTRACKED_FILES) {
+    untrackedHashedFilesCollector.push(file.path)
   }
 
   return file

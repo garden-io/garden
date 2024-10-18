@@ -33,6 +33,7 @@ import {
 import { dedent, deline } from "@garden-io/sdk/build/src/util/string.js"
 import { BooleanParameter, parsePluginCommandArgs } from "@garden-io/sdk/build/src/util/cli.js"
 import fsExtra from "fs-extra"
+
 const { copy, emptyDir, writeJSON } = fsExtra
 import { join } from "path"
 import { isBuildAction } from "@garden-io/core/build/src/actions/build.js"
@@ -430,7 +431,7 @@ function makePulumiCommand({ name, commandDescription, beforeFn, runFn, afterFn 
         })
       )
 
-      const results = (await garden.processTasks({ log, tasks, throwOnError: true })).results
+      const results = (await garden.processTasks({ tasks, throwOnError: true })).results
 
       let commandResult: any = {}
       if (afterFn) {

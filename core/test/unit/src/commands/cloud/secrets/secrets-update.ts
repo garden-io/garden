@@ -79,6 +79,7 @@ describe("SecretsUpdateCommand", () => {
           garden,
           log,
           args: { secretNamesOrIds: undefined },
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           opts: {} as any,
         }),
       (err) => {

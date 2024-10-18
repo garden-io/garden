@@ -104,7 +104,7 @@ export class PublishCommand extends Command<Args, Opts, ProcessCommandResult> {
       })
     })
 
-    const processed = await garden.processTasks({ tasks, log, throwOnError: true })
+    const processed = await garden.processTasks({ tasks, throwOnError: true })
     return handleProcessResults(garden, log, "publish", processed)
   }
 }

@@ -2,6 +2,6 @@
   "rules": {
     // In tests we sometimes make these chains and while they are technically wrong
     // they make the tests more readable.
-    "@typescript-eslint/no-non-null-asserted-optional-chain": "warn"
+    "@typescript-eslint/no-non-null-asserted-optional-chain": "off"
   }
 }

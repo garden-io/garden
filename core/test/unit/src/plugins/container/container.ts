@@ -118,15 +118,15 @@ describe("plugins.container", () => {
           basePath: "module-a",
         },
       },
-      convertBuildDependency: () => ({ kind: "Build", name: "buildDep" }),
-      convertRuntimeDependencies: () => [{ kind: "Deploy", name: "runtimeDep" }],
+      convertBuildDependency: () => ({ kind: "Build", type: "container", name: "buildDep" }),
+      convertRuntimeDependencies: () => [{ kind: "Deploy", type: "container", name: "runtimeDep" }],
       convertTestName: () => "testName",
       ctx,
       dummyBuild: undefined,
       log,
       module,
       prepareRuntimeDependencies: prepareRuntimeDependencies
-        ? () => [{ kind: "Deploy", name: "preopRuntimeDep" }]
+        ? () => [{ kind: "Deploy", type: "container", name: "preopRuntimeDep" }]
         : () => [],
       services,
       tasks,

@@ -33,6 +33,7 @@ describe("config templates", () => {
   })
 
   describe("resolveConfigTemplate", () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let defaults: any
 
     before(() => {
@@ -72,6 +73,7 @@ describe("config templates", () => {
     })
 
     it("throws on an invalid schema", async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const config: any = {
         ...defaults,
         foo: "bar",
@@ -89,6 +91,7 @@ describe("config templates", () => {
         ...defaults,
       }
       const resolved = await resolveConfigTemplate(garden, config)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       expect((<any>resolved.inputsSchema)._rules[0].args.jsonSchema.schema).to.eql({
         type: "object",
         additionalProperties: true,
@@ -205,6 +208,7 @@ describe("config templates", () => {
     })
 
     it("throws if config is invalid", async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const config: any = {
         ...defaults,
         foo: "bar",
@@ -353,6 +357,7 @@ describe("config templates", () => {
     })
 
     it("throws if an invalid module spec is in the template", async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const _templates: any = {
         test: {
           ...template,
@@ -377,6 +382,7 @@ describe("config templates", () => {
     })
 
     it("throws if a module spec has an invalid name", async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const _templates: any = {
         test: {
           ...template,
@@ -401,6 +407,7 @@ describe("config templates", () => {
     })
 
     it("resolves project variable references in input fields", async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const _templates: any = {
         test: {
           ...template,
@@ -423,6 +430,7 @@ describe("config templates", () => {
     })
 
     it("passes through unresolvable template strings in inputs field", async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const _templates: any = {
         test: {
           ...template,
@@ -446,6 +454,7 @@ describe("config templates", () => {
     })
 
     it("throws if an unresolvable template string is used for a templated module name", async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const _templates: any = {
         test: {
           ...template,

@@ -72,6 +72,7 @@ import { gardenEnv } from "../../constants.js"
 import { styles } from "../../logger/styles.js"
 import { commandListToShellScript } from "../../util/escape.js"
 import { toClearText } from "../../util/secrets.js"
+import type { V1Container } from "@kubernetes/client-node"
 
 export const builtInExcludes = ["/**/*.git", "**/*.garden"]
 
@@ -302,7 +303,7 @@ export async function configureSyncMode({
   spec,
 }: {
   ctx: PluginContext
-  log: Log
+  log: ActionLog
   provider: KubernetesProvider
   action: Resolved<SyncableRuntimeAction>
   defaultTarget: KubernetesTargetResourceSpec | undefined
@@ -334,7 +335,7 @@ export async function configureSyncMode({
           Override configuration:
           ${(override.command?.length ?? 0) > 0 ? `Command: ${override.command?.join(" ")}` : ""}
           ${(override.args?.length ?? 0) > 0 ? `Args: ${override.args?.join(" ")}` : ""}
-          ${override.image?.length ?? 0 ? `Image: ${override.image}` : ""}
+          ${(override.image?.length ?? 0) ? `Image: ${override.image}` : ""}
         `,
       })
     }
@@ -460,9 +461,14 @@ export async function configureSyncMode({
     if (!podSpec.initContainers) {
       podSpec.initContainers = []
     }
+
+    if (!podSpec.imagePullSecrets) {
+      podSpec.imagePullSecrets = []
+    }
     const k8sSyncUtilImageName = getK8sSyncUtilImageName()
+
     if (!podSpec.initContainers.find((c) => c.image === k8sSyncUtilImageName)) {
-      const initContainer = {
+      const initContainer: V1Container = {
         name: k8sSyncUtilContainerName,
         image: k8sSyncUtilImageName,
         command: [
@@ -475,6 +481,8 @@ export async function configureSyncMode({
         volumeMounts: [gardenVolumeMount],
       }
       podSpec.initContainers.push(initContainer)
+
+      podSpec.imagePullSecrets.push(...provider.config.imagePullSecrets.map((s) => ({ name: s.name })))
     }
 
     if (!targetContainer.volumeMounts) {

@@ -112,8 +112,8 @@ export function cloneFile(
       }
 
       if (toStats) {
-        // If target is a directory or source is a symbolic link and deletes are allowed, delete the target before copying, otherwise throw
-        if (toStats.isDirectory() || fromStats.isSymbolicLink()) {
+        // If target is a directory and deletes are allowed, delete the target before copying, otherwise throw
+        if (toStats.isDirectory()) {
           if (allowDelete) {
             return remove(to, (removeErr) => {
               if (removeErr) {
@@ -131,10 +131,26 @@ export function cloneFile(
           }
         }
 
-        // Skip if both files exist, size and mtime is the same (to a precision of 2 decimal points)
-        if (fromStats.size === toStats.size && round(fromStats.mtimeMs, 2) === round(toStats.mtimeMs, 2)) {
+        if (fromStats.isSymbolicLink() && toStats.isSymbolicLink() && fromStats.targetPath === toStats.targetPath) {
+          // skip if both symlinks are equal
+          return done(null, { skipped: true })
+        } else if (fromStats.size === toStats.size && round(fromStats.mtimeMs, 2) === round(toStats.mtimeMs, 2)) {
+          // Skip if both files exist, size and mtime is the same (to a precision of 2 decimal points)
           return done(null, { skipped: true })
         }
+      }
+
+      // if we are about to copy a symlink, and the target path exists, we must remove it first
+      // this allows for type changes (e.g. replacing a file with a symlink, then running garden build)
+      // at this point we know the target is a file or a symlink, so we can do this even if allowDelete=false (copy also overwrites the target)
+      if (fromStats.isSymbolicLink()) {
+        return remove(to, (removeErr) => {
+          if (removeErr) {
+            return done(removeErr)
+          } else {
+            return doClone({ from, to, fromStats: fromStats!, done, statsHelper })
+          }
+        })
       }
 
       return doClone({ from, to, fromStats, done, statsHelper })
@@ -175,29 +191,29 @@ function doClone(params: CopyParams) {
     }
 
     if (fromStats.isSymbolicLink()) {
-      // reproduce the symbolic link. Validation happens before.
-      if (fromStats.targetPath) {
-        symlink(
-          fromStats.targetPath,
-          to,
-          // relevant on windows
-          // nodejs will auto-detect this on windows, but if the symlink is copied before the target then the auto-detection will get it wrong.
-          fromStats.target?.isDirectory() ? "dir" : "file",
-          (symlinkErr) => {
-            if (symlinkErr) {
-              return done(symlinkErr)
-            }
-
-            setUtimes()
-          }
-        )
-      } else {
+      if (!fromStats.targetPath) {
         return done(
           new InternalError({
             message: "Source is a symbolic link, but targetPath was null or undefined.",
           })
         )
       }
+
+      // reproduce the symbolic link
+      symlink(
+        fromStats.targetPath,
+        to,
+        // relevant on windows
+        // nodejs will auto-detect this on windows, but if the symlink is copied before the target then the auto-detection will get it wrong.
+        fromStats.target?.isDirectory() ? "dir" : "file",
+        (symlinkErr) => {
+          if (symlinkErr) {
+            return done(symlinkErr)
+          }
+
+          setUtimes()
+        }
+      )
     } else if (fromStats.isFile()) {
       // COPYFILE_FICLONE instructs the function to use a copy-on-write reflink on platforms/filesystems where available
       copyFile(from, to, constants.COPYFILE_FICLONE, (copyErr) => {
@@ -234,7 +250,9 @@ export async function scanDirectoryForClone(root: string, pattern?: string): Pro
 
   // No wildcards, so we just read and return the entire set of files from the source directory.
   if (!pattern) {
-    return (await readdir.readdirAsync(root, { deep: true, filter: (stats) => stats.isFile() })).map((f) => [f, f])
+    return (
+      await readdir.readdirAsync(root, { deep: true, filter: (stats) => stats.isFile() || stats.isSymbolicLink() })
+    ).map((f) => [f, f])
   }
 
   // We have a pattern to match, so we go into the more complex routine.
@@ -256,7 +274,7 @@ export async function scanDirectoryForClone(root: string, pattern?: string): Pro
     filter: (stats) => {
       // See if this is a file within a previously matched directory
       // Note: `stats.path` is always POSIX formatted, relative to `sourceRoot`
-      if (stats.isFile()) {
+      if (stats.isFile() || stats.isSymbolicLink()) {
         for (const dirPath of matchedDirectories) {
           if (stats.path.startsWith(dirPath + "/")) {
             // The file is in a matched directory. We need to map the target path, such that everything ahead of
@@ -270,7 +288,7 @@ export async function scanDirectoryForClone(root: string, pattern?: string): Pro
       if (mm.match(stats.path)) {
         if (stats.isDirectory()) {
           matchedDirectories.push(stats.path)
-        } else if (stats.isFile()) {
+        } else if (stats.isFile() || stats.isSymbolicLink()) {
           // When we match a file to the glob, we map it from the source path to just its basename under the target
           // directory. Again, this matches rsync behavior.
           mappedPaths.push([stats.path, basename(stats.path)])
@@ -482,10 +500,10 @@ export class FileStatsHelper {
       }
 
       // Resolve the symlink path
-      const targetPath = resolve(parse(path).dir, target)
+      const absoluteTarget = resolve(parse(path).dir, target)
 
       // Stat the final path and return
-      this.lstat(targetPath, (statErr, toStats) => {
+      this.lstat(absoluteTarget, (statErr, toStats) => {
         if (statErr?.code === "ENOENT") {
           // The symlink target does not exist. That's not an error.
           cb({ err: null, target: null, targetPath: target })
@@ -494,12 +512,12 @@ export class FileStatsHelper {
           cb({ err: statErr, target: null, targetPath: null })
         } else if (toStats.isSymbolicLink()) {
           // Keep resolving until we get to a real path
-          if (_resolvedPaths.includes(targetPath)) {
+          if (_resolvedPaths.includes(absoluteTarget)) {
             // We've gone into a symlink loop, so we ignore it
             cb({ err: null, target: null, targetPath: target })
           } else {
             this.resolveSymlink(
-              { path: targetPath, allowAbsolute, _resolvedPaths: [..._resolvedPaths, targetPath] },
+              { path: absoluteTarget, allowAbsolute, _resolvedPaths: [..._resolvedPaths, absoluteTarget] },
               ({ err: innerResolveErr, target: innerStats, targetPath: _innerTarget }) => {
                 if (innerResolveErr) {
                   cb({ err: innerResolveErr, target: null, targetPath: null })
@@ -515,7 +533,7 @@ export class FileStatsHelper {
           // Return with path and stats for final symlink target
           cb({
             err: null,
-            target: ExtendedStats.fromStats({ stats: toStats, path: targetPath }),
+            target: ExtendedStats.fromStats({ stats: toStats, path: absoluteTarget }),
             targetPath: target,
           })
         }

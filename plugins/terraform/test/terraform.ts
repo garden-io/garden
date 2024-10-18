@@ -359,7 +359,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
 
     async function deployStack(autoApply: boolean) {
       await garden.scanAndAddConfigs()
-      garden["actionConfigs"]["Deploy"]["tf"].spec.autoApply = autoApply
+      garden.actionConfigs["Deploy"]["tf"].spec.autoApply = autoApply
 
       graph = await garden.getConfigGraph({ log: garden.log, emit: false })
 
@@ -384,8 +384,8 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
 
     async function runTestTask(autoApply: boolean, allowDestroy = false) {
       await garden.scanAndAddConfigs()
-      garden["actionConfigs"]["Deploy"]["tf"].spec.allowDestroy = allowDestroy
-      garden["actionConfigs"]["Deploy"]["tf"].spec.autoApply = autoApply
+      garden.actionConfigs["Deploy"]["tf"].spec.allowDestroy = allowDestroy
+      garden.actionConfigs["Deploy"]["tf"].spec.autoApply = autoApply
 
       graph = await garden.getConfigGraph({ log: garden.log, emit: false })
 
@@ -677,7 +677,7 @@ for (const terraformVersion of ["0.13.3", defaultTerraformVersion]) {
         })
 
         await _garden.scanAndAddConfigs()
-        _garden["actionConfigs"]["Deploy"]["tf"].spec.autoApply = true
+        _garden.actionConfigs["Deploy"]["tf"].spec.autoApply = true
 
         const _graph = await _garden.getConfigGraph({ log: _garden.log, emit: false })
 

@@ -57,7 +57,7 @@ This has two main benefits:
    change how you’re building, deploying or testing your application, you can always add Garden on top of it to bring
    advanced dev & testing automation to your project.
 
-Internal developer portals (Backstage, Cortex etc.)
+## Internal developer portals (Backstage, Cortex etc.)
 
 These tools take a different approach to dev automation: After being configured by DevOps engineers, they provide a
 point-and-click way for developers to create environments or deploy specific components. This is a simple and

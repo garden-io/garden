@@ -185,6 +185,7 @@ function parseAndProcess<A extends ParameterObject, O extends ParameterObject>(
 describe("processCliArgs", () => {
   let garden: TestGarden
   let log: Log
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let defaultActionParams: any
 
   before(async () => {
@@ -432,6 +433,7 @@ describe("processCliArgs", () => {
 
       override arguments = argSpec
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       async action(params: any) {
         return { result: params }
       }

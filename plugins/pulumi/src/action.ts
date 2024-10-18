@@ -26,7 +26,7 @@ export interface PulumiDeploySpec {
 }
 
 export type PulumiDeployConfig = DeployActionConfig<"pulumi", PulumiDeploySpec>
-export type PulumiDeploy = DeployAction<PulumiDeployConfig, any>
+export type PulumiDeploy = DeployAction<PulumiDeployConfig>
 
 // Validate that the path ends in .yaml or .yml
 const yamlFileRegex = /(\.yaml)|(\.yml)$/

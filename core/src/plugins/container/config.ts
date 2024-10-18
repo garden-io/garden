@@ -730,7 +730,7 @@ export interface ContainerDeploySpec extends ContainerCommonDeploySpec {
 
 export type ContainerDeployActionConfig = DeployActionConfig<"container", ContainerDeploySpec>
 
-export interface ContainerDeployOutputs {
+export type ContainerDeployOutputs = {
   deployedImageId: string
 }
 
@@ -894,7 +894,7 @@ const artifactsSchema = memoize(() =>
     .example([{ source: "/report/**/*" }])
 )
 
-export interface ContainerTestOutputs {
+export type ContainerTestOutputs = {
   log: string
 }
 
@@ -956,7 +956,7 @@ export const containerRunActionSchema = createSchema({
 
 // BUILD //
 
-export interface ContainerBuildOutputs {
+export type ContainerBuildOutputs = {
   "localImageName": string
   "localImageId": string
   "deploymentImageName": string

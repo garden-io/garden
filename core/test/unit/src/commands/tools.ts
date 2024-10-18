@@ -103,6 +103,7 @@ describe("ToolsCommand", () => {
     })
     log = garden.log
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const _garden = garden as any
 
     _garden.providerConfigs = [{ name: "test-a" }]
@@ -220,6 +221,7 @@ describe("ToolsCommand", () => {
   })
 
   it("should run a tool by name when run outside of a project", async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const _garden: any = await makeDummyGarden(tmpDir.path, {
       skipCloudConnect: true,
       commandInfo: { name: "foo", args: {}, opts: {} },

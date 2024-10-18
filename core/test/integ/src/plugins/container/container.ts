@@ -54,7 +54,8 @@ describe("plugins.container", () => {
   let log: ActionLog
   let containerProvider: ContainerProvider
 
-  let dockerCli: sinon.SinonStub<any, any>
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let dockerCli: sinon.SinonStub<any>
 
   beforeEach(async () => {
     garden = await makeTestGarden(projectRoot, { plugins: [gardenPlugin()] })
@@ -78,7 +79,7 @@ describe("plugins.container", () => {
         stdout: testVersionedId,
         stderr: "",
         code: 0,
-        proc: <any>null,
+        proc: null,
       })
     )
 
@@ -100,21 +101,22 @@ describe("plugins.container", () => {
       const action = await getTestBuild(config)
 
       sinon.replace(action, "getOutput", (o: string) =>
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         o === "localImageId" ? testVersionedId : action.getOutput(<any>o)
       )
       sinon.restore()
 
-      const dockerCli = sinon.stub(containerHelpers, "dockerCli")
+      const _dockerCli = sinon.stub(containerHelpers, "dockerCli")
 
       const result = await publishContainerBuild({ ctx, log, action })
       expect(result.detail).to.eql({ message: "Published some/image:1.1", published: true })
 
-      sinon.assert.calledWithMatch(dockerCli.firstCall, {
+      sinon.assert.calledWithMatch(_dockerCli.firstCall, {
         cwd: action.getBuildPath(),
         args: ["tag", action.getOutput("local-image-id"), publishId],
       })
 
-      sinon.assert.calledWithMatch(dockerCli.secondCall, {
+      sinon.assert.calledWithMatch(_dockerCli.secondCall, {
         cwd: action.getBuildPath(),
         args: ["push", publishId],
       })
@@ -127,18 +129,19 @@ describe("plugins.container", () => {
       sinon.restore()
 
       sinon.replace(action, "getOutput", (o: string) =>
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         o === "localImageId" ? testVersionedId : action.getOutput(<any>o)
       )
 
       sinon.replace(containerHelpers, "actionHasDockerfile", async () => true)
 
-      const dockerCli = sinon.stub(containerHelpers, "dockerCli")
+      const _dockerCli = sinon.stub(containerHelpers, "dockerCli")
 
       const result = await publishContainerBuild({ ctx, log, action, tagOverride: "custom-tag" })
       expect(result.detail).to.eql({ message: "Published test:custom-tag", published: true })
 
       sinon.assert.calledWith(
-        dockerCli,
+        _dockerCli,
         sinon.match({
           cwd: action.getBuildPath(),
           args: ["tag", testVersionedId, "test:custom-tag"],
@@ -146,7 +149,7 @@ describe("plugins.container", () => {
       )
 
       sinon.assert.calledWith(
-        dockerCli,
+        _dockerCli,
         sinon.match({
           cwd: action.getBuildPath(),
           args: ["push", "test:custom-tag"],

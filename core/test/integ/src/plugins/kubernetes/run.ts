@@ -573,6 +573,7 @@ describe("kubernetes Pod runner functions", () => {
     let helmLog: Log
     let helmGraph: ConfigGraph
     let helmModule: GardenModule
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let helmManifests: any[]
     let helmBaseModule: GardenModule | undefined
     let helmResourceSpec: ServiceResourceSpec

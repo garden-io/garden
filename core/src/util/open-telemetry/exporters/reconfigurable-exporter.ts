@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import type { ExportResult } from "@opentelemetry/core"
+import { type ExportResult } from "@opentelemetry/core"
 import type { ReadableSpan, SpanExporter } from "@opentelemetry/sdk-trace-base"
 import type { Deferred } from "../../util.js"
 import { defer } from "../../util.js"
@@ -106,5 +106,9 @@ export class ReconfigurableExporter implements SpanExporter {
           this.shutdownDeferred?.reject(err)
         })
     }
+  }
+
+  public hasTargetExporter() {
+    return !!this.targetExporter
   }
 }

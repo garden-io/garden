@@ -116,6 +116,7 @@ describe("validateSchema", () => {
     const yamlDoc = parseDocument(yaml) as YamlDocumentWithSource
     yamlDoc["source"] = yaml
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const config: any = {
       ...yamlDoc.toJS(),
       internal: {
@@ -159,6 +160,7 @@ describe("validateSchema", () => {
     const yamlDoc = parseDocument(yaml) as YamlDocumentWithSource
     yamlDoc["source"] = yaml
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const config: any = {
       ...yamlDoc.toJS(),
       internal: {
@@ -206,6 +208,7 @@ describe("validateSchema", () => {
     const yamlDoc = parseDocument(yaml) as YamlDocumentWithSource
     yamlDoc["source"] = yaml
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const config: any = {
       ...yamlDoc.toJS(),
       internal: {
@@ -251,6 +254,7 @@ describe("validateSchema", () => {
     const yamlDoc = parseDocument(yaml) as YamlDocumentWithSource
     yamlDoc["source"] = yaml
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const config: any = {
       ...yamlDoc.toJS(),
       internal: {
@@ -305,6 +309,7 @@ describe("validateSchema", () => {
     const yamlDocs = await loadAndValidateYaml(yaml, "foo.yaml in directory bar")
     const yamlDoc = yamlDocs[1]
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const config: any = {
       ...yamlDoc.toJS(),
       internal: {
@@ -344,6 +349,7 @@ describe("validateSchema", () => {
     const yamlDoc = parseDocument(yaml) as YamlDocumentWithSource
     yamlDoc["source"] = yaml
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const config: any = {
       ...yamlDoc.toJS(),
       internal: {

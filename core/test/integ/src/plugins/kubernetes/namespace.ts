@@ -49,8 +49,8 @@ describe("Kubernetes Namespace helpers", () => {
   describe("getNamespaceStatus", () => {
     it("should return the namespace status and emit a namespace status event on the plugin event broker", async () => {
       let namespaceStatusFromEvent: NamespaceStatus | null = null
-      const namespaceName = "container-default"
-      ctx.events.once("namespaceStatus", (status) => (namespaceStatusFromEvent = status))
+      const expecteedNamespaceName = "container-default"
+      ctx.events.once("namespaceStatus", (s) => (namespaceStatusFromEvent = s))
       const status = await getNamespaceStatus({
         log,
         ctx,
@@ -58,9 +58,9 @@ describe("Kubernetes Namespace helpers", () => {
         skipCreate: true,
       })
       expect(namespaceStatusFromEvent).to.exist
-      expect(namespaceStatusFromEvent!.namespaceName).to.eql(namespaceName)
+      expect(namespaceStatusFromEvent!.namespaceName).to.eql(expecteedNamespaceName)
       expect(status).to.exist
-      expect(status.namespaceName).to.eql(namespaceName)
+      expect(status.namespaceName).to.eql(expecteedNamespaceName)
     })
   })
 

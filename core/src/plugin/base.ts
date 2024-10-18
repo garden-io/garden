@@ -151,7 +151,7 @@ export type ActionRuntimeRemotePlugin = {
 }
 
 // TODO-0.13.0: update this schema in 0.13.0
-export interface RunResult {
+export type RunResult = {
   success: boolean
   exitCode?: number
   // FIXME: we should avoid native Date objects
