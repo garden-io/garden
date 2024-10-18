@@ -58,7 +58,7 @@ import { isConfiguredForSyncMode } from "./status/status.js"
 import type { PluginContext } from "../../plugin-context.js"
 import type { SyncConfig, SyncSession } from "../../mutagen.js"
 import { haltedStatuses, Mutagen, mutagenAgentPath, mutagenStatusDescriptions } from "../../mutagen.js"
-import { getK8sSyncUtilImageName, k8sSyncUtilContainerName, syncGuideLink } from "./constants.js"
+import { getK8sSyncUtilImagePath, k8sSyncUtilContainerName, syncGuideLink } from "./constants.js"
 import { isAbsolute, relative, resolve } from "path"
 import type { Resolved } from "../../actions/types.js"
 import { joinWithPosix } from "../../util/fs.js"
@@ -465,8 +465,8 @@ export async function configureSyncMode({
     if (!podSpec.imagePullSecrets) {
       podSpec.imagePullSecrets = []
     }
-    const k8sSyncUtilImageName = getK8sSyncUtilImageName()
 
+    const k8sSyncUtilImageName = getK8sSyncUtilImagePath(provider.config.utilImageRegistryDomain)
     if (!podSpec.initContainers.find((c) => c.image === k8sSyncUtilImageName)) {
       const initContainer: V1Container = {
         name: k8sSyncUtilContainerName,

@@ -250,6 +250,49 @@ Garden interfaces with your cluster via `kubectl` and by using the Kubernetes AP
 
 No, you have to use the [`kubernetes`](../k8s-plugins/actions/deploy/kubernetes.md) action type for that.
 
+### How do I avoid being rate limited by Docker Hub?
+
+Garden uses a handful of utility images that are hosted on [Docker Hub](https://hub.docker.com) under the `gardendev` repository and under heavy usage, users can get rate limited when deploying them.
+
+We're in the process of applying for becoming a Verified Docker Publisher which should significantly reduce the chance of being rate limited.
+
+In the meantime, you have the following options:
+
+**Option 1 — Crate a Docker Hub image pull secret:**
+
+First follow the steps in [this guide](../k8s-plugins/remote-k8s/configure-registry/docker-hub.md) to create an image pull secret for
+Docker Hub.
+
+Then add the name and namespace of the secret you created to the `imagePullSecrets` field of the Kubernetes provider:
+
+```yaml
+kind: Project
+name: my-project
+#...
+providers:
+  - name: kubernetes
+    imagePullSecrets:
+      - name: <the-secret-name>
+        namespace: <the-secret-namespace>
+```
+
+This also works for the `local-kubernetes` and `ephemeral-kubernetes` providers.
+
+**Option 2 — Use a registry mirror:**
+
+If you already have your own Docker Hub registry mirror set up you can use that by setting the `utilImageRegistryDomain` field on the Kubernetes provider:
+
+```yaml
+kind: Project
+name: my-project
+#...
+providers:
+  - name: kubernetes
+    utilImageRegistryDomain: https://<my-private-registry-domain>
+```
+
+This also works for the `local-kubernetes` and `ephemeral-kubernetes` providers.
+
 ## Local scripts
 
 ### How do I execute long running local scripts?

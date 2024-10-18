@@ -34,7 +34,10 @@ import type { ContainerDeployActionConfig } from "../../../../../src/plugins/con
 import { resolveAction } from "../../../../../src/graph/actions.js"
 import { DeployTask } from "../../../../../src/tasks/deploy.js"
 import { MUTAGEN_DIR_NAME } from "../../../../../src/constants.js"
-import { getK8sSyncUtilImageName } from "../../../../../src/plugins/kubernetes/constants.js"
+import {
+  defaultUtilImageRegistryDomain,
+  getK8sSyncUtilImagePath,
+} from "../../../../../src/plugins/kubernetes/constants.js"
 import type { Action, Resolved } from "../../../../../src/actions/types.js"
 import stripAnsi from "strip-ansi"
 
@@ -551,7 +554,7 @@ describe("sync mode deployments and sync behavior", () => {
                   initContainers: [
                     {
                       name: "garden-sync-init",
-                      image: getK8sSyncUtilImageName(),
+                      image: getK8sSyncUtilImagePath(defaultUtilImageRegistryDomain),
                       command: ["/bin/sh", "-c", "'cp' '/usr/local/bin/mutagen-agent' '/.garden/mutagen-agent'"],
                       imagePullPolicy: "IfNotPresent",
                       volumeMounts: [
@@ -601,7 +604,7 @@ describe("sync mode deployments and sync behavior", () => {
                   initContainers: [
                     {
                       name: "garden-sync-init",
-                      image: getK8sSyncUtilImageName(),
+                      image: getK8sSyncUtilImagePath(defaultUtilImageRegistryDomain),
                       command: ["/bin/sh", "-c", "'cp' '/usr/local/bin/mutagen-agent' '/.garden/mutagen-agent'"],
                       imagePullPolicy: "IfNotPresent",
                       volumeMounts: [
@@ -1023,6 +1026,60 @@ describe("sync mode deployments and sync behavior", () => {
       expect((<any>res.updated[0]).spec.template.spec.containers[0].image).to.equal("new-image-1")
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       expect((<any>res.updated[1]).spec.template.spec.containers[0].image).to.equal("new-image-2")
+    })
+    it("should use a custom container domain for the sync util image if configured that way", async () => {
+      const manifests = [
+        {
+          kind: "Deployment",
+          apiVersion: "apps/v1",
+          metadata: {
+            name: "sync-mode",
+          },
+          spec: {
+            template: {
+              spec: {
+                containers: [{ name: "sync-mode" }],
+              },
+            },
+          },
+        },
+      ]
+
+      const res = await configureSyncMode({
+        ctx,
+        log: actionLog,
+        provider: {
+          ...provider,
+          config: {
+            ...provider.config,
+            utilImageRegistryDomain: "https://my-custom-registry-mirror.io",
+          },
+        },
+        action,
+        manifests,
+        defaultTarget: undefined,
+        spec: {
+          paths: [
+            {
+              target: {
+                kind: "Deployment",
+                name: "sync-mode",
+              },
+              sourcePath: join(action.sourcePath(), "src"),
+              containerPath: "/app/src",
+            },
+          ],
+        },
+      })
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      expect((<any>res.updated[0]).spec.template.spec.initContainers[0].image).to.eql(
+        getK8sSyncUtilImagePath("https://my-custom-registry-mirror.io")
+      )
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      expect((<any>res.manifests[0]).spec.template.spec.initContainers[0].image).to.eql(
+        getK8sSyncUtilImagePath("https://my-custom-registry-mirror.io")
+      )
     })
   })
 })

@@ -15,11 +15,15 @@ import { makeTempDir } from "../../../../helpers.js"
 import { providerFromConfig } from "../../../../../src/config/provider.js"
 import type { Garden } from "../../../../../src/garden.js"
 import { makeDummyGarden } from "../../../../../src/garden.js"
-import { defaultSystemNamespace } from "../../../../../src/plugins/kubernetes/constants.js"
+import {
+  defaultSystemNamespace,
+  defaultUtilImageRegistryDomain,
+} from "../../../../../src/plugins/kubernetes/constants.js"
 
 describe("kubernetes configureProvider", () => {
   const basicConfig: KubernetesConfig = {
     name: "kubernetes",
+    utilImageRegistryDomain: defaultUtilImageRegistryDomain,
     buildMode: "local-docker",
     context: "my-cluster",
     defaultHostname: "hostname.invalid",

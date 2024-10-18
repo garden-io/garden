@@ -13,9 +13,9 @@ import {
   buildSyncVolumeName,
   buildkitContainerName,
   buildkitDeploymentName,
-  buildkitImageName,
-  buildkitRootlessImageName,
   dockerAuthSecretKey,
+  getBuildkitImagePath,
+  getBuildkitRootlessImagePath,
 } from "../../constants.js"
 import { KubeApi } from "../../api.js"
 import type { KubernetesDeployment } from "../../types.js"
@@ -472,7 +472,7 @@ export function getBuildkitDeployment(
           containers: [
             {
               name: buildkitContainerName,
-              image: buildkitImageName,
+              image: getBuildkitImagePath(provider.config.utilImageRegistryDomain),
               args: ["--addr", "unix:///run/buildkit/buildkitd.sock"],
               readinessProbe: {
                 exec: {
@@ -538,7 +538,7 @@ export function getBuildkitDeployment(
       "container.apparmor.security.beta.kubernetes.io/buildkitd": "unconfined",
       "container.seccomp.security.alpha.kubernetes.io/buildkitd": "unconfined",
     }
-    buildkitContainer.image = buildkitRootlessImageName
+    buildkitContainer.image = getBuildkitRootlessImagePath(provider.config.utilImageRegistryDomain)
     buildkitContainer.args = [
       "--addr",
       "unix:///run/user/1000/buildkit/buildkitd.sock",

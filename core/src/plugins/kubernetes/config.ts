@@ -40,7 +40,7 @@ import type { SyncDefaults } from "./sync.js"
 import { syncDefaultsSchema } from "./sync.js"
 import { KUBECTL_DEFAULT_TIMEOUT } from "./kubectl.js"
 import { DOCS_BASE_URL } from "../../constants.js"
-import { defaultKanikoImageName, defaultSystemNamespace } from "./constants.js"
+import { defaultKanikoImageName, defaultUtilImageRegistryDomain, defaultSystemNamespace } from "./constants.js"
 import type { LocalKubernetesClusterType } from "./local/config.js"
 import type { EphemeralKubernetesClusterType } from "./ephemeral/config.js"
 
@@ -125,6 +125,7 @@ export interface ClusterBuildkitCacheConfig {
 export type KubernetesClusterType = LocalKubernetesClusterType | EphemeralKubernetesClusterType
 
 export interface KubernetesConfig extends BaseProviderConfig {
+  utilImageRegistryDomain: string
   buildMode: ContainerBuildMode
   clusterBuildkit?: {
     cache: ClusterBuildkitCacheConfig[]
@@ -407,9 +408,20 @@ const buildkitCacheConfigurationSchema = () =>
       ),
   })
 
+export const utilImageRegistryDomainSpec = joi.string().default(defaultUtilImageRegistryDomain).description(dedent`
+    The container registry domain that should be used for pulling Garden utility images (such as the
+    image used in the Kubernetes sync utility Pod).
+
+    If you have your own Docker Hub registry mirror, you can set the domain here and the utility images
+    will be pulled from there. This can be useful to e.g. avoid Docker Hub rate limiting.
+
+    Otherwise the utility images are pulled directly from Docker Hub by default.
+  `)
+
 export const kubernetesConfigBase = () =>
   providerConfigBaseSchema()
     .keys({
+      utilImageRegistryDomain: utilImageRegistryDomainSpec,
       buildMode: joi
         .string()
         .valid("local-docker", "kaniko", "cluster-buildkit")
