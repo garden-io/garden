@@ -91,19 +91,28 @@ export async function getPodLogs({
   timestamps?: boolean
   sinceSeconds?: number
 }) {
-  let podContainers = pod.spec!.containers.map((c) => c.name).filter((n) => !n.match(/garden-/))
+  let podContainers = [
+    // Include init containers
+    ...(pod.spec!.initContainers || []).map((c) => c.name).filter((n) => !n.match(/garden-/)),
+    ...pod.spec!.containers.map((c) => c.name).filter((n) => !n.match(/garden-/)),
+  ]
 
   if (containerNames) {
     podContainers = podContainers.filter((name) => containerNames.includes(name))
   }
+  const containerByOrder = podContainers.reduce<{ [key: string]: number }>((memo, name, index) => {
+    memo[name] = index
+    return memo
+  }, {})
 
-  return Promise.all(
+  const allLogs = await Promise.all(
     podContainers.map(async (container) => {
       const follow = false
       const insecureSkipTLSVerifyBackend = false
       const pretty = undefined
 
-      let log: any
+      let log: unknown
+      let retLog: string
       try {
         log = await api.core.readNamespacedPodLog({
           name: pod.metadata!.name!,
@@ -142,31 +151,50 @@ export async function getPodLogs({
               timestamps,
             })
           } catch (err) {
-            log = `[Could not retrieve previous logs for deleted pod ${pod.metadata!.name!}: ${
+            retLog = `[Could not retrieve previous logs for deleted pod ${pod.metadata!.name!}: ${
               err || "Unknown error occurred"
             }]`
           }
         } else if (error instanceof KubernetesError && error.message.includes("waiting to start")) {
-          log = ""
+          retLog = ""
         } else {
           throw error
         }
       }
 
-      if (typeof log === "object") {
-        log = stringify(log)
+      if (typeof log === "string") {
+        retLog = log
+      } else if (typeof log === "object") {
+        retLog = stringify(log)
+      } else if (!log) {
+        retLog = ""
+      } else {
+        retLog = "[Could not read Pod logs. Received unexpected output.]"
       }
 
       // the API returns undefined if no logs have been output, for some reason
-      return { containerName: container, log: log || "" }
+      return { containerName: container, log: retLog }
     })
   )
+
+  // The logs are grouped by container in the order that the logs promises are resolved so we sort
+  // them in the order the containers appear in the config.
+  const sortedLogs = allLogs.sort((a, b) => containerByOrder[a.containerName] - containerByOrder[b.containerName])
+
+  return sortedLogs
 }
 
 /**
  * Get a formatted list of log tails for each of the specified pods. Used for debugging and error logs.
  */
-export async function getFormattedPodLogs(api: KubeApi, namespace: string, pods: KubernetesPod[]): Promise<string> {
+export async function getFormattedPodLogs(
+  api: KubeApi,
+  namespace: string,
+  pods: KubernetesPod[],
+  filterFn?: (params: { log: string; containerName: string }) => boolean
+): Promise<string | null> {
+  const yesFilter = () => true
+  const logFilter = filterFn || yesFilter
   const allLogs = await Promise.all(
     pods.map(async (pod) => {
       return {
@@ -178,20 +206,32 @@ export async function getFormattedPodLogs(api: KubeApi, namespace: string, pods:
     })
   )
 
+  const hasLogs = !!allLogs.flatMap(({ containers }) => containers.map((c) => c.log)).join("")
+
+  if (!hasLogs) {
+    return null
+  }
+
   return allLogs
     .map(({ podName, containers }) => {
-      return (
-        styles.highlight(`\n****** ${podName} ******\n`) +
-        containers.map(({ containerName, log }) => {
-          return styles.primary(`------ ${containerName} ------`) + (log || "<no logs>")
+      const containerLogs = containers
+        .filter(logFilter)
+        // Format logs like so: <pod-name>/<container-name>: log message
+        .map(({ containerName, log }) => {
+          return log
+            .split("\n")
+            .map((line) => (line ? styles.primary(`${styles.section(podName + "/" + containerName)}: ${line}`) : ""))
+            .join("\n")
         })
-      )
+        .join("\n")
+
+      return containerLogs
     })
-    .join("\n\n")
+    .join("\n")
 }
 
 export function getExecExitCode(status: V1Status): number {
-  // Status csn be either "Success" or "Failure"
+  // Status can be either "Success" or "Failure"
   if (status.status === "Success") {
     return 0
   }

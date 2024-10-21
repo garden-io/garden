@@ -23,7 +23,7 @@ import { KubeApi, KubernetesError } from "./api.js"
 import { getPodLogs, checkPodStatus } from "./status/pod.js"
 import type { KubernetesResource, KubernetesPod, KubernetesServerResource, SupportedRuntimeAction } from "./types.js"
 import type { ContainerEnvVars, ContainerResourcesSpec, ContainerVolumeSpec } from "../container/config.js"
-import { prepareEnvVars, makePodName, renderPodEvents, sanitizeVolumesForPodRunner } from "./util.js"
+import { prepareEnvVars, makePodName, renderWorkloadEvents, sanitizeVolumesForPodRunner } from "./util.js"
 import { dedent, deline, randomString } from "../../util/string.js"
 import type { ArtifactSpec } from "../../config/validation.js"
 import { prepareSecrets } from "./secrets.js"
@@ -808,14 +808,11 @@ class PodRunnerNotFoundError extends PodRunnerError {
 
     super({
       message: dedent`
-        Could not find Pod while waiting for it to complete. The Pod might have been evicted or deleted.
-
         There are several different possible causes for Pod disruptions.
 
         You can read more about the topic in the Kubernetes documentation:
-        https://kubernetes.io/docs/concepts/workloads/pods/disruptions/${
-          events?.length ? `\n\n${renderPodEvents(events)}` : ""
-        }
+        https://kubernetes.io/docs/concepts/workloads/pods/disruptions/\n\n
+        ${renderWorkloadEvents(events || [], "Pod", details.podName)}
       `,
       details,
     })
@@ -845,6 +842,7 @@ interface RunAndWaitResult {
 }
 
 export interface PodErrorDetails {
+  podName: string
   logs?: string
   // optional details
   exitCode?: number
@@ -1018,6 +1016,7 @@ export class PodRunner {
       }
       return {
         podEvents,
+        podName: this.podName,
       }
     }
 
@@ -1051,6 +1050,7 @@ export class PodRunner {
         exitCode,
         containerStatus: mainContainerStatus,
         podStatus: serverPod.status,
+        podName: this.podName,
       })
 
       // We've seen instances where Pods are OOMKilled but the exit code is 0 and the state that
@@ -1209,7 +1209,7 @@ export class PodRunner {
     const collectLogs = async () => result.allLogs || (await this.getMainContainerLogs())
 
     if (result.timedOut) {
-      const errorDetails: PodErrorDetails = { logs: await collectLogs(), result }
+      const errorDetails: PodErrorDetails = { logs: await collectLogs(), result, podName: this.podName }
       throw new PodRunnerTimeoutError({
         message: `Command timed out after ${timeoutSec} seconds.`,
         details: errorDetails,
@@ -1220,6 +1220,7 @@ export class PodRunner {
       const errorDetails: PodErrorDetails = {
         logs: await collectLogs(),
         exitCode: result.exitCode,
+        podName: this.podName,
         result,
       }
       throw new PodRunnerOutOfMemoryError({ message: "Pod container was OOMKilled.", details: errorDetails })
@@ -1233,6 +1234,7 @@ export class PodRunner {
       const errorDetails: PodErrorDetails = {
         logs: await collectLogs(),
         exitCode: result.exitCode,
+        podName: this.podName,
         result,
       }
       throw new PodRunnerWorkloadError({ message: `Failed with exit code ${result.exitCode}.`, details: errorDetails })
@@ -1272,7 +1274,7 @@ export class PodRunner {
     })
 
     if (some(events, (event) => event.reason === "Killing")) {
-      const details: PodErrorDetails = { podEvents: events }
+      const details: PodErrorDetails = { podEvents: events, podName: this.podName }
       throw new PodRunnerNotFoundError({ details })
     }
   }

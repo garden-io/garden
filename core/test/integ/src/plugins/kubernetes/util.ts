@@ -163,7 +163,7 @@ describe("util", () => {
         })
         await garden.processTasks({ tasks: [deployTask], throwOnError: true })
 
-        const pods = await getWorkloadPods(api, "container", resource)
+        const pods = await getWorkloadPods({ api, namespace: "container", resource })
         const services = flatten(pods.map((pod) => pod.spec?.containers.map((container) => container.name)))
         expect(services).to.eql(["simple-service"])
       } finally {
@@ -201,7 +201,7 @@ describe("util", () => {
 
         const pod = allPods.items[0]
 
-        const pods = await getWorkloadPods(api, namespace, pod)
+        const pods = await getWorkloadPods({ api, namespace, resource: pod })
         expect(pods.length).to.equal(1)
         expect(pods[0].kind).to.equal("Pod")
         expect(pods[0].metadata.name).to.equal(pod.metadata.name)
