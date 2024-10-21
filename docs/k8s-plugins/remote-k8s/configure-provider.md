@@ -42,7 +42,11 @@ providers:
     context: <THE KUBE CONTEXT FROM STEP 1>
     defaultHostname: <THE HOSTNAME FROM STEP 3>
 ```
-**NOTE:** If you are using `kubernetes deploy` the `imagePullSecret` won't be automatically propagated to manifests. Make sure to use `imagePullSecrets` in your manifest as specified in kubernetes [docs](https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/#create-a-pod-that-uses-your-secret).
+
+{% hint style="warning" %}
+Garden does NOT inject the image pull secret into the Deployment (unless you're using the `container` Deploy type). So if you're using e.g. the `kubernetes` or `helm` action types you need to make sure the `imagePullSecret` field is set in the corresponding manifest / Helm chart. See also the [official Kubernetes docs for setting image pull secrets](https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/#create-a-pod-that-uses-your-secret).
+{% endhint %}
+
 ### 2. Select build mode
 
 Next, select a "build mode".

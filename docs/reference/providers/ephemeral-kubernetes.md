@@ -35,6 +35,15 @@ providers:
     # The name of the provider plugin to use.
     name: ephemeral-kubernetes
 
+    # The container registry domain that should be used for pulling Garden utility images (such as the
+    # image used in the Kubernetes sync utility Pod).
+    #
+    # If you have your own Docker Hub registry mirror, you can set the domain here and the utility images
+    # will be pulled from there. This can be useful to e.g. avoid Docker Hub rate limiting.
+    #
+    # Otherwise the utility images are pulled directly from Docker Hub by default.
+    utilImageRegistryDomain: docker.io
+
     # Specify which namespace to deploy services to (defaults to the project name). Note that the framework generates
     # other namespaces as well with this name as a prefix.
     namespace:
@@ -114,6 +123,22 @@ Example:
 providers:
   - name: "ephemeral-kubernetes"
 ```
+
+### `providers[].utilImageRegistryDomain`
+
+[providers](#providers) > utilImageRegistryDomain
+
+The container registry domain that should be used for pulling Garden utility images (such as the
+image used in the Kubernetes sync utility Pod).
+
+If you have your own Docker Hub registry mirror, you can set the domain here and the utility images
+will be pulled from there. This can be useful to e.g. avoid Docker Hub rate limiting.
+
+Otherwise the utility images are pulled directly from Docker Hub by default.
+
+| Type     | Default       | Required |
+| -------- | ------------- | -------- |
+| `string` | `"docker.io"` | No       |
 
 ### `providers[].namespace`
 

@@ -15,7 +15,7 @@ import { KubeApi } from "../api.js"
 import type { Log } from "../../../logger/log-entry.js"
 import { containerHelpers } from "../../container/helpers.js"
 import { PodRunner } from "../run.js"
-import { dockerAuthSecretKey, getK8sUtilImageName, systemDockerAuthSecretName } from "../constants.js"
+import { dockerAuthSecretKey, getK8sUtilImagePath, systemDockerAuthSecretName } from "../constants.js"
 import { getAppNamespace, getSystemNamespace } from "../namespace.js"
 import { randomString } from "../../../util/string.js"
 import type { PluginContext } from "../../../plugin-context.js"
@@ -155,7 +155,7 @@ export async function pullBuild(params: PullParams) {
         containers: [
           {
             name: "main",
-            image: getK8sUtilImageName(),
+            image: getK8sUtilImagePath(ctx.provider.config.utilImageRegistryDomain),
             command: ["sleep", "" + (imagePullTimeoutSeconds + 10)],
             volumeMounts: [
               {

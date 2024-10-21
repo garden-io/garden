@@ -17,7 +17,7 @@ import { ConfigurationError } from "../../../exceptions.js"
 import type { ConfigureProviderParams } from "../../../plugin/handlers/Provider/configureProvider.js"
 import { dedent } from "../../../util/string.js"
 import type { KubernetesConfig } from "../config.js"
-import { defaultResources } from "../config.js"
+import { defaultResources, utilImageRegistryDomainSpec } from "../config.js"
 import { namespaceSchema } from "../config.js"
 import { EPHEMERAL_KUBERNETES_PROVIDER_NAME } from "./ephemeral.js"
 import { DEFAULT_GARDEN_CLOUD_DOMAIN } from "../../../constants.js"
@@ -30,6 +30,7 @@ export const configSchema = () =>
   providerConfigBaseSchema()
     .keys({
       name: joiProviderName(EPHEMERAL_KUBERNETES_PROVIDER_NAME),
+      utilImageRegistryDomain: utilImageRegistryDomainSpec,
       namespace: namespaceSchema().description(
         "Specify which namespace to deploy services to (defaults to the project name). " +
           "Note that the framework generates other namespaces as well with this name as a prefix."

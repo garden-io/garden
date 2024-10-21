@@ -37,6 +37,15 @@ providers:
     # disables the provider. To use a provider in all environments, omit this field.
     environments:
 
+    # The container registry domain that should be used for pulling Garden utility images (such as the
+    # image used in the Kubernetes sync utility Pod).
+    #
+    # If you have your own Docker Hub registry mirror, you can set the domain here and the utility images
+    # will be pulled from there. This can be useful to e.g. avoid Docker Hub rate limiting.
+    #
+    # Otherwise the utility images are pulled directly from Docker Hub by default.
+    utilImageRegistryDomain: docker.io
+
     # Choose the mechanism for building container images before deploying. By default your local Docker daemon is
     # used, but you can set it to `cluster-buildkit` or `kaniko` to sync files to the cluster, and build container
     # images there. This removes the need to run Docker locally, and allows you to share layer and image caches
@@ -572,6 +581,22 @@ providers:
       - dev
       - stage
 ```
+
+### `providers[].utilImageRegistryDomain`
+
+[providers](#providers) > utilImageRegistryDomain
+
+The container registry domain that should be used for pulling Garden utility images (such as the
+image used in the Kubernetes sync utility Pod).
+
+If you have your own Docker Hub registry mirror, you can set the domain here and the utility images
+will be pulled from there. This can be useful to e.g. avoid Docker Hub rate limiting.
+
+Otherwise the utility images are pulled directly from Docker Hub by default.
+
+| Type     | Default       | Required |
+| -------- | ------------- | -------- |
+| `string` | `"docker.io"` | No       |
 
 ### `providers[].buildMode`
 
