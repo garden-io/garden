@@ -72,6 +72,7 @@ export const deployPulumi: DeployActionHandlers<PulumiDeploy>["deploy"] = async 
 
   if (!autoApply && !deployFromPreview) {
     log.info(`${action.longDescription()} has autoApply = false, but no planPath was provided. Skipping deploy.`)
+    await selectStack(pulumiParams)
     return {
       state: "ready",
       outputs: await getStackOutputs(pulumiParams),
