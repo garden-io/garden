@@ -29,7 +29,7 @@
     "@date-fns/utc": "^2.1.0",
     "@hapi/joi": "git+https://github.com/garden-io/joi.git#master",
     "@jsdevtools/readdir-enhanced": "^6.0.4",
-    "@kubernetes/client-node": "git@github.com:kubernetes-client/javascript.git#4f144c0a4acb44ab51d36caedcce57e2759445d0",
+    "@kubernetes/client-node": "1.0.0-rc7",
     "@opentelemetry/api": "^1.6.0",
     "@opentelemetry/core": "^1.26.0",
     "@opentelemetry/exporter-trace-otlp-http": "0.52.1",
