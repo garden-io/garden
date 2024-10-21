@@ -371,6 +371,12 @@ export const kubernetesDeploy: DeployActionHandler<"deploy", KubernetesDeployAct
 
   const manifests = await getManifests({ ctx, api, log, action, defaultNamespace: namespace })
 
+  // for (const manifest of manifests) {
+  //   if (manifest.kind === "Deployment") {
+  //     const hasImagePullSecrets = manifest.spec.template.spec.imagePullSecrets
+  //   }
+  // }
+
   // We separate out manifests for namespace resources, since we don't want to apply a prune selector
   // when applying them.
   const [namespaceManifests, otherManifests] = partition(manifests, (m) => m.kind === "Namespace")

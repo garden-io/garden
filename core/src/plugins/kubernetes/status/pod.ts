@@ -15,6 +15,7 @@ import type { DeployState } from "../../../types/service.js"
 import { combineStates } from "../../../types/service.js"
 import stringify from "json-stringify-safe"
 import { styles } from "../../../logger/styles.js"
+import { isEmpty } from "lodash-es"
 
 export const POD_LOG_LINES = 30
 
@@ -91,82 +92,107 @@ export async function getPodLogs({
   timestamps?: boolean
   sinceSeconds?: number
 }) {
-  let podContainers = pod.spec!.containers.map((c) => c.name).filter((n) => !n.match(/garden-/))
+  let podContainers = [
+    ...(pod.spec!.initContainers || []).map((c) => c.name).filter((n) => !n.match(/garden-/)),
+    ...pod.spec!.containers.map((c) => c.name).filter((n) => !n.match(/garden-/)),
+  ]
 
   if (containerNames) {
     podContainers = podContainers.filter((name) => containerNames.includes(name))
   }
+  const containerByOrder = podContainers.reduce<{ [key: string]: number }>((memo, name, index) => {
+    memo[name] = index
+    return memo
+  }, {})
 
-  return Promise.all(
-    podContainers.map(async (container) => {
-      const follow = false
-      const insecureSkipTLSVerifyBackend = false
-      const pretty = undefined
+  const allLogs = (
+    await Promise.all(
+      podContainers.map(async (container) => {
+        const follow = false
+        const insecureSkipTLSVerifyBackend = false
+        const pretty = undefined
 
-      let log: any
-      try {
-        log = await api.core.readNamespacedPodLog({
-          name: pod.metadata!.name!,
-          namespace,
-          container,
-          follow,
-          insecureSkipTLSVerifyBackend,
-          limitBytes: byteLimit,
-          pretty,
-          previous: false,
-          sinceSeconds,
-          tailLines: lineLimit,
-          timestamps,
-        })
-      } catch (error) {
-        if (!(error instanceof KubernetesError)) {
-          throw error
-        }
-
-        const terminated = error.responseStatusCode === 400 && error.apiMessage?.endsWith("is terminated")
-
-        if (terminated || error.responseStatusCode === 404) {
-          // Couldn't find pod/container, try requesting a previously terminated one
-          try {
-            log = await api.core.readNamespacedPodLog({
-              name: pod.metadata!.name!,
-              namespace,
-              container,
-              follow,
-              insecureSkipTLSVerifyBackend,
-              limitBytes: byteLimit,
-              pretty,
-              previous: true,
-              sinceSeconds,
-              tailLines: lineLimit,
-              timestamps,
-            })
-          } catch (err) {
-            log = `[Could not retrieve previous logs for deleted pod ${pod.metadata!.name!}: ${
-              err || "Unknown error occurred"
-            }]`
+        let log: unknown
+        let retLog: string
+        try {
+          log = await api.core.readNamespacedPodLog({
+            name: pod.metadata!.name!,
+            namespace,
+            container,
+            follow,
+            insecureSkipTLSVerifyBackend,
+            limitBytes: byteLimit,
+            pretty,
+            previous: false,
+            sinceSeconds,
+            tailLines: lineLimit,
+            timestamps,
+          })
+        } catch (error) {
+          if (!(error instanceof KubernetesError)) {
+            throw error
           }
-        } else if (error instanceof KubernetesError && error.message.includes("waiting to start")) {
-          log = ""
-        } else {
-          throw error
+
+          const terminated = error.responseStatusCode === 400 && error.apiMessage?.endsWith("is terminated")
+
+          if (terminated || error.responseStatusCode === 404) {
+            // Couldn't find pod/container, try requesting a previously terminated one
+            try {
+              log = await api.core.readNamespacedPodLog({
+                name: pod.metadata!.name!,
+                namespace,
+                container,
+                follow,
+                insecureSkipTLSVerifyBackend,
+                limitBytes: byteLimit,
+                pretty,
+                previous: true,
+                sinceSeconds,
+                tailLines: lineLimit,
+                timestamps,
+              })
+            } catch (err) {
+              retLog = `[Could not retrieve previous logs for deleted pod ${pod.metadata!.name!}: ${
+                err || "Unknown error occurred"
+              }]`
+            }
+          } else if (error instanceof KubernetesError && error.message.includes("waiting to start")) {
+            retLog = ""
+          } else {
+            throw error
+          }
         }
-      }
 
-      if (typeof log === "object") {
-        log = stringify(log)
-      }
+        if (typeof log === "string") {
+          retLog = log
+        } else if (typeof log === "object") {
+          retLog = stringify(log)
+        } else if (!log) {
+          retLog = ""
+        } else {
+          retLog = "[Could not read Pod logs. Received unexpected output.]"
+        }
 
-      // the API returns undefined if no logs have been output, for some reason
-      return { containerName: container, log: log || "" }
-    })
-  )
+        // the API returns undefined if no logs have been output, for some reason
+        return { containerName: container, log: retLog || "" }
+      })
+    )
+  ).sort((a, b) => containerByOrder[a.containerName] - containerByOrder[b.containerName])
+
+  return allLogs
 }
 
 /**
  * Get a formatted list of log tails for each of the specified pods. Used for debugging and error logs.
  */
-export async function getFormattedPodLogs(api: KubeApi, namespace: string, pods: KubernetesPod[]): Promise<string> {
+export async function getFormattedPodLogs(
+  api: KubeApi,
+  namespace: string,
+  pods: KubernetesPod[],
+  logFilter?: (params: { log: string; containerName: string }) => boolean
+): Promise<string | null> {
+  const yesFilter = () => true
+  const filter = logFilter || yesFilter
   const allLogs = await Promise.all(
     pods.map(async (pod) => {
       return {
@@ -178,20 +204,31 @@ export async function getFormattedPodLogs(api: KubeApi, namespace: string, pods:
     })
   )
 
+  const hasLogs = !!allLogs.flatMap(({ containers }) => containers.map((c) => c.log)).join("")
+
+  if (!hasLogs) {
+    return null
+  }
+
   return allLogs
     .map(({ podName, containers }) => {
-      return (
-        styles.highlight(`\n****** ${podName} ******\n`) +
-        containers.map(({ containerName, log }) => {
-          return styles.primary(`------ ${containerName} ------`) + (log || "<no logs>")
+      const containerLogs = containers
+        .filter((param) => filter(param))
+        .map(({ containerName, log }) => {
+          return log
+            .split("\n")
+            .map((line) => (line ? styles.primary(`${styles.section(podName + "/" + containerName)}: ${line}`) : ""))
+            .join("\n")
         })
-      )
+        .join("\n")
+
+      return containerLogs
     })
     .join("\n\n")
 }
 
 export function getExecExitCode(status: V1Status): number {
-  // Status csn be either "Success" or "Failure"
+  // Status can be either "Success" or "Failure"
   if (status.status === "Success") {
     return 0
   }

@@ -793,10 +793,10 @@ export function getK8sProvider(providers: ProviderMap): KubernetesProvider {
   return provider as KubernetesProvider
 }
 
-export function renderPodEvents(events: CoreV1Event[]): string {
+export function renderWorkloadEvents(events: CoreV1Event[], workloadKind: string, workloadName: string): string {
   let text = ""
 
-  text += `${styles.accent("━━━ Events ━━━")}\n`
+  text += `${styles.accent(`━━━ Latest events from ${workloadKind} ${workloadName} ━━━`)}\n`
   for (const event of events) {
     const obj = event.involvedObject
     const name = styles.highlight(`${obj.kind} ${obj.name}:`)
@@ -811,7 +811,7 @@ export function renderPodEvents(events: CoreV1Event[]): string {
   }
 
   if (events.length === 0) {
-    text += `${styles.error("No matching events found")}\n`
+    text += `${styles.error("<No events found>")}\n`
   }
 
   return text

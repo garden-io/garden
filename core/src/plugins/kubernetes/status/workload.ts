@@ -20,7 +20,7 @@ import type {
   V1DeploymentSpec,
 } from "@kubernetes/client-node"
 import dedent from "dedent"
-import { getCurrentWorkloadPods, renderPodEvents } from "../util.js"
+import { getCurrentWorkloadPods, renderWorkloadEvents } from "../util.js"
 import { getFormattedPodLogs, POD_LOG_LINES } from "./pod.js"
 import type { ResourceStatus, StatusHandlerParams } from "./status.js"
 import { getResourceEvents } from "./events.js"
@@ -71,15 +71,41 @@ export async function checkWorkloadStatus({ api, namespace, resource }: StatusHa
 
     // List events
     const events = await getEvents()
-    if (events.length > 0) {
-      logs += renderPodEvents(events)
-    }
+    logs += renderWorkloadEvents(events, workload.kind, workload.metadata.name)
+
+    const failedContainers = events.reduce<{ type: string; name: string }[]>((memo, event) => {
+      const fieldPath = event.involvedObject.fieldPath
+      if (
+        !fieldPath ||
+        event.involvedObject.kind !== "Pod" ||
+        event.type !== "Warning" ||
+        (!fieldPath.includes("containers") && !fieldPath.includes("initContainers"))
+      ) {
+        return memo
+      }
+
+      const regex = /^spec\.(containers|initContainers)\{([^}]+)\}$/
+      const match = fieldPath.match(regex)
+      const containerName = match && match[2]
+
+      if (!containerName) {
+        return memo
+      }
+
+      return [
+        ...memo,
+        { type: fieldPath.includes("initContainers") ? "initContainer" : "container", name: containerName },
+      ]
+    }, [])
 
     // Attach pod logs for debug output
     const pods = await getPods()
-    let podLogs: string | undefined
+    let podLogs: string | null
     try {
-      podLogs = await getFormattedPodLogs(api, namespace, pods)
+      podLogs = await getFormattedPodLogs(api, namespace, pods, ({ containerName, log }) => {
+        const isFailedContainer = failedContainers.map((c) => c.name).includes(containerName)
+        return isFailedContainer
+      })
     } catch (err) {
       const podNames = pods.map((pod) => styles.highlight(pod.metadata.name)).join(", ")
       logs += styles.secondary(`Warning: Could not retrieve logs for one or more of the following pods: ${podNames}`)
@@ -88,20 +114,29 @@ export async function checkWorkloadStatus({ api, namespace, resource }: StatusHa
           logs += styles.secondary(`Error message: ${err.message}`)
         }
       }
-      podLogs = undefined
+      podLogs = null
     }
 
+    logs += styles.accent(
+      `\n\n━━━ Latest logs from failed containers in each Pod in ${workload.kind} ${workload.metadata.name} ━━━\n`
+    )
     if (podLogs) {
-      logs += styles.accent("\n\n━━━ Pod logs ━━━\n")
-      logs +=
-        styles.primary(dedent`
-      <Showing last ${POD_LOG_LINES} lines per pod in this ${
-        workload.kind
-      }. Run the following command for complete logs>
-      $ kubectl -n ${namespace} --context=${api.context} logs ${workload.kind.toLowerCase()}/${workload.metadata.name}
-      `) +
-        "\n" +
-        podLogs
+      // logs +=
+      //   styles.primary(dedent`
+      // Showing last ${POD_LOG_LINES} lines for each failed container in each Pod in this ${
+      //   workload.kind
+      // }. Run the following command for complete logs:
+      // $ kubectl -n ${namespace} --context=${api.context} logs ${workload.kind.toLowerCase()}/${workload.metadata.name} --all-containers
+      // `) +
+      //   "\n\n" +
+      //   podLogs
+      logs += podLogs
+      logs += styles.primary(dedent`
+        \n💡 Garden hint: For complete Pod logs for this ${workload.kind}, run the following command:
+        ${styles.command(`kubectl -n ${namespace} --context=${api.context} logs ${workload.kind.toLowerCase()}/${workload.metadata.name} --all-containers`)}
+      `)
+    } else {
+      logs += "<No Pod logs found>"
     }
 
     return <ResourceStatus>{
