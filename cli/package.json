@@ -41,7 +41,7 @@
     "@types/fs-extra": "^11.0.4",
     "@types/mocha": "^10.0.7",
     "@types/tar": "^6.1.11",
-    "@types/unzipper": "^0.10.9",
+    "@types/unzipper": "^0.10.10",
     "chai": "^5.0.3",
     "fs-extra": "^11.2.0",
     "lodash-es": "^4.17.21",
