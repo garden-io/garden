@@ -31,6 +31,18 @@ export const execRuntimeOutputsSchema = s.object({
     .describe(
       "The full log output from the executed command. (Pro-tip: Make it machine readable so it can be parsed by dependants)"
     ),
+  stdout: s
+    .string()
+    .default("")
+    .describe(
+      "The stdout log output from the executed command. (Pro-tip: Make it machine readable so it can be parsed by dependants)"
+    ),
+  stderr: s
+    .string()
+    .default("")
+    .describe(
+      "The stderr log output from the executed command. (Pro-tip: Make it machine readable so it can be parsed by dependants)"
+    ),
 })
 
 export const execCommonSchema = s.object({

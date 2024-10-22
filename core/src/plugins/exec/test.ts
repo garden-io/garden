@@ -84,6 +84,8 @@ execTest.addHandler("run", async ({ log, action, artifactsPath, ctx }) => {
     detail,
     outputs: {
       log: commandResult.outputLog,
+      stdout: commandResult.stdout,
+      stderr: commandResult.stderr,
     },
   } as const
 
@@ -102,5 +104,6 @@ execTest.addHandler("run", async ({ log, action, artifactsPath, ctx }) => {
       })
     )
   }
+
   return result
 })
