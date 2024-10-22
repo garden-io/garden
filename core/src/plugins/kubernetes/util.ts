@@ -463,8 +463,8 @@ export async function upsertConfigMap({
  * becomes
  * `[{ metadata: { name: a }}, { metadata: { name: b }}, { metadata: { name: b }}]`
  */
-export function flattenResources(resources: KubernetesResource[]) {
-  return flatten(resources.map((r: any) => (r.apiVersion === "v1" && r.kind === "List" ? r.items : [r])))
+export function flattenResources(resources: KubernetesResource[]): KubernetesResource[] {
+  return flatten(resources.map((r: KubernetesResource) => (r.apiVersion === "v1" && r.kind === "List" ? r.items : [r])))
 }
 
 /**

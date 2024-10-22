@@ -117,7 +117,9 @@ export async function helm({
   }
 
   const outputStream = split2()
-  outputStream.on("error", () => {})
+  outputStream.on("error", () => {
+    // Do nothing
+  })
   outputStream.on("data", (line: Buffer) => {
     if (emitLogEvents) {
       ctx.events.emit("log", { timestamp: new Date().toISOString(), msg: line.toString(), ...logEventContext })

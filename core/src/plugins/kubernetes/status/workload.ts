@@ -113,17 +113,15 @@ export async function checkWorkloadStatus({ api, namespace, resource }: StatusHa
       podLogs = null
     }
 
-    logs += styles.accent(
-      `\n\n━━━ Latest logs from failed containers in each Pod in ${workload.kind} ${workload.metadata.name} ━━━\n`
-    )
     if (podLogs) {
+      logs += styles.accent(
+        `\n\n━━━ Latest logs from failed containers in each Pod in ${workload.kind} ${workload.metadata.name} ━━━\n`
+      )
       logs += podLogs
       logs += styles.primary(dedent`
         \n💡 Garden hint: For complete Pod logs for this ${workload.kind}, run the following command:
         ${styles.command(`kubectl -n ${namespace} --context=${api.context} logs ${workload.kind.toLowerCase()}/${workload.metadata.name} --all-containers`)}
       `)
-    } else {
-      logs += "<No Pod logs found>"
     }
 
     return <ResourceStatus>{
