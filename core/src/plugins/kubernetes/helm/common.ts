@@ -102,7 +102,7 @@ export async function renderTemplates(params: GetChartResourcesParams): Promise<
   })
 }
 
-interface PrepareTemplatesOutput {
+export interface PrepareTemplatesOutput {
   chartPath?: string
   namespace: string
   reference: string[]

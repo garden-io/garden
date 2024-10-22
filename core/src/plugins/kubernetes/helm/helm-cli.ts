@@ -107,6 +107,8 @@ export async function helm({
     ...env,
   }
 
+  let stopLogStreaming = false
+
   if (namespace) {
     opts.push("--namespace", namespace)
   }
@@ -117,10 +119,28 @@ export async function helm({
   }
 
   const outputStream = split2()
-  outputStream.on("error", () => {})
+  outputStream.on("error", (line: Buffer) => {
+    if (stopLogStreaming) {
+      return
+    }
+    ctx.events.emit("log", { timestamp: new Date().toISOString(), msg: `err: ${line.toString()}`, ...logEventContext })
+  })
   outputStream.on("data", (line: Buffer) => {
     if (emitLogEvents) {
-      ctx.events.emit("log", { timestamp: new Date().toISOString(), msg: line.toString(), ...logEventContext })
+      const lineStr = line.toString()
+      if (line.includes("Happy Helming!")) {
+        stopLogStreaming = true
+      }
+
+      if (stopLogStreaming) {
+        return
+      }
+
+      ctx.events.emit("log", {
+        timestamp: new Date().toISOString(),
+        msg: `stdout: ${lineStr}`,
+        ...logEventContext,
+      })
     }
   })
 

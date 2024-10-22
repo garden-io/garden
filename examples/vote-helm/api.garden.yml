@@ -3,11 +3,13 @@ description: The API backend for the voting UI
 type: helm
 name: api
 dependencies:
-  - deploy.redis
+  - build.api-image
+  # - deploy.redis
 variables:
   repository: ${actions.build.api-image.outputs.deployment-image-name}
   tag: ${actions.build.api-image.version}
 spec:
+  # atomic: true
   chart:
     # chart path must be a subpath (no .. allowed), so this file api.garden.yml has to be at the project root
     path: ./base-chart/

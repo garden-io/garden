@@ -436,7 +436,6 @@ export const kubernetesDeploy: DeployActionHandler<"deploy", KubernetesDeployAct
       waitForJobs: spec.waitForJobs,
     })
   }
-
   const status = await getKubernetesDeployStatus(<any>params)
 
   // Make sure port forwards work after redeployment

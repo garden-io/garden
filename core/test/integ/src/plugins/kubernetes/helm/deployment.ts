@@ -30,6 +30,7 @@ import { createActionLog } from "../../../../../../src/logger/log-entry.js"
 import type { NamespaceStatus } from "../../../../../../src/types/namespace.js"
 import { FakeCloudApi } from "../../../../../helpers/api.js"
 import { getActionNamespace } from "../../../../../../src/plugins/kubernetes/namespace.js"
+import stripAnsi from "strip-ansi"
 
 describe("helmDeploy in local-mode", () => {
   let garden: TestGarden
@@ -102,7 +103,7 @@ describe("helmDeploy in local-mode", () => {
   })
 })
 
-describe("helmDeploy", () => {
+describe.only("helmDeploy", () => {
   let garden: TestGarden
   let provider: KubernetesProvider
   let ctx: KubernetesPluginContext
@@ -454,5 +455,216 @@ describe("helmDeploy", () => {
       log: gardenWithCloudApi.log,
     })
     expect(releaseStatusAfterScaleDown.state).to.equal("outdated")
+  })
+
+  it("should include K8s events and Pod logs with errors", async () => {
+    graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+
+    const actionRaw = graph.getDeploy("api") as HelmDeployAction
+    actionRaw._config.spec.values = {
+      ...actionRaw._config.spec.values,
+      args: ["/bin/sh", "-c", "echo 'hello' && exit 1"],
+    }
+    const action = await garden.resolveAction<HelmDeployAction>({
+      action: actionRaw,
+      log: garden.log,
+      graph,
+    })
+    const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
+
+    const releaseName = getReleaseName(action)
+    await expectError(
+      () =>
+        helmDeploy({
+          ctx,
+          log: actionLog,
+          action,
+          force: false,
+        }),
+      (err) => {
+        const message = stripAnsi(err.message)
+        expect(message).to.include(`Latest events from Deployment ${releaseName}`)
+        expect(message).to.include(`BackOff`)
+        expect(message).to.include(`Latest logs from failed containers in each Pod in Deployment ${releaseName}`)
+        expect(message).to.match(/api-release-.+\/api: hello/)
+      }
+    )
+  })
+  it("should fail fast if one of the resources is unhealthy", async () => {
+    graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+
+    const actionRaw = graph.getDeploy("api") as HelmDeployAction
+    actionRaw._config.spec.values = {
+      ...actionRaw._config.spec.values,
+      args: ["/bin/sh", "-c", "echo 'hello' && exit 1"],
+    }
+    const action = await garden.resolveAction<HelmDeployAction>({
+      action: actionRaw,
+      log: garden.log,
+      graph,
+    })
+    const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
+
+    await expectError(
+      () =>
+        helmDeploy({
+          ctx,
+          log: actionLog,
+          action,
+          force: false,
+        }),
+      (err) => {
+        // We're asserting this by inspecting the error type and ensuring it's comes from the resource monitoring
+        // and not the Helm command.
+        // This is brittle by defintion and we'll need to update this if we change the resource monitoring error type.
+        expect(err.type).to.eql("deployment")
+      }
+    )
+  })
+  it.only("should wait for the Helm command to complete if there are no resource errors", async () => {
+    graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+
+    const actionRaw = graph.getDeploy("api") as HelmDeployAction
+    const action = await garden.resolveAction<HelmDeployAction>({
+      action: actionRaw,
+      log: garden.log,
+      graph,
+    })
+    const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
+
+    await helmDeploy({
+      ctx,
+      log: actionLog,
+      action,
+      force: false,
+    })
+
+    // await expectError(
+    //   () =>
+    //     helmDeploy({
+    //       ctx,
+    //       log: actionLog,
+    //       action,
+    //       force: false,
+    //     }),
+    //   (err) => {
+    //     // We're asserting this by inspecting the error type and ensuring it's comes from the resource monitoring
+    //     // and not the Helm command.
+    //     // This is brittle by defintion and we'll need to update this if we change the resource monitoring error type.
+    //     expect(err.type).to.eql("deployment")
+    //   }
+    // )
+  })
+  context.only("atomic=true", () => {
+    it.only("should NOT fail fast if one of the resources is unhealthy but wait for the Helm command to complete", async () => {
+      graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+
+      const actionRaw = graph.getDeploy("api") as HelmDeployAction
+      actionRaw._config.timeout = 5
+      actionRaw._config.spec.atomic = true
+      actionRaw._config.spec.values = {
+        ...actionRaw._config.spec.values,
+        args: ["/bin/sh", "-c", "echo 'hello' && exit 1"],
+      }
+      const action = await garden.resolveAction<HelmDeployAction>({
+        action: actionRaw,
+        log: garden.log,
+        graph,
+      })
+      const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
+
+      const releaseName = getReleaseName(action)
+      await expectError(
+        () =>
+          helmDeploy({
+            ctx,
+            log: actionLog,
+            action,
+            force: false,
+          }),
+        (err) => {
+          const message = stripAnsi(err.message)
+          // We're asserting this by inspecting the error type + message and ensuring it's comes from the Helm command
+          // and not the resources monitoring.
+          // This is brittle by defintion and we'll need to update this if we change the Helm error type.
+          expect(err.type).to.eql(`childprocess`)
+          expect(message).to.include(
+            `Error: INSTALLATION FAILED: release ${releaseName} failed, and has been uninstalled due to atomic being set`
+          )
+        }
+      )
+    })
+  })
+  context.only("wait=true", () => {
+    it.only("should include K8s events and Pod logs with errors", async () => {
+      graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+
+      const actionRaw = graph.getDeploy("api") as HelmDeployAction
+      actionRaw._config.timeout = 5
+      actionRaw._config.spec.wait = true
+      actionRaw._config.spec.values = {
+        ...actionRaw._config.spec.values,
+        args: ["/bin/sh", "-c", "echo 'hello' && exit 1"],
+      }
+      const action = await garden.resolveAction<HelmDeployAction>({
+        action: actionRaw,
+        log: garden.log,
+        graph,
+      })
+      const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
+
+      const releaseName = getReleaseName(action)
+      await expectError(
+        () =>
+          helmDeploy({
+            ctx,
+            log: actionLog,
+            action,
+            force: false,
+          }),
+        (err) => {
+          const message = stripAnsi(err.message)
+          expect(message).to.include(`Latest events from Deployment ${releaseName}`)
+          expect(message).to.include(`BackOff`)
+          expect(message).to.include(`Latest logs from failed containers in each Pod in Deployment ${releaseName}`)
+          expect(message).to.match(/api-release-.+\/api: hello/)
+        }
+      )
+    })
+    it.only("should NOT fail fast if one of the resources is unhealthy but wait for the Helm command to complete", async () => {
+      graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+
+      const actionRaw = graph.getDeploy("api") as HelmDeployAction
+      actionRaw._config.timeout = 5
+      actionRaw._config.spec.wait = true
+      actionRaw._config.spec.values = {
+        ...actionRaw._config.spec.values,
+        args: ["/bin/sh", "-c", "echo 'hello' && exit 1"],
+      }
+      const action = await garden.resolveAction<HelmDeployAction>({
+        action: actionRaw,
+        log: garden.log,
+        graph,
+      })
+      const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
+
+      await expectError(
+        () =>
+          helmDeploy({
+            ctx,
+            log: actionLog,
+            action,
+            force: false,
+          }),
+        (err) => {
+          const message = stripAnsi(err.message)
+          // We're asserting this by inspecting the error type + message and ensuring it's comes from the Helm command
+          // and not the resources monitoring.
+          // This is brittle by defintion and we'll need to update this if we change the Helm error type.
+          expect(err.type).to.eql(`childprocess`)
+          expect(message).to.include(`Error: UPGRADE FAILED`)
+        }
+      )
+    })
   })
 })

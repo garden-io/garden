@@ -42,6 +42,7 @@ interface HelmChartSpec {
 
 interface HelmDeployActionSpec {
   atomic: boolean
+  wait: boolean
   chart?: HelmChartSpec
   defaultTarget?: KubernetesTargetResourceSpec
   sync?: KubernetesDeploySyncSpec
@@ -166,7 +167,13 @@ const helmChartSpecSchema = () =>
     )
 
 export const defaultHelmAtomicFlag = false
-export const defaultHelmAtomicFlagDesc = `Whether to set the --atomic flag during installs and upgrades. Set to true if you'd like the changes applied to be reverted on failure. Set to false if e.g. you want to see more information about failures and then manually roll back, instead of having Helm do it automatically on failure.`
+export const defaultHelmAtomicFlagDesc = dedent`
+  Whether to set the \`--atomic\` flag during installs and upgrades. Set to \`true\` if you'd like the changes applied
+  to be reverted on failure. Set to false if e.g. you want to see more information about failures and then manually
+  roll back, instead of having Helm do it automatically on failure.
+
+  Note that setting \`atomic\` to \`true\` implies \`wait\`.
+`
 
 export const helmDeploySchema = () =>
   joi
@@ -174,6 +181,22 @@ export const helmDeploySchema = () =>
     .keys({
       ...helmCommonSchemaKeys(),
       atomic: joi.boolean().default(defaultHelmAtomicFlag).description(defaultHelmAtomicFlagDesc),
+      wait: joi.boolean().default(false).description(dedent`
+        Whether to wait for the Helm command to complete before throwing an error if one of the resources
+        being installed/upgraded is unhealthy.
+
+        By default, Garden will monitor the resources being created by Helm and throw an error as soon as one
+        of them is unhealthy. This allows Garden to fail fast if there's an issue with one of the resources.
+
+        If however \`wait\` is set to \`true\` then Garden will wait for Helm itself to throw an error which typically
+        happens when it times out in the case of unealthy resources (e.g. due to \`ImagePullBackOff\` or \`CrashLoopBackOff\`
+        errors).
+
+        Waiting for the timeout can take awhile so using the default value here is recommended unless you'd
+        like to completely mimic Helm's behaviour on not lean on Garden's resource monitoring.
+
+        Note that setting \`atomic\` to \`true\` implies \`wait\`.
+      `),
       chart: helmChartSpecSchema(),
       defaultTarget: defaultTargetSchema(),
       sync: kubernetesDeploySyncSchema(),

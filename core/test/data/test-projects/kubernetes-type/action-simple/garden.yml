@@ -1,0 +1,5 @@
+kind: Deploy
+type: kubernetes
+name: action-simple
+spec:
+  files: ["./deployment.yaml"]

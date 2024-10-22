@@ -195,35 +195,38 @@ export const makeTestGarden = profileAsync(async function _makeTestGarden(
   let targetRoot = projectRoot
 
   if (!opts.noTempDir) {
+    console.log("Root", projectRoot)
+    console.log("Temp dirs", testProjectTempDirs)
+    // TODO @eysi
     if (!testProjectTempDirs[projectRoot]) {
-      // Clone the project root to a temp directory
-      testProjectTempDirs[projectRoot] = await makeTempDir({ git: true })
-      targetRoot = join(testProjectTempDirs[projectRoot].path, "project")
-      await ensureDir(targetRoot)
-
-      await copy(projectRoot, targetRoot, {
-        // Don't copy the .garden directory if it exists
-        filter: (src: string) => {
-          const relSrc = relative(projectRoot, src)
-          return relSrc !== ".garden"
-        },
-      })
-
-      // Add files to git to avoid having to hash all the files
-      await exec("git", ["add", "."], { cwd: targetRoot })
-      // Note: This will error if there are no files added, hence reject=false
-      await exec("git", ["commit", "-m", "copied"], { cwd: targetRoot, reject: false })
-
-      if (opts.config?.path) {
-        opts.config.path = targetRoot
-      }
-      if (opts.config?.configPath) {
-        throw new ConfigurationError({
-          message: `Please don't set the configPath here :) Messes with the temp dir business.`,
-        })
-      }
+      // // Clone the project root to a temp directory
+      // testProjectTempDirs[projectRoot] = await makeTempDir({ git: true })
+      // targetRoot = join(testProjectTempDirs[projectRoot].path, "project")
+      // await ensureDir(targetRoot)
+      //
+      // await copy(projectRoot, targetRoot, {
+      //   // Don't copy the .garden directory if it exists
+      //   filter: (src: string) => {
+      //     const relSrc = relative(projectRoot, src)
+      //     return relSrc !== ".garden"
+      //   },
+      // })
+      //
+      // // Add files to git to avoid having to hash all the files
+      // await exec("git", ["add", "."], { cwd: targetRoot })
+      // // Note: This will error if there are no files added, hence reject=false
+      // await exec("git", ["commit", "-m", "copied"], { cwd: targetRoot, reject: false })
+      //
+      // if (opts.config?.path) {
+      //   opts.config.path = targetRoot
+      // }
+      // if (opts.config?.configPath) {
+      //   throw new ConfigurationError({
+      //     message: `Please don't set the configPath here :) Messes with the temp dir business.`,
+      //   })
+      // }
     }
-    targetRoot = join(testProjectTempDirs[projectRoot].path, "project")
+    // targetRoot = join(testProjectTempDirs[projectRoot].path, "project")
   }
 
   const plugins = opts.onlySpecifiedPlugins ? opts.plugins : [...(await testPlugins()), ...(opts.plugins || [])]

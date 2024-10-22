@@ -19,6 +19,22 @@ spec:
         app.kubernetes.io/name: {{ include "base-chart.name" . }}
         app.kubernetes.io/instance: {{ .Release.Name }}
     spec:
+      initContainers:
+        - name: init-a
+          image: busybox:1.31.1
+          args:
+            [
+              echo,
+              "Hello 1 from init A\nHello 2 from init A\nHello 3 from init A",
+            ]
+        - name: init-b
+          image: busybox:1.31.1
+          args:
+            [
+              "bin/sh",
+              "-c",
+              "echo 'Hello 1 from init B\nHello 2 from init B' && eho 'No way'",
+            ]
       containers:
         - name: {{ include "base-chart.name" . }}
           image: "{{ required "Must specify image.repository field in values" .Values.image.repository }}:{{ required "Must specify image.tag field in values" .Values.image.tag }}"

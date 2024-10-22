@@ -24,7 +24,46 @@ import { isEmpty } from "lodash-es"
 import { getK8sIngresses } from "../status/ingress.js"
 import { toGardenError } from "../../../exceptions.js"
 import { upsertConfigMap } from "../util.js"
-import type { SyncableResource } from "../types.js"
+import type { KubernetesResource, SyncableResource } from "../types.js"
+import { isTruthy } from "../../../util/util.js"
+import { styles } from "../../../logger/styles.js"
+import type { ActionLog } from "../../../logger/log-entry.js"
+
+function isErrorWithMessage(error: unknown): error is { message: string } {
+  return typeof error === "object" && error !== null && "message" in error
+}
+
+async function getUnhealthyResourceLogs({
+  namespace,
+  log,
+  releaseName,
+  manifests,
+  api,
+}: {
+  namespace: string
+  log: ActionLog
+  releaseName: string
+  manifests: KubernetesResource[]
+  api: KubeApi
+}) {
+  const unhealthyResources = (await checkResourceStatuses({ api, namespace, manifests, log })).filter(
+    (r) => r.state === "unhealthy"
+  )
+
+  let logs = ""
+
+  if (unhealthyResources.length > 0) {
+    logs += styles.primary(
+      `Garden found ${styles.accent(unhealthyResources.length)} unhealthy ${unhealthyResources.length === 1 ? "resource" : "resources"} for release ${styles.accent(releaseName)}. Below are Kubernetes events and Pod logs from the unhealthy resources if available/applicable.\n\n`
+    )
+  }
+
+  const logsArr = unhealthyResources.map((r) => r.logs).filter(isTruthy)
+
+  logs += logsArr.join("\n\n")
+
+  return logs
+}
 
 export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async (params) => {
   const { ctx, action, log, force } = params
@@ -54,9 +93,9 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
 
   const timeout = action.getConfig("timeout")
   const commonArgs = [
-    "--wait",
     "--namespace",
     namespace,
+    "--wait",
     "--timeout",
     timeout.toString(10) + "s",
     ...(await getValueArgs({ action, valuesPath: preparedTemplates.valuesPath })),
@@ -67,39 +106,111 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
     commonArgs.push("--atomic")
   }
 
-  if (releaseStatus.state === "missing") {
-    log.silly(() => `Installing Helm release ${releaseName}`)
-    const installArgs = ["install", releaseName, ...reference, ...commonArgs]
+  let helmArgs: string[]
+  const shouldInstall = releaseStatus.state === "missing"
+  if (shouldInstall) {
+    helmArgs = ["install", releaseName, ...reference, ...commonArgs]
     if (force && !ctx.production) {
-      installArgs.push("--replace")
+      helmArgs.push("--replace")
     }
-    await helm({ ctx: k8sCtx, namespace, log, args: [...installArgs], emitLogEvents: true })
   } else {
-    log.silly(() => `Upgrading Helm release ${releaseName}`)
-    const upgradeArgs = ["upgrade", releaseName, ...reference, "--install", ...commonArgs]
-    await helm({ ctx: k8sCtx, namespace, log, args: [...upgradeArgs], emitLogEvents: true })
+    helmArgs = ["upgrade", releaseName, ...reference, "--install", ...commonArgs]
+  }
 
-    // If ctx.cloudApi is defined, the user is logged in and they might be trying to deploy to an environment
-    // that could have been paused by Garden Cloud's AEC functionality. We therefore make sure to clean up any
-    // dangling annotations created by Garden Cloud.
-    if (ctx.cloudApi) {
-      try {
-        const pausedResources = await getPausedResources({ ctx: k8sCtx, action, namespace, releaseName, log })
-        await Promise.all(
-          pausedResources.map((resource) => {
-            const { annotations } = resource.metadata
-            if (annotations) {
-              delete annotations[gardenCloudAECPauseAnnotation]
-              return api.annotateResource({ log, resource, annotations })
-            }
-            return
-          })
-        )
-      } catch (error) {
-        const errorMsg = `Failed to remove Garden Cloud AEC annotations for deploy: ${action.name}.`
-        log.warn(errorMsg)
-        log.debug({ error: toGardenError(error) })
+  const preparedManifests = await prepareManifests({
+    ctx: k8sCtx,
+    log,
+    action,
+    ...preparedTemplates,
+  })
+  const manifests = await filterManifests(preparedManifests)
+
+  // --atomic implies --wait.
+  const failFast = spec.atomic === false && spec.wait === false
+  type InstallErrorWrapped = { source: "helm" | "waitForResources"; error: unknown }
+  let installErrorWrapped: InstallErrorWrapped | null = null
+  const helmPromise = helm({ ctx: k8sCtx, namespace, log, args: [...helmArgs], emitLogEvents: true }).catch((error) => {
+    throw { source: "helm", error }
+  })
+
+  log.debug(() => `${shouldInstall ? "Installing" : "Upgrading"} Helm release ${releaseName}`)
+  if (failFast) {
+    // In this case we use Garden's resource monitoring and fail fast if one of the resources being installed is unhealthy.
+    log.silly(() => `Running Helm but using Garden's resource monitoring`)
+    const waitForResourcesPromise = waitForResources({
+      namespace,
+      ctx: k8sCtx,
+      provider: k8sCtx.provider,
+      actionName: action.key(),
+      resources: manifests,
+      log,
+      timeoutSec: action.getConfig("timeout"),
+    }).catch((error) => {
+      throw { source: "waitForResources", error }
+    })
+
+    // Wait for either the first error or Helm completion
+    try {
+      await Promise.race([
+        // Wait for helm to complete
+        helmPromise,
+        // If either throws, this will reject
+        Promise.all([helmPromise, waitForResourcesPromise]),
+      ])
+    } catch (err) {
+      installErrorWrapped = <InstallErrorWrapped>err
+    }
+  } else {
+    // In this case we don't monitor the resources and simply let the Helm command run until completion
+    log.silly(() => `Running Helm without Garden's resource monitoring`)
+    try {
+      await helmPromise
+    } catch (err) {
+      installErrorWrapped = <InstallErrorWrapped>err
+    }
+  }
+
+  if (installErrorWrapped) {
+    const error = installErrorWrapped.error
+
+    if (installErrorWrapped.source === "helm" && !spec.atomic) {
+      // If it's a direct Helm error we try get the logs and events for the resources and add them to the error message
+      // unless --atomic=true because in that case the events and logs won't be available after the roll back
+      if (isErrorWithMessage(error)) {
+        const logs = await getUnhealthyResourceLogs({
+          namespace,
+          log,
+          releaseName,
+          manifests,
+          api,
+        })
+        error.message += "\n\n" + logs
       }
+    }
+
+    throw error
+  }
+
+  // If ctx.cloudApi is defined, the user is logged in and they might be trying to deploy to an environment
+  // that could have been paused by Garden Cloud's AEC functionality. We therefore make sure to clean up any
+  // dangling annotations created by Garden Cloud.
+  if (ctx.cloudApi) {
+    try {
+      const pausedResources = await getPausedResources({ ctx: k8sCtx, action, namespace, releaseName, log })
+      await Promise.all(
+        pausedResources.map((resource) => {
+          const { annotations } = resource.metadata
+          if (annotations) {
+            delete annotations[gardenCloudAECPauseAnnotation]
+            return api.annotateResource({ log, resource, annotations })
+          }
+          return
+        })
+      )
+    } catch (error) {
+      const errorMsg = `Failed to remove Garden Cloud AEC annotations for deploy: ${action.name}.`
+      log.warn(errorMsg)
+      log.debug({ error: toGardenError(error) })
     }
   }
 
@@ -118,14 +229,6 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
     labels: {},
     data: gardenMetadata,
   })
-
-  const preparedManifests = await prepareManifests({
-    ctx: k8sCtx,
-    log,
-    action,
-    ...preparedTemplates,
-  })
-  const manifests = await filterManifests(preparedManifests)
 
   const mode = action.mode()
 

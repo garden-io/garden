@@ -21,7 +21,7 @@ import type {
 } from "@kubernetes/client-node"
 import dedent from "dedent"
 import { getCurrentWorkloadPods, renderWorkloadEvents } from "../util.js"
-import { getFormattedPodLogs, POD_LOG_LINES } from "./pod.js"
+import { getFormattedPodLogs } from "./pod.js"
 import type { ResourceStatus, StatusHandlerParams } from "./status.js"
 import { getResourceEvents } from "./events.js"
 import { styles } from "../../../logger/styles.js"
@@ -117,26 +117,15 @@ export async function checkWorkloadStatus({ api, namespace, resource }: StatusHa
       podLogs = null
     }
 
-    logs += styles.accent(
-      `\n\n━━━ Latest logs from failed containers in each Pod in ${workload.kind} ${workload.metadata.name} ━━━\n`
-    )
     if (podLogs) {
-      // logs +=
-      //   styles.primary(dedent`
-      // Showing last ${POD_LOG_LINES} lines for each failed container in each Pod in this ${
-      //   workload.kind
-      // }. Run the following command for complete logs:
-      // $ kubectl -n ${namespace} --context=${api.context} logs ${workload.kind.toLowerCase()}/${workload.metadata.name} --all-containers
-      // `) +
-      //   "\n\n" +
-      //   podLogs
+      logs += styles.accent(
+        `\n\n━━━ Latest logs from failed containers in each Pod in ${workload.kind} ${workload.metadata.name} ━━━\n`
+      )
       logs += podLogs
       logs += styles.primary(dedent`
         \n💡 Garden hint: For complete Pod logs for this ${workload.kind}, run the following command:
         ${styles.command(`kubectl -n ${namespace} --context=${api.context} logs ${workload.kind.toLowerCase()}/${workload.metadata.name} --all-containers`)}
       `)
-    } else {
-      logs += "<No Pod logs found>"
     }
 
     return <ResourceStatus>{

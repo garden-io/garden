@@ -2,5 +2,6 @@ kind: Deploy
 type: kubernetes
 name: with-build-action
 build: exec-build
+dependencies: [build.exec-build]
 spec:
-  files: [ "*.yaml" ]
+  files: ["*.yaml"]

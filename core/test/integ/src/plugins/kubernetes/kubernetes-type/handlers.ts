@@ -47,7 +47,7 @@ import { DEFAULT_BUILD_TIMEOUT_SEC, GardenApiVersion } from "../../../../../../s
 import type { ActionModeMap } from "../../../../../../src/actions/types.js"
 import type { NamespaceStatus } from "../../../../../../src/types/namespace.js"
 
-describe("kubernetes-type handlers", () => {
+describe.only("kubernetes-type handlers", () => {
   let tmpDir: tmp.DirectoryResult
   let garden: TestGarden
   let log: Log
@@ -497,6 +497,31 @@ describe("kubernetes-type handlers", () => {
       const { deployParams } = await prepareActionDeployParams("apply-args", {})
 
       await expectError(() => kubernetesDeploy(deployParams), { contains: "error: unknown flag: --unknown-apply-flag" })
+    })
+
+    it.only("should return a nice error when deploy fails", async () => {
+      const { deployParams } = await prepareActionDeployParams("action-simple", {})
+
+      let error: any
+      let status: any
+      try {
+        status = await kubernetesDeploy(deployParams)
+      } catch (err) {
+        error = err
+      }
+      // expect(status.state).to.eql("ready")
+      //
+      // const remoteResources = status.detail?.detail?.remoteResources
+      //
+      // const logs = (<any>status.detail)?.logs || ""
+      // console.log("LOGS:", JSON.stringify(logs, null, 4))
+      //
+      // expect(remoteResources).to.exist
+      // expect(remoteResources.length).to.equal(1)
+      // expect(remoteResources[0].kind).to.equal("Deployment")
+      // expect(remoteResources[0].metadata?.name).to.equal("nginx-deployment")
+
+      console.log("Error is:", error)
     })
   })
 
