@@ -82,6 +82,8 @@ execRun.addHandler("run", async ({ artifactsPath, log, action, ctx }) => {
     detail,
     outputs: {
       log: commandResult.outputLog,
+      stdout: commandResult.stdout,
+      stderr: commandResult.stderr,
     },
   } as const
 

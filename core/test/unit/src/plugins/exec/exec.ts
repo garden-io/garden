@@ -443,6 +443,7 @@ describe("exec plugin", () => {
         })
 
         expect(res.outputs.log).to.eql(basePath)
+        expect(res.outputs.stdout).to.eql(basePath)
       })
 
       it("should receive version as an env var", async () => {
@@ -480,6 +481,7 @@ describe("exec plugin", () => {
           silent: false,
         })
         expect(res.outputs.log).to.equal(action.versionString())
+        expect(res.outputs.stdout).to.equal(action.versionString())
       })
     })
 

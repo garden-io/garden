@@ -439,3 +439,19 @@ The full log output from the executed command. (Pro-tip: Make it machine readabl
 | -------- | ------- |
 | `string` | `""`    |
 
+### `${actions.test.<name>.outputs.stdout}`
+
+The stdout log output from the executed command. (Pro-tip: Make it machine readable so it can be parsed by dependants)
+
+| Type     | Default |
+| -------- | ------- |
+| `string` | `""`    |
+
+### `${actions.test.<name>.outputs.stderr}`
+
+The stderr log output from the executed command. (Pro-tip: Make it machine readable so it can be parsed by dependants)
+
+| Type     | Default |
+| -------- | ------- |
+| `string` | `""`    |
+
