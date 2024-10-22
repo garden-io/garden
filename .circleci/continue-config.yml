@@ -1017,7 +1017,7 @@ jobs:
       k3sVersion:
         description: The k3s version to use
         type: string
-        default: v1.30.4+k3s1
+        default: v1.31.1+k3s1
       skipTests:
         description: Integ test groups to skip
         type: string
@@ -1378,9 +1378,9 @@ workflows:
           requires: [build]
           kubernetesVersion: "1.30"
       - test-k3s:
-          name: vm-1.30-k3s
+          name: vm-1.31-k3s
           requires: [build]
-          k3sVersion: v1.30.4+k3s1
+          k3sVersion: v1.31.1+k3s1
 
       - test-plugins:
           <<: *only-internal-prs
