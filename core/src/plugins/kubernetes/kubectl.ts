@@ -366,32 +366,52 @@ export const kubectlSpec: PluginToolSpec = {
     {
       platform: "darwin",
       architecture: "amd64",
-      url: `https://storage.googleapis.com/kubernetes-release/release/v${kubectlVersion}/bin/darwin/amd64/kubectl`,
-      sha256: "ce1b79f0720509b7e78e73f4cd8d41d8ea46256a10a16f38ddeee6ff139a2625",
+      url: `https://dl.k8s.io/v${kubectlVersion}/kubernetes-client-darwin-amd64.tar.gz`,
+      sha256: "d30249b4ba22b0e873f4d05addf371cfa17b78dad6a949d199ae994e9f4203ed",
+      extract: {
+        format: "tar",
+        targetPath: "kubernetes/client/bin/kubectl",
+      },
     },
     {
       platform: "darwin",
       architecture: "arm64",
-      url: `https://storage.googleapis.com/kubernetes-release/release/v${kubectlVersion}/bin/darwin/arm64/kubectl`,
-      sha256: "978674da62282da697d889c33e0cc36f4b7ecb3a4d1ff73fc93e6e83877d5945",
+      url: `https://dl.k8s.io/v${kubectlVersion}/kubernetes-client-darwin-arm64.tar.gz`,
+      sha256: "6a8d3086ac75a6774e69bc4f533671a011427031007ba3211abd18f1bb2ffa16",
+      extract: {
+        format: "tar",
+        targetPath: "kubernetes/client/bin/kubectl",
+      },
     },
     {
       platform: "linux",
       architecture: "amd64",
-      url: `https://storage.googleapis.com/kubernetes-release/release/v${kubectlVersion}/bin/linux/amd64/kubectl`,
-      sha256: "2ffd023712bbc1a9390dbd8c0c15201c165a69d394787ef03eda3eccb4b9ac06",
+      url: `https://dl.k8s.io/v${kubectlVersion}/kubernetes-client-linux-amd64.tar.gz`,
+      sha256: "ab3e953b19ed89ab2eca95bea92ba012592867e0f7c318b5c17291de465f2e4b",
+      extract: {
+        format: "tar",
+        targetPath: "kubernetes/client/bin/kubectl",
+      },
     },
     {
       platform: "linux",
       architecture: "arm64",
-      url: `https://storage.googleapis.com/kubernetes-release/release/v${kubectlVersion}/bin/linux/arm64/kubectl`,
-      sha256: "1d8b4e6443c7df8e92a065d88d146142a202fea5ec694135b83d9668529ea3b1",
+      url: `https://dl.k8s.io/v${kubectlVersion}/kubernetes-client-linux-arm64.tar.gz`,
+      sha256: "4e29af613df7df444c3b296a7b52899cef1bdc22e6d46bd248486db23ef35fef",
+      extract: {
+        format: "tar",
+        targetPath: "kubernetes/client/bin/kubectl",
+      },
     },
     {
       platform: "windows",
       architecture: "amd64",
-      url: `https://storage.googleapis.com/kubernetes-release/release/v${kubectlVersion}/bin/windows/amd64/kubectl.exe`,
-      sha256: "c9ddaf742a8d4bd8a1b26ff6981976154109b829d544b259464639451e8ddae6",
+      url: `https://dl.k8s.io/v${kubectlVersion}/kubernetes-client-windows-amd64.tar.gz`,
+      sha256: "fda3997fb52425f909321e27aca7a4aad2d45d8391b7ee787be4f1ab24135c9f",
+      extract: {
+        format: "tar",
+        targetPath: "kubernetes/client/bin/kubectl.exe",
+      },
     },
   ],
 }
