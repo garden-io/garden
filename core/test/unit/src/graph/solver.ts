@@ -283,7 +283,7 @@ describe("GraphSolver", () => {
     expect(result!.error?.message).to.include("Throwing error in status method")
   })
 
-  it("cascades an error from dependency to dependant and fails the execution", async () => {
+  it("cascades an error from dependency to dependant and fails the execution (2 tasks)", async () => {
     const taskA = makeTask({ name: "task-a" })
     const taskB = makeTask({ name: "task-b", dependencies: [taskA] })
 
@@ -295,9 +295,11 @@ describe("GraphSolver", () => {
 
     expect(result).to.exist
     expect(result!.aborted).to.be.true
+    expect(result!.success).to.be.false
+    expect(result!.error).to.exist
   })
 
-  it("cascades an error recursively from dependency and fails the execution", async () => {
+  it("cascades an error recursively from dependency and fails the execution (3 tasks)", async () => {
     const taskA = makeTask({ name: "task-a" })
     const taskB = makeTask({ name: "task-b", dependencies: [taskA] })
     const taskC = makeTask({ name: "task-c", dependencies: [taskB] })
@@ -310,6 +312,28 @@ describe("GraphSolver", () => {
 
     expect(result).to.exist
     expect(result!.aborted).to.be.true
+    expect(result!.success).to.be.false
+    expect(result!.error).to.exist
+  })
+
+  it("cascades an error from dependency to dependant and fails the execution with throwOnError=true", async () => {
+    const taskA = makeTask({ name: "task-a" })
+    const taskB = makeTask({ name: "task-b", dependencies: [taskA] })
+
+    taskA.process = async () => {
+      throw new Error(`Throwing error in process method`)
+    }
+
+    let error: unknown
+    try {
+      await processTask(taskB, { throwOnError: true })
+    } catch (e) {
+      error = e
+    }
+
+    expect(error).to.exist
+    expect(error).to.be.instanceOf(GardenError)
+    expect((error as GardenError).type).to.be("graph")
   })
 
   it("recursively aborts unprocessed task requests when a dependency fails", async () => {
