@@ -1,8 +1,0 @@
-.terraform
-gcloud-auth.json
-*.tfvars
-*.tfvars.json
-*.tfstate
-*.tfstate.backup
-kubeconfig.yaml
-terraform.tfstate.d
