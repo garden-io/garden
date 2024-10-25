@@ -35,6 +35,7 @@ import type { Document, DocumentOptions } from "yaml"
 import { parseAllDocuments } from "yaml"
 import { dedent, deline } from "../util/string.js"
 import { makeDocsLinkStyled } from "../docs/common.js"
+import { profile, profileAsync } from "../util/profiling.js"
 
 export const configTemplateKind = "ConfigTemplate"
 export const renderTemplateKind = "RenderTemplate"
@@ -553,7 +554,19 @@ export async function findProjectConfig({
   return
 }
 
-export async function loadVarfile({
+const _pathExists = profileAsync(async function _pathExists(path: string) {
+  return await pathExists(path)
+})
+
+const _readFile = profileAsync(async function _readFile(path: string) {
+  return await readFile(path)
+})
+
+const _loadYaml = profile(function _loadYaml(data: Buffer) {
+  return load(data.toString()) as PrimitiveMap
+})
+
+export const loadVarfile = profileAsync(async function loadVarfile({
   configRoot,
   path,
   defaultPath,
@@ -571,7 +584,8 @@ export async function loadVarfile({
     })
   }
   const resolvedPath = resolve(configRoot, <string>(path || defaultPath))
-  const exists = await pathExists(resolvedPath)
+
+  const exists = await _pathExists(resolvedPath)
 
   if (!exists && path && path !== defaultPath && !optional) {
     throw new ConfigurationError({
@@ -584,7 +598,7 @@ export async function loadVarfile({
   }
 
   try {
-    const data = await readFile(resolvedPath)
+    const data = await _readFile(resolvedPath)
     const relPath = relative(configRoot, resolvedPath)
     const filename = basename(resolvedPath.toLowerCase())
 
@@ -600,7 +614,7 @@ export async function loadVarfile({
       return parsed as PrimitiveMap
     } else if (filename.endsWith(".yml") || filename.endsWith(".yaml")) {
       // YAML parser returns `undefined` for empty files, we interpret that as an empty object.
-      const parsed = load(data.toString()) || {}
+      const parsed = _loadYaml(data) || {}
       if (!isPlainObject(parsed)) {
         throw new ConfigurationError({
           message: `Configured variable file ${relPath} must be a single plain YAML mapping. Got: ${typeof parsed}`,
@@ -619,4 +633,4 @@ export async function loadVarfile({
       message: `Unable to load varfile at '${path}': ${error}`,
     })
   }
-}
+})
