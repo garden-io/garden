@@ -35,6 +35,7 @@ import type { Document, DocumentOptions } from "yaml"
 import { parseAllDocuments } from "yaml"
 import { dedent, deline } from "../util/string.js"
 import { makeDocsLinkStyled } from "../docs/common.js"
+import { profileAsync } from "../util/profiling.js"
 
 export const configTemplateKind = "ConfigTemplate"
 export const renderTemplateKind = "RenderTemplate"
@@ -553,7 +554,7 @@ export async function findProjectConfig({
   return
 }
 
-export async function loadVarfile({
+export const loadVarfile = profileAsync(async function loadVarfile({
   configRoot,
   path,
   defaultPath,
@@ -619,4 +620,4 @@ export async function loadVarfile({
       message: `Unable to load varfile at '${path}': ${error}`,
     })
   }
-}
+})
