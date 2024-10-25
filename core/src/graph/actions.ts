@@ -69,6 +69,7 @@ import { profileAsync } from "../util/profiling.js"
 import { uuidv4 } from "../util/random.js"
 import { getSourcePath } from "../vcs/vcs.js"
 import { styles } from "../logger/styles.js"
+import { gardenEnv } from "../constants.js"
 
 function* sliceToBatches<T>(dict: Record<string, T>, batchSize: number) {
   const entries = Object.entries(dict)
@@ -80,8 +81,6 @@ function* sliceToBatches<T>(dict: Record<string, T>, batchSize: number) {
     position += batchSize
   }
 }
-
-const processingBatchSize = 100
 
 function addActionConfig({
   garden,
@@ -170,7 +169,7 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
 
   const preprocessActions = async (predicate: (config: ActionConfig) => boolean = () => true) => {
     let batchNo = 1
-    for (const batch of sliceToBatches(configsByKey, processingBatchSize)) {
+    for (const batch of sliceToBatches(configsByKey, gardenEnv.GARDEN_PROC_ACTION_CONFIG_BATCH_SIZE)) {
       log.silly(`Preprocessing actions batch #${batchNo} (${batch.length} items)`)
       const startTime = new Date().getTime()
       await Promise.all(
@@ -304,7 +303,7 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
   const actionConfigCount = Object.keys(preprocessResults).length
   log.debug(`Processing ${actionConfigCount} action configs...`)
   let batchNo = 1
-  for (const batch of sliceToBatches(preprocessResults, processingBatchSize)) {
+  for (const batch of sliceToBatches(preprocessResults, gardenEnv.GARDEN_PROC_ACTION_CONFIG_BATCH_SIZE)) {
     log.silly(`Processing actions batch #${batchNo} (${batch.length} items)`)
     const startTime = new Date().getTime()
     await Promise.all(
