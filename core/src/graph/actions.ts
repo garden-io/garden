@@ -304,7 +304,7 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
   const actionConfigCount = Object.keys(preprocessResults).length
   log.debug(`Processing ${actionConfigCount} action configs...`)
   let batchNo = 1
-  for (const batch of sliceToBatches(preprocessResults, 100)) {
+  for (const batch of sliceToBatches(preprocessResults, processingBatchSize)) {
     log.silly(`Processing actions batch #${batchNo} (${batch.length} items)`)
     const startTime = new Date().getTime()
     await Promise.all(
