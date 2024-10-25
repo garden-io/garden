@@ -13,9 +13,9 @@
     "axios": "^0.28.0",
     "chai": "^4.2.0",
     "core-js": "^3.6.5",
-    "vue": "^2.6.10",
+    "vue": "^3.5.12",
     "vue-router": "^3.4.9",
-    "vuex": "^3.1.1"
+    "vuex": "^3.6.2"
   },
   "devDependencies": {
     "@babel/core": "^7.21.8",
@@ -25,7 +25,7 @@
     "@vue/cli-plugin-unit-mocha": "^5.0.8",
     "@vue/cli-service": "^5.0.8",
     "@vue/eslint-config-airbnb": "^4.0.1",
-    "@vue/test-utils": "^1.0.0-beta.20",
+    "@vue/test-utils": "^2.4.6",
     "eslint": "^8.41.0",
     "eslint-plugin-vue": "^9.14.0",
     "mocha": "^10.2.0",
