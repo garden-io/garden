@@ -69,6 +69,7 @@ import { profileAsync } from "../util/profiling.js"
 import { uuidv4 } from "../util/random.js"
 import { getSourcePath } from "../vcs/vcs.js"
 import { styles } from "../logger/styles.js"
+import { gardenEnv } from "../constants.js"
 
 function* sliceToBatches<T>(dict: Record<string, T>, batchSize: number) {
   const entries = Object.entries(dict)
@@ -80,8 +81,6 @@ function* sliceToBatches<T>(dict: Record<string, T>, batchSize: number) {
     position += batchSize
   }
 }
-
-const processingBatchSize = 100
 
 function addActionConfig({
   garden,
@@ -170,7 +169,7 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
 
   const preprocessActions = async (predicate: (config: ActionConfig) => boolean = () => true) => {
     let batchNo = 1
-    for (const batch of sliceToBatches(configsByKey, processingBatchSize)) {
+    for (const batch of sliceToBatches(configsByKey, gardenEnv.GARDEN_PROC_ACTION_CONFIG_BATCH_SIZE)) {
       log.silly(`Preprocessing actions batch #${batchNo} (${batch.length} items)`)
       const startTime = new Date().getTime()
       await Promise.all(
@@ -304,7 +303,7 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
   const actionConfigCount = Object.keys(preprocessResults).length
   log.debug(`Processing ${actionConfigCount} action configs...`)
   let batchNo = 1
-  for (const batch of sliceToBatches(preprocessResults, 100)) {
+  for (const batch of sliceToBatches(preprocessResults, gardenEnv.GARDEN_PROC_ACTION_CONFIG_BATCH_SIZE)) {
     log.silly(`Processing actions batch #${batchNo} (${batch.length} items)`)
     const startTime = new Date().getTime()
     await Promise.all(
@@ -528,11 +527,19 @@ export const processActionConfig = profileAsync(async function processActionConf
 
   const effectiveConfigFileLocation = getEffectiveConfigFileLocation(config)
 
+  const mergeVarsStart = new Date().getTime()
   let variables = await mergeVariables({
     basePath: effectiveConfigFileLocation,
     variables: config.variables,
     varfiles: config.varfiles,
   })
+  const mergeVarsEnd = new Date().getTime()
+  const actionKey = actionReferenceToString(config)
+  const varfilesDesc =
+    config.varfiles && config.varfiles.length > 0 ? `with varfiles: \n${config.varfiles.join("\n")}` : ""
+  log.silly(
+    `[processActionConfigs] Merged variables for action ${actionKey} in ${mergeVarsEnd - mergeVarsStart}ms ${varfilesDesc}`
+  )
 
   // override the variables if there's any matching variables in variable overrides
   // passed via --var cli flag. variables passed via --var cli flag have highest precedence
@@ -762,7 +769,9 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
   const mergeVarsEnd = new Date().getTime()
   const varfilesDesc =
     resolvedVarFiles && resolvedVarFiles.length > 0 ? `with varfiles: \n${resolvedVarFiles.join("\n")}` : ""
-  log.silly(`Merged variables for action ${actionKey} in ${mergeVarsEnd - mergeVarsStart}ms ${varfilesDesc}`)
+  log.silly(
+    `[preprocessActionConfigs] Merged variables for action ${actionKey} in ${mergeVarsEnd - mergeVarsStart}ms ${varfilesDesc}`
+  )
 
   const resolvedVariables = resolveTemplateStrings({
     value: variables,
