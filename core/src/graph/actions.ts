@@ -65,7 +65,7 @@ import { minimatch } from "minimatch"
 import type { ConfigContext } from "../config/template-contexts/base.js"
 import type { LinkedSource, LinkedSourceMap } from "../config-store/local.js"
 import { relative } from "path"
-import { profileAsync } from "../util/profiling.js"
+import { profile, profileAsync } from "../util/profiling.js"
 import { uuidv4 } from "../util/random.js"
 import { getSourcePath } from "../vcs/vcs.js"
 import { styles } from "../logger/styles.js"
@@ -984,7 +984,7 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
   }
 })
 
-function dependenciesFromActionConfig({
+const dependenciesFromActionConfig = profile(function dependenciesFromActionConfig({
   log,
   config,
   configsByKey,
@@ -1141,4 +1141,4 @@ function dependenciesFromActionConfig({
   }
 
   return deps
-}
+})

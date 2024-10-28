@@ -105,6 +105,11 @@ const shouldUnescape = (ctxOpts: ContextResolveOpts) => {
   return !!ctxOpts.unescape || !ctxOpts.allowPartial
 }
 
+type ParseParams = Parameters<typeof parser.parse>
+const parseWithPegJs = profile(function parseWithPegJs(params: ParseParams) {
+  return parser.parse(...params)
+})
+
 /**
  * Parse and resolve a templated string, with the given context. The template format is similar to native JS templated
  * strings but only supports simple lookups from the given context, e.g. "prefix-${nested.key}-suffix", and not
@@ -130,27 +135,30 @@ export const resolveTemplateString = profile(function resolveTemplateString({
   }
 
   try {
-    const parsed = parser.parse(string, {
-      getKey: (key: string[], resolveOpts?: ContextResolveOpts) => {
-        return context.resolve({ key, nodePath: [], opts: { ...contextOpts, ...(resolveOpts || {}) } })
+    const parsed = parseWithPegJs([
+      string,
+      {
+        getKey: (key: string[], resolveOpts?: ContextResolveOpts) => {
+          return context.resolve({ key, nodePath: [], opts: { ...contextOpts, ...(resolveOpts || {}) } })
+        },
+        getValue,
+        resolveNested: (nested: string) => resolveTemplateString({ string: nested, context, contextOpts }),
+        buildBinaryExpression,
+        buildLogicalExpression,
+        isArray: Array.isArray,
+        ConfigurationError,
+        TemplateStringError,
+        missingKeyExceptionType,
+        passthroughExceptionType,
+        allowPartial: !!contextOpts.allowPartial,
+        unescape: shouldUnescape(contextOpts),
+        escapePrefix,
+        optionalSuffix: "}?",
+        isPlainObject,
+        isPrimitive,
+        callHelperFunction,
       },
-      getValue,
-      resolveNested: (nested: string) => resolveTemplateString({ string: nested, context, contextOpts }),
-      buildBinaryExpression,
-      buildLogicalExpression,
-      isArray: Array.isArray,
-      ConfigurationError,
-      TemplateStringError,
-      missingKeyExceptionType,
-      passthroughExceptionType,
-      allowPartial: !!contextOpts.allowPartial,
-      unescape: shouldUnescape(contextOpts),
-      escapePrefix,
-      optionalSuffix: "}?",
-      isPlainObject,
-      isPrimitive,
-      callHelperFunction,
-    })
+    ])
 
     const outputs: ResolvedClause[] = parsed.map((p: any) => {
       return isPlainObject(p) ? p : { resolved: getValue(p) }
