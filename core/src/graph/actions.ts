@@ -532,6 +532,7 @@ export const processActionConfig = profileAsync(async function processActionConf
     basePath: effectiveConfigFileLocation,
     variables: config.variables,
     varfiles: config.varfiles,
+    log,
   })
   const mergeVarsEnd = new Date().getTime()
   const actionKey = actionReferenceToString(config)
@@ -765,6 +766,7 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
     basePath: config.internal.basePath,
     variables: config.variables,
     varfiles: resolvedVarFiles,
+    log,
   })
   const mergeVarsEnd = new Date().getTime()
   const varfilesDesc =

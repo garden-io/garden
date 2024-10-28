@@ -571,12 +571,14 @@ export const loadVarfile = profileAsync(async function loadVarfile({
   path,
   defaultPath,
   optional = false,
+  log,
 }: {
   // project root (when resolving project config) or module root (when resolving module config)
   configRoot: string
   path: string | undefined
   defaultPath: string | undefined
   optional?: boolean
+  log?: Log
 }): Promise<PrimitiveMap> {
   if (!path && !defaultPath) {
     throw new ParameterError({
@@ -599,6 +601,7 @@ export const loadVarfile = profileAsync(async function loadVarfile({
 
   try {
     const data = await _readFile(resolvedPath)
+    log?.silly(() => `Loaded ${data.length} bytes from varfile ${resolvedPath}`)
     const relPath = relative(configRoot, resolvedPath)
     const filename = basename(resolvedPath.toLowerCase())
 
