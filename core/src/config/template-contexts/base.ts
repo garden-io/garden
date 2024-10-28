@@ -19,6 +19,7 @@ import { isPrimitive, joi, joiIdentifier } from "../common.js"
 import { KeyedSet } from "../../util/keyed-set.js"
 import { naturalList } from "../../util/string.js"
 import { styles } from "../../logger/styles.js"
+import { Profile } from "../../util/profiling.js"
 
 export type ContextKeySegment = string | number
 export type ContextKey = ContextKeySegment[]
@@ -52,10 +53,12 @@ export function schema(joiSchema: Joi.Schema) {
 
 export interface ConfigContextType {
   new (...params: any[]): ConfigContext
+
   getSchema(): CustomObjectSchema
 }
 
 // Note: we're using classes here to be able to use decorators to describe each context node and key
+@Profile()
 export abstract class ConfigContext {
   private readonly _rootContext: ConfigContext
   private readonly _resolvedValues: { [path: string]: any }

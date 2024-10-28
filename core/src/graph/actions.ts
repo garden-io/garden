@@ -65,7 +65,7 @@ import { minimatch } from "minimatch"
 import type { ConfigContext } from "../config/template-contexts/base.js"
 import type { LinkedSource, LinkedSourceMap } from "../config-store/local.js"
 import { relative } from "path"
-import { profileAsync } from "../util/profiling.js"
+import { profile, profileAsync } from "../util/profiling.js"
 import { uuidv4 } from "../util/random.js"
 import { getSourcePath } from "../vcs/vcs.js"
 import { styles } from "../logger/styles.js"
@@ -532,6 +532,7 @@ export const processActionConfig = profileAsync(async function processActionConf
     basePath: effectiveConfigFileLocation,
     variables: config.variables,
     varfiles: config.varfiles,
+    log,
   })
   const mergeVarsEnd = new Date().getTime()
   const actionKey = actionReferenceToString(config)
@@ -765,6 +766,7 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
     basePath: config.internal.basePath,
     variables: config.variables,
     varfiles: resolvedVarFiles,
+    log,
   })
   const mergeVarsEnd = new Date().getTime()
   const varfilesDesc =
@@ -984,7 +986,7 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
   }
 })
 
-function dependenciesFromActionConfig({
+const dependenciesFromActionConfig = profile(function dependenciesFromActionConfig({
   log,
   config,
   configsByKey,
@@ -1141,4 +1143,4 @@ function dependenciesFromActionConfig({
   }
 
   return deps
-}
+})

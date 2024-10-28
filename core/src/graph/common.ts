@@ -17,7 +17,7 @@ import type { ActionKind } from "../plugin/action-types.js"
 import { loadVarfile } from "../config/base.js"
 import type { DeepPrimitiveMap, Varfile } from "../config/common.js"
 import type { Task } from "../tasks/base.js"
-import type { LogMetadata, TaskLogStatus } from "../logger/log-entry.js"
+import type { Log, LogMetadata, TaskLogStatus } from "../logger/log-entry.js"
 
 // Shared type used by ConfigGraph and TaskGraph to facilitate circular dependency detection
 export type DependencyGraphNode = {
@@ -150,10 +150,12 @@ export const mergeVariables = profileAsync(async function mergeVariables({
   basePath,
   variables,
   varfiles,
+  log,
 }: {
   basePath: string
   variables?: DeepPrimitiveMap
   varfiles?: Varfile[]
+  log: Log
 }) {
   const varsByFile = await Promise.all(
     (varfiles || []).map((varfile) => {
@@ -163,6 +165,7 @@ export const mergeVariables = profileAsync(async function mergeVariables({
         path,
         defaultPath: undefined,
         optional,
+        log,
       })
     })
   )

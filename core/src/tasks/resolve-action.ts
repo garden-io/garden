@@ -150,7 +150,12 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
       const group = this.graph.getGroup(groupName)
 
       groupVariables = resolveTemplateStrings({
-        value: await mergeVariables({ basePath: group.path, variables: group.variables, varfiles: group.varfiles }),
+        value: await mergeVariables({
+          basePath: group.path,
+          variables: group.variables,
+          varfiles: group.varfiles,
+          log: this.garden.log,
+        }),
         context: inputsContext,
         // TODO: map variables to their source
         source: undefined,
@@ -164,6 +169,7 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
         basePath,
         variables: config.variables,
         varfiles: config.varfiles,
+        log: this.garden.log,
       }),
       context: new ActionSpecContext({
         garden: this.garden,

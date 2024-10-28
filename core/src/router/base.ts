@@ -42,6 +42,7 @@ import { ActionConfigContext, ActionSpecContext } from "../config/template-conte
 import type { NamespaceStatus } from "../types/namespace.js"
 import { TemplatableConfigContext } from "../config/template-contexts/project.js"
 import type { ParamsBase } from "../plugin/handlers/base/base.js"
+import { Profile } from "../util/profiling.js"
 
 export type CommonParams = keyof PluginActionContextParams
 
@@ -54,6 +55,7 @@ export interface BaseRouterParams {
 /**
  * The ProviderRouter is extended upon in BaseAction-, Module- and Provider routers.
  */
+@Profile()
 export abstract class BaseRouter {
   protected readonly garden: Garden
   protected readonly configuredPlugins: GardenPluginSpec[]
