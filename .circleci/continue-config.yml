@@ -1052,7 +1052,7 @@ jobs:
 
   test-macos-x86-rosetta:
     macos:
-      xcode: "15.0.0"
+      xcode: "15.4.0"
     # We are testing x86 binaries under rosetta because CircleCI stopped supporting x86 macs.
     resource_class: macos.m1.medium.gen1
     steps:
@@ -1091,7 +1091,7 @@ jobs:
 
   test-macos-arm:
     macos:
-      xcode: "13.4.1"
+      xcode: "15.4.0"
     resource_class: macos.m1.medium.gen1
     steps:
       - checkout
