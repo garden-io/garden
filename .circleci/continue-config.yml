@@ -21,7 +21,7 @@ parameters:
     GARDEN_K8S_BUILD_SYNC_MODE: "mutagen"
 
   ubuntu-vm-runner: &ubuntu-vm-runner
-    image: "ubuntu-2204:2023.10.1"
+    image: "ubuntu-2404:2024.08.1"
     docker_layer_caching: true
 
   remote-docker: &remote-docker
