@@ -1072,8 +1072,8 @@ jobs:
           name: Install gcloud SDK
           command: |
             cd $HOME
-            curl -LO https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-411.0.0-darwin-x86_64.tar.gz
-            tar xzf google-cloud-sdk-411.0.0-darwin-x86_64.tar.gz
+            curl -LO https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-498.0.0-darwin-x86_64.tar.gz
+            tar xzf google-cloud-sdk-498.0.0-darwin-x86_64.tar.gz
             echo 'export PATH=$HOME/google-cloud-sdk/bin:$PATH' >> $BASH_ENV
       - docker_login
       - run:
@@ -1108,8 +1108,8 @@ jobs:
           name: Install gcloud SDK
           command: |
             cd $HOME
-            curl -LO https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-411.0.0-darwin-arm.tar.gz
-            tar xzf google-cloud-sdk-411.0.0-darwin-arm.tar.gz
+            curl -LO https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-498.0.0-darwin-arm.tar.gz
+            tar xzf google-cloud-sdk-498.0.0-darwin-arm.tar.gz
             echo 'export PATH=$HOME/google-cloud-sdk/bin:$PATH' >> $BASH_ENV
       - docker_login
       - run:
