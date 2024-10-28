@@ -4,7 +4,7 @@ version: 2.1
 orbs:
   win: circleci/windows@5.0.0
   rok8s-scripts: fairwinds/rok8s-scripts@11.1.3
-  macos: circleci/macos@2.4.0
+  macos: circleci/macos@2.5.2
 
 parameters:
   run-test-dockerhub:
@@ -26,7 +26,7 @@ parameters:
 
   remote-docker: &remote-docker
     setup_remote_docker:
-      version: 20.10.24
+      version: default # pull the latest stable Remote Docker version
       docker_layer_caching: true
 
   runner-image: &runner-image
