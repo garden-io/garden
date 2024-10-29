@@ -1014,28 +1014,10 @@ const dependenciesFromActionConfig = profile(function dependenciesFromActionConf
       const depKey = actionReferenceToString(d)
       const depConfig = configsByKey[depKey]
 
-      // When a dependency config is missing here, 99% of the time this indicates a user error in a templated action name
-      // from a config template (e.g. an expression or part of an expression evaluating to null or undefined,
-      // and this then being interpolated into the string value for the action name).
       if (!depConfig) {
-        const actionTemplateInfo = () => {
-          const configTemplateName = config.internal.templateName
-          if (!configTemplateName) {
-            return ""
-          }
-          return `The action was rendered from the configuration template ${styles.highlight(configTemplateName)}.`
-        }
-
-        log.warn(
-          deline`
-          Found a missing dependency with name ${styles.highlight(`"${name}"`)}.
-          The template expression for this action name (or part of it) may have unintentionally resolved to null or
-          undefined. Please take a look at the template expression in question in the configuration
-          for action ${styles.highlight(depKey)} or in its configuration template if any.
-          ${actionTemplateInfo()}
-          `
-        )
-        return undefined
+        throw new ConfigurationError({
+          message: `${description} references dependency ${depKey}, but no such action could be found`,
+        })
       }
 
       return {
