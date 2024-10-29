@@ -451,6 +451,19 @@ export const actionFromConfig = profileAsync(async function actionFromConfig({
   })
 })
 
+function getUnresolvedVarfiles(config: ActionConfig, resolvedVarFiles: Varfile[] | undefined) {
+  const resolvedVarfileSet = new Set<string>()
+  for (const resolvedVarfile of resolvedVarFiles || []) {
+    const resolveVarfilePath = getVarfileData(resolvedVarfile).path
+    resolvedVarfileSet.add(resolveVarfilePath)
+  }
+
+  return (config.varfiles || []).filter((v) => {
+    const varfilePath = getVarfileData(v).path
+    return !resolvedVarfileSet.has(varfilePath)
+  })
+}
+
 export const processActionConfig = profileAsync(async function processActionConfig({
   garden,
   graph,
@@ -532,17 +545,7 @@ export const processActionConfig = profileAsync(async function processActionConf
     (await garden.vcs.getTreeVersion({ log, projectName: garden.projectName, config, scanRoot }))
 
   const effectiveConfigFileLocation = getEffectiveConfigFileLocation(config)
-
-  const resolvedVarfileSet = new Set<string>()
-  for (const resolvedVarfile of resolvedVarFiles || []) {
-    const resolveVarfilePath = getVarfileData(resolvedVarfile).path
-    resolvedVarfileSet.add(resolveVarfilePath)
-  }
-
-  const unresolvedVarfiles = (config.varfiles || []).filter((v) => {
-    const varfilePath = getVarfileData(v).path
-    return !resolvedVarfileSet.has(varfilePath)
-  })
+  const unresolvedVarfiles = getUnresolvedVarfiles(config, resolvedVarFiles)
 
   const mergeVarsStart = new Date().getTime()
   let variables = await mergeVariables({
