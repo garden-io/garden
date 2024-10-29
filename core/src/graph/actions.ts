@@ -198,7 +198,7 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
       )
       batchNo++
       const endTime = new Date().getTime()
-      log.silly(`Preprocessed actions batch #${batchNo} (${batch.length} items in ${endTime - startTime}ms`)
+      log.silly(`Preprocessed actions batch #${batchNo} (${batch.length} items) in ${endTime - startTime}ms`)
     }
   }
 
@@ -352,7 +352,7 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
     )
     batchNo++
     const endTime = new Date().getTime()
-    log.silly(`Processed actions batch #${batchNo} (${batch.length} items in ${endTime - startTime}ms`)
+    log.silly(`Processed actions batch #${batchNo} (${batch.length} items) in ${endTime - startTime}ms`)
   }
   log.debug(`Processed ${actionConfigCount} action configs`)
 
