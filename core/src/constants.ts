@@ -68,11 +68,6 @@ export const gardenEnv = {
   // Support the NO_COLOR env var (see https://no-color.org/)
   NO_COLOR: env.get("NO_COLOR").required(false).default("false").asBool(),
   GARDEN_AUTH_TOKEN: env.get("GARDEN_AUTH_TOKEN").required(false).asString(),
-  GARDEN_PROC_ACTION_CONFIG_BATCH_SIZE: env
-    .get("GARDEN_PROC_ACTION_CONFIG_BATCH_SIZE")
-    .required(false)
-    .default(10)
-    .asInt(),
   GARDEN_CACHE_TTL: env.get("GARDEN_CACHE_TTL").required(false).asInt(),
   GARDEN_DB_DIR: env.get("GARDEN_DB_DIR").required(false).default(GARDEN_GLOBAL_PATH).asString(),
   GARDEN_DISABLE_ANALYTICS: env.get("GARDEN_DISABLE_ANALYTICS").required(false).asBool(),
