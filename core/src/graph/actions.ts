@@ -36,7 +36,7 @@ import { DeployAction, deployActionConfigSchema, isDeployActionConfig } from "..
 import { isRunActionConfig, RunAction, runActionConfigSchema } from "../actions/run.js"
 import { isTestActionConfig, TestAction, testActionConfigSchema } from "../actions/test.js"
 import { getEffectiveConfigFileLocation, noTemplateFields } from "../config/base.js"
-import type { ActionReference, JoiDescription } from "../config/common.js"
+import type { ActionReference, JoiDescription, Varfile } from "../config/common.js"
 import { describeSchema, parseActionReference } from "../config/common.js"
 import type { GroupConfig } from "../config/group.js"
 import { ActionConfigContext } from "../config/template-contexts/actions.js"
@@ -309,7 +309,7 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
     const startTime = new Date().getTime()
     await Promise.all(
       batch.map(async ([key, res]) => {
-        const { config, linkedSource, remoteSourcePath, supportedModes, dependencies } = res
+        const { config, linkedSource, remoteSourcePath, supportedModes, dependencies, resolvedVarFiles } = res
         const { mode, explicitMode } = computedActionModes[key]
 
         try {
@@ -324,6 +324,7 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
             remoteSourcePath,
             supportedModes,
             scanRoot: minimalRoots[getSourcePath(config)],
+            resolvedVarFiles,
           })
 
           if (!action.supportsMode(mode)) {
@@ -422,17 +423,18 @@ export const actionFromConfig = profileAsync(async function actionFromConfig({
   // Call configure handler and validate
   const actionTypes = await garden.getActionTypes()
   const definition = actionTypes[inputConfig.kind][inputConfig.type]?.spec
-  const { config, supportedModes, linkedSource, remoteSourcePath, dependencies } = await preprocessActionConfig({
-    garden,
-    config: inputConfig,
-    actionTypes,
-    definition,
-    router,
-    mode,
-    linkedSources,
-    log,
-    configsByKey,
-  })
+  const { config, supportedModes, linkedSource, remoteSourcePath, dependencies, resolvedVarFiles } =
+    await preprocessActionConfig({
+      garden,
+      config: inputConfig,
+      actionTypes,
+      definition,
+      router,
+      mode,
+      linkedSources,
+      log,
+      configsByKey,
+    })
 
   return processActionConfig({
     garden,
@@ -445,6 +447,7 @@ export const actionFromConfig = profileAsync(async function actionFromConfig({
     remoteSourcePath,
     supportedModes,
     scanRoot,
+    resolvedVarFiles,
   })
 })
 
@@ -459,6 +462,7 @@ export const processActionConfig = profileAsync(async function processActionConf
   remoteSourcePath,
   supportedModes,
   scanRoot,
+  resolvedVarFiles,
 }: {
   garden: Garden
   graph: ConfigGraph
@@ -470,6 +474,7 @@ export const processActionConfig = profileAsync(async function processActionConf
   remoteSourcePath: string | null
   supportedModes: ActionModes
   scanRoot?: string
+  resolvedVarFiles: Varfile[] | undefined
 }) {
   const actionTypes = await garden.getActionTypes()
   const { kind, type } = config
@@ -528,11 +533,22 @@ export const processActionConfig = profileAsync(async function processActionConf
 
   const effectiveConfigFileLocation = getEffectiveConfigFileLocation(config)
 
+  const resolvedVarfileSet = new Set<string>()
+  for (const resolvedVarfile of resolvedVarFiles || []) {
+    const resolveVarfilePath = getVarfileData(resolvedVarfile).path
+    resolvedVarfileSet.add(resolveVarfilePath)
+  }
+
+  const unresolvedVarfiles = (config.varfiles || []).filter((v) => {
+    const varfilePath = getVarfileData(v).path
+    return !resolvedVarfileSet.has(varfilePath)
+  })
+
   const mergeVarsStart = new Date().getTime()
   let variables = await mergeVariables({
     basePath: effectiveConfigFileLocation,
     variables: config.variables,
-    varfiles: config.varfiles,
+    varfiles: unresolvedVarfiles,
     log,
   })
   const mergeVarsEnd = new Date().getTime()
@@ -726,6 +742,7 @@ interface PreprocessActionResult {
   supportedModes: ActionModes
   remoteSourcePath: string | null
   linkedSource: LinkedSource | null
+  resolvedVarFiles: Varfile[] | undefined
 }
 
 interface ComputedActionMode {
@@ -984,6 +1001,7 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
     supportedModes,
     remoteSourcePath,
     linkedSource,
+    resolvedVarFiles,
   }
 })
 
