@@ -162,15 +162,8 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
       })
     }
 
-    const basePath = action.effectiveConfigFileLocation()
-
     const actionVariables = resolveTemplateStrings({
-      value: await mergeVariables({
-        basePath,
-        variables: config.variables,
-        varfiles: config.varfiles,
-        log: this.garden.log,
-      }),
+      value: config.variables,
       context: new ActionSpecContext({
         garden: this.garden,
         resolvedProviders: await this.garden.resolveProviders({ log: this.log }),
