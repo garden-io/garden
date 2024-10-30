@@ -65,11 +65,10 @@ import { minimatch } from "minimatch"
 import type { ConfigContext } from "../config/template-contexts/base.js"
 import type { LinkedSource, LinkedSourceMap } from "../config-store/local.js"
 import { relative } from "path"
-import { profileAsync } from "../util/profiling.js"
+import { profile, profileAsync } from "../util/profiling.js"
 import { uuidv4 } from "../util/random.js"
 import { getSourcePath } from "../vcs/vcs.js"
 import { styles } from "../logger/styles.js"
-import { gardenEnv } from "../constants.js"
 
 function* sliceToBatches<T>(dict: Record<string, T>, batchSize: number) {
   const entries = Object.entries(dict)
@@ -81,6 +80,8 @@ function* sliceToBatches<T>(dict: Record<string, T>, batchSize: number) {
     position += batchSize
   }
 }
+
+const actionConfigProcBatchSize = 100
 
 function addActionConfig({
   garden,
@@ -169,7 +170,7 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
 
   const preprocessActions = async (predicate: (config: ActionConfig) => boolean = () => true) => {
     let batchNo = 1
-    for (const batch of sliceToBatches(configsByKey, gardenEnv.GARDEN_PROC_ACTION_CONFIG_BATCH_SIZE)) {
+    for (const batch of sliceToBatches(configsByKey, actionConfigProcBatchSize)) {
       log.silly(`Preprocessing actions batch #${batchNo} (${batch.length} items)`)
       const startTime = new Date().getTime()
       await Promise.all(
@@ -197,7 +198,7 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
       )
       batchNo++
       const endTime = new Date().getTime()
-      log.silly(`Preprocessed actions batch #${batchNo} (${batch.length} items in ${endTime - startTime}ms`)
+      log.silly(`Preprocessed actions batch #${batchNo} (${batch.length} items) in ${endTime - startTime}ms`)
     }
   }
 
@@ -303,7 +304,7 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
   const actionConfigCount = Object.keys(preprocessResults).length
   log.debug(`Processing ${actionConfigCount} action configs...`)
   let batchNo = 1
-  for (const batch of sliceToBatches(preprocessResults, gardenEnv.GARDEN_PROC_ACTION_CONFIG_BATCH_SIZE)) {
+  for (const batch of sliceToBatches(preprocessResults, actionConfigProcBatchSize)) {
     log.silly(`Processing actions batch #${batchNo} (${batch.length} items)`)
     const startTime = new Date().getTime()
     await Promise.all(
@@ -351,7 +352,7 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
     )
     batchNo++
     const endTime = new Date().getTime()
-    log.silly(`Processed actions batch #${batchNo} (${batch.length} items in ${endTime - startTime}ms`)
+    log.silly(`Processed actions batch #${batchNo} (${batch.length} items) in ${endTime - startTime}ms`)
   }
   log.debug(`Processed ${actionConfigCount} action configs`)
 
@@ -532,6 +533,7 @@ export const processActionConfig = profileAsync(async function processActionConf
     basePath: effectiveConfigFileLocation,
     variables: config.variables,
     varfiles: config.varfiles,
+    log,
   })
   const mergeVarsEnd = new Date().getTime()
   const actionKey = actionReferenceToString(config)
@@ -765,6 +767,7 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
     basePath: config.internal.basePath,
     variables: config.variables,
     varfiles: resolvedVarFiles,
+    log,
   })
   const mergeVarsEnd = new Date().getTime()
   const varfilesDesc =
@@ -984,7 +987,7 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
   }
 })
 
-function dependenciesFromActionConfig({
+const dependenciesFromActionConfig = profile(function dependenciesFromActionConfig({
   log,
   config,
   configsByKey,
@@ -1011,28 +1014,10 @@ function dependenciesFromActionConfig({
       const depKey = actionReferenceToString(d)
       const depConfig = configsByKey[depKey]
 
-      // When a dependency config is missing here, 99% of the time this indicates a user error in a templated action name
-      // from a config template (e.g. an expression or part of an expression evaluating to null or undefined,
-      // and this then being interpolated into the string value for the action name).
       if (!depConfig) {
-        const actionTemplateInfo = () => {
-          const configTemplateName = config.internal.templateName
-          if (!configTemplateName) {
-            return ""
-          }
-          return `The action was rendered from the configuration template ${styles.highlight(configTemplateName)}.`
-        }
-
-        log.warn(
-          deline`
-          Found a missing dependency with name ${styles.highlight(`"${name}"`)}.
-          The template expression for this action name (or part of it) may have unintentionally resolved to null or
-          undefined. Please take a look at the template expression in question in the configuration
-          for action ${styles.highlight(depKey)} or in its configuration template if any.
-          ${actionTemplateInfo()}
-          `
-        )
-        return undefined
+        throw new ConfigurationError({
+          message: `${description} references dependency ${depKey}, but no such action could be found`,
+        })
       }
 
       return {
@@ -1141,4 +1126,4 @@ function dependenciesFromActionConfig({
   }
 
   return deps
-}
+})

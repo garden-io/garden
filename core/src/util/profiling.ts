@@ -287,8 +287,8 @@ export const profile = <T extends Array<any>, U>(fn: (...args: T) => U, profiler
   const timingKey = fn.name
 
   return (...args: T): U => {
-    const result = fn(...args)
     const start = performance.now()
+    const result = fn(...args)
 
     if (!profiler!.isEnabled()) {
       return result
