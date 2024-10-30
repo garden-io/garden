@@ -146,7 +146,10 @@ export const k8sContainerDeployExtension = (): DeployActionExtension<ContainerDe
     stopSync: k8sContainerStopSync,
     getSyncStatus: k8sContainerGetSyncStatus,
 
-    validate: async ({ ctx, action }) => {
+    validate: async ({ ctx, action, base }) => {
+      if (base) {
+        await base({ action })
+      }
       validateDeploySpec(action.name, <KubernetesProvider>ctx.provider, action.getSpec())
       return {}
     },
