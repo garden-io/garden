@@ -6,7 +6,6 @@
 
 * correct deploy action validation in container plugin extension ([#6606](https://github.com/garden-io/garden/issues/6606)) ([ba2a4954a](https://github.com/garden-io/garden/commit/ba2a4954a))
 * render action reference in error message ([#6605](https://github.com/garden-io/garden/issues/6605)) ([4ebe9975a](https://github.com/garden-io/garden/commit/4ebe9975a))
-* fail-safe dependency config lookup in action config processing ([#6549](https://github.com/garden-io/garden/issues/6549)) ([615123939](https://github.com/garden-io/garden/commit/615123939))
 * **k8s:** correctly set image pull secret on sync pod ([#6533](https://github.com/garden-io/garden/issues/6533)) ([a2826a947](https://github.com/garden-io/garden/commit/a2826a947))
 * **k8s:** add imagePullSecret from kubernetes provider to sync init container ([#6530](https://github.com/garden-io/garden/issues/6530)) ([07a577ef4](https://github.com/garden-io/garden/commit/07a577ef4))
 * **profiler:** fix sync profiler and collect more data ([#6586](https://github.com/garden-io/garden/issues/6586)) ([04dcc006c](https://github.com/garden-io/garden/commit/04dcc006c))
