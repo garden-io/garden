@@ -18,6 +18,7 @@
   "devDependencies": {
     "@commitlint/cli": "^19.5.0",
     "@commitlint/config-conventional": "^19.2.2",
+    "@inquirer/prompts": "^7.0.1",
     "@rollup/plugin-commonjs": "^28.0.1",
     "@rollup/plugin-esm-shim": "^0.1.7",
     "@rollup/plugin-json": "^6.1.0",
@@ -52,7 +53,6 @@
     "fs-extra": "^11.2.0",
     "handlebars": "^4.7.6",
     "husky": "^9.1.4",
-    "inquirer": "^12.0.0",
     "lodash-es": "^4.17.21",
     "markdown-link-check": "^3.12.2",
     "minimatch": "^10.0.1",
