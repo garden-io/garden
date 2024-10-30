@@ -1,6 +1,6 @@
 {
   "name": "@garden-io/garden-pulumi",
-  "version": "0.13.42",
+  "version": "0.13.43",
   "description": "Pulumi plugin for Garden",
   "type": "module",
   "main": "build/src/index.js",

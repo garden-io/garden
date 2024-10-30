@@ -1,4 +1,33 @@
 
+<a name="0.13.43"></a>
+## [0.13.43](https://github.com/garden-io/garden/compare/0.13.42...0.13.43) (2024-10-30)
+
+### Bug Fixes
+
+* correct deploy action validation in container plugin extension ([#6606](https://github.com/garden-io/garden/issues/6606)) ([ba2a4954a](https://github.com/garden-io/garden/commit/ba2a4954a))
+* render action reference in error message ([#6605](https://github.com/garden-io/garden/issues/6605)) ([4ebe9975a](https://github.com/garden-io/garden/commit/4ebe9975a))
+* **k8s:** correctly set image pull secret on sync pod ([#6533](https://github.com/garden-io/garden/issues/6533)) ([a2826a947](https://github.com/garden-io/garden/commit/a2826a947))
+* **k8s:** add imagePullSecret from kubernetes provider to sync init container ([#6530](https://github.com/garden-io/garden/issues/6530)) ([07a577ef4](https://github.com/garden-io/garden/commit/07a577ef4))
+* **profiler:** fix sync profiler and collect more data ([#6586](https://github.com/garden-io/garden/issues/6586)) ([04dcc006c](https://github.com/garden-io/garden/commit/04dcc006c))
+* **pulumi:** stack not being selected before getting outputs when autoApply = false ([#6554](https://github.com/garden-io/garden/issues/6554)) ([8fd42f3b3](https://github.com/garden-io/garden/commit/8fd42f3b3))
+* **pulumi:** prevent existing pulumi configs from being overwritten ([#6526](https://github.com/garden-io/garden/issues/6526)) ([dcfef40c6](https://github.com/garden-io/garden/commit/dcfef40c6))
+
+### Features
+
+* **exec:** separate `stdout` and `stderr` in Run and Test `exec`-action outputs ([#6572](https://github.com/garden-io/garden/issues/6572)) ([5a04f60ac](https://github.com/garden-io/garden/commit/5a04f60ac))
+* **k8s:** allow using registry mirror for utility images ([#6552](https://github.com/garden-io/garden/issues/6552)) ([122371dd6](https://github.com/garden-io/garden/commit/122371dd6))
+* **pulumi:** add `spec.showSecretsInOutput` config to Pulumi deploy action ([#6555](https://github.com/garden-io/garden/issues/6555)) ([682e37896](https://github.com/garden-io/garden/commit/682e37896))
+
+### Improvements
+
+* make sure artifacts are always fetched ([#6532](https://github.com/garden-io/garden/issues/6532)) ([593c9cbdf](https://github.com/garden-io/garden/commit/593c9cbdf))
+* **api:** send action type to cloud ([#5447](https://github.com/garden-io/garden/issues/5447)) ([15fe97404](https://github.com/garden-io/garden/commit/15fe97404))
+
+### Performance Improvements
+
+* optimize action configs processing ([#6547](https://github.com/garden-io/garden/issues/6547)) ([af6df50a8](https://github.com/garden-io/garden/commit/af6df50a8))
+* **git:** use `sub-tree` scan mode for config files scan ([#6483](https://github.com/garden-io/garden/issues/6483)) ([131663140](https://github.com/garden-io/garden/commit/131663140))
+
 <a name="0.13.42"></a>
 ## [0.13.42](https://github.com/garden-io/garden/compare/0.13.41...0.13.42) (2024-10-08)
 
