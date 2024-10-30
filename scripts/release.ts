@@ -11,7 +11,7 @@
 
 import { execa } from "execa"
 import semver from "semver"
-import inquirer from "inquirer"
+import { confirm } from "@inquirer/prompts"
 import chalk from "chalk"
 import { dirname, relative, resolve } from "node:path"
 import fsExtra from "fs-extra"
@@ -279,11 +279,7 @@ async function prompt(version: string): Promise<boolean> {
 
     Are you sure you want to continue?
   `
-  const ans = await inquirer.prompt({
-    name: "continue",
-    message,
-  })
-  return ans.continue.startsWith("y")
+  return await confirm({ message })
 }
 
 /**
