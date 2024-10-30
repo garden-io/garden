@@ -52,6 +52,7 @@ import { DEFAULT_DEPLOY_TIMEOUT_SEC, gardenEnv } from "../../constants.js"
 import type { ExecBuildConfig } from "../exec/build.js"
 import type { PluginToolSpec } from "../../plugin/tools.js"
 import type { PluginContext } from "../../plugin-context.js"
+import { actionReferenceToString } from "../../actions/base.js"
 
 export const CONTAINER_STATUS_CONCURRENCY_LIMIT = gardenEnv.GARDEN_HARD_CONCURRENCY_LIMIT
 export const CONTAINER_BUILD_CONCURRENCY_LIMIT_LOCAL = 5
@@ -689,9 +690,9 @@ function validateRuntimeCommon(action: Resolved<ContainerRuntimeAction>) {
   for (const volume of volumes) {
     if (volume.action && !action.hasDependency(volume.action)) {
       throw new ConfigurationError({
-        message: `${action.longDescription()} references action ${
+        message: `${action.longDescription()} references action ${actionReferenceToString(
           volume.action
-        } under \`spec.volumes\` but does not declare a dependency on it. Please add an explicit dependency on the volume action.`,
+        )} under \`spec.volumes\` but does not declare a dependency on it. Please add an explicit dependency on the volume action.`,
       })
     }
   }
