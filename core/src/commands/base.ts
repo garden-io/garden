@@ -590,7 +590,6 @@ export abstract class Command<
 
       `)
       const answer = await userPrompt({
-        name: "continue",
         message: defaultMessage,
         type: "confirm",
         default: false,
@@ -598,7 +597,7 @@ export abstract class Command<
 
       log.info("")
 
-      return answer.continue
+      return answer
     }
 
     return true
