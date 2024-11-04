@@ -322,7 +322,7 @@ export const terraformCliSpecs: PluginToolSpec[] = [
     version: TERRAFORM_VERSION_1_4_6,
     description: getTerraformToolDescription(TERRAFORM_SEM_VER_1_4_6),
     type: "binary",
-    _includeInGardenImage: true,
+    _includeInGardenImage: false,
     builds: [
       {
         platform: "darwin",
