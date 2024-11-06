@@ -355,7 +355,7 @@ export function prepareConnectionOpts({
   return opts
 }
 
-export const kubectlVersion = "1.30.4"
+export const kubectlVersion = "1.31.2"
 export const kubectlSpec: PluginToolSpec = {
   name: "kubectl",
   version: kubectlVersion,
@@ -367,7 +367,7 @@ export const kubectlSpec: PluginToolSpec = {
       platform: "darwin",
       architecture: "amd64",
       url: `https://dl.k8s.io/v${kubectlVersion}/kubernetes-client-darwin-amd64.tar.gz`,
-      sha256: "d30249b4ba22b0e873f4d05addf371cfa17b78dad6a949d199ae994e9f4203ed",
+      sha256: "7a868b889c91a31f9151f0bc735430ce8e473d3fe8c331c90057832d52c93bdd",
       extract: {
         format: "tar",
         targetPath: "kubernetes/client/bin/kubectl",
@@ -377,7 +377,7 @@ export const kubectlSpec: PluginToolSpec = {
       platform: "darwin",
       architecture: "arm64",
       url: `https://dl.k8s.io/v${kubectlVersion}/kubernetes-client-darwin-arm64.tar.gz`,
-      sha256: "6a8d3086ac75a6774e69bc4f533671a011427031007ba3211abd18f1bb2ffa16",
+      sha256: "584d4391e3c02befbc26f79f8ca8d48c9f926f975190e9bfb5b77fe949fa4286",
       extract: {
         format: "tar",
         targetPath: "kubernetes/client/bin/kubectl",
@@ -387,7 +387,7 @@ export const kubectlSpec: PluginToolSpec = {
       platform: "linux",
       architecture: "amd64",
       url: `https://dl.k8s.io/v${kubectlVersion}/kubernetes-client-linux-amd64.tar.gz`,
-      sha256: "ab3e953b19ed89ab2eca95bea92ba012592867e0f7c318b5c17291de465f2e4b",
+      sha256: "d8f9cddec37bd89867a9a7cdfcf9144c750018ac6746999d9a26d62609123786",
       extract: {
         format: "tar",
         targetPath: "kubernetes/client/bin/kubectl",
@@ -397,7 +397,7 @@ export const kubectlSpec: PluginToolSpec = {
       platform: "linux",
       architecture: "arm64",
       url: `https://dl.k8s.io/v${kubectlVersion}/kubernetes-client-linux-arm64.tar.gz`,
-      sha256: "4e29af613df7df444c3b296a7b52899cef1bdc22e6d46bd248486db23ef35fef",
+      sha256: "319ad62ce05e5751a5579d1b2c4512da0532c4f44c219d5bcf50e6596d91c4b9",
       extract: {
         format: "tar",
         targetPath: "kubernetes/client/bin/kubectl",
@@ -407,7 +407,7 @@ export const kubectlSpec: PluginToolSpec = {
       platform: "windows",
       architecture: "amd64",
       url: `https://dl.k8s.io/v${kubectlVersion}/kubernetes-client-windows-amd64.tar.gz`,
-      sha256: "fda3997fb52425f909321e27aca7a4aad2d45d8391b7ee787be4f1ab24135c9f",
+      sha256: "918af747bbc819cf24e1e69f26ce52584eb7b1f3e93de857c9a86e6aff83c65b",
       extract: {
         format: "tar",
         targetPath: "kubernetes/client/bin/kubectl.exe",
