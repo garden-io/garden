@@ -123,14 +123,13 @@ export async function confirmDelete(resource: string, count: number) {
     Are you sure you want to continue? (run the command with the "--yes" flag to skip this check).
   `)
 
-  const answer: any = await userPrompt({
-    name: "continue",
+  const answer = await userPrompt({
     message: msg,
     type: "confirm",
     default: false,
   })
 
-  return answer.continue
+  return answer
 }
 
 export async function readInputKeyValueResources({

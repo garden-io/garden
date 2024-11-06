@@ -3,8 +3,8 @@ version: 2.1
 
 orbs:
   win: circleci/windows@5.0.0
-  rok8s-scripts: fairwinds/rok8s-scripts@11.1.3
-  macos: circleci/macos@2.4.0
+  rok8s-scripts: fairwinds/rok8s-scripts@14.1.0
+  macos: circleci/macos@2.5.2
 
 parameters:
   run-test-dockerhub:
@@ -21,12 +21,12 @@ parameters:
     GARDEN_K8S_BUILD_SYNC_MODE: "mutagen"
 
   ubuntu-vm-runner: &ubuntu-vm-runner
-    image: "ubuntu-2204:2023.10.1"
+    image: "ubuntu-2404:2024.08.1"
     docker_layer_caching: true
 
   remote-docker: &remote-docker
     setup_remote_docker:
-      version: 20.10.24
+      version: default # pull the latest stable Remote Docker version
       docker_layer_caching: true
 
   runner-image: &runner-image
@@ -1052,7 +1052,7 @@ jobs:
 
   test-macos-x86-rosetta:
     macos:
-      xcode: "15.0.0"
+      xcode: "15.4.0"
     # We are testing x86 binaries under rosetta because CircleCI stopped supporting x86 macs.
     resource_class: macos.m1.medium.gen1
     steps:
@@ -1072,8 +1072,8 @@ jobs:
           name: Install gcloud SDK
           command: |
             cd $HOME
-            curl -LO https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-411.0.0-darwin-x86_64.tar.gz
-            tar xzf google-cloud-sdk-411.0.0-darwin-x86_64.tar.gz
+            curl -LO https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-498.0.0-darwin-x86_64.tar.gz
+            tar xzf google-cloud-sdk-498.0.0-darwin-x86_64.tar.gz
             echo 'export PATH=$HOME/google-cloud-sdk/bin:$PATH' >> $BASH_ENV
       - docker_login
       - run:
@@ -1091,7 +1091,7 @@ jobs:
 
   test-macos-arm:
     macos:
-      xcode: "13.4.1"
+      xcode: "15.4.0"
     resource_class: macos.m1.medium.gen1
     steps:
       - checkout
@@ -1108,8 +1108,8 @@ jobs:
           name: Install gcloud SDK
           command: |
             cd $HOME
-            curl -LO https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-411.0.0-darwin-arm.tar.gz
-            tar xzf google-cloud-sdk-411.0.0-darwin-arm.tar.gz
+            curl -LO https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-498.0.0-darwin-arm.tar.gz
+            tar xzf google-cloud-sdk-498.0.0-darwin-arm.tar.gz
             echo 'export PATH=$HOME/google-cloud-sdk/bin:$PATH' >> $BASH_ENV
       - docker_login
       - run:
@@ -1353,22 +1353,18 @@ workflows:
           <<: *only-internal-prs
           name: test-remote
           requires: [build]
-          kubernetesVersion: "v1.28.3"
-          minikubeVersion: "v1.32.0"
+          kubernetesVersion: "v1.31.0"
+          minikubeVersion: "v1.34.0"
           skipTests: "local-only"
           remoteCluster: true
 
       ### VM TESTS ###
 
       # Note: The below is a not-quite-random mix of local k8s variants and k8s versions. Doing a full matrix of every
-      # variant and k8s version would be quite expensive, so we try and make sure each of the latest 6-7 k8s versions is
-      # tested, and that the most recent versions are broadly tested. The kind tests are the cheapest to run so we use many
-      # of those, but they currently don't test in-cluster building, so we do need a range of versions on minikube as well.
-      - test-minikube:
-          name: vm-1.28-minikube
-          requires: [ build ]
-          kubernetesVersion: "v1.28.3"
-          minikubeVersion: "v1.32.0"
+      # variant and k8s version would be quite expensive, so we try and make sure each of the officially maintained
+      # k8s versions is tested, and that the most recent versions are broadly tested.
+      # The kind tests are the cheapest to run so we use many of those,
+      # but they currently don't test in-cluster building, so we do need a range of versions on minikube as well.
       - test-kind:
           name: vm-1.29-kind
           requires: [build]
@@ -1381,6 +1377,11 @@ workflows:
           name: vm-1.31-k3s
           requires: [build]
           k3sVersion: v1.31.1+k3s1
+      - test-minikube:
+          name: vm-1.31-minikube
+          requires: [ build ]
+          kubernetesVersion: "v1.31.0"
+          minikubeVersion: "v1.34.0"
 
       - test-plugins:
           <<: *only-internal-prs
