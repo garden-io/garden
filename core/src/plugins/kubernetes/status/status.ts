@@ -68,6 +68,7 @@ export interface StatusHandlerParams<T extends BaseResource | KubernetesObject =
   namespace: string
   resource: KubernetesServerResource<T>
   log: Log
+  provider: KubernetesProvider
   resourceVersion?: number
   waitForJobs?: boolean
 }
@@ -172,16 +173,18 @@ export async function checkResourceStatuses({
   manifests,
   log,
   waitForJobs,
+  provider,
 }: {
   api: KubeApi
   namespace: string
   manifests: KubernetesResource[]
   log: Log
+  provider: KubernetesProvider
   waitForJobs?: boolean
 }): Promise<ResourceStatus[]> {
   return Promise.all(
     manifests.map(async (manifest) => {
-      return checkResourceStatus({ api, namespace, manifest, log, waitForJobs })
+      return checkResourceStatus({ api, namespace, manifest, log, waitForJobs, provider })
     })
   )
 }
@@ -192,12 +195,14 @@ export async function checkResourceStatus({
   manifest,
   log,
   waitForJobs,
+  provider,
 }: {
   api: KubeApi
   namespace: string
   manifest: KubernetesResource
   log: Log
   waitForJobs?: boolean
+  provider: KubernetesProvider
 }) {
   if (manifest.metadata?.namespace) {
     namespace = manifest.metadata.namespace
@@ -218,7 +223,7 @@ export async function checkResourceStatus({
     }
   }
 
-  return resolveResourceStatus({ api, namespace, resource, log, waitForJobs })
+  return resolveResourceStatus({ api, namespace, resource, log, waitForJobs, provider: provider })
 }
 
 export async function resolveResourceStatus(
@@ -325,6 +330,7 @@ export async function waitForResources({
       manifests: Object.values(pendingResources),
       log,
       waitForJobs,
+      provider,
     })
 
     for (const status of statuses) {
@@ -459,7 +465,9 @@ export async function compareDeployedResources({
   log.debug(`Getting currently deployed resource statuses...`)
 
   const deployedObjectStatuses: ResourceStatus[] = await Promise.all(
-    deployedResources.map(async (resource) => resolveResourceStatus({ api, namespace, resource, log }))
+    deployedResources.map(async (resource) =>
+      resolveResourceStatus({ api, namespace, resource, log, provider: ctx.provider })
+    )
   )
 
   const resolvedState = resolveResourceStatuses(log, deployedObjectStatuses)

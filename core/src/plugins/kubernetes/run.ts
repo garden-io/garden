@@ -813,7 +813,7 @@ class PodRunnerNotFoundError extends PodRunnerError {
 
         You can read more about the topic in the Kubernetes documentation:
         https://kubernetes.io/docs/concepts/workloads/pods/disruptions/\n\n
-        ${renderWorkloadEvents(events || [], "Pod", details.podName)}
+        ${renderWorkloadEvents({ events: events || [], workloadKind: "Pod", workloadName: details.podName })}
       `,
       details,
     })

@@ -12,7 +12,7 @@ import type { HelmGardenMetadataConfigMapData } from "./common.js"
 import { filterManifests, getReleaseName, getValueArgs, prepareManifests, prepareTemplates } from "./common.js"
 import { gardenCloudAECPauseAnnotation, getPausedResources, getReleaseStatus, getRenderedResources } from "./status.js"
 import { apply, deleteResources } from "../kubectl.js"
-import type { KubernetesPluginContext } from "../config.js"
+import type { KubernetesConfig, KubernetesPluginContext, KubernetesProvider } from "../config.js"
 import { getForwardablePorts, killPortForwards } from "../port-forward.js"
 import { getActionNamespace, getActionNamespaceStatus } from "../namespace.js"
 import { configureSyncMode } from "../sync.js"
@@ -39,14 +39,16 @@ async function getUnhealthyResourceLogs({
   releaseName,
   manifests,
   api,
+  provider,
 }: {
   namespace: string
   log: ActionLog
   releaseName: string
   manifests: KubernetesResource[]
   api: KubeApi
+  provider: KubernetesProvider
 }) {
-  const unhealthyResources = (await checkResourceStatuses({ api, namespace, manifests, log })).filter(
+  const unhealthyResources = (await checkResourceStatuses({ api, namespace, manifests, log, provider })).filter(
     (r) => r.state === "unhealthy"
   )
 
@@ -54,7 +56,7 @@ async function getUnhealthyResourceLogs({
 
   if (unhealthyResources.length > 0) {
     logs += styles.primary(
-      `Garden found ${styles.accent(unhealthyResources.length)} unhealthy ${unhealthyResources.length === 1 ? "resource" : "resources"} for release ${styles.accent(releaseName)}. Below are Kubernetes events and Pod logs from the unhealthy resources if available/applicable.\n\n`
+      `Garden found ${styles.accent(unhealthyResources.length)} unhealthy ${unhealthyResources.length === 1 ? "resource" : "resources"} for release ${styles.accent(releaseName)}. Below are Kubernetes events and (if applicable) Pod logs from the unhealthy resources.\n\n`
     )
   }
 
@@ -183,6 +185,7 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
           releaseName,
           manifests,
           api,
+          provider: k8sCtx.provider,
         })
         error.message += "\n\n" + logs
       }
@@ -278,7 +281,7 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
       timeoutSec: timeout,
     })
   }
-  const statuses = await checkResourceStatuses({ api, namespace, manifests, log })
+  const statuses = await checkResourceStatuses({ api, namespace, manifests, log, provider })
 
   const forwardablePorts = getForwardablePorts({ resources: manifests, parentAction: action, mode })
 

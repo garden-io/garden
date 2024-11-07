@@ -6,8 +6,17 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { get, flatten, sortBy, omit, sample, isEmpty, find, cloneDeep, uniqBy } from "lodash-es"
-import type { V1Pod, V1EnvVar, V1Container, V1PodSpec, CoreV1Event } from "@kubernetes/client-node"
+import { get, flatten, sortBy, omit, sample, isEmpty, find, cloneDeep, uniqBy, intersection } from "lodash-es"
+import type {
+  V1Pod,
+  V1EnvVar,
+  V1Container,
+  V1PodSpec,
+  CoreV1Event,
+  V1Deployment,
+  V1DaemonSet,
+  V1StatefulSet,
+} from "@kubernetes/client-node"
 import { apply as jsonMerge } from "json-merge-patch"
 import { hashSync } from "hasha"
 
@@ -19,7 +28,7 @@ import type {
   SupportedRuntimeAction,
 } from "./types.js"
 import { isPodResource } from "./types.js"
-import { findByName } from "../../util/util.js"
+import { findByName, isTruthy } from "../../util/util.js"
 import { KubeApi, KubernetesError } from "./api.js"
 import {
   gardenAnnotationKey,
@@ -51,6 +60,7 @@ import type { Resolved } from "../../actions/types.js"
 import { serializeValues } from "../../util/serialization.js"
 import { PassThrough } from "stream"
 import { styles } from "../../logger/styles.js"
+import { makeDocsLinkStyled } from "../../docs/common.js"
 
 const STATIC_LABEL_REGEX = /[0-9]/g
 export const workloadTypes = ["Deployment", "DaemonSet", "ReplicaSet", "StatefulSet"]
@@ -793,7 +803,100 @@ export function getK8sProvider(providers: ProviderMap): KubernetesProvider {
   return provider as KubernetesProvider
 }
 
-export function renderWorkloadEvents(events: CoreV1Event[], workloadKind: string, workloadName: string): string {
+export function getImagePullSecretHints({
+  events,
+  provider,
+  workload,
+}: {
+  events: CoreV1Event[]
+  provider: KubernetesProvider
+  workload: KubernetesServerResource<V1Deployment | V1DaemonSet | V1StatefulSet>
+}): string | null {
+  let text: string = ""
+  if (events.length === 0) {
+    return null
+  }
+
+  const workloadRef = `${workload.kind} ${workload.metadata.name}`
+  const providerImagePullSecretNames = provider.config.imagePullSecrets.map((s) => s.name)
+  const manifestImagePullSecretNames = (workload.spec.template.spec?.imagePullSecrets || [])
+    .map((s) => s.name)
+    .filter(isTruthy)
+  const faileToRetrieveImagePullSecretEvent = events.find((e) => e.reason === "FailedToRetrieveImagePullSecret")
+  const failedToRetrieveImagePullSecretNames: string[] = []
+  if (faileToRetrieveImagePullSecretEvent) {
+    const regex = /Unable to retrieve some image pull secrets \((.*?)\)/
+
+    const match = (faileToRetrieveImagePullSecretEvent.message || "").match(regex)
+
+    if (match && match[1]) {
+      failedToRetrieveImagePullSecretNames.push(...match[1].split(",").map((name) => name.trim()))
+    }
+  }
+
+  const providerImagePullSecretList = naturalList(providerImagePullSecretNames.map((s) => styles.accent(s)))
+
+  // Did the user forget to add the secrets to the provider config?
+  if (failedToRetrieveImagePullSecretNames.length > 0) {
+    const missingProviderSecrets = failedToRetrieveImagePullSecretNames.filter(
+      (s) => !providerImagePullSecretNames.includes(s)
+    )
+
+    if (missingProviderSecrets.length > 0) {
+      text += dedent`
+        💡 Garden hint: Looks like image pull secrets ${naturalList(missingProviderSecrets.map((s) => styles.accent(s)))} are missing from the ${provider.name} provider config for this environment (found image pull secrets ${providerImagePullSecretList} in the provider config).
+
+        You need to add the required image pull secrets references to the \`imagePullSecrets\` field of the relevant provider config in your Garden project configuration.
+
+        Learn more here: ${makeDocsLinkStyled("kubernetes-plugins/remote-k8s/configure-registry")}
+      `
+      return text
+    }
+
+    // We don't really have a hint for the user of the image pull secret is correctly configured but K8s can't retrieve it
+    return text
+  }
+
+  if (manifestImagePullSecretNames.length === 0) {
+    text += dedent`
+      💡 Garden hint: Looke like you might be missing image pull secrets from ${workloadRef}.
+
+      You should make sure the image pull secrets needed to pull the image are correctly set on ${workloadRef}.
+
+      Learn more here: ${makeDocsLinkStyled("kubernetes-plugins/remote-k8s/configure-registry")}
+    `
+    return text
+  }
+
+  if (manifestImagePullSecretNames.length > 0) {
+    const missingProviderSecrets = intersection(manifestImagePullSecretNames, providerImagePullSecretNames)
+
+    if (missingProviderSecrets.length > 0) {
+      text += dedent`
+        💡 Garden hint: Looks like some image pull secrets ${naturalList(missingProviderSecrets.map((s) => styles.accent(s)))} that are referenced in the \`imagePullSecrets\` field of ${workloadRef} are missing from the ${provider.name} provider config for this environment (found image pull secrets ${providerImagePullSecretList} in the provider config).
+
+        You need to add the required image pull secret references to the \`imagePullSecrets\` field of the relevant ${provider.name} provider config in your Garden project configuration.
+
+        Learn more here: ${makeDocsLinkStyled("kubernetes-plugins/remote-k8s/configure-registry")}
+      `
+      return text
+    }
+
+    // We don't really have a hint for the user of the image pull secret is correctly configured but K8s can't retrieve it
+    return text
+  }
+
+  return null
+}
+export function renderWorkloadEvents({
+  events,
+  workloadKind,
+  workloadName,
+}: {
+  events: CoreV1Event[]
+  workloadKind: string
+  workloadName: string
+}): string {
   let text = ""
 
   text += `${styles.accent(`━━━ Latest events from ${workloadKind} ${workloadName} ━━━`)}\n`

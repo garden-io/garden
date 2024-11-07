@@ -11,7 +11,7 @@ import type { ModuleActionHandlers } from "../../../plugin/plugin.js"
 import type { DeployState, ForwardablePort, ServiceStatus } from "../../../types/service.js"
 import { gardenAnnotationKey } from "../../../util/string.js"
 import { KubeApi } from "../api.js"
-import type { KubernetesPluginContext, KubernetesProvider } from "../config.js"
+import type { KubernetesConfig, KubernetesPluginContext, KubernetesProvider } from "../config.js"
 import { configureSyncMode, convertKubernetesModuleDevModeSpec } from "../sync.js"
 import { apply, deleteObjectsBySelector } from "../kubectl.js"
 import { streamK8sLogs } from "../logs.js"
@@ -229,11 +229,13 @@ async function getResourceStatuses({
   namespace,
   api,
   log,
+  provider,
 }: {
   deployedMetadata: ParsedMetadataManifestData
   namespace: string
   api: KubeApi
   log: ActionLog
+  provider: KubernetesProvider
 }): Promise<ResourceStatus[]> {
   const manifestMetadata = Object.values(deployedMetadata.manifestMetadata)
   if (manifestMetadata.length === 0) {
@@ -266,7 +268,7 @@ async function getResourceStatuses({
         return { resource, state: "outdated" } as ResourceStatus
       }
 
-      return await resolveResourceStatus({ api, namespace, resource, log })
+      return await resolveResourceStatus({ api, namespace, resource, log, provider })
     })
   )
 }
@@ -310,6 +312,7 @@ export const getKubernetesDeployStatus: DeployActionHandler<"getStatus", Kuberne
       namespace: defaultNamespace,
       api,
       log,
+      provider,
     })
 
     const remoteResources: KubernetesResource[] = resourceStatuses

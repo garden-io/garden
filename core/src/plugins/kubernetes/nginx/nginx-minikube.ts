@@ -53,6 +53,7 @@ export class MinikubeGardenIngressController extends GardenIngressComponent {
       namespace: "ingress-nginx",
       manifest: nginxKindMainResource,
       log,
+      provider,
     })
     log.debug(`Status of minikube ingress controller addon: ${deploymentStatus.state}`)
     return deploymentStatus.state

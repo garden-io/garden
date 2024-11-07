@@ -20,7 +20,7 @@ import type {
   V1DeploymentSpec,
 } from "@kubernetes/client-node"
 import dedent from "dedent"
-import { getCurrentWorkloadPods, renderWorkloadEvents } from "../util.js"
+import { getCurrentWorkloadPods, getImagePullSecretHints, renderWorkloadEvents } from "../util.js"
 import { getFormattedPodLogs } from "./pod.js"
 import type { ResourceStatus, StatusHandlerParams } from "./status.js"
 import { getResourceEvents } from "./events.js"
@@ -42,7 +42,12 @@ interface Condition {
  * NOTE: This mostly replicates the logic in `kubectl rollout status`. Using that directly here
  * didn't pan out, since it doesn't look for events and just times out when errors occur during rollout.
  */
-export async function checkWorkloadStatus({ api, namespace, resource }: StatusHandlerParams): Promise<ResourceStatus> {
+export async function checkWorkloadStatus({
+  api,
+  namespace,
+  resource,
+  provider,
+}: StatusHandlerParams): Promise<ResourceStatus> {
   const workload = <Workload>resource
 
   let _pods: KubernetesPod[]
@@ -67,11 +72,21 @@ export async function checkWorkloadStatus({ api, namespace, resource }: StatusHa
   }
 
   const fail = async (lastMessage: string) => {
-    let logs = ""
+    let logs = styles.primary(
+      `Below are the latest Kubernetes events and (if applicable) Pod logs from ${styles.accent(workload.kind)} ${styles.accent(workload.metadata.name)}\n\n`
+    )
 
     // List events
     const events = await getEvents()
-    logs += renderWorkloadEvents(events, workload.kind, workload.metadata.name)
+    logs += renderWorkloadEvents({ events, workloadKind: workload.kind, workloadName: workload.metadata.name })
+    const imagePullSecretHints = getImagePullSecretHints({
+      events,
+      provider,
+      workload,
+    })
+    if (imagePullSecretHints) {
+      logs += styles.primary(`\n${imagePullSecretHints}\n`)
+    }
 
     const failedContainers = events.reduce<{ type: string; name: string }[]>((memo, event) => {
       const fieldPath = event.involvedObject.fieldPath
@@ -102,7 +117,7 @@ export async function checkWorkloadStatus({ api, namespace, resource }: StatusHa
     const pods = await getPods()
     let podLogs: string | null
     try {
-      podLogs = await getFormattedPodLogs(api, namespace, pods, ({ containerName, log }) => {
+      podLogs = await getFormattedPodLogs(api, namespace, pods, ({ containerName }) => {
         const isFailedContainer = failedContainers.map((c) => c.name).includes(containerName)
         return isFailedContainer
       })
