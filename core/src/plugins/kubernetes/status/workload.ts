@@ -20,8 +20,8 @@ import type {
   V1DeploymentSpec,
 } from "@kubernetes/client-node"
 import dedent from "dedent"
-import { getCurrentWorkloadPods, renderPodEvents } from "../util.js"
-import { getFormattedPodLogs, POD_LOG_LINES } from "./pod.js"
+import { getCurrentWorkloadPods, renderWorkloadEvents } from "../util.js"
+import { getFormattedPodLogs } from "./pod.js"
 import type { ResourceStatus, StatusHandlerParams } from "./status.js"
 import { getResourceEvents } from "./events.js"
 import { styles } from "../../../logger/styles.js"
@@ -54,13 +54,12 @@ export async function checkWorkloadStatus({ api, namespace, resource }: StatusHa
     }
     return _pods
   }
-
   const getEvents = async () => {
     if (!_events) {
       // Get all relevant events for the workload
       const workloadEvents = await getResourceEvents(api, workload)
-      const pods = await getPods()
-      const podEvents = flatten(await Promise.all(pods.map((pod) => getResourceEvents(api, pod))))
+      const allPods = await getPods()
+      const podEvents = flatten(await Promise.all(allPods.map((pod) => getResourceEvents(api, pod))))
       _events = sortBy([...workloadEvents, ...podEvents], (e) => e.metadata.creationTimestamp)
     }
     return _events
@@ -71,37 +70,60 @@ export async function checkWorkloadStatus({ api, namespace, resource }: StatusHa
 
     // List events
     const events = await getEvents()
-    if (events.length > 0) {
-      logs += renderPodEvents(events)
-    }
+    logs += renderWorkloadEvents(events, workload.kind, workload.metadata.name)
+
+    // Get failed containers by parsing the event field path and type
+    const failedContainers = events.reduce<string[]>((memo, event) => {
+      const fieldPath = event.involvedObject.fieldPath
+      if (
+        !fieldPath ||
+        event.involvedObject.kind !== "Pod" ||
+        event.type !== "Warning" ||
+        (!fieldPath.includes("containers") && !fieldPath.includes("initContainers"))
+      ) {
+        return memo
+      }
+
+      const regex = /^spec\.(containers|initContainers)\{([^}]+)\}$/
+      const match = fieldPath.match(regex)
+      const containerName = match && match[2]
+
+      if (!containerName) {
+        return memo
+      }
+
+      return [...memo, containerName]
+    }, [])
 
     // Attach pod logs for debug output
-    const pods = await getPods()
-    let podLogs: string | undefined
+    const allPods = await getPods()
+    let podLogs: string | null
     try {
-      podLogs = await getFormattedPodLogs(api, namespace, pods)
+      // Only show logs for failed containers
+      const filterFn = ({ containerName }) => failedContainers.includes(containerName)
+      podLogs = await getFormattedPodLogs(api, namespace, allPods, filterFn)
     } catch (err) {
-      const podNames = pods.map((pod) => styles.highlight(pod.metadata.name)).join(", ")
+      const podNames = allPods.map((pod) => styles.highlight(pod.metadata.name)).join(", ")
       logs += styles.secondary(`Warning: Could not retrieve logs for one or more of the following pods: ${podNames}`)
       if (err instanceof KubernetesError) {
         if (err.message && err.message.length > 0) {
           logs += styles.secondary(`Error message: ${err.message}`)
         }
       }
-      podLogs = undefined
+      podLogs = null
     }
 
+    logs += styles.accent(
+      `\n\n━━━ Latest logs from failed containers in each Pod in ${workload.kind} ${workload.metadata.name} ━━━\n`
+    )
     if (podLogs) {
-      logs += styles.accent("\n\n━━━ Pod logs ━━━\n")
-      logs +=
-        styles.primary(dedent`
-      <Showing last ${POD_LOG_LINES} lines per pod in this ${
-        workload.kind
-      }. Run the following command for complete logs>
-      $ kubectl -n ${namespace} --context=${api.context} logs ${workload.kind.toLowerCase()}/${workload.metadata.name}
-      `) +
-        "\n" +
-        podLogs
+      logs += podLogs
+      logs += styles.primary(dedent`
+        \n💡 Garden hint: For complete Pod logs for this ${workload.kind}, run the following command:
+        ${styles.command(`kubectl -n ${namespace} --context=${api.context} logs ${workload.kind.toLowerCase()}/${workload.metadata.name} --all-containers`)}
+      `)
+    } else {
+      logs += "<No Pod logs found>"
     }
 
     return <ResourceStatus>{
