@@ -17,7 +17,7 @@ import { omit, isPlainObject, isArray } from "lodash-es"
 import type { BuildDependencyConfig, ModuleConfig } from "./module.js"
 import { coreModuleSpecSchema, baseModuleSchemaKeys } from "./module.js"
 import { ConfigurationError, FilesystemError, ParameterError } from "../exceptions.js"
-import { DEFAULT_BUILD_TIMEOUT_SEC, GardenApiVersion } from "../constants.js"
+import { DEFAULT_BUILD_TIMEOUT_SEC, GardenApiVersion, gardenEnv } from "../constants.js"
 import type { ProjectConfig } from "../config/project.js"
 import { validateWithPath } from "./validation.js"
 import { defaultDotIgnoreFile, listDirectory } from "../util/fs.js"
@@ -36,6 +36,7 @@ import { parseAllDocuments } from "yaml"
 import { dedent, deline } from "../util/string.js"
 import { makeDocsLinkStyled } from "../docs/common.js"
 import { profile, profileAsync } from "../util/profiling.js"
+import AsyncLock from "async-lock"
 
 export const configTemplateKind = "ConfigTemplate"
 export const renderTemplateKind = "RenderTemplate"
@@ -566,6 +567,9 @@ const _loadYaml = profile(function _loadYaml(data: Buffer) {
   return load(data.toString()) as PrimitiveMap
 })
 
+const varfileCache = new Map<string, PrimitiveMap>()
+const asyncLock = new AsyncLock()
+
 export const loadVarfile = profileAsync(async function loadVarfile({
   configRoot,
   path,
@@ -599,41 +603,60 @@ export const loadVarfile = profileAsync(async function loadVarfile({
     return {}
   }
 
-  try {
-    const data = await _readFile(resolvedPath)
-    log?.silly(() => `Loaded ${data.length} bytes from varfile ${resolvedPath}`)
-    const relPath = relative(configRoot, resolvedPath)
-    const filename = basename(resolvedPath.toLowerCase())
-
-    if (filename.endsWith(".json")) {
-      // JSON parser throws a JSON syntax error on completely empty input file,
-      // and returns an empty object for an empty JSON.
-      const parsed = JSON.parse(data.toString())
-      if (!isPlainObject(parsed)) {
-        throw new ConfigurationError({
-          message: `Configured variable file ${relPath} must be a valid plain JSON object. Got: ${typeof parsed}`,
-        })
-      }
-      return parsed as PrimitiveMap
-    } else if (filename.endsWith(".yml") || filename.endsWith(".yaml")) {
-      // YAML parser returns `undefined` for empty files, we interpret that as an empty object.
-      const parsed = _loadYaml(data) || {}
-      if (!isPlainObject(parsed)) {
-        throw new ConfigurationError({
-          message: `Configured variable file ${relPath} must be a single plain YAML mapping. Got: ${typeof parsed}`,
-        })
-      }
-      return parsed as PrimitiveMap
-    } else {
-      // Note: For backwards-compatibility we fall back on using .env as a default format,
-      // and don't specifically validate the extension for that.
-      // The dotenv parser returns an empty object for invalid or empty input file.
-      const parsed = dotenv.parse(data)
-      return parsed as PrimitiveMap
+  if (gardenEnv.GARDEN_CACHE_VARFILES) {
+    const cachedVarfile = varfileCache.get(resolvedPath)
+    if (cachedVarfile) {
+      return cachedVarfile
     }
-  } catch (error) {
-    throw new ConfigurationError({
-      message: `Unable to load varfile at '${path}': ${error}`,
-    })
   }
+
+  return asyncLock.acquire(`varfile:${resolvedPath}`, async () => {
+    if (gardenEnv.GARDEN_CACHE_VARFILES) {
+      const cachedVarfile = varfileCache.get(resolvedPath)
+      if (cachedVarfile) {
+        return cachedVarfile
+      }
+    }
+
+    try {
+      const data = await _readFile(resolvedPath)
+      log?.silly(() => `Loaded ${data.length} bytes from varfile ${resolvedPath}`)
+      const relPath = relative(configRoot, resolvedPath)
+      const filename = basename(resolvedPath.toLowerCase())
+
+      if (filename.endsWith(".json")) {
+        // JSON parser throws a JSON syntax error on completely empty input file,
+        // and returns an empty object for an empty JSON.
+        const parsed = JSON.parse(data.toString())
+        if (!isPlainObject(parsed)) {
+          throw new ConfigurationError({
+            message: `Configured variable file ${relPath} must be a valid plain JSON object. Got: ${typeof parsed}`,
+          })
+        }
+        varfileCache.set(resolvedPath, parsed)
+        return parsed as PrimitiveMap
+      } else if (filename.endsWith(".yml") || filename.endsWith(".yaml")) {
+        // YAML parser returns `undefined` for empty files, we interpret that as an empty object.
+        const parsed = _loadYaml(data) || {}
+        if (!isPlainObject(parsed)) {
+          throw new ConfigurationError({
+            message: `Configured variable file ${relPath} must be a single plain YAML mapping. Got: ${typeof parsed}`,
+          })
+        }
+        varfileCache.set(resolvedPath, parsed)
+        return parsed as PrimitiveMap
+      } else {
+        // Note: For backwards-compatibility we fall back on using .env as a default format,
+        // and don't specifically validate the extension for that.
+        // The dotenv parser returns an empty object for invalid or empty input file.
+        const parsed = dotenv.parse(data)
+        varfileCache.set(resolvedPath, parsed)
+        return parsed as PrimitiveMap
+      }
+    } catch (error) {
+      throw new ConfigurationError({
+        message: `Unable to load varfile at '${path}': ${error}`,
+      })
+    }
+  })
 })
