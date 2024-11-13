@@ -80,8 +80,8 @@ RUN ./aws/install
 # garden-gcloud-base
 #
 FROM garden-base as garden-gcloud-base
-ENV GCLOUD_VERSION=499.0.0
-ENV GCLOUD_SHA256="a43370a34cbe4d7defbae25fb09872ace7df0793a36424033dce05e056fce77f"
+ENV GCLOUD_VERSION=500.0.0
+ENV GCLOUD_SHA256="071072b10635add3e20418dae4ed8b096cb1b1eed5f0e538bf567e00cd7f45c3"
 
 RUN curl -O https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-${GCLOUD_VERSION}-linux-x86_64.tar.gz
 RUN echo "${GCLOUD_SHA256}  google-cloud-cli-${GCLOUD_VERSION}-linux-x86_64.tar.gz" | sha256sum -c
