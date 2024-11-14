@@ -930,69 +930,67 @@ export function parseSyncListResult(res: ExecaReturnValue): SyncSession[] {
 
 export const mutagenVersion = "0.17.6"
 
-export function mutagenCliSpec(): PluginToolSpec {
-  return {
-    name: "mutagen",
-    version: mutagenVersion,
-    description: `The mutagen synchronization tool, v${mutagenVersion}`,
-    type: "binary",
-    _includeInGardenImage: false,
-    builds: [
-      {
-        platform: "darwin",
-        architecture: "amd64",
-        url: `https://github.com/mutagen-io/mutagen/releases/download/v${mutagenVersion}/mutagen_darwin_amd64_v${mutagenVersion}.tar.gz`,
-        sha256: "f082eef2ae405a6bf5effdbcd000bb5fe2bc7b0968f86b2b54d9d3260c48c739",
-        extract: {
-          format: "tar",
-          targetPath: "mutagen",
-        },
+export const mutagenCliSpec: PluginToolSpec = {
+  name: "mutagen",
+  version: mutagenVersion,
+  description: `The mutagen synchronization tool, v${mutagenVersion}`,
+  type: "binary",
+  _includeInGardenImage: false,
+  builds: [
+    {
+      platform: "darwin",
+      architecture: "amd64",
+      url: `https://github.com/mutagen-io/mutagen/releases/download/v${mutagenVersion}/mutagen_darwin_amd64_v${mutagenVersion}.tar.gz`,
+      sha256: "f082eef2ae405a6bf5effdbcd000bb5fe2bc7b0968f86b2b54d9d3260c48c739",
+      extract: {
+        format: "tar",
+        targetPath: "mutagen",
       },
-      {
-        platform: "darwin",
-        architecture: "arm64",
-        url: `https://github.com/mutagen-io/mutagen/releases/download/v${mutagenVersion}/mutagen_darwin_arm64_v${mutagenVersion}.tar.gz`,
-        sha256: "b6c35942ca9cbbbf726bfa249da554d829a8a28cad620a55e02d098d692121d1",
-        extract: {
-          format: "tar",
-          targetPath: "mutagen",
-        },
+    },
+    {
+      platform: "darwin",
+      architecture: "arm64",
+      url: `https://github.com/mutagen-io/mutagen/releases/download/v${mutagenVersion}/mutagen_darwin_arm64_v${mutagenVersion}.tar.gz`,
+      sha256: "b6c35942ca9cbbbf726bfa249da554d829a8a28cad620a55e02d098d692121d1",
+      extract: {
+        format: "tar",
+        targetPath: "mutagen",
       },
-      {
-        platform: "linux",
-        architecture: "amd64",
-        url: `https://github.com/mutagen-io/mutagen/releases/download/v${mutagenVersion}/mutagen_linux_amd64_v${mutagenVersion}.tar.gz`,
-        sha256: "1b826e121be59506e133d90dc2b8a0c820b92f480d9b2b230d8b389d6178a6cf",
-        extract: {
-          format: "tar",
-          targetPath: "mutagen",
-        },
+    },
+    {
+      platform: "linux",
+      architecture: "amd64",
+      url: `https://github.com/mutagen-io/mutagen/releases/download/v${mutagenVersion}/mutagen_linux_amd64_v${mutagenVersion}.tar.gz`,
+      sha256: "1b826e121be59506e133d90dc2b8a0c820b92f480d9b2b230d8b389d6178a6cf",
+      extract: {
+        format: "tar",
+        targetPath: "mutagen",
       },
-      {
-        platform: "linux",
-        architecture: "arm64",
-        url: `https://github.com/mutagen-io/mutagen/releases/download/v${mutagenVersion}/mutagen_linux_arm64_v${mutagenVersion}.tar.gz`,
-        sha256: "2a383cb572a1bdad83f7c4be3cc4a541a58e6c9e11e326ee4cc2d0e14f9d003a",
-        extract: {
-          format: "tar",
-          targetPath: "mutagen",
-        },
+    },
+    {
+      platform: "linux",
+      architecture: "arm64",
+      url: `https://github.com/mutagen-io/mutagen/releases/download/v${mutagenVersion}/mutagen_linux_arm64_v${mutagenVersion}.tar.gz`,
+      sha256: "2a383cb572a1bdad83f7c4be3cc4a541a58e6c9e11e326ee4cc2d0e14f9d003a",
+      extract: {
+        format: "tar",
+        targetPath: "mutagen",
       },
-      {
-        platform: "windows",
-        architecture: "amd64",
-        url: `https://github.com/mutagen-io/mutagen/releases/download/v${mutagenVersion}/mutagen_windows_amd64_v${mutagenVersion}.zip`,
-        sha256: "3019ccb556afb39cf2213adcacab97576c4419f8d08d3a55d063a5c773ec6d35",
-        extract: {
-          format: "zip",
-          targetPath: "mutagen.exe",
-        },
+    },
+    {
+      platform: "windows",
+      architecture: "amd64",
+      url: `https://github.com/mutagen-io/mutagen/releases/download/v${mutagenVersion}/mutagen_windows_amd64_v${mutagenVersion}.zip`,
+      sha256: "3019ccb556afb39cf2213adcacab97576c4419f8d08d3a55d063a5c773ec6d35",
+      extract: {
+        format: "zip",
+        targetPath: "mutagen.exe",
       },
-    ],
-  }
+    },
+  ],
 }
 
-export const mutagenCli = new PluginTool(mutagenCliSpec())
+export const mutagenCli = new PluginTool(mutagenCliSpec)
 
 const mutagenFauxSshVersion = "v0.0.1"
 const mutagenFauxSshReleaseBaseUrl = "https://github.com/garden-io/mutagen-faux-ssh/releases/download/"

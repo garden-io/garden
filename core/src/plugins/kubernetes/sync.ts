@@ -334,7 +334,7 @@ export async function configureSyncMode({
           Override configuration:
           ${(override.command?.length ?? 0) > 0 ? `Command: ${override.command?.join(" ")}` : ""}
           ${(override.args?.length ?? 0) > 0 ? `Args: ${override.args?.join(" ")}` : ""}
-          ${override.image?.length ?? 0 ? `Image: ${override.image}` : ""}
+          ${(override.image?.length ?? 0) ? `Image: ${override.image}` : ""}
         `,
       })
     }
@@ -984,7 +984,7 @@ export function makeSyncConfig({
   }
 }
 
-async function getKubectlExecDestination({
+export async function getKubectlExecDestination({
   ctx,
   log,
   namespace,
