@@ -24,7 +24,8 @@ spec:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          args: [python, app.py]
+          args:
+            {{- toYaml .Values.args | nindent 12 }}
           ports:
             - name: http
               containerPort: 80

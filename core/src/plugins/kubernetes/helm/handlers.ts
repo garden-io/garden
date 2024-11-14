@@ -187,6 +187,8 @@ function prepareDeployAction({
 
     spec: {
       atomic: module.spec.atomicInstall,
+      // This option is not available on Modules so we default to false when converting from modules
+      waitForUnhealthyResources: false,
       portForwards: module.spec.portForwards,
       namespace: module.spec.namespace,
       releaseName: module.spec.releaseName || module.name,

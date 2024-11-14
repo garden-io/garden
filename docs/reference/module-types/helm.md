@@ -219,9 +219,11 @@ values: {}
 # this action config's directory.
 valueFiles: []
 
-# Whether to set the --atomic flag during installs and upgrades. Set to true if you'd like the changes applied to be
-# reverted on failure. Set to false if e.g. you want to see more information about failures and then manually roll
-# back, instead of having Helm do it automatically on failure.
+# Whether to set the `--atomic` flag during installs and upgrades. Set to `true` if you'd like the changes applied
+# to be reverted on failure. Set to false if e.g. you want to see more information about failures and then manually
+# roll back, instead of having Helm do it automatically on failure.
+#
+# Note that setting `atomic` to `true` implies `wait`.
 atomicInstall: false
 
 # The name of another `helm` module to use as a base for this one. Use this to re-use a Helm chart across multiple
@@ -1044,7 +1046,11 @@ this action config's directory.
 
 ### `atomicInstall`
 
-Whether to set the --atomic flag during installs and upgrades. Set to true if you'd like the changes applied to be reverted on failure. Set to false if e.g. you want to see more information about failures and then manually roll back, instead of having Helm do it automatically on failure.
+Whether to set the `--atomic` flag during installs and upgrades. Set to `true` if you'd like the changes applied
+to be reverted on failure. Set to false if e.g. you want to see more information about failures and then manually
+roll back, instead of having Helm do it automatically on failure.
+
+Note that setting `atomic` to `true` implies `wait`.
 
 | Type      | Default | Required |
 | --------- | ------- | -------- |

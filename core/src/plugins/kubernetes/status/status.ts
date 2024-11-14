@@ -268,6 +268,9 @@ interface WaitParams {
 
 /**
  * Wait until the rollout is complete for each of the given Kubernetes objects
+ *
+ * @throws {DeploymentResourceStatusError} as soon as resource with state="unhealthy" is found
+ * @throws {DeploymentError} if it times out waiting for resource
  */
 export async function waitForResources({
   namespace,
