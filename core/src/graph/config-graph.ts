@@ -449,6 +449,7 @@ export abstract class BaseConfigGraph<
       }
     }
 
+    // @ts-ignore
     const sortedNodeKeys = toposort(simpleEdges)
 
     const edgeSortIndex = (e: ConfigGraphEdge) => {

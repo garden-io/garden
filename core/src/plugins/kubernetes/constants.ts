@@ -7,7 +7,6 @@
  */
 
 import type { DockerImageWithDigest } from "../../util/string.js"
-import { gardenEnv } from "../../constants.js"
 import { makeDocsLinkPlain } from "../../docs/common.js"
 
 export const MAX_CONFIGMAP_DATA_SIZE = 1024 * 1024 // max ConfigMap data size is 1MB
@@ -48,25 +47,17 @@ function makeImagePath({
 }
 
 export function getK8sUtilImagePath(registryDomain: string): DockerImageWithDigest {
-  const k8sUtilImageNameLegacy: DockerImageWithDigest =
-    "gardendev/k8s-util:0.5.7@sha256:522da245a5e6ae7c711aa94f84fc83f82a8fdffbf6d8bc48f4d80fee0e0e631b"
   const k8sUtilImageName: DockerImageWithDigest =
     "gardendev/k8s-util:0.6.2@sha256:f51e7ce040e2e23bc0eaa7216e4d976f13786d96773ef7b8c8f349e7a63d74e9"
 
-  return gardenEnv.GARDEN_ENABLE_NEW_SYNC
-    ? makeImagePath({ imageName: k8sUtilImageName, registryDomain })
-    : makeImagePath({ imageName: k8sUtilImageNameLegacy, registryDomain })
+  return makeImagePath({ imageName: k8sUtilImageName, registryDomain })
 }
 
 export function getK8sSyncUtilImagePath(registryDomain: string): DockerImageWithDigest {
   const k8sSyncUtilImageName: DockerImageWithDigest =
     "gardendev/k8s-sync:0.2.2@sha256:9ebcd84df4a3a55ae0ba95051cab521d249a4d2d7a15d04da7301c888c02347b"
-  const k8sSyncUtilImageNameLegacy: DockerImageWithDigest =
-    "gardendev/k8s-sync:0.1.5@sha256:28263cee5ac41acebb8c08f852c4496b15e18c0c94797d7a949a4453b5f91578"
 
-  return gardenEnv.GARDEN_ENABLE_NEW_SYNC
-    ? makeImagePath({ imageName: k8sSyncUtilImageName, registryDomain })
-    : makeImagePath({ imageName: k8sSyncUtilImageNameLegacy, registryDomain })
+  return makeImagePath({ imageName: k8sSyncUtilImageName, registryDomain })
 }
 
 export function getK8sReverseProxyImagePath(registryDomain: string): DockerImageWithDigest {
