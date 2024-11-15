@@ -825,7 +825,7 @@ export const containerDeploySchema = createSchema({
 export interface ContainerRegistryConfig {
   hostname: string
   port?: number
-  namespace: string
+  namespace?: string
   insecure: boolean
 }
 
@@ -840,7 +840,7 @@ export const containerRegistryConfigSchema = createSchema({
     port: joi.number().integer().description("The port where the registry listens on, if not the default."),
     namespace: joi
       .string()
-      .default("_")
+      .optional()
       .description(
         "The registry namespace. Will be placed between hostname and image name, like so: <hostname>/<namespace>/<image name>"
       )

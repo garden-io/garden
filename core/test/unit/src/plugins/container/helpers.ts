@@ -271,14 +271,14 @@ describe("containerHelpers", () => {
       ).to.equal("my-host.com/namespace/image:tag")
     })
 
-    it("should set a default namespace when host but no namespace is specified", () => {
+    it("should ignore the namespace when host but no namespace is specified", () => {
       expect(
         helpers.unparseImageId({
           host: "my-host.com",
           repository: "image",
           tag: "tag",
         })
-      ).to.equal("my-host.com/_/image:tag")
+      ).to.equal("my-host.com/image:tag")
     })
 
     it("should correctly compose an id with a host and multi-level namespace", () => {

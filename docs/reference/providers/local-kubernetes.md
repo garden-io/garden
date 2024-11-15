@@ -132,7 +132,7 @@ providers:
 
             # The registry namespace. Will be placed between hostname and image name, like so:
             # <hostname>/<namespace>/<image name>
-            namespace: _
+            namespace:
 
             # Set to true to allow insecure connections to the registry (without SSL).
             insecure: false
@@ -702,9 +702,9 @@ The port where the registry listens on, if not the default.
 
 The registry namespace. Will be placed between hostname and image name, like so: <hostname>/<namespace>/<image name>
 
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `string` | `"_"`   | No       |
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
 
 Example:
 
