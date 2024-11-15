@@ -267,7 +267,7 @@ const helpers = {
     const name = parsed.tag ? `${parsed.repository}:${parsed.tag}` : parsed.repository
 
     if (parsed.host) {
-      return `${parsed.host}/${parsed.namespace + "/" || ""}${name}`
+      return `${parsed.host}/${parsed.namespace ? parsed.namespace + "/" : ""}${name}`
     } else if (parsed.namespace) {
       return `${parsed.namespace}/${name}`
     } else {
