@@ -42,10 +42,7 @@ export const openshiftContainerDeployExtension = (): DeployActionExtension<Conta
     stopSync: k8sContainerStopSync,
     getSyncStatus: k8sContainerGetSyncStatus,
 
-    validate: async ({ ctx, action, base }) => {
-      if (base) {
-        await base({ action })
-      }
+    validate: async ({ ctx, action }) => {
       validateDeploySpec(action.name, <KubernetesProvider>ctx.provider, action.getSpec())
       return {}
     },
