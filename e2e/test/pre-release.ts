@@ -10,7 +10,7 @@ import { execa } from "execa"
 import chalk from "chalk"
 import { expect } from "chai"
 import { resolve } from "path"
-import replaceInFile from "replace-in-file"
+import { replaceInFile } from "replace-in-file"
 import { changeFileStep, GardenWatch, runGarden, waitingForChangesStep, sleepStep } from "../run-garden.js"
 import {
   projectsDir,

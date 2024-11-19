@@ -20,7 +20,7 @@ const { createWriteStream, readFile, writeFile } = fsExtra
 import { getPackages } from "./script-utils.js"
 import parseArgs from "minimist"
 import deline from "deline"
-import replace from "replace-in-file"
+import { replaceInFile } from "replace-in-file"
 import { fileURLToPath } from "node:url"
 import { finished } from "node:stream/promises"
 
@@ -256,7 +256,7 @@ async function updateExampleLinks(version: string) {
     from: /github\.com\/garden-io\/garden\/tree\/[^\/]*\/examples/g,
     to: `github.com/garden-io/garden/tree/${version}/examples`,
   }
-  const results = await replace.replaceInFile(options)
+  const results = await replaceInFile(options)
   console.log(
     "Modified files:",
     results
