@@ -33,7 +33,7 @@ export class JsonFileWriter extends FileWriter {
         new winston.transports.File({
           ...this.fileTransportOptions,
           // We override the format here, since we want a pure JSON line (without a timestamp prefix).
-          format: winston.format.printf((info) => info.message),
+          format: winston.format.printf((info) => info.message as string),
           filename: this.logFilePath,
         }),
       ],
