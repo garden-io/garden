@@ -14,15 +14,17 @@ import semver from "semver"
 import { confirm } from "@inquirer/prompts"
 import chalk from "chalk"
 import { dirname, relative, resolve } from "node:path"
-import fsExtra from "fs-extra"
-
-const { createWriteStream, readFile, writeFile } = fsExtra
 import { getPackages } from "./script-utils.js"
 import parseArgs from "minimist"
 import deline from "deline"
-import { replaceInFile } from "replace-in-file"
 import { fileURLToPath } from "node:url"
 import { finished } from "node:stream/promises"
+
+import fsExtra from "fs-extra"
+import replaceInFilePkg from "replace-in-file"
+
+const { createWriteStream, readFile, writeFile } = fsExtra
+const { replaceInFile } = replaceInFilePkg
 
 const moduleDirName = dirname(fileURLToPath(import.meta.url))
 

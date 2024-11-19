@@ -10,7 +10,6 @@ import { expect } from "chai"
 import { Command, CommandGroup } from "../../../../src/commands/base.js"
 import { StringsParameter } from "../../../../src/cli/params.js"
 import stripAnsi from "strip-ansi"
-import { replaceInFile } from "replace-in-file"
 import { join } from "path"
 import dedent from "dedent"
 import { BuildCommand } from "../../../../src/commands/build.js"
@@ -18,6 +17,10 @@ import { DevCommand } from "../../../../src/commands/dev.js"
 import { ValidateCommand } from "../../../../src/commands/validate.js"
 import { uuidv4 } from "../../../../src/util/random.js"
 import { trimLineEnds, getDataDir, makeTestGarden, withDefaultGlobalOpts } from "../../../helpers.js"
+
+import replaceInFilePkg from "replace-in-file"
+
+const { replaceInFile } = replaceInFilePkg
 
 describe("Command", () => {
   describe("renderHelp", () => {
@@ -479,6 +482,7 @@ describe("CommandGroup", () => {
           return {}
         }
       }
+
       class HiddenTestSubCommand extends Command {
         name = "test-command-hidden"
         override aliases = ["some-alias"]
@@ -518,6 +522,7 @@ describe("CommandGroup", () => {
           return {}
         }
       }
+
       class HiddenTestSubCommandB extends Command {
         name = "test-command-hidden-b"
         override aliases = ["some-alias"]

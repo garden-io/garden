@@ -10,7 +10,6 @@ import { execa } from "execa"
 import chalk from "chalk"
 import { expect } from "chai"
 import { resolve } from "path"
-import { replaceInFile } from "replace-in-file"
 import { changeFileStep, GardenWatch, runGarden, waitingForChangesStep, sleepStep } from "../run-garden.js"
 import {
   projectsDir,
@@ -21,8 +20,12 @@ import {
   stringifyJsonLog,
 } from "../helpers.js"
 import { usernameSync } from "username"
+
 import fsExtra from "fs-extra"
+import replaceInFilePkg from "replace-in-file"
+
 const { realpath } = fsExtra
+const { replaceInFile } = replaceInFilePkg
 
 function log(msg: string) {
   // eslint-disable-next-line
@@ -133,7 +136,7 @@ describe("PreReleaseTests", () => {
           {
             description: "change 'Node' -> 'foo' in node-service/app.js",
             action: async () => {
-              await replaceInFile.replaceInFile({
+              await replaceInFile({
                 files: resolve(projectPath, "node-service/src/app.js"),
                 from: /Hello from Node/,
                 to: "Hello from foo",
