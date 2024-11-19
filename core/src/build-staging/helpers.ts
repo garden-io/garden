@@ -20,8 +20,9 @@ import { promisify } from "util"
 import { styles } from "../logger/styles.js"
 import { emitNonRepeatableWarning } from "../warnings.js"
 import { type Log } from "../logger/log-entry.js"
+import type { StatsBase } from "node:fs"
 
-const { ensureDir, Stats, lstat, remove } = fsExtra
+const { ensureDir, lstat, remove } = fsExtra
 
 export type MappedPaths = [string, string][]
 
@@ -306,37 +307,26 @@ export async function scanDirectoryForClone(root: string, pattern?: string): Pro
   return mappedPaths
 }
 
-type ExtendedStatsCtorParams = {
-  path: string
-  target?: ExtendedStats | null
-  targetPath?: string | null
-}
-
-export class ExtendedStats extends Stats {
+interface StatsExtra {
   path: string
   target?: ExtendedStats | null
   // original relative or absolute path the symlink points to. This can be defined when target is null when the target does not exist, for instance.
   targetPath?: string | null
+}
 
-  constructor({ path, target, targetPath }: ExtendedStatsCtorParams) {
-    super()
-    this.path = path
-    this.target = target
-    this.targetPath = targetPath
-  }
+export type ExtendedStats = StatsBase<number> & StatsExtra
 
-  static fromStats({
-    stats,
-    path,
-    target,
-    targetPath,
-  }: {
-    stats: fsExtra.Stats
-  } & ExtendedStatsCtorParams) {
-    const o = new ExtendedStats({ path, target, targetPath })
-    Object.assign(o, stats)
-    return o
-  }
+function makeExtendedStats({
+  stats,
+  path,
+  target,
+  targetPath,
+}: {
+  stats: fsExtra.Stats
+} & StatsExtra): ExtendedStats {
+  const o: StatsExtra = { path, target, targetPath }
+  Object.assign(stats, o)
+  return stats as ExtendedStats
 }
 
 interface ExtendedStatsParams {
@@ -426,11 +416,11 @@ export class FileStatsHelper {
           this.resolveSymlink(
             { path, allowAbsolute: allowAbsoluteSymlinks },
             ({ err: symlinkErr, target, targetPath }) => {
-              cb(symlinkErr, ExtendedStats.fromStats({ stats: lstats, path, target, targetPath }))
+              cb(symlinkErr, makeExtendedStats({ stats: lstats, path, target, targetPath }))
             }
           )
         } else {
-          cb(null, ExtendedStats.fromStats({ stats: lstats, path }))
+          cb(null, makeExtendedStats({ stats: lstats, path }))
         }
       })
     }
@@ -533,7 +523,7 @@ export class FileStatsHelper {
           // Return with path and stats for final symlink target
           cb({
             err: null,
-            target: ExtendedStats.fromStats({ stats: toStats, path: absoluteTarget }),
+            target: makeExtendedStats({ stats: toStats, path: absoluteTarget }),
             targetPath: target,
           })
         }
