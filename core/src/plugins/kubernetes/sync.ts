@@ -68,7 +68,6 @@ import { convertServiceResource } from "./kubernetes-type/common.js"
 import { prepareConnectionOpts } from "./kubectl.js"
 import type { GetSyncStatusResult, SyncState, SyncStatus } from "../../plugin/handlers/Deploy/get-sync-status.js"
 import { ConfigurationError } from "../../exceptions.js"
-import { gardenEnv } from "../../constants.js"
 import { styles } from "../../logger/styles.js"
 import { commandListToShellScript } from "../../util/escape.js"
 import { toClearText } from "../../util/secrets.js"
@@ -985,48 +984,7 @@ export function makeSyncConfig({
   }
 }
 
-async function getKubectlExecDestinationLegacy({
-  ctx,
-  log,
-  namespace,
-  containerName,
-  resourceName,
-  targetPath,
-}: {
-  ctx: KubernetesPluginContext
-  log: Log
-  namespace: string
-  containerName: string
-  resourceName: string
-  targetPath: string
-}) {
-  const kubectl = ctx.tools["kubernetes.kubectl"]
-  const kubectlPath = await kubectl.ensurePath(log)
-
-  const connectionOpts = prepareConnectionOpts({
-    provider: ctx.provider,
-    namespace,
-  })
-
-  const command = [
-    kubectlPath,
-    "exec",
-    "-i",
-    ...connectionOpts,
-    "--container",
-    containerName,
-    resourceName,
-    "--",
-    mutagenAgentPath,
-    "synchronizer",
-  ]
-
-  log.debug("Using legacy Mutagen (Garden fork)")
-
-  return `exec:'${command.join(" ")}':${targetPath}`
-}
-
-async function getKubectlExecDestinationNative({
+export async function getKubectlExecDestination({
   ctx,
   log,
   namespace,
@@ -1073,9 +1031,5 @@ async function getKubectlExecDestinationNative({
 
   return `${hostname}:${targetPath}`
 }
-
-export const getKubectlExecDestination = gardenEnv.GARDEN_ENABLE_NEW_SYNC
-  ? getKubectlExecDestinationNative
-  : getKubectlExecDestinationLegacy
 
 const isReverseMode = (mode: string) => mode === "one-way-reverse" || mode === "one-way-replica-reverse"

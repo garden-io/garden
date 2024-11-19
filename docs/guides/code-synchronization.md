@@ -322,30 +322,61 @@ garden util mutagen sync list
 ### Restarting sync daemon
 
 Starting from the version `0.13.26`, Garden offers a new file synchronization machinery.
-It is available via the environment variable `GARDEN_ENABLE_NEW_SYNC` and it disabled by default.
+It is available via the environment variable `GARDEN_ENABLE_NEW_SYNC` and it disabled by default up until version `0.13.32`.
 
-Starting from the version `0.13.33`, the new synchronization machinery has been used by default.
+Starting from the version `0.13.33`, the new synchronization machinery is enabled by default.
+
+From version `0.13.44` the old synchronization machinery is completely removed together with the `GARDEN_ENABLE_NEW_SYNC` variable.
 
 It is important to stop all syncs and the sync daemon before changing the value of `GARDEN_ENABLE_NEW_SYNC`,
 or upgrading to the version `0.13.33` or higher, or downgrading from `0.13.33+` to a lower version.
 Otherwise, the code synchronization won't work and Garden will fail with an error.
 
-#### Switching from the old sync machinery to the new one
+#### Switching from the old sync machinery to the new one (Garden `>=0.13.26` and `<=0.13.33`)
 
-To stop the old sync daemon and to deploy with new sync mode, you need to run the following commands from the project
-root directory:
+To stop the old sync daemon and to deploy with new sync mode, you need to run the following commands from the project root directory:
 
 ```
 GARDEN_ENABLE_NEW_SYNC=false garden util mutagen daemon stop
 GARDEN_ENABLE_NEW_SYNC=true garden deploy --sync
 ```
 
-#### Switching from the new sync machinery to the old one
+#### Switching from the new sync machinery to the old one (Garden `>=0.13.26` and `<=0.13.33`)
 
-To stop the new sync daemon and to deploy with old sync mode, you need to run the following commands from the project
-root directory:
+To stop the new sync daemon and to deploy with old sync mode, you need to run the following commands from the project root directory:
 
 ```
 GARDEN_ENABLE_NEW_SYNC=true garden util mutagen daemon stop
 GARDEN_ENABLE_NEW_SYNC=false garden deploy --sync
+```
+
+#### Switching from the new sync machinery to the old one when downgrading from Garden `>=0.13.44`
+
+When downgrading, to stop the new sync daemon and to deploy with old sync mode, you need to run the following commands from the project root directory:
+
+```sh
+# If you are downgrading to Garden >= 0.13.33
+garden util mutagen daemon stop
+garden self-update <your-preferred-version>
+garden deploy --sync
+
+# If you are downgrading to Garden >= 0.13.26 and <=0.13.32 and want to use the old sync machinery
+garden util mutagen daemon stop
+garden self-update <your-preferred-version>
+GARDEN_ENABLE_NEW_SYNC=false garden deploy --sync
+
+```
+
+#### Manually stopping lingering mutagen processes
+
+If experience any lingering Mutagen processes, you can use the following command to find and kill them:
+
+```sh
+ps -ef | grep mutagen
+```
+
+If any Mutagen processes are found, you can terminate them using the `kill` command:
+
+```sh
+kill -9 <process-uid>
 ```

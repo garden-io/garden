@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { mutagenCliSpecLegacy, mutagenCliSpecNative, mutagenFauxSshSpec } from "../../../src/mutagen.js"
+import { mutagenCliSpec, mutagenFauxSshSpec } from "../../../src/mutagen.js"
 import { kubectlSpec } from "../../../src/plugins/kubernetes/kubectl.js"
 import { kustomize4Spec, kustomize5Spec } from "../../../src/plugins/kubernetes/kubernetes-type/kustomize.js"
 import { helmSpec } from "../../../src/plugins/kubernetes/helm/helm-cli.js"
@@ -22,7 +22,7 @@ describe("regctlCLI binaries", () => {
 })
 
 describe("Mutagen binaries", () => {
-  downloadBinariesAndVerifyHashes([mutagenCliSpecNative(), mutagenCliSpecLegacy()])
+  downloadBinariesAndVerifyHashes([mutagenCliSpec])
 })
 
 describe("Mutagen faux SSH binaries", () => {
