@@ -10,7 +10,7 @@ import { expect } from "chai"
 import { Command, CommandGroup } from "../../../../src/commands/base.js"
 import { StringsParameter } from "../../../../src/cli/params.js"
 import stripAnsi from "strip-ansi"
-import replaceInFile from "replace-in-file"
+import { replaceInFile } from "replace-in-file"
 import { join } from "path"
 import dedent from "dedent"
 import { BuildCommand } from "../../../../src/commands/build.js"
@@ -286,12 +286,12 @@ describe("Command", () => {
           parentCommand: devCmd,
         })
 
-        await replaceInFile.replaceInFile({
+        await replaceInFile({
           files: join(tmpRoot, "templates.garden.yml"),
           from: new RegExp("echo-prefix"),
           to: "reloaded-prefix",
         })
-        await replaceInFile.replaceInFile({
+        await replaceInFile({
           files: join(tmpRoot, "actions.garden.yml"),
           from: new RegExp("name: test"),
           to: "name: reloaded-name",
