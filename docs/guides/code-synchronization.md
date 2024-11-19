@@ -360,7 +360,7 @@ garden util mutagen daemon stop
 garden self-update <your-preferred-version>
 garden deploy --sync
 
-# If you are downgrading to Garden >= 0.13.22 and <=0.13.32 and want to use the old sync machinery
+# If you are downgrading to Garden >= 0.13.26 and <=0.13.32 and want to use the old sync machinery
 garden util mutagen daemon stop
 garden self-update <your-preferred-version>
 GARDEN_ENABLE_NEW_SYNC=false garden deploy --sync
