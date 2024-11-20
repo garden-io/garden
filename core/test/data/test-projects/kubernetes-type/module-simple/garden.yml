@@ -55,6 +55,18 @@ spec:
   command: [echo, ok]
 
 ---
+kind: Run
+name: echo-run-exec-pod-selector
+type: kubernetes-exec
+dependencies:
+  - deploy.module-simple
+spec:
+  resource:
+    podSelector:
+      app: busybox
+  command: [echo, ok]
+
+---
 kind: Test
 name: echo-test-exec
 type: kubernetes-exec
