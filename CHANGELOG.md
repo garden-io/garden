@@ -1,4 +1,23 @@
 
+<a name="0.13.44"></a>
+## [0.13.44](https://github.com/garden-io/garden/compare/0.13.43...0.13.44) (2024-11-20)
+
+### Bug Fixes
+
+* fix user prompt function ([#6613](https://github.com/garden-io/garden/issues/6613)) ([16ca20442](https://github.com/garden-io/garden/commit/16ca20442))
+* **container:** container registry namespace is empty when not specified ([#6638](https://github.com/garden-io/garden/issues/6638)) ([439559853](https://github.com/garden-io/garden/commit/439559853))
+* **k8s:** respect pod selector in kubernetes-exec action type ([#6657](https://github.com/garden-io/garden/issues/6657)) ([3e680e036](https://github.com/garden-io/garden/commit/3e680e036))
+
+### Bundled Tool Version Updates
+
+* **helm:** update version to 3.16.2 ([#6624](https://github.com/garden-io/garden/issues/6624)) ([cfbef2fe3](https://github.com/garden-io/garden/commit/cfbef2fe3))
+* **kubectl:** update version to 1.31.2 ([#6623](https://github.com/garden-io/garden/issues/6623)) ([a44ea9929](https://github.com/garden-io/garden/commit/a44ea9929))
+* **mutagen:** update version to 0.18.0 ([#6655](https://github.com/garden-io/garden/issues/6655)) ([327f48485](https://github.com/garden-io/garden/commit/327f48485))
+
+### Features
+
+* **k8s:** show Helm events and logs ([#6626](https://github.com/garden-io/garden/issues/6626)) ([0f7bf25aa](https://github.com/garden-io/garden/commit/0f7bf25aa))
+
 <a name="0.13.43"></a>
 ## [0.13.43](https://github.com/garden-io/garden/compare/0.13.42...0.13.43) (2024-10-30)
 
