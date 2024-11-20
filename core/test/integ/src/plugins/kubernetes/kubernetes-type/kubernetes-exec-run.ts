@@ -27,8 +27,37 @@ describe("kubernetes-type exec Run", () => {
     graph = await garden.getConfigGraph({ log: garden.log, emit: false })
   })
 
-  it("should run a basic Run", async () => {
+  it("should run a command in a pod specified by kind and name", async () => {
     const action = graph.getRun("echo-run-exec")
+
+    const testTask = new RunTask({
+      garden,
+      graph,
+      action,
+      log: garden.log,
+      force: true,
+      forceBuild: false,
+    })
+
+    // Clear any existing Run result
+    const provider = await garden.resolveProvider({ log: garden.log, name: "local-kubernetes" })
+    const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
+    await clearRunResult({ ctx, log: garden.log, action })
+
+    garden.events.eventLog = []
+    const results = await garden.processTasks({ tasks: [testTask], throwOnError: true })
+    const result = results.results.getResult(testTask)
+    expect(findNamespaceStatusEvent(garden.events.eventLog, "kubernetes-type-test-default")).to.exist
+
+    expect(result).to.exist
+    expect(result?.result).to.exist
+    expect(result?.outputs).to.exist
+    expect(result?.result?.outputs.log).to.equal("ok")
+    expect(result!.result!.detail?.namespaceStatus).to.exist
+  })
+
+  it("should run a command in a pod specified by podSelector", async () => {
+    const action = graph.getRun("echo-run-exec-pod-selector")
 
     const testTask = new RunTask({
       garden,
