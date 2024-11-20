@@ -84,7 +84,7 @@ export const pulumiCliSpecs: PluginToolSpec[] = [
     name: getPulumiToolName(PULUMI_SEM_VER_3_122_0),
     description: getPulumiToolDescription(PULUMI_SEM_VER_3_122_0),
     type: "binary",
-    _includeInGardenImage: true,
+    _includeInGardenImage: false,
     builds: [
       {
         platform: "darwin",
