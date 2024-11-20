@@ -18,13 +18,13 @@ import type { PluginContext } from "../../../plugin-context.js"
 import type { RunActionDefinition, TestActionDefinition } from "../../../plugin/action-types.js"
 import type { RunResult } from "../../../plugin/base.js"
 import { dedent } from "../../../util/string.js"
-import { KubeApi, KubernetesError } from "../api.js"
+import { KubernetesError } from "../api.js"
 import type { KubernetesPluginContext, KubernetesTargetResourceSpec } from "../config.js"
 import { namespaceNameSchema, runPodResourceSchema } from "../config.js"
 import { getActionNamespaceStatus } from "../namespace.js"
 import { k8sGetRunResult } from "../run-results.js"
 import type { SyncableResource } from "../types.js"
-import { execInWorkload, readTargetResource } from "../util.js"
+import { execInWorkload, getTargetResource } from "../util.js"
 import type { KubernetesRunOutputs } from "./config.js"
 import { kubernetesRunOutputsSchema } from "./config.js"
 
@@ -35,6 +35,7 @@ export interface KubernetesExecRunActionSpec {
   command: string[]
   namespace?: string
 }
+
 export type KubernetesExecRunActionConfig = RunActionConfig<"kubernetes-exec", KubernetesExecRunActionSpec>
 export type KubernetesExecRunAction = RunAction<KubernetesExecRunActionConfig, KubernetesRunOutputs>
 
@@ -124,7 +125,6 @@ async function readAndExec({
   const { resource, command } = action.getSpec()
   const k8sCtx = <KubernetesPluginContext>ctx
   const provider = k8sCtx.provider
-  const api = await KubeApi.factory(log, k8sCtx, provider)
   const namespaceStatus = await getActionNamespaceStatus({
     ctx: k8sCtx,
     log,
@@ -137,9 +137,11 @@ async function readAndExec({
   let target: SyncableResource
 
   try {
-    target = await readTargetResource({
-      api,
-      namespace,
+    target = await getTargetResource({
+      ctx,
+      log,
+      provider,
+      action,
       query: resource,
     })
   } catch (err) {
