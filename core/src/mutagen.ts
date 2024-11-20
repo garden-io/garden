@@ -928,7 +928,7 @@ export function parseSyncListResult(res: ExecaReturnValue): SyncSession[] {
   return parsed
 }
 
-export const mutagenVersion = "0.18.0"
+export const mutagenVersion = "0.17.6"
 
 export const mutagenCliSpec: PluginToolSpec = {
   name: "mutagen",
@@ -941,7 +941,7 @@ export const mutagenCliSpec: PluginToolSpec = {
       platform: "darwin",
       architecture: "amd64",
       url: `https://github.com/mutagen-io/mutagen/releases/download/v${mutagenVersion}/mutagen_darwin_amd64_v${mutagenVersion}.tar.gz`,
-      sha256: "2df8723bce8e7721e6aef576b0025f12205acbe699bdb90d84dbd53e658f57be",
+      sha256: "f082eef2ae405a6bf5effdbcd000bb5fe2bc7b0968f86b2b54d9d3260c48c739",
       extract: {
         format: "tar",
         targetPath: "mutagen",
@@ -951,7 +951,7 @@ export const mutagenCliSpec: PluginToolSpec = {
       platform: "darwin",
       architecture: "arm64",
       url: `https://github.com/mutagen-io/mutagen/releases/download/v${mutagenVersion}/mutagen_darwin_arm64_v${mutagenVersion}.tar.gz`,
-      sha256: "0f0959f12b1a767bffa5ee40c6a255b77758d049c36ed0d6a1ad6830ac7f78a3",
+      sha256: "b6c35942ca9cbbbf726bfa249da554d829a8a28cad620a55e02d098d692121d1",
       extract: {
         format: "tar",
         targetPath: "mutagen",
@@ -961,7 +961,7 @@ export const mutagenCliSpec: PluginToolSpec = {
       platform: "linux",
       architecture: "amd64",
       url: `https://github.com/mutagen-io/mutagen/releases/download/v${mutagenVersion}/mutagen_linux_amd64_v${mutagenVersion}.tar.gz`,
-      sha256: "c82bde0ecd3810650087a8fd99e8baf4a3119b85a9cb14155a0d9209600374d4",
+      sha256: "1b826e121be59506e133d90dc2b8a0c820b92f480d9b2b230d8b389d6178a6cf",
       extract: {
         format: "tar",
         targetPath: "mutagen",
@@ -971,7 +971,7 @@ export const mutagenCliSpec: PluginToolSpec = {
       platform: "linux",
       architecture: "arm64",
       url: `https://github.com/mutagen-io/mutagen/releases/download/v${mutagenVersion}/mutagen_linux_arm64_v${mutagenVersion}.tar.gz`,
-      sha256: "c1621eede2cd9d36cd98d3fa419c843ecc1fb27e854103c754fcad50f4f4bb02",
+      sha256: "2a383cb572a1bdad83f7c4be3cc4a541a58e6c9e11e326ee4cc2d0e14f9d003a",
       extract: {
         format: "tar",
         targetPath: "mutagen",
@@ -981,7 +981,7 @@ export const mutagenCliSpec: PluginToolSpec = {
       platform: "windows",
       architecture: "amd64",
       url: `https://github.com/mutagen-io/mutagen/releases/download/v${mutagenVersion}/mutagen_windows_amd64_v${mutagenVersion}.zip`,
-      sha256: "438405c73c26078120472612613ad97d9dc8e318a0656ab88eb71ff4b0ca4eee",
+      sha256: "3019ccb556afb39cf2213adcacab97576c4419f8d08d3a55d063a5c773ec6d35",
       extract: {
         format: "zip",
         targetPath: "mutagen.exe",
