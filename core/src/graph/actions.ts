@@ -654,9 +654,32 @@ export async function resolveActions<T extends Action>({
       })
   )
 
-  const results = await garden.processTasks({ tasks, throwOnError: true })
+  const batchSize = 20
+  const batches: ResolveActionTask<any>[][] = []
+  for (let i = 0; i < tasks.length; i += batchSize) {
+    batches.push(tasks.slice(i, i + batchSize))
+  }
 
-  return <ResolvedActions<T>>(<unknown>mapValues(results.results.getMap(), (r) => r!.result!.outputs.resolvedAction))
+  // Process each batch and collect results
+  let combinedResults: any = {}
+  let batchIdx = 0
+  for (const batch of batches) {
+    const start = new Date()
+
+    log.verbose(`Processing batch ${batchIdx}`)
+
+    const batchResults = await garden.processTasks({ tasks: batch, throwOnError: true })
+
+    log.verbose(`Did process batch ${batchIdx} in ${new Date().getTime() - start.getTime()}ms`)
+    // Merge the results
+    combinedResults = { ...combinedResults, ...batchResults }
+
+    batchIdx++
+  }
+
+  return <ResolvedActions<T>>(
+    (<unknown>mapValues(combinedResults.results.getMap(), (r) => r!.result!.outputs.resolvedAction))
+  )
 }
 
 /**

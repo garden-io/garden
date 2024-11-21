@@ -214,11 +214,10 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
     })
   }
 
-  private getPendingGraph() {
+  private *getPendingGraph(graph: DependencyGraph<TaskNode>) {
     const nodes = Object.values(this.pendingNodes)
-    const graph = new DependencyGraph<TaskNode>()
 
-    const addNode = (node: TaskNode) => {
+    function* recurse(node: TaskNode) {
       const key = node.getKey()
 
       if (node.isComplete()) {
@@ -229,13 +228,16 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
       const deps = node.getRemainingDependencies()
 
       for (const dep of deps) {
-        addNode(dep)
+        yield* recurse(dep)
         graph.addDependency(key, dep.getKey())
       }
     }
 
     for (const node of nodes) {
-      addNode(node)
+      for (const dep of recurse(node)) {
+
+
+      }
     }
 
     return graph
@@ -299,66 +301,81 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
         }
       }
 
-      const graph = this.getPendingGraph()
+      const graph = new DependencyGraph<TaskNode>()
 
-      if (graph.size() === 0) {
-        return
-      }
+      const generator = this.getPendingGraph(graph)
 
-      const leaves = graph.overallOrder(true)
-      const pending = leaves.map((key) => this.nodes[key])
+      while (true) {
+        const next = generator.next()
+        if (next.done && graph.size() === 0) {
+          return
+        }
 
-      const inProgressNodes = Object.values(this.inProgress)
-      const inProgressByGroup = groupBy(inProgressNodes, "type")
+        const leaves = graph.overallOrder(true)
+        const pending = leaves.map((key) => this.nodes[key])
 
-      // Enforce concurrency limits per task type
-      const grouped = groupBy(pending, (n) => n.concurrencyGroupKey)
-      const limitedByGroup = Object.values(grouped).flatMap((nodes) => {
-        // Note: We can be sure there is at least one node in the array
-        const groupLimit = nodes[0].concurrencyLimit
-        const inProgress = inProgressByGroup[nodes[0].type] || []
-        return nodes.slice(0, groupLimit - inProgress.length)
-      })
+        const inProgressNodes = Object.values(this.inProgress)
+        const inProgressByGroup = groupBy(inProgressNodes, "type")
 
-      if (limitedByGroup.length === 0) {
-        this.emit("loop", {})
-        return
-      }
+        // Enforce concurrency limits per task type
+        const grouped = groupBy(pending, (n) => n.concurrencyGroupKey)
+        const limitedByGroup = Object.values(grouped).flatMap((nodes) => {
+          // Note: We can be sure there is at least one node in the array
+          const groupLimit = nodes[0].concurrencyLimit
+          const inProgress = inProgressByGroup[nodes[0].type] || []
+          return nodes.slice(0, groupLimit - inProgress.length)
+        })
 
-      // Enforce hard global limit
-      const nodesToProcess = limitedByGroup
-        .slice(0, this.hardConcurrencyLimit - inProgressNodes.length)
-        .filter((node) => !this.inProgress[node.getKey()])
-
-      if (nodesToProcess.length === 0) {
-        this.emit("loop", {})
-        return
-      }
-
-      this.emit("process", {
-        keys: nodesToProcess.map((n) => n.getKey()),
-        inProgress: inProgressNodes.map((n) => n.getKey()),
-      })
-
-      // Process the nodes
-      for (const node of nodesToProcess) {
-        const key = node.getKey()
-        this.inProgress[key] = node
-        const startedAt = new Date()
-        this.processNode(node, startedAt)
-          .then(() => {
+        if (limitedByGroup.length === 0) {
+          if (next.done) {
             this.emit("loop", {})
-          })
-          .catch((error) => {
-            this.garden.events.emit("internalError", { error, timestamp: new Date() })
-            this.logInternalError(node, error)
-            node.complete({ startedAt, error, aborted: true, result: null })
-            // Abort execution on internal error
-            this.emit("abort", { error })
-          })
-          .finally(() => {
-            delete this.inProgress[key]
-          })
+            return
+          } else {
+            continue
+          }
+        }
+
+        // Enforce hard global limit
+        const nodesToProcess = limitedByGroup
+          .slice(0, this.hardConcurrencyLimit - inProgressNodes.length)
+          .filter((node) => !this.inProgress[node.getKey()])
+
+        if (nodesToProcess.length === 0) {
+          if (next.done) {
+            this.emit("loop", {})
+            return
+          } else {
+            continue
+          }
+        }
+
+        this.emit("process", {
+          keys: nodesToProcess.map((n) => n.getKey()),
+          inProgress: inProgressNodes.map((n) => n.getKey()),
+        })
+
+        // Process the nodes
+        for (const node of nodesToProcess) {
+          const key = node.getKey()
+          this.inProgress[key] = node
+          const startedAt = new Date()
+          this.processNode(node, startedAt)
+            .then(() => {
+              this.emit("loop", {})
+            })
+            .catch((error) => {
+              this.garden.events.emit("internalError", { error, timestamp: new Date() })
+              this.logInternalError(node, error)
+              node.complete({ startedAt, error, aborted: true, result: null })
+              // Abort execution on internal error
+              this.emit("abort", { error })
+            })
+            .finally(() => {
+              delete this.inProgress[key]
+            })
+        }
+        // we have finished one loop
+        break
       }
     } finally {
       // TODO-0.13.1: clean up pending tasks with no dependant requests
