@@ -7,7 +7,7 @@
  */
 
 import toposort from "toposort"
-import { flatten, difference, mapValues, cloneDeep, find } from "lodash-es"
+import { flatten, difference, mapValues, find } from "lodash-es"
 import { dedent, naturalList } from "../util/string.js"
 import type { Action, ActionDependencyAttributes, ActionKind, Resolved, ResolvedAction } from "../actions/types.js"
 import { actionReferenceToString } from "../actions/base.js"
@@ -135,19 +135,6 @@ export abstract class BaseConfigGraph<
 
   validate() {
     // TODO-0.13.0: checks for circular dependencies
-  }
-
-  clone() {
-    const clone = new ConfigGraph({
-      environmentName: this.environmentName,
-      actions: [],
-      moduleGraph: this.moduleGraph,
-      groups: Object.values(this.groups),
-    })
-    for (const key of Object.getOwnPropertyNames(this)) {
-      clone[key] = cloneDeep(this[key])
-    }
-    return clone
   }
 
   /////////////////
@@ -557,8 +544,8 @@ export class MutableConfigGraph extends ConfigGraph {
     })
   }
 
-  toConfigGraph() {
-    return this.clone()
+  toConfigGraph(): ConfigGraph {
+    return this
   }
 }
 
