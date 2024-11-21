@@ -325,7 +325,7 @@ class _MutagenMonitor extends TypedEventEmitter<MonitorEvents> {
 
 function logMutagenDaemonWarning(log: Log) {
   const daemonStopCommand = `garden util mutagen daemon stop`
-  const deleteEnvironmentCommand = `garden delete environment`
+  const deleteEnvironmentCommand = `garden cleanup namespace`
   const redeploySyncCommand = `garden deploy --sync`
   const killProcessesCommand = `kill -9 $(pgrep mutagen)`
 
