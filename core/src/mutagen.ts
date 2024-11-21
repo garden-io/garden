@@ -325,20 +325,28 @@ class _MutagenMonitor extends TypedEventEmitter<MonitorEvents> {
 
 function logMutagenDaemonWarning(log: Log) {
   const daemonStopCommand = `garden util mutagen daemon stop`
+  const deleteEnvironmentCommand = `garden delete environment`
   const redeploySyncCommand = `garden deploy --sync`
+  const killProcessesCommand = `kill -9 $(pgrep mutagen)`
 
   log.warn(
     deline`
     It looks like the sync daemon might have been changed to a different version.\n
 
-    Therefore the sync daemon needs to be restarted, and the affected deploys must be redeployed.\n
+    Therefore the sync daemon needs to be restarted, current mutagen processes stopped and the affected deploys must be redeployed.\n
     Please, stop this command and follow the instructions below.\n
 
     1. Stop the active sync daemon by running this command ${styles.accent(styles.bold("from the project root directory"))}:\n
 
     ${styles.command(daemonStopCommand)}\n
 
-    2. Redeploy the affected deploys by running this command (specify the action names if necessary):\n
+    2. Kill all mutagen processes on your machine by running this command\n
+
+    ${styles.command(killProcessesCommand)}\n
+
+    3. Redeploy the affected deploys by running the following commands (specify the action names if necessary):\n
+
+    ${styles.command(deleteEnvironmentCommand)}\n
 
     ${styles.command(redeploySyncCommand)}\n
 
