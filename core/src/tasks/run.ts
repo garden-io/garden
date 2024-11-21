@@ -35,6 +35,8 @@ export class RunTask extends ExecuteActionTask<RunAction, GetRunResult> {
     return this.action.longDescription()
   }
 
+  override readonly needsStatus = true
+
   @OtelTraced({
     name(_params) {
       return `${this.action.key()}.getRunStatus`

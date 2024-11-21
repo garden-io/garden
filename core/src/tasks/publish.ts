@@ -66,6 +66,8 @@ export class PublishTask extends BaseActionTask<BuildAction, PublishActionResult
     return `publish ${this.action.longDescription()}`
   }
 
+  override readonly needsStatus = false
+
   async getStatus() {
     // TODO-0.13.1
     return null

@@ -83,6 +83,8 @@ export class DeleteDeployTask extends BaseActionTask<DeployAction, DeployStatus>
     return `delete ${this.action.longDescription()})`
   }
 
+  override readonly needsStatus = false
+
   async getStatus() {
     return null
   }

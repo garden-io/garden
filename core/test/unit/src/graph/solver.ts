@@ -87,6 +87,8 @@ export class TestTask extends BaseTask<TestTaskResult> {
     return "v-" + this.uid.slice(0, 6)
   }
 
+  override readonly needsStatus = true
+
   async getStatus(params: TaskProcessParams) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let callbackResult: any = undefined

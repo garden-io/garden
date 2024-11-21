@@ -40,9 +40,8 @@ export interface ResolveActionResults<T extends Action> extends ValidResultType 
 export class ResolveActionTask<T extends Action> extends BaseActionTask<T, ResolveActionResults<T>> {
   readonly type = "resolve-action"
 
-  // TODO: resolving template strings is CPU bound, does single-threaded concurrent execution make it faster or slower?
-  override readonly executeConcurrencyLimit = 10
-  override readonly statusConcurrencyLimit = 10
+  override readonly executeConcurrencyLimit = 1
+  override readonly statusConcurrencyLimit = 1
 
   getDescription() {
     return `resolve ${this.action.longDescription()}`
@@ -51,6 +50,8 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
   override getName() {
     return this.action.key()
   }
+
+  override readonly needsStatus = false
 
   getStatus({}: ActionTaskStatusParams<T>) {
     return null

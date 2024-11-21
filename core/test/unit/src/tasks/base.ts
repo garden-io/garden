@@ -34,6 +34,8 @@ describe("BaseActionTask", () => {
       return "foo"
     }
 
+    override readonly needsStatus = true
+
     async getStatus() {
       return { state: "ready", outputs: {} } as ValidResultType
     }
