@@ -6,9 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { merge } from "lodash-es"
-import type { ActionConfig, Action, ExecutedAction, ResolvedAction } from "../../actions/types.js"
-import type { ActionMode } from "../../actions/types.js"
+import type { Action, ActionConfig, ActionMode, ExecutedAction, ResolvedAction } from "../../actions/types.js"
 import type { Garden } from "../../garden.js"
 import type { GardenModule } from "../../types/module.js"
 import { dedent, deline } from "../../util/string.js"
@@ -20,13 +18,10 @@ import { exampleVersion, OutputConfigContext } from "./module.js"
 import { TemplatableConfigContext } from "./project.js"
 import { DOCS_BASE_URL } from "../../constants.js"
 import { styles } from "../../logger/styles.js"
+import { createVariableScope } from "./variable-scopes.js"
 
 function mergeVariables({ garden, variables }: { garden: Garden; variables: DeepPrimitiveMap }): DeepPrimitiveMap {
-  const mergedVariables: DeepPrimitiveMap = {}
-  merge(mergedVariables, garden.variables)
-  merge(mergedVariables, variables)
-  merge(mergedVariables, garden.variableOverrides)
-  return mergedVariables
+  return createVariableScope(garden.variableOverrides, variables, garden.variables)
 }
 
 type ActionConfigThisContextParams = Pick<ActionReferenceContextParams, "name" | "mode">

@@ -18,6 +18,7 @@ import { loadVarfile } from "../config/base.js"
 import type { DeepPrimitiveMap, Varfile } from "../config/common.js"
 import type { Task } from "../tasks/base.js"
 import type { Log, LogMetadata, TaskLogStatus } from "../logger/log-entry.js"
+import { createVariableScope } from "../config/template-contexts/variable-scopes.js"
 
 // Shared type used by ConfigGraph and TaskGraph to facilitate circular dependency detection
 export type DependencyGraphNode = {
@@ -170,19 +171,7 @@ export const mergeVariables = profileAsync(async function mergeVariables({
     })
   )
 
-  const output: DeepPrimitiveMap = {}
-
-  if (variables) {
-    merge(output, variables)
-  }
-
-  // Merge different varfiles, later files taking precedence over prior files in the list.
-  // TODO-0.13.0: should this be a JSON merge?
-  for (const vars of varsByFile) {
-    merge(output, vars)
-  }
-
-  return output
+  return createVariableScope(...varsByFile.reverse(), variables || {})
 })
 
 /**

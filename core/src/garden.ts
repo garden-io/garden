@@ -168,6 +168,7 @@ import { renderDuration } from "./logger/util.js"
 import { getCloudDistributionName, getCloudLogSectionName } from "./util/cloud.js"
 import { makeDocsLinkStyled } from "./docs/common.js"
 import { getPathInfo } from "./vcs/git.js"
+import {createVariableScope} from "./config/template-contexts/variable-scopes.js";
 
 const defaultLocalAddress = "localhost"
 
@@ -2265,16 +2266,7 @@ async function getCloudProject({
 // Override variables, also allows to override nested variables using dot notation
 // eslint-disable-next-line @typescript-eslint/no-shadow
 export function overrideVariables(variables: DeepPrimitiveMap, overrideVariables: DeepPrimitiveMap): DeepPrimitiveMap {
-  const objNew = cloneDeep(variables)
-  Object.keys(overrideVariables).forEach((key) => {
-    if (objNew.hasOwnProperty(key)) {
-      // if the original key itself is a string with a dot, then override that
-      objNew[key] = overrideVariables[key]
-    } else {
-      set(objNew, key, overrideVariables[key])
-    }
-  })
-  return objNew
+  return createVariableScope(overrideVariables, variables)
 }
 
 /**
