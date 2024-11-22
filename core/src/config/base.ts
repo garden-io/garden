@@ -10,13 +10,10 @@ import dotenv from "dotenv"
 import { sep, resolve, relative, basename, dirname, join } from "path"
 import { load } from "js-yaml"
 import { lint } from "yaml-lint"
-import fsExtra from "fs-extra"
-
-const { pathExists, readFile } = fsExtra
 import { omit, isPlainObject, isArray } from "lodash-es"
 import type { BuildDependencyConfig, ModuleConfig } from "./module.js"
 import { coreModuleSpecSchema, baseModuleSchemaKeys } from "./module.js"
-import { ConfigurationError, FilesystemError, ParameterError } from "../exceptions.js"
+import { ConfigurationError, FilesystemError, isErrnoException, ParameterError } from "../exceptions.js"
 import { DEFAULT_BUILD_TIMEOUT_SEC, GardenApiVersion } from "../constants.js"
 import type { ProjectConfig } from "../config/project.js"
 import { validateWithPath } from "./validation.js"
@@ -36,6 +33,7 @@ import { parseAllDocuments } from "yaml"
 import { dedent, deline } from "../util/string.js"
 import { makeDocsLinkStyled } from "../docs/common.js"
 import { profile, profileAsync } from "../util/profiling.js"
+import { readFile } from "fs/promises"
 
 export const configTemplateKind = "ConfigTemplate"
 export const renderTemplateKind = "RenderTemplate"
@@ -554,10 +552,6 @@ export async function findProjectConfig({
   return
 }
 
-const _pathExists = profileAsync(async function _pathExists(path: string) {
-  return await pathExists(path)
-})
-
 const _readFile = profileAsync(async function _readFile(path: string) {
   return await readFile(path)
 })
@@ -586,18 +580,6 @@ export const loadVarfile = profileAsync(async function loadVarfile({
     })
   }
   const resolvedPath = resolve(configRoot, <string>(path || defaultPath))
-
-  const exists = await _pathExists(resolvedPath)
-
-  if (!exists && path && path !== defaultPath && !optional) {
-    throw new ConfigurationError({
-      message: `Could not find varfile at path '${path}'. Absolute path: ${resolvedPath}`,
-    })
-  }
-
-  if (!exists) {
-    return {}
-  }
 
   try {
     const data = await _readFile(resolvedPath)
@@ -632,6 +614,20 @@ export const loadVarfile = profileAsync(async function loadVarfile({
       return parsed as PrimitiveMap
     }
   } catch (error) {
+    if (error instanceof ConfigurationError) {
+      throw error
+    }
+
+    if (isErrnoException(error) && error.code === "ENOENT") {
+      if (path && path !== defaultPath && !optional) {
+        throw new ConfigurationError({
+          message: `Could not find varfile at path '${path}'. Absolute path: ${resolvedPath}`,
+        })
+      } else {
+        return {}
+      }
+    }
+
     throw new ConfigurationError({
       message: `Unable to load varfile at '${path}': ${error}`,
     })
