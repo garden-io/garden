@@ -295,7 +295,8 @@ export const resolveTemplateStrings = profile(function resolveTemplateStrings<T 
   } else if (Array.isArray(value)) {
     const output: unknown[] = []
 
-    value.forEach((v, i) => {
+    for (let i = 0; i < value.length; i++) {
+      const v = value[i]
       if (isPlainObject(v) && v[arrayConcatKey] !== undefined) {
         if (Object.keys(v).length > 1) {
           const extraKeys = naturalList(
@@ -337,7 +338,7 @@ export const resolveTemplateStrings = profile(function resolveTemplateStrings<T 
       } else {
         output.push(resolveTemplateStrings({ value: v, context, contextOpts, source, path: path && [...path, i] }))
       }
-    })
+    }
 
     return <T>(<unknown>output)
   } else if (isPlainObject(value)) {
@@ -351,7 +352,8 @@ export const resolveTemplateStrings = profile(function resolveTemplateStrings<T 
       // Resolve $merge keys, depth-first, leaves-first
       let output = {}
 
-      for (const [k, v] of Object.entries(value)) {
+      for (const k in value as Record<string, unknown>) {
+        const v = value[k]
         const resolved = resolveTemplateStrings({ value: v, context, contextOpts, source, path: path && [...path, k] })
 
         if (k === objectSpreadKey) {
