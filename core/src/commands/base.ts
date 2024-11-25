@@ -41,6 +41,7 @@ import type { AnalyticsHandler } from "../analytics/analytics.js"
 import { withSessionContext } from "../util/open-telemetry/context.js"
 import { wrapActiveSpan } from "../util/open-telemetry/spans.js"
 import { styles } from "../logger/styles.js"
+import { clearVarfileCache } from "../config/base.js"
 
 export interface CommandConstructor {
   new (parent?: CommandGroup): Command
@@ -158,6 +159,7 @@ type DataCallback = (data: string) => void
 export type CommandArgsType<C extends Command> = C extends Command<infer Args, any> ? Args : never
 export type CommandOptionsType<C extends Command> = C extends Command<any, infer Opts> ? Opts : never
 export type CommandResultType<C extends Command> = C extends Command<any, any, infer R> ? R : never
+
 export abstract class Command<
   A extends ParameterObject = ParameterObject,
   O extends ParameterObject = ParameterObject,
@@ -375,6 +377,8 @@ export abstract class Command<
             // Clear the VCS handler's tree cache to make sure we pick up any changed sources.
             // FIXME: use file watching to be more surgical here, this is suboptimal
             garden.treeCache.invalidateDown(log, ["path"])
+            // also clear the cached varfiles
+            clearVarfileCache()
 
             log.silly(() => `Starting command '${this.getFullName()}' action`)
             result = await this.action({
