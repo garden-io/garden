@@ -168,7 +168,7 @@ import { renderDuration } from "./logger/util.js"
 import { getCloudDistributionName, getCloudLogSectionName } from "./util/cloud.js"
 import { makeDocsLinkStyled } from "./docs/common.js"
 import { getPathInfo } from "./vcs/git.js"
-import {createVariableScope} from "./config/template-contexts/variable-scopes.js";
+import { lazyMerge } from "./config/template-contexts/lazy-merge.js"
 
 const defaultLocalAddress = "localhost"
 
@@ -2266,7 +2266,7 @@ async function getCloudProject({
 // Override variables, also allows to override nested variables using dot notation
 // eslint-disable-next-line @typescript-eslint/no-shadow
 export function overrideVariables(variables: DeepPrimitiveMap, overrideVariables: DeepPrimitiveMap): DeepPrimitiveMap {
-  return createVariableScope(overrideVariables, variables)
+  return lazyMerge(variables, overrideVariables)
 }
 
 /**

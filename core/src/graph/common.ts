@@ -18,7 +18,7 @@ import { loadVarfile } from "../config/base.js"
 import type { DeepPrimitiveMap, Varfile } from "../config/common.js"
 import type { Task } from "../tasks/base.js"
 import type { Log, LogMetadata, TaskLogStatus } from "../logger/log-entry.js"
-import { createVariableScope } from "../config/template-contexts/variable-scopes.js"
+import { lazyMerge } from "../config/template-contexts/lazy-merge.js"
 
 // Shared type used by ConfigGraph and TaskGraph to facilitate circular dependency detection
 export type DependencyGraphNode = {
@@ -171,7 +171,7 @@ export const mergeVariables = profileAsync(async function mergeVariables({
     })
   )
 
-  return createVariableScope(...varsByFile.reverse(), variables || {})
+  return lazyMerge(variables || {}, ...varsByFile)
 })
 
 /**

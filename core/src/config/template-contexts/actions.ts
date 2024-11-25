@@ -18,10 +18,10 @@ import { exampleVersion, OutputConfigContext } from "./module.js"
 import { TemplatableConfigContext } from "./project.js"
 import { DOCS_BASE_URL } from "../../constants.js"
 import { styles } from "../../logger/styles.js"
-import { createVariableScope } from "./variable-scopes.js"
+import { lazyMerge } from "./lazy-merge.js"
 
 function mergeVariables({ garden, variables }: { garden: Garden; variables: DeepPrimitiveMap }): DeepPrimitiveMap {
-  return createVariableScope(garden.variableOverrides, variables, garden.variables)
+  return lazyMerge(garden.variables, variables, garden.variableOverrides)
 }
 
 type ActionConfigThisContextParams = Pick<ActionReferenceContextParams, "name" | "mode">
