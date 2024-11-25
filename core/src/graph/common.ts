@@ -7,7 +7,7 @@
  */
 
 import { DepGraph } from "dependency-graph"
-import { flatten, merge, uniq } from "lodash-es"
+import { flatten, uniq } from "lodash-es"
 import { get, isEqual, join, set, uniqWith } from "lodash-es"
 import { CircularDependenciesError } from "../exceptions.js"
 import type { GraphNodes, ConfigGraphNode } from "./config-graph.js"

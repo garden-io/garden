@@ -22,6 +22,7 @@ import { isArray, isPlainObject, max, uniq } from "lodash-es"
  */
 export function lazyMerge(...items: DeepPrimitiveMap[]): DeepPrimitiveMap {
   let computedOwnKeys: string[] | undefined
+
   function computeOwnKeys() {
     if (!computedOwnKeys) {
       computedOwnKeys = uniq(items.flatMap(Object.keys))
@@ -32,15 +33,35 @@ export function lazyMerge(...items: DeepPrimitiveMap[]): DeepPrimitiveMap {
     return computedOwnKeys
   }
 
+  let totalLength: number | undefined
+
+  function computeTotalLength(): number {
+    if (!totalLength) {
+      totalLength = max(items.map((i) => i.length as number))
+    }
+    return totalLength!
+  }
+
+  function* arrayIterator() {
+    const l = computeTotalLength()
+    for (let i = 0; i < l; i++) {
+      yield proxy[i]
+    }
+  }
+
   const isArrayProxy = items.every((i) => isArray(i))
+
   const proxy = new Proxy(isArrayProxy ? [] : {}, {
     get: (target, key: string | symbol) => {
+      if (isArrayProxy && key === Symbol.iterator) {
+        return arrayIterator
+      }
       if (typeof key === "symbol") {
         return undefined
       }
 
       if (isArrayProxy && key === "length") {
-        return max(items.map((i) => i.length))
+        return computeTotalLength()
       } else if (isArrayProxy && key in target) {
         throw new InternalError({
           message: "array methods are not supported with lazyMerge proxy objects.",

@@ -13,7 +13,7 @@ import { platform, arch } from "os"
 import { relative, resolve } from "path"
 import cloneDeep from "fast-copy"
 import AsyncLock from "async-lock"
-import { flatten, groupBy, keyBy, mapValues, omit, set, sortBy } from "lodash-es"
+import { flatten, groupBy, keyBy, mapValues, omit, set as setKeyPathNested, sortBy } from "lodash-es"
 import { username } from "username"
 
 import { TreeCache } from "./cache.js"
@@ -2266,7 +2266,21 @@ async function getCloudProject({
 // Override variables, also allows to override nested variables using dot notation
 // eslint-disable-next-line @typescript-eslint/no-shadow
 export function overrideVariables(variables: DeepPrimitiveMap, overrideVariables: DeepPrimitiveMap): DeepPrimitiveMap {
-  return lazyMerge(variables, overrideVariables)
+  const overrides = {}
+  for (const key in overrideVariables) {
+    if (variables.hasOwnProperty(key)) {
+      // if the original key itself is a string with a dot, then override that
+      overrides[key] = overrideVariables[key]
+    } else {
+      // Transform override paths like "foo.bar[0].baz"
+      // into a nested object like
+      // { foo: { bar: [{ baz: "foo" }] } }
+      // which we can then use for the layered context as overrides on the nested structure within
+      setKeyPathNested(overrides, key, overrideVariables[key])
+    }
+  }
+
+  return lazyMerge(variables, overrides)
 }
 
 /**
