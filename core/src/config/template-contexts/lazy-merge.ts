@@ -26,10 +26,12 @@ export function lazyMerge(...items: DeepPrimitiveMap[]): DeepPrimitiveMap {
   function computeOwnKeys() {
     if (!computedOwnKeys) {
       computedOwnKeys = uniq(items.flatMap(Object.keys))
+
       if (isArrayProxy) {
         computedOwnKeys.push("length")
       }
     }
+
     return computedOwnKeys
   }
 
@@ -39,6 +41,7 @@ export function lazyMerge(...items: DeepPrimitiveMap[]): DeepPrimitiveMap {
     if (!totalLength) {
       totalLength = max(items.map((i) => i.length as number))
     }
+
     return totalLength!
   }
 
@@ -56,6 +59,7 @@ export function lazyMerge(...items: DeepPrimitiveMap[]): DeepPrimitiveMap {
       if (isArrayProxy && key === Symbol.iterator) {
         return arrayIterator
       }
+
       if (typeof key === "symbol") {
         return undefined
       }
@@ -93,6 +97,7 @@ export function lazyMerge(...items: DeepPrimitiveMap[]): DeepPrimitiveMap {
       if (typeof key === "symbol") {
         return false
       }
+
       return computeOwnKeys().includes(key)
     },
 
@@ -101,12 +106,21 @@ export function lazyMerge(...items: DeepPrimitiveMap[]): DeepPrimitiveMap {
     },
 
     getOwnPropertyDescriptor(target, key) {
-      if (isArrayProxy && key === "length") {
+      if (isArrayProxy && (key === "length" || key === Symbol.iterator)) {
         return {
           ...Object.getOwnPropertyDescriptor(target, key),
           value: proxy[key],
         }
       }
+
+      if (typeof key === "symbol") {
+        return undefined
+      }
+
+      if (!computeOwnKeys().includes(key)) {
+        return undefined
+      }
+
       return { enumerable: true, writable: false, configurable: true, value: proxy[key] }
     },
   })
