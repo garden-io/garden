@@ -567,6 +567,10 @@ const loadVarfileCache = new LRUCache<string, Promise<PrimitiveMap>>({
   ttlAutopurge: true,
 })
 
+export function clearVarfileCache() {
+  loadVarfileCache.clear()
+}
+
 export const loadVarfile = profileAsync(async function loadVarfile({
   configRoot,
   path,
