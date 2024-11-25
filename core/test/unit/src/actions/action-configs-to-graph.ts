@@ -21,6 +21,7 @@ import {
   DEFAULT_TEST_TIMEOUT_SEC,
 } from "../../../../src/constants.js"
 import { getRemoteSourceLocalPath } from "../../../../src/util/ext-source-util.js"
+import { clearVarfileCache } from "../../../../src/config/base.js"
 
 describe("actionConfigsToGraph", () => {
   let tmpDir: TempDirectory
@@ -32,6 +33,11 @@ describe("actionConfigsToGraph", () => {
     tmpDir = result.tmpDir
     garden = result.garden
     log = garden.log
+  })
+
+  afterEach(() => {
+    // Some tests re-use and re-write existing varfiles, so we need to clear the cache explicitly.
+    clearVarfileCache()
   })
 
   it("resolves a Build action", async () => {
