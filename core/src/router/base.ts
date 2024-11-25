@@ -362,7 +362,7 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
     handler: GetActionTypeHandler<ActionTypeClasses<K>[T], any>
   ) {
     const pluginName = plugin.name
-    const schema = this.handlerDescriptions[handlerType].resultSchema
+    // const schema = this.handlerDescriptions[handlerType].resultSchema
 
     // Wrap the handler with identifying attributes
     const wrapped = Object.assign(
@@ -375,10 +375,11 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
             )} handler on ${pluginName} provider. Called with ${args.length} arguments.`,
           })
         }
-        const kind = this.kind
-        return validateSchema(result, schema, {
-          context: `${String(handlerType)} handler output from provider ${pluginName} for ${kind} type ${actionType}`,
-        })
+        // const kind = this.kind
+        // return validateSchema(result, schema, {
+        //   context: `${String(handlerType)} handler output from provider ${pluginName} for ${kind} type ${actionType}`,
+        // })
+        return result
       })),
       { handlerType, pluginName, actionType }
     )

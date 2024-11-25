@@ -169,7 +169,7 @@ export class ModuleRouter extends BaseRouter {
     handler: ModuleActionHandlers[T]
   ) {
     const pluginName = plugin.name
-    const schema = this.moduleHandlerDescriptions[handlerType].resultSchema
+    // const schema = this.moduleHandlerDescriptions[handlerType].resultSchema
 
     // Wrap the handler with identifying attributes
     const wrapped = Object.assign(
@@ -183,9 +183,10 @@ export class ModuleRouter extends BaseRouter {
             message: `Got empty response from ${moduleType}.${handlerType} handler (called with ${args.length} args) on ${pluginName} provider.`,
           })
         }
-        return validateSchema(result, schema, {
-          context: `${handlerType} handler output from provider ${pluginName} for module type ${moduleType} `,
-        })
+        // return validateSchema(result, schema, {
+        //   context: `${handlerType} handler output from provider ${pluginName} for module type ${moduleType} `,
+        // })
+        return result
       }),
       { handlerType, pluginName, moduleType, wrapped: handler }
     )

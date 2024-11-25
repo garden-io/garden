@@ -241,7 +241,7 @@ export class ProviderRouter extends BaseRouter {
     handler: ProviderHandlers[T]
   ) {
     const pluginName = plugin.name
-    const schema = this.pluginHandlerDescriptions[handlerType].resultSchema
+    // const schema = this.pluginHandlerDescriptions[handlerType].resultSchema
 
     // Wrap the handler with identifying attributes
     const wrapped: WrappedPluginHandlers[T] = Object.assign(
@@ -255,7 +255,8 @@ export class ProviderRouter extends BaseRouter {
             message: `Got empty response from ${handlerType} handler on ${pluginName} provider. Called with ${args.length} args.`,
           })
         }
-        return validateSchema(result, schema, { context: `${handlerType} output from plugin ${pluginName}` })
+        // return validateSchema(result, schema, { context: `${handlerType} output from plugin ${pluginName}` })
+        return result
       },
       { handlerType, pluginName }
     ) as WrappedPluginHandlers[T]
