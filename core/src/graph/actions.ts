@@ -172,7 +172,6 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
     let batchNo = 1
     for (const batch of sliceToBatches(configsByKey, actionConfigProcBatchSize)) {
       log.silly(`Preprocessing actions batch #${batchNo} (${batch.length} items)`)
-      const startTime = new Date().getTime()
       await Promise.all(
         batch.map(async ([key, config]) => {
           if (!predicate(config)) {
@@ -197,15 +196,11 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
         })
       )
       batchNo++
-      const endTime = new Date().getTime()
-      log.silly(`Preprocessed actions batch #${batchNo} (${batch.length} items) in ${endTime - startTime}ms`)
     }
   }
 
   // First preprocess only the Deploy actions, so we can infer the mode of Build actions that are used by them.
-  log.debug(`Preprocessing Deploy action configs...`)
   await preprocessActions((config) => config.kind === "Deploy")
-  log.debug(`Preprocessed Deploy action configs`)
 
   // This enables users to use `this.mode` in Build action configs, such that `this.mode == "sync"`
   // when a Deploy action that uses the Build action is in sync mode.
@@ -235,9 +230,7 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
 
   // Preprocess all remaining actions (Deploy actions are preprocessed above)
   // We are preprocessing actions in two batches so we can infer the mode of Build actions that are used by Deploy actions. See the comments above.
-  log.debug(`Preprocessing non-Deploy action configs...`)
   await preprocessActions((config) => config.kind !== "Deploy")
-  log.debug(`Preprocessed non-Deploy action configs`)
 
   // Apply actionsFilter if provided to avoid unnecessary VCS scanning and resolution
   if (actionsFilter) {
@@ -277,8 +270,6 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
         delete preprocessResults[key]
       }
     }
-
-    log.debug(`Applied action filter`)
   }
 
   const preprocessedConfigs = Object.values(preprocessResults).map((r) => r.config)
@@ -292,7 +283,6 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
   }
   log.debug(`Finding minimal roots for ${allPaths.size} paths`)
   const minimalRoots = await garden.vcs.getMinimalRoots(log, allPaths)
-  log.debug(`Found minimal roots for ${allPaths.size} paths`)
 
   const graph = new MutableConfigGraph({
     environmentName: garden.environmentName,
@@ -301,12 +291,9 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
     groups: groupConfigs,
   })
 
-  const actionConfigCount = Object.keys(preprocessResults).length
-  log.debug(`Processing ${actionConfigCount} action configs...`)
   let batchNo = 1
   for (const batch of sliceToBatches(preprocessResults, actionConfigProcBatchSize)) {
     log.silly(`Processing actions batch #${batchNo} (${batch.length} items)`)
-    const startTime = new Date().getTime()
     await Promise.all(
       batch.map(async ([key, res]) => {
         const { config, linkedSource, remoteSourcePath, supportedModes, dependencies } = res
@@ -351,14 +338,9 @@ export const actionConfigsToGraph = profileAsync(async function actionConfigsToG
       })
     )
     batchNo++
-    const endTime = new Date().getTime()
-    log.silly(`Processed actions batch #${batchNo} (${batch.length} items) in ${endTime - startTime}ms`)
   }
-  log.debug(`Processed ${actionConfigCount} action configs`)
 
-  log.debug(`Validating the graph`)
   graph.validate()
-  log.debug(`Validation is done.`)
 
   return graph
 })
@@ -497,11 +479,7 @@ export const processActionConfig = profileAsync(async function processActionConf
       })
     }
 
-    let availableForKind: string = (Object.keys(actionTypes[kind]) || {}).map((t) => `'${t}'`).join(", ")
-    if (availableForKind === "") {
-      availableForKind = "None"
-    }
-
+    const availableForKind: string = (Object.keys(actionTypes[kind]) || {}).map((t) => `'${t}'`).join(", ") || "None"
     throw new ConfigurationError({
       message: dedent`
         Unrecognized action type '${type}' (kind '${kind}', defined at ${configPath}). Are you missing a provider configuration?
@@ -528,20 +506,12 @@ export const processActionConfig = profileAsync(async function processActionConf
 
   const effectiveConfigFileLocation = getEffectiveConfigFileLocation(config)
 
-  const mergeVarsStart = new Date().getTime()
   let variables = await mergeVariables({
     basePath: effectiveConfigFileLocation,
     variables: config.variables,
     varfiles: config.varfiles,
     log,
   })
-  const mergeVarsEnd = new Date().getTime()
-  const actionKey = actionReferenceToString(config)
-  const varfilesDesc =
-    config.varfiles && config.varfiles.length > 0 ? `with varfiles: \n${config.varfiles.join("\n")}` : ""
-  log.silly(
-    `[processActionConfigs] Merged variables for action ${actionKey} in ${mergeVarsEnd - mergeVarsStart}ms ${varfilesDesc}`
-  )
 
   // override the variables if there's any matching variables in variable overrides
   // passed via --var cli flag. variables passed via --var cli flag have highest precedence
@@ -754,27 +724,17 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
   definition: MaybeUndefined<ActionTypeDefinition<any>>
   actionTypes: ActionDefinitionMap
 }): Promise<PreprocessActionResult> {
-  const actionStart = new Date().getTime()
-  const actionKey = actionReferenceToString(config)
-
   const description = describeActionConfig(config)
   const templateName = config.internal.templateName
 
   // in pre-processing, only use varfiles that are not template strings
   const resolvedVarFiles = config.varfiles?.filter((f) => !maybeTemplateString(getVarfileData(f).path))
-  const mergeVarsStart = new Date().getTime()
   const variables = await mergeVariables({
     basePath: config.internal.basePath,
     variables: config.variables,
     varfiles: resolvedVarFiles,
     log,
   })
-  const mergeVarsEnd = new Date().getTime()
-  const varfilesDesc =
-    resolvedVarFiles && resolvedVarFiles.length > 0 ? `with varfiles: \n${resolvedVarFiles.join("\n")}` : ""
-  log.silly(
-    `[preprocessActionConfigs] Merged variables for action ${actionKey} in ${mergeVarsEnd - mergeVarsStart}ms ${varfilesDesc}`
-  )
 
   const resolvedVariables = resolveTemplateStrings({
     value: variables,
@@ -941,6 +901,7 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
     })
   }
 
+  const actionKey = actionReferenceToString(config)
   const repositoryUrl = config.source?.repository?.url
 
   let linkedSource: LinkedSource | null = null
@@ -974,9 +935,6 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
     templateContext: builtinFieldContext,
     actionTypes,
   })
-
-  const actionEnd = new Date().getTime()
-  log.silly(`Preprocessed action ${actionKey} in ${actionEnd - actionStart}ms`)
 
   return {
     config,
