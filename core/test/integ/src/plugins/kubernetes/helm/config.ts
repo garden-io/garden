@@ -122,7 +122,6 @@ describe("configureHelmModule", () => {
           dependencies: [],
           disabled: false,
           sourceModuleName: "api-image",
-          timeout: DEFAULT_DEPLOY_TIMEOUT_SEC,
           spec: expectedSpec,
         },
       ],

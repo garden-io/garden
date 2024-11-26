@@ -133,7 +133,6 @@ describe("configureKubernetesModule", () => {
           tasks: [taskSpec],
           timeout: 300,
         },
-        timeout: DEFAULT_DEPLOY_TIMEOUT_SEC,
       },
     ])
 
