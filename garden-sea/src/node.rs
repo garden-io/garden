@@ -23,9 +23,40 @@ where
     #[cfg(windows)]
     let node = "bin/node.exe";
 
-    // We do allow users to set NODE_* variables and they are passed through to the underlying node by default.
-    // Some users depend on this, e.g. for NODE_EXTRA_CA_CERTS.
-    let mut command = Command::new(path.join(node));
+
+
+    let mut node_args: Vec<OsString> = vec![];
+
+    let render_flame_graph = env::var("GARDEN_FLAMEGRAPH").unwrap_or("false".into());
+
+    let mut command: Command;
+
+    if render_flame_graph == "true" || render_flame_graph == "1" {
+        // For the flame graph feature, we do expect `npx` to be installed globally on the
+        // user's machine. If npx is not installed, this will cause an error.
+        command = Command::new("npx");
+        node_args.extend(vec![
+            "0x".into(),
+            "--".into(),
+            path.join(node).into(),
+        ]);
+    } else {
+        command = Command::new(path.join(node));
+    }
+
+    // Allow users to override the heap size if needed.
+    let max_old_space_size = env::var("GARDEN_MAX_OLD_SPACE_SIZE").unwrap_or("4096".into());
+    let max_semi_space_size: String = env::var("GARDEN_MAX_SEMI_SPACE_SIZE").unwrap_or("64".into());
+
+    node_args.extend(vec![
+        // Allow larger heap size than default
+        // TODO: consider what happens when users also set the NODE_OPTIONS env var
+        format!("--max-semi-space-size={}", max_semi_space_size).into(),
+        format!("--max-old-space-size={}", max_old_space_size).into(),
+        // Disable deprecation warnings; We still see deprecation warnings during development, but in release binaries we want to hide them.
+        "--no-deprecation".into(),
+    ]);
+
 
     // Canonicalize resolves symlinks, which is important so self-update updates in the correct directory.
     let executable_path = fs::canonicalize(
@@ -39,6 +70,7 @@ where
     #[cfg(all(target_os = "linux"))]
     command.env("GARDEN_SEA_TARGET_ENV", TARGET_ENV);
 
+
     // Enable v8 compilation cache by default. That saves ~10-30ms on an M2 mac and we've seen 2 seconds startup time shaved off on Windows.
     // See also https://nodejs.org/api/cli.html#node_compile_cachedir
     let enable_compile_cache = env::var("GARDEN_COMPILE_CACHE").unwrap_or("true".into());
@@ -50,20 +82,6 @@ where
             OsString::from(cache_dir),
         );
     }
-
-    // Allow users to override the heap size if needed.
-    let max_old_space_size = env::var("GARDEN_MAX_OLD_SPACE_SIZE").unwrap_or("4096".into());
-    let max_semi_space_size = env::var("GARDEN_MAX_SEMI_SPACE_SIZE").unwrap_or("64".into());
-
-    let mut node_args: Vec<OsString> = vec![
-        // Allow larger heap size than default
-        // TODO: consider what happens when users also set the NODE_OPTIONS env var
-        format!("--max-semi-space-size={}", max_semi_space_size).into(),
-        format!("--max-old-space-size={}", max_old_space_size).into(),
-        // Disable deprecation warnings; We still see deprecation warnings during development, but in release binaries we want to hide them.
-        "--no-deprecation".into(),
-    ];
-
 
     // Allow arbitrary NodeJS extra params
     let node_extra_params: Vec<OsString> = env::var("GARDEN_NODE_EXTRA_PARAMS").map_or(vec![], |value| {
@@ -78,14 +96,15 @@ where
     // Add Garden parameters at the at the end
     node_args.extend(sea_args.skip(1).map(|s| s.into()));
 
-    debug!("Spawning {} with {:?}", node, node_args);
+    command.args(&node_args);
+
+    debug!("Spawning {:?} with {:?}", command.get_program(), command.get_args());
     for env in command.get_envs() {
         debug!("Environment variable: {:?}={:?}", env.0, env.1.unwrap());
     }
-    command.args(node_args.clone());
 
     Command::spawn(&mut command)
-        .wrap_err_with(|| format!("Failed to spawn {} with {:?}", node, node_args))
+        .wrap_err_with(|| format!("Failed to spawn {:?} with {:?}", command.get_program(), command.get_args()))
 }
 
 pub(crate) fn wait(mut child: Child) -> Result<Option<i32>> {
