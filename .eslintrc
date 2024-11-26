@@ -39,13 +39,16 @@
     // We use `{}` everywhere.
     // To make this safe, we need to actually go through all the cases and see
     // if it's supposed to be a plain object, any object, or really means "anything".
-    "@typescript-eslint/ban-types": "warn",
+    "@typescript-eslint/no-empty-object-type": "warn",
+    "@typescript-eslint/no-restricted-types": "warn",
+    "@typescript-eslint/no-unsafe-function-type": "warn",
+    "@typescript-eslint/no-wrapper-object-types": "warn",
     "arrow-body-style": "off",
     "jsdoc/check-indentation": "off",
     "jsdoc/newline-after-description": "off",
     "no-console": "error",
     "no-unneeded-ternary": "error",
-    "no-unused-expressions": "off",
+    "@typescript-eslint/no-unused-expressions": "off",
     "chai-friendly/no-unused-expressions": [
       "error",
       {
