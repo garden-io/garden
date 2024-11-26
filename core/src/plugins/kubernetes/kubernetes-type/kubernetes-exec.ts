@@ -167,6 +167,7 @@ async function readAndExec({
     log,
     namespace,
     workload: target,
+    containerName: resource.containerName,
     command,
     interactive: false,
     streamLogs: true,
