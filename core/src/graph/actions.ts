@@ -479,11 +479,7 @@ export const processActionConfig = profileAsync(async function processActionConf
       })
     }
 
-    let availableForKind: string = (Object.keys(actionTypes[kind]) || {}).map((t) => `'${t}'`).join(", ")
-    if (availableForKind === "") {
-      availableForKind = "None"
-    }
-
+    const availableForKind: string = (Object.keys(actionTypes[kind]) || {}).map((t) => `'${t}'`).join(", ") || "None"
     throw new ConfigurationError({
       message: dedent`
         Unrecognized action type '${type}' (kind '${kind}', defined at ${configPath}). Are you missing a provider configuration?
