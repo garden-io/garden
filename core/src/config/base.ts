@@ -557,9 +557,9 @@ const _readFile = profileAsync(async function _readFile(path: string) {
   return await readFile(path)
 })
 
-const _loadYaml = profile(function _loadYaml(data: Buffer) {
+function _loadYaml(data: Buffer) {
   return load(data.toString()) as PrimitiveMap
-})
+}
 
 const loadVarfileCache = new LRUCache<string, Promise<PrimitiveMap>>({
   max: 10000,

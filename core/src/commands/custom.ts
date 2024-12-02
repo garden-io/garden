@@ -133,7 +133,7 @@ export class CustomCommandWrapper extends Command {
     if (this.spec.exec) {
       const startedAt = new Date()
 
-      const exec = validateWithPath({
+      const exec = validateWithPath<CommandResource["exec"]>({
         config: resolveTemplateStrings({
           value: this.spec.exec,
           context: commandContext,
@@ -144,7 +144,7 @@ export class CustomCommandWrapper extends Command {
         projectRoot: garden.projectRoot,
         configType: `exec field in custom Command '${this.name}'`,
         source: undefined,
-      })
+      })!
 
       const command = exec.command
       log.debug(`Running exec command: ${command.join(" ")}`)
@@ -185,7 +185,7 @@ export class CustomCommandWrapper extends Command {
     if (this.spec.gardenCommand) {
       const startedAt = new Date()
 
-      let gardenCommand = validateWithPath({
+      let gardenCommand = validateWithPath<CommandResource["gardenCommand"]>({
         config: resolveTemplateStrings({
           value: this.spec.gardenCommand,
           context: commandContext,
@@ -196,7 +196,7 @@ export class CustomCommandWrapper extends Command {
         projectRoot: garden.projectRoot,
         configType: `gardenCommand field in custom Command '${this.name}'`,
         source: undefined,
-      })
+      })!
 
       log.debug(`Running Garden command: ${gardenCommand.join(" ")}`)
 

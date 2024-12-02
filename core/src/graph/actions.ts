@@ -945,7 +945,7 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
   }
 })
 
-const dependenciesFromActionConfig = profile(function dependenciesFromActionConfig({
+function dependenciesFromActionConfig({
   log,
   config,
   configsByKey,
@@ -1042,11 +1042,12 @@ const dependenciesFromActionConfig = profile(function dependenciesFromActionConf
 
     if (maybeTemplateString(ref.name)) {
       try {
+        // TODO: validate that we actually resolve to a string
         ref.name = resolveTemplateString({
           string: ref.name,
           context: templateContext,
           contextOpts: { allowPartial: false },
-        })
+        }) as string
       } catch (err) {
         log.warn(
           `Unable to infer dependency from action reference in ${description}, because template string '${ref.name}' could not be resolved. Either fix the dependency or specify it explicitly.`
@@ -1084,4 +1085,4 @@ const dependenciesFromActionConfig = profile(function dependenciesFromActionConf
   }
 
   return deps
-})
+}

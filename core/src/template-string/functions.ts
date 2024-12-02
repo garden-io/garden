@@ -8,17 +8,21 @@
 
 import { v4 as uuidv4 } from "uuid"
 import { createHash } from "node:crypto"
-import { TemplateStringError } from "../exceptions.js"
+import { GardenError } from "../exceptions.js"
 import { camelCase, escapeRegExp, isArrayLike, isEmpty, isString, kebabCase, keyBy, mapValues, trim } from "lodash-es"
 import type { JoiDescription, Primitive } from "../config/common.js"
 import { joi, joiPrimitive } from "../config/common.js"
 import type Joi from "@hapi/joi"
-import { validateSchema } from "../config/validation.js"
 import { load, loadAll } from "js-yaml"
 import { safeDumpYaml } from "../util/serialization.js"
 import indentString from "indent-string"
-import { mayContainTemplateString } from "./template-string.js"
 import { dateHelperFunctionSpecs } from "./date-functions.js"
+import { CollectionOrValue } from "../util/objects.js"
+import { TemplatePrimitive } from "./types.js"
+
+export class TemplateFunctionCallError extends GardenError {
+  type = "template-function-call"
+}
 
 interface ExampleArgument {
   input: unknown[]
@@ -32,7 +36,7 @@ export interface TemplateHelperFunction {
   arguments: { [name: string]: Joi.Schema }
   outputSchema: Joi.Schema
   exampleArguments: ExampleArgument[]
-  fn: (...args: any[]) => unknown
+  fn: (...args: any[]) => CollectionOrValue<TemplatePrimitive>
 }
 
 const helperFunctionSpecs: TemplateHelperFunction[] = [
@@ -110,7 +114,7 @@ const helperFunctionSpecs: TemplateHelperFunction[] = [
       } else if (Array.isArray(arg1) && Array.isArray(arg2)) {
         return [...arg1, ...arg2]
       } else {
-        throw new TemplateStringError({
+        throw new TemplateFunctionCallError({
           message: `Both terms need to be either arrays or strings (got ${typeof arg1} and ${typeof arg2}).`,
         })
       }
@@ -279,7 +283,7 @@ const helperFunctionSpecs: TemplateHelperFunction[] = [
 
         const result = Number.parseInt(value, 10)
         if (Number.isNaN(result)) {
-          throw new TemplateStringError({
+          throw new TemplateFunctionCallError({
             message: `${name} index must be a number or a numeric string (got "${value}")`,
           })
         }
@@ -372,7 +376,7 @@ const helperFunctionSpecs: TemplateHelperFunction[] = [
         ],
       },
     ],
-    fn: (str: string, multi?: boolean) => (multi ? loadAll(str) : load(str)),
+    fn: (str: string, multi?: boolean) => (multi ? loadAll(str) : load(str)) as CollectionOrValue<TemplatePrimitive>,
   },
   {
     name: "yamlEncode",
@@ -398,7 +402,7 @@ const helperFunctionSpecs: TemplateHelperFunction[] = [
     fn: (value: any, multiDocument?: boolean) => {
       if (multiDocument) {
         if (!isArrayLike(value)) {
-          throw new TemplateStringError({
+          throw new TemplateFunctionCallError({
             message: `yamlEncode: Set multiDocument=true but value is not an array (got ${typeof value})`,
           })
         }
@@ -450,96 +454,4 @@ export function getHelperFunctions(): HelperFunctions {
   )
 
   return _helperFunctions
-}
-
-export function callHelperFunction({
-  functionName,
-  args,
-  text,
-  allowPartial,
-}: {
-  functionName: string
-  args: any[]
-  text: string
-  allowPartial: boolean
-}) {
-  const helperFunctions = getHelperFunctions()
-  const spec = helperFunctions[functionName]
-
-  if (!spec) {
-    const availableFns = Object.keys(helperFunctions).join(", ")
-    const _error = new TemplateStringError({
-      message: `Could not find helper function '${functionName}'. Available helper functions: ${availableFns}`,
-    })
-    return { _error }
-  }
-
-  const resolvedArgs: any[] = []
-
-  for (const arg of args) {
-    // arg can be null here because some helpers allow nulls as valid args
-    if (arg && arg._error) {
-      return arg
-    }
-
-    // allow nulls as valid arg values
-    if (arg && arg.resolved !== undefined) {
-      resolvedArgs.push(arg.resolved)
-    } else {
-      resolvedArgs.push(arg)
-    }
-  }
-
-  // Validate args
-  let i = 0
-
-  for (const [argName, schema] of Object.entries(spec.arguments)) {
-    const value = resolvedArgs[i]
-    const schemaDescription = spec.argumentDescriptions[argName]
-
-    if (value === undefined && schemaDescription.flags?.presence === "required") {
-      return {
-        _error: new TemplateStringError({
-          message: `Missing argument '${argName}' (at index ${i}) for ${functionName} helper function.`,
-        }),
-      }
-    }
-
-    try {
-      resolvedArgs[i] = validateSchema(value, schema, {
-        context: `argument '${argName}' for ${functionName} helper function`,
-        ErrorClass: TemplateStringError,
-      })
-
-      // do not apply helper function for an unresolved template string
-      if (mayContainTemplateString(value)) {
-        if (allowPartial) {
-          return { resolved: "${" + text + "}" }
-        } else {
-          const _error = new TemplateStringError({
-            message: `Function '${functionName}' cannot be applied on unresolved value`,
-          })
-          return { _error }
-        }
-      }
-    } catch (_error) {
-      if (allowPartial) {
-        return { resolved: text }
-      } else {
-        return { _error }
-      }
-    }
-
-    i++
-  }
-
-  try {
-    const resolved = spec.fn(...resolvedArgs)
-    return { resolved }
-  } catch (error) {
-    const _error = new TemplateStringError({
-      message: `Error from helper function ${functionName}: ${error}`,
-    })
-    return { _error }
-  }
 }

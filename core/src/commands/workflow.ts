@@ -180,7 +180,7 @@ export class WorkflowCommand extends Command<Args, {}> {
 
           stepResult = await runStepCommand(stepParams)
         } else if (step.script) {
-          step.script = resolveTemplateString({ string: step.script, context: stepTemplateContext })
+          step.script = resolveTemplateString({ string: step.script, context: stepTemplateContext }) as string
           stepResult = await runStepScript(stepParams)
         } else {
           stepResult = undefined

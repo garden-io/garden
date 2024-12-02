@@ -11,8 +11,6 @@ import { isString } from "lodash-es"
 import { ConfigurationError } from "../../exceptions.js"
 import {
   resolveTemplateString,
-  TemplateStringMissingKeyException,
-  TemplateStringPassthroughException,
 } from "../../template-string/template-string.js"
 import type { CustomObjectSchema } from "../common.js"
 import { isPrimitive, joi, joiIdentifier } from "../common.js"
@@ -56,6 +54,9 @@ export interface ConfigContextType {
 
   getSchema(): CustomObjectSchema
 }
+
+export const CONTEXT_RESOLVE_KEY_NOT_FOUND: unique symbol = Symbol.for("ContextResolveKeyNotFound")
+export const CONTEXT_RESOLVE_KEY_AVAILABLE_LATER: unique symbol = Symbol.for("ContextResolveKeyAvailableLater")
 
 // Note: we're using classes here to be able to use decorators to describe each context node and key
 @Profile()
@@ -193,16 +194,10 @@ export abstract class ConfigContext {
 
       // If we're allowing partial strings, we throw the error immediately to end the resolution flow. The error
       // is caught in the surrounding template resolution code.
-      if (this._alwaysAllowPartial) {
-        // We use a separate exception type when contexts are specifically indicating that unresolvable keys should
-        // be passed through. This is caught in the template parser code.
-        throw new TemplateStringPassthroughException({
-          message,
-        })
-      } else if (opts.allowPartial) {
-        throw new TemplateStringMissingKeyException({
-          message,
-        })
+      if (this._alwaysAllowPartial || opts.allowPartial) {
+        return {
+          resolved: CONTEXT_RESOLVE_KEY_NOT_FOUND,
+        }
       } else {
         // Otherwise we return the undefined value, so that any logical expressions can be evaluated appropriately.
         // The template resolver will throw the error later if appropriate.
@@ -324,7 +319,7 @@ function renderTemplateString(key: ContextKeySegment[]) {
 /**
  * Given all the segments of a template string, return a string path for the key.
  */
-function renderKeyPath(key: ContextKeySegment[]): string {
+export function renderKeyPath(key: ContextKeySegment[]): string {
   // Note: We don't support bracket notation for the first part in a template string
   if (key.length === 0) {
     return ""

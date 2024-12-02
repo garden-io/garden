@@ -1540,11 +1540,13 @@ export class Garden {
       })
     }
 
-    return resolveTemplateString({
+    const resolved = resolveTemplateString({
       string: disabledFlag,
       context,
       contextOpts: { allowPartial: false },
     })
+
+    return !!resolved
   }
 
   /**

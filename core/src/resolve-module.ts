@@ -23,6 +23,7 @@ import {
   CircularDependenciesError,
   ConfigurationError,
   FilesystemError,
+  InternalError,
   PluginError,
   toGardenError,
 } from "./exceptions.js"
@@ -62,6 +63,8 @@ import { styles } from "./logger/styles.js"
 import { actionReferenceToString } from "./actions/base.js"
 import type { DepGraph } from "dependency-graph"
 import { minimatch } from "minimatch"
+import { CollectionOrValue } from "./util/objects.js"
+import { TemplatePrimitive } from "./template-string/types.js"
 
 // This limit is fairly arbitrary, but we need to have some cap on concurrent processing.
 export const moduleResolutionConcurrencyLimit = 50
@@ -528,7 +531,9 @@ export class ModuleResolver {
 
     const configContext = new ModuleConfigContext(contextParams)
 
-    const templateRefs = getModuleTemplateReferences(rawConfig, configContext)
+    const templateRefs = getModuleTemplateReferences(rawConfig,
+      configContext
+    )
     const templateDeps = <string[]>templateRefs.filter((d) => d[1] !== rawConfig.name).map((d) => d[1])
 
     // This is a bit of a hack, but we need to store the template dependencies on the raw config so we can check
@@ -840,6 +845,12 @@ export class ModuleResolver {
           ? resolveTemplateString({ string: contents, context: configContext, contextOpts: { unescape: true } })
           : contents
 
+        if (typeof resolvedContents !== "string") {
+          throw new InternalError({
+            message: `Expected resolvedContents to be typeof string, but got typeof ${resolvedContents}`,
+          })
+        }
+
         const targetDir = resolve(resolvedConfig.path, ...posix.dirname(fileSpec.targetPath).split(posix.sep))
         const targetPath = resolve(resolvedConfig.path, ...fileSpec.targetPath.split(posix.sep))
 
@@ -951,6 +962,11 @@ export class ModuleResolver {
         context: moduleConfigContext,
         contextOpts: resolveOpts,
       })
+      if (typeof varfilePath !== "string") {
+        throw new ConfigurationError({
+          message: `Expected varfile template expression in module configuration ${config.name} to resolve to string, actually got ${typeof varfilePath}`,
+        })
+      }
       varfileVars = await loadVarfile({
         configRoot: config.path,
         path: varfilePath,

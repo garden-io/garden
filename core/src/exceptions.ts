@@ -18,6 +18,7 @@ import dns from "node:dns"
 import { styles } from "./logger/styles.js"
 import type { ObjectPath } from "./config/base.js"
 import type { ExecaError } from "execa"
+import { Location } from "./template-string/ast.js"
 
 // Unfortunately, NodeJS does not provide a list of all error codes, so we have to maintain this list manually.
 // See https://nodejs.org/docs/latest-v18.x/api/dns.html#error-codes
@@ -309,11 +310,13 @@ export class CloudApiError extends GardenError {
 export class TemplateStringError extends GardenError {
   type = "template-string"
 
-  path?: ObjectPath
+  loc?: Location
+  rawTemplateString: string
 
-  constructor(params: GardenErrorParams & { path?: ObjectPath }) {
+  constructor(params: GardenErrorParams & { rawTemplateString: string, loc?: Location }) {
     super(params)
-    this.path = params.path
+    this.loc = params.loc
+    this.rawTemplateString = params.rawTemplateString
   }
 }
 

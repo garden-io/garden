@@ -642,7 +642,7 @@ export const pickEnvironment = profileAsync(async function _pickEnvironment({
     source,
   })
 
-  environmentConfig = validateWithPath({
+  environmentConfig = validateWithPath<EnvironmentConfig>({
     config: environmentConfig,
     schema: environmentSchema(),
     configType: `environment ${environment}`,
