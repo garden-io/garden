@@ -67,6 +67,19 @@ describe("resolveTemplateString", () => {
     expect(res).to.equal("${foo}?")
   })
 
+  it("should not crash when variable in a member expression cannot be resolved", () => {
+    const res = resolveTemplateString({
+      string: '${actions.run["${inputs.deployableTarget}-dummy"].var}',
+      context: new TestContext({
+        actions: {
+          run: {},
+        },
+      }),
+      contextOpts: { allowPartial: true },
+    })
+    expect(res).to.equal('${actions.run["${inputs.deployableTarget}-dummy"].var}')
+  })
+
   it("should support a string literal in a template string as a means to escape it", () => {
     const res = resolveTemplateString({ string: "${'$'}{bar}", context: new TestContext({}) })
     expect(res).to.equal("${bar}")

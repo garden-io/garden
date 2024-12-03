@@ -538,6 +538,7 @@ export class IfBlockExpression extends TemplateExpression {
 
 export class StringConcatExpression extends TemplateExpression {
   public readonly expressions: TemplateExpression[]
+
   constructor(loc: Location, ...expressions: TemplateExpression[]) {
     super(loc)
     this.expressions = expressions
@@ -587,7 +588,7 @@ export class MemberExpression extends TemplateExpression {
   ): string | number | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND | typeof CONTEXT_RESOLVE_KEY_AVAILABLE_LATER {
     const inner = this.innerExpression.evaluate(args)
 
-    if (inner === CONTEXT_RESOLVE_KEY_NOT_FOUND) {
+    if (typeof inner === "symbol") {
       return inner
     }
 
@@ -736,6 +737,7 @@ export class FunctionCallExpression extends TemplateExpression {
       }
 
       const loc = this.loc
+
       class FunctionCallValidationError extends TemplateStringError {
         constructor({ message }: { message: string }) {
           super({
