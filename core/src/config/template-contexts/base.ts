@@ -203,6 +203,7 @@ export abstract class ConfigContext {
       if (this._alwaysAllowPartial || opts.allowPartial) {
         return {
           resolved: CONTEXT_RESOLVE_KEY_AVAILABLE_LATER,
+          message,
         }
       } else {
         return { resolved: CONTEXT_RESOLVE_KEY_NOT_FOUND, message }
