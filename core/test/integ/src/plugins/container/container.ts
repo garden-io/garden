@@ -29,6 +29,7 @@ import type { BuildActionConfig } from "../../../../../src/actions/build.js"
 import { containerHelpers, minDockerVersion } from "../../../../../src/plugins/container/helpers.js"
 import { getDockerBuildFlags } from "../../../../../src/plugins/container/build.js"
 import { DEFAULT_BUILD_TIMEOUT_SEC } from "../../../../../src/constants.js"
+import type { KubernetesProvider } from "../../../../../src/plugins/kubernetes/config.js"
 
 const testVersionedId = "some/image:12345"
 
@@ -192,13 +193,28 @@ describe("plugins.container", () => {
         assertPublishId(`private-registry/foobar:${action.versionString()}`, result.detail)
       })
 
-      it("should fall back to action name if spec.localId and spec.publishId are not defined", async () => {
+      it("should fall back to action.outputs.deploymentImageName if spec.localId and spec.publishId are not defined - no kubernetes provider with deployment registry", async () => {
         const config = cloneDeep(baseConfig)
 
         action = await getTestBuild(config)
 
         const result = await publishContainerBuild({ ctx, log, action })
         assertPublishId(`test:${action.versionString()}`, result.detail)
+      })
+
+      it("should fall back to action.outputs.deploymentImageName if spec.localId and spec.publishId are not defined - with kubernetes provider with deployment registry", async () => {
+        const kubernetesProvider = (await garden.resolveProvider({ log, name: "kubernetes" })) as KubernetesProvider
+        kubernetesProvider.config.deploymentRegistry = {
+          hostname: "foo.io",
+          namespace: "bar",
+          insecure: false,
+        }
+        const config = cloneDeep(baseConfig)
+
+        action = await getTestBuild(config)
+
+        const result = await publishContainerBuild({ ctx, log, action })
+        assertPublishId(`foo.io/bar/test:${action.versionString()}`, result.detail)
       })
 
       it("should respect tagOverride, which corresponds to garden publish --tag command line option", async () => {
