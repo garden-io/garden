@@ -18,7 +18,7 @@
   "devDependencies": {
     "@commitlint/cli": "^19.6.0",
     "@commitlint/config-conventional": "^19.2.2",
-    "@inquirer/prompts": "^7.0.1",
+    "@inquirer/prompts": "^7.1.0",
     "@rollup/plugin-commonjs": "^28.0.1",
     "@rollup/plugin-esm-shim": "^0.1.7",
     "@rollup/plugin-json": "^6.1.0",
