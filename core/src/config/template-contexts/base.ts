@@ -95,6 +95,7 @@ export abstract class ConfigContext {
       return { resolved }
     }
 
+    // TODO: freeze opts object instead of using shallow copy
     opts.stack = [...(opts.stack || [])]
 
     if (opts.stack.includes(fullPath)) {

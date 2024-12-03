@@ -632,7 +632,10 @@ export class ContextLookupExpression extends TemplateExpression {
     const { resolved, message } = context.resolve({
       key: keyPath,
       nodePath: [],
-      opts,
+      // TODO: freeze opts object instead of using shallow copy
+      opts: {
+        ...opts,
+      },
     })
 
     // if context returns key available later, then we do not need to throw, because partial mode is enabled.
