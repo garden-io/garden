@@ -98,9 +98,10 @@ export abstract class ConfigContext {
     opts.stack = [...(opts.stack || [])]
 
     if (opts.stack.includes(fullPath)) {
-      throw new ConfigurationError({
+      return {
+        resolved: CONTEXT_RESOLVE_KEY_NOT_FOUND,
         message: `Circular reference detected when resolving key ${path} (${opts.stack.join(" -> ")})`,
-      })
+      }
     }
 
     // keep track of which resolvers have been called, in order to detect circular references
