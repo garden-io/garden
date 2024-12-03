@@ -85,21 +85,17 @@ export function parseTemplateString({
   rawTemplateString: string
   source?: ConfigSource
   unescape: boolean
-}): string | ast.TemplateExpression {
-  if (!unescape) {
-    const cached = parseTemplateStringCache.get(rawTemplateString)
-
-    if (cached) {
-      return cached
-    }
-  }
-
+}): ast.TemplateExpression | string {
   // Just return immediately if this is definitely not a template string
   if (!maybeTemplateString(rawTemplateString)) {
-    if (!unescape) {
-      parseTemplateStringCache.set(rawTemplateString, rawTemplateString)
-    }
     return rawTemplateString
+  }
+
+  const key = `u-${unescape ? "1" : "0"}-${rawTemplateString}`
+  const cached = parseTemplateStringCache.get(key)
+
+  if (cached) {
+    return cached
   }
 
   if (source === undefined) {
@@ -121,9 +117,7 @@ export function parseTemplateString({
     },
   ])
 
-  if (!unescape) {
-    parseTemplateStringCache.set(rawTemplateString, parsed)
-  }
+  parseTemplateStringCache.set(key, parsed)
 
   return parsed
 }
@@ -157,32 +151,32 @@ export function resolveTemplateString({
     unescape: shouldUnescape(contextOpts),
   })
 
-  if (parsed instanceof ast.TemplateExpression) {
-    const result = parsed.evaluate({
-      rawTemplateString: string,
-      context,
-      opts: contextOpts,
-    })
-
-    if (!contextOpts.allowPartial && result === CONTEXT_RESOLVE_KEY_NOT_FOUND) {
-      throw new InternalError({
-        message: "allowPartial is false, but template expression evaluated to symbol.",
-      })
-      // TODO: think about if it's really ok to partially resolve if allowPartial is false. This can happen if a context with _alwaysPartial is used together with allowPartial false.
-    } else if (result === CONTEXT_RESOLVE_KEY_NOT_FOUND || result === CONTEXT_RESOLVE_KEY_AVAILABLE_LATER) {
-      // The template expression cannot be evaluated yet, we may be able to do it later.
-      // TODO: return ast.TemplateExpression here, instead of string; Otherwise we'll inevitably have a bug
-      // where garden will resolve template expressions that might be contained in expression evaluation results
-      // e.g. if an environment variable contains template string, we don't want to evaluate the template string in there.
-      // See also https://github.com/garden-io/garden/issues/5825
-      return string
-    }
-
-    return result
+  // string does not contain
+  if (typeof parsed === "string") {
+    return parsed
   }
 
-  // string does not contain a template expression
-  return parsed
+  const result = parsed.evaluate({
+    rawTemplateString: string,
+    context,
+    opts: contextOpts,
+  })
+
+  if (!contextOpts.allowPartial && result === CONTEXT_RESOLVE_KEY_NOT_FOUND) {
+    throw new InternalError({
+      message: "allowPartial is false, but template expression evaluated to symbol.",
+    })
+    // TODO: think about if it's really ok to partially resolve if allowPartial is false. This can happen if a context with _alwaysPartial is used together with allowPartial false.
+  } else if (result === CONTEXT_RESOLVE_KEY_NOT_FOUND || result === CONTEXT_RESOLVE_KEY_AVAILABLE_LATER) {
+    // The template expression cannot be evaluated yet, we may be able to do it later.
+    // TODO: return ast.TemplateExpression here, instead of string; Otherwise we'll inevitably have a bug
+    // where garden will resolve template expressions that might be contained in expression evaluation results
+    // e.g. if an environment variable contains template string, we don't want to evaluate the template string in there.
+    // See also https://github.com/garden-io/garden/issues/5825
+    return string
+  }
+
+  return result
 }
 
 /**
