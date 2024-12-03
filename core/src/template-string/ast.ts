@@ -551,7 +551,7 @@ export class StringConcatExpression extends TemplateExpression {
     for (const expr of this.expressions) {
       const r = expr.evaluate(args)
 
-      if (r === CONTEXT_RESOLVE_KEY_NOT_FOUND) {
+      if (typeof r === "symbol") {
         return r
       }
 
@@ -629,7 +629,7 @@ export class ContextLookupExpression extends TemplateExpression {
       keyPath.push(evaluated)
     }
 
-    const { resolved } = context.resolve({
+    const { resolved, message } = context.resolve({
       key: keyPath,
       nodePath: [],
       opts,
@@ -648,7 +648,7 @@ export class ContextLookupExpression extends TemplateExpression {
       }
 
       throw new TemplateStringError({
-        message: `Could not find key ${renderKeyPath(keyPath)}`,
+        message: message || `Could not find key ${renderKeyPath(keyPath)}`,
         rawTemplateString,
         loc: this.loc,
       })

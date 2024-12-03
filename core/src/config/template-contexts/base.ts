@@ -124,9 +124,10 @@ export abstract class ConfigContext {
       if (typeof nextKey === "string" && nextKey.startsWith("_")) {
         value = undefined
       } else if (isPrimitive(value)) {
-        throw new ConfigurationError({
+        return {
+          resolved: CONTEXT_RESOLVE_KEY_NOT_FOUND,
           message: `Attempted to look up key ${JSON.stringify(nextKey)} on a ${typeof value}.`,
-        })
+        }
       } else if (value instanceof Map) {
         available = [...value.keys()]
         value = value.get(nextKey)
@@ -138,9 +139,10 @@ export abstract class ConfigContext {
       if (typeof value === "function") {
         // call the function to resolve the value, then continue
         if (opts.stack.includes(stackEntry)) {
-          throw new ConfigurationError({
+          return {
+            resolved: CONTEXT_RESOLVE_KEY_NOT_FOUND,
             message: `Circular reference detected when resolving key ${stackEntry} (from ${opts.stack.join(" -> ")})`,
-          })
+          }
         }
 
         opts.stack.push(stackEntry)
@@ -170,7 +172,7 @@ export abstract class ConfigContext {
       }
     }
 
-    if (value === undefined) {
+    if (value === undefined || typeof value === "symbol") {
       if (message === undefined) {
         message = styles.error(`Could not find key ${styles.highlight(String(nextKey))}`)
         if (nestedNodePath.length > 1) {
@@ -188,6 +190,10 @@ export abstract class ConfigContext {
         if (messageFooter) {
           message += `\n\n${messageFooter}`
         }
+      }
+
+      if (typeof resolved === "symbol") {
+        return { resolved, message }
       }
 
       // If we're allowing partial strings, we throw the error immediately to end the resolution flow. The error

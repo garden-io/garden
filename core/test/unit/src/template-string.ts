@@ -241,7 +241,7 @@ describe("resolveTemplateString", () => {
 
   it("should throw when a nested key is not found", () => {
     void expectError(() => resolveTemplateString({ string: "${some.other}", context: new TestContext({ some: {} }) }), {
-      contains: "Invalid template string (${some.other}): Could not find key some.other",
+      contains: "Invalid template string (${some.other}): Could not find key other under some",
     })
   })
 
@@ -853,7 +853,7 @@ describe("resolveTemplateString", () => {
         }),
       {
         contains:
-          "Invalid template string (${nested.missing}): Could not find key nested.missing. Available keys: bar, baz and foo.",
+          "Invalid template string (${nested.missing}): Could not find key missing under nested. Available keys: bar, baz and foo.",
       }
     )
   })
@@ -867,7 +867,7 @@ describe("resolveTemplateString", () => {
         }),
       {
         contains:
-          "Invalid template string (${nested.missing}): Could not find key nested.missing. Available keys: bar and foo.",
+          "Invalid template string (${nested.missing}): Could not find key missing under nested. Available keys: bar and foo.",
       }
     )
   })
@@ -876,7 +876,7 @@ describe("resolveTemplateString", () => {
     const c = new TestContext({ nested: new TestContext({ deeper: {} }) })
 
     void expectError(() => resolveTemplateString({ string: "${nested.deeper.missing}", context: c }), {
-      contains: "Invalid template string (${nested.deeper.missing}): Could not find key nested.deeper.missing.",
+      contains: "Invalid template string (${nested.deeper.missing}): Could not find key missing under nested.deeper.",
     })
   })
 
@@ -884,7 +884,7 @@ describe("resolveTemplateString", () => {
     const c = new TestContext({ nested: new TestContext({ deeper: new TestContext({}) }) })
 
     void expectError(() => resolveTemplateString({ string: "${nested.deeper.missing}", context: c }), {
-      contains: "Invalid template string (${nested.deeper.missing}): Could not find key nested.deeper.missing.",
+      contains: "Invalid template string (${nested.deeper.missing}): Could not find key missing under nested.deeper.",
     })
   })
 
@@ -971,16 +971,25 @@ describe("resolveTemplateString", () => {
     })
 
     context("allowPartial=true", () => {
-      it("passes through template strings with missing key", () => {
+      it("does not resolve template expressions when 'b' is missing in the context", () => {
+        const res = resolveTemplateString({
+          string: "${a}-${b}",
+          context: new TestContext({ a: "foo" }),
+          contextOpts: { allowPartial: true },
+        })
+        expect(res).to.equal("${a}-${b}")
+      })
+
+      it("does not resolve template expressions when 'a' is missing in the context", () => {
         const res = resolveTemplateString({
           string: "${a}-${b}",
           context: new TestContext({ b: "foo" }),
           contextOpts: { allowPartial: true },
         })
-        expect(res).to.equal("${a}-foo")
+        expect(res).to.equal("${a}-${b}")
       })
 
-      it("passes through a template string with a missing key in an optional clause", () => {
+      it("does not resolve template expressions when 'a' is missing in the context when evaluating a conditional expression", () => {
         const res = resolveTemplateString({
           string: "${a || b}-${c}",
           context: new TestContext({ b: 123, c: "foo" }),
@@ -988,7 +997,16 @@ describe("resolveTemplateString", () => {
             allowPartial: true,
           },
         })
-        expect(res).to.equal("${a || b}-foo")
+        expect(res).to.equal("${a || b}-${c}")
+      })
+
+      it("resolves template expressions when the context is fully available", () => {
+        const res = resolveTemplateString({
+          string: "${a}-${b}",
+          context: new TestContext({ a: "foo", b: "bar" }),
+          contextOpts: { allowPartial: true },
+        })
+        expect(res).to.equal("foo-bar")
       })
     })
   })
