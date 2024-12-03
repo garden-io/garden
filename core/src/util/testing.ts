@@ -465,12 +465,24 @@ export function expectFuzzyMatch(str: string, sample: string | string[]) {
   const errorMessageNonAnsi = stripAnsi(str)
   const samples = typeof sample === "string" ? [sample] : sample
   const samplesNonAnsi = samples.map(stripAnsi)
-  try {
-    samplesNonAnsi.forEach((s) => expect(errorMessageNonAnsi.toLowerCase()).to.contain(s.toLowerCase()))
-  } catch (err) {
-    // eslint-disable-next-line no-console
-    console.log("Error message:\n", styles.error(errorMessageNonAnsi), "\n")
-    throw err
+  for (const s of samplesNonAnsi) {
+    const actualErrorMsgLowercase = errorMessageNonAnsi.toLowerCase()
+    const expectedErrorSample = s.toLowerCase()
+    try {
+      expect(actualErrorMsgLowercase).to.contain(expectedErrorSample)
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.log(
+        "Expected string",
+        "\n",
+        `"${actualErrorMsgLowercase}"`,
+        "\n",
+        "to contain string",
+        "\n",
+        `"${expectedErrorSample}"`
+      )
+      throw err
+    }
   }
 }
 
