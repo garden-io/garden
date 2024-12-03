@@ -241,7 +241,7 @@ describe("resolveTemplateString", () => {
 
   it("should throw when a nested key is not found", () => {
     void expectError(() => resolveTemplateString({ string: "${some.other}", context: new TestContext({ some: {} }) }), {
-      contains: "Invalid template string (${some.other}): Could not find key other under some",
+      contains: "Invalid template string (${some.other}): Could not find key some.other",
     })
   })
 
@@ -760,7 +760,7 @@ describe("resolveTemplateString", () => {
       () => resolveTemplateString({ string: "${foo[bar]}", context: new TestContext({ foo: {}, bar: {} }) }),
       {
         contains:
-          "Invalid template string (${foo[bar]}): Expression in bracket must resolve to a primitive (got object).",
+          "Invalid template string (${foo[bar]}): Expression in brackets must resolve to a string or number (got object).",
       }
     )
   })
@@ -853,7 +853,7 @@ describe("resolveTemplateString", () => {
         }),
       {
         contains:
-          "Invalid template string (${nested.missing}): Could not find key missing under nested. Available keys: bar, baz and foo.",
+          "Invalid template string (${nested.missing}): Could not find key nested.missing. Available keys: bar, baz and foo.",
       }
     )
   })
@@ -867,7 +867,7 @@ describe("resolveTemplateString", () => {
         }),
       {
         contains:
-          "Invalid template string (${nested.missing}): Could not find key missing under nested. Available keys: bar and foo.",
+          "Invalid template string (${nested.missing}): Could not find key nested.missing. Available keys: bar and foo.",
       }
     )
   })
@@ -876,7 +876,7 @@ describe("resolveTemplateString", () => {
     const c = new TestContext({ nested: new TestContext({ deeper: {} }) })
 
     void expectError(() => resolveTemplateString({ string: "${nested.deeper.missing}", context: c }), {
-      contains: "Invalid template string (${nested.deeper.missing}): Could not find key missing under nested.deeper.",
+      contains: "Invalid template string (${nested.deeper.missing}): Could not find key nested.deeper.missing.",
     })
   })
 
@@ -884,7 +884,7 @@ describe("resolveTemplateString", () => {
     const c = new TestContext({ nested: new TestContext({ deeper: new TestContext({}) }) })
 
     void expectError(() => resolveTemplateString({ string: "${nested.deeper.missing}", context: c }), {
-      contains: "Invalid template string (${nested.deeper.missing}): Could not find key missing under nested.deeper.",
+      contains: "Invalid template string (${nested.deeper.missing}): Could not find key nested.deeper.missing.",
     })
   })
 
