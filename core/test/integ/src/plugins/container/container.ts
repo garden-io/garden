@@ -209,6 +209,11 @@ describe("plugins.container", () => {
           namespace: "bar",
           insecure: false,
         }
+        ctx = await garden.getPluginContext({
+          provider: kubernetesProvider,
+          templateContext: undefined,
+          events: undefined,
+        })
         const config = cloneDeep(baseConfig)
 
         action = await getTestBuild(config)
