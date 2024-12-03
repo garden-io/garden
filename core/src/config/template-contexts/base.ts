@@ -194,12 +194,10 @@ export abstract class ConfigContext {
       // is caught in the surrounding template resolution code.
       if (this._alwaysAllowPartial || opts.allowPartial) {
         return {
-          resolved: CONTEXT_RESOLVE_KEY_NOT_FOUND,
+          resolved: CONTEXT_RESOLVE_KEY_AVAILABLE_LATER,
         }
       } else {
-        // Otherwise we return the undefined value, so that any logical expressions can be evaluated appropriately.
-        // The template resolver will throw the error later if appropriate.
-        return { resolved: undefined, message }
+        return { resolved: CONTEXT_RESOLVE_KEY_NOT_FOUND, message }
       }
     }
 

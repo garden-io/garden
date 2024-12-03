@@ -166,7 +166,8 @@ export function resolveTemplateString({
       throw new InternalError({
         message: "allowPartial is false, but template expression evaluated to symbol.",
       })
-    } else if (result === CONTEXT_RESOLVE_KEY_NOT_FOUND) {
+    // TODO: think about if it's really ok to partially resolve if allowPartial is false. This can happen if a context with _alwaysPartial is used together with allowPartial false.
+    } else if (result === CONTEXT_RESOLVE_KEY_NOT_FOUND || result === CONTEXT_RESOLVE_KEY_AVAILABLE_LATER) {
       // The template expression cannot be evaluated yet, we may be able to do it later.
       // TODO: return ast.TemplateExpression here, instead of string; Otherwise we'll inevitably have a bug
       // where garden will resolve template expressions that might be contained in expression evaluation results

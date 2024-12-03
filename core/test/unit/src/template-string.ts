@@ -214,7 +214,7 @@ describe("resolveTemplateString", () => {
 
   it("should throw when a key is not found", () => {
     void expectError(() => resolveTemplateString({ string: "${some}", context: new TestContext({}) }), {
-      contains: "Invalid template string (${some}): Could not find key some.",
+      contains: "Invalid template string (${some}): Could not find key some",
     })
   })
 
@@ -234,14 +234,14 @@ describe("resolveTemplateString", () => {
     void expectError(
       () => resolveTemplateString({ string: "${some}\nmulti\nline\nstring", context: new TestContext({}) }),
       {
-        contains: "Invalid template string (${some}\\nmulti\\nline\\nstring): Could not find key some.",
+        contains: "Invalid template string (${some}\\nmulti\\nline\\nstring): Could not find key some",
       }
     )
   })
 
   it("should throw when a nested key is not found", () => {
     void expectError(() => resolveTemplateString({ string: "${some.other}", context: new TestContext({ some: {} }) }), {
-      contains: "Invalid template string (${some.other}): Could not find key other under some.",
+      contains: "Invalid template string (${some.other}): Could not find key other under some",
     })
   })
 
@@ -386,7 +386,7 @@ describe("resolveTemplateString", () => {
 
   it("should throw if neither key in logical OR is valid", () => {
     void expectError(() => resolveTemplateString({ string: "${a || b}", context: new TestContext({}) }), {
-      contains: "Invalid template string (${a || b}): Could not find key b.",
+      contains: "Invalid template string (${a || b}): Could not find key b",
     })
   })
 

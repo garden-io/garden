@@ -48,14 +48,14 @@ describe("ConfigContext", () => {
       const c = new TestContext({})
       const { resolved, message } = resolveKey(c, ["basic"])
       expect(resolved).to.be.undefined
-      expect(stripAnsi(message!)).to.include("Could not find key basic.")
+      expect(stripAnsi(message!)).to.include("Could not find key basic")
     })
 
     context("allowPartial=true", () => {
       it("should throw on missing key when allowPartial=true", async () => {
         const c = new TestContext({})
         await expectError(() => resolveKey(c, ["basic"], { allowPartial: true }), {
-          contains: "Could not find key basic.",
+          contains: "Could not find key basic",
         })
       })
 

@@ -51,7 +51,7 @@ export type Location = {
   source?: ConfigSource
 }
 
-export type TemplateEvaluationResult = TemplatePrimitive | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND
+export type TemplateEvaluationResult = TemplatePrimitive | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND | typeof CONTEXT_RESOLVE_KEY_AVAILABLE_LATER
 
 function* astVisitAll(e: TemplateExpression): TemplateExpressionGenerator {
   for (const key in e) {
@@ -80,7 +80,7 @@ export abstract class TemplateExpression {
     yield* astVisitAll(this)
   }
 
-  abstract evaluate(args: EvaluateArgs): CollectionOrValue<TemplatePrimitive> | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND
+  abstract evaluate(args: EvaluateArgs): CollectionOrValue<TemplatePrimitive> | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND | typeof CONTEXT_RESOLVE_KEY_AVAILABLE_LATER
 }
 
 export class IdentifierExpression extends TemplateExpression {
@@ -124,11 +124,11 @@ export class ArrayLiteralExpression extends TemplateExpression {
     super(loc)
   }
 
-  override evaluate(args: EvaluateArgs): CollectionOrValue<TemplatePrimitive> | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND {
+  override evaluate(args: EvaluateArgs): CollectionOrValue<TemplatePrimitive> | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND | typeof CONTEXT_RESOLVE_KEY_AVAILABLE_LATER {
     const result: CollectionOrValue<TemplatePrimitive> = []
     for (const e of this.literal) {
       const res = e.evaluate(args)
-      if (res === CONTEXT_RESOLVE_KEY_NOT_FOUND) {
+      if (typeof res === "symbol") {
         return res
       }
       result.push(res)
@@ -146,10 +146,10 @@ export abstract class UnaryExpression extends TemplateExpression {
     super(loc)
   }
 
-  override evaluate(args: EvaluateArgs): TemplatePrimitive | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND {
+  override evaluate(args: EvaluateArgs): TemplatePrimitive | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND | typeof CONTEXT_RESOLVE_KEY_AVAILABLE_LATER {
     const inner = this.innerExpression.evaluate(args)
 
-    if (inner === CONTEXT_RESOLVE_KEY_NOT_FOUND) {
+    if (typeof inner === "symbol") {
       return inner
     }
 
@@ -194,19 +194,14 @@ export function isTruthy(v: CollectionOrValue<TemplatePrimitive>): boolean {
 }
 
 export class LogicalOrExpression extends LogicalExpression {
-  override evaluate(args: EvaluateArgs): CollectionOrValue<TemplatePrimitive> | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND {
+  override evaluate(args: EvaluateArgs): CollectionOrValue<TemplatePrimitive> | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND | typeof CONTEXT_RESOLVE_KEY_AVAILABLE_LATER {
     const left = this.left.evaluate({
       ...args,
       optional: true,
     })
 
-    if (
-      left === CONTEXT_RESOLVE_KEY_NOT_FOUND &&
-      // We're returning key not found here in partial mode
-      // bacazuse left might become resolvable later, so we should
-      // only resolve logical or expressions in the last possible moment
-      args.opts.allowPartial
-    ) {
+    if (left === CONTEXT_RESOLVE_KEY_AVAILABLE_LATER) {
+      // If key might be available later, we can't decide which branch to take in the logical expression yet.
       return left
     }
 
@@ -219,56 +214,41 @@ export class LogicalOrExpression extends LogicalExpression {
 }
 
 export class LogicalAndExpression extends LogicalExpression {
-  override evaluate(args: EvaluateArgs): CollectionOrValue<TemplatePrimitive> | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND {
+  override evaluate(args: EvaluateArgs): CollectionOrValue<TemplatePrimitive> | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND | typeof CONTEXT_RESOLVE_KEY_AVAILABLE_LATER {
     const left = this.left.evaluate({
       ...args,
-      // TODO: Why optional for &&?
       optional: true,
     })
 
-    // NOTE(steffen): I find this logic extremely weird.
-    //
-    // I would have expected the following:
-    // "value" && missing => error
-    // missing && "value" => error
-    // false && missing => false
-    //
-    // and similarly for ||:
-    // missing || "value" => "value"
-    // "value" || missing => "value"
-    // missing || missing => error
-    // false || missing => error
-
-    if (
-      left === CONTEXT_RESOLVE_KEY_NOT_FOUND &&
-      // We're returning key not found here in partial mode
-      // bacazuse left might become resolvable later, so we should
-      // only resolve logical or expressions in the last possible moment
-      args.opts.allowPartial
-    ) {
+    if (left === CONTEXT_RESOLVE_KEY_AVAILABLE_LATER) {
+      // If key might be available later, we can't decide which branch to take in the logical expression yet.
       return left
     }
 
-    if (left !== CONTEXT_RESOLVE_KEY_NOT_FOUND && !isTruthy(left)) {
-      // Javascript would return the value on the left; we return false in case the value is undefined. This is a quirk of Garden's template languate that we want to keep for backwards compatibility.
-      // TODO: Why?
-      if (left === undefined) {
-        return false
-      } else {
-        return left
-      }
-    } else {
-      const right = this.right.evaluate({
-        ...args,
-        // TODO: is this right?
-        optional: true,
-      })
-      if (right === undefined) {
-        return false
-      } else {
-        return right
-      }
+    // We return false in case the variable could not be resolved. This is a quirk of Garden's template language that we want to keep for backwards compatibility.
+    if (left === CONTEXT_RESOLVE_KEY_NOT_FOUND) {
+      return false
     }
+
+    if (!isTruthy(left)) {
+      return left
+    }
+
+    const right = this.right.evaluate({
+      ...args,
+      optional: true,
+    })
+
+    if (right === CONTEXT_RESOLVE_KEY_AVAILABLE_LATER) {
+      // If key might be available later, we can't decide on a final value yet and the logical expression needs to be reevaluated later.
+      return right
+    }
+
+    if (right === CONTEXT_RESOLVE_KEY_NOT_FOUND) {
+      return false
+    }
+
+    return right
   }
 }
 
@@ -282,9 +262,18 @@ export abstract class BinaryExpression extends TemplateExpression {
     super(loc)
   }
 
-  override evaluate(args: EvaluateArgs): CollectionOrValue<TemplatePrimitive> | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND {
+  override evaluate(args: EvaluateArgs): CollectionOrValue<TemplatePrimitive> | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND | typeof CONTEXT_RESOLVE_KEY_AVAILABLE_LATER {
     const left = this.left.evaluate(args)
+
+    if (left === CONTEXT_RESOLVE_KEY_AVAILABLE_LATER) {
+      return left
+    }
+
     const right = this.right.evaluate(args)
+
+    if (right === CONTEXT_RESOLVE_KEY_AVAILABLE_LATER) {
+      return right
+    }
 
     if (left === CONTEXT_RESOLVE_KEY_NOT_FOUND || right === CONTEXT_RESOLVE_KEY_NOT_FOUND) {
       return CONTEXT_RESOLVE_KEY_NOT_FOUND
@@ -450,13 +439,19 @@ export class FormatStringExpression extends TemplateExpression {
     super(loc)
   }
 
-  override evaluate(args: EvaluateArgs): CollectionOrValue<TemplatePrimitive> | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND {
+  override evaluate(args: EvaluateArgs): CollectionOrValue<TemplatePrimitive> | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND | typeof CONTEXT_RESOLVE_KEY_AVAILABLE_LATER {
     const optional = args.optional !== undefined ? args.optional : this.isOptional
 
-    return this.innerExpression.evaluate({
+    const result = this.innerExpression.evaluate({
       ...args,
       optional,
     })
+
+    if (optional && result === CONTEXT_RESOLVE_KEY_NOT_FOUND) {
+      return undefined
+    }
+
+    return result
   }
 }
 
@@ -488,10 +483,10 @@ export class IfBlockExpression extends TemplateExpression {
     super(loc)
   }
 
-  override evaluate(args: EvaluateArgs): CollectionOrValue<TemplatePrimitive> | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND {
+  override evaluate(args: EvaluateArgs): CollectionOrValue<TemplatePrimitive> | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND | typeof CONTEXT_RESOLVE_KEY_AVAILABLE_LATER {
     const condition = this.condition.evaluate(args)
 
-    if (condition === CONTEXT_RESOLVE_KEY_NOT_FOUND) {
+    if (typeof condition === "symbol") {
       return condition
     }
 
@@ -508,7 +503,7 @@ export class StringConcatExpression extends TemplateExpression {
     this.expressions = expressions
   }
 
-  override evaluate(args: EvaluateArgs): string | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND {
+  override evaluate(args: EvaluateArgs): string | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND | typeof CONTEXT_RESOLVE_KEY_AVAILABLE_LATER {
     const evaluatedExpressions: TemplatePrimitive[] = []
 
     for (const expr of this.expressions) {
@@ -545,7 +540,7 @@ export class MemberExpression extends TemplateExpression {
     super(loc)
   }
 
-  override evaluate(args: EvaluateArgs): string | number | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND {
+  override evaluate(args: EvaluateArgs): string | number | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND | typeof CONTEXT_RESOLVE_KEY_AVAILABLE_LATER {
     const inner = this.innerExpression.evaluate(args)
 
     if (inner === CONTEXT_RESOLVE_KEY_NOT_FOUND) {
@@ -572,16 +567,11 @@ export class ContextLookupExpression extends TemplateExpression {
     super(loc)
   }
 
-  override evaluate({
-    context,
-    opts,
-    optional,
-    rawTemplateString,
-  }: EvaluateArgs): CollectionOrValue<TemplatePrimitive> | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND {
+  override evaluate({ context, opts, optional, rawTemplateString }: EvaluateArgs): CollectionOrValue<TemplatePrimitive> | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND | typeof CONTEXT_RESOLVE_KEY_AVAILABLE_LATER {
     const keyPath: (string | number)[] = []
     for (const k of this.keyPath) {
       const evaluated = k.evaluate({ context, opts, optional, rawTemplateString })
-      if (evaluated === CONTEXT_RESOLVE_KEY_NOT_FOUND) {
+      if (typeof evaluated === "symbol") {
         return evaluated
       }
       keyPath.push(evaluated)
@@ -593,20 +583,20 @@ export class ContextLookupExpression extends TemplateExpression {
       opts,
     })
 
-    // Partial resolution was allowed, so we should not throw here.
+    // if context returns key available later, then we do not need to throw, because partial mode is enabled.
     if (resolved === CONTEXT_RESOLVE_KEY_AVAILABLE_LATER) {
-      // we return CONTEXT_RESOLVE_KEY_NOT_FOUND so we don't need to deal with two different symbols everywhere in AST
-      // TODO: revisit
-      return CONTEXT_RESOLVE_KEY_NOT_FOUND
+      return resolved
     }
 
+    // if we encounter a key not found symbol, it's an error unless the optional flag is true, which is used by
+    // logical operators and expressions, as well as the optional suffix in FormatStringExpression.
     if (resolved === CONTEXT_RESOLVE_KEY_NOT_FOUND) {
       if (optional) {
         return CONTEXT_RESOLVE_KEY_NOT_FOUND
       }
 
       throw new TemplateStringError({
-        message: `Could not resolve key ${renderKeyPath(keyPath)}`,
+        message: `Could not find key ${renderKeyPath(keyPath)}`,
         rawTemplateString,
         loc: this.loc,
       })
@@ -625,11 +615,11 @@ export class FunctionCallExpression extends TemplateExpression {
     super(loc)
   }
 
-  override evaluate(args: EvaluateArgs): CollectionOrValue<TemplatePrimitive> | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND {
+  override evaluate(args: EvaluateArgs): CollectionOrValue<TemplatePrimitive> | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND | typeof CONTEXT_RESOLVE_KEY_AVAILABLE_LATER {
     const functionArgs: CollectionOrValue<TemplatePrimitive>[] = []
     for (const functionArg of this.args) {
       const result = functionArg.evaluate(args)
-      if (result === CONTEXT_RESOLVE_KEY_NOT_FOUND) {
+      if (typeof result === "symbol") {
         return result
       }
       functionArgs.push(result)
@@ -725,15 +715,14 @@ export class TernaryExpression extends TemplateExpression {
     super(loc)
   }
 
-  override evaluate(args: EvaluateArgs): CollectionOrValue<TemplatePrimitive> | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND {
+  override evaluate(args: EvaluateArgs): CollectionOrValue<TemplatePrimitive> | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND | typeof CONTEXT_RESOLVE_KEY_AVAILABLE_LATER {
     const conditionResult = this.condition.evaluate({
       ...args,
       optional: true,
     })
 
-    if (args.opts.allowPartial && conditionResult === CONTEXT_RESOLVE_KEY_NOT_FOUND) {
-      // The variable might become resolvable later
-      return CONTEXT_RESOLVE_KEY_NOT_FOUND
+    if (conditionResult === CONTEXT_RESOLVE_KEY_AVAILABLE_LATER) {
+      return conditionResult
     }
 
     // evaluate ternary expression

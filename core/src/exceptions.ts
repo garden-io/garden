@@ -312,8 +312,17 @@ export class TemplateStringError extends GardenError {
   loc?: Location
   rawTemplateString: string
 
-  constructor(params: GardenErrorParams & { rawTemplateString: string; loc?: Location }) {
-    super(params)
+  constructor(params: GardenErrorParams & { rawTemplateString: string, loc?: Location }) {
+    // TODO: figure out how to get correct path
+    const path = params.loc?.source?.basePath
+
+    const pathDescription = path ? ` at path ${styles.accent(path.join("."))}` : ""
+    const prefix = `Invalid template string (${styles.accent(
+      truncate(params.rawTemplateString, { length: 200 }).replace(/\n/g, "\\n")
+    )})${pathDescription}: `
+    const message = params.message.startsWith(prefix) ? params.message : prefix + params.message
+
+    super({ ...params, message })
     this.loc = params.loc
     this.rawTemplateString = params.rawTemplateString
   }

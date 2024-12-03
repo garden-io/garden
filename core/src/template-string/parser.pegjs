@@ -213,7 +213,7 @@ FormatString
   }
   / FormatStart op:BlockOperator FormatEnd {
     // These expressions will not show up in the final AST, but will be used to build the conditional tree
-    // We instantiate expressions here to get the correct locations for constructng good error messages
+    // We instantiate expressions here to get the correct locations for constructing good error messages
     switch (op) {
       case "else":
         return new ast.ElseBlockExpression(location())
@@ -226,10 +226,8 @@ FormatString
   / pre:FormatStartWithEscape blockOperator:(ExpressionBlockOperator __)* e:Expression end:FormatEndWithOptional {
       if (pre[0] === escapePrefix) {
         if (options.unescape) {
-          return text().slice(1)
           return new ast.LiteralExpression(location(), text().slice(1))
         } else {
-          return text()
           return new ast.LiteralExpression(location(), text())
         }
       }
