@@ -17,8 +17,8 @@ import { load, loadAll } from "js-yaml"
 import { safeDumpYaml } from "../util/serialization.js"
 import indentString from "indent-string"
 import { dateHelperFunctionSpecs } from "./date-functions.js"
-import { CollectionOrValue } from "../util/objects.js"
-import { TemplatePrimitive } from "./types.js"
+import type { CollectionOrValue } from "../util/objects.js"
+import type { TemplatePrimitive } from "./types.js"
 
 export class TemplateFunctionCallError extends GardenError {
   type = "template-function-call"

@@ -9,7 +9,7 @@
 import type { GardenErrorParams } from "../exceptions.js"
 import { ConfigurationError, GardenError, InternalError, TemplateStringError } from "../exceptions.js"
 import type { ConfigContext, ContextKeySegment, ContextResolveOpts } from "../config/template-contexts/base.js"
-import { CONTEXT_RESOLVE_KEY_NOT_FOUND, CONTEXT_RESOLVE_KEY_AVAILABLE_LATER, GenericContext, ScanContext } from "../config/template-contexts/base.js"
+import { CONTEXT_RESOLVE_KEY_NOT_FOUND, GenericContext, ScanContext } from "../config/template-contexts/base.js"
 import cloneDeep from "fast-copy"
 import { difference, isPlainObject, isString, uniq } from "lodash-es"
 import type { ActionReference, Primitive, StringMap } from "../config/common.js"
@@ -25,17 +25,18 @@ import {
   isSpecialKey,
   objectSpreadKey,
 } from "../config/common.js"
-import { dedent, deline, naturalList, titleize, truncate } from "../util/string.js"
+import { dedent, deline, naturalList, titleize } from "../util/string.js"
 import type { ObjectWithName } from "../util/util.js"
 import type { Log } from "../logger/log-entry.js"
 import type { ModuleConfigContext } from "../config/template-contexts/module.js"
 import type { ActionKind } from "../actions/types.js"
 import { actionKindsLower } from "../actions/types.js"
-import { CollectionOrValue, deepMap } from "../util/objects.js"
+import type { CollectionOrValue } from "../util/objects.js"
+import { deepMap } from "../util/objects.js"
 import type { ConfigSource } from "../config/validation.js"
 import * as parser from "./parser.js"
 import type { ObjectPath } from "../config/base.js"
-import { TemplatePrimitive } from "./types.js"
+import type { TemplatePrimitive } from "./types.js"
 import * as ast from "./ast.js"
 import { LRUCache } from "lru-cache"
 
@@ -564,9 +565,7 @@ export function mayContainTemplateString(obj: any): boolean {
 /**
  * Scans for all template strings in the given object and lists the referenced keys.
  */
-export function collectTemplateReferences(
-  obj: object
-): ContextKeySegment[][] {
+export function collectTemplateReferences(obj: object): ContextKeySegment[][] {
   // TODO: Statically analyse AST instead of using ScanContext
   const context = new ScanContext()
   resolveTemplateStrings({ value: obj, context, contextOpts: { allowPartial: true }, source: undefined })
@@ -588,9 +587,7 @@ interface ActionTemplateReference extends ActionReference {
  *
  * TODO-0.13.1: Allow such nested references in certain cases, e.g. if resolvable with a ProjectConfigContext.
  */
-export function getActionTemplateReferences(
-  config: object
-): ActionTemplateReference[] {
+export function getActionTemplateReferences(config: object): ActionTemplateReference[] {
   const rawRefs = collectTemplateReferences(config)
 
   // ${action.*}
@@ -747,10 +744,7 @@ export function throwOnMissingSecretKeys(configs: ObjectWithName[], secrets: Str
  * Collects template references to secrets in obj, and returns an array of any secret keys referenced in it that
  * aren't present (or have blank values) in the provided secrets map.
  */
-export function detectMissingSecretKeys(
-  obj: object,
-  secrets: StringMap
-): ContextKeySegment[] {
+export function detectMissingSecretKeys(obj: object, secrets: StringMap): ContextKeySegment[] {
   const referencedKeys = collectTemplateReferences(obj)
     .filter((ref) => ref[0] === "secrets")
     .map((ref) => ref[1])

@@ -63,8 +63,6 @@ import { styles } from "./logger/styles.js"
 import { actionReferenceToString } from "./actions/base.js"
 import type { DepGraph } from "dependency-graph"
 import { minimatch } from "minimatch"
-import { CollectionOrValue } from "./util/objects.js"
-import { TemplatePrimitive } from "./template-string/types.js"
 
 // This limit is fairly arbitrary, but we need to have some cap on concurrent processing.
 export const moduleResolutionConcurrencyLimit = 50
@@ -531,9 +529,7 @@ export class ModuleResolver {
 
     const configContext = new ModuleConfigContext(contextParams)
 
-    const templateRefs = getModuleTemplateReferences(rawConfig,
-      configContext
-    )
+    const templateRefs = getModuleTemplateReferences(rawConfig, configContext)
     const templateDeps = <string[]>templateRefs.filter((d) => d[1] !== rawConfig.name).map((d) => d[1])
 
     // This is a bit of a hack, but we need to store the template dependencies on the raw config so we can check

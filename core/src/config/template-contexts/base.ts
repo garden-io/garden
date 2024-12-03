@@ -9,9 +9,7 @@
 import type Joi from "@hapi/joi"
 import { isString } from "lodash-es"
 import { ConfigurationError } from "../../exceptions.js"
-import {
-  resolveTemplateString,
-} from "../../template-string/template-string.js"
+import { resolveTemplateString } from "../../template-string/template-string.js"
 import type { CustomObjectSchema } from "../common.js"
 import { isPrimitive, joi, joiIdentifier } from "../common.js"
 import { KeyedSet } from "../../util/keyed-set.js"

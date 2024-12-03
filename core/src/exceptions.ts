@@ -16,9 +16,8 @@ import indentString from "indent-string"
 import { constants } from "os"
 import dns from "node:dns"
 import { styles } from "./logger/styles.js"
-import type { ObjectPath } from "./config/base.js"
 import type { ExecaError } from "execa"
-import { Location } from "./template-string/ast.js"
+import type { Location } from "./template-string/ast.js"
 
 // Unfortunately, NodeJS does not provide a list of all error codes, so we have to maintain this list manually.
 // See https://nodejs.org/docs/latest-v18.x/api/dns.html#error-codes
@@ -313,7 +312,7 @@ export class TemplateStringError extends GardenError {
   loc?: Location
   rawTemplateString: string
 
-  constructor(params: GardenErrorParams & { rawTemplateString: string, loc?: Location }) {
+  constructor(params: GardenErrorParams & { rawTemplateString: string; loc?: Location }) {
     super(params)
     this.loc = params.loc
     this.rawTemplateString = params.rawTemplateString

@@ -8,23 +8,17 @@
 
 import { isPlainObject as lodashIsPlainObject, mapValues, pickBy } from "lodash-es"
 
-export type Collection<P> =
-  | CollectionOrValue<P>[]
-  | { [key: string]: CollectionOrValue<P> }
+export type Collection<P> = CollectionOrValue<P>[] | { [key: string]: CollectionOrValue<P> }
 
 export type CollectionOrValue<P> = P | Collection<P>
 
 // adds appropriate type guard to Array.isArray
-export function isArray<P>(
-  value: CollectionOrValue<P>
-): value is CollectionOrValue<P>[] {
+export function isArray<P>(value: CollectionOrValue<P>): value is CollectionOrValue<P>[] {
   return Array.isArray(value)
 }
 
 // adds appropriate type guard to lodash isPlainObject
-export function isPlainObject<P>(
-  value: CollectionOrValue<P>
-): value is { [key: string]: CollectionOrValue<P> } {
+export function isPlainObject<P>(value: CollectionOrValue<P>): value is { [key: string]: CollectionOrValue<P> } {
   return lodashIsPlainObject(value)
 }
 
@@ -42,7 +36,7 @@ export function deepMap<V, R>(
   } else if (isPlainObject(value)) {
     return mapValues(value, (v, k) => deepMap(v, fn, [...keyPath, k]))
   } else {
-    return fn(value as Exclude<V, Collection<V>>, keyPath[keyPath.length-1] || 0, keyPath)
+    return fn(value as Exclude<V, Collection<V>>, keyPath[keyPath.length - 1] || 0, keyPath)
   }
 }
 
@@ -62,7 +56,6 @@ export function deepFilter<V>(
     return value
   }
 }
-
 
 export function omitUndefined(o: object) {
   return pickBy(o, (v: any) => v !== undefined)

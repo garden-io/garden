@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -7,13 +7,20 @@
  */
 
 import { isArray, isNumber, isString } from "lodash-es"
-import { CONTEXT_RESOLVE_KEY_AVAILABLE_LATER, CONTEXT_RESOLVE_KEY_NOT_FOUND, renderKeyPath, type ConfigContext, type ContextResolveOpts } from "../config/template-contexts/base.js"
+import {
+  CONTEXT_RESOLVE_KEY_AVAILABLE_LATER,
+  CONTEXT_RESOLVE_KEY_NOT_FOUND,
+  renderKeyPath,
+  type ConfigContext,
+  type ContextResolveOpts,
+} from "../config/template-contexts/base.js"
 import { InternalError, TemplateStringError } from "../exceptions.js"
 import { getHelperFunctions } from "./functions.js"
 import { isTemplatePrimitive, type TemplatePrimitive } from "./types.js"
-import { Collection, CollectionOrValue } from "../util/objects.js"
-import { ConfigSource, validateSchema } from "../config/validation.js"
-import { TemplateExpressionGenerator } from "./static-analysis.js"
+import type { Collection, CollectionOrValue } from "../util/objects.js"
+import type { ConfigSource } from "../config/validation.js"
+import { validateSchema } from "../config/validation.js"
+import type { TemplateExpressionGenerator } from "./static-analysis.js"
 
 type EvaluateArgs = {
   context: ConfigContext
@@ -102,7 +109,7 @@ export class LiteralExpression extends TemplateExpression {
     super(loc)
   }
 
-  override evaluate(args: EvaluateArgs): TemplatePrimitive {
+  override evaluate(_args: EvaluateArgs): TemplatePrimitive {
     return this.literal
   }
 }
@@ -193,11 +200,13 @@ export class LogicalOrExpression extends LogicalExpression {
       optional: true,
     })
 
-    if (left === CONTEXT_RESOLVE_KEY_NOT_FOUND &&
+    if (
+      left === CONTEXT_RESOLVE_KEY_NOT_FOUND &&
       // We're returning key not found here in partial mode
       // bacazuse left might become resolvable later, so we should
       // only resolve logical or expressions in the last possible moment
-      args.opts.allowPartial) {
+      args.opts.allowPartial
+    ) {
       return left
     }
 
@@ -230,11 +239,13 @@ export class LogicalAndExpression extends LogicalExpression {
     // missing || missing => error
     // false || missing => error
 
-    if (left === CONTEXT_RESOLVE_KEY_NOT_FOUND &&
+    if (
+      left === CONTEXT_RESOLVE_KEY_NOT_FOUND &&
       // We're returning key not found here in partial mode
       // bacazuse left might become resolvable later, so we should
       // only resolve logical or expressions in the last possible moment
-      args.opts.allowPartial) {
+      args.opts.allowPartial
+    ) {
       return left
     }
 
@@ -290,19 +301,13 @@ export abstract class BinaryExpression extends TemplateExpression {
 }
 
 export class EqualExpression extends BinaryExpression {
-  override transform(
-    left: CollectionOrValue<TemplatePrimitive>,
-    right: CollectionOrValue<TemplatePrimitive>
-  ): boolean {
+  override transform(left: CollectionOrValue<TemplatePrimitive>, right: CollectionOrValue<TemplatePrimitive>): boolean {
     return left === right
   }
 }
 
 export class NotEqualExpression extends BinaryExpression {
-  override transform(
-    left: CollectionOrValue<TemplatePrimitive>,
-    right: CollectionOrValue<TemplatePrimitive>
-  ): boolean {
+  override transform(left: CollectionOrValue<TemplatePrimitive>, right: CollectionOrValue<TemplatePrimitive>): boolean {
     return left !== right
   }
 }
@@ -490,9 +495,7 @@ export class IfBlockExpression extends TemplateExpression {
       return condition
     }
 
-    const evaluated = isTruthy(condition)
-      ? this.ifTrue?.evaluate(args)
-      : this.ifFalse?.evaluate(args)
+    const evaluated = isTruthy(condition) ? this.ifTrue?.evaluate(args) : this.ifFalse?.evaluate(args)
 
     return evaluated
   }
@@ -569,7 +572,12 @@ export class ContextLookupExpression extends TemplateExpression {
     super(loc)
   }
 
-  override evaluate({ context, opts, optional, rawTemplateString }: EvaluateArgs): CollectionOrValue<TemplatePrimitive> | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND {
+  override evaluate({
+    context,
+    opts,
+    optional,
+    rawTemplateString,
+  }: EvaluateArgs): CollectionOrValue<TemplatePrimitive> | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND {
     const keyPath: (string | number)[] = []
     for (const k of this.keyPath) {
       const evaluated = k.evaluate({ context, opts, optional, rawTemplateString })
@@ -681,9 +689,9 @@ export class FunctionCallExpression extends TemplateExpression {
       class FunctionCallValidationError extends TemplateStringError {
         constructor({ message }: { message: string }) {
           super({
-            message: message,
+            message,
             rawTemplateString: text,
-            loc: loc,
+            loc,
           })
         }
       }
@@ -729,9 +737,10 @@ export class TernaryExpression extends TemplateExpression {
     }
 
     // evaluate ternary expression
-    const evaluationResult = conditionResult !== CONTEXT_RESOLVE_KEY_NOT_FOUND && isTruthy(conditionResult)
-      ? this.ifTrue.evaluate(args)
-      : this.ifFalse.evaluate(args)
+    const evaluationResult =
+      conditionResult !== CONTEXT_RESOLVE_KEY_NOT_FOUND && isTruthy(conditionResult)
+        ? this.ifTrue.evaluate(args)
+        : this.ifFalse.evaluate(args)
 
     return evaluationResult
   }
