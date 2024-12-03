@@ -77,7 +77,7 @@ declare class _TypedEventEmitter<T> {
   waitFor(event: keyof T | eventNS, options?: WaitForOptions): CancelablePromise<any[]>
   listenTo(target: GeneralEventEmitter, events: keyof T | eventNS, options?: ListenToOptions): this
   listenTo(target: GeneralEventEmitter, events: keyof T[], options?: ListenToOptions): this
-  listenTo(target: GeneralEventEmitter, events: Object, options?: ListenToOptions): this
+  listenTo(target: GeneralEventEmitter, events: object, options?: ListenToOptions): this
   stopListeningTo(target?: GeneralEventEmitter, event?: keyof T | eventNS): boolean
   hasListeners(event?: string): boolean
   static once<T extends object = any>(
