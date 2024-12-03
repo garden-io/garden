@@ -46,9 +46,9 @@ describe("ConfigContext", () => {
 
     it("should return undefined for missing key", async () => {
       const c = new TestContext({})
-      const { resolved, message } = resolveKey(c, ["basic"])
+      const { resolved, getUnavailableReason: message } = resolveKey(c, ["basic"])
       expect(resolved).to.be.undefined
-      expect(stripAnsi(message!)).to.include("Could not find key basic")
+      expect(stripAnsi(message!())).to.include("Could not find key basic")
     })
 
     context("allowPartial=true", () => {
@@ -90,9 +90,9 @@ describe("ConfigContext", () => {
       const c = new TestContext({
         nested: new TestContext({ key: "value" }),
       })
-      const { resolved, message } = resolveKey(c, ["basic", "bla"])
+      const { resolved, getUnavailableReason: message } = resolveKey(c, ["basic", "bla"])
       expect(resolved).to.be.undefined
-      expect(stripAnsi(message!)).to.equal("Could not find key basic. Available keys: nested.")
+      expect(stripAnsi(message!())).to.equal("Could not find key basic. Available keys: nested.")
     })
 
     it("should resolve keys with value behind callable", async () => {
@@ -125,7 +125,7 @@ describe("ConfigContext", () => {
         nested: new TestContext({ key: "value" }),
       })
       const key = ["nested", "key"]
-      const stack = [key.join(".")]
+      const stack = new Set([key.join(".")])
       await expectError(() => c.resolve({ key, nodePath: [], opts: { stack } }), "configuration")
     })
 
@@ -133,7 +133,7 @@ describe("ConfigContext", () => {
       class NestedContext extends ConfigContext {
         override resolve({ key, nodePath, opts }: ContextResolveParams) {
           const circularKey = nodePath.concat(key)
-          opts.stack!.push(circularKey.join("."))
+          opts.stack!.add(circularKey.join("."))
           return c.resolve({ key: circularKey, nodePath: [], opts })
         }
       }
@@ -155,8 +155,8 @@ describe("ConfigContext", () => {
       }
 
       const c = new Context()
-      const { message } = resolveKey(c, ["nested", "bla"])
-      expect(stripAnsi(message!)).to.include("Could not find key bla under nested.")
+      const { getUnavailableReason: message } = resolveKey(c, ["nested", "bla"])
+      expect(stripAnsi(message!())).to.include("Could not find key bla under nested.")
     })
 
     it("should show helpful error when unable to resolve nested key in object", async () => {
@@ -171,8 +171,8 @@ describe("ConfigContext", () => {
       }
 
       const c = new Context()
-      const { message } = resolveKey(c, ["nested", "bla"])
-      expect(stripAnsi(message!)).to.include("Could not find key bla under nested.")
+      const { getUnavailableReason: message } = resolveKey(c, ["nested", "bla"])
+      expect(stripAnsi(message!())).to.include("Could not find key bla under nested.")
     })
 
     it("should show helpful error when unable to resolve two-level nested key in object", async () => {
@@ -187,8 +187,8 @@ describe("ConfigContext", () => {
       }
 
       const c = new Context()
-      const { message } = resolveKey(c, ["nested", "deeper", "bla"])
-      expect(stripAnsi(message!)).to.include("Could not find key bla under nested.deeper.")
+      const { getUnavailableReason: message } = resolveKey(c, ["nested", "deeper", "bla"])
+      expect(stripAnsi(message!())).to.include("Could not find key bla under nested.deeper.")
     })
 
     it("should show helpful error when unable to resolve in nested context", async () => {
@@ -204,8 +204,8 @@ describe("ConfigContext", () => {
       }
 
       const c = new Context()
-      const { message } = resolveKey(c, ["nested", "bla"])
-      expect(stripAnsi(message!)).to.include("Could not find key bla under nested.")
+      const { getUnavailableReason: message } = resolveKey(c, ["nested", "bla"])
+      expect(stripAnsi(message!())).to.include("Could not find key bla under nested.")
     })
 
     it("should resolve template strings", async () => {

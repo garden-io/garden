@@ -630,7 +630,7 @@ export class ContextLookupExpression extends TemplateExpression {
       keyPath.push(evaluated)
     }
 
-    const { resolved, message } = context.resolve({
+    const { resolved, getUnavailableReason } = context.resolve({
       key: keyPath,
       nodePath: [],
       // TODO: freeze opts object instead of using shallow copy
@@ -652,7 +652,7 @@ export class ContextLookupExpression extends TemplateExpression {
       }
 
       throw new TemplateStringError({
-        message: message || `Could not find key ${renderKeyPath(keyPath)}`,
+        message: getUnavailableReason?.() || `Could not find key ${renderKeyPath(keyPath)}`,
         rawTemplateString,
         loc: this.loc,
       })
