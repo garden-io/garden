@@ -16,7 +16,7 @@
   },
   "private": true,
   "devDependencies": {
-    "@commitlint/cli": "^19.5.0",
+    "@commitlint/cli": "^19.6.0",
     "@commitlint/config-conventional": "^19.2.2",
     "@inquirer/prompts": "^7.0.1",
     "@rollup/plugin-commonjs": "^28.0.1",
