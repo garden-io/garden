@@ -7,13 +7,14 @@
  */
 
 {
+  const rawTemplateString = input
+
   const {
     ast,
     escapePrefix,
     optionalSuffix,
     parseNested,
     TemplateStringError,
-    rawTemplateString,
   } = options
 
   function filledArray(count, value) {
