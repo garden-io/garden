@@ -246,7 +246,7 @@ export class ScanContext extends ConfigContext {
   override resolve({ key, nodePath }: ContextResolveParams) {
     const fullKey = nodePath.concat(key)
     this.foundKeys.add(fullKey)
-    return { resolved: renderTemplateString(fullKey), partial: true }
+    return { resolved: CONTEXT_RESOLVE_KEY_AVAILABLE_LATER, partial: true }
   }
 }
 
@@ -311,13 +311,6 @@ export class TemplateContext extends ConfigContext {
     super(root)
     this.name = name
   }
-}
-
-/**
- * Given all the segments of a template string, return a new template string that can be resolved later.
- */
-function renderTemplateString(key: ContextKeySegment[]) {
-  return "${" + renderKeyPath(key) + "}"
 }
 
 /**
