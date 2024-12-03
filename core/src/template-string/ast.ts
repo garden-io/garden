@@ -51,7 +51,10 @@ export type Location = {
   source?: ConfigSource
 }
 
-export type TemplateEvaluationResult = TemplatePrimitive | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND | typeof CONTEXT_RESOLVE_KEY_AVAILABLE_LATER
+export type TemplateEvaluationResult =
+  | TemplatePrimitive
+  | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND
+  | typeof CONTEXT_RESOLVE_KEY_AVAILABLE_LATER
 
 function* astVisitAll(e: TemplateExpression): TemplateExpressionGenerator {
   for (const key in e) {
@@ -80,7 +83,12 @@ export abstract class TemplateExpression {
     yield* astVisitAll(this)
   }
 
-  abstract evaluate(args: EvaluateArgs): CollectionOrValue<TemplatePrimitive> | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND | typeof CONTEXT_RESOLVE_KEY_AVAILABLE_LATER
+  abstract evaluate(
+    args: EvaluateArgs
+  ):
+    | CollectionOrValue<TemplatePrimitive>
+    | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND
+    | typeof CONTEXT_RESOLVE_KEY_AVAILABLE_LATER
 }
 
 export class IdentifierExpression extends TemplateExpression {
@@ -124,7 +132,12 @@ export class ArrayLiteralExpression extends TemplateExpression {
     super(loc)
   }
 
-  override evaluate(args: EvaluateArgs): CollectionOrValue<TemplatePrimitive> | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND | typeof CONTEXT_RESOLVE_KEY_AVAILABLE_LATER {
+  override evaluate(
+    args: EvaluateArgs
+  ):
+    | CollectionOrValue<TemplatePrimitive>
+    | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND
+    | typeof CONTEXT_RESOLVE_KEY_AVAILABLE_LATER {
     const result: CollectionOrValue<TemplatePrimitive> = []
     for (const e of this.literal) {
       const res = e.evaluate(args)
@@ -146,7 +159,9 @@ export abstract class UnaryExpression extends TemplateExpression {
     super(loc)
   }
 
-  override evaluate(args: EvaluateArgs): TemplatePrimitive | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND | typeof CONTEXT_RESOLVE_KEY_AVAILABLE_LATER {
+  override evaluate(
+    args: EvaluateArgs
+  ): TemplatePrimitive | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND | typeof CONTEXT_RESOLVE_KEY_AVAILABLE_LATER {
     const inner = this.innerExpression.evaluate(args)
 
     if (typeof inner === "symbol") {
@@ -194,7 +209,12 @@ export function isTruthy(v: CollectionOrValue<TemplatePrimitive>): boolean {
 }
 
 export class LogicalOrExpression extends LogicalExpression {
-  override evaluate(args: EvaluateArgs): CollectionOrValue<TemplatePrimitive> | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND | typeof CONTEXT_RESOLVE_KEY_AVAILABLE_LATER {
+  override evaluate(
+    args: EvaluateArgs
+  ):
+    | CollectionOrValue<TemplatePrimitive>
+    | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND
+    | typeof CONTEXT_RESOLVE_KEY_AVAILABLE_LATER {
     const left = this.left.evaluate({
       ...args,
       optional: true,
@@ -214,7 +234,12 @@ export class LogicalOrExpression extends LogicalExpression {
 }
 
 export class LogicalAndExpression extends LogicalExpression {
-  override evaluate(args: EvaluateArgs): CollectionOrValue<TemplatePrimitive> | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND | typeof CONTEXT_RESOLVE_KEY_AVAILABLE_LATER {
+  override evaluate(
+    args: EvaluateArgs
+  ):
+    | CollectionOrValue<TemplatePrimitive>
+    | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND
+    | typeof CONTEXT_RESOLVE_KEY_AVAILABLE_LATER {
     const left = this.left.evaluate({
       ...args,
       optional: true,
@@ -262,7 +287,12 @@ export abstract class BinaryExpression extends TemplateExpression {
     super(loc)
   }
 
-  override evaluate(args: EvaluateArgs): CollectionOrValue<TemplatePrimitive> | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND | typeof CONTEXT_RESOLVE_KEY_AVAILABLE_LATER {
+  override evaluate(
+    args: EvaluateArgs
+  ):
+    | CollectionOrValue<TemplatePrimitive>
+    | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND
+    | typeof CONTEXT_RESOLVE_KEY_AVAILABLE_LATER {
     const left = this.left.evaluate(args)
 
     if (left === CONTEXT_RESOLVE_KEY_AVAILABLE_LATER) {
@@ -439,7 +469,12 @@ export class FormatStringExpression extends TemplateExpression {
     super(loc)
   }
 
-  override evaluate(args: EvaluateArgs): CollectionOrValue<TemplatePrimitive> | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND | typeof CONTEXT_RESOLVE_KEY_AVAILABLE_LATER {
+  override evaluate(
+    args: EvaluateArgs
+  ):
+    | CollectionOrValue<TemplatePrimitive>
+    | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND
+    | typeof CONTEXT_RESOLVE_KEY_AVAILABLE_LATER {
     const optional = args.optional !== undefined ? args.optional : this.isOptional
 
     const result = this.innerExpression.evaluate({
@@ -483,7 +518,12 @@ export class IfBlockExpression extends TemplateExpression {
     super(loc)
   }
 
-  override evaluate(args: EvaluateArgs): CollectionOrValue<TemplatePrimitive> | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND | typeof CONTEXT_RESOLVE_KEY_AVAILABLE_LATER {
+  override evaluate(
+    args: EvaluateArgs
+  ):
+    | CollectionOrValue<TemplatePrimitive>
+    | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND
+    | typeof CONTEXT_RESOLVE_KEY_AVAILABLE_LATER {
     const condition = this.condition.evaluate(args)
 
     if (typeof condition === "symbol") {
@@ -503,7 +543,9 @@ export class StringConcatExpression extends TemplateExpression {
     this.expressions = expressions
   }
 
-  override evaluate(args: EvaluateArgs): string | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND | typeof CONTEXT_RESOLVE_KEY_AVAILABLE_LATER {
+  override evaluate(
+    args: EvaluateArgs
+  ): string | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND | typeof CONTEXT_RESOLVE_KEY_AVAILABLE_LATER {
     const evaluatedExpressions: TemplatePrimitive[] = []
 
     for (const expr of this.expressions) {
@@ -540,7 +582,9 @@ export class MemberExpression extends TemplateExpression {
     super(loc)
   }
 
-  override evaluate(args: EvaluateArgs): string | number | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND | typeof CONTEXT_RESOLVE_KEY_AVAILABLE_LATER {
+  override evaluate(
+    args: EvaluateArgs
+  ): string | number | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND | typeof CONTEXT_RESOLVE_KEY_AVAILABLE_LATER {
     const inner = this.innerExpression.evaluate(args)
 
     if (inner === CONTEXT_RESOLVE_KEY_NOT_FOUND) {
@@ -567,7 +611,15 @@ export class ContextLookupExpression extends TemplateExpression {
     super(loc)
   }
 
-  override evaluate({ context, opts, optional, rawTemplateString }: EvaluateArgs): CollectionOrValue<TemplatePrimitive> | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND | typeof CONTEXT_RESOLVE_KEY_AVAILABLE_LATER {
+  override evaluate({
+    context,
+    opts,
+    optional,
+    rawTemplateString,
+  }: EvaluateArgs):
+    | CollectionOrValue<TemplatePrimitive>
+    | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND
+    | typeof CONTEXT_RESOLVE_KEY_AVAILABLE_LATER {
     const keyPath: (string | number)[] = []
     for (const k of this.keyPath) {
       const evaluated = k.evaluate({ context, opts, optional, rawTemplateString })
@@ -615,7 +667,12 @@ export class FunctionCallExpression extends TemplateExpression {
     super(loc)
   }
 
-  override evaluate(args: EvaluateArgs): CollectionOrValue<TemplatePrimitive> | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND | typeof CONTEXT_RESOLVE_KEY_AVAILABLE_LATER {
+  override evaluate(
+    args: EvaluateArgs
+  ):
+    | CollectionOrValue<TemplatePrimitive>
+    | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND
+    | typeof CONTEXT_RESOLVE_KEY_AVAILABLE_LATER {
     const functionArgs: CollectionOrValue<TemplatePrimitive>[] = []
     for (const functionArg of this.args) {
       const result = functionArg.evaluate(args)
@@ -715,7 +772,12 @@ export class TernaryExpression extends TemplateExpression {
     super(loc)
   }
 
-  override evaluate(args: EvaluateArgs): CollectionOrValue<TemplatePrimitive> | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND | typeof CONTEXT_RESOLVE_KEY_AVAILABLE_LATER {
+  override evaluate(
+    args: EvaluateArgs
+  ):
+    | CollectionOrValue<TemplatePrimitive>
+    | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND
+    | typeof CONTEXT_RESOLVE_KEY_AVAILABLE_LATER {
     const conditionResult = this.condition.evaluate({
       ...args,
       optional: true,

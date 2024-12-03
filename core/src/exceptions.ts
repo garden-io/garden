@@ -312,7 +312,7 @@ export class TemplateStringError extends GardenError {
   loc?: Location
   rawTemplateString: string
 
-  constructor(params: GardenErrorParams & { rawTemplateString: string, loc?: Location }) {
+  constructor(params: GardenErrorParams & { rawTemplateString: string; loc?: Location }) {
     // TODO: figure out how to get correct path
     const path = params.loc?.source?.basePath
 
