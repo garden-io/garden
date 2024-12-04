@@ -6,13 +6,16 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { isNumber, isString } from "lodash-es"
 import type { CollectionOrValue } from "../util/objects.js"
 import { isArray, isPlainObject } from "../util/objects.js"
-import { ContextLookupExpression, IdentifierExpression, MemberExpression, TemplateExpression } from "./ast.js"
+import {
+  ContextLookupExpression,
+  TemplateExpression,
+} from "./ast.js"
 import type { TemplatePrimitive } from "./types.js"
 import { parseTemplateString } from "./template-string.js"
 import { ConfigContext, CONTEXT_RESOLVE_KEY_AVAILABLE_LATER } from "../config/template-contexts/base.js"
+import { GardenError, InternalError } from "../exceptions.js"
 
 export type TemplateExpressionGenerator = Generator<TemplatePrimitive | TemplateExpression, void, undefined>
 
@@ -62,7 +65,7 @@ export function containsTemplateExpression(generator: TemplateExpressionGenerato
 }
 
 export function containsContextLookupReferences(generator: TemplateExpressionGenerator): boolean {
-  for (const finding of getContextLookupReferences(generator)) {
+  for (const finding of getContextLookupReferences(generator, new NoOpContext())) {
     return true
   }
 
@@ -71,63 +74,61 @@ export function containsContextLookupReferences(generator: TemplateExpressionGen
 
 export type ContextLookupReferenceFinding =
   | {
-      type: "static"
+      type: "resolvable"
       keyPath: (string | number)[]
     }
   | {
-      type: "dynamic"
-      keyPath: (string | number | TemplateExpression)[]
-    }
-  | {
-      type: "invalid"
-      keyPath: unknown[]
+      type: "unresolvable"
+      keyPath: (string | number | { getError: () => GardenError })[]
     }
 
+function captureError(arg: () => void): () => GardenError {
+  return () => {
+    try {
+      arg()
+    } catch (e) {
+      if (e instanceof GardenError) {
+        return e
+      }
+      throw e
+    }
+    throw new InternalError({
+      message: `captureError: function did not throw: ${arg}`,
+    })
+  }
+}
+
 export function* getContextLookupReferences(
-  generator: TemplateExpressionGenerator
+  generator: TemplateExpressionGenerator,
+  context: ConfigContext
 ): Generator<ContextLookupReferenceFinding, void, undefined> {
   for (const expression of generator) {
     if (expression instanceof ContextLookupExpression) {
-      let type: ContextLookupReferenceFinding["type"] | undefined = undefined
-      const keyPath: any[] = []
-
-      for (const v of expression.keyPath.values()) {
-        if (v instanceof IdentifierExpression) {
-          keyPath.push(v.name)
-        } else if (v instanceof MemberExpression) {
-          if (containsContextLookupReferences(v.innerExpression.visitAll())) {
-            // do not override invalid
-            if (type !== "invalid") {
-              type = "dynamic"
-            }
-            keyPath.push(v.innerExpression)
-          } else {
-            // can be evaluated statically
-            const result = v.innerExpression.evaluate({
-              context: new NoOpContext(),
-              rawTemplateString: "",
-              opts: {},
-            })
-
-            if (isString(result) || isNumber(result)) {
-              keyPath.push(result)
-              type ||= "static"
-            } else {
-              keyPath.push(result)
-              // if it's invalid, we override to invalid
-              type = "invalid"
-            }
+      let isResolvable: boolean = true
+      const keyPath = expression.keyPath.map((keyPathExpression) => {
+        const key = keyPathExpression.evaluate({ context, opts: { allowPartial: true } })
+        if (typeof key === "symbol") {
+          isResolvable = false
+          return {
+            getError: captureError(() =>
+              // this will throw an error, because the key could not be resolved
+              keyPathExpression.evaluate({ context, opts: { allowPartial: false } })
+            ),
           }
-        } else {
-          v satisfies never
         }
-      }
+        return key
+      })
 
-      if (type && keyPath.length > 0) {
-        yield {
-          keyPath,
-          type,
-        }
+      if (keyPath.length > 0) {
+        yield isResolvable
+          ? {
+              type: "resolvable",
+              keyPath: keyPath as (string | number)[],
+            }
+          : {
+              type: "unresolvable",
+              keyPath,
+            }
       }
     }
   }

@@ -1035,7 +1035,7 @@ function dependenciesFromActionConfig({
   // -> We avoid depending on action execution when referencing static output keys
   const staticOutputKeys = definition?.staticOutputsSchema ? describeSchema(definition.staticOutputsSchema).keys : []
 
-  for (const ref of getActionTemplateReferences(config)) {
+  for (const ref of getActionTemplateReferences(config, templateContext)) {
     let needsExecuted = false
 
     const outputKey = ref.fullRef[4] as string

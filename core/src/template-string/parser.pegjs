@@ -7,8 +7,6 @@
  */
 
 {
-  const rawTemplateString = input
-
   const {
     ast,
     escapePrefix,
@@ -67,7 +65,7 @@
         case "%":
           return new ast.ModuloExpression(location(), operator, left, right)
         default:
-          throw new TemplateStringError({ message: `Unrecognized logical operator: ${operator}`, rawTemplateString, loc: location() })
+          throw new TemplateStringError({ message: `Unrecognized logical operator: ${operator}`, loc: location() })
       }
     }, head);
   }
@@ -88,7 +86,7 @@
         case "||":
           return new ast.LogicalOrExpression(location(), operator, left, right)
         default:
-          throw new TemplateStringError({ message: `Unrecognized logical operator: ${operator}`, rawTemplateString, loc: location() })
+          throw new TemplateStringError({ message: `Unrecognized logical operator: ${operator}`, loc: location() })
       }
     }, head);
   }
@@ -127,10 +125,10 @@
         }
       } else if (e instanceof ast.ElseBlockExpression) {
         if (currentCondition === undefined) {
-          throw new TemplateStringError({ message: "Found ${else} block without a preceding ${if...} block.", rawTemplateString, loc: location() })
+          throw new TemplateStringError({ message: "Found ${else} block without a preceding ${if...} block.", loc: location() })
         }
         if (encounteredElse && nestingLevel === 0) {
-          throw new TemplateStringError({ message: "Encountered multiple ${else} blocks on the same ${if...} block nesting level.", rawTemplateString, loc: location() })
+          throw new TemplateStringError({ message: "Encountered multiple ${else} blocks on the same ${if...} block nesting level.", loc: location() })
         }
 
         if (currentCondition && nestingLevel === 0) {
@@ -140,7 +138,7 @@
         }
       } else if (e instanceof ast.EndIfBlockExpression) {
         if (currentCondition === undefined) {
-          throw new TemplateStringError({ message: "Found ${endif} block without a preceding ${if...} block.", rawTemplateString, loc: location() })
+          throw new TemplateStringError({ message: "Found ${endif} block without a preceding ${if...} block.", loc: location() })
         }
         if (nestingLevel === 0) {
           currentCondition.ifTrue = buildConditionalTree(...ifTrue)
@@ -158,7 +156,7 @@
     }
 
     if (currentCondition) {
-      throw new TemplateStringError({ message: "Missing ${endif} after ${if ...} block.", rawTemplateString, loc: location() })
+      throw new TemplateStringError({ message: "Missing ${endif} after ${if ...} block.", loc: location() })
     }
 
     if (rootExpressions.length === 0) {
@@ -221,7 +219,7 @@ FormatString
       case "endif":
         return new ast.EndIfBlockExpression(location())
       default:
-        throw new TemplateStringError({ message: `Unrecognized block operator: ${op}`, rawTemplateString, loc: location() })
+        throw new TemplateStringError({ message: `Unrecognized block operator: ${op}`, loc: location() })
     }
   }
   / pre:FormatStartWithEscape blockOperator:(ExpressionBlockOperator __)* e:Expression end:FormatEndWithOptional {
@@ -238,7 +236,7 @@ FormatString
 
       if (blockOperator && blockOperator.length > 0) {
         if (isOptional) {
-          throw new TemplateStringError({ message: "Cannot specify optional suffix in if-block.", rawTemplateString, loc: location() })
+          throw new TemplateStringError({ message: "Cannot specify optional suffix in if-block.", loc: location() })
         }
 
         // ifTrue and ifFalse will be filled in by `buildConditionalTree`
@@ -252,7 +250,7 @@ FormatString
 
 UnclosedFormatString
   = Prefix? FormatStart .* {
-      throw new TemplateStringError({ message: "Unable to parse as valid template string.", rawTemplateString, loc: location() })
+      throw new TemplateStringError({ message: "Unable to parse as valid template string.", loc: location() })
   }
 
 EscapeStart
@@ -389,7 +387,7 @@ UnaryExpression
         case "!":
           return new ast.NotExpression(location(), argument)
         default:
-          throw new TemplateStringError({ message: `Unrecognized unary operator: ${operator}`, rawTemplateString, loc: location() })
+          throw new TemplateStringError({ message: `Unrecognized unary operator: ${operator}`, loc: location() })
       }
     }
 

@@ -121,6 +121,7 @@ export function parseTemplateString({
       parseNested: (nested: string) => parseTemplateString({ rawTemplateString: nested, source, unescape }),
       TemplateStringError,
       unescape,
+      grammarSource: rawTemplateString,
     },
   ])
 
@@ -164,7 +165,6 @@ export function resolveTemplateString({
   }
 
   const result = parsed.evaluate({
-    rawTemplateString: string,
     context,
     opts: contextOpts,
   })
@@ -585,12 +585,14 @@ interface ActionTemplateReference extends ActionReference {
 /**
  * Collects every reference to another action in the given config object, including translated runtime.* references.
  * An error is thrown if a reference is not resolvable, i.e. if a nested template is used as a reference.
- *
- * TODO-0.13.1: Allow such nested references in certain cases, e.g. if resolvable with a ProjectConfigContext.
  */
-export function* getActionTemplateReferences(config: object): Generator<ActionTemplateReference, void, undefined> {
+export function* getActionTemplateReferences(
+  config: object,
+  context: ConfigContext
+): Generator<ActionTemplateReference, void, undefined> {
   const generator = getContextLookupReferences(
-    visitAll({ value: config as CollectionOrValue<TemplatePrimitive>, parseTemplateStrings: true })
+    visitAll({ value: config as CollectionOrValue<TemplatePrimitive>, parseTemplateStrings: true }),
+    context
   )
 
   for (const finding of generator) {
@@ -599,9 +601,17 @@ export function* getActionTemplateReferences(config: object): Generator<ActionTe
       continue
     }
 
-    if (finding.type !== "static") {
-      throw new ConfigurationError({
-        message: `Found invalid action reference (resolving variables in actions is not allowed).`,
+    if (finding.type === "unresolvable") {
+      for (const k of finding.keyPath) {
+        if (typeof k === "object" && "getError" in k) {
+          const err = k.getError()
+          throw new ConfigurationError({
+            message: `Found invalid action reference: ${err.message}`
+          })
+        }
+      }
+      throw new InternalError({
+        message: "No error found in unresolvable finding",
       })
     }
 

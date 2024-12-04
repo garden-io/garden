@@ -309,23 +309,22 @@ export class CloudApiError extends GardenError {
 export class TemplateStringError extends GardenError {
   type = "template-string"
 
-  loc?: Location
-  rawTemplateString: string
+  loc: Location
   originalMessage: string
 
-  constructor(params: GardenErrorParams & { rawTemplateString: string; loc?: Location }) {
+  constructor(params: GardenErrorParams & { loc: Location }) {
     // TODO: figure out how to get correct path
-    const path = params.loc?.source?.basePath
-
-    const pathDescription = path ? ` at path ${styles.accent(path.join("."))}` : ""
+    // const path = params.loc?.source?.basePath
+    // const path: string[] | undefined = undefined
+    // const pathDescription = path ? ` at path ${styles.accent(path.join("."))}` : ""
+    const pathDescription = ""
     const prefix = `Invalid template string (${styles.accent(
-      truncate(params.rawTemplateString, { length: 200 }).replace(/\n/g, "\\n")
+      truncate(params.loc.source, { length: 200 }).replace(/\n/g, "\\n")
     )})${pathDescription}: `
     const message = params.message.startsWith(prefix) ? params.message : prefix + params.message
 
     super({ ...params, message })
     this.loc = params.loc
-    this.rawTemplateString = params.rawTemplateString
     this.originalMessage = params.message
   }
 }

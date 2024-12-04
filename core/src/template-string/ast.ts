@@ -26,7 +26,6 @@ import type { TemplateExpressionGenerator } from "./static-analysis.js"
 type EvaluateArgs = {
   context: ConfigContext
   opts: ContextResolveOpts
-  rawTemplateString: string
 
   /**
    * Whether or not to throw an error if ContextLookupExpression fails to resolve variable.
@@ -49,7 +48,7 @@ export type Location = {
     line: number
     column: number
   }
-  source?: ConfigSource
+  source: string
 }
 
 export type TemplateEvaluationResult =
@@ -64,13 +63,13 @@ function* astVisitAll(e: TemplateExpression): TemplateExpressionGenerator {
     }
     const propertyValue = e[key]
     if (propertyValue instanceof TemplateExpression) {
-      yield propertyValue
       yield* astVisitAll(propertyValue)
+      yield propertyValue
     } else if (Array.isArray(propertyValue)) {
       for (const item of propertyValue) {
         if (item instanceof TemplateExpression) {
-          yield item
           yield* astVisitAll(item)
+          yield item
         }
       }
     }
@@ -349,7 +348,6 @@ export class AddExpression extends BinaryExpression {
     } else {
       throw new TemplateStringError({
         message: `Both terms need to be either arrays or strings or numbers for + operator (got ${typeof left} and ${typeof right}).`,
-        rawTemplateString: args.rawTemplateString,
         loc: this.loc,
       })
     }
@@ -365,7 +363,6 @@ export class ContainsExpression extends BinaryExpression {
     if (!isTemplatePrimitive(element)) {
       throw new TemplateStringError({
         message: `The right-hand side of a 'contains' operator must be a string, number, boolean or null (got ${typeof element}).`,
-        rawTemplateString: args.rawTemplateString,
         loc: this.loc,
       })
     }
@@ -384,7 +381,6 @@ export class ContainsExpression extends BinaryExpression {
 
     throw new TemplateStringError({
       message: `The left-hand side of a 'contains' operator must be a string, array or object (got ${collection}).`,
-      rawTemplateString: args.rawTemplateString,
       loc: this.loc,
     })
   }
@@ -402,7 +398,6 @@ export abstract class BinaryExpressionOnNumbers extends BinaryExpression {
         message: `Both terms need to be numbers for ${
           this.operator
         } operator (got ${typeof left} and ${typeof right}).`,
-        rawTemplateString: args.rawTemplateString,
         loc: this.loc,
       })
     }
@@ -589,7 +584,6 @@ export class MemberExpression extends TemplateExpression {
     if (typeof inner !== "string" && typeof inner !== "number") {
       throw new TemplateStringError({
         message: `Expression in brackets must resolve to a string or number (got ${typeof inner}).`,
-        rawTemplateString: args.rawTemplateString,
         loc: this.loc,
       })
     }
@@ -610,21 +604,20 @@ export class ContextLookupExpression extends TemplateExpression {
     context,
     opts,
     optional,
-    rawTemplateString,
   }: EvaluateArgs):
     | CollectionOrValue<TemplatePrimitive>
     | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND
     | typeof CONTEXT_RESOLVE_KEY_AVAILABLE_LATER {
     const keyPath: (string | number)[] = []
     for (const k of this.keyPath) {
-      const evaluated = k.evaluate({ context, opts, optional, rawTemplateString })
+      const evaluated = k.evaluate({ context, opts, optional })
       if (typeof evaluated === "symbol") {
         return evaluated
       }
       keyPath.push(evaluated)
     }
 
-    const { resolved, getUnavailableReason } = this.resolveContext(context, keyPath, opts, rawTemplateString)
+    const { resolved, getUnavailableReason } = this.resolveContext(context, keyPath, opts)
 
     // if context returns key available later, then we do not need to throw, because partial mode is enabled.
     if (resolved === CONTEXT_RESOLVE_KEY_AVAILABLE_LATER) {
@@ -640,7 +633,6 @@ export class ContextLookupExpression extends TemplateExpression {
 
       throw new TemplateStringError({
         message: getUnavailableReason?.() || `Could not find key ${renderKeyPath(keyPath)}`,
-        rawTemplateString,
         loc: this.loc,
       })
     }
@@ -652,7 +644,6 @@ export class ContextLookupExpression extends TemplateExpression {
     context: ConfigContext,
     keyPath: (string | number)[],
     opts: ContextResolveOpts,
-    rawTemplateString: string
   ) {
     try {
       return context.resolve({
@@ -665,10 +656,10 @@ export class ContextLookupExpression extends TemplateExpression {
       })
     } catch (e) {
       if (e instanceof ContextResolveError) {
-        throw new TemplateStringError({ message: e.message, rawTemplateString, loc: this.loc })
+        throw new TemplateStringError({ message: e.message, loc: this.loc })
       }
       if (e instanceof TemplateStringError) {
-        throw new TemplateStringError({ message: e.originalMessage, rawTemplateString, loc: this.loc })
+        throw new TemplateStringError({ message: e.originalMessage, loc: this.loc })
       }
       throw e
     }
@@ -704,7 +695,6 @@ export class FunctionCallExpression extends TemplateExpression {
     const result: CollectionOrValue<TemplatePrimitive> = this.callHelperFunction({
       functionName,
       args: functionArgs,
-      text: args.rawTemplateString,
       context: args.context,
       opts: args.opts,
     })
@@ -715,11 +705,9 @@ export class FunctionCallExpression extends TemplateExpression {
   callHelperFunction({
     functionName,
     args,
-    text,
   }: {
     functionName: string
     args: CollectionOrValue<TemplatePrimitive>[]
-    text: string
     context: ConfigContext
     opts: ContextResolveOpts
   }): CollectionOrValue<TemplatePrimitive> {
@@ -730,7 +718,6 @@ export class FunctionCallExpression extends TemplateExpression {
       const availableFns = Object.keys(helperFunctions).join(", ")
       throw new TemplateStringError({
         message: `Could not find helper function '${functionName}'. Available helper functions: ${availableFns}`,
-        rawTemplateString: text,
         loc: this.loc,
       })
     }
@@ -744,7 +731,6 @@ export class FunctionCallExpression extends TemplateExpression {
       if (value === undefined && schemaDescription.flags?.presence === "required") {
         throw new TemplateStringError({
           message: `Missing argument '${argName}' (at index ${i}) for ${functionName} helper function.`,
-          rawTemplateString: text,
           loc: this.loc,
         })
       }
@@ -755,7 +741,6 @@ export class FunctionCallExpression extends TemplateExpression {
         constructor({ message }: { message: string }) {
           super({
             message,
-            rawTemplateString: text,
             loc,
           })
         }
@@ -773,7 +758,6 @@ export class FunctionCallExpression extends TemplateExpression {
     } catch (error) {
       throw new TemplateStringError({
         message: `Error from helper function ${functionName}: ${error}`,
-        rawTemplateString: text,
         loc: this.loc,
       })
     }
