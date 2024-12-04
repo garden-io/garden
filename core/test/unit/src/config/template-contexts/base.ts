@@ -8,11 +8,10 @@
 
 import { expect } from "chai"
 import stripAnsi from "strip-ansi"
+import type { ContextKey, ContextResolveParams } from "../../../../../src/config/template-contexts/base.js"
 import {
   CONTEXT_RESOLVE_KEY_AVAILABLE_LATER,
   CONTEXT_RESOLVE_KEY_NOT_FOUND,
-  ContextKey,
-  ContextResolveParams,
 } from "../../../../../src/config/template-contexts/base.js"
 import { ConfigContext, schema, ScanContext } from "../../../../../src/config/template-contexts/base.js"
 import { expectError } from "../../../../helpers.js"

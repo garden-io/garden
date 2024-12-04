@@ -16,9 +16,9 @@ import {
 } from "../exceptions.js"
 import type { ConfigContext, ContextKeySegment, ContextResolveOpts } from "../config/template-contexts/base.js"
 import { CONTEXT_RESOLVE_KEY_AVAILABLE_LATER } from "../config/template-contexts/base.js"
-import { CONTEXT_RESOLVE_KEY_NOT_FOUND, GenericContext, ScanContext } from "../config/template-contexts/base.js"
+import { CONTEXT_RESOLVE_KEY_NOT_FOUND, GenericContext } from "../config/template-contexts/base.js"
 import cloneDeep from "fast-copy"
-import { difference, isPlainObject, isString, uniq } from "lodash-es"
+import { difference, isPlainObject, isString } from "lodash-es"
 import type { ActionReference, Primitive, StringMap } from "../config/common.js"
 import {
   arrayConcatKey,
@@ -46,7 +46,7 @@ import type { ObjectPath } from "../config/base.js"
 import type { TemplatePrimitive } from "./types.js"
 import * as ast from "./ast.js"
 import { LRUCache } from "lru-cache"
-import { ContextLookupReferenceFinding, getContextLookupReferences, visitAll } from "./static-analysis.js"
+import { getContextLookupReferences, visitAll } from "./static-analysis.js"
 
 const escapePrefix = "$${"
 

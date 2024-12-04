@@ -6,21 +6,16 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { isNumber, isString, startsWith } from "lodash-es"
+import { isNumber, isString } from "lodash-es"
 import type { CollectionOrValue } from "../util/objects.js"
 import { isArray, isPlainObject } from "../util/objects.js"
-import {
-  ContextLookupExpression,
-  IdentifierExpression,
-  LiteralExpression,
-  MemberExpression,
-  TemplateExpression,
-} from "./ast.js"
+import { ContextLookupExpression, IdentifierExpression, MemberExpression, TemplateExpression } from "./ast.js"
 import type { TemplatePrimitive } from "./types.js"
 import { parseTemplateString } from "./template-string.js"
-import { ConfigContext, ScanContext } from "../config/template-contexts/base.js"
+import { ScanContext } from "../config/template-contexts/base.js"
 
 export type TemplateExpressionGenerator = Generator<TemplatePrimitive | TemplateExpression, void, undefined>
+
 export function* visitAll({
   value,
   parseTemplateStrings = false,
@@ -66,9 +61,7 @@ export function containsTemplateExpression(generator: TemplateExpressionGenerato
   return false
 }
 
-export function containsContextLookupReferences(
-  generator: TemplateExpressionGenerator,
-): boolean {
+export function containsContextLookupReferences(generator: TemplateExpressionGenerator): boolean {
   for (const finding of getContextLookupReferences(generator)) {
     return true
   }
@@ -124,7 +117,6 @@ export function* getContextLookupReferences(
               // if it's invalid, we override to invalid
               type = "invalid"
             }
-
           }
         } else {
           v satisfies never

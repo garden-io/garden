@@ -22,7 +22,6 @@ import type { Collection, CollectionOrValue } from "../util/objects.js"
 import type { ConfigSource } from "../config/validation.js"
 import { validateSchema } from "../config/validation.js"
 import type { TemplateExpressionGenerator } from "./static-analysis.js"
-import { instance } from "testdouble"
 
 type EvaluateArgs = {
   context: ConfigContext

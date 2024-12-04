@@ -16,8 +16,9 @@ import { KeyedSet } from "../../util/keyed-set.js"
 import { naturalList } from "../../util/string.js"
 import { styles } from "../../logger/styles.js"
 import { Profile } from "../../util/profiling.js"
-import { CollectionOrValue } from "../../util/objects.js"
-import { isTemplatePrimitive, TemplatePrimitive } from "../../template-string/types.js"
+import type { CollectionOrValue } from "../../util/objects.js"
+import type { TemplatePrimitive } from "../../template-string/types.js"
+import { isTemplatePrimitive } from "../../template-string/types.js"
 
 export type ContextKeySegment = string | number
 export type ContextKey = ContextKeySegment[]

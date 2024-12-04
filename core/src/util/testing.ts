@@ -49,7 +49,6 @@ import fsExtra, { exists } from "fs-extra"
 const { mkdirp, remove } = fsExtra
 import { GlobalConfigStore } from "../config-store/global.js"
 import { isPromise } from "./objects.js"
-import { styles } from "../logger/styles.js"
 import type { ConfigTemplateConfig } from "../config/config-template.js"
 import type { PluginToolSpec, ToolBuildSpec } from "../plugin/tools.js"
 import { fileURLToPath, parse } from "url"
