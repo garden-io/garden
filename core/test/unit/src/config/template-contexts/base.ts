@@ -13,10 +13,9 @@ import {
   CONTEXT_RESOLVE_KEY_AVAILABLE_LATER,
   CONTEXT_RESOLVE_KEY_NOT_FOUND,
 } from "../../../../../src/config/template-contexts/base.js"
-import { ConfigContext, schema, ScanContext } from "../../../../../src/config/template-contexts/base.js"
+import { ConfigContext, schema } from "../../../../../src/config/template-contexts/base.js"
 import { expectError } from "../../../../helpers.js"
 import { joi } from "../../../../../src/config/common.js"
-import { resolveTemplateStrings } from "../../../../../src/template-string/template-string.js"
 
 type TestValue = string | ConfigContext | TestValues | TestValueFunction
 type TestValueFunction = () => TestValue | Promise<TestValue>
@@ -312,33 +311,5 @@ describe("ConfigContext", () => {
         },
       })
     })
-  })
-})
-
-describe("ScanContext", () => {
-  it("should collect found keys in an object", () => {
-    const context = new ScanContext()
-    const obj = {
-      a: "some ${templated.string}",
-      b: "${more.stuff}",
-    }
-    resolveTemplateStrings({ value: obj, context, source: undefined })
-    expect(context.foundKeys.entries()).to.eql([
-      ["templated", "string"],
-      ["more", "stuff"],
-    ])
-  })
-
-  it("should handle keys with dots correctly", () => {
-    const context = new ScanContext()
-    const obj = {
-      a: "some ${templated['key.with.dots']}",
-      b: "${more.stuff}",
-    }
-    resolveTemplateStrings({ value: obj, context, source: undefined })
-    expect(context.foundKeys.entries()).to.eql([
-      ["templated", "key.with.dots"],
-      ["more", "stuff"],
-    ])
   })
 })

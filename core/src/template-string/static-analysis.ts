@@ -12,7 +12,7 @@ import { isArray, isPlainObject } from "../util/objects.js"
 import { ContextLookupExpression, IdentifierExpression, MemberExpression, TemplateExpression } from "./ast.js"
 import type { TemplatePrimitive } from "./types.js"
 import { parseTemplateString } from "./template-string.js"
-import { ScanContext } from "../config/template-contexts/base.js"
+import { ConfigContext, CONTEXT_RESOLVE_KEY_AVAILABLE_LATER } from "../config/template-contexts/base.js"
 
 export type TemplateExpressionGenerator = Generator<TemplatePrimitive | TemplateExpression, void, undefined>
 
@@ -104,7 +104,7 @@ export function* getContextLookupReferences(
           } else {
             // can be evaluated statically
             const result = v.innerExpression.evaluate({
-              context: new ScanContext(),
+              context: new NoOpContext(),
               rawTemplateString: "",
               opts: {},
             })
@@ -130,5 +130,11 @@ export function* getContextLookupReferences(
         }
       }
     }
+  }
+}
+
+class NoOpContext extends ConfigContext {
+  override resolve() {
+    return { resolved: CONTEXT_RESOLVE_KEY_AVAILABLE_LATER, partial: true }
   }
 }

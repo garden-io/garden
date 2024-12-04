@@ -12,7 +12,6 @@ import { ConfigurationError, GardenError } from "../../exceptions.js"
 import { resolveTemplateString } from "../../template-string/template-string.js"
 import type { CustomObjectSchema } from "../common.js"
 import { joi, joiIdentifier } from "../common.js"
-import { KeyedSet } from "../../util/keyed-set.js"
 import { naturalList } from "../../util/string.js"
 import { styles } from "../../logger/styles.js"
 import { Profile } from "../../util/profiling.js"
@@ -251,24 +250,6 @@ export class GenericContext extends ConfigContext {
 
   static override getSchema() {
     return joi.object()
-  }
-}
-
-/**
- * This is a utility context, used to extract all template references from a template.
- */
-export class ScanContext extends ConfigContext {
-  foundKeys: KeyedSet<ContextKeySegment[]>
-
-  constructor() {
-    super()
-    this.foundKeys = new KeyedSet<ContextKeySegment[]>((v) => renderKeyPath(v))
-  }
-
-  override resolve({ key, nodePath }: ContextResolveParams) {
-    const fullKey = nodePath.concat(key)
-    this.foundKeys.add(fullKey)
-    return { resolved: CONTEXT_RESOLVE_KEY_AVAILABLE_LATER, partial: true }
   }
 }
 
