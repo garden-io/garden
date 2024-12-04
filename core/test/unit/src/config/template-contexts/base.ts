@@ -10,6 +10,7 @@ import { expect } from "chai"
 import stripAnsi from "strip-ansi"
 import {
   CONTEXT_RESOLVE_KEY_AVAILABLE_LATER,
+  CONTEXT_RESOLVE_KEY_NOT_FOUND,
   ContextKey,
   ContextResolveParams,
 } from "../../../../../src/config/template-contexts/base.js"
@@ -48,10 +49,10 @@ describe("ConfigContext", () => {
       expect(resolveKey(c, ["basic"])).to.eql({ resolved: "value" })
     })
 
-    it("should return undefined for missing key", async () => {
+    it("should return CONTEXT_RESOLVE_KEY_NOT_FOUND for missing key", async () => {
       const c = new TestContext({})
       const { resolved, getUnavailableReason: message } = resolveKey(c, ["basic"])
-      expect(resolved).to.be.undefined
+      expect(resolved).to.be.equal(CONTEXT_RESOLVE_KEY_NOT_FOUND)
       expect(stripAnsi(message!())).to.include("Could not find key basic")
     })
 
@@ -88,12 +89,12 @@ describe("ConfigContext", () => {
       expect(resolveKey(c, ["nested", "key"])).eql({ resolved: "value" })
     })
 
-    it("should return undefined for missing keys on nested context", async () => {
+    it("should return CONTEXT_RESOLVE_KEY_NOT_FOUND for missing keys on nested context", async () => {
       const c = new TestContext({
         nested: new TestContext({ key: "value" }),
       })
       const { resolved, getUnavailableReason: message } = resolveKey(c, ["basic", "bla"])
-      expect(resolved).to.be.undefined
+      expect(resolved).to.be.equal(CONTEXT_RESOLVE_KEY_NOT_FOUND)
       expect(stripAnsi(message!())).to.equal("Could not find key basic. Available keys: nested.")
     })
 

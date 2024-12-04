@@ -11,11 +11,13 @@ import { isString } from "lodash-es"
 import { ConfigurationError, GardenError } from "../../exceptions.js"
 import { resolveTemplateString } from "../../template-string/template-string.js"
 import type { CustomObjectSchema } from "../common.js"
-import { isPrimitive, joi, joiIdentifier } from "../common.js"
+import { joi, joiIdentifier } from "../common.js"
 import { KeyedSet } from "../../util/keyed-set.js"
 import { naturalList } from "../../util/string.js"
 import { styles } from "../../logger/styles.js"
 import { Profile } from "../../util/profiling.js"
+import { CollectionOrValue } from "../../util/objects.js"
+import { isTemplatePrimitive, TemplatePrimitive } from "../../template-string/types.js"
 
 export type ContextKeySegment = string | number
 export type ContextKey = ContextKeySegment[]
@@ -115,8 +117,8 @@ export abstract class ConfigContext {
 
     // keep track of which resolvers have been called, in order to detect circular references
     let getAvailableKeys: (() => string[]) | undefined = undefined
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
-    let value: any = this
+
+    let value: CollectionOrValue<TemplatePrimitive> | ConfigContext | Function = this
     let partial = false
     let nextKey = key[0]
     let nestedNodePath = nodePath
@@ -130,18 +132,21 @@ export abstract class ConfigContext {
       const getStackEntry = () => renderKeyPath(getNestedNodePath())
       getAvailableKeys = undefined
 
-      if (typeof nextKey === "string" && nextKey.startsWith("_")) {
-        value = undefined
-      } else if (isPrimitive(value)) {
+      const parent: CollectionOrValue<TemplatePrimitive> | ConfigContext | Function = value
+      if (isTemplatePrimitive(parent)) {
         throw new ContextResolveError({
-          message: `Attempted to look up key ${JSON.stringify(nextKey)} on a ${typeof value}.`,
+          message: `Attempted to look up key ${JSON.stringify(nextKey)} on a ${typeof parent}.`,
         })
-      } else if (value instanceof Map) {
-        getAvailableKeys = () => value.keys()
-        value = value.get(nextKey)
+      } else if (typeof nextKey === "string" && nextKey.startsWith("_")) {
+        value = undefined
+      } else if (parent instanceof Map) {
+        getAvailableKeys = () => Array.from(parent.keys())
+        value = parent.get(nextKey)
       } else {
-        getAvailableKeys = () => Object.keys(value).filter((k) => !k.startsWith("_"))
-        value = value[nextKey]
+        getAvailableKeys = () => {
+          return Object.keys(parent).filter((k) => !k.startsWith("_"))
+        }
+        value = parent[nextKey]
       }
 
       if (typeof value === "function") {
