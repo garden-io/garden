@@ -8,13 +8,11 @@
 
 import type { CollectionOrValue } from "../util/objects.js"
 import { isArray, isPlainObject } from "../util/objects.js"
-import {
-  ContextLookupExpression,
-  TemplateExpression,
-} from "./ast.js"
+import { ContextLookupExpression, TemplateExpression } from "./ast.js"
 import type { TemplatePrimitive } from "./types.js"
 import { parseTemplateString } from "./template-string.js"
-import { ConfigContext, CONTEXT_RESOLVE_KEY_AVAILABLE_LATER } from "../config/template-contexts/base.js"
+import type { ConfigContext } from "../config/template-contexts/base.js"
+import { NoOpContext } from "../config/template-contexts/base.js"
 import { GardenError, InternalError } from "../exceptions.js"
 
 export type TemplateExpressionGenerator = Generator<TemplatePrimitive | TemplateExpression, void, undefined>
@@ -65,7 +63,7 @@ export function containsTemplateExpression(generator: TemplateExpressionGenerato
 }
 
 export function containsContextLookupReferences(generator: TemplateExpressionGenerator): boolean {
-  for (const finding of getContextLookupReferences(generator, new NoOpContext())) {
+  for (const _ of getContextLookupReferences(generator, new NoOpContext())) {
     return true
   }
 
@@ -131,11 +129,5 @@ export function* getContextLookupReferences(
             }
       }
     }
-  }
-}
-
-class NoOpContext extends ConfigContext {
-  override resolve() {
-    return { resolved: CONTEXT_RESOLVE_KEY_AVAILABLE_LATER, partial: true }
   }
 }

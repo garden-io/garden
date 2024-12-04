@@ -7,13 +7,19 @@
  */
 
 import type { Garden } from "./garden.js"
-import { collectTemplateReferences, resolveTemplateStrings } from "./template-string/template-string.js"
+import {
+  extractActionReference,
+  extractRuntimeReference,
+  resolveTemplateStrings,
+} from "./template-string/template-string.js"
 import { OutputConfigContext } from "./config/template-contexts/module.js"
 import type { Log } from "./logger/log-entry.js"
 import type { OutputSpec } from "./config/project.js"
 import type { ActionReference } from "./config/common.js"
-import type { ActionKind } from "./plugin/action-types.js"
 import { GraphResults } from "./graph/results.js"
+import { getContextLookupReferences, visitAll } from "./template-string/static-analysis.js"
+import { isString } from "lodash-es"
+import type { ObjectWithName } from "./util/util.js"
 
 /**
  * Resolves all declared project outputs. If necessary, this will resolve providers and modules, and ensure services
@@ -29,29 +35,37 @@ export async function resolveProjectOutputs(garden: Garden, log: Log): Promise<O
   const needModules: string[] = []
   const needActions: ActionReference[] = []
 
-  const templateRefs = collectTemplateReferences(garden.rawOutputs)
+  const outputConfigContext = new OutputConfigContext({
+    garden,
+    resolvedProviders: {},
+    variables: garden.variables,
+    modules: [],
+    partialRuntimeResolution: false,
+  })
 
-  if (templateRefs.length === 0) {
-    // Nothing to resolve
-    return garden.rawOutputs
-  }
-
-  for (const ref of templateRefs) {
-    if (!ref[1]) {
+  const generator = getContextLookupReferences(
+    visitAll({ value: garden.rawOutputs as ObjectWithName[], parseTemplateStrings: true }),
+    outputConfigContext
+  )
+  for (const finding of generator) {
+    if (finding.type === "unresolvable") {
       continue
     }
-    if (ref[0] === "providers") {
-      needProviders.push(ref[1] as string)
-    } else if (ref[0] === "modules") {
-      needModules.push(ref[1] as string)
-    } else if (ref[0] === "runtime" && ref[2]) {
-      if (ref[1] === "services") {
-        needActions.push({ kind: "Deploy", name: ref[2] as string })
-      } else if (ref[1] === "tasks") {
-        needActions.push({ kind: "Run", name: ref[2] as string })
-      }
-    } else if (ref[0] === "actions" && ref[1] && ref[2]) {
-      needActions.push({ kind: <ActionKind>ref[1], name: ref[2] as string })
+    const keyPath = finding.keyPath
+    if (!keyPath[1]) {
+      continue
+    }
+
+    if (keyPath[0] === "providers" && isString(keyPath[1])) {
+      needProviders.push(keyPath[1])
+    } else if (keyPath[0] === "modules" && isString(keyPath[1])) {
+      needModules.push(keyPath[1])
+    } else if (keyPath[0] === "runtime") {
+      const runtimeRef = extractRuntimeReference(finding)
+      needActions.push(runtimeRef)
+    } else if (keyPath[0] === "actions") {
+      const actionRef = extractActionReference(finding)
+      needActions.push(actionRef)
     }
   }
 
@@ -63,13 +77,7 @@ export async function resolveProjectOutputs(garden: Garden, log: Log): Promise<O
     // No need to resolve any entities
     return resolveTemplateStrings({
       value: garden.rawOutputs,
-      context: new OutputConfigContext({
-        garden,
-        resolvedProviders: {},
-        variables: garden.variables,
-        modules: [],
-        partialRuntimeResolution: false,
-      }),
+      context: outputConfigContext,
       source,
     })
   }

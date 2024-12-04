@@ -10,17 +10,18 @@ import { expect } from "chai"
 import {
   resolveTemplateString,
   resolveTemplateStrings,
-  collectTemplateReferences,
   throwOnMissingSecretKeys,
   getActionTemplateReferences,
 } from "../../../src/template-string/template-string.js"
-import { ConfigContext } from "../../../src/config/template-contexts/base.js"
+import { ConfigContext, NoOpContext } from "../../../src/config/template-contexts/base.js"
 import type { TestGarden } from "../../helpers.js"
 import { expectError, getDataDir, makeTestGarden } from "../../helpers.js"
 import { dedent } from "../../../src/util/string.js"
 import stripAnsi from "strip-ansi"
 import { TemplateStringError } from "../../../src/exceptions.js"
 import repeat from "lodash-es/repeat.js"
+import { getContextLookupReferences, visitAll } from "../../../src/template-string/static-analysis.js"
+import type { ObjectWithName } from "../../../src/util/util.js"
 
 class TestContext extends ConfigContext {
   constructor(context) {
@@ -2173,8 +2174,8 @@ describe("resolveTemplateStrings", () => {
   })
 })
 
-describe("collectTemplateReferences", () => {
-  it("should return and sort all template string references in an object", () => {
+describe("getContextLookupReferences", () => {
+  it("should return all template string references in an object", () => {
     const obj = {
       foo: "${my.reference}",
       nested: {
@@ -2184,7 +2185,38 @@ describe("collectTemplateReferences", () => {
       },
     }
 
-    expect(collectTemplateReferences(obj)).to.eql([["banana", "rama", "llama"], ["moo"], ["my", "reference"]])
+    const result = Array.from(
+      getContextLookupReferences(
+        visitAll({
+          value: obj,
+          parseTemplateStrings: true,
+        }),
+        new NoOpContext()
+      )
+    )
+    const expected = [
+      {
+        keyPath: ["my", "reference"],
+        type: "resolvable",
+      },
+      {
+        keyPath: ["moo"],
+        type: "resolvable",
+      },
+      {
+        keyPath: ["moo"],
+        type: "resolvable",
+      },
+      {
+        keyPath: ["moo"],
+        type: "resolvable",
+      },
+      {
+        keyPath: ["banana", "rama", "llama"],
+        type: "resolvable",
+      },
+    ]
+    expect(result).to.eql(expected)
   })
 })
 
@@ -2254,13 +2286,14 @@ describe("getActionTemplateReferences", () => {
         foo: "${actions[foo.bar].some-name}",
       }
       void expectError(() => Array.from(getActionTemplateReferences(config, new TestContext({}))), {
-        contains: "found invalid action reference: invalid template string (${actions[foo.bar].some-name}): could not find key foo. available keys: (none)",
+        contains:
+          "found invalid action reference: invalid template string (${actions[foo.bar].some-name}): could not find key foo. available keys: (none)",
       })
     })
 
     it("throws if dynamic action kind is invalid", () => {
       const config = {
-        foo: "${actions[foo.bar || \"hello\"].some-name}",
+        foo: '${actions[foo.bar || "hello"].some-name}',
       }
       void expectError(() => Array.from(getActionTemplateReferences(config, new TestContext({}))), {
         contains: "found invalid action reference (invalid kind 'hello')",
@@ -2348,7 +2381,8 @@ describe("getActionTemplateReferences", () => {
         foo: "${runtime[foo.bar].some-name}",
       }
       void expectError(() => Array.from(getActionTemplateReferences(config, new TestContext({}))), {
-        contains: "found invalid action reference: invalid template string (${runtime[foo.bar].some-name}): could not find key foo. available keys: (none).",
+        contains:
+          "found invalid action reference: invalid template string (${runtime[foo.bar].some-name}): could not find key foo. available keys: (none).",
       })
     })
 
@@ -2366,7 +2400,7 @@ describe("getActionTemplateReferences", () => {
         foo: '${runtime["tasks"].123}',
       }
       void expectError(() => Array.from(getActionTemplateReferences(config, new TestContext({}))), {
-      contains: "Found invalid runtime reference (name is not a string)",
+        contains: "Found invalid runtime reference (name is not a string)",
       })
     })
   })

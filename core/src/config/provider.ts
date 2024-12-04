@@ -8,19 +8,18 @@
 
 import { deline } from "../util/string.js"
 import {
-  joiIdentifier,
-  joiUserIdentifier,
-  joiArray,
+  createSchema,
   joi,
+  joiArray,
+  joiIdentifier,
   joiIdentifierMap,
   joiSparseArray,
-  createSchema,
+  joiUserIdentifier,
 } from "./common.js"
-import { collectTemplateReferences } from "../template-string/template-string.js"
 import { ConfigurationError } from "../exceptions.js"
 import type { ModuleConfig } from "./module.js"
 import { moduleConfigSchema } from "./module.js"
-import { memoize, uniq } from "lodash-es"
+import { isNumber, isString, memoize, uniq } from "lodash-es"
 import type { GardenPluginSpec } from "../plugin/plugin.js"
 import type { EnvironmentStatus } from "../plugin/handlers/Provider/getEnvironmentStatus.js"
 import { environmentStatusSchema } from "./status.js"
@@ -30,6 +29,8 @@ import type { ActionState } from "../actions/types.js"
 import type { ValidResultType } from "../tasks/base.js"
 import { uuidv4 } from "../util/random.js"
 import { s } from "./zod.js"
+import { NoOpContext } from "./template-contexts/base.js"
+import { getContextLookupReferences, visitAll } from "../template-string/static-analysis.js"
 
 // TODO: dedupe from the joi schema below
 export const baseProviderConfigSchemaZod = s.object({
@@ -176,22 +177,36 @@ export function getAllProviderDependencyNames(plugin: GardenPluginSpec, config: 
  * Given a provider config, return implicit dependencies based on template strings.
  */
 export function getProviderTemplateReferences(config: GenericProviderConfig) {
-  const references = collectTemplateReferences(config)
   const deps: string[] = []
 
-  for (const key of references) {
-    if (key[0] === "providers") {
-      const providerName = key[1] as string
-      if (!providerName) {
-        throw new ConfigurationError({
-          message: deline`
-          Invalid template key '${key.join(".")}' in configuration for provider '${config.name}'. You must
+  const generator = getContextLookupReferences(
+    visitAll({ value: config, parseTemplateStrings: true }),
+    new NoOpContext()
+  )
+  for (const finding of generator) {
+    const keyPath = finding.keyPath
+    if (keyPath[0] !== "providers") {
+      continue
+    }
+
+    const providerName = keyPath[1]
+    if (!providerName || isNumber(providerName)) {
+      throw new ConfigurationError({
+        message: deline`s
+          Invalid template key '${keyPath.join(".")}' in configuration for provider '${config.name}'. You must
           specify a provider name as well (e.g. \${providers.my-provider}).
         `,
-        })
-      }
-      deps.push(providerName)
+      })
     }
+
+    if (!isString(providerName)) {
+      const err = providerName.getError()
+      throw new ConfigurationError({
+        message: `Found invalid provider reference: ${err.message}`,
+      })
+    }
+
+    deps.push(providerName)
   }
 
   return uniq(deps).sort()

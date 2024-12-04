@@ -7,18 +7,16 @@
  */
 
 import type { GardenErrorParams } from "../exceptions.js"
-import {
-  ConfigurationError,
-  GardenError,
-  InternalError,
-  NotImplementedError,
-  TemplateStringError,
-} from "../exceptions.js"
+import { ConfigurationError, GardenError, InternalError, TemplateStringError } from "../exceptions.js"
 import type { ConfigContext, ContextKeySegment, ContextResolveOpts } from "../config/template-contexts/base.js"
-import { CONTEXT_RESOLVE_KEY_AVAILABLE_LATER } from "../config/template-contexts/base.js"
-import { CONTEXT_RESOLVE_KEY_NOT_FOUND, GenericContext } from "../config/template-contexts/base.js"
+import {
+  CONTEXT_RESOLVE_KEY_AVAILABLE_LATER,
+  CONTEXT_RESOLVE_KEY_NOT_FOUND,
+  GenericContext,
+  NoOpContext,
+} from "../config/template-contexts/base.js"
 import cloneDeep from "fast-copy"
-import { difference, isPlainObject, isString } from "lodash-es"
+import { difference, isNumber, isPlainObject, isString } from "lodash-es"
 import type { ActionReference, Primitive, StringMap } from "../config/common.js"
 import {
   arrayConcatKey,
@@ -46,7 +44,9 @@ import type { ObjectPath } from "../config/base.js"
 import type { TemplatePrimitive } from "./types.js"
 import * as ast from "./ast.js"
 import { LRUCache } from "lru-cache"
-import { ContextLookupReferenceFinding, getContextLookupReferences, visitAll } from "./static-analysis.js"
+import type { ContextLookupReferenceFinding } from "./static-analysis.js"
+import { getContextLookupReferences, visitAll } from "./static-analysis.js"
+import type { ModuleConfig } from "../config/module.js"
 
 const escapePrefix = "$${"
 
@@ -566,23 +566,11 @@ export function mayContainTemplateString(obj: any): boolean {
   return out
 }
 
-/**
- * Scans for all template strings in the given object and lists the referenced keys.
- */
-export function collectTemplateReferences(obj: object): ContextKeySegment[][] {
-  throw new NotImplementedError({ message: "TODO: Remove this function" })
-}
-
-export function getRuntimeTemplateReferences(obj: object) {
-  const refs = collectTemplateReferences(obj)
-  return refs.filter((ref) => ref[0] === "runtime")
-}
-
 interface ActionTemplateReference extends ActionReference {
   fullRef: ContextKeySegment[]
 }
 
-function extractActionReference(finding: ContextLookupReferenceFinding): ActionTemplateReference {
+export function extractActionReference(finding: ContextLookupReferenceFinding): ActionTemplateReference {
   if (finding.type === "unresolvable") {
     for (const k of finding.keyPath) {
       if (typeof k === "object" && "getError" in k) {
@@ -620,6 +608,7 @@ function extractActionReference(finding: ContextLookupReferenceFinding): ActionT
       message: "Found invalid action reference (missing name)",
     })
   }
+
   if (!isString(finding.keyPath[2])) {
     throw new ConfigurationError({
       message: "Found invalid action reference (name is not a string)",
@@ -633,7 +622,7 @@ function extractActionReference(finding: ContextLookupReferenceFinding): ActionT
   }
 }
 
-function extractRuntimeReference(finding: ContextLookupReferenceFinding): ActionTemplateReference {
+export function extractRuntimeReference(finding: ContextLookupReferenceFinding): ActionTemplateReference {
   if (finding.type === "unresolvable") {
     for (const k of finding.keyPath) {
       if (typeof k === "object" && "getError" in k) {
@@ -713,12 +702,34 @@ export function* getActionTemplateReferences(
   }
 }
 
-export function getModuleTemplateReferences(obj: object, context: ModuleConfigContext) {
-  const refs = collectTemplateReferences(obj)
-  const moduleNames = refs.filter((ref) => ref[0] === "modules" && ref.length > 1)
-  // Resolve template strings in name refs. This would ideally be done ahead of this function, but is currently
-  // necessary to resolve templated module name references in ModuleTemplates.
-  return resolveTemplateStrings({ value: moduleNames, context, source: undefined })
+export function getModuleTemplateReferences(obj: ModuleConfig, context: ModuleConfigContext) {
+  const moduleNames: string[] = []
+  const generator = getContextLookupReferences(
+    visitAll({
+      value: obj as ObjectWithName,
+      parseTemplateStrings: true,
+    }),
+    context
+  )
+
+  for (const finding of generator) {
+    const keyPath = finding.keyPath
+    if (keyPath[0] !== "modules") {
+      continue
+    }
+
+    const moduleName = keyPath[1]
+    if (isString(moduleName) || isNumber(moduleName)) {
+      moduleNames.push(moduleName.toString())
+    } else {
+      const err = moduleName.getError()
+      throw new ConfigurationError({
+        message: `Found invalid module reference: ${err.message}`,
+      })
+    }
+  }
+
+  return moduleNames
 }
 
 /**
@@ -726,8 +737,6 @@ export function getModuleTemplateReferences(obj: object, context: ModuleConfigCo
  * blank values) in the provided secrets map.
  *
  * Prefix should be e.g. "Module" or "Provider" (used when generating error messages).
- *
- * TODO: We've disabled this for now. Re-introduce once we've removed get config command call from GE!
  */
 export function throwOnMissingSecretKeys(configs: ObjectWithName[], secrets: StringMap, prefix: string, log?: Log) {
   const allMissing: [string, ContextKeySegment[]][] = [] // [[key, missing keys]]
@@ -779,10 +788,20 @@ export function throwOnMissingSecretKeys(configs: ObjectWithName[], secrets: Str
  * Collects template references to secrets in obj, and returns an array of any secret keys referenced in it that
  * aren't present (or have blank values) in the provided secrets map.
  */
-export function detectMissingSecretKeys(obj: object, secrets: StringMap): ContextKeySegment[] {
-  const referencedKeys = collectTemplateReferences(obj)
-    .filter((ref) => ref[0] === "secrets")
-    .map((ref) => ref[1])
+export function detectMissingSecretKeys(obj: ObjectWithName, secrets: StringMap): ContextKeySegment[] {
+  const referencedKeys: ContextKeySegment[] = []
+  const generator = getContextLookupReferences(visitAll({ value: obj, parseTemplateStrings: true }), new NoOpContext())
+  for (const finding of generator) {
+    const keyPath = finding.keyPath
+    if (keyPath[0] !== "secrets") {
+      continue
+    }
+
+    if (isString(keyPath[1])) {
+      referencedKeys.push(keyPath[1])
+    }
+  }
+
   /**
    * Secret keys with empty values should have resulted in an error by this point, but we filter on keys with
    * values for good measure.

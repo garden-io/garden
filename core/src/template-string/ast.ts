@@ -19,7 +19,6 @@ import { InternalError, TemplateStringError } from "../exceptions.js"
 import { getHelperFunctions } from "./functions.js"
 import { isTemplatePrimitive, type TemplatePrimitive } from "./types.js"
 import type { Collection, CollectionOrValue } from "../util/objects.js"
-import type { ConfigSource } from "../config/validation.js"
 import { validateSchema } from "../config/validation.js"
 import type { TemplateExpressionGenerator } from "./static-analysis.js"
 
@@ -118,7 +117,7 @@ export class LiteralExpression extends TemplateExpression {
     super(loc)
   }
 
-  override evaluate(_args: EvaluateArgs): TemplatePrimitive {
+  override evaluate(): TemplatePrimitive {
     return this.literal
   }
 }
@@ -310,13 +309,12 @@ export abstract class BinaryExpression extends TemplateExpression {
       return CONTEXT_RESOLVE_KEY_NOT_FOUND
     }
 
-    return this.transform(left, right, args)
+    return this.transform(left, right)
   }
 
   abstract transform(
     left: CollectionOrValue<TemplatePrimitive>,
-    right: CollectionOrValue<TemplatePrimitive>,
-    args: EvaluateArgs
+    right: CollectionOrValue<TemplatePrimitive>
   ): CollectionOrValue<TemplatePrimitive>
 }
 
@@ -335,8 +333,7 @@ export class NotEqualExpression extends BinaryExpression {
 export class AddExpression extends BinaryExpression {
   override transform(
     left: CollectionOrValue<TemplatePrimitive>,
-    right: CollectionOrValue<TemplatePrimitive>,
-    args: EvaluateArgs
+    right: CollectionOrValue<TemplatePrimitive>
   ): CollectionOrValue<TemplatePrimitive> {
     if (isNumber(left) && isNumber(right)) {
       return left + right
@@ -358,8 +355,7 @@ export class AddExpression extends BinaryExpression {
 export class ContainsExpression extends BinaryExpression {
   override transform(
     collection: CollectionOrValue<TemplatePrimitive>,
-    element: CollectionOrValue<TemplatePrimitive>,
-    args: EvaluateArgs
+    element: CollectionOrValue<TemplatePrimitive>
   ): boolean {
     if (!isTemplatePrimitive(element)) {
       throw new TemplateStringError({
@@ -390,8 +386,7 @@ export class ContainsExpression extends BinaryExpression {
 export abstract class BinaryExpressionOnNumbers extends BinaryExpression {
   override transform(
     left: CollectionOrValue<TemplatePrimitive>,
-    right: CollectionOrValue<TemplatePrimitive>,
-    args: EvaluateArgs
+    right: CollectionOrValue<TemplatePrimitive>
   ): CollectionOrValue<TemplatePrimitive> {
     // All other operators require numbers to make sense (we're not gonna allow random JS weirdness)
     if (!isNumber(left) || !isNumber(right)) {
@@ -641,11 +636,7 @@ export class ContextLookupExpression extends TemplateExpression {
     return resolved
   }
 
-  private resolveContext(
-    context: ConfigContext,
-    keyPath: (string | number)[],
-    opts: ContextResolveOpts,
-  ) {
+  private resolveContext(context: ConfigContext, keyPath: (string | number)[], opts: ContextResolveOpts) {
     try {
       return context.resolve({
         key: keyPath,

@@ -52,7 +52,6 @@ import { ResolveActionTask } from "../tasks/resolve-action.js"
 import {
   getActionTemplateReferences,
   maybeTemplateString,
-  resolveTemplateString,
   resolveTemplateStrings,
 } from "../template-string/template-string.js"
 import { dedent, deline, naturalList } from "../util/string.js"
@@ -928,7 +927,6 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
   }
 
   const dependencies = dependenciesFromActionConfig({
-    log,
     config,
     configsByKey,
     definition,
@@ -946,14 +944,12 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
 })
 
 function dependenciesFromActionConfig({
-  log,
   config,
   configsByKey,
   definition,
   templateContext,
   actionTypes,
 }: {
-  log: Log
   config: ActionConfig
   configsByKey: ActionConfigsByKey
   definition: MaybeUndefined<ActionTypeDefinition<any>>

@@ -253,6 +253,12 @@ export class GenericContext extends ConfigContext {
   }
 }
 
+export class NoOpContext extends ConfigContext {
+  override resolve() {
+    return { resolved: CONTEXT_RESOLVE_KEY_AVAILABLE_LATER, partial: true }
+  }
+}
+
 export class EnvironmentContext extends ConfigContext {
   @schema(
     joi
