@@ -8,7 +8,11 @@
 
 import { expect } from "chai"
 import stripAnsi from "strip-ansi"
-import type { ContextKey, ContextResolveParams } from "../../../../../src/config/template-contexts/base.js"
+import {
+  CONTEXT_RESOLVE_KEY_AVAILABLE_LATER,
+  ContextKey,
+  ContextResolveParams,
+} from "../../../../../src/config/template-contexts/base.js"
 import { ConfigContext, schema, ScanContext } from "../../../../../src/config/template-contexts/base.js"
 import { expectError } from "../../../../helpers.js"
 import { joi } from "../../../../../src/config/common.js"
@@ -52,20 +56,18 @@ describe("ConfigContext", () => {
     })
 
     context("allowPartial=true", () => {
-      it("should throw on missing key when allowPartial=true", async () => {
+      it("should return CONTEXT_RESOLVE_KEY_AVAILABLE_LATER symbol on missing key", async () => {
         const c = new TestContext({})
-        await expectError(() => resolveKey(c, ["basic"], { allowPartial: true }), {
-          contains: "Could not find key basic",
-        })
+        const result = resolveKey(c, ["basic"], { allowPartial: true })
+        expect(result.resolved).to.eql(CONTEXT_RESOLVE_KEY_AVAILABLE_LATER)
       })
 
-      it("should throw on missing key on nested context", async () => {
+      it("should return CONTEXT_RESOLVE_KEY_AVAILABLE_LATER symbol on missing key on nested context", async () => {
         const c = new TestContext({
           nested: new TestContext({ key: "value" }),
         })
-        await expectError(() => resolveKey(c, ["nested", "bla"], { allowPartial: true }), {
-          contains: "Could not find key bla under nested. Available keys: key.",
-        })
+        const result = resolveKey(c, ["nested", "bla"], { allowPartial: true })
+        expect(result.resolved).to.eql(CONTEXT_RESOLVE_KEY_AVAILABLE_LATER)
       })
     })
 
