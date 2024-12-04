@@ -547,7 +547,7 @@ export class StringConcatExpression extends TemplateExpression {
   override evaluate(
     args: EvaluateArgs
   ): string | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND | typeof CONTEXT_RESOLVE_KEY_AVAILABLE_LATER {
-    const evaluatedExpressions: TemplatePrimitive[] = []
+    let result: string = ""
 
     for (const expr of this.expressions) {
       const r = expr.evaluate(args)
@@ -556,20 +556,13 @@ export class StringConcatExpression extends TemplateExpression {
         return r
       }
 
-      if (!isTemplatePrimitive(r)) {
-        throw new TemplateStringError({
-          message: `Cannot concatenate: expected primitive, but expression resolved to ${typeof r}`,
-          rawTemplateString: args.rawTemplateString,
-          loc: this.loc,
-        })
+      if (r === undefined) {
+        continue
       }
 
-      evaluatedExpressions.push(r)
+      // Calls toString when encountering non-primitives like objects or arrays.
+      result += `${r}`
     }
-
-    const result = evaluatedExpressions.reduce<string>((acc, value) => {
-      return `${acc}${value === undefined ? "" : value}`
-    }, "")
 
     return result
   }
