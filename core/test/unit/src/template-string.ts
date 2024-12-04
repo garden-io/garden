@@ -2197,7 +2197,7 @@ describe("getActionTemplateReferences", () => {
         run: '${actions["run"].run-a}',
         test: '${actions["test"].test-a}',
       }
-      const actionTemplateReferences = Array.from(getActionTemplateReferences(config))
+      const actionTemplateReferences = Array.from(Array.from(getActionTemplateReferences(config)))
       expect(actionTemplateReferences).to.eql([
         {
           kind: "Build",
@@ -2226,7 +2226,7 @@ describe("getActionTemplateReferences", () => {
       const config = {
         foo: "${actions}",
       }
-      void expectError(() => getActionTemplateReferences(config), {
+      void expectError(() => Array.from(getActionTemplateReferences(config)), {
         contains: "Found invalid action reference (missing kind)",
       })
     })
@@ -2235,7 +2235,7 @@ describe("getActionTemplateReferences", () => {
       const config = {
         foo: '${actions["badkind"].some-name}',
       }
-      void expectError(() => getActionTemplateReferences(config), {
+      void expectError(() => Array.from(getActionTemplateReferences(config)), {
         contains: "Found invalid action reference (invalid kind 'badkind')",
       })
     })
@@ -2244,7 +2244,7 @@ describe("getActionTemplateReferences", () => {
       const config = {
         foo: "${actions[123]}",
       }
-      void expectError(() => getActionTemplateReferences(config), {
+      void expectError(() => Array.from(getActionTemplateReferences(config)), {
         contains: "Found invalid action reference (kind is not a string)",
       })
     })
@@ -2262,7 +2262,7 @@ describe("getActionTemplateReferences", () => {
       const config = {
         foo: '${actions["build"]}',
       }
-      void expectError(() => getActionTemplateReferences(config), {
+      void expectError(() => Array.from(getActionTemplateReferences(config)), {
         contains: "Found invalid action reference (missing name)",
       })
     })
@@ -2271,7 +2271,7 @@ describe("getActionTemplateReferences", () => {
       const config = {
         foo: '${actions["build"].123}',
       }
-      void expectError(() => getActionTemplateReferences(config), {
+      void expectError(() => Array.from(getActionTemplateReferences(config)), {
         contains: "Found invalid action reference (name is not a string)",
       })
     })
@@ -2283,7 +2283,7 @@ describe("getActionTemplateReferences", () => {
         services: '${runtime["services"].service-a}',
         tasks: '${runtime["tasks"].task-a}',
       }
-      const actionTemplateReferences = getActionTemplateReferences(config)
+      const actionTemplateReferences = Array.from(getActionTemplateReferences(config))
       expect(actionTemplateReferences).to.eql([
         {
           kind: "Deploy",
@@ -2302,7 +2302,7 @@ describe("getActionTemplateReferences", () => {
       const config = {
         foo: "${runtime}",
       }
-      void expectError(() => getActionTemplateReferences(config), {
+      void expectError(() => Array.from(getActionTemplateReferences(config)), {
         contains: "Found invalid runtime reference (missing kind)",
       })
     })
@@ -2311,7 +2311,7 @@ describe("getActionTemplateReferences", () => {
       const config = {
         foo: '${runtime["badkind"].some-name}',
       }
-      void expectError(() => getActionTemplateReferences(config), {
+      void expectError(() => Array.from(getActionTemplateReferences(config)), {
         contains: "Found invalid runtime reference (invalid kind 'badkind')",
       })
     })
@@ -2320,7 +2320,7 @@ describe("getActionTemplateReferences", () => {
       const config = {
         foo: "${runtime[123]}",
       }
-      void expectError(() => getActionTemplateReferences(config), {
+      void expectError(() => Array.from(getActionTemplateReferences(config)), {
         contains: "Found invalid runtime reference (kind is not a string)",
       })
     })
@@ -2329,7 +2329,7 @@ describe("getActionTemplateReferences", () => {
       const config = {
         foo: "${runtime[foo.bar].some-name}",
       }
-      void expectError(() => getActionTemplateReferences(config), {
+      void expectError(() => Array.from(getActionTemplateReferences(config)), {
         contains: "Found invalid runtime reference (invalid kind '${foo.bar}')",
       })
     })
@@ -2338,7 +2338,7 @@ describe("getActionTemplateReferences", () => {
       const config = {
         foo: '${runtime["tasks"]}',
       }
-      void expectError(() => getActionTemplateReferences(config), {
+      void expectError(() => Array.from(getActionTemplateReferences(config)), {
         contains: "Found invalid runtime reference (missing name)",
       })
     })
@@ -2347,7 +2347,7 @@ describe("getActionTemplateReferences", () => {
       const config = {
         foo: '${runtime["tasks"].123}',
       }
-      void expectError(() => getActionTemplateReferences(config), {
+      void expectError(() => Array.from(getActionTemplateReferences(config)), {
         contains: "Found invalid runtime reference (name is not a string)",
       })
     })
