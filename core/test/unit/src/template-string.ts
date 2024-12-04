@@ -2197,7 +2197,7 @@ describe("getActionTemplateReferences", () => {
         run: '${actions["run"].run-a}',
         test: '${actions["test"].test-a}',
       }
-      const actionTemplateReferences = getActionTemplateReferences(config)
+      const actionTemplateReferences = Array.from(getActionTemplateReferences(config))
       expect(actionTemplateReferences).to.eql([
         {
           kind: "Build",
@@ -2253,7 +2253,7 @@ describe("getActionTemplateReferences", () => {
       const config = {
         foo: "${actions[foo.bar].some-name}",
       }
-      void expectError(() => getActionTemplateReferences(config), {
+      void expectError(() => Array.from(getActionTemplateReferences(config)), {
         contains: "Found invalid action reference (invalid kind '${foo.bar}')",
       })
     })

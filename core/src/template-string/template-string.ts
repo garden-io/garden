@@ -7,7 +7,13 @@
  */
 
 import type { GardenErrorParams } from "../exceptions.js"
-import { ConfigurationError, GardenError, InternalError, TemplateStringError } from "../exceptions.js"
+import {
+  ConfigurationError,
+  GardenError,
+  InternalError,
+  NotImplementedError,
+  TemplateStringError,
+} from "../exceptions.js"
 import type { ConfigContext, ContextKeySegment, ContextResolveOpts } from "../config/template-contexts/base.js"
 import { CONTEXT_RESOLVE_KEY_AVAILABLE_LATER } from "../config/template-contexts/base.js"
 import { CONTEXT_RESOLVE_KEY_NOT_FOUND, GenericContext, ScanContext } from "../config/template-contexts/base.js"
@@ -40,6 +46,7 @@ import type { ObjectPath } from "../config/base.js"
 import type { TemplatePrimitive } from "./types.js"
 import * as ast from "./ast.js"
 import { LRUCache } from "lru-cache"
+import { ContextLookupReferenceFinding, getContextLookupReferences, visitAll } from "./static-analysis.js"
 
 const escapePrefix = "$${"
 
@@ -563,10 +570,7 @@ export function mayContainTemplateString(obj: any): boolean {
  * Scans for all template strings in the given object and lists the referenced keys.
  */
 export function collectTemplateReferences(obj: object): ContextKeySegment[][] {
-  // TODO: Statically analyse AST instead of using ScanContext
-  const context = new ScanContext()
-  resolveTemplateStrings({ value: obj, context, contextOpts: { allowPartial: true }, source: undefined })
-  return uniq(context.foundKeys.entries()).sort()
+  throw new NotImplementedError({ message: "TODO: Remove this function" })
 }
 
 export function getRuntimeTemplateReferences(obj: object) {
@@ -584,95 +588,106 @@ interface ActionTemplateReference extends ActionReference {
  *
  * TODO-0.13.1: Allow such nested references in certain cases, e.g. if resolvable with a ProjectConfigContext.
  */
-export function getActionTemplateReferences(config: object): ActionTemplateReference[] {
-  const rawRefs = collectTemplateReferences(config)
+export function* getActionTemplateReferences(config: object): Generator<ActionTemplateReference, void, undefined> {
+  const generator = getContextLookupReferences(
+    visitAll({ value: config as CollectionOrValue<TemplatePrimitive>, parseTemplateStrings: true })
+  )
 
-  // ${action.*}
-  const refs: ActionTemplateReference[] = rawRefs
-    .filter((ref) => ref[0] === "actions")
-    .map((ref) => {
-      if (!ref[1]) {
-        throw new ConfigurationError({
-          message: `Found invalid action reference (missing kind).`,
-        })
-      }
-      if (!isString(ref[1])) {
-        throw new ConfigurationError({
-          message: `Found invalid action reference (kind is not a string).`,
-        })
-      }
-      if (!actionKindsLower.includes(<any>ref[1])) {
-        throw new ConfigurationError({
-          message: `Found invalid action reference (invalid kind '${ref[1]}')`,
-        })
-      }
-
-      if (!ref[2]) {
-        throw new ConfigurationError({
-          message: "Found invalid action reference (missing name)",
-        })
-      }
-      if (!isString(ref[2])) {
-        throw new ConfigurationError({
-          message: "Found invalid action reference (name is not a string)",
-        })
-      }
-
-      return {
-        kind: <ActionKind>titleize(ref[1]),
-        name: ref[2],
-        fullRef: ref,
-      }
-    })
-
-  // ${runtime.*}
-  for (const ref of rawRefs) {
-    if (ref[0] !== "runtime") {
+  for (const finding of generator) {
+    // we are interested in ${action.*}
+    if (finding.keyPath[0] !== "actions") {
       continue
     }
 
-    let kind: ActionKind
-
-    if (!ref[1]) {
+    if (finding.type !== "static") {
       throw new ConfigurationError({
-        message: "Found invalid runtime reference (missing kind)",
-      })
-    }
-    if (!isString(ref[1])) {
-      throw new ConfigurationError({
-        message: "Found invalid runtime reference (kind is not a string)",
+        message: `Found invalid action reference (resolving variables in actions is not allowed).`,
       })
     }
 
-    if (ref[1] === "services") {
-      kind = "Deploy"
-    } else if (ref[1] === "tasks") {
-      kind = "Run"
-    } else {
+    if (!finding.keyPath[1]) {
       throw new ConfigurationError({
-        message: `Found invalid runtime reference (invalid kind '${ref[1]}')`,
+        message: `Found invalid action reference (missing kind).`,
       })
     }
 
-    if (!ref[2]) {
+    if (!isString(finding.keyPath[1])) {
       throw new ConfigurationError({
-        message: `Found invalid runtime reference (missing name)`,
+        message: `Found invalid action reference (kind is not a string).`,
       })
     }
-    if (!isString(ref[2])) {
+    if (!actionKindsLower.includes(<any>finding.keyPath[1])) {
       throw new ConfigurationError({
-        message: "Found invalid runtime reference (name is not a string)",
+        message: `Found invalid action reference (invalid kind '${finding.keyPath[1]}')`,
       })
     }
 
-    refs.push({
-      kind,
-      name: ref[2],
-      fullRef: ref,
-    })
+    if (!finding.keyPath[2]) {
+      throw new ConfigurationError({
+        message: "Found invalid action reference (missing name)",
+      })
+    }
+    if (!isString(finding.keyPath[2])) {
+      throw new ConfigurationError({
+        message: "Found invalid action reference (name is not a string)",
+      })
+    }
+
+    yield {
+      kind: <ActionKind>titleize(finding.keyPath[1]),
+      name: finding.keyPath[2],
+      fullRef: finding.keyPath,
+    }
   }
 
-  return refs
+  // // ${runtime.*}
+  // for (const ref of rawRefs) {
+  //   if (ref[0] !== "runtime") {
+  //     continue
+  //   }
+
+  //   let kind: ActionKind
+
+  //   if (!ref[1]) {
+  //     throw new ConfigurationError({
+  //       message: "Found invalid runtime reference (missing kind)",
+  //     })
+  //   }
+  //   if (!isString(ref[1])) {
+  //     throw new ConfigurationError({
+  //       message: "Found invalid runtime reference (kind is not a string)",
+  //     })
+  //   }
+
+  //   if (ref[1] === "services") {
+  //     kind = "Deploy"
+  //   } else if (ref[1] === "tasks") {
+  //     kind = "Run"
+  //   } else {
+  //     throw new ConfigurationError({
+  //       message: `Found invalid runtime reference (invalid kind '${ref[1]}')`,
+  //     })
+  //   }
+
+  //   if (!ref[2]) {
+  //     throw new ConfigurationError({
+  //       message: `Found invalid runtime reference (missing name)`,
+  //     })
+  //   }
+  //   if (!isString(ref[2])) {
+  //     throw new ConfigurationError({
+  //       message: "Found invalid runtime reference (name is not a string)",
+  //     })
+  //   }
+
+  //   refs.push({
+  //     kind,
+  //     name: ref[2],
+  //     fullRef: ref,
+  //   })
+  // }
+
+  // return refs
 }
 
 export function getModuleTemplateReferences(obj: object, context: ModuleConfigContext) {

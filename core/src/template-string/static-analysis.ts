@@ -17,30 +17,47 @@ import {
   TemplateExpression,
 } from "./ast.js"
 import type { TemplatePrimitive } from "./types.js"
+import { parseTemplateString } from "./template-string.js"
+import { ConfigContext, ScanContext } from "../config/template-contexts/base.js"
 
 export type TemplateExpressionGenerator = Generator<TemplatePrimitive | TemplateExpression, void, undefined>
-export function* visitAll(
+export function* visitAll({
+  value,
+  parseTemplateStrings = false,
+}: {
   value: CollectionOrValue<TemplatePrimitive | TemplateExpression>
-): TemplateExpressionGenerator {
+  parseTemplateStrings?: boolean
+}): TemplateExpressionGenerator {
   if (isArray(value)) {
     for (const [_k, v] of value.entries()) {
-      yield* visitAll(v)
+      yield* visitAll({ value: v, parseTemplateStrings })
     }
   } else if (isPlainObject(value)) {
     for (const k of Object.keys(value)) {
-      yield* visitAll(value[k])
+      yield* visitAll({ value: value[k], parseTemplateStrings })
     }
   } else {
-    yield value
+    if (parseTemplateStrings && typeof value === "string") {
+      const parsed = parseTemplateString({
+        rawTemplateString: value,
+        unescape: false,
+      })
 
-    if (value instanceof TemplateExpression) {
+      if (typeof parsed === "string") {
+        yield parsed
+      } else {
+        yield* parsed.visitAll()
+      }
+    } else if (value instanceof TemplateExpression) {
       yield* value.visitAll()
+    } else {
+      yield value
     }
   }
 }
 
-export function containsTemplateExpression(value: CollectionOrValue<TemplatePrimitive | TemplateExpression>): boolean {
-  for (const node of visitAll(value)) {
+export function containsTemplateExpression(generator: TemplateExpressionGenerator): boolean {
+  for (const node of generator) {
     if (node instanceof TemplateExpression) {
       return true
     }
@@ -50,48 +67,75 @@ export function containsTemplateExpression(value: CollectionOrValue<TemplatePrim
 }
 
 export function containsContextLookupReferences(
-  value: CollectionOrValue<TemplatePrimitive | TemplateExpression>,
-  path: (string | number)[]
+  generator: TemplateExpressionGenerator,
 ): boolean {
-  for (const keyPath of getContextLookupReferences(value)) {
-    // TODO: What if the key name contains dots? We should compare arrays instead of comparing joined strings.
-    if (startsWith(`${keyPath.join(".")}.`, `${path.join(".")}.`)) {
-      return true
-    }
+  for (const finding of getContextLookupReferences(generator)) {
+    return true
   }
 
   return false
 }
 
+export type ContextLookupReferenceFinding =
+  | {
+      type: "static"
+      keyPath: (string | number)[]
+    }
+  | {
+      type: "dynamic"
+      keyPath: (string | number | TemplateExpression)[]
+    }
+  | {
+      type: "invalid"
+      keyPath: unknown[]
+    }
+
 export function* getContextLookupReferences(
-  value: CollectionOrValue<CollectionOrValue<TemplatePrimitive | TemplateExpression>>
-): Generator<(string | number)[], void, undefined> {
-  for (const expression of visitAll(value)) {
+  generator: TemplateExpressionGenerator
+): Generator<ContextLookupReferenceFinding, void, undefined> {
+  for (const expression of generator) {
     if (expression instanceof ContextLookupExpression) {
-      const keyPath: (string | number)[] = []
+      let type: ContextLookupReferenceFinding["type"] | undefined = undefined
+      const keyPath: any[] = []
 
       for (const v of expression.keyPath.values()) {
         if (v instanceof IdentifierExpression) {
           keyPath.push(v.name)
         } else if (v instanceof MemberExpression) {
-          if (v.innerExpression instanceof LiteralExpression) {
-            if (isString(v.innerExpression.literal) || isNumber(v.innerExpression.literal)) {
-              keyPath.push(v.innerExpression.literal)
-            } else {
-              // only strings and numbers are valid here
-              break
+          if (containsContextLookupReferences(v.innerExpression.visitAll())) {
+            // do not override invalid
+            if (type !== "invalid") {
+              type = "dynamic"
             }
+            keyPath.push(v.innerExpression)
           } else {
-            // it's a dynamic key, so we can't statically analyse the value
-            break
+            // can be evaluated statically
+            const result = v.innerExpression.evaluate({
+              context: new ScanContext(),
+              rawTemplateString: "",
+              opts: {},
+            })
+
+            if (isString(result) || isNumber(result)) {
+              keyPath.push(result)
+              type ||= "static"
+            } else {
+              keyPath.push(result)
+              // if it's invalid, we override to invalid
+              type = "invalid"
+            }
+
           }
         } else {
           v satisfies never
         }
       }
 
-      if (keyPath.length > 0) {
-        yield keyPath
+      if (type && keyPath.length > 0) {
+        yield {
+          keyPath,
+          type,
+        }
       }
     }
   }
