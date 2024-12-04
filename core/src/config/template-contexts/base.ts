@@ -111,7 +111,7 @@ export abstract class ConfigContext {
     if (opts.stack.has(fullPath)) {
       // Circular dependency error is critical, throwing here.
       throw new ContextResolveError({
-        message: `Circular reference detected when resolving key ${path} (${new Array(opts.stack || []).join(" -> ")})`,
+        message: `Circular reference detected when resolving key ${path} (${Array.from(opts.stack || []).join(" -> ")})`,
       })
     }
 
@@ -127,9 +127,11 @@ export abstract class ConfigContext {
     for (let p = 0; p < key.length; p++) {
       nextKey = key[p]
 
+      nestedNodePath = nodePath.concat(key.slice(0, p + 1))
       const getRemainder = () => key.slice(p + 1)
-      const getNestedNodePath = () => nodePath.concat(key.slice(0, p + 1))
-      const getStackEntry = () => renderKeyPath(getNestedNodePath())
+
+      const capturedNestedNodePath = nestedNodePath
+      const getStackEntry = () => renderKeyPath(capturedNestedNodePath)
       getAvailableKeys = undefined
 
       const parent: CollectionOrValue<TemplatePrimitive> | ConfigContext | Function = value
@@ -155,7 +157,7 @@ export abstract class ConfigContext {
         if (opts.stack?.has(stackEntry)) {
           // Circular dependency error is critical, throwing here.
           throw new ContextResolveError({
-            message: `Circular reference detected when resolving key ${stackEntry} (from ${new Array(opts.stack || []).join(" -> ")})`,
+            message: `Circular reference detected when resolving key ${stackEntry} (from ${Array.from(opts.stack || []).join(" -> ")})`,
           })
         }
 

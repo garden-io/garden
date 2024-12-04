@@ -311,6 +311,7 @@ export class TemplateStringError extends GardenError {
 
   loc?: Location
   rawTemplateString: string
+  originalMessage: string
 
   constructor(params: GardenErrorParams & { rawTemplateString: string; loc?: Location }) {
     // TODO: figure out how to get correct path
@@ -325,6 +326,7 @@ export class TemplateStringError extends GardenError {
     super({ ...params, message })
     this.loc = params.loc
     this.rawTemplateString = params.rawTemplateString
+    this.originalMessage = params.message
   }
 }
 

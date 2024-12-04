@@ -22,6 +22,7 @@ import type { Collection, CollectionOrValue } from "../util/objects.js"
 import type { ConfigSource } from "../config/validation.js"
 import { validateSchema } from "../config/validation.js"
 import type { TemplateExpressionGenerator } from "./static-analysis.js"
+import { instance } from "testdouble"
 
 type EvaluateArgs = {
   context: ConfigContext
@@ -666,6 +667,9 @@ export class ContextLookupExpression extends TemplateExpression {
     } catch (e) {
       if (e instanceof ContextResolveError) {
         throw new TemplateStringError({ message: e.message, rawTemplateString, loc: this.loc })
+      }
+      if (e instanceof TemplateStringError) {
+        throw new TemplateStringError({ message: e.originalMessage, rawTemplateString, loc: this.loc })
       }
       throw e
     }
