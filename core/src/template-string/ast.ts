@@ -13,6 +13,7 @@ import {
   renderKeyPath,
   type ConfigContext,
   type ContextResolveOpts,
+  ContextResolveError,
 } from "../config/template-contexts/base.js"
 import { InternalError, TemplateStringError } from "../exceptions.js"
 import { getHelperFunctions } from "./functions.js"
@@ -623,14 +624,7 @@ export class ContextLookupExpression extends TemplateExpression {
       keyPath.push(evaluated)
     }
 
-    const { resolved, getUnavailableReason } = context.resolve({
-      key: keyPath,
-      nodePath: [],
-      // TODO: freeze opts object instead of using shallow copy
-      opts: {
-        ...opts,
-      },
-    })
+    const { resolved, getUnavailableReason } = this.resolveContext(context, keyPath, opts, rawTemplateString)
 
     // if context returns key available later, then we do not need to throw, because partial mode is enabled.
     if (resolved === CONTEXT_RESOLVE_KEY_AVAILABLE_LATER) {
@@ -652,6 +646,29 @@ export class ContextLookupExpression extends TemplateExpression {
     }
 
     return resolved
+  }
+
+  private resolveContext(
+    context: ConfigContext,
+    keyPath: (string | number)[],
+    opts: ContextResolveOpts,
+    rawTemplateString: string
+  ) {
+    try {
+      return context.resolve({
+        key: keyPath,
+        nodePath: [],
+        // TODO: freeze opts object instead of using shallow copy
+        opts: {
+          ...opts,
+        },
+      })
+    } catch (e) {
+      if (e instanceof ContextResolveError) {
+        throw new TemplateStringError({ message: e.message, rawTemplateString, loc: this.loc })
+      }
+      throw e
+    }
   }
 }
 

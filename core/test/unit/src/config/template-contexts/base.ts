@@ -71,7 +71,7 @@ describe("ConfigContext", () => {
 
     it("should throw when looking for nested value on primitive", async () => {
       const c = new TestContext({ basic: "value" })
-      await expectError(() => resolveKey(c, ["basic", "nested"]), "configuration")
+      await expectError(() => resolveKey(c, ["basic", "nested"]), "context-resolve")
     })
 
     it("should resolve nested keys", async () => {
@@ -126,7 +126,7 @@ describe("ConfigContext", () => {
       })
       const key = ["nested", "key"]
       const stack = new Set([key.join(".")])
-      await expectError(() => c.resolve({ key, nodePath: [], opts: { stack } }), "configuration")
+      await expectError(() => c.resolve({ key, nodePath: [], opts: { stack } }), "context-resolve")
     })
 
     it("should detect a circular reference from a nested context", async () => {
@@ -141,7 +141,7 @@ describe("ConfigContext", () => {
       const c = new TestContext({
         nested: new NestedContext(),
       })
-      await expectError(() => resolveKey(c, ["nested", "bla"]), "configuration")
+      await expectError(() => resolveKey(c, ["nested", "bla"]), "context-resolve")
     })
 
     it("should return helpful message when unable to resolve nested key in map", async () => {

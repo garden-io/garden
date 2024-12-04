@@ -8,7 +8,7 @@
 
 import type Joi from "@hapi/joi"
 import { isString } from "lodash-es"
-import { ConfigurationError } from "../../exceptions.js"
+import { ConfigurationError, GardenError } from "../../exceptions.js"
 import { resolveTemplateString } from "../../template-string/template-string.js"
 import type { CustomObjectSchema } from "../common.js"
 import { isPrimitive, joi, joiIdentifier } from "../common.js"
@@ -51,6 +51,14 @@ export interface ConfigContextType {
   new (...params: any[]): ConfigContext
 
   getSchema(): CustomObjectSchema
+}
+
+/**
+ * This error is thrown for a "final" errors, i.e. ones that cannot be ignored.
+ * For key not found errors that could be resolvable we still can return a special symbol.
+ */
+export class ContextResolveError extends GardenError {
+  type = "context-resolve"
 }
 
 export const CONTEXT_RESOLVE_KEY_NOT_FOUND: unique symbol = Symbol.for("ContextResolveKeyNotFound")
@@ -99,10 +107,10 @@ export abstract class ConfigContext {
     opts.stack = new Set(opts.stack || [])
 
     if (opts.stack.has(fullPath)) {
-      return {
-        resolved: CONTEXT_RESOLVE_KEY_NOT_FOUND,
-        getUnavailableReason: () => `Circular reference detected when resolving key ${path} (${(new Array(opts.stack || [])).join(" -> ")})`,
-      }
+      // Circular dependency error is critical, throwing here.
+      throw new ContextResolveError({
+        message: `Circular reference detected when resolving key ${path} (${new Array(opts.stack || []).join(" -> ")})`,
+      })
     }
 
     // keep track of which resolvers have been called, in order to detect circular references
@@ -125,10 +133,9 @@ export abstract class ConfigContext {
       if (typeof nextKey === "string" && nextKey.startsWith("_")) {
         value = undefined
       } else if (isPrimitive(value)) {
-        return {
-          resolved: CONTEXT_RESOLVE_KEY_NOT_FOUND,
-          getUnavailableReason: () => `Attempted to look up key ${JSON.stringify(nextKey)} on a ${typeof value}.`,
-        }
+        throw new ContextResolveError({
+          message: `Attempted to look up key ${JSON.stringify(nextKey)} on a ${typeof value}.`,
+        })
       } else if (value instanceof Map) {
         getAvailableKeys = () => value.keys()
         value = value.get(nextKey)
@@ -141,11 +148,10 @@ export abstract class ConfigContext {
         // call the function to resolve the value, then continue
         const stackEntry = getStackEntry()
         if (opts.stack?.has(stackEntry)) {
-          return {
-            resolved: CONTEXT_RESOLVE_KEY_NOT_FOUND,
-            getUnavailableReason: () =>
-              `Circular reference detected when resolving key ${stackEntry} (from ${(new Array(opts.stack || [])).join(" -> ")})`,
-          }
+          // Circular dependency error is critical, throwing here.
+          throw new ContextResolveError({
+            message: `Circular reference detected when resolving key ${stackEntry} (from ${new Array(opts.stack || []).join(" -> ")})`,
+          })
         }
 
         opts.stack.add(stackEntry)
