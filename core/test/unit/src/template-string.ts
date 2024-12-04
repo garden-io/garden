@@ -2258,6 +2258,15 @@ describe("getActionTemplateReferences", () => {
       })
     })
 
+    it("throws if dynamic action kind is invalid", () => {
+      const config = {
+        foo: "${actions[foo.bar || \"hello\"].some-name}",
+      }
+      void expectError(() => Array.from(getActionTemplateReferences(config, new TestContext({}))), {
+        contains: "found invalid action reference (invalid kind 'hello')",
+      })
+    })
+
     it("throws if action ref has no name", () => {
       const config = {
         foo: '${actions["build"]}',
@@ -2267,9 +2276,18 @@ describe("getActionTemplateReferences", () => {
       })
     })
 
-    it("throws if action name is not a string", () => {
+    it("throws if action name is not a string in identifier expression", () => {
       const config = {
         foo: '${actions["build"].123}',
+      }
+      void expectError(() => Array.from(getActionTemplateReferences(config, new TestContext({}))), {
+        contains: "Found invalid action reference (name is not a string)",
+      })
+    })
+
+    it("throws if action name is not a string in member expression", () => {
+      const config = {
+        foo: '${actions["build"][123]}',
       }
       void expectError(() => Array.from(getActionTemplateReferences(config, new TestContext({}))), {
         contains: "Found invalid action reference (name is not a string)",
@@ -2330,7 +2348,7 @@ describe("getActionTemplateReferences", () => {
         foo: "${runtime[foo.bar].some-name}",
       }
       void expectError(() => Array.from(getActionTemplateReferences(config, new TestContext({}))), {
-        contains: "Found invalid runtime reference (invalid kind '${foo.bar}')",
+        contains: "found invalid action reference: invalid template string (${runtime[foo.bar].some-name}): could not find key foo. available keys: (none).",
       })
     })
 

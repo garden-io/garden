@@ -94,18 +94,19 @@ export abstract class TemplateExpression {
 export class IdentifierExpression extends TemplateExpression {
   constructor(
     loc: Location,
-    public readonly name: string
+    // in the template expression ${foo.123}, 123 is a valid identifier expression and is treated as a number.
+    public readonly identifier: string | number
   ) {
-    if (!isString(name)) {
+    if (!isString(identifier) && !isNumber(identifier)) {
       throw new InternalError({
-        message: `IdentifierExpression name must be a string. Got: ${typeof name}`,
+        message: `identifier arg for IdentifierExpression must be a string or number. Got: ${typeof identifier}`,
       })
     }
     super(loc)
   }
 
-  override evaluate(): string {
-    return this.name
+  override evaluate(): string | number {
+    return this.identifier
   }
 }
 
@@ -693,7 +694,7 @@ export class FunctionCallExpression extends TemplateExpression {
     const functionName = this.functionName.evaluate()
 
     const result: CollectionOrValue<TemplatePrimitive> = this.callHelperFunction({
-      functionName,
+      functionName: functionName.toString(),
       args: functionArgs,
       context: args.context,
       opts: args.opts,

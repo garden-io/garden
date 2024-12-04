@@ -517,7 +517,7 @@ IdentifierName "identifier"
       return head + tail.join("")
     }
   / Integer {
-      return text();
+      return parseInt(text());
     }
 
 IdentifierStart

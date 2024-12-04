@@ -106,13 +106,13 @@ export function* getContextLookupReferences(
     if (expression instanceof ContextLookupExpression) {
       let isResolvable: boolean = true
       const keyPath = expression.keyPath.map((keyPathExpression) => {
-        const key = keyPathExpression.evaluate({ context, opts: { allowPartial: true } })
+        const key = keyPathExpression.evaluate({ context, opts: { allowPartial: false }, optional: true })
         if (typeof key === "symbol") {
           isResolvable = false
           return {
             getError: captureError(() =>
               // this will throw an error, because the key could not be resolved
-              keyPathExpression.evaluate({ context, opts: { allowPartial: false } })
+              keyPathExpression.evaluate({ context, opts: { allowPartial: false }, optional: false })
             ),
           }
         }
