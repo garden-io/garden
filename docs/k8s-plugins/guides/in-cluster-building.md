@@ -66,8 +66,8 @@ You also need to configure a Docker registry. See the [Configuring a deployment 
 
 Garden supports multiple methods for building images and making them available to the cluster:
 
-1. [**`kaniko`**](#kaniko) — Individual [Kaniko](https://github.com/GoogleContainerTools/kaniko) pods created for each build.
-2. [**`cluster-buildkit`**](#cluster-buildkit) — A [BuildKit](https://github.com/moby/buildkit) deployment created for each project namespace.
+1. [**`cluster-buildkit`**](#cluster-buildkit) — A [BuildKit](https://github.com/moby/buildkit) deployment created for each project namespace.
+2. [**`kaniko`**](#kaniko) — Individual [Kaniko](https://github.com/GoogleContainerTools/kaniko) pods created for each build.
 3. `local-docker` — Build using the local Docker daemon on the developer/CI machine before pushing to the cluster/registry.
 
 {% hint style="warning" %}
@@ -78,12 +78,7 @@ The `local-docker` mode is set by default. You should definitely use that when u
 
 The other modes—which are why you're reading this guide—all build your images inside your development/testing cluster, so you don't need to run Docker on your machine, and avoid having to build locally and push build artifacts over the wire to the cluster for every change to your code.
 
-The remote building options each have some pros and cons. You'll find more details below but **here are our general recommendations** at the moment:
-
-- [**`kaniko`**](#kaniko) is a solid choice for most cases and is _currently our first recommendation_. It is battle-tested among Garden's most demanding users (including the Garden team itself). It also scales horizontally and elastically, since individual Pods are created for each build. It doesn't require privileged containers to run and requires no shared cluster-wide services.
-- [**`cluster-buildkit`**](#cluster-buildkit) is a new addition and replaces the older `cluster-docker` mode. A [BuildKit](https://github.com/moby/buildkit) Deployment is dynamically created in each project namespace and much like Kaniko requires no other cluster-wide services. This mode also offers a _rootless_ option, which runs without any elevated privileges, in clusters that support it.
-
-We recommend picking a mode based on your usage patterns and scalability requirements. For ephemeral namespaces, `kaniko` is generally the better option, since the persistent BuildKit deployment won't have a warm cache anyway. For long-lived namespaces, like the ones a developer uses while working, `cluster-buildkit` may be a more performant option.
+The remote building options each have some pros and cons. You'll find more details below but *we generally recommend `cluster-buildkit`**.
 
 Let's look at how each mode works in more detail, and how you configure them:
 
