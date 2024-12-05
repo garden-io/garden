@@ -29,8 +29,8 @@ import type { ActionState } from "../actions/types.js"
 import type { ValidResultType } from "../tasks/base.js"
 import { uuidv4 } from "../util/random.js"
 import { s } from "./zod.js"
-import { NoOpContext } from "./template-contexts/base.js"
 import { getContextLookupReferences, visitAll } from "../template-string/static-analysis.js"
+import type { ConfigContext } from "./template-contexts/base.js"
 
 // TODO: dedupe from the joi schema below
 export const baseProviderConfigSchemaZod = s.object({
@@ -165,18 +165,22 @@ export function providerFromConfig({
  * Given a plugin and its provider config, return a list of dependency names based on declared dependencies,
  * as well as implicit dependencies based on template strings.
  */
-export function getAllProviderDependencyNames(plugin: GardenPluginSpec, config: GenericProviderConfig) {
+export function getAllProviderDependencyNames(
+  plugin: GardenPluginSpec,
+  config: GenericProviderConfig,
+  context: ConfigContext
+) {
   return uniq([
     ...(plugin.dependencies || []).map((d) => d.name),
     ...(config.dependencies || []),
-    ...getProviderTemplateReferences(config),
+    ...getProviderTemplateReferences(config, context),
   ]).sort()
 }
 
 /**
  * Given a provider config, return implicit dependencies based on template strings.
  */
-export function getProviderTemplateReferences(config: GenericProviderConfig) {
+export function getProviderTemplateReferences(config: GenericProviderConfig, context: ConfigContext) {
   const deps: string[] = []
 
   const generator = getContextLookupReferences(
@@ -188,7 +192,7 @@ export function getProviderTemplateReferences(config: GenericProviderConfig) {
         path: [],
       },
     }),
-    new NoOpContext()
+    context
   )
   for (const finding of generator) {
     const keyPath = finding.keyPath

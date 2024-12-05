@@ -13,7 +13,6 @@ import {
   CONTEXT_RESOLVE_KEY_AVAILABLE_LATER,
   CONTEXT_RESOLVE_KEY_NOT_FOUND,
   GenericContext,
-  NoOpContext,
 } from "../config/template-contexts/base.js"
 import cloneDeep from "fast-copy"
 import { difference, isPlainObject, isString } from "lodash-es"
@@ -803,10 +802,16 @@ export function getModuleTemplateReferences(config: ModuleConfig, context: Modul
  *
  * Prefix should be e.g. "Module" or "Provider" (used when generating error messages).
  */
-export function throwOnMissingSecretKeys(configs: ObjectWithName[], secrets: StringMap, prefix: string, log?: Log) {
+export function throwOnMissingSecretKeys(
+  configs: ObjectWithName[],
+  context: ConfigContext,
+  secrets: StringMap,
+  prefix: string,
+  log?: Log
+) {
   const allMissing: [string, ContextKeySegment[]][] = [] // [[key, missing keys]]
   for (const config of configs) {
-    const missing = detectMissingSecretKeys(config, secrets)
+    const missing = detectMissingSecretKeys(config, context, secrets)
     if (missing.length > 0) {
       allMissing.push([config.name, missing])
     }
@@ -853,7 +858,11 @@ export function throwOnMissingSecretKeys(configs: ObjectWithName[], secrets: Str
  * Collects template references to secrets in obj, and returns an array of any secret keys referenced in it that
  * aren't present (or have blank values) in the provided secrets map.
  */
-export function detectMissingSecretKeys(obj: ObjectWithName, secrets: StringMap): ContextKeySegment[] {
+export function detectMissingSecretKeys(
+  obj: ObjectWithName,
+  context: ConfigContext,
+  secrets: StringMap
+): ContextKeySegment[] {
   const referencedKeys: ContextKeySegment[] = []
   const generator = getContextLookupReferences(
     visitAll({
@@ -864,7 +873,7 @@ export function detectMissingSecretKeys(obj: ObjectWithName, secrets: StringMap)
         path: [],
       },
     }),
-    new NoOpContext()
+    context
   )
   for (const finding of generator) {
     const keyPath = finding.keyPath

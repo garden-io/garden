@@ -784,7 +784,13 @@ export class Garden {
         providerNames = getNames(rawConfigs)
       }
 
-      throwOnMissingSecretKeys(rawConfigs, this.secrets, "Provider", log)
+      throwOnMissingSecretKeys(
+        rawConfigs,
+        new RemoteSourceConfigContext(this, this.variables),
+        this.secrets,
+        "Provider",
+        log
+      )
 
       // As an optimization, we return immediately if all requested providers are already resolved
       const alreadyResolvedProviders = providerNames.map((name) => this.resolvedProviders[name]).filter(Boolean)
@@ -820,7 +826,11 @@ export class Garden {
 
         validationGraph.addNode(plugin.name)
 
-        for (const dep of getAllProviderDependencyNames(plugin!, config!)) {
+        for (const dep of getAllProviderDependencyNames(
+          plugin!,
+          config!,
+          new RemoteSourceConfigContext(this, this.variables)
+        )) {
           validationGraph.addNode(dep)
           validationGraph.addDependency(plugin.name, dep)
         }
@@ -1411,7 +1421,13 @@ export class Garden {
       const groupedResources = groupBy(allResources, "kind")
 
       for (const [kind, configs] of Object.entries(groupedResources)) {
-        throwOnMissingSecretKeys(configs, this.secrets, kind, this.log)
+        throwOnMissingSecretKeys(
+          configs,
+          new RemoteSourceConfigContext(this, this.variables),
+          this.secrets,
+          kind,
+          this.log
+        )
       }
 
       let rawModuleConfigs = [...((groupedResources.Module as ModuleConfig[]) || [])]

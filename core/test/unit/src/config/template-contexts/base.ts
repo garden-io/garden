@@ -25,7 +25,7 @@ interface TestValues {
 }
 
 describe("ConfigContext", () => {
-  class TestContext extends ConfigContext {
+  class GenericContext extends ConfigContext {
     constructor(obj: TestValues, root?: ConfigContext) {
       super(root)
       this.addValues(obj)
@@ -43,12 +43,12 @@ describe("ConfigContext", () => {
     }
 
     it("should resolve simple keys", async () => {
-      const c = new TestContext({ basic: "value" })
+      const c = new GenericContext({ basic: "value" })
       expect(resolveKey(c, ["basic"])).to.eql({ resolved: "value" })
     })
 
     it("should return CONTEXT_RESOLVE_KEY_NOT_FOUND for missing key", async () => {
-      const c = new TestContext({})
+      const c = new GenericContext({})
       const { resolved, getUnavailableReason: message } = resolveKey(c, ["basic"])
       expect(resolved).to.be.equal(CONTEXT_RESOLVE_KEY_NOT_FOUND)
       expect(stripAnsi(message!())).to.include("Could not find key basic")
@@ -56,14 +56,14 @@ describe("ConfigContext", () => {
 
     context("allowPartial=true", () => {
       it("should return CONTEXT_RESOLVE_KEY_AVAILABLE_LATER symbol on missing key", async () => {
-        const c = new TestContext({})
+        const c = new GenericContext({})
         const result = resolveKey(c, ["basic"], { allowPartial: true })
         expect(result.resolved).to.eql(CONTEXT_RESOLVE_KEY_AVAILABLE_LATER)
       })
 
       it("should return CONTEXT_RESOLVE_KEY_AVAILABLE_LATER symbol on missing key on nested context", async () => {
-        const c = new TestContext({
-          nested: new TestContext({ key: "value" }),
+        const c = new GenericContext({
+          nested: new GenericContext({ key: "value" }),
         })
         const result = resolveKey(c, ["nested", "bla"], { allowPartial: true })
         expect(result.resolved).to.eql(CONTEXT_RESOLVE_KEY_AVAILABLE_LATER)
@@ -71,25 +71,25 @@ describe("ConfigContext", () => {
     })
 
     it("should throw when looking for nested value on primitive", async () => {
-      const c = new TestContext({ basic: "value" })
+      const c = new GenericContext({ basic: "value" })
       await expectError(() => resolveKey(c, ["basic", "nested"]), "context-resolve")
     })
 
     it("should resolve nested keys", async () => {
-      const c = new TestContext({ nested: { key: "value" } })
+      const c = new GenericContext({ nested: { key: "value" } })
       expect(resolveKey(c, ["nested", "key"])).eql({ resolved: "value" })
     })
 
     it("should resolve keys on nested contexts", async () => {
-      const c = new TestContext({
-        nested: new TestContext({ key: "value" }),
+      const c = new GenericContext({
+        nested: new GenericContext({ key: "value" }),
       })
       expect(resolveKey(c, ["nested", "key"])).eql({ resolved: "value" })
     })
 
     it("should return CONTEXT_RESOLVE_KEY_NOT_FOUND for missing keys on nested context", async () => {
-      const c = new TestContext({
-        nested: new TestContext({ key: "value" }),
+      const c = new GenericContext({
+        nested: new GenericContext({ key: "value" }),
       })
       const { resolved, getUnavailableReason: message } = resolveKey(c, ["basic", "bla"])
       expect(resolved).to.be.equal(CONTEXT_RESOLVE_KEY_NOT_FOUND)
@@ -97,21 +97,21 @@ describe("ConfigContext", () => {
     })
 
     it("should resolve keys with value behind callable", async () => {
-      const c = new TestContext({ basic: () => "value" })
+      const c = new GenericContext({ basic: () => "value" })
       expect(resolveKey(c, ["basic"])).to.eql({ resolved: "value" })
     })
 
     it("should resolve keys on nested contexts where context is behind callable", async () => {
-      const c = new TestContext({
-        nested: () => new TestContext({ key: "value" }),
+      const c = new GenericContext({
+        nested: () => new GenericContext({ key: "value" }),
       })
       expect(resolveKey(c, ["nested", "key"])).to.eql({ resolved: "value" })
     })
 
     it("should cache resolved values", async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const nested: any = new TestContext({ key: "value" })
-      const c = new TestContext({
+      const nested: any = new GenericContext({ key: "value" })
+      const c = new GenericContext({
         nested,
       })
       resolveKey(c, ["nested", "key"])
@@ -122,8 +122,8 @@ describe("ConfigContext", () => {
     })
 
     it("should throw if resolving a key that's already in the lookup stack", async () => {
-      const c = new TestContext({
-        nested: new TestContext({ key: "value" }),
+      const c = new GenericContext({
+        nested: new GenericContext({ key: "value" }),
       })
       const key = ["nested", "key"]
       const stack = new Set([key.join(".")])
@@ -139,7 +139,7 @@ describe("ConfigContext", () => {
         }
       }
 
-      const c = new TestContext({
+      const c = new GenericContext({
         nested: new NestedContext(),
       })
       await expectError(() => resolveKey(c, ["nested", "bla"]), "context-resolve")
@@ -210,65 +210,65 @@ describe("ConfigContext", () => {
     })
 
     it("should resolve template strings", async () => {
-      const c = new TestContext({
+      const c = new GenericContext({
         foo: "value",
       })
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const nested: any = new TestContext({ key: "${foo}" }, c)
+      const nested: any = new GenericContext({ key: "${foo}" }, c)
       c.addValues({ nested })
       expect(resolveKey(c, ["nested", "key"])).to.eql({ resolved: "value" })
     })
 
     it("should resolve template strings with nested context", async () => {
-      const c = new TestContext({
+      const c = new GenericContext({
         foo: "bar",
       })
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const nested: any = new TestContext({ key: "${nested.foo}", foo: "value" }, c)
+      const nested: any = new GenericContext({ key: "${nested.foo}", foo: "value" }, c)
       c.addValues({ nested })
       expect(resolveKey(c, ["nested", "key"])).to.eql({ resolved: "value" })
     })
 
     it("should detect a self-reference when resolving a template string", async () => {
-      const c = new TestContext({ key: "${key}" })
+      const c = new GenericContext({ key: "${key}" })
       await expectError(() => resolveKey(c, ["key"]), "template-string")
     })
 
     it("should detect a nested self-reference when resolving a template string", async () => {
-      const c = new TestContext({
+      const c = new GenericContext({
         foo: "bar",
       })
-      const nested = new TestContext({ key: "${nested.key}" }, c)
+      const nested = new GenericContext({ key: "${nested.key}" }, c)
       c.addValues({ nested })
       await expectError(() => resolveKey(c, ["nested", "key"]), "template-string")
     })
 
     it("should detect a circular reference when resolving a template string", async () => {
-      const c = new TestContext({
+      const c = new GenericContext({
         foo: "bar",
       })
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const nested: any = new TestContext({ key: "${nested.foo}", foo: "${nested.key}" }, c)
+      const nested: any = new GenericContext({ key: "${nested.foo}", foo: "${nested.key}" }, c)
       c.addValues({ nested })
       await expectError(() => resolveKey(c, ["nested", "key"]), "template-string")
     })
 
     it("should detect a circular reference when resolving a nested template string", async () => {
-      const c = new TestContext({
+      const c = new GenericContext({
         foo: "bar",
       })
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const nested: any = new TestContext({ key: "${nested.foo}", foo: "${'${nested.key}'}" }, c)
+      const nested: any = new GenericContext({ key: "${nested.foo}", foo: "${'${nested.key}'}" }, c)
       c.addValues({ nested })
       await expectError(() => resolveKey(c, ["nested", "key"]), "template-string")
     })
 
     it("should detect a circular reference when nested template string resolves to self", async () => {
-      const c = new TestContext({
+      const c = new GenericContext({
         foo: "bar",
       })
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const nested: any = new TestContext({ key: "${'${nested.key}'}" }, c)
+      const nested: any = new GenericContext({ key: "${'${nested.key}'}" }, c)
       c.addValues({ nested })
       await expectError(() => resolveKey(c, ["nested", "key"]), {
         contains:

@@ -34,6 +34,7 @@ import type { Log } from "../logger/log-entry.js"
 import { styles } from "../logger/styles.js"
 import type { ObjectPath } from "../config/base.js"
 import fsExtra from "fs-extra"
+import { RemoteSourceConfigContext } from "../config/template-contexts/project.js"
 
 const { readFile, writeFile, ensureDir } = fsExtra
 
@@ -116,7 +117,10 @@ export class ResolveProviderTask extends BaseTask<Provider> {
 
     const pluginDeps = this.plugin.dependencies
     const explicitDeps = (this.config.dependencies || []).map((name) => ({ name }))
-    const implicitDeps = getProviderTemplateReferences(this.config).map((name) => ({ name }))
+    const implicitDeps = getProviderTemplateReferences(
+      this.config,
+      new RemoteSourceConfigContext(this.garden, this.garden.variables)
+    ).map((name) => ({ name }))
     const allDeps = uniq([...pluginDeps, ...explicitDeps, ...implicitDeps])
 
     const rawProviderConfigs = this.garden.getRawProviderConfigs()
