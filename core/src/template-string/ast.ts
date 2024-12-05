@@ -18,18 +18,23 @@ import { GardenError, InternalError, TemplateStringError } from "../exceptions.j
 import { getHelperFunctions } from "./functions.js"
 import { isTemplatePrimitive, type TemplatePrimitive } from "./types.js"
 import type { Collection, CollectionOrValue } from "../util/objects.js"
-import { validateSchema } from "../config/validation.js"
+import { type ConfigSource, validateSchema } from "../config/validation.js"
 import type { TemplateExpressionGenerator } from "./static-analysis.js"
 
 type EvaluateArgs = {
   context: ConfigContext
   opts: ContextResolveOpts
+  yamlSource: ConfigSource
 
   /**
    * Whether or not to throw an error if ContextLookupExpression fails to resolve variable.
    * The FormatStringExpression will set this parameter based on wether the OptionalSuffix (?) is present or not.
    */
   optional?: boolean
+}
+
+export type TemplateStringSource = {
+  rawTemplateString: string
 }
 
 /**
@@ -46,7 +51,7 @@ export type Location = {
     line: number
     column: number
   }
-  source: string
+  source: TemplateStringSource
 }
 
 export type TemplateEvaluationResult =
@@ -54,20 +59,26 @@ export type TemplateEvaluationResult =
   | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND
   | typeof CONTEXT_RESOLVE_KEY_AVAILABLE_LATER
 
-function* astVisitAll(e: TemplateExpression): TemplateExpressionGenerator {
+function* astVisitAll(e: TemplateExpression, source: ConfigSource): TemplateExpressionGenerator {
   for (const key in e) {
     if (key === "loc") {
       continue
     }
     const propertyValue = e[key]
     if (propertyValue instanceof TemplateExpression) {
-      yield* astVisitAll(propertyValue)
-      yield propertyValue
+      yield* astVisitAll(propertyValue, source)
+      yield {
+        value: propertyValue,
+        yamlSource: source,
+      }
     } else if (Array.isArray(propertyValue)) {
       for (const item of propertyValue) {
         if (item instanceof TemplateExpression) {
-          yield* astVisitAll(item)
-          yield item
+          yield* astVisitAll(item, source)
+          yield {
+            value: item,
+            yamlSource: source,
+          }
         }
       }
     }
@@ -77,8 +88,8 @@ function* astVisitAll(e: TemplateExpression): TemplateExpressionGenerator {
 export abstract class TemplateExpression {
   constructor(public readonly loc: Location) {}
 
-  *visitAll(): TemplateExpressionGenerator {
-    yield* astVisitAll(this)
+  *visitAll(source: ConfigSource): TemplateExpressionGenerator {
+    yield* astVisitAll(this, source)
   }
 
   abstract evaluate(
@@ -308,12 +319,13 @@ export abstract class BinaryExpression extends TemplateExpression {
       return CONTEXT_RESOLVE_KEY_NOT_FOUND
     }
 
-    return this.transform(left, right)
+    return this.transform(left, right, args)
   }
 
   abstract transform(
     left: CollectionOrValue<TemplatePrimitive>,
-    right: CollectionOrValue<TemplatePrimitive>
+    right: CollectionOrValue<TemplatePrimitive>,
+    params: EvaluateArgs
   ): CollectionOrValue<TemplatePrimitive>
 }
 
@@ -332,7 +344,8 @@ export class NotEqualExpression extends BinaryExpression {
 export class AddExpression extends BinaryExpression {
   override transform(
     left: CollectionOrValue<TemplatePrimitive>,
-    right: CollectionOrValue<TemplatePrimitive>
+    right: CollectionOrValue<TemplatePrimitive>,
+    { yamlSource }: EvaluateArgs
   ): CollectionOrValue<TemplatePrimitive> {
     if (isNumber(left) && isNumber(right)) {
       return left + right
@@ -346,6 +359,7 @@ export class AddExpression extends BinaryExpression {
       throw new TemplateStringError({
         message: `Both terms need to be either arrays or strings or numbers for + operator (got ${typeof left} and ${typeof right}).`,
         loc: this.loc,
+        yamlSource,
       })
     }
   }
@@ -354,12 +368,14 @@ export class AddExpression extends BinaryExpression {
 export class ContainsExpression extends BinaryExpression {
   override transform(
     collection: CollectionOrValue<TemplatePrimitive>,
-    element: CollectionOrValue<TemplatePrimitive>
+    element: CollectionOrValue<TemplatePrimitive>,
+    { yamlSource }: EvaluateArgs
   ): boolean {
     if (!isTemplatePrimitive(element)) {
       throw new TemplateStringError({
         message: `The right-hand side of a 'contains' operator must be a string, number, boolean or null (got ${typeof element}).`,
         loc: this.loc,
+        yamlSource,
       })
     }
 
@@ -378,6 +394,7 @@ export class ContainsExpression extends BinaryExpression {
     throw new TemplateStringError({
       message: `The left-hand side of a 'contains' operator must be a string, array or object (got ${collection}).`,
       loc: this.loc,
+      yamlSource,
     })
   }
 }
@@ -385,7 +402,8 @@ export class ContainsExpression extends BinaryExpression {
 export abstract class BinaryExpressionOnNumbers extends BinaryExpression {
   override transform(
     left: CollectionOrValue<TemplatePrimitive>,
-    right: CollectionOrValue<TemplatePrimitive>
+    right: CollectionOrValue<TemplatePrimitive>,
+    { yamlSource }: EvaluateArgs
   ): CollectionOrValue<TemplatePrimitive> {
     // All other operators require numbers to make sense (we're not gonna allow random JS weirdness)
     if (!isNumber(left) || !isNumber(right)) {
@@ -394,6 +412,7 @@ export abstract class BinaryExpressionOnNumbers extends BinaryExpression {
           this.operator
         } operator (got ${typeof left} and ${typeof right}).`,
         loc: this.loc,
+        yamlSource,
       })
     }
 
@@ -580,6 +599,7 @@ export class MemberExpression extends TemplateExpression {
       throw new TemplateStringError({
         message: `Expression in brackets must resolve to a string or number (got ${typeof inner}).`,
         loc: this.loc,
+        yamlSource: args.yamlSource,
       })
     }
 
@@ -599,20 +619,21 @@ export class ContextLookupExpression extends TemplateExpression {
     context,
     opts,
     optional,
+    yamlSource,
   }: EvaluateArgs):
     | CollectionOrValue<TemplatePrimitive>
     | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND
     | typeof CONTEXT_RESOLVE_KEY_AVAILABLE_LATER {
     const keyPath: (string | number)[] = []
     for (const k of this.keyPath) {
-      const evaluated = k.evaluate({ context, opts, optional })
+      const evaluated = k.evaluate({ context, opts, optional, yamlSource })
       if (typeof evaluated === "symbol") {
         return evaluated
       }
       keyPath.push(evaluated)
     }
 
-    const { resolved, getUnavailableReason } = this.resolveContext(context, keyPath, opts)
+    const { resolved, getUnavailableReason } = this.resolveContext(context, keyPath, opts, yamlSource)
 
     // if context returns key available later, then we do not need to throw, because partial mode is enabled.
     if (resolved === CONTEXT_RESOLVE_KEY_AVAILABLE_LATER) {
@@ -629,13 +650,19 @@ export class ContextLookupExpression extends TemplateExpression {
       throw new TemplateStringError({
         message: getUnavailableReason?.() || `Could not find key ${renderKeyPath(keyPath)}`,
         loc: this.loc,
+        yamlSource,
       })
     }
 
     return resolved
   }
 
-  private resolveContext(context: ConfigContext, keyPath: (string | number)[], opts: ContextResolveOpts) {
+  private resolveContext(
+    context: ConfigContext,
+    keyPath: (string | number)[],
+    opts: ContextResolveOpts,
+    yamlSource: ConfigSource
+  ) {
     try {
       return context.resolve({
         key: keyPath,
@@ -647,10 +674,10 @@ export class ContextLookupExpression extends TemplateExpression {
       })
     } catch (e) {
       if (e instanceof TemplateStringError) {
-        throw new TemplateStringError({ message: e.originalMessage, loc: this.loc })
+        throw new TemplateStringError({ message: e.originalMessage, loc: this.loc, yamlSource })
       }
       if (e instanceof GardenError) {
-        throw new TemplateStringError({ message: e.message, loc: this.loc })
+        throw new TemplateStringError({ message: e.message, loc: this.loc, yamlSource })
       }
       throw e
     }
@@ -686,8 +713,7 @@ export class FunctionCallExpression extends TemplateExpression {
     const result: CollectionOrValue<TemplatePrimitive> = this.callHelperFunction({
       functionName: functionName.toString(),
       args: functionArgs,
-      context: args.context,
-      opts: args.opts,
+      yamlSource: args.yamlSource,
     })
 
     return result
@@ -696,11 +722,11 @@ export class FunctionCallExpression extends TemplateExpression {
   callHelperFunction({
     functionName,
     args,
+    yamlSource,
   }: {
     functionName: string
+    yamlSource: ConfigSource
     args: CollectionOrValue<TemplatePrimitive>[]
-    context: ConfigContext
-    opts: ContextResolveOpts
   }): CollectionOrValue<TemplatePrimitive> {
     const helperFunctions = getHelperFunctions()
     const spec = helperFunctions[functionName]
@@ -710,6 +736,7 @@ export class FunctionCallExpression extends TemplateExpression {
       throw new TemplateStringError({
         message: `Could not find helper function '${functionName}'. Available helper functions: ${availableFns}`,
         loc: this.loc,
+        yamlSource,
       })
     }
 
@@ -723,6 +750,7 @@ export class FunctionCallExpression extends TemplateExpression {
         throw new TemplateStringError({
           message: `Missing argument '${argName}' (at index ${i}) for ${functionName} helper function.`,
           loc: this.loc,
+          yamlSource,
         })
       }
 
@@ -733,6 +761,7 @@ export class FunctionCallExpression extends TemplateExpression {
           super({
             message,
             loc,
+            yamlSource,
           })
         }
       }
@@ -749,6 +778,7 @@ export class FunctionCallExpression extends TemplateExpression {
     } catch (error) {
       throw new TemplateStringError({
         message: `Error from helper function ${functionName}: ${error}`,
+        yamlSource,
         loc: this.loc,
       })
     }

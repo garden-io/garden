@@ -34,7 +34,7 @@ import { dedent, deline, naturalList, titleize } from "../util/string.js"
 import type { ObjectWithName } from "../util/util.js"
 import type { Log } from "../logger/log-entry.js"
 import type { ModuleConfigContext } from "../config/template-contexts/module.js"
-import type { ActionKind } from "../actions/types.js"
+import type { ActionConfig, ActionKind } from "../actions/types.js"
 import { actionKindsLower } from "../actions/types.js"
 import type { CollectionOrValue } from "../util/objects.js"
 import { deepMap } from "../util/objects.js"
@@ -86,12 +86,12 @@ const parseTemplateStringCache = new LRUCache<string, string | ast.TemplateExpre
 
 export function parseTemplateString({
   rawTemplateString,
-  source,
   unescape,
+  source,
 }: {
   rawTemplateString: string
-  source?: ConfigSource
   unescape: boolean
+  source: ConfigSource
 }): ast.TemplateExpression | string {
   // Just return immediately if this is definitely not a template string
   if (!maybeTemplateString(rawTemplateString)) {
@@ -105,10 +105,16 @@ export function parseTemplateString({
     return cached
   }
 
-  if (source === undefined) {
-    source = {
-      basePath: [],
-      yamlDoc: undefined,
+  const templateStringSource: ast.TemplateStringSource = {
+    rawTemplateString,
+  }
+
+  class ParserError extends TemplateStringError {
+    constructor(params: GardenErrorParams & { loc: ast.Location }) {
+      super({
+        ...params,
+        yamlSource: source,
+      })
     }
   }
 
@@ -118,10 +124,10 @@ export function parseTemplateString({
       ast,
       escapePrefix,
       optionalSuffix: "}?",
-      parseNested: (nested: string) => parseTemplateString({ rawTemplateString: nested, source, unescape }),
-      TemplateStringError,
+      parseNested: (nested: string) => parseTemplateString({ rawTemplateString: nested, unescape, source }),
+      TemplateStringError: ParserError,
       unescape,
-      grammarSource: rawTemplateString,
+      grammarSource: templateStringSource,
     },
   ])
 
@@ -142,21 +148,25 @@ export function resolveTemplateString({
   string,
   context,
   contextOpts = {},
-  // TODO: Path and source? what to do with path here?
-  path,
   source,
 }: {
   string: string
   context: ConfigContext
   contextOpts?: ContextResolveOpts
   source?: ConfigSource
-  path?: ObjectPath
 }): CollectionOrValue<TemplatePrimitive> {
+  if (source === undefined) {
+    source = {
+      path: [],
+      yamlDoc: undefined,
+    }
+  }
+
   const parsed = parseTemplateString({
     rawTemplateString: string,
-    source,
     // TODO: remove unescape hacks.
     unescape: shouldUnescape(contextOpts),
+    source,
   })
 
   // string does not contain
@@ -167,6 +177,7 @@ export function resolveTemplateString({
   const result = parsed.evaluate({
     context,
     opts: contextOpts,
+    yamlSource: source,
   })
 
   if (!contextOpts.allowPartial && result === CONTEXT_RESOLVE_KEY_NOT_FOUND) {
@@ -194,13 +205,11 @@ export function resolveTemplateStrings<T>({
   value,
   context,
   contextOpts = {},
-  path,
   source,
 }: {
   value: T
   context: ConfigContext
   contextOpts?: ContextResolveOpts
-  path?: ObjectPath
   source: ConfigSource | undefined
 }): T {
   if (value === null) {
@@ -210,12 +219,17 @@ export function resolveTemplateStrings<T>({
     return undefined as T
   }
 
-  if (!path) {
-    path = []
+  if (!source) {
+    source = {
+      path: [],
+    }
+  }
+  if (!source.path) {
+    source.path = []
   }
 
   if (typeof value === "string") {
-    return <T>resolveTemplateString({ string: value, context, path, source, contextOpts })
+    return <T>resolveTemplateString({ string: value, context, source, contextOpts })
   } else if (Array.isArray(value)) {
     const output: unknown[] = []
 
@@ -230,7 +244,7 @@ export function resolveTemplateStrings<T>({
           )
           throw new TemplateError({
             message: `A list item with a ${arrayConcatKey} key cannot have any other keys (found ${extraKeys})`,
-            path,
+            path: source.path,
             value,
             resolved: undefined,
           })
@@ -243,8 +257,10 @@ export function resolveTemplateStrings<T>({
           contextOpts: {
             ...contextOpts,
           },
-          path: path && [...path, arrayConcatKey],
-          source,
+          source: {
+            ...source,
+            path: [...source.path, arrayConcatKey],
+          },
         })
 
         if (Array.isArray(resolved)) {
@@ -254,13 +270,23 @@ export function resolveTemplateStrings<T>({
         } else {
           throw new TemplateError({
             message: `Value of ${arrayConcatKey} key must be (or resolve to) an array (got ${typeof resolved})`,
-            path,
+            path: source.path,
             value,
             resolved,
           })
         }
       } else {
-        output.push(resolveTemplateStrings({ value: v, context, contextOpts, source, path: path && [...path, i] }))
+        output.push(
+          resolveTemplateStrings({
+            value: v,
+            context,
+            contextOpts,
+            source: {
+              ...source,
+              path: [...source.path, i],
+            },
+          })
+        )
       }
     }
 
@@ -268,17 +294,25 @@ export function resolveTemplateStrings<T>({
   } else if (isPlainObject(value)) {
     if (value[arrayForEachKey] !== undefined) {
       // Handle $forEach loop
-      return handleForEachObject({ value, context, contextOpts, path, source })
+      return handleForEachObject({ value, context, contextOpts, source })
     } else if (value[conditionalKey] !== undefined) {
       // Handle $if conditional
-      return handleConditional({ value, context, contextOpts, path, source })
+      return handleConditional({ value, context, contextOpts, source })
     } else {
       // Resolve $merge keys, depth-first, leaves-first
       let output = {}
 
       for (const k in value as Record<string, unknown>) {
         const v = value[k]
-        const resolved = resolveTemplateStrings({ value: v, context, contextOpts, source, path: path && [...path, k] })
+        const resolved = resolveTemplateStrings({
+          value: v,
+          context,
+          contextOpts,
+          source: {
+            ...source,
+            path: source.path && [...source.path, k],
+          },
+        })
 
         if (k === objectSpreadKey) {
           if (isPlainObject(resolved)) {
@@ -288,7 +322,7 @@ export function resolveTemplateStrings<T>({
           } else {
             throw new TemplateError({
               message: `Value of ${objectSpreadKey} key must be (or resolve to) a mapping object (got ${typeof resolved})`,
-              path: [...path, k],
+              path: [...source.path, k],
               value,
               resolved,
             })
@@ -311,14 +345,12 @@ function handleForEachObject({
   value,
   context,
   contextOpts,
-  path,
   source,
 }: {
   value: any
   context: ConfigContext
   contextOpts: ContextResolveOpts
-  path: ObjectPath | undefined
-  source: ConfigSource | undefined
+  source: ConfigSource
 }) {
   // Validate input object
   if (value[arrayForEachReturnKey] === undefined) {
@@ -326,7 +358,7 @@ function handleForEachObject({
       message: `Missing ${arrayForEachReturnKey} field next to ${arrayForEachKey} field. Got ${naturalList(
         Object.keys(value)
       )}`,
-      path: path && [...path, arrayForEachKey],
+      path: source.path && [...source.path, arrayForEachKey],
       value,
       resolved: undefined,
     })
@@ -341,7 +373,7 @@ function handleForEachObject({
       message: `Found one or more unexpected keys on ${arrayForEachKey} object: ${extraKeys}. Expected keys: ${naturalList(
         expectedForEachKeys
       )}`,
-      path,
+      path: source.path,
       value,
       resolved: undefined,
     })
@@ -352,8 +384,10 @@ function handleForEachObject({
     value: value[arrayForEachKey],
     context,
     contextOpts,
-    source,
-    path: path && [...path, arrayForEachKey],
+    source: {
+      ...source,
+      path: source.path && [...source.path, arrayForEachKey],
+    },
   })
   const isObject = isPlainObject(resolvedInput)
 
@@ -363,7 +397,7 @@ function handleForEachObject({
     } else {
       throw new TemplateError({
         message: `Value of ${arrayForEachKey} key must be (or resolve to) an array or mapping object (got ${typeof resolvedInput})`,
-        path: path && [...path, arrayForEachKey],
+        path: source.path && [...source.path, arrayForEachKey],
         value,
         resolved: resolvedInput,
       })
@@ -418,8 +452,10 @@ function handleForEachObject({
         value: value[arrayForEachFilterKey],
         context: loopContext,
         contextOpts,
-        source,
-        path: path && [...path, arrayForEachFilterKey],
+        source: {
+          ...source,
+          path: source.path && [...source.path, arrayForEachFilterKey],
+        },
       })
 
       if (filterResult === false) {
@@ -427,7 +463,7 @@ function handleForEachObject({
       } else if (filterResult !== true) {
         throw new TemplateError({
           message: `${arrayForEachFilterKey} clause in ${arrayForEachKey} loop must resolve to a boolean value (got ${typeof resolvedInput})`,
-          path: path && [...path, arrayForEachFilterKey],
+          path: source.path && [...source.path, arrayForEachFilterKey],
           value,
           resolved: undefined,
         })
@@ -439,14 +475,16 @@ function handleForEachObject({
         value: value[arrayForEachReturnKey],
         context: loopContext,
         contextOpts,
-        source,
-        path: path && [...path, arrayForEachKey, i],
+        source: {
+          ...source,
+          path: source.path && [...source.path, arrayForEachKey, i],
+        },
       })
     )
   }
 
   // Need to resolve once more to handle e.g. $concat expressions
-  return resolveTemplateStrings({ value: output, context, contextOpts, source, path })
+  return resolveTemplateStrings({ value: output, context, contextOpts, source })
 }
 
 const expectedConditionalKeys = [conditionalKey, conditionalThenKey, conditionalElseKey]
@@ -455,14 +493,12 @@ function handleConditional({
   value,
   context,
   contextOpts,
-  path,
   source,
 }: {
   value: any
   context: ConfigContext
   contextOpts: ContextResolveOpts
-  path: ObjectPath | undefined
-  source: ConfigSource | undefined
+  source: ConfigSource
 }) {
   // Validate input object
   const thenExpression = value[conditionalThenKey]
@@ -473,7 +509,7 @@ function handleConditional({
       message: `Missing ${conditionalThenKey} field next to ${conditionalKey} field. Got: ${naturalList(
         Object.keys(value)
       )}`,
-      path,
+      path: source.path,
       value,
       resolved: undefined,
     })
@@ -488,7 +524,7 @@ function handleConditional({
       message: `Found one or more unexpected keys on ${conditionalKey} object: ${extraKeys}. Expected: ${naturalList(
         expectedConditionalKeys
       )}`,
-      path,
+      path: source.path,
       value,
       resolved: undefined,
     })
@@ -499,8 +535,10 @@ function handleConditional({
     value: value[conditionalKey],
     context,
     contextOpts,
-    source,
-    path: path && [...path, conditionalKey],
+    source: {
+      ...source,
+      path: source.path && [...source.path, conditionalKey],
+    },
   })
 
   if (typeof resolvedConditional !== "boolean") {
@@ -509,7 +547,7 @@ function handleConditional({
     } else {
       throw new TemplateError({
         message: `Value of ${conditionalKey} key must be (or resolve to) a boolean (got ${typeof resolvedConditional})`,
-        path: path && [...path, conditionalKey],
+        path: source.path && [...source.path, conditionalKey],
         value,
         resolved: resolvedConditional,
       })
@@ -521,16 +559,20 @@ function handleConditional({
   const resolvedThen = resolveTemplateStrings({
     value: thenExpression,
     context,
-    path: path && [...path, conditionalThenKey],
     contextOpts,
-    source,
+    source: {
+      ...source,
+      path: source.path && [...source.path, conditionalThenKey],
+    },
   })
   const resolvedElse = resolveTemplateStrings({
     value: elseExpression,
     context,
-    path: path && [...path, conditionalElseKey],
     contextOpts,
-    source,
+    source: {
+      ...source,
+      path: source.path && [...source.path, conditionalElseKey],
+    },
   })
 
   if (!!resolvedConditional) {
@@ -682,11 +724,18 @@ export function extractRuntimeReference(finding: ContextLookupReferenceFinding):
  * An error is thrown if a reference is not resolvable, i.e. if a nested template is used as a reference.
  */
 export function* getActionTemplateReferences(
-  config: object,
+  config: ActionConfig,
   context: ConfigContext
 ): Generator<ActionTemplateReference, void, undefined> {
   const generator = getContextLookupReferences(
-    visitAll({ value: config as CollectionOrValue<TemplatePrimitive>, parseTemplateStrings: true }),
+    visitAll({
+      value: config as ObjectWithName,
+      parseTemplateStrings: true,
+      source: {
+        yamlDoc: config.internal?.yamlDoc,
+        path: [],
+      },
+    }),
     context
   )
 
@@ -709,6 +758,10 @@ export function getModuleTemplateReferences(config: ModuleConfig, context: Modul
     visitAll({
       value: config as ObjectWithName,
       parseTemplateStrings: true,
+      // Note: We're not implementing the YAML source mapping for modules
+      source: {
+        path: [],
+      },
     }),
     context
   )
@@ -795,7 +848,17 @@ export function throwOnMissingSecretKeys(configs: ObjectWithName[], secrets: Str
  */
 export function detectMissingSecretKeys(obj: ObjectWithName, secrets: StringMap): ContextKeySegment[] {
   const referencedKeys: ContextKeySegment[] = []
-  const generator = getContextLookupReferences(visitAll({ value: obj, parseTemplateStrings: true }), new NoOpContext())
+  const generator = getContextLookupReferences(
+    visitAll({
+      value: obj,
+      parseTemplateStrings: true,
+      // TODO: add real yaml source
+      source: {
+        path: [],
+      },
+    }),
+    new NoOpContext()
+  )
   for (const finding of generator) {
     const keyPath = finding.keyPath
     if (keyPath[0] !== "secrets") {

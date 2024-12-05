@@ -813,7 +813,7 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
       contextOpts: {
         allowPartial: false,
       },
-      source: { yamlDoc, basePath: [] },
+      source: { yamlDoc, path: [] },
     })
     config = { ...config, ...resolvedBuiltin }
     const { spec = {} } = config
@@ -831,7 +831,7 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
       name: config.name,
       path: config.internal.basePath,
       projectRoot: garden.projectRoot,
-      source: { yamlDoc },
+      source: { yamlDoc, path: [] },
     })
 
     config = { ...config, variables: resolvedVariables, spec }
@@ -844,7 +844,7 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
       contextOpts: {
         allowPartial: true,
       },
-      source: { yamlDoc },
+      source: { yamlDoc, path: [] },
     })
     config = { ...config, ...resolvedOther }
   }

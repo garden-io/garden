@@ -19,7 +19,7 @@ import type { WorkflowConfig, WorkflowConfigMap } from "../config/workflow.js"
 import { resolveMsg, type Log, type LogEntry } from "../logger/log-entry.js"
 import type { GardenModule, ModuleConfigMap } from "../types/module.js"
 import { findByName, getNames, hashString } from "./util.js"
-import { GardenError, InternalError } from "../exceptions.js"
+import { GardenError, InternalError, toGardenError } from "../exceptions.js"
 import type { EventName, Events } from "../events/events.js"
 import { EventBus } from "../events/events.js"
 import { dedent, naturalList } from "./string.js"
@@ -460,7 +460,7 @@ export class TestGarden extends Garden {
   }
 }
 
-export function expectFuzzyMatch(str: string, sample: string | string[]) {
+export function expectFuzzyMatch(str: string, sample: string | string[], assertionMessage?: string) {
   const errorMessageNonAnsi = stripAnsi(str)
   const samples = typeof sample === "string" ? [sample] : sample
   const samplesNonAnsi = samples.map(stripAnsi)
@@ -468,7 +468,7 @@ export function expectFuzzyMatch(str: string, sample: string | string[]) {
     const actualErrorMsgLowercase = errorMessageNonAnsi.toLowerCase()
     const expectedErrorSample = s.toLowerCase()
     try {
-      expect(actualErrorMsgLowercase).to.contain(expectedErrorSample)
+      expect(actualErrorMsgLowercase, assertionMessage).to.contain(expectedErrorSample)
     } catch (err) {
       // eslint-disable-next-line no-console
       console.log(
@@ -527,7 +527,11 @@ export function expectError(fn: Function, assertion: ExpectErrorAssertion = {}) 
 
     if (contains) {
       const errorMessage = (errorMessageGetter || defaultErrorMessageGetter)(err)
-      expectFuzzyMatch(errorMessage, contains)
+      expectFuzzyMatch(
+        errorMessage,
+        contains,
+        `Assertion failed: '${errorMessage}' does not contain '${contains}'.\n\nOriginal error: ${toGardenError(err).stack}`
+      )
     }
 
     if (message) {

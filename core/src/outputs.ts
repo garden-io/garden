@@ -36,7 +36,14 @@ export async function resolveProjectOutputs(garden: Garden, log: Log): Promise<O
   const needActions: ActionReference[] = []
 
   const generator = getContextLookupReferences(
-    visitAll({ value: garden.rawOutputs as ObjectWithName[], parseTemplateStrings: true }),
+    visitAll({
+      value: garden.rawOutputs as ObjectWithName[],
+      parseTemplateStrings: true,
+      // TODO: What would be the source here?
+      source: {
+        path: [],
+      },
+    }),
     new OutputConfigContext({
       garden,
       resolvedProviders: {},
@@ -71,7 +78,7 @@ export async function resolveProjectOutputs(garden: Garden, log: Log): Promise<O
 
   const allRefs = [...needProviders, ...needModules, ...needActions]
 
-  const source = { yamlDoc: garden.getProjectConfig().internal.yamlDoc, basePath: ["outputs"] }
+  const source = { yamlDoc: garden.getProjectConfig().internal.yamlDoc, path: ["outputs"] }
 
   if (allRefs.length === 0) {
     // No need to resolve any entities

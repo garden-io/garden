@@ -18,6 +18,7 @@ import dns from "node:dns"
 import { styles } from "./logger/styles.js"
 import type { ExecaError } from "execa"
 import type { Location } from "./template-string/ast.js"
+import type { ConfigSource } from "./config/validation.js"
 
 // Unfortunately, NodeJS does not provide a list of all error codes, so we have to maintain this list manually.
 // See https://nodejs.org/docs/latest-v18.x/api/dns.html#error-codes
@@ -312,14 +313,11 @@ export class TemplateStringError extends GardenError {
   loc: Location
   originalMessage: string
 
-  constructor(params: GardenErrorParams & { loc: Location }) {
-    // TODO: figure out how to get correct path
-    // const path = params.loc?.source?.basePath
-    // const path: string[] | undefined = undefined
-    // const pathDescription = path ? ` at path ${styles.accent(path.join("."))}` : ""
-    const pathDescription = ""
+  constructor(params: GardenErrorParams & { loc: Location; yamlSource: ConfigSource }) {
+    const path = params.yamlSource.path
+    const pathDescription = path.length > 0 ? ` at path ${styles.accent(path.join("."))}` : ""
     const prefix = `Invalid template string (${styles.accent(
-      truncate(params.loc.source, { length: 200 }).replace(/\n/g, "\\n")
+      truncate(params.loc.source.rawTemplateString, { length: 200 }).replace(/\n/g, "\\n")
     )})${pathDescription}: `
     const message = params.message.startsWith(prefix) ? params.message : prefix + params.message
 

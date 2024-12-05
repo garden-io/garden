@@ -40,8 +40,8 @@ const joiOptions: Joi.ValidationOptions = {
 }
 
 export interface ConfigSource {
+  path: ObjectPath
   yamlDoc?: YamlDocumentWithSource
-  basePath?: ObjectPath
 }
 
 export interface ValidateOptions {
@@ -113,7 +113,7 @@ export function validateConfig<T extends BaseGardenResource>(params: ValidateCon
 
   return <T>validateSchema(config, schema, {
     context: context.trim(),
-    source: config.internal.yamlDoc ? { yamlDoc: config.internal.yamlDoc, basePath: yamlDocBasePath } : undefined,
+    source: config.internal.yamlDoc ? { yamlDoc: config.internal.yamlDoc, path: yamlDocBasePath } : undefined,
     ErrorClass,
   })
 }
@@ -132,7 +132,7 @@ export function validateSchema<T>(
 
   const yamlDoc = source?.yamlDoc
   const rawYaml = yamlDoc?.source
-  const yamlBasePath = source?.basePath || []
+  const yamlBasePath = source?.path || []
 
   const errorDetails = error.details.map((e) => {
     e.message =

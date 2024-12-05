@@ -180,7 +180,14 @@ export function getProviderTemplateReferences(config: GenericProviderConfig) {
   const deps: string[] = []
 
   const generator = getContextLookupReferences(
-    visitAll({ value: config, parseTemplateStrings: true }),
+    visitAll({
+      value: config,
+      parseTemplateStrings: true,
+      // TODO: get proper source
+      source: {
+        path: [],
+      },
+    }),
     new NoOpContext()
   )
   for (const finding of generator) {

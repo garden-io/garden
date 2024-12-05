@@ -119,7 +119,7 @@ export class CustomCommandWrapper extends Command {
     const commandVariables = resolveTemplateStrings({
       value: this.spec.variables,
       context: variablesContext,
-      source: { yamlDoc, basePath: ["variables"] },
+      source: { yamlDoc, path: ["variables"] },
     })
     const variables: any = jsonMerge(cloneDeep(garden.variables), commandVariables)
 
@@ -137,7 +137,7 @@ export class CustomCommandWrapper extends Command {
         config: resolveTemplateStrings({
           value: this.spec.exec,
           context: commandContext,
-          source: { yamlDoc, basePath: ["exec"] },
+          source: { yamlDoc, path: ["exec"] },
         }),
         schema: customCommandExecSchema(),
         path: this.spec.internal.basePath,
@@ -189,7 +189,7 @@ export class CustomCommandWrapper extends Command {
         config: resolveTemplateStrings({
           value: this.spec.gardenCommand,
           context: commandContext,
-          source: { yamlDoc, basePath: ["gardenCommand"] },
+          source: { yamlDoc, path: ["gardenCommand"] },
         }),
         schema: customCommandGardenCommandSchema(),
         path: this.spec.internal.basePath,
@@ -291,7 +291,7 @@ export async function getCustomCommands(log: Log, projectRoot: string) {
         path: (<CommandResource>config).internal.basePath,
         projectRoot,
         configType: `custom Command '${config.name}'`,
-        source: { yamlDoc: (<CommandResource>config).internal.yamlDoc },
+        source: { yamlDoc: (<CommandResource>config).internal.yamlDoc, path: [] },
       })
     )
 

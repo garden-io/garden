@@ -132,7 +132,7 @@ export async function renderConfigTemplate({
   const resolvedWithoutInputs = resolveTemplateStrings({
     value: { ...omit(config, "inputs") },
     context: templateContext,
-    source: { yamlDoc },
+    source: { yamlDoc, path: [] },
   })
   const partiallyResolvedInputs = resolveTemplateStrings({
     value: config.inputs || {},
@@ -140,7 +140,7 @@ export async function renderConfigTemplate({
     contextOpts: {
       allowPartial: true,
     },
-    source: { yamlDoc, basePath: ["inputs"] },
+    source: { yamlDoc, path: ["inputs"] },
   })
   let resolved: RenderTemplateConfig = {
     ...resolvedWithoutInputs,
@@ -214,7 +214,7 @@ async function renderModules({
         value: m,
         context,
         contextOpts: { allowPartial: true },
-        source: { yamlDoc, basePath: ["modules", i] },
+        source: { yamlDoc, path: ["modules", i] },
       })
       const renderConfigPath = renderConfig.internal.configFilePath || renderConfig.internal.basePath
 
@@ -279,7 +279,7 @@ async function renderConfigs({
     value: templateConfigs,
     context,
     contextOpts: { allowPartial: true },
-    source: { yamlDoc: template.internal.yamlDoc, basePath: ["inputs"] },
+    source: { yamlDoc: template.internal.yamlDoc, path: ["inputs"] },
   })
 
   return Promise.all(

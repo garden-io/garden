@@ -1655,7 +1655,7 @@ export class Garden {
    */
   public getProjectSources() {
     const context = new RemoteSourceConfigContext(this, this.variables)
-    const source = { yamlDoc: this.projectConfig.internal.yamlDoc, basePath: ["sources"] }
+    const source = { yamlDoc: this.projectConfig.internal.yamlDoc, path: ["sources"] }
     const resolved = validateSchema(
       resolveTemplateStrings({ value: this.projectSources, context, source }),
       projectSourcesSchema(),
@@ -1885,7 +1885,7 @@ export async function resolveGardenParamsPartial(currentDirectory: string, opts:
     configType: "project environments",
     path: config.path,
     projectRoot: config.path,
-    source: { yamlDoc: config.internal.yamlDoc, basePath: ["environments"] },
+    source: { yamlDoc: config.internal.yamlDoc, path: ["environments"] },
   })
 
   const configDefaultEnvironment = resolveTemplateString({

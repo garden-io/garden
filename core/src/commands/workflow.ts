@@ -90,7 +90,7 @@ export class WorkflowCommand extends Command<Args, {}> {
     const files = resolveTemplateStrings({
       value: workflow.files || [],
       context: templateContext,
-      source: { yamlDoc, basePath: ["files"] },
+      source: { yamlDoc, path: ["files"] },
     })
 
     // Write all the configured files for the workflow
@@ -175,7 +175,7 @@ export class WorkflowCommand extends Command<Args, {}> {
           step.command = resolveTemplateStrings({
             value: step.command,
             context: stepTemplateContext,
-            source: { yamlDoc, basePath: ["steps", index, "command"] },
+            source: { yamlDoc, path: ["steps", index, "command"] },
           }).filter((arg) => !!arg)
 
           stepResult = await runStepCommand(stepParams)
