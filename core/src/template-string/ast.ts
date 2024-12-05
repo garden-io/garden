@@ -13,9 +13,8 @@ import {
   renderKeyPath,
   type ConfigContext,
   type ContextResolveOpts,
-  ContextResolveError,
 } from "../config/template-contexts/base.js"
-import { InternalError, TemplateStringError } from "../exceptions.js"
+import { GardenError, InternalError, TemplateStringError } from "../exceptions.js"
 import { getHelperFunctions } from "./functions.js"
 import { isTemplatePrimitive, type TemplatePrimitive } from "./types.js"
 import type { Collection, CollectionOrValue } from "../util/objects.js"
@@ -647,11 +646,11 @@ export class ContextLookupExpression extends TemplateExpression {
         },
       })
     } catch (e) {
-      if (e instanceof ContextResolveError) {
-        throw new TemplateStringError({ message: e.message, loc: this.loc })
-      }
       if (e instanceof TemplateStringError) {
         throw new TemplateStringError({ message: e.originalMessage, loc: this.loc })
+      }
+      if (e instanceof GardenError) {
+        throw new TemplateStringError({ message: e.message, loc: this.loc })
       }
       throw e
     }
