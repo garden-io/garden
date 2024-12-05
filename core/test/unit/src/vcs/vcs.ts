@@ -273,7 +273,10 @@ describe("getModuleVersionString", () => {
     templateGarden["cacheKey"] = "" // Disable caching of the config graph
     const before = await templateGarden.resolveModule("module-a")
 
-    templateGarden.variables["echo-string"] = "something-else"
+    templateGarden.variables = {
+      ...templateGarden.variables,
+      "echo-string": "something-else",
+    }
 
     const after = await templateGarden.resolveModule("module-a")
 
@@ -287,7 +290,10 @@ describe("getModuleVersionString", () => {
     templateGarden["cacheKey"] = "" // Disable caching of the config graph
     const before = await templateGarden.resolveModule("module-a")
 
-    templateGarden.variables["bla"] = "ble"
+    templateGarden.variables = {
+      ...templateGarden.variables,
+      bla: "ble",
+    }
 
     const after = await templateGarden.resolveModule("module-a")
 
