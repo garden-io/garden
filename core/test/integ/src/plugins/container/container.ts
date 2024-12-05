@@ -12,6 +12,7 @@ import * as td from "testdouble"
 import type { PluginContext } from "../../../../../src/plugin-context.js"
 import type { ContainerProvider } from "../../../../../src/plugins/container/container.js"
 import { gardenPlugin } from "../../../../../src/plugins/container/container.js"
+import { gardenPlugin as gardenK8sPlugin } from "../../../../../src/plugins/kubernetes/kubernetes.js"
 import type { TestGarden } from "../../../../helpers.js"
 import { expectError, getDataDir, makeTestGarden } from "../../../../helpers.js"
 import type { ActionLog } from "../../../../../src/logger/log-entry.js"
@@ -59,7 +60,7 @@ describe("plugins.container", () => {
   let dockerCli: sinon.SinonStub<any>
 
   beforeEach(async () => {
-    garden = await makeTestGarden(projectRoot, { plugins: [gardenPlugin()] })
+    garden = await makeTestGarden(projectRoot, { plugins: [gardenPlugin(), gardenK8sPlugin()] })
     log = createActionLog({ log: garden.log, actionName: "", actionKind: "" })
     containerProvider = await garden.resolveProvider({ log: garden.log, name: "container" })
     ctx = await garden.getPluginContext({ provider: containerProvider, templateContext: undefined, events: undefined })
