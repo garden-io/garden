@@ -727,9 +727,9 @@ export function getModuleTemplateReferences(config: ModuleConfig, context: Modul
       })
     }
 
-    // if (config.name === moduleName) {
-    //   continue
-    // }
+    if (config.name === moduleName) {
+      continue
+    }
 
     moduleNames.push(moduleName.toString())
   }
