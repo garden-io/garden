@@ -272,7 +272,7 @@ describe("ConfigContext", () => {
       c.addValues({ nested })
       await expectError(() => resolveKey(c, ["nested", "key"]), {
         contains:
-          "Invalid template string (${'${nested.key}'}): Circular reference detected when resolving key nested.key (nested -> nested.key)",
+          "Invalid template string (${nested.key}): Circular reference detected when resolving key nested.key (nested -> nested.key)",
       })
     })
   })
