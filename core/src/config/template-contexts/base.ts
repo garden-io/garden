@@ -214,8 +214,8 @@ export abstract class ConfigContext {
         }
       }
 
-      if (typeof resolved === "symbol") {
-        return { resolved, getUnavailableReason }
+      if (typeof value === "symbol") {
+        return { resolved: value, getUnavailableReason }
       }
 
       // If we're allowing partial strings, we throw the error immediately to end the resolution flow. The error

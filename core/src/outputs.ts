@@ -35,17 +35,15 @@ export async function resolveProjectOutputs(garden: Garden, log: Log): Promise<O
   const needModules: string[] = []
   const needActions: ActionReference[] = []
 
-  const outputConfigContext = new OutputConfigContext({
-    garden,
-    resolvedProviders: {},
-    variables: garden.variables,
-    modules: [],
-    partialRuntimeResolution: false,
-  })
-
   const generator = getContextLookupReferences(
     visitAll({ value: garden.rawOutputs as ObjectWithName[], parseTemplateStrings: true }),
-    outputConfigContext
+    new OutputConfigContext({
+      garden,
+      resolvedProviders: {},
+      variables: garden.variables,
+      modules: [],
+      partialRuntimeResolution: true,
+    })
   )
   for (const finding of generator) {
     if (finding.type === "unresolvable") {
@@ -79,7 +77,13 @@ export async function resolveProjectOutputs(garden: Garden, log: Log): Promise<O
     // No need to resolve any entities
     return resolveTemplateStrings({
       value: garden.rawOutputs,
-      context: outputConfigContext,
+      context: new OutputConfigContext({
+        garden,
+        resolvedProviders: {},
+        variables: garden.variables,
+        modules: [],
+        partialRuntimeResolution: false,
+      }),
       source,
     })
   }
