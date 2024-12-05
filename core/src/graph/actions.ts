@@ -7,7 +7,7 @@
  */
 
 import cloneDeep from "fast-copy"
-import { isEqual, mapValues, memoize, omit, pick, uniq } from "lodash-es"
+import { isEqual, isString, mapValues, memoize, omit, pick, uniq } from "lodash-es"
 import type {
   Action,
   ActionConfig,
@@ -68,6 +68,7 @@ import { profileAsync } from "../util/profiling.js"
 import { uuidv4 } from "../util/random.js"
 import { getSourcePath } from "../vcs/vcs.js"
 import { styles } from "../logger/styles.js"
+import { isUnresolvableValue } from "../template-string/static-analysis.js"
 
 function* sliceToBatches<T>(dict: Record<string, T>, batchSize: number) {
   const entries = Object.entries(dict)
@@ -1034,27 +1035,37 @@ function dependenciesFromActionConfig({
   for (const ref of getActionTemplateReferences(config, templateContext)) {
     let needsExecuted = false
 
-    const outputKey = ref.fullRef[4] as string
+    const outputType = ref.keyPath[0]
 
-    // also avoid execution when referencing the static output keys of the ref action type.
-    // e.g. a helm deploy referencing container build static output deploymentImageName
-    // ${actions.build.my-container.outputs.deploymentImageName}
-    const refActionKey = actionReferenceToString(ref)
-    const refActionType = configsByKey[refActionKey]?.type
-    let refStaticOutputKeys: string[] = []
-    if (refActionType) {
-      const refActionSpec = actionTypes[ref.kind][refActionType]?.spec
-      refStaticOutputKeys = refActionSpec?.staticOutputsSchema
-        ? describeSchema(refActionSpec.staticOutputsSchema).keys
-        : []
+    if (isUnresolvableValue(outputType)) {
+      const err = outputType.getError()
+      throw new ConfigurationError({
+        message: `Found invalid action reference: ${err}`,
+      })
     }
 
-    if (
-      ref.fullRef[3] === "outputs" &&
-      !staticOutputKeys.includes(outputKey) &&
-      !refStaticOutputKeys.includes(outputKey)
-    ) {
-      needsExecuted = true
+    const outputKey = ref.keyPath[1]
+
+    const refActionKey = actionReferenceToString(ref)
+    const refActionType = configsByKey[refActionKey]?.type
+
+    if (outputType === "outputs") {
+      let refStaticOutputKeys: string[] = []
+      if (refActionType) {
+        const refActionSpec = actionTypes[ref.kind][refActionType]?.spec
+        refStaticOutputKeys = refActionSpec?.staticOutputsSchema
+          ? describeSchema(refActionSpec.staticOutputsSchema).keys
+          : []
+      }
+
+      // Avoid execution when referencing the static output keys of the ref action type.
+      // e.g. a helm deploy referencing container build static output deploymentImageName
+      // ${actions.build.my-container.outputs.deploymentImageName}
+      if (!isString(outputKey)) {
+        needsExecuted = true
+      } else {
+        needsExecuted = !staticOutputKeys.includes(outputKey) && !refStaticOutputKeys.includes(outputKey)
+      }
     }
 
     const refWithType = {
@@ -1062,7 +1073,11 @@ function dependenciesFromActionConfig({
       type: refActionType,
     }
 
-    addDep(refWithType, { explicit: false, needsExecutedOutputs: needsExecuted, needsStaticOutputs: !needsExecuted })
+    addDep(omit(refWithType, ["keyPath"]), {
+      explicit: false,
+      needsExecutedOutputs: needsExecuted,
+      needsStaticOutputs: !needsExecuted,
+    })
   }
 
   return deps

@@ -53,12 +53,9 @@ export async function resolveProjectOutputs(garden: Garden, log: Log): Promise<O
     })
   )
   for (const finding of generator) {
-    if (finding.type === "unresolvable") {
-      continue
-    }
     const keyPath = finding.keyPath
     const refName = keyPath[1]
-    if (!refName) {
+    if (!refName || !isString(refName)) {
       continue
     }
 

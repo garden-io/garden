@@ -16,7 +16,7 @@ import {
   NoOpContext,
 } from "../config/template-contexts/base.js"
 import cloneDeep from "fast-copy"
-import { difference, isNumber, isPlainObject, isString } from "lodash-es"
+import { difference, isPlainObject, isString } from "lodash-es"
 import type { ActionReference, Primitive, StringMap } from "../config/common.js"
 import {
   arrayConcatKey,
@@ -44,8 +44,8 @@ import type { ObjectPath } from "../config/base.js"
 import type { TemplatePrimitive } from "./types.js"
 import * as ast from "./ast.js"
 import { LRUCache } from "lru-cache"
-import type { ContextLookupReferenceFinding } from "./static-analysis.js"
-import { getContextLookupReferences, visitAll } from "./static-analysis.js"
+import type { ContextLookupReferenceFinding, UnresolvableValue } from "./static-analysis.js"
+import { getContextLookupReferences, isUnresolvableValue, visitAll } from "./static-analysis.js"
 import type { ModuleConfig } from "../config/module.js"
 
 const escapePrefix = "$${"
@@ -609,104 +609,111 @@ export function mayContainTemplateString(obj: any): boolean {
 }
 
 interface ActionTemplateReference extends ActionReference {
-  fullRef: ContextKeySegment[]
+  keyPath: (ContextKeySegment | UnresolvableValue)[]
 }
 
 export function extractActionReference(finding: ContextLookupReferenceFinding): ActionTemplateReference {
-  if (finding.type === "unresolvable") {
-    for (const k of finding.keyPath) {
-      if (typeof k === "object" && "getError" in k) {
-        const err = k.getError()
-        throw new ConfigurationError({
-          message: `Found invalid action reference: ${err.message}`,
-        })
-      }
-    }
-    throw new InternalError({
-      message: "No error found in unresolvable finding",
-    })
-  }
-
-  if (!finding.keyPath[1]) {
+  const kind = finding.keyPath[1]
+  if (!kind) {
     throw new ConfigurationError({
       message: `Found invalid action reference (missing kind).`,
     })
   }
 
-  if (!isString(finding.keyPath[1])) {
+  if (isUnresolvableValue(kind)) {
+    const err = kind.getError()
+    throw new ConfigurationError({
+      message: `Found invalid action reference: ${err.message}`,
+    })
+  }
+
+  if (!isString(kind)) {
     throw new ConfigurationError({
       message: `Found invalid action reference (kind is not a string).`,
     })
   }
 
-  if (!actionKindsLower.includes(finding.keyPath[1])) {
+  if (!actionKindsLower.includes(kind)) {
     throw new ConfigurationError({
-      message: `Found invalid action reference (invalid kind '${finding.keyPath[1]}')`,
+      message: `Found invalid action reference (invalid kind '${kind}')`,
     })
   }
 
-  if (!finding.keyPath[2]) {
+  const name = finding.keyPath[2]
+  if (!name) {
     throw new ConfigurationError({
       message: "Found invalid action reference (missing name)",
     })
   }
 
-  if (!isString(finding.keyPath[2])) {
+  if (isUnresolvableValue(name)) {
+    const err = name.getError()
+    throw new ConfigurationError({
+      message: `Found invalid action reference: ${err.message}`,
+    })
+  }
+
+  if (!isString(name)) {
     throw new ConfigurationError({
       message: "Found invalid action reference (name is not a string)",
     })
   }
 
   return {
-    kind: <ActionKind>titleize(finding.keyPath[1]),
-    name: finding.keyPath[2],
-    fullRef: finding.keyPath,
+    kind: <ActionKind>titleize(kind),
+    name,
+    keyPath: finding.keyPath.slice(3),
   }
 }
 
 export function extractRuntimeReference(finding: ContextLookupReferenceFinding): ActionTemplateReference {
-  if (finding.type === "unresolvable") {
-    for (const k of finding.keyPath) {
-      if (typeof k === "object" && "getError" in k) {
-        const err = k.getError()
-        throw new ConfigurationError({
-          message: `Found invalid action reference: ${err.message}`,
-        })
-      }
-    }
-    throw new InternalError({
-      message: "No error found in unresolvable finding",
-    })
-  }
-
-  if (!finding.keyPath[1]) {
+  const runtimeKind = finding.keyPath[1]
+  if (!runtimeKind) {
     throw new ConfigurationError({
       message: "Found invalid runtime reference (missing kind)",
     })
   }
-  if (!isString(finding.keyPath[1])) {
+
+  if (isUnresolvableValue(runtimeKind)) {
+    const err = runtimeKind.getError()
+    throw new ConfigurationError({
+      message: `Found invalid runtime reference: ${err.message}`,
+    })
+  }
+
+  if (!isString(runtimeKind)) {
     throw new ConfigurationError({
       message: "Found invalid runtime reference (kind is not a string)",
     })
   }
 
   let kind: ActionKind
-  if (finding.keyPath[1] === "services") {
+  if (runtimeKind === "services") {
     kind = "Deploy"
-  } else if (finding.keyPath[1] === "tasks") {
+  } else if (runtimeKind === "tasks") {
     kind = "Run"
   } else {
     throw new ConfigurationError({
-      message: `Found invalid runtime reference (invalid kind '${finding.keyPath[1]}')`,
+      message: `Found invalid runtime reference (invalid kind '${runtimeKind}')`,
     })
   }
 
-  if (!finding.keyPath[2]) {
+  const name = finding.keyPath[2]
+
+  if (!name) {
     throw new ConfigurationError({
       message: `Found invalid runtime reference (missing name)`,
     })
   }
-  if (!isString(finding.keyPath[2])) {
+
+  if (isUnresolvableValue(name)) {
+    const err = name.getError()
+    throw new ConfigurationError({
+      message: `Found invalid action reference: ${err.message}`,
+    })
+  }
+
+  if (!isString(name)) {
     throw new ConfigurationError({
       message: "Found invalid runtime reference (name is not a string)",
     })
@@ -714,8 +721,8 @@ export function extractRuntimeReference(finding: ContextLookupReferenceFinding):
 
   return {
     kind,
-    name: finding.keyPath[2],
-    fullRef: finding.keyPath,
+    name,
+    keyPath: finding.keyPath.slice(3),
   }
 }
 
@@ -773,7 +780,7 @@ export function getModuleTemplateReferences(config: ModuleConfig, context: Modul
     }
 
     const moduleName = keyPath[1]
-    if (!isString(moduleName) && !isNumber(moduleName)) {
+    if (isUnresolvableValue(moduleName)) {
       const err = moduleName.getError()
       throw new ConfigurationError({
         message: `Found invalid module reference: ${err.message}`,

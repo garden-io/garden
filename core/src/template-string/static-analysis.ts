@@ -82,6 +82,16 @@ export function* visitAll({
   }
 }
 
+export class UnresolvableValue {
+  constructor(public readonly getError: () => GardenError) {}
+}
+
+export function isUnresolvableValue(
+  val: CollectionOrValue<TemplatePrimitive | UnresolvableValue>
+): val is UnresolvableValue {
+  return val instanceof UnresolvableValue
+}
+
 export type ContextLookupReferenceFinding =
   | {
       type: "resolvable"
@@ -90,7 +100,7 @@ export type ContextLookupReferenceFinding =
     }
   | {
       type: "unresolvable"
-      keyPath: (string | number | { getError: () => GardenError })[]
+      keyPath: (string | number | UnresolvableValue)[]
       yamlSource: ConfigSource
     }
 
@@ -126,8 +136,8 @@ export function* getContextLookupReferences(
         })
         if (typeof key === "symbol") {
           isResolvable = false
-          return {
-            getError: captureError(() =>
+          return new UnresolvableValue(
+            captureError(() =>
               // this will throw an error, because the key could not be resolved
               keyPathExpression.evaluate({
                 context,
@@ -135,8 +145,8 @@ export function* getContextLookupReferences(
                 optional: false,
                 yamlSource,
               })
-            ),
-          }
+            )
+          )
         }
         return key
       })

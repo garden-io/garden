@@ -530,7 +530,17 @@ export function expectError(fn: Function, assertion: ExpectErrorAssertion = {}) 
       expectFuzzyMatch(
         errorMessage,
         contains,
-        `Assertion failed: '${errorMessage}' does not contain '${contains}'.\n\nOriginal error: ${toGardenError(err).stack}`
+        dedent`
+          Expected
+
+            '${stripAnsi(errorMessage).toLowerCase()}'
+
+          to contain
+
+            '${typeof contains === "string" ? stripAnsi(contains).toLowerCase() : contains.map(stripAnsi).map((s) => s.toLowerCase())}'
+
+          Original error:
+          ${stripAnsi(toGardenError(err).stack || "<no stack>")}`
       )
     }
 

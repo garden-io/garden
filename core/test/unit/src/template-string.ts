@@ -2243,31 +2243,55 @@ describe("getActionTemplateReferences", () => {
     it("returns valid action references", () => {
       const config = {
         build: '${actions["build"].build-a}',
+        buildFoo: '${actions["build"].build-a.outputs.foo}',
         deploy: '${actions["deploy"].deploy-a}',
+        deployFoo: '${actions["deploy"].deploy-a.outputs.foo}',
         run: '${actions["run"].run-a}',
+        runFoo: '${actions["run"].run-a.outputs.foo}',
         test: '${actions["test"].test-a}',
+        testFoo: '${actions["test"].test-a.outputs.foo}',
       }
       const actionTemplateReferences = Array.from(getActionTemplateReferences(config as any, new TestContext({})))
       expect(actionTemplateReferences).to.eql([
         {
           kind: "Build",
           name: "build-a",
-          fullRef: ["actions", "build", "build-a"],
+          keyPath: [],
+        },
+        {
+          kind: "Build",
+          name: "build-a",
+          keyPath: ["outputs", "foo"],
         },
         {
           kind: "Deploy",
           name: "deploy-a",
-          fullRef: ["actions", "deploy", "deploy-a"],
+          keyPath: [],
+        },
+        {
+          kind: "Deploy",
+          name: "deploy-a",
+          keyPath: ["outputs", "foo"],
         },
         {
           kind: "Run",
           name: "run-a",
-          fullRef: ["actions", "run", "run-a"],
+          keyPath: [],
+        },
+        {
+          kind: "Run",
+          name: "run-a",
+          keyPath: ["outputs", "foo"],
         },
         {
           kind: "Test",
           name: "test-a",
-          fullRef: ["actions", "test", "test-a"],
+          keyPath: [],
+        },
+        {
+          kind: "Test",
+          name: "test-a",
+          keyPath: ["outputs", "foo"],
         },
       ])
     })
@@ -2350,19 +2374,31 @@ describe("getActionTemplateReferences", () => {
     it("returns valid runtime references", () => {
       const config = {
         services: '${runtime["services"].service-a}',
+        servicesFoo: '${runtime["services"].service-a.outputs.foo}',
         tasks: '${runtime["tasks"].task-a}',
+        tasksFoo: '${runtime["tasks"].task-a.outputs.foo}',
       }
       const actionTemplateReferences = Array.from(getActionTemplateReferences(config as any, new TestContext({})))
       expect(actionTemplateReferences).to.eql([
         {
           kind: "Deploy",
           name: "service-a",
-          fullRef: ["runtime", "services", "service-a"],
+          keyPath: [],
+        },
+        {
+          kind: "Deploy",
+          name: "service-a",
+          keyPath: ["outputs", "foo"],
         },
         {
           kind: "Run",
           name: "task-a",
-          fullRef: ["runtime", "tasks", "task-a"],
+          keyPath: [],
+        },
+        {
+          kind: "Run",
+          name: "task-a",
+          keyPath: ["outputs", "foo"],
         },
       ])
     })
@@ -2400,7 +2436,7 @@ describe("getActionTemplateReferences", () => {
       }
       void expectError(() => Array.from(getActionTemplateReferences(config as any, new TestContext({}))), {
         contains:
-          "found invalid action reference: invalid template string (${runtime[foo.bar].some-name}) at path foo: could not find key foo. available keys: (none).",
+          "found invalid runtime reference: invalid template string (${runtime[foo.bar].some-name}) at path foo: could not find key foo. available keys: (none).",
       })
     })
 
