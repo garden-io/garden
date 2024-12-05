@@ -21,7 +21,11 @@ import stripAnsi from "strip-ansi"
 import { TemplateStringError } from "../../../src/exceptions.js"
 import repeat from "lodash-es/repeat.js"
 import type { ContextLookupReferenceFinding } from "../../../src/template-string/static-analysis.js"
-import { getContextLookupReferences, visitAll } from "../../../src/template-string/static-analysis.js"
+import {
+  getContextLookupReferences,
+  UnresolvableValue,
+  visitAll,
+} from "../../../src/template-string/static-analysis.js"
 
 class TestContext extends ConfigContext {
   constructor(context) {
@@ -2235,6 +2239,62 @@ describe("getContextLookupReferences", () => {
       },
     ]
     expect(result).to.eql(expected)
+  })
+
+  it("should handle keys with dots correctly", () => {
+    const obj = {
+      a: "some ${templated['key.with.dots']}",
+      b: "${more.stuff}",
+      c: "${keyThatIs[unresolvable]}",
+    }
+    const foundKeys = Array.from(
+      getContextLookupReferences(
+        visitAll({
+          value: obj,
+          parseTemplateStrings: true,
+          source: {
+            path: [],
+          },
+        }),
+        new NoOpContext()
+      )
+    )
+
+    const unresolvable = foundKeys[3].keyPath[1]
+
+    expect(unresolvable).to.be.instanceOf(UnresolvableValue)
+
+    const expected: ContextLookupReferenceFinding[] = [
+      {
+        type: "resolvable",
+        keyPath: ["templated", "key.with.dots"],
+        yamlSource: {
+          path: ["a"],
+        },
+      },
+      {
+        type: "resolvable",
+        keyPath: ["more", "stuff"],
+        yamlSource: {
+          path: ["b"],
+        },
+      },
+      {
+        type: "resolvable",
+        keyPath: ["unresolvable"],
+        yamlSource: {
+          path: ["c"],
+        },
+      },
+      {
+        type: "unresolvable",
+        keyPath: ["keyThatIs", unresolvable],
+        yamlSource: {
+          path: ["c"],
+        },
+      },
+    ]
+    expect(foundKeys).to.deep.equals(expected)
   })
 })
 
