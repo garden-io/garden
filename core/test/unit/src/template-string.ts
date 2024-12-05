@@ -21,7 +21,6 @@ import stripAnsi from "strip-ansi"
 import { TemplateStringError } from "../../../src/exceptions.js"
 import repeat from "lodash-es/repeat.js"
 import { getContextLookupReferences, visitAll } from "../../../src/template-string/static-analysis.js"
-import type { ObjectWithName } from "../../../src/util/util.js"
 
 class TestContext extends ConfigContext {
   constructor(context) {

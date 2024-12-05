@@ -691,12 +691,13 @@ export function* getActionTemplateReferences(
   )
 
   for (const finding of generator) {
+    const refType = finding.keyPath[0]
     // ${action.*}
-    if (finding.keyPath[0] === "actions") {
+    if (refType === "actions") {
       yield extractActionReference(finding)
     }
     // ${runtime.*}
-    if (finding.keyPath[0] === "runtime") {
+    if (refType === "runtime") {
       yield extractRuntimeReference(finding)
     }
   }
@@ -719,14 +720,14 @@ export function getModuleTemplateReferences(obj: ModuleConfig, context: ModuleCo
     }
 
     const moduleName = keyPath[1]
-    if (isString(moduleName) || isNumber(moduleName)) {
-      moduleNames.push(moduleName.toString())
-    } else {
+    if (!isString(moduleName) && !isNumber(moduleName)) {
       const err = moduleName.getError()
       throw new ConfigurationError({
         message: `Found invalid module reference: ${err.message}`,
       })
     }
+
+    moduleNames.push(moduleName.toString())
   }
 
   return moduleNames
@@ -797,8 +798,9 @@ export function detectMissingSecretKeys(obj: ObjectWithName, secrets: StringMap)
       continue
     }
 
-    if (isString(keyPath[1])) {
-      referencedKeys.push(keyPath[1])
+    const secretName = keyPath[1]
+    if (isString(secretName)) {
+      referencedKeys.push(secretName)
     }
   }
 

@@ -198,7 +198,6 @@ export function getProviderTemplateReferences(config: GenericProviderConfig) {
         `,
       })
     }
-
     if (!isString(providerName)) {
       const err = providerName.getError()
       throw new ConfigurationError({

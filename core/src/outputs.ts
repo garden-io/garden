@@ -52,18 +52,20 @@ export async function resolveProjectOutputs(garden: Garden, log: Log): Promise<O
       continue
     }
     const keyPath = finding.keyPath
-    if (!keyPath[1]) {
+    const refName = keyPath[1]
+    if (!refName) {
       continue
     }
 
-    if (keyPath[0] === "providers" && isString(keyPath[1])) {
-      needProviders.push(keyPath[1])
-    } else if (keyPath[0] === "modules" && isString(keyPath[1])) {
-      needModules.push(keyPath[1])
-    } else if (keyPath[0] === "runtime") {
+    const refType = keyPath[0]
+    if (refType === "providers" && isString(refName)) {
+      needProviders.push(refName)
+    } else if (refType === "modules" && isString(refName)) {
+      needModules.push(refName)
+    } else if (refType === "runtime") {
       const runtimeRef = extractRuntimeReference(finding)
       needActions.push(runtimeRef)
-    } else if (keyPath[0] === "actions") {
+    } else if (refType === "actions") {
       const actionRef = extractActionReference(finding)
       needActions.push(actionRef)
     }
