@@ -529,8 +529,7 @@ export class ModuleResolver {
 
     const configContext = new ModuleConfigContext(contextParams)
 
-    const templateRefs = getModuleTemplateReferences(rawConfig, configContext)
-    const templateDeps = <string[]>templateRefs.filter((d) => d[1] !== rawConfig.name).map((d) => d[1])
+    const templateDeps = getModuleTemplateReferences(rawConfig, configContext)
 
     // This is a bit of a hack, but we need to store the template dependencies on the raw config so we can check
     // them later when deciding whether to resolve a module inline or not.

@@ -703,11 +703,11 @@ export function* getActionTemplateReferences(
   }
 }
 
-export function getModuleTemplateReferences(obj: ModuleConfig, context: ModuleConfigContext) {
+export function getModuleTemplateReferences(config: ModuleConfig, context: ModuleConfigContext) {
   const moduleNames: string[] = []
   const generator = getContextLookupReferences(
     visitAll({
-      value: obj as ObjectWithName,
+      value: config as ObjectWithName,
       parseTemplateStrings: true,
     }),
     context
@@ -726,6 +726,10 @@ export function getModuleTemplateReferences(obj: ModuleConfig, context: ModuleCo
         message: `Found invalid module reference: ${err.message}`,
       })
     }
+
+    // if (config.name === moduleName) {
+    //   continue
+    // }
 
     moduleNames.push(moduleName.toString())
   }
