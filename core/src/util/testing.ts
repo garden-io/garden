@@ -460,28 +460,27 @@ export class TestGarden extends Garden {
   }
 }
 
-export function expectFuzzyMatch(str: string, sample: string | string[], assertionMessage?: string) {
+export function expectFuzzyMatch(str: string, sample: string | string[], extraMessage?: string) {
   const errorMessageNonAnsi = stripAnsi(str)
   const samples = typeof sample === "string" ? [sample] : sample
   const samplesNonAnsi = samples.map(stripAnsi)
   for (const s of samplesNonAnsi) {
     const actualErrorMsgLowercase = errorMessageNonAnsi.toLowerCase()
     const expectedErrorSample = s.toLowerCase()
-    try {
-      expect(actualErrorMsgLowercase, assertionMessage).to.contain(expectedErrorSample)
-    } catch (err) {
-      // eslint-disable-next-line no-console
-      console.log(
-        "Expected string",
-        "\n",
-        `"${actualErrorMsgLowercase}"`,
-        "\n",
-        "to contain string",
-        "\n",
-        `"${expectedErrorSample}"`
-      )
-      throw err
-    }
+
+    const assertionMessage = dedent`
+      Expected string
+
+        '${actualErrorMsgLowercase}'
+
+      to contain string
+
+        '${expectedErrorSample}'
+
+      ${extraMessage || ""}
+    `
+
+    expect(actualErrorMsgLowercase, assertionMessage).to.contain(expectedErrorSample)
   }
 }
 
@@ -531,15 +530,7 @@ export function expectError(fn: Function, assertion: ExpectErrorAssertion = {}) 
         errorMessage,
         contains,
         dedent`
-          Expected
-
-            '${stripAnsi(errorMessage).toLowerCase()}'
-
-          to contain
-
-            '${typeof contains === "string" ? stripAnsi(contains).toLowerCase() : contains.map(stripAnsi).map((s) => s.toLowerCase())}'
-
-          Original error:
+          \nOriginal error:
           ${stripAnsi(toGardenError(err).stack || "<no stack>")}`
       )
     }

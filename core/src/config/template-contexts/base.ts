@@ -95,8 +95,7 @@ export abstract class ConfigContext {
   }
 
   resolve({ key, nodePath, opts }: ContextResolveParams): ContextResolveOutput {
-    const path = renderKeyPath(key)
-    const fullPath = renderKeyPath(nodePath.concat(key))
+    const path = key.join(".")
 
     // if the key has previously been resolved, return it directly
     const resolved = this._resolvedValues[path]
@@ -108,6 +107,7 @@ export abstract class ConfigContext {
     // TODO: freeze opts object instead of using shallow copy
     opts.stack = new Set(opts.stack || [])
 
+    const fullPath = nodePath.concat(key).join(".")
     if (opts.stack.has(fullPath)) {
       // Circular dependency error is critical, throwing here.
       throw new ContextResolveError({
