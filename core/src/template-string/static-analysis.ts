@@ -52,24 +52,6 @@ export function* visitAll({
   }
 }
 
-export function containsTemplateExpression(generator: TemplateExpressionGenerator): boolean {
-  for (const node of generator) {
-    if (node instanceof TemplateExpression) {
-      return true
-    }
-  }
-
-  return false
-}
-
-export function containsContextLookupReferences(generator: TemplateExpressionGenerator): boolean {
-  for (const _ of getContextLookupReferences(generator, new NoOpContext())) {
-    return true
-  }
-
-  return false
-}
-
 export type ContextLookupReferenceFinding =
   | {
       type: "resolvable"
