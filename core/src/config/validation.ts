@@ -11,7 +11,7 @@ import { ConfigurationError } from "../exceptions.js"
 import { relative } from "path"
 import { uuidv4 } from "../util/random.js"
 import type { BaseGardenResource, ObjectPath, YamlDocumentWithSource } from "./base.js"
-import type { ParsedNode, Range } from "yaml"
+import type { ParsedNode } from "yaml"
 import { padEnd } from "lodash-es"
 import { styles } from "../logger/styles.js"
 
@@ -130,8 +130,6 @@ export function validateSchema<T>(
     return result.value
   }
 
-  const yamlDoc = source?.yamlDoc
-  const rawYaml = yamlDoc?.source
   const yamlBasePath = source?.path || []
 
   const errorDetails = error.details.map((e) => {
@@ -140,15 +138,16 @@ export function validateSchema<T>(
         ? improveZodValidationErrorMessage(e, yamlBasePath)
         : improveJoiValidationErrorMessage(e, schema, yamlBasePath)
 
-    const node = yamlDoc?.getIn([...yamlBasePath, ...e.path], true) as ParsedNode | undefined
-    const range = node?.range
-
-    if (rawYaml && yamlDoc?.contents && range) {
-      try {
-        e.message = addYamlContext({ rawYaml, range, message: e.message })
-      } catch {
-        // ignore
-      }
+    try {
+      e.message = addYamlContext({
+        source: {
+          ...source,
+          path: [...yamlBasePath, ...e.path],
+        },
+        message: e.message,
+      })
+    } catch {
+      // ignore
     }
 
     return e
@@ -218,7 +217,25 @@ function improveZodValidationErrorMessage(item: Joi.ValidationErrorItem, yamlBas
   }
 }
 
-function addYamlContext({ rawYaml, range, message }: { rawYaml: string; range: Range; message: string }): string {
+export function addYamlContext({
+  source: { yamlDoc, path },
+  message,
+}: {
+  source: ConfigSource
+  message: string
+}): string {
+  if (!yamlDoc) {
+    return message
+  }
+
+  const node = yamlDoc.getIn(path, true) as ParsedNode | undefined
+  const range = node?.range
+  const rawYaml = yamlDoc.source
+
+  if (!node || !range || !rawYaml) {
+    return message
+  }
+
   // Get one line before the error location start, and the line including the error location end
   const toStart = rawYaml.slice(0, range[0])
   const lineNumber = toStart.split("\n").length + 1
@@ -256,5 +273,5 @@ function addYamlContext({ rawYaml, range, message }: { rawYaml: string; range: R
   const errorLineOffset = range[0] - errorLineStart + linePrefixLength + 2
   const marker = styles.error("-".repeat(errorLineOffset)) + styles.error.bold("^")
 
-  return `${snippet}\n${marker}\n${styles.error.bold(message)}`
+  return `${yamlDoc.filename ? `${styles.secondary(`${yamlDoc.filename}:${lineNumber - snippetLines}`)}\n` : ""}${snippet}\n${marker}\n${styles.error.bold(message)}`
 }

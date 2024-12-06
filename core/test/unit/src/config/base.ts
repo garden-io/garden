@@ -610,7 +610,7 @@ describe("loadAndValidateYaml", () => {
       name: foo
     `
 
-    const yamlDocs = await loadAndValidateYaml(yaml, "foo.yaml in directory bar")
+    const yamlDocs = await loadAndValidateYaml(yaml, "foo.yaml in directory bar", "bar/foo.yaml")
 
     expect(yamlDocs).to.have.length(1)
     expect(yamlDocs[0].source).to.equal(yaml)
@@ -633,7 +633,7 @@ describe("loadAndValidateYaml", () => {
       name: doc3
     `
 
-    const yamlDocs = await loadAndValidateYaml(yaml, "foo.yaml in directory bar")
+    const yamlDocs = await loadAndValidateYaml(yaml, "foo.yaml in directory bar", "bar/foo.yaml")
 
     expect(yamlDocs).to.have.length(3)
 
@@ -662,7 +662,7 @@ describe("loadAndValidateYaml", () => {
       newYamlOctalNumber: 0o777
     `
 
-    const yamlDocs = await loadAndValidateYaml(yaml, "foo.yaml in directory bar")
+    const yamlDocs = await loadAndValidateYaml(yaml, "foo.yaml in directory bar", "bar/foo.yaml")
 
     expect(yamlDocs).to.have.length(1)
     expect(yamlDocs[0].source).to.equal(yaml)
@@ -684,7 +684,7 @@ describe("loadAndValidateYaml", () => {
       newYamlOctalNumber: 0o777
     `
 
-    const yamlDocs = await loadAndValidateYaml(yaml, "foo.yaml in directory bar")
+    const yamlDocs = await loadAndValidateYaml(yaml, "foo.yaml in directory bar", "bar/foo.yaml")
 
     expect(yamlDocs).to.have.length(1)
     expect(yamlDocs[0].source).to.equal(yaml)
@@ -704,7 +704,7 @@ describe("loadAndValidateYaml", () => {
     `
 
     // we use the version parameter to force the yaml 1.1 standard
-    const yamlDocs = await loadAndValidateYaml(yaml, "foo.yaml in directory bar", "1.1")
+    const yamlDocs = await loadAndValidateYaml(yaml, "foo.yaml in directory bar", "bar/foo.yaml", "1.1")
 
     expect(yamlDocs).to.have.length(1)
     expect(yamlDocs[0].source).to.equal(yaml)
@@ -720,7 +720,7 @@ describe("loadAndValidateYaml", () => {
     `
 
     await expectError(
-      () => loadAndValidateYaml(yaml, "foo.yaml in directory bar"),
+      () => loadAndValidateYaml(yaml, "foo.yaml in directory bar", "bar/foo.yaml"),
       (err) => {
         expect(err.message).to.eql(dedent`
           Could not parse foo.yaml in directory bar as valid YAML: YAMLException: unidentified alias "bar" (1:10)

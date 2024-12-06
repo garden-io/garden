@@ -54,6 +54,7 @@ export type ObjectPath = (string | number)[]
 
 export interface YamlDocumentWithSource extends Document {
   source: string
+  filename: string | undefined
 }
 
 export function getEffectiveConfigFileLocation(actionConfig: BaseActionConfig): string {
@@ -128,6 +129,7 @@ export const allConfigKinds = ["Module", "Workflow", "Project", configTemplateKi
 export async function loadAndValidateYaml(
   content: string,
   sourceDescription: string,
+  filename: string | undefined,
   version: DocumentOptions["version"] = "1.2"
 ): Promise<YamlDocumentWithSource[]> {
   try {
@@ -142,6 +144,7 @@ export async function loadAndValidateYaml(
 
       const docWithSource = doc as YamlDocumentWithSource
       docWithSource.source = content
+      docWithSource.filename = filename
 
       return docWithSource
     })
@@ -197,7 +200,11 @@ export async function validateRawConfig({
   projectRoot: string
   allowInvalid?: boolean
 }) {
-  let rawSpecs = await loadAndValidateYaml(rawConfig, `${basename(configPath)} in directory ${dirname(configPath)}`)
+  let rawSpecs = await loadAndValidateYaml(
+    rawConfig,
+    `${basename(configPath)} in directory ${dirname(configPath)}`,
+    configPath
+  )
 
   // Ignore empty resources
   rawSpecs = rawSpecs.filter(Boolean)
