@@ -26,6 +26,8 @@ import {
   UnresolvableValue,
   visitAll,
 } from "../../../src/template-string/static-analysis.js"
+import { Document } from "yaml"
+import { loadAndValidateYaml, YamlDocumentWithSource } from "../../../src/config/base.js"
 
 describe("resolveTemplateString", () => {
   it("should return a non-templated string unchanged", () => {
@@ -312,6 +314,41 @@ describe("resolveTemplateString", () => {
     void expectError(() => resolveTemplateString({ string: "${resol${part}ed}", context: new GenericContext({}) }), {
       contains: "Invalid template string (${resol${part}ed}): Unable to parse as valid template string.",
     })
+  })
+
+  it("if available, should include yaml context in error message", async () => {
+    const command = "${resol${part}ed}"
+    const yamlDoc = await loadAndValidateYaml(
+      dedent`
+      name: test,
+      kind: Build
+      spec:
+        command: '${command}'
+    `,
+      "test",
+      "bar/foo.yaml"
+    )
+    void expectError(
+      () =>
+        resolveTemplateString({
+          string: command,
+          context: new GenericContext({}),
+          source: {
+            yamlDoc: yamlDoc[0],
+            path: ["spec", "command"],
+          },
+        }),
+      {
+        contains: dedent`
+          bar/foo.yaml:5
+          ...
+          3  | spec:
+          4  |   command: '\${resol\${part}ed}
+          ----------------^
+          unable to parse as valid template string.
+        `,
+      }
+    )
   })
 
   it("should handle a single-quoted string", () => {

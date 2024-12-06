@@ -368,7 +368,11 @@ async function readKustomizeManifests(
       log,
       args: ["build", kustomizePath, ...extraArgs],
     })
-    const manifests = await parseKubernetesManifests(kustomizeOutput, `kustomize output of ${action.longDescription()}`)
+    const manifests = await parseKubernetesManifests(
+      kustomizeOutput,
+      `kustomize output of ${action.longDescription()}`,
+      undefined
+    )
     return manifests.map((manifest, index) => ({
       declaration: {
         type: "kustomize",
@@ -427,7 +431,8 @@ async function readFileManifests(
         const resolved = ctx.resolveTemplateStrings(str, { allowPartial: true, unescape: true })
         const manifests = await parseKubernetesManifests(
           resolved,
-          `${basename(absPath)} in directory ${dirname(absPath)} (specified in ${action.longDescription()})`
+          `${basename(absPath)} in directory ${dirname(absPath)} (specified in ${action.longDescription()})`,
+          absPath
         )
         return manifests.map((manifest, index) => ({
           declaration: {
@@ -449,7 +454,11 @@ async function readFileManifests(
  * @param str raw string containing Kubernetes manifests in YAML format
  * @param sourceDescription description of where the YAML string comes from, e.g. "foo.yaml in directory /bar"
  */
-async function parseKubernetesManifests(str: string, sourceDescription: string): Promise<KubernetesResource[]> {
+async function parseKubernetesManifests(
+  str: string,
+  sourceDescription: string,
+  filename: string | undefined
+): Promise<KubernetesResource[]> {
   // parse yaml with version 1.1 by default, as Kubernetes still uses this version.
   // See also https://github.com/kubernetes/kubernetes/issues/34146
   const docs = await loadAndValidateYaml(str, sourceDescription, "1.1")
