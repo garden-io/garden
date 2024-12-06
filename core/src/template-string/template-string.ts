@@ -9,11 +9,7 @@
 import type { GardenErrorParams } from "../exceptions.js"
 import { ConfigurationError, GardenError, InternalError, TemplateStringError } from "../exceptions.js"
 import type { ConfigContext, ContextKeySegment, ContextResolveOpts } from "../config/template-contexts/base.js"
-import {
-  CONTEXT_RESOLVE_KEY_AVAILABLE_LATER,
-  CONTEXT_RESOLVE_KEY_NOT_FOUND,
-  GenericContext,
-} from "../config/template-contexts/base.js"
+import { GenericContext } from "../config/template-contexts/base.js"
 import cloneDeep from "fast-copy"
 import { difference, isPlainObject, isString } from "lodash-es"
 import type { ActionReference, Primitive, StringMap } from "../config/common.js"
