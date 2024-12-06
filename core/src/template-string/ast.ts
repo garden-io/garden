@@ -457,12 +457,9 @@ export class FormatStringExpression extends TemplateExpression {
   }
 
   override evaluate(args: EvaluateArgs): TemplateEvaluationResult<CollectionOrValue<TemplatePrimitive>> {
-    // make sure we do not override outer optional
-    const optional = args.optional !== undefined ? args.optional : this.isOptional
-
     const result = this.innerExpression.evaluate({
       ...args,
-      optional,
+      optional: args.optional || this.isOptional,
     })
 
     // Only if this expression is optional we return undefined instead of symbol.

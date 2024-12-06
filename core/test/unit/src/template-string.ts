@@ -65,17 +65,44 @@ describe("resolveTemplateString", () => {
     expect(res).to.equal("${foo}?")
   })
 
-  it("should not crash when variable in a member expression cannot be resolved", () => {
-    const res = resolveTemplateString({
-      string: '${actions.run["${inputs.deployableTarget}-dummy"].var}',
-      context: new GenericContext({
-        actions: {
-          run: {},
-        },
-      }),
-      contextOpts: { allowPartial: true },
-    })
-    expect(res).to.equal('${actions.run["${inputs.deployableTarget}-dummy"].var}')
+  it("should not crash when variable in a member expression cannot be resolved with allowPartial=true", () => {
+    const inputs = [
+      '${actions.run["${inputs.deployableTarget}-dummy"].var}',
+      '${actions.build["${parent.name}"].outputs.deployment-image-id}',
+      '${actions.build["${parent.name}?"]}',
+    ]
+    for (const input of inputs) {
+      const res = resolveTemplateString({
+        string: input,
+        context: new GenericContext({
+          actions: {
+            run: {},
+            build: {},
+          },
+        }),
+        contextOpts: { allowPartial: true },
+      })
+      expect(res).to.equal(input)
+    }
+  })
+
+  it("should fail if optional expression in member expression cannot be resolved with allowPartial=false", async () => {
+    await expectError(
+      () =>
+        resolveTemplateString({
+          string: '${actions.build["${parent.name}?"]}',
+          context: new GenericContext({
+            actions: {
+              build: {},
+            },
+          }),
+          contextOpts: { allowPartial: false },
+        }),
+      {
+        contains:
+          'Invalid template string (${actions.build["${parent.name}?"]}): Expression in brackets must resolve to a string or number (got undefined).',
+      }
+    )
   })
 
   it("should support a string literal in a template string as a means to escape it", () => {
