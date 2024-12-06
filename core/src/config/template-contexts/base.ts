@@ -25,6 +25,9 @@ export type ContextKey = ContextKeySegment[]
 export interface ContextResolveOpts {
   // Allow templates to be partially resolved (used to defer runtime template resolution, for example)
   allowPartial?: boolean
+  // Allow partial resolution for values that originate from a special context that always returns CONTEXT_RESOLVE_KEY_AVAILABLE_LATER.
+  // This is used for module resolution and can be removed whenever we remove support for modules.
+  allowPartialContext?: boolean
   // a list of previously resolved paths, used to detect circular references
   stack?: Set<string>
   // Unescape escaped template strings

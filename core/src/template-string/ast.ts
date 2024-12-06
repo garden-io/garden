@@ -595,7 +595,7 @@ export class ContextLookupExpression extends TemplateExpression {
 
     const { resolved, getUnavailableReason } = this.resolveContext(context, keyPath, opts, yamlSource)
 
-    if (opts.allowPartial && resolved === CONTEXT_RESOLVE_KEY_AVAILABLE_LATER) {
+    if ((opts.allowPartial || opts.allowPartialContext) && resolved === CONTEXT_RESOLVE_KEY_AVAILABLE_LATER) {
       return resolved
     }
 
