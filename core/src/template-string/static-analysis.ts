@@ -11,7 +11,7 @@ import { isArray, isPlainObject } from "../util/objects.js"
 import { ContextLookupExpression, TemplateExpression } from "./ast.js"
 import type { TemplatePrimitive } from "./types.js"
 import { parseTemplateString } from "./template-string.js"
-import type { ConfigContext } from "../config/template-contexts/base.js"
+import { type ConfigContext } from "../config/template-contexts/base.js"
 import { GardenError, InternalError } from "../exceptions.js"
 import { type ConfigSource } from "../config/validation.js"
 

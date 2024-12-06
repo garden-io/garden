@@ -179,16 +179,18 @@ export function resolveTemplateString({
     yamlSource: source,
   })
 
-  if (!contextOpts.allowPartial && result === CONTEXT_RESOLVE_KEY_NOT_FOUND) {
+  if (!contextOpts.allowPartial && typeof result === "symbol") {
     throw new InternalError({
-      message: "allowPartial is false, but template expression evaluated to symbol.",
+      message: `allowPartial is false, but template expression returned symbol ${String(result)}. ast.ContextLookupExpression should have thrown an error.`,
     })
-    // TODO: think about if it's really ok to partially resolve if allowPartial is false. This can happen if a context with _alwaysPartial is used together with allowPartial false.
-  } else if (result === CONTEXT_RESOLVE_KEY_NOT_FOUND || result === CONTEXT_RESOLVE_KEY_AVAILABLE_LATER) {
-    // The template expression cannot be evaluated yet, we may be able to do it later.
-    // TODO: return ast.TemplateExpression here, instead of string; Otherwise we'll inevitably have a bug
-    // where garden will resolve template expressions that might be contained in expression evaluation results
-    // e.g. if an environment variable contains template string, we don't want to evaluate the template string in there.
+  }
+
+  // Requested partial evaluation and the template expression cannot be evaluated yet. We may be able to do it later.
+  if (result === CONTEXT_RESOLVE_KEY_NOT_FOUND || result === CONTEXT_RESOLVE_KEY_AVAILABLE_LATER) {
+    // TODO: Parse all template expressions after reading the YAML config and only re-evaluate ast.TemplateExpression instances in
+    // resolveTemplateStrings; Otherwise we'll inevitably have a bug where garden will resolve template expressions that might be
+    // contained in expression evaluation results e.g. if an environment variable contains template string, we don't want to
+    // evaluate the template string in there.
     // See also https://github.com/garden-io/garden/issues/5825
     return string
   }

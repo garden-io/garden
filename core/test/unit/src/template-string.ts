@@ -13,7 +13,7 @@ import {
   throwOnMissingSecretKeys,
   getActionTemplateReferences,
 } from "../../../src/template-string/template-string.js"
-import { GenericContext } from "../../../src/config/template-contexts/base.js"
+import { CONTEXT_RESOLVE_KEY_AVAILABLE_LATER, GenericContext } from "../../../src/config/template-contexts/base.js"
 import type { TestGarden } from "../../helpers.js"
 import { expectError, expectFuzzyMatch, getDataDir, makeTestGarden } from "../../helpers.js"
 import { dedent } from "../../../src/util/string.js"
@@ -2288,11 +2288,15 @@ describe("getContextLookupReferences", () => {
     expect(result).to.eql(expected)
   })
 
-  it("should handle keys with dots correctly", async () => {
+  it("should handle keys with dots and unresolvable member expressions correctly", async () => {
     const obj = {
       a: "some ${templated['key.with.dots']}",
       b: "${more.stuff}",
       c: "${keyThatIs[unresolvable]}",
+      d: '${keyThatIs["${unresolvable}"]}',
+      e: "${optionalAndUnresolvable}?",
+      f: "${keyThatIs[availableLater]}",
+      g: '${keyThatIs["${availableLater}"]}',
     }
     const foundKeys = Array.from(
       getContextLookupReferences(
@@ -2303,16 +2307,10 @@ describe("getContextLookupReferences", () => {
             path: [],
           },
         }),
-        new GenericContext({})
+        new GenericContext({
+          availableLater: CONTEXT_RESOLVE_KEY_AVAILABLE_LATER,
+        })
       )
-    )
-
-    const unresolvable = foundKeys[3].keyPath[1] as UnresolvableValue
-
-    expect(unresolvable).to.be.instanceOf(UnresolvableValue)
-    expectFuzzyMatch(
-      unresolvable.getError().message,
-      "invalid template string (${keythatis[unresolvable]}) at path c: could not find key unresolvable. available keys: (none)."
     )
 
     const expected: ContextLookupReferenceFinding[] = [
@@ -2339,13 +2337,88 @@ describe("getContextLookupReferences", () => {
       },
       {
         type: "unresolvable",
-        keyPath: ["keyThatIs", unresolvable],
+        keyPath: ["keyThatIs", foundKeys[3].keyPath[1]],
         yamlSource: {
           path: ["c"],
         },
       },
+      {
+        type: "resolvable",
+        keyPath: ["unresolvable"],
+        yamlSource: {
+          path: ["d"],
+        },
+      },
+      {
+        type: "unresolvable",
+        keyPath: ["keyThatIs", foundKeys[5].keyPath[1]],
+        yamlSource: {
+          path: ["d"],
+        },
+      },
+      {
+        type: "resolvable",
+        keyPath: ["optionalAndUnresolvable"],
+        yamlSource: {
+          path: ["e"],
+        },
+      },
+      {
+        type: "resolvable",
+        keyPath: ["availableLater"],
+        yamlSource: {
+          path: ["f"],
+        },
+      },
+      {
+        type: "unresolvable",
+        keyPath: ["keyThatIs", foundKeys[8].keyPath[1]],
+        yamlSource: {
+          path: ["f"],
+        },
+      },
+      {
+        type: "resolvable",
+        keyPath: ["availableLater"],
+        yamlSource: {
+          path: ["g"],
+        },
+      },
+      {
+        type: "unresolvable",
+        keyPath: ["keyThatIs", foundKeys[10].keyPath[1]],
+        yamlSource: { path: ["g"] },
+      },
     ]
-    expect(foundKeys).to.deep.equals(expected)
+    expect(foundKeys, `Unexpected found keys. JSON: ${JSON.stringify(foundKeys)}`).to.deep.equals(expected)
+
+    const unresolvable1 = foundKeys[3].keyPath[1] as UnresolvableValue
+    expect(unresolvable1).to.be.instanceOf(UnresolvableValue)
+    expectFuzzyMatch(
+      unresolvable1.getError().message,
+      "invalid template string (${keythatis[unresolvable]}) at path c: could not find key unresolvable."
+    )
+
+    const unresolvable2 = foundKeys[5].keyPath[1] as UnresolvableValue
+    expect(unresolvable2).to.be.instanceOf(UnresolvableValue)
+    expectFuzzyMatch(
+      unresolvable2.getError().message,
+      "invalid template string (${unresolvable}) at path d: could not find key unresolvable."
+    )
+
+    const availableLater1 = foundKeys[8].keyPath[1] as UnresolvableValue
+    expect(availableLater1).to.be.instanceOf(UnresolvableValue)
+    expectFuzzyMatch(
+      availableLater1.getError().message,
+      "invalid template string (${keythatis[availablelater]}) at path f: could not find key availableLater."
+    )
+
+    const availableLater2 = foundKeys[10].keyPath[1] as UnresolvableValue
+    expect(availableLater2).to.be.instanceOf(UnresolvableValue)
+    expectFuzzyMatch(
+      availableLater2.getError().message,
+      "invalid template string (${availablelater}) at path g: could not find key availableLater."
+    )
   })
 })
 

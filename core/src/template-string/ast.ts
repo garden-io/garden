@@ -54,8 +54,8 @@ export type Location = {
   source: TemplateStringSource
 }
 
-export type TemplateEvaluationResult =
-  | TemplatePrimitive
+export type TemplateEvaluationResult<T> =
+  | T
   | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND
   | typeof CONTEXT_RESOLVE_KEY_AVAILABLE_LATER
 
@@ -92,12 +92,7 @@ export abstract class TemplateExpression {
     yield* astVisitAll(this, source)
   }
 
-  abstract evaluate(
-    args: EvaluateArgs
-  ):
-    | CollectionOrValue<TemplatePrimitive>
-    | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND
-    | typeof CONTEXT_RESOLVE_KEY_AVAILABLE_LATER
+  abstract evaluate(args: EvaluateArgs): TemplateEvaluationResult<CollectionOrValue<TemplatePrimitive>>
 }
 
 export class IdentifierExpression extends TemplateExpression {
@@ -142,12 +137,7 @@ export class ArrayLiteralExpression extends TemplateExpression {
     super(loc)
   }
 
-  override evaluate(
-    args: EvaluateArgs
-  ):
-    | CollectionOrValue<TemplatePrimitive>
-    | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND
-    | typeof CONTEXT_RESOLVE_KEY_AVAILABLE_LATER {
+  override evaluate(args: EvaluateArgs): TemplateEvaluationResult<CollectionOrValue<TemplatePrimitive>> {
     const result: CollectionOrValue<TemplatePrimitive> = []
     for (const e of this.literal) {
       const res = e.evaluate(args)
@@ -169,9 +159,7 @@ export abstract class UnaryExpression extends TemplateExpression {
     super(loc)
   }
 
-  override evaluate(
-    args: EvaluateArgs
-  ): TemplatePrimitive | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND | typeof CONTEXT_RESOLVE_KEY_AVAILABLE_LATER {
+  override evaluate(args: EvaluateArgs): TemplateEvaluationResult<TemplatePrimitive> {
     const inner = this.innerExpression.evaluate(args)
 
     if (typeof inner === "symbol") {
@@ -207,24 +195,27 @@ export abstract class LogicalExpression extends TemplateExpression {
   }
 }
 
-// you need to call with unwrap: isTruthy(unwrap(value))
+export function isNotFound(
+  v:
+    | CollectionOrValue<TemplatePrimitive>
+    // CONTEXT_RESOLVE_KEY_AVAILABLE_LATER is not included here on purpose, because it must always be handled separately by returning early.
+    | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND
+): v is typeof CONTEXT_RESOLVE_KEY_NOT_FOUND {
+  return v === CONTEXT_RESOLVE_KEY_NOT_FOUND
+}
+
 export function isTruthy(v: CollectionOrValue<TemplatePrimitive>): boolean {
   if (isTemplatePrimitive(v)) {
     return !!v
-  } else {
-    // collections are truthy, regardless wether they are empty or not.
-    v satisfies Collection<TemplatePrimitive>
-    return true
   }
+
+  // collections are truthy, regardless wether they are empty or not.
+  v satisfies Collection<TemplatePrimitive>
+  return true
 }
 
 export class LogicalOrExpression extends LogicalExpression {
-  override evaluate(
-    args: EvaluateArgs
-  ):
-    | CollectionOrValue<TemplatePrimitive>
-    | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND
-    | typeof CONTEXT_RESOLVE_KEY_AVAILABLE_LATER {
+  override evaluate(args: EvaluateArgs): TemplateEvaluationResult<CollectionOrValue<TemplatePrimitive>> {
     const left = this.left.evaluate({
       ...args,
       optional: true,
@@ -235,7 +226,7 @@ export class LogicalOrExpression extends LogicalExpression {
       return left
     }
 
-    if (left !== CONTEXT_RESOLVE_KEY_NOT_FOUND && isTruthy(left)) {
+    if (!isNotFound(left) && isTruthy(left)) {
       return left
     }
 
@@ -244,12 +235,7 @@ export class LogicalOrExpression extends LogicalExpression {
 }
 
 export class LogicalAndExpression extends LogicalExpression {
-  override evaluate(
-    args: EvaluateArgs
-  ):
-    | CollectionOrValue<TemplatePrimitive>
-    | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND
-    | typeof CONTEXT_RESOLVE_KEY_AVAILABLE_LATER {
+  override evaluate(args: EvaluateArgs): TemplateEvaluationResult<CollectionOrValue<TemplatePrimitive>> {
     const left = this.left.evaluate({
       ...args,
       optional: true,
@@ -261,7 +247,7 @@ export class LogicalAndExpression extends LogicalExpression {
     }
 
     // We return false in case the variable could not be resolved. This is a quirk of Garden's template language that we want to keep for backwards compatibility.
-    if (left === CONTEXT_RESOLVE_KEY_NOT_FOUND) {
+    if (isNotFound(left)) {
       return false
     }
 
@@ -279,7 +265,7 @@ export class LogicalAndExpression extends LogicalExpression {
       return right
     }
 
-    if (right === CONTEXT_RESOLVE_KEY_NOT_FOUND) {
+    if (isNotFound(right)) {
       return false
     }
 
@@ -297,26 +283,17 @@ export abstract class BinaryExpression extends TemplateExpression {
     super(loc)
   }
 
-  override evaluate(
-    args: EvaluateArgs
-  ):
-    | CollectionOrValue<TemplatePrimitive>
-    | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND
-    | typeof CONTEXT_RESOLVE_KEY_AVAILABLE_LATER {
+  override evaluate(args: EvaluateArgs): TemplateEvaluationResult<CollectionOrValue<TemplatePrimitive>> {
     const left = this.left.evaluate(args)
 
-    if (left === CONTEXT_RESOLVE_KEY_AVAILABLE_LATER) {
+    if (typeof left === "symbol") {
       return left
     }
 
     const right = this.right.evaluate(args)
 
-    if (right === CONTEXT_RESOLVE_KEY_AVAILABLE_LATER) {
+    if (typeof right === "symbol") {
       return right
-    }
-
-    if (left === CONTEXT_RESOLVE_KEY_NOT_FOUND || right === CONTEXT_RESOLVE_KEY_NOT_FOUND) {
-      return CONTEXT_RESOLVE_KEY_NOT_FOUND
     }
 
     return this.transform(left, right, args)
@@ -479,12 +456,8 @@ export class FormatStringExpression extends TemplateExpression {
     super(loc)
   }
 
-  override evaluate(
-    args: EvaluateArgs
-  ):
-    | CollectionOrValue<TemplatePrimitive>
-    | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND
-    | typeof CONTEXT_RESOLVE_KEY_AVAILABLE_LATER {
+  override evaluate(args: EvaluateArgs): TemplateEvaluationResult<CollectionOrValue<TemplatePrimitive>> {
+    // make sure we do not override outer optional
     const optional = args.optional !== undefined ? args.optional : this.isOptional
 
     const result = this.innerExpression.evaluate({
@@ -492,7 +465,9 @@ export class FormatStringExpression extends TemplateExpression {
       optional,
     })
 
-    if (optional && result === CONTEXT_RESOLVE_KEY_NOT_FOUND) {
+    // Only if this expression is optional we return undefined instead of symbol.
+    // If merely optional is true in EvaluateArgs, we must return symbol.
+    if (this.isOptional && result === CONTEXT_RESOLVE_KEY_NOT_FOUND) {
       return undefined
     }
 
@@ -528,12 +503,7 @@ export class IfBlockExpression extends TemplateExpression {
     super(loc)
   }
 
-  override evaluate(
-    args: EvaluateArgs
-  ):
-    | CollectionOrValue<TemplatePrimitive>
-    | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND
-    | typeof CONTEXT_RESOLVE_KEY_AVAILABLE_LATER {
+  override evaluate(args: EvaluateArgs): TemplateEvaluationResult<CollectionOrValue<TemplatePrimitive>> {
     const condition = this.condition.evaluate(args)
 
     if (typeof condition === "symbol") {
@@ -554,9 +524,7 @@ export class StringConcatExpression extends TemplateExpression {
     this.expressions = expressions
   }
 
-  override evaluate(
-    args: EvaluateArgs
-  ): string | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND | typeof CONTEXT_RESOLVE_KEY_AVAILABLE_LATER {
+  override evaluate(args: EvaluateArgs): TemplateEvaluationResult<string> {
     let result: string = ""
 
     for (const expr of this.expressions) {
@@ -586,9 +554,7 @@ export class MemberExpression extends TemplateExpression {
     super(loc)
   }
 
-  override evaluate(
-    args: EvaluateArgs
-  ): string | number | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND | typeof CONTEXT_RESOLVE_KEY_AVAILABLE_LATER {
+  override evaluate(args: EvaluateArgs): TemplateEvaluationResult<string | number> {
     const inner = this.innerExpression.evaluate(args)
 
     if (typeof inner === "symbol") {
@@ -620,10 +586,7 @@ export class ContextLookupExpression extends TemplateExpression {
     opts,
     optional,
     yamlSource,
-  }: EvaluateArgs):
-    | CollectionOrValue<TemplatePrimitive>
-    | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND
-    | typeof CONTEXT_RESOLVE_KEY_AVAILABLE_LATER {
+  }: EvaluateArgs): TemplateEvaluationResult<CollectionOrValue<TemplatePrimitive>> {
     const keyPath: (string | number)[] = []
     for (const k of this.keyPath) {
       const evaluated = k.evaluate({ context, opts, optional, yamlSource })
@@ -635,14 +598,13 @@ export class ContextLookupExpression extends TemplateExpression {
 
     const { resolved, getUnavailableReason } = this.resolveContext(context, keyPath, opts, yamlSource)
 
-    // if context returns key available later, then we do not need to throw, because partial mode is enabled.
-    if (resolved === CONTEXT_RESOLVE_KEY_AVAILABLE_LATER) {
+    if (opts.allowPartial && resolved === CONTEXT_RESOLVE_KEY_AVAILABLE_LATER) {
       return resolved
     }
 
     // if we encounter a key not found symbol, it's an error unless the optional flag is true, which is used by
     // logical operators and expressions, as well as the optional suffix in FormatStringExpression.
-    if (resolved === CONTEXT_RESOLVE_KEY_NOT_FOUND) {
+    if (typeof resolved === "symbol") {
       if (optional) {
         return CONTEXT_RESOLVE_KEY_NOT_FOUND
       }
@@ -693,12 +655,7 @@ export class FunctionCallExpression extends TemplateExpression {
     super(loc)
   }
 
-  override evaluate(
-    args: EvaluateArgs
-  ):
-    | CollectionOrValue<TemplatePrimitive>
-    | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND
-    | typeof CONTEXT_RESOLVE_KEY_AVAILABLE_LATER {
+  override evaluate(args: EvaluateArgs): TemplateEvaluationResult<CollectionOrValue<TemplatePrimitive>> {
     const functionArgs: CollectionOrValue<TemplatePrimitive>[] = []
     for (const functionArg of this.args) {
       const result = functionArg.evaluate(args)
@@ -795,12 +752,7 @@ export class TernaryExpression extends TemplateExpression {
     super(loc)
   }
 
-  override evaluate(
-    args: EvaluateArgs
-  ):
-    | CollectionOrValue<TemplatePrimitive>
-    | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND
-    | typeof CONTEXT_RESOLVE_KEY_AVAILABLE_LATER {
+  override evaluate(args: EvaluateArgs): TemplateEvaluationResult<CollectionOrValue<TemplatePrimitive>> {
     const conditionResult = this.condition.evaluate({
       ...args,
       optional: true,
@@ -812,7 +764,7 @@ export class TernaryExpression extends TemplateExpression {
 
     // evaluate ternary expression
     const evaluationResult =
-      conditionResult !== CONTEXT_RESOLVE_KEY_NOT_FOUND && isTruthy(conditionResult)
+      !isNotFound(conditionResult) && isTruthy(conditionResult)
         ? this.ifTrue.evaluate(args)
         : this.ifFalse.evaluate(args)
 

@@ -661,7 +661,7 @@ export class ModuleResolver {
       value: { ...config, inputs: {}, variables: {} },
       context: configContext,
       contextOpts: {
-        allowPartial: false,
+        allowPartial: true,
         // Modules will be converted to actions later, and the actions will be properly unescaped.
         // We avoid premature un-escaping here,
         // because otherwise it will strip the escaped value in the module config

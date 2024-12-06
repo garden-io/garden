@@ -219,8 +219,6 @@ export abstract class ConfigContext {
         return { resolved: value, getUnavailableReason }
       }
 
-      // If we're allowing partial strings, we throw the error immediately to end the resolution flow. The error
-      // is caught in the surrounding template resolution code.
       if (this._alwaysAllowPartial || opts.allowPartial) {
         return {
           resolved: CONTEXT_RESOLVE_KEY_AVAILABLE_LATER,
