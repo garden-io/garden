@@ -507,6 +507,12 @@ export class IfBlockExpression extends TemplateExpression {
       return condition
     }
 
+    // For backwards compatibility, we do allow if block expressions without endif block in some cases.
+    // For a stand-alone if-block expression, we evaluate the condition and return the result.
+    if (this.ifTrue === undefined) {
+      return condition
+    }
+
     const evaluated = isTruthy(condition) ? this.ifTrue?.evaluate(args) : this.ifFalse?.evaluate(args)
 
     return evaluated
