@@ -334,6 +334,26 @@ describe("resolveTemplateString", () => {
     expect(res).to.equal(false)
   })
 
+  it("should allow unclosed conditional blocks expressions (true)", () => {
+    const res = resolveTemplateString({ string: "${if true}", context: new GenericContext({}) })
+    expect(res).to.equal(true)
+  })
+
+  it("should allow unclosed conditional blocks expressions (false)", () => {
+    const res = resolveTemplateString({ string: "${if false}", context: new GenericContext({}) })
+    expect(res).to.equal(false)
+  })
+
+  it("should allow unclosed conditional blocks expressions (any value)", () => {
+    const res = resolveTemplateString({ string: '${if "something"}', context: new GenericContext({}) })
+    expect(res).to.equal("something")
+  })
+
+  it("empty conditional blocks expressions evaluate to empty string", () => {
+    const res = resolveTemplateString({ string: "${if true}${endif}", context: new GenericContext({}) })
+    expect(res).to.equal("")
+  })
+
   it("should handle a null literal and return it directly", () => {
     const res = resolveTemplateString({ string: "${null}", context: new GenericContext({}) })
     expect(res).to.equal(null)
@@ -1180,7 +1200,7 @@ describe("resolveTemplateString", () => {
     })
   })
 
-  context("conditional string blocks", () => {
+  context("conditional blocks", () => {
     it("single-line if block (positive)", () => {
       const res = resolveTemplateString({
         string: "prefix ${if a}content ${endif}suffix",
@@ -1319,6 +1339,19 @@ describe("resolveTemplateString", () => {
         }
       )
     })
+    it("throws if an if block doesn't have a matching endif inside another if block that is closed", () => {
+      void expectError(
+        () =>
+          resolveTemplateString({
+            string: '${if "foo"}${if "this is bananas!"}${endif}',
+            context: new GenericContext({ a: true }),
+          }),
+        {
+          contains:
+            'Invalid template string (${if "foo"}${if "this is bananas!"}${endif}): Missing ${endif} after ${if ...} block.',
+        }
+      )
+    })
 
     it("throws if an endif block doesn't have a matching if", () => {
       void expectError(
@@ -1326,6 +1359,15 @@ describe("resolveTemplateString", () => {
         {
           contains:
             "Invalid template string (prefix content ${endif}): Found ${endif} block without a preceding ${if...} block.",
+        }
+      )
+    })
+
+    it("throws if an if block doesn't have a matching endif and there is content", () => {
+      void expectError(
+        () => resolveTemplateString({ string: "${if a}content", context: new GenericContext({ a: true }) }),
+        {
+          contains: "Invalid template string (${if a}content): Missing ${endif} after ${if ...} block.",
         }
       )
     })

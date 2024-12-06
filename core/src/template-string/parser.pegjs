@@ -155,13 +155,18 @@
       }
     }
 
-    if (currentCondition) {
+    // For backwards compatibility we allow unclosed ${if } block statements in some cases,
+    // (Namely if there are no other expressions on the same nesting level)
+    // e.g. '${if "foo"}' evaluates to "foo"
+    if (currentCondition && (rootExpressions.length > 0 || ifTrue.length > 0)) {
       throw new TemplateStringError({ message: "Missing ${endif} after ${if ...} block.", loc: location() })
     }
-
     if (rootExpressions.length === 0) {
-      return undefined
+      // if we have a current condition, we return the unclosed if statement
+      // if it's undefined this is equivalent to empty string literal expression
+      return currentCondition || new ast.LiteralExpression(location(), "")
     }
+
     if (rootExpressions.length === 1) {
       return rootExpressions[0]
     }
