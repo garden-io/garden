@@ -449,7 +449,12 @@ function handleForEachObject({
       const filterResult = resolveTemplateStrings({
         value: value[arrayForEachFilterKey],
         context: loopContext,
-        contextOpts,
+        contextOpts: {
+          ...contextOpts,
+          // filter expression must be completely resolvable
+          // TODO: In a future iteration of this code, we should leave the entire $forEach expression unresolved if filter cannot be resolved yet and allowPartial=true.
+          allowPartial: false,
+        },
         source: {
           ...source,
           path: source.path && [...source.path, arrayForEachFilterKey],
@@ -460,7 +465,7 @@ function handleForEachObject({
         continue
       } else if (filterResult !== true) {
         throw new TemplateError({
-          message: `${arrayForEachFilterKey} clause in ${arrayForEachKey} loop must resolve to a boolean value (got ${typeof resolvedInput})`,
+          message: `${arrayForEachFilterKey} clause in ${arrayForEachKey} loop must resolve to a boolean value (got ${typeof filterResult})`,
           path: source.path && [...source.path, arrayForEachFilterKey],
           value,
           resolved: undefined,

@@ -2183,7 +2183,32 @@ describe("resolveTemplateStrings", () => {
       void expectError(
         () => resolveTemplateStrings({ source: undefined, value: obj, context: new GenericContext({}) }),
         {
-          contains: "$filter clause in $forEach loop must resolve to a boolean value (got object)",
+          contains: "$filter clause in $forEach loop must resolve to a boolean value (got string)",
+        }
+      )
+    })
+
+    // TODO: In a future iteration of this code, we should leave the entire $forEach expression unresolved if filter cannot be resolved yet and allowPartial=true.
+    it("throws if $filter can't be resolved, even if allowPartial=true", () => {
+      const obj = {
+        foo: {
+          $forEach: ["a", "b", "c"],
+          $filter: "${var.doesNotExist}",
+          $return: "${item.value}",
+        },
+      }
+
+      void expectError(
+        () =>
+          resolveTemplateStrings({
+            source: undefined,
+            value: obj,
+            context: new GenericContext({ var: { fruit: "banana" } }),
+            contextOpts: { allowPartial: true },
+          }),
+        {
+          contains:
+            "invalid template string (${var.doesnotexist}) at path foo.$filter: could not find key doesnotexist under var. available keys: fruit.",
         }
       )
     })
