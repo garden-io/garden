@@ -1,5 +1,5 @@
 require:
-  - build/test/setup.js
+  - ../../../../build/test/setup.js
 watch-files:
   - build/**/*
 ignore:

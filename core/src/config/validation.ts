@@ -10,7 +10,6 @@ import type Joi from "@hapi/joi"
 import { ConfigurationError } from "../exceptions.js"
 import { relative } from "path"
 import { uuidv4 } from "../util/random.js"
-import { profile } from "../util/profiling.js"
 import type { BaseGardenResource, ObjectPath, YamlDocumentWithSource } from "./base.js"
 import type { ParsedNode, Range } from "yaml"
 import { padEnd } from "lodash-es"
@@ -41,8 +40,8 @@ const joiOptions: Joi.ValidationOptions = {
 }
 
 export interface ConfigSource {
+  path: ObjectPath
   yamlDoc?: YamlDocumentWithSource
-  basePath?: ObjectPath
 }
 
 export interface ValidateOptions {
@@ -51,8 +50,8 @@ export interface ValidateOptions {
   source?: ConfigSource
 }
 
-export interface ValidateWithPathParams<T> {
-  config: T
+export interface ValidateWithPathParams {
+  config: unknown
   schema: Joi.Schema
   path: string // Absolute path to the config file, including filename
   projectRoot: string
@@ -68,7 +67,7 @@ export interface ValidateWithPathParams<T> {
  *
  * This is to ensure consistent error messages that include the relative path to the failing file.
  */
-export const validateWithPath = profile(function $validateWithPath<T>({
+export function validateWithPath<T>({
   config,
   schema,
   path,
@@ -77,7 +76,7 @@ export const validateWithPath = profile(function $validateWithPath<T>({
   configType,
   ErrorClass,
   source,
-}: ValidateWithPathParams<T>) {
+}: ValidateWithPathParams) {
   const context =
     `${configType} ${name ? `'${name}' ` : ""}` +
     `${path && projectRoot !== path ? "(" + relative(projectRoot, path) + ")" : ""}`
@@ -92,7 +91,7 @@ export const validateWithPath = profile(function $validateWithPath<T>({
   }
 
   return <T>validateSchema(config, schema, validateOpts)
-})
+}
 
 export interface ValidateConfigParams<T extends BaseGardenResource> {
   config: T
@@ -114,12 +113,12 @@ export function validateConfig<T extends BaseGardenResource>(params: ValidateCon
 
   return <T>validateSchema(config, schema, {
     context: context.trim(),
-    source: config.internal.yamlDoc ? { yamlDoc: config.internal.yamlDoc, basePath: yamlDocBasePath } : undefined,
+    source: config.internal.yamlDoc ? { yamlDoc: config.internal.yamlDoc, path: yamlDocBasePath } : undefined,
     ErrorClass,
   })
 }
 
-export const validateSchema = profile(function $validateSchema<T>(
+export function validateSchema<T>(
   value: T,
   schema: Joi.Schema,
   { source, context = "", ErrorClass = ConfigurationError }: ValidateOptions = {}
@@ -133,7 +132,7 @@ export const validateSchema = profile(function $validateSchema<T>(
 
   const yamlDoc = source?.yamlDoc
   const rawYaml = yamlDoc?.source
-  const yamlBasePath = source?.basePath || []
+  const yamlBasePath = source?.path || []
 
   const errorDetails = error.details.map((e) => {
     e.message =
@@ -168,7 +167,7 @@ export const validateSchema = profile(function $validateSchema<T>(
   throw new ErrorClass({
     message: `${msgPrefix}:\n\n${errorDescription}`,
   })
-})
+}
 
 export interface ArtifactSpec {
   source: string

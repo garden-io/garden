@@ -362,7 +362,11 @@ export function resolveWorkflowConfig(garden: Garden, config: WorkflowConfig) {
   }
 
   let resolvedPartialConfig: WorkflowConfig = {
-    ...resolveTemplateStrings({ value: partialConfig, context, source: { yamlDoc: config.internal.yamlDoc } }),
+    ...resolveTemplateStrings({
+      value: partialConfig,
+      context,
+      source: { yamlDoc: config.internal.yamlDoc, path: [] },
+    }),
     name: config.name,
   }
 

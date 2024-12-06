@@ -32,7 +32,7 @@ import type { Document, DocumentOptions } from "yaml"
 import { parseAllDocuments } from "yaml"
 import { dedent, deline } from "../util/string.js"
 import { makeDocsLinkStyled } from "../docs/common.js"
-import { profile, profileAsync } from "../util/profiling.js"
+import { profileAsync } from "../util/profiling.js"
 import { readFile } from "fs/promises"
 import { LRUCache } from "lru-cache"
 
@@ -557,9 +557,9 @@ const _readFile = profileAsync(async function _readFile(path: string) {
   return await readFile(path)
 })
 
-const _loadYaml = profile(function _loadYaml(data: Buffer) {
+function _loadYaml(data: Buffer) {
   return load(data.toString()) as PrimitiveMap
-})
+}
 
 const loadVarfileCache = new LRUCache<string, Promise<PrimitiveMap>>({
   max: 10000,

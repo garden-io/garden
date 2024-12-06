@@ -6,23 +6,37 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { isArray, isPlainObject, mapValues, pickBy } from "lodash-es"
+import { isPlainObject as lodashIsPlainObject, mapValues, pickBy } from "lodash-es"
+
+export type Collection<P> = CollectionOrValue<P>[] | { [key: string]: CollectionOrValue<P> }
+
+export type CollectionOrValue<P> = P | Collection<P>
+
+// adds appropriate type guard to Array.isArray
+export function isArray<P>(value: CollectionOrValue<P>): value is CollectionOrValue<P>[] {
+  return Array.isArray(value)
+}
+
+// adds appropriate type guard to lodash isPlainObject
+export function isPlainObject<P>(value: CollectionOrValue<P>): value is { [key: string]: CollectionOrValue<P> } {
+  return lodashIsPlainObject(value)
+}
 
 /**
  * Recursively process all values in the given input,
  * walking through all object keys _and array items_.
  */
-export function deepMap<T extends object, U extends object = T>(
-  value: T | Iterable<T>,
-  fn: (value: any, key: string | number) => any,
-  key?: number | string
-): U | Iterable<U> {
+export function deepMap<V, R>(
+  value: CollectionOrValue<V>,
+  fn: (value: Exclude<V, Collection<V>>, key: string | number, keyPath: (number | string)[]) => R,
+  keyPath: (number | string)[] = []
+): CollectionOrValue<R> {
   if (isArray(value)) {
-    return value.map((v, k) => <U>deepMap(v, fn, k))
+    return value.map((v, k) => deepMap(v, fn, [...keyPath, k]))
   } else if (isPlainObject(value)) {
-    return <U>mapValues(value, (v, k) => deepMap(<T>(<unknown>v), fn, k))
+    return mapValues(value, (v, k) => deepMap(v, fn, [...keyPath, k]))
   } else {
-    return <U>fn(value, key || 0)
+    return fn(value as Exclude<V, Collection<V>>, keyPath[keyPath.length - 1] || 0, keyPath)
   }
 }
 
@@ -30,16 +44,16 @@ export function deepMap<T extends object, U extends object = T>(
  * Recursively filter all keys and values in the given input,
  * walking through all object keys _and array items_.
  */
-export function deepFilter<T extends object, U extends object = T>(
-  value: T | Iterable<T>,
+export function deepFilter<V>(
+  value: CollectionOrValue<V>,
   fn: (value: any, key: string | number) => boolean
-): U | Iterable<U> {
+): CollectionOrValue<V> {
   if (isArray(value)) {
-    return <Iterable<U>>value.filter(fn).map((v) => deepFilter(v, fn))
+    return value.filter(fn).map((v) => deepFilter(v, fn))
   } else if (isPlainObject(value)) {
-    return <U>mapValues(pickBy(<U>value, fn), (v) => deepFilter(v, fn))
+    return mapValues(pickBy(value, fn), (v) => deepFilter(v, fn))
   } else {
-    return <U>value
+    return value
   }
 }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2024 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -8,21 +8,16 @@
 
 {
   const {
-    buildBinaryExpression,
-    buildLogicalExpression,
-    callHelperFunction,
+    ast,
     escapePrefix,
-    getKey,
-    getValue,
-    isArray,
-    isPlainObject,
-    isPrimitive,
     optionalSuffix,
-    missingKeyExceptionType,
-    passthroughExceptionType,
-    resolveNested,
+    parseNested,
     TemplateStringError,
   } = options
+
+  function filledArray(count, value) {
+    return Array.from({ length: count }, () => value);
+  }
 
   function extractOptional(optional, index) {
     return optional ? optional[index] : null;
@@ -36,97 +31,226 @@
     return [head].concat(extractList(tail, index));
   }
 
+  function buildBinaryExpression(head, tail) {
+    return tail.reduce(function(result, element) {
+      const operator = element[1]
+      const left = result
+      const right = element[3]
+
+      if (operator === undefined && right === undefined) {
+        return left
+      }
+
+      switch (operator) {
+        case "==":
+          return new ast.EqualExpression(location(), operator, left, right)
+        case "!=":
+          return new ast.NotEqualExpression(location(), operator, left, right)
+        case "<=":
+          return new ast.LessThanEqualExpression(location(), operator, left, right)
+        case ">=":
+          return new ast.GreaterThanEqualExpression(location(), operator, left, right)
+        case "<":
+          return new ast.LessThanExpression(location(), operator, left, right)
+        case ">":
+          return new ast.GreaterThanExpression(location(), operator, left, right)
+        case "+":
+          return new ast.AddExpression(location(), operator, left, right)
+        case "-":
+          return new ast.SubtractExpression(location(), operator, left, right)
+        case "*":
+          return new ast.MultiplyExpression(location(), operator, left, right)
+        case "/":
+          return new ast.DivideExpression(location(), operator, left, right)
+        case "%":
+          return new ast.ModuloExpression(location(), operator, left, right)
+        default:
+          throw new TemplateStringError({ message: `Unrecognized logical operator: ${operator}`, loc: location() })
+      }
+    }, head);
+  }
+
+  function buildLogicalExpression(head, tail) {
+    return tail.reduce(function(result, element) {
+      const operator = element[1]
+      const left = result
+      const right = element[3]
+
+      if (operator === undefined && right === undefined) {
+        return left
+      }
+
+      switch (operator) {
+        case "&&":
+          return new ast.LogicalAndExpression(location(), operator, left, right)
+        case "||":
+          return new ast.LogicalOrExpression(location(), operator, left, right)
+        default:
+          throw new TemplateStringError({ message: `Unrecognized logical operator: ${operator}`, loc: location() })
+      }
+    }, head);
+  }
+
+  /**
+   * Transforms a flat list of expressions with block operators in between to the proper ast structure, nesting expressions within blocks in the respective conditionals.
+   *
+   * @arg {(ast.TemplateExpression | Symbol)[]} elements - List of block operators and ast.TemplateExpression instances
+   **/
+  function buildConditionalTree(...elements) {
+    // root level expressions
+    let rootExpressions = []
+
+    let currentCondition = undefined
+    let ifTrue = []
+    let ifFalse = []
+    let nestingLevel = 0
+    let encounteredElse = false
+    const pushElement = (e) => {
+      if (!currentCondition) {
+        return rootExpressions.push(e)
+      }
+      if (encounteredElse) {
+        ifFalse.push(e)
+      } else {
+        ifTrue.push(e)
+      }
+    }
+    for (const e of elements) {
+      if (e instanceof ast.IfBlockExpression) {
+        if (currentCondition) {
+          pushElement(e)
+          nestingLevel++
+        } else {
+          currentCondition = e
+        }
+      } else if (e instanceof ast.ElseBlockExpression) {
+        if (currentCondition === undefined) {
+          throw new TemplateStringError({ message: "Found ${else} block without a preceding ${if...} block.", loc: location() })
+        }
+        if (encounteredElse && nestingLevel === 0) {
+          throw new TemplateStringError({ message: "Encountered multiple ${else} blocks on the same ${if...} block nesting level.", loc: location() })
+        }
+
+        if (currentCondition && nestingLevel === 0) {
+          encounteredElse = true
+        } else {
+          pushElement(e)
+        }
+      } else if (e instanceof ast.EndIfBlockExpression) {
+        if (currentCondition === undefined) {
+          throw new TemplateStringError({ message: "Found ${endif} block without a preceding ${if...} block.", loc: location() })
+        }
+        if (nestingLevel === 0) {
+          currentCondition.ifTrue = buildConditionalTree(...ifTrue)
+          currentCondition.ifFalse = buildConditionalTree(...ifFalse)
+          currentCondition.loc.end = e.loc.end
+          rootExpressions.push(currentCondition)
+          currentCondition = undefined
+        } else {
+          nestingLevel--
+          pushElement(e)
+        }
+      } else {
+        pushElement(e)
+      }
+    }
+
+    if (currentCondition) {
+      throw new TemplateStringError({ message: "Missing ${endif} after ${if ...} block.", loc: location() })
+    }
+
+    if (rootExpressions.length === 0) {
+      return undefined
+    }
+    if (rootExpressions.length === 1) {
+      return rootExpressions[0]
+    }
+
+    return new ast.StringConcatExpression(location(), ...rootExpressions)
+  }
+
+  function isBlockExpression(e) {
+    return e instanceof ast.IfBlockExpression || e instanceof ast.ElseBlockExpression || e instanceof ast.EndIfBlockExpression
+  }
+
   function optionalList(value) {
     return value !== null ? value : [];
   }
-
-  function resolveList(items) {
-    for (const part of items) {
-      if (part._error) {
-        return part
-      }
-    }
-    return items.map((part) => part.resolved || part)
-  }
 }
 
-TemplateString
-  = a:(FormatString)+ b:TemplateString? { return [...a, ...(b || [])] }
-  / a:Prefix b:(FormatString)+ c:TemplateString? { return [a, ...b, ...(c || [])] }
-  / InvalidFormatString
-  / $(.*) { return text() === "" ? [] : [{ resolved: text() }] }
+Start
+  = elements:TemplateStrings {
+    // If there is only one format string, return it's result directly without wrapping in StringConcatExpression
+    if (elements.length === 1 && !(isBlockExpression(elements[0]))) {
+      return elements[0]
+    }
+
+    return buildConditionalTree(...elements)
+  }
+
+TemplateStrings
+  = head:(FormatString)+ tail:TemplateStrings? {
+    // This means we are concatenating strings, and there may be conditional block statements
+    return [...head, ...(tail ? tail : [])]
+  }
+  / a:Prefix b:(FormatString)+ c:TemplateStrings? {
+    // This means we are concatenating strings, and there may be conditional block statements
+    return [a, ...b, ...(c ? c : [])]
+  }
+  / UnclosedFormatString
+  / $(.+) {
+    return [new ast.LiteralExpression(location(), text())]
+  }
 
 FormatString
-  = EscapeStart (!FormatEndWithOptional SourceCharacter)* FormatEndWithOptional {
+  = EscapeStart SourceCharacter* FormatEndWithOptional {
     if (options.unescape) {
-      return text().slice(1)
+      return new ast.LiteralExpression(location(), text().slice(1))
     } else {
-      return text()
+      return new ast.LiteralExpression(location(), text())
     }
   }
   / FormatStart op:BlockOperator FormatEnd {
-    return { block: op }
+    // These expressions will not show up in the final AST, but will be used to build the conditional tree
+    // We instantiate expressions here to get the correct locations for constructing good error messages
+    switch (op) {
+      case "else":
+        return new ast.ElseBlockExpression(location())
+      case "endif":
+        return new ast.EndIfBlockExpression(location())
+      default:
+        throw new TemplateStringError({ message: `Unrecognized block operator: ${op}`, loc: location() })
+    }
   }
   / pre:FormatStartWithEscape blockOperator:(ExpressionBlockOperator __)* e:Expression end:FormatEndWithOptional {
       if (pre[0] === escapePrefix) {
         if (options.unescape) {
-          return text().slice(1)
+          return new ast.LiteralExpression(location(), text().slice(1))
         } else {
-          return text()
+          return new ast.LiteralExpression(location(), text())
         }
       }
 
-      // Any unexpected error is returned immediately. Certain exceptions have special semantics that are caught below.
-      if (e && e._error && e._error.type !== missingKeyExceptionType && e._error.type !== passthroughExceptionType) {
-        return e
-      }
+      const isOptional = end[1] === optionalSuffix
+      const expression = new ast.FormatStringExpression(location(), e, isOptional)
 
-      // Need to provide the optional suffix as a variable because of a parsing bug in pegjs
-      const allowUndefined = end[1] === optionalSuffix
-
-      if (!isPlainObject(e)) {
-        e = { resolved: e }
-      }
-
-      if (e && blockOperator[0] && blockOperator[0][0]) {
-        e.block = blockOperator[0][0]
-      }
-
-      if (e && e.block && allowUndefined) {
-        const _error = new TemplateStringError({ message: "Cannot specify optional suffix in if-block.", detail: {
-          text: text(),
-        }})
-        return { _error }
-      }
-
-      if (getValue(e) === undefined) {
-        if (e && e._error && e._error.type === passthroughExceptionType) {
-          // We allow certain configuration contexts (e.g. placeholders for runtime.*) to indicate that a template
-          // string should be returned partially resolved even if allowPartial=false.
-          return text()
-        } else if (options.allowPartial) {
-          return text()
-        } else if (allowUndefined) {
-          if (e && e._error) {
-            return { ...e, _error: undefined }
-          } else {
-            return e
-          }
-        } else if (e && e._error) {
-          return e
-        } else {
-          const _error = new TemplateStringError({ message: e.message || "Unable to resolve one or more keys.", detail: {
-            text: text(),
-          }})
-          return { _error }
+      if (blockOperator && blockOperator.length > 0) {
+        if (isOptional) {
+          throw new TemplateStringError({ message: "Cannot specify optional suffix in if-block.", loc: location() })
         }
+
+        // ifTrue and ifFalse will be filled in by `buildConditionalTree`
+        const ifTrue = undefined
+        const ifFalse = undefined
+        return new ast.IfBlockExpression(location(), expression, ifTrue, ifFalse, isOptional)
       }
-      return e
+
+      return expression
   }
 
-InvalidFormatString
+UnclosedFormatString
   = Prefix? FormatStart .* {
-      throw new TemplateStringError({ message: "Unable to parse as valid template string.", detail: {}})
+      throw new TemplateStringError({ message: "Unable to parse as valid template string.", loc: location() })
   }
 
 EscapeStart
@@ -157,10 +281,10 @@ ExpressionBlockOperator
   = "if"
 
 Prefix
-  = !FormatStartWithEscape (. ! FormatStartWithEscape)* . { return text() }
+  = !FormatStartWithEscape (. ! FormatStartWithEscape)* . { return new ast.LiteralExpression(location(), text()) }
 
 Suffix
-  = !FormatEnd (. ! FormatEnd)* . { return text() }
+  = !FormatEnd (. ! FormatEnd)* . { return new ast.LiteralExpression(location(), text()) }
 
 // ---- expressions -----
 // Reduced and adapted from: https://github.com/pegjs/pegjs/blob/master/examples/javascript.pegjs
@@ -168,14 +292,7 @@ MemberExpression
   = head:Identifier
     tail:(
         "[" __ e:Expression __ "]" {
-          if (e.resolved && !isPrimitive(e.resolved)) {
-            const _error = new TemplateStringError(
-              { message: `Expression in bracket must resolve to a primitive (got ${typeof e}).`,
-              detail: { text: e.resolved }}
-            )
-            return { _error }
-          }
-          return e
+          return new ast.MemberExpression(location(), e)
         }
       / "." e:Identifier {
           return e
@@ -186,33 +303,36 @@ MemberExpression
     }
 
 CallExpression
-  = callee:Identifier __ args:Arguments {
-      // Workaround for parser issue (calling text() before referencing other values)
-      const functionName = callee
-      const _args = args
-
-      return callHelperFunction({ functionName, args: _args, text: text(), allowPartial: options.allowPartial })
+  = functionName:Identifier __ args:Arguments {
+      return new ast.FunctionCallExpression(location(), functionName, args)
     }
 
 Arguments
-  = "(" __ args:(ArgumentList __)? ")" {
-      return optionalList(extractOptional(args, 0));
+  = "(" __ args:ArgumentList? __ ")" {
+      return args || [];
     }
-
 ArgumentList
-  = head:Expression tail:(__ "," __ Expression)* {
-      return buildList(head, tail, 3);
+  = head:Expression tail:ArgumentListTail* {
+      return [head, ...(tail || [])];
+    }
+ArgumentListTail
+  = tail:(__ "," __ Expression) {
+      return tail[3]
     }
 
 ArrayLiteral
+  = v:_ArrayLiteral {
+      return new ast.ArrayLiteralExpression(location(), v)
+  }
+_ArrayLiteral
   = "[" __ elision:(Elision __)? "]" {
-      return resolveList(optionalList(extractOptional(elision, 0)));
+      return optionalList(extractOptional(elision, 0));
     }
   / "[" __ elements:ElementList __ "]" {
-      return resolveList(elements);
+      return elements;
     }
   / "[" __ elements:ElementList __ "," __ elision:(Elision __)? "]" {
-      return resolveList(elements.concat(optionalList(extractOptional(elision, 0))));
+      return elements.concat(optionalList(extractOptional(elision, 0)));
     }
 
 ElementList
@@ -233,24 +353,26 @@ Elision
 
 PrimaryExpression
   = v:NonStringLiteral {
-    return v
+    return new ast.LiteralExpression(location(), v)
   }
   / v:StringLiteral {
+    // Do not parse empty strings.
+    if (v === "") {
+      return new ast.LiteralExpression(location(), "")
+    }
     // Allow nested template strings in literals
-    return resolveNested(v)
+    const parsed = parseNested(v)
+    if (typeof parsed === "string") {
+      // The nested string did not contain template expressions, so it is a literal expression
+      return new ast.LiteralExpression(location(), parsed)
+    }
+    // v contained a template expression
+    return parsed
   }
   / ArrayLiteral
   / CallExpression
   / key:MemberExpression {
-    key = resolveList(key)
-    if (key._error) {
-      return key
-    }
-    try {
-      return getKey(key, { allowPartial: options.allowPartial })
-    } catch (err) {
-      return { _error: err }
-    }
+    return new ast.ContextLookupExpression(location(), key)
   }
   / "(" __ e:Expression __ ")" {
     return e
@@ -259,16 +381,13 @@ PrimaryExpression
 UnaryExpression
   = PrimaryExpression
   / operator:UnaryOperator __ argument:UnaryExpression {
-      const v = argument
-
-      if (v && v._error) {
-        return v
-      }
-
-      if (operator === "typeof") {
-        return typeof getValue(v)
-      } else if (operator === "!") {
-        return !getValue(v)
+      switch (operator) {
+        case "typeof":
+          return new ast.TypeofExpression(location(), argument)
+        case "!":
+          return new ast.NotExpression(location(), argument)
+        default:
+          throw new TemplateStringError({ message: `Unrecognized unary operator: ${operator}`, loc: location() })
       }
     }
 
@@ -277,44 +396,8 @@ UnaryOperator
   / "!"
 
 ContainsExpression
-  = head:UnaryExpression __ ContainsOperator __ tail:UnaryExpression {
-      if (head && head._error) {
-        return head
-      }
-      if (tail && tail._error) {
-        return tail
-      }
-
-      head = getValue(head)
-      tail = getValue(tail)
-
-      if (!isPrimitive(tail)) {
-        return {
-          _error: new TemplateStringError({
-            message:`The right-hand side of a 'contains' operator must be a string, number, boolean or null (got ${typeof tail}).`,
-            detail: {}
-          })
-        }
-      }
-
-      const headType = head === null ? "null" : typeof head
-
-      if (headType === "object") {
-        if (isArray(head)) {
-          return head.includes(tail)
-        } else {
-          return head.hasOwnProperty(tail)
-        }
-      } else if (headType === "string") {
-        return head.includes(tail.toString())
-      } else {
-        return {
-          _error: new TemplateStringError({
-            message: `The left-hand side of a 'contains' operator must be a string, array or object (got ${headType}).`,
-            detail: {}
-          })
-        }
-      }
+  = iterable:UnaryExpression __ ContainsOperator __ element:UnaryExpression {
+      return new ast.ContainsExpression(location(), "contains", iterable, element)
     }
   / UnaryExpression
 
@@ -364,7 +447,7 @@ EqualityOperator
 LogicalANDExpression
   = head:EqualityExpression
     tail:(__ LogicalANDOperator __ EqualityExpression)*
-    { return buildLogicalExpression(head, tail, options); }
+    { return buildLogicalExpression(head, tail); }
 
 LogicalANDOperator
   = "&&"
@@ -372,7 +455,7 @@ LogicalANDOperator
 LogicalORExpression
   = head:LogicalANDExpression
     tail:(__ LogicalOROperator __ LogicalANDExpression)*
-    { return buildLogicalExpression(head, tail, options); }
+    { return buildLogicalExpression(head, tail); }
 
 LogicalOROperator
   = "||"
@@ -382,10 +465,7 @@ ConditionalExpression
     "?" __ consequent:Expression __
     ":" __ alternate:Expression
     {
-      if (test && test._error) {
-        return test
-      }
-      return getValue(test) ? consequent : alternate
+      return new ast.TernaryExpression(location(), test, consequent, alternate)
     }
   / LogicalORExpression
 
@@ -430,13 +510,15 @@ SingleLineComment
   = "//" (!LineTerminator SourceCharacter)*
 
 Identifier
-  = !ReservedWord name:IdentifierName { return name; }
+  = !ReservedWord name:IdentifierName { return new ast.IdentifierExpression(location(), name) }
 
 IdentifierName "identifier"
   = head:IdentifierStart tail:IdentifierPart* {
       return head + tail.join("")
     }
-  / Integer
+  / Integer {
+      return parseInt(text());
+    }
 
 IdentifierStart
   = UnicodeLetter
@@ -678,4 +760,3 @@ __
 
 _
   = __
-

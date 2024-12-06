@@ -126,7 +126,7 @@ describe("validateSchema", () => {
     }
 
     void expectError(
-      () => validateSchema(config, schema, { source: { yamlDoc } }),
+      () => validateSchema(config, schema, { source: { yamlDoc, path: [] } }),
       (err) =>
         expect(stripAnsi(err.message)).to.equal(dedent`
         Validation error:
@@ -170,7 +170,7 @@ describe("validateSchema", () => {
     }
 
     void expectError(
-      () => validateSchema(config, schema, { source: { yamlDoc } }),
+      () => validateSchema(config, schema, { source: { yamlDoc, path: [] } }),
       (err) =>
         expect(stripAnsi(err.message)).to.equal(dedent`
         Validation error:
@@ -218,7 +218,7 @@ describe("validateSchema", () => {
     }
 
     void expectError(
-      () => validateSchema(config, schema, { source: { yamlDoc } }),
+      () => validateSchema(config, schema, { source: { yamlDoc, path: [] } }),
       (err) =>
         expect(stripAnsi(err.message)).to.equal(dedent`
         Validation error:
@@ -264,7 +264,7 @@ describe("validateSchema", () => {
     }
 
     void expectError(
-      () => validateSchema(config, schema, { source: { yamlDoc } }),
+      () => validateSchema(config, schema, { source: { yamlDoc, path: [] } }),
       (err) =>
         expect(stripAnsi(err.message)).to.equal(dedent`
         Validation error:
@@ -319,7 +319,7 @@ describe("validateSchema", () => {
     }
 
     void expectError(
-      () => validateSchema(config, schema, { source: { yamlDoc } }),
+      () => validateSchema(config, schema, { source: { yamlDoc, path: [] } }),
       (err) =>
         expect(stripAnsi(err.message)).to.equal(dedent`
         Validation error:
@@ -359,7 +359,7 @@ describe("validateSchema", () => {
     }
 
     void expectError(
-      () => validateSchema(config.spec, schema, { source: { yamlDoc, basePath: ["spec"] } }),
+      () => validateSchema(config.spec, schema, { source: { yamlDoc, path: ["spec"] } }),
       (err) =>
         expect(stripAnsi(err.message)).to.equal(dedent`
         Validation error:

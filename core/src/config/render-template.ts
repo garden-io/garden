@@ -132,7 +132,7 @@ export async function renderConfigTemplate({
   const resolvedWithoutInputs = resolveTemplateStrings({
     value: { ...omit(config, "inputs") },
     context: templateContext,
-    source: { yamlDoc },
+    source: { yamlDoc, path: [] },
   })
   const partiallyResolvedInputs = resolveTemplateStrings({
     value: config.inputs || {},
@@ -140,7 +140,7 @@ export async function renderConfigTemplate({
     contextOpts: {
       allowPartial: true,
     },
-    source: { yamlDoc, basePath: ["inputs"] },
+    source: { yamlDoc, path: ["inputs"] },
   })
   let resolved: RenderTemplateConfig = {
     ...resolvedWithoutInputs,
@@ -214,7 +214,7 @@ async function renderModules({
         value: m,
         context,
         contextOpts: { allowPartial: true },
-        source: { yamlDoc, basePath: ["modules", i] },
+        source: { yamlDoc, path: ["modules", i] },
       })
       const renderConfigPath = renderConfig.internal.configFilePath || renderConfig.internal.basePath
 
@@ -273,22 +273,29 @@ async function renderConfigs({
   context: RenderTemplateConfigContext
   renderConfig: RenderTemplateConfig
 }): Promise<TemplatableConfig[]> {
+  const source = { yamlDoc: template.internal.yamlDoc, path: ["configs"] }
+
   const templateDescription = `${configTemplateKind} '${template.name}'`
   const templateConfigs = template.configs || []
   const partiallyResolvedTemplateConfigs = resolveTemplateStrings({
     value: templateConfigs,
     context,
     contextOpts: { allowPartial: true },
-    source: { yamlDoc: template.internal.yamlDoc, basePath: ["inputs"] },
+    source,
   })
 
   return Promise.all(
-    partiallyResolvedTemplateConfigs.map(async (m) => {
+    partiallyResolvedTemplateConfigs.map(async (m, index) => {
       // Resolve just the name, which must be immediately resolvable
       let resolvedName = m.name
 
       try {
-        resolvedName = resolveTemplateString({ string: m.name, context, contextOpts: { allowPartial: false } })
+        resolvedName = resolveTemplateString({
+          string: m.name,
+          context,
+          contextOpts: { allowPartial: false },
+          source: { ...source, path: [...source.path, index, "name"] },
+        }) as string
       } catch (error) {
         throw new ConfigurationError({
           message: `Could not resolve the \`name\` field (${m.name}) for a config in ${templateDescription}: ${error}\n\nNote that template strings in config names in must be fully resolvable at the time of scanning. This means that e.g. references to other actions, modules or runtime outputs cannot be used.`,

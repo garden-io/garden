@@ -19,7 +19,7 @@ import type { WorkflowConfig, WorkflowConfigMap } from "../config/workflow.js"
 import { resolveMsg, type Log, type LogEntry } from "../logger/log-entry.js"
 import type { GardenModule, ModuleConfigMap } from "../types/module.js"
 import { findByName, getNames, hashString } from "./util.js"
-import { GardenError, InternalError } from "../exceptions.js"
+import { GardenError, InternalError, toGardenError } from "../exceptions.js"
 import type { EventName, Events } from "../events/events.js"
 import { EventBus } from "../events/events.js"
 import { dedent, naturalList } from "./string.js"
@@ -49,7 +49,6 @@ import fsExtra, { exists } from "fs-extra"
 const { mkdirp, remove } = fsExtra
 import { GlobalConfigStore } from "../config-store/global.js"
 import { isPromise } from "./objects.js"
-import { styles } from "../logger/styles.js"
 import type { ConfigTemplateConfig } from "../config/config-template.js"
 import type { PluginToolSpec, ToolBuildSpec } from "../plugin/tools.js"
 import { fileURLToPath, parse } from "url"
@@ -461,16 +460,27 @@ export class TestGarden extends Garden {
   }
 }
 
-export function expectFuzzyMatch(str: string, sample: string | string[]) {
+export function expectFuzzyMatch(str: string, sample: string | string[], extraMessage?: string) {
   const errorMessageNonAnsi = stripAnsi(str)
   const samples = typeof sample === "string" ? [sample] : sample
   const samplesNonAnsi = samples.map(stripAnsi)
-  try {
-    samplesNonAnsi.forEach((s) => expect(errorMessageNonAnsi.toLowerCase()).to.contain(s.toLowerCase()))
-  } catch (err) {
-    // eslint-disable-next-line no-console
-    console.log("Error message:\n", styles.error(errorMessageNonAnsi), "\n")
-    throw err
+  for (const s of samplesNonAnsi) {
+    const actualErrorMsgLowercase = errorMessageNonAnsi.toLowerCase()
+    const expectedErrorSample = s.toLowerCase()
+
+    const assertionMessage = dedent`
+      Expected string
+
+        '${actualErrorMsgLowercase}'
+
+      to contain string
+
+        '${expectedErrorSample}'
+
+      ${extraMessage || ""}
+    `
+
+    expect(actualErrorMsgLowercase, assertionMessage).to.contain(expectedErrorSample)
   }
 }
 
@@ -516,7 +526,13 @@ export function expectError(fn: Function, assertion: ExpectErrorAssertion = {}) 
 
     if (contains) {
       const errorMessage = (errorMessageGetter || defaultErrorMessageGetter)(err)
-      expectFuzzyMatch(errorMessage, contains)
+      expectFuzzyMatch(
+        errorMessage,
+        contains,
+        dedent`
+          \nOriginal error:
+          ${stripAnsi(toGardenError(err).stack || "<no stack>")}`
+      )
     }
 
     if (message) {

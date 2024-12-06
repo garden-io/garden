@@ -149,9 +149,9 @@ describe("ProjectConfigContext", () => {
         commandInfo: { name: "test", args: {}, opts: {} },
       })
 
-      const { message } = c.resolve({ key: ["secrets", "bar"], nodePath: [], opts: {} })
+      const { getUnavailableReason: message } = c.resolve({ key: ["secrets", "bar"], nodePath: [], opts: {} })
 
-      expect(stripAnsi(message!)).to.match(/Please log in via the garden login command to use Garden with secrets/)
+      expect(stripAnsi(message!())).to.match(/Please log in via the garden login command to use Garden with secrets/)
     })
 
     context("when logged in", () => {
@@ -168,13 +168,13 @@ describe("ProjectConfigContext", () => {
           commandInfo: { name: "test", args: {}, opts: {} },
         })
 
-        const { message } = c.resolve({ key: ["secrets", "bar"], nodePath: [], opts: {} })
+        const { getUnavailableReason: message } = c.resolve({ key: ["secrets", "bar"], nodePath: [], opts: {} })
 
         const errMsg = deline`
           Looks like no secrets have been created for this project and/or environment in Garden Cloud.
           To create secrets, please visit ${enterpriseDomain} and navigate to the secrets section for this project.
         `
-        expect(stripAnsi(message!)).to.match(new RegExp(errMsg))
+        expect(stripAnsi(message!())).to.match(new RegExp(errMsg))
       })
 
       it("if a non-empty set of secrets was returned by the backend, provide a helpful suggestion", () => {
@@ -190,13 +190,13 @@ describe("ProjectConfigContext", () => {
           commandInfo: { name: "test", args: {}, opts: {} },
         })
 
-        const { message } = c.resolve({ key: ["secrets", "bar"], nodePath: [], opts: {} })
+        const { getUnavailableReason: message } = c.resolve({ key: ["secrets", "bar"], nodePath: [], opts: {} })
 
         const errMsg = deline`
           Please make sure that all required secrets for this project exist in Garden Cloud, and are accessible in this
           environment.
         `
-        expect(stripAnsi(message!)).to.match(new RegExp(errMsg))
+        expect(stripAnsi(message!())).to.match(new RegExp(errMsg))
       })
     })
   })
@@ -215,9 +215,9 @@ describe("ProjectConfigContext", () => {
     })
     const key = "fiaogsyecgbsjyawecygaewbxrbxajyrgew"
 
-    const { message } = c.resolve({ key: ["local", "env", key], nodePath: [], opts: {} })
+    const { getUnavailableReason: message } = c.resolve({ key: ["local", "env", key], nodePath: [], opts: {} })
 
-    expect(stripAnsi(message!)).to.match(
+    expect(stripAnsi(message!())).to.match(
       /Could not find key fiaogsyecgbsjyawecygaewbxrbxajyrgew under local.env. Available keys: /
     )
   })

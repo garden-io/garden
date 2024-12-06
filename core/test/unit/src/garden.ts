@@ -3411,7 +3411,7 @@ describe("Garden", () => {
       expect(module.spec.bla).to.eql({ nested: { key: "my value" } })
     })
 
-    it("should pass through runtime template strings when no runtimeContext is provider", async () => {
+    it("should pass through runtime template strings when no runtimeContext is provided", async () => {
       const test = createGardenPlugin({
         name: "test",
         createModuleTypes: [

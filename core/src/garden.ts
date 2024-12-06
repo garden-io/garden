@@ -784,7 +784,13 @@ export class Garden {
         providerNames = getNames(rawConfigs)
       }
 
-      throwOnMissingSecretKeys(rawConfigs, this.secrets, "Provider", log)
+      throwOnMissingSecretKeys(
+        rawConfigs,
+        new RemoteSourceConfigContext(this, this.variables),
+        this.secrets,
+        "Provider",
+        log
+      )
 
       // As an optimization, we return immediately if all requested providers are already resolved
       const alreadyResolvedProviders = providerNames.map((name) => this.resolvedProviders[name]).filter(Boolean)
@@ -820,7 +826,11 @@ export class Garden {
 
         validationGraph.addNode(plugin.name)
 
-        for (const dep of getAllProviderDependencyNames(plugin!, config!)) {
+        for (const dep of getAllProviderDependencyNames(
+          plugin!,
+          config!,
+          new RemoteSourceConfigContext(this, this.variables)
+        )) {
           validationGraph.addNode(dep)
           validationGraph.addDependency(plugin.name, dep)
         }
@@ -1411,7 +1421,13 @@ export class Garden {
       const groupedResources = groupBy(allResources, "kind")
 
       for (const [kind, configs] of Object.entries(groupedResources)) {
-        throwOnMissingSecretKeys(configs, this.secrets, kind, this.log)
+        throwOnMissingSecretKeys(
+          configs,
+          new RemoteSourceConfigContext(this, this.variables),
+          this.secrets,
+          kind,
+          this.log
+        )
       }
 
       let rawModuleConfigs = [...((groupedResources.Module as ModuleConfig[]) || [])]
@@ -1540,11 +1556,13 @@ export class Garden {
       })
     }
 
-    return resolveTemplateString({
+    const resolved = resolveTemplateString({
       string: disabledFlag,
       context,
       contextOpts: { allowPartial: false },
     })
+
+    return !!resolved
   }
 
   /**
@@ -1653,7 +1671,7 @@ export class Garden {
    */
   public getProjectSources() {
     const context = new RemoteSourceConfigContext(this, this.variables)
-    const source = { yamlDoc: this.projectConfig.internal.yamlDoc, basePath: ["sources"] }
+    const source = { yamlDoc: this.projectConfig.internal.yamlDoc, path: ["sources"] }
     const resolved = validateSchema(
       resolveTemplateStrings({ value: this.projectSources, context, source }),
       projectSourcesSchema(),
@@ -1883,7 +1901,7 @@ export async function resolveGardenParamsPartial(currentDirectory: string, opts:
     configType: "project environments",
     path: config.path,
     projectRoot: config.path,
-    source: { yamlDoc: config.internal.yamlDoc, basePath: ["environments"] },
+    source: { yamlDoc: config.internal.yamlDoc, path: ["environments"] },
   })
 
   const configDefaultEnvironment = resolveTemplateString({
