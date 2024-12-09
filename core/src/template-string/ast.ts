@@ -160,26 +160,44 @@ export abstract class UnaryExpression extends TemplateExpression {
   }
 
   override evaluate(args: EvaluateArgs): TemplateEvaluationResult<TemplatePrimitive> {
-    const inner = this.innerExpression.evaluate(args)
+    const inner = this.innerExpression.evaluate({
+      ...args,
+      // For backwards compatibility with older versions of Garden, unary expressions do not throw errors if context lookup expressions fail.
+      // `!var.doesNotExist` evaluates to false and `typeof var.doesNotExist` evaluates to the string "undefined".
+      // TODO(0.14): Remove the following line. other methods exist to make variables optional, for example using the logical or operator.
+      optional: true,
+    })
 
-    if (typeof inner === "symbol") {
+    if (inner === CONTEXT_RESOLVE_KEY_AVAILABLE_LATER) {
       return inner
     }
 
     return this.transform(inner)
   }
 
-  abstract transform(value: CollectionOrValue<TemplatePrimitive>): TemplatePrimitive
+  abstract transform(
+    value: CollectionOrValue<TemplatePrimitive> | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND
+  ): TemplatePrimitive | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND
 }
 
 export class TypeofExpression extends UnaryExpression {
-  override transform(value: CollectionOrValue<TemplatePrimitive>): string {
+  override transform(
+    value: CollectionOrValue<TemplatePrimitive> | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND
+  ): string | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND {
+    if (isNotFound(value)) {
+      return "undefined"
+    }
     return typeof value
   }
 }
 
 export class NotExpression extends UnaryExpression {
-  override transform(value: CollectionOrValue<TemplatePrimitive>): boolean {
+  override transform(
+    value: CollectionOrValue<TemplatePrimitive> | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND
+  ): boolean | typeof CONTEXT_RESOLVE_KEY_NOT_FOUND {
+    if (isNotFound(value)) {
+      return true
+    }
     return !value
   }
 }
