@@ -12,6 +12,7 @@ import * as td from "testdouble"
 import type { PluginContext } from "../../../../../src/plugin-context.js"
 import type { ContainerProvider } from "../../../../../src/plugins/container/container.js"
 import { gardenPlugin } from "../../../../../src/plugins/container/container.js"
+import { gardenPlugin as gardenK8sPlugin } from "../../../../../src/plugins/kubernetes/kubernetes.js"
 import type { TestGarden } from "../../../../helpers.js"
 import { expectError, getDataDir, makeTestGarden } from "../../../../helpers.js"
 import type { ActionLog } from "../../../../../src/logger/log-entry.js"
@@ -29,6 +30,7 @@ import type { BuildActionConfig } from "../../../../../src/actions/build.js"
 import { containerHelpers, minDockerVersion } from "../../../../../src/plugins/container/helpers.js"
 import { getDockerBuildFlags } from "../../../../../src/plugins/container/build.js"
 import { DEFAULT_BUILD_TIMEOUT_SEC } from "../../../../../src/constants.js"
+import type { KubernetesProvider } from "../../../../../src/plugins/kubernetes/config.js"
 
 const testVersionedId = "some/image:12345"
 
@@ -58,7 +60,7 @@ describe("plugins.container", () => {
   let dockerCli: sinon.SinonStub<any>
 
   beforeEach(async () => {
-    garden = await makeTestGarden(projectRoot, { plugins: [gardenPlugin()] })
+    garden = await makeTestGarden(projectRoot, { plugins: [gardenPlugin(), gardenK8sPlugin()] })
     log = createActionLog({ log: garden.log, actionName: "", actionKind: "" })
     containerProvider = await garden.resolveProvider({ log: garden.log, name: "container" })
     ctx = await garden.getPluginContext({ provider: containerProvider, templateContext: undefined, events: undefined })
@@ -192,13 +194,33 @@ describe("plugins.container", () => {
         assertPublishId(`private-registry/foobar:${action.versionString()}`, result.detail)
       })
 
-      it("should fall back to action name if spec.localId and spec.publishId are not defined", async () => {
+      it("should fall back to action.outputs.deploymentImageName if spec.localId and spec.publishId are not defined - no kubernetes provider with deployment registry", async () => {
         const config = cloneDeep(baseConfig)
 
         action = await getTestBuild(config)
 
         const result = await publishContainerBuild({ ctx, log, action })
         assertPublishId(`test:${action.versionString()}`, result.detail)
+      })
+
+      it("should fall back to action.outputs.deploymentImageName if spec.localId and spec.publishId are not defined - with kubernetes provider with deployment registry", async () => {
+        const kubernetesProvider = (await garden.resolveProvider({ log, name: "kubernetes" })) as KubernetesProvider
+        kubernetesProvider.config.deploymentRegistry = {
+          hostname: "foo.io",
+          namespace: "bar",
+          insecure: false,
+        }
+        ctx = await garden.getPluginContext({
+          provider: kubernetesProvider,
+          templateContext: undefined,
+          events: undefined,
+        })
+        const config = cloneDeep(baseConfig)
+
+        action = await getTestBuild(config)
+
+        const result = await publishContainerBuild({ ctx, log, action })
+        assertPublishId(`foo.io/bar/test:${action.versionString()}`, result.detail)
       })
 
       it("should respect tagOverride, which corresponds to garden publish --tag command line option", async () => {
