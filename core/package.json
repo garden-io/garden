@@ -152,7 +152,7 @@
     "unixify": "^1.0.0",
     "unzip-stream": "^0.3.4",
     "username": "^7.0.0",
-    "uuid": "^10.0.0",
+    "uuid": "^11.0.3",
     "which": "^4.0.0",
     "winston": "^3.17.0",
     "wrap-ansi": "^9.0.0",
