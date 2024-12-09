@@ -16,12 +16,16 @@ import type {
   PrepareEnvironmentResult,
 } from "../../../plugin/handlers/Provider/prepareEnvironment.js"
 import type { KubernetesPluginContext } from "../config.js"
-import { prepareEnvironment as _prepareEnvironmentBase } from "../init.js"
+import {
+  prepareEnvironment as _prepareEnvironmentBase,
+  getEnvironmentStatus as _getEnviornmentStatusBase,
+} from "../init.js"
 import type { Log } from "../../../logger/log-entry.js"
 import { setMinikubeDockerEnv } from "./minikube.js"
 import { isKindCluster } from "./kind.js"
 import { configureMicrok8sAddons } from "./microk8s.js"
 import { isK3sFamilyCluster } from "./k3s.js"
+import type { GetEnvironmentStatusParams } from "../../../plugin/handlers/Provider/getEnvironmentStatus.js"
 
 const providerUrl = "./kubernetes.md"
 
@@ -40,8 +44,22 @@ export const gardenPlugin = () =>
     handlers: {
       configureProvider,
       prepareEnvironment,
+      getEnvironmentStatus,
     },
   })
+
+async function getEnvironmentStatus(params: GetEnvironmentStatusParams<LocalKubernetesConfig>) {
+  const { ctx, log } = params
+  const provider = ctx.provider
+
+  // This should be set in the configureProvider handler but we need the
+  // plugin context to get the cluster type
+  if (!provider.config.clusterType) {
+    provider.config.clusterType = await getClusterType(ctx, log)
+  }
+
+  return await _getEnviornmentStatusBase(params)
+}
 
 async function prepareEnvironment(
   params: PrepareEnvironmentParams<LocalKubernetesConfig>
@@ -49,17 +67,11 @@ async function prepareEnvironment(
   const { ctx, log } = params
   const provider = ctx.provider
 
-  let clusterType = provider.config.clusterType
-  if (!clusterType) {
-    clusterType = await getClusterType(ctx, log)
-    provider.config.clusterType = clusterType
-  }
-
   const result = await _prepareEnvironmentBase(params)
 
-  if (clusterType === "minikube") {
+  if (provider.config.clusterType === "minikube") {
     await setMinikubeDockerEnv()
-  } else if (clusterType === "microk8s") {
+  } else if (provider.config.clusterType === "microk8s") {
     const microk8sAddons = ["dns", "registry", "storage"]
     await configureMicrok8sAddons(log, microk8sAddons)
   }
