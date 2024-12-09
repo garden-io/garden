@@ -958,6 +958,37 @@ describe("resolveTemplateString", () => {
     })
   })
 
+  it("should throw an error if var lookup fails combined with json encode", () => {
+    const c = new GenericContext({ var: {} })
+
+    void expectError(() => resolveTemplateString({ string: "${jsonEncode(var.missing)}", context: c }), {
+      contains: "Invalid template string (${jsonEncode(var.missing)}): Could not find key missing under var.",
+    })
+  })
+
+  it("We need to remain bug-compatible with older versions of garden and not throw when variable does not exist with certain operators", () => {
+    const testCases = {
+      "${!var.doesNotExist}": true,
+      "${typeof var.doesNotExist}": "undefined",
+      "${! (var.doesNotExistOne && var.doesNotExistTwo)}": true,
+      "${var.doesNotExistOne && var.doesNotExistTwo}": false,
+    }
+
+    for (const [template, expectation] of Object.entries(testCases)) {
+      const result = resolveTemplateString({
+        string: template,
+        contextOpts: {
+          allowPartial: false,
+        },
+        context: new GenericContext({ var: {} }),
+      })
+      expect(result).to.eq(
+        expectation,
+        `Template "${template}" did not resolve to expected value ${JSON.stringify(expectation)}`
+      )
+    }
+  })
+
   context("allowPartial=true", () => {
     it("passes through template strings with missing key", () => {
       const res = resolveTemplateString({
