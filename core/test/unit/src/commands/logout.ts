@@ -11,7 +11,7 @@ import * as td from "testdouble"
 import type { TempDirectory } from "../../../helpers.js"
 import { getDataDir, makeTempDir, makeTestGarden, withDefaultGlobalOpts } from "../../../helpers.js"
 import { randomString } from "../../../../src/util/string.js"
-import { CloudApi } from "../../../../src/cloud/api.js"
+import { GardenCloudApi } from "../../../../src/cloud/api.js"
 import { LogLevel } from "../../../../src/logger/logger.js"
 import { LogOutCommand } from "../../../../src/commands/logout.js"
 import { expectError, getLogMessages } from "../../../../src/util/testing.js"
@@ -20,6 +20,7 @@ import { DEFAULT_GARDEN_CLOUD_DOMAIN, gardenEnv } from "../../../../src/constant
 import { GlobalConfigStore } from "../../../../src/config-store/global.js"
 import type { Garden } from "../../../../src/index.js"
 import { makeDummyGarden } from "../../../../src/garden.js"
+import { getStoredAuthToken, saveAuthToken } from "../../../../src/cloud/auth.js"
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function logoutCommandParams({ garden, opts = { "disable-project-check": false } }: { garden: Garden; opts?: any }) {
@@ -62,24 +63,20 @@ describe("LogoutCommand", () => {
       globalConfigStore,
     })
 
-    await CloudApi.saveAuthToken(garden.log, garden.globalConfigStore, testToken, garden.cloudDomain!)
-    td.replace(CloudApi.prototype, "checkClientAuthToken", async () => true)
-    td.replace(CloudApi.prototype, "startInterval", async () => {})
-    td.replace(CloudApi.prototype, "post", async () => {})
+    await saveAuthToken(garden.log, garden.globalConfigStore, testToken, garden.cloudDomain!)
+    td.replace(GardenCloudApi.prototype, "checkClientAuthToken", async () => true)
+    td.replace(GardenCloudApi.prototype, "startInterval", async () => {})
+    td.replace(GardenCloudApi.prototype, "post", async () => {})
 
     // Double check token actually exists
-    const savedToken = await CloudApi.getStoredAuthToken(garden.log, garden.globalConfigStore, garden.cloudDomain!)
+    const savedToken = await getStoredAuthToken(garden.log, garden.globalConfigStore, garden.cloudDomain!)
     expect(savedToken).to.exist
     expect(savedToken!.token).to.eql(testToken.token)
     expect(savedToken!.refreshToken).to.eql(testToken.refreshToken)
 
     await command.action(logoutCommandParams({ garden }))
 
-    const tokenAfterLogout = await CloudApi.getStoredAuthToken(
-      garden.log,
-      garden.globalConfigStore,
-      garden.cloudDomain!
-    )
+    const tokenAfterLogout = await getStoredAuthToken(garden.log, garden.globalConfigStore, garden.cloudDomain!)
     const logOutput = getLogMessages(garden.log, (entry) => entry.level === LogLevel.info).join("\n")
 
     expect(tokenAfterLogout).to.not.exist
@@ -100,24 +97,20 @@ describe("LogoutCommand", () => {
       commandInfo: { name: "foo", args: {}, opts: {} },
     })
 
-    await CloudApi.saveAuthToken(garden.log, garden.globalConfigStore, testToken, garden.cloudDomain!)
-    td.replace(CloudApi.prototype, "checkClientAuthToken", async () => true)
-    td.replace(CloudApi.prototype, "startInterval", async () => {})
-    td.replace(CloudApi.prototype, "post", async () => {})
+    await saveAuthToken(garden.log, garden.globalConfigStore, testToken, garden.cloudDomain!)
+    td.replace(GardenCloudApi.prototype, "checkClientAuthToken", async () => true)
+    td.replace(GardenCloudApi.prototype, "startInterval", async () => {})
+    td.replace(GardenCloudApi.prototype, "post", async () => {})
 
     // Double check token actually exists
-    const savedToken = await CloudApi.getStoredAuthToken(garden.log, garden.globalConfigStore, garden.cloudDomain!)
+    const savedToken = await getStoredAuthToken(garden.log, garden.globalConfigStore, garden.cloudDomain!)
     expect(savedToken).to.exist
     expect(savedToken!.token).to.eql(testToken.token)
     expect(savedToken!.refreshToken).to.eql(testToken.refreshToken)
 
     await command.action(logoutCommandParams({ garden }))
 
-    const tokenAfterLogout = await CloudApi.getStoredAuthToken(
-      garden.log,
-      garden.globalConfigStore,
-      garden.cloudDomain!
-    )
+    const tokenAfterLogout = await getStoredAuthToken(garden.log, garden.globalConfigStore, garden.cloudDomain!)
     const logOutput = getLogMessages(garden.log, (entry) => entry.level === LogLevel.info).join("\n")
 
     expect(tokenAfterLogout).to.not.exist
@@ -153,25 +146,21 @@ describe("LogoutCommand", () => {
       globalConfigStore,
     })
 
-    await CloudApi.saveAuthToken(garden.log, garden.globalConfigStore, testToken, garden.cloudDomain!)
+    await saveAuthToken(garden.log, garden.globalConfigStore, testToken, garden.cloudDomain!)
     // Throw when initializing Enterprise API
-    td.replace(CloudApi.prototype, "factory", async () => {
+    td.replace(GardenCloudApi.prototype, "factory", async () => {
       throw new Error("Not tonight")
     })
 
     // Double check token actually exists
-    const savedToken = await CloudApi.getStoredAuthToken(garden.log, garden.globalConfigStore, garden.cloudDomain!)
+    const savedToken = await getStoredAuthToken(garden.log, garden.globalConfigStore, garden.cloudDomain!)
     expect(savedToken).to.exist
     expect(savedToken!.token).to.eql(testToken.token)
     expect(savedToken!.refreshToken).to.eql(testToken.refreshToken)
 
     await command.action(logoutCommandParams({ garden }))
 
-    const tokenAfterLogout = await CloudApi.getStoredAuthToken(
-      garden.log,
-      garden.globalConfigStore,
-      garden.cloudDomain!
-    )
+    const tokenAfterLogout = await getStoredAuthToken(garden.log, garden.globalConfigStore, garden.cloudDomain!)
     const logOutput = getLogMessages(garden.log, (entry) => entry.level === LogLevel.info).join("\n")
 
     expect(tokenAfterLogout).to.not.exist
@@ -193,25 +182,21 @@ describe("LogoutCommand", () => {
       globalConfigStore,
     })
 
-    await CloudApi.saveAuthToken(garden.log, garden.globalConfigStore, testToken, garden.cloudDomain!)
+    await saveAuthToken(garden.log, garden.globalConfigStore, testToken, garden.cloudDomain!)
     // Throw when using Enterprise API to call logout endpoint
-    td.replace(CloudApi.prototype, "post", async () => {
+    td.replace(GardenCloudApi.prototype, "post", async () => {
       throw new Error("Not tonight")
     })
 
     // Double check token actually exists
-    const savedToken = await CloudApi.getStoredAuthToken(garden.log, garden.globalConfigStore, garden.cloudDomain!)
+    const savedToken = await getStoredAuthToken(garden.log, garden.globalConfigStore, garden.cloudDomain!)
     expect(savedToken).to.exist
     expect(savedToken!.token).to.eql(testToken.token)
     expect(savedToken!.refreshToken).to.eql(testToken.refreshToken)
 
     await command.action(logoutCommandParams({ garden }))
 
-    const tokenAfterLogout = await CloudApi.getStoredAuthToken(
-      garden.log,
-      garden.globalConfigStore,
-      garden.cloudDomain!
-    )
+    const tokenAfterLogout = await getStoredAuthToken(garden.log, garden.globalConfigStore, garden.cloudDomain!)
     const logOutput = getLogMessages(garden.log, (entry) => entry.level === LogLevel.info).join("\n")
 
     expect(tokenAfterLogout).to.not.exist
@@ -251,13 +236,13 @@ describe("LogoutCommand", () => {
       globalConfigStore,
     })
 
-    await CloudApi.saveAuthToken(garden.log, garden.globalConfigStore, testToken, garden.cloudDomain!)
-    td.replace(CloudApi.prototype, "checkClientAuthToken", async () => true)
-    td.replace(CloudApi.prototype, "startInterval", async () => {})
-    td.replace(CloudApi.prototype, "post", async () => {})
+    await saveAuthToken(garden.log, garden.globalConfigStore, testToken, garden.cloudDomain!)
+    td.replace(GardenCloudApi.prototype, "checkClientAuthToken", async () => true)
+    td.replace(GardenCloudApi.prototype, "startInterval", async () => {})
+    td.replace(GardenCloudApi.prototype, "post", async () => {})
 
     // Double check token actually exists
-    const savedToken = await CloudApi.getStoredAuthToken(garden.log, garden.globalConfigStore, garden.cloudDomain!)
+    const savedToken = await getStoredAuthToken(garden.log, garden.globalConfigStore, garden.cloudDomain!)
     expect(savedToken).to.exist
     expect(savedToken!.token).to.eql(testToken.token)
     expect(savedToken!.refreshToken).to.eql(testToken.refreshToken)
@@ -274,11 +259,7 @@ describe("LogoutCommand", () => {
 
     gardenEnv.GARDEN_CLOUD_DOMAIN = savedDomain
 
-    const tokenAfterLogout = await CloudApi.getStoredAuthToken(
-      garden.log,
-      garden.globalConfigStore,
-      garden.cloudDomain!
-    )
+    const tokenAfterLogout = await getStoredAuthToken(garden.log, garden.globalConfigStore, garden.cloudDomain!)
     const logOutput = getLogMessages(garden.log, (entry) => entry.level === LogLevel.info).join("\n")
 
     expect(tokenAfterLogout).to.not.exist

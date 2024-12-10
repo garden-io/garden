@@ -11,10 +11,10 @@ import { Command } from "./base.js"
 import { printHeader } from "../logger/util.js"
 import dedent from "dedent"
 import type { AuthTokenResponse } from "../cloud/api.js"
-import { CloudApi, getGardenCloudDomain } from "../cloud/api.js"
+import { GardenCloudApi, getGardenCloudDomain } from "../cloud/api.js"
 import type { Log } from "../logger/log-entry.js"
 import { ConfigurationError, TimeoutError, InternalError, CloudApiError } from "../exceptions.js"
-import { AuthRedirectServer } from "../cloud/auth.js"
+import { AuthRedirectServer, saveAuthToken } from "../cloud/auth.js"
 import type { EventBus } from "../events/events.js"
 import type { ProjectConfig } from "../config/project.js"
 import { findProjectConfig } from "../config/base.js"
@@ -88,7 +88,7 @@ export class LoginCommand extends Command<{}, Opts> {
     const cloudDomain: string = getGardenCloudDomain(projectConfig?.domain)
 
     try {
-      const cloudApi = await CloudApi.factory({ log, cloudDomain, skipLogging: true, globalConfigStore })
+      const cloudApi = await GardenCloudApi.factory({ log, cloudDomain, skipLogging: true, globalConfigStore })
 
       if (cloudApi) {
         log.success({ msg: `You're already logged in to ${cloudDomain}.` })
@@ -103,7 +103,7 @@ export class LoginCommand extends Command<{}, Opts> {
 
     log.info({ msg: `Logging in to ${cloudDomain}...` })
     const tokenResponse = await login(log, cloudDomain, garden.events)
-    await CloudApi.saveAuthToken(log, globalConfigStore, tokenResponse, cloudDomain)
+    await saveAuthToken(log, globalConfigStore, tokenResponse, cloudDomain)
     log.success({ msg: `Successfully logged in to ${cloudDomain}.`, showDuration: false })
 
     return {}

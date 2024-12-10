@@ -10,11 +10,11 @@ import { expect } from "chai"
 import * as td from "testdouble"
 import type { TempDirectory } from "../../../helpers.js"
 import { expectError, getDataDir, makeTempDir, makeTestGarden, withDefaultGlobalOpts } from "../../../helpers.js"
-import { AuthRedirectServer } from "../../../../src/cloud/auth.js"
+import { AuthRedirectServer, getStoredAuthToken, saveAuthToken } from "../../../../src/cloud/auth.js"
 
 import { LoginCommand } from "../../../../src/commands/login.js"
 import { randomString } from "../../../../src/util/string.js"
-import { CloudApi } from "../../../../src/cloud/api.js"
+import { GardenCloudApi } from "../../../../src/cloud/api.js"
 import { LogLevel } from "../../../../src/logger/logger.js"
 import { DEFAULT_GARDEN_CLOUD_DOMAIN, gardenEnv } from "../../../../src/constants.js"
 import { getLogMessages } from "../../../../src/util/testing.js"
@@ -73,7 +73,7 @@ describe("LoginCommand", () => {
 
     await command.action(loginCommandParams({ garden }))
 
-    const savedToken = await CloudApi.getStoredAuthToken(garden.log, garden.globalConfigStore, garden.cloudDomain!)
+    const savedToken = await getStoredAuthToken(garden.log, garden.globalConfigStore, garden.cloudDomain!)
     expect(savedToken).to.exist
     expect(savedToken!.token).to.eql(testToken.token)
     expect(savedToken!.refreshToken).to.eql(testToken.refreshToken)
@@ -99,7 +99,7 @@ describe("LoginCommand", () => {
 
     await command.action(loginCommandParams({ garden }))
 
-    const savedToken = await CloudApi.getStoredAuthToken(garden.log, garden.globalConfigStore, garden.cloudDomain!)
+    const savedToken = await getStoredAuthToken(garden.log, garden.globalConfigStore, garden.cloudDomain!)
     expect(savedToken).to.exist
     expect(savedToken!.token).to.eql(testToken.token)
     expect(savedToken!.refreshToken).to.eql(testToken.refreshToken)
@@ -120,13 +120,13 @@ describe("LoginCommand", () => {
       globalConfigStore,
     })
 
-    await CloudApi.saveAuthToken(garden.log, garden.globalConfigStore, testToken, garden.cloudDomain!)
-    td.replace(CloudApi.prototype, "checkClientAuthToken", async () => true)
-    td.replace(CloudApi.prototype, "startInterval", async () => {})
+    await saveAuthToken(garden.log, garden.globalConfigStore, testToken, garden.cloudDomain!)
+    td.replace(GardenCloudApi.prototype, "checkClientAuthToken", async () => true)
+    td.replace(GardenCloudApi.prototype, "startInterval", async () => {})
 
     await command.action(loginCommandParams({ garden }))
 
-    const savedToken = await CloudApi.getStoredAuthToken(garden.log, garden.globalConfigStore, garden.cloudDomain!)
+    const savedToken = await getStoredAuthToken(garden.log, garden.globalConfigStore, garden.cloudDomain!)
     expect(savedToken).to.exist
 
     const logOutput = getLogMessages(garden.log, (entry) => entry.level === LogLevel.info).join("\n")
@@ -160,7 +160,7 @@ describe("LoginCommand", () => {
     }, 500)
 
     await command.action(loginCommandParams({ garden }))
-    const savedToken = await CloudApi.getStoredAuthToken(garden.log, garden.globalConfigStore, cloudDomain)
+    const savedToken = await getStoredAuthToken(garden.log, garden.globalConfigStore, cloudDomain)
     expect(savedToken).to.exist
     expect(savedToken!.token).to.eql(testToken.token)
     expect(savedToken!.refreshToken).to.eql(testToken.refreshToken)
@@ -184,11 +184,7 @@ describe("LoginCommand", () => {
 
     await command.action(loginCommandParams({ garden }))
 
-    const savedToken = await CloudApi.getStoredAuthToken(
-      garden.log,
-      garden.globalConfigStore,
-      DEFAULT_GARDEN_CLOUD_DOMAIN
-    )
+    const savedToken = await getStoredAuthToken(garden.log, garden.globalConfigStore, DEFAULT_GARDEN_CLOUD_DOMAIN)
 
     expect(savedToken).to.exist
     expect(savedToken!.token).to.eql(testToken.token)
@@ -210,13 +206,13 @@ describe("LoginCommand", () => {
       globalConfigStore,
     })
 
-    await CloudApi.saveAuthToken(garden.log, garden.globalConfigStore, testToken, garden.cloudDomain!)
-    td.replace(CloudApi.prototype, "checkClientAuthToken", async () => false)
-    td.replace(CloudApi.prototype, "refreshToken", async () => {
+    await saveAuthToken(garden.log, garden.globalConfigStore, testToken, garden.cloudDomain!)
+    td.replace(GardenCloudApi.prototype, "checkClientAuthToken", async () => false)
+    td.replace(GardenCloudApi.prototype, "refreshToken", async () => {
       throw new Error("bummer")
     })
 
-    const savedToken = await CloudApi.getStoredAuthToken(garden.log, garden.globalConfigStore, garden.cloudDomain!)
+    const savedToken = await getStoredAuthToken(garden.log, garden.globalConfigStore, garden.cloudDomain!)
     expect(savedToken).to.exist
     expect(savedToken!.token).to.eql(testToken.token)
     expect(savedToken!.refreshToken).to.eql(testToken.refreshToken)
@@ -282,7 +278,7 @@ describe("LoginCommand", () => {
 
     await command.action(loginCommandParams({ garden, opts: { "disable-project-check": true } }))
 
-    const savedToken = await CloudApi.getStoredAuthToken(garden.log, garden.globalConfigStore, cloudDomain)
+    const savedToken = await getStoredAuthToken(garden.log, garden.globalConfigStore, cloudDomain)
     // reset the cloud domain
     gardenEnv.GARDEN_CLOUD_DOMAIN = savedDomain
 
@@ -305,7 +301,7 @@ describe("LoginCommand", () => {
         globalConfigStore,
       })
 
-      td.replace(CloudApi.prototype, "checkClientAuthToken", async () => true)
+      td.replace(GardenCloudApi.prototype, "checkClientAuthToken", async () => true)
 
       await command.action(loginCommandParams({ garden }))
 
@@ -322,7 +318,7 @@ describe("LoginCommand", () => {
         globalConfigStore,
       })
 
-      td.replace(CloudApi.prototype, "checkClientAuthToken", async () => false)
+      td.replace(GardenCloudApi.prototype, "checkClientAuthToken", async () => false)
 
       await expectError(async () => await command.action(loginCommandParams({ garden })), {
         contains: `The provided access token is expired or has been revoked for ${garden.cloudDomain}, please create a new one from the Garden Enterprise UI`,
@@ -360,11 +356,7 @@ describe("LoginCommand", () => {
 
       await command.action(loginCommandParams({ garden }))
 
-      const savedToken = await CloudApi.getStoredAuthToken(
-        garden.log,
-        garden.globalConfigStore,
-        gardenEnv.GARDEN_CLOUD_DOMAIN
-      )
+      const savedToken = await getStoredAuthToken(garden.log, garden.globalConfigStore, gardenEnv.GARDEN_CLOUD_DOMAIN)
       expect(savedToken).to.exist
       expect(savedToken!.token).to.eql(testToken.token)
       expect(savedToken!.refreshToken).to.eql(testToken.refreshToken)
@@ -390,11 +382,7 @@ describe("LoginCommand", () => {
 
       await command.action(loginCommandParams({ garden }))
 
-      const savedToken = await CloudApi.getStoredAuthToken(
-        garden.log,
-        garden.globalConfigStore,
-        gardenEnv.GARDEN_CLOUD_DOMAIN
-      )
+      const savedToken = await getStoredAuthToken(garden.log, garden.globalConfigStore, gardenEnv.GARDEN_CLOUD_DOMAIN)
       expect(savedToken).to.exist
       expect(savedToken!.token).to.eql(testToken.token)
       expect(savedToken!.refreshToken).to.eql(testToken.refreshToken)
