@@ -208,7 +208,7 @@ TemplateStrings
   }
 
 FormatString
-  = EscapeStart SourceCharacter* FormatEndWithOptional {
+  = EscapeStart (!FormatEndWithOptional SourceCharacter)* FormatEndWithOptional {
     if (options.unescape) {
       return new ast.LiteralExpression(location(), text().slice(1))
     } else {

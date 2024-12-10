@@ -129,6 +129,60 @@ describe("resolveTemplateString", () => {
     expect(res).to.equal("${bar}")
   })
 
+  it("should resolve other template variables after escaped one with unescape=false", () => {
+    const res = resolveTemplateString({
+      string: "foo $${} ${bar}",
+      context: new GenericContext({ bar: "bar" }),
+      contextOpts: { unescape: false },
+    })
+    expect(res).to.equal("foo $${} bar")
+  })
+
+  it("should resolve other template variables after escaped one with unescape=true", () => {
+    const res = resolveTemplateString({
+      string: "foo $${} ${bar}",
+      context: new GenericContext({ bar: "bar" }),
+      contextOpts: { unescape: true },
+    })
+    expect(res).to.equal("foo ${} bar")
+  })
+
+  it("should not unescape inner template variables with unescape=false", () => {
+    const res = resolveTemplateString({
+      string: 'foo ${"$${}"} ${bar}',
+      context: new GenericContext({ bar: "bar" }),
+      contextOpts: { unescape: false },
+    })
+    expect(res).to.equal("foo $${} bar")
+  })
+
+  it("should unescape inner template variables with unescape=true", () => {
+    const res = resolveTemplateString({
+      string: 'foo ${"$${}"} ${bar}',
+      context: new GenericContext({ bar: "bar" }),
+      contextOpts: { unescape: true },
+    })
+    expect(res).to.equal("foo ${} bar")
+  })
+
+  it("should not unescape outer template variables with unescape=false", () => {
+    const res = resolveTemplateString({
+      string: 'foo $${"${}"} ${bar}',
+      context: new GenericContext({ bar: "bar" }),
+      contextOpts: { unescape: false },
+    })
+    expect(res).to.equal('foo $${"${}"} bar')
+  })
+
+  it("should unescape outer template variables with unescape=true", () => {
+    const res = resolveTemplateString({
+      string: 'foo $${"${}"} ${bar}',
+      context: new GenericContext({ bar: "bar" }),
+      contextOpts: { unescape: true },
+    })
+    expect(res).to.equal('foo ${"${}"} bar')
+  })
+
   it("should unescape a template string with a double $$ prefix if allowPartial=false", () => {
     const res = resolveTemplateString({
       string: "$${bar}",
