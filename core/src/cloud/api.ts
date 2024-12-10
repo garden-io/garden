@@ -1058,7 +1058,7 @@ type RegisterCloudBuilderBuildResponseV2 = {
 }
 type UnsupportedRegisterCloudBuilderBuildResponse = {
   data: {
-    version: "unsupported" // using unknown here overpowers the compund type
+    version: "unsupported" // using unknown here overpowers the compound type
   }
 }
 type RegisterCloudBuilderBuildResponse =

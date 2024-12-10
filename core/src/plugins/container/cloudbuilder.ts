@@ -14,7 +14,6 @@ import dedent from "dedent"
 import { styles } from "../../logger/styles.js"
 import type { KubernetesPluginContext } from "../kubernetes/config.js"
 import fsExtra from "fs-extra"
-const { mkdirp, rm, writeFile, stat } = fsExtra
 import { basename, dirname, join } from "path"
 import { tmpdir } from "node:os"
 import type { CloudBuilderAvailabilityV2, CloudBuilderAvailableV2 } from "../../cloud/api.js"
@@ -30,6 +29,8 @@ import { containerHelpers } from "./helpers.js"
 import { hashString } from "../../util/util.js"
 import { stableStringify } from "../../util/string.js"
 import { homedir } from "os"
+
+const { mkdirp, rm, writeFile, stat } = fsExtra
 
 const generateKeyPair = promisify(crypto.generateKeyPair)
 
