@@ -6,15 +6,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import type { IncomingHttpHeaders } from "http"
 import ci from "ci-info"
-import type { GotHeaders, GotJsonOptions, GotResponse } from "../util/http.js"
-import { got, GotHttpError } from "../util/http.js"
+import { GotHttpError } from "../util/http.js"
 import { CloudApiError, GardenError } from "../exceptions.js"
 import type { Log } from "../logger/log-entry.js"
 import { DEFAULT_GARDEN_CLOUD_DOMAIN, gardenEnv } from "../constants.js"
 import { Cookie } from "tough-cookie"
-import { isObject, omit } from "lodash-es"
+import { omit } from "lodash-es"
 import { dedent, deline } from "../util/string.js"
 import type {
   BaseResponse,
@@ -34,21 +32,19 @@ import type {
   UpdateSecretResponse,
 } from "@garden-io/platform-api-types"
 import { getCloudDistributionName, getCloudLogSectionName } from "../util/cloud.js"
-import { getPackageVersion } from "../util/util.js"
 import type { CommandInfo } from "../plugin-context.js"
 import type { ClientAuthToken, GlobalConfigStore } from "../config-store/global.js"
 import { LogLevel } from "../logger/logger.js"
-import { getAuthToken, getStoredAuthToken, makeAuthHeader, saveAuthToken } from "./auth.js"
+import { getStoredAuthToken, saveAuthToken } from "./auth.js"
 import type { StringMap } from "../config/common.js"
 import { styles } from "../logger/styles.js"
-import { HTTPError, RequestError } from "got"
+import { HTTPError } from "got"
 import type { Garden } from "../garden.js"
 import type { ApiCommandError } from "../commands/cloud/helpers.js"
 import { enumerate } from "../util/enumerate.js"
 import queryString from "query-string"
-
-const gardenClientName = "garden-core"
-const gardenClientVersion = getPackageVersion()
+import type { ApiFetchOptions } from "./http-client.js"
+import { GardenCloudHttpClient } from "./http-client.js"
 
 export class CloudApiDuplicateProjectsError extends CloudApiError {}
 
@@ -58,31 +54,9 @@ function extractErrorMessageBodyFromGotError(error: any): error is GotHttpError 
   return error?.response?.body?.message
 }
 
-function stripLeadingSlash(str: string) {
-  return str.replace(/^\/+/, "")
-}
-
-// This is to prevent Unhandled Promise Rejections in got
-// See: https://github.com/sindresorhus/got/issues/1489#issuecomment-805485731
-function isGotResponseOk(response: GotResponse) {
-  const { statusCode } = response
-  const limitStatusCode = response.request.options.followRedirect ? 299 : 399
-
-  return (statusCode >= 200 && statusCode <= limitStatusCode) || statusCode === 304
-}
-
 const refreshThreshold = 10 // Threshold (in seconds) subtracted to jwt validity when checking if a refresh is needed
 
 const secretsPageLimit = 100
-
-export interface ApiFetchParams {
-  headers: GotHeaders
-  method: "GET" | "POST" | "PUT" | "PATCH" | "HEAD" | "DELETE"
-  retry: boolean
-  retryDescription?: string
-  maxRetries?: number
-  body?: any
-}
 
 interface BulkOperationResult {
   results: SecretResult[]
@@ -106,28 +80,10 @@ export interface BulkUpdateSecretRequest {
   secrets: SingleUpdateSecretRequest[]
 }
 
-export interface ApiFetchOptions {
-  headers?: GotHeaders
-  /**
-   * True by default except for api.post (where retry = true must explicitly be passed, since retries aren't always
-   * safe / desirable for such requests).
-   */
-  retry?: boolean
-  maxRetries?: number
-  /**
-   * An optional prefix to use for retry error messages.
-   */
-  retryDescription?: string
-}
-
 export interface AuthTokenResponse {
   token: string
   refreshToken: string
   tokenValidity: number
-}
-
-export type ApiFetchResponse<T> = T & {
-  headers: IncomingHttpHeaders
 }
 
 // TODO: Read this from the `api-types` package once the session registration logic has been released in Cloud.
@@ -217,9 +173,10 @@ export type CloudApiFactory = (params: CloudApiFactoryParams) => Promise<GardenC
  */
 export class GardenCloudApi {
   private intervalId: NodeJS.Timeout | null = null
-  private intervalMsec = 4500 // Refresh interval in ms, it needs to be less than refreshThreshold/2
-  private apiPrefix = "api"
+  private readonly intervalMsec = 4500 // Refresh interval in ms, it needs to be less than refreshThreshold/2
   private _profile?: GetProfileResponse["data"]
+
+  private readonly httpClient: GardenCloudHttpClient
 
   private projects: Map<string, CloudProject> // keyed by project ID
   private registeredSessions: Map<string, CloudSession> // keyed by session ID
@@ -229,8 +186,10 @@ export class GardenCloudApi {
   public readonly distroName: string
   private readonly globalConfigStore: GlobalConfigStore
 
-  constructor({ log, domain, globalConfigStore }: { log: Log; domain: string; globalConfigStore: GlobalConfigStore }) {
+  constructor(params: { log: Log; domain: string; globalConfigStore: GlobalConfigStore }) {
+    const { log, domain, globalConfigStore } = params
     this.log = log
+    this.httpClient = new GardenCloudHttpClient(params)
     this.domain = domain
     this.distroName = getCloudDistributionName(domain)
     this.globalConfigStore = globalConfigStore
@@ -432,131 +391,9 @@ export class GardenCloudApi {
     }
   }
 
-  private async apiFetch<T>(path: string, params: ApiFetchParams): Promise<ApiFetchResponse<T>> {
-    const { method, headers, retry, retryDescription } = params
-    this.log.silly(() => `Calling Cloud API with ${method} ${path}`)
-    const token = await getAuthToken(this.log, this.globalConfigStore, this.domain)
-    // TODO add more logging details
-    const requestObj = {
-      method,
-      headers: {
-        "x-garden-client-version": gardenClientVersion,
-        "x-garden-client-name": gardenClientName,
-        ...headers,
-        ...makeAuthHeader(token || ""),
-      },
-      json: params.body,
-    }
-
-    const requestOptions: GotJsonOptions = {
-      ...requestObj,
-      responseType: "json",
-    }
-
-    const url = new URL(`/${this.apiPrefix}/${stripLeadingSlash(path)}`, this.domain)
-
-    if (retry) {
-      let retryLog: Log | undefined = undefined
-      const retryLimit = params.maxRetries || 3
-      requestOptions.retry = {
-        methods: ["GET", "POST", "PUT", "DELETE"], // We explicitly include the POST method if `retry = true`.
-        statusCodes: [
-          408, // Request Timeout
-          // 413, // Payload Too Large: No use in retrying.
-          429, // Too Many Requests
-          // 500, // Internal Server Error: Generally not safe to retry without potentially creating duplicate data.
-          502, // Bad Gateway
-          503, // Service Unavailable
-          504, // Gateway Timeout
-
-          // Cloudflare-specific status codes
-          521, // Web Server Is Down
-          522, // Connection Timed Out
-          524, // A Timeout Occurred
-        ],
-        limit: retryLimit,
-      }
-      requestOptions.hooks = {
-        beforeRetry: [
-          (error, retryCount) => {
-            if (error) {
-              // Intentionally skipping search params in case they contain tokens or sensitive data.
-              const href = url.origin + url.pathname
-              const description = retryDescription || `Request`
-              retryLog = retryLog || this.log.createLog({ fixLevel: LogLevel.debug })
-              const statusCodeDescription = error.code ? ` (status code ${error.code})` : ``
-              retryLog.info(deline`
-                ${description} failed with error ${error.message}${statusCodeDescription},
-                retrying (${retryCount}/${retryLimit}) (url=${href})
-              `)
-            }
-          },
-        ],
-        // See: https://github.com/sindresorhus/got/issues/1489#issuecomment-805485731
-        afterResponse: [
-          (response) => {
-            if (isGotResponseOk(response)) {
-              response.request.destroy()
-            }
-
-            return response
-          },
-        ],
-      }
-    } else {
-      requestOptions.retry = undefined // Disables retry
-    }
-
-    try {
-      const res = await got<T>(url.href, requestOptions)
-
-      if (!isObject(res.body)) {
-        throw new CloudApiError({
-          message: dedent`
-          Unexpected response from Garden Cloud: Expected object.
-
-          Request ID: ${res.headers["x-request-id"]}
-          Request url: ${url}
-          Response code: ${res?.statusCode}
-          Response body: ${JSON.stringify(res?.body)}
-        `,
-          responseStatusCode: res?.statusCode,
-        })
-      }
-
-      return {
-        ...res.body,
-        headers: res.headers,
-      }
-    } catch (e: unknown) {
-      if (!(e instanceof RequestError)) {
-        throw e
-      }
-
-      // The assumption here is that Garden Enterprise is self-hosted.
-      // This error should only be thrown if the Garden Enterprise instance is not hosted by us (i.e. Garden Inc.)
-      if (e.code === "DEPTH_ZERO_SELF_SIGNED_CERT" && getCloudDistributionName(this.domain) === "Garden Enterprise") {
-        throw new CloudApiError({
-          message: dedent`
-          SSL error when communicating to Garden Cloud: ${e}
-
-          If your Garden Cloud instance is self-hosted and you are using a self-signed certificate, Garden will not trust your system's CA certificates.
-
-          In case if you need to trust extra certificate authorities, consider exporting the environment variable NODE_EXTRA_CA_CERTS. See https://nodejs.org/api/cli.html#node_extra_ca_certsfile
-
-          Request url: ${url}
-          Error code: ${e.code}
-        `,
-        })
-      }
-
-      throw e
-    }
-  }
-
   async get<T>(path: string, opts: ApiFetchOptions = {}) {
     const { headers, retry, retryDescription, maxRetries } = opts
-    return this.apiFetch<T>(path, {
+    return this.httpClient.apiFetch<T>(path, {
       method: "GET",
       headers: headers || {},
       retry: retry !== false, // defaults to true unless false is explicitly passed
@@ -567,7 +404,7 @@ export class GardenCloudApi {
 
   async delete<T>(path: string, opts: ApiFetchOptions = {}) {
     const { headers, retry, retryDescription, maxRetries } = opts
-    return await this.apiFetch<T>(path, {
+    return await this.httpClient.apiFetch<T>(path, {
       method: "DELETE",
       headers: headers || {},
       retry: retry !== false, // defaults to true unless false is explicitly passed
@@ -578,7 +415,7 @@ export class GardenCloudApi {
 
   async post<T>(path: string, opts: ApiFetchOptions & { body?: any } = {}) {
     const { body, headers, retry, retryDescription, maxRetries } = opts
-    return this.apiFetch<T>(path, {
+    return this.httpClient.apiFetch<T>(path, {
       method: "POST",
       body: body || {},
       headers: headers || {},
@@ -590,7 +427,7 @@ export class GardenCloudApi {
 
   async put<T>(path: string, opts: ApiFetchOptions & { body?: any } = {}) {
     const { body, headers, retry, retryDescription, maxRetries } = opts
-    return this.apiFetch<T>(path, {
+    return this.httpClient.apiFetch<T>(path, {
       method: "PUT",
       body: body || {},
       headers: headers || {},
