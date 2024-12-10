@@ -14,11 +14,7 @@ import { joi } from "../../../config/common.js"
 import { environmentStatusSchema } from "../../../config/status.js"
 import type { GenericProviderConfig } from "../../../config/provider.js"
 
-export interface PrepareEnvironmentParams<
-  C extends GenericProviderConfig = any,
-  T extends EnvironmentStatus = EnvironmentStatus,
-> extends PluginActionParamsBase<C> {
-  status: T
+export interface PrepareEnvironmentParams<C extends GenericProviderConfig = any> extends PluginActionParamsBase<C> {
   force: boolean
 }
 
@@ -27,6 +23,7 @@ export interface PrepareEnvironmentResult<O extends {} = any, D extends {} = any
 }
 
 export const prepareEnvironment = () => ({
+  // TODO @eysi: Update text
   description: dedent`
     Make sure the environment is set up for this plugin. Use this action to do any bootstrapping required
     before deploying services.

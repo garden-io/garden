@@ -120,10 +120,6 @@ const providerConfigSchema = s.object({
 
 export const provider = gardenPlugin.createProvider({ configSchema: providerConfigSchema, outputsSchema: s.object({}) })
 
-provider.addHandler("getEnvironmentStatus", async () => {
-  return { ready: false, outputs: {} }
-})
-
 provider.addHandler("prepareEnvironment", async ({ ctx, log }) => {
   const scopedLog = log.createLog({ name: "otel-collector" })
   scopedLog.debug("Preparing the environment for the otel-collector")

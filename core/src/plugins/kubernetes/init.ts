@@ -145,16 +145,19 @@ export async function getIngressMisconfigurationWarnings(
 
 /**
  * Deploys system services (if any) and creates the default app namespace.
+ * TODO @eysi: Ensure secrets here
  */
 export async function prepareEnvironment(
-  params: PrepareEnvironmentParams<KubernetesConfig, KubernetesEnvironmentStatus>
+  params: PrepareEnvironmentParams<KubernetesConfig>
 ): Promise<PrepareEnvironmentResult> {
-  const { ctx, log, status } = params
+  const { ctx, log } = params
   const k8sCtx = <KubernetesPluginContext>ctx
   const provider = k8sCtx.provider
   const config = provider.config
+  const api = await KubeApi.factory(log, ctx, provider)
+
   // create default app namespace if it doesn't exist
-  await prepareNamespaces({ ctx, log })
+  const nsStatuses = await prepareNamespaces({ ctx, log })
   // make sure that the system namespace exists
   await getSystemNamespace(ctx, ctx.provider, log)
 
@@ -162,11 +165,30 @@ export async function prepareEnvironment(
   if (config.setupIngressController === "nginx") {
     // Install nginx ingress controller
     await ingressControllerInstall(k8sCtx, log)
+  } else {
+    // We only need to warn about missing ingress classes if we're not using garden installed nginx
+    const ingressApiVersion = await getIngressApiVersion(log, api, supportedIngressApiVersions)
+    const ingressWarnings = await getIngressMisconfigurationWarnings(
+      provider.config.ingressClass,
+      ingressApiVersion,
+      log,
+      api
+    )
+    ingressWarnings.forEach((w) => log.warn(w))
   }
 
-  const nsStatus = await getNamespaceStatus({ ctx: k8sCtx, log, provider })
-  ctx.events.emit("namespaceStatus", nsStatus)
-  return { status: { ready: true, outputs: status.outputs } }
+  // prepareNamespaces already does this
+  // const nsStatus = await getNamespaceStatus({ ctx: k8sCtx, log, provider })
+  // ctx.events.emit("namespaceStatus", nsStatus)
+  return {
+    status: {
+      ready: true,
+      outputs: {
+        "app-namespace": nsStatuses["app-namespace"].namespaceName,
+        "default-hostname": provider.config.defaultHostname || null,
+      },
+    },
+  }
 }
 
 export async function cleanupEnvironment({

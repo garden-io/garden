@@ -31,10 +31,11 @@ export interface EnvironmentStatusMap {
   [providerName: string]: EnvironmentStatus
 }
 
+// TODO @eysi: Update text
 export const getEnvironmentStatus = () => ({
   description: dedent`
-    Check if the current environment is ready for use by this plugin. Use this action in combination
-    with \`prepareEnvironment\`.
+    Helper handler to check if the current environment is ready for use by this plugin. Only called
+    with commands that set \`statusOnly: true\`.
 
     Called before \`prepareEnvironment\`. If this returns \`ready: true\`, the
     \`prepareEnvironment\` action is not called.
