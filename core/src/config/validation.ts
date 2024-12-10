@@ -273,5 +273,5 @@ export function addYamlContext({
   const errorLineOffset = range[0] - errorLineStart + linePrefixLength + 2
   const marker = styles.error("-".repeat(errorLineOffset)) + styles.error.bold("^")
 
-  return `${yamlDoc.filename ? `${styles.secondary(`${yamlDoc.filename}:${lineNumber - snippetLines}`)}\n` : ""}${snippet}\n${marker}\n${styles.error.bold(message)}`
+  return `${yamlDoc.filename ? `${styles.secondary(`${yamlDoc.filename}:${lineNumber - (snippetLines - 1)}`)}\n` : ""}${snippet}\n${marker}\n${styles.error.bold(message)}`
 }
