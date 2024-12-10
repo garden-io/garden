@@ -55,6 +55,8 @@ export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
     return this.action.longDescription()
   }
 
+  override readonly needsStatus = true
+
   @OtelTraced({
     name: "getTestStatus",
     getAttributes(_params) {

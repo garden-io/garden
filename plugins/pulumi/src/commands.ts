@@ -329,6 +329,8 @@ class PulumiPluginCommandTask extends PluginActionTask<PulumiDeploy, PulumiComma
     return tasks
   }
 
+  override readonly needsStatus = false
+
   async getStatus() {
     return null
   }

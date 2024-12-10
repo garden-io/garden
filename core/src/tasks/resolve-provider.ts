@@ -166,6 +166,8 @@ export class ResolveProviderTask extends BaseTask<Provider> {
     )
   }
 
+  override readonly needsStatus = false
+
   async getStatus() {
     return null
   }

@@ -28,6 +28,8 @@ export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {
     return this.action.longDescription()
   }
 
+  override readonly needsStatus = true
+
   @OtelTraced({
     name(_params) {
       return `${this.action.key()}.getBuildStatus`
