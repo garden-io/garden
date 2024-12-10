@@ -317,16 +317,16 @@ describe("resolveTemplateString", () => {
 
   it("if available, should include yaml context in error message", async () => {
     const command = "${resol${part}ed}"
-    const yamlDoc = await loadAndValidateYaml(
-      dedent`
+    const yamlDoc = await loadAndValidateYaml({
+      content: dedent`
       name: test,
       kind: Build
       spec:
         command: '${command}'
     `,
-      "test",
-      "bar/foo.yaml"
-    )
+      sourceDescription: "test",
+      filename: "bar/foo.yaml",
+    })
     void expectError(
       () =>
         resolveTemplateString({

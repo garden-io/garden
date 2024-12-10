@@ -461,7 +461,7 @@ async function parseKubernetesManifests(
 ): Promise<KubernetesResource[]> {
   // parse yaml with version 1.1 by default, as Kubernetes still uses this version.
   // See also https://github.com/kubernetes/kubernetes/issues/34146
-  const docs = await loadAndValidateYaml(str, sourceDescription, "1.1")
+  const docs = await loadAndValidateYaml({ content: str, sourceDescription, filename, version: "1.1" })
 
   // TODO: We should use schema validation to make sure that apiVersion, kind and metadata are always defined as required by the type.
   const manifests = docs.map((d) => d.toJS()) as KubernetesResource[]

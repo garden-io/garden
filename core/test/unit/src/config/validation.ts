@@ -306,7 +306,11 @@ describe("validateSchema", () => {
       name: bar
     `
 
-    const yamlDocs = await loadAndValidateYaml(yaml, "foo.yaml in directory bar", "bar/foo.yaml")
+    const yamlDocs = await loadAndValidateYaml({
+      content: yaml,
+      sourceDescription: "foo.yaml in directory bar",
+      filename: "bar/foo.yaml",
+    })
     const yamlDoc = yamlDocs[1]
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

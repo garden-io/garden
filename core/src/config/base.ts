@@ -126,12 +126,17 @@ export const allConfigKinds = ["Module", "Workflow", "Project", configTemplateKi
  * @param sourceDescription - A description of the location of the yaml file, e.g. "bar.yaml at directory /foo/".
  * @param version - YAML standard version. Defaults to "1.2"
  */
-export async function loadAndValidateYaml(
-  content: string,
-  sourceDescription: string,
-  filename: string | undefined,
-  version: DocumentOptions["version"] = "1.2"
-): Promise<YamlDocumentWithSource[]> {
+export async function loadAndValidateYaml({
+  content,
+  sourceDescription,
+  filename,
+  version = "1.2",
+}: {
+  content: string
+  sourceDescription: string
+  filename: string | undefined
+  version?: DocumentOptions["version"]
+}): Promise<YamlDocumentWithSource[]> {
   try {
     return Array.from(parseAllDocuments(content, { merge: true, strict: false, version }) || []).map((doc) => {
       if (doc.errors.length > 0) {
@@ -200,11 +205,11 @@ export async function validateRawConfig({
   projectRoot: string
   allowInvalid?: boolean
 }) {
-  let rawSpecs = await loadAndValidateYaml(
-    rawConfig,
-    `${basename(configPath)} in directory ${dirname(configPath)}`,
-    configPath
-  )
+  let rawSpecs = await loadAndValidateYaml({
+    content: rawConfig,
+    sourceDescription: `${basename(configPath)} in directory ${dirname(configPath)}`,
+    filename: configPath,
+  })
 
   // Ignore empty resources
   rawSpecs = rawSpecs.filter(Boolean)
