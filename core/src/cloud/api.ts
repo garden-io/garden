@@ -211,10 +211,9 @@ export interface CloudApiFactoryParams {
 export type CloudApiFactory = (params: CloudApiFactoryParams) => Promise<CloudApi | undefined>
 
 /**
- * The Enterprise API client.
+ * The Garden Cloud / Enterprise API client.
  *
- * Can only be initialized if the user is actually logged in. Includes a handful of static helper methods
- * for cases where the user is not logged in (e.g. the login method itself).
+ * Can only be initialized if the user is actually logged in.
  */
 export class CloudApi {
   private intervalId: NodeJS.Timeout | null = null
