@@ -9,7 +9,7 @@
 import type { CommandParams, CommandResult } from "./base.js"
 import { Command } from "./base.js"
 import { printHeader } from "../logger/util.js"
-import { CloudApi, getGardenCloudDomain } from "../cloud/api.js"
+import { GardenCloudApi, getGardenCloudDomain } from "../cloud/api.js"
 import { getCloudDistributionName } from "../util/cloud.js"
 import { dedent, deline } from "../util/string.js"
 import { ConfigurationError } from "../exceptions.js"
@@ -74,7 +74,7 @@ export class LogOutCommand extends Command<{}, Opts> {
         return {}
       }
 
-      const cloudApi = await CloudApi.factory({
+      const cloudApi = await GardenCloudApi.factory({
         log,
         cloudDomain,
         skipLogging: true,

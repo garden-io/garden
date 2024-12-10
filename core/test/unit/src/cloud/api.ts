@@ -14,7 +14,7 @@ import { randomString } from "../../../../src/util/string.js"
 import { GlobalConfigStore } from "../../../../src/config-store/global.js"
 import { clearAuthToken, getAuthToken, saveAuthToken } from "../../../../src/cloud/auth.js"
 
-describe("CloudApi", () => {
+describe("GardenCloudApi", () => {
   const log = getRootLogger().createLog()
   const domain = "https://garden." + randomString()
   const globalConfigStore = new GlobalConfigStore()

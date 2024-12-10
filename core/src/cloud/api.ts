@@ -138,7 +138,7 @@ export interface CloudSessionResponse {
 }
 
 export interface CloudSession extends CloudSessionResponse {
-  api: CloudApi
+  api: GardenCloudApi
   id: string
   projectId: string
 }
@@ -208,14 +208,14 @@ export interface CloudApiFactoryParams {
   skipLogging?: boolean
 }
 
-export type CloudApiFactory = (params: CloudApiFactoryParams) => Promise<CloudApi | undefined>
+export type CloudApiFactory = (params: CloudApiFactoryParams) => Promise<GardenCloudApi | undefined>
 
 /**
  * The Garden Cloud / Enterprise API client.
  *
  * Can only be initialized if the user is actually logged in.
  */
-export class CloudApi {
+export class GardenCloudApi {
   private intervalId: NodeJS.Timeout | null = null
   private intervalMsec = 4500 // Refresh interval in ms, it needs to be less than refreshThreshold/2
   private apiPrefix = "api"
@@ -264,7 +264,7 @@ export class CloudApi {
       return
     }
 
-    const api = new CloudApi({ log, domain: cloudDomain, globalConfigStore })
+    const api = new GardenCloudApi({ log, domain: cloudDomain, globalConfigStore })
     const tokenIsValid = await api.checkClientAuthToken()
 
     cloudFactoryLog.debug("Authorizing...")

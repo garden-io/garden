@@ -7,7 +7,7 @@
  */
 
 import type { CloudOrganization, CloudProject, GetSecretsParams } from "../../src/cloud/api.js"
-import { CloudApi } from "../../src/cloud/api.js"
+import { GardenCloudApi } from "../../src/cloud/api.js"
 import type { Log } from "../../src/logger/log-entry.js"
 import { GlobalConfigStore } from "../../src/config-store/global.js"
 import { uuidv4 } from "../../src/util/random.js"
@@ -22,7 +22,7 @@ export const apiRemoteOriginUrl = "git@github.com:garden-io/garden.git"
 export const apiProjectName =
   "95048f63dc14db38ed4138ffb6ff89992abdc19b8c899099c52a94f8fcc0390eec6480385cfa5014f84c0a14d4984825ce3bf25db1386d2b5382b936899df675"
 
-export class FakeCloudApi extends CloudApi {
+export class FakeCloudApi extends GardenCloudApi {
   static override async factory(params: { log: Log; skipLogging?: boolean }) {
     return new FakeCloudApi({
       log: params.log,

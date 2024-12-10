@@ -14,7 +14,7 @@ import { AuthRedirectServer, getStoredAuthToken, saveAuthToken } from "../../../
 
 import { LoginCommand } from "../../../../src/commands/login.js"
 import { randomString } from "../../../../src/util/string.js"
-import { CloudApi } from "../../../../src/cloud/api.js"
+import { GardenCloudApi } from "../../../../src/cloud/api.js"
 import { LogLevel } from "../../../../src/logger/logger.js"
 import { DEFAULT_GARDEN_CLOUD_DOMAIN, gardenEnv } from "../../../../src/constants.js"
 import { getLogMessages } from "../../../../src/util/testing.js"
@@ -121,8 +121,8 @@ describe("LoginCommand", () => {
     })
 
     await saveAuthToken(garden.log, garden.globalConfigStore, testToken, garden.cloudDomain!)
-    td.replace(CloudApi.prototype, "checkClientAuthToken", async () => true)
-    td.replace(CloudApi.prototype, "startInterval", async () => {})
+    td.replace(GardenCloudApi.prototype, "checkClientAuthToken", async () => true)
+    td.replace(GardenCloudApi.prototype, "startInterval", async () => {})
 
     await command.action(loginCommandParams({ garden }))
 
@@ -207,8 +207,8 @@ describe("LoginCommand", () => {
     })
 
     await saveAuthToken(garden.log, garden.globalConfigStore, testToken, garden.cloudDomain!)
-    td.replace(CloudApi.prototype, "checkClientAuthToken", async () => false)
-    td.replace(CloudApi.prototype, "refreshToken", async () => {
+    td.replace(GardenCloudApi.prototype, "checkClientAuthToken", async () => false)
+    td.replace(GardenCloudApi.prototype, "refreshToken", async () => {
       throw new Error("bummer")
     })
 
@@ -301,7 +301,7 @@ describe("LoginCommand", () => {
         globalConfigStore,
       })
 
-      td.replace(CloudApi.prototype, "checkClientAuthToken", async () => true)
+      td.replace(GardenCloudApi.prototype, "checkClientAuthToken", async () => true)
 
       await command.action(loginCommandParams({ garden }))
 
@@ -318,7 +318,7 @@ describe("LoginCommand", () => {
         globalConfigStore,
       })
 
-      td.replace(CloudApi.prototype, "checkClientAuthToken", async () => false)
+      td.replace(GardenCloudApi.prototype, "checkClientAuthToken", async () => false)
 
       await expectError(async () => await command.action(loginCommandParams({ garden })), {
         contains: `The provided access token is expired or has been revoked for ${garden.cloudDomain}, please create a new one from the Garden Enterprise UI`,

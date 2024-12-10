@@ -11,7 +11,7 @@ import * as td from "testdouble"
 import type { TempDirectory } from "../../../helpers.js"
 import { getDataDir, makeTempDir, makeTestGarden, withDefaultGlobalOpts } from "../../../helpers.js"
 import { randomString } from "../../../../src/util/string.js"
-import { CloudApi } from "../../../../src/cloud/api.js"
+import { GardenCloudApi } from "../../../../src/cloud/api.js"
 import { LogLevel } from "../../../../src/logger/logger.js"
 import { LogOutCommand } from "../../../../src/commands/logout.js"
 import { expectError, getLogMessages } from "../../../../src/util/testing.js"
@@ -64,9 +64,9 @@ describe("LogoutCommand", () => {
     })
 
     await saveAuthToken(garden.log, garden.globalConfigStore, testToken, garden.cloudDomain!)
-    td.replace(CloudApi.prototype, "checkClientAuthToken", async () => true)
-    td.replace(CloudApi.prototype, "startInterval", async () => {})
-    td.replace(CloudApi.prototype, "post", async () => {})
+    td.replace(GardenCloudApi.prototype, "checkClientAuthToken", async () => true)
+    td.replace(GardenCloudApi.prototype, "startInterval", async () => {})
+    td.replace(GardenCloudApi.prototype, "post", async () => {})
 
     // Double check token actually exists
     const savedToken = await getStoredAuthToken(garden.log, garden.globalConfigStore, garden.cloudDomain!)
@@ -98,9 +98,9 @@ describe("LogoutCommand", () => {
     })
 
     await saveAuthToken(garden.log, garden.globalConfigStore, testToken, garden.cloudDomain!)
-    td.replace(CloudApi.prototype, "checkClientAuthToken", async () => true)
-    td.replace(CloudApi.prototype, "startInterval", async () => {})
-    td.replace(CloudApi.prototype, "post", async () => {})
+    td.replace(GardenCloudApi.prototype, "checkClientAuthToken", async () => true)
+    td.replace(GardenCloudApi.prototype, "startInterval", async () => {})
+    td.replace(GardenCloudApi.prototype, "post", async () => {})
 
     // Double check token actually exists
     const savedToken = await getStoredAuthToken(garden.log, garden.globalConfigStore, garden.cloudDomain!)
@@ -148,7 +148,7 @@ describe("LogoutCommand", () => {
 
     await saveAuthToken(garden.log, garden.globalConfigStore, testToken, garden.cloudDomain!)
     // Throw when initializing Enterprise API
-    td.replace(CloudApi.prototype, "factory", async () => {
+    td.replace(GardenCloudApi.prototype, "factory", async () => {
       throw new Error("Not tonight")
     })
 
@@ -184,7 +184,7 @@ describe("LogoutCommand", () => {
 
     await saveAuthToken(garden.log, garden.globalConfigStore, testToken, garden.cloudDomain!)
     // Throw when using Enterprise API to call logout endpoint
-    td.replace(CloudApi.prototype, "post", async () => {
+    td.replace(GardenCloudApi.prototype, "post", async () => {
       throw new Error("Not tonight")
     })
 
@@ -237,9 +237,9 @@ describe("LogoutCommand", () => {
     })
 
     await saveAuthToken(garden.log, garden.globalConfigStore, testToken, garden.cloudDomain!)
-    td.replace(CloudApi.prototype, "checkClientAuthToken", async () => true)
-    td.replace(CloudApi.prototype, "startInterval", async () => {})
-    td.replace(CloudApi.prototype, "post", async () => {})
+    td.replace(GardenCloudApi.prototype, "checkClientAuthToken", async () => true)
+    td.replace(GardenCloudApi.prototype, "startInterval", async () => {})
+    td.replace(GardenCloudApi.prototype, "post", async () => {})
 
     // Double check token actually exists
     const savedToken = await getStoredAuthToken(garden.log, garden.globalConfigStore, garden.cloudDomain!)
