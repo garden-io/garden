@@ -224,10 +224,10 @@ export class CloudApi {
   private projects: Map<string, CloudProject> // keyed by project ID
   private registeredSessions: Map<string, CloudSession> // keyed by session ID
 
-  private log: Log
+  private readonly log: Log
   public readonly domain: string
   public readonly distroName: string
-  private globalConfigStore: GlobalConfigStore
+  private readonly globalConfigStore: GlobalConfigStore
 
   constructor({ log, domain, globalConfigStore }: { log: Log; domain: string; globalConfigStore: GlobalConfigStore }) {
     this.log = log
