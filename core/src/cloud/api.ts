@@ -10,11 +10,11 @@ import type { IncomingHttpHeaders } from "http"
 import ci from "ci-info"
 import type { GotHeaders, GotJsonOptions, GotResponse } from "../util/http.js"
 import { got, GotHttpError } from "../util/http.js"
-import { CloudApiError, GardenError, InternalError } from "../exceptions.js"
+import { CloudApiError, GardenError } from "../exceptions.js"
 import type { Log } from "../logger/log-entry.js"
 import { DEFAULT_GARDEN_CLOUD_DOMAIN, gardenEnv } from "../constants.js"
 import { Cookie } from "tough-cookie"
-import { cloneDeep, isObject, omit } from "lodash-es"
+import { isObject, omit } from "lodash-es"
 import { dedent, deline } from "../util/string.js"
 import type {
   BaseResponse,
@@ -37,9 +37,8 @@ import { getCloudDistributionName, getCloudLogSectionName } from "../util/cloud.
 import { getPackageVersion } from "../util/util.js"
 import type { CommandInfo } from "../plugin-context.js"
 import type { ClientAuthToken, GlobalConfigStore } from "../config-store/global.js"
-import { add } from "date-fns"
 import { LogLevel } from "../logger/logger.js"
-import { makeAuthHeader } from "./auth.js"
+import { getAuthToken, getStoredAuthToken, makeAuthHeader, saveAuthToken } from "./auth.js"
 import type { StringMap } from "../config/common.js"
 import { styles } from "../logger/styles.js"
 import { HTTPError, RequestError } from "got"
@@ -257,7 +256,7 @@ export class CloudApi {
 
     cloudFactoryLog.debug("Initializing Garden Cloud API client.")
 
-    const token = await CloudApi.getStoredAuthToken(log, globalConfigStore, cloudDomain)
+    const token = await getStoredAuthToken(log, globalConfigStore, cloudDomain)
 
     if (!token && !gardenEnv.GARDEN_AUTH_TOKEN) {
       log.debug(
@@ -296,88 +295,6 @@ export class CloudApi {
     }
 
     return api
-  }
-
-  static async saveAuthToken(
-    log: Log,
-    globalConfigStore: GlobalConfigStore,
-    tokenResponse: AuthTokenResponse,
-    domain: string
-  ) {
-    const distroName = getCloudDistributionName(domain)
-
-    if (!tokenResponse.token) {
-      const errMsg = deline`
-        Received a null/empty client auth token while logging in. This indicates that either your user account hasn't
-        yet been created in ${distroName}, or that there's a problem with your account's VCS username / login
-        credentials.
-      `
-      throw new CloudApiError({ message: errMsg })
-    }
-    try {
-      const validityMs = tokenResponse.tokenValidity || 604800000
-      await globalConfigStore.set("clientAuthTokens", domain, {
-        token: tokenResponse.token,
-        refreshToken: tokenResponse.refreshToken,
-        validity: add(new Date(), { seconds: validityMs / 1000 }),
-      })
-      log.debug("Saved client auth token to config store")
-    } catch (error) {
-      const redactedResponse = cloneDeep(tokenResponse)
-      if (redactedResponse.refreshToken) {
-        redactedResponse.refreshToken = "<Redacted>"
-      }
-      if (redactedResponse.token) {
-        redactedResponse.token = "<Redacted>"
-      }
-      // If we get here, this is a bug.
-      throw InternalError.wrapError(
-        error,
-        dedent`
-        An error occurred while saving client auth token to local config db.
-
-        Token response: ${JSON.stringify(redactedResponse)}`
-      )
-    }
-  }
-
-  /**
-   * Returns the full client auth token from the local DB.
-   *
-   * In the inconsistent/erroneous case of more than one auth token existing in the local store, picks the first auth
-   * token and deletes all others.
-   */
-  static async getStoredAuthToken(log: Log, globalConfigStore: GlobalConfigStore, domain: string) {
-    log.silly(() => `Retrieving client auth token from config store`)
-    return globalConfigStore.get("clientAuthTokens", domain)
-  }
-
-  /**
-   * If a persisted client auth token was found, or if the GARDEN_AUTH_TOKEN environment variable is present,
-   * returns it. Returns null otherwise.
-   *
-   * Note that the GARDEN_AUTH_TOKEN environment variable takes precedence over a persisted auth token if both are
-   * present.
-   */
-  static async getAuthToken(
-    log: Log,
-    globalConfigStore: GlobalConfigStore,
-    domain: string
-  ): Promise<string | undefined> {
-    const tokenFromEnv = gardenEnv.GARDEN_AUTH_TOKEN
-    if (tokenFromEnv) {
-      log.silly(() => "Read client auth token from env")
-      return tokenFromEnv
-    }
-    return (await CloudApi.getStoredAuthToken(log, globalConfigStore, domain))?.token
-  }
-
-  /**
-   * If a persisted client auth token exists, deletes it.
-   */
-  static async clearAuthToken(log: Log, globalConfigStore: GlobalConfigStore, domain: string) {
-    await globalConfigStore.delete("clientAuthTokens", domain)
-    log.debug("Cleared persisted auth token (if any)")
   }
 
   private startInterval() {
@@ -500,7 +417,7 @@ export class CloudApi {
         refreshToken: rt.value || "",
         tokenValidity: res.data.jwtValidity,
       }
-      await CloudApi.saveAuthToken(this.log, this.globalConfigStore, tokenObj, this.domain)
+      await saveAuthToken(this.log, this.globalConfigStore, tokenObj, this.domain)
     } catch (err) {
       if (!(err instanceof GotHttpError)) {
         throw err
@@ -519,7 +436,7 @@ export class CloudApi {
   private async apiFetch<T>(path: string, params: ApiFetchParams): Promise<ApiFetchResponse<T>> {
     const { method, headers, retry, retryDescription } = params
     this.log.silly(() => `Calling Cloud API with ${method} ${path}`)
-    const token = await CloudApi.getAuthToken(this.log, this.globalConfigStore, this.domain)
+    const token = await getAuthToken(this.log, this.globalConfigStore, this.domain)
     // TODO add more logging details
     const requestObj = {
       method,

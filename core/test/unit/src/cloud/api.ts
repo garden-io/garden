@@ -9,10 +9,10 @@
 import { expect } from "chai"
 import { getRootLogger } from "../../../../src/logger/logger.js"
 import { gardenEnv } from "../../../../src/constants.js"
-import { CloudApi } from "../../../../src/cloud/api.js"
 import { uuidv4 } from "../../../../src/util/random.js"
 import { randomString } from "../../../../src/util/string.js"
 import { GlobalConfigStore } from "../../../../src/config-store/global.js"
+import { clearAuthToken, getAuthToken, saveAuthToken } from "../../../../src/cloud/auth.js"
 
 describe("CloudApi", () => {
   const log = getRootLogger().createLog()
@@ -21,7 +21,7 @@ describe("CloudApi", () => {
 
   describe("getAuthToken", () => {
     it("should return null when no auth token is present", async () => {
-      const savedToken = await CloudApi.getAuthToken(log, globalConfigStore, domain)
+      const savedToken = await getAuthToken(log, globalConfigStore, domain)
       expect(savedToken).to.be.undefined
     })
 
@@ -31,8 +31,8 @@ describe("CloudApi", () => {
         refreshToken: uuidv4(),
         tokenValidity: 9999,
       }
-      await CloudApi.saveAuthToken(log, globalConfigStore, testToken, domain)
-      const savedToken = await CloudApi.getAuthToken(log, globalConfigStore, domain)
+      await saveAuthToken(log, globalConfigStore, testToken, domain)
+      const savedToken = await getAuthToken(log, globalConfigStore, domain)
       expect(savedToken).to.eql(testToken.token)
     })
 
@@ -41,7 +41,7 @@ describe("CloudApi", () => {
       const testToken = "token-from-env"
       gardenEnv.GARDEN_AUTH_TOKEN = testToken
       try {
-        const savedToken = await CloudApi.getAuthToken(log, globalConfigStore, domain)
+        const savedToken = await getAuthToken(log, globalConfigStore, domain)
         expect(savedToken).to.eql(testToken)
       } finally {
         gardenEnv.GARDEN_AUTH_TOKEN = tokenBackup
@@ -56,15 +56,15 @@ describe("CloudApi", () => {
         refreshToken: uuidv4(),
         tokenValidity: 9999,
       }
-      await CloudApi.saveAuthToken(log, globalConfigStore, testToken, domain)
-      await CloudApi.clearAuthToken(log, globalConfigStore, domain)
-      const savedToken = await CloudApi.getAuthToken(log, globalConfigStore, domain)
+      await saveAuthToken(log, globalConfigStore, testToken, domain)
+      await clearAuthToken(log, globalConfigStore, domain)
+      const savedToken = await getAuthToken(log, globalConfigStore, domain)
       expect(savedToken).to.be.undefined
     })
 
     it("should not throw an exception if no auth token exists", async () => {
-      await CloudApi.clearAuthToken(log, globalConfigStore, domain)
-      await CloudApi.clearAuthToken(log, globalConfigStore, domain)
+      await clearAuthToken(log, globalConfigStore, domain)
+      await clearAuthToken(log, globalConfigStore, domain)
     })
   })
 })
