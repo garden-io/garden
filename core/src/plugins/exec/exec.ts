@@ -80,11 +80,6 @@ export const execProvider = execPlugin.createProvider({
   }),
 })
 
-execProvider.addHandler("getEnvironmentStatus", async ({ ctx }) => {
-  // Return ready if there is no initScript to run
-  return { ready: !ctx.provider.config.initScript, outputs: {} }
-})
-
 execProvider.addHandler("prepareEnvironment", async ({ ctx, log }) => {
   const execLog = log.createLog({ name: "exec" })
   if (ctx.provider.config.initScript) {

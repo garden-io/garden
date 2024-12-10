@@ -56,6 +56,13 @@ export const prepareEnvironment: ProviderHandlers["prepareEnvironment"] = async 
     return { status: { ready: true, outputs: {} } }
   }
 
+  const envStatus = await getEnvironmentStatus({ ctx, log })
+  if (envStatus.ready) {
+    return {
+      status: envStatus,
+    }
+  }
+
   const root = getRoot(ctx, provider)
   const workspace = provider.config.workspace || null
 

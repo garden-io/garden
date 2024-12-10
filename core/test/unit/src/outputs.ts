@@ -48,8 +48,8 @@ describe("resolveProjectOutputs", () => {
     const plugin = createGardenPlugin({
       name: "test",
       handlers: {
-        async getEnvironmentStatus() {
-          return { ready: true, outputs: { test: "test-value" } }
+        async prepareEnvironment() {
+          return { status: { ready: true, outputs: { test: "test-value" } } }
         },
       },
     })

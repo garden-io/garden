@@ -69,11 +69,9 @@ describe("kubernetes provider handlers", () => {
     })
 
     it("should prepare the environment with the prepareEnvironment handler", async () => {
-      const status = await getEnvironmentStatus({ ctx, log })
       const params: PrepareEnvironmentParams = {
         ctx,
         log: garden.log,
-        status,
         force: false,
       }
       const envStatus = await prepareEnvironment(params)
