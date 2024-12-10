@@ -165,7 +165,7 @@
   },
   "devDependencies": {
     "@commitlint/cli": "^19.6.0",
-    "@commitlint/config-conventional": "^19.2.2",
+    "@commitlint/config-conventional": "^19.6.0",
     "@garden-io/platform-api-types": "1.1131.0",
     "@google-cloud/artifact-registry": "^3.5.0",
     "@types/archiver": "^6.0.3",
