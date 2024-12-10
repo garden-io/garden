@@ -262,10 +262,11 @@ export async function applyConfig(params: PulumiParams & { previewDirPath?: stri
   let stackConfigFileExists: boolean
   try {
     const fileData = await readFile(stackConfigPath)
-    const stackConfigDocs = await loadAndValidateYaml(
-      fileData.toString(),
-      `${basename(stackConfigPath)} in directory ${dirname(stackConfigPath)}`
-    )
+    const stackConfigDocs = await loadAndValidateYaml({
+      content: fileData.toString(),
+      sourceDescription: `${basename(stackConfigPath)} in directory ${dirname(stackConfigPath)}`,
+      filename: stackConfigPath,
+    })
     stackConfig = stackConfigDocs[0].toJS()
     stackConfigFileExists = true
   } catch (err) {
