@@ -31,7 +31,6 @@ import type {
   UpdateSecretRequest,
   UpdateSecretResponse,
 } from "@garden-io/platform-api-types"
-import { getCloudDistributionName, getCloudLogSectionName } from "../util/cloud.js"
 import type { CommandInfo } from "../plugin-context.js"
 import type { ClientAuthToken, GlobalConfigStore } from "../config-store/global.js"
 import { LogLevel } from "../logger/logger.js"
@@ -45,6 +44,7 @@ import { enumerate } from "../util/enumerate.js"
 import queryString from "query-string"
 import type { ApiFetchOptions } from "./http-client.js"
 import { GardenCloudHttpClient } from "./http-client.js"
+import { getCloudDistributionName, getCloudLogSectionName } from "./util.js"
 
 export class CloudApiDuplicateProjectsError extends CloudApiError {}
 

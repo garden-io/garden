@@ -18,10 +18,10 @@ import type { AuthTokenResponse } from "./api.js"
 import { cloneDeep, isArray } from "lodash-es"
 import { gardenEnv } from "../constants.js"
 import type { GlobalConfigStore } from "../config-store/global.js"
-import { getCloudDistributionName } from "../util/cloud.js"
 import { dedent, deline } from "../util/string.js"
 import { CloudApiError, InternalError } from "../exceptions.js"
 import { add } from "date-fns"
+import { getCloudDistributionName } from "./util.js"
 
 export async function saveAuthToken(
   log: Log,

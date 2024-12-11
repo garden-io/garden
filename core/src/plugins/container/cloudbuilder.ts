@@ -21,7 +21,6 @@ import { emitNonRepeatableWarning } from "../../warnings.js"
 import { LRUCache } from "lru-cache"
 import { DEFAULT_GARDEN_CLOUD_DOMAIN, gardenEnv } from "../../constants.js"
 import type { ActionRuntime, ActionRuntimeKind } from "../../plugin/base.js"
-import { getCloudDistributionName } from "../../util/cloud.js"
 import crypto from "crypto"
 import { promisify } from "util"
 import AsyncLock from "async-lock"
@@ -29,6 +28,7 @@ import { containerHelpers } from "./helpers.js"
 import { hashString } from "../../util/util.js"
 import { stableStringify } from "../../util/string.js"
 import { homedir } from "os"
+import { getCloudDistributionName } from "../../cloud/util.js"
 
 const { mkdirp, rm, writeFile, stat } = fsExtra
 

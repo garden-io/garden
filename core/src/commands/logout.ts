@@ -10,13 +10,13 @@ import type { CommandParams, CommandResult } from "./base.js"
 import { Command } from "./base.js"
 import { printHeader } from "../logger/util.js"
 import { GardenCloudApi, getGardenCloudDomain } from "../cloud/api.js"
-import { getCloudDistributionName } from "../util/cloud.js"
 import { dedent, deline } from "../util/string.js"
 import { ConfigurationError } from "../exceptions.js"
 import type { ProjectConfig } from "../config/project.js"
 import { findProjectConfig } from "../config/base.js"
 import { BooleanParameter } from "../cli/params.js"
 import { clearAuthToken } from "../cloud/auth.js"
+import { getCloudDistributionName } from "../cloud/util.js"
 
 export const logoutOpts = {
   "disable-project-check": new BooleanParameter({

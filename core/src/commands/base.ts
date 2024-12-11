@@ -19,7 +19,6 @@ import type { Log } from "../logger/log-entry.js"
 import type { LoggerBase, LoggerConfigBase, LogLevel } from "../logger/logger.js"
 import { eventLogLevel } from "../logger/logger.js"
 import { printEmoji, printFooter } from "../logger/util.js"
-import { getCloudDistributionName, getCloudLogSectionName } from "../util/cloud.js"
 import { getDurationMsec, getPackageVersion, userPrompt } from "../util/util.js"
 import { renderOptions, renderCommands, renderArguments, cliStyles, optionsWithAliasValues } from "../cli/helpers.js"
 import type { GlobalOptions, ParameterValues, ParameterObject } from "../cli/params.js"
@@ -42,6 +41,7 @@ import { withSessionContext } from "../util/open-telemetry/context.js"
 import { wrapActiveSpan } from "../util/open-telemetry/spans.js"
 import { styles } from "../logger/styles.js"
 import { clearVarfileCache } from "../config/base.js"
+import { getCloudDistributionName, getCloudLogSectionName } from "../cloud/util.js"
 
 export interface CommandConstructor {
   new (parent?: CommandGroup): Command

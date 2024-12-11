@@ -75,11 +75,11 @@ import { LogLevel, getRootLogger } from "../../../src/logger/logger.js"
 import { uuidv4 } from "../../../src/util/random.js"
 import { fileURLToPath } from "node:url"
 import { resolveMsg } from "../../../src/logger/log-entry.js"
-import { getCloudDistributionName } from "../../../src/util/cloud.js"
 import { styles } from "../../../src/logger/styles.js"
 import type { RunActionConfig } from "../../../src/actions/run.js"
 import type { ProjectResult } from "@garden-io/platform-api-types"
 import { ProjectStatus } from "@garden-io/platform-api-types"
+import { getCloudDistributionName } from "../../../src/cloud/util.js"
 
 const moduleDirName = dirname(fileURLToPath(import.meta.url))
 
