@@ -12,8 +12,8 @@ import { printHeader } from "../logger/util.js"
 import dedent from "dedent"
 import { GardenCloudApi } from "../cloud/api.js"
 import type { Log } from "../logger/log-entry.js"
-import { ConfigurationError, TimeoutError, InternalError, CloudApiError } from "../exceptions.js"
-import type { AuthToken } from "../cloud/auth.js"
+import { CloudApiError, ConfigurationError, InternalError, TimeoutError } from "../exceptions.js"
+import type { AuthRedirectServerConfig, AuthToken } from "../cloud/auth.js"
 import { AuthRedirectServer, saveAuthToken } from "../cloud/auth.js"
 import type { EventBus } from "../events/events.js"
 import type { ProjectConfig } from "../config/project.js"
@@ -22,6 +22,7 @@ import { BooleanParameter } from "../cli/params.js"
 import { deline } from "../util/string.js"
 import { gardenEnv } from "../constants.js"
 import { getCloudDistributionName, getGardenCloudDomain } from "../cloud/util.js"
+import { isArray } from "lodash-es"
 
 const loginTimeoutSec = 60
 
@@ -110,9 +111,47 @@ export class LoginCommand extends Command<{}, Opts> {
   }
 }
 
+function getFirstValue(v: string | string[]) {
+  return isArray(v) ? v[0] : v
+}
+
+export type GardenBackendConfig = { readonly cloudDomain: string }
+
+type AuthRedirectConfig = Pick<AuthRedirectServerConfig, "getLoginUrl" | "successUrl" | "extractAuthToken">
+
+export abstract class AbstractGardenBackend {
+  constructor(protected readonly config: GardenBackendConfig) {}
+
+  abstract getAuthRedirectConfig(): AuthRedirectConfig
+}
+
+export class GardenCloudBackend extends AbstractGardenBackend {
+  override getAuthRedirectConfig(): AuthRedirectConfig {
+    return {
+      getLoginUrl: (port) => new URL(`/clilogin/${port}`, this.config.cloudDomain).href,
+      successUrl: new URL("/clilogin/success", this.config.cloudDomain).href,
+      extractAuthToken: (query) => {
+        const { jwt, rt, jwtval } = query
+        // TODO: validate properly
+        return {
+          token: getFirstValue(jwt!),
+          refreshToken: getFirstValue(rt!),
+          tokenValidity: parseInt(getFirstValue(jwtval!), 10),
+        }
+      },
+    }
+  }
+}
+
 export async function login(log: Log, cloudDomain: string, events: EventBus) {
   // Start auth redirect server and wait for its redirect handler to receive the redirect and finish running.
-  const server = new AuthRedirectServer(cloudDomain, events, log)
+  const gardenBackend = new GardenCloudBackend({ cloudDomain })
+  const server = new AuthRedirectServer({
+    events,
+    log,
+    ...gardenBackend.getAuthRedirectConfig(),
+  })
+
   const distroName = getCloudDistributionName(cloudDomain)
   log.debug(`Redirecting to ${distroName} login page...`)
   const response: AuthToken = await new Promise(async (resolve, reject) => {

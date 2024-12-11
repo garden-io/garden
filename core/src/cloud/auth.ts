@@ -13,14 +13,15 @@ import type EventEmitter2 from "eventemitter2"
 import bodyParser from "koa-bodyparser"
 import Router from "koa-router"
 import getPort from "get-port"
+import cloneDeep from "fast-copy"
 import type { Log } from "../logger/log-entry.js"
-import { cloneDeep, isArray } from "lodash-es"
 import { gardenEnv } from "../constants.js"
 import type { GlobalConfigStore } from "../config-store/global.js"
 import { dedent, deline } from "../util/string.js"
 import { CloudApiError, InternalError } from "../exceptions.js"
 import { add } from "date-fns"
 import { getCloudDistributionName } from "./util.js"
+import type { ParsedUrlQuery } from "node:querystring"
 
 export interface AuthToken {
   token: string
@@ -117,23 +118,23 @@ export const authTokenHeader =
 
 export const makeAuthHeader = (clientAuthToken: string) => ({ [authTokenHeader]: clientAuthToken })
 
+export type AuthRedirectServerConfig = {
+  events: EventEmitter2.EventEmitter2
+  log: Log
+  getLoginUrl: (port: number) => string
+  successUrl: string
+  extractAuthToken: (query: ParsedUrlQuery) => AuthToken
+}
+
 // TODO: Add analytics tracking
 export class AuthRedirectServer {
-  private log: Log
+  private readonly log: Log
+
   private server?: Server
   private app?: Koa
-  private enterpriseDomain: string
-  private events: EventEmitter2.EventEmitter2
 
-  constructor(
-    enterpriseDomain: string,
-    events: EventEmitter2.EventEmitter2,
-    log: Log,
-    public port?: number
-  ) {
-    this.enterpriseDomain = enterpriseDomain
-    this.events = events
-    this.log = log.createLog({})
+  constructor(private readonly config: AuthRedirectServerConfig) {
+    this.log = config.log.createLog({})
   }
 
   async start() {
@@ -141,13 +142,10 @@ export class AuthRedirectServer {
       return
     }
 
-    if (!this.port) {
-      this.port = await getPort()
-    }
+    const port = await getPort()
 
-    await this.createApp()
-    const url = new URL(`/clilogin/${this.port}`, this.enterpriseDomain)
-    await open(url.href)
+    await this.createApp(port)
+    await open(this.config.getLoginUrl(port))
   }
 
   async close() {
@@ -160,23 +158,15 @@ export class AuthRedirectServer {
     return undefined
   }
 
-  async createApp() {
+  async createApp(port: number) {
     const app = new Koa()
     const http = new Router()
 
     http.get("/", async (ctx) => {
-      const { jwt, rt, jwtval } = ctx.request.query
-      // TODO: validate properly
-      const tokenResponse: AuthToken = {
-        token: getFirstValue(jwt!),
-        refreshToken: getFirstValue(rt!),
-        tokenValidity: parseInt(getFirstValue(jwtval!), 10),
-      }
+      const tokenResponse = this.config.extractAuthToken(ctx.request.query)
       this.log.debug("Received client auth token")
-      this.events.emit("receivedToken", tokenResponse)
-      ctx.redirect(`${this.enterpriseDomain}/clilogin/success`)
-      const url = new URL("/clilogin/success", this.enterpriseDomain)
-      ctx.redirect(url.href)
+      this.config.events.emit("receivedToken", tokenResponse)
+      ctx.redirect(this.config.successUrl)
     })
 
     app.use(bodyParser())
@@ -185,10 +175,7 @@ export class AuthRedirectServer {
     app.on("error", (err) => {
       this.log.error(`Auth redirect request failed with status ${err.status}: ${err.message}`)
     })
-    this.server = app.listen(this.port)
+    this.server = app.listen(port)
+    this.app = app
   }
-}
-
-function getFirstValue(v: string | string[]) {
-  return isArray(v) ? v[0] : v
 }
