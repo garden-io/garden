@@ -12,7 +12,7 @@ import { Autocompleter } from "../cli/autocomplete.js"
 import { parseCliVarFlags } from "../cli/helpers.js"
 import type { ParameterObject, ParameterValues } from "../cli/params.js"
 import type { CloudApiFactory, CloudApiFactoryParams } from "../cloud/api.js"
-import { GardenCloudApi, getGardenCloudDomain } from "../cloud/api.js"
+import { GardenCloudApi } from "../cloud/api.js"
 import type { Command } from "../commands/base.js"
 import { getBuiltinCommands, flattenCommands } from "../commands/commands.js"
 import { getCustomCommands } from "../commands/custom.js"
@@ -39,6 +39,7 @@ import {
 import type { GardenInstanceKeyParams } from "./helpers.js"
 import { getGardenInstanceKey } from "./helpers.js"
 import { styles } from "../logger/styles.js"
+import { getGardenCloudDomain } from "../cloud/util.js"
 
 interface InstanceContext {
   garden: Garden

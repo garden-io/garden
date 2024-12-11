@@ -7,9 +7,9 @@
  */
 
 import { describe } from "mocha"
-import { getCloudDistributionName, getCloudLogSectionName } from "../../../../src/util/cloud.js"
 import { DEFAULT_GARDEN_CLOUD_DOMAIN } from "../../../../src/constants.js"
 import { expect } from "chai"
+import { getCloudDistributionName, getCloudLogSectionName } from "../../../../src/cloud/util.js"
 
 describe("garden-cloud", () => {
   describe("getCloudDistributionName", () => {

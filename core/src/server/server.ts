@@ -40,13 +40,13 @@ import { join } from "path"
 import { GlobalConfigStore } from "../config-store/global.js"
 import { validateSchema } from "../config/validation.js"
 import type { ConfigGraph } from "../graph/config-graph.js"
-import { getGardenCloudDomain } from "../cloud/api.js"
 import type { ServeCommand } from "../commands/serve.js"
 import type { AutocompleteSuggestion } from "../cli/autocomplete.js"
 import { createServer } from "http"
 import { defaultServerPort } from "../commands/serve.js"
 
 import { styles } from "../logger/styles.js"
+import { getGardenCloudDomain } from "../cloud/util.js"
 
 const skipLogsForCommands = ["autocomplete"]
 const serverLogName = "garden-server"

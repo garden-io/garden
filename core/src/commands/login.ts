@@ -10,18 +10,18 @@ import type { CommandParams, CommandResult } from "./base.js"
 import { Command } from "./base.js"
 import { printHeader } from "../logger/util.js"
 import dedent from "dedent"
-import type { AuthTokenResponse } from "../cloud/api.js"
-import { GardenCloudApi, getGardenCloudDomain } from "../cloud/api.js"
+import { GardenCloudApi } from "../cloud/api.js"
 import type { Log } from "../logger/log-entry.js"
 import { ConfigurationError, TimeoutError, InternalError, CloudApiError } from "../exceptions.js"
+import type { AuthToken } from "../cloud/auth.js"
 import { AuthRedirectServer, saveAuthToken } from "../cloud/auth.js"
 import type { EventBus } from "../events/events.js"
 import type { ProjectConfig } from "../config/project.js"
 import { findProjectConfig } from "../config/base.js"
 import { BooleanParameter } from "../cli/params.js"
-import { getCloudDistributionName } from "../util/cloud.js"
 import { deline } from "../util/string.js"
 import { gardenEnv } from "../constants.js"
+import { getCloudDistributionName, getGardenCloudDomain } from "../cloud/util.js"
 
 const loginTimeoutSec = 60
 
@@ -115,7 +115,7 @@ export async function login(log: Log, cloudDomain: string, events: EventBus) {
   const server = new AuthRedirectServer(cloudDomain, events, log)
   const distroName = getCloudDistributionName(cloudDomain)
   log.debug(`Redirecting to ${distroName} login page...`)
-  const response: AuthTokenResponse = await new Promise(async (resolve, reject) => {
+  const response: AuthToken = await new Promise(async (resolve, reject) => {
     // The server resolves the promise with the new auth token once it's received the redirect.
     await server.start()
 
@@ -130,7 +130,7 @@ export async function login(log: Log, cloudDomain: string, events: EventBus) {
       )
     }, loginTimeoutSec * 1000)
 
-    events.once("receivedToken", (tokenResponse: AuthTokenResponse) => {
+    events.once("receivedToken", (tokenResponse: AuthToken) => {
       if (timedOut) {
         return
       }

@@ -14,11 +14,10 @@ import { printEmoji, printHeader } from "../logger/util.js"
 import { dedent } from "../util/string.js"
 import type { CommandLine } from "../cli/command-line.js"
 import { GardenInstanceManager } from "../server/instance-manager.js"
-import { getCloudDistributionName } from "../util/cloud.js"
 import { sleep } from "../util/util.js"
 import type { Log } from "../logger/log-entry.js"
 import { findProjectConfig } from "../config/base.js"
-import { CloudApiTokenRefreshError, getGardenCloudDomain } from "../cloud/api.js"
+import { CloudApiTokenRefreshError } from "../cloud/api.js"
 import { uuidv4 } from "../util/random.js"
 import type { Garden } from "../garden.js"
 import type { GardenPluginReference } from "../plugin/plugin.js"
@@ -26,6 +25,7 @@ import { CommandError, ParameterError, isEAddrInUseException, isErrnoException }
 import { styles } from "../logger/styles.js"
 import { emitLoginWarning } from "../cli/helpers.js"
 import { DEFAULT_GARDEN_CLOUD_DOMAIN } from "../constants.js"
+import { getCloudDistributionName, getGardenCloudDomain } from "../cloud/util.js"
 
 export const defaultServerPort = 9777
 

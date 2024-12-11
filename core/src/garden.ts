@@ -119,7 +119,6 @@ import {
   TemplatableConfigContext,
 } from "./config/template-contexts/project.js"
 import type { GardenCloudApi, CloudProject } from "./cloud/api.js"
-import { getGardenCloudDomain } from "./cloud/api.js"
 import { OutputConfigContext } from "./config/template-contexts/module.js"
 import { ProviderConfigContext } from "./config/template-contexts/provider.js"
 import type { ConfigContext } from "./config/template-contexts/base.js"
@@ -165,9 +164,9 @@ import { detectModuleOverlap, makeOverlapErrors } from "./util/module-overlap.js
 import { GotHttpError } from "./util/http.js"
 import { styles } from "./logger/styles.js"
 import { renderDuration } from "./logger/util.js"
-import { getCloudDistributionName, getCloudLogSectionName } from "./util/cloud.js"
 import { makeDocsLinkStyled } from "./docs/common.js"
 import { getPathInfo } from "./vcs/git.js"
+import { getCloudDistributionName, getCloudLogSectionName, getGardenCloudDomain } from "./cloud/util.js"
 
 const defaultLocalAddress = "localhost"
 

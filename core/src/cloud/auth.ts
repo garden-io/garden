@@ -14,19 +14,24 @@ import bodyParser from "koa-bodyparser"
 import Router from "koa-router"
 import getPort from "get-port"
 import type { Log } from "../logger/log-entry.js"
-import type { AuthTokenResponse } from "./api.js"
 import { cloneDeep, isArray } from "lodash-es"
 import { gardenEnv } from "../constants.js"
 import type { GlobalConfigStore } from "../config-store/global.js"
-import { getCloudDistributionName } from "../util/cloud.js"
 import { dedent, deline } from "../util/string.js"
 import { CloudApiError, InternalError } from "../exceptions.js"
 import { add } from "date-fns"
+import { getCloudDistributionName } from "./util.js"
+
+export interface AuthToken {
+  token: string
+  refreshToken: string
+  tokenValidity: number
+}
 
 export async function saveAuthToken(
   log: Log,
   globalConfigStore: GlobalConfigStore,
-  tokenResponse: AuthTokenResponse,
+  tokenResponse: AuthToken,
   domain: string
 ) {
   const distroName = getCloudDistributionName(domain)
@@ -162,7 +167,7 @@ export class AuthRedirectServer {
     http.get("/", async (ctx) => {
       const { jwt, rt, jwtval } = ctx.request.query
       // TODO: validate properly
-      const tokenResponse: AuthTokenResponse = {
+      const tokenResponse: AuthToken = {
         token: getFirstValue(jwt!),
         refreshToken: getFirstValue(rt!),
         tokenValidity: parseInt(getFirstValue(jwtval!), 10),

@@ -10,7 +10,7 @@ import ci from "ci-info"
 import { GotHttpError } from "../util/http.js"
 import { CloudApiError, GardenError } from "../exceptions.js"
 import type { Log } from "../logger/log-entry.js"
-import { DEFAULT_GARDEN_CLOUD_DOMAIN, gardenEnv } from "../constants.js"
+import { gardenEnv } from "../constants.js"
 import { Cookie } from "tough-cookie"
 import { omit } from "lodash-es"
 import { dedent, deline } from "../util/string.js"
@@ -31,7 +31,6 @@ import type {
   UpdateSecretRequest,
   UpdateSecretResponse,
 } from "@garden-io/platform-api-types"
-import { getCloudDistributionName, getCloudLogSectionName } from "../util/cloud.js"
 import type { CommandInfo } from "../plugin-context.js"
 import type { ClientAuthToken, GlobalConfigStore } from "../config-store/global.js"
 import { LogLevel } from "../logger/logger.js"
@@ -45,6 +44,7 @@ import { enumerate } from "../util/enumerate.js"
 import queryString from "query-string"
 import type { ApiFetchOptions } from "./http-client.js"
 import { GardenCloudHttpClient } from "./http-client.js"
+import { getCloudDistributionName, getCloudLogSectionName } from "./util.js"
 
 export class CloudApiDuplicateProjectsError extends CloudApiError {}
 
@@ -78,12 +78,6 @@ export interface SingleUpdateSecretRequest extends UpdateSecretRequest {
 
 export interface BulkUpdateSecretRequest {
   secrets: SingleUpdateSecretRequest[]
-}
-
-export interface AuthTokenResponse {
-  token: string
-  refreshToken: string
-  tokenValidity: number
 }
 
 // TODO: Read this from the `api-types` package once the session registration logic has been released in Cloud.
@@ -139,22 +133,6 @@ function toCloudProject(project: GetProjectResponse["data"] | CreateProjectsForR
     repositoryUrl: project.repositoryUrl,
     environments,
   }
-}
-
-/**
- * A helper function to get the cloud domain from a project config. Uses the env var
- * GARDEN_CLOUD_DOMAIN to override a configured domain.
- */
-export function getGardenCloudDomain(configuredDomain: string | undefined): string {
-  let cloudDomain: string | undefined
-
-  if (gardenEnv.GARDEN_CLOUD_DOMAIN) {
-    cloudDomain = new URL(gardenEnv.GARDEN_CLOUD_DOMAIN).origin
-  } else if (configuredDomain) {
-    cloudDomain = new URL(configuredDomain).origin
-  }
-
-  return cloudDomain || DEFAULT_GARDEN_CLOUD_DOMAIN
 }
 
 export interface CloudApiFactoryParams {
