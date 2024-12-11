@@ -10,7 +10,7 @@ import type { CommandParams, CommandResult } from "./base.js"
 import { Command } from "./base.js"
 import { printHeader } from "../logger/util.js"
 import dedent from "dedent"
-import { GardenCloudApi, getGardenCloudDomain } from "../cloud/api.js"
+import { GardenCloudApi } from "../cloud/api.js"
 import type { Log } from "../logger/log-entry.js"
 import { ConfigurationError, TimeoutError, InternalError, CloudApiError } from "../exceptions.js"
 import type { AuthToken } from "../cloud/auth.js"
@@ -21,7 +21,7 @@ import { findProjectConfig } from "../config/base.js"
 import { BooleanParameter } from "../cli/params.js"
 import { deline } from "../util/string.js"
 import { gardenEnv } from "../constants.js"
-import { getCloudDistributionName } from "../cloud/util.js"
+import { getCloudDistributionName, getGardenCloudDomain } from "../cloud/util.js"
 
 const loginTimeoutSec = 60
 

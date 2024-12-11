@@ -10,7 +10,7 @@ import ci from "ci-info"
 import { GotHttpError } from "../util/http.js"
 import { CloudApiError, GardenError } from "../exceptions.js"
 import type { Log } from "../logger/log-entry.js"
-import { DEFAULT_GARDEN_CLOUD_DOMAIN, gardenEnv } from "../constants.js"
+import { gardenEnv } from "../constants.js"
 import { Cookie } from "tough-cookie"
 import { omit } from "lodash-es"
 import { dedent, deline } from "../util/string.js"
@@ -133,22 +133,6 @@ function toCloudProject(project: GetProjectResponse["data"] | CreateProjectsForR
     repositoryUrl: project.repositoryUrl,
     environments,
   }
-}
-
-/**
- * A helper function to get the cloud domain from a project config. Uses the env var
- * GARDEN_CLOUD_DOMAIN to override a configured domain.
- */
-export function getGardenCloudDomain(configuredDomain: string | undefined): string {
-  let cloudDomain: string | undefined
-
-  if (gardenEnv.GARDEN_CLOUD_DOMAIN) {
-    cloudDomain = new URL(gardenEnv.GARDEN_CLOUD_DOMAIN).origin
-  } else if (configuredDomain) {
-    cloudDomain = new URL(configuredDomain).origin
-  }
-
-  return cloudDomain || DEFAULT_GARDEN_CLOUD_DOMAIN
 }
 
 export interface CloudApiFactoryParams {

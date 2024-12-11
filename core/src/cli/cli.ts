@@ -49,7 +49,7 @@ import type { AnalyticsHandler } from "../analytics/analytics.js"
 import type { GardenPluginReference } from "../plugin/plugin.js"
 import type { CloudApiFactory } from "../cloud/api.js"
 import { CloudApiTokenRefreshError } from "../cloud/api.js"
-import { GardenCloudApi, getGardenCloudDomain } from "../cloud/api.js"
+import { GardenCloudApi } from "../cloud/api.js"
 import { findProjectConfig } from "../config/base.js"
 import { pMemoizeDecorator } from "../lib/p-memoize.js"
 import { getCustomCommands } from "../commands/custom.js"
@@ -66,7 +66,7 @@ import { wrapActiveSpan } from "../util/open-telemetry/spans.js"
 import { JsonFileWriter } from "../logger/writers/json-file-writer.js"
 import type minimist from "minimist"
 import { styles } from "../logger/styles.js"
-import { getCloudDistributionName } from "../cloud/util.js"
+import { getCloudDistributionName, getGardenCloudDomain } from "../cloud/util.js"
 
 const { pathExists } = fsExtra
 
