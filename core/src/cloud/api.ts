@@ -80,12 +80,6 @@ export interface BulkUpdateSecretRequest {
   secrets: SingleUpdateSecretRequest[]
 }
 
-export interface AuthTokenResponse {
-  token: string
-  refreshToken: string
-  tokenValidity: number
-}
-
 // TODO: Read this from the `api-types` package once the session registration logic has been released in Cloud.
 export interface CloudSessionResponse {
   environmentId: string

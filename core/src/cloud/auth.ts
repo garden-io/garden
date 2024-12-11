@@ -14,7 +14,6 @@ import bodyParser from "koa-bodyparser"
 import Router from "koa-router"
 import getPort from "get-port"
 import type { Log } from "../logger/log-entry.js"
-import type { AuthTokenResponse } from "./api.js"
 import { cloneDeep, isArray } from "lodash-es"
 import { gardenEnv } from "../constants.js"
 import type { GlobalConfigStore } from "../config-store/global.js"
@@ -22,6 +21,12 @@ import { dedent, deline } from "../util/string.js"
 import { CloudApiError, InternalError } from "../exceptions.js"
 import { add } from "date-fns"
 import { getCloudDistributionName } from "./util.js"
+
+export interface AuthTokenResponse {
+  token: string
+  refreshToken: string
+  tokenValidity: number
+}
 
 export async function saveAuthToken(
   log: Log,
