@@ -225,7 +225,7 @@ async function buildContainerInCloudBuilder(params: {
   log: ActionLog
   ctx: PluginContext<ContainerProviderConfig>
 }) {
-  const cloudbuilderStats = {
+  const cloudBuilderStats = {
     totalLayers: 0,
     layersCached: 0,
   }
@@ -234,9 +234,9 @@ async function buildContainerInCloudBuilder(params: {
   params.outputStream.on("data", (line: Buffer) => {
     const logLine = line.toString()
     if (BUILDKIT_LAYER_REGEX.test(logLine)) {
-      cloudbuilderStats.totalLayers++
+      cloudBuilderStats.totalLayers++
     } else if (BUILDKIT_LAYER_CACHED_REGEX.test(logLine)) {
-      cloudbuilderStats.layersCached++
+      cloudBuilderStats.layersCached++
     }
   })
 
@@ -257,7 +257,7 @@ async function buildContainerInCloudBuilder(params: {
     name: `build.${params.action.name}`,
   })
   log.success(
-    `${styles.bold("Accelerated by Garden Cloud Builder")} (${cloudbuilderStats.layersCached}/${cloudbuilderStats.totalLayers} layers cached)`
+    `${styles.bold("Accelerated by Garden Cloud Builder")} (${cloudBuilderStats.layersCached}/${cloudBuilderStats.totalLayers} layers cached)`
   )
 
   return res

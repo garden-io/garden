@@ -49,7 +49,7 @@ import { generateBasicDebugInfoReport } from "../commands/get/get-debug-info.js"
 import type { AnalyticsHandler } from "../analytics/analytics.js"
 import type { GardenPluginReference } from "../plugin/plugin.js"
 import type { CloudApiFactory } from "../cloud/api.js"
-import { CloudApi, CloudApiTokenRefreshError, getGardenCloudDomain } from "../cloud/api.js"
+import { GardenCloudApi, CloudApiTokenRefreshError, getGardenCloudDomain } from "../cloud/api.js"
 import { findProjectConfig } from "../config/base.js"
 import { pMemoizeDecorator } from "../lib/p-memoize.js"
 import { getCustomCommands } from "../commands/custom.js"
@@ -98,7 +98,7 @@ export class GardenCli {
   public processRecord?: GardenProcess
   protected cloudApiFactory: CloudApiFactory
 
-  constructor({ plugins, initLogger = false, cloudApiFactory = CloudApi.factory }: GardenCliParams = {}) {
+  constructor({ plugins, initLogger = false, cloudApiFactory = GardenCloudApi.factory }: GardenCliParams = {}) {
     this.plugins = plugins || []
     this.initLogger = initLogger
     this.cloudApiFactory = cloudApiFactory
@@ -251,7 +251,7 @@ ${renderCommands(commands)}
       gardenInitLog?.info("Initializing...")
 
       // Init Cloud API (if applicable)
-      let cloudApi: CloudApi | undefined
+      let cloudApi: GardenCloudApi | undefined
       if (!command.noProject) {
         const config = await this.getProjectConfig(log, workingDir)
         const cloudDomain = getGardenCloudDomain(config?.domain)

@@ -69,7 +69,7 @@ import { TreeCache } from "../../../src/cache.js"
 import { omitUndefined } from "../../../src/util/objects.js"
 import { add } from "date-fns"
 import stripAnsi from "strip-ansi"
-import { CloudApi } from "../../../src/cloud/api.js"
+import { GardenCloudApi } from "../../../src/cloud/api.js"
 import { GlobalConfigStore } from "../../../src/config-store/global.js"
 import { LogLevel, getRootLogger } from "../../../src/logger/logger.js"
 import { uuidv4 } from "../../../src/util/random.js"
@@ -744,7 +744,7 @@ describe("Garden", () => {
           refreshToken: "fake-refresh-token",
           validity: add(new Date(), { seconds: validityMs / 1000 }),
         })
-        return CloudApi.factory({ log, cloudDomain: domain, globalConfigStore })
+        return GardenCloudApi.factory({ log, cloudDomain: domain, globalConfigStore })
       }
 
       before(async () => {

@@ -118,7 +118,7 @@ import {
   RemoteSourceConfigContext,
   TemplatableConfigContext,
 } from "./config/template-contexts/project.js"
-import type { CloudApi, CloudProject } from "./cloud/api.js"
+import type { GardenCloudApi, CloudProject } from "./cloud/api.js"
 import { getGardenCloudDomain } from "./cloud/api.js"
 import { OutputConfigContext } from "./config/template-contexts/module.js"
 import { ProviderConfigContext } from "./config/template-contexts/provider.js"
@@ -191,7 +191,7 @@ export interface GardenOpts {
   plugins?: RegisterPluginParam[]
   sessionId?: string
   variableOverrides?: PrimitiveMap
-  cloudApi?: CloudApi
+  cloudApi?: GardenCloudApi
 }
 
 export interface GardenParams {
@@ -228,7 +228,7 @@ export interface GardenParams {
   username: string | undefined
   workingCopyId: string
   forceRefresh?: boolean
-  cloudApi?: CloudApi | null
+  cloudApi?: GardenCloudApi | null
   projectApiVersion: ProjectConfig["apiVersion"]
 }
 
@@ -283,7 +283,7 @@ export class Garden {
   public readonly configTemplates: { [name: string]: ConfigTemplateConfig }
   private actionTypeBases: ActionTypeMap<ActionTypeDefinition<any>[]>
   private emittedWarnings: Set<string>
-  public cloudApi: CloudApi | null
+  public cloudApi: GardenCloudApi | null
 
   public readonly production: boolean
   public readonly projectRoot: string
@@ -503,7 +503,7 @@ export class Garden {
     return Object.assign(Object.create(Object.getPrototypeOf(this)), this)
   }
 
-  cloneForCommand(sessionId: string, cloudApi?: CloudApi): Garden {
+  cloneForCommand(sessionId: string, cloudApi?: GardenCloudApi): Garden {
     // Make an instance clone to override anything that needs to be scoped to a specific command run
     // TODO: this could be made more elegant
     const garden = this.clone()
@@ -2119,7 +2119,7 @@ async function prepareCloud({
   environmentName,
   commandName,
 }: {
-  cloudApi: CloudApi | null
+  cloudApi: GardenCloudApi | null
   config: ProjectConfig
   log: Log
   projectRoot: string
@@ -2194,7 +2194,7 @@ async function getCloudProject({
   projectRoot,
   projectName,
 }: {
-  cloudApi: CloudApi
+  cloudApi: GardenCloudApi
   config: ProjectConfig
   log: Log
   isCommunityEdition: boolean

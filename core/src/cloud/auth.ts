@@ -15,8 +15,95 @@ import Router from "koa-router"
 import getPort from "get-port"
 import type { Log } from "../logger/log-entry.js"
 import type { AuthTokenResponse } from "./api.js"
-import { isArray } from "lodash-es"
+import { cloneDeep, isArray } from "lodash-es"
 import { gardenEnv } from "../constants.js"
+import type { GlobalConfigStore } from "../config-store/global.js"
+import { getCloudDistributionName } from "../util/cloud.js"
+import { dedent, deline } from "../util/string.js"
+import { CloudApiError, InternalError } from "../exceptions.js"
+import { add } from "date-fns"
+
+export async function saveAuthToken(
+  log: Log,
+  globalConfigStore: GlobalConfigStore,
+  tokenResponse: AuthTokenResponse,
+  domain: string
+) {
+  const distroName = getCloudDistributionName(domain)
+
+  if (!tokenResponse.token) {
+    const errMsg = deline`
+        Received a null/empty client auth token while logging in. This indicates that either your user account hasn't
+        yet been created in ${distroName}, or that there's a problem with your account's VCS username / login
+        credentials.
+      `
+    throw new CloudApiError({ message: errMsg })
+  }
+  try {
+    const validityMs = tokenResponse.tokenValidity || 604800000
+    await globalConfigStore.set("clientAuthTokens", domain, {
+      token: tokenResponse.token,
+      refreshToken: tokenResponse.refreshToken,
+      validity: add(new Date(), { seconds: validityMs / 1000 }),
+    })
+    log.debug("Saved client auth token to config store")
+  } catch (error) {
+    const redactedResponse = cloneDeep(tokenResponse)
+    if (redactedResponse.refreshToken) {
+      redactedResponse.refreshToken = "<Redacted>"
+    }
+    if (redactedResponse.token) {
+      redactedResponse.token = "<Redacted>"
+    }
+    // If we get here, this is a bug.
+    throw InternalError.wrapError(
+      error,
+      dedent`
+        An error occurred while saving client auth token to local config db.
+
+        Token response: ${JSON.stringify(redactedResponse)}`
+    )
+  }
+}
+
+/**
+ * Returns the full client auth token from the local DB.
+ *
+ * In the inconsistent/erroneous case of more than one auth token existing in the local store, picks the first auth
+ * token and deletes all others.
+ */
+export async function getStoredAuthToken(log: Log, globalConfigStore: GlobalConfigStore, domain: string) {
+  log.silly(() => `Retrieving client auth token from config store`)
+  return globalConfigStore.get("clientAuthTokens", domain)
+}
+
+/**
+ * If a persisted client auth token was found, or if the GARDEN_AUTH_TOKEN environment variable is present,
+ * returns it. Returns null otherwise.
+ *
+ * Note that the GARDEN_AUTH_TOKEN environment variable takes precedence over a persisted auth token if both are
+ * present.
+ */
+export async function getAuthToken(
+  log: Log,
+  globalConfigStore: GlobalConfigStore,
+  domain: string
+): Promise<string | undefined> {
+  const tokenFromEnv = gardenEnv.GARDEN_AUTH_TOKEN
+  if (tokenFromEnv) {
+    log.silly(() => "Read client auth token from env")
+    return tokenFromEnv
+  }
+  return (await getStoredAuthToken(log, globalConfigStore, domain))?.token
+}
+
+/**
+ * If a persisted client auth token exists, deletes it.
+ */
+export async function clearAuthToken(log: Log, globalConfigStore: GlobalConfigStore, domain: string) {
+  await globalConfigStore.delete("clientAuthTokens", domain)
+  log.debug("Cleared persisted auth token (if any)")
+}
 
 // If a GARDEN_AUTH_TOKEN is present and Garden is NOT running from a workflow runner pod,
 // switch to ci-token authentication method.

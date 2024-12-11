@@ -12,7 +12,7 @@ import { Autocompleter } from "../cli/autocomplete.js"
 import { parseCliVarFlags } from "../cli/helpers.js"
 import type { ParameterObject, ParameterValues } from "../cli/params.js"
 import type { CloudApiFactory, CloudApiFactoryParams } from "../cloud/api.js"
-import { CloudApi, getGardenCloudDomain } from "../cloud/api.js"
+import { GardenCloudApi, getGardenCloudDomain } from "../cloud/api.js"
 import type { Command } from "../commands/base.js"
 import { getBuiltinCommands, flattenCommands } from "../commands/commands.js"
 import { getCustomCommands } from "../commands/custom.js"
@@ -72,7 +72,7 @@ export class GardenInstanceManager {
   private instances: Map<string, InstanceContext>
   private projectRoots: Map<string, ProjectRootContext>
   private cloudApiFactory: CloudApiFactory
-  private cloudApis: Map<string, CloudApi>
+  private cloudApis: Map<string, GardenCloudApi>
   private lastRequested: Map<string, Date>
   private lock: AsyncLock
   private builtinCommands: Command[]
@@ -107,7 +107,7 @@ export class GardenInstanceManager {
     this.lastRequested = new Map()
     this.defaultOpts = defaultOpts || {}
     this.plugins = plugins
-    this.cloudApiFactory = cloudApiFactory || CloudApi.factory
+    this.cloudApiFactory = cloudApiFactory || GardenCloudApi.factory
     this.serveCommand = serveCommand
 
     this.events = new EventBus()
@@ -357,7 +357,7 @@ export class GardenInstanceManager {
     environmentString?: string
     sessionId: string
   }) {
-    let cloudApi: CloudApi | undefined
+    let cloudApi: GardenCloudApi | undefined
 
     if (!command?.noProject) {
       cloudApi = await this.getCloudApi({

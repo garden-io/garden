@@ -9,13 +9,14 @@
 import type { CommandParams, CommandResult } from "./base.js"
 import { Command } from "./base.js"
 import { printHeader } from "../logger/util.js"
-import { CloudApi, getGardenCloudDomain } from "../cloud/api.js"
+import { GardenCloudApi, getGardenCloudDomain } from "../cloud/api.js"
 import { getCloudDistributionName } from "../util/cloud.js"
 import { dedent, deline } from "../util/string.js"
 import { ConfigurationError } from "../exceptions.js"
 import type { ProjectConfig } from "../config/project.js"
 import { findProjectConfig } from "../config/base.js"
 import { BooleanParameter } from "../cli/params.js"
+import { clearAuthToken } from "../cloud/auth.js"
 
 export const logoutOpts = {
   "disable-project-check": new BooleanParameter({
@@ -73,7 +74,7 @@ export class LogOutCommand extends Command<{}, Opts> {
         return {}
       }
 
-      const cloudApi = await CloudApi.factory({
+      const cloudApi = await GardenCloudApi.factory({
         log,
         cloudDomain,
         skipLogging: true,
@@ -92,7 +93,7 @@ export class LogOutCommand extends Command<{}, Opts> {
       `
       log.warn(msg)
     } finally {
-      await CloudApi.clearAuthToken(log, garden.globalConfigStore, cloudDomain)
+      await clearAuthToken(log, garden.globalConfigStore, cloudDomain)
       log.success(`Successfully logged out from ${cloudDomain}.`)
     }
     return {}
