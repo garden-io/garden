@@ -22,7 +22,7 @@ import { CloudApiError, InternalError } from "../exceptions.js"
 import { add } from "date-fns"
 import { getCloudDistributionName } from "./util.js"
 
-export interface AuthTokenResponse {
+export interface AuthToken {
   token: string
   refreshToken: string
   tokenValidity: number
@@ -31,7 +31,7 @@ export interface AuthTokenResponse {
 export async function saveAuthToken(
   log: Log,
   globalConfigStore: GlobalConfigStore,
-  tokenResponse: AuthTokenResponse,
+  tokenResponse: AuthToken,
   domain: string
 ) {
   const distroName = getCloudDistributionName(domain)
@@ -167,7 +167,7 @@ export class AuthRedirectServer {
     http.get("/", async (ctx) => {
       const { jwt, rt, jwtval } = ctx.request.query
       // TODO: validate properly
-      const tokenResponse: AuthTokenResponse = {
+      const tokenResponse: AuthToken = {
         token: getFirstValue(jwt!),
         refreshToken: getFirstValue(rt!),
         tokenValidity: parseInt(getFirstValue(jwtval!), 10),

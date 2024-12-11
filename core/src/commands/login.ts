@@ -13,7 +13,7 @@ import dedent from "dedent"
 import { GardenCloudApi, getGardenCloudDomain } from "../cloud/api.js"
 import type { Log } from "../logger/log-entry.js"
 import { ConfigurationError, TimeoutError, InternalError, CloudApiError } from "../exceptions.js"
-import type { AuthTokenResponse } from "../cloud/auth.js"
+import type { AuthToken } from "../cloud/auth.js"
 import { AuthRedirectServer, saveAuthToken } from "../cloud/auth.js"
 import type { EventBus } from "../events/events.js"
 import type { ProjectConfig } from "../config/project.js"
@@ -115,7 +115,7 @@ export async function login(log: Log, cloudDomain: string, events: EventBus) {
   const server = new AuthRedirectServer(cloudDomain, events, log)
   const distroName = getCloudDistributionName(cloudDomain)
   log.debug(`Redirecting to ${distroName} login page...`)
-  const response: AuthTokenResponse = await new Promise(async (resolve, reject) => {
+  const response: AuthToken = await new Promise(async (resolve, reject) => {
     // The server resolves the promise with the new auth token once it's received the redirect.
     await server.start()
 
@@ -130,7 +130,7 @@ export async function login(log: Log, cloudDomain: string, events: EventBus) {
       )
     }, loginTimeoutSec * 1000)
 
-    events.once("receivedToken", (tokenResponse: AuthTokenResponse) => {
+    events.once("receivedToken", (tokenResponse: AuthToken) => {
       if (timedOut) {
         return
       }

@@ -18,7 +18,7 @@ import type { GraphResult } from "../graph/results.js"
 import type { NamespaceStatus } from "../types/namespace.js"
 import type { BuildStatusForEventPayload } from "../plugin/handlers/Build/get-status.js"
 import type { ActionStatusPayload } from "./action-status-events.js"
-import type { AuthTokenResponse } from "../cloud/auth.js"
+import type { AuthToken } from "../cloud/auth.js"
 
 interface EventContext {
   gardenKey?: string
@@ -193,7 +193,7 @@ export interface Events {
     servers: { host: string; command: string; serverAuthKey: string }[]
   }
   connectionReady: {}
-  receivedToken: AuthTokenResponse
+  receivedToken: AuthToken
 
   // Session events - one of these is emitted when the command process ends
   sessionCompleted: {} // Command exited with a 0 status
