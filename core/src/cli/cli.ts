@@ -210,6 +210,47 @@ ${renderCommands(commands)}
     return Garden.factory(workingDir, opts)
   }
 
+  private async initCloudApi({
+    command,
+    globalConfigStore,
+    workingDir,
+    log,
+  }: {
+    command: Command
+    globalConfigStore: GlobalConfigStore
+    workingDir: string
+    log: Log
+  }): Promise<GardenCloudApi | undefined> {
+    if (command.noProject) {
+      return undefined
+    }
+    const config = await this.getProjectConfig(log, workingDir)
+    const cloudDomain = getGardenCloudDomain(config?.domain)
+    const distroName = getCloudDistributionName(cloudDomain)
+    try {
+      return await this.cloudApiFactory({ log, cloudDomain, globalConfigStore })
+    } catch (err) {
+      if (err instanceof CloudApiTokenRefreshError) {
+        log.warn(dedent`
+            The current ${distroName} session is not valid or it's expired.
+            Command results for this command run will not be available in ${distroName}.
+            To avoid losing command results and logs, please try logging back in by running \`garden login\`.
+            If this not a ${distroName} project you can ignore this warning.
+          `)
+
+        // Project is configured for cloud usage => fail early to force re-auth
+        if (config && config.id) {
+          throw err
+        }
+
+        return undefined
+      } else {
+        // unhandled error when creating the cloud api
+        throw err
+      }
+    }
+  }
+
   async runCommand<A extends ParameterObject, O extends ParameterObject>({
     command,
     parsedArgs,
@@ -252,40 +293,14 @@ ${renderCommands(commands)}
           : null
       gardenInitLog?.info("Initializing...")
 
-      // Init Cloud API (if applicable)
-      let cloudApi: GardenCloudApi | undefined
-      if (!command.noProject) {
-        const config = await this.getProjectConfig(log, workingDir)
-        const cloudDomain = getGardenCloudDomain(config?.domain)
-        const distroName = getCloudDistributionName(cloudDomain)
-
-        try {
-          cloudApi = await this.cloudApiFactory({ log, cloudDomain, globalConfigStore })
-        } catch (err) {
-          if (err instanceof CloudApiTokenRefreshError) {
-            log.warn(dedent`
-              The current ${distroName} session is not valid or it's expired.
-              Command results for this command run will not be available in ${distroName}.
-              To avoid losing command results and logs, please try logging back in by running \`garden login\`.
-              If this not a ${distroName} project you can ignore this warning.
-            `)
-
-            // Project is configured for cloud usage => fail early to force re-auth
-            if (config && config.id) {
-              throw err
-            }
-          } else {
-            // unhandled error when creating the cloud api
-            throw err
-          }
-        }
-      }
-
       const commandInfo = {
         name: command.getFullName(),
         args: parsedArgs,
         opts: optionsWithAliasValues(command, parsedOpts),
       }
+
+      // Init Cloud API (if applicable)
+      const cloudApi = await this.initCloudApi({ command, globalConfigStore, workingDir, log })
 
       const contextOpts: GardenOpts = {
         commandInfo,
@@ -326,7 +341,7 @@ ${renderCommands(commands)}
           await emitLoginWarning({
             garden,
             log,
-            isLoggedIn: !!cloudApi,
+            isLoggedIn: !!garden.cloudApi,
             isCommunityEdition: garden.cloudDomain === DEFAULT_GARDEN_CLOUD_DOMAIN,
           })
 
