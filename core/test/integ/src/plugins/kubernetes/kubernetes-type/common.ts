@@ -76,6 +76,17 @@ describe("getManifests", () => {
       })
     })
 
+    it("should not crash due to indentation with if block statement", async () => {
+      action = await garden.resolveAction<KubernetesDeployAction>({
+        action: cloneDeep(graph.getDeploy("legacypartial-ifblock-indentation")),
+        log: garden.log,
+        graph,
+      })
+
+      const result = await getManifests({ ctx, api, action, log: garden.log, defaultNamespace })
+      expect(result.length).to.eq(2) // due to metadata configmap
+    })
+
     it("partially resolves the consequent branch of ${if true} block", async () => {
       action = await garden.resolveAction<KubernetesDeployAction>({
         action: cloneDeep(graph.getDeploy("legacypartial-ifblock-true")),

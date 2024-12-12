@@ -7,26 +7,26 @@
  */
 
 import { expect } from "chai"
-import {
-  resolveTemplateString,
-  resolveTemplateStrings,
-  throwOnMissingSecretKeys,
-  getActionTemplateReferences,
-} from "../../../src/template-string/template-string.js"
-import { CONTEXT_RESOLVE_KEY_AVAILABLE_LATER, GenericContext } from "../../../src/config/template-contexts/base.js"
-import type { TestGarden } from "../../helpers.js"
-import { expectError, expectFuzzyMatch, getDataDir, makeTestGarden } from "../../helpers.js"
-import { dedent } from "../../../src/util/string.js"
-import stripAnsi from "strip-ansi"
-import { TemplateStringError } from "../../../src/exceptions.js"
 import repeat from "lodash-es/repeat.js"
+import stripAnsi from "strip-ansi"
+import { loadAndValidateYaml } from "../../../src/config/base.js"
+import { CONTEXT_RESOLVE_KEY_AVAILABLE_LATER, GenericContext } from "../../../src/config/template-contexts/base.js"
+import { TemplateStringError } from "../../../src/exceptions.js"
 import type { ContextLookupReferenceFinding } from "../../../src/template-string/static-analysis.js"
 import {
   getContextLookupReferences,
   UnresolvableValue,
   visitAll,
 } from "../../../src/template-string/static-analysis.js"
-import { loadAndValidateYaml } from "../../../src/config/base.js"
+import {
+  getActionTemplateReferences,
+  resolveTemplateString,
+  resolveTemplateStrings,
+  throwOnMissingSecretKeys,
+} from "../../../src/template-string/template-string.js"
+import { dedent } from "../../../src/util/string.js"
+import type { TestGarden } from "../../helpers.js"
+import { expectError, expectFuzzyMatch, getDataDir, makeTestGarden } from "../../helpers.js"
 
 describe("resolveTemplateString", () => {
   it("should return a non-templated string unchanged", () => {
@@ -1436,7 +1436,7 @@ describe("resolveTemplateString", () => {
   })
 
   context("conditional blocks", () => {
-    it("single-line if block (positive)", () => {
+    it("One single-line if block (positive)", () => {
       const res = resolveTemplateString({
         string: "prefix ${if a}content ${endif}suffix",
         context: new GenericContext({ a: true }),
@@ -1444,7 +1444,7 @@ describe("resolveTemplateString", () => {
       expect(res).to.equal("prefix content suffix")
     })
 
-    it("single-line if block (negative)", () => {
+    it("One single-line if block (negative)", () => {
       const res = resolveTemplateString({
         string: "prefix ${if a}content ${endif}suffix",
         context: new GenericContext({ a: false }),
@@ -1452,7 +1452,7 @@ describe("resolveTemplateString", () => {
       expect(res).to.equal("prefix suffix")
     })
 
-    it("single-line if/else statement (positive)", () => {
+    it("One single-line if/else statement (positive)", () => {
       const res = resolveTemplateString({
         string: "prefix ${if a == 123}content ${else}other ${endif}suffix",
         context: new GenericContext({ a: 123 }),
@@ -1460,12 +1460,45 @@ describe("resolveTemplateString", () => {
       expect(res).to.equal("prefix content suffix")
     })
 
-    it("single-line if/else statement (negative)", () => {
+    it("One single-line if/else statement (negative)", () => {
       const res = resolveTemplateString({
         string: "prefix ${if a}content ${else}other ${endif}suffix",
         context: new GenericContext({ a: false }),
       })
       expect(res).to.equal("prefix other suffix")
+    })
+
+    it("Two single-line if block (positive)", () => {
+      const res = resolveTemplateString({
+        string: "prefix ${if a}content ${endif}suffixprefix ${if a}content ${endif}suffix",
+        context: new GenericContext({ a: true }),
+      })
+      expect(res).to.equal("prefix content suffixprefix content suffix")
+    })
+
+    it("Two single-line if block (negative)", () => {
+      const res = resolveTemplateString({
+        string: "prefix ${if a}content ${endif}suffixprefix ${if a}content ${endif}suffix",
+        context: new GenericContext({ a: false }),
+      })
+      expect(res).to.equal("prefix suffixprefix suffix")
+    })
+
+    it("Two single-line if/else statement (positive)", () => {
+      const res = resolveTemplateString({
+        string:
+          "prefix ${if a == 123}content ${else}other ${endif}suffixprefix ${if a == 123}content ${else}other ${endif}suffix",
+        context: new GenericContext({ a: 123 }),
+      })
+      expect(res).to.equal("prefix content suffixprefix content suffix")
+    })
+
+    it("Two single-line if/else statement (negative)", () => {
+      const res = resolveTemplateString({
+        string: "prefix ${if a}content ${else}other ${endif}suffixprefix ${if a}content ${else}other ${endif}suffix",
+        context: new GenericContext({ a: false }),
+      })
+      expect(res).to.equal("prefix other suffixprefix other suffix")
     })
 
     it("multi-line if block (positive)", () => {
