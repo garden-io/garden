@@ -13,8 +13,8 @@ import { makeTestGarden } from "../helpers.js"
 import { FakeCloudApi } from "./api.js"
 
 export class TestGardenCli extends GardenCli {
-  constructor(params: GardenCliParams = {}) {
-    super({ cloudApiFactory: FakeCloudApi.factory, ...params })
+  constructor(params: GardenCliParams = { cloudApiFactory: FakeCloudApi.factory, initLogger: false }) {
+    super(params)
   }
 
   override async getGarden(workingDir: string, opts: GardenOpts) {

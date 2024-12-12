@@ -462,7 +462,7 @@ export class AnalyticsHandler {
 
     let cloudUser: UserResult | undefined
     let cloudProject: CloudProject | undefined
-    if (garden.cloudApi) {
+    if (garden.isLoggedIn()) {
       try {
         cloudUser = await garden.cloudApi.getProfile()
       } catch (err) {

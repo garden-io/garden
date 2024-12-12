@@ -49,7 +49,7 @@ import type { AnalyticsHandler } from "../analytics/analytics.js"
 import type { GardenPluginReference } from "../plugin/plugin.js"
 import type { CloudApiFactory } from "../cloud/api.js"
 import { CloudApiTokenRefreshError } from "../cloud/api.js"
-import { GardenCloudApi } from "../cloud/api.js"
+import type { GardenCloudApi } from "../cloud/api.js"
 import { findProjectConfig } from "../config/base.js"
 import { pMemoizeDecorator } from "../lib/p-memoize.js"
 import { getCustomCommands } from "../commands/custom.js"
@@ -80,29 +80,74 @@ export interface RunOutput {
 }
 
 export interface GardenCliParams {
+  cloudApiFactory: CloudApiFactory
+  initLogger: boolean
   plugins?: GardenPluginReference[]
-  initLogger?: boolean
-  cloudApiFactory?: CloudApiFactory
 }
 
 function hasHelpFlag(argv: minimist.ParsedArgs) {
   return argv.h || argv.help
 }
 
+async function initCloudApi({
+  command,
+  globalConfigStore,
+  projectConfig,
+  cloudApiFactory,
+  log,
+}: {
+  command: Command
+  globalConfigStore: GlobalConfigStore
+  projectConfig: ProjectConfig | undefined
+  cloudApiFactory: CloudApiFactory
+  log: Log
+}): Promise<GardenCloudApi | undefined> {
+  if (command.noProject) {
+    return undefined
+  }
+
+  const cloudDomain = getGardenCloudDomain(projectConfig?.domain)
+  const distroName = getCloudDistributionName(cloudDomain)
+
+  try {
+    return await cloudApiFactory({ log, cloudDomain, globalConfigStore })
+  } catch (err) {
+    if (err instanceof CloudApiTokenRefreshError) {
+      log.warn(dedent`
+            The current ${distroName} session is not valid or it's expired.
+            Command results for this command run will not be available in ${distroName}.
+            To avoid losing command results and logs, please try logging back in by running \`garden login\`.
+            If this not a ${distroName} project you can ignore this warning.
+          `)
+
+      // Project is configured for cloud usage => fail early to force re-auth
+      if (projectConfig && projectConfig.id) {
+        throw err
+      }
+
+      return undefined
+    } else {
+      // unhandled error when creating the cloud api
+      throw err
+    }
+  }
+}
+
 // TODO: this is used in more contexts now, should rename to GardenCommandRunner or something like that
 @Profile()
 export class GardenCli {
-  private commands: { [key: string]: Command } = {}
+  private readonly cloudApiFactory: CloudApiFactory
+  private readonly commands: { [key: string]: Command } = {}
+  private readonly initLogger: boolean
   private fileWritersInitialized = false
-  public plugins: GardenPluginReference[]
-  private initLogger: boolean
-  public processRecord?: GardenProcess
-  protected cloudApiFactory: CloudApiFactory
 
-  constructor({ plugins, initLogger = false, cloudApiFactory = GardenCloudApi.factory }: GardenCliParams = {}) {
+  public readonly plugins: GardenPluginReference[]
+  public processRecord?: GardenProcess
+
+  constructor({ cloudApiFactory, plugins, initLogger }: GardenCliParams) {
+    this.cloudApiFactory = cloudApiFactory
     this.plugins = plugins || []
     this.initLogger = initLogger
-    this.cloudApiFactory = cloudApiFactory
 
     const commands = sortBy(getBuiltinCommands(), (c) => c.name)
     commands.forEach((command) => this.addCommand(command))
@@ -251,40 +296,22 @@ ${renderCommands(commands)}
           : null
       gardenInitLog?.info("Initializing...")
 
-      // Init Cloud API (if applicable)
-      let cloudApi: GardenCloudApi | undefined
-      if (!command.noProject) {
-        const config = await this.getProjectConfig(log, workingDir)
-        const cloudDomain = getGardenCloudDomain(config?.domain)
-        const distroName = getCloudDistributionName(cloudDomain)
-
-        try {
-          cloudApi = await this.cloudApiFactory({ log, cloudDomain, globalConfigStore })
-        } catch (err) {
-          if (err instanceof CloudApiTokenRefreshError) {
-            log.warn(dedent`
-              The current ${distroName} session is not valid or it's expired.
-              Command results for this command run will not be available in ${distroName}.
-              To avoid losing command results and logs, please try logging back in by running \`garden login\`.
-              If this not a ${distroName} project you can ignore this warning.
-            `)
-
-            // Project is configured for cloud usage => fail early to force re-auth
-            if (config && config.id) {
-              throw err
-            }
-          } else {
-            // unhandled error when creating the cloud api
-            throw err
-          }
-        }
-      }
-
       const commandInfo = {
         name: command.getFullName(),
         args: parsedArgs,
         opts: optionsWithAliasValues(command, parsedOpts),
       }
+
+      const projectConfig = await this.getProjectConfig(log, workingDir)
+
+      // Init Cloud API (if applicable)
+      const cloudApi = await initCloudApi({
+        command,
+        globalConfigStore,
+        projectConfig,
+        cloudApiFactory: this.cloudApiFactory,
+        log,
+      })
 
       const contextOpts: GardenOpts = {
         commandInfo,
@@ -325,7 +352,7 @@ ${renderCommands(commands)}
           await emitLoginWarning({
             garden,
             log,
-            isLoggedIn: !!cloudApi,
+            isLoggedIn: garden.isLoggedIn(),
             isCommunityEdition: garden.cloudDomain === DEFAULT_GARDEN_CLOUD_DOMAIN,
           })
 
@@ -404,7 +431,7 @@ ${renderCommands(commands)}
         cloudApi?.close()
       }
 
-      return { result, analytics, cloudApi }
+      return { result, analytics }
     })
   }
 

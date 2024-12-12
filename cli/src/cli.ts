@@ -19,6 +19,7 @@ import { styles } from "@garden-io/core/build/src/logger/styles.js"
 import { gardenEnv, IGNORE_UNCAUGHT_EXCEPTION_VARNAME } from "@garden-io/core/build/src/constants.js"
 import { inspect } from "node:util"
 import { waitForOutputFlush } from "@garden-io/core/build/src/process.js"
+import { GardenCloudApi } from "@garden-io/core/build/src/cloud/api.js"
 
 // These plugins are always registered
 export const getBundledPlugins = (): GardenPluginReference[] => [
@@ -78,7 +79,13 @@ if (gardenEnv.GARDEN_IGNORE_UNCAUGHT_EXCEPTION) {
   process.on("uncaughtException", (e: unknown) => {
     ignoredUncaughtExceptions = true
     console.warn(
-      `\n${styles.warning(`WARNING: Ignoring fatal exception because ${IGNORE_UNCAUGHT_EXCEPTION_VARNAME} is set to true`)}: ${inspect(e, { showHidden: true, getters: true })}\n`
+      `\n${styles.warning(`WARNING: Ignoring fatal exception because ${IGNORE_UNCAUGHT_EXCEPTION_VARNAME} is set to true`)}: ${inspect(
+        e,
+        {
+          showHidden: true,
+          getters: true,
+        }
+      )}\n`
     )
   })
 }
@@ -100,7 +107,7 @@ export async function runCli({
     result = await withContextFromEnv(() =>
       wrapActiveSpan("garden", async () => {
         if (!cli) {
-          cli = new GardenCli({ plugins: getBundledPlugins(), initLogger })
+          cli = new GardenCli({ plugins: getBundledPlugins(), cloudApiFactory: GardenCloudApi.factory, initLogger })
         }
 
         // Note: We slice off the binary/script name from argv.

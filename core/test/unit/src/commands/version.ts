@@ -13,13 +13,14 @@ import { VersionCommand } from "../../../../src/commands/version.js"
 import type { TempDirectory } from "../../../helpers.js"
 import { makeTempDir } from "../../../helpers.js"
 import { makeDummyGarden } from "../../../../src/garden.js"
+import { FakeCloudApi } from "../../../helpers/api.js"
 
 describe("VersionCommand", () => {
   let tmpDir: TempDirectory
   let cli: GardenCli
 
   beforeEach(async () => {
-    cli = new GardenCli()
+    cli = new GardenCli({ cloudApiFactory: FakeCloudApi.factory, initLogger: false })
     tmpDir = await makeTempDir({ git: true, initialCommit: false })
   })
 

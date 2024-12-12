@@ -178,7 +178,7 @@ export class GardenCloudApi {
   /**
    * Initialize the Cloud API.
    *
-   * Returns null if the user is not logged in.
+   * Returns `undefined` if the user is not logged in.
    *
    * Throws if the user is logged in but the token is invalid and can't be refreshed.
    *
@@ -187,19 +187,19 @@ export class GardenCloudApi {
    */
   static async factory({ log, cloudDomain, globalConfigStore, skipLogging = false }: CloudApiFactoryParams) {
     const distroName = getCloudDistributionName(cloudDomain)
-    const fixLevel = skipLogging ? LogLevel.silly : undefined
-    const cloudFactoryLog = log.createLog({ fixLevel, name: getCloudLogSectionName(distroName), showDuration: true })
-
-    cloudFactoryLog.debug("Initializing Garden Cloud API client.")
-
     const token = await getStoredAuthToken(log, globalConfigStore, cloudDomain)
 
     if (!token && !gardenEnv.GARDEN_AUTH_TOKEN) {
       log.debug(
         `No auth token found, proceeding without access to ${distroName}. Command results for this command run will not be available in ${distroName}.`
       )
-      return
+      return undefined
     }
+
+    const fixLevel = skipLogging ? LogLevel.silly : undefined
+    const cloudFactoryLog = log.createLog({ fixLevel, name: getCloudLogSectionName(distroName), showDuration: true })
+
+    cloudFactoryLog.debug("Initializing Garden Cloud API client.")
 
     const api = new GardenCloudApi({ log, domain: cloudDomain, globalConfigStore })
     const tokenIsValid = await api.checkClientAuthToken()

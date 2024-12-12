@@ -227,7 +227,7 @@ export interface GardenParams {
   username: string | undefined
   workingCopyId: string
   forceRefresh?: boolean
-  cloudApi?: GardenCloudApi | null
+  cloudApi?: GardenCloudApi
   projectApiVersion: ProjectConfig["apiVersion"]
 }
 
@@ -248,6 +248,10 @@ interface ResolveProviderParams {
   name: string
   statusOnly?: boolean
 }
+
+type GardenType = typeof Garden.prototype
+// TODO: add more fields that are known to dbe defined when logged in to Cloud
+export type LoggedInGarden = GardenType & Required<Pick<GardenType, "cloudApi">>
 
 @Profile()
 export class Garden {
@@ -282,7 +286,7 @@ export class Garden {
   public readonly configTemplates: { [name: string]: ConfigTemplateConfig }
   private actionTypeBases: ActionTypeMap<ActionTypeDefinition<any>[]>
   private emittedWarnings: Set<string>
-  public cloudApi: GardenCloudApi | null
+  public cloudApi?: GardenCloudApi
 
   public readonly production: boolean
   public readonly projectRoot: string
@@ -325,7 +329,10 @@ export class Garden {
   public readonly monitors: MonitorManager
   public readonly nestedSessions: Map<string, Garden>
 
-  // Used internally for introspection
+  /**
+   * Used internally for introspection
+   * @internal
+   */
   public readonly isGarden: true
 
   constructor(params: GardenParams) {
@@ -360,13 +367,14 @@ export class Garden {
     this.persistent = !!params.opts.persistent
     this.username = params.username
     this.forceRefresh = !!params.forceRefresh
-    this.cloudApi = params.cloudApi || null
     this.commandInfo = params.opts.commandInfo
     this.isGarden = true
     this.configTemplates = {}
     this.emittedWarnings = new Set()
     this.state = { configsScanned: false, needsReload: false }
     this.nestedSessions = new Map()
+
+    this.cloudApi = params.cloudApi
 
     this.asyncLock = new AsyncLock()
 
@@ -1853,7 +1861,7 @@ export class Garden {
   }
 
   /** Returns whether the user is logged in to the Garden Cloud */
-  public isLoggedIn(): boolean {
+  public isLoggedIn(): this is LoggedInGarden {
     return !!this.cloudApi
   }
 }
@@ -1978,7 +1986,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
 
     const projectApiVersion = config.apiVersion
     const sessionId = opts.sessionId || uuidv4()
-    const cloudApi = opts.cloudApi || null
+    const cloudApi = opts.cloudApi
     const cloudDomain = cloudApi?.domain || getGardenCloudDomain(config.domain)
     const loggedIn = !!cloudApi
 
@@ -2118,7 +2126,7 @@ async function prepareCloud({
   environmentName,
   commandName,
 }: {
-  cloudApi: GardenCloudApi | null
+  cloudApi: GardenCloudApi | undefined
   config: ProjectConfig
   log: Log
   projectRoot: string

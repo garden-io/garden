@@ -23,7 +23,6 @@ import { resolveTemplateStrings, resolveTemplateString } from "../template-strin
 import { ConfigurationError, FilesystemError } from "../exceptions.js"
 import { posix, join } from "path"
 import fsExtra from "fs-extra"
-const { ensureDir, writeFile } = fsExtra
 import { getDurationMsec, toEnvVars } from "../util/util.js"
 import { runScript } from "../util/util.js"
 import { LogLevel } from "../logger/logger.js"
@@ -35,6 +34,8 @@ import type { GardenCli } from "../cli/cli.js"
 import { getCustomCommands } from "./custom.js"
 import { getBuiltinCommands } from "./commands.js"
 import { styles } from "../logger/styles.js"
+
+const { ensureDir, writeFile } = fsExtra
 
 const runWorkflowArgs = {
   workflow: new StringParameter({
@@ -525,17 +526,18 @@ export function logErrors(
 }
 
 async function registerAndSetUid(garden: Garden, log: Log, config: WorkflowConfig) {
-  const { cloudApi } = garden
-  if (cloudApi) {
-    const workflowRunUid = await registerWorkflowRun({
-      garden,
-      workflowConfig: config,
-      environment: garden.environmentName,
-      namespace: garden.namespace,
-      log,
-    })
-    garden.events.emit("_workflowRunRegistered", { workflowRunUid })
+  if (!garden.isLoggedIn()) {
+    return
   }
+
+  const workflowRunUid = await registerWorkflowRun({
+    garden,
+    workflowConfig: config,
+    environment: garden.environmentName,
+    namespace: garden.namespace,
+    log,
+  })
+  garden.events.emit("_workflowRunRegistered", { workflowRunUid })
 }
 
 async function writeWorkflowFile(garden: Garden, file: WorkflowFileSpec) {
