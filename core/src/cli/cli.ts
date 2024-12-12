@@ -49,7 +49,7 @@ import type { AnalyticsHandler } from "../analytics/analytics.js"
 import type { GardenPluginReference } from "../plugin/plugin.js"
 import type { CloudApiFactory } from "../cloud/api.js"
 import { CloudApiTokenRefreshError } from "../cloud/api.js"
-import { GardenCloudApi } from "../cloud/api.js"
+import type { GardenCloudApi } from "../cloud/api.js"
 import { findProjectConfig } from "../config/base.js"
 import { pMemoizeDecorator } from "../lib/p-memoize.js"
 import { getCustomCommands } from "../commands/custom.js"
@@ -80,9 +80,9 @@ export interface RunOutput {
 }
 
 export interface GardenCliParams {
+  cloudApiFactory: CloudApiFactory
   plugins?: GardenPluginReference[]
   initLogger?: boolean
-  cloudApiFactory?: CloudApiFactory
 }
 
 function hasHelpFlag(argv: minimist.ParsedArgs) {
@@ -100,10 +100,10 @@ export class GardenCli {
   public readonly plugins: GardenPluginReference[]
   public processRecord?: GardenProcess
 
-  constructor({ plugins, initLogger = false, cloudApiFactory = GardenCloudApi.factory }: GardenCliParams = {}) {
+  constructor({ cloudApiFactory, plugins, initLogger = false }: GardenCliParams) {
+    this.cloudApiFactory = cloudApiFactory
     this.plugins = plugins || []
     this.initLogger = initLogger
-    this.cloudApiFactory = cloudApiFactory
 
     const commands = sortBy(getBuiltinCommands(), (c) => c.name)
     commands.forEach((command) => this.addCommand(command))

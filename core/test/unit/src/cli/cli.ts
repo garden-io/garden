@@ -39,6 +39,7 @@ import { makeDummyGarden } from "../../../../src/garden.js"
 import { TestGardenCli } from "../../../helpers/cli.js"
 import { NotImplementedError } from "../../../../src/exceptions.js"
 import dedent from "dedent"
+import { GardenCloudApi } from "../../../../src/cloud/api.js"
 
 /**
  * Helper functions for removing/resetting the global logger config which is set when
@@ -523,7 +524,13 @@ describe("cli", () => {
           this.server = await startServer({
             log: _log,
             defaultProjectRoot: projectRootA,
-            manager: GardenInstanceManager.getInstance({ log, sessionId, serveCommand, plugins: [] }),
+            manager: GardenInstanceManager.getInstance({
+              log,
+              sessionId,
+              serveCommand,
+              plugins: [],
+              cloudApiFactory: GardenCloudApi.factory,
+            }),
             serveCommand,
           })
         }

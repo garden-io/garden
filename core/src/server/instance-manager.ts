@@ -12,7 +12,7 @@ import { Autocompleter } from "../cli/autocomplete.js"
 import { parseCliVarFlags } from "../cli/helpers.js"
 import type { ParameterObject, ParameterValues } from "../cli/params.js"
 import type { CloudApiFactory, CloudApiFactoryParams } from "../cloud/api.js"
-import { GardenCloudApi } from "../cloud/api.js"
+import type { GardenCloudApi } from "../cloud/api.js"
 import type { Command } from "../commands/base.js"
 import { getBuiltinCommands, flattenCommands } from "../commands/commands.js"
 import { getCustomCommands } from "../commands/custom.js"
@@ -53,13 +53,13 @@ interface ProjectRootContext {
 }
 
 interface GardenInstanceManagerParams {
-  log: Log
-  sessionId: string
-  plugins: GardenPluginReference[]
-  serveCommand: ServeCommand
-  extraCommands?: Command[]
-  defaultOpts?: Partial<GardenOpts>
-  cloudApiFactory?: CloudApiFactory
+  readonly log: Log
+  readonly sessionId: string
+  readonly plugins: GardenPluginReference[]
+  readonly serveCommand: ServeCommand
+  readonly extraCommands?: Command[]
+  readonly defaultOpts?: Partial<GardenOpts>
+  readonly cloudApiFactory: CloudApiFactory
 }
 
 // TODO: clean up unused instances after some timeout since last request and when no monitors are active
@@ -108,7 +108,7 @@ export class GardenInstanceManager {
     this.lastRequested = new Map()
     this.defaultOpts = defaultOpts || {}
     this.plugins = plugins
-    this.cloudApiFactory = cloudApiFactory || GardenCloudApi.factory
+    this.cloudApiFactory = cloudApiFactory
     this.serveCommand = serveCommand
 
     this.events = new EventBus()

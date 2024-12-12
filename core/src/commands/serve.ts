@@ -17,7 +17,7 @@ import { GardenInstanceManager } from "../server/instance-manager.js"
 import { sleep } from "../util/util.js"
 import type { Log } from "../logger/log-entry.js"
 import { findProjectConfig } from "../config/base.js"
-import { CloudApiTokenRefreshError } from "../cloud/api.js"
+import { CloudApiTokenRefreshError, GardenCloudApi } from "../cloud/api.js"
 import { uuidv4 } from "../util/random.js"
 import type { Garden } from "../garden.js"
 import type { GardenPluginReference } from "../plugin/plugin.js"
@@ -245,6 +245,7 @@ export class ServeCommand<
         sessionId: this.sessionId || initialSessionId || uuidv4(),
         serveCommand: this,
         plugins: this.plugins || [],
+        cloudApiFactory: GardenCloudApi.factory,
       })
     }
 
