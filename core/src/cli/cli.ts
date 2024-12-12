@@ -405,7 +405,7 @@ ${renderCommands(commands)}
         cloudApi?.close()
       }
 
-      return { result, analytics, cloudApi }
+      return { result, analytics }
     })
   }
 
