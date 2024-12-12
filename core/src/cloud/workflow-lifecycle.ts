@@ -36,9 +36,8 @@ export async function registerWorkflowRun({
   log,
 }: RegisterWorkflowRunParams): Promise<string> {
   log.debug(`Registering workflow run for ${workflowConfig.name}...`)
-  const cloudApi = garden.cloudApi
-  if (!cloudApi) {
-    throw new CloudApiError({ message: "Error while registering workflow run: Couldn't initialize API." })
+  if (!garden.isLoggedIn()) {
+    throw new CloudApiError({ message: "Error while registering workflow run: Couldn't initialize API. You need to login." })
   }
 
   const workflowRunConfig = makeRunConfig(workflowConfig, environment, namespace)
@@ -49,6 +48,7 @@ export async function registerWorkflowRun({
   if (gardenEnv.GARDEN_GE_SCHEDULED) {
     requestData["workflowRunUid"] = gardenEnv.GARDEN_WORKFLOW_RUN_UID
   }
+  const cloudApi = garden.cloudApi
 
   // TODO: Use API types package here.
   let res: ApiFetchResponse<CreateWorkflowRunResponse>

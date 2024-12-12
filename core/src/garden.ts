@@ -249,6 +249,10 @@ interface ResolveProviderParams {
   statusOnly?: boolean
 }
 
+type GardenType = typeof Garden.prototype
+// TODO: add more fields that are known to dbe defined when logged in to Cloud
+export type LoggedInGarden = GardenType & Required<Pick<GardenType, "cloudApi">>
+
 @Profile()
 export class Garden {
   public log: Log
@@ -1857,7 +1861,7 @@ export class Garden {
   }
 
   /** Returns whether the user is logged in to the Garden Cloud */
-  public isLoggedIn(): boolean {
+  public isLoggedIn(): this is LoggedInGarden {
     return !!this.cloudApi
   }
 }

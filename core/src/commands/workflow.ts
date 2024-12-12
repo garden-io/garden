@@ -526,8 +526,7 @@ export function logErrors(
 }
 
 async function registerAndSetUid(garden: Garden, log: Log, config: WorkflowConfig) {
-  const { cloudApi } = garden
-  if (!cloudApi) {
+  if (!garden.isLoggedIn()) {
     return
   }
 
