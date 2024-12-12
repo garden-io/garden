@@ -1,4 +1,13 @@
 
+<a name="0.13.47"></a>
+## [0.13.47](https://github.com/garden-io/garden/compare/0.13.46...0.13.47) (2024-12-12)
+
+### Bug Fixes
+
+* make sure to display the mutagen version update warning message ([#6715](https://github.com/garden-io/garden/issues/6715)) ([9d971d255](https://github.com/garden-io/garden/commit/9d971d255))
+* **template:** establish backwards bug-compatibility for kubernetes manifest files ([#6713](https://github.com/garden-io/garden/issues/6713)) ([424b39220](https://github.com/garden-io/garden/commit/424b39220))
+* **templates:** fix regression with multiple if statements introduced in 0.13.46 ([#6714](https://github.com/garden-io/garden/issues/6714)) ([7fbe71779](https://github.com/garden-io/garden/commit/7fbe71779))
+
 <a name="0.13.46"></a>
 ## [0.13.46](https://github.com/garden-io/garden/compare/0.13.45...0.13.46) (2024-12-11)
 
