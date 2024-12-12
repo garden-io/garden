@@ -43,27 +43,27 @@
 
       switch (operator) {
         case "==":
-          return new ast.EqualExpression(location(), operator, left, right)
+          return new ast.EqualExpression(text(), location(), operator, left, right)
         case "!=":
-          return new ast.NotEqualExpression(location(), operator, left, right)
+          return new ast.NotEqualExpression(text(), location(), operator, left, right)
         case "<=":
-          return new ast.LessThanEqualExpression(location(), operator, left, right)
+          return new ast.LessThanEqualExpression(text(), location(), operator, left, right)
         case ">=":
-          return new ast.GreaterThanEqualExpression(location(), operator, left, right)
+          return new ast.GreaterThanEqualExpression(text(), location(), operator, left, right)
         case "<":
-          return new ast.LessThanExpression(location(), operator, left, right)
+          return new ast.LessThanExpression(text(), location(), operator, left, right)
         case ">":
-          return new ast.GreaterThanExpression(location(), operator, left, right)
+          return new ast.GreaterThanExpression(text(), location(), operator, left, right)
         case "+":
-          return new ast.AddExpression(location(), operator, left, right)
+          return new ast.AddExpression(text(), location(), operator, left, right)
         case "-":
-          return new ast.SubtractExpression(location(), operator, left, right)
+          return new ast.SubtractExpression(text(), location(), operator, left, right)
         case "*":
-          return new ast.MultiplyExpression(location(), operator, left, right)
+          return new ast.MultiplyExpression(text(), location(), operator, left, right)
         case "/":
-          return new ast.DivideExpression(location(), operator, left, right)
+          return new ast.DivideExpression(text(), location(), operator, left, right)
         case "%":
-          return new ast.ModuloExpression(location(), operator, left, right)
+          return new ast.ModuloExpression(text(), location(), operator, left, right)
         default:
           throw new TemplateStringError({ message: `Unrecognized logical operator: ${operator}`, loc: location() })
       }
@@ -82,9 +82,9 @@
 
       switch (operator) {
         case "&&":
-          return new ast.LogicalAndExpression(location(), operator, left, right)
+          return new ast.LogicalAndExpression(text(), location(), operator, left, right)
         case "||":
-          return new ast.LogicalOrExpression(location(), operator, left, right)
+          return new ast.LogicalOrExpression(text(), location(), operator, left, right)
         default:
           throw new TemplateStringError({ message: `Unrecognized logical operator: ${operator}`, loc: location() })
       }
@@ -101,8 +101,8 @@
     let rootExpressions = []
 
     let currentCondition = undefined
-    let ifTrue = []
-    let ifFalse = []
+    let consequent = []
+    let alternate = []
     let nestingLevel = 0
     let encounteredElse = false
     const pushElement = (e) => {
@@ -110,9 +110,9 @@
         return rootExpressions.push(e)
       }
       if (encounteredElse) {
-        ifFalse.push(e)
+        alternate.push(e)
       } else {
-        ifTrue.push(e)
+        consequent.push(e)
       }
     }
     for (const e of elements) {
@@ -132,6 +132,7 @@
         }
 
         if (currentCondition && nestingLevel === 0) {
+          currentCondition.else = e
           encounteredElse = true
         } else {
           pushElement(e)
@@ -141,9 +142,9 @@
           throw new TemplateStringError({ message: "Found ${endif} block without a preceding ${if...} block.", loc: location() })
         }
         if (nestingLevel === 0) {
-          currentCondition.ifTrue = buildConditionalTree(...ifTrue)
-          currentCondition.ifFalse = buildConditionalTree(...ifFalse)
-          currentCondition.loc.end = e.loc.end
+          currentCondition.consequent = buildConditionalTree(...consequent)
+          currentCondition.alternate = buildConditionalTree(...alternate)
+          currentCondition.endIf = e
           rootExpressions.push(currentCondition)
           currentCondition = undefined
         } else {
@@ -158,20 +159,18 @@
     // For backwards compatibility we allow unclosed ${if } block statements in some cases,
     // (Namely if there are no other expressions on the same nesting level)
     // e.g. '${if "foo"}' evaluates to "foo"
-    if (currentCondition && (rootExpressions.length > 0 || ifTrue.length > 0)) {
+    if (currentCondition && (rootExpressions.length > 0 || consequent.length > 0)) {
       throw new TemplateStringError({ message: "Missing ${endif} after ${if ...} block.", loc: location() })
     }
     if (rootExpressions.length === 0) {
+      if (!currentCondition) {
+        return new ast.LiteralExpression(text(), location(), "")
+      }
       // if we have a current condition, we return the unclosed if statement
-      // if it's undefined this is equivalent to empty string literal expression
-      return currentCondition || new ast.LiteralExpression(location(), "")
+      rootExpressions.push(currentCondition)
     }
 
-    if (rootExpressions.length === 1) {
-      return rootExpressions[0]
-    }
-
-    return new ast.StringConcatExpression(location(), ...rootExpressions)
+    return new ast.BlockExpression(...rootExpressions)
   }
 
   function isBlockExpression(e) {
@@ -185,11 +184,6 @@
 
 Start
   = elements:TemplateStrings {
-    // If there is only one format string, return it's result directly without wrapping in StringConcatExpression
-    if (elements.length === 1 && !(isBlockExpression(elements[0]))) {
-      return elements[0]
-    }
-
     return buildConditionalTree(...elements)
   }
 
@@ -204,15 +198,15 @@ TemplateStrings
   }
   / UnclosedFormatString
   / $(.+) {
-    return [new ast.LiteralExpression(location(), text())]
+    return [new ast.LiteralExpression(text(), location(), text())]
   }
 
 FormatString
   = EscapeStart (!FormatEndWithOptional SourceCharacter)* FormatEndWithOptional {
     if (options.unescape) {
-      return new ast.LiteralExpression(location(), text().slice(1))
+      return new ast.LiteralExpression(text(), location(), text().slice(1))
     } else {
-      return new ast.LiteralExpression(location(), text())
+      return new ast.LiteralExpression(text(), location(), text())
     }
   }
   / FormatStart op:BlockOperator FormatEnd {
@@ -220,9 +214,9 @@ FormatString
     // We instantiate expressions here to get the correct locations for constructing good error messages
     switch (op) {
       case "else":
-        return new ast.ElseBlockExpression(location())
+        return new ast.ElseBlockExpression(text(), location())
       case "endif":
-        return new ast.EndIfBlockExpression(location())
+        return new ast.EndIfBlockExpression(text(), location())
       default:
         throw new TemplateStringError({ message: `Unrecognized block operator: ${op}`, loc: location() })
     }
@@ -230,24 +224,22 @@ FormatString
   / pre:FormatStartWithEscape blockOperator:(ExpressionBlockOperator __)* e:Expression end:FormatEndWithOptional {
       if (pre[0] === escapePrefix) {
         if (options.unescape) {
-          return new ast.LiteralExpression(location(), text().slice(1))
+          return new ast.LiteralExpression(text(), location(), text().slice(1))
         } else {
-          return new ast.LiteralExpression(location(), text())
+          return new ast.LiteralExpression(text(), location(), text())
         }
       }
 
       const isOptional = end[1] === optionalSuffix
-      const expression = new ast.FormatStringExpression(location(), e, isOptional)
+      const expression = new ast.FormatStringExpression(text(), location(), e, isOptional, text())
 
       if (blockOperator && blockOperator.length > 0) {
         if (isOptional) {
           throw new TemplateStringError({ message: "Cannot specify optional suffix in if-block.", loc: location() })
         }
 
-        // ifTrue and ifFalse will be filled in by `buildConditionalTree`
-        const ifTrue = undefined
-        const ifFalse = undefined
-        return new ast.IfBlockExpression(location(), expression, ifTrue, ifFalse, isOptional)
+        // consequent, alternate, else and endif expressions will be filled in by `buildConditionalTree`
+        return new ast.IfBlockExpression(expression)
       }
 
       return expression
@@ -286,10 +278,10 @@ ExpressionBlockOperator
   = "if"
 
 Prefix
-  = !FormatStartWithEscape (. ! FormatStartWithEscape)* . { return new ast.LiteralExpression(location(), text()) }
+  = !FormatStartWithEscape (. ! FormatStartWithEscape)* . { return new ast.LiteralExpression(text(), location(), text()) }
 
 Suffix
-  = !FormatEnd (. ! FormatEnd)* . { return new ast.LiteralExpression(location(), text()) }
+  = !FormatEnd (. ! FormatEnd)* . { return new ast.LiteralExpression(text(), location(), text()) }
 
 // ---- expressions -----
 // Reduced and adapted from: https://github.com/pegjs/pegjs/blob/master/examples/javascript.pegjs
@@ -297,7 +289,7 @@ MemberExpression
   = head:Identifier
     tail:(
         "[" __ e:Expression __ "]" {
-          return new ast.MemberExpression(location(), e)
+          return new ast.MemberExpression(text(), location(), e)
         }
       / "." e:Identifier {
           return e
@@ -309,7 +301,7 @@ MemberExpression
 
 CallExpression
   = functionName:Identifier __ args:Arguments {
-      return new ast.FunctionCallExpression(location(), functionName, args)
+      return new ast.FunctionCallExpression(text(), location(), functionName, args)
     }
 
 Arguments
@@ -327,7 +319,7 @@ ArgumentListTail
 
 ArrayLiteral
   = v:_ArrayLiteral {
-      return new ast.ArrayLiteralExpression(location(), v)
+      return new ast.ArrayLiteralExpression(text(), location(), v)
   }
 _ArrayLiteral
   = "[" __ elision:(Elision __)? "]" {
@@ -358,18 +350,18 @@ Elision
 
 PrimaryExpression
   = v:NonStringLiteral {
-    return new ast.LiteralExpression(location(), v)
+    return new ast.LiteralExpression(text(), location(), v)
   }
   / v:StringLiteral {
     // Do not parse empty strings.
     if (v === "") {
-      return new ast.LiteralExpression(location(), "")
+      return new ast.LiteralExpression(text(), location(), "")
     }
     // Allow nested template strings in literals
     const parsed = parseNested(v)
     if (typeof parsed === "string") {
       // The nested string did not contain template expressions, so it is a literal expression
-      return new ast.LiteralExpression(location(), parsed)
+      return new ast.LiteralExpression(text(), location(), parsed)
     }
     // v contained a template expression
     return parsed
@@ -377,7 +369,7 @@ PrimaryExpression
   / ArrayLiteral
   / CallExpression
   / key:MemberExpression {
-    return new ast.ContextLookupExpression(location(), key)
+    return new ast.ContextLookupExpression(text(), location(), key)
   }
   / "(" __ e:Expression __ ")" {
     return e
@@ -388,9 +380,9 @@ UnaryExpression
   / operator:UnaryOperator __ argument:UnaryExpression {
       switch (operator) {
         case "typeof":
-          return new ast.TypeofExpression(location(), argument)
+          return new ast.TypeofExpression(text(), location(), argument)
         case "!":
-          return new ast.NotExpression(location(), argument)
+          return new ast.NotExpression(text(), location(), argument)
         default:
           throw new TemplateStringError({ message: `Unrecognized unary operator: ${operator}`, loc: location() })
       }
@@ -402,7 +394,7 @@ UnaryOperator
 
 ContainsExpression
   = iterable:UnaryExpression __ ContainsOperator __ element:UnaryExpression {
-      return new ast.ContainsExpression(location(), "contains", iterable, element)
+      return new ast.ContainsExpression(text(), location(), "contains", iterable, element)
     }
   / UnaryExpression
 
@@ -470,7 +462,7 @@ ConditionalExpression
     "?" __ consequent:Expression __
     ":" __ alternate:Expression
     {
-      return new ast.TernaryExpression(location(), test, consequent, alternate)
+      return new ast.TernaryExpression(text(), location(), test, consequent, alternate)
     }
   / LogicalORExpression
 
@@ -515,7 +507,7 @@ SingleLineComment
   = "//" (!LineTerminator SourceCharacter)*
 
 Identifier
-  = !ReservedWord name:IdentifierName { return new ast.IdentifierExpression(location(), name) }
+  = !ReservedWord name:IdentifierName { return new ast.IdentifierExpression(text(), location(), name) }
 
 IdentifierName "identifier"
   = head:IdentifierStart tail:IdentifierPart* {

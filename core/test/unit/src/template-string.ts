@@ -1200,6 +1200,120 @@ describe("resolveTemplateString", () => {
         expect(res).to.equal("foo-bar")
       })
     })
+    context("legacyAllowPartial=true", () => {
+      it("partially resolves template expressions when 'b' is missing in the context", () => {
+        const res = resolveTemplateString({
+          string: "${a}-${b}",
+          context: new GenericContext({ a: "foo" }),
+          contextOpts: { legacyAllowPartial: true },
+        })
+        expect(res).to.equal("foo-${b}")
+      })
+
+      it("partially resolves template expressions when 'a' is missing in the context", () => {
+        const res = resolveTemplateString({
+          string: "${a}-${b}",
+          context: new GenericContext({ b: "foo" }),
+          contextOpts: { legacyAllowPartial: true },
+        })
+        expect(res).to.equal("${a}-foo")
+      })
+
+      it("fully resolves template expressions when 'a' is missing in the context when evaluating a conditional expression", () => {
+        const res = resolveTemplateString({
+          string: "${a || b}-${c}",
+          context: new GenericContext({ b: 123, c: "foo" }),
+          contextOpts: {
+            legacyAllowPartial: true,
+          },
+        })
+        expect(res).to.equal("123-foo")
+      })
+
+      it("resolves template expressions when the context is fully available", () => {
+        const res = resolveTemplateString({
+          string: "${a}-${b}",
+          context: new GenericContext({ a: "foo", b: "bar" }),
+          contextOpts: { legacyAllowPartial: true },
+        })
+        expect(res).to.equal("foo-bar")
+      })
+
+      it("partially resolves template expressions in the presence of an if expression", () => {
+        const res = resolveTemplateString({
+          string: "${a}-${b}-${if c}exists${else}missing${endif}",
+          context: new GenericContext({ a: "foo", b: "bar" }),
+          contextOpts: { legacyAllowPartial: true },
+        })
+        expect(res).to.equal("foo-bar-${if c}exists${else}missing${endif}")
+      })
+
+      it("does not resolve template expressions inside unresolved if expression", () => {
+        // this is different in behaviour compared to prior versions of Garden;
+        // This is unlikely to be a breaking change for users, because unresolved if statements likely result in YAML errors when resolving template strings in kubernetes manifests.
+        const res = resolveTemplateString({
+          string: "${if c}${a}${else}${b}${endif}",
+          context: new GenericContext({ a: "foo" }),
+          contextOpts: { legacyAllowPartial: true },
+        })
+        expect(res).to.equal("${if c}${a}${else}${b}${endif}")
+      })
+
+      it("partially resolves to consequent branch of if expression if conditional is true", () => {
+        const res1 = resolveTemplateString({
+          string: "${if c}${a}${else}${b}${endif}",
+          context: new GenericContext({ a: "foo", c: true }),
+          contextOpts: { legacyAllowPartial: true },
+        })
+        expect(res1).to.equal("foo")
+        const res2 = resolveTemplateString({
+          string: "${if c}${a}${else}${b}${endif}",
+          context: new GenericContext({ c: true }),
+          contextOpts: { legacyAllowPartial: true },
+        })
+        expect(res2).to.equal("${a}")
+      })
+
+      it("partially resolves to alternate branch of if expression if conditional is false", () => {
+        const res1 = resolveTemplateString({
+          string: "${if c}${a}${else}${b}${endif}",
+          context: new GenericContext({ b: "foo", c: false }),
+          contextOpts: { legacyAllowPartial: true },
+        })
+        expect(res1).to.equal("foo")
+        const res2 = resolveTemplateString({
+          string: "${if c}${a}${else}${b}${endif}",
+          context: new GenericContext({ c: false }),
+          contextOpts: { legacyAllowPartial: true },
+        })
+        expect(res2).to.equal("${b}")
+      })
+
+      it("should not partially resolve sub-expressions in a format string expression to avoid crashes", () => {
+        const testCases = [
+          "${var.exists[var.doesNotExist]}",
+          '${var.exists["${var.doesNotExist}"]}',
+          "${jsonEncode(var.doesNotExist)}",
+          "${var.one + var.twoDoesNotExist}",
+        ]
+
+        for (const templateString of testCases) {
+          const result = resolveTemplateString({
+            string: templateString,
+            contextOpts: {
+              legacyAllowPartial: true,
+            },
+            context: new GenericContext({ var: { exists: {}, one: 1 } }),
+          })
+          // it should not partially resolve, i.e. resolve back to input
+          const expectation = templateString
+          expect(result).to.eq(
+            expectation,
+            `Template "${templateString}" did not resolve to expected value ${JSON.stringify(expectation)}`
+          )
+        }
+      })
+    })
   })
 
   context("contains operator", () => {

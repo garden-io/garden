@@ -428,7 +428,17 @@ async function readFileManifests(
         const absPath = resolve(manifestPath, path)
         log.debug(`Reading manifest for ${action.longDescription()} from path ${absPath}`)
         const str = (await readFile(absPath)).toString()
-        const resolved = ctx.resolveTemplateStrings(str, { allowPartial: true, unescape: true })
+
+        // TODO(0.14): Do not resolve template strings in unparsed YAML and remove legacyAllowPartial
+        // First of all, evaluating template strings can result in invalid YAML that fails to parse, because the result of the
+        // template expressions will be interpreted by the YAML parser later.
+        // Then also, the use of `legacyAllowPartial: true` is quite unfortunate here, because users will not notice
+        // if they reference variables that do not exist.
+        const resolved = ctx.resolveTemplateStrings(str, {
+          legacyAllowPartial: true,
+          unescape: true,
+        })
+
         const manifests = await parseKubernetesManifests(
           resolved,
           `${basename(absPath)} in directory ${dirname(absPath)} (specified in ${action.longDescription()})`,

@@ -86,7 +86,8 @@ function* astVisitAll(e: TemplateExpression, source: ConfigSource): TemplateExpr
 }
 
 export abstract class TemplateExpression {
-  constructor(public readonly loc: Location) {}
+  public abstract readonly rawText: string
+  public abstract readonly loc: Location;
 
   *visitAll(source: ConfigSource): TemplateExpressionGenerator {
     yield* astVisitAll(this, source)
@@ -97,7 +98,8 @@ export abstract class TemplateExpression {
 
 export class IdentifierExpression extends TemplateExpression {
   constructor(
-    loc: Location,
+    public readonly rawText: string,
+    public readonly loc: Location,
     // in the template expression ${foo.123}, 123 is a valid identifier expression and is treated as a number.
     public readonly identifier: string | number
   ) {
@@ -106,7 +108,7 @@ export class IdentifierExpression extends TemplateExpression {
         message: `identifier arg for IdentifierExpression must be a string or number. Got: ${typeof identifier}`,
       })
     }
-    super(loc)
+    super()
   }
 
   override evaluate(): string | number {
@@ -116,10 +118,11 @@ export class IdentifierExpression extends TemplateExpression {
 
 export class LiteralExpression extends TemplateExpression {
   constructor(
-    loc: Location,
+    public readonly rawText: string,
+    public readonly loc: Location,
     public readonly literal: TemplatePrimitive
   ) {
-    super(loc)
+    super()
   }
 
   override evaluate(): TemplatePrimitive {
@@ -129,12 +132,13 @@ export class LiteralExpression extends TemplateExpression {
 
 export class ArrayLiteralExpression extends TemplateExpression {
   constructor(
-    loc: Location,
+    public readonly rawText: string,
+    public readonly loc: Location,
     // an ArrayLiteralExpression consists of several template expressions,
     // for example other literal expressions and context lookup expressions.
     public readonly literal: TemplateExpression[]
   ) {
-    super(loc)
+    super()
   }
 
   override evaluate(args: EvaluateArgs): TemplateEvaluationResult<CollectionOrValue<TemplatePrimitive>> {
@@ -153,10 +157,11 @@ export class ArrayLiteralExpression extends TemplateExpression {
 
 export abstract class UnaryExpression extends TemplateExpression {
   constructor(
-    loc: Location,
+    public readonly rawText: string,
+    public readonly loc: Location,
     public readonly innerExpression: TemplateExpression
   ) {
-    super(loc)
+    super()
   }
 
   override evaluate(args: EvaluateArgs): TemplateEvaluationResult<TemplatePrimitive> {
@@ -204,12 +209,13 @@ export class NotExpression extends UnaryExpression {
 
 export abstract class LogicalExpression extends TemplateExpression {
   constructor(
-    loc: Location,
+    public readonly rawText: string,
+    public readonly loc: Location,
     public readonly operator: string,
     public readonly left: TemplateExpression,
     public readonly right: TemplateExpression
   ) {
-    super(loc)
+    super()
   }
 }
 
@@ -293,12 +299,13 @@ export class LogicalAndExpression extends LogicalExpression {
 
 export abstract class BinaryExpression extends TemplateExpression {
   constructor(
-    loc: Location,
+    public readonly rawText: string,
+    public readonly loc: Location,
     public readonly operator: string,
     public readonly left: TemplateExpression,
     public readonly right: TemplateExpression
   ) {
-    super(loc)
+    super()
   }
 
   override evaluate(args: EvaluateArgs): TemplateEvaluationResult<CollectionOrValue<TemplatePrimitive>> {
@@ -467,16 +474,24 @@ export class GreaterThanExpression extends BinaryExpressionOnNumbers {
 
 export class FormatStringExpression extends TemplateExpression {
   constructor(
-    loc: Location,
+    public readonly rawText: string,
+    public readonly loc: Location,
     public readonly innerExpression: TemplateExpression,
     public readonly isOptional: boolean
   ) {
-    super(loc)
+    super()
   }
 
   override evaluate(args: EvaluateArgs): TemplateEvaluationResult<CollectionOrValue<TemplatePrimitive>> {
     const result = this.innerExpression.evaluate({
       ...args,
+      opts: {
+        ...args.opts,
+        // nested expressions should never be partially resolved in legacy mode
+        // Otherwise, weird problems can happen if we e.g. partially resolve a sub-expression and pass it to a parameter of a function call.
+        // TODO(0.14): remove legacyAllowPartial
+        legacyAllowPartial: false,
+      },
       optional: args.optional || this.isOptional,
     })
 
@@ -490,66 +505,68 @@ export class FormatStringExpression extends TemplateExpression {
   }
 }
 
-export class ElseBlockExpression extends TemplateExpression {
-  override evaluate(): never {
-    // See also `buildConditionalTree` in `parser.pegjs`
-    throw new InternalError({
-      message: `{else} block expression should not end up in the final AST`,
-    })
-  }
-}
+export abstract class AbstractBlockExpression extends TemplateExpression {
+  // this is a method because visitAll is confused if multiple properties contain the same expression
+  protected abstract getExpressions(): TemplateExpression[]
 
-export class EndIfBlockExpression extends TemplateExpression {
-  override evaluate(): never {
-    // See also `buildConditionalTree` in `parser.pegjs`
-    throw new InternalError({
-      message: `{endif} block expression should not end up in the final AST`,
-    })
-  }
-}
-
-export class IfBlockExpression extends TemplateExpression {
-  constructor(
-    loc: Location,
-    public readonly condition: TemplateExpression,
-    public ifTrue: TemplateExpression | undefined,
-    public ifFalse: TemplateExpression | undefined
-  ) {
-    super(loc)
+  override get rawText(): string {
+    return this.getExpressions()
+      .map((expr) => expr.rawText || "")
+      .join("")
   }
 
-  override evaluate(args: EvaluateArgs): TemplateEvaluationResult<CollectionOrValue<TemplatePrimitive>> {
-    const condition = this.condition.evaluate(args)
+  override get loc(): Location {
+    const expressions = this.getExpressions()
+    const first = expressions[0]!
+    const last = expressions[expressions.length - 1]!
 
-    if (typeof condition === "symbol") {
-      return condition
+    return {
+      start: first.loc.start,
+      end: last.loc.end,
+      source: first.loc.source,
     }
-
-    // For backwards compatibility, we do allow if block expressions without endif block in some cases.
-    // For a stand-alone if-block expression, we evaluate the condition and return the result.
-    if (this.ifTrue === undefined) {
-      return condition
-    }
-
-    const evaluated = isTruthy(condition) ? this.ifTrue?.evaluate(args) : this.ifFalse?.evaluate(args)
-
-    return evaluated
   }
 }
 
-export class StringConcatExpression extends TemplateExpression {
+export class BlockExpression extends AbstractBlockExpression {
   public readonly expressions: TemplateExpression[]
 
-  constructor(loc: Location, ...expressions: TemplateExpression[]) {
-    super(loc)
+  constructor(...expressions: TemplateExpression[]) {
+    super()
+    if (expressions.length === 0) {
+      throw new InternalError({
+        message: "Compound expression must consist of at least one expression",
+      })
+    }
     this.expressions = expressions
   }
 
-  override evaluate(args: EvaluateArgs): TemplateEvaluationResult<string> {
-    let result: string = ""
+  protected override getExpressions(): TemplateExpression[] {
+    return this.expressions
+  }
 
+  override evaluate(args: EvaluateArgs): TemplateEvaluationResult<CollectionOrValue<TemplatePrimitive>> {
+    const legacyAllowPartial = args.opts.legacyAllowPartial
+
+    let result: string = ""
     for (const expr of this.expressions) {
-      const r = expr.evaluate(args)
+      const r = expr.evaluate({
+        ...args,
+        // in legacyAllowPartial mode, all template expressions are optional
+        optional: args.optional || legacyAllowPartial,
+      })
+
+      // For legacy allow partial mode, other format string expressions might be evaluated, and
+      // we produce a string even when a key hasn't been found.
+      // This is extremely evil, but unfortunately needs to be kept for backwards bug-compatibility.
+      // TODO(0.14): please remove legacyAllowPartial
+      if (legacyAllowPartial && typeof r === "symbol") {
+        result += expr.rawText
+        continue
+      } else if (this.expressions.length === 1) {
+        // if we evaluate a single expression we are allowed to evaluate to something other than a string
+        return r
+      }
 
       if (typeof r === "symbol") {
         return r
@@ -567,12 +584,86 @@ export class StringConcatExpression extends TemplateExpression {
   }
 }
 
+export class IfBlockExpression extends AbstractBlockExpression {
+  // `buildConditionalTree` in parser.pegjs will fill these in
+  public consequent: TemplateExpression | undefined
+  public else: ElseBlockExpression | undefined
+  public alternate: TemplateExpression | undefined
+  public endIf: EndIfBlockExpression | undefined
+
+  constructor(public readonly condition: FormatStringExpression) {
+    if (!(condition instanceof FormatStringExpression)) {
+      throw new InternalError({
+        message: "expected if block condition to be FormatStringExpression",
+      })
+    }
+    super()
+  }
+
+  protected override getExpressions(): TemplateExpression[] {
+    return [this.condition, this.consequent, this.else, this.alternate, this.endIf].filter(
+      (e): e is TemplateExpression => !!e
+    )
+  }
+
+  override evaluate(args: EvaluateArgs): TemplateEvaluationResult<CollectionOrValue<TemplatePrimitive>> {
+    const condition = this.condition.evaluate(args)
+
+    if (typeof condition === "symbol") {
+      return condition
+    }
+
+    // For backwards compatibility, we do allow if block expressions without endif block in some cases.
+    // For a stand-alone if-block expression, we evaluate the condition and return the result.
+    if (this.consequent === undefined) {
+      return condition
+    }
+
+    const evaluated = isTruthy(condition) ? this.consequent?.evaluate(args) : this.alternate?.evaluate(args)
+
+    return evaluated
+  }
+}
+
+export class ElseBlockExpression extends TemplateExpression {
+  constructor(
+    public readonly rawText: string,
+    public readonly loc: Location
+  ) {
+    super()
+  }
+
+  override evaluate(): never {
+    // See also `ast.IfBlockExpression` and `buildConditionalTree` in `parser.pegjs`
+    throw new InternalError({
+      message: `{else} block expression should never be evaluated`,
+    })
+  }
+}
+
+export class EndIfBlockExpression extends TemplateExpression {
+  constructor(
+    public readonly rawText: string,
+    public readonly loc: Location
+  ) {
+    super()
+  }
+
+  override evaluate(): never {
+    // See also `ast.IfBlockExpression` and `buildConditionalTree` in `parser.pegjs`
+    throw new InternalError({
+      message: `{endif} block expression should should never be evaluated`,
+    })
+  }
+}
+
 export class MemberExpression extends TemplateExpression {
   constructor(
-    loc: Location,
+    public readonly rawText: string,
+    public readonly loc: Location,
     public readonly innerExpression: TemplateExpression
   ) {
-    super(loc)
+    super()
   }
 
   override evaluate(args: EvaluateArgs): TemplateEvaluationResult<string | number> {
@@ -596,10 +687,11 @@ export class MemberExpression extends TemplateExpression {
 
 export class ContextLookupExpression extends TemplateExpression {
   constructor(
-    loc: Location,
+    public readonly rawText: string,
+    public readonly loc: Location,
     public readonly keyPath: (IdentifierExpression | MemberExpression)[]
   ) {
-    super(loc)
+    super()
   }
 
   override evaluate({
@@ -669,11 +761,12 @@ export class ContextLookupExpression extends TemplateExpression {
 
 export class FunctionCallExpression extends TemplateExpression {
   constructor(
-    loc: Location,
+    public readonly rawText: string,
+    public readonly loc: Location,
     public readonly functionName: IdentifierExpression,
     public readonly args: TemplateExpression[]
   ) {
-    super(loc)
+    super()
   }
 
   override evaluate(args: EvaluateArgs): TemplateEvaluationResult<CollectionOrValue<TemplatePrimitive>> {
@@ -765,12 +858,13 @@ export class FunctionCallExpression extends TemplateExpression {
 
 export class TernaryExpression extends TemplateExpression {
   constructor(
-    loc: Location,
+    public readonly rawText: string,
+    public readonly loc: Location,
     public readonly condition: TemplateExpression,
-    public readonly ifTrue: TemplateExpression,
-    public readonly ifFalse: TemplateExpression
+    public readonly consequent: TemplateExpression,
+    public readonly alternate: TemplateExpression
   ) {
-    super(loc)
+    super()
   }
 
   override evaluate(args: EvaluateArgs): TemplateEvaluationResult<CollectionOrValue<TemplatePrimitive>> {
@@ -786,8 +880,8 @@ export class TernaryExpression extends TemplateExpression {
     // evaluate ternary expression
     const evaluationResult =
       !isNotFound(conditionResult) && isTruthy(conditionResult)
-        ? this.ifTrue.evaluate(args)
-        : this.ifFalse.evaluate(args)
+        ? this.consequent.evaluate(args)
+        : this.alternate.evaluate(args)
 
     return evaluationResult
   }

@@ -25,6 +25,10 @@ export type ContextKey = ContextKeySegment[]
 export interface ContextResolveOpts {
   // Allow templates to be partially resolved (used to defer runtime template resolution, for example)
   allowPartial?: boolean
+  // This is kept for backwards compatibility of rendering kubernetes manifests
+  // TODO(0.14): Do not allow the use of template strings in kubernetes manifest files
+  // TODO(0.14): Remove legacyAllowPartial
+  legacyAllowPartial?: boolean
   // Allow partial resolution for values that originate from a special context that always returns CONTEXT_RESOLVE_KEY_AVAILABLE_LATER.
   // This is used for module resolution and can be removed whenever we remove support for modules.
   allowPartialContext?: boolean
