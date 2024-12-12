@@ -10,10 +10,10 @@ import type { GardenCliParams } from "../../src/cli/cli.js"
 import { GardenCli } from "../../src/cli/cli.js"
 import type { GardenOpts } from "../../src/garden.js"
 import { makeTestGarden } from "../helpers.js"
-import { GardenCloudApi } from "../../src/cloud/api.js"
+import { FakeCloudApi } from "./api.js"
 
 export class TestGardenCli extends GardenCli {
-  constructor(params: GardenCliParams = { cloudApiFactory: GardenCloudApi.factory, initLogger: false }) {
+  constructor(params: GardenCliParams = { cloudApiFactory: FakeCloudApi.factory, initLogger: false }) {
     super(params)
   }
 
