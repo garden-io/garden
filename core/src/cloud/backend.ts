@@ -16,7 +16,11 @@ function getFirstValue(v: string | string[]) {
 export type GardenBackendConfig = { readonly cloudDomain: string }
 export type AuthRedirectConfig = Pick<AuthRedirectServerConfig, "getLoginUrl" | "successUrl" | "extractAuthToken">
 
-export abstract class AbstractGardenBackend {
+export interface GardenBackend {
+  getAuthRedirectConfig(): AuthRedirectConfig
+}
+
+export abstract class AbstractGardenBackend implements GardenBackend {
   constructor(protected readonly config: GardenBackendConfig) {}
 
   abstract getAuthRedirectConfig(): AuthRedirectConfig
