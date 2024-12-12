@@ -37,7 +37,9 @@ export async function registerWorkflowRun({
 }: RegisterWorkflowRunParams): Promise<string> {
   log.debug(`Registering workflow run for ${workflowConfig.name}...`)
   if (!garden.isLoggedIn()) {
-    throw new CloudApiError({ message: "Error while registering workflow run: Couldn't initialize API. You need to login." })
+    throw new CloudApiError({
+      message: "Error while registering workflow run: Couldn't initialize API. You need to login.",
+    })
   }
 
   const workflowRunConfig = makeRunConfig(workflowConfig, environment, namespace)
