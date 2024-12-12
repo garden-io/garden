@@ -68,19 +68,19 @@ let _manager: GardenInstanceManager | undefined
 
 export class GardenInstanceManager {
   public readonly sessionId: string
-
-  private plugins: GardenPluginReference[]
-  private instances: Map<string, InstanceContext>
-  private projectRoots: Map<string, ProjectRootContext>
-  private cloudApiFactory: CloudApiFactory
-  private cloudApis: Map<string, GardenCloudApi>
-  private lastRequested: Map<string, Date>
-  private lock: AsyncLock
-  private builtinCommands: Command[]
-  private defaultProjectRootContext: ProjectRootContext
   public readonly monitors: MonitorManager
-  private defaultOpts: Partial<GardenOpts> // Used for testing
   public readonly serveCommand?: ServeCommand
+
+  private readonly plugins: GardenPluginReference[]
+  private readonly instances: Map<string, InstanceContext>
+  private readonly projectRoots: Map<string, ProjectRootContext>
+  private readonly cloudApiFactory: CloudApiFactory
+  private readonly cloudApis: Map<string, GardenCloudApi>
+  private readonly lastRequested: Map<string, Date>
+  private readonly lock: AsyncLock
+  private readonly builtinCommands: Command[]
+  private readonly defaultProjectRootContext: ProjectRootContext
+  private readonly defaultOpts: Partial<GardenOpts> // Used for testing
 
   /**
    * Events from every managed Garden instance are piped to this EventBus. Each event emitted implicitly includes

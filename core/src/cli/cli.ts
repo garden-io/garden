@@ -92,12 +92,13 @@ function hasHelpFlag(argv: minimist.ParsedArgs) {
 // TODO: this is used in more contexts now, should rename to GardenCommandRunner or something like that
 @Profile()
 export class GardenCli {
-  private commands: { [key: string]: Command } = {}
+  private readonly cloudApiFactory: CloudApiFactory
+  private readonly commands: { [key: string]: Command } = {}
+  private readonly initLogger: boolean
   private fileWritersInitialized = false
-  public plugins: GardenPluginReference[]
-  private initLogger: boolean
+
+  public readonly plugins: GardenPluginReference[]
   public processRecord?: GardenProcess
-  protected cloudApiFactory: CloudApiFactory
 
   constructor({ plugins, initLogger = false, cloudApiFactory = GardenCloudApi.factory }: GardenCliParams = {}) {
     this.plugins = plugins || []
