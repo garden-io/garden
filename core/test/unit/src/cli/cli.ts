@@ -39,7 +39,6 @@ import { makeDummyGarden } from "../../../../src/garden.js"
 import { TestGardenCli } from "../../../helpers/cli.js"
 import { NotImplementedError } from "../../../../src/exceptions.js"
 import dedent from "dedent"
-import { GardenCloudApi } from "../../../../src/cloud/api.js"
 
 /**
  * Helper functions for removing/resetting the global logger config which is set when
@@ -529,7 +528,6 @@ describe("cli", () => {
               sessionId,
               serveCommand,
               plugins: [],
-              cloudApiFactory: GardenCloudApi.factory,
             }),
             serveCommand,
           })
@@ -1191,6 +1189,7 @@ describe("cli", () => {
           return { result: { args } }
         }
       }
+
       class HiddenTestCommand extends Command {
         name = "hidden-test-command"
         help = "halp!"

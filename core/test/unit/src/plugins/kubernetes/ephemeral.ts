@@ -75,8 +75,8 @@ describe("ephemeral-kubernetes configureProvider", () => {
   })
 
   it("should throw an error for Garden Enterprise", async () => {
-    const cloudApi = await FakeCloudApi.factory({ log: getRootLogger().createLog() })
-    garden = await makeTestGardenA(undefined, { cloudApi })
+    const overrideCloudApiFactory = async () => await FakeCloudApi.factory({ log: getRootLogger().createLog() })
+    garden = await makeTestGardenA(undefined, { overrideCloudApiFactory })
     await expectError(
       () =>
         configure({

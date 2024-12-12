@@ -22,7 +22,6 @@ import { Command } from "../../../../src/commands/base.js"
 import request from "supertest"
 import getPort from "get-port"
 import WebSocket from "ws"
-import { FakeCloudApi } from "../../../helpers/api.js"
 
 describe("GardenServer", () => {
   let garden: Garden
@@ -61,7 +60,6 @@ describe("GardenServer", () => {
       extraCommands: [new TestCommand()],
       force: true,
       plugins: testPluginReferences(),
-      cloudApiFactory: FakeCloudApi.factory,
     })
     manager.set(garden.log, garden)
     gardenEnv.GARDEN_SERVER_HOSTNAME = hostname

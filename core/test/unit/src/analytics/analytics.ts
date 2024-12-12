@@ -256,8 +256,8 @@ describe("AnalyticsHandler", () => {
         writers: { display: new QuietWriter({ level: LogLevel.info }), file: [] },
         storeEntries: false,
       })
-      const cloudApi = await FakeCloudApi.factory({ log: logger.createLog() })
-      garden = await makeTestGardenA(undefined, { cloudApi })
+      const overrideCloudApiFactory = async () => await FakeCloudApi.factory({ log: logger.createLog() })
+      garden = await makeTestGardenA(undefined, { overrideCloudApiFactory })
       garden.vcsInfo.originUrl = apiRemoteOriginUrl
       await enableAnalytics(garden)
     })
