@@ -352,7 +352,7 @@ ${renderCommands(commands)}
           await emitLoginWarning({
             garden,
             log,
-            isLoggedIn: !!garden.cloudApi,
+            isLoggedIn: garden.isLoggedIn(),
             isCommunityEdition: garden.cloudDomain === DEFAULT_GARDEN_CLOUD_DOMAIN,
           })
 
