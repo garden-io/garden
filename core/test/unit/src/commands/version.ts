@@ -20,7 +20,7 @@ describe("VersionCommand", () => {
   let cli: GardenCli
 
   beforeEach(async () => {
-    cli = new GardenCli({ cloudApiFactory: FakeCloudApi.factory })
+    cli = new GardenCli({ cloudApiFactory: FakeCloudApi.factory, initLogger: false })
     tmpDir = await makeTempDir({ git: true, initialCommit: false })
   })
 

@@ -13,7 +13,7 @@ import { makeTestGarden } from "../helpers.js"
 import { GardenCloudApi } from "../../src/cloud/api.js"
 
 export class TestGardenCli extends GardenCli {
-  constructor(params: GardenCliParams = { cloudApiFactory: GardenCloudApi.factory }) {
+  constructor(params: GardenCliParams = { cloudApiFactory: GardenCloudApi.factory, initLogger: false }) {
     super(params)
   }
 

@@ -81,8 +81,8 @@ export interface RunOutput {
 
 export interface GardenCliParams {
   cloudApiFactory: CloudApiFactory
+  initLogger: boolean
   plugins?: GardenPluginReference[]
-  initLogger?: boolean
 }
 
 function hasHelpFlag(argv: minimist.ParsedArgs) {
@@ -100,7 +100,7 @@ export class GardenCli {
   public readonly plugins: GardenPluginReference[]
   public processRecord?: GardenProcess
 
-  constructor({ cloudApiFactory, plugins, initLogger = false }: GardenCliParams) {
+  constructor({ cloudApiFactory, plugins, initLogger }: GardenCliParams) {
     this.cloudApiFactory = cloudApiFactory
     this.plugins = plugins || []
     this.initLogger = initLogger
