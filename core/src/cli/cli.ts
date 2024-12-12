@@ -210,25 +210,28 @@ ${renderCommands(commands)}
     return Garden.factory(workingDir, opts)
   }
 
-  private async initCloudApi({
+  private static async initCloudApi({
     command,
     globalConfigStore,
-    workingDir,
+    projectConfig,
+    cloudApiFactory,
     log,
   }: {
     command: Command
     globalConfigStore: GlobalConfigStore
-    workingDir: string
+    projectConfig: ProjectConfig | undefined
+    cloudApiFactory: CloudApiFactory
     log: Log
   }): Promise<GardenCloudApi | undefined> {
     if (command.noProject) {
       return undefined
     }
-    const config = await this.getProjectConfig(log, workingDir)
-    const cloudDomain = getGardenCloudDomain(config?.domain)
+
+    const cloudDomain = getGardenCloudDomain(projectConfig?.domain)
     const distroName = getCloudDistributionName(cloudDomain)
+
     try {
-      return await this.cloudApiFactory({ log, cloudDomain, globalConfigStore })
+      return await cloudApiFactory({ log, cloudDomain, globalConfigStore })
     } catch (err) {
       if (err instanceof CloudApiTokenRefreshError) {
         log.warn(dedent`
@@ -239,7 +242,7 @@ ${renderCommands(commands)}
           `)
 
         // Project is configured for cloud usage => fail early to force re-auth
-        if (config && config.id) {
+        if (projectConfig && projectConfig.id) {
           throw err
         }
 
@@ -299,8 +302,16 @@ ${renderCommands(commands)}
         opts: optionsWithAliasValues(command, parsedOpts),
       }
 
+      const projectConfig = await this.getProjectConfig(log, workingDir)
+
       // Init Cloud API (if applicable)
-      const cloudApi = await this.initCloudApi({ command, globalConfigStore, workingDir, log })
+      const cloudApi = await GardenCli.initCloudApi({
+        command,
+        globalConfigStore,
+        projectConfig,
+        cloudApiFactory: this.cloudApiFactory,
+        log,
+      })
 
       const contextOpts: GardenOpts = {
         commandInfo,
