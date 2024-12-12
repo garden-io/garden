@@ -765,8 +765,7 @@ export class GardenServer extends EventEmitter {
       // Emit the config graph for the project (used for the Cloud dashboard)
       const resolved = await this.resolveRequest(ctx, omit(request, "type"))
       let { garden } = resolved
-      const { log: _log } = resolved
-      const log = _log.createLog({ fixLevel: LogLevel.silly })
+      const log = resolved.log.createLog({ fixLevel: LogLevel.silly })
 
       const loadConfigLog = this.log.createLog({ name: serverLogName, showDuration: true })
       loadConfigLog.info("Loading config for Live page...")

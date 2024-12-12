@@ -45,6 +45,7 @@ export async function registerWorkflowRun({
   if (gardenEnv.GARDEN_GE_SCHEDULED) {
     requestData["workflowRunUid"] = gardenEnv.GARDEN_WORKFLOW_RUN_UID
   }
+
   if (cloudApi) {
     // TODO: Use API types package here.
     let res: ApiFetchResponse<CreateWorkflowRunResponse>
@@ -83,5 +84,6 @@ export async function registerWorkflowRun({
       })
     }
   }
+
   throw new CloudApiError({ message: "Error while registering workflow run: Couldn't initialize API." })
 }
