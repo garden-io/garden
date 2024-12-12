@@ -23,3 +23,13 @@ name: legacypartial-ifblock-false
 spec:
   files:
    - ./k8s/ifblock-false.yaml
+
+---
+
+kind: Deploy
+type: kubernetes
+name: legacypartial-ifblock-indentation
+spec:
+  files:
+   - ./k8s/ifblock-indentation.yaml
+

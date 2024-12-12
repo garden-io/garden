@@ -103,8 +103,9 @@
     let currentCondition = undefined
     let consequent = []
     let alternate = []
-    let nestingLevel = 0
     let encounteredElse = false
+    let nestingLevel = 0
+
     const pushElement = (e) => {
       if (!currentCondition) {
         return rootExpressions.push(e)
@@ -147,6 +148,9 @@
           currentCondition.endIf = e
           rootExpressions.push(currentCondition)
           currentCondition = undefined
+          consequent = []
+          alternate = []
+          encounteredElse = false
         } else {
           nestingLevel--
           pushElement(e)
@@ -171,10 +175,6 @@
     }
 
     return new ast.BlockExpression(...rootExpressions)
-  }
-
-  function isBlockExpression(e) {
-    return e instanceof ast.IfBlockExpression || e instanceof ast.ElseBlockExpression || e instanceof ast.EndIfBlockExpression
   }
 
   function optionalList(value) {
