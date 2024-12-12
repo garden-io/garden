@@ -282,7 +282,7 @@ export class Garden {
   public readonly configTemplates: { [name: string]: ConfigTemplateConfig }
   private actionTypeBases: ActionTypeMap<ActionTypeDefinition<any>[]>
   private emittedWarnings: Set<string>
-  public cloudApi: GardenCloudApi | undefined
+  public cloudApi?: GardenCloudApi
 
   public readonly production: boolean
   public readonly projectRoot: string
@@ -325,7 +325,10 @@ export class Garden {
   public readonly monitors: MonitorManager
   public readonly nestedSessions: Map<string, Garden>
 
-  // Used internally for introspection
+  /**
+   * Used internally for introspection
+   * @internal
+   */
   public readonly isGarden: true
 
   constructor(params: GardenParams) {
