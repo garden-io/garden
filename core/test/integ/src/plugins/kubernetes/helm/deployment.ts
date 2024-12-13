@@ -23,7 +23,6 @@ import { KubeApi } from "../../../../../../src/plugins/kubernetes/api.js"
 import { buildHelmModules, getHelmLocalModeTestGarden, getHelmTestGarden } from "./common.js"
 import type { ConfigGraph } from "../../../../../../src/graph/config-graph.js"
 import { isWorkload } from "../../../../../../src/plugins/kubernetes/util.js"
-import { getRootLogger } from "../../../../../../src/logger/logger.js"
 import { LocalModeProcessRegistry, ProxySshKeystore } from "../../../../../../src/plugins/kubernetes/local-mode.js"
 import type { HelmDeployAction } from "../../../../../../src/plugins/kubernetes/helm/config.js"
 import { createActionLog } from "../../../../../../src/logger/log-entry.js"
@@ -375,11 +374,11 @@ describe("helmDeploy", () => {
   })
 
   it("should mark a chart that has been paused by Garden Cloud AEC as outdated", async () => {
-    const log = getRootLogger().createLog()
-    const overrideCloudApiFactory = async () => await FakeCloudApi.factory({ log })
-
     const projectRoot = getDataDir("test-projects", "helm")
-    const gardenWithCloudApi = await makeTestGarden(projectRoot, { overrideCloudApiFactory, noCache: true })
+    const gardenWithCloudApi = await makeTestGarden(projectRoot, {
+      overrideCloudApiFactory: FakeCloudApi.factory,
+      noCache: true,
+    })
 
     graph = await gardenWithCloudApi.getConfigGraph({ log: gardenWithCloudApi.log, emit: false })
     const providerWithApi = <KubernetesProvider>(
