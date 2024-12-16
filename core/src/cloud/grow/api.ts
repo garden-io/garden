@@ -58,7 +58,7 @@ export class GrowCloudApi {
   /**
    * Initialize the Cloud API.
    *
-   * Returns null if the user is not logged in.
+   * Returns `undefined` if the user is not logged in.
    *
    * Throws if the user is logged in but the token is invalid and can't be refreshed.
    *
@@ -89,7 +89,7 @@ export class GrowCloudApi {
     cloudFactoryLog.info("Authorizing...")
 
     if (gardenEnv.GARDEN_AUTH_TOKEN) {
-      log.silly(() => "Using auth token from GROW_AUTH_TOKEN env var")
+      log.silly(() => "Using auth token from GARDEN_AUTH_TOKEN env var")
       if (!(await isTokenValid({ authToken: gardenEnv.GARDEN_AUTH_TOKEN, log: cloudLog }))) {
         throw new CloudApiError({
           message: `The provided access token is expired or has been revoked, please create a new one from the ${distroName} UI.`,
