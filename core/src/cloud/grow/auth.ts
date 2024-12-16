@@ -24,6 +24,7 @@ import type EventEmitter2 from "eventemitter2"
 import { gardenEnv } from "../../constants.js"
 import { CloudApiTokenRefreshError } from "../api.js"
 import { CloudApiError, InternalError } from "../../exceptions.js"
+import { z } from "zod"
 
 export interface AuthToken {
   token: string
@@ -225,53 +226,52 @@ export class AuthRedirectServer {
   }
 
   async createApp() {
-    // const log = this.log
-    // const events = this.events
-    // const enterpriseDomain = this.enterpriseDomain
-    // this.server = Bun.serve({
-    //   port: this.port,
-    //   async fetch(request) {
-    //     const url = new URL(request.url)
-    //     if (url.pathname !== "/") {
-    //       return new Response("Not found", { status: 404 })
-    //     }
-    //     if (request.method !== "GET") {
-    //       return new Response("Method not allowed", { status: 405 })
-    //     }
-    //     const searchParams = new URLSearchParams(url.search)
-    //     let token: z.infer<typeof tokenSchema> | undefined
-    //     try {
-    //       token = tokenSchema.parse(Object.fromEntries(searchParams))
-    //     } catch (error) {
-    //       log.error("Invalid query parameters")
-    //       return new Response("Invalid query parameters", { status: 400 })
-    //     }
-    //     log.debug("Received client auth token")
-    //     events.emit("receivedToken", {
-    //       // Note that internally we use `token` as the key for the access token.
-    //       token: token.accessToken,
-    //       refreshToken: token.refreshToken,
-    //       tokenValidity: token.tokenValidity,
-    //     })
-    //     let returnUrl = new URL("/confirm-cli-auth", enterpriseDomain).href
-    //     returnUrl = `${returnUrl}?cliLoginSuccess=true`
-    //     log.debug(`Redirecting to: ${returnUrl}`)
-    //     return new Response(null, {
-    //       status: 302,
-    //       headers: {
-    //         Location: returnUrl,
-    //       },
-    //     })
-    //   },
-    // })
+    const log = this.log
+    const events = this.events
+    const enterpriseDomain = this.enterpriseDomain
+    this.server = Bun.serve({
+      port: this.port,
+      async fetch(request) {
+        const url = new URL(request.url)
+        if (url.pathname !== "/") {
+          return new Response("Not found", { status: 404 })
+        }
+        if (request.method !== "GET") {
+          return new Response("Method not allowed", { status: 405 })
+        }
+        const searchParams = new URLSearchParams(url.search)
+        let token: z.infer<typeof tokenSchema> | undefined
+        try {
+          token = tokenSchema.parse(Object.fromEntries(searchParams))
+        } catch (error) {
+          log.error("Invalid query parameters")
+          return new Response("Invalid query parameters", { status: 400 })
+        }
+        log.debug("Received client auth token")
+        events.emit("receivedToken", {
+          // Note that internally we use `token` as the key for the access token.
+          token: token.accessToken,
+          refreshToken: token.refreshToken,
+          tokenValidity: token.tokenValidity,
+        })
+        const returnUrl = `${new URL("/confirm-cli-auth", enterpriseDomain).href}?cliLoginSuccess=true`
+        log.debug(`Redirecting to: ${returnUrl}`)
+        return new Response(null, {
+          status: 302,
+          headers: {
+            Location: returnUrl,
+          },
+        })
+      },
+    })
   }
 }
 
-// const tokenSchema = z.object({
-//   accessToken: z.string(),
-//   refreshToken: z.string(),
-//   tokenValidity: z
-//     .number()
-//     .or(z.string())
-//     .transform((value) => parseInt(value.toString(), 10)),
-// })
+const tokenSchema = z.object({
+  accessToken: z.string(),
+  refreshToken: z.string(),
+  tokenValidity: z
+    .number()
+    .or(z.string())
+    .transform((value) => parseInt(value.toString(), 10)),
+})

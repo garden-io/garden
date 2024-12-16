@@ -8,6 +8,8 @@
 
 import type { AuthRedirectServerConfig } from "./auth.js"
 import { isArray } from "lodash-es"
+import { z } from "zod"
+import { InternalError } from "../exceptions.js"
 
 function getFirstValue(v: string | string[]) {
   return isArray(v) ? v[0] : v
@@ -38,6 +40,37 @@ export class GardenCloudBackend extends AbstractGardenBackend {
           token: getFirstValue(jwt!),
           refreshToken: getFirstValue(rt!),
           tokenValidity: parseInt(getFirstValue(jwtval!), 10),
+        }
+      },
+    }
+  }
+}
+
+const growCloudTokenSchema = z.object({
+  accessToken: z.string(),
+  refreshToken: z.string(),
+  tokenValidity: z
+    .number()
+    .or(z.string())
+    .transform((value) => parseInt(value.toString(), 10)),
+})
+
+export class GrowCloudBackend extends AbstractGardenBackend {
+  override getAuthRedirectConfig(): AuthRedirectConfig {
+    return {
+      getLoginUrl: (port) => new URL(`/login?port=${port}`, this.config.cloudDomain).href,
+      successUrl: `${new URL("/confirm-cli-auth", this.config.cloudDomain).href}?cliLoginSuccess=true`,
+      extractAuthToken: (query) => {
+        const token = growCloudTokenSchema.safeParse(query)
+        if (!token.success) {
+          throw new InternalError({ message: "Invalid query parameters" })
+        }
+
+        return {
+          // Note that internally we use `token` as the key for the access token.
+          token: token.data.accessToken,
+          refreshToken: token.data.refreshToken,
+          tokenValidity: token.data.tokenValidity,
         }
       },
     }
