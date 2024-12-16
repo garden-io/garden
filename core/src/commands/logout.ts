@@ -59,8 +59,7 @@ export class LogOutCommand extends Command<{}, Opts> {
       }
     }
 
-    const cloudDomain: string | undefined = getGardenCloudDomain(projectConfig?.domain)
-
+    const cloudDomain = getGardenCloudDomain(projectConfig?.domain)
     const distroName = getCloudDistributionName(cloudDomain)
 
     try {

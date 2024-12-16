@@ -44,6 +44,7 @@ import { enumerate } from "../util/enumerate.js"
 import queryString from "query-string"
 import type { ApiFetchOptions } from "./http-client.js"
 import { GardenCloudHttpClient } from "./http-client.js"
+import type { CloudDistroName } from "./util.js"
 import { getCloudDistributionName, getCloudLogSectionName } from "./util.js"
 
 export class CloudApiDuplicateProjectsError extends CloudApiError {}
@@ -163,7 +164,7 @@ export class GardenCloudApi {
 
   private readonly log: Log
   public readonly domain: string
-  public readonly distroName: string
+  public readonly distroName: CloudDistroName
   private readonly globalConfigStore: GlobalConfigStore
 
   constructor(params: GardenCloudApiParams) {
@@ -363,7 +364,7 @@ export class GardenCloudApi {
 
       this.log.debug({ msg: `Failed to refresh the token.` })
       throw new CloudApiTokenRefreshError({
-        message: `An error occurred while verifying client auth token with ${getCloudDistributionName(this.domain)}: ${
+        message: `An error occurred while verifying client auth token with ${this.distroName}: ${
           err.message
         }. Response status code: ${err.response.statusCode}`,
         responseStatusCode: err.response.statusCode,
@@ -511,7 +512,7 @@ export class GardenCloudApi {
     }
     if (!project) {
       throw new CloudApiError({
-        message: `Project ${projectName} is not a ${getCloudDistributionName(this.domain)} project`,
+        message: `Project ${projectName} is not a ${this.distroName} project`,
       })
     }
     return project
@@ -535,7 +536,7 @@ export class GardenCloudApi {
 
     try {
       const url = new URL("/token/verify", this.domain)
-      this.log.debug(`Checking client auth token with ${getCloudDistributionName(this.domain)}: ${url.href}`)
+      this.log.debug(`Checking client auth token with ${this.distroName}: ${url.href}`)
 
       await this.get("token/verify")
 
@@ -547,15 +548,13 @@ export class GardenCloudApi {
 
       if (err.response.statusCode !== 401) {
         throw new CloudApiError({
-          message: `An error occurred while verifying client auth token with ${getCloudDistributionName(
-            this.domain
-          )}: ${err.message}`,
+          message: `An error occurred while verifying client auth token with ${this.distroName}: ${err.message}`,
           responseStatusCode: err.response.statusCode,
         })
       }
     }
 
-    this.log.debug(`Checked client auth token with ${getCloudDistributionName(this.domain)} - valid: ${valid}`)
+    this.log.debug(`Checked client auth token with ${this.distroName} - valid: ${valid}`)
 
     return valid
   }
@@ -581,7 +580,6 @@ export class GardenCloudApi {
 
   async getSecrets({ log, projectId, environmentName }: GetSecretsParams): Promise<StringMap> {
     let secrets: StringMap = {}
-    const distroName = getCloudDistributionName(this.domain)
 
     try {
       const res = await this.get<BaseResponse>(`/secrets/projectUid/${projectId}/env/${environmentName}`)
@@ -592,9 +590,9 @@ export class GardenCloudApi {
       }
       // This happens if an environment or project does not exist
       if (err.response.statusCode === 404) {
-        const errorHeaderMsg = styles.error(`Unable to read secrets from ${distroName}.`)
+        const errorHeaderMsg = styles.error(`Unable to read secrets from ${this.distroName}.`)
         const errorDetailMsg = styles.accent(dedent`
-          Either the environment ${styles.accent.bold(environmentName)} does not exist in ${distroName},
+          Either the environment ${styles.accent.bold(environmentName)} does not exist in ${this.distroName},
           or no project matches the project ID ${styles.accent.bold(projectId)} in your project level garden.yml file.
 
           💡Suggestion:
@@ -612,7 +610,7 @@ export class GardenCloudApi {
           ${styles.accent.bold(
             "If a project with this ID does not exist"
           )}, it's likely because the ID has been changed in the
-          project level garden.yml config file or the project has been deleted from ${distroName}.
+          project level garden.yml config file or the project has been deleted from ${this.distroName}.
 
           Either update the ID in the project level garden.yml config file to match one of an
           existing project or import a new project from the Projects page and replace the ID in your

@@ -756,7 +756,7 @@ describe("Garden", () => {
         nock.cleanAll()
       })
 
-      // This means the logged in user is on a commerical edition
+      // This means the logged in user is on a commericial edition
       context("domain is set", () => {
         const fakeCloudDomain = "https://example.com"
         const scope = nock(fakeCloudDomain)
@@ -1008,7 +1008,7 @@ describe("Garden", () => {
           const expected = wordWrap(
             deline`
               Invalid field 'id' found in project configuration at path tmp. The 'id'
-              field should only be set if using a commerical edition of Garden. Please remove to continue
+              field should only be set if using a commericial edition of Garden. Please remove to continue
               using the Garden community edition.
             `,
             120

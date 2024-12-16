@@ -41,7 +41,7 @@ import { withSessionContext } from "../util/open-telemetry/context.js"
 import { wrapActiveSpan } from "../util/open-telemetry/spans.js"
 import { styles } from "../logger/styles.js"
 import { clearVarfileCache } from "../config/base.js"
-import { getCloudDistributionName, getCloudLogSectionName } from "../cloud/util.js"
+import { getCloudLogSectionName } from "../cloud/util.js"
 
 export interface CommandConstructor {
   new (parent?: CommandGroup): Command
@@ -313,7 +313,7 @@ export abstract class Command<
         }
 
         if (cloudSession) {
-          const distroName = getCloudDistributionName(cloudSession.api.domain)
+          const distroName = cloudSession.api.distroName
           commandResultUrl = cloudSession.api.getCommandResultUrl({
             sessionId: garden.sessionId,
             projectId: cloudSession.projectId,
