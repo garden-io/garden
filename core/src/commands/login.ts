@@ -78,14 +78,6 @@ export class LoginCommand extends Command<{}, Opts> {
 
     // Garden works by default without Garden Cloud. In order to use cloud, a domain
     // must be known to cloud for any command needing a logged in user.
-    //
-    // The cloud domain is resolved in the following order:
-    // - 1. GARDEN_CLOUD_DOMAIN config variable
-    // - 2. `domain`-field from the project config
-    // - 3. fallback to the default garden cloud domain
-    //
-    // If the fallback was used, we rely on the token to decide if the Cloud API instance
-    // should use the default domain or not. The token lifecycle ends on logout.
     const cloudDomain: string = getGardenCloudDomain(projectConfig?.domain)
 
     try {
