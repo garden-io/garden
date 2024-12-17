@@ -6,12 +6,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-type CloudDistroName = "Grow Cloud"
+export type GrowCloudDistroName = "Grow Cloud"
 
-export function getCloudDistributionName(): CloudDistroName {
+export function getGrowCloudDistributionName(): GrowCloudDistroName {
   return "Grow Cloud"
 }
 
-export function getCloudLogSectionName(): string {
+export type GrowCloudLogSectionName = "grow-cloud"
+
+export function getGrowCloudLogSectionName(): GrowCloudLogSectionName {
   return "grow-cloud"
 }

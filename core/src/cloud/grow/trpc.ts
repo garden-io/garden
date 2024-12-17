@@ -13,11 +13,11 @@ import { observable } from "@trpc/server/observable"
 import superjson from "superjson"
 import { z } from "zod"
 import type { AppRouter } from "./trpc-schema.js"
-import { getCloudLogSectionName } from "./util.js"
 import { GardenError } from "../../exceptions.js"
 import { styles } from "../../logger/styles.js"
 import { getRootLogger } from "../../logger/logger.js"
 import { cloudApiOrigin, cloudApiUrl } from "./config.js"
+import { getCloudLogSectionName } from "../util.js"
 
 const errorMetaSchema = z.object({ response: z.object({ status: z.number() }) })
 type ErrorMeta = z.infer<typeof errorMetaSchema>
@@ -55,7 +55,7 @@ export type RouterInput = inferRouterInputs<AppRouter>
 export const errorLogger: TRPCLink<AppRouter> = () => {
   return ({ next, op }) => {
     return observable((observer) => {
-      const log = getRootLogger().createLog({ name: getCloudLogSectionName(), origin: "trpc" })
+      const log = getRootLogger().createLog({ name: getCloudLogSectionName("Grow Cloud"), origin: "trpc" })
       log.debug(`tRPC ${op.type}: ${op.path}`)
       const unsubscribe = next(op).subscribe({
         next(value) {

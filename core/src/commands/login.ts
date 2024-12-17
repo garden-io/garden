@@ -114,7 +114,7 @@ export async function login(log: Log, cloudDomain: string, events: EventBus) {
 
   const distroName = getCloudDistributionName(cloudDomain)
   log.debug(`Redirecting to ${distroName} login page...`)
-  const response: AuthToken = await new Promise(async (resolve, reject) => {
+  const response = await new Promise<AuthToken>(async (resolve, reject) => {
     // The server resolves the promise with the new auth token once it's received the redirect.
     await server.start()
 

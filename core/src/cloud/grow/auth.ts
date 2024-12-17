@@ -16,11 +16,11 @@ import deline from "deline"
 import type { GlobalConfigStore } from "../../config-store/global.js"
 import type { Log } from "../../logger/log-entry.js"
 import { apiClient } from "./trpc.js"
-import { getCloudDistributionName } from "./util.js"
 import { gardenEnv } from "../../constants.js"
 import { CloudApiTokenRefreshError } from "../api.js"
 import { CloudApiError, InternalError } from "../../exceptions.js"
 import type { AuthToken } from "../auth.js"
+import { getCloudDistributionName } from "../util.js"
 
 // todo: replace with ClientAuthToken from globals.ts?
 export interface PersistedAuthToken {
@@ -41,7 +41,7 @@ export async function isTokenValid({ authToken, log }: { authToken: string; log:
   let valid = false
 
   try {
-    log.debug(`Checking client auth token with ${getCloudDistributionName()}`)
+    log.debug(`Checking client auth token with ${getCloudDistributionName(undefined)}`)
     const verificationResult = await apiClient.token.verifyToken.query({ token: authToken })
     valid = verificationResult.valid
   } catch (err) {
@@ -53,13 +53,13 @@ export async function isTokenValid({ authToken, log }: { authToken: string; log:
 
     if (httpCode !== 401) {
       throw new CloudApiError({
-        message: `An error occurred while verifying client auth token with ${getCloudDistributionName()}: ${err.message}`,
+        message: `An error occurred while verifying client auth token with ${getCloudDistributionName(undefined)}: ${err.message}`,
         responseStatusCode: httpCode,
       })
     }
   }
 
-  log.debug(`Checked client auth token with ${getCloudDistributionName()} - valid: ${valid}`)
+  log.debug(`Checked client auth token with ${getCloudDistributionName(undefined)} - valid: ${valid}`)
 
   return valid
 }
@@ -70,7 +70,7 @@ export async function saveAuthToken(
   tokenResponse: AuthToken,
   domain: string
 ) {
-  const distroName = getCloudDistributionName()
+  const distroName = getCloudDistributionName(undefined)
 
   if (!tokenResponse.token) {
     const errMsg = deline`
@@ -169,7 +169,7 @@ export async function refreshAuthTokenAndWriteToConfigStore(
 
     log.debug({ msg: `Failed to refresh the token.` })
     throw new CloudApiTokenRefreshError({
-      message: `An error occurred while verifying client auth token with ${getCloudDistributionName()}: ${err.message}`,
+      message: `An error occurred while verifying client auth token with ${getCloudDistributionName(undefined)}: ${err.message}`,
     })
   }
 }

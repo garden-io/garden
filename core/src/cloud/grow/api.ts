@@ -11,10 +11,10 @@ import type { Log } from "../../logger/log-entry.js"
 import type { GlobalConfigStore } from "../../config-store/global.js"
 import { getStoredAuthToken, isTokenExpired, isTokenValid, refreshAuthTokenAndWriteToConfigStore } from "./auth.js"
 import { apiClient, getAuthenticatedApiClient } from "./trpc.js"
-import { getCloudDistributionName, getCloudLogSectionName } from "./util.js"
 import { CloudApiError } from "../../exceptions.js"
 import { gardenEnv } from "../../constants.js"
 import { LogLevel } from "../../logger/logger.js"
+import { getCloudDistributionName, getCloudLogSectionName } from "../util.js"
 
 const refreshThreshold = 10 // Threshold (in seconds) subtracted to jwt validity when checking if a refresh is needed
 
@@ -47,7 +47,7 @@ export class GrowCloudApi {
   }) {
     this.log = log
     this.domain = domain
-    this.distroName = getCloudDistributionName()
+    this.distroName = getCloudDistributionName(domain)
     this.globalConfigStore = globalConfigStore
     this.authToken = authToken
 
@@ -76,14 +76,14 @@ export class GrowCloudApi {
     globalConfigStore: GlobalConfigStore
     skipLogging?: boolean
   }) {
-    const distroName = getCloudDistributionName()
+    const distroName = getCloudDistributionName(cloudDomain)
     const fixLevel = skipLogging ? LogLevel.silly : undefined
     const cloudFactoryLog = log.createLog({
       fixLevel,
-      name: getCloudLogSectionName(),
+      name: getCloudLogSectionName("Grow Cloud"),
       showDuration: true,
     })
-    const cloudLog = log.createLog({ name: getCloudLogSectionName() })
+    const cloudLog = log.createLog({ name: getCloudLogSectionName("Grow Cloud") })
     const successMsg = "Successfully authorized"
 
     cloudFactoryLog.info("Authorizing...")

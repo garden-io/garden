@@ -6,8 +6,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 import { DEFAULT_GARDEN_CLOUD_DOMAIN, gardenEnv } from "../constants.js"
+import type { GrowCloudDistroName, GrowCloudLogSectionName } from "./grow/util.js"
+import { getGrowCloudDistributionName, getGrowCloudLogSectionName } from "./grow/util.js"
+import { InternalError } from "../exceptions.js"
 
-export type CloudDistroName = "the Garden dashboard" | "Garden Enterprise" | "Garden Cloud"
+export type GardenCloudDistroName = "the Garden dashboard" | "Garden Enterprise" | "Garden Cloud"
+
+export type CloudDistroName = GardenCloudDistroName | GrowCloudDistroName
 
 /**
  * Returns "Garden Cloud" if domain matches https://<some-subdomain>.app.garden,
@@ -15,7 +20,7 @@ export type CloudDistroName = "the Garden dashboard" | "Garden Enterprise" | "Ga
  *
  * TODO: Return the distribution type from the API and store on the CloudApi class.
  */
-export function getCloudDistributionName(domain: string): CloudDistroName {
+export function getGardenCloudDistributionName(domain: string): CloudDistroName {
   if (domain === DEFAULT_GARDEN_CLOUD_DOMAIN) {
     return "the Garden dashboard"
   }
@@ -28,7 +33,24 @@ export function getCloudDistributionName(domain: string): CloudDistroName {
   return "Garden Cloud"
 }
 
-export type CloudLogSectionName = "garden-dashboard" | "garden-cloud" | "garden-enterprise"
+/**
+ * Returns the name of the effective Cloud backend (either Grow or Garden).
+ */
+export function getCloudDistributionName(domain: string | undefined): CloudDistroName {
+  if (gardenEnv.USE_GROW_CLOUD) {
+    // FIXME: Remove this ugly hack.
+    //  Domain is required only for Garden Cloud, not for Grow Cloud.
+    if (domain === undefined) {
+      throw new InternalError({ message: "Cloud domain must be defined when using Garden Cloud." })
+    }
+    return getGardenCloudDistributionName(domain)
+  }
+
+  return getGrowCloudDistributionName()
+}
+
+export type GardenCloudLogSectionName = "garden-dashboard" | "garden-cloud" | "garden-enterprise"
+export type CloudLogSectionName = GardenCloudLogSectionName | GrowCloudLogSectionName
 
 export function getCloudLogSectionName(distroName: CloudDistroName): CloudLogSectionName {
   if (distroName === "the Garden dashboard") {
@@ -37,6 +59,8 @@ export function getCloudLogSectionName(distroName: CloudDistroName): CloudLogSec
     return "garden-cloud"
   } else if (distroName === "Garden Enterprise") {
     return "garden-enterprise"
+  } else if (distroName === "Grow Cloud") {
+    return getGrowCloudLogSectionName()
   } else {
     return distroName satisfies never
   }
