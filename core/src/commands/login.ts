@@ -20,9 +20,9 @@ import type { ProjectConfig } from "../config/project.js"
 import { findProjectConfig } from "../config/base.js"
 import { BooleanParameter } from "../cli/params.js"
 import { deline } from "../util/string.js"
-import { gardenEnv } from "../constants.js"
 import { getGardenCloudDomain } from "../cloud/util.js"
 import { GardenCloudBackend } from "../cloud/backend.js"
+import { gardenEnv } from "../constants.js"
 
 const loginTimeoutSec = 60
 
