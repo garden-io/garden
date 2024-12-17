@@ -287,9 +287,10 @@ commands:
             source "$HOME/.cargo/env"
             echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> $BASH_ENV
 
-            # TODO: use the latest stable Rust version and apply the necessary fixes for the Windows build
-            # See the requirements change in https://blog.rust-lang.org/2024/05/02/Rust-1.78.0.html
-            RUST_VERSION="1.77.2"
+            # Install the latest stable Rust version
+            # We maintain it manually to avoid unexpected breaking changes like we faced in Rust 1.78 for Windows builds.
+            # See https://blog.rust-lang.org/2024/05/02/Rust-1.78.0.html for details.
+            RUST_VERSION="1.83.0"
             rustup install $RUST_VERSION
             rustup default $RUST_VERSION
 
