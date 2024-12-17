@@ -20,7 +20,7 @@ import type { ProjectConfig } from "../config/project.js"
 import { findProjectConfig } from "../config/base.js"
 import { BooleanParameter } from "../cli/params.js"
 import { deline } from "../util/string.js"
-import { getGardenCloudDomain } from "../cloud/util.js"
+import { getCloudDomain } from "../cloud/util.js"
 import { GardenCloudBackend } from "../cloud/backend.js"
 import { gardenEnv } from "../constants.js"
 
@@ -76,9 +76,9 @@ export class LoginCommand extends Command<{}, Opts> {
 
     const globalConfigStore = garden.globalConfigStore
 
-    // Garden works by default without Garden Cloud. In order to use cloud, a domain
+    // Garden works by default without Garden/Grow Cloud. In order to use cloud, a domain
     // must be known to cloud for any command needing a logged in user.
-    const cloudDomain = getGardenCloudDomain(projectConfig?.domain)
+    const cloudDomain = getCloudDomain(projectConfig?.domain)
 
     async function isCloudBackendAvailable(): Promise<boolean> {
       const cloudApi = await GardenCloudApi.factory({ log, cloudDomain, skipLogging: true, globalConfigStore })

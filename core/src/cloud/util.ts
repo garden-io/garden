@@ -7,6 +7,7 @@
  */
 import { DEFAULT_GARDEN_CLOUD_DOMAIN, gardenEnv } from "../constants.js"
 import type { GrowCloudDistroName, GrowCloudLogSectionName } from "./grow/util.js"
+import { getGrowCloudDomain } from "./grow/util.js"
 import { getGrowCloudDistributionName, getGrowCloudLogSectionName } from "./grow/util.js"
 import { InternalError } from "../exceptions.js"
 
@@ -88,6 +89,19 @@ export function getGardenCloudDomain(configuredDomain: string | undefined): stri
   }
 
   return cloudDomain || DEFAULT_GARDEN_CLOUD_DOMAIN
+}
+
+/**
+ * Chooses between {@link getGardenCloudDomain} and {@link getGrowCloudDomain}
+ * depending on the `USE_GROW_CLOUD` feature flag.
+ *
+ * To be used in login and logout commands for now.
+ * Later we should use the right Cloud domain insode the Garden instance
+ * and its CloudApi instance.
+ */
+export function getCloudDomain(configuredDomain: string | undefined): string {
+  const cloudDomainGetter = gardenEnv.USE_GROW_CLOUD ? getGrowCloudDomain : getGardenCloudDomain
+  return cloudDomainGetter(configuredDomain)
 }
 
 export function isGardenCommunityEdition(cloudDomain: string): boolean {
