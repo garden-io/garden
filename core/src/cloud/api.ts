@@ -194,8 +194,15 @@ export class GardenCloudApi {
     skipLogging = false,
   }: CloudApiFactoryParams): Promise<GardenCloudApi | undefined> {
     const distroName = getCloudDistributionName(cloudDomain)
-    const token = await getStoredAuthToken(log, globalConfigStore, cloudDomain)
+    const cloudLogSectionName = getCloudLogSectionName(distroName)
+    const fixLevel = skipLogging ? LogLevel.silly : undefined
+    const cloudFactoryLog = log.createLog({ fixLevel, name: cloudLogSectionName, showDuration: true })
+    const cloudLog = log.createLog({ name: cloudLogSectionName })
+    const successMsg = "Successfully authorized"
 
+    cloudFactoryLog.info("Authorizing...")
+
+    const token = await getStoredAuthToken(log, globalConfigStore, cloudDomain)
     if (!token && !gardenEnv.GARDEN_AUTH_TOKEN) {
       log.debug(
         `No auth token found, proceeding without access to ${distroName}. Command results for this command run will not be available in ${distroName}.`
@@ -203,17 +210,13 @@ export class GardenCloudApi {
       return undefined
     }
 
-    const fixLevel = skipLogging ? LogLevel.silly : undefined
-    const cloudFactoryLog = log.createLog({ fixLevel, name: getCloudLogSectionName(distroName), showDuration: true })
-
-    cloudFactoryLog.debug("Initializing Garden Cloud API client.")
-
-    const api = new GardenCloudApi({ log, domain: cloudDomain, globalConfigStore })
+    const api = new GardenCloudApi({ log: cloudLog, domain: cloudDomain, globalConfigStore })
     const tokenIsValid = await api.checkClientAuthToken()
 
-    cloudFactoryLog.debug("Authorizing...")
+    cloudFactoryLog.info("Authorizing...")
 
     if (gardenEnv.GARDEN_AUTH_TOKEN) {
+      log.silly(() => "Using auth token from GARDEN_AUTH_TOKEN env var")
       // Throw if using an invalid "CI" access token
       if (!tokenIsValid) {
         throw new CloudApiError({
@@ -228,7 +231,7 @@ export class GardenCloudApi {
       if (!tokenIsValid) {
         cloudFactoryLog.debug({ msg: `Current auth token is invalid, refreshing` })
 
-        // We can assert the token exists since we're not using GARDEN_AUTH_TOKEN
+        // We can assert the token exists since we're not using `GARDEN_AUTH_TOKEN`
         await api.refreshToken(token!)
       }
 
@@ -237,6 +240,7 @@ export class GardenCloudApi {
       api.startInterval()
     }
 
+    cloudFactoryLog.success(successMsg)
     return api
   }
 
