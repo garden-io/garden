@@ -80,7 +80,7 @@ export class GrowLoginCommand extends Command<{}, Opts> {
     // must be known to cloud for any command needing a logged in user.
     const cloudDomain = cloudApiOrigin
 
-    async function checkAuthenticationState(): Promise<boolean> {
+    async function isCloudBackendAvailable(): Promise<boolean> {
       const cloudApi = await GrowCloudApi.factory({ log, cloudDomain, skipLogging: true, globalConfigStore })
       if (cloudApi) {
         log.success({ msg: `You're already logged in to ${cloudDomain}.` })
@@ -91,7 +91,7 @@ export class GrowLoginCommand extends Command<{}, Opts> {
     }
 
     try {
-      if (await checkAuthenticationState()) {
+      if (await isCloudBackendAvailable()) {
         // If successful, we are already logged in.
         return {}
       }
@@ -99,7 +99,7 @@ export class GrowLoginCommand extends Command<{}, Opts> {
       if (err instanceof CloudApiTokenRefreshError) {
         // Let's retry.
         try {
-          await checkAuthenticationState()
+          await isCloudBackendAvailable()
         } catch (innerError) {
           if (innerError instanceof CloudApiTokenRefreshError) {
             const msg = dedent`
