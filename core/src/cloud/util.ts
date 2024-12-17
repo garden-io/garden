@@ -90,6 +90,6 @@ export function getGardenCloudDomain(configuredDomain: string | undefined): stri
   return cloudDomain || DEFAULT_GARDEN_CLOUD_DOMAIN
 }
 
-export function isGardenCommunityEdition(cloudDomain?: string): boolean {
+export function isGardenCommunityEdition(cloudDomain: string): boolean {
   return cloudDomain === DEFAULT_GARDEN_CLOUD_DOMAIN
 }

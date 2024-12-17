@@ -204,7 +204,7 @@ export interface GardenParams {
   vcsInfo: VcsInfo
   projectId?: string
   cloudApi?: GardenCloudApi
-  cloudDomain?: string
+  cloudDomain: string
   dotIgnoreFile: string
   proxy: ProxyConfig
   environmentName: string
@@ -281,7 +281,7 @@ export class Garden {
   private readonly solver: GraphSolver
   private asyncLock: AsyncLock
   public readonly projectId?: string
-  public readonly cloudDomain?: string
+  public readonly cloudDomain: string
   public sessionId: string
   public readonly localConfigStore: LocalConfigStore
   public globalConfigStore: GlobalConfigStore

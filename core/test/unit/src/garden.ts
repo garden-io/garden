@@ -661,7 +661,7 @@ describe("Garden", () => {
           environmentString: envName,
           log,
         })
-        const distroName = getCloudDistributionName(garden.cloudDomain || DEFAULT_GARDEN_CLOUD_DOMAIN)
+        const distroName = getCloudDistributionName(garden.cloudDomain)
 
         const expectedLog = log.root.getLogEntries().filter((l) => resolveMsg(l)?.includes(`You are not logged in`))
 
@@ -719,7 +719,7 @@ describe("Garden", () => {
                 opts: {},
               },
             })
-            const distroName = getCloudDistributionName(garden.cloudDomain || DEFAULT_GARDEN_CLOUD_DOMAIN)
+            const distroName = getCloudDistributionName(garden.cloudDomain)
 
             const expectedLog = log.root.getLogEntries().filter((l) => resolveMsg(l)?.includes(`You are not logged in`))
 
