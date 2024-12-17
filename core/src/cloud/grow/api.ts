@@ -137,14 +137,10 @@ export class GrowCloudApi {
   }
 
   private startInterval() {
-    this.log.debug({
-      msg: `Will run refresh function every ${this.intervalMsec} ms.`,
-    })
+    this.log.debug({ msg: `Will run refresh function every ${this.intervalMsec} ms.` })
     this.intervalId = setInterval(() => {
       this.refreshTokenIfExpired().catch((err) => {
-        this.log.debug({
-          msg: "Something went wrong while trying to refresh the authentication token.",
-        })
+        this.log.debug({ msg: "Something went wrong while trying to refresh the authentication token." })
         this.log.debug({ msg: err.message })
       })
     }, this.intervalMsec)
