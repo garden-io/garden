@@ -187,7 +187,12 @@ export class GardenCloudApi {
    * Optionally skip logging during initialization. Useful for noProject commands that need to use the class
    * without all the "flair".
    */
-  static async factory({ log, cloudDomain, globalConfigStore, skipLogging = false }: CloudApiFactoryParams) {
+  static async factory({
+    log,
+    cloudDomain,
+    globalConfigStore,
+    skipLogging = false,
+  }: CloudApiFactoryParams): Promise<GardenCloudApi | undefined> {
     const distroName = getCloudDistributionName(cloudDomain)
     const token = await getStoredAuthToken(log, globalConfigStore, cloudDomain)
 
