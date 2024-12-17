@@ -144,7 +144,7 @@ export interface CloudApiFactoryParams {
 
 export type CloudApiFactory = (params: CloudApiFactoryParams) => Promise<GardenCloudApi | undefined>
 
-export type GardenCloudApiParams = { log: Log; domain: string; globalConfigStore: GlobalConfigStore }
+export type CloudApiParams = { log: Log; domain: string; globalConfigStore: GlobalConfigStore }
 
 /**
  * The Garden Cloud / Enterprise API client.
@@ -166,7 +166,7 @@ export class GardenCloudApi {
   public readonly distroName: string
   private readonly globalConfigStore: GlobalConfigStore
 
-  constructor(params: GardenCloudApiParams) {
+  constructor(params: CloudApiParams) {
     const { log, domain, globalConfigStore } = params
     this.log = log
     this.httpClient = new GardenCloudHttpClient(params)

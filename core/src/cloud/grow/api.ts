@@ -15,7 +15,7 @@ import { gardenEnv } from "../../constants.js"
 import { LogLevel } from "../../logger/logger.js"
 import { getCloudDistributionName, getCloudLogSectionName } from "../util.js"
 import { getStoredAuthToken } from "../auth.js"
-import type { CloudApiFactoryParams, GardenCloudApiParams } from "../api.js"
+import type { CloudApiFactoryParams, CloudApiParams } from "../api.js"
 import { deline } from "../../util/string.js"
 
 const refreshThreshold = 10 // Threshold (in seconds) subtracted to jwt validity when checking if a refresh is needed
@@ -41,7 +41,7 @@ export class GrowCloudApi {
     domain,
     globalConfigStore,
     authToken,
-  }: GardenCloudApiParams & {
+  }: CloudApiParams & {
     authToken: string
   }) {
     this.log = log
