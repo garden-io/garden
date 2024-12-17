@@ -12,7 +12,7 @@ import { printHeader } from "../logger/util.js"
 import dedent from "dedent"
 import { GrowCloudApi } from "../cloud/grow/api.js"
 import type { Log } from "../logger/log-entry.js"
-import { ConfigurationError, InternalError, TimeoutError } from "../exceptions.js"
+import { CloudApiError, ConfigurationError, InternalError, TimeoutError } from "../exceptions.js"
 import type { AuthToken } from "../cloud/auth.js"
 import { AuthRedirectServer, saveAuthToken } from "../cloud/auth.js"
 import type { EventBus } from "../events/events.js"
@@ -21,8 +21,8 @@ import { findProjectConfig } from "../config/base.js"
 import { BooleanParameter } from "../cli/params.js"
 import { deline } from "../util/string.js"
 import { cloudApiOrigin } from "../cloud/grow/config.js"
-import { CloudApiTokenRefreshError } from "../cloud/api.js"
 import { GrowCloudBackend } from "../cloud/backend.js"
+import { gardenEnv } from "../constants.js"
 
 const loginTimeoutSec = 60
 
@@ -96,20 +96,7 @@ export class GrowLoginCommand extends Command<{}, Opts> {
         return {}
       }
     } catch (err) {
-      if (err instanceof CloudApiTokenRefreshError) {
-        // Let's retry.
-        try {
-          await isCloudBackendAvailable()
-        } catch (innerError) {
-          if (innerError instanceof CloudApiTokenRefreshError) {
-            const msg = dedent`
-              It looks like your existing session token is invalid. Attempting to log in again...
-            `
-            log.warn(msg)
-            log.info("")
-          }
-        }
-      } else {
+      if (!(err instanceof CloudApiError) || (err.responseStatusCode === 401 && gardenEnv.GARDEN_AUTH_TOKEN)) {
         throw err
       }
     }
