@@ -68,6 +68,7 @@ export const gardenEnv = {
   ANALYTICS_DEV: env.get("ANALYTICS_DEV").required(false).asBool(),
   // Support the NO_COLOR env var (see https://no-color.org/)
   NO_COLOR: env.get("NO_COLOR").required(false).default("false").asBool(),
+  USE_GROW_CLOUD: env.get("USE_GROW_CLOUD").required(false).default("false").asBool(),
   GARDEN_AUTH_TOKEN: env.get("GARDEN_AUTH_TOKEN").required(false).asString(),
   GARDEN_CACHE_TTL: env.get("GARDEN_CACHE_TTL").required(false).asInt(),
   GARDEN_DB_DIR: env.get("GARDEN_DB_DIR").required(false).default(GARDEN_GLOBAL_PATH).asString(),
