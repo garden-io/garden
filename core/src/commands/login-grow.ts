@@ -57,7 +57,7 @@ export class GrowLoginCommand extends Command<{}, Opts> {
     const cloudDomain = cloudApiOrigin
     const globalConfigStore = new GlobalConfigStore()
 
-    async function checkAuthenticationState() {
+    async function checkAuthenticationState(): Promise<boolean> {
       const cloudApi = await GrowCloudApi.factory({ log, cloudDomain, skipLogging: true, globalConfigStore })
       if (cloudApi) {
         log.success({ msg: `You're already logged in to ${cloudDomain}.` })
@@ -70,11 +70,7 @@ export class GrowLoginCommand extends Command<{}, Opts> {
     try {
       if (await checkAuthenticationState()) {
         // If successful, we are already logged in.
-        return {
-          result: {},
-          exitCode: 0,
-          errors: [],
-        }
+        return {}
       }
     } catch (err) {
       if (err instanceof CloudApiTokenRefreshError) {
@@ -103,24 +99,20 @@ export class GrowLoginCommand extends Command<{}, Opts> {
     await saveAuthToken(log, globalConfigStore, tokenResponse, cloudDomain)
     log.success({ msg: `Successfully logged in to ${getCloudDistributionName(cloudDomain)}.`, showDuration: false })
 
-    return {
-      result: {},
-      exitCode: 0,
-      errors: [],
-    }
+    return {}
   }
 }
 
 export async function login(log: Log, cloudDomain: string, events: EventBus): Promise<AuthToken | undefined> {
-  const gardenBackend = new GrowCloudBackend({ cloudDomain })
   // Start auth redirect server and wait for its redirect handler to receive the redirect and finish running.
+  const gardenBackend = new GrowCloudBackend({ cloudDomain })
   const server = new AuthRedirectServer({
     events,
     log,
     ...gardenBackend.getAuthRedirectConfig(),
   })
-  const distroName = cloudApiOrigin
-  log.debug(`Redirecting to ${distroName} login page...`)
+
+  log.debug(`Redirecting to ${cloudDomain} login page...`)
   const response = await new Promise<AuthToken>(async (resolve, reject) => {
     // The server resolves the promise with the new auth token once it's received the redirect.
     await server.start()
@@ -136,7 +128,7 @@ export async function login(log: Log, cloudDomain: string, events: EventBus): Pr
       )
     }, loginTimeoutSec * 1000)
 
-    events.once("receivedToken", (tokenResponse) => {
+    events.once("receivedToken", (tokenResponse: AuthToken) => {
       if (timedOut) {
         return
       }

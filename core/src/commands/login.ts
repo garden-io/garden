@@ -80,12 +80,19 @@ export class LoginCommand extends Command<{}, Opts> {
     // must be known to cloud for any command needing a logged in user.
     const cloudDomain: string = getGardenCloudDomain(projectConfig?.domain)
 
-    try {
+    async function checkAuthenticationState(): Promise<boolean> {
       const cloudApi = await GardenCloudApi.factory({ log, cloudDomain, skipLogging: true, globalConfigStore })
-
       if (cloudApi) {
         log.success({ msg: `You're already logged in to ${cloudDomain}.` })
         cloudApi.close()
+        return true
+      }
+      return false
+    }
+
+    try {
+      if (await checkAuthenticationState()) {
+        // If successful, we are already logged in.
         return {}
       }
     } catch (err) {
@@ -103,7 +110,7 @@ export class LoginCommand extends Command<{}, Opts> {
   }
 }
 
-export async function login(log: Log, cloudDomain: string, events: EventBus) {
+export async function login(log: Log, cloudDomain: string, events: EventBus): Promise<AuthToken> {
   // Start auth redirect server and wait for its redirect handler to receive the redirect and finish running.
   const gardenBackend = new GardenCloudBackend({ cloudDomain })
   const server = new AuthRedirectServer({
