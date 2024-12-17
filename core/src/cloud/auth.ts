@@ -16,7 +16,7 @@ import getPort from "get-port"
 import cloneDeep from "fast-copy"
 import type { Log } from "../logger/log-entry.js"
 import { gardenEnv } from "../constants.js"
-import type { GlobalConfigStore } from "../config-store/global.js"
+import type { ClientAuthToken, GlobalConfigStore } from "../config-store/global.js"
 import { dedent, deline } from "../util/string.js"
 import { CloudApiError, InternalError } from "../exceptions.js"
 import { add } from "date-fns"
@@ -47,11 +47,12 @@ export async function saveAuthToken(
   }
   try {
     const validityMs = tokenResponse.tokenValidity || 604800000
-    await globalConfigStore.set("clientAuthTokens", domain, {
+    const clientAuthToken: ClientAuthToken = {
       token: tokenResponse.token,
       refreshToken: tokenResponse.refreshToken,
       validity: add(new Date(), { seconds: validityMs / 1000 }),
-    })
+    }
+    await globalConfigStore.set("clientAuthTokens", domain, clientAuthToken)
     log.debug("Saved client auth token to config store")
   } catch (error) {
     const redactedResponse = cloneDeep(tokenResponse)
@@ -78,16 +79,20 @@ export async function saveAuthToken(
  * In the inconsistent/erroneous case of more than one auth token existing in the local store, picks the first auth
  * token and deletes all others.
  */
-export async function getStoredAuthToken(log: Log, globalConfigStore: GlobalConfigStore, domain: string) {
+export async function getStoredAuthToken(
+  log: Log,
+  globalConfigStore: GlobalConfigStore,
+  domain: string
+): Promise<ClientAuthToken | undefined> {
   log.silly(() => `Retrieving client auth token from config store`)
   return globalConfigStore.get("clientAuthTokens", domain)
 }
 
 /**
- * If a persisted client auth token was found, or if the GARDEN_AUTH_TOKEN environment variable is present,
- * returns it. Returns null otherwise.
+ * If a persisted client auth token was found, or if the `GARDEN_AUTH_TOKEN` environment variable is present,
+ * returns it. Returns `undefined` otherwise.
  *
- * Note that the GARDEN_AUTH_TOKEN environment variable takes precedence over a persisted auth token if both are
+ * Note that the `GARDEN_AUTH_TOKEN` environment variable takes precedence over a persisted auth token if both are
  * present.
  */
 export async function getAuthToken(
