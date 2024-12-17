@@ -37,7 +37,7 @@ type Opts = typeof loginOpts
 
 export class GrowLoginCommand extends Command<{}, Opts> {
   name = "login-grow"
-  help = "Log in to Grow Cloud."
+  help = "Log in to Garden/Grow Cloud."
 
   /**
    * Since we're logging in, we don't want to resolve e.g. the project config (since it may use secrets, which are
@@ -46,7 +46,7 @@ export class GrowLoginCommand extends Command<{}, Opts> {
   override noProject = true
 
   override description = dedent`
-    Logs you in to Grow Cloud. Subsequent commands will have access to cloud features.
+    Logs you in to Garden/Grow Cloud. Subsequent commands will have access to cloud features.
   `
 
   override options = loginOpts
