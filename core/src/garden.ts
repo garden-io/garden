@@ -167,7 +167,12 @@ import { styles } from "./logger/styles.js"
 import { renderDuration } from "./logger/util.js"
 import { makeDocsLinkStyled } from "./docs/common.js"
 import { getPathInfo } from "./vcs/git.js"
-import { getCloudDistributionName, getCloudLogSectionName, getGardenCloudDomain } from "./cloud/util.js"
+import {
+  type CloudDistroName,
+  getCloudDistributionName,
+  getCloudLogSectionName,
+  getGardenCloudDomain,
+} from "./cloud/util.js"
 
 const defaultLocalAddress = "localhost"
 
@@ -199,7 +204,8 @@ export interface GardenParams {
   artifactsPath: string
   vcsInfo: VcsInfo
   projectId?: string
-  cloudDomain?: string
+  cloudDomain: string
+  cloudDistroName: string
   dotIgnoreFile: string
   proxy: ProxyConfig
   environmentName: string
@@ -1969,29 +1975,41 @@ function getCloudApiFactory(opts: GardenOpts) {
   return GardenCloudApi.factory
 }
 
+type CloudApiInitResult = {
+  cloudDomain: string
+  cloudDistroName: CloudDistroName
+  cloudApi: GardenCloudApi | undefined
+}
+
 async function initCloudApi({
   globalConfigStore,
   projectConfig,
   cloudApiFactory,
+  skipCloudConnect,
   log,
 }: {
   globalConfigStore: GlobalConfigStore
   projectConfig: ProjectConfig | undefined
   cloudApiFactory: CloudApiFactory
+  skipCloudConnect?: boolean
   log: Log
-}): Promise<GardenCloudApi | undefined> {
+}): Promise<CloudApiInitResult> {
   const cloudDomain = getGardenCloudDomain(projectConfig?.domain)
-  const distroName = getCloudDistributionName(cloudDomain)
+  const cloudDistroName = getCloudDistributionName(cloudDomain)
+  if (skipCloudConnect) {
+    return { cloudDomain, cloudDistroName, cloudApi: undefined }
+  }
 
   try {
-    return await cloudApiFactory({ log, cloudDomain, globalConfigStore })
+    const cloudApi = await cloudApiFactory({ log, cloudDomain, globalConfigStore })
+    return { cloudDomain, cloudDistroName, cloudApi }
   } catch (err) {
     if (err instanceof CloudApiTokenRefreshError) {
       log.warn(dedent`
-            The current ${distroName} session is not valid or it's expired.
-            Command results for this command run will not be available in ${distroName}.
+            The current ${cloudDistroName} session is not valid or it's expired.
+            Command results for this command run will not be available in ${cloudDistroName}.
             To avoid losing command results and logs, please try logging back in by running \`garden login\`.
-            If this not a ${distroName} project you can ignore this warning.
+            If this not a ${cloudDistroName} project you can ignore this warning.
           `)
 
       // Project is configured for cloud usage => fail early to force re-auth
@@ -1999,7 +2017,7 @@ async function initCloudApi({
         throw err
       }
 
-      return undefined
+      return { cloudDomain, cloudDistroName, cloudApi: undefined }
     } else {
       // unhandled error when creating the cloud api
       throw err
@@ -2039,15 +2057,13 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
     const projectApiVersion = config.apiVersion
     const sessionId = opts.sessionId || uuidv4()
     const cloudApiFactory = getCloudApiFactory(opts)
-    const cloudApi: GardenCloudApi | undefined = opts.skipCloudConnect
-      ? undefined
-      : await initCloudApi({
-          globalConfigStore,
-          log,
-          projectConfig: config,
-          cloudApiFactory,
-        })
-    const cloudDomain = cloudApi?.domain || getGardenCloudDomain(config.domain)
+    const { cloudDomain, cloudDistroName, cloudApi } = await initCloudApi({
+      globalConfigStore,
+      log,
+      projectConfig: config,
+      skipCloudConnect: opts.skipCloudConnect,
+      cloudApiFactory,
+    })
     const loggedIn = !!cloudApi
 
     const { secrets, cloudProject } = opts.skipCloudConnect
@@ -2056,6 +2072,8 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
           cloudProject: null,
         }
       : await prepareCloud({
+          cloudDomain,
+          cloudDistroName,
           cloudApi,
           config,
           log,
@@ -2137,6 +2155,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
       // Same applies for domains.
       projectId: cloudProject?.id || config.id,
       cloudDomain,
+      cloudDistroName,
       projectConfig: config,
       projectRoot,
       projectName,
@@ -2178,6 +2197,8 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
  * to group together the relevant logs.
  */
 async function prepareCloud({
+  cloudDomain,
+  cloudDistroName,
   cloudApi,
   config,
   log,
@@ -2186,6 +2207,8 @@ async function prepareCloud({
   environmentName,
   commandName,
 }: {
+  cloudDomain: string
+  cloudDistroName: CloudDistroName
   cloudApi: GardenCloudApi | undefined
   config: ProjectConfig
   log: Log
@@ -2194,12 +2217,10 @@ async function prepareCloud({
   environmentName: string
   commandName: string
 }) {
-  const cloudDomain = cloudApi?.domain || getGardenCloudDomain(config.domain)
   const isCommunityEdition = cloudDomain === DEFAULT_GARDEN_CLOUD_DOMAIN
-  const distroName = getCloudDistributionName(cloudDomain)
   const debugLevelCommands = ["dev", "serve", "exit", "quit"]
   const cloudLogLevel = debugLevelCommands.includes(commandName) ? LogLevel.debug : undefined
-  const cloudLog = log.createLog({ name: getCloudLogSectionName(distroName), fixLevel: cloudLogLevel })
+  const cloudLog = log.createLog({ name: getCloudLogSectionName(cloudDistroName), fixLevel: cloudLogLevel })
 
   let secrets: StringMap = {}
   let cloudProject: CloudProject | null = null
@@ -2236,7 +2257,7 @@ async function prepareCloud({
 
     cloudLog.success("Ready")
   } else {
-    const msg = `You are not logged in. To use ${distroName}, log in with the ${styles.command(
+    const msg = `You are not logged in. To use ${cloudDistroName}, log in with the ${styles.command(
       "garden login"
     )} command.`
     if (isCommunityEdition) {
