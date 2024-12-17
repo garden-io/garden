@@ -142,7 +142,7 @@ export interface CloudApiFactoryParams {
   skipLogging?: boolean
 }
 
-export type CloudApiFactory = (params: CloudApiFactoryParams) => Promise<GardenCloudApi | undefined>
+export type GardenCloudApiFactory = (params: CloudApiFactoryParams) => Promise<GardenCloudApi | undefined>
 
 export type CloudApiParams = { log: Log; domain: string; globalConfigStore: GlobalConfigStore }
 

@@ -118,7 +118,7 @@ import {
   RemoteSourceConfigContext,
   TemplatableConfigContext,
 } from "./config/template-contexts/project.js"
-import type { CloudProject, CloudApiFactory } from "./cloud/api.js"
+import type { CloudProject, GardenCloudApiFactory } from "./cloud/api.js"
 import { GardenCloudApi, CloudApiTokenRefreshError } from "./cloud/api.js"
 import { OutputConfigContext } from "./config/template-contexts/module.js"
 import { ProviderConfigContext } from "./config/template-contexts/provider.js"
@@ -192,7 +192,7 @@ export interface GardenOpts {
   sessionId?: string
   variableOverrides?: PrimitiveMap
   // used in tests
-  overrideCloudApiFactory?: CloudApiFactory
+  overrideCloudApiFactory?: GardenCloudApiFactory
 }
 
 export interface GardenParams {
@@ -1977,7 +1977,7 @@ async function initCloudApi({
 }: {
   globalConfigStore: GlobalConfigStore
   projectConfig: ProjectConfig | undefined
-  cloudApiFactory: CloudApiFactory
+  cloudApiFactory: GardenCloudApiFactory
   log: Log
 }): Promise<GardenCloudApi | undefined> {
   const cloudDomain = getGardenCloudDomain(projectConfig?.domain)
