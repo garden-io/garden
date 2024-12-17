@@ -103,9 +103,6 @@ export class GrowLoginCommand extends Command<{}, Opts> {
 
     log.info({ msg: `Logging in to ${cloudDomain}...` })
     const tokenResponse = await login(log, cloudDomain, garden.events)
-    if (!tokenResponse) {
-      throw new InternalError({ message: `Error: Did not receive an auth token after logging in.` })
-    }
     await saveAuthToken(log, globalConfigStore, tokenResponse, cloudDomain)
     log.success({ msg: `Successfully logged in to ${cloudDomain}.`, showDuration: false })
 
@@ -113,7 +110,7 @@ export class GrowLoginCommand extends Command<{}, Opts> {
   }
 }
 
-export async function login(log: Log, cloudDomain: string, events: EventBus): Promise<AuthToken | undefined> {
+export async function login(log: Log, cloudDomain: string, events: EventBus): Promise<AuthToken> {
   // Start auth redirect server and wait for its redirect handler to receive the redirect and finish running.
   const gardenBackend = new GrowCloudBackend({ cloudDomain })
   const server = new AuthRedirectServer({
