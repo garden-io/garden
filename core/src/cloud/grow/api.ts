@@ -71,13 +71,10 @@ export class GrowCloudApi {
     skipLogging = false,
   }: CloudApiFactoryParams): Promise<GrowCloudApi | undefined> {
     const distroName = getCloudDistributionName(cloudDomain)
+    const cloudLogSectionName = getCloudLogSectionName(distroName)
     const fixLevel = skipLogging ? LogLevel.silly : undefined
-    const cloudFactoryLog = log.createLog({
-      fixLevel,
-      name: getCloudLogSectionName("Grow Cloud"),
-      showDuration: true,
-    })
-    const cloudLog = log.createLog({ name: getCloudLogSectionName("Grow Cloud") })
+    const cloudFactoryLog = log.createLog({ fixLevel, name: cloudLogSectionName, showDuration: true })
+    const cloudLog = log.createLog({ name: cloudLogSectionName })
     const successMsg = "Successfully authorized"
 
     cloudFactoryLog.info("Authorizing...")
