@@ -21,7 +21,7 @@ import { findProjectConfig } from "../config/base.js"
 import { BooleanParameter } from "../cli/params.js"
 import { deline } from "../util/string.js"
 import { gardenEnv } from "../constants.js"
-import { getCloudDistributionName, getGardenCloudDomain } from "../cloud/util.js"
+import { getGardenCloudDomain } from "../cloud/util.js"
 import { GardenCloudBackend } from "../cloud/backend.js"
 
 const loginTimeoutSec = 60
@@ -112,8 +112,7 @@ export async function login(log: Log, cloudDomain: string, events: EventBus) {
     ...gardenBackend.getAuthRedirectConfig(),
   })
 
-  const distroName = getCloudDistributionName(cloudDomain)
-  log.debug(`Redirecting to ${distroName} login page...`)
+  log.debug(`Redirecting to ${cloudDomain} login page...`)
   const response = await new Promise<AuthToken>(async (resolve, reject) => {
     // The server resolves the promise with the new auth token once it's received the redirect.
     await server.start()
