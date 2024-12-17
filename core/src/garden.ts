@@ -203,6 +203,7 @@ export interface GardenParams {
   artifactsPath: string
   vcsInfo: VcsInfo
   projectId?: string
+  cloudApi?: GardenCloudApi
   cloudDomain?: string
   dotIgnoreFile: string
   proxy: ProxyConfig
@@ -221,6 +222,7 @@ export interface GardenParams {
   outputs: OutputSpec[]
   plugins: RegisterPluginParam[]
   production: boolean
+  projectApiVersion: ProjectConfig["apiVersion"]
   projectConfig: ProjectConfig
   projectName: string
   projectRoot: string
@@ -233,8 +235,6 @@ export interface GardenParams {
   username: string | undefined
   workingCopyId: string
   forceRefresh?: boolean
-  cloudApi?: GardenCloudApi
-  projectApiVersion: ProjectConfig["apiVersion"]
 }
 
 interface GardenInstanceState {
