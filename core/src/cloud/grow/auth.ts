@@ -9,29 +9,20 @@
 import { TRPCClientError } from "@trpc/client"
 import { TRPCError } from "@trpc/server"
 import { getHTTPStatusCodeFromError } from "@trpc/server/http"
-// import type { Server } from "bun"
 import { add } from "date-fns"
 import cloneDeep from "fast-copy"
 import dedent from "dedent"
 import deline from "deline"
-import getPort from "get-port"
-import open from "open"
 import type { GlobalConfigStore } from "../../config-store/global.js"
 import type { Log } from "../../logger/log-entry.js"
 import { apiClient } from "./trpc.js"
 import { getCloudDistributionName } from "./util.js"
-import type EventEmitter2 from "eventemitter2"
 import { gardenEnv } from "../../constants.js"
 import { CloudApiTokenRefreshError } from "../api.js"
 import { CloudApiError, InternalError } from "../../exceptions.js"
-import { z } from "zod"
+import type { AuthToken } from "../auth.js"
 
-export interface AuthToken {
-  token: string
-  refreshToken: string
-  tokenValidity: number
-}
-
+// todo: replace with ClientAuthToken from globals.ts?
 export interface PersistedAuthToken {
   token: string
   refreshToken: string
@@ -182,96 +173,3 @@ export async function refreshAuthTokenAndWriteToConfigStore(
     })
   }
 }
-
-export class AuthRedirectServer {
-  private log: Log
-  // TODO: implement server machinery
-  // private server?: Server
-  private enterpriseDomain: string
-  private events: EventEmitter2.EventEmitter2
-
-  constructor(
-    enterpriseDomain: string,
-    events: EventEmitter2.EventEmitter2,
-    log: Log,
-    public port?: number
-  ) {
-    this.enterpriseDomain = enterpriseDomain
-    this.events = events
-    this.log = log.createLog({})
-  }
-
-  async start() {
-    // if (this.server) {
-    //   return
-    // }
-
-    if (!this.port) {
-      this.port = await getPort()
-    }
-
-    await this.createApp()
-    const url = new URL(`/login?port=${this.port}`, this.enterpriseDomain)
-    await open(url.href)
-  }
-
-  async close() {
-    this.log.debug("Shutting down redirect server...")
-
-    // if (this.server) {
-    //   return this.server.stop()
-    // }
-
-    return undefined
-  }
-
-  async createApp() {
-    const log = this.log
-    const events = this.events
-    const enterpriseDomain = this.enterpriseDomain
-    this.server = Bun.serve({
-      port: this.port,
-      async fetch(request) {
-        const url = new URL(request.url)
-        if (url.pathname !== "/") {
-          return new Response("Not found", { status: 404 })
-        }
-        if (request.method !== "GET") {
-          return new Response("Method not allowed", { status: 405 })
-        }
-        const searchParams = new URLSearchParams(url.search)
-        let token: z.infer<typeof tokenSchema> | undefined
-        try {
-          token = tokenSchema.parse(Object.fromEntries(searchParams))
-        } catch (error) {
-          log.error("Invalid query parameters")
-          return new Response("Invalid query parameters", { status: 400 })
-        }
-        log.debug("Received client auth token")
-        events.emit("receivedToken", {
-          // Note that internally we use `token` as the key for the access token.
-          token: token.accessToken,
-          refreshToken: token.refreshToken,
-          tokenValidity: token.tokenValidity,
-        })
-        const returnUrl = `${new URL("/confirm-cli-auth", enterpriseDomain).href}?cliLoginSuccess=true`
-        log.debug(`Redirecting to: ${returnUrl}`)
-        return new Response(null, {
-          status: 302,
-          headers: {
-            Location: returnUrl,
-          },
-        })
-      },
-    })
-  }
-}
-
-const tokenSchema = z.object({
-  accessToken: z.string(),
-  refreshToken: z.string(),
-  tokenValidity: z
-    .number()
-    .or(z.string())
-    .transform((value) => parseInt(value.toString(), 10)),
-})
