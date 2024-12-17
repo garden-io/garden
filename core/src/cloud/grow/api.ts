@@ -20,6 +20,8 @@ import { deline } from "../../util/string.js"
 
 const refreshThreshold = 10 // Threshold (in seconds) subtracted to jwt validity when checking if a refresh is needed
 
+export type GrowCloudApiFactory = (params: CloudApiFactoryParams) => Promise<GrowCloudApi | undefined>
+
 /**
  * The Cloud API client.
  *
