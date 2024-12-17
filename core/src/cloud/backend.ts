@@ -10,6 +10,10 @@ import type { AuthRedirectServerConfig } from "./auth.js"
 import { isArray } from "lodash-es"
 import { z } from "zod"
 import { InternalError } from "../exceptions.js"
+import type { CloudApiFactory, GardenCloudApiFactory } from "./api.js"
+import { GardenCloudApi } from "./api.js"
+import type { GrowCloudApiFactory } from "./grow/api.js"
+import { GrowCloudApi } from "./grow/api.js"
 
 function getFirstValue(v: string | string[]) {
   return isArray(v) ? v[0] : v
@@ -19,16 +23,33 @@ export type GardenBackendConfig = { readonly cloudDomain: string }
 export type AuthRedirectConfig = Pick<AuthRedirectServerConfig, "getLoginUrl" | "successUrl" | "extractAuthToken">
 
 export interface GardenBackend {
+  config: GardenBackendConfig
+  cloudApiFactory: CloudApiFactory
+
   getAuthRedirectConfig(): AuthRedirectConfig
 }
 
 export abstract class AbstractGardenBackend implements GardenBackend {
-  constructor(protected readonly config: GardenBackendConfig) {}
+  readonly #config: GardenBackendConfig
+
+  constructor(config: GardenBackendConfig) {
+    this.#config = config
+  }
+
+  get config(): GardenBackendConfig {
+    return this.#config
+  }
+
+  abstract get cloudApiFactory(): CloudApiFactory
 
   abstract getAuthRedirectConfig(): AuthRedirectConfig
 }
 
 export class GardenCloudBackend extends AbstractGardenBackend {
+  override get cloudApiFactory(): GardenCloudApiFactory {
+    return GardenCloudApi.factory
+  }
+
   override getAuthRedirectConfig(): AuthRedirectConfig {
     return {
       getLoginUrl: (port) => new URL(`/clilogin/${port}`, this.config.cloudDomain).href,
@@ -56,6 +77,10 @@ const growCloudTokenSchema = z.object({
 })
 
 export class GrowCloudBackend extends AbstractGardenBackend {
+  override get cloudApiFactory(): GrowCloudApiFactory {
+    return GrowCloudApi.factory
+  }
+
   override getAuthRedirectConfig(): AuthRedirectConfig {
     return {
       getLoginUrl: (port) => new URL(`/login?port=${port}`, this.config.cloudDomain).href,

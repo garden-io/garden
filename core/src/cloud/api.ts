@@ -45,6 +45,7 @@ import queryString from "query-string"
 import type { ApiFetchOptions } from "./http-client.js"
 import { GardenCloudHttpClient } from "./http-client.js"
 import { getCloudDistributionName, getCloudLogSectionName } from "./util.js"
+import type { GrowCloudApiFactory } from "./grow/api.js"
 
 export class CloudApiDuplicateProjectsError extends CloudApiError {}
 
@@ -143,6 +144,8 @@ export interface CloudApiFactoryParams {
 }
 
 export type GardenCloudApiFactory = (params: CloudApiFactoryParams) => Promise<GardenCloudApi | undefined>
+
+export type CloudApiFactory = GardenCloudApiFactory | GrowCloudApiFactory
 
 export type CloudApiParams = { log: Log; domain: string; globalConfigStore: GlobalConfigStore }
 
