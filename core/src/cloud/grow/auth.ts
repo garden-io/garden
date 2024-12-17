@@ -9,7 +9,7 @@
 import { TRPCClientError } from "@trpc/client"
 import { TRPCError } from "@trpc/server"
 import { getHTTPStatusCodeFromError } from "@trpc/server/http"
-import type { GlobalConfigStore } from "../../config-store/global.js"
+import type { ClientAuthToken, GlobalConfigStore } from "../../config-store/global.js"
 import type { Log } from "../../logger/log-entry.js"
 import { apiClient } from "./trpc.js"
 import { CloudApiTokenRefreshError } from "../api.js"
@@ -17,14 +17,7 @@ import { CloudApiError } from "../../exceptions.js"
 import { saveAuthToken } from "../auth.js"
 import { getCloudDistributionName } from "../util.js"
 
-// todo: replace with ClientAuthToken from globals.ts?
-export interface PersistedAuthToken {
-  token: string
-  refreshToken: string
-  validity: Date
-}
-
-export function isTokenExpired(token: PersistedAuthToken) {
+export function isTokenExpired(token: ClientAuthToken) {
   const now = new Date()
   return now > token.validity
 }
