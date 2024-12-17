@@ -16,6 +16,7 @@ import { gardenEnv } from "../../constants.js"
 import { LogLevel } from "../../logger/logger.js"
 import { getCloudDistributionName, getCloudLogSectionName } from "../util.js"
 import { getStoredAuthToken } from "../auth.js"
+import type { CloudApiFactoryParams, GardenCloudApiParams } from "../api.js"
 
 const refreshThreshold = 10 // Threshold (in seconds) subtracted to jwt validity when checking if a refresh is needed
 
@@ -26,7 +27,7 @@ const refreshThreshold = 10 // Threshold (in seconds) subtracted to jwt validity
  */
 export class GrowCloudApi {
   private intervalId: ReturnType<typeof setInterval> | null = null // TODO: fix type here (getting tsc error)
-  private intervalMsec = 4500 // Refresh interval in ms, it needs to be less than refreshThreshold/2
+  private readonly intervalMsec = 4500 // Refresh interval in ms, it needs to be less than refreshThreshold/2
 
   private readonly log: Log
   public readonly domain: string
@@ -40,18 +41,15 @@ export class GrowCloudApi {
     domain,
     globalConfigStore,
     authToken,
-  }: {
-    log: Log
-    domain: string
-    globalConfigStore: GlobalConfigStore
+  }: GardenCloudApiParams & {
     authToken: string
   }) {
     this.log = log
     this.domain = domain
     this.distroName = getCloudDistributionName(domain)
     this.globalConfigStore = globalConfigStore
-    this.authToken = authToken
 
+    this.authToken = authToken
     const tokenGetter = () => this.authToken
     this.api = getAuthenticatedApiClient(tokenGetter)
   }
@@ -71,12 +69,7 @@ export class GrowCloudApi {
     cloudDomain,
     globalConfigStore,
     skipLogging = false,
-  }: {
-    log: Log
-    cloudDomain: string
-    globalConfigStore: GlobalConfigStore
-    skipLogging?: boolean
-  }) {
+  }: CloudApiFactoryParams): Promise<GrowCloudApi | undefined> {
     const distroName = getCloudDistributionName(cloudDomain)
     const fixLevel = skipLogging ? LogLevel.silly : undefined
     const cloudFactoryLog = log.createLog({
@@ -113,7 +106,7 @@ export class GrowCloudApi {
       log.debug(
         `No auth token found, proceeding without access to ${distroName}. Command results for this command run will not be available in ${distroName}.`
       )
-      return null
+      return undefined
     }
 
     // Refresh the token if it has expired.
@@ -124,14 +117,14 @@ export class GrowCloudApi {
           await refreshAuthTokenAndWriteToConfigStore(log, globalConfigStore, cloudDomain, tokenData.refreshToken)
         ).accessToken
       } catch (error: unknown) {
-        return null
+        return undefined
       }
     }
 
     const verificationResult = await apiClient.token.verifyToken.query({ token: tokenData.token })
     if (!verificationResult.valid) {
       log.debug({ msg: `The stored token was not valid.` })
-      return null
+      return undefined
     }
 
     // Start refresh interval if using JWT
