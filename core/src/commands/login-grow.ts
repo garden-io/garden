@@ -5,22 +5,24 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
+
+import type { CommandParams, CommandResult } from "./base.js"
+import { Command } from "./base.js"
+import { printHeader } from "../logger/util.js"
 import dedent from "dedent"
-import { Command, type CommandParams, type CommandResult } from "./base.js"
 import { GrowCloudApi } from "../cloud/grow/api.js"
-import { cloudApiOrigin } from "../cloud/grow/config.js"
-import { GlobalConfigStore } from "../config-store/global.js"
-import { CloudApiTokenRefreshError } from "../cloud/api.js"
+import type { Log } from "../logger/log-entry.js"
+import { ConfigurationError, InternalError, TimeoutError } from "../exceptions.js"
 import type { AuthToken } from "../cloud/auth.js"
 import { AuthRedirectServer, saveAuthToken } from "../cloud/auth.js"
-import { getCloudDistributionName } from "../cloud/util.js"
 import type { EventBus } from "../events/events.js"
-import { GrowCloudBackend } from "../cloud/backend.js"
-import { printHeader } from "../logger/util.js"
-import { InternalError, TimeoutError } from "../exceptions.js"
-import type { Log } from "../logger/log-entry.js"
+import type { ProjectConfig } from "../config/project.js"
+import { findProjectConfig } from "../config/base.js"
 import { BooleanParameter } from "../cli/params.js"
 import { deline } from "../util/string.js"
+import { cloudApiOrigin } from "../cloud/grow/config.js"
+import { CloudApiTokenRefreshError } from "../cloud/api.js"
+import { GrowCloudBackend } from "../cloud/backend.js"
 
 const loginTimeoutSec = 60
 
@@ -53,9 +55,30 @@ export class GrowLoginCommand extends Command<{}, Opts> {
     printHeader(log, "Login", "☁️")
   }
 
-  async action({ garden, log, opts: _opts }: CommandParams<{}, Opts>): Promise<CommandResult> {
+  async action({ garden, log, opts }: CommandParams<{}, Opts>): Promise<CommandResult> {
+    // NOTE: The Cloud API is missing from the Garden class for commands with noProject
+    // so we initialize it here. noProject also make sure that the project config is not
+    // initialized in the garden class, so we need to read it in here to get the cloud
+    // domain.
+    let projectConfig: ProjectConfig | undefined = undefined
+    const forceProjectCheck = !opts["disable-project-check"]
+
+    if (forceProjectCheck) {
+      projectConfig = await findProjectConfig({ log, path: garden.projectRoot })
+
+      // Fail if this is not run within a garden project
+      if (!projectConfig) {
+        throw new ConfigurationError({
+          message: `Not a project directory (or any of the parent directories): ${garden.projectRoot}`,
+        })
+      }
+    }
+
+    const globalConfigStore = garden.globalConfigStore
+
+    // Garden works by default without Grow Cloud. In order to use cloud, a domain
+    // must be known to cloud for any command needing a logged in user.
     const cloudDomain = cloudApiOrigin
-    const globalConfigStore = new GlobalConfigStore()
 
     async function checkAuthenticationState(): Promise<boolean> {
       const cloudApi = await GrowCloudApi.factory({ log, cloudDomain, skipLogging: true, globalConfigStore })
@@ -97,7 +120,7 @@ export class GrowLoginCommand extends Command<{}, Opts> {
       throw new InternalError({ message: `Error: Did not receive an auth token after logging in.` })
     }
     await saveAuthToken(log, globalConfigStore, tokenResponse, cloudDomain)
-    log.success({ msg: `Successfully logged in to ${getCloudDistributionName(cloudDomain)}.`, showDuration: false })
+    log.success({ msg: `Successfully logged in to ${cloudDomain}.`, showDuration: false })
 
     return {}
   }
