@@ -77,7 +77,6 @@ import {
   gardenEnv,
   SUPPORTED_ARCHITECTURES,
   GardenApiVersion,
-  DEFAULT_GARDEN_CLOUD_DOMAIN,
 } from "./constants.js"
 import type { Log } from "./logger/log-entry.js"
 import { EventBus } from "./events/events.js"
@@ -167,7 +166,12 @@ import { styles } from "./logger/styles.js"
 import { renderDuration } from "./logger/util.js"
 import { makeDocsLinkStyled } from "./docs/common.js"
 import { getPathInfo } from "./vcs/git.js"
-import { getCloudDistributionName, getCloudLogSectionName, getGardenCloudDomain } from "./cloud/util.js"
+import {
+  getCloudDistributionName,
+  getCloudLogSectionName,
+  getGardenCloudDomain,
+  isGardenCommunityEdition,
+} from "./cloud/util.js"
 
 const defaultLocalAddress = "localhost"
 
@@ -2195,7 +2199,7 @@ async function prepareCloud({
   commandName: string
 }) {
   const cloudDomain = cloudApi?.domain || getGardenCloudDomain(config.domain)
-  const isCommunityEdition = cloudDomain === DEFAULT_GARDEN_CLOUD_DOMAIN
+  const isCommunityEdition = isGardenCommunityEdition(cloudDomain)
   const distroName = getCloudDistributionName(cloudDomain)
   const debugLevelCommands = ["dev", "serve", "exit", "quit"]
   const cloudLogLevel = debugLevelCommands.includes(commandName) ? LogLevel.debug : undefined

@@ -21,7 +21,7 @@ export type CloudDistroName = GardenCloudDistroName | GrowCloudDistroName
  * TODO: Return the distribution type from the API and store on the CloudApi class.
  */
 export function getGardenCloudDistributionName(domain: string): CloudDistroName {
-  if (domain === DEFAULT_GARDEN_CLOUD_DOMAIN) {
+  if (isGardenCommunityEdition(domain)) {
     return "the Garden dashboard"
   }
 
@@ -88,4 +88,8 @@ export function getGardenCloudDomain(configuredDomain: string | undefined): stri
   }
 
   return cloudDomain || DEFAULT_GARDEN_CLOUD_DOMAIN
+}
+
+export function isGardenCommunityEdition(cloudDomain?: string): boolean {
+  return cloudDomain === DEFAULT_GARDEN_CLOUD_DOMAIN
 }

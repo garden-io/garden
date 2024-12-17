@@ -19,7 +19,7 @@ import { tmpdir } from "node:os"
 import type { CloudBuilderAvailabilityV2, CloudBuilderAvailableV2 } from "../../cloud/api.js"
 import { emitNonRepeatableWarning } from "../../warnings.js"
 import { LRUCache } from "lru-cache"
-import { DEFAULT_GARDEN_CLOUD_DOMAIN, gardenEnv } from "../../constants.js"
+import { gardenEnv } from "../../constants.js"
 import type { ActionRuntime, ActionRuntimeKind } from "../../plugin/base.js"
 import crypto from "crypto"
 import { promisify } from "util"
@@ -28,7 +28,7 @@ import { containerHelpers } from "./helpers.js"
 import { hashString } from "../../util/util.js"
 import { stableStringify } from "../../util/string.js"
 import { homedir } from "os"
-import { getCloudDistributionName } from "../../cloud/util.js"
+import { getCloudDistributionName, isGardenCommunityEdition } from "../../cloud/util.js"
 
 const { mkdirp, rm, writeFile, stat } = fsExtra
 
@@ -96,7 +96,7 @@ export const cloudBuilder = {
       })
     }
 
-    if (ctx.cloudApi.domain === DEFAULT_GARDEN_CLOUD_DOMAIN && ctx.projectId === undefined) {
+    if (isGardenCommunityEdition(ctx.cloudApi.domain) && ctx.projectId === undefined) {
       throw new InternalError({ message: "Authenticated with community tier, but projectId is undefined" })
     } else if (ctx.projectId === undefined) {
       throw new ConfigurationError({
