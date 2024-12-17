@@ -83,6 +83,7 @@ export async function refreshAuthTokenAndWriteToConfigStore(
     log.debug({ msg: `Failed to refresh the token.` })
     throw new CloudApiTokenRefreshError({
       message: `An error occurred while verifying client auth token with ${getCloudDistributionName(undefined)}: ${err.message}`,
+      responseStatusCode: err.data.httpStatus,
     })
   }
 }

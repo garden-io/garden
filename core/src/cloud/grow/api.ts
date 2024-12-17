@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { isAfter, sub } from "date-fns"
 import type { Log } from "../../logger/log-entry.js"
 import type { GlobalConfigStore } from "../../config-store/global.js"
 import { isTokenExpired, isTokenValid, refreshAuthTokenAndWriteToConfigStore } from "./auth.js"
@@ -17,6 +16,7 @@ import { LogLevel } from "../../logger/logger.js"
 import { getCloudDistributionName, getCloudLogSectionName } from "../util.js"
 import { getStoredAuthToken } from "../auth.js"
 import type { CloudApiFactoryParams, GardenCloudApiParams } from "../api.js"
+import { deline } from "../../util/string.js"
 
 const refreshThreshold = 10 // Threshold (in seconds) subtracted to jwt validity when checking if a refresh is needed
 
@@ -83,7 +83,10 @@ export class GrowCloudApi {
       log.silly(() => "Using auth token from GARDEN_AUTH_TOKEN env var")
       if (!(await isTokenValid({ authToken: gardenEnv.GARDEN_AUTH_TOKEN, log: cloudLog }))) {
         throw new CloudApiError({
-          message: `The provided access token is expired or has been revoked, please create a new one from the ${distroName} UI.`,
+          message: deline`
+          The provided access token is expired or has been revoked for ${cloudDomain}, please create a new one from the ${distroName} UI.
+          `,
+          responseStatusCode: 401,
         })
       }
 
@@ -109,13 +112,9 @@ export class GrowCloudApi {
     // Refresh the token if it has expired.
     if (isTokenExpired(tokenData)) {
       cloudFactoryLog.debug({ msg: `Current auth token is expired, attempting to refresh` })
-      try {
-        authToken = (
-          await refreshAuthTokenAndWriteToConfigStore(log, globalConfigStore, cloudDomain, tokenData.refreshToken)
-        ).accessToken
-      } catch (error: unknown) {
-        return undefined
-      }
+      authToken = (
+        await refreshAuthTokenAndWriteToConfigStore(log, globalConfigStore, cloudDomain, tokenData.refreshToken)
+      ).accessToken
     }
 
     const verificationResult = await apiClient.token.verifyToken.query({ token: tokenData.token })
@@ -161,6 +160,9 @@ export class GrowCloudApi {
       this.log.debug({ msg: "Nothing to refresh, returning." })
       return
     }
+
+    // Note: lazy-loading for startup performance
+    const { sub, isAfter } = await import("date-fns")
 
     if (isAfter(new Date(), sub(token.validity, { seconds: refreshThreshold }))) {
       const tokenResponse = await refreshAuthTokenAndWriteToConfigStore(
