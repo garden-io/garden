@@ -257,6 +257,57 @@ export class GardenCloudApi {
     }
   }
 
+  private async refreshTokenIfExpired() {
+    const token = await this.globalConfigStore.get("clientAuthTokens", this.domain)
+
+    if (!token || gardenEnv.GARDEN_AUTH_TOKEN) {
+      this.log.debug({ msg: "Nothing to refresh, returning." })
+      return
+    }
+
+    // Note: lazy-loading for startup performance
+    const { sub, isAfter } = await import("date-fns")
+
+    if (isAfter(new Date(), sub(token.validity, { seconds: refreshThreshold }))) {
+      await this.refreshToken(token)
+    }
+  }
+
+  private async refreshToken(token: ClientAuthToken) {
+    try {
+      const res = await this.get<any>("token/refresh", { headers: { Cookie: `rt=${token?.refreshToken}` } })
+
+      let cookies: any
+      if (res.headers["set-cookie"] instanceof Array) {
+        cookies = res.headers["set-cookie"].map((cookieStr) => {
+          return Cookie.parse(cookieStr)
+        })
+      } else {
+        cookies = [Cookie.parse(res.headers["set-cookie"] || "")]
+      }
+
+      const rt = cookies.find((cookie: any) => cookie?.key === "rt")
+      const tokenObj = {
+        token: res.data.jwt,
+        refreshToken: rt.value || "",
+        tokenValidity: res.data.jwtValidity,
+      }
+      await saveAuthToken(this.log, this.globalConfigStore, tokenObj, this.domain)
+    } catch (err) {
+      if (!(err instanceof GotHttpError)) {
+        throw err
+      }
+
+      this.log.debug({ msg: `Failed to refresh the token.` })
+      throw new CloudApiTokenRefreshError({
+        message: `An error occurred while verifying client auth token with ${getCloudDistributionName(this.domain)}: ${
+          err.message
+        }. Response status code: ${err.response.statusCode}`,
+        responseStatusCode: err.response.statusCode,
+      })
+    }
+  }
+
   sessionRegistered(id: string) {
     return this.registeredSessions.has(id)
   }
@@ -323,57 +374,6 @@ export class GardenCloudApi {
     }
 
     return project
-  }
-
-  private async refreshTokenIfExpired() {
-    const token = await this.globalConfigStore.get("clientAuthTokens", this.domain)
-
-    if (!token || gardenEnv.GARDEN_AUTH_TOKEN) {
-      this.log.debug({ msg: "Nothing to refresh, returning." })
-      return
-    }
-
-    // Note: lazy-loading for startup performance
-    const { sub, isAfter } = await import("date-fns")
-
-    if (isAfter(new Date(), sub(token.validity, { seconds: refreshThreshold }))) {
-      await this.refreshToken(token)
-    }
-  }
-
-  private async refreshToken(token: ClientAuthToken) {
-    try {
-      const res = await this.get<any>("token/refresh", { headers: { Cookie: `rt=${token?.refreshToken}` } })
-
-      let cookies: any
-      if (res.headers["set-cookie"] instanceof Array) {
-        cookies = res.headers["set-cookie"].map((cookieStr) => {
-          return Cookie.parse(cookieStr)
-        })
-      } else {
-        cookies = [Cookie.parse(res.headers["set-cookie"] || "")]
-      }
-
-      const rt = cookies.find((cookie: any) => cookie?.key === "rt")
-      const tokenObj = {
-        token: res.data.jwt,
-        refreshToken: rt.value || "",
-        tokenValidity: res.data.jwtValidity,
-      }
-      await saveAuthToken(this.log, this.globalConfigStore, tokenObj, this.domain)
-    } catch (err) {
-      if (!(err instanceof GotHttpError)) {
-        throw err
-      }
-
-      this.log.debug({ msg: `Failed to refresh the token.` })
-      throw new CloudApiTokenRefreshError({
-        message: `An error occurred while verifying client auth token with ${getCloudDistributionName(this.domain)}: ${
-          err.message
-        }. Response status code: ${err.response.statusCode}`,
-        responseStatusCode: err.response.statusCode,
-      })
-    }
   }
 
   async get<T>(path: string, opts: ApiFetchOptions = {}) {
