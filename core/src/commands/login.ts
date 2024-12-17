@@ -78,7 +78,7 @@ export class LoginCommand extends Command<{}, Opts> {
 
     // Garden works by default without Garden Cloud. In order to use cloud, a domain
     // must be known to cloud for any command needing a logged in user.
-    const cloudDomain: string = getGardenCloudDomain(projectConfig?.domain)
+    const cloudDomain = getGardenCloudDomain(projectConfig?.domain)
 
     async function checkAuthenticationState(): Promise<boolean> {
       const cloudApi = await GardenCloudApi.factory({ log, cloudDomain, skipLogging: true, globalConfigStore })
