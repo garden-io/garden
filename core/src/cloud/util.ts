@@ -38,15 +38,15 @@ export function getGardenCloudDistributionName(domain: string): CloudDistroName 
  */
 export function getCloudDistributionName(domain: string | undefined): CloudDistroName {
   if (gardenEnv.USE_GROW_CLOUD) {
-    // FIXME: Remove this ugly hack.
-    //  Domain is required only for Garden Cloud, not for Grow Cloud.
-    if (domain === undefined) {
-      throw new InternalError({ message: "Cloud domain must be defined when using Garden Cloud." })
-    }
-    return getGardenCloudDistributionName(domain)
+    return getGrowCloudDistributionName()
   }
 
-  return getGrowCloudDistributionName()
+  // FIXME: Remove this ugly hack.
+  //  Domain is required only for Garden Cloud, not for Grow Cloud.
+  if (domain === undefined) {
+    throw new InternalError({ message: "Cloud domain must be defined when using Garden Cloud." })
+  }
+  return getGardenCloudDistributionName(domain)
 }
 
 export type GardenCloudLogSectionName = "garden-dashboard" | "garden-cloud" | "garden-enterprise"
