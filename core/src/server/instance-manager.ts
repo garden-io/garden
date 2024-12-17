@@ -11,7 +11,6 @@ import type { AutocompleteSuggestion } from "../cli/autocomplete.js"
 import { Autocompleter } from "../cli/autocomplete.js"
 import { parseCliVarFlags } from "../cli/helpers.js"
 import type { ParameterObject, ParameterValues } from "../cli/params.js"
-import type { CloudApiFactory, CloudApiFactoryParams } from "../cloud/api.js"
 import type { GardenCloudApi } from "../cloud/api.js"
 import type { Command } from "../commands/base.js"
 import { getBuiltinCommands, flattenCommands } from "../commands/commands.js"
@@ -39,7 +38,6 @@ import {
 import type { GardenInstanceKeyParams } from "./helpers.js"
 import { getGardenInstanceKey } from "./helpers.js"
 import { styles } from "../logger/styles.js"
-import { getGardenCloudDomain } from "../cloud/util.js"
 
 interface InstanceContext {
   garden: Garden
@@ -59,7 +57,6 @@ interface GardenInstanceManagerParams {
   readonly serveCommand: ServeCommand
   readonly extraCommands?: Command[]
   readonly defaultOpts?: Partial<GardenOpts>
-  readonly cloudApiFactory: CloudApiFactory
 }
 
 // TODO: clean up unused instances after some timeout since last request and when no monitors are active
@@ -74,7 +71,6 @@ export class GardenInstanceManager {
   private readonly plugins: GardenPluginReference[]
   private readonly instances: Map<string, InstanceContext>
   private readonly projectRoots: Map<string, ProjectRootContext>
-  private readonly cloudApiFactory: CloudApiFactory
   private readonly cloudApis: Map<string, GardenCloudApi>
   private readonly lastRequested: Map<string, Date>
   private readonly lock: AsyncLock
@@ -98,7 +94,6 @@ export class GardenInstanceManager {
     extraCommands,
     defaultOpts,
     plugins,
-    cloudApiFactory,
   }: GardenInstanceManagerParams) {
     this.serveCommand = serveCommand
     this.sessionId = sessionId
@@ -108,7 +103,6 @@ export class GardenInstanceManager {
     this.lastRequested = new Map()
     this.defaultOpts = defaultOpts || {}
     this.plugins = plugins
-    this.cloudApiFactory = cloudApiFactory
     this.serveCommand = serveCommand
 
     this.events = new EventBus()
@@ -196,14 +190,19 @@ export class GardenInstanceManager {
     })
   }
 
-  async getCloudApi(params: CloudApiFactoryParams) {
-    const { cloudDomain } = params
-    let api = this.cloudApis.get(cloudDomain)
-
-    if (!api) {
-      api = await this.cloudApiFactory(params)
-      api && this.cloudApis.set(cloudDomain, api)
+  async getCloudApi(garden: Garden) {
+    if (!garden.isLoggedIn()) {
+      return undefined
     }
+
+    const cloudDomain = garden.cloudDomain
+    const cachedApi = this.cloudApis.get(cloudDomain)
+    if (cachedApi) {
+      return cachedApi
+    }
+
+    const api = garden.cloudApi
+    this.cloudApis.set(cloudDomain, api)
 
     return api
   }
@@ -358,18 +357,7 @@ export class GardenInstanceManager {
     environmentString?: string
     sessionId: string
   }) {
-    let cloudApi: GardenCloudApi | undefined
-
-    if (!command?.noProject) {
-      cloudApi = await this.getCloudApi({
-        log,
-        cloudDomain: getGardenCloudDomain(projectConfig.domain),
-        globalConfigStore,
-      })
-    }
-
     const gardenOpts: GardenOpts = {
-      cloudApi,
       commandInfo: { name: command ? command.getFullName() : "serve", args, opts: omitUndefined(opts) },
       config: projectConfig,
       environmentString: opts.env || environmentString || this.defaultEnv,
@@ -398,6 +386,11 @@ export class GardenInstanceManager {
       },
       gardenOpts
     )
+
+    let cloudApi: GardenCloudApi | undefined = undefined
+    if (!command?.noProject) {
+      cloudApi = await this.getCloudApi(garden)
+    }
 
     if (cloudApi && garden.projectId && this.serveCommand?.server) {
       // Ensure cloud session is registered for the domain and server session, since this may not happen on startup

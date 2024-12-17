@@ -17,15 +17,14 @@ import { GardenInstanceManager } from "../server/instance-manager.js"
 import { sleep } from "../util/util.js"
 import type { Log } from "../logger/log-entry.js"
 import { findProjectConfig } from "../config/base.js"
-import { CloudApiTokenRefreshError, GardenCloudApi } from "../cloud/api.js"
+import { CloudApiTokenRefreshError } from "../cloud/api.js"
 import { uuidv4 } from "../util/random.js"
 import type { Garden } from "../garden.js"
 import type { GardenPluginReference } from "../plugin/plugin.js"
 import { CommandError, ParameterError, isEAddrInUseException, isErrnoException } from "../exceptions.js"
 import { styles } from "../logger/styles.js"
-import { emitLoginWarning } from "../cli/helpers.js"
 import { DEFAULT_GARDEN_CLOUD_DOMAIN } from "../constants.js"
-import { getCloudDistributionName, getGardenCloudDomain } from "../cloud/util.js"
+import { getCloudDistributionName } from "../cloud/util.js"
 
 export const defaultServerPort = 9777
 
@@ -101,13 +100,11 @@ export class ServeCommand<
 
     const projectConfig = await findProjectConfig({ log, path: garden.projectRoot })
 
-    let defaultGarden: Garden | undefined
-
     const manager = this.getManager(log, undefined)
-
     manager.defaultProjectRoot = projectConfig?.path || process.cwd()
     manager.defaultEnv = opts.env
 
+    let defaultGarden: Garden | undefined
     if (projectConfig) {
       // Try loading the default Garden instance based on found project config, to populate autocompleter etc.
       try {
@@ -127,8 +124,6 @@ export class ServeCommand<
         log.warn(`Unable to load Garden project found at ${projectConfig.path}: ${error}`)
       }
     }
-
-    const cloudDomain = getGardenCloudDomain(projectConfig?.domain)
 
     try {
       this.server = await startServer({
@@ -156,25 +151,18 @@ export class ServeCommand<
       throw err
     }
 
-    try {
-      const cloudApi = await manager.getCloudApi({ log, cloudDomain, globalConfigStore: garden.globalConfigStore })
+    if (defaultGarden && defaultGarden.isLoggedIn()) {
+      const cloudApi = defaultGarden.cloudApi
+      const effectiveGardenProjectConfig = defaultGarden.getProjectConfig()
 
-      await emitLoginWarning({
-        garden,
-        log,
-        isLoggedIn: !!cloudApi,
-        isCommunityEdition: cloudDomain === DEFAULT_GARDEN_CLOUD_DOMAIN,
-      })
-
-      if (projectConfig && cloudApi && defaultGarden) {
-        let projectId = projectConfig?.id
-
+      try {
+        let projectId = effectiveGardenProjectConfig.id
         if (!projectId) {
-          const cloudProject = await cloudApi.getProjectByName(projectConfig.name)
+          const cloudProject = await cloudApi.getProjectByName(effectiveGardenProjectConfig.name)
           projectId = cloudProject?.id
         }
 
-        if (projectId && defaultGarden) {
+        if (projectId) {
           const session = await cloudApi.registerSession({
             parentSessionId: undefined,
             projectId,
@@ -187,7 +175,7 @@ export class ServeCommand<
             isDevCommand: true,
           })
           if (session?.shortId) {
-            const distroName = getCloudDistributionName(cloudDomain)
+            const distroName = getCloudDistributionName(defaultGarden.cloudDomain)
             const livePageUrl = cloudApi.getLivePageUrl({ shortId: session.shortId }).toString()
             const msg = dedent`\n${printEmoji("🌸", log)}Connected to ${distroName} ${printEmoji("🌸", log)}
               Follow the link below to stream logs, run commands, and more from the Garden dashboard ${printEmoji(
@@ -197,18 +185,18 @@ export class ServeCommand<
             log.info(msg)
           }
         }
-      }
-    } catch (err) {
-      if (err instanceof CloudApiTokenRefreshError) {
-        const distroName = getCloudDistributionName(cloudDomain)
-        log.warn(dedent`
+      } catch (err) {
+        if (err instanceof CloudApiTokenRefreshError) {
+          const distroName = getCloudDistributionName(defaultGarden.cloudDomain || DEFAULT_GARDEN_CLOUD_DOMAIN)
+          log.warn(dedent`
           Unable to authenticate against ${distroName} with the current session token.
           The dashboard will not be available until you authenticate again. Please try logging out with
           ${styles.command("garden logout")} and back in again with ${styles.command("garden login")}.
         `)
-      } else {
-        // Unhandled error when creating the cloud api
-        throw err
+        } else {
+          // Unhandled error when creating the cloud api
+          throw err
+        }
       }
     }
 
@@ -245,7 +233,6 @@ export class ServeCommand<
         sessionId: this.sessionId || initialSessionId || uuidv4(),
         serveCommand: this,
         plugins: this.plugins || [],
-        cloudApiFactory: GardenCloudApi.factory,
       })
     }
 

@@ -118,7 +118,8 @@ import {
   RemoteSourceConfigContext,
   TemplatableConfigContext,
 } from "./config/template-contexts/project.js"
-import type { GardenCloudApi, CloudProject } from "./cloud/api.js"
+import type { CloudProject, CloudApiFactory } from "./cloud/api.js"
+import { GardenCloudApi, CloudApiTokenRefreshError } from "./cloud/api.js"
 import { OutputConfigContext } from "./config/template-contexts/module.js"
 import { ProviderConfigContext } from "./config/template-contexts/provider.js"
 import type { ConfigContext } from "./config/template-contexts/base.js"
@@ -190,7 +191,8 @@ export interface GardenOpts {
   plugins?: RegisterPluginParam[]
   sessionId?: string
   variableOverrides?: PrimitiveMap
-  cloudApi?: GardenCloudApi
+  // used in tests
+  overrideCloudApiFactory?: CloudApiFactory
 }
 
 export interface GardenParams {
@@ -204,8 +206,8 @@ export interface GardenParams {
   resolvedDefaultNamespace: string | null
   namespace: string
   gardenDirPath: string
-  globalConfigStore?: GlobalConfigStore
-  localConfigStore?: LocalConfigStore
+  globalConfigStore: GlobalConfigStore
+  localConfigStore: LocalConfigStore
   log: Log
   gardenInitLog?: Log
   moduleIncludePatterns?: string[]
@@ -251,7 +253,7 @@ interface ResolveProviderParams {
 
 type GardenType = typeof Garden.prototype
 // TODO: add more fields that are known to dbe defined when logged in to Cloud
-export type LoggedInGarden = GardenType & Required<Pick<GardenType, "cloudApi">>
+export type LoggedInGarden = GardenType & Required<Pick<GardenType, "cloudApi" | "cloudDomain">>
 
 @Profile()
 export class Garden {
@@ -427,9 +429,9 @@ export class Garden {
     }
 
     this.state.configsScanned = false
-    // TODO: Support other VCS options.
-    this.localConfigStore = params.localConfigStore || new LocalConfigStore(this.gardenDirPath)
-    this.globalConfigStore = params.globalConfigStore || new GlobalConfigStore()
+
+    this.localConfigStore = params.localConfigStore
+    this.globalConfigStore = params.globalConfigStore
 
     this.actionConfigs = {
       Build: {},
@@ -1924,6 +1926,7 @@ export async function resolveGardenParamsPartial(currentDirectory: string, opts:
   }) as string
 
   const localConfigStore = new LocalConfigStore(gardenDirPath)
+  const globalConfigStore = opts.globalConfigStore || new GlobalConfigStore()
 
   if (!environmentStr) {
     const localConfigDefaultEnv = await localConfigStore.get("defaultEnv")
@@ -1946,6 +1949,7 @@ export async function resolveGardenParamsPartial(currentDirectory: string, opts:
     environmentStr,
     gardenDirPath,
     localConfigStore,
+    globalConfigStore,
     log,
     namespace,
     projectName,
@@ -1953,6 +1957,53 @@ export async function resolveGardenParamsPartial(currentDirectory: string, opts:
     treeCache,
     username: _username,
     vcsInfo,
+  }
+}
+
+function getCloudApiFactory(opts: GardenOpts) {
+  const overrideCloudApiFactory = opts.overrideCloudApiFactory
+  if (overrideCloudApiFactory) {
+    return overrideCloudApiFactory
+  }
+
+  return GardenCloudApi.factory
+}
+
+async function initCloudApi({
+  globalConfigStore,
+  projectConfig,
+  cloudApiFactory,
+  log,
+}: {
+  globalConfigStore: GlobalConfigStore
+  projectConfig: ProjectConfig | undefined
+  cloudApiFactory: CloudApiFactory
+  log: Log
+}): Promise<GardenCloudApi | undefined> {
+  const cloudDomain = getGardenCloudDomain(projectConfig?.domain)
+  const distroName = getCloudDistributionName(cloudDomain)
+
+  try {
+    return await cloudApiFactory({ log, cloudDomain, globalConfigStore })
+  } catch (err) {
+    if (err instanceof CloudApiTokenRefreshError) {
+      log.warn(dedent`
+            The current ${distroName} session is not valid or it's expired.
+            Command results for this command run will not be available in ${distroName}.
+            To avoid losing command results and logs, please try logging back in by running \`garden login\`.
+            If this not a ${distroName} project you can ignore this warning.
+          `)
+
+      // Project is configured for cloud usage => fail early to force re-auth
+      if (projectConfig && projectConfig.id) {
+        throw err
+      }
+
+      return undefined
+    } else {
+      // unhandled error when creating the cloud api
+      throw err
+    }
   }
 }
 
@@ -1971,6 +2022,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
       environmentStr,
       gardenDirPath,
       localConfigStore,
+      globalConfigStore,
       log,
       projectName,
       projectRoot,
@@ -1986,7 +2038,15 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
 
     const projectApiVersion = config.apiVersion
     const sessionId = opts.sessionId || uuidv4()
-    const cloudApi = opts.cloudApi
+    const cloudApiFactory = getCloudApiFactory(opts)
+    const cloudApi: GardenCloudApi | undefined = opts.skipCloudConnect
+      ? undefined
+      : await initCloudApi({
+          globalConfigStore,
+          log,
+          projectConfig: config,
+          cloudApiFactory,
+        })
     const cloudDomain = cloudApi?.domain || getGardenCloudDomain(config.domain)
     const loggedIn = !!cloudApi
 
@@ -2089,8 +2149,8 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
       projectSources: config.sources,
       production,
       gardenDirPath,
-      globalConfigStore: opts.globalConfigStore,
       localConfigStore,
+      globalConfigStore,
       opts,
       outputs: config.outputs || [],
       plugins: opts.plugins || [],

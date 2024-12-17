@@ -21,6 +21,7 @@ import { getLogMessages } from "../../../../src/util/testing.js"
 import { GlobalConfigStore } from "../../../../src/config-store/global.js"
 import { makeDummyGarden } from "../../../../src/garden.js"
 import type { Garden } from "../../../../src/index.js"
+import { FakeCloudApi } from "../../../helpers/api.js"
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function loginCommandParams({ garden, opts = { "disable-project-check": false } }: { garden: Garden; opts?: any }) {
@@ -289,8 +290,13 @@ describe("LoginCommand", () => {
 
   context("GARDEN_AUTH_TOKEN set in env", () => {
     const saveEnv = gardenEnv.GARDEN_AUTH_TOKEN
+
     before(() => {
       gardenEnv.GARDEN_AUTH_TOKEN = "my-auth-token"
+    })
+
+    after(() => {
+      gardenEnv.GARDEN_AUTH_TOKEN = saveEnv
     })
 
     it("should be a no-op if the user has a valid auth token in the environment", async () => {
@@ -299,8 +305,11 @@ describe("LoginCommand", () => {
         skipCloudConnect: false,
         commandInfo: { name: "foo", args: {}, opts: {} },
         globalConfigStore,
+        // FakeCloudApi bypasses the login and returns mock project data
+        overrideCloudApiFactory: FakeCloudApi.factory,
       })
 
+      // Mock this because login command calls it
       td.replace(GardenCloudApi.prototype, "checkClientAuthToken", async () => true)
 
       await command.action(loginCommandParams({ garden }))
@@ -316,24 +325,28 @@ describe("LoginCommand", () => {
         skipCloudConnect: false,
         commandInfo: { name: "foo", args: {}, opts: {} },
         globalConfigStore,
+        // FakeCloudApi bypasses the login and returns mock project data
+        overrideCloudApiFactory: FakeCloudApi.factory,
       })
 
+      // Mock this because login command calls it
       td.replace(GardenCloudApi.prototype, "checkClientAuthToken", async () => false)
 
       await expectError(async () => await command.action(loginCommandParams({ garden })), {
         contains: `The provided access token is expired or has been revoked for ${garden.cloudDomain}, please create a new one from the Garden Enterprise UI`,
       })
     })
-
-    after(() => {
-      gardenEnv.GARDEN_AUTH_TOKEN = saveEnv
-    })
   })
 
   context("GARDEN_CLOUD_DOMAIN set in env", () => {
     const saveEnv = gardenEnv.GARDEN_CLOUD_DOMAIN
+
     before(() => {
       gardenEnv.GARDEN_CLOUD_DOMAIN = "https://example.invalid"
+    })
+
+    after(() => {
+      gardenEnv.GARDEN_CLOUD_DOMAIN = saveEnv
     })
 
     it("should log in even if the project config domain is empty", async () => {
@@ -390,10 +403,6 @@ describe("LoginCommand", () => {
       const logOutput = getLogMessages(garden.log, (entry) => entry.level === LogLevel.info).join("\n")
 
       expect(logOutput).to.include(`Logging in to ${gardenEnv.GARDEN_CLOUD_DOMAIN}`)
-    })
-
-    after(() => {
-      gardenEnv.GARDEN_CLOUD_DOMAIN = saveEnv
     })
   })
 })

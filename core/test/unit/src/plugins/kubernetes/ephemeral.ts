@@ -9,7 +9,6 @@
 import { expect } from "chai"
 import { providerFromConfig } from "../../../../../src/config/provider.js"
 import type { Garden } from "../../../../../src/garden.js"
-import { getRootLogger } from "../../../../../src/logger/logger.js"
 import { configureProvider } from "../../../../../src/plugins/kubernetes/ephemeral/config.js"
 import { gardenPlugin } from "../../../../../src/plugins/kubernetes/ephemeral/ephemeral.js"
 import type { TempDirectory } from "../../../../helpers.js"
@@ -75,8 +74,13 @@ describe("ephemeral-kubernetes configureProvider", () => {
   })
 
   it("should throw an error for Garden Enterprise", async () => {
-    const cloudApi = await FakeCloudApi.factory({ log: getRootLogger().createLog() })
-    garden = await makeTestGardenA(undefined, { cloudApi })
+    garden = await makeTestGardenA(undefined, {
+      overrideCloudApiFactory: async (params) =>
+        FakeCloudApi.factory({
+          ...params,
+          cloudDomain: "https://NOT.app.garden.io",
+        }),
+    })
     await expectError(
       () =>
         configure({
