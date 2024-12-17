@@ -21,7 +21,7 @@ import { BooleanParameter } from "../cli/params.js"
 import { deline } from "../util/string.js"
 import { getCloudDomain } from "../cloud/util.js"
 import type { GardenBackend } from "../cloud/backend.js"
-import { GardenCloudBackend } from "../cloud/backend.js"
+import { gardenBackendFactory } from "../cloud/backend.js"
 import { gardenEnv } from "../constants.js"
 
 const loginTimeoutSec = 60
@@ -78,7 +78,7 @@ export class LoginCommand extends Command<{}, Opts> {
     // Garden works by default without Garden/Grow Cloud. In order to use cloud, a domain
     // must be known to cloud for any command needing a logged in user.
     const cloudDomain = getCloudDomain(projectConfig?.domain)
-    const gardenBackend = new GardenCloudBackend({ cloudDomain })
+    const gardenBackend = gardenBackendFactory({ cloudDomain })
 
     async function isCloudBackendAvailable(): Promise<boolean> {
       const cloudApi = await gardenBackend.cloudApiFactory({ log, cloudDomain, skipLogging: true, globalConfigStore })

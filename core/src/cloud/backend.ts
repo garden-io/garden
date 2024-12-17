@@ -14,6 +14,7 @@ import type { CloudApiFactory, GardenCloudApiFactory } from "./api.js"
 import { GardenCloudApi } from "./api.js"
 import type { GrowCloudApiFactory } from "./grow/api.js"
 import { GrowCloudApi } from "./grow/api.js"
+import { gardenEnv } from "../constants.js"
 
 function getFirstValue(v: string | string[]) {
   return isArray(v) ? v[0] : v
@@ -100,4 +101,9 @@ export class GrowCloudBackend extends AbstractGardenBackend {
       },
     }
   }
+}
+
+export function gardenBackendFactory(config: GardenBackendConfig) {
+  const gardenBackendClass = gardenEnv.USE_GROW_CLOUD ? GrowCloudBackend : GardenCloudBackend
+  return new gardenBackendClass(config)
 }
