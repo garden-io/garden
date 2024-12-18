@@ -36,7 +36,7 @@
     "@opentelemetry/instrumentation-http": "^0.52.0",
     "@opentelemetry/otlp-exporter-base": "^0.47.0",
     "@opentelemetry/resources": "^1.26.0",
-    "@opentelemetry/sdk-node": "^0.53.0",
+    "@opentelemetry/sdk-node": "^0.57.0",
     "@opentelemetry/sdk-trace-base": "^1.27.0",
     "@opentelemetry/semantic-conventions": "^1.21.0",
     "@trpc/client": "^11.0.0-next-beta.308",
