@@ -32,12 +32,6 @@ class GrowCloudError extends GardenError implements TRPCClientErrorBase<never> {
     let message: string
     if (meta?.response.status === 401) {
       message = `Authentication required; please log in with ${styles.highlight("grow login")} and retry.`
-    } else if (
-      // FIXME: use the actual cloudApiUrl
-      // cloudApiOrigin.endsWith("grow.garden.io") &&
-      cause.message.match(/unable to verify the first certificate/)
-    ) {
-      message = `TLS certificate verification failed; try disabling it in development by setting exporting ${styles.highlight("NODE_TLS_REJECT_UNAUTHORIZED=0")} and retry.`
     } else {
       message = cause.message
     }
@@ -83,9 +77,6 @@ export const errorLogger: TRPCLink<AppRouter> = () => {
 function cloudApiUrl(hostUrl: string): string {
   return new URL("/api", hostUrl).href
 }
-
-// FIXME: use the actual cloudApiUrl
-// export const cloudApiOrigin = new URL(cloudApiUrl).origin
 
 export type TrpcConfigParams = { hostUrl: string; tokenGetter?: () => string }
 
