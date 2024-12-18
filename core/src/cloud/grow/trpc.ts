@@ -31,7 +31,7 @@ class GrowCloudError extends GardenError implements TRPCClientErrorBase<never> {
   constructor({ cause, meta }: { cause: TRPCClientError<never>; meta: ErrorMeta | undefined }) {
     let message: string
     if (meta?.response.status === 401) {
-      message = `Authentication required; please log in with ${styles.highlight("grow login")} and retry.`
+      message = `Authentication required; please log in with ${styles.highlight("garden login")} and retry.`
     } else {
       message = cause.message
     }
