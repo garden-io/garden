@@ -9,7 +9,7 @@
 import { Command, type CommandParams, type CommandResult } from "./base.js"
 import { printHeader } from "../logger/util.js"
 import { clearAuthToken, getAuthToken } from "../cloud/auth.js"
-import { apiClient } from "../cloud/grow/trpc.js"
+import { getNonAuthenticatedApiClient } from "../cloud/grow/trpc.js"
 import { BooleanParameter } from "../cli/params.js"
 import { dedent, deline } from "../util/string.js"
 import { ConfigurationError } from "../exceptions.js"
@@ -70,7 +70,7 @@ export class LogOutCommand extends Command<{}, Opts> {
 
     await clearAuthToken(log, globalConfigStore, cloudDomain)
     try {
-      await apiClient.token.revokeToken.mutate({ token })
+      await getNonAuthenticatedApiClient({ hostUrl: cloudDomain }).token.revokeToken.mutate({ token })
     } catch (_error) {
       log.debug({ msg: "Failed to revoke token; it was either invalid or already expired." })
     }

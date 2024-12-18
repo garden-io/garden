@@ -9,7 +9,8 @@
 import type { Log } from "../../logger/log-entry.js"
 import type { GlobalConfigStore } from "../../config-store/global.js"
 import { isTokenExpired, isTokenValid, refreshAuthTokenAndWriteToConfigStore } from "./auth.js"
-import { apiClient, getAuthenticatedApiClient } from "./trpc.js"
+import type { ApiClient } from "./trpc.js"
+import { getAuthenticatedApiClient, getNonAuthenticatedApiClient } from "./trpc.js"
 import { CloudApiError } from "../../exceptions.js"
 import { gardenEnv } from "../../constants.js"
 import { LogLevel } from "../../logger/logger.js"
@@ -34,7 +35,7 @@ export class GrowCloudApi {
   private readonly log: Log
   public readonly domain: string
   public readonly distroName: string
-  public readonly api: typeof apiClient
+  public readonly api: ApiClient
   private readonly globalConfigStore: GlobalConfigStore
   private authToken: string
 
@@ -53,7 +54,7 @@ export class GrowCloudApi {
 
     this.authToken = authToken
     const tokenGetter = () => this.authToken
-    this.api = getAuthenticatedApiClient(tokenGetter)
+    this.api = getAuthenticatedApiClient({ hostUrl: domain, tokenGetter })
   }
 
   /**
@@ -83,7 +84,7 @@ export class GrowCloudApi {
 
     if (gardenEnv.GARDEN_AUTH_TOKEN) {
       log.silly(() => "Using auth token from GARDEN_AUTH_TOKEN env var")
-      if (!(await isTokenValid({ authToken: gardenEnv.GARDEN_AUTH_TOKEN, log: cloudLog }))) {
+      if (!(await isTokenValid({ authToken: gardenEnv.GARDEN_AUTH_TOKEN, cloudDomain, log: cloudLog }))) {
         throw new CloudApiError({
           message: deline`
           The provided access token is expired or has been revoked for ${cloudDomain}, please create a new one from the ${distroName} UI.
@@ -119,7 +120,9 @@ export class GrowCloudApi {
       ).accessToken
     }
 
-    const verificationResult = await apiClient.token.verifyToken.query({ token: tokenData.token })
+    const verificationResult = await getNonAuthenticatedApiClient({ hostUrl: cloudDomain }).token.verifyToken.query({
+      token: tokenData.token,
+    })
     if (!verificationResult.valid) {
       log.debug({ msg: `The stored token was not valid.` })
       return undefined

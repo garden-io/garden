@@ -16,7 +16,6 @@ import type { AppRouter } from "./trpc-schema.js"
 import { GardenError } from "../../exceptions.js"
 import { styles } from "../../logger/styles.js"
 import { getRootLogger } from "../../logger/logger.js"
-import { cloudApiOrigin, cloudApiUrl } from "./config.js"
 import { getCloudLogSectionName } from "../util.js"
 
 const errorMetaSchema = z.object({ response: z.object({ status: z.number() }) })
@@ -34,7 +33,8 @@ class GrowCloudError extends GardenError implements TRPCClientErrorBase<never> {
     if (meta?.response.status === 401) {
       message = `Authentication required; please log in with ${styles.highlight("grow login")} and retry.`
     } else if (
-      cloudApiOrigin.endsWith("grow.garden.io") &&
+      // FIXME: use the actual cloudApiUrl
+      // cloudApiOrigin.endsWith("grow.garden.io") &&
       cause.message.match(/unable to verify the first certificate/)
     ) {
       message = `TLS certificate verification failed; try disabling it in development by setting exporting ${styles.highlight("NODE_TLS_REJECT_UNAUTHORIZED=0")} and retry.`
@@ -80,7 +80,16 @@ export const errorLogger: TRPCLink<AppRouter> = () => {
   }
 }
 
-function getTrpcConfig(tokenGetter?: () => string) {
+function cloudApiUrl(hostUrl: string): string {
+  return new URL("/api", hostUrl).href
+}
+
+// FIXME: use the actual cloudApiUrl
+// export const cloudApiOrigin = new URL(cloudApiUrl).origin
+
+export type TrpcConfigParams = { hostUrl: string; tokenGetter?: () => string }
+
+function getTrpcConfig({ hostUrl, tokenGetter }: TrpcConfigParams) {
   return {
     links: [
       errorLogger,
@@ -89,7 +98,7 @@ function getTrpcConfig(tokenGetter?: () => string) {
       }),
       httpLink({
         transformer: superjson,
-        url: cloudApiUrl,
+        url: cloudApiUrl(hostUrl),
         fetch: async (url, options) => {
           // TODO @eysi: Error handling + retries
           const headers = new Headers(options?.headers)
@@ -107,8 +116,12 @@ function getTrpcConfig(tokenGetter?: () => string) {
   }
 }
 
-export function getAuthenticatedApiClient(tokenGetter: () => string) {
-  return createTRPCClient<AppRouter>(getTrpcConfig(tokenGetter))
+export function getAuthenticatedApiClient(trpcConfigParams: TrpcConfigParams) {
+  return createTRPCClient<AppRouter>(getTrpcConfig(trpcConfigParams))
 }
 
-export const apiClient = createTRPCClient<AppRouter>(getTrpcConfig())
+export function getNonAuthenticatedApiClient(trpcConfigParams: Omit<TrpcConfigParams, "tokenGetter">) {
+  return createTRPCClient<AppRouter>(getTrpcConfig(trpcConfigParams))
+}
+
+export type ApiClient = ReturnType<typeof createTRPCClient<AppRouter>>
