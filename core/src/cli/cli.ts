@@ -47,16 +47,12 @@ import {
 import { generateBasicDebugInfoReport } from "../commands/get/get-debug-info.js"
 import type { AnalyticsHandler } from "../analytics/analytics.js"
 import type { GardenPluginReference } from "../plugin/plugin.js"
-import type { CloudApiFactory } from "../cloud/api.js"
-import { CloudApiTokenRefreshError } from "../cloud/api.js"
-import type { GardenCloudApi } from "../cloud/api.js"
 import { findProjectConfig } from "../config/base.js"
 import { pMemoizeDecorator } from "../lib/p-memoize.js"
 import { getCustomCommands } from "../commands/custom.js"
 import { Profile } from "../util/profiling.js"
 import { prepareDebugLogfiles } from "./debug-logs.js"
 import type { Log } from "../logger/log-entry.js"
-import { dedent } from "../util/string.js"
 import type { GardenProcess } from "../config-store/global.js"
 import { GlobalConfigStore } from "../config-store/global.js"
 import { registerProcess } from "../process.js"
@@ -66,7 +62,6 @@ import { wrapActiveSpan } from "../util/open-telemetry/spans.js"
 import { JsonFileWriter } from "../logger/writers/json-file-writer.js"
 import type minimist from "minimist"
 import { styles } from "../logger/styles.js"
-import { getCloudDistributionName, getGardenCloudDomain } from "../cloud/util.js"
 
 const { pathExists } = fsExtra
 
@@ -80,7 +75,6 @@ export interface RunOutput {
 }
 
 export interface GardenCliParams {
-  cloudApiFactory: CloudApiFactory
   initLogger: boolean
   plugins?: GardenPluginReference[]
 }
@@ -89,54 +83,9 @@ function hasHelpFlag(argv: minimist.ParsedArgs) {
   return argv.h || argv.help
 }
 
-async function initCloudApi({
-  command,
-  globalConfigStore,
-  projectConfig,
-  cloudApiFactory,
-  log,
-}: {
-  command: Command
-  globalConfigStore: GlobalConfigStore
-  projectConfig: ProjectConfig | undefined
-  cloudApiFactory: CloudApiFactory
-  log: Log
-}): Promise<GardenCloudApi | undefined> {
-  if (command.noProject) {
-    return undefined
-  }
-
-  const cloudDomain = getGardenCloudDomain(projectConfig?.domain)
-  const distroName = getCloudDistributionName(cloudDomain)
-
-  try {
-    return await cloudApiFactory({ log, cloudDomain, globalConfigStore })
-  } catch (err) {
-    if (err instanceof CloudApiTokenRefreshError) {
-      log.warn(dedent`
-            The current ${distroName} session is not valid or it's expired.
-            Command results for this command run will not be available in ${distroName}.
-            To avoid losing command results and logs, please try logging back in by running \`garden login\`.
-            If this not a ${distroName} project you can ignore this warning.
-          `)
-
-      // Project is configured for cloud usage => fail early to force re-auth
-      if (projectConfig && projectConfig.id) {
-        throw err
-      }
-
-      return undefined
-    } else {
-      // unhandled error when creating the cloud api
-      throw err
-    }
-  }
-}
-
 // TODO: this is used in more contexts now, should rename to GardenCommandRunner or something like that
 @Profile()
 export class GardenCli {
-  private readonly cloudApiFactory: CloudApiFactory
   private readonly commands: { [key: string]: Command } = {}
   private readonly initLogger: boolean
   private fileWritersInitialized = false
@@ -144,8 +93,7 @@ export class GardenCli {
   public readonly plugins: GardenPluginReference[]
   public processRecord?: GardenProcess
 
-  constructor({ cloudApiFactory, plugins, initLogger }: GardenCliParams) {
-    this.cloudApiFactory = cloudApiFactory
+  constructor({ plugins, initLogger }: GardenCliParams) {
     this.plugins = plugins || []
     this.initLogger = initLogger
 
@@ -302,30 +250,20 @@ ${renderCommands(commands)}
         opts: optionsWithAliasValues(command, parsedOpts),
       }
 
-      const projectConfig = await this.getProjectConfig(log, workingDir)
-
-      // Init Cloud API (if applicable)
-      const cloudApi = await initCloudApi({
-        command,
-        globalConfigStore,
-        projectConfig,
-        cloudApiFactory: this.cloudApiFactory,
-        log,
-      })
-
       const contextOpts: GardenOpts = {
         commandInfo,
         environmentString: environmentName,
+        globalConfigStore,
         log,
         gardenInitLog: gardenInitLog || undefined,
         forceRefresh,
         variableOverrides: parsedCliVars,
         plugins: this.plugins,
-        cloudApi,
+        skipCloudConnect: command.noProject,
       }
 
       let garden: Garden
-      let result: CommandResult<any> = {}
+      let result: CommandResult = {}
       let analytics: AnalyticsHandler | undefined = undefined
 
       const prepareParams = {
@@ -428,7 +366,6 @@ ${renderCommands(commands)}
         throw err
       } finally {
         await server?.close()
-        cloudApi?.close()
       }
 
       return { result, analytics }

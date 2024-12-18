@@ -797,12 +797,12 @@ describe("Garden", () => {
           scope.get("/api/token/verify").reply(200, {})
           scope.get(`/api/projects/uid/${projectId}`).reply(200, { data: cloudProject })
 
-          const cloudApi = await makeCloudApi(fakeCloudDomain)
+          const overrideCloudApiFactory = async () => await makeCloudApi(fakeCloudDomain)
 
           const garden = await TestGarden.factory(pathFoo, {
             config,
             environmentString: envName,
-            cloudApi,
+            overrideCloudApiFactory,
           })
 
           expect(garden.cloudDomain).to.eql(fakeCloudDomain)
@@ -816,12 +816,12 @@ describe("Garden", () => {
             .get(`/api/secrets/projectUid/${projectId}/env/${envName}`)
             .reply(200, { data: { SECRET_KEY: "secret-val" } })
 
-          const cloudApi = await makeCloudApi(fakeCloudDomain)
+          const overrideCloudApiFactory = async () => await makeCloudApi(fakeCloudDomain)
 
           const garden = await TestGarden.factory(pathFoo, {
             config,
             environmentString: envName,
-            cloudApi,
+            overrideCloudApiFactory,
           })
 
           expect(garden.secrets).to.eql({ SECRET_KEY: "secret-val" })
@@ -831,7 +831,7 @@ describe("Garden", () => {
           scope.get("/api/token/verify").reply(200, {})
           log.root["entries"] = []
 
-          const cloudApi = await makeCloudApi(fakeCloudDomain)
+          const overrideCloudApiFactory = async () => await makeCloudApi(fakeCloudDomain)
 
           const garden = await TestGarden.factory(pathFoo, {
             config: {
@@ -840,7 +840,7 @@ describe("Garden", () => {
             },
             log,
             environmentString: envName,
-            cloudApi,
+            overrideCloudApiFactory,
           })
 
           const expectedLog = log.root
@@ -861,14 +861,14 @@ describe("Garden", () => {
           scope.get(`/api/projects/uid/${projectId}`).reply(500, {})
           log.root["entries"] = []
 
-          const cloudApi = await makeCloudApi(fakeCloudDomain)
+          const overrideCloudApiFactory = async () => await makeCloudApi(fakeCloudDomain)
 
           let error: Error | undefined
           try {
             await TestGarden.factory(pathFoo, {
               config,
               environmentString: envName,
-              cloudApi,
+              overrideCloudApiFactory,
               log,
             })
           } catch (err) {
@@ -896,14 +896,14 @@ describe("Garden", () => {
           scope.get(`/api/projects/uid/${projectId}`).reply(404, {})
           log.root["entries"] = []
 
-          const cloudApi = await makeCloudApi(fakeCloudDomain)
+          const overrideCloudApiFactory = async () => await makeCloudApi(fakeCloudDomain)
 
           let error: Error | undefined
           try {
             await TestGarden.factory(pathFoo, {
               config,
               environmentString: envName,
-              cloudApi,
+              overrideCloudApiFactory,
               log,
             })
           } catch (err) {
@@ -971,12 +971,12 @@ describe("Garden", () => {
           scope.get(`/api/projects?name=test&exactMatch=true`).reply(200, { data: [cloudProject] })
           scope.get(`/api/projects/uid/${projectId}`).reply(200, { data: cloudProject })
 
-          const cloudApi = await makeCloudApi(DEFAULT_GARDEN_CLOUD_DOMAIN)
+          const overrideCloudApiFactory = async () => await makeCloudApi(DEFAULT_GARDEN_CLOUD_DOMAIN)
 
           const garden = await TestGarden.factory(pathFoo, {
             config,
             environmentString: envName,
-            cloudApi,
+            overrideCloudApiFactory,
           })
 
           expect(garden.cloudDomain).to.eql(DEFAULT_GARDEN_CLOUD_DOMAIN)
@@ -986,7 +986,7 @@ describe("Garden", () => {
         it("should throw if project ID is set in config", async () => {
           scope.get("/api/token/verify").reply(200, {})
 
-          const cloudApi = await makeCloudApi(DEFAULT_GARDEN_CLOUD_DOMAIN)
+          const overrideCloudApiFactory = async () => await makeCloudApi(DEFAULT_GARDEN_CLOUD_DOMAIN)
 
           let error: Error | undefined
           try {
@@ -996,7 +996,7 @@ describe("Garden", () => {
                 id: uuidv4(), // <--- ID is set when it shouldn't
               },
               environmentString: envName,
-              cloudApi,
+              overrideCloudApiFactory,
             })
           } catch (err) {
             if (err instanceof Error) {
@@ -1021,14 +1021,14 @@ describe("Garden", () => {
           scope.get(`/api/projects?name=test&exactMatch=true`).reply(500, {})
           log.root["entries"] = []
 
-          const cloudApi = await makeCloudApi(DEFAULT_GARDEN_CLOUD_DOMAIN)
+          const overrideCloudApiFactory = async () => await makeCloudApi(DEFAULT_GARDEN_CLOUD_DOMAIN)
 
           let error: Error | undefined
           try {
             await TestGarden.factory(pathFoo, {
               config,
               environmentString: envName,
-              cloudApi,
+              overrideCloudApiFactory,
               log,
             })
           } catch (err) {
@@ -1059,12 +1059,12 @@ describe("Garden", () => {
             .get(`/api/secrets/projectUid/${projectId}/env/${envName}`)
             .reply(200, { data: { SECRET_KEY: "secret-val" } })
 
-          const cloudApi = await makeCloudApi(DEFAULT_GARDEN_CLOUD_DOMAIN)
+          const overrideCloudApiFactory = async () => await makeCloudApi(DEFAULT_GARDEN_CLOUD_DOMAIN)
 
           const garden = await TestGarden.factory(pathFoo, {
             config,
             environmentString: envName,
-            cloudApi,
+            overrideCloudApiFactory,
           })
 
           expect(garden.cloudDomain).to.eql(DEFAULT_GARDEN_CLOUD_DOMAIN)

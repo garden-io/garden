@@ -19,7 +19,6 @@ import { styles } from "@garden-io/core/build/src/logger/styles.js"
 import { gardenEnv, IGNORE_UNCAUGHT_EXCEPTION_VARNAME } from "@garden-io/core/build/src/constants.js"
 import { inspect } from "node:util"
 import { waitForOutputFlush } from "@garden-io/core/build/src/process.js"
-import { GardenCloudApi } from "@garden-io/core/build/src/cloud/api.js"
 
 // These plugins are always registered
 export const getBundledPlugins = (): GardenPluginReference[] => [
@@ -107,7 +106,7 @@ export async function runCli({
     result = await withContextFromEnv(() =>
       wrapActiveSpan("garden", async () => {
         if (!cli) {
-          cli = new GardenCli({ plugins: getBundledPlugins(), cloudApiFactory: GardenCloudApi.factory, initLogger })
+          cli = new GardenCli({ plugins: getBundledPlugins(), initLogger })
         }
 
         // Note: We slice off the binary/script name from argv.

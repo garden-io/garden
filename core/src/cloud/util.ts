@@ -45,6 +45,14 @@ export function getCloudLogSectionName(distroName: CloudDistroName): CloudLogSec
 /**
  * A helper function to get the cloud domain from a project config.
  * Uses the env var `GARDEN_CLOUD_DOMAIN` to override a configured domain.
+ *
+ * The cloud domain is resolved in the following order:
+ *  - 1. GARDEN_CLOUD_DOMAIN config variable
+ *  - 2. `domain`-field from the project config
+ *  - 3. fallback to the default garden cloud domain
+ *
+ * If the fallback was used, we rely on the token to decide if the Cloud API instance
+ * should use the default domain or not. The token lifecycle ends on logout.
  */
 export function getGardenCloudDomain(configuredDomain: string | undefined): string {
   let cloudDomain: string | undefined

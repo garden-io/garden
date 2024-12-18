@@ -46,7 +46,6 @@ import { createServer } from "http"
 import { defaultServerPort } from "../commands/serve.js"
 
 import { styles } from "../logger/styles.js"
-import { getGardenCloudDomain } from "../cloud/util.js"
 
 const skipLogsForCommands = ["autocomplete"]
 const serverLogName = "garden-server"
@@ -770,11 +769,7 @@ export class GardenServer extends EventEmitter {
       const loadConfigLog = this.log.createLog({ name: serverLogName, showDuration: true })
       loadConfigLog.info("Loading config for Live page...")
 
-      const cloudApi = await this.manager.getCloudApi({
-        log,
-        cloudDomain: getGardenCloudDomain(garden.cloudDomain),
-        globalConfigStore: garden.globalConfigStore,
-      })
+      const cloudApi = await this.manager.getCloudApi(garden)
 
       // Use the server session ID. That is, the "main" session ID that belongs to the parent serve command.
       const sessionIdForConfigLoad = this.sessionId
