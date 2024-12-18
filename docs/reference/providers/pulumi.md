@@ -59,6 +59,18 @@ providers:
     #
     # Note: This limit is not applied when running built-in commands (e.g. `garden deploy`).
     pluginTaskConcurrencyLimit: 5
+
+    # If set to true, the deploy action will use the new Pulumi varfile schema, which does not nest all variables
+    # under
+    # the 'config' key automatically like the old schema. This allow setting variables at the root level of the
+    # varfile
+    # that don't belong to the 'config' key. Example:
+    # config:
+    #   myVar: value
+    # secretsprovider: gcpkms://projects/xyz/locations/global/keyRings/pulumi/cryptoKeys/pulumi-secrets
+    # For more information see [this guide on pulumi varfiles and
+    # variables](https://docs.garden.io/pulumi-plugin/about#pulumi-varfile-schema)
+    useNewPulumiVarfileSchema: false
 ```
 ## Configuration Keys
 
@@ -183,4 +195,22 @@ Note: This limit is not applied when running built-in commands (e.g. `garden dep
 | Type     | Default | Required |
 | -------- | ------- | -------- |
 | `number` | `5`     | No       |
+
+### `providers[].useNewPulumiVarfileSchema`
+
+[providers](#providers) > useNewPulumiVarfileSchema
+
+If set to true, the deploy action will use the new Pulumi varfile schema, which does not nest all variables under
+the 'config' key automatically like the old schema. This allow setting variables at the root level of the varfile
+that don't belong to the 'config' key. Example:
+```
+config:
+  myVar: value
+secretsprovider: gcpkms://projects/xyz/locations/global/keyRings/pulumi/cryptoKeys/pulumi-secrets
+```
+For more information see [this guide on pulumi varfiles and variables](https://docs.garden.io/pulumi-plugin/about#pulumi-varfile-schema)
+
+| Type      | Default | Required |
+| --------- | ------- | -------- |
+| `boolean` | `false` | No       |
 

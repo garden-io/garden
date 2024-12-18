@@ -56,7 +56,7 @@ export const pulumiDeploySchemaKeys = () => ({
       myVar: value
     secretsprovider: gcpkms://projects/xyz/locations/global/keyRings/pulumi/cryptoKeys/pulumi-secrets
     \`\`\`
-    For more information see: https://docs.garden.io/pulumi-plugin/about#pulumi-varfile-schema
+    For more information see [this guide on pulumi varfiles and variables](https://docs.garden.io/pulumi-plugin/about#pulumi-varfile-schema)
     `),
   pulumiVariables: joiVariables().default({}).description(dedent`
     A map of config variables to use when applying the stack. These are merged with the contents of any \`pulumiVarfiles\` provided

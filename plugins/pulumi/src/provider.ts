@@ -70,7 +70,7 @@ export const pulumiProviderConfigSchema = providerConfigBaseSchema()
         myVar: value
       secretsprovider: gcpkms://projects/xyz/locations/global/keyRings/pulumi/cryptoKeys/pulumi-secrets
       \`\`\`
-      For more information see: https://docs.garden.io/pulumi-plugin/about#pulumi-varfile-schema
+      For more information see [this guide on pulumi varfiles and variables](https://docs.garden.io/pulumi-plugin/about#pulumi-varfile-schema)
       `),
   })
   .unknown(false)
