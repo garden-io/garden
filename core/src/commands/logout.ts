@@ -53,13 +53,13 @@ export class LogOutCommand extends Command<{}, Opts> {
     const globalConfigStore = garden.globalConfigStore
 
     try {
-      const token = await getStoredAuthToken(log, globalConfigStore, cloudDomain)
-      if (!token) {
+      const clientAuthToken = await getStoredAuthToken(log, globalConfigStore, cloudDomain)
+      if (!clientAuthToken) {
         log.info({ msg: `You're already logged out from ${cloudDomain}.` })
         return {}
       }
 
-      await revokeToken({ token, cloudDomain, globalConfigStore, log })
+      await revokeToken({ clientAuthToken, cloudDomain, globalConfigStore, log })
     } catch (err) {
       const msg = dedent`
       The following issue occurred while logging out from ${cloudDomain} (your session will be cleared regardless): ${err}\n
@@ -75,12 +75,12 @@ export class LogOutCommand extends Command<{}, Opts> {
 }
 
 async function revokeToken({
-  token,
+  clientAuthToken,
   cloudDomain,
   globalConfigStore,
   log,
 }: {
-  token: ClientAuthToken
+  clientAuthToken: ClientAuthToken
   cloudDomain: string
   globalConfigStore: GlobalConfigStore
   log: Log
@@ -99,7 +99,7 @@ async function revokeToken({
   }
 
   try {
-    await cloudApi.post("token/logout", { headers: { Cookie: `rt=${token?.refreshToken}` } })
+    await cloudApi.post("token/logout", { headers: { Cookie: `rt=${clientAuthToken?.refreshToken}` } })
   } finally {
     cloudApi.close()
   }
