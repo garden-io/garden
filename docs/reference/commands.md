@@ -4091,7 +4091,7 @@ Logs you in to Garden/Grow Cloud. Subsequent commands will have access to cloud 
 
 ### garden logout
 
-**Log out of Garden Cloud.**
+**Log out of Garden/Grow Cloud.**
 
 Logs you out of Garden Cloud.
 

@@ -27,7 +27,7 @@ type Opts = typeof logoutOpts
 
 export class LogOutCommand extends Command<{}, Opts> {
   name = "logout"
-  help = "Log out of Garden Cloud."
+  help = "Log out of Garden/Grow Cloud."
 
   override noProject = true
 
