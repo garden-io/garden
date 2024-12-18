@@ -8,13 +8,14 @@
 
 import { Command, type CommandParams, type CommandResult } from "./base.js"
 import { printHeader } from "../logger/util.js"
-import { clearAuthToken, getAuthToken } from "../cloud/auth.js"
+import { clearAuthToken, getAuthToken, getStoredAuthToken } from "../cloud/auth.js";
 import { getNonAuthenticatedApiClient } from "../cloud/grow/trpc.js"
 import { BooleanParameter } from "../cli/params.js"
 import { dedent, deline } from "../util/string.js"
 import { getCloudDomain } from "../cloud/util.js"
 import { deriveCloudDomainForNoProjectCommand } from "./util/no-project.js"
 import type { Log } from "../logger/log-entry.js"
+import { ClientAuthToken } from "../config-store/global.js";
 
 export const logoutOpts = {
   "disable-project-check": new BooleanParameter({
@@ -50,7 +51,7 @@ export class LogOutCommand extends Command<{}, Opts> {
     const cloudDomain = getCloudDomain(projectConfigDomain)
     const globalConfigStore = garden.globalConfigStore
 
-    const token = await getAuthToken(log, globalConfigStore, cloudDomain)
+    const token = await getStoredAuthToken(log, globalConfigStore, cloudDomain)
     if (!token) {
       log.info({ msg: `You're already logged out from ${cloudDomain}.` })
       return {}
@@ -67,12 +68,12 @@ async function revokeToken({
   cloudDomain,
   log,
 }: {
-  token: string
+  token: ClientAuthToken
   cloudDomain: string
   log: Log
 }): Promise<void> {
   try {
-    await getNonAuthenticatedApiClient({ hostUrl: cloudDomain }).token.revokeToken.mutate({ token })
+    await getNonAuthenticatedApiClient({ hostUrl: cloudDomain }).token.revokeToken.mutate({ token: token.token })
   } catch (_error) {
     log.debug({ msg: "Failed to revoke token; it was either invalid or already expired." })
   }
