@@ -60,15 +60,15 @@ export class LogOutCommand extends Command<{}, Opts> {
       }
     }
 
-    const cloudDomain: string | undefined = getGardenCloudDomain(projectConfig?.domain)
-
+    const cloudDomain = getGardenCloudDomain(projectConfig?.domain)
     const distroName = getCloudDistributionName(cloudDomain)
+    const globalConfigStore = garden.globalConfigStore
 
     try {
       // The Enterprise API is missing from the Garden class for commands with noProject
       // so we initialize it here.
 
-      const token = await garden.globalConfigStore.get("clientAuthTokens", cloudDomain)
+      const token = await globalConfigStore.get("clientAuthTokens", cloudDomain)
 
       if (!token) {
         log.info({ msg: `You're already logged out from ${cloudDomain}.` })
@@ -79,7 +79,7 @@ export class LogOutCommand extends Command<{}, Opts> {
         log,
         cloudDomain,
         skipLogging: true,
-        globalConfigStore: garden.globalConfigStore,
+        globalConfigStore,
       })
 
       if (!cloudApi) {
@@ -94,7 +94,7 @@ export class LogOutCommand extends Command<{}, Opts> {
       `
       log.warn(msg)
     } finally {
-      await clearAuthToken(log, garden.globalConfigStore, cloudDomain)
+      await clearAuthToken(log, globalConfigStore, cloudDomain)
       log.success(`Successfully logged out from ${cloudDomain}.`)
     }
     return {}
