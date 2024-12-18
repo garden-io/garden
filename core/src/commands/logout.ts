@@ -15,8 +15,7 @@ import { BooleanParameter } from "../cli/params.js"
 import { clearAuthToken, getStoredAuthToken } from "../cloud/auth.js"
 import { getCloudDomain } from "../cloud/util.js"
 import { deriveCloudDomainForNoProjectCommand } from "./util/no-project.js"
-import type { Log } from "../logger/log-entry.js"
-import type { ClientAuthToken, GlobalConfigStore } from "../config-store/global.js"
+import type { RevokeAuthTokenParams } from "../cloud/backend.js"
 
 export const logoutOpts = {
   "disable-project-check": new BooleanParameter({
@@ -79,12 +78,7 @@ async function revokeToken({
   cloudDomain,
   globalConfigStore,
   log,
-}: {
-  clientAuthToken: ClientAuthToken
-  cloudDomain: string
-  globalConfigStore: GlobalConfigStore
-  log: Log
-}): Promise<void> {
+}: RevokeAuthTokenParams): Promise<void> {
   // NOTE: The Cloud API is missing from the `Garden` class for commands
   // with `noProject = true` so we initialize it here.
   const cloudApi = await GardenCloudApi.factory({

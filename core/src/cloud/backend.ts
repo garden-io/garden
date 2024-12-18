@@ -15,13 +15,23 @@ import { GardenCloudApi } from "./api.js"
 import type { GrowCloudApiFactory } from "./grow/api.js"
 import { GrowCloudApi } from "./grow/api.js"
 import { gardenEnv } from "../constants.js"
+import type { ClientAuthToken, GlobalConfigStore } from "../config-store/global.js"
+import type { Log } from "../logger/log-entry.js"
 
 function getFirstValue(v: string | string[]) {
   return isArray(v) ? v[0] : v
 }
 
 export type GardenBackendConfig = { readonly cloudDomain: string }
+
 export type AuthRedirectConfig = Pick<AuthRedirectServerConfig, "getLoginUrl" | "successUrl" | "extractAuthToken">
+
+export type RevokeAuthTokenParams = {
+  clientAuthToken: ClientAuthToken
+  cloudDomain: string
+  globalConfigStore: GlobalConfigStore
+  log: Log
+}
 
 export interface GardenBackend {
   config: GardenBackendConfig

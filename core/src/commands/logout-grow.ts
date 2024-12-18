@@ -14,8 +14,7 @@ import { BooleanParameter } from "../cli/params.js"
 import { dedent, deline } from "../util/string.js"
 import { getCloudDomain } from "../cloud/util.js"
 import { deriveCloudDomainForNoProjectCommand } from "./util/no-project.js"
-import type { Log } from "../logger/log-entry.js"
-import type { ClientAuthToken } from "../config-store/global.js"
+import type { RevokeAuthTokenParams } from "../cloud/backend.js"
 
 export const logoutOpts = {
   "disable-project-check": new BooleanParameter({
@@ -58,7 +57,7 @@ export class LogOutCommand extends Command<{}, Opts> {
         return {}
       }
 
-      await revokeToken({ clientAuthToken, cloudDomain, log })
+      await revokeToken({ clientAuthToken, cloudDomain, globalConfigStore, log })
     } catch (err) {
       const msg = dedent`
       The following issue occurred while logging out from ${cloudDomain} (your session will be cleared regardless): ${err}\n
@@ -73,15 +72,7 @@ export class LogOutCommand extends Command<{}, Opts> {
   }
 }
 
-async function revokeToken({
-  clientAuthToken,
-  cloudDomain,
-  log,
-}: {
-  clientAuthToken: ClientAuthToken
-  cloudDomain: string
-  log: Log
-}): Promise<void> {
+async function revokeToken({ clientAuthToken, cloudDomain, log }: RevokeAuthTokenParams): Promise<void> {
   try {
     await getNonAuthenticatedApiClient({ hostUrl: cloudDomain }).token.revokeToken.mutate({
       token: clientAuthToken.token,
