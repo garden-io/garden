@@ -1,15 +1,15 @@
 kind: Deploy
 type: pulumi
-name: k8s-namespace
+name: k8s-namespace-new
 description: Creates a Namespace
 spec:
-  pulumiVarfiles: [varfile1.yaml, varfile2.yaml]
+  useNewPulumiVarfileSchema: true
+  pulumiVarfiles: [varfile-new-schema.yaml]
   createStack: true
   cacheStatus: true
   allowDestroy: true
   pulumiVariables:
     pulumi-k8s-test:orgName: ${var.orgName}
     pulumi-k8s-test:namespace: pulumi-test
-    pulumi-k8s-test:appName: api-pulumi-variables-override
     pulumi-k8s-test:isMinikube: "true"
 

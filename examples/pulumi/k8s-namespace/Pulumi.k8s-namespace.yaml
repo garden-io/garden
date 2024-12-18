@@ -1,5 +1,6 @@
 config:
-  kubernetes:context: docker-desktop
-  pulumi-k8s:namespace: pulumi-k8s
+  kubernetes:context: orbstack
+  pulumi-k8s:namespace: fooooooooo
 backend:
   url: https://api.pulumi.com
+test: foo

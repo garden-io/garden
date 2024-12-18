@@ -10,15 +10,15 @@ import type { Log, PluginContext } from "@garden-io/sdk/build/src/types.js"
 import type { TestGarden } from "@garden-io/sdk/build/src/testing.js"
 import { makeTestGarden } from "@garden-io/sdk/build/src/testing.js"
 import { dirname, join, resolve } from "node:path"
-import { deployPulumi, getPulumiDeployStatus } from "../src/handlers.js"
+import { deployPulumi } from "../src/handlers.js"
 import type { PulumiProvider } from "../src/provider.js"
 import { gardenPlugin as pulumiPlugin } from "../src/index.js"
 import { expect } from "chai"
-import { getStackVersionTag } from "../src/helpers.js"
 import { getPulumiCommands } from "../src/commands.js"
 import type { ResolvedConfigGraph } from "@garden-io/core/build/src/graph/config-graph.js"
 import { fileURLToPath } from "node:url"
 import { ensureNodeModules } from "./test-helpers.js"
+import { loadYamlFile } from "@garden-io/core/build/src/util/serialization.js"
 
 const moduleDirName = dirname(fileURLToPath(import.meta.url))
 
@@ -29,12 +29,13 @@ const moduleDirName = dirname(fileURLToPath(import.meta.url))
 const projectRoot = resolve(moduleDirName, "../../test/", "test-project-k8s")
 
 const nsActionRoot = join(projectRoot, "k8s-namespace")
+const nsNewActionRoot = join(projectRoot, "k8s-namespace-new")
 const deploymentActionRoot = join(projectRoot, "k8s-deployment")
 
 // Note: By default, this test suite assumes that PULUMI_ACCESS_TOKEN is present in the environment (which is the case
 // in CI). To run this test suite with your own pulumi org, replace the `orgName` variable in
 // `test-project-k8s/project.garden.yml` with your own org's name and make sure you've logged in via `pulumi login`.
-describe("pulumi plugin handlers", () => {
+describe("pulumi action variables and varfiles", () => {
   let garden: TestGarden
   let graph: ResolvedConfigGraph
   let ctx: PluginContext
@@ -42,7 +43,7 @@ describe("pulumi plugin handlers", () => {
   let provider: PulumiProvider
 
   before(async () => {
-    await ensureNodeModules([nsActionRoot, deploymentActionRoot])
+    await ensureNodeModules([nsActionRoot, deploymentActionRoot, nsNewActionRoot])
     const plugin = pulumiPlugin()
     garden = await makeTestGarden(projectRoot, { plugins: [plugin] })
     log = garden.log
@@ -57,48 +58,51 @@ describe("pulumi plugin handlers", () => {
     void destroyCmd.handler({ garden, ctx, args: [], graph, log })
   })
 
-  describe("deployPulumiService", () => {
-    it("deploys a pulumi stack and tags it with the service version", async () => {
+  describe("varfiles and variables merge correctly", () => {
+    it("uses a varfile with the old schema and merges varfiles and action variables correctly", async () => {
       const action = graph.getDeploy("k8s-namespace")
       const actionLog = action.createLog(log)
-      const status = await deployPulumi!({
+      await deployPulumi!({
         ctx,
         log: actionLog,
         action,
         force: false,
       })
-      const versionTag = await getStackVersionTag({ log: actionLog, ctx, provider, action })
-      expect(status.state).to.eql("ready")
-
-      // The service outputs should include all pulumi stack outputs for the deployed stack.
-      expect(status.outputs?.namespace).to.eql("pulumi-test")
-
-      // The deployed stack should have been tagged with the service version
-      expect(versionTag).to.eql(action.versionString())
-    })
-  })
-
-  describe("getPulumiServiceStatus", () => {
-    it("should return an 'outdated' state when the stack hasn't been deployed before", async () => {
-      const action = graph.getDeploy("k8s-deployment")
-      const status = await getPulumiDeployStatus!({
-        ctx,
-        log: action.createLog(log),
-        action,
+      const configFile = await loadYamlFile(join(nsActionRoot, "Pulumi.local.yaml"))
+      expect(configFile).to.eql({
+        config: {
+          "pulumi-k8s-test:orgName": "gordon-garden-bot",
+          "pulumi-k8s-test:namespace": "pulumi-test",
+          "pulumi-k8s-test:appName": "api-pulumi-variables-override",
+          "pulumi-k8s-test:isMinikube": "true",
+        },
+        backend: {
+          url: "https://api.pulumi.com",
+        },
       })
-      expect(status.state).to.eql("not-ready")
-      expect(status.detail?.state).to.eql("outdated")
     })
-
-    it("should return a 'ready' state when the stack has already been deployed", async () => {
-      // We've previously deployed this service in the tests for deployPulumiService above.
-      const action = graph.getDeploy("k8s-namespace")
-      const status = await getPulumiDeployStatus!({
+    it("uses a varfile with the new schema and merges varfiles and action variables correctly", async () => {
+      const action = graph.getDeploy("k8s-namespace-new")
+      const actionLog = action.createLog(log)
+      await deployPulumi!({
         ctx,
-        log: action.createLog(log),
+        log: actionLog,
         action,
+        force: false,
       })
-      expect(status.state).to.eql("ready")
+      const configFile = await loadYamlFile(join(nsNewActionRoot, "Pulumi.local.yaml"))
+      expect(configFile).to.eql({
+        test: "foo",
+        config: {
+          "pulumi-k8s-test:orgName": "gordon-garden-bot",
+          "pulumi-k8s-test:namespace": "pulumi-test",
+          "pulumi-k8s-test:appName": "app-name-from-pulumi-varfile",
+          "pulumi-k8s-test:isMinikube": "true",
+        },
+        backend: {
+          url: "https://api.pulumi.com",
+        },
+      })
     })
   })
 })

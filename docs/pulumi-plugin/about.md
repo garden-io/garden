@@ -81,6 +81,32 @@ For example:
 garden plugins pulumi preview -- my-pulumi-deploy-action my-other-pulumi-deploy-action
 ```
 
+## Pulumi varfile schema
+
+By default Garden uses a schema for the Pulumi varfiles that expects all content in a varfile to be values that are set under the `config` key in the pulumi config file. Garden will resolve any template strings in varfiles and then add them to the `config` section of the pulumi config file.
+
+Example of old varfile schema:
+
+```
+kubernetes:context: orbstack
+pulumi-k8s:namespace: ns-from-the-varfile
+```
+
+Since this does not allow for setting other top-level values like e.g. `secretsprovider` this schema has been updated and now requires config values to be referenced under the `config` key.
+
+Example of new varfile schema:
+
+```
+secretsprovider: gcpkms://projects/xyz/locations/global/keyRings/pulumi/cryptoKeys/pulumi-secrets
+encryptedkey: 123456
+config:
+  kubernetes:context: orbstack
+  pulumi-k8s:namespace: ns-from-the-varfile
+```
+
+To use the new schema in a single pulumi deploy action set `action.spec.useNewPulumiVarfileSchema` to `true`. To use
+the new schema for all of your pulumi deploy actions set `useNewPulumiVarfileSchema` in your pulumi provider to `true`. The flag will be removed in the next major release and the new schema will be used.
+
 ## Next steps
 
 Check out the [`pulumi` example](../../examples/pulumi) project.

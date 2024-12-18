@@ -188,6 +188,16 @@ createStack: false
 # Specify the path to the Pulumi project root, relative to the deploy action's root.
 root: .
 
+# If set to true, the deploy action will use the new Pulumi varfile schema, which does not nest all variables under
+# the 'config' key automatically like the old schema. This allow setting variables at the root level of the varfile
+# that don't belong to the 'config' key. Example:
+# config:
+#   myVar: value
+# secretsprovider: gcpkms://projects/xyz/locations/global/keyRings/pulumi/cryptoKeys/pulumi-secrets
+# For more information see [this guide on pulumi varfiles and
+# variables](https://docs.garden.io/pulumi-plugin/about#pulumi-varfile-schema)
+useNewPulumiVarfileSchema: false
+
 # A map of config variables to use when applying the stack. These are merged with the contents of any `pulumiVarfiles`
 # provided
 # for this deploy action. The deploy action's stack config will be overwritten with the resulting merged config.
@@ -201,7 +211,7 @@ root: .
 # Instead, use pulumi stack references when using the `cacheStatus` config option.
 pulumiVariables: {}
 
-# Specify one or more paths (relative to the deploy action's root) to YAML files containing pulumi config variables.
+# Specify one or more paths (relative to the deploy action's root) to YAML files containing pulumi configuration.
 #
 # Templated paths that resolve to `null`, `undefined` or an empty string are ignored.
 #
@@ -212,8 +222,8 @@ pulumiVariables: {}
 #
 # If one or more varfiles is not found, no error is thrown (that varfile path is simply ignored).
 #
-# Note: There is no need to nest the variables under a `config` field as is done in a pulumi
-# config. Simply specify all the config variables at the top level.
+# Note: The old varfile schema nests all variables under the 'config' key automatically. If you need to set variables
+# at the root level of the varfile that don't belong to the 'config' key, set `useNewPulumiVarfileSchema` to true.
 pulumiVarfiles: []
 
 # The name of the pulumi organization to use. Overrides the `orgName` set on the pulumi provider (if any).
@@ -605,6 +615,22 @@ Specify the path to the Pulumi project root, relative to the deploy action's roo
 | ----------- | ------- | -------- |
 | `posixPath` | `"."`   | No       |
 
+### `useNewPulumiVarfileSchema`
+
+If set to true, the deploy action will use the new Pulumi varfile schema, which does not nest all variables under
+the 'config' key automatically like the old schema. This allow setting variables at the root level of the varfile
+that don't belong to the 'config' key. Example:
+```
+config:
+  myVar: value
+secretsprovider: gcpkms://projects/xyz/locations/global/keyRings/pulumi/cryptoKeys/pulumi-secrets
+```
+For more information see [this guide on pulumi varfiles and variables](https://docs.garden.io/pulumi-plugin/about#pulumi-varfile-schema)
+
+| Type      | Default | Required |
+| --------- | ------- | -------- |
+| `boolean` | `false` | No       |
+
 ### `pulumiVariables`
 
 A map of config variables to use when applying the stack. These are merged with the contents of any `pulumiVarfiles` provided
@@ -622,7 +648,7 @@ Instead, use pulumi stack references when using the `cacheStatus` config option.
 
 ### `pulumiVarfiles[]`
 
-Specify one or more paths (relative to the deploy action's root) to YAML files containing pulumi config variables.
+Specify one or more paths (relative to the deploy action's root) to YAML files containing pulumi configuration.
 
 Templated paths that resolve to `null`, `undefined` or an empty string are ignored.
 
@@ -633,8 +659,8 @@ value type.
 
 If one or more varfiles is not found, no error is thrown (that varfile path is simply ignored).
 
-Note: There is no need to nest the variables under a `config` field as is done in a pulumi
-config. Simply specify all the config variables at the top level.
+Note: The old varfile schema nests all variables under the 'config' key automatically. If you need to set variables
+at the root level of the varfile that don't belong to the 'config' key, set `useNewPulumiVarfileSchema` to true.
 
 | Type               | Default | Required |
 | ------------------ | ------- | -------- |
