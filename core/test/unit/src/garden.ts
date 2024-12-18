@@ -1008,7 +1008,7 @@ describe("Garden", () => {
           const expected = wordWrap(
             deline`
               Invalid field 'id' found in project configuration at path tmp. The 'id'
-              field should only be set if using a commerical edition of Garden. Please remove to continue
+              field should only be set if using a commercial edition of Garden. Please remove to continue
               using the Garden community edition.
             `,
             120
