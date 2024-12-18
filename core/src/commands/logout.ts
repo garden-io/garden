@@ -16,7 +16,7 @@ import type { ProjectConfig } from "../config/project.js"
 import { findProjectConfig } from "../config/base.js"
 import { BooleanParameter } from "../cli/params.js"
 import { clearAuthToken } from "../cloud/auth.js"
-import { getCloudDistributionName, getGardenCloudDomain } from "../cloud/util.js"
+import { getCloudDomain } from "../cloud/util.js"
 
 export const logoutOpts = {
   "disable-project-check": new BooleanParameter({
@@ -60,8 +60,7 @@ export class LogOutCommand extends Command<{}, Opts> {
       }
     }
 
-    const cloudDomain = getGardenCloudDomain(projectConfig?.domain)
-    const distroName = getCloudDistributionName(cloudDomain)
+    const cloudDomain = getCloudDomain(projectConfig?.domain)
     const globalConfigStore = garden.globalConfigStore
 
     try {
@@ -90,7 +89,7 @@ export class LogOutCommand extends Command<{}, Opts> {
       cloudApi.close()
     } catch (err) {
       const msg = dedent`
-      The following issue occurred while logging out from ${distroName} (your session will be cleared regardless): ${err}\n
+      The following issue occurred while logging out from ${cloudDomain} (your session will be cleared regardless): ${err}\n
       `
       log.warn(msg)
     } finally {
