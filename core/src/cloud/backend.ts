@@ -82,7 +82,12 @@ export class GardenCloudBackend extends AbstractGardenBackend {
     }
   }
 
-  async revokeToken({ clientAuthToken, cloudDomain, globalConfigStore, log }: RevokeAuthTokenParams): Promise<void> {
+  override async revokeToken({
+    clientAuthToken,
+    cloudDomain,
+    globalConfigStore,
+    log,
+  }: RevokeAuthTokenParams): Promise<void> {
     // NOTE: The Cloud API is missing from the `Garden` class for commands
     // with `noProject = true` so we initialize it here.
     const cloudApi = await this.cloudApiFactory({
@@ -141,7 +146,7 @@ export class GrowCloudBackend extends AbstractGardenBackend {
     }
   }
 
-  async revokeToken({ clientAuthToken, cloudDomain, log }: RevokeAuthTokenParams): Promise<void> {
+  override async revokeToken({ clientAuthToken, cloudDomain, log }: RevokeAuthTokenParams): Promise<void> {
     try {
       await getNonAuthenticatedApiClient({ hostUrl: cloudDomain }).token.revokeToken.mutate({
         token: clientAuthToken.token,
