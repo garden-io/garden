@@ -29,6 +29,7 @@ const moduleDirName = dirname(fileURLToPath(import.meta.url))
 const projectRoot = resolve(moduleDirName, "../../test/", "test-project-k8s")
 
 const nsActionRoot = join(projectRoot, "k8s-namespace")
+const nsNewActionRoot = join(projectRoot, "k8s-namespace-new")
 const deploymentActionRoot = join(projectRoot, "k8s-deployment")
 
 // Note: By default, this test suite assumes that PULUMI_ACCESS_TOKEN is present in the environment (which is the case
@@ -42,7 +43,7 @@ describe("pulumi action variables and varfiles", () => {
   let provider: PulumiProvider
 
   before(async () => {
-    await ensureNodeModules([nsActionRoot, deploymentActionRoot])
+    await ensureNodeModules([nsActionRoot, deploymentActionRoot, nsNewActionRoot])
     const plugin = pulumiPlugin()
     garden = await makeTestGarden(projectRoot, { plugins: [plugin] })
     log = garden.log
@@ -67,7 +68,7 @@ describe("pulumi action variables and varfiles", () => {
         action,
         force: false,
       })
-      const configFile = await loadYamlFile(join(nsActionRoot, "Pulumi.k8s-namespace.yaml"))
+      const configFile = await loadYamlFile(join(nsActionRoot, "Pulumi.local.yaml"))
       expect(configFile.config).to.eql({
         config: {
           "pulumi-k8s-test:orgName": "gordon-garden-bot",
@@ -78,7 +79,7 @@ describe("pulumi action variables and varfiles", () => {
       })
     })
     it("uses a varfile with the new schema and merges varfiles and action variables correctly", async () => {
-      const action = graph.getDeploy("k8s-namespace-new-varfile-schema")
+      const action = graph.getDeploy("k8s-namespace-new")
       const actionLog = action.createLog(log)
       await deployPulumi!({
         ctx,
@@ -86,7 +87,7 @@ describe("pulumi action variables and varfiles", () => {
         action,
         force: false,
       })
-      const configFile = await loadYamlFile(join(nsActionRoot, "Pulumi.k8s-namespace-new-varfile-schema.yaml"))
+      const configFile = await loadYamlFile(join(nsNewActionRoot, "Pulumi.local.yaml"))
       expect(configFile.config).to.eql({
         test: "foo",
         config: {
