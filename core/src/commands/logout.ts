@@ -11,12 +11,10 @@ import { Command } from "./base.js"
 import { printHeader } from "../logger/util.js"
 import { GardenCloudApi } from "../cloud/api.js"
 import { dedent, deline } from "../util/string.js"
-import { ConfigurationError } from "../exceptions.js"
-import type { ProjectConfig } from "../config/project.js"
-import { findProjectConfig } from "../config/base.js"
 import { BooleanParameter } from "../cli/params.js"
 import { clearAuthToken } from "../cloud/auth.js"
 import { getCloudDomain } from "../cloud/util.js"
+import { deriveCloudDomainForNoProjectCommand } from "./util/no-project.js"
 
 export const logoutOpts = {
   "disable-project-check": new BooleanParameter({
@@ -43,24 +41,13 @@ export class LogOutCommand extends Command<{}, Opts> {
   }
 
   async action({ garden, log, opts }: CommandParams): Promise<CommandResult> {
-    // The Cloud API is missing from the Garden class for commands with noProject
-    // so we initialize it with a cloud domain derived from `getGardenCloudDomain`.
+    const projectConfigDomain = await deriveCloudDomainForNoProjectCommand({
+      disableProjectCheck: opts["disable-project-check"],
+      garden,
+      log,
+    })
 
-    let projectConfig: ProjectConfig | undefined = undefined
-    const forceProjectCheck = !opts["disable-project-check"]
-
-    if (forceProjectCheck) {
-      projectConfig = await findProjectConfig({ log, path: garden.projectRoot })
-
-      // Fail if this is not run within a garden project
-      if (!projectConfig) {
-        throw new ConfigurationError({
-          message: `Not a project directory (or any of the parent directories): ${garden.projectRoot}`,
-        })
-      }
-    }
-
-    const cloudDomain = getCloudDomain(projectConfig?.domain)
+    const cloudDomain = getCloudDomain(projectConfigDomain)
     const globalConfigStore = garden.globalConfigStore
 
     try {
@@ -71,8 +58,8 @@ export class LogOutCommand extends Command<{}, Opts> {
         return {}
       }
 
-      // The Enterprise API is missing from the Garden class for commands with noProject
-      // so we initialize it here.
+      // NOTE: The Cloud API is missing from the `Garden` class for commands
+      // with `noProject = true` so we initialize it here.
       const cloudApi = await GardenCloudApi.factory({
         log,
         cloudDomain,

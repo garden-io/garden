@@ -11,18 +11,17 @@ import { Command } from "./base.js"
 import { printHeader } from "../logger/util.js"
 import dedent from "dedent"
 import type { Log } from "../logger/log-entry.js"
-import { CloudApiError, ConfigurationError, InternalError, TimeoutError } from "../exceptions.js"
+import { CloudApiError, InternalError, TimeoutError } from "../exceptions.js"
 import type { AuthToken } from "../cloud/auth.js"
 import { AuthRedirectServer, saveAuthToken } from "../cloud/auth.js"
 import type { EventBus } from "../events/events.js"
-import type { ProjectConfig } from "../config/project.js"
-import { findProjectConfig } from "../config/base.js"
 import { BooleanParameter } from "../cli/params.js"
 import { deline } from "../util/string.js"
 import { getCloudDomain } from "../cloud/util.js"
 import type { GardenBackend } from "../cloud/backend.js"
 import { gardenBackendFactory } from "../cloud/backend.js"
 import { gardenEnv } from "../constants.js"
+import { deriveCloudDomainForNoProjectCommand } from "./util/no-project.js"
 
 const loginTimeoutSec = 60
 
@@ -56,31 +55,19 @@ export class LoginCommand extends Command<{}, Opts> {
   }
 
   async action({ garden, log, opts }: CommandParams<{}, Opts>): Promise<CommandResult> {
-    // NOTE: The Cloud API is missing from the Garden class for commands with noProject
-    // so we initialize it here. noProject also make sure that the project config is not
-    // initialized in the garden class, so we need to read it in here to get the cloud
-    // domain.
-    let projectConfig: ProjectConfig | undefined = undefined
-    const forceProjectCheck = !opts["disable-project-check"]
-
-    if (forceProjectCheck) {
-      projectConfig = await findProjectConfig({ log, path: garden.projectRoot })
-
-      // Fail if this is not run within a garden project
-      if (!projectConfig) {
-        throw new ConfigurationError({
-          message: `Not a project directory (or any of the parent directories): ${garden.projectRoot}`,
-        })
-      }
-    }
+    const projectConfigDomain = await deriveCloudDomainForNoProjectCommand({
+      disableProjectCheck: opts["disable-project-check"],
+      garden,
+      log,
+    })
 
     const globalConfigStore = garden.globalConfigStore
-    // Garden works by default without Garden/Grow Cloud. In order to use cloud, a domain
-    // must be known to cloud for any command needing a logged in user.
-    const cloudDomain = getCloudDomain(projectConfig?.domain)
+    const cloudDomain = getCloudDomain(projectConfigDomain)
     const gardenBackend = gardenBackendFactory({ cloudDomain })
 
     try {
+      // NOTE: The Cloud API is missing from the `Garden` class for commands
+      // with `noProject = true` so we initialize it here.
       const cloudApi = await gardenBackend.cloudApiFactory({ log, cloudDomain, skipLogging: true, globalConfigStore })
       if (cloudApi) {
         log.success({ msg: `You're already logged in to ${cloudDomain}.` })
