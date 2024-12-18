@@ -80,18 +80,11 @@ export class LoginCommand extends Command<{}, Opts> {
     const cloudDomain = getCloudDomain(projectConfig?.domain)
     const gardenBackend = gardenBackendFactory({ cloudDomain })
 
-    async function isCloudBackendAvailable(): Promise<boolean> {
+    try {
       const cloudApi = await gardenBackend.cloudApiFactory({ log, cloudDomain, skipLogging: true, globalConfigStore })
       if (cloudApi) {
         log.success({ msg: `You're already logged in to ${cloudDomain}.` })
         cloudApi.close()
-        return true
-      }
-      return false
-    }
-
-    try {
-      if (await isCloudBackendAvailable()) {
         // If successful, we are already logged in.
         return {}
       }
