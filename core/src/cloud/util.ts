@@ -100,8 +100,7 @@ export function getGardenCloudDomain(configuredDomain: string | undefined): stri
  * and its CloudApi instance.
  */
 export function getCloudDomain(configuredDomain: string | undefined): string {
-  const cloudDomainGetter = gardenEnv.USE_GROW_CLOUD ? getGrowCloudDomain : getGardenCloudDomain
-  return cloudDomainGetter(configuredDomain)
+  return gardenEnv.USE_GROW_CLOUD ? getGrowCloudDomain(configuredDomain) : getGardenCloudDomain(configuredDomain)
 }
 
 export function isGardenCommunityEdition(cloudDomain: string): boolean {
