@@ -4074,9 +4074,9 @@ sources:
 
 ### garden login
 
-**Log in to Garden Cloud.**
+**Log in to Garden/Grow Cloud.**
 
-Logs you in to Garden Cloud. Subsequent commands will have access to cloud features.
+Logs you in to Garden/Grow Cloud. Subsequent commands will have access to cloud features.
 
 #### Usage
 
