@@ -97,9 +97,6 @@ export class GardenCloudBackend extends AbstractGardenBackend {
 
     try {
       await cloudApi.post("token/logout", { headers: { Cookie: `rt=${clientAuthToken?.refreshToken}` } })
-    } catch (err) {
-      log.debug({ msg: "Failed to revoke token; it was either invalid or already expired." })
-      throw err
     } finally {
       cloudApi.close()
     }
@@ -140,15 +137,10 @@ export class GrowCloudBackend extends AbstractGardenBackend {
     }
   }
 
-  override async revokeToken({ clientAuthToken, log }: RevokeAuthTokenParams): Promise<void> {
-    try {
-      await getNonAuthenticatedApiClient({ hostUrl: this.config.cloudDomain }).token.revokeToken.mutate({
-        token: clientAuthToken.token,
-      })
-    } catch (err) {
-      log.debug({ msg: "Failed to revoke token; it was either invalid or already expired." })
-      throw err
-    }
+  override async revokeToken({ clientAuthToken }: RevokeAuthTokenParams): Promise<void> {
+    await getNonAuthenticatedApiClient({ hostUrl: this.config.cloudDomain }).token.revokeToken.mutate({
+      token: clientAuthToken.token,
+    })
   }
 }
 
