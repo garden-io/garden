@@ -15,6 +15,8 @@ import { BooleanParameter } from "../cli/params.js"
 import { clearAuthToken, getStoredAuthToken } from "../cloud/auth.js"
 import { getCloudDomain } from "../cloud/util.js"
 import { deriveCloudDomainForNoProjectCommand } from "./util/no-project.js"
+import type { Log } from "../logger/log-entry.js"
+import type { ClientAuthToken, GlobalConfigStore } from "../config-store/global.js"
 
 export const logoutOpts = {
   "disable-project-check": new BooleanParameter({
@@ -57,21 +59,7 @@ export class LogOutCommand extends Command<{}, Opts> {
         return {}
       }
 
-      // NOTE: The Cloud API is missing from the `Garden` class for commands
-      // with `noProject = true` so we initialize it here.
-      const cloudApi = await GardenCloudApi.factory({
-        log,
-        cloudDomain,
-        skipLogging: true,
-        globalConfigStore,
-      })
-
-      if (!cloudApi) {
-        return {}
-      }
-
-      await cloudApi.post("token/logout", { headers: { Cookie: `rt=${token?.refreshToken}` } })
-      cloudApi.close()
+      await revokeToken({ token, cloudDomain, globalConfigStore, log })
     } catch (err) {
       const msg = dedent`
       The following issue occurred while logging out from ${cloudDomain} (your session will be cleared regardless): ${err}\n
@@ -83,5 +71,36 @@ export class LogOutCommand extends Command<{}, Opts> {
     }
 
     return {}
+  }
+}
+
+async function revokeToken({
+  token,
+  cloudDomain,
+  globalConfigStore,
+  log,
+}: {
+  token: ClientAuthToken
+  cloudDomain: string
+  globalConfigStore: GlobalConfigStore
+  log: Log
+}): Promise<void> {
+  // NOTE: The Cloud API is missing from the `Garden` class for commands
+  // with `noProject = true` so we initialize it here.
+  const cloudApi = await GardenCloudApi.factory({
+    log,
+    cloudDomain,
+    skipLogging: true,
+    globalConfigStore,
+  })
+
+  if (!cloudApi) {
+    return
+  }
+
+  try {
+    await cloudApi.post("token/logout", { headers: { Cookie: `rt=${token?.refreshToken}` } })
+  } finally {
+    cloudApi.close()
   }
 }
