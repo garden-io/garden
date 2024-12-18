@@ -23,7 +23,6 @@ import type { Garden } from "../garden.js"
 import type { GardenPluginReference } from "../plugin/plugin.js"
 import { CommandError, ParameterError, isEAddrInUseException, isErrnoException } from "../exceptions.js"
 import { styles } from "../logger/styles.js"
-import { DEFAULT_GARDEN_CLOUD_DOMAIN } from "../constants.js"
 import { getCloudDistributionName } from "../cloud/util.js"
 
 export const defaultServerPort = 9777
@@ -187,7 +186,7 @@ export class ServeCommand<
         }
       } catch (err) {
         if (err instanceof CloudApiTokenRefreshError) {
-          const distroName = getCloudDistributionName(defaultGarden.cloudDomain || DEFAULT_GARDEN_CLOUD_DOMAIN)
+          const distroName = getCloudDistributionName(defaultGarden.cloudDomain)
           log.warn(dedent`
           Unable to authenticate against ${distroName} with the current session token.
           The dashboard will not be available until you authenticate again. Please try logging out with

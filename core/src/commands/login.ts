@@ -10,19 +10,18 @@ import type { CommandParams, CommandResult } from "./base.js"
 import { Command } from "./base.js"
 import { printHeader } from "../logger/util.js"
 import dedent from "dedent"
-import { GardenCloudApi } from "../cloud/api.js"
 import type { Log } from "../logger/log-entry.js"
-import { CloudApiError, ConfigurationError, InternalError, TimeoutError } from "../exceptions.js"
+import { CloudApiError, InternalError, TimeoutError } from "../exceptions.js"
 import type { AuthToken } from "../cloud/auth.js"
 import { AuthRedirectServer, saveAuthToken } from "../cloud/auth.js"
 import type { EventBus } from "../events/events.js"
-import type { ProjectConfig } from "../config/project.js"
-import { findProjectConfig } from "../config/base.js"
 import { BooleanParameter } from "../cli/params.js"
 import { deline } from "../util/string.js"
+import { getCloudDomain } from "../cloud/util.js"
+import type { GardenBackend } from "../cloud/backend.js"
+import { gardenBackendFactory } from "../cloud/backend.js"
 import { gardenEnv } from "../constants.js"
-import { getCloudDistributionName, getGardenCloudDomain } from "../cloud/util.js"
-import { GardenCloudBackend } from "../cloud/backend.js"
+import { deriveCloudDomainForNoProjectCommand } from "./util/no-project.js"
 
 const loginTimeoutSec = 60
 
@@ -56,36 +55,24 @@ export class LoginCommand extends Command<{}, Opts> {
   }
 
   async action({ garden, log, opts }: CommandParams<{}, Opts>): Promise<CommandResult> {
-    // NOTE: The Cloud API is missing from the Garden class for commands with noProject
-    // so we initialize it here. noProject also make sure that the project config is not
-    // initialized in the garden class, so we need to read it in here to get the cloud
-    // domain.
-    let projectConfig: ProjectConfig | undefined = undefined
-    const forceProjectCheck = !opts["disable-project-check"]
-
-    if (forceProjectCheck) {
-      projectConfig = await findProjectConfig({ log, path: garden.projectRoot })
-
-      // Fail if this is not run within a garden project
-      if (!projectConfig) {
-        throw new ConfigurationError({
-          message: `Not a project directory (or any of the parent directories): ${garden.projectRoot}`,
-        })
-      }
-    }
+    const projectConfigDomain = await deriveCloudDomainForNoProjectCommand({
+      disableProjectCheck: opts["disable-project-check"],
+      garden,
+      log,
+    })
 
     const globalConfigStore = garden.globalConfigStore
-
-    // Garden works by default without Garden Cloud. In order to use cloud, a domain
-    // must be known to cloud for any command needing a logged in user.
-    const cloudDomain: string = getGardenCloudDomain(projectConfig?.domain)
+    const cloudDomain = getCloudDomain(projectConfigDomain)
+    const gardenBackend = gardenBackendFactory({ cloudDomain })
 
     try {
-      const cloudApi = await GardenCloudApi.factory({ log, cloudDomain, skipLogging: true, globalConfigStore })
-
+      // NOTE: The Cloud API is missing from the `Garden` class for commands
+      // with `noProject = true` so we initialize it here.
+      const cloudApi = await gardenBackend.cloudApiFactory({ log, cloudDomain, skipLogging: true, globalConfigStore })
       if (cloudApi) {
         log.success({ msg: `You're already logged in to ${cloudDomain}.` })
         cloudApi.close()
+        // If successful, we are already logged in.
         return {}
       }
     } catch (err) {
@@ -95,7 +82,7 @@ export class LoginCommand extends Command<{}, Opts> {
     }
 
     log.info({ msg: `Logging in to ${cloudDomain}...` })
-    const tokenResponse = await login(log, cloudDomain, garden.events)
+    const tokenResponse = await login(log, gardenBackend, garden.events)
     await saveAuthToken(log, globalConfigStore, tokenResponse, cloudDomain)
     log.success({ msg: `Successfully logged in to ${cloudDomain}.`, showDuration: false })
 
@@ -103,18 +90,16 @@ export class LoginCommand extends Command<{}, Opts> {
   }
 }
 
-export async function login(log: Log, cloudDomain: string, events: EventBus) {
+export async function login(log: Log, gardenBackend: GardenBackend, events: EventBus): Promise<AuthToken> {
   // Start auth redirect server and wait for its redirect handler to receive the redirect and finish running.
-  const gardenBackend = new GardenCloudBackend({ cloudDomain })
   const server = new AuthRedirectServer({
     events,
     log,
     ...gardenBackend.getAuthRedirectConfig(),
   })
 
-  const distroName = getCloudDistributionName(cloudDomain)
-  log.debug(`Redirecting to ${distroName} login page...`)
-  const response: AuthToken = await new Promise(async (resolve, reject) => {
+  log.debug(`Redirecting to ${gardenBackend.config.cloudDomain} login page...`)
+  const response = await new Promise<AuthToken>(async (resolve, reject) => {
     // The server resolves the promise with the new auth token once it's received the redirect.
     await server.start()
 
@@ -138,6 +123,7 @@ export async function login(log: Log, cloudDomain: string, events: EventBus) {
       resolve(tokenResponse)
     })
   })
+
   await server.close()
   if (!response) {
     throw new InternalError({ message: `Error: Did not receive an auth token after logging in.` })

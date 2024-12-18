@@ -7,6 +7,7 @@
  */
 
 import fsExtra from "fs-extra"
+
 const { mkdirp, writeFile } = fsExtra
 import { load } from "js-yaml"
 import moment from "moment"
@@ -20,9 +21,9 @@ import type { KubernetesConfig } from "../config.js"
 import { defaultResources, utilImageRegistryDomainSpec } from "../config.js"
 import { namespaceSchema } from "../config.js"
 import { EPHEMERAL_KUBERNETES_PROVIDER_NAME } from "./ephemeral.js"
-import { DEFAULT_GARDEN_CLOUD_DOMAIN } from "../../../constants.js"
 import { defaultSystemNamespace } from "../constants.js"
 import { styles } from "../../../logger/styles.js"
+import { isGardenCommunityEdition } from "../../../cloud/util.js"
 
 export type EphemeralKubernetesClusterType = "ephemeral"
 
@@ -55,7 +56,7 @@ export async function configureProvider(params: ConfigureProviderParams<Kubernet
       )} command to use the ${EPHEMERAL_KUBERNETES_PROVIDER_NAME} plugin`,
     })
   }
-  if (ctx.cloudApi && ctx.cloudApi?.domain !== DEFAULT_GARDEN_CLOUD_DOMAIN) {
+  if (ctx.cloudApi && !isGardenCommunityEdition(ctx.cloudApi.domain)) {
     throw new ConfigurationError({
       message: `${EPHEMERAL_KUBERNETES_PROVIDER_NAME} provider is currently not supported for ${ctx.cloudApi.distroName}.`,
     })

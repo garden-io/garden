@@ -9,14 +9,12 @@
 import type { CommandParams, CommandResult } from "./base.js"
 import { Command } from "./base.js"
 import { printHeader } from "../logger/util.js"
-import { GardenCloudApi } from "../cloud/api.js"
 import { dedent, deline } from "../util/string.js"
-import { ConfigurationError } from "../exceptions.js"
-import type { ProjectConfig } from "../config/project.js"
-import { findProjectConfig } from "../config/base.js"
 import { BooleanParameter } from "../cli/params.js"
-import { clearAuthToken } from "../cloud/auth.js"
-import { getCloudDistributionName, getGardenCloudDomain } from "../cloud/util.js"
+import { clearAuthToken, getStoredAuthToken } from "../cloud/auth.js"
+import { getCloudDomain } from "../cloud/util.js"
+import { deriveCloudDomainForNoProjectCommand } from "./util/no-project.js"
+import { gardenBackendFactory } from "../cloud/backend.js"
 
 export const logoutOpts = {
   "disable-project-check": new BooleanParameter({
@@ -30,6 +28,7 @@ type Opts = typeof logoutOpts
 export class LogOutCommand extends Command<{}, Opts> {
   name = "logout"
   help = "Log out of Garden Cloud."
+
   override noProject = true
 
   override description = dedent`
@@ -42,60 +41,34 @@ export class LogOutCommand extends Command<{}, Opts> {
   }
 
   async action({ garden, log, opts }: CommandParams): Promise<CommandResult> {
-    // The Cloud API is missing from the Garden class for commands with noProject
-    // so we initialize it with a cloud domain derived from `getGardenCloudDomain`.
+    const projectConfigDomain = await deriveCloudDomainForNoProjectCommand({
+      disableProjectCheck: opts["disable-project-check"],
+      garden,
+      log,
+    })
 
-    let projectConfig: ProjectConfig | undefined = undefined
-    const forceProjectCheck = !opts["disable-project-check"]
-
-    if (forceProjectCheck) {
-      projectConfig = await findProjectConfig({ log, path: garden.projectRoot })
-
-      // Fail if this is not run within a garden project
-      if (!projectConfig) {
-        throw new ConfigurationError({
-          message: `Not a project directory (or any of the parent directories): ${garden.projectRoot}`,
-        })
-      }
-    }
-
-    const cloudDomain: string | undefined = getGardenCloudDomain(projectConfig?.domain)
-
-    const distroName = getCloudDistributionName(cloudDomain)
+    const cloudDomain = getCloudDomain(projectConfigDomain)
+    const globalConfigStore = garden.globalConfigStore
+    const gardenBackend = gardenBackendFactory({ cloudDomain })
 
     try {
-      // The Enterprise API is missing from the Garden class for commands with noProject
-      // so we initialize it here.
-
-      const token = await garden.globalConfigStore.get("clientAuthTokens", cloudDomain)
-
-      if (!token) {
+      const clientAuthToken = await getStoredAuthToken(log, globalConfigStore, cloudDomain)
+      if (!clientAuthToken) {
         log.info({ msg: `You're already logged out from ${cloudDomain}.` })
         return {}
       }
 
-      const cloudApi = await GardenCloudApi.factory({
-        log,
-        cloudDomain,
-        skipLogging: true,
-        globalConfigStore: garden.globalConfigStore,
-      })
-
-      if (!cloudApi) {
-        return {}
-      }
-
-      await cloudApi.post("token/logout", { headers: { Cookie: `rt=${token?.refreshToken}` } })
-      cloudApi.close()
+      await gardenBackend.revokeToken({ clientAuthToken, globalConfigStore, log })
     } catch (err) {
       const msg = dedent`
-      The following issue occurred while logging out from ${distroName} (your session will be cleared regardless): ${err}\n
+      The following issue occurred while logging out from ${cloudDomain} (your session will be cleared regardless): ${err}\n
       `
       log.warn(msg)
     } finally {
-      await clearAuthToken(log, garden.globalConfigStore, cloudDomain)
+      await clearAuthToken(log, globalConfigStore, cloudDomain)
       log.success(`Successfully logged out from ${cloudDomain}.`)
     }
+
     return {}
   }
 }

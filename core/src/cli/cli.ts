@@ -38,12 +38,7 @@ import {
 import type { ParameterObject, GlobalOptions, ParameterValues } from "./params.js"
 import { globalOptions, OUTPUT_RENDERERS } from "./params.js"
 import type { ProjectConfig } from "../config/project.js"
-import {
-  ERROR_LOG_FILENAME,
-  DEFAULT_GARDEN_DIR_NAME,
-  LOGS_DIR_NAME,
-  DEFAULT_GARDEN_CLOUD_DOMAIN,
-} from "../constants.js"
+import { ERROR_LOG_FILENAME, DEFAULT_GARDEN_DIR_NAME, LOGS_DIR_NAME } from "../constants.js"
 import { generateBasicDebugInfoReport } from "../commands/get/get-debug-info.js"
 import type { AnalyticsHandler } from "../analytics/analytics.js"
 import type { GardenPluginReference } from "../plugin/plugin.js"
@@ -62,6 +57,7 @@ import { wrapActiveSpan } from "../util/open-telemetry/spans.js"
 import { JsonFileWriter } from "../logger/writers/json-file-writer.js"
 import type minimist from "minimist"
 import { styles } from "../logger/styles.js"
+import { isGardenCommunityEdition } from "../cloud/util.js"
 
 const { pathExists } = fsExtra
 
@@ -291,7 +287,7 @@ ${renderCommands(commands)}
             garden,
             log,
             isLoggedIn: garden.isLoggedIn(),
-            isCommunityEdition: garden.cloudDomain === DEFAULT_GARDEN_CLOUD_DOMAIN,
+            isCommunityEdition: isGardenCommunityEdition(garden.cloudDomain),
           })
 
           gardenLog.info(`Running in environment ${styles.highlight(`${garden.environmentName}.${garden.namespace}`)}`)

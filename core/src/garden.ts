@@ -77,7 +77,6 @@ import {
   gardenEnv,
   SUPPORTED_ARCHITECTURES,
   GardenApiVersion,
-  DEFAULT_GARDEN_CLOUD_DOMAIN,
 } from "./constants.js"
 import type { Log } from "./logger/log-entry.js"
 import { EventBus } from "./events/events.js"
@@ -118,7 +117,7 @@ import {
   RemoteSourceConfigContext,
   TemplatableConfigContext,
 } from "./config/template-contexts/project.js"
-import type { CloudProject, CloudApiFactory } from "./cloud/api.js"
+import type { CloudProject, GardenCloudApiFactory } from "./cloud/api.js"
 import { GardenCloudApi, CloudApiTokenRefreshError } from "./cloud/api.js"
 import { OutputConfigContext } from "./config/template-contexts/module.js"
 import { ProviderConfigContext } from "./config/template-contexts/provider.js"
@@ -167,7 +166,12 @@ import { styles } from "./logger/styles.js"
 import { renderDuration } from "./logger/util.js"
 import { makeDocsLinkStyled } from "./docs/common.js"
 import { getPathInfo } from "./vcs/git.js"
-import { getCloudDistributionName, getCloudLogSectionName, getGardenCloudDomain } from "./cloud/util.js"
+import {
+  getCloudDistributionName,
+  getCloudLogSectionName,
+  getGardenCloudDomain,
+  isGardenCommunityEdition,
+} from "./cloud/util.js"
 
 const defaultLocalAddress = "localhost"
 
@@ -192,14 +196,15 @@ export interface GardenOpts {
   sessionId?: string
   variableOverrides?: PrimitiveMap
   // used in tests
-  overrideCloudApiFactory?: CloudApiFactory
+  overrideCloudApiFactory?: GardenCloudApiFactory
 }
 
 export interface GardenParams {
   artifactsPath: string
   vcsInfo: VcsInfo
   projectId?: string
-  cloudDomain?: string
+  cloudApi?: GardenCloudApi
+  cloudDomain: string
   dotIgnoreFile: string
   proxy: ProxyConfig
   environmentName: string
@@ -217,6 +222,7 @@ export interface GardenParams {
   outputs: OutputSpec[]
   plugins: RegisterPluginParam[]
   production: boolean
+  projectApiVersion: ProjectConfig["apiVersion"]
   projectConfig: ProjectConfig
   projectName: string
   projectRoot: string
@@ -229,8 +235,6 @@ export interface GardenParams {
   username: string | undefined
   workingCopyId: string
   forceRefresh?: boolean
-  cloudApi?: GardenCloudApi
-  projectApiVersion: ProjectConfig["apiVersion"]
 }
 
 interface GardenInstanceState {
@@ -252,8 +256,8 @@ interface ResolveProviderParams {
 }
 
 type GardenType = typeof Garden.prototype
-// TODO: add more fields that are known to dbe defined when logged in to Cloud
-export type LoggedInGarden = GardenType & Required<Pick<GardenType, "cloudApi" | "cloudDomain">>
+// TODO: add more fields that are known to be defined when logged in to Cloud
+export type LoggedInGarden = GardenType & Required<Pick<GardenType, "cloudApi">>
 
 @Profile()
 export class Garden {
@@ -277,7 +281,7 @@ export class Garden {
   private readonly solver: GraphSolver
   private asyncLock: AsyncLock
   public readonly projectId?: string
-  public readonly cloudDomain?: string
+  public readonly cloudDomain: string
   public sessionId: string
   public readonly localConfigStore: LocalConfigStore
   public globalConfigStore: GlobalConfigStore
@@ -1977,7 +1981,7 @@ async function initCloudApi({
 }: {
   globalConfigStore: GlobalConfigStore
   projectConfig: ProjectConfig | undefined
-  cloudApiFactory: CloudApiFactory
+  cloudApiFactory: GardenCloudApiFactory
   log: Log
 }): Promise<GardenCloudApi | undefined> {
   const cloudDomain = getGardenCloudDomain(projectConfig?.domain)
@@ -2195,7 +2199,7 @@ async function prepareCloud({
   commandName: string
 }) {
   const cloudDomain = cloudApi?.domain || getGardenCloudDomain(config.domain)
-  const isCommunityEdition = cloudDomain === DEFAULT_GARDEN_CLOUD_DOMAIN
+  const isCommunityEdition = isGardenCommunityEdition(cloudDomain)
   const distroName = getCloudDistributionName(cloudDomain)
   const debugLevelCommands = ["dev", "serve", "exit", "quit"]
   const cloudLogLevel = debugLevelCommands.includes(commandName) ? LogLevel.debug : undefined
@@ -2276,7 +2280,7 @@ async function getCloudProject({
     const msg = wordWrap(
       deline`
         Invalid field 'id' found in project configuration at path ${projectRoot}. The 'id'
-        field should only be set if using a commerical edition of Garden. Please remove to continue
+        field should only be set if using a commercial edition of Garden. Please remove to continue
         using the Garden community edition.
       `,
       120

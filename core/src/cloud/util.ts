@@ -6,8 +6,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 import { DEFAULT_GARDEN_CLOUD_DOMAIN, gardenEnv } from "../constants.js"
+import type { GrowCloudDistroName, GrowCloudLogSectionName } from "./grow/util.js"
+import { getGrowCloudDomain } from "./grow/util.js"
+import { getGrowCloudDistributionName, getGrowCloudLogSectionName } from "./grow/util.js"
+import { InternalError } from "../exceptions.js"
 
-export type CloudDistroName = "the Garden dashboard" | "Garden Enterprise" | "Garden Cloud"
+export type GardenCloudDistroName = "the Garden dashboard" | "Garden Enterprise" | "Garden Cloud"
+
+export type CloudDistroName = GardenCloudDistroName | GrowCloudDistroName
 
 /**
  * Returns "Garden Cloud" if domain matches https://<some-subdomain>.app.garden,
@@ -15,8 +21,8 @@ export type CloudDistroName = "the Garden dashboard" | "Garden Enterprise" | "Ga
  *
  * TODO: Return the distribution type from the API and store on the CloudApi class.
  */
-export function getCloudDistributionName(domain: string): CloudDistroName {
-  if (domain === DEFAULT_GARDEN_CLOUD_DOMAIN) {
+export function getGardenCloudDistributionName(domain: string): CloudDistroName {
+  if (isGardenCommunityEdition(domain)) {
     return "the Garden dashboard"
   }
 
@@ -28,7 +34,24 @@ export function getCloudDistributionName(domain: string): CloudDistroName {
   return "Garden Cloud"
 }
 
-export type CloudLogSectionName = "garden-dashboard" | "garden-cloud" | "garden-enterprise"
+/**
+ * Returns the name of the effective Cloud backend (either Grow or Garden).
+ */
+export function getCloudDistributionName(domain: string | undefined): CloudDistroName {
+  if (gardenEnv.USE_GARDEN_CLOUD_V2) {
+    return getGrowCloudDistributionName()
+  }
+
+  // FIXME: Remove this ugly hack.
+  //  Domain is required only for Garden Cloud, not for Grow Cloud.
+  if (domain === undefined) {
+    throw new InternalError({ message: "Cloud domain must be defined when using Garden Cloud." })
+  }
+  return getGardenCloudDistributionName(domain)
+}
+
+export type GardenCloudLogSectionName = "garden-dashboard" | "garden-cloud" | "garden-enterprise"
+export type CloudLogSectionName = GardenCloudLogSectionName | GrowCloudLogSectionName
 
 export function getCloudLogSectionName(distroName: CloudDistroName): CloudLogSectionName {
   if (distroName === "the Garden dashboard") {
@@ -37,6 +60,8 @@ export function getCloudLogSectionName(distroName: CloudDistroName): CloudLogSec
     return "garden-cloud"
   } else if (distroName === "Garden Enterprise") {
     return "garden-enterprise"
+  } else if (distroName === "Garden Cloud V2") {
+    return getGrowCloudLogSectionName()
   } else {
     return distroName satisfies never
   }
@@ -64,4 +89,20 @@ export function getGardenCloudDomain(configuredDomain: string | undefined): stri
   }
 
   return cloudDomain || DEFAULT_GARDEN_CLOUD_DOMAIN
+}
+
+/**
+ * Chooses between {@link getGardenCloudDomain} and {@link getGrowCloudDomain}
+ * depending on the `USE_GARDEN_CLOUD_V2` feature flag.
+ *
+ * To be used in login and logout commands for now.
+ * Later we should use the right Cloud domain insode the Garden instance
+ * and its CloudApi instance.
+ */
+export function getCloudDomain(configuredDomain: string | undefined): string {
+  return gardenEnv.USE_GARDEN_CLOUD_V2 ? getGrowCloudDomain(configuredDomain) : getGardenCloudDomain(configuredDomain)
+}
+
+export function isGardenCommunityEdition(cloudDomain: string): boolean {
+  return cloudDomain === DEFAULT_GARDEN_CLOUD_DOMAIN
 }

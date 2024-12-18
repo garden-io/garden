@@ -45,6 +45,7 @@ import queryString from "query-string"
 import type { ApiFetchOptions } from "./http-client.js"
 import { GardenCloudHttpClient } from "./http-client.js"
 import { getCloudDistributionName, getCloudLogSectionName } from "./util.js"
+import type { GrowCloudApiFactory } from "./grow/api.js"
 
 export class CloudApiDuplicateProjectsError extends CloudApiError {}
 
@@ -142,9 +143,11 @@ export interface CloudApiFactoryParams {
   skipLogging?: boolean
 }
 
-export type CloudApiFactory = (params: CloudApiFactoryParams) => Promise<GardenCloudApi | undefined>
+export type GardenCloudApiFactory = (params: CloudApiFactoryParams) => Promise<GardenCloudApi | undefined>
 
-export type GardenCloudApiParams = { log: Log; domain: string; globalConfigStore: GlobalConfigStore }
+export type CloudApiFactory = GardenCloudApiFactory | GrowCloudApiFactory
+
+export type CloudApiParams = { log: Log; domain: string; globalConfigStore: GlobalConfigStore }
 
 /**
  * The Garden Cloud / Enterprise API client.
@@ -166,7 +169,7 @@ export class GardenCloudApi {
   public readonly distroName: string
   private readonly globalConfigStore: GlobalConfigStore
 
-  constructor(params: GardenCloudApiParams) {
+  constructor(params: CloudApiParams) {
     const { log, domain, globalConfigStore } = params
     this.log = log
     this.httpClient = new GardenCloudHttpClient(params)
@@ -187,10 +190,22 @@ export class GardenCloudApi {
    * Optionally skip logging during initialization. Useful for noProject commands that need to use the class
    * without all the "flair".
    */
-  static async factory({ log, cloudDomain, globalConfigStore, skipLogging = false }: CloudApiFactoryParams) {
+  static async factory({
+    log,
+    cloudDomain,
+    globalConfigStore,
+    skipLogging = false,
+  }: CloudApiFactoryParams): Promise<GardenCloudApi | undefined> {
     const distroName = getCloudDistributionName(cloudDomain)
-    const token = await getStoredAuthToken(log, globalConfigStore, cloudDomain)
+    const cloudLogSectionName = getCloudLogSectionName(distroName)
+    const fixLevel = skipLogging ? LogLevel.silly : undefined
+    const cloudFactoryLog = log.createLog({ fixLevel, name: cloudLogSectionName, showDuration: true })
+    const cloudLog = log.createLog({ name: cloudLogSectionName })
+    const successMsg = "Successfully authorized"
 
+    cloudFactoryLog.info("Authorizing...")
+
+    const token = await getStoredAuthToken(log, globalConfigStore, cloudDomain)
     if (!token && !gardenEnv.GARDEN_AUTH_TOKEN) {
       log.debug(
         `No auth token found, proceeding without access to ${distroName}. Command results for this command run will not be available in ${distroName}.`
@@ -198,17 +213,13 @@ export class GardenCloudApi {
       return undefined
     }
 
-    const fixLevel = skipLogging ? LogLevel.silly : undefined
-    const cloudFactoryLog = log.createLog({ fixLevel, name: getCloudLogSectionName(distroName), showDuration: true })
-
-    cloudFactoryLog.debug("Initializing Garden Cloud API client.")
-
-    const api = new GardenCloudApi({ log, domain: cloudDomain, globalConfigStore })
+    const api = new GardenCloudApi({ log: cloudLog, domain: cloudDomain, globalConfigStore })
     const tokenIsValid = await api.checkClientAuthToken()
 
-    cloudFactoryLog.debug("Authorizing...")
+    cloudFactoryLog.info("Authorizing...")
 
     if (gardenEnv.GARDEN_AUTH_TOKEN) {
+      log.silly(() => "Using auth token from GARDEN_AUTH_TOKEN env var")
       // Throw if using an invalid "CI" access token
       if (!tokenIsValid) {
         throw new CloudApiError({
@@ -223,7 +234,7 @@ export class GardenCloudApi {
       if (!tokenIsValid) {
         cloudFactoryLog.debug({ msg: `Current auth token is invalid, refreshing` })
 
-        // We can assert the token exists since we're not using GARDEN_AUTH_TOKEN
+        // We can assert the token exists since we're not using `GARDEN_AUTH_TOKEN`
         await api.refreshToken(token!)
       }
 
@@ -232,6 +243,7 @@ export class GardenCloudApi {
       api.startInterval()
     }
 
+    cloudFactoryLog.success(successMsg)
     return api
   }
 
@@ -249,6 +261,57 @@ export class GardenCloudApi {
     if (this.intervalId) {
       clearInterval(this.intervalId)
       this.intervalId = null
+    }
+  }
+
+  private async refreshTokenIfExpired() {
+    const token = await this.globalConfigStore.get("clientAuthTokens", this.domain)
+
+    if (!token || gardenEnv.GARDEN_AUTH_TOKEN) {
+      this.log.debug({ msg: "Nothing to refresh, returning." })
+      return
+    }
+
+    // Note: lazy-loading for startup performance
+    const { sub, isAfter } = await import("date-fns")
+
+    if (isAfter(new Date(), sub(token.validity, { seconds: refreshThreshold }))) {
+      await this.refreshToken(token)
+    }
+  }
+
+  private async refreshToken(token: ClientAuthToken) {
+    try {
+      const res = await this.get<any>("token/refresh", { headers: { Cookie: `rt=${token?.refreshToken}` } })
+
+      let cookies: any
+      if (res.headers["set-cookie"] instanceof Array) {
+        cookies = res.headers["set-cookie"].map((cookieStr) => {
+          return Cookie.parse(cookieStr)
+        })
+      } else {
+        cookies = [Cookie.parse(res.headers["set-cookie"] || "")]
+      }
+
+      const rt = cookies.find((cookie: any) => cookie?.key === "rt")
+      const tokenObj = {
+        token: res.data.jwt,
+        refreshToken: rt.value || "",
+        tokenValidity: res.data.jwtValidity,
+      }
+      await saveAuthToken(this.log, this.globalConfigStore, tokenObj, this.domain)
+    } catch (err) {
+      if (!(err instanceof GotHttpError)) {
+        throw err
+      }
+
+      this.log.debug({ msg: `Failed to refresh the token.` })
+      throw new CloudApiTokenRefreshError({
+        message: `An error occurred while verifying client auth token with ${getCloudDistributionName(this.domain)}: ${
+          err.message
+        }. Response status code: ${err.response.statusCode}`,
+        responseStatusCode: err.response.statusCode,
+      })
     }
   }
 
@@ -318,57 +381,6 @@ export class GardenCloudApi {
     }
 
     return project
-  }
-
-  private async refreshTokenIfExpired() {
-    const token = await this.globalConfigStore.get("clientAuthTokens", this.domain)
-
-    if (!token || gardenEnv.GARDEN_AUTH_TOKEN) {
-      this.log.debug({ msg: "Nothing to refresh, returning." })
-      return
-    }
-
-    // Note: lazy-loading for startup performance
-    const { sub, isAfter } = await import("date-fns")
-
-    if (isAfter(new Date(), sub(token.validity, { seconds: refreshThreshold }))) {
-      await this.refreshToken(token)
-    }
-  }
-
-  private async refreshToken(token: ClientAuthToken) {
-    try {
-      const res = await this.get<any>("token/refresh", { headers: { Cookie: `rt=${token?.refreshToken}` } })
-
-      let cookies: any
-      if (res.headers["set-cookie"] instanceof Array) {
-        cookies = res.headers["set-cookie"].map((cookieStr) => {
-          return Cookie.parse(cookieStr)
-        })
-      } else {
-        cookies = [Cookie.parse(res.headers["set-cookie"] || "")]
-      }
-
-      const rt = cookies.find((cookie: any) => cookie?.key === "rt")
-      const tokenObj = {
-        token: res.data.jwt,
-        refreshToken: rt.value || "",
-        tokenValidity: res.data.jwtValidity,
-      }
-      await saveAuthToken(this.log, this.globalConfigStore, tokenObj, this.domain)
-    } catch (err) {
-      if (!(err instanceof GotHttpError)) {
-        throw err
-      }
-
-      this.log.debug({ msg: `Failed to refresh the token.` })
-      throw new CloudApiTokenRefreshError({
-        message: `An error occurred while verifying client auth token with ${getCloudDistributionName(this.domain)}: ${
-          err.message
-        }. Response status code: ${err.response.statusCode}`,
-        responseStatusCode: err.response.statusCode,
-      })
-    }
   }
 
   async get<T>(path: string, opts: ApiFetchOptions = {}) {

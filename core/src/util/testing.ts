@@ -56,7 +56,7 @@ import { createReadStream, createWriteStream } from "fs"
 import got from "got"
 import { createHash } from "node:crypto"
 import { pipeline } from "node:stream/promises"
-import type { CloudApiFactory } from "../cloud/api.js"
+import type { GardenCloudApiFactory } from "../cloud/api.js"
 
 export class TestError extends GardenError {
   type = "_test"
@@ -175,7 +175,7 @@ export type TestGardenOpts = Partial<GardenOpts> & {
   remoteContainerAuth?: boolean
   clearConfigsOnScan?: boolean
   gitScanMode?: GitScanMode
-  overrideCloudApiFactory?: CloudApiFactory
+  overrideCloudApiFactory?: GardenCloudApiFactory
 }
 
 export class TestGarden extends Garden {

@@ -16,7 +16,7 @@ import { LoginCommand } from "../../../../src/commands/login.js"
 import { randomString } from "../../../../src/util/string.js"
 import { GardenCloudApi } from "../../../../src/cloud/api.js"
 import { LogLevel } from "../../../../src/logger/logger.js"
-import { DEFAULT_GARDEN_CLOUD_DOMAIN, gardenEnv } from "../../../../src/constants.js"
+import { gardenEnv } from "../../../../src/constants.js"
 import { getLogMessages } from "../../../../src/util/testing.js"
 import { GlobalConfigStore } from "../../../../src/config-store/global.js"
 import { makeDummyGarden } from "../../../../src/garden.js"
@@ -185,7 +185,7 @@ describe("LoginCommand", () => {
 
     await command.action(loginCommandParams({ garden }))
 
-    const savedToken = await getStoredAuthToken(garden.log, garden.globalConfigStore, DEFAULT_GARDEN_CLOUD_DOMAIN)
+    const savedToken = await getStoredAuthToken(garden.log, garden.globalConfigStore, garden.cloudDomain)
 
     expect(savedToken).to.exist
     expect(savedToken!.token).to.eql(testToken.token)
