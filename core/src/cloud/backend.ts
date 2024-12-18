@@ -145,6 +145,6 @@ export class GrowCloudBackend extends AbstractGardenBackend {
 }
 
 export function gardenBackendFactory(config: GardenBackendConfig) {
-  const gardenBackendClass = gardenEnv.USE_GROW_CLOUD ? GrowCloudBackend : GardenCloudBackend
+  const gardenBackendClass = gardenEnv.USE_GARDEN_CLOUD_V2 ? GrowCloudBackend : GardenCloudBackend
   return new gardenBackendClass(config)
 }

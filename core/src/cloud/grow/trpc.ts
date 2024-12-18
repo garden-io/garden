@@ -22,7 +22,7 @@ const errorMetaSchema = z.object({ response: z.object({ status: z.number() }) })
 type ErrorMeta = z.infer<typeof errorMetaSchema>
 
 class GrowCloudError extends GardenError implements TRPCClientErrorBase<never> {
-  readonly type = "grow-cloud-error"
+  readonly type = "garden-cloud-v2-error"
   readonly meta: ErrorMeta | undefined
   override readonly cause: TRPCClientError<never>
   readonly shape = undefined as never
@@ -49,7 +49,7 @@ export type RouterInput = inferRouterInputs<AppRouter>
 export const errorLogger: TRPCLink<AppRouter> = () => {
   return ({ next, op }) => {
     return observable((observer) => {
-      const log = getRootLogger().createLog({ name: getCloudLogSectionName("Grow Cloud"), origin: "trpc" })
+      const log = getRootLogger().createLog({ name: getCloudLogSectionName("Garden Cloud V2"), origin: "trpc" })
       log.debug(`tRPC ${op.type}: ${op.path}`)
       const unsubscribe = next(op).subscribe({
         next(value) {

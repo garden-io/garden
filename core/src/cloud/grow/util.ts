@@ -8,16 +8,16 @@
 
 import { DEFAULT_GROW_CLOUD_DOMAIN, gardenEnv } from "../../constants.js"
 
-export type GrowCloudDistroName = "Grow Cloud"
+export type GrowCloudDistroName = "Garden Cloud V2"
 
 export function getGrowCloudDistributionName(): GrowCloudDistroName {
-  return "Grow Cloud"
+  return "Garden Cloud V2"
 }
 
-export type GrowCloudLogSectionName = "grow-cloud"
+export type GrowCloudLogSectionName = "garden-cloud-v2"
 
 export function getGrowCloudLogSectionName(): GrowCloudLogSectionName {
-  return "grow-cloud"
+  return "garden-cloud-v2"
 }
 
 export function getGrowCloudDomain(configuredDomain: string | undefined): string {

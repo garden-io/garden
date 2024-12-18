@@ -38,7 +38,7 @@ export function getGardenCloudDistributionName(domain: string): CloudDistroName 
  * Returns the name of the effective Cloud backend (either Grow or Garden).
  */
 export function getCloudDistributionName(domain: string | undefined): CloudDistroName {
-  if (gardenEnv.USE_GROW_CLOUD) {
+  if (gardenEnv.USE_GARDEN_CLOUD_V2) {
     return getGrowCloudDistributionName()
   }
 
@@ -60,7 +60,7 @@ export function getCloudLogSectionName(distroName: CloudDistroName): CloudLogSec
     return "garden-cloud"
   } else if (distroName === "Garden Enterprise") {
     return "garden-enterprise"
-  } else if (distroName === "Grow Cloud") {
+  } else if (distroName === "Garden Cloud V2") {
     return getGrowCloudLogSectionName()
   } else {
     return distroName satisfies never
@@ -93,14 +93,14 @@ export function getGardenCloudDomain(configuredDomain: string | undefined): stri
 
 /**
  * Chooses between {@link getGardenCloudDomain} and {@link getGrowCloudDomain}
- * depending on the `USE_GROW_CLOUD` feature flag.
+ * depending on the `USE_GARDEN_CLOUD_V2` feature flag.
  *
  * To be used in login and logout commands for now.
  * Later we should use the right Cloud domain insode the Garden instance
  * and its CloudApi instance.
  */
 export function getCloudDomain(configuredDomain: string | undefined): string {
-  return gardenEnv.USE_GROW_CLOUD ? getGrowCloudDomain(configuredDomain) : getGardenCloudDomain(configuredDomain)
+  return gardenEnv.USE_GARDEN_CLOUD_V2 ? getGrowCloudDomain(configuredDomain) : getGardenCloudDomain(configuredDomain)
 }
 
 export function isGardenCommunityEdition(cloudDomain: string): boolean {
