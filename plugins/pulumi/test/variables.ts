@@ -18,7 +18,7 @@ import { getPulumiCommands } from "../src/commands.js"
 import type { ResolvedConfigGraph } from "@garden-io/core/build/src/graph/config-graph.js"
 import { fileURLToPath } from "node:url"
 import { ensureNodeModules } from "./test-helpers.js"
-import { loadYamlFile } from "@garden-io/core/src/util/serialization.js"
+import { loadYamlFile } from "@garden-io/core/build/src/util/serialization.js"
 
 const moduleDirName = dirname(fileURLToPath(import.meta.url))
 
