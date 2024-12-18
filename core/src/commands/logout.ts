@@ -64,9 +64,6 @@ export class LogOutCommand extends Command<{}, Opts> {
     const globalConfigStore = garden.globalConfigStore
 
     try {
-      // The Enterprise API is missing from the Garden class for commands with noProject
-      // so we initialize it here.
-
       const token = await globalConfigStore.get("clientAuthTokens", cloudDomain)
 
       if (!token) {
@@ -74,6 +71,8 @@ export class LogOutCommand extends Command<{}, Opts> {
         return {}
       }
 
+      // The Enterprise API is missing from the Garden class for commands with noProject
+      // so we initialize it here.
       const cloudApi = await GardenCloudApi.factory({
         log,
         cloudDomain,
