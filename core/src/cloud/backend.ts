@@ -17,6 +17,7 @@ import { GrowCloudApi } from "./grow/api.js"
 import { gardenEnv } from "../constants.js"
 import type { ClientAuthToken, GlobalConfigStore } from "../config-store/global.js"
 import type { Log } from "../logger/log-entry.js"
+import { getNonAuthenticatedApiClient } from "./grow/trpc.js"
 
 function getFirstValue(v: string | string[]) {
   return isArray(v) ? v[0] : v
@@ -38,6 +39,8 @@ export interface GardenBackend {
   cloudApiFactory: CloudApiFactory
 
   getAuthRedirectConfig(): AuthRedirectConfig
+
+  revokeToken(params: RevokeAuthTokenParams): Promise<void>
 }
 
 export abstract class AbstractGardenBackend implements GardenBackend {
@@ -54,6 +57,8 @@ export abstract class AbstractGardenBackend implements GardenBackend {
   abstract get cloudApiFactory(): CloudApiFactory
 
   abstract getAuthRedirectConfig(): AuthRedirectConfig
+
+  abstract revokeToken(params: RevokeAuthTokenParams): Promise<void>
 }
 
 export class GardenCloudBackend extends AbstractGardenBackend {
@@ -74,6 +79,30 @@ export class GardenCloudBackend extends AbstractGardenBackend {
           tokenValidity: parseInt(getFirstValue(jwtval!), 10),
         }
       },
+    }
+  }
+
+  async revokeToken({ clientAuthToken, cloudDomain, globalConfigStore, log }: RevokeAuthTokenParams): Promise<void> {
+    // NOTE: The Cloud API is missing from the `Garden` class for commands
+    // with `noProject = true` so we initialize it here.
+    const cloudApi = await this.cloudApiFactory({
+      log,
+      cloudDomain,
+      skipLogging: true,
+      globalConfigStore,
+    })
+
+    if (!cloudApi) {
+      return
+    }
+
+    try {
+      await cloudApi.post("token/logout", { headers: { Cookie: `rt=${clientAuthToken?.refreshToken}` } })
+    } catch (err) {
+      log.debug({ msg: "Failed to revoke token; it was either invalid or already expired." })
+      throw err
+    } finally {
+      cloudApi.close()
     }
   }
 }
@@ -109,6 +138,17 @@ export class GrowCloudBackend extends AbstractGardenBackend {
           tokenValidity: token.data.tokenValidity,
         }
       },
+    }
+  }
+
+  async revokeToken({ clientAuthToken, cloudDomain, log }: RevokeAuthTokenParams): Promise<void> {
+    try {
+      await getNonAuthenticatedApiClient({ hostUrl: cloudDomain }).token.revokeToken.mutate({
+        token: clientAuthToken.token,
+      })
+    } catch (err) {
+      log.debug({ msg: "Failed to revoke token; it was either invalid or already expired." })
+      throw err
     }
   }
 }

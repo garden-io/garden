@@ -9,13 +9,12 @@
 import type { CommandParams, CommandResult } from "./base.js"
 import { Command } from "./base.js"
 import { printHeader } from "../logger/util.js"
-import { GardenCloudApi } from "../cloud/api.js"
 import { dedent, deline } from "../util/string.js"
 import { BooleanParameter } from "../cli/params.js"
 import { clearAuthToken, getStoredAuthToken } from "../cloud/auth.js"
 import { getCloudDomain } from "../cloud/util.js"
 import { deriveCloudDomainForNoProjectCommand } from "./util/no-project.js"
-import type { RevokeAuthTokenParams } from "../cloud/backend.js"
+import { gardenBackendFactory } from "../cloud/backend.js"
 
 export const logoutOpts = {
   "disable-project-check": new BooleanParameter({
@@ -50,6 +49,7 @@ export class LogOutCommand extends Command<{}, Opts> {
 
     const cloudDomain = getCloudDomain(projectConfigDomain)
     const globalConfigStore = garden.globalConfigStore
+    const gardenBackend = gardenBackendFactory({ cloudDomain })
 
     try {
       const clientAuthToken = await getStoredAuthToken(log, globalConfigStore, cloudDomain)
@@ -58,7 +58,7 @@ export class LogOutCommand extends Command<{}, Opts> {
         return {}
       }
 
-      await revokeToken({ clientAuthToken, cloudDomain, globalConfigStore, log })
+      await gardenBackend.revokeToken({ clientAuthToken, cloudDomain, globalConfigStore, log })
     } catch (err) {
       const msg = dedent`
       The following issue occurred while logging out from ${cloudDomain} (your session will be cleared regardless): ${err}\n
@@ -70,34 +70,5 @@ export class LogOutCommand extends Command<{}, Opts> {
     }
 
     return {}
-  }
-}
-
-async function revokeToken({
-  clientAuthToken,
-  cloudDomain,
-  globalConfigStore,
-  log,
-}: RevokeAuthTokenParams): Promise<void> {
-  // NOTE: The Cloud API is missing from the `Garden` class for commands
-  // with `noProject = true` so we initialize it here.
-  const cloudApi = await GardenCloudApi.factory({
-    log,
-    cloudDomain,
-    skipLogging: true,
-    globalConfigStore,
-  })
-
-  if (!cloudApi) {
-    return
-  }
-
-  try {
-    await cloudApi.post("token/logout", { headers: { Cookie: `rt=${clientAuthToken?.refreshToken}` } })
-  } catch (err) {
-    log.debug({ msg: "Failed to revoke token; it was either invalid or already expired." })
-    throw err
-  } finally {
-    cloudApi.close()
   }
 }

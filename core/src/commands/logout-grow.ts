@@ -9,12 +9,11 @@
 import { Command, type CommandParams, type CommandResult } from "./base.js"
 import { printHeader } from "../logger/util.js"
 import { clearAuthToken, getStoredAuthToken } from "../cloud/auth.js"
-import { getNonAuthenticatedApiClient } from "../cloud/grow/trpc.js"
 import { BooleanParameter } from "../cli/params.js"
 import { dedent, deline } from "../util/string.js"
 import { getCloudDomain } from "../cloud/util.js"
 import { deriveCloudDomainForNoProjectCommand } from "./util/no-project.js"
-import type { RevokeAuthTokenParams } from "../cloud/backend.js"
+import { gardenBackendFactory } from "../cloud/backend.js"
 
 export const logoutOpts = {
   "disable-project-check": new BooleanParameter({
@@ -49,6 +48,7 @@ export class LogOutCommand extends Command<{}, Opts> {
 
     const cloudDomain = getCloudDomain(projectConfigDomain)
     const globalConfigStore = garden.globalConfigStore
+    const gardenBackend = gardenBackendFactory({ cloudDomain })
 
     try {
       const clientAuthToken = await getStoredAuthToken(log, globalConfigStore, cloudDomain)
@@ -57,7 +57,7 @@ export class LogOutCommand extends Command<{}, Opts> {
         return {}
       }
 
-      await revokeToken({ clientAuthToken, cloudDomain, globalConfigStore, log })
+      await gardenBackend.revokeToken({ clientAuthToken, cloudDomain, globalConfigStore, log })
     } catch (err) {
       const msg = dedent`
       The following issue occurred while logging out from ${cloudDomain} (your session will be cleared regardless): ${err}\n
@@ -69,16 +69,5 @@ export class LogOutCommand extends Command<{}, Opts> {
     }
 
     return {}
-  }
-}
-
-async function revokeToken({ clientAuthToken, cloudDomain, log }: RevokeAuthTokenParams): Promise<void> {
-  try {
-    await getNonAuthenticatedApiClient({ hostUrl: cloudDomain }).token.revokeToken.mutate({
-      token: clientAuthToken.token,
-    })
-  } catch (err) {
-    log.debug({ msg: "Failed to revoke token; it was either invalid or already expired." })
-    throw err
   }
 }
