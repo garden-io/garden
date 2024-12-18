@@ -69,7 +69,7 @@ describe("pulumi action variables and varfiles", () => {
         force: false,
       })
       const configFile = await loadYamlFile(join(nsActionRoot, "Pulumi.local.yaml"))
-      expect(configFile.config).to.eql({
+      expect(configFile).to.eql({
         config: {
           "pulumi-k8s-test:orgName": "gordon-garden-bot",
           "pulumi-k8s-test:namespace": "pulumi-test",
@@ -88,7 +88,7 @@ describe("pulumi action variables and varfiles", () => {
         force: false,
       })
       const configFile = await loadYamlFile(join(nsNewActionRoot, "Pulumi.local.yaml"))
-      expect(configFile.config).to.eql({
+      expect(configFile).to.eql({
         test: "foo",
         config: {
           "pulumi-k8s-test:orgName": "gordon-garden-bot",
