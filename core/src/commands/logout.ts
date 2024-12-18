@@ -12,7 +12,7 @@ import { printHeader } from "../logger/util.js"
 import { GardenCloudApi } from "../cloud/api.js"
 import { dedent, deline } from "../util/string.js"
 import { BooleanParameter } from "../cli/params.js"
-import { clearAuthToken } from "../cloud/auth.js"
+import { clearAuthToken, getStoredAuthToken } from "../cloud/auth.js"
 import { getCloudDomain } from "../cloud/util.js"
 import { deriveCloudDomainForNoProjectCommand } from "./util/no-project.js"
 
@@ -51,8 +51,7 @@ export class LogOutCommand extends Command<{}, Opts> {
     const globalConfigStore = garden.globalConfigStore
 
     try {
-      const token = await globalConfigStore.get("clientAuthTokens", cloudDomain)
-
+      const token = await getStoredAuthToken(log, globalConfigStore, cloudDomain)
       if (!token) {
         log.info({ msg: `You're already logged out from ${cloudDomain}.` })
         return {}
@@ -82,6 +81,7 @@ export class LogOutCommand extends Command<{}, Opts> {
       await clearAuthToken(log, globalConfigStore, cloudDomain)
       log.success(`Successfully logged out from ${cloudDomain}.`)
     }
+
     return {}
   }
 }
