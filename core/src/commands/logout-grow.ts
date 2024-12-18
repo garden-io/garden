@@ -63,13 +63,16 @@ export class LogOutCommand extends Command<{}, Opts> {
     const globalConfigStore = garden.globalConfigStore
 
     const token = await getAuthToken(log, globalConfigStore, cloudDomain)
-    if (token) {
-      await clearAuthToken(log, globalConfigStore, cloudDomain)
-      try {
-        await apiClient.token.revokeToken.mutate({ token })
-      } catch (_error) {
-        log.debug({ msg: "Failed to revoke token; it was either invalid or already expired." })
-      }
+    if (!token) {
+      log.info({ msg: `You're already logged out from ${cloudDomain}.` })
+      return {}
+    }
+
+    await clearAuthToken(log, globalConfigStore, cloudDomain)
+    try {
+      await apiClient.token.revokeToken.mutate({ token })
+    } catch (_error) {
+      log.debug({ msg: "Failed to revoke token; it was either invalid or already expired." })
     }
     return {}
   }
