@@ -256,8 +256,8 @@ interface ResolveProviderParams {
 }
 
 type GardenType = typeof Garden.prototype
-// TODO: add more fields that are known to dbe defined when logged in to Cloud
-export type LoggedInGarden = GardenType & Required<Pick<GardenType, "cloudApi" | "cloudDomain">>
+// TODO: add more fields that are known to be defined when logged in to Cloud
+export type LoggedInGarden = GardenType & Required<Pick<GardenType, "cloudApi">>
 
 @Profile()
 export class Garden {
