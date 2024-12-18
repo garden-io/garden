@@ -51,14 +51,24 @@ export class LogOutCommand extends Command<{}, Opts> {
     const cloudDomain = getCloudDomain(projectConfigDomain)
     const globalConfigStore = garden.globalConfigStore
 
-    const clientAuthToken = await getStoredAuthToken(log, globalConfigStore, cloudDomain)
-    if (!clientAuthToken) {
-      log.info({ msg: `You're already logged out from ${cloudDomain}.` })
-      return {}
+    try {
+      const clientAuthToken = await getStoredAuthToken(log, globalConfigStore, cloudDomain)
+      if (!clientAuthToken) {
+        log.info({ msg: `You're already logged out from ${cloudDomain}.` })
+        return {}
+      }
+
+      await revokeToken({ clientAuthToken, cloudDomain, log })
+    } catch (err) {
+      const msg = dedent`
+      The following issue occurred while logging out from ${cloudDomain} (your session will be cleared regardless): ${err}\n
+      `
+      log.warn(msg)
+    } finally {
+      await clearAuthToken(log, globalConfigStore, cloudDomain)
+      log.success(`Successfully logged out from ${cloudDomain}.`)
     }
 
-    await clearAuthToken(log, globalConfigStore, cloudDomain)
-    await revokeToken({ clientAuthToken, cloudDomain, log })
     return {}
   }
 }
@@ -76,7 +86,8 @@ async function revokeToken({
     await getNonAuthenticatedApiClient({ hostUrl: cloudDomain }).token.revokeToken.mutate({
       token: clientAuthToken.token,
     })
-  } catch (_error) {
+  } catch (err) {
     log.debug({ msg: "Failed to revoke token; it was either invalid or already expired." })
+    throw err
   }
 }

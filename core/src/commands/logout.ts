@@ -100,6 +100,9 @@ async function revokeToken({
 
   try {
     await cloudApi.post("token/logout", { headers: { Cookie: `rt=${clientAuthToken?.refreshToken}` } })
+  } catch (err) {
+    log.debug({ msg: "Failed to revoke token; it was either invalid or already expired." })
+    throw err
   } finally {
     cloudApi.close()
   }
