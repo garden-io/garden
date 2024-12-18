@@ -76,6 +76,9 @@ describe("pulumi action variables and varfiles", () => {
           "pulumi-k8s-test:appName": "api-pulumi-variables-override",
           "pulumi-k8s-test:isMinikube": "true",
         },
+        backend: {
+          url: "https://api.pulumi.com",
+        },
       })
     })
     it("uses a varfile with the new schema and merges varfiles and action variables correctly", async () => {
@@ -95,6 +98,9 @@ describe("pulumi action variables and varfiles", () => {
           "pulumi-k8s-test:namespace": "pulumi-test",
           "pulumi-k8s-test:appName": "app-name-from-pulumi-varfile",
           "pulumi-k8s-test:isMinikube": "true",
+        },
+        backend: {
+          url: "https://api.pulumi.com",
         },
       })
     })
