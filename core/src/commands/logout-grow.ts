@@ -8,12 +8,14 @@
 
 import { Command, type CommandParams, type CommandResult } from "./base.js"
 import { printHeader } from "../logger/util.js"
-import { GlobalConfigStore } from "../config-store/global.js"
 import { clearAuthToken, getAuthToken } from "../cloud/auth.js"
 import { cloudApiOrigin } from "../cloud/grow/config.js"
 import { apiClient } from "../cloud/grow/trpc.js"
 import { BooleanParameter } from "../cli/params.js"
 import { dedent, deline } from "../util/string.js"
+import { ConfigurationError } from "../exceptions.js"
+import { findProjectConfig } from "../config/base.js"
+import type { ProjectConfig } from "../config/project.js"
 
 export const logoutOpts = {
   "disable-project-check": new BooleanParameter({
@@ -26,7 +28,7 @@ type Opts = typeof logoutOpts
 
 export class LogOutCommand extends Command<{}, Opts> {
   name = "logout-grow"
-  help = "Log out from Grow Cloud."
+  help = "Log out of Grow Cloud."
 
   override noProject = true
 
@@ -40,7 +42,25 @@ export class LogOutCommand extends Command<{}, Opts> {
   }
 
   async action({ garden, log, opts }: CommandParams): Promise<CommandResult> {
-    const globalConfigStore = new GlobalConfigStore()
+    // The Cloud API is missing from the Garden class for commands with noProject
+    // so we initialize it with a cloud domain derived from `getGardenCloudDomain`.
+
+    let projectConfig: ProjectConfig | undefined = undefined
+    const forceProjectCheck = !opts["disable-project-check"]
+
+    if (forceProjectCheck) {
+      projectConfig = await findProjectConfig({ log, path: garden.projectRoot })
+
+      // Fail if this is not run within a garden project
+      if (!projectConfig) {
+        throw new ConfigurationError({
+          message: `Not a project directory (or any of the parent directories): ${garden.projectRoot}`,
+        })
+      }
+    }
+
+    const globalConfigStore = garden.globalConfigStore
+
     const token = await getAuthToken(log, globalConfigStore, cloudApiOrigin)
     if (token) {
       await clearAuthToken(log, globalConfigStore, cloudApiOrigin)
