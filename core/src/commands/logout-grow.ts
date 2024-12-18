@@ -8,14 +8,14 @@
 
 import { Command, type CommandParams, type CommandResult } from "./base.js"
 import { printHeader } from "../logger/util.js"
-import { clearAuthToken, getAuthToken, getStoredAuthToken } from "../cloud/auth.js"
+import { clearAuthToken, getStoredAuthToken } from "../cloud/auth.js"
 import { getNonAuthenticatedApiClient } from "../cloud/grow/trpc.js"
 import { BooleanParameter } from "../cli/params.js"
 import { dedent, deline } from "../util/string.js"
 import { getCloudDomain } from "../cloud/util.js"
 import { deriveCloudDomainForNoProjectCommand } from "./util/no-project.js"
 import type { Log } from "../logger/log-entry.js"
-import { ClientAuthToken } from "../config-store/global.js"
+import type { ClientAuthToken } from "../config-store/global.js"
 
 export const logoutOpts = {
   "disable-project-check": new BooleanParameter({
