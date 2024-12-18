@@ -29,7 +29,6 @@ export type AuthRedirectConfig = Pick<AuthRedirectServerConfig, "getLoginUrl" | 
 
 export type RevokeAuthTokenParams = {
   clientAuthToken: ClientAuthToken
-  cloudDomain: string
   globalConfigStore: GlobalConfigStore
   log: Log
 }
@@ -82,17 +81,12 @@ export class GardenCloudBackend extends AbstractGardenBackend {
     }
   }
 
-  override async revokeToken({
-    clientAuthToken,
-    cloudDomain,
-    globalConfigStore,
-    log,
-  }: RevokeAuthTokenParams): Promise<void> {
+  override async revokeToken({ clientAuthToken, globalConfigStore, log }: RevokeAuthTokenParams): Promise<void> {
     // NOTE: The Cloud API is missing from the `Garden` class for commands
     // with `noProject = true` so we initialize it here.
     const cloudApi = await this.cloudApiFactory({
       log,
-      cloudDomain,
+      cloudDomain: this.config.cloudDomain,
       skipLogging: true,
       globalConfigStore,
     })
@@ -146,9 +140,9 @@ export class GrowCloudBackend extends AbstractGardenBackend {
     }
   }
 
-  override async revokeToken({ clientAuthToken, cloudDomain, log }: RevokeAuthTokenParams): Promise<void> {
+  override async revokeToken({ clientAuthToken, log }: RevokeAuthTokenParams): Promise<void> {
     try {
-      await getNonAuthenticatedApiClient({ hostUrl: cloudDomain }).token.revokeToken.mutate({
+      await getNonAuthenticatedApiClient({ hostUrl: this.config.cloudDomain }).token.revokeToken.mutate({
         token: clientAuthToken.token,
       })
     } catch (err) {
