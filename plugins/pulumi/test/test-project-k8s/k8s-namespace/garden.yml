@@ -1,13 +1,30 @@
-kind: Module
+kind: Deploy
 type: pulumi
 name: k8s-namespace
 description: Creates a Namespace
-pulumiVarfiles: [varfile1.yaml, varfile2.yaml]
-createStack: true
-cacheStatus: true
-allowDestroy: true
-pulumiVariables:
-  pulumi-k8s-test:orgName: ${var.orgName}
-  pulumi-k8s-test:namespace: pulumi-test
-  pulumi-k8s-test:appName: api-pulumi-variables-override
-  pulumi-k8s-test:isMinikube: "true"
+spec:
+  pulumiVarfiles: [varfile1.yaml, varfile2.yaml]
+  createStack: true
+  cacheStatus: true
+  allowDestroy: true
+  pulumiVariables:
+    pulumi-k8s-test:orgName: ${var.orgName}
+    pulumi-k8s-test:namespace: pulumi-test
+    pulumi-k8s-test:appName: api-pulumi-variables-override
+    pulumi-k8s-test:isMinikube: "true"
+---
+
+kind: Deploy
+type: pulumi
+name: k8s-namespace-new-varfile-schema
+description: Creates a Namespace
+spec:
+  useNewPulumiVarfileSchema: true
+  pulumiVarfiles: [varfile3-new-schema.yaml]
+  createStack: true
+  cacheStatus: true
+  allowDestroy: true
+  pulumiVariables:
+    pulumi-k8s-test:orgName: ${var.orgName}
+    pulumi-k8s-test:namespace: pulumi-test
+    pulumi-k8s-test:isMinikube: "true"

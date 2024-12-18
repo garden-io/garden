@@ -1,1 +1,2 @@
-pulumi-k8s:appName: api-varfile1-override
+config:
+  pulumi-k8s:appName: api-varfile1-override
