@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import type { TRPCClientError, TRPCClientErrorBase, TRPCLink } from "@trpc/client"
+import type { CreateTRPCClient, TRPCClientError, TRPCClientErrorBase, TRPCLink } from "@trpc/client"
 import { createTRPCClient, httpLink, loggerLink } from "@trpc/client"
 import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server"
 import { observable } from "@trpc/server/observable"
@@ -115,4 +115,4 @@ export function getNonAuthenticatedApiClient(trpcConfigParams: Omit<TrpcConfigPa
   return createTRPCClient<AppRouter>(getTrpcConfig(trpcConfigParams))
 }
 
-export type ApiClient = ReturnType<typeof createTRPCClient<AppRouter>>
+export type ApiClient = CreateTRPCClient<AppRouter>
