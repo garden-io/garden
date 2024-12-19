@@ -78,7 +78,7 @@ function cloudApiUrl(hostUrl: string): string {
   return new URL("/api", hostUrl).href
 }
 
-export type TrpcConfigParams = { hostUrl: string; tokenGetter?: () => string }
+export type TrpcConfigParams = { hostUrl: string; tokenGetter: (() => string) | undefined }
 
 function getTrpcConfig({ hostUrl, tokenGetter }: TrpcConfigParams) {
   return {
@@ -112,7 +112,7 @@ export function getAuthenticatedApiClient(trpcConfigParams: TrpcConfigParams) {
 }
 
 export function getNonAuthenticatedApiClient(trpcConfigParams: Omit<TrpcConfigParams, "tokenGetter">) {
-  return createTRPCClient<AppRouter>(getTrpcConfig(trpcConfigParams))
+  return createTRPCClient<AppRouter>(getTrpcConfig({ ...trpcConfigParams, tokenGetter: undefined }))
 }
 
 export type ApiClient = CreateTRPCClient<AppRouter>
