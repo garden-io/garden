@@ -13,7 +13,6 @@ import { ingressControllerReady } from "../../../../../src/plugins/kubernetes/ng
 import { uninstallGardenServices } from "../../../../../src/plugins/kubernetes/commands/uninstall-garden-services.js"
 import { prepareEnvironment } from "../../../../../src/plugins/kubernetes/init.js"
 import type { PrepareEnvironmentParams } from "../../../../../src/plugin/handlers/Provider/prepareEnvironment.js"
-import { defaultEnvironmentStatus } from "../../../../../src/plugin/handlers/Provider/getEnvironmentStatus.js"
 import { getContainerTestGarden } from "./container/container.js"
 import type { Garden } from "../../../../../src/garden.js"
 
@@ -59,7 +58,6 @@ describe("It should manage ingress controller for respective cluster type", () =
     const params: PrepareEnvironmentParams = {
       ctx,
       log: garden.log,
-      status: defaultEnvironmentStatus,
       force: false,
     }
     ctx.provider.config.setupIngressController = "nginx"
@@ -72,7 +70,6 @@ describe("It should manage ingress controller for respective cluster type", () =
     const params: PrepareEnvironmentParams = {
       ctx,
       log: garden.log,
-      status: defaultEnvironmentStatus,
       force: false,
     }
     ctx.provider.config.setupIngressController = "null"
@@ -86,7 +83,6 @@ describe("It should manage ingress controller for respective cluster type", () =
     const params: PrepareEnvironmentParams = {
       ctx,
       log: garden.log,
-      status: defaultEnvironmentStatus,
       force: false,
     }
     ctx.provider.config.setupIngressController = "nginx"

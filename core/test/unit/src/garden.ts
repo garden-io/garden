@@ -2497,10 +2497,12 @@ describe("Garden", () => {
       const testA = createGardenPlugin({
         name: "test-a",
         handlers: {
-          getEnvironmentStatus: async () => {
+          prepareEnvironment: async () => {
             return {
-              ready: true,
-              outputs: { foo: "bar" },
+              status: {
+                ready: true,
+                outputs: { foo: "bar" },
+              },
             }
           },
         },
