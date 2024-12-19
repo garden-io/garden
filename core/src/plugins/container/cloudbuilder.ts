@@ -55,15 +55,29 @@ const cloudBuilderAvailability = new LRUCache<string, CloudBuilderAvailabilityV2
   ttl: 1000 * 60 * 5,
 })
 
-async function retrieveAvailabilityFromCloud({
-  ctx,
-  action,
-  config,
-}: {
+type RetrieveAvailabilityParams = {
+  ctx: PluginContext
+  action: Resolved<ContainerBuildAction>
+  config: CloudBuilderConfiguration
+}
+
+async function retrieveAvailabilityFromCloud(params: {
   ctx: PluginContext
   action: Resolved<ContainerBuildAction>
   config: CloudBuilderConfiguration
 }): Promise<CloudBuilderAvailabilityV2> {
+  if (gardenEnv.USE_GARDEN_CLOUD_V2) {
+    return await retrieveAvailabilityFromGrowCloud(params)
+  } else {
+    return await retrieveAvailabilityFromGardenCloud(params)
+  }
+}
+
+async function retrieveAvailabilityFromGardenCloud({
+  ctx,
+  action,
+  config,
+}: RetrieveAvailabilityParams): Promise<CloudBuilderAvailabilityV2> {
   const { isInClusterBuildingConfigured } = config
   if (!ctx.cloudApi) {
     const fallbackDescription = isInClusterBuildingConfigured
@@ -116,6 +130,13 @@ async function retrieveAvailabilityFromCloud({
   }
 
   return res.data.availability
+}
+
+async function retrieveAvailabilityFromGrowCloud({
+  ctx,
+  action,
+}: RetrieveAvailabilityParams): Promise<CloudBuilderAvailabilityV2> {
+  return { available: false, reason: "Not supported" }
 }
 
 // public API
