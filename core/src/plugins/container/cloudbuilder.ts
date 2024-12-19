@@ -29,6 +29,7 @@ import { hashString } from "../../util/util.js"
 import { stableStringify } from "../../util/string.js"
 import { homedir } from "os"
 import { getCloudDistributionName, isGardenCommunityEdition } from "../../cloud/util.js"
+import { TRPCClientError } from "@trpc/client"
 
 const { mkdirp, rm, writeFile, stat } = fsExtra
 
@@ -154,13 +155,23 @@ async function retrieveAvailabilityFromGrowCloud({
   const { publicKeyPem } = await getMtlsKeyPair()
 
   // todo: error handling
-  const res = await ctx.cloudApiV2.api.builds.registerBuild.mutate({
-    // if platforms are not set, we default to linux/amd64
-    platforms: action.getSpec().platforms || ["linux/amd64"],
-    mtlsClientPublicKeyPEM: publicKeyPem,
-  })
+  try {
+    const res = await ctx.cloudApiV2.api.builds.registerBuild.mutate({
+      // if platforms are not set, we default to linux/amd64
+      platforms: action.getSpec().platforms || ["linux/amd64"],
+      mtlsClientPublicKeyPEM: publicKeyPem,
+    })
 
-  return res.availability
+    return res.availability
+  } catch (err) {
+    if (!(err instanceof TRPCClientError)) {
+      throw err
+    }
+    return {
+      available: false,
+      reason: err.message,
+    }
+  }
 }
 
 // public API
