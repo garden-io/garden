@@ -172,6 +172,7 @@ import {
   getGardenCloudDomain,
   isGardenCommunityEdition,
 } from "./cloud/util.js"
+import { GrowCloudApi } from "./cloud/grow/api.js"
 
 const defaultLocalAddress = "localhost"
 
@@ -204,6 +205,7 @@ export interface GardenParams {
   vcsInfo: VcsInfo
   projectId?: string
   cloudApi?: GardenCloudApi
+  cloudApiV2?: GrowCloudApi
   cloudDomain: string
   dotIgnoreFile: string
   proxy: ProxyConfig
@@ -281,7 +283,6 @@ export class Garden {
   private readonly solver: GraphSolver
   private asyncLock: AsyncLock
   public readonly projectId?: string
-  public readonly cloudDomain: string
   public sessionId: string
   public readonly localConfigStore: LocalConfigStore
   public globalConfigStore: GlobalConfigStore
@@ -292,7 +293,10 @@ export class Garden {
   public readonly configTemplates: { [name: string]: ConfigTemplateConfig }
   private actionTypeBases: ActionTypeMap<ActionTypeDefinition<any>[]>
   private emittedWarnings: Set<string>
+
+  public readonly cloudDomain: string
   public cloudApi?: GardenCloudApi
+  public cloudApiV2?: GrowCloudApi
 
   public readonly production: boolean
   public readonly projectRoot: string
@@ -343,7 +347,6 @@ export class Garden {
 
   constructor(params: GardenParams) {
     this.projectId = params.projectId
-    this.cloudDomain = params.cloudDomain
     this.sessionId = params.sessionId
     this.environmentName = params.environmentName
     this.resolvedDefaultNamespace = params.resolvedDefaultNamespace
@@ -380,7 +383,9 @@ export class Garden {
     this.state = { configsScanned: false, needsReload: false }
     this.nestedSessions = new Map()
 
+    this.cloudDomain = params.cloudDomain
     this.cloudApi = params.cloudApi
+    this.cloudApiV2 = params.cloudApiV2
 
     this.asyncLock = new AsyncLock()
 
@@ -2043,16 +2048,22 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
     const projectApiVersion = config.apiVersion
     const sessionId = opts.sessionId || uuidv4()
     const cloudApiFactory = getCloudApiFactory(opts)
-    const cloudApi: GardenCloudApi | undefined = opts.skipCloudConnect
-      ? undefined
-      : await initCloudApi({
-          globalConfigStore,
-          log,
-          projectConfig: config,
-          cloudApiFactory,
-        })
-    const cloudDomain = cloudApi?.domain || getGardenCloudDomain(config.domain)
+    const cloudApi: GardenCloudApi | undefined =
+      gardenEnv.USE_GARDEN_CLOUD_V2 || opts.skipCloudConnect
+        ? undefined
+        : await initCloudApi({
+            globalConfigStore,
+            log,
+            projectConfig: config,
+            cloudApiFactory,
+          })
     const loggedIn = !!cloudApi
+
+    const cloudDomain = cloudApi?.domain || getGardenCloudDomain(config.domain)
+    // Use this to interact with Cloud Backend V2
+    const cloudApiV2: GrowCloudApi | undefined = gardenEnv.USE_GARDEN_CLOUD_V2
+      ? await GrowCloudApi.factory({ cloudDomain, globalConfigStore, log })
+      : undefined
 
     const { secrets, cloudProject } = opts.skipCloudConnect
       ? {
@@ -2136,11 +2147,13 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
       artifactsPath,
       vcsInfo,
       sessionId,
+      cloudDomain,
+      cloudApi,
+      cloudApiV2,
       // If the user is logged in and a cloud project exists we use that ID
       // but fallback to the one set in the config (even if the user isn't logged in).
       // Same applies for domains.
       projectId: cloudProject?.id || config.id,
-      cloudDomain,
       projectConfig: config,
       projectRoot,
       projectName,
@@ -2168,7 +2181,6 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
       moduleIncludePatterns: (config.scan || {}).include,
       username: _username,
       forceRefresh: opts.forceRefresh,
-      cloudApi,
       cache: treeCache,
       projectApiVersion,
     }

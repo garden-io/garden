@@ -32,6 +32,7 @@ export type WrappedFromGarden = Pick<
   | "gardenDirPath"
   | "workingCopyId"
   | "cloudApi"
+  | "cloudApiV2"
   | "projectId"
   // TODO: remove this from the interface
   | "environmentName"
@@ -99,6 +100,7 @@ export const pluginContextSchema = createSchema({
     tools: joiStringMap(joi.object()),
     workingCopyId: joi.string().description("A unique ID assigned to the current project working copy."),
     cloudApi: joi.any().optional(),
+    cloudApiV2: joi.any().optional(),
   }),
   options: { presence: "required" },
 })
@@ -226,6 +228,7 @@ export async function createPluginContext({
     tools: await garden.getTools(),
     workingCopyId: garden.workingCopyId,
     cloudApi: garden.cloudApi,
+    cloudApiV2: garden.cloudApiV2,
     projectId: garden.projectId,
   }
 }
