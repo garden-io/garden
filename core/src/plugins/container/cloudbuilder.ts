@@ -135,8 +135,32 @@ async function retrieveAvailabilityFromGardenCloud({
 async function retrieveAvailabilityFromGrowCloud({
   ctx,
   action,
+  config,
 }: RetrieveAvailabilityParams): Promise<CloudBuilderAvailabilityV2> {
-  return { available: false, reason: "Not supported" }
+  const { isInClusterBuildingConfigured } = config
+  if (!ctx.cloudApiV2) {
+    const fallbackDescription = isInClusterBuildingConfigured
+      ? `This forces Garden to use the fall-back option to build images within your Kubernetes cluster, as in-cluster building is configured in the Kubernetes provider settings.`
+      : `This forces Garden to use the fall-back option to build images locally.`
+
+    throw new ConfigurationError({
+      message: dedent`
+        You are not logged in. Run ${styles.command("garden login")} so Garden Cloud Builder can speed up your container builds.
+
+        If you can't log in right now, disable Garden Cloud Builder using the environment variable ${styles.bold("GARDEN_CLOUD_BUILDER=0")}. ${fallbackDescription}`,
+    })
+  }
+
+  const { publicKeyPem } = await getMtlsKeyPair()
+
+  // todo: error handling
+  const res = await ctx.cloudApiV2.api.builds.registerBuild.mutate({
+    // if platforms are not set, we default to linux/amd64
+    platforms: action.getSpec().platforms || ["linux/amd64"],
+    mtlsClientPublicKeyPEM: publicKeyPem,
+  })
+
+  return res.availability
 }
 
 // public API

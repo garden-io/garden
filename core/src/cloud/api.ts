@@ -821,7 +821,7 @@ export type CloudBuilderAvailableV2 = {
     }[]
     clientCertificatePem: string
     // only defined if the request did not include a "mtlsClientPublicKeyPEM"
-    privateKeyPem: string | undefined
+    privateKeyPem?: string
   }
 }
 export type CloudBuilderNotAvailableV2 = {
