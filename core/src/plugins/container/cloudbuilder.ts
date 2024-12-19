@@ -55,6 +55,69 @@ const cloudBuilderAvailability = new LRUCache<string, CloudBuilderAvailabilityV2
   ttl: 1000 * 60 * 5,
 })
 
+async function retrieveAvailabilityFromCloud({
+  ctx,
+  action,
+  config,
+}: {
+  ctx: PluginContext
+  action: Resolved<ContainerBuildAction>
+  config: CloudBuilderConfiguration
+}): Promise<CloudBuilderAvailabilityV2> {
+  const { isInClusterBuildingConfigured } = config
+  if (!ctx.cloudApi) {
+    const fallbackDescription = isInClusterBuildingConfigured
+      ? `This forces Garden to use the fall-back option to build images within your Kubernetes cluster, as in-cluster building is configured in the Kubernetes provider settings.`
+      : `This forces Garden to use the fall-back option to build images locally.`
+
+    throw new ConfigurationError({
+      message: dedent`
+        You are not logged in. Run ${styles.command("garden login")} so Garden Cloud Builder can speed up your container builds.
+
+        If you can't log in right now, disable Garden Cloud Builder using the environment variable ${styles.bold("GARDEN_CLOUD_BUILDER=0")}. ${fallbackDescription}`,
+    })
+  }
+
+  if (isGardenCommunityEdition(ctx.cloudApi.domain) && ctx.projectId === undefined) {
+    throw new InternalError({ message: "Authenticated with community tier, but projectId is undefined" })
+  } else if (ctx.projectId === undefined) {
+    throw new ConfigurationError({
+      message: dedent`Please connect your Garden Project with ${getCloudDistributionName(ctx.cloudApi.domain)}. See also ${styles.link("https://cloud.docs.garden.io/getting-started/first-project")}`,
+    })
+  }
+
+  const { publicKeyPem } = await getMtlsKeyPair()
+  const cloudProject = await ctx.cloudApi.getProjectById(ctx.projectId)
+
+  const res = await ctx.cloudApi.registerCloudBuilderBuild({
+    organizationId: cloudProject.organization.id,
+    actionUid: action.uid,
+    actionName: action.name,
+    actionVersion: action.getFullVersion().toString(),
+    coreSessionId: ctx.sessionId,
+    // if platforms are not set, we default to linux/amd64
+    platforms: action.getSpec().platforms || ["linux/amd64"],
+    mtlsClientPublicKeyPEM: publicKeyPem,
+  })
+
+  if (res.data.version !== "v2") {
+    emitNonRepeatableWarning(
+      ctx.log,
+      dedent`
+          ${styles.bold("Update Garden to continue to benefit from Garden Cloud Builder.")}
+
+          Your current Garden version is not supported anymore by Garden Cloud Builder. Please update Garden to the latest version.
+
+          Falling back to ${isInClusterBuildingConfigured ? "in-cluster building" : "building the image locally"}, which may be slower.
+
+          Run ${styles.command("garden self-update")} to update Garden to the latest version.`
+    )
+    return { available: false, reason: "Unsupported client version" }
+  }
+
+  return res.data.availability
+}
+
 // public API
 export const cloudBuilder = {
   isConfigured(ctx: PluginContext) {
@@ -68,7 +131,8 @@ export const cloudBuilder = {
     ctx: PluginContext,
     action: Resolved<ContainerBuildAction>
   ): Promise<CloudBuilderAvailabilityV2> {
-    const { isInClusterBuildingConfigured, isCloudBuilderEnabled } = getConfiguration(ctx)
+    const config = getConfiguration(ctx)
+    const { isInClusterBuildingConfigured, isCloudBuilderEnabled } = config
 
     if (!isCloudBuilderEnabled) {
       return {
@@ -83,59 +147,7 @@ export const cloudBuilder = {
       return fromCache
     }
 
-    if (!ctx.cloudApi) {
-      const fallbackDescription = isInClusterBuildingConfigured
-        ? `This forces Garden to use the fall-back option to build images within your Kubernetes cluster, as in-cluster building is configured in the Kubernetes provider settings.`
-        : `This forces Garden to use the fall-back option to build images locally.`
-
-      throw new ConfigurationError({
-        message: dedent`
-        You are not logged in. Run ${styles.command("garden login")} so Garden Cloud Builder can speed up your container builds.
-
-        If you can't log in right now, disable Garden Cloud Builder using the environment variable ${styles.bold("GARDEN_CLOUD_BUILDER=0")}. ${fallbackDescription}`,
-      })
-    }
-
-    if (isGardenCommunityEdition(ctx.cloudApi.domain) && ctx.projectId === undefined) {
-      throw new InternalError({ message: "Authenticated with community tier, but projectId is undefined" })
-    } else if (ctx.projectId === undefined) {
-      throw new ConfigurationError({
-        message: dedent`Please connect your Garden Project with ${getCloudDistributionName(ctx.cloudApi.domain)}. See also ${styles.link("https://cloud.docs.garden.io/getting-started/first-project")}`,
-      })
-    }
-
-    const { publicKeyPem } = await getMtlsKeyPair()
-
-    const res = await ctx.cloudApi.registerCloudBuilderBuild({
-      organizationId: (await ctx.cloudApi.getProjectById(ctx.projectId)).organization.id,
-      actionUid: action.uid,
-      actionName: action.name,
-      actionVersion: action.getFullVersion().toString(),
-      coreSessionId: ctx.sessionId,
-      // if platforms are not set, we default to linux/amd64
-      platforms: action.getSpec()["platforms"] || ["linux/amd64"],
-      mtlsClientPublicKeyPEM: publicKeyPem,
-    })
-
-    if (res.data.version !== "v2") {
-      emitNonRepeatableWarning(
-        ctx.log,
-        dedent`
-          ${styles.bold("Update Garden to continue to benefit from Garden Cloud Builder.")}
-
-          Your current Garden version is not supported anymore by Garden Cloud Builder. Please update Garden to the latest version.
-
-          Falling back to ${isInClusterBuildingConfigured ? "in-cluster building" : "building the image locally"}, which may be slower.
-
-          Run ${styles.command("garden self-update")} to update Garden to the latest version.`
-      )
-      const unsupported: CloudBuilderAvailabilityV2 = { available: false, reason: "Unsupported client version" }
-      cloudBuilderAvailability.set(action.uid, unsupported)
-      return unsupported
-    }
-
-    // availability is supported
-    const availability = res.data.availability
+    const availability = await retrieveAvailabilityFromCloud({ ctx, action, config })
     cloudBuilderAvailability.set(action.uid, availability)
 
     if (!availability.available) {
