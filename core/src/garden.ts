@@ -1980,6 +1980,7 @@ function getCloudApiFactory(opts: GardenOpts) {
 
 type InitCloudApiParams = {
   cloudApiFactory: GardenCloudApiFactory
+  cloudDomain: string
   globalConfigStore: GlobalConfigStore
   log: Log
   projectConfig: ProjectConfig | undefined
@@ -1987,23 +1988,22 @@ type InitCloudApiParams = {
 }
 
 async function initCloudApi({
-  globalConfigStore,
-  projectConfig,
   cloudApiFactory,
+  cloudDomain,
+  globalConfigStore,
   log,
+  projectConfig,
   skipCloudConnect,
 }: InitCloudApiParams): Promise<GardenCloudApi | undefined> {
   if (gardenEnv.USE_GARDEN_CLOUD_V2 || skipCloudConnect) {
     return undefined
   }
 
-  const cloudDomain = getGardenCloudDomain(projectConfig?.domain)
-  const distroName = getCloudDistributionName(cloudDomain)
-
   try {
     return await cloudApiFactory({ log, cloudDomain, globalConfigStore })
   } catch (err) {
     if (err instanceof CloudApiTokenRefreshError) {
+      const distroName = getCloudDistributionName(cloudDomain)
       log.warn(dedent`
             The current ${distroName} session is not valid or it's expired.
             Command results for this command run will not be available in ${distroName}.
@@ -2058,16 +2058,17 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
     const cloudApiFactory = getCloudApiFactory(opts)
     const skipCloudConnect = opts.skipCloudConnect || false
 
+    const cloudDomain = getGardenCloudDomain(config.domain)
     const cloudApi: GardenCloudApi | undefined = await initCloudApi({
+      cloudApiFactory,
+      cloudDomain,
       globalConfigStore,
       log,
       projectConfig: config,
-      cloudApiFactory,
       skipCloudConnect,
     })
     const loggedIn = !!cloudApi
 
-    const cloudDomain = cloudApi?.domain || getGardenCloudDomain(config.domain)
     // Use this to interact with Cloud Backend V2
     const cloudApiV2: GrowCloudApi | undefined = gardenEnv.USE_GARDEN_CLOUD_V2
       ? await GrowCloudApi.factory({ cloudDomain, globalConfigStore, log })
