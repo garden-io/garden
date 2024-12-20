@@ -2225,7 +2225,7 @@ async function prepareCloud({
   commandName: string
   skipCloudConnect: boolean
 }) {
-  if (skipCloudConnect) {
+  if (gardenEnv.USE_GARDEN_CLOUD_V2 || skipCloudConnect) {
     return {
       secrets: {},
       cloudProject: undefined,
