@@ -75,7 +75,7 @@ aborted:
 # Set to false if the command execution was unsuccessful.
 success:
 
-# A map of all executed Builds (or Builds scheduled/attempted) and information about the them.
+# A map of all executed Builds (or Builds scheduled/attempted) and information about them.
 build:
   <Build name>:
     # The full log from the build.
@@ -109,6 +109,8 @@ build:
     # Alias for `inputVersion`. The version of the task's inputs, before any resolution or execution happens. For
     # action tasks, this will generally be the unresolved version.
     version:
+
+    actionState:
 
     # A map of values output from the action's execution.
     outputs:
@@ -146,6 +148,8 @@ build:
     # Alias for `inputVersion`. The version of the task's inputs, before any resolution or execution happens. For
     # action tasks, this will generally be the unresolved version.
     version:
+
+    actionState:
 
     # A map of values output from the action's execution.
     outputs:
@@ -236,6 +240,8 @@ deploy:
     # action tasks, this will generally be the unresolved version.
     version:
 
+    actionState:
+
     # A map of values output from the action's execution.
     outputs:
       <name>:
@@ -322,6 +328,8 @@ deploy:
     # Alias for `inputVersion`. The version of the task's inputs, before any resolution or execution happens. For
     # action tasks, this will generally be the unresolved version.
     version:
+
+    actionState:
 
     # A map of values output from the action's execution.
     outputs:
@@ -1028,7 +1036,7 @@ aborted:
 # Set to false if the command execution was unsuccessful.
 success:
 
-# A map of all executed Builds (or Builds scheduled/attempted) and information about the them.
+# A map of all executed Builds (or Builds scheduled/attempted) and information about them.
 build:
   <Build name>:
     # The full log from the build.
@@ -1062,6 +1070,8 @@ build:
     # Alias for `inputVersion`. The version of the task's inputs, before any resolution or execution happens. For
     # action tasks, this will generally be the unresolved version.
     version:
+
+    actionState:
 
     # A map of values output from the action's execution.
     outputs:
@@ -1099,6 +1109,8 @@ build:
     # Alias for `inputVersion`. The version of the task's inputs, before any resolution or execution happens. For
     # action tasks, this will generally be the unresolved version.
     version:
+
+    actionState:
 
     # A map of values output from the action's execution.
     outputs:
@@ -1189,6 +1201,8 @@ deploy:
     # action tasks, this will generally be the unresolved version.
     version:
 
+    actionState:
+
     # A map of values output from the action's execution.
     outputs:
       <name>:
@@ -1275,6 +1289,8 @@ deploy:
     # Alias for `inputVersion`. The version of the task's inputs, before any resolution or execution happens. For
     # action tasks, this will generally be the unresolved version.
     version:
+
+    actionState:
 
     # A map of values output from the action's execution.
     outputs:
@@ -4216,7 +4232,7 @@ aborted:
 # Set to false if the command execution was unsuccessful.
 success:
 
-# A map of all executed Builds (or Builds scheduled/attempted) and information about the them.
+# A map of all executed Builds (or Builds scheduled/attempted) and information about them.
 build:
   <Build name>:
     # The full log from the build.
@@ -4250,6 +4266,8 @@ build:
     # Alias for `inputVersion`. The version of the task's inputs, before any resolution or execution happens. For
     # action tasks, this will generally be the unresolved version.
     version:
+
+    actionState:
 
     # A map of values output from the action's execution.
     outputs:
@@ -4287,6 +4305,8 @@ build:
     # Alias for `inputVersion`. The version of the task's inputs, before any resolution or execution happens. For
     # action tasks, this will generally be the unresolved version.
     version:
+
+    actionState:
 
     # A map of values output from the action's execution.
     outputs:
@@ -4377,6 +4397,8 @@ deploy:
     # action tasks, this will generally be the unresolved version.
     version:
 
+    actionState:
+
     # A map of values output from the action's execution.
     outputs:
       <name>:
@@ -4463,6 +4485,8 @@ deploy:
     # Alias for `inputVersion`. The version of the task's inputs, before any resolution or execution happens. For
     # action tasks, this will generally be the unresolved version.
     version:
+
+    actionState:
 
     # A map of values output from the action's execution.
     outputs:
@@ -4576,6 +4600,8 @@ published:
     # action tasks, this will generally be the unresolved version.
     version:
 
+    actionState:
+
     # A map of values output from the action's execution.
     outputs:
       <name>:
@@ -4626,7 +4652,7 @@ aborted:
 # Set to false if the command execution was unsuccessful.
 success:
 
-# A map of all executed Builds (or Builds scheduled/attempted) and information about the them.
+# A map of all executed Builds (or Builds scheduled/attempted) and information about them.
 build:
   <Build name>:
     # The full log from the build.
@@ -4660,6 +4686,8 @@ build:
     # Alias for `inputVersion`. The version of the task's inputs, before any resolution or execution happens. For
     # action tasks, this will generally be the unresolved version.
     version:
+
+    actionState:
 
     # A map of values output from the action's execution.
     outputs:
@@ -4697,6 +4725,8 @@ build:
     # Alias for `inputVersion`. The version of the task's inputs, before any resolution or execution happens. For
     # action tasks, this will generally be the unresolved version.
     version:
+
+    actionState:
 
     # A map of values output from the action's execution.
     outputs:
@@ -4787,6 +4817,8 @@ deploy:
     # action tasks, this will generally be the unresolved version.
     version:
 
+    actionState:
+
     # A map of values output from the action's execution.
     outputs:
       <name>:
@@ -4873,6 +4905,8 @@ deploy:
     # Alias for `inputVersion`. The version of the task's inputs, before any resolution or execution happens. For
     # action tasks, this will generally be the unresolved version.
     version:
+
+    actionState:
 
     # A map of values output from the action's execution.
     outputs:
@@ -5194,7 +5228,7 @@ aborted:
 # Set to false if the command execution was unsuccessful.
 success:
 
-# A map of all executed Builds (or Builds scheduled/attempted) and information about the them.
+# A map of all executed Builds (or Builds scheduled/attempted) and information about them.
 build:
   <Build name>:
     # The full log from the build.
@@ -5228,6 +5262,8 @@ build:
     # Alias for `inputVersion`. The version of the task's inputs, before any resolution or execution happens. For
     # action tasks, this will generally be the unresolved version.
     version:
+
+    actionState:
 
     # A map of values output from the action's execution.
     outputs:
@@ -5265,6 +5301,8 @@ build:
     # Alias for `inputVersion`. The version of the task's inputs, before any resolution or execution happens. For
     # action tasks, this will generally be the unresolved version.
     version:
+
+    actionState:
 
     # A map of values output from the action's execution.
     outputs:
@@ -5355,6 +5393,8 @@ deploy:
     # action tasks, this will generally be the unresolved version.
     version:
 
+    actionState:
+
     # A map of values output from the action's execution.
     outputs:
       <name>:
@@ -5441,6 +5481,8 @@ deploy:
     # Alias for `inputVersion`. The version of the task's inputs, before any resolution or execution happens. For
     # action tasks, this will generally be the unresolved version.
     version:
+
+    actionState:
 
     # A map of values output from the action's execution.
     outputs:
