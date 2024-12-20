@@ -1983,12 +1983,18 @@ async function initCloudApi({
   projectConfig,
   cloudApiFactory,
   log,
+  skipCloudConnect,
 }: {
   globalConfigStore: GlobalConfigStore
   projectConfig: ProjectConfig | undefined
   cloudApiFactory: GardenCloudApiFactory
   log: Log
+  skipCloudConnect: boolean
 }): Promise<GardenCloudApi | undefined> {
+  if (gardenEnv.USE_GARDEN_CLOUD_V2 || skipCloudConnect) {
+    return undefined
+  }
+
   const cloudDomain = getGardenCloudDomain(projectConfig?.domain)
   const distroName = getCloudDistributionName(cloudDomain)
 
@@ -2048,15 +2054,15 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
     const projectApiVersion = config.apiVersion
     const sessionId = opts.sessionId || uuidv4()
     const cloudApiFactory = getCloudApiFactory(opts)
-    const cloudApi: GardenCloudApi | undefined =
-      gardenEnv.USE_GARDEN_CLOUD_V2 || opts.skipCloudConnect
-        ? undefined
-        : await initCloudApi({
-            globalConfigStore,
-            log,
-            projectConfig: config,
-            cloudApiFactory,
-          })
+    const skipCloudConnect = opts.skipCloudConnect || false
+
+    const cloudApi: GardenCloudApi | undefined = await initCloudApi({
+      globalConfigStore,
+      log,
+      projectConfig: config,
+      cloudApiFactory,
+      skipCloudConnect,
+    })
     const loggedIn = !!cloudApi
 
     const cloudDomain = cloudApi?.domain || getGardenCloudDomain(config.domain)
@@ -2065,20 +2071,16 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
       ? await GrowCloudApi.factory({ cloudDomain, globalConfigStore, log })
       : undefined
 
-    const { secrets, cloudProject } = opts.skipCloudConnect
-      ? {
-          secrets: {},
-          cloudProject: null,
-        }
-      : await prepareCloud({
-          cloudApi,
-          config,
-          log,
-          projectRoot,
-          projectName,
-          environmentName,
-          commandName: opts.commandInfo.name,
-        })
+    const { secrets, cloudProject } = await prepareCloud({
+      cloudApi,
+      config,
+      log,
+      projectRoot,
+      projectName,
+      environmentName,
+      commandName: opts.commandInfo.name,
+      skipCloudConnect,
+    })
 
     config = resolveProjectConfig({
       log,
@@ -2201,6 +2203,7 @@ async function prepareCloud({
   projectName,
   environmentName,
   commandName,
+  skipCloudConnect,
 }: {
   cloudApi: GardenCloudApi | undefined
   config: ProjectConfig
@@ -2209,7 +2212,15 @@ async function prepareCloud({
   projectName: string
   environmentName: string
   commandName: string
+  skipCloudConnect: boolean
 }) {
+  if (skipCloudConnect) {
+    return {
+      secrets: {},
+      cloudProject: undefined,
+    }
+  }
+
   const cloudDomain = cloudApi?.domain || getGardenCloudDomain(config.domain)
   const isCommunityEdition = isGardenCommunityEdition(cloudDomain)
   const distroName = getCloudDistributionName(cloudDomain)
