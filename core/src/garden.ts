@@ -117,7 +117,7 @@ import {
   RemoteSourceConfigContext,
   TemplatableConfigContext,
 } from "./config/template-contexts/project.js"
-import type { CloudProject, GardenCloudApiFactory } from "./cloud/api.js"
+import type { GardenCloudApiFactory } from "./cloud/api.js"
 import { GardenCloudApi, CloudApiTokenRefreshError } from "./cloud/api.js"
 import { OutputConfigContext } from "./config/template-contexts/module.js"
 import { ProviderConfigContext } from "./config/template-contexts/provider.js"
@@ -2239,51 +2239,55 @@ async function prepareCloud({
   const cloudLogLevel = debugLevelCommands.includes(commandName) ? LogLevel.debug : undefined
   const cloudLog = log.createLog({ name: getCloudLogSectionName(distroName), fixLevel: cloudLogLevel })
 
-  let secrets: StringMap = {}
-  let cloudProject: CloudProject | null = null
-  // If true, then user is logged in and we fetch the remote project and secrets (if applicable)
-  if (cloudApi) {
-    cloudLog.info(`Connecting project...`)
-
-    cloudProject = await getCloudProject({
-      cloudApi,
-      config,
-      log: cloudLog,
-      projectName,
-      projectRoot,
-      isCommunityEdition,
-    })
-
-    // Fetch Secrets. Not supported on the community edition.
-    if (cloudProject && !isCommunityEdition) {
-      try {
-        secrets = await wrapActiveSpan(
-          "getSecrets",
-          async () =>
-            await cloudApi.getSecrets({
-              log: cloudLog,
-              projectId: cloudProject!.id,
-              environmentName,
-            })
-        )
-        cloudLog.debug(`Fetched ${Object.keys(secrets).length} secrets from ${cloudApi.domain}`)
-      } catch (err) {
-        cloudLog.error(`Fetching secrets failed with error: ${err}`)
-      }
-    }
-
-    cloudLog.success("Ready")
-  } else {
+  if (!cloudApi) {
     const msg = `You are not logged in. To use ${distroName}, log in with the ${styles.command(
       "garden login"
     )} command.`
+
     if (isCommunityEdition) {
       cloudLog.info(msg)
       cloudLog.info(`Learn more at: ${makeDocsLinkStyled("using-garden/dashboard")}`)
     } else {
       cloudLog.warn(msg)
     }
+
+    return {
+      secrets: {},
+      cloudProject: undefined,
+    }
   }
+
+  cloudLog.info(`Connecting project...`)
+
+  const cloudProject = await getCloudProject({
+    cloudApi,
+    config,
+    log: cloudLog,
+    projectName,
+    projectRoot,
+    isCommunityEdition,
+  })
+
+  // Fetch Secrets. Not supported on the community edition.
+  let secrets: StringMap = {}
+  if (cloudProject && !isCommunityEdition) {
+    try {
+      secrets = await wrapActiveSpan(
+        "getSecrets",
+        async () =>
+          await cloudApi.getSecrets({
+            log: cloudLog,
+            projectId: cloudProject!.id,
+            environmentName,
+          })
+      )
+      cloudLog.debug(`Fetched ${Object.keys(secrets).length} secrets from ${cloudApi.domain}`)
+    } catch (err) {
+      cloudLog.error(`Fetching secrets failed with error: ${err}`)
+    }
+  }
+
+  cloudLog.success("Ready")
 
   return { cloudProject, secrets }
 }
