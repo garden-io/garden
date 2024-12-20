@@ -1978,19 +1978,21 @@ function getCloudApiFactory(opts: GardenOpts) {
   return GardenCloudApi.factory
 }
 
+type InitCloudApiParams = {
+  cloudApiFactory: GardenCloudApiFactory
+  globalConfigStore: GlobalConfigStore
+  log: Log
+  projectConfig: ProjectConfig | undefined
+  skipCloudConnect: boolean
+}
+
 async function initCloudApi({
   globalConfigStore,
   projectConfig,
   cloudApiFactory,
   log,
   skipCloudConnect,
-}: {
-  globalConfigStore: GlobalConfigStore
-  projectConfig: ProjectConfig | undefined
-  cloudApiFactory: GardenCloudApiFactory
-  log: Log
-  skipCloudConnect: boolean
-}): Promise<GardenCloudApi | undefined> {
+}: InitCloudApiParams): Promise<GardenCloudApi | undefined> {
   if (gardenEnv.USE_GARDEN_CLOUD_V2 || skipCloudConnect) {
     return undefined
   }
