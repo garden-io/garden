@@ -1,0 +1,4 @@
+    test: foo
+    config:
+      pulumi-k8s-test:namespace: pulumi-varfile-ns-module
+      pulumi-k8s-test:appName: app-name-from-pulumi-varfile
