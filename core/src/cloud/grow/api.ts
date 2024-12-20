@@ -121,7 +121,7 @@ export class GrowCloudApi {
     }
 
     const verificationResult = await getNonAuthenticatedApiClient({ hostUrl: cloudDomain }).token.verifyToken.query({
-      token: tokenData.token,
+      token: authToken,
     })
     if (!verificationResult.valid) {
       log.debug({ msg: `The stored token was not valid.` })
