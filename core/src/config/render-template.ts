@@ -20,7 +20,7 @@ import { isUnresolved } from "../template/templated-strings.js"
 import { validateWithPath } from "./validation.js"
 import type { Garden } from "../garden.js"
 import { ConfigurationError, GardenError, InternalError } from "../exceptions.js"
-import { resolve, posix } from "path"
+import { resolve, posix, relative } from "path"
 import fsExtra from "fs-extra"
 
 const { ensureDir } = fsExtra
@@ -172,6 +172,7 @@ export async function renderConfigTemplate({
     enterpriseDomain,
     parentName: resolved.name,
     templateName: template.name,
+    templatePath: relative(garden.projectRoot, template.internal.basePath),
     inputs: InputContext.forRenderTemplate(config, template),
   })
 

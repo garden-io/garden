@@ -88,6 +88,7 @@ export interface GardenResourceInternalFields {
   inputs?: DeepPrimitiveMap
   parentName?: string
   templateName?: string
+  templatePath?: string
   // Used to map fields to specific doc and location
   yamlDoc?: YamlDocumentWithSource
 }
