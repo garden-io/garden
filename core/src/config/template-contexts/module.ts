@@ -21,6 +21,7 @@ import type { DeployTask } from "../../tasks/deploy.js"
 import type { RunTask } from "../../tasks/run.js"
 import { DOCS_BASE_URL } from "../../constants.js"
 import { styles } from "../../logger/styles.js"
+import { InternalError } from "../../exceptions.js"
 
 export const exampleVersion = "v-17ad4cb3fd"
 
@@ -252,6 +253,7 @@ export interface ModuleConfigContextParams extends OutputConfigContextParams {
   // Template attributes
   parentName: string | undefined
   templateName: string | undefined
+  templatePath: string | undefined
   inputs: DeepPrimitiveMap | undefined
 }
 
@@ -286,14 +288,19 @@ export class ModuleConfigContext extends OutputConfigContext {
   constructor(params: ModuleConfigContextParams) {
     super(params)
 
-    const { name, path, inputs, parentName, templateName, buildPath } = params
+    const { name, path, inputs, parentName, templateName, templatePath, buildPath } = params
 
     // Throw specific error when attempting to resolve self
     this.modules.set(name, new ErrorContext(`Config ${styles.highlight.bold(name)} cannot reference itself.`))
 
-    if (parentName && templateName) {
+    if (parentName) {
+      if (!templateName || !templatePath) {
+        throw new InternalError({
+          message: `Missing template name and path when rendering ${parentName}. This is a bug, please report to the Garden team.`,
+        })
+      }
       this.parent = new ParentContext(this, parentName)
-      this.template = new TemplateContext(this, templateName)
+      this.template = new TemplateContext({ root: this, name: templateName, path: templatePath })
     }
     this.inputs = inputs || {}
 

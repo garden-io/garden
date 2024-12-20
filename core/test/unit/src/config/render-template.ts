@@ -183,6 +183,7 @@ describe("config templates", () => {
             {
               type: "test",
               name: "${parent.name}-${template.name}-${inputs.foo}",
+              variables: { templatePath: "${template.path}" },
               build: {
                 dependencies: [{ name: "${parent.name}-${template.name}-foo", copy: [] }],
                 timeout: DEFAULT_BUILD_TIMEOUT_SEC,
@@ -205,6 +206,7 @@ describe("config templates", () => {
       expect(module.name).to.equal("test-test-bar")
       expect(module.build.dependencies).to.eql([{ name: "test-test-foo", copy: [] }])
       expect(module.spec.image).to.equal("${modules.foo.outputs.bar || inputs.foo}")
+      expect(module.variables!["templatePath"]).to.equal(garden.projectRoot)
     })
 
     it("throws if config is invalid", async () => {

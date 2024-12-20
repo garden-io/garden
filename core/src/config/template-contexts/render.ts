@@ -27,11 +27,16 @@ export class RenderTemplateConfigContext extends ProjectConfigContext {
   public inputs: DeepPrimitiveMap
 
   constructor(
-    params: { parentName: string; templateName: string; inputs: DeepPrimitiveMap } & ProjectConfigContextParams
+    params: {
+      parentName: string
+      templatePath: string
+      templateName: string
+      inputs: DeepPrimitiveMap
+    } & ProjectConfigContextParams
   ) {
     super(params)
     this.parent = new ParentContext(this, params.parentName)
-    this.template = new TemplateContext(this, params.templateName)
+    this.template = new TemplateContext({ root: this, path: params.templatePath, name: params.templateName })
     this.inputs = params.inputs
   }
 }
