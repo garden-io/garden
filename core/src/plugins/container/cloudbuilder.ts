@@ -156,7 +156,7 @@ async function retrieveAvailabilityFromGrowCloud({
 
   // todo: error handling
   try {
-    const res = await ctx.cloudApiV2.api.builds.registerBuild.mutate({
+    const res = await ctx.cloudApiV2.api.cloudBuilder.registerBuild.mutate({
       // if platforms are not set, we default to linux/amd64
       platforms: action.getSpec().platforms || ["linux/amd64"],
       mtlsClientPublicKeyPEM: publicKeyPem,
