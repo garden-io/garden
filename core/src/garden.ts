@@ -2082,7 +2082,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
     // Use this to interact with Cloud Backend V2
     const cloudApiV2 = await initCloudApiV2({ cloudDomain, globalConfigStore, log })
 
-    const { secrets, cloudProject } = await prepareCloud({
+    const { secrets, cloudProject } = await initCloudProject({
       cloudApi,
       config,
       log,
@@ -2206,7 +2206,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
  * It's arguably a bit awkward that the function does both but this makes it easier
  * to group together the relevant logs.
  */
-async function prepareCloud({
+async function initCloudProject({
   cloudApi,
   config,
   log,
