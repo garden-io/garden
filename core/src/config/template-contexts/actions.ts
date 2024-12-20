@@ -20,6 +20,7 @@ import { exampleVersion, OutputConfigContext } from "./module.js"
 import { TemplatableConfigContext } from "./project.js"
 import { DOCS_BASE_URL } from "../../constants.js"
 import { styles } from "../../logger/styles.js"
+import { InternalError } from "../../exceptions.js"
 
 function mergeVariables({ garden, variables }: { garden: Garden; variables: DeepPrimitiveMap }): DeepPrimitiveMap {
   const mergedVariables: DeepPrimitiveMap = {}
@@ -296,6 +297,7 @@ export class ActionSpecContext extends OutputConfigContext {
     const sourcePath = action.sourcePath()
     const parentName = internal?.parentName
     const templateName = internal?.templateName
+    const templatePath = internal?.templatePath
 
     this.actions = new ActionReferencesContext(this, partialRuntimeResolution, [
       ...resolvedDependencies,
@@ -308,9 +310,14 @@ export class ActionSpecContext extends OutputConfigContext {
       new ErrorContext(`Action ${styles.highlight.bold(action.key())} cannot reference itself.`)
     )
 
-    if (parentName && templateName) {
+    if (parentName) {
+      if (!templateName || !templatePath) {
+        throw new InternalError({
+          message: `Missing template name and path when rendering ${parentName}. This is a bug, please report to the Garden team.`,
+        })
+      }
       this.parent = new ParentContext(this, parentName)
-      this.template = new TemplateContext(this, templateName)
+      this.template = new TemplateContext({ root: this, name: templateName, path: templatePath })
     }
     this.inputs = inputs
 

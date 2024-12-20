@@ -183,6 +183,7 @@ export async function renderConfigTemplate({
     enterpriseDomain,
     parentName: resolved.name,
     templateName: template.name,
+    templatePath: template.internal.basePath,
     inputs: partiallyResolvedInputs,
   })
 
