@@ -2024,6 +2024,16 @@ async function initCloudApi({
   }
 }
 
+type InitCloudApiParamsV2 = Pick<InitCloudApiParams, "cloudDomain" | "globalConfigStore" | "log">
+
+async function initCloudApiV2({
+  cloudDomain,
+  globalConfigStore,
+  log,
+}: InitCloudApiParamsV2): Promise<GrowCloudApi | undefined> {
+  return gardenEnv.USE_GARDEN_CLOUD_V2 ? await GrowCloudApi.factory({ cloudDomain, globalConfigStore, log }) : undefined
+}
+
 export const resolveGardenParams = profileAsync(async function _resolveGardenParams(
   currentDirectory: string,
   opts: GardenOpts
@@ -2070,9 +2080,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
     const loggedIn = !!cloudApi
 
     // Use this to interact with Cloud Backend V2
-    const cloudApiV2: GrowCloudApi | undefined = gardenEnv.USE_GARDEN_CLOUD_V2
-      ? await GrowCloudApi.factory({ cloudDomain, globalConfigStore, log })
-      : undefined
+    const cloudApiV2: GrowCloudApi | undefined = await initCloudApiV2({ cloudDomain, globalConfigStore, log })
 
     const { secrets, cloudProject } = await prepareCloud({
       cloudApi,
