@@ -175,11 +175,12 @@ async function retrieveAvailabilityFromGrowCloud({
 }
 
 // public API
-export const cloudBuilder = {
+class CloudBuilder {
   isConfigured(ctx: PluginContext) {
     const { isCloudBuilderEnabled } = getConfiguration(ctx)
     return isCloudBuilderEnabled
-  },
+  }
+
   /**
    * @returns false if Cloud Builder is not configured or not available, otherwise it returns the availability (a required parameter for withBuilder)
    */
@@ -219,7 +220,7 @@ export const cloudBuilder = {
     }
 
     return availability
-  },
+  }
 
   getActionRuntime(ctx: PluginContext, availability: CloudBuilderAvailabilityV2): ActionRuntime {
     const { isCloudBuilderEnabled, isInClusterBuildingConfigured } = getConfiguration(ctx)
@@ -262,7 +263,7 @@ export const cloudBuilder = {
         fallbackReason: availability.reason,
       }
     }
-  },
+  }
 
   async withBuilder<T>(
     ctx: PluginContext,
@@ -292,8 +293,10 @@ export const cloudBuilder = {
 
       await builder.clean()
     }
-  },
+  }
 }
+
+export const cloudBuilder = new CloudBuilder()
 
 function getConfiguration(ctx: PluginContext): CloudBuilderConfiguration {
   let containerProvider: ContainerProvider
