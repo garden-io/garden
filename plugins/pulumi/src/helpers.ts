@@ -302,7 +302,7 @@ export async function applyConfig(params: PulumiParams & { previewDirPath?: stri
   // Pulumi variables (from action.spec.pulumiVariables) take precedence over any variables declared in pulumi varfiles.
   let vars: DeepPrimitiveMap = {}
 
-  if (action.getSpec()["useNewPulumiVarfileSchema"] || provider.config.useNewPulumiVarfileSchema) {
+  if (action.getSpec().useNewPulumiVarfileSchema || provider.config.useNewPulumiVarfileSchema) {
     for (const varfileVars of varfileContents) {
       vars = <DeepPrimitiveMap>merge(vars, varfileVars)
     }
