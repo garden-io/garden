@@ -168,6 +168,7 @@ import { makeDocsLinkStyled } from "./docs/common.js"
 import { getPathInfo } from "./vcs/git.js"
 import {
   getCloudDistributionName,
+  getCloudDomain,
   getCloudLogSectionName,
   getGardenCloudDomain,
   isGardenCommunityEdition,
@@ -2068,7 +2069,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
     const cloudApiFactory = getCloudApiFactory(opts)
     const skipCloudConnect = opts.skipCloudConnect || false
 
-    const cloudDomain = getGardenCloudDomain(config.domain)
+    const cloudDomain = getCloudDomain(config.domain)
     const cloudApi = await initCloudApi({
       cloudApiFactory,
       cloudDomain,
