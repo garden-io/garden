@@ -10,7 +10,6 @@ import type { CommonTaskParams, ResolveProcessDependenciesParams, TaskProcessPar
 import { BaseTask } from "./base.js"
 import type { GenericProviderConfig, Provider, ProviderMap } from "../config/provider.js"
 import { providerFromConfig, getProviderTemplateReferences } from "../config/provider.js"
-import { resolveTemplateStrings } from "../template-string/template-string.js"
 import { ConfigurationError, PluginError } from "../exceptions.js"
 import { keyBy, omit, flatten, uniq } from "lodash-es"
 import { ProviderConfigContext } from "../config/template-contexts/provider.js"
@@ -35,6 +34,7 @@ import { styles } from "../logger/styles.js"
 import type { ObjectPath } from "../config/base.js"
 import fsExtra from "fs-extra"
 import { RemoteSourceConfigContext } from "../config/template-contexts/project.js"
+import { deepEvaluate } from "../template/evaluate.js"
 
 const { readFile, writeFile, ensureDir } = fsExtra
 
@@ -210,7 +210,7 @@ export class ResolveProviderTask extends BaseTask<Provider> {
 
     const source = { yamlDoc, path: yamlDocBasePath }
 
-    let resolvedConfig = resolveTemplateStrings({ value: this.config, context, source })
+    let resolvedConfig = deepEvaluate(this.config, { context, opts: {} })
     const providerName = resolvedConfig.name
     const providerLog = getProviderLog(providerName, this.log)
     providerLog.info("Configuring provider...")

@@ -29,7 +29,7 @@ import type { ActionState } from "../actions/types.js"
 import type { ValidResultType } from "../tasks/base.js"
 import { uuidv4 } from "../util/random.js"
 import { s } from "./zod.js"
-import { getContextLookupReferences, visitAll } from "../template-string/static-analysis.js"
+import { getContextLookupReferences, visitAll } from "../template/analysis.js"
 import type { ConfigContext } from "./template-contexts/base.js"
 
 // TODO: dedupe from the joi schema below
@@ -186,7 +186,6 @@ export function getProviderTemplateReferences(config: GenericProviderConfig, con
   const generator = getContextLookupReferences(
     visitAll({
       value: config,
-      parseTemplateStrings: true,
       // TODO: get proper source
       source: {
         path: [],

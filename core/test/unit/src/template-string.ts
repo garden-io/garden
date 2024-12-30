@@ -10,23 +10,17 @@ import { expect } from "chai"
 import repeat from "lodash-es/repeat.js"
 import stripAnsi from "strip-ansi"
 import { loadAndValidateYaml } from "../../../src/config/base.js"
-import { CONTEXT_RESOLVE_KEY_AVAILABLE_LATER, GenericContext } from "../../../src/config/template-contexts/base.js"
-import { TemplateStringError } from "../../../src/exceptions.js"
-import type { ContextLookupReferenceFinding } from "../../../src/template-string/static-analysis.js"
-import {
-  getContextLookupReferences,
-  UnresolvableValue,
-  visitAll,
-} from "../../../src/template-string/static-analysis.js"
-import {
-  getActionTemplateReferences,
-  resolveTemplateString,
-  resolveTemplateStrings,
-  throwOnMissingSecretKeys,
-} from "../../../src/template-string/template-string.js"
+import { CONTEXT_RESOLVE_KEY_NOT_FOUND, GenericContext } from "../../../src/config/template-contexts/base.js"
+import type { ContextLookupReferenceFinding } from "../../../src/template/analysis.js"
+import { getContextLookupReferences, UnresolvableValue, visitAll } from "../../../src/template/analysis.js"
+import { resolveTemplateString, resolveTemplateStrings } from "../../../src/template/templated-strings.js"
 import { dedent } from "../../../src/util/string.js"
 import type { TestGarden } from "../../helpers.js"
 import { expectError, expectFuzzyMatch, getDataDir, makeTestGarden } from "../../helpers.js"
+import { TemplateStringError } from "../../../src/template/errors.js"
+import { getActionTemplateReferences } from "../../../src/config/references.js"
+import { throwOnMissingSecretKeys } from "../../../src/config/secrets.js"
+import { parseTemplateCollection } from "../../../src/template/templated-collections.js"
 
 describe("resolveTemplateString", () => {
   it("should return a non-templated string unchanged", () => {
@@ -57,37 +51,37 @@ describe("resolveTemplateString", () => {
     expect(res).to.equal(undefined)
   })
 
-  it("should pass optional string through if allowPartial=true", () => {
-    const res = resolveTemplateString({
-      string: "${foo}?",
-      context: new GenericContext({}),
-      contextOpts: { allowPartial: true },
-    })
-    expect(res).to.equal("${foo}?")
-  })
+  // it("should pass optional string through if allowPartial=true", () => {
+  //   const res = resolveTemplateString({
+  //     string: "${foo}?",
+  //     context: new GenericContext({}),
+  //     contextOpts: { allowPartial: true },
+  //   })
+  //   expect(res).to.equal("${foo}?")
+  // })
 
-  it("should not crash when variable in a member expression cannot be resolved with allowPartial=true", () => {
-    const inputs = [
-      '${actions.run["${inputs.deployableTarget}-dummy"].var}',
-      '${actions.build["${parent.name}"].outputs.deployment-image-id}',
-      '${actions.build["${parent.name}?"]}',
-    ]
-    for (const input of inputs) {
-      const res = resolveTemplateString({
-        string: input,
-        context: new GenericContext({
-          actions: {
-            run: {},
-            build: {},
-          },
-        }),
-        contextOpts: { allowPartial: true },
-      })
-      expect(res).to.equal(input)
-    }
-  })
+  // it("should not crash when variable in a member expression cannot be resolved with allowPartial=true", () => {
+  //   const inputs = [
+  //     '${actions.run["${inputs.deployableTarget}-dummy"].var}',
+  //     '${actions.build["${parent.name}"].outputs.deployment-image-id}',
+  //     '${actions.build["${parent.name}?"]}',
+  //   ]
+  //   for (const input of inputs) {
+  //     const res = resolveTemplateString({
+  //       string: input,
+  //       context: new GenericContext({
+  //         actions: {
+  //           run: {},
+  //           build: {},
+  //         },
+  //       }),
+  //       contextOpts: { allowPartial: true },
+  //     })
+  //     expect(res).to.equal(input)
+  //   }
+  // })
 
-  it("should fail if optional expression in member expression cannot be resolved with allowPartial=false", async () => {
+  it("should fail if optional expression in member expression cannot be resolved", async () => {
     await expectError(
       () =>
         resolveTemplateString({
@@ -97,7 +91,7 @@ describe("resolveTemplateString", () => {
               build: {},
             },
           }),
-          contextOpts: { allowPartial: false },
+          contextOpts: {},
         }),
       {
         contains:
@@ -111,14 +105,14 @@ describe("resolveTemplateString", () => {
     expect(res).to.equal("${bar}")
   })
 
-  it("should pass through a template string with a double $$ prefix if allowPartial=true", () => {
-    const res = resolveTemplateString({
-      string: "$${bar}",
-      context: new GenericContext({}),
-      contextOpts: { allowPartial: true },
-    })
-    expect(res).to.equal("$${bar}")
-  })
+  // it("should pass through a template string with a double $$ prefix if allowPartial=true", () => {
+  //   const res = resolveTemplateString({
+  //     string: "$${bar}",
+  //     context: new GenericContext({}),
+  //     contextOpts: { allowPartial: true },
+  //   })
+  //   expect(res).to.equal("$${bar}")
+  // })
 
   it("should allow unescaping a template string with a double $$ prefix", () => {
     const res = resolveTemplateString({
@@ -187,7 +181,7 @@ describe("resolveTemplateString", () => {
     const res = resolveTemplateString({
       string: "$${bar}",
       context: new GenericContext({}),
-      contextOpts: { allowPartial: false },
+      contextOpts: {},
     })
     expect(res).to.equal("${bar}")
   })
@@ -603,78 +597,78 @@ describe("resolveTemplateString", () => {
       expect(res).to.equal(false)
     })
 
-    context("partial resolution", () => {
-      it("a missing reference as the first clause returns the original template", () => {
-        const res = resolveTemplateString({
-          string: "${var.foo && 'a'}",
-          context: new GenericContext({ var: {} }),
-          contextOpts: { allowPartial: true },
-        })
-        expect(res).to.equal("${var.foo && 'a'}")
-      })
+    // context("partial resolution", () => {
+    //   it("a missing reference as the first clause returns the original template", () => {
+    //     const res = resolveTemplateString({
+    //       string: "${var.foo && 'a'}",
+    //       context: new GenericContext({ var: {} }),
+    //       contextOpts: { allowPartial: true },
+    //     })
+    //     expect(res).to.equal("${var.foo && 'a'}")
+    //   })
 
-      it("a missing reference as the second clause returns the original template", () => {
-        const res = resolveTemplateString({
-          string: "${'a' && var.foo}",
-          context: new GenericContext({ var: {} }),
-          contextOpts: { allowPartial: true },
-        })
-        expect(res).to.equal("${'a' && var.foo}")
-      })
-    })
+    //   it("a missing reference as the second clause returns the original template", () => {
+    //     const res = resolveTemplateString({
+    //       string: "${'a' && var.foo}",
+    //       context: new GenericContext({ var: {} }),
+    //       contextOpts: { allowPartial: true },
+    //     })
+    //     expect(res).to.equal("${'a' && var.foo}")
+    //   })
+    // })
   })
 
-  context("partial resolution in binary operators", () => {
-    context("arithmetic operators", () => {
-      const arithmeticOperators = ["-", "*", "/", "%", ">", ">=", "<", "<="]
-      for (const operator of arithmeticOperators) {
-        describe(`with ${operator} operator`, () => {
-          it("a missing reference as the first clause returns the original template", () => {
-            const res = resolveTemplateString({
-              string: `$\{var.foo ${operator} 2}`,
-              context: new GenericContext({ var: {} }),
-              contextOpts: { allowPartial: true },
-            })
-            expect(res).to.equal(`$\{var.foo ${operator} 2}`)
-          })
+  // context("partial resolution in binary operators", () => {
+  //   context("arithmetic operators", () => {
+  //     const arithmeticOperators = ["-", "*", "/", "%", ">", ">=", "<", "<="]
+  //     for (const operator of arithmeticOperators) {
+  //       describe(`with ${operator} operator`, () => {
+  //         it("a missing reference as the first clause returns the original template", () => {
+  //           const res = resolveTemplateString({
+  //             string: `$\{var.foo ${operator} 2}`,
+  //             context: new GenericContext({ var: {} }),
+  //             contextOpts: { allowPartial: true },
+  //           })
+  //           expect(res).to.equal(`$\{var.foo ${operator} 2}`)
+  //         })
 
-          it("a missing reference as the second clause returns the original template", () => {
-            const res = resolveTemplateString({
-              string: `$\{2 ${operator} var.foo}`,
-              context: new GenericContext({ var: {} }),
-              contextOpts: { allowPartial: true },
-            })
-            expect(res).to.equal(`$\{2 ${operator} var.foo}`)
-          })
-        })
-      }
-    })
+  //         it("a missing reference as the second clause returns the original template", () => {
+  //           const res = resolveTemplateString({
+  //             string: `$\{2 ${operator} var.foo}`,
+  //             context: new GenericContext({ var: {} }),
+  //             contextOpts: { allowPartial: true },
+  //           })
+  //           expect(res).to.equal(`$\{2 ${operator} var.foo}`)
+  //         })
+  //       })
+  //     }
+  //   })
 
-    context("overloaded operators", () => {
-      const overLoadedOperators = ["+"]
-      for (const operator of overLoadedOperators) {
-        describe(`with ${operator} operator`, () => {
-          it(`a missing reference as the first clause returns the original template`, () => {
-            const res = resolveTemplateString({
-              string: `$\{var.foo ${operator} '2'}`,
-              context: new GenericContext({ var: {} }),
-              contextOpts: { allowPartial: true },
-            })
-            expect(res).to.equal(`$\{var.foo ${operator} '2'}`)
-          })
+  // context("overloaded operators", () => {
+  //   const overLoadedOperators = ["+"]
+  //   for (const operator of overLoadedOperators) {
+  //     describe(`with ${operator} operator`, () => {
+  //       it(`a missing reference as the first clause returns the original template`, () => {
+  //         const res = resolveTemplateString({
+  //           string: `$\{var.foo ${operator} '2'}`,
+  //           context: new GenericContext({ var: {} }),
+  //           contextOpts: { allowPartial: true },
+  //         })
+  //         expect(res).to.equal(`$\{var.foo ${operator} '2'}`)
+  //       })
 
-          it("a missing reference as the second clause returns the original template", () => {
-            const res = resolveTemplateString({
-              string: `$\{2 ${operator} var.foo}`,
-              context: new GenericContext({ var: {} }),
-              contextOpts: { allowPartial: true },
-            })
-            expect(res).to.equal(`$\{2 ${operator} var.foo}`)
-          })
-        })
-      }
-    })
-  })
+  //       it("a missing reference as the second clause returns the original template", () => {
+  //         const res = resolveTemplateString({
+  //           string: `$\{2 ${operator} var.foo}`,
+  //           context: new GenericContext({ var: {} }),
+  //           contextOpts: { allowPartial: true },
+  //         })
+  //         expect(res).to.equal(`$\{2 ${operator} var.foo}`)
+  //       })
+  //     })
+  //   }
+  // })
+  // })
 
   it("should handle a positive equality comparison between equal resolved values", () => {
     const res = resolveTemplateString({ string: "${a == b}", context: new GenericContext({ a: "a", b: "a" }) })
@@ -1067,9 +1061,7 @@ describe("resolveTemplateString", () => {
     for (const [template, expectation] of Object.entries(testCases)) {
       const result = resolveTemplateString({
         string: template,
-        contextOpts: {
-          allowPartial: false,
-        },
+        contextOpts: {},
         context: new GenericContext({ var: {} }),
       })
       expect(result).to.eq(
@@ -1079,34 +1071,34 @@ describe("resolveTemplateString", () => {
     }
   })
 
-  context("allowPartial=true", () => {
-    it("passes through template strings with missing key", () => {
-      const res = resolveTemplateString({
-        string: "${a}",
-        context: new GenericContext({}),
-        contextOpts: { allowPartial: true },
-      })
-      expect(res).to.equal("${a}")
-    })
+  // context("allowPartial=true", () => {
+  //   it("passes through template strings with missing key", () => {
+  //     const res = resolveTemplateString({
+  //       string: "${a}",
+  //       context: new GenericContext({}),
+  //       contextOpts: { allowPartial: true },
+  //     })
+  //     expect(res).to.equal("${a}")
+  //   })
 
-    it("passes through a template string with a missing key in an optional clause", () => {
-      const res = resolveTemplateString({
-        string: "${a || b}",
-        context: new GenericContext({ b: 123 }),
-        contextOpts: { allowPartial: true },
-      })
-      expect(res).to.equal("${a || b}")
-    })
+  //   it("passes through a template string with a missing key in an optional clause", () => {
+  //     const res = resolveTemplateString({
+  //       string: "${a || b}",
+  //       context: new GenericContext({ b: 123 }),
+  //       contextOpts: { allowPartial: true },
+  //     })
+  //     expect(res).to.equal("${a || b}")
+  //   })
 
-    it("passes through a template string with a missing key in a ternary", () => {
-      const res = resolveTemplateString({
-        string: "${a ? b : 123}",
-        context: new GenericContext({ b: 123 }),
-        contextOpts: { allowPartial: true },
-      })
-      expect(res).to.equal("${a ? b : 123}")
-    })
-  })
+  //   it("passes through a template string with a missing key in a ternary", () => {
+  //     const res = resolveTemplateString({
+  //       string: "${a ? b : 123}",
+  //       context: new GenericContext({ b: 123 }),
+  //       contextOpts: { allowPartial: true },
+  //     })
+  //     expect(res).to.equal("${a ? b : 123}")
+  //   })
+  // })
 
   context("when the template string is the full input string", () => {
     it("should return a resolved number directly", () => {
@@ -1161,45 +1153,45 @@ describe("resolveTemplateString", () => {
       expect(res).to.equal("foo-null")
     })
 
-    context("allowPartial=true", () => {
-      it("does not resolve template expressions when 'b' is missing in the context", () => {
-        const res = resolveTemplateString({
-          string: "${a}-${b}",
-          context: new GenericContext({ a: "foo" }),
-          contextOpts: { allowPartial: true },
-        })
-        expect(res).to.equal("${a}-${b}")
-      })
+    // context("allowPartial=true", () => {
+    //   it("does not resolve template expressions when 'b' is missing in the context", () => {
+    //     const res = resolveTemplateString({
+    //       string: "${a}-${b}",
+    //       context: new GenericContext({ a: "foo" }),
+    //       contextOpts: { allowPartial: true },
+    //     })
+    //     expect(res).to.equal("${a}-${b}")
+    //   })
 
-      it("does not resolve template expressions when 'a' is missing in the context", () => {
-        const res = resolveTemplateString({
-          string: "${a}-${b}",
-          context: new GenericContext({ b: "foo" }),
-          contextOpts: { allowPartial: true },
-        })
-        expect(res).to.equal("${a}-${b}")
-      })
+    //   it("does not resolve template expressions when 'a' is missing in the context", () => {
+    //     const res = resolveTemplateString({
+    //       string: "${a}-${b}",
+    //       context: new GenericContext({ b: "foo" }),
+    //       contextOpts: { allowPartial: true },
+    //     })
+    //     expect(res).to.equal("${a}-${b}")
+    //   })
 
-      it("does not resolve template expressions when 'a' is missing in the context when evaluating a conditional expression", () => {
-        const res = resolveTemplateString({
-          string: "${a || b}-${c}",
-          context: new GenericContext({ b: 123, c: "foo" }),
-          contextOpts: {
-            allowPartial: true,
-          },
-        })
-        expect(res).to.equal("${a || b}-${c}")
-      })
+    //   it("does not resolve template expressions when 'a' is missing in the context when evaluating a conditional expression", () => {
+    //     const res = resolveTemplateString({
+    //       string: "${a || b}-${c}",
+    //       context: new GenericContext({ b: 123, c: "foo" }),
+    //       contextOpts: {
+    //         allowPartial: true,
+    //       },
+    //     })
+    //     expect(res).to.equal("${a || b}-${c}")
+    //   })
 
-      it("resolves template expressions when the context is fully available", () => {
-        const res = resolveTemplateString({
-          string: "${a}-${b}",
-          context: new GenericContext({ a: "foo", b: "bar" }),
-          contextOpts: { allowPartial: true },
-        })
-        expect(res).to.equal("foo-bar")
-      })
-    })
+    // it("resolves template expressions when the context is fully available", () => {
+    //   const res = resolveTemplateString({
+    //     string: "${a}-${b}",
+    //     context: new GenericContext({ a: "foo", b: "bar" }),
+    //     contextOpts: { allowPartial: true },
+    //   })
+    //   expect(res).to.equal("foo-bar")
+    // })
+    // })
     context("legacyAllowPartial=true", () => {
       it("partially resolves template expressions when 'b' is missing in the context", () => {
         const res = resolveTemplateString({
@@ -1707,27 +1699,27 @@ describe("resolveTemplateString", () => {
       )
     })
 
-    it("does not apply helper function on unresolved template string and returns string as-is, when allowPartial=true", () => {
-      const res = resolveTemplateString({
-        string: "${base64Encode('${environment.namespace}')}",
-        context: new GenericContext({}),
-        contextOpts: {
-          allowPartial: true,
-        },
-      })
-      expect(res).to.equal("${base64Encode('${environment.namespace}')}")
-    })
+    // it("does not apply helper function on unresolved template string and returns string as-is, when allowPartial=true", () => {
+    //   const res = resolveTemplateString({
+    //     string: "${base64Encode('${environment.namespace}')}",
+    //     context: new GenericContext({}),
+    //     contextOpts: {
+    //       allowPartial: true,
+    //     },
+    //   })
+    //   expect(res).to.equal("${base64Encode('${environment.namespace}')}")
+    // })
 
-    it("does not apply helper function on unresolved template object and returns string as-is, when allowPartial=true", () => {
-      const res = resolveTemplateString({
-        string: "${base64Encode(var.foo)}",
-        context: new GenericContext({ foo: { $forEach: ["a", "b"], $return: "${item.value}" } }),
-        contextOpts: {
-          allowPartial: true,
-        },
-      })
-      expect(res).to.equal("${base64Encode(var.foo)}")
-    })
+    // it("does not apply helper function on unresolved template object and returns string as-is, when allowPartial=true", () => {
+    //   const res = resolveTemplateString({
+    //     string: "${base64Encode(var.foo)}",
+    //     context: new GenericContext({ foo: { $forEach: ["a", "b"], $return: "${item.value}" } }),
+    //     contextOpts: {
+    //       allowPartial: true,
+    //     },
+    //   })
+    //   expect(res).to.equal("${base64Encode(var.foo)}")
+    // })
 
     context("concat", () => {
       it("allows empty strings", () => {
@@ -2020,174 +2012,168 @@ describe("resolveTemplateStrings", () => {
     })
   })
 
-  it("should partially resolve $merge keys if a dependency cannot be resolved yet in partial mode", () => {
-    const obj = {
-      "key-value-array": {
-        $forEach: "${inputs.merged-object || []}",
-        $return: {
-          name: "${item.key}",
-          value: "${item.value}",
-        },
-      },
-    }
-    const templateContext = new GenericContext({
-      inputs: {
-        "merged-object": {
-          $merge: "${var.empty || var.input-object}",
-          INTERNAL_VAR_1: "INTERNAL_VAR_1",
-        },
-      },
-      var: {
-        "input-object": {
-          EXTERNAL_VAR_1: "EXTERNAL_VAR_1",
-        },
-      },
-    })
+  // it("should partially resolve $merge keys if a dependency cannot be resolved yet in partial mode", () => {
+  //   const obj = {
+  //     "key-value-array": {
+  //       $forEach: "${inputs.merged-object || []}",
+  //       $return: {
+  //         name: "${item.key}",
+  //         value: "${item.value}",
+  //       },
+  //     },
+  //   }
+  //   const templateContext = new GenericContext({
+  //     inputs: {
+  //       "merged-object": {
+  //         $merge: "${var.empty || var.input-object}",
+  //         INTERNAL_VAR_1: "INTERNAL_VAR_1",
+  //       },
+  //     },
+  //     var: {
+  //       "input-object": {
+  //         EXTERNAL_VAR_1: "EXTERNAL_VAR_1",
+  //       },
+  //     },
+  //   })
 
-    const result = resolveTemplateStrings({
-      value: obj,
-      context: templateContext,
-      contextOpts: { allowPartial: true },
+  //   const result = resolveTemplateStrings({
+  //     value: obj,
+  //     context: templateContext,
+  //     contextOpts: { allowPartial: true },
+  //     source: undefined,
+  //   })
+
+  //   expect(result).to.eql({
+  //     "key-value-array": {
+  //       $forEach: "${inputs.merged-object || []}",
+  //       $return: {
+  //         name: "${item.key}",
+  //         value: "${item.value}",
+  //       },
+  //     },
+  //   })
+})
+
+it("should resolve $merge keys if a dependency cannot be resolved but there's a fallback", () => {
+  const obj = {
+    "key-value-array": {
+      $forEach: "${inputs.merged-object || []}",
+      $return: {
+        name: "${item.key}",
+        value: "${item.value}",
+      },
+    },
+  }
+  const templateContext = new GenericContext({
+    inputs: {
+      "merged-object": {
+        $merge: "${var.empty || var.input-object}",
+        INTERNAL_VAR_1: "INTERNAL_VAR_1",
+      },
+    },
+    var: {
+      "input-object": {
+        EXTERNAL_VAR_1: "EXTERNAL_VAR_1",
+      },
+    },
+  })
+
+  const result = resolveTemplateStrings({ value: obj, context: templateContext, source: undefined })
+
+  expect(result).to.eql({
+    "key-value-array": [
+      { name: "EXTERNAL_VAR_1", value: "EXTERNAL_VAR_1" },
+      { name: "INTERNAL_VAR_1", value: "INTERNAL_VAR_1" },
+    ],
+  })
+})
+
+it("should ignore $merge keys if the object to be merged is undefined", () => {
+  const obj = {
+    $merge: "${var.doesnotexist}",
+    c: "c",
+  }
+  const templateContext = new GenericContext({ var: { obj: { a: "a", b: "b" } } })
+
+  expect(() => resolveTemplateStrings({ value: obj, context: templateContext, source: undefined })).to.throw(
+    "Invalid template string"
+  )
+})
+
+context("$concat", () => {
+  it("handles array concatenation", () => {
+    const obj = {
+      foo: ["a", { $concat: ["b", "c"] }, "d"],
+    }
+    const res = resolveTemplateStrings({ source: undefined, value: obj, context: new GenericContext({}) })
+    expect(res).to.eql({
+      foo: ["a", "b", "c", "d"],
+    })
+  })
+
+  it("resolves $concat value before spreading", () => {
+    const obj = {
+      foo: ["a", { $concat: "${foo}" }, "d"],
+    }
+    const res = resolveTemplateStrings({
       source: undefined,
+      value: obj,
+      context: new GenericContext({ foo: ["b", "c"] }),
     })
-
-    expect(result).to.eql({
-      "key-value-array": {
-        $forEach: "${inputs.merged-object || []}",
-        $return: {
-          name: "${item.key}",
-          value: "${item.value}",
-        },
-      },
+    expect(res).to.eql({
+      foo: ["a", "b", "c", "d"],
     })
   })
 
-  it("should resolve $merge keys if a dependency cannot be resolved but there's a fallback", () => {
+  it("resolves a $forEach in the $concat clause", () => {
     const obj = {
-      "key-value-array": {
-        $forEach: "${inputs.merged-object || []}",
-        $return: {
-          name: "${item.key}",
-          value: "${item.value}",
-        },
-      },
+      foo: ["a", { $concat: { $forEach: ["B", "C"], $return: "${lower(item.value)}" } }, "d"],
     }
-    const templateContext = new GenericContext({
-      inputs: {
-        "merged-object": {
-          $merge: "${var.empty || var.input-object}",
-          INTERNAL_VAR_1: "INTERNAL_VAR_1",
-        },
-      },
-      var: {
-        "input-object": {
-          EXTERNAL_VAR_1: "EXTERNAL_VAR_1",
-        },
-      },
+    const res = resolveTemplateStrings({
+      source: undefined,
+      value: obj,
+      context: new GenericContext({ foo: ["b", "c"] }),
     })
-
-    const result = resolveTemplateStrings({ value: obj, context: templateContext, source: undefined })
-
-    expect(result).to.eql({
-      "key-value-array": [
-        { name: "EXTERNAL_VAR_1", value: "EXTERNAL_VAR_1" },
-        { name: "INTERNAL_VAR_1", value: "INTERNAL_VAR_1" },
-      ],
+    expect(res).to.eql({
+      foo: ["a", "b", "c", "d"],
     })
   })
 
-  it("should ignore $merge keys if the object to be merged is undefined", () => {
+  it("throws if $concat value is not an array and allowPartial=false", () => {
     const obj = {
-      $merge: "${var.doesnotexist}",
-      c: "c",
+      foo: ["a", { $concat: "b" }, "d"],
     }
-    const templateContext = new GenericContext({ var: { obj: { a: "a", b: "b" } } })
 
-    expect(() => resolveTemplateStrings({ value: obj, context: templateContext, source: undefined })).to.throw(
-      "Invalid template string"
-    )
-  })
-
-  context("$concat", () => {
-    it("handles array concatenation", () => {
-      const obj = {
-        foo: ["a", { $concat: ["b", "c"] }, "d"],
-      }
-      const res = resolveTemplateStrings({ source: undefined, value: obj, context: new GenericContext({}) })
-      expect(res).to.eql({
-        foo: ["a", "b", "c", "d"],
-      })
-    })
-
-    it("resolves $concat value before spreading", () => {
-      const obj = {
-        foo: ["a", { $concat: "${foo}" }, "d"],
-      }
-      const res = resolveTemplateStrings({
-        source: undefined,
-        value: obj,
-        context: new GenericContext({ foo: ["b", "c"] }),
-      })
-      expect(res).to.eql({
-        foo: ["a", "b", "c", "d"],
-      })
-    })
-
-    it("resolves a $forEach in the $concat clause", () => {
-      const obj = {
-        foo: ["a", { $concat: { $forEach: ["B", "C"], $return: "${lower(item.value)}" } }, "d"],
-      }
-      const res = resolveTemplateStrings({
-        source: undefined,
-        value: obj,
-        context: new GenericContext({ foo: ["b", "c"] }),
-      })
-      expect(res).to.eql({
-        foo: ["a", "b", "c", "d"],
-      })
-    })
-
-    it("throws if $concat value is not an array and allowPartial=false", () => {
-      const obj = {
-        foo: ["a", { $concat: "b" }, "d"],
-      }
-
-      void expectError(
-        () => resolveTemplateStrings({ source: undefined, value: obj, context: new GenericContext({}) }),
-        {
-          contains: "Value of $concat key must be (or resolve to) an array (got string)",
-        }
-      )
-    })
-
-    it("throws if object with $concat key contains other keys as well", () => {
-      const obj = {
-        foo: ["a", { $concat: "b", nope: "nay", oops: "derp" }, "d"],
-      }
-
-      void expectError(
-        () => resolveTemplateStrings({ source: undefined, value: obj, context: new GenericContext({}) }),
-        {
-          contains: 'A list item with a $concat key cannot have any other keys (found "nope" and "oops")',
-        }
-      )
-    })
-
-    it("ignores if $concat value is not an array and allowPartial=true", () => {
-      const obj = {
-        foo: ["a", { $concat: "${foo}" }, "d"],
-      }
-      const res = resolveTemplateStrings({
-        source: undefined,
-        value: obj,
-        context: new GenericContext({}),
-        contextOpts: { allowPartial: true },
-      })
-      expect(res).to.eql({
-        foo: ["a", { $concat: "${foo}" }, "d"],
-      })
+    void expectError(() => resolveTemplateStrings({ source: undefined, value: obj, context: new GenericContext({}) }), {
+      contains: "Value of $concat key must be (or resolve to) an array (got string)",
     })
   })
+
+  it("throws if object with $concat key contains other keys as well", () => {
+    const obj = {
+      foo: ["a", { $concat: "b", nope: "nay", oops: "derp" }, "d"],
+    }
+
+    void expectError(() => resolveTemplateStrings({ source: undefined, value: obj, context: new GenericContext({}) }), {
+      contains: 'A list item with a $concat key cannot have any other keys (found "nope" and "oops")',
+    })
+  })
+
+  //   it("ignores if $concat value is not an array and allowPartial=true", () => {
+  //     const obj = {
+  //       foo: ["a", { $concat: "${foo}" }, "d"],
+  //     }
+  //     const res = resolveTemplateStrings({
+  //       source: undefined,
+  //       value: obj,
+  //       context: new GenericContext({}),
+  //       contextOpts: { allowPartial: true },
+  //     })
+  //     expect(res).to.eql({
+  //       foo: ["a", { $concat: "${foo}" }, "d"],
+  //     })
+  //   })
+  // })
 
   context("$if objects", () => {
     it("resolves to $then if $if is true", () => {
@@ -2225,22 +2211,22 @@ describe("resolveTemplateStrings", () => {
       expect(res).to.eql({ bar: undefined })
     })
 
-    it("returns object as-is if $if doesn't resolve to boolean and allowPartial=true", () => {
-      const obj = {
-        bar: {
-          $if: "${foo}",
-          $then: 123,
-          $else: 456,
-        },
-      }
-      const res = resolveTemplateStrings({
-        source: undefined,
-        value: obj,
-        context: new GenericContext({ foo: 2 }),
-        contextOpts: { allowPartial: true },
-      })
-      expect(res).to.eql(obj)
-    })
+    // it("returns object as-is if $if doesn't resolve to boolean and allowPartial=true", () => {
+    //   const obj = {
+    //     bar: {
+    //       $if: "${foo}",
+    //       $then: 123,
+    //       $else: 456,
+    //     },
+    //   }
+    //   const res = resolveTemplateStrings({
+    //     source: undefined,
+    //     value: obj,
+    //     context: new GenericContext({ foo: 2 }),
+    //     contextOpts: { allowPartial: true },
+    //   })
+    //   expect(res).to.eql(obj)
+    // })
 
     it("throws if $if doesn't resolve to boolean and allowPartial=false", () => {
       const obj = {
@@ -2338,21 +2324,21 @@ describe("resolveTemplateStrings", () => {
       )
     })
 
-    it("ignores the loop if the input isn't a list or object and allowPartial=true", () => {
-      const obj = {
-        foo: {
-          $forEach: "${foo}",
-          $return: "foo",
-        },
-      }
-      const res = resolveTemplateStrings({
-        source: undefined,
-        value: obj,
-        context: new GenericContext({}),
-        contextOpts: { allowPartial: true },
-      })
-      expect(res).to.eql(obj)
-    })
+    // it("ignores the loop if the input isn't a list or object and allowPartial=true", () => {
+    //   const obj = {
+    //     foo: {
+    //       $forEach: "${foo}",
+    //       $return: "foo",
+    //     },
+    //   }
+    //   const res = resolveTemplateStrings({
+    //     source: undefined,
+    //     value: obj,
+    //     context: new GenericContext({}),
+    //     contextOpts: { allowPartial: true },
+    //   })
+    //   expect(res).to.eql(obj)
+    // })
 
     it("throws if there's no $return clause", () => {
       const obj = {
@@ -2452,31 +2438,6 @@ describe("resolveTemplateStrings", () => {
         () => resolveTemplateStrings({ source: undefined, value: obj, context: new GenericContext({}) }),
         {
           contains: "$filter clause in $forEach loop must resolve to a boolean value (got string)",
-        }
-      )
-    })
-
-    // TODO: In a future iteration of this code, we should leave the entire $forEach expression unresolved if filter cannot be resolved yet and allowPartial=true.
-    it("throws if $filter can't be resolved, even if allowPartial=true", () => {
-      const obj = {
-        foo: {
-          $forEach: ["a", "b", "c"],
-          $filter: "${var.doesNotExist}",
-          $return: "${item.value}",
-        },
-      }
-
-      void expectError(
-        () =>
-          resolveTemplateStrings({
-            source: undefined,
-            value: obj,
-            context: new GenericContext({ var: { fruit: "banana" } }),
-            contextOpts: { allowPartial: true },
-          }),
-        {
-          contains:
-            "invalid template string (${var.doesnotexist}) at path foo.$filter: could not find key doesnotexist under var. available keys: fruit.",
         }
       )
     })
@@ -2589,20 +2550,22 @@ describe("resolveTemplateStrings", () => {
 
 describe("getContextLookupReferences", () => {
   it("should return all template string references in an object", () => {
-    const obj = {
-      foo: "${my.reference}",
-      nested: {
-        boo: "${moo}",
-        foo: "lalalla${moo}${moo}",
-        banana: "${banana.rama.llama}",
+    const obj = parseTemplateCollection({
+      value: {
+        foo: "${my.reference}",
+        nested: {
+          boo: "${moo}",
+          foo: "lalalla${moo}${moo}",
+          banana: "${banana.rama.llama}",
+        },
       },
-    }
+      source: { path: [] },
+    })
 
     const result = Array.from(
       getContextLookupReferences(
         visitAll({
           value: obj,
-          parseTemplateStrings: true,
           source: {
             path: [],
           },
@@ -2651,26 +2614,30 @@ describe("getContextLookupReferences", () => {
   })
 
   it("should handle keys with dots and unresolvable member expressions correctly", async () => {
-    const obj = {
-      a: "some ${templated['key.with.dots']}",
-      b: "${more.stuff}",
-      c: "${keyThatIs[unresolvable]}",
-      d: '${keyThatIs["${unresolvable}"]}',
-      e: "${optionalAndUnresolvable}?",
-      f: "${keyThatIs[availableLater]}",
-      g: '${keyThatIs["${availableLater}"]}',
-    }
+    const obj = parseTemplateCollection({
+      value: {
+        a: "some ${templated['key.with.dots']}",
+        b: "${more.stuff}",
+        c: "${keyThatIs[unresolvable]}",
+        d: '${keyThatIs["${unresolvable}"]}',
+        e: "${optionalAndUnresolvable}?",
+        // f: "${keyThatIs[availableLater]}",
+        // g: '${keyThatIs["${availableLater}"]}',
+      },
+      source: {
+        path: [],
+      },
+    })
     const foundKeys = Array.from(
       getContextLookupReferences(
         visitAll({
           value: obj,
-          parseTemplateStrings: true,
           source: {
             path: [],
           },
         }),
         new GenericContext({
-          availableLater: CONTEXT_RESOLVE_KEY_AVAILABLE_LATER,
+          // availableLater: CONTEXT_RESOLVE_KEY_AVAILABLE_LATER,
         })
       )
     )
@@ -3006,34 +2973,40 @@ describe("getActionTemplateReferences", () => {
   })
 })
 
-describe.skip("throwOnMissingSecretKeys", () => {
+describe("throwOnMissingSecretKeys", () => {
   it("should not throw an error if no secrets are referenced", () => {
-    const configs = [
-      {
-        name: "foo",
-        foo: "${banana.llama}",
-        nested: { boo: "${moo}" },
-      },
-    ]
+    const configs = parseTemplateCollection({
+      value: [
+        {
+          name: "foo",
+          foo: "${banana.llama}",
+          nested: { boo: "${moo}" },
+        },
+      ],
+      source: { path: [] },
+    } as const)
 
     throwOnMissingSecretKeys(configs, new GenericContext({}), {}, "Module")
     throwOnMissingSecretKeys(configs, new GenericContext({}), { someSecret: "123" }, "Module")
   })
 
   it("should throw an error if one or more secrets is missing", () => {
-    const configs = [
-      {
-        name: "moduleA",
-        foo: "${secrets.a}",
-        nested: { boo: "${secrets.b}" },
-      },
-      {
-        name: "moduleB",
-        bar: "${secrets.a}",
-        nested: { boo: "${secrets.b}" },
-        baz: "${secrets.c}",
-      },
-    ]
+    const configs = parseTemplateCollection({
+      value: [
+        {
+          name: "moduleA",
+          foo: "${secrets.a}",
+          nested: { boo: "${secrets.b}" },
+        },
+        {
+          name: "moduleB",
+          bar: "${secrets.a}",
+          nested: { boo: "${secrets.b}" },
+          baz: "${secrets.c}",
+        },
+      ],
+      source: { path: [] },
+    } as const)
 
     void expectError(
       () => throwOnMissingSecretKeys(configs, new GenericContext({}), { b: "123" }, "Module"),

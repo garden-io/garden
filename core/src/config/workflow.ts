@@ -22,7 +22,6 @@ import { deline, dedent } from "../util/string.js"
 import type { ServiceLimitSpec } from "../plugins/container/moduleConfig.js"
 import type { Garden } from "../garden.js"
 import { WorkflowConfigContext } from "./template-contexts/workflow.js"
-import { resolveTemplateStrings } from "../template-string/template-string.js"
 import { validateConfig } from "./validation.js"
 import { ConfigurationError, GardenError } from "../exceptions.js"
 import type { EnvironmentConfig } from "./project.js"
@@ -31,6 +30,9 @@ import { omitUndefined } from "../util/objects.js"
 import type { BaseGardenResource, GardenResource } from "./base.js"
 import type { GardenApiVersion } from "../constants.js"
 import { DOCS_BASE_URL } from "../constants.js"
+import { capture } from "../template/capture.js"
+import { deepEvaluate } from "../template/evaluate.js"
+import type { ParsedTemplate } from "../template/types.js"
 
 export const minimumWorkflowRequests = {
   cpu: 50, // 50 millicpu
@@ -355,18 +357,16 @@ export function resolveWorkflowConfig(garden: Garden, config: WorkflowConfig) {
   const partialConfig = {
     // Don't allow templating in names and triggers
     ...omit(config, "name", "triggers"),
-    // Inputs can be partially resolved
-    internal: omit(config.internal, "inputs"),
     // Defer resolution of step commands and scripts (the dummy script will be overwritten again below)
     steps: config.steps.map((s) => ({ ...s, command: undefined, script: "echo" })),
   }
 
   let resolvedPartialConfig: WorkflowConfig = {
-    ...resolveTemplateStrings({
-      value: partialConfig,
+    ...(deepEvaluate(partialConfig as unknown as Record<string, ParsedTemplate>, {
       context,
-      source: { yamlDoc: config.internal.yamlDoc, path: [] },
-    }),
+      opts: {},
+    }) as unknown as WorkflowConfig),
+    internal: config.internal,
     name: config.name,
   }
 
@@ -375,15 +375,7 @@ export function resolveWorkflowConfig(garden: Garden, config: WorkflowConfig) {
   }
 
   if (config.internal.inputs) {
-    resolvedPartialConfig.internal.inputs = resolveTemplateStrings({
-      value: config.internal.inputs,
-      context,
-      contextOpts: {
-        allowPartial: true,
-      },
-      // TODO: Map inputs to their original YAML sources
-      source: undefined,
-    })
+    resolvedPartialConfig.internal.inputs = capture(config.internal.inputs, context)
   }
 
   log.silly(() => `Validating config for workflow ${config.name}`)

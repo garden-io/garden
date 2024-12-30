@@ -9,10 +9,7 @@
 import { expect } from "chai"
 import stripAnsi from "strip-ansi"
 import type { ContextKey, ContextResolveParams } from "../../../../../src/config/template-contexts/base.js"
-import {
-  CONTEXT_RESOLVE_KEY_AVAILABLE_LATER,
-  CONTEXT_RESOLVE_KEY_NOT_FOUND,
-} from "../../../../../src/config/template-contexts/base.js"
+import { CONTEXT_RESOLVE_KEY_NOT_FOUND } from "../../../../../src/config/template-contexts/base.js"
 import { ConfigContext, schema } from "../../../../../src/config/template-contexts/base.js"
 import { expectError } from "../../../../helpers.js"
 import { joi } from "../../../../../src/config/common.js"
@@ -54,21 +51,21 @@ describe("ConfigContext", () => {
       expect(stripAnsi(message!())).to.include("Could not find key basic")
     })
 
-    context("allowPartial=true", () => {
-      it("should return CONTEXT_RESOLVE_KEY_AVAILABLE_LATER symbol on missing key", async () => {
-        const c = new GenericContext({})
-        const result = resolveKey(c, ["basic"], { allowPartial: true })
-        expect(result.resolved).to.eql(CONTEXT_RESOLVE_KEY_AVAILABLE_LATER)
-      })
+    // context("allowPartial=true", () => {
+    //   it("should return CONTEXT_RESOLVE_KEY_AVAILABLE_LATER symbol on missing key", async () => {
+    //     const c = new GenericContext({})
+    //     const result = resolveKey(c, ["basic"], { allowPartial: true })
+    //     expect(result.resolved).to.eql(CONTEXT_RESOLVE_KEY_AVAILABLE_LATER)
+    //   })
 
-      it("should return CONTEXT_RESOLVE_KEY_AVAILABLE_LATER symbol on missing key on nested context", async () => {
-        const c = new GenericContext({
-          nested: new GenericContext({ key: "value" }),
-        })
-        const result = resolveKey(c, ["nested", "bla"], { allowPartial: true })
-        expect(result.resolved).to.eql(CONTEXT_RESOLVE_KEY_AVAILABLE_LATER)
-      })
-    })
+    //   it("should return CONTEXT_RESOLVE_KEY_AVAILABLE_LATER symbol on missing key on nested context", async () => {
+    //     const c = new GenericContext({
+    //       nested: new GenericContext({ key: "value" }),
+    //     })
+    //     const result = resolveKey(c, ["nested", "bla"], { allowPartial: true })
+    //     expect(result.resolved).to.eql(CONTEXT_RESOLVE_KEY_AVAILABLE_LATER)
+    //   })
+    // })
 
     it("should throw when looking for nested value on primitive", async () => {
       const c = new GenericContext({ basic: "value" })

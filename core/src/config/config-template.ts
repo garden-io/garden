@@ -13,7 +13,6 @@ import { baseModuleSpecSchema } from "./module.js"
 import { dedent, naturalList } from "../util/string.js"
 import type { BaseGardenResource } from "./base.js"
 import { configTemplateKind, renderTemplateKind, baseInternalFieldsSchema } from "./base.js"
-import { resolveTemplateStrings } from "../template-string/template-string.js"
 import { validateConfig } from "./validation.js"
 import type { Garden } from "../garden.js"
 import { ConfigurationError } from "../exceptions.js"
@@ -24,6 +23,8 @@ import { ProjectConfigContext } from "./template-contexts/project.js"
 import type { ActionConfig } from "../actions/types.js"
 import { actionKinds } from "../actions/types.js"
 import type { WorkflowConfig } from "./workflow.js"
+import { deepEvaluate } from "../template/evaluate.js"
+import type { ParsedTemplate } from "../template/types.js"
 
 const inputTemplatePattern = "${inputs.*}"
 const parentNameTemplate = "${parent.name}"
@@ -67,16 +68,15 @@ export async function resolveConfigTemplate(
   const loggedIn = garden.isLoggedIn()
   const enterpriseDomain = garden.cloudApi?.domain
   const context = new ProjectConfigContext({ ...garden, loggedIn, enterpriseDomain })
-  const resolved = resolveTemplateStrings({
-    value: partial,
+  const resolved = deepEvaluate(partial as unknown as ParsedTemplate, {
     context,
-    source: { yamlDoc: resource.internal.yamlDoc, path: [] },
+    opts: {},
   })
   const configPath = resource.internal.configFilePath
 
   // Validate the partial config
-  const validated = validateConfig({
-    config: resolved,
+  const validated = validateConfig<ConfigTemplateResource>({
+    config: resolved as unknown as BaseGardenResource,
     schema: configTemplateSchema(),
     projectRoot: garden.projectRoot,
     yamlDocBasePath: [],

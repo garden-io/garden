@@ -43,7 +43,6 @@ describe("ModuleConfigContext", () => {
       variables: garden.variables,
       modules,
       buildPath: module.buildPath,
-      partialRuntimeResolution: false,
       name: module.name,
       path: module.path,
       parentName: module.parentName,

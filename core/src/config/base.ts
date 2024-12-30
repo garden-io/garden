@@ -26,7 +26,7 @@ import { createSchema, joi } from "./common.js"
 import { emitNonRepeatableWarning } from "../warnings.js"
 import type { ActionKind, BaseActionConfig } from "../actions/types.js"
 import { actionKinds } from "../actions/types.js"
-import { mayContainTemplateString } from "../template-string/template-string.js"
+import { mayContainTemplateString } from "../template/templated-strings.js"
 import type { Log } from "../logger/log-entry.js"
 import type { Document, DocumentOptions } from "yaml"
 import { parseAllDocuments } from "yaml"
@@ -35,6 +35,7 @@ import { makeDocsLinkStyled } from "../docs/common.js"
 import { profileAsync } from "../util/profiling.js"
 import { readFile } from "fs/promises"
 import { LRUCache } from "lru-cache"
+import { parseTemplateCollection } from "../template/templated-collections.js"
 
 export const configTemplateKind = "ConfigTemplate"
 export const renderTemplateKind = "RenderTemplate"
@@ -218,7 +219,15 @@ export async function validateRawConfig({
     .map((s) => {
       const relPath = relative(projectRoot, configPath)
       const description = `config at ${relPath}`
-      return prepareResource({ log, doc: s, configFilePath: configPath, projectRoot, description, allowInvalid })
+      return prepareResource({
+        log,
+        doc: s,
+        spec: s.toJS(),
+        configFilePath: configPath,
+        projectRoot,
+        description,
+        allowInvalid,
+      })
     })
     .filter(isNotNull)
   return resources
@@ -240,18 +249,20 @@ export function prepareResource({
   configFilePath,
   projectRoot,
   description,
+  spec,
   allowInvalid = false,
+  parse = false,
 }: {
   log: Log
-  doc: YamlDocumentWithSource
+  spec: any
+  doc: YamlDocumentWithSource | undefined
   configFilePath: string
   projectRoot: string
   description: string
   allowInvalid?: boolean
+  parse?: boolean
 }): GardenResource | ModuleConfig | null {
   const relPath = relative(projectRoot, configFilePath)
-
-  const spec = doc.toJS()
 
   if (spec === null) {
     return null
@@ -278,6 +289,19 @@ export function prepareResource({
     if (spec.internal !== undefined) {
       throw new ConfigurationError({
         message: `Found invalid key "internal" in config at ${relPath}`,
+      })
+    }
+  }
+
+  if (parse) {
+    for (const k in spec) {
+      // TODO: should we do this here? would be good to do it as early as possible.
+      spec[k] = parseTemplateCollection({
+        value: spec[k],
+        source: {
+          yamlDoc: doc,
+          path: [k],
+        },
       })
     }
   }

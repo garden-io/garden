@@ -21,7 +21,7 @@ import { CustomCommandContext } from "../config/template-contexts/custom-command
 import { validateWithPath } from "../config/validation.js"
 import type { GardenError } from "../exceptions.js"
 import { ConfigurationError, RuntimeError, InternalError, toGardenError } from "../exceptions.js"
-import { resolveTemplateStrings } from "../template-string/template-string.js"
+import { resolveTemplateStrings } from "../template/templated-strings.js"
 import { listDirectory, isConfigFilename } from "../util/fs.js"
 import type { CommandParams, CommandResult, PrintHeaderParams } from "./base.js"
 import { Command } from "./base.js"
@@ -32,6 +32,7 @@ import { getBuiltinCommands } from "./commands.js"
 import type { Log } from "../logger/log-entry.js"
 import { getTracePropagationEnvVars } from "../util/open-telemetry/propagation.js"
 import { styles } from "../logger/styles.js"
+import { deepEvaluate } from "../template/evaluate.js"
 
 function convertArgSpec(spec: CustomCommandOption) {
   const params = {
@@ -116,10 +117,9 @@ export class CustomCommandWrapper extends Command {
 
     // Render the command variables
     const variablesContext = new CustomCommandContext({ ...garden, args, opts, rest })
-    const commandVariables = resolveTemplateStrings({
-      value: this.spec.variables,
+    const commandVariables = deepEvaluate(this.spec.variables, {
       context: variablesContext,
-      source: { yamlDoc, path: ["variables"] },
+      opts: {},
     })
     const variables: any = jsonMerge(cloneDeep(garden.variables), commandVariables)
 
@@ -134,10 +134,9 @@ export class CustomCommandWrapper extends Command {
       const startedAt = new Date()
 
       const exec = validateWithPath<CommandResource["exec"]>({
-        config: resolveTemplateStrings({
-          value: this.spec.exec,
+        config: deepEvaluate(this.spec.exec, {
           context: commandContext,
-          source: { yamlDoc, path: ["exec"] },
+          opts: {},
         }),
         schema: customCommandExecSchema(),
         path: this.spec.internal.basePath,
@@ -186,10 +185,9 @@ export class CustomCommandWrapper extends Command {
       const startedAt = new Date()
 
       let gardenCommand = validateWithPath<CommandResource["gardenCommand"]>({
-        config: resolveTemplateStrings({
-          value: this.spec.gardenCommand,
+        config: deepEvaluate(this.spec.gardenCommand, {
           context: commandContext,
-          source: { yamlDoc, path: ["gardenCommand"] },
+          opts: {},
         }),
         schema: customCommandGardenCommandSchema(),
         path: this.spec.internal.basePath,

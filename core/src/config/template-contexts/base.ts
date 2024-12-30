@@ -9,32 +9,28 @@
 import type Joi from "@hapi/joi"
 import { isString } from "lodash-es"
 import { ConfigurationError, GardenError } from "../../exceptions.js"
-import { resolveTemplateString } from "../../template-string/template-string.js"
+import { resolveTemplateString } from "../../template/templated-strings.js"
 import type { CustomObjectSchema } from "../common.js"
 import { joi, joiIdentifier } from "../common.js"
 import { naturalList } from "../../util/string.js"
 import { styles } from "../../logger/styles.js"
 import { Profile } from "../../util/profiling.js"
 import type { CollectionOrValue } from "../../util/objects.js"
-import type { TemplatePrimitive } from "../../template-string/types.js"
-import { isTemplatePrimitive } from "../../template-string/types.js"
+import type { TemplatePrimitive } from "../../template/types.js"
+import { isTemplatePrimitive, UnresolvedTemplateValue } from "../../template/types.js"
 
 export type ContextKeySegment = string | number
 export type ContextKey = ContextKeySegment[]
 
 export interface ContextResolveOpts {
-  // Allow templates to be partially resolved (used to defer runtime template resolution, for example)
-  allowPartial?: boolean
   // This is kept for backwards compatibility of rendering kubernetes manifests
   // TODO(0.14): Do not allow the use of template strings in kubernetes manifest files
   // TODO(0.14): Remove legacyAllowPartial
   legacyAllowPartial?: boolean
-  // Allow partial resolution for values that originate from a special context that always returns CONTEXT_RESOLVE_KEY_AVAILABLE_LATER.
-  // This is used for module resolution and can be removed whenever we remove support for modules.
-  allowPartialContext?: boolean
   // a list of previously resolved paths, used to detect circular references
   stack?: Set<string>
-  // Unescape escaped template strings
+
+  // TODO: remove
   unescape?: boolean
 }
 
@@ -71,7 +67,6 @@ export class ContextResolveError extends GardenError {
 }
 
 export const CONTEXT_RESOLVE_KEY_NOT_FOUND: unique symbol = Symbol.for("ContextResolveKeyNotFound")
-export const CONTEXT_RESOLVE_KEY_AVAILABLE_LATER: unique symbol = Symbol.for("ContextResolveKeyAvailableLater")
 
 // Note: we're using classes here to be able to use decorators to describe each context node and key
 @Profile()
@@ -79,13 +74,9 @@ export abstract class ConfigContext {
   private readonly _rootContext: ConfigContext
   private readonly _resolvedValues: { [path: string]: any }
 
-  // This is used for special-casing e.g. runtime.* resolution
-  protected _alwaysAllowPartial: boolean
-
   constructor(rootContext?: ConfigContext) {
     this._rootContext = rootContext || this
     this._resolvedValues = {}
-    this._alwaysAllowPartial = false
   }
 
   static getSchema() {
@@ -188,9 +179,14 @@ export abstract class ConfigContext {
       }
 
       // handle templated strings in context variables
-      if (isString(value)) {
+      if (value instanceof UnresolvedTemplateValue) {
         opts.stack.add(getStackEntry())
-        value = resolveTemplateString({ string: value, context: this._rootContext, contextOpts: opts })
+        value = value.evaluate({ context: this._rootContext, opts })
+
+        if (typeof value === "symbol") {
+          value = undefined
+          break
+        }
       }
 
       if (value === undefined) {
@@ -226,14 +222,7 @@ export abstract class ConfigContext {
         return { resolved: value, getUnavailableReason }
       }
 
-      if (this._alwaysAllowPartial || opts.allowPartial) {
-        return {
-          resolved: CONTEXT_RESOLVE_KEY_AVAILABLE_LATER,
-          getUnavailableReason,
-        }
-      } else {
-        return { resolved: CONTEXT_RESOLVE_KEY_NOT_FOUND, getUnavailableReason }
-      }
+      return { resolved: CONTEXT_RESOLVE_KEY_NOT_FOUND, getUnavailableReason }
     }
 
     // Cache result, unless it is a partial resolution

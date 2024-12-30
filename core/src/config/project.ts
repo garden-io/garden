@@ -22,7 +22,7 @@ import {
   joiVariablesDescription,
 } from "./common.js"
 import { validateConfig, validateWithPath } from "./validation.js"
-import { resolveTemplateStrings } from "../template-string/template-string.js"
+import { deepEvaluate } from "../template/evaluate.js"
 import { EnvironmentConfigContext, ProjectConfigContext } from "./template-contexts/project.js"
 import { findByName, getNames } from "../util/util.js"
 import { ConfigurationError, ParameterError, ValidationError } from "../exceptions.js"
@@ -41,6 +41,7 @@ import { baseInternalFieldsSchema, loadVarfile, varfileDescription } from "./bas
 import type { Log } from "../logger/log-entry.js"
 import { renderDivider } from "../logger/util.js"
 import { styles } from "../logger/styles.js"
+import type { ParsedTemplate } from "../template/types.js"
 
 export const defaultVarfilePath = "garden.env"
 export const defaultEnvVarfilePath = (environmentName: string) => `garden.${environmentName}.env`
@@ -482,27 +483,29 @@ export function resolveProjectConfig({
 
   let globalConfig: any
   try {
-    globalConfig = resolveTemplateStrings({
-      value: {
+    globalConfig = deepEvaluate(
+      {
         apiVersion: config.apiVersion,
         varfile: config.varfile,
         variables: config.variables,
         environments: [],
         sources: [],
       },
-      context: new ProjectConfigContext({
-        projectName: name,
-        projectRoot: config.path,
-        artifactsPath,
-        vcsInfo,
-        username,
-        loggedIn,
-        enterpriseDomain,
-        secrets,
-        commandInfo,
-      }),
-      source: { yamlDoc: config.internal.yamlDoc, path: [] },
-    })
+      {
+        context: new ProjectConfigContext({
+          projectName: name,
+          projectRoot: config.path,
+          artifactsPath,
+          vcsInfo,
+          username,
+          loggedIn,
+          enterpriseDomain,
+          secrets,
+          commandInfo,
+        }),
+        opts: {},
+      }
+    )
   } catch (err) {
     log.error("Failed to resolve project configuration.")
     log.error(styles.bold(renderDivider()))
@@ -625,8 +628,7 @@ export const pickEnvironment = profileAsync(async function _pickEnvironment({
   const source = { yamlDoc: projectConfig.internal.yamlDoc, path: ["environments", index] }
 
   // Resolve template strings in the environment config, except providers
-  environmentConfig = resolveTemplateStrings({
-    value: { ...environmentConfig },
+  const config = deepEvaluate(environmentConfig as unknown as ParsedTemplate, {
     context: new EnvironmentConfigContext({
       projectName,
       projectRoot,
@@ -639,11 +641,11 @@ export const pickEnvironment = profileAsync(async function _pickEnvironment({
       secrets,
       commandInfo,
     }),
-    source,
+    opts: {},
   })
 
   environmentConfig = validateWithPath<EnvironmentConfig>({
-    config: environmentConfig,
+    config,
     schema: environmentSchema(),
     configType: `environment ${environment}`,
     path: projectConfig.path,

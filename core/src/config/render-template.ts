@@ -17,11 +17,7 @@ import {
   prepareResource,
   renderTemplateKind,
 } from "./base.js"
-import {
-  maybeTemplateString,
-  resolveTemplateString,
-  resolveTemplateStrings,
-} from "../template-string/template-string.js"
+import { maybeTemplateString, resolveTemplateString, resolveTemplateStrings } from "../template/templated-strings.js"
 import { validateWithPath } from "./validation.js"
 import type { Garden } from "../garden.js"
 import { ConfigurationError, GardenError } from "../exceptions.js"
@@ -39,6 +35,10 @@ import type { DeepPrimitiveMap } from "@garden-io/platform-api-types"
 import { RenderTemplateConfigContext } from "./template-contexts/render.js"
 import type { Log } from "../logger/log-entry.js"
 import { GardenApiVersion } from "../constants.js"
+import { capture } from "../template/capture.js"
+import { deepEvaluate } from "../template/evaluate.js"
+import { ParsedTemplate, TemplatePrimitive } from "../template/types.js"
+import { CollectionOrValue } from "../util/objects.js"
 
 export const renderTemplateConfigSchema = createSchema({
   name: renderTemplateKind,
@@ -127,24 +127,13 @@ export async function renderConfigTemplate({
   const enterpriseDomain = garden.cloudApi?.domain
   const templateContext = new EnvironmentConfigContext({ ...garden, loggedIn, enterpriseDomain })
 
-  const yamlDoc = config.internal.yamlDoc
-
-  const resolvedWithoutInputs = resolveTemplateStrings({
-    value: { ...omit(config, "inputs") },
+  const resolvedWithoutInputs = deepEvaluate(omit(config, "inputs") as unknown as ParsedTemplate, {
     context: templateContext,
-    source: { yamlDoc, path: [] },
-  })
-  const partiallyResolvedInputs = resolveTemplateStrings({
-    value: config.inputs || {},
-    context: templateContext,
-    contextOpts: {
-      allowPartial: true,
-    },
-    source: { yamlDoc, path: ["inputs"] },
+    opts: {},
   })
   let resolved: RenderTemplateConfig = {
-    ...resolvedWithoutInputs,
-    inputs: partiallyResolvedInputs,
+    ...(resolvedWithoutInputs as unknown as RenderTemplateConfig),
+    inputs: capture(config.inputs || {}, templateContext),
   }
 
   const configType = "Render " + resolved.name
@@ -183,7 +172,7 @@ export async function renderConfigTemplate({
     enterpriseDomain,
     parentName: resolved.name,
     templateName: template.name,
-    inputs: partiallyResolvedInputs,
+    inputs: config.inputs || {},
   })
 
   // TODO: remove in 0.14
@@ -205,17 +194,10 @@ async function renderModules({
   context: RenderTemplateConfigContext
   renderConfig: RenderTemplateConfig
 }): Promise<ModuleConfig[]> {
-  const yamlDoc = template.internal.yamlDoc
-
   return Promise.all(
-    (template.modules || []).map(async (m, i) => {
+    (template.modules || []).map(async (m) => {
       // Run a partial template resolution with the parent+template info
-      const spec = resolveTemplateStrings({
-        value: m,
-        context,
-        contextOpts: { allowPartial: true },
-        source: { yamlDoc, path: ["modules", i] },
-      })
+      const spec = capture(m as unknown as ParsedTemplate, context) as unknown as ModuleConfig
       const renderConfigPath = renderConfig.internal.configFilePath || renderConfig.internal.basePath
 
       let moduleConfig: ModuleConfig
@@ -277,15 +259,9 @@ async function renderConfigs({
 
   const templateDescription = `${configTemplateKind} '${template.name}'`
   const templateConfigs = template.configs || []
-  const partiallyResolvedTemplateConfigs = resolveTemplateStrings({
-    value: templateConfigs,
-    context,
-    contextOpts: { allowPartial: true },
-    source,
-  })
 
   return Promise.all(
-    partiallyResolvedTemplateConfigs.map(async (m, index) => {
+    templateConfigs.map(async (m, index) => {
       // Resolve just the name, which must be immediately resolvable
       let resolvedName = m.name
 
@@ -293,7 +269,6 @@ async function renderConfigs({
         resolvedName = resolveTemplateString({
           string: m.name,
           context,
-          contextOpts: { allowPartial: false },
           source: { ...source, path: [...source.path, index, "name"] },
         }) as string
       } catch (error) {
@@ -327,7 +302,8 @@ async function renderConfigs({
       try {
         resource = <TemplatableConfig>prepareResource({
           log,
-          doc: new Document(spec) as YamlDocumentWithSource,
+          spec,
+          doc: undefined,
           configFilePath: renderConfigPath,
           projectRoot: garden.projectRoot,
           description: `resource in Render ${renderConfig.name}`,

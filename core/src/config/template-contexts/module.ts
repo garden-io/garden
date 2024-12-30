@@ -167,7 +167,7 @@ class RuntimeConfigContext extends ConfigContext {
   )
   public tasks: Map<string, TaskRuntimeContext>
 
-  constructor(root: ConfigContext, allowPartial: boolean, graphResults?: GraphResults) {
+  constructor(root: ConfigContext, graphResults?: GraphResults) {
     super(root)
 
     this.services = new Map()
@@ -187,10 +187,6 @@ class RuntimeConfigContext extends ConfigContext {
         }
       }
     }
-
-    // This ensures that any template string containing runtime.* references is returned unchanged when
-    // there is no or limited runtime context available.
-    this._alwaysAllowPartial = allowPartial
   }
 }
 
@@ -202,7 +198,6 @@ export interface OutputConfigContextParams {
   // We only supply this when resolving configuration in dependency order.
   // Otherwise we pass `${runtime.*} template strings through for later resolution.
   graphResults?: GraphResults
-  partialRuntimeResolution: boolean
 }
 
 /**
@@ -224,21 +219,14 @@ export class OutputConfigContext extends ProviderConfigContext {
   )
   public runtime: RuntimeConfigContext
 
-  constructor({
-    garden,
-    resolvedProviders,
-    variables,
-    modules,
-    graphResults,
-    partialRuntimeResolution,
-  }: OutputConfigContextParams) {
+  constructor({ garden, resolvedProviders, variables, modules, graphResults }: OutputConfigContextParams) {
     super(garden, resolvedProviders, variables)
 
     this.modules = new Map(
       modules.map((config) => <[string, ModuleReferenceContext]>[config.name, new ModuleReferenceContext(this, config)])
     )
 
-    this.runtime = new RuntimeConfigContext(this, partialRuntimeResolution, graphResults)
+    this.runtime = new RuntimeConfigContext(this, graphResults)
   }
 }
 

@@ -194,7 +194,7 @@ class ActionReferencesContext extends ConfigContext {
   @schema(_actionResultContextSchema.description("Alias for `run`."))
   public tasks: Map<string, ActionResultContext>
 
-  constructor(root: ConfigContext, allowPartial: boolean, actions: (ResolvedAction | ExecutedAction)[]) {
+  constructor(root: ConfigContext, actions: (ResolvedAction | ExecutedAction)[]) {
     super(root)
 
     this.build = new Map()
@@ -221,10 +221,6 @@ class ActionReferencesContext extends ConfigContext {
         })
       )
     }
-
-    // This ensures that any template string containing runtime.* references is returned unchanged when
-    // there is no or limited runtime context available.
-    this._alwaysAllowPartial = allowPartial
   }
 }
 
@@ -232,7 +228,6 @@ export interface ActionSpecContextParams {
   garden: Garden
   resolvedProviders: ProviderMap
   modules: GardenModule[]
-  partialRuntimeResolution: boolean
   action: Action
   resolvedDependencies: ResolvedAction[]
   executedDependencies: ExecutedAction[]
@@ -279,8 +274,7 @@ export class ActionSpecContext extends OutputConfigContext {
   public this: ActionReferenceContext
 
   constructor(params: ActionSpecContextParams) {
-    const { action, garden, partialRuntimeResolution, variables, inputs, resolvedDependencies, executedDependencies } =
-      params
+    const { action, garden, variables, inputs, resolvedDependencies, executedDependencies } = params
 
     const internal = action.getInternal()
 
@@ -297,10 +291,7 @@ export class ActionSpecContext extends OutputConfigContext {
     const parentName = internal?.parentName
     const templateName = internal?.templateName
 
-    this.actions = new ActionReferencesContext(this, partialRuntimeResolution, [
-      ...resolvedDependencies,
-      ...executedDependencies,
-    ])
+    this.actions = new ActionReferencesContext(this, [...resolvedDependencies, ...executedDependencies])
 
     // Throw specific error when attempting to resolve self
     this.actions[action.kind.toLowerCase()].set(

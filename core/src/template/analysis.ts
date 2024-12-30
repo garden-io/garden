@@ -10,14 +10,14 @@ import type { CollectionOrValue } from "../util/objects.js"
 import { isArray, isPlainObject } from "../util/objects.js"
 import { ContextLookupExpression, TemplateExpression } from "./ast.js"
 import type { TemplatePrimitive } from "./types.js"
-import { parseTemplateString } from "./template-string.js"
+import { UnresolvedTemplateValue } from "./types.js"
 import { type ConfigContext } from "../config/template-contexts/base.js"
 import { GardenError, InternalError } from "../exceptions.js"
 import { type ConfigSource } from "../config/validation.js"
 
 export type TemplateExpressionGenerator = Generator<
   {
-    value: TemplatePrimitive | TemplateExpression
+    value: TemplatePrimitive | UnresolvedTemplateValue | TemplateExpression
     yamlSource: ConfigSource
   },
   void,
@@ -26,18 +26,15 @@ export type TemplateExpressionGenerator = Generator<
 
 export function* visitAll({
   value,
-  parseTemplateStrings = false,
   source,
 }: {
-  value: CollectionOrValue<TemplatePrimitive | TemplateExpression>
-  parseTemplateStrings?: boolean
+  value: CollectionOrValue<TemplatePrimitive | UnresolvedTemplateValue | TemplateExpression>
   source: ConfigSource
 }): TemplateExpressionGenerator {
   if (isArray(value)) {
     for (const [k, v] of value.entries()) {
       yield* visitAll({
         value: v,
-        parseTemplateStrings,
         source: {
           ...source,
           path: [...source.path, k],
@@ -48,36 +45,20 @@ export function* visitAll({
     for (const k of Object.keys(value)) {
       yield* visitAll({
         value: value[k],
-        parseTemplateStrings,
         source: {
           ...source,
           path: [...source.path, k],
         },
       })
     }
+  } else if (value instanceof UnresolvedTemplateValue) {
+    yield* value.visitAll()
+  } else if (value instanceof TemplateExpression) {
+    yield* value.visitAll(source)
   } else {
-    if (parseTemplateStrings && typeof value === "string") {
-      const parsed = parseTemplateString({
-        rawTemplateString: value,
-        unescape: false,
-        source,
-      })
-
-      if (typeof parsed === "string") {
-        yield {
-          value: parsed,
-          yamlSource: source,
-        }
-      } else {
-        yield* parsed.visitAll(source)
-      }
-    } else if (value instanceof TemplateExpression) {
-      yield* value.visitAll(source)
-    } else {
-      yield {
-        value,
-        yamlSource: source,
-      }
+    yield {
+      value,
+      yamlSource: source,
     }
   }
 }
@@ -130,7 +111,7 @@ export function* getContextLookupReferences(
       const keyPath = value.keyPath.map((keyPathExpression) => {
         const key = keyPathExpression.evaluate({
           context,
-          opts: { allowPartial: false },
+          opts: {},
           optional: true,
           yamlSource,
         })
@@ -141,7 +122,7 @@ export function* getContextLookupReferences(
               // this will throw an error, because the key could not be resolved
               keyPathExpression.evaluate({
                 context,
-                opts: { allowPartial: false },
+                opts: {},
                 optional: false,
                 yamlSource,
               })

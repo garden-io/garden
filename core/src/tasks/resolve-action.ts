@@ -18,7 +18,7 @@ import type {
   ResolvedAction,
 } from "../actions/types.js"
 import { ActionSpecContext } from "../config/template-contexts/actions.js"
-import { resolveTemplateStrings } from "../template-string/template-string.js"
+import { resolveTemplateStrings } from "../template/templated-strings.js"
 import { InternalError } from "../exceptions.js"
 import { validateWithPath } from "../config/validation.js"
 import type { DeepPrimitiveMap } from "../config/common.js"
@@ -27,6 +27,7 @@ import { mergeVariables } from "../graph/common.js"
 import { actionToResolved } from "../actions/helpers.js"
 import { ResolvedConfigGraph } from "../graph/config-graph.js"
 import { OtelTraced } from "../util/open-telemetry/decorators.js"
+import { deepEvaluate } from "../template/evaluate.js"
 
 export interface ResolveActionResults<T extends Action> extends ValidResultType {
   state: ActionState
@@ -126,20 +127,15 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
       resolvedProviders: await this.garden.resolveProviders({ log: this.log }),
       action,
       modules: this.graph.getModules(),
-      partialRuntimeResolution: false,
       resolvedDependencies,
       executedDependencies,
       variables: {},
       inputs: {},
     })
 
-    const template = config.internal.templateName ? this.garden.configTemplates[config.internal.templateName] : null
-
-    const inputs = resolveTemplateStrings({
-      value: config.internal.inputs || {},
+    const inputs = deepEvaluate(config.internal.inputs || {}, {
       context: inputsContext,
-      contextOpts: { allowPartial: false },
-      source: { yamlDoc: template?.internal.yamlDoc, path: ["inputs"] },
+      opts: {},
     })
 
     // Resolve variables
@@ -149,42 +145,43 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
     if (groupName) {
       const group = this.graph.getGroup(groupName)
 
-      groupVariables = resolveTemplateStrings({
-        value: await mergeVariables({
+      groupVariables = deepEvaluate(
+        await mergeVariables({
           basePath: group.path,
           variables: group.variables,
           varfiles: group.varfiles,
           log: this.garden.log,
         }),
-        context: inputsContext,
-        // TODO: map variables to their source
-        source: undefined,
-      })
+        {
+          context: inputsContext,
+          opts: {},
+        }
+      )
     }
 
     const basePath = action.effectiveConfigFileLocation()
 
-    const actionVariables = resolveTemplateStrings({
-      value: await mergeVariables({
+    const actionVariables = deepEvaluate(
+      await mergeVariables({
         basePath,
         variables: config.variables,
         varfiles: config.varfiles,
         log: this.garden.log,
       }),
-      context: new ActionSpecContext({
-        garden: this.garden,
-        resolvedProviders: await this.garden.resolveProviders({ log: this.log }),
-        action,
-        modules: this.graph.getModules(),
-        partialRuntimeResolution: false,
-        resolvedDependencies,
-        executedDependencies,
-        variables: groupVariables,
-        inputs,
-      }),
-      // TODO: map variables to their source
-      source: undefined,
-    })
+      {
+        context: new ActionSpecContext({
+          garden: this.garden,
+          resolvedProviders: await this.garden.resolveProviders({ log: this.log }),
+          action,
+          modules: this.graph.getModules(),
+          resolvedDependencies,
+          executedDependencies,
+          variables: groupVariables,
+          inputs,
+        }),
+        opts: {},
+      }
+    )
 
     const variables = groupVariables
     merge(variables, actionVariables)
@@ -192,20 +189,18 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
     merge(variables, this.garden.variableOverrides)
 
     // Resolve spec
-    let spec = resolveTemplateStrings({
-      value: action.getConfig().spec || {},
+    let spec = deepEvaluate(action.getConfig().spec || {}, {
       context: new ActionSpecContext({
         garden: this.garden,
         resolvedProviders: await this.garden.resolveProviders({ log: this.log }),
         action,
         modules: this.graph.getModules(),
-        partialRuntimeResolution: false,
         resolvedDependencies,
         executedDependencies,
         variables,
         inputs,
       }),
-      source: { yamlDoc: action.getInternal().yamlDoc, path: ["spec"] },
+      opts: {},
     })
 
     // Validate spec

@@ -98,11 +98,7 @@ import {
 import { dedent, deline, naturalList, wordWrap } from "./util/string.js"
 import { DependencyGraph } from "./graph/common.js"
 import { Profile, profileAsync } from "./util/profiling.js"
-import {
-  throwOnMissingSecretKeys,
-  resolveTemplateString,
-  resolveTemplateStrings,
-} from "./template-string/template-string.js"
+import { resolveTemplateString } from "./template/templated-strings.js"
 import type { WorkflowConfig, WorkflowConfigMap } from "./config/workflow.js"
 import { resolveWorkflowConfig, isWorkflowConfig } from "./config/workflow.js"
 import type { PluginTools } from "./util/ext-tools.js"
@@ -172,6 +168,9 @@ import {
   getGardenCloudDomain,
   isGardenCommunityEdition,
 } from "./cloud/util.js"
+import { throwOnMissingSecretKeys } from "./config/secrets.js"
+import { deepEvaluate } from "./template/evaluate.js"
+import type { ParsedTemplate } from "./template/types.js"
 
 const defaultLocalAddress = "localhost"
 
@@ -1018,7 +1017,6 @@ export class Garden {
       variables: this.variables,
       modules,
       graphResults,
-      partialRuntimeResolution: false,
     })
   }
 
@@ -1572,7 +1570,6 @@ export class Garden {
     const resolved = resolveTemplateString({
       string: disabledFlag,
       context,
-      contextOpts: { allowPartial: false },
     })
 
     return !!resolved
@@ -1685,8 +1682,8 @@ export class Garden {
   public getProjectSources() {
     const context = new RemoteSourceConfigContext(this, this.variables)
     const source = { yamlDoc: this.projectConfig.internal.yamlDoc, path: ["sources"] }
-    const resolved = validateSchema(
-      resolveTemplateStrings({ value: this.projectSources, context, source }),
+    const resolved = validateSchema<SourceConfig[]>(
+      deepEvaluate(this.projectSources as unknown as ParsedTemplate, { context, opts: {} }),
       projectSourcesSchema(),
       {
         context: "remote source",
@@ -1842,7 +1839,7 @@ export class Garden {
       variables: this.variables,
       actionConfigs: filteredActionConfigs,
       moduleConfigs: moduleConfigs.map(omitInternal),
-      workflowConfigs: sortBy(workflowConfigs, "name"),
+      workflowConfigs: sortBy(workflowConfigs.map(omitInternal), "name"),
       projectName: this.projectName,
       projectRoot: this.projectRoot,
       projectId: this.projectId,
@@ -2419,7 +2416,7 @@ export interface ConfigDump {
   variables: DeepPrimitiveMap
   actionConfigs: ActionConfigMapForDump
   moduleConfigs: OmitInternalConfig<ModuleConfig>[]
-  workflowConfigs: WorkflowConfig[]
+  workflowConfigs: OmitInternalConfig<WorkflowConfig>[]
   projectName: string
   projectRoot: string
   projectId?: string

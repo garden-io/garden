@@ -9,7 +9,7 @@
 import { BuildTask } from "./build.js"
 import type { BaseActionTaskParams, ActionTaskProcessParams } from "../tasks/base.js"
 import { BaseActionTask } from "../tasks/base.js"
-import { resolveTemplateString } from "../template-string/template-string.js"
+import { resolveTemplateString } from "../template/templated-strings.js"
 import { joi } from "../config/common.js"
 import { versionStringPrefix } from "../vcs/vcs.js"
 import { ConfigContext, schema } from "../config/template-contexts/base.js"
@@ -107,7 +107,6 @@ export class PublishTask extends BaseActionTask<BuildAction, PublishActionResult
         action,
         resolvedProviders,
         modules: this.graph.getModules(),
-        partialRuntimeResolution: false,
         resolvedDependencies: action.getResolvedDependencies(),
         executedDependencies: action.getExecutedDependencies(),
         inputs: action.getInternal().inputs || {},

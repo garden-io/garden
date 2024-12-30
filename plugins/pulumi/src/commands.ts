@@ -202,7 +202,6 @@ const makePluginContextForDeploy = async (
     garden,
     resolvedProviders,
     action,
-    partialRuntimeResolution: false,
     modules: graph.getModules(),
     resolvedDependencies: action.getResolvedDependencies(),
     executedDependencies: action.getExecutedDependencies(),

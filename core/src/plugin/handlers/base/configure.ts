@@ -58,7 +58,7 @@ export class ConfigureActionConfig<T extends BaseActionConfig = BaseActionConfig
 
   resultSchema = () =>
     joi.object().keys({
-      config: actionConfigSchema().required(),
+      config: joi.any().required(),
       supportedModes: joi
         .object()
         .keys({

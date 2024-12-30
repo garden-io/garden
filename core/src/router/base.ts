@@ -300,7 +300,6 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
           garden: this.garden,
           resolvedProviders: providers,
           action,
-          partialRuntimeResolution: false,
           modules: graph.getModules(),
           resolvedDependencies: action.getResolvedDependencies(),
           executedDependencies: action.getExecutedDependencies(),

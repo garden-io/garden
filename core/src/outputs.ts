@@ -7,19 +7,17 @@
  */
 
 import type { Garden } from "./garden.js"
-import {
-  extractActionReference,
-  extractRuntimeReference,
-  resolveTemplateStrings,
-} from "./template-string/template-string.js"
 import { OutputConfigContext } from "./config/template-contexts/module.js"
 import type { Log } from "./logger/log-entry.js"
 import type { OutputSpec } from "./config/project.js"
 import type { ActionReference } from "./config/common.js"
 import { GraphResults } from "./graph/results.js"
-import { getContextLookupReferences, visitAll } from "./template-string/static-analysis.js"
+import { getContextLookupReferences, visitAll } from "./template/analysis.js"
 import { isString } from "lodash-es"
 import type { ObjectWithName } from "./util/util.js"
+import { extractActionReference, extractRuntimeReference } from "./config/references.js"
+import { deepEvaluate } from "./template/evaluate.js"
+import type { ParsedTemplate } from "./template/types.js"
 
 /**
  * Resolves all declared project outputs. If necessary, this will resolve providers and modules, and ensure services
@@ -38,7 +36,6 @@ export async function resolveProjectOutputs(garden: Garden, log: Log): Promise<O
   const generator = getContextLookupReferences(
     visitAll({
       value: garden.rawOutputs as ObjectWithName[],
-      parseTemplateStrings: true,
       // TODO: What would be the source here?
       source: {
         path: [],
@@ -49,7 +46,6 @@ export async function resolveProjectOutputs(garden: Garden, log: Log): Promise<O
       resolvedProviders: {},
       variables: garden.variables,
       modules: [],
-      partialRuntimeResolution: true,
     })
   )
   for (const finding of generator) {
@@ -75,21 +71,17 @@ export async function resolveProjectOutputs(garden: Garden, log: Log): Promise<O
 
   const allRefs = [...needProviders, ...needModules, ...needActions]
 
-  const source = { yamlDoc: garden.getProjectConfig().internal.yamlDoc, path: ["outputs"] }
-
   if (allRefs.length === 0) {
     // No need to resolve any entities
-    return resolveTemplateStrings({
-      value: garden.rawOutputs,
+    return deepEvaluate(garden.rawOutputs as unknown as Record<string, ParsedTemplate>[], {
       context: new OutputConfigContext({
         garden,
         resolvedProviders: {},
         variables: garden.variables,
         modules: [],
-        partialRuntimeResolution: false,
       }),
-      source,
-    })
+      opts: {},
+    }) as unknown as OutputSpec[]
   }
 
   // Make sure all referenced services and tasks are ready and collect their outputs for the runtime context
@@ -117,5 +109,8 @@ export async function resolveProjectOutputs(garden: Garden, log: Log): Promise<O
 
   const configContext = await garden.getOutputConfigContext(log, modules, results)
 
-  return resolveTemplateStrings({ value: garden.rawOutputs, context: configContext, source })
+  return deepEvaluate(garden.rawOutputs as unknown as Record<string, ParsedTemplate>[], {
+    context: configContext,
+    opts: {},
+  }) as unknown as OutputSpec[]
 }

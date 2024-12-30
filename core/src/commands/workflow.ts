@@ -19,7 +19,7 @@ import type { GardenError } from "../exceptions.js"
 import { ChildProcessError, InternalError, RuntimeError, WorkflowScriptError, toGardenError } from "../exceptions.js"
 import type { WorkflowStepResult } from "../config/template-contexts/workflow.js"
 import { WorkflowConfigContext, WorkflowStepConfigContext } from "../config/template-contexts/workflow.js"
-import { resolveTemplateStrings, resolveTemplateString } from "../template-string/template-string.js"
+import { resolveTemplateStrings, resolveTemplateString } from "../template/templated-strings.js"
 import { ConfigurationError, FilesystemError } from "../exceptions.js"
 import { posix, join } from "path"
 import fsExtra from "fs-extra"
@@ -34,6 +34,8 @@ import type { GardenCli } from "../cli/cli.js"
 import { getCustomCommands } from "./custom.js"
 import { getBuiltinCommands } from "./commands.js"
 import { styles } from "../logger/styles.js"
+import { deepEvaluate } from "../template/evaluate.js"
+import { ParsedTemplate } from "../template/types.js"
 
 const { ensureDir, writeFile } = fsExtra
 
@@ -88,10 +90,9 @@ export class WorkflowCommand extends Command<Args, {}> {
     garden.events.emit("workflowRunning", {})
     const templateContext = new WorkflowConfigContext(garden, garden.variables)
     const yamlDoc = workflow.internal.yamlDoc
-    const files = resolveTemplateStrings({
-      value: workflow.files || [],
+    const files = deepEvaluate((workflow.files || []) as unknown as ParsedTemplate[], {
       context: templateContext,
-      source: { yamlDoc, path: ["files"] },
+      opts: {},
     })
 
     // Write all the configured files for the workflow
@@ -173,10 +174,9 @@ export class WorkflowCommand extends Command<Args, {}> {
 
       try {
         if (step.command) {
-          step.command = resolveTemplateStrings({
-            value: step.command,
+          step.command = deepEvaluate(step.command, {
             context: stepTemplateContext,
-            source: { yamlDoc, path: ["steps", index, "command"] },
+            opts: {},
           }).filter((arg) => !!arg)
 
           stepResult = await runStepCommand(stepParams)

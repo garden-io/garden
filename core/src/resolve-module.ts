@@ -10,11 +10,10 @@ import cloneDeep from "fast-copy"
 import { isArray, isString, keyBy, keys, partition, pick, union, uniq } from "lodash-es"
 import { validateWithPath } from "./config/validation.js"
 import {
-  getModuleTemplateReferences,
   mayContainTemplateString,
   resolveTemplateString,
   resolveTemplateStrings,
-} from "./template-string/template-string.js"
+} from "./template/templated-strings.js"
 import { GenericContext } from "./config/template-contexts/base.js"
 import { dirname, posix, relative, resolve } from "path"
 import type { Garden } from "./garden.js"
@@ -63,6 +62,10 @@ import { styles } from "./logger/styles.js"
 import { actionReferenceToString } from "./actions/base.js"
 import type { DepGraph } from "dependency-graph"
 import { minimatch } from "minimatch"
+import { getModuleTemplateReferences } from "./config/references.js"
+import { capture } from "./template/capture.js"
+import type { ParsedTemplate } from "./template/types.js"
+import { deepEvaluate } from "./template/evaluate.js"
 
 // This limit is fairly arbitrary, but we need to have some cap on concurrent processing.
 export const moduleResolutionConcurrencyLimit = 50
@@ -521,7 +524,6 @@ export class ModuleResolver {
       inputs: {},
       modules: [],
       graphResults: this.graphResults,
-      partialRuntimeResolution: true,
     }
 
     // Template inputs are commonly used in module deps, so we need to resolve them first
@@ -537,13 +539,10 @@ export class ModuleResolver {
 
     // Try resolving template strings if possible
     let buildDeps: string[] = []
-    const resolvedDeps = resolveTemplateStrings({
-      value: rawConfig.build.dependencies,
-      context: configContext,
-      contextOpts: { allowPartial: true },
-      // Note: We're not implementing the YAML source mapping for modules
-      source: undefined,
-    })
+    const resolvedDeps = capture(
+      rawConfig.build.dependencies as unknown as ParsedTemplate,
+      configContext
+    ) as unknown as BuildDependencyConfig
 
     // The build.dependencies field may not resolve at all, in which case we can't extract any deps from there
     if (isArray(resolvedDeps)) {
@@ -578,13 +577,7 @@ export class ModuleResolver {
       return inputs
     }
 
-    return resolveTemplateStrings({
-      value: inputs,
-      context: configContext,
-      contextOpts: { allowPartial: true },
-      // Note: We're not implementing the YAML source mapping for modules
-      source: undefined,
-    })
+    return capture(inputs, configContext)
   }
 
   /**
@@ -608,13 +601,13 @@ export class ModuleResolver {
       templateName: config.templateName,
       inputs,
       graphResults: this.graphResults,
-      partialRuntimeResolution: true,
     }
 
     // Resolve and validate the inputs field, because template module inputs may not be fully resolved at this
     // time.
     // TODO: This whole complicated procedure could be much improved and simplified by implementing lazy resolution on
     // values... I'll be looking into that. - JE
+    // NOTE(steffen): On it! :)
     const templateName = config.templateName
 
     if (templateName) {
@@ -638,15 +631,7 @@ export class ModuleResolver {
     const resolvedModuleVariables = await this.resolveVariables(config, templateContextParams)
 
     // Now resolve just references to inputs on the config
-    config = resolveTemplateStrings({
-      value: cloneDeep(config),
-      context: new GenericContext({ inputs }),
-      contextOpts: {
-        allowPartial: true,
-      },
-      // Note: We're not implementing the YAML source mapping for modules
-      source: undefined,
-    })
+    config = capture(config as unknown as ParsedTemplate, new GenericContext({ inputs })) as unknown as typeof config
 
     // And finally fully resolve the config.
     // Template strings in the spec can have references to inputs,
@@ -657,21 +642,10 @@ export class ModuleResolver {
       inputs: { ...inputs },
     })
 
-    config = resolveTemplateStrings({
-      value: { ...config, inputs: {}, variables: {} },
-      context: configContext,
-      contextOpts: {
-        allowPartial: false,
-        allowPartialContext: true,
-        // Modules will be converted to actions later, and the actions will be properly unescaped.
-        // We avoid premature un-escaping here,
-        // because otherwise it will strip the escaped value in the module config
-        // to the normal template string in the converted action config.
-        unescape: false,
-      },
-      // Note: We're not implementing the YAML source mapping for modules
-      source: undefined,
-    })
+    config = capture(
+      { ...config, inputs: {}, variables: {} } as unknown as ParsedTemplate,
+      configContext
+    ) as unknown as typeof config
 
     config.variables = resolvedModuleVariables
     config.inputs = inputs
@@ -815,7 +789,6 @@ export class ModuleResolver {
       inputs: resolvedConfig.inputs,
       modules: dependencies,
       graphResults: this.graphResults,
-      partialRuntimeResolution: true,
     })
 
     let updatedFiles = false
@@ -943,7 +916,6 @@ export class ModuleResolver {
   ): Promise<DeepPrimitiveMap> {
     const moduleConfigContext = new ModuleConfigContext(templateContextParams)
     const resolveOpts = {
-      allowPartial: false,
       // Modules will be converted to actions later, and the actions will be properly unescaped.
       // We avoid premature un-escaping here,
       // because otherwise it will strip the escaped value in the module config
@@ -953,10 +925,9 @@ export class ModuleResolver {
 
     let varfileVars: DeepPrimitiveMap = {}
     if (config.varfile) {
-      const varfilePath = resolveTemplateString({
-        string: config.varfile,
+      const varfilePath = deepEvaluate(config.varfile, {
         context: moduleConfigContext,
-        contextOpts: resolveOpts,
+        opts: resolveOpts,
       })
       if (typeof varfilePath !== "string") {
         throw new ConfigurationError({
@@ -971,12 +942,9 @@ export class ModuleResolver {
     }
 
     const rawVariables = config.variables
-    const moduleVariables = resolveTemplateStrings({
-      value: cloneDeep(rawVariables || {}),
+    const moduleVariables = deepEvaluate(rawVariables || {}, {
       context: moduleConfigContext,
-      contextOpts: resolveOpts,
-      // Note: We're not implementing the YAML source mapping for modules
-      source: undefined,
+      opts: resolveOpts,
     })
 
     // only override the relevant variables
