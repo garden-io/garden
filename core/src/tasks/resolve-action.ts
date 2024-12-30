@@ -18,16 +18,17 @@ import type {
   ResolvedAction,
 } from "../actions/types.js"
 import { ActionSpecContext } from "../config/template-contexts/actions.js"
-import { resolveTemplateStrings } from "../template/templated-strings.js"
 import { InternalError } from "../exceptions.js"
 import { validateWithPath } from "../config/validation.js"
-import type { DeepPrimitiveMap } from "../config/common.js"
-import { merge } from "lodash-es"
 import { mergeVariables } from "../graph/common.js"
 import { actionToResolved } from "../actions/helpers.js"
 import { ResolvedConfigGraph } from "../graph/config-graph.js"
 import { OtelTraced } from "../util/open-telemetry/decorators.js"
 import { deepEvaluate } from "../template/evaluate.js"
+import type { ConfigContext } from "../config/template-contexts/base.js"
+import { GenericContext } from "../config/template-contexts/base.js"
+import { LayeredContext } from "../config/template-contexts/base.js"
+import { CapturedContext } from "../config/template-contexts/base.js"
 
 export interface ResolveActionResults<T extends Action> extends ValidResultType {
   state: ActionState
@@ -129,7 +130,7 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
       modules: this.graph.getModules(),
       resolvedDependencies,
       executedDependencies,
-      variables: {},
+      variables: new GenericContext({}),
       inputs: {},
     })
 
@@ -139,54 +140,51 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
     })
 
     // Resolve variables
-    let groupVariables: DeepPrimitiveMap = {}
+    let groupVariables: ConfigContext = new GenericContext({})
     const groupName = action.groupName()
 
     if (groupName) {
       const group = this.graph.getGroup(groupName)
 
-      groupVariables = deepEvaluate(
+      groupVariables = new CapturedContext(
         await mergeVariables({
           basePath: group.path,
-          variables: group.variables,
+          variables: new GenericContext(group.variables || {}),
           varfiles: group.varfiles,
           log: this.garden.log,
         }),
-        {
-          context: inputsContext,
-          opts: {},
-        }
+        inputsContext
       )
     }
 
     const basePath = action.effectiveConfigFileLocation()
 
-    const actionVariables = deepEvaluate(
-      await mergeVariables({
-        basePath,
-        variables: config.variables,
-        varfiles: config.varfiles,
-        log: this.garden.log,
-      }),
-      {
-        context: new ActionSpecContext({
-          garden: this.garden,
-          resolvedProviders: await this.garden.resolveProviders({ log: this.log }),
-          action,
-          modules: this.graph.getModules(),
-          resolvedDependencies,
-          executedDependencies,
-          variables: groupVariables,
-          inputs,
-        }),
-        opts: {},
-      }
+    const mergedActionVariables = await mergeVariables({
+      basePath,
+      variables: new GenericContext(config.variables),
+      varfiles: config.varfiles,
+      log: this.garden.log,
+    })
+
+    const actionVariables = new CapturedContext(
+      mergedActionVariables,
+      new ActionSpecContext({
+        garden: this.garden,
+        resolvedProviders: await this.garden.resolveProviders({ log: this.log }),
+        action,
+        modules: this.graph.getModules(),
+        resolvedDependencies,
+        executedDependencies,
+        variables: groupVariables,
+        inputs,
+      })
     )
 
-    const variables = groupVariables
-    merge(variables, actionVariables)
-    // Override with CLI-set variables
-    merge(variables, this.garden.variableOverrides)
+    const variables = new LayeredContext(
+      new GenericContext(this.garden.variableOverrides),
+      actionVariables,
+      groupVariables
+    )
 
     // Resolve spec
     let spec = deepEvaluate(action.getConfig().spec || {}, {

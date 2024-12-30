@@ -9,11 +9,7 @@
 import cloneDeep from "fast-copy"
 import { isArray, isString, keyBy, keys, partition, pick, union, uniq } from "lodash-es"
 import { validateWithPath } from "./config/validation.js"
-import {
-  mayContainTemplateString,
-  resolveTemplateString,
-  resolveTemplateStrings,
-} from "./template/templated-strings.js"
+import { mayContainTemplateString, resolveTemplateString } from "./template/templated-strings.js"
 import { GenericContext } from "./config/template-contexts/base.js"
 import { dirname, posix, relative, resolve } from "path"
 import type { Garden } from "./garden.js"
@@ -45,7 +41,6 @@ import type { ModuleConfigContextParams } from "./config/template-contexts/modul
 import { ModuleConfigContext } from "./config/template-contexts/module.js"
 import { pathToCacheContext } from "./cache.js"
 import { loadVarfile, prepareBuildDependencies } from "./config/base.js"
-import { merge } from "json-merge-patch"
 import type { ModuleTypeDefinition } from "./plugin/plugin.js"
 import { serviceFromConfig } from "./types/service.js"
 import { taskFromConfig } from "./types/task.js"
@@ -64,6 +59,7 @@ import type { DepGraph } from "dependency-graph"
 import { minimatch } from "minimatch"
 import { getModuleTemplateReferences } from "./config/references.js"
 import { capture } from "./template/capture.js"
+import { LayeredContext } from "./config/template-contexts/base.js"
 import type { ParsedTemplate } from "./template/types.js"
 import { deepEvaluate } from "./template/evaluate.js"
 
@@ -638,7 +634,7 @@ export class ModuleResolver {
     // so we also need to pass inputs here along with the available variables.
     const configContext = new ModuleConfigContext({
       ...templateContextParams,
-      variables: { ...garden.variables, ...resolvedModuleVariables },
+      variables: new LayeredContext(resolvedModuleVariables, garden.variables),
       inputs: { ...inputs },
     })
 
@@ -647,7 +643,7 @@ export class ModuleResolver {
       configContext
     ) as unknown as typeof config
 
-    config.variables = resolvedModuleVariables
+    config.variables = resolvedModuleVariables.resolve({ key: [], nodePath: [], opts: {} }).resolved
     config.inputs = inputs
 
     const moduleTypeDefinitions = await garden.getModuleTypes()
@@ -780,7 +776,7 @@ export class ModuleResolver {
     const configContext = new ModuleConfigContext({
       garden: this.garden,
       resolvedProviders: this.resolvedProviders,
-      variables: { ...this.garden.variables, ...resolvedConfig.variables },
+      variables: new LayeredContext(new GenericContext(resolvedConfig.variables), this.garden.variables),
       name: resolvedConfig.name,
       path: resolvedConfig.path,
       buildPath,
@@ -913,7 +909,7 @@ export class ModuleResolver {
   private async resolveVariables(
     config: ModuleConfig,
     templateContextParams: ModuleConfigContextParams
-  ): Promise<DeepPrimitiveMap> {
+  ): Promise<LayeredContext> {
     const moduleConfigContext = new ModuleConfigContext(templateContextParams)
     const resolveOpts = {
       // Modules will be converted to actions later, and the actions will be properly unescaped.
@@ -952,8 +948,11 @@ export class ModuleResolver {
       this.garden.variableOverrides,
       union(keys(moduleVariables), keys(varfileVars))
     )
-    const mergedVariables: DeepPrimitiveMap = <any>merge(moduleVariables, merge(varfileVars, relevantVariableOverrides))
-    return mergedVariables
+    return new LayeredContext(
+      new GenericContext(relevantVariableOverrides),
+      new GenericContext(varfileVars),
+      new GenericContext(moduleVariables)
+    )
   }
 }
 

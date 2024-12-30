@@ -422,7 +422,7 @@ describe("config templates", () => {
 
       const config: RenderTemplateConfig = cloneDeep(defaults)
       config.inputs = { name: "${var.test}" }
-      garden.variables.test = "test-value"
+      garden.variables["test"] = "test-value"
 
       const resolved = await renderConfigTemplate({ garden, log, config, templates: _templates })
 

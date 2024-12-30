@@ -65,7 +65,7 @@ export class ProviderConfigContext extends WorkflowConfigContext {
   )
   public providers: Map<string, ProviderContext>
 
-  constructor(garden: Garden, resolvedProviders: ProviderMap, variables: DeepPrimitiveMap) {
+  constructor(garden: Garden, resolvedProviders: ProviderMap, variables: ConfigContext) {
     super(garden, variables)
 
     this.providers = new Map(Object.entries(mapValues(resolvedProviders, (p) => new ProviderContext(this, p))))

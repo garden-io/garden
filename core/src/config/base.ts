@@ -223,6 +223,7 @@ export async function validateRawConfig({
         log,
         doc: s,
         spec: s.toJS(),
+        parse: true,
         configFilePath: configPath,
         projectRoot,
         description,

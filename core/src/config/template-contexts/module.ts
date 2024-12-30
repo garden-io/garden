@@ -193,7 +193,7 @@ class RuntimeConfigContext extends ConfigContext {
 export interface OutputConfigContextParams {
   garden: Garden
   resolvedProviders: ProviderMap
-  variables: DeepPrimitiveMap
+  variables: ConfigContext
   modules: GardenModule[]
   // We only supply this when resolving configuration in dependency order.
   // Otherwise we pass `${runtime.*} template strings through for later resolution.

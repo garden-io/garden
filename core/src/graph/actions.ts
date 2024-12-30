@@ -40,7 +40,6 @@ import type { ActionReference, JoiDescription } from "../config/common.js"
 import { describeSchema, parseActionReference } from "../config/common.js"
 import type { GroupConfig } from "../config/group.js"
 import { ActionConfigContext } from "../config/template-contexts/actions.js"
-import { validateWithPath } from "../config/validation.js"
 import { ConfigurationError, GardenError, InternalError, PluginError } from "../exceptions.js"
 import { type Garden, overrideVariables } from "../garden.js"
 import type { Log } from "../logger/log-entry.js"
@@ -58,6 +57,7 @@ import type { ModuleGraph } from "./modules.js"
 import { isTruthy, type MaybeUndefined } from "../util/util.js"
 import { minimatch } from "minimatch"
 import type { ConfigContext } from "../config/template-contexts/base.js"
+import { GenericContext } from "../config/template-contexts/base.js"
 import type { LinkedSource, LinkedSourceMap } from "../config-store/local.js"
 import { relative } from "path"
 import { profileAsync } from "../util/profiling.js"
@@ -67,6 +67,7 @@ import { styles } from "../logger/styles.js"
 import { isUnresolvableValue } from "../template/analysis.js"
 import { getActionTemplateReferences } from "../config/references.js"
 import { capture } from "../template/capture.js"
+import { CapturedContext } from "../config/template-contexts/base.js"
 import { deepEvaluate } from "../template/evaluate.js"
 import type { ParsedTemplate } from "../template/types.js"
 
@@ -508,7 +509,7 @@ export const processActionConfig = profileAsync(async function processActionConf
 
   let variables = await mergeVariables({
     basePath: effectiveConfigFileLocation,
-    variables: config.variables,
+    variables: new GenericContext(config.variables),
     varfiles: config.varfiles,
     log,
   })
@@ -516,7 +517,7 @@ export const processActionConfig = profileAsync(async function processActionConf
   // override the variables if there's any matching variables in variable overrides
   // passed via --var cli flag. variables passed via --var cli flag have highest precedence
   const variableOverrides = garden.variableOverrides || {}
-  variables = overrideVariables(variables ?? {}, variableOverrides)
+  variables = overrideVariables(variables, variableOverrides)
 
   const params: ActionWrapperParams<any> = {
     baseBuildDirectory: garden.buildStaging.buildDirPath,
@@ -732,12 +733,12 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
   const resolvedVarFiles = config.varfiles?.filter((f) => !maybeTemplateString(getVarfileData(f).path))
   const variables = await mergeVariables({
     basePath: config.internal.basePath,
-    variables: config.variables,
+    variables: new GenericContext(config.variables),
     varfiles: resolvedVarFiles,
     log,
   })
 
-  const resolvedVariables = capture(
+  const resolvedVariables = new CapturedContext(
     variables,
     new ActionConfigContext({
       garden,
@@ -752,7 +753,7 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
 
   if (templateName) {
     // Partially resolve inputs
-    const partiallyResolvedInputs = capture(
+    config.internal.inputs = capture(
       config.internal.inputs || {},
       new ActionConfigContext({
         garden,
@@ -780,7 +781,7 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
     // TODO: schema validation on partially resolved inputs does not make sense
     // do we validate the schema on fully resolved inputs somewhere?
     // config.internal.inputs = validateWithPath({
-    //   config: cloneDeep(partiallyResolvedInputs),
+    //   config: partiallyResolvedInputs,
     //   configType: `inputs for ${description}`,
     //   path: config.internal.basePath,
     //   schema: template.inputsSchema,
@@ -800,8 +801,6 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
     variables: resolvedVariables,
   })
 
-  const yamlDoc = config.internal.yamlDoc
-
   function resolveTemplates() {
     // Fully resolve built-in fields that only support `ActionConfigContext`.
     // TODO-0.13.1: better error messages when something goes wrong here (missing inputs for example)
@@ -818,7 +817,7 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
     config = {
       ...config,
       ...resolvedBuiltin,
-      variables: resolvedVariables,
+      variables: resolvedVariables.resolve({ key: [], nodePath: [], opts: {} }).resolved,
       spec,
     }
 

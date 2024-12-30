@@ -21,6 +21,7 @@ import type { ValidResultType } from "../tasks/base.js"
 import type { BaseGardenResource, GardenResourceInternalFields } from "../config/base.js"
 import type { LinkedSource } from "../config-store/local.js"
 import type { GardenApiVersion } from "../constants.js"
+import type { ConfigContext } from "../config/template-contexts/base.js"
 
 // TODO: split this file
 
@@ -170,7 +171,7 @@ export interface ActionWrapperParams<C extends BaseActionConfig> {
   remoteSourcePath: string | null
   supportedModes: ActionModes
   treeVersion: TreeVersion
-  variables: DeepPrimitiveMap
+  variables: ConfigContext
 }
 
 export interface ResolveActionParams<C extends BaseActionConfig, StaticOutputs extends Record<string, unknown> = any> {
@@ -181,7 +182,7 @@ export interface ResolveActionParams<C extends BaseActionConfig, StaticOutputs e
   spec: C["spec"]
   staticOutputs: StaticOutputs
   inputs: DeepPrimitiveMap
-  variables: DeepPrimitiveMap
+  variables: ConfigContext
 }
 
 export type ResolvedActionWrapperParams<

@@ -8,7 +8,7 @@
 
 import titleize from "titleize"
 import type { ConfigGraph, GetActionOpts, PickTypeByKind, ResolvedConfigGraph } from "../graph/config-graph.js"
-import type { ActionReference, DeepPrimitiveMap } from "../config/common.js"
+import type { ActionReference } from "../config/common.js"
 import {
   createSchema,
   includeGuideLink,
@@ -67,6 +67,7 @@ import type { LinkedSource } from "../config-store/local.js"
 import type { BaseActionTaskParams, ExecuteTask } from "../tasks/base.js"
 import { styles } from "../logger/styles.js"
 import { dirname } from "node:path"
+import type { ConfigContext } from "../config/template-contexts/base.js"
 
 // TODO: split this file
 
@@ -369,7 +370,7 @@ export abstract class BaseAction<
   protected readonly projectRoot: string
   protected readonly _supportedModes: ActionModes
   protected readonly _treeVersion: TreeVersion
-  protected readonly variables: DeepPrimitiveMap
+  protected readonly variables: ConfigContext
 
   constructor(protected readonly params: ActionWrapperParams<C>) {
     this.kind = params.config.kind
@@ -582,7 +583,7 @@ export abstract class BaseAction<
     }
   }
 
-  getVariables(): DeepPrimitiveMap {
+  getVariables(): ConfigContext {
     return this.variables
   }
 
@@ -734,7 +735,7 @@ export interface ResolvedActionExtension<
 
   getOutputs(): StaticOutputs
 
-  getVariables(): DeepPrimitiveMap
+  getVariables(): ConfigContext
 }
 
 // TODO: see if we can avoid the duplication here with ResolvedBuildAction

@@ -28,7 +28,7 @@ import {
 } from "../config/constants.js"
 import mapValues from "lodash-es/mapValues.js"
 import { deepEvaluate } from "./evaluate.js"
-import { LayeredContext } from "./capture.js"
+import { LayeredContext } from "../config/template-contexts/base.js"
 import { parseTemplateString } from "./templated-strings.js"
 import { TemplateError } from "./errors.js"
 import { visitAll, type TemplateExpressionGenerator } from "./analysis.js"
@@ -66,143 +66,151 @@ export function parseTemplateCollection<Input extends CollectionOrValue<Template
   source: ConfigSource
   untemplatableKeys?: string[]
 }): Parse<Input> {
-  if (!source) {
-    throw new InternalError({
-      message: "Source parameter is required for parseTemplateCollection.",
-    })
-  }
-  if (typeof value === "string") {
-    return parseTemplateString({
-      rawTemplateString: value,
-      source,
-    }) as Parse<Input>
-  } else if (isTemplatePrimitive(value)) {
-    return value as Parse<Input>
-  } else if (isArray(value)) {
-    const parsed = value.map((v, i) => parseTemplateCollection({ value: v, source: pushYamlPath(i, source) }))
-
-    if (value.some((v) => isPlainObject(v) && v[arrayConcatKey] !== undefined)) {
-      return new ConcatLazyValue(source, parsed) as Parse<Input>
-    } else {
-      return parsed as Parse<Input>
+  const inner = () => {
+    if (!source) {
+      throw new InternalError({
+        message: "Source parameter is required for parseTemplateCollection.",
+      })
     }
-  } else if (isPlainObject(value)) {
-    if (value[arrayForEachKey] !== undefined) {
-      const unexpectedKeys = Object.keys(value).filter((k) => !ForEachLazyValue.allowedForEachKeys.includes(k))
-
-      if (unexpectedKeys.length > 0) {
-        const extraKeys = naturalList(unexpectedKeys.map((k) => JSON.stringify(k)))
-
-        throw new TemplateError({
-          message: `Found one or more unexpected keys on ${arrayForEachKey} object: ${extraKeys}. Allowed keys: ${naturalList(
-            ForEachLazyValue.allowedForEachKeys
-          )}`,
-          source: pushYamlPath(extraKeys[0], source),
-        })
-      }
-
-      if (value[arrayForEachReturnKey] === undefined) {
-        throw new TemplateError({
-          message: `Missing ${arrayForEachReturnKey} field next to ${arrayForEachKey} field. Got ${naturalList(
-            Object.keys(value)
-          )}`,
-          source: pushYamlPath(arrayForEachReturnKey, source),
-        })
-      }
-
-      const parsedCollectionExpression = parseTemplateCollection({
-        value: value[arrayForEachKey],
-        source: pushYamlPath(arrayForEachKey, source),
-      })
-
-      const parsedReturnExpression = parseTemplateCollection({
-        value: value[arrayForEachReturnKey],
-        source: pushYamlPath(arrayForEachReturnKey, source),
-      })
-
-      const parsedFilterExpression =
-        value[arrayForEachFilterKey] === undefined
-          ? undefined
-          : parseTemplateCollection({
-              value: value[arrayForEachFilterKey],
-              source: pushYamlPath(arrayForEachFilterKey, source),
-            })
-
-      const forEach = new ForEachLazyValue(source, {
-        [arrayForEachKey]: parsedCollectionExpression,
-        [arrayForEachReturnKey]: parsedReturnExpression,
-        [arrayForEachFilterKey]: parsedFilterExpression,
-      })
-
-      if (parsedReturnExpression?.[arrayConcatKey] !== undefined) {
-        return new ConcatLazyValue(source, forEach) as Parse<Input>
-      } else {
-        return forEach as Parse<Input>
-      }
-    } else if (value[conditionalKey] !== undefined) {
-      const ifExpression = value[conditionalKey]
-      const thenExpression = value[conditionalThenKey]
-      const elseExpression = value[conditionalElseKey]
-
-      if (thenExpression === undefined) {
-        throw new TemplateError({
-          message: `Missing ${conditionalThenKey} field next to ${conditionalKey} field. Got: ${naturalList(
-            Object.keys(value)
-          )}`,
-          source,
-        })
-      }
-
-      const unexpectedKeys = Object.keys(value).filter((k) => !ConditionalLazyValue.allowedConditionalKeys.includes(k))
-
-      if (unexpectedKeys.length > 0) {
-        const extraKeys = naturalList(unexpectedKeys.map((k) => JSON.stringify(k)))
-
-        throw new TemplateError({
-          message: `Found one or more unexpected keys on ${conditionalKey} object: ${extraKeys}. Allowed: ${naturalList(
-            ConditionalLazyValue.allowedConditionalKeys
-          )}`,
-          source,
-        })
-      }
-
-      return new ConditionalLazyValue(source, {
-        [conditionalKey]: parseTemplateCollection({
-          value: ifExpression,
-          source: pushYamlPath(conditionalKey, source),
-        }),
-        [conditionalThenKey]: parseTemplateCollection({
-          value: thenExpression,
-          source: pushYamlPath(conditionalThenKey, source),
-        }),
-        [conditionalElseKey]:
-          elseExpression === undefined
-            ? undefined
-            : parseTemplateCollection({
-                value: elseExpression,
-                source: pushYamlPath(conditionalElseKey, source),
-              }),
+    if (typeof value === "string") {
+      return parseTemplateString({
+        rawTemplateString: value,
+        source,
       }) as Parse<Input>
-    } else {
-      const resolved = mapValues(value, (v, k) => {
-        // if this key is untemplatable, skip parsing this branch of the template tree.
-        if (untemplatableKeys.includes(k)) {
-          return v
+    } else if (isTemplatePrimitive(value)) {
+      return value as Parse<Input>
+    } else if (isArray(value)) {
+      const parsed = value.map((v, i) => parseTemplateCollection({ value: v, source: pushYamlPath(i, source) }))
+
+      if (value.some((v) => isPlainObject(v) && v[arrayConcatKey] !== undefined)) {
+        return new ConcatLazyValue(source, parsed) as Parse<Input>
+      } else {
+        return parsed as Parse<Input>
+      }
+    } else if (isPlainObject(value)) {
+      if (value[arrayForEachKey] !== undefined) {
+        const unexpectedKeys = Object.keys(value).filter((k) => !ForEachLazyValue.allowedForEachKeys.includes(k))
+
+        if (unexpectedKeys.length > 0) {
+          const extraKeys = naturalList(unexpectedKeys.map((k) => JSON.stringify(k)))
+
+          throw new TemplateError({
+            message: `Found one or more unexpected keys on ${arrayForEachKey} object: ${extraKeys}. Allowed keys: ${naturalList(
+              ForEachLazyValue.allowedForEachKeys
+            )}`,
+            source: pushYamlPath(extraKeys[0], source),
+          })
         }
 
-        return parseTemplateCollection({ value: v, source: pushYamlPath(k, source) }) as ParsedTemplate
-      })
-      if (Object.keys(value).some((k) => k === objectSpreadKey)) {
-        return new ObjectSpreadLazyValue(source, resolved as ObjectSpreadOperation) as Parse<Input>
+        if (value[arrayForEachReturnKey] === undefined) {
+          throw new TemplateError({
+            message: `Missing ${arrayForEachReturnKey} field next to ${arrayForEachKey} field. Got ${naturalList(
+              Object.keys(value)
+            )}`,
+            source: pushYamlPath(arrayForEachReturnKey, source),
+          })
+        }
+
+        const parsedCollectionExpression = parseTemplateCollection({
+          value: value[arrayForEachKey],
+          source: pushYamlPath(arrayForEachKey, source),
+        })
+
+        const parsedReturnExpression = parseTemplateCollection({
+          value: value[arrayForEachReturnKey],
+          source: pushYamlPath(arrayForEachReturnKey, source),
+        })
+
+        const parsedFilterExpression =
+          value[arrayForEachFilterKey] === undefined
+            ? undefined
+            : parseTemplateCollection({
+                value: value[arrayForEachFilterKey],
+                source: pushYamlPath(arrayForEachFilterKey, source),
+              })
+
+        const forEach = new ForEachLazyValue(source, {
+          [arrayForEachKey]: parsedCollectionExpression,
+          [arrayForEachReturnKey]: parsedReturnExpression,
+          [arrayForEachFilterKey]: parsedFilterExpression,
+        })
+
+        if (parsedReturnExpression?.[arrayConcatKey] !== undefined) {
+          return new ConcatLazyValue(source, forEach) as Parse<Input>
+        } else {
+          return forEach as Parse<Input>
+        }
+      } else if (value[conditionalKey] !== undefined) {
+        const ifExpression = value[conditionalKey]
+        const thenExpression = value[conditionalThenKey]
+        const elseExpression = value[conditionalElseKey]
+
+        if (thenExpression === undefined) {
+          throw new TemplateError({
+            message: `Missing ${conditionalThenKey} field next to ${conditionalKey} field. Got: ${naturalList(
+              Object.keys(value)
+            )}`,
+            source,
+          })
+        }
+
+        const unexpectedKeys = Object.keys(value).filter(
+          (k) => !ConditionalLazyValue.allowedConditionalKeys.includes(k)
+        )
+
+        if (unexpectedKeys.length > 0) {
+          const extraKeys = naturalList(unexpectedKeys.map((k) => JSON.stringify(k)))
+
+          throw new TemplateError({
+            message: `Found one or more unexpected keys on ${conditionalKey} object: ${extraKeys}. Allowed: ${naturalList(
+              ConditionalLazyValue.allowedConditionalKeys
+            )}`,
+            source,
+          })
+        }
+
+        return new ConditionalLazyValue(source, {
+          [conditionalKey]: parseTemplateCollection({
+            value: ifExpression,
+            source: pushYamlPath(conditionalKey, source),
+          }),
+          [conditionalThenKey]: parseTemplateCollection({
+            value: thenExpression,
+            source: pushYamlPath(conditionalThenKey, source),
+          }),
+          [conditionalElseKey]:
+            elseExpression === undefined
+              ? undefined
+              : parseTemplateCollection({
+                  value: elseExpression,
+                  source: pushYamlPath(conditionalElseKey, source),
+                }),
+        }) as Parse<Input>
       } else {
-        return resolved as Parse<Input>
+        const resolved = mapValues(value, (v, k) => {
+          // if this key is untemplatable, skip parsing this branch of the template tree.
+          if (untemplatableKeys.includes(k)) {
+            return v
+          }
+
+          return parseTemplateCollection({ value: v, source: pushYamlPath(k, source) }) as ParsedTemplate
+        })
+        if (Object.keys(value).some((k) => k === objectSpreadKey)) {
+          return new ObjectSpreadLazyValue(source, resolved as ObjectSpreadOperation) as Parse<Input>
+        } else {
+          return resolved as Parse<Input>
+        }
       }
+    } else {
+      throw new InternalError({
+        message: `Got unexpected value type: ${typeof value}`,
+      })
     }
-  } else {
-    throw new InternalError({
-      message: `Got unexpected value type: ${typeof value}`,
-    })
   }
+
+  const res = inner()
+  Object.freeze(res)
+  return res
 }
 
 abstract class StructuralTemplateOperator extends UnresolvedTemplateValue {

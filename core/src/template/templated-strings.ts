@@ -114,7 +114,14 @@ export function parseTemplateString({
       ast,
       escapePrefix,
       optionalSuffix: "}?",
-      parseNested: (nested: string) => parseTemplateString({ rawTemplateString: nested, unescape, source }),
+      parseNested: (nested: string) => {
+        const p = parseTemplateString({ rawTemplateString: nested, unescape, source })
+        if (p instanceof UnresolvedTemplateValue) {
+          return p["rootNode"]
+        } else {
+          return p
+        }
+      },
       TemplateStringError: ParserError,
       unescape,
       grammarSource: templateStringSource,
@@ -196,7 +203,7 @@ export function resolveTemplateStrings<T>(_args: {
   contextOpts?: ContextResolveOpts
   source: ConfigSource | undefined
 }): T {
-  throw new NotImplementedError({ message: "TODO" })
+  throw new NotImplementedError({ message: "TODO Resolve Template Strings" })
 }
 
 /**

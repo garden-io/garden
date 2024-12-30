@@ -6,9 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import type { ContextResolveOutput, ContextResolveParams } from "../config/template-contexts/base.js"
-import { ConfigContext } from "../config/template-contexts/base.js"
-import { NotImplementedError } from "../exceptions.js"
+import type { ConfigContext } from "../config/template-contexts/base.js"
+import { LayeredContext } from "../config/template-contexts/base.js"
 import { deepMap } from "../util/objects.js"
 import type { TemplateExpressionGenerator } from "./analysis.js"
 import type { EvaluateTemplateArgs, ParsedTemplate, ResolvedTemplate } from "./types.js"
@@ -23,38 +22,26 @@ export function capture<T extends ParsedTemplate>(template: T, context: ConfigCo
   }) as T
 }
 
-export class LayeredContext extends ConfigContext {
-  readonly #contexts: ConfigContext[]
-  constructor(...contexts: ConfigContext[]) {
-    super()
-    this.#contexts = contexts
-  }
-  override resolve(_args: ContextResolveParams): ContextResolveOutput {
-    throw new NotImplementedError({ message: "TODO" })
-  }
-}
-
 export class CapturedContextTemplateValue extends UnresolvedTemplateValue {
-  readonly #wrapped: UnresolvedTemplateValue
-  readonly #context: ConfigContext
-
-  constructor(wrapped: UnresolvedTemplateValue, context: ConfigContext) {
+  constructor(
+    private readonly wrapped: UnresolvedTemplateValue,
+    private readonly context: ConfigContext
+  ) {
     super()
-    this.#wrapped = wrapped
-    this.#context = context
+    this.context = context
   }
 
   override evaluate(args: EvaluateTemplateArgs): ResolvedTemplate {
-    const context = new LayeredContext(this.#context, args.context)
+    const context = new LayeredContext(this.context, args.context)
 
-    return this.#wrapped.evaluate({ ...args, context })
+    return this.wrapped.evaluate({ ...args, context })
   }
 
   override toJSON(): ResolvedTemplate {
-    return this.#wrapped.toJSON()
+    return this.wrapped.toJSON()
   }
 
   override *visitAll(): TemplateExpressionGenerator {
-    yield* this.#wrapped.visitAll()
+    yield* this.wrapped.visitAll()
   }
 }

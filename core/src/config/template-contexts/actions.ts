@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { merge } from "lodash-es"
 import type { ActionConfig, Action, ExecutedAction, ResolvedAction } from "../../actions/types.js"
 import type { ActionMode } from "../../actions/types.js"
 import type { Garden } from "../../garden.js"
@@ -15,18 +14,15 @@ import { dedent, deline } from "../../util/string.js"
 import type { DeepPrimitiveMap, PrimitiveMap } from "../common.js"
 import { joi, joiIdentifier, joiIdentifierMap, joiPrimitive, joiVariables } from "../common.js"
 import type { ProviderMap } from "../provider.js"
-import { ConfigContext, ErrorContext, ParentContext, schema, TemplateContext } from "./base.js"
+import { ConfigContext, ErrorContext, GenericContext, ParentContext, schema, TemplateContext } from "./base.js"
 import { exampleVersion, OutputConfigContext } from "./module.js"
 import { TemplatableConfigContext } from "./project.js"
 import { DOCS_BASE_URL } from "../../constants.js"
 import { styles } from "../../logger/styles.js"
+import { LayeredContext } from "./base.js"
 
-function mergeVariables({ garden, variables }: { garden: Garden; variables: DeepPrimitiveMap }): DeepPrimitiveMap {
-  const mergedVariables: DeepPrimitiveMap = {}
-  merge(mergedVariables, garden.variables)
-  merge(mergedVariables, variables)
-  merge(mergedVariables, garden.variableOverrides)
-  return mergedVariables
+function mergeVariables({ garden, variables }: { garden: Garden; variables: ConfigContext }): LayeredContext {
+  return new LayeredContext(new GenericContext(garden.variableOverrides), variables, garden.variables)
 }
 
 type ActionConfigThisContextParams = Pick<ActionReferenceContextParams, "name" | "mode">
@@ -65,7 +61,7 @@ interface ActionConfigContextParams {
   garden: Garden
   config: ActionConfig
   thisContextParams: ActionConfigThisContextParams
-  variables: DeepPrimitiveMap
+  variables: ConfigContext
 }
 
 /**
@@ -91,7 +87,7 @@ interface ActionReferenceContextParams {
   buildPath: string
   sourcePath: string
   mode: ActionMode
-  variables: DeepPrimitiveMap
+  variables: ConfigContext
 }
 
 export class ActionReferenceContext extends ConfigContext {
@@ -123,7 +119,7 @@ export class ActionReferenceContext extends ConfigContext {
   public mode: ActionMode
 
   @schema(joiVariables().required().description("The variables configured on the action.").example({ foo: "bar" }))
-  public var: DeepPrimitiveMap
+  public var: ConfigContext
 
   constructor({ root, name, disabled, buildPath, sourcePath, mode, variables }: ActionReferenceContextParams) {
     super(root)
@@ -217,7 +213,7 @@ class ActionReferencesContext extends ConfigContext {
           buildPath: action.getBuildPath(),
           sourcePath: action.sourcePath(),
           mode: action.mode(),
-          variables: action.getVariables(),
+          variables: new GenericContext(action.getVariables()),
         })
       )
     }
@@ -231,7 +227,7 @@ export interface ActionSpecContextParams {
   action: Action
   resolvedDependencies: ResolvedAction[]
   executedDependencies: ExecutedAction[]
-  variables: DeepPrimitiveMap
+  variables: ConfigContext
   inputs: DeepPrimitiveMap
 }
 

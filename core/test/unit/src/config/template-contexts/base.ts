@@ -129,10 +129,10 @@ describe("ConfigContext", () => {
 
     it("should detect a circular reference from a nested context", async () => {
       class NestedContext extends ConfigContext {
-        override resolve({ key, nodePath, opts }: ContextResolveParams) {
+        override resolve({ key, nodePath, opts, rootContext }: ContextResolveParams) {
           const circularKey = nodePath.concat(key)
           opts.stack!.add(circularKey.join("."))
-          return c.resolve({ key: circularKey, nodePath: [], opts })
+          return c.resolve({ key: circularKey, nodePath: [], opts, rootContext })
         }
       }
 

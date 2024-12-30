@@ -23,6 +23,7 @@ import { defaultNamespace } from "../../../../src/config/project.js"
 import { join } from "path"
 import { GardenApiVersion } from "../../../../src/constants.js"
 import { omit } from "lodash-es"
+import { GenericContext } from "../../../../src/config/template-contexts/base.js"
 
 describe("resolveWorkflowConfig", () => {
   let garden: TestGarden
@@ -48,7 +49,7 @@ describe("resolveWorkflowConfig", () => {
   before(async () => {
     garden = await makeTestGardenA()
     garden["secrets"] = { foo: "bar", bar: "baz", baz: "banana" }
-    garden["variables"] = { foo: "baz", skip: false }
+    garden["variables"] = new GenericContext({ foo: "baz", skip: false })
   })
 
   it("should pass through a canonical workflow config", async () => {

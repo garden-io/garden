@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { apply, merge } from "json-merge-patch"
+import { apply } from "json-merge-patch"
 import { dedent, deline, naturalList } from "../util/string.js"
 import type { DeepPrimitiveMap, Primitive, PrimitiveMap } from "./common.js"
 import {
@@ -42,6 +42,9 @@ import type { Log } from "../logger/log-entry.js"
 import { renderDivider } from "../logger/util.js"
 import { styles } from "../logger/styles.js"
 import type { ParsedTemplate } from "../template/types.js"
+import { LayeredContext } from "./template-contexts/base.js"
+import type { ConfigContext } from "./template-contexts/base.js"
+import { GenericContext } from "./template-contexts/base.js"
 
 export const defaultVarfilePath = "garden.env"
 export const defaultEnvVarfilePath = (environmentName: string) => `garden.${environmentName}.env`
@@ -618,12 +621,16 @@ export const pickEnvironment = profileAsync(async function _pickEnvironment({
     })
   }
 
+  // TODO: parse template strings in varfiles?
   const projectVarfileVars = await loadVarfile({
     configRoot: projectConfig.path,
     path: projectConfig.varfile,
     defaultPath: defaultVarfilePath,
   })
-  const projectVariables: DeepPrimitiveMap = <any>merge(projectConfig.variables, projectVarfileVars)
+  const projectVariables: LayeredContext = new LayeredContext(
+    new GenericContext(projectVarfileVars),
+    new GenericContext(projectConfig.variables)
+  )
 
   const source = { yamlDoc: projectConfig.internal.yamlDoc, path: ["environments", index] }
 
@@ -678,7 +685,11 @@ export const pickEnvironment = profileAsync(async function _pickEnvironment({
     defaultPath: defaultEnvVarfilePath(environment),
   })
 
-  const variables: DeepPrimitiveMap = <any>merge(projectVariables, merge(environmentConfig.variables, envVarfileVars))
+  const variables: ConfigContext = new LayeredContext(
+    new GenericContext(envVarfileVars),
+    new GenericContext(environmentConfig.variables),
+    projectVariables
+  )
 
   return {
     environmentName: environment,

@@ -52,9 +52,11 @@ export function* visitAll({
       })
     }
   } else if (value instanceof UnresolvedTemplateValue) {
+    yield {
+      value,
+      yamlSource: source,
+    }
     yield* value.visitAll()
-  } else if (value instanceof TemplateExpression) {
-    yield* value.visitAll(source)
   } else {
     yield {
       value,

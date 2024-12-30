@@ -13,7 +13,7 @@ import { platform, arch } from "os"
 import { relative, resolve } from "path"
 import cloneDeep from "fast-copy"
 import AsyncLock from "async-lock"
-import { flatten, groupBy, keyBy, mapValues, omit, set, sortBy } from "lodash-es"
+import { flatten, groupBy, keyBy, mapValues, omit, sortBy, set as setKeyPathNested } from "lodash-es"
 import { username } from "username"
 
 import { TreeCache } from "./cache.js"
@@ -117,7 +117,7 @@ import type { CloudProject, GardenCloudApiFactory } from "./cloud/api.js"
 import { GardenCloudApi, CloudApiTokenRefreshError } from "./cloud/api.js"
 import { OutputConfigContext } from "./config/template-contexts/module.js"
 import { ProviderConfigContext } from "./config/template-contexts/provider.js"
-import type { ConfigContext } from "./config/template-contexts/base.js"
+import { CONTEXT_RESOLVE_KEY_NOT_FOUND, GenericContext, type ConfigContext } from "./config/template-contexts/base.js"
 import { validateSchema, validateWithPath } from "./config/validation.js"
 import { pMemoizeDecorator } from "./lib/p-memoize.js"
 import { ModuleGraph } from "./graph/modules.js"
@@ -171,6 +171,7 @@ import {
 import { throwOnMissingSecretKeys } from "./config/secrets.js"
 import { deepEvaluate } from "./template/evaluate.js"
 import type { ParsedTemplate } from "./template/types.js"
+import { LayeredContext } from "./config/template-contexts/base.js"
 
 const defaultLocalAddress = "localhost"
 
@@ -227,7 +228,7 @@ export interface GardenParams {
   projectRoot: string
   projectSources?: SourceConfig[]
   providerConfigs: GenericProviderConfig[]
-  variables: DeepPrimitiveMap
+  variables: ConfigContext
   variableOverrides: DeepPrimitiveMap
   secrets: StringMap
   sessionId: string
@@ -307,7 +308,7 @@ export class Garden {
    * for the current environment but can be overwritten with the `--env` flag.
    */
   public readonly namespace: string
-  public readonly variables: DeepPrimitiveMap
+  public readonly variables: ConfigContext
   // Any variables passed via the `--var` CLI option (maintained here so that they can be used during module resolution
   // to override module variables and module varfiles).
   public readonly variableOverrides: DeepPrimitiveMap
@@ -1836,7 +1837,7 @@ export class Garden {
       allEnvironmentNames,
       namespace: this.namespace,
       providers: providers.map(omitInternal),
-      variables: this.variables,
+      variables: this.variables.resolve({ key: [], nodePath: [], opts: {} }).resolved,
       actionConfigs: filteredActionConfigs,
       moduleConfigs: moduleConfigs.map(omitInternal),
       workflowConfigs: sortBy(workflowConfigs.map(omitInternal), "name"),
@@ -2349,18 +2350,21 @@ async function getCloudProject({
 }
 
 // Override variables, also allows to override nested variables using dot notation
-// eslint-disable-next-line @typescript-eslint/no-shadow
-export function overrideVariables(variables: DeepPrimitiveMap, overrideVariables: DeepPrimitiveMap): DeepPrimitiveMap {
-  const objNew = cloneDeep(variables)
-  Object.keys(overrideVariables).forEach((key) => {
-    if (objNew.hasOwnProperty(key)) {
+export function overrideVariables(variables: ConfigContext, overrides: DeepPrimitiveMap): LayeredContext {
+  const transformedOverrides = {}
+  for (const key in overrides) {
+    if (variables.resolve({ key: [key], nodePath: [], opts: {} }).resolved !== CONTEXT_RESOLVE_KEY_NOT_FOUND) {
       // if the original key itself is a string with a dot, then override that
-      objNew[key] = overrideVariables[key]
+      transformedOverrides[key] = overrides[key]
     } else {
-      set(objNew, key, overrideVariables[key])
+      // Transform override paths like "foo.bar[0].baz"
+      // into a nested object like
+      // { foo: { bar: [{ baz: "foo" }] } }
+      // which we can then use for the layered context as overrides on the nested structure within
+      setKeyPathNested(transformedOverrides, key, overrides[key])
     }
-  })
-  return objNew
+  }
+  return new LayeredContext(new GenericContext(overrides), variables)
 }
 
 /**

@@ -346,7 +346,7 @@ export class ProjectConfigContext extends DefaultEnvironmentContext {
 }
 
 interface EnvironmentConfigContextParams extends ProjectConfigContextParams {
-  variables: DeepPrimitiveMap
+  variables: ConfigContext
 }
 
 /**
@@ -358,10 +358,10 @@ export class EnvironmentConfigContext extends ProjectConfigContext {
       .description("A map of all variables defined in the project configuration.")
       .meta({ keyPlaceholder: "<variable-name>" })
   )
-  public variables: DeepPrimitiveMap
+  public variables: ConfigContext
 
   @schema(joiIdentifierMap(joiPrimitive()).description("Alias for the variables field."))
-  public var: DeepPrimitiveMap
+  public var: ConfigContext
 
   @schema(
     joiStringMap(joi.string().description("The secret's value."))
@@ -394,9 +394,9 @@ export class RemoteSourceConfigContext extends EnvironmentConfigContext {
       )
       .meta({ keyPlaceholder: "<variable-name>" })
   )
-  public override variables: DeepPrimitiveMap
+  public override variables: ConfigContext
 
-  constructor(garden: Garden, variables: DeepPrimitiveMap) {
+  constructor(garden: Garden, variables: ConfigContext) {
     super({
       projectName: garden.projectName,
       projectRoot: garden.projectRoot,

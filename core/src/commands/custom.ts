@@ -113,8 +113,6 @@ export class CustomCommandWrapper extends Command {
     // Strip the command name and any specified arguments off the $rest variable
     const rest = removeSlice(parsed._unknown, this.getPath()).slice(Object.keys(this.arguments || {}).length)
 
-    const yamlDoc = this.spec.internal.yamlDoc
-
     // Render the command variables
     const variablesContext = new CustomCommandContext({ ...garden, args, opts, rest })
     const commandVariables = deepEvaluate(this.spec.variables, {

@@ -7,17 +7,17 @@
  */
 
 import type Joi from "@hapi/joi"
-import { isString } from "lodash-es"
-import { ConfigurationError, GardenError } from "../../exceptions.js"
-import { resolveTemplateString } from "../../template/templated-strings.js"
+import { ConfigurationError, GardenError, InternalError } from "../../exceptions.js"
 import type { CustomObjectSchema } from "../common.js"
 import { joi, joiIdentifier } from "../common.js"
 import { naturalList } from "../../util/string.js"
 import { styles } from "../../logger/styles.js"
 import { Profile } from "../../util/profiling.js"
-import type { CollectionOrValue } from "../../util/objects.js"
+import { deepMap, type CollectionOrValue } from "../../util/objects.js"
 import type { TemplatePrimitive } from "../../template/types.js"
 import { isTemplatePrimitive, UnresolvedTemplateValue } from "../../template/types.js"
+import pick from "lodash-es/pick.js"
+import { evaluate } from "../../template/evaluate.js"
 
 export type ContextKeySegment = string | number
 export type ContextKey = ContextKeySegment[]
@@ -38,11 +38,11 @@ export interface ContextResolveParams {
   key: ContextKey
   nodePath: ContextKey
   opts: ContextResolveOpts
+  rootContext?: ConfigContext
 }
 
 export interface ContextResolveOutput {
   getUnavailableReason?: () => string
-  partial?: boolean
   resolved: any
 }
 
@@ -92,7 +92,7 @@ export abstract class ConfigContext {
     return ""
   }
 
-  resolve({ key, nodePath, opts }: ContextResolveParams): ContextResolveOutput {
+  resolve({ key, nodePath, opts, rootContext = new GenericContext({}) }: ContextResolveParams): ContextResolveOutput {
     const path = key.join(".")
 
     // if the key has previously been resolved, return it directly
@@ -117,11 +117,17 @@ export abstract class ConfigContext {
     let getAvailableKeys: (() => string[]) | undefined = undefined
 
     // eslint-disable-next-line @typescript-eslint/no-this-alias
-    let value: CollectionOrValue<TemplatePrimitive> | ConfigContext | Function = this
-    let partial = false
+    let value: CollectionOrValue<TemplatePrimitive | ConfigContext> = this
     let nextKey = key[0]
     let nestedNodePath = nodePath
     let getUnavailableReason: (() => string) | undefined = undefined
+
+    if (key.length === 0) {
+      value = pick(
+        this,
+        Object.keys(this).filter((k) => !k.startsWith("_"))
+      ) as Record<string, CollectionOrValue<TemplatePrimitive | ConfigContext>>
+    }
 
     for (let p = 0; p < key.length; p++) {
       nextKey = key[p]
@@ -133,7 +139,7 @@ export abstract class ConfigContext {
       const getStackEntry = () => renderKeyPath(capturedNestedNodePath)
       getAvailableKeys = undefined
 
-      const parent: CollectionOrValue<TemplatePrimitive> | ConfigContext | Function = value
+      const parent: CollectionOrValue<TemplatePrimitive | ConfigContext> = value
       if (isTemplatePrimitive(parent)) {
         throw new ContextResolveError({
           message: `Attempted to look up key ${JSON.stringify(nextKey)} on a ${typeof parent}.`,
@@ -150,43 +156,22 @@ export abstract class ConfigContext {
         value = parent[nextKey]
       }
 
-      if (typeof value === "function") {
-        // call the function to resolve the value, then continue
-        const stackEntry = getStackEntry()
-        if (opts.stack?.has(stackEntry)) {
-          // Circular dependency error is critical, throwing here.
-          throw new ContextResolveError({
-            message: `Circular reference detected when resolving key ${stackEntry} (from ${Array.from(opts.stack || []).join(" -> ")})`,
-          })
-        }
-
-        opts.stack.add(stackEntry)
-        value = value({ key: getRemainder(), nodePath: nestedNodePath, opts })
-      }
-
       // handle nested contexts
       if (value instanceof ConfigContext) {
         const remainder = getRemainder()
-        if (remainder.length > 0) {
-          const stackEntry = getStackEntry()
-          opts.stack.add(stackEntry)
-          const res = value.resolve({ key: remainder, nodePath: nestedNodePath, opts })
-          value = res.resolved
-          getUnavailableReason = res.getUnavailableReason
-          partial = !!res.partial
-        }
+        const stackEntry = getStackEntry()
+        opts.stack.add(stackEntry)
+        // NOTE: we resolve even if remainder.length is zero to make sure all unresolved template values have been resolved.
+        const res = value.resolve({ key: remainder, nodePath: nestedNodePath, opts, rootContext })
+        value = res.resolved
+        getUnavailableReason = res.getUnavailableReason
         break
       }
 
       // handle templated strings in context variables
       if (value instanceof UnresolvedTemplateValue) {
         opts.stack.add(getStackEntry())
-        value = value.evaluate({ context: this._rootContext, opts })
-
-        if (typeof value === "symbol") {
-          value = undefined
-          break
-        }
+        value = evaluate(value, { context: new LayeredContext(rootContext, this._rootContext), opts })
       }
 
       if (value === undefined) {
@@ -225,10 +210,17 @@ export abstract class ConfigContext {
       return { resolved: CONTEXT_RESOLVE_KEY_NOT_FOUND, getUnavailableReason }
     }
 
-    // Cache result, unless it is a partial resolution
-    if (!partial) {
-      this._resolvedValues[path] = value
+    if (!isTemplatePrimitive(value)) {
+      value = deepMap(value, (v, keyPath) => {
+        if (v instanceof ConfigContext) {
+          return v.resolve({ key: [], nodePath: nodePath.concat(key, keyPath), opts }).resolved
+        }
+        return evaluate(v, { context: new LayeredContext(rootContext, this._rootContext), opts })
+      })
     }
+
+    // Cache result
+    this._resolvedValues[path] = value
 
     return { resolved: value }
   }
@@ -332,4 +324,40 @@ export function renderKeyPath(key: ContextKeySegment[]): string {
         }
       }, stringSegments[0])
   )
+}
+export class CapturedContext extends ConfigContext {
+  constructor(
+    private readonly wrapped: ConfigContext,
+    private readonly rootContext: ConfigContext
+  ) {
+    super(rootContext)
+  }
+
+  override resolve(params: ContextResolveParams): ContextResolveOutput {
+    return this.wrapped.resolve({
+      ...params,
+      rootContext: params.rootContext ? new LayeredContext(this.rootContext, params.rootContext) : this.rootContext,
+    })
+  }
+}
+
+export class LayeredContext extends ConfigContext {
+  private readonly contexts: ConfigContext[]
+  constructor(...contexts: ConfigContext[]) {
+    super()
+    this.contexts = contexts
+  }
+  override resolve(args: ContextResolveParams): ContextResolveOutput {
+    // TODO: This naive algorithm must be replaced with a lazy merge implementation
+    // See also https://github.com/garden-io/garden/pull/6669/files
+    for (const [i, context] of this.contexts.entries()) {
+      const resolved = context.resolve(args)
+      if (resolved.resolved !== CONTEXT_RESOLVE_KEY_NOT_FOUND || i === this.contexts.length - 1) {
+        return resolved
+      }
+    }
+    throw new InternalError({
+      message: "LayeredContext has zero contexts",
+    })
+  }
 }
