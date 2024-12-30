@@ -643,7 +643,7 @@ export class ModuleResolver {
       configContext
     ) as unknown as typeof config
 
-    config.variables = resolvedModuleVariables.resolve({ key: [], nodePath: [], opts: {} }).resolved
+    // config.variables = resolvedModuleVariables.resolve({ key: [], nodePath: [], opts: {} }).resolved
     config.inputs = inputs
 
     const moduleTypeDefinitions = await garden.getModuleTypes()

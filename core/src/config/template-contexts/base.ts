@@ -7,17 +7,18 @@
  */
 
 import type Joi from "@hapi/joi"
-import { ConfigurationError, GardenError, InternalError } from "../../exceptions.js"
+import { ConfigurationError, GardenError } from "../../exceptions.js"
 import type { CustomObjectSchema } from "../common.js"
 import { joi, joiIdentifier } from "../common.js"
 import { naturalList } from "../../util/string.js"
 import { styles } from "../../logger/styles.js"
 import { Profile } from "../../util/profiling.js"
-import { deepMap, type CollectionOrValue } from "../../util/objects.js"
-import type { TemplatePrimitive } from "../../template/types.js"
+import { deepMap, isArray, type CollectionOrValue } from "../../util/objects.js"
+import type { ResolvedTemplate, TemplatePrimitive } from "../../template/types.js"
 import { isTemplatePrimitive, UnresolvedTemplateValue } from "../../template/types.js"
 import pick from "lodash-es/pick.js"
 import { evaluate } from "../../template/evaluate.js"
+import merge from "lodash-es/merge.js"
 
 export type ContextKeySegment = string | number
 export type ContextKey = ContextKeySegment[]
@@ -73,10 +74,12 @@ export const CONTEXT_RESOLVE_KEY_NOT_FOUND: unique symbol = Symbol.for("ContextR
 export abstract class ConfigContext {
   private readonly _rootContext: ConfigContext
   private readonly _resolvedValues: { [path: string]: any }
+  private readonly _startingPoint: string | undefined
 
-  constructor(rootContext?: ConfigContext) {
+  constructor(rootContext?: ConfigContext, startingPoint?: string) {
     this._rootContext = rootContext || this
     this._resolvedValues = {}
+    this._startingPoint = startingPoint
   }
 
   static getSchema() {
@@ -117,7 +120,9 @@ export abstract class ConfigContext {
     let getAvailableKeys: (() => string[]) | undefined = undefined
 
     // eslint-disable-next-line @typescript-eslint/no-this-alias
-    let value: CollectionOrValue<TemplatePrimitive | ConfigContext> = this
+    let value: CollectionOrValue<TemplatePrimitive | ConfigContext> = this._startingPoint
+      ? this[this._startingPoint]
+      : this
     let nextKey = key[0]
     let nestedNodePath = nodePath
     let getUnavailableReason: (() => string) | undefined = undefined
@@ -230,9 +235,8 @@ export abstract class ConfigContext {
  * A generic context that just wraps an object.
  */
 export class GenericContext extends ConfigContext {
-  constructor(obj: any) {
-    super()
-    Object.assign(this, obj)
+  constructor(private readonly data: any) {
+    super(undefined, "data")
   }
 
   static override getSchema() {
@@ -348,16 +352,27 @@ export class LayeredContext extends ConfigContext {
     this.contexts = contexts
   }
   override resolve(args: ContextResolveParams): ContextResolveOutput {
-    // TODO: This naive algorithm must be replaced with a lazy merge implementation
-    // See also https://github.com/garden-io/garden/pull/6669/files
+    const items: ResolvedTemplate[] = []
+
     for (const [i, context] of this.contexts.entries()) {
       const resolved = context.resolve(args)
-      if (resolved.resolved !== CONTEXT_RESOLVE_KEY_NOT_FOUND || i === this.contexts.length - 1) {
+      if (resolved.resolved === CONTEXT_RESOLVE_KEY_NOT_FOUND && i === this.contexts.length - 1) {
+        return resolved
+      }
+
+      if (isTemplatePrimitive(resolved.resolved)) {
         return resolved
       }
     }
-    throw new InternalError({
-      message: "LayeredContext has zero contexts",
-    })
+
+    const returnValue = isArray(items[0]) ? [] : {}
+
+    for (const i of items) {
+      merge(returnValue, i)
+    }
+
+    return {
+      resolved: returnValue,
+    }
   }
 }

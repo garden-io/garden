@@ -817,7 +817,6 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
     config = {
       ...config,
       ...resolvedBuiltin,
-      variables: resolvedVariables.resolve({ key: [], nodePath: [], opts: {} }).resolved,
       spec,
     }
 
