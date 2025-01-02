@@ -13,7 +13,8 @@ import { joi, joiIdentifier } from "../common.js"
 import { naturalList } from "../../util/string.js"
 import { styles } from "../../logger/styles.js"
 import { Profile } from "../../util/profiling.js"
-import { deepMap, isArray, type CollectionOrValue } from "../../util/objects.js"
+import type { Collection } from "../../util/objects.js"
+import { deepMap, type CollectionOrValue } from "../../util/objects.js"
 import type { ResolvedTemplate, TemplatePrimitive } from "../../template/types.js"
 import { isTemplatePrimitive, UnresolvedTemplateValue } from "../../template/types.js"
 import pick from "lodash-es/pick.js"
@@ -129,8 +130,8 @@ export abstract class ConfigContext {
 
     if (key.length === 0) {
       value = pick(
-        this,
-        Object.keys(this).filter((k) => !k.startsWith("_"))
+        value,
+        Object.keys(value as Collection<unknown>).filter((k) => !k.startsWith("_"))
       ) as Record<string, CollectionOrValue<TemplatePrimitive | ConfigContext>>
     }
 
@@ -356,23 +357,24 @@ export class LayeredContext extends ConfigContext {
 
     for (const [i, context] of this.contexts.entries()) {
       const resolved = context.resolve(args)
-      if (resolved.resolved === CONTEXT_RESOLVE_KEY_NOT_FOUND && i === this.contexts.length - 1) {
-        return resolved
-      }
-
-      if (isTemplatePrimitive(resolved.resolved)) {
+      if (resolved.resolved !== CONTEXT_RESOLVE_KEY_NOT_FOUND) {
+        if (isTemplatePrimitive(resolved.resolved)) {
+          return resolved
+        }
+        items.push(resolved.resolved)
+      } else if (items.length === 0 && i === this.contexts.length - 1) {
         return resolved
       }
     }
 
-    const returnValue = isArray(items[0]) ? [] : {}
+    const returnValue = {}
 
     for (const i of items) {
-      merge(returnValue, i)
+      merge(returnValue, { resolved: i })
     }
 
     return {
-      resolved: returnValue,
+      resolved: returnValue["resolved"],
     }
   }
 }

@@ -23,8 +23,12 @@ export async function dumpYaml(yamlPath: string, data: any) {
 /**
  * Wraps safeDump and enforces that invalid values are skipped
  */
-export function safeDumpYaml(data: any, opts: DumpOptions = {}) {
-  return dump(data, { ...opts, skipInvalid: true })
+export function safeDumpYaml(data: any, opts: Omit<DumpOptions, "replacer"> = {}) {
+  return dump(data, {
+    ...opts,
+    skipInvalid: true,
+    replacer: (_, v) => (typeof v === "object" && typeof v?.["toJSON"] === "function" ? v["toJSON"]() : v),
+  })
 }
 
 /**
