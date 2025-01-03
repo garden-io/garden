@@ -522,8 +522,9 @@ export function resolveProjectConfig({
       ...globalConfig,
       name,
       defaultEnvironment: defaultEnvironmentName,
-      // environments are validated later
+      // environments, providers and sources are validated later
       environments: [{ defaultNamespace: null, name: "fake-env-only-here-for-inital-load", variables: {} }],
+      providers: [],
       sources: [],
     },
     schema: projectSchema(),
