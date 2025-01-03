@@ -30,8 +30,8 @@ export interface ContextResolveOpts {
   // TODO(0.14): Remove legacyAllowPartial
   legacyAllowPartial?: boolean
 
-  // a list of contexts for detecting circular references
-  contextStack?: Set<ConfigContext>
+  // a list of values for detecting circular references
+  contextStack?: Set<unknown>
   keyStack?: Set<string>
 
   // TODO: remove
@@ -119,17 +119,6 @@ export abstract class ConfigContext {
       return { resolved }
     }
 
-    // TODO: freeze opts object instead of using shallow copy
-    opts.keyStack = new Set(opts.keyStack || [])
-    opts.contextStack = new Set(opts.contextStack || [])
-
-    if (opts.contextStack.has(this)) {
-      // Circular dependency error is critical, throwing here.
-      throw new ContextResolveError({
-        message: `Circular reference detected when resolving key ${path} (${Array.from(opts.keyStack || []).join(" -> ")})`,
-      })
-    }
-
     // keep track of which resolvers have been called, in order to detect circular references
     let getAvailableKeys: (() => string[]) | undefined = undefined
 
@@ -144,9 +133,21 @@ export abstract class ConfigContext {
       })
     }
 
+    // TODO: freeze opts object instead of using shallow copy
+    opts.keyStack = new Set(opts.keyStack || [])
+    opts.contextStack = new Set(opts.contextStack || [])
+
+    if (opts.contextStack.has(value)) {
+      // TODO: fix circular ref detection
+      // Circular dependency error is critical, throwing here.
+      // throw new ContextResolveError({
+      //   message: `Circular reference detected when resolving key ${path} (${Array.from(opts.keyStack || []).join(" -> ")})`,
+      // })
+    }
+
     if (value instanceof UnresolvedTemplateValue) {
       opts.keyStack.add(nodePath.join("."))
-      opts.contextStack.add(this)
+      opts.contextStack.add(value)
       value = evaluate(value, { context: getRootContext(), opts })
     }
 
@@ -193,7 +194,7 @@ export abstract class ConfigContext {
         const remainder = getRemainder()
         const stackEntry = getStackEntry()
         opts.keyStack.add(stackEntry)
-        opts.contextStack.add(this)
+        opts.contextStack.add(value)
         // NOTE: we resolve even if remainder.length is zero to make sure all unresolved template values have been resolved.
         const res = value.resolve({ key: remainder, nodePath: nestedNodePath, opts, rootContext })
         value = res.resolved
@@ -204,7 +205,7 @@ export abstract class ConfigContext {
       // handle templated strings in context variables
       if (value instanceof UnresolvedTemplateValue) {
         opts.keyStack.add(getStackEntry())
-        opts.contextStack.add(this)
+        opts.contextStack.add(value)
         value = evaluate(value, { context: getRootContext(), opts })
       }
 

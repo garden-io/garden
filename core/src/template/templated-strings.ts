@@ -7,7 +7,7 @@
  */
 
 import type { GardenErrorParams } from "../exceptions.js"
-import { InternalError, NotImplementedError } from "../exceptions.js"
+import { InternalError } from "../exceptions.js"
 import type { ConfigContext, ContextResolveOpts } from "../config/template-contexts/base.js"
 import type { Primitive } from "../config/common.js"
 import { isPrimitive } from "../config/common.js"
@@ -30,13 +30,8 @@ function parseWithPegJs(params: ParseParams) {
   return parser.parse(...params)
 }
 
-const shouldUnescape = (ctxOpts: ContextResolveOpts) => {
-  // Explicit non-escaping takes the highest priority.
-  if (ctxOpts.unescape === false) {
-    return false
-  }
-
-  return !!ctxOpts.unescape
+const shouldUnescape = ({ unescape = true }: ContextResolveOpts) => {
+  return unescape
 }
 
 const parseTemplateStringCache = new LRUCache<string, string | ast.TemplateExpression>({
@@ -191,19 +186,6 @@ export function resolveTemplateString({
   // contained in expression evaluation results e.g. if an environment variable contains template string, we don't want to
   // evaluate the template string in there.
   // See also https://github.com/garden-io/garden/issues/5825
-}
-
-/**
- * Recursively parses and resolves all templated strings in the given object.
- */
-// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-constraint
-export function resolveTemplateStrings<T>(_args: {
-  value: T
-  context: ConfigContext
-  contextOpts?: ContextResolveOpts
-  source: ConfigSource | undefined
-}): T {
-  throw new NotImplementedError({ message: "TODO Resolve Template Strings" })
 }
 
 /**

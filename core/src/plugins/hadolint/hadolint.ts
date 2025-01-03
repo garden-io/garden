@@ -270,7 +270,7 @@ hadolintTest.addHandler("configure", async ({ ctx, config }) => {
 
   if (!config.include.includes(dockerfilePath)) {
     try {
-      dockerfilePath = ctx.resolveTemplateStrings(dockerfilePath)
+      dockerfilePath = ctx.deepEvaluate(dockerfilePath) as unknown as typeof dockerfilePath
     } catch (error) {
       if (!(error instanceof GardenError)) {
         throw error

@@ -21,7 +21,6 @@ import { CustomCommandContext } from "../config/template-contexts/custom-command
 import { validateWithPath } from "../config/validation.js"
 import type { GardenError } from "../exceptions.js"
 import { ConfigurationError, RuntimeError, InternalError, toGardenError } from "../exceptions.js"
-import { resolveTemplateStrings } from "../template/templated-strings.js"
 import { listDirectory, isConfigFilename } from "../util/fs.js"
 import type { CommandParams, CommandResult, PrintHeaderParams } from "./base.js"
 import { Command } from "./base.js"

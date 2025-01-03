@@ -289,7 +289,7 @@ export const gardenPlugin = () =>
                 }
 
                 try {
-                  files = ctx.resolveTemplateStrings(files)
+                  files = ctx.deepEvaluate(files) as unknown as typeof files
                 } catch (error) {
                   if (!(error instanceof GardenError)) {
                     throw error

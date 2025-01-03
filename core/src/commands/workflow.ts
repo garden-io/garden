@@ -19,7 +19,6 @@ import type { GardenError } from "../exceptions.js"
 import { ChildProcessError, InternalError, RuntimeError, WorkflowScriptError, toGardenError } from "../exceptions.js"
 import type { WorkflowStepResult } from "../config/template-contexts/workflow.js"
 import { WorkflowConfigContext, WorkflowStepConfigContext } from "../config/template-contexts/workflow.js"
-import { resolveTemplateStrings, resolveTemplateString } from "../template/templated-strings.js"
 import { ConfigurationError, FilesystemError } from "../exceptions.js"
 import { posix, join } from "path"
 import fsExtra from "fs-extra"
@@ -35,7 +34,7 @@ import { getCustomCommands } from "./custom.js"
 import { getBuiltinCommands } from "./commands.js"
 import { styles } from "../logger/styles.js"
 import { deepEvaluate } from "../template/evaluate.js"
-import { ParsedTemplate } from "../template/types.js"
+import type { ParsedTemplate } from "../template/types.js"
 
 const { ensureDir, writeFile } = fsExtra
 

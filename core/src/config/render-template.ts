@@ -6,10 +6,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Document } from "yaml"
 import type { ModuleConfig } from "./module.js"
 import { dedent, deline, naturalList } from "../util/string.js"
-import type { BaseGardenResource, RenderTemplateKind, YamlDocumentWithSource } from "./base.js"
+import type { BaseGardenResource, RenderTemplateKind } from "./base.js"
 import {
   baseInternalFieldsSchema,
   configTemplateKind,
@@ -17,7 +16,7 @@ import {
   prepareResource,
   renderTemplateKind,
 } from "./base.js"
-import { maybeTemplateString, resolveTemplateString, resolveTemplateStrings } from "../template/templated-strings.js"
+import { maybeTemplateString } from "../template/templated-strings.js"
 import { validateWithPath } from "./validation.js"
 import type { Garden } from "../garden.js"
 import { ConfigurationError, GardenError } from "../exceptions.js"
@@ -37,8 +36,7 @@ import type { Log } from "../logger/log-entry.js"
 import { GardenApiVersion } from "../constants.js"
 import { capture } from "../template/capture.js"
 import { deepEvaluate } from "../template/evaluate.js"
-import { ParsedTemplate, TemplatePrimitive } from "../template/types.js"
-import { CollectionOrValue } from "../util/objects.js"
+import type { ParsedTemplate } from "../template/types.js"
 
 export const renderTemplateConfigSchema = createSchema({
   name: renderTemplateKind,

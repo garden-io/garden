@@ -10,10 +10,10 @@ import { expect } from "chai"
 import repeat from "lodash-es/repeat.js"
 import stripAnsi from "strip-ansi"
 import { loadAndValidateYaml } from "../../../src/config/base.js"
-import { CONTEXT_RESOLVE_KEY_NOT_FOUND, GenericContext } from "../../../src/config/template-contexts/base.js"
+import { GenericContext } from "../../../src/config/template-contexts/base.js"
 import type { ContextLookupReferenceFinding } from "../../../src/template/analysis.js"
 import { getContextLookupReferences, UnresolvableValue, visitAll } from "../../../src/template/analysis.js"
-import { resolveTemplateString, resolveTemplateStrings } from "../../../src/template/templated-strings.js"
+import { resolveTemplateString } from "../../../src/template/templated-strings.js"
 import { dedent } from "../../../src/util/string.js"
 import type { TestGarden } from "../../helpers.js"
 import { expectError, expectFuzzyMatch, getDataDir, makeTestGarden } from "../../helpers.js"
@@ -21,8 +21,9 @@ import { TemplateStringError } from "../../../src/template/errors.js"
 import { getActionTemplateReferences } from "../../../src/config/references.js"
 import { throwOnMissingSecretKeys } from "../../../src/config/secrets.js"
 import { parseTemplateCollection } from "../../../src/template/templated-collections.js"
+import { deepEvaluate } from "../../../src/template/evaluate.js"
 
-describe("resolveTemplateString", () => {
+describe("parse and evaluate template strings", () => {
   it("should return a non-templated string unchanged", () => {
     const res = resolveTemplateString({ string: "somestring", context: new GenericContext({}) })
     expect(res).to.equal("somestring")
@@ -1883,7 +1884,7 @@ describe("resolveTemplateString", () => {
   })
 })
 
-describe("resolveTemplateStrings", () => {
+describe("parse and evaluate template collections", () => {
   it("should resolve all template strings in an object with the given context", () => {
     const obj = {
       some: "${key}",
@@ -1892,12 +1893,13 @@ describe("resolveTemplateStrings", () => {
         noTemplate: "at-all",
       },
     }
-    const templateContext = new GenericContext({
+    const context = new GenericContext({
       key: "value",
       something: "else",
     })
 
-    const result = resolveTemplateStrings({ source: undefined, value: obj, context: templateContext })
+    const parsed = parseTemplateCollection({ source: { path: [] }, value: obj })
+    const result = deepEvaluate(parsed, { context, opts: {} })
 
     expect(result).to.eql({
       some: "value",
@@ -1913,11 +1915,12 @@ describe("resolveTemplateStrings", () => {
       some: "${key}?",
       other: "${missing}?",
     }
-    const templateContext = new GenericContext({
+    const context = new GenericContext({
       key: "value",
     })
 
-    const result = resolveTemplateStrings({ source: undefined, value: obj, context: templateContext })
+    const parsed = parseTemplateCollection({ source: { path: [] }, value: obj })
+    const result = deepEvaluate(parsed, { context, opts: {} })
 
     expect(result).to.eql({
       some: "value",
@@ -1931,9 +1934,10 @@ describe("resolveTemplateStrings", () => {
       b: "B",
       c: "c",
     }
-    const templateContext = new GenericContext({})
+    const context = new GenericContext({})
 
-    const result = resolveTemplateStrings({ source: undefined, value: obj, context: templateContext })
+    const parsed = parseTemplateCollection({ source: { path: [] }, value: obj })
+    const result = deepEvaluate(parsed, { context, opts: {} })
 
     expect(result).to.eql({
       a: "a",
@@ -1948,9 +1952,10 @@ describe("resolveTemplateStrings", () => {
       c: "c",
       $merge: { a: "a", b: "b" },
     }
-    const templateContext = new GenericContext({})
+    const context = new GenericContext({})
 
-    const result = resolveTemplateStrings({ source: undefined, value: obj, context: templateContext })
+    const parsed = parseTemplateCollection({ source: { path: [] }, value: obj })
+    const result = deepEvaluate(parsed, { context, opts: {} })
 
     expect(result).to.eql({
       a: "a",
@@ -1965,9 +1970,10 @@ describe("resolveTemplateStrings", () => {
       b: "B",
       c: "c",
     }
-    const templateContext = new GenericContext({ obj: { a: "a", b: "b" } })
+    const context = new GenericContext({ obj: { a: "a", b: "b" } })
 
-    const result = resolveTemplateStrings({ source: undefined, value: obj, context: templateContext })
+    const parsed = parseTemplateCollection({ source: { path: [] }, value: obj })
+    const result = deepEvaluate(parsed, { context, opts: {} })
 
     expect(result).to.eql({
       a: "a",
@@ -1985,9 +1991,10 @@ describe("resolveTemplateStrings", () => {
         a: "a",
       },
     }
-    const templateContext = new GenericContext({ obj: { b: "b" } })
+    const context = new GenericContext({ obj: { b: "b" } })
 
-    const result = resolveTemplateStrings({ source: undefined, value: obj, context: templateContext })
+    const parsed = parseTemplateCollection({ source: { path: [] }, value: obj })
+    const result = deepEvaluate(parsed, { context, opts: {} })
 
     expect(result).to.eql({
       a: "a",
@@ -2001,9 +2008,10 @@ describe("resolveTemplateStrings", () => {
       $merge: "${var.doesnotexist || var.obj}",
       c: "c",
     }
-    const templateContext = new GenericContext({ var: { obj: { a: "a", b: "b" } } })
+    const context = new GenericContext({ var: { obj: { a: "a", b: "b" } } })
 
-    const result = resolveTemplateStrings({ value: obj, context: templateContext, source: undefined })
+    const parsed = parseTemplateCollection({ value: obj, source: { path: [] } })
+    const result = deepEvaluate(parsed, { context, opts: {} })
 
     expect(result).to.eql({
       a: "a",
@@ -2022,7 +2030,7 @@ describe("resolveTemplateStrings", () => {
   //       },
   //     },
   //   }
-  //   const templateContext = new GenericContext({
+  //   const context = new GenericContext({
   //     inputs: {
   //       "merged-object": {
   //         $merge: "${var.empty || var.input-object}",
@@ -2036,11 +2044,12 @@ describe("resolveTemplateStrings", () => {
   //     },
   //   })
 
-  //   const result = resolveTemplateStrings({
+  //   const parsed = parseTemplateCollection({
+  //   const result = deepEvaluate(parsed, { context, opts: {} })
   //     value: obj,
-  //     context: templateContext,
+  //   ,
   //     contextOpts: { allowPartial: true },
-  //     source: undefined,
+  //     source: { path: [] },
   //   })
 
   //   expect(result).to.eql({
@@ -2064,21 +2073,27 @@ it("should resolve $merge keys if a dependency cannot be resolved but there's a 
       },
     },
   }
-  const templateContext = new GenericContext({
-    inputs: {
-      "merged-object": {
-        $merge: "${var.empty || var.input-object}",
-        INTERNAL_VAR_1: "INTERNAL_VAR_1",
+  const context = new GenericContext(
+    parseTemplateCollection({
+      source: { path: [] },
+      value: {
+        inputs: {
+          "merged-object": {
+            $merge: "${var.empty || var.input-object}",
+            INTERNAL_VAR_1: "INTERNAL_VAR_1",
+          },
+        },
+        var: {
+          "input-object": {
+            EXTERNAL_VAR_1: "EXTERNAL_VAR_1",
+          },
+        },
       },
-    },
-    var: {
-      "input-object": {
-        EXTERNAL_VAR_1: "EXTERNAL_VAR_1",
-      },
-    },
-  })
+    })
+  )
 
-  const result = resolveTemplateStrings({ value: obj, context: templateContext, source: undefined })
+  const parsed = parseTemplateCollection({ value: obj, source: { path: [] } })
+  const result = deepEvaluate(parsed, { context, opts: {} })
 
   expect(result).to.eql({
     "key-value-array": [
@@ -2089,15 +2104,17 @@ it("should resolve $merge keys if a dependency cannot be resolved but there's a 
 })
 
 it("should ignore $merge keys if the object to be merged is undefined", () => {
-  const obj = {
-    $merge: "${var.doesnotexist}",
-    c: "c",
-  }
-  const templateContext = new GenericContext({ var: { obj: { a: "a", b: "b" } } })
+  const context = new GenericContext({ var: { obj: { a: "a", b: "b" } } })
 
-  expect(() => resolveTemplateStrings({ value: obj, context: templateContext, source: undefined })).to.throw(
-    "Invalid template string"
-  )
+  const parsed = parseTemplateCollection({
+    value: {
+      $merge: "${var.doesnotexist}",
+      c: "c",
+    },
+    source: { path: [] },
+  })
+
+  expect(() => deepEvaluate(parsed, { context, opts: {} })).to.throw("Invalid template string")
 })
 
 context("$concat", () => {
@@ -2105,7 +2122,9 @@ context("$concat", () => {
     const obj = {
       foo: ["a", { $concat: ["b", "c"] }, "d"],
     }
-    const res = resolveTemplateStrings({ source: undefined, value: obj, context: new GenericContext({}) })
+    const context = new GenericContext({})
+    const parsed = parseTemplateCollection({ source: { path: [] }, value: obj })
+    const res = deepEvaluate(parsed, { context, opts: {} })
     expect(res).to.eql({
       foo: ["a", "b", "c", "d"],
     })
@@ -2115,11 +2134,12 @@ context("$concat", () => {
     const obj = {
       foo: ["a", { $concat: "${foo}" }, "d"],
     }
-    const res = resolveTemplateStrings({
-      source: undefined,
+    const context = new GenericContext({ foo: ["b", "c"] })
+    const parsed = parseTemplateCollection({
+      source: { path: [] },
       value: obj,
-      context: new GenericContext({ foo: ["b", "c"] }),
     })
+    const res = deepEvaluate(parsed, { context, opts: {} })
     expect(res).to.eql({
       foo: ["a", "b", "c", "d"],
     })
@@ -2129,11 +2149,13 @@ context("$concat", () => {
     const obj = {
       foo: ["a", { $concat: { $forEach: ["B", "C"], $return: "${lower(item.value)}" } }, "d"],
     }
-    const res = resolveTemplateStrings({
-      source: undefined,
+    const context = new GenericContext({ foo: ["b", "c"] })
+    const parsed = parseTemplateCollection({
+      source: { path: [] },
       value: obj,
-      context: new GenericContext({ foo: ["b", "c"] }),
     })
+    const res = deepEvaluate(parsed, { context, opts: {} })
+
     expect(res).to.eql({
       foo: ["a", "b", "c", "d"],
     })
@@ -2144,7 +2166,10 @@ context("$concat", () => {
       foo: ["a", { $concat: "b" }, "d"],
     }
 
-    void expectError(() => resolveTemplateStrings({ source: undefined, value: obj, context: new GenericContext({}) }), {
+    const context = new GenericContext({})
+    const parsed = parseTemplateCollection({ source: { path: [] }, value: obj })
+
+    void expectError(() => deepEvaluate(parsed, { context, opts: {} }), {
       contains: "Value of $concat key must be (or resolve to) an array (got string)",
     })
   })
@@ -2154,7 +2179,10 @@ context("$concat", () => {
       foo: ["a", { $concat: "b", nope: "nay", oops: "derp" }, "d"],
     }
 
-    void expectError(() => resolveTemplateStrings({ source: undefined, value: obj, context: new GenericContext({}) }), {
+    const context = new GenericContext({})
+    const parsed = parseTemplateCollection({ source: { path: [] }, value: obj })
+
+    void expectError(() => deepEvaluate(parsed, { context, opts: {} }), {
       contains: 'A list item with a $concat key cannot have any other keys (found "nope" and "oops")',
     })
   })
@@ -2163,8 +2191,8 @@ context("$concat", () => {
   //     const obj = {
   //       foo: ["a", { $concat: "${foo}" }, "d"],
   //     }
-  //     const res = resolveTemplateStrings({
-  //       source: undefined,
+  //     const parsed = parseTemplateCollection({
+  //       source: { path: [] },
   //       value: obj,
   //       context: new GenericContext({}),
   //       contextOpts: { allowPartial: true },
@@ -2184,7 +2212,12 @@ context("$concat", () => {
           $else: 456,
         },
       }
-      const res = resolveTemplateStrings({ source: undefined, value: obj, context: new GenericContext({ foo: 1 }) })
+      const context = new GenericContext({ foo: 1 })
+      const parsed = parseTemplateCollection({
+        source: { path: [] },
+        value: obj,
+      })
+      const res = deepEvaluate(parsed, { context, opts: {} })
       expect(res).to.eql({ bar: 123 })
     })
 
@@ -2196,7 +2229,12 @@ context("$concat", () => {
           $else: 456,
         },
       }
-      const res = resolveTemplateStrings({ source: undefined, value: obj, context: new GenericContext({ foo: 2 }) })
+      const context = new GenericContext({ foo: 2 })
+      const parsed = parseTemplateCollection({
+        source: { path: [] },
+        value: obj,
+      })
+      const res = deepEvaluate(parsed, { context, opts: {} })
       expect(res).to.eql({ bar: 456 })
     })
 
@@ -2207,26 +2245,14 @@ context("$concat", () => {
           $then: 123,
         },
       }
-      const res = resolveTemplateStrings({ source: undefined, value: obj, context: new GenericContext({ foo: 2 }) })
+      const context = new GenericContext({ foo: 2 })
+      const parsed = parseTemplateCollection({
+        source: { path: [] },
+        value: obj,
+      })
+      const res = deepEvaluate(parsed, { context, opts: {} })
       expect(res).to.eql({ bar: undefined })
     })
-
-    // it("returns object as-is if $if doesn't resolve to boolean and allowPartial=true", () => {
-    //   const obj = {
-    //     bar: {
-    //       $if: "${foo}",
-    //       $then: 123,
-    //       $else: 456,
-    //     },
-    //   }
-    //   const res = resolveTemplateStrings({
-    //     source: undefined,
-    //     value: obj,
-    //     context: new GenericContext({ foo: 2 }),
-    //     contextOpts: { allowPartial: true },
-    //   })
-    //   expect(res).to.eql(obj)
-    // })
 
     it("throws if $if doesn't resolve to boolean and allowPartial=false", () => {
       const obj = {
@@ -2236,12 +2262,12 @@ context("$concat", () => {
         },
       }
 
-      void expectError(
-        () => resolveTemplateStrings({ source: undefined, value: obj, context: new GenericContext({ foo: "bla" }) }),
-        {
-          contains: "Value of $if key must be (or resolve to) a boolean (got string)",
-        }
-      )
+      const context = new GenericContext({ foo: "bla" })
+      const parsed = parseTemplateCollection({ source: { path: [] }, value: obj })
+
+      void expectError(() => deepEvaluate(parsed, { context, opts: {} }), {
+        contains: "Value of $if key must be (or resolve to) a boolean (got string)",
+      })
     })
 
     it("throws if $then key is missing", () => {
@@ -2251,12 +2277,12 @@ context("$concat", () => {
         },
       }
 
-      void expectError(
-        () => resolveTemplateStrings({ source: undefined, value: obj, context: new GenericContext({ foo: 1 }) }),
-        {
-          contains: "Missing $then field next to $if field",
-        }
-      )
+      const context = new GenericContext({ foo: 1 })
+      const parsed = parseTemplateCollection({ source: { path: [] }, value: obj })
+
+      void expectError(() => deepEvaluate(parsed, { context, opts: {} }), {
+        contains: "Missing $then field next to $if field",
+      })
     })
 
     it("throws if extra keys are found", () => {
@@ -2268,12 +2294,12 @@ context("$concat", () => {
         },
       }
 
-      void expectError(
-        () => resolveTemplateStrings({ source: undefined, value: obj, context: new GenericContext({ foo: 1 }) }),
-        {
-          contains: 'Found one or more unexpected keys on $if object: "foo"',
-        }
-      )
+      const context = new GenericContext({ foo: 1 })
+      const parsed = parseTemplateCollection({ source: { path: [] }, value: obj })
+
+      void expectError(() => deepEvaluate(parsed, { context, opts: {} }), {
+        contains: 'Found one or more unexpected keys on $if object: "foo"',
+      })
     })
   })
 
@@ -2285,7 +2311,9 @@ context("$concat", () => {
           $return: "foo",
         },
       }
-      const res = resolveTemplateStrings({ source: undefined, value: obj, context: new GenericContext({}) })
+      const context = new GenericContext({})
+      const parsed = parseTemplateCollection({ source: { path: [] }, value: obj })
+      const res = deepEvaluate(parsed, { context, opts: {} })
       expect(res).to.eql({
         foo: ["foo", "foo", "foo"],
       })
@@ -2302,7 +2330,9 @@ context("$concat", () => {
           $return: "${item.key}: ${item.value}",
         },
       }
-      const res = resolveTemplateStrings({ source: undefined, value: obj, context: new GenericContext({}) })
+      const context = new GenericContext({})
+      const parsed = parseTemplateCollection({ source: { path: [] }, value: obj })
+      const res = deepEvaluate(parsed, { context, opts: {} })
       expect(res).to.eql({
         foo: ["a: 1", "b: 2", "c: 3"],
       })
@@ -2315,30 +2345,12 @@ context("$concat", () => {
           $return: "foo",
         },
       }
-
-      void expectError(
-        () => resolveTemplateStrings({ source: undefined, value: obj, context: new GenericContext({}) }),
-        {
-          contains: "Value of $forEach key must be (or resolve to) an array or mapping object (got string)",
-        }
-      )
+      const context = new GenericContext({})
+      const parsed = parseTemplateCollection({ source: { path: [] }, value: obj })
+      void expectError(() => deepEvaluate(parsed, { context, opts: {} }), {
+        contains: "Value of $forEach key must be (or resolve to) an array or mapping object (got string)",
+      })
     })
-
-    // it("ignores the loop if the input isn't a list or object and allowPartial=true", () => {
-    //   const obj = {
-    //     foo: {
-    //       $forEach: "${foo}",
-    //       $return: "foo",
-    //     },
-    //   }
-    //   const res = resolveTemplateStrings({
-    //     source: undefined,
-    //     value: obj,
-    //     context: new GenericContext({}),
-    //     contextOpts: { allowPartial: true },
-    //   })
-    //   expect(res).to.eql(obj)
-    // })
 
     it("throws if there's no $return clause", () => {
       const obj = {
@@ -2347,12 +2359,9 @@ context("$concat", () => {
         },
       }
 
-      void expectError(
-        () => resolveTemplateStrings({ source: undefined, value: obj, context: new GenericContext({}) }),
-        {
-          contains: "Missing $return field next to $forEach field.",
-        }
-      )
+      void expectError(() => parseTemplateCollection({ source: { path: [] }, value: obj }), {
+        contains: "Missing $return field next to $forEach field.",
+      })
     })
 
     it("throws if there are superfluous keys on the object", () => {
@@ -2365,12 +2374,9 @@ context("$concat", () => {
         },
       }
 
-      void expectError(
-        () => resolveTemplateStrings({ source: undefined, value: obj, context: new GenericContext({}) }),
-        {
-          contains: 'Found one or more unexpected keys on $forEach object: "$concat" and "foo"',
-        }
-      )
+      void expectError(() => parseTemplateCollection({ source: { path: [] }, value: obj }), {
+        contains: 'Found one or more unexpected keys on $forEach object: "$concat" and "foo"',
+      })
     })
 
     it("exposes item.value and item.key when resolving the $return clause", () => {
@@ -2380,11 +2386,13 @@ context("$concat", () => {
           $return: "${item.key}: ${item.value}",
         },
       }
-      const res = resolveTemplateStrings({
-        source: undefined,
+      const context = new GenericContext({ foo: ["a", "b", "c"] })
+      const parsed = parseTemplateCollection({
+        source: { path: [] },
         value: obj,
-        context: new GenericContext({ foo: ["a", "b", "c"] }),
       })
+      const res = deepEvaluate(parsed, { context, opts: {} })
+
       expect(res).to.eql({
         foo: ["0: a", "1: b", "2: c"],
       })
@@ -2397,11 +2405,13 @@ context("$concat", () => {
           $return: "${item.value}",
         },
       }
-      const res = resolveTemplateStrings({
-        source: undefined,
+      const context = new GenericContext({ foo: ["a", "b", "c"] })
+      const parsed = parseTemplateCollection({
+        source: { path: [] },
         value: obj,
-        context: new GenericContext({ foo: ["a", "b", "c"] }),
       })
+      const res = deepEvaluate(parsed, { context, opts: {} })
+
       expect(res).to.eql({
         foo: ["a", "b", "c"],
       })
@@ -2415,11 +2425,13 @@ context("$concat", () => {
           $return: "${item.value}",
         },
       }
-      const res = resolveTemplateStrings({
-        source: undefined,
+      const context = new GenericContext({ foo: ["a", "b", "c"] })
+      const parsed = parseTemplateCollection({
+        source: { path: [] },
         value: obj,
-        context: new GenericContext({ foo: ["a", "b", "c"] }),
       })
+      const res = deepEvaluate(parsed, { context, opts: {} })
+
       expect(res).to.eql({
         foo: ["a", "c"],
       })
@@ -2433,13 +2445,11 @@ context("$concat", () => {
           $return: "${item.value}",
         },
       }
-
-      void expectError(
-        () => resolveTemplateStrings({ source: undefined, value: obj, context: new GenericContext({}) }),
-        {
-          contains: "$filter clause in $forEach loop must resolve to a boolean value (got string)",
-        }
-      )
+      const context = new GenericContext({})
+      const parsed = parseTemplateCollection({ source: { path: [] }, value: obj })
+      void expectError(() => deepEvaluate(parsed, { context, opts: {} }), {
+        contains: "$filter clause in $forEach loop must resolve to a boolean value (got string)",
+      })
     })
 
     it("handles $concat clauses in $return", () => {
@@ -2451,7 +2461,10 @@ context("$concat", () => {
           },
         },
       }
-      const res = resolveTemplateStrings({ source: undefined, value: obj, context: new GenericContext({}) })
+      const context = new GenericContext({})
+      const parsed = parseTemplateCollection({ source: { path: [] }, value: obj })
+      const res = deepEvaluate(parsed, { context, opts: {} })
+
       expect(res).to.eql({
         foo: ["a-1", "a-2", "b-1", "b-2", "c-1", "c-2"],
       })
@@ -2470,7 +2483,10 @@ context("$concat", () => {
           },
         },
       }
-      const res = resolveTemplateStrings({ source: undefined, value: obj, context: new GenericContext({}) })
+      const context = new GenericContext({})
+      const parsed = parseTemplateCollection({ source: { path: [] }, value: obj })
+      const res = deepEvaluate(parsed, { context, opts: {} })
+
       expect(res).to.eql({
         foo: [
           ["A1", "A2"],
@@ -2486,7 +2502,10 @@ context("$concat", () => {
           $return: "foo",
         },
       }
-      const res = resolveTemplateStrings({ source: undefined, value: obj, context: new GenericContext({}) })
+      const context = new GenericContext({})
+      const parsed = parseTemplateCollection({ source: { path: [] }, value: obj })
+      const res = deepEvaluate(parsed, { context, opts: {} })
+
       expect(res).to.eql({
         foo: [],
       })
@@ -2524,7 +2543,13 @@ context("$concat", () => {
         },
       }
 
-      const res = resolveTemplateStrings({ source: undefined, value: obj, context: new GenericContext({ services }) })
+      const context = new GenericContext({ services })
+      const parsed = parseTemplateCollection({
+        source: { path: [] },
+        value: obj,
+      })
+      const res = deepEvaluate(parsed, { context, opts: {} })
+
       expect(res).to.eql({
         services: [
           {
