@@ -232,7 +232,8 @@ class CloudBuilder {
    */
   async getAvailability(
     ctx: PluginContext,
-    action: Resolved<ContainerBuildAction>
+    action: Resolved<ContainerBuildAction>,
+    skipWarningLog: boolean = false
   ): Promise<CloudBuilderAvailabilityV2> {
     const config = getConfiguration(ctx)
     const { isInClusterBuildingConfigured, isCloudBuilderEnabled } = config
@@ -253,7 +254,7 @@ class CloudBuilder {
     const availability = await retrieveAvailabilityFromCloud({ ctx, action, config })
     cloudBuilderAvailability.set(action.uid, availability)
 
-    if (!availability.available) {
+    if (!skipWarningLog && !availability.available) {
       emitNonRepeatableWarning(
         ctx.log,
         dedent`

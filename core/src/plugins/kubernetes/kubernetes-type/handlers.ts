@@ -40,6 +40,7 @@ import type { ActionMode, Resolved } from "../../../actions/types.js"
 import { deployStateToActionState } from "../../../plugin/handlers/Deploy/get-status.js"
 import type { ResolvedDeployAction } from "../../../actions/deploy.js"
 import { isSha256 } from "../../../util/hashing.js"
+import { prepareSecrets } from "../secrets.js"
 
 export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>> = {
   configure: configureKubernetesModule,
@@ -362,6 +363,9 @@ export const kubernetesDeploy: DeployActionHandler<"deploy", KubernetesDeployAct
     provider,
   })
   const namespace = namespaceStatus.namespaceName
+
+  const secrets = [...provider.config.copySecrets, ...provider.config.imagePullSecrets]
+  await prepareSecrets({ api, namespace, secrets, log })
 
   const manifests = await getManifests({ ctx, api, log, action, defaultNamespace: namespace })
 

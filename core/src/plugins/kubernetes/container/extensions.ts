@@ -107,7 +107,7 @@ export const k8sContainerBuildExtension = (): BuildActionExtension<ContainerBuil
       const provider = ctx.provider as KubernetesProvider
 
       // override build task execute concurrency
-      const availability = await cloudBuilder.getAvailability(ctx, action)
+      const availability = await cloudBuilder.getAvailability(ctx, action, true)
       if (availability.available) {
         action.executeConcurrencyLimit = CONTAINER_BUILD_CONCURRENCY_LIMIT_CLOUD_BUILDER
       } else if (provider.config.buildMode === "local-docker") {
