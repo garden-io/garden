@@ -482,7 +482,7 @@ export function resolveProjectConfig({
   commandInfo: CommandInfo
 }): ProjectConfig {
   // Resolve template strings for non-environment-specific fields (apart from `sources`).
-  const { environments = [], name, sources = [] } = config
+  const { environments = [], name, sources = [], providers = [] } = config
 
   let globalConfig: any
   try {
@@ -532,14 +532,9 @@ export function resolveProjectConfig({
     yamlDocBasePath: [],
   })
 
-  const providers = config.providers
-
-  // This will be validated separately, after resolving templates
-  config.environments = environments
-
   config = {
     ...config,
-    environments: config.environments,
+    environments,
     providers,
     sources,
   }
