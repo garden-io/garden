@@ -255,21 +255,18 @@ async function renderConfigs({
   context: RenderTemplateConfigContext
   renderConfig: RenderTemplateConfig
 }): Promise<TemplatableConfig[]> {
-  const source = { yamlDoc: template.internal.yamlDoc, path: ["configs"] }
-
   const templateDescription = `${configTemplateKind} '${template.name}'`
   const templateConfigs = template.configs || []
 
   return Promise.all(
-    templateConfigs.map(async (m, index) => {
+    templateConfigs.map(async (m) => {
       // Resolve just the name, which must be immediately resolvable
       let resolvedName = m.name
 
       try {
-        resolvedName = resolveTemplateString({
-          string: m.name,
+        resolvedName = deepEvaluate(m.name, {
           context,
-          source: { ...source, path: [...source.path, index, "name"] },
+          opts: {},
         }) as string
       } catch (error) {
         throw new ConfigurationError({

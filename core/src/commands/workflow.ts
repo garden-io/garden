@@ -181,7 +181,7 @@ export class WorkflowCommand extends Command<Args, {}> {
 
           stepResult = await runStepCommand(stepParams)
         } else if (step.script) {
-          step.script = resolveTemplateString({ string: step.script, context: stepTemplateContext }) as string
+          step.script = deepEvaluate(step.script, { context: stepTemplateContext, opts: {} }) as string
           stepResult = await runStepScript(stepParams)
         } else {
           stepResult = undefined

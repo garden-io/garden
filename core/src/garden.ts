@@ -98,7 +98,6 @@ import {
 import { dedent, deline, naturalList, wordWrap } from "./util/string.js"
 import { DependencyGraph } from "./graph/common.js"
 import { Profile, profileAsync } from "./util/profiling.js"
-import { resolveTemplateString } from "./template/templated-strings.js"
 import type { WorkflowConfig, WorkflowConfigMap } from "./config/workflow.js"
 import { resolveWorkflowConfig, isWorkflowConfig } from "./config/workflow.js"
 import type { PluginTools } from "./util/ext-tools.js"
@@ -1568,10 +1567,7 @@ export class Garden {
       })
     }
 
-    const resolved = resolveTemplateString({
-      string: disabledFlag,
-      context,
-    })
+    const resolved = deepEvaluate(disabledFlag, { context, opts: {} })
 
     return !!resolved
   }
@@ -1915,8 +1911,7 @@ export async function resolveGardenParamsPartial(currentDirectory: string, opts:
     source: { yamlDoc: config.internal.yamlDoc, path: ["environments"] },
   })
 
-  const configDefaultEnvironment = resolveTemplateString({
-    string: config.defaultEnvironment || "",
+  const configDefaultEnvironment = deepEvaluate(config.defaultEnvironment || "", {
     context: new DefaultEnvironmentContext({
       projectName,
       projectRoot,
@@ -1925,6 +1920,7 @@ export async function resolveGardenParamsPartial(currentDirectory: string, opts:
       username: _username,
       commandInfo,
     }),
+    opts: {},
   }) as string
 
   const localConfigStore = new LocalConfigStore(gardenDirPath)
