@@ -167,10 +167,6 @@ export function* getActionTemplateReferences(
   const generator = getContextLookupReferences(
     visitAll({
       value: config as ObjectWithName,
-      source: {
-        yamlDoc: config.internal?.yamlDoc,
-        path: [],
-      },
     }),
     context
   )
@@ -193,10 +189,6 @@ export function getModuleTemplateReferences(config: ModuleConfig, context: Modul
   const generator = getContextLookupReferences(
     visitAll({
       value: config as ObjectWithName,
-      // Note: We're not implementing the YAML source mapping for modules
-      source: {
-        path: [],
-      },
     }),
     context
   )

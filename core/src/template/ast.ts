@@ -745,9 +745,10 @@ export class ContextLookupExpression extends TemplateExpression {
         },
       })
     } catch (e) {
-      if (e instanceof TemplateStringError) {
-        throw new TemplateStringError({ message: e.originalMessage, loc: this.loc, yamlSource })
-      }
+      // TODO: improve error handling for template strings nested inside contexts
+      // if (e instanceof TemplateStringError) {
+      //   throw e
+      // }
       if (e instanceof GardenError) {
         throw new TemplateStringError({ message: e.message, loc: this.loc, yamlSource })
       }

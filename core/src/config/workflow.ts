@@ -33,6 +33,7 @@ import { DOCS_BASE_URL } from "../constants.js"
 import { capture } from "../template/capture.js"
 import { deepEvaluate } from "../template/evaluate.js"
 import type { ParsedTemplate } from "../template/types.js"
+import type { DeepPrimitiveMap } from "@garden-io/platform-api-types"
 
 export const minimumWorkflowRequests = {
   cpu: 50, // 50 millicpu
@@ -375,7 +376,7 @@ export function resolveWorkflowConfig(garden: Garden, config: WorkflowConfig) {
   }
 
   if (config.internal.inputs) {
-    resolvedPartialConfig.internal.inputs = capture(config.internal.inputs, context)
+    resolvedPartialConfig.internal.inputs = capture(config.internal.inputs, context) as unknown as DeepPrimitiveMap
   }
 
   log.silly(() => `Validating config for workflow ${config.name}`)

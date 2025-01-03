@@ -186,10 +186,6 @@ export function getProviderTemplateReferences(config: GenericProviderConfig, con
   const generator = getContextLookupReferences(
     visitAll({
       value: config,
-      // TODO: get proper source
-      source: {
-        path: [],
-      },
     }),
     context
   )

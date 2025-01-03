@@ -8,8 +8,9 @@
 
 import type { CollectionOrValue } from "../util/objects.js"
 import { isArray, isPlainObject } from "../util/objects.js"
-import { ContextLookupExpression, TemplateExpression } from "./ast.js"
-import type { TemplatePrimitive } from "./types.js"
+import type { TemplateExpression } from "./ast.js"
+import { ContextLookupExpression } from "./ast.js"
+import type { ParsedTemplate, TemplatePrimitive } from "./types.js"
 import { UnresolvedTemplateValue } from "./types.js"
 import { type ConfigContext } from "../config/template-contexts/base.js"
 import { GardenError, InternalError } from "../exceptions.js"
@@ -17,51 +18,28 @@ import { type ConfigSource } from "../config/validation.js"
 
 export type TemplateExpressionGenerator = Generator<
   {
-    value: TemplatePrimitive | UnresolvedTemplateValue | TemplateExpression
+    value: TemplateExpression
     yamlSource: ConfigSource
   },
   void,
   undefined
 >
 
-export function* visitAll({
-  value,
-  source,
-}: {
-  value: CollectionOrValue<TemplatePrimitive | UnresolvedTemplateValue | TemplateExpression>
-  source: ConfigSource
-}): TemplateExpressionGenerator {
+export function* visitAll({ value }: { value: ParsedTemplate }): TemplateExpressionGenerator {
   if (isArray(value)) {
-    for (const [k, v] of value.entries()) {
+    for (const v of value) {
       yield* visitAll({
         value: v,
-        source: {
-          ...source,
-          path: [...source.path, k],
-        },
       })
     }
   } else if (isPlainObject(value)) {
     for (const k of Object.keys(value)) {
       yield* visitAll({
         value: value[k],
-        source: {
-          ...source,
-          path: [...source.path, k],
-        },
       })
     }
   } else if (value instanceof UnresolvedTemplateValue) {
-    yield {
-      value,
-      yamlSource: source,
-    }
     yield* value.visitAll()
-  } else {
-    yield {
-      value,
-      yamlSource: source,
-    }
   }
 }
 

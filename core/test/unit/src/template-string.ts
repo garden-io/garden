@@ -2566,9 +2566,6 @@ describe("getContextLookupReferences", () => {
       getContextLookupReferences(
         visitAll({
           value: obj,
-          source: {
-            path: [],
-          },
         }),
         new GenericContext({})
       )
@@ -2632,9 +2629,6 @@ describe("getContextLookupReferences", () => {
       getContextLookupReferences(
         visitAll({
           value: obj,
-          source: {
-            path: [],
-          },
         }),
         new GenericContext({
           // availableLater: CONTEXT_RESOLVE_KEY_AVAILABLE_LATER,

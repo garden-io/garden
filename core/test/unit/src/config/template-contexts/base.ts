@@ -123,15 +123,15 @@ describe("ConfigContext", () => {
         nested: new GenericContext({ key: "value" }),
       })
       const key = ["nested", "key"]
-      const stack = new Set([key.join(".")])
-      await expectError(() => c.resolve({ key, nodePath: [], opts: { stack } }), "context-resolve")
+      const keyStack = new Set([key.join(".")])
+      await expectError(() => c.resolve({ key, nodePath: [], opts: { keyStack } }), "context-resolve")
     })
 
     it("should detect a circular reference from a nested context", async () => {
       class NestedContext extends ConfigContext {
         override resolve({ key, nodePath, opts, rootContext }: ContextResolveParams) {
           const circularKey = nodePath.concat(key)
-          opts.stack!.add(circularKey.join("."))
+          opts.keyStack!.add(circularKey.join("."))
           return c.resolve({ key: circularKey, nodePath: [], opts, rootContext })
         }
       }

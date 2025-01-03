@@ -34,7 +34,6 @@ import { actionOutputsSchema } from "../plugin/handlers/base/base.js"
 import type { GraphResult, GraphResults } from "../graph/results.js"
 import type { RunResult } from "../plugin/base.js"
 import { Memoize } from "typescript-memoize"
-import cloneDeep from "fast-copy"
 import { flatten, fromPairs, isString, memoize, omit, sortBy } from "lodash-es"
 import { ActionConfigContext, ActionSpecContext } from "../config/template-contexts/actions.js"
 import { relative } from "path"
@@ -598,7 +597,7 @@ export abstract class BaseAction<
   getConfig(): C
   getConfig<K extends keyof C>(key: K): C[K]
   getConfig(key?: keyof C["spec"]) {
-    return cloneDeep(key ? this._config[key] : this._config)
+    return key ? this._config[key] : this._config
   }
 
   /**
@@ -806,7 +805,7 @@ export abstract class ResolvedRuntimeAction<
   getSpec(): Config["spec"]
   getSpec<K extends keyof Config["spec"]>(key: K): Config["spec"][K]
   getSpec(key?: keyof Config["spec"]) {
-    return cloneDeep(key ? this._config.spec[key] : this._config.spec)
+    return key ? this._config.spec[key] : this._config.spec
   }
 
   getOutput<K extends keyof StaticOutputs>(key: K): GetOutputValueType<K, StaticOutputs, RuntimeOutputs> {

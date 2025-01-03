@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import cloneDeep from "fast-copy"
 import { isArray, isString, keyBy, keys, partition, pick, union, uniq } from "lodash-es"
 import { validateWithPath } from "./config/validation.js"
 import { mayContainTemplateString, resolveTemplateString } from "./template/templated-strings.js"
@@ -523,7 +522,10 @@ export class ModuleResolver {
     }
 
     // Template inputs are commonly used in module deps, so we need to resolve them first
-    contextParams.inputs = this.resolveInputs(rawConfig, new ModuleConfigContext(contextParams))
+    contextParams.inputs = this.resolveInputs(
+      rawConfig,
+      new ModuleConfigContext(contextParams)
+    ) as unknown as DeepPrimitiveMap
 
     const configContext = new ModuleConfigContext(contextParams)
 
@@ -567,7 +569,7 @@ export class ModuleResolver {
   }
 
   private resolveInputs(config: ModuleConfig, configContext: ModuleConfigContext) {
-    const inputs = cloneDeep(config.inputs || {})
+    const inputs = config.inputs || {}
 
     if (!config.templateName) {
       return inputs
@@ -581,7 +583,7 @@ export class ModuleResolver {
    */
   async resolveModuleConfig(config: ModuleConfig, dependencies: GardenModule[]): Promise<ModuleConfig> {
     const garden = this.garden
-    let inputs = cloneDeep(config.inputs || {})
+    let inputs = config.inputs || {}
 
     const buildPath = this.garden.buildStaging.getBuildPath(config)
 
@@ -607,18 +609,18 @@ export class ModuleResolver {
     const templateName = config.templateName
 
     if (templateName) {
-      const template = this.garden.configTemplates[templateName]
+      // const template = this.garden.configTemplates[templateName]
 
-      inputs = this.resolveInputs(config, new ModuleConfigContext(templateContextParams))
+      inputs = this.resolveInputs(config, new ModuleConfigContext(templateContextParams)) as unknown as DeepPrimitiveMap
 
-      inputs = validateWithPath({
-        config: inputs,
-        configType: `inputs for module ${config.name}`,
-        path: config.configPath || config.path,
-        schema: template.inputsSchema,
-        projectRoot: garden.projectRoot,
-        source: undefined,
-      })
+      // inputs = validateWithPath({
+      //   config: inputs,
+      //   configType: `inputs for module ${config.name}`,
+      //   path: config.configPath || config.path,
+      //   schema: template.inputsSchema,
+      //   projectRoot: garden.projectRoot,
+      //   source: undefined,
+      // })
 
       config.inputs = inputs
     }

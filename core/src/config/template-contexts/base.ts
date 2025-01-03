@@ -7,14 +7,14 @@
  */
 
 import type Joi from "@hapi/joi"
-import { ConfigurationError, GardenError } from "../../exceptions.js"
+import { ConfigurationError, GardenError, InternalError } from "../../exceptions.js"
 import type { CustomObjectSchema } from "../common.js"
 import { joi, joiIdentifier } from "../common.js"
 import { naturalList } from "../../util/string.js"
 import { styles } from "../../logger/styles.js"
 import { Profile } from "../../util/profiling.js"
 import type { Collection } from "../../util/objects.js"
-import { deepMap, type CollectionOrValue } from "../../util/objects.js"
+import { deepMap, isPlainObject, type CollectionOrValue } from "../../util/objects.js"
 import type { ResolvedTemplate, TemplatePrimitive } from "../../template/types.js"
 import { isTemplatePrimitive, UnresolvedTemplateValue } from "../../template/types.js"
 import pick from "lodash-es/pick.js"
@@ -29,8 +29,10 @@ export interface ContextResolveOpts {
   // TODO(0.14): Do not allow the use of template strings in kubernetes manifest files
   // TODO(0.14): Remove legacyAllowPartial
   legacyAllowPartial?: boolean
-  // a list of previously resolved paths, used to detect circular references
-  stack?: Set<string>
+
+  // a list of contexts for detecting circular references
+  contextStack?: Set<ConfigContext>
+  keyStack?: Set<string>
 
   // TODO: remove
   unescape?: boolean
@@ -73,14 +75,18 @@ export const CONTEXT_RESOLVE_KEY_NOT_FOUND: unique symbol = Symbol.for("ContextR
 // Note: we're using classes here to be able to use decorators to describe each context node and key
 @Profile()
 export abstract class ConfigContext {
-  private readonly _rootContext: ConfigContext
+  private readonly _rootContext?: ConfigContext
   private readonly _resolvedValues: { [path: string]: any }
-  private readonly _startingPoint: string | undefined
+  private readonly _startingPoint?: string
 
   constructor(rootContext?: ConfigContext, startingPoint?: string) {
-    this._rootContext = rootContext || this
+    if (rootContext) {
+      this._rootContext = rootContext
+    }
+    if (startingPoint) {
+      this._startingPoint = startingPoint
+    }
     this._resolvedValues = {}
-    this._startingPoint = startingPoint
   }
 
   static getSchema() {
@@ -96,7 +102,14 @@ export abstract class ConfigContext {
     return ""
   }
 
-  resolve({ key, nodePath, opts, rootContext = new GenericContext({}) }: ContextResolveParams): ContextResolveOutput {
+  resolve({ key, nodePath, opts, rootContext }: ContextResolveParams): ContextResolveOutput {
+    const getRootContext = () => {
+      if (rootContext && this._rootContext) {
+        return new LayeredContext(rootContext, this._rootContext)
+      }
+      return rootContext || this._rootContext || this
+    }
+
     const path = key.join(".")
 
     // if the key has previously been resolved, return it directly
@@ -107,13 +120,13 @@ export abstract class ConfigContext {
     }
 
     // TODO: freeze opts object instead of using shallow copy
-    opts.stack = new Set(opts.stack || [])
+    opts.keyStack = new Set(opts.keyStack || [])
+    opts.contextStack = new Set(opts.contextStack || [])
 
-    const fullPath = nodePath.concat(key).join(".")
-    if (opts.stack.has(fullPath)) {
+    if (opts.contextStack.has(this)) {
       // Circular dependency error is critical, throwing here.
       throw new ContextResolveError({
-        message: `Circular reference detected when resolving key ${path} (${Array.from(opts.stack || []).join(" -> ")})`,
+        message: `Circular reference detected when resolving key ${path} (${Array.from(opts.keyStack || []).join(" -> ")})`,
       })
     }
 
@@ -124,6 +137,19 @@ export abstract class ConfigContext {
     let value: CollectionOrValue<TemplatePrimitive | ConfigContext> = this._startingPoint
       ? this[this._startingPoint]
       : this
+
+    if (!isPlainObject(value) && !(value instanceof ConfigContext) && !(value instanceof UnresolvedTemplateValue)) {
+      throw new InternalError({
+        message: `Invalid config context root: ${typeof value}`,
+      })
+    }
+
+    if (value instanceof UnresolvedTemplateValue) {
+      opts.keyStack.add(nodePath.join("."))
+      opts.contextStack.add(this)
+      value = evaluate(value, { context: getRootContext(), opts })
+    }
+
     let nextKey = key[0]
     let nestedNodePath = nodePath
     let getUnavailableReason: (() => string) | undefined = undefined
@@ -166,7 +192,8 @@ export abstract class ConfigContext {
       if (value instanceof ConfigContext) {
         const remainder = getRemainder()
         const stackEntry = getStackEntry()
-        opts.stack.add(stackEntry)
+        opts.keyStack.add(stackEntry)
+        opts.contextStack.add(this)
         // NOTE: we resolve even if remainder.length is zero to make sure all unresolved template values have been resolved.
         const res = value.resolve({ key: remainder, nodePath: nestedNodePath, opts, rootContext })
         value = res.resolved
@@ -176,8 +203,9 @@ export abstract class ConfigContext {
 
       // handle templated strings in context variables
       if (value instanceof UnresolvedTemplateValue) {
-        opts.stack.add(getStackEntry())
-        value = evaluate(value, { context: new LayeredContext(rootContext, this._rootContext), opts })
+        opts.keyStack.add(getStackEntry())
+        opts.contextStack.add(this)
+        value = evaluate(value, { context: getRootContext(), opts })
       }
 
       if (value === undefined) {
@@ -221,7 +249,7 @@ export abstract class ConfigContext {
         if (v instanceof ConfigContext) {
           return v.resolve({ key: [], nodePath: nodePath.concat(key, keyPath), opts }).resolved
         }
-        return evaluate(v, { context: new LayeredContext(rootContext, this._rootContext), opts })
+        return evaluate(v, { context: getRootContext(), opts })
       })
     }
 
@@ -237,6 +265,12 @@ export abstract class ConfigContext {
  */
 export class GenericContext extends ConfigContext {
   constructor(private readonly data: any) {
+    if (data instanceof ConfigContext) {
+      throw new InternalError({
+        message:
+          "Generic context is useless when instantiated with just another context as parameter. Use the other context directly instead.",
+      })
+    }
     super(undefined, "data")
   }
 

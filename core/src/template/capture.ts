@@ -9,22 +9,21 @@
 import type { ConfigContext } from "../config/template-contexts/base.js"
 import { LayeredContext } from "../config/template-contexts/base.js"
 import { deepMap } from "../util/objects.js"
-import type { TemplateExpressionGenerator } from "./analysis.js"
+import { visitAll, type TemplateExpressionGenerator } from "./analysis.js"
+import { deepEvaluate } from "./evaluate.js"
 import type { EvaluateTemplateArgs, ParsedTemplate, ResolvedTemplate } from "./types.js"
-import { UnresolvedTemplateValue } from "./types.js"
+import { isTemplatePrimitive, UnresolvedTemplateValue } from "./types.js"
 
-export function capture<T extends ParsedTemplate>(template: T, context: ConfigContext): T {
-  return deepMap(template, (v) => {
-    if (v instanceof UnresolvedTemplateValue) {
-      return new CapturedContextTemplateValue(v, context)
-    }
-    return v
-  }) as T
+export function capture(template: ParsedTemplate, context: ConfigContext): ParsedTemplate {
+  if (isTemplatePrimitive(template)) {
+    return template
+  }
+  return new CapturedContextTemplateValue(template, context)
 }
 
 export class CapturedContextTemplateValue extends UnresolvedTemplateValue {
   constructor(
-    private readonly wrapped: UnresolvedTemplateValue,
+    private readonly wrapped: ParsedTemplate,
     private readonly context: ConfigContext
   ) {
     super()
@@ -34,14 +33,19 @@ export class CapturedContextTemplateValue extends UnresolvedTemplateValue {
   override evaluate(args: EvaluateTemplateArgs): ResolvedTemplate {
     const context = new LayeredContext(this.context, args.context)
 
-    return this.wrapped.evaluate({ ...args, context })
+    return deepEvaluate(this.wrapped, { ...args, context })
   }
 
   override toJSON(): ResolvedTemplate {
-    return this.wrapped.toJSON()
+    return deepMap(this.wrapped, (v) => {
+      if (v instanceof UnresolvedTemplateValue) {
+        return v.toJSON()
+      }
+      return v
+    })
   }
 
   override *visitAll(): TemplateExpressionGenerator {
-    yield* this.wrapped.visitAll()
+    yield* visitAll({ value: this.wrapped })
   }
 }

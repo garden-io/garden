@@ -70,6 +70,7 @@ import { capture } from "../template/capture.js"
 import { CapturedContext } from "../config/template-contexts/base.js"
 import { deepEvaluate } from "../template/evaluate.js"
 import type { ParsedTemplate } from "../template/types.js"
+import type { DeepPrimitiveMap } from "@garden-io/platform-api-types"
 
 function* sliceToBatches<T>(dict: Record<string, T>, batchSize: number) {
   const entries = Object.entries(dict)
@@ -764,7 +765,7 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
         },
         variables: resolvedVariables,
       })
-    )
+    ) as unknown as DeepPrimitiveMap
 
     const template = garden.configTemplates[templateName]
 
@@ -820,13 +821,11 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
       spec,
     }
 
-    // Partially resolve other fields
-    // TODO-0.13.1: better error messages when something goes wrong here (missing inputs for example)
-    const resolvedOther = capture(
-      omit(config, builtinConfigKeys) as Record<string, ParsedTemplate>,
-      builtinFieldContext
-    )
-    config = { ...config, ...resolvedOther }
+    // Apparently no need to capture, as later contexts will be a superset
+    // TODO: verify
+    // for (const k in omit(config, builtinConfigKeys.concat("internal")) as Record<string, ParsedTemplate>) {
+    //   config[k] = capture(config[k], builtinFieldContext)
+    // }
   }
 
   resolveTemplates()

@@ -214,21 +214,19 @@ export function parseTemplateCollection<Input extends CollectionOrValue<Template
 }
 
 abstract class StructuralTemplateOperator extends UnresolvedTemplateValue {
-  #template: ParsedTemplate
   constructor(
     protected readonly source: ConfigSource,
-    template: ParsedTemplate
+    private readonly template: ParsedTemplate
   ) {
     super()
-    this.#template = template
   }
 
   override *visitAll(): TemplateExpressionGenerator {
-    yield* visitAll({ value: this.#template, source: this.source })
+    yield* visitAll({ value: this.template })
   }
 
   override toJSON(): ResolvedTemplate {
-    return deepMap(this.#template, (v) => {
+    return deepMap(this.template, (v) => {
       if (!(v instanceof UnresolvedTemplateValue)) {
         return v
       }

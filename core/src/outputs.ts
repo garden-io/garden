@@ -36,10 +36,6 @@ export async function resolveProjectOutputs(garden: Garden, log: Log): Promise<O
   const generator = getContextLookupReferences(
     visitAll({
       value: garden.rawOutputs as ObjectWithName[],
-      // TODO: What would be the source here?
-      source: {
-        path: [],
-      },
     }),
     new OutputConfigContext({
       garden,

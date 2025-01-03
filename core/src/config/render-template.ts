@@ -133,7 +133,7 @@ export async function renderConfigTemplate({
   })
   let resolved: RenderTemplateConfig = {
     ...(resolvedWithoutInputs as unknown as RenderTemplateConfig),
-    inputs: capture(config.inputs || {}, templateContext),
+    inputs: capture(config.inputs || {}, templateContext) as unknown as DeepPrimitiveMap,
   }
 
   const configType = "Render " + resolved.name

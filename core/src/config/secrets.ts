@@ -86,10 +86,6 @@ export function detectMissingSecretKeys(
   const generator = getContextLookupReferences(
     visitAll({
       value: obj,
-      // TODO: add real yaml source
-      source: {
-        path: [],
-      },
     }),
     context
   )

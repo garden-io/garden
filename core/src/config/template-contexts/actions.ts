@@ -213,7 +213,7 @@ class ActionReferencesContext extends ConfigContext {
           buildPath: action.getBuildPath(),
           sourcePath: action.sourcePath(),
           mode: action.mode(),
-          variables: new GenericContext(action.getVariables()),
+          variables: action.getVariables(),
         })
       )
     }
