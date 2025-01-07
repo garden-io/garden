@@ -74,6 +74,19 @@ async function retrieveAvailabilityFromCloud(params: {
   }
 }
 
+function makeNotLoggedInError({ isInClusterBuildingConfigured }: { isInClusterBuildingConfigured: boolean }) {
+  const fallbackDescription = isInClusterBuildingConfigured
+    ? `This forces Garden to use the fall-back option to build images within your Kubernetes cluster, as in-cluster building is configured in the Kubernetes provider settings.`
+    : `This forces Garden to use the fall-back option to build images locally.`
+
+  return new ConfigurationError({
+    message: dedent`
+        You are not logged in. Run ${styles.command("garden login")} so Garden Cloud Builder can speed up your container builds.
+
+        If you can't log in right now, disable Garden Cloud Builder using the environment variable ${styles.bold("GARDEN_CLOUD_BUILDER=0")}. ${fallbackDescription}`,
+  })
+}
+
 async function retrieveAvailabilityFromGardenCloud({
   ctx,
   action,
@@ -81,16 +94,7 @@ async function retrieveAvailabilityFromGardenCloud({
 }: RetrieveAvailabilityParams): Promise<CloudBuilderAvailabilityV2> {
   const { isInClusterBuildingConfigured } = config
   if (!ctx.cloudApi) {
-    const fallbackDescription = isInClusterBuildingConfigured
-      ? `This forces Garden to use the fall-back option to build images within your Kubernetes cluster, as in-cluster building is configured in the Kubernetes provider settings.`
-      : `This forces Garden to use the fall-back option to build images locally.`
-
-    throw new ConfigurationError({
-      message: dedent`
-        You are not logged in. Run ${styles.command("garden login")} so Garden Cloud Builder can speed up your container builds.
-
-        If you can't log in right now, disable Garden Cloud Builder using the environment variable ${styles.bold("GARDEN_CLOUD_BUILDER=0")}. ${fallbackDescription}`,
-    })
+    throw makeNotLoggedInError({ isInClusterBuildingConfigured })
   }
 
   if (isGardenCommunityEdition(ctx.cloudApi.domain) && ctx.projectId === undefined) {
@@ -140,16 +144,7 @@ async function retrieveAvailabilityFromGrowCloud({
 }: RetrieveAvailabilityParams): Promise<CloudBuilderAvailabilityV2> {
   const { isInClusterBuildingConfigured } = config
   if (!ctx.cloudApiV2) {
-    const fallbackDescription = isInClusterBuildingConfigured
-      ? `This forces Garden to use the fall-back option to build images within your Kubernetes cluster, as in-cluster building is configured in the Kubernetes provider settings.`
-      : `This forces Garden to use the fall-back option to build images locally.`
-
-    throw new ConfigurationError({
-      message: dedent`
-        You are not logged in. Run ${styles.command("garden login")} so Garden Cloud Builder can speed up your container builds.
-
-        If you can't log in right now, disable Garden Cloud Builder using the environment variable ${styles.bold("GARDEN_CLOUD_BUILDER=0")}. ${fallbackDescription}`,
-    })
+    throw makeNotLoggedInError({ isInClusterBuildingConfigured })
   }
 
   const { publicKeyPem } = await getMtlsKeyPair()
