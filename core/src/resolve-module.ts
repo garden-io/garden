@@ -636,7 +636,7 @@ export class ModuleResolver {
     // so we also need to pass inputs here along with the available variables.
     const configContext = new ModuleConfigContext({
       ...templateContextParams,
-      variables: new LayeredContext(resolvedModuleVariables, garden.variables),
+      variables: new LayeredContext(garden.variables, resolvedModuleVariables),
       inputs: { ...inputs },
     })
 
@@ -778,7 +778,7 @@ export class ModuleResolver {
     const configContext = new ModuleConfigContext({
       garden: this.garden,
       resolvedProviders: this.resolvedProviders,
-      variables: new LayeredContext(new GenericContext(resolvedConfig.variables || {}), this.garden.variables),
+      variables: new LayeredContext(this.garden.variables, new GenericContext(resolvedConfig.variables || {})),
       name: resolvedConfig.name,
       path: resolvedConfig.path,
       buildPath,
@@ -951,9 +951,9 @@ export class ModuleResolver {
       union(keys(moduleVariables), keys(varfileVars))
     )
     return new LayeredContext(
-      new GenericContext(relevantVariableOverrides),
+      new GenericContext(moduleVariables),
       new GenericContext(varfileVars),
-      new GenericContext(moduleVariables)
+      new GenericContext(relevantVariableOverrides)
     )
   }
 }

@@ -22,7 +22,7 @@ import { styles } from "../../logger/styles.js"
 import { LayeredContext } from "./base.js"
 
 function mergeVariables({ garden, variables }: { garden: Garden; variables: ConfigContext }): LayeredContext {
-  return new LayeredContext(new GenericContext(garden.variableOverrides), variables, garden.variables)
+  return new LayeredContext(garden.variables, variables, new GenericContext(garden.variableOverrides))
 }
 
 type ActionConfigThisContextParams = Pick<ActionReferenceContextParams, "name" | "mode">

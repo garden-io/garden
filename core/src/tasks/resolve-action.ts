@@ -181,9 +181,9 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
     )
 
     const variables = new LayeredContext(
-      new GenericContext(this.garden.variableOverrides),
+      groupVariables,
       actionVariables,
-      groupVariables
+      new GenericContext(this.garden.variableOverrides)
     )
 
     // Resolve spec

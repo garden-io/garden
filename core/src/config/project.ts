@@ -624,8 +624,8 @@ export const pickEnvironment = profileAsync(async function _pickEnvironment({
     defaultPath: defaultVarfilePath,
   })
   const projectVariables: LayeredContext = new LayeredContext(
-    new GenericContext(projectVarfileVars),
-    new GenericContext(projectConfig.variables)
+    new GenericContext(projectConfig.variables),
+    new GenericContext(projectVarfileVars)
   )
 
   const source = { yamlDoc: projectConfig.internal.yamlDoc, path: ["environments", index] }
@@ -682,9 +682,9 @@ export const pickEnvironment = profileAsync(async function _pickEnvironment({
   })
 
   const variables: ConfigContext = new LayeredContext(
-    new GenericContext(envVarfileVars),
+    projectVariables,
     new GenericContext(environmentConfig.variables),
-    projectVariables
+    new GenericContext(envVarfileVars)
   )
 
   return {
