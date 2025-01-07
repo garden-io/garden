@@ -266,6 +266,11 @@ export abstract class ConfigContext {
  */
 export class GenericContext extends ConfigContext {
   constructor(private readonly data: any) {
+    if (data === undefined) {
+      throw new InternalError({
+        message: "Generic context may not be undefined.",
+      })
+    }
     if (data instanceof ConfigContext) {
       throw new InternalError({
         message:

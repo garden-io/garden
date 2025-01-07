@@ -778,7 +778,7 @@ export class ModuleResolver {
     const configContext = new ModuleConfigContext({
       garden: this.garden,
       resolvedProviders: this.resolvedProviders,
-      variables: new LayeredContext(new GenericContext(resolvedConfig.variables), this.garden.variables),
+      variables: new LayeredContext(new GenericContext(resolvedConfig.variables || {}), this.garden.variables),
       name: resolvedConfig.name,
       path: resolvedConfig.path,
       buildPath,

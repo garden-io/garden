@@ -2360,7 +2360,7 @@ export function overrideVariables(variables: ConfigContext, overrides: DeepPrimi
       setKeyPathNested(transformedOverrides, key, overrides[key])
     }
   }
-  return new LayeredContext(new GenericContext(overrides), variables)
+  return new LayeredContext(new GenericContext(transformedOverrides), variables)
 }
 
 /**

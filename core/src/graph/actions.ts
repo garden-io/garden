@@ -510,7 +510,7 @@ export const processActionConfig = profileAsync(async function processActionConf
 
   let variables = await mergeVariables({
     basePath: effectiveConfigFileLocation,
-    variables: new GenericContext(config.variables),
+    variables: new GenericContext(config.variables || {}),
     varfiles: config.varfiles,
     log,
   })
@@ -734,7 +734,7 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
   const resolvedVarFiles = config.varfiles?.filter((f) => !maybeTemplateString(getVarfileData(f).path))
   const variables = await mergeVariables({
     basePath: config.internal.basePath,
-    variables: new GenericContext(config.variables),
+    variables: new GenericContext(config.variables || {}),
     varfiles: resolvedVarFiles,
     log,
   })

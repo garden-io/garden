@@ -161,7 +161,7 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
 
     const mergedActionVariables = await mergeVariables({
       basePath,
-      variables: new GenericContext(config.variables),
+      variables: new GenericContext(config.variables || {}),
       varfiles: config.varfiles,
       log: this.garden.log,
     })
