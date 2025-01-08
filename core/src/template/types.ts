@@ -11,6 +11,7 @@ import { isPrimitive } from "utility-types"
 import type { CollectionOrValue } from "../util/objects.js"
 import type { ConfigContext, ContextResolveOpts } from "../config/template-contexts/base.js"
 import type { TemplateExpressionGenerator } from "./analysis.js"
+import { InternalError } from "../exceptions.js"
 
 export function isTemplatePrimitive(value: unknown): value is TemplatePrimitive {
   return isPrimitive(value) && typeof value !== "symbol"
@@ -58,6 +59,30 @@ export type EvaluateTemplateArgs = {
 }
 
 export abstract class UnresolvedTemplateValue {
+  private objectSpreadTrap: true = true
+
+  constructor() {
+    if (!this.objectSpreadTrap) {
+      throw new InternalError({
+        message:
+          "Do not remove the spread trap, it exists to make our code more robust by detecting spreading unresolved template values.",
+      })
+    }
+
+    const proxy = new Proxy(this, {
+      get: (target, key) => {
+        const value = target[key]
+        if (typeof key !== "symbol" && value === undefined) {
+          throw new InternalError({
+            message: `Unpermitted indexed access (key: '${key}') of unresolved template value. Consider evaluating template values first.`,
+          })
+        }
+        return value
+      },
+    })
+    return proxy
+  }
+
   public abstract evaluate(args: EvaluateTemplateArgs): ResolvedTemplate
   public abstract toJSON(): ResolvedTemplate
 
