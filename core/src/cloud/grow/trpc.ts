@@ -116,3 +116,6 @@ export function getNonAuthenticatedApiClient(trpcConfigParams: Omit<TrpcConfigPa
 }
 
 export type ApiClient = CreateTRPCClient<AppRouter>
+export type GrowCloudBuilderRegisterBuildResponse = Awaited<
+  ReturnType<ApiClient["cloudBuilder"]["registerBuild"]["mutate"]>
+>
