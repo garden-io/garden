@@ -26,10 +26,10 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
         getCurrentAccount: import("@trpc/server").TRPCQueryProcedure<{
           input: void
           output: {
-            name: string
             id: string
             createdAt: Date
             updatedAt: Date
+            name: string
             email: string
           } | null
         }>
@@ -181,30 +181,30 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
       {
         create: import("@trpc/server").TRPCMutationProcedure<{
           input: {
-            status: "unknown" | "active" | "success" | "error" | "cancelled"
-            completedAt: Date | null
+            status: "success" | "unknown" | "error" | "active" | "cancelled"
             startedAt: Date
-            command: string
+            completedAt: Date | null
             clientVersion: string
+            command: string
+            gitCommitHash: string | null
             gitRepositoryUrl: string | null
             gitBranchName: string | null
-            gitCommitHash: string | null
             gitIsDirty: boolean | null
           }
           output: {
-            status: "unknown" | "active" | "success" | "error" | "cancelled"
             id: string
             createdAt: Date
             updatedAt: Date
-            completedAt: Date
-            startedAt: Date
-            organizationId: string
+            status: "success" | "unknown" | "error" | "active" | "cancelled"
             accountId: string
-            command: string
+            organizationId: string
+            startedAt: Date
+            completedAt: Date
             clientVersion: string
+            command: string
+            gitCommitHash: string
             gitRepositoryUrl: string
             gitBranchName: string
-            gitCommitHash: string
             gitIsDirty: boolean
           }
         }>
@@ -214,37 +214,37 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
           }
           output: {
             commandRun: {
-              status: "unknown" | "active" | "success" | "error" | "cancelled"
               id: string
               createdAt: Date
               updatedAt: Date
-              completedAt: Date
-              startedAt: Date
-              organizationId: string
+              status: "success" | "unknown" | "error" | "active" | "cancelled"
               accountId: string
-              command: string
+              organizationId: string
+              startedAt: Date
+              completedAt: Date
               clientVersion: string
+              command: string
+              gitCommitHash: string
               gitRepositoryUrl: string
               gitBranchName: string
-              gitCommitHash: string
               gitIsDirty: boolean
             }
             actionRuns: {
               id: string
               createdAt: Date
               updatedAt: Date
+              startedAt: Date
               completedAt: Date | null
+              commandRunId: string
               actionUid: string
               actionName: string
               actionType: string
               actionVersion: string
               actionVersionResolved: string | null
-              actionState: "unknown" | "getting-status" | "cached" | "not-ready" | "processing" | "failed" | "ready"
+              actionState: "unknown" | "failed" | "getting-status" | "cached" | "not-ready" | "processing" | "ready"
               actionOutputs: Record<string, unknown>
-              startedAt: Date
               force: boolean
               durationMs: number | null
-              commandRunId: string
             }[]
           }
         }>
@@ -262,19 +262,19 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
           }
           output: {
             items: {
-              status: "unknown" | "active" | "success" | "error" | "cancelled"
               id: string
               createdAt: Date
               updatedAt: Date
-              completedAt: Date
-              startedAt: Date
-              organizationId: string
+              status: "success" | "unknown" | "error" | "active" | "cancelled"
               accountId: string
-              command: string
+              organizationId: string
+              startedAt: Date
+              completedAt: Date
               clientVersion: string
+              command: string
+              gitCommitHash: string
               gitRepositoryUrl: string
               gitBranchName: string
-              gitCommitHash: string
               gitIsDirty: boolean
             }[]
             nextCursor: number | undefined
@@ -292,8 +292,8 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
           }
           output: {
             unknown: number
-            failed: number
             timestamp: number
+            failed: number
             active: number
             cancelled: number
             successful: number
@@ -312,8 +312,8 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
         create: import("@trpc/server").TRPCMutationProcedure<{
           input: {
             status: "success" | "failure"
-            completedAt: Date
             startedAt: Date
+            completedAt: Date
             runtime: {
               actual: "buildx" | "cloud-builder" | "garden-k8s-kaniko" | "garden-k8s-buildkit"
               preferred?:
@@ -348,14 +348,14 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
               | undefined
           }
           output: {
-            status: "success" | "failure"
             id: string
             createdAt: Date
             updatedAt: Date
-            completedAt: Date | null
-            startedAt: Date
-            organizationId: string
+            status: "success" | "failure"
             accountId: string
+            organizationId: string
+            startedAt: Date
+            completedAt: Date | null
             dockerRawjsonLogs: {
               [x: string]: unknown
             }
@@ -381,14 +381,14 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
           }
           output: {
             items: {
-              status: "success" | "failure"
               id: string
               createdAt: Date
               updatedAt: Date
-              startedAt: Date
-              organizationId: string
+              status: "success" | "failure"
               accountId: string
+              organizationId: string
               accountName: string
+              startedAt: Date
               dockerRawjsonLogs: Record<string, unknown>
               actualRuntime: string
               completedAt?: Date | null | undefined
@@ -410,14 +410,14 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
             id: string
           }
           output: {
-            status: "success" | "failure"
             id: string
             createdAt: Date
             updatedAt: Date
-            startedAt: Date
-            organizationId: string
+            status: "success" | "failure"
             accountId: string
+            organizationId: string
             accountName: string
+            startedAt: Date
             dockerRawjsonLogs: Record<string, unknown>
             actualRuntime: string
             completedAt?: Date | null | undefined
@@ -447,22 +447,6 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
             commandRunId: string
             events: (
               | {
-                  name: "commandInfo"
-                  timestamp: string
-                  payload: {
-                    name: string
-                    args: Record<string, string | number | boolean | (string | number | boolean | null)[] | null>
-                    opts: Record<string, string | number | boolean | (string | number | boolean | null)[] | null>
-                    projectName: string
-                    projectId: string
-                    coreVersion: string
-                    vcsBranch: string
-                    vcsCommitHash: string
-                    vcsOriginUrl: string
-                  }
-                  eventUid: string
-                }
-              | {
                   name: "sessionCompleted"
                   timestamp: string
                   payload: {
@@ -487,35 +471,51 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
                   eventUid: string
                 }
               | {
+                  name: "commandInfo"
+                  timestamp: string
+                  payload: {
+                    name: string
+                    args: Record<string, string | number | boolean | (string | number | boolean | null)[] | null>
+                    opts: Record<string, string | number | boolean | (string | number | boolean | null)[] | null>
+                    projectName: string
+                    projectId: string
+                    coreVersion: string
+                    vcsBranch: string
+                    vcsCommitHash: string
+                    vcsOriginUrl: string
+                  }
+                  eventUid: string
+                }
+              | {
                   name: "deployStatus"
                   timestamp: string
                   payload: {
                     status: {
-                      state: "unknown" | "getting-status" | "cached" | "not-ready" | "processing" | "failed" | "ready"
+                      state: "unknown" | "failed" | "getting-status" | "cached" | "not-ready" | "processing" | "ready"
                       ingresses?:
                         | {
                             path: string
                             hostname: string
                             protocol: "http" | "https"
-                            linkUrl?: string | undefined
                             port?: number | undefined
+                            linkUrl?: string | undefined
                           }[]
                         | undefined
                     }
+                    startedAt: Date
                     actionUid: string
                     actionName: string
                     actionType: string
                     actionVersion: string
                     actionState:
                       | "unknown"
+                      | "failed"
                       | "getting-status"
                       | "cached"
                       | "not-ready"
                       | "processing"
-                      | "failed"
                       | "ready"
                     actionOutputs: {}
-                    startedAt: Date
                     force: boolean
                     operation: "process" | "getStatus"
                     sessionId: string
@@ -531,20 +531,20 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
                     status: {
                       state: "unknown" | "failed" | "outdated" | "running" | "succeeded" | "not-implemented"
                     }
+                    startedAt: Date
                     actionUid: string
                     actionName: string
                     actionType: string
                     actionVersion: string
                     actionState:
                       | "unknown"
+                      | "failed"
                       | "getting-status"
                       | "cached"
                       | "not-ready"
                       | "processing"
-                      | "failed"
                       | "ready"
                     actionOutputs: {}
-                    startedAt: Date
                     force: boolean
                     operation: "process" | "getStatus"
                     sessionId: string
@@ -574,16 +574,16 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
               message: {
                 symbol: string | null
                 error: string | null
-                msg: string | null
                 section: string | null
+                msg: string | null
                 rawMsg: string | null
                 dataFormat: "json" | "yaml" | null
               }
+              level: "debug" | "info" | "warn" | "error" | "verbose" | "silly"
               timestamp: string
+              key: string
               actionUid: string | null
               actionName: string | null
-              level: "error" | "warn" | "info" | "verbose" | "debug" | "silly"
-              key: string
             }[]
           }
           output: void
@@ -594,23 +594,23 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
             cursor?: number | undefined
             perPage?: number | undefined
             section?: string | undefined
-            logLevels?: ("error" | "warn" | "info" | "verbose" | "debug" | "silly")[] | undefined
+            logLevels?: ("debug" | "info" | "warn" | "error" | "verbose" | "silly")[] | undefined
           }
           output: {
             items: {
               message: {
                 symbol: string | null
                 error: string | null
-                msg: string | null
                 section: string | null
+                msg: string | null
                 rawMsg: string | null
                 dataFormat: "json" | "yaml" | null
               }
+              level: "debug" | "info" | "warn" | "error" | "verbose" | "silly"
               timestamp: string
+              key: string
               actionUid: string | null
               actionName: string | null
-              level: "error" | "warn" | "info" | "verbose" | "debug" | "silly"
-              key: string
             }[]
             sections: string[]
             nextCursor?: number | undefined
@@ -623,16 +623,16 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
               message: {
                 symbol: string | null
                 error: string | null
-                msg: string | null
                 section: string | null
+                msg: string | null
                 rawMsg: string | null
                 dataFormat: "json" | "yaml" | null
               }
+              level: "debug" | "info" | "warn" | "error" | "verbose" | "silly"
               timestamp: string
+              key: string
               actionUid: string | null
               actionName: string | null
-              level: "error" | "warn" | "info" | "verbose" | "debug" | "silly"
-              key: string
             }[]
           }
         }>
@@ -659,8 +659,8 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
             refreshToken: string
           }
           output: {
-            accessToken: string
             refreshToken: string
+            accessToken: string
             tokenValidity: number
           }
         }>
@@ -677,10 +677,10 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
             label: string
           }
           output: {
-            type: "access" | "refresh" | "web"
-            value: string
             createdAt: Date
             updatedAt: Date
+            type: "access" | "refresh" | "web"
+            value: string
             accountId: string
             expiresAt: Date
             label: string | null
@@ -700,10 +700,10 @@ export declare const appRouter: import("@trpc/server/unstable-core-do-not-import
           }
           output: {
             items: {
-              type: "access" | "refresh" | "web"
-              value: string
               createdAt: Date
               updatedAt: Date
+              type: "access" | "refresh" | "web"
+              value: string
               accountId: string
               expiresAt: Date
               label: string | null
