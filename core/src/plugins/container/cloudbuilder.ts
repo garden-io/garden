@@ -101,6 +101,17 @@ function makeNotLoggedInError({ isInClusterBuildingConfigured }: { isInClusterBu
   })
 }
 
+function makeVersionMismatchWarning({ isInClusterBuildingConfigured }: { isInClusterBuildingConfigured: boolean }) {
+  return dedent`
+    ${styles.bold("Update Garden to continue to benefit from Garden Cloud Builder.")}
+
+    Your current Garden version is not supported anymore by Garden Cloud Builder. Please update Garden to the latest version.
+
+    Falling back to ${isInClusterBuildingConfigured ? "in-cluster building" : "building the image locally"}, which may be slower.
+
+    Run ${styles.command("garden self-update")} to update Garden to the latest version.`
+}
+
 type CloudApi = GardenCloudApi | GrowCloudApi
 type RegisterCloudBuildParams<T extends CloudApi> = {
   action: Resolved<ContainerBuildAction>
@@ -135,17 +146,8 @@ abstract class AbstractCloudBuilderAvailabilityRetriever<T extends CloudApi> {
     const res = await this.registerCloudBuild({ action, cloudApi, ctx, publicKeyPem })
 
     if (res.version !== "v2") {
-      emitNonRepeatableWarning(
-        ctx.log,
-        dedent`
-          ${styles.bold("Update Garden to continue to benefit from Garden Cloud Builder.")}
-
-          Your current Garden version is not supported anymore by Garden Cloud Builder. Please update Garden to the latest version.
-
-          Falling back to ${isInClusterBuildingConfigured ? "in-cluster building" : "building the image locally"}, which may be slower.
-
-          Run ${styles.command("garden self-update")} to update Garden to the latest version.`
-      )
+      const warnMessage = makeVersionMismatchWarning({ isInClusterBuildingConfigured })
+      emitNonRepeatableWarning(ctx.log, warnMessage)
       return { available: false, reason: "Unsupported client version" }
     }
 
