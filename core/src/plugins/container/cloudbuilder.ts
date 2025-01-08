@@ -170,6 +170,21 @@ async function retrieveAvailabilityFromGrowCloud({
     }
   }
 
+  if (res.version !== "v2") {
+    emitNonRepeatableWarning(
+      ctx.log,
+      dedent`
+          ${styles.bold("Update Garden to continue to benefit from Garden Cloud Builder.")}
+
+          Your current Garden version is not supported anymore by Garden Cloud Builder. Please update Garden to the latest version.
+
+          Falling back to ${isInClusterBuildingConfigured ? "in-cluster building" : "building the image locally"}, which may be slower.
+
+          Run ${styles.command("garden self-update")} to update Garden to the latest version.`
+    )
+    return { available: false, reason: "Unsupported client version" }
+  }
+
   return res.availability
 }
 
