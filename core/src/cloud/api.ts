@@ -809,6 +809,7 @@ type UnsupportedRegisterCloudBuilderBuildResponse = {
 type RegisterCloudBuilderBuildResponse =
   | RegisterCloudBuilderBuildResponseV2
   | UnsupportedRegisterCloudBuilderBuildResponse
+export type RegisterCloudBuilderBuildResponseData = RegisterCloudBuilderBuildResponse["data"]
 
 export type CloudBuilderAvailableV2 = {
   available: true

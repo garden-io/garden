@@ -16,7 +16,12 @@ import type { KubernetesPluginContext } from "../kubernetes/config.js"
 import fsExtra from "fs-extra"
 import { basename, dirname, join } from "path"
 import { tmpdir } from "node:os"
-import { CloudBuilderAvailabilityV2, CloudBuilderAvailableV2, GardenCloudApi } from "../../cloud/api.js"
+import type {
+  CloudBuilderAvailabilityV2,
+  CloudBuilderAvailableV2,
+  GardenCloudApi,
+  RegisterCloudBuilderBuildResponseData,
+} from "../../cloud/api.js"
 import { emitNonRepeatableWarning } from "../../warnings.js"
 import { LRUCache } from "lru-cache"
 import { gardenEnv } from "../../constants.js"
@@ -31,7 +36,7 @@ import { homedir } from "os"
 import { getCloudDistributionName, isGardenCommunityEdition } from "../../cloud/util.js"
 import { TRPCClientError } from "@trpc/client"
 import type { GrowCloudBuilderRegisterBuildResponse } from "../../cloud/grow/trpc.js"
-import { GrowCloudApi } from "../../cloud/grow/api.js"
+import type { GrowCloudApi } from "../../cloud/grow/api.js"
 
 const { mkdirp, rm, writeFile, stat } = fsExtra
 
@@ -64,16 +69,23 @@ type RetrieveAvailabilityParams = {
   config: CloudBuilderConfiguration
 }
 
+async function getCloudBuilderAvailabilityRetriever(): Promise<
+  AbstractCloudBuilderAvailabilityRetriever<GardenCloudApi | GrowCloudApi>
+> {
+  if (gardenEnv.USE_GARDEN_CLOUD_V2) {
+    return new GrowCloudBuilderAvailabilityRetriever()
+  } else {
+    return new GardenCloudBuilderAvailabilityRetriever()
+  }
+}
+
 async function retrieveAvailabilityFromCloud(params: {
   ctx: PluginContext
   action: Resolved<ContainerBuildAction>
   config: CloudBuilderConfiguration
 }): Promise<CloudBuilderAvailabilityV2> {
-  if (gardenEnv.USE_GARDEN_CLOUD_V2) {
-    return await retrieveAvailabilityFromGrowCloud(params)
-  } else {
-    return await retrieveAvailabilityFromGardenCloud(params)
-  }
+  const retriever = await getCloudBuilderAvailabilityRetriever()
+  return retriever.get(params)
 }
 
 function makeNotLoggedInError({ isInClusterBuildingConfigured }: { isInClusterBuildingConfigured: boolean }) {
@@ -90,22 +102,21 @@ function makeNotLoggedInError({ isInClusterBuildingConfigured }: { isInClusterBu
 }
 
 abstract class AbstractCloudBuilderAvailabilityRetriever<T extends GardenCloudApi | GrowCloudApi> {
-  protected abstract getCloudApi(ctx: PluginContext): T
-
-  protected abstract validateCloudTier(): void
+  protected abstract getCloudApi(ctx: PluginContext): T | undefined
 
   /**
-   * Here we expect Grow-like form of the response.
+   * Here we expect the type `RegisterCloudBuilderBuildResponseData` as a shape of the returned object.
    * This is done to avoid extra generic types to represent the actual shape of the response body
    * on the class definition level.
    *
-   * The Garden Cloud response can easily be converted to the Grow Cloud shape.
+   * Both Garden and Grow response types can easily be converted to this one.
    */
   protected abstract registerCloudBuild(params: {
-    ctx: PluginContext
     action: Resolved<ContainerBuildAction>
+    cloudApi: T
+    ctx: PluginContext
     publicKeyPem: string
-  }): Promise<GrowCloudBuilderRegisterBuildResponse>
+  }): Promise<RegisterCloudBuilderBuildResponseData>
 
   public async get({ ctx, action, config }: RetrieveAvailabilityParams): Promise<CloudBuilderAvailabilityV2> {
     const { isInClusterBuildingConfigured } = config
@@ -114,11 +125,9 @@ abstract class AbstractCloudBuilderAvailabilityRetriever<T extends GardenCloudAp
       throw makeNotLoggedInError({ isInClusterBuildingConfigured })
     }
 
-    this.validateCloudTier()
-
     const { publicKeyPem } = await getMtlsKeyPair()
 
-    const res = await this.registerCloudBuild({ ctx, action, publicKeyPem })
+    const res = await this.registerCloudBuild({ action, cloudApi, ctx, publicKeyPem })
 
     if (res.version !== "v2") {
       emitNonRepeatableWarning(
@@ -139,104 +148,82 @@ abstract class AbstractCloudBuilderAvailabilityRetriever<T extends GardenCloudAp
   }
 }
 
-async function retrieveAvailabilityFromGardenCloud({
-  ctx,
-  action,
-  config,
-}: RetrieveAvailabilityParams): Promise<CloudBuilderAvailabilityV2> {
-  const { isInClusterBuildingConfigured } = config
-  if (!ctx.cloudApi) {
-    throw makeNotLoggedInError({ isInClusterBuildingConfigured })
+class GardenCloudBuilderAvailabilityRetriever extends AbstractCloudBuilderAvailabilityRetriever<GardenCloudApi> {
+  protected getCloudApi(ctx: PluginContext) {
+    return ctx.cloudApi
   }
 
-  if (isGardenCommunityEdition(ctx.cloudApi.domain) && ctx.projectId === undefined) {
-    throw new InternalError({ message: "Authenticated with community tier, but projectId is undefined" })
-  } else if (ctx.projectId === undefined) {
-    throw new ConfigurationError({
-      message: dedent`Please connect your Garden Project with ${getCloudDistributionName(ctx.cloudApi.domain)}. See also ${styles.link("https://cloud.docs.garden.io/getting-started/first-project")}`,
-    })
-  }
+  protected async registerCloudBuild({
+    action,
+    cloudApi,
+    ctx,
+    publicKeyPem,
+  }: {
+    ctx: PluginContext
+    cloudApi: GardenCloudApi
+    action: Resolved<ContainerBuildAction>
+    publicKeyPem: string
+  }): Promise<RegisterCloudBuilderBuildResponseData> {
+    // Validate Cloud Project and domain
+    if (isGardenCommunityEdition(cloudApi.domain) && ctx.projectId === undefined) {
+      throw new InternalError({ message: "Authenticated with community tier, but projectId is undefined" })
+    } else if (ctx.projectId === undefined) {
+      throw new ConfigurationError({
+        message: dedent`Please connect your Garden Project with ${getCloudDistributionName(cloudApi.domain)}. See also ${styles.link("https://cloud.docs.garden.io/getting-started/first-project")}`,
+      })
+    }
 
-  const { publicKeyPem } = await getMtlsKeyPair()
-  const cloudProject = await ctx.cloudApi.getProjectById(ctx.projectId)
+    const cloudProject = await cloudApi.getProjectById(ctx.projectId)
 
-  const res = await ctx.cloudApi.registerCloudBuilderBuild({
-    organizationId: cloudProject.organization.id,
-    actionUid: action.uid,
-    actionName: action.name,
-    actionVersion: action.getFullVersion().toString(),
-    coreSessionId: ctx.sessionId,
-    // if platforms are not set, we default to linux/amd64
-    platforms: action.getSpec().platforms || ["linux/amd64"],
-    mtlsClientPublicKeyPEM: publicKeyPem,
-  })
-
-  if (res.data.version !== "v2") {
-    emitNonRepeatableWarning(
-      ctx.log,
-      dedent`
-          ${styles.bold("Update Garden to continue to benefit from Garden Cloud Builder.")}
-
-          Your current Garden version is not supported anymore by Garden Cloud Builder. Please update Garden to the latest version.
-
-          Falling back to ${isInClusterBuildingConfigured ? "in-cluster building" : "building the image locally"}, which may be slower.
-
-          Run ${styles.command("garden self-update")} to update Garden to the latest version.`
-    )
-    return { available: false, reason: "Unsupported client version" }
-  }
-
-  return res.data.availability
-}
-
-async function retrieveAvailabilityFromGrowCloud({
-  ctx,
-  action,
-  config,
-}: RetrieveAvailabilityParams): Promise<CloudBuilderAvailabilityV2> {
-  const { isInClusterBuildingConfigured } = config
-  if (!ctx.cloudApiV2) {
-    throw makeNotLoggedInError({ isInClusterBuildingConfigured })
-  }
-
-  const { publicKeyPem } = await getMtlsKeyPair()
-
-  let res: GrowCloudBuilderRegisterBuildResponse
-  try {
-    res = await ctx.cloudApiV2.api.cloudBuilder.registerBuild.mutate({
+    const res = await cloudApi.registerCloudBuilderBuild({
+      organizationId: cloudProject.organization.id,
+      actionUid: action.uid,
+      actionName: action.name,
+      actionVersion: action.getFullVersion().toString(),
+      coreSessionId: ctx.sessionId,
       // if platforms are not set, we default to linux/amd64
       platforms: action.getSpec().platforms || ["linux/amd64"],
       mtlsClientPublicKeyPEM: publicKeyPem,
     })
-  } catch (err) {
-    if (!(err instanceof TRPCClientError)) {
-      throw err
-    }
-    res = {
-      version: "v2",
-      availability: {
-        available: false,
-        reason: err.message,
-      },
-    }
+
+    return res.data
+  }
+}
+
+class GrowCloudBuilderAvailabilityRetriever extends AbstractCloudBuilderAvailabilityRetriever<GrowCloudApi> {
+  protected getCloudApi(ctx: PluginContext): GrowCloudApi | undefined {
+    return ctx.cloudApiV2
   }
 
-  if (res.version !== "v2") {
-    emitNonRepeatableWarning(
-      ctx.log,
-      dedent`
-          ${styles.bold("Update Garden to continue to benefit from Garden Cloud Builder.")}
-
-          Your current Garden version is not supported anymore by Garden Cloud Builder. Please update Garden to the latest version.
-
-          Falling back to ${isInClusterBuildingConfigured ? "in-cluster building" : "building the image locally"}, which may be slower.
-
-          Run ${styles.command("garden self-update")} to update Garden to the latest version.`
-    )
-    return { available: false, reason: "Unsupported client version" }
+  protected async registerCloudBuild({
+    action,
+    cloudApi,
+    publicKeyPem,
+  }: {
+    action: Resolved<ContainerBuildAction>
+    cloudApi: GrowCloudApi
+    ctx: PluginContext
+    publicKeyPem: string
+  }): Promise<GrowCloudBuilderRegisterBuildResponse> {
+    try {
+      return await cloudApi.api.cloudBuilder.registerBuild.mutate({
+        // if platforms are not set, we default to linux/amd64
+        platforms: action.getSpec().platforms || ["linux/amd64"],
+        mtlsClientPublicKeyPEM: publicKeyPem,
+      })
+    } catch (err) {
+      if (!(err instanceof TRPCClientError)) {
+        throw err
+      }
+      return {
+        version: "v2",
+        availability: {
+          available: false,
+          reason: err.message,
+        },
+      }
+    }
   }
-
-  return res.availability
 }
 
 // public API
