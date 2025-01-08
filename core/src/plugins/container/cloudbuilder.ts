@@ -70,7 +70,7 @@ type RetrieveAvailabilityParams = {
 }
 
 async function getCloudBuilderAvailabilityRetriever(): Promise<
-  AbstractCloudBuilderAvailabilityRetriever<GardenCloudApi | GrowCloudApi>
+  AbstractCloudBuilderAvailabilityRetriever<CloudApi>
 > {
   if (gardenEnv.USE_GARDEN_CLOUD_V2) {
     return new GrowCloudBuilderAvailabilityRetriever()
@@ -101,7 +101,15 @@ function makeNotLoggedInError({ isInClusterBuildingConfigured }: { isInClusterBu
   })
 }
 
-abstract class AbstractCloudBuilderAvailabilityRetriever<T extends GardenCloudApi | GrowCloudApi> {
+type CloudApi = GardenCloudApi | GrowCloudApi
+type RegisterCloudBuildParams<T extends CloudApi> = {
+  action: Resolved<ContainerBuildAction>
+  cloudApi: T
+  ctx: PluginContext
+  publicKeyPem: string
+}
+
+abstract class AbstractCloudBuilderAvailabilityRetriever<T extends CloudApi> {
   protected abstract getCloudApi(ctx: PluginContext): T | undefined
 
   /**
@@ -111,12 +119,9 @@ abstract class AbstractCloudBuilderAvailabilityRetriever<T extends GardenCloudAp
    *
    * Both Garden and Grow response types can easily be converted to this one.
    */
-  protected abstract registerCloudBuild(params: {
-    action: Resolved<ContainerBuildAction>
-    cloudApi: T
-    ctx: PluginContext
-    publicKeyPem: string
-  }): Promise<RegisterCloudBuilderBuildResponseData>
+  protected abstract registerCloudBuild(
+    params: RegisterCloudBuildParams<T>
+  ): Promise<RegisterCloudBuilderBuildResponseData>
 
   public async get({ ctx, action, config }: RetrieveAvailabilityParams): Promise<CloudBuilderAvailabilityV2> {
     const { isInClusterBuildingConfigured } = config
@@ -158,12 +163,7 @@ class GardenCloudBuilderAvailabilityRetriever extends AbstractCloudBuilderAvaila
     cloudApi,
     ctx,
     publicKeyPem,
-  }: {
-    ctx: PluginContext
-    cloudApi: GardenCloudApi
-    action: Resolved<ContainerBuildAction>
-    publicKeyPem: string
-  }): Promise<RegisterCloudBuilderBuildResponseData> {
+  }: RegisterCloudBuildParams<GardenCloudApi>): Promise<RegisterCloudBuilderBuildResponseData> {
     // Validate Cloud Project and domain
     if (isGardenCommunityEdition(cloudApi.domain) && ctx.projectId === undefined) {
       throw new InternalError({ message: "Authenticated with community tier, but projectId is undefined" })
@@ -199,12 +199,7 @@ class GrowCloudBuilderAvailabilityRetriever extends AbstractCloudBuilderAvailabi
     action,
     cloudApi,
     publicKeyPem,
-  }: {
-    action: Resolved<ContainerBuildAction>
-    cloudApi: GrowCloudApi
-    ctx: PluginContext
-    publicKeyPem: string
-  }): Promise<GrowCloudBuilderRegisterBuildResponse> {
+  }: RegisterCloudBuildParams<GrowCloudApi>): Promise<GrowCloudBuilderRegisterBuildResponse> {
     try {
       return await cloudApi.api.cloudBuilder.registerBuild.mutate({
         // if platforms are not set, we default to linux/amd64
