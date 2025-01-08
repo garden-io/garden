@@ -88,7 +88,7 @@ async function retrieveAvailabilityFromCloud(params: {
   return retriever.get(params)
 }
 
-function makeNotLoggedInError({ isInClusterBuildingConfigured }: { isInClusterBuildingConfigured: boolean }) {
+function makeNotLoggedInError({ isInClusterBuildingConfigured }: CloudBuilderConfiguration) {
   const fallbackDescription = isInClusterBuildingConfigured
     ? `This forces Garden to use the fall-back option to build images within your Kubernetes cluster, as in-cluster building is configured in the Kubernetes provider settings.`
     : `This forces Garden to use the fall-back option to build images locally.`
@@ -101,7 +101,7 @@ function makeNotLoggedInError({ isInClusterBuildingConfigured }: { isInClusterBu
   })
 }
 
-function makeVersionMismatchWarning({ isInClusterBuildingConfigured }: { isInClusterBuildingConfigured: boolean }) {
+function makeVersionMismatchWarning({ isInClusterBuildingConfigured }: CloudBuilderConfiguration) {
   return dedent`
     ${styles.bold("Update Garden to continue to benefit from Garden Cloud Builder.")}
 
@@ -135,10 +135,9 @@ abstract class AbstractCloudBuilderAvailabilityRetriever<T extends CloudApi> {
   ): Promise<RegisterCloudBuilderBuildResponseData>
 
   public async get({ ctx, action, config }: RetrieveAvailabilityParams): Promise<CloudBuilderAvailabilityV2> {
-    const { isInClusterBuildingConfigured } = config
     const cloudApi = this.getCloudApi(ctx)
     if (!cloudApi) {
-      throw makeNotLoggedInError({ isInClusterBuildingConfigured })
+      throw makeNotLoggedInError(config)
     }
 
     const { publicKeyPem } = await getMtlsKeyPair()
@@ -146,7 +145,7 @@ abstract class AbstractCloudBuilderAvailabilityRetriever<T extends CloudApi> {
     const res = await this.registerCloudBuild({ action, cloudApi, ctx, publicKeyPem })
 
     if (res.version !== "v2") {
-      const warnMessage = makeVersionMismatchWarning({ isInClusterBuildingConfigured })
+      const warnMessage = makeVersionMismatchWarning(config)
       emitNonRepeatableWarning(ctx.log, warnMessage)
       return { available: false, reason: "Unsupported client version" }
     }
