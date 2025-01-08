@@ -30,6 +30,7 @@ const projectRoot = resolve(moduleDirName, "../../test/", "test-project-k8s")
 
 const nsActionRoot = join(projectRoot, "k8s-namespace")
 const nsNewActionRoot = join(projectRoot, "k8s-namespace-new")
+const nsNewModuleRoot = join(projectRoot, "k8s-namespace-new-module")
 const deploymentActionRoot = join(projectRoot, "k8s-deployment")
 
 // Note: By default, this test suite assumes that PULUMI_ACCESS_TOKEN is present in the environment (which is the case
@@ -43,7 +44,7 @@ describe("pulumi action variables and varfiles", () => {
   let provider: PulumiProvider
 
   before(async () => {
-    await ensureNodeModules([nsActionRoot, deploymentActionRoot, nsNewActionRoot])
+    await ensureNodeModules([nsActionRoot, deploymentActionRoot, nsNewActionRoot, nsNewModuleRoot])
     const plugin = pulumiPlugin()
     garden = await makeTestGarden(projectRoot, { plugins: [plugin] })
     log = garden.log
@@ -81,28 +82,33 @@ describe("pulumi action variables and varfiles", () => {
         },
       })
     })
-    it("uses a varfile with the new schema and merges varfiles and action variables correctly", async () => {
-      const action = graph.getDeploy("k8s-namespace-new")
-      const actionLog = action.createLog(log)
-      await deployPulumi!({
-        ctx,
-        log: actionLog,
-        action,
-        force: false,
+    for (const configType of ["action", "module"]) {
+      context(`using ${configType} configs`, () => {
+        it("uses a varfile with the new schema and merges varfiles and action variables correctly", async () => {
+          const actionName = configType === "action" ? "k8s-namespace-new" : "k8s-namespace-new-module"
+          const action = graph.getDeploy(actionName)
+          const actionLog = action.createLog(log)
+          await deployPulumi!({
+            ctx,
+            log: actionLog,
+            action,
+            force: false,
+          })
+          const configFile = await loadYamlFile(join(nsNewActionRoot, "Pulumi.local.yaml"))
+          expect(configFile).to.eql({
+            test: "foo",
+            config: {
+              "pulumi-k8s-test:orgName": "gordon-garden-bot",
+              "pulumi-k8s-test:namespace": "pulumi-test",
+              "pulumi-k8s-test:appName": "app-name-from-pulumi-varfile",
+              "pulumi-k8s-test:isMinikube": "true",
+            },
+            backend: {
+              url: "https://api.pulumi.com",
+            },
+          })
+        })
       })
-      const configFile = await loadYamlFile(join(nsNewActionRoot, "Pulumi.local.yaml"))
-      expect(configFile).to.eql({
-        test: "foo",
-        config: {
-          "pulumi-k8s-test:orgName": "gordon-garden-bot",
-          "pulumi-k8s-test:namespace": "pulumi-test",
-          "pulumi-k8s-test:appName": "app-name-from-pulumi-varfile",
-          "pulumi-k8s-test:isMinikube": "true",
-        },
-        backend: {
-          url: "https://api.pulumi.com",
-        },
-      })
-    })
+    }
   })
 })

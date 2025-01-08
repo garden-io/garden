@@ -22,6 +22,7 @@ export interface PulumiDeploySpec {
   stackReferences: string[]
   deployFromPreview: boolean
   root: string
+  useNewPulumiVarfileSchema: boolean
   stack?: string
   showSecretsInOutput: boolean
 }
