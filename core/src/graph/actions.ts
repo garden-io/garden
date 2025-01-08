@@ -747,7 +747,7 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
       },
       variables,
     }),
-    contextOpts: { allowPartial: true },
+    contextOpts: { allowPartial: true, legacyAllowPartial: true },
     // TODO: See about mapping this to the original variable sources
     source: undefined,
   })
@@ -765,7 +765,7 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
         },
         variables: resolvedVariables,
       }),
-      contextOpts: { allowPartial: true },
+      contextOpts: { allowPartial: true, legacyAllowPartial: true },
       // TODO: See about mapping this to the original inputs source
       source: undefined,
     })
@@ -844,6 +844,7 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
       context: builtinFieldContext,
       contextOpts: {
         allowPartial: true,
+        legacyAllowPartial: true,
       },
       source: { yamlDoc, path: [] },
     })
