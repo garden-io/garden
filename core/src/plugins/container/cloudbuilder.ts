@@ -16,7 +16,7 @@ import type { KubernetesPluginContext } from "../kubernetes/config.js"
 import fsExtra from "fs-extra"
 import { basename, dirname, join } from "path"
 import { tmpdir } from "node:os"
-import type { CloudBuilderAvailabilityV2, CloudBuilderAvailableV2 } from "../../cloud/api.js"
+import { CloudBuilderAvailabilityV2, CloudBuilderAvailableV2, GardenCloudApi } from "../../cloud/api.js"
 import { emitNonRepeatableWarning } from "../../warnings.js"
 import { LRUCache } from "lru-cache"
 import { gardenEnv } from "../../constants.js"
@@ -31,6 +31,7 @@ import { homedir } from "os"
 import { getCloudDistributionName, isGardenCommunityEdition } from "../../cloud/util.js"
 import { TRPCClientError } from "@trpc/client"
 import type { GrowCloudBuilderRegisterBuildResponse } from "../../cloud/grow/trpc.js"
+import { GrowCloudApi } from "../../cloud/grow/api.js"
 
 const { mkdirp, rm, writeFile, stat } = fsExtra
 
@@ -86,6 +87,56 @@ function makeNotLoggedInError({ isInClusterBuildingConfigured }: { isInClusterBu
 
         If you can't log in right now, disable Garden Cloud Builder using the environment variable ${styles.bold("GARDEN_CLOUD_BUILDER=0")}. ${fallbackDescription}`,
   })
+}
+
+abstract class AbstractCloudBuilderAvailabilityRetriever<T extends GardenCloudApi | GrowCloudApi> {
+  protected abstract getCloudApi(ctx: PluginContext): T
+
+  protected abstract validateCloudTier(): void
+
+  /**
+   * Here we expect Grow-like form of the response.
+   * This is done to avoid extra generic types to represent the actual shape of the response body
+   * on the class definition level.
+   *
+   * The Garden Cloud response can easily be converted to the Grow Cloud shape.
+   */
+  protected abstract registerCloudBuild(params: {
+    ctx: PluginContext
+    action: Resolved<ContainerBuildAction>
+    publicKeyPem: string
+  }): Promise<GrowCloudBuilderRegisterBuildResponse>
+
+  public async get({ ctx, action, config }: RetrieveAvailabilityParams): Promise<CloudBuilderAvailabilityV2> {
+    const { isInClusterBuildingConfigured } = config
+    const cloudApi = this.getCloudApi(ctx)
+    if (!cloudApi) {
+      throw makeNotLoggedInError({ isInClusterBuildingConfigured })
+    }
+
+    this.validateCloudTier()
+
+    const { publicKeyPem } = await getMtlsKeyPair()
+
+    const res = await this.registerCloudBuild({ ctx, action, publicKeyPem })
+
+    if (res.version !== "v2") {
+      emitNonRepeatableWarning(
+        ctx.log,
+        dedent`
+          ${styles.bold("Update Garden to continue to benefit from Garden Cloud Builder.")}
+
+          Your current Garden version is not supported anymore by Garden Cloud Builder. Please update Garden to the latest version.
+
+          Falling back to ${isInClusterBuildingConfigured ? "in-cluster building" : "building the image locally"}, which may be slower.
+
+          Run ${styles.command("garden self-update")} to update Garden to the latest version.`
+      )
+      return { available: false, reason: "Unsupported client version" }
+    }
+
+    return res.availability
+  }
 }
 
 async function retrieveAvailabilityFromGardenCloud({
