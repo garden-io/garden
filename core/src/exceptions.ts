@@ -123,7 +123,7 @@ export abstract class GardenError extends Error {
   /**
    * Necessary to make testFlags.expandErrors work.
    */
-  private unexpandedStack: string | undefined
+  protected unexpandedStack: string | undefined
 
   constructor({ message, wrappedErrors, taskType, code }: GardenErrorParams) {
     super(message.trim())
@@ -374,6 +374,10 @@ export class InternalError extends GardenError {
   // we want it to be obvious in amplitude data that this is not a normal error condition
   type = "crash"
 
+  public overrideStack(newStack: string | undefined) {
+    this.stack = this.unexpandedStack = newStack
+  }
+
   // not using object destructuring here on purpose, because errors are of type any and then the error might be passed as the params object accidentally.
   static wrapError(error: Error | string | any, prefix?: string): InternalError {
     let message: string | undefined
@@ -381,11 +385,11 @@ export class InternalError extends GardenError {
     let code: NodeJSErrnoException["code"] | undefined
 
     if (isErrnoException(error)) {
-      message = error.message
+      message = error.toString()
       stack = error.stack
       code = error.code
     } else if (error instanceof Error) {
-      message = error.message
+      message = error.toString()
       stack = error.stack
     } else if (isString(error)) {
       message = error
@@ -397,7 +401,7 @@ export class InternalError extends GardenError {
     message = message ? stripAnsi(message) : ""
 
     const err = new InternalError({ message: prefix ? `${stripAnsi(prefix)}: ${message}` : message, code })
-    err.stack = stack
+    err.overrideStack(stack)
 
     return err
   }
