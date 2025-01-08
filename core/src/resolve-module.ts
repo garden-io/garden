@@ -540,7 +540,7 @@ export class ModuleResolver {
     const resolvedDeps = resolveTemplateStrings({
       value: rawConfig.build.dependencies,
       context: configContext,
-      contextOpts: { allowPartial: true },
+      contextOpts: { allowPartial: true, legacyAllowPartial: true },
       // Note: We're not implementing the YAML source mapping for modules
       source: undefined,
     })
@@ -581,7 +581,7 @@ export class ModuleResolver {
     return resolveTemplateStrings({
       value: inputs,
       context: configContext,
-      contextOpts: { allowPartial: true },
+      contextOpts: { allowPartial: true, legacyAllowPartial: true },
       // Note: We're not implementing the YAML source mapping for modules
       source: undefined,
     })
@@ -643,6 +643,7 @@ export class ModuleResolver {
       context: new GenericContext({ inputs }),
       contextOpts: {
         allowPartial: true,
+        legacyAllowPartial: true,
       },
       // Note: We're not implementing the YAML source mapping for modules
       source: undefined,

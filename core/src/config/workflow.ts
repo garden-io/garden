@@ -380,6 +380,7 @@ export function resolveWorkflowConfig(garden: Garden, config: WorkflowConfig) {
       context,
       contextOpts: {
         allowPartial: true,
+        legacyAllowPartial: true,
       },
       // TODO: Map inputs to their original YAML sources
       source: undefined,

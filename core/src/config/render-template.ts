@@ -139,6 +139,7 @@ export async function renderConfigTemplate({
     context: templateContext,
     contextOpts: {
       allowPartial: true,
+      legacyAllowPartial: true,
     },
     source: { yamlDoc, path: ["inputs"] },
   })
@@ -213,7 +214,7 @@ async function renderModules({
       const spec = resolveTemplateStrings({
         value: m,
         context,
-        contextOpts: { allowPartial: true },
+        contextOpts: { allowPartial: true, legacyAllowPartial: true },
         source: { yamlDoc, path: ["modules", i] },
       })
       const renderConfigPath = renderConfig.internal.configFilePath || renderConfig.internal.basePath
@@ -280,7 +281,7 @@ async function renderConfigs({
   const partiallyResolvedTemplateConfigs = resolveTemplateStrings({
     value: templateConfigs,
     context,
-    contextOpts: { allowPartial: true },
+    contextOpts: { allowPartial: true, legacyAllowPartial: true },
     source,
   })
 

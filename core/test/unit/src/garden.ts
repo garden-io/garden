@@ -80,6 +80,7 @@ import type { RunActionConfig } from "../../../src/actions/run.js"
 import type { ProjectResult } from "@garden-io/platform-api-types"
 import { ProjectStatus } from "@garden-io/platform-api-types"
 import { getCloudDistributionName } from "../../../src/cloud/util.js"
+import { resolveAction } from "../../../src/graph/actions.js"
 
 const moduleDirName = dirname(fileURLToPath(import.meta.url))
 
@@ -3138,6 +3139,38 @@ describe("Garden", () => {
       expect(workflow).to.exist
       expect(workflow.steps).to.eql([{ script: `echo "${internal.inputs.envName}"` }]) // <- should be resolved
       expect(omit(workflow.internal, "yamlDoc")).to.eql(internal)
+    })
+
+    it("should not fail when input is used together with an unresolvable variable in the same template string", async () => {
+      const garden = await makeTestGarden(getDataDir("test-projects", "config-templates-partial"))
+      await garden.scanAndAddConfigs()
+
+      const log = garden.log
+
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+
+      const resolved = await resolveAction({
+        garden,
+        graph,
+        log,
+        action: graph.getActionByRef({
+          kind: "Build",
+          name: "foo-test-dt",
+        }),
+      })
+
+      expect(resolved).to.exist
+      expect(resolved.getVariables()).to.deep.eq({
+        myDir: "../../../test",
+        syncTargets: [
+          {
+            source: "../../../foo",
+          },
+          {
+            source: "../../../bar",
+          },
+        ],
+      })
     })
 
     it("should throw on duplicate config template names", async () => {
