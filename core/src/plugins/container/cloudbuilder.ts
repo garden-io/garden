@@ -191,7 +191,7 @@ class GardenCloudBuilderAvailabilityRetriever extends AbstractCloudBuilderAvaila
 }
 
 class GrowCloudBuilderAvailabilityRetriever extends AbstractCloudBuilderAvailabilityRetriever<GrowCloudApi> {
-  protected getCloudApi(ctx: PluginContext): GrowCloudApi | undefined {
+  protected getCloudApi(ctx: PluginContext) {
     return ctx.cloudApiV2
   }
 
