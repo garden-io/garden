@@ -168,7 +168,7 @@ function filterSecrets<T extends object>(object: T, secrets: StringMap): T {
   const secretValues = new Set(Object.values(secrets))
   const secretNames = Object.keys(secrets)
   const sanitized = <T>deepMap(object, (value) => {
-    if (secretValues.has(value)) {
+    if (typeof value === "string" && secretValues.has(value)) {
       const name = secretNames.find((n) => secrets[n] === value)!
       return `[filtered secret: ${name}]`
     } else {

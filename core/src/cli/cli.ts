@@ -10,7 +10,6 @@ import { intersection, mapValues, sortBy } from "lodash-es"
 import { resolve, join } from "path"
 import fsExtra from "fs-extra"
 import { getBuiltinCommands } from "../commands/commands.js"
-import { getCloudDistributionName } from "../util/cloud.js"
 import { getPackageVersion } from "../util/util.js"
 import type { Command, CommandResult, BuiltinArgs } from "../commands/base.js"
 import { CommandGroup } from "../commands/base.js"
@@ -39,24 +38,16 @@ import {
 import type { ParameterObject, GlobalOptions, ParameterValues } from "./params.js"
 import { globalOptions, OUTPUT_RENDERERS } from "./params.js"
 import type { ProjectConfig } from "../config/project.js"
-import {
-  ERROR_LOG_FILENAME,
-  DEFAULT_GARDEN_DIR_NAME,
-  LOGS_DIR_NAME,
-  DEFAULT_GARDEN_CLOUD_DOMAIN,
-} from "../constants.js"
+import { ERROR_LOG_FILENAME, DEFAULT_GARDEN_DIR_NAME, LOGS_DIR_NAME } from "../constants.js"
 import { generateBasicDebugInfoReport } from "../commands/get/get-debug-info.js"
 import type { AnalyticsHandler } from "../analytics/analytics.js"
 import type { GardenPluginReference } from "../plugin/plugin.js"
-import type { CloudApiFactory } from "../cloud/api.js"
-import { CloudApi, CloudApiTokenRefreshError, getGardenCloudDomain } from "../cloud/api.js"
 import { findProjectConfig } from "../config/base.js"
 import { pMemoizeDecorator } from "../lib/p-memoize.js"
 import { getCustomCommands } from "../commands/custom.js"
 import { Profile } from "../util/profiling.js"
 import { prepareDebugLogfiles } from "./debug-logs.js"
 import type { Log } from "../logger/log-entry.js"
-import { dedent } from "../util/string.js"
 import type { GardenProcess } from "../config-store/global.js"
 import { GlobalConfigStore } from "../config-store/global.js"
 import { registerProcess } from "../process.js"
@@ -66,6 +57,7 @@ import { wrapActiveSpan } from "../util/open-telemetry/spans.js"
 import { JsonFileWriter } from "../logger/writers/json-file-writer.js"
 import type minimist from "minimist"
 import { styles } from "../logger/styles.js"
+import { isGardenCommunityEdition } from "../cloud/util.js"
 
 const { pathExists } = fsExtra
 
@@ -79,9 +71,8 @@ export interface RunOutput {
 }
 
 export interface GardenCliParams {
+  initLogger: boolean
   plugins?: GardenPluginReference[]
-  initLogger?: boolean
-  cloudApiFactory?: CloudApiFactory
 }
 
 function hasHelpFlag(argv: minimist.ParsedArgs) {
@@ -91,17 +82,16 @@ function hasHelpFlag(argv: minimist.ParsedArgs) {
 // TODO: this is used in more contexts now, should rename to GardenCommandRunner or something like that
 @Profile()
 export class GardenCli {
-  private commands: { [key: string]: Command } = {}
+  private readonly commands: { [key: string]: Command } = {}
+  private readonly initLogger: boolean
   private fileWritersInitialized = false
-  public plugins: GardenPluginReference[]
-  private initLogger: boolean
-  public processRecord?: GardenProcess
-  protected cloudApiFactory: CloudApiFactory
 
-  constructor({ plugins, initLogger = false, cloudApiFactory = CloudApi.factory }: GardenCliParams = {}) {
+  public readonly plugins: GardenPluginReference[]
+  public processRecord?: GardenProcess
+
+  constructor({ plugins, initLogger }: GardenCliParams) {
     this.plugins = plugins || []
     this.initLogger = initLogger
-    this.cloudApiFactory = cloudApiFactory
 
     const commands = sortBy(getBuiltinCommands(), (c) => c.name)
     commands.forEach((command) => this.addCommand(command))
@@ -250,35 +240,6 @@ ${renderCommands(commands)}
           : null
       gardenInitLog?.info("Initializing...")
 
-      // Init Cloud API (if applicable)
-      let cloudApi: CloudApi | undefined
-      if (!command.noProject) {
-        const config = await this.getProjectConfig(log, workingDir)
-        const cloudDomain = getGardenCloudDomain(config?.domain)
-        const distroName = getCloudDistributionName(cloudDomain)
-
-        try {
-          cloudApi = await this.cloudApiFactory({ log, cloudDomain, globalConfigStore })
-        } catch (err) {
-          if (err instanceof CloudApiTokenRefreshError) {
-            log.warn(dedent`
-              The current ${distroName} session is not valid or it's expired.
-              Command results for this command run will not be available in ${distroName}.
-              To avoid losing command results and logs, please try logging back in by running \`garden login\`.
-              If this not a ${distroName} project you can ignore this warning.
-            `)
-
-            // Project is configured for cloud usage => fail early to force re-auth
-            if (config && config.id) {
-              throw err
-            }
-          } else {
-            // unhandled error when creating the cloud api
-            throw err
-          }
-        }
-      }
-
       const commandInfo = {
         name: command.getFullName(),
         args: parsedArgs,
@@ -288,16 +249,17 @@ ${renderCommands(commands)}
       const contextOpts: GardenOpts = {
         commandInfo,
         environmentString: environmentName,
+        globalConfigStore,
         log,
         gardenInitLog: gardenInitLog || undefined,
         forceRefresh,
         variableOverrides: parsedCliVars,
         plugins: this.plugins,
-        cloudApi,
+        skipCloudConnect: command.noProject,
       }
 
       let garden: Garden
-      let result: CommandResult<any> = {}
+      let result: CommandResult = {}
       let analytics: AnalyticsHandler | undefined = undefined
 
       const prepareParams = {
@@ -324,8 +286,8 @@ ${renderCommands(commands)}
           await emitLoginWarning({
             garden,
             log,
-            isLoggedIn: !!cloudApi,
-            isCommunityEdition: garden.cloudDomain === DEFAULT_GARDEN_CLOUD_DOMAIN,
+            isLoggedIn: garden.isLoggedIn(),
+            isCommunityEdition: isGardenCommunityEdition(garden.cloudDomain),
           })
 
           gardenLog.info(`Running in environment ${styles.highlight(`${garden.environmentName}.${garden.namespace}`)}`)
@@ -400,10 +362,9 @@ ${renderCommands(commands)}
         throw err
       } finally {
         await server?.close()
-        cloudApi?.close()
       }
 
-      return { result, analytics, cloudApi }
+      return { result, analytics }
     })
   }
 

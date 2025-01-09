@@ -78,7 +78,13 @@ if (gardenEnv.GARDEN_IGNORE_UNCAUGHT_EXCEPTION) {
   process.on("uncaughtException", (e: unknown) => {
     ignoredUncaughtExceptions = true
     console.warn(
-      `\n${styles.warning(`WARNING: Ignoring fatal exception because ${IGNORE_UNCAUGHT_EXCEPTION_VARNAME} is set to true`)}: ${inspect(e, { showHidden: true, getters: true })}\n`
+      `\n${styles.warning(`WARNING: Ignoring fatal exception because ${IGNORE_UNCAUGHT_EXCEPTION_VARNAME} is set to true`)}: ${inspect(
+        e,
+        {
+          showHidden: true,
+          getters: true,
+        }
+      )}\n`
     )
   })
 }

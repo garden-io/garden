@@ -523,7 +523,12 @@ describe("cli", () => {
           this.server = await startServer({
             log: _log,
             defaultProjectRoot: projectRootA,
-            manager: GardenInstanceManager.getInstance({ log, sessionId, serveCommand, plugins: [] }),
+            manager: GardenInstanceManager.getInstance({
+              log,
+              sessionId,
+              serveCommand,
+              plugins: [],
+            }),
             serveCommand,
           })
         }
@@ -1184,6 +1189,7 @@ describe("cli", () => {
           return { result: { args } }
         }
       }
+
       class HiddenTestCommand extends Command {
         name = "hidden-test-command"
         help = "halp!"

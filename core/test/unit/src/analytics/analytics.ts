@@ -26,9 +26,7 @@ import {
   GardenApiVersion,
   gardenEnv,
 } from "../../../../src/constants.js"
-import { LogLevel, RootLogger } from "../../../../src/logger/logger.js"
 import type { AnalyticsGlobalConfig } from "../../../../src/config-store/global.js"
-import { QuietWriter } from "../../../../src/logger/writers/quiet-writer.js"
 import timekeeper from "timekeeper"
 import { ConfigurationError, DeploymentError, RuntimeError } from "../../../../src/exceptions.js"
 import { resolveMsg } from "../../../../src/logger/log-entry.js"
@@ -251,13 +249,7 @@ describe("AnalyticsHandler", () => {
 
   describe("factory (user is logged in)", async () => {
     beforeEach(async () => {
-      const logger = RootLogger._createInstanceForTests({
-        level: LogLevel.info,
-        writers: { display: new QuietWriter({ level: LogLevel.info }), file: [] },
-        storeEntries: false,
-      })
-      const cloudApi = await FakeCloudApi.factory({ log: logger.createLog() })
-      garden = await makeTestGardenA(undefined, { cloudApi })
+      garden = await makeTestGardenA(undefined, { overrideCloudApiFactory: FakeCloudApi.factory })
       garden.vcsInfo.originUrl = apiRemoteOriginUrl
       await enableAnalytics(garden)
     })

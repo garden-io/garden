@@ -1,0 +1,3 @@
+config:
+  kubernetes:context: orbstack
+  pulumi-k8s:namespace: ns-from-the-varfile

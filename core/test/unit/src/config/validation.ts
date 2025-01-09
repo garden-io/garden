@@ -126,7 +126,7 @@ describe("validateSchema", () => {
     }
 
     void expectError(
-      () => validateSchema(config, schema, { source: { yamlDoc } }),
+      () => validateSchema(config, schema, { source: { yamlDoc, path: [] } }),
       (err) =>
         expect(stripAnsi(err.message)).to.equal(dedent`
         Validation error:
@@ -170,7 +170,7 @@ describe("validateSchema", () => {
     }
 
     void expectError(
-      () => validateSchema(config, schema, { source: { yamlDoc } }),
+      () => validateSchema(config, schema, { source: { yamlDoc, path: [] } }),
       (err) =>
         expect(stripAnsi(err.message)).to.equal(dedent`
         Validation error:
@@ -218,7 +218,7 @@ describe("validateSchema", () => {
     }
 
     void expectError(
-      () => validateSchema(config, schema, { source: { yamlDoc } }),
+      () => validateSchema(config, schema, { source: { yamlDoc, path: [] } }),
       (err) =>
         expect(stripAnsi(err.message)).to.equal(dedent`
         Validation error:
@@ -264,7 +264,7 @@ describe("validateSchema", () => {
     }
 
     void expectError(
-      () => validateSchema(config, schema, { source: { yamlDoc } }),
+      () => validateSchema(config, schema, { source: { yamlDoc, path: [] } }),
       (err) =>
         expect(stripAnsi(err.message)).to.equal(dedent`
         Validation error:
@@ -306,7 +306,11 @@ describe("validateSchema", () => {
       name: bar
     `
 
-    const yamlDocs = await loadAndValidateYaml(yaml, "foo.yaml in directory bar")
+    const yamlDocs = await loadAndValidateYaml({
+      content: yaml,
+      sourceDescription: "foo.yaml in directory bar",
+      filename: "bar/foo.yaml",
+    })
     const yamlDoc = yamlDocs[1]
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -319,11 +323,12 @@ describe("validateSchema", () => {
     }
 
     void expectError(
-      () => validateSchema(config, schema, { source: { yamlDoc } }),
+      () => validateSchema(config, schema, { source: { yamlDoc, path: [] } }),
       (err) =>
         expect(stripAnsi(err.message)).to.equal(dedent`
         Validation error:
 
+        bar/foo.yaml:10
         ...
         9   | spec:
         10  |   foo: 456
@@ -347,7 +352,8 @@ describe("validateSchema", () => {
     `
 
     const yamlDoc = parseDocument(yaml) as YamlDocumentWithSource
-    yamlDoc["source"] = yaml
+    yamlDoc.source = yaml
+    yamlDoc.filename = "foo/bar.yaml"
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const config: any = {
@@ -359,11 +365,12 @@ describe("validateSchema", () => {
     }
 
     void expectError(
-      () => validateSchema(config.spec, schema, { source: { yamlDoc, basePath: ["spec"] } }),
+      () => validateSchema(config.spec, schema, { source: { yamlDoc, path: ["spec"] } }),
       (err) =>
         expect(stripAnsi(err.message)).to.equal(dedent`
         Validation error:
 
+        foo/bar.yaml:4
         ...
         3  | spec:
         4  |   foo: 123

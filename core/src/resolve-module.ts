@@ -23,6 +23,7 @@ import {
   CircularDependenciesError,
   ConfigurationError,
   FilesystemError,
+  InternalError,
   PluginError,
   toGardenError,
 } from "./exceptions.js"
@@ -528,8 +529,7 @@ export class ModuleResolver {
 
     const configContext = new ModuleConfigContext(contextParams)
 
-    const templateRefs = getModuleTemplateReferences(rawConfig, configContext)
-    const templateDeps = <string[]>templateRefs.filter((d) => d[1] !== rawConfig.name).map((d) => d[1])
+    const templateDeps = getModuleTemplateReferences(rawConfig, configContext)
 
     // This is a bit of a hack, but we need to store the template dependencies on the raw config so we can check
     // them later when deciding whether to resolve a module inline or not.
@@ -540,7 +540,7 @@ export class ModuleResolver {
     const resolvedDeps = resolveTemplateStrings({
       value: rawConfig.build.dependencies,
       context: configContext,
-      contextOpts: { allowPartial: true },
+      contextOpts: { allowPartial: true, legacyAllowPartial: true },
       // Note: We're not implementing the YAML source mapping for modules
       source: undefined,
     })
@@ -581,7 +581,7 @@ export class ModuleResolver {
     return resolveTemplateStrings({
       value: inputs,
       context: configContext,
-      contextOpts: { allowPartial: true },
+      contextOpts: { allowPartial: true, legacyAllowPartial: true },
       // Note: We're not implementing the YAML source mapping for modules
       source: undefined,
     })
@@ -643,6 +643,7 @@ export class ModuleResolver {
       context: new GenericContext({ inputs }),
       contextOpts: {
         allowPartial: true,
+        legacyAllowPartial: true,
       },
       // Note: We're not implementing the YAML source mapping for modules
       source: undefined,
@@ -662,6 +663,7 @@ export class ModuleResolver {
       context: configContext,
       contextOpts: {
         allowPartial: false,
+        allowPartialContext: true,
         // Modules will be converted to actions later, and the actions will be properly unescaped.
         // We avoid premature un-escaping here,
         // because otherwise it will strip the escaped value in the module config
@@ -840,6 +842,12 @@ export class ModuleResolver {
           ? resolveTemplateString({ string: contents, context: configContext, contextOpts: { unescape: true } })
           : contents
 
+        if (typeof resolvedContents !== "string") {
+          throw new InternalError({
+            message: `Expected resolvedContents to be typeof string, but got typeof ${resolvedContents}`,
+          })
+        }
+
         const targetDir = resolve(resolvedConfig.path, ...posix.dirname(fileSpec.targetPath).split(posix.sep))
         const targetPath = resolve(resolvedConfig.path, ...fileSpec.targetPath.split(posix.sep))
 
@@ -951,6 +959,11 @@ export class ModuleResolver {
         context: moduleConfigContext,
         contextOpts: resolveOpts,
       })
+      if (typeof varfilePath !== "string") {
+        throw new ConfigurationError({
+          message: `Expected varfile template expression in module configuration ${config.name} to resolve to string, actually got ${typeof varfilePath}`,
+        })
+      }
       varfileVars = await loadVarfile({
         configRoot: config.path,
         path: varfilePath,

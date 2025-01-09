@@ -1,0 +1,36 @@
+apiVersion: garden.io/v1
+kind: Project
+name: config-templates
+environments:
+  - name: local
+providers:
+  - name: exec
+variables:
+  sync_targets:
+    test: ["foo", "bar"]
+
+---
+
+kind: RenderTemplate
+template: tpl
+name: foo
+inputs:
+  name: test
+
+---
+
+kind: ConfigTemplate
+name: tpl
+inputsSchemaPath: schema.json
+configs:
+  - kind: Build
+    type: exec
+    name: ${parent.name}-${inputs.name}-dt
+    include: []
+    variables:
+      myDir: "${var.sync_root || '../../../'}${inputs.name}"
+      syncTargets:
+      - $concat:
+          $forEach: ${var.sync_targets[inputs.name] || []}
+          $return:
+            source: "${var.sync_root || '../../../'}${item.value}"

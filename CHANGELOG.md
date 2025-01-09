@@ -1,4 +1,61 @@
 
+<a name="0.13.48"></a>
+## [0.13.48](https://github.com/garden-io/garden/compare/0.13.47...0.13.48) (2025-01-09)
+
+### Bug Fixes
+
+* resolve parts of template strings, even if another part cannot be resolved yet. ([#6751](https://github.com/garden-io/garden/issues/6751)) ([aabebbd03](https://github.com/garden-io/garden/commit/aabebbd03))
+
+### Features
+
+* allow overriding `source.path` in remote actions (when using `source.repository`) ([#6750](https://github.com/garden-io/garden/issues/6750)) ([20a4ba3b8](https://github.com/garden-io/garden/commit/20a4ba3b8))
+* **pulumi:** enable new varfile schema for modules ([#6735](https://github.com/garden-io/garden/issues/6735)) ([bf74500a9](https://github.com/garden-io/garden/commit/bf74500a9))
+* **pulumi:** add new pulumi varfile schema that allows specifying other top-level keys ([#6729](https://github.com/garden-io/garden/issues/6729)) ([f014cb666](https://github.com/garden-io/garden/commit/f014cb666))
+
+### Performance Improvements
+
+* optimise solver graph evaluation loop ([#6728](https://github.com/garden-io/garden/issues/6728)) ([bd6c6ba0d](https://github.com/garden-io/garden/commit/bd6c6ba0d))
+
+<a name="0.13.47"></a>
+## [0.13.47](https://github.com/garden-io/garden/compare/0.13.46...0.13.47) (2024-12-12)
+
+### Bug Fixes
+
+* make sure to display the mutagen version update warning message ([#6715](https://github.com/garden-io/garden/issues/6715)) ([9d971d255](https://github.com/garden-io/garden/commit/9d971d255))
+* **template:** establish backwards bug-compatibility for kubernetes manifest files ([#6713](https://github.com/garden-io/garden/issues/6713)) ([424b39220](https://github.com/garden-io/garden/commit/424b39220))
+* **templates:** fix regression with multiple if statements introduced in 0.13.46 ([#6714](https://github.com/garden-io/garden/issues/6714)) ([7fbe71779](https://github.com/garden-io/garden/commit/7fbe71779))
+
+<a name="0.13.46"></a>
+## [0.13.46](https://github.com/garden-io/garden/compare/0.13.45...0.13.46) (2024-12-11)
+
+### Bug Fixes
+
+* retain bug-compatibility for referencing missing variables in unary operators (`!` and `typeof`). ([#6695](https://github.com/garden-io/garden/issues/6695)) ([063eb9276](https://github.com/garden-io/garden/commit/063eb9276))
+* improve error message if filter expression in foreach cannot be resolved ([#6694](https://github.com/garden-io/garden/issues/6694)) ([3ff5ee07a](https://github.com/garden-io/garden/commit/3ff5ee07a))
+* if block expression backwards compat ([#6693](https://github.com/garden-io/garden/issues/6693)) ([67b99ac64](https://github.com/garden-io/garden/commit/67b99ac64))
+* **k8s-exec:** use containerName if specified for kubernetes-exec actions ([#6682](https://github.com/garden-io/garden/issues/6682)) ([976ab7037](https://github.com/garden-io/garden/commit/976ab7037))
+* **local-k8s:** ensure correct nginx status when getting env status ([#6696](https://github.com/garden-io/garden/issues/6696)) ([3c65e4900](https://github.com/garden-io/garden/commit/3c65e4900))
+* **publish:** copy image from registry if it has been pushed directly after build ([#6681](https://github.com/garden-io/garden/issues/6681)) ([405940e9e](https://github.com/garden-io/garden/commit/405940e9e))
+* **template:** fix template string escaping ([#6705](https://github.com/garden-io/garden/issues/6705)) ([32f8ec66e](https://github.com/garden-io/garden/commit/32f8ec66e))
+
+### Bundled Tool Version Updates
+
+* **mutagen:** update version to 0.18.0 ([#6665](https://github.com/garden-io/garden/issues/6665)) ([2e2792574](https://github.com/garden-io/garden/commit/2e2792574))
+
+### Features
+
+* **cli:** allow generating flamegraphs for performance analysis ([#6684](https://github.com/garden-io/garden/issues/6684)) ([2fdad584a](https://github.com/garden-io/garden/commit/2fdad584a))
+
+### Improvements
+
+* Point to YAML file for template string error messages if possible ([#6692](https://github.com/garden-io/garden/issues/6692)) ([a9c205bd8](https://github.com/garden-io/garden/commit/a9c205bd8))
+
+### Performance Improvements
+
+* optimise template string resolving performance ([#6685](https://github.com/garden-io/garden/issues/6685)) ([a34856491](https://github.com/garden-io/garden/commit/a34856491))
+* improve graph resolve performance ([#6670](https://github.com/garden-io/garden/issues/6670)) ([4e4cd91e0](https://github.com/garden-io/garden/commit/4e4cd91e0))
+* **framework:** avoid unnecessary config graph cloning ([#6667](https://github.com/garden-io/garden/issues/6667)) ([f15dd911d](https://github.com/garden-io/garden/commit/f15dd911d))
+
 <a name="0.13.45"></a>
 ## [0.13.45](https://github.com/garden-io/garden/compare/0.13.44...0.13.45) (2024-11-20)
 

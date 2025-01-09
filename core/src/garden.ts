@@ -77,7 +77,6 @@ import {
   gardenEnv,
   SUPPORTED_ARCHITECTURES,
   GardenApiVersion,
-  DEFAULT_GARDEN_CLOUD_DOMAIN,
 } from "./constants.js"
 import type { Log } from "./logger/log-entry.js"
 import { EventBus } from "./events/events.js"
@@ -118,8 +117,8 @@ import {
   RemoteSourceConfigContext,
   TemplatableConfigContext,
 } from "./config/template-contexts/project.js"
-import type { CloudApi, CloudProject } from "./cloud/api.js"
-import { getGardenCloudDomain } from "./cloud/api.js"
+import type { CloudProject, GardenCloudApiFactory } from "./cloud/api.js"
+import { GardenCloudApi, CloudApiTokenRefreshError } from "./cloud/api.js"
 import { OutputConfigContext } from "./config/template-contexts/module.js"
 import { ProviderConfigContext } from "./config/template-contexts/provider.js"
 import type { ConfigContext } from "./config/template-contexts/base.js"
@@ -165,9 +164,14 @@ import { detectModuleOverlap, makeOverlapErrors } from "./util/module-overlap.js
 import { GotHttpError } from "./util/http.js"
 import { styles } from "./logger/styles.js"
 import { renderDuration } from "./logger/util.js"
-import { getCloudDistributionName, getCloudLogSectionName } from "./util/cloud.js"
 import { makeDocsLinkStyled } from "./docs/common.js"
 import { getPathInfo } from "./vcs/git.js"
+import {
+  getCloudDistributionName,
+  getCloudLogSectionName,
+  getGardenCloudDomain,
+  isGardenCommunityEdition,
+} from "./cloud/util.js"
 
 const defaultLocalAddress = "localhost"
 
@@ -191,22 +195,24 @@ export interface GardenOpts {
   plugins?: RegisterPluginParam[]
   sessionId?: string
   variableOverrides?: PrimitiveMap
-  cloudApi?: CloudApi
+  // used in tests
+  overrideCloudApiFactory?: GardenCloudApiFactory
 }
 
 export interface GardenParams {
   artifactsPath: string
   vcsInfo: VcsInfo
   projectId?: string
-  cloudDomain?: string
+  cloudApi?: GardenCloudApi
+  cloudDomain: string
   dotIgnoreFile: string
   proxy: ProxyConfig
   environmentName: string
   resolvedDefaultNamespace: string | null
   namespace: string
   gardenDirPath: string
-  globalConfigStore?: GlobalConfigStore
-  localConfigStore?: LocalConfigStore
+  globalConfigStore: GlobalConfigStore
+  localConfigStore: LocalConfigStore
   log: Log
   gardenInitLog?: Log
   moduleIncludePatterns?: string[]
@@ -216,6 +222,7 @@ export interface GardenParams {
   outputs: OutputSpec[]
   plugins: RegisterPluginParam[]
   production: boolean
+  projectApiVersion: ProjectConfig["apiVersion"]
   projectConfig: ProjectConfig
   projectName: string
   projectRoot: string
@@ -228,8 +235,6 @@ export interface GardenParams {
   username: string | undefined
   workingCopyId: string
   forceRefresh?: boolean
-  cloudApi?: CloudApi | null
-  projectApiVersion: ProjectConfig["apiVersion"]
 }
 
 interface GardenInstanceState {
@@ -249,6 +254,10 @@ interface ResolveProviderParams {
   name: string
   statusOnly?: boolean
 }
+
+type GardenType = typeof Garden.prototype
+// TODO: add more fields that are known to be defined when logged in to Cloud
+export type LoggedInGarden = GardenType & Required<Pick<GardenType, "cloudApi">>
 
 @Profile()
 export class Garden {
@@ -272,7 +281,7 @@ export class Garden {
   private readonly solver: GraphSolver
   private asyncLock: AsyncLock
   public readonly projectId?: string
-  public readonly cloudDomain?: string
+  public readonly cloudDomain: string
   public sessionId: string
   public readonly localConfigStore: LocalConfigStore
   public globalConfigStore: GlobalConfigStore
@@ -283,7 +292,7 @@ export class Garden {
   public readonly configTemplates: { [name: string]: ConfigTemplateConfig }
   private actionTypeBases: ActionTypeMap<ActionTypeDefinition<any>[]>
   private emittedWarnings: Set<string>
-  public cloudApi: CloudApi | null
+  public cloudApi?: GardenCloudApi
 
   public readonly production: boolean
   public readonly projectRoot: string
@@ -326,7 +335,10 @@ export class Garden {
   public readonly monitors: MonitorManager
   public readonly nestedSessions: Map<string, Garden>
 
-  // Used internally for introspection
+  /**
+   * Used internally for introspection
+   * @internal
+   */
   public readonly isGarden: true
 
   constructor(params: GardenParams) {
@@ -361,13 +373,14 @@ export class Garden {
     this.persistent = !!params.opts.persistent
     this.username = params.username
     this.forceRefresh = !!params.forceRefresh
-    this.cloudApi = params.cloudApi || null
     this.commandInfo = params.opts.commandInfo
     this.isGarden = true
     this.configTemplates = {}
     this.emittedWarnings = new Set()
     this.state = { configsScanned: false, needsReload: false }
     this.nestedSessions = new Map()
+
+    this.cloudApi = params.cloudApi
 
     this.asyncLock = new AsyncLock()
 
@@ -420,9 +433,9 @@ export class Garden {
     }
 
     this.state.configsScanned = false
-    // TODO: Support other VCS options.
-    this.localConfigStore = params.localConfigStore || new LocalConfigStore(this.gardenDirPath)
-    this.globalConfigStore = params.globalConfigStore || new GlobalConfigStore()
+
+    this.localConfigStore = params.localConfigStore
+    this.globalConfigStore = params.globalConfigStore
 
     this.actionConfigs = {
       Build: {},
@@ -503,7 +516,7 @@ export class Garden {
     return Object.assign(Object.create(Object.getPrototypeOf(this)), this)
   }
 
-  cloneForCommand(sessionId: string, cloudApi?: CloudApi): Garden {
+  cloneForCommand(sessionId: string, cloudApi?: GardenCloudApi): Garden {
     // Make an instance clone to override anything that needs to be scoped to a specific command run
     // TODO: this could be made more elegant
     const garden = this.clone()
@@ -784,7 +797,13 @@ export class Garden {
         providerNames = getNames(rawConfigs)
       }
 
-      throwOnMissingSecretKeys(rawConfigs, this.secrets, "Provider", log)
+      throwOnMissingSecretKeys(
+        rawConfigs,
+        new RemoteSourceConfigContext(this, this.variables),
+        this.secrets,
+        "Provider",
+        log
+      )
 
       // As an optimization, we return immediately if all requested providers are already resolved
       const alreadyResolvedProviders = providerNames.map((name) => this.resolvedProviders[name]).filter(Boolean)
@@ -820,7 +839,11 @@ export class Garden {
 
         validationGraph.addNode(plugin.name)
 
-        for (const dep of getAllProviderDependencyNames(plugin!, config!)) {
+        for (const dep of getAllProviderDependencyNames(
+          plugin!,
+          config!,
+          new RemoteSourceConfigContext(this, this.variables)
+        )) {
           validationGraph.addNode(dep)
           validationGraph.addDependency(plugin.name, dep)
         }
@@ -1411,7 +1434,13 @@ export class Garden {
       const groupedResources = groupBy(allResources, "kind")
 
       for (const [kind, configs] of Object.entries(groupedResources)) {
-        throwOnMissingSecretKeys(configs, this.secrets, kind, this.log)
+        throwOnMissingSecretKeys(
+          configs,
+          new RemoteSourceConfigContext(this, this.variables),
+          this.secrets,
+          kind,
+          this.log
+        )
       }
 
       let rawModuleConfigs = [...((groupedResources.Module as ModuleConfig[]) || [])]
@@ -1540,11 +1569,13 @@ export class Garden {
       })
     }
 
-    return resolveTemplateString({
+    const resolved = resolveTemplateString({
       string: disabledFlag,
       context,
       contextOpts: { allowPartial: false },
     })
+
+    return !!resolved
   }
 
   /**
@@ -1653,7 +1684,7 @@ export class Garden {
    */
   public getProjectSources() {
     const context = new RemoteSourceConfigContext(this, this.variables)
-    const source = { yamlDoc: this.projectConfig.internal.yamlDoc, basePath: ["sources"] }
+    const source = { yamlDoc: this.projectConfig.internal.yamlDoc, path: ["sources"] }
     const resolved = validateSchema(
       resolveTemplateStrings({ value: this.projectSources, context, source }),
       projectSourcesSchema(),
@@ -1836,7 +1867,7 @@ export class Garden {
   }
 
   /** Returns whether the user is logged in to the Garden Cloud */
-  public isLoggedIn(): boolean {
+  public isLoggedIn(): this is LoggedInGarden {
     return !!this.cloudApi
   }
 }
@@ -1883,7 +1914,7 @@ export async function resolveGardenParamsPartial(currentDirectory: string, opts:
     configType: "project environments",
     path: config.path,
     projectRoot: config.path,
-    source: { yamlDoc: config.internal.yamlDoc, basePath: ["environments"] },
+    source: { yamlDoc: config.internal.yamlDoc, path: ["environments"] },
   })
 
   const configDefaultEnvironment = resolveTemplateString({
@@ -1899,6 +1930,7 @@ export async function resolveGardenParamsPartial(currentDirectory: string, opts:
   }) as string
 
   const localConfigStore = new LocalConfigStore(gardenDirPath)
+  const globalConfigStore = opts.globalConfigStore || new GlobalConfigStore()
 
   if (!environmentStr) {
     const localConfigDefaultEnv = await localConfigStore.get("defaultEnv")
@@ -1921,6 +1953,7 @@ export async function resolveGardenParamsPartial(currentDirectory: string, opts:
     environmentStr,
     gardenDirPath,
     localConfigStore,
+    globalConfigStore,
     log,
     namespace,
     projectName,
@@ -1928,6 +1961,53 @@ export async function resolveGardenParamsPartial(currentDirectory: string, opts:
     treeCache,
     username: _username,
     vcsInfo,
+  }
+}
+
+function getCloudApiFactory(opts: GardenOpts) {
+  const overrideCloudApiFactory = opts.overrideCloudApiFactory
+  if (overrideCloudApiFactory) {
+    return overrideCloudApiFactory
+  }
+
+  return GardenCloudApi.factory
+}
+
+async function initCloudApi({
+  globalConfigStore,
+  projectConfig,
+  cloudApiFactory,
+  log,
+}: {
+  globalConfigStore: GlobalConfigStore
+  projectConfig: ProjectConfig | undefined
+  cloudApiFactory: GardenCloudApiFactory
+  log: Log
+}): Promise<GardenCloudApi | undefined> {
+  const cloudDomain = getGardenCloudDomain(projectConfig?.domain)
+  const distroName = getCloudDistributionName(cloudDomain)
+
+  try {
+    return await cloudApiFactory({ log, cloudDomain, globalConfigStore })
+  } catch (err) {
+    if (err instanceof CloudApiTokenRefreshError) {
+      log.warn(dedent`
+            The current ${distroName} session is not valid or it's expired.
+            Command results for this command run will not be available in ${distroName}.
+            To avoid losing command results and logs, please try logging back in by running \`garden login\`.
+            If this not a ${distroName} project you can ignore this warning.
+          `)
+
+      // Project is configured for cloud usage => fail early to force re-auth
+      if (projectConfig && projectConfig.id) {
+        throw err
+      }
+
+      return undefined
+    } else {
+      // unhandled error when creating the cloud api
+      throw err
+    }
   }
 }
 
@@ -1946,6 +2026,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
       environmentStr,
       gardenDirPath,
       localConfigStore,
+      globalConfigStore,
       log,
       projectName,
       projectRoot,
@@ -1961,7 +2042,15 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
 
     const projectApiVersion = config.apiVersion
     const sessionId = opts.sessionId || uuidv4()
-    const cloudApi = opts.cloudApi || null
+    const cloudApiFactory = getCloudApiFactory(opts)
+    const cloudApi: GardenCloudApi | undefined = opts.skipCloudConnect
+      ? undefined
+      : await initCloudApi({
+          globalConfigStore,
+          log,
+          projectConfig: config,
+          cloudApiFactory,
+        })
     const cloudDomain = cloudApi?.domain || getGardenCloudDomain(config.domain)
     const loggedIn = !!cloudApi
 
@@ -2064,8 +2153,8 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
       projectSources: config.sources,
       production,
       gardenDirPath,
-      globalConfigStore: opts.globalConfigStore,
       localConfigStore,
+      globalConfigStore,
       opts,
       outputs: config.outputs || [],
       plugins: opts.plugins || [],
@@ -2101,7 +2190,7 @@ async function prepareCloud({
   environmentName,
   commandName,
 }: {
-  cloudApi: CloudApi | null
+  cloudApi: GardenCloudApi | undefined
   config: ProjectConfig
   log: Log
   projectRoot: string
@@ -2110,7 +2199,7 @@ async function prepareCloud({
   commandName: string
 }) {
   const cloudDomain = cloudApi?.domain || getGardenCloudDomain(config.domain)
-  const isCommunityEdition = cloudDomain === DEFAULT_GARDEN_CLOUD_DOMAIN
+  const isCommunityEdition = isGardenCommunityEdition(cloudDomain)
   const distroName = getCloudDistributionName(cloudDomain)
   const debugLevelCommands = ["dev", "serve", "exit", "quit"]
   const cloudLogLevel = debugLevelCommands.includes(commandName) ? LogLevel.debug : undefined
@@ -2176,7 +2265,7 @@ async function getCloudProject({
   projectRoot,
   projectName,
 }: {
-  cloudApi: CloudApi
+  cloudApi: GardenCloudApi
   config: ProjectConfig
   log: Log
   isCommunityEdition: boolean
@@ -2191,7 +2280,7 @@ async function getCloudProject({
     const msg = wordWrap(
       deline`
         Invalid field 'id' found in project configuration at path ${projectRoot}. The 'id'
-        field should only be set if using a commerical edition of Garden. Please remove to continue
+        field should only be set if using a commercial edition of Garden. Please remove to continue
         using the Garden community edition.
       `,
       120

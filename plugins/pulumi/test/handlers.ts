@@ -28,8 +28,8 @@ const moduleDirName = dirname(fileURLToPath(import.meta.url))
 // TODO: Find a better way to do this.
 const projectRoot = resolve(moduleDirName, "../../test/", "test-project-k8s")
 
-const nsModuleRoot = join(projectRoot, "k8s-namespace")
-const deploymentModuleRoot = join(projectRoot, "k8s-deployment")
+const nsActionRoot = join(projectRoot, "k8s-namespace")
+const deploymentActionRoot = join(projectRoot, "k8s-deployment")
 
 // Note: By default, this test suite assumes that PULUMI_ACCESS_TOKEN is present in the environment (which is the case
 // in CI). To run this test suite with your own pulumi org, replace the `orgName` variable in
@@ -42,7 +42,7 @@ describe("pulumi plugin handlers", () => {
   let provider: PulumiProvider
 
   before(async () => {
-    await ensureNodeModules([nsModuleRoot, deploymentModuleRoot])
+    await ensureNodeModules([nsActionRoot, deploymentActionRoot])
     const plugin = pulumiPlugin()
     garden = await makeTestGarden(projectRoot, { plugins: [plugin] })
     log = garden.log

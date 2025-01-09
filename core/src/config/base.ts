@@ -32,7 +32,7 @@ import type { Document, DocumentOptions } from "yaml"
 import { parseAllDocuments } from "yaml"
 import { dedent, deline } from "../util/string.js"
 import { makeDocsLinkStyled } from "../docs/common.js"
-import { profile, profileAsync } from "../util/profiling.js"
+import { profileAsync } from "../util/profiling.js"
 import { readFile } from "fs/promises"
 import { LRUCache } from "lru-cache"
 
@@ -54,6 +54,7 @@ export type ObjectPath = (string | number)[]
 
 export interface YamlDocumentWithSource extends Document {
   source: string
+  filename: string | undefined
 }
 
 export function getEffectiveConfigFileLocation(actionConfig: BaseActionConfig): string {
@@ -125,11 +126,17 @@ export const allConfigKinds = ["Module", "Workflow", "Project", configTemplateKi
  * @param sourceDescription - A description of the location of the yaml file, e.g. "bar.yaml at directory /foo/".
  * @param version - YAML standard version. Defaults to "1.2"
  */
-export async function loadAndValidateYaml(
-  content: string,
-  sourceDescription: string,
-  version: DocumentOptions["version"] = "1.2"
-): Promise<YamlDocumentWithSource[]> {
+export async function loadAndValidateYaml({
+  content,
+  sourceDescription,
+  filename,
+  version = "1.2",
+}: {
+  content: string
+  sourceDescription: string
+  filename: string | undefined
+  version?: DocumentOptions["version"]
+}): Promise<YamlDocumentWithSource[]> {
   try {
     return Array.from(parseAllDocuments(content, { merge: true, strict: false, version }) || []).map((doc) => {
       if (doc.errors.length > 0) {
@@ -142,6 +149,7 @@ export async function loadAndValidateYaml(
 
       const docWithSource = doc as YamlDocumentWithSource
       docWithSource.source = content
+      docWithSource.filename = filename
 
       return docWithSource
     })
@@ -197,7 +205,11 @@ export async function validateRawConfig({
   projectRoot: string
   allowInvalid?: boolean
 }) {
-  let rawSpecs = await loadAndValidateYaml(rawConfig, `${basename(configPath)} in directory ${dirname(configPath)}`)
+  let rawSpecs = await loadAndValidateYaml({
+    content: rawConfig,
+    sourceDescription: `${basename(configPath)} in directory ${dirname(configPath)}`,
+    filename: configPath,
+  })
 
   // Ignore empty resources
   rawSpecs = rawSpecs.filter(Boolean)
@@ -557,9 +569,9 @@ const _readFile = profileAsync(async function _readFile(path: string) {
   return await readFile(path)
 })
 
-const _loadYaml = profile(function _loadYaml(data: Buffer) {
+function _loadYaml(data: Buffer) {
   return load(data.toString()) as PrimitiveMap
-})
+}
 
 const loadVarfileCache = new LRUCache<string, Promise<PrimitiveMap>>({
   max: 10000,

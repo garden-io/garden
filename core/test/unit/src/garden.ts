@@ -69,17 +69,18 @@ import { TreeCache } from "../../../src/cache.js"
 import { omitUndefined } from "../../../src/util/objects.js"
 import { add } from "date-fns"
 import stripAnsi from "strip-ansi"
-import { CloudApi } from "../../../src/cloud/api.js"
+import { GardenCloudApi } from "../../../src/cloud/api.js"
 import { GlobalConfigStore } from "../../../src/config-store/global.js"
 import { LogLevel, getRootLogger } from "../../../src/logger/logger.js"
 import { uuidv4 } from "../../../src/util/random.js"
 import { fileURLToPath } from "node:url"
 import { resolveMsg } from "../../../src/logger/log-entry.js"
-import { getCloudDistributionName } from "../../../src/util/cloud.js"
 import { styles } from "../../../src/logger/styles.js"
 import type { RunActionConfig } from "../../../src/actions/run.js"
 import type { ProjectResult } from "@garden-io/platform-api-types"
 import { ProjectStatus } from "@garden-io/platform-api-types"
+import { getCloudDistributionName } from "../../../src/cloud/util.js"
+import { resolveAction } from "../../../src/graph/actions.js"
 
 const moduleDirName = dirname(fileURLToPath(import.meta.url))
 
@@ -661,7 +662,7 @@ describe("Garden", () => {
           environmentString: envName,
           log,
         })
-        const distroName = getCloudDistributionName(garden.cloudDomain || DEFAULT_GARDEN_CLOUD_DOMAIN)
+        const distroName = getCloudDistributionName(garden.cloudDomain)
 
         const expectedLog = log.root.getLogEntries().filter((l) => resolveMsg(l)?.includes(`You are not logged in`))
 
@@ -719,7 +720,7 @@ describe("Garden", () => {
                 opts: {},
               },
             })
-            const distroName = getCloudDistributionName(garden.cloudDomain || DEFAULT_GARDEN_CLOUD_DOMAIN)
+            const distroName = getCloudDistributionName(garden.cloudDomain)
 
             const expectedLog = log.root.getLogEntries().filter((l) => resolveMsg(l)?.includes(`You are not logged in`))
 
@@ -744,7 +745,7 @@ describe("Garden", () => {
           refreshToken: "fake-refresh-token",
           validity: add(new Date(), { seconds: validityMs / 1000 }),
         })
-        return CloudApi.factory({ log, cloudDomain: domain, globalConfigStore })
+        return GardenCloudApi.factory({ log, cloudDomain: domain, globalConfigStore })
       }
 
       before(async () => {
@@ -797,12 +798,12 @@ describe("Garden", () => {
           scope.get("/api/token/verify").reply(200, {})
           scope.get(`/api/projects/uid/${projectId}`).reply(200, { data: cloudProject })
 
-          const cloudApi = await makeCloudApi(fakeCloudDomain)
+          const overrideCloudApiFactory = async () => await makeCloudApi(fakeCloudDomain)
 
           const garden = await TestGarden.factory(pathFoo, {
             config,
             environmentString: envName,
-            cloudApi,
+            overrideCloudApiFactory,
           })
 
           expect(garden.cloudDomain).to.eql(fakeCloudDomain)
@@ -816,12 +817,12 @@ describe("Garden", () => {
             .get(`/api/secrets/projectUid/${projectId}/env/${envName}`)
             .reply(200, { data: { SECRET_KEY: "secret-val" } })
 
-          const cloudApi = await makeCloudApi(fakeCloudDomain)
+          const overrideCloudApiFactory = async () => await makeCloudApi(fakeCloudDomain)
 
           const garden = await TestGarden.factory(pathFoo, {
             config,
             environmentString: envName,
-            cloudApi,
+            overrideCloudApiFactory,
           })
 
           expect(garden.secrets).to.eql({ SECRET_KEY: "secret-val" })
@@ -831,7 +832,7 @@ describe("Garden", () => {
           scope.get("/api/token/verify").reply(200, {})
           log.root["entries"] = []
 
-          const cloudApi = await makeCloudApi(fakeCloudDomain)
+          const overrideCloudApiFactory = async () => await makeCloudApi(fakeCloudDomain)
 
           const garden = await TestGarden.factory(pathFoo, {
             config: {
@@ -840,7 +841,7 @@ describe("Garden", () => {
             },
             log,
             environmentString: envName,
-            cloudApi,
+            overrideCloudApiFactory,
           })
 
           const expectedLog = log.root
@@ -861,14 +862,14 @@ describe("Garden", () => {
           scope.get(`/api/projects/uid/${projectId}`).reply(500, {})
           log.root["entries"] = []
 
-          const cloudApi = await makeCloudApi(fakeCloudDomain)
+          const overrideCloudApiFactory = async () => await makeCloudApi(fakeCloudDomain)
 
           let error: Error | undefined
           try {
             await TestGarden.factory(pathFoo, {
               config,
               environmentString: envName,
-              cloudApi,
+              overrideCloudApiFactory,
               log,
             })
           } catch (err) {
@@ -896,14 +897,14 @@ describe("Garden", () => {
           scope.get(`/api/projects/uid/${projectId}`).reply(404, {})
           log.root["entries"] = []
 
-          const cloudApi = await makeCloudApi(fakeCloudDomain)
+          const overrideCloudApiFactory = async () => await makeCloudApi(fakeCloudDomain)
 
           let error: Error | undefined
           try {
             await TestGarden.factory(pathFoo, {
               config,
               environmentString: envName,
-              cloudApi,
+              overrideCloudApiFactory,
               log,
             })
           } catch (err) {
@@ -971,12 +972,12 @@ describe("Garden", () => {
           scope.get(`/api/projects?name=test&exactMatch=true`).reply(200, { data: [cloudProject] })
           scope.get(`/api/projects/uid/${projectId}`).reply(200, { data: cloudProject })
 
-          const cloudApi = await makeCloudApi(DEFAULT_GARDEN_CLOUD_DOMAIN)
+          const overrideCloudApiFactory = async () => await makeCloudApi(DEFAULT_GARDEN_CLOUD_DOMAIN)
 
           const garden = await TestGarden.factory(pathFoo, {
             config,
             environmentString: envName,
-            cloudApi,
+            overrideCloudApiFactory,
           })
 
           expect(garden.cloudDomain).to.eql(DEFAULT_GARDEN_CLOUD_DOMAIN)
@@ -986,7 +987,7 @@ describe("Garden", () => {
         it("should throw if project ID is set in config", async () => {
           scope.get("/api/token/verify").reply(200, {})
 
-          const cloudApi = await makeCloudApi(DEFAULT_GARDEN_CLOUD_DOMAIN)
+          const overrideCloudApiFactory = async () => await makeCloudApi(DEFAULT_GARDEN_CLOUD_DOMAIN)
 
           let error: Error | undefined
           try {
@@ -996,7 +997,7 @@ describe("Garden", () => {
                 id: uuidv4(), // <--- ID is set when it shouldn't
               },
               environmentString: envName,
-              cloudApi,
+              overrideCloudApiFactory,
             })
           } catch (err) {
             if (err instanceof Error) {
@@ -1008,7 +1009,7 @@ describe("Garden", () => {
           const expected = wordWrap(
             deline`
               Invalid field 'id' found in project configuration at path tmp. The 'id'
-              field should only be set if using a commerical edition of Garden. Please remove to continue
+              field should only be set if using a commercial edition of Garden. Please remove to continue
               using the Garden community edition.
             `,
             120
@@ -1021,14 +1022,14 @@ describe("Garden", () => {
           scope.get(`/api/projects?name=test&exactMatch=true`).reply(500, {})
           log.root["entries"] = []
 
-          const cloudApi = await makeCloudApi(DEFAULT_GARDEN_CLOUD_DOMAIN)
+          const overrideCloudApiFactory = async () => await makeCloudApi(DEFAULT_GARDEN_CLOUD_DOMAIN)
 
           let error: Error | undefined
           try {
             await TestGarden.factory(pathFoo, {
               config,
               environmentString: envName,
-              cloudApi,
+              overrideCloudApiFactory,
               log,
             })
           } catch (err) {
@@ -1059,12 +1060,12 @@ describe("Garden", () => {
             .get(`/api/secrets/projectUid/${projectId}/env/${envName}`)
             .reply(200, { data: { SECRET_KEY: "secret-val" } })
 
-          const cloudApi = await makeCloudApi(DEFAULT_GARDEN_CLOUD_DOMAIN)
+          const overrideCloudApiFactory = async () => await makeCloudApi(DEFAULT_GARDEN_CLOUD_DOMAIN)
 
           const garden = await TestGarden.factory(pathFoo, {
             config,
             environmentString: envName,
-            cloudApi,
+            overrideCloudApiFactory,
           })
 
           expect(garden.cloudDomain).to.eql(DEFAULT_GARDEN_CLOUD_DOMAIN)
@@ -3140,6 +3141,38 @@ describe("Garden", () => {
       expect(omit(workflow.internal, "yamlDoc")).to.eql(internal)
     })
 
+    it("should not fail when input is used together with an unresolvable variable in the same template string", async () => {
+      const garden = await makeTestGarden(getDataDir("test-projects", "config-templates-partial"))
+      await garden.scanAndAddConfigs()
+
+      const log = garden.log
+
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+
+      const resolved = await resolveAction({
+        garden,
+        graph,
+        log,
+        action: graph.getActionByRef({
+          kind: "Build",
+          name: "foo-test-dt",
+        }),
+      })
+
+      expect(resolved).to.exist
+      expect(resolved.getVariables()).to.deep.eq({
+        myDir: "../../../test",
+        syncTargets: [
+          {
+            source: "../../../foo",
+          },
+          {
+            source: "../../../bar",
+          },
+        ],
+      })
+    })
+
     it("should throw on duplicate config template names", async () => {
       const garden = await makeTestGarden(getDataDir("test-projects", "duplicate-config-templates"))
 
@@ -3411,7 +3444,7 @@ describe("Garden", () => {
       expect(module.spec.bla).to.eql({ nested: { key: "my value" } })
     })
 
-    it("should pass through runtime template strings when no runtimeContext is provider", async () => {
+    it("should pass through runtime template strings when no runtimeContext is provided", async () => {
       const test = createGardenPlugin({
         name: "test",
         createModuleTypes: [

@@ -7,7 +7,7 @@
  */
 
 import cloneDeep from "fast-copy"
-import { isEqual, mapValues, memoize, omit, pick, uniq } from "lodash-es"
+import { isEqual, isString, mapValues, memoize, omit, pick, uniq } from "lodash-es"
 import type {
   Action,
   ActionConfig,
@@ -52,7 +52,6 @@ import { ResolveActionTask } from "../tasks/resolve-action.js"
 import {
   getActionTemplateReferences,
   maybeTemplateString,
-  resolveTemplateString,
   resolveTemplateStrings,
 } from "../template-string/template-string.js"
 import { dedent, deline, naturalList } from "../util/string.js"
@@ -65,10 +64,11 @@ import { minimatch } from "minimatch"
 import type { ConfigContext } from "../config/template-contexts/base.js"
 import type { LinkedSource, LinkedSourceMap } from "../config-store/local.js"
 import { relative } from "path"
-import { profile, profileAsync } from "../util/profiling.js"
+import { profileAsync } from "../util/profiling.js"
 import { uuidv4 } from "../util/random.js"
 import { getSourcePath } from "../vcs/vcs.js"
 import { styles } from "../logger/styles.js"
+import { isUnresolvableValue } from "../template-string/static-analysis.js"
 
 function* sliceToBatches<T>(dict: Record<string, T>, batchSize: number) {
   const entries = Object.entries(dict)
@@ -747,7 +747,7 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
       },
       variables,
     }),
-    contextOpts: { allowPartial: true },
+    contextOpts: { allowPartial: true, legacyAllowPartial: true },
     // TODO: See about mapping this to the original variable sources
     source: undefined,
   })
@@ -765,7 +765,7 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
         },
         variables: resolvedVariables,
       }),
-      contextOpts: { allowPartial: true },
+      contextOpts: { allowPartial: true, legacyAllowPartial: true },
       // TODO: See about mapping this to the original inputs source
       source: undefined,
     })
@@ -814,7 +814,7 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
       contextOpts: {
         allowPartial: false,
       },
-      source: { yamlDoc, basePath: [] },
+      source: { yamlDoc, path: [] },
     })
     config = { ...config, ...resolvedBuiltin }
     const { spec = {} } = config
@@ -832,7 +832,7 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
       name: config.name,
       path: config.internal.basePath,
       projectRoot: garden.projectRoot,
-      source: { yamlDoc },
+      source: { yamlDoc, path: [] },
     })
 
     config = { ...config, variables: resolvedVariables, spec }
@@ -844,8 +844,9 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
       context: builtinFieldContext,
       contextOpts: {
         allowPartial: true,
+        legacyAllowPartial: true,
       },
-      source: { yamlDoc },
+      source: { yamlDoc, path: [] },
     })
     config = { ...config, ...resolvedOther }
   }
@@ -928,7 +929,6 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
   }
 
   const dependencies = dependenciesFromActionConfig({
-    log,
     config,
     configsByKey,
     definition,
@@ -945,15 +945,13 @@ export const preprocessActionConfig = profileAsync(async function preprocessActi
   }
 })
 
-const dependenciesFromActionConfig = profile(function dependenciesFromActionConfig({
-  log,
+function dependenciesFromActionConfig({
   config,
   configsByKey,
   definition,
   templateContext,
   actionTypes,
 }: {
-  log: Log
   config: ActionConfig
   configsByKey: ActionConfigsByKey
   definition: MaybeUndefined<ActionTypeDefinition<any>>
@@ -1035,44 +1033,40 @@ const dependenciesFromActionConfig = profile(function dependenciesFromActionConf
   // -> We avoid depending on action execution when referencing static output keys
   const staticOutputKeys = definition?.staticOutputsSchema ? describeSchema(definition.staticOutputsSchema).keys : []
 
-  for (const ref of getActionTemplateReferences(config)) {
+  for (const ref of getActionTemplateReferences(config, templateContext)) {
     let needsExecuted = false
 
-    const outputKey = ref.fullRef[4] as string
+    const outputType = ref.keyPath[0]
 
-    if (maybeTemplateString(ref.name)) {
-      try {
-        ref.name = resolveTemplateString({
-          string: ref.name,
-          context: templateContext,
-          contextOpts: { allowPartial: false },
-        })
-      } catch (err) {
-        log.warn(
-          `Unable to infer dependency from action reference in ${description}, because template string '${ref.name}' could not be resolved. Either fix the dependency or specify it explicitly.`
-        )
-        continue
-      }
+    if (isUnresolvableValue(outputType)) {
+      const err = outputType.getError()
+      throw new ConfigurationError({
+        message: `Found invalid action reference: ${err}`,
+      })
     }
-    // also avoid execution when referencing the static output keys of the ref action type.
-    // e.g. a helm deploy referencing container build static output deploymentImageName
-    // ${actions.build.my-container.outputs.deploymentImageName}
+
+    const outputKey = ref.keyPath[1]
+
     const refActionKey = actionReferenceToString(ref)
     const refActionType = configsByKey[refActionKey]?.type
-    let refStaticOutputKeys: string[] = []
-    if (refActionType) {
-      const refActionSpec = actionTypes[ref.kind][refActionType]?.spec
-      refStaticOutputKeys = refActionSpec?.staticOutputsSchema
-        ? describeSchema(refActionSpec.staticOutputsSchema).keys
-        : []
-    }
 
-    if (
-      ref.fullRef[3] === "outputs" &&
-      !staticOutputKeys.includes(outputKey) &&
-      !refStaticOutputKeys.includes(outputKey)
-    ) {
-      needsExecuted = true
+    if (outputType === "outputs") {
+      let refStaticOutputKeys: string[] = []
+      if (refActionType) {
+        const refActionSpec = actionTypes[ref.kind][refActionType]?.spec
+        refStaticOutputKeys = refActionSpec?.staticOutputsSchema
+          ? describeSchema(refActionSpec.staticOutputsSchema).keys
+          : []
+      }
+
+      // Avoid execution when referencing the static output keys of the ref action type.
+      // e.g. a helm deploy referencing container build static output deploymentImageName
+      // ${actions.build.my-container.outputs.deploymentImageName}
+      if (!isString(outputKey)) {
+        needsExecuted = true
+      } else {
+        needsExecuted = !staticOutputKeys.includes(outputKey) && !refStaticOutputKeys.includes(outputKey)
+      }
     }
 
     const refWithType = {
@@ -1080,8 +1074,12 @@ const dependenciesFromActionConfig = profile(function dependenciesFromActionConf
       type: refActionType,
     }
 
-    addDep(refWithType, { explicit: false, needsExecutedOutputs: needsExecuted, needsStaticOutputs: !needsExecuted })
+    addDep(omit(refWithType, ["keyPath"]), {
+      explicit: false,
+      needsExecutedOutputs: needsExecuted,
+      needsStaticOutputs: !needsExecuted,
+    })
   }
 
   return deps
-})
+}

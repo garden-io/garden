@@ -16,8 +16,9 @@ import indentString from "indent-string"
 import { constants } from "os"
 import dns from "node:dns"
 import { styles } from "./logger/styles.js"
-import type { ObjectPath } from "./config/base.js"
 import type { ExecaError } from "execa"
+import type { Location } from "./template-string/ast.js"
+import { addYamlContext, type ConfigSource } from "./config/validation.js"
 
 // Unfortunately, NodeJS does not provide a list of all error codes, so we have to maintain this list manually.
 // See https://nodejs.org/docs/latest-v18.x/api/dns.html#error-codes
@@ -309,11 +310,31 @@ export class CloudApiError extends GardenError {
 export class TemplateStringError extends GardenError {
   type = "template-string"
 
-  path?: ObjectPath
+  loc: Location
+  originalMessage: string
 
-  constructor(params: GardenErrorParams & { path?: ObjectPath }) {
-    super(params)
-    this.path = params.path
+  constructor(params: GardenErrorParams & { loc: Location; yamlSource: ConfigSource }) {
+    let enriched: string = params.message
+    try {
+      // TODO: Use Location information from parser to point to the specific part
+      enriched = addYamlContext({ source: params.yamlSource, message: params.message })
+    } catch {
+      // ignore
+    }
+
+    if (enriched === params.message) {
+      const { path } = params.yamlSource
+
+      const pathDescription = path.length > 0 ? ` at path ${styles.accent(path.join("."))}` : ""
+      const prefix = `Invalid template string (${styles.accent(
+        truncate(params.loc.source.rawTemplateString, { length: 200 }).replace(/\n/g, "\\n")
+      )})${pathDescription}: `
+      enriched = params.message.startsWith(prefix) ? params.message : prefix + params.message
+    }
+
+    super({ ...params, message: enriched })
+    this.loc = params.loc
+    this.originalMessage = params.message
   }
 }
 

@@ -1,0 +1,10 @@
+kind: Build
+name: remote-action-a
+type: exec
+spec:
+  # This command tests presence of Docker
+  # and in turn, if the action is running in the right subdirectory (remote repository root)
+  command: [ls, Dockerfile]
+source:
+  repository:
+    url: https://github.com/garden-io/garden-example-remote-module-jworker.git#8f6da155581a567ffa28c410174d43d74eb4cb9b

@@ -44,6 +44,74 @@ describe("getManifests", () => {
   let api: KubeApi
   const defaultNamespace = "foobar"
 
+  context("legacyAllowPartial", () => {
+    let action: Resolved<KubernetesDeployAction>
+
+    before(async () => {
+      garden = await getKubernetesTestGarden()
+      const provider = (await garden.resolveProvider({
+        log: garden.log,
+        name: "local-kubernetes",
+      })) as KubernetesProvider
+      ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
+      api = await KubeApi.factory(garden.log, ctx, provider)
+    })
+
+    beforeEach(async () => {
+      graph = await garden.getConfigGraph({
+        log: garden.log,
+        emit: false,
+      })
+    })
+
+    it("crashes with yaml syntax error if an if block references variable that does not exist", async () => {
+      action = await garden.resolveAction<KubernetesDeployAction>({
+        action: cloneDeep(graph.getDeploy("legacypartial-ifblock-doesnotexist")),
+        log: garden.log,
+        graph,
+      })
+
+      await expectError(() => getManifests({ ctx, api, action, log: garden.log, defaultNamespace }), {
+        contains: ["could not parse ifblock-doesnotexist.yaml in directory ", "as valid yaml"],
+      })
+    })
+
+    it("should not crash due to indentation with if block statement", async () => {
+      action = await garden.resolveAction<KubernetesDeployAction>({
+        action: cloneDeep(graph.getDeploy("legacypartial-ifblock-indentation")),
+        log: garden.log,
+        graph,
+      })
+
+      const result = await getManifests({ ctx, api, action, log: garden.log, defaultNamespace })
+      expect(result.length).to.eq(2) // due to metadata configmap
+    })
+
+    it("partially resolves the consequent branch of ${if true} block", async () => {
+      action = await garden.resolveAction<KubernetesDeployAction>({
+        action: cloneDeep(graph.getDeploy("legacypartial-ifblock-true")),
+        log: garden.log,
+        graph,
+      })
+
+      const result = await getManifests({ ctx, api, action, log: garden.log, defaultNamespace })
+      expect(result.length).to.eq(2) // due to metadata configmap
+      expect(result[0].metadata.name).to.eq("it-partially-resolves-${var.doesNotExist}-and-${unescapes}")
+    })
+
+    it("partially resolves the alternate branch of ${if false} block", async () => {
+      action = await garden.resolveAction<KubernetesDeployAction>({
+        action: cloneDeep(graph.getDeploy("legacypartial-ifblock-false")),
+        log: garden.log,
+        graph,
+      })
+
+      const result = await getManifests({ ctx, api, action, log: garden.log, defaultNamespace })
+      expect(result.length).to.eq(2) // due to metadata configmap
+      expect(result[0].metadata.name).to.eq("it-partially-resolves-${var.doesNotExist}-and-${unescapes}")
+    })
+  })
+
   context("duplicates", () => {
     let action: Resolved<KubernetesDeployAction>
 

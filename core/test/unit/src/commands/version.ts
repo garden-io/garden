@@ -19,7 +19,7 @@ describe("VersionCommand", () => {
   let cli: GardenCli
 
   beforeEach(async () => {
-    cli = new GardenCli()
+    cli = new GardenCli({ initLogger: false })
     tmpDir = await makeTempDir({ git: true, initialCommit: false })
   })
 

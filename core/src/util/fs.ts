@@ -253,14 +253,14 @@ export async function makeTempDir({
 }: { git?: boolean; initialCommit?: boolean } = {}): Promise<TempDirectory> {
   const tmpDir = await tmp.dir({ unsafeCleanup: true })
   // Fully resolve path so that we don't get path mismatches in tests
-  const tmpPath = await realpath(tmpDir.path)
+  tmpDir.path = await realpath(tmpDir.path)
 
   if (git) {
-    await exec("git", ["init", "--initial-branch=main"], { cwd: tmpPath })
+    await exec("git", ["init", "--initial-branch=main"], { cwd: tmpDir.path })
     if (initialCommit) {
-      await writeFile(join(tmpPath, "foo"), "bar")
-      await exec("git", ["add", "."], { cwd: tmpPath })
-      await exec("git", ["commit", "-m", "first commit"], { cwd: tmpPath })
+      await writeFile(join(tmpDir.path, "foo"), "bar")
+      await exec("git", ["add", "."], { cwd: tmpDir.path })
+      await exec("git", ["commit", "-m", "first commit"], { cwd: tmpDir.path })
     }
   }
 

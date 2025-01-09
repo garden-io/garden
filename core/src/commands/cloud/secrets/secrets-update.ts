@@ -22,7 +22,7 @@ import { getEnvironmentByNameOrThrow } from "./secret-helpers.js"
 import type {
   BulkCreateSecretRequest,
   BulkUpdateSecretRequest,
-  CloudApi,
+  GardenCloudApi,
   Secret,
   SingleUpdateSecretRequest,
 } from "../../../cloud/api.js"
@@ -188,7 +188,7 @@ export class SecretsUpdateCommand extends Command<Args, Opts> {
 }
 
 async function prepareSecretsRequests(params: {
-  api: CloudApi
+  api: GardenCloudApi
   environmentId: string | undefined
   environmentName: string | undefined
   log: Log

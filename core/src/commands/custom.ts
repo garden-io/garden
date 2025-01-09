@@ -119,7 +119,7 @@ export class CustomCommandWrapper extends Command {
     const commandVariables = resolveTemplateStrings({
       value: this.spec.variables,
       context: variablesContext,
-      source: { yamlDoc, basePath: ["variables"] },
+      source: { yamlDoc, path: ["variables"] },
     })
     const variables: any = jsonMerge(cloneDeep(garden.variables), commandVariables)
 
@@ -133,18 +133,18 @@ export class CustomCommandWrapper extends Command {
     if (this.spec.exec) {
       const startedAt = new Date()
 
-      const exec = validateWithPath({
+      const exec = validateWithPath<CommandResource["exec"]>({
         config: resolveTemplateStrings({
           value: this.spec.exec,
           context: commandContext,
-          source: { yamlDoc, basePath: ["exec"] },
+          source: { yamlDoc, path: ["exec"] },
         }),
         schema: customCommandExecSchema(),
         path: this.spec.internal.basePath,
         projectRoot: garden.projectRoot,
         configType: `exec field in custom Command '${this.name}'`,
         source: undefined,
-      })
+      })!
 
       const command = exec.command
       log.debug(`Running exec command: ${command.join(" ")}`)
@@ -185,18 +185,18 @@ export class CustomCommandWrapper extends Command {
     if (this.spec.gardenCommand) {
       const startedAt = new Date()
 
-      let gardenCommand = validateWithPath({
+      let gardenCommand = validateWithPath<CommandResource["gardenCommand"]>({
         config: resolveTemplateStrings({
           value: this.spec.gardenCommand,
           context: commandContext,
-          source: { yamlDoc, basePath: ["gardenCommand"] },
+          source: { yamlDoc, path: ["gardenCommand"] },
         }),
         schema: customCommandGardenCommandSchema(),
         path: this.spec.internal.basePath,
         projectRoot: garden.projectRoot,
         configType: `gardenCommand field in custom Command '${this.name}'`,
         source: undefined,
-      })
+      })!
 
       log.debug(`Running Garden command: ${gardenCommand.join(" ")}`)
 
@@ -291,7 +291,7 @@ export async function getCustomCommands(log: Log, projectRoot: string) {
         path: (<CommandResource>config).internal.basePath,
         projectRoot,
         configType: `custom Command '${config.name}'`,
-        source: { yamlDoc: (<CommandResource>config).internal.yamlDoc },
+        source: { yamlDoc: (<CommandResource>config).internal.yamlDoc, path: [] },
       })
     )
 

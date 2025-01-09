@@ -139,7 +139,7 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
       value: config.internal.inputs || {},
       context: inputsContext,
       contextOpts: { allowPartial: false },
-      source: { yamlDoc: template?.internal.yamlDoc, basePath: ["inputs"] },
+      source: { yamlDoc: template?.internal.yamlDoc, path: ["inputs"] },
     })
 
     // Resolve variables
@@ -205,7 +205,7 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
         variables,
         inputs,
       }),
-      source: { yamlDoc: action.getInternal().yamlDoc, basePath: ["spec"] },
+      source: { yamlDoc: action.getInternal().yamlDoc, path: ["spec"] },
     })
 
     // Validate spec
@@ -291,7 +291,7 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
       path,
       projectRoot: this.garden.projectRoot,
       configType: `spec for ${description}`,
-      source: { yamlDoc: internal.yamlDoc, basePath: ["spec"] },
+      source: { yamlDoc: internal.yamlDoc, path: ["spec"] },
     })
 
     const actionTypeBases = await this.garden.getActionTypeBases(kind, type)
@@ -304,7 +304,7 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
         path,
         projectRoot: this.garden.projectRoot,
         configType: `spec for ${description} (base schema from '${base.name}' plugin)`,
-        source: { yamlDoc: internal.yamlDoc, basePath: ["spec"] },
+        source: { yamlDoc: internal.yamlDoc, path: ["spec"] },
       })
     }
 

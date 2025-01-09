@@ -40,7 +40,6 @@ import { join } from "path"
 import { GlobalConfigStore } from "../config-store/global.js"
 import { validateSchema } from "../config/validation.js"
 import type { ConfigGraph } from "../graph/config-graph.js"
-import { getGardenCloudDomain } from "../cloud/api.js"
 import type { ServeCommand } from "../commands/serve.js"
 import type { AutocompleteSuggestion } from "../cli/autocomplete.js"
 import { createServer } from "http"
@@ -765,17 +764,12 @@ export class GardenServer extends EventEmitter {
       // Emit the config graph for the project (used for the Cloud dashboard)
       const resolved = await this.resolveRequest(ctx, omit(request, "type"))
       let { garden } = resolved
-      const { log: _log } = resolved
-      const log = _log.createLog({ fixLevel: LogLevel.silly })
+      const log = resolved.log.createLog({ fixLevel: LogLevel.silly })
 
       const loadConfigLog = this.log.createLog({ name: serverLogName, showDuration: true })
       loadConfigLog.info("Loading config for Live page...")
 
-      const cloudApi = await this.manager.getCloudApi({
-        log,
-        cloudDomain: getGardenCloudDomain(garden.cloudDomain),
-        globalConfigStore: garden.globalConfigStore,
-      })
+      const cloudApi = await this.manager.getCloudApi(garden)
 
       // Use the server session ID. That is, the "main" session ID that belongs to the parent serve command.
       const sessionIdForConfigLoad = this.sessionId

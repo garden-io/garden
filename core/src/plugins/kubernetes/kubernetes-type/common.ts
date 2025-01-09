@@ -368,7 +368,11 @@ async function readKustomizeManifests(
       log,
       args: ["build", kustomizePath, ...extraArgs],
     })
-    const manifests = await parseKubernetesManifests(kustomizeOutput, `kustomize output of ${action.longDescription()}`)
+    const manifests = await parseKubernetesManifests(
+      kustomizeOutput,
+      `kustomize output of ${action.longDescription()}`,
+      undefined
+    )
     return manifests.map((manifest, index) => ({
       declaration: {
         type: "kustomize",
@@ -424,10 +428,21 @@ async function readFileManifests(
         const absPath = resolve(manifestPath, path)
         log.debug(`Reading manifest for ${action.longDescription()} from path ${absPath}`)
         const str = (await readFile(absPath)).toString()
-        const resolved = ctx.resolveTemplateStrings(str, { allowPartial: true, unescape: true })
+
+        // TODO(0.14): Do not resolve template strings in unparsed YAML and remove legacyAllowPartial
+        // First of all, evaluating template strings can result in invalid YAML that fails to parse, because the result of the
+        // template expressions will be interpreted by the YAML parser later.
+        // Then also, the use of `legacyAllowPartial: true` is quite unfortunate here, because users will not notice
+        // if they reference variables that do not exist.
+        const resolved = ctx.resolveTemplateStrings(str, {
+          legacyAllowPartial: true,
+          unescape: true,
+        })
+
         const manifests = await parseKubernetesManifests(
           resolved,
-          `${basename(absPath)} in directory ${dirname(absPath)} (specified in ${action.longDescription()})`
+          `${basename(absPath)} in directory ${dirname(absPath)} (specified in ${action.longDescription()})`,
+          absPath
         )
         return manifests.map((manifest, index) => ({
           declaration: {
@@ -449,10 +464,14 @@ async function readFileManifests(
  * @param str raw string containing Kubernetes manifests in YAML format
  * @param sourceDescription description of where the YAML string comes from, e.g. "foo.yaml in directory /bar"
  */
-async function parseKubernetesManifests(str: string, sourceDescription: string): Promise<KubernetesResource[]> {
+async function parseKubernetesManifests(
+  str: string,
+  sourceDescription: string,
+  filename: string | undefined
+): Promise<KubernetesResource[]> {
   // parse yaml with version 1.1 by default, as Kubernetes still uses this version.
   // See also https://github.com/kubernetes/kubernetes/issues/34146
-  const docs = await loadAndValidateYaml(str, sourceDescription, "1.1")
+  const docs = await loadAndValidateYaml({ content: str, sourceDescription, filename, version: "1.1" })
 
   // TODO: We should use schema validation to make sure that apiVersion, kind and metadata are always defined as required by the type.
   const manifests = docs.map((d) => d.toJS()) as KubernetesResource[]

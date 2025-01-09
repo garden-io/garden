@@ -565,9 +565,7 @@ export class Mutagen {
                 // 1. the old sync daemon is stopped
                 // 2. the target deploy action is not redeployed with the new sync machinery,
                 //    and `sync start` command is used
-                msg.includes(
-                  "unable to connect to beta: unable to connect to endpoint: unable to dial agent endpoint: version handshake error: version mismatch"
-                )
+                msg.includes("version mismatch")
               )
             }
 
