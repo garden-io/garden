@@ -85,17 +85,16 @@ jobs:
 
       - name: Template Homebrew Formula
         if: inputs.release-condition != 'false'
-        uses: ajeffowens/jinja2-action@90dab3da2215932ea86d2875224f06bbd6798617 # v2.0.0
-        with:
-          template: garden/support/homebrew-formula.rb.j2
-          output_file: homebrew-garden/Formula/garden-cli.rb
-          strict: true
-          variables: |
-            version=${{ inputs.release-version }}
-            armTarballUrl=${{ needs.fetch-release-checksums.outputs.arm-tarball-url }}
-            amdTarballUrl=${{ needs.fetch-release-checksums.outputs.amd-tarball-url }}
-            armSha256=${{ needs.fetch-release-checksums.outputs.arm-sha256 }}
-            amdSha256=${{ needs.fetch-release-checksums.outputs.amd-sha256 }}
+        run: |
+          cp "${TEMPLATE}" "${OUTPUT_FILE}"
+          sed -i 's|{{version}}|${{ inputs.release-version }}|g' "${OUTPUT_FILE}"
+          sed -i 's|{{armTarballUrl}}|${{ needs.fetch-release-checksums.outputs.arm-tarball-url }}|g' "${OUTPUT_FILE}"
+          sed -i 's|{{amdTarballUrl}}|${{ needs.fetch-release-checksums.outputs.amd-tarball-url }}|g' "${OUTPUT_FILE}"
+          sed -i 's|{{armSha256}}|${{ needs.fetch-release-checksums.outputs.arm-sha256 }}|g' "${OUTPUT_FILE}"
+          sed -i 's|{{amdSha256}}|${{ needs.fetch-release-checksums.outputs.amd-sha256 }}|g' "${OUTPUT_FILE}"
+        env:
+          TEMPLATE: garden/support/homebrew-formula.rb.j2
+          OUTPUT_FILE: homebrew-garden/Formula/garden-cli.rb
 
       - name: Create PR on Homebrew Repository
         if: inputs.release-condition != 'false'
