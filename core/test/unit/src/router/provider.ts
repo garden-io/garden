@@ -138,7 +138,6 @@ describe("provider actions", async () => {
         log,
         pluginName: "test-plugin-a",
         force: false,
-        status: { ready: true, outputs: {} },
         events: undefined,
       })
       expect(result).to.eql({
