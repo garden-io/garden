@@ -32,8 +32,6 @@ import { getDockerBuildFlags } from "../../../../../src/plugins/container/build.
 import { DEFAULT_BUILD_TIMEOUT_SEC } from "../../../../../src/constants.js"
 import type { KubernetesProvider } from "../../../../../src/plugins/kubernetes/config.js"
 
-const testVersionedId = "some/image:12345"
-
 describe("plugins.container", () => {
   const projectRoot = getDataDir("test-project-container")
 
@@ -78,7 +76,7 @@ describe("plugins.container", () => {
     dockerCli.returns(
       Promise.resolve({
         all: "test log",
-        stdout: testVersionedId,
+        stdout: "test log",
         stderr: "",
         code: 0,
         proc: null,
@@ -89,7 +87,9 @@ describe("plugins.container", () => {
     const graph = await garden.getConfigGraph({ emit: false, log })
     const build = graph.getBuild(cfg.name)
     const resolved = await garden.resolveAction({ action: build, graph, log })
-    return garden.executeAction({ action: resolved, graph, log })
+    const executed = await garden.executeAction({ action: resolved, graph, log })
+
+    return executed
   }
 
   describe("publishContainerBuild", () => {
@@ -102,10 +102,6 @@ describe("plugins.container", () => {
 
       const action = await getTestBuild(config)
 
-      sinon.replace(action, "getOutput", (o: string) =>
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        o === "localImageId" ? testVersionedId : action.getOutput(<any>o)
-      )
       sinon.restore()
 
       const _dockerCli = sinon.stub(containerHelpers, "dockerCli")
@@ -115,7 +111,7 @@ describe("plugins.container", () => {
 
       sinon.assert.calledWithMatch(_dockerCli.firstCall, {
         cwd: action.getBuildPath(),
-        args: ["tag", action.getOutput("local-image-id"), publishId],
+        args: ["tag", `test:${action.versionString()}`, publishId],
       })
 
       sinon.assert.calledWithMatch(_dockerCli.secondCall, {
@@ -126,17 +122,9 @@ describe("plugins.container", () => {
 
     it("should use specified tag if provided", async () => {
       const config = cloneDeep(baseConfig)
-      const action = td.object(await getTestBuild(config))
+      const action = await getTestBuild(config)
 
       sinon.restore()
-
-      sinon.replace(action, "getOutput", (o: string) =>
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        o === "localImageId" ? testVersionedId : action.getOutput(<any>o)
-      )
-
-      sinon.replace(containerHelpers, "actionHasDockerfile", async () => true)
-
       const _dockerCli = sinon.stub(containerHelpers, "dockerCli")
 
       const result = await publishContainerBuild({ ctx, log, action, tagOverride: "custom-tag" })
@@ -146,7 +134,7 @@ describe("plugins.container", () => {
         _dockerCli,
         sinon.match({
           cwd: action.getBuildPath(),
-          args: ["tag", testVersionedId, "test:custom-tag"],
+          args: ["tag", `test:${action.versionString()}`, "test:custom-tag"],
         })
       )
 
@@ -176,7 +164,7 @@ describe("plugins.container", () => {
 
       it("should use spec.publishId if defined", async () => {
         const config = cloneDeep(baseConfig)
-        config.spec.publishId = testVersionedId
+        config.spec.publishId = "some/image:12345"
 
         action = await getTestBuild(config)
 
