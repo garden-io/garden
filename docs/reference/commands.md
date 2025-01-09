@@ -1780,16 +1780,16 @@ actionConfigs:
 
       # By default, the directory where the action is defined is used as the source for the build context.
       #
-      # You can override this by setting either `source.path` to another (POSIX-style) path relative to the action
-      # source directory, or `source.repository` to get the source from an external repository.
+      # You can override the directory that is used for the build context by setting `source.path`.
       #
-      # If using `source.path`, you must make sure the target path is in a git repository.
-      #
-      # For `source.repository` behavior, please refer to the [Remote Sources
-      # guide](https://docs.garden.io/advanced/using-remote-sources).
+      # You can use `source.repository` to get the source from an external repository. For more information on remote
+      # actions, please refer to the [Remote Sources guide](https://docs.garden.io/advanced/using-remote-sources).
       source:
-        # A relative POSIX-style path to the source directory for this action. You must make sure this path exists and
-        # is in a git repository!
+        # A relative POSIX-style path to the source directory for this action.
+        #
+        # If specified together with `source.repository`, the path will be relative to the repository root.
+        #
+        # Otherwise, the path will be relative to the directory containing the Garden configuration file.
         path:
 
         # When set, Garden will import the action source from this repository, but use this action configuration (and
@@ -1965,16 +1965,16 @@ actionConfigs:
 
       # By default, the directory where the action is defined is used as the source for the build context.
       #
-      # You can override this by setting either `source.path` to another (POSIX-style) path relative to the action
-      # source directory, or `source.repository` to get the source from an external repository.
+      # You can override the directory that is used for the build context by setting `source.path`.
       #
-      # If using `source.path`, you must make sure the target path is in a git repository.
-      #
-      # For `source.repository` behavior, please refer to the [Remote Sources
-      # guide](https://docs.garden.io/advanced/using-remote-sources).
+      # You can use `source.repository` to get the source from an external repository. For more information on remote
+      # actions, please refer to the [Remote Sources guide](https://docs.garden.io/advanced/using-remote-sources).
       source:
-        # A relative POSIX-style path to the source directory for this action. You must make sure this path exists and
-        # is in a git repository!
+        # A relative POSIX-style path to the source directory for this action.
+        #
+        # If specified together with `source.repository`, the path will be relative to the repository root.
+        #
+        # Otherwise, the path will be relative to the directory containing the Garden configuration file.
         path:
 
         # When set, Garden will import the action source from this repository, but use this action configuration (and
@@ -2120,16 +2120,16 @@ actionConfigs:
 
       # By default, the directory where the action is defined is used as the source for the build context.
       #
-      # You can override this by setting either `source.path` to another (POSIX-style) path relative to the action
-      # source directory, or `source.repository` to get the source from an external repository.
+      # You can override the directory that is used for the build context by setting `source.path`.
       #
-      # If using `source.path`, you must make sure the target path is in a git repository.
-      #
-      # For `source.repository` behavior, please refer to the [Remote Sources
-      # guide](https://docs.garden.io/advanced/using-remote-sources).
+      # You can use `source.repository` to get the source from an external repository. For more information on remote
+      # actions, please refer to the [Remote Sources guide](https://docs.garden.io/advanced/using-remote-sources).
       source:
-        # A relative POSIX-style path to the source directory for this action. You must make sure this path exists and
-        # is in a git repository!
+        # A relative POSIX-style path to the source directory for this action.
+        #
+        # If specified together with `source.repository`, the path will be relative to the repository root.
+        #
+        # Otherwise, the path will be relative to the directory containing the Garden configuration file.
         path:
 
         # When set, Garden will import the action source from this repository, but use this action configuration (and
@@ -2275,16 +2275,16 @@ actionConfigs:
 
       # By default, the directory where the action is defined is used as the source for the build context.
       #
-      # You can override this by setting either `source.path` to another (POSIX-style) path relative to the action
-      # source directory, or `source.repository` to get the source from an external repository.
+      # You can override the directory that is used for the build context by setting `source.path`.
       #
-      # If using `source.path`, you must make sure the target path is in a git repository.
-      #
-      # For `source.repository` behavior, please refer to the [Remote Sources
-      # guide](https://docs.garden.io/advanced/using-remote-sources).
+      # You can use `source.repository` to get the source from an external repository. For more information on remote
+      # actions, please refer to the [Remote Sources guide](https://docs.garden.io/advanced/using-remote-sources).
       source:
-        # A relative POSIX-style path to the source directory for this action. You must make sure this path exists and
-        # is in a git repository!
+        # A relative POSIX-style path to the source directory for this action.
+        #
+        # If specified together with `source.repository`, the path will be relative to the repository root.
+        #
+        # Otherwise, the path will be relative to the directory containing the Garden configuration file.
         path:
 
         # When set, Garden will import the action source from this repository, but use this action configuration (and
