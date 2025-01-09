@@ -69,9 +69,7 @@ type RetrieveAvailabilityParams = {
   config: CloudBuilderConfiguration
 }
 
-async function getCloudBuilderAvailabilityRetriever(): Promise<
-  AbstractCloudBuilderAvailabilityRetriever<CloudApi>
-> {
+async function getCloudBuilderAvailabilityRetriever(): Promise<AbstractCloudBuilderAvailabilityRetriever<CloudApi>> {
   if (gardenEnv.USE_GARDEN_CLOUD_V2) {
     return new GrowCloudBuilderAvailabilityRetriever()
   } else {
