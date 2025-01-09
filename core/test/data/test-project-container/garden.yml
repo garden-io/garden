@@ -5,3 +5,4 @@ environments:
   - name: local
 providers:
   - name: test-plugin
+  - name: local-kubernetes

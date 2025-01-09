@@ -11,7 +11,7 @@ import * as td from "testdouble"
 
 import type { PluginContext } from "../../../../../src/plugin-context.js"
 import type { ContainerProvider } from "../../../../../src/plugins/container/container.js"
-import { gardenPlugin } from "../../../../../src/plugins/container/container.js"
+import { gardenPlugin as gardenContainerPlugin } from "../../../../../src/plugins/container/container.js"
 import { gardenPlugin as gardenK8sPlugin } from "../../../../../src/plugins/kubernetes/kubernetes.js"
 import type { TestGarden } from "../../../../helpers.js"
 import { expectError, getDataDir, makeTestGarden } from "../../../../helpers.js"
@@ -60,7 +60,7 @@ describe("plugins.container", () => {
   let dockerCli: sinon.SinonStub<any>
 
   beforeEach(async () => {
-    garden = await makeTestGarden(projectRoot, { plugins: [gardenPlugin(), gardenK8sPlugin()] })
+    garden = await makeTestGarden(projectRoot, { plugins: [gardenContainerPlugin(), gardenK8sPlugin()] })
     log = createActionLog({ log: garden.log, actionName: "", actionKind: "" })
     containerProvider = await garden.resolveProvider({ log: garden.log, name: "container" })
     ctx = await garden.getPluginContext({ provider: containerProvider, templateContext: undefined, events: undefined })
@@ -194,17 +194,18 @@ describe("plugins.container", () => {
         assertPublishId(`private-registry/foobar:${action.versionString()}`, result.detail)
       })
 
-      it("should fall back to action.outputs.deploymentImageName if spec.localId and spec.publishId are not defined - no kubernetes provider with deployment registry", async () => {
+      it("should fall back to action name if spec.localId and spec.publishId are not defined", async () => {
         const config = cloneDeep(baseConfig)
 
         action = await getTestBuild(config)
-
         const result = await publishContainerBuild({ ctx, log, action })
         assertPublishId(`test:${action.versionString()}`, result.detail)
       })
-
       it("should fall back to action.outputs.deploymentImageName if spec.localId and spec.publishId are not defined - with kubernetes provider with deployment registry", async () => {
-        const kubernetesProvider = (await garden.resolveProvider({ log, name: "kubernetes" })) as KubernetesProvider
+        const kubernetesProvider = (await garden.resolveProvider({
+          log,
+          name: "local-kubernetes",
+        })) as KubernetesProvider
         kubernetesProvider.config.deploymentRegistry = {
           hostname: "foo.io",
           namespace: "bar",
@@ -222,7 +223,6 @@ describe("plugins.container", () => {
         const result = await publishContainerBuild({ ctx, log, action })
         assertPublishId(`foo.io/bar/test:${action.versionString()}`, result.detail)
       })
-
       it("should respect tagOverride, which corresponds to garden publish --tag command line option", async () => {
         const config = cloneDeep(baseConfig)
 
