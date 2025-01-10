@@ -290,7 +290,9 @@ ${renderCommands(commands)}
             isCommunityEdition: isGardenCommunityEdition(garden.cloudDomain),
           })
 
-          gardenLog.info(`Running in environment ${styles.highlight(`${garden.environmentName}.${garden.namespace}`)}`)
+          gardenLog.info(
+            `Running in environment ${styles.highlight(`${garden.environmentName}.${garden.namespace}`)} in project ${styles.highlight(garden.projectName)}`
+          )
 
           if (processRecord) {
             // Update the db record for the process
